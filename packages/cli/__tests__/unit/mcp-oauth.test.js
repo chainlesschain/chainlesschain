@@ -6,7 +6,7 @@
  * the token store, expiry/refresh. fetch/fs/crypto/now are stubbed (no network,
  * no disk, no browser).
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as oauth from "../../src/lib/mcp-oauth.js";
 import { setupMcpFromConfig } from "../../src/runtime/mcp-config.js";
 
@@ -381,5 +381,53 @@ describe("renderCallbackPage (auto-close on success)", () => {
     // string is falsy, so it renders as success; a real denial always carries
     // an error code. Document the boundary: undefined/null/"" → success page.
     expect(oauth.renderCallbackPage(undefined)).toContain("window.close()");
+  });
+});
+
+describe("waitForCallback (timeout-timer cleanup)", () => {
+  const origCreateServer = _deps.createServer;
+  afterEach(() => {
+    _deps.createServer = origCreateServer;
+    vi.useRealTimers();
+  });
+
+  it("clears the backstop timer when the server errors (no leak)", async () => {
+    vi.useFakeTimers();
+    let onError;
+    _deps.createServer = () => ({
+      on: (ev, cb) => {
+        if (ev === "error") onError = cb;
+      },
+      listen: () => {},
+      close: () => {},
+    });
+    const p = oauth.waitForCallback({ port: 0, timeout: 60_000 });
+    expect(vi.getTimerCount()).toBe(1); // timeout armed
+    onError(new Error("EADDRINUSE"));
+    await expect(p).rejects.toThrow("EADDRINUSE");
+    // Previously the timer was left pending for the full timeout on this path.
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("resolves on a valid callback and clears the timer", async () => {
+    vi.useFakeTimers();
+    let handler;
+    const closed = vi.fn();
+    _deps.createServer = (h) => {
+      handler = h;
+      return { on: () => {}, listen: () => {}, close: closed };
+    };
+    const p = oauth.waitForCallback({
+      port: 0,
+      path: "/callback",
+      timeout: 60_000,
+    });
+    handler(
+      { url: "/callback?code=abc&state=xyz" },
+      { writeHead: () => {}, end: () => {} },
+    );
+    await expect(p).resolves.toEqual({ code: "abc", state: "xyz" });
+    expect(closed).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

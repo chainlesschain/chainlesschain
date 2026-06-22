@@ -410,7 +410,7 @@ function defaultOpenBrowser(url) {
 }
 
 /** Wait for the OAuth redirect on a localhost callback server; resolve {code,state}. */
-function waitForCallback({
+export function waitForCallback({
   port,
   host = "127.0.0.1",
   path = "/callback",
@@ -446,7 +446,15 @@ function waitForCallback({
       server.close();
       reject(new Error("timed out waiting for the OAuth callback"));
     }, timeout);
-    server.on("error", reject);
+    // Backstop timer should never keep the process alive on its own (the
+    // listening server does that); the loop exits promptly once it closes.
+    timer.unref?.();
+    server.on("error", (err) => {
+      // Without clearing the timer here, a bind failure (e.g. port in use)
+      // left it pending for the full `timeout`, delaying process exit.
+      clearTimeout(timer);
+      reject(err);
+    });
     server.listen(port, host);
   });
 }
