@@ -8,7 +8,7 @@
  * @version 1.2.0
  */
 
-const { ipcMain, BrowserWindow } = require("electron");
+const electron = require("electron");
 const { logger } = require("../../../utils/logger.js");
 
 let workflowEngine = null;
@@ -16,8 +16,9 @@ let workflowEngine = null;
 /**
  * Forward workflow step events to the renderer process
  * @param {Object} engine - SkillWorkflowEngine instance
+ * @param {Object} BrowserWindow - electron BrowserWindow (injectable for tests)
  */
-function setupStepEventForwarding(engine) {
+function setupStepEventForwarding(engine, BrowserWindow) {
   const sendToRenderer = (channel, data) => {
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -42,15 +43,19 @@ function setupStepEventForwarding(engine) {
  * Register skill workflow IPC handlers
  * @param {Object} options
  * @param {Object} options.workflowEngine - SkillWorkflowEngine instance
+ * @param {Object} [options.ipcMain] - electron ipcMain (injectable for tests)
+ * @param {Object} [options.BrowserWindow] - electron BrowserWindow (injectable for tests)
  */
 function registerSkillWorkflowIPC(options = {}) {
   workflowEngine = options.workflowEngine || null;
+  const ipcMain = options.ipcMain || electron.ipcMain;
+  const BrowserWindow = options.BrowserWindow || electron.BrowserWindow;
 
   logger.info("[SkillWorkflowIPC] Registering 12 handlers...");
 
   // Setup step event forwarding to renderer
   if (workflowEngine) {
-    setupStepEventForwarding(workflowEngine);
+    setupStepEventForwarding(workflowEngine, BrowserWindow);
   }
 
   // 1. Create workflow
