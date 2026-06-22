@@ -263,3 +263,6 @@ android-app/feature-local-terminal/src/main/jniLibs/armeabi-v7a/*.so
 android-app/feature-local-terminal/src/main/jniLibs/x86_64/*.so
 android-app/app/src/main/assets/frida/frida-inject-arm
 android-app/app/src/main/assets/frida/frida-inject-arm64
+
+# 本地 cc CLI 打包/解压 staging 产物（395M，可由 npm pack 重建，勿入 git）
+/ccbundle/
