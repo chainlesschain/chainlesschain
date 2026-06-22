@@ -23,9 +23,111 @@ import {
   pdhLockDir,
   diagnosePdh,
 } from "../lib/pdh-bridge.js";
+import { setupMcpFromConfig } from "../runtime/mcp-config.js";
 
 function emit(obj) {
   console.log(JSON.stringify(obj, null, 2));
+}
+
+/** Concatenate the text blocks of an MCP tool result, else null. */
+function mcpResultText(r) {
+  if (!r) return null;
+  if (Array.isArray(r.content)) {
+    const t = r.content
+      .filter((b) => b && b.type === "text" && typeof b.text === "string")
+      .map((b) => b.text)
+      .join("");
+    if (t) return t;
+  }
+  if (typeof r.result === "string") return r.result;
+  return null;
+}
+
+async function safeDisconnectAll(out) {
+  try {
+    await out?.mcpClient?.disconnectAll?.();
+  } catch {
+    /* best-effort cleanup */
+  }
+}
+
+/**
+ * Live connectivity probe for the discovered PDH bridge — the cc-side
+ * diagnostic the list/status/doctor inspectors lack: list/status/doctor only
+ * read lockfiles, this actually **connects** and verifies the server responds
+ * (discover → connect → `pdh_ping` round-trip → report). Best-effort; always
+ * disconnects. The result NEVER carries the bearer token. Injectable for tests.
+ *
+ * @returns {Promise<object>} { ok, stage, reason?, device?, port?, transport?,
+ *   tools?, latencyMs?, pingAttempted?, pingOk?, pingText?, pingError? }
+ */
+export async function probePdhBridge(opts = {}, deps = {}) {
+  const env = opts.env || process.env;
+  const discover = deps.discoverPdhServer || discoverPdhServer;
+  const connect = deps.setupMcpFromConfig || setupMcpFromConfig;
+  const now = deps.now || (() => Date.now());
+
+  const lock = discover({ env });
+  if (!lock) {
+    return {
+      ok: false,
+      stage: "discover",
+      reason: "no live PDH server discovered (run `cc pdh doctor`)",
+    };
+  }
+  const base = {
+    device: lock.device,
+    port: lock.port,
+    transport: lock.transport,
+  };
+  const cfg = pdhServerToMcpConfig(lock);
+  const start = now();
+  let out;
+  try {
+    out = await connect({ pdh: cfg }, { writeErr: () => {} });
+  } catch (err) {
+    return { ok: false, stage: "connect", reason: err.message, ...base };
+  }
+  const conn = (out.connected || []).find((c) => c.server === "pdh");
+  if (!conn) {
+    await safeDisconnectAll(out);
+    return {
+      ok: false,
+      stage: "connect",
+      reason: "server did not connect (no tools)",
+      ...base,
+    };
+  }
+  // Round-trip via pdh_ping when the bridge exposes it; otherwise the
+  // tools/list that connect already performed is itself proof of liveness.
+  const hasPing = (out.extraToolDefinitions || []).some(
+    (t) => t && t.function && t.function.name === "mcp__pdh__pdh_ping",
+  );
+  let pingOk = null;
+  let pingText = null;
+  let pingError = null;
+  if (hasPing) {
+    try {
+      const r = await out.mcpClient.callTool("pdh", "pdh_ping", {});
+      pingOk = !r?.isError;
+      pingText = mcpResultText(r);
+    } catch (err) {
+      pingOk = false;
+      pingError = err.message;
+    }
+  }
+  await safeDisconnectAll(out);
+  return {
+    ok: pingOk !== false, // connected; an attempted ping must not have failed
+    stage: "ping",
+    ...base,
+    tools: conn.tools,
+    latencyMs: now() - start,
+    pingAttempted: hasPing,
+    pingOk,
+    pingText,
+    pingError,
+  };
 }
 
 /** Strip the raw bearer token + internal _file path from a lock for output. */
@@ -35,7 +137,8 @@ function redactLock(lock) {
   return { ...rest, hasToken: !!token };
 }
 
-export function registerPdhCommand(program) {
+export function registerPdhCommand(program, deps = {}) {
+  const probe = deps.probePdhBridge || probePdhBridge;
   const pdh = program
     .command("pdh")
     .description(
@@ -156,6 +259,43 @@ export function registerPdhCommand(program) {
         }`,
       );
       console.log(`  reason         : ${diag.reason}`);
+    });
+
+  pdh
+    .command("ping")
+    .description(
+      "Connect to the discovered PDH server and verify it responds (pdh_ping round-trip)",
+    )
+    .option("--json", "Machine-readable output")
+    .action(async (options) => {
+      const res = await probe({ env: process.env });
+      if (options.json) {
+        emit(res);
+      } else if (res.stage === "discover") {
+        console.log(
+          chalk.yellow("No PDH server discovered.") +
+            chalk.gray(" Run `cc pdh doctor` for why."),
+        );
+      } else if (!res.ok) {
+        console.log(
+          chalk.red(
+            `PDH ${res.device}:${res.port} — ${res.stage} failed: ` +
+              `${res.reason || res.pingError || "unknown"}`,
+          ),
+        );
+      } else {
+        const tag = res.pingAttempted
+          ? res.pingOk
+            ? chalk.green("pong")
+            : chalk.red("ping failed")
+          : chalk.gray("connected (no pdh_ping tool)");
+        console.log(
+          `PDH ${chalk.cyan(res.device)}:${res.port} ${chalk.green("OK")} — ` +
+            `${tag}, ${res.tools} tools, ${res.latencyMs}ms`,
+        );
+        if (res.pingText) console.log(chalk.gray("  " + res.pingText));
+      }
+      if (!res.ok) process.exitCode = 1;
     });
 
   return pdh;
