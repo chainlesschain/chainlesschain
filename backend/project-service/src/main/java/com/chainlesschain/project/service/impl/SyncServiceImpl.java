@@ -261,6 +261,10 @@ public class SyncServiceImpl implements SyncService {
                 java.time.Instant.ofEpochMilli(lastSyncedAt),
                 ZoneId.systemDefault()
             );
+        // null is a supported "full sync from epoch" input (see above); derive a
+        // primitive for the millisecond comparison below so it doesn't NPE when
+        // auto-unboxing a null Long for the first non-deleted record.
+        long lastSyncedMillis = lastSyncedAt == null ? 0L : lastSyncedAt;
 
         try {
             // 根据表名查询增量数据
@@ -282,7 +286,7 @@ public class SyncServiceImpl implements SyncService {
                     // 已删除的记录
                     response.getDeletedIds().add((String) record.get("id"));
                     stats.setDeletedCount(stats.getDeletedCount() + 1);
-                } else if (createdAtMillis != null && createdAtMillis > lastSyncedAt) {
+                } else if (createdAtMillis != null && createdAtMillis > lastSyncedMillis) {
                     // 新增记录
                     response.getNewRecords().add(record);
                     stats.setNewCount(stats.getNewCount() + 1);

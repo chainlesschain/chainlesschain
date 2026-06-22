@@ -145,6 +145,26 @@ class SyncServiceScopingTest {
         verify(projectMapper, atLeastOnce()).selectMaps(any());
     }
 
+    @Test
+    void downloadIncremental_nullLastSyncedAt_doesNotNpe_treatsRecordsAsNew() {
+        // null lastSyncedAt is a supported "full sync from epoch" input. dev-mode
+        // returns one non-deleted record with a createdAt → line that classifies
+        // new-vs-updated used to unbox the null Long and throw NPE (then rethrow as
+        // "增量下载失败"). It must instead treat createdAt > epoch(0) as a new record.
+        when(accessGuard.isCallerAuthenticated(any())).thenReturn(false);
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", "r1");
+        row.put("deleted", 0);
+        row.put("createdAt", java.time.LocalDateTime.now());
+        row.put("updatedAt", java.time.LocalDateTime.now());
+        when(projectMapper.selectMaps(any())).thenReturn(new ArrayList<>(List.of(row)));
+
+        var resp = syncService.downloadIncremental("projects", null, "dev1", null);
+
+        assertEquals(1, resp.getStats().getNewCount());
+        assertEquals(0, resp.getStats().getUpdatedCount());
+    }
+
     // ==================== upload write-authz (#7 upload side) ====================
 
     @Test
