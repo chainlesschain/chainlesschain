@@ -1146,6 +1146,151 @@ describe("federation-governance", () => {
       expect(r.ok).toBe(true); // warn doesn't break ok
     });
 
+    it("an approve vote from a CURRENT member admits the candidate (threshold=1)", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const bobKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+            initial_threshold: 1,
+          },
+          issuedAt: "2026-05-01T00:00:00Z",
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            candidate_member_id: "bob",
+            candidate_pubkey_id: bobKeys.pubkeyId,
+          },
+          issuedAt: "2026-05-01T01:00:00Z",
+        }),
+        ev({
+          eventType: "vote",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+          issuedAt: "2026-05-01T02:00:00Z",
+        }),
+        // bob, now admitted, signs his own leave with his admitted key
+        ev({
+          eventType: "leave",
+          actor: "bob",
+          keys: bobKeys,
+          issuedAt: "2026-05-01T03:00:00Z",
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      // bob was admitted by a real member's vote → his leave is NOT UNKNOWN_ACTOR
+      expect(r.findings.some((f) => f.code === "UNKNOWN_ACTOR")).toBe(false);
+    });
+
+    it("an approve vote from a NON-member does NOT admit the candidate", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const bobKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+            initial_threshold: 1,
+          },
+          issuedAt: "2026-05-01T00:00:00Z",
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            candidate_member_id: "bob",
+            candidate_pubkey_id: bobKeys.pubkeyId,
+          },
+          issuedAt: "2026-05-01T01:00:00Z",
+        }),
+        // a forged / non-member "ghost" stamps the approval (not in roster)
+        ev({
+          eventType: "vote",
+          actor: "ghost",
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+          issuedAt: "2026-05-01T02:00:00Z",
+        }),
+        // bob then acts — the auditor must NOT recognize him (never validly admitted)
+        ev({
+          eventType: "leave",
+          actor: "bob",
+          keys: bobKeys,
+          issuedAt: "2026-05-01T03:00:00Z",
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      const bobLeave = log[3];
+      // bob was never admitted (non-member voter) → his later event is UNKNOWN_ACTOR
+      expect(
+        r.findings.some(
+          (f) => f.event_id === bobLeave.event_id && f.code === "UNKNOWN_ACTOR",
+        ),
+      ).toBe(true);
+      expect(r.ok).toBe(false);
+    });
+
+    it("the invite target voting for its OWN admission does NOT admit it", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const bobKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+            initial_threshold: 1,
+          },
+          issuedAt: "2026-05-01T00:00:00Z",
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            candidate_member_id: "bob",
+            candidate_pubkey_id: bobKeys.pubkeyId,
+          },
+          issuedAt: "2026-05-01T01:00:00Z",
+        }),
+        // bob approves his own admission
+        ev({
+          eventType: "vote",
+          actor: "bob",
+          keys: bobKeys,
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+          issuedAt: "2026-05-01T02:00:00Z",
+        }),
+        ev({
+          eventType: "leave",
+          actor: "bob",
+          keys: bobKeys,
+          issuedAt: "2026-05-01T03:00:00Z",
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      const bobLeave = log[3];
+      expect(
+        r.findings.some(
+          (f) => f.event_id === bobLeave.event_id && f.code === "UNKNOWN_ACTOR",
+        ),
+      ).toBe(true);
+    });
+
     it("includes final_state from replay", () => {
       const aliceKeys = ed25519.generateKeyPair();
       const log = [

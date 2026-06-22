@@ -903,12 +903,26 @@ function auditGovernanceLog(events, federationId, opts = {}) {
 
     // 6. Event-specific roster updates (so later events validate against new state)
     if (ev.event_type === "vote" && ev.payload) {
-      // approve vote moves candidate into roster (with the candidate_pubkey_id from invite)
-      // we need to find the matching invite
-      // (auditor walks linearly; simple match-by-target is enough for v0.3)
-      const target = ev.payload.invite_target_member_id;
+      // An approve vote can move a candidate into the point-in-time roster (using
+      // the candidate_pubkey_id from its invite). Mirror the authenticity half of
+      // replayGovernanceLog's vote gate: only count a vote from a CURRENT member,
+      // and never the invite target voting for its own admission — otherwise a
+      // single forged / non-member actor (or the target itself) could stamp one
+      // approval and get admitted into the auditor's roster, defeating its whole
+      // purpose (the target's later events would then wrongly validate as a known
+      // actor). Admission here is idempotent (guarded by !rosterByMember.has), so
+      // dedup is moot; full M-of-N quorum tallying for threshold>=2 stays replay's
+      // job — final_state below is derived from replayGovernanceLog.
+      const target =
+        ev.payload.invite_target_member_id || ev.payload.target_member_id;
       const decision = ev.payload.decision;
-      if (target && decision === "approve") {
+      const voter = ev.actor_member_id;
+      if (
+        target &&
+        decision === "approve" &&
+        rosterByMember.has(voter) &&
+        voter !== target
+      ) {
         // Find the most recent invite for this target in events seen so far
         const inviteMatches = events
           .slice(0, events.indexOf(ev))
