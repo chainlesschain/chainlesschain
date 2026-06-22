@@ -39,11 +39,22 @@ describe("SemanticChunker", () => {
       expect(mk().chunk(null)).toEqual([]);
     });
 
-    it("drops a plain-text document shorter than minChunkSize (documents current behavior)", () => {
-      // NOTE: a sub-minChunkSize plain doc yields ZERO chunks — it is filtered
-      // out entirely, so very short notes are not chunked/retrievable.
+    it("emits one fallback chunk for a short non-empty plain doc (no data loss)", () => {
+      // A sub-minChunkSize plain doc must still produce a single retrievable
+      // chunk rather than being filtered out entirely (regression: short notes
+      // used to vanish from the semantic index).
       const out = mk({ minChunkSize: 50 }).chunk("a short note", { id: "d" });
-      expect(out).toEqual([]);
+      expect(out).toHaveLength(1);
+      expect(out[0].id).toBe("d_chunk_0");
+      expect(out[0].content).toBe("a short note");
+      expect(out[0].metadata.totalChunks).toBe(1);
+      expect(out[0].metadata.charCount).toBe("a short note".length);
+    });
+
+    it("emits a fallback chunk when every markdown section is too short", () => {
+      const out = mk({ minChunkSize: 500 }).chunk("# Tiny\nshort body", { id: "m" });
+      expect(out).toHaveLength(1);
+      expect(out[0].content).toBe("# Tiny\nshort body");
     });
   });
 

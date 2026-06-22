@@ -72,7 +72,10 @@ class SemanticChunker {
     // 如果启用 Markdown 感知，先按结构分割
     if (this.config.preserveMarkdown && this._isMarkdown(text)) {
       const structuredChunks = this._chunkMarkdown(text, metadata);
-      return structuredChunks;
+      // 即使所有小节都短于 minChunkSize，也要保底产出一个块。
+      return structuredChunks.length > 0
+        ? structuredChunks
+        : [this._fallbackChunk(text, documentId, metadata)];
     }
 
     // 普通文本递归分割
@@ -104,12 +107,42 @@ class SemanticChunker {
       });
     }
 
+    // 短文档（整体小于 minChunkSize）也必须保底产出一个块，否则会被整体过滤
+    // 为零块而无法检索（短笔记会从语义索引中静默丢失）。
+    if (chunks.length === 0) {
+      chunks.push(this._fallbackChunk(text, documentId, metadata));
+    }
+
     logger.info(
       `[SemanticChunker] 文档已分块: ${chunks.length} 块`,
       { documentId, originalLength: text.length }
     );
 
     return chunks;
+  }
+
+  /**
+   * 构建单块兜底结果。用于整体短于 minChunkSize 的文档，确保非空内容至少产出
+   * 一个可检索的块，而不是被过滤为零块。
+   * @private
+   * @param {string} text
+   * @param {string} documentId
+   * @param {Object} metadata
+   * @returns {Object}
+   */
+  _fallbackChunk(text, documentId, metadata) {
+    const content = text.trim();
+    return {
+      id: `${documentId}_chunk_0`,
+      content,
+      metadata: {
+        ...metadata,
+        chunkIndex: 0,
+        totalChunks: 1,
+        charCount: content.length,
+        wordCount: this._countWords(content),
+      },
+    };
   }
 
   /**
