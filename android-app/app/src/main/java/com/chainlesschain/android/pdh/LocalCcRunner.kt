@@ -1807,6 +1807,103 @@ class LocalCcRunner @Inject constructor(
         }
     }
 
+    // ─── §8.3 backup: export-events / import-events (vault as backup AssetSource) ───
+    //
+    // Bridges PdhVaultBridge.CcVaultGateway → the shipped `cc hub export-events` /
+    // `import-events` commands (module 101 §8.3; on-device since v5.0.3.126).
+    // export → JSON array of full vault events; import ← a JSON-array file (idempotent
+    // upsert by id on the cc side). Reuses _runCcJson; org.json id-extraction lives
+    // here (device side).
+
+    /** One exported vault event: stable [id] + its raw JSON object string. */
+    data class ExportedEvent(val id: String, val json: String)
+
+    sealed class ExportEventsResult {
+        data class Ok(val events: List<ExportedEvent>) : ExportEventsResult()
+        data class Failed(val reason: String, val exitCode: Int?) : ExportEventsResult()
+    }
+
+    sealed class ImportEventsResult {
+        data class Ok(val imported: Int, val failed: Int) : ImportEventsResult()
+        data class Failed(val reason: String, val exitCode: Int?) : ImportEventsResult()
+    }
+
+    /** `cc hub export-events --json` → all vault events (full dump, paginated cc-side). */
+    suspend fun exportEvents(timeoutMs: Long = 120_000L): ExportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ExportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = listOf(
+                mkshPath.absolutePath, ccPath.absolutePath, "hub", "export-events", "--json",
+            )
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ExportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            if (exit != 0) {
+                val errMsg = try {
+                    JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+                } catch (_: Exception) { null }
+                return@withContext ExportEventsResult.Failed(
+                    errMsg ?: "cc exited $exit: ${stderr.take(300)}", exit,
+                )
+            }
+            try {
+                val arr = org.json.JSONArray(stdout.trim())
+                val events = buildList {
+                    for (i in 0 until arr.length()) {
+                        val o = arr.optJSONObject(i) ?: continue
+                        val id = o.optString("id", "")
+                        if (id.isEmpty()) continue // an event without id can't round-trip
+                        add(ExportedEvent(id = id, json = o.toString()))
+                    }
+                }
+                ExportEventsResult.Ok(events)
+            } catch (e: Exception) {
+                ExportEventsResult.Failed("parse-failed: ${e.message ?: e.javaClass.simpleName}", exit)
+            }
+        }
+
+    /**
+     * `cc hub import-events --input <file> --json` → {imported, failed}. [inputFile]
+     * must be a JSON array of events (assemble via [PdhVaultImportFile.assemble]).
+     * cc exits 1 on partial failure but still emits the JSON counts, so parse stdout
+     * regardless of exit code.
+     */
+    suspend fun importEvents(inputFile: File, timeoutMs: Long = 120_000L): ImportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ImportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = listOf(
+                mkshPath.absolutePath, ccPath.absolutePath,
+                "hub", "import-events", "--input", inputFile.absolutePath, "--json",
+            )
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ImportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            val parsed = try { JSONObject(stdout.trim()) } catch (_: Exception) { null }
+            if (parsed == null) {
+                return@withContext ImportEventsResult.Failed(
+                    if (exit != 0) "cc exited $exit: ${stderr.take(300)}" else "parse-failed", exit,
+                )
+            }
+            val err = parsed.optString("error", "")
+            if (err.isNotEmpty()) return@withContext ImportEventsResult.Failed(err, exit)
+            ImportEventsResult.Ok(
+                imported = parsed.optInt("imported", 0),
+                failed = parsed.optInt("failed", 0),
+            )
+        }
+
     private fun _jsonObjectToIntMap(obj: JSONObject?): Map<String, Int> {
         if (obj == null) return emptyMap()
         val out = mutableMapOf<String, Int>()
