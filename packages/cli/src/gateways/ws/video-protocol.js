@@ -8,6 +8,13 @@
  * Route keys use dot-case: video.assets.list, video.deconstruct, etc.
  */
 
+import { createRequire } from "node:module";
+// ESM module — `require` is not a global here. createRequire gives a working
+// require() for the lazy loads below (VideoPipeline + node core modules, kept
+// lazy so importing this protocol module doesn't pull the video stack on
+// every `cc` startup). Node >=22.12 (our engines floor) supports require(esm).
+const require = createRequire(import.meta.url);
+
 function ok(data = {}) {
   return { ok: true, ...data };
 }

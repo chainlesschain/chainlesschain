@@ -3,7 +3,7 @@
  */
 
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, writeFileSync, chmodSync } from "fs";
 import { join } from "path";
 
 /**
@@ -236,7 +236,6 @@ export function installHooks(dir) {
 echo "ChainlessChain: pre-commit hook running"
 `;
 
-  const { writeFileSync, chmodSync } = require("fs");
   writeFileSync(hookPath, hookContent, "utf-8");
   try {
     chmodSync(hookPath, 0o755);

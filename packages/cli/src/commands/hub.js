@@ -15,6 +15,7 @@
  * All output supports --json for scripting. Default is human-readable.
  */
 
+import { readFileSync, writeFileSync } from "node:fs";
 import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
@@ -609,7 +610,9 @@ async function cmdExportEvents(options) {
     const hub = await (options._getHub || getHubMinimal)();
     const all = exportAllEvents(hub.vault);
     if (options.output) {
-      require("fs").writeFileSync(options.output, JSON.stringify(all), "utf-8");
+      // ESM module — must NOT use require("fs") (ReferenceError: require is
+      // not defined). Use the static node:fs import.
+      writeFileSync(options.output, JSON.stringify(all), "utf-8");
       if (options.json) {
         jsonAndExit({ ok: true, count: all.length, output: options.output });
         return;
@@ -631,7 +634,8 @@ async function cmdImportEvents(options) {
         "import-events: --input <file> is required (a JSON array of events)",
       );
     }
-    const raw = require("fs").readFileSync(options.input, "utf-8");
+    // ESM module — use the static node:fs import, not require("fs").
+    const raw = readFileSync(options.input, "utf-8");
     const events = JSON.parse(raw);
     if (!Array.isArray(events)) {
       throw new Error("import-events: expected a JSON array of events");

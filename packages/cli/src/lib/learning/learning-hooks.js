@@ -16,6 +16,12 @@
  *   - Stateless — the trajectory ID is tracked on learningCtx
  */
 
+import { createRequire } from "node:module";
+// ESM module — `require` is not a global here. createRequire gives a working
+// require() for the lazy TrajectoryStore load below (kept lazy to avoid a
+// circular import). Node >=22.12 (our engines floor) supports require(esm).
+const require = createRequire(import.meta.url);
+
 /**
  * @typedef {object} LearningContext
  * @property {import("./trajectory-store.js").TrajectoryStore} trajectoryStore
