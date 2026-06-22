@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.120 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.81 / 160 命令 / 30,000+ 测试 | Android 5.0.3.120 (versionCode 503120 · USR_VERSION 48 · binariesVersion 20260617c) | iOS 5.0.3 (build 120，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.126 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.99 / 160 命令 / 30,000+ 测试 | Android 5.0.3.126 (versionCode 503126 · USR_VERSION 54 · binariesVersion 20260622d) | iOS 5.0.3 (build 126，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.122–126 个人数据中台 on-device 采集大扩展 + §8.3 跨设备加密备份 + 桌面安全硬化（2026-06-22）**：QQNT `collect-qq`（frida-free，nt_msg.db 解密入库）/ 微信 `collect-wechat`（派生密钥解密 + 解析）/ 通用明文库 `collect-db` + 多 app 通用 Magisk 守护进程（MIUI 全自动上设备）；个人助手 PDH 工具上设备 + node DNS 修复；§8.3 跨设备加密备份引擎（增量同步 + N 路版本并列冲突合并 + 加密块信封 + DID 派生备份密钥 + libp2p P2P 块传输 + 协调器坏块跳过不中断整体恢复）；桌面 IPC 发送方帧信任/actor-identity/param-identity 守卫默认 ENFORCE + 权限 grant/revoke/delegate/bulk-grant 的 RBAC 授权；CLI 数值选项 NaN 守卫 + config.llm 一致化（cc agents·command·cowork·orchestrate 不再误走 ollama）+ cc agents 接线修复；后端校验 500 修复 + 大批新测试。`pdh` 0.4.31 + `chainlesschain` 0.162.99 已发 npm；Android cc bundle `internal-binaries-android-v20260622d`（USR_VERSION 54）。
 >
 > **v5.0.3.120 FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（2026-06-18）**：好友语音/视频通话终态经 `CallHistoryRecorder` 落库 `call_history`（来/去电、未接、音视频类型与挂断原因），好友资料页「查看通话记录」按好友 DID 过滤或查看全部；来电播放系统铃声 + 振动、去电播放回铃音（修「来电无声音」）；CLI 各处网络 fetch（webhook 通知 / `cc update`·`vcheck` 更新检查 / provider 连通性探针）补超时防永久挂起，reputation/插件分账拒绝 NaN。`chainlesschain` 0.162.81 已发 npm；release 发 18 assets。
 >

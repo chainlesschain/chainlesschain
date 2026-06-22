@@ -35,6 +35,18 @@
 
 ---
 
+## 2026-06-22 发布 — **v5.0.3.126：个人数据中台 on-device 采集大扩展 + §8.3 跨设备加密备份 + 桌面安全硬化（pdh 0.4.31 / cli 0.162.99）**
+
+> 累计 v5.0.3.122–126：PDH 端侧采集（QQNT / 微信 / 通用明文库 + 多 app Magisk 守护进程）大幅扩展；§8.3 跨设备加密备份引擎落地；桌面 IPC/权限安全硬化转 ENFORCE；CLI 健壮性与 IDE 配置体验完善。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **PDH 端侧采集**：QQNT `collect-qq`（frida-free，nt_msg.db 解密入库）/ 微信 `collect-wechat`（派生密钥解密 + 解析）/ 通用明文库 `collect-db`；多 app 通用 Magisk 守护进程（MIUI 全自动上设备）；个人助手 PDH 工具上设备 + node DNS 修复（in-APK cc 外网打通）。
+- **§8.3 跨设备加密备份**：增量同步 + N 路版本并列冲突合并 + 加密块信封 + DID 派生备份密钥 + libp2p P2P 块传输 + 协调器（坏块跳过不中断整体恢复）。
+- **桌面安全硬化**：IPC 发送方帧信任 / actor-identity / param-identity 守卫默认 ENFORCE；权限 grant/revoke/delegate/bulk-grant 的 RBAC 授权。
+- **CLI / 后端 / IDE**：数值选项 NaN 守卫 + config.llm 一致化（cc agents·command·cowork·orchestrate 不再误走 ollama）+ cc agents 接线修复；后端校验 500 修复 + 大批新测试；VS Code / JetBrains 配置 LLM 预填（免重输模型 + key）。
+- **版本面**：productVersion v5.0.3.121 → v5.0.3.126；pdh 0.4.31 + `chainlesschain` 0.162.99 已发 npm。
+
+---
+
 ## 2026-06-19 发布 — **v5.0.3.121：个人数据中台分析/采集修复 + FAMILY-67 通话/通知体验 + Android 键盘遮挡修复（pdh 0.4.29 / cli 0.162.82）**
 
 > 个人数据中台（PDH）一批分析管线 + 查询解析 + 抖音/头条采集修复；FAMILY-67 通话/消息通知体验完善；Android 全局键盘遮挡一处修复。release 发 18 个安装包资产。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

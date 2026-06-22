@@ -45,6 +45,18 @@
 
 ---
 
+## 2026-06-22 Release — **v5.0.3.126: major PDH on-device collection expansion + §8.3 cross-device encrypted backup + desktop security hardening (pdh 0.4.31 / cli 0.162.99)**
+
+> Cumulative v5.0.3.122–126: large PDH on-device collection expansion (QQNT / WeChat / generic plaintext DB + multi-app Magisk staging daemon); §8.3 cross-device encrypted backup engine landed; desktop IPC/permission security hardened to ENFORCE; CLI robustness and IDE config UX improvements. Per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **PDH on-device collection**: QQNT `collect-qq` (frida-free, decrypts nt_msg.db) / WeChat `collect-wechat` (derived-key decrypt + parse) / generic plaintext DB `collect-db`; multi-app Magisk staging daemon (fully on-device on MIUI); personal-assistant PDH tools on device + node DNS fix (in-APK cc network reachability).
+- **§8.3 cross-device encrypted backup**: incremental sync + N-way version-tie conflict merge + encrypted block envelope + DID-derived backup key + libp2p P2P block transport + coordinator (skips a corrupt block instead of aborting the whole restore).
+- **Desktop security hardening**: IPC sender-frame trust / actor-identity / param-identity guards default to ENFORCE; RBAC authority for permission grant/revoke/delegate/bulk-grant.
+- **CLI / backend / IDE**: numeric-option NaN guards + config.llm consistency (cc agents·command·cowork·orchestrate no longer fall back to ollama) + cc agents wiring fix; backend validation-500 fix + many new tests; VS Code / JetBrains Configure-LLM pre-fill (no re-typing model + key).
+- **Versions**: productVersion v5.0.3.121 → v5.0.3.126; pdh 0.4.31 + `chainlesschain` 0.162.99 published to npm.
+
+---
+
 ## 2026-06-19 Release — **v5.0.3.121: PDH analysis/collection fixes + FAMILY-67 call/notification UX + Android keyboard-overlap fix (pdh 0.4.29 / cli 0.162.82)**
 
 > A batch of Personal Data Hub (PDH) analysis-pipeline + query-parsing + Douyin/Toutiao collection fixes; FAMILY-67 call/message notification UX polish; a single global Android keyboard-overlap fix. The release shipped 18 installer assets. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
