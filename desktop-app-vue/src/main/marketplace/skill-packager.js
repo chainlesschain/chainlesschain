@@ -100,7 +100,11 @@ class SkillPackager {
       }
     }
 
-    const totalSize = (pkg.skillMd || "").length + (pkg.handler || "").length;
+    // packageSkill stores the handler under `handlerJs`; reuse handlerContent
+    // (handlerJs || handler) so the handler source actually counts toward the
+    // size cap. Reading pkg.handler alone always saw undefined → handler free.
+    const totalSize =
+      (pkg.skillMd || "").length + (handlerContent || "").length;
     if (totalSize > 1024 * 1024) {
       errors.push("Package too large (max 1MB)");
     }

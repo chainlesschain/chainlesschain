@@ -203,6 +203,37 @@ describe("SkillPackager", () => {
       const result = await packager.validatePackage(pkg);
       expect(result.valid).toBe(false);
     });
+
+    it("counts the handler toward the 1MB size cap (regression)", async () => {
+      // Bug: size cap read pkg.handler, but packageSkill stores handlerJs, so a
+      // multi-MB handler slipped through. Cap must now count handlerJs.
+      const pkg = {
+        name: "big-skill",
+        version: "1.0.0",
+        description: "Large handler",
+        author: "alice",
+        category: "coding",
+        skillMd: "# small",
+        handlerJs: "a".repeat(1024 * 1024 + 10), // >1MB, benign content
+      };
+      const result = await packager.validatePackage(pkg);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => /too large/i.test(e))).toBe(true);
+    });
+
+    it("accepts a normal-sized handler under the cap", async () => {
+      const pkg = {
+        name: "ok-skill",
+        version: "1.0.0",
+        description: "Normal",
+        author: "alice",
+        category: "coding",
+        skillMd: SAMPLE_SKILL_MD,
+        handlerJs: SAMPLE_HANDLER_JS,
+      };
+      const result = await packager.validatePackage(pkg);
+      expect(result.errors.some((e) => /too large/i.test(e))).toBe(false);
+    });
   });
 
   // ── packageSkill ──────────────────────────────────────────────────────────────
