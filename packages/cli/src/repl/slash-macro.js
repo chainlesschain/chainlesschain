@@ -15,7 +15,11 @@
  * @param {string} input  raw REPL line
  * @param {object} [opts] { cwd, deps:{ getCommand, expandCommand } }
  * @returns {Promise<{matched:boolean, promptText:string, warnings:string[],
- *                    name?:string, scope?:string}>}
+ *                    name?:string, scope?:string, model?:string|null,
+ *                    allowedTools?:string|null}>}
+ *   `model` / `allowedTools` are the matched command's frontmatter (or null),
+ *   so a caller running the macro as a whole turn can scope the run the same
+ *   way `cc command run` does.
  */
 export async function resolveSlashMacro(input, opts = {}) {
   const cwd = opts.cwd || process.cwd();
@@ -41,5 +45,7 @@ export async function resolveSlashMacro(input, opts = {}) {
     warnings,
     name: macro.name,
     scope: macro.scope,
+    model: macro.model || null,
+    allowedTools: macro.allowedTools || null,
   };
 }

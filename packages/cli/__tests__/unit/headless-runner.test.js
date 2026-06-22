@@ -394,10 +394,11 @@ describe("headless-runner — tool list threading into the loop", () => {
 });
 
 describe("headless-runner — custom slash-command macros (-p parity)", () => {
-  /** A fake agentLoop that records the messages it received, then completes. */
+  /** A fake agentLoop that records the messages + options it received. */
   function capturingLoop(captured) {
-    return async function* (messages) {
+    return async function* (messages, options) {
       captured.messages = messages;
+      captured.options = options;
       yield { type: "response-complete", content: "ok" };
       yield { type: "run-ended", reason: "complete" };
     };
@@ -405,6 +406,17 @@ describe("headless-runner — custom slash-command macros (-p parity)", () => {
 
   const lastUser = (captured) =>
     captured.messages.filter((m) => m.role === "user").pop().content;
+
+  const matchedMacro = (over = {}) => ({
+    matched: true,
+    promptText: "command body",
+    warnings: [],
+    name: "c",
+    scope: "project",
+    model: null,
+    allowedTools: null,
+    ...over,
+  });
 
   it("expands a resolved /name macro into the user turn before the loop", async () => {
     const captured = {};
@@ -495,6 +507,62 @@ describe("headless-runner — custom slash-command macros (-p parity)", () => {
     deps.expandFileRefs = async (p) => ({ prompt: p, warnings: [] });
     await runAgentHeadless({ prompt: "/broken" }, deps);
     expect(lastUser(captured)).toBe("/broken");
+  });
+
+  it("applies a command's model: frontmatter when no --model is given", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () =>
+      matchedMacro({ model: "claude-opus-4-8" });
+    await runAgentHeadless({ prompt: "/deploy" }, deps);
+    expect(captured.options.model).toBe("claude-opus-4-8");
+  });
+
+  it("an explicit --model overrides the command's model: frontmatter", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () =>
+      matchedMacro({ model: "claude-opus-4-8" });
+    await runAgentHeadless({ prompt: "/deploy", model: "qwen2.5:7b" }, deps);
+    expect(captured.options.model).toBe("qwen2.5:7b");
+  });
+
+  it("applies a command's allowed-tools: frontmatter when no --allowed-tools given", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () =>
+      matchedMacro({ allowedTools: "read_file, search_files" });
+    await runAgentHeadless({ prompt: "/audit" }, deps);
+    expect(captured.options.enabledToolNames).toEqual([
+      "read_file",
+      "search_files",
+    ]);
+  });
+
+  it("an explicit --allowed-tools overrides the command's allowed-tools: frontmatter", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () =>
+      matchedMacro({ allowedTools: "read_file" });
+    await runAgentHeadless(
+      { prompt: "/audit", allowedTools: ["list_dir"] },
+      deps,
+    );
+    expect(captured.options.enabledToolNames).toEqual(["list_dir"]);
+  });
+
+  it("plan mode still clamps a command's allowed-tools to the read-only set", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () =>
+      matchedMacro({ allowedTools: "read_file, run_shell" });
+    await runAgentHeadless({ prompt: "/audit", permissionMode: "plan" }, deps);
+    expect(captured.options.enabledToolNames).toEqual(["read_file"]); // run_shell dropped
   });
 });
 

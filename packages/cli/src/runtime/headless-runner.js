@@ -250,7 +250,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     );
   }
 
-  const model = options.model || "qwen2.5:7b";
+  // `let` (not const): a custom-command macro's `model:` frontmatter may
+  // override it below (when the user passed no explicit --model), mirroring
+  // `cc command run`.
+  let model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
@@ -378,6 +381,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // below is skipped when a macro matched. Opt out with options.slashMacros:false.
   let userContent = prompt;
   let slashExpanded = false;
+  // A matched command's `allowed-tools:` frontmatter scopes the run (parsed
+  // below into enabledToolNames) the same way `cc command run` does.
+  let macroAllowedTools = null;
   if (options.slashMacros !== false && prompt.startsWith("/")) {
     try {
       const doMacro =
@@ -391,6 +397,23 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           writeErr(`  /${macro.name}: ${w}\n`);
         }
         writeErr(`  command: /${macro.name} [${macro.scope}]\n`);
+        // Frontmatter `model:` / `allowed-tools:` scope the run exactly like
+        // `cc command run` — but an explicit --model / --allowed-tools still
+        // wins (those arrive as a set options.model / options.allowedTools).
+        if (macro.model && !options.model) {
+          model = macro.model;
+          writeErr(`  command: model → ${model}\n`);
+          try {
+            const { maybeWarnDeprecatedModel } =
+              await import("../lib/model-deprecation.js");
+            maybeWarnDeprecatedModel({ model });
+          } catch {
+            // deprecation notice is best-effort
+          }
+        }
+        if (macro.allowedTools && !options.allowedTools) {
+          macroAllowedTools = parseToolList(macro.allowedTools);
+        }
       }
     } catch {
       // macro resolution is best-effort — fall back to the literal prompt
@@ -416,7 +439,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // ── Permission + tool resolution ──────────────────────────────────────
   const perm = resolvePermissionMode(options.permissionMode);
   const enabledToolNames = resolveEnabledTools({
-    allowedTools: options.allowedTools,
+    // An explicit --allowed-tools wins; otherwise a matched command's
+    // `allowed-tools:` frontmatter scopes the run (null when neither applies).
+    allowedTools: options.allowedTools || macroAllowedTools,
     readOnly: perm.readOnly,
   });
   const disabledTools = options.disallowedTools || [];
