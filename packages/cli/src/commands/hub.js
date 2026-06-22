@@ -173,12 +173,28 @@ async function cmdRetrieveContext(question, options) {
 
 async function cmdStats(options) {
   try {
-    const hub = await getHub();
+    // Default to the minimal hub: stats' core payload (vault row counts +
+    // hubDir) only needs the vault, so the full 77-adapter registry + KG/RAG
+    // sinks + email-account auto-load is wasted work for a quick `cc hub
+    // stats`. Pass --full to also list registered adapters and the resolved
+    // LLM, which require the full hub init. (The adapter list is also
+    // available standalone via `cc hub list-adapters`.) getHubMinimal()
+    // transparently returns the full hub if one was already built this
+    // process, so --full is only needed on a cold stats call. Tests stub
+    // via _getHub.
+    const wantFull = options.full === true;
+    const hub = options._getHub
+      ? await options._getHub()
+      : wantFull
+        ? await getHub()
+        : await getHubMinimal();
+    const adapters = hub.registry ? hub.registry.list() : null;
     const out = {
       vault: hub.vault.stats(),
-      adapters: hub.registry.list(),
+      adapters,
       hubDir: hub.hubDir,
       llm: hub.llm ? { name: hub.llm.name, isLocal: hub.llm.isLocal } : null,
+      minimal: !!hub.minimal,
     };
     if (options.json) {
       printJson(out);
@@ -190,9 +206,17 @@ async function cmdStats(options) {
       logger.log(`  places:   ${v.places}`);
       logger.log(`  items:    ${v.items}`);
       logger.log(`  topics:   ${v.topics}`);
-      logger.log(chalk.bold(`\nadapters (${out.adapters.length}):`));
-      for (const a of out.adapters) {
-        logger.log(`  ${chalk.cyan(a.name)} v${a.version}`);
+      if (out.adapters) {
+        logger.log(chalk.bold(`\nadapters (${out.adapters.length}):`));
+        for (const a of out.adapters) {
+          logger.log(`  ${chalk.cyan(a.name)} v${a.version}`);
+        }
+      } else {
+        logger.log(
+          chalk.gray(
+            "\nadapters: (run `cc hub stats --full` or `cc hub list-adapters`)",
+          ),
+        );
       }
       logger.log(chalk.gray(`\nhubDir: ${out.hubDir}`));
       if (out.llm) {
@@ -200,6 +224,8 @@ async function cmdStats(options) {
           ? chalk.green("[local]")
           : chalk.yellow("[remote]");
         logger.log(chalk.gray(`llm: ${out.llm.name} ${tag}`));
+      } else if (out.minimal) {
+        logger.log(chalk.gray("llm: (run `cc hub stats --full` to resolve)"));
       } else {
         logger.log(chalk.yellow("llm: (none)"));
       }
@@ -528,7 +554,8 @@ function importEventsInto(vault, events) {
       imported += 1;
     } catch (e) {
       failed += 1;
-      if (errors.length < 10) errors.push({ id: ev && ev.id, error: e.message });
+      if (errors.length < 10)
+        errors.push({ id: ev && ev.id, error: e.message });
     }
   }
   return { ok: failed === 0, imported, failed, errors };
@@ -2606,8 +2633,14 @@ export function registerHubCommand(program) {
 
   hub
     .command("stats")
-    .description("Vault row counts + registered adapter list + hub paths")
+    .description(
+      "Vault row counts + hub paths (use --full to also list adapters + LLM)",
+    )
     .option("--json", "Output JSON")
+    .option(
+      "--full",
+      "Include registered adapter list + resolved LLM (loads the full hub)",
+    )
     .action(cmdStats);
 
   hub
@@ -3175,6 +3208,7 @@ export function registerHubCommand(program) {
 export const _internal = {
   cmdAsk,
   cmdRetrieveContext,
+  cmdStats,
   parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,
