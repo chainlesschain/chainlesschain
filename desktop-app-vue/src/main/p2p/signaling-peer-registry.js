@@ -202,9 +202,11 @@ class SignalingPeerRegistry {
    * This allows the signaling server host to appear in the peers list
    * @param {string} peerId - Local peer identifier
    * @param {Object} deviceInfo - Device metadata
-   * @param {string} deviceType - Device type (usually 'DESKTOP')
+   * @param {string} deviceType - Device type (lowercase, e.g. 'desktop' — must
+   *   match the convention used by register()/getStats(), which query
+   *   getPeersByType('desktop'|'mobile') with an exact compare.)
    */
-  registerLocal(peerId, deviceInfo = {}, deviceType = "DESKTOP") {
+  registerLocal(peerId, deviceInfo = {}, deviceType = "desktop") {
     this.peers.set(peerId, {
       socket: null, // Local peer has no socket
       deviceInfo,
