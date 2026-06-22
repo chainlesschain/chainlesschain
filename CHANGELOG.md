@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
+## [v5.0.3.128] - 2026-06-22 — §8.3 学习层备份命令上设备（新 cc bundle v20260622e）
+
+### Added — 个人数据跨设备备份覆盖全资产（vault + 记忆 + 习惯 + 自进化轨迹）
+
+> Android cc bundle 刷新 `20260622d → 20260622e`（USR_VERSION 54 → 55），把已发 npm 的 cli `0.162.102` + §8.3 学习层备份命令打进 APK。从 main HEAD 构建，承载 v5.0.3.127 的全部修复。
+
+- **cc 新命令上设备**：`cc memory export/import`（层次化记忆）、`cc instinct export/import`（学习习惯）、`cc learning export/import`（自进化轨迹，含 synthesized skill）—— module 101 §8.3 学习层资产备份桥。vault 命令已随 v5.0.3.126 上设备，本版补齐学习层。
+- **覆盖范围**：`PdhBackupService.sourcesProvider` 现 = [vault · memory · instinct · trajectories]，§8.3 全资产端到端备份（你的数据 + AI 对你的认知 + 习惯 + 自进化），内容寻址 AES-256-GCM 分块 + 幂等 upsert（按 id）+ 收敛优先合并。密钥归个人、绝不上云。
+- 安装新 APK 后 USR_VERSION 55 触发 bundle 重提取，命令即在设备 cc 生效。发版前 QA：cc 侧 3 套 real-sqlite 往返集成测试 + 4 e2e（真 cc bin）全绿。
+
 ## [v5.0.3.127] - 2026-06-22 — 个人助手卡死无反馈修复（看门狗超时友好提示 + 自动重启 + 重试）
 
 ### Fixed — Android 个人助手「发消息不回复、一直转圈」无任何反馈
