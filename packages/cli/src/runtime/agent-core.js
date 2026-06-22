@@ -2634,6 +2634,36 @@ async function _executeRunCode(args, cwd) {
 export const MAX_SUB_AGENT_DEPTH = 5;
 
 /**
+ * Per-tool-result character cap fed back to the model. One giant tool output (a
+ * huge file, a verbose command, an MCP blob) must not blow the context window —
+ * but the model is TOLD when output is cut, instead of the old silent
+ * `substring(0, 5000)` that sliced mid-content with no marker and undercut even
+ * read_file's own 50k self-limit. Tools that self-limit (read_file, notebook
+ * render) stay below this; it is the final safety net for the ones that don't
+ * (run_shell, search_files, run_code, MCP). Override with CC_MAX_TOOL_RESULT_CHARS.
+ */
+export const MAX_TOOL_RESULT_CHARS = (() => {
+  const n = Number(process.env.CC_MAX_TOOL_RESULT_CHARS);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 50000;
+})();
+
+/**
+ * Cap a serialized tool result to `max` chars, appending a visible truncation
+ * marker (with the original length + how to get the rest) when it overflows —
+ * so the model never silently receives a mid-content slice. Pure; exported for
+ * tests.
+ */
+export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
+  const s = String(serialized ?? "");
+  if (s.length <= max) return s;
+  return (
+    s.slice(0, max) +
+    `\n…[tool output truncated: showing the first ${max} of ${s.length} chars` +
+    ` — narrow the request (read a line range, grep, or paginate) to see the rest]`
+  );
+}
+
+/**
  * Execute a spawn_sub_agent tool call.
  * Creates an isolated SubAgentContext, runs it, and returns only the summary.
  *
@@ -4586,7 +4616,10 @@ export async function* agentLoop(messages, options) {
 
       // Append budget warning to tool result so the LLM sees it
       const warningMsg = budget.toWarningMessage();
-      const resultStr = JSON.stringify(toolResult).substring(0, 5000);
+      // Cap an individual tool result so one giant output can't blow the
+      // context — but tell the model when we cut it (no more silent
+      // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
+      const resultStr = capToolResultString(JSON.stringify(toolResult));
       const toolContent = warningMsg
         ? `${resultStr}\n\n${warningMsg}`
         : resultStr;
