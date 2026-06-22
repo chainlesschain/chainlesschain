@@ -582,9 +582,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // the very first turn — the read side of pdh-feedback-ledger.js. Gated to PDH
   // context (the in-APK chat sets CHAINLESSCHAIN_PDH_PORT; `--pdh` forces,
   // `--no-pdh` opts out) so IDE/coding sessions are never polluted. Best-effort.
+  // PDH context gate — reused by the §3.5.13 flywheel injection below and the
+  // §3.5.18 egress reporting after each turn (in-APK chat sets
+  // CHAINLESSCHAIN_PDH_PORT; `--pdh` forces, `--no-pdh` opts out).
+  let pdhContext = false;
   try {
     const { isInPdhTerminal } = await import("../lib/pdh-bridge.js");
-    const pdhContext =
+    pdhContext =
       options.pdh === true ||
       (options.pdh !== false && isInPdhTerminal(process.env));
     if (pdhContext) {
@@ -1274,6 +1278,38 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       continue;
     }
     currentAbort = null;
+
+    // §3.5.18 出境台账: report what left the device this turn (the cloud-LLM
+    // call + any egress-classed tool) so the Android transparency ledger —
+    // which cannot see the cc subprocess's cloud call — records it. PDH-gated
+    // and emit-only (cc never keeps its own ledger; it stays a single on-device
+    // encrypted store). A local-only turn emits nothing — the honest "0 条出境".
+    // Uses the EFFECTIVE per-turn LLM (a §3.5.10 privacy-tier / vision override
+    // is exactly the egress-relevant decision).
+    if (pdhContext) {
+      try {
+        const { turnEgressEvents } = await import("../lib/pdh-egress.js");
+        const effProvider =
+          turnVisionLlm?.provider || turnLlmOverride?.provider || provider;
+        const effModel =
+          turnVisionLlm?.model || turnLlmOverride?.model || model;
+        const effBaseUrl =
+          turnVisionLlm?.baseUrl || turnLlmOverride?.baseUrl || baseUrl;
+        for (const ev of turnEgressEvents({
+          provider: effProvider,
+          baseUrl: effBaseUrl,
+          model: effModel,
+          toolCalls: outcome.toolCalls,
+          usage: outcome.usage,
+          sessionId,
+          turn: turns,
+        })) {
+          emit(ev);
+        }
+      } catch {
+        /* egress reporting is best-effort — never break the chat */
+      }
+    }
 
     // Grow the conversation so the next turn has context.
     messages.push({ role: "assistant", content: outcome.finalText });
