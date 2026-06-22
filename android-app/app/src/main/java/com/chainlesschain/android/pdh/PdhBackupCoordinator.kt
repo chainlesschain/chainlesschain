@@ -42,12 +42,14 @@ object PdhBackupCoordinator {
         fun decode(bytes: ByteArray): Record
     }
 
-    /** 一次同步结果:传输统计 + 各类冲突 key(收敛优先,冲突两份都已写回)。 */
+    /** 一次同步结果:传输统计 + 各类冲突 key(收敛优先,冲突两份都已写回)+ 拉回后解密/解码失败的块数。 */
     data class SyncOutcome(
         val transfer: PdhBackupTransport.TransferResult,
         val conflictsByKind: Map<AssetKind, List<String>>,
+        /** 拉回但解密校验失败/解码失败被跳过的块数(篡改/错密钥/坏数据;不中止整体恢复)。 */
+        val decryptFailed: Int = 0,
     ) {
-        val ok: Boolean get() = transfer.ok
+        val ok: Boolean get() = transfer.ok && decryptFailed == 0
         val hasConflicts: Boolean get() = conflictsByKind.values.any { it.isNotEmpty() }
     }
 
@@ -80,11 +82,17 @@ object PdhBackupCoordinator {
         val plan = PdhBackupSync.plan(PdhBackupSync.Manifest(manifestBlocks), remoteManifest)
         val transfer = PdhBackupTransport.transfer(plan, { blocksByHash[it] }, channel)
 
-        // 3) 解密+校验拉回的块 → 解码成各类远端记录。
+        // 3) 解密+校验拉回的块 → 解码成各类远端记录。单块失败(篡改/错密钥/坏数据)只跳过
+        //    并计数,绝不让一个坏块中止整批恢复(§13.4 诚实:失败如实计入 decryptFailed)。
         val remoteByKind = HashMap<AssetKind, MutableList<Record>>()
+        var decryptFailed = 0
         for (block in transfer.pulled) {
-            val bytes = PdhBackupEnvelope.open(block, cipher) // 不符即抛(防篡改/错密钥)
-            remoteByKind.getOrPut(block.assetKind) { mutableListOf() }.add(codec.decode(bytes))
+            val rec = runCatching { codec.decode(PdhBackupEnvelope.open(block, cipher)) }.getOrNull()
+            if (rec == null) {
+                decryptFailed += 1
+                continue
+            }
+            remoteByKind.getOrPut(block.assetKind) { mutableListOf() }.add(rec)
         }
 
         // 4) 按资产类型合并本地∪远端,写回源;汇总冲突。
@@ -108,7 +116,7 @@ object PdhBackupCoordinator {
             src.write(merged)
             conflicts[src.kind] = merge.conflicts
         }
-        return SyncOutcome(transfer, conflicts)
+        return SyncOutcome(transfer, conflicts, decryptFailed)
     }
 
     private fun encodedHash(codec: RecordCodec, r: Record): String =

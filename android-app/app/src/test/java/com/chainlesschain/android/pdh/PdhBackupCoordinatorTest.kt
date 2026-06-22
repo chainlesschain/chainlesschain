@@ -120,4 +120,25 @@ class PdhBackupCoordinatorTest {
         assertTrue(skills.records.any { String(it.content) == "X" })
         assertTrue(skills.records.any { String(it.content) == "Y" })
     }
+
+    @Test
+    fun corrupt_pulled_block_is_skipped_not_aborting_the_whole_restore() = runTest {
+        val good = rec("good", 0, "ok")
+        val bad = rec("bad", 0, "tampered")
+        val mem = FakeSource(AssetKind.MEMORY, mutableListOf()) // 本地空
+        val goodBlock = blockOf(AssetKind.MEMORY, good)
+        val badValid = blockOf(AssetKind.MEMORY, bad)
+        // 篡改密文但保留 contentHash → 过传输层完整性,却解密校验失败
+        val badCorrupt = badValid.copy(ciphertext = "XXcorruptXX".toByteArray())
+        val channel = FakeChannel(listOf(goodBlock, badCorrupt))
+        val manifest = PdhBackupSync.Manifest(
+            listOf(PdhBackupEnvelope.toSyncBlock(goodBlock), PdhBackupEnvelope.toSyncBlock(badValid)),
+        )
+
+        val out = PdhBackupCoordinator.sync(listOf(mem), codec, cipher, channel, manifest)
+
+        assertEquals(1, out.decryptFailed) // 坏块被跳过并计数
+        assertFalse(out.ok) // decryptFailed>0 → 整体非 ok
+        assertEquals(listOf("good"), mem.records.map { it.key }) // 好块仍正常恢复(未被坏块中止)
+    }
 }
