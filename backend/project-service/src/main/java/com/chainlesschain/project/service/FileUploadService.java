@@ -44,6 +44,11 @@ public class FileUploadService {
      * 上传文件
      */
     public FileUploadResponse uploadFile(MultipartFile file, String userId) throws IOException {
+        // 安全：拒绝含路径分隔符 / .. 的 userId，杜绝目录穿越写入（与 getFile/deleteFile 一致）
+        if (isUnsafeSegment(userId)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+
         // 验证文件
         validateFile(file);
 
