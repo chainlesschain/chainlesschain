@@ -169,5 +169,35 @@ describe("AppConfigManager", () => {
       const restored = fs.readFileSync(dbPath, "utf8");
       expect(restored).toBe("original-content");
     });
+
+    it("cleanupOldBackups respects an explicit maxBackups of 0 (keeps none)", () => {
+      manager.ensureDatabaseDir();
+      const dbPath = manager.getDatabasePath();
+      const dbDir = path.dirname(dbPath);
+      const dbName = path.basename(dbPath);
+      // Three pre-existing backup files matching the cleanup filter
+      for (const tag of ["a", "b", "c"]) {
+        fs.writeFileSync(path.join(dbDir, `${dbName}.backup.${tag}`), "x");
+      }
+      expect(manager.listBackups().length).toBe(3);
+
+      // maxBackups=0 means "keep none" — `|| 7` used to coerce it to 7 (kept all)
+      manager.config.database.maxBackups = 0;
+      manager.cleanupOldBackups();
+      expect(manager.listBackups().length).toBe(0);
+    });
+
+    it("cleanupOldBackups keeps the N most recent when maxBackups is set", () => {
+      manager.ensureDatabaseDir();
+      const dbPath = manager.getDatabasePath();
+      const dbDir = path.dirname(dbPath);
+      const dbName = path.basename(dbPath);
+      for (const tag of ["a", "b", "c", "d"]) {
+        fs.writeFileSync(path.join(dbDir, `${dbName}.backup.${tag}`), "x");
+      }
+      manager.config.database.maxBackups = 2;
+      manager.cleanupOldBackups();
+      expect(manager.listBackups().length).toBe(2);
+    });
   });
 });

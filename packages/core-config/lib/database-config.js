@@ -327,7 +327,12 @@ class AppConfigManager {
         }))
         .sort((a, b) => b.time - a.time);
 
-      const maxBackups = this.config.database.maxBackups || 7;
+      // Respect an explicit maxBackups of 0 (keep none). `|| 7` would coerce the
+      // valid falsy 0 to 7, silently ignoring a user who disabled retention; fall
+      // back to 7 only when unset / non-integer / negative.
+      const configured = this.config.database.maxBackups;
+      const maxBackups =
+        Number.isInteger(configured) && configured >= 0 ? configured : 7;
       const toDelete = backupFiles.slice(maxBackups);
 
       for (const file of toDelete) {
