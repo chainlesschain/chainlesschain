@@ -4,6 +4,7 @@
  */
 
 import fs from "fs";
+import { numericOption } from "../lib/cli-numeric.js";
 import path from "path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
@@ -187,7 +188,7 @@ export function registerSessionCommand(program) {
 
           let messages = sess.messages;
           if (options.limit) {
-            messages = messages.slice(-parseInt(options.limit));
+            messages = messages.slice(-numericOption(options.limit, { name: "--limit", integer: true, min: 1 }));
           }
 
           for (const msg of messages) {

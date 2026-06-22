@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -134,7 +135,7 @@ export function registerMatrixCommand(program) {
         ensureMatrixTables(db);
 
         const messages = getMessages(roomId, {
-          limit: parseInt(options.limit),
+          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }),
         });
         if (options.json) {
           console.log(JSON.stringify(messages, null, 2));

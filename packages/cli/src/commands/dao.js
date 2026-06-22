@@ -388,7 +388,7 @@ export function registerDaoCommand(program) {
           type: options.type,
           actions: parseJsonOption(options.actions, "--actions"),
           votingDurationMs: options.votingDuration
-            ? parseInt(options.votingDuration)
+            ? numericOption(options.votingDuration, { name: "--voting-duration", integer: true, min: 0 })
             : undefined,
         });
 
@@ -457,7 +457,7 @@ export function registerDaoCommand(program) {
           proposalId,
           voterDid: options.voter,
           voteType: options.type,
-          voteCount: parseInt(options.count),
+          voteCount: numericOption(options.count, { name: "--count", integer: true, min: 1 }),
           balance: options.balance ? parseFloat(options.balance) : undefined,
         });
 
@@ -779,7 +779,7 @@ export function registerDaoCommand(program) {
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
 
-        const s = getGovernanceStatsV2(parseInt(options.members));
+        const s = getGovernanceStatsV2(numericOption(options.members, { name: "--members", integer: true, min: 0, fallback: 0 }));
         if (options.json) {
           console.log(JSON.stringify(s, null, 2));
         } else {
@@ -833,15 +833,15 @@ export function registerDaoCommand(program) {
       try {
         const updates = {};
         if (options.votingDuration)
-          updates.votingDurationMs = parseInt(options.votingDuration);
+          updates.votingDurationMs = numericOption(options.votingDuration, { name: "--voting-duration", integer: true, min: 0 });
         if (options.quorumPercentage)
           updates.quorumPercentage = parseFloat(options.quorumPercentage);
         if (options.timelockMs)
-          updates.timelockMs = parseInt(options.timelockMs);
+          updates.timelockMs = numericOption(options.timelockMs, { name: "--timelock-ms", integer: true, min: 0 });
         if (options.quadraticEnabled !== undefined)
           updates.quadraticEnabled = options.quadraticEnabled === "true";
         if (options.maxDelegationDepth)
-          updates.maxDelegationDepth = parseInt(options.maxDelegationDepth);
+          updates.maxDelegationDepth = numericOption(options.maxDelegationDepth, { name: "--max-delegation-depth", integer: true, min: 0 });
         if (options.proposalThreshold)
           updates.proposalThreshold = parseFloat(options.proposalThreshold);
         if (options.maxSingleAllocation)

@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -220,7 +221,7 @@ export function registerSyncCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const entries = getSyncLog(db, { limit: parseInt(options.limit) });
+        const entries = getSyncLog(db, { limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 20 }) });
 
         if (options.json) {
           console.log(JSON.stringify(entries, null, 2));

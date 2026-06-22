@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { resolve } from "path";
 import { logger } from "../lib/logger.js";
@@ -72,7 +73,7 @@ export function registerExportCommand(program) {
         const exported = exportToMarkdown(db, outputDir, {
           category: options.category,
           tag: options.tag,
-          limit: options.limit ? parseInt(options.limit) : undefined,
+          limit: options.limit ? numericOption(options.limit, { name: "--limit", integer: true, min: 1 }) : undefined,
         });
         spinner.stop();
 

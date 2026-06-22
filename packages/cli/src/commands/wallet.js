@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -386,7 +387,7 @@ export function registerWalletCommand(program) {
         const db = ctx.db.getDatabase();
         const txns = getTransactions(db, {
           address: options.address,
-          limit: parseInt(options.limit),
+          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 20 }),
         });
 
         if (options.json) {

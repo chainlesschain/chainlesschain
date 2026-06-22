@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -103,7 +104,7 @@ export function registerNostrCommand(program) {
 
         const result = publishEvent(
           db,
-          parseInt(options.kind),
+          numericOption(options.kind, { name: "--kind", integer: true, min: 0 }),
           content,
           options.pubkey,
           [],
@@ -140,8 +141,8 @@ export function registerNostrCommand(program) {
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
 
-        const filter = { limit: parseInt(options.limit) };
-        if (options.kind) filter.kinds = [parseInt(options.kind)];
+        const filter = { limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }) };
+        if (options.kind) filter.kinds = [numericOption(options.kind, { name: "--kind", integer: true, min: 0 })];
         const events = getEvents(filter);
         if (options.json) {
           console.log(JSON.stringify(events, null, 2));

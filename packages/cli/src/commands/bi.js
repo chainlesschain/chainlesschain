@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -213,7 +214,7 @@ export function registerBiCommand(program) {
     .action(async (options) => {
       try {
         const data = parseJsonOption(options.data, "--data", []);
-        const result = predictTrend(data, parseInt(options.periods));
+        const result = predictTrend(data, numericOption(options.periods, { name: "--periods", integer: true, min: 1, fallback: 3 }));
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));

@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { resolve } from "path";
 import { logger } from "../lib/logger.js";
 import {
@@ -165,7 +166,7 @@ export function registerGitCommand(program) {
         }
 
         const analysis = gitHistoryAnalyze(dir);
-        const recentLog = gitLog(dir, parseInt(options.limit));
+        const recentLog = gitLog(dir, numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 10 }));
 
         if (options.json) {
           console.log(

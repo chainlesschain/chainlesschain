@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import {
@@ -162,8 +163,8 @@ export function registerBrowseCommand(program) {
       try {
         const spinner = ora(`Taking screenshot of ${url}...`).start();
         const result = await takeScreenshot(url, options.output, {
-          width: parseInt(options.width),
-          height: parseInt(options.height),
+          width: numericOption(options.width, { name: "--width", integer: true, min: 1, fallback: 1280 }),
+          height: numericOption(options.height, { name: "--height", integer: true, min: 1, fallback: 720 }),
           fullPage: !!options.fullPage,
         });
         spinner.stop();

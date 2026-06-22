@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -151,7 +152,7 @@ export function registerNoteCommand(program) {
         }
 
         sql += " ORDER BY created_at DESC LIMIT ?";
-        params.push(parseInt(options.limit));
+        params.push(numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 20 }));
 
         let notes = rawDb.prepare(sql).all(...params);
 
