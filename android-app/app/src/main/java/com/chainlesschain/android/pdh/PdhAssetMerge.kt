@@ -60,11 +60,13 @@ object PdhAssetMerge {
                     item.version < existing.version -> Unit // 保留 existing(版本更高)
                     existing.contentHash == item.contentHash -> Unit // 完全相同
                     else -> {
-                        // 版本相等、内容不同 = 真冲突 → 两份都留(按 contentHash 定序,
-                        // 小者占 key、大者标 #conflict → 与端序无关、可交换)。
+                        // 版本相等、内容不同 = 真冲突 → 全部保留(按 contentHash 定序,
+                        // 最小者占 key、其余各以 `#conflict-<contentHash>` 入键 → 与端序无关、
+                        // 可交换,且 N(≥3)路同 key 冲突互不覆盖(收敛优先,绝不静默丢)。
                         val (lo, hi) = listOf(existing, item).sortedBy { it.contentHash }
                         byKey[item.key] = lo
-                        extras["${item.key}#conflict"] = hi.copy(key = "${item.key}#conflict")
+                        val conflictKey = "${item.key}#conflict-${hi.contentHash}"
+                        extras[conflictKey] = hi.copy(key = conflictKey)
                         conflicts += item.key
                     }
                 }

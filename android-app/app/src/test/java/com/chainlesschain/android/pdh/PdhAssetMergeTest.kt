@@ -54,8 +54,29 @@ class PdhAssetMergeTest {
         val r = PdhAssetMerge.merge(AssetKind.SKILLS, listOf(i("s1", 1, "A")), listOf(i("s1", 1, "B")))
         assertEquals(listOf("s1"), r.conflicts)
         assertEquals(2, r.merged.size) // 两份都留(收敛优先,不静默丢)
-        assertTrue(r.merged.any { it.key == "s1#conflict" })
+        assertTrue(r.merged.any { it.key.startsWith("s1#conflict") })
         // 可交换:换端序结果一致
         assertEquals(r.merged, PdhAssetMerge.merge(AssetKind.SKILLS, listOf(i("s1", 1, "B")), listOf(i("s1", 1, "A"))).merged)
+    }
+
+    @Test
+    fun three_way_version_tie_keeps_all_copies_and_is_commutative() {
+        // 3 台设备各改同一技能到同版本不同内容 → 三份都须保留
+        // (此前固定 #conflict 键会丢第三份;§8.3 明确含 手机↔桌面↔备用机 多端)
+        val a = listOf(i("s1", 1, "A"))
+        val b = listOf(i("s1", 1, "B"))
+        val c = listOf(i("s1", 1, "C"))
+        // 多端经反复 pairwise 合并收敛:先 A∪B,再 ∪C
+        val ab = PdhAssetMerge.merge(AssetKind.SKILLS, a, b).merged
+        val abc = PdhAssetMerge.merge(AssetKind.SKILLS, ab, c).merged
+        assertEquals(3, abc.size) // 三份都在
+        assertEquals(setOf("A", "B", "C"), abc.map { it.contentHash }.toSet())
+        // 与合并顺序无关(收敛):C∪B 再 ∪A 得同一集合
+        val cba = PdhAssetMerge.merge(
+            AssetKind.SKILLS,
+            PdhAssetMerge.merge(AssetKind.SKILLS, c, b).merged,
+            a,
+        ).merged
+        assertEquals(abc.toSet(), cba.toSet())
     }
 }

@@ -64,7 +64,7 @@ class PdhBackupStoreTest {
         val store = FakeStore(AssetKind.SKILLS, listOf(item("s1", 1, "A")))
         val conflicts = PdhBackupStore.applyRestore(store, listOf(item("s1", 1, "B")))
         assertEquals(listOf("s1"), conflicts)
-        assertTrue(store.read().any { it.key == "s1#conflict" }) // 两份都留(收敛优先)
+        assertTrue(store.read().any { it.key.startsWith("s1#conflict") }) // 两份都留(收敛优先)
     }
 
     @Test
