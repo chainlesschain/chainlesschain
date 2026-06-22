@@ -48,6 +48,7 @@ public final class PureLogicSmokeMain {
         slashCommands();
         cliVersionCheck();
         binaryResolution();
+        cliLauncher();
         fixWithCc();
         markdownLite();
 
@@ -439,6 +440,45 @@ public final class PureLogicSmokeMain {
         check(!AgentChatSession.looksLikeCcVersion(""), "empty → reject");
         check(!AgentChatSession.looksLikeCcVersion(null), "null → reject");
         check(!AgentChatSession.looksLikeCcVersion("not a version"), "junk → reject");
+    }
+
+    private static void cliLauncher() {
+        System.out.println("CliLauncher (PATH augmentation — makes cc reachable from the IDE):");
+        // Windows: the npm default global prefix (%APPDATA%\npm) is offered — the
+        // exact dir whose absence triggers "'cc' is not recognized".
+        java.util.Map<String, String> win = new java.util.HashMap<String, String>();
+        win.put("APPDATA", "C:\\Users\\u\\AppData\\Roaming");
+        win.put("ProgramFiles", "C:\\Program Files");
+        java.util.List<String> wd = CliLauncher.candidateBinDirs(win, true);
+        check(wd.contains("C:\\Users\\u\\AppData\\Roaming\\npm"), "win: %APPDATA%\\npm offered");
+        check(wd.contains("C:\\Program Files\\nodejs"), "win: ProgramFiles\\nodejs offered");
+        // posix: homebrew + npm-global covered
+        java.util.Map<String, String> nix = new java.util.HashMap<String, String>();
+        nix.put("HOME", "/home/u");
+        java.util.List<String> nd = CliLauncher.candidateBinDirs(nix, false);
+        check(nd.contains("/usr/local/bin") && nd.contains("/opt/homebrew/bin"), "posix: brew dirs offered");
+        check(nd.contains("/home/u/.npm-global/bin"), "posix: ~/.npm-global/bin offered");
+        // node version managers take precedence (active node's bin)
+        java.util.Map<String, String> nvm = new java.util.HashMap<String, String>();
+        nvm.put("HOME", "/home/u");
+        nvm.put("NVM_BIN", "/home/u/.nvm/versions/node/v22.0.0/bin");
+        check(CliLauncher.candidateBinDirs(nvm, false).get(0).equals("/home/u/.nvm/versions/node/v22.0.0/bin"),
+                "posix: NVM_BIN listed first");
+        // augmentedPath appends missing dirs, dedups, preserves existing order
+        eq(CliLauncher.augmentedPath("/usr/bin", java.util.Arrays.asList("/opt/x", "/usr/bin"), ':'),
+                "/usr/bin:/opt/x", "append new dir, drop duplicate, keep order");
+        eq(CliLauncher.augmentedPath(null, java.util.Arrays.asList("/a", "/b"), ':'),
+                "/a:/b", "null PATH → just the candidates");
+        // missing-cli detection across the OS-specific shell messages
+        check(CliLauncher.looksLikeMissingCli("'cc' is not recognized as an internal or external command"),
+                "win 'not recognized' → missing");
+        check(CliLauncher.looksLikeMissingCli("/bin/sh: cc: command not found"), "posix 'command not found' → missing");
+        check(CliLauncher.looksLikeMissingCli("Cannot run program \"cc\": error=2, No such file or directory"),
+                "java CreateProcess error=2 → missing");
+        check(!CliLauncher.looksLikeMissingCli("llm.provider = volcengine"), "normal output → not missing");
+        check(!CliLauncher.looksLikeMissingCli(null), "null → not missing");
+        check(CliLauncher.missingCliMessage().contains("npm i -g chainlesschain"), "guidance names the install command");
+        check(CliLauncher.missingCliMessage().contains("22.12.0"), "guidance names the Node.js floor");
     }
 
     private static void cliVersionCheck() {

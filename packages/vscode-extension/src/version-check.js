@@ -18,6 +18,39 @@ const MIN_CLI_VERSION = "0.162.47";
 /** The shell command that upgrades the global CLI to the latest published npm. */
 const UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
+/** Bare install command (first-time, not @latest upgrade). */
+const INSTALL_COMMAND = "npm i -g chainlesschain";
+
+/**
+ * Node.js floor — `npm i -g chainlesschain` ABORTS on older Node (the package's
+ * engines requires this), so the install guidance must say it or users hit an
+ * unexplained EBADENGINE failure. Mirror packages/cli/package.json `engines.node`.
+ */
+const MIN_NODE_VERSION = "22.12.0";
+
+/** Install guidance naming both the command and the Node floor. `zh` picks the
+ *  Chinese phrasing (panel wizard); default is English (notification surfaces). */
+function installGuidance(zh = false) {
+  return zh
+    ? `请先安装(需 Node.js >= ${MIN_NODE_VERSION}):${INSTALL_COMMAND}`
+    : `Install it with \`${INSTALL_COMMAND}\` (requires Node.js >= ${MIN_NODE_VERSION}).`;
+}
+
+/** Heuristic: does this spawn output / error mean the cc executable wasn't found? */
+function looksLikeMissingCli(output) {
+  if (!output) return false;
+  const o = String(output).toLowerCase();
+  return (
+    o.includes("not recognized as an internal or external command") ||
+    o.includes("command not found") ||
+    o.includes("no such file or directory") ||
+    o.includes("cannot run program") ||
+    o.includes("enoent") ||
+    o.includes("createprocess error=2") ||
+    o.includes("error=2,")
+  );
+}
+
 /** Pull an x.y.z(-prerelease) version out of `cc --version` output, or null. */
 function parseCliVersion(stdout) {
   if (typeof stdout !== "string") return null;
@@ -164,6 +197,10 @@ async function runLatestVersionCheck(deps) {
 module.exports = {
   MIN_CLI_VERSION,
   UPGRADE_COMMAND,
+  INSTALL_COMMAND,
+  MIN_NODE_VERSION,
+  installGuidance,
+  looksLikeMissingCli,
   parseCliVersion,
   compareVersions,
   checkCliVersion,

@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.35.0] — clearer setup: install guidance names the Node.js floor
+
+- **Install / missing-`cc` messages now state the Node.js requirement
+  (>= 22.12.0).** `npm i -g chainlesschain` aborts on older Node with an
+  unexplained `EBADENGINE` error, so every "cc isn't installed / couldn't read
+  the cc version / couldn't reach the agent" surface now spells out the floor.
+- The **Configure-LLM wizard** now detects a "cc not found" write-failure and
+  shows actionable install guidance (with the Node floor) instead of the raw
+  shell error.
+- New `version-check` helpers `MIN_NODE_VERSION` / `INSTALL_COMMAND` /
+  `installGuidance` / `looksLikeMissingCli` (single source of truth), unit-tested.
+
 ## [0.34.0] — fix: Configure LLM pre-fills your config — no more re-typing model+key
 
 - **Fix: re-running "Configure LLM" no longer makes you re-enter everything.**

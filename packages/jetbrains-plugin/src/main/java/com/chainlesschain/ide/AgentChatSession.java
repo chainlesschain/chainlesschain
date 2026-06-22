@@ -161,6 +161,7 @@ public final class AgentChatSession {
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             if (cwd != null) pb.directory(cwd);
+            CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
             pb.redirectErrorStream(false);
             Process p = pb.start();
             StringBuilder out = new StringBuilder();
@@ -192,6 +193,7 @@ public final class AgentChatSession {
         if (isRunning()) return;
         ProcessBuilder pb = new ProcessBuilder(buildCommandLine());
         if (opts.cwd != null) pb.directory(opts.cwd);
+        CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
         if (opts.extraEnv != null) pb.environment().putAll(opts.extraEnv);
         final Process proc = pb.start();
         child = proc;

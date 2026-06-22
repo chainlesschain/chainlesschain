@@ -7,6 +7,10 @@ import { describe, it, expect } from "vitest";
 import {
   MIN_CLI_VERSION,
   UPGRADE_COMMAND,
+  INSTALL_COMMAND,
+  MIN_NODE_VERSION,
+  installGuidance,
+  looksLikeMissingCli,
   parseCliVersion,
   compareVersions,
   checkCliVersion,
@@ -15,6 +19,42 @@ import {
   latestUpdateNotice,
   runLatestVersionCheck,
 } from "../../../vscode-extension/src/version-check.js";
+
+describe("install guidance names the Node.js floor", () => {
+  it("MIN_NODE_VERSION mirrors the CLI engines requirement", () => {
+    expect(MIN_NODE_VERSION).toBe("22.12.0");
+    expect(INSTALL_COMMAND).toBe("npm i -g chainlesschain");
+  });
+  it("installGuidance states the install command AND the Node floor (en + zh)", () => {
+    const en = installGuidance();
+    expect(en).toContain("npm i -g chainlesschain");
+    expect(en).toContain("22.12.0");
+    const zh = installGuidance(true);
+    expect(zh).toContain("npm i -g chainlesschain");
+    expect(zh).toContain("22.12.0");
+    expect(zh).toContain("需 Node.js");
+  });
+});
+
+describe("looksLikeMissingCli", () => {
+  it("detects the OS-specific 'cc not found' messages", () => {
+    expect(
+      looksLikeMissingCli(
+        "'cc' is not recognized as an internal or external command",
+      ),
+    ).toBe(true);
+    expect(looksLikeMissingCli("/bin/sh: cc: command not found")).toBe(true);
+    expect(looksLikeMissingCli("spawn cc ENOENT")).toBe(true);
+    expect(
+      looksLikeMissingCli('Cannot run program "cc": error=2, No such file'),
+    ).toBe(true);
+  });
+  it("does not flag normal output / empties", () => {
+    expect(looksLikeMissingCli("llm.provider = volcengine")).toBe(false);
+    expect(looksLikeMissingCli("")).toBe(false);
+    expect(looksLikeMissingCli(null)).toBe(false);
+  });
+});
 
 describe("UPGRADE_COMMAND", () => {
   it("is the canonical global-latest npm install (shared by prompt + command)", () => {

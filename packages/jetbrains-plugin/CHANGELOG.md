@@ -1,5 +1,23 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.31] — fix: Configure LLM / chat find `cc` even when the IDE PATH lacks it
+
+- **Fix: "Configure LLM" no longer fails with `'cc' is not recognized as an
+  internal or external command`.** When IntelliJ is launched from a Start-menu /
+  desktop shortcut — or was already running when `npm i -g chainlesschain`
+  updated PATH — the GUI process never inherits npm's global bin directory
+  (`%APPDATA%\npm`), so a plain `cmd /c cc …` can't find the shim. The plugin now
+  augments the spawned process's PATH with the usual npm / node bin directories
+  (npm global prefix, `Program Files\nodejs`, nvm / volta / fnm, Homebrew,
+  `~/.npm-global/bin`, …), so `cc` resolves without you having to fix PATH and
+  restart. Applies to **both the LLM-config wizard and the chat panel**.
+- When `cc` genuinely can't be located, the error now gives actionable install
+  guidance — including the **Node.js >= 22.12.0** requirement (`npm i -g
+  chainlesschain` aborts on older Node with an unexplained `EBADENGINE` error).
+- New pure-JDK `CliLauncher` (PATH merge + missing-CLI detection), covered by the
+  smoke suite; `LlmConfig.runCli` now also resolves `cc` / `chainlesschain` so a
+  `cc` shadowed by the C compiler doesn't break the wizard.
+
 ## [0.4.30] — same fix as 0.4.29 + the Marketplace change-note 0.4.29 omitted
 
 - Identical code to 0.4.29 (Configure-LLM pre-fill / keep-key). 0.4.29 shipped the

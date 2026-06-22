@@ -408,7 +408,14 @@ function activate(context) {
           answers: { provider: preset.id, model, apiKey, baseUrl, visionModel },
         });
         if (!applied.ok) {
-          vscode.window.showErrorMessage(`LLM 配置写入失败:${applied.error}`);
+          const { looksLikeMissingCli, installGuidance } =
+            require("./version-check");
+          // A "cc not found" failure needs install guidance (with the Node
+          // floor), not the raw shell error — same fix as the JetBrains plugin.
+          const msg = looksLikeMissingCli(applied.error)
+            ? `LLM 配置写入失败:未找到 cc CLI。${installGuidance(true)}`
+            : `LLM 配置写入失败:${applied.error}`;
+          vscode.window.showErrorMessage(msg);
           return;
         }
         await vscode.window.withProgress(
@@ -693,6 +700,7 @@ function fetchLatestCliVersion() {
  */
 async function notifyIfCliMissing(vscode, context) {
   const { looksLikeCcVersion, getResolvedCli } = require("./cli-binary");
+  const { MIN_NODE_VERSION } = require("./version-check");
   // Use the resolved binary + a BARE-semver check (not parseCliVersion's
   // find-anywhere) so a `cc` that's really a C compiler — "cc (GCC) 12.2.0" —
   // is correctly treated as "no chainlesschain", not a false "installed".
@@ -702,7 +710,7 @@ async function notifyIfCliMissing(vscode, context) {
   if (present) return false; // chainlesschain cc is present → not missing
   if (context.globalState.get("cliMissingDismissed")) return true;
   const pick = await vscode.window.showWarningMessage(
-    "ChainlessChain: the `cc` CLI isn't installed or isn't on PATH — the chat panel needs it to work. Install it now?",
+    `ChainlessChain: the \`cc\` CLI isn't installed or isn't on PATH — the chat panel needs it to work (requires Node.js >= ${MIN_NODE_VERSION}). Install it now?`,
     "Install cc",
     "Set CLI path",
     "Don't show again",
@@ -762,6 +770,7 @@ async function checkCliUpdateManually(vscode) {
     parseCliVersion,
     compareVersions,
     latestUpdateNotice,
+    MIN_NODE_VERSION,
   } = require("./version-check");
   const cliPath =
     require("./cli-binary").getResolvedCli();
@@ -770,7 +779,7 @@ async function checkCliUpdateManually(vscode) {
   );
   if (!installed) {
     vscode.window.showWarningMessage(
-      "ChainlessChain: couldn't read the installed cc version. Is the CLI on PATH? Install with `npm i -g chainlesschain`.",
+      `ChainlessChain: couldn't read the installed cc version. Is the CLI on PATH? Install with \`npm i -g chainlesschain\` (requires Node.js >= ${MIN_NODE_VERSION}).`,
       "Install cc",
     ).then((p) => {
       if (p === "Install cc") upgradeCliInTerminal(vscode);

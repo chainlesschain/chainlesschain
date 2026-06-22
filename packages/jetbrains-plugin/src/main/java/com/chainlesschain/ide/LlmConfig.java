@@ -96,7 +96,10 @@ public final class LlmConfig {
         }
     }
 
-    /** Run `cc <args…>` (via cmd /c on Windows — npm shims are .cmd files). */
+    /** Run `cc <args…>` (via cmd /c on Windows — npm shims are .cmd files).
+     *  PATH is augmented with the usual npm/node bin dirs and the binary name is
+     *  resolved (cc/chainlesschain/…) so the wizard works even when the IDE was
+     *  launched from a shortcut and never inherited %APPDATA%\npm on PATH. */
     public static CliResult runCli(List<String> ccArgs) {
         List<String> cmd = new ArrayList<String>();
         boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -104,10 +107,13 @@ public final class LlmConfig {
             cmd.add("cmd");
             cmd.add("/c");
         }
-        cmd.add("cc");
+        // Reuse the chat session's binary resolution (skips a `cc` shadowed by
+        // the C compiler) — its probes already run with the augmented PATH.
+        cmd.add(AgentChatSession.resolveBinary());
         cmd.addAll(ccArgs);
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
+            CliLauncher.augmentPath(pb);
             pb.redirectErrorStream(true);
             Process p = pb.start();
             String out = readAll(p.getInputStream());
@@ -116,9 +122,15 @@ public final class LlmConfig {
                 p.destroyForcibly();
                 return new CliResult(false, "cc timed out");
             }
-            return new CliResult(p.exitValue() == 0, out);
+            boolean ok = p.exitValue() == 0;
+            if (!ok && CliLauncher.looksLikeMissingCli(out)) {
+                return new CliResult(false, CliLauncher.missingCliMessage());
+            }
+            return new CliResult(ok, out);
         } catch (Exception e) {
-            return new CliResult(false, String.valueOf(e.getMessage()));
+            String msg = String.valueOf(e.getMessage());
+            return new CliResult(false,
+                    CliLauncher.looksLikeMissingCli(msg) ? CliLauncher.missingCliMessage() : msg);
         }
     }
 

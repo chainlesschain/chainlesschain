@@ -812,8 +812,8 @@ class ChatViewProvider {
             kind: "error",
             text:
               "could not reach the agent process — is the `cc` CLI " +
-              "installed? (npm i -g chainlesschain, or set " +
-              "chainlesschain.cli.path)",
+              "installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, " +
+              "or set chainlesschain.cli.path)",
           });
         }
       } else if (m.type === "plan") {

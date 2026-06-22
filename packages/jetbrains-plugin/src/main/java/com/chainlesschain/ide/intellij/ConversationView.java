@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
+import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
@@ -231,7 +232,7 @@ final class ConversationView {
                     java.util.Collections.singletonList("--version"), cwd, 12000);
             if (CliVersionCheck.parseVersion(ver) == null) {
                 SwingUtilities.invokeLater(() -> appendThinking(
-                        "未检测到 cc CLI —— 面板需要它才能工作。请先安装:npm i -g chainlesschain\n"));
+                        "面板需要 cc CLI 才能工作。" + CliLauncher.missingCliMessage() + "\n"));
                 return;
             }
             String provider;
