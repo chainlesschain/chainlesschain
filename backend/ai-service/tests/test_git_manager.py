@@ -183,6 +183,21 @@ class TestGitManager:
         assert result["success"] is True
         assert Path(temp_repo).joinpath("feature.txt").exists()
 
+    def test_merge_branch_invalid_path_raises_valueerror(self, git_manager):
+        """merge_branch 对不存在的路径应抛 ValueError（与 create_branch/checkout_branch
+        一致），而非 GitPython 内部的 NoSuchPathError。"""
+        with pytest.raises(ValueError):
+            git_manager.merge_branch("/no/such/repo/path-xyz-123", "feature")
+
+    def test_merge_branch_non_git_dir_raises_valueerror(self, git_manager):
+        """merge_branch 对非 Git 目录应抛 ValueError，而非 InvalidGitRepositoryError。"""
+        temp_dir = tempfile.mkdtemp()
+        try:
+            with pytest.raises(ValueError):
+                git_manager.merge_branch(temp_dir, "feature")
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
     def test_push_no_remote(self, git_manager, temp_repo):
         """测试推送（无远程仓库）— push 捕获后重新抛出异常"""
         # 没有配置远程仓库时 push 会抛出异常（catch-log-reraise）

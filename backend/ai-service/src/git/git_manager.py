@@ -457,6 +457,16 @@ class GitManager:
             包含合并结果的字典
         """
         try:
+            # 验证路径存在（与 create_branch/checkout_branch/get_log 等保持一致：
+            # 坏路径/非仓库返回干净的 ValueError，而非 GitPython 内部的
+            # NoSuchPathError/InvalidGitRepositoryError）
+            if not os.path.exists(repo_path):
+                raise ValueError(f"仓库路径不存在: {repo_path}")
+
+            # 验证是否是Git仓库
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise ValueError(f"路径不是Git仓库: {repo_path}")
+
             repo = Repo(repo_path)
 
             if target_branch:
