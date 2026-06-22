@@ -2,6 +2,7 @@ package com.chainlesschain.android.presentation.screens.pdh
 
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
+import com.chainlesschain.android.pdh.PdhBackupService
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.AssetKind
 import com.chainlesschain.android.pdh.PdhDeviceState
@@ -50,6 +51,7 @@ class PdhChatViewModelTest {
     private lateinit var deviceState: PdhDeviceState
     private lateinit var ledger: PdhLedger
     private lateinit var llmPreferences: LlmPreferences
+    private lateinit var backupService: PdhBackupService
 
     @Before
     fun setUp() {
@@ -71,6 +73,7 @@ class PdhChatViewModelTest {
         ledger = mockk(relaxed = true)
         // §3.5.10 接线4: relaxed prefs (getLanLlmBaseUrl → null = LAN not configured).
         llmPreferences = mockk(relaxed = true)
+        backupService = mockk(relaxed = true)
     }
 
     @After
@@ -83,7 +86,7 @@ class PdhChatViewModelTest {
     private fun newVm(): PdhChatViewModel {
         // Inject the test dispatcher as @IoDispatcher so init's file IO runs on the
         // test scheduler → advanceUntilIdle deterministically drains it.
-        val vm = PdhChatViewModel(session, context, dispatcher, deviceState, ledger, llmPreferences)
+        val vm = PdhChatViewModel(session, context, dispatcher, deviceState, ledger, llmPreferences, backupService)
         dispatcher.scheduler.advanceUntilIdle() // start() + IO + subscribe to events
         return vm
     }
@@ -641,5 +644,16 @@ class PdhChatViewModelTest {
         assertNotNull(t)
         assertTrue(t!!.egress.isEmpty())
         assertEquals("尚无数据出过端", PdhTransparency.egressSummary(t.egress))
+    }
+
+    // §3.5.14 / §8.3 备份卡「确认备份」接线
+    @Test
+    fun confirm_backup_without_peer_prompts_and_skips_service() = runTest(dispatcher) {
+        val vm = newVm() // 默认未选设备 → targetDevice == 本机
+        vm.confirmBackup("any-card")
+        advanceUntilIdle()
+        // 提示先选目标设备,且不调用备份服务(本机无对端)
+        assertTrue(vm.uiState.value.messages.any { it.text.contains("选择一台目标设备") })
+        coVerify(exactly = 0) { backupService.syncWith(any()) }
     }
 }

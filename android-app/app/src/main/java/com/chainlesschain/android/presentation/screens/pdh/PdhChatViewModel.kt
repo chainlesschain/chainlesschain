@@ -8,6 +8,7 @@ import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhAssetBackup
+import com.chainlesschain.android.pdh.PdhBackupService
 import com.chainlesschain.android.pdh.PdhCrossDevice
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhDeviceState
@@ -58,6 +59,8 @@ class PdhChatViewModel @Inject constructor(
     private val ledger: PdhLedger,
     // §3.5.10 接线4: HubAsk route-config source (LAN Ollama URL) for the bridge.
     private val llmPreferences: LlmPreferences,
+    // §3.5.14 / §8.3: end-to-end backup orchestration (vault → 自有对端设备)。
+    private val pdhBackupService: PdhBackupService,
 ) : ViewModel() {
 
     // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
@@ -670,6 +673,52 @@ class PdhChatViewModel @Inject constructor(
             approvedBy = "你",
         )
         viewModelScope.launch(ioDispatcher) { ledger.appendAction(entry) }
+    }
+
+    /**
+     * §3.5.14 备份卡「确认备份」→ 真跑 §8.3 端到端备份([PdhBackupService.syncWith])。
+     * 目标对端来自 §3.5.16 设备选择([UiState.targetDevice]);选「本机」无对端 → 提示先选设备。
+     * 结果以系统消息**如实回显**(§13.4 诚实降级);成功记 egress 台账(§3.5.18,目的地=对端、
+     * tier=自有设备 E2E、绝不上云)。
+     */
+    fun confirmBackup(id: String) {
+        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
+        val peer = _uiState.value.targetDevice
+        if (peer == SELF_DEVICE) {
+            appendSystem("请先在顶部选择一台目标设备(把资产备份到你的另一台自有设备)。")
+            return
+        }
+        appendSystem("正在端到端备份到「$peer」…")
+        viewModelScope.launch(ioDispatcher) {
+            val text = when (val result = pdhBackupService.syncWith(peer)) {
+                is PdhBackupService.Result.Ok -> {
+                    val o = result.outcome
+                    ledger.appendEgress(
+                        PdhTransparency.EgressEntry(
+                            epochMs = System.currentTimeMillis(),
+                            category = "backup",
+                            destination = peer,
+                            tier = "device-e2e", // 自有设备 E2E,绝不上云(§8.3)
+                        ),
+                    )
+                    buildString {
+                        append("✅ 备份完成 → 「$peer」(推 ${o.transfer.pushed} / 拉 ${o.transfer.pulled.size}")
+                        if (o.decryptFailed > 0) append(" · 跳过坏块 ${o.decryptFailed}")
+                        if (o.unhandledRemoteKinds.isNotEmpty()) append(" · 对端有本机无源的类型 ${o.unhandledRemoteKinds.size}")
+                        if (o.hasConflicts) append(" · 有冲突待复核")
+                        append(")")
+                    }
+                }
+                is PdhBackupService.Result.Failed -> "⚠️ 备份未完成:${result.reason}"
+            }
+            appendSystem(text)
+        }
+    }
+
+    private fun appendSystem(text: String) {
+        _uiState.update {
+            it.copy(messages = it.messages + ChatMessage(role = Role.SYSTEM, text = text))
+        }
     }
 
     /**

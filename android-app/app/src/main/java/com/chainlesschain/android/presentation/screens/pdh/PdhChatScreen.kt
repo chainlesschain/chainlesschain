@@ -524,7 +524,7 @@ private fun BackupCard(card: TrustCard.Backup, viewModel: PdhChatViewModel) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = { viewModel.resolveCard(card.id, false) }) { Text("取消") }
             Button(
-                onClick = { viewModel.resolveCard(card.id, true) },
+                onClick = { viewModel.confirmBackup(card.id) }, // §8.3 真跑端到端备份
                 modifier = Modifier.padding(start = 8.dp),
             ) { Text("确认备份") }
         }
