@@ -98,11 +98,18 @@ export async function probePdhBridge(opts = {}, deps = {}) {
       ...base,
     };
   }
+  // The bare tool names the bridge exposes (mcp__pdh__collect_files →
+  // collect_files), so the probe shows WHICH collectors a device advertises —
+  // confirming the bridge version/capabilities, not just a count.
+  const toolNames = (out.extraToolDefinitions || [])
+    .map((t) => t && t.function && t.function.name)
+    .filter((n) => typeof n === "string")
+    .map((n) =>
+      n.startsWith("mcp__pdh__") ? n.slice("mcp__pdh__".length) : n,
+    );
   // Round-trip via pdh_ping when the bridge exposes it; otherwise the
   // tools/list that connect already performed is itself proof of liveness.
-  const hasPing = (out.extraToolDefinitions || []).some(
-    (t) => t && t.function && t.function.name === "mcp__pdh__pdh_ping",
-  );
+  const hasPing = toolNames.includes("pdh_ping");
   let pingOk = null;
   let pingText = null;
   let pingError = null;
@@ -122,6 +129,7 @@ export async function probePdhBridge(opts = {}, deps = {}) {
     stage: "ping",
     ...base,
     tools: conn.tools,
+    toolNames,
     latencyMs: now() - start,
     pingAttempted: hasPing,
     pingOk,
@@ -293,6 +301,9 @@ export function registerPdhCommand(program, deps = {}) {
           `PDH ${chalk.cyan(res.device)}:${res.port} ${chalk.green("OK")} — ` +
             `${tag}, ${res.tools} tools, ${res.latencyMs}ms`,
         );
+        if (res.toolNames && res.toolNames.length) {
+          console.log(chalk.gray("  tools: " + res.toolNames.join(", ")));
+        }
         if (res.pingText) console.log(chalk.gray("  " + res.pingText));
       }
       if (!res.ok) process.exitCode = 1;

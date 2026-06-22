@@ -20,9 +20,12 @@ const LOCK = {
 /** A fake connect result with the given tools + a recording mcpClient. */
 function fakeConnect({ tools = 6, hasPing = true, callTool } = {}) {
   const disconnected = { called: false };
-  const extraToolDefinitions = hasPing
-    ? [{ function: { name: "mcp__pdh__pdh_ping" } }]
-    : [{ function: { name: "mcp__pdh__collect_files" } }];
+  const bareNames = hasPing
+    ? ["pdh_ping", "collect_files", "query_app_data"]
+    : ["collect_files", "collect_system_data"];
+  const extraToolDefinitions = bareNames.map((n) => ({
+    function: { name: `mcp__pdh__${n}` },
+  }));
   return {
     result: {
       connected: [{ server: "pdh", tools }],
@@ -98,6 +101,11 @@ describe("probePdhBridge", () => {
       pingText: "pong",
     });
     expect(res.latencyMs).toBe(25);
+    expect(res.toolNames).toEqual([
+      "pdh_ping",
+      "collect_files",
+      "query_app_data",
+    ]); // bare names (mcp__pdh__ prefix stripped) — confirms bridge capabilities
     expect(f.disconnected.called).toBe(true); // always cleans up
   });
 
