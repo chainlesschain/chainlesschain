@@ -179,9 +179,11 @@ public class AutomationService {
             result.put("error", e.getMessage());
         }
 
-        // 更新运行统计
+        // 更新运行统计（runCount 可能为 null：非 createRule 创建/历史数据 → 当 0 处理，
+        // 与 getStatistics 的空值处理保持一致，避免首次手动触发时拆箱 NPE）
         rule.setLastRunAt(LocalDateTime.now());
-        rule.setRunCount(rule.getRunCount() + 1);
+        Integer runCount = rule.getRunCount();
+        rule.setRunCount((runCount == null ? 0 : runCount) + 1);
         ruleMapper.updateById(rule);
 
         log.info("规则手动触发完成");

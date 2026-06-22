@@ -211,6 +211,21 @@ class AutomationServiceTest {
     }
 
     @Test
+    void testManualTrigger_NullRunCount_DoesNotThrow() {
+        // 历史/非 createRule 创建的规则行 runCount 可能为 null；手动触发不应拆箱 NPE
+        testRule.setRunCount(null);
+        when(ruleMapper.selectOne(any())).thenReturn(testRule);
+        when(ruleMapper.updateById(any(ProjectAutomationRule.class))).thenReturn(1);
+
+        Map<String, Object> result = automationService.manualTrigger(testProjectId, testRuleId);
+
+        assertNotNull(result);
+        assertEquals("success", result.get("status"));
+        assertEquals(1, testRule.getRunCount()); // null 当 0 处理 → 触发后为 1
+        verify(ruleMapper, times(1)).updateById(any(ProjectAutomationRule.class));
+    }
+
+    @Test
     void testManualTrigger_RuleDisabled() {
         testRule.setIsEnabled(false);
         when(ruleMapper.selectOne(any())).thenReturn(testRule);
