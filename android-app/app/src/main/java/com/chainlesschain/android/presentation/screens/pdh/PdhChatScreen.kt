@@ -16,12 +16,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +47,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -285,38 +282,9 @@ fun PdhChatScreen(
                             }
                         }
                     }
-                    // 待裁决信任卡不在此处渲染 —— 改为 sticky 固定在输入框上方(见下),
-                    // 否则卡在消息流末尾会被新消息推走、要往上翻才看见(用户反馈)。
-                }
-            }
-
-            // §3.5.9 待裁决信任卡(引导/预览/审批/计划)固定在输入框正上方,始终可见。
-            // 不放进 LazyColumn → 不随消息流滚走;有卡时给醒目提示条引导用户裁决。
-            if (!searching && state.pendingCards.isNotEmpty()) {
-                Surface(
-                    tonalElevation = 3.dp,
-                    shadowElevation = 6.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 360.dp)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            "⏳ 需要你确认才能继续",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        state.pendingCards.forEach { card ->
-                            key(card.id) {
-                                TrustCardItem(card = card, viewModel = viewModel, context = context)
-                            }
-                        }
+                    // §3.5.9 内联信任卡(引导/预览/审批/计划)。
+                    items(state.pendingCards, key = { it.id }) { card ->
+                        TrustCardItem(card = card, viewModel = viewModel, context = context)
                     }
                 }
             }

@@ -14,15 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
-## [v5.0.3.129] - 2026-06-22 — 个人助手信任卡固定可见（不再被消息流滚走 / 误以为「没反应」）
-
-### Fixed — Android 个人助手:发消息后的确认卡看不见,要往上翻
-
-> 接 v5.0.3.127 卡死修复的真机验证发现的 UX 缺口。Android-only(`PdhChatScreen`),不触 cc bundle / pdh,无 USR_VERSION / bundle rollover。
-
-- **问题**:确认/信任卡(root 授权 / 采集预览 / 引导卡等)此前渲染在消息流(LazyColumn)末尾 → 新消息一多就被推下去、要往上翻才看见 → 用户以为「发送没反应」。
-- **修复**:待裁决信任卡从消息流移出,**固定(sticky)在消息列表与输入框之间、始终可见**;顶部加醒目「⏳ 需要你确认才能继续」提示条 + 阴影浮起;卡多时区域内可滚动(最高 360dp),不挤占消息区。
-
 ## [v5.0.3.128] - 2026-06-22 — §8.3 学习层备份命令上设备（新 cc bundle v20260622e）
 
 ### Added — 个人数据跨设备备份覆盖全资产（vault + 记忆 + 习惯 + 自进化轨迹）
