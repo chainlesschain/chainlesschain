@@ -75,10 +75,41 @@ function compareVersions(v1, v2) {
     return 1;
   }
   if (parsed1.prerelease && parsed2.prerelease) {
-    return parsed1.prerelease.localeCompare(parsed2.prerelease);
+    return comparePrerelease(parsed1.prerelease, parsed2.prerelease);
   }
 
   return 0;
+}
+
+/**
+ * 比较两个预发布标识符（Semver §11）。
+ * 点分隔标识符逐段比较：纯数字按数值比较且排在字母数字之前，字母数字按
+ * ASCII 顺序；前缀相同时字段更多者更大。localeCompare 会把 "alpha.10" 排在
+ * "alpha.2" 之前（"1" < "2"），与规范相反，故用此实现取代。
+ * @param {string} a
+ * @param {string} b
+ * @returns {number} -1 | 0 | 1
+ */
+function comparePrerelease(a, b) {
+  const aIds = a.split(".");
+  const bIds = b.split(".");
+  const len = Math.min(aIds.length, bIds.length);
+
+  for (let i = 0; i < len; i++) {
+    if (aIds[i] === bIds[i]) continue;
+    const aNum = /^\d+$/.test(aIds[i]);
+    const bNum = /^\d+$/.test(bIds[i]);
+    if (aNum && bNum) {
+      return parseInt(aIds[i], 10) < parseInt(bIds[i], 10) ? -1 : 1;
+    }
+    // Numeric identifiers always rank lower than alphanumeric ones.
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return aIds[i] < bIds[i] ? -1 : 1;
+  }
+
+  if (aIds.length === bIds.length) return 0;
+  return aIds.length < bIds.length ? -1 : 1;
 }
 
 /**
@@ -240,6 +271,13 @@ function satisfies(version, range) {
 
   if (!rangeObj.valid) {
     logger.warn(`[SemverUtils] 无效的版本范围: ${range}`);
+    return false;
+  }
+
+  // An unparseable version satisfies nothing. Guarding here also prevents the
+  // range comparisons below from throwing on a bad version string — a compat
+  // predicate must return false, never crash its caller (e.g. plugin-manager).
+  if (!parseVersion(version)) {
     return false;
   }
 
