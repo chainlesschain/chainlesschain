@@ -136,6 +136,45 @@ let LocalVault,
   ANALYSIS_SKILL_NAMES;
 
 let _pdhLoadPromise = null;
+
+/**
+ * Turn a raw ESM module-resolution failure for the personal-data-hub package
+ * into an actionable "your install is incomplete — repair it" error.
+ *
+ * Today this happens when a global `npm i -g chainlesschain` is interrupted
+ * mid-extraction (commonly a running `cc` / node process holding a lock on a
+ * native .node file → EBUSY/EPERM), leaving the pdh package partially
+ * written. The default Node error ("Cannot find module
+ * .../personal-data-hub/lib/adapters/wechat/index.js") reads like a bug in
+ * the package rather than a local-install problem, so users can't self-fix.
+ * Non-resolution errors (a real bug inside pdh) pass through unchanged.
+ */
+function rewritePdhLoadError(err) {
+  const isMissingModule =
+    err &&
+    (err.code === "ERR_MODULE_NOT_FOUND" ||
+      /Cannot find (module|package)/.test(err.message || ""));
+  const mentionsPdh = /personal-data-hub/.test(
+    (err && (err.url || err.message)) || "",
+  );
+  if (!isMissingModule || !mentionsPdh) return err;
+  const wrapped = new Error(
+    "Personal Data Hub package is missing files — your install looks " +
+      "incomplete.\n" +
+      "This usually means a global install was interrupted (often a running " +
+      "`cc`/node process locking a native file).\n" +
+      "Repair it with:  npm i -g chainlesschain@latest\n" +
+      "(close any running `cc` sessions first so the install isn't blocked).\n" +
+      `Original error: ${err.message}`,
+  );
+  wrapped.code = "PDH_INSTALL_INCOMPLETE";
+  wrapped.cause = err;
+  return wrapped;
+}
+// Test seam (mirrors _atomicWriteJson600): unit-test the error rewrite
+// without provoking a real partial-install.
+export { rewritePdhLoadError as _rewritePdhLoadError };
+
 /**
  * Lazily import the personal-data-hub package + wechat adapter and populate
  * the module-level binding holders above. Memoized so concurrent
@@ -145,13 +184,21 @@ let _pdhLoadPromise = null;
 function ensurePdhLoaded() {
   if (!_pdhLoadPromise) {
     _pdhLoadPromise = (async () => {
-      const hubMod = await import("@chainlesschain/personal-data-hub");
+      let hubMod, waMod;
+      try {
+        hubMod = await import("@chainlesschain/personal-data-hub");
+        // Composed specifier dodges vite/vitest static import-analysis of
+        // subpath exports (same trick as loadAIChatHealthChecker below).
+        const wechatSpec =
+          "@chainlesschain/personal-data-hub" + "/adapters/wechat";
+        waMod = await import(wechatSpec);
+      } catch (err) {
+        // Don't poison the memoized promise — a repaired install (or a retry
+        // in a long-lived process) should be able to load.
+        _pdhLoadPromise = null;
+        throw rewritePdhLoadError(err);
+      }
       const hub = hubMod.default || hubMod;
-      // Composed specifier dodges vite/vitest static import-analysis of
-      // subpath exports (same trick as loadAIChatHealthChecker below).
-      const wechatSpec =
-        "@chainlesschain/personal-data-hub" + "/adapters/wechat";
-      const waMod = await import(wechatSpec);
       const wechatAdapterModule = waMod.default || waMod;
       ({ bootstrapWechatAdapter, probeWeChatEnv } = wechatAdapterModule);
       ({
