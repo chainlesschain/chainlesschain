@@ -3,7 +3,16 @@
  * 支持导出订单为 PDF 和图片格式
  */
 const { logger } = require("../utils/logger.js");
-const puppeteer = require("puppeteer");
+// puppeteer/sharp are heavy, optional render deps that may be absent in some
+// builds. Guard both so merely loading this module (e.g. for generateOrderHTML
+// or ShareLinkManager) never throws; the PDF/image exporters degrade to a
+// { success:false } result when their dependency is missing.
+let puppeteer;
+try {
+  puppeteer = require("puppeteer");
+} catch (_err) {
+  // puppeteer may be unavailable; exportOrderToPDF/Image will error gracefully
+}
 let sharp;
 try {
   sharp = require("sharp");
@@ -40,11 +49,27 @@ function generateOrderHTML(order) {
     return new Date(timestamp).toLocaleString("zh-CN");
   };
 
+  // Escape untrusted order fields before interpolating into HTML. The result
+  // is loaded into a headless Chrome (--no-sandbox) for PDF/image rendering, so
+  // un-escaped fields (esp. the free-text description, and orders sourced over
+  // P2P) would allow HTML/script injection into the rendering context.
+  const esc = (value) => {
+    if (value === undefined || value === null) {
+      return "";
+    }
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
   const formatPrice = (price, currency = "CNY") => {
     if (price === undefined || price === null) {
       return "-";
     }
-    return `${price.toFixed(2)} ${currency}`;
+    return `${price.toFixed(2)} ${esc(currency)}`;
   };
 
   return `
@@ -53,7 +78,7 @@ function generateOrderHTML(order) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>订单详情 - ${order.id || ""}</title>
+  <title>订单详情 - ${esc(order.id)}</title>
   <style>
     * {
       margin: 0;
@@ -154,8 +179,8 @@ function generateOrderHTML(order) {
   <div class="container">
     <div class="header">
       <h1>ChainlessChain 交易订单</h1>
-      <div class="order-id">订单号: ${order.id || "-"}</div>
-      <div class="status-badge">${statusMap[order.status] || order.status || "-"}</div>
+      <div class="order-id">订单号: ${esc(order.id) || "-"}</div>
+      <div class="status-badge">${statusMap[order.status] || esc(order.status) || "-"}</div>
     </div>
 
     <div class="content">
@@ -164,15 +189,15 @@ function generateOrderHTML(order) {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">订单类型</div>
-            <div class="info-value">${typeMap[order.type] || order.type || "-"}</div>
+            <div class="info-value">${typeMap[order.type] || esc(order.type) || "-"}</div>
           </div>
           <div class="info-item">
             <div class="info-label">资产类型</div>
-            <div class="info-value">${order.assetType || "-"}</div>
+            <div class="info-value">${esc(order.assetType) || "-"}</div>
           </div>
           <div class="info-item">
             <div class="info-label">数量</div>
-            <div class="info-value">${order.quantity || "-"}</div>
+            <div class="info-value">${esc(order.quantity) || "-"}</div>
           </div>
           <div class="info-item">
             <div class="info-label">单价</div>
@@ -208,7 +233,7 @@ function generateOrderHTML(order) {
           ? `
       <div class="section">
         <div class="section-title">订单描述</div>
-        <div class="description">${order.description}</div>
+        <div class="description">${esc(order.description)}</div>
       </div>
       `
           : ""
@@ -219,14 +244,14 @@ function generateOrderHTML(order) {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">创建者 DID</div>
-            <div class="info-value" style="font-size: 12px; word-break: break-all;">${order.creatorDid || "-"}</div>
+            <div class="info-value" style="font-size: 12px; word-break: break-all;">${esc(order.creatorDid) || "-"}</div>
           </div>
           ${
             order.buyerDid
               ? `
           <div class="info-item">
             <div class="info-label">买家 DID</div>
-            <div class="info-value" style="font-size: 12px; word-break: break-all;">${order.buyerDid}</div>
+            <div class="info-value" style="font-size: 12px; word-break: break-all;">${esc(order.buyerDid)}</div>
           </div>
           `
               : ""
@@ -268,6 +293,10 @@ async function exportOrderToPDF(order, options = {}) {
 
   try {
     logger.info("[OrderExport] 开始导出 PDF...");
+
+    if (!puppeteer) {
+      return { success: false, error: "puppeteer 不可用，无法导出 PDF" };
+    }
 
     const html = generateOrderHTML(order);
     const tempDir = getTempDir();
@@ -333,6 +362,10 @@ async function exportOrderToImage(order, options = {}) {
 
   try {
     logger.info("[OrderExport] 开始导出图片...");
+
+    if (!puppeteer || !sharp) {
+      return { success: false, error: "puppeteer/sharp 不可用，无法导出图片" };
+    }
 
     const html = generateOrderHTML(order);
     const tempDir = getTempDir();
