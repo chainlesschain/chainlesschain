@@ -19,20 +19,20 @@
  * riskLevel, policy }` so callers don't have to juggle two decision types.
  */
 
-const sharedShellPolicy = require("../runtime/coding-agent-shell-policy.cjs");
-const {
-  APPROVAL_RISK: RISK,
-  APPROVAL_DECISION: DECISION,
-} = require("@chainlesschain/session-core");
+import sharedShellPolicy from "../runtime/coding-agent-shell-policy.cjs";
+import {
+  APPROVAL_RISK as RISK,
+  APPROVAL_DECISION as DECISION,
+} from "@chainlesschain/session-core";
 
-const SHELL_TO_RISK = {
+export const SHELL_TO_RISK = {
   allow: RISK.LOW,
   warn: RISK.MEDIUM,
   deny: RISK.HIGH,
   reroute: RISK.HIGH,
 };
 
-async function evaluateShellCommandWithApproval({
+export async function evaluateShellCommandWithApproval({
   command,
   sessionId = null,
   approvalGate = null,
@@ -89,8 +89,3 @@ async function evaluateShellCommandWithApproval({
     policy: gateResult.policy,
   };
 }
-
-module.exports = {
-  evaluateShellCommandWithApproval,
-  SHELL_TO_RISK,
-};
