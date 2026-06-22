@@ -131,7 +131,10 @@ class GraphExporter {
     let csv = 'Source,Target,Weight,RelationType\n';
 
     edges.forEach(edge => {
-      csv += `"${edge.source}","${edge.target}",${edge.weight || 1.0},"${edge.relationType || 'link'}"\n`;
+      const source = this.escapeCSV(edge.source);
+      const target = this.escapeCSV(edge.target);
+      const relationType = this.escapeCSV(edge.relationType || 'link');
+      csv += `"${source}","${target}",${edge.weight || 1.0},"${relationType}"\n`;
     });
 
     return csv;
@@ -276,6 +279,16 @@ class GraphExporter {
   escapeDOT(str) {
     if (typeof str !== 'string') {return str;}
     return str.replace(/"/g, '\\"');
+  }
+
+  /**
+   * 辅助方法：转义 CSV 字段内容（RFC 4180）
+   * 调用方负责加外层引号；此处把内嵌引号按 RFC 4180 双写（" -> ""），
+   * 避免含引号/逗号/换行的标签破坏列结构。
+   */
+  escapeCSV(value) {
+    const str = value == null ? '' : String(value);
+    return str.replace(/"/g, '""');
   }
 
   /**
