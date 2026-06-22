@@ -576,9 +576,11 @@ function analyzeGraphStats(nodes, edges) {
     degrees.push((adjacency.get(node.id) || []).length);
   });
 
-  const avgDegree = degrees.reduce((sum, d) => sum + d, 0) / nodeCount;
-  const maxDegree = Math.max(...degrees);
-  const minDegree = Math.min(...degrees);
+  // Guard the empty graph: reduce/0 is NaN and Math.max/min() are ∓Infinity.
+  const avgDegree =
+    nodeCount > 0 ? degrees.reduce((sum, d) => sum + d, 0) / nodeCount : 0;
+  const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
+  const minDegree = degrees.length > 0 ? Math.min(...degrees) : 0;
 
   // 连通性分析
   const components = findConnectedComponents(nodes, adjacency);
@@ -619,7 +621,10 @@ function analyzeGraphStats(nodes, edges) {
     maxDegree,
     minDegree,
     componentCount: components.length,
-    largestComponentSize: Math.max(...components.map((c) => c.length)),
+    largestComponentSize:
+      components.length > 0
+        ? Math.max(...components.map((c) => c.length))
+        : 0,
     avgClusteringCoeff,
   };
 }
