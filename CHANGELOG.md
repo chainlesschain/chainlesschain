@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
+## [v5.0.3.126] - 2026-06-22 — 修复 collect-db 入库 0 条（真机验证抓到）+ 头条明文库真机实证 764 条
+
+### Fixed — collect-db 通用明文库采集入库 0 条（schema 校验 + 唯一约束双 bug）
+
+> 真机验证（chopin/HyperOS root）头条 collect-db 时发现：记录正常提取但 `vault.putEvent` 全部被静默抛弃 → **ingested=0**。v5.0.3.124/125 的 collect-db 实际采不进任何数据。pdh 0.4.32→0.4.33 + cli 0.162.100→0.162.101 + Android bundle v20260622d + USR_VERSION 54。
+
+- **subtype 非法**：`plaintext-db-collect.js` 用 `subtype:'record'`，但 vault schema enum 无 `record`（只有 message/.../browse/.../other）→ 每条 putEvent 抛 `invalid event` 被 catch 吞 → 0 入库。修：`subtype→'other'`。
+- **originalId 按表非按行**：`source.originalId='<db>:<table>'` 对一张表的所有行相同 → 撞 `UNIQUE(source_adapter, source_original_id)` 把整表 collapse 成 1 条。修：`originalId` 加每行 hash（与 `id` 同源）。
+- **补回归测试**（此前 `plaintext-db-collect` 零测试故漏过）：真 `LocalVault.putEvent` schema 校验 + 按行唯一性 + readable/normTime，5 测试全绿。
+- **真机实证**：头条 11 个明文库（news_article/news_local/downloader/push_message…）→ **764 条入 vault**（修前 0），FTS5 可搜（可克达拉/克拉玛依/图木舒克）。
+
 ## [v5.0.3.125] - 2026-06-22 — 微信派生 key 采集 + 通用明文库采集 + 守护进程多 app 通用化（参考 QQ 模式扩展头条/抖音/微信）
 
 ### Added — 微信 + 通用明文库端侧采集（module 101，参考 QQ 派生 key + Magisk 守护进程模式）
