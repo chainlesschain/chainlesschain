@@ -158,4 +158,39 @@ describe("sanitizeData — cycles and Errors", () => {
     expect(out.details.token).toBe("***REDACTED***");
     expect(out.details.ok).toBe(1);
   });
+
+  it("redacts top-level SCALAR sensitive own-props on an Error", () => {
+    // HTTP-client errors often hang an authorization/apiKey string directly off
+    // the error object. The Error branch used to copy scalars verbatim → leak.
+    const err = new Error("request failed");
+    err.token = "sk-live-secret";
+    err.apiKey = "ak-secret";
+    err.password = "hunter2";
+    err.status = 401; // non-sensitive scalar preserved
+    const out = sanitizeData(err);
+    expect(out.token).toBe("***REDACTED***");
+    expect(out.apiKey).toBe("***REDACTED***");
+    expect(out.password).toBe("***REDACTED***");
+    expect(out.status).toBe(401);
+  });
+
+  it("handles a self-referencing Error without overflowing the stack", () => {
+    const err = new Error("cyclic");
+    err.self = err;
+    // Pre-fix this recursed forever in the Error branch (no cycle guard).
+    const out = sanitizeData(err);
+    expect(out.message).toBe("cyclic");
+    expect(out.self).toBe("[Circular Reference]");
+  });
+
+  it("handles two cross-referencing Errors without overflowing", () => {
+    const a = new Error("a");
+    const b = new Error("b");
+    a.peer = b;
+    b.peer = a;
+    const out = sanitizeData(a);
+    expect(out.message).toBe("a");
+    expect(out.peer.message).toBe("b");
+    expect(out.peer.peer).toBe("[Circular Reference]");
+  });
 });
