@@ -20,6 +20,7 @@ class PdhBackupBlockChannelTest {
         val map = HashMap<String, PdhBackupEnvelope.EncryptedBlock>()
         override fun put(block: PdhBackupEnvelope.EncryptedBlock) { map["${block.assetKind.name}.${block.contentHash}"] = block }
         override fun get(assetKind: AssetKind, hash: String) = map["${assetKind.name}.$hash"]
+        override fun allBlocks() = map.values.toList()
     }
 
     /** Fake responder 路由到真应答处理器 + in-memory 块库 → 端到端验证请求方↔应答方。 */
@@ -28,6 +29,7 @@ class PdhBackupBlockChannelTest {
             when (type) {
                 PdhBackupBlockChannel.TYPE_PUSH -> PdhBackupRequestHandler.handlePush(payload, store)
                 PdhBackupBlockChannel.TYPE_PULL -> PdhBackupRequestHandler.handlePull(payload, store)
+                PdhBackupBlockChannel.TYPE_MANIFEST -> PdhBackupRequestHandler.handleManifest(store)
                 else -> null
             }
     }
@@ -47,6 +49,13 @@ class PdhBackupBlockChannelTest {
     fun pull_missing_returns_null() = runTest {
         val channel = PdhBackupBlockChannel("peerB", HandlerResponder(FakeStore()))
         assertNull(channel.pull(AssetKind.MEMORY, "absent"))
+    }
+
+    @Test
+    fun fetch_manifest_returns_peer_store_blocks() = runTest {
+        val store = FakeStore().apply { put(block(AssetKind.VAULT, "h1")); put(block(AssetKind.MEMORY, "h2")) }
+        val manifest = PdhBackupBlockChannel("peerB", HandlerResponder(store)).fetchManifest()
+        assertEquals(setOf("h1", "h2"), manifest?.blocks?.map { it.hash }?.toSet()) // 握手取回对端清单
     }
 
     @Test

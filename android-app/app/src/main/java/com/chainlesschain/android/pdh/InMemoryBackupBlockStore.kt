@@ -25,6 +25,8 @@ class InMemoryBackupBlockStore : PdhBackupRequestHandler.BlockStore {
     override fun get(assetKind: AssetKind, hash: String): PdhBackupEnvelope.EncryptedBlock? =
         map[key(assetKind, hash)]
 
+    override fun allBlocks(): List<PdhBackupEnvelope.EncryptedBlock> = map.values.toList()
+
     /** 标记一个块为"对端 push 来的"(供编排 drain 后解密/合并)。 */
     fun putPushed(block: PdhBackupEnvelope.EncryptedBlock) {
         put(block)

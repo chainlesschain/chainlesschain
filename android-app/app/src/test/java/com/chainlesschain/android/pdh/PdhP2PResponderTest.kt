@@ -36,6 +36,7 @@ class PdhP2PResponderTest {
         val map = HashMap<String, PdhBackupEnvelope.EncryptedBlock>()
         override fun put(block: PdhBackupEnvelope.EncryptedBlock) { map["${block.assetKind.name}.${block.contentHash}"] = block }
         override fun get(assetKind: AssetKind, hash: String) = map["${assetKind.name}.$hash"]
+        override fun allBlocks() = map.values.toList()
     }
 
     private fun block(hash: String) =

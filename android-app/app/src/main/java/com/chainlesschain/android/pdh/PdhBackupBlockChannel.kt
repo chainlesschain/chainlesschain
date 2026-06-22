@@ -39,9 +39,19 @@ class PdhBackupBlockChannel(
         return if (block.assetKind == assetKind && block.contentHash == hash) block else null
     }
 
+    /**
+     * 握手:向对端取其清单(增量同步前用,喂 [PdhBackupCoordinator.sync] 的 remoteManifest)。
+     * 失败/坏响应 → null(调用方按"取不到清单 → 本轮不同步"处理)。
+     */
+    suspend fun fetchManifest(): PdhBackupSync.Manifest? {
+        val resp = responder.request(peerId, TYPE_MANIFEST, ByteArray(0)) ?: return null
+        return runCatching { PdhManifestCodec.decode(resp) }.getOrNull()
+    }
+
     companion object {
         const val TYPE_PUSH = "pdh.backup.push"
         const val TYPE_PULL = "pdh.backup.pull"
+        const val TYPE_MANIFEST = "pdh.backup.manifest"
         const val ACK_OK = "OK"
         const val NOT_FOUND = "NOT_FOUND"
     }

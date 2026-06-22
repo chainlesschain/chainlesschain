@@ -16,6 +16,7 @@ class PdhBackupRequestHandlerTest {
         private fun k(kind: AssetKind, hash: String) = "${kind.name}.$hash"
         override fun put(block: PdhBackupEnvelope.EncryptedBlock) { map[k(block.assetKind, block.contentHash)] = block }
         override fun get(assetKind: AssetKind, hash: String) = map[k(assetKind, hash)]
+        override fun allBlocks() = map.values.toList()
     }
 
     private fun block(kind: AssetKind, hash: String) =
@@ -44,6 +45,13 @@ class PdhBackupRequestHandlerTest {
         val decoded = PdhBlockCodec.decode(resp)
         assertEquals("h2", decoded.contentHash)
         assertEquals(AssetKind.MEMORY, decoded.assetKind)
+    }
+
+    @Test
+    fun handle_manifest_encodes_all_store_blocks() {
+        val store = FakeStore().apply { put(block(AssetKind.VAULT, "h1")); put(block(AssetKind.MEMORY, "h2")) }
+        val manifest = PdhManifestCodec.decode(PdhBackupRequestHandler.handleManifest(store))
+        assertEquals(setOf("h1", "h2"), manifest.blocks.map { it.hash }.toSet())
     }
 
     @Test

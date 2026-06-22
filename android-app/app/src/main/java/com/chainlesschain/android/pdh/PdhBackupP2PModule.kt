@@ -63,6 +63,7 @@ object PdhBackupP2PModule {
             when (type) {
                 PdhBackupBlockChannel.TYPE_PUSH -> PdhBackupRequestHandler.handlePush(data, store)
                 PdhBackupBlockChannel.TYPE_PULL -> PdhBackupRequestHandler.handlePull(data, store)
+                PdhBackupBlockChannel.TYPE_MANIFEST -> PdhBackupRequestHandler.handleManifest(store)
                 else -> ByteArray(0)
             }
         },
