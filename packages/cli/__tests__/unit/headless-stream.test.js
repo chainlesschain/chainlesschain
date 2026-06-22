@@ -291,17 +291,30 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
   }
   const captureUser = () => {
     const seen = [];
+    const opts = [];
     return {
       seen,
-      agentLoop: async function* (messages) {
+      opts,
+      agentLoop: async function* (messages, options) {
         seen.push(
           [...messages].reverse().find((m) => m.role === "user").content,
         );
+        opts.push(options);
         yield { type: "response-complete", content: "ok" };
         yield { type: "run-ended", reason: "complete" };
       },
     };
   };
+  const matchedMacro = (over = {}) => ({
+    matched: true,
+    promptText: "command body",
+    warnings: [],
+    name: "c",
+    scope: "project",
+    model: null,
+    allowedTools: null,
+    ...over,
+  });
 
   it("expands a resolved /name macro and skips the @file pass for that turn", async () => {
     const { seen, agentLoop } = captureUser();
@@ -374,5 +387,40 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     });
     await runAgentHeadlessStream({}, deps);
     expect(seen[0]).toBe("/etc/hosts is broken [@]");
+  });
+
+  it("applies a command's model: frontmatter to that turn's loopOptions", async () => {
+    const { opts, agentLoop } = captureUser();
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro: async () => matchedMacro({ model: "claude-opus-4-8" }),
+      input: input({ type: "user", text: "/deploy" }),
+    });
+    await runAgentHeadlessStream({}, deps);
+    expect(opts[0].model).toBe("claude-opus-4-8");
+  });
+
+  it("applies a command's allowed-tools: frontmatter to that turn's loopOptions", async () => {
+    const { opts, agentLoop } = captureUser();
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro: async () =>
+        matchedMacro({ allowedTools: "read_file, search_files" }),
+      input: input({ type: "user", text: "/audit" }),
+    });
+    await runAgentHeadlessStream({}, deps);
+    expect(opts[0].enabledToolNames).toEqual(["read_file", "search_files"]);
+  });
+
+  it("a non-frontmatter turn keeps the base model/tools (no override)", async () => {
+    const { opts, agentLoop } = captureUser();
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro: async () => matchedMacro(), // matched, no model/tools
+      input: input({ type: "user", text: "/plain" }),
+    });
+    await runAgentHeadlessStream({ model: "base-model" }, deps);
+    expect(opts[0].model).toBe("base-model"); // unchanged
+    expect(opts[0].enabledToolNames).toBeNull(); // base (no allow-list)
   });
 });

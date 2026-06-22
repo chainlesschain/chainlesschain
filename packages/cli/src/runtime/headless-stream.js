@@ -31,6 +31,7 @@ import { CostBudget } from "../lib/cost-budget.js";
 import {
   resolvePermissionMode,
   resolveEnabledTools,
+  parseToolList,
 } from "./headless-runner.js";
 import {
   startSession as jsonlStartSession,
@@ -1084,6 +1085,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // below is skipped when a macro matched. Opt out: options.slashMacros:false.
     let userContent = parsed.text;
     let slashExpanded = false;
+    // A matched command's `model:` / `allowed-tools:` frontmatter scopes THIS
+    // turn's loopOptions below (parity with `cc command run` / headless -p).
+    let turnMacroModel = null;
+    let turnMacroTools = null;
     if (
       options.slashMacros !== false &&
       typeof parsed.text === "string" &&
@@ -1101,6 +1106,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
             writeErr(`  /${macro.name}: ${w}\n`);
           }
           writeErr(`  command: /${macro.name} [${macro.scope}]\n`);
+          if (macro.model) {
+            turnMacroModel = macro.model;
+            writeErr(`  command: model → ${turnMacroModel}\n`);
+          }
+          if (macro.allowedTools) {
+            turnMacroTools = parseToolList(macro.allowedTools);
+          }
         }
       } catch {
         // macro resolution is best-effort — fall back to the literal text
@@ -1243,6 +1255,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         messages,
         {
           ...loopOptionsBase,
+          // Custom-command frontmatter scopes THIS turn (parity with `cc command
+          // run` / headless -p): a matched /name applies its model: and
+          // allowed-tools:. Lowest-priority override — an explicit per-turn
+          // privacy (turnLlmOverride) or vision (turnVisionLlm) switch below
+          // still wins on model.
+          ...(turnMacroModel ? { model: turnMacroModel } : {}),
+          ...(turnMacroTools ? { enabledToolNames: turnMacroTools } : {}),
           // §3.5.10 接线6: explicit per-turn LLM override (privacy-tier switch);
           // only the fields provided are overridden (e.g. provider+model+baseUrl
           // to route to your own PC Ollama for one turn).
