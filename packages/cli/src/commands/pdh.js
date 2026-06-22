@@ -24,6 +24,7 @@ import {
   diagnosePdh,
 } from "../lib/pdh-bridge.js";
 import { setupMcpFromConfig } from "../runtime/mcp-config.js";
+import { readFeedback, summarizeFeedback } from "../lib/pdh-feedback-ledger.js";
 
 function emit(obj) {
   console.log(JSON.stringify(obj, null, 2));
@@ -307,6 +308,41 @@ export function registerPdhCommand(program, deps = {}) {
         if (res.pingText) console.log(chalk.gray("  " + res.pingText));
       }
       if (!res.ok) process.exitCode = 1;
+    });
+
+  pdh
+    .command("feedback")
+    .description(
+      "Show what cc has learned from your cross-session corrections (§3.5.13 flywheel)",
+    )
+    .option("--json", "Machine-readable output")
+    .action((options) => {
+      const read = deps.readFeedback || readFeedback;
+      const summarize = deps.summarizeFeedback || summarizeFeedback;
+      const summary = summarize(read());
+      if (options.json) {
+        emit(summary);
+        return;
+      }
+      // Honest empty state (§3.5.18: surface "尚无" truthfully, never hide).
+      if (!summary.total) {
+        console.log(
+          chalk.gray("尚无跨会话反馈记录 (no cross-session feedback yet)."),
+        );
+        return;
+      }
+      console.log(chalk.bold(`PDH 自学习反馈 (${summary.total} 条)`));
+      console.log(
+        `  ${chalk.green("👍 " + summary.positive)}  ` +
+          `${chalk.red("👎 " + summary.negative)}  ` +
+          `净倾向 ${summary.sentiment >= 0 ? "+" : ""}${summary.sentiment}`,
+      );
+      if (summary.corrections.length) {
+        console.log(chalk.bold("  已记住的纠正 (最新优先):"));
+        for (const c of summary.corrections) {
+          console.log(chalk.gray(`    • ${c}`));
+        }
+      }
     });
 
   return pdh;
