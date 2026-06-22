@@ -314,7 +314,27 @@ cc pdh ping --json
 
 - 旧版桥没有 `pdh_ping` 工具时，回退为「connect 即存活」（`pingAttempted: false`）。
 - 失败时退出码非 0（可 `cc pdh ping && …` 脚本化）；`stage` 指出失败环节（`discover` / `connect` / `ping`）。
+- 报告里的 `toolNames` 列出桥暴露的采集器裸名（`collect_files` / `query_app_data` / …），可一眼确认桥的版本与能力。
 - 结果**绝不含** bearer token。
+
+### `cc pdh feedback` — 看 AI 学到了什么（透明度）
+
+自学习飞轮（§3.5.13）把你的每次纠正存进反馈台账，并在每个个人助手会话里前置注入——但这份「AI 对你的理解」原本你看不见。`cc pdh feedback` 把它显出来（计数 / 净倾向 / 记住的纠正，最新优先），对应 Android 透明视图的「AI 画像」段（§3.5.18：「看见 AI 对你的理解」）。
+
+```bash
+cc pdh feedback
+# PDH 自学习反馈 (12 条)
+#   👍 7  👎 2  净倾向 +5
+#   已记住的纠正 (最新优先):
+#     • 金额一律用人民币
+#     • 汇报要简洁
+
+cc pdh feedback --json   # { total, positive, negative, sentiment, corrections:[…] }
+```
+
+空台账如实显示「尚无跨会话反馈记录」，绝不臆造（§3.5.18 诚实原则）。
+
+> **数据出口透明度（§3.5.18 出境台账）**：个人助手每轮若把对话发往云端 LLM、或某工具（cookie→第三方 API / 发消息 / 导出 / 跨设备）把数据发出端外，cc 会发一条结构化 `egress` 事件，App 端记入端侧加密台账——尤其云端 LLM 调用发生在 cc 子进程里、App 本看不见，这条事件补上了这个维度。本地推理轮不产生出境事件（诚实的「0 条出境」）。
 
 ### 常见问题
 
