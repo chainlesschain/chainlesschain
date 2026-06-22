@@ -656,4 +656,103 @@ class PdhChatViewModelTest {
         assertTrue(vm.uiState.value.messages.any { it.text.contains("选择一台目标设备") })
         coVerify(exactly = 0) { backupService.syncWith(any()) }
     }
+
+    // ── 卡顿看门狗(发信息无回复 → 友好提示 + 复位 + 重试)─────────────────────
+    // 用 runCurrent()(非 advanceUntilIdle:那会快进穿过 delay 直接触发超时)。
+
+    @Test
+    fun silent_turn_shows_hint_then_times_out_with_friendly_message_and_retry() = runTest(dispatcher) {
+        coEvery { session.send(any(), any()) } returns true
+        every { session.isRunning } returns true // 进程活着 → 超时但不重启
+        val vm = newVm()
+
+        vm.send("我的微博")
+        dispatcher.scheduler.runCurrent() // 跑 doSend 的 launch;看门狗挂在 delay(HINT)
+        assertTrue(vm.uiState.value.isSending)
+        assertFalse(vm.uiState.value.slowHint)
+
+        // 静默到 hint 阈值 → 「仍在处理中」
+        dispatcher.scheduler.advanceTimeBy(PdhChatViewModel.THINKING_HINT_MS + 1)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.slowHint)
+        assertTrue(vm.uiState.value.isSending) // 还没判超时
+
+        // 继续静默到硬超时 → 友好告知 + 复位 + 可重试
+        dispatcher.scheduler.advanceTimeBy(PdhChatViewModel.THINKING_TIMEOUT_MS)
+        dispatcher.scheduler.runCurrent()
+        val st = vm.uiState.value
+        assertFalse(st.isSending)
+        assertFalse(st.slowHint)
+        assertEquals("我的微博", st.retryText)
+        assertTrue(st.messages.last().text.contains("超时"))
+    }
+
+    @Test
+    fun progress_event_rearms_watchdog_so_a_slow_streaming_turn_is_not_killed() = runTest(dispatcher) {
+        coEvery { session.send(any(), any()) } returns true
+        every { session.isRunning } returns true
+        val vm = newVm()
+
+        vm.send("hi")
+        dispatcher.scheduler.runCurrent()
+
+        // 接近硬超时(但未到)
+        dispatcher.scheduler.advanceTimeBy(PdhChatViewModel.THINKING_TIMEOUT_MS - 2_000)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.isSending)
+
+        // 来了进展(流式文本)→ 重置计时窗口
+        events.emit(PdhAgentEvent.Text("正在为你查询…"))
+        dispatcher.scheduler.runCurrent()
+
+        // 再推进同样接近超时(< 新窗口)→ 仍未被误判超时
+        dispatcher.scheduler.advanceTimeBy(PdhChatViewModel.THINKING_TIMEOUT_MS - 2_000)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.isSending)
+        assertNull(vm.uiState.value.retryText)
+    }
+
+    @Test
+    fun pending_trust_card_pauses_watchdog_no_false_timeout() = runTest(dispatcher) {
+        coEvery { session.send(any(), any()) } returns true
+        every { session.isRunning } returns true
+        val vm = newVm()
+
+        vm.send("采集微信")
+        dispatcher.scheduler.runCurrent()
+        // agent 发来审批卡 → 合法地在等用户裁决
+        events.emit(
+            PdhAgentEvent.ApprovalRequest(id = "a1", tool = "mcp__pdh__collect", summary = "采集", risk = null),
+        )
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.pendingCards.isNotEmpty())
+
+        // 远超硬超时 → 因有待裁决卡,不误判卡死(续等,不报超时)
+        dispatcher.scheduler.advanceTimeBy(PdhChatViewModel.THINKING_TIMEOUT_MS * 2)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.isSending)
+        assertNull(vm.uiState.value.retryText)
+        assertTrue(vm.uiState.value.messages.none { it.text.contains("超时") })
+    }
+
+    @Test
+    fun agent_exit_while_waiting_auto_restarts_and_offers_retry() = runTest(dispatcher) {
+        coEvery { session.send(any(), any()) } returns true
+        every { session.isRunning } returns true
+        coEvery { session.start(any()) } returns Result.success(Unit)
+        val vm = newVm()
+
+        vm.send("你好")
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.uiState.value.isSending)
+
+        // 进程意外退出(非 0)→ 复位 + 留可重试 + 自动重启回 ready
+        events.emit(PdhAgentEvent.Exit(code = 1))
+        advanceUntilIdle()
+        val st = vm.uiState.value
+        assertFalse(st.isSending)
+        assertEquals("你好", st.retryText)
+        assertTrue(st.ready) // restartSession 成功 → 可继续
+        coVerify(atLeast = 1) { session.start(any()) }
+    }
 }

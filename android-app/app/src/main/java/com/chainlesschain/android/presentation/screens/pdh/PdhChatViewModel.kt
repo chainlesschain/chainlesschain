@@ -27,6 +27,8 @@ import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -226,6 +228,13 @@ class PdhChatViewModel @Inject constructor(
         val searchQuery: String = "",
         /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
         val displayLimit: Int = PAGE_SIZE,
+        /**
+         * 卡顿提示:本回合已 [THINKING_HINT_MS] 无任何输出(网络/模型慢) → UI 在
+         * 「思考中」下追加一行「仍在处理中…」,让用户知道没卡死、仍在等。
+         */
+        val slowHint: Boolean = false,
+        /** 上一回合以超时/错误结束、可一键重试时为非空(=可重发的用户原文)。 */
+        val retryText: String? = null,
     ) {
         /**
          * §3.5.16 本轮 effective 目标设备:选本机/未配对 → 本机(诚实不静默驱动陌生
@@ -259,6 +268,18 @@ class PdhChatViewModel @Inject constructor(
     /** §3.5.11/§3.5.12: last tool + input → derive its result's provenance / view kind. */
     private var lastToolUse: String? = null
     private var lastToolInput: String? = null
+
+    /**
+     * 卡顿看门狗:回合静默(无任何 cc 事件)超时 → 友好提示 + 复位,杜绝
+     * isSending 永久 true(LLM 网络挂起 / 回复丢失 / 进程死掉时,UI 否则一直转圈)。
+     */
+    private var watchdogJob: Job? = null
+
+    /** 最近一条用户输入,供超时后「重试」复用(见 [retry])。 */
+    private var lastUserText: String? = null
+
+    /** VM 正在销毁 → Exit 事件是主动关闭,别误触自动重启(避免拆毁期重生进程)。 */
+    private var closing = false
 
     /** §3.5.20 资源预算(默认保守:省电省流量);预算设置 UI 是后续 seam。 */
     private val budgetSettings = PdhResourceBudget.Settings()
@@ -412,6 +433,8 @@ class PdhChatViewModel @Inject constructor(
                 isSending = true,
                 streamingText = "",
                 error = null,
+                slowHint = false,
+                retryText = null,
                 // A new request supersedes any leftover 引导卡 from a previous turn
                 // (e.g. a "登录微博" assist the user didn't complete) — otherwise it
                 // lingers under an unrelated new request and looks like THIS request
@@ -420,6 +443,8 @@ class PdhChatViewModel @Inject constructor(
                 pendingCards = emptyList(),
             )
         }
+        lastUserText = text
+        armWatchdog() // 卡顿看门狗:本回合静默超时 → 友好提示 + 复位。
         persistChat()
         recordEgressIfLeaving() // §3.5.18: the turn's text goes to the selected LLM.
         // §3.5.10 接线4/6: route THIS turn to the selected 档's LLM (云=默认不覆盖;
@@ -431,14 +456,105 @@ class PdhChatViewModel @Inject constructor(
         viewModelScope.launch {
             val ok = session.send(text, override)
             if (!ok) {
+                cancelWatchdog()
+                // 会话未运行(进程死了)→ 自动重启,别让用户卡在"发送失败"。
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        error = "发送失败：会话未运行。",
+                        slowHint = false,
+                        retryText = text,
+                        error = "本机 AI 未在运行,正在自动重启…请重发。",
                     )
                 }
+                restartSession()
             }
         }
+    }
+
+    /**
+     * 卡顿看门狗:重发后启动静默计时。[THINKING_HINT_MS] 仍无任何 cc 事件 → 显示
+     * 「仍在处理中…」;到 [THINKING_TIMEOUT_MS] 还静默(且没有等用户裁决的卡)→
+     * 判定本回合卡死,友好告知 + 复位 isSending + 可重试;若进程已死则自动重启。
+     * 进展事件([onEvent] 里的 Text/ToolUse/ToolResult)会重置计时,故正常(哪怕慢)
+     * 的流式回复不会被误判;有待裁决的信任卡时(agent 合法等用户)也不误杀。
+     */
+    private fun armWatchdog() {
+        watchdogJob?.cancel()
+        if (_uiState.value.slowHint) _uiState.update { it.copy(slowHint = false) }
+        watchdogJob = viewModelScope.launch {
+            delay(THINKING_HINT_MS)
+            if (!_uiState.value.isSending) return@launch
+            if (_uiState.value.pendingCards.isEmpty()) {
+                _uiState.update { it.copy(slowHint = true) }
+            }
+            delay(THINKING_TIMEOUT_MS - THINKING_HINT_MS)
+            if (!_uiState.value.isSending) return@launch
+            // 防御:有待裁决的信任卡 = agent 在合法等用户,不算卡死 → 不报超时,
+            // 也不重新计时(避免无限重排);卡被裁决时由 [rearmAfterCardResolved] 续上。
+            if (_uiState.value.pendingCards.isNotEmpty()) return@launch
+            val alive = session.isRunning
+            _uiState.update {
+                it.copy(
+                    isSending = false,
+                    slowHint = false,
+                    streamingText = "",
+                    retryText = lastUserText,
+                    messages = it.messages + ChatMessage(
+                        role = Role.ASSISTANT,
+                        text = if (alive) {
+                            "⏳ 这次响应超时了(可能网络或模型繁忙)。点下方「重试」,或换个说法重新发送。"
+                        } else {
+                            "⚠️ 本机 AI 进程刚才退出了,正在自动重启。稍候点「重试」重发即可。"
+                        },
+                    ),
+                )
+            }
+            persistChat()
+            if (!alive) restartSession()
+        }
+    }
+
+    /** 回合有进展或结束 → 取消看门狗(并清掉「仍在处理」提示)。 */
+    private fun cancelWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = null
+        if (_uiState.value.slowHint) _uiState.update { it.copy(slowHint = false) }
+    }
+
+    /**
+     * 用户裁决/续跑某张信任卡后:若本回合仍在进行且无其它待裁决卡,重新起看门狗
+     * (agent 恢复干活,继续盯静默)。卡裁决前看门狗在 [onEvent] 已被取消。
+     */
+    private fun rearmAfterCardResolved() {
+        if (_uiState.value.isSending && _uiState.value.pendingCards.isEmpty()) armWatchdog()
+    }
+
+    /** 重启已退出/卡死的 cc agent 会话(events flow 是 singleton 上的常驻收集,复用)。 */
+    private fun restartSession() {
+        viewModelScope.launch {
+            runCatching { session.close() }
+            val r = session.start(viewModelScope)
+            _uiState.update {
+                it.copy(
+                    ready = r.isSuccess,
+                    isSending = false,
+                    slowHint = false,
+                    error = if (r.isFailure) {
+                        "本机 AI 重启失败:${r.exceptionOrNull()?.message ?: "未知"}"
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+    }
+
+    /** 超时/失败后「重试」→ 复用上一条用户原文重发(UI 的重试按钮调用)。 */
+    fun retry() {
+        val t = _uiState.value.retryText ?: lastUserText ?: return
+        if (_uiState.value.isSending || !_uiState.value.ready) return
+        _uiState.update { it.copy(retryText = null) }
+        doSend(t)
     }
 
     /** §3.5.10 接线5「同意一次」/「本类不再问」→ 放行本轮(remember 记持久偏好)。 */
@@ -488,6 +604,24 @@ class PdhChatViewModel @Inject constructor(
     }
 
     private fun onEvent(ev: PdhAgentEvent) {
+        // 看门狗:进展事件重置静默计时(慢但在动的回合不误杀);出现待裁决卡(agent
+        // 合法等用户)→ 暂停计时,卡裁决后再续(见 [rearmAfterCardResolved]);终结事件
+        // 取消计时。
+        when (ev) {
+            is PdhAgentEvent.Text,
+            is PdhAgentEvent.ToolUse,
+            is PdhAgentEvent.ToolResult,
+            -> if (_uiState.value.isSending) armWatchdog()
+            is PdhAgentEvent.ApprovalRequest,
+            is PdhAgentEvent.AssistRequired,
+            is PdhAgentEvent.PlanUpdate,
+            -> cancelWatchdog()
+            is PdhAgentEvent.Result,
+            is PdhAgentEvent.Error,
+            is PdhAgentEvent.Exit,
+            -> cancelWatchdog()
+            else -> {}
+        }
         when (ev) {
             is PdhAgentEvent.Text ->
                 _uiState.update { it.copy(streamingText = it.streamingText + ev.text) }
@@ -640,14 +774,22 @@ class PdhChatViewModel @Inject constructor(
                 it.copy(isSending = false, error = ev.message)
             }
 
-            is PdhAgentEvent.Exit -> _uiState.update {
-                it.copy(
-                    isSending = false,
-                    ready = false,
-                    // §3.5.9: no live agent to resolve cards → clear pending.
-                    pendingCards = emptyList(),
-                    error = if (ev.code != 0) "本机 AI 进程已退出（code ${ev.code}）。" else it.error,
-                )
+            is PdhAgentEvent.Exit -> {
+                val wasSending = _uiState.value.isSending
+                _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        ready = false,
+                        // §3.5.9: no live agent to resolve cards → clear pending.
+                        pendingCards = emptyList(),
+                        slowHint = false,
+                        // 进程退出时正等回复 → 把当时输入留作可重试。
+                        retryText = if (wasSending) lastUserText else it.retryText,
+                        error = if (ev.code != 0) "本机 AI 进程已退出（code ${ev.code}）,正在自动重启…" else it.error,
+                    )
+                }
+                // 非主动关闭(VM 仍存活)→ 自动重启,让 ready 恢复、用户能继续/重试。
+                if (!closing) restartSession()
             }
         }
     }
@@ -661,6 +803,7 @@ class PdhChatViewModel @Inject constructor(
         // §3.5.18 接线: an approved transaction is a real behavior → 操作台账。
         if (approve && card is TrustCard.Transaction) recordAction(card)
         viewModelScope.launch { session.sendApproval(id, approve) }
+        rearmAfterCardResolved() // agent 恢复干活 → 继续盯静默。
     }
 
     /** §3.5.18 操作台账:记录"AI 替你办过的事务"(批准=已发起;执行结果在对话里)。 */
@@ -762,12 +905,14 @@ class PdhChatViewModel @Inject constructor(
                 }
             }
         }
+        rearmAfterCardResolved() // 续跑后 agent 恢复干活 → 继续盯静默。
     }
 
     /** 计划卡 → `{type:plan,action}`(`approve`|`reject`|`enter`)。 */
     fun resolvePlan(action: String) {
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c is TrustCard.Plan }) }
         viewModelScope.launch { session.sendPlan(action) }
+        rearmAfterCardResolved()
     }
 
     // ── §3.5.13 自学习纠正回路:UI 捕获 → 喂端侧学习层(cc 侧消费) ──────────
@@ -1000,6 +1145,8 @@ class PdhChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        closing = true // Exit 事件随之而来 = 主动关闭,别自动重启。
+        watchdogJob?.cancel()
         // Fire-and-forget shutdown; the process is destroyed when the VM dies.
         viewModelScope.launch { session.close() }
     }
@@ -1010,6 +1157,15 @@ class PdhChatViewModel @Inject constructor(
 
         /** 翻页每页消息数。 */
         const val PAGE_SIZE = 50
+
+        /** 看门狗:本回合静默达此值仍无任何输出 → UI 追加「仍在处理中…」提示。 */
+        const val THINKING_HINT_MS = 20_000L
+
+        /**
+         * 看门狗:本回合静默达此值(且无待裁决卡)→ 判定卡死,友好告知 + 复位。
+         * 取 2 分钟:足够覆盖慢 LLM 首 token / 较长的工具调用,又能及时兜住真挂起。
+         */
+        const val THINKING_TIMEOUT_MS = 120_000L
 
         /** 空态/结束 onboarding 后的已就绪提示文案。 */
         private const val READY_LINE =

@@ -258,7 +258,27 @@ fun PdhChatScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
-                                Text("思考中…", style = MaterialTheme.typography.bodySmall)
+                                // 静默超过阈值 → 换成「仍在处理」安抚文案,让用户知道没卡死。
+                                Text(
+                                    if (state.slowHint) {
+                                        "仍在处理中,网络或模型较慢,请再稍等…"
+                                    } else {
+                                        "思考中…"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+                    // 超时/进程退出后:一键「重试」复发上一条(retryText 非空且当前空闲)。
+                    if (!state.isSending && state.retryText != null) {
+                        item {
+                            TextButton(
+                                onClick = { viewModel.retry() },
+                                enabled = state.ready,
+                                modifier = Modifier.padding(vertical = 4.dp),
+                            ) {
+                                Text("↻ 重试上一条")
                             }
                         }
                     }
