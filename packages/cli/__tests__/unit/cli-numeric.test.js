@@ -47,4 +47,32 @@ describe("numericOption", () => {
       expect(Number.isNaN(v)).toBe(false);
     }
   });
+
+  it("rejects partial-numeric junk instead of truncating (strict, not parseInt)", () => {
+    // parseInt("12abc") === 12 / parseInt("0x10", 10) === 0 — these must NOT
+    // slip through as a silently-corrupt value.
+    for (const bad of ["12abc", "12px", "1,000", "5 apples", "$5"]) {
+      expect(() => numericOption(bad, { name: "--n", integer: true })).toThrow(
+        /--n must be a whole number/,
+      );
+      expect(numericOption(bad, { integer: true, fallback: 7 })).toBe(7);
+    }
+  });
+
+  it("rejects a fractional value in integer mode", () => {
+    expect(() => numericOption("12.5", { name: "--n", integer: true })).toThrow(
+      /--n must be a whole number/,
+    );
+    expect(numericOption("12.5", { name: "--n" })).toBe(12.5); // float mode OK
+  });
+
+  it("parses whole numbers given via exponent correctly", () => {
+    // parseInt("1e3", 10) === 1 (wrong); Number("1e3") === 1000.
+    expect(numericOption("1e3", { integer: true })).toBe(1000);
+  });
+
+  it("treats whitespace-only input as missing", () => {
+    expect(numericOption("   ", { fallback: 4 })).toBe(4);
+    expect(() => numericOption("   ", { name: "--n" })).toThrow(/--n is required/);
+  });
 });

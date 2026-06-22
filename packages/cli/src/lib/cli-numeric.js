@@ -10,7 +10,9 @@
  * @param {*} raw  the option value (string from commander, or undefined)
  * @param {object} [opts]
  * @param {string} [opts.name="value"]   label for error messages (e.g. "--limit")
- * @param {boolean} [opts.integer=false] parse as integer (parseInt) vs float (Number)
+ * @param {boolean} [opts.integer=false] require a whole number (rejects 1.5);
+ *                                       parsing is strict either way (Number,
+ *                                       not parseInt — "12abc" is rejected)
  * @param {number} [opts.min]            inclusive lower bound
  * @param {number} [opts.max]            inclusive upper bound
  * @param {number} [opts.fallback]       returned for missing/invalid input; when
@@ -26,8 +28,15 @@ export function numericOption(raw, opts = {}) {
   };
 
   if (raw == null || raw === "") return fail(`${name} is required`);
-  const n = integer ? parseInt(raw, 10) : Number(raw);
-  if (!Number.isFinite(n)) {
+  if (typeof raw === "string" && raw.trim() === "")
+    return fail(`${name} is required`);
+  // Number() (NOT parseInt) so trailing junk is rejected instead of silently
+  // truncated: parseInt("12abc") === 12 and parseInt("0x10", 10) === 0 would
+  // slip a corrupt value through. Number("12abc") is NaN; whole numbers given
+  // via exponent ("1e3" -> 1000) still parse, and a fractional value is
+  // rejected in integer mode.
+  const n = Number(raw);
+  if (!Number.isFinite(n) || (integer && !Number.isInteger(n))) {
     return fail(
       `${name} must be a ${integer ? "whole " : ""}number (got ${JSON.stringify(String(raw))})`,
     );
