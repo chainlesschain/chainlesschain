@@ -30,9 +30,22 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import pdhPkg from "@chainlesschain/personal-data-hub";
-
-const { ingestSystemDataAndroidSnapshot } = pdhPkg;
+// Lazily import the pdh package the first time the system-data-android
+// ingest topic is actually used. This module is pulled in by the
+// agent/chat/serve/ui runtime chain at startup (ws-server →
+// message-dispatcher → here), so a top-level static import would force the
+// whole pdh graph to load on every `cc` invocation — and a partial/corrupt
+// pdh install would brick unrelated commands. See the matching rationale in
+// personal-data-hub-wiring.js.
+let _ingestSnapshotFn = null;
+async function ingestSystemDataAndroidSnapshot(hub, snapshot) {
+  if (!_ingestSnapshotFn) {
+    const pdhMod = await import("@chainlesschain/personal-data-hub");
+    const pdhPkg = pdhMod.default || pdhMod;
+    _ingestSnapshotFn = pdhPkg.ingestSystemDataAndroidSnapshot;
+  }
+  return _ingestSnapshotFn(hub, snapshot);
+}
 
 /**
  * If the caller didn't pass `inputPath`, try to pull a snapshot for

@@ -29,11 +29,20 @@ import { mkdirSync } from "node:fs";
 // Hub package is CJS; in ESM we default-import then destructure (Node 22
 // won't let us name-import a CJS module unless it ships a separate ESM
 // shim, which we don't).
-import hub from "@chainlesschain/personal-data-hub";
-import wechatAdapterModule from "@chainlesschain/personal-data-hub/adapters/wechat";
-const { bootstrapWechatAdapter, probeWeChatEnv } = wechatAdapterModule;
-const {
-  LocalVault,
+// PDH is loaded LAZILY (not a top-level static import) so that merely
+// importing this wiring module — which happens on EVERY `cc` invocation,
+// because index.js statically pulls in commands/hub.js (getHub) AND the
+// agent/chat/serve/ui runtime chain (ws pdh-protocol → this wiring) — does
+// NOT eagerly evaluate the entire personal-data-hub adapter graph. Wins:
+//   • Robustness: a partial/corrupt pdh install (e.g. an interrupted
+//     `npm i -g` that left adapter files unwritten) no longer bricks
+//     unrelated commands like `cc -v` with a cryptic ERR_MODULE_NOT_FOUND.
+//     pdh only loads when a `cc hub …` / web-shell hub topic actually runs.
+//   • Startup cost: non-hub commands skip loading 50+ adapter modules.
+// The bindings below are populated by ensurePdhLoaded(), which initHub() and
+// initHubMinimal() await before touching any of them.
+let bootstrapWechatAdapter, probeWeChatEnv;
+let LocalVault,
   AdapterRegistry,
   AnalysisEngine,
   MockAdapter,
@@ -124,8 +133,125 @@ const {
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
   runAnalysisSkill,
-  ANALYSIS_SKILL_NAMES,
-} = hub;
+  ANALYSIS_SKILL_NAMES;
+
+let _pdhLoadPromise = null;
+/**
+ * Lazily import the personal-data-hub package + wechat adapter and populate
+ * the module-level binding holders above. Memoized so concurrent
+ * getHub()/getHubMinimal() callers share one load. Must be awaited by any
+ * code path that uses a pdh binding (initHub / initHubMinimal).
+ */
+function ensurePdhLoaded() {
+  if (!_pdhLoadPromise) {
+    _pdhLoadPromise = (async () => {
+      const hubMod = await import("@chainlesschain/personal-data-hub");
+      const hub = hubMod.default || hubMod;
+      // Composed specifier dodges vite/vitest static import-analysis of
+      // subpath exports (same trick as loadAIChatHealthChecker below).
+      const wechatSpec =
+        "@chainlesschain/personal-data-hub" + "/adapters/wechat";
+      const waMod = await import(wechatSpec);
+      const wechatAdapterModule = waMod.default || waMod;
+      ({ bootstrapWechatAdapter, probeWeChatEnv } = wechatAdapterModule);
+      ({
+        LocalVault,
+        AdapterRegistry,
+        AnalysisEngine,
+        MockAdapter,
+        OllamaClient,
+        CcKgSink,
+        CcRagSink,
+        FileKeyProvider,
+        generateKeyHex,
+        EmailAdapter,
+        AlipayBillAdapter,
+        SystemDataAndroidAdapter,
+        BrowserHistoryChromeAdapter,
+        BrowserHistoryEdgeAdapter,
+        VSCodeAdapter,
+        WinRecentAdapter,
+        GitActivityAdapter,
+        ShellHistoryAdapter,
+        LocalFilesAdapter,
+        BilibiliAdapter,
+        WeiboAdapter,
+        ZhihuAdapter,
+        DoubanAdapter,
+        BossZhipinAdapter,
+        CsdnAdapter,
+        DongchediAdapter,
+        TianyanchaAdapter,
+        DouyinAdapter,
+        XiaohongshuAdapter,
+        ToutiaoAdapter,
+        KuaishouAdapter,
+        GenshinAdapter,
+        HonorOfKingsAdapter,
+        ZuoyebangAdapter,
+        AlipayAdapter,
+        HuaweiLearningAdapter,
+        QQAdapter,
+        WeChatPcAdapter,
+        QQPcAdapter,
+        AppleHealthAdapter,
+        NeteaseMusicAdapter,
+        KugouMusicAdapter,
+        QQMusicAdapter,
+        XimalayaAdapter,
+        FanqieReadingAdapter,
+        QimaoReadingAdapter,
+        JoyrunAdapter,
+        KeepAdapter,
+        DidiConsumerAdapter,
+        MercedesMeAdapter,
+        IqiyiVideoAdapter,
+        TencentVideoAdapter,
+        XiguaVideoAdapter,
+        WeReadAdapter,
+        WpsDocAdapter,
+        TencentDocsAdapter,
+        BaiduNetdiskAdapter,
+        CamScannerDocAdapter,
+        IXiamenAdapter,
+        MeiyouAdapter,
+        TaxAdapter,
+        CmbcBankAdapter,
+        BocBankAdapter,
+        BankcommBankAdapter,
+        IcbcBankAdapter,
+        DcepAdapter,
+        Tmri12123Adapter,
+        DingTalkPcAdapter,
+        FeishuPcAdapter,
+        WeWorkPcAdapter,
+        BaiduMapAdapter,
+        TencentMapAdapter,
+        JdAdapter,
+        MeituanAdapter,
+        ElemeAdapter,
+        PinduoduoAdapter,
+        DianpingAdapter,
+        XianyuAdapter,
+        VipshopAdapter,
+        Train12306Adapter,
+        TaobaoAdapter,
+        CtripAdapter,
+        TongchengAdapter,
+        DidiAdapter,
+        AmapAdapter,
+        TelegramAdapter,
+        WhatsAppAdapter,
+        EntityResolver,
+        EntityResolverEmbeddingStage,
+        EntityResolverLLMStage,
+        runAnalysisSkill,
+        ANALYSIS_SKILL_NAMES,
+      } = hub);
+    })();
+  }
+  return _pdhLoadPromise;
+}
 import {
   readFileSync,
   writeFileSync,
@@ -209,6 +335,7 @@ export function resolveHubDir() {
 }
 
 async function initHub() {
+  await ensurePdhLoaded();
   // Phase 1c: hoisted so the hub-level `bilibiliAdbSync` method can reuse
   // the same bridge instance the system-data-android adapter wires below.
   // Single bridge per hub keeps `bilibili.cookies` extension state /
@@ -1490,6 +1617,7 @@ let _hubMinimal = null;
 let _hubMinimalInitPromise = null;
 
 async function initHubMinimal() {
+  await ensurePdhLoaded();
   const hubDir = resolveHubDir();
   mkdirSync(hubDir, { recursive: true });
   mkdirSync(join(hubDir, "keys"), { recursive: true });
