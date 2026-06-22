@@ -1975,6 +1975,97 @@ class LocalCcRunner @Inject constructor(
             )
         }
 
+    /**
+     * Generic `cc <verb...> --json` row export → list of (id, json) (§8.3 learning
+     * backup). Reused by instinct/trajectory export; vault/memory keep their own
+     * impls (committed earlier). org.json id-extraction is device-side.
+     */
+    private suspend fun _exportCcRows(verb: List<String>, timeoutMs: Long): ExportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ExportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = buildList {
+                add(mkshPath.absolutePath); add(ccPath.absolutePath); addAll(verb); add("--json")
+            }
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ExportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            if (exit != 0) {
+                val errMsg = try {
+                    JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+                } catch (_: Exception) { null }
+                return@withContext ExportEventsResult.Failed(
+                    errMsg ?: "cc exited $exit: ${stderr.take(300)}", exit,
+                )
+            }
+            try {
+                val arr = org.json.JSONArray(stdout.trim())
+                val rows = buildList {
+                    for (i in 0 until arr.length()) {
+                        val o = arr.optJSONObject(i) ?: continue
+                        val id = o.optString("id", "")
+                        if (id.isEmpty()) continue
+                        add(ExportedEvent(id = id, json = o.toString()))
+                    }
+                }
+                ExportEventsResult.Ok(rows)
+            } catch (e: Exception) {
+                ExportEventsResult.Failed("parse-failed: ${e.message ?: e.javaClass.simpleName}", exit)
+            }
+        }
+
+    /** Generic `cc <verb...> import --input <file> --json` → {imported, failed}. */
+    private suspend fun _importCcRows(verb: List<String>, inputFile: File, timeoutMs: Long): ImportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ImportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = buildList {
+                add(mkshPath.absolutePath); add(ccPath.absolutePath); addAll(verb)
+                add("--input"); add(inputFile.absolutePath); add("--json")
+            }
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ImportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            val parsed = try { JSONObject(stdout.trim()) } catch (_: Exception) { null }
+            if (parsed == null) {
+                return@withContext ImportEventsResult.Failed(
+                    if (exit != 0) "cc exited $exit: ${stderr.take(300)}" else "parse-failed", exit,
+                )
+            }
+            val err = parsed.optString("error", "")
+            if (err.isNotEmpty()) return@withContext ImportEventsResult.Failed(err, exit)
+            ImportEventsResult.Ok(
+                imported = parsed.optInt("imported", 0),
+                failed = parsed.optInt("failed", 0),
+            )
+        }
+
+    /** `cc instinct export --json` → learned instincts (§8.3 learning backup). */
+    suspend fun exportInstincts(timeoutMs: Long = 120_000L): ExportEventsResult =
+        _exportCcRows(listOf("instinct", "export"), timeoutMs)
+
+    /** `cc instinct import --input <file> --json`. */
+    suspend fun importInstincts(inputFile: File, timeoutMs: Long = 120_000L): ImportEventsResult =
+        _importCcRows(listOf("instinct", "import"), inputFile, timeoutMs)
+
+    /** `cc learning export --json` → learning trajectories (§8.3 learning backup). */
+    suspend fun exportTrajectories(timeoutMs: Long = 120_000L): ExportEventsResult =
+        _exportCcRows(listOf("learning", "export"), timeoutMs)
+
+    /** `cc learning import --input <file> --json`. */
+    suspend fun importTrajectories(inputFile: File, timeoutMs: Long = 120_000L): ImportEventsResult =
+        _importCcRows(listOf("learning", "import"), inputFile, timeoutMs)
+
     private fun _jsonObjectToIntMap(obj: JSONObject?): Map<String, Int> {
         if (obj == null) return emptyMap()
         val out = mutableMapOf<String, Int>()

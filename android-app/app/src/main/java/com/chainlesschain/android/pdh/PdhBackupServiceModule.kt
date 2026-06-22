@@ -53,9 +53,13 @@ object PdhBackupServiceModule {
         // vault(数据)+ memory(AI 对你的认知)两大高价值资产端到端备份。
         // instinct/trajectories/skills 同模式后续追加。
         sourcesProvider = {
+            val tmp = File(context.cacheDir, "pdh-backup-import")
             listOf(
-                PdhVaultBridge(ccVaultGateway),
-                PdhMemoryAssetSource(runner, File(context.cacheDir, "pdh-backup-import")),
+                PdhVaultBridge(ccVaultGateway), // 数据
+                PdhMemoryAssetSource(runner, tmp), // AI 对你的认知(层次化记忆)
+                // 学习层:习惯(instinct)+ 自进化轨迹(trajectories,含 synthesized skill)
+                PdhCcRowsAssetSource(AssetKind.INSTINCTS, tmp, { runner.exportInstincts() }, { runner.importInstincts(it) }),
+                PdhCcRowsAssetSource(AssetKind.TRAJECTORIES, tmp, { runner.exportTrajectories() }, { runner.importTrajectories(it) }),
             )
         },
     )
