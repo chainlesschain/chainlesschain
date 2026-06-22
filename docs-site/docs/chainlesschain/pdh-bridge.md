@@ -298,6 +298,24 @@ cc pdh doctor
 #   reason         : matched CHAINLESSCHAIN_PDH_PORT (env fast-path)
 ```
 
+### `cc pdh ping` — 活体连通探针
+
+`list / status / doctor` 只**读** lockfile（发现层）；`cc pdh ping` 真正**连上**所发现的 server 并验证它能应答（discover → connect → `pdh_ping` 往返 → 报告）。不必跑整个 agent 即可确认桥真的通。
+
+```bash
+cc pdh ping
+# PDH android:18510 OK — pong, 8 tools, 23ms
+
+cc pdh ping --json
+# { "ok": true, "stage": "ping", "device": "android", "port": 18510,
+#   "tools": 8, "latencyMs": 23, "pingAttempted": true, "pingOk": true,
+#   "pingText": "pong" }
+```
+
+- 旧版桥没有 `pdh_ping` 工具时，回退为「connect 即存活」（`pingAttempted: false`）。
+- 失败时退出码非 0（可 `cc pdh ping && …` 脚本化）；`stage` 指出失败环节（`discover` / `connect` / `ping`）。
+- 结果**绝不含** bearer token。
+
 ### 常见问题
 
 **Q: `cc agent` 连不上 PDH（工具 `mcp__pdh__*` 不出现）?**
@@ -305,8 +323,9 @@ cc pdh doctor
 1. App 的 bridge server 是否在跑？看 logcat `PdhBridgeServer: started on 127.0.0.1:...`。
 2. lockfile 是否写到了**内置 cc 的 HOME** 下的 `.chainlesschain/pdh-bridge/`？（cc 扫的是 `os.homedir()`，必须与 bootstrapper homeDir 对齐）
 3. `cc pdh list` 是否看到存活锁？没有则可能 server 没起或锁已 stale。
-4. env 是否注入了 `CHAINLESSCHAIN_PDH_PORT`？没有则走扫描路径（Path B）。
-5. 是否被 `--no-pdh` 关掉了？
+4. 锁在但连不上？跑 `cc pdh ping` 一步验证「能否真正连上并应答」——它会指出卡在 `discover` / `connect` / `ping` 哪一环。
+5. env 是否注入了 `CHAINLESSCHAIN_PDH_PORT`？没有则走扫描路径（Path B）。
+6. 是否被 `--no-pdh` 关掉了？
 
 **Q: lockfile 存在但 `cc pdh status` 说"none usable"?**
 
