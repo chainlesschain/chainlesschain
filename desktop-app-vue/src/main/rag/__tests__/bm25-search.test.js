@@ -255,6 +255,26 @@ describe('BM25Search', () => {
     });
   });
 
+  describe('Chinese (default language) term frequency — regression', () => {
+    it('counts repeated Chinese tokens instead of capping at 1', () => {
+      // Bug: the zh tokenizer deduped via new Set, so getTermFrequency was
+      // always 0/1, collapsing BM25's TF-saturation term in the default path.
+      const zh = new BM25Search(); // default language === 'zh'
+      zh.indexDocuments([{ id: 'd', content: '数据数据数据' }]);
+      expect(zh.getTermFrequency('数', 0)).toBe(3);
+    });
+
+    it('ranks a doc with more occurrences of the query term higher', () => {
+      const zh = new BM25Search();
+      zh.indexDocuments([
+        { id: 'many', content: '机器学习 机器学习 机器学习 机器学习' },
+        { id: 'one', content: '机器学习 深度神经 计算视觉 自然语言' },
+      ]);
+      const results = zh.search('机器学习');
+      expect(results[0].document.id).toBe('many');
+    });
+  });
+
   describe('addDocument', () => {
     it('should add document to index', () => {
       bm25.indexDocuments([{ id: 'doc1', content: 'First document' }]);

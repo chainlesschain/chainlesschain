@@ -65,12 +65,14 @@ class BM25Search {
       return (text) => {
         // 移除标点和特殊字符
         const cleaned = text.replace(/[，。！？；：""''（）《》、\s]+/g, " ");
-        // 分割为单字和词组
+        // 分割为单字和词组。注意：必须保留重复 token —— BM25 的词频(TF)
+        // 饱和项依赖 getTermFrequency 统计真实出现次数；若在此去重(new Set)，
+        // 任意词的 TF 都会被压成 0/1，使中文(默认语言)评分退化为二值。
         const chars = cleaned.split("").filter((c) => c.trim());
         const words = cleaned
           .split(/\s+/)
           .filter((w) => w.trim() && w.length > 1);
-        return [...new Set([...chars, ...words])];
+        return [...chars, ...words];
       };
     } else {
       // 英文分词
