@@ -60,6 +60,10 @@
         Open-source: <a href="https://github.com/chainlesschain/chainlesschain">github.com/chainlesschain/chainlesschain</a>.
     ]]></description>
 
+    <!-- AUTO-GENERATED at build time from CHANGELOG.md by build.gradle.kts
+         (intellijPlatform.pluginConfiguration.changeNotes → patchPluginXml
+         overrides this element). Do NOT hand-edit — edit CHANGELOG.md instead.
+         The content below is only a fallback if the gradle render fails. -->
     <change-notes><![CDATA[
         <b>0.4.29 / 0.4.30</b> — fix: <b>"Configure LLM" now pre-fills your config</b>
         — no more re-typing model+key. The wizard pre-fills your current model, base
