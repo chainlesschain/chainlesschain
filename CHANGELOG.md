@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
+## [v5.0.3.127] - 2026-06-22 — 个人助手卡死无反馈修复（看门狗超时友好提示 + 自动重启 + 重试）
+
+### Fixed — Android 个人助手「发消息不回复、一直转圈」无任何反馈
+
+> 用户反馈:个人助手发消息后助手卡住、没有回复、也没有任何提示,以为坏了。Android-only(`PdhChatViewModel`/`PdhChatScreen`),不触 cc bundle / pdh,故无 USR_VERSION / 无 bundle rollover。
+
+- **根因**:`isSending`(思考中)状态此前只由 `Result`/`Error`/`Exit` 事件复位;当 cc agent 静默(LLM 网络挂起 / 回复丢失 / 进程意外退出)时永不复位 → UI 永久转圈、零反馈。
+- **修复 = 静默看门狗**:回合 20s 无任何输出 → 追加「仍在处理中,网络或模型较慢…」安抚提示;120s(且无待裁决信任卡)仍静默 → 判定卡死,友好告知「响应超时,点重试」+ 复位 + 保留可重试原文;cc 进程意外退出(非主动关闭)→ 自动重启会话恢复可用。
+- 进展事件(流式文本/工具调用)重置计时,慢但在动的回合不误杀;出现信任卡(合法等用户裁决)暂停计时,卡裁决后续上(非递归,避免虚拟时间死循环)。
+- UI:思考指示加「仍在处理中…」文案 + 「↻ 重试上一条」按钮。+4 回归测试(超时/进展重排/卡暂停/退出自动重启)。
+
 ## [v5.0.3.126] - 2026-06-22 — 修复 collect-db 入库 0 条（真机验证抓到）+ 头条明文库真机实证 764 条
 
 ### Fixed — collect-db 通用明文库采集入库 0 条（schema 校验 + 唯一约束双 bug）
