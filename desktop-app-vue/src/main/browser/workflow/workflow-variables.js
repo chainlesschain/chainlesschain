@@ -462,9 +462,19 @@ class VariableManager {
    * @returns {any}
    */
   _evaluateExpression(expr) {
-    // Simple variable reference
+    // Simple single token (no spaces / no call): a variable reference OR a bare
+    // literal used as an operand (e.g. the "3" in "a + 3"). Resolve a known
+    // variable first, otherwise fall through to literal parsing — _parseLiteral
+    // itself ends by resolving as a variable, so unknown names still return
+    // undefined. Without this, an operand like `3`/`"x"`/`true` went straight to
+    // get() and came back undefined, making every literal arithmetic/comparison
+    // (`${a + 3}`, `${a == 5}`) evaluate to NaN/false.
     if (!expr.includes(" ") && !expr.includes("(")) {
-      return this.get(expr);
+      const direct = this.get(expr);
+      if (direct !== undefined) {
+        return direct;
+      }
+      return this._parseLiteral(expr);
     }
 
     // Function call: length(arr), upper(str), etc.
