@@ -6,8 +6,7 @@
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
-    "./database-config": "./lib/database-config.js",
-    "./settings-manager": "./lib/settings-manager.js"
+    "./database-config": "./lib/database-config.js"
   },
   "scripts": {
     "test": "vitest run",
