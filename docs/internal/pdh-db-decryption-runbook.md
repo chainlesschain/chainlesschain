@@ -212,6 +212,21 @@ bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~
   `_im.db` fds 已开，再 attach；③ 用 cache/ 输出 + 宽 DB_MATCH + onLeave 版脚本；④ 验证 export rc=0 后
   `su cp` 出明文副本到 `~/pdh-data`。
 
+### 3.6.2 抖音深入定论（2026-06-22，**符号级铁证**：方法 C 对抖音 IM 走不通，且推翻两个旧假设）
+
+⚠️ **抖音私信 = frida 符号名 hook 够不着，到此为止**。2026-06-22 用 frida-server **spawn 模式**（比 frida-inject 强）真机深挖，拿到符号级证据：
+
+- **环境问题全部排除（spawn 模式解决了 §3.6.1 的所有运行时障碍）**：
+  - ✅ **PC frida 17.14.1 + 设备 frida-server 17.14.1**（版本必须一致——之前 frida-inject 是 16.5.9、设备 server 是 17.14.1，**版本错位**是早先反复失败的隐藏因之一）。PC 装 frida 撞 pip 代理坑（`ProxyError: Cannot connect to proxy`，env/pip.ini/git 都查不到代理源）→ 解法=`curl --noproxy '*'` 直下 wheel（`frida-17.14.1-cp37-abi3-win_amd64.whl`，abi3 兼容 Py3.7+）+ `pip install --no-index <wheel>` 本地装。
+  - ✅ **spawn 冷启动稳定不 ANR**（`dev.spawn([pkg]) → attach → resume`）。**推翻旧假设①：抖音并无 `libmsaoaidsec` 反 frida**（`grep -c libmsaoaidsec /proc/<pid>/maps`=0）。之前 frida-inject「attach 即 ANR + USB 掉线」**不是反 frida，是 frida-inject 工具太重 + 版本错位**——spawn 模式抖音全程存活。
+  - ✅ **hook 全装上**（prepare_v2/prepare/prepare_v3/open，frida 17.x API：`Module.findExportByName(null,name)` 已废 → 用 `Module.getGlobalExportByName` 或遍历 `Process.enumerateModules()` 的 `mod.findExportByName`）。
+  - ✅ 语句缓存问题也排除（冷启动=空缓存，首查必走全新 prepare）。
+- **❌ 但 `[db]=0, [export]=0`（铁证）**：冷启动 + 全 hook + 用户实际滚动私信 + `encrypted_*_im.db` fd 开 **22 个**（IM 库高度活跃）→ 导出的 `sqlite3_prepare_v2`/`sqlite3_open` **被调用 0 次**。诊断版（prepare onLeave 记录**每个**被 prepare 的 db 名，不限匹配）全程只在非 IM 路径偶尔命中（如 `ss_push_monitor.db`），**IM 库一次都没经过导出的 sqlite3 符号**。
+- **根因（ELF 符号表证实）**：`libwcdb2.so` **只有 `.dynsym`、无 `.symtab`**（内部符号被 strip）。抖音 IM 查询走 libwcdb2 **未导出的私有 sqlite 实现**（`sqlite3LockAndPrepare`/`sqlite3VdbeExec` 等，静态编入、符号被 strip）；导出的那批 `sqlite3_prepare_v2`/`open`/`step`/`exec` 只是给**非 IM 的简单库 / 第三方**用的入口。**按符号名 frida 够不着 IM 查询路径**。**修正旧假设②（§3.6.1「头条 libwcdb2 导出 prepare 命中 encrypted_im.db」）：那条「命中」大概率是非 IM 库或测量误记——本次抖音上同款导出符号对 IM 查询 0 命中**。
+- **再往下需要的是逆向工程级工作（非「引导式采集」可覆盖）**：① 对 libwcdb2 内部 `sqlite3_step`/`prepare` 实现做**机器码特征模式扫描**→按地址 hook（strip 了符号只能这么找）；② 或攻 `libEncryptor.so` 拿 WCDB2 自研 cipher 参数离线解。两者都是独立大工程。
+- **为什么微信/QQ 能成、抖音/头条不行**：微信/QQ 用**标准 SQLCipher**（导出标准 `sqlite3_key`/`prepare` + key 可**派生**）→ `collect-wechat`/`collect-qq` 纯 Node 解；抖音/头条的 **WCDB2 是另一个物种**（自研 cipher + strip 内部符号 + 不暴露 IM 查询入口）。**别再拿「能 attach / 无反 frida」当「能导出 IM」的依据——符号可见性才是关键**。
+- **复现脚本**：`/c/tmp/dy_export.py`（frida-server spawn 版，本次用，仓库外）；旧 frida-inject 版 `scripts/android/pdh-frida-sqlcipher-export.js`（对标准 SQLCipher app 仍有效，对 WCDB2 IM 无效）。
+
 ## 4. 结论
 
 - 真机免密钥采集**对标准 SQLCipher app（微信/QQ）已验证路径成立**：方法 B 从内存 dump 出
@@ -219,9 +234,6 @@ bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~
   WCDB2（抖音）的私有页格式解不了（见 §3.5.3）。
 - 个人数据采集**最高产可靠的是 system-data（通讯录/短信/通话/媒体，明文/content-query）**——
   优先做这个，不是跟 WCDB2 app 死磕。
-- **加密 App IM**：①标准 SQLCipher（微信/QQ）可 leaf-salvage（方法 B）；②**WCDB/WCDB2（头条/抖音）
-  的 IM 走方法 C（§3.6）frida `sqlcipher_export` 在线导出**（不靠 cipher 复现）——**目前打通到
-  `sqlcipher_export` 可达，但尚未真机产出明文库**（disk I/O error + 头条私信空 + 抖音反 frida，详见
-  §3.6.1 实战状态）。可达性已证；端到端取数仍待一个「私信有真实会话 + 无强反 frida」的 App 验证。
-- **WCDB2 不是铁板一块**：头条 `libwcdb2.so` 导出符号可 hook；抖音被 `libEncryptor.so`/`libmsaoaidsec`
-  挡住。**别把"抖音 WCDB2 无符号"当成所有 WCDB2 的通论**——逐 App 实测。
+- **加密 App IM**：①标准 SQLCipher（微信/QQ）可 leaf-salvage（方法 B）+ 派生 key 纯 Node 解（`collect-wechat`/`collect-qq`，**已验证产出真实数据**）；②**WCDB2（头条/抖音）的 IM 走方法 C（§3.6）frida `sqlcipher_export` 理论上不靠 cipher 复现，但 2026-06-22 抖音符号级实测=`sqlite3_prepare/open` 对 IM 查询 **0 命中**（libwcdb2 strip 内部符号、IM 走未导出私有入口）→ **frida 符号名 hook 对抖音 IM 走不通**（详见 §3.6.2）。要它需机器码模式扫描内部 prepare/step（逆向工程级）或攻 libEncryptor 离线解——均非引导式采集范畴。
+- **WCDB2 IM ≠ frida 可达**：关键不是「能不能 attach / 有没有反 frida」（抖音两者都 OK），而是**导出符号是否覆盖 IM 查询路径**——抖音 libwcdb2 **不覆盖**（symtab 被 strip）。**别把「能 attach」当「能导出 IM」**。头条同款 WCDB2 栈，谨慎假设同样走不通（§3.6.2 修正了 §3.6.1 的乐观记录）。
+- **抖音/头条的现实价值**：明文非-IM 库（`cc hub collect-db`，抖音实测 18669 条）+ cookie-API（`douyin-adb-sync`/`toutiao-adb-sync`）——**加密私信放弃，采明文库**。
