@@ -289,32 +289,39 @@ class ProjectStatsCollector {
       let inBlockComment = false;
       const ext = path.extname(filePath).toLowerCase();
 
+      const cStyle = [
+        ".js",
+        ".ts",
+        ".vue",
+        ".css",
+        ".java",
+        ".c",
+        ".cpp",
+      ];
+
       for (const line of lines) {
         const trimmed = line.trim();
 
         if (trimmed === "") {
           stats.blank++;
-        } else if (this.isCommentLine(trimmed, ext, inBlockComment)) {
+          continue;
+        }
+
+        if (this.isCommentLine(trimmed, ext, inBlockComment)) {
           stats.comment++;
-          // 检查块注释状态
-          if (
-            ext === ".js" ||
-            ext === ".ts" ||
-            ext === ".vue" ||
-            ext === ".css" ||
-            ext === ".java" ||
-            ext === ".c" ||
-            ext === ".cpp"
-          ) {
-            if (trimmed.includes("/*")) {
-              inBlockComment = true;
-            }
-            if (trimmed.includes("*/")) {
-              inBlockComment = false;
-            }
-          }
         } else {
           stats.code++;
+        }
+
+        // 更新块注释状态 —— 对每个非空行都检查（包括尾随开启块注释的代码行，
+        // 如 `foo(); /* note`），否则块注释体会被错误计为代码。
+        if (cStyle.includes(ext)) {
+          if (trimmed.includes("/*")) {
+            inBlockComment = true;
+          }
+          if (trimmed.includes("*/")) {
+            inBlockComment = false;
+          }
         }
       }
 
