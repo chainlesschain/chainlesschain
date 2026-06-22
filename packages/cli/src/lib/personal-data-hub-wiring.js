@@ -26,6 +26,10 @@
 
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { rewritePdhLoadError } from "./pdh-load-error.js";
+// Test seam (mirrors _atomicWriteJson600): re-exported so the existing
+// pdh-wiring-load-error suite can keep importing it from here.
+export { rewritePdhLoadError as _rewritePdhLoadError } from "./pdh-load-error.js";
 // Hub package is CJS; in ESM we default-import then destructure (Node 22
 // won't let us name-import a CJS module unless it ships a separate ESM
 // shim, which we don't).
@@ -136,44 +140,6 @@ let LocalVault,
   ANALYSIS_SKILL_NAMES;
 
 let _pdhLoadPromise = null;
-
-/**
- * Turn a raw ESM module-resolution failure for the personal-data-hub package
- * into an actionable "your install is incomplete — repair it" error.
- *
- * Today this happens when a global `npm i -g chainlesschain` is interrupted
- * mid-extraction (commonly a running `cc` / node process holding a lock on a
- * native .node file → EBUSY/EPERM), leaving the pdh package partially
- * written. The default Node error ("Cannot find module
- * .../personal-data-hub/lib/adapters/wechat/index.js") reads like a bug in
- * the package rather than a local-install problem, so users can't self-fix.
- * Non-resolution errors (a real bug inside pdh) pass through unchanged.
- */
-function rewritePdhLoadError(err) {
-  const isMissingModule =
-    err &&
-    (err.code === "ERR_MODULE_NOT_FOUND" ||
-      /Cannot find (module|package)/.test(err.message || ""));
-  const mentionsPdh = /personal-data-hub/.test(
-    (err && (err.url || err.message)) || "",
-  );
-  if (!isMissingModule || !mentionsPdh) return err;
-  const wrapped = new Error(
-    "Personal Data Hub package is missing files — your install looks " +
-      "incomplete.\n" +
-      "This usually means a global install was interrupted (often a running " +
-      "`cc`/node process locking a native file).\n" +
-      "Repair it with:  npm i -g chainlesschain@latest\n" +
-      "(close any running `cc` sessions first so the install isn't blocked).\n" +
-      `Original error: ${err.message}`,
-  );
-  wrapped.code = "PDH_INSTALL_INCOMPLETE";
-  wrapped.cause = err;
-  return wrapped;
-}
-// Test seam (mirrors _atomicWriteJson600): unit-test the error rewrite
-// without provoking a real partial-install.
-export { rewritePdhLoadError as _rewritePdhLoadError };
 
 /**
  * Lazily import the personal-data-hub package + wechat adapter and populate

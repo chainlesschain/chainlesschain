@@ -19,6 +19,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { getHub, getHubMinimal } from "../lib/personal-data-hub-wiring.js";
+import { importPdh } from "../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../lib/personal-data-hub-aichat-wizard.js";
 
 function printJson(obj) {
@@ -974,7 +975,9 @@ async function cmdSalvage(dumpfile, options) {
     // earlier social-douyin-only path mis-attributed every app to douyin.
     const { salvageDumpToVault } = options._salvageDumpToVault
       ? { salvageDumpToVault: options._salvageDumpToVault }
-      : await import("@chainlesschain/personal-data-hub/forensics/salvage-ingest");
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/salvage-ingest",
+        );
     const opts = {
       app: options.app || "douyin",
       unaligned: options.unaligned !== false, // default-on: scattered page cache
@@ -1023,7 +1026,9 @@ async function cmdCollectQq(options) {
     const path = require("path");
     const qq = options._qqCore
       ? options._qqCore
-      : await import("@chainlesschain/personal-data-hub/forensics/qq-nt-collect");
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/qq-nt-collect",
+        );
 
     if (!options.db) throw new Error("need --db <encrypted nt_msg.db>");
     if (!options.uids) throw new Error("need --uids <file with u_ candidates>");
@@ -1132,7 +1137,9 @@ async function cmdCollectDb(options) {
     const path = require("path");
     const g = options._plaintextCore
       ? options._plaintextCore
-      : await import("@chainlesschain/personal-data-hub/forensics/plaintext-db-collect");
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/plaintext-db-collect",
+        );
     if (!options.app) throw new Error("need --app <key>");
     let dbs = [];
     if (options.db) {
@@ -1214,7 +1221,9 @@ async function cmdCollectWechat(options) {
     const path = require("path");
     const wx = options._wechatCore
       ? options._wechatCore
-      : await import("@chainlesschain/personal-data-hub/forensics/wechat-collect");
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/wechat-collect",
+        );
     if (!options.db) throw new Error("need --db <EnMicroMsg.db>");
     const raw = fs.readFileSync(options.db);
     const readLines = (f) =>

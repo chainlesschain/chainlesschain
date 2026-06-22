@@ -21,6 +21,7 @@ import {
   getHub,
   close as closeHub,
 } from "../../lib/personal-data-hub-wiring.js";
+import { importPdh } from "../../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
 import {
   existsSync,
@@ -40,7 +41,7 @@ import { join } from "node:path";
 let _ingestSnapshotFn = null;
 async function ingestSystemDataAndroidSnapshot(hub, snapshot) {
   if (!_ingestSnapshotFn) {
-    const pdhMod = await import("@chainlesschain/personal-data-hub");
+    const pdhMod = await importPdh("@chainlesschain/personal-data-hub");
     const pdhPkg = pdhMod.default || pdhMod;
     _ingestSnapshotFn = pdhPkg.ingestSystemDataAndroidSnapshot;
   }
