@@ -523,7 +523,11 @@ async function cmdRederive(options) {
 
 async function cmdQueryEvents(options) {
   try {
-    const hub = await getHub();
+    // Read-only vault query — needs no adapters / sinks / llm. Minimal hub
+    // skips the 77-adapter registry build (and is crash-resilient to a
+    // partial pdh install). getHubMinimal() returns the full hub if one was
+    // already built this process, so the vault instance is identical.
+    const hub = await getHubMinimal();
     const q = {};
     if (options.subtype) q.subtype = options.subtype;
     if (options.since) q.since = Number(options.since);
@@ -592,7 +596,8 @@ function importEventsInto(vault, events) {
 
 async function cmdExportEvents(options) {
   try {
-    const hub = await (options._getHub || getHub)();
+    // Vault-only raw-event export — no adapters needed, use the minimal hub.
+    const hub = await (options._getHub || getHubMinimal)();
     const all = exportAllEvents(hub.vault);
     if (options.output) {
       require("fs").writeFileSync(options.output, JSON.stringify(all), "utf-8");
@@ -622,7 +627,8 @@ async function cmdImportEvents(options) {
     if (!Array.isArray(events)) {
       throw new Error("import-events: expected a JSON array of events");
     }
-    const hub = await (options._getHub || getHub)();
+    // Vault-only idempotent upsert — no adapters needed, use the minimal hub.
+    const hub = await (options._getHub || getHubMinimal)();
     const result = importEventsInto(hub.vault, events);
     if (options.json) {
       jsonAndExit(result);
@@ -641,7 +647,8 @@ async function cmdImportEvents(options) {
 // (Android LocalCcRunner.searchEvents calls this; CI smoke too).
 async function cmdSearchEvents(options) {
   try {
-    const hub = await getHub();
+    // Read-only vault FTS search — vault-only, use the minimal hub.
+    const hub = await getHubMinimal();
     const q = {};
     if (options.q) q.q = String(options.q);
     if (options.adapter) q.adapter = options.adapter;
@@ -684,7 +691,8 @@ async function cmdSearchEvents(options) {
 
 async function cmdFacetCounts(options) {
   try {
-    const hub = await getHub();
+    // Read-only vault facet aggregation — vault-only, use the minimal hub.
+    const hub = await getHubMinimal();
     const q = {};
     if (options.q) q.q = String(options.q);
     if (options.since) q.since = Number(options.since);
@@ -713,7 +721,8 @@ async function cmdFacetCounts(options) {
 
 async function cmdRecentAudit(options) {
   try {
-    const hub = await getHub();
+    // Read-only vault audit log query — vault-only, use the minimal hub.
+    const hub = await getHubMinimal();
     const q = {};
     if (options.since) q.since = Number(options.since);
     if (options.action) q.action = options.action;
@@ -778,7 +787,8 @@ async function cmdEventDetail(eventId, options) {
     process.exit(1);
   }
   try {
-    const hub = await getHub();
+    // Read-only single-event lookup — vault-only, use the minimal hub.
+    const hub = await getHubMinimal();
     const event = hub.vault.getEvent(eventId);
     if (!event) {
       const result = { found: false, eventId };
@@ -830,7 +840,8 @@ async function cmdExport(options) {
   try {
     const fs = await import("node:fs");
     const path = await import("node:path");
-    const hub = await getHub();
+    // Vault-file snapshot copy — vault-only, use the minimal hub.
+    const hub = await getHubMinimal();
     const src = hub.vault.path;
     if (!src) throw new Error("vault path unavailable (hub not initialized?)");
 
