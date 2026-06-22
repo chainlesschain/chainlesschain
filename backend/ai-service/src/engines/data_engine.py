@@ -350,7 +350,13 @@ class DataEngine:
     def _create_visualizations(self, df: pd.DataFrame, spec: Dict[str, Any]) -> bytes:
         """创建数据可视化图表"""
 
-        chart_types = spec.get("chart_types", ["bar"])
+        # spec.get(..., ["bar"]) only defaults a MISSING key — an explicit
+        # "chart_types": [] (valid model output) would yield num_charts=0 and
+        # crash plt.subplots(1, 0) ("Number of columns must be a positive
+        # integer"). Coerce empty/None/non-list back to the ["bar"] default.
+        chart_types = spec.get("chart_types") or ["bar"]
+        if not isinstance(chart_types, list):
+            chart_types = ["bar"]
         num_charts = len(chart_types)
 
         # 创建子图
