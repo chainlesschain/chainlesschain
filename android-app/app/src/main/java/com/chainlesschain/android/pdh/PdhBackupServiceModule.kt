@@ -43,11 +43,20 @@ object PdhBackupServiceModule {
         store: InMemoryBackupBlockStore,
         responder: PdhP2PResponder,
         ccVaultGateway: PdhVaultBridge.CcVaultGateway,
+        runner: LocalCcRunner,
+        @ApplicationContext context: Context,
     ): PdhBackupService = PdhBackupService(
         facade = facade,
         didManager = didManager,
         store = store,
         responder = responder,
-        sourcesProvider = { listOf(PdhVaultBridge(ccVaultGateway)) }, // v1: vault 源
+        // vault(数据)+ memory(AI 对你的认知)两大高价值资产端到端备份。
+        // instinct/trajectories/skills 同模式后续追加。
+        sourcesProvider = {
+            listOf(
+                PdhVaultBridge(ccVaultGateway),
+                PdhMemoryAssetSource(runner, File(context.cacheDir, "pdh-backup-import")),
+            )
+        },
     )
 }

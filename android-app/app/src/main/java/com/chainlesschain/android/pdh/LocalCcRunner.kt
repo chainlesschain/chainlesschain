@@ -1904,6 +1904,77 @@ class LocalCcRunner @Inject constructor(
             )
         }
 
+    /** `cc memory export --json` → all hierarchical-memory entries (§8.3 learning backup). */
+    suspend fun exportMemory(timeoutMs: Long = 120_000L): ExportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ExportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = listOf(
+                mkshPath.absolutePath, ccPath.absolutePath, "memory", "export", "--json",
+            )
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ExportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            if (exit != 0) {
+                val errMsg = try {
+                    JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+                } catch (_: Exception) { null }
+                return@withContext ExportEventsResult.Failed(
+                    errMsg ?: "cc exited $exit: ${stderr.take(300)}", exit,
+                )
+            }
+            try {
+                val arr = org.json.JSONArray(stdout.trim())
+                val rows = buildList {
+                    for (i in 0 until arr.length()) {
+                        val o = arr.optJSONObject(i) ?: continue
+                        val id = o.optString("id", "")
+                        if (id.isEmpty()) continue
+                        add(ExportedEvent(id = id, json = o.toString()))
+                    }
+                }
+                ExportEventsResult.Ok(rows)
+            } catch (e: Exception) {
+                ExportEventsResult.Failed("parse-failed: ${e.message ?: e.javaClass.simpleName}", exit)
+            }
+        }
+
+    /** `cc memory import --input <file> --json` → {imported, failed} (idempotent upsert by id). */
+    suspend fun importMemory(inputFile: File, timeoutMs: Long = 120_000L): ImportEventsResult =
+        withContext(Dispatchers.IO) {
+            val ensure = bootstrapper.bootstrap()
+            if (ensure.isFailure) {
+                return@withContext ImportEventsResult.Failed(
+                    "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+                )
+            }
+            val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+            val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+            val command = listOf(
+                mkshPath.absolutePath, ccPath.absolutePath,
+                "memory", "import", "--input", inputFile.absolutePath, "--json",
+            )
+            val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+            if (timedOut) return@withContext ImportEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+            val parsed = try { JSONObject(stdout.trim()) } catch (_: Exception) { null }
+            if (parsed == null) {
+                return@withContext ImportEventsResult.Failed(
+                    if (exit != 0) "cc exited $exit: ${stderr.take(300)}" else "parse-failed", exit,
+                )
+            }
+            val err = parsed.optString("error", "")
+            if (err.isNotEmpty()) return@withContext ImportEventsResult.Failed(err, exit)
+            ImportEventsResult.Ok(
+                imported = parsed.optInt("imported", 0),
+                failed = parsed.optInt("failed", 0),
+            )
+        }
+
     private fun _jsonObjectToIntMap(obj: JSONObject?): Map<String, Int> {
         if (obj == null) return emptyMap()
         val out = mutableMapOf<String, Int>()
