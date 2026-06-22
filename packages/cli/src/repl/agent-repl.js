@@ -1317,7 +1317,9 @@ export async function startAgentRepl(options = {}) {
       logger.log(
         `  ${chalk.cyan("… \\")}         End a line with \\ to continue input onto the next line`,
       );
-      logger.log(`  ${chalk.cyan("/exit")}       Exit the agent`);
+      logger.log(
+        `  ${chalk.cyan("/exit")}       Exit the agent (alias: /quit)`,
+      );
       logger.log(
         `  ${chalk.cyan("/model")}      Show/change model (/model <name>)`,
       );
@@ -1337,6 +1339,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
       );
       logger.log(
         `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set, ${chalk.cyan("/config --help")} keys`,
@@ -1422,6 +1427,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/ide")}        IDE bridge status (connected editor, tools, or why not)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/mcp")}        MCP server status + tools (/mcp <name> for one server)`,
       );
       logger.log(chalk.bold("\nCapabilities:"));
       logger.log("  Read, write, and edit files");
