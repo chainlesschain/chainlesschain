@@ -10,19 +10,19 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 | Feature                       | Entry File(s)                                                            | Documentation                                                                      |
 | ----------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| MCP Integration               | `main/mcp/`                                                              | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
+| MCP Integration               | `main/mcp/`                                                              | [`MCP_USER_GUIDE.md`](./features/MCP_USER_GUIDE.md)                             |
 | MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`                | —                                                                                  |
 | MCP Remote Registry Fetch     | `main/mcp/community-registry.js` (`_fetchRemoteCatalog`)                 | —                                                                                  |
-| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                              | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
-| SessionManager                | `main/llm/session-manager.js`                                            | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
-| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
-| Manus Optimizations           | `main/llm/manus-optimizations.js`                                        | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
-| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                                 | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
-| Web Cowork 日常任务协作       | `cli/src/lib/cowork-task-*.js` + `web-panel/src/views/Cowork.vue`        | [`86_Web_Cowork`](docs/design/modules/86_Web_Cowork日常任务协作系统.md)             |
-| Permanent Memory              | `main/llm/permanent-memory-manager.js`                                   | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
-| Hooks System                  | `main/hooks/index.js`                                                    | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
+| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                              | [`LLM_PERFORMANCE_DASHBOARD.md`](./features/LLM_PERFORMANCE_DASHBOARD.md)       |
+| SessionManager                | `main/llm/session-manager.js`                                            | [`SESSION_MANAGER.md`](./features/SESSION_MANAGER.md)                           |
+| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](./features/ERROR_MONITOR.md)                               |
+| Manus Optimizations           | `main/llm/manus-optimizations.js`                                        | [`MANUS_OPTIMIZATION_GUIDE.md`](./optimization/MANUS_OPTIMIZATION_GUIDE.md)                  |
+| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                                 | [`COWORK_QUICK_START.md`](./features/COWORK_QUICK_START.md)                     |
+| Web Cowork 日常任务协作       | `cli/src/lib/cowork-task-*.js` + `web-panel/src/views/Cowork.vue`        | [`86_Web_Cowork`](./design/modules/86_Web_Cowork日常任务协作系统.md)             |
+| Permanent Memory              | `main/llm/permanent-memory-manager.js`                                   | [`PERMANENT_MEMORY_INTEGRATION.md`](./features/PERMANENT_MEMORY_INTEGRATION.md) |
+| Hooks System                  | `main/hooks/index.js`                                                    | [`HOOKS_SYSTEM_DESIGN.md`](./design/HOOKS_SYSTEM_DESIGN.md)                     |
 | Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`            | —                                                                                  |
-| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                        | [`IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)             |
+| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                        | [`IPC_ERROR_HANDLER_GUIDE.md`](./guides/IPC_ERROR_HANDLER_GUIDE.md)             |
 | Permission Engine (RBAC)      | `main/permission/permission-engine.js`                                   | —                                                                                  |
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
@@ -30,8 +30,8 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Skills System (146 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Skill Lazy Loading            | `main/ai-engine/cowork/skills/skill-loader.js` (`parseMetadataOnly`)     | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
-| Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
-| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
+| Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](./design/modules/09_浏览器自动化系统.md)             |
+| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | —                                                                                  |
 | Enterprise Audit & Compliance | `main/audit/enterprise-audit-logger.js`                                  | —                                                                                  |
 | Plugin Marketplace            | `main/marketplace/marketplace-client.js`                                 | —                                                                                  |
 | Specialized Multi-Agent       | `main/ai-engine/agents/agent-coordinator.js`                             | —                                                                                  |
@@ -54,30 +54,30 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Autonomous Agent Runner       | `main/ai-engine/autonomous/autonomous-agent-runner.js`                   | —                                                                                  |
 | i18n Internationalization     | `main/i18n/index.js`                                                     | —                                                                                  |
 | Performance Auto-Tuner        | `main/performance/auto-tuner.js`, `performance-monitor.js`               | —                                                                                  |
-| TypeScript Stores (52)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
-| Video Editing Agent (CutClaw) | `main/video/video-editing-ipc.js`, `renderer/pages/VideoEditingPage.vue` | [设计文档](docs/design/modules/93_CutClaw借鉴_视频剪辑Agent.md)                   |
+| TypeScript Stores (117)       | `renderer/stores/*.ts`                                                   | —                                                                                  |
+| Video Editing Agent (CutClaw) | `main/video/video-editing-ipc.js`, `renderer/pages/VideoEditingPage.vue` | [设计文档](./design/modules/93_CutClaw借鉴_视频剪辑Agent.md)                   |
 | QualityGate (session-core)    | `packages/session-core/lib/quality-gate.js`                              | —                                                                                  |
-| Managed Agents (Phase A-J)    | `packages/session-core/`, `main/session/`, `main/ai-engine/code-agent/`  | [对标计划](docs/design/modules/91_Managed_Agents对标计划.md)                       |
+| Managed Agents (Phase A-J)    | `packages/session-core/`, `main/session/`, `main/ai-engine/code-agent/`  | [对标计划](./design/modules/91_Managed_Agents对标计划.md)                       |
 | Generic Conflict Resolution   | `main/ai-engine/code-agent/sub-runtime-pool.js`                          | —                                                                                  |
 
 ## v1.1.0 Features (v3.0-v4.0 Full-Stack)
 
 | Feature                       | Entry File(s)                                                          | Documentation                                                     |
 | ----------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Pipeline Orchestrator (v3.0)  | `main/ai-engine/cowork/pipeline-orchestrator.js`, `pipeline-ipc.js`    | [流水线编排](docs-site/docs/chainlesschain/pipeline.md)           |
+| Pipeline Orchestrator (v3.0)  | `main/ai-engine/cowork/pipeline-orchestrator.js`, `pipeline-ipc.js`    | [流水线编排](../docs-site/docs/chainlesschain/pipeline.md)           |
 | Deploy Agent (v3.0)           | `main/ai-engine/cowork/deploy-agent.js`, `post-deploy-monitor.js`      | —                                                                 |
 | Rollback Manager (v3.0)       | `main/ai-engine/cowork/rollback-manager.js`                            | —                                                                 |
 | Requirement Parser (v3.0)     | `main/ai-engine/cowork/requirement-parser.js`                          | —                                                                 |
-| NL Spec Translator (v3.1)     | `main/ai-engine/cowork/spec-translator.js`, `nl-programming-ipc.js`    | [自然语言编程](docs-site/docs/chainlesschain/nl-programming.md)   |
+| NL Spec Translator (v3.1)     | `main/ai-engine/cowork/spec-translator.js`, `nl-programming-ipc.js`    | [自然语言编程](../docs-site/docs/chainlesschain/nl-programming.md)   |
 | Project Style Analyzer (v3.1) | `main/ai-engine/cowork/project-style-analyzer.js`                      | —                                                                 |
-| Modality Fusion (v3.2)        | `main/ai-engine/cowork/modality-fusion.js`, `multimodal-collab-ipc.js` | [多模态协作](docs-site/docs/chainlesschain/multimodal.md)         |
+| Modality Fusion (v3.2)        | `main/ai-engine/cowork/modality-fusion.js`, `multimodal-collab-ipc.js` | [多模态协作](../docs-site/docs/chainlesschain/multimodal.md)         |
 | Document Parser (v3.2)        | `main/ai-engine/cowork/document-parser.js`                             | —                                                                 |
 | Screen Recorder (v3.2)        | `main/ai-engine/cowork/screen-recorder.js`                             | —                                                                 |
 | Multimodal Context (v3.2)     | `main/ai-engine/cowork/multimodal-context.js`, `multimodal-output.js`  | —                                                                 |
-| Alert Manager (v3.3)          | `main/ai-engine/cowork/alert-manager.js`, `autonomous-ops-ipc.js`      | [自主运维](docs-site/docs/chainlesschain/autonomous-ops.md)       |
+| Alert Manager (v3.3)          | `main/ai-engine/cowork/alert-manager.js`, `autonomous-ops-ipc.js`      | [自主运维](../docs-site/docs/chainlesschain/autonomous-ops.md)       |
 | Auto Remediator (v3.3)        | `main/ai-engine/cowork/auto-remediator.js`                             | —                                                                 |
 | Postmortem Generator (v3.3)   | `main/ai-engine/cowork/postmortem-generator.js`                        | —                                                                 |
-| Agent DID (v4.0)              | `main/ai-engine/cowork/agent-did.js`                                   | [代理联邦网络](docs-site/docs/chainlesschain/agent-federation.md) |
+| Agent DID (v4.0)              | `main/ai-engine/cowork/agent-did.js`                                   | [代理联邦网络](../docs-site/docs/chainlesschain/agent-federation.md) |
 | Agent Credential (v4.0)       | `main/ai-engine/cowork/agent-credential-manager.js`                    | —                                                                 |
 | Agent Authenticator (v4.0)    | `main/ai-engine/cowork/agent-authenticator.js`                         | —                                                                 |
 | Federated Registry (v4.0)     | `main/ai-engine/cowork/federated-agent-registry.js`                    | —                                                                 |
@@ -93,8 +93,8 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **Canonical fields**: `name`, `title`, `kind`, `source`, `category`, `inputSchema`, `parameters`, `isReadOnly`, `riskLevel`, `permissions`, `telemetry`, `availableInPlanMode`, `requiresPlanApproval`, `requiresConfirmation`, `approvalFlow`
 - **Permission semantics**: Plan Mode and Permission Gate read the same fields across CLI and Desktop — no tool-name whitelists
 - **End-to-end propagation**: CLI runtime → Electron main (FunctionCaller, UnifiedToolRegistry, MCP adapter) → Renderer stores/components → MCP settings UI
-- **Design doc**: [`docs/design/modules/83_工具描述规范统一.md`](./docs/design/modules/83_工具描述规范统一.md)
-- **User doc**: [`docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md`](./docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md)
+- **Design doc**: [`docs/design/modules/83_工具描述规范统一.md`](./design/modules/83_工具描述规范统一.md)
+- **User doc**: [`docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md`](../docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md)
 - **Test coverage**: contract↔adapter, registry normalization, IPC serialization, renderer stores, MCP UI, plus FC→registry integration test
 
 ### Skills System
