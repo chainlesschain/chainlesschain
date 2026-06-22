@@ -1,7 +1,7 @@
 ---
 name: code-review
 display-name: Code Review
-description: Review code for issues, style, and best practices
+description: Code review for issues, style consistency, best practices—use for full code evaluation; not for debugging specific errors or fixing individual style violations.
 version: 1.0.0
 category: development
 user-invocable: true

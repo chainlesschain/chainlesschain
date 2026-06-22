@@ -65,15 +65,25 @@ function ingestPlaintextDb(Database, dbPath, app) {
         if (!parts.length) continue;
         const text = [...new Set(parts)].join(' · ').slice(0, 800);
         const occurredAt = timeCol ? normTime(row[timeCol]) : 0;
-        const id = `${app}:${dbName}:${t}:` +
-          crypto.createHash('md5').update(JSON.stringify(row)).digest('hex').slice(0, 12);
+        // Per-row hash → unique id AND unique source.originalId. A per-table
+        // originalId would collide on the vault's UNIQUE(source_adapter,
+        // source_original_id) and collapse every row of a table into one event.
+        const rowHash = crypto
+          .createHash('md5')
+          .update(JSON.stringify(row))
+          .digest('hex')
+          .slice(0, 12);
+        const id = `${app}:${dbName}:${t}:${rowHash}`;
         events.push({
-          type: 'event', subtype: 'record',
+          // subtype must be a schema enum value; generic plaintext records →
+          // 'other' (the vault schema has no 'record' subtype).
+          type: 'event', subtype: 'other',
           id, occurredAt: occurredAt || Date.now(),
           content: { text },
           source: {
             adapter: `local-${app}`, adapterVersion: '0.1.0',
-            originalId: `${dbName}:${t}`, capturedAt: occurredAt || Date.now(), capturedBy: 'sqlite',
+            originalId: `${dbName}:${t}:${rowHash}`,
+            capturedAt: occurredAt || Date.now(), capturedBy: 'sqlite',
           },
           topics: [`local-${app}`, `db-${dbName}`],
           ingestedAt: Date.now(),
