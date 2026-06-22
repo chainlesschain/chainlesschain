@@ -98,6 +98,16 @@ class PdhAgentSession @Inject constructor(
         data class FeedbackAck(val turnId: String?, val kind: String) : PdhAgentEvent()
         /** §3.5.15: cc 已收到 resume(引导卡)→ UI 收起对应引导卡。 */
         data class ResumeAck(val token: String?, val action: String) : PdhAgentEvent()
+        /**
+         * §3.5.18 出境台账:cc 报告本轮"什么离开过端"。kind=cloud_llm(对话上下文
+         * 去了某云 provider)| tool(某出境工具发出了数据:cookie→第三方 API/发消息/
+         * 导出/跨设备)。cc 子进程里发生、端侧 UI 看不见,故 cc 如实上报供台账记录。
+         */
+        data class Egress(
+            val kind: String,
+            val channel: String,
+            val tool: String?,
+        ) : PdhAgentEvent()
     }
 
     /** §3.5.13 自学习纠正信号类别(人对 AI 某轮回应的反馈)。 */
@@ -489,6 +499,14 @@ class PdhAgentSession @Inject constructor(
                 "resume_ack" -> PdhAgentEvent.ResumeAck(
                     token = str(obj, "token").ifEmpty { null },
                     action = str(obj, "action"),
+                )
+                // §3.5.18: cc reports an egress (cloud-LLM call / egress tool) so
+                // the transparency ledger records what left the device — esp. tool
+                // egress, which the route-based recorder cannot see.
+                "egress" -> PdhAgentEvent.Egress(
+                    kind = str(obj, "kind"),
+                    channel = str(obj, "channel"),
+                    tool = str(obj, "tool").ifEmpty { null },
                 )
                 else -> null // system/init/token_usage/etc. — not surfaced
             }

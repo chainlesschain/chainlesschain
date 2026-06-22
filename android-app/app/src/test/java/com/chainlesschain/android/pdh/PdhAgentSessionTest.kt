@@ -337,4 +337,30 @@ class PdhAgentSessionTest {
         val e = PdhAgentSession.parseLine("""{"type":"resume_ack","action":"completed"}""")
         assertEquals(null, (e as PdhAgentEvent.ResumeAck).token)
     }
+
+    // §3.5.18 出境台账:cc 上报的 egress 事件。
+
+    @Test
+    fun egress_cloud_llm_yields_kind_and_channel() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"egress","kind":"cloud_llm","channel":"volcengine","model":"doubao","tokens":1500}""",
+        )
+        assertTrue(e is PdhAgentEvent.Egress)
+        e as PdhAgentEvent.Egress
+        assertEquals("cloud_llm", e.kind)
+        assertEquals("volcengine", e.channel)
+        assertEquals(null, e.tool)
+    }
+
+    @Test
+    fun egress_tool_carries_the_tool_name() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"egress","kind":"tool","channel":"remote_api","tool":"mcp__pdh__query_app_data"}""",
+        )
+        assertTrue(e is PdhAgentEvent.Egress)
+        e as PdhAgentEvent.Egress
+        assertEquals("tool", e.kind)
+        assertEquals("remote_api", e.channel)
+        assertEquals("mcp__pdh__query_app_data", e.tool)
+    }
 }

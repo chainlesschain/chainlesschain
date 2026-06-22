@@ -598,6 +598,33 @@ class PdhChatViewModelTest {
     }
 
     @Test
+    fun cc_tool_egress_event_appends_tool_egress() = runTest(dispatcher) {
+        // cc reports a cookie→remote-API egress the route-based recorder can't see.
+        val vm = newVm()
+        emit(
+            PdhAgentEvent.Egress(
+                kind = "tool", channel = "remote_api", tool = "mcp__pdh__query_app_data",
+            ),
+        )
+        advanceUntilIdle()
+        coVerify {
+            ledger.appendEgress(
+                match { it.category.contains("账号数据") && it.destination.contains("query_app_data") },
+            )
+        }
+    }
+
+    @Test
+    fun cc_cloud_llm_egress_event_is_not_double_counted() = runTest(dispatcher) {
+        // Conversation egress is already recorded by route (recordEgressIfLeaving);
+        // the cc cloud_llm event must NOT add a second egress for the same turn.
+        val vm = newVm()
+        emit(PdhAgentEvent.Egress(kind = "cloud_llm", channel = "volcengine", tool = null))
+        advanceUntilIdle()
+        coVerify(exactly = 0) { ledger.appendEgress(any()) }
+    }
+
+    @Test
     fun approving_a_transaction_records_an_action() = runTest(dispatcher) {
         coEvery { session.sendApproval(any(), any()) } returns true
         val vm = newVm()

@@ -603,6 +603,31 @@ class PdhChatViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) { ledger.appendEgress(entry) }
     }
 
+    /**
+     * §3.5.18 出境台账(工具维度):cc 报告某工具把数据发出了端外。对话出境由
+     * [recordEgressIfLeaving] 按路由记录,此处只补**工具出境**——cc 子进程里
+     * cookie→第三方 API / 发消息 / 导出 / 跨设备,端侧 UI 此前完全看不见。
+     * 诚实:出境就记(§13.3);kind=cloud_llm 不在此记(避免与对话出境重复计)。
+     */
+    private fun recordToolEgress(ev: PdhAgentEvent.Egress) {
+        if (ev.kind != "tool") return
+        val (category, destination, tier) = when (ev.channel) {
+            "remote_api" -> Triple("账号数据(Cookie/查询)", "第三方平台 API", "云")
+            "message" -> Triple("消息", "对方", "云")
+            "export" -> Triple("数据导出", "导出目标", "外部")
+            "cross_device" -> Triple("跨设备同步", "你的另一设备(自有)", "自有设备")
+            "web" -> Triple("网络查询", "网站", "云")
+            else -> Triple("出境", ev.channel, "云")
+        }
+        val entry = PdhTransparency.EgressEntry(
+            epochMs = System.currentTimeMillis(),
+            category = category,
+            destination = ev.tool?.let { "$destination($it)" } ?: destination,
+            tier = tier,
+        )
+        viewModelScope.launch(ioDispatcher) { ledger.appendEgress(entry) }
+    }
+
     private fun onEvent(ev: PdhAgentEvent) {
         // 看门狗:进展事件重置静默计时(慢但在动的回合不误杀);出现待裁决卡(agent
         // 合法等用户)→ 暂停计时,卡裁决后再续(见 [rearmAfterCardResolved]);终结事件
@@ -751,6 +776,13 @@ class PdhChatViewModel @Inject constructor(
                     }
                 }
             }
+
+            // §3.5.18: cc reported an egress this turn. Record TOOL egress — the
+            // dimension the route-based [recordEgressIfLeaving] can't see (a tool
+            // really sent data off the device from the cc subprocess). Conversation
+            // egress (kind=cloud_llm) is already recorded by route, so skip it to
+            // avoid double-counting.
+            is PdhAgentEvent.Egress -> recordToolEgress(ev)
 
             is PdhAgentEvent.Result -> {
                 _uiState.update {
