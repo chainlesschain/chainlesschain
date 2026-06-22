@@ -7,6 +7,7 @@ import ora from "ora";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { loadConfig } from "../lib/config-manager.js";
 import {
   BUILT_IN_PROVIDERS,
   LLMProviderRegistry,
@@ -42,6 +43,58 @@ import {
   autoFailStuckRequestsV2,
   getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
+
+/**
+ * Resolve the effective `cc llm test` target from CLI flags + persisted config.
+ * Pure (no I/O) so the precedence is unit-testable: explicit flag >
+ * config.llm.* > provider default. The connectivity probe used to ignore
+ * config entirely and hard-default to ollama, so a user on volcengine/openai
+ * (and the JetBrains "Configure LLM" wizard) got a spurious fetch-failed
+ * against a local ollama they never ran.
+ *
+ * @param {object} options  commander options (provider/model/baseUrl/apiKey)
+ * @param {object} config   loadConfig() result ({ llm?: {...} })
+ * @param {object} builtIns BUILT_IN_PROVIDERS map
+ * @param {object} [env]    process.env (for apiKeyEnv lookup)
+ * @returns {{provider,model,baseUrl,apiKey,isOllama,label}}
+ */
+export function resolveLlmTestTarget(options = {}, config = {}, builtIns = {}, env = {}) {
+  const llm = config.llm || {};
+  const provider = options.provider || llm.provider || "ollama";
+  const isOllama = provider === "ollama";
+  const builtIn = builtIns[provider];
+
+  const model =
+    options.model ||
+    llm.model ||
+    (isOllama ? "qwen2:7b" : builtIn?.models?.[0] || "gpt-4o-mini");
+
+  let baseUrl;
+  if (isOllama) {
+    // Only inherit config.baseUrl when the CONFIGURED provider is also ollama —
+    // otherwise `--provider ollama` would probe another provider's endpoint.
+    const configOllamaBase = llm.provider === "ollama" ? llm.baseUrl : undefined;
+    baseUrl = options.baseUrl || configOllamaBase || "http://localhost:11434";
+  } else {
+    baseUrl =
+      options.baseUrl || llm.baseUrl || builtIn?.baseUrl || "https://api.openai.com/v1";
+  }
+
+  const apiKey = isOllama
+    ? undefined
+    : options.apiKey ||
+      llm.apiKey ||
+      (builtIn?.apiKeyEnv ? env[builtIn.apiKeyEnv] : undefined);
+
+  return {
+    provider,
+    model,
+    baseUrl,
+    apiKey,
+    isOllama,
+    label: builtIn?.displayName || (isOllama ? "Ollama" : provider),
+  };
+}
 
 export function registerLlmCommand(program) {
   const llm = program.command("llm").description("LLM provider management");
@@ -103,24 +156,39 @@ export function registerLlmCommand(program) {
     });
 
   // llm test - test connectivity
+  //
+  // Defaults to the CONFIGURED provider/model/baseUrl/apiKey (config.llm.*),
+  // NOT a hard-coded ollama. Previously this always probed ollama unless you
+  // passed --provider, so a user on volcengine/openai/etc. (and the JetBrains
+  // "Configure LLM" wizard, which calls `cc llm test`) got a spurious
+  // "fetch failed" against a local ollama they never ran. Any non-ollama
+  // built-in provider is OpenAI-compatible, so they share one /chat/completions
+  // probe instead of only special-casing openai.
   llm
     .command("test")
-    .description("Test LLM provider connectivity")
-    .option("--provider <provider>", "LLM provider", "ollama")
-    .option("--model <model>", "Model to test", "qwen2:7b")
-    .option("--base-url <url>", "API base URL", "http://localhost:11434")
-    .option("--api-key <key>", "API key")
+    .description("Test LLM provider connectivity (defaults to configured provider)")
+    .option("--provider <provider>", "LLM provider (default: configured)")
+    .option("--model <model>", "Model to test (default: configured)")
+    .option("--base-url <url>", "API base URL (default: configured/provider)")
+    .option("--api-key <key>", "API key (default: configured)")
     .action(async (options) => {
-      const spinner = ora(`Testing ${options.provider}...`).start();
+      const config = loadConfig();
+      const target = resolveLlmTestTarget(
+        options,
+        config,
+        BUILT_IN_PROVIDERS,
+        process.env,
+      );
+      const spinner = ora(`Testing ${target.provider}...`).start();
       try {
         const start = Date.now();
 
-        if (options.provider === "ollama") {
-          const response = await fetch(`${options.baseUrl}/api/generate`, {
+        if (target.isOllama) {
+          const response = await fetch(`${target.baseUrl}/api/generate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              model: options.model,
+              model: target.model,
               prompt: "Say hi in one word.",
               stream: false,
             }),
@@ -134,28 +202,24 @@ export function registerLlmCommand(program) {
           const elapsed = Date.now() - start;
 
           spinner.succeed(
-            `${chalk.green("Connected")} to Ollama (${options.model}) in ${elapsed}ms`,
+            `${chalk.green("Connected")} to Ollama (${target.model}) in ${elapsed}ms`,
           );
           logger.log(
-            `  Response: ${chalk.gray(data.response.trim().substring(0, 100))}`,
+            `  Response: ${chalk.gray((data.response || "").trim().substring(0, 100))}`,
           );
-        } else if (options.provider === "openai") {
-          const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-          if (!apiKey) throw new Error("API key required");
+        } else {
+          // OpenAI-compatible path (openai, volcengine, deepseek, dashscope,
+          // kimi, minimax, mistral, …).
+          if (!target.apiKey) throw new Error("API key required");
 
-          const url =
-            options.baseUrl !== "http://localhost:11434"
-              ? options.baseUrl
-              : "https://api.openai.com/v1";
-
-          const response = await fetch(`${url}/chat/completions`, {
+          const response = await fetch(`${target.baseUrl}/chat/completions`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
+              Authorization: `Bearer ${target.apiKey}`,
             },
             body: JSON.stringify({
-              model: options.model || "gpt-4o-mini",
+              model: target.model,
               messages: [{ role: "user", content: "Say hi in one word." }],
               max_tokens: 10,
             }),
@@ -167,15 +231,12 @@ export function registerLlmCommand(program) {
 
           const data = await response.json();
           const elapsed = Date.now() - start;
+          const reply = data.choices?.[0]?.message?.content?.trim() || "";
 
           spinner.succeed(
-            `${chalk.green("Connected")} to OpenAI (${options.model || "gpt-4o-mini"}) in ${elapsed}ms`,
+            `${chalk.green("Connected")} to ${target.label} (${target.model}) in ${elapsed}ms`,
           );
-          logger.log(
-            `  Response: ${chalk.gray(data.choices[0].message.content.trim())}`,
-          );
-        } else {
-          spinner.fail(`Unknown provider: ${options.provider}`);
+          logger.log(`  Response: ${chalk.gray(reply)}`);
         }
       } catch (err) {
         spinner.fail(`Test failed: ${err.message}`);
