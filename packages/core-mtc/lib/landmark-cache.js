@@ -247,7 +247,13 @@ class LandmarkCache {
       const threshold = Number.isInteger(snap.threshold)
         ? snap.threshold
         : snap.signatures.length;
-      if (threshold < 1) {
+      // Reject a malformed threshold up front (symmetric with the producers:
+      // batch.js assembleBatchFederated and createCrossFederationTrustAnchor both
+      // require threshold in [1, N]). A threshold exceeding the signature count is
+      // unsatisfiable by construction; without this guard it falls through to the
+      // counting loop and surfaces a misleading FEDERATION_THRESHOLD_NOT_MET
+      // instead of a clear "the snapshot itself is malformed" signal.
+      if (threshold < 1 || threshold > snap.signatures.length) {
         throw this._err("BAD_FEDERATION_THRESHOLD");
       }
       // Track which pubkey_ids have already counted, so a duplicate signature
