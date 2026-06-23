@@ -347,6 +347,23 @@ export class MCPClient extends EventEmitter {
       };
     } catch (err) {
       entry.state = ServerState.ERROR;
+      // A stdio child spawned above but failed to initialize (handshake
+      // timeout / broken pipe / non-MCP command) would otherwise leak: we
+      // delete the entry from `this.servers` below, so disconnect() can never
+      // reach it, and an alive-but-unresponsive process fires neither `close`
+      // nor `error` — it would run orphaned with its stdio listeners bound for
+      // the lifetime of the CLI. Tear it down on the way out (best-effort;
+      // never mask the original connect error).
+      if (entry.process) {
+        try {
+          entry.process.stdout?.removeAllListeners();
+          entry.process.stderr?.removeAllListeners();
+          entry.process.removeAllListeners();
+          entry.process.kill();
+        } catch {
+          // teardown is best-effort — the connect error is what matters
+        }
+      }
       this.servers.delete(name);
       throw err;
     }
