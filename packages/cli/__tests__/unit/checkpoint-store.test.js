@@ -21,6 +21,7 @@ import {
   showCheckpoint,
   deleteCheckpoint,
   clearCheckpoints,
+  withinRoot,
 } from "../../src/lib/checkpoint-store.js";
 
 /** Run git in the repo (test helper). */
@@ -213,5 +214,31 @@ describe("checkpoint-store (git engine)", () => {
     expect(c2.reused).toBeFalsy();
     expect(c2.id).not.toBe(c1.id);
     expect(listCheckpoints(repo).length).toBe(2);
+  });
+});
+
+describe("withinRoot — restore containment guard", () => {
+  it("accepts the root and paths inside it", () => {
+    const root = join(tmpdir(), "cc-repo");
+    expect(withinRoot(root, root)).toBe(true);
+    expect(withinRoot(root, join(root, "src", "a.txt"))).toBe(true);
+  });
+
+  it("rejects paths that escape the root", () => {
+    const root = join(tmpdir(), "cc-repo");
+    expect(withinRoot(root, join(root, "..", "evil.txt"))).toBe(false);
+    expect(withinRoot(root, join(tmpdir(), "cc-repo-sibling", "x"))).toBe(
+      false,
+    );
+  });
+
+  it("normalizes separator style (git forward-slash root vs native abs)", () => {
+    // repoRoot() returns a forward-slash path from `git rev-parse
+    // --show-toplevel`, but path.resolve(root, rel) yields native separators on
+    // Windows — both sides must resolve to the same form or the guard would
+    // wrongly reject (and skip deleting) legitimate in-repo files.
+    const fwd = "C:/Users/x/repo";
+    expect(withinRoot(fwd, "C:/Users/x/repo/new-file.txt")).toBe(true);
+    expect(withinRoot(fwd, "C:/Users/x/repo-other/y.txt")).toBe(false);
   });
 });

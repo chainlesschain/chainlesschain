@@ -92,6 +92,36 @@ function tempIndexPath(dir) {
 }
 
 /**
+ * rmSync that never throws. Used for best-effort teardown (temp index files,
+ * created-since files) so a transient unlink failure — e.g. a Windows file
+ * lock (EBUSY/EPERM) on the temp index — can't mask the operation's real
+ * result. Without this, a `finally { rmSync(tmpIndex) }` could turn a
+ * *successful* checkpoint into a thrown error, or replace the original git
+ * error with the cleanup error.
+ */
+function rmQuiet(target) {
+  try {
+    rmSync(target, { force: true });
+  } catch {
+    /* best-effort cleanup — the operation's real result is what matters */
+  }
+}
+
+/**
+ * True if `abs` is the repo root or lives inside it (containment guard).
+ * Both sides go through path.resolve so the comparison is robust to separator
+ * style — `repoRoot()` comes from `git rev-parse --show-toplevel` with forward
+ * slashes, while path.resolve yields native (backslash) paths on Windows.
+ */
+export function withinRoot(root, abs) {
+  const r = path.resolve(root);
+  const a = path.resolve(abs);
+  if (a === r) return true;
+  const prefix = r.endsWith(path.sep) ? r : r + path.sep;
+  return a.startsWith(prefix);
+}
+
+/**
  * Snapshot the current working tree to a git tree object WITHOUT creating a
  * commit and WITHOUT touching the real index. Returns the tree sha.
  */
@@ -107,7 +137,7 @@ function snapshotTree(root, dir) {
     git(["add", "-A"], { cwd: root, env });
     return git(["write-tree"], { cwd: root, env });
   } finally {
-    rmSync(tmpIndex, { force: true });
+    rmQuiet(tmpIndex);
   }
 }
 
@@ -228,7 +258,7 @@ export function createCheckpoint(cwd = process.cwd(), opts = {}) {
 
     return { id, ref, commit, tree, parent, label, session, createdAt, files };
   } finally {
-    rmSync(tmpIndex, { force: true });
+    rmQuiet(tmpIndex);
   }
 }
 
@@ -380,12 +410,19 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     git(["read-tree", targetTree], { cwd: root, env });
     git(["checkout-index", "-a", "-f"], { cwd: root, env });
   } finally {
-    rmSync(tmpIndex, { force: true });
+    rmQuiet(tmpIndex);
   }
 
-  // Remove files the target snapshot does not contain (created since).
+  // Remove files the target snapshot does not contain (created since). These
+  // paths come from git's tree diff (repo-relative, git rejects `..` in tree
+  // entries), but this is a force-delete over the user's working tree — guard
+  // each resolved path against the repo root before unlinking, as
+  // defense-in-depth, and keep it best-effort so one locked file can't abort
+  // the whole rewind.
   for (const rel of added) {
-    rmSync(path.resolve(root, rel), { force: true });
+    const abs = path.resolve(root, rel);
+    if (!withinRoot(root, abs)) continue; // never delete outside the repo
+    rmQuiet(abs);
   }
 
   return {
