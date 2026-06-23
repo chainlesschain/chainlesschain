@@ -237,6 +237,27 @@ describe("KnowledgeGraph Handler", () => {
       expect(result.result.output).toContain("[[Vue]]");
     });
 
+    it("wikilinks: lists orphan entities and excludes connected ones", async () => {
+      // 'svelte' has no relationship → orphan; 'react'/'vue' are connected.
+      handler._graph.entities.set("svelte", {
+        name: "Svelte",
+        type: "technology",
+        mentions: 1,
+        properties: {},
+      });
+      const result = await handler.execute(
+        { input: "--export --format wikilinks" },
+        { projectRoot: "/" },
+      );
+      const out = result.result.output;
+      // The relationship line connects React→Vue; only Svelte is a bare orphan.
+      expect(out).toContain("[[React]] related_to [[Vue]]");
+      expect(out).toContain("[[Svelte]]");
+      // React/Vue are connected, so they must NOT appear as standalone orphan lines.
+      expect(out).not.toMatch(/^\[\[React\]\]$/m);
+      expect(out).not.toMatch(/^\[\[Vue\]\]$/m);
+    });
+
     it("should still export JSON format", async () => {
       const result = await handler.execute(
         { input: "--export --format json" },

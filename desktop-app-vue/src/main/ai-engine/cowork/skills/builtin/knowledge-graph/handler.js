@@ -803,12 +803,17 @@ function exportWikilinks() {
     lines.push(`[[${rel.source}]] ${rel.type} [[${rel.target}]]`);
   }
 
-  // Also add orphan entities
+  // Also add orphan entities. Precompute the set of entity keys that appear as
+  // a relationship endpoint, lowercasing each source/target ONCE — the orphan
+  // check previously re-lowercased every relationship's source/target for every
+  // entity (O(entities × relationships) toLowerCase calls). Now O(R + E).
+  const connected = new Set();
+  for (const rel of graph.relationships) {
+    connected.add(rel.source.toLowerCase());
+    connected.add(rel.target.toLowerCase());
+  }
   for (const [key, ent] of graph.entities) {
-    const hasRel = graph.relationships.some(
-      (r) => r.source.toLowerCase() === key || r.target.toLowerCase() === key,
-    );
-    if (!hasRel) {
+    if (!connected.has(key)) {
       lines.push(`[[${ent.name}]]`);
     }
   }
