@@ -124,6 +124,18 @@ export function makeRunnableProviderFallback(
         },
       };
     }
+    // Cross-provider env-keyed fallback fires ONLY when the configured provider
+    // is itself unrunnable (no key present). If the user EXPLICITLY configured a
+    // provider WITH a key and it returned an auth error, that key is bad/expired
+    // — surface it instead of silently switching VENDORS and spending on a
+    // different account's key. This is the recurring "configured volcengine but
+    // it ran Claude/haiku" trap: a volcengine 401 must never hijack the turn
+    // onto anthropic just because ANTHROPIC_API_KEY happens to be in the env.
+    // (The baseUrl-mismatch path above still relabels a mislabeled config using
+    // the SAME key, which is always safe.)
+    if (hasUsableKey(failed, { apiKey: options.apiKey, isActive: true, env })) {
+      return null;
+    }
     for (const [name, def] of Object.entries(BUILT_IN_PROVIDERS)) {
       if (name === failed) continue;
       if (def.apiKeyEnv && nonEmpty(env[def.apiKeyEnv])) {

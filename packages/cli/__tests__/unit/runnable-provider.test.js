@@ -196,6 +196,31 @@ describe("makeRunnableProviderFallback", () => {
     expect(out._opts.apiKey).toBe("sk-v");
   });
 
+  it("does NOT hijack an explicitly-keyed provider to another vendor on auth error", async () => {
+    // Recurring "configured volcengine but it ran Claude/haiku" trap: a
+    // volcengine 401 with a PRESENT volcengine key must surface as-is, never
+    // silently switch onto anthropic just because ANTHROPIC_API_KEY is in the
+    // env (which would spend on a different account and run claude-haiku).
+    let calls = 0;
+    const chatFn = async (_msgs, opts) => {
+      calls++;
+      if (opts.provider === "volcengine") throw new Error("401 unauthorized");
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: { ANTHROPIC_API_KEY: "sk-ant" },
+    });
+    await expect(
+      wrapped([], {
+        provider: "volcengine",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+        apiKey: "sk-volc-present",
+        model: "doubao-seed-2-1-pro-260628",
+      }),
+    ).rejects.toThrow(/401/);
+    expect(calls).toBe(1); // no second (anthropic) attempt — no vendor hijack
+  });
+
   it("rethrows the auth error when nowhere runnable to go", async () => {
     const chatFn = async () => {
       throw new Error("API key required for anthropic");
