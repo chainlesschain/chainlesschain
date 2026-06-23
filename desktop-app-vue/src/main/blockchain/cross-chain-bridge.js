@@ -100,6 +100,10 @@ class CrossChainBridge extends EventEmitter {
       throw new Error(`Unknown chain: ${toChain}`);
     }
     const id = `bridge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // 复用 estimateFee 的费率逻辑：跨链型（evm↔svm 等）收 2× 基础费。此前这里写死
+    // amount*0.001（恒 1× 基础费），与 estimateFee 给调用方的报价对跨型转账不一致
+    // ——报价 2× 实记 1×。链已在上面校验存在，estimateFee 不会再抛。
+    const estimate = this.estimateFee(fromChain, toChain, amount);
     const transfer = {
       id,
       fromChain,
@@ -107,8 +111,8 @@ class CrossChainBridge extends EventEmitter {
       asset,
       amount,
       status: "pending",
-      fee: amount * 0.001,
-      estimatedTime: 300,
+      fee: estimate.fee,
+      estimatedTime: estimate.estimatedTime,
     };
     this._pendingTransfers.set(id, transfer);
     try {

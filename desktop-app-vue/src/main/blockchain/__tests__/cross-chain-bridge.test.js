@@ -92,6 +92,23 @@ describe("CrossChainBridge", () => {
     expect(transfer.status).toBe("pending");
   });
 
+  it("charges the cross-type fee multiplier, consistent with estimateFee", async () => {
+    await bridge.initialize(db);
+    // ethereum=evm, solana=svm → 跨链型，应收 2× 基础费（与 estimateFee 报价一致）。
+    // 旧实现 bridgeAsset 写死 amount*0.001=1，低于 estimateFee 的报价 2。
+    const transfer = await bridge.bridgeAsset(
+      "ethereum",
+      "solana",
+      "USDC",
+      1000,
+    );
+    expect(transfer.fee).toBeCloseTo(2);
+    expect(transfer.estimatedTime).toBe(600);
+    expect(transfer.fee).toBeCloseTo(
+      bridge.estimateFee("ethereum", "solana", 1000).fee,
+    );
+  });
+
   it("should throw for unknown source chain", async () => {
     await bridge.initialize(db);
     await expect(
