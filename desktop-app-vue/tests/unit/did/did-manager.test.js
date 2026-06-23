@@ -854,6 +854,26 @@ describe("DIDManager", () => {
       expect(mockP2PManager.dhtPut).toHaveBeenCalled();
     });
 
+    it("发布 4 段(org)DID 用完整标识符作 key，而非仅前缀", async () => {
+      // 回归：did:chainlesschain:org:abc123 旧用 split(":")[2] === "org"，
+      // 会把所有 org DID 压到 /did/chainlesschain/org 同一个 key 上互相覆盖，
+      // 且 resolve 因长度校验(!==3)拒绝。key 必须用完整标识符 org:abc123。
+      const orgDID = "did:chainlesschain:org:abc123";
+      mockDb.prepare().all = vi.fn().mockReturnValue([
+        {
+          did: orgDID,
+          nickname: "Org",
+          public_key_sign: "pk_sign",
+          public_key_encrypt: "pk_encrypt",
+          did_document: JSON.stringify({ id: orgDID }),
+        },
+      ]);
+
+      const result = await didManager.publishToDHT(orgDID);
+      expect(result.success).toBe(true);
+      expect(result.key).toBe("/did/chainlesschain/org:abc123");
+    });
+
     it("P2P 未初始化时应该抛出错误", async () => {
       mockP2PManager.isInitialized = vi.fn().mockReturnValue(false);
 

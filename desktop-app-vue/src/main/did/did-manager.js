@@ -875,6 +875,31 @@ class DIDManager extends EventEmitter {
   }
 
   /**
+   * 由 DID 派生 DHT key。
+   *
+   * 兼容 3 段 `did:method:id` 与 4 段 `did:method:prefix:id`(如 org DID
+   * `did:chainlesschain:org:xxxxx`)：取 method 之后的【全部】段作为唯一标识。
+   * 旧实现用 `split(":")[2]` 只取第三段——对 4 段 DID 只会拿到前缀("org")，
+   * 导致所有 org DID 互相覆盖在同一个 key 上、且无法被 resolve(其长度校验
+   * 还要求恰好 3 段)。3 段 DID 的 key 与旧实现完全一致(无行为变化)。
+   * @private
+   * @param {string} did
+   * @returns {string} 形如 `/did/<method>/<identifier>`
+   */
+  _didToDhtKey(did) {
+    const parts = String(did).split(":");
+    if (
+      parts.length < 3 ||
+      parts[0] !== "did" ||
+      parts[1] !== this.config.method
+    ) {
+      throw new Error("无效的 DID 格式");
+    }
+    const identifier = parts.slice(2).join(":");
+    return `/did/${parts[1]}/${identifier}`;
+  }
+
+  /**
    * 发布 DID 文档到 DHT 网络
    * @param {string} did - DID 标识符
    * @returns {Promise<Object>} 发布结果 { success, key, publishedAt }
@@ -911,7 +936,7 @@ class DIDManager extends EventEmitter {
 
       // 发布到 DHT
       // DHT key 格式: /did/chainlesschain/<identifier>
-      const dhtKey = `/did/${this.config.method}/${did.split(":")[2]}`;
+      const dhtKey = this._didToDhtKey(did);
       await this.p2pManager.dhtPut(
         dhtKey,
         Buffer.from(JSON.stringify(publishData)),
@@ -960,17 +985,8 @@ class DIDManager extends EventEmitter {
       }
 
       // 2. 缓存未命中，从DHT获取
-      // 构建 DHT key
-      const didParts = did.split(":");
-      if (
-        didParts.length !== 3 ||
-        didParts[0] !== "did" ||
-        didParts[1] !== this.config.method
-      ) {
-        throw new Error("无效的 DID 格式");
-      }
-
-      const dhtKey = `/did/${didParts[1]}/${didParts[2]}`;
+      // 构建 DHT key（兼容 3/4 段 DID，与 publish/unpublish 一致）
+      const dhtKey = this._didToDhtKey(did);
 
       // 从 DHT 获取数据
       const data = await this.p2pManager.dhtGet(dhtKey);
@@ -1018,9 +1034,8 @@ class DIDManager extends EventEmitter {
     try {
       logger.info("[DIDManager] 从 DHT 取消发布 DID:", did);
 
-      // 构建 DHT key
-      const didParts = did.split(":");
-      const dhtKey = `/did/${didParts[1]}/${didParts[2]}`;
+      // 构建 DHT key（兼容 3/4 段 DID，与 publish/resolve 一致）
+      const dhtKey = this._didToDhtKey(did);
 
       // 发布空数据表示删除（DHT 的标准做法）
       await this.p2pManager.dhtPut(
