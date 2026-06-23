@@ -101,6 +101,13 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var webRtcMessageRelay: dagger.Lazy<com.chainlesschain.android.remote.p2p.WebRtcSignalingMessageRelay>
 
+    // FAMILY-67 修复：启动时把已持久化的 E2EE 会话恢复进内存。否则重启后 getSession 为空，
+    // 好友聊天显示「设备未验证」+ 发送失败（hasSession=false）。原接线在 AppInitializer
+    // （死代码）→ 从未生效；移到 MainActivity.onCreate（已验证的启动路径，同通话修复）。
+    @Inject
+    lateinit var persistentSessionManager:
+        dagger.Lazy<com.chainlesschain.android.core.e2ee.session.PersistentSessionManager>
+
     private var isReady = false
 
     /**
@@ -125,6 +132,10 @@ class MainActivity : AppCompatActivity() {
 
         // FAMILY-67: 启动同步推送 loop + 家庭 P2P 自动接通（幂等；早于 PIN 也安全，各自自闸）。
         lifecycleScope.launch {
+            // FAMILY-67: 最先恢复持久化 E2EE 会话进内存（聊天发送/验证的前提）。否则重启后
+            // getSession 为空 → 「设备未验证」+ 发送失败。原在 AppInitializer（死代码）。
+            runCatching { persistentSessionManager.get().initialize(autoRestore = true) }
+                .onFailure { Timber.w(it, "PersistentSessionManager restore failed (non-fatal)") }
             runCatching { syncCoordinator.get().start() }
                 .onFailure { Timber.w(it, "SyncCoordinator start failed (non-fatal)") }
             runCatching { familyGuardSyncConnector.get().ensureConnected() }
