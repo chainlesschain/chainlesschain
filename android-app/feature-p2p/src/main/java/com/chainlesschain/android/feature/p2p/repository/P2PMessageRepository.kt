@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.Collections
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,6 +52,17 @@ class P2PMessageRepository @Inject constructor(
     // 接收到的消息流（用于通知UI）
     private val _incomingMessages = MutableSharedFlow<P2PMessageEntity>()
     val incomingMessages: SharedFlow<P2PMessageEntity> = _incomingMessages.asSharedFlow()
+
+    // 入站去重：同一消息可能经直连 + 信令中继两条路到达（receivedMessages 不去重）。
+    // 有界 LRU，避免无限增长。
+    private val recentlyReceived: MutableSet<String> = Collections.synchronizedSet(
+        Collections.newSetFromMap(
+            object : LinkedHashMap<String, Boolean>(64, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>): Boolean =
+                    size > MAX_RECENT_IDS
+            },
+        ),
+    )
 
     init {
         // 监听P2P网络接收的消息
@@ -195,6 +207,11 @@ class P2PMessageRepository @Inject constructor(
             // 通知UI
             _incomingMessages.emit(messageEntity)
 
+            // FAMILY-67: 收到对端消息弹通知（通知器内部判断前台/当前聊天而自行抑制）。
+            // 中央接收路径（无论聊天界面是否打开）都会到这里，所以通知不再依赖前台聊天页。
+            runCatching { messageNotifier.notifyIncoming(peerId, decryptedContent) }
+                .onFailure { Timber.w(it, "message notify failed") }
+
             // 发送ACK确认
             if (p2pMessage.requiresAck) {
                 sendAck(p2pMessage.id, peerId, localDeviceId)
@@ -306,9 +323,10 @@ class P2PMessageRepository @Inject constructor(
                         handleAck(p2pMessage.payload)
                     }
                     MessageType.TEXT -> {
-                        // 由ViewModel调用receiveMessage处理
-                        // 这里只是记录日志
-                        Timber.d("Received text message from network: ${p2pMessage.id}")
+                        // 中央接收点：无论聊天界面是否打开（后台 / 别的聊天）都解密、入库、ACK、通知。
+                        // 此前 TEXT 仅由 P2PChatViewModel 在「当前聊天==发送方」时处理 → 后台收到的
+                        // 消息被整体丢弃（不入库/不通知）。改为在此 @Singleton 始终在线的消费者处理。
+                        handleIncomingText(p2pMessage)
                     }
                     else -> {
                         Timber.d("Received message of type: ${p2pMessage.type}")
@@ -316,6 +334,19 @@ class P2PMessageRepository @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * 中央处理一条入站文本消息：去重 → 解密入库（[receiveMessage] 内含通知 + ACK + 同步）。
+     * 入站消息的 toDeviceId 即本机 DID（发送方 sendMessage 时 toDeviceId=对端=本机）。
+     */
+    private suspend fun handleIncomingText(p2pMessage: P2PMessage) {
+        if (!recentlyReceived.add(p2pMessage.id)) {
+            Timber.d("Duplicate text message ignored: ${p2pMessage.id}")
+            return
+        }
+        receiveMessage(p2pMessage, p2pMessage.toDeviceId)
+            .onFailure { Timber.w(it, "central receive failed: ${p2pMessage.id}") }
     }
 
     /**
@@ -385,5 +416,10 @@ class P2PMessageRepository @Inject constructor(
     fun cleanup() {
         observeJob?.cancel()
         observeJob = null
+    }
+
+    private companion object {
+        /** 入站去重 LRU 上限。 */
+        const val MAX_RECENT_IDS = 1024
     }
 }

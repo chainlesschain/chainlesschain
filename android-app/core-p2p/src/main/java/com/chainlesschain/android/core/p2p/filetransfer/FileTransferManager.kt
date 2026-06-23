@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -101,6 +102,31 @@ data class TransferResult(
 )
 
 /**
+ * 判断一个传输是否「卡死」（应被清理以释放并发槽）。纯函数，便于单测。
+ *
+ * - REQUESTING：出站等待对端 accept / 入站等待本机用户 accept，超 [requestTimeoutMs] 无动作即视为卡死。
+ * - TRANSFERRING：超 [stuckTimeoutMs] 没有任何分块进展即视为卡死。
+ * - PAUSED / PENDING / 终态：不自动清理（用户暂停的不能被偷偷删；终态本就走 [com.chainlesschain.android.
+ *   core.p2p.filetransfer.FileTransferManager.cleanupCompletedTransfers] 回收）。
+ *
+ * @param lastActivityAt 该传输最后一次有进展（请求创建 / accept / 分块收发）的时间戳
+ */
+internal fun isTransferStuck(
+    status: FileTransferStatus,
+    lastActivityAt: Long,
+    now: Long,
+    requestTimeoutMs: Long = FileTransferManager.REQUEST_TIMEOUT_MS,
+    stuckTimeoutMs: Long = FileTransferManager.STUCK_TRANSFER_TIMEOUT_MS,
+): Boolean {
+    val limit = when (status) {
+        FileTransferStatus.REQUESTING -> requestTimeoutMs
+        FileTransferStatus.TRANSFERRING -> stuckTimeoutMs
+        else -> return false
+    }
+    return now - lastActivityAt > limit
+}
+
+/**
  * 文件传输管理器
  *
  * Main orchestrator for P2P file transfers.
@@ -123,12 +149,24 @@ class FileTransferManager @Inject constructor(
 
         /** Delay between chunk retries (ms) */
         const val RETRY_DELAY_MS = 1000L
+
+        /** REQUESTING 状态无动作多久算卡死（出站无 accept / 入站无人受理）。 */
+        const val REQUEST_TIMEOUT_MS = 120_000L // 2 min
+
+        /** TRANSFERRING 状态多久没有分块进展算卡死。 */
+        const val STUCK_TRANSFER_TIMEOUT_MS = 120_000L // 2 min
+
+        /** 卡死扫描周期。 */
+        const val STUCK_SWEEP_INTERVAL_MS = 30_000L // 30 s
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Active transfers (transferId -> TransferState)
     private val activeTransfers = ConcurrentHashMap<String, TransferState>()
+
+    // 每个传输最后一次有进展的时间戳（transferId -> epochMs），用于卡死检测。
+    private val lastActivity = ConcurrentHashMap<String, Long>()
 
     // Local device ID (must be set before using)
     private var localDeviceId: String? = null
@@ -153,6 +191,43 @@ class FileTransferManager @Inject constructor(
             transport.events.collect { event ->
                 handleTransportEvent(event)
             }
+        }
+        // 周期性清理卡死传输，释放并发槽（否则失败/无进展的传输会一直占满 MAX_CONCURRENT_TRANSFERS）
+        startStuckSweeper()
+    }
+
+    /** 记录某传输刚有进展（请求创建 / accept / 分块收发），刷新卡死计时。 */
+    private fun touch(transferId: String) {
+        lastActivity[transferId] = System.currentTimeMillis()
+    }
+
+    private fun TransferState.currentStatus(): FileTransferStatus = when (this) {
+        is TransferState.Outgoing -> status
+        is TransferState.Incoming -> status
+    }
+
+    private fun startStuckSweeper() {
+        scope.launch {
+            while (isActive) {
+                delay(STUCK_SWEEP_INTERVAL_MS)
+                runCatching { sweepStuckTransfers() }
+                    .onFailure { Timber.w(it, "stuck transfer sweep failed") }
+            }
+        }
+    }
+
+    /**
+     * 扫描并清理卡死传输。可单测（通过预置 [lastActivity] / activeTransfers 后直接调用）。
+     */
+    internal suspend fun sweepStuckTransfers() {
+        val now = System.currentTimeMillis()
+        val stuck = activeTransfers.entries.mapNotNull { (id, state) ->
+            val last = lastActivity[id] ?: now
+            if (isTransferStuck(state.currentStatus(), last, now)) id else null
+        }
+        stuck.forEach { id ->
+            Timber.w("Stuck transfer timed out (no progress), cleaning up: $id")
+            cleanupTransfer(id, "Transfer timed out (no progress)")
         }
     }
 
@@ -198,6 +273,7 @@ class FileTransferManager @Inject constructor(
                 status = FileTransferStatus.REQUESTING
             )
             activeTransfers[metadata.transferId] = state
+            touch(metadata.transferId)
 
             // Start progress tracking
             progressTracker.startTracking(metadata, isOutgoing = true)
@@ -240,6 +316,7 @@ class FileTransferManager @Inject constructor(
 
         // Update status
         state.status = FileTransferStatus.TRANSFERRING
+        touch(transferId)
         progressTracker.updateStatus(transferId, FileTransferStatus.TRANSFERRING)
 
         // Send accept message
@@ -324,6 +401,7 @@ class FileTransferManager @Inject constructor(
     suspend fun resumeTransfer(transferId: String) {
         val state = activeTransfers[transferId] ?: return
         val localId = localDeviceId ?: return
+        touch(transferId)
 
         when (state) {
             is TransferState.Outgoing -> {
@@ -460,7 +538,10 @@ class FileTransferManager @Inject constructor(
             }
             .map { it.key }
 
-        toRemove.forEach { activeTransfers.remove(it) }
+        toRemove.forEach {
+            activeTransfers.remove(it)
+            lastActivity.remove(it)
+        }
         progressTracker.clearCompletedTransfers()
     }
 
@@ -507,6 +588,7 @@ class FileTransferManager @Inject constructor(
             status = FileTransferStatus.REQUESTING
         )
         activeTransfers[event.metadata.transferId] = state
+        touch(event.metadata.transferId)
 
         // Start progress tracking
         progressTracker.startTracking(event.metadata, isOutgoing = false)
@@ -528,6 +610,7 @@ class FileTransferManager @Inject constructor(
         Timber.i("Transfer accepted: ${state.metadata.fileName}")
 
         state.status = FileTransferStatus.TRANSFERRING
+        touch(event.transferId)
         progressTracker.updateStatus(event.transferId, FileTransferStatus.TRANSFERRING)
 
         // Start sending chunks
@@ -557,6 +640,7 @@ class FileTransferManager @Inject constructor(
         transport.sendChunkAck(ack, event.fromDeviceId, localId)
 
         if (success) {
+            touch(event.chunk.transferId)
             state.receivedChunks.add(event.chunk.chunkIndex)
             state.expectedChunk = event.chunk.chunkIndex + 1
 
@@ -592,6 +676,7 @@ class FileTransferManager @Inject constructor(
         val state = activeTransfers[event.ack.transferId] as? TransferState.Outgoing ?: return
 
         if (event.ack.success) {
+            touch(event.ack.transferId)
             // Update progress
             progressTracker.recordChunkCompletion(
                 event.ack.transferId,
@@ -634,6 +719,7 @@ class FileTransferManager @Inject constructor(
 
     private suspend fun handleTransferResumed(event: FileTransferEvent.TransferResumed) {
         val state = activeTransfers[event.transferId] ?: return
+        touch(event.transferId)
 
         when (state) {
             is TransferState.Outgoing -> {
@@ -807,6 +893,7 @@ class FileTransferManager @Inject constructor(
 
     private suspend fun cleanupTransfer(transferId: String, reason: String?) {
         val state = activeTransfers.remove(transferId)
+        lastActivity.remove(transferId)
 
         val status = if (reason?.contains("cancel", ignoreCase = true) == true) {
             FileTransferStatus.CANCELLED
@@ -867,5 +954,6 @@ class FileTransferManager @Inject constructor(
             }
         }
         activeTransfers.clear()
+        lastActivity.clear()
     }
 }

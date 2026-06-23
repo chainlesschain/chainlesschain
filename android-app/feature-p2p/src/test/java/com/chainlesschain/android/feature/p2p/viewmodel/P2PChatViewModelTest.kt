@@ -9,6 +9,7 @@ import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.feature.p2p.notification.ActiveChatTracker
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +67,8 @@ class P2PChatViewModelTest {
             verificationManager = verificationManager,
             connectionManager = connectionManager,
             didManager = didManager,
-            messageRepository = messageRepository
+            messageRepository = messageRepository,
+            activeChatTracker = ActiveChatTracker(),
         )
     }
 

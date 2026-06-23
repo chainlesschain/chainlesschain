@@ -10,8 +10,7 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
-import com.chainlesschain.android.core.p2p.model.MessageType
-import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.feature.p2p.notification.ActiveChatTracker
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -36,7 +35,8 @@ class P2PChatViewModel @Inject constructor(
     private val verificationManager: VerificationManager,
     private val connectionManager: P2PConnectionManager,
     private val didManager: DIDManager,
-    private val messageRepository: P2PMessageRepository
+    private val messageRepository: P2PMessageRepository,
+    private val activeChatTracker: ActiveChatTracker,
 ) : ViewModel() {
 
     // 聊天消息列表
@@ -66,10 +66,9 @@ class P2PChatViewModel @Inject constructor(
         get() = didManager.getCurrentDID() ?: ""
 
     init {
-        // 监听接收到的消息
+        // 监听接收到的消息（仅用于当前聊天的轻量 UI 反馈；实际收信/入库/通知由
+        // P2PMessageRepository 的中央消费者处理，不再依赖聊天界面是否打开）。
         observeIncomingMessages()
-        // 监听网络消息
-        observeNetworkMessages()
     }
 
     /**
@@ -77,6 +76,8 @@ class P2PChatViewModel @Inject constructor(
      */
     fun loadChat(peerId: String) {
         currentPeerId = peerId
+        // 标记「正在看这个聊天」→ 该 peer 的新消息前台时不弹通知（MessageNotifier 据此抑制）
+        activeChatTracker.enter(peerId)
         Timber.d("Loading chat with peer: $peerId")
 
         viewModelScope.launch {
@@ -226,44 +227,10 @@ class P2PChatViewModel @Inject constructor(
     }
 
     /**
-     * 监听网络消息
+     * 聊天界面离开前台（onDispose）。清除「正在看」标记，使该 peer 后续消息恢复弹通知。
      */
-    private fun observeNetworkMessages() {
-        viewModelScope.launch {
-            connectionManager.receivedMessages.collect { p2pMessage ->
-                Timber.d("Network message received: ${p2pMessage.type}")
-
-                when (p2pMessage.type) {
-                    MessageType.TEXT -> {
-                        // 处理文本消息
-                        if (p2pMessage.fromDeviceId == currentPeerId) {
-                            handleIncomingTextMessage(p2pMessage)
-                        }
-                    }
-                    MessageType.ACK -> {
-                        // ACK由仓库处理
-                    }
-                    else -> {
-                        Timber.d("Unhandled message type: ${p2pMessage.type}")
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * 处理收到的文本消息
-     */
-    private suspend fun handleIncomingTextMessage(p2pMessage: P2PMessage) {
-        val result = messageRepository.receiveMessage(p2pMessage, localDeviceId)
-        result.fold(
-            onSuccess = { message ->
-                Timber.d("Incoming message processed: ${message.id}")
-            },
-            onFailure = { error ->
-                Timber.e(error, "Failed to process incoming message")
-            }
-        )
+    fun onChatScreenHidden() {
+        currentPeerId?.let { activeChatTracker.leave(it) }
     }
 
     /**
@@ -378,6 +345,7 @@ class P2PChatViewModel @Inject constructor(
 
     override fun onCleared() {
         connectionWatcherJob?.cancel()
+        currentPeerId?.let { activeChatTracker.leave(it) }
         super.onCleared()
         Timber.d("ViewModel cleared")
     }

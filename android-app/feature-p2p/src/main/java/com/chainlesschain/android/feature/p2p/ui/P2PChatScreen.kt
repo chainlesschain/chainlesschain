@@ -79,9 +79,10 @@ fun P2PChatScreen(
         }
     }
 
-    // 标记消息为已读
+    // 标记消息为已读 + 离开前台聊天（恢复该 peer 的通知）
     DisposableEffect(deviceId) {
         onDispose {
+            viewModel.onChatScreenHidden()
             viewModel.markAsRead()
         }
     }
