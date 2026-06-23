@@ -123,9 +123,16 @@ export function createIdentity(db, displayName) {
  */
 export function getIdentity(db, didOrPrefix) {
   ensureDIDTables(db);
+  if (didOrPrefix == null || didOrPrefix === "") return undefined;
+  // Escape LIKE wildcards (% _ \) in the prefix so a did value containing them
+  // can't match-all or match the WRONG identity. getIdentity resolves the key
+  // for signMessage / verifyWithDID and the target for deleteIdentity, so fuzzy
+  // matching here would be a verification/deletion correctness hole. ESCAPE '\'
+  // makes the escaped wildcards literal; legit hex-DID prefixes are unaffected.
+  const safe = String(didOrPrefix).replace(/[\\%_]/g, "\\$&");
   return db
-    .prepare("SELECT * FROM did_identities WHERE did LIKE ?")
-    .get(`${didOrPrefix}%`);
+    .prepare("SELECT * FROM did_identities WHERE did LIKE ? ESCAPE '\\'")
+    .get(`${safe}%`);
 }
 
 /**

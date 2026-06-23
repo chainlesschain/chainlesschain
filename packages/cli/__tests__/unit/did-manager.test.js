@@ -205,6 +205,32 @@ describe("DID Manager", () => {
       const found = getIdentity(db, "did:chainless:nonexistent");
       expect(found).toBeNull();
     });
+
+    // This regression validates SQL-level `LIKE ... ESCAPE` behavior, which the
+    // JS MockDatabase can't represent (it ignores ESCAPE), so it runs against a
+    // real in-memory better-sqlite3. DIDs are base64url, so they contain `_` —
+    // an unescaped `_` in a prefix would wildcard-match the WRONG identity, and
+    // a `%` would match-all; getIdentity resolves the key for verifyWithDID and
+    // the target for deleteIdentity, so that is a real correctness hole.
+    it("does not let LIKE wildcards in the input match-all / match-wrong (real db)", async () => {
+      const { default: Database } = await import("better-sqlite3");
+      const rdb = new Database(":memory:");
+      try {
+        const a = createIdentity(rdb, "Alice");
+        createIdentity(rdb, "Bob");
+        // A legit full DID still resolves exactly.
+        expect(getIdentity(rdb, a.did)?.did).toBe(a.did);
+        // A bare `%` must NOT resolve to "the first identity".
+        expect(getIdentity(rdb, "%")).toBeFalsy();
+        // `_` must be literal, not "any single char".
+        expect(getIdentity(rdb, "did:chainless:_")).toBeFalsy();
+        // Empty / null resolve to not-found, never match-all.
+        expect(getIdentity(rdb, "")).toBeFalsy();
+        expect(getIdentity(rdb, null)).toBeFalsy();
+      } finally {
+        rdb.close();
+      }
+    });
   });
 
   // ─── getAllIdentities ─────────────────────────────────────
