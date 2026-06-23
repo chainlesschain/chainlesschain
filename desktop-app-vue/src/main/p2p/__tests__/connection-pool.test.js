@@ -106,6 +106,24 @@ describe("ConnectionPool.acquireConnection", () => {
     ).rejects.toThrow(/连接池已满/);
   });
 
+  it("clears the timeout timer once a connection wins the race (no leak)", async () => {
+    const pool = new ConnectionPool({ connectionTimeout: 30000 });
+    expect(vi.getTimerCount()).toBe(0);
+    await pool.acquireConnection("fast", async () => ({ id: "fast" }));
+    // 若超时定时器未被清除，这里会残留 1 个挂起的定时器
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears the timeout timer when connection creation fails (no leak)", async () => {
+    const pool = new ConnectionPool({ connectionTimeout: 30000 });
+    await expect(
+      pool.acquireConnection("boom", async () => {
+        throw new Error("connect failed");
+      }),
+    ).rejects.toThrow(/connect failed/);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("rejects when connection creation times out", async () => {
     const pool = new ConnectionPool({ connectionTimeout: 5000 });
     const p = pool.acquireConnection("slow", () => new Promise(() => {}));

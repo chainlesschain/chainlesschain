@@ -19,6 +19,7 @@ class SettingsManager extends EventEmitter {
     this.defaults = options.defaults || this.getDefaultSettings();
     this.settings = {};
     this.watchers = new Map(); // key -> callback[]
+    this._fileWatcher = null; // fs.FSWatcher，close() 时关闭
 
     // 加载设置
     this.loadSettings();
@@ -552,8 +553,12 @@ class SettingsManager extends EventEmitter {
    * 监听设置文件变化
    */
   watchSettingsFile() {
+    // 防止重复监听导致 FSWatcher 泄漏（多次调用会累积未关闭的 watcher）
+    if (this._fileWatcher) {
+      return;
+    }
     try {
-      fs.watch(this.settingsPath, (eventType) => {
+      this._fileWatcher = fs.watch(this.settingsPath, (eventType) => {
         if (eventType === "change") {
           logger.info("[SettingsManager] Settings file changed externally");
           this.loadSettings();
@@ -563,6 +568,21 @@ class SettingsManager extends EventEmitter {
     } catch (error) {
       logger.error("[SettingsManager] Watch settings file error:", error);
     }
+  }
+
+  /**
+   * 关闭文件监听并清理资源（应用退出或销毁实例时调用，避免 FSWatcher 泄漏）
+   */
+  close() {
+    if (this._fileWatcher) {
+      try {
+        this._fileWatcher.close();
+      } catch (error) {
+        logger.error("[SettingsManager] Close file watcher error:", error);
+      }
+      this._fileWatcher = null;
+    }
+    this.removeAllListeners();
   }
 
   /**
@@ -670,4 +690,18 @@ function getSettingsManager(options) {
   return settingsManager;
 }
 
-module.exports = { SettingsManager, getSettingsManager };
+/**
+ * 关闭并释放全局实例（关闭文件监听），用于应用退出或测试清理
+ */
+function destroySettingsManager() {
+  if (settingsManager) {
+    settingsManager.close();
+    settingsManager = null;
+  }
+}
+
+module.exports = {
+  SettingsManager,
+  getSettingsManager,
+  destroySettingsManager,
+};

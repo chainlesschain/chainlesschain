@@ -202,9 +202,13 @@ class ConnectionPool extends EventEmitter {
       throw new Error("未提供连接创建函数");
     }
 
-    // 设置超时
+    // 设置超时（无论成功/失败/超时，finally 都会清除定时器，避免泄漏）
+    let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("连接超时")), this.connectionTimeout);
+      timeoutId = setTimeout(
+        () => reject(new Error("连接超时")),
+        this.connectionTimeout,
+      );
     });
 
     try {
@@ -230,6 +234,10 @@ class ConnectionPool extends EventEmitter {
     } catch (error) {
       this.stats.totalErrors++;
       throw error;
+    } finally {
+      // 连接先返回时，超时定时器仍会挂在事件循环上直到触发（默认数十秒），
+      // 每次成功连接都泄漏一个定时器；这里主动清除。
+      clearTimeout(timeoutId);
     }
   }
 
