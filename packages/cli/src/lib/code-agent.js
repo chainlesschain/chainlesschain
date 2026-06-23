@@ -240,14 +240,26 @@ const SEVERITY_FOR_RULE = {
   command_injection: "critical",
 };
 
+// Pre-build the global-flagged variants of the security patterns ONCE. `_detectIssues`
+// uses `code.match()` to collect every occurrence, which needs the `g` flag — but the
+// source patterns are static module constants, so rebuilding the RegExp on every call ×
+// pattern was pure waste. `String.match()` with a global regex resets lastIndex, so a
+// shared instance is safe to reuse across calls.
+const SECURITY_PATTERNS_GLOBAL = Object.fromEntries(
+  Object.entries(SECURITY_PATTERNS).map(([rule, patterns]) => [
+    rule,
+    patterns.map((p) =>
+      p.flags.includes("g") ? p : new RegExp(p.source, p.flags + "g"),
+    ),
+  ]),
+);
+
 function _detectIssues(code) {
   const issues = [];
 
-  for (const [rule, patterns] of Object.entries(SECURITY_PATTERNS)) {
+  for (const [rule, patterns] of Object.entries(SECURITY_PATTERNS_GLOBAL)) {
     for (const pattern of patterns) {
-      const matches = code.match(
-        new RegExp(pattern.source, pattern.flags + "g"),
-      );
+      const matches = code.match(pattern);
       if (matches) {
         for (const match of matches) {
           issues.push({

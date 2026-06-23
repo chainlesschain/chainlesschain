@@ -271,6 +271,17 @@ describe("code-agent", () => {
       });
       expect(r.issuesFound).toBeGreaterThanOrEqual(1);
     });
+
+    it("finds every occurrence and is stable across repeated calls (shared global regex)", () => {
+      // Two eval() calls — the global `g` flag must surface BOTH. Running the
+      // same review twice must yield identical counts (a shared global RegExp
+      // must not leak lastIndex state between calls).
+      const code = 'eval("a");\neval("b");';
+      const first = reviewCode(db, { code, language: "javascript" });
+      const second = reviewCode(db, { code, language: "javascript" });
+      expect(first.securityIssues).toBeGreaterThanOrEqual(2);
+      expect(second.securityIssues).toBe(first.securityIssues);
+    });
   });
 
   describe("listReviews", () => {
