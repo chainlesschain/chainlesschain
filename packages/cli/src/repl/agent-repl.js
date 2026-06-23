@@ -1562,6 +1562,18 @@ export async function startAgentRepl(options = {}) {
         model = arg;
         _curModel = model; // keep the status-line readout in sync
         logger.info(`Model: ${chalk.cyan(model)}`);
+        // Claude-Code 2.1.183 parity: warn when the newly-selected model is a
+        // provider-retired/deprecated snapshot. Headless paths already warn via
+        // maybeWarnDeprecatedModel; the interactive /model switch did not, so a
+        // user could silently switch to a retired id and only learn of it when
+        // the next turn fails with an opaque "model not found".
+        try {
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
+          maybeWarnDeprecatedModel({ model });
+        } catch {
+          // deprecation notice is best-effort
+        }
       } else {
         logger.info(`Current model: ${chalk.cyan(model)}`);
       }

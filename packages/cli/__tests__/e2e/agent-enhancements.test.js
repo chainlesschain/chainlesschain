@@ -96,6 +96,16 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
       expect(replContent).toContain('options.model || "qwen2.5:7b"');
     });
 
+    it("warns on deprecated model when switching via /model (Claude-Code 2.1.183 parity)", () => {
+      // The interactive /model switch must surface the same provider-retired /
+      // deprecated-snapshot warning the headless paths already emit, so a user
+      // can't silently switch to a retired id mid-session. Locks the wiring in
+      // the `/model` handler (agent-repl.js) so a refactor can't drop it.
+      replContent = replContent || readFileSync(agentReplPath, "utf8");
+      expect(replContent).toContain('import("../lib/model-deprecation.js")');
+      expect(replContent).toContain("maybeWarnDeprecatedModel({ model })");
+    });
+
     it("should use IterationBudget in agent-core", () => {
       coreContent = coreContent || readFileSync(agentCorePath, "utf8");
       expect(coreContent).toContain("IterationBudget");
