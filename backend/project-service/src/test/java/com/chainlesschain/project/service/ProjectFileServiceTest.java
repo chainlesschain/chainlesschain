@@ -261,6 +261,49 @@ class ProjectFileServiceTest {
     }
 
     @Test
+    void testUpdateFile_nullVersion_treatedAsZero_andIncrements() {
+        // 模拟 DB 取回 version = NULL（project_files.version 列 schema 可空）
+        testFile.setVersion(null);
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(projectFileMapper.updateById(any(ProjectFile.class))).thenReturn(1);
+        when(projectFileMapper.selectList(any())).thenReturn(Arrays.asList(testFile));
+        when(projectMapper.selectById(testProjectId)).thenReturn(testProject);
+
+        FileUpdateRequest request = new FileUpdateRequest();
+        request.setContent("public class Test { /* updated */ }");
+
+        // 旧实现 null + 1 会拆箱 NPE；现兜底为 0 后递增到 1
+        ProjectFileDTO result = projectFileService.updateFile(testProjectId, testFileId, request);
+
+        assertNotNull(result);
+        assertEquals(1, result.getVersion()); // null -> 1
+    }
+
+    @Test
+    void testRestoreFileVersion_nullVersion_doesNotThrow() {
+        FileVersion targetVersion = new FileVersion();
+        targetVersion.setId("version-1");
+        targetVersion.setFileId(testFileId);
+        targetVersion.setProjectId(testProjectId);
+        targetVersion.setVersion(1);
+        targetVersion.setContent("public class Test { original }");
+        targetVersion.setFileSize(100L);
+
+        // 模拟 DB 取回 version = NULL
+        testFile.setVersion(null);
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.selectById("version-1")).thenReturn(targetVersion);
+        when(fileVersionMapper.insert(any(FileVersion.class))).thenReturn(1);
+        when(projectFileMapper.updateById(any(ProjectFile.class))).thenReturn(1);
+
+        // 旧实现 null + 1 会拆箱 NPE；现兜底为 0 后递增到 1
+        ProjectFileDTO result = projectFileService.restoreFileVersion(testProjectId, testFileId, "version-1");
+
+        assertNotNull(result);
+        assertEquals(1, result.getVersion()); // null -> 1
+    }
+
+    @Test
     void testDeleteFile_Success() {
         when(projectFileMapper.selectOne(any())).thenReturn(testFile);
         when(projectFileMapper.deleteById(testFileId)).thenReturn(1);

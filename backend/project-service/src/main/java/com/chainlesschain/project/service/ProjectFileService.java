@@ -180,8 +180,9 @@ public class ProjectFileService {
             file.setFileSize(fileSize);
         }
 
-        // 版本号递增
-        file.setVersion(file.getVersion() + 1);
+        // 版本号递增（version 列 schema 可空：V002 DEFAULT 1、无 NOT NULL，拆箱前兜底防 NPE）
+        Integer currentVersion = file.getVersion();
+        file.setVersion((currentVersion != null ? currentVersion : 0) + 1);
 
         projectFileMapper.updateById(file);
 
@@ -367,7 +368,9 @@ public class ProjectFileService {
         file.setContent(targetVersion.getContent());
         file.setFileSize(targetVersion.getFileSize());
         file.setContentHash(targetVersion.getContentHash());
-        file.setVersion(file.getVersion() + 1);
+        // version 列可空，拆箱前兜底防 NPE
+        Integer currentVersion = file.getVersion();
+        file.setVersion((currentVersion != null ? currentVersion : 0) + 1);
 
         projectFileMapper.updateById(file);
 
