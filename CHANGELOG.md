@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
-### Fixed — cc CLI 正确性修复三则（待随下次 CLI 发版交付）
+### Fixed — cc CLI 正确性修复四则（待随下次 CLI 发版交付）
 
 > CLI-only，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。均含回归单测。
 
+- **`cc dlp incidents` resolved 过滤**：`listIncidents` 处理了 `filter.resolved === false`（仅未解决）却漏了 `=== true` 分支 → `{resolved:true}` 静默返回全部事件而非仅已解决的（`listIncidentsV2` 本就两分支都处理）。补齐 `=== true`（按 `resolvedAt` 过滤）。当前 V1 命令只传 channel/severity，故为潜在契约缺口而非线上回归。
 - **`cc note list --tag` 与 `--limit` 组合**：此前先在 SQL 取最近 N 条再在内存按标签过滤 → `--tag X --limit N` 返回的是「最近 N 条里恰好带 X 标签的」（常远少于 N，甚至为 0），而非「最多 N 条带 X 标签的笔记」。改为带标签过滤时不下推 SQL `LIMIT`、先过滤再截断到 N（`--category` 是真实列、本就 SQL 过滤在 LIMIT 之前，标签现与其行为一致）。
 - **`cc loop` 时长解析**：`parseDuration(30)`（数字入参）此前按毫秒返回 `30`，与函数文档契约「裸数字按秒」及字符串路径（`parseDuration("30") === 30000`）自相矛盾。改为数字入参也按秒（`parseDuration(30) === parseDuration("30")`）。当前生产调用方均传字符串，故为潜在不一致而非线上回归。
 - **`cc cost` 价格覆盖**：`mergePricing` 此前把用户 `llm.pricing` 覆盖项写在配置原始大小写的 provider 键下，而 `lookupRate` 始终按小写查表、内置表键也是小写 → 形如 `{"Anthropic": [...]}` 的混合大小写覆盖落到不可达键被静默忽略。改为归一化 provider 键为小写，使覆盖正确合并并替换内置费率。
