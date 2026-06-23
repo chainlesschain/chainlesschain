@@ -71,6 +71,24 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+/**
+ * A goal id must be a single safe path segment. Goal ids are generated as
+ * `goal-<ts>-<rand>`, but ids also arrive from CLI args (`cc goal show/rm <id>`,
+ * `cc agent --goal <id>`), so an id like `../../etc/x` would otherwise let
+ * goalFile() read/delete/write a .json file outside the goals dir. Reject any
+ * separator or `..` (matches FileUploadService.isUnsafeSegment).
+ */
+function isUnsafeGoalId(id) {
+  return (
+    id == null ||
+    id === "" ||
+    typeof id !== "string" ||
+    id.includes("/") ||
+    id.includes("\\") ||
+    id.includes("..")
+  );
+}
+
 function goalFile(root, id) {
   return path.join(root, `${id}.json`);
 }
@@ -146,6 +164,7 @@ function normalizeKr(kr) {
 
 /** Load a goal by id, or null. */
 export function getGoal(id, opts = {}) {
+  if (isUnsafeGoalId(id)) return null; // traversal id → treat as not found
   const root = opts.root || defaultRoot();
   const file = goalFile(root, id);
   if (!fs.existsSync(file)) return null;
@@ -157,6 +176,9 @@ export function getGoal(id, opts = {}) {
 }
 
 function saveGoal(goal, opts = {}) {
+  if (isUnsafeGoalId(goal && goal.id)) {
+    throw new Error(`非法 goal id: ${String(goal && goal.id).slice(0, 60)}`);
+  }
   const root = opts.root || defaultRoot();
   ensureDir(root);
   goal.updatedAt = nowIso();
@@ -331,6 +353,7 @@ export function addDriftFlags(id, flags, opts = {}) {
 
 /** Delete a goal. Returns true if it existed. */
 export function deleteGoal(id, opts = {}) {
+  if (isUnsafeGoalId(id)) return false; // traversal id → nothing to delete
   const root = opts.root || defaultRoot();
   const file = goalFile(root, id);
   if (!fs.existsSync(file)) return false;

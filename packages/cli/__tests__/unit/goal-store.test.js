@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, readdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  existsSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -175,6 +181,41 @@ describe("goal-store", () => {
     it("returns null when no goals exist", () => {
       expect(existsSync(root)).toBe(true);
       expect(resolveActiveGoal({}, o())).toBeNull();
+    });
+  });
+
+  describe("path-traversal safety", () => {
+    it("rejects a traversal goal id without reading/deleting outside the root", () => {
+      // A .json file OUTSIDE the goals root that a crafted id could target.
+      const victim = join(root, "..", `victim-${Date.now()}.json`);
+      writeFileSync(victim, JSON.stringify({ secret: 1 }), "utf-8");
+      try {
+        const travId = `../${victim
+          .split(/[/\\]/)
+          .pop()
+          .replace(/\.json$/, "")}`; // goalFile appends .json
+        expect(getGoal(travId, o())).toBeNull();
+        expect(deleteGoal(travId, o())).toBe(false);
+        expect(existsSync(victim)).toBe(true); // not deleted
+      } finally {
+        rmSync(victim, { force: true });
+      }
+    });
+
+    it("treats separators / empty / null ids as not-found", () => {
+      for (const bad of ["a/b", "a\\b", "..", "", null, undefined]) {
+        expect(getGoal(bad, o())).toBeNull();
+        expect(deleteGoal(bad, o())).toBe(false);
+      }
+    });
+
+    it("listGoals tolerates an oddly-named .json file in the dir", () => {
+      // A file whose stem normalizes to ".." must be skipped, not throw.
+      writeFileSync(join(root, "...json"), "{}", "utf-8");
+      createGoal({ objective: "real" }, o());
+      const goals = listGoals(o());
+      expect(goals.length).toBe(1);
+      expect(goals[0].objective).toBe("real");
     });
   });
 });
