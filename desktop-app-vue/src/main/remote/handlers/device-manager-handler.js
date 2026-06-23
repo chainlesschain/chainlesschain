@@ -783,21 +783,23 @@ class DeviceManagerHandler extends EventEmitter {
       if (device.peer_id) {
         // 使用 P2P Manager 连接到 Peer
         if (typeof this.p2pManager.connectToPeer === 'function') {
+          let timeoutId;
           connected = await Promise.race([
             this.p2pManager.connectToPeer(device.peer_id, device.multiaddr),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Connection timeout')), timeout)
-            ),
-          ]);
+            new Promise((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Connection timeout')), timeout);
+            }),
+          ]).finally(() => clearTimeout(timeoutId));
         } else if (typeof this.p2pManager.dial === 'function') {
           // 兼容 libp2p dial 方法
           const multiaddr = device.multiaddr || `/p2p/${device.peer_id}`;
+          let timeoutId;
           await Promise.race([
             this.p2pManager.dial(multiaddr),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Connection timeout')), timeout)
-            ),
-          ]);
+            new Promise((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Connection timeout')), timeout);
+            }),
+          ]).finally(() => clearTimeout(timeoutId));
           connected = true;
         }
       }

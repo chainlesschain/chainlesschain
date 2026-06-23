@@ -111,17 +111,25 @@ class RPCManager extends EventEmitter {
   async measureLatency(provider) {
     const start = Date.now();
 
+    let timeoutId;
     try {
       await Promise.race([
         provider.getBlockNumber(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("超时")), this.healthCheckTimeout),
-        ),
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("超时")),
+            this.healthCheckTimeout,
+          );
+        }),
       ]);
 
       return Date.now() - start;
     } catch (error) {
       return Infinity;
+    } finally {
+      // getBlockNumber 先返回时，超时定时器仍会挂在事件循环上直到触发；
+      // 健康检查会周期性调用本函数，不清除会持续泄漏定时器。
+      clearTimeout(timeoutId);
     }
   }
 

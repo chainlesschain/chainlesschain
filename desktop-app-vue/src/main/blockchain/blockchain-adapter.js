@@ -77,15 +77,19 @@ class BlockchainAdapter extends EventEmitter {
               continue;
             }
 
+            let timeoutId;
             try {
               provider = new ethers.JsonRpcProvider(rpcUrl);
 
               // 验证连接（添加超时）
               await Promise.race([
                 provider.getNetwork(),
-                new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error("连接超时")), 5000),
-                ),
+                new Promise((_, reject) => {
+                  timeoutId = setTimeout(
+                    () => reject(new Error("连接超时")),
+                    5000,
+                  );
+                }),
               ]);
 
               // 连接成功
@@ -101,6 +105,9 @@ class BlockchainAdapter extends EventEmitter {
               );
               // 尝试下一个RPC URL
               continue;
+            } finally {
+              // 连接成功（getNetwork 先返回）时清除超时定时器，避免泄漏
+              clearTimeout(timeoutId);
             }
           }
 
