@@ -11,7 +11,7 @@ vi.mock("@/utils/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-import tracker from "@/utils/performance-tracker";
+import tracker, { percentile } from "@/utils/performance-tracker";
 
 let nowSpy: any;
 beforeEach(() => {
@@ -19,6 +19,32 @@ beforeEach(() => {
   nowSpy = vi.spyOn(performance, "now").mockReturnValue(1000);
 });
 afterEach(() => nowSpy.mockRestore());
+
+describe("percentile — nearest-rank", () => {
+  // 1..100 ascending; value === rank, so the asserted value IS the k-th smallest.
+  const hundred = Array.from({ length: 100 }, (_, i) => i + 1);
+
+  it("P99 over 100 samples is the 99th smallest, NOT the maximum", () => {
+    // Old `sorted[Math.floor(100 * 0.99)]` returned sorted[99] === 100 (the max).
+    expect(percentile(hundred, 0.99)).toBe(99);
+    expect(percentile(hundred, 0.95)).toBe(95);
+    expect(percentile(hundred, 0.5)).toBe(50);
+  });
+
+  it("clamps fraction extremes and never reads past the end", () => {
+    expect(percentile(hundred, 1)).toBe(100); // P100 = max, no out-of-bounds
+    expect(percentile(hundred, 0)).toBe(1); // P0 = min
+  });
+
+  it("empty array returns 0; single element returns that element", () => {
+    expect(percentile([], 0.95)).toBe(0);
+    expect(percentile([42], 0.99)).toBe(42);
+  });
+
+  it("matches the existing p50 expectation for a 3-element set", () => {
+    expect(percentile([100, 200, 500], 0.5)).toBe(200); // ceil(0.5*3)=2 -> index 1
+  });
+});
 
 describe("performance-tracker — file operations", () => {
   it("records durations and computes stats", () => {

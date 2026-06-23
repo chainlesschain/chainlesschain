@@ -134,6 +134,26 @@ export type PerformanceEventListener = (
  */
 export type MeasurableFunction<T> = () => T | Promise<T>;
 
+// ==================== 工具函数 ====================
+
+/**
+ * 最近秩（nearest-rank）百分位数 — 用于升序排序后的数组。
+ *
+ * @param sorted   升序排序的数值数组
+ * @param fraction 百分位分数，取值 [0, 1]（如 0.95 表示 P95）
+ * @returns 对应百分位的值；空数组返回 0
+ *
+ * 修正了旧实现 `sorted[Math.floor(sorted.length * fraction)]` 的偏差：
+ * 例如 100 个样本时旧式 P99 = `sorted[99]`（即最大值），实际应为第 99 小的值。
+ * 索引会被 clamp 到 [0, length-1]，fraction=1 也不会越界。
+ */
+export function percentile(sorted: number[], fraction: number): number {
+  if (sorted.length === 0) return 0;
+  const rank = Math.ceil(fraction * sorted.length);
+  const index = Math.min(sorted.length - 1, Math.max(0, rank - 1));
+  return sorted[index];
+}
+
 // ==================== 类实现 ====================
 
 /**
@@ -333,9 +353,9 @@ class PerformanceTracker {
       avgTime: Math.round(sum / times.length),
       minTime: times[0],
       maxTime: times[times.length - 1],
-      p50: times[Math.floor(times.length * 0.5)],
-      p95: times[Math.floor(times.length * 0.95)],
-      p99: times[Math.floor(times.length * 0.99)],
+      p50: percentile(times, 0.5),
+      p95: percentile(times, 0.95),
+      p99: percentile(times, 0.99),
     };
   }
 
@@ -370,9 +390,9 @@ class PerformanceTracker {
       avgTime: Math.round(sum / times.length),
       minTime: times[0],
       maxTime: times[times.length - 1],
-      p50: times[Math.floor(times.length * 0.5)],
-      p95: times[Math.floor(times.length * 0.95)],
-      p99: times[Math.floor(times.length * 0.99)],
+      p50: percentile(times, 0.5),
+      p95: percentile(times, 0.95),
+      p99: percentile(times, 0.99),
       totalTokens,
     };
   }
