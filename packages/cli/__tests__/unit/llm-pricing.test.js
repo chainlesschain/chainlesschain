@@ -231,6 +231,23 @@ describe("llm-pricing — mergePricing (config overrides)", () => {
     expect(lookupRate("openai", "gpt-4o", table).pattern).toBe("gpt-4o");
   });
 
+  it("normalizes a mixed-case provider key so the override applies", () => {
+    // lookupRate lowercases the provider; an override under "Anthropic"
+    // must merge into the lowercase "anthropic" table, not a dead key.
+    const table = mergePricing({
+      Anthropic: [{ match: "claude-opus", in: 4, out: 20 }],
+    });
+    expect(lookupRate("anthropic", "claude-opus-4", table)).toMatchObject({
+      in: 4,
+      out: 20,
+    });
+    // and the original built-in table is untouched
+    expect(lookupRate("anthropic", "claude-opus-4")).not.toMatchObject({
+      in: 4,
+      out: 20,
+    });
+  });
+
   it("a user entry replaces a built-in pattern of the same match", () => {
     const before = lookupRate("openai", "gpt-4o");
     expect(before).toMatchObject({ in: 2.5, out: 10 });

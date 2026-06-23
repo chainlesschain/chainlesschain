@@ -113,6 +113,10 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
 
   for (const [provider, rawEntries] of Object.entries(overrides)) {
     if (!Array.isArray(rawEntries)) continue;
+    // lookupRate() always lowercases the provider, and built-in keys are
+    // lowercase, so an override under a mixed-case key (e.g. "Anthropic")
+    // would land on an unreachable key and be silently ignored. Normalize.
+    const providerKey = String(provider).toLowerCase();
     const valid = rawEntries
       .filter(
         (e) =>
@@ -129,10 +133,10 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
       }));
     if (valid.length === 0) continue;
     const overridden = new Set(valid.map((v) => v.match));
-    const kept = (merged[provider] || []).filter(
+    const kept = (merged[providerKey] || []).filter(
       (e) => !overridden.has(e.match.toLowerCase()),
     );
-    merged[provider] = [...valid, ...kept];
+    merged[providerKey] = [...valid, ...kept];
   }
   return merged;
 }
