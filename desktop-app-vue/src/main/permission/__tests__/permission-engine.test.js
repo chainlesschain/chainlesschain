@@ -181,7 +181,7 @@ describe("PermissionEngine", () => {
       };
 
       await expect(engine.grantPermission(params)).rejects.toThrow(
-        "Database connection failed"
+        "Database connection failed",
       );
     });
 
@@ -292,8 +292,12 @@ describe("PermissionEngine", () => {
   describe("checkPermission", () => {
     it("should return cached result if available", async () => {
       const cacheKey = "user-123:org-1:document:doc-456:read";
+      // _setCache stores the bare boolean (see checkPermission: _setCache(key,
+      // hasPermission)); the cache-hit path wraps it into { success,
+      // hasPermission }. Seed the boolean the code actually caches — seeding a
+      // full result object here caused a double-wrap on the hit path.
       engine.permissionCache.set(cacheKey, {
-        value: { success: true, hasPermission: true },
+        value: true,
         timestamp: Date.now(),
       });
 
@@ -451,7 +455,7 @@ describe("PermissionEngine", () => {
       const result = await engine.getResourcePermissions(
         "org-1",
         "document",
-        "doc-123"
+        "doc-123",
       );
 
       expect(result.success).toBe(true);
@@ -521,7 +525,7 @@ describe("PermissionEngine", () => {
         "user-123",
         "org-1",
         "document",
-        "doc-1"
+        "doc-1",
       );
 
       expect(result.success).toBe(true);
