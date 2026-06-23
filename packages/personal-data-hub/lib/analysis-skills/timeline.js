@@ -29,6 +29,53 @@
 
 const { AnalysisSkill } = require("./base");
 
+/**
+ * Render a human-readable line from message content that may be raw markup.
+ * WeChat link/app/system messages store an XML blob (`<msg><appmsg><title>…`)
+ * in content.title/text — dumping it verbatim made the timeline read as XML
+ * soup. Extract the inner <title>/<des> when present, otherwise strip tags;
+ * decode the few entities that show up, collapse whitespace, and cap length.
+ */
+function cleanDisplayText(raw, max = 120) {
+  if (typeof raw !== "string") return "";
+  let s = raw.trim();
+  if (!s) return "";
+  if (s.startsWith("<?xml") || /<\s*(msg|appmsg|sysmsg|sysmessage)\b/i.test(s)) {
+    const title = s.match(/<title>([\s\S]*?)<\/title>/i);
+    const des = s.match(/<des>([\s\S]*?)<\/des>/i);
+    const picked = [title && title[1], des && des[1]]
+      .map((x) => (x || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim())
+      .filter(Boolean)
+      .join(" — ")
+      .trim();
+    if (picked) s = picked;
+  }
+  s = s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1") // closed CDATA
+    .replace(/<!\[CDATA\[/g, "") // orphan open (source truncated the close)
+    .replace(/\]\]>/g, "") // orphan close
+    .replace(/<[^>]+>/g, " ") // any remaining tags
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, h) => safeCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_m, d) => safeCodePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, "&") // decode amp last so we don't double-decode
+    .replace(/\s+/g, " ")
+    .trim();
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+function safeCodePoint(n) {
+  try {
+    return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "";
+  } catch (_e) {
+    return "";
+  }
+}
+
 class TimelineSkill extends AnalysisSkill {
   constructor(opts) {
     super({ ...opts, name: "analysis.timeline" });
@@ -107,10 +154,12 @@ class TimelineSkill extends AnalysisSkill {
 
   _toEntry(event) {
     const adapter = (event.source && event.source.adapter) || "unknown";
+    const rawTitle = (event.content && event.content.title) || "";
+    const cleanTitle = cleanDisplayText(rawTitle);
     return {
       id: event.id,
       occurredAt: event.occurredAt,
-      title: (event.content && event.content.title) || "(无标题)",
+      title: cleanTitle || "(无标题)",
       kind: event.subtype || "event",
       amount: event.content?.amount || null,
       adapter,
@@ -120,8 +169,8 @@ class TimelineSkill extends AnalysisSkill {
 
   _buildSnippet(event) {
     const parts = [];
-    const text = (event.content && event.content.text) || "";
-    if (text) parts.push(text.slice(0, 100));
+    const text = cleanDisplayText((event.content && event.content.text) || "", 100);
+    if (text) parts.push(text);
     if (event.extra) {
       if (event.extra.counterparty) parts.push(`@${event.extra.counterparty}`);
       if (event.extra.from && event.extra.to) parts.push(`${event.extra.from} → ${event.extra.to}`);

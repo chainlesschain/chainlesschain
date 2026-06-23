@@ -619,6 +619,24 @@ describe("TimelineSkill", () => {
     expect(r.entries[0].title).toBe("美团外卖订单");
   });
 
+  it("cleans raw WeChat appmsg XML titles into readable text", async () => {
+    rig.vault.putEvent({
+      id: "tl-xml", type: "event", subtype: "message",
+      occurredAt: ts(2026, 5, 3), actor: "person-self",
+      content: {
+        title: '<?xml version="1.0"?>\n<msg>\n  <appmsg appid="" sdkver="0">\n    <title><![CDATA[千问&#x20;Qwen-Robot 系列正式亮相]]></title>\n    <des>三款核心能力一口气全放出</des>\n  </appmsg>\n</msg>',
+        text: "<msg><appmsg><title>千问 Qwen-Robot 系列正式亮相</title></appmsg></msg>",
+      },
+      ingestedAt: Date.now(), source: defaultSource("wechat"),
+    });
+    const r = await new TimelineSkill({ vault: rig.vault }).run({ since: ts(2026, 4, 1) });
+    const e = r.entries.find((x) => x.id === "tl-xml");
+    expect(e).toBeTruthy();
+    expect(e.title).toBe("千问 Qwen-Robot 系列正式亮相 — 三款核心能力一口气全放出"); // <title>+<des>, CDATA stripped, &#x20; decoded
+    expect(e.title).not.toMatch(/<|CDATA|&#/); // no markup/entities leak
+    expect(e.snippet).not.toMatch(/<msg>|<appmsg>/);
+  });
+
   it("LLM narrative fires when entries exist + LLM provided", async () => {
     makePayment(rig.vault, { id: "tl-1", occurredAt: ts(2026, 5, 1), counterpartyName: "美团", amount: 38, title: "外卖" });
     const llm = { isLocal: true, chat: async () => ({ text: "你这周点了一次外卖。" }) };
