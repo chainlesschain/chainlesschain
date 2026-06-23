@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.32"
+version = "0.4.33"
 
 repositories {
     mavenCentral()

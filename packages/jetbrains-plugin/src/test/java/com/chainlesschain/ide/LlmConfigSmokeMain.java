@@ -57,6 +57,24 @@ public final class LlmConfigSmokeMain {
         check("undefined → null", LlmConfig.parseConfigGet("undefined") == null);
         check("empty → null", LlmConfig.parseConfigGet("  ") == null);
 
+        // file-first detection parser (robust to a broken cc post-update) —
+        // read llm.<field> straight from config.json text.
+        String cfg = "{\"llm\":{\"provider\":\"volcengine\",\"model\":\"doubao-x\","
+                + "\"baseUrl\":\"https://ark.example/v1?a=b&c=d\",\"apiKey\":\"sk-secret\"}}";
+        boolean[] present = new boolean[1];
+        check("file provider", "volcengine".equals(LlmConfig.llmFieldFromConfigJson(cfg, "provider", present)));
+        check("file llm present flag", present[0]);
+        check("file baseUrl with = intact",
+                "https://ark.example/v1?a=b&c=d".equals(LlmConfig.llmFieldFromConfigJson(cfg, "baseUrl", null)));
+        check("file apiKey present", LlmConfig.llmFieldFromConfigJson(cfg, "apiKey", null) != null);
+        check("file unset field → null", LlmConfig.llmFieldFromConfigJson(cfg, "visionModel", null) == null);
+        boolean[] p2 = new boolean[1];
+        check("no-llm-block → null + not present",
+                LlmConfig.llmFieldFromConfigJson("{\"other\":1}", "provider", p2) == null && !p2[0]);
+        check("corrupt json → null", LlmConfig.llmFieldFromConfigJson("{ not json", "provider", null) == null);
+        check("cleanConfigValue trims/maps", LlmConfig.cleanConfigValue(" x ").equals("x")
+                && LlmConfig.cleanConfigValue("undefined") == null && LlmConfig.cleanConfigValue(null) == null);
+
         // REAL spawn round-trip (needs cc on PATH — true on dev/CI boxes)
         LlmConfig.CliResult r = LlmConfig.runCli(java.util.Arrays.asList("--version"));
         check("real cc --version runs", r.ok && r.output.trim().matches("\\d+\\.\\d+\\.\\d+.*"));

@@ -705,7 +705,13 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("getConfiguredVisionModel parses output and maps unset to null", async () => {
+    // No config.json (readFileSync throws) → detection falls back to `cc config
+    // get`, exercising the CLI-output parsing these cases assert.
     const mk = (out, err) => ({
+      homedir: () => "/no/home",
+      readFileSync: () => {
+        throw new Error("ENOENT: no config file");
+      },
       execFile: (c, a, o, cb) => cb(err || null, out || ""),
     });
     expect(
@@ -724,7 +730,13 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("getConfiguredModel/getConfiguredBaseUrl parse output and map unset to null (wizard pre-fill)", async () => {
+    // No config.json (readFileSync throws) → detection falls back to `cc config
+    // get`, exercising the CLI-output parsing these cases assert.
     const mk = (out, err) => ({
+      homedir: () => "/no/home",
+      readFileSync: () => {
+        throw new Error("ENOENT: no config file");
+      },
       execFile: (c, a, o, cb) => cb(err || null, out || ""),
     });
     expect(
@@ -742,7 +754,13 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("hasConfiguredApiKey: true when a key is stored, false when unset / cli missing", async () => {
+    // No config.json (readFileSync throws) → detection falls back to `cc config
+    // get`, exercising the CLI-output parsing these cases assert.
     const mk = (out, err) => ({
+      homedir: () => "/no/home",
+      readFileSync: () => {
+        throw new Error("ENOENT: no config file");
+      },
       execFile: (c, a, o, cb) => cb(err || null, out || ""),
     });
     // present (value never surfaced — only presence matters)
@@ -798,7 +816,13 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("getConfiguredProvider parses both output styles and maps unset to null", async () => {
+    // No config.json (readFileSync throws) → detection falls back to `cc config
+    // get`, exercising the CLI-output parsing these cases assert.
     const mk = (out, err) => ({
+      homedir: () => "/no/home",
+      readFileSync: () => {
+        throw new Error("ENOENT: no config file");
+      },
       execFile: (c, a, o, cb) => cb(err || null, out || ""),
     });
     expect(

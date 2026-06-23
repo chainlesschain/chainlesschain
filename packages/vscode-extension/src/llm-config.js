@@ -7,6 +7,43 @@
  * Pure Node (no `vscode`); `deps.execFile` injectable for tests.
  */
 const { execFile } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+/**
+ * Read the `llm` block straight from ~/.chainlesschain/config.json — the SAME
+ * file `cc config set` writes (CONFIG_DIR_NAME=".chainlesschain"; paths.js
+ * getConfigPath has NO env override, so this is authoritative).
+ *
+ * WHY a direct file read instead of `cc config get`: detection must not depend
+ * on the `cc` binary being runnable. Right after `npm i -g chainlesschain`,
+ * `cc` is frequently mid-rebuild (native module ABI / EBUSY lock / PATH shim),
+ * so `cc config get` exits non-zero. The old code treated that failure as
+ * "LLM unconfigured" → the panel demanded a full re-setup after EVERY update
+ * even though config.json was intact. That is the recurring "更新npm后又要重新
+ * 配置LLM" bug. Reading the file makes detection independent of cc's health.
+ *
+ * Returns the llm object, or null when the file is missing/corrupt/has no llm.
+ */
+function readLlmConfigFromFile(deps) {
+  const readFileSync = deps?.readFileSync || fs.readFileSync;
+  const homedir = deps?.homedir || os.homedir;
+  try {
+    const file = path.join(homedir(), ".chainlesschain", "config.json");
+    const cfg = JSON.parse(readFileSync(file, "utf8"));
+    return cfg && typeof cfg.llm === "object" && cfg.llm ? cfg.llm : null;
+  } catch (_e) {
+    return null; // missing / unreadable / invalid JSON → defer to CLI fallback
+  }
+}
+
+/** Normalize a config value → non-empty trimmed string, or null. */
+function cleanConfigValue(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s && !/^(undefined|null)$/i.test(s) ? s : null;
+}
 
 /** Curated provider presets (ids must match the CLI's BUILT_IN_PROVIDERS). */
 const PROVIDER_PRESETS = [
@@ -100,51 +137,50 @@ function runCli(command, args, deps) {
   });
 }
 
-/** Currently configured provider (null when unset / CLI missing). */
-async function getConfiguredProvider({ command = "cc", deps } = {}) {
-  const r = await runCli(command, ["config", "get", "llm.provider"], deps);
+/**
+ * Read one `llm.<field>` for detection: the config FILE is the source of truth
+ * (robust to a transiently-broken `cc` post-update); only when the file is
+ * unreadable do we fall back to `cc config get`.
+ */
+async function readLlmField(field, { command = "cc", deps } = {}) {
+  const llm = readLlmConfigFromFile(deps);
+  if (llm) return cleanConfigValue(llm[field]); // file present → authoritative
+  // File missing/corrupt → ask the CLI (legacy / relocated config).
+  const r = await runCli(command, ["config", "get", `llm.${field}`], deps);
   if (!r.ok) return null;
-  // `cc config get` prints `llm.provider = volcengine` or the bare value;
-  // tolerate both, and treat undefined/null/empty as unconfigured.
-  const raw = r.stdout.trim().split("=").pop().trim();
-  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+  // `cc config get` prints `llm.<field> = value` or the bare value.
+  return cleanConfigValue(r.stdout.trim().split("=").pop());
 }
 
-/** Currently configured vision model (null when unset / CLI missing). */
-async function getConfiguredVisionModel({ command = "cc", deps } = {}) {
-  const r = await runCli(command, ["config", "get", "llm.visionModel"], deps);
-  if (!r.ok) return null;
-  const raw = r.stdout.trim().split("=").pop().trim();
-  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+/** Currently configured provider (null when genuinely unset). */
+async function getConfiguredProvider(opts = {}) {
+  return readLlmField("provider", opts);
 }
 
-/** Currently configured text model (null when unset / CLI missing). */
-async function getConfiguredModel({ command = "cc", deps } = {}) {
-  const r = await runCli(command, ["config", "get", "llm.model"], deps);
-  if (!r.ok) return null;
-  const raw = r.stdout.trim().split("=").pop().trim();
-  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+/** Currently configured vision model (null when unset). */
+async function getConfiguredVisionModel(opts = {}) {
+  return readLlmField("visionModel", opts);
 }
 
-/** Currently configured base URL (null when unset / CLI missing). */
-async function getConfiguredBaseUrl({ command = "cc", deps } = {}) {
-  const r = await runCli(command, ["config", "get", "llm.baseUrl"], deps);
-  if (!r.ok) return null;
-  const raw = r.stdout.trim().split("=").pop().trim();
-  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+/** Currently configured text model (null when unset). */
+async function getConfiguredModel(opts = {}) {
+  return readLlmField("model", opts);
+}
+
+/** Currently configured base URL (null when unset). */
+async function getConfiguredBaseUrl(opts = {}) {
+  return readLlmField("baseUrl", opts);
 }
 
 /**
  * True when an API key is already stored. Lets the wizard offer "leave blank to
  * keep the existing key" instead of forcing the user to re-type it on every
  * reconfigure (the #1 reported pain: "更新后又要重新配置模型和key"). The key
- * value itself is never surfaced to the UI — only its presence.
+ * value itself is never surfaced to the UI — only its presence. File-first so a
+ * post-update `cc` crash never makes the panel think the key vanished.
  */
-async function hasConfiguredApiKey({ command = "cc", deps } = {}) {
-  const r = await runCli(command, ["config", "get", "llm.apiKey"], deps);
-  if (!r.ok) return false;
-  const raw = r.stdout.trim().split("=").pop().trim();
-  return !!raw && !/^(undefined|null)$/i.test(raw);
+async function hasConfiguredApiKey(opts = {}) {
+  return !!(await readLlmField("apiKey", opts));
 }
 
 /**
@@ -188,6 +224,7 @@ module.exports = {
   buildConfigSetArgs,
   suggestVisionModel,
   looksLikeLlmConfigError,
+  readLlmConfigFromFile,
   getConfiguredProvider,
   getConfiguredVisionModel,
   getConfiguredModel,

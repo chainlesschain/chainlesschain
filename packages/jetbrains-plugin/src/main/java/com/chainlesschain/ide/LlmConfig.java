@@ -13,11 +13,12 @@ import java.util.regex.Pattern;
 
 /**
  * Guided LLM configuration — the plugin is only a thin wizard: all
- * reads/writes/tests go through the CLI ({@code cc config get/set},
- * {@code cc llm test}), so there is exactly one source of truth
- * (~/.chainlesschain/config.json, shared with the CLI and the VS Code
- * extension) and zero home-dir resolution here. Pure JDK (Java 8) — part of
- * the SDK-free protocol core, locally compilable and testable.
+ * writes/tests go through the CLI ({@code cc config set}, {@code cc llm test}),
+ * so there is exactly one source of truth (~/.chainlesschain/config.json,
+ * shared with the CLI and the VS Code extension). DETECTION reads that file
+ * directly (file-first, CLI fallback) so it stays correct when {@code cc} is
+ * transiently broken right after an update. Pure JDK (Java 8) — part of the
+ * SDK-free protocol core, locally compilable and testable.
  */
 public final class LlmConfig {
     private LlmConfig() {}
@@ -134,32 +135,81 @@ public final class LlmConfig {
         }
     }
 
-    /** Currently configured provider, or null when unset / CLI missing. */
-    public static String getConfiguredProvider() {
-        CliResult r = runCli(args("config", "get", "llm.provider"));
+    /**
+     * Extract {@code llm.<field>} from raw config.json text. Pure + testable.
+     * Returns the trimmed value, or null when the json is invalid / has no llm
+     * block / the field is unset. The {@code llmPresent} 1-element flag (when
+     * non-null) is set to true iff a usable {@code llm} object was found — lets
+     * the caller distinguish "field unset" (authoritative) from "no llm block"
+     * (defer to the CLI for configs that predate the llm section).
+     */
+    static String llmFieldFromConfigJson(String json, String field, boolean[] llmPresent) {
+        try {
+            Map<String, Object> cfg = MiniJson.parseObject(json);
+            Object llm = cfg == null ? null : cfg.get("llm");
+            if (!(llm instanceof Map)) return null;
+            if (llmPresent != null && llmPresent.length > 0) llmPresent[0] = true;
+            return cleanConfigValue(((Map<?, ?>) llm).get(field));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Normalize a config value → non-empty trimmed string, or null. */
+    static String cleanConfigValue(Object v) {
+        if (v == null) return null;
+        String s = String.valueOf(v).trim();
+        if (s.isEmpty() || s.equalsIgnoreCase("undefined") || s.equalsIgnoreCase("null")) return null;
+        return s;
+    }
+
+    /**
+     * Read one {@code llm.<field>} for detection. The config FILE
+     * (~/.chainlesschain/config.json — the same file {@code cc config set}
+     * writes) is the source of truth, so detection does NOT depend on the
+     * {@code cc} binary being runnable. Right after a CLI update (npm global
+     * install), {@code cc} is frequently mid-rebuild and {@code cc config get}
+     * exits non-zero; the old code read that as "LLM unconfigured" and forced a
+     * full re-setup every update even though config.json was intact (the
+     * recurring "更新后又要重新配置LLM" bug). Falls back to {@code cc config
+     * get} only when the file is missing / unreadable / has no llm block.
+     */
+    private static String readLlmField(String field) {
+        try {
+            java.nio.file.Path f = Paths.get(System.getProperty("user.home", ""),
+                    ".chainlesschain", "config.json");
+            if (Files.isRegularFile(f)) {
+                String raw = new String(Files.readAllBytes(f), StandardCharsets.UTF_8);
+                boolean[] present = new boolean[1];
+                String v = llmFieldFromConfigJson(raw, field, present);
+                if (present[0]) return v; // file authoritative (v may be null = unset)
+            }
+        } catch (Exception ignore) {
+            // fall through to CLI
+        }
+        CliResult r = runCli(args("config", "get", "llm." + field));
         if (!r.ok) return null;
         return parseConfigGet(r.output);
+    }
+
+    /** Currently configured provider, or null when genuinely unset. */
+    public static String getConfiguredProvider() {
+        return readLlmField("provider");
     }
 
     /** Currently configured vision (image-recognition) model, or null when unset. */
     public static String getConfiguredVisionModel() {
-        CliResult r = runCli(args("config", "get", "llm.visionModel"));
-        if (!r.ok) return null;
-        return parseConfigGet(r.output);
+        return readLlmField("visionModel");
     }
 
-    /** Currently configured text model, or null when unset / CLI missing. */
+    /** Currently configured text model, or null when unset. */
     public static String getConfiguredModel() {
-        CliResult r = runCli(args("config", "get", "llm.model"));
-        if (!r.ok) return null;
-        return parseConfigGet(r.output);
+        return readLlmField("model");
     }
 
-    /** Currently configured base URL, or null when unset / CLI missing. */
+    /** Currently configured base URL, or null when unset. */
     public static String getConfiguredBaseUrl() {
-        CliResult r = runCli(args("config", "get", "llm.baseUrl"));
-        if (!r.ok) return null;
-        return parseConfigGet(r.output);
+        return readLlmField("baseUrl");
     }
 
     /**
@@ -167,11 +217,11 @@ public final class LlmConfig {
      * key blank to keep the existing one" instead of forcing a re-type on every
      * reconfigure ("更新后又要重新配置模型和key"). The key value is never read
      * into the UI — only its presence — so "blank = keep" stays secure.
+     * File-first so a post-update {@code cc} crash never makes the panel think
+     * the key vanished.
      */
     public static boolean hasConfiguredApiKey() {
-        CliResult r = runCli(args("config", "get", "llm.apiKey"));
-        if (!r.ok) return false;
-        return parseConfigGet(r.output) != null;
+        return readLlmField("apiKey") != null;
     }
 
     /**
