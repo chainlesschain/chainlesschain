@@ -215,7 +215,14 @@ class DIDCache extends EventEmitter {
       const now = Date.now();
       const expiresAt = now + this.config.ttl;
 
-      // 检查缓存大小，执行LRU淘汰
+      // 若 key 已存在，先删除：①更新已有项不应触发淘汰（容量不增长）；
+      // ②重新插入会移到 MRU 末尾（Map.set 对已存在 key 不改插入顺序，否则
+      // 刚更新的项可能仍处于 LRU 端、下一次新增时被立即淘汰）。
+      if (this.cache.has(did)) {
+        this.cache.delete(did);
+      }
+
+      // 仅在【新增】key 且达到容量上限时执行 LRU 淘汰
       if (this.cache.size >= this.config.maxSize) {
         const firstKey = this.cache.keys().next().value;
         this.cache.delete(firstKey);
