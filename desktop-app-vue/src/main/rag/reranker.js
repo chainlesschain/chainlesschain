@@ -222,11 +222,14 @@ ${docList}
       };
 
       // 调用远程API
+      // 注意：全局 fetch（undici）不认 `timeout` 选项，只认 `signal`。原来的
+      // `timeout: 10000` 是无效项 —— 远程 rerank 服务挂起时本调用会永久阻塞、拖住
+      // 整个 RAG 检索。用 AbortSignal.timeout 才真正 10s 超时（超时→catch→关键词回退）。
       const response = await fetch(crossEncoderUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
-        timeout: 10000, // 10秒超时
+        signal: AbortSignal.timeout(10000), // 10秒超时（真正生效）
       });
 
       if (response.ok) {
