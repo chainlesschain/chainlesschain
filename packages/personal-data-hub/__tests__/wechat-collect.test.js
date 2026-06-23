@@ -80,3 +80,61 @@ test("parseEvents: named persons + canonical self + named topics + titles", () =
   // group sender prefix stripped → the real sender is a named person
   assert.equal(ge.actor, "person-wechat-wxid_friend");
 });
+
+// ─── parseSnsEvents (朋友圈 / SnsMicroMsg.db) ───────────────────────────────
+const { parseSnsEvents } = require("../lib/forensics/wechat-collect.js");
+
+// protobuf length-delimited field (field<=15 → 1-byte tag; len<=127 → 1 byte)
+function vint(n) { const o = []; while (n > 0x7f) { o.push((n & 0x7f) | 0x80); n >>>= 7; } o.push(n); return Buffer.from(o); }
+function pbStr(field, s) { const b = Buffer.isBuffer(s) ? s : Buffer.from(s, "utf8"); return Buffer.concat([Buffer.from([(field << 3) | 2]), vint(b.length), b]); }
+function fakeSnsDb(rows) {
+  return function FakeSnsDatabase() {
+    return { prepare: (sql) => ({ all: () => (/SnsInfo/.test(sql) ? rows : []) }), close() {} };
+  };
+}
+
+test("parseSnsEvents: SnsInfo → EVENT(post) with text, poster, media, self mapping", () => {
+  // TimelineObject content: field1=id, field2=username, field5=contentDesc, +qpic url
+  const content = Buffer.concat([
+    pbStr(1, "14946867540290515609"),
+    pbStr(2, "wxid_friend"),
+    pbStr(5, "下班啦！"),
+    pbStr(9, "x http://shmmsns.qpic.cn/mmsns/abcDEF123/0 y"),
+  ]);
+  const empty = Buffer.concat([pbStr(1, "999"), pbStr(2, "wxid_friend")]); // no text, no media
+  const rows = [
+    { snsId: 111, userName: "wxid_friend", createTime: 1700000000, type: 1, content, attrBuf: Buffer.alloc(0) },
+    { snsId: 222, userName: "wxid_me", createTime: 1700000100, type: 1, content, attrBuf: Buffer.alloc(0) },
+    { snsId: 333, userName: "wxid_friend", createTime: 1700000200, type: 1, content: empty, attrBuf: Buffer.alloc(0) },
+  ];
+
+  const { events, persons } = parseSnsEvents(fakeSnsDb(rows), "/sns.db", {
+    selfWxid: "wxid_me",
+    nameMap: { wxid_friend: "老同学小明" },
+  });
+
+  // empty (no text/no media) row skipped → 2 events
+  assert.equal(events.length, 2);
+  const friendPost = events.find((e) => e.id === "wechat-sns:111");
+  assert.equal(friendPost.subtype, "post");
+  assert.equal(friendPost.actor, "person-wechat-wxid_friend");
+  assert.equal(friendPost.content.title, "下班啦！");
+  assert.equal(friendPost.occurredAt, 1700000000 * 1000); // seconds → ms
+  assert.equal(friendPost.extra.kind, "moment");
+  assert.equal(friendPost.extra.mediaCount, 1);
+  assert.equal(friendPost.extra.poster, "老同学小明"); // nameMap wins over attrBuf
+  // self post → canonical SELF_ID, extra.isSelf
+  const selfPost = events.find((e) => e.id === "wechat-sns:222");
+  assert.equal(selfPost.actor, "person-wechat-self");
+  assert.equal(selfPost.extra.isSelf, true);
+  // friend person emitted with name + wxid alias; self person present
+  const byId = Object.fromEntries(persons.map((p) => [p.id, p]));
+  assert.deepEqual(byId["person-wechat-wxid_friend"].names, ["老同学小明", "wxid_friend"]);
+  assert.ok(byId["person-wechat-self"]);
+});
+
+test("parseSnsEvents: no SnsInfo table → empty batch (does not throw)", () => {
+  const throwingDb = function () { return { prepare() { throw new Error("no such table: SnsInfo"); }, close() {} }; };
+  const r = parseSnsEvents(throwingDb, "/x.db", {});
+  assert.deepEqual(r, { events: [], persons: [], topics: [] });
+});

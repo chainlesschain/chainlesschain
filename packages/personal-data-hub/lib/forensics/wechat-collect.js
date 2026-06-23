@@ -171,4 +171,102 @@ function parseEvents(Database, dbPath, _self) {
   return { events, persons: [...persons.values()], topics: [...topics.values()] };
 }
 
-module.exports = { computeKeyCandidates, deriveAndDecrypt, parseEvents };
+// ── 朋友圈 (SnsMicroMsg.db, PLAINTEXT — no SQLCipher) ───────────────────────
+// Unlike EnMicroMsg.db, SnsMicroMsg.db is NOT encrypted (header = "SQLite
+// format 3\0"), so it opens directly. SnsInfo.content is a protobuf
+// TimelineObject: the post text is top-level field 5 (contentDesc), media are
+// qpic.cn URLs embedded in the blob, and the poster nickname lives in attrBuf.
+// SnsInfo.createTime is epoch SECONDS. Verified on chopin (WeChat 8.0.74):
+// account 60e2c317… had 2931 posts (2623 with text) readable without any key.
+function _pbReadVarint(buf, pos) {
+  let shift = 0, result = 0n;
+  while (pos < buf.length) {
+    const b = buf[pos++];
+    result |= BigInt(b & 0x7f) << BigInt(shift);
+    if (!(b & 0x80)) break;
+    shift += 7;
+  }
+  return [result, pos];
+}
+// Walk top-level protobuf fields → { fieldNum: [Buffer|BigInt, …] }. Best-effort
+// (stops on malformed input); length-delimited values are returned as slices.
+function _pbFields(buf) {
+  const out = {};
+  let pos = 0;
+  while (pos < buf.length) {
+    let tag; [tag, pos] = _pbReadVarint(buf, pos);
+    const field = Number(tag >> 3n), wire = Number(tag & 7n);
+    if (field === 0) break;
+    let val;
+    if (wire === 0) { [val, pos] = _pbReadVarint(buf, pos); }
+    else if (wire === 2) { let len; [len, pos] = _pbReadVarint(buf, pos); len = Number(len); if (len < 0 || pos + len > buf.length) break; val = buf.subarray(pos, pos + len); pos += len; }
+    else if (wire === 1) { val = buf.subarray(pos, pos + 8); pos += 8; }
+    else if (wire === 5) { val = buf.subarray(pos, pos + 4); pos += 4; }
+    else break;
+    (out[field] ||= []).push(val);
+  }
+  return out;
+}
+function snsPostText(contentBuf) {
+  try { const f = _pbFields(contentBuf); if (f[5] && f[5].length) { const t = f[5][0].toString('utf8').trim(); if (t) return t; } } catch { /* not a TimelineObject */ }
+  return '';
+}
+function snsMediaUrls(contentBuf) {
+  const s = contentBuf.toString('latin1'); const urls = new Set();
+  const re = /https?:\/\/[A-Za-z0-9._-]*qpic\.cn[A-Za-z0-9._\-/?=&%]+/g; let m;
+  while ((m = re.exec(s))) urls.add(m[0]);
+  return [...urls];
+}
+function snsNickname(attrBuf, wxid) {
+  try { const f = _pbFields(attrBuf); for (const vals of Object.values(f)) for (const v of vals) { if (Buffer.isBuffer(v)) { const s = v.toString('utf8'); if (s && s !== wxid && !/^wxid_/.test(s) && /[一-鿿A-Za-z]/.test(s) && s.length <= 40 && !/[\x00-\x08]/.test(s)) return s; } } } catch { /* ignore */ }
+  return '';
+}
+
+/**
+ * Parse a PLAINTEXT SnsMicroMsg.db → 朋友圈 vault batch { events, persons, topics }.
+ * Each SnsInfo row → EVENT(post) attributed to the poster. `selfWxid` (optional)
+ * maps the user's own posts to SELF_ID; `nameMap` (wxid → displayName, e.g. from
+ * the matching account's decrypted rcontact) overrides attrBuf nicknames.
+ */
+function parseSnsEvents(Database, dbPath, { selfWxid, nameMap } = {}) {
+  const src = new Database(dbPath, { readonly: true });
+  const events = [];
+  const persons = new Map();
+  const names = nameMap instanceof Map ? nameMap : new Map(Object.entries(nameMap || {}));
+  try {
+    let rows = [];
+    try { rows = src.prepare('SELECT snsId,userName,createTime,type,content,attrBuf FROM SnsInfo ORDER BY createTime DESC LIMIT 5000').all(); }
+    catch { return { events: [], persons: [], topics: [] }; } // no SnsInfo table
+    for (const r of rows) {
+      const wxid = String(r.userName || '');
+      if (!wxid) continue;
+      const text = r.content ? snsPostText(r.content) : '';
+      const media = r.content ? snsMediaUrls(r.content) : [];
+      if (!text && !media.length) continue; // skip empty / pure-ad shells
+      const occurredAt = (Number(r.createTime) || 0) * 1000; // SnsInfo.createTime is seconds
+      if (!occurredAt) continue;
+      const isSelf = !!(selfWxid && wxid === selfWxid);
+      const nick = names.get(wxid) || (r.attrBuf ? snsNickname(r.attrBuf, wxid) : '') || wxid;
+      const actor = isSelf ? SELF_ID : `person-wechat-${wxid}`;
+      if (!isSelf && !persons.has(actor)) {
+        const nm = nick && nick !== wxid ? [nick, wxid] : [wxid];
+        persons.set(actor, { type: 'person', subtype: 'contact', id: actor, names: nm, identifiers: { wechatId: wxid }, source: SRC(actor), ingestedAt: Date.now() });
+      }
+      const title = (text || `[图片] ${nick}的朋友圈`).replace(/\s+/g, ' ').trim().slice(0, 80);
+      events.push({
+        type: 'event', subtype: 'post', id: `wechat-sns:${r.snsId}`,
+        occurredAt, actor, participants: [actor],
+        content: { title: title || '(朋友圈)', text: text || undefined },
+        source: SRC(`sns-${r.snsId}`, occurredAt),
+        extra: { kind: 'moment', isSelf, poster: nick, mediaCount: media.length, media: media.slice(0, 9) },
+        ingestedAt: Date.now(),
+      });
+    }
+    if (selfWxid) persons.set(SELF_ID, { type: 'person', subtype: 'contact', id: SELF_ID, names: ['我(微信)'], source: SRC(SELF_ID), ingestedAt: Date.now() });
+  } finally {
+    src.close();
+  }
+  return { events, persons: [...persons.values()], topics: [] };
+}
+
+module.exports = { computeKeyCandidates, deriveAndDecrypt, parseEvents, parseSnsEvents, snsPostText, snsMediaUrls, snsNickname };
