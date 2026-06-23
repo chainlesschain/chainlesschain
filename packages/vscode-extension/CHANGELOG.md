@@ -2,6 +2,26 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.2] — docs: publish the 0.36.1 changelog entry that was omitted
+
+- No code change — 0.36.1 shipped without its changelog entry. This re-release
+  carries the 0.36.1 entry below.
+
+## [0.36.1] — fix: LLM stays configured across `cc` / npm updates
+
+- **Fix: the panel no longer asks you to re-configure the LLM after every
+  `npm i -g chainlesschain` update.** "Is the LLM configured?" used to be
+  detected by running `cc config get llm.provider`. Right after a CLI update,
+  `cc` is frequently broken for a moment (native-module rebuild / `EBUSY` file
+  lock / PATH shim), so that command exits non-zero — and the extension wrongly
+  concluded "not configured", popped the setup card, and made you re-enter
+  provider / model / key, **even though `~/.chainlesschain/config.json` was
+  completely intact**. Detection now reads that config file **directly** (the
+  same file `cc config set` writes), and only falls back to `cc config get`
+  when the file is missing. A transient `cc` failure can no longer wipe the
+  panel's view of your configuration. Also fixes base-URL / API-key values
+  that contain `=` being truncated by the old parser.
+
 ## [0.36.0] — default Volcengine model updated to doubao-seed-2-1-pro-260628
 
 - **The Configure-LLM wizard now defaults the Volcengine (火山引擎/豆包) text

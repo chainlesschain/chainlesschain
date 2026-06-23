@@ -1,5 +1,25 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.34] — docs: publish the 0.4.33 "What's New" that was omitted
+
+- No code change — 0.4.33 shipped without its changelog, so the Marketplace
+  "What's New" stopped at 0.4.32. This re-release carries the 0.4.33 entry below.
+
+## [0.4.33] — fix: LLM stays configured across `cc` / npm updates
+
+- **Fix: the plugin no longer asks you to re-configure the LLM after every
+  `npm i -g chainlesschain` update.** "Is the LLM configured?" used to be
+  detected by running `cc config get llm.provider`. Right after a CLI update,
+  `cc` is frequently broken for a moment (native-module rebuild / `EBUSY` file
+  lock / PATH shim), so that command exits non-zero — and the plugin wrongly
+  concluded "not configured", popped the setup card, and made you re-enter
+  provider / model / key, **even though `~/.chainlesschain/config.json` was
+  completely intact**. Detection now reads that config file **directly** (the
+  same file `cc config set` writes), and only falls back to `cc config get`
+  when the file is missing. A transient `cc` failure can no longer wipe the
+  plugin's view of your configuration. Also fixes base-URL / API-key values
+  that contain `=` being truncated by the old parser.
+
 ## [0.4.32] — default Volcengine model updated to doubao-seed-2-1-pro-260628
 
 - **The Configure-LLM wizard now defaults the Volcengine (火山引擎/豆包) text
