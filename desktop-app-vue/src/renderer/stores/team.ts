@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -42,7 +42,7 @@ export interface TeamMember {
   teamId: string;
   memberDid: string;
   memberName: string;
-  role: 'lead' | 'member' | 'admin';
+  role: "lead" | "member" | "admin";
   joinedAt: number;
   invitedBy?: string | null;
   [key: string]: any;
@@ -72,7 +72,7 @@ export interface TeamFilters {
 /**
  * 视图模式
  */
-export type ViewMode = 'list' | 'tree' | 'card';
+export type ViewMode = "list" | "tree" | "card";
 
 /**
  * 加载状态
@@ -107,7 +107,7 @@ export interface TeamState {
 
 // ==================== Store ====================
 
-export const useTeamStore = defineStore('team', {
+export const useTeamStore = defineStore("team", {
   state: (): TeamState => ({
     // ==========================================
     // 团队管理
@@ -130,11 +130,11 @@ export const useTeamStore = defineStore('team', {
     // ==========================================
 
     // 视图模式: 'list' | 'tree' | 'card'
-    viewMode: 'list',
+    viewMode: "list",
 
     // 筛选条件
     filters: {
-      searchQuery: '',
+      searchQuery: "",
       parentTeamId: null,
     },
 
@@ -169,7 +169,9 @@ export const useTeamStore = defineStore('team', {
       let result = [...this.teams];
 
       if (this.filters.parentTeamId !== null) {
-        result = result.filter((t) => t.parentTeamId === this.filters.parentTeamId);
+        result = result.filter(
+          (t) => t.parentTeamId === this.filters.parentTeamId,
+        );
       }
 
       if (this.filters.searchQuery) {
@@ -177,7 +179,7 @@ export const useTeamStore = defineStore('team', {
         result = result.filter(
           (t) =>
             t.name.toLowerCase().includes(query) ||
-            (t.description && t.description.toLowerCase().includes(query))
+            (t.description && t.description.toLowerCase().includes(query)),
         );
       }
 
@@ -231,15 +233,21 @@ export const useTeamStore = defineStore('team', {
     /**
      * 加载团队列表
      */
-    async loadTeams(orgId: string, options: Record<string, any> = {}): Promise<IPCResponse> {
+    async loadTeams(
+      orgId: string,
+      options: Record<string, any> = {},
+    ): Promise<IPCResponse> {
       this.loading.teams = true;
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('team:get-teams', {
-          orgId,
-          options,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:get-teams",
+          {
+            orgId,
+            options,
+          },
+        );
 
         if (result.success) {
           this.teams = result.teams || [];
@@ -248,7 +256,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 加载团队列表失败:', error);
+        console.error("[TeamStore] 加载团队列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -264,7 +272,10 @@ export const useTeamStore = defineStore('team', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('team:create-team', teamData);
+        const result = await (window as any).electronAPI.invoke(
+          "team:create-team",
+          teamData,
+        );
 
         if (result.success) {
           const newTeam: Team = {
@@ -279,7 +290,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 创建团队失败:', error);
+        console.error("[TeamStore] 创建团队失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -290,12 +301,18 @@ export const useTeamStore = defineStore('team', {
     /**
      * 更新团队
      */
-    async updateTeam(teamId: string, updates: Partial<Team>): Promise<IPCResponse> {
+    async updateTeam(
+      teamId: string,
+      updates: Partial<Team>,
+    ): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('team:update-team', {
-          teamId,
-          updates,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:update-team",
+          {
+            teamId,
+            updates,
+          },
+        );
 
         if (result.success) {
           const index = this.teams.findIndex((t) => t.id === teamId);
@@ -312,7 +329,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 更新团队失败:', error);
+        console.error("[TeamStore] 更新团队失败:", error);
         throw error;
       }
     },
@@ -322,7 +339,10 @@ export const useTeamStore = defineStore('team', {
      */
     async deleteTeam(teamId: string): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('team:delete-team', { teamId });
+        const result = await (window as any).electronAPI.invoke(
+          "team:delete-team",
+          { teamId },
+        );
 
         if (result.success) {
           this.teams = this.teams.filter((t) => t.id !== teamId);
@@ -337,7 +357,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 删除团队失败:', error);
+        console.error("[TeamStore] 删除团队失败:", error);
         throw error;
       }
     },
@@ -373,9 +393,12 @@ export const useTeamStore = defineStore('team', {
       this.loading.members = true;
 
       try {
-        const result = await (window as any).electronAPI.invoke('team:get-team-members', {
-          teamId,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:get-team-members",
+          {
+            teamId,
+          },
+        );
 
         if (result.success) {
           this.members = result.members || [];
@@ -383,7 +406,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 加载团队成员失败:', error);
+        console.error("[TeamStore] 加载团队成员失败:", error);
         throw error;
       } finally {
         this.loading.members = false;
@@ -397,17 +420,20 @@ export const useTeamStore = defineStore('team', {
       teamId: string,
       memberDid: string,
       memberName: string,
-      role: TeamMember['role'] = 'member',
-      invitedBy: string | null = null
+      role: TeamMember["role"] = "member",
+      invitedBy: string | null = null,
     ): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('team:add-member', {
-          teamId,
-          memberDid,
-          memberName,
-          role,
-          invitedBy,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:add-member",
+          {
+            teamId,
+            memberDid,
+            memberName,
+            role,
+            invitedBy,
+          },
+        );
 
         if (result.success) {
           this.members.push({
@@ -429,7 +455,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 添加成员失败:', error);
+        console.error("[TeamStore] 添加成员失败:", error);
         throw error;
       }
     },
@@ -437,12 +463,18 @@ export const useTeamStore = defineStore('team', {
     /**
      * 移除成员
      */
-    async removeMember(teamId: string, memberDid: string): Promise<IPCResponse> {
+    async removeMember(
+      teamId: string,
+      memberDid: string,
+    ): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('team:remove-member', {
-          teamId,
-          memberDid,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:remove-member",
+          {
+            teamId,
+            memberDid,
+          },
+        );
 
         if (result.success) {
           this.members = this.members.filter((m) => m.memberDid !== memberDid);
@@ -456,7 +488,7 @@ export const useTeamStore = defineStore('team', {
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 移除成员失败:', error);
+        console.error("[TeamStore] 移除成员失败:", error);
         throw error;
       }
     },
@@ -464,13 +496,20 @@ export const useTeamStore = defineStore('team', {
     /**
      * 设置团队负责人
      */
-    async setLead(teamId: string, leadDid: string, leadName: string): Promise<IPCResponse> {
+    async setLead(
+      teamId: string,
+      leadDid: string,
+      leadName: string,
+    ): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('team:set-lead', {
-          teamId,
-          leadDid,
-          leadName,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "team:set-lead",
+          {
+            teamId,
+            leadDid,
+            leadName,
+          },
+        );
 
         if (result.success) {
           // 更新团队信息
@@ -487,18 +526,18 @@ export const useTeamStore = defineStore('team', {
 
           // 更新成员角色
           this.members.forEach((m) => {
-            if (m.role === 'lead') {
-              m.role = 'member';
+            if (m.role === "lead") {
+              m.role = "member";
             }
             if (m.memberDid === leadDid) {
-              m.role = 'lead';
+              m.role = "lead";
             }
           });
         }
 
         return result;
       } catch (error) {
-        console.error('[TeamStore] 设置负责人失败:', error);
+        console.error("[TeamStore] 设置负责人失败:", error);
         throw error;
       }
     },
@@ -526,7 +565,7 @@ export const useTeamStore = defineStore('team', {
      */
     clearFilters(): void {
       this.filters = {
-        searchQuery: '',
+        searchQuery: "",
         parentTeamId: null,
       };
     },
@@ -539,13 +578,26 @@ export const useTeamStore = defineStore('team', {
      * 构建团队层级结构
      */
     _buildHierarchy(): void {
-      const buildNode = (parentId: string | null): TeamHierarchyNode[] => {
-        const children = this.teams.filter((t) => t.parentTeamId === parentId);
-        return children.map((team) => ({
+      // Group children by parent ONCE (O(n)) so the recursion does O(1) lookups
+      // instead of re-filtering the whole `teams` array at every level (which is
+      // O(n²) on a large org). Keyed by the RAW parentTeamId so a team with an
+      // undefined parent stays an orphan (never reachable from the null root),
+      // exactly as the previous `=== parentId` test did.
+      const childrenByParent = new Map<string | null | undefined, Team[]>();
+      for (const t of this.teams) {
+        const bucket = childrenByParent.get(t.parentTeamId);
+        if (bucket) {
+          bucket.push(t);
+        } else {
+          childrenByParent.set(t.parentTeamId, [t]);
+        }
+      }
+
+      const buildNode = (parentId: string | null): TeamHierarchyNode[] =>
+        (childrenByParent.get(parentId) ?? []).map((team) => ({
           ...team,
           children: buildNode(team.id),
         }));
-      };
 
       this.teamHierarchy = buildNode(null);
     },

@@ -163,6 +163,21 @@ describe("useTeamStore", () => {
       expect(root.children[0].children.map((n: any) => n.id)).toEqual(["c"]);
     });
 
+    it("_buildHierarchy keeps sibling order and drops orphans (unknown parent)", () => {
+      const store = useTeamStore();
+      store.teams = [
+        team("root", { parentTeamId: null }),
+        team("ghost", { parentTeamId: "does-not-exist" }), // orphan → excluded
+        team("r2", { parentTeamId: null }),
+        team("c1", { parentTeamId: "root" }),
+        team("c2", { parentTeamId: "root" }),
+      ];
+      store._buildHierarchy();
+      expect(store.teamHierarchy.map((n: any) => n.id)).toEqual(["root", "r2"]);
+      const root = store.teamHierarchy[0];
+      expect(root.children.map((n: any) => n.id)).toEqual(["c1", "c2"]);
+    });
+
     it("reset restores initial state", () => {
       const store = useTeamStore();
       store.teams = [team("a")];
