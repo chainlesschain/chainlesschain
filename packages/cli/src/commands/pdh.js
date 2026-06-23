@@ -24,10 +24,7 @@ import {
   diagnosePdh,
 } from "../lib/pdh-bridge.js";
 import { setupMcpFromConfig } from "../runtime/mcp-config.js";
-import {
-  readFeedback,
-  summarizeFeedback,
-} from "../lib/pdh-feedback-ledger.js";
+import { readFeedback, summarizeFeedback } from "../lib/pdh-feedback-ledger.js";
 
 function emit(obj) {
   console.log(JSON.stringify(obj, null, 2));

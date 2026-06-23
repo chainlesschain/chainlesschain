@@ -47,10 +47,7 @@ describe("cc pdh feedback", () => {
 
   it("--json emits the summary object", async () => {
     const out = await run(
-      [
-        { kind: "positive" },
-        { kind: "correction", comment: "金额用人民币" },
-      ],
+      [{ kind: "positive" }, { kind: "correction", comment: "金额用人民币" }],
       "--json",
     );
     const parsed = JSON.parse(out);
