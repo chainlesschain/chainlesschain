@@ -129,8 +129,12 @@ export function parseSkillMd(content) {
       const key = trimmed.slice(0, colonIndex).trim();
       let value = trimmed.slice(colonIndex + 1).trim();
 
-      // Convert kebab-case to camelCase
-      const camelKey = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      // Normalize frontmatter key case to camelCase. Claude-Code skills
+      // (auto-loaded from .claude/skills) may author keys in kebab-case,
+      // snake_case, or camelCase interchangeably (Claude Code 2.1.186), e.g.
+      // `display-name` / `display_name` / `displayName`. Treat all three the
+      // same so the field reads below (data.displayName, …) pick them up.
+      const camelKey = key.replace(/[-_]([a-z])/g, (_, c) => c.toUpperCase());
 
       if (value === "") {
         currentKey = camelKey;

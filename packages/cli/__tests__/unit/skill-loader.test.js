@@ -107,6 +107,30 @@ remote-skill-name: remote-test
       expect(data.remoteSkillName).toBe("remote-test");
     });
 
+    it("converts snake_case keys to camelCase (Claude-Code 2.1.186 parity)", () => {
+      const content = `---
+display_name: Test
+user_invocable: false
+remote_skill_name: remote-test
+---`;
+      const { data } = parseSkillMd(content);
+      expect(data.displayName).toBe("Test");
+      expect(data.userInvocable).toBe(false);
+      expect(data.remoteSkillName).toBe("remote-test");
+    });
+
+    it("normalizes mixed kebab/snake/camel keys to the same field", () => {
+      expect(parseSkillMd("---\ndisplay-name: A\n---").data.displayName).toBe(
+        "A",
+      );
+      expect(parseSkillMd("---\ndisplay_name: B\n---").data.displayName).toBe(
+        "B",
+      );
+      expect(parseSkillMd("---\ndisplayName: C\n---").data.displayName).toBe(
+        "C",
+      );
+    });
+
     it("skips comment lines in frontmatter", () => {
       const content = `---
 name: test
