@@ -210,8 +210,10 @@ class CodeReviewer:
                     code_lines.append(line)
                     continue
 
-                # 仅在代码块外，遇到新的 section 标题才结束
-                if line.startswith('【') or line.startswith('##'):
+                # 仅在代码块外，遇到新的 section 标题才结束（按 strip 后判断，
+                # 否则缩进的 "  ## ..." / "  【...】" section 头会漏判，导致后续
+                # 无关代码块被错误并入改进代码）
+                if line.strip().startswith('【') or line.strip().startswith('##'):
                     break
 
         if code_lines:

@@ -68,6 +68,12 @@ class TestExtractImprovedCode:
         assert out == "## setup section\necho hi"
         assert "echo hi" in out
 
+    def test_stops_at_indented_section_outside_block(self):
+        # 缩进的 section 头（块外）也应终止捕获，否则后续无关代码块会被错误并入。
+        # 旧实现用裸 line 判 '##'/'【' → 缩进标记漏判 → "ignored()" 被并入。
+        resp = "改进代码\n```\nx = 1\n```\n  ## Next Section\n```\nignored()\n```"
+        assert cr()._extract_improved_code(resp) == "x = 1"
+
 
 class TestParseReviewResult:
     def test_combines_score_suggestions_code(self):
