@@ -213,6 +213,25 @@ describe("DocumentParser", () => {
       expect(table.rows.length).toBe(2);
     });
 
+    it("_extractTablesFromHTML parses every table/row/cell (reused-regex lastIndex safety)", () => {
+      // Two tables, multiple rows each — the row/cell regexes are reused across
+      // iterations, so a lastIndex leak would drop rows/cells from later tables.
+      const html =
+        "<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>" +
+        "<table><tr><th>x</th></tr><tr><td>9</td></tr></table>";
+      const tables = parser._extractTablesFromHTML(html);
+      expect(tables.length).toBe(2);
+      expect(tables[0].headers).toEqual(["a", "b"]);
+      expect(tables[0].rows).toEqual([
+        ["1", "2"],
+        ["3", "4"],
+      ]);
+      expect(tables[1].headers).toEqual(["x"]);
+      expect(tables[1].rows).toEqual([["9"]]);
+      // Idempotent across calls (module/function regex state must not carry over).
+      expect(parser._extractTablesFromHTML(html)).toEqual(tables);
+    });
+
     it("should set format to 'csv' in the result", async () => {
       const buffer = Buffer.from("a,b\n1,2", "utf-8");
 

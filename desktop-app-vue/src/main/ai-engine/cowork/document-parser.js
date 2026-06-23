@@ -473,20 +473,25 @@ class DocumentParser extends EventEmitter {
     }
     const tables = [];
 
-    // Simple regex-based table extraction from HTML
+    // Simple regex-based table extraction from HTML. The three /g regexes are
+    // built ONCE per call (not per-table / per-row, which recompiled cellRegex
+    // for every row of every table). They're reused across iterations, so each
+    // nested loop resets lastIndex before scanning its own substring.
     const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
     let tableMatch;
 
     while ((tableMatch = tableRegex.exec(html)) !== null) {
       const tableHtml = tableMatch[1];
       const rows = [];
 
-      const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      rowRegex.lastIndex = 0;
       let rowMatch;
 
       while ((rowMatch = rowRegex.exec(tableHtml)) !== null) {
         const cells = [];
-        const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+        cellRegex.lastIndex = 0;
         let cellMatch;
 
         while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
