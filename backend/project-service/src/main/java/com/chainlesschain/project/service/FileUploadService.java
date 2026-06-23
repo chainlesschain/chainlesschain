@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -17,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +42,9 @@ public class FileUploadService {
     private static final List<String> IMAGE_TYPES = Arrays.asList("jpg", "jpeg", "png", "gif", "bmp", "webp");
     private static final int THUMBNAIL_WIDTH = 200;
     private static final int THUMBNAIL_HEIGHT = 200;
+    // 缩略图源图的最大像素数（宽×高）。即便文件被 maxFileSize（10MB）限制，一张高
+    // 压缩比的图片仍可解码成数 GB 位图（解压炸弹）→ 主进程 OOM。先按图头尺寸拒绝。
+    private static final long MAX_THUMBNAIL_SOURCE_PIXELS = 50_000_000L; // 50 MP
 
     /**
      * 上传文件
@@ -209,6 +215,11 @@ public class FileUploadService {
      * 生成缩略图
      */
     private void generateThumbnail(File sourceFile, File thumbnailFile) throws IOException {
+        // 防解压炸弹：先只读图头尺寸（不解码整张），超出像素预算即拒绝。否则
+        // ImageIO.read 会把超大图解码进内存 → OutOfMemoryError；而 OOM 属 Error，
+        // 调用处的 catch(Exception) 接不住，会把整个上传请求拖垮。
+        assertImageWithinPixelBudget(sourceFile);
+
         BufferedImage originalImage = ImageIO.read(sourceFile);
         if (originalImage == null) {
             throw new IOException("无法读取图片文件");
@@ -234,5 +245,32 @@ public class FileUploadService {
         // 保存缩略图
         String format = getFileExtension(thumbnailFile.getName());
         ImageIO.write(thumbnail, format, thumbnailFile);
+    }
+
+    /**
+     * 只读图头尺寸（不解码像素），若 宽×高 超过 {@link #MAX_THUMBNAIL_SOURCE_PIXELS}
+     * 则抛 {@link IOException} —— 阻止解压炸弹在 {@link ImageIO#read} 时撑爆内存。
+     */
+    private void assertImageWithinPixelBudget(File sourceFile) throws IOException {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(sourceFile)) {
+            if (iis == null) {
+                throw new IOException("无法读取图片文件");
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                throw new IOException("不支持的图片格式");
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(iis);
+                long width = reader.getWidth(0);
+                long height = reader.getHeight(0);
+                if (width * height > MAX_THUMBNAIL_SOURCE_PIXELS) {
+                    throw new IOException("图片尺寸过大，跳过缩略图: " + width + "x" + height);
+                }
+            } finally {
+                reader.dispose();
+            }
+        }
     }
 }
