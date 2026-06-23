@@ -165,7 +165,9 @@ public class ConversationService {
         messageMapper.insert(message);
 
         // 更新对话的消息数量和更新时间
-        conversation.setMessageCount(conversation.getMessageCount() + 1);
+        // message_count 列可空（schema 仅 DEFAULT 0、无 NOT NULL），Integer 拆箱前做空值兜底防 NPE
+        Integer currentCount = conversation.getMessageCount();
+        conversation.setMessageCount((currentCount != null ? currentCount : 0) + 1);
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationMapper.updateById(conversation);
 
@@ -210,7 +212,10 @@ public class ConversationService {
 
         // 更新对话的消息数量
         Conversation conversation = conversationMapper.selectById(message.getConversationId());
-        if (conversation != null && conversation.getMessageCount() > 0) {
+        // null-safe：message_count 列可空，拆箱前判 null 避免 NPE（同时保留 >0 防负数守卫）
+        if (conversation != null
+                && conversation.getMessageCount() != null
+                && conversation.getMessageCount() > 0) {
             conversation.setMessageCount(conversation.getMessageCount() - 1);
             conversation.setUpdatedAt(LocalDateTime.now());
             conversationMapper.updateById(conversation);

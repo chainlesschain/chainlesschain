@@ -218,4 +218,42 @@ class ConversationServiceTest {
         verify(messageMapper).deleteById("m3");
         verify(conversationMapper, never()).updateById(any(Conversation.class));
     }
+
+    // ----------------------------------------------------------------- //
+    // messageCount 空值兜底（message_count 列 schema 可空，拆箱前防 NPE）
+    // ----------------------------------------------------------------- //
+    @Test
+    void createMessage_nullCount_treatedAsZero_andIncrements() {
+        Conversation c = new Conversation();
+        c.setMessageCount(null);                 // 模拟 DB 取回 message_count = NULL
+        when(conversationMapper.selectById("cn")).thenReturn(c);
+
+        MessageCreateRequest r = new MessageCreateRequest();
+        r.setConversationId("cn");
+        r.setRole("user");
+        r.setContent("hi");
+
+        // 旧实现 null + 1 会拆箱 NPE；现兜底为 0 后递增
+        service.createMessage(r);
+
+        ArgumentCaptor<Conversation> cc = ArgumentCaptor.forClass(Conversation.class);
+        verify(conversationMapper).updateById(cc.capture());
+        assertEquals(1, cc.getValue().getMessageCount());        // null -> 1
+    }
+
+    @Test
+    void deleteMessage_nullCount_skipsUpdateWithoutThrowing() {
+        ConversationMessage m = new ConversationMessage();
+        m.setConversationId("cn2");
+        when(messageMapper.selectById("m4")).thenReturn(m);
+        Conversation c = new Conversation();
+        c.setMessageCount(null);                 // 模拟 DB 取回 message_count = NULL
+        when(conversationMapper.selectById("cn2")).thenReturn(c);
+
+        // 旧实现 null > 0 会拆箱 NPE；现 null 判空后跳过递减
+        service.deleteMessage("m4");
+
+        verify(messageMapper).deleteById("m4");
+        verify(conversationMapper, never()).updateById(any(Conversation.class));
+    }
 }
