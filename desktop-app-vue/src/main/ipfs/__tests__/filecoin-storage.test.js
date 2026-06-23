@@ -47,7 +47,10 @@ describe("FilecoinStorage.verifyStorageProof (top-level crypto import)", () => {
     const store = newStore();
     store._deals.set("d1", { id: "d1", cid: "bafyCID" });
     const proofData = commitmentFor("bafyCID", "porep");
-    const r = await store.verifyStorageProof("d1", { proofType: "porep", proofData });
+    const r = await store.verifyStorageProof("d1", {
+      proofType: "porep",
+      proofData,
+    });
     expect(r.valid).toBe(true);
     expect(r.proofType).toBe("porep");
     expect(r.verifiedAt).toBeTruthy();
@@ -80,8 +83,14 @@ describe("FilecoinStorage.verifyStorageProof (top-level crypto import)", () => {
     const store = newStore();
     store._deals.set("d1", { id: "d1", cid: "bafyCID" });
     const proofData = commitmentFor("bafyCID", "post", "0");
-    const first = await store.verifyStorageProof("d1", { proofType: "post", proofData });
-    const second = await store.verifyStorageProof("d1", { proofType: "post", proofData });
+    const first = await store.verifyStorageProof("d1", {
+      proofType: "post",
+      proofData,
+    });
+    const second = await store.verifyStorageProof("d1", {
+      proofType: "post",
+      proofData,
+    });
     expect(first.valid).toBe(true);
     expect(second.valid).toBe(true);
   });
