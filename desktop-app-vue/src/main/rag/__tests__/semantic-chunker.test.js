@@ -52,7 +52,9 @@ describe("SemanticChunker", () => {
     });
 
     it("emits a fallback chunk when every markdown section is too short", () => {
-      const out = mk({ minChunkSize: 500 }).chunk("# Tiny\nshort body", { id: "m" });
+      const out = mk({ minChunkSize: 500 }).chunk("# Tiny\nshort body", {
+        id: "m",
+      });
       expect(out).toHaveLength(1);
       expect(out[0].content).toBe("# Tiny\nshort body");
     });
@@ -97,6 +99,27 @@ describe("SemanticChunker", () => {
     });
   });
 
+  describe("chunk — survivors stay contiguous when a small chunk is filtered", () => {
+    it("re-indexes after a sub-minChunkSize chunk is dropped (regression)", () => {
+      // min=10/max=15/target=15/overlap=0: "abc" buffers (len 3 < min); the
+      // 12-char run overflows max when combined, so _normalizeChunks emits "abc"
+      // as its own sub-min chunk, which the build loop then filters out. The
+      // surviving chunk must be chunkIndex 0 of totalChunks 1 — NOT index 1 of 2
+      // (the old code used the pre-filter loop index and pre-filter count).
+      const c = new SemanticChunker({
+        minChunkSize: 10,
+        maxChunkSize: 15,
+        targetChunkSize: 15,
+        overlapSize: 0,
+      });
+      const out = c.chunk("abc\nyyyyyyyyyyyy", { id: "f" });
+      expect(out).toHaveLength(1); // small "abc" chunk was filtered
+      expect(out[0].metadata.chunkIndex).toBe(0);
+      expect(out[0].metadata.totalChunks).toBe(1);
+      expect(out[0].id).toBe("f_chunk_0");
+    });
+  });
+
   describe("chunk — markdown", () => {
     const md =
       "Intro paragraph before any heading that is long enough to keep.\n" +
@@ -115,7 +138,8 @@ describe("SemanticChunker", () => {
 
     it("_isMarkdown routes heading/list text through the markdown path", () => {
       // A list-only doc is detected as markdown (no '...' overlap markers added).
-      const list = "- item one is long enough\n- item two is also long enough\n- third";
+      const list =
+        "- item one is long enough\n- item two is also long enough\n- third";
       const out = mk().chunk(list, { id: "l" });
       expect(out.every((c) => !c.content.includes("..."))).toBe(true);
     });
@@ -124,12 +148,20 @@ describe("SemanticChunker", () => {
   describe("chunkDocuments", () => {
     it("flattens chunks across documents and stamps sourceDocument", () => {
       const docs = [
-        { id: "a", content: "Alpha content long enough to survive the filter." },
-        { id: "b", content: "Beta content also long enough to survive the cut." },
+        {
+          id: "a",
+          content: "Alpha content long enough to survive the filter.",
+        },
+        {
+          id: "b",
+          content: "Beta content also long enough to survive the cut.",
+        },
       ];
       const out = mk().chunkDocuments(docs);
       expect(out.length).toBeGreaterThanOrEqual(2);
-      expect(out.every((c) => ["a", "b"].includes(c.metadata.sourceDocument))).toBe(true);
+      expect(
+        out.every((c) => ["a", "b"].includes(c.metadata.sourceDocument)),
+      ).toBe(true);
     });
   });
 
