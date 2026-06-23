@@ -169,7 +169,7 @@ describe("makeRunnableProviderFallback", () => {
     expect(seen).toEqual(["anthropic", "volcengine"]);
     expect(out._opts.provider).toBe("volcengine");
     expect(out._opts.apiKey).toBe("sk-volc"); // same key + baseUrl kept
-    expect(out._opts.model).toBe("doubao-seed-1-6-251015"); // provider default
+    expect(out._opts.model).toBe("doubao-seed-2-1-pro-260628"); // provider default
     expect(fb[0]).toMatchObject({
       from: "anthropic",
       to: "volcengine",
