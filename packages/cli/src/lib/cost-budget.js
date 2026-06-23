@@ -62,14 +62,27 @@ export class CostBudget {
    * @returns {object} the estimateCost() result for this record
    */
   add({ provider, model, usage } = {}) {
+    // Prompt-cache tokens are billed too — cache CREATION at ~125% of the input
+    // rate (Anthropic), cache READ at 10–50%. The usage events carry
+    // cache_read_input_tokens / cache_creation_input_tokens, and `cc cost`
+    // already prices them; the hard --max-budget-usd cap must count them as well
+    // or it undercounts real spend on a cached Anthropic run and stops too late.
+    const cacheReadTokens = usage?.cache_read_input_tokens || 0;
+    const cacheCreationTokens = usage?.cache_creation_input_tokens || 0;
     const est = estimateCost({
       provider,
       model,
       inputTokens: usage?.input_tokens || 0,
       outputTokens: usage?.output_tokens || 0,
+      cacheReadTokens,
+      cacheCreationTokens,
       table: this.table,
     });
-    const tokens = (usage?.input_tokens || 0) + (usage?.output_tokens || 0);
+    const tokens =
+      (usage?.input_tokens || 0) +
+      (usage?.output_tokens || 0) +
+      cacheReadTokens +
+      cacheCreationTokens;
     if (est.free) {
       this.sawFree = true;
     } else if (est.matched) {

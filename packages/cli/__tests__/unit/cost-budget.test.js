@@ -102,4 +102,32 @@ describe("CostBudget", () => {
     }); // $1000
     expect(b.exceeded()).toBe(true);
   });
+
+  it("counts prompt-cache tokens toward the cap (creation at ~125% of input)", () => {
+    // anthropic opus input = $5/1M. Cache creation bills at 125% → 1M cache
+    // creation tokens ≈ $6.25; without counting cache the cap would never trip.
+    const b = new CostBudget({ limitUsd: 5 });
+    b.add({
+      provider: "anthropic",
+      model: "claude-opus",
+      usage: {
+        input_tokens: 0,
+        output_tokens: 0,
+        cache_creation_input_tokens: 1_000_000,
+      },
+    });
+    expect(b.spentUsd).toBeCloseTo(6.25, 4);
+    expect(b.exceeded()).toBe(true);
+  });
+
+  it("counts cache-read tokens (Anthropic ~10% of input)", () => {
+    const b = new CostBudget({ limitUsd: 100 });
+    b.add({
+      provider: "anthropic",
+      model: "claude-opus", // $5/1M input → cache read ≈ $0.50/1M
+      usage: { input_tokens: 0, cache_read_input_tokens: 1_000_000 },
+    });
+    expect(b.spentUsd).toBeCloseTo(0.5, 4);
+    expect(b.priced).toBe(true);
+  });
 });
