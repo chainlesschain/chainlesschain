@@ -182,8 +182,9 @@ class CodeRefactorer:
                 continue
 
             if in_explanation:
-                # 遇到代码块或新section则结束
-                if line.strip().startswith('```') or line.startswith('【'):
+                # 遇到代码块或新section则结束（两个标记都按 strip 后判断，
+                # 否则缩进的 "  【...】" section 头会被漏判、误并入说明文本）
+                if line.strip().startswith('```') or line.strip().startswith('【'):
                     break
 
                 if line.strip():
@@ -313,7 +314,8 @@ class CodeRefactorer:
                 continue
 
             if in_analysis:
-                if line.strip().startswith('```') or line.startswith('【'):
+                # 同 _extract_explanation：两个 section 标记都 strip 后判断，缩进也终止
+                if line.strip().startswith('```') or line.strip().startswith('【'):
                     break
 
                 if line.strip():

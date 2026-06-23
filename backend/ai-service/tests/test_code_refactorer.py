@@ -55,6 +55,12 @@ class TestExtractExplanation:
         resp = "Explanation\nshort note\n【next section】"
         assert r()._extract_explanation(resp) == "short note"
 
+    def test_stops_at_indented_section_bracket(self):
+        # 缩进的 section 头也应终止说明提取（旧实现只 strip 了 ``` 分支、
+        # 用裸 line 判 【 → 缩进标记漏判、被并入说明）
+        resp = "Explanation\nshort note\n  【next section】"
+        assert r()._extract_explanation(resp) == "short note"
+
     def test_default_when_no_marker(self):
         assert r()._extract_explanation("no marker here") == "代码已重构"
 
@@ -67,6 +73,11 @@ class TestExtractBugAnalysis:
     def test_english_marker(self):
         resp = "Analysis\nrace condition\n```\nfix"
         assert r()._extract_bug_analysis(resp) == "race condition"
+
+    def test_stops_at_indented_section_bracket(self):
+        # 同 explanation：缩进的 section 头也应终止提取（旧实现裸 line 判 【 漏判）
+        resp = "问题分析\nnull dereference\n  【修复】"
+        assert r()._extract_bug_analysis(resp) == "null dereference"
 
     def test_default_when_no_marker(self):
         assert r()._extract_bug_analysis("nothing relevant") == "已分析问题"
