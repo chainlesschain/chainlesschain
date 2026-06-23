@@ -298,4 +298,36 @@ class AutomationServiceTest {
 
         verify(ruleMapper, times(1)).selectList(any());
     }
+
+    @Test
+    void testGetStatistics_AggregatesDuplicateTypesAndNullRunCount() {
+        // 两条规则共享 trigger/action 类型 → 计数应为 2；混入 null runCount → 当 0 处理。
+        ProjectAutomationRule a = new ProjectAutomationRule();
+        a.setTriggerEvent("file_change");
+        a.setActionType("notify");
+        a.setIsEnabled(true);
+        a.setRunCount(4);
+
+        ProjectAutomationRule b = new ProjectAutomationRule();
+        b.setTriggerEvent("file_change");
+        b.setActionType("notify");
+        b.setIsEnabled(true);
+        b.setRunCount(null); // 当 0 处理
+
+        ProjectAutomationRule c = new ProjectAutomationRule();
+        c.setTriggerEvent("commit");
+        c.setActionType("execute");
+        c.setIsEnabled(false);
+        c.setRunCount(6);
+
+        when(ruleMapper.selectList(any())).thenReturn(Arrays.asList(a, b, c));
+
+        AutomationStatsDTO result = automationService.getStatistics(testProjectId);
+
+        assertEquals(2, result.getTriggerTypeDistribution().get("file_change"));
+        assertEquals(1, result.getTriggerTypeDistribution().get("commit"));
+        assertEquals(2, result.getActionTypeDistribution().get("notify"));
+        assertEquals(1, result.getActionTypeDistribution().get("execute"));
+        assertEquals(10, result.getTotalRunCount()); // 4 + 0 + 6
+    }
 }

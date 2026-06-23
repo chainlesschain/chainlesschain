@@ -312,26 +312,18 @@ public class AutomationService {
         stats.setEnabledRules((int) rules.stream().filter(ProjectAutomationRule::getIsEnabled).count());
         stats.setDisabledRules((int) rules.stream().filter(r -> !r.getIsEnabled()).count());
 
-        // 统计触发类型分布
+        // 单次遍历同时统计触发类型分布、动作类型分布与总执行次数
+        // （原先对同一 rules 列表做了三次独立遍历）。
         Map<String, Integer> triggerDist = new HashMap<>();
+        Map<String, Integer> actionDist = new HashMap<>();
+        int totalRunCount = 0;
         for (ProjectAutomationRule rule : rules) {
-            String trigger = rule.getTriggerEvent();
-            triggerDist.put(trigger, triggerDist.getOrDefault(trigger, 0) + 1);
+            triggerDist.merge(rule.getTriggerEvent(), 1, Integer::sum);
+            actionDist.merge(rule.getActionType(), 1, Integer::sum);
+            totalRunCount += rule.getRunCount() != null ? rule.getRunCount() : 0;
         }
         stats.setTriggerTypeDistribution(triggerDist);
-
-        // 统计动作类型分布
-        Map<String, Integer> actionDist = new HashMap<>();
-        for (ProjectAutomationRule rule : rules) {
-            String action = rule.getActionType();
-            actionDist.put(action, actionDist.getOrDefault(action, 0) + 1);
-        }
         stats.setActionTypeDistribution(actionDist);
-
-        // 总执行次数
-        int totalRunCount = rules.stream()
-                .mapToInt(r -> r.getRunCount() != null ? r.getRunCount() : 0)
-                .sum();
         stats.setTotalRunCount(totalRunCount);
 
         return stats;
