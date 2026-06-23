@@ -728,10 +728,10 @@ describe("CodingAgentSessionService", () => {
     ).toBe(true);
 
     const status = await service.getStatus();
-    // 9 mvp-tier core tools (read/write/edit/edit_file_hashed/run_shell/
-    // check_shell/git/search_files/list_dir) — check_shell joined via the
-    // background-shell polling work.
-    expect(status.tools).toHaveLength(9);
+    // 10 mvp-tier core tools (read/write/notebook_edit/edit/edit_file_hashed/
+    // run_shell/check_shell/git/search_files/list_dir) — notebook_edit joined
+    // via Claude-Code NotebookEdit parity; check_shell via background-shell.
+    expect(status.tools).toHaveLength(10);
     expect(status.permissionPolicy).toMatchObject({
       planModeRules: {
         low: "allow",
@@ -771,8 +771,8 @@ describe("CodingAgentSessionService", () => {
     await managedService.createSession();
     const status = await managedService.getStatus();
 
-    // 9 core tools + 1 allowlisted managed tool (info_searcher)
-    expect(status.tools).toHaveLength(10);
+    // 10 core tools + 1 allowlisted managed tool (info_searcher)
+    expect(status.tools).toHaveLength(11);
     expect(
       status.tools.find((tool) => tool.name === "info_searcher"),
     ).toMatchObject({
