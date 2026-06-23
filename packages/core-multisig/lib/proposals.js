@@ -43,6 +43,31 @@ function _newProposalId() {
   );
 }
 
+/**
+ * 从 proposal 快照重建用于签名/校验的 signing core（sign / signAsync /
+ * _checkReached 三处共用）。payloadJcs 是 propose() 入库的 JCS 字符串；若存储
+ * 损坏导致非法 JSON，抛出带 proposal id 的明确错误，而不是裸 SyntaxError
+ * （后者无上下文、难以定位是哪个 proposal 的哪条字段坏了）。
+ */
+function _rebuildSigningCore(proposal) {
+  let payload;
+  try {
+    payload = JSON.parse(proposal.payloadJcs);
+  } catch (err) {
+    throw new Error(
+      `multisig proposal ${proposal.id} has corrupted payloadJcs (invalid JSON): ${err.message}`,
+    );
+  }
+  return {
+    domain: proposal.domain,
+    payload,
+    nonce: proposal.nonce,
+    expiresAtMs: proposal.expiresAtMs,
+    m: proposal.thresholdM,
+    members: proposal.memberSet,
+  };
+}
+
 /** 生成 nonce — timestamp + random，防回放。 */
 function _newNonce() {
   return (
@@ -195,14 +220,7 @@ function createProposalsManager(store, options = {}) {
     }
 
     // 重建 signing input + 签
-    const signingCore = {
-      domain: proposal.domain,
-      payload: JSON.parse(proposal.payloadJcs),
-      nonce: proposal.nonce,
-      expiresAtMs: proposal.expiresAtMs,
-      m: proposal.thresholdM,
-      members: proposal.memberSet,
-    };
+    const signingCore = _rebuildSigningCore(proposal);
     const signingInput = canonicalizeForSigning(signingCore);
     const sig = signRaw(signingInput, input.signer.secretKey, input.signer.alg);
 
@@ -302,14 +320,7 @@ function createProposalsManager(store, options = {}) {
       };
     }
 
-    const signingCore = {
-      domain: proposal.domain,
-      payload: JSON.parse(proposal.payloadJcs),
-      nonce: proposal.nonce,
-      expiresAtMs: proposal.expiresAtMs,
-      m: proposal.thresholdM,
-      members: proposal.memberSet,
-    };
+    const signingCore = _rebuildSigningCore(proposal);
     const signingInput = canonicalizeForSigning(signingCore);
 
     let sig;
@@ -457,14 +468,7 @@ function createProposalsManager(store, options = {}) {
     if (proposal.state !== "pending") return proposal.state === "reached";
 
     const sigs = store.getSignatures(proposalId);
-    const signingCore = {
-      domain: proposal.domain,
-      payload: JSON.parse(proposal.payloadJcs),
-      nonce: proposal.nonce,
-      expiresAtMs: proposal.expiresAtMs,
-      m: proposal.thresholdM,
-      members: proposal.memberSet,
-    };
+    const signingCore = _rebuildSigningCore(proposal);
     const signingInput = canonicalizeForSigning(signingCore);
 
     // 用 policy 蜕化形式（normalize 已做过；这里只重建必要字段）。

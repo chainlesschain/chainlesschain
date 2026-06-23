@@ -739,3 +739,56 @@ describe("proposals — requirePqc enforcement (security regression)", () => {
     expect(store.getProposal(proposal.id).state).toBe("reached");
   });
 });
+
+describe("proposals — corrupted payloadJcs guard", () => {
+  function setupWithDb() {
+    const sqlDb = new SQL.Database();
+    const db = adaptSqlJsDb(sqlDb);
+    applySchema(db);
+    return { db, store: createStore(db) };
+  }
+
+  it("sign() throws a clear, identifiable error (not a raw SyntaxError) when payloadJcs is corrupted in storage", () => {
+    const { db, store } = setupWithDb();
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = mgr.propose({
+      domain: "test.purchase",
+      payload: { orderId: "o-x", total: "1500" },
+      policy: {
+        domain: "test.purchase",
+        m: 2,
+        n: 3,
+        members: members.map((mm) => ({
+          did: mm.did,
+          alg: mm.alg,
+          pubkeyJwk: mm.pubkeyJwk,
+        })),
+      },
+      initiator: {
+        did: members[0].did,
+        alg: members[0].alg,
+        secretKey: secretKeys[members[0].did],
+      },
+    });
+
+    // 模拟存储损坏：把入库的 payload_jcs 改成非法 JSON
+    db.prepare(
+      "UPDATE multisig_proposals SET payload_jcs = ? WHERE id = ?",
+    ).run("{not-valid-json", proposal.id);
+
+    const doSign = () =>
+      mgr.sign({
+        proposalId: proposal.id,
+        signer: {
+          did: members[1].did,
+          alg: members[1].alg,
+          secretKey: secretKeys[members[1].did],
+        },
+      });
+
+    // 明确错误（含 proposal id），而不是无上下文的裸 SyntaxError
+    expect(doSign).toThrow(/corrupted payloadJcs/);
+    expect(doSign).toThrow(proposal.id);
+  });
+});
