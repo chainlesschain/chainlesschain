@@ -21,6 +21,13 @@ const testDir = join(tmpdir(), `cc-integ-opt-${Date.now()}`);
 // Mock paths for both modules that need it
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getConfigPath: () => join(testDir, "config.json"),
+}));
+
+// setFeature serializes its write via withFileLock; pass it through so the
+// unit-mocked config-manager (below) drives the behavior without real fs locks.
+vi.mock("../../src/lib/with-file-lock.js", () => ({
+  withFileLock: (_target, fn) => fn({ locked: false }),
 }));
 
 // Mock config for feature flags

@@ -9,7 +9,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  rmSync,
+  existsSync,
+  writeFileSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createTaskRecord } from "../../src/runtime/contracts/task-record.js";
@@ -18,6 +24,13 @@ const testDir = join(tmpdir(), `cc-v50210-integ-${Date.now()}`);
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getConfigPath: () => join(testDir, "config.json"),
+}));
+
+// setFeature serializes its write via withFileLock; pass it through so the
+// mocked config-manager (below) drives the behavior without real fs locks.
+vi.mock("../../src/lib/with-file-lock.js", () => ({
+  withFileLock: (_target, fn) => fn({ locked: false }),
 }));
 
 let mockConfig = { features: {} };
@@ -58,10 +71,8 @@ const {
 } = await import("../../src/lib/jsonl-session-store.js");
 const { BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
-const {
-  recordCompressionMetric,
-  getCompressionTelemetrySummary,
-} = await import("../../src/lib/compression-telemetry.js");
+const { recordCompressionMetric, getCompressionTelemetrySummary } =
+  await import("../../src/lib/compression-telemetry.js");
 
 beforeEach(() => {
   mockConfig = { features: {} };
@@ -448,26 +459,32 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
   });
 
   it("records compression telemetry summary for dashboard consumption", () => {
-    recordCompressionMetric({
-      strategy: "truncate",
-      originalTokens: 1000,
-      compressedTokens: 700,
-      saved: 300,
-      abVariant: "balanced",
-    }, {
-      provider: "ollama",
-      model: "qwen2.5:7b",
-    });
-    recordCompressionMetric({
-      strategy: "truncate+dedup",
-      originalTokens: 900,
-      compressedTokens: 500,
-      saved: 400,
-      abVariant: "aggressive",
-    }, {
-      provider: "ollama",
-      model: "qwen2.5:14b",
-    });
+    recordCompressionMetric(
+      {
+        strategy: "truncate",
+        originalTokens: 1000,
+        compressedTokens: 700,
+        saved: 300,
+        abVariant: "balanced",
+      },
+      {
+        provider: "ollama",
+        model: "qwen2.5:7b",
+      },
+    );
+    recordCompressionMetric(
+      {
+        strategy: "truncate+dedup",
+        originalTokens: 900,
+        compressedTokens: 500,
+        saved: 400,
+        abVariant: "aggressive",
+      },
+      {
+        provider: "ollama",
+        model: "qwen2.5:14b",
+      },
+    );
 
     const summary = getCompressionTelemetrySummary();
     expect(summary.samples).toBe(2);
@@ -541,19 +558,27 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
     const legacyFileB = join(testDir, "sessions", "legacy-b.json");
     writeFileSync(
       legacyFileA,
-      JSON.stringify({ id: "legacy-a", messages: [{ role: "user", content: "a" }] }),
+      JSON.stringify({
+        id: "legacy-a",
+        messages: [{ role: "user", content: "a" }],
+      }),
       "utf-8",
     );
     writeFileSync(
       legacyFileB,
-      JSON.stringify({ id: "legacy-b", messages: [{ role: "assistant", content: "b" }] }),
+      JSON.stringify({
+        id: "legacy-b",
+        messages: [{ role: "assistant", content: "b" }],
+      }),
       "utf-8",
     );
 
     const report = migrateLegacySessionsBatch(join(testDir, "sessions"), {
       sampleSize: 1,
     });
-    const sample = sampleMigratedSessionsValidation(report.results, { sampleSize: 1 });
+    const sample = sampleMigratedSessionsValidation(report.results, {
+      sampleSize: 1,
+    });
 
     expect(report.summary.scanned).toBe(2);
     expect(report.summary.failed).toBe(0);

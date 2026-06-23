@@ -19,6 +19,13 @@ const testDir = join(tmpdir(), `cc-ext-test-${Date.now()}`);
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getConfigPath: () => join(testDir, "config.json"),
+}));
+
+// setFeature serializes its write via withFileLock; in this unit test the
+// real lock would touch the filesystem, so pass the critical section through.
+vi.mock("../../src/lib/with-file-lock.js", () => ({
+  withFileLock: (_target, fn) => fn({ locked: false }),
 }));
 
 let mockConfig = { features: {} };
