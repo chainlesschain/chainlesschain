@@ -37,10 +37,32 @@ const PII_PATTERNS = {
   CN_PHONE: /\b1[3-9]\d{9}\b/g,
 };
 
+// Pre-compiled, module-private copies of the PII patterns, built ONCE. classify()
+// previously rebuilt all of these (`new RegExp(...)`) on every call — wasteful on
+// batch scans (up to 100 items × 7 patterns). These are SEPARATE instances from
+// the exported PII_PATTERNS, so reusing them never mutates shared regex state an
+// importer might observe; `String.match()` with a /g regex is stateless (it
+// resets lastIndex), so a shared instance is safe to reuse across calls.
+const PII_PATTERN_LIST = Object.entries(PII_PATTERNS).map(([name, regex]) => [
+  name,
+  new RegExp(regex.source, regex.flags),
+]);
+
 const PHI_KEYWORDS = [
-  "diagnosis", "patient", "medical", "prescription", "treatment",
-  "hospital", "clinic", "symptom", "blood", "medication",
-  "allergy", "surgery", "health record", "lab result",
+  "diagnosis",
+  "patient",
+  "medical",
+  "prescription",
+  "treatment",
+  "hospital",
+  "clinic",
+  "symptom",
+  "blood",
+  "medication",
+  "allergy",
+  "surgery",
+  "health record",
+  "lab result",
 ];
 
 const SEVERITY_LEVELS = {
@@ -70,7 +92,9 @@ class DataClassifier extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS data_classifications (
@@ -100,21 +124,27 @@ class DataClassifier extends EventEmitter {
   async classify(content, options = {}) {
     try {
       if (!content || content.trim().length === 0) {
-        return { category: DATA_CATEGORIES.GENERAL, detections: [], severity: SEVERITY_LEVELS.LOW };
+        return {
+          category: DATA_CATEGORIES.GENERAL,
+          detections: [],
+          severity: SEVERITY_LEVELS.LOW,
+        };
       }
 
       const detections = [];
       let maxSeverity = SEVERITY_LEVELS.LOW;
 
-      // Rule-based detection
-      for (const [patternName, regex] of Object.entries(PII_PATTERNS)) {
-        const regexCopy = new RegExp(regex.source, regex.flags);
-        const matches = content.match(regexCopy);
+      // Rule-based detection (reuses the pre-compiled PII_PATTERN_LIST)
+      for (const [patternName, regex] of PII_PATTERN_LIST) {
+        const matches = content.match(regex);
         if (matches && matches.length > 0) {
           const severity = this._getPatternSeverity(patternName);
           detections.push({
             type: patternName,
-            category: patternName === "CREDIT_CARD" ? DATA_CATEGORIES.PCI : DATA_CATEGORIES.PII,
+            category:
+              patternName === "CREDIT_CARD"
+                ? DATA_CATEGORIES.PCI
+                : DATA_CATEGORIES.PII,
             count: matches.length,
             severity,
             source: "rule",
@@ -180,7 +210,9 @@ class DataClassifier extends EventEmitter {
    */
   async batchScan(items) {
     try {
-      if (!Array.isArray(items)) {return { results: [], summary: {} };}
+      if (!Array.isArray(items)) {
+        return { results: [], summary: {} };
+      }
 
       const results = [];
       const summary = { total: items.length, pii: 0, phi: 0, pci: 0, clean: 0 };
@@ -189,10 +221,15 @@ class DataClassifier extends EventEmitter {
         const result = await this.classify(item.content || "", { save: false });
         results.push({ id: item.id, ...result });
 
-        if (result.category === DATA_CATEGORIES.PII) {summary.pii++;}
-        else if (result.category === DATA_CATEGORIES.PHI) {summary.phi++;}
-        else if (result.category === DATA_CATEGORIES.PCI) {summary.pci++;}
-        else {summary.clean++;}
+        if (result.category === DATA_CATEGORIES.PII) {
+          summary.pii++;
+        } else if (result.category === DATA_CATEGORIES.PHI) {
+          summary.phi++;
+        } else if (result.category === DATA_CATEGORIES.PCI) {
+          summary.pci++;
+        } else {
+          summary.clean++;
+        }
       }
 
       return { results, summary };
@@ -209,19 +246,25 @@ class DataClassifier extends EventEmitter {
    */
   async getHistory(options = {}) {
     try {
-      if (!this.database || !this.database.db) {return [];}
+      if (!this.database || !this.database.db) {
+        return [];
+      }
 
       const limit = options.limit || 50;
       const category = options.category;
 
       if (category) {
         return this.database.db
-          .prepare("SELECT * FROM data_classifications WHERE category = ? ORDER BY created_at DESC LIMIT ?")
+          .prepare(
+            "SELECT * FROM data_classifications WHERE category = ? ORDER BY created_at DESC LIMIT ?",
+          )
           .all(category, limit);
       }
 
       return this.database.db
-        .prepare("SELECT * FROM data_classifications ORDER BY created_at DESC LIMIT ?")
+        .prepare(
+          "SELECT * FROM data_classifications ORDER BY created_at DESC LIMIT ?",
+        )
         .all(limit);
     } catch (error) {
       logger.error("[DataClassifier] Failed to get history:", error);
@@ -232,8 +275,12 @@ class DataClassifier extends EventEmitter {
   _getPatternSeverity(patternName) {
     const criticalPatterns = ["SSN", "CREDIT_CARD", "CN_ID"];
     const highPatterns = ["EMAIL", "PHONE", "CN_PHONE"];
-    if (criticalPatterns.includes(patternName)) {return SEVERITY_LEVELS.CRITICAL;}
-    if (highPatterns.includes(patternName)) {return SEVERITY_LEVELS.HIGH;}
+    if (criticalPatterns.includes(patternName)) {
+      return SEVERITY_LEVELS.CRITICAL;
+    }
+    if (highPatterns.includes(patternName)) {
+      return SEVERITY_LEVELS.HIGH;
+    }
     return SEVERITY_LEVELS.MEDIUM;
   }
 
@@ -244,9 +291,15 @@ class DataClassifier extends EventEmitter {
 
   async _saveClassification(content, result, context) {
     try {
-      if (!this.database || !this.database.db) {return;}
+      if (!this.database || !this.database.db) {
+        return;
+      }
 
-      const contentHash = crypto.createHash("sha256").update(content).digest("hex").substring(0, 16);
+      const contentHash = crypto
+        .createHash("sha256")
+        .update(content)
+        .digest("hex")
+        .substring(0, 16);
 
       this.database.db
         .prepare(
@@ -268,7 +321,10 @@ class DataClassifier extends EventEmitter {
 
       this.database.saveToFile();
     } catch (error) {
-      logger.warn("[DataClassifier] Failed to save classification:", error.message);
+      logger.warn(
+        "[DataClassifier] Failed to save classification:",
+        error.message,
+      );
     }
   }
 
@@ -282,10 +338,12 @@ class DataClassifier extends EventEmitter {
     const result = await this.classify(content);
     return {
       hasDetections: result.detections && result.detections.length > 0,
-      categories: [...new Set((result.detections || []).map(d => d.category))],
-      severity: result.severity || 'low',
+      categories: [
+        ...new Set((result.detections || []).map((d) => d.category)),
+      ],
+      severity: result.severity || "low",
       detectionCount: (result.detections || []).length,
-      patterns: (result.detections || []).map(d => ({
+      patterns: (result.detections || []).map((d) => ({
         type: d.type,
         category: d.category,
         severity: d.severity,
@@ -302,8 +360,16 @@ class DataClassifier extends EventEmitter {
 
 let _instance;
 function getDataClassifier() {
-  if (!_instance) {_instance = new DataClassifier();}
+  if (!_instance) {
+    _instance = new DataClassifier();
+  }
   return _instance;
 }
 
-export { DataClassifier, getDataClassifier, DATA_CATEGORIES, PII_PATTERNS, SEVERITY_LEVELS };
+export {
+  DataClassifier,
+  getDataClassifier,
+  DATA_CATEGORIES,
+  PII_PATTERNS,
+  SEVERITY_LEVELS,
+};
