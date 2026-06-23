@@ -105,12 +105,14 @@ export function runBangCommand(line, opts = {}) {
 
 /**
  * Whether a `!command` in the REPL should auto-trigger an assistant response to
- * its output (Claude-Code 2.1.186 `respondToBashCommands`; default ON). When
- * off, the command output is still folded into context but no LLM turn fires.
+ * its output (Claude-Code 2.1.186 `respondToBashCommands`). Opt-IN — default
+ * OFF: by default the command output is folded into context but no LLM turn
+ * fires, so a quick `!ls` / `!git status` never spends a turn. (cc intentionally
+ * diverges from upstream's default-on here.)
  *
  * Precedence: `CC_RESPOND_TO_BASH` env (1/true/yes/on → on, else off) overrides
  * the settings.json `respondToBashCommands` boolean, which overrides the default
- * (true). Pure — the caller passes the resolved settings value + env.
+ * (false). Pure — the caller passes the resolved settings value + env.
  *
  * @param {{ settingValue?: boolean, env?: object }} [opts]
  * @returns {boolean}
@@ -122,7 +124,7 @@ export function shouldRespondToBashCommands(opts = {}) {
     return /^(1|true|yes|on)$/i.test(String(raw).trim());
   }
   if (typeof opts.settingValue === "boolean") return opts.settingValue;
-  return true;
+  return false;
 }
 
 /**

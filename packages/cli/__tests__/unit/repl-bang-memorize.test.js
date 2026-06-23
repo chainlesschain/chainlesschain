@@ -160,11 +160,11 @@ describe("appendMemoryNote", () => {
 });
 
 describe("shouldRespondToBashCommands (Claude-Code 2.1.186)", () => {
-  it("defaults ON when unset", () => {
-    expect(shouldRespondToBashCommands({ env: {} })).toBe(true);
+  it("defaults OFF (opt-in) when unset", () => {
+    expect(shouldRespondToBashCommands({ env: {} })).toBe(false);
     expect(
       shouldRespondToBashCommands({ settingValue: undefined, env: {} }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("honors an explicit settings boolean", () => {

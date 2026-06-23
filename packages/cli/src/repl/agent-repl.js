@@ -114,7 +114,7 @@ let _permissionConfirm = null;
 let _settingsHooks = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
 // `!command` auto-triggers an assistant response to its output. undefined =
-// unset → defaults ON in shouldRespondToBashCommands.
+// unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
 let _respondToBash;
 
 /**
@@ -451,7 +451,7 @@ export async function startAgentRepl(options = {}) {
     const { loadSettings, readBooleanSetting } =
       await import("../lib/settings-loader.cjs");
     const loaded = loadSettings({ cwd: process.cwd() });
-    // Claude-Code 2.1.186 respondToBashCommands (default ON when unset).
+    // Claude-Code 2.1.186 respondToBashCommands (default OFF / opt-in when unset).
     _respondToBash = readBooleanSetting("respondToBashCommands", {
       cwd: process.cwd(),
     });
@@ -1278,11 +1278,12 @@ export async function startAgentRepl(options = {}) {
           );
         if (res.error) logger.error(`shell error: ${res.error.message}`);
         logger.log(chalk.gray(`(exit ${res.exitCode})`));
-        // Claude-Code 2.1.186 `respondToBashCommands` (default ON): the
-        // assistant automatically responds to the command output. Re-dispatch
-        // the captured <bash-input>/<bash-output> as a normal user turn so the
-        // FULL turn machinery (streaming render, tools, session persistence) is
-        // reused — the bash-tagged content can't re-trigger the `!` branch.
+        // Claude-Code 2.1.186 `respondToBashCommands` (opt-in, default OFF):
+        // when enabled, the assistant automatically responds to the command
+        // output. Re-dispatch the captured <bash-input>/<bash-output> as a
+        // normal user turn so the FULL turn machinery (streaming render, tools,
+        // session persistence) is reused — the bash-tagged content can't
+        // re-trigger the `!` branch.
         if (shouldRespondToBashCommands({ settingValue: _respondToBash })) {
           await handleLine(res.contextMessage.content);
           return; // the nested turn already re-prompted
