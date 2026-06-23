@@ -130,6 +130,8 @@ fun HubLocalScreen(
                             viewModel.onToutiaoLoginCookie(cookie)
                         pending.adapterName == "social-kuaishou" ->
                             viewModel.onKuaishouLoginCookie(cookie)
+                        pending.adapterName == "social-qzone" ->
+                            viewModel.onQzoneLoginCookie(cookie)
                         pending.adapterName.startsWith("ai-chat:") -> {
                             // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
                             // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
@@ -351,6 +353,7 @@ fun HubLocalScreen(
                 state.xiaohongshu,
                 state.toutiao,
                 state.kuaishou,
+                state.qzone,
             )
             items(contentCards, key = { "content-${it.adapterName}" }) { card ->
                 SocialAdapterCard(
@@ -364,6 +367,7 @@ fun HubLocalScreen(
                             "social-xiaohongshu" -> viewModel.requestXhsLogin()
                             "social-toutiao" -> viewModel.requestToutiaoLogin()
                             "social-kuaishou" -> viewModel.requestKuaishouLogin()
+                            "social-qzone" -> viewModel.requestQzoneLogin()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -377,6 +381,7 @@ fun HubLocalScreen(
                             "social-xiaohongshu" -> viewModel.syncXhs()
                             "social-toutiao" -> viewModel.syncToutiao()
                             "social-kuaishou" -> viewModel.syncKuaishou()
+                            "social-qzone" -> viewModel.syncQzone()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -390,6 +395,7 @@ fun HubLocalScreen(
                             "social-xiaohongshu" -> viewModel.logoutXhs()
                             "social-toutiao" -> viewModel.logoutToutiao()
                             "social-kuaishou" -> viewModel.logoutKuaishou()
+                            "social-qzone" -> viewModel.logoutQzone()
                         }
                     },
                     onPreviewVault = {

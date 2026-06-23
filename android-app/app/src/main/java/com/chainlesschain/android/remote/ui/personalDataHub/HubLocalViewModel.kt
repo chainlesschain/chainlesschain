@@ -137,6 +137,7 @@ class HubLocalViewModel @Inject constructor(
     private val kuaishouRootCredentials: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootCredentialsStore,
     private val qqCollector: QQLocalCollector,
     private val qqCredentials: QQCredentialsStore,
+    private val qzoneCredentials: com.chainlesschain.android.pdh.social.qzone.QzoneCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
     private val modelManager: ModelManager,
     private val llmEngine: LlmInferenceEngine,
@@ -598,6 +599,14 @@ class HubLocalViewModel @Inject constructor(
             displayName = "今日头条",
             implemented = true,
         ),
+        // QQ空间 — API-only (no local DB). WebView captures the qzone p_skey
+        // cookie; in-APK cc hub collect-qzone derives g_tk + pulls 说说/留言板/
+        // 相册. uidStr (QQ uin) per the IM-platform convention.
+        val qzone: SocialCardState = SocialCardState(
+            adapterName = "social-qzone",
+            displayName = "QQ空间",
+            implemented = true,
+        ),
         // 2026-05-23 v0.1 — 快手 placeholder card. cookie scrape 拿 userId，
         // events 写空数组 (watch/collect/search 需 NS_sig3 签名 v0.2 接通)
         val kuaishou: SocialCardState = SocialCardState(
@@ -659,6 +668,7 @@ class HubLocalViewModel @Inject constructor(
             refreshKuaishouFromStore()
             refreshWechatFromStore()
             refreshQQFromStore()
+            refreshQzoneFromStore()
             refreshAiChatFromStore()
             refreshEmailFromStore()
             refreshTravelFromStore()
@@ -4945,6 +4955,150 @@ class HubLocalViewModel @Inject constructor(
                 toutiao = it.toutiao.copy(
                     isLoggedIn = false,
                     uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── QQ空间 Qzone (API-only via cc hub collect-qzone) ────────────────────
+    //
+    // 与 6 个内容平台不同：Qzone 没有本地库，也不在 WebView 里 prefetch；WebView
+    // 只负责让用户登录拿到 qzone 域 p_skey cookie，采集本体交给 in-APK cc
+    // (collect-qzone 算 g_tk 拉 说说/留言板/相册)。所以这里没有 *LocalCollector /
+    // sign bridge — 直接 ccRunner.collectQzone。
+
+    fun refreshQzoneFromStore() {
+        _state.update {
+            it.copy(
+                qzone = it.qzone.copy(
+                    isLoggedIn = qzoneCredentials.hasCredentials(),
+                    uidStr = qzoneCredentials.getUid(),
+                    lastSyncAt = qzoneCredentials.getLastSyncAt(),
+                    lastSyncCount = qzoneCredentials.getLastSyncCount(),
+                ),
+            )
+        }
+    }
+
+    fun requestQzoneLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-qzone",
+                    displayName = "QQ空间",
+                    // user.qzone.qq.com 未登录会跳 QQ 登录页 (扫码/账号)，登录回跳后
+                    // 在 user.qzone.qq.com 域写 p_skey — 与桌面浏览器登录同源，匹配
+                    // collect-qzone 的 cookie 来源 (base .qq.com skey 会被拒)。
+                    loginUrl = "https://user.qzone.qq.com/",
+                    cookieDomain = "https://user.qzone.qq.com",
+                    // 登录页本身在 qzone.qq.com，URL 一加载就 contains 误触发 → 禁 URL 路径
+                    isLoginSuccess = { _ -> false },
+                    // 成功标志：cookie 含 qzone 域 p_skey (≥8 字符真票据，非空占位)
+                    isLoginSuccessByCookie = { cookie ->
+                        Regex("(?:^|;\\s*)p_skey=([^;\\s]+)").find(cookie)
+                            ?.groupValues?.getOrNull(1)?.length?.let { it >= 8 } == true
+                    },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                ),
+            )
+        }
+    }
+
+    fun onQzoneLoginCookie(cookie: String) {
+        val uid = qzoneCredentials.extractUid(cookie)
+        val hasPskey = cookie.contains("p_skey")
+        if (uid == null || !hasPskey) {
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    qzone = it.qzone.copy(
+                        errorMessage = "登录未完成 — cookie 缺 uin 或 qzone p_skey（请确认已进入 QQ空间后重试）",
+                    ),
+                )
+            }
+            return
+        }
+        qzoneCredentials.saveCredentials(cookie = cookie, uid = uid, displayName = null)
+        _state.update { it.copy(pendingLogin = null) }
+        refreshQzoneFromStore()
+        // 登录即采（与用户预期"一键采集"一致）
+        syncQzone()
+    }
+
+    fun syncQzone() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!qzoneCredentials.hasCredentials()) {
+            requestQzoneLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-qzone",
+                    qzone = it.qzone.copy(isSyncing = true, errorMessage = null, syncStatusText = "QQ空间采集中…"),
+                )
+            }
+            val cookieFile = qzoneCredentials.stageCookieFile()
+            if (cookieFile == null) {
+                _state.update {
+                    it.copy(
+                        globalSyncingAdapter = null,
+                        qzone = it.qzone.copy(isSyncing = false, syncStatusText = null, errorMessage = "cookie 缺失，请重新登录"),
+                    )
+                }
+                return@launch
+            }
+            val result = ccRunner.collectQzone(
+                cookieFilePath = cookieFile,
+                onProgress = { txt ->
+                    _state.update { it.copy(qzone = it.qzone.copy(syncStatusText = txt)) }
+                },
+            )
+            qzoneCredentials.clearCookieFile()
+            when (result) {
+                is LocalCcRunner.QzoneResult.Ok -> {
+                    val total = result.ingested
+                    val now = System.currentTimeMillis()
+                    qzoneCredentials.recordSync(now, total)
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qzone = it.qzone.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                lastSyncAt = now,
+                                lastSyncCount = total,
+                                errorMessage = null,
+                            ),
+                        )
+                    }
+                }
+                is LocalCcRunner.QzoneResult.Failed -> {
+                    val hint = if (result.reason.contains("p_skey") || result.reason.contains("登录")) {
+                        "${result.reason}（cookie 可能过期，请重新登录 QQ空间）"
+                    } else result.reason
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qzone = it.qzone.copy(isSyncing = false, syncStatusText = null, errorMessage = "采集失败：$hint"),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutQzone() {
+        qzoneCredentials.clear()
+        qzoneCredentials.clearCookieFile()
+        _state.update {
+            it.copy(
+                qzone = it.qzone.copy(
+                    isLoggedIn = false,
+                    uidStr = null,
                     lastSyncAt = null,
                     lastSyncCount = 0,
                     errorMessage = null,

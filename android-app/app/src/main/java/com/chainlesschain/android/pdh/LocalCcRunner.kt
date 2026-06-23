@@ -288,6 +288,161 @@ class LocalCcRunner @Inject constructor(
         CcResult.Ok(report = report, rawJson = stdout.trim())
     }
 
+    /** Result for QQ空间 (Qzone) collect flow. */
+    sealed class QzoneResult {
+        data class Ok(val counts: Map<String, Int>, val ingested: Int, val rawJson: String) : QzoneResult()
+        data class Failed(val reason: String, val exitCode: Int?, val stderr: String?) : QzoneResult()
+    }
+
+    /**
+     * `cc hub collect-qzone --cookie-file <path> --what <list> --json` →
+     * QQ空间 说说/留言板/相册 via the Qzone API (no local DB).
+     *
+     * The caller writes the WebView-captured Qzone cookie (must contain the
+     * qzone-domain p_skey) to [cookieFilePath] BEFORE invoking, and SHOULD
+     * delete it after (it holds login tickets). The in-APK cc derives g_tk +
+     * fetches the feeds + ingests into the vault — same shape as collect-wechat
+     * but over HTTP. Network from the cc subprocess is already wired (dns-fix +
+     * ConnectivityManager DNS injection).
+     */
+    suspend fun collectQzone(
+        cookieFilePath: String,
+        what: String = "shuoshuo,msgb,album",
+        max: Int = 1000,
+        timeoutMs: Long = 240_000L,
+        onProgress: ((String) -> Unit)? = null,
+    ): QzoneResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext QzoneResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("collect-qzone")
+            add("--cookie-file"); add(cookieFilePath)
+            add("--what"); add(what)
+            if (max > 0) { add("--max"); add(max.toString()) }
+            add("--json")
+        }
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext QzoneResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+        onProgress?.invoke("QQ空间采集中…")
+        val startMs = System.currentTimeMillis()
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.collectQzone: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.collectQzone: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val tickerStop = java.util.concurrent.atomic.AtomicBoolean(false)
+        val tickerThread = if (onProgress != null) {
+            Thread {
+                try {
+                    while (!tickerStop.get()) {
+                        java.lang.Thread.sleep(10_000L)
+                        if (tickerStop.get()) break
+                        val elapsedS = (System.currentTimeMillis() - startMs) / 1000L
+                        onProgress.invoke("QQ空间采集中（${elapsedS}s）…")
+                    }
+                } catch (_: InterruptedException) {
+                    // expected when process finishes before timeout
+                } catch (t: Throwable) {
+                    Timber.w(t, "LocalCcRunner.collectQzone: ticker thread exited unexpectedly")
+                }
+            }.also { it.start() }
+        } else null
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        tickerStop.set(true)
+        tickerThread?.interrupt()
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            tickerThread?.join(500)
+            return@withContext QzoneResult.Failed(
+                reason = "timeout after ${timeoutMs}ms",
+                exitCode = null,
+                stderr = stderrBuilder.toString().take(2000),
+            )
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        tickerThread?.join(500)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        val stderr = stderrBuilder.toString()
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext QzoneResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+        try {
+            val obj = JSONObject(stdout.trim())
+            if (!obj.optBoolean("ok", false)) {
+                return@withContext QzoneResult.Failed(
+                    reason = obj.optString("reason", "collect-qzone returned ok:false"),
+                    exitCode = exit,
+                    stderr = stderr.take(2000),
+                )
+            }
+            val countsObj = obj.optJSONObject("counts")
+            val counts = buildMap<String, Int> {
+                countsObj?.keys()?.forEach { k -> put(k, countsObj.optInt(k, 0)) }
+            }
+            QzoneResult.Ok(counts = counts, ingested = obj.optInt("ingested", 0), rawJson = stdout.trim())
+        } catch (e: Exception) {
+            QzoneResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+    }
+
     /** Result for destroy-vault flow. */
     sealed class DestroyResult {
         object Ok : DestroyResult()
