@@ -768,6 +768,20 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
+    // Stream-stall hint (Claude-Code 2.1.185): when the connection is alive but
+    // the API has gone silent mid-response, a headless run would otherwise look
+    // frozen with no feedback. The REPL already surfaces this; mirror it here to
+    // stderr — out-of-band for every output format (text answer / json envelope
+    // / stream-json NDJSON all go to stdout) so machine consumers are unaffected
+    // while a human watching a long `cc agent -p` run learns we're still waiting
+    // and, when a hard inactivity timeout is set, when it will auto-retry. Plain
+    // text (no chalk) since headless stderr is frequently piped/non-TTY.
+    onStall: (ms, timeoutMs) => {
+      const silent = Math.round(ms / 1000);
+      const retryIn = timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
+      const suffix = retryIn > 0 ? ` · will retry in ${retryIn}s` : "";
+      writeErr(`  ⏳ waiting for API response (silent ${silent}s)${suffix}…\n`);
+    },
   };
 
   // Goal binding (cc goal, Phase 1). `--goal <id>` binds explicitly; `--goal`
