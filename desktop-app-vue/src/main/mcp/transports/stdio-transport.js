@@ -9,6 +9,7 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+const { needsRequestId } = require("./jsonrpc-id.js");
 const { spawn } = require("child_process");
 const EventEmitter = require("events");
 const readline = require("readline");
@@ -209,7 +210,7 @@ class StdioTransport extends EventEmitter {
     }
 
     // Assign request ID if not present
-    if (!message.id && message.method) {
+    if (needsRequestId(message)) {
       message.id = this.nextRequestId++;
     }
 
