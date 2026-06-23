@@ -207,22 +207,22 @@ describe("Task Model Selector", () => {
 
     it("should return correct volcengine models for all task types", () => {
       expect(selectModelForTask("volcengine", TaskType.CHAT)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(selectModelForTask("volcengine", TaskType.CODE)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(selectModelForTask("volcengine", TaskType.REASONING)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(selectModelForTask("volcengine", TaskType.FAST)).toBe(
         "doubao-seed-1-6-lite-251015",
       );
       expect(selectModelForTask("volcengine", TaskType.TRANSLATE)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(selectModelForTask("volcengine", TaskType.CREATIVE)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
     });
 

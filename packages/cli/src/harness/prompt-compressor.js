@@ -77,6 +77,7 @@ export const CONTEXT_WINDOWS = {
   "moonshot-v1-32k": 32768,
   "moonshot-v1-128k": 131072,
   "doubao-seed-1-6-251015": 32768,
+  "doubao-seed-2-1-pro-260628": 32768,
   _provider_defaults: {
     ollama: 32768,
     openai: 128000,

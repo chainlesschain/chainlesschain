@@ -266,12 +266,12 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
         "qwen2.5:14b",
       );
 
-      // Volcengine CHAT and CODE should both be doubao-seed-1-6-251015
+      // Volcengine CHAT and CODE should both be doubao-seed-2-1-pro-260628
       expect(selectModelForTask("volcengine", TaskType.CHAT)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(selectModelForTask("volcengine", TaskType.CODE)).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
     });
   });

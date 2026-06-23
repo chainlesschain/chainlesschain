@@ -303,7 +303,7 @@ describe("LLM Providers", () => {
         "https://ark.cn-beijing.volces.com/api/v3",
       );
       expect(LLM_PROVIDERS.volcengine.defaultModel).toBe(
-        "doubao-seed-1-6-251015",
+        "doubao-seed-2-1-pro-260628",
       );
       expect(LLM_PROVIDERS.volcengine.requiresApiKey).toBe(true);
     });

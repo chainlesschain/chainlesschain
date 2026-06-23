@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.0] — default Volcengine model updated to doubao-seed-2-1-pro-260628
+
+- **The Configure-LLM wizard now defaults the Volcengine (火山引擎/豆包) text
+  model to `doubao-seed-2-1-pro-260628`** instead of the older
+  `doubao-seed-1-6-251015`. New setups pick the current pro model out of the
+  box; existing configs are untouched. The vision model default
+  (`doubao-seed-2-0-lite-260215`) is unchanged.
+
 ## [0.35.0] — clearer setup: install guidance names the Node.js floor
 
 - **Install / missing-`cc` messages now state the Node.js requirement

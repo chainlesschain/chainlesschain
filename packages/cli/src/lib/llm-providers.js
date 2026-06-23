@@ -84,6 +84,8 @@ export const BUILT_IN_PROVIDERS = {
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     apiKeyEnv: "VOLCENGINE_API_KEY",
     models: [
+      "doubao-seed-2-1-pro-260628",
+      "doubao-seed-2-0-lite-260215",
       "doubao-seed-1-6-251015",
       "doubao-seed-1-6-flash-250828",
       "doubao-seed-1-6-lite-251015",

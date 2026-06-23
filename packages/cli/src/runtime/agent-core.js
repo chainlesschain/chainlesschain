@@ -3168,7 +3168,7 @@ export async function chatWithTools(rawMessages, options) {
     dashscope: "qwen-turbo",
     mistral: "mistral-large-latest",
     gemini: "gemini-2.0-flash",
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
   };
 
   // Real token streaming (--include-partial-messages) for every OpenAI-compatible

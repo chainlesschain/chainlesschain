@@ -187,7 +187,7 @@ describe("E2E: LLM Providers & Task Model Selector", () => {
       expect(task.taskType).toBe(TaskType.CODE);
 
       const model = selectModelForTask("volcengine", task.taskType);
-      expect(model).toBe("doubao-seed-1-6-251015");
+      expect(model).toBe("doubao-seed-2-1-pro-260628");
     });
 
     it("should select correct model for kimi and minimax", async () => {

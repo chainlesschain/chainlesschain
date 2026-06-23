@@ -44,7 +44,7 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(taskResult.taskType).toBe(TaskType.CODE);
 
       const model = selectModelForTask("volcengine", taskResult.taskType);
-      expect(model).toBe("doubao-seed-1-6-251015");
+      expect(model).toBe("doubao-seed-2-1-pro-260628");
       expect(provider.models).toContain(model);
     });
 
@@ -53,7 +53,7 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(taskResult.taskType).toBe(TaskType.REASONING);
 
       const model = selectModelForTask("volcengine", taskResult.taskType);
-      expect(model).toBe("doubao-seed-1-6-251015");
+      expect(model).toBe("doubao-seed-2-1-pro-260628");
     });
 
     it("should select correct model after switching active provider to volcengine", () => {
@@ -260,14 +260,14 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(ollama.models).toContain(model);
     });
 
-    it("volcengine CODE model should be doubao-seed-1-6-251015", () => {
+    it("volcengine CODE model should be doubao-seed-2-1-pro-260628", () => {
       const model = selectModelForTask("volcengine", TaskType.CODE);
-      expect(model).toBe("doubao-seed-1-6-251015");
+      expect(model).toBe("doubao-seed-2-1-pro-260628");
     });
 
-    it("volcengine CHAT model should be doubao-seed-1-6-251015", () => {
+    it("volcengine CHAT model should be doubao-seed-2-1-pro-260628", () => {
       const model = selectModelForTask("volcengine", TaskType.CHAT);
-      expect(model).toBe("doubao-seed-1-6-251015");
+      expect(model).toBe("doubao-seed-2-1-pro-260628");
     });
 
     it("ollama provider should list qwen2.5 models", () => {

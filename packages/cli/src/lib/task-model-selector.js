@@ -24,7 +24,7 @@ export const TaskType = {
  */
 const TASK_MODEL_MAP = {
   [TaskType.CHAT]: {
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
     openai: "gpt-4o-mini",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-chat",
@@ -36,7 +36,7 @@ const TASK_MODEL_MAP = {
     ollama: "qwen2.5:7b",
   },
   [TaskType.CODE]: {
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
     openai: "gpt-4o",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-coder",
@@ -48,7 +48,7 @@ const TASK_MODEL_MAP = {
     ollama: "qwen2.5-coder:14b",
   },
   [TaskType.REASONING]: {
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
     openai: "o1",
     anthropic: "claude-opus-4-6",
     deepseek: "deepseek-reasoner",
@@ -72,7 +72,7 @@ const TASK_MODEL_MAP = {
     ollama: "qwen2:7b",
   },
   [TaskType.TRANSLATE]: {
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
     openai: "gpt-4o",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-chat",
@@ -84,7 +84,7 @@ const TASK_MODEL_MAP = {
     ollama: "qwen2:7b",
   },
   [TaskType.CREATIVE]: {
-    volcengine: "doubao-seed-1-6-251015",
+    volcengine: "doubao-seed-2-1-pro-260628",
     openai: "gpt-4o",
     anthropic: "claude-opus-4-6",
     deepseek: "deepseek-chat",
