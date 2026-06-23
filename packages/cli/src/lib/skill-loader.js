@@ -120,6 +120,15 @@ export function parseSkillMd(content) {
         .slice(2)
         .trim()
         .replace(/^['"]|['"]$/g, "");
+      // Lazily start a block array on the first item under an empty-value key
+      // (`tools:\n  - Read\n  - Write`). Without this, currentArray was never
+      // assigned anywhere, so block-style YAML lists were silently dropped —
+      // e.g. an `allowed-tools:` list would vanish and its restriction be lost.
+      // Only create when the key carried no inline value (data[key] still
+      // undefined) so a scalar isn't clobbered by a stray dash.
+      if (!currentArray && currentKey && data[currentKey] === undefined) {
+        currentArray = data[currentKey] = [];
+      }
       if (currentArray) currentArray.push(value);
       continue;
     }

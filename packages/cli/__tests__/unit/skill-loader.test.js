@@ -44,6 +44,32 @@ body`;
       expect(data.tags).toEqual(["code", "review", "ai"]);
     });
 
+    it("parses block array syntax (key:\\n  - item)", () => {
+      // Regression: currentArray was never assigned, so block-style YAML lists
+      // (very common for allowed-tools) were silently dropped.
+      const content = `---
+name: test
+allowed-tools:
+  - Read
+  - "Write"
+  - Bash
+---
+body`;
+      const { data } = parseSkillMd(content);
+      expect(data.allowedTools).toEqual(["Read", "Write", "Bash"]);
+    });
+
+    it("leaves an empty-value key with no list items unset (not [])", () => {
+      const content = `---
+name: test
+notes:
+description: after
+---`;
+      const { data } = parseSkillMd(content);
+      expect(data.notes).toBeUndefined();
+      expect(data.description).toBe("after");
+    });
+
     it("handles boolean values", () => {
       const content = `---
 name: test
