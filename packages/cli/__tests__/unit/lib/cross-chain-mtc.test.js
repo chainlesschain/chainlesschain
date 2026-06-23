@@ -1031,6 +1031,63 @@ describe("cross-chain-mtc lib", () => {
       });
     });
 
+    it("verifyMultisigProvenance rejects more signers than member_count_n", () => {
+      // 3 signers declared in a 2-member group → self-inconsistent. Without
+      // policy.members this previously passed (no upper bound on signer count).
+      const env = {
+        multisig_provenance: {
+          proposal_id: "msp_toomany",
+          threshold_m: 2,
+          member_count_n: 2,
+          signers: ["did:cc:a", "did:cc:b", "did:cc:c"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+            { did: "did:cc:c", alg: "Ed25519", sig: "cc" },
+          ],
+        },
+      };
+      expect(verifyMultisigProvenance(env)).toMatchObject({
+        ok: false,
+        code: "TOO_MANY_SIGNERS",
+      });
+    });
+
+    it("verifyMultisigProvenance rejects duplicate signers (threshold can't be met by one member)", () => {
+      const env = {
+        multisig_provenance: {
+          proposal_id: "msp_dup",
+          threshold_m: 2,
+          member_count_n: 3,
+          signers: ["did:cc:a", "did:cc:a"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+            { did: "did:cc:a", alg: "Ed25519", sig: "bb" },
+          ],
+        },
+      };
+      expect(verifyMultisigProvenance(env)).toMatchObject({
+        ok: false,
+        code: "DUPLICATE_SIGNER",
+      });
+    });
+
+    it("verifyMultisigProvenance accepts a well-formed minimal envelope", () => {
+      const env = {
+        multisig_provenance: {
+          proposal_id: "msp_ok",
+          threshold_m: 2,
+          member_count_n: 3,
+          signers: ["did:cc:a", "did:cc:b"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+          ],
+        },
+      };
+      expect(verifyMultisigProvenance(env).ok).toBe(true);
+    });
+
     it("verifyMultisigProvenance rejects below threshold (override via policy.m)", () => {
       const w = makeWrapper(true);
       const r = verifyMultisigProvenance(w, { m: 3 });

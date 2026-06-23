@@ -749,6 +749,16 @@ export function verifyMultisigProvenance(envelope, policy) {
   if (prov.signers.length !== prov.partial_sigs.length) {
     return { ok: false, code: "SIGNERS_SIGS_LENGTH_MISMATCH" };
   }
+  // A group of N members cannot produce more than N distinct signers; a
+  // provenance that lists more is self-inconsistent (and, without a
+  // policy.members roster below, would otherwise pass).
+  if (prov.signers.length > prov.member_count_n) {
+    return {
+      ok: false,
+      code: "TOO_MANY_SIGNERS",
+      detail: `${prov.signers.length} > ${prov.member_count_n}`,
+    };
+  }
   const requiredM =
     policy && Number.isInteger(policy.m) ? policy.m : prov.threshold_m;
   if (prov.partial_sigs.length < requiredM) {
@@ -762,6 +772,13 @@ export function verifyMultisigProvenance(envelope, policy) {
   for (let i = 0; i < prov.signers.length; i++) {
     if (prov.signers[i] !== sorted[i]) {
       return { ok: false, code: "SIGNERS_NOT_SORTED" };
+    }
+  }
+  // Signers must be distinct: duplicates (e.g. ["a","a","a"]) would otherwise
+  // let a single member meet an M-of-N threshold by repeating themselves.
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === sorted[i - 1]) {
+      return { ok: false, code: "DUPLICATE_SIGNER", detail: sorted[i] };
     }
   }
   const allowed =
