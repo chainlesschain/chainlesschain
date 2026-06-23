@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cc loop` 时长解析**：`parseDuration(30)`（数字入参）此前按毫秒返回 `30`，与函数文档契约「裸数字按秒」及字符串路径（`parseDuration("30") === 30000`）自相矛盾。改为数字入参也按秒（`parseDuration(30) === parseDuration("30")`）。当前生产调用方均传字符串，故为潜在不一致而非线上回归。
 - **`cc cost` 价格覆盖**：`mergePricing` 此前把用户 `llm.pricing` 覆盖项写在配置原始大小写的 provider 键下，而 `lookupRate` 始终按小写查表、内置表键也是小写 → 形如 `{"Anthropic": [...]}` 的混合大小写覆盖落到不可达键被静默忽略。改为归一化 provider 键为小写，使覆盖正确合并并替换内置费率。
 
+### Fixed — 桌面 `formatFileSize` 越界输出 "undefined"
+
+> 桌面 renderer 工具函数，含回归单测；不涉及发版链。
+
+- 文件大小格式化对 ≥ 1 PB（单位数组止于 TB → `sizes[5]` 为 undefined）或 0<bytes<1（指数为 -1 → `sizes[-1]`）的有效输入会拼出含字面量 `"undefined"` 的字符串（负数则为 `"NaN undefined"`）。改为把单位下标钳制到 `[0, TB]`、负数视为无效（返回 `Unknown`）；常规 0..<1PB 区间行为不变。
+
 ## [v5.0.3.129] - 2026-06-22 — 个人助手信任卡固定可见（不再被消息流滚走 / 误以为「没反应」）
 
 ### Fixed — Android 个人助手:发消息后的确认卡看不见,要往上翻
