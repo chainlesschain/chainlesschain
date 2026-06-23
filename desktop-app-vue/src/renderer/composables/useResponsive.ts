@@ -82,11 +82,11 @@ export interface TableColumn {
  * 响应式断点定义
  */
 export const BREAKPOINTS: BreakpointConfig<number> = {
-  xs: 480,   // 手机
-  sm: 576,   // 大手机
-  md: 768,   // 平板
-  lg: 992,   // 小桌面
-  xl: 1200,  // 桌面
+  xs: 480, // 手机
+  sm: 576, // 大手机
+  md: 768, // 平板
+  lg: 992, // 小桌面
+  xl: 1200, // 桌面
   xxl: 1600, // 大桌面
 };
 
@@ -99,6 +99,26 @@ export const DEVICE_TYPES = {
   DESKTOP: "desktop" as const,
 };
 
+// ==================== 纯函数 ====================
+
+/**
+ * 将视口宽度映射为断点名称（min-width 语义：每个 BREAKPOINTS 值是该档位的
+ * 起始宽度，故宽度归属于 T 档当它 < 下一档的阈值）。
+ *
+ * 这与同文件的 deviceType / isSmallScreen 等保持一致（例如 768~992 既是
+ * deviceType="tablet" 也应是 breakpoint="md"=平板）。旧实现把每档与"本档阈值"
+ * 比较，导致整体偏移一档（800px 时 deviceType=tablet 却返回 breakpoint="lg"）。
+ * 抽出为纯函数以便单测。
+ */
+export function getBreakpoint(width: number): BreakpointName {
+  if (width < BREAKPOINTS.sm) return "xs";
+  if (width < BREAKPOINTS.md) return "sm";
+  if (width < BREAKPOINTS.lg) return "md";
+  if (width < BREAKPOINTS.xl) return "lg";
+  if (width < BREAKPOINTS.xxl) return "xl";
+  return "xxl";
+}
+
 // ==================== Composables ====================
 
 /**
@@ -109,15 +129,9 @@ export function useResponsive() {
   const windowHeight = ref(window.innerHeight);
 
   // 当前断点
-  const breakpoint: ComputedRef<BreakpointName> = computed(() => {
-    const width = windowWidth.value;
-    if (width < BREAKPOINTS.xs) return "xs";
-    if (width < BREAKPOINTS.sm) return "sm";
-    if (width < BREAKPOINTS.md) return "md";
-    if (width < BREAKPOINTS.lg) return "lg";
-    if (width < BREAKPOINTS.xl) return "xl";
-    return "xxl";
-  });
+  const breakpoint: ComputedRef<BreakpointName> = computed(() =>
+    getBreakpoint(windowWidth.value),
+  );
 
   // 设备类型
   const deviceType: ComputedRef<DeviceType> = computed(() => {
@@ -141,7 +155,8 @@ export function useResponsive() {
 
   // 是否为中等屏幕
   const isMediumScreen = computed(
-    () => windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl,
+    () =>
+      windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl,
   );
 
   // 是否为大屏幕
