@@ -133,19 +133,31 @@ describe("AgentEconomy", () => {
 
   // --- State Channels ---
 
-  it("should open a payment channel", async () => {
+  it("should open a payment channel and debit the deposit from partyA", async () => {
     await economy.initialize(db);
+    economy._balances.set("alice", { balance: 100, locked: 0 });
     const ch = economy.openChannel("alice", "bob", 50);
     expect(ch.id).toMatch(/^ch-/);
     expect(ch.party_a).toBe("alice");
     expect(ch.party_b).toBe("bob");
     expect(ch.balance_a).toBe(50);
     expect(ch.status).toBe("open");
+    // 押金从 alice 真实余额扣除（防开/关通道凭空造币）
+    expect(economy.getBalance("alice").balance).toBe(50); // 100 - 50
   });
 
-  it("should close a channel and settle balances", async () => {
+  it("should reject opening a channel with insufficient balance", async () => {
     await economy.initialize(db);
-    const ch = economy.openChannel("alice", "bob", 50);
+    economy._balances.set("alice", { balance: 30, locked: 0 });
+    expect(() => economy.openChannel("alice", "bob", 50)).toThrow(
+      "Insufficient balance",
+    );
+  });
+
+  it("should close a channel and settle balances, conserving the deposit", async () => {
+    await economy.initialize(db);
+    economy._balances.set("alice", { balance: 100, locked: 0 });
+    const ch = economy.openChannel("alice", "bob", 50); // alice: 100 → 50
     const channel = economy._channels.get(ch.id);
     channel.balance_a = 30;
     channel.balance_b = 20;
@@ -153,8 +165,9 @@ describe("AgentEconomy", () => {
     expect(result.settled).toBe(true);
     expect(result.balanceA).toBe(30);
     expect(result.balanceB).toBe(20);
-    expect(economy.getBalance("alice").balance).toBe(30);
-    expect(economy.getBalance("bob").balance).toBe(20);
+    // 守恒：alice 出资 50、取回 30（净 -20）；bob 取回 20（净 +20）。合计不变。
+    expect(economy.getBalance("alice").balance).toBe(80); // 50 + 30
+    expect(economy.getBalance("bob").balance).toBe(20); // 0 + 20
   });
 
   it("should return null when closing unknown channel", async () => {

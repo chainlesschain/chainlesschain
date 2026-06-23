@@ -201,6 +201,20 @@ class AgentEconomy extends EventEmitter {
 
   // State Channel
   openChannel(partyA, partyB, depositA = 0) {
+    _finiteAmount(depositA, "deposit", { allowZero: true });
+    // 押金必须由 partyA 的真实余额出资并扣除。closeChannel 会把 channel.balance_a
+    // 贷记回 partyA、balance_b 贷记 partyB；若开通道不扣押金，则关通道贷记的是从未
+    // 扣过的余额 → 开/关通道即可凭空造币。先校验余额并扣除，使开/关守恒。
+    const fromBalance = this._balances.get(partyA) || { balance: 0, locked: 0 };
+    if (fromBalance.balance < depositA) {
+      throw new Error(
+        `Insufficient balance: ${fromBalance.balance} < ${depositA}`,
+      );
+    }
+    fromBalance.balance -= depositA;
+    this._balances.set(partyA, fromBalance);
+    this._persistBalance(partyA, fromBalance);
+
     const id = `ch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = {
       id,
@@ -238,12 +252,14 @@ class AgentEconomy extends EventEmitter {
     };
     balA.balance += channel.balance_a;
     this._balances.set(channel.party_a, balA);
+    this._persistBalance(channel.party_a, balA);
     const balB = this._balances.get(channel.party_b) || {
       balance: 0,
       locked: 0,
     };
     balB.balance += channel.balance_b;
     this._balances.set(channel.party_b, balB);
+    this._persistBalance(channel.party_b, balB);
     try {
       this.db
         .prepare("UPDATE economy_channels SET status = 'closed' WHERE id = ?")
