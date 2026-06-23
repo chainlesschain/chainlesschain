@@ -43,6 +43,40 @@ function isMeaningfulTopicName(name) {
   return true;
 }
 
+// File/config noise that the device file-scan (system-data-android) records as
+// "items": configs, system files, downloads, screenshots, exported text dumps.
+// These are NOT interests (a real interest item is a product / media title /
+// place). Drop names that look like a filename or a bare config token.
+const FILE_NOISE_EXT = new RegExp(
+  "\\.(xml|html?|txt|md|json|ya?ml|log|ini|cfg|conf|properties|lock|csv|tsv|" +
+    "png|jpe?g|gif|webp|bmp|svg|ico|heic|" +
+    "mp3|mp4|mov|avi|mkv|wav|flac|m4a|" +
+    "apk|db|sqlite|dat|bak|tmp|cache|" +
+    "zip|rar|7z|gz|tar|" +
+    "so|dll|exe|bin|" +
+    "js|ts|java|kt|py|c|h|cpp|gradle|sh|bat)$",
+  "i"
+);
+const CONFIG_TOKEN = /^(appid|tone|config|settings?|index|default|temp|tmp|cache|manifest|readme|license)$/i;
+function isMeaningfulItemName(name) {
+  if (typeof name !== "string") return false;
+  const s = name.trim();
+  if (s.length === 0 || s === "(unknown)") return false;
+  // Strip a trailing dedup suffix like " (1)" / " (2)" before checking ext.
+  const base = s.replace(/\s*\(\d+\)$/, "");
+  if (FILE_NOISE_EXT.test(base)) return false; // looks like a filename → device file, not an interest
+  if (CONFIG_TOKEN.test(s)) return false; // bare config key
+  return true;
+}
+
+// Adapters that catalog the device's files / code / shell / repos rather than
+// the user's interests. Their "items" are filenames, not products/media/places,
+// so they must not appear in the interest profile (a real interest item comes
+// from a shopping / media / browse / social source).
+const NON_INTEREST_ITEM_ADAPTERS = new Set([
+  "system-data-android", "local-files", "vscode", "shell-history", "git-activity",
+]);
+
 class InterestsSkill extends AnalysisSkill {
   constructor(opts) {
     super({ ...opts, name: "analysis.interests" });
@@ -70,38 +104,45 @@ class InterestsSkill extends AnalysisSkill {
   }
 
   _topTopics(since, until, topN) {
-    // Topics are stored in their own table — eventCount is derived from
-    // the JSON `derived_from_events` array length; lastSeen is the
-    // topic's ingested_at (proxy until we add a real last_seen column).
-    let topics = [];
+    // Rank topics by REAL engagement: count events that actually reference each
+    // topic (the events.topics JSON array) and join to the topics table for the
+    // human name. The old path read topics.derived_from_events (which the
+    // derivation never populates → eventCount always 0) and fell back to
+    // ordering by ingested_at — so "top interests" were just the most recently
+    // ingested group names, including inactive memberships the user never
+    // participates in. Now an active group like "EasyWeChat 开发者闲聊吹水群"
+    // (hundreds of events) ranks above a group joined once and never used.
+    let rows = [];
     try {
       const db = this.vault._requireOpen();
-      // Over-fetch (×20, capped) before filtering: vaults can hold thousands
-      // of unresolved numeric group-chat topics that would otherwise starve
-      // the few human-readable interest topics out of the top-N budget.
-      topics = db.prepare(
-        "SELECT id, name, derived_from_events, ingested_at FROM topics ORDER BY ingested_at DESC LIMIT ?"
-      ).all(Math.min(topN * 20, 2000));
+      const where = ["events.topics IS NOT NULL", "events.topics != '[]'"];
+      const params = {};
+      if (Number.isFinite(since)) { where.push("events.occurred_at >= @since"); params.since = since; }
+      if (Number.isFinite(until)) { where.push("events.occurred_at <= @until"); params.until = until; }
+      // Over-fetch (×20, capped) before the meaningful-name filter so a burst
+      // of numeric-named group topics can't starve human-readable ones.
+      params.lim = Math.min(topN * 20, 2000);
+      rows = db.prepare(
+        "SELECT t.id AS id, t.name AS name, c.cnt AS eventCount, t.ingested_at AS lastSeen " +
+        "FROM topics t JOIN (" +
+          "SELECT je.value AS tid, COUNT(*) AS cnt " +
+          "FROM events, json_each(events.topics) je " +
+          "WHERE " + where.join(" AND ") + " " +
+          "GROUP BY je.value" +
+        ") c ON c.tid = t.id " +
+        "ORDER BY c.cnt DESC LIMIT @lim"
+      ).all(params);
     } catch (_e) {
-      // Older vaults may not have topics; non-fatal.
+      // Older vaults may lack topics / JSON1 — non-fatal, return empty.
     }
-    const mapped = topics
+    return rows
       .filter((t) => isMeaningfulTopicName(t.name))
-      .map((t) => {
-        let eventCount = 0;
-        try {
-          const arr = t.derived_from_events ? JSON.parse(t.derived_from_events) : [];
-          if (Array.isArray(arr)) eventCount = arr.length;
-        } catch (_e) {}
-        return {
-          id: t.id,
-          name: t.name,
-          eventCount,
-          lastSeen: t.ingested_at || null,
-        };
-      });
-    return mapped
-      .sort((a, b) => (b.eventCount - a.eventCount) || ((b.lastSeen || 0) - (a.lastSeen || 0)))
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        eventCount: t.eventCount || 0,
+        lastSeen: t.lastSeen || null,
+      }))
       .slice(0, topN);
   }
 
@@ -109,18 +150,25 @@ class InterestsSkill extends AnalysisSkill {
     let items = [];
     try {
       const db = this.vault._requireOpen();
+      // Over-fetch (×30, capped) before the noise filter: the device file-scan
+      // (system-data-android) floods the items table with configs/screenshots/
+      // exports that would otherwise fill the recent-N window and crowd out
+      // genuine product/media items.
       items = db.prepare(
-        "SELECT id, name FROM items ORDER BY ingested_at DESC LIMIT ?"
-      ).all(topN * 3);
+        "SELECT id, name, source_adapter FROM items ORDER BY ingested_at DESC LIMIT ?"
+      ).all(Math.min(topN * 30, 3000));
     } catch (_e) {}
     // Re-bucket by name (multiple Item rows often share the same product
     // name across adapters). Phase 8 EntityResolver doesn't dedup items
     // yet — that's Phase 9+.
     const buckets = new Map();
     for (const row of items) {
+      if (NON_INTEREST_ITEM_ADAPTERS.has(row.source_adapter)) continue; // device file/code scans, not interests
+      if (!isMeaningfulItemName(row.name)) continue; // skip device files / config noise
       const item = this.vault.getItem ? this.vault.getItem(row.id) : null;
       if (!item) continue;
       const key = item.name || "(unknown)";
+      if (!isMeaningfulItemName(key)) continue;
       const cur = buckets.get(key) || { name: key, occurrences: 0, totalSpend: 0 };
       cur.occurrences += 1;
       if (item.price && Number.isFinite(item.price.value)) cur.totalSpend += item.price.value;

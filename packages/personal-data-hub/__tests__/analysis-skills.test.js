@@ -471,34 +471,67 @@ describe("InterestsSkill", () => {
   beforeEach(() => { rig = makeVault(); });
   afterEach(() => cleanup(rig));
 
+  // Topics rank by REAL engagement — events that reference the topic via the
+  // events.topics array — so seed a topic plus `count` events pointing at it.
+  function seedTopic(vault, { id, name, count = 1, ingestedAt }) {
+    const at = ingestedAt || Date.now();
+    vault.putTopic({ id, type: "topic", name, derivedFromEvents: [], ingestedAt: at, source: defaultSource("test") });
+    for (let i = 0; i < count; i++) {
+      vault.putEvent({
+        id: `${id}-ev-${i}`, type: "event", subtype: "message",
+        occurredAt: ts(2026, 5, 1) + i, actor: "person-self",
+        participants: [], content: { title: `${name} ${i}` }, topics: [id],
+        ingestedAt: at, source: defaultSource("test"),
+      });
+    }
+  }
+
   it("returns topTopics + topItems (no LLM)", async () => {
-    rig.vault.putTopic({
-      id: "topic-coffee", type: "topic", name: "Coffee",
-      derivedFromEvents: ["evt-1", "evt-2", "evt-3", "evt-4", "evt-5"],
-      ingestedAt: Date.now(), source: defaultSource("test"),
-    });
+    seedTopic(rig.vault, { id: "topic-coffee", name: "Coffee", count: 5 });
     rig.vault.putItem({
       id: "item-iphone", type: "item", subtype: "product",
       name: "iPhone 17",
       price: { value: 9999, currency: "CNY" },
-      ingestedAt: Date.now(), source: defaultSource("test"),
+      ingestedAt: Date.now(), source: defaultSource("shopping-taobao"),
     });
     const skill = new InterestsSkill({ vault: rig.vault });
     const r = await skill.run({});
     expect(r.topTopics.length).toBeGreaterThanOrEqual(1);
     expect(r.topTopics[0].name).toBe("Coffee");
-    expect(r.topTopics[0].eventCount).toBe(5);
+    expect(r.topTopics[0].eventCount).toBe(5); // from real events, not derived_from_events
     expect(r.topItems.length).toBeGreaterThanOrEqual(1);
     expect(r.topItems[0].name).toBe("iPhone 17");
     expect(r.llmInterests).toBeNull();
   });
 
+  it("ranks topics by real engagement (events.topics) — active topic beats a recently-ingested idle one", async () => {
+    // 'Idle' is ingested LAST (newest) but has only 1 event; 'Active' is older
+    // but has 4 events. Old code ordered by ingested_at → Idle wrongly first.
+    seedTopic(rig.vault, { id: "topic-active", name: "Active", count: 4, ingestedAt: 1000 });
+    seedTopic(rig.vault, { id: "topic-idle", name: "Idle", count: 1, ingestedAt: 9_000_000 });
+    const r = await new InterestsSkill({ vault: rig.vault }).run({});
+    expect(r.topTopics[0].name).toBe("Active");
+    expect(r.topTopics[0].eventCount).toBe(4);
+    expect(r.topTopics.find((t) => t.name === "Idle").eventCount).toBe(1);
+  });
+
+  it("topItems drops device-file / config noise (system-data-android file scan)", async () => {
+    // Real interest item
+    rig.vault.putItem({ id: "item-real", type: "item", subtype: "product", name: "Sony 耳机", ingestedAt: Date.now(), source: defaultSource("shopping-jd") });
+    // Device file-scan noise — must NOT appear as interests
+    rig.vault.putItem({ id: "item-x1", type: "item", subtype: "document", name: "tone.xml", ingestedAt: Date.now() + 1, source: defaultSource("system-data-android") });
+    rig.vault.putItem({ id: "item-x2", type: "item", subtype: "document", name: "现场取证202306.docx", ingestedAt: Date.now() + 2, source: defaultSource("system-data-android") });
+    rig.vault.putItem({ id: "item-x3", type: "item", subtype: "document", name: "appid", ingestedAt: Date.now() + 3, source: defaultSource("system-data-android") });
+    const r = await new InterestsSkill({ vault: rig.vault }).run({});
+    const names = r.topItems.map((i) => i.name);
+    expect(names).toContain("Sony 耳机");
+    expect(names).not.toContain("tone.xml");
+    expect(names.some((n) => n.includes(".docx"))).toBe(false);
+    expect(names).not.toContain("appid");
+  });
+
   it("LLM clustering parses JSON array response", async () => {
-    rig.vault.putTopic({
-      id: "topic-a", type: "topic", name: "Photography",
-      derivedFromEvents: ["evt-1", "evt-2", "evt-3"],
-      ingestedAt: Date.now(), source: defaultSource("test"),
-    });
+    seedTopic(rig.vault, { id: "topic-a", name: "Photography", count: 3 });
     const llm = {
       isLocal: true,
       chat: async () => ({
@@ -520,11 +553,7 @@ describe("InterestsSkill", () => {
   });
 
   it("non-local LLM gate → llmInterests null even with topics present", async () => {
-    rig.vault.putTopic({
-      id: "topic-b", type: "topic", name: "Cooking",
-      derivedFromEvents: ["e-1"],
-      ingestedAt: Date.now(), source: defaultSource("test"),
-    });
+    seedTopic(rig.vault, { id: "topic-b", name: "Cooking", count: 1 });
     const llm = {
       isLocal: false,
       chat: async () => ({ text: '[{"category":"烹饪","evidenceCount":1,"examples":["Cooking"]}]' }),
@@ -536,11 +565,7 @@ describe("InterestsSkill", () => {
   });
 
   it("LLM clustering exception swallowed → llmInterests null but data intact", async () => {
-    rig.vault.putTopic({
-      id: "topic-c", type: "topic", name: "Travel",
-      derivedFromEvents: ["e-1", "e-2"],
-      ingestedAt: Date.now(), source: defaultSource("test"),
-    });
+    seedTopic(rig.vault, { id: "topic-c", name: "Travel", count: 2 });
     const llm = {
       isLocal: true,
       chat: async () => { throw new Error("vllm 500"); },
@@ -552,23 +577,12 @@ describe("InterestsSkill", () => {
   });
 
   it("drops unresolved numeric group-id topics (e.g. WeChat chatroom ids) from the profile", async () => {
-    // Real interest topic
-    rig.vault.putTopic({
-      id: "topic-doubao", type: "topic", name: "豆包",
-      derivedFromEvents: ["e1"],
-      ingestedAt: Date.now(), source: defaultSource("test"),
-    });
-    // Unresolved group-chat topics named by raw numeric chatroom id — noise.
-    rig.vault.putTopic({
-      id: "topic-g1", type: "topic", name: "45498354778",
-      derivedFromEvents: [],
-      ingestedAt: Date.now() + 1, source: defaultSource("test"),
-    });
-    rig.vault.putTopic({
-      id: "topic-g2", type: "topic", name: "54346634535",
-      derivedFromEvents: [],
-      ingestedAt: Date.now() + 2, source: defaultSource("test"),
-    });
+    // Real interest topic + two unresolved numeric group topics that are even
+    // MORE active (more events) — they must still be filtered out by name so
+    // they don't crowd out the genuine one.
+    seedTopic(rig.vault, { id: "topic-doubao", name: "豆包", count: 2 });
+    seedTopic(rig.vault, { id: "topic-g1", name: "45498354778", count: 9 });
+    seedTopic(rig.vault, { id: "topic-g2", name: "54346634535", count: 7 });
     const skill = new InterestsSkill({ vault: rig.vault });
     const r = await skill.run({});
     const names = r.topTopics.map((t) => t.name);
