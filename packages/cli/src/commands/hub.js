@@ -2686,6 +2686,14 @@ export function registerHubCommand(program) {
       "Cap vault queryEvents limit (default 200; small-model callers should pass 50)",
     )
     .option("--json", "Output JSON")
+    .addHelpText(
+      "after",
+      "\nLLM backend: defaults to local Ollama (privacy). To use a configured\n" +
+        "cloud provider instead (e.g. no Ollama installed), set CC_HUB_LLM:\n" +
+        "  CC_HUB_LLM=config        use cc config's llm.{provider,model,baseUrl,apiKey}\n" +
+        "  CC_HUB_LLM=<provider>    e.g. volcengine / anthropic / deepseek\n" +
+        "Cloud backends still require --accept-non-local to send data off device.",
+    )
     .action(cmdAsk);
 
   hub

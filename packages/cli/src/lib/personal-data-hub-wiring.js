@@ -27,6 +27,8 @@
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { rewritePdhLoadError } from "./pdh-load-error.js";
+import { loadConfig } from "./config-manager.js";
+import { buildCliHubLLM } from "./hub-llm-client.js";
 // Test seam (mirrors _atomicWriteJson600): re-exported so the existing
 // pdh-wiring-load-error suite can keep importing it from here.
 export { rewritePdhLoadError as _rewritePdhLoadError } from "./pdh-load-error.js";
@@ -369,12 +371,26 @@ async function initHub() {
   const vault = new LocalVault({ path: join(hubDir, "vault.db"), key });
   vault.open();
 
-  // LLM: prefer caller-injected override (desktop web-shell wires CcLLMAdapter
-  // wrapping LLMManager so PDH honors the user's saved active provider).
-  // Fallback to standalone OllamaClient — connects to localhost:11434.
-  // Override the fallback via env CC_HUB_OLLAMA_URL / CC_HUB_OLLAMA_MODEL.
+  // LLM resolution order:
+  //   1. caller-injected override (desktop web-shell wires CcLLMAdapter
+  //      wrapping LLMManager so PDH honors the user's saved active provider).
+  //   2. CLI cloud client built from cc config / env — OPT-IN via CC_HUB_LLM,
+  //      so a machine without Ollama can run `cc hub ask` against the user's
+  //      configured provider (volcengine/anthropic/...). Reports isLocal=false;
+  //      the AnalysisEngine still refuses to use it unless `ask` is given
+  //      --accept-non-local (privacy gate stays intact). Default (unset) → null.
+  //   3. standalone OllamaClient — connects to localhost:11434 (the privacy
+  //      promise default). Override via env CC_HUB_OLLAMA_URL / _OLLAMA_MODEL.
+  let cliCloudLlm = null;
+  try {
+    cliCloudLlm = buildCliHubLLM({ config: loadConfig(), env: process.env });
+  } catch {
+    // fail-open: a bad CC_HUB_LLM / unreadable config must never brick the hub.
+    cliCloudLlm = null;
+  }
   const llm =
     _llmOverride ||
+    cliCloudLlm ||
     new OllamaClient({
       baseUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
       model: process.env.CC_HUB_OLLAMA_MODEL || "qwen2.5:7b-instruct",
