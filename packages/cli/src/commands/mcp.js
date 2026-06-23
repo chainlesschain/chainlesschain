@@ -24,6 +24,7 @@ import {
 } from "../lib/mcp-scaffold.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { resolveMcpAuthTarget, isUrlLike } from "../lib/mcp-auth-target.js";
+import { notFoundWithSuggestion } from "../lib/suggest-name.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -78,8 +79,9 @@ async function connectForQuery(program, serverName) {
   if (serverName) {
     const row = config.get(serverName);
     if (!row) {
+      const names = config.list().map((s) => s.name);
       logger.error(
-        `Server "${serverName}" not configured. Use 'mcp add' first.`,
+        `${notFoundWithSuggestion(serverName, names, { noun: "Server" })}. Use 'mcp add' first.`,
       );
       await shutdown();
       process.exit(1);
@@ -523,12 +525,13 @@ export function registerMcpCommand(program) {
 
         const db = ctx.db.getDatabase();
         const config = new MCPServerConfig(db);
+        const names = config.list().map((s) => s.name);
         const removed = config.remove(name);
 
         if (removed) {
           logger.success(`MCP server "${name}" removed`);
         } else {
-          logger.error(`Server "${name}" not found`);
+          logger.error(notFoundWithSuggestion(name, names, { noun: "Server" }));
         }
 
         await shutdown();
@@ -559,7 +562,10 @@ export function registerMcpCommand(program) {
         const serverConfig = config.get(name);
 
         if (!serverConfig) {
-          logger.error(`Server "${name}" not configured. Use 'mcp add' first.`);
+          const names = config.list().map((s) => s.name);
+          logger.error(
+            `${notFoundWithSuggestion(name, names, { noun: "Server" })}. Use 'mcp add' first.`,
+          );
           process.exit(1);
         }
 
