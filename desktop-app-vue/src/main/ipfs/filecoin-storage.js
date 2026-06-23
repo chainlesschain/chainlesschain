@@ -7,6 +7,7 @@
 import { logger } from "../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 class FilecoinStorage extends EventEmitter {
   constructor(database) {
@@ -112,13 +113,19 @@ class FilecoinStorage extends EventEmitter {
   }
 
   async getStorageStats() {
-    const deals = Array.from(this._deals.values());
-    return {
-      totalDeals: deals.length,
-      activeDeals: deals.filter((d) => d.status === "active").length,
-      totalSizeBytes: deals.reduce((s, d) => s + (d.size_bytes || 0), 0),
-      totalCostFil: deals.reduce((s, d) => s + (d.price_fil || 0), 0),
-    };
+    // Single pass over the deals instead of one array copy + filter + two
+    // reduces (was 3 separate scans).
+    let totalDeals = 0;
+    let activeDeals = 0;
+    let totalSizeBytes = 0;
+    let totalCostFil = 0;
+    for (const d of this._deals.values()) {
+      totalDeals++;
+      if (d.status === "active") activeDeals++;
+      totalSizeBytes += d.size_bytes || 0;
+      totalCostFil += d.price_fil || 0;
+    }
+    return { totalDeals, activeDeals, totalSizeBytes, totalCostFil };
   }
 
   /**
@@ -150,7 +157,6 @@ class FilecoinStorage extends EventEmitter {
 
     // Verify proof against deal CID — simplified verification:
     // Check that proof data contains a valid hash commitment to the CID
-    const crypto = await import("crypto");
     const commitment = crypto
       .createHash("sha256")
       .update(`${deal.cid}:${proofType}:${proof.sectorId || "0"}`)
