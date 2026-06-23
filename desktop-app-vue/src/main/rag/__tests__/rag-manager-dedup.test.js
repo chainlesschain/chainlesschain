@@ -48,4 +48,16 @@ describe("RAGManager._deduplicateResults", () => {
     ]);
     expect(out.map((r) => r.id)).toEqual(["a", "b", "c"]);
   });
+
+  it("a later-arriving winning duplicate keeps the id's ORIGINAL position", () => {
+    // 'd1' first appears at index 0; its higher-scored version arrives last.
+    // Order must stay [d1, d2] (first-seen), and d1 must carry the higher score.
+    const out = dedup([
+      { id: "d1", score: 0.8 },
+      { id: "d2", score: 0.5 },
+      { id: "d1", score: 0.9 },
+    ]);
+    expect(out.map((r) => r.id)).toEqual(["d1", "d2"]);
+    expect(out[0].score).toBe(0.9);
+  });
 });

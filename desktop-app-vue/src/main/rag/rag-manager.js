@@ -386,29 +386,24 @@ class RAGManager extends EventEmitter {
    * @private
    */
   _deduplicateResults(results) {
-    const seen = new Set();
-    const unique = [];
+    // Dedup by id, keeping the higher-scored duplicate. A Map gives O(1) lookup
+    // of the current best per id (was an O(n) `unique.findIndex` per duplicate →
+    // O(n²) when many sources overlap). `Map.set` on an existing key updates the
+    // value WITHOUT moving its position, so iteration order stays first-seen —
+    // identical to the previous in-place-replace behavior.
+    const byId = new Map();
 
     for (const result of results) {
-      const id = result.id;
-      if (!seen.has(id)) {
-        seen.add(id);
-        unique.push(result);
-      } else {
-        // 如果已存在，保留分数更高的。用 ?? 0 兜底缺失分数：否则当先到的
-        // 重复项无 score、后到的有 score 时，`score > undefined` 为 false，
-        // 会错误地丢弃有分数的那条（多来源合并时部分来源不带 score）。
-        const existingIndex = unique.findIndex((r) => r.id === id);
-        if (
-          existingIndex !== -1 &&
-          (result.score ?? 0) > (unique[existingIndex].score ?? 0)
-        ) {
-          unique[existingIndex] = result;
-        }
+      const existing = byId.get(result.id);
+      // 用 ?? 0 兜底缺失分数：否则当先到的重复项无 score、后到的有 score 时，
+      // `score > undefined` 为 false，会错误地丢弃有分数的那条（多来源合并时
+      // 部分来源不带 score）。
+      if (!existing || (result.score ?? 0) > (existing.score ?? 0)) {
+        byId.set(result.id, result);
       }
     }
 
-    return unique;
+    return [...byId.values()];
   }
 
   /**
