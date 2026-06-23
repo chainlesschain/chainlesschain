@@ -103,7 +103,69 @@ function parseQzoneFeed(text, uin) {
   return { code: 0, events, total: json.total != null ? json.total : (json.result && json.result.total) };
 }
 
-export { gtk, parseQzoneFeed, SELF_ID };
+// ── 留言板 (get_msgb) → EVENT(message) by the commenter ────────────────────
+function stripHtml(s) {
+  return String(s || '')
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ').trim();
+}
+function beijingMs(s) { const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(String(s || '')); if (!m) return 0; return Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+08:00`) || 0; }
+
+function parseGuestbook(text, uin) {
+  let json; try { json = JSON.parse(text.replace(/^_Callback\(/, '').replace(/\);?\s*$/, '')); } catch { return { code: -1, events: [], persons: [] }; }
+  if (json.code !== 0) return { code: json.code, message: json.message, events: [], persons: [] };
+  const list = (json.data && json.data.commentList) || [];
+  const events = [], persons = new Map();
+  for (const c of list) {
+    const id = c.id; const occurredAt = beijingMs(c.pubtime);
+    const txt = stripHtml(c.htmlContent || c.content || '');
+    if (!id || !occurredAt || !txt) continue;
+    const fromUin = String(c.uin || '');
+    const fromNick = c.nickname || fromUin;
+    const actor = fromUin ? `person-qq-${fromUin}` : SELF_ID;
+    if (fromUin && !persons.has(actor)) persons.set(actor, { type: 'person', subtype: 'contact', id: actor, names: fromNick !== fromUin ? [fromNick, fromUin] : [fromUin], identifiers: { qqUin: fromUin }, source: SRC(actor), ingestedAt: Date.now() });
+    events.push({
+      type: 'event', subtype: 'message', id: `qzone-msgb:${id}`,
+      occurredAt, actor, participants: [actor, SELF_ID],
+      content: { title: txt.slice(0, 80), text: txt },
+      source: SRC(`qzone-msgb-${id}`, occurredAt),
+      extra: { kind: 'qzone-guestbook', fromUin, fromNick },
+      ingestedAt: Date.now(),
+    });
+  }
+  return { code: 0, events, persons: [...persons.values()], total: json.data && json.data.total };
+}
+
+// ── 相册 (fcg_list_album_v3) → EVENT(media) per album ──────────────────────
+function parseAlbums(text, uin) {
+  let json; try { json = JSON.parse(text.replace(/^_Callback\(/, '').replace(/\);?\s*$/, '')); } catch { return { code: -1, events: [] }; }
+  if (json.code !== 0) return { code: json.code, message: json.message, events: [] };
+  const list = (json.data && json.data.albumList) || [];
+  const events = [];
+  for (const a of list) {
+    if (!a.id) continue;
+    const occurredAt = (Number(a.createtime) || 0) * 1000;
+    const name = a.name || '(相册)';
+    events.push({
+      type: 'event', subtype: 'media', id: `qzone-album:${a.id}`,
+      occurredAt: occurredAt || Date.now(), actor: SELF_ID, participants: [SELF_ID],
+      content: { title: `相册：${name}（${a.total || 0} 张）`, text: a.desc || undefined },
+      source: SRC(`qzone-album-${a.id}`, occurredAt),
+      extra: { kind: 'qzone-album', albumId: a.id, photoCount: a.total || 0, desc: a.desc || '', commentCount: a.comment || 0 },
+      ingestedAt: Date.now(),
+    });
+  }
+  return { code: 0, events, total: (json.data && json.data.albumsInUser) != null ? json.data.albumsInUser : list.length };
+}
+
+export { gtk, parseQzoneFeed, parseGuestbook, parseAlbums, stripHtml, SELF_ID };
+
+function qproxy(domainPath, params) {
+  const qs = Object.entries({ format: 'json', inCharset: 'utf-8', outCharset: 'utf-8', source: 'qzone', plat: 'qzone', ...params }).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  return `https://user.qzone.qq.com/proxy/domain/${domainPath}?${qs}`;
+}
 
 async function fetchMsglist(uin, ck, pos, num) {
   const pskey = ck.p_skey || ck.skey;
@@ -113,35 +175,69 @@ async function fetchMsglist(uin, ck, pos, num) {
   const res = await fetch(url, { headers: { Cookie: cookie, Referer: `https://user.qzone.qq.com/${uin}`, 'User-Agent': UA } });
   return parseQzoneFeed(await res.text(), uin);
 }
+function cookieHeader(ck) { return Object.entries(ck).map(([k, v]) => `${k}=${v}`).join('; '); }
+async function getJson(uin, ck, url) {
+  const res = await fetch(url, { headers: { Cookie: cookieHeader(ck), Referer: `https://user.qzone.qq.com/${uin}`, 'User-Agent': UA } });
+  return res.text();
+}
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) (async () => {
+  const WHAT = new Set((val('--what', 'shuoshuo')).split(',').map((s) => s.trim()).filter(Boolean));
   let ck, uin;
   if (COOKIE_ARG) { ck = parseCookieStr(COOKIE_ARG); uin = (val('--uin') || (ck.uin || '').replace(/\D/g, '')); }
   else if (SERIAL) { ck = pullQqWebviewCookies(); uin = (ck.uin || '').replace(/\D/g, '') || (ck.p_uin || '').replace(/\D/g, ''); console.log('[device cookies] keys:', Object.keys(ck).join(','), 'uin=' + uin, 'p_skey=' + (ck.p_skey ? 'YES' : 'NO')); }
   else { console.error('need --serial <serial> or --cookie "<cookie>"'); process.exit(1); }
   if (!uin) { console.error('could not determine uin'); process.exit(1); }
   if (!ck.p_skey && !ck.skey) { console.error('no p_skey/skey in cookies'); process.exit(1); }
+  const g = gtk(ck.p_skey || ck.skey);
 
   const all = [];
-  for (let pos = 0; pos < MAX; pos += 20) {
-    const r = await fetchMsglist(uin, ck, pos, 20);
-    if (r.code !== 0) { console.log(`[pos ${pos}] API code=${r.code} ${r.message || ''} ${r.raw || ''}`); break; }
-    if (!r.events.length) { console.log(`[pos ${pos}] no more`); break; }
-    all.push(...r.events);
-    console.log(`[pos ${pos}] +${r.events.length} (total so far ${all.length}${r.total != null ? '/' + r.total : ''})`);
-    if (r.total != null && all.length >= r.total) break;
+  const persons = new Map();
+
+  // 说说
+  if (WHAT.has('shuoshuo')) {
+    let n = 0;
+    for (let pos = 0; pos < MAX; pos += 20) {
+      const r = await fetchMsglist(uin, ck, pos, 20);
+      if (r.code !== 0) { console.log(`[说说 pos ${pos}] code=${r.code} ${r.message || ''}`); break; }
+      if (!r.events.length) break;
+      all.push(...r.events); n += r.events.length;
+      if (r.total != null && n >= r.total) break;
+    }
+    console.log(`[说说] ${n} posts`);
   }
-  console.log(`\n[summary] QQ空间说说: ${all.length} posts`);
-  for (const e of all.slice(0, 5)) console.log('  -', new Date(e.occurredAt).toISOString().slice(0, 10), '|', e.content.title.slice(0, 40));
+  // 留言板
+  if (WHAT.has('msgb')) {
+    let n = 0, total = null;
+    for (let start = 0; start < MAX; start += 20) {
+      const r = parseGuestbook(await getJson(uin, ck, qproxy('m.qzone.qq.com/cgi-bin/new/get_msgb', { uin, hostUin: uin, num: 20, start, g_tk: g })), uin);
+      if (r.code !== 0) { console.log(`[留言板 start ${start}] code=${r.code} ${r.message || ''}`); break; }
+      total = r.total;
+      if (!r.events.length) break;
+      all.push(...r.events); for (const p of r.persons) persons.set(p.id, p); n += r.events.length;
+      if (total != null && n >= total) break;
+    }
+    console.log(`[留言板] ${n}${total != null ? '/' + total : ''} messages`);
+  }
+  // 相册
+  if (WHAT.has('album')) {
+    const r = parseAlbums(await getJson(uin, ck, qproxy('photo.qzone.qq.com/fcgi-bin/fcg_list_album_v3', { g_tk: g, hostUin: uin, uin, mode: 2, pageStart: 0, pageNum: 200 })), uin);
+    if (r.code !== 0) console.log(`[相册] code=${r.code} ${r.message || ''}`);
+    else { all.push(...r.events); console.log(`[相册] ${r.events.length}${r.total != null ? '/' + r.total : ''} albums`); }
+  }
+
+  console.log(`\n[summary] QQ空间: ${all.length} events (${[...WHAT].join('+')})`);
+  for (const e of all.slice(0, 6)) console.log('  -', new Date(e.occurredAt).toISOString().slice(0, 10), `[${e.extra.kind}]`, '|', e.content.title.slice(0, 44));
 
   if (DO_INGEST && all.length) {
     const wiring = await import(pathToFileURL(path.join(ROOT, 'packages/cli/src/lib/personal-data-hub-wiring.js')).href);
     const hub = await wiring.getHub();
     const vault = hub.registry.vault;
     try { vault.putPerson({ type: 'person', subtype: 'contact', id: SELF_ID, names: ['我(QQ空间)'], source: SRC(SELF_ID), ingestedAt: Date.now() }); } catch { /* dup */ }
+    for (const p of persons.values()) { try { vault.putPerson(p); } catch { /* dup */ } }
     let ok = 0; for (const e of all) { try { vault.putEvent(e); ok++; } catch { /* dup */ } }
-    console.log(`  → ingested ${ok} events into vault`);
+    console.log(`  → ingested ${ok} events + ${persons.size} persons into vault`);
   } else if (all.length) {
     console.log('  (dry run — pass --ingest to write to vault)');
   }
