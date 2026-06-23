@@ -209,6 +209,20 @@ describe("dlp-engine", () => {
       scanContent(db, "minor issue");
       expect(listIncidents({ severity: "high" }).length).toBe(1);
     });
+
+    it("filters by resolved status (both true and false)", () => {
+      createPolicy(db, "Test", ["secret"], [], "block");
+      const a = scanContent(db, "secret", "email");
+      scanContent(db, "secret", "chat"); // a second, left unresolved
+      resolveIncident(db, a.incidents[0].id, "ok");
+      // resolved:true must return ONLY the resolved one (previously the
+      // === true branch was missing, so it silently returned all incidents).
+      expect(listIncidents({ resolved: true }).length).toBe(1);
+      expect(listIncidents({ resolved: true })[0].resolvedAt).toBeTruthy();
+      expect(listIncidents({ resolved: false }).length).toBe(1);
+      expect(listIncidents({ resolved: false })[0].resolvedAt).toBeFalsy();
+      expect(listIncidents().length).toBe(2); // no filter → all
+    });
   });
 
   describe("resolveIncident", () => {

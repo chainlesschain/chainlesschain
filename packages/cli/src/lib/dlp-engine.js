@@ -193,7 +193,9 @@ export function listIncidents(filter = {}) {
   if (filter.severity) {
     incidents = incidents.filter((i) => i.severity === filter.severity);
   }
-  if (filter.resolved === false) {
+  if (filter.resolved === true) {
+    incidents = incidents.filter((i) => !!i.resolvedAt);
+  } else if (filter.resolved === false) {
     incidents = incidents.filter((i) => !i.resolvedAt);
   }
   const limit = filter.limit || 50;
