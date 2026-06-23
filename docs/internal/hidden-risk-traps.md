@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#32）
+# 隐性风险陷阱手册（#6-#33）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -2102,6 +2102,48 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 
 ---
 
+## 33. ESM 文件里裸用 CJS 全局（require / module / exports / __dirname / __filename）—— 运行到才崩，单测测不出（隐性风险）
+
+**Slug**: `cli_cjs_globals_in_esm`（实战触发 2026-06-22/23，一轮验证连挖 6 处）
+
+**陷阱本质**：
+
+`packages/cli` 是 `"type": "module"`，所以 `src/` 下每个 `.js` 都是 ESM，`require` / `module` / `exports` / `__dirname` / `__filename` 在 ESM 作用域里**全部 undefined**。函数体里写一句 `const fs = require("fs")`：
+
+- **import 时不报错**（模块顶层解析通过），只有那条代码路径**真跑到**时才抛 `ReferenceError: require is not defined in ES module scope`——所以一直潜伏。
+- **`module.exports = {...}` 更阴**：不抛错（赋值给一个 undefined 的成员……其实也抛，但 `exports.x = 1` 在某些写法下静默无效），结果是**该模块导出为空**。`shell-approval.js` 同时犯了两条：顶层 `require()` 崩 + `module.exports` 导出空——`agent-core.js` 动态 import 它的 `evaluateShellCommandWithApproval` 走 shell 执行审批路径，于是 **Managed Agents Phase G 的 shell 审批门在真 runtime 里从来没工作过**。
+
+**为什么排查难**：
+
+- **单测测不出**：vitest 把 CJS 内联，测试环境里 `require` / `module` **是有的**，所以带 bug 的文件单测全绿。只有真 ESM runtime（发布的 bundle / `node` 直跑）才崩。本轮 `cc hub export-events --output` / `import-events` 已在发布版里完全不可用、shell-approval 门全程失效，单测却一路绿。
+- **报错指向深层文件**：`require is not defined` 的栈顶是出问题的文件，看着像"这个文件有 bug"，不会让人联想到"CJS 写法进了 ESM 包"。
+- **grep 漏网**：手工 `grep "require("` 靠上下文判断，容易漏（本轮手工扫只找到 4 处，AST 扫又多挖出 shell-approval + session/index 2 处）。
+
+**SOP / checklist**：
+
+1. **改/加 `packages/cli/src` 下任何 `.js` 后，跑 `node scripts/audit-esm-require.mjs`**（AST + eslint-scope 精确扫：模板串里的 `require()`、`createRequire` shim 绑定都不误报；只报真正 unresolved 的 CJS 全局）。CI 有 `esm-require-audit.yml` 硬门兜底。
+2. 修每个命中点，二选一：
+   - **静态 `import`**（总会用到的核心模块）：`import { writeFileSync } from "node:fs"` / `import x from "./foo.cjs"`（默认 import 取 CJS 的 module.exports）。
+   - **`createRequire` shim**（必须保持**同步**的懒加载 / 避循环依赖）：`import { createRequire } from "node:module"; const require = createRequire(import.meta.url);`。Node ≥22.12（本仓 engines 下限）支持 `require(esm)`，所以 shim 也能同步加载 ESM 子模块。
+3. 导出侧：`module.exports = {...}` → `export function` / `export const` / `export * from "..."`；`exports.x = ...` → `export const x = ...`。
+4. **验证必须用真 ESM runtime**，不能只信单测：`node --input-type=module -e 'await import("file:///.../mod.js")'` 看是否 import 干净 + 导出名齐全。本轮就是用这个 one-liner 实证 shell-approval 崩 + 修复后 `evaluateShellCommandWithApproval` 变 function。
+
+**反模式**：
+
+- ❌ 只跑 vitest 就以为没问题——vitest 提供 `require`/`module`，掩盖 ESM-runtime 崩溃（与 trap #23 的"vitest 环境 ≠ 生产"同源，但这里是 ESM vs CJS 而非 ABI）。
+- ❌ 手工 grep `require(` 判断——漏 `module.exports` / `exports.` / `__dirname`，且分不清模板串里的 require。用 AST 扫。
+- ❌ 把 `module.exports = require(...)` 当"能跑的薄 re-export"——在 ESM 里 module 和 require 都 undefined，整个文件无效（`session/index.js` 即此，无消费者所以一直没暴露）。
+- ❌ 给 ESM 文件加 `require()` "就这一处应该没事"——只要那条路径会跑到就必崩；要么静态 import 要么 createRequire shim。
+
+**关联 memory / trap**：
+
+- trap #23（bs3mc/bs3 ABI dual-load，同属"vitest 测试环境 ≠ 真 runtime"家族）、#27/#28（pdh lib 改动 → 发版链）
+- memory: `cli_undeclared_dep_hoisting_global_crash`（另一类"本地全绿、全局装机才崩"）、`cli_shell_policy_compound_segments`（shell-approval 所在的 shell 策略域）
+- 工具：`scripts/audit-esm-require.mjs` + `scripts/__tests__/audit-esm-require.test.mjs` + `.github/workflows/esm-require-audit.yml`
+- 实战 commit：`c191954192`（hub export/import + git-integration + learning-hooks + video-protocol 4 处 require）/ `14e52ab0ea`（shell-approval 门修复 + session/index + 审计脚本）/ `2f770cc45f`（审计单测 + CI 门）
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间
@@ -2115,7 +2157,7 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 > 为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
 
 ### 1. 概述
-见正文头部。本文：隐性风险陷阱手册（#6-#32）。
+见正文头部。本文：隐性风险陷阱手册（#6-#33）。
 
 ### 2. 核心特性
 见正文要点 / 特性 / 范围章节。
