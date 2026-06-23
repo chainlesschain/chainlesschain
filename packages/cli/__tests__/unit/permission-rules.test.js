@@ -154,6 +154,25 @@ describe("matchPattern — url domain", () => {
       ),
     ).toBe(false);
   });
+
+  it("domain: matching is case-insensitive (domains are case-folded)", () => {
+    // An uppercase domain in the rule must still match the (lowercased) URL host
+    // — otherwise a deny rule like domain:Example.com silently never fires.
+    for (const url of [
+      "https://example.com/a",
+      "https://Example.com/a",
+      "https://EXAMPLE.COM/a",
+    ]) {
+      expect(
+        matchPattern("domain:Example.com", "web_fetch", { url }, "/"),
+      ).toBe(true);
+    }
+    expect(
+      matchPattern("domain:Example.com", "web_fetch", {
+        url: "https://evil.com/a",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("evaluatePermissionRules — precedence", () => {

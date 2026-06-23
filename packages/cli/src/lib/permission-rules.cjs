@@ -206,10 +206,14 @@ function matchCommand(pattern, command) {
 function matchUrl(pattern, url) {
   const u = String(url || "");
   if (pattern.startsWith("domain:")) {
-    const host = pattern.slice("domain:".length).trim();
+    // Domains are case-insensitive (and `new URL().host` already lowercases the
+    // host), so lowercase the pattern too — otherwise a rule with any uppercase
+    // (`domain:Example.com`) silently never matches, turning a deny rule into a
+    // bypass and an allow rule into a no-op.
+    const host = pattern.slice("domain:".length).trim().toLowerCase();
     let actualHost = "";
     try {
-      actualHost = new URL(u).host;
+      actualHost = new URL(u).host.toLowerCase();
     } catch {
       return false;
     }
