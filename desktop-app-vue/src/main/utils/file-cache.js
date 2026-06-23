@@ -134,9 +134,16 @@ class LRUCache {
 
   /**
    * 检查是否包含key
+   *
+   * 纯查询语义：过期项视为不存在，但不调用 get()，避免存在性检查把条目
+   * 提升为「最近使用」而污染 LRU 驱逐顺序（也不顺手删除过期项）。
    */
   has(key) {
-    return this.cache.has(key) && this.get(key) !== null;
+    const item = this.cache.get(key);
+    if (!item) {
+      return false;
+    }
+    return Date.now() - item.timestamp <= this.ttl;
   }
 }
 
