@@ -131,4 +131,56 @@ describe("config-manager", () => {
     const config = loadConfig();
     expect(config.setupCompleted).toBe(false); // falls back to defaults
   });
+
+  describe("renameWithRetry (Windows EPERM hardening)", () => {
+    it("retries transient rename errors then succeeds", async () => {
+      const { renameWithRetry } =
+        await import("../../src/lib/config-manager.js");
+      let calls = 0;
+      const sleeps = [];
+      const _rename = () => {
+        calls++;
+        if (calls < 3) {
+          const e = new Error("perm");
+          e.code = "EPERM";
+          throw e;
+        }
+      };
+      renameWithRetry("a", "b", { _rename, _sleep: (ms) => sleeps.push(ms) });
+      expect(calls).toBe(3); // failed twice, succeeded on third
+      expect(sleeps.length).toBe(2); // backoff between the two failures
+    });
+
+    it("rethrows immediately for non-transient errors", async () => {
+      const { renameWithRetry } =
+        await import("../../src/lib/config-manager.js");
+      let calls = 0;
+      const _rename = () => {
+        calls++;
+        const e = new Error("nope");
+        e.code = "ENOENT";
+        throw e;
+      };
+      expect(() =>
+        renameWithRetry("a", "b", { _rename, _sleep: () => {} }),
+      ).toThrow(/nope/);
+      expect(calls).toBe(1); // no retries for non-transient errors
+    });
+
+    it("gives up after the attempt budget and rethrows", async () => {
+      const { renameWithRetry } =
+        await import("../../src/lib/config-manager.js");
+      let calls = 0;
+      const _rename = () => {
+        calls++;
+        const e = new Error("busy");
+        e.code = "EBUSY";
+        throw e;
+      };
+      expect(() =>
+        renameWithRetry("a", "b", { attempts: 4, _rename, _sleep: () => {} }),
+      ).toThrow(/busy/);
+      expect(calls).toBe(4);
+    });
+  });
 });

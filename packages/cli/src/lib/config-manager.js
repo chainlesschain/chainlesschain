@@ -37,7 +37,7 @@ export function saveConfig(config) {
   const tmp = `${configPath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
   try {
     writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
-    renameSync(tmp, configPath);
+    renameWithRetry(tmp, configPath);
   } catch (err) {
     try {
       if (existsSync(tmp)) unlinkSync(tmp);
@@ -45,6 +45,47 @@ export function saveConfig(config) {
       /* best-effort temp cleanup */
     }
     throw err;
+  }
+}
+
+// On Windows, `rename` over a target that another process currently has open
+// (e.g. a concurrent `loadConfig` reader) fails with EPERM/EACCES/EBUSY instead
+// of POSIX's silent atomic replace. Under bursts of concurrent `cc config`/`cc
+// config features` invocations this surfaced as a flaky exit-1. Retry the rename
+// a few times with a short synchronous backoff so the transient lock clears;
+// the temp file is already fully written, so this stays crash-safe.
+export function renameWithRetry(tmp, target, opts = {}) {
+  const {
+    attempts = 8,
+    baseDelayMs = 15,
+    _rename = renameSync,
+    _sleep = sleepSync,
+  } = opts;
+  for (let i = 0; ; i++) {
+    try {
+      _rename(tmp, target);
+      return;
+    } catch (err) {
+      const transient =
+        err &&
+        (err.code === "EPERM" ||
+          err.code === "EACCES" ||
+          err.code === "EBUSY" ||
+          err.code === "EEXIST");
+      if (!transient || i >= attempts - 1) throw err;
+      _sleep(baseDelayMs * (i + 1));
+    }
+  }
+}
+
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms; // SharedArrayBuffer unavailable — bounded spin
+    while (Date.now() < end) {
+      /* spin */
+    }
   }
 }
 

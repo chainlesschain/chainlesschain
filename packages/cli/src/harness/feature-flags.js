@@ -8,7 +8,13 @@
  *   - object { enabled, variant, description }
  */
 
-import { loadConfig, getConfigValue, saveConfig } from "../lib/config-manager.js";
+import {
+  loadConfig,
+  getConfigValue,
+  saveConfig,
+} from "../lib/config-manager.js";
+import { withFileLock } from "../lib/with-file-lock.js";
+import { getConfigPath } from "../lib/paths.js";
 import { createHash } from "node:crypto";
 import { hostname } from "node:os";
 
@@ -51,7 +57,8 @@ export function feature(name) {
   if (value && typeof value === "object") return Boolean(value.enabled);
   const defaultValue = _getDefault(name);
   if (typeof defaultValue === "boolean") return defaultValue;
-  if (typeof defaultValue === "number") return _percentageCheck(name, defaultValue);
+  if (typeof defaultValue === "number")
+    return _percentageCheck(name, defaultValue);
   if (defaultValue && typeof defaultValue === "object") {
     return Boolean(defaultValue.enabled);
   }
@@ -106,10 +113,16 @@ export function listFeatures() {
 }
 
 export function setFeature(name, value) {
-  const config = loadConfig();
-  if (!config.features) config.features = {};
-  config.features[name] = value;
-  saveConfig(config);
+  // Serialize the read-modify-write across processes so two concurrent
+  // `cc config features enable/disable` invocations don't clobber each other
+  // (and to space out writes so the atomic rename doesn't collide). Mirrors
+  // setConfigValue; the lock is best-effort and never hangs the CLI.
+  withFileLock(getConfigPath(), () => {
+    const config = loadConfig();
+    if (!config.features) config.features = {};
+    config.features[name] = value;
+    saveConfig(config);
+  });
 }
 
 export function getFlagInfo(name) {
