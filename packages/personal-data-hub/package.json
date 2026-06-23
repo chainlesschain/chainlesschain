@@ -76,6 +76,7 @@
     "./forensics/salvage-ingest": "./lib/forensics/salvage-ingest.js",
     "./forensics/qq-nt-collect": "./lib/forensics/qq-nt-collect.js",
     "./forensics/wechat-collect": "./lib/forensics/wechat-collect.js",
+    "./forensics/qzone-collect": "./lib/forensics/qzone-collect.js",
     "./forensics/plaintext-db-collect": "./lib/forensics/plaintext-db-collect.js"
   },
   "scripts": {

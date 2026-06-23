@@ -1403,6 +1403,121 @@ async function cmdCollectWechat(options) {
   }
 }
 
+// ─── collect-qzone (QQ空间 说说/留言板/相册 via API → vault) ──────────────
+//
+// module 101 — Qzone has no local DB, so this is the cookie+g_tk API path. The
+// Android in-app WebView (or a desktop browser) captures the qzone-domain
+// p_skey cookie; this derives g_tk and pulls the owner's feeds. The cookie is
+// passed via --cookie or --cookie-file (kept out of argv/history when staged).
+async function cmdCollectQzone(options) {
+  const spinner = options.json
+    ? null
+    : ora("collect-qzone (API + ingest)...").start();
+  try {
+    const { createRequire } = await import("module");
+    const require = createRequire(import.meta.url);
+    const fs = require("fs");
+    const qz = options._qzoneCore
+      ? options._qzoneCore
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/qzone-collect",
+        );
+    let cookie = options.cookie;
+    if (!cookie && options.cookieFile && fs.existsSync(options.cookieFile))
+      cookie = fs.readFileSync(options.cookieFile, "utf8").trim();
+    if (!cookie)
+      throw new Error(
+        'need --cookie "<qzone cookie>" or --cookie-file <path> (must contain uin + p_skey)',
+      );
+    const what = (options.what || "shuoshuo,msgb,album")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const max = Number.isFinite(+options.max) ? +options.max : 1000;
+
+    const result = await qz.collectQzone({
+      uin: options.uin,
+      cookie,
+      what,
+      max,
+      fetchImpl: options._fetch,
+    });
+    if (!result.ok) {
+      const report = { ok: false, reason: result.reason };
+      if (options.json) {
+        jsonAndExit(report);
+        return;
+      }
+      if (spinner) spinner.fail(`collect-qzone: ${result.reason}`);
+      process.exit(2);
+    }
+
+    const hub = await (options._getHub || getHub)();
+    const vault = hub.vault;
+    try {
+      vault.putPerson({
+        type: "person",
+        subtype: "contact",
+        id: qz.SELF_ID,
+        names: ["我(QQ空间)"],
+        source: {
+          adapter: "qzone",
+          adapterVersion: "0.1.0",
+          originalId: qz.SELF_ID,
+          capturedAt: Date.now(),
+          capturedBy: "api",
+        },
+        ingestedAt: Date.now(),
+      });
+    } catch {
+      /* dup */
+    }
+    for (const p of result.persons) {
+      try {
+        vault.putPerson(p);
+      } catch {
+        /* dup */
+      }
+    }
+    let ingested = 0;
+    for (const ev of result.events) {
+      try {
+        vault.putEvent(ev);
+        ingested++;
+      } catch {
+        /* dup */
+      }
+    }
+
+    const report = {
+      ok: true,
+      uin: result.uin,
+      counts: result.counts,
+      events: result.events.length,
+      persons: result.persons.length,
+      ingested,
+    };
+    if (spinner)
+      spinner.succeed(
+        `collect-qzone: ${ingested} events → vault (${Object.entries(
+          result.counts,
+        )
+          .map(([k, v]) => k + ":" + v)
+          .join(" ")})`,
+      );
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    logger.log(chalk.green("✓ Qzone collect succeeded"));
+    logger.log(`  counts:    ${JSON.stringify(result.counts)}`);
+    logger.log(`  ingested:  ${ingested}`);
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
 //
 // Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
@@ -3210,6 +3325,29 @@ export function registerHubCommand(program) {
     .option("--self <wxid>", "Your own wxid (attribution for sent messages)")
     .option("--json", "Output JSON")
     .action(cmdCollectWechat);
+
+  hub
+    .command("collect-qzone")
+    .description(
+      "QQ空间 (Qzone): collect 说说/留言板/相册 via the Qzone CGI API. No local DB — needs the qzone-domain p_skey cookie (from the in-app WebView or a browser login to user.qzone.qq.com; base .qq.com skey is rejected). Derives g_tk from p_skey and ingests as post/message/media events.",
+    )
+    .option(
+      "--cookie <cookie>",
+      "Qzone cookie string (must contain uin + p_skey)",
+    )
+    .option(
+      "--cookie-file <path>",
+      "File holding the cookie (preferred — keeps it out of argv)",
+    )
+    .option("--uin <uin>", "Account uin (else parsed from cookie)")
+    .option(
+      "--what <list>",
+      "Comma list: shuoshuo,msgb,album (default all)",
+      "shuoshuo,msgb,album",
+    )
+    .option("--max <n>", "Max items per source", "1000")
+    .option("--json", "Output JSON")
+    .action(cmdCollectQzone);
 
   hub
     .command("event-detail <eventId>")
