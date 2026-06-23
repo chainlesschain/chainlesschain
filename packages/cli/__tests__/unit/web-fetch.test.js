@@ -23,6 +23,36 @@ describe("web-fetch — isPrivateHost()", () => {
     expect(isPrivateHost("172.15.0.1")).toBe(false);
     expect(isPrivateHost("172.32.0.1")).toBe(false);
   });
+
+  it("flags IPv6 loopback/ULA/link-local — bracketed as new URL() returns them", () => {
+    // new URL("http://[::1]/").hostname === "[::1]" — the bare ::1 rule was dead
+    // without bracket stripping, so IPv6 loopback was silently reachable.
+    expect(isPrivateHost("[::1]")).toBe(true);
+    expect(isPrivateHost("[::]")).toBe(true); // unspecified
+    expect(isPrivateHost("[fc00::1]")).toBe(true); // ULA
+    expect(isPrivateHost("[fdff::1]")).toBe(true); // ULA
+    expect(isPrivateHost("[fe80::1]")).toBe(true); // link-local
+    expect(isPrivateHost("[febf::1]")).toBe(true); // link-local
+  });
+
+  it("flags IPv4-mapped IPv6 loopback/private (new URL hex-normalizes them)", () => {
+    // new URL hex-normalizes ::ffff:127.0.0.1 → ::ffff:7f00:1, which would
+    // bypass the IPv4 rules without decoding the embedded address.
+    expect(isPrivateHost("[::ffff:7f00:1]")).toBe(true); // 127.0.0.1
+    expect(isPrivateHost("[::ffff:a00:1]")).toBe(true); // 10.0.0.1
+    expect(isPrivateHost("[::ffff:c0a8:101]")).toBe(true); // 192.168.1.1
+  });
+
+  it("does not over-block public IPv6 or mapped-public IPv4", () => {
+    expect(isPrivateHost("[2606:4700:4700::1111]")).toBe(false);
+    expect(isPrivateHost("[::ffff:808:808]")).toBe(false); // 8.8.8.8 mapped
+  });
+
+  it("normalizes decimal/integer IPv4 forms via the URL parser", () => {
+    // new URL() canonicalizes these, so the dotted-decimal rules catch them.
+    expect(isPrivateHost(new URL("http://2130706433/").hostname)).toBe(true);
+    expect(isPrivateHost(new URL("http://0/").hostname)).toBe(true);
+  });
 });
 
 describe("web-fetch — checkAllowed()", () => {
@@ -38,6 +68,13 @@ describe("web-fetch — checkAllowed()", () => {
   it("blocks private hosts by default", () => {
     expect(checkAllowed("http://127.0.0.1:8080").allowed).toBe(false);
     expect(checkAllowed("http://localhost").allowed).toBe(false);
+  });
+
+  it("blocks IPv6 loopback / ULA / mapped-loopback end-to-end", () => {
+    expect(checkAllowed("http://[::1]/").allowed).toBe(false);
+    expect(checkAllowed("http://[fd00::1]/").allowed).toBe(false);
+    expect(checkAllowed("http://[::ffff:127.0.0.1]/").allowed).toBe(false);
+    expect(checkAllowed("http://[2606:4700:4700::1111]/").allowed).toBe(true);
   });
 
   it("allows private hosts when config.allowPrivateHosts is true", () => {

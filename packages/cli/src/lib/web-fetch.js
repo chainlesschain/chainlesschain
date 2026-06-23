@@ -12,21 +12,50 @@ import { URL } from "url";
 const DEFAULT_MAX_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 
-// RFC 1918 + loopback + link-local. Blocked by default unless config.allowPrivateHosts.
+// RFC 1918 + loopback + link-local (IPv4 and IPv6). Blocked by default unless
+// config.allowPrivateHosts. Decimal/integer IPv4 forms (http://2130706433,
+// http://0) are normalized to dotted-decimal by `new URL()` before they reach
+// here, so the IPv4 patterns catch them too.
 const PRIVATE_HOST_PATTERNS = [
   /^127\./,
   /^10\./,
   /^192\.168\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
-  /^169\.254\./,
+  /^169\.254\./, // link-local incl. cloud metadata 169.254.169.254
   /^0\.0\.0\.0$/,
-  /^::1$/,
+  /^0$/, // bare 0 → 0.0.0.0
+  /^::1$/, // IPv6 loopback
+  /^::$/, // IPv6 unspecified (== 0.0.0.0)
+  /^f[cd][0-9a-f]{2}:/, // fc00::/7 unique-local (ULA)
+  /^fe[89ab][0-9a-f]:/, // fe80::/10 link-local
   /^localhost$/i,
 ];
 
+// Decode the IPv4 embedded in an IPv4-mapped IPv6 address back to dotted form,
+// or null if `h` is not such an address. `new URL()` normalizes the embedded
+// IPv4 to hex (::ffff:127.0.0.1 → ::ffff:7f00:1), so without decoding, a fetch
+// to [::ffff:127.0.0.1] would bypass the IPv4 loopback/private rules.
+function mappedIPv4(h) {
+  const m = /^::ffff:(.+)$/.exec(h);
+  if (!m) return null;
+  const tail = m[1];
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(tail)) return tail; // already dotted
+  const hx = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(tail);
+  if (!hx) return null;
+  const a = parseInt(hx[1], 16);
+  const b = parseInt(hx[2], 16);
+  return [(a >> 8) & 255, a & 255, (b >> 8) & 255, b & 255].join(".");
+}
+
 export function isPrivateHost(host) {
   if (!host) return true;
-  return PRIVATE_HOST_PATTERNS.some((re) => re.test(host));
+  let h = String(host).toLowerCase();
+  // `new URL().hostname` returns IPv6 hosts bracketed ("[::1]") — strip so the
+  // IPv6 patterns (and the previously-dead ::1 rule) actually match.
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  const v4 = mappedIPv4(h);
+  if (v4) h = v4; // re-check the embedded IPv4 against the IPv4 rules
+  return PRIVATE_HOST_PATTERNS.some((re) => re.test(h));
 }
 
 export function checkAllowed(urlStr, config = {}) {
