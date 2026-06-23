@@ -84,9 +84,27 @@ function deriveAndDecrypt(raw, passphrases, rawKeys) {
  * Parse a DECRYPTED EnMicroMsg.db → vault events (wechat adapter shape).
  * @param Database better-sqlite3 ctor (injected). @param self the user's wxid.
  */
-function parseEvents(Database, dbPath, self) {
+// Self is ALWAYS the stable canonical id (mirrors adapters/wechat/normalize.js)
+// so analysis skills exclude it from contact rankings and it never fragments.
+const SELF_ID = 'person-wechat-self';
+const SRC = (originalId, at) => ({
+  adapter: 'wechat', adapterVersion: '0.1.0',
+  originalId: originalId || `wechat-${at || 0}`,
+  capturedAt: at || Date.now(), capturedBy: 'sqlite',
+});
+
+/**
+ * Parse a decrypted EnMicroMsg.db into a vault batch. Returns
+ * `{ events, persons, topics }` so the on-device analysis skills get the rich
+ * entity graph (named contacts → relations; group topics → interests; clean
+ * titles → timeline) instead of bare message events. `self` is ignored — the
+ * sender of an outbound message maps to the canonical SELF_ID.
+ */
+function parseEvents(Database, dbPath, _self) {
   const src = new Database(dbPath, { readonly: true });
   const events = [];
+  const persons = new Map(); // id -> person record
+  const topics = new Map(); // id -> topic record
   try {
     const nameOf = new Map();
     try {
@@ -94,6 +112,17 @@ function parseEvents(Database, dbPath, self) {
         nameOf.set(r.username, (r.conRemark && r.conRemark.trim()) || r.nickname || r.username);
       }
     } catch { /* contacts optional */ }
+    const addPerson = (wxid) => {
+      if (!wxid) return;
+      const id = `person-wechat-${wxid}`;
+      if (persons.has(id)) return;
+      const nm = nameOf.get(wxid);
+      // names[0] = display name (or wxid when unresolved); keep wxid as alias.
+      const names = nm && nm !== wxid ? [nm, wxid] : [wxid];
+      // Unique originalId per person — a shared originalId collapses every row
+      // into one via the persons (adapter, originalId) unique constraint.
+      persons.set(id, { type: 'person', subtype: 'contact', id, names, identifiers: { wechatId: wxid }, source: SRC(id), ingestedAt: Date.now() });
+    };
     const rows = src.prepare(
       'SELECT msgId,type,isSend,createTime,talker,content FROM message ' +
       "WHERE type=1 ORDER BY createTime DESC LIMIT 5000",
@@ -101,7 +130,7 @@ function parseEvents(Database, dbPath, self) {
     for (const r of rows) {
       const isGroup = /@chatroom$/.test(r.talker || '');
       let text = r.content || '';
-      let senderWxid = r.isSend ? self : r.talker;
+      let senderWxid = r.isSend ? null : r.talker; // null = self (outbound)
       if (isGroup && !r.isSend) {
         const c = text.indexOf(':');
         if (c > 0) { senderWxid = text.slice(0, c); text = text.slice(c + 1).replace(/^\n/, '').trim(); }
@@ -110,25 +139,36 @@ function parseEvents(Database, dbPath, self) {
       const occurredAt = Number(r.createTime) || 0; // already ms in WeChat
       if (!occurredAt) continue;
       const peer = String(r.talker || '');
-      const actor = `person-wechat-${senderWxid || self}`;
+      const actor = r.isSend ? SELF_ID : `person-wechat-${senderWxid || peer}`;
+      if (!r.isSend) addPerson(senderWxid || peer);
       const participants = [actor];
-      participants.push(isGroup ? `group-wechat-${peer}` : `person-wechat-${peer}`);
+      let topicId;
+      if (isGroup) {
+        topicId = `group-wechat-${peer}`;
+        participants.push(topicId);
+        if (!topics.has(topicId)) {
+          topics.set(topicId, { type: 'topic', id: topicId, name: nameOf.get(peer) || peer.replace('@chatroom', ''), source: SRC(topicId), ingestedAt: Date.now() });
+        }
+      } else {
+        addPerson(peer);
+        participants.push(`person-wechat-${peer}`);
+      }
+      const title = text.replace(/\s+/g, ' ').trim().slice(0, 80);
       events.push({
         type: 'event', subtype: 'message', id: `wechat:${r.msgId}`,
         occurredAt, actor, participants,
-        content: { text: isGroup ? `[群${nameOf.get(peer) || peer}] ${text}` : text },
-        topics: isGroup ? [`group-wechat-${peer}`] : undefined,
-        source: {
-          adapter: 'wechat', adapterVersion: '0.1.0', originalId: String(r.msgId),
-          capturedAt: occurredAt, capturedBy: 'sqlite',
-        },
+        content: { title: title || '(无内容)', text: isGroup ? `[群${nameOf.get(peer) || peer}] ${text}` : text },
+        topics: topicId ? [topicId] : undefined,
+        source: SRC(String(r.msgId), occurredAt),
+        extra: { isSend: !!r.isSend, talker: r.talker },
         ingestedAt: Date.now(),
       });
     }
+    persons.set(SELF_ID, { type: 'person', subtype: 'contact', id: SELF_ID, names: ['我(微信)'], source: SRC(SELF_ID), ingestedAt: Date.now() });
   } finally {
     src.close();
   }
-  return events;
+  return { events, persons: [...persons.values()], topics: [...topics.values()] };
 }
 
 module.exports = { computeKeyCandidates, deriveAndDecrypt, parseEvents };
