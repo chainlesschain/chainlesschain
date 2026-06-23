@@ -255,6 +255,16 @@ describe('parseVotes', () => {
   it('drops entries without id', () => {
     expect(parseVotes(JSON.stringify([{ vote: 'yes' }]))).toEqual([])
   })
+
+  it('normalizes an unrecognized vote to "unknown" (not raw passthrough)', () => {
+    const [v] = parseVotes(JSON.stringify([{ id: 'v1', vote: 'maybe', weight: 1 }]))
+    expect(v.vote).toBe('unknown')
+  })
+
+  it('keeps a valid out-of-the-ordinary-cased vote after lowercasing', () => {
+    const [v] = parseVotes(JSON.stringify([{ id: 'v1', vote: 'Abstain', weight: 1 }]))
+    expect(v.vote).toBe('abstain')
+  })
 })
 
 // ─── parseTally ─────────────────────────────────────────────────────────────

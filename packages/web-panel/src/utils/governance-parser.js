@@ -151,7 +151,10 @@ function normalizeVote(raw, idx = 0) {
     id,
     proposalId: String(raw.proposalId || ''),
     voterDid: String(raw.voterDid || ''),
-    vote: VOTE_VALUES.includes(vote) ? vote : vote,
+    // Normalize an unrecognized vote to a sentinel instead of passing raw
+    // garbage through (was `? vote : vote`, a no-op that discarded the check).
+    // 'unknown' renders as the neutral/default tag downstream (voteColor/voteLabel).
+    vote: VOTE_VALUES.includes(vote) ? vote : 'unknown',
     reason: raw.reason ?? '',
     weight: num(raw.weight, 1),
     createdAt: raw.createdAt ?? null,
