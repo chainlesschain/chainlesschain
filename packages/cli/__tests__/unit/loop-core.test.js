@@ -28,7 +28,10 @@ describe("parseDuration", () => {
 
   it("treats a bare number as seconds", () => {
     expect(parseDuration("30")).toBe(30_000);
-    expect(parseDuration(45)).toBe(45); // numeric input is already ms
+    // numeric input is also seconds — consistent with the string path:
+    // parseDuration(45) === parseDuration("45") === parseDuration("45s")
+    expect(parseDuration(45)).toBe(45_000);
+    expect(parseDuration(45)).toBe(parseDuration("45"));
   });
 
   it("throws on garbage", () => {

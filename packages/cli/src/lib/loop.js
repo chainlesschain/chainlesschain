@@ -21,7 +21,9 @@ const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000 };
  */
 export function parseDuration(input) {
   if (typeof input === "number" && Number.isFinite(input)) {
-    return Math.max(0, Math.round(input));
+    // Consistent with the bare-string path below: a bare number is SECONDS,
+    // so parseDuration(30) === parseDuration("30") === parseDuration("30s").
+    return Math.max(0, Math.round(input * DURATION_UNITS.s));
   }
   const s = String(input ?? "")
     .trim()
