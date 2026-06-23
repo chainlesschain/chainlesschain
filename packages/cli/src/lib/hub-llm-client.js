@@ -10,24 +10,29 @@
  * retrieval works but the final LLM call fails. This adapter gives the CLI the
  * same "honor the user's active provider" behavior the desktop has.
  *
- * Privacy: OPT-IN ONLY via env `CC_HUB_LLM`. When unset, this returns null and
+ * Privacy: OPT-IN ONLY. The backend is selected by env `CC_HUB_LLM` (ephemeral,
+ * per-invocation) OR persistent config `hub.llm` (set once via
+ * `cc config set hub.llm config`). When BOTH are unset this returns null and
  * the caller keeps the safe local-Ollama default (the §11.2 privacy promise:
  * personal data stays on-device unless the user explicitly opts in). The
  * client always reports `isLocal: false`, so the AnalysisEngine still refuses
- * to USE it unless the `ask` command is given `--accept-non-local`
- * (or env `CC_HUB_ALLOW_NON_LOCAL`). Two independent gates: this one chooses
- * the backend, that one authorizes sending data off-device.
+ * to USE it unless the `ask` command authorizes egress — via --accept-non-local,
+ * env `CC_HUB_ALLOW_NON_LOCAL`, or (for a PERSISTENT cloud backend) the standing
+ * consent implied by `hub.llm` being set in config (see `isCloudHubConfigured`).
+ * Two independent gates: this one chooses the backend, that one authorizes
+ * sending data off-device.
  *
- *   CC_HUB_LLM unset / ollama / local / off / 0  -> null (local Ollama default)
- *   CC_HUB_LLM = config | auto | on | 1          -> config.llm.{provider,model,baseUrl,apiKey}
- *   CC_HUB_LLM = <provider>                       -> that provider; reuse config
- *                                                    creds when config.llm.provider
- *                                                    matches, else provider default
- *                                                    baseUrl + key from env/config
+ *   value unset / ollama / local / off / 0  -> null (local Ollama default)
+ *   value = config | auto | on | 1          -> config.llm.{provider,model,baseUrl,apiKey}
+ *   value = <provider>                       -> that provider; reuse config
+ *                                              creds when config.llm.provider
+ *                                              matches, else provider default
+ *                                              baseUrl + key from env/config
+ * where `value` = env CC_HUB_LLM (wins) || config.hub.llm.
  *
  * Returns null (→ caller falls back to OllamaClient) when it can't build a
- * usable cloud client: provider resolves to ollama, or a cloud provider has no
- * API key. Never throws at build time — a bad CC_HUB_LLM just keeps the local
+ * usable cloud client: backend resolves to ollama, or a cloud provider has no
+ * API key. Never throws at build time — a bad value just keeps the local
  * default rather than bricking `cc hub`.
  *
  * Contract (mirrors pdh OllamaClient): `{ name, isLocal, chat(messages, opts)
@@ -51,32 +56,67 @@ const LOCAL_SENTINELS = new Set([
 const CONFIG_SENTINELS = new Set(["config", "auto", "on", "1", "true", "yes"]);
 
 /**
+ * Resolve the hub-LLM "spec" — what backend the user selected and how.
+ * env `CC_HUB_LLM` (ephemeral) wins over persistent config `hub.llm`.
+ *   - `hub.llm` as a STRING  → "config" | "<provider>" (creds reuse config.llm/env)
+ *   - `hub.llm` as an OBJECT → { provider, model, baseUrl, apiKey, apiKeyEnv }
+ *     (self-contained; lets the hub use a DIFFERENT key/account than cc-wide llm)
+ * @returns {{kind:"string"|"object", value:any, source:"env"|"config"}|null}
+ */
+export function resolveHubSpec(config = {}, env = process.env) {
+  const envVal = String((env && env.CC_HUB_LLM) || "").trim();
+  if (envVal)
+    return { kind: "string", value: envVal.toLowerCase(), source: "env" };
+  const h = config && config.hub && config.hub.llm;
+  if (h == null) return null;
+  if (typeof h === "object") {
+    return { kind: "object", value: h, source: "config" };
+  }
+  const s = String(h).trim();
+  if (!s) return null;
+  return { kind: "string", value: s.toLowerCase(), source: "config" };
+}
+
+/**
  * @param {{config?: object, env?: object}} [args]
  * @returns {{name:string,isLocal:boolean,chat:Function}|null}
  */
 export function buildCliHubLLM({ config = {}, env = process.env } = {}) {
-  const raw = String(env.CC_HUB_LLM || "")
-    .trim()
-    .toLowerCase();
-  if (LOCAL_SENTINELS.has(raw)) return null;
+  const spec = resolveHubSpec(config, env);
+  if (!spec) return null;
 
   const cfgLlm = (config && config.llm) || {};
+  const sameAs = (p) => String(cfgLlm.provider || "").toLowerCase() === p;
   let provider, model, baseUrl, apiKey;
 
-  if (CONFIG_SENTINELS.has(raw)) {
-    provider = String(cfgLlm.provider || "").toLowerCase();
-    model = cfgLlm.model;
-    baseUrl = cfgLlm.baseUrl;
-    apiKey = cfgLlm.apiKey;
+  if (spec.kind === "object") {
+    // Self-contained hub creds — key can come from an explicit apiKey, a named
+    // env var (apiKeyEnv → switch where the key is read from), or fall back to
+    // the cc-wide config.llm creds when the provider matches.
+    const o = spec.value || {};
+    provider = String(o.provider || cfgLlm.provider || "").toLowerCase();
+    apiKey =
+      o.apiKey ||
+      (o.apiKeyEnv ? env[o.apiKeyEnv] : null) ||
+      (sameAs(provider) ? cfgLlm.apiKey : null);
+    model = o.model || (sameAs(provider) ? cfgLlm.model : null);
+    baseUrl = o.baseUrl || (sameAs(provider) ? cfgLlm.baseUrl : null);
   } else {
-    provider = raw;
-    // Reuse the saved credentials only when they belong to the requested
-    // provider; otherwise fall back to provider defaults + env key.
-    const sameProvider =
-      String(cfgLlm.provider || "").toLowerCase() === provider;
-    model = sameProvider ? cfgLlm.model : null;
-    baseUrl = sameProvider ? cfgLlm.baseUrl : null;
-    apiKey = sameProvider ? cfgLlm.apiKey : null;
+    const raw = spec.value;
+    if (LOCAL_SENTINELS.has(raw)) return null;
+    if (CONFIG_SENTINELS.has(raw)) {
+      provider = String(cfgLlm.provider || "").toLowerCase();
+      model = cfgLlm.model;
+      baseUrl = cfgLlm.baseUrl;
+      apiKey = cfgLlm.apiKey;
+    } else {
+      provider = raw;
+      // Reuse the saved credentials only when they belong to the requested
+      // provider; otherwise fall back to provider defaults + env key.
+      model = sameAs(provider) ? cfgLlm.model : null;
+      baseUrl = sameAs(provider) ? cfgLlm.baseUrl : null;
+      apiKey = sameAs(provider) ? cfgLlm.apiKey : null;
+    }
   }
 
   if (!provider || provider === "ollama") return null;
@@ -113,6 +153,23 @@ export function buildCliHubLLM({ config = {}, env = process.env } = {}) {
       });
     },
   };
+}
+
+/**
+ * True when a PERSISTENT config (`hub.llm`, NOT the ephemeral env var) selects
+ * a usable non-local cloud backend. The `ask` command uses this as standing
+ * consent to send data off-device — a deliberate `cc config set hub.llm …` is
+ * the informed opt-in, so the user need not also pass --accept-non-local on
+ * every call. The ephemeral env path (CC_HUB_LLM) is deliberately NOT covered:
+ * a one-off backend override still requires an explicit egress flag.
+ * @returns {boolean}
+ */
+export function isCloudHubConfigured(config = {}) {
+  const h = config && config.hub && config.hub.llm;
+  if (h == null) return false;
+  // Resolve config-only (env stripped) and confirm it builds a non-local client.
+  const llm = buildCliHubLLM({ config, env: {} });
+  return !!(llm && llm.isLocal === false);
 }
 
 function trimBase(base) {

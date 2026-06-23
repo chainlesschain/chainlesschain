@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildCliHubLLM,
+  isCloudHubConfigured,
   openAiCompatChat,
   anthropicChat,
 } from "../../src/lib/hub-llm-client.js";
@@ -89,6 +90,123 @@ describe("buildCliHubLLM — opt-in resolution", () => {
     expect(() =>
       buildCliHubLLM({ config: null, env: { CC_HUB_LLM: "config" } }),
     ).not.toThrow();
+  });
+});
+
+describe("buildCliHubLLM — persistent config.hub.llm (no env needed)", () => {
+  it("config.hub.llm='config' selects cloud without CC_HUB_LLM", () => {
+    const cfg = { ...VOLC_CFG, hub: { llm: "config" } };
+    const llm = buildCliHubLLM({ config: cfg, env: {} });
+    expect(llm && llm.name).toBe("volcengine:doubao-seed-2-1-pro-260628");
+    expect(llm.isLocal).toBe(false);
+  });
+
+  it("config.hub.llm='<provider>' selects that provider", () => {
+    const cfg = { ...VOLC_CFG, hub: { llm: "volcengine" } };
+    expect(buildCliHubLLM({ config: cfg, env: {} }).name).toBe(
+      "volcengine:doubao-seed-2-1-pro-260628",
+    );
+  });
+
+  it("env CC_HUB_LLM wins over config.hub.llm", () => {
+    const cfg = {
+      llm: {
+        provider: "volcengine",
+        model: "m1",
+        baseUrl: "https://v",
+        apiKey: "kv",
+      },
+      hub: { llm: "config" },
+    };
+    const llm = buildCliHubLLM({
+      config: cfg,
+      env: { CC_HUB_LLM: "deepseek", DEEPSEEK_API_KEY: "kd" },
+    });
+    expect(llm.name.startsWith("deepseek:")).toBe(true);
+  });
+
+  it("env CC_HUB_LLM=ollama overrides a cloud config back to local (null)", () => {
+    const cfg = { ...VOLC_CFG, hub: { llm: "config" } };
+    expect(
+      buildCliHubLLM({ config: cfg, env: { CC_HUB_LLM: "ollama" } }),
+    ).toBeNull();
+  });
+
+  it("object form: self-contained provider/model/baseUrl/apiKey", () => {
+    const cfg = {
+      llm: { provider: "anthropic", model: "haiku", apiKey: "cc-wide" },
+      hub: {
+        llm: {
+          provider: "volcengine",
+          model: "doubao-x",
+          baseUrl: "https://ark/api/v3",
+          apiKey: "hub-only-key",
+        },
+      },
+    };
+    const llm = buildCliHubLLM({ config: cfg, env: {} });
+    expect(llm.name).toBe("volcengine:doubao-x");
+  });
+
+  it("object form: apiKeyEnv reads the key from a named env var", () => {
+    const cfg = {
+      hub: {
+        llm: {
+          provider: "volcengine",
+          model: "doubao-x",
+          baseUrl: "https://ark/api/v3",
+          apiKeyEnv: "MY_HUB_KEY",
+        },
+      },
+    };
+    expect(
+      buildCliHubLLM({ config: cfg, env: {} }),
+      "no env value → no key → null",
+    ).toBeNull();
+    const llm = buildCliHubLLM({ config: cfg, env: { MY_HUB_KEY: "sk-env" } });
+    expect(llm && llm.name).toBe("volcengine:doubao-x");
+  });
+
+  it("object form: falls back to cc-wide config.llm creds for same provider", () => {
+    const cfg = {
+      llm: {
+        provider: "volcengine",
+        model: "doubao-default",
+        baseUrl: "https://ark/api/v3",
+        apiKey: "cc-wide",
+      },
+      hub: { llm: { provider: "volcengine" } }, // model/baseUrl/key inherited
+    };
+    const llm = buildCliHubLLM({ config: cfg, env: {} });
+    expect(llm.name).toBe("volcengine:doubao-default");
+  });
+});
+
+describe("isCloudHubConfigured (standing-consent predicate)", () => {
+  it("true when config.hub.llm selects a usable cloud backend", () => {
+    expect(isCloudHubConfigured({ ...VOLC_CFG, hub: { llm: "config" } })).toBe(
+      true,
+    );
+  });
+
+  it("false when hub.llm is unset (no standing consent)", () => {
+    expect(isCloudHubConfigured(VOLC_CFG)).toBe(false);
+  });
+
+  it("false when hub.llm resolves to local", () => {
+    expect(isCloudHubConfigured({ hub: { llm: "ollama" } })).toBe(false);
+  });
+
+  it("ignores the ephemeral env path (env must not grant standing consent)", () => {
+    // even with CC_HUB_LLM in the ambient env, the predicate is config-only
+    const prev = process.env.CC_HUB_LLM;
+    process.env.CC_HUB_LLM = "config";
+    try {
+      expect(isCloudHubConfigured(VOLC_CFG)).toBe(false);
+    } finally {
+      if (prev === undefined) delete process.env.CC_HUB_LLM;
+      else process.env.CC_HUB_LLM = prev;
+    }
   });
 });
 

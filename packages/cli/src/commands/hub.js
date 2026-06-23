@@ -20,6 +20,8 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { getHub, getHubMinimal } from "../lib/personal-data-hub-wiring.js";
+import { loadConfig } from "../lib/config-manager.js";
+import { isCloudHubConfigured } from "../lib/hub-llm-client.js";
 import { importPdh } from "../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../lib/personal-data-hub-aichat-wizard.js";
 
@@ -77,11 +79,19 @@ async function cmdAsk(question, options) {
     if (!hub.engine) throw new Error("Analysis engine unavailable");
     // 推文 §三道锁第二把 "默认不许问云端" — acceptNonLocal 默认 false (拒云)。
     // 优先 --accept-non-local CLI 旗，其次 env CC_HUB_ALLOW_NON_LOCAL (Android UI
-    // 拒云 toggle 通过 LocalCcRunner.askQuestion 透传)，否则维持 false。
+    // 拒云 toggle 通过 LocalCcRunner.askQuestion 透传)，再次为 PERSISTENT config
+    // `hub.llm` 选了云后端时的常驻同意 (一次性 `cc config set hub.llm …` 即informed
+    // opt-in，免去每次 --accept-non-local)；否则维持 false。
     const envAllow =
       process.env.CC_HUB_ALLOW_NON_LOCAL === "1" ||
       process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
-    const acceptNonLocal = !!options.acceptNonLocal || envAllow;
+    let cfgCloudHub = false;
+    try {
+      cfgCloudHub = isCloudHubConfigured(loadConfig());
+    } catch {
+      cfgCloudHub = false; // fail-closed: unreadable config → keep cloud denied
+    }
+    const acceptNonLocal = !!options.acceptNonLocal || envAllow || cfgCloudHub;
     // Per-call budget overrides for small-model callers (Android Qwen2.5-1.5B
     // passes --max-facts 20 --max-query-limit 50 to keep prompt ~1.5K tokens
     // and stay under the model's effective instruction-following window).
@@ -1306,9 +1316,9 @@ async function cmdCollectWechat(options) {
       `enmm-dec-${process.pid}.db`,
     );
     fs.writeFileSync(tmp, result.decrypted);
-    let events;
+    let parsed;
     try {
-      events = wx.parseEvents(Database, tmp, options.self || "self");
+      parsed = wx.parseEvents(Database, tmp, options.self || "self");
     } finally {
       try {
         fs.unlinkSync(tmp);
@@ -1316,7 +1326,27 @@ async function cmdCollectWechat(options) {
         /* wipe plaintext */
       }
     }
+    // parseEvents now returns { events, persons, topics } (bare-array shape
+    // from older bundles tolerated for forward-compat).
+    const events = Array.isArray(parsed) ? parsed : parsed.events || [];
+    const persons = Array.isArray(parsed) ? [] : parsed.persons || [];
+    const topics = Array.isArray(parsed) ? [] : parsed.topics || [];
 
+    // Named contacts + group topics first so events resolve names / interests.
+    for (const p of persons) {
+      try {
+        vault.putPerson(p);
+      } catch {
+        /* dup / optional */
+      }
+    }
+    for (const t of topics) {
+      try {
+        if (typeof vault.putTopic === "function") vault.putTopic(t);
+      } catch {
+        /* dup / optional */
+      }
+    }
     let ingested = 0;
     for (const ev of events) {
       try {
@@ -1330,6 +1360,8 @@ async function cmdCollectWechat(options) {
       ok: true,
       cfg: result.cfg,
       messages: events.length,
+      persons: persons.length,
+      topics: topics.length,
       ingested,
     };
     if (spinner)
@@ -2688,11 +2720,16 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .addHelpText(
       "after",
-      "\nLLM backend: defaults to local Ollama (privacy). To use a configured\n" +
-        "cloud provider instead (e.g. no Ollama installed), set CC_HUB_LLM:\n" +
-        "  CC_HUB_LLM=config        use cc config's llm.{provider,model,baseUrl,apiKey}\n" +
-        "  CC_HUB_LLM=<provider>    e.g. volcengine / anthropic / deepseek\n" +
-        "Cloud backends still require --accept-non-local to send data off device.",
+      "\nLLM backend: defaults to local Ollama (privacy). To use a cloud provider:\n" +
+        "  • Persistent (recommended): cc config set hub.llm config\n" +
+        "      → uses cc config's llm.{provider,model,baseUrl,apiKey}; no flag/env needed,\n" +
+        "        and the standing config opt-in also authorizes off-device egress.\n" +
+        "      Separate key/account for the hub? set an object instead:\n" +
+        "        cc config set hub.llm.provider volcengine\n" +
+        "        cc config set hub.llm.model doubao-seed-2-1-pro-260628\n" +
+        "        cc config set hub.llm.apiKeyEnv MY_HUB_KEY   (or hub.llm.apiKey <key>)\n" +
+        "  • Ephemeral: CC_HUB_LLM=config|<provider> cc hub ask … --accept-non-local\n" +
+        "      (a one-off override still needs an explicit egress flag).",
     )
     .action(cmdAsk);
 
