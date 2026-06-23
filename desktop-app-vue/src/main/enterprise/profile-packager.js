@@ -51,6 +51,18 @@ function fromBase64(str) {
 }
 
 /**
+ * 路径包含检查（防 zip-slip / 路径穿越）：candidate 解析后必须仍在 baseDir 内。
+ * @param {string} baseDir
+ * @param {string} candidate
+ * @returns {boolean}
+ */
+function isWithin(baseDir, candidate) {
+  const base = path.resolve(baseDir);
+  const target = path.resolve(candidate);
+  return target === base || target.startsWith(base + path.sep);
+}
+
+/**
  * 递归读取目录中所有文件，返回 { relPath -> Buffer }
  */
 function readPluginFiles(pluginDir) {
@@ -319,12 +331,24 @@ function extractPluginsTo(plugins, targetDir) {
   }
   const written = [];
   for (const [pluginId, { files }] of Object.entries(plugins)) {
+    // pluginId is attacker-controlled in a malicious .ccprofile; a value like
+    // "../../evil" would place the plugin dir outside targetDir (zip-slip).
     const pluginDir = path.join(targetDir, pluginId);
+    if (!isWithin(targetDir, pluginDir)) {
+      throw new Error(`unsafe plugin id (path traversal): ${pluginId}`);
+    }
     if (!fs.existsSync(pluginDir)) {
       fs.mkdirSync(pluginDir, { recursive: true });
     }
     for (const [rel, buf] of Object.entries(files)) {
+      // rel comes from payload.plugins[id].files and is likewise untrusted;
+      // path.join normalizes "../" so a crafted relpath could escape pluginDir.
       const full = path.join(pluginDir, rel);
+      if (!isWithin(pluginDir, full)) {
+        throw new Error(
+          `unsafe file path (path traversal) in ${pluginId}: ${rel}`,
+        );
+      }
       const parent = path.dirname(full);
       if (!fs.existsSync(parent)) {
         fs.mkdirSync(parent, { recursive: true });

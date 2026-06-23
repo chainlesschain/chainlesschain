@@ -7,8 +7,8 @@
  * - 防止恶意文件
  */
 
-const { logger } = require('../utils/logger.js');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
 
 /**
  * 安全配置
@@ -16,50 +16,73 @@ const path = require('path');
 const SECURITY_CONFIG = {
   // 允许的MIME类型模式
   allowedMimePatterns: [
-    'text/*',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.ms-*',
-    'application/vnd.openxmlformats-officedocument.*',
-    'application/vnd.oasis.opendocument.*',
-    'image/*',
-    'video/*',
-    'audio/*',
-    'application/json',
-    'application/xml',
-    'application/zip',
-    'application/x-7z-compressed',
-    'application/x-rar-compressed',
-    'application/x-tar',
-    'application/gzip',
+    "text/*",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.ms-*",
+    "application/vnd.openxmlformats-officedocument.*",
+    "application/vnd.oasis.opendocument.*",
+    "image/*",
+    "video/*",
+    "audio/*",
+    "application/json",
+    "application/xml",
+    "application/zip",
+    "application/x-7z-compressed",
+    "application/x-rar-compressed",
+    "application/x-tar",
+    "application/gzip",
   ],
 
   // 禁止的文件扩展名（可执行文件）
   blockedExtensions: [
     // Windows executables
-    '.exe', '.bat', '.cmd', '.com', '.msi', '.scr', '.vbs', '.ws', '.wsf',
-    '.ps1', '.psm1', '.psd1',
+    ".exe",
+    ".bat",
+    ".cmd",
+    ".com",
+    ".msi",
+    ".scr",
+    ".vbs",
+    ".ws",
+    ".wsf",
+    ".ps1",
+    ".psm1",
+    ".psd1",
     // macOS executables
-    '.app', '.dmg', '.pkg', '.command',
+    ".app",
+    ".dmg",
+    ".pkg",
+    ".command",
     // Linux executables
-    '.sh', '.run', '.bin',
+    ".sh",
+    ".run",
+    ".bin",
     // Script files
-    '.js', '.vbe', '.jse', '.wsh',
+    ".js",
+    ".vbe",
+    ".jse",
+    ".wsh",
     // System files
-    '.dll', '.sys', '.drv',
+    ".dll",
+    ".sys",
+    ".drv",
     // Other potentially dangerous
-    '.hta', '.jar', '.apk', '.dex',
+    ".hta",
+    ".jar",
+    ".apk",
+    ".dex",
   ],
 
   // 危险MIME类型（明确禁止）
   dangerousMimeTypes: [
-    'application/x-msdownload',
-    'application/x-msdos-program',
-    'application/x-executable',
-    'application/x-sh',
-    'application/x-bat',
-    'application/x-ms-application',
-    'application/vnd.microsoft.portable-executable',
+    "application/x-msdownload",
+    "application/x-msdos-program",
+    "application/x-executable",
+    "application/x-sh",
+    "application/x-bat",
+    "application/x-ms-application",
+    "application/vnd.microsoft.portable-executable",
   ],
 
   // 文件大小限制（500MB）
@@ -83,7 +106,7 @@ class FileSecurityValidator {
       ...customConfig,
     };
 
-    logger.info('[FileSecurityValidator] 初始化完成', {
+    logger.info("[FileSecurityValidator] 初始化完成", {
       maxFileSize: `${(this.config.maxFileSize / 1024 / 1024).toFixed(2)} MB`,
       blockedExtensions: this.config.blockedExtensions.length,
     });
@@ -105,7 +128,7 @@ class FileSecurityValidator {
     if (!file || !file.display_name) {
       return {
         valid: false,
-        errors: ['文件信息不完整'],
+        errors: ["文件信息不完整"],
         warnings: [],
       };
     }
@@ -134,19 +157,22 @@ class FileSecurityValidator {
 
     // 5. 检查文件名长度
     if (file.display_name.length > this.config.maxFileNameLength) {
-      errors.push(`文件名过长: ${file.display_name.length} > ${this.config.maxFileNameLength}`);
+      errors.push(
+        `文件名过长: ${file.display_name.length} > ${this.config.maxFileNameLength}`,
+      );
     }
 
     // 6. 检查文件名特殊字符
+    // checkFileName() only ever produces warnings (it always returns
+    // valid:true), so the previous `if (!nameCheck.valid)` guard was dead and
+    // silently dropped every filename warning. Push them like extCheck/mimeCheck.
     const nameCheck = this.checkFileName(file.display_name);
-    if (!nameCheck.valid) {
-      warnings.push(...nameCheck.warnings);
-    }
+    warnings.push(...nameCheck.warnings);
 
     const valid = errors.length === 0;
 
     if (!valid) {
-      logger.warn('[FileSecurityValidator] 文件验证失败:', {
+      logger.warn("[FileSecurityValidator] 文件验证失败:", {
         fileName: file.display_name,
         errors,
       });
@@ -167,10 +193,13 @@ class FileSecurityValidator {
   checkFileSize(size) {
     const errors = [];
 
-    if (typeof size !== 'number' || size < 0) {
-      errors.push('文件大小无效');
+    if (typeof size !== "number" || Number.isNaN(size) || size < 0) {
+      // NaN is typeof 'number' and every comparison against it is false, so
+      // without this guard a NaN file_size silently passed every size check
+      // and the file validated as having a valid size. Treat NaN as invalid.
+      errors.push("文件大小无效");
     } else if (size < this.config.minFileSize) {
-      errors.push('文件大小过小，可能是空文件');
+      errors.push("文件大小过小，可能是空文件");
     } else if (size > this.config.maxFileSize) {
       const maxSizeMB = (this.config.maxFileSize / 1024 / 1024).toFixed(2);
       const actualSizeMB = (size / 1024 / 1024).toFixed(2);
@@ -200,14 +229,20 @@ class FileSecurityValidator {
     }
 
     // 检查是否有双扩展名（常见的恶意软件技巧）
-    const extParts = fileName.split('.').slice(1);
+    const extParts = fileName.split(".").slice(1);
     if (extParts.length > 2) {
-      warnings.push(`文件名包含多个扩展名，可能存在风险: ${extParts.join('.')}`);
+      warnings.push(
+        `文件名包含多个扩展名，可能存在风险: ${extParts.join(".")}`,
+      );
     }
 
     // 检查隐藏扩展名
-    if (extParts.some(part => this.config.blockedExtensions.includes('.' + part.toLowerCase()))) {
-      errors.push('文件名包含隐藏的危险扩展名');
+    if (
+      extParts.some((part) =>
+        this.config.blockedExtensions.includes("." + part.toLowerCase()),
+      )
+    ) {
+      errors.push("文件名包含隐藏的危险扩展名");
     }
 
     return {
@@ -227,7 +262,7 @@ class FileSecurityValidator {
     const warnings = [];
 
     if (!mimeType) {
-      warnings.push('MIME类型未指定');
+      warnings.push("MIME类型未指定");
       return { valid: true, errors, warnings };
     }
 
@@ -238,8 +273,8 @@ class FileSecurityValidator {
     }
 
     // 检查是否匹配允许的MIME类型模式
-    const isAllowed = this.config.allowedMimePatterns.some(pattern => {
-      if (pattern.endsWith('*')) {
+    const isAllowed = this.config.allowedMimePatterns.some((pattern) => {
+      if (pattern.endsWith("*")) {
         // 通配符模式
         return mimeType.startsWith(pattern.slice(0, -1));
       } else {
@@ -253,8 +288,8 @@ class FileSecurityValidator {
     }
 
     // 检查MIME类型与扩展名是否一致（警告）
-    if (mimeType.includes('executable') || mimeType.includes('script')) {
-      warnings.push('MIME类型指示可能为可执行文件');
+    if (mimeType.includes("executable") || mimeType.includes("script")) {
+      warnings.push("MIME类型指示可能为可执行文件");
     }
 
     return {
@@ -274,20 +309,22 @@ class FileSecurityValidator {
 
     // 检查特殊字符
     const dangerousChars = /[<>:"|?*]/;
-    const hasControlChars = [...fileName].some((char) => char.charCodeAt(0) <= 31);
+    const hasControlChars = [...fileName].some(
+      (char) => char.charCodeAt(0) <= 31,
+    );
     if (dangerousChars.test(fileName) || hasControlChars) {
-      warnings.push('文件名包含特殊字符');
+      warnings.push("文件名包含特殊字符");
     }
 
     // 检查Unicode字符（可能用于欺骗）
     const hasUnicode = [...fileName].some((char) => char.charCodeAt(0) > 127);
     if (hasUnicode) {
-      warnings.push('文件名包含非ASCII字符，请确认文件来源可信');
+      warnings.push("文件名包含非ASCII字符，请确认文件来源可信");
     }
 
     // 检查隐藏文件（以.开头）
-    if (fileName.startsWith('.') && fileName !== '.') {
-      warnings.push('隐藏文件，请确认是否需要');
+    if (fileName.startsWith(".") && fileName !== ".") {
+      warnings.push("隐藏文件，请确认是否需要");
     }
 
     return {
@@ -356,7 +393,7 @@ class FileSecurityValidator {
       ...newConfig,
     };
 
-    logger.info('[FileSecurityValidator] 配置已更新');
+    logger.info("[FileSecurityValidator] 配置已更新");
   }
 
   /**
@@ -365,7 +402,7 @@ class FileSecurityValidator {
    * @returns {boolean} 是否为图片
    */
   isImage(file) {
-    return file.mime_type?.startsWith('image/');
+    return file.mime_type?.startsWith("image/");
   }
 
   /**
@@ -374,7 +411,7 @@ class FileSecurityValidator {
    * @returns {boolean} 是否为视频
    */
   isVideo(file) {
-    return file.mime_type?.startsWith('video/');
+    return file.mime_type?.startsWith("video/");
   }
 
   /**
@@ -384,15 +421,15 @@ class FileSecurityValidator {
    */
   isDocument(file) {
     const docMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.ms-',
-      'application/vnd.openxmlformats-officedocument',
-      'application/vnd.oasis.opendocument',
-      'text/',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.ms-",
+      "application/vnd.openxmlformats-officedocument",
+      "application/vnd.oasis.opendocument",
+      "text/",
     ];
 
-    return docMimeTypes.some(type => file.mime_type?.startsWith(type));
+    return docMimeTypes.some((type) => file.mime_type?.startsWith(type));
   }
 
   /**
@@ -404,14 +441,14 @@ class FileSecurityValidator {
     const validation = this.validate(file);
 
     if (!validation.valid) {
-      return 'high';
+      return "high";
     }
 
     if (validation.warnings.length > 2) {
-      return 'medium';
+      return "medium";
     }
 
-    return 'low';
+    return "low";
   }
 }
 
