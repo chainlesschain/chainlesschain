@@ -312,11 +312,12 @@ ${docList}
         }
       });
 
-      // 归一化分数
-      const normalizedScore = Math.min(
-        matchScore / (queryTokens.length * 3),
-        1.0,
-      );
+      // 归一化分数。空查询（空串/纯标点/纯空白）会让 queryTokens 为空，
+      // matchScore/(0*3)=NaN 会污染每个文档的 score 并打乱排序，故先兜底为 0。
+      const normalizedScore =
+        queryTokens.length > 0
+          ? Math.min(matchScore / (queryTokens.length * 3), 1.0)
+          : 0;
 
       return {
         ...doc,
