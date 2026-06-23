@@ -15,7 +15,7 @@
  *   - events carry a clean content.title for the timeline.
  */
 
-const { test } = require("node:test");
+import { test } from "vitest";
 const assert = require("node:assert");
 const { parseEvents } = require("../lib/forensics/wechat-collect.js");
 

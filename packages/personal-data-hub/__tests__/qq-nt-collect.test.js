@@ -7,7 +7,7 @@
  * uid → person-qq-self), group topics, clean titles, unique source.originalId.
  */
 
-const { test } = require("node:test");
+import { test } from "vitest";
 const assert = require("node:assert");
 const { parseEvents, bodyText } = require("../lib/forensics/qq-nt-collect.js");
 
