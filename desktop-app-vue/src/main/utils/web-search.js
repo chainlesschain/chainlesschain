@@ -7,6 +7,11 @@ const { logger } = require("./logger.js");
 const https = require("https");
 const http = require("http");
 
+// 单次搜索响应体上限：搜索 API 的正常响应远小于此。设置上限以防上游异常/被
+// 中间人篡改时无界累积 `data += chunk` 把主进程内存吃光（DoS 兜底）。
+const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+const REQUEST_TIMEOUT_MS = 5000;
+
 /**
  * 使用简单的搜索建议作为备选方案
  * @param {string} query - 搜索查询
@@ -68,11 +73,16 @@ async function searchDuckDuckGo(query, options = {}) {
 
     logger.info("[WebSearch] 尝试使用DuckDuckGo API:", query);
 
-    const request = https.get(url, { timeout: 5000 }, (res) => {
+    const request = https.get(url, { timeout: REQUEST_TIMEOUT_MS }, (res) => {
       let data = "";
 
       res.on("data", (chunk) => {
         data += chunk;
+        if (data.length > MAX_RESPONSE_BYTES) {
+          logger.warn("[WebSearch] DuckDuckGo响应超出大小上限，中止");
+          request.destroy();
+          resolve(searchFallback(query, options));
+        }
       });
 
       res.on("end", () => {
@@ -166,49 +176,64 @@ async function searchBing(query, options = {}) {
 
     logger.info("[WebSearch] 使用Bing搜索:", query);
 
-    const options = {
+    // 注意：用 reqOptions（不要叫 options）以免遮蔽函数参数 options。
+    const reqOptions = {
       headers: {
         "Ocp-Apim-Subscription-Key": apiKey,
       },
+      timeout: REQUEST_TIMEOUT_MS,
     };
 
-    https
-      .get(url, options, (res) => {
-        let data = "";
+    const request = https.get(url, reqOptions, (res) => {
+      let data = "";
 
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-
-        res.on("end", () => {
-          try {
-            const result = JSON.parse(data);
-
-            const results = (result.webPages?.value || []).map((item) => ({
-              title: item.name,
-              snippet: item.snippet,
-              url: item.url,
-              source: "Bing",
-            }));
-
-            logger.info("[WebSearch] 找到", results.length, "条结果");
-
-            resolve({
-              query,
-              results,
-              totalResults:
-                result.webPages?.totalEstimatedMatches || results.length,
-            });
-          } catch (error) {
-            logger.error("[WebSearch] 解析结果失败:", error);
-            reject(error);
-          }
-        });
-      })
-      .on("error", (error) => {
-        logger.error("[WebSearch] 请求失败:", error);
-        reject(error);
+      res.on("data", (chunk) => {
+        data += chunk;
+        if (data.length > MAX_RESPONSE_BYTES) {
+          logger.warn("[WebSearch] Bing响应超出大小上限，中止");
+          request.destroy();
+          reject(new Error("Bing搜索响应超出大小上限"));
+        }
       });
+
+      res.on("end", () => {
+        try {
+          const result = JSON.parse(data);
+
+          const results = (result.webPages?.value || []).map((item) => ({
+            title: item.name,
+            snippet: item.snippet,
+            url: item.url,
+            source: "Bing",
+          }));
+
+          logger.info("[WebSearch] 找到", results.length, "条结果");
+
+          resolve({
+            query,
+            results,
+            totalResults:
+              result.webPages?.totalEstimatedMatches || results.length,
+          });
+        } catch (error) {
+          logger.error("[WebSearch] 解析结果失败:", error);
+          reject(error);
+        }
+      });
+    });
+
+    request.on("error", (error) => {
+      logger.error("[WebSearch] 请求失败:", error);
+      reject(error);
+    });
+
+    // 关键修复：searchBing 此前无超时，挂起的连接会让 Promise 永不 settle，
+    // 调用方（enhanceChatWithSearch）会一直 await。镜像 searchDuckDuckGo 的处理。
+    request.on("timeout", () => {
+      logger.error("[WebSearch] Bing搜索请求超时");
+      request.destroy();
+      reject(new Error("Bing搜索请求超时"));
+    });
   });
 }
 
