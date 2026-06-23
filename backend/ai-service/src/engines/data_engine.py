@@ -255,8 +255,15 @@ class DataEngine:
         """生成示例数据"""
 
         columns = spec.get("columns", [])
-        # Limit to 10 rows for testing to reduce response size
-        row_count = min(spec.get("row_count", 10), 10)
+        # Limit to 10 rows for testing to reduce response size.
+        # row_count 来自 LLM 解析的 spec，可能是字符串/浮点/负数/缺失：先安全强转再夹到
+        # [0, 10]，否则 min(str, int) 会抛 TypeError，负值会让 np.random.randint(size=...)
+        # 与 pd.date_range(periods=...) 抛 ValueError。
+        try:
+            requested_rows = int(spec.get("row_count", 10))
+        except (TypeError, ValueError):
+            requested_rows = 10
+        row_count = min(max(requested_rows, 0), 10)
 
         # 根据列定义生成数据
         data = {}
