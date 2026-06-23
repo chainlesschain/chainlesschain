@@ -18,6 +18,11 @@
  *                           input parameter, incl. arbitrary MCP tool args;
  *                           `*` crosses `/` here, unlike path globs)
  *   mcp__db__query(table:users) → that MCP tool whose `table` arg is "users"
+ *   Agent(Explore)        → spawn_sub_agent whose type (profile/agent/role) is
+ *                           "Explore" (CC 2.1.186 `Agent(type)`; case-insensitive
+ *                           identifiers, globs ok)
+ *   Agent(Explore,Plan)   → spawn_sub_agent whose type is Explore OR Plan
+ *                           (CC 2.1.186 `Agent(x,y)` allowed/denied-types list)
  *   Bash                  → every run_shell call
  *   *                     → every tool call (Claude-Code deny-all idiom)
  *   Bash(*)               → every run_shell call (lone-`*` pattern = match-all)
@@ -54,6 +59,7 @@ const TOOL_GROUPS = Object.freeze({
   webfetch: ["web_fetch"],
   websearch: ["web_search"],
   task: ["spawn_sub_agent"],
+  agent: ["spawn_sub_agent"],
   skill: ["run_skill", "list_skills"],
   runcode: ["run_code"],
   git: ["git"],
@@ -73,6 +79,8 @@ const PATH_TOOLS = new Set([
 ]);
 /** Tools whose match target is a URL. */
 const URL_TOOLS = new Set(["web_fetch"]);
+/** Tools whose positional pattern is a sub-agent TYPE list (CC `Agent(type)`). */
+const SUBAGENT_TOOLS = new Set(["spawn_sub_agent"]);
 
 /**
  * Does a rule's tool token apply to the concrete tool being evaluated?
@@ -254,6 +262,30 @@ function matchPattern(pattern, actualTool, args, cwd) {
   if (pv && Object.prototype.hasOwnProperty.call(args || {}, pv[1])) {
     return matchParamValue(pv[2].trim(), (args || {})[pv[1]]);
   }
+  // Claude-Code 2.1.186: `Agent(type)` / `Agent(typeA,typeB)` — restrict the
+  // spawn_sub_agent tool by sub-agent TYPE. A call's type identity is its
+  // `profile`, named `agent`, or `role` (whichever are present). The pattern is
+  // a comma-separated list; it matches when ANY listed type matches ANY of the
+  // call's identities (case-insensitive identifiers; `*`/`?` globs allowed).
+  // The `Tool(param:value)` branch above still handles `Task(profile:explorer)`;
+  // this adds the bare positional spelling Claude-Code settings.json uses.
+  if (SUBAGENT_TOOLS.has(actualTool)) {
+    const a = args || {};
+    const ids = [a.profile, a.agent, a.role].filter(
+      (x) => x != null && String(x) !== "",
+    );
+    if (!ids.length) return false;
+    const wanted = pattern
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!wanted.length) return false;
+    return wanted.some((w) =>
+      ids.some((id) =>
+        matchParamValue(w.toLowerCase(), String(id).toLowerCase()),
+      ),
+    );
+  }
   const target = extractTarget(actualTool, args, cwd);
   if (target.kind === "command") {
     return target.value ? matchCommand(pattern, target.value) : false;
@@ -367,6 +399,7 @@ module.exports = {
   COMMAND_TOOLS,
   PATH_TOOLS,
   URL_TOOLS,
+  SUBAGENT_TOOLS,
   toolMatches,
   parseRule,
   globToRegExp,

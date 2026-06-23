@@ -407,3 +407,103 @@ describe("Tool(param:value) — named input-parameter matching (CC 2.1.178)", ()
     expect(matchParamValue("abc", "abd")).toBe(false);
   });
 });
+
+describe("Agent(type) — sub-agent type restriction (CC 2.1.186)", () => {
+  it("Agent alias resolves to spawn_sub_agent", () => {
+    expect(toolMatches("Agent", "spawn_sub_agent")).toBe(true);
+    expect(toolMatches("Task", "spawn_sub_agent")).toBe(true); // existing alias kept
+    expect(toolMatches("Agent", "run_shell")).toBe(false);
+  });
+
+  it("matches the positional type against profile/agent/role identity", () => {
+    expect(
+      matchPattern("explorer", "spawn_sub_agent", { profile: "explorer" }),
+    ).toBe(true);
+    expect(
+      matchPattern("reviewer", "spawn_sub_agent", { agent: "reviewer" }),
+    ).toBe(true);
+    expect(
+      matchPattern("auditor", "spawn_sub_agent", { role: "auditor" }),
+    ).toBe(true);
+    expect(
+      matchPattern("explorer", "spawn_sub_agent", { profile: "executor" }),
+    ).toBe(false);
+  });
+
+  it("is case-insensitive on the type identifier", () => {
+    expect(
+      matchPattern("Explorer", "spawn_sub_agent", { profile: "explorer" }),
+    ).toBe(true);
+  });
+
+  it("supports a comma-separated allowed/denied type list (Agent(x,y))", () => {
+    expect(
+      matchPattern("explorer,design", "spawn_sub_agent", { profile: "design" }),
+    ).toBe(true);
+    expect(
+      matchPattern("explorer, design", "spawn_sub_agent", {
+        profile: "executor",
+      }),
+    ).toBe(false);
+  });
+
+  it("supports globs in the type pattern", () => {
+    expect(
+      matchPattern("explor*", "spawn_sub_agent", { profile: "explorer" }),
+    ).toBe(true);
+  });
+
+  it("a call with no type identity never matches a positional pattern", () => {
+    expect(
+      matchPattern("explorer", "spawn_sub_agent", { task: "do a thing" }),
+    ).toBe(false);
+  });
+
+  it("Agent(*) deny-all still matches any spawn (lone-* early return)", () => {
+    expect(matchPattern("*", "spawn_sub_agent", { task: "x" })).toBe(true);
+  });
+
+  it("Task(profile:explorer) param spelling still works alongside positional", () => {
+    expect(
+      matchPattern("profile:explorer", "spawn_sub_agent", {
+        profile: "explorer",
+      }),
+    ).toBe(true);
+  });
+
+  it("end-to-end: deny a sub-agent type via Agent(type), allow the rest", () => {
+    const denied = evaluatePermissionRules({
+      tool: "spawn_sub_agent",
+      args: { profile: "executor", task: "rm stuff" },
+      rules: { deny: ["Agent(executor)"], allow: ["Task"] },
+    });
+    expect(denied.decision).toBe("deny");
+    expect(denied.rule).toBe("Agent(executor)");
+
+    const allowed = evaluatePermissionRules({
+      tool: "spawn_sub_agent",
+      args: { profile: "explorer", task: "read stuff" },
+      rules: { deny: ["Agent(executor)"], allow: ["Task"] },
+    });
+    expect(allowed.decision).toBe("allow");
+  });
+
+  it("end-to-end: Agent(x,y) allow-list — only listed types pre-authorized", () => {
+    const base = { allow: ["Agent(explorer,design)"] };
+    expect(
+      evaluatePermissionRules({
+        tool: "spawn_sub_agent",
+        args: { profile: "explorer", task: "x" },
+        rules: base,
+      }).decision,
+    ).toBe("allow");
+    // A type not in the list → no matching rule → null (falls back to defaults)
+    expect(
+      evaluatePermissionRules({
+        tool: "spawn_sub_agent",
+        args: { profile: "executor", task: "x" },
+        rules: base,
+      }).decision,
+    ).toBe(null);
+  });
+});
