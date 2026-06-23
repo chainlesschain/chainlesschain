@@ -173,3 +173,34 @@ describe("store expire sweeper", () => {
     expect(store.getProposal("p3").state).toBe("pending"); // 未到期
   });
 });
+
+describe("store — corrupted JSON column guards", () => {
+  function freshStoreWithDb() {
+    const sqlDb = new SQL.Database();
+    const db = adaptSqlJsDb(sqlDb);
+    applySchema(db);
+    return { db, store: createStore(db) };
+  }
+
+  it("getProposal throws a clear, identifiable error when member_set is corrupted", () => {
+    const { db, store } = freshStoreWithDb();
+    store.insertProposal(fakeProposal({ id: "p-corrupt" }));
+    db.prepare(
+      "UPDATE multisig_proposals SET member_set = ? WHERE id = ?",
+    ).run("{not-json", "p-corrupt");
+    expect(() => store.getProposal("p-corrupt")).toThrow(/corrupted JSON/);
+    expect(() => store.getProposal("p-corrupt")).toThrow(/member_set/);
+    expect(() => store.getProposal("p-corrupt")).toThrow("p-corrupt");
+  });
+
+  it("getPolicy / listPolicies throw a clear error when policy_json is corrupted", () => {
+    const { db, store } = freshStoreWithDb();
+    store.setPolicy("test.purchase", JSON.stringify({ m: 2, n: 3 }), 1_700_000_000_000);
+    db.prepare(
+      "UPDATE multisig_policies SET policy_json = ? WHERE domain = ?",
+    ).run("not-json{", "test.purchase");
+    expect(() => store.getPolicy("test.purchase")).toThrow(/corrupted JSON/);
+    expect(() => store.getPolicy("test.purchase")).toThrow(/policy_json/);
+    expect(() => store.listPolicies()).toThrow(/corrupted JSON/);
+  });
+});

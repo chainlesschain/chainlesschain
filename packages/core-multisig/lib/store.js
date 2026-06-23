@@ -37,6 +37,20 @@
  */
 
 /**
+ * 解析入库的 JSON 列。损坏的行（存储损坏 / 迁移失败）抛出带上下文的明确错误，
+ * 而不是无定位信息的裸 SyntaxError —— label 指明是哪条记录的哪一列坏了。
+ */
+function _parseJsonColumn(raw, label) {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error(
+      `multisig store: corrupted JSON in ${label} (invalid JSON): ${err.message}`,
+    );
+  }
+}
+
+/**
  * 把 SQLite row 转回 native 类型（JSON parse memberSet，确保 payloadHash 是 Buffer）。
  */
 function _rowToProposal(row) {
@@ -51,7 +65,7 @@ function _rowToProposal(row) {
     nonce: row.nonce,
     expiresAtMs: Number(row.expires_at_ms),
     thresholdM: Number(row.threshold_m),
-    memberSet: JSON.parse(row.member_set),
+    memberSet: _parseJsonColumn(row.member_set, `proposal ${row.id} member_set`),
     requirePqc: Boolean(row.require_pqc),
     state: row.state,
     initiatorDid: row.initiator_did,
@@ -193,14 +207,14 @@ function createStore(db) {
         .prepare(`SELECT policy_json FROM multisig_policies WHERE domain = ?`)
         .get(domain);
       if (!row) return null;
-      return JSON.parse(row.policy_json);
+      return _parseJsonColumn(row.policy_json, `policy ${domain} policy_json`);
     },
 
     listPolicies() {
       const rows = db.prepare(`SELECT * FROM multisig_policies`).all();
       return rows.map((r) => ({
         domain: r.domain,
-        policy: JSON.parse(r.policy_json),
+        policy: _parseJsonColumn(r.policy_json, `policy ${r.domain} policy_json`),
         updatedAtMs: Number(r.updated_at_ms),
       }));
     },
