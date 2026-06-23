@@ -31,16 +31,30 @@ const HOOK_DECISIONS = Object.freeze({
   CONTINUE: "continue",
 });
 
+/** JSON.parse that returns undefined (not throws) on failure. */
+function tryJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Parse a hook's stdout JSON into a normalized decision, or null if not JSON. */
 function tryParseDecision(stdout) {
   const text = String(stdout || "").trim();
   if (!text || text[0] !== "{") return null;
-  let obj;
-  try {
-    obj = JSON.parse(text);
-  } catch {
-    return null;
+  let obj = tryJson(text);
+  if (obj === undefined) {
+    // A hook that emits its decision as a JSON line followed by diagnostics
+    // (`{"decision":"block"}\n…log lines…`) would fail a whole-text parse, so
+    // the documented JSON-to-block pattern would be silently dropped and the
+    // tool would proceed. Recover the decision from the first line. (Pure
+    // pretty-printed JSON still parses via the whole-text attempt above.)
+    const firstLine = text.split("\n", 1)[0].trim();
+    if (firstLine && firstLine[0] === "{") obj = tryJson(firstLine);
   }
+  if (obj === undefined || obj === null || typeof obj !== "object") return null;
   // PreToolUse-specific permission decision
   const hso = obj.hookSpecificOutput;
   if (hso && hso.permissionDecision) {
@@ -148,7 +162,22 @@ function runCommandHook(command, input = {}, opts = {}) {
   if (exitCode === 0) {
     const parsed = tryParseDecision(stdout);
     if (parsed) return { ...parsed, exitCode, stdout, stderr };
-    return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode, stdout, stderr };
+    // stdout that *looks* like a decision (`{`-leading) but parses as neither
+    // whole-text nor first-line JSON is most likely a corrupt/truncated
+    // decision — don't swallow it silently (a block hook could be neutered).
+    // The exit code (0) still governs the flow (continue), but flag it so the
+    // caller/logs can surface the misconfiguration.
+    const looksLikeDecision = stdout.trim()[0] === "{";
+    return {
+      decision: HOOK_DECISIONS.CONTINUE,
+      reason: looksLikeDecision
+        ? "hook stdout looked like a decision but did not parse as JSON"
+        : null,
+      exitCode,
+      stdout,
+      stderr,
+      ...(looksLikeDecision ? { malformedDecision: true } : {}),
+    };
   }
   // Other non-zero → non-blocking error.
   return {

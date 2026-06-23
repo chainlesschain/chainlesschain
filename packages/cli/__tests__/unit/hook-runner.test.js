@@ -28,8 +28,14 @@ beforeEach(() => {
 describe("runCommandHook — input + protocol", () => {
   it("writes the JSON payload to stdin", () => {
     stub({ status: 0 });
-    runCommandHook("guard.sh", { tool_name: "Bash", x: 1 }, { event: "PreToolUse" });
-    expect(calls[0].opts.input).toBe(JSON.stringify({ tool_name: "Bash", x: 1 }));
+    runCommandHook(
+      "guard.sh",
+      { tool_name: "Bash", x: 1 },
+      { event: "PreToolUse" },
+    );
+    expect(calls[0].opts.input).toBe(
+      JSON.stringify({ tool_name: "Bash", x: 1 }),
+    );
     expect(calls[0].opts.env.CLAUDE_HOOK_EVENT).toBe("PreToolUse");
   });
 
@@ -68,7 +74,9 @@ describe("runCommandHook — input + protocol", () => {
   it("permissionDecision=ask → ask", () => {
     stub({
       status: 0,
-      stdout: JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } }),
+      stdout: JSON.stringify({
+        hookSpecificOutput: { permissionDecision: "ask" },
+      }),
     });
     expect(runCommandHook("g.sh", {}).decision).toBe("ask");
   });
@@ -100,6 +108,32 @@ describe("runCommandHook — input + protocol", () => {
     runHooks([{ command: "g.sh", timeout: 30 }], {});
     expect(calls[0].opts.timeout).toBe(30000);
   });
+
+  it("exit 0 + JSON decision line followed by diagnostics → block (not dropped)", () => {
+    // The common shell-hook shape: emit the decision, then log to stdout.
+    stub({
+      status: 0,
+      stdout: '{"decision":"block","reason":"policy"}\n[hook] denied tool\n',
+    });
+    const r = runCommandHook("g.sh", {});
+    expect(r).toMatchObject({ decision: "block", reason: "policy" });
+  });
+
+  it("exit 0 + {-leading but unparseable stdout → continue, flagged malformed", () => {
+    stub({ status: 0, stdout: '{"decision":"block"' }); // truncated JSON
+    const r = runCommandHook("g.sh", {});
+    expect(r.decision).toBe("continue"); // exit code 0 still governs
+    expect(r.malformedDecision).toBe(true);
+    expect(r.reason).toMatch(/did not parse/i);
+  });
+
+  it("exit 0 plain (non-{) stdout is not flagged malformed", () => {
+    stub({ status: 0, stdout: "ok\n" });
+    const r = runCommandHook("g.sh", {});
+    expect(r.decision).toBe("continue");
+    expect(r.malformedDecision).toBeUndefined();
+    expect(r.reason).toBeNull();
+  });
 });
 
 describe("tryParseDecision", () => {
@@ -109,6 +143,18 @@ describe("tryParseDecision", () => {
   });
   it("approve → allow", () => {
     expect(tryParseDecision('{"decision":"approve"}').decision).toBe("allow");
+  });
+  it("recovers the decision from the first line when diagnostics follow", () => {
+    const d = tryParseDecision('{"decision":"deny"}\nsome log\nmore log');
+    expect(d.decision).toBe("block");
+  });
+  it("still parses pretty-printed (multi-line) JSON via the whole-text attempt", () => {
+    const d = tryParseDecision('{\n  "decision": "block",\n  "reason": "x"\n}');
+    expect(d).toMatchObject({ decision: "block", reason: "x" });
+  });
+  it("returns null for {-leading but unparseable stdout", () => {
+    expect(tryParseDecision('{"decision":"block"')).toBeNull(); // truncated
+    expect(tryParseDecision("{not json at all")).toBeNull();
   });
 });
 
