@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`formatFileSize` 越界输出 "undefined"**：对 ≥ 1 PB（单位数组止于 TB → `sizes[5]` 为 undefined）或 0<bytes<1（指数为 -1 → `sizes[-1]`）的有效输入会拼出含字面量 `"undefined"` 的字符串（负数则为 `"NaN undefined"`）。改为把单位下标钳制到 `[0, TB]`、负数视为无效（返回 `Unknown`）；常规 0..<1PB 区间行为不变。
 - **`useResponsive` 断点偏移一档**：`breakpoint` 计算把宽度与"本档阈值"比较（`width < BREAKPOINTS.xs → "xs"`），在 min-width 语义下整体偏移一档，与同文件 `deviceType` 矛盾（800px 时 deviceType=tablet 却得 breakpoint=`"lg"` 而非 `"md"`）。抽出纯函数 `getBreakpoint` 改为与"下一档阈值"比较，和 `deviceType`/`is*` 一致；该 composable 目前无外部引用，故为前瞻性修复。
 
+### Fixed — 桌面 MCP 传输层保留合法 JSON-RPC id=0
+
+> 桌面 main 进程；含回归单测；不涉及发版链。
+
+- HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
+
 ## [v5.0.3.129] - 2026-06-22 — 个人助手信任卡固定可见（不再被消息流滚走 / 误以为「没反应」）
 
 ### Fixed — Android 个人助手:发消息后的确认卡看不见,要往上翻
