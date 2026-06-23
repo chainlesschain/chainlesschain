@@ -65,6 +65,65 @@ describe("DAOGovernanceV2", () => {
     expect(db.exec).toHaveBeenCalledTimes(1);
   });
 
+  // ── _loadState restore (snake_case → camelCase) ──────────────────────────
+  function dbReturningProposals(rows) {
+    return {
+      exec: vi.fn(),
+      prepare: vi.fn((sql) => ({
+        all: () => (sql.includes("dao_v2_proposals") ? rows : []),
+        get: () => null,
+        run: vi.fn(),
+      })),
+    };
+  }
+
+  it("restores snake_case rows as numeric camelCase tallies; execute guard intact", async () => {
+    // 模拟重启：DB 中存在一个 0 票提案（snake_case 列）
+    const restoreDb = dbReturningProposals([
+      {
+        id: "p-restored",
+        title: "T",
+        description: "D",
+        proposer: "alice",
+        status: "active",
+        votes_for: 0,
+        votes_against: 0,
+        voting_type: "simple",
+        ends_at: new Date(Date.now() + 1e6).toISOString(),
+      },
+    ]);
+    await dao.initialize(restoreDb);
+
+    const restored = dao._proposals.get("p-restored");
+    expect(restored.votesFor).toBe(0); // 数值而非 undefined
+    expect(restored.votesAgainst).toBe(0);
+    expect(restored.votingType).toBe("simple");
+    // 0-0 提案不得执行：旧实现 undefined<=undefined=false 会跳过「未通过」闸而误执行
+    expect(() => dao.execute("p-restored")).toThrow("did not pass");
+  });
+
+  it("restores a passed proposal's persisted tallies so execute succeeds", async () => {
+    const restoreDb = dbReturningProposals([
+      {
+        id: "p-passed",
+        title: "T",
+        description: "D",
+        proposer: "alice",
+        status: "active",
+        votes_for: 10,
+        votes_against: 2,
+        voting_type: "simple",
+        ends_at: new Date(Date.now() + 1e6).toISOString(),
+      },
+    ]);
+    await dao.initialize(restoreDb);
+
+    const restored = dao._proposals.get("p-passed");
+    expect(restored.votesFor).toBe(10);
+    expect(restored.votesAgainst).toBe(2);
+    expect(dao.execute("p-passed").status).toBe("executed");
+  });
+
   // ── createProposal ──────────────────────────────────────────────────────
   it("should create a proposal", async () => {
     await dao.initialize(db);

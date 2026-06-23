@@ -67,7 +67,17 @@ class DAOGovernanceV2 extends EventEmitter {
         )
         .all();
       for (const p of proposals) {
-        this._proposals.set(p.id, p);
+        // DB 列是 snake_case，但内存态/vote()/execute() 用 camelCase。直接存原始行会让
+        // votesFor/votesAgainst 为 undefined：execute() 的 `votesFor <= votesAgainst`
+        // 在 undefined<=undefined 时为 false，会跳过「未通过」闸而执行未达票数的提案。
+        // 故重启加载时统一映射为 camelCase 并给数值兜底（无票数则回 0，execute 正确拦下）。
+        this._proposals.set(p.id, {
+          ...p,
+          votingType: p.voting_type || "simple",
+          votesFor: Number(p.votes_for) || 0,
+          votesAgainst: Number(p.votes_against) || 0,
+          endsAt: p.ends_at,
+        });
       }
       const delegations = this.db
         .prepare("SELECT * FROM dao_v2_delegations")
@@ -171,6 +181,13 @@ class DAOGovernanceV2 extends EventEmitter {
           "INSERT INTO dao_v2_votes (id, proposal_id, voter, weight, direction) VALUES (?, ?, ?, ?, ?)",
         )
         .run(voteId, proposalId, voter, effectiveWeight, direction);
+      // 同步票数到提案行，否则 votes_for/votes_against 永远是 DEFAULT 0，
+      // 重启后即便正确映射也会把已通过的提案票数清零（_loadState 依赖此列）。
+      this.db
+        .prepare(
+          "UPDATE dao_v2_proposals SET votes_for = ?, votes_against = ? WHERE id = ?",
+        )
+        .run(proposal.votesFor, proposal.votesAgainst, proposalId);
     } catch (error) {
       logger.error("[DAOv2] Vote persist failed:", error.message);
     }
