@@ -249,10 +249,12 @@ class BM25Search {
     });
     this.docLengths.push(tokens.length);
 
-    // 重新计算平均长度
+    // 重新计算平均长度。|| 1 兜底：若已索引文档全是空/纯标点(分词长度全 0)，
+    // avgDocLength 会是 0，导致打分式 (b*docLength)/avgDocLength 除零得 NaN。
+    // 与 indexDocuments 的兜底保持一致。
     this.avgDocLength =
       this.docLengths.reduce((sum, len) => sum + len, 0) /
-      this.docLengths.length;
+        this.docLengths.length || 1;
 
     logger.info("[BM25Search] 添加文档:", document.id);
   }
