@@ -52,6 +52,13 @@ class P2PConnectionManager @Inject constructor(
     // 重连状态事件
     val reconnectStatusEvents: SharedFlow<ReconnectStatusEvent> = autoReconnectManager.reconnectStatusEvents
 
+    // 健壮性兜底：远程信令中继 seam（依赖倒置）。app 层在启动时 attach 一个基于
+    // WebRTCClient/生产 wss 的实现，使消息在无直连 P2P（AP 隔离/跨网）时也能送达。
+    // 未 attach 时行为与之前完全一致（无回归）。
+    @Volatile
+    private var remoteRelay: RemoteMessageRelay? = null
+    private var remoteRelayJob: Job? = null
+
     init {
         // 监听信令消息
         scope.launch {
@@ -304,16 +311,50 @@ class P2PConnectionManager @Inject constructor(
     }
 
     /**
+     * 附加远程信令中继（依赖倒置）。app 层启动时调用一次，注入基于 WebRTCClient/生产 wss
+     * 的实现，使聊天消息在没有直连 P2P 时也能经信令服务器送达（健壮性兜底）。
+     */
+    fun attachRemoteRelay(relay: RemoteMessageRelay) {
+        remoteRelay = relay
+        remoteRelayJob?.cancel()
+        remoteRelayJob = scope.launch {
+            // 经远程信令中继收到的消息也走 receivedMessages；上层按 message.id 去重。
+            relay.incoming.collect { msg ->
+                runCatching { _receivedMessages.emit(msg) }
+                    .onFailure { Timber.w(it, "emit relayed message failed") }
+            }
+        }
+        Timber.i("Remote signaling relay attached to P2PConnectionManager")
+    }
+
+    /**
      * 发送消息到设备
      *
-     * @param deviceId 目标设备ID
-     * @param message 消息内容
+     * 健壮性：优先直连 P2P（DataChannel/局域网，快）；无直连时回退到远程信令中继
+     * （[attachRemoteRelay] 注入的实现，跨网/AP 隔离也能送达）。两条路都不可用才算失败。
+     *
+     * @param deviceId 目标设备ID（对端 DID）
+     * @param message 消息内容（payload 已是密文）
      */
     suspend fun sendMessage(deviceId: String, message: P2PMessage) {
-        connections[deviceId]?.let { connection ->
+        val connection = connections[deviceId]
+        if (connection != null && connection.isConnected()) {
             connection.sendMessage(message)
-        } ?: run {
-            Timber.w("No connection to device: $deviceId")
+            return
+        }
+        // 无直连 P2P → 经远程信令中继兜底
+        val relay = remoteRelay
+        if (relay != null) {
+            val ok = runCatching { relay.relay(deviceId, message) }
+                .onFailure { Timber.w(it, "remote relay threw for $deviceId") }
+                .getOrDefault(false)
+            if (ok) {
+                Timber.i("Message relayed via signaling to $deviceId (no direct P2P)")
+                return
+            }
+            Timber.w("Remote relay failed for $deviceId — message not delivered")
+        } else {
+            Timber.w("No connection to device: $deviceId (and no relay attached)")
         }
     }
 

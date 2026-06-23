@@ -93,6 +93,14 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var callHistoryRecorder: dagger.Lazy<com.chainlesschain.android.call.RoomCallHistoryRecorder>
 
+    // FAMILY-67 健壮性：给聊天的 core-p2p 连接管理器附加远程信令中继兜底（无直连 P2P 时
+    // 经生产 wss 信令服务器送达消息，跨网/AP 隔离也不丢）。
+    @Inject
+    lateinit var p2pConnectionManager: dagger.Lazy<com.chainlesschain.android.core.p2p.connection.P2PConnectionManager>
+
+    @Inject
+    lateinit var webRtcMessageRelay: dagger.Lazy<com.chainlesschain.android.remote.p2p.WebRtcSignalingMessageRelay>
+
     private var isReady = false
 
     /**
@@ -123,6 +131,10 @@ class MainActivity : AppCompatActivity() {
                 .onFailure { Timber.w(it, "FamilyGuardSyncConnector start failed (non-fatal)") }
             runCatching { friendSyncConnector.get().ensureConnected() }
                 .onFailure { Timber.w(it, "FriendSyncConnector start failed (non-fatal)") }
+            // FAMILY-67 健壮性兜底：聊天消息在无直连 P2P 时经生产信令服务器中继送达
+            // （core-p2p 自带的是 LAN-only 端口9999 栈，AP隔离/跨网会废；此 relay 走 wss）。
+            runCatching { p2pConnectionManager.get().attachRemoteRelay(webRtcMessageRelay.get()) }
+                .onFailure { Timber.w(it, "attachRemoteRelay failed (non-fatal)") }
             // FAMILY-67: 接通话状态机 + 媒体/前台服务互挂 —— start() 订阅 call:* 来电信令，
             // 否则被叫端收不到来电（startCall 直接 send 不需要 start，但 onSignal 订阅必须 start）。
             runCatching {

@@ -323,7 +323,9 @@ fun P2PChatScreen(
                 onAttachment = {
                     filePickerLauncher.launch(arrayOf("*/*"))
                 },
-                enabled = !uiState.isSending && connectionStatus == ConnectionStatus.CONNECTED,
+                // 健壮性：不再死锁在「已直连」——无直连 P2P 时消息经远程信令中继送达
+                // （P2PConnectionManager.sendMessage 兜底），所以随时可发。
+                enabled = !uiState.isSending,
                 showAttachment = true
             )
         }
