@@ -13,7 +13,7 @@
  * @module ai-engine/agents/agent-capabilities
  */
 
-const { logger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 
 // ============================================================================
 // Capability Definitions
@@ -28,242 +28,242 @@ const { logger } = require('../../utils/logger.js');
 const CAPABILITY_DEFINITIONS = {
   // ---- Security ----
   owasp_scanning: {
-    name: 'OWASP Scanning',
-    description: 'Scan code for OWASP Top 10 vulnerabilities',
-    category: 'security',
-    requiredTools: ['code_analyzer'],
-    optionalTools: ['file_reader'],
+    name: "OWASP Scanning",
+    description: "Scan code for OWASP Top 10 vulnerabilities",
+    category: "security",
+    requiredTools: ["code_analyzer"],
+    optionalTools: ["file_reader"],
   },
   secret_detection: {
-    name: 'Secret Detection',
-    description: 'Detect hardcoded secrets, API keys, passwords',
-    category: 'security',
-    requiredTools: ['secret_scanner'],
-    optionalTools: ['file_reader'],
+    name: "Secret Detection",
+    description: "Detect hardcoded secrets, API keys, passwords",
+    category: "security",
+    requiredTools: ["secret_scanner"],
+    optionalTools: ["file_reader"],
   },
   dependency_audit: {
-    name: 'Dependency Audit',
-    description: 'Audit project dependencies for known vulnerabilities',
-    category: 'security',
-    requiredTools: ['npm_audit'],
-    optionalTools: ['file_reader', 'shell_executor'],
+    name: "Dependency Audit",
+    description: "Audit project dependencies for known vulnerabilities",
+    category: "security",
+    requiredTools: ["npm_audit"],
+    optionalTools: ["file_reader", "shell_executor"],
   },
   vulnerability_assessment: {
-    name: 'Vulnerability Assessment',
-    description: 'Comprehensive vulnerability assessment of the codebase',
-    category: 'security',
-    requiredTools: ['code_analyzer', 'secret_scanner'],
-    optionalTools: ['npm_audit', 'file_reader'],
+    name: "Vulnerability Assessment",
+    description: "Comprehensive vulnerability assessment of the codebase",
+    category: "security",
+    requiredTools: ["code_analyzer", "secret_scanner"],
+    optionalTools: ["npm_audit", "file_reader"],
   },
 
   // ---- DevOps ----
   ci_cd_automation: {
-    name: 'CI/CD Automation',
-    description: 'Automate CI/CD pipeline configuration and management',
-    category: 'devops',
-    requiredTools: ['shell_executor', 'file_writer'],
-    optionalTools: ['file_reader', 'docker_cli'],
+    name: "CI/CD Automation",
+    description: "Automate CI/CD pipeline configuration and management",
+    category: "devops",
+    requiredTools: ["shell_executor", "file_writer"],
+    optionalTools: ["file_reader", "docker_cli"],
   },
   docker_management: {
-    name: 'Docker Management',
-    description: 'Manage Docker containers, images, and compose configurations',
-    category: 'devops',
-    requiredTools: ['docker_cli'],
-    optionalTools: ['shell_executor', 'file_reader', 'file_writer'],
+    name: "Docker Management",
+    description: "Manage Docker containers, images, and compose configurations",
+    category: "devops",
+    requiredTools: ["docker_cli"],
+    optionalTools: ["shell_executor", "file_reader", "file_writer"],
   },
   deployment: {
-    name: 'Deployment',
-    description: 'Deploy applications to various environments',
-    category: 'devops',
-    requiredTools: ['shell_executor'],
-    optionalTools: ['docker_cli', 'file_reader', 'file_writer'],
+    name: "Deployment",
+    description: "Deploy applications to various environments",
+    category: "devops",
+    requiredTools: ["shell_executor"],
+    optionalTools: ["docker_cli", "file_reader", "file_writer"],
   },
   infrastructure: {
-    name: 'Infrastructure',
-    description: 'Manage infrastructure configuration and provisioning',
-    category: 'devops',
-    requiredTools: ['shell_executor', 'file_writer'],
-    optionalTools: ['docker_cli', 'file_reader'],
+    name: "Infrastructure",
+    description: "Manage infrastructure configuration and provisioning",
+    category: "devops",
+    requiredTools: ["shell_executor", "file_writer"],
+    optionalTools: ["docker_cli", "file_reader"],
   },
 
   // ---- Data ----
   data_processing: {
-    name: 'Data Processing',
-    description: 'Process, clean, and transform data sets',
-    category: 'data',
-    requiredTools: ['data_processor'],
-    optionalTools: ['file_reader', 'file_writer', 'math_calculator'],
+    name: "Data Processing",
+    description: "Process, clean, and transform data sets",
+    category: "data",
+    requiredTools: ["data_processor"],
+    optionalTools: ["file_reader", "file_writer", "math_calculator"],
   },
   visualization: {
-    name: 'Visualization',
-    description: 'Generate charts, graphs, and visual representations of data',
-    category: 'data',
-    requiredTools: ['chart_generator'],
-    optionalTools: ['data_processor', 'file_writer'],
+    name: "Visualization",
+    description: "Generate charts, graphs, and visual representations of data",
+    category: "data",
+    requiredTools: ["chart_generator"],
+    optionalTools: ["data_processor", "file_writer"],
   },
   statistics: {
-    name: 'Statistics',
-    description: 'Perform statistical analysis and computations',
-    category: 'data',
-    requiredTools: ['math_calculator', 'data_processor'],
-    optionalTools: ['chart_generator', 'file_reader'],
+    name: "Statistics",
+    description: "Perform statistical analysis and computations",
+    category: "data",
+    requiredTools: ["math_calculator", "data_processor"],
+    optionalTools: ["chart_generator", "file_reader"],
   },
   csv_handling: {
-    name: 'CSV Handling',
-    description: 'Read, write, and manipulate CSV files',
-    category: 'data',
-    requiredTools: ['data_processor', 'file_reader'],
-    optionalTools: ['file_writer', 'math_calculator'],
+    name: "CSV Handling",
+    description: "Read, write, and manipulate CSV files",
+    category: "data",
+    requiredTools: ["data_processor", "file_reader"],
+    optionalTools: ["file_writer", "math_calculator"],
   },
 
   // ---- Documentation ----
   doc_generation: {
-    name: 'Documentation Generation',
-    description: 'Generate project documentation from source code',
-    category: 'documentation',
-    requiredTools: ['doc_generator'],
-    optionalTools: ['jsdoc_parser', 'file_reader', 'file_writer'],
+    name: "Documentation Generation",
+    description: "Generate project documentation from source code",
+    category: "documentation",
+    requiredTools: ["doc_generator"],
+    optionalTools: ["jsdoc_parser", "file_reader", "file_writer"],
   },
   api_reference: {
-    name: 'API Reference',
-    description: 'Generate API reference documentation',
-    category: 'documentation',
-    requiredTools: ['doc_generator', 'jsdoc_parser'],
-    optionalTools: ['file_reader', 'file_writer'],
+    name: "API Reference",
+    description: "Generate API reference documentation",
+    category: "documentation",
+    requiredTools: ["doc_generator", "jsdoc_parser"],
+    optionalTools: ["file_reader", "file_writer"],
   },
   readme_creation: {
-    name: 'README Creation',
-    description: 'Create and update project README files',
-    category: 'documentation',
-    requiredTools: ['doc_generator'],
-    optionalTools: ['file_reader', 'file_writer'],
+    name: "README Creation",
+    description: "Create and update project README files",
+    category: "documentation",
+    requiredTools: ["doc_generator"],
+    optionalTools: ["file_reader", "file_writer"],
   },
   changelog: {
-    name: 'Changelog',
-    description: 'Generate and maintain changelogs from commit history',
-    category: 'documentation',
-    requiredTools: ['doc_generator'],
-    optionalTools: ['shell_executor', 'file_reader', 'file_writer'],
+    name: "Changelog",
+    description: "Generate and maintain changelogs from commit history",
+    category: "documentation",
+    requiredTools: ["doc_generator"],
+    optionalTools: ["shell_executor", "file_reader", "file_writer"],
   },
 
   // ---- Testing ----
   unit_test_generation: {
-    name: 'Unit Test Generation',
-    description: 'Generate unit test cases for source code',
-    category: 'testing',
-    requiredTools: ['test_writer'],
-    optionalTools: ['code_analyzer', 'file_reader', 'file_writer'],
+    name: "Unit Test Generation",
+    description: "Generate unit test cases for source code",
+    category: "testing",
+    requiredTools: ["test_writer"],
+    optionalTools: ["code_analyzer", "file_reader", "file_writer"],
   },
   integration_test: {
-    name: 'Integration Test',
-    description: 'Generate integration test suites',
-    category: 'testing',
-    requiredTools: ['test_writer'],
-    optionalTools: ['code_analyzer', 'shell_executor', 'file_reader'],
+    name: "Integration Test",
+    description: "Generate integration test suites",
+    category: "testing",
+    requiredTools: ["test_writer"],
+    optionalTools: ["code_analyzer", "shell_executor", "file_reader"],
   },
   test_coverage: {
-    name: 'Test Coverage',
-    description: 'Analyze and report test coverage metrics',
-    category: 'testing',
-    requiredTools: ['coverage_checker'],
-    optionalTools: ['test_writer', 'shell_executor', 'file_reader'],
+    name: "Test Coverage",
+    description: "Analyze and report test coverage metrics",
+    category: "testing",
+    requiredTools: ["coverage_checker"],
+    optionalTools: ["test_writer", "shell_executor", "file_reader"],
   },
   mock_creation: {
-    name: 'Mock Creation',
-    description: 'Create test mocks, stubs, and fixtures',
-    category: 'testing',
-    requiredTools: ['test_writer'],
-    optionalTools: ['code_analyzer', 'file_reader', 'file_writer'],
+    name: "Mock Creation",
+    description: "Create test mocks, stubs, and fixtures",
+    category: "testing",
+    requiredTools: ["test_writer"],
+    optionalTools: ["code_analyzer", "file_reader", "file_writer"],
   },
 
   // ---- Architecture ----
   system_design: {
-    name: 'System Design',
-    description: 'Design system architecture and component relationships',
-    category: 'architecture',
-    requiredTools: ['dependency_graph', 'diagram_generator'],
-    optionalTools: ['code_analyzer', 'file_reader'],
+    name: "System Design",
+    description: "Design system architecture and component relationships",
+    category: "architecture",
+    requiredTools: ["dependency_graph", "diagram_generator"],
+    optionalTools: ["code_analyzer", "file_reader"],
   },
   pattern_analysis: {
-    name: 'Pattern Analysis',
-    description: 'Analyze code patterns and suggest architectural improvements',
-    category: 'architecture',
-    requiredTools: ['code_analyzer', 'dependency_graph'],
-    optionalTools: ['diagram_generator', 'file_reader'],
+    name: "Pattern Analysis",
+    description: "Analyze code patterns and suggest architectural improvements",
+    category: "architecture",
+    requiredTools: ["code_analyzer", "dependency_graph"],
+    optionalTools: ["diagram_generator", "file_reader"],
   },
   dependency_management: {
-    name: 'Dependency Management',
-    description: 'Analyze and optimize project dependency structure',
-    category: 'architecture',
-    requiredTools: ['dependency_graph'],
-    optionalTools: ['npm_audit', 'file_reader', 'code_analyzer'],
+    name: "Dependency Management",
+    description: "Analyze and optimize project dependency structure",
+    category: "architecture",
+    requiredTools: ["dependency_graph"],
+    optionalTools: ["npm_audit", "file_reader", "code_analyzer"],
   },
   api_design: {
-    name: 'API Design',
-    description: 'Design and document API interfaces',
-    category: 'architecture',
-    requiredTools: ['doc_generator', 'diagram_generator'],
-    optionalTools: ['code_analyzer', 'file_reader', 'file_writer'],
+    name: "API Design",
+    description: "Design and document API interfaces",
+    category: "architecture",
+    requiredTools: ["doc_generator", "diagram_generator"],
+    optionalTools: ["code_analyzer", "file_reader", "file_writer"],
   },
 
   // ---- Performance ----
   profiling: {
-    name: 'Profiling',
-    description: 'Profile application performance and identify bottlenecks',
-    category: 'performance',
-    requiredTools: ['profiler'],
-    optionalTools: ['code_analyzer', 'benchmark_runner'],
+    name: "Profiling",
+    description: "Profile application performance and identify bottlenecks",
+    category: "performance",
+    requiredTools: ["profiler"],
+    optionalTools: ["code_analyzer", "benchmark_runner"],
   },
   optimization: {
-    name: 'Optimization',
-    description: 'Optimize code for better performance',
-    category: 'performance',
-    requiredTools: ['profiler', 'code_analyzer'],
-    optionalTools: ['benchmark_runner', 'file_reader', 'file_writer'],
+    name: "Optimization",
+    description: "Optimize code for better performance",
+    category: "performance",
+    requiredTools: ["profiler", "code_analyzer"],
+    optionalTools: ["benchmark_runner", "file_reader", "file_writer"],
   },
   benchmarking: {
-    name: 'Benchmarking',
-    description: 'Run benchmarks and compare performance metrics',
-    category: 'performance',
-    requiredTools: ['benchmark_runner'],
-    optionalTools: ['profiler', 'chart_generator', 'file_writer'],
+    name: "Benchmarking",
+    description: "Run benchmarks and compare performance metrics",
+    category: "performance",
+    requiredTools: ["benchmark_runner"],
+    optionalTools: ["profiler", "chart_generator", "file_writer"],
   },
   memory_analysis: {
-    name: 'Memory Analysis',
-    description: 'Analyze memory usage patterns and detect leaks',
-    category: 'performance',
-    requiredTools: ['profiler'],
-    optionalTools: ['code_analyzer', 'chart_generator'],
+    name: "Memory Analysis",
+    description: "Analyze memory usage patterns and detect leaks",
+    category: "performance",
+    requiredTools: ["profiler"],
+    optionalTools: ["code_analyzer", "chart_generator"],
   },
 
   // ---- Compliance ----
   gdpr_compliance: {
-    name: 'GDPR Compliance',
-    description: 'Check code and data handling for GDPR compliance',
-    category: 'compliance',
-    requiredTools: ['compliance_checker'],
-    optionalTools: ['code_analyzer', 'file_reader', 'policy_validator'],
+    name: "GDPR Compliance",
+    description: "Check code and data handling for GDPR compliance",
+    category: "compliance",
+    requiredTools: ["compliance_checker"],
+    optionalTools: ["code_analyzer", "file_reader", "policy_validator"],
   },
   owasp_compliance: {
-    name: 'OWASP Compliance',
-    description: 'Verify adherence to OWASP security standards',
-    category: 'compliance',
-    requiredTools: ['compliance_checker', 'code_analyzer'],
-    optionalTools: ['secret_scanner', 'policy_validator'],
+    name: "OWASP Compliance",
+    description: "Verify adherence to OWASP security standards",
+    category: "compliance",
+    requiredTools: ["compliance_checker", "code_analyzer"],
+    optionalTools: ["secret_scanner", "policy_validator"],
   },
   license_check: {
-    name: 'License Check',
-    description: 'Check project dependencies for license compliance',
-    category: 'compliance',
-    requiredTools: ['compliance_checker'],
-    optionalTools: ['npm_audit', 'file_reader'],
+    name: "License Check",
+    description: "Check project dependencies for license compliance",
+    category: "compliance",
+    requiredTools: ["compliance_checker"],
+    optionalTools: ["npm_audit", "file_reader"],
   },
   policy_validation: {
-    name: 'Policy Validation',
-    description: 'Validate project policies and configuration rules',
-    category: 'compliance',
-    requiredTools: ['policy_validator'],
-    optionalTools: ['compliance_checker', 'file_reader'],
+    name: "Policy Validation",
+    description: "Validate project policies and configuration rules",
+    category: "compliance",
+    requiredTools: ["policy_validator"],
+    optionalTools: ["compliance_checker", "file_reader"],
   },
 };
 
@@ -279,104 +279,104 @@ const CAPABILITY_DEFINITIONS = {
  */
 const TOOL_DEFINITIONS = {
   code_analyzer: {
-    name: 'Code Analyzer',
-    description: 'Analyze source code structure and patterns',
-    category: 'analysis',
+    name: "Code Analyzer",
+    description: "Analyze source code structure and patterns",
+    category: "analysis",
   },
   secret_scanner: {
-    name: 'Secret Scanner',
-    description: 'Scan for hardcoded secrets',
-    category: 'security',
+    name: "Secret Scanner",
+    description: "Scan for hardcoded secrets",
+    category: "security",
   },
   npm_audit: {
-    name: 'NPM Audit',
-    description: 'Audit npm dependencies',
-    category: 'security',
+    name: "NPM Audit",
+    description: "Audit npm dependencies",
+    category: "security",
   },
   file_reader: {
-    name: 'File Reader',
-    description: 'Read file contents',
-    category: 'io',
+    name: "File Reader",
+    description: "Read file contents",
+    category: "io",
   },
   file_writer: {
-    name: 'File Writer',
-    description: 'Write file contents',
-    category: 'io',
+    name: "File Writer",
+    description: "Write file contents",
+    category: "io",
   },
   shell_executor: {
-    name: 'Shell Executor',
-    description: 'Execute shell commands',
-    category: 'system',
+    name: "Shell Executor",
+    description: "Execute shell commands",
+    category: "system",
   },
   docker_cli: {
-    name: 'Docker CLI',
-    description: 'Docker container management',
-    category: 'devops',
+    name: "Docker CLI",
+    description: "Docker container management",
+    category: "devops",
   },
   data_processor: {
-    name: 'Data Processor',
-    description: 'Process and transform data',
-    category: 'data',
+    name: "Data Processor",
+    description: "Process and transform data",
+    category: "data",
   },
   chart_generator: {
-    name: 'Chart Generator',
-    description: 'Generate charts and visualizations',
-    category: 'visualization',
+    name: "Chart Generator",
+    description: "Generate charts and visualizations",
+    category: "visualization",
   },
   math_calculator: {
-    name: 'Math Calculator',
-    description: 'Mathematical computations',
-    category: 'data',
+    name: "Math Calculator",
+    description: "Mathematical computations",
+    category: "data",
   },
   doc_generator: {
-    name: 'Doc Generator',
-    description: 'Generate documentation',
-    category: 'documentation',
+    name: "Doc Generator",
+    description: "Generate documentation",
+    category: "documentation",
   },
   jsdoc_parser: {
-    name: 'JSDoc Parser',
-    description: 'Parse JSDoc comments',
-    category: 'documentation',
+    name: "JSDoc Parser",
+    description: "Parse JSDoc comments",
+    category: "documentation",
   },
   test_writer: {
-    name: 'Test Writer',
-    description: 'Write test cases',
-    category: 'testing',
+    name: "Test Writer",
+    description: "Write test cases",
+    category: "testing",
   },
   coverage_checker: {
-    name: 'Coverage Checker',
-    description: 'Check test coverage',
-    category: 'testing',
+    name: "Coverage Checker",
+    description: "Check test coverage",
+    category: "testing",
   },
   dependency_graph: {
-    name: 'Dependency Graph',
-    description: 'Analyze dependency relationships',
-    category: 'analysis',
+    name: "Dependency Graph",
+    description: "Analyze dependency relationships",
+    category: "analysis",
   },
   diagram_generator: {
-    name: 'Diagram Generator',
-    description: 'Generate diagrams',
-    category: 'visualization',
+    name: "Diagram Generator",
+    description: "Generate diagrams",
+    category: "visualization",
   },
   profiler: {
-    name: 'Profiler',
-    description: 'Profile code performance',
-    category: 'performance',
+    name: "Profiler",
+    description: "Profile code performance",
+    category: "performance",
   },
   benchmark_runner: {
-    name: 'Benchmark Runner',
-    description: 'Run benchmarks',
-    category: 'performance',
+    name: "Benchmark Runner",
+    description: "Run benchmarks",
+    category: "performance",
   },
   compliance_checker: {
-    name: 'Compliance Checker',
-    description: 'Check compliance rules',
-    category: 'compliance',
+    name: "Compliance Checker",
+    description: "Check compliance rules",
+    category: "compliance",
   },
   policy_validator: {
-    name: 'Policy Validator',
-    description: 'Validate policies',
-    category: 'compliance',
+    name: "Policy Validator",
+    description: "Validate policies",
+    category: "compliance",
   },
 };
 
@@ -392,82 +392,83 @@ const TOOL_DEFINITIONS = {
  */
 const AGENT_TYPE_CAPABILITIES = {
   security: {
-    description: 'Security analysis and vulnerability detection',
+    description: "Security analysis and vulnerability detection",
     capabilities: [
-      'owasp_scanning',
-      'secret_detection',
-      'dependency_audit',
-      'vulnerability_assessment',
+      "owasp_scanning",
+      "secret_detection",
+      "dependency_audit",
+      "vulnerability_assessment",
     ],
     priority: 10,
   },
   devops: {
-    description: 'CI/CD, Docker, deployment, and infrastructure management',
+    description: "CI/CD, Docker, deployment, and infrastructure management",
     capabilities: [
-      'ci_cd_automation',
-      'docker_management',
-      'deployment',
-      'infrastructure',
+      "ci_cd_automation",
+      "docker_management",
+      "deployment",
+      "infrastructure",
     ],
     priority: 8,
   },
-  'data-analysis': {
-    description: 'Data processing, visualization, and statistical analysis',
+  "data-analysis": {
+    description: "Data processing, visualization, and statistical analysis",
     capabilities: [
-      'data_processing',
-      'visualization',
-      'statistics',
-      'csv_handling',
+      "data_processing",
+      "visualization",
+      "statistics",
+      "csv_handling",
     ],
     priority: 8,
   },
   document: {
-    description: 'Documentation generation, API references, and changelogs',
+    description: "Documentation generation, API references, and changelogs",
     capabilities: [
-      'doc_generation',
-      'api_reference',
-      'readme_creation',
-      'changelog',
+      "doc_generation",
+      "api_reference",
+      "readme_creation",
+      "changelog",
     ],
     priority: 7,
   },
   testing: {
-    description: 'Test generation, coverage analysis, and mock creation',
+    description: "Test generation, coverage analysis, and mock creation",
     capabilities: [
-      'unit_test_generation',
-      'integration_test',
-      'test_coverage',
-      'mock_creation',
+      "unit_test_generation",
+      "integration_test",
+      "test_coverage",
+      "mock_creation",
     ],
     priority: 9,
   },
-  'code-generation': {
-    description: 'Code generation, architecture design, and pattern analysis',
+  "code-generation": {
+    description: "Code generation, architecture design, and pattern analysis",
     capabilities: [
-      'system_design',
-      'pattern_analysis',
-      'dependency_management',
-      'api_design',
+      "system_design",
+      "pattern_analysis",
+      "dependency_management",
+      "api_design",
     ],
     priority: 10,
   },
   performance: {
-    description: 'Profiling, optimization, benchmarking, and memory analysis',
+    description: "Profiling, optimization, benchmarking, and memory analysis",
     capabilities: [
-      'profiling',
-      'optimization',
-      'benchmarking',
-      'memory_analysis',
+      "profiling",
+      "optimization",
+      "benchmarking",
+      "memory_analysis",
     ],
     priority: 7,
   },
   compliance: {
-    description: 'Regulatory compliance, license checking, and policy validation',
+    description:
+      "Regulatory compliance, license checking, and policy validation",
     capabilities: [
-      'gdpr_compliance',
-      'owasp_compliance',
-      'license_check',
-      'policy_validation',
+      "gdpr_compliance",
+      "owasp_compliance",
+      "license_check",
+      "policy_validation",
     ],
     priority: 6,
   },
@@ -524,14 +525,16 @@ class AgentCapabilities {
     for (const capName of capabilities) {
       const capDef = CAPABILITY_DEFINITIONS[capName];
       if (!capDef) {
-        logger.warn(`[AgentCapabilities] Capability not found when resolving tools: ${capName}`);
+        logger.warn(
+          `[AgentCapabilities] Capability not found when resolving tools: ${capName}`,
+        );
         continue;
       }
 
       for (const tool of capDef.requiredTools) {
         requiredSet.add(tool);
       }
-      for (const tool of (capDef.optionalTools || [])) {
+      for (const tool of capDef.optionalTools || []) {
         optionalSet.add(tool);
       }
     }
@@ -546,7 +549,12 @@ class AgentCapabilities {
         const def = TOOL_DEFINITIONS[name];
         return def
           ? { id: name, ...def }
-          : { id: name, name, description: 'Unknown tool', category: 'unknown' };
+          : {
+              id: name,
+              name,
+              description: "Unknown tool",
+              category: "unknown",
+            };
       });
     };
 
@@ -581,6 +589,15 @@ class AgentCapabilities {
     }
 
     const availableSet = new Set(available);
+    // Precompute the set of categories present in `available` ONCE, so the
+    // category-level fallback below is an O(1) lookup instead of re-scanning
+    // every available capability (and re-reading its category) for each
+    // required capability — was O(required × available).
+    const availableCategories = new Set();
+    for (const avCap of available) {
+      const avDef = CAPABILITY_DEFINITIONS[avCap];
+      if (avDef) availableCategories.add(avDef.category);
+    }
     let totalScore = 0;
 
     for (const reqCap of required) {
@@ -602,13 +619,8 @@ class AgentCapabilities {
       // Category-level match: same category counts for a smaller partial score
       if (bestPartial === 0) {
         const reqDef = CAPABILITY_DEFINITIONS[reqCap];
-        if (reqDef) {
-          for (const avCap of available) {
-            const avDef = CAPABILITY_DEFINITIONS[avCap];
-            if (avDef && avDef.category === reqDef.category) {
-              bestPartial = Math.max(bestPartial, 0.25);
-            }
-          }
+        if (reqDef && availableCategories.has(reqDef.category)) {
+          bestPartial = 0.25;
         }
       }
 
@@ -629,7 +641,7 @@ class AgentCapabilities {
    */
   static findBestAgentType(requiredCapabilities) {
     if (!requiredCapabilities || requiredCapabilities.length === 0) {
-      logger.warn('[AgentCapabilities] No required capabilities provided');
+      logger.warn("[AgentCapabilities] No required capabilities provided");
       return null;
     }
 
@@ -640,10 +652,13 @@ class AgentCapabilities {
     for (const [agentType, config] of Object.entries(AGENT_TYPE_CAPABILITIES)) {
       const score = AgentCapabilities.matchCapabilities(
         requiredCapabilities,
-        config.capabilities
+        config.capabilities,
       );
 
-      if (score > bestScore || (score === bestScore && config.priority > bestPriority)) {
+      if (
+        score > bestScore ||
+        (score === bestScore && config.priority > bestPriority)
+      ) {
         bestScore = score;
         bestPriority = config.priority;
         bestMatch = {
@@ -658,14 +673,14 @@ class AgentCapabilities {
 
     if (bestMatch && bestMatch.score > 0) {
       logger.debug(
-        `[AgentCapabilities] Best agent type for [${requiredCapabilities.join(', ')}]: ` +
-        `${bestMatch.agentType} (score: ${bestMatch.score.toFixed(2)}, priority: ${bestMatch.priority})`
+        `[AgentCapabilities] Best agent type for [${requiredCapabilities.join(", ")}]: ` +
+          `${bestMatch.agentType} (score: ${bestMatch.score.toFixed(2)}, priority: ${bestMatch.priority})`,
       );
       return bestMatch;
     }
 
     logger.warn(
-      `[AgentCapabilities] No matching agent type found for: [${requiredCapabilities.join(', ')}]`
+      `[AgentCapabilities] No matching agent type found for: [${requiredCapabilities.join(", ")}]`,
     );
     return null;
   }
@@ -774,7 +789,9 @@ class AgentCapabilities {
     for (const [agentType, config] of Object.entries(AGENT_TYPE_CAPABILITIES)) {
       for (const capName of config.capabilities) {
         if (!CAPABILITY_DEFINITIONS[capName]) {
-          errors.push(`Agent type "${agentType}" references undefined capability: "${capName}"`);
+          errors.push(
+            `Agent type "${agentType}" references undefined capability: "${capName}"`,
+          );
         }
       }
     }
@@ -783,20 +800,24 @@ class AgentCapabilities {
     for (const [capName, capDef] of Object.entries(CAPABILITY_DEFINITIONS)) {
       for (const toolName of capDef.requiredTools) {
         if (!TOOL_DEFINITIONS[toolName]) {
-          errors.push(`Capability "${capName}" references undefined required tool: "${toolName}"`);
+          errors.push(
+            `Capability "${capName}" references undefined required tool: "${toolName}"`,
+          );
         }
       }
-      for (const toolName of (capDef.optionalTools || [])) {
+      for (const toolName of capDef.optionalTools || []) {
         if (!TOOL_DEFINITIONS[toolName]) {
-          errors.push(`Capability "${capName}" references undefined optional tool: "${toolName}"`);
+          errors.push(
+            `Capability "${capName}" references undefined optional tool: "${toolName}"`,
+          );
         }
       }
     }
 
     if (errors.length > 0) {
-      logger.error('[AgentCapabilities] Validation failed:', errors);
+      logger.error("[AgentCapabilities] Validation failed:", errors);
     } else {
-      logger.debug('[AgentCapabilities] Validation passed');
+      logger.debug("[AgentCapabilities] Validation passed");
     }
 
     return {

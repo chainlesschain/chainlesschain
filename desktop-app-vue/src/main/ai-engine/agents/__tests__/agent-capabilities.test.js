@@ -155,6 +155,26 @@ describe("AgentCapabilities (pure functions)", () => {
       expect(score).toBeLessThan(1.0);
     });
 
+    it("scores a category-only match at exactly 0.25", () => {
+      // owasp_scanning vs dependency_audit: same 'security' category, no
+      // exact/substring overlap → category fallback contributes 0.25.
+      expect(
+        AgentCapabilities.matchCapabilities(
+          ["owasp_scanning"],
+          ["dependency_audit"],
+        ),
+      ).toBe(0.25);
+    });
+
+    it("reuses the precomputed category set across multiple requirements", () => {
+      // One exact (1.0) + one category-only (0.25) over two requirements → 0.625.
+      const score = AgentCapabilities.matchCapabilities(
+        ["owasp_scanning", "secret_detection"],
+        ["owasp_scanning", "dependency_audit"],
+      );
+      expect(score).toBeCloseTo((1.0 + 0.25) / 2, 10);
+    });
+
     it("clamps the score to a maximum of 1.0", () => {
       const score = AgentCapabilities.matchCapabilities(
         ["owasp_scanning"],
