@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
-### Fixed — cc CLI 正确性修复四则（待随下次 CLI 发版交付）
+### Fixed — cc CLI 正确性修复五则（待随下次 CLI 发版交付）
 
 > CLI-only，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。均含回归单测。
 
+- **MTC 多签溯源校验（安全）**：`verifyMultisigProvenance` 是 M-of-N 结构校验器，存在两处完整性缺口——① 从不限制 `signers.length ≤ member_count_n`，故声明 N 成员却列更多签名者的溯源在无 `policy.members` 名册时会通过；② 排序检查允许**重复签名者**（`["a","a","a"]` 也算「已排序」），单个成员可通过重复自身达成 M-of-N 阈值。补 `TOO_MANY_SIGNERS` 与 `DUPLICATE_SIGNER` 两项拒绝。
 - **`cc dlp incidents` resolved 过滤**：`listIncidents` 处理了 `filter.resolved === false`（仅未解决）却漏了 `=== true` 分支 → `{resolved:true}` 静默返回全部事件而非仅已解决的（`listIncidentsV2` 本就两分支都处理）。补齐 `=== true`（按 `resolvedAt` 过滤）。当前 V1 命令只传 channel/severity，故为潜在契约缺口而非线上回归。
 - **`cc note list --tag` 与 `--limit` 组合**：此前先在 SQL 取最近 N 条再在内存按标签过滤 → `--tag X --limit N` 返回的是「最近 N 条里恰好带 X 标签的」（常远少于 N，甚至为 0），而非「最多 N 条带 X 标签的笔记」。改为带标签过滤时不下推 SQL `LIMIT`、先过滤再截断到 N（`--category` 是真实列、本就 SQL 过滤在 LIMIT 之前，标签现与其行为一致）。
 - **`cc loop` 时长解析**：`parseDuration(30)`（数字入参）此前按毫秒返回 `30`，与函数文档契约「裸数字按秒」及字符串路径（`parseDuration("30") === 30000`）自相矛盾。改为数字入参也按秒（`parseDuration(30) === parseDuration("30")`）。当前生产调用方均传字符串，故为潜在不一致而非线上回归。
