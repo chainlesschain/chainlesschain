@@ -43,6 +43,31 @@ describe("LRUCache — eviction", () => {
   });
 });
 
+describe("LRUCache — capacity bound is enforced under edge/desync conditions", () => {
+  it("never exceeds capacity even if accessOrder desyncs from the map", () => {
+    const c = new LRUCache<number>(2);
+    c.set("a", 1);
+    c.set("b", 2);
+    // Simulate a desync: accessOrder loses its entries while the map is full.
+    // Old eviction did `delete(accessOrder[0])` === `delete(undefined)` (a
+    // no-op), silently skipping eviction and letting size grow unbounded.
+    (c as unknown as { accessOrder: string[] }).accessOrder = [];
+    c.set("c", 3);
+    c.set("d", 4);
+    expect(c.size()).toBeLessThanOrEqual(2); // bound still honored via map fallback
+    expect(c.get("d")).toBe(4); // most recent insert survives
+  });
+
+  it("capacity 0 keeps at most one transient entry and does not throw", () => {
+    const c = new LRUCache<number>(0);
+    expect(() => {
+      c.set("a", 1);
+      c.set("b", 2);
+    }).not.toThrow();
+    expect(c.size()).toBeLessThanOrEqual(1);
+  });
+});
+
 describe("LRUCache — TTL expiry", () => {
   it("expires entries past the TTL and removes them", () => {
     vi.useFakeTimers();

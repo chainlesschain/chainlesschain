@@ -104,9 +104,17 @@ export class LRUCache<T = any> {
       this.delete(key);
     }
 
-    // 如果达到容量上限，删除最久未使用的条目
-    if (this.cache.size >= this.capacity) {
-      const lruKey = this.accessOrder[0];
+    // 如果达到容量上限，淘汰最久未使用的条目。
+    // 正常情况下 accessOrder[0] 即为 LRU 键；但若 accessOrder 意外与
+    // cache 失步（例如为空），旧实现会执行 delete(undefined) 静默跳过淘汰，
+    // 导致容量上界被突破。这里用循环 + Map 兜底强制收敛到容量以内：
+    // 取不到键（cache 已空 / capacity<=0）时 break，避免死循环。
+    while (this.cache.size >= this.capacity) {
+      const lruKey =
+        this.accessOrder.length > 0
+          ? this.accessOrder[0]
+          : this.cache.keys().next().value;
+      if (lruKey === undefined) break;
       this.delete(lruKey);
     }
 
@@ -186,7 +194,7 @@ export class LRUCache<T = any> {
     return {
       size: this.cache.size,
       capacity: this.capacity,
-      usage: ((this.cache.size / this.capacity) * 100).toFixed(2) + '%',
+      usage: ((this.cache.size / this.capacity) * 100).toFixed(2) + "%",
       ttl: this.ttl,
     };
   }
@@ -343,46 +351,65 @@ export class FileMetadataCache {
    * @returns 统计信息
    */
   getStats(): FileMetadataCacheStats {
-    const typeHitRate = this.stats.typeHits + this.stats.typeMisses > 0
-      ? ((this.stats.typeHits / (this.stats.typeHits + this.stats.typeMisses)) * 100).toFixed(2)
-      : '0';
+    const typeHitRate =
+      this.stats.typeHits + this.stats.typeMisses > 0
+        ? (
+            (this.stats.typeHits /
+              (this.stats.typeHits + this.stats.typeMisses)) *
+            100
+          ).toFixed(2)
+        : "0";
 
-    const statsHitRate = this.stats.statsHits + this.stats.statsMisses > 0
-      ? ((this.stats.statsHits / (this.stats.statsHits + this.stats.statsMisses)) * 100).toFixed(2)
-      : '0';
+    const statsHitRate =
+      this.stats.statsHits + this.stats.statsMisses > 0
+        ? (
+            (this.stats.statsHits /
+              (this.stats.statsHits + this.stats.statsMisses)) *
+            100
+          ).toFixed(2)
+        : "0";
 
-    const syntaxHitRate = this.stats.syntaxHits + this.stats.syntaxMisses > 0
-      ? ((this.stats.syntaxHits / (this.stats.syntaxHits + this.stats.syntaxMisses)) * 100).toFixed(2)
-      : '0';
+    const syntaxHitRate =
+      this.stats.syntaxHits + this.stats.syntaxMisses > 0
+        ? (
+            (this.stats.syntaxHits /
+              (this.stats.syntaxHits + this.stats.syntaxMisses)) *
+            100
+          ).toFixed(2)
+        : "0";
 
-    const ocrHitRate = this.stats.ocrHits + this.stats.ocrMisses > 0
-      ? ((this.stats.ocrHits / (this.stats.ocrHits + this.stats.ocrMisses)) * 100).toFixed(2)
-      : '0';
+    const ocrHitRate =
+      this.stats.ocrHits + this.stats.ocrMisses > 0
+        ? (
+            (this.stats.ocrHits / (this.stats.ocrHits + this.stats.ocrMisses)) *
+            100
+          ).toFixed(2)
+        : "0";
 
     return {
       type: {
         ...this.typeCache.getStats(),
         hits: this.stats.typeHits,
         misses: this.stats.typeMisses,
-        hitRate: typeHitRate + '%',
+        hitRate: typeHitRate + "%",
       },
       stats: {
         ...this.statsCache.getStats(),
         hits: this.stats.statsHits,
         misses: this.stats.statsMisses,
-        hitRate: statsHitRate + '%',
+        hitRate: statsHitRate + "%",
       },
       syntax: {
         ...this.syntaxCache.getStats(),
         hits: this.stats.syntaxHits,
         misses: this.stats.syntaxMisses,
-        hitRate: syntaxHitRate + '%',
+        hitRate: syntaxHitRate + "%",
       },
       ocr: {
         ...this.ocrCache.getStats(),
         hits: this.stats.ocrHits,
         misses: this.stats.ocrMisses,
-        hitRate: ocrHitRate + '%',
+        hitRate: ocrHitRate + "%",
       },
     };
   }
