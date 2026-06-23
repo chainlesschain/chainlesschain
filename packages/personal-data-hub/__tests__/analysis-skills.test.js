@@ -746,6 +746,36 @@ describe("OverviewSkill — cross-app unified snapshot", () => {
     expect(types).toContain("message");
   });
 
+  it("spending.total is OUT only — income/refunds must not inflate 总消费", async () => {
+    const { vault } = rig;
+    // 100 spent (out) vs 20000 income + 50 refund (in). Naive `total += v`
+    // across all directions reported 20150; the spend headline must be 100.
+    makePayment(vault, { id: "s1", amount: 100, occurredAt: ts(2026, 5, 1), subtype: "payment", direction: "out", adapter: "alipay-bill" });
+    makePayment(vault, { id: "s2", amount: 20000, occurredAt: ts(2026, 5, 2), subtype: "income", direction: "in", adapter: "alipay-bill" });
+    makePayment(vault, { id: "s3", amount: 50, occurredAt: ts(2026, 5, 3), subtype: "refund", direction: "in", adapter: "alipay-bill" });
+
+    const r = await new OverviewSkill({ vault }).run({ commentary: false });
+    expect(r.spending.total).toBe(100); // out only — NOT 20150
+    expect(r.spending.byDirection.out).toBe(100);
+    expect(r.spending.byDirection.in).toBe(20050);
+    expect(r.spending.currency).toBe("CNY");
+  });
+
+  it("spending is aggregated over the full vault via SQL, not the row-capped sample", async () => {
+    // A fake vault whose row fetch (queryEvents) returns NO payment rows but
+    // whose SQL sumEventAmount reports the true spend — overview must trust SQL.
+    const fakeVault = {
+      facetCounts: () => ({ byAdapter: { "alipay-bill": 1 }, bySubtype: { payment: 1 }, byCategory: {}, total: 1, mode: "like", shortQuery: false }),
+      queryEvents: () => [], // capped window dropped all the (old) payment rows
+      sumEventAmount: ({ subtypes }) => {
+        expect(subtypes).toContain("payment"); // overview passes SPEND_SUBTYPES
+        return { total: 888, currency: "CNY", count: 3, byDirection: { out: 888, in: 0 }, byCurrency: {} };
+      },
+    };
+    const r = await new OverviewSkill({ vault: fakeVault }).run({ commentary: false });
+    expect(r.spending.total).toBe(888); // from SQL, not the empty row sample (would be 0)
+  });
+
   it("is registered + runnable via runAnalysisSkill", async () => {
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.overview");
     const r = await runAnalysisSkill({ vault: rig.vault }, "analysis.overview", { commentary: false });

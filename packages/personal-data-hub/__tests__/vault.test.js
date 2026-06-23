@@ -727,6 +727,19 @@ describe("LocalVault.sumEventAmount", () => {
     expect(vault.sumEventAmount({ until: 2000 }).total).toBe(10);
   });
 
+  it("filters by a subtypes[] set (used by overview to aggregate all SPEND_SUBTYPES in one pass)", () => {
+    freshVault();
+    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }, { subtype: "order" }));
+    vault.putEvent(alipayEvent(2000, "out", { subtype: "payment" })); // 20 yuan
+    vault.putEvent(shopEvent({ value: 999, currency: "CNY", direction: "out" }, { subtype: "browse" })); // not a spend subtype
+    // Only order + payment are in the set → 10 + 20 = 30 (browse's 999 excluded)
+    const r = vault.sumEventAmount({ subtypes: ["payment", "order", "refund"] });
+    expect(r.count).toBe(2);
+    expect(r.byDirection.out).toBe(30);
+    // empty / non-array subtypes → no extra filter (back-compat)
+    expect(vault.sumEventAmount({ subtypes: [] }).count).toBe(3);
+  });
+
   it("mixed shapes coexist; per-currency breakdown, NO cross-currency sum", () => {
     freshVault();
     vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));

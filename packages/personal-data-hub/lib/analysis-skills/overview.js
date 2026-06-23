@@ -55,10 +55,17 @@ class OverviewSkill extends AnalysisSkill {
     const byType = new Map();
     const byMonth = new Map();
     const contacts = new Map(); // canonicalPersonId → { interactions, byApp:Map }
-    let spendTotal = 0;
-    const spendByDir = new Map();
-    let currency = null;
     const citations = [];
+
+    // Spending is aggregated via SQL over the FULL vault (not the row-capped
+    // `events` sample), and reports out-direction only as the spend "total"
+    // (income/refund/incoming-transfers are direction:"in" and must NOT inflate
+    // 总消费). The capped JS loop below used to do `spendTotal += v` for every
+    // direction over only the most-recent ~10k rows — wrong on both axes.
+    const spendAgg =
+      typeof this.vault.sumEventAmount === "function"
+        ? this.vault.sumEventAmount({ subtypes: [...SPEND_SUBTYPES], since, until })
+        : null;
 
     for (const e of events) {
       const app = (e.source && e.source.adapter) || "unknown";
@@ -81,14 +88,6 @@ class OverviewSkill extends AnalysisSkill {
         cur.interactions += 1;
         cur.byApp.set(app, (cur.byApp.get(app) || 0) + 1);
         contacts.set(canon, cur);
-      }
-      // spending
-      if (SPEND_SUBTYPES.has(type) && e.content && e.content.amount && Number.isFinite(e.content.amount.value)) {
-        const v = e.content.amount.value;
-        spendTotal += v;
-        const dir = e.content.amount.direction || "unknown";
-        spendByDir.set(dir, (spendByDir.get(dir) || 0) + v);
-        if (!currency && e.content.amount.currency) currency = e.content.amount.currency;
       }
       if (citations.length < 50) citations.push(e.id);
     }
@@ -127,9 +126,11 @@ class OverviewSkill extends AnalysisSkill {
       monthlyActivity: [...byMonth.entries()].map(([monthKey, count]) => ({ monthKey, count })).sort((a, b) => a.monthKey.localeCompare(b.monthKey)),
       topContacts,
       spending: {
-        total: Math.round(spendTotal * 100) / 100,
-        byDirection: Object.fromEntries(spendByDir),
-        currency: currency || null,
+        // "total" = spend only (out direction). Income/refunds live in
+        // byDirection.in and must not be added to 总消费.
+        total: spendAgg ? spendAgg.byDirection.out : 0,
+        byDirection: spendAgg ? spendAgg.byDirection : {},
+        currency: spendAgg ? spendAgg.currency : null,
       },
       citations,
       llm_commentary: null,

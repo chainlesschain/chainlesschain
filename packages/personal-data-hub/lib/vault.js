@@ -1226,6 +1226,19 @@ class LocalVault {
       where.push("subtype = @subtype");
       params.subtype = q.subtype;
     }
+    if (Array.isArray(q.subtypes) && q.subtypes.length > 0) {
+      // Multi-subtype filter (e.g. all SPEND_SUBTYPES at once) so callers can
+      // aggregate a money figure across payment/transfer/refund/… in one SQL
+      // pass instead of summing a row-capped JS loop.
+      const names = q.subtypes.filter((s) => typeof s === "string" && s.length > 0);
+      if (names.length > 0) {
+        const placeholders = names.map((_s, i) => `@subtype_${i}`);
+        where.push(`subtype IN (${placeholders.join(", ")})`);
+        names.forEach((s, i) => {
+          params[`subtype_${i}`] = s;
+        });
+      }
+    }
     if (Number.isFinite(q.since)) {
       where.push("occurred_at >= @since");
       params.since = q.since;
