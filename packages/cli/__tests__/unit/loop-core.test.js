@@ -7,6 +7,7 @@
  * or subprocesses. parseDuration/formatDuration get their own table cases.
  */
 import { describe, expect, it, vi } from "vitest";
+import { getEventListeners } from "node:events";
 import {
   runLoop,
   parseDuration,
@@ -255,5 +256,27 @@ describe("makeSleep", () => {
   it("resolves immediately for a zero delay", async () => {
     const sleep = makeSleep();
     await expect(sleep(0)).resolves.toBeUndefined();
+  });
+
+  it("does not accumulate abort listeners across normally-completing sleeps", async () => {
+    // Regression: a long `cc loop` reuses one AbortController for the whole run.
+    // `{once:true}` only removes the abort listener if it FIRES — a sleep that
+    // completes normally never aborts, so a per-round listener would leak
+    // (N rounds → N retained closures + MaxListenersExceededWarning past 10).
+    const ac = new AbortController();
+    const sleep = makeSleep(ac.signal);
+    for (let i = 0; i < 12; i++) await sleep(1);
+    expect(getEventListeners(ac.signal, "abort").length).toBe(0);
+  });
+
+  it("aborts an in-flight sleep early and leaves no listener behind", async () => {
+    const ac = new AbortController();
+    const sleep = makeSleep(ac.signal);
+    const started = Date.now();
+    const p = sleep(10_000);
+    setTimeout(() => ac.abort(), 10);
+    await expect(p).resolves.toBeUndefined();
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(getEventListeners(ac.signal, "abort").length).toBe(0);
   });
 });

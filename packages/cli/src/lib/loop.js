@@ -108,15 +108,22 @@ export function makeSleep(signal) {
       // process alive between rounds. Under a TTY the active stdin would mask
       // an unref'd timer, but headless (piped stdin / CI / cron) the loop would
       // exit after the first round. SIGINT aborts the wait via the signal.
-      const t = setTimeout(resolve, ms);
-      signal?.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(t);
-          resolve();
-        },
-        { once: true },
-      );
+      let t;
+      const onAbort = () => {
+        clearTimeout(t);
+        resolve();
+      };
+      t = setTimeout(() => {
+        // Normal completion: drop the abort listener so it can't accumulate on
+        // a shared signal across rounds. A long `cc loop` reuses one
+        // AbortController for the whole run, and `{once:true}` only removes the
+        // listener if it FIRES — a sleep that completes normally never aborts,
+        // so without this each round would leak a dangling listener (N rounds →
+        // N retained closures + a MaxListenersExceededWarning past 10).
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      signal?.addEventListener("abort", onAbort, { once: true });
     });
 }
 
