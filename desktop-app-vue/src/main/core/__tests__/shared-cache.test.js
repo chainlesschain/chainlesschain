@@ -117,7 +117,9 @@ describe("SharedCacheManager", () => {
       cache.set("ns", "b", 2);
       cache.get("ns", "a"); // Move 'a' to end
       const ns = cache._namespaces.get("ns");
-      expect(ns.order[ns.order.length - 1]).toBe("a");
+      // The Map's key order IS the LRU order; last = most-recently-used.
+      const keys = [...ns.entries.keys()];
+      expect(keys[keys.length - 1]).toBe("a");
     });
 
     it("has() is read-only: no stats or LRU mutation", () => {
@@ -128,7 +130,7 @@ describe("SharedCacheManager", () => {
       cache.set("ns", "b", 2);
       const before = { ...cache._stats };
       const ns = cache._namespaces.get("ns");
-      const orderBefore = [...ns.order];
+      const orderBefore = [...ns.entries.keys()];
 
       expect(cache.has("ns", "a")).toBe(true); // 'a' is first (LRU eviction candidate)
       expect(cache.has("ns", "missing")).toBe(false);
@@ -136,7 +138,7 @@ describe("SharedCacheManager", () => {
 
       expect(cache._stats.hits).toBe(before.hits);
       expect(cache._stats.misses).toBe(before.misses);
-      expect(ns.order).toEqual(orderBefore); // 'a' NOT moved to end
+      expect([...ns.entries.keys()]).toEqual(orderBefore); // 'a' NOT moved to end
     });
 
     it("has() returns false for an expired entry without mutating", () => {
@@ -177,6 +179,30 @@ describe("SharedCacheManager", () => {
       cache.set("tiny", "b", 2);
       expect(cache._stats.evictions).toBe(1);
     });
+
+    it("get() bumps recency so a DIFFERENT key is evicted next", () => {
+      cache.createNamespace("tiny", { maxSize: 2 });
+      cache.set("tiny", "a", 1);
+      cache.set("tiny", "b", 2);
+      cache.get("tiny", "a"); // 'a' becomes most-recently-used → 'b' is oldest
+      cache.set("tiny", "c", 3); // should evict 'b', NOT 'a'
+      expect(cache.get("tiny", "a")).toBe(1);
+      expect(cache.get("tiny", "b")).toBeUndefined();
+      expect(cache.get("tiny", "c")).toBe(3);
+    });
+
+    it("re-set() of an existing key bumps it off the eviction line (no size growth)", () => {
+      cache.createNamespace("tiny", { maxSize: 2 });
+      cache.set("tiny", "a", 1);
+      cache.set("tiny", "b", 2);
+      cache.set("tiny", "a", 10); // update 'a' → most-recently-used, size stays 2
+      const ns = cache._namespaces.get("tiny");
+      expect(ns.entries.size).toBe(2);
+      cache.set("tiny", "c", 3); // should evict 'b' (now oldest), keep updated 'a'
+      expect(cache.get("tiny", "a")).toBe(10);
+      expect(cache.get("tiny", "b")).toBeUndefined();
+      expect(cache.get("tiny", "c")).toBe(3);
+    });
   });
 
   describe("has", () => {
@@ -215,7 +241,7 @@ describe("SharedCacheManager", () => {
       expect(cache.get("ns", "a")).toBeUndefined();
       const ns = cache._namespaces.get("ns");
       expect(ns.entries.size).toBe(0);
-      expect(ns.order).toEqual([]);
+      expect([...ns.entries.keys()]).toEqual([]);
     });
 
     it("should be a no-op for missing namespace", () => {

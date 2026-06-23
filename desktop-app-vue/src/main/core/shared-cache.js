@@ -33,8 +33,11 @@ class SharedCacheManager extends EventEmitter {
       name,
       maxSize: options.maxSize || 1000,
       defaultTTL: options.defaultTTL || 300000, // 5 min
+      // A Map preserves insertion order, so it IS the LRU order — the first key
+      // is the least-recently-used (eviction candidate), the last is the most
+      // recent. Bumping a key to MRU is delete()+set(); there is no separate
+      // `order` array to keep in sync (which cost O(n) indexOf+splice per op).
       entries: new Map(),
-      order: [],
       stats: { hits: 0, misses: 0, evictions: 0, sets: 0 },
     };
     this._namespaces.set(name, ns);
@@ -50,19 +53,15 @@ class SharedCacheManager extends EventEmitter {
 
     const expiresAt = Date.now() + (ttl || ns.defaultTTL);
 
-    // Evict if at capacity
+    // Evict if at capacity (only when adding a genuinely new key)
     if (!ns.entries.has(key) && ns.entries.size >= ns.maxSize) {
       this._evictOldest(ns);
     }
 
+    // delete()+set() re-inserts the key at the end of the Map = most-recently-
+    // used. (A bare set() on an existing key keeps its old position.)
+    ns.entries.delete(key);
     ns.entries.set(key, { value, expiresAt, createdAt: Date.now() });
-
-    // Update LRU order
-    const idx = ns.order.indexOf(key);
-    if (idx > -1) {
-      ns.order.splice(idx, 1);
-    }
-    ns.order.push(key);
 
     ns.stats.sets++;
   }
@@ -83,21 +82,14 @@ class SharedCacheManager extends EventEmitter {
 
     if (Date.now() > entry.expiresAt) {
       ns.entries.delete(key);
-      const idx = ns.order.indexOf(key);
-      if (idx > -1) {
-        ns.order.splice(idx, 1);
-      }
       ns.stats.misses++;
       this._stats.misses++;
       return undefined;
     }
 
-    // Move to end of LRU order
-    const idx = ns.order.indexOf(key);
-    if (idx > -1) {
-      ns.order.splice(idx, 1);
-    }
-    ns.order.push(key);
+    // Move to the most-recently-used position (delete()+set() on the Map).
+    ns.entries.delete(key);
+    ns.entries.set(key, entry);
 
     ns.stats.hits++;
     this._stats.hits++;
@@ -126,10 +118,6 @@ class SharedCacheManager extends EventEmitter {
       return false;
     }
     const existed = ns.entries.delete(key);
-    const idx = ns.order.indexOf(key);
-    if (idx > -1) {
-      ns.order.splice(idx, 1);
-    }
     return existed;
   }
 
@@ -139,14 +127,14 @@ class SharedCacheManager extends EventEmitter {
       return;
     }
     ns.entries.clear();
-    ns.order = [];
   }
 
   _evictOldest(ns) {
-    if (ns.order.length === 0) {
+    if (ns.entries.size === 0) {
       return;
     }
-    const oldest = ns.order.shift();
+    // First key in Map iteration order is the least-recently-used.
+    const oldest = ns.entries.keys().next().value;
     ns.entries.delete(oldest);
     ns.stats.evictions++;
     this._stats.evictions++;
@@ -164,10 +152,6 @@ class SharedCacheManager extends EventEmitter {
       }
       for (const key of expired) {
         ns.entries.delete(key);
-        const idx = ns.order.indexOf(key);
-        if (idx > -1) {
-          ns.order.splice(idx, 1);
-        }
       }
     }
   }
