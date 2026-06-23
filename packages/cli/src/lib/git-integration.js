@@ -153,15 +153,21 @@ export function gitLog(dir, limit = 10) {
   }
 
   try {
+    // Subject (%s) is free text that often contains "|"; keep it LAST so a
+    // pipe in the subject can't shift the date/author fields, then re-join the
+    // remainder. (Field order kept as %X|%X — Windows cmd.exe expands adjacent
+    // %VAR% pairs, so a control-char separator like %x1f is not portable here.)
     const output = gitExec(
-      `log --oneline --no-decorate -${limit} --format="%H|%h|%s|%ai|%an"`,
+      `log --oneline --no-decorate -${limit} --format="%H|%h|%ai|%an|%s"`,
       dir,
     );
     return output
       .split("\n")
       .filter(Boolean)
       .map((line) => {
-        const [hash, shortHash, subject, date, author] = line.split("|");
+        const parts = line.split("|");
+        const [hash, shortHash, date, author] = parts;
+        const subject = parts.slice(4).join("|");
         return { hash, shortHash, subject, date, author };
       });
   } catch {

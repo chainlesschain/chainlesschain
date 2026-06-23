@@ -247,15 +247,32 @@ describe("Git Integration", () => {
 
     it("should parse log output", () => {
       existsSync.mockReturnValue(true);
+      // Format is "%H|%h|%ai|%an|%s" — subject is last.
       execSync.mockReturnValue(
-        "abc123full|abc1234|feat: add feature|2024-01-15 10:00:00|Author Name\ndef456full|def4567|fix: bug fix|2024-01-14 09:00:00|Other Author",
+        "abc123full|abc1234|2024-01-15 10:00:00|Author Name|feat: add feature\ndef456full|def4567|2024-01-14 09:00:00|Other Author|fix: bug fix",
       );
 
       const log = gitLog("/test", 5);
       expect(log).toHaveLength(2);
       expect(log[0].shortHash).toBe("abc1234");
       expect(log[0].subject).toBe("feat: add feature");
+      expect(log[0].date).toBe("2024-01-15 10:00:00");
       expect(log[1].author).toBe("Other Author");
+    });
+
+    it("parses a subject that itself contains the pipe delimiter", () => {
+      existsSync.mockReturnValue(true);
+      // Subject "fix: handle a|b|c case" contains pipes; date/author must stay
+      // intact and the full subject must be reassembled.
+      execSync.mockReturnValue(
+        "abc123full|abc1234|2024-01-15 10:00:00|Author Name|fix: handle a|b|c case",
+      );
+
+      const log = gitLog("/test");
+      expect(log).toHaveLength(1);
+      expect(log[0].subject).toBe("fix: handle a|b|c case");
+      expect(log[0].date).toBe("2024-01-15 10:00:00");
+      expect(log[0].author).toBe("Author Name");
     });
 
     it("should handle errors gracefully", () => {
