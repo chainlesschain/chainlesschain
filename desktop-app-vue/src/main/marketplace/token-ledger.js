@@ -127,7 +127,9 @@ class TokenLedger extends EventEmitter {
       throw new Error("Contribution type is required");
     }
     const id = uuidv4();
-    const tokensEarned = (qualityScore || 0.5) * this._rewardMultiplier * 10;
+    // 用 ?? 而非 ||：qualityScore 是 [0,1] 的质量系数，合法的 0（最差质量）应得 0 奖励。
+    // `0 || 0.5` 会把 0 当成「未提供」回退到默认 0.5，给零质量贡献误发 5 CCT。
+    const tokensEarned = (qualityScore ?? 0.5) * this._rewardMultiplier * 10;
     const createdAt = Date.now();
     // balance_after must reflect the post-reward balance, but we only advance
     // the in-memory balance once the rows are durably persisted (see below).
@@ -137,7 +139,7 @@ class TokenLedger extends EventEmitter {
       type,
       contributor_did: contributorDid || "self",
       resource_id: resourceId || null,
-      quality_score: qualityScore || 0.5,
+      quality_score: qualityScore ?? 0.5,
       tokens_earned: tokensEarned,
       description: description || "",
       created_at: createdAt,

@@ -22,7 +22,9 @@ function makeDb({ failInsert = false, rewardRow = null } = {}) {
         return { changes: 1 };
       },
       get: () =>
-        sql.includes("SUM(amount)") ? rewardRow || { total: 0, cnt: 0 } : undefined,
+        sql.includes("SUM(amount)")
+          ? rewardRow || { total: 0, cnt: 0 }
+          : undefined,
       all: () => [],
     })),
     transaction: (fn) => () => fn(),
@@ -44,6 +46,22 @@ describe("TokenLedger", () => {
   it("requires a contribution type", async () => {
     const l = new TokenLedger(null);
     await expect(l.submitContribution({})).rejects.toThrow(/type is required/);
+  });
+
+  it("treats an explicit qualityScore of 0 as zero reward (not the 0.5 default)", async () => {
+    const l = new TokenLedger(null);
+    // 旧实现 `qualityScore || 0.5` 把合法的 0（最差质量）当成默认 0.5 → 误奖 5 CCT。
+    const c = await l.submitContribution({ type: "skill", qualityScore: 0 });
+    expect(c.tokens_earned).toBe(0);
+    expect(c.quality_score).toBe(0);
+    expect((await l.getBalance()).balance).toBe(0);
+  });
+
+  it("still defaults a missing qualityScore to 0.5", async () => {
+    const l = new TokenLedger(null);
+    const c = await l.submitContribution({ type: "skill" });
+    expect(c.tokens_earned).toBe(5); // 0.5 * 1 * 10
+    expect(c.quality_score).toBe(0.5);
   });
 
   it("submitContribution (with DB) persists both rows then advances balance", async () => {
@@ -85,8 +103,12 @@ describe("TokenLedger", () => {
 
   it("getPricing applies a reputation discount capped at 0.5", async () => {
     const l = new TokenLedger(null);
-    expect((await l.getPricing({ callerReputation: 2 })).finalPrice).toBeCloseTo(0.8);
-    expect((await l.getPricing({ callerReputation: 100 })).finalPrice).toBeCloseTo(0.5);
+    expect(
+      (await l.getPricing({ callerReputation: 2 })).finalPrice,
+    ).toBeCloseTo(0.8);
+    expect(
+      (await l.getPricing({ callerReputation: 100 })).finalPrice,
+    ).toBeCloseTo(0.5);
     expect((await l.getPricing({})).finalPrice).toBe(1.0);
   });
 });
