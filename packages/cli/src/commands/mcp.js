@@ -23,6 +23,7 @@ import {
   SUPPORTED_TRANSPORTS,
 } from "../lib/mcp-scaffold.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
+import { resolveMcpAuthTarget, isUrlLike } from "../lib/mcp-auth-target.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -37,6 +38,27 @@ let mcpClient = null;
 function getClient() {
   if (!mcpClient) mcpClient = new MCPClient();
   return mcpClient;
+}
+
+/**
+ * Resolve a `mcp login|logout <target>` argument (a URL or a configured server
+ * NAME — Claude-Code 2.1.186 parity) to a concrete server URL. The DB is only
+ * bootstrapped when a name lookup is actually needed, so a raw-URL login stays
+ * dependency-free.
+ */
+async function resolveAuthTargetUrl(program, target) {
+  if (isUrlLike(target)) return resolveMcpAuthTarget(target).url;
+  const ctx = await bootstrap({ verbose: program.opts().verbose });
+  const lookup = (name) => {
+    try {
+      return ctx.db
+        ? new MCPServerConfig(ctx.db.getDatabase()).get(name)
+        : null;
+    } catch {
+      return null; // a lookup failure surfaces as "unknown server" below
+    }
+  };
+  return resolveMcpAuthTarget(target, lookup).url;
 }
 
 /**
@@ -111,9 +133,9 @@ export function registerMcpCommand(program) {
 
   // mcp login — OAuth 2.0 (Auth Code + PKCE) for a remote MCP server.
   mcp
-    .command("login <url>")
+    .command("login <target>")
     .description(
-      "Authorize a remote MCP server via OAuth (opens a browser); stores the token",
+      "Authorize a remote MCP server via OAuth (opens a browser); stores the token. <target> is a URL or a configured server name.",
     )
     .option("--scope <scope>", "OAuth scope(s) to request")
     .option(
@@ -127,8 +149,9 @@ export function registerMcpCommand(program) {
       53682,
     )
     .option("--no-open", "Print the authorize URL instead of opening a browser")
-    .action(async (url, options) => {
+    .action(async (target, options) => {
       try {
+        const url = await resolveAuthTargetUrl(program, target);
         const oauth = await import("../lib/mcp-oauth.js");
         if (options.open === false) {
           oauth._deps.openBrowser = () => false; // commander maps --no-open → open:false
@@ -159,10 +182,13 @@ export function registerMcpCommand(program) {
 
   // mcp logout — forget a stored OAuth token.
   mcp
-    .command("logout <url>")
-    .description("Delete the stored OAuth token for a remote MCP server")
-    .action(async (url) => {
+    .command("logout <target>")
+    .description(
+      "Delete the stored OAuth token for a remote MCP server (<target> is a URL or a configured server name)",
+    )
+    .action(async (target) => {
       try {
+        const url = await resolveAuthTargetUrl(program, target);
         const { deleteStoredToken, serverKey } =
           await import("../lib/mcp-oauth.js");
         const ok = deleteStoredToken(url);
@@ -199,7 +225,7 @@ export function registerMcpCommand(program) {
         }
         if (rows.length === 0) {
           logger.log(
-            chalk.gray("No MCP OAuth tokens. Run: cc mcp login <url>"),
+            chalk.gray("No MCP OAuth tokens. Run: cc mcp login <name|url>"),
           );
           return;
         }
