@@ -185,18 +185,25 @@ export class CLIContentRecommender {
 
   /**
    * Get tool similarity matrix.
+   *
+   * `calculateSimilarity` is symmetric (cosine over the same feature vectors:
+   * sim(a,b) === sim(b,a)), so compute each unordered pair ONCE and mirror it
+   * instead of recomputing both directions. Halves the similarity calls vs. the
+   * naive N×(N−1) double pass — output is byte-for-byte identical (same float,
+   * same rounding). The diagonal (a===a) is intentionally omitted, as before.
    */
   getSimilarityMatrix() {
     const tools = [...this._toolFeatures.keys()];
     const matrix = {};
+    for (const t of tools) matrix[t] = {}; // every tool gets a row (even if empty)
 
-    for (const t1 of tools) {
-      matrix[t1] = {};
-      for (const t2 of tools) {
-        if (t1 !== t2) {
-          matrix[t1][t2] =
-            Math.round(this.calculateSimilarity(t1, t2) * 1000) / 1000;
-        }
+    for (let i = 0; i < tools.length; i++) {
+      for (let j = i + 1; j < tools.length; j++) {
+        const a = tools[i];
+        const b = tools[j];
+        const sim = Math.round(this.calculateSimilarity(a, b) * 1000) / 1000;
+        matrix[a][b] = sim;
+        matrix[b][a] = sim;
       }
     }
 

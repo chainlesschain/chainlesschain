@@ -239,5 +239,65 @@ describe("CLIContentRecommender", () => {
       expect(matrix).toHaveProperty("write_file");
       expect(matrix.read_file).toHaveProperty("write_file");
     });
+
+    it("is symmetric and omits the diagonal", () => {
+      recommender.buildToolFeatures([
+        { name: "read_file", description: "Read a file from disk" },
+        { name: "write_file", description: "Write a file to disk" },
+        { name: "list_dir", description: "List a directory of files" },
+      ]);
+      const matrix = recommender.getSimilarityMatrix();
+      const tools = ["read_file", "write_file", "list_dir"];
+      for (const a of tools) {
+        expect(matrix[a]).not.toHaveProperty(a); // no self-similarity entry
+        for (const b of tools) {
+          if (a === b) continue;
+          expect(matrix[a][b]).toBe(matrix[b][a]); // symmetric
+        }
+      }
+    });
+
+    it("matches a naive double-pass reference (no behavior change)", () => {
+      recommender.buildToolFeatures([
+        { name: "read_file", description: "Read a file from disk" },
+        { name: "write_file", description: "Write a file to disk" },
+        { name: "search", description: "Search file contents" },
+        { name: "run_shell", description: "Run a shell command" },
+      ]);
+      const tools = [...recommender._toolFeatures.keys()];
+      const reference = {};
+      for (const a of tools) {
+        reference[a] = {};
+        for (const b of tools) {
+          if (a !== b) {
+            reference[a][b] =
+              Math.round(recommender.calculateSimilarity(a, b) * 1000) / 1000;
+          }
+        }
+      }
+      expect(recommender.getSimilarityMatrix()).toEqual(reference);
+    });
+
+    it("computes each unordered pair once (halves similarity calls)", () => {
+      recommender.buildToolFeatures([
+        { name: "a", description: "alpha tool one" },
+        { name: "b", description: "bravo tool two" },
+        { name: "c", description: "charlie tool three" },
+        { name: "d", description: "delta tool four" },
+      ]);
+      const spy = vi.spyOn(recommender, "calculateSimilarity");
+      recommender.getSimilarityMatrix();
+      // 4 tools → 6 unordered pairs (was 12 with the naive double pass).
+      expect(spy).toHaveBeenCalledTimes(6);
+      spy.mockRestore();
+    });
+
+    it("gives every tool a row, even with a single tool (no pairs)", () => {
+      recommender.buildToolFeatures([
+        { name: "solo", description: "only tool" },
+      ]);
+      const matrix = recommender.getSimilarityMatrix();
+      expect(matrix).toEqual({ solo: {} });
+    });
   });
 });
