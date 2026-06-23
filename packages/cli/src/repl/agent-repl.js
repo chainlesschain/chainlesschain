@@ -112,6 +112,10 @@ let _permissionRules = null;
 let _permissionConfirm = null;
 // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
 let _settingsHooks = null;
+// .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
+// `!command` auto-triggers an assistant response to its output. undefined =
+// unset → defaults ON in shouldRespondToBashCommands.
+let _respondToBash;
 
 /**
  * Fire settings.json Notification hooks (observe-only) — the agent needs the
@@ -444,8 +448,13 @@ export async function startAgentRepl(options = {}) {
   // Load .claude/settings.json permission rules + wire an interactive confirmer
   // so `ask` rules prompt (rather than fall closed like headless does).
   try {
-    const { loadSettings } = await import("../lib/settings-loader.cjs");
+    const { loadSettings, readBooleanSetting } =
+      await import("../lib/settings-loader.cjs");
     const loaded = loadSettings({ cwd: process.cwd() });
+    // Claude-Code 2.1.186 respondToBashCommands (default ON when unset).
+    _respondToBash = readBooleanSetting("respondToBashCommands", {
+      cwd: process.cwd(),
+    });
     const total =
       loaded.rules.allow.length +
       loaded.rules.ask.length +
@@ -1253,7 +1262,8 @@ export async function startAgentRepl(options = {}) {
     // no LLM round-trip — and fold the output into the conversation context.
     if (trimmed.startsWith("!") && trimmed.slice(1).trim()) {
       try {
-        const { runBangCommand } = await import("../lib/repl-bang-memorize.js");
+        const { runBangCommand, shouldRespondToBashCommands } =
+          await import("../lib/repl-bang-memorize.js");
         const res = runBangCommand(trimmed, { cwd: process.cwd() });
         logger.log(chalk.gray(`$ ${res.cmd}`));
         if (res.stdout)
@@ -1268,6 +1278,15 @@ export async function startAgentRepl(options = {}) {
           );
         if (res.error) logger.error(`shell error: ${res.error.message}`);
         logger.log(chalk.gray(`(exit ${res.exitCode})`));
+        // Claude-Code 2.1.186 `respondToBashCommands` (default ON): the
+        // assistant automatically responds to the command output. Re-dispatch
+        // the captured <bash-input>/<bash-output> as a normal user turn so the
+        // FULL turn machinery (streaming render, tools, session persistence) is
+        // reused — the bash-tagged content can't re-trigger the `!` branch.
+        if (shouldRespondToBashCommands({ settingValue: _respondToBash })) {
+          await handleLine(res.contextMessage.content);
+          return; // the nested turn already re-prompted
+        }
         messages.push(res.contextMessage);
       } catch (err) {
         logger.error(`! command failed: ${err.message}`);

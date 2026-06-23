@@ -13,6 +13,7 @@ import {
   isMemorizeLine,
   runBangCommand,
   appendMemoryNote,
+  shouldRespondToBashCommands,
 } from "../../src/lib/repl-bang-memorize.js";
 
 let tmp;
@@ -48,7 +49,9 @@ describe("runBangCommand", () => {
     expect(res.stdout).toContain("bang-ok");
     expect(res.error).toBeNull();
     expect(res.contextMessage.role).toBe("user");
-    expect(res.contextMessage.content).toContain("<bash-input>echo bang-ok</bash-input>");
+    expect(res.contextMessage.content).toContain(
+      "<bash-input>echo bang-ok</bash-input>",
+    );
     expect(res.contextMessage.content).toContain('exit-code="0"');
   });
 
@@ -104,7 +107,9 @@ describe("appendMemoryNote", () => {
     expect(res.target).toBe(path.join(tmp, "cc.md"));
     const text = fs.readFileSync(res.target, "utf-8");
     expect(text).toContain("## Notes");
-    expect(text).toContain("- always run lint before commit _(noted 2026-06-11)_");
+    expect(text).toContain(
+      "- always run lint before commit _(noted 2026-06-11)_",
+    );
   });
 
   it("inserts under an existing Notes heading", () => {
@@ -124,7 +129,11 @@ describe("appendMemoryNote", () => {
 
   it("appends a Notes section to a file without one", () => {
     fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, "cc.md"), "# Mem\n\n## Stack\n- node\n", "utf-8");
+    fs.writeFileSync(
+      path.join(tmp, "cc.md"),
+      "# Mem\n\n## Stack\n- node\n",
+      "utf-8",
+    );
     const res = appendMemoryNote("# fresh", { cwd: tmp, date: "2026-06-11" });
     expect(res.created).toBe(false);
     const text = fs.readFileSync(path.join(tmp, "cc.md"), "utf-8");
@@ -134,10 +143,11 @@ describe("appendMemoryNote", () => {
   it("round-trips: the note is picked up by the project-instructions loader", async () => {
     fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
     appendMemoryNote("# loader sees this", { cwd: tmp, date: "2026-06-11" });
-    const { loadProjectInstructions } = await import(
-      "../../src/lib/project-instructions.js"
+    const { loadProjectInstructions } =
+      await import("../../src/lib/project-instructions.js");
+    const emptyHome = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-bangmem-home-"),
     );
-    const emptyHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bangmem-home-"));
     try {
       const loaded = loadProjectInstructions({ cwd: tmp, home: emptyHome });
       expect(loaded.files.map((f) => f.content).join("\n")).toContain(
@@ -146,5 +156,61 @@ describe("appendMemoryNote", () => {
     } finally {
       fs.rmSync(emptyHome, { recursive: true, force: true });
     }
+  });
+});
+
+describe("shouldRespondToBashCommands (Claude-Code 2.1.186)", () => {
+  it("defaults ON when unset", () => {
+    expect(shouldRespondToBashCommands({ env: {} })).toBe(true);
+    expect(
+      shouldRespondToBashCommands({ settingValue: undefined, env: {} }),
+    ).toBe(true);
+  });
+
+  it("honors an explicit settings boolean", () => {
+    expect(shouldRespondToBashCommands({ settingValue: false, env: {} })).toBe(
+      false,
+    );
+    expect(shouldRespondToBashCommands({ settingValue: true, env: {} })).toBe(
+      true,
+    );
+  });
+
+  it("CC_RESPOND_TO_BASH env overrides the setting", () => {
+    // env off beats setting on
+    expect(
+      shouldRespondToBashCommands({
+        settingValue: true,
+        env: { CC_RESPOND_TO_BASH: "0" },
+      }),
+    ).toBe(false);
+    expect(
+      shouldRespondToBashCommands({
+        settingValue: true,
+        env: { CC_RESPOND_TO_BASH: "false" },
+      }),
+    ).toBe(false);
+    // env on beats setting off
+    expect(
+      shouldRespondToBashCommands({
+        settingValue: false,
+        env: { CC_RESPOND_TO_BASH: "1" },
+      }),
+    ).toBe(true);
+    expect(
+      shouldRespondToBashCommands({
+        settingValue: false,
+        env: { CC_RESPOND_TO_BASH: "on" },
+      }),
+    ).toBe(true);
+  });
+
+  it("blank env is ignored (falls through to setting/default)", () => {
+    expect(
+      shouldRespondToBashCommands({
+        settingValue: false,
+        env: { CC_RESPOND_TO_BASH: "  " },
+      }),
+    ).toBe(false);
   });
 });

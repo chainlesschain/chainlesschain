@@ -96,7 +96,11 @@ describe("loadSettings — explicit --settings file", () => {
 
 describe("loadSettings — env kill-switch", () => {
   it("env vars accrete and are labelled <env>", () => {
-    const { rules, sources, files: contributed } = loadSettings({
+    const {
+      rules,
+      sources,
+      files: contributed,
+    } = loadSettings({
       cwd: CWD,
       env: { CC_PERMISSIONS_DENY: "Bash(curl:*), Bash(wget:*)" },
     });
@@ -161,15 +165,17 @@ describe("addRule (shared writer for cc permissions add + REPL always-allow)", (
 
   it("writes to the project file by default and the user file for scope:user", () => {
     addRule({ cwd: CWD, kind: "deny", rule: "Bash(rm:*)" });
-    expect(JSON.parse(files[projFile]).permissions.deny).toEqual(["Bash(rm:*)"]);
+    expect(JSON.parse(files[projFile]).permissions.deny).toEqual([
+      "Bash(rm:*)",
+    ]);
     addRule({ cwd: CWD, kind: "allow", rule: "Read", scope: "user" });
     expect(JSON.parse(files[userFile]).permissions.allow).toEqual(["Read"]);
   });
 
   it("rejects an invalid kind", () => {
-    expect(() =>
-      addRule({ cwd: CWD, kind: "maybe", rule: "Read" }),
-    ).toThrow(/allow \| ask \| deny/);
+    expect(() => addRule({ cwd: CWD, kind: "maybe", rule: "Read" })).toThrow(
+      /allow \| ask \| deny/,
+    );
   });
 
   it("refuses to clobber a malformed target file", () => {
@@ -177,5 +183,38 @@ describe("addRule (shared writer for cc permissions add + REPL always-allow)", (
     expect(() =>
       addRule({ cwd: CWD, kind: "allow", rule: "Read", scope: "local" }),
     ).toThrow(/malformed/);
+  });
+});
+
+describe("readBooleanSetting — layered top-level boolean", () => {
+  const { readBooleanSetting } = loader;
+
+  it("returns undefined when no layer sets it", () => {
+    setFile(userFile, { permissions: { allow: ["Read"] } });
+    expect(
+      readBooleanSetting("respondToBashCommands", { cwd: CWD }),
+    ).toBeUndefined();
+  });
+
+  it("reads a boolean from a single layer", () => {
+    setFile(userFile, { respondToBashCommands: false });
+    expect(readBooleanSetting("respondToBashCommands", { cwd: CWD })).toBe(
+      false,
+    );
+  });
+
+  it("closest (local) layer wins over a lower layer", () => {
+    setFile(userFile, { respondToBashCommands: true });
+    setFile(localFile, { respondToBashCommands: false });
+    expect(readBooleanSetting("respondToBashCommands", { cwd: CWD })).toBe(
+      false,
+    );
+  });
+
+  it("ignores non-boolean values", () => {
+    setFile(userFile, { respondToBashCommands: "yes" });
+    expect(
+      readBooleanSetting("respondToBashCommands", { cwd: CWD }),
+    ).toBeUndefined();
   });
 });

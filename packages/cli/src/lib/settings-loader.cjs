@@ -187,7 +187,9 @@ function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
     try {
       data = JSON.parse(text) || {};
     } catch (err) {
-      throw new Error(`refusing to overwrite malformed ${file} (${err.message})`);
+      throw new Error(
+        `refusing to overwrite malformed ${file} (${err.message})`,
+      );
     }
   }
   if (!data.permissions || typeof data.permissions !== "object") {
@@ -237,10 +239,36 @@ function loadSettingsConfig(opts = {}) {
   return { model, env, files };
 }
 
+/**
+ * Read a top-level boolean setting across the layered `.claude/settings.json`
+ * files (last/closest layer wins — same precedence as the permission rules).
+ * Non-boolean values are ignored. Returns `undefined` when no layer sets it, so
+ * a caller can distinguish "unset" from an explicit `false`.
+ *
+ * @param {string} key  top-level settings key (e.g. "respondToBashCommands")
+ * @param {object} [opts]
+ * @param {string} [opts.cwd=process.cwd()]
+ * @param {string} [opts.settingsFile]
+ * @param {(msg:string)=>void} [opts.onWarn]
+ * @returns {boolean|undefined}
+ */
+function readBooleanSetting(key, opts = {}) {
+  const cwd = opts.cwd || process.cwd();
+  let value;
+  for (const file of settingsPaths(cwd, opts.settingsFile)) {
+    const data = readSettingsFile(file, { onWarn: opts.onWarn });
+    if (data && typeof data[key] === "boolean") {
+      value = data[key]; // last (closest) layer wins
+    }
+  }
+  return value;
+}
+
 module.exports = {
   loadSettings,
   loadSettingsConfig,
   readSettingsFile,
+  readBooleanSetting,
   settingsPaths,
   parseEnvList,
   ruleSource,
