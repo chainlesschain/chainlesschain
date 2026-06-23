@@ -64,6 +64,48 @@ function ensureNotesTable(db) {
   `);
 }
 
+/**
+ * Select notes for `note list`. Tags are stored as a JSON array, so tag
+ * filtering happens in-memory — the row limit must therefore be applied AFTER
+ * that filter rather than via SQL `LIMIT`, otherwise `--tag X --limit N`
+ * returns "matches among the N most-recent notes" (often far fewer than N, or
+ * zero) instead of "up to N notes tagged X". Category is a real column, so it
+ * is SQL-filtered and composes with LIMIT directly.
+ *
+ * Exported for unit testing. `rawDb` only needs a better-sqlite3-style
+ * `prepare(sql).all(...params)`. `limit` is the already-resolved numeric cap.
+ */
+export function selectNotesForList(rawDb, { category, tag, limit } = {}) {
+  let sql =
+    "SELECT id, title, tags, category, created_at FROM notes WHERE deleted_at IS NULL";
+  const params = [];
+  if (category) {
+    sql += " AND category = ?";
+    params.push(category);
+  }
+  sql += " ORDER BY created_at DESC";
+  // Only push LIMIT into SQL when no in-memory tag filter follows.
+  if (!tag) {
+    sql += " LIMIT ?";
+    params.push(limit);
+  }
+
+  let notes = rawDb.prepare(sql).all(...params);
+
+  if (tag) {
+    notes = notes
+      .filter((n) => {
+        try {
+          return JSON.parse(n.tags || "[]").includes(tag);
+        } catch {
+          return false;
+        }
+      })
+      .slice(0, limit);
+  }
+  return notes;
+}
+
 export function registerNoteCommand(program) {
   const note = program
     .command("note")
@@ -142,31 +184,17 @@ export function registerNoteCommand(program) {
         const rawDb = ctx.db.getDatabase();
         ensureNotesTable(rawDb);
 
-        let sql =
-          "SELECT id, title, tags, category, created_at FROM notes WHERE deleted_at IS NULL";
-        const params = [];
-
-        if (options.category) {
-          sql += " AND category = ?";
-          params.push(options.category);
-        }
-
-        sql += " ORDER BY created_at DESC LIMIT ?";
-        params.push(numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 20 }));
-
-        let notes = rawDb.prepare(sql).all(...params);
-
-        // Filter by tag in-memory (tags stored as JSON array)
-        if (options.tag) {
-          notes = notes.filter((n) => {
-            try {
-              const tags = JSON.parse(n.tags || "[]");
-              return tags.includes(options.tag);
-            } catch {
-              return false;
-            }
-          });
-        }
+        const limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 1,
+          fallback: 20,
+        });
+        const notes = selectNotesForList(rawDb, {
+          category: options.category,
+          tag: options.tag,
+          limit,
+        });
 
         if (options.json) {
           console.log(JSON.stringify(notes, null, 2));
