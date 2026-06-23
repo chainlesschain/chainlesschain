@@ -80,7 +80,10 @@ class Logger {
         const stat = fs.statSync(currentFile);
         if (stat.size > this.config.fileConfig.maxSize) {
           const timestamp = Date.now();
-          const newName = currentFile.replace(".log", `-${timestamp}.log`);
+          // Anchor to the trailing extension; a bare .replace(".log", …)
+          // replaces the first occurrence, corrupting the rename target when
+          // the log directory path itself contains ".log".
+          const newName = currentFile.replace(/\.log$/, `-${timestamp}.log`);
           fs.renameSync(currentFile, newName);
         }
       }
@@ -198,7 +201,12 @@ class Logger {
   cleanup(daysToKeep = 7) {
     try {
       const cutoffTime = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
-      const files = fs.readdirSync(this.logDir);
+      // Only touch our own rotated log files. Without this filter cleanup would
+      // delete unrelated files that share the log directory, and unlinkSync on a
+      // subdirectory throws EISDIR, aborting the loop so real old logs survive.
+      const files = fs
+        .readdirSync(this.logDir)
+        .filter((f) => f.startsWith("chainlesschain-") && f.endsWith(".log"));
 
       let deletedCount = 0;
       files.forEach((file) => {

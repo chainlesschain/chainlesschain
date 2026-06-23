@@ -114,6 +114,76 @@ describe("shared-logger", () => {
     });
   });
 
+  describe("cleanup", () => {
+    it("only deletes old chainlesschain log files, leaving other files untouched", () => {
+      const oldMtime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const oldLog = path.join(testLogDir, "chainlesschain-2000-01-01.log");
+      const recentLog = path.join(testLogDir, "chainlesschain-2999-01-01.log");
+      const unrelated = path.join(testLogDir, "config.json");
+      fs.writeFileSync(oldLog, "old", "utf8");
+      fs.writeFileSync(recentLog, "recent", "utf8");
+      fs.writeFileSync(unrelated, "{}", "utf8");
+      fs.utimesSync(oldLog, oldMtime, oldMtime);
+      fs.utimesSync(unrelated, oldMtime, oldMtime);
+
+      const deleted = logger.cleanup(7);
+
+      expect(deleted).toBe(1);
+      expect(fs.existsSync(oldLog)).toBe(false);
+      expect(fs.existsSync(recentLog)).toBe(true);
+      // An unrelated old file must NOT be deleted by log cleanup.
+      expect(fs.existsSync(unrelated)).toBe(true);
+    });
+
+    it("does not abort on a subdirectory in the log dir", () => {
+      const oldMtime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const oldLog = path.join(testLogDir, "chainlesschain-2000-01-01.log");
+      const subDir = path.join(testLogDir, "archive");
+      fs.writeFileSync(oldLog, "old", "utf8");
+      fs.mkdirSync(subDir);
+      fs.utimesSync(oldLog, oldMtime, oldMtime);
+      fs.utimesSync(subDir, oldMtime, oldMtime);
+
+      // Previously unlinkSync on the subdir threw EISDIR and the old log
+      // survived; now cleanup ignores the subdir and removes the log.
+      const deleted = logger.cleanup(7);
+
+      expect(deleted).toBe(1);
+      expect(fs.existsSync(oldLog)).toBe(false);
+      expect(fs.existsSync(subDir)).toBe(true);
+
+      fs.rmdirSync(subDir);
+    });
+  });
+
+  describe("log rotation", () => {
+    it("rotates without corrupting a log dir whose path contains '.log'", () => {
+      // The directory name embeds ".log" — a bare .replace(".log", …) replaces
+      // THIS occurrence first, retargeting the rename into a different (missing)
+      // directory, so no rotated file lands in the real log dir.
+      const trickyDir = path.join(testLogDir, "my.log.archive");
+      const trickyLogger = new Logger("tricky", {
+        logDir: trickyDir,
+        config: { console: false, file: true, fileConfig: { maxSize: 1, maxFiles: 10 } },
+      });
+      trickyLogger.info("trigger rotation with a sufficiently long message body");
+
+      const files = fs.readdirSync(trickyDir);
+      // The rotated file gets a 13+ digit ms-epoch suffix
+      // (chainlesschain-<date>-<timestamp>.log) — distinct from the plain daily
+      // file. Its presence directly inside trickyDir proves the extension-only
+      // replacement did not mangle the "my.log.archive" directory segment.
+      const rotated = files.filter((f) => /-\d{13,}\.log$/.test(f));
+      expect(rotated.length).toBeGreaterThanOrEqual(1);
+
+      // Cleanup tricky dir.
+      files.forEach((f) => fs.unlinkSync(path.join(trickyDir, f)));
+      fs.rmdirSync(trickyDir);
+    });
+  });
+
   describe("sensitive data redaction", () => {
     it("redacts password fields", () => {
       logger.info("auth", { password: "secret123", user: "admin" });
