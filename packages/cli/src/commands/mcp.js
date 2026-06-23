@@ -33,6 +33,15 @@ import {
   getServer as registryGetServer,
 } from "../lib/mcp-registry.js";
 
+/**
+ * Whether `mcp login` should NOT open a browser. True when either the canonical
+ * `--no-open` flag or the Claude-Code-parity `--no-browser` alias is passed.
+ * Commander maps each negatable flag to a boolean that is `false` when present.
+ */
+export function loginWantsNoBrowser(options = {}) {
+  return options.open === false || options.browser === false;
+}
+
 // Singleton MCP client for session reuse
 let mcpClient = null;
 
@@ -151,12 +160,16 @@ export function registerMcpCommand(program) {
       53682,
     )
     .option("--no-open", "Print the authorize URL instead of opening a browser")
+    .option(
+      "--no-browser",
+      "Alias for --no-open (do not open a browser; print the URL — handy over SSH)",
+    )
     .action(async (target, options) => {
       try {
         const url = await resolveAuthTargetUrl(program, target);
         const oauth = await import("../lib/mcp-oauth.js");
-        if (options.open === false) {
-          oauth._deps.openBrowser = () => false; // commander maps --no-open → open:false
+        if (loginWantsNoBrowser(options)) {
+          oauth._deps.openBrowser = () => false; // --no-open / --no-browser
         }
         logger.log(chalk.gray(`Authorizing ${url} …`));
         const rec = await oauth.authorizeInteractive(url, {
