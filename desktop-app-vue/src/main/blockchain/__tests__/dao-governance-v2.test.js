@@ -141,6 +141,32 @@ describe("DAOGovernanceV2", () => {
     );
   });
 
+  it("should reject a second vote from the same voter on a proposal", async () => {
+    await dao.initialize(db);
+    const proposal = dao.createProposal("Test", "Desc", "alice");
+    dao.vote(proposal.id, "bob", "for", 5);
+    // 同一投票人再次投票必须被拒，票数不得被刷高（防治理操纵 / 国库被提走）
+    expect(() => dao.vote(proposal.id, "bob", "for", 3)).toThrow(
+      "already voted",
+    );
+    expect(dao._proposals.get(proposal.id).votesFor).toBe(5); // 仍为 5，而非 8
+  });
+
+  it("should dedupe per (proposal, voter), not block other voters/proposals", async () => {
+    await dao.initialize(db);
+    const p1 = dao.createProposal("P1", "Desc", "alice");
+    const p2 = dao.createProposal("P2", "Desc", "alice");
+    dao.vote(p1.id, "bob", "for", 2);
+    dao.vote(p1.id, "carol", "for", 3); // 不同投票人 → 允许
+    dao.vote(p2.id, "bob", "for", 4); // 同投票人但不同提案 → 允许
+    expect(dao._proposals.get(p1.id).votesFor).toBe(5); // 2 + 3
+    expect(dao._proposals.get(p2.id).votesFor).toBe(4);
+    // 已投过的人不得换方向再投
+    expect(() => dao.vote(p1.id, "carol", "against", 1)).toThrow(
+      "already voted",
+    );
+  });
+
   // ── delegate ─────────────────────────────────────────────────────────────
   it("should delegate voting power", async () => {
     await dao.initialize(db);

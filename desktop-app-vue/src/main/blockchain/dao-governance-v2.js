@@ -130,7 +130,18 @@ class DAOGovernanceV2 extends EventEmitter {
     // NaN total slips past execute()'s `votesFor <= votesAgainst` guard (NaN
     // comparisons are always false), executing a proposal that never passed.
     if (!Number.isFinite(weight) || weight < 0) {
-      throw new Error("Invalid vote weight: must be a non-negative finite number");
+      throw new Error(
+        "Invalid vote weight: must be a non-negative finite number",
+      );
+    }
+
+    // 防重复投票：同一提案同一投票人只计一次，否则可反复调用 vote() 把票数刷高、
+    // 操纵治理结果（并越过 execute() 的 votesFor<=votesAgainst 闸提走国库）。
+    // 票数累加在内存态 proposal 上，故去重登记表也用内存（与计票同生命周期，
+    // mock-db 测试下亦生效）；复用此前声明却未接线的 _votes Map。
+    const voteKey = `${proposalId}:${voter}`;
+    if (this._votes.has(voteKey)) {
+      throw new Error("Voter has already voted on this proposal");
     }
 
     let effectiveWeight = weight;
@@ -150,6 +161,8 @@ class DAOGovernanceV2 extends EventEmitter {
     } else if (direction === "against") {
       proposal.votesAgainst += effectiveWeight;
     }
+    // 登记该投票人已就此提案投票（即使下面持久化失败也保留，与内存计票一致）
+    this._votes.set(voteKey, { direction, weight: effectiveWeight });
 
     const voteId = `vote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     try {
