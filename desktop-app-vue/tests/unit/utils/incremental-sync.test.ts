@@ -50,9 +50,10 @@ describe("incremental-sync — groupChangesByTable entity parsing", () => {
   const group = (m: IncrementalSyncManager, changes: unknown[]) =>
     (
       m as unknown as {
-        groupChangesByTable(
-          c: unknown[],
-        ): Record<string, Array<{ id: string }>>;
+        groupChangesByTable(c: unknown[]): Record<
+          string,
+          Array<{ id: string }>
+        >;
       }
     ).groupChangesByTable(changes);
 

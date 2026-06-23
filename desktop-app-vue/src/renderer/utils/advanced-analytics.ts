@@ -3,10 +3,10 @@
  * Provides insights into usage patterns, performance trends, and optimization opportunities
  */
 
-import { logger } from "@/utils/logger";
-import performanceTracker from "./performance-tracker";
-import predictivePrefetcher from "./predictive-prefetcher";
-import adaptivePerformance from "./adaptive-performance";
+import { logger } from '@/utils/logger';
+import performanceTracker from './performance-tracker';
+import predictivePrefetcher from './predictive-prefetcher';
+import adaptivePerformance from './adaptive-performance';
 
 // ==================== 类型定义 ====================
 
@@ -84,8 +84,8 @@ export interface WarningRecord {
  * 推荐
  */
 export interface Recommendation {
-  type: "performance" | "memory" | "cache" | "feature" | "error";
-  priority: "high" | "medium" | "low";
+  type: 'performance' | 'memory' | 'cache' | 'feature' | 'error';
+  priority: 'high' | 'medium' | 'low';
   message: string;
   action: string;
 }
@@ -106,7 +106,7 @@ export interface FileLoadTrendInsight {
 export interface MemoryUsageInsight {
   average: number;
   peak: number;
-  trend: "increasing" | "stable";
+  trend: 'increasing' | 'stable';
 }
 
 /**
@@ -326,7 +326,7 @@ class AdvancedAnalytics {
    * Handle beforeunload event
    */
   private handleBeforeUnload(): void {
-    this.trackEvent("session-end", {
+    this.trackEvent('session-end', {
       duration: Date.now() - this.sessionStart,
     });
     this.saveData();
@@ -349,8 +349,8 @@ class AdvancedAnalytics {
    */
   private handleUnhandledRejection(event: PromiseRejectionEvent): void {
     this.trackError({
-      message: event.reason?.message || "Unhandled Promise Rejection",
-      type: "promise",
+      message: event.reason?.message || 'Unhandled Promise Rejection',
+      type: 'promise',
     });
   }
 
@@ -366,20 +366,19 @@ class AdvancedAnalytics {
    */
   private loadHistory(): void {
     try {
-      const stored = localStorage.getItem("analytics-history");
+      const stored = localStorage.getItem('analytics-history');
       if (stored) {
         const data = JSON.parse(stored) as {
           performanceTrends?: PerformanceTrends;
           featureUsage?: [string, number][];
         };
-        this.performanceTrends =
-          data.performanceTrends || this.performanceTrends;
+        this.performanceTrends = data.performanceTrends || this.performanceTrends;
         this.featureUsage = new Map(data.featureUsage || []);
 
-        logger.info("[Analytics] Loaded historical data");
+        logger.info('[Analytics] Loaded historical data');
       }
     } catch (error) {
-      logger.error("[Analytics] Failed to load history:", { error });
+      logger.error('[Analytics] Failed to load history:', { error });
     }
   }
 
@@ -389,14 +388,14 @@ class AdvancedAnalytics {
   private saveData(): void {
     try {
       localStorage.setItem(
-        "analytics-history",
+        'analytics-history',
         JSON.stringify({
           performanceTrends: this.performanceTrends,
           featureUsage: Array.from(this.featureUsage.entries()),
-        }),
+        })
       );
     } catch (error) {
-      logger.error("[Analytics] Failed to save data:", { error });
+      logger.error('[Analytics] Failed to save data:', { error });
     }
   }
 
@@ -420,16 +419,13 @@ class AdvancedAnalytics {
       () => {
         this.saveData();
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
 
     // Track window/tab events
-    window.addEventListener("beforeunload", this._handleBeforeUnload);
-    window.addEventListener("error", this._handleError);
-    window.addEventListener(
-      "unhandledrejection",
-      this._handleUnhandledRejection,
-    );
+    window.addEventListener('beforeunload', this._handleBeforeUnload);
+    window.addEventListener('error', this._handleError);
+    window.addEventListener('unhandledrejection', this._handleUnhandledRejection);
   }
 
   /**
@@ -466,7 +462,7 @@ class AdvancedAnalytics {
       const memoryUsage = Math.round(
         (extendedPerformance.memory.usedJSHeapSize /
           extendedPerformance.memory.jsHeapSizeLimit) *
-          100,
+          100
       );
 
       this.performanceTrends.memoryUsage.push({
@@ -476,14 +472,9 @@ class AdvancedAnalytics {
     }
 
     // Keep only last 100 data points for each metric
-    (
-      Object.keys(this.performanceTrends) as (keyof PerformanceTrends)[]
-    ).forEach((key) => {
+    (Object.keys(this.performanceTrends) as (keyof PerformanceTrends)[]).forEach((key) => {
       if (this.performanceTrends[key].length > 100) {
-        (this.performanceTrends[key] as any[]).splice(
-          0,
-          this.performanceTrends[key].length - 100,
-        );
+        (this.performanceTrends[key] as any[]).splice(0, this.performanceTrends[key].length - 100);
       }
     });
   }
@@ -511,17 +502,17 @@ class AdvancedAnalytics {
     }
 
     // Track user behavior based on event type
-    if (type.startsWith("file-")) {
+    if (type.startsWith('file-')) {
       this.userBehavior.fileEdits.push(event);
       if (this.userBehavior.fileEdits.length > 100) {
         this.userBehavior.fileEdits.shift();
       }
-    } else if (type.startsWith("navigate-")) {
+    } else if (type.startsWith('navigate-')) {
       this.userBehavior.navigation.push(event);
       if (this.userBehavior.navigation.length > 100) {
         this.userBehavior.navigation.shift();
       }
-    } else if (type === "search") {
+    } else if (type === 'search') {
       this.userBehavior.searches.push(event);
       if (this.userBehavior.searches.length > 100) {
         this.userBehavior.searches.shift();
@@ -532,18 +523,18 @@ class AdvancedAnalytics {
   /**
    * Track feature usage
    */
-  trackFeature(feature: string, action: string = "used"): void {
+  trackFeature(feature: string, action: string = 'used'): void {
     const key = `${feature}:${action}`;
     const count = this.featureUsage.get(key) || 0;
     this.featureUsage.set(key, count + 1);
 
-    this.trackEvent("feature-usage", { feature, action });
+    this.trackEvent('feature-usage', { feature, action });
   }
 
   /**
    * Track error
    */
-  trackError(error: Omit<ErrorRecord, "timestamp" | "sessionId">): void {
+  trackError(error: Omit<ErrorRecord, 'timestamp' | 'sessionId'>): void {
     this.errors.push({
       ...error,
       timestamp: Date.now(),
@@ -555,13 +546,13 @@ class AdvancedAnalytics {
       this.errors.shift();
     }
 
-    this.trackEvent("error", error as Record<string, unknown>);
+    this.trackEvent('error', error as Record<string, unknown>);
   }
 
   /**
    * Track warning
    */
-  trackWarning(warning: Omit<WarningRecord, "timestamp" | "sessionId">): void {
+  trackWarning(warning: Omit<WarningRecord, 'timestamp' | 'sessionId'>): void {
     this.warnings.push({
       ...warning,
       timestamp: Date.now(),
@@ -573,7 +564,7 @@ class AdvancedAnalytics {
       this.warnings.shift();
     }
 
-    this.trackEvent("warning", warning as Record<string, unknown>);
+    this.trackEvent('warning', warning as Record<string, unknown>);
   }
 
   /**
@@ -586,7 +577,7 @@ class AdvancedAnalytics {
       patterns: this.analyzePatterns(),
     };
 
-    logger.info("[Analytics] Analysis:", insights);
+    logger.info('[Analytics] Analysis:', insights);
     return insights;
   }
 
@@ -604,19 +595,14 @@ class AdvancedAnalytics {
 
       const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
       const olderAvg =
-        older.length > 0
-          ? older.reduce((a, b) => a + b, 0) / older.length
-          : recentAvg;
+        older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : recentAvg;
 
       insights.fileLoadTrend = {
         recentAvg: Math.round(recentAvg),
         olderAvg: Math.round(olderAvg),
         // Guard against olderAvg === 0 (e.g. a zero-valued older sample), which
         // would make the percent change Infinity/NaN and leak into the report.
-        change:
-          olderAvg !== 0
-            ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100)
-            : 0,
+        change: olderAvg !== 0 ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100) : 0,
         improving: recentAvg < olderAvg,
       };
     }
@@ -631,17 +617,13 @@ class AdvancedAnalytics {
         average: Math.round(avgUsage),
         peak: maxUsage,
         trend:
-          usage.slice(-5).reduce((a, b) => a + b, 0) / 5 > avgUsage
-            ? "increasing"
-            : "stable",
+          usage.slice(-5).reduce((a, b) => a + b, 0) / 5 > avgUsage ? 'increasing' : 'stable',
       };
     }
 
     // Analyze cache performance
     if (this.performanceTrends.cachePerformance.length > 10) {
-      const hitRates = this.performanceTrends.cachePerformance.map(
-        (d) => d.hitRate,
-      );
+      const hitRates = this.performanceTrends.cachePerformance.map((d) => d.hitRate);
       const avgHitRate = hitRates.reduce((a, b) => a + b, 0) / hitRates.length;
 
       insights.cachePerformance = {
@@ -686,7 +668,7 @@ class AdvancedAnalytics {
       const fileTypes: Record<string, number> = {};
       this.userBehavior.fileEdits.forEach((event) => {
         const path = event.data?.path as string | undefined;
-        const ext = path?.split(".").pop();
+        const ext = path?.split('.').pop();
         if (ext) {
           fileTypes[ext] = (fileTypes[ext] || 0) + 1;
         }
@@ -700,8 +682,7 @@ class AdvancedAnalytics {
     // Search patterns
     if (this.userBehavior.searches.length > 5) {
       const searchFrequency =
-        this.userBehavior.searches.length /
-        ((Date.now() - this.sessionStart) / (60 * 1000));
+        this.userBehavior.searches.length / ((Date.now() - this.sessionStart) / (60 * 1000));
 
       patterns.searchUsage = {
         frequency: searchFrequency, // searches per minute
@@ -721,48 +702,40 @@ class AdvancedAnalytics {
     const analysis = this.analyze();
 
     // Performance recommendations
-    if (
-      analysis.performance.fileLoadTrend?.change &&
-      analysis.performance.fileLoadTrend.change > 20
-    ) {
+    if (analysis.performance.fileLoadTrend?.change && analysis.performance.fileLoadTrend.change > 20) {
       this.recommendations.push({
-        type: "performance",
-        priority: "high",
+        type: 'performance',
+        priority: 'high',
         message:
-          "File load times have increased by " +
+          'File load times have increased by ' +
           analysis.performance.fileLoadTrend.change +
-          "%. Consider clearing cache or reducing batch sizes.",
-        action: "optimize-file-loading",
+          '%. Consider clearing cache or reducing batch sizes.',
+        action: 'optimize-file-loading',
       });
     }
 
-    if (
-      analysis.performance.memoryUsage?.average &&
-      analysis.performance.memoryUsage.average > 80
-    ) {
+    if (analysis.performance.memoryUsage?.average && analysis.performance.memoryUsage.average > 80) {
       this.recommendations.push({
-        type: "memory",
-        priority: "high",
+        type: 'memory',
+        priority: 'high',
         message:
-          "Memory usage is high (avg " +
+          'Memory usage is high (avg ' +
           analysis.performance.memoryUsage.average +
-          "%). Consider closing unused files or clearing cache.",
-        action: "reduce-memory",
+          '%). Consider closing unused files or clearing cache.',
+        action: 'reduce-memory',
       });
     }
 
-    if (
-      analysis.performance.cachePerformance?.averageHitRate !== undefined &&
-      analysis.performance.cachePerformance.averageHitRate < 50
-    ) {
+    if (analysis.performance.cachePerformance?.averageHitRate !== undefined &&
+        analysis.performance.cachePerformance.averageHitRate < 50) {
       this.recommendations.push({
-        type: "cache",
-        priority: "medium",
+        type: 'cache',
+        priority: 'medium',
         message:
-          "Cache hit rate is low (" +
+          'Cache hit rate is low (' +
           analysis.performance.cachePerformance.averageHitRate +
-          "%). Consider increasing cache size.",
-        action: "increase-cache",
+          '%). Consider increasing cache size.',
+        action: 'increase-cache',
       });
     }
 
@@ -770,26 +743,21 @@ class AdvancedAnalytics {
     const prefetcherStats = predictivePrefetcher.getStats();
     if (prefetcherStats.hitRate > 70) {
       this.recommendations.push({
-        type: "feature",
-        priority: "low",
+        type: 'feature',
+        priority: 'low',
         message:
-          "Predictive prefetching is working well with " +
-          prefetcherStats.hitRate +
-          "% hit rate.",
-        action: "keep-prefetching",
+          'Predictive prefetching is working well with ' + prefetcherStats.hitRate + '% hit rate.',
+        action: 'keep-prefetching',
       });
-    } else if (
-      prefetcherStats.hitRate < 30 &&
-      prefetcherStats.prefetches > 10
-    ) {
+    } else if (prefetcherStats.hitRate < 30 && prefetcherStats.prefetches > 10) {
       this.recommendations.push({
-        type: "feature",
-        priority: "medium",
+        type: 'feature',
+        priority: 'medium',
         message:
-          "Predictive prefetching has low accuracy (" +
+          'Predictive prefetching has low accuracy (' +
           prefetcherStats.hitRate +
-          "%). Consider adjusting settings or disabling.",
-        action: "adjust-prefetching",
+          '%). Consider adjusting settings or disabling.',
+        action: 'adjust-prefetching',
       });
     }
 
@@ -799,27 +767,23 @@ class AdvancedAnalytics {
       const errorTypes: Record<string, number> = {};
 
       recentErrors.forEach((error) => {
-        const key = error.message || "unknown";
+        const key = error.message || 'unknown';
         errorTypes[key] = (errorTypes[key] || 0) + 1;
       });
 
-      const mostCommon = Object.entries(errorTypes).sort(
-        (a, b) => b[1] - a[1],
-      )[0];
+      const mostCommon = Object.entries(errorTypes).sort((a, b) => b[1] - a[1])[0];
 
       if (mostCommon && mostCommon[1] > 3) {
         this.recommendations.push({
-          type: "error",
-          priority: "high",
+          type: 'error',
+          priority: 'high',
           message: `Recurring error detected: "${mostCommon[0]}" (${mostCommon[1]} times)`,
-          action: "fix-error",
+          action: 'fix-error',
         });
       }
     }
 
-    logger.info(
-      `[Analytics] Generated ${this.recommendations.length} recommendations`,
-    );
+    logger.info(`[Analytics] Generated ${this.recommendations.length} recommendations`);
   }
 
   /**
@@ -906,8 +870,8 @@ class AdvancedAnalytics {
     this.warnings = [];
     this.recommendations = [];
 
-    localStorage.removeItem("analytics-history");
-    logger.info("[Analytics] Data cleared");
+    localStorage.removeItem('analytics-history');
+    logger.info('[Analytics] Data cleared');
   }
 
   /**
@@ -930,15 +894,12 @@ class AdvancedAnalytics {
     }
 
     // Remove event listeners
-    window.removeEventListener("beforeunload", this._handleBeforeUnload);
-    window.removeEventListener("error", this._handleError);
-    window.removeEventListener(
-      "unhandledrejection",
-      this._handleUnhandledRejection,
-    );
+    window.removeEventListener('beforeunload', this._handleBeforeUnload);
+    window.removeEventListener('error', this._handleError);
+    window.removeEventListener('unhandledrejection', this._handleUnhandledRejection);
 
     this.saveData();
-    logger.info("[Analytics] Collection stopped");
+    logger.info('[Analytics] Collection stopped');
   }
 }
 

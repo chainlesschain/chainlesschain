@@ -1568,8 +1568,9 @@ export async function startAgentRepl(options = {}) {
         // user could silently switch to a retired id and only learn of it when
         // the next turn fails with an opaque "model not found".
         try {
-          const { maybeWarnDeprecatedModel } =
-            await import("../lib/model-deprecation.js");
+          const { maybeWarnDeprecatedModel } = await import(
+            "../lib/model-deprecation.js"
+          );
           maybeWarnDeprecatedModel({ model });
         } catch {
           // deprecation notice is best-effort

@@ -2,8 +2,8 @@
  * 文件操作工具函数
  */
 
-import { logger } from "@/utils/logger";
-import { fileMetadataCache, type FileMetadataCacheStats } from "./lru-cache";
+import { logger } from '@/utils/logger';
+import { fileMetadataCache, type FileMetadataCacheStats } from './lru-cache';
 
 // ==================== 类型定义 ====================
 
@@ -63,82 +63,25 @@ const FILE_TYPE_CACHE_ENABLED = true;
  * 文件大小限制（字节）
  */
 export const FILE_SIZE_LIMITS: FileSizeLimits = {
-  TEXT: 10 * 1024 * 1024, // 10MB - 文本文件
-  IMAGE: 50 * 1024 * 1024, // 50MB - 图片文件
-  VIDEO: 500 * 1024 * 1024, // 500MB - 视频文件
+  TEXT: 10 * 1024 * 1024,      // 10MB - 文本文件
+  IMAGE: 50 * 1024 * 1024,     // 50MB - 图片文件
+  VIDEO: 500 * 1024 * 1024,    // 500MB - 视频文件
   DOCUMENT: 100 * 1024 * 1024, // 100MB - 文档文件
-  DEFAULT: 10 * 1024 * 1024, // 10MB - 默认限制
+  DEFAULT: 10 * 1024 * 1024,   // 10MB - 默认限制
 };
 
 // 文件扩展名分类
-const TEXT_EXTENSIONS = [
-  "txt",
-  "md",
-  "js",
-  "ts",
-  "vue",
-  "jsx",
-  "tsx",
-  "html",
-  "css",
-  "json",
-  "xml",
-  "yml",
-  "yaml",
-];
-const IMAGE_EXTENSIONS = [
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "svg",
-  "webp",
-  "bmp",
-  "ico",
-];
-const VIDEO_EXTENSIONS = ["mp4", "webm", "ogg", "mov", "avi"];
-const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a", "flac"];
-const DOCUMENT_EXTENSIONS = [
-  "pdf",
-  "doc",
-  "docx",
-  "xls",
-  "xlsx",
-  "ppt",
-  "pptx",
-];
-const EDITABLE_EXTENSIONS = [
-  "js",
-  "ts",
-  "vue",
-  "jsx",
-  "tsx",
-  "html",
-  "css",
-  "scss",
-  "less",
-  "json",
-  "md",
-  "txt",
-  "xml",
-  "yml",
-  "yaml",
-];
-const EXCEL_EXTENSIONS = ["xlsx", "xls", "csv"];
-const WORD_EXTENSIONS = ["docx", "doc"];
-const PPT_EXTENSIONS = ["pptx", "ppt"];
-const PDF_EXTENSIONS = ["pdf"];
-const CODE_EXTENSIONS = [
-  "js",
-  "ts",
-  "vue",
-  "jsx",
-  "tsx",
-  "py",
-  "java",
-  "cpp",
-  "c",
-];
+const TEXT_EXTENSIONS = ['txt', 'md', 'js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'json', 'xml', 'yml', 'yaml'];
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+const DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+const EDITABLE_EXTENSIONS = ['js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'scss', 'less', 'json', 'md', 'txt', 'xml', 'yml', 'yaml'];
+const EXCEL_EXTENSIONS = ['xlsx', 'xls', 'csv'];
+const WORD_EXTENSIONS = ['docx', 'doc'];
+const PPT_EXTENSIONS = ['pptx', 'ppt'];
+const PDF_EXTENSIONS = ['pdf'];
+const CODE_EXTENSIONS = ['js', 'ts', 'vue', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c'];
 
 // ==================== 路径安全函数 ====================
 
@@ -151,18 +94,18 @@ const CODE_EXTENSIONS = [
  */
 export function sanitizePath(basePath: string, relativePath: string): string {
   if (!basePath || !relativePath) {
-    throw new Error("路径参数不能为空");
+    throw new Error('路径参数不能为空');
   }
 
   // 使用path模块的替代方案（浏览器环境）
   const normalize = (p: string): string => {
     // 移除多余的斜杠和反斜杠
-    return p.replace(/[/\\]+/g, "/").replace(/\/$/, "");
+    return p.replace(/[/\\]+/g, '/').replace(/\/$/, '');
   };
 
   const join = (base: string, relative: string): string => {
     const cleanBase = normalize(base);
-    const cleanRelative = relative.replace(/^[/\\]+/, "");
+    const cleanRelative = relative.replace(/^[/\\]+/, '');
     return `${cleanBase}/${cleanRelative}`;
   };
 
@@ -172,7 +115,7 @@ export function sanitizePath(basePath: string, relativePath: string): string {
   const normalizedFull = normalize(fullPath);
 
   // 检查是否包含路径遍历字符
-  if (relativePath.includes("..")) {
+  if (relativePath.includes('..')) {
     throw new Error('路径不能包含 ".." 字符');
   }
 
@@ -182,11 +125,11 @@ export function sanitizePath(basePath: string, relativePath: string): string {
   const fullPathLower = normalizedFull.toLowerCase();
 
   if (!fullPathLower.startsWith(basePathLower)) {
-    logger.error("[Security] 路径遍历检测失败:", {
+    logger.error('[Security] 路径遍历检测失败:', {
       basePath: normalizedBase,
       fullPath: normalizedFull,
     });
-    throw new Error("无效的文件路径：超出项目目录范围");
+    throw new Error('无效的文件路径：超出项目目录范围');
   }
 
   return fullPath;
@@ -231,15 +174,11 @@ export function getFileSizeLimit(extension: string | undefined): number {
  * @returns 格式化后的大小
  */
 export function formatFileSize(bytes: number | null | undefined): string {
-  if (bytes === 0) {
-    return "0 B";
-  }
-  if (!bytes || bytes < 0) {
-    return "Unknown";
-  }
+  if (bytes === 0) { return '0 B'; }
+  if (!bytes || bytes < 0) { return 'Unknown'; }
 
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   // Clamp the unit index to the array bounds: values < 1 byte give a negative
   // exponent and values >= 1 PB give an exponent past 'TB' — without clamping
   // sizes[i] is undefined and the result string literally reads "undefined".
@@ -257,10 +196,7 @@ export function formatFileSize(bytes: number | null | undefined): string {
  * @param extension - 文件扩展名
  * @returns 验证结果
  */
-export function validateFileSize(
-  fileSize: number,
-  extension: string,
-): FileSizeValidationResult {
+export function validateFileSize(fileSize: number, extension: string): FileSizeValidationResult {
   const limit = getFileSizeLimit(extension);
 
   if (fileSize > limit) {
@@ -274,7 +210,7 @@ export function validateFileSize(
   return {
     isValid: true,
     limit,
-    message: "",
+    message: '',
   };
 }
 
@@ -288,7 +224,7 @@ export function validateFileSize(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  wait: number = 16,
+  wait: number = 16
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let previous = 0;
@@ -322,7 +258,7 @@ export function throttle<T extends (...args: any[]) => any>(
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number = 300,
+  wait: number = 300
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -345,10 +281,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param fileName - 文件名
  * @returns 文件类型信息
  */
-export function getFileTypeInfo(
-  filePath: string,
-  fileName: string,
-): FileTypeInfo {
+export function getFileTypeInfo(filePath: string, fileName: string): FileTypeInfo {
   // 尝试从缓存获取
   if (FILE_TYPE_CACHE_ENABLED) {
     const cached = fileMetadataCache.getFileType(filePath);
@@ -358,7 +291,7 @@ export function getFileTypeInfo(
   }
 
   // 计算文件类型信息
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
 
   const typeInfo: FileTypeInfo = {
     extension: ext,
@@ -371,7 +304,7 @@ export function getFileTypeInfo(
     isVideo: VIDEO_EXTENSIONS.includes(ext),
     isAudio: AUDIO_EXTENSIONS.includes(ext),
     isCode: CODE_EXTENSIONS.includes(ext),
-    isMarkdown: ext === "md",
+    isMarkdown: ext === 'md',
   };
 
   // 缓存结果

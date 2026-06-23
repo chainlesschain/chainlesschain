@@ -194,7 +194,7 @@ export class LRUCache<T = any> {
     return {
       size: this.cache.size,
       capacity: this.capacity,
-      usage: ((this.cache.size / this.capacity) * 100).toFixed(2) + "%",
+      usage: ((this.cache.size / this.capacity) * 100).toFixed(2) + '%',
       ttl: this.ttl,
     };
   }
@@ -351,65 +351,46 @@ export class FileMetadataCache {
    * @returns 统计信息
    */
   getStats(): FileMetadataCacheStats {
-    const typeHitRate =
-      this.stats.typeHits + this.stats.typeMisses > 0
-        ? (
-            (this.stats.typeHits /
-              (this.stats.typeHits + this.stats.typeMisses)) *
-            100
-          ).toFixed(2)
-        : "0";
+    const typeHitRate = this.stats.typeHits + this.stats.typeMisses > 0
+      ? ((this.stats.typeHits / (this.stats.typeHits + this.stats.typeMisses)) * 100).toFixed(2)
+      : '0';
 
-    const statsHitRate =
-      this.stats.statsHits + this.stats.statsMisses > 0
-        ? (
-            (this.stats.statsHits /
-              (this.stats.statsHits + this.stats.statsMisses)) *
-            100
-          ).toFixed(2)
-        : "0";
+    const statsHitRate = this.stats.statsHits + this.stats.statsMisses > 0
+      ? ((this.stats.statsHits / (this.stats.statsHits + this.stats.statsMisses)) * 100).toFixed(2)
+      : '0';
 
-    const syntaxHitRate =
-      this.stats.syntaxHits + this.stats.syntaxMisses > 0
-        ? (
-            (this.stats.syntaxHits /
-              (this.stats.syntaxHits + this.stats.syntaxMisses)) *
-            100
-          ).toFixed(2)
-        : "0";
+    const syntaxHitRate = this.stats.syntaxHits + this.stats.syntaxMisses > 0
+      ? ((this.stats.syntaxHits / (this.stats.syntaxHits + this.stats.syntaxMisses)) * 100).toFixed(2)
+      : '0';
 
-    const ocrHitRate =
-      this.stats.ocrHits + this.stats.ocrMisses > 0
-        ? (
-            (this.stats.ocrHits / (this.stats.ocrHits + this.stats.ocrMisses)) *
-            100
-          ).toFixed(2)
-        : "0";
+    const ocrHitRate = this.stats.ocrHits + this.stats.ocrMisses > 0
+      ? ((this.stats.ocrHits / (this.stats.ocrHits + this.stats.ocrMisses)) * 100).toFixed(2)
+      : '0';
 
     return {
       type: {
         ...this.typeCache.getStats(),
         hits: this.stats.typeHits,
         misses: this.stats.typeMisses,
-        hitRate: typeHitRate + "%",
+        hitRate: typeHitRate + '%',
       },
       stats: {
         ...this.statsCache.getStats(),
         hits: this.stats.statsHits,
         misses: this.stats.statsMisses,
-        hitRate: statsHitRate + "%",
+        hitRate: statsHitRate + '%',
       },
       syntax: {
         ...this.syntaxCache.getStats(),
         hits: this.stats.syntaxHits,
         misses: this.stats.syntaxMisses,
-        hitRate: syntaxHitRate + "%",
+        hitRate: syntaxHitRate + '%',
       },
       ocr: {
         ...this.ocrCache.getStats(),
         hits: this.stats.ocrHits,
         misses: this.stats.ocrMisses,
-        hitRate: ocrHitRate + "%",
+        hitRate: ocrHitRate + '%',
       },
     };
   }

@@ -11,7 +11,7 @@
  * - Real-time sync with WebSocket support
  */
 
-import { logger } from "@/utils/logger";
+import { logger } from '@/utils/logger';
 
 // ==================== 类型定义 ====================
 
@@ -36,15 +36,12 @@ export interface IncrementalSyncOptions {
 /**
  * 冲突解决策略
  */
-export type ConflictResolutionStrategy =
-  | "server-wins"
-  | "client-wins"
-  | "manual";
+export type ConflictResolutionStrategy = 'server-wins' | 'client-wins' | 'manual';
 
 /**
  * 操作类型
  */
-export type OperationType = "create" | "update" | "delete";
+export type OperationType = 'create' | 'update' | 'delete';
 
 /**
  * 变更记录
@@ -184,7 +181,7 @@ export interface ExtendedSyncStats extends SyncStats {
  */
 export interface WebSocketMessage {
   /** 消息类型 */
-  type: "change" | string;
+  type: 'change' | string;
   /** 消息数据 */
   data: RemoteChange;
 }
@@ -222,14 +219,14 @@ class IncrementalSyncManager {
       syncInterval: options.syncInterval ?? 30000,
       enableAutoSync: options.enableAutoSync !== false,
       enableRealtime: options.enableRealtime ?? false,
-      conflictResolution: options.conflictResolution ?? "server-wins",
+      conflictResolution: options.conflictResolution ?? 'server-wins',
       debug: options.debug ?? false,
     };
 
     this.init();
 
     if (this.options.debug) {
-      logger.info("[IncrementalSyncManager] Initialized");
+      logger.info('[IncrementalSyncManager] Initialized');
     }
   }
 
@@ -239,15 +236,13 @@ class IncrementalSyncManager {
   private init(): void {
     // 如果同步禁用，跳过初始化
     if (!this.options.enabled) {
-      logger.info(
-        "[IncrementalSync] Sync is disabled, skipping initialization",
-      );
+      logger.info('[IncrementalSync] Sync is disabled, skipping initialization');
       return;
     }
 
     // 设置在线/离线监听器
-    window.addEventListener("online", this.handleOnline);
-    window.addEventListener("offline", this.handleOffline);
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
 
     // 如果启用自动同步，开始自动同步
     if (this.options.enableAutoSync) {
@@ -275,11 +270,7 @@ class IncrementalSyncManager {
    * @param operation - 操作类型: 'create', 'update', 'delete'
    * @param data - 变更数据
    */
-  trackChange(
-    entity: string,
-    operation: OperationType,
-    data: Record<string, unknown>,
-  ): void {
+  trackChange(entity: string, operation: OperationType, data: Record<string, unknown>): void {
     const change: Change = {
       entity,
       operation,
@@ -291,9 +282,7 @@ class IncrementalSyncManager {
     this.pendingChanges.set(entity, change);
 
     if (this.options.debug) {
-      logger.info(
-        `[IncrementalSyncManager] Tracked change: ${entity} (${operation})`,
-      );
+      logger.info(`[IncrementalSyncManager] Tracked change: ${entity} (${operation})`);
     }
 
     // 如果启用并在线，触发同步
@@ -309,14 +298,14 @@ class IncrementalSyncManager {
   async syncNow(options: SyncNowOptions = {}): Promise<void> {
     if (this.isSyncing) {
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] Sync already in progress");
+        logger.info('[IncrementalSyncManager] Sync already in progress');
       }
       return;
     }
 
     if (!this.isOnline && !options.force) {
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] Offline, skipping sync");
+        logger.info('[IncrementalSyncManager] Offline, skipping sync');
       }
       return;
     }
@@ -330,15 +319,13 @@ class IncrementalSyncManager {
 
       if (changes.length === 0) {
         if (this.options.debug) {
-          logger.info("[IncrementalSyncManager] No changes to sync");
+          logger.info('[IncrementalSyncManager] No changes to sync');
         }
         return;
       }
 
       if (this.options.debug) {
-        logger.info(
-          `[IncrementalSyncManager] Syncing ${changes.length} changes`,
-        );
+        logger.info(`[IncrementalSyncManager] Syncing ${changes.length} changes`);
       }
 
       // 发送变更到服务器
@@ -372,17 +359,17 @@ class IncrementalSyncManager {
       this.stats.dataSaved += fullDataSize - deltaSize;
 
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] Sync completed successfully");
+        logger.info('[IncrementalSyncManager] Sync completed successfully');
       }
 
       // 触发同步完成事件
       window.dispatchEvent(
-        new CustomEvent("incremental-sync-complete", {
+        new CustomEvent('incremental-sync-complete', {
           detail: { changes, result },
-        }),
+        })
       );
     } catch (error) {
-      logger.error("[IncrementalSyncManager] Sync failed:", error);
+      logger.error('[IncrementalSyncManager] Sync failed:', error);
       this.stats.failedSyncs++;
 
       // 添加到离线队列
@@ -395,9 +382,9 @@ class IncrementalSyncManager {
 
       // 触发错误事件
       window.dispatchEvent(
-        new CustomEvent("incremental-sync-error", {
+        new CustomEvent('incremental-sync-error', {
           detail: { error },
-        }),
+        })
       );
 
       throw error;
@@ -415,22 +402,19 @@ class IncrementalSyncManager {
     try {
       // 从环境获取后端 URL 或使用默认值
       const backendUrl =
-        (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_BACKEND_URL || "http://localhost:9090";
+        (import.meta as unknown as { env: Record<string, string> }).env?.VITE_BACKEND_URL ||
+        'http://localhost:9090';
 
       // 获取设备 ID (如果不存在则生成)
       let deviceId: string | null = null;
       try {
-        deviceId = localStorage.getItem("deviceId");
+        deviceId = localStorage.getItem('deviceId');
         if (!deviceId) {
           deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          localStorage.setItem("deviceId", deviceId);
+          localStorage.setItem('deviceId', deviceId);
         }
       } catch (error) {
-        logger.warn(
-          "[Sync] localStorage 访问失败，使用临时设备ID:",
-          (error as Error).message,
-        );
+        logger.warn('[Sync] localStorage 访问失败，使用临时设备ID:', (error as Error).message);
         deviceId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
@@ -441,9 +425,9 @@ class IncrementalSyncManager {
       const results: Array<{ tableName: string; [key: string]: unknown }> = [];
       for (const [tableName, tableChanges] of Object.entries(changesByTable)) {
         const response = await fetch(`${backendUrl}/api/sync/upload`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             tableName,
@@ -454,9 +438,7 @@ class IncrementalSyncManager {
         });
 
         if (!response.ok) {
-          logger.error(
-            `[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`,
-          );
+          logger.error(`[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`);
           continue;
         }
 
@@ -464,18 +446,15 @@ class IncrementalSyncManager {
         results.push({ tableName, ...result });
       }
 
-      logger.info(
-        "[IncrementalSync] Remote sync completed, changes:",
-        changes.length,
-      );
+      logger.info('[IncrementalSync] Remote sync completed, changes:', changes.length);
       return { success: true, results };
     } catch (error) {
-      logger.error("[IncrementalSync] Remote sync error:", error);
+      logger.error('[IncrementalSync] Remote sync error:', error);
       // 错误时回退到仅本地模式
-      logger.info("[IncrementalSync] Falling back to local-only mode");
+      logger.info('[IncrementalSync] Falling back to local-only mode');
       return {
         success: true,
-        message: "Local only (remote sync failed)",
+        message: 'Local only (remote sync failed)',
         error: (error as Error).message,
       };
     }
@@ -493,7 +472,7 @@ class IncrementalSyncManager {
       // 实体格式为 'table:id'。id 本身可能含冒号（如 DID 'did:key:z6...'），
       // 所以只按【第一个】冒号分割：用 indexOf 而非 split(':')[1]，否则带冒号
       // 的 id 会被截断、且表名（split[0]）也会把 id 的首段误当表名。
-      const colonIdx = change.entity.indexOf(":");
+      const colonIdx = change.entity.indexOf(':');
       const tableName =
         colonIdx === -1 ? change.entity : change.entity.slice(0, colonIdx);
       const id =
@@ -526,39 +505,33 @@ class IncrementalSyncManager {
 
     try {
       const backendUrl =
-        (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_BACKEND_URL || "http://localhost:9090";
+        (import.meta as unknown as { env: Record<string, string> }).env?.VITE_BACKEND_URL ||
+        'http://localhost:9090';
 
-      let deviceId = localStorage.getItem("deviceId");
+      let deviceId = localStorage.getItem('deviceId');
       if (!deviceId) {
         deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem("deviceId", deviceId);
+        localStorage.setItem('deviceId', deviceId);
       }
 
       // 获取每个表的增量变更
-      const tables = [
-        "notes",
-        "chat_conversations",
-        "projects",
-        "social_posts",
-        "p2p_messages",
-      ];
+      const tables = ['notes', 'chat_conversations', 'projects', 'social_posts', 'p2p_messages'];
       const allChanges: RemoteChange[] = [];
 
       for (const tableName of tables) {
         const response = await fetch(
           `${backendUrl}/api/sync/download/${tableName}?lastSyncedAt=${this.lastSyncTime || 0}&deviceId=${deviceId}`,
           {
-            method: "GET",
+            method: 'GET',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
-          },
+          }
         );
 
         if (!response.ok) {
           logger.warn(
-            `[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`,
+            `[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`
           );
           continue;
         }
@@ -567,30 +540,21 @@ class IncrementalSyncManager {
         if (result.code === 200 && result.data?.records) {
           // 将服务器记录转换为变更格式
           const changes: RemoteChange[] = result.data.records.map(
-            (record: {
-              id: string;
-              operation?: OperationType;
-              data?: Record<string, unknown>;
-              timestamp?: number;
-              updated_at?: number;
-            }) => ({
+            (record: { id: string; operation?: OperationType; data?: Record<string, unknown>; timestamp?: number; updated_at?: number }) => ({
               entity: `${tableName}:${record.id}`,
-              operation: record.operation || "update",
+              operation: record.operation || 'update',
               data: record.data || record,
               timestamp: record.timestamp || record.updated_at,
-            }),
+            })
           );
           allChanges.push(...changes);
         }
       }
 
-      logger.info(
-        "[IncrementalSync] Fetched remote changes:",
-        allChanges.length,
-      );
+      logger.info('[IncrementalSync] Fetched remote changes:', allChanges.length);
       return allChanges;
     } catch (error) {
-      logger.error("[IncrementalSync] Fetch remote changes error:", error);
+      logger.error('[IncrementalSync] Fetch remote changes error:', error);
       return [];
     }
   }
@@ -599,22 +563,20 @@ class IncrementalSyncManager {
    * 应用来自服务器的远程变更
    * @param remoteChanges - 来自服务器的变更
    */
-  private async applyRemoteChanges(
-    remoteChanges: RemoteChange[],
-  ): Promise<void> {
+  private async applyRemoteChanges(remoteChanges: RemoteChange[]): Promise<void> {
     for (const change of remoteChanges) {
       const { entity, operation, data } = change;
 
       // 为每个变更触发事件
       window.dispatchEvent(
-        new CustomEvent("remote-change", {
+        new CustomEvent('remote-change', {
           detail: { entity, operation, data },
-        }),
+        })
       );
 
       if (this.options.debug) {
         logger.info(
-          `[IncrementalSyncManager] Applied remote change: ${entity} (${operation})`,
+          `[IncrementalSyncManager] Applied remote change: ${entity} (${operation})`
         );
       }
     }
@@ -626,24 +588,22 @@ class IncrementalSyncManager {
    */
   private async resolveConflicts(conflicts: Conflict[]): Promise<void> {
     if (this.options.debug) {
-      logger.info(
-        `[IncrementalSyncManager] Resolving ${conflicts.length} conflicts`,
-      );
+      logger.info(`[IncrementalSyncManager] Resolving ${conflicts.length} conflicts`);
     }
 
     for (const conflict of conflicts) {
       let resolution: Record<string, unknown>;
 
       switch (this.options.conflictResolution) {
-        case "server-wins":
+        case 'server-wins':
           resolution = conflict.serverVersion;
           break;
 
-        case "client-wins":
+        case 'client-wins':
           resolution = conflict.clientVersion;
           break;
 
-        case "manual":
+        case 'manual':
           // 触发事件以进行手动解决
           resolution = await this.requestManualResolution(conflict);
           break;
@@ -654,9 +614,9 @@ class IncrementalSyncManager {
 
       // 应用解决方案
       window.dispatchEvent(
-        new CustomEvent("conflict-resolved", {
+        new CustomEvent('conflict-resolved', {
           detail: { conflict, resolution },
-        }),
+        })
       );
 
       this.stats.conflictsResolved++;
@@ -668,25 +628,20 @@ class IncrementalSyncManager {
    * @param conflict - 冲突数据
    * @returns 解决方案
    */
-  private requestManualResolution(
-    conflict: Conflict,
-  ): Promise<Record<string, unknown>> {
+  private requestManualResolution(conflict: Conflict): Promise<Record<string, unknown>> {
     return new Promise((resolve) => {
       // 触发事件并等待用户决定
       const handler = (event: Event): void => {
-        window.removeEventListener("conflict-resolution", handler);
-        resolve(
-          (event as CustomEvent<{ resolution: Record<string, unknown> }>).detail
-            .resolution,
-        );
+        window.removeEventListener('conflict-resolution', handler);
+        resolve((event as CustomEvent<{ resolution: Record<string, unknown> }>).detail.resolution);
       };
 
-      window.addEventListener("conflict-resolution", handler);
+      window.addEventListener('conflict-resolution', handler);
 
       window.dispatchEvent(
-        new CustomEvent("conflict-needs-resolution", {
+        new CustomEvent('conflict-needs-resolution', {
           detail: { conflict },
-        }),
+        })
       );
     });
   }
@@ -697,7 +652,7 @@ class IncrementalSyncManager {
   startAutoSync(): void {
     // 如果同步禁用，跳过
     if (!this.options.enabled) {
-      logger.info("[IncrementalSync] Sync disabled, skipping auto-sync setup");
+      logger.info('[IncrementalSync] Sync disabled, skipping auto-sync setup');
       return;
     }
 
@@ -714,7 +669,7 @@ class IncrementalSyncManager {
 
     if (this.options.debug) {
       logger.info(
-        `[IncrementalSyncManager] Auto-sync started (interval: ${this.options.syncInterval}ms)`,
+        `[IncrementalSyncManager] Auto-sync started (interval: ${this.options.syncInterval}ms)`
       );
     }
   }
@@ -728,7 +683,7 @@ class IncrementalSyncManager {
       this.syncTimer = null;
 
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] Auto-sync stopped");
+        logger.info('[IncrementalSyncManager] Auto-sync stopped');
       }
     }
   }
@@ -771,7 +726,7 @@ class IncrementalSyncManager {
 
     this.websocket.onopen = (): void => {
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] WebSocket connected");
+        logger.info('[IncrementalSyncManager] WebSocket connected');
       }
     };
 
@@ -779,24 +734,21 @@ class IncrementalSyncManager {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
 
-        if (message.type === "change") {
+        if (message.type === 'change') {
           this.applyRemoteChanges([message.data]);
         }
       } catch (error) {
-        logger.error(
-          "[IncrementalSyncManager] WebSocket message error:",
-          error,
-        );
+        logger.error('[IncrementalSyncManager] WebSocket message error:', error);
       }
     };
 
     this.websocket.onerror = (error: Event): void => {
-      logger.error("[IncrementalSyncManager] WebSocket error:", error);
+      logger.error('[IncrementalSyncManager] WebSocket error:', error);
     };
 
     this.websocket.onclose = (): void => {
       if (this.options.debug) {
-        logger.info("[IncrementalSyncManager] WebSocket disconnected");
+        logger.info('[IncrementalSyncManager] WebSocket disconnected');
       }
 
       // 如果已销毁，不再重连
@@ -817,7 +769,7 @@ class IncrementalSyncManager {
    * 获取 WebSocket URL
    */
   private getWebSocketURL(): string {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     return `${protocol}//${host}/ws/sync`;
   }
@@ -862,7 +814,7 @@ class IncrementalSyncManager {
     this.syncQueue = [];
 
     if (this.options.debug) {
-      logger.info("[IncrementalSyncManager] Cleared all pending changes");
+      logger.info('[IncrementalSyncManager] Cleared all pending changes');
     }
   }
 
@@ -874,8 +826,8 @@ class IncrementalSyncManager {
     this.stopAutoSync();
 
     // 移除事件监听器
-    window.removeEventListener("online", this.handleOnline);
-    window.removeEventListener("offline", this.handleOffline);
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
 
     // 清除重连定时器
     if (this.reconnectTimer) {
@@ -898,7 +850,7 @@ class IncrementalSyncManager {
     this.clear();
 
     if (this.options.debug) {
-      logger.info("[IncrementalSyncManager] Destroyed");
+      logger.info('[IncrementalSyncManager] Destroyed');
     }
   }
 }
@@ -912,7 +864,7 @@ let managerInstance: IncrementalSyncManager | null = null;
  * 获取或创建增量同步管理器实例
  */
 export function getIncrementalSyncManager(
-  options?: IncrementalSyncOptions,
+  options?: IncrementalSyncOptions
 ): IncrementalSyncManager {
   if (!managerInstance) {
     managerInstance = new IncrementalSyncManager(options);
@@ -926,7 +878,7 @@ export function getIncrementalSyncManager(
 export function trackChange(
   entity: string,
   operation: OperationType,
-  data: Record<string, unknown>,
+  data: Record<string, unknown>
 ): void {
   const manager = getIncrementalSyncManager();
   return manager.trackChange(entity, operation, data);

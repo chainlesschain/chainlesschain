@@ -28,14 +28,8 @@ beforeEach(() => {
 describe("runCommandHook — input + protocol", () => {
   it("writes the JSON payload to stdin", () => {
     stub({ status: 0 });
-    runCommandHook(
-      "guard.sh",
-      { tool_name: "Bash", x: 1 },
-      { event: "PreToolUse" },
-    );
-    expect(calls[0].opts.input).toBe(
-      JSON.stringify({ tool_name: "Bash", x: 1 }),
-    );
+    runCommandHook("guard.sh", { tool_name: "Bash", x: 1 }, { event: "PreToolUse" });
+    expect(calls[0].opts.input).toBe(JSON.stringify({ tool_name: "Bash", x: 1 }));
     expect(calls[0].opts.env.CLAUDE_HOOK_EVENT).toBe("PreToolUse");
   });
 
@@ -74,9 +68,7 @@ describe("runCommandHook — input + protocol", () => {
   it("permissionDecision=ask → ask", () => {
     stub({
       status: 0,
-      stdout: JSON.stringify({
-        hookSpecificOutput: { permissionDecision: "ask" },
-      }),
+      stdout: JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } }),
     });
     expect(runCommandHook("g.sh", {}).decision).toBe("ask");
   });

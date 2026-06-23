@@ -64,16 +64,11 @@ describe("advanced-analytics — analyze() fileLoadTrend", () => {
     // change is (50-0)/0 = Infinity and leaks into the report.
     const fileLoadTimes = [
       { timestamp: 1, value: 0 },
-      ...Array.from({ length: 10 }, (_, i) => ({
-        timestamp: i + 2,
-        value: 50,
-      })),
+      ...Array.from({ length: 10 }, (_, i) => ({ timestamp: i + 2, value: 50 })),
     ];
-    (
-      analytics as unknown as {
-        performanceTrends: { fileLoadTimes: typeof fileLoadTimes };
-      }
-    ).performanceTrends.fileLoadTimes = fileLoadTimes;
+    (analytics as unknown as {
+      performanceTrends: { fileLoadTimes: typeof fileLoadTimes };
+    }).performanceTrends.fileLoadTimes = fileLoadTimes;
 
     const trend = analytics.analyze().performance.fileLoadTrend;
     expect(trend).toBeDefined();

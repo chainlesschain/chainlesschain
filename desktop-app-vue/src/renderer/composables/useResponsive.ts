@@ -82,11 +82,11 @@ export interface TableColumn {
  * 响应式断点定义
  */
 export const BREAKPOINTS: BreakpointConfig<number> = {
-  xs: 480, // 手机
-  sm: 576, // 大手机
-  md: 768, // 平板
-  lg: 992, // 小桌面
-  xl: 1200, // 桌面
+  xs: 480,   // 手机
+  sm: 576,   // 大手机
+  md: 768,   // 平板
+  lg: 992,   // 小桌面
+  xl: 1200,  // 桌面
   xxl: 1600, // 大桌面
 };
 
@@ -155,8 +155,7 @@ export function useResponsive() {
 
   // 是否为中等屏幕
   const isMediumScreen = computed(
-    () =>
-      windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl,
+    () => windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl,
   );
 
   // 是否为大屏幕

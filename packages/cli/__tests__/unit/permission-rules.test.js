@@ -163,9 +163,9 @@ describe("matchPattern — url domain", () => {
       "https://Example.com/a",
       "https://EXAMPLE.COM/a",
     ]) {
-      expect(
-        matchPattern("domain:Example.com", "web_fetch", { url }, "/"),
-      ).toBe(true);
+      expect(matchPattern("domain:Example.com", "web_fetch", { url }, "/")).toBe(
+        true,
+      );
     }
     expect(
       matchPattern("domain:Example.com", "web_fetch", {

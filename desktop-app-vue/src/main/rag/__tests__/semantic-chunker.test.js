@@ -52,9 +52,7 @@ describe("SemanticChunker", () => {
     });
 
     it("emits a fallback chunk when every markdown section is too short", () => {
-      const out = mk({ minChunkSize: 500 }).chunk("# Tiny\nshort body", {
-        id: "m",
-      });
+      const out = mk({ minChunkSize: 500 }).chunk("# Tiny\nshort body", { id: "m" });
       expect(out).toHaveLength(1);
       expect(out[0].content).toBe("# Tiny\nshort body");
     });
@@ -138,8 +136,7 @@ describe("SemanticChunker", () => {
 
     it("_isMarkdown routes heading/list text through the markdown path", () => {
       // A list-only doc is detected as markdown (no '...' overlap markers added).
-      const list =
-        "- item one is long enough\n- item two is also long enough\n- third";
+      const list = "- item one is long enough\n- item two is also long enough\n- third";
       const out = mk().chunk(list, { id: "l" });
       expect(out.every((c) => !c.content.includes("..."))).toBe(true);
     });
@@ -148,20 +145,12 @@ describe("SemanticChunker", () => {
   describe("chunkDocuments", () => {
     it("flattens chunks across documents and stamps sourceDocument", () => {
       const docs = [
-        {
-          id: "a",
-          content: "Alpha content long enough to survive the filter.",
-        },
-        {
-          id: "b",
-          content: "Beta content also long enough to survive the cut.",
-        },
+        { id: "a", content: "Alpha content long enough to survive the filter." },
+        { id: "b", content: "Beta content also long enough to survive the cut." },
       ];
       const out = mk().chunkDocuments(docs);
       expect(out.length).toBeGreaterThanOrEqual(2);
-      expect(
-        out.every((c) => ["a", "b"].includes(c.metadata.sourceDocument)),
-      ).toBe(true);
+      expect(out.every((c) => ["a", "b"].includes(c.metadata.sourceDocument))).toBe(true);
     });
   });
 

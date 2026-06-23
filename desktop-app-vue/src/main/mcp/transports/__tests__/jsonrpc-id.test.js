@@ -29,9 +29,7 @@ describe("needsRequestId", () => {
 
   it("没有 method 的消息（如响应）不分配 id", () => {
     expect(needsRequestId({ jsonrpc: "2.0", result: {} })).toBe(false);
-    expect(needsRequestId({ jsonrpc: "2.0", result: {}, id: null })).toBe(
-      false,
-    );
+    expect(needsRequestId({ jsonrpc: "2.0", result: {}, id: null })).toBe(false);
   });
 
   it("空/无效输入安全返回 false", () => {

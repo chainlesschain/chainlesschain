@@ -33,13 +33,7 @@ function makeFakeDb(rows) {
 }
 
 function note(id, tags, category = "general") {
-  return {
-    id,
-    title: `t${id}`,
-    tags: JSON.stringify(tags),
-    category,
-    created_at: `2026-01-${id}`,
-  };
+  return { id, title: `t${id}`, tags: JSON.stringify(tags), category, created_at: `2026-01-${id}` };
 }
 
 describe("selectNotesForList — limit applies after tag filter", () => {
@@ -71,10 +65,7 @@ describe("selectNotesForList — limit applies after tag filter", () => {
 
   it("returns all matches when fewer than the limit exist", () => {
     const rows = [note(3, ["work"]), note(2, ["personal"]), note(1, ["work"])];
-    const got = selectNotesForList(makeFakeDb(rows), {
-      tag: "work",
-      limit: 20,
-    });
+    const got = selectNotesForList(makeFakeDb(rows), { tag: "work", limit: 20 });
     expect(got).toHaveLength(2);
   });
 
@@ -104,19 +95,10 @@ describe("selectNotesForList — limit applies after tag filter", () => {
 
   it("skips notes with malformed tags JSON without throwing", () => {
     const rows = [
-      {
-        id: 2,
-        title: "t2",
-        tags: "not-json",
-        category: "g",
-        created_at: "2026-01-02",
-      },
+      { id: 2, title: "t2", tags: "not-json", category: "g", created_at: "2026-01-02" },
       note(1, ["work"]),
     ];
-    const got = selectNotesForList(makeFakeDb(rows), {
-      tag: "work",
-      limit: 20,
-    });
+    const got = selectNotesForList(makeFakeDb(rows), { tag: "work", limit: 20 });
     expect(got.map((n) => n.id)).toEqual([1]);
   });
 });

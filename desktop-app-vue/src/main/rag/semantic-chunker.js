@@ -29,16 +29,16 @@ const DEFAULT_CONFIG = {
   includeMetadata: true,
   // 分隔符优先级 (从高到低)
   separators: [
-    "\n## ", // H2 标题
-    "\n### ", // H3 标题
-    "\n#### ", // H4 标题
-    "\n\n", // 段落分隔
-    "\n", // 换行
-    "。", // 中文句号
-    ".", // 英文句号
-    "；", // 中文分号
-    ";", // 英文分号
-    " ", // 空格
+    "\n## ",     // H2 标题
+    "\n### ",    // H3 标题
+    "\n#### ",   // H4 标题
+    "\n\n",      // 段落分隔
+    "\n",        // 换行
+    "。",        // 中文句号
+    ".",         // 英文句号
+    "；",        // 中文分号
+    ";",         // 英文分号
+    " ",         // 空格
   ],
 };
 
@@ -121,10 +121,10 @@ class SemanticChunker {
       chunks.push(this._fallbackChunk(text, documentId, metadata));
     }
 
-    logger.info(`[SemanticChunker] 文档已分块: ${chunks.length} 块`, {
-      documentId,
-      originalLength: text.length,
-    });
+    logger.info(
+      `[SemanticChunker] 文档已分块: ${chunks.length} 块`,
+      { documentId, originalLength: text.length }
+    );
 
     return chunks;
   }
@@ -193,7 +193,7 @@ class SemanticChunker {
       if (section.content.length > this.config.maxChunkSize) {
         const subChunks = this._recursiveSplit(
           section.content,
-          this.config.separators.slice(3), // 跳过标题分隔符
+          this.config.separators.slice(3) // 跳过标题分隔符
         );
 
         const normalizedSubChunks = this._normalizeChunks(subChunks);
@@ -269,13 +269,11 @@ class SemanticChunker {
 
     // 如果没有标题，返回整个文档作为一个章节
     if (matches.length === 0) {
-      return [
-        {
-          level: 0,
-          title: "",
-          content: text,
-        },
-      ];
+      return [{
+        level: 0,
+        title: "",
+        content: text,
+      }];
     }
 
     // 添加第一个标题之前的内容（如果有）
@@ -293,8 +291,9 @@ class SemanticChunker {
     // 按标题分割
     for (let i = 0; i < matches.length; i++) {
       const current = matches[i];
-      const nextIndex =
-        i + 1 < matches.length ? matches[i + 1].index : text.length;
+      const nextIndex = i + 1 < matches.length
+        ? matches[i + 1].index
+        : text.length;
 
       const sectionContent = text.substring(current.index, nextIndex).trim();
 
@@ -337,7 +336,9 @@ class SemanticChunker {
     let currentChunk = "";
 
     for (const part of parts) {
-      const testChunk = currentChunk ? currentChunk + separator + part : part;
+      const testChunk = currentChunk
+        ? currentChunk + separator + part
+        : part;
 
       if (testChunk.length <= this.config.targetChunkSize) {
         currentChunk = testChunk;
@@ -472,11 +473,9 @@ class SemanticChunker {
    */
   _isMarkdown(text) {
     // 简单检测：包含 Markdown 标题或列表
-    return (
-      /^#{1,6}\s+/m.test(text) ||
-      /^\s*[-*+]\s+/m.test(text) ||
-      /^\s*\d+\.\s+/m.test(text)
-    );
+    return /^#{1,6}\s+/m.test(text) ||
+           /^\s*[-*+]\s+/m.test(text) ||
+           /^\s*\d+\.\s+/m.test(text);
   }
 
   /**
