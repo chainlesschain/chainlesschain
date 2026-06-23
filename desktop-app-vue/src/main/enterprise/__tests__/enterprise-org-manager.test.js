@@ -466,6 +466,32 @@ describe("EnterpriseOrgManager", () => {
       const tree = manager._buildTree(items, null);
       expect(tree[0].children).toEqual([]);
     });
+
+    it("nests multiple levels deep (index-based recursion)", () => {
+      const items = [
+        { id: "root", parentDeptId: null },
+        { id: "mid", parentDeptId: "root" },
+        { id: "leaf", parentDeptId: "mid" },
+      ];
+      const tree = manager._buildTree(items, null);
+      expect(tree).toHaveLength(1);
+      expect(tree[0].id).toBe("root");
+      expect(tree[0].children[0].id).toBe("mid");
+      expect(tree[0].children[0].children[0].id).toBe("leaf");
+      expect(tree[0].children[0].children[0].children).toEqual([]);
+    });
+
+    it("drops items whose parent is not in the list (orphans), preserving order", () => {
+      const items = [
+        { id: "a", parentDeptId: null },
+        { id: "ghostChild", parentDeptId: "does-not-exist" },
+        { id: "b", parentDeptId: null },
+        { id: "childOfA", parentDeptId: "a" },
+      ];
+      const tree = manager._buildTree(items, null);
+      expect(tree.map((t) => t.id)).toEqual(["a", "b"]); // roots, in order
+      expect(tree[0].children.map((c) => c.id)).toEqual(["childOfA"]);
+    });
   });
 
   // ----------------------------------------------------------------

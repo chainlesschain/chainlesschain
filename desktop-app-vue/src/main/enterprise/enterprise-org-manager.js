@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * Enterprise Organization Manager
@@ -41,7 +41,7 @@ class EnterpriseOrgManager extends EventEmitter {
     this.approvalManager = dependencies.approvalManager;
     this.organizationManager = dependencies.organizationManager;
     this.initialized = true;
-    logger.info('[EnterpriseOrg] Initialized');
+    logger.info("[EnterpriseOrg] Initialized");
   }
 
   // ---------------------------------------------------------------------------
@@ -60,7 +60,10 @@ class EnterpriseOrgManager extends EventEmitter {
    * @param {string} [data.leadName]
    * @returns {Promise<Object>} Created department record
    */
-  async createDepartment(orgId, { name, description, parentDeptId, leadDid, leadName }) {
+  async createDepartment(
+    orgId,
+    { name, description, parentDeptId, leadDid, leadName },
+  ) {
     this._ensureInitialized();
 
     try {
@@ -68,14 +71,16 @@ class EnterpriseOrgManager extends EventEmitter {
       const now = Date.now();
       const deptId = uuidv4();
 
-      const settings = JSON.stringify({ team_type: 'department' });
+      const settings = JSON.stringify({ team_type: "department" });
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO org_teams (
           id, org_id, name, description, parent_team_id, lead_did, lead_name,
           avatar, settings, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         deptId,
         orgId,
         name,
@@ -86,16 +91,19 @@ class EnterpriseOrgManager extends EventEmitter {
         null,
         settings,
         now,
-        now
+        now,
       );
 
       // If a lead is specified, add them as a team member with 'lead' role
       if (leadDid) {
         try {
-          await this.teamManager.addMember(deptId, leadDid, leadName, 'lead');
+          await this.teamManager.addMember(deptId, leadDid, leadName, "lead");
         } catch (err) {
           // Non-fatal: the department is created even if member add fails
-          logger.warn('[EnterpriseOrg] Failed to add lead as member:', err.message);
+          logger.warn(
+            "[EnterpriseOrg] Failed to add lead as member:",
+            err.message,
+          );
         }
       }
 
@@ -107,22 +115,26 @@ class EnterpriseOrgManager extends EventEmitter {
         parentDeptId: parentDeptId || null,
         leadDid: leadDid || null,
         leadName: leadName || null,
-        teamType: 'department',
+        teamType: "department",
         memberCount: leadDid ? 1 : 0,
         createdAt: now,
         updatedAt: now,
       };
 
-      this.emit('department-created', department);
-      logger.info(`[EnterpriseOrg] Created department ${deptId} (${name}) in org ${orgId}`);
+      this.emit("department-created", department);
+      logger.info(
+        `[EnterpriseOrg] Created department ${deptId} (${name}) in org ${orgId}`,
+      );
 
       return department;
     } catch (error) {
-      if (error.message?.includes('UNIQUE constraint')) {
+      if (error.message?.includes("UNIQUE constraint")) {
         logger.warn(`[EnterpriseOrg] Department name already exists: ${name}`);
-        throw new Error(`Department name "${name}" already exists in this organization`);
+        throw new Error(
+          `Department name "${name}" already exists in this organization`,
+        );
       }
-      logger.error('[EnterpriseOrg] Error creating department:', error);
+      logger.error("[EnterpriseOrg] Error creating department:", error);
       throw error;
     }
   }
@@ -149,19 +161,19 @@ class EnterpriseOrgManager extends EventEmitter {
       const values = [];
 
       if (name !== undefined) {
-        updateParts.push('name = ?');
+        updateParts.push("name = ?");
         values.push(name);
       }
       if (description !== undefined) {
-        updateParts.push('description = ?');
+        updateParts.push("description = ?");
         values.push(description);
       }
       if (leadDid !== undefined) {
-        updateParts.push('lead_did = ?');
+        updateParts.push("lead_did = ?");
         values.push(leadDid);
       }
       if (leadName !== undefined) {
-        updateParts.push('lead_name = ?');
+        updateParts.push("lead_name = ?");
         values.push(leadName);
       }
 
@@ -169,21 +181,31 @@ class EnterpriseOrgManager extends EventEmitter {
         return { success: true };
       }
 
-      updateParts.push('updated_at = ?');
+      updateParts.push("updated_at = ?");
       values.push(now);
       values.push(deptId);
 
-      db.prepare(`UPDATE org_teams SET ${updateParts.join(', ')} WHERE id = ?`).run(...values);
+      db.prepare(
+        `UPDATE org_teams SET ${updateParts.join(", ")} WHERE id = ?`,
+      ).run(...values);
 
       logger.info(`[EnterpriseOrg] Updated department ${deptId}`);
-      this.emit('department-updated', { deptId, name, description, leadDid, leadName });
+      this.emit("department-updated", {
+        deptId,
+        name,
+        description,
+        leadDid,
+        leadName,
+      });
 
       return { success: true };
     } catch (error) {
-      if (error.message?.includes('UNIQUE constraint')) {
-        throw new Error(`Department name "${name}" already exists in this organization`);
+      if (error.message?.includes("UNIQUE constraint")) {
+        throw new Error(
+          `Department name "${name}" already exists in this organization`,
+        );
       }
-      logger.error('[EnterpriseOrg] Error updating department:', error);
+      logger.error("[EnterpriseOrg] Error updating department:", error);
       throw error;
     }
   }
@@ -201,32 +223,36 @@ class EnterpriseOrgManager extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Verify this is indeed a department
-      const dept = db.prepare('SELECT * FROM org_teams WHERE id = ?').get(deptId);
+      const dept = db
+        .prepare("SELECT * FROM org_teams WHERE id = ?")
+        .get(deptId);
       if (!dept) {
-        return { success: false, error: 'DEPARTMENT_NOT_FOUND' };
+        return { success: false, error: "DEPARTMENT_NOT_FOUND" };
       }
 
       // Check for child teams/departments
-      const childCount = db.prepare(
-        'SELECT COUNT(*) as count FROM org_teams WHERE parent_team_id = ?'
-      ).get(deptId);
+      const childCount = db
+        .prepare(
+          "SELECT COUNT(*) as count FROM org_teams WHERE parent_team_id = ?",
+        )
+        .get(deptId);
 
       if (childCount?.count > 0) {
         return {
           success: false,
-          error: 'HAS_CHILDREN',
+          error: "HAS_CHILDREN",
           message: `Department has ${childCount.count} child teams/departments. Remove them first.`,
         };
       }
 
-      db.prepare('DELETE FROM org_teams WHERE id = ?').run(deptId);
+      db.prepare("DELETE FROM org_teams WHERE id = ?").run(deptId);
 
       logger.info(`[EnterpriseOrg] Deleted department ${deptId}`);
-      this.emit('department-deleted', { deptId });
+      this.emit("department-deleted", { deptId });
 
       return { success: true };
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error deleting department:', error);
+      logger.error("[EnterpriseOrg] Error deleting department:", error);
       throw error;
     }
   }
@@ -253,15 +279,17 @@ class EnterpriseOrgManager extends EventEmitter {
 
       // 2. Fetch all teams for org (flat list)
       const db = this.database.getDatabase();
-      const teams = db.prepare(
-        'SELECT * FROM org_teams WHERE org_id = ? ORDER BY name ASC'
-      ).all(orgId);
+      const teams = db
+        .prepare("SELECT * FROM org_teams WHERE org_id = ? ORDER BY name ASC")
+        .all(orgId);
 
       // Attach member counts
       for (const team of teams) {
-        const count = db.prepare(
-          'SELECT COUNT(*) as count FROM org_team_members WHERE team_id = ?'
-        ).get(team.id);
+        const count = db
+          .prepare(
+            "SELECT COUNT(*) as count FROM org_team_members WHERE team_id = ?",
+          )
+          .get(team.id);
         team.memberCount = count?.count || 0;
       }
 
@@ -271,11 +299,13 @@ class EnterpriseOrgManager extends EventEmitter {
       // 4. Build tree
       const hierarchy = this._buildTree(items, null);
 
-      logger.info(`[EnterpriseOrg] Built hierarchy for org ${orgId}: ${items.length} nodes`);
+      logger.info(
+        `[EnterpriseOrg] Built hierarchy for org ${orgId}: ${items.length} nodes`,
+      );
 
       return { org, hierarchy };
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error building org hierarchy:', error);
+      logger.error("[EnterpriseOrg] Error building org hierarchy:", error);
       throw error;
     }
   }
@@ -288,16 +318,30 @@ class EnterpriseOrgManager extends EventEmitter {
    * @returns {Array} Tree nodes with `children`
    */
   _buildTree(items, parentId = null) {
-    const children = items.filter((item) => {
-      if (parentId === null) {
-        return !item.parentDeptId;
+    // Group children by parent ONCE (O(n)), then walk the tree with O(1)
+    // lookups — the previous version re-filtered the whole `items` array at
+    // every recursion level, which is O(nodes × N) ≈ O(n²) on a large/deep
+    // hierarchy. A falsy parentDeptId is normalized to the `null` root bucket,
+    // matching the old `!item.parentDeptId` root test.
+    const childrenByParent = new Map();
+    for (const item of items) {
+      const key = item.parentDeptId || null;
+      let bucket = childrenByParent.get(key);
+      if (!bucket) {
+        bucket = [];
+        childrenByParent.set(key, bucket);
       }
-      return item.parentDeptId === parentId;
-    });
+      bucket.push(item);
+    }
+    return this._buildTreeFromIndex(childrenByParent, parentId);
+  }
 
+  /** Walk a pre-grouped parent→children index into a nested tree (O(1)/node). */
+  _buildTreeFromIndex(childrenByParent, parentId) {
+    const children = childrenByParent.get(parentId) || [];
     return children.map((child) => ({
       ...child,
-      children: this._buildTree(items, child.id),
+      children: this._buildTreeFromIndex(childrenByParent, child.id),
     }));
   }
 
@@ -316,14 +360,20 @@ class EnterpriseOrgManager extends EventEmitter {
       const now = Date.now();
 
       // Validate source exists
-      const dept = db.prepare('SELECT * FROM org_teams WHERE id = ?').get(deptId);
+      const dept = db
+        .prepare("SELECT * FROM org_teams WHERE id = ?")
+        .get(deptId);
       if (!dept) {
-        return { success: false, error: 'DEPARTMENT_NOT_FOUND' };
+        return { success: false, error: "DEPARTMENT_NOT_FOUND" };
       }
 
       // Prevent moving to itself
       if (deptId === newParentId) {
-        return { success: false, error: 'CIRCULAR_REFERENCE', message: 'Cannot move department under itself' };
+        return {
+          success: false,
+          error: "CIRCULAR_REFERENCE",
+          message: "Cannot move department under itself",
+        };
       }
 
       // Validate no circular reference by walking up from newParentId
@@ -334,27 +384,34 @@ class EnterpriseOrgManager extends EventEmitter {
           if (currentId === deptId) {
             return {
               success: false,
-              error: 'CIRCULAR_REFERENCE',
-              message: 'Moving this department here would create a circular hierarchy',
+              error: "CIRCULAR_REFERENCE",
+              message:
+                "Moving this department here would create a circular hierarchy",
             };
           }
-          if (visited.has(currentId)) {break;}
+          if (visited.has(currentId)) {
+            break;
+          }
           visited.add(currentId);
-          const parent = db.prepare('SELECT parent_team_id FROM org_teams WHERE id = ?').get(currentId);
+          const parent = db
+            .prepare("SELECT parent_team_id FROM org_teams WHERE id = ?")
+            .get(currentId);
           currentId = parent?.parent_team_id || null;
         }
       }
 
       db.prepare(
-        'UPDATE org_teams SET parent_team_id = ?, updated_at = ? WHERE id = ?'
+        "UPDATE org_teams SET parent_team_id = ?, updated_at = ? WHERE id = ?",
       ).run(newParentId || null, now, deptId);
 
-      logger.info(`[EnterpriseOrg] Moved department ${deptId} to parent ${newParentId || 'root'}`);
-      this.emit('department-moved', { deptId, newParentId });
+      logger.info(
+        `[EnterpriseOrg] Moved department ${deptId} to parent ${newParentId || "root"}`,
+      );
+      this.emit("department-moved", { deptId, newParentId });
 
       return { success: true };
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error moving department:', error);
+      logger.error("[EnterpriseOrg] Error moving department:", error);
       throw error;
     }
   }
@@ -371,23 +428,29 @@ class EnterpriseOrgManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const teams = db.prepare(`
+      const teams = db
+        .prepare(
+          `
         SELECT * FROM org_teams
         WHERE org_id = ? AND settings LIKE '%"team_type":"department"%'
         ORDER BY name ASC
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       // Attach member counts
       for (const team of teams) {
-        const count = db.prepare(
-          'SELECT COUNT(*) as count FROM org_team_members WHERE team_id = ?'
-        ).get(team.id);
+        const count = db
+          .prepare(
+            "SELECT COUNT(*) as count FROM org_team_members WHERE team_id = ?",
+          )
+          .get(team.id);
         team.memberCount = count?.count || 0;
       }
 
       return teams.map((t) => this._mapTeamRow(t));
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error getting departments:', error);
+      logger.error("[EnterpriseOrg] Error getting departments:", error);
       throw error;
     }
   }
@@ -411,14 +474,18 @@ class EnterpriseOrgManager extends EventEmitter {
         return [];
       }
 
-      const placeholders = teamIds.map(() => '?').join(', ');
-      const members = db.prepare(`
+      const placeholders = teamIds.map(() => "?").join(", ");
+      const members = db
+        .prepare(
+          `
         SELECT otm.*, ot.name as team_name
         FROM org_team_members otm
         INNER JOIN org_teams ot ON ot.id = otm.team_id
         WHERE otm.team_id IN (${placeholders})
         ORDER BY otm.team_role DESC, otm.joined_at ASC
-      `).all(...teamIds);
+      `,
+        )
+        .all(...teamIds);
 
       return members.map((m) => ({
         id: m.id,
@@ -431,7 +498,7 @@ class EnterpriseOrgManager extends EventEmitter {
         invitedBy: m.invited_by,
       }));
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error getting department members:', error);
+      logger.error("[EnterpriseOrg] Error getting department members:", error);
       throw error;
     }
   }
@@ -458,20 +525,30 @@ class EnterpriseOrgManager extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Check if member already exists
-      const existing = db.prepare(
-        'SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?'
-      ).get(orgId, memberDid);
+      const existing = db
+        .prepare(
+          "SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?",
+        )
+        .get(orgId, memberDid);
 
       if (existing) {
-        return { needsApproval: false, skipped: true, reason: 'ALREADY_MEMBER' };
+        return {
+          needsApproval: false,
+          skipped: true,
+          reason: "ALREADY_MEMBER",
+        };
       }
 
       // Check for approval workflow with trigger 'member_join'
-      const workflow = db.prepare(`
+      const workflow = db
+        .prepare(
+          `
         SELECT * FROM approval_workflows
         WHERE org_id = ? AND trigger_resource_type = 'member' AND trigger_action = 'join' AND enabled = 1
         LIMIT 1
-      `).get(orgId);
+      `,
+        )
+        .get(orgId);
 
       if (workflow && this.approvalManager) {
         // Submit through approval workflow
@@ -479,13 +556,15 @@ class EnterpriseOrgManager extends EventEmitter {
           workflowId: workflow.id,
           requesterDid: requestedBy,
           requesterName: requestedBy,
-          resourceType: 'member',
+          resourceType: "member",
           resourceId: memberDid,
-          action: 'join',
+          action: "join",
           requestData: { memberDid, role, orgId },
         });
 
-        logger.info(`[EnterpriseOrg] Member join request submitted for approval: ${result.requestId}`);
+        logger.info(
+          `[EnterpriseOrg] Member join request submitted for approval: ${result.requestId}`,
+        );
 
         return { needsApproval: true, requestId: result.requestId };
       }
@@ -495,19 +574,24 @@ class EnterpriseOrgManager extends EventEmitter {
         await this.organizationManager.addMember(orgId, {
           memberDID: memberDid,
           displayName: memberDid,
-          avatar: '',
-          role: role || 'member',
+          avatar: "",
+          role: role || "member",
           permissions: JSON.stringify([]),
         });
 
-        logger.info(`[EnterpriseOrg] Member ${memberDid} added directly to org ${orgId}`);
+        logger.info(
+          `[EnterpriseOrg] Member ${memberDid} added directly to org ${orgId}`,
+        );
 
         return { needsApproval: false, memberId: memberDid };
       }
 
-      throw new Error('OrganizationManager not available');
+      throw new Error("OrganizationManager not available");
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error processing member join request:', error);
+      logger.error(
+        "[EnterpriseOrg] Error processing member join request:",
+        error,
+      );
       throw error;
     }
   }
@@ -529,42 +613,54 @@ class EnterpriseOrgManager extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Member count
-      const memberRow = db.prepare(
-        'SELECT COUNT(*) as count FROM organization_members WHERE org_id = ?'
-      ).get(orgId);
+      const memberRow = db
+        .prepare(
+          "SELECT COUNT(*) as count FROM organization_members WHERE org_id = ?",
+        )
+        .get(orgId);
       const memberCount = memberRow?.count || 0;
 
       // Team count (all teams including departments)
-      const teamRow = db.prepare(
-        'SELECT COUNT(*) as count FROM org_teams WHERE org_id = ?'
-      ).get(orgId);
+      const teamRow = db
+        .prepare("SELECT COUNT(*) as count FROM org_teams WHERE org_id = ?")
+        .get(orgId);
       const teamCount = teamRow?.count || 0;
 
       // Department count (teams with team_type = department in settings)
-      const deptRow = db.prepare(`
+      const deptRow = db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM org_teams
         WHERE org_id = ? AND settings LIKE '%"team_type":"department"%'
-      `).get(orgId);
+      `,
+        )
+        .get(orgId);
       const departmentCount = deptRow?.count || 0;
 
       // Pending approval count
-      const approvalRow = db.prepare(
-        "SELECT COUNT(*) as count FROM approval_requests WHERE org_id = ? AND status = 'pending'"
-      ).get(orgId);
+      const approvalRow = db
+        .prepare(
+          "SELECT COUNT(*) as count FROM approval_requests WHERE org_id = ? AND status = 'pending'",
+        )
+        .get(orgId);
       const pendingApprovals = approvalRow?.count || 0;
 
       // Recent activity (last 10 items from org_activity_log if it exists)
       let recentActivity = [];
       try {
-        recentActivity = db.prepare(`
+        recentActivity = db
+          .prepare(
+            `
           SELECT * FROM organization_activity_log
           WHERE org_id = ?
           ORDER BY timestamp DESC
           LIMIT 10
-        `).all(orgId);
+        `,
+          )
+          .all(orgId);
       } catch (_err) {
         // Table may not exist in all deployments; ignore gracefully
-        logger.debug('[EnterpriseOrg] organization_activity_log query skipped');
+        logger.debug("[EnterpriseOrg] organization_activity_log query skipped");
       }
 
       return {
@@ -575,7 +671,7 @@ class EnterpriseOrgManager extends EventEmitter {
         recentActivity,
       };
     } catch (error) {
-      logger.error('[EnterpriseOrg] Error getting dashboard stats:', error);
+      logger.error("[EnterpriseOrg] Error getting dashboard stats:", error);
       throw error;
     }
   }
@@ -601,15 +697,15 @@ class EnterpriseOrgManager extends EventEmitter {
     for (const member of members) {
       try {
         if (!member.did) {
-          failed.push({ ...member, error: 'Missing DID' });
+          failed.push({ ...member, error: "Missing DID" });
           continue;
         }
 
         const result = await this.requestMemberJoin(
           orgId,
           member.did,
-          member.role || 'member',
-          member.did
+          member.role || "member",
+          member.did,
         );
 
         if (result.skipped) {
@@ -624,12 +720,12 @@ class EnterpriseOrgManager extends EventEmitter {
                 member.teamId,
                 member.did,
                 member.name || member.did,
-                member.role || 'member'
+                member.role || "member",
               );
             } catch (teamErr) {
               logger.warn(
                 `[EnterpriseOrg] Bulk import: member added to org but failed to add to team ${member.teamId}:`,
-                teamErr.message
+                teamErr.message,
               );
             }
           }
@@ -640,7 +736,7 @@ class EnterpriseOrgManager extends EventEmitter {
     }
 
     logger.info(
-      `[EnterpriseOrg] Bulk import for org ${orgId}: imported=${imported.length}, failed=${failed.length}, skipped=${skipped.length}`
+      `[EnterpriseOrg] Bulk import for org ${orgId}: imported=${imported.length}, failed=${failed.length}, skipped=${skipped.length}`,
     );
 
     return { imported, failed, skipped };
@@ -652,7 +748,9 @@ class EnterpriseOrgManager extends EventEmitter {
 
   _ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('EnterpriseOrgManager is not initialized. Call initialize() first.');
+      throw new Error(
+        "EnterpriseOrgManager is not initialized. Call initialize() first.",
+      );
     }
   }
 
@@ -675,7 +773,7 @@ class EnterpriseOrgManager extends EventEmitter {
       parentDeptId: row.parent_team_id,
       leadDid: row.lead_did,
       leadName: row.lead_name,
-      teamType: parsedSettings?.team_type || 'team',
+      teamType: parsedSettings?.team_type || "team",
       memberCount: row.memberCount || 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -691,9 +789,9 @@ class EnterpriseOrgManager extends EventEmitter {
 
     while (queue.length > 0) {
       const current = queue.shift();
-      const children = db.prepare(
-        'SELECT id FROM org_teams WHERE parent_team_id = ?'
-      ).all(current);
+      const children = db
+        .prepare("SELECT id FROM org_teams WHERE parent_team_id = ?")
+        .all(current);
 
       for (const child of children) {
         ids.push(child.id);
