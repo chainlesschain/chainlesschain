@@ -6,6 +6,7 @@
 import chalk from "chalk";
 import fs from "fs";
 import { logger } from "../lib/logger.js";
+import { numericOption } from "../lib/cli-numeric.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getHomeDir } from "../lib/paths.js";
@@ -104,7 +105,12 @@ export function registerAuditCommand(program) {
         const db = ctx.db.getDatabase();
 
         const filters = {
-          limit: parseInt(options.limit) || 20,
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 0,
+            fallback: 20,
+          }),
         };
         if (options.type) filters.eventType = options.type;
         if (options.risk) filters.riskLevel = options.risk;
@@ -152,7 +158,12 @@ export function registerAuditCommand(program) {
 
         const filters = {
           search: query,
-          limit: parseInt(options.limit) || 50,
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 0,
+            fallback: 50,
+          }),
         };
         if (options.type) filters.eventType = options.type;
         if (options.risk) filters.riskLevel = options.risk;
@@ -250,7 +261,14 @@ export function registerAuditCommand(program) {
         }
         const db = ctx.db.getDatabase();
 
-        const filters = { limit: parseInt(options.limit) || 10000 };
+        const filters = {
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 0,
+            fallback: 10000,
+          }),
+        };
         if (options.from) filters.startDate = options.from;
         if (options.to) filters.endDate = options.to;
 

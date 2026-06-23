@@ -12,6 +12,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { numericOption } from "../lib/cli-numeric.js";
 
 function fmtUsd(n) {
   const v = Number(n) || 0;
@@ -46,7 +47,14 @@ export function registerCostCommand(program) {
 
         const raw = id
           ? sessionUsage(id)
-          : allSessionsUsage({ limit: parseInt(options.limit, 10) || 1000 });
+          : allSessionsUsage({
+              limit: numericOption(options.limit, {
+                name: "--limit",
+                integer: true,
+                min: 0,
+                fallback: 1000,
+              }),
+            });
         const result = priceRollup(raw, { table });
 
         if (options.json) {

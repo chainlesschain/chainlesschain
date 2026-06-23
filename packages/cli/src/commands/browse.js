@@ -108,7 +108,12 @@ export function registerBrowseCommand(program) {
         const elements = querySelectorAll(result.html, options.selector);
         spinner.stop();
 
-        const limit = parseInt(options.limit) || 20;
+        const limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 0,
+          fallback: 20,
+        });
         const limited = elements.slice(0, limit);
 
         if (options.json) {
@@ -163,8 +168,18 @@ export function registerBrowseCommand(program) {
       try {
         const spinner = ora(`Taking screenshot of ${url}...`).start();
         const result = await takeScreenshot(url, options.output, {
-          width: numericOption(options.width, { name: "--width", integer: true, min: 1, fallback: 1280 }),
-          height: numericOption(options.height, { name: "--height", integer: true, min: 1, fallback: 720 }),
+          width: numericOption(options.width, {
+            name: "--width",
+            integer: true,
+            min: 1,
+            fallback: 1280,
+          }),
+          height: numericOption(options.height, {
+            name: "--height",
+            integer: true,
+            min: 1,
+            fallback: 720,
+          }),
           fullPage: !!options.fullPage,
         });
         spinner.stop();

@@ -54,6 +54,23 @@ describe("E2E: numeric option validation (no NaN threading)", () => {
     expect(r.stdout).toMatch(/prediction/i);
   });
 
+  it("honors --limit 0 instead of treating it as falsy (cost --limit 0)", () => {
+    // Regression: `parseInt(options.limit) || 1000` swapped a valid 0 for the
+    // default. Now 0 is accepted (numericOption with min:0) — command succeeds
+    // with valid JSON and no NaN.
+    const r = run(["cost", "--limit", "0", "--json"]);
+    expect(r.status).toBe(0);
+    expect(`${r.stdout}${r.stderr}`).not.toMatch(/NaN/);
+    expect(() => JSON.parse(r.stdout)).not.toThrow();
+  });
+
+  it("falls back (never threads a negative) on --limit -5 (cost)", () => {
+    const r = run(["cost", "--limit", "-5", "--json"]);
+    expect(r.status).toBe(0);
+    expect(`${r.stdout}${r.stderr}`).not.toMatch(/NaN/);
+    expect(() => JSON.parse(r.stdout)).not.toThrow();
+  });
+
   it("fails loudly on a non-numeric float option (evolution train-v2 --data-size)", () => {
     const r = run([
       "evolution",

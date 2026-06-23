@@ -6,6 +6,7 @@
 import fs from "fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { numericOption } from "../lib/cli-numeric.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureComplianceTables,
@@ -509,7 +510,12 @@ export function registerComplianceCommand(program) {
 
         const rows = listIndicators(db, {
           type: options.type,
-          limit: Number(options.limit) || 100,
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 0,
+            fallback: 100,
+          }),
         });
         if (options.json) {
           console.log(JSON.stringify(rows, null, 2));
