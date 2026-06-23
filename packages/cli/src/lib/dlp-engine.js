@@ -12,6 +12,24 @@ let _scanCount = 0;
 let _blockCount = 0;
 let _alertCount = 0;
 
+// Compiled-pattern cache: DLP policy patterns are a small, stable set reused on
+// every scan, so compile each unique pattern string once instead of rebuilding
+// the RegExp on every scan × pattern. The `"i"` flag with no `g` means `.test()`
+// is stateless, so a shared instance is safe to reuse. An invalid pattern caches
+// `null` (skipped) so a bad pattern doesn't throw on every scan.
+const _patternCache = new Map();
+function _compilePattern(pattern) {
+  if (_patternCache.has(pattern)) return _patternCache.get(pattern);
+  let re;
+  try {
+    re = new RegExp(pattern, "i");
+  } catch {
+    re = null; // invalid regex — skip on every scan
+  }
+  _patternCache.set(pattern, re);
+  return re;
+}
+
 const DLP_ACTIONS = {
   ALLOW: "allow",
   ALERT: "alert",
@@ -64,6 +82,9 @@ export function scanContent(db, content, channel, userId) {
   let highestAction = DLP_ACTIONS.ALLOW;
 
   const actionPriority = { allow: 0, alert: 1, block: 2, quarantine: 3 };
+  // Lowercase the content ONCE for all keyword checks rather than re-lowercasing
+  // the whole string for every keyword of every policy (was O(content×keywords)).
+  const contentLower = content.toLowerCase();
 
   for (const policy of policies) {
     const patterns = policy.patterns || [];
@@ -71,19 +92,16 @@ export function scanContent(db, content, channel, userId) {
     let matched = false;
 
     for (const pattern of patterns) {
-      try {
-        if (new RegExp(pattern, "i").test(content)) {
-          matched = true;
-          break;
-        }
-      } catch (_err) {
-        // Invalid regex — skip
+      const re = _compilePattern(pattern); // cached; null on invalid → skipped
+      if (re && re.test(content)) {
+        matched = true;
+        break;
       }
     }
 
     if (!matched) {
       for (const kw of keywords) {
-        if (content.toLowerCase().includes(kw.toLowerCase())) {
+        if (contentLower.includes(kw.toLowerCase())) {
           matched = true;
           break;
         }

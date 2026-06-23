@@ -155,6 +155,33 @@ describe("dlp-engine", () => {
       const r = scanContent(db, "secret data");
       expect(r.incidents.length).toBe(2);
     });
+
+    it("matches keywords case-insensitively (hoisted lowercase path)", () => {
+      createPolicy(db, "Conf", [], ["Confidential"], "alert");
+      const r = scanContent(db, "THIS IS CONFIDENTIAL", "chat");
+      expect(r.action).toBe("alert");
+      expect(r.matchedPolicies).toBe(1);
+    });
+
+    it("skips an invalid regex pattern without throwing, keyword still matches", () => {
+      // "[" is not a valid regex → _compilePattern caches null and skips it.
+      createPolicy(db, "Bad", ["["], ["leak"], "block");
+      let r;
+      expect(() => {
+        r = scanContent(db, "data leak here", "email");
+      }).not.toThrow();
+      expect(r.action).toBe("block"); // matched via the keyword, not the bad regex
+    });
+
+    it("reuses the compiled pattern across repeated scans (cache correctness)", () => {
+      createPolicy(db, "Card", ["\\d{4}-\\d{4}"], [], "block");
+      const first = scanContent(db, "card 1234-5678", "email");
+      const second = scanContent(db, "card 1234-5678", "email");
+      const miss = scanContent(db, "no digits here", "email");
+      expect(first.action).toBe("block");
+      expect(second.action).toBe("block");
+      expect(miss.allowed).toBe(true);
+    });
   });
 
   describe("listIncidents", () => {
