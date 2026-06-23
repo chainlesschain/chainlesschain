@@ -45,6 +45,44 @@ describe("incremental-sync — trackChange", () => {
   });
 });
 
+describe("incremental-sync — groupChangesByTable entity parsing", () => {
+  // Access the private method directly — it's pure (no network).
+  const group = (m: IncrementalSyncManager, changes: unknown[]) =>
+    (
+      m as unknown as {
+        groupChangesByTable(
+          c: unknown[],
+        ): Record<string, Array<{ id: string }>>;
+      }
+    ).groupChangesByTable(changes);
+
+  it("splits 'table:id' on the first colon only (id may contain colons)", () => {
+    const m = make();
+    const out = group(m, [
+      { entity: "notes:123", operation: "update", data: {}, timestamp: 1 },
+      // id is a DID containing colons — must NOT be truncated to "did"
+      {
+        entity: "identity:did:key:z6MkABC",
+        operation: "create",
+        data: {},
+        timestamp: 2,
+      },
+    ]);
+    expect(out.notes[0].id).toBe("123");
+    expect(out.identity).toBeDefined(); // table mislabeled before the fix
+    expect(out.identity[0].id).toBe("did:key:z6MkABC");
+    expect(out.did).toBeUndefined(); // old split(':')[0] would create a "did" table
+  });
+
+  it("uses the whole entity as id when there is no colon", () => {
+    const m = make();
+    const out = group(m, [
+      { entity: "singleton", operation: "update", data: {}, timestamp: 1 },
+    ]);
+    expect(out.singleton[0].id).toBe("singleton");
+  });
+});
+
 describe("incremental-sync — syncNow guarded paths (no network)", () => {
   it("skips when offline and not forced (totalSyncs untouched)", async () => {
     const m = make();
