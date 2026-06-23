@@ -963,11 +963,18 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 | `Write`     | `write_file`                     | 路径               | `Write(./build/**)`                        |
 | `WebFetch`  | `web_fetch`                      | URL host           | `WebFetch(domain:example.com)`             |
 | `WebSearch` | `web_search`                     | —                  | `WebSearch`                                |
-| `Task`      | `spawn_sub_agent`                | —                  | `Task`                                     |
+| `Task`/`Agent` | `spawn_sub_agent`             | 子 agent 类型      | `Agent(explorer)`、`Agent(executor,design)` |
 
 - **命令**:`prefix:*` 前缀语义(`Bash(git push:*)` 命中 `git push` 及其后任意参数);
   纯 `*` 当 glob;无 `*` 则精确匹配。
 - **路径**:`./x` 相对 cwd、`//abs` 绝对、`~/x` home;`*` 不跨 `/`、`**` 跨。
+- **命名参数**(Claude-Code 2.1.178):`Tool(param:value)` 匹配任一具名实参,
+  如 `Bash(command:rm*)`、`mcp__db__query(table:users)`。
+- **子 agent 类型**(Claude-Code 2.1.186):`Agent(type)` / `Agent(typeA,typeB)`
+  按 `spawn_sub_agent` 调用的类型(`profile` / 具名 `agent` / `role`,取其一)匹配——
+  逗号列表任一命中即可、类型名大小写不敏感、支持 `*`/`?` glob。从 Claude-Code
+  `settings.json` 直接移植的 `Agent(…)` 规则因此会被执行而非静默忽略。
+  (`Task(profile:explorer)` 命名参数写法仍可用。)
 - 未知工具名(如 MCP `mcp__srv__do`)按精确名匹配。
 
 ### 文件层级与合并
