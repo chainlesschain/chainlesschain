@@ -128,10 +128,13 @@ async function safeOpenPathDir(dirPath, opts = {}) {
 function isExecutableProgramPath(programPath, opts = {}) {
   const fs = opts.fs || realFs;
   const platform = opts.platform || process.platform;
+  // 按目标平台而非宿主 OS 解析路径：CI 在 POSIX runner 上跑 win32 用例时，
+  // 宿主的 path.isAbsolute/extname 会错判 `C:\…`，故按 platform 选 win32/posix 实现。
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
   if (typeof programPath !== "string" || !programPath) {
     return false;
   }
-  if (!path.isAbsolute(programPath)) {
+  if (!pathImpl.isAbsolute(programPath)) {
     return false; // 裸命令名会经 PATH 解析 → 拒绝
   }
   let st;
@@ -143,7 +146,7 @@ function isExecutableProgramPath(programPath, opts = {}) {
   if (!st.isFile()) {
     return false;
   }
-  const ext = path.extname(programPath).toLowerCase();
+  const ext = pathImpl.extname(programPath).toLowerCase();
   if (ALLOWED_PROGRAM_EXTENSIONS.has(ext)) {
     return true;
   }
@@ -165,13 +168,19 @@ function isExecutableProgramPath(programPath, opts = {}) {
  */
 function assertSafeProgramOpen(programPath, fileArg, opts = {}) {
   const fs = opts.fs || realFs;
+  const platform = opts.platform || process.platform;
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
   if (!isExecutableProgramPath(programPath, opts)) {
     logger.warn(
       `[safe-open] 拒绝以非法/不可信程序打开文件: ${String(programPath).slice(0, 120)}`,
     );
     throw new Error("Refused to launch a disallowed or non-executable program");
   }
-  if (typeof fileArg !== "string" || !fileArg || !path.isAbsolute(fileArg)) {
+  if (
+    typeof fileArg !== "string" ||
+    !fileArg ||
+    !pathImpl.isAbsolute(fileArg)
+  ) {
     logger.warn(
       `[safe-open] 拒绝非绝对路径的打开目标: ${String(fileArg).slice(0, 120)}`,
     );
