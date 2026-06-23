@@ -290,6 +290,21 @@ describe("RelationsSkill", () => {
     expect(r.ranked[0].totalInteractions).toBe(2);
   });
 
+  it("ranked mode excludes self (incl. legacy hashed self via isSend) and group convos", async () => {
+    makePerson(rig.vault, "person-wechat-wxid_friend", ["黄四郎"], {}, { adapter: "wechat" });
+    const hashedSelf = "person-wechat-cafebabe00000000000000000000cafe";
+    // self-sent message (isSend) → actor is hashed self; must NOT rank as a contact
+    rig.vault.putEvent({ id: "r1", type: "event", subtype: "message", occurredAt: ts(2026, 4, 1), actor: hashedSelf, participants: [hashedSelf, "person-wechat-wxid_friend"], content: { title: "hi" }, ingestedAt: Date.now(), source: defaultSource("wechat"), extra: { isSend: true } });
+    rig.vault.putEvent({ id: "r2", type: "event", subtype: "message", occurredAt: ts(2026, 4, 2), actor: "person-wechat-wxid_friend", participants: ["person-wechat-wxid_friend", hashedSelf, "group-wechat-9@chatroom"], content: { title: "yo" }, ingestedAt: Date.now(), source: defaultSource("wechat") });
+
+    const r = await new RelationsSkill({ vault: rig.vault }).run({});
+    const ids = r.ranked.map((x) => x.personId);
+    expect(ids).toContain("person-wechat-wxid_friend");
+    expect(r.ranked.find((x) => x.personId === "person-wechat-wxid_friend").name).toBe("黄四郎");
+    expect(ids).not.toContain(hashedSelf);
+    expect(ids.some((id) => id.startsWith("group-") || id.includes("@chatroom"))).toBe(false);
+  });
+
   it("empty vault → ranked mode returns empty list, no crash", async () => {
     const skill = new RelationsSkill({ vault: rig.vault });
     const r = await skill.run({});
@@ -671,6 +686,7 @@ describe("OverviewSkill — cross-app unified snapshot", () => {
       participants: opts.participants || [],
       content: { title: opts.title || "msg" },
       ingestedAt: Date.now(), source: defaultSource(opts.adapter || "test"),
+      ...(opts.extra ? { extra: opts.extra } : {}),
     });
   }
 
@@ -774,6 +790,26 @@ describe("OverviewSkill — cross-app unified snapshot", () => {
     };
     const r = await new OverviewSkill({ vault: fakeVault }).run({ commentary: false });
     expect(r.spending.total).toBe(888); // from SQL, not the empty row sample (would be 0)
+  });
+
+  it("topContacts excludes self (incl. legacy hashed self via isSend) and group/@chatroom convos", async () => {
+    const { vault } = rig;
+    makePerson(vault, "person-wechat-wxid_friend", ["黄四郎"], {}, { adapter: "wechat" });
+    const hashedSelf = "person-wechat-deadbeef00000000000000000000beef"; // legacy collection hashed accountUin
+    // self-sent (isSend) — actor is the hashed self; must NOT become a contact
+    makeMsg(vault, { id: "m1", occurredAt: ts(2026, 5, 1), adapter: "wechat", actor: hashedSelf, participants: [hashedSelf, "person-wechat-wxid_friend"], extra: { isSend: true } });
+    // friend-sent 1-on-1
+    makeMsg(vault, { id: "m2", occurredAt: ts(2026, 5, 2), adapter: "wechat", actor: "person-wechat-wxid_friend", participants: ["person-wechat-wxid_friend", hashedSelf] });
+    // group conversation + a chatroom id that leaked a person- prefix
+    makeMsg(vault, { id: "m3", occurredAt: ts(2026, 5, 3), adapter: "wechat", actor: "person-wechat-wxid_friend", participants: ["person-wechat-wxid_friend", "group-wechat-123@chatroom", "person-wechat-456@chatroom"] });
+
+    const r = await new OverviewSkill({ vault }).run({ commentary: false });
+    const ids = r.topContacts.map((c) => c.personId);
+    expect(ids).toContain("person-wechat-wxid_friend");
+    expect(r.topContacts.find((c) => c.personId === "person-wechat-wxid_friend").name).toBe("黄四郎");
+    expect(ids).not.toContain(hashedSelf); // legacy hashed self filtered via isSend
+    expect(ids.some((id) => id.includes("@chatroom"))).toBe(false); // rooms aren't people
+    expect(ids.some((id) => id.startsWith("group-"))).toBe(false);
   });
 
   it("is registered + runnable via runAnalysisSkill", async () => {

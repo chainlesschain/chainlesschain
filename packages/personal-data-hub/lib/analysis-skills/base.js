@@ -78,6 +78,67 @@ class AnalysisSkill {
   }
 
   /**
+   * The set of person ids that represent "self" (the account/device owner) —
+   * to be excluded from contact rankings (you are not your own top contact).
+   *
+   * Recognized two ways:
+   *   1) canonical self ids: `person-self`, `person-<adapter>-self`
+   *   2) legacy hashed-self: actors of self-authored events (`extra.isSend=1`).
+   *      WeChat collections historically set self = `person-wechat-<accountUin>`
+   *      where accountUin was an md5/uin/wxid that varied per collection run —
+   *      fragmenting "self" into several fake top contacts. isSend recovers
+   *      every such representation without re-collecting.
+   *
+   * Cached per skill instance. Best-effort: on any error falls back to the
+   * literal `person-self`.
+   */
+  _selfPersonIds() {
+    if (this.__selfIds) return this.__selfIds;
+    const ids = new Set(["person-self"]);
+    try {
+      const db =
+        typeof this.vault._requireOpen === "function" ? this.vault._requireOpen() : null;
+      if (db) {
+        const rows = db
+          .prepare(
+            "SELECT DISTINCT actor AS id FROM events WHERE actor IS NOT NULL AND " +
+              "(actor = 'person-self' OR actor LIKE 'person-%-self' OR " +
+              "json_extract(extra, '$.isSend') = 1)"
+          )
+          .all();
+        for (const r of rows) if (r.id) ids.add(r.id);
+      }
+    } catch (_e) {
+      /* best-effort — keep the literal self id only */
+    }
+    this.__selfIds = ids;
+    return ids;
+  }
+
+  /** True if `personId` is the account/device owner (see {@link _selfPersonIds}). */
+  _isSelf(personId) {
+    if (!personId) return true; // empty/missing → not a real contact
+    if (personId === "person-self") return true;
+    if (/^person-[a-z0-9-]+-self$/i.test(personId)) return true;
+    return this._selfPersonIds().has(personId);
+  }
+
+  /**
+   * True if `personId` is a real *other person* worth ranking as a contact —
+   * i.e. a `person-…` id that is not self and not a group/topic conversation.
+   * Group ids (`group-…`, `topic-…`) are conversations, not people, and have
+   * no person name — they pollute "top contacts" as unnamed/null rows.
+   */
+  _isPersonContact(personId) {
+    if (typeof personId !== "string" || personId.length === 0) return false;
+    if (personId.startsWith("group-") || personId.startsWith("topic-")) return false;
+    // Some collections keyed group conversations as `person-wechat-<id>@chatroom`
+    // (group marker leaked into a person id) — those are rooms, not people.
+    if (personId.includes("@chatroom") || personId.endsWith("@im.group")) return false;
+    return !this._isSelf(personId);
+  }
+
+  /**
    * Expand a personId to "all Person ids in its merge group". If
    * EntityResolver hasn't merged anyone, returns just `[personId]`.
    * Phase 8 closure utility.

@@ -240,13 +240,17 @@ describe("normalizeWeChatMessage", () => {
     expect(v.valid).toBe(true);
   });
 
-  it("1-on-1 text outbound", () => {
+  it("1-on-1 text outbound — self is the stable canonical id, NOT keyed off accountUin", () => {
     const row = {
       msgSvrId: 101, talker: "wxid_friend",
       content: "你好", type: 1, createTime: Date.now(), isSend: 1,
     };
+    // accountUin varies per collection run (uin / wxid / md5); keying self off
+    // it fragmented "self" into several fake top contacts. Self must be stable.
     const b = normalizeWeChatMessage(row, { accountUin: "self123" });
-    expect(b.events[0].actor).toBe("person-wechat-self123");
+    expect(b.events[0].actor).toBe("person-wechat-self");
+    const b2 = normalizeWeChatMessage(row, { accountUin: "different-uin-456" });
+    expect(b2.events[0].actor).toBe("person-wechat-self"); // same self id regardless of accountUin
   });
 
   it("group message produces Topic + isGroup extra", () => {

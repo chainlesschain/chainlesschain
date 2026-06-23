@@ -78,7 +78,8 @@ class RelationsSkill extends AnalysisSkill {
     for (const e of allEvents) {
       const ids = (e.participants || []).concat(e.actor ? [e.actor] : []);
       for (const pid of new Set(ids)) {
-        if (pid === "person-self" || !pid) continue;
+        // Real other-people only — exclude self (incl. legacy hashed self) + group/topic convos.
+        if (!this._isPersonContact(pid)) continue;
         const cur = buckets.get(pid) || {
           personId: pid, totalInteractions: 0, totalSpend: 0, totalIncome: 0,
           byAdapter: {}, firstSeen: e.occurredAt, lastSeen: e.occurredAt,

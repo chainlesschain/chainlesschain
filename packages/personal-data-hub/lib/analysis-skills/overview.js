@@ -82,7 +82,8 @@ class OverviewSkill extends AnalysisSkill {
       // relationships (actor + participants), merge-group canonicalized
       const ids = (Array.isArray(e.participants) ? e.participants : []).concat(e.actor ? [e.actor] : []);
       for (const pid of ids) {
-        if (!pid || pid === "person-self") continue;
+        // Only real other-people in 高频联系人 — not self, not group/topic convos.
+        if (!this._isPersonContact(pid)) continue;
         const canon = this._canon(pid);
         const cur = contacts.get(canon) || { interactions: 0, byApp: new Map() };
         cur.interactions += 1;
@@ -156,7 +157,7 @@ class OverviewSkill extends AnalysisSkill {
         if (p && Array.isArray(p.names) && p.names.length) return p.names[0];
       }
     } catch (_e) { /* optional */ }
-    return null;
+    return personId; // never null — fall back to the id so the row is identifiable
   }
 
   async _commentary(result, options) {

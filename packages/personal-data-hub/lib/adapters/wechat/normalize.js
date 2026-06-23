@@ -30,8 +30,13 @@ function normalizeMessage(row, ctx = {}) {
   const occurredAt = Number.isFinite(Number(row.createTime)) ? Number(row.createTime) : now;
   const isSend = Number(row.isSend) === 1;
 
-  const accountUin = ctx.accountUin || "wechat-self";
-  const selfId = `person-wechat-${accountUin}`;
+  // Self is ALWAYS the stable canonical id. ctx.accountUin (a uin / wxid / md5
+  // that varies per collection run) must NOT key the self id — doing so
+  // fragmented "self" into several different person-wechat-<uin> records that
+  // then surfaced as the user's own "top contacts". Analysis skills exclude
+  // person-wechat-self from contact rankings; legacy hashed selves are still
+  // recovered via extra.isSend (see AnalysisSkill._selfPersonIds).
+  const selfId = "person-wechat-self";
   const peerWxid = row.talker;
   const peerId = peerWxid ? wxidToPersonId(peerWxid) : null;
 
