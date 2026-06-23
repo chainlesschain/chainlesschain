@@ -1114,9 +1114,13 @@ async function cmdCollectQq(options) {
       `qqnt-dec-${process.pid}.db`,
     );
     fs.writeFileSync(tmp, result.decrypted);
-    let events;
+    let parsed;
     try {
-      events = qq.parseEvents(Database, tmp, options.self || "self");
+      // selfUid = the matched account uid → reliable self attribution.
+      parsed = qq.parseEvents(Database, tmp, {
+        selfUid: result.uid,
+        self: options.self || "self",
+      });
     } finally {
       try {
         fs.unlinkSync(tmp);
@@ -1124,7 +1128,24 @@ async function cmdCollectQq(options) {
         /* best-effort wipe */
       }
     }
+    const events = Array.isArray(parsed) ? parsed : parsed.events || [];
+    const persons = Array.isArray(parsed) ? [] : parsed.persons || [];
+    const topics = Array.isArray(parsed) ? [] : parsed.topics || [];
 
+    for (const p of persons) {
+      try {
+        vault.putPerson(p);
+      } catch {
+        /* dup / optional */
+      }
+    }
+    for (const t of topics) {
+      try {
+        if (typeof vault.putTopic === "function") vault.putTopic(t);
+      } catch {
+        /* dup / optional */
+      }
+    }
     let ingested = 0;
     for (const ev of events) {
       try {
@@ -1139,6 +1160,8 @@ async function cmdCollectQq(options) {
       matchedUid: result.uid,
       kdf: result.kdf,
       messages: events.length,
+      persons: persons.length,
+      topics: topics.length,
       ingested,
     };
     if (spinner) spinner.succeed(`collect-qq: ${ingested} QQ messages → vault`);

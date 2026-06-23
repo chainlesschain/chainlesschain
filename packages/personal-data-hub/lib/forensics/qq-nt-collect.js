@@ -137,16 +137,50 @@ function bodyText(blob) {
  * @param self      the user's own QQ number (attribution fallback)
  * @returns {Array} event objects ready for vault.putEvent
  */
-function parseEvents(Database, dbPath, self) {
+const SELF_QQ_ID = 'person-qq-self';
+const SRC_QQ = (originalId, at) => ({
+  adapter: 'qq-pc', adapterVersion: '0.1.0',
+  originalId: originalId || `qq-${at || 0}`,
+  capturedAt: at || Date.now(), capturedBy: 'sqlite',
+});
+
+/**
+ * Parse a decrypted QQNT nt_msg.db into a vault batch `{events, persons, topics}`
+ * (mirrors wechat-collect): named contacts (sender nickname 40090), canonical
+ * self (sender uid 40020 === matched account uid → person-qq-self), group
+ * topics, clean titles, and a UNIQUE source.originalId per person/topic (a
+ * shared one collapses every row via the persons (adapter, originalId) index).
+ *
+ * @param opts {string|{selfUid?:string, self?:string}} — selfUid = the matched
+ *   account uid (from deriveAndDecrypt) for reliable self attribution; a bare
+ *   string is the legacy own-QQ-number fallback.
+ */
+function parseEvents(Database, dbPath, opts) {
+  const selfUid = opts && typeof opts === 'object' ? opts.selfUid || '' : '';
+  const selfQQ = opts && typeof opts === 'object' ? opts.self || '' : opts || '';
   const src = new Database(dbPath, { readonly: true });
   const events = [];
+  const persons = new Map();
+  const topics = new Map();
   const num = (v) => (typeof v === 'bigint' ? Number(v) : v);
+  const addPerson = (qq, uid, nick) => {
+    if (!qq) return;
+    const id = `person-qq-${qq}`;
+    if (persons.has(id)) return;
+    const nm = nick && nick.trim() && nick.trim() !== qq ? nick.trim() : null;
+    persons.set(id, {
+      type: 'person', subtype: 'contact', id,
+      names: nm ? [nm, qq] : [qq],
+      identifiers: { qq, ...(uid ? { qqUid: uid } : {}) },
+      source: SRC_QQ(id), ingestedAt: Date.now(),
+    });
+  };
   const ingestTable = (table, isGroup) => {
     let rows;
     try {
       rows = src.prepare(
         `SELECT [40001] msgId,[40020] uid,[40011] type,[40033] sender,[40021] peer,` +
-        `[40050] t,[40800] body FROM ${table}`,
+        `[40050] t,[40090] nick,[40800] body FROM ${table}`,
       ).safeIntegers().all();
     } catch { return; }
     for (const r of rows) {
@@ -160,20 +194,32 @@ function parseEvents(Database, dbPath, self) {
       const msgId = typeof r.msgId === 'bigint' ? r.msgId.toString() : String(r.msgId);
       const sender = String(num(r.sender) || '');
       const peer = String(num(r.peer) || '');
+      const uid = r.uid ? String(r.uid) : '';
+      const nick = r.nick ? String(r.nick) : '';
       const occurredAt = num(r.t) * 1000;
       if (!occurredAt) continue;
-      const actor = sender ? `person-qq-${sender}` : `person-qq-${self}`;
+      // Self = the sender's uid is the matched account uid. Map to canonical
+      // person-qq-self so analysis excludes the owner from contact rankings.
+      const isSelf = !!(selfUid && uid && uid === selfUid);
+      const actor = isSelf ? SELF_QQ_ID : (sender ? `person-qq-${sender}` : `person-qq-${selfQQ || 'unknown'}`);
+      if (!isSelf && sender) addPerson(sender, uid, nick);
       const participants = [actor];
-      participants.push(isGroup ? `group-qq-${peer}` : `person-qq-${peer}`);
+      let topicId;
+      if (isGroup) {
+        topicId = `group-qq-${peer}`;
+        participants.push(topicId);
+        if (!topics.has(topicId)) topics.set(topicId, { type: 'topic', id: topicId, name: peer, source: SRC_QQ(topicId), ingestedAt: Date.now() });
+      } else {
+        participants.push(`person-qq-${peer}`);
+      }
+      const title = text.replace(/\s+/g, ' ').trim().slice(0, 80);
       events.push({
         type: 'event', subtype: 'message', id: `qq:${table}:${msgId}`,
         occurredAt, actor, participants,
-        content: { text: isGroup ? `[群${peer}] ${text}` : text },
-        topics: isGroup ? [`group-qq-${peer}`] : undefined,
-        source: {
-          adapter: 'qq-pc', adapterVersion: '0.1.0', originalId: `${table}:${msgId}`,
-          capturedAt: occurredAt, capturedBy: 'sqlite',
-        },
+        content: { title: title || '(无内容)', text: isGroup ? `[群${peer}] ${text}` : text },
+        topics: topicId ? [topicId] : undefined,
+        source: SRC_QQ(`${table}:${msgId}`, occurredAt),
+        extra: { isSelf, peer },
         ingestedAt: Date.now(),
       });
     }
@@ -181,10 +227,11 @@ function parseEvents(Database, dbPath, self) {
   try {
     ingestTable('c2c_msg_table', false);
     ingestTable('group_msg_table', true);
+    persons.set(SELF_QQ_ID, { type: 'person', subtype: 'contact', id: SELF_QQ_ID, names: ['我(QQ)'], source: SRC_QQ(SELF_QQ_ID), ingestedAt: Date.now() });
   } finally {
     src.close();
   }
-  return events;
+  return { events, persons: [...persons.values()], topics: [...topics.values()] };
 }
 
 module.exports = { extractRand, headerHmac, deriveAndDecrypt, bodyText, parseEvents };
