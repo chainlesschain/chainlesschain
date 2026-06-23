@@ -57,6 +57,33 @@ describe("advanced-analytics — features + errors + warnings", () => {
   });
 });
 
+describe("advanced-analytics — analyze() fileLoadTrend", () => {
+  it("keeps change finite when the older sample averages zero (no Infinity/NaN)", () => {
+    // 11 file-load samples: the single older-window value is 0, recent are 50.
+    // older = slice(-30,-10) = [0] → olderAvg 0; without the guard the percent
+    // change is (50-0)/0 = Infinity and leaks into the report.
+    const fileLoadTimes = [
+      { timestamp: 1, value: 0 },
+      ...Array.from({ length: 10 }, (_, i) => ({
+        timestamp: i + 2,
+        value: 50,
+      })),
+    ];
+    (
+      analytics as unknown as {
+        performanceTrends: { fileLoadTimes: typeof fileLoadTimes };
+      }
+    ).performanceTrends.fileLoadTimes = fileLoadTimes;
+
+    const trend = analytics.analyze().performance.fileLoadTrend;
+    expect(trend).toBeDefined();
+    expect(Number.isFinite(trend!.change)).toBe(true);
+    expect(trend!.change).toBe(0);
+    expect(trend!.olderAvg).toBe(0);
+    expect(trend!.recentAvg).toBe(50);
+  });
+});
+
 describe("advanced-analytics — summary / report / export / clear", () => {
   it("getSummary returns the expected numeric shape", () => {
     analytics.trackEvent("x");
