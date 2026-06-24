@@ -4,13 +4,13 @@
  * 提供多媒体组件的国际化支持
  */
 
-import { logger } from '@/utils/logger';
-import { ref, computed } from 'vue';
-import type { ComputedRef } from 'vue';
-import { multimediaI18n, type MultimediaLocale } from '../i18n/multimedia';
+import { logger } from "@/utils/logger";
+import { ref, computed } from "vue";
+import type { ComputedRef } from "vue";
+import { multimediaI18n, type MultimediaLocale } from "../i18n/multimedia";
 
 // 默认语言
-const DEFAULT_LOCALE: MultimediaLocale = 'zh-CN';
+const DEFAULT_LOCALE: MultimediaLocale = "zh-CN";
 
 // 全局语言设置
 const currentLocale = ref<MultimediaLocale>(DEFAULT_LOCALE);
@@ -19,7 +19,36 @@ const currentLocale = ref<MultimediaLocale>(DEFAULT_LOCALE);
  * 获取嵌套对象的值
  */
 function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((current, key) => current?.[key], obj);
+  return path.split(".").reduce((current, key) => current?.[key], obj);
+}
+
+/**
+ * 转义正则元字符，使占位符键能安全拼进 RegExp。
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * 把 `{placeholder}` 占位符替换为给定值。
+ *
+ * 两个易错点（此前 `ti` 都中招）：
+ * 1) placeholder 必须先转义再拼进 RegExp —— 键里若含正则元字符（如 `{a.b}`）会误匹配。
+ * 2) 必须用「函数替换」而非字符串替换 —— `String.prototype.replace` 的字符串替换会
+ *    解释替换串里的 `$&`/`$$`/`$1`/`$<name>` 等模式；当 value 含 `$`（金额 "$5"、
+ *    含 `$&` 的文案等）时会被错误展开。函数替换不解释这些模式。
+ */
+export function interpolatePlaceholders(
+  text: string,
+  values: Record<string, string | number>,
+): string {
+  let result = text;
+  Object.entries(values).forEach(([placeholder, value]) => {
+    const pattern = new RegExp(`\\{${escapeRegExp(placeholder)}\\}`, "g");
+    const replacement = String(value);
+    result = result.replace(pattern, () => replacement);
+  });
+  return result;
 }
 
 /**
@@ -68,12 +97,17 @@ export function useMultimediaI18n() {
 
       // 保存到localStorage
       try {
-        localStorage.setItem('multimedia-locale', locale);
+        localStorage.setItem("multimedia-locale", locale);
       } catch (e) {
-        logger.warn('[useMultimediaI18n] Failed to save locale to localStorage:', e);
+        logger.warn(
+          "[useMultimediaI18n] Failed to save locale to localStorage:",
+          e,
+        );
       }
     } else {
-      logger.warn(`[useMultimediaI18n] Locale "${locale}" not found, using default`);
+      logger.warn(
+        `[useMultimediaI18n] Locale "${locale}" not found, using default`,
+      );
     }
   };
 
@@ -105,16 +139,8 @@ export function useMultimediaI18n() {
    * // translation: "Hello, {name}!"
    * ti('greeting', { name: 'John' }) // => "Hello, John!"
    */
-  const ti = (key: string, values: Record<string, string | number>): string => {
-    let text = t(key);
-
-    // 替换占位符
-    Object.entries(values).forEach(([placeholder, value]) => {
-      text = text.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), String(value));
-    });
-
-    return text;
-  };
+  const ti = (key: string, values: Record<string, string | number>): string =>
+    interpolatePlaceholders(t(key), values);
 
   /**
    * 复数翻译
@@ -145,12 +171,15 @@ export function useMultimediaI18n() {
  */
 export function initMultimediaI18n() {
   try {
-    const savedLocale = localStorage.getItem('multimedia-locale');
+    const savedLocale = localStorage.getItem("multimedia-locale");
     if (savedLocale && savedLocale in multimediaI18n) {
       currentLocale.value = savedLocale as MultimediaLocale;
     }
   } catch (e) {
-    logger.warn('[initMultimediaI18n] Failed to load locale from localStorage:', e);
+    logger.warn(
+      "[initMultimediaI18n] Failed to load locale from localStorage:",
+      e,
+    );
   }
 }
 
@@ -159,22 +188,22 @@ export function initMultimediaI18n() {
  * 用于提供更好的IDE自动补全支持
  */
 export type MultimediaTranslationKey =
-  | 'progressMonitor.title'
-  | 'progressMonitor.expand'
-  | 'progressMonitor.collapse'
-  | 'mediaProcessor.title'
-  | 'mediaProcessor.tabs.image'
-  | 'mediaProcessor.tabs.audio'
-  | 'videoEditor.title'
-  | 'videoEditor.tabs.filters'
-  | 'common.upload'
-  | 'common.processing'
-  | 'common.completed'
-  | 'common.failed'
-  | 'errors.fileNotSupported'
-  | 'errors.uploadFailed'
-  | 'success.uploadSuccess'
-  | 'success.processSuccess';
+  | "progressMonitor.title"
+  | "progressMonitor.expand"
+  | "progressMonitor.collapse"
+  | "mediaProcessor.title"
+  | "mediaProcessor.tabs.image"
+  | "mediaProcessor.tabs.audio"
+  | "videoEditor.title"
+  | "videoEditor.tabs.filters"
+  | "common.upload"
+  | "common.processing"
+  | "common.completed"
+  | "common.failed"
+  | "errors.fileNotSupported"
+  | "errors.uploadFailed"
+  | "success.uploadSuccess"
+  | "success.processSuccess";
 
 /**
  * 类型安全的翻译函数
