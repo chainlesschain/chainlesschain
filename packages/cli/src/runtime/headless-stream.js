@@ -19,7 +19,7 @@
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
-import { mergeConsecutiveMessages } from "./message-roles.js";
+import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { detectImagePaths } from "../lib/image-input.js";
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
@@ -260,7 +260,7 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   let endReason = "complete";
   let stopForCost = false;
 
-  // Merge consecutive same-role turns before the model call ONLY when the
+  // Collapse consecutive same-role turns before the model call ONLY when the
   // caller flags a resume-degenerate transcript (`mergeRoles`): a resumed
   // session whose previous run produced NO assistant response leaves a trailing
   // bare `user` turn, so splicing the first live prompt after it sends two
@@ -270,12 +270,19 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   // `user` messages — an interrupted turn's dangling prompt, a PDH feedback
   // note (§3.5.13) — that must reach the model distinctly and must not be
   // folded (folding the interrupt-dangling turn even resurrects the abandoned
-  // request). Non-mutating: the persistent `messages` array is untouched; only
-  // the provider payload is sanitized.
-  const modelMessages = loopOptions.mergeRoles
-    ? mergeConsecutiveMessages(messages)
-    : messages;
-  for await (const event of runLoop(modelMessages, loopOptions)) {
+  // request).
+  //
+  // Collapse IN PLACE (not a folded copy): the persistent `messages` array is
+  // reused for every later turn, so leaving the `[user, user]` pair in it would
+  // re-break the SECOND live turn (which re-sends the lingering pair). The gated
+  // turn is the first after resume, still tool-free (resumed history is
+  // user/assistant/system only), so an in-place fold is safe and the helper
+  // never folds `tool` turns regardless. Un-gated later turns are untouched, so
+  // the intentional interrupt/feedback consecutive-`user` states are preserved.
+  if (loopOptions.mergeRoles) {
+    collapseConsecutiveMessagesInPlace(messages);
+  }
+  for await (const event of runLoop(messages, loopOptions)) {
     switch (event.type) {
       case "tool-executing":
         toolCalls.push({ tool: event.tool, args: event.args });

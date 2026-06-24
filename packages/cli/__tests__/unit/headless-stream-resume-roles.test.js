@@ -100,4 +100,54 @@ describe("stream resume role sanitation", () => {
       "follow up",
     ]);
   });
+
+  it("keeps EVERY later turn alternating after a degenerate resume (2nd-turn corner)", async () => {
+    // The fold must fix the PERSISTENT history, not just the first turn's
+    // payload — otherwise the dangling `[user, user]` pair lingers and the
+    // SECOND live turn re-sends consecutive users → "roles must alternate".
+    const captured = [];
+    const agentLoop = async function* (messages) {
+      captured.push(messages.map((m) => ({ role: m.role, content: m.content })));
+      yield { type: "response-complete", content: "reply" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    async function* input() {
+      yield (
+        [
+          JSON.stringify({ type: "user", text: "continue please" }),
+          JSON.stringify({ type: "user", text: "and again" }),
+        ].join("\n") + "\n"
+      );
+    }
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, sessionId: "resume-roles-multiturn" },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: () => {},
+        writeErr: () => {},
+        agentLoop,
+        input: input(),
+        sessionExists: () => true,
+        rebuildMessages: () => [{ role: "user", content: "original task" }],
+        ...noopStore,
+      },
+    );
+
+    expect(captured).toHaveLength(2);
+    // BOTH turns' payloads alternate — turn 2 must not carry the leftover pair.
+    expect(noConsecutiveSameRole(captured[0])).toBe(true);
+    expect(noConsecutiveSameRole(captured[1])).toBe(true);
+    // Turn 1 folded the dangling resumed user into the first prompt.
+    const t1users = captured[0].filter((m) => m.role === "user");
+    expect(t1users).toHaveLength(1);
+    expect(t1users[0].content).toContain("original task");
+    expect(t1users[0].content).toContain("continue please");
+    // Turn 2 saw clean user/assistant/user.
+    expect(captured[1].filter((m) => m.role !== "system").map((m) => m.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+  });
 });
