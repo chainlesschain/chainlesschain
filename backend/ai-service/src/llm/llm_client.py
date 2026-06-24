@@ -2,9 +2,21 @@
 Universal LLM Client - 统一LLM客户端
 支持多种云LLM服务商：Ollama, OpenAI, DashScope, ZhipuAI等
 """
+import asyncio
 import os
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
+
+
+async def _run_blocking(func, *args, **kwargs):
+    """在默认线程池里执行同步阻塞的 SDK 调用，避免卡住 asyncio 事件循环。
+
+    Ollama / DashScope / ZhipuAI / Qianfan 的官方 SDK 都是同步的；直接在 async def
+    里调用会阻塞整个事件循环，使并发请求与健康检查全部串行化（FastAPI 单 worker 下
+    尤其致命）。VolcEngineClient 早已用 run_in_executor 规避，此处统一收敛同款处理。
+    """
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
 
 
 class BaseLLMClient(ABC):
@@ -99,7 +111,8 @@ class OllamaClient(BaseLLMClient):
         max_tokens: int = 2048
     ) -> str:
         try:
-            response = self.client.chat(
+            response = await _run_blocking(
+                self.client.chat,
                 model=self.model,
                 messages=messages,
                 options={
@@ -204,7 +217,8 @@ class DashScopeClient(BaseLLMClient):
         try:
             from dashscope import Generation
 
-            response = Generation.call(
+            response = await _run_blocking(
+                Generation.call,
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
@@ -230,7 +244,8 @@ class DashScopeClient(BaseLLMClient):
         try:
             from dashscope import Generation
 
-            response = Generation.call(
+            response = await _run_blocking(
+                Generation.call,
                 model=self.model,
                 messages=messages,
                 tools=tools,
@@ -286,7 +301,8 @@ class ZhipuAIClient(BaseLLMClient):
         max_tokens: int = 2048
     ) -> str:
         try:
-            response = self.client.chat.completions.create(
+            response = await _run_blocking(
+                self.client.chat.completions.create,
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
@@ -304,7 +320,8 @@ class ZhipuAIClient(BaseLLMClient):
         max_tokens: int = 2048
     ) -> Dict[str, Any]:
         try:
-            response = self.client.chat.completions.create(
+            response = await _run_blocking(
+                self.client.chat.completions.create,
                 model=self.model,
                 messages=messages,
                 tools=tools,
@@ -431,7 +448,8 @@ class QianfanClient(BaseLLMClient):
         max_tokens: int = 2048
     ) -> str:
         try:
-            response = self.client.do(
+            response = await _run_blocking(
+                self.client.do,
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
