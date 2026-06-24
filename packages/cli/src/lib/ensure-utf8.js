@@ -45,8 +45,14 @@ export function ensureUtf8() {
 export function getUtf8SpawnOptions(opts = {}) {
   if (process.platform !== "win32") return { encoding: "utf-8", ...opts };
 
+  // NOTE: spread `...opts` BEFORE the `env` key so the merged UTF-8 env wins.
+  // If `...opts` came last, a caller passing `opts.env` would clobber the whole
+  // merge (losing process.env + PYTHONIOENCODING + CHCP) — silently defeating
+  // the entire point of this helper. opts.env is still merged in last *within*
+  // the env object so caller overrides for individual vars are honored.
   return {
     encoding: "utf-8",
+    ...opts,
     env: {
       ...process.env,
       PYTHONIOENCODING: "utf-8",
@@ -54,6 +60,5 @@ export function getUtf8SpawnOptions(opts = {}) {
       CHCP: "65001",
       ...opts.env,
     },
-    ...opts,
   };
 }
