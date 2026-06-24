@@ -87,6 +87,31 @@ describe("ResponseParser", () => {
       ).toEqual({ effort: 5 });
     });
 
+    it("extracts JSON even when trailing prose contains a stray brace", () => {
+      // 贪婪正则会一路吃到散文里那个落单的 } → JSON.parse 抛错丢结果。
+      // 平衡扫描只取第一个完整对象。
+      expect(
+        looseParseJSON('{"effort": 5}\nNote: use the } sparingly.'),
+      ).toEqual({ effort: 5 });
+    });
+
+    it("returns the first complete object when the LLM emits several", () => {
+      expect(looseParseJSON('{"a": 1}\nAside: {"b": 2}')).toEqual({ a: 1 });
+    });
+
+    it("handles nested objects with braces inside string values", () => {
+      expect(
+        looseParseJSON('prefix {"tip": "use }{ carefully", "n": {"x": 1}} end'),
+      ).toEqual({ tip: "use }{ carefully", n: { x: 1 } });
+    });
+
+    it("still finds an object when prose before it contains [brackets]", () => {
+      // 首个括号是 [tag] → 解析失败 → 回退到贪婪正则命中对象（旧行为保留）。
+      expect(looseParseJSON('[tag] result: {"ok": true}')).toEqual({
+        ok: true,
+      });
+    });
+
     it("throws SyntaxError when no JSON is present (caller falls back)", () => {
       expect(() => looseParseJSON("no json here at all")).toThrow(SyntaxError);
     });

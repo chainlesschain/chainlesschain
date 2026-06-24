@@ -308,6 +308,64 @@ function validateOperations(operations, projectPath) {
  * @throws {TypeError} text 非字符串
  * @throws {SyntaxError} 文本中找不到可解析的 JSON（调用方据此决定回退）
  */
+/**
+ * 从文本中按从左到右顺序提取所有「括号配对完整」的 JSON 候选子串（每个从某个
+ * `{`/`[` 起，跟踪深度并正确跳过字符串字面量与转义）。
+ *
+ * 比贪婪正则 `/\{[\s\S]*\}/`（首 `{` 到末 `}`）更稳健：当 LLM 在 JSON 之后追加
+ * 散文且其中含有落单的 `}`（很常见）、一次输出多个对象、或对象前另有 `[标签]`
+ * 之类的括号时，贪婪匹配会过度捕获或命中错误片段导致 JSON.parse 抛错。逐个
+ * 完整结构提取后由调用方各自尝试解析，取首个成功者。
+ *
+ * @param {string} text
+ * @returns {string[]} 候选子串（可能为空）
+ */
+function extractBalancedJsonCandidates(text) {
+  const candidates = [];
+  let i = 0;
+  while (i < text.length) {
+    const rel = text.slice(i).search(/[{[]/);
+    if (rel === -1) {
+      break;
+    }
+    const start = i + rel;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (let j = start; j < text.length; j++) {
+      const ch = text[j];
+      if (inStr) {
+        if (esc) {
+          esc = false;
+        } else if (ch === "\\") {
+          esc = true;
+        } else if (ch === '"') {
+          inStr = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inStr = true;
+      } else if (ch === "{" || ch === "[") {
+        depth += 1;
+      } else if (ch === "}" || ch === "]") {
+        depth -= 1;
+        if (depth === 0) {
+          end = j;
+          break;
+        }
+      }
+    }
+    if (end === -1) {
+      break;
+    } // 从此处起括号未闭合 → 不再有完整候选
+    candidates.push(text.slice(start, end + 1));
+    i = end + 1;
+  }
+  return candidates;
+}
+
 function looseParseJSON(text) {
   if (typeof text !== "string") {
     throw new TypeError("looseParseJSON: text must be a string");
@@ -315,14 +373,29 @@ function looseParseJSON(text) {
   try {
     return JSON.parse(text);
   } catch {
+    // 按优先级收集候选串，逐个尝试解析，返回首个成功者：
+    //  1) ```json fence``` 内容（最常见的 LLM 包裹）
+    //  2) 从左到右每个括号配对完整的 JSON（处理追加散文 / 多对象 / 前置标签）
+    //  3) 贪婪正则（最终兜底，仅在前两者均失败时可能命中）
+    const candidates = [];
     const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    const candidate = fence
-      ? fence[1]
-      : (text.match(/\{[\s\S]*\}|\[[\s\S]*\]/) || [])[0];
-    if (!candidate) {
-      throw new SyntaxError("looseParseJSON: no JSON found in text");
+    if (fence) {
+      candidates.push(fence[1]);
     }
-    return JSON.parse(candidate);
+    candidates.push(...extractBalancedJsonCandidates(text));
+    const greedy = (text.match(/\{[\s\S]*\}|\[[\s\S]*\]/) || [])[0];
+    if (greedy) {
+      candidates.push(greedy);
+    }
+
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        /* try the next candidate */
+      }
+    }
+    throw new SyntaxError("looseParseJSON: no JSON found in text");
   }
 }
 
