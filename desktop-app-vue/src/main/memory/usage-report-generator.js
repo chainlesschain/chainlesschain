@@ -274,7 +274,10 @@ class UsageReportGenerator extends EventEmitter {
       next.setMinutes(0);
       next.setSeconds(0);
     } else if (subscription.frequency === "monthly") {
-      // Find next occurrence of day_of_month
+      // Find next occurrence of day_of_month.
+      // setDate(1) 先行：避免月末（29-31 日）时 setMonth 让日溢出到再下个月
+      // （如 1/31 setMonth→2/31 滚到 3/3），否则下次报告月份被跳过。
+      next.setDate(1);
       next.setMonth(next.getMonth() + 1);
       next.setDate(subscription.day_of_month || 1);
       next.setHours(subscription.hour || 9);

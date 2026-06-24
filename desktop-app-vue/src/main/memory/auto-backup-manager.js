@@ -328,6 +328,10 @@ class AutoBackupManager extends EventEmitter {
       }
 
       case "monthly":
+        // 先把日设为 1，避免月末（29-31 日）时 setMonth 让日溢出到再下个月：
+        // 如今天是 1/31，setMonth(+1) 得 2/31 → 滚到 3/3，月份被多跳一个，
+        // 下一行 setDate 就把下次备份排到了三月而非二月（跳过一个月）。
+        next.setDate(1);
         next.setMonth(next.getMonth() + 1);
         next.setDate(schedule.day_of_month || 1);
         next.setHours(schedule.hour || 3);
