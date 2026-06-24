@@ -879,9 +879,20 @@ class ExtendedTools {
       case "year":
         result.setFullYear(result.getFullYear() + amount);
         break;
-      case "month":
+      case "month": {
+        // 月加减按月底裁剪，对齐 date-fns/moment 约定，避免 setMonth 在月末溢出：
+        // 1/31 + 1 月原生会得 3/3，正确应为 2/28（短月裁剪，长月保留原日号）。
+        const day = result.getDate();
+        result.setDate(1);
         result.setMonth(result.getMonth() + amount);
+        const daysInMonth = new Date(
+          result.getFullYear(),
+          result.getMonth() + 1,
+          0,
+        ).getDate();
+        result.setDate(Math.min(day, daysInMonth));
         break;
+      }
       case "day":
         result.setDate(result.getDate() + amount);
         break;
