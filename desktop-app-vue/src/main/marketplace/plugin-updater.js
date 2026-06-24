@@ -7,9 +7,9 @@
  * @module marketplace/plugin-updater
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const { EventEmitter } = require("events");
 
 /**
  * Default marketplace settings
@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS = {
   autoUpdateEnabled: false,
   notificationsEnabled: true,
   maxConcurrentUpdates: 3,
-  updateChannel: 'stable', // 'stable' | 'beta' | 'nightly'
+  updateChannel: "stable", // 'stable' | 'beta' | 'nightly'
   lastCheckTime: null,
 };
 
@@ -30,18 +30,45 @@ const DEFAULT_SETTINGS = {
  * @returns {number} 1 if v1 > v2, -1 if v1 < v2, 0 if equal
  */
 function compareVersions(v1, v2) {
-  const parts1 = v1.replace(/^v/, '').split('.').map(Number);
-  const parts2 = v2.replace(/^v/, '').split('.').map(Number);
+  // Split the numeric core from an optional prerelease tag (semver: 1.2.3-beta.1).
+  // The previous `split('.').map(Number)` turned "0-beta" into NaN, and NaN
+  // comparisons are always false → a prerelease was treated as EQUAL to its
+  // release, so e.g. an installed 1.0.0-beta was never offered the 1.0.0 update.
+  const parse = (v) => {
+    const raw = String(v).replace(/^v/, "");
+    const dash = raw.indexOf("-");
+    const core = dash === -1 ? raw : raw.slice(0, dash);
+    const pre = dash === -1 ? "" : raw.slice(dash + 1);
+    return { nums: core.split(".").map((n) => Number(n) || 0), pre };
+  };
+  const a = parse(v1);
+  const b = parse(v2);
 
-  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-    const part1 = parts1[i] || 0;
-    const part2 = parts2[i] || 0;
+  for (let i = 0; i < Math.max(a.nums.length, b.nums.length); i++) {
+    const part1 = a.nums[i] || 0;
+    const part2 = b.nums[i] || 0;
 
-    if (part1 > part2) {return 1;}
-    if (part1 < part2) {return -1;}
+    if (part1 > part2) {
+      return 1;
+    }
+    if (part1 < part2) {
+      return -1;
+    }
   }
 
-  return 0;
+  // Numeric cores are equal. Per semver §11, a version WITHOUT a prerelease tag
+  // ranks higher than the same version WITH one; two prerelease tags compare
+  // lexically (a simplification of the full dot-separated identifier rules).
+  if (a.pre === b.pre) {
+    return 0;
+  }
+  if (a.pre === "") {
+    return 1;
+  }
+  if (b.pre === "") {
+    return -1;
+  }
+  return a.pre > b.pre ? 1 : -1;
 }
 
 class PluginUpdater extends EventEmitter {
@@ -55,13 +82,13 @@ class PluginUpdater extends EventEmitter {
     super();
 
     if (!database) {
-      throw new Error('PluginUpdater requires a database instance');
+      throw new Error("PluginUpdater requires a database instance");
     }
     if (!marketplaceClient) {
-      throw new Error('PluginUpdater requires a marketplaceClient instance');
+      throw new Error("PluginUpdater requires a marketplaceClient instance");
     }
     if (!pluginInstaller) {
-      throw new Error('PluginUpdater requires a pluginInstaller instance');
+      throw new Error("PluginUpdater requires a pluginInstaller instance");
     }
 
     this.database = database;
@@ -75,7 +102,7 @@ class PluginUpdater extends EventEmitter {
     this._pendingUpdates = new Map();
     this._activeUpdates = new Set();
 
-    logger.info('[PluginUpdater] Initialized');
+    logger.info("[PluginUpdater] Initialized");
   }
 
   // ============================================================
@@ -90,7 +117,7 @@ class PluginUpdater extends EventEmitter {
    */
   async checkUpdates() {
     if (this._checking) {
-      logger.info('[PluginUpdater] Update check already in progress, skipping');
+      logger.info("[PluginUpdater] Update check already in progress, skipping");
       return {
         success: true,
         data: Array.from(this._pendingUpdates.values()),
@@ -98,14 +125,16 @@ class PluginUpdater extends EventEmitter {
     }
 
     this._checking = true;
-    logger.info('[PluginUpdater] Checking all installed plugins for updates...');
+    logger.info(
+      "[PluginUpdater] Checking all installed plugins for updates...",
+    );
 
     try {
       // Query all installed plugins from the database
       const installedPlugins = this._getInstalledPlugins();
 
       if (!installedPlugins || installedPlugins.length === 0) {
-        logger.info('[PluginUpdater] No installed plugins found');
+        logger.info("[PluginUpdater] No installed plugins found");
         this._checking = false;
         return { success: true, data: [] };
       }
@@ -116,14 +145,22 @@ class PluginUpdater extends EventEmitter {
       // Check each plugin against the marketplace
       for (const plugin of installedPlugins) {
         try {
-          const remoteInfo = await this.marketplaceClient.getPlugin(plugin.plugin_id, false);
+          const remoteInfo = await this.marketplaceClient.getPlugin(
+            plugin.plugin_id,
+            false,
+          );
 
           if (!remoteInfo || !remoteInfo.version) {
-            logger.warn(`[PluginUpdater] No remote info found for plugin: ${plugin.plugin_id}`);
+            logger.warn(
+              `[PluginUpdater] No remote info found for plugin: ${plugin.plugin_id}`,
+            );
             continue;
           }
 
-          const comparison = compareVersions(remoteInfo.version, plugin.version);
+          const comparison = compareVersions(
+            remoteInfo.version,
+            plugin.version,
+          );
 
           if (comparison > 0) {
             const updateInfo = {
@@ -132,7 +169,8 @@ class PluginUpdater extends EventEmitter {
               currentVersion: plugin.version,
               latestVersion: remoteInfo.version,
               changelog: remoteInfo.changelog || null,
-              releaseDate: remoteInfo.releaseDate || remoteInfo.updated_at || null,
+              releaseDate:
+                remoteInfo.releaseDate || remoteInfo.updated_at || null,
               downloadSize: remoteInfo.downloadSize || null,
               critical: remoteInfo.critical || false,
               autoUpdate: plugin.auto_update === 1,
@@ -142,30 +180,30 @@ class PluginUpdater extends EventEmitter {
             this._pendingUpdates.set(plugin.plugin_id, updateInfo);
 
             logger.info(
-              `[PluginUpdater] Update available: ${plugin.plugin_id} ${plugin.version} -> ${remoteInfo.version}`
+              `[PluginUpdater] Update available: ${plugin.plugin_id} ${plugin.version} -> ${remoteInfo.version}`,
             );
 
-            this.emit('update-available', updateInfo);
+            this.emit("update-available", updateInfo);
           }
         } catch (err) {
           logger.warn(
-            `[PluginUpdater] Failed to check update for ${plugin.plugin_id}: ${err.message}`
+            `[PluginUpdater] Failed to check update for ${plugin.plugin_id}: ${err.message}`,
           );
         }
       }
 
       // Update last check time in settings
-      this._saveSettingValue('marketplace.lastCheckTime', Date.now());
+      this._saveSettingValue("marketplace.lastCheckTime", Date.now());
 
       logger.info(
-        `[PluginUpdater] Update check complete: ${availableUpdates.length} updates available`
+        `[PluginUpdater] Update check complete: ${availableUpdates.length} updates available`,
       );
 
       this._checking = false;
       return { success: true, data: availableUpdates };
     } catch (error) {
       this._checking = false;
-      logger.error('[PluginUpdater] checkUpdates failed:', error);
+      logger.error("[PluginUpdater] checkUpdates failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -178,7 +216,7 @@ class PluginUpdater extends EventEmitter {
    */
   async checkSingleUpdate(pluginId) {
     if (!pluginId) {
-      return { success: false, error: 'pluginId is required' };
+      return { success: false, error: "pluginId is required" };
     }
 
     logger.info(`[PluginUpdater] Checking update for plugin: ${pluginId}`);
@@ -192,7 +230,10 @@ class PluginUpdater extends EventEmitter {
       }
 
       // Fetch remote info (bypass cache)
-      const remoteInfo = await this.marketplaceClient.getPlugin(pluginId, false);
+      const remoteInfo = await this.marketplaceClient.getPlugin(
+        pluginId,
+        false,
+      );
 
       if (!remoteInfo || !remoteInfo.version) {
         return { success: true, data: null }; // No remote info, no update
@@ -214,19 +255,24 @@ class PluginUpdater extends EventEmitter {
         };
 
         this._pendingUpdates.set(pluginId, updateInfo);
-        this.emit('update-available', updateInfo);
+        this.emit("update-available", updateInfo);
 
         logger.info(
-          `[PluginUpdater] Update available for ${pluginId}: ${plugin.version} -> ${remoteInfo.version}`
+          `[PluginUpdater] Update available for ${pluginId}: ${plugin.version} -> ${remoteInfo.version}`,
         );
 
         return { success: true, data: updateInfo };
       }
 
-      logger.info(`[PluginUpdater] Plugin ${pluginId} is up to date (v${plugin.version})`);
+      logger.info(
+        `[PluginUpdater] Plugin ${pluginId} is up to date (v${plugin.version})`,
+      );
       return { success: true, data: null };
     } catch (error) {
-      logger.error(`[PluginUpdater] checkSingleUpdate failed for ${pluginId}:`, error);
+      logger.error(
+        `[PluginUpdater] checkSingleUpdate failed for ${pluginId}:`,
+        error,
+      );
       return { success: false, error: error.message };
     }
   }
@@ -243,12 +289,12 @@ class PluginUpdater extends EventEmitter {
    */
   async autoUpdateAll() {
     if (this._updating) {
-      logger.warn('[PluginUpdater] Auto-update already in progress');
-      return { success: false, error: 'Update already in progress' };
+      logger.warn("[PluginUpdater] Auto-update already in progress");
+      return { success: false, error: "Update already in progress" };
     }
 
     this._updating = true;
-    logger.info('[PluginUpdater] Starting auto-update for eligible plugins...');
+    logger.info("[PluginUpdater] Starting auto-update for eligible plugins...");
 
     const results = {
       updated: [],
@@ -262,36 +308,42 @@ class PluginUpdater extends EventEmitter {
         const checkResult = await this.checkUpdates();
         if (!checkResult.success) {
           this._updating = false;
-          return { success: false, error: `Update check failed: ${checkResult.error}` };
+          return {
+            success: false,
+            error: `Update check failed: ${checkResult.error}`,
+          };
         }
       }
 
       // Filter plugins that have auto_update enabled
-      const autoUpdatePlugins = Array.from(this._pendingUpdates.values()).filter(
-        (update) => update.autoUpdate
-      );
+      const autoUpdatePlugins = Array.from(
+        this._pendingUpdates.values(),
+      ).filter((update) => update.autoUpdate);
 
       if (autoUpdatePlugins.length === 0) {
-        logger.info('[PluginUpdater] No plugins eligible for auto-update');
+        logger.info("[PluginUpdater] No plugins eligible for auto-update");
         this._updating = false;
         return { success: true, data: results };
       }
 
       logger.info(
-        `[PluginUpdater] ${autoUpdatePlugins.length} plugins eligible for auto-update`
+        `[PluginUpdater] ${autoUpdatePlugins.length} plugins eligible for auto-update`,
       );
 
       // Process updates sequentially to avoid conflicts
       for (const update of autoUpdatePlugins) {
         try {
-          this.emit('update-started', {
+          this.emit("update-started", {
             pluginId: update.pluginId,
             fromVersion: update.currentVersion,
             toVersion: update.latestVersion,
           });
 
           // Perform the update via plugin installer
-          await this.pluginInstaller.updatePlugin(update.pluginId, update.latestVersion);
+          await this.pluginInstaller.updatePlugin(
+            update.pluginId,
+            update.latestVersion,
+          );
 
           // Record update history
           this._recordUpdateHistory(
@@ -299,7 +351,7 @@ class PluginUpdater extends EventEmitter {
             update.currentVersion,
             update.latestVersion,
             true,
-            null
+            null,
           );
 
           // Remove from pending updates
@@ -312,14 +364,14 @@ class PluginUpdater extends EventEmitter {
             toVersion: update.latestVersion,
           });
 
-          this.emit('update-completed', {
+          this.emit("update-completed", {
             pluginId: update.pluginId,
             fromVersion: update.currentVersion,
             toVersion: update.latestVersion,
           });
 
           logger.info(
-            `[PluginUpdater] Auto-updated ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`
+            `[PluginUpdater] Auto-updated ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`,
           );
         } catch (err) {
           // Record failed update
@@ -328,7 +380,7 @@ class PluginUpdater extends EventEmitter {
             update.currentVersion,
             update.latestVersion,
             false,
-            err.message
+            err.message,
           );
 
           results.failed.push({
@@ -336,38 +388,38 @@ class PluginUpdater extends EventEmitter {
             error: err.message,
           });
 
-          this.emit('update-failed', {
+          this.emit("update-failed", {
             pluginId: update.pluginId,
             error: err.message,
           });
 
           logger.error(
-            `[PluginUpdater] Auto-update failed for ${update.pluginId}: ${err.message}`
+            `[PluginUpdater] Auto-update failed for ${update.pluginId}: ${err.message}`,
           );
         }
       }
 
       // Count skipped plugins (pending but no auto-update)
       const skippedPlugins = Array.from(this._pendingUpdates.values()).filter(
-        (update) => !update.autoUpdate
+        (update) => !update.autoUpdate,
       );
       for (const update of skippedPlugins) {
         results.skipped.push({
           pluginId: update.pluginId,
-          reason: 'auto-update disabled',
+          reason: "auto-update disabled",
         });
       }
 
       logger.info(
         `[PluginUpdater] Auto-update complete: ${results.updated.length} updated, ` +
-          `${results.failed.length} failed, ${results.skipped.length} skipped`
+          `${results.failed.length} failed, ${results.skipped.length} skipped`,
       );
 
       this._updating = false;
       return { success: true, data: results };
     } catch (error) {
       this._updating = false;
-      logger.error('[PluginUpdater] autoUpdateAll failed:', error);
+      logger.error("[PluginUpdater] autoUpdateAll failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -387,16 +439,18 @@ class PluginUpdater extends EventEmitter {
       let rows;
 
       if (pluginId) {
-        logger.info(`[PluginUpdater] Getting update history for plugin: ${pluginId}`);
+        logger.info(
+          `[PluginUpdater] Getting update history for plugin: ${pluginId}`,
+        );
         const stmt = this.database.db.prepare(
-          'SELECT * FROM plugin_update_history WHERE plugin_id = ? ORDER BY updated_at DESC'
+          "SELECT * FROM plugin_update_history WHERE plugin_id = ? ORDER BY updated_at DESC",
         );
         rows = stmt.all([pluginId]);
         stmt.free();
       } else {
-        logger.info('[PluginUpdater] Getting all update history');
+        logger.info("[PluginUpdater] Getting all update history");
         const stmt = this.database.db.prepare(
-          'SELECT * FROM plugin_update_history ORDER BY updated_at DESC LIMIT 100'
+          "SELECT * FROM plugin_update_history ORDER BY updated_at DESC LIMIT 100",
         );
         rows = stmt.all();
         stmt.free();
@@ -414,7 +468,7 @@ class PluginUpdater extends EventEmitter {
 
       return { success: true, data: history };
     } catch (error) {
-      logger.error('[PluginUpdater] getUpdateHistory failed:', error);
+      logger.error("[PluginUpdater] getUpdateHistory failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -432,13 +486,13 @@ class PluginUpdater extends EventEmitter {
    */
   setAutoUpdate(pluginId, enabled) {
     if (!pluginId) {
-      return { success: false, error: 'pluginId is required' };
+      return { success: false, error: "pluginId is required" };
     }
 
     try {
       const value = enabled ? 1 : 0;
       const stmt = this.database.db.prepare(
-        'UPDATE installed_plugins SET auto_update = ? WHERE plugin_id = ?'
+        "UPDATE installed_plugins SET auto_update = ? WHERE plugin_id = ?",
       );
       stmt.run([value, pluginId]);
       stmt.free();
@@ -450,12 +504,15 @@ class PluginUpdater extends EventEmitter {
       }
 
       logger.info(
-        `[PluginUpdater] Auto-update for ${pluginId} set to ${enabled ? 'enabled' : 'disabled'}`
+        `[PluginUpdater] Auto-update for ${pluginId} set to ${enabled ? "enabled" : "disabled"}`,
       );
 
       return { success: true };
     } catch (error) {
-      logger.error(`[PluginUpdater] setAutoUpdate failed for ${pluginId}:`, error);
+      logger.error(
+        `[PluginUpdater] setAutoUpdate failed for ${pluginId}:`,
+        error,
+      );
       return { success: false, error: error.message };
     }
   }
@@ -475,26 +532,26 @@ class PluginUpdater extends EventEmitter {
 
       // Load settings from system_settings table
       const keys = [
-        'marketplace.checkInterval',
-        'marketplace.autoUpdateEnabled',
-        'marketplace.notificationsEnabled',
-        'marketplace.maxConcurrentUpdates',
-        'marketplace.updateChannel',
-        'marketplace.lastCheckTime',
+        "marketplace.checkInterval",
+        "marketplace.autoUpdateEnabled",
+        "marketplace.notificationsEnabled",
+        "marketplace.maxConcurrentUpdates",
+        "marketplace.updateChannel",
+        "marketplace.lastCheckTime",
       ];
 
       for (const key of keys) {
         const value = this._getSettingValue(key);
         if (value !== null && value !== undefined) {
-          const shortKey = key.replace('marketplace.', '');
+          const shortKey = key.replace("marketplace.", "");
           settings[shortKey] = value;
         }
       }
 
-      logger.info('[PluginUpdater] Retrieved marketplace settings');
+      logger.info("[PluginUpdater] Retrieved marketplace settings");
       return { success: true, data: settings };
     } catch (error) {
-      logger.error('[PluginUpdater] getSettings failed:', error);
+      logger.error("[PluginUpdater] getSettings failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -511,17 +568,17 @@ class PluginUpdater extends EventEmitter {
    * @returns {Object} { success: boolean, error?: string }
    */
   updateSettings(settings) {
-    if (!settings || typeof settings !== 'object') {
-      return { success: false, error: 'settings must be an object' };
+    if (!settings || typeof settings !== "object") {
+      return { success: false, error: "settings must be an object" };
     }
 
     try {
       const allowedKeys = [
-        'checkInterval',
-        'autoUpdateEnabled',
-        'notificationsEnabled',
-        'maxConcurrentUpdates',
-        'updateChannel',
+        "checkInterval",
+        "autoUpdateEnabled",
+        "notificationsEnabled",
+        "maxConcurrentUpdates",
+        "updateChannel",
       ];
 
       for (const [key, value] of Object.entries(settings)) {
@@ -531,18 +588,33 @@ class PluginUpdater extends EventEmitter {
         }
 
         // Validate specific settings
-        if (key === 'checkInterval' && (typeof value !== 'number' || value < 60000)) {
-          logger.warn('[PluginUpdater] checkInterval must be at least 60000ms (1 minute)');
+        if (
+          key === "checkInterval" &&
+          (typeof value !== "number" || value < 60000)
+        ) {
+          logger.warn(
+            "[PluginUpdater] checkInterval must be at least 60000ms (1 minute)",
+          );
           continue;
         }
 
-        if (key === 'maxConcurrentUpdates' && (typeof value !== 'number' || value < 1 || value > 10)) {
-          logger.warn('[PluginUpdater] maxConcurrentUpdates must be between 1 and 10');
+        if (
+          key === "maxConcurrentUpdates" &&
+          (typeof value !== "number" || value < 1 || value > 10)
+        ) {
+          logger.warn(
+            "[PluginUpdater] maxConcurrentUpdates must be between 1 and 10",
+          );
           continue;
         }
 
-        if (key === 'updateChannel' && !['stable', 'beta', 'nightly'].includes(value)) {
-          logger.warn('[PluginUpdater] updateChannel must be stable, beta, or nightly');
+        if (
+          key === "updateChannel" &&
+          !["stable", "beta", "nightly"].includes(value)
+        ) {
+          logger.warn(
+            "[PluginUpdater] updateChannel must be stable, beta, or nightly",
+          );
           continue;
         }
 
@@ -554,10 +626,10 @@ class PluginUpdater extends EventEmitter {
         this._restartCheckTimer(settings.checkInterval);
       }
 
-      logger.info('[PluginUpdater] Marketplace settings updated');
+      logger.info("[PluginUpdater] Marketplace settings updated");
       return { success: true };
     } catch (error) {
-      logger.error('[PluginUpdater] updateSettings failed:', error);
+      logger.error("[PluginUpdater] updateSettings failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -573,13 +645,13 @@ class PluginUpdater extends EventEmitter {
    */
   startAutoCheck(interval) {
     if (this._checkTimer) {
-      logger.info('[PluginUpdater] Auto-check timer already running');
+      logger.info("[PluginUpdater] Auto-check timer already running");
       return;
     }
 
     const checkInterval = interval || this._getCheckInterval();
     logger.info(
-      `[PluginUpdater] Starting auto-check timer (interval: ${checkInterval}ms)`
+      `[PluginUpdater] Starting auto-check timer (interval: ${checkInterval}ms)`,
     );
 
     this._checkTimer = setInterval(async () => {
@@ -588,12 +660,16 @@ class PluginUpdater extends EventEmitter {
         if (result.success && result.data && result.data.length > 0) {
           // Check if global auto-update is enabled
           const settings = this.getSettings();
-          if (settings.success && settings.data && settings.data.autoUpdateEnabled) {
+          if (
+            settings.success &&
+            settings.data &&
+            settings.data.autoUpdateEnabled
+          ) {
             await this.autoUpdateAll();
           }
         }
       } catch (err) {
-        logger.error('[PluginUpdater] Periodic update check failed:', err);
+        logger.error("[PluginUpdater] Periodic update check failed:", err);
       }
     }, checkInterval);
   }
@@ -605,7 +681,7 @@ class PluginUpdater extends EventEmitter {
     if (this._checkTimer) {
       clearInterval(this._checkTimer);
       this._checkTimer = null;
-      logger.info('[PluginUpdater] Auto-check timer stopped');
+      logger.info("[PluginUpdater] Auto-check timer stopped");
     }
   }
 
@@ -633,13 +709,13 @@ class PluginUpdater extends EventEmitter {
   _getInstalledPlugins() {
     try {
       const stmt = this.database.db.prepare(
-        'SELECT * FROM installed_plugins WHERE enabled = 1 ORDER BY installed_at DESC'
+        "SELECT * FROM installed_plugins WHERE enabled = 1 ORDER BY installed_at DESC",
       );
       const rows = stmt.all();
       stmt.free();
       return rows || [];
     } catch (error) {
-      logger.error('[PluginUpdater] _getInstalledPlugins failed:', error);
+      logger.error("[PluginUpdater] _getInstalledPlugins failed:", error);
       return [];
     }
   }
@@ -654,13 +730,16 @@ class PluginUpdater extends EventEmitter {
   _getInstalledPlugin(pluginId) {
     try {
       const stmt = this.database.db.prepare(
-        'SELECT * FROM installed_plugins WHERE plugin_id = ?'
+        "SELECT * FROM installed_plugins WHERE plugin_id = ?",
       );
       const row = stmt.get([pluginId]);
       stmt.free();
       return row || null;
     } catch (error) {
-      logger.error(`[PluginUpdater] _getInstalledPlugin failed for ${pluginId}:`, error);
+      logger.error(
+        `[PluginUpdater] _getInstalledPlugin failed for ${pluginId}:`,
+        error,
+      );
       return null;
     }
   }
@@ -675,11 +754,17 @@ class PluginUpdater extends EventEmitter {
    * @param {string|null} errorMessage - Error message if failed
    * @private
    */
-  _recordUpdateHistory(pluginId, fromVersion, toVersion, success, errorMessage) {
+  _recordUpdateHistory(
+    pluginId,
+    fromVersion,
+    toVersion,
+    success,
+    errorMessage,
+  ) {
     try {
       const stmt = this.database.db.prepare(
         `INSERT INTO plugin_update_history (id, plugin_id, from_version, to_version, updated_at, success, error_message)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       );
       stmt.run([
         uuidv4(),
@@ -692,7 +777,10 @@ class PluginUpdater extends EventEmitter {
       ]);
       stmt.free();
     } catch (error) {
-      logger.error(`[PluginUpdater] _recordUpdateHistory failed for ${pluginId}:`, error);
+      logger.error(
+        `[PluginUpdater] _recordUpdateHistory failed for ${pluginId}:`,
+        error,
+      );
     }
   }
 
@@ -705,25 +793,27 @@ class PluginUpdater extends EventEmitter {
    */
   _getSettingValue(key) {
     try {
-      if (typeof this.database.getSetting === 'function') {
+      if (typeof this.database.getSetting === "function") {
         return this.database.getSetting(key);
       }
 
       const stmt = this.database.db.prepare(
-        'SELECT value, type FROM system_settings WHERE key = ?'
+        "SELECT value, type FROM system_settings WHERE key = ?",
       );
       const row = stmt.get([key]);
       stmt.free();
 
-      if (!row) {return null;}
+      if (!row) {
+        return null;
+      }
 
       // Parse value based on type
       switch (row.type) {
-        case 'number':
+        case "number":
           return Number(row.value);
-        case 'boolean':
-          return row.value === 'true' || row.value === '1';
-        case 'json':
+        case "boolean":
+          return row.value === "true" || row.value === "1";
+        case "json":
           try {
             return JSON.parse(row.value);
           } catch {
@@ -733,7 +823,10 @@ class PluginUpdater extends EventEmitter {
           return row.value;
       }
     } catch (error) {
-      logger.error(`[PluginUpdater] _getSettingValue failed for ${key}:`, error);
+      logger.error(
+        `[PluginUpdater] _getSettingValue failed for ${key}:`,
+        error,
+      );
       return null;
     }
   }
@@ -747,35 +840,38 @@ class PluginUpdater extends EventEmitter {
    */
   _saveSettingValue(key, value) {
     try {
-      if (typeof this.database.setSetting === 'function') {
+      if (typeof this.database.setSetting === "function") {
         this.database.setSetting(key, value);
         return;
       }
 
       // Determine type
-      let type = 'string';
+      let type = "string";
       let stringValue = String(value);
 
-      if (typeof value === 'number') {
-        type = 'number';
+      if (typeof value === "number") {
+        type = "number";
         stringValue = String(value);
-      } else if (typeof value === 'boolean') {
-        type = 'boolean';
+      } else if (typeof value === "boolean") {
+        type = "boolean";
         stringValue = String(value);
-      } else if (typeof value === 'object') {
-        type = 'json';
+      } else if (typeof value === "object") {
+        type = "json";
         stringValue = JSON.stringify(value);
       }
 
       const now = Date.now();
       const stmt = this.database.db.prepare(
         `INSERT OR REPLACE INTO system_settings (key, value, type, updated_at, created_at)
-         VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM system_settings WHERE key = ?), ?))`
+         VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM system_settings WHERE key = ?), ?))`,
       );
       stmt.run([key, stringValue, type, now, key, now]);
       stmt.free();
     } catch (error) {
-      logger.error(`[PluginUpdater] _saveSettingValue failed for ${key}:`, error);
+      logger.error(
+        `[PluginUpdater] _saveSettingValue failed for ${key}:`,
+        error,
+      );
     }
   }
 
@@ -786,8 +882,10 @@ class PluginUpdater extends EventEmitter {
    * @private
    */
   _getCheckInterval() {
-    const value = this._getSettingValue('marketplace.checkInterval');
-    return (typeof value === 'number' && value >= 60000) ? value : DEFAULT_SETTINGS.checkInterval;
+    const value = this._getSettingValue("marketplace.checkInterval");
+    return typeof value === "number" && value >= 60000
+      ? value
+      : DEFAULT_SETTINGS.checkInterval;
   }
 
   // ============================================================
@@ -804,8 +902,8 @@ class PluginUpdater extends EventEmitter {
     this._checking = false;
     this._updating = false;
     this.removeAllListeners();
-    logger.info('[PluginUpdater] Destroyed');
+    logger.info("[PluginUpdater] Destroyed");
   }
 }
 
-module.exports = { PluginUpdater };
+module.exports = { PluginUpdater, compareVersions };
