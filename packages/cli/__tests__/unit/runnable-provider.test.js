@@ -145,14 +145,16 @@ describe("inferProviderFromBaseUrl", () => {
 });
 
 describe("makeRunnableProviderFallback", () => {
-  it("heals a mislabeled config: provider=anthropic but volces baseUrl → volcengine", async () => {
+  it("PROACTIVELY heals a mislabeled config: provider=anthropic but volces baseUrl → volcengine (no doomed first attempt, even for a non-auth failure)", async () => {
     const seen = [];
     const fb = [];
-    // throws auth on anthropic, succeeds once provider matches the baseUrl
+    // The mislabeled anthropic attempt would fail with a NON-auth error
+    // ("fetch failed") that the reactive catch could NOT recover — so the heal
+    // must pre-empt it. If anthropic is ever attempted this throw proves the bug.
     const chatFn = async (_msgs, opts) => {
       seen.push(opts.provider);
       if (opts.provider === "anthropic") {
-        throw new Error("API key required for anthropic");
+        throw new Error("fetch failed"); // non-auth: reactive path would rethrow
       }
       return { message: { role: "assistant", content: "ok" }, _opts: opts };
     };
@@ -166,7 +168,7 @@ describe("makeRunnableProviderFallback", () => {
       apiKey: "sk-volc",
       model: "haiku",
     });
-    expect(seen).toEqual(["anthropic", "volcengine"]);
+    expect(seen).toEqual(["volcengine"]); // anthropic never attempted
     expect(out._opts.provider).toBe("volcengine");
     expect(out._opts.apiKey).toBe("sk-volc"); // same key + baseUrl kept
     expect(out._opts.model).toBe("doubao-seed-2-1-pro-260628"); // provider default
@@ -175,6 +177,59 @@ describe("makeRunnableProviderFallback", () => {
       to: "volcengine",
       reason: "baseurl-mismatch",
     });
+  });
+
+  it("PROACTIVELY heals a foreign model on a correct provider: volcengine + haiku → provider default (no 404)", async () => {
+    const seen = [];
+    const fb = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push({ provider: opts.provider, model: opts.model });
+      // a real ark endpoint 404s an Anthropic model name — if model:"haiku" ever
+      // reaches it this throw proves the heal failed.
+      if (/haiku/i.test(opts.model || "")) {
+        throw new Error("volcengine API error: HTTP 404");
+      }
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: {},
+      onFallback: (i) => fb.push(i),
+    });
+    const out = await wrapped([], {
+      provider: "volcengine",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-volc",
+      model: "haiku", // foreign (anthropic) model stuck on volcengine
+    });
+    expect(seen).toHaveLength(1); // no doomed haiku attempt
+    expect(seen[0].provider).toBe("volcengine");
+    expect(seen[0].model).toBe("doubao-seed-2-1-pro-260628"); // provider default
+    expect(out._opts.model).toBe("doubao-seed-2-1-pro-260628");
+    expect(out._opts.apiKey).toBe("sk-volc"); // same provider + key kept
+    expect(fb[0]).toMatchObject({
+      from: "volcengine",
+      to: "volcengine",
+      reason: "model-mismatch",
+      fromModel: "haiku",
+      toModel: "doubao-seed-2-1-pro-260628",
+    });
+  });
+
+  it("does NOT swap a model that belongs to the configured provider", async () => {
+    const seen = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.model);
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, { env: {} });
+    // anthropic + haiku is correct — must not be touched.
+    await wrapped([], {
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      apiKey: "sk-ant",
+      model: "claude-haiku-4-5",
+    });
+    expect(seen).toEqual(["claude-haiku-4-5"]);
   });
 
   it("falls back to an env-keyed provider when the endpoint is unknown", async () => {
@@ -280,17 +335,11 @@ describe("makeRunnableProviderFallback — sticky resolution + dedup", () => {
       apiKey: "sk-volc",
       model: "haiku",
     };
-    // Turn 1: attempts anthropic (fails) → volcengine.
-    await wrapped([], opts);
-    // Turn 2 + 3: route straight to volcengine, no wasted anthropic attempt.
+    // Every turn pre-empts the doomed anthropic attempt → straight to volcengine.
     await wrapped([], opts);
     await wrapped([], opts);
-    expect(seen).toEqual([
-      "anthropic",
-      "volcengine",
-      "volcengine",
-      "volcengine",
-    ]);
+    await wrapped([], opts);
+    expect(seen).toEqual(["volcengine", "volcengine", "volcengine"]);
     // The fallback was announced exactly once despite three turns.
     expect(fb).toHaveLength(1);
     expect(fb[0]).toMatchObject({ from: "anthropic", to: "volcengine" });

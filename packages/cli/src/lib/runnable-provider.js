@@ -73,6 +73,32 @@ function defaultModelFor(provider) {
   return selectModelForTask(provider, TaskType.CHAT) || undefined;
 }
 
+// Model families that unambiguously belong to ONE provider. Used to catch a
+// corrupted config that paired a foreign model with a provider (e.g.
+// provider:"volcengine" + model:"haiku" → the ark API 404s "model not found").
+// Conservative on purpose — only well-known prefixes — so a custom/unknown
+// model name never misfires into a swap.
+const FOREIGN_MODEL_FAMILY = {
+  anthropic: /\b(claude|haiku|sonnet|opus)\b/i,
+  openai: /\b(gpt-?\d|o[134]-|chatgpt)\b/i,
+  gemini: /\bgemini\b/i,
+};
+
+/**
+ * Does `model` clearly belong to a DIFFERENT provider than `provider`? True only
+ * when the model matches another provider's well-known family signature (and not
+ * the configured provider's own family). Lets us swap a foreign model to the
+ * provider's default instead of 404-ing on the endpoint.
+ */
+export function modelForeignToProvider(provider, model) {
+  if (!nonEmpty(model)) return false;
+  for (const [family, re] of Object.entries(FOREIGN_MODEL_FAMILY)) {
+    if (family === provider) continue;
+    if (re.test(model)) return true;
+  }
+  return false;
+}
+
 /**
  * Wrap a chatFn so an AUTH failure (no / wrong / expired key for the resolved
  * provider) self-heals to a provider we can actually run instead of failing the
@@ -159,6 +185,44 @@ export function makeRunnableProviderFallback(
   const stickyFrom = new Set();
 
   return async function runnableProviderFallback(messages, options = {}) {
+    // PROACTIVE heal #1 — a FOREIGN MODEL on an otherwise-correct provider: a
+    // corrupted config left e.g. model:"haiku" on provider:"volcengine", which
+    // the ark API 404s ("model not found"). Keep the provider + key + baseUrl;
+    // swap ONLY the model to the provider's own default so the call succeeds.
+    if (
+      nonEmpty(options.provider) &&
+      modelForeignToProvider(options.provider, options.model)
+    ) {
+      const def = defaultModelFor(options.provider);
+      if (def && def !== options.model) {
+        notify({
+          from: options.provider,
+          to: options.provider,
+          reason: "model-mismatch",
+          fromModel: options.model,
+          toModel: def,
+        });
+        options = { ...options, model: def };
+      }
+    }
+    // PROACTIVE heal #2 — a MISLABELED config (provider disagrees with the
+    // endpoint its baseUrl belongs to — e.g. a corrupted config left
+    // provider:"anthropic" but baseUrl still points at volces.com). The labeled
+    // provider's first attempt is doomed AND can fail with a NON-auth error
+    // ("fetch failed" / wrong-endpoint 404) that the reactive catch below would
+    // rethrow without recovering — the exact "配置了火山却 fetch failed / 切到
+    // ollama" trap. The relabel is always safe (SAME baseUrl + key; only the
+    // provider name + paired model change), so pre-empt the bad attempt
+    // entirely. Env-key fallback stays REACTIVE (it must fire only when the
+    // configured provider genuinely cannot run, never to hijack a keyed one).
+    {
+      const pre = computeFallback(options);
+      if (pre && pre.reason === "baseurl-mismatch") {
+        stickyFrom.add(options.provider);
+        notify({ from: options.provider, to: pre.to, reason: pre.reason });
+        return await chatFn(messages, { ...options, ...pre.override });
+      }
+    }
     // Known-bad provider: skip the wasted failed attempt and route directly.
     if (stickyFrom.has(options.provider)) {
       const fb = computeFallback(options);

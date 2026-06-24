@@ -4293,7 +4293,7 @@ export async function* agentLoop(messages, options) {
     const { makeRunnableProviderFallback } =
       await import("../lib/runnable-provider.js");
     llmCall = makeRunnableProviderFallback(llmCall, {
-      onFallback: ({ from, to, reason }) => {
+      onFallback: ({ from, to, reason, fromModel, toModel }) => {
         // Switching VENDORS (or relabelling via baseUrl) must NEVER be silent —
         // a user who configured volcengine deserves to know it ran on another
         // provider/model. Build a human message and hand it to the driver's
@@ -4302,8 +4302,10 @@ export async function* agentLoop(messages, options) {
         const message =
           reason === "env-key"
             ? `"${from}" 鉴权失败，已临时切换到不同厂商 "${to}"（请检查 ${from} 的 API key：cc config set llm.apiKey …）。`
-            : `provider 配置与 baseUrl 不一致，已按 baseUrl 切换到 "${to}"。`;
-        const info = { from, to, reason, message };
+            : reason === "model-mismatch"
+              ? `模型 "${fromModel}" 不属于 ${from}，已改用其默认模型 "${toModel}"（用 cc config set llm.model 设置正确的 ${from} 模型）。`
+              : `provider 配置与 baseUrl 不一致，已按 baseUrl 切换到 "${to}"。`;
+        const info = { from, to, reason, fromModel, toModel, message };
         if (typeof options.onProviderFallback === "function") {
           try {
             options.onProviderFallback(info);
