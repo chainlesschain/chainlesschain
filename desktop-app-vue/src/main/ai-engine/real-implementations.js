@@ -1702,9 +1702,22 @@ function calculateNextTrigger(remindTime, repeat) {
         case "weekly":
           nextTime.setDate(nextTime.getDate() + 7);
           break;
-        case "monthly":
+        case "monthly": {
+          // 锚定到原始 day-of-month 并按月底裁剪。直接 setMonth(+1) 在月末
+          // （29-31 日）会溢出：1/31 → 2/31 滚到 3/3，而循环原地累加 nextTime，
+          // 之后每月都变成 3 号——提醒日号永久漂移。这里固定用原始日号，月份不足
+          // 时裁到当月最后一天（长月再回到原日号），不漂移。
+          const anchorDay = targetTime.getDate();
+          nextTime.setDate(1);
           nextTime.setMonth(nextTime.getMonth() + 1);
+          const daysInMonth = new Date(
+            nextTime.getFullYear(),
+            nextTime.getMonth() + 1,
+            0,
+          ).getDate();
+          nextTime.setDate(Math.min(anchorDay, daysInMonth));
           break;
+        }
         case "yearly":
           nextTime.setFullYear(nextTime.getFullYear() + 1);
           break;
@@ -2525,6 +2538,9 @@ function getCompressionLevel(level) {
  */
 
 module.exports = {
+  // 提醒下次触发计算（导出以便单测月末递归不漂移）
+  calculateNextTrigger,
+
   // 二维码
   generateQRCodeReal,
   scanQRCodeReal,
