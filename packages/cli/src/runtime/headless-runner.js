@@ -46,6 +46,7 @@ import {
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
+import { mergeConsecutiveMessages } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
@@ -610,14 +611,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // content array (agent-core converts it per-provider for ollama/anthropic).
   const userMessageContent = buildUserContent(userContent, options.images);
 
-  const messages = [
+  // Merge consecutive same-role turns so a resumed session whose previous run
+  // produced NO assistant response (history ends with a bare `user` turn) does
+  // not yield two adjacent `user` messages — which Anthropic/Bedrock reject as
+  // "roles must alternate", failing the resume (Claude Code 2.1.187 parity).
+  // No-op on a healthy alternating transcript.
+  const messages = mergeConsecutiveMessages([
     { role: "system", content: systemContent },
     ...(sessionStartContext
       ? [{ role: "system", content: sessionStartContext }]
       : []),
     ...history,
     { role: "user", content: userMessageContent },
-  ];
+  ]);
 
   // Persist the user turn up front (best-effort) so a session is recoverable
   // even if the run crashes mid-loop. startSession is append-safe: only seed

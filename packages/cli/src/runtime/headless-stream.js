@@ -19,6 +19,7 @@
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
+import { mergeConsecutiveMessages } from "./message-roles.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { detectImagePaths } from "../lib/image-input.js";
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
@@ -259,7 +260,17 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   let endReason = "complete";
   let stopForCost = false;
 
-  for await (const event of runLoop(messages, loopOptions)) {
+  // Merge consecutive same-role turns before the model call so a resumed
+  // session whose previous run produced NO assistant response (history ends
+  // with a bare `user` turn) does not send two adjacent `user` messages —
+  // which Anthropic/Bedrock reject as "roles must alternate" (Claude Code
+  // 2.1.187 parity). Non-mutating: the persistent `messages` array keeps its
+  // per-turn structure; only the provider payload is sanitized. No-op on a
+  // healthy alternating transcript.
+  for await (const event of runLoop(
+    mergeConsecutiveMessages(messages),
+    loopOptions,
+  )) {
     switch (event.type) {
       case "tool-executing":
         toolCalls.push({ tool: event.tool, args: event.args });
