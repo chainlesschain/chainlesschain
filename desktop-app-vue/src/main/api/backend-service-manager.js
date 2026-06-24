@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { isWithinDir } = require("../utils/path-boundary.js");
 const { spawn, exec, execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -250,9 +251,9 @@ class BackendServiceManager {
 
     try {
       if (fs.existsSync(this.stopScript)) {
-        // 验证脚本路径安全性 - 必须在应用目录下
+        // 验证脚本路径安全性 - 必须在应用目录下（按分隔符判边界，防兄弟目录前缀绕过）
         const normalizedPath = path.normalize(this.stopScript);
-        if (!normalizedPath.startsWith(this.appPath)) {
+        if (!isWithinDir(this.appPath, normalizedPath)) {
           throw new Error("Invalid script path");
         }
         // 使用 spawn 替代 execSync 避免 shell 注入

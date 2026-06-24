@@ -3,33 +3,34 @@
  * 接收渲染进程的日志并写入文件
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../utils/logger');
+const { ipcMain } = require("electron");
+const { logger } = require("../utils/logger");
+const { isWithinDir } = require("../utils/path-boundary.js");
 
 /**
  * 注册日志相关的 IPC 处理器
  */
 function registerLoggerIPC() {
   // 接收渲染进程的日志
-  ipcMain.handle('logger:write', async (event, logData) => {
+  ipcMain.handle("logger:write", async (event, logData) => {
     try {
       const { level, module, message, data, timestamp, stack } = logData;
 
       // 根据日志级别调用对应的方法
-      const childLogger = logger.child(module || 'renderer');
+      const childLogger = logger.child(module || "renderer");
 
       switch (level) {
-        case 'DEBUG':
+        case "DEBUG":
           childLogger.debug(message, data);
           break;
-        case 'INFO':
+        case "INFO":
           childLogger.info(message, data);
           break;
-        case 'WARN':
+        case "WARN":
           childLogger.warn(message, data);
           break;
-        case 'ERROR':
-        case 'FATAL':
+        case "ERROR":
+        case "FATAL":
           childLogger.error(message, { ...data, stack });
           break;
         default:
@@ -38,13 +39,13 @@ function registerLoggerIPC() {
 
       return { success: true };
     } catch (error) {
-      logger.error('日志写入失败:', error);
+      logger.error("日志写入失败:", error);
       return { success: false, error: error.message };
     }
   });
 
   // 获取日志配置
-  ipcMain.handle('logger:get-config', async () => {
+  ipcMain.handle("logger:get-config", async () => {
     try {
       return {
         success: true,
@@ -56,7 +57,7 @@ function registerLoggerIPC() {
   });
 
   // 更新日志配置
-  ipcMain.handle('logger:set-config', async (event, config) => {
+  ipcMain.handle("logger:set-config", async (event, config) => {
     try {
       logger.setConfig(config);
       return { success: true };
@@ -66,7 +67,7 @@ function registerLoggerIPC() {
   });
 
   // 清理旧日志
-  ipcMain.handle('logger:cleanup', async (event, daysToKeep = 7) => {
+  ipcMain.handle("logger:cleanup", async (event, daysToKeep = 7) => {
     try {
       const deletedCount = logger.cleanup(daysToKeep);
       return { success: true, deletedCount };
@@ -76,16 +77,17 @@ function registerLoggerIPC() {
   });
 
   // 获取日志文件列表
-  ipcMain.handle('logger:get-files', async () => {
+  ipcMain.handle("logger:get-files", async () => {
     try {
-      const fs = require('fs');
-      const files = fs.readdirSync(logger.logDir)
-        .filter(f => f.endsWith('.log'))
-        .map(f => ({
+      const fs = require("fs");
+      const files = fs
+        .readdirSync(logger.logDir)
+        .filter((f) => f.endsWith(".log"))
+        .map((f) => ({
           name: f,
-          path: require('path').join(logger.logDir, f),
-          size: fs.statSync(require('path').join(logger.logDir, f)).size,
-          mtime: fs.statSync(require('path').join(logger.logDir, f)).mtime,
+          path: require("path").join(logger.logDir, f),
+          size: fs.statSync(require("path").join(logger.logDir, f)).size,
+          mtime: fs.statSync(require("path").join(logger.logDir, f)).mtime,
         }))
         .sort((a, b) => b.mtime - a.mtime);
 
@@ -96,25 +98,25 @@ function registerLoggerIPC() {
   });
 
   // 读取日志文件内容
-  ipcMain.handle('logger:read-file', async (event, filename) => {
+  ipcMain.handle("logger:read-file", async (event, filename) => {
     try {
-      const fs = require('fs');
-      const path = require('path');
+      const fs = require("fs");
+      const path = require("path");
       const filePath = path.join(logger.logDir, filename);
 
-      // 安全检查：防止路径遍历攻击
-      if (!filePath.startsWith(logger.logDir)) {
-        throw new Error('Invalid file path');
+      // 安全检查：防止路径遍历攻击（按分隔符判边界，防兄弟目录前缀绕过）
+      if (!isWithinDir(logger.logDir, filePath)) {
+        throw new Error("Invalid file path");
       }
 
-      const content = fs.readFileSync(filePath, 'utf8');
+      const content = fs.readFileSync(filePath, "utf8");
       return { success: true, content };
     } catch (error) {
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[Logger IPC] 已注册 6 个日志处理器');
+  logger.info("[Logger IPC] 已注册 6 个日志处理器");
 }
 
 module.exports = { registerLoggerIPC };
