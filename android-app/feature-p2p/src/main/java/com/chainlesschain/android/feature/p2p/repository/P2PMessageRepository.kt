@@ -49,6 +49,16 @@ class P2PMessageRepository @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private var observeJob: Job? = null
 
+    // E2EE 会话自愈 seam（依赖倒置，可选注入）。解密 MAC 失败 = 棘轮发散 → 触发会话重建。
+    // 未 attach 时行为与之前完全一致（无回归）。生产实现 app 层 WebRtcSessionRecovery。
+    @Volatile
+    private var sessionRecovery: com.chainlesschain.android.feature.p2p.recovery.SessionRecovery? = null
+
+    /** app 层在启动时注入会话自愈实现（同 attachRemoteRelay 模式）。 */
+    fun attachSessionRecovery(recovery: com.chainlesschain.android.feature.p2p.recovery.SessionRecovery) {
+        sessionRecovery = recovery
+    }
+
     // 接收到的消息流（用于通知UI）
     private val _incomingMessages = MutableSharedFlow<P2PMessageEntity>()
     val incomingMessages: SharedFlow<P2PMessageEntity> = _incomingMessages.asSharedFlow()
@@ -346,7 +356,23 @@ class P2PMessageRepository @Inject constructor(
             return
         }
         receiveMessage(p2pMessage, p2pMessage.toDeviceId)
-            .onFailure { Timber.w(it, "central receive failed: ${p2pMessage.id}") }
+            .onFailure { error ->
+                Timber.w(error, "central receive failed: ${p2pMessage.id}")
+                if (isDecryptFailure(error)) {
+                    // 自愈：DoubleRatchet 棘轮发散 → 触发与发端会话重建（impl 内去抖）。
+                    // 移除去重标记，使重建后发端重发的同 id 消息能被处理。
+                    recentlyReceived.remove(p2pMessage.id)
+                    sessionRecovery?.recover(p2pMessage.fromDeviceId)
+                }
+            }
+    }
+
+    /** 是否解密失败（DoubleRatchet `MAC verification failed` / 会话发散）——据此触发会话自愈。 */
+    private fun isDecryptFailure(error: Throwable): Boolean {
+        val msg = error.message ?: ""
+        return error is SecurityException ||
+            msg.contains("MAC verification", ignoreCase = true) ||
+            msg.contains("decrypt", ignoreCase = true)
     }
 
     /**

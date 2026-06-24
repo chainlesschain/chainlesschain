@@ -101,6 +101,14 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var webRtcMessageRelay: dagger.Lazy<com.chainlesschain.android.remote.p2p.WebRtcSignalingMessageRelay>
 
+    // 健壮性：E2EE 会话自愈 —— 解密 MAC 失败（棘轮发散）时自动删旧会话+重握手，免手动重配。
+    @Inject
+    lateinit var p2pMessageRepository:
+        dagger.Lazy<com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository>
+
+    @Inject
+    lateinit var webRtcSessionRecovery: dagger.Lazy<com.chainlesschain.android.remote.p2p.WebRtcSessionRecovery>
+
     // FAMILY-67 修复：启动时把已持久化的 E2EE 会话恢复进内存。否则重启后 getSession 为空，
     // 好友聊天显示「设备未验证」+ 发送失败（hasSession=false）。原接线在 AppInitializer
     // （死代码）→ 从未生效；移到 MainActivity.onCreate（已验证的启动路径，同通话修复）。
@@ -146,6 +154,10 @@ class MainActivity : AppCompatActivity() {
             // （core-p2p 自带的是 LAN-only 端口9999 栈，AP隔离/跨网会废；此 relay 走 wss）。
             runCatching { p2pConnectionManager.get().attachRemoteRelay(webRtcMessageRelay.get()) }
                 .onFailure { Timber.w(it, "attachRemoteRelay failed (non-fatal)") }
+            // 健壮性：附加 E2EE 会话自愈 —— 收端解密 MAC 失败（棘轮发散）时自动重建会话，
+            // 用户无需手动重新配对（设计 docs/internal/p2p-self-healing-e2ee-sessions.md）。
+            runCatching { p2pMessageRepository.get().attachSessionRecovery(webRtcSessionRecovery.get()) }
+                .onFailure { Timber.w(it, "attachSessionRecovery failed (non-fatal)") }
             // FAMILY-67: 接通话状态机 + 媒体/前台服务互挂 —— start() 订阅 call:* 来电信令，
             // 否则被叫端收不到来电（startCall 直接 send 不需要 start，但 onSignal 订阅必须 start）。
             runCatching {
