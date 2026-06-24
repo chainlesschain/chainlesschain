@@ -55,4 +55,15 @@ describe("calculateNextTrigger monthly (month-end, no drift)", () => {
     expect(next.getMonth()).toBe(1); // February
     expect(next.getDate()).toBe(15);
   });
+
+  it("clamps a Feb-29 yearly reminder to Feb 28 in a non-leap year (no drift to Mar 1)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2025, 0, 15, 12, 0, 0)); // now = Jan 15 2025
+    const next = new Date(
+      calculateNextTrigger("2024-02-29T09:00:00", "yearly"),
+    );
+    // 旧实现 setFullYear 溢出到 3/1 (getMonth 2); 修复后裁到 2/28 (getMonth 1)
+    expect(next.getMonth()).toBe(1); // February
+    expect(next.getDate()).toBe(28);
+  });
 });

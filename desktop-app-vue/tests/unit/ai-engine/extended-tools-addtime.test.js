@@ -49,4 +49,19 @@ describe("ExtendedTools._addTime month-end clamp", () => {
     const r = ExtendedTools._addTime(new Date(2024, 0, 15), 1, "month");
     expect(ymd(r)).toEqual([2024, 1, 15]); // Feb 15
   });
+
+  it("clamps Feb 29 + 1 year to Feb 28 (non-leap), not Mar 1", () => {
+    const r = ExtendedTools._addTime(new Date(2024, 1, 29), 1, "year");
+    expect(ymd(r)).toEqual([2025, 1, 28]); // Feb 28 2025
+  });
+
+  it("returns to Feb 29 when the target year is a leap year (+4)", () => {
+    const r = ExtendedTools._addTime(new Date(2024, 1, 29), 4, "year");
+    expect(ymd(r)).toEqual([2028, 1, 29]); // Feb 29 2028
+  });
+
+  it("leaves a non-leap-day year add unchanged", () => {
+    const r = ExtendedTools._addTime(new Date(2024, 0, 31), 1, "year");
+    expect(ymd(r)).toEqual([2025, 0, 31]); // Jan 31 2025
+  });
 });

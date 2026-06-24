@@ -1718,9 +1718,22 @@ function calculateNextTrigger(remindTime, repeat) {
           nextTime.setDate(Math.min(anchorDay, daysInMonth));
           break;
         }
-        case "yearly":
+        case "yearly": {
+          // 闰日 2/29 的年度提醒：直接 setFullYear 到非闰年溢出到 3/1 并永久漂移。
+          // 锚定原始月/日，非闰年裁到 2/28，闰年回到 2/29，不漂移。
+          const anchorMonth = targetTime.getMonth();
+          const anchorDay = targetTime.getDate();
+          nextTime.setDate(1);
           nextTime.setFullYear(nextTime.getFullYear() + 1);
+          nextTime.setMonth(anchorMonth);
+          const daysInMonth = new Date(
+            nextTime.getFullYear(),
+            anchorMonth + 1,
+            0,
+          ).getDate();
+          nextTime.setDate(Math.min(anchorDay, daysInMonth));
           break;
+        }
         default:
           return null;
       }

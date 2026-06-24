@@ -876,9 +876,19 @@ class ExtendedTools {
     const result = new Date(date);
 
     switch (unit) {
-      case "year":
+      case "year": {
+        // 闰日 2/29 + N 年到非闰年会溢出到 3/1，按月底裁剪（与 month 分支一致）。
+        const day = result.getDate();
+        result.setDate(1);
         result.setFullYear(result.getFullYear() + amount);
+        const daysInMonth = new Date(
+          result.getFullYear(),
+          result.getMonth() + 1,
+          0,
+        ).getDate();
+        result.setDate(Math.min(day, daysInMonth));
         break;
+      }
       case "month": {
         // 月加减按月底裁剪，对齐 date-fns/moment 约定，避免 setMonth 在月末溢出：
         // 1/31 + 1 月原生会得 3/3，正确应为 2/28（短月裁剪，长月保留原日号）。
