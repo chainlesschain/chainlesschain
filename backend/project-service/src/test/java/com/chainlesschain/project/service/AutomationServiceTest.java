@@ -226,6 +226,47 @@ class AutomationServiceTest {
     }
 
     @Test
+    void testManualTrigger_RunScript_NumericTimeoutAsDouble_RunsInsteadOfFailing()
+            throws Exception {
+        // Jackson 把 JSON 的 60.5 反序列化为 Double；旧实现 (Integer) 强转抛
+        // ClassCastException，被 executeRule 吞成 status=failed。归一后应正常执行。
+        testRule.setActionType("run_script");
+        testRule.setActionConfig("{\"timeout\": 60.5}");
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("timeout", 60.5); // Double
+        when(objectMapper.readValue(any(String.class), any(Class.class)))
+                .thenReturn(cfg);
+        when(ruleMapper.selectOne(any())).thenReturn(testRule);
+        when(ruleMapper.updateById(any(ProjectAutomationRule.class))).thenReturn(1);
+
+        Map<String, Object> result =
+                automationService.manualTrigger(testProjectId, testRuleId);
+
+        assertEquals("success", result.get("status"));
+        assertEquals(60, result.get("timeout")); // 60.5 → 60
+    }
+
+    @Test
+    void testManualTrigger_RunScript_TimeoutAsLong_RunsInsteadOfFailing()
+            throws Exception {
+        // 被反序列化为 Long（如超出 int 写法）时同样不应 CCE。
+        testRule.setActionType("run_script");
+        testRule.setActionConfig("{\"timeout\": 45}");
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("timeout", 45L); // Long
+        when(objectMapper.readValue(any(String.class), any(Class.class)))
+                .thenReturn(cfg);
+        when(ruleMapper.selectOne(any())).thenReturn(testRule);
+        when(ruleMapper.updateById(any(ProjectAutomationRule.class))).thenReturn(1);
+
+        Map<String, Object> result =
+                automationService.manualTrigger(testProjectId, testRuleId);
+
+        assertEquals("success", result.get("status"));
+        assertEquals(45, result.get("timeout"));
+    }
+
+    @Test
     void testManualTrigger_RuleDisabled() {
         testRule.setIsEnabled(false);
         when(ruleMapper.selectOne(any())).thenReturn(testRule);

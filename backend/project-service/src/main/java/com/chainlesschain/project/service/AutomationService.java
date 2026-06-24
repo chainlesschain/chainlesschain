@@ -264,13 +264,37 @@ public class AutomationService {
     }
 
     /**
+     * 从 action 配置里安全读取整数。
+     *
+     * actionConfig 是 ObjectMapper.readValue(json, Map.class) 反序列化的结果，
+     * JSON 数字依大小/写法被解析成 Integer / Long / Double，纯字符串则是 String。
+     * 直接 {@code (Integer) config.get(key)} 在 timeout 写成 60.5 / 超大值 / "60"
+     * 时会抛 ClassCastException —— 被 executeRule 的 catch 吞成「规则执行失败」，
+     * 一条本可正常运行的规则因此报含糊的转型错误。此处统一做数值/字符串归一。
+     */
+    private static int intFromConfig(Map<String, Object> config, String key, int defaultValue) {
+        Object raw = config.get(key);
+        if (raw instanceof Number) {
+            return ((Number) raw).intValue();
+        }
+        if (raw instanceof String) {
+            try {
+                return Integer.parseInt(((String) raw).trim());
+            } catch (NumberFormatException ignored) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
      * 运行脚本
      */
     private Map<String, Object> executeRunScript(Map<String, Object> config, String projectId) {
         Map<String, Object> result = new HashMap<>();
         String scriptType = (String) config.getOrDefault("script_type", "shell");
         String scriptContent = (String) config.getOrDefault("script", "");
-        Integer timeoutSeconds = (Integer) config.getOrDefault("timeout", 30);
+        int timeoutSeconds = intFromConfig(config, "timeout", 30);
 
         log.info("[自动化脚本] projectId={}, type={}, timeout={}s", projectId, scriptType, timeoutSeconds);
 
