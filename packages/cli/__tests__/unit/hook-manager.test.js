@@ -324,6 +324,27 @@ describe("Hook Manager", () => {
       expect(fn("Delete")).toBe(false);
     });
 
+    it("matches comma-separated patterns (Claude-Code 2.1.191)", () => {
+      const fn = compileMatcher("Bash,PowerShell");
+      expect(fn("Bash")).toBe(true);
+      expect(fn("PowerShell")).toBe(true);
+      expect(fn("Edit")).toBe(false);
+    });
+
+    it("supports spaces and mixed pipe/comma separators", () => {
+      const fn = compileMatcher("Edit, Write | Bash");
+      expect(fn("Edit")).toBe(true);
+      expect(fn("Write")).toBe(true);
+      expect(fn("Bash")).toBe(true);
+      expect(fn("Read")).toBe(false);
+    });
+
+    it("drops empty segments so a trailing comma/pipe is not match-all", () => {
+      const fn = compileMatcher("Bash,");
+      expect(fn("Bash")).toBe(true);
+      expect(fn("Edit")).toBe(false);
+    });
+
     it("matches regex pattern", () => {
       const fn = compileMatcher("/^Pre/");
       expect(fn("PreIPCCall")).toBe(true);

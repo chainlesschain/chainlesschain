@@ -1101,7 +1101,7 @@ Claude Code hooks 对标。两个来源,职责不同:
 }
 ```
 
-- `matcher`:工具名匹配,支持精确 / `Edit|Write` 管道 / `*` 通配 / `/regex/`。对**伞名**(`Bash`)和**本 CLI 原名**(`run_shell`)都测——两种写法都命中。
+- `matcher`:工具名匹配,支持精确 / `Edit|Write` 管道 / `Bash,PowerShell` 逗号 / `*` 通配 / `/regex/`(管道与逗号可混用,空段忽略)。对**伞名**(`Bash`)和**本 CLI 原名**(`run_shell`)都测——两种写法都命中。
 - hooks 数组**跨层级拼接**(user < project < .local < `--settings`),有序、不去重。
 - `timeout` 秒(默认 60)。
 

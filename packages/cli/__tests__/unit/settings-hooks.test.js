@@ -91,33 +91,46 @@ describe("collectHooks — matcher resolution", () => {
   };
 
   it("matches the CC umbrella name (Bash → run_shell)", () => {
-    expect(collectHooks(block, "PreToolUse", "run_shell").map((h) => h.command)).toEqual([
-      "bash.sh",
-      "all.sh",
-    ]);
+    expect(
+      collectHooks(block, "PreToolUse", "run_shell").map((h) => h.command),
+    ).toEqual(["bash.sh", "all.sh"]);
   });
 
   it("matches the raw tool name too", () => {
     const b = { PreToolUse: [cmdGroup("run_shell", "raw.sh")] };
-    expect(collectHooks(b, "PreToolUse", "run_shell")[0].command).toBe("raw.sh");
+    expect(collectHooks(b, "PreToolUse", "run_shell")[0].command).toBe(
+      "raw.sh",
+    );
   });
 
   it("pipe matcher matches either alternative (Edit|Write)", () => {
-    expect(collectHooks(block, "PreToolUse", "write_file").map((h) => h.command)).toEqual([
-      "edit.sh",
-      "all.sh",
-    ]);
+    expect(
+      collectHooks(block, "PreToolUse", "write_file").map((h) => h.command),
+    ).toEqual(["edit.sh", "all.sh"]);
   });
 
   it("`*` matches every tool; unmatched tool gets only `*`", () => {
-    expect(collectHooks(block, "PreToolUse", "read_file").map((h) => h.command)).toEqual([
-      "all.sh",
-    ]);
+    expect(
+      collectHooks(block, "PreToolUse", "read_file").map((h) => h.command),
+    ).toEqual(["all.sh"]);
   });
 
   it("regex matcher (/^Bash$/) works", () => {
     const b = { PreToolUse: [cmdGroup("/^Bash$/", "re.sh")] };
     expect(collectHooks(b, "PreToolUse", "run_shell")[0].command).toBe("re.sh");
+    expect(collectHooks(b, "PreToolUse", "read_file")).toEqual([]);
+  });
+
+  it("comma-separated matcher fires (Claude-Code 2.1.191 — was silently dead)", () => {
+    const b = { PreToolUse: [cmdGroup("Bash,Edit", "multi.sh")] };
+    // umbrella Bash → run_shell, and Edit → edit_file: both fire
+    expect(collectHooks(b, "PreToolUse", "run_shell")[0].command).toBe(
+      "multi.sh",
+    );
+    expect(collectHooks(b, "PreToolUse", "edit_file")[0].command).toBe(
+      "multi.sh",
+    );
+    // an unlisted tool does not
     expect(collectHooks(b, "PreToolUse", "read_file")).toEqual([]);
   });
 

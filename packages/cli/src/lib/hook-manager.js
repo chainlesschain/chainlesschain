@@ -208,7 +208,7 @@ export function getHook(db, hookId) {
  * Compile a matcher pattern into a test function.
  * Supports:
  *   - null/undefined → matches everything
- *   - Pipe-separated patterns: "Edit|Write" matches "Edit" or "Write"
+ *   - Pipe- OR comma-separated patterns: "Edit|Write" / "Bash,PowerShell"
  *   - Wildcards: "*" matches any chars, "?" matches one char
  *   - Regex strings starting with "/": "/^Pre/" matches "PreIPCCall"
  */
@@ -230,11 +230,20 @@ export function compileMatcher(pattern) {
     }
   }
 
-  // Pipe-separated patterns (e.g. "Edit|Write")
-  if (pattern.includes("|")) {
-    const parts = pattern.split("|").map((p) => p.trim());
-    const matchers = parts.map((p) => compileMatcher(p));
-    return (value) => matchers.some((m) => m(value));
+  // OR-separated alternatives: pipe "Edit|Write" AND comma "Bash,PowerShell"
+  // (Claude-Code 2.1.191: comma-separated matchers silently never fired). Empty
+  // segments (trailing "Bash," / "Edit|") are dropped so they cannot collapse
+  // into a match-everything matcher. Regex "/…/" matchers are handled above, so
+  // a comma inside "{1,3}" is never split here.
+  if (pattern.includes("|") || pattern.includes(",")) {
+    const matchers = pattern
+      .split(/[|,]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => compileMatcher(p));
+    return matchers.length
+      ? (value) => matchers.some((m) => m(value))
+      : () => false;
   }
 
   // Wildcard pattern (* and ?)

@@ -132,9 +132,18 @@ function compileMatcher(pattern) {
       /* fall through to wildcard */
     }
   }
-  if (pattern.includes("|")) {
-    const ms = pattern.split("|").map((p) => compileMatcher(p.trim()));
-    return (v) => ms.some((m) => m(v));
+  // OR-separated alternatives: pipe `Edit|Write` AND comma `Bash,PowerShell`
+  // (Claude-Code 2.1.191: comma-separated matchers silently never fired). Empty
+  // segments (trailing `Bash,` / `Edit|`) are dropped so they can't collapse to
+  // a match-everything matcher. Regex `/…/` matchers are handled above, so a
+  // comma inside `{1,3}` is never split here.
+  if (pattern.includes("|") || pattern.includes(",")) {
+    const ms = pattern
+      .split(/[|,]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => compileMatcher(p));
+    return ms.length ? (v) => ms.some((m) => m(v)) : () => false;
   }
   const esc = pattern
     .replace(/[.+^${}()[\]\\]/g, "\\$&")
