@@ -3,6 +3,8 @@
  * Tracks patterns like preferred tools, coding style, response format, etc.
  */
 
+import { likePrefix } from "./sql-like.js";
+
 /**
  * Ensure instincts table exists.
  */
@@ -193,9 +195,13 @@ export function getStrongInstincts(db, threshold = 0.7) {
  */
 export function deleteInstinct(db, id) {
   ensureInstinctsTable(db);
+  // Never delete-all on empty/null, and escape LIKE wildcards so an id of "%"
+  // (or one containing % / _) can't wipe the whole table — this is an
+  // unbounded DELETE driven by a user-supplied prefix.
+  if (id == null || id === "") return false;
   const result = db
-    .prepare("DELETE FROM instincts WHERE id LIKE ?")
-    .run(`${id}%`);
+    .prepare("DELETE FROM instincts WHERE id LIKE ? ESCAPE '\\'")
+    .run(likePrefix(id));
   return result.changes > 0;
 }
 

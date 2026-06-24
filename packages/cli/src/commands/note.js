@@ -7,6 +7,7 @@ import chalk from "chalk";
 import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { likePrefix } from "../lib/sql-like.js";
 import {
   ensureVersionsTable,
   saveVersion,
@@ -237,8 +238,10 @@ export function registerNoteCommand(program) {
         ensureNotesTable(rawDb);
 
         const note = rawDb
-          .prepare("SELECT * FROM notes WHERE id LIKE ? AND deleted_at IS NULL")
-          .get(`${id}%`);
+          .prepare(
+            "SELECT * FROM notes WHERE id LIKE ? ESCAPE '\\' AND deleted_at IS NULL",
+          )
+          .get(likePrefix(id));
 
         if (!note) {
           logger.error(`Note not found: ${id}`);
@@ -335,9 +338,9 @@ export function registerNoteCommand(program) {
 
         const note = rawDb
           .prepare(
-            "SELECT id, title FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+            "SELECT id, title FROM notes WHERE id LIKE ? ESCAPE '\\' AND deleted_at IS NULL",
           )
-          .get(`${id}%`);
+          .get(likePrefix(id));
 
         if (!note) {
           logger.error(`Note not found: ${id}`);
@@ -388,9 +391,9 @@ export function registerNoteCommand(program) {
         // Find the note
         const noteRow = rawDb
           .prepare(
-            "SELECT id FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+            "SELECT id FROM notes WHERE id LIKE ? ESCAPE '\\' AND deleted_at IS NULL",
           )
-          .get(`${id}%`);
+          .get(likePrefix(id));
 
         if (!noteRow) {
           logger.error(`Note not found: ${id}`);
@@ -443,9 +446,9 @@ export function registerNoteCommand(program) {
 
         const noteRow = rawDb
           .prepare(
-            "SELECT id FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+            "SELECT id FROM notes WHERE id LIKE ? ESCAPE '\\' AND deleted_at IS NULL",
           )
-          .get(`${id}%`);
+          .get(likePrefix(id));
 
         if (!noteRow) {
           logger.error(`Note not found: ${id}`);
@@ -507,9 +510,9 @@ export function registerNoteCommand(program) {
 
         const noteRow = rawDb
           .prepare(
-            "SELECT id, title FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+            "SELECT id, title FROM notes WHERE id LIKE ? ESCAPE '\\' AND deleted_at IS NULL",
           )
-          .get(`${id}%`);
+          .get(likePrefix(id));
 
         if (!noteRow) {
           logger.error(`Note not found: ${id}`);

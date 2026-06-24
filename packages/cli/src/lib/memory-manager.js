@@ -7,6 +7,7 @@
 
 import fs from "fs";
 import path from "path";
+import { likePrefix } from "./sql-like.js";
 
 /**
  * Atomically write a UTF-8 file: a crash mid-write must not truncate MEMORY.md
@@ -194,7 +195,8 @@ export function importMemory(db, entries) {
       imported += 1;
     } catch (err) {
       failed += 1;
-      if (errors.length < 10) errors.push({ id: e && e.id, error: err.message });
+      if (errors.length < 10)
+        errors.push({ id: e && e.id, error: err.message });
     }
   }
   return { ok: failed === 0, imported, failed, errors };
@@ -210,9 +212,11 @@ export function deleteMemory(db, id) {
   let result = db.prepare("DELETE FROM memory_entries WHERE id = ?").run(id);
 
   if (result.changes === 0 && id.length >= 4) {
+    // Escape LIKE wildcards so an id containing % / _ deletes a literal-prefix
+    // match (LIMIT 1) rather than the first row matching the wildcard pattern.
     result = db
-      .prepare("DELETE FROM memory_entries WHERE id LIKE ? LIMIT 1")
-      .run(`${id}%`);
+      .prepare("DELETE FROM memory_entries WHERE id LIKE ? ESCAPE '\\' LIMIT 1")
+      .run(likePrefix(id));
   }
 
   return result.changes > 0;
