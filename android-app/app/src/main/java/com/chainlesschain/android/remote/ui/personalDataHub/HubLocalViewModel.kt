@@ -4989,10 +4989,12 @@ class HubLocalViewModel @Inject constructor(
                 pendingLogin = LoginRequest(
                     adapterName = "social-qzone",
                     displayName = "QQ空间",
-                    // user.qzone.qq.com 未登录会跳 QQ 登录页 (扫码/账号)，登录回跳后
-                    // 在 user.qzone.qq.com 域写 p_skey — 与桌面浏览器登录同源，匹配
-                    // collect-qzone 的 cookie 来源 (base .qq.com skey 会被拒)。
-                    loginUrl = "https://user.qzone.qq.com/",
+                    // 直接载 ptlogin2 登录表单 (QR + 账号密码) 作为顶层页面。
+                    // 不走 https://user.qzone.qq.com/ —— 它未登录会跳 i.qq.com，
+                    // 把登录塞进一个 WebView 里渲染不出来的 iframe (真机实测全灰白)。
+                    // appid=549000912=QQ空间, s_url=登录成功回跳 → 在 .qzone.qq.com
+                    // 域写 p_skey (collect-qzone 需要的票据；base .qq.com skey 会被拒)。
+                    loginUrl = "https://xui.ptlogin2.qq.com/cgi-bin/xlogin?appid=549000912&daid=5&style=20&hide_title_bar=1&s_url=https%3A%2F%2Fqzs.qzone.qq.com%2Fqzone%2Fv5%2Floginsucc.html%3Fpara%3Dizone",
                     cookieDomain = "https://user.qzone.qq.com",
                     // 登录页本身在 qzone.qq.com，URL 一加载就 contains 误触发 → 禁 URL 路径
                     isLoginSuccess = { _ -> false },
