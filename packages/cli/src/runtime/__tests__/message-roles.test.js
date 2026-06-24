@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   mergeConsecutiveMessages,
+  collapseConsecutiveMessagesInPlace,
   _internal,
 } from "../message-roles.js";
 
@@ -44,6 +45,17 @@ describe("mergeConsecutiveMessages", () => {
       { role: "assistant", content: "y" },
     ]);
     expect(out).toEqual([{ role: "assistant", content: "x\n\ny" }]);
+  });
+
+  it("never merges consecutive tool messages (preserves each tool_call_id)", () => {
+    // A multi-tool turn produces back-to-back `tool` results — folding them
+    // would drop tool_call_ids and corrupt the tool-call pairing.
+    const msgs = [
+      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      { role: "tool", content: "r1", tool_call_id: "a" },
+      { role: "tool", content: "r2", tool_call_id: "b" },
+    ];
+    expect(mergeConsecutiveMessages(msgs)).toEqual(msgs);
   });
 
   it("never merges system messages (leading base + context pair kept distinct)", () => {
@@ -138,5 +150,68 @@ describe("mergeConsecutiveMessages", () => {
         { type: "image", source: "x" },
       ]);
     });
+  });
+});
+
+describe("collapseConsecutiveMessagesInPlace", () => {
+  it("collapses a degenerate user pair in place and returns true", () => {
+    const messages = [
+      { role: "system", content: "sys" },
+      { role: "user", content: "original task" },
+      { role: "user", content: "continue please" },
+    ];
+    const changed = collapseConsecutiveMessagesInPlace(messages);
+    expect(changed).toBe(true);
+    expect(messages).toEqual([
+      { role: "system", content: "sys" },
+      { role: "user", content: "original task\n\ncontinue please" },
+    ]);
+  });
+
+  it("is a no-op (returns false) on a healthy alternating transcript", () => {
+    const messages = [
+      { role: "system", content: "sys" },
+      { role: "user", content: "a" },
+      { role: "assistant", content: "b" },
+      { role: "user", content: "c" },
+    ];
+    const before = JSON.parse(JSON.stringify(messages));
+    expect(collapseConsecutiveMessagesInPlace(messages)).toBe(false);
+    expect(messages).toEqual(before);
+  });
+
+  it("keeps the SAME array reference (closures over it stay valid)", () => {
+    const messages = [
+      { role: "user", content: "a" },
+      { role: "user", content: "b" },
+    ];
+    const ref = messages;
+    collapseConsecutiveMessagesInPlace(messages);
+    expect(messages).toBe(ref);
+    expect(messages).toHaveLength(1);
+  });
+
+  it("returns false for a non-array argument", () => {
+    expect(collapseConsecutiveMessagesInPlace(null)).toBe(false);
+    expect(collapseConsecutiveMessagesInPlace(undefined)).toBe(false);
+  });
+
+  it("does not corrupt tool results adjacent in a resumed transcript", () => {
+    // Defensive: a DB-resumed transcript could carry tool turns; they must
+    // survive an in-place collapse untouched while a user pair still folds.
+    const messages = [
+      { role: "user", content: "u1" },
+      { role: "user", content: "u2" },
+      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      { role: "tool", content: "r1", tool_call_id: "a" },
+      { role: "tool", content: "r2", tool_call_id: "b" },
+    ];
+    expect(collapseConsecutiveMessagesInPlace(messages)).toBe(true);
+    expect(messages).toEqual([
+      { role: "user", content: "u1\n\nu2" },
+      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      { role: "tool", content: "r1", tool_call_id: "a" },
+      { role: "tool", content: "r2", tool_call_id: "b" },
+    ]);
   });
 });

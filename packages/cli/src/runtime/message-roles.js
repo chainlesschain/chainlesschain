@@ -57,11 +57,18 @@ function joinContent(a, b) {
 }
 
 /**
- * Merge consecutive same-role, non-system messages so the conversation
- * alternates roles for the provider. System messages are passed through
- * untouched and never participate in a merge (a leading base + session-context
- * system pair stays distinct). Falsy / role-less entries are passed through
- * verbatim rather than dropped.
+ * Roles that may be folded together. ONLY `user` and `assistant` — a `tool`
+ * message carries a `tool_call_id` that must stay paired with its originating
+ * `assistant` tool-call, so consecutive tool results (a multi-tool turn) must
+ * NEVER merge; `system` turns (base prompt + injected context) stay distinct.
+ */
+const MERGEABLE_ROLES = new Set(["user", "assistant"]);
+
+/**
+ * Merge consecutive same-role messages so the conversation alternates roles for
+ * the provider. Only `user`/`assistant` turns fold; `tool` and `system` turns
+ * are passed through untouched and never participate in a merge. Falsy /
+ * role-less entries are passed through verbatim rather than dropped.
  *
  * Returns a NEW array; the input is not mutated.
  *
@@ -77,7 +84,7 @@ export function mergeConsecutiveMessages(messages) {
       prev &&
       msg &&
       typeof msg.role === "string" &&
-      msg.role !== "system" &&
+      MERGEABLE_ROLES.has(msg.role) &&
       prev.role === msg.role
     ) {
       out[out.length - 1] = {
@@ -91,4 +98,24 @@ export function mergeConsecutiveMessages(messages) {
   return out;
 }
 
-export const _internal = { toBlocks, joinContent };
+/**
+ * In-place variant: collapse consecutive mergeable-role turns by mutating the
+ * given array (same reference is kept, so closures over it stay valid). Used by
+ * the interactive REPL, whose `messages` array is the persistent conversation
+ * and is handed straight to a mutating `coreAgentLoop` — collapsing a copy would
+ * leave the degenerate pair in the persistent history and re-break later turns.
+ * Only fire it on a still tool-free transcript (the first turn after a
+ * degenerate resume); see callers.
+ *
+ * @param {Array<object>} messages
+ * @returns {boolean} whether anything was collapsed
+ */
+export function collapseConsecutiveMessagesInPlace(messages) {
+  if (!Array.isArray(messages)) return false;
+  const merged = mergeConsecutiveMessages(messages);
+  if (merged.length === messages.length) return false;
+  messages.splice(0, messages.length, ...merged);
+  return true;
+}
+
+export const _internal = { toBlocks, joinContent, MERGEABLE_ROLES };

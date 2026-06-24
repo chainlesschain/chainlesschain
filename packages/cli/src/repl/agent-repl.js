@@ -69,6 +69,7 @@ import {
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { resolveAgentMcp } from "../runtime/mcp-config.js";
+import { collapseConsecutiveMessagesInPlace } from "../runtime/message-roles.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -185,6 +186,18 @@ async function executeTool(name, args) {
  * Agentic loop — wraps agent-core's async generator with REPL display output.
  */
 async function agentLoop(messages, options) {
+  // Resume-degenerate role merge (Claude Code 2.1.187 parity), gated by the
+  // one-shot `mergeRoles` flag so it fires only on the first model call after
+  // resuming a session whose prior run produced no assistant response. Collapse
+  // IN PLACE: `coreAgentLoop` mutates this same array (appending assistant/tool
+  // turns), and the REPL reuses it across turns, so folding a copy would leave
+  // the degenerate `[user, user]` pair in the persistent history and re-break
+  // the next turn. Safe in place because the gated turn is still tool-free (a
+  // resumed transcript holds only user/assistant/system) and the helper never
+  // folds `tool` turns regardless.
+  if (options.mergeRoles) {
+    collapseConsecutiveMessagesInPlace(messages);
+  }
   const usageEvents = [];
   // Visible cross-vendor fallback notice: a silent switch from the configured
   // provider onto another vendor (or a baseUrl relabel) is surfaced as a yellow
@@ -603,6 +616,14 @@ export async function startAgentRepl(options = {}) {
   );
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
+  // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): a one-shot
+  // flag armed when a resumed transcript ends with a bare `user` turn (the prior
+  // run produced no assistant response). Consumed by the first model call so the
+  // first live prompt — which would otherwise stack a second `user` and trip
+  // "roles must alternate" on Anthropic/Bedrock — is folded exactly once. Gated
+  // (not every turn) so the live loop's intentional consecutive-`user` states
+  // are never folded.
+  let _sanitizeRolesNextTurn = false;
   // Checkpoint marks ({ atMessageCount, id, tool }) recorded as the agent loop
   // emits `checkpoint` events, so `/rewind <n>` can also restore files to the
   // snapshot taken before that turn (Claude-Code rewind = code + conversation).
@@ -824,6 +845,9 @@ export async function startAgentRepl(options = {}) {
         const rebuilt = rebuildMessages(sessionId);
         if (rebuilt.length > 0) {
           messages.push(...rebuilt.filter((m) => m.role !== "system"));
+          // Arm the resume role-merge if the prior run left a dangling user turn.
+          _sanitizeRolesNextTurn =
+            messages[messages.length - 1]?.role === "user";
           logger.info(
             `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
           );
@@ -836,6 +860,8 @@ export async function startAgentRepl(options = {}) {
               ? JSON.parse(existing.messages)
               : existing.messages;
           messages.push(...parsed.filter((m) => m.role !== "system"));
+          _sanitizeRolesNextTurn =
+            messages[messages.length - 1]?.role === "user";
           logger.info(
             `Resumed session ${sessionId} (${parsed.length} messages)`,
           );
@@ -2047,6 +2073,8 @@ export async function startAgentRepl(options = {}) {
             const rebuilt = rebuildMessages(resumeId);
             messages.length = 1; // keep system prompt
             messages.push(...rebuilt.filter((m) => m.role !== "system"));
+            _sanitizeRolesNextTurn =
+              messages[messages.length - 1]?.role === "user";
             sessionId = resumeId;
             // The prior session's checkpoint marks (turn-index → checkpoint id)
             // no longer map to this swapped-in history; keeping them would make
@@ -2065,6 +2093,8 @@ export async function startAgentRepl(options = {}) {
                   : existing.messages;
               messages.length = 1; // keep system prompt
               messages.push(...parsed.filter((m) => m.role !== "system"));
+              _sanitizeRolesNextTurn =
+                messages[messages.length - 1]?.role === "user";
               sessionId = existing.id;
               // Drop the prior session's checkpoint marks (see JSONL branch).
               _checkpointMarks.length = 0;
@@ -3342,12 +3372,17 @@ export async function startAgentRepl(options = {}) {
           }
         : {};
       if (_streamLive) process.stdout.write("\n");
+      // Consume the one-shot resume-degeneracy flag for THIS turn so the role
+      // merge fires exactly once (2.1.187 parity; see _sanitizeRolesNextTurn).
+      const _mergeRolesThisTurn = _sanitizeRolesNextTurn;
+      _sanitizeRolesNextTurn = false;
       const {
         content: response,
         usageEvents,
         thinking: reasoning,
       } = await agentLoop(messages, {
         ...liveOpts,
+        mergeRoles: _mergeRolesThisTurn,
         // Visible auto-retry feedback (Claude-Code 2.1.181): when the model's
         // streaming call hits a transient connection drop and retries, tell the
         // user instead of leaving them staring at a silent pause. To stderr so

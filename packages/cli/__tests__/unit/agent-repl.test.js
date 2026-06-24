@@ -528,6 +528,50 @@ describe("agent-repl thin wrapper contracts", () => {
   });
 });
 
+describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
+  const agentReplPath = join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "repl",
+    "agent-repl.js",
+  );
+  const content = readFileSync(agentReplPath, "utf8");
+
+  it("imports the in-place collapse helper", () => {
+    expect(content).toContain(
+      'import { collapseConsecutiveMessagesInPlace } from "../runtime/message-roles.js"',
+    );
+  });
+
+  it("declares the one-shot sanitation flag, default off", () => {
+    expect(content).toContain("let _sanitizeRolesNextTurn = false;");
+  });
+
+  it("arms the flag at every resume site when history ends with a user turn", () => {
+    // Both startup (--session/--resume) and /session resume, JSONL + DB paths.
+    const arms = content.match(
+      /_sanitizeRolesNextTurn\s*=\s*\n?\s*messages\[messages\.length - 1\]\?\.role === "user";/g,
+    );
+    expect(arms).not.toBeNull();
+    expect(arms.length).toBe(4);
+  });
+
+  it("collapses in place inside the loop wrapper, gated on options.mergeRoles", () => {
+    expect(content).toContain("if (options.mergeRoles) {");
+    expect(content).toContain("collapseConsecutiveMessagesInPlace(messages);");
+  });
+
+  it("consumes the flag once at the model call and threads mergeRoles through", () => {
+    expect(content).toContain(
+      "const _mergeRolesThisTurn = _sanitizeRolesNextTurn;",
+    );
+    expect(content).toContain("_sanitizeRolesNextTurn = false;");
+    expect(content).toContain("mergeRoles: _mergeRolesThisTurn,");
+  });
+});
+
 describe("agent-repl context engineering integration", () => {
   it("CLIContextEngineering integrates with agent-repl module", async () => {
     // Verify both modules can be imported together without conflicts
