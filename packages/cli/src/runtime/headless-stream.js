@@ -21,6 +21,7 @@ import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { detectImagePaths } from "../lib/image-input.js";
+import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -821,6 +822,20 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         attempt,
         message: "API connection dropped — retrying",
       }),
+    // Visible cross-vendor fallback notice: when the configured provider hits an
+    // auth error and the loop falls back to another vendor (or relabels via
+    // baseUrl), surface it as a `raw` info line the panel renders instead of a
+    // silent vendor switch. Structured fields carry the machine-readable detail.
+    onProviderFallback: (info) =>
+      emit({
+        type: "raw",
+        subtype: "provider_fallback",
+        text: `⚠️ ${info.message || `已从 "${info.from}" 切换到 "${info.to}"`}`,
+        from: info.from,
+        to: info.to,
+        reason: info.reason,
+        session_id: sessionId,
+      }),
   };
 
   // --max-budget-usd: a SESSION-WIDE USD spend cap across all turns. Folded
@@ -835,6 +850,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
   let turns = 0;
   let sawError = false;
+  // Version-skew notice (friendly reminder): a chat-panel agent process is
+  // long-lived, so if cc was updated on disk while it kept running, it's still
+  // executing stale in-memory code (a fixed bug then looks "not fixed"). Checked
+  // each turn until detected so a mid-session `npm i -g` is caught on the next
+  // message; emitted ONCE as a `raw` line the panel already renders.
+  let versionSkewNotified = false;
   // Once any turn attaches an image, the image stays in the conversation
   // history — so every later turn (even a text-only follow-up like "what colour
   // is it?") must keep using the vision LLM, otherwise a text-only default model
@@ -915,6 +936,30 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   for (;;) {
     const parsed = await nextEvent();
     if (parsed == null) break; // stdin closed
+
+    // One-time version-skew reminder (see flag declaration above). Best-effort;
+    // never blocks a turn. detectVersionSkew() returns null when this process is
+    // running the currently-installed version, so a fresh/up-to-date session
+    // stays quiet.
+    if (!versionSkewNotified) {
+      try {
+        const skew = detectVersionSkew();
+        if (skew) {
+          versionSkewNotified = true;
+          emit({
+            type: "raw",
+            subtype: "version_skew",
+            text: `⚠️ ${versionSkewMessage(skew)}`,
+            running_version: skew.loaded,
+            installed_version: skew.installed,
+            session_id: sessionId,
+          });
+        }
+      } catch {
+        /* version-skew notice is best-effort */
+      }
+    }
+
     if (parsed.error) {
       emit({
         type: "result",

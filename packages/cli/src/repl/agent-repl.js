@@ -186,12 +186,25 @@ async function executeTool(name, args) {
  */
 async function agentLoop(messages, options) {
   const usageEvents = [];
+  // Visible cross-vendor fallback notice: a silent switch from the configured
+  // provider onto another vendor (or a baseUrl relabel) is surfaced as a yellow
+  // line, so "configured X but it ran Y" never happens quietly. Callers may
+  // override; default prints to the REPL.
+  const onProviderFallback =
+    options.onProviderFallback ||
+    ((info) =>
+      process.stdout.write(
+        chalk.yellow(
+          `\n  ⚠️  ${info.message || `已从 "${info.from}" 切换到 "${info.to}"`}\n`,
+        ),
+      ));
   // The REPL runs its own auto-compaction (after each turn, with metrics +
   // persisted compact events), so opt out of the agent loop's in-loop
   // compaction to avoid compacting the same history twice.
   for await (const event of coreAgentLoop(messages, {
     autoCompact: false,
     ...options,
+    onProviderFallback,
   })) {
     if (event.type === "checkpoint") {
       // Remember which file snapshot lines up with the live conversation so
@@ -1161,6 +1174,18 @@ export async function startAgentRepl(options = {}) {
   );
   logger.log(chalk.gray("Type /exit to quit, /help for commands\n"));
 
+  // Version-skew reminder: if cc was updated on disk after this REPL spawned, it
+  // is still running the old in-memory code (a fixed bug then looks "not fixed").
+  // Tell the user to restart so the update takes effect. Best-effort.
+  try {
+    const { detectVersionSkew, versionSkewMessage } =
+      await import("../lib/version-skew.js");
+    const skew = detectVersionSkew();
+    if (skew) logger.log(chalk.yellow(`⚠️  ${versionSkewMessage(skew)}\n`));
+  } catch {
+    /* version-skew notice is best-effort */
+  }
+
   // statusLine (Claude-Code parity): a line above the prompt each turn.
   //  - A user-configured `.claude/settings.json` `statusLine` command wins
   //    (model / branch / cost / … — first stdout line; best-effort, sync).
@@ -1568,9 +1593,8 @@ export async function startAgentRepl(options = {}) {
         // user could silently switch to a retired id and only learn of it when
         // the next turn fails with an opaque "model not found".
         try {
-          const { maybeWarnDeprecatedModel } = await import(
-            "../lib/model-deprecation.js"
-          );
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
           maybeWarnDeprecatedModel({ model });
         } catch {
           // deprecation notice is best-effort

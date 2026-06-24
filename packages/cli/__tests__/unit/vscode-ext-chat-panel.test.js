@@ -107,6 +107,41 @@ describe("mapAgentEvent", () => {
     expect(mapAgentEvent(null, st)).toBe(null);
   });
 
+  it("renders cc version-skew / provider-fallback notices as info lines (raw channel)", () => {
+    // cc emits these reminders as type:"raw" so the shipped panel renders them
+    // (its `raw` → info mapping) without a plugin rebuild. Extra structured
+    // fields are ignored by the renderer.
+    const st = createTurnState();
+    expect(
+      mapAgentEvent(
+        {
+          type: "raw",
+          subtype: "version_skew",
+          text: "⚠️ cc 已更新到 0.162.120（当前会话仍在运行 0.162.117）。",
+          running_version: "0.162.117",
+          installed_version: "0.162.120",
+        },
+        st,
+      ),
+    ).toEqual({
+      kind: "info",
+      text: "⚠️ cc 已更新到 0.162.120（当前会话仍在运行 0.162.117）。",
+    });
+    expect(
+      mapAgentEvent(
+        {
+          type: "raw",
+          subtype: "provider_fallback",
+          text: "⚠️ volcengine 鉴权失败，已临时切换到 anthropic。",
+          from: "volcengine",
+          to: "anthropic",
+          reason: "env-key",
+        },
+        st,
+      ),
+    ).toMatchObject({ kind: "info" });
+  });
+
   it("summarizeToolArgs picks the salient arg and truncates", () => {
     expect(summarizeToolArgs({ path: "x.js" })).toBe("x.js");
     expect(summarizeToolArgs({ command: "ls -la" })).toBe("ls -la");

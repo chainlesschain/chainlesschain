@@ -4294,10 +4294,26 @@ export async function* agentLoop(messages, options) {
       await import("../lib/runnable-provider.js");
     llmCall = makeRunnableProviderFallback(llmCall, {
       onFallback: ({ from, to, reason }) => {
+        // Switching VENDORS (or relabelling via baseUrl) must NEVER be silent —
+        // a user who configured volcengine deserves to know it ran on another
+        // provider/model. Build a human message and hand it to the driver's
+        // visible surfacer (IDE panel → a rendered `raw` line; REPL → a yellow
+        // line) when provided; otherwise fall back to a clear stderr notice.
+        const message =
+          reason === "env-key"
+            ? `"${from}" 鉴权失败，已临时切换到不同厂商 "${to}"（请检查 ${from} 的 API key：cc config set llm.apiKey …）。`
+            : `provider 配置与 baseUrl 不一致，已按 baseUrl 切换到 "${to}"。`;
+        const info = { from, to, reason, message };
+        if (typeof options.onProviderFallback === "function") {
+          try {
+            options.onProviderFallback(info);
+          } catch {
+            /* surfacing is best-effort */
+          }
+          return;
+        }
         try {
-          process.stderr.write(
-            `\x1b[2m[provider] "${from}" auth failed (${reason}) — retrying with "${to}"\x1b[0m\n`,
-          );
+          process.stderr.write(`\x1b[33m[provider] ${message}\x1b[0m\n`);
         } catch {
           /* notice is best-effort */
         }
