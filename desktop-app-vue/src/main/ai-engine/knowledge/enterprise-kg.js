@@ -192,6 +192,7 @@ class EnterpriseKG extends EventEmitter {
     visited.add(entityId);
     const entity = this._entities.get(entityId);
     if (!entity) {
+      visited.delete(entityId);
       return;
     }
     const newPath = [
@@ -203,6 +204,7 @@ class EnterpriseKG extends EventEmitter {
     );
     if (rels.length === 0) {
       allPaths.push(newPath);
+      visited.delete(entityId);
       return;
     }
     for (const rel of rels) {
@@ -214,6 +216,11 @@ class EnterpriseKG extends EventEmitter {
         allPaths,
       );
     }
+    // 回溯：visited 若全局常驻不删除，会把遍历退化成生成树——某节点被第一条路径
+    // 占用后，所有经过它的其它路径都被剪掉（菱形图 A→B→D / A→C→D 只剩 A→B→D）。
+    // 出栈时移除该节点，使 visited 只表示「当前路径」，既防环又按深度封顶，且能枚举
+    // 出全部连接路径。
+    visited.delete(entityId);
   }
 
   graphRAGSearch(query, options = {}) {

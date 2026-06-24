@@ -212,6 +212,21 @@ describe("EnterpriseKG", () => {
     expect(result.inferences.length).toBeGreaterThan(0);
   });
 
+  it("enumerates alternate paths through a shared node (diamond graph)", () => {
+    const a = kg.addEntity("A", "t");
+    const b = kg.addEntity("B", "t");
+    const c = kg.addEntity("C", "t");
+    const d = kg.addEntity("D", "t");
+    kg.addRelationship(a.id, b.id, "to");
+    kg.addRelationship(a.id, c.id, "to");
+    kg.addRelationship(b.id, d.id, "to");
+    kg.addRelationship(c.id, d.id, "to");
+    // A→B→D 与 A→C→D 都应被枚举。旧实现 visited 全局不回溯，D 被首条路径占用后
+    // 第二条路径被剪掉 → 只剩 1 条。
+    const result = kg.reason(a.id, 3);
+    expect(result.paths.length).toBe(2);
+  });
+
   it("should handle reasoning for unknown entity", () => {
     const result = kg.reason("unknown", 2);
     expect(result.paths.length).toBe(0);
