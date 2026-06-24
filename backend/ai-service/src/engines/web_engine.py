@@ -9,6 +9,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import ollama
 from openai import AsyncOpenAI
 from src.llm.llm_client import get_llm_client
+from src.utils.text_utils import strip_code_fences
 from src.templates.web_templates import get_template, has_template
 from src.utils.stream_utils import (
     stream_ollama_chat,
@@ -295,7 +296,7 @@ class WebEngine:
                 raise Exception("LLM client not initialized")
 
             # 清理可能的markdown标记
-            html = html.replace("```html", "").replace("```", "").strip()
+            html = strip_code_fences(html)
             return html
 
         except Exception as e:
@@ -362,7 +363,7 @@ class WebEngine:
             else:
                 raise Exception("LLM client not initialized")
 
-            css = css.replace("```css", "").replace("```", "").strip()
+            css = strip_code_fences(css)
             return css
 
         except Exception as e:
@@ -426,7 +427,7 @@ class WebEngine:
             else:
                 raise Exception("LLM client not initialized")
 
-            js = js.replace("```javascript", "").replace("```js", "").replace("```", "").strip()
+            js = strip_code_fences(js)
             return js
 
         except Exception as e:
@@ -893,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         yield {"type": "content", "content": content, "stage": "html"}
 
             # 清理markdown标记
-            full_content = full_content.replace("```html", "").replace("```", "").strip()
+            full_content = strip_code_fences(full_content)
             yield {"type": "complete", "content": full_content}
 
         except Exception as e:
@@ -978,7 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         full_content += content
                         yield {"type": "content", "content": content, "stage": "css"}
 
-            full_content = full_content.replace("```css", "").replace("```", "").strip()
+            full_content = strip_code_fences(full_content)
             yield {"type": "complete", "content": full_content}
 
         except Exception as e:
@@ -1059,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         full_content += content
                         yield {"type": "content", "content": content, "stage": "js"}
 
-            full_content = full_content.replace("```javascript", "").replace("```js", "").replace("```", "").strip()
+            full_content = strip_code_fences(full_content)
             yield {"type": "complete", "content": full_content}
 
         except Exception as e:
