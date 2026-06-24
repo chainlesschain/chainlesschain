@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const { isWithinDir } = require("../utils/path-boundary.js");
 
 /**
  * PluginAPI - 插件API接口层
@@ -564,8 +565,8 @@ class PluginAPI {
     const path = require("path");
     const resolvedPath = path.resolve(baseDir, filePath);
 
-    // 确保路径在基础目录内
-    if (!resolvedPath.startsWith(baseDir)) {
+    // 确保路径在基础目录内（按分隔符判边界，防兄弟目录前缀绕过）
+    if (!isWithinDir(baseDir, resolvedPath)) {
       throw new Error("非法路径：不允许访问插件目录之外的文件");
     }
 

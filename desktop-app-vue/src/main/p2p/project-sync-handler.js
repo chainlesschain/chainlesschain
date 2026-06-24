@@ -10,6 +10,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { isWithinDir } = require("../utils/path-boundary.js");
 const EventEmitter = require("events");
 const fs = require("fs").promises;
 const path = require("path");
@@ -266,8 +267,8 @@ class ProjectSyncHandler extends EventEmitter {
       // 构建完整文件路径
       const fullPath = path.join(project.local_path, filePath);
 
-      // 安全检查：确保文件在项目目录内
-      if (!fullPath.startsWith(project.local_path)) {
+      // 安全检查：确保文件在项目目录内（按分隔符判边界，防兄弟目录前缀绕过）
+      if (!isWithinDir(project.local_path, fullPath)) {
         throw new Error("非法文件路径");
       }
 

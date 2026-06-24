@@ -9,6 +9,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { isWithinDir } = require("../utils/path-boundary.js");
 const vm = require("vm");
 const fs = require("fs");
 const EventEmitter = require("events");
@@ -248,8 +249,8 @@ class PluginSandbox extends EventEmitter {
         const path = require("path");
         const resolvedPath = path.resolve(this.pluginPath, moduleName);
 
-        // 确保在插件目录内
-        if (!resolvedPath.startsWith(this.pluginPath)) {
+        // 确保在插件目录内（按分隔符判边界，防兄弟目录前缀绕过）
+        if (!isWithinDir(this.pluginPath, resolvedPath)) {
           throw new Error(`不允许加载插件目录外的模块: ${moduleName}`);
         }
 

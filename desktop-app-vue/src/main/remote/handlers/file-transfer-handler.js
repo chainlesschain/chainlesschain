@@ -14,6 +14,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const { isWithinDir } = require("../../utils/path-boundary.js");
 const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
@@ -1237,8 +1238,8 @@ class FileTransferHandler {
     const basePath = this._getBasePath();
     const resolvedPath = path.resolve(basePath, filePath);
 
-    // 确保路径在允许的基础路径内（防止路径遍历攻击）
-    if (!resolvedPath.startsWith(basePath)) {
+    // 确保路径在允许的基础路径内（按分隔符判边界，防兄弟目录前缀绕过）
+    if (!isWithinDir(basePath, resolvedPath)) {
       throw new Error("Access denied: Path outside allowed directory");
     }
 
