@@ -30,6 +30,29 @@ describe("applyConfigLlmDefaults", () => {
     expect(o).toEqual({ provider: "ollama" }); // no doubao model/key bleed
   });
 
+  it("explicit --provider that MATCHES config backfills the dropped baseUrl/apiKey (IDE panel case)", () => {
+    // The editor panel pins --provider/--model from config but drops
+    // --base-url/--api-key; without the backfill the cloud key is stripped → 401
+    // / silent ollama fall-through.
+    const o = applyConfigLlmDefaults(
+      { provider: "volcengine", model: "haiku" }, // model corrupted, key absent
+      CFG,
+    );
+    expect(o.provider).toBe("volcengine");
+    expect(o.baseUrl).toBe("https://ark.cn-beijing.volces.com/api/v3"); // backfilled
+    expect(o.apiKey).toBe("sk-test"); // backfilled — key no longer dropped
+    expect(o.model).toBe("haiku"); // explicit panel model kept (the heal fixes it later)
+  });
+
+  it("a caller-supplied baseUrl/apiKey is NOT overwritten by config on a provider match", () => {
+    const o = applyConfigLlmDefaults(
+      { provider: "volcengine", baseUrl: "http://my-proxy", apiKey: "sk-mine" },
+      CFG,
+    );
+    expect(o.baseUrl).toBe("http://my-proxy");
+    expect(o.apiKey).toBe("sk-mine");
+  });
+
   it("an explicit --model survives; a settings-leaked model is replaced", () => {
     const explicit = applyConfigLlmDefaults({ model: "my-model" }, CFG, {
       explicitModel: "my-model",

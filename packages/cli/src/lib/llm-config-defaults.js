@@ -18,6 +18,26 @@
  *  - No configured provider → unchanged (runner defaults apply: ollama).
  */
 export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
+  // The IDE chat panel pins --provider/--model (read from config) but DROPS
+  // --base-url/--api-key. With an explicit --provider the block below bails, so
+  // a cloud provider would lose its endpoint + key → a 401, or a silent
+  // fall-through to ollama ("配置了火山却 fetch failed / 切到 ollama"). When the
+  // explicit provider MATCHES the configured one, backfill the omitted
+  // baseUrl/apiKey (and model) from config — it's the SAME provider, so its
+  // credentials are exactly right. Mixing config into a DIFFERENT explicit
+  // provider is still avoided (handled by the early return below).
+  if (
+    options.provider &&
+    cfgLlm.provider &&
+    options.provider === cfgLlm.provider
+  ) {
+    if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
+    if (!options.apiKey && cfgLlm.apiKey) options.apiKey = cfgLlm.apiKey;
+    if (!options.model && !opts.explicitModel && cfgLlm.model) {
+      options.model = cfgLlm.model;
+    }
+    return options;
+  }
   if (options.provider || !cfgLlm.provider) return options;
   options.provider = cfgLlm.provider;
   if (opts.explicitModel) {
