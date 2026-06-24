@@ -40,6 +40,19 @@ public final class SessionArgs {
      * other providers ignore it); "off"/null/unknown adds nothing.
      */
     public static List<String> build(String provider, String model, String resume, String mode, String think) {
+        return build(provider, model, null, null, resume, mode, think);
+    }
+
+    /**
+     * Build the full extra-args list including the endpoint + key. The panel
+     * pins --provider/--model and MUST also pass --base-url/--api-key: the CLI,
+     * seeing an explicit --provider, skips config resolution and would otherwise
+     * drop a cloud provider's baseUrl/key → the endpoint falls through to ollama
+     * ("配置了火山却 fetch failed / 切到 ollama"). Blank baseUrl/apiKey are
+     * omitted (back-compat: the CLI then resolves them itself).
+     */
+    public static List<String> build(String provider, String model, String baseUrl, String apiKey,
+            String resume, String mode, String think) {
         List<String> args = new ArrayList<String>();
         if (notBlank(provider)) {
             args.add("--provider");
@@ -48,6 +61,14 @@ public final class SessionArgs {
         if (notBlank(model)) {
             args.add("--model");
             args.add(model.trim());
+        }
+        if (notBlank(baseUrl)) {
+            args.add("--base-url");
+            args.add(baseUrl.trim());
+        }
+        if (notBlank(apiKey)) {
+            args.add("--api-key");
+            args.add(apiKey.trim());
         }
         if (notBlank(resume)) {
             args.add("--resume");

@@ -317,22 +317,55 @@ describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)"
       await import("../../../vscode-extension/src/chat/chat-events.js"));
   });
 
-  it("a non-empty panel override wins (provider + model)", () => {
+  it("a non-empty panel override wins (provider + model); a DIFFERENT provider carries no config key/baseUrl", () => {
     const out = resolveChatLlm(
       { provider: " anthropic ", model: " opus " },
-      () => ({ provider: "volcengine", model: "doubao" }),
+      () => ({
+        provider: "volcengine",
+        model: "doubao",
+        baseUrl: "https://ark…",
+        apiKey: "sk-volc",
+      }),
     );
-    expect(out).toEqual({ provider: "anthropic", model: "opus" });
+    // override provider != config provider → must NOT mix volcengine's key/url
+    expect(out).toEqual({
+      provider: "anthropic",
+      model: "opus",
+      baseUrl: "",
+      apiKey: "",
+    });
   });
 
-  it("falls back to the cc config provider/model when the override is empty", () => {
+  it("empty override → adopts the FULL config block (provider/model/baseUrl/apiKey)", () => {
     const out = resolveChatLlm({ provider: "", model: "" }, () => ({
       provider: "volcengine",
       model: "doubao-seed-1-6",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-volc",
     }));
-    // THE FIX: empty override → pin the user's configured provider explicitly,
-    // so the panel can't drift to a stale ambient default (the anthropic-401 bug).
-    expect(out).toEqual({ provider: "volcengine", model: "doubao-seed-1-6" });
+    // THE FIX: pin provider/model AND carry the endpoint + key, or the CLI drops
+    // them (explicit --provider) and a cloud provider falls through to ollama.
+    expect(out).toEqual({
+      provider: "volcengine",
+      model: "doubao-seed-1-6",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-volc",
+    });
+  });
+
+  it("an explicit override provider that MATCHES config carries its baseUrl/apiKey", () => {
+    const out = resolveChatLlm({ provider: "volcengine", model: "" }, () => ({
+      provider: "volcengine",
+      model: "doubao-x",
+      baseUrl: "https://ark…",
+      apiKey: "sk-v",
+    }));
+    expect(out).toEqual({
+      provider: "volcengine",
+      model: "doubao-x",
+      baseUrl: "https://ark…",
+      apiKey: "sk-v",
+    });
   });
 
   it("keeps an explicit panel model even when provider falls back", () => {
@@ -340,13 +373,20 @@ describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)"
       provider: "volcengine",
       model: "doubao",
     }));
-    expect(out).toEqual({ provider: "volcengine", model: "my-model" });
+    expect(out).toEqual({
+      provider: "volcengine",
+      model: "my-model",
+      baseUrl: "",
+      apiKey: "",
+    });
   });
 
   it("returns empty (let the CLI decide) when neither override nor config has a provider", () => {
     expect(resolveChatLlm({ provider: "", model: "" }, () => ({}))).toEqual({
       provider: "",
       model: "",
+      baseUrl: "",
+      apiKey: "",
     });
   });
 });
@@ -370,6 +410,30 @@ describe("buildSessionArgs (P1: model/provider settings)", async () => {
     expect(buildSessionArgs({ provider: " ", model: "" })).toEqual([]);
     expect(buildSessionArgs({})).toEqual([]);
     expect(buildSessionArgs()).toEqual([]);
+  });
+
+  it("passes the FULL block: --base-url + --api-key alongside provider/model", () => {
+    expect(
+      buildSessionArgs({
+        provider: "volcengine",
+        model: "doubao-x",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+        apiKey: "sk-volc",
+      }),
+    ).toEqual([
+      "--provider",
+      "volcengine",
+      "--model",
+      "doubao-x",
+      "--base-url",
+      "https://ark.cn-beijing.volces.com/api/v3",
+      "--api-key",
+      "sk-volc",
+    ]);
+    // blank baseUrl/apiKey are skipped (back-compat with provider/model-only)
+    expect(
+      buildSessionArgs({ provider: "ollama", baseUrl: "", apiKey: "  " }),
+    ).toEqual(["--provider", "ollama"]);
   });
 });
 

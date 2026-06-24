@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.35] — fix: pass the full LLM block so cloud providers don't fall through to ollama
+
+- **Fix: the chat panel now passes your endpoint + API key (`--base-url` /
+  `--api-key`), not just `--provider` / `--model`.** Pinning only provider/model
+  made the CLI drop a cloud provider's baseUrl + key (it skips config resolution
+  when `--provider` is explicit), so a volcengine / openai / … setup fell through
+  to local ollama → "provider 配置与 baseUrl 不一致，已按 baseUrl 切换到
+  ollama → fetch failed", recurring no matter what you configured. The chat spawn
+  now reads the **full `llm` block** from `~/.chainlesschain/config.json`
+  (provider / model / baseUrl / apiKey). Pairs with the CLI's 0.162.122 self-heal
+  as a complete fix.
+
 ## [0.4.34] — docs: publish the 0.4.33 "What's New" that was omitted
 
 - No code change — 0.4.33 shipped without its changelog, so the Marketplace

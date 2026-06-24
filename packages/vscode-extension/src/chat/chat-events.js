@@ -223,25 +223,54 @@ function readCcLlmConfig() {
  * `cc config`. `readConfig` is injectable for tests.
  */
 function resolveChatLlm({ provider, model } = {}, readConfig = readCcLlmConfig) {
+  const llm = readConfig() || {};
   let p = typeof provider === "string" ? provider.trim() : "";
   let m = typeof model === "string" ? model.trim() : "";
-  if (!p) {
-    const llm = readConfig() || {};
-    if (llm.provider) {
-      p = String(llm.provider);
-      if (!m && llm.model) m = String(llm.model);
-    }
+  let baseUrl = "";
+  let apiKey = "";
+  if (!p && llm.provider) {
+    p = String(llm.provider);
+    if (!m && llm.model) m = String(llm.model);
   }
-  return { provider: p, model: m };
+  // Carry the FULL llm block (baseUrl + apiKey, + model) when the effective
+  // provider matches the configured one. The panel pins --provider/--model and
+  // MUST also pass the endpoint + key: the CLI, seeing an explicit --provider,
+  // skips config resolution and would otherwise drop a cloud provider's
+  // baseUrl/key → the endpoint falls through to ollama ("配置了火山却 fetch
+  // failed / 切到 ollama"). Same provider → its baseUrl/apiKey are exactly
+  // right. A DIFFERENT explicit provider override carries neither (the user
+  // owns that endpoint/key).
+  if (p && llm.provider && p === String(llm.provider)) {
+    if (!m && llm.model) m = String(llm.model);
+    if (llm.baseUrl) baseUrl = String(llm.baseUrl);
+    if (llm.apiKey) apiKey = String(llm.apiKey);
+  }
+  return { provider: p, model: m, baseUrl, apiKey };
 }
 
-function buildSessionArgs({ model, provider, resume, mode, think } = {}) {
+function buildSessionArgs({
+  model,
+  provider,
+  baseUrl,
+  apiKey,
+  resume,
+  mode,
+  think,
+} = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
     args.push("--provider", provider.trim());
   }
   if (typeof model === "string" && model.trim()) {
     args.push("--model", model.trim());
+  }
+  // Pass the endpoint + key alongside the provider so the CLI doesn't drop a
+  // cloud provider's credentials (it skips config when --provider is explicit).
+  if (typeof baseUrl === "string" && baseUrl.trim()) {
+    args.push("--base-url", baseUrl.trim());
+  }
+  if (typeof apiKey === "string" && apiKey.trim()) {
+    args.push("--api-key", apiKey.trim());
   }
   if (typeof resume === "string" && resume.trim()) {
     args.push("--resume", resume.trim());

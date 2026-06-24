@@ -292,6 +292,23 @@ public final class LlmConfig {
         }
     }
 
+    /**
+     * Full configured llm block {@code [provider, model, baseUrl, apiKey]} for
+     * the chat spawn. The panel pins --provider/--model AND must pass
+     * --base-url/--api-key, or the CLI (seeing an explicit --provider) drops a
+     * cloud provider's endpoint + key → it falls through to ollama ("配置了火山却
+     * fetch failed"). Read file-first via {@link #readLlmField}; any element may
+     * be null (then omitted as a flag, and the CLI resolves it itself).
+     */
+    public static String[] readConfiguredLlmBlock() {
+        return new String[] {
+            readLlmField("provider"),
+            readLlmField("model"),
+            readLlmField("baseUrl"),
+            readLlmField("apiKey"),
+        };
+    }
+
     /** Pure parse of `cc config get` output (both `k = v` and bare-value). */
     public static String parseConfigGet(String stdout) {
         if (stdout == null) return null;
