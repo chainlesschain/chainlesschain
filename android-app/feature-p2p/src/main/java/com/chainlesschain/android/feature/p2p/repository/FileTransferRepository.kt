@@ -50,6 +50,7 @@ class FileTransferRepository @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var resultCollectJob: Job? = null
     private var progressCollectJob: Job? = null
+    private var incomingRequestJob: Job? = null
 
     // Real-time progress from tracker
     val progressFlow: SharedFlow<TransferProgress> = progressTracker.progressFlow
@@ -75,6 +76,22 @@ class FileTransferRepository @Inject constructor(
         progressCollectJob = scope.launch {
             progressTracker.progressFlow.collect { progress ->
                 updateProgressInDatabase(progress)
+            }
+        }
+
+        // 关键修复：把**入站传输请求**持久化到 DB。FileTransferManager 收到 FILE_TRANSFER_REQUEST
+        // 后只更新内存 pendingRequests StateFlow，而接收方 UI（FileTransferViewModel.loadTransfers →
+        // getTransfersByPeer 读 DB）只看 DB → 收到的文件请求永远不显示、无法接受 → 文件传输在
+        // 接收侧 dead-on-arrival。这里观察 manager 的 pendingRequests，把没入库的请求落库。
+        incomingRequestJob = scope.launch {
+            fileTransferManager.pendingRequests.collect { reqs ->
+                for (md in reqs) {
+                    runCatching {
+                        if (fileTransferDao.getById(md.transferId) == null) {
+                            handleIncomingRequest(md)
+                        }
+                    }.onFailure { Timber.w(it, "persist incoming request failed: ${md.transferId}") }
+                }
             }
         }
     }
@@ -440,5 +457,7 @@ class FileTransferRepository @Inject constructor(
         resultCollectJob = null
         progressCollectJob?.cancel()
         progressCollectJob = null
+        incomingRequestJob?.cancel()
+        incomingRequestJob = null
     }
 }

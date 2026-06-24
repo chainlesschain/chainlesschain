@@ -95,6 +95,17 @@ data class FileTransferMetadata(
         /** 大文件阈值: 100MB */
         const val LARGE_FILE_THRESHOLD = 100L * 1024 * 1024
 
+        /**
+         * 经信令服务器中继（wss `sendForwardedMessage`）时的安全分块上限。
+         *
+         * 跨网/AP 隔离下聊天与文件都走信令中继（非直连 DataChannel）。一个分块在中继链路上会被
+         * **双层 JSON + base64** 包装（FileChunk.data base64≈×1.37，再塞进 relay envelope 的 JSON
+         * 字符串、引号转义再膨胀），256KB~1MB 的原始分块会远超信令服务器单帧上限 → 分块发不出去、
+         * 传输卡死。32KB 原始分块 → 链路上约 ~55KB，能安全通过保守的 WS 帧限制。
+         * 直连 LAN 传输也会受此上限（只是变慢，不影响正确性）。服务器确认可承载更大帧后可调高。
+         */
+        const val RELAY_SAFE_CHUNK_SIZE = 32 * 1024
+
         /** 缩略图最大大小: 50KB */
         const val MAX_THUMBNAIL_SIZE = 50 * 1024
 
@@ -140,7 +151,8 @@ data class FileTransferMetadata(
                 }
             }
 
-            return baseChunkSize
+            // 钳到中继安全上限：跨网/AP 隔离下分块经 wss 信令中继转发，过大的帧发不出去。
+            return baseChunkSize.coerceAtMost(RELAY_SAFE_CHUNK_SIZE)
         }
 
         /**
