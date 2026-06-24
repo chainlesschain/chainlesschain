@@ -42,8 +42,16 @@ class FriendSessionHandshake @Inject constructor(
      * 避免在 mockk 上触发 `sendCommand` 默认参数 `timeout = config.requestTimeout` 的
      * `$default` 合成方法读取未初始化的 config 字段而 NPE。
      */
+    /**
+     * 当前握手的对端 DID。握手命令（getBundle/init）经 P2PClient 中继时必须**定向**到它——否则
+     * 会回退到全局 currentPeerDid（被 FriendSyncConnector 拨多个/旧好友 DID 时覆盖），把握手命令
+     * 中继到错的对端 → 配对永远建不成。initiate 进入时设置。
+     */
+    @Volatile
+    private var handshakeTargetPeer: String? = null
+
     internal var commandSender: suspend (String, Map<String, Any>) -> Result<Map<String, Any>> =
-        { method, params -> p2pClient.sendCommand(method, params) }
+        { method, params -> p2pClient.sendCommand(method, params, targetPeerDid = handshakeTargetPeer) }
 
     suspend fun initiate(peerDid: String): Boolean {
         if (sessionManager.hasSession(peerDid)) {
@@ -56,6 +64,8 @@ class FriendSessionHandshake @Inject constructor(
             return false
         }
         return try {
+            // 关键：握手命令定向到本次握手的对端（不被全局 currentPeerDid 覆盖）。
+            handshakeTargetPeer = peerDid
             sessionManager.initialize()
 
             // 关键：在 initialize() 恢复磁盘会话**之后**再查一次。顶部那次检查发生在恢复前，

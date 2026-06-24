@@ -517,18 +517,21 @@ class P2PClient @Inject constructor(
     suspend fun <T> sendCommand(
         method: String,
         params: Map<String, Any> = emptyMap(),
-        timeout: Long = config.requestTimeout
+        timeout: Long = config.requestTimeout,
+        targetPeerDid: String? = null,
     ): Result<T> = withContext(Dispatchers.IO) {
-        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid）就放行——
-        // sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。两者都缺才真失败。
-        if (_connectionState.value != ConnectionState.CONNECTED && currentPeerDid == null) {
+        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid 或显式
+        // targetPeerDid）就放行——sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。
+        // 三者都缺才真失败。targetPeerDid 让握手命令定向到具体对端（不被全局 currentPeerDid 覆盖）。
+        if (_connectionState.value != ConnectionState.CONNECTED &&
+            currentPeerDid == null && targetPeerDid == null) {
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
             // 记录活动（命令执行）
             deviceActivityManager.recordActivity("command_executed")
 
-            val response = sendCommandInternal(method, params, timeout)
+            val response = sendCommandInternal(method, params, timeout, targetPeerDid)
 
             if (response.isError()) {
                 return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
@@ -592,7 +595,8 @@ class P2PClient @Inject constructor(
     private suspend fun sendCommandInternal(
         method: String,
         params: Map<String, Any>,
-        timeout: Long
+        timeout: Long,
+        targetPeerDid: String? = null,
     ): CommandResponse = withContext(Dispatchers.IO) {
         val requestId = generateRequestId()
         val requestPayload = mapOf(
@@ -625,7 +629,7 @@ class P2PClient @Inject constructor(
             try {
                 webRTCClient.sendMessage(message.toJsonString())
             } catch (dcDown: IllegalStateException) {
-                val sent = relayCommandFrame("req", requestId, message.toJsonString())
+                val sent = relayCommandFrame("req", requestId, message.toJsonString(), targetPeerDid)
                 if (!sent) throw dcDown  // 既无 DataChannel 又无法中继 → 真失败
                 Timber.i("[P2PClient] command relayed via signaling: $method (id=$requestId)")
             }
@@ -994,8 +998,15 @@ class P2PClient @Inject constructor(
         runCatching { coreDidManager.getCurrentDID() }.getOrNull() ?: didManager.getCurrentDID()
 
     /** 把一帧（命令请求/响应 P2PMessage JSON）经信令中继给当前对端。返回是否已发出。 */
-    private suspend fun relayCommandFrame(dir: String, requestId: String, frameJson: String): Boolean {
-        val peer = currentPeerDid ?: return false
+    private suspend fun relayCommandFrame(
+        dir: String,
+        requestId: String,
+        frameJson: String,
+        targetPeer: String? = null,
+    ): Boolean {
+        // 定向到指定 peer（握手命令必须发给握手的对端，而非全局 currentPeerDid——后者会被
+        // FriendSyncConnector 拨多个/旧好友 DID 时覆盖，导致握手命令中继到错的对端）。
+        val peer = targetPeer ?: currentPeerDid ?: return false
         val from = myDidForRelay() ?: return false
         val env = org.json.JSONObject()
             .put("type", "p2p-rpc")
