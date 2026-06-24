@@ -13,6 +13,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -62,7 +64,14 @@ class PersistentSessionManager internal constructor(
         }
     )
 
+    @Volatile
     private var isInitialized = false
+
+    // 串行化 initialize()：启动时 MainActivity 与好友握手 (FriendSessionHandshake / E2EEHandshake-
+    // CommandRouter) 会**并发**调用 initialize()。无锁时两者都过 isInitialized==false 闸 → 并发
+    // restoreAllSessions() 同时写非线程安全的 sessions HashMap（可损坏），且握手可能在恢复完成前
+    // 误判「无会话」而重新握手 → 覆盖已恢复的棘轮 → 重启后解密 MAC 失败。
+    private val initMutex = Mutex()
 
     /**
      * 初始化会话管理器
@@ -75,59 +84,64 @@ class PersistentSessionManager internal constructor(
         enableRotation: Boolean = true
     ) = withContext(Dispatchers.IO) {
         if (isInitialized) {
-            Timber.w("Session manager already initialized")
             return@withContext
         }
-
-        Timber.i("Initializing persistent session manager")
-
-        try {
-            // 尝试加载保存的密钥
-            val savedKeys = sessionStorage.loadIdentityKeys()
-
-            if (savedKeys != null) {
-                Timber.d("Loaded saved identity keys")
-                identityKeyPair = savedKeys.first
-                signedPreKeyPair = savedKeys.second
-            } else {
-                Timber.d("Generating new identity keys")
-                identityKeyPair = X25519KeyPair.generate()
-                signedPreKeyPair = X25519KeyPair.generate()
-
-                // 保存新生成的密钥
-                sessionStorage.saveIdentityKeys(identityKeyPair, signedPreKeyPair)
-            }
-            signingKeyPair = Ed25519KeyPair.generate()
-
-            // 加载一次性预密钥
-            val savedPreKeys = sessionStorage.loadOneTimePreKeys()
-            oneTimePreKeys.clear()
-            oneTimePreKeys.putAll(savedPreKeys)
-
-            // 补充一次性预密钥
-            if (oneTimePreKeys.size < 5) {
-                generateOneTimePreKeys(20)
-                sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
+        initMutex.withLock {
+            // 双重检查：拿到锁时可能已被并发的另一次 initialize() 完成
+            if (isInitialized) {
+                return@withLock
             }
 
-            Timber.d("Loaded ${oneTimePreKeys.size} one-time pre-keys")
+            Timber.i("Initializing persistent session manager")
 
-            // 自动恢复会话
-            if (autoRestore) {
-                restoreAllSessions()
+            try {
+                // 尝试加载保存的密钥
+                val savedKeys = sessionStorage.loadIdentityKeys()
+
+                if (savedKeys != null) {
+                    Timber.d("Loaded saved identity keys")
+                    identityKeyPair = savedKeys.first
+                    signedPreKeyPair = savedKeys.second
+                } else {
+                    Timber.d("Generating new identity keys")
+                    identityKeyPair = X25519KeyPair.generate()
+                    signedPreKeyPair = X25519KeyPair.generate()
+
+                    // 保存新生成的密钥
+                    sessionStorage.saveIdentityKeys(identityKeyPair, signedPreKeyPair)
+                }
+                signingKeyPair = Ed25519KeyPair.generate()
+
+                // 加载一次性预密钥
+                val savedPreKeys = sessionStorage.loadOneTimePreKeys()
+                oneTimePreKeys.clear()
+                oneTimePreKeys.putAll(savedPreKeys)
+
+                // 补充一次性预密钥
+                if (oneTimePreKeys.size < 5) {
+                    generateOneTimePreKeys(20)
+                    sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
+                }
+
+                Timber.d("Loaded ${oneTimePreKeys.size} one-time pre-keys")
+
+                // 自动恢复会话
+                if (autoRestore) {
+                    restoreAllSessions()
+                }
+
+                // 启动预密钥轮转
+                if (enableRotation) {
+                    rotationManager.start()
+                }
+
+                isInitialized = true
+
+                Timber.i("Persistent session manager initialized")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize session manager")
+                throw e
             }
-
-            // 启动预密钥轮转
-            if (enableRotation) {
-                rotationManager.start()
-            }
-
-            isInitialized = true
-
-            Timber.i("Persistent session manager initialized")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to initialize session manager")
-            throw e
         }
     }
 

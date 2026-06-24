@@ -119,6 +119,7 @@ class HubLocalViewModelTest {
     private lateinit var kuaishouRootCredentials: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootCredentialsStore
     private lateinit var qqCollector: QQLocalCollector
     private lateinit var qqCredentials: QQCredentialsStore
+    private lateinit var qzoneCredentials: com.chainlesschain.android.pdh.social.qzone.QzoneCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
     private lateinit var modelManager: ModelManager
     private lateinit var llmEngine: LlmInferenceEngine
@@ -245,6 +246,7 @@ class HubLocalViewModelTest {
         every { qqCredentials.getDisplayName() } returns null
         every { qqCredentials.getLastSyncAt() } returns null
         every { qqCredentials.getLastSyncCount() } returns 0
+        qzoneCredentials = mockk(relaxed = true)
         systemDataState = mockk(relaxed = true)
         // Default: no past system-data sync. Specific tests override these.
         every { systemDataState.getLastSnapshotAt() } returns null
@@ -374,6 +376,7 @@ class HubLocalViewModelTest {
             kuaishouRootCredentials,
             qqCollector,
             qqCredentials,
+            qzoneCredentials,
             systemDataState,
             modelManager,
             llmEngine,

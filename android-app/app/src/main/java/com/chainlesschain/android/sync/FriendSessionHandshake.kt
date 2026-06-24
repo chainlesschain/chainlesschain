@@ -58,6 +58,16 @@ class FriendSessionHandshake @Inject constructor(
         return try {
             sessionManager.initialize()
 
+            // 关键：在 initialize() 恢复磁盘会话**之后**再查一次。顶部那次检查发生在恢复前，
+            // 若本调用早于启动时的 initialize() 完成（并发竞态），顶部会误判「无会话」。这里若
+            // 已有（恢复出的）会话就直接复用，绝不再 createSession 覆盖它——否则会用全新棘轮
+            // 覆盖已恢复的棘轮，与对端不一致 → 重启后解密 MAC 失败。
+            if (sessionManager.hasSession(peerDid)) {
+                runCatching { verificationManager.markAsVerified(peerDid, VerificationMethod.MUTUAL_HANDSHAKE) }
+                Timber.d("[FriendSessionHandshake] session already present after restore — skip re-handshake")
+                return true
+            }
+
             // 1. 取对端 PreKeyBundle
             val bundleResp = commandSender(
                 "e2ee.getBundle",

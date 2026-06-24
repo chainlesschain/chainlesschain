@@ -63,6 +63,11 @@ class E2EEHandshakeCommandRouter @Inject constructor(
             ?: throw IllegalArgumentException("e2ee.init: missing 'initialMessage' param")
 
         sessionManager.initialize()
+
+        // 注意：这里**不**跳过已存在会话。发起方 (FriendSessionHandshake) 仅在自己**无**会话时才
+        // 发 e2ee.init（已有会话会跳过重握手）。因此本端收到 init 意味着发起方刚建了**全新**会话，
+        // 响应方必须 acceptSession 以与之匹配——这是一侧丢失会话后的自愈路径。重启后双方都能恢复
+        // 会话时，发起方根本不会再发 init，故不会误覆盖（真正的重启解密修复在发起方侧 + initialize 串行化）。
         val initialMessage = E2EEHandshakeCodec.decodeInitialMessage(initialMessageJson)
         sessionManager.acceptSession(fromDid, initialMessage)
         // FAMILY-67: DID 验签认证的握手即视为已验证 → 清「设备未验证」横幅。

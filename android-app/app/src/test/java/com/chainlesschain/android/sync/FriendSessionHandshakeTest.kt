@@ -107,6 +107,25 @@ class FriendSessionHandshakeTest {
     }
 
     @Test
+    fun `initiate skips re-handshake when session is restored during initialize (no overwrite)`() = runTest {
+        // 竞态修复回归：顶部检查发生在 initialize() 恢复磁盘会话之前 → 误判「无会话」；
+        // initialize() 恢复后会话出现。此时绝不能再 createSession 覆盖已恢复的棘轮
+        // （否则与对端不一致 → 重启后解密 MAC 失败）。
+        // 模拟：hasSession 第一次（initialize 前）false，第二次（initialize 后）true。
+        every { sessionManager.hasSession("did:key:zPeer") } returnsMany listOf(false, true)
+        every { didManager.getCurrentDID() } returns "did:key:zMe"
+        installSender { kotlin.Result.success(emptyMap()) }
+
+        val ok = handshake.initiate("did:key:zPeer")
+
+        assertTrue(ok)
+        // 恢复出会话 → 不发任何握手命令、不建新会话
+        assertTrue(sentMethods.isEmpty())
+        coVerify { sessionManager.initialize() }
+        coVerify(exactly = 0) { sessionManager.createSession(any(), any()) }
+    }
+
+    @Test
     fun `initiate returns false and cleans up when getBundle fails`() = runTest {
         every { sessionManager.hasSession(any()) } returns false
         every { didManager.getCurrentDID() } returns "did:key:zMe"
