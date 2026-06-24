@@ -73,7 +73,9 @@ class LLMDecisionEngine extends EventEmitter {
       durationThreshold: options.durationThreshold || 60000, // 预计耗时阈值 (60s)
 
       // LLM配置
-      llmTemperature: options.llmTemperature || 0.3,
+      // ?? 而非 ||：temperature=0 是合法且常用的「确定性输出」设置，与默认 0.3 含义
+      // 不同。`0 || 0.3` 会把调用方明确要求的确定性决策悄悄改成带随机性的 0.3。
+      llmTemperature: options.llmTemperature ?? 0.3,
       llmMaxTokens: options.llmMaxTokens || 200,
 
       // 历史数据权重
