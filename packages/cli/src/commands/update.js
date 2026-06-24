@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import semver from "semver";
 import { execSync } from "node:child_process";
 import { checkForUpdates } from "../lib/version-checker.js";
 import { downloadRelease } from "../lib/downloader.js";
@@ -6,9 +7,28 @@ import { VERSION } from "../constants.js";
 import { askConfirm } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
 
+/**
+ * A version that is safe to interpolate into `npm install -g chainlesschain@<v>`.
+ * The version reaching selfUpdateCli already comes from version-checker (gated by
+ * semver.gt), but it flows UNQUOTED into a shell command, so validate it locally
+ * too: a strict semver can only contain [0-9A-Za-z.+-] — never a shell
+ * metacharacter — so this makes shell-injection impossible at the point of use
+ * rather than relying solely on a check in another module.
+ */
+export function isInstallableVersion(v) {
+  return typeof v === "string" && semver.valid(v) !== null;
+}
+
 async function selfUpdateCli(targetVersion) {
   if (VERSION === targetVersion) {
     return true; // Already at the target version
+  }
+
+  if (!isInstallableVersion(targetVersion)) {
+    logger.warn(
+      `Refusing to self-update to an invalid version: ${String(targetVersion).slice(0, 60)}`,
+    );
+    return false;
   }
 
   try {
