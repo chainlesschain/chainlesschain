@@ -2191,8 +2191,19 @@ async function executeToolInner(
           ? `dir /s /b *${args.pattern}* 2>NUL`
           : `find . -name "*${args.pattern}*" -type f 2>/dev/null | head -20`;
 
+      // Credential guard (Claude-Code 2.1.189 parity): a CONTENT search must not
+      // become a side channel that exfils secrets the read_file / run_shell
+      // guards already block. Windows `findstr /n` embeds the matching LINE
+      // (e.g. `API_KEY=…` from a .env); POSIX `grep -l` returns only names. Any
+      // hit whose source is a credential file is redacted to an existence-only
+      // marker — the agent must read_file (confirm-gated) to view it.
+      const { credentialFileReason } = isContent
+        ? await import("../lib/credential-guard.js")
+        : { credentialFileReason: () => null };
+
       const hits = [];
       const seen = new Set();
+      const redactedCreds = new Set();
       for (const root of roots) {
         if (hits.length >= 20) break;
         try {
@@ -2205,6 +2216,16 @@ async function executeToolInner(
           for (const line of output.trim().split("\n")) {
             const v = line.trim();
             if (!v || seen.has(v)) continue;
+            if (isContent) {
+              // content hit is `file:line:text` (findstr /n) or a bare filename
+              // (grep -l); pull the source file and redact credential matches.
+              const src = v.match(/^(.+?):\d+:/)?.[1] ?? v;
+              if (credentialFileReason(src)) {
+                redactedCreds.add(src.replace(/\\/g, "/"));
+                seen.add(v);
+                continue;
+              }
+            }
             // Qualify with the root so multi-root results stay unambiguous.
             const labeled = roots.length > 1 ? `${root}: ${v}` : v;
             seen.add(v);
@@ -2214,6 +2235,14 @@ async function executeToolInner(
         } catch {
           // No matches in this root — continue to the next.
         }
+      }
+
+      // One existence-only marker per credential file (never its contents).
+      for (const f of redactedCreds) {
+        if (hits.length >= 20) break;
+        hits.push(
+          `<credential file ${f}: matches redacted — use read_file (requires confirmation) to view>`,
+        );
       }
 
       if (hits.length === 0) {

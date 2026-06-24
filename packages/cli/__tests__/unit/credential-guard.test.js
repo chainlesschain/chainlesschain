@@ -256,4 +256,33 @@ describe("executeTool credential-guard seam", () => {
     expect(echoSecret.error).toMatch(/\[Credential Guard\]/);
     expect(echoSecret.policy).toMatchObject({ via: "credential-guard" });
   });
+
+  it("content search redacts credential-file matches (no secret line leaks)", async () => {
+    // secrets.yaml is matched by the `*` glob on every platform (no leading-dot
+    // glob ambiguity); the secret sits on the line that also holds the pattern.
+    fs.writeFileSync(
+      path.join(tmp, "secrets.yaml"),
+      "password: topsecret123 NEEDLE\n",
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(tmp, "note.txt"),
+      "harmless NEEDLE here\n",
+      "utf-8",
+    );
+
+    const res = await executeTool(
+      "search_files",
+      { pattern: "NEEDLE", content_search: true },
+      { cwd: tmp },
+    );
+
+    const blob = JSON.stringify(res);
+    // The secret value must never appear in the tool output…
+    expect(blob).not.toContain("topsecret123");
+    // …the credential file is surfaced as an existence-only redaction marker…
+    expect(blob).toMatch(/credential file.*secrets\.yaml.*redacted/i);
+    // …and the ordinary match is still returned.
+    expect(blob).toContain("note.txt");
+  });
 });
