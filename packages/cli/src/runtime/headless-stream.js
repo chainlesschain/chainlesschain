@@ -260,17 +260,22 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   let endReason = "complete";
   let stopForCost = false;
 
-  // Merge consecutive same-role turns before the model call so a resumed
-  // session whose previous run produced NO assistant response (history ends
-  // with a bare `user` turn) does not send two adjacent `user` messages —
-  // which Anthropic/Bedrock reject as "roles must alternate" (Claude Code
-  // 2.1.187 parity). Non-mutating: the persistent `messages` array keeps its
-  // per-turn structure; only the provider payload is sanitized. No-op on a
-  // healthy alternating transcript.
-  for await (const event of runLoop(
-    mergeConsecutiveMessages(messages),
-    loopOptions,
-  )) {
+  // Merge consecutive same-role turns before the model call ONLY when the
+  // caller flags a resume-degenerate transcript (`mergeRoles`): a resumed
+  // session whose previous run produced NO assistant response leaves a trailing
+  // bare `user` turn, so splicing the first live prompt after it sends two
+  // adjacent `user` messages — which Anthropic/Bedrock reject as "roles must
+  // alternate" (Claude Code 2.1.187 parity). It is GATED rather than applied
+  // every turn because the live turn loop legitimately produces consecutive
+  // `user` messages — an interrupted turn's dangling prompt, a PDH feedback
+  // note (§3.5.13) — that must reach the model distinctly and must not be
+  // folded (folding the interrupt-dangling turn even resurrects the abandoned
+  // request). Non-mutating: the persistent `messages` array is untouched; only
+  // the provider payload is sanitized.
+  const modelMessages = loopOptions.mergeRoles
+    ? mergeConsecutiveMessages(messages)
+    : messages;
+  for await (const event of runLoop(modelMessages, loopOptions)) {
     switch (event.type) {
       case "tool-executing":
         toolCalls.push({ tool: event.tool, args: event.args });
@@ -652,6 +657,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       // persistence is best-effort — never fail the stream over it
     }
   }
+
+  // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): when the
+  // replayed history ends with a bare `user` turn (the prior run produced no
+  // assistant response), the FIRST live prompt would make two adjacent `user`
+  // messages. Arm a one-shot flag consumed by the first model call so the merge
+  // fires exactly once — the live turn loop's intentional consecutive-`user`
+  // states (interrupt-dangling turn, PDH feedback note) are never folded.
+  let sanitizeRolesNextTurn =
+    resumedMessages > 0 && messages[messages.length - 1]?.role === "user";
 
   emit({
     type: "system",
@@ -1305,6 +1319,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       ? AbortSignal.any([options.signal, currentAbort.signal])
       : currentAbort.signal;
 
+    // Consume the one-shot resume-degeneracy flag for THIS turn (see
+    // sanitizeRolesNextTurn) so the role merge fires exactly once, whether the
+    // model call completes or is interrupted.
+    const mergeRolesThisTurn = sanitizeRolesNextTurn;
+    sanitizeRolesNextTurn = false;
+
     let outcome;
     try {
       outcome = await runTurn(
@@ -1350,6 +1370,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
             : {}),
           iterationBudget: budget,
           signal: turnSignal,
+          // Resume-degenerate role merge for the first live model call only.
+          mergeRoles: mergeRolesThisTurn,
         },
         { runLoop, emit, costBudget },
       );

@@ -39,6 +39,7 @@ describe("cc hub command surface", () => {
         "bilibili-adb-sync", // Phase 1c (Bilibili C 路径) — PC + ADB chrome cookies
         "collect-db", // module 101 — generic plaintext-db ingest for the 明文库
         "collect-qq", // module 101 — frida-free QQNT (nt_msg.db) decrypt + ingest in the bundle
+        "collect-qzone", // module 101 (B1) — QQ空间 feed collection via qzone-collect.js
         "collect-wechat", // module 101 — wechat-collect.js bundle (derived-key decrypt + parse)
         "destroy",
         "douyin-adb-sync", // Phase 2a (Douyin C 路径) — PC + ADB <uid>_im.db
