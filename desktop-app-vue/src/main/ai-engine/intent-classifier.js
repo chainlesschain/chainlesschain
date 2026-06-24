@@ -498,8 +498,11 @@ class IntentClassifier {
     let totalMatches = 0; // 统计关键词出现的总次数（包括重复）
 
     for (const keyword of keywords) {
-      // 统计这个关键词在文本中出现的次数
-      const regex = new RegExp(keyword, "g");
+      // 统计这个关键词在文本中出现的次数。关键词是字面词（非正则），先转义正则
+      // 元字符：否则像 "c++"（"++" 抛 SyntaxError 使分类崩溃）或 "node.js"（"." 通配
+      // 误匹配 "nodexjs"）这类含特殊字符的关键词会被错误地当成正则。
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "g");
       const matches = text.match(regex);
       if (matches) {
         totalMatches += matches.length;
