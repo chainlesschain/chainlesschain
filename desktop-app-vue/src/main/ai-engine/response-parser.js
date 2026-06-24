@@ -230,8 +230,16 @@ function validateOperation(operation, projectPath) {
   const absolutePath = path.resolve(projectPath, operation.path);
   const normalizedProjectPath = path.normalize(projectPath);
 
-  // 确保文件在项目目录内
-  if (!absolutePath.startsWith(normalizedProjectPath)) {
+  // 确保文件在项目目录内。必须按目录分隔符判边界：裸 startsWith 会放过名字以
+  // 项目目录名为前缀的「兄弟目录」（projectPath=".../proj" 时 ".../proj-evil/x"
+  // 也 startsWith 通过），造成 AI 文件写出逃逸到项目外。
+  const projectBoundary = normalizedProjectPath.endsWith(path.sep)
+    ? normalizedProjectPath
+    : normalizedProjectPath + path.sep;
+  if (
+    absolutePath !== normalizedProjectPath &&
+    !absolutePath.startsWith(projectBoundary)
+  ) {
     return { valid: false, error: "文件路径超出项目目录范围" };
   }
 
