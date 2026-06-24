@@ -265,8 +265,9 @@ class EmbeddingCache extends EventEmitter {
       // 检查缓存大小
       const count = this.getCount();
       if (count >= this.maxCacheSize) {
-        // 删除最旧的 10% 缓存
-        const deleteCount = Math.floor(this.maxCacheSize * 0.1);
+        // 删除最旧的 10% 缓存。Math.max(1, …)：maxCacheSize < 10 时 floor(size*0.1)=0
+        // 会让 evictLRU(0) 删 0 条 → 缓存满了却驱逐不掉、无界增长，违反大小上限。
+        const deleteCount = Math.max(1, Math.floor(this.maxCacheSize * 0.1));
         this.evictLRU(deleteCount);
       }
 

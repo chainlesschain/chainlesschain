@@ -281,6 +281,23 @@ describe("EmbeddingCache", () => {
       expect(mockPreparedStatements.deleteLRU.run).toHaveBeenCalledWith(100);
     });
 
+    it("evicts at least 1 entry for a small maxCacheSize (no silent no-op eviction)", () => {
+      const smallCache = new EmbeddingCache({
+        database: mockDb,
+        maxCacheSize: 5,
+      });
+      mockPreparedStatements.count.get.mockReturnValue({ count: 5 }); // 已满
+      mockPreparedStatements.deleteLRU.run.mockReturnValue({ changes: 1 });
+
+      smallCache.set("test content", [0.1, 0.2, 0.3], "model1");
+
+      // 旧实现 Math.floor(5 * 0.1) = 0 → evictLRU(0) → 删 0 条 → 缓存无界增长
+      expect(mockPreparedStatements.deleteLRU.run).toHaveBeenCalled();
+      expect(
+        mockPreparedStatements.deleteLRU.run.mock.calls[0][0],
+      ).toBeGreaterThanOrEqual(1);
+    });
+
     it("should emit cache-set event", () => {
       mockPreparedStatements.count.get.mockReturnValue({ count: 0 });
 
