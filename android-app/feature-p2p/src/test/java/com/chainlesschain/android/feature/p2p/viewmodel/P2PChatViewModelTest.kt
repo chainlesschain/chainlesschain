@@ -69,6 +69,7 @@ class P2PChatViewModelTest {
             didManager = didManager,
             messageRepository = messageRepository,
             activeChatTracker = ActiveChatTracker(),
+            friendRepository = mockk(relaxed = true),
         )
     }
 

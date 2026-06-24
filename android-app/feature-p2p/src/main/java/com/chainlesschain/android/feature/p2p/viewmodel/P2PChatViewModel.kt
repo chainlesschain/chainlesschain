@@ -10,8 +10,11 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
+import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.p2p.notification.ActiveChatTracker
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
+import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
+import dagger.Lazy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,11 +40,16 @@ class P2PChatViewModel @Inject constructor(
     private val didManager: DIDManager,
     private val messageRepository: P2PMessageRepository,
     private val activeChatTracker: ActiveChatTracker,
+    private val friendRepository: Lazy<FriendRepository>,
 ) : ViewModel() {
 
     // 聊天消息列表
     private val _messages = MutableStateFlow<List<P2PMessageEntity>>(emptyList())
     val messages: StateFlow<List<P2PMessageEntity>> = _messages.asStateFlow()
+
+    // 顶栏好友显示名：备注名 > 昵称 > 缩写 DID (无备注不再显示裸长 DID)
+    private val _peerDisplayName = MutableStateFlow("")
+    val peerDisplayName: StateFlow<String> = _peerDisplayName.asStateFlow()
 
     // 设备验证状态
     private val _isDeviceVerified = MutableStateFlow(false)
@@ -79,6 +87,9 @@ class P2PChatViewModel @Inject constructor(
         // 标记「正在看这个聊天」→ 该 peer 的新消息前台时不弹通知（MessageNotifier 据此抑制）
         activeChatTracker.enter(peerId)
         Timber.d("Loading chat with peer: $peerId")
+
+        // 顶栏显示名：备注名 > 昵称 > 缩写 DID
+        viewModelScope.launch { _peerDisplayName.value = resolveDisplayName(peerId) }
 
         viewModelScope.launch {
             try {
@@ -119,6 +130,16 @@ class P2PChatViewModel @Inject constructor(
      * 刷新连接/验证状态。会话非空（已有持久化 E2EE 会话）= 之前完成过 DID 验签握手，
      * 直接视为已验证 → 清「设备未验证」横幅（验证状态在内存、重启即丢，靠这里从会话事实重建）。
      */
+    /** 解析好友显示名：备注名 > 昵称 > 缩写 DID。任何异常回退缩写 DID。 */
+    private suspend fun resolveDisplayName(peerId: String): String {
+        val friend = runCatching {
+            (friendRepository.get().getFriendByDid(peerId) as? Result.Success)?.data
+        }.getOrNull()
+        return friend?.remarkName?.takeIf { it.isNotBlank() }
+            ?: friend?.nickname?.takeIf { it.isNotBlank() }
+            ?: if (peerId.length <= 18) peerId else peerId.take(12) + "…" + peerId.takeLast(4)
+    }
+
     private suspend fun refreshConnectionState(peerId: String) {
         val session = sessionManager.getSession(peerId)
         if (session != null) {

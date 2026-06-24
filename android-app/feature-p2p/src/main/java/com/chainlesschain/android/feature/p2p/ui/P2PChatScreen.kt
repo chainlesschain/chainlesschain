@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
@@ -52,6 +53,8 @@ fun P2PChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isVerified by viewModel.isDeviceVerified.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    // 顶栏显示名：备注名 > 昵称 > 缩写 DID（无备注不再显示裸长 DID）
+    val peerDisplayName by viewModel.peerDisplayName.collectAsState()
 
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -92,7 +95,12 @@ fun P2PChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(deviceName)
+                        Text(
+                            text = peerDisplayName.ifBlank { deviceName },
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
