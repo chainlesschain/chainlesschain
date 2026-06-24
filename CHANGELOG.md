@@ -37,6 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
 
+## [v5.0.3.130] - 2026-06-24 — QQ空间一键采集（App 内嵌 WebView 登录 → 说说/留言板/相册）+ 朋友圈采集上设备
+
+### Added — QQ空间 in-app 一键采集（手机端，无需 PC / root / 手动 cookie）
+
+> cc bundle v20260623b → **v20260624**（pdh 0.4.35 → **0.4.36** + cli 0.162.116 → **0.162.117**，已发 npm `latest`）；USR_VERSION 57 → **58**（装机后重解压 bundle，trap #27）。
+
+- **QQ空间（Qzone）采集**：Qzone 本地无可读库 → 走 API。新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk` = bkn hash over qzone 域 `p_skey`；说说 `emotion_cgi_msglist_v6` / 留言板 `get_msgb` / 相册 `fcg_list_album_v3` → EVENT(post/message/media)）+ `cc hub collect-qzone --cookie/--cookie-file --what shuoshuo,msgb,album`。
+- **Android「QQ空间」一键采集卡**（HubLocal 内容平台）：内嵌 WebView 打开 ptlogin2 登录（QR / 账号密码）→ 抓 qzone `p_skey` cookie → in-APK `cc hub collect-qzone` 入设备本地金库。真机（chopin）端到端验证：扫码登录 → **采集 404 事件（329 说说 + 73 留言 + 2 相册）**。
+- **微信朋友圈采集**：`SnsMicroMsg.db` 是**明文 SQLite**（无需密钥）；新增 `parseSnsEvents`（SnsInfo → EVENT(post)，正文取 protobuf TimelineObject 第 5 字段）。本机真机采 2824 条朋友圈。
+
+### Fixed
+
+- **QQ空间登录页全灰白**：`user.qzone.qq.com`（未登录）跳 `i.qq.com` 把登录塞进 WebView 渲染不出的 iframe；改为直载 `ptlogin2/xlogin` 表单（QR + 账号密码正常渲染）。
+
 ## [v5.0.3.129] - 2026-06-22 — 个人助手信任卡固定可见（不再被消息流滚走 / 误以为「没反应」）
 
 ### Fixed — Android 个人助手:发消息后的确认卡看不见,要往上翻
