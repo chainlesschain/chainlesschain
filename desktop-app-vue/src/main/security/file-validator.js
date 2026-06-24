@@ -386,6 +386,15 @@ class FileValidator {
         );
       }
 
+      // 检查内联事件处理器：<svg onload=...>/<rect onclick=...> 等无需 <script>
+      // 标签即可执行脚本，是 SVG 内联渲染的主要 XSS 向量。HTML 检查已覆盖此项，
+      // SVG 同样需要（此前漏检）。
+      if (/on\w+\s*=/i.test(content)) {
+        result.warnings.push(
+          "SVG file contains inline event handlers - potential XSS risk",
+        );
+      }
+
       // 检查是否包含外部引用
       if (/xlink:href=['"](?!data:)/i.test(content)) {
         result.warnings.push("SVG file contains external references");
