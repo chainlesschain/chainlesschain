@@ -1176,15 +1176,25 @@ export async function startAgentRepl(options = {}) {
 
   // Version-skew reminder: if cc was updated on disk after this REPL spawned, it
   // is still running the old in-memory code (a fixed bug then looks "not fixed").
-  // Tell the user to restart so the update takes effect. Best-effort.
-  try {
-    const { detectVersionSkew, versionSkewMessage } =
-      await import("../lib/version-skew.js");
-    const skew = detectVersionSkew();
-    if (skew) logger.log(chalk.yellow(`⚠️  ${versionSkewMessage(skew)}\n`));
-  } catch {
-    /* version-skew notice is best-effort */
-  }
+  // Tell the user to restart so the update takes effect. Checked at startup AND
+  // again before each turn (see handleLine) so a mid-session `npm i -g` is
+  // caught on the next prompt; emitted at most once. Best-effort.
+  let _versionSkewNotified = false;
+  const _notifyVersionSkew = async () => {
+    if (_versionSkewNotified) return;
+    try {
+      const { detectVersionSkew, versionSkewMessage } =
+        await import("../lib/version-skew.js");
+      const skew = detectVersionSkew();
+      if (skew) {
+        _versionSkewNotified = true;
+        logger.log(chalk.yellow(`⚠️  ${versionSkewMessage(skew)}\n`));
+      }
+    } catch {
+      /* version-skew notice is best-effort */
+    }
+  };
+  await _notifyVersionSkew();
 
   // statusLine (Claude-Code parity): a line above the prompt each turn.
   //  - A user-configured `.claude/settings.json` `statusLine` command wins
@@ -1282,6 +1292,10 @@ export async function startAgentRepl(options = {}) {
       prompt();
       return;
     }
+
+    // Per-turn version-skew check (one-time): catches an `npm i -g` that landed
+    // while this REPL kept running — the next prompt nudges a restart.
+    await _notifyVersionSkew();
 
     // `!` bash passthrough (Claude-Code parity): run the command right here —
     // no LLM round-trip — and fold the output into the conversation context.

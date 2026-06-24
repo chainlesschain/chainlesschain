@@ -72,6 +72,35 @@ export function detectVersionSkew({
   return newer ? { loaded, installed } : null;
 }
 
+/**
+ * Three-way version diagnosis for `cc doctor`: the version this process is
+ * RUNNING, the version INSTALLED on disk, and the LATEST published on npm.
+ * Distinguishes the two distinct "you're behind" cases:
+ *   - installed < latest        → a real upgrade exists → `npm i -g`
+ *   - running   < installed     → already updated on disk → restart to apply
+ * Otherwise "current". Pure; unknown/invalid inputs degrade gracefully.
+ *
+ * @param {object} o { running, installed, latest } (any may be null/invalid)
+ * @returns {{running:string|null, installed:string|null, latest:string|null,
+ *            status:"current"|"outdated"|"skew", message:string}}
+ */
+export function versionDiagnosis({ running, installed, latest } = {}) {
+  const ok = (v) => (typeof v === "string" && semver.valid(v) ? v : null);
+  const r = ok(running);
+  const i = ok(installed) || r; // fall back to running when disk read failed
+  const l = ok(latest);
+  let status = "current";
+  let message = "cc is up to date.";
+  if (l && i && semver.gt(l, i)) {
+    status = "outdated";
+    message = `A newer cc is available: ${i} → ${l}. Upgrade: npm i -g chainlesschain`;
+  } else if (r && i && semver.gt(i, r)) {
+    status = "skew";
+    message = `cc was updated ${r} → ${i} on disk — restart cc (or reload your IDE panel) to apply.`;
+  }
+  return { running: r, installed: i, latest: l, status, message };
+}
+
 /** Friendly one-line notice (Chinese) for a detected skew. */
 export function versionSkewMessage({ loaded, installed } = {}) {
   return (

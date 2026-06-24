@@ -55,6 +55,7 @@ describe("maybeNotifyUpdate", () => {
       now: NOW,
       isTTY: true,
       currentVersion: "0.1.0",
+      installedVersion: "0.1.0",
       print: (l) => lines.push(l),
     });
     expect(res.printed).toBe(true);
@@ -64,18 +65,98 @@ describe("maybeNotifyUpdate", () => {
 
   it("stays silent without TTY, when disabled, or when up to date", () => {
     writeCache({ checkedAt: NOW - 1000, latest: "9.9.9" });
-    const base = { deps, now: NOW, currentVersion: "0.1.0", print: () => {} };
+    const base = {
+      deps,
+      now: NOW,
+      currentVersion: "0.1.0",
+      installedVersion: "0.1.0",
+      print: () => {},
+    };
     expect(maybeNotifyUpdate({ ...base, env: {}, isTTY: false }).printed).toBe(
       false,
     );
     expect(
-      maybeNotifyUpdate({ ...base, env: { CC_UPDATE_NOTICE: "0" }, isTTY: true })
-        .printed,
+      maybeNotifyUpdate({
+        ...base,
+        env: { CC_UPDATE_NOTICE: "0" },
+        isTTY: true,
+      }).printed,
     ).toBe(false);
     writeCache({ checkedAt: NOW - 1000, latest: "0.0.1" });
     expect(maybeNotifyUpdate({ ...base, env: {}, isTTY: true }).printed).toBe(
       false,
     );
+  });
+
+  it("compares the INSTALLED (disk) version vs latest — a stale process whose disk is already current does NOT nag npm i -g, but is told to restart", () => {
+    // npm latest == what's installed on disk, but THIS process loaded an older
+    // version (long-lived process survived an `npm i -g`). It must not say
+    // "Update available / npm i -g" (disk is current) — it must say "restart".
+    writeCache({ checkedAt: NOW - 1000, latest: "0.162.118" });
+    const lines = [];
+    const res = maybeNotifyUpdate({
+      deps,
+      env: {},
+      now: NOW,
+      isTTY: true,
+      currentVersion: "0.162.117", // running (stale, in memory)
+      installedVersion: "0.162.118", // on disk (already updated)
+      print: (l) => lines.push(l),
+    });
+    expect(res.printed).toBe(true);
+    expect(lines[0]).toContain("restart");
+    expect(lines[0]).toContain("0.162.117 → 0.162.118");
+    expect(lines[0]).not.toContain("npm i -g"); // re-install would be a no-op
+  });
+
+  it("a genuine new release (disk < latest) still says Update available, keyed on the installed version", () => {
+    writeCache({ checkedAt: NOW - 1000, latest: "0.162.120" });
+    const lines = [];
+    const res = maybeNotifyUpdate({
+      deps,
+      env: {},
+      now: NOW,
+      isTTY: true,
+      currentVersion: "0.162.118",
+      installedVersion: "0.162.118",
+      print: (l) => lines.push(l),
+    });
+    expect(res.printed).toBe(true);
+    expect(lines[0]).toContain("Update available");
+    expect(lines[0]).toContain("0.162.118 → 0.162.120");
+    expect(lines[0]).toContain("npm i -g");
+  });
+
+  it("skew is detected even without a cache (running < installed) → restart message", () => {
+    // no cache written → first branch can't fire; the skew branch still does.
+    const lines = [];
+    const res = maybeNotifyUpdate({
+      deps,
+      env: {},
+      now: NOW,
+      isTTY: true,
+      currentVersion: "0.162.117",
+      installedVersion: "0.162.118",
+      print: (l) => lines.push(l),
+    });
+    expect(res.printed).toBe(true);
+    expect(lines[0]).toContain("restart");
+  });
+
+  it("running == installed == latest → silent (no false nag)", () => {
+    writeCache({ checkedAt: NOW - 1000, latest: "0.162.118" });
+    const lines = [];
+    const res = maybeNotifyUpdate({
+      deps,
+      env: {},
+      now: NOW,
+      isTTY: true,
+      currentVersion: "0.162.118",
+      installedVersion: "0.162.118",
+      print: (l) => lines.push(l),
+    });
+    expect(res.printed).toBe(false);
+    expect(lines).toHaveLength(0);
   });
 
   it("spawns the detached refresher when the cache is stale, touching checkedAt first", () => {
@@ -86,6 +167,7 @@ describe("maybeNotifyUpdate", () => {
       now: NOW,
       isTTY: true,
       currentVersion: "1.0.0",
+      installedVersion: "1.0.0",
       print: () => {},
     });
     expect(res.spawned).toBe(true);
@@ -101,6 +183,7 @@ describe("maybeNotifyUpdate", () => {
       now: NOW + 1000,
       isTTY: true,
       currentVersion: "1.0.0",
+      installedVersion: "1.0.0",
       print: () => {},
     });
     expect(again.spawned).toBe(false);
@@ -114,6 +197,7 @@ describe("maybeNotifyUpdate", () => {
       now: NOW,
       isTTY: true,
       currentVersion: "1.0.0",
+      installedVersion: "1.0.0",
       print: () => {},
     });
     expect(res.printed).toBe(false);
@@ -125,7 +209,13 @@ describe("maybeNotifyUpdate", () => {
     fs.mkdirSync(path.dirname(p), { recursive: true });
     fs.writeFileSync(p, "{not json", "utf-8");
     expect(() =>
-      maybeNotifyUpdate({ deps, env: {}, now: NOW, isTTY: true, print: () => {} }),
+      maybeNotifyUpdate({
+        deps,
+        env: {},
+        now: NOW,
+        isTTY: true,
+        print: () => {},
+      }),
     ).not.toThrow();
   });
 });

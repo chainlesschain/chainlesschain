@@ -7,6 +7,7 @@ import {
   detectVersionSkew,
   readDiskVersion,
   versionSkewMessage,
+  versionDiagnosis,
 } from "../../src/lib/version-skew.js";
 
 describe("detectVersionSkew", () => {
@@ -90,6 +91,59 @@ describe("readDiskVersion", () => {
     const v = readDiskVersion();
     expect(typeof v).toBe("string");
     expect(v).toMatch(/^\d+\.\d+\.\d+/);
+  });
+});
+
+describe("versionDiagnosis (cc doctor 3-way check)", () => {
+  it("outdated: installed < latest → npm i -g", () => {
+    const d = versionDiagnosis({
+      running: "0.162.118",
+      installed: "0.162.118",
+      latest: "0.162.120",
+    });
+    expect(d.status).toBe("outdated");
+    expect(d.message).toContain("npm i -g chainlesschain");
+    expect(d.message).toContain("0.162.118 → 0.162.120");
+  });
+
+  it("skew: running < installed (disk already current) → restart, not re-install", () => {
+    const d = versionDiagnosis({
+      running: "0.162.117",
+      installed: "0.162.118",
+      latest: "0.162.118",
+    });
+    expect(d.status).toBe("skew");
+    expect(d.message).toContain("restart");
+    expect(d.message).not.toContain("npm i -g");
+  });
+
+  it("outdated takes precedence over skew when a newer release also exists", () => {
+    const d = versionDiagnosis({
+      running: "0.162.117",
+      installed: "0.162.118",
+      latest: "0.162.120",
+    });
+    expect(d.status).toBe("outdated"); // newest-release nudge wins
+  });
+
+  it("current: running == installed == latest → up to date", () => {
+    const d = versionDiagnosis({
+      running: "0.162.118",
+      installed: "0.162.118",
+      latest: "0.162.118",
+    });
+    expect(d.status).toBe("current");
+  });
+
+  it("falls back to running when the disk read failed; unknown latest is tolerated", () => {
+    const d = versionDiagnosis({
+      running: "0.162.118",
+      installed: null,
+      latest: null,
+    });
+    expect(d.installed).toBe("0.162.118"); // fell back to running
+    expect(d.latest).toBeNull();
+    expect(d.status).toBe("current");
   });
 });
 

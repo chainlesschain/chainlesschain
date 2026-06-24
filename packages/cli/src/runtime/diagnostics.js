@@ -13,7 +13,8 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join as pathJoin } from "node:path";
 import { createRequire } from "node:module";
 import { createConnection } from "node:net";
 import semver from "semver";
@@ -28,6 +29,17 @@ import {
 } from "../lib/service-manager.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { isAppRunning, getAppPid } from "../lib/process-manager.js";
+import { readDiskVersion, versionDiagnosis } from "../lib/version-skew.js";
+
+/** Best-effort read of the npm `latest` cached by the startup update notice. */
+function readCachedLatest() {
+  try {
+    const p = pathJoin(getHomeDir() || "", "update-check.json");
+    return JSON.parse(readFileSync(p, "utf-8"))?.latest || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Probe a TCP port. Resolves true if something is listening.
@@ -250,9 +262,19 @@ export async function collectDoctorReport() {
   const failed = checks.filter((c) => !c.ok);
   const criticalFailed = failed.filter((c) => !c.optional);
 
+  // Three-way version check: running (this process) vs installed (on disk) vs
+  // latest (npm, from the update-notice cache). Tells the user whether they need
+  // `npm i -g` (a new release) or just a restart (already updated on disk).
+  const versionCheck = versionDiagnosis({
+    running: VERSION,
+    installed: readDiskVersion(),
+    latest: readCachedLatest(),
+  });
+
   return {
     schema: "chainlesschain.doctor.v1",
     version: VERSION,
+    versionCheck,
     generatedAt: new Date().toISOString(),
     checks,
     ports,

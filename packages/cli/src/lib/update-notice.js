@@ -23,9 +23,11 @@ import { fileURLToPath } from "url";
 import chalk from "chalk";
 import semver from "semver";
 import { VERSION } from "../constants.js";
+import { readDiskVersion } from "./version-skew.js";
 
 export const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-export const NPM_LATEST_URL = "https://registry.npmjs.org/chainlesschain/latest";
+export const NPM_LATEST_URL =
+  "https://registry.npmjs.org/chainlesschain/latest";
 
 export const _deps = {
   fs: fsDefault,
@@ -71,7 +73,15 @@ export function maybeNotifyUpdate(opts = {}) {
   const env = opts.env || process.env;
   const now = opts.now ?? Date.now();
   const isTTY = opts.isTTY ?? Boolean(process.stderr.isTTY);
-  const current = opts.currentVersion || VERSION;
+  // `running` = the version THIS process loaded at spawn (baked VERSION).
+  // `installed` = the version on disk RIGHT NOW (a fresh package.json read).
+  // They diverge after `npm i -g` runs under a long-lived process: the files
+  // update but the running process keeps the old code. We therefore compare the
+  // INSTALLED version against npm latest (so a stale process never nags
+  // "npm i -g" when disk is already current), and separately flag a
+  // running<installed skew as "restart to apply" (re-installing wouldn't help).
+  const running = opts.currentVersion || VERSION;
+  const installed = opts.installedVersion ?? readDiskVersion() ?? running;
   const print =
     opts.print || ((line) => process.stderr.write(chalk.gray(line) + "\n"));
 
@@ -85,11 +95,25 @@ export function maybeNotifyUpdate(opts = {}) {
       isTTY &&
       cache?.latest &&
       semver.valid(cache.latest) &&
-      semver.valid(current) &&
-      semver.gt(cache.latest, current)
+      semver.valid(installed) &&
+      semver.gt(cache.latest, installed)
     ) {
+      // A newer release exists on npm → a real upgrade is available.
       print(
-        `Update available: chainlesschain ${current} → ${cache.latest} (npm i -g chainlesschain · CC_UPDATE_NOTICE=0 to hide)`,
+        `Update available: chainlesschain ${installed} → ${cache.latest} (npm i -g chainlesschain · CC_UPDATE_NOTICE=0 to hide)`,
+      );
+      out.printed = true;
+    } else if (
+      isTTY &&
+      semver.valid(installed) &&
+      semver.valid(running) &&
+      semver.gt(installed, running)
+    ) {
+      // Already updated on disk, but this process is older → restart to apply.
+      // Re-running `npm i -g` would be a no-op; the fix is to relaunch cc / the
+      // IDE panel so the new code loads.
+      print(
+        `cc was updated ${running} → ${installed} on disk — restart cc (or reload your IDE panel) to apply (CC_UPDATE_NOTICE=0 to hide)`,
       );
       out.printed = true;
     }
@@ -103,11 +127,11 @@ export function maybeNotifyUpdate(opts = {}) {
         deps.path.dirname(fileURLToPath(import.meta.url)),
         "update-notice-refresh.mjs",
       );
-      const child = deps.spawn(
-        process.execPath,
-        [refresher, cachePath(deps)],
-        { detached: true, stdio: "ignore", windowsHide: true },
-      );
+      const child = deps.spawn(process.execPath, [refresher, cachePath(deps)], {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+      });
       if (child && typeof child.unref === "function") child.unref();
       out.spawned = true;
     }

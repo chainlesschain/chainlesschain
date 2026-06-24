@@ -20,6 +20,21 @@ export function registerDoctorCommand(program) {
 
       logger.log(chalk.bold("\n  ChainlessChain Doctor\n"));
 
+      // Version: running (this process) · installed (on disk) · latest (npm).
+      const vc = report.versionCheck;
+      if (vc) {
+        const icon =
+          vc.status === "current" ? chalk.green("✔") : chalk.yellow("⚠");
+        logger.log(
+          `  ${icon} cc version: running ${vc.running || "?"} · installed ${
+            vc.installed || "?"
+          } · latest ${vc.latest || "?"}`,
+        );
+        if (vc.status !== "current") {
+          logger.log(chalk.yellow(`     ${vc.message}`));
+        }
+      }
+
       for (const check of report.checks) {
         const icon = check.ok ? chalk.green("✔") : chalk.red("✖");
         const detail = check.detail ? chalk.gray(` (${check.detail})`) : "";
