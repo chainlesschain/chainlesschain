@@ -14,6 +14,7 @@
 
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const { looseParseJSON } = require("../response-parser.js");
 
 // ============================================================
 // Constants
@@ -715,7 +716,9 @@ Respond in JSON format.`;
     const response = await this._llmService.query(prompt);
 
     try {
-      const parsed = JSON.parse(response);
+      // looseParseJSON：LLM 常把 JSON 包进 ```json 围栏或前后加解释文字，
+      // 直接 JSON.parse 会抛错 → 旧实现丢弃整个 LLM 增强结果落到 llmEnhanced:false。
+      const parsed = looseParseJSON(response);
       return {
         llmEnhanced: true,
         suggestedFileStructure: parsed.fileStructure || [],

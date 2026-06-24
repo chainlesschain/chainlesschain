@@ -46,6 +46,7 @@ describe("ResponseParser", () => {
   let normalizeOperations;
   let validateOperation;
   let validateOperations;
+  let looseParseJSON;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -60,6 +61,39 @@ describe("ResponseParser", () => {
     normalizeOperations = module.normalizeOperations;
     validateOperation = module.validateOperation;
     validateOperations = module.validateOperations;
+    looseParseJSON = module.looseParseJSON;
+  });
+
+  describe("looseParseJSON", () => {
+    it("parses bare JSON directly", () => {
+      expect(looseParseJSON('{"a": 1}')).toEqual({ a: 1 });
+      expect(looseParseJSON("[1, 2, 3]")).toEqual([1, 2, 3]);
+    });
+
+    it("extracts JSON from a ```json fence (the common LLM wrapping)", () => {
+      // 旧实现 JSON.parse('```json\n{...}\n```') 抛错 → 调用方丢弃结果
+      expect(
+        looseParseJSON('```json\n{"fileStructure": ["a.js"]}\n```'),
+      ).toEqual({ fileStructure: ["a.js"] });
+    });
+
+    it("extracts JSON from a bare ``` fence", () => {
+      expect(looseParseJSON('```\n{"x": true}\n```')).toEqual({ x: true });
+    });
+
+    it("extracts a JSON object embedded in surrounding prose", () => {
+      expect(
+        looseParseJSON('Here is the result: {"effort": 5} — done.'),
+      ).toEqual({ effort: 5 });
+    });
+
+    it("throws SyntaxError when no JSON is present (caller falls back)", () => {
+      expect(() => looseParseJSON("no json here at all")).toThrow(SyntaxError);
+    });
+
+    it("throws TypeError for non-string input", () => {
+      expect(() => looseParseJSON(null)).toThrow(TypeError);
+    });
   });
 
   describe("parseAIResponse", () => {
