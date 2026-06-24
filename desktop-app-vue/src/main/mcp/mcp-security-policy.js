@@ -64,7 +64,7 @@ function normalizeSecurityPath(inputPath) {
  * @param {string} pattern - Pattern to match against
  * @returns {boolean}
  */
-function pathMatchesPattern(testPath, pattern) {
+function pathMatchesPattern(testPath, pattern, strict = false) {
   const normalizedPath = normalizeSecurityPath(testPath);
   const normalizedPattern = normalizeSecurityPath(pattern);
 
@@ -86,12 +86,20 @@ function pathMatchesPattern(testPath, pattern) {
     return true;
   }
 
-  // Check if path contains the pattern
+  // Pattern appears as a complete path segment (bounded on both sides).
   if (
     normalizedPath.includes("/" + normalizedPattern + "/") ||
-    normalizedPath.includes("/" + normalizedPattern) ||
     normalizedPath.endsWith("/" + normalizedPattern)
   ) {
+    return true;
+  }
+
+  // Loose prefix-of-segment match (".../<pattern>...") — only for the
+  // FORBIDDEN blacklist, where over-blocking sensitive variants (".env" also
+  // matching ".env.local") is desirable. NEVER for the allowed whitelist:
+  // there it would over-grant (allowed "app" matching ".../application/..."),
+  // a sandbox-escape. Callers pass strict=true for whitelist checks.
+  if (!strict && normalizedPath.includes("/" + normalizedPattern)) {
     return true;
   }
 
@@ -292,7 +300,9 @@ class MCPSecurityPolicy extends EventEmitter {
           const prefix = normalizeSecurityPath(allowed.slice(0, -1));
           return normalizedPath.startsWith(prefix);
         }
-        return pathMatchesPattern(normalizedPath, allowed);
+        // strict: whitelist must match a complete segment, never a prefix of
+        // one (allowed "app" must not grant ".../application/...").
+        return pathMatchesPattern(normalizedPath, allowed, true);
       });
 
       if (!isAllowed) {
@@ -896,4 +906,10 @@ class MCPSecurityPolicy extends EventEmitter {
   }
 }
 
-module.exports = { MCPSecurityPolicy, SecurityError };
+module.exports = {
+  MCPSecurityPolicy,
+  SecurityError,
+  // exported for unit testing of the allowed/forbidden path-matching boundary
+  pathMatchesPattern,
+  normalizeSecurityPath,
+};
