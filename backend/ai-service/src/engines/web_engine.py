@@ -224,8 +224,8 @@ class WebEngine:
             else:
                 raise Exception("LLM client not initialized")
 
-            # 解析JSON
-            spec = json.loads(content)
+            # 解析JSON（strip_code_fences：LLM 常把 JSON 包在 ```json 围栏里）
+            spec = json.loads(strip_code_fences(content))
             return spec
 
         except Exception as e:

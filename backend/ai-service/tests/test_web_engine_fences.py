@@ -48,3 +48,14 @@ def test_handles_missing_closing_fence():
 def test_empty_and_none_safe():
     assert strip_code_fences("") == ""
     assert strip_code_fences(None) is None
+
+
+def test_enables_json_loads_of_fenced_output():
+    # doc_engine/data_engine/web_engine 在 json.loads 前先 strip_code_fences：
+    # LLM 即使把 JSON 包进 ```json 围栏，也能解析出来而非落到 fallback。
+    import json
+
+    assert json.loads(strip_code_fences('```json\n{"a": 1}\n```')) == {"a": 1}
+    assert json.loads(strip_code_fences('```JSON\n{"x": true}\n```')) == {"x": True}
+    # 无围栏的裸 JSON 不受影响
+    assert json.loads(strip_code_fences('{"b": 2}')) == {"b": 2}

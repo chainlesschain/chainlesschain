@@ -20,6 +20,7 @@ import io
 import ollama
 from openai import AsyncOpenAI
 from src.llm.llm_client import get_llm_client
+from src.utils.text_utils import strip_code_fences
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -218,7 +219,7 @@ class DocumentEngine:
             else:
                 raise Exception("LLM client not initialized")
 
-            outline = json.loads(content)
+            outline = json.loads(strip_code_fences(content))
             return outline
 
         except Exception as e:

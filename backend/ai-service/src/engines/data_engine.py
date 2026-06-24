@@ -18,6 +18,7 @@ import matplotlib
 matplotlib.use('Agg')  # 无GUI后端
 import matplotlib.font_manager as fm
 from src.llm.llm_client import get_llm_client
+from src.utils.text_utils import strip_code_fences
 
 # 清除matplotlib字体缓存并重新加载
 try:
@@ -223,7 +224,7 @@ class DataEngine:
             else:
                 raise Exception("LLM client not initialized")
 
-            spec = json.loads(content)
+            spec = json.loads(strip_code_fences(content))
 
             # 如果 LLM 返回了列表而不是字典，取第一个元素
             if isinstance(spec, list):
