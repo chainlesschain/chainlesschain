@@ -143,11 +143,19 @@ class ImageMemoryCache(
          * Calculate default max cache size based on available memory
          * Uses 1/8 of available heap memory
          */
-        fun calculateDefaultMaxSize(): Int {
-            val runtime = Runtime.getRuntime()
-            val maxMemory = runtime.maxMemory().toInt()
-            return maxMemory / 8
-        }
+        fun calculateDefaultMaxSize(): Int =
+            maxSizeForHeap(Runtime.getRuntime().maxMemory())
+
+        /**
+         * 取堆上限的 1/8 作为缓存上限。
+         *
+         * 用 Long 全程运算并钳到 [1, Int.MAX_VALUE]：`maxMemory()` 返回 Long，原实现
+         * 先 `.toInt()` 再除会在堆 > 2GB 时截断成负数（→ `LruCache(负)` 抛
+         * IllegalArgumentException 崩溃），无上限 JVM 返回 Long.MAX_VALUE 时更直接
+         * 截断成 -1 → /8 = 0 → `LruCache(0)` 崩溃。
+         */
+        internal fun maxSizeForHeap(maxMemoryBytes: Long): Int =
+            (maxMemoryBytes / 8).coerceIn(1L, Int.MAX_VALUE.toLong()).toInt()
     }
 }
 
