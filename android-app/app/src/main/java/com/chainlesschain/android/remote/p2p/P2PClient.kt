@@ -517,21 +517,18 @@ class P2PClient @Inject constructor(
     suspend fun <T> sendCommand(
         method: String,
         params: Map<String, Any> = emptyMap(),
-        timeout: Long = config.requestTimeout,
-        targetPeerDid: String? = null,
+        timeout: Long = config.requestTimeout
     ): Result<T> = withContext(Dispatchers.IO) {
-        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid 或显式
-        // targetPeerDid）就放行——sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。
-        // 三者都缺才真失败。targetPeerDid 让握手命令定向到具体对端（不被全局 currentPeerDid 覆盖）。
-        if (_connectionState.value != ConnectionState.CONNECTED &&
-            currentPeerDid == null && targetPeerDid == null) {
+        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid）就放行——
+        // sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。两者都缺才真失败。
+        if (_connectionState.value != ConnectionState.CONNECTED && currentPeerDid == null) {
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
             // 记录活动（命令执行）
             deviceActivityManager.recordActivity("command_executed")
 
-            val response = sendCommandInternal(method, params, timeout, targetPeerDid)
+            val response = sendCommandInternal(method, params, timeout)
 
             if (response.isError()) {
                 return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
@@ -541,6 +538,31 @@ class P2PClient @Inject constructor(
             Result.success(response.result as T)
         } catch (e: Exception) {
             Timber.e(e, "sendCommand failed: $method")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 与 [sendCommand] 相同，但把命令**定向**到指定对端 [targetPeerDid]（而非全局 currentPeerDid）。
+     * 握手命令（getBundle/e2ee.init）必须用此方法——currentPeerDid 会被 FriendSyncConnector 拨
+     * 多个/旧好友 DID 时覆盖，导致握手命令中继到错的对端。独立方法名避免与 typed 重载歧义。
+     */
+    suspend fun <T> sendCommandTargeted(
+        method: String,
+        params: Map<String, Any>,
+        targetPeerDid: String,
+        timeout: Long = config.requestTimeout,
+    ): Result<T> = withContext(Dispatchers.IO) {
+        try {
+            deviceActivityManager.recordActivity("command_executed")
+            val response = sendCommandInternal(method, params, timeout, targetPeerDid)
+            if (response.isError()) {
+                return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
+            }
+            @Suppress("UNCHECKED_CAST")
+            Result.success(response.result as T)
+        } catch (e: Exception) {
+            Timber.e(e, "sendCommandTargeted failed: $method")
             Result.failure(e)
         }
     }

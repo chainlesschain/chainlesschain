@@ -51,7 +51,11 @@ class FriendSessionHandshake @Inject constructor(
     private var handshakeTargetPeer: String? = null
 
     internal var commandSender: suspend (String, Map<String, Any>) -> Result<Map<String, Any>> =
-        { method, params -> p2pClient.sendCommand(method, params, targetPeerDid = handshakeTargetPeer) }
+        { method, params ->
+            val target = handshakeTargetPeer
+            if (target != null) p2pClient.sendCommandTargeted(method, params, target)
+            else p2pClient.sendCommand(method, params)
+        }
 
     suspend fun initiate(peerDid: String): Boolean {
         if (sessionManager.hasSession(peerDid)) {

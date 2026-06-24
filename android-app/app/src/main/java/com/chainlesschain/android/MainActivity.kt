@@ -156,8 +156,11 @@ class MainActivity : AppCompatActivity() {
                 .onFailure { Timber.w(it, "attachRemoteRelay failed (non-fatal)") }
             // 健壮性：附加 E2EE 会话自愈 —— 收端解密 MAC 失败（棘轮发散）时自动重建会话，
             // 用户无需手动重新配对（设计 docs/internal/p2p-self-healing-e2ee-sessions.md）。
-            runCatching { p2pMessageRepository.get().attachSessionRecovery(webRtcSessionRecovery.get()) }
-                .onFailure { Timber.w(it, "attachSessionRecovery failed (non-fatal)") }
+            runCatching {
+                val recovery = webRtcSessionRecovery.get()
+                p2pMessageRepository.get().attachSessionRecovery(recovery)
+                recovery.start() // 订阅 e2ee-resync：offerer 收到非 offerer 的重握手请求 → 重握手（消除 glare）
+            }.onFailure { Timber.w(it, "attachSessionRecovery failed (non-fatal)") }
             // FAMILY-67: 接通话状态机 + 媒体/前台服务互挂 —— start() 订阅 call:* 来电信令，
             // 否则被叫端收不到来电（startCall 直接 send 不需要 start，但 onSignal 订阅必须 start）。
             runCatching {
