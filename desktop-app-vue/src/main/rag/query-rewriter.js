@@ -274,13 +274,14 @@ class QueryRewriter extends EventEmitter {
         .split("\n")
         .map((line) => line.trim())
         .filter((line) => {
-          // 过滤掉空行、JSON符号、编号等
+          // 过滤掉空行、纯 JSON 符号、完整响应。不要排除编号/项目符号开头的行——
+          // 那正是 LLM 列出变体的最常见格式，下面的清理步骤会剥掉 "1. " / "- " 标记。
+          // 此前在这里排除它们，使编号列表的每一行都被过滤掉、清理代码成了死代码，
+          // 结果整段响应被当成 1 个变体返回，而非拆出 N 个干净变体。
           return (
             line &&
             line.length > 5 &&
             !["[", "]", "{", "}"].includes(line) &&
-            !line.match(/^\d+[.)、]/) &&
-            !line.match(/^[-*]/) &&
             line !== response.trim()
           ); // 排除完整响应
         });
