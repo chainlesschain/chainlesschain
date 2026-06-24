@@ -143,10 +143,15 @@ class HierarchicalMemory extends EventEmitter {
       id,
       content,
       type: options.type || "episodic",
-      importance: options.importance || 0.5,
+      // ?? not ||: importance is a [0,1] score and decay_rate a [0,…) rate, so a
+      // legitimate explicit 0 must be kept. `0 || default` would coerce a
+      // least-important memory to 0.5 (mis-routing it up a layer) and a
+      // never-forget memory (decay_rate 0) to the default rate (so it decays out
+      // of recall instead of staying permanent).
+      importance: options.importance ?? 0.5,
       access_count: 0,
       last_accessed: new Date().toISOString(),
-      decay_rate: options.decay_rate || this._config.forgettingRate,
+      decay_rate: options.decay_rate ?? this._config.forgettingRate,
       associations: options.associations || [],
       metadata: options.metadata || {},
       created_at: new Date().toISOString(),

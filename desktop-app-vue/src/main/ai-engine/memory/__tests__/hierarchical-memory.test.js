@@ -65,6 +65,20 @@ describe("HierarchicalMemory", () => {
     expect(memory._working.size).toBe(1);
   });
 
+  it("routes an explicit importance of 0 to working (not coerced to 0.5)", async () => {
+    await memory.initialize(db);
+    // 旧实现 `0 || 0.5` → 0.5 → 误入 short-term
+    const result = memory.store("zero importance", { importance: 0 });
+    expect(result.layer).toBe("working");
+  });
+
+  it("preserves an explicit decay_rate of 0 (permanent, no forgetting)", async () => {
+    await memory.initialize(db);
+    // 旧实现 `0 || forgettingRate` → 默认衰减率 → 永久记忆会被衰减出召回
+    const result = memory.store("forever", { importance: 0, decay_rate: 0 });
+    expect(memory._working.get(result.id).decay_rate).toBe(0);
+  });
+
   it("should route medium importance (0.3-0.6) to short-term", async () => {
     await memory.initialize(db);
     const result = memory.store("medium note", { importance: 0.4 });
