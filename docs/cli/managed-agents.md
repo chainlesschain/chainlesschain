@@ -1045,6 +1045,34 @@ REPL 里 `run_shell` 撞 ApprovalGate 风险确认时,提示是 **`[y]es once / 
 上面的 `allow` 短路)。显式 `ask` 规则保持 y/N(asking 是声明意图;且 deny>ask>allow 下
 allow 也盖不过 ask)。
 
+## Credential 读取保护(Claude-Code 2.1.189 `sandbox.credentials` 平价)
+
+cc 不做 OS 沙箱,但同样的意图在**工具层**落地:Agent 不应把用户的密钥静默吸进模型上下文
+(可能被回显、写进转录、或被后续工具外泄)。两条读取路径被**确认优先 / headless fail-closed**
+拦截(与 sensitive-file **写**保护同款):
+
+- **`read_file`** 指向凭据文件:`.env`(及 `.env.local` / `.env.production` 等真实变体——但
+  `.env.example` / `.env.sample` / `.env.template` 等模板**不拦**)、`~/.aws/credentials`、
+  `~/.kube/config`、`~/.docker/config.json`、`~/.config/gh/hosts.yml`、`.npmrc` / `.netrc` /
+  `.git-credentials` / `.pgpass`、私钥与证书材料(`*.pem` / `*.key` / `*.pfx` / `*.p12` /
+  `*.jks` / `id_rsa` 等;`*.pub` / `*.crt` 公钥**不拦**)、`secrets.{json,yaml}`。
+- **`run_shell`** 读凭据:用 `cat` / `type` / `Get-Content` / `head` … 读上述凭据文件;
+  `echo $ANTHROPIC_API_KEY` / `printf "%s" "$AWS_SECRET_ACCESS_KEY"` / `echo %GITHUB_TOKEN%` /
+  `Write-Host $env:DB_PASSWORD` / `printenv OPENAI_API_KEY` 这类**打印密钥型环境变量**;
+  以及 `printenv` / `env` / `Get-ChildItem env:` 这类**全量 env dump**。复合命令的**每一段**
+  都查(`echo hi && cat .env` 也会被拦)。仅**消费**密钥而不回显的命令(`mytool --token $API_TOKEN`)
+  不拦——值不会落进输出。
+
+旁路与开关:
+
+- **显式 settings `allow` 规则**(`Read(./**)` / `Bash(cat:*)` 等)或交互确认 `ask` 已通过 →
+  预授权,不再拦。
+- 交互模式弹确认(一次按键);**headless 无确认器 → fail-closed 拒绝**,报
+  `[Credential Guard] … requires confirmation — denied`。
+- `CC_CREDENTIAL_GUARD=0`(/ `false` / `no` / `off`)整体关闭。
+- **有意分歧**:`--safe-mode` **不**关闭本保护——和权限 deny 规则一样,这是**安全面**而非
+  自定义项,"裸跑排查自定义"绝不能放宽 Agent 能读到的密钥。
+
 ## Hooks — `.claude/settings.json` `hooks` 块 (Claude-Code 协议)
 
 Claude Code hooks 对标。两个来源,职责不同:

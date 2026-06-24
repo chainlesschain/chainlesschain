@@ -1029,6 +1029,53 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  // Credential READ guard (Claude-Code 2.1.189 parity: `sandbox.credentials`
+  // blocks reads of credential files / secret env vars). cc has no OS sandbox,
+  // so the same intent is enforced at the tool layer: pulling the user's secrets
+  // into model context is a confirm-first action. `read_file` aimed at a
+  // credential file, and `run_shell` commands that cat a credential file or echo
+  // a secret env var, are gated. An explicit settings `allow`/confirmed `ask`
+  // (ruleAllowed) pre-authorizes; headless without a confirmer fails closed;
+  // `CC_CREDENTIAL_GUARD=0` disables it. Unlike --safe-mode (which weakens
+  // customizations), this safety surface stays on under --safe-mode by design.
+  if (!ruleAllowed && (name === "read_file" || name === "run_shell")) {
+    const {
+      credentialFileReason,
+      commandReadsCredentials,
+      credentialGuardDisabled,
+    } = await import("../lib/credential-guard.js");
+    if (!credentialGuardDisabled(process.env)) {
+      let credReason = null;
+      if (name === "read_file" && args?.path) {
+        credReason = credentialFileReason(args.path);
+      } else if (name === "run_shell" && args?.command) {
+        const hit = commandReadsCredentials(args.command);
+        credReason = hit ? hit.reason : null;
+      }
+      if (credReason) {
+        const confirm =
+          context.permissionConfirm || context.shellConfirm || null;
+        const ok =
+          typeof confirm === "function"
+            ? await confirm({
+                tool: name,
+                args,
+                rule: null,
+                reason: `credential access: ${credReason}`,
+              })
+            : false;
+        if (!ok) {
+          const what =
+            name === "read_file" ? `Reading "${args.path}"` : "This command";
+          return {
+            error: `[Credential Guard] ${what} accesses secrets (${credReason}) and requires confirmation — denied. Add a settings allow rule, or set CC_CREDENTIAL_GUARD=0 to bypass.`,
+            policy: { decision: "ask", via: "credential-guard" },
+          };
+        }
+      }
+    }
+  }
+
   // Plan mode: check if tool is allowed (a settings `allow` rule pre-authorizes)
   if (
     planManager.isActive() &&
