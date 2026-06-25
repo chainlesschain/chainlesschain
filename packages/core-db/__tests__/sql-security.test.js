@@ -140,6 +140,25 @@ describe("SqlSecurity", () => {
       expect(params).toEqual(["active", "draft"]);
     });
 
+    it("emits an always-false predicate for an empty IN array (not invalid `IN ()`)", () => {
+      // `field IN ()` is a SQLite syntax error; an empty set matches nothing.
+      const { whereClause, params } = SqlSecurity.buildSafeWhereClause(
+        { status: [] },
+        ["status"],
+      );
+      expect(whereClause).toBe("WHERE 1 = 0");
+      expect(params).toEqual([]);
+    });
+
+    it("keeps other conditions when one IN array is empty", () => {
+      const { whereClause, params } = SqlSecurity.buildSafeWhereClause(
+        { status: [], owner: 5 },
+        ["status", "owner"],
+      );
+      expect(whereClause).toBe("WHERE 1 = 0 AND owner = ?");
+      expect(params).toEqual([5]);
+    });
+
     it("returns empty for null filters", () => {
       const { whereClause, params } = SqlSecurity.buildSafeWhereClause(
         null,

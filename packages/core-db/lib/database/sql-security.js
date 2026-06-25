@@ -205,9 +205,16 @@ class SqlSecurity {
       if (value === null) {
         conditions.push(`${field} IS NULL`);
       } else if (Array.isArray(value)) {
-        const placeholders = value.map(() => "?").join(", ");
-        conditions.push(`${field} IN (${placeholders})`);
-        params.push(...value);
+        if (value.length === 0) {
+          // `field IN ()` is a SQLite syntax error. An empty set matches
+          // nothing, so emit an always-false predicate instead of producing
+          // invalid SQL (mirrors QueryBuilder.whereIn).
+          conditions.push("1 = 0");
+        } else {
+          const placeholders = value.map(() => "?").join(", ");
+          conditions.push(`${field} IN (${placeholders})`);
+          params.push(...value);
+        }
       } else {
         conditions.push(`${field} = ?`);
         params.push(value);
