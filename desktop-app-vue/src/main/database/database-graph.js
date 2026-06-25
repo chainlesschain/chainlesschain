@@ -110,6 +110,18 @@ function getGraphData(dbManager, logger, options = {}) {
     limit = 500,
   } = options;
 
+  // An explicit empty filter array (defaults only apply to `undefined`) would
+  // build `... IN ()`, a SQLite syntax error. No selected relation/node types
+  // means no graph, so short-circuit to an empty result instead of crashing.
+  if (
+    !Array.isArray(relationTypes) ||
+    relationTypes.length === 0 ||
+    !Array.isArray(nodeTypes) ||
+    nodeTypes.length === 0
+  ) {
+    return { nodes: [], edges: [] };
+  }
+
   // 1. 查询涉及关系的所有笔记ID
   const relationTypesList = relationTypes.map(() => "?").join(",");
   const relStmt = dbManager.db.prepare(`
