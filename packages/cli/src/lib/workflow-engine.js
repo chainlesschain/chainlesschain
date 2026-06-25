@@ -38,6 +38,22 @@ export const TEMPLATE_TYPE = Object.freeze({
 });
 
 /**
+ * Parse a JSON column from a DB row without throwing. A truncated write, a
+ * manual edit, or a schema-drift row would otherwise make `JSON.parse` throw and
+ * crash the whole operation — and for list/map callers, ONE corrupt row would
+ * hide every other workflow. On bad/missing JSON we return `fallback` so a
+ * single bad row degrades to an empty/null value instead of poisoning the call.
+ */
+export function _safeParse(json, fallback) {
+  if (json == null) return fallback;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Ensure workflow tables exist in the database.
  */
 export function ensureWorkflowTables(db) {
@@ -183,7 +199,7 @@ export function getWorkflow(db, workflowId) {
     .prepare("SELECT * FROM workflows WHERE id = ?")
     .get(workflowId);
   if (!row) return null;
-  return { ...row, dag: JSON.parse(row.dag) };
+  return { ...row, dag: _safeParse(row.dag, null) };
 }
 
 /**
@@ -196,7 +212,7 @@ export function listWorkflows(db) {
     .all();
   return rows.map((row) => ({
     ...row,
-    dag: JSON.parse(row.dag),
+    dag: _safeParse(row.dag, null),
   }));
 }
 
@@ -221,6 +237,11 @@ export function executeWorkflow(db, workflowId, input = {}) {
   const workflow = getWorkflow(db, workflowId);
   if (!workflow) {
     throw new Error(`Workflow not found: ${workflowId}`);
+  }
+  if (!Array.isArray(workflow.dag) || workflow.dag.length === 0) {
+    // _safeParse yields null for a corrupt `dag` column — give a clear error
+    // instead of an opaque NPE in topologicalSort.
+    throw new Error(`Workflow ${workflowId} has a corrupt or empty DAG`);
   }
 
   const execId = `exec-${crypto.randomBytes(8).toString("hex")}`;
@@ -321,7 +342,7 @@ export function pauseExecution(db, executionId) {
     executionId,
   );
 
-  const log = JSON.parse(exec.log || "[]");
+  const log = _safeParse(exec.log, []);
   log.push({
     action: "paused",
     timestamp: new Date().toISOString(),
@@ -354,7 +375,7 @@ export function resumeExecution(db, executionId) {
     executionId,
   );
 
-  const log = JSON.parse(exec.log || "[]");
+  const log = _safeParse(exec.log, []);
   log.push({
     action: "resumed",
     timestamp: new Date().toISOString(),
@@ -387,7 +408,7 @@ export function rollbackExecution(db, executionId) {
     executionId,
   );
 
-  const log = JSON.parse(exec.log || "[]");
+  const log = _safeParse(exec.log, []);
   log.push({
     action: "rolled_back",
     timestamp: new Date().toISOString(),
@@ -415,7 +436,7 @@ export function getExecutionLog(db, executionId) {
     id: exec.id,
     workflowId: exec.workflow_id,
     status: exec.status,
-    log: JSON.parse(exec.log || "[]"),
+    log: _safeParse(exec.log, []),
     startedAt: exec.started_at,
     completedAt: exec.completed_at,
   };
@@ -688,7 +709,7 @@ export function createCheckpoint(db, executionId) {
     currentStage: exec.current_stage,
     capturedAt: new Date().toISOString(),
   };
-  const nodeStates = JSON.parse(exec.log || "[]");
+  const nodeStates = _safeParse(exec.log, []);
 
   db.prepare(
     `INSERT INTO workflow_checkpoints (id, execution_id, workflow_id, state_snapshot, node_states, created_at)
@@ -722,8 +743,8 @@ export function listCheckpoints(db, executionId) {
     id: row.id,
     executionId: row.execution_id,
     workflowId: row.workflow_id,
-    snapshot: JSON.parse(row.state_snapshot || "{}"),
-    nodeStates: JSON.parse(row.node_states || "[]"),
+    snapshot: _safeParse(row.state_snapshot, {}),
+    nodeStates: _safeParse(row.node_states, []),
     createdAt: row.created_at,
   }));
 }
@@ -750,8 +771,8 @@ export function rollbackToCheckpoint(db, executionId, checkpointId) {
     throw new Error(`Execution not found: ${executionId}`);
   }
 
-  const snapshot = JSON.parse(cp.state_snapshot || "{}");
-  const nodeStates = JSON.parse(cp.node_states || "[]");
+  const snapshot = _safeParse(cp.state_snapshot, {});
+  const nodeStates = _safeParse(cp.node_states, []);
 
   const restoredLog = [
     ...nodeStates,
@@ -791,6 +812,9 @@ export function setBreakpoint(db, workflowId, nodeId, condition = null) {
   const workflow = getWorkflow(db, workflowId);
   if (!workflow) {
     throw new Error(`Workflow not found: ${workflowId}`);
+  }
+  if (!Array.isArray(workflow.dag)) {
+    throw new Error(`Workflow ${workflowId} has a corrupt DAG`);
   }
   const nodeExists = workflow.dag.some((s) => s.id === nodeId);
   if (!nodeExists) {

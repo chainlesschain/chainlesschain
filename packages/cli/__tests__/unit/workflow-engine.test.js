@@ -26,6 +26,7 @@ import {
   shouldBreakpointTrigger,
   exportWorkflow,
   importWorkflow,
+  _safeParse,
 } from "../../src/lib/workflow-engine.js";
 
 describe("workflow-engine", () => {
@@ -33,6 +34,47 @@ describe("workflow-engine", () => {
 
   beforeEach(() => {
     db = new MockDatabase();
+  });
+
+  // ─── corrupt-row resilience ────────────────────────────
+  describe("corrupt DB row resilience", () => {
+    const stages = [{ id: "a", name: "A", type: "action", next: [] }];
+
+    it("_safeParse returns the fallback on bad/missing JSON", () => {
+      expect(_safeParse('{"x":1}', null)).toEqual({ x: 1 });
+      expect(_safeParse("{not json", null)).toBe(null);
+      expect(_safeParse(null, [])).toEqual([]);
+      expect(_safeParse(undefined, {})).toEqual({});
+    });
+
+    it("getWorkflow returns dag:null for a corrupt row instead of throwing", () => {
+      const { id } = createWorkflow(db, { name: "W", stages });
+      db.prepare("UPDATE workflows SET dag = ? WHERE id = ?").run("{bad", id);
+      expect(() => getWorkflow(db, id)).not.toThrow();
+      expect(getWorkflow(db, id).dag).toBe(null);
+    });
+
+    it("listWorkflows keeps listing when ONE row is corrupt", () => {
+      const good = createWorkflow(db, { name: "Good", stages });
+      const bad = createWorkflow(db, { name: "Bad", stages });
+      db.prepare("UPDATE workflows SET dag = ? WHERE id = ?").run(
+        "{corrupt",
+        bad.id,
+      );
+      let list;
+      expect(() => {
+        list = listWorkflows(db);
+      }).not.toThrow();
+      expect(list).toHaveLength(2); // the bad row no longer hides the good one
+      expect(list.find((w) => w.id === good.id).dag).toEqual(stages);
+      expect(list.find((w) => w.id === bad.id).dag).toBe(null);
+    });
+
+    it("executeWorkflow gives a clear error (not an NPE) on a corrupt DAG", () => {
+      const { id } = createWorkflow(db, { name: "W", stages });
+      db.prepare("UPDATE workflows SET dag = ? WHERE id = ?").run("{bad", id);
+      expect(() => executeWorkflow(db, id)).toThrow(/corrupt or empty DAG/i);
+    });
   });
 
   // ─── ensureWorkflowTables ──────────────────────────────
