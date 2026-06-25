@@ -17,7 +17,7 @@
 import http from "http";
 import fsDefault from "fs";
 import pathDefault from "path";
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 
 export const MAX_READ_BYTES = 200 * 1024;
 export const MAX_LIST_ENTRIES = 500;
@@ -68,6 +68,24 @@ export function confine(root, rel, deps = _deps) {
     }
   }
   return abs;
+}
+
+/**
+ * Constant-time check of an `Authorization: Bearer <token>` header against the
+ * expected token. A plain `!==` leaks timing that could let a caller recover the
+ * token byte-by-byte; hash-length differs are rejected up front (the token is a
+ * fixed-length random value, so its length is not secret), then `timingSafeEqual`
+ * compares the bytes. Mirrors the ws-server's token check.
+ */
+export function bearerMatches(authHeader, token) {
+  const prefix = "Bearer ";
+  if (typeof authHeader !== "string" || !authHeader.startsWith(prefix)) {
+    return false;
+  }
+  const a = Buffer.from(authHeader.slice(prefix.length), "utf-8");
+  const b = Buffer.from(String(token), "utf-8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 function ok(text) {
@@ -227,8 +245,7 @@ export function startMcpServe(opts = {}) {
       return send(405, rpcError(null, -32600, "POST only"));
     }
     if (token) {
-      const auth = req.headers.authorization || "";
-      if (auth !== `Bearer ${token}`) {
+      if (!bearerMatches(req.headers.authorization, token)) {
         return send(401, rpcError(null, -32001, "unauthorized"));
       }
     }

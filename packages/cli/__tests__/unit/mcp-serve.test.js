@@ -8,7 +8,12 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import { startMcpServe, confine, buildTools } from "../../src/lib/mcp-serve.js";
+import {
+  startMcpServe,
+  confine,
+  buildTools,
+  bearerMatches,
+} from "../../src/lib/mcp-serve.js";
 
 let tmp;
 let handle;
@@ -195,6 +200,17 @@ describe("auth", () => {
   it("generates a random token by default", async () => {
     handle = await startMcpServe({ root: tmp });
     expect(handle.token).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("bearerMatches is exact (constant-time) and rejects mismatches", () => {
+    expect(bearerMatches("Bearer sekret", "sekret")).toBe(true);
+    expect(bearerMatches("Bearer wrongg", "sekret")).toBe(false); // same length
+    expect(bearerMatches("Bearer sek", "sekret")).toBe(false); // shorter
+    expect(bearerMatches("Bearer sekretXYZ", "sekret")).toBe(false); // longer
+    expect(bearerMatches("sekret", "sekret")).toBe(false); // no "Bearer " prefix
+    expect(bearerMatches("Basic sekret", "sekret")).toBe(false); // wrong scheme
+    expect(bearerMatches(undefined, "sekret")).toBe(false);
+    expect(bearerMatches("", "sekret")).toBe(false);
   });
 });
 
