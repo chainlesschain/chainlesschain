@@ -7,6 +7,16 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Added — cc CLI 0.162.123：凭据读取保护 + Claude Code 2.1.191 平价五则（已发 npm）
+
+> CLI-only 发版（`chainlesschain` 0.162.122 → **0.162.123**，已发 npm `latest`；弃用 `<0.162.123 || >0.162.123`，212 个历史版本仅 0.162.123 live）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。全部带回归单测；面板（IDE chat panel）实测 stream-json 模式真 LLM 往返成功。
+
+- **凭据读取保护（安全，对照 Claude Code 2.1.189 `sandbox.credentials`）**：cc 无 OS 沙箱，故在工具层堵截——Agent 经 `read_file` / `run_shell` 读凭据文件（`.env` 及真实变体、`~/.aws/credentials`、`~/.kube/config`、私钥证书 `*.pem/.key/.pfx/…`、`secrets.{json,yaml}` 等；`.env.example` / `*.pub` / `*.crt` 等不拦）或打印密钥型环境变量（`echo $ANTHROPIC_API_KEY` / `printenv` / 全量 `env` dump）时**确认优先、headless fail-closed**；复合命令逐段查；仅消费不回显的 `--token $X` 不拦。`content_search`（Windows `findstr /n` 会回带匹配行）命中凭据文件时整条 redact 成存在性标记，密钥行不入模型上下文。settings `allow` 旁路，`CC_CREDENTIAL_GUARD=0` 关；有意保留于 `--safe-mode`（安全面非自定义）。
+- **hook matcher 逗号分隔（对照 2.1.191）**：`.claude/settings.json` hooks 的 matcher 此前只认 `|`，`"Bash,PowerShell"` 编成字面串 `^Bash,PowerShell$` → 逗号 matcher 静默永不触发；改为 `|` 与 `,` 都认并丢空段（顺带修旧 trailing 分隔符塌成 match-all 的隐患）。
+- **MCP 瞬态错误重试 + 清晰 404（对照 2.1.191）**：能力发现（`initialize` + `tools/list`）对瞬态网络错误（连接失败 + 5xx）短 backoff 重试（250/500ms，最多 3 次），4xx/超时/死进程不重试；MCP OAuth 发现/取 token 瞬态错误重试一次（4xx 不重试，保 discovery 探 404 的快速 fall-through）；HTTP 404 错误带服务器 URL 并指向 MCP 配置。
+- **`/rewind clear` 恢复被 `/clear` 清空的对话（对照 2.1.191）**：`/clear` 现先 stash pre-clear 对话 + checkpoint marks → `/rewind clear` 原地 swap 恢复（可撤销）；picker / `/help` 在有 stash 时提示；`/session resume` 清 stash 防跨会话误恢复。
+- **vim NORMAL `/` 提示 slash 命令（对照 2.1.191）**：cc vim NORMAL 无历史搜索，`/`/`?` 此前只响 bell，现提示「press i, then type /command（历史 = ↑ / Ctrl-R）」。
+
 #### Added — cc CLI 0.162.97：流式停顿提示显示重试/超时倒计时（对照 Claude Code 2.1.185，已发 npm）
 
 > 对照 Claude Code CLI 2.1.185 的流式停顿提示改进。`chainlesschain` 0.162.96 → **0.162.97** 已发 npm（`latest`；186 个历史版本全部 deprecate，仅 0.162.97 live）。pdh 0.4.30 不变 → 无需 Android cc bundle rollover，沿用既有 bundle。
