@@ -5,7 +5,7 @@
  * alias. Both (and either alone) must suppress the browser; default opens it.
  */
 import { describe, it, expect } from "vitest";
-import { loginWantsNoBrowser } from "../../src/commands/mcp.js";
+import { loginWantsNoBrowser, isHeadlessEnv } from "../../src/commands/mcp.js";
 
 describe("loginWantsNoBrowser", () => {
   it("returns false by default (browser opens)", () => {
@@ -25,5 +25,41 @@ describe("loginWantsNoBrowser", () => {
 
   it("suppresses the browser when both flags are passed", () => {
     expect(loginWantsNoBrowser({ open: false, browser: false })).toBe(true);
+  });
+});
+
+/**
+ * Claude-Code 2.1.191: headless environments auto-skip the browser popup. cc
+ * detects this so `mcp login` prints the authorize URL (the localhost callback
+ * still catches the code) instead of launching a popup that can never appear.
+ */
+describe("isHeadlessEnv", () => {
+  it("treats a desktop Linux session (DISPLAY set) as not headless", () => {
+    expect(isHeadlessEnv({ DISPLAY: ":0" }, "linux")).toBe(false);
+    expect(isHeadlessEnv({ WAYLAND_DISPLAY: "wayland-0" }, "linux")).toBe(
+      false,
+    );
+  });
+
+  it("treats Linux/BSD with no display server as headless (SSH without X11)", () => {
+    expect(isHeadlessEnv({}, "linux")).toBe(true);
+    expect(isHeadlessEnv({ SSH_CONNECTION: "1.2.3.4 22" }, "linux")).toBe(true);
+    expect(isHeadlessEnv({}, "freebsd")).toBe(true);
+  });
+
+  it("treats macOS and Windows as not headless (window server always present)", () => {
+    expect(isHeadlessEnv({}, "darwin")).toBe(false);
+    expect(isHeadlessEnv({}, "win32")).toBe(false);
+  });
+
+  it("forces headless on any OS when a CI marker is set", () => {
+    expect(isHeadlessEnv({ CI: "true", DISPLAY: ":0" }, "linux")).toBe(true);
+    expect(isHeadlessEnv({ CI: "1" }, "darwin")).toBe(true);
+    expect(isHeadlessEnv({ CI: "yes" }, "win32")).toBe(true);
+  });
+
+  it("treats CI=false / CI=0 as not-CI", () => {
+    expect(isHeadlessEnv({ CI: "false" }, "darwin")).toBe(false);
+    expect(isHeadlessEnv({ CI: "0", DISPLAY: ":0" }, "linux")).toBe(false);
   });
 });

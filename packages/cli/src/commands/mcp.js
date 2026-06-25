@@ -42,6 +42,25 @@ export function loginWantsNoBrowser(options = {}) {
   return options.open === false || options.browser === false;
 }
 
+/**
+ * Detect a headless environment where opening a browser is futile, so `mcp
+ * login` prints the authorize URL for manual opening instead of launching a
+ * popup that can never appear (Claude-Code 2.1.191 parity: "headless
+ * environments skip the browser popup and go straight to the paste-the-URL
+ * prompt"). The localhost callback still catches the code, so login completes.
+ *
+ * Heuristics: a CI marker forces headless on any OS; macOS/Windows otherwise
+ * always have a window server; on Linux/BSD a browser needs a display server
+ * (`DISPLAY`/`WAYLAND_DISPLAY`) — its absence (e.g. SSH without X11 forwarding)
+ * means headless. `CI=false`/`CI=0` are treated as not-CI.
+ */
+export function isHeadlessEnv(env = process.env, platform = process.platform) {
+  const ci = env.CI;
+  if (ci && ci !== "false" && ci !== "0") return true;
+  if (platform === "darwin" || platform === "win32") return false;
+  return !(env.DISPLAY || env.WAYLAND_DISPLAY);
+}
+
 // Singleton MCP client for session reuse
 let mcpClient = null;
 
@@ -146,7 +165,7 @@ export function registerMcpCommand(program) {
   mcp
     .command("login <target>")
     .description(
-      "Authorize a remote MCP server via OAuth (opens a browser); stores the token. <target> is a URL or a configured server name.",
+      "Authorize a remote MCP server via OAuth (opens a browser, or prints the URL in headless/SSH environments); stores the token. <target> is a URL or a configured server name.",
     )
     .option("--scope <scope>", "OAuth scope(s) to request")
     .option(
@@ -168,8 +187,16 @@ export function registerMcpCommand(program) {
       try {
         const url = await resolveAuthTargetUrl(program, target);
         const oauth = await import("../lib/mcp-oauth.js");
-        if (loginWantsNoBrowser(options)) {
-          oauth._deps.openBrowser = () => false; // --no-open / --no-browser
+        const explicitNoBrowser = loginWantsNoBrowser(options);
+        if (explicitNoBrowser || isHeadlessEnv()) {
+          oauth._deps.openBrowser = () => false; // --no-open / --no-browser / headless
+          if (!explicitNoBrowser) {
+            logger.log(
+              chalk.gray(
+                "Headless environment — printing the authorize URL instead of opening a browser.",
+              ),
+            );
+          }
         }
         logger.log(chalk.gray(`Authorizing ${url} …`));
         const rec = await oauth.authorizeInteractive(url, {
