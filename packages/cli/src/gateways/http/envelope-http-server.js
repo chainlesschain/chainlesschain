@@ -150,8 +150,23 @@ export function createEnvelopeHttpServer(options = {}) {
     }
     if (url === "/v1/health") return handleHealth(req, res);
     const match = SESSION_EVENTS_RE.exec(url);
-    if (match)
-      return handleSessionEvents(req, res, decodeURIComponent(match[1]));
+    if (match) {
+      let sessionId;
+      try {
+        sessionId = decodeURIComponent(match[1]);
+      } catch {
+        // Malformed percent-encoding (e.g. `/v1/sessions/%/events`) would
+        // otherwise throw URIError synchronously inside this request
+        // listener — an uncaught exception that crashes the whole server,
+        // unauthenticated. Reject as a bad request instead.
+        res.writeHead(400, {
+          "Content-Type": "application/json; charset=utf-8",
+        });
+        res.end(JSON.stringify({ error: "bad_request" }));
+        return;
+      }
+      return handleSessionEvents(req, res, sessionId);
+    }
     res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
     res.end(JSON.stringify({ error: "not_found" }));
   }

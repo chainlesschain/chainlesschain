@@ -152,6 +152,20 @@ describe("createEnvelopeHttpServer", () => {
     expect(res.status).toBe(404);
   });
 
+  it("malformed percent-encoding in the session id returns 400 and the server survives", async () => {
+    const bus = createEnvelopeBus();
+    server = createEnvelopeHttpServer({ bus, port: 0, heartbeatMs: 0 });
+    ({ port } = await server.start());
+    // `%` is matched by the [^/]+ group; decodeURIComponent("%") throws
+    // URIError, which would otherwise be an uncaught exception in the request
+    // listener and crash the whole (unauthenticated) server.
+    const res = await httpGet(port, "/v1/sessions/%/events");
+    expect(res.status).toBe(400);
+    // Server must still be alive after the bad request.
+    const health = await httpGet(port, "/v1/health");
+    expect(health.status).toBe(200);
+  });
+
   it("non-GET returns 405", async () => {
     const bus = createEnvelopeBus();
     server = createEnvelopeHttpServer({ bus, port: 0, heartbeatMs: 0 });
