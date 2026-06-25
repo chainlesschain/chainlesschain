@@ -99,19 +99,43 @@ function createVscodeEditorFacade(vscode) {
       const active = vscode.window.activeTextEditor?.document?.uri?.fsPath;
       const seen = new Set();
       const out = [];
-      for (const ed of vscode.window.visibleTextEditors || []) {
-        const f = ed.document.uri.fsPath;
-        if (seen.has(f)) continue;
+      const push = (uri, doc) => {
+        const f = uri?.fsPath;
+        if (!f || seen.has(f)) return;
         seen.add(f);
         out.push({
           file: f,
           active: f === active,
-          languageId: ed.document.languageId,
+          languageId: doc ? doc.languageId : undefined,
           // Unsaved-buffer flag so the agent knows the on-disk copy is stale
           // before it reads the file (Claude-Code IDE exposes checkDocumentDirty
           // for the same reason). Always a boolean for older/fake hosts.
-          isDirty: Boolean(ed.document.isDirty),
+          isDirty: Boolean(doc && doc.isDirty),
         });
+      };
+      // Prefer ALL open tabs (including background ones, not just the split-
+      // visible editors) — matches the JetBrains panel's getOpenFiles and
+      // Claude-Code IDE. tabGroups landed in VS Code 1.67; older hosts fall back
+      // to the visible editors. A tab only carries its uri, so look the document
+      // up in workspace.textDocuments for languageId + dirty state.
+      const groups = vscode.window.tabGroups?.all;
+      if (Array.isArray(groups)) {
+        const docByUri = new Map();
+        for (const d of vscode.workspace.textDocuments || []) {
+          docByUri.set(d.uri.toString(), d);
+        }
+        for (const group of groups) {
+          for (const tab of group.tabs || []) {
+            // Text tabs expose input.uri; diff / webview / image tabs do not.
+            const uri = tab?.input?.uri;
+            if (!uri) continue;
+            push(uri, docByUri.get(uri.toString()));
+          }
+        }
+      } else {
+        for (const ed of vscode.window.visibleTextEditors || []) {
+          push(ed.document.uri, ed.document);
+        }
       }
       return out;
     },

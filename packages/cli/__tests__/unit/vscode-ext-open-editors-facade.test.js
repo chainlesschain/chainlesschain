@@ -83,3 +83,90 @@ describe("facade getOpenEditors: unsaved-buffer (isDirty) flag", () => {
     expect(out.editors[0]).toMatchObject({ file: "/ws/a.js", isDirty: true });
   });
 });
+
+/**
+ * getOpenEditors should enumerate ALL open tabs (including background ones, not
+ * just the split-visible editors) — matching the JetBrains panel's getOpenFiles
+ * and Claude-Code IDE. When tabGroups is available it is the primary source; a
+ * tab only carries its uri, so languageId / isDirty come from the matching open
+ * document. Older hosts (no tabGroups) fall back to visibleTextEditors.
+ */
+function doc({ path, languageId = "javascript", isDirty = false }) {
+  return {
+    uri: { fsPath: path, toString: () => "file://" + path },
+    languageId,
+    isDirty,
+  };
+}
+
+function textTab(path) {
+  return { input: { uri: { fsPath: path, toString: () => "file://" + path } } };
+}
+
+function fakeVscodeTabs({ tabs = [], docs = [], active = null } = {}) {
+  return {
+    window: {
+      activeTextEditor: active ? { document: active } : null,
+      tabGroups: { all: [{ tabs }] },
+    },
+    workspace: { textDocuments: docs },
+  };
+}
+
+describe("facade getOpenEditors: enumerates all open tabs (not just visible)", () => {
+  it("returns every open text tab, with languageId/isDirty from its document", async () => {
+    const dA = doc({ path: "/ws/a.js", isDirty: true });
+    const dB = doc({
+      path: "/ws/b.ts",
+      languageId: "typescript",
+      isDirty: false,
+    });
+    // c.md is open in a background tab whose document is also loaded.
+    const dC = doc({
+      path: "/ws/c.md",
+      languageId: "markdown",
+      isDirty: false,
+    });
+    const facade = createVscodeEditorFacade(
+      fakeVscodeTabs({
+        tabs: [textTab("/ws/a.js"), textTab("/ws/b.ts"), textTab("/ws/c.md")],
+        docs: [dA, dB, dC],
+        active: dB,
+      }),
+    );
+
+    const eds = await facade.getOpenEditors();
+    expect(eds.map((e) => e.file)).toEqual([
+      "/ws/a.js",
+      "/ws/b.ts",
+      "/ws/c.md",
+    ]);
+    expect(eds.find((e) => e.file === "/ws/b.ts")).toMatchObject({
+      active: true,
+      languageId: "typescript",
+      isDirty: false,
+    });
+    expect(eds.find((e) => e.file === "/ws/a.js")).toMatchObject({
+      isDirty: true,
+    });
+  });
+
+  it("skips non-text tabs (diff / webview — no input.uri)", async () => {
+    const dA = doc({ path: "/ws/a.js" });
+    const diffTab = { input: { modified: {}, original: {} } }; // no .uri
+    const facade = createVscodeEditorFacade(
+      fakeVscodeTabs({ tabs: [textTab("/ws/a.js"), diffTab], docs: [dA] }),
+    );
+    const eds = await facade.getOpenEditors();
+    expect(eds.map((e) => e.file)).toEqual(["/ws/a.js"]);
+  });
+
+  it("a tab whose document isn't loaded still lists the file (isDirty false)", async () => {
+    const facade = createVscodeEditorFacade(
+      fakeVscodeTabs({ tabs: [textTab("/ws/lazy.js")], docs: [] }),
+    );
+    const [only] = await facade.getOpenEditors();
+    expect(only).toMatchObject({ file: "/ws/lazy.js", isDirty: false });
+    expect(only.languageId).toBeUndefined();
+  });
+});

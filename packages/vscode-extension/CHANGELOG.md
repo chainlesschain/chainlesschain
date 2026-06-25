@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.8] — fix: getOpenEditors lists all open tabs, not just visible ones
+
+- **`getOpenEditors` now enumerates every open editor tab** (including background
+  tabs) instead of only the split-visible editors. It previously read
+  `visibleTextEditors`, which is just the 1–3 editors currently on screen, so the
+  agent couldn't see the rest of the files you have open. It now walks
+  `tabGroups.all` (VS Code 1.67+) and resolves each tab's `languageId`/`isDirty`
+  from the matching open document — matching the JetBrains panel's `getOpenFiles`
+  and Claude Code IDE. Non-text tabs (diff / webview / image) are skipped; older
+  hosts without `tabGroups` fall back to the visible editors.
+
 ## [0.36.7] — feat: surface unsaved-buffer state in getOpenEditors
 
 - **The `getOpenEditors` tool now reports `isDirty` per editor** so the agent can
