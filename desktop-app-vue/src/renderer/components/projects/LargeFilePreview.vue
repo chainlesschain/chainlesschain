@@ -89,6 +89,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { formatFileSize as formatSize } from "@/utils/file-utils";
 
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
@@ -433,18 +434,6 @@ const jumpToBottom = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-/**
- * 格式化文件大小
- */
-const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) {
-    return "0 B";
-  }
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 };
 
 /**

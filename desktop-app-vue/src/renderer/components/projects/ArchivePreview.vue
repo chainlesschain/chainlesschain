@@ -1,10 +1,7 @@
 <template>
   <div class="archive-preview">
     <!-- 压缩包信息 -->
-    <div
-      v-if="archiveInfo"
-      class="archive-info"
-    >
+    <div v-if="archiveInfo" class="archive-info">
       <div class="info-header">
         <FileZipOutlined class="archive-icon" />
         <div class="info-content">
@@ -23,10 +20,7 @@
 
     <!-- 文件树 -->
     <div class="file-tree-container">
-      <a-spin
-        :spinning="loading"
-        tip="加载中..."
-      >
+      <a-spin :spinning="loading" tip="加载中...">
         <a-tree
           v-if="treeData.length > 0"
           :tree-data="treeData"
@@ -35,10 +29,7 @@
           @select="handleSelect"
         >
           <template #icon="{ dataRef }">
-            <FolderOutlined
-              v-if="dataRef.isDirectory"
-              style="color: #faad14"
-            />
+            <FolderOutlined v-if="dataRef.isDirectory" style="color: #faad14" />
             <FileOutlined
               v-else
               :style="{ color: getFileIconColor(dataRef.type) }"
@@ -47,36 +38,23 @@
           <template #title="{ dataRef }">
             <div class="tree-node-title">
               <span class="node-name">{{ dataRef.title }}</span>
-              <span
-                v-if="!dataRef.isDirectory"
-                class="node-size"
-              >
+              <span v-if="!dataRef.isDirectory" class="node-size">
                 {{ formatSize(dataRef.size) }}
               </span>
             </div>
           </template>
         </a-tree>
-        <a-empty
-          v-else
-          description="压缩包为空"
-        />
+        <a-empty v-else description="压缩包为空" />
       </a-spin>
     </div>
 
     <!-- 操作按钮 -->
     <div class="action-bar">
-      <a-button
-        type="primary"
-        :disabled="!selectedFile"
-        @click="handlePreview"
-      >
+      <a-button type="primary" :disabled="!selectedFile" @click="handlePreview">
         <EyeOutlined />
         预览选中文件
       </a-button>
-      <a-button
-        :disabled="!selectedFile"
-        @click="handleExtract"
-      >
+      <a-button :disabled="!selectedFile" @click="handleExtract">
         <ExportOutlined />
         提取到...
       </a-button>
@@ -97,6 +75,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { formatFileSize as formatSize } from "@/utils/file-utils";
 
 import { ref, onMounted } from "vue";
 import { message } from "ant-design-vue";
@@ -272,19 +251,6 @@ const handleExtract = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-/**
- * 格式化文件大小
- */
-const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 };
 
 /**

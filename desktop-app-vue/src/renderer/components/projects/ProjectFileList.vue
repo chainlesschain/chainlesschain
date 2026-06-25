@@ -1,18 +1,12 @@
 <template>
   <div class="project-file-list">
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
+    <div v-if="loading" class="loading-container">
       <a-spin tip="加载中..." />
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else-if="fileList.length === 0"
-      class="empty-state"
-    >
+    <div v-else-if="fileList.length === 0" class="empty-state">
       <FolderOpenOutlined class="empty-icon" />
       <p>暂无文件</p>
     </div>
@@ -23,31 +17,23 @@
       :columns="columns"
       :data-source="fileList"
       :pagination="false"
-      :row-key="record => record.id"
+      :row-key="(record) => record.id"
       size="small"
       class="file-table"
     >
       <!-- 文件名列 -->
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'name'">
-          <div
-            class="file-name-cell"
-            @click="handleFileClick(record)"
-          >
+          <div class="file-name-cell" @click="handleFileClick(record)">
             <component
               :is="getFileIcon(record)"
               class="file-icon"
               :style="{ color: getFileColor(record) }"
             />
-            <span
-              class="file-name"
-              :title="record.file_name"
-            >{{ record.file_name }}</span>
-            <a-tag
-              v-if="record.is_folder"
-              size="small"
-              color="blue"
-            >
+            <span class="file-name" :title="record.file_name">{{
+              record.file_name
+            }}</span>
+            <a-tag v-if="record.is_folder" size="small" color="blue">
               文件夹
             </a-tag>
           </div>
@@ -55,10 +41,7 @@
 
         <!-- 文件路径列 -->
         <template v-else-if="column.key === 'path'">
-          <span
-            class="file-path"
-            :title="record.file_path"
-          >
+          <span class="file-path" :title="record.file_path">
             {{ getDisplayPath(record.file_path) }}
           </span>
         </template>
@@ -121,7 +104,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
+import { formatFileSize } from "@/utils/file-utils";
 import {
   FolderOpenOutlined,
   FolderOutlined,
@@ -137,7 +121,7 @@ import {
   EyeOutlined,
   DownloadOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   files: {
@@ -150,41 +134,46 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['file-click', 'file-preview', 'file-download', 'file-delete']);
+const emit = defineEmits([
+  "file-click",
+  "file-preview",
+  "file-download",
+  "file-delete",
+]);
 
 // 表格列定义
 const columns = [
   {
-    title: '文件名',
-    key: 'name',
-    dataIndex: 'file_name',
-    width: '35%',
+    title: "文件名",
+    key: "name",
+    dataIndex: "file_name",
+    width: "35%",
   },
   {
-    title: '路径',
-    key: 'path',
-    dataIndex: 'file_path',
-    width: '30%',
+    title: "路径",
+    key: "path",
+    dataIndex: "file_path",
+    width: "30%",
     ellipsis: true,
   },
   {
-    title: '大小',
-    key: 'size',
-    dataIndex: 'file_size',
-    width: '10%',
-    align: 'right',
+    title: "大小",
+    key: "size",
+    dataIndex: "file_size",
+    width: "10%",
+    align: "right",
   },
   {
-    title: '修改时间',
-    key: 'updated',
-    dataIndex: 'updated_at',
-    width: '15%',
+    title: "修改时间",
+    key: "updated",
+    dataIndex: "updated_at",
+    width: "15%",
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: '10%',
-    align: 'center',
+    title: "操作",
+    key: "actions",
+    width: "10%",
+    align: "center",
   },
 ];
 
@@ -195,9 +184,11 @@ const fileList = computed(() => {
 
 // 获取文件扩展名
 const getFileExtension = (fileName) => {
-  if (!fileName) {return '';}
-  const parts = fileName.split('.');
-  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+  if (!fileName) {
+    return "";
+  }
+  const parts = fileName.split(".");
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
 };
 
 // 获取文件图标
@@ -243,61 +234,57 @@ const getFileIcon = (file) => {
 // 获取文件颜色
 const getFileColor = (file) => {
   if (file.is_folder) {
-    return '#667eea';
+    return "#667eea";
   }
 
   const ext = getFileExtension(file.file_name);
   const colorMap = {
-    ppt: '#d35400',
-    pptx: '#d35400',
-    doc: '#2980b9',
-    docx: '#2980b9',
-    pdf: '#e74c3c',
-    xls: '#27ae60',
-    xlsx: '#27ae60',
-    csv: '#27ae60',
-    html: '#e67e22',
-    htm: '#e67e22',
-    md: '#9b59b6',
-    txt: '#7f8c8d',
-    js: '#f39c12',
-    ts: '#3498db',
-    jsx: '#f39c12',
-    tsx: '#3498db',
-    vue: '#42b983',
-    py: '#3498db',
-    java: '#e74c3c',
-    png: '#1abc9c',
-    jpg: '#1abc9c',
-    jpeg: '#1abc9c',
-    gif: '#1abc9c',
-    svg: '#1abc9c',
+    ppt: "#d35400",
+    pptx: "#d35400",
+    doc: "#2980b9",
+    docx: "#2980b9",
+    pdf: "#e74c3c",
+    xls: "#27ae60",
+    xlsx: "#27ae60",
+    csv: "#27ae60",
+    html: "#e67e22",
+    htm: "#e67e22",
+    md: "#9b59b6",
+    txt: "#7f8c8d",
+    js: "#f39c12",
+    ts: "#3498db",
+    jsx: "#f39c12",
+    tsx: "#3498db",
+    vue: "#42b983",
+    py: "#3498db",
+    java: "#e74c3c",
+    png: "#1abc9c",
+    jpg: "#1abc9c",
+    jpeg: "#1abc9c",
+    gif: "#1abc9c",
+    svg: "#1abc9c",
   };
-  return colorMap[ext] || '#95a5a6';
+  return colorMap[ext] || "#95a5a6";
 };
 
 // 获取显示路径（只显示相对路径）
 const getDisplayPath = (fullPath) => {
-  if (!fullPath) {return '-';}
+  if (!fullPath) {
+    return "-";
+  }
   // 移除 /data/projects/{projectId}/ 前缀
-  const parts = fullPath.split('/');
-  if (parts.length > 3 && parts[1] === 'data' && parts[2] === 'projects') {
-    return parts.slice(4).join('/') || '/';
+  const parts = fullPath.split("/");
+  if (parts.length > 3 && parts[1] === "data" && parts[2] === "projects") {
+    return parts.slice(4).join("/") || "/";
   }
   return fullPath;
 };
 
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) {return '-';}
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
-};
-
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -307,10 +294,10 @@ const formatDate = (timestamp) => {
   const days = Math.floor(hours / 24);
 
   if (days > 7) {
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleDateString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } else if (days > 0) {
     return `${days}天前`;
@@ -319,25 +306,25 @@ const formatDate = (timestamp) => {
   } else if (minutes > 0) {
     return `${minutes}分钟前`;
   } else {
-    return '刚刚';
+    return "刚刚";
   }
 };
 
 // 事件处理
 const handleFileClick = (file) => {
-  emit('file-click', file.id);
+  emit("file-click", file.id);
 };
 
 const handleFilePreview = (file) => {
-  emit('file-preview', file);
+  emit("file-preview", file);
 };
 
 const handleFileDownload = (file) => {
-  emit('file-download', file);
+  emit("file-download", file);
 };
 
 const handleFileDelete = (file) => {
-  emit('file-delete', file);
+  emit("file-delete", file);
 };
 </script>
 
