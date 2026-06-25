@@ -62,6 +62,43 @@ export function randomState(bytes = 16) {
   return base64url(_deps.randomBytes(bytes));
 }
 
+/**
+ * Is `hostname` a loopback address? Plain http is tolerated only for these (a
+ * self-hosted MCP server on the dev box). Handles the bracketed IPv6 form that
+ * `new URL().hostname` yields (e.g. "[::1]") and the whole 127.0.0.0/8 range.
+ */
+export function isLoopbackHost(hostname) {
+  const h = String(hostname || "")
+    .replace(/^\[|\]$/g, "")
+    .toLowerCase();
+  if (h === "localhost") return true;
+  if (h === "::1") return true;
+  return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
+}
+
+/**
+ * Require an OAuth endpoint to be HTTPS (or plain http on loopback for local
+ * dev). Authorization codes, PKCE verifiers, client secrets, and bearer/refresh
+ * tokens flow through these endpoints, so a discovered (or stored) endpoint that
+ * downgrades to cleartext http on a remote host must be refused rather than
+ * leaking secrets over the wire (RFC 6749 §3.1.2.1 / RFC 8252). Returns the
+ * endpoint unchanged when allowed; throws otherwise.
+ */
+export function assertSecureEndpoint(endpoint, label = "endpoint") {
+  let u;
+  try {
+    u = new URL(endpoint);
+  } catch {
+    throw new Error(`OAuth ${label} is not a valid URL: ${endpoint}`);
+  }
+  if (u.protocol === "https:") return endpoint;
+  if (u.protocol === "http:" && isLoopbackHost(u.hostname)) return endpoint;
+  throw new Error(
+    `refusing to use insecure OAuth ${label} (${endpoint}); ` +
+      `HTTPS is required for non-loopback endpoints`,
+  );
+}
+
 /** Minimal HTML-escape for values reflected into the callback page. */
 function escapeHtml(s) {
   return String(s).replace(
@@ -209,6 +246,7 @@ export async function registerClient(
       "server has no registration_endpoint and no --client-id was given",
     );
   }
+  assertSecureEndpoint(metadata.registration_endpoint, "registration_endpoint");
   const reg = await fetchJson(metadata.registration_endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -230,6 +268,10 @@ export function buildAuthorizeUrl(
   metadata,
   { clientId, redirectUri, scope, codeChallenge, state, resource },
 ) {
+  assertSecureEndpoint(
+    metadata.authorization_endpoint,
+    "authorization_endpoint",
+  );
   const u = new URL(metadata.authorization_endpoint);
   u.searchParams.set("response_type", "code");
   u.searchParams.set("client_id", clientId);
@@ -261,6 +303,7 @@ export async function exchangeCodeForToken(
   });
   if (clientSecret) body.set("client_secret", clientSecret);
   if (resource) body.set("resource", resource);
+  assertSecureEndpoint(metadata.token_endpoint, "token_endpoint");
   const tok = await fetchJson(metadata.token_endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -287,6 +330,7 @@ export async function refreshAccessToken(
   });
   if (clientSecret) body.set("client_secret", clientSecret);
   if (resource) body.set("resource", resource);
+  assertSecureEndpoint(metadata.token_endpoint, "token_endpoint");
   const tok = await fetchJson(metadata.token_endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },

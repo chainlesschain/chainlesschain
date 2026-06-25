@@ -594,3 +594,106 @@ describe("waitForCallback (timeout-timer cleanup)", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+describe("HTTPS endpoint enforcement", () => {
+  it("isLoopbackHost recognizes loopback addresses (incl. bracketed IPv6)", () => {
+    for (const h of ["localhost", "127.0.0.1", "127.0.0.5", "::1", "[::1]"]) {
+      expect(oauth.isLoopbackHost(h)).toBe(true);
+    }
+    for (const h of [
+      "example.com",
+      "0.0.0.0",
+      "8.8.8.8",
+      "127.0.0.1.evil.com",
+    ]) {
+      expect(oauth.isLoopbackHost(h)).toBe(false);
+    }
+  });
+
+  it("assertSecureEndpoint allows https and loopback http, rejects remote http", () => {
+    expect(oauth.assertSecureEndpoint("https://auth.example.com/token")).toBe(
+      "https://auth.example.com/token",
+    );
+    expect(oauth.assertSecureEndpoint("http://127.0.0.1:8080/token")).toBe(
+      "http://127.0.0.1:8080/token",
+    );
+    expect(oauth.assertSecureEndpoint("http://localhost/token")).toBe(
+      "http://localhost/token",
+    );
+    expect(() =>
+      oauth.assertSecureEndpoint(
+        "http://auth.example.com/token",
+        "token_endpoint",
+      ),
+    ).toThrow(/HTTPS is required|insecure/i);
+    expect(() => oauth.assertSecureEndpoint("not a url")).toThrow(
+      /not a valid URL/i,
+    );
+  });
+
+  it("buildAuthorizeUrl refuses a cleartext remote authorization_endpoint", () => {
+    expect(() =>
+      oauth.buildAuthorizeUrl(
+        { authorization_endpoint: "http://auth.example.com/authorize" },
+        {
+          clientId: "c",
+          redirectUri: "http://127.0.0.1:53682/callback",
+          codeChallenge: "x",
+          state: "s",
+        },
+      ),
+    ).toThrow(/insecure|HTTPS is required/i);
+  });
+
+  it("buildAuthorizeUrl allows a loopback http authorization_endpoint (dev)", () => {
+    const url = oauth.buildAuthorizeUrl(
+      { authorization_endpoint: "http://127.0.0.1:9000/authorize" },
+      {
+        clientId: "c",
+        redirectUri: "http://127.0.0.1:53682/callback",
+        codeChallenge: "x",
+        state: "s",
+      },
+    );
+    expect(url).toMatch(/^http:\/\/127\.0\.0\.1:9000\/authorize\?/);
+  });
+
+  it("exchangeCodeForToken refuses a cleartext remote token_endpoint before fetching", async () => {
+    const fetchSpy = vi.fn();
+    const orig = oauth._deps.fetch;
+    oauth._deps.fetch = fetchSpy;
+    try {
+      await expect(
+        oauth.exchangeCodeForToken(
+          { token_endpoint: "http://auth.example.com/token" },
+          {
+            code: "abc",
+            codeVerifier: "v",
+            clientId: "c",
+            redirectUri: "http://127.0.0.1:53682/callback",
+          },
+        ),
+      ).rejects.toThrow(/insecure|HTTPS is required/i);
+      expect(fetchSpy).not.toHaveBeenCalled(); // refused before any network I/O
+    } finally {
+      oauth._deps.fetch = orig;
+    }
+  });
+
+  it("refreshAccessToken refuses a cleartext remote token_endpoint (stored-record path)", async () => {
+    const fetchSpy = vi.fn();
+    const orig = oauth._deps.fetch;
+    oauth._deps.fetch = fetchSpy;
+    try {
+      await expect(
+        oauth.refreshAccessToken(
+          { token_endpoint: "http://auth.example.com/token" },
+          { refreshToken: "r", clientId: "c" },
+        ),
+      ).rejects.toThrow(/insecure|HTTPS is required/i);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      oauth._deps.fetch = orig;
+    }
+  });
+});
