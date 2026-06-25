@@ -337,6 +337,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
+import { formatSize } from '../utils/format-size.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -642,15 +643,6 @@ async function exportBackupList() {
   } finally {
     exportingList.value = false
   }
-}
-
-function formatSize(bytes) {
-  if (bytes == null || isNaN(bytes)) return '-'
-  const num = Number(bytes)
-  if (num === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(num) / Math.log(1024))
-  return (num / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i]
 }
 
 // ==================== Init ====================
