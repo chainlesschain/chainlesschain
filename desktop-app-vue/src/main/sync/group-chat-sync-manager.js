@@ -548,8 +548,13 @@ class GroupChatSyncManager extends EventEmitter {
    * 启动定期清理
    */
   startCleanup() {
+    // 保存句柄，使 cleanup() 能停止它。原先丢弃句柄：cleanup() 后这个 setInterval
+    // 仍每小时触发 cleanupMessageCache()，闭包钉住 this（定时器+管理器泄漏）。
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
     // 每小时清理一次过期的消息缓存
-    setInterval(
+    this.cleanupTimer = setInterval(
       () => {
         this.cleanupMessageCache();
       },
@@ -619,6 +624,11 @@ class GroupChatSyncManager extends EventEmitter {
    * 清理资源
    */
   cleanup() {
+    // 停止周期清理定时器（否则其 setInterval 在 cleanup 后仍每小时触发并钉住 this）
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
     this.messageQueues.clear();
     this.messageCache.clear();
     this.syncStatus.clear();
