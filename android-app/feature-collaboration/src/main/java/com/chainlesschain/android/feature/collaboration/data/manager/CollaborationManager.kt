@@ -10,6 +10,21 @@ import javax.inject.Singleton
 import kotlin.random.Random
 
 /**
+ * 合并占位逻辑（纯函数，便于单测）：等值直接返回；否则产出标准 git 风格的冲突标记
+ * 供人工解决。
+ *
+ * 旧实现 `"$local\n<<<<<<< LOCAL\n$remote\n>>>>>>> REMOTE"` 有三处错误：local 内容落在
+ * 标记之外、缺 `=======` 分隔符、且把 remote 内容标到了 LOCAL 段下——任何合并工具或人
+ * 都无法正确解析。这里改成规范的 `<<<<<<< LOCAL … ======= … >>>>>>> REMOTE`。
+ */
+internal fun mergeConflictContent(local: String, remote: String): String =
+    if (local == remote) {
+        local
+    } else {
+        "<<<<<<< LOCAL\n$local\n=======\n$remote\n>>>>>>> REMOTE"
+    }
+
+/**
  * Manager for real-time collaboration
  */
 @Singleton
@@ -259,15 +274,9 @@ class CollaborationManager @Inject constructor(
         )
     }
 
-    private fun mergeContent(local: String, remote: String): String {
-        // Simple merge: concatenate with separator
-        // Real implementation would use diff/merge algorithms
-        return if (local == remote) {
-            local
-        } else {
-            "$local\n<<<<<<< LOCAL\n$remote\n>>>>>>> REMOTE"
-        }
-    }
+    private fun mergeContent(local: String, remote: String): String =
+        // Placeholder merge; a real implementation would use a diff/merge algorithm.
+        mergeConflictContent(local, remote)
 
     // ==================== Lifecycle ====================
 
