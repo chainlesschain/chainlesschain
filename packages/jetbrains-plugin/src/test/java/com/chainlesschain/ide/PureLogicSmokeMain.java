@@ -51,6 +51,7 @@ public final class PureLogicSmokeMain {
         cliLauncher();
         fixWithCc();
         markdownLite();
+        transcriptCap();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -584,5 +585,30 @@ public final class PureLogicSmokeMain {
         // empty / null
         check(MarkdownLite.parse("").isEmpty(), "empty → no spans");
         check(MarkdownLite.parse(null).isEmpty(), "null → no spans");
+    }
+
+    private static void transcriptCap() {
+        System.out.println("TranscriptCap:");
+        final int CAP = 100;
+        // Within / at the cap → nothing removed.
+        check(TranscriptCap.removeCount(50, -1, false, CAP) == 0, "under cap → 0");
+        check(TranscriptCap.removeCount(100, -1, false, CAP) == 0, "exactly cap → 0");
+        check(TranscriptCap.removeCount(0, -1, false, CAP) == 0, "empty doc → 0");
+        // Over cap, no active run → trim exactly the overflow from the front.
+        check(TranscriptCap.removeCount(150, -1, false, CAP) == 50, "over cap, no run → excess");
+        // Over cap during a run → never trim past the run start.
+        check(TranscriptCap.removeCount(150, 30, true, CAP) == 30, "run at 30 → capped at runStart");
+        check(TranscriptCap.removeCount(150, 80, true, CAP) == 50, "run at 80 → full excess (< runStart)");
+        check(TranscriptCap.removeCount(150, 0, true, CAP) == 0, "run at 0 → nothing removable");
+        check(TranscriptCap.removeCount(150, 30, true, CAP) <= 30, "removeLen ≤ runStart while in run");
+        // A stale runStart with inRun=false is ignored (whole prefix is free).
+        check(TranscriptCap.removeCount(150, 30, false, CAP) == 50, "not in run → ignore runStart");
+        // Degenerate caps.
+        check(TranscriptCap.removeCount(10, -1, false, 0) == 10, "cap 0 → remove all");
+        check(TranscriptCap.removeCount(10, -1, false, -5) == 10, "negative cap → treated as 0");
+        // The default cap is positive and generous.
+        check(TranscriptCap.DEFAULT_MAX_CHARS > 0, "default cap > 0");
+        check(TranscriptCap.removeCount(TranscriptCap.DEFAULT_MAX_CHARS, -1, false,
+                TranscriptCap.DEFAULT_MAX_CHARS) == 0, "exactly default cap → 0");
     }
 }

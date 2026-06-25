@@ -8,6 +8,7 @@ import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.LlmConfig;
 import com.chainlesschain.ide.MarkdownLite;
+import com.chainlesschain.ide.TranscriptCap;
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SlashCommands;
@@ -1136,6 +1137,17 @@ final class ConversationView {
         try {
             StyledDocument d = transcript.getStyledDocument();
             d.insertString(d.getLength(), s, style);
+            // Bound long-session memory: drop the oldest text once the document
+            // exceeds the cap, never trimming into the active assistant run (whose
+            // absolute offset is shifted by whatever is removed). Mirrors the VS
+            // Code panel's transcript node cap (chainlesschain-ide 0.36.5).
+            int removeLen = TranscriptCap.removeCount(
+                    d.getLength(), assistantRunStart, inAssistantRun,
+                    TranscriptCap.DEFAULT_MAX_CHARS);
+            if (removeLen > 0) {
+                d.remove(0, removeLen);
+                if (assistantRunStart >= 0) assistantRunStart -= removeLen;
+            }
             transcript.setCaretPosition(d.getLength());
         } catch (BadLocationException ignored) {
             /* document offsets are append-only here — should not happen */

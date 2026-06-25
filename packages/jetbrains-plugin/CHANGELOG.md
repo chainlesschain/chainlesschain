@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.36] — perf: cap the chat transcript to bound long-session memory
+
+- **Perf: the chat panel now keeps the transcript document under ~200k
+  characters instead of growing it without bound.** A long session used to
+  append every message, stream chunk and tool line to the `JTextPane` document
+  forever — steadily increasing memory. `insertStyled` now trims the oldest text
+  from the front once the cap is exceeded, mirroring the VS Code panel's
+  transcript cap (`chainlesschain-ide` 0.36.5) and Claude Code 2.1.191's "reduced
+  long-session memory growth". Trimming never cuts into the currently-streaming
+  assistant run — its absolute offset (`assistantRunStart`) is shifted by exactly
+  what was removed, so markdown re-styling at run-end stays correct — and the
+  caret stays pinned to the bottom, so what you're reading doesn't jump. The cap
+  arithmetic lives in a pure `TranscriptCap` helper (13 new smoke assertions).
+
 ## [0.4.35] — fix: pass the full LLM block so cloud providers don't fall through to ollama
 
 - **Fix: the chat panel now passes your endpoint + API key (`--base-url` /
