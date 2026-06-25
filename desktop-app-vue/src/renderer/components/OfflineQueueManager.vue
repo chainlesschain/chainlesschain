@@ -1,9 +1,6 @@
 <template>
   <div class="offline-queue-manager">
-    <a-card
-      title="离线消息队列"
-      :loading="loading"
-    >
+    <a-card title="离线消息队列" :loading="loading">
       <template #extra>
         <a-space>
           <a-badge
@@ -40,10 +37,7 @@
       </template>
 
       <!-- 队列统计 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 24px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="6">
           <a-statistic
             title="待发送消息"
@@ -78,10 +72,7 @@
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="总消息数"
-            :value="queueStats.totalMessages"
-          >
+          <a-statistic title="总消息数" :value="queueStats.totalMessages">
             <template #prefix>
               <InboxOutlined />
             </template>
@@ -180,11 +171,7 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions
-        v-if="selectedMessage"
-        bordered
-        :column="1"
-      >
+      <a-descriptions v-if="selectedMessage" bordered :column="1">
         <a-descriptions-item label="消息ID">
           <a-typography-text copyable>
             {{ selectedMessage.id }}
@@ -273,7 +260,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   ReloadOutlined,
@@ -536,13 +523,21 @@ function formatTime(timestamp) {
 }
 
 // 生命周期
+// Named handler so it can be removed on unmount — an anonymous arg leaks
+// (keeps firing on the destroyed component and stacks on every re-mount).
+const handleQueueUpdated = async () => {
+  await loadQueue();
+};
+
 onMounted(async () => {
   await loadQueue();
 
   // 监听队列变化事件
-  ipcRenderer.on("p2p:queue-updated", async () => {
-    await loadQueue();
-  });
+  ipcRenderer.on("p2p:queue-updated", handleQueueUpdated);
+});
+
+onUnmounted(() => {
+  ipcRenderer.removeListener("p2p:queue-updated", handleQueueUpdated);
 });
 
 // 暴露给测试使用
