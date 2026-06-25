@@ -4,6 +4,15 @@ import com.chainlesschain.android.core.blockchain.model.SupportedChain
 import kotlinx.serialization.Serializable
 
 /**
+ * 原生币计价的 gas 费用：gasUsed × gasPrice(wei) / 1e18。
+ *
+ * 必须在 Double 域内相乘——`gasUsed * gasPrice` 用 Long 相乘会在高 gas × 高 price 时
+ * 溢出（如 1e7 gas × 1e12 wei = 1e19 > Long.MAX 9.2e18）翻成负数，从而显示出负的手续费。
+ */
+internal fun gasCostNative(gasUsed: Long, gasPriceWei: Long): Double =
+    gasUsed.toDouble() * gasPriceWei.toDouble() / 1e18
+
+/**
  * Blockchain transaction domain model
  */
 @Serializable
@@ -56,7 +65,7 @@ data class Transaction(
         get() {
             val used = gasUsed ?: return null
             val price = gasPrice ?: maxFeePerGas ?: return null
-            return (used * price).toDouble() / 1e18
+            return gasCostNative(used, price)
         }
 
     /**
