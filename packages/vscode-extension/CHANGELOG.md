@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.6] — fix: close the stale diff tab after a button decision
+
+- **Fix: a review diff tab is now closed once you decide via a button (Accept /
+  Reject / Pick hunks… / Request changes…), not just when you close the tab
+  yourself.** Previously only the close-the-tab gesture removed the diff; clicking
+  a button left the now-stale side-by-side comparison open, so diff tabs piled up
+  across a multi-edit agent session (the reason Claude Code ships
+  `closeAllDiffTabs`). The cleanup runs in a `finally` **after** the chosen path
+  has read the (possibly user-edited) right pane and applied it, so no in-pane
+  edit is lost; "Request changes…" stays open while you annotate and closes once
+  the notes are collected. Falls back to a no-op on editors without the
+  `tabGroups` API.
+
 ## [0.36.5] — perf: cap the chat transcript to bound long-session memory
 
 - **Perf: the chat panel now keeps at most the 800 most-recent transcript nodes

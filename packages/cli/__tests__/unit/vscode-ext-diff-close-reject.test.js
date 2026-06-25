@@ -195,3 +195,100 @@ describe("openDiff: closing the diff tab rejects immediately", () => {
     expect(fx.disposes.count).toBe(1);
   });
 });
+
+/**
+ * A BUTTON decision (Accept / Reject / Pick hunks / Request changes) leaves the
+ * diff tab open — over a multi-edit session those stale tabs pile up (Claude-Code
+ * ships closeAllDiffTabs for exactly this). openDiff now closes the tab whose
+ * modified pane is the proposal once the decision is fully handled. Needs a fake
+ * that models open tabs + tabGroups.all/close (the minimal fake above only has
+ * onDidChangeTabs, so the guarded helper is a no-op there).
+ */
+describe("openDiff: a button decision closes the now-stale diff tab", () => {
+  function fakeVscodeWithTabs() {
+    const message = deferred();
+    let untitledCounter = 0;
+    const untitledDocs = [];
+    const tabs = []; // currently-open editor tabs
+    const closed = []; // tabs passed to tabGroups.close
+    const v = {
+      Uri: { file: (p) => ({ fsPath: p, toString: () => "file://" + p }) },
+      workspace: {
+        openTextDocument: async (arg) => {
+          if (arg && typeof arg === "object" && "content" in arg) {
+            const id = `untitled:Untitled-${++untitledCounter}`;
+            const doc = {
+              uri: { toString: () => id },
+              getText: () => arg.content,
+              positionAt: (n) => n,
+              save: async () => {},
+            };
+            untitledDocs.push(doc);
+            return doc;
+          }
+          return {
+            uri: arg,
+            getText: () => "",
+            positionAt: (n) => n,
+            save: async () => {},
+          };
+        },
+        applyEdit: async () => true,
+      },
+      commands: {
+        executeCommand: async (cmd, _left, right) => {
+          // Model `vscode.diff` opening a tab whose modified pane is the proposal.
+          if (cmd === "vscode.diff") tabs.push({ input: { modified: right } });
+        },
+      },
+      window: {
+        showInformationMessage: () => message.promise,
+        showQuickPick: async () => null,
+        tabGroups: {
+          onDidChangeTabs: () => ({ dispose: () => {} }),
+          get all() {
+            return [{ tabs: tabs.slice() }];
+          },
+          close: async (tab) => {
+            closed.push(tab);
+            const i = tabs.indexOf(tab);
+            if (i >= 0) tabs.splice(i, 1);
+          },
+        },
+      },
+      WorkspaceEdit: class {
+        replace() {}
+      },
+      Range: class {},
+    };
+    return { vscode: v, message, untitledDocs, tabs, closed };
+  }
+
+  it("Accept closes the diff tab whose modified pane is the proposal", async () => {
+    const fx = fakeVscodeWithTabs();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openDiff({ path: "/ws/a.js", modifiedText: "proposal" });
+    await tick();
+    expect(fx.tabs).toHaveLength(1); // the diff tab is open
+
+    fx.message.resolve("Accept");
+    await expect(p).resolves.toMatchObject({
+      outcome: "accepted",
+      finalText: "proposal",
+    });
+    expect(fx.closed).toHaveLength(1); // the now-stale diff tab was closed
+    expect(fx.tabs).toHaveLength(0);
+  });
+
+  it("Reject (button) also closes the diff tab", async () => {
+    const fx = fakeVscodeWithTabs();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openDiff({ path: "/ws/a.js", modifiedText: "x" });
+    await tick();
+
+    fx.message.resolve("Reject");
+    await expect(p).resolves.toMatchObject({ outcome: "rejected" });
+    expect(fx.closed).toHaveLength(1);
+    expect(fx.tabs).toHaveLength(0);
+  });
+});

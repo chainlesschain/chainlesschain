@@ -181,78 +181,106 @@ function createVscodeEditorFacade(vscode) {
           .then(settle, () => settle(undefined));
       });
       if (choice === CLOSED) {
+        // The reviewer closed the diff tab themselves — it is already gone.
         return { outcome: "rejected", path, closedDiff: true };
       }
-      if (choice === "Request changes…") {
-        // Inline review (Claude-Code parity): the reviewer annotates the diff
-        // with revision notes instead of accept/reject. Nothing is written —
-        // the notes ride back to the agent so it revises and re-proposes.
-        const comments = await collectReviewComments(vscode, rightDoc);
-        if (!comments || comments.length === 0) {
-          return { outcome: "rejected", path }; // no actionable feedback
+      // Close the (now-stale) diff tab once a BUTTON decision is fully handled.
+      // Accept / Pick hunks / Request changes otherwise leave the tab open, so
+      // diff tabs pile up across a multi-edit session (Claude-Code ships
+      // closeAllDiffTabs for exactly this). The `finally` runs AFTER each path
+      // has read rightDoc.getText(), so no in-pane user edit is lost to the close.
+      const closeDiffTab = async () => {
+        const groups = vscode.window.tabGroups;
+        if (!groups?.all || typeof groups.close !== "function") return;
+        const rightKey = rightDoc.uri.toString();
+        try {
+          for (const group of groups.all) {
+            for (const tab of group.tabs || []) {
+              const modified = tab?.input?.modified;
+              if (modified && modified.toString() === rightKey) {
+                await groups.close(tab);
+                return;
+              }
+            }
+          }
+        } catch {
+          /* best-effort — never block the decision on tab cleanup */
         }
-        return {
-          outcome: "changes-requested",
-          path,
-          comments,
-          reviewedText: rightDoc.getText(),
-        };
-      }
-      if (choice === "Accept") {
-        const finalText = rightDoc.getText(); // includes any user edits
-        await applyTextToFile(vscode, fileUri, finalText);
-        return { outcome: "accepted", path, finalText };
-      }
-      if (choice === "Pick hunks…") {
-        // Hunk-level partial accept: diff the (possibly user-edited) right
-        // pane against the original and let the reviewer pick blocks with a
-        // native multi-select QuickPick. Unpicked blocks keep the original.
-        const { computeHunks, applyHunks } = require("./diff-hunks");
-        const baseline =
-          typeof originalText === "string"
-            ? originalText
-            : safeReadFile(path);
-        const hunks = computeHunks(baseline, rightDoc.getText());
-        if (hunks.length === 0) {
-          return { outcome: "rejected", path }; // nothing to apply
+      };
+      try {
+        if (choice === "Request changes…") {
+          // Inline review (Claude-Code parity): the reviewer annotates the diff
+          // with revision notes instead of accept/reject. Nothing is written —
+          // the notes ride back to the agent so it revises and re-proposes.
+          const comments = await collectReviewComments(vscode, rightDoc);
+          if (!comments || comments.length === 0) {
+            return { outcome: "rejected", path }; // no actionable feedback
+          }
+          return {
+            outcome: "changes-requested",
+            path,
+            comments,
+            reviewedText: rightDoc.getText(),
+          };
         }
-        const picks = await vscode.window.showQuickPick(
-          hunks.map((h) => ({
-            label: `Hunk ${h.index + 1}/${hunks.length} · ${h.header}`,
-            description: h.preview,
-            picked: true,
-            hunk: h,
-          })),
-          {
-            canPickMany: true,
-            // Reviewers alt-tab to compare things mid-pick (or screenshot the
-            // list) — focus loss must NOT silently cancel the review. Only an
-            // explicit OK or Esc ends it. (Found live: a WeChat screenshot
-            // killed the pick three demos in a row.)
-            ignoreFocusOut: true,
-            placeHolder:
-              "勾选要应用的改动块(未勾选的保留原文);Esc 取消 = 不应用",
-          },
-        );
-        // Esc / empty selection → fail-safe: nothing is written.
-        if (!picks || picks.length === 0) {
-          return { outcome: "rejected", path };
+        if (choice === "Accept") {
+          const finalText = rightDoc.getText(); // includes any user edits
+          await applyTextToFile(vscode, fileUri, finalText);
+          return { outcome: "accepted", path, finalText };
         }
-        const finalText = applyHunks(
-          baseline,
-          hunks,
-          picks.map((p) => p.hunk.index),
-        );
-        await applyTextToFile(vscode, fileUri, finalText);
-        return {
-          outcome: "accepted",
-          path,
-          finalText,
-          appliedHunks: picks.length,
-          totalHunks: hunks.length,
-        };
+        if (choice === "Pick hunks…") {
+          // Hunk-level partial accept: diff the (possibly user-edited) right
+          // pane against the original and let the reviewer pick blocks with a
+          // native multi-select QuickPick. Unpicked blocks keep the original.
+          const { computeHunks, applyHunks } = require("./diff-hunks");
+          const baseline =
+            typeof originalText === "string"
+              ? originalText
+              : safeReadFile(path);
+          const hunks = computeHunks(baseline, rightDoc.getText());
+          if (hunks.length === 0) {
+            return { outcome: "rejected", path }; // nothing to apply
+          }
+          const picks = await vscode.window.showQuickPick(
+            hunks.map((h) => ({
+              label: `Hunk ${h.index + 1}/${hunks.length} · ${h.header}`,
+              description: h.preview,
+              picked: true,
+              hunk: h,
+            })),
+            {
+              canPickMany: true,
+              // Reviewers alt-tab to compare things mid-pick (or screenshot the
+              // list) — focus loss must NOT silently cancel the review. Only an
+              // explicit OK or Esc ends it. (Found live: a WeChat screenshot
+              // killed the pick three demos in a row.)
+              ignoreFocusOut: true,
+              placeHolder:
+                "勾选要应用的改动块(未勾选的保留原文);Esc 取消 = 不应用",
+            },
+          );
+          // Esc / empty selection → fail-safe: nothing is written.
+          if (!picks || picks.length === 0) {
+            return { outcome: "rejected", path };
+          }
+          const finalText = applyHunks(
+            baseline,
+            hunks,
+            picks.map((p) => p.hunk.index),
+          );
+          await applyTextToFile(vscode, fileUri, finalText);
+          return {
+            outcome: "accepted",
+            path,
+            finalText,
+            appliedHunks: picks.length,
+            totalHunks: hunks.length,
+          };
+        }
+        return { outcome: "rejected", path };
+      } finally {
+        await closeDiffTab();
       }
-      return { outcome: "rejected", path };
     },
 
     // Batch review of a whole changeset (openMultiDiff): open VS Code's native
