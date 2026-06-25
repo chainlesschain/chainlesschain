@@ -37,7 +37,9 @@ data class MemoryMetrics(
     val heapMaxBytes: Long? = null
 ) {
     val usagePercent: Float
-        get() = (usedBytes.toFloat() / totalBytes) * 100
+        // totalBytes 可能为 0（某些设备/模拟器无内存信息）；Float 除零不抛异常而是产出
+        // Infinity/NaN，会污染 UI 与告警阈值，故显式守卫返回 0。
+        get() = if (totalBytes > 0) (usedBytes.toFloat() / totalBytes) * 100 else 0f
 }
 
 /**
