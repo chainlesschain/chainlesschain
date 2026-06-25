@@ -10,16 +10,7 @@
  * to empty arrays when audit_log table is missing (fresh installs).
  */
 
-import { stripCliNoise } from './community-parser.js'
-
-function tryParseJson(output) {
-  const cleaned = stripCliNoise(output)
-  if (!cleaned) return null
-  try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
-  const m = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  if (!m) return null
-  try { return JSON.parse(m[0]) } catch { return null }
-}
+import { stripCliNoise, tryParseJson } from './community-parser.js'
 
 export const IOC_TYPES = Object.freeze([
   'file-md5', 'file-sha1', 'file-sha256', 'file-sha512',

@@ -5,16 +5,7 @@
  * heuristic stays in one place.
  */
 
-import { stripCliNoise } from './community-parser.js'
-
-function tryParseJson(output) {
-  const cleaned = stripCliNoise(output)
-  if (!cleaned) return null
-  try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
-  const m = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  if (!m) return null
-  try { return JSON.parse(m[0]) } catch { return null }
-}
+import { stripCliNoise, tryParseJson } from './community-parser.js'
 
 export const SERVICE_STATUSES = Object.freeze(['draft', 'published', 'deprecated', 'suspended'])
 export const INVOCATION_STATUSES = Object.freeze(['pending', 'running', 'success', 'failed', 'timeout'])

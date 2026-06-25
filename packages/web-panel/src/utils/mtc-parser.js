@@ -10,16 +10,7 @@
  * Reuses `stripCliNoise` from community-parser.
  */
 
-import { stripCliNoise } from './community-parser.js'
-
-function tryParseJson(output) {
-  const cleaned = stripCliNoise(output)
-  if (!cleaned) return null
-  try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
-  const m = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  if (!m) return null
-  try { return JSON.parse(m[0]) } catch { return null }
-}
+import { stripCliNoise, tryParseJson } from './community-parser.js'
 
 const STATUS_DEFAULTS = Object.freeze({
   ok: false,

@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   stripCliNoise,
+  tryParseJson,
   parseSocialStats,
   parseContacts,
   parseFriends,
@@ -284,5 +285,30 @@ describe('parseAddedContact', () => {
 
   it('returns null when contact lacks an id', () => {
     expect(parseAddedContact(JSON.stringify({ name: 'no-id' }))).toBeNull()
+  })
+})
+
+describe('tryParseJson (shared, balanced extraction)', () => {
+  it('parses clean JSON output directly', () => {
+    expect(tryParseJson('{"a":1}')).toEqual({ a: 1 })
+    expect(tryParseJson('[1,2,3]')).toEqual([1, 2, 3])
+  })
+
+  it('strips CLI noise lines before parsing', () => {
+    expect(tryParseJson(`${NOISE_PREAMBLE}\n{"ok":true}`)).toEqual({ ok: true })
+  })
+
+  it('extracts the object when a stray } trails it (old greedy over-captured)', () => {
+    // 旧贪婪正则 /\{[\s\S]*\}/ 会一路吃到散文里那个落单的 } → JSON.parse 抛错丢结果。
+    expect(tryParseJson('{"a":1} note: use } sparingly')).toEqual({ a: 1 })
+  })
+
+  it('returns the first complete object when several are emitted', () => {
+    expect(tryParseJson('{"a":1} {"b":2}')).toEqual({ a: 1 })
+  })
+
+  it('returns null when there is no JSON', () => {
+    expect(tryParseJson('no json here')).toBeNull()
+    expect(tryParseJson('')).toBeNull()
   })
 })

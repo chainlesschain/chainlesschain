@@ -32,13 +32,62 @@ export function stripCliNoise(output) {
     .trim()
 }
 
-function tryParseJson(output) {
+/**
+ * 从首个 `{`/`[` 起按括号配对完整地抽取所有 JSON 候选子串（正确跳过字符串字面量
+ * 与转义），从左到右排列。比贪婪正则 `/\{[\s\S]*\}/`（首 `{` 到末 `}`）更稳健：当
+ * CLI 输出里 JSON 前后残留 `[标签]` 之类括号文本、或一次含多个 JSON 时，贪婪会过度
+ * 捕获导致 JSON.parse 失败。
+ */
+function balancedJsonCandidates(text) {
+  const candidates = []
+  let i = 0
+  while (i < text.length) {
+    const rel = text.slice(i).search(/[{[]/)
+    if (rel === -1) break
+    const start = i + rel
+    let depth = 0
+    let inStr = false
+    let esc = false
+    let end = -1
+    for (let j = start; j < text.length; j++) {
+      const ch = text[j]
+      if (inStr) {
+        if (esc) esc = false
+        else if (ch === '\\') esc = true
+        else if (ch === '"') inStr = false
+        continue
+      }
+      if (ch === '"') inStr = true
+      else if (ch === '{' || ch === '[') depth++
+      else if (ch === '}' || ch === ']') {
+        depth--
+        if (depth === 0) { end = j; break }
+      }
+    }
+    if (end === -1) break
+    candidates.push(text.slice(start, end + 1))
+    i = end + 1
+  }
+  return candidates
+}
+
+/**
+ * 解析 CLI 输出里的 JSON：先剥离噪声行，直接 `JSON.parse`；失败时按从左到右每个
+ * 括号配对完整的候选逐个尝试，最后退回贪婪正则兜底。各 parser 复用这一份实现
+ * （此前是 20+ 份逐字节相同的拷贝，且只有贪婪兜底，JSON 前后有括号噪声时会丢数据）。
+ */
+export function tryParseJson(output) {
   const cleaned = stripCliNoise(output)
   if (!cleaned) return null
   try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
+  for (const candidate of balancedJsonCandidates(cleaned)) {
+    try { return JSON.parse(candidate) } catch { /* try next candidate */ }
+  }
   const m = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  if (!m) return null
-  try { return JSON.parse(m[0]) } catch { return null }
+  if (m) {
+    try { return JSON.parse(m[0]) } catch { /* fallthrough */ }
+  }
+  return null
 }
 
 export const STATS_DEFAULTS = Object.freeze({
