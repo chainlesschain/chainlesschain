@@ -348,5 +348,43 @@ describe("worktree-isolator", () => {
         diffWorktree(repoDir, "main", { baseBranch: "a$(whoami)" }),
       ).toThrow(/Unsafe/);
     });
+
+    it("rejects a filePath with shell metacharacters", () => {
+      createWorktree(repoDir, "agent/fp-branch");
+      expect(() =>
+        diffWorktree(repoDir, "agent/fp-branch", {
+          filePath: 'README.md"; touch INJECTED; echo "',
+        }),
+      ).toThrow(/Unsafe/);
+      expect(existsSync(join(repoDir, "INJECTED"))).toBe(false);
+    });
+
+    it("does not execute shell metacharacters in a merge commit message", () => {
+      const worktree = createWorktree(repoDir, "agent/msg-branch");
+      // Non-conflicting change so the squash merge applies cleanly.
+      writeFileSync(
+        join(worktree.path, "feature.txt"),
+        "new feature\n",
+        "utf-8",
+      );
+      execSync("git add -A", { cwd: worktree.path });
+      execSync('git commit -m "add feature"', { cwd: worktree.path });
+
+      const sentinel = join(repoDir, "PWNED");
+      // The old `-m "${msg.replace(/"/g,'\\"')}"` left $()/backticks live; argv
+      // makes the message inert.
+      mergeWorktree(repoDir, "agent/msg-branch", {
+        strategy: "squash",
+        message: `$(touch "${sentinel}")\`touch "${sentinel}"\``,
+        deleteBranch: false,
+      });
+
+      expect(existsSync(sentinel)).toBe(false); // command substitution did NOT run
+      const lastMsg = execSync("git log -1 --pretty=%B", {
+        cwd: repoDir,
+        encoding: "utf-8",
+      }).trim();
+      expect(lastMsg).toContain("$(touch"); // stored literally
+    });
   });
 });

@@ -25,6 +25,7 @@ import {
   gitHistoryAnalyze,
   installHooks,
   assertSafeGitRef,
+  assertSafeGitPath,
 } from "../../src/lib/git-integration.js";
 
 describe("assertSafeGitRef (shell-injection guard for interpolated git refs)", () => {
@@ -68,6 +69,47 @@ describe("assertSafeGitRef (shell-injection guard for interpolated git refs)", (
     expect(() => assertSafeGitRef("")).toThrow(/Invalid/);
     expect(() => assertSafeGitRef(null)).toThrow(/Invalid/);
     expect(() => assertSafeGitRef(undefined)).toThrow(/Invalid/);
+  });
+});
+
+describe("assertSafeGitPath (shell-injection guard for interpolated file paths)", () => {
+  it("accepts ordinary repo-relative paths", () => {
+    for (const p of [
+      "src/index.js",
+      "a/b/c.test.ts",
+      "file with spaces.md",
+      "weird-but-ok_name.v2.json",
+      "pkg/Foo+Bar@1.txt",
+    ]) {
+      expect(() => assertSafeGitPath(p)).not.toThrow();
+    }
+  });
+
+  it("rejects shell metacharacters / command substitution", () => {
+    for (const p of [
+      'x"; rm -rf ~; echo "',
+      "x$(whoami).js",
+      "x`id`.js",
+      "a;b",
+      "a|b",
+      "a&b",
+      "a>b",
+      "a\nb",
+    ]) {
+      expect(() => assertSafeGitPath(p)).toThrow(/Unsafe/);
+    }
+  });
+
+  it("rejects traversal, absolute paths, and flag injection", () => {
+    expect(() => assertSafeGitPath("../etc/passwd")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitPath("/etc/passwd")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitPath("C:/Windows/x")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitPath("--output=evil")).toThrow(/Unsafe/);
+  });
+
+  it("rejects empty / non-string", () => {
+    expect(() => assertSafeGitPath("")).toThrow(/Invalid/);
+    expect(() => assertSafeGitPath(null)).toThrow(/Invalid/);
   });
 });
 

@@ -13,7 +13,9 @@ import { resolve } from "node:path";
 import {
   isGitRepo,
   gitExec,
+  gitExecArgs,
   assertSafeGitRef,
+  assertSafeGitPath,
 } from "../lib/git-integration.js";
 
 const WORKTREE_DIR = ".worktrees";
@@ -167,6 +169,7 @@ export function diffWorktree(repoDir, branchName, options = {}) {
   if (options.baseBranch) assertSafeGitRef(options.baseBranch, "base branch");
   const base = options.baseBranch || "HEAD";
   const filePath = options.filePath || null;
+  if (filePath) assertSafeGitPath(filePath, "file path");
   const fileArg = filePath ? ` -- "${filePath}"` : "";
   const statOutput = gitExec(
     `diff ${base}...${branchName} --stat --numstat${fileArg}`,
@@ -223,14 +226,13 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
       const msg =
         options.message ||
         `feat: merge agent work from ${branchName} (squashed)`;
-      gitExec(`commit -m "${msg.replace(/"/g, '\\"')}"`, repoDir);
+      // Free-text message → argv (no shell) so `$()`/backticks/quotes in it
+      // can't inject a command (the old `-m "…"` only escaped `"`).
+      gitExecArgs(["commit", "-m", msg], repoDir);
     } else {
       const msg =
         options.message || `Merge branch '${branchName}' (agent task)`;
-      gitExec(
-        `merge ${branchName} --no-edit -m "${msg.replace(/"/g, '\\"')}"`,
-        repoDir,
-      );
+      gitExecArgs(["merge", branchName, "--no-edit", "-m", msg], repoDir);
     }
 
     if (deleteBranch) {
@@ -393,6 +395,7 @@ export function applyWorktreeAutomationCandidate(
   const conflictType = options.conflictType || null;
   const baseBranch = _resolveBaseBranchForMerge(repoDir, options.baseBranch);
 
+  if (filePath) assertSafeGitPath(filePath, "file path");
   if (!filePath) {
     throw new Error("filePath is required");
   }
@@ -514,8 +517,10 @@ export function worktreeLog(repoDir, branchName, baseBranch = "HEAD") {
 
 function _fileStatus(repoDir, base, branch, filePath) {
   try {
-    const output = gitExec(
-      `diff ${base}...${branch} --name-status -- "${filePath}"`,
+    // filePath here comes from git's conflict output (a tracked file name);
+    // pass it via argv so an exotic / maliciously-named file can't inject.
+    const output = gitExecArgs(
+      ["diff", `${base}...${branch}`, "--name-status", "--", filePath],
       repoDir,
     );
     const status = output.trim().charAt(0);
@@ -603,7 +608,10 @@ function _buildConflictSummary(repoDir, filePath, branchName) {
 
 function _conflictStatusCode(repoDir, filePath) {
   try {
-    const output = gitExec(`status --porcelain -- "${filePath}"`, repoDir);
+    const output = gitExecArgs(
+      ["status", "--porcelain", "--", filePath],
+      repoDir,
+    );
     const firstLine = output.split("\n").find((line) => line.trim());
     return firstLine ? firstLine.slice(0, 2) : "UU";
   } catch (_e) {
@@ -779,7 +787,10 @@ function _buildDiffPreview(repoDir, filePath, branchName) {
   };
 
   try {
-    const diff = gitExec(`diff HEAD...${branchName} -- "${filePath}"`, repoDir);
+    const diff = gitExecArgs(
+      ["diff", `HEAD...${branchName}`, "--", filePath],
+      repoDir,
+    );
     preview.snippet =
       diff.length > 2000
         ? `${diff.slice(0, 2000)}\n... [diff truncated]`

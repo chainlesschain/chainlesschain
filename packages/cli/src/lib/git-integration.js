@@ -2,7 +2,7 @@
  * Git integration — wraps system git commands for knowledge base versioning.
  */
 
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { existsSync, writeFileSync, chmodSync } from "fs";
 import { join } from "path";
 
@@ -39,6 +39,62 @@ export function assertSafeGitRef(ref, label = "git ref") {
   ) {
     throw new Error(`Unsafe ${label}: ${JSON.stringify(ref)}`);
   }
+}
+
+/**
+ * Validate a repo-relative file path before it is interpolated into a shell git
+ * command (e.g. `diff … -- "${filePath}"`). Double-quoting does NOT neutralize
+ * `$()` / backticks / a closing `"`, so an unsanitized path from a WS frame is a
+ * shell-injection vector. Allow only ordinary path characters (no shell
+ * metacharacters), reject absolute paths, a leading `-` (flag injection), and
+ * `..` (traversal). Exported for reuse + tests.
+ *
+ * @param {string} p
+ * @param {string} [label="file path"]
+ */
+export function assertSafeGitPath(p, label = "file path") {
+  if (typeof p !== "string" || p.length === 0) {
+    throw new Error(`Invalid ${label}: expected a non-empty string`);
+  }
+  if (
+    !/^[A-Za-z0-9._/+@=, -]+$/.test(p) || // safe path chars only — no shell metachars
+    p.startsWith("-") || // no flag injection (e.g. `-- --output=…`)
+    p.startsWith("/") || // no absolute path (posix)
+    /^[A-Za-z]:/.test(p) || // no absolute path (windows drive)
+    p.includes("..") // no traversal / range tricks
+  ) {
+    throw new Error(`Unsafe ${label}: ${JSON.stringify(p)}`);
+  }
+}
+
+/**
+ * Run git with an ARGV array (no shell) — for commands that carry free-text the
+ * caller can't allowlist (a commit / merge message). spawnSync passes each arg
+ * verbatim, so `$()`, backticks, quotes, and `;` in the message are inert
+ * instead of being interpreted by a shell as they would be through `gitExec`.
+ * Throws git's stderr on failure, mirroring `gitExec`'s contract.
+ *
+ * @param {string[]} args
+ * @param {string} cwd
+ * @param {object} [opts] { input }
+ * @returns {string} trimmed stdout
+ */
+export function gitExecArgs(args, cwd, opts = {}) {
+  const res = spawnSync("git", args, {
+    cwd,
+    encoding: "utf-8",
+    windowsHide: true,
+    maxBuffer: 64 * 1024 * 1024,
+    input: opts.input,
+  });
+  if (res.error) throw res.error;
+  if (res.status !== 0) {
+    const stderr = (res.stderr || res.stdout || "").toString().trim();
+    throw new Error(
+      stderr || `git ${args.join(" ")} failed (exit ${res.status})`,
+    );
+  }
+  return (res.stdout || "").toString().trim();
 }
 
 /**
