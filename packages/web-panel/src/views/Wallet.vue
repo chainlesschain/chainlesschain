@@ -333,6 +333,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -340,10 +341,6 @@ const ws = useWsStore()
 // --- Shared ---
 const activeTab = ref('wallets')
 const refreshing = ref(false)
-
-function tryParseJson(output) {
-  try { return JSON.parse(output) } catch { return null }
-}
 
 async function refreshCurrentTab() {
   refreshing.value = true

@@ -171,6 +171,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const ws = useWsStore()
 
@@ -390,16 +391,6 @@ function parseAuditStatsOutput(output) {
 }
 
 // --- Helpers ---
-function tryParseJson(str) {
-  try {
-    const jsonStart = str.indexOf('[') !== -1 ? str.indexOf('[') : str.indexOf('{')
-    if (jsonStart === -1) return null
-    const jsonEnd = str.lastIndexOf(']') !== -1 ? str.lastIndexOf(']') + 1 : str.lastIndexOf('}') + 1
-    return JSON.parse(str.slice(jsonStart, jsonEnd))
-  } catch (_e) {
-    return null
-  }
-}
 
 function parseJsonOutput(output, textFallback) {
   const json = tryParseJson(output)

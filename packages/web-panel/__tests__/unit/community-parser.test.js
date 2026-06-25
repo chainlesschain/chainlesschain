@@ -311,4 +311,21 @@ describe('tryParseJson (shared, balanced extraction)', () => {
     expect(tryParseJson('no json here')).toBeNull()
     expect(tryParseJson('')).toBeNull()
   })
+
+  // 以下三例锁定三个 .vue 视图（Permissions/Organization/Wallet）原先各自内联的
+  // 残缺 tryParseJson 副本会丢结果的真实输入，现已统一改用本健壮实现。
+  it('Permissions case: mixed } and ] no longer mis-pairs the slice end', () => {
+    // 旧实现独立取首 { 和末 ]，混合括号时 slice 成 `{"a":1} and [1,2,3` → 解析失败。
+    expect(tryParseJson('{"a":1} and [1,2,3]')).toEqual({ a: 1 })
+  })
+
+  it('Organization case: trailing prose after the object is dropped', () => {
+    // 旧实现 slice(start) 一路吃到字符串末尾，对象后跟散文即解析失败。
+    expect(tryParseJson('{"ok":true} 操作完成。')).toEqual({ ok: true })
+  })
+
+  it('Wallet case: leading CLI noise before bare JSON is stripped', () => {
+    // 旧实现是裸 JSON.parse(output)，前面有任何 CLI 噪声行就抛错丢结果。
+    expect(tryParseJson(`${NOISE_PREAMBLE}\n[{"id":1}]`)).toEqual([{ id: 1 }])
+  })
 })

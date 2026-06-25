@@ -340,6 +340,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -370,20 +371,6 @@ function onTabChange(key) {
   if (key === 'approvals' && approvalList.value.length === 0) loadApprovals()
 }
 
-function tryParseJson(output) {
-  try {
-    const trimmed = output.trim()
-    const jsonStart = trimmed.indexOf('[')
-    const jsonObjStart = trimmed.indexOf('{')
-    const start = jsonStart >= 0 && (jsonObjStart < 0 || jsonStart < jsonObjStart) ? jsonStart : jsonObjStart
-    if (start >= 0) {
-      return JSON.parse(trimmed.slice(start))
-    }
-    return null
-  } catch (_e) {
-    return null
-  }
-}
 
 // --- Tab 1: Organization List ---
 const orgLoading = ref(false)
