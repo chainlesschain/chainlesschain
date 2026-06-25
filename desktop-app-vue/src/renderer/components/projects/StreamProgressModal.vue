@@ -289,7 +289,8 @@ const overallProgress = computed(() => {
   const completed = stageSteps.value.filter(
     (s) => s.status === "completed",
   ).length;
-  return Math.round((completed / total) * 100);
+  // No stage definitions yet (loading / stage-less stream) → 0%, not NaN%.
+  return total > 0 ? Math.round((completed / total) * 100) : 0;
 });
 
 const progressStatus = computed(() => {
