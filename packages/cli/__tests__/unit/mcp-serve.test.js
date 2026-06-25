@@ -8,11 +8,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import {
-  startMcpServe,
-  confine,
-  buildTools,
-} from "../../src/lib/mcp-serve.js";
+import { startMcpServe, confine, buildTools } from "../../src/lib/mcp-serve.js";
 
 let tmp;
 let handle;
@@ -54,10 +50,60 @@ afterEach(async () => {
 
 describe("confine", () => {
   it("resolves inside the root and rejects escapes", () => {
-    expect(confine(tmp, "src/alpha.js")).toBe(path.join(tmp, "src", "alpha.js"));
+    expect(confine(tmp, "src/alpha.js")).toBe(
+      path.join(tmp, "src", "alpha.js"),
+    );
     expect(confine(tmp, ".")).toBe(path.resolve(tmp));
     expect(() => confine(tmp, "../outside.txt")).toThrow(/escapes/);
     expect(() => confine(tmp, path.join(os.tmpdir(), "x"))).toThrow(/escapes/);
+  });
+
+  it("rejects a path that escapes the root via an internal symlink", () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cc-outside-"));
+    fs.writeFileSync(path.join(outside, "secret.txt"), "TOP SECRET", "utf-8");
+    const link = path.join(tmp, "escape");
+    try {
+      fs.symlinkSync(outside, link, "dir");
+    } catch {
+      // Symlink creation needs privilege on Windows — skip there.
+      fs.rmSync(outside, { recursive: true, force: true });
+      return;
+    }
+    try {
+      // path.resolve("escape/secret.txt") stays string-inside root, but the
+      // real file is outside — the symlink guard must reject it.
+      expect(() => confine(tmp, "escape/secret.txt")).toThrow(/escapes/);
+      // The symlinked directory itself also resolves outside.
+      expect(() => confine(tmp, "escape")).toThrow(/escapes/);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("symlink guard rejects an ancestor whose real path escapes root (deterministic)", () => {
+    // Platform-independent: inject a realpathSync where the root maps to itself
+    // but anything under it resolves OUTSIDE (as a symlink-to-outside would).
+    const root = path.resolve(tmp);
+    const fakeDeps = {
+      path,
+      fs: {
+        realpathSync: (p) => {
+          if (path.resolve(String(p)) === root) return root; // root → itself
+          return path.join(os.tmpdir(), "cc-elsewhere", "leaked"); // outside
+        },
+      },
+    };
+    expect(() => confine(tmp, "escape/secret.txt", fakeDeps)).toThrow(
+      /escapes serve root \(symlink\)/,
+    );
+    // A normal path whose real ancestor stays inside root is allowed.
+    const insideDeps = {
+      path,
+      fs: { realpathSync: (p) => path.resolve(String(p)) },
+    };
+    expect(confine(tmp, "src/alpha.js", insideDeps)).toBe(
+      path.join(tmp, "src", "alpha.js"),
+    );
   });
 });
 

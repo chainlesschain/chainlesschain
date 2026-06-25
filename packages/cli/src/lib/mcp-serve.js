@@ -29,10 +29,43 @@ export const _deps = { fs: fsDefault, path: pathDefault };
 
 /** Resolve `rel` inside `root`; throws on escape (.. traversal, abs paths out). */
 export function confine(root, rel, deps = _deps) {
-  const abs = deps.path.resolve(root, rel || ".");
-  const normRoot = deps.path.resolve(root);
-  if (abs !== normRoot && !abs.startsWith(normRoot + deps.path.sep)) {
+  const { path } = deps;
+  const fs = deps.fs;
+  const normRoot = path.resolve(root);
+  const abs = path.resolve(normRoot, rel || ".");
+  // Fast string guard: blocks `..` traversal and absolute-path escapes.
+  if (abs !== normRoot && !abs.startsWith(normRoot + path.sep)) {
     throw new Error(`path escapes serve root: ${rel}`);
+  }
+  // Symlink guard: path.resolve does NOT follow symlinks, so a symlink INSIDE
+  // root pointing OUTSIDE would pass the string check yet the fs op (read/write/
+  // list) would escape the serve boundary — e.g. reading ~/.ssh through a
+  // workspace symlink, defeating a `--read-only` exposure. Resolve the real path
+  // of the deepest EXISTING ancestor (a not-yet-created file can't be a symlink)
+  // and re-check containment against the real root.
+  if (fs && typeof fs.realpathSync === "function") {
+    let realRoot;
+    try {
+      realRoot = fs.realpathSync(normRoot);
+    } catch {
+      return abs; // root itself unresolvable → the string guard is all we have
+    }
+    let probe = abs;
+    for (;;) {
+      let real;
+      try {
+        real = fs.realpathSync(probe);
+      } catch {
+        const parent = path.dirname(probe);
+        if (parent === probe) break; // reached fs root, nothing existed
+        probe = parent;
+        continue;
+      }
+      if (real !== realRoot && !real.startsWith(realRoot + path.sep)) {
+        throw new Error(`path escapes serve root (symlink): ${rel}`);
+      }
+      break;
+    }
   }
   return abs;
 }
