@@ -57,6 +57,31 @@ class IndexOptimizer extends EventEmitter {
 
       const indexedTables = new Set(existingIndexes.map((i) => i.tbl_name));
 
+      // Map each table to the columns actually covered by an existing index.
+      // An index *name* is only a naming convention, so resolve the real
+      // indexed columns (PRAGMA index_info) instead of substring-testing the
+      // name — otherwise `idx_1` on `user_id` is missed (we'd suggest a
+      // duplicate) and `idx_subtype` would falsely suppress a `type` hint.
+      const indexedColumnsByTable = new Map();
+      for (const idx of existingIndexes) {
+        let cols = [];
+        try {
+          const quoted = String(idx.name).replace(/"/g, '""');
+          cols = this.db.prepare(`PRAGMA index_info("${quoted}")`).all();
+        } catch {
+          cols = [];
+        }
+        if (!indexedColumnsByTable.has(idx.tbl_name)) {
+          indexedColumnsByTable.set(idx.tbl_name, new Set());
+        }
+        const set = indexedColumnsByTable.get(idx.tbl_name);
+        for (const c of cols) {
+          if (c && c.name) {
+            set.add(c.name);
+          }
+        }
+      }
+
       for (const table of tables) {
         const tableInfo = this.db
           .prepare(`PRAGMA table_info(${table.name})`)
@@ -81,10 +106,8 @@ class IndexOptimizer extends EventEmitter {
             col.name === "status" ||
             col.name === "type"
           ) {
-            const hasIndex = existingIndexes.some(
-              (idx) =>
-                idx.tbl_name === table.name && idx.name.includes(col.name),
-            );
+            const tableCols = indexedColumnsByTable.get(table.name);
+            const hasIndex = Boolean(tableCols && tableCols.has(col.name));
             if (!hasIndex) {
               suggestions.push({
                 type: "suggested_index",

@@ -145,6 +145,60 @@ describe("IndexOptimizer", () => {
       );
     });
 
+    it("recognizes an existing index by its real columns, not its name (no duplicate suggestion)", async () => {
+      await optimizer.initialize(db);
+
+      db.prepare.mockImplementation((sql) => {
+        if (sql.includes("type='table'")) {
+          return { all: () => [{ name: "orders" }] };
+        }
+        if (sql.includes("type='index'")) {
+          return { all: () => [{ name: "idx_1", tbl_name: "orders" }] };
+        }
+        if (sql.includes("PRAGMA index_info")) {
+          // idx_1 covers user_id even though its NAME doesn't contain it.
+          return { all: () => [{ name: "user_id" }] };
+        }
+        if (sql.includes("PRAGMA table_info")) {
+          return { all: () => [{ name: "user_id" }, { name: "status" }] };
+        }
+        return { all: () => [], get: () => null, run: vi.fn() };
+      });
+
+      const cols = optimizer
+        .analyze()
+        .suggestions.filter((s) => s.type === "suggested_index")
+        .map((s) => s.column);
+      expect(cols).not.toContain("user_id"); // already indexed under idx_1
+      expect(cols).toContain("status"); // genuinely missing
+    });
+
+    it("does not let a name substring falsely suppress a needed suggestion", async () => {
+      await optimizer.initialize(db);
+
+      db.prepare.mockImplementation((sql) => {
+        if (sql.includes("type='table'")) {
+          return { all: () => [{ name: "items" }] };
+        }
+        if (sql.includes("type='index'")) {
+          return { all: () => [{ name: "idx_subtype", tbl_name: "items" }] };
+        }
+        if (sql.includes("PRAGMA index_info")) {
+          return { all: () => [{ name: "subtype" }] }; // covers subtype, not type
+        }
+        if (sql.includes("PRAGMA table_info")) {
+          return { all: () => [{ name: "type" }, { name: "subtype" }] };
+        }
+        return { all: () => [], get: () => null, run: vi.fn() };
+      });
+
+      const cols = optimizer
+        .analyze()
+        .suggestions.filter((s) => s.type === "suggested_index")
+        .map((s) => s.column);
+      expect(cols).toContain("type"); // `idx_subtype` indexes subtype, not type
+    });
+
     it("should detect slow queries", async () => {
       await optimizer.initialize(db);
 
