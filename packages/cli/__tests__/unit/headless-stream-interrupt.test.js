@@ -86,6 +86,84 @@ describe("stream turn interrupt", () => {
     expect(outcome.exitCode).toBe(0); // an interrupt is not an error
   }, 20000);
 
+  it("sanitizes dangling tool_calls when interrupted mid-tool-loop", async () => {
+    // Without repair, the next turn would send an assistant tool_calls whose
+    // result never arrived → strict providers (Anthropic) 400 and the session
+    // wedges. The interrupt path must drop the dangling pair.
+    const lines = [];
+    let secondTurnMessages = null;
+    const agentLoop = async function* (messages, opts) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      if (/HANG/.test(lastUser.content)) {
+        // Simulate agentLoop mid-tool-loop: assistant with TWO tool_calls but
+        // only ONE result pushed, then hang until the interrupt aborts us.
+        messages.push({
+          role: "assistant",
+          content: "",
+          tool_calls: [
+            { id: "call_A", function: { name: "read_file", arguments: "{}" } },
+            { id: "call_B", function: { name: "list_dir", arguments: "{}" } },
+          ],
+        });
+        messages.push({
+          role: "tool",
+          tool_call_id: "call_A",
+          content: "resultA",
+        });
+        await new Promise((_res, rej) => {
+          const fail = () =>
+            rej(
+              Object.assign(new Error("This operation was aborted"), {
+                name: "AbortError",
+              }),
+            );
+          if (opts.signal?.aborted) return fail();
+          opts.signal?.addEventListener("abort", fail, { once: true });
+        });
+      }
+      // Second turn: snapshot what we were handed (post-sanitize).
+      secondTurnMessages = messages.map((m) => ({
+        role: m.role,
+        tool_calls: m.tool_calls,
+        tool_call_id: m.tool_call_id,
+      }));
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    async function* input() {
+      yield JSON.stringify({ type: "user", text: "HANG with tools" }) + "\n";
+      await sleep(50);
+      yield JSON.stringify({ type: "interrupt" }) + "\n";
+      await sleep(20);
+      yield JSON.stringify({ type: "user", text: "next" }) + "\n";
+    }
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: (s) => lines.push(s),
+        writeErr: () => {},
+        agentLoop,
+        input: input(),
+      },
+    );
+    expect(secondTurnMessages).not.toBeNull();
+    const resultIds = new Set(
+      secondTurnMessages
+        .filter((m) => m.role === "tool")
+        .map((m) => m.tool_call_id),
+    );
+    const callIds = secondTurnMessages
+      .filter((m) => m.role === "assistant" && Array.isArray(m.tool_calls))
+      .flatMap((m) => m.tool_calls.map((tc) => tc.id));
+    // The unanswered call_B must be gone; the answered call_A pair survives.
+    expect(callIds.filter((id) => !resultIds.has(id))).toEqual([]);
+    expect(callIds).toContain("call_A");
+    expect(callIds).not.toContain("call_B");
+    expect(outcome.exitCode).toBe(0);
+  }, 20000);
+
   it("an interrupt with no in-flight turn is a harmless no-op", async () => {
     const lines = [];
     async function* input() {

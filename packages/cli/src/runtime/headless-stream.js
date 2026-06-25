@@ -20,6 +20,7 @@ import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
+import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { detectImagePaths } from "../lib/image-input.js";
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
@@ -1481,6 +1482,20 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       if (isAbort && !options.signal?.aborted) {
         // User-initiated turn interrupt — not an error; no assistant message
         // is recorded (the dangling user turn is fine for the next exchange).
+        //
+        // BUT if the interrupt landed mid-tool-loop, `messages` now holds an
+        // assistant turn whose tool_calls never got their results — sending
+        // that next turn makes strict providers (Anthropic) reject the whole
+        // request ("tool_use without tool_result"), wedging the rest of the
+        // session. Drop the dangling call/result pair in place before
+        // continuing. Always re-balance (not gated on length): a partial
+        // interrupt that trims one assistant turn's tool_calls in place leaves
+        // the array length unchanged. sanitizeToolPairs is idempotent on an
+        // already-balanced array and leaves user/text turns untouched, so the
+        // intentional dangling-user state above is preserved.
+        const balanced = sanitizeToolPairs(messages);
+        messages.length = 0;
+        messages.push(...balanced);
         emit({
           type: "result",
           subtype: "interrupted",
