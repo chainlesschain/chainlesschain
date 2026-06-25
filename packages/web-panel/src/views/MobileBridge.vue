@@ -226,6 +226,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useShellMode } from '../composables/useShellMode.js'
+import { tryParseJson } from '../utils/community-parser.js'
 import QrScannerModal from '../components/QrScannerModal.vue'
 
 const ws = useWsStore()
@@ -508,38 +509,14 @@ async function doUnpair(record) {
 }
 
 /**
- * v1.1 W3.4a: CLI --json 输出有时混 logger.info 等噪音，先 tryJSON 直读，失败
- * 再 strip CLI 提示行 retry。与现有 stripCliNoise 模式对齐（参考 Community.vue
- * b1 实现）。
+ * v1.1 W3.4a: CLI --json 输出有时混 logger.info 等噪音。委托给共享的
+ * tryParseJson（先剥离 CLI 噪声行，再按括号配对抽取首个完整 JSON 值），
+ * 兑现原注释「与现有 stripCliNoise 模式对齐」的意图。旧的手写逐行扫描在
+ * 没有以闭括号起首的行时会过度捕获（reverse findIndex 返回 -1 →
+ * endIdx=lines.length → slice 到输出末尾）从而丢数据。
  */
 function parseJsonOutput(raw) {
-  if (!raw) return null
-  // First attempt: parse as-is
-  try {
-    return JSON.parse(raw)
-  } catch {
-    // intentional fallthrough
-  }
-  // CLI 前缀 `[AppConfig]` `[DatabaseManager]` 等以 `[Letter` 开头，与真 JSON
-  // 数组 `[` (后跟空白 / 引号 / 数字 / `{` / 换行) 区分。同样兼容 `{...}` 起点。
-  const lines = raw.split('\n')
-  const startIdx = lines.findIndex((l) => {
-    const t = l.trim()
-    return /^[\[\{](\s*$|[\s"'\d\[\{\-])/.test(t)
-  })
-  if (startIdx < 0) return null
-  // 尾部 CLI 后缀 `[DatabaseManager] Database closed` 等同样 strip
-  const endIdx = lines.length - 1 - [...lines].reverse().findIndex((l) => {
-    const t = l.trim()
-    return /^[\]\}]/.test(t) && !/^[\]\}][A-Za-z]/.test(t)
-  })
-  if (endIdx < startIdx) return null
-  const jsonText = lines.slice(startIdx, endIdx + 1).join('\n')
-  try {
-    return JSON.parse(jsonText)
-  } catch {
-    return null
-  }
+  return tryParseJson(raw)
 }
 
 function formatTime(t) {

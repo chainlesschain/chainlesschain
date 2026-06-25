@@ -328,4 +328,13 @@ describe('tryParseJson (shared, balanced extraction)', () => {
     // 旧实现是裸 JSON.parse(output)，前面有任何 CLI 噪声行就抛错丢结果。
     expect(tryParseJson(`${NOISE_PREAMBLE}\n[{"id":1}]`)).toEqual([{ id: 1 }])
   })
+
+  it('MobileBridge case: object wrapped in [Tag] prefix/suffix log lines', () => {
+    // MobileBridge.vue 的 parseJsonOutput 旧手写逐行扫描在没有以闭括号起首的
+    // 尾行时会过度捕获到输出末尾；委托到此实现后应稳定抽出该对象。
+    const out =
+      '[AppConfig] loaded\n[DatabaseManager] open\n' +
+      '{"deviceId":"d1","name":"phone"}\n[DatabaseManager] Database closed'
+    expect(tryParseJson(out)).toEqual({ deviceId: 'd1', name: 'phone' })
+  })
 })
