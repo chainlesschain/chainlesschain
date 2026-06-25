@@ -28,8 +28,14 @@ beforeEach(() => {
 describe("runCommandHook — input + protocol", () => {
   it("writes the JSON payload to stdin", () => {
     stub({ status: 0 });
-    runCommandHook("guard.sh", { tool_name: "Bash", x: 1 }, { event: "PreToolUse" });
-    expect(calls[0].opts.input).toBe(JSON.stringify({ tool_name: "Bash", x: 1 }));
+    runCommandHook(
+      "guard.sh",
+      { tool_name: "Bash", x: 1 },
+      { event: "PreToolUse" },
+    );
+    expect(calls[0].opts.input).toBe(
+      JSON.stringify({ tool_name: "Bash", x: 1 }),
+    );
     expect(calls[0].opts.env.CLAUDE_HOOK_EVENT).toBe("PreToolUse");
   });
 
@@ -68,7 +74,9 @@ describe("runCommandHook — input + protocol", () => {
   it("permissionDecision=ask → ask", () => {
     stub({
       status: 0,
-      stdout: JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } }),
+      stdout: JSON.stringify({
+        hookSpecificOutput: { permissionDecision: "ask" },
+      }),
     });
     expect(runCommandHook("g.sh", {}).decision).toBe("ask");
   });
@@ -99,6 +107,40 @@ describe("runCommandHook — input + protocol", () => {
     stub({ status: 0 });
     runHooks([{ command: "g.sh", timeout: 30 }], {});
     expect(calls[0].opts.timeout).toBe(30000);
+  });
+
+  it("forces a positive timeout when the config is 0 (Node 0 = no timeout → hang)", () => {
+    stub({ status: 0 });
+    runHooks([{ command: "g.sh", timeout: 0 }], {});
+    expect(calls[0].opts.timeout).toBe(60000); // clamped to default, not 0
+  });
+
+  it("forces a positive timeout when the config is non-numeric (NaN → hang)", () => {
+    stub({ status: 0 });
+    runHooks([{ command: "g.sh", timeout: "soon" }], {});
+    expect(calls[0].opts.timeout).toBe(60000);
+  });
+
+  it("forces a positive timeout for a direct 0/negative opts.timeout", () => {
+    stub({ status: 0 });
+    runCommandHook("g.sh", {}, { timeout: 0 });
+    expect(calls[0].opts.timeout).toBe(60000);
+    calls = [];
+    stub({ status: 0 });
+    runCommandHook("g.sh", {}, { timeout: -5 });
+    expect(calls[0].opts.timeout).toBe(60000);
+  });
+
+  it("clamps an absurdly large timeout to the 10-minute ceiling", () => {
+    stub({ status: 0 });
+    runHooks([{ command: "g.sh", timeout: 99999999 }], {});
+    expect(calls[0].opts.timeout).toBe(600000);
+  });
+
+  it("preserves a valid in-range timeout unchanged", () => {
+    stub({ status: 0 });
+    runCommandHook("g.sh", {}, { timeout: 5000 });
+    expect(calls[0].opts.timeout).toBe(5000);
   });
 
   it("exit 0 + JSON decision line followed by diagnostics → block (not dropped)", () => {

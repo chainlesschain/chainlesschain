@@ -107,7 +107,17 @@ function tryParseDecision(stdout) {
  *            nonBlockingError?:boolean, error?:string }}
  */
 function runCommandHook(command, input = {}, opts = {}) {
-  const { timeout = 60000, cwd, event } = opts;
+  const { cwd, event } = opts;
+  // spawnSync is SYNCHRONOUS — it blocks the whole agent until the hook returns
+  // or its timeout fires. Node treats a 0/undefined timeout as UNLIMITED, so a
+  // missing, zero, NaN, or negative value (e.g. a malformed settings.json
+  // `timeout`) would let a hung hook freeze the agent forever. Guarantee a
+  // positive, bounded timeout regardless of the caller's value (already in ms).
+  const _rawTimeout = Number(opts.timeout);
+  const timeout =
+    Number.isFinite(_rawTimeout) && _rawTimeout > 0
+      ? Math.min(_rawTimeout, 600000)
+      : 60000;
   if (!command) {
     return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
   }
