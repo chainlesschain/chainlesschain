@@ -74,6 +74,9 @@ export class SubAgentContext {
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools || null; // null = all
     this.depth = options.depth || 1; // nesting level (parent main loop = 0)
+    // Shared run-wide TOTAL-sub-agent counter (one object across the whole tree)
+    // so this sub-agent's own spawns draw from the same breadth pool.
+    this.subAgentBudget = options.subAgentBudget || null;
     this.cwd = options.cwd || process.cwd();
     this.status = "active";
     this.result = null;
@@ -252,6 +255,9 @@ export class SubAgentContext {
       cwd: this.cwd,
       // Nesting level: lets a nested spawn_sub_agent see — and cap — its depth.
       subAgentDepth: this.depth,
+      // Shared total-sub-agent counter so a nested spawn_sub_agent draws from
+      // (and is bounded by) the run's single breadth pool.
+      subAgentBudget: this.subAgentBudget,
       ...loopOptions,
     };
     if (this.iterationBudget) {

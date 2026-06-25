@@ -1156,6 +1156,7 @@ export async function executeTool(name, args, context = {}) {
       additionalDirectories: context.additionalDirectories || null,
       ruleAllowed,
       subAgentDepth: context.subAgentDepth || 0,
+      subAgentBudget: context.subAgentBudget || null,
       interactiveApproval: context.interactiveApproval || false,
     });
   } catch (err) {
@@ -1527,6 +1528,7 @@ async function executeToolInner(
     additionalDirectories,
     ruleAllowed = false,
     subAgentDepth = 0,
+    subAgentBudget = null,
     interactiveApproval = false,
   },
 ) {
@@ -2041,6 +2043,7 @@ async function executeToolInner(
           sessionId,
           llmOptions,
           subAgentDepth,
+          subAgentBudget,
         }),
       );
     }
@@ -2736,6 +2739,18 @@ async function _executeRunCode(args, cwd) {
 export const MAX_SUB_AGENT_DEPTH = 5;
 
 /**
+ * Max TOTAL sub-agents a single run may spawn across the whole tree. The depth
+ * cap bounds how DEEP nesting goes (5), but not how WIDE: every level could fan
+ * out many children, each with its own fresh iteration budget, so depth-cap
+ * alone leaves total work ~budget^depth in a runaway/adversarial case. A shared
+ * counter (threaded by reference through the tool context, like subAgentDepth)
+ * gives a hard ceiling on the whole tree. Generous enough for legitimate
+ * fan-out delegation; a model that blows past it is looping. Override per run
+ * with `options.subAgentBudget`.
+ */
+export const MAX_SUB_AGENTS_PER_RUN = 32;
+
+/**
  * Per-tool-result character cap fed back to the model. One giant tool output (a
  * huge file, a verbose command, an MCP blob) must not blow the context window —
  * but the model is TOLD when output is cut, instead of the old silent
@@ -2813,6 +2828,22 @@ async function _executeSpawnSubAgent(args, ctx) {
     return {
       error: `spawn_sub_agent: max nesting depth (${MAX_SUB_AGENT_DEPTH}) reached — complete the task directly instead of delegating further.`,
     };
+  }
+  // Breadth cap: a shared counter (one object for the whole tree) bounds the
+  // TOTAL sub-agents a run may spawn, so a wide fan-out can't blow up even
+  // within the depth limit. Refuse + count BEFORE any work so the increment
+  // can't be skipped by a later error.
+  const subAgentBudget = ctx.subAgentBudget || null;
+  if (subAgentBudget) {
+    const max = Number.isFinite(subAgentBudget.max)
+      ? subAgentBudget.max
+      : MAX_SUB_AGENTS_PER_RUN;
+    if ((subAgentBudget.spawned || 0) >= max) {
+      return {
+        error: `spawn_sub_agent: max sub-agents per run (${max}) reached — complete remaining work directly instead of delegating further.`,
+      };
+    }
+    subAgentBudget.spawned = (subAgentBudget.spawned || 0) + 1;
   }
   let {
     role,
@@ -2916,6 +2947,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     profile: profile || null,
     llmOptions: subLlmOptions,
     depth: currentDepth + 1, // nested spawns see their own level
+    // Same shared counter object so the child's own spawns draw from the run's
+    // single total-sub-agent pool (breadth cap spans the whole tree).
+    subAgentBudget: ctx.subAgentBudget || null,
   });
 
   const emit = (type, payload) => {
@@ -2933,15 +2967,26 @@ async function _executeSpawnSubAgent(args, ctx) {
     }
   };
 
+  // Resolve the registry ONCE before the try so the failure path can also move
+  // the sub-agent out of `_active` (the success path does this via complete()).
+  const { SubAgentRegistry } =
+    await import("../lib/sub-agent-registry.js").catch(() => ({
+      SubAgentRegistry: null,
+    }));
+  let registry = null;
+  if (SubAgentRegistry) {
+    try {
+      registry = SubAgentRegistry.getInstance();
+    } catch (_err) {
+      registry = null; // registry unavailable — non-critical
+    }
+  }
+
   try {
     // Notify registry if available
-    const { SubAgentRegistry } =
-      await import("../lib/sub-agent-registry.js").catch(() => ({
-        SubAgentRegistry: null,
-      }));
-    if (SubAgentRegistry) {
+    if (registry) {
       try {
-        SubAgentRegistry.getInstance().register(subCtx);
+        registry.register(subCtx);
       } catch (_err) {
         // Registry not available — non-critical
       }
@@ -2957,9 +3002,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     const result = await subCtx.run(task);
 
     // Complete in registry
-    if (SubAgentRegistry) {
+    if (registry) {
       try {
-        SubAgentRegistry.getInstance().complete(subCtx.id, result);
+        registry.complete(subCtx.id, result);
       } catch (_err) {
         // Non-critical
       }
@@ -2987,6 +3032,18 @@ async function _executeSpawnSubAgent(args, ctx) {
     };
   } catch (err) {
     subCtx.forceComplete(err.message);
+
+    // Move the failed sub-agent out of the registry's `_active` Map into bounded
+    // history (mirrors the success path). Without this, a sub-agent whose run()
+    // threw outside its own try (setup/summarize error) lingers in `_active`
+    // forever and over-reports as "active" to monitors/UI.
+    if (registry) {
+      try {
+        registry.complete(subCtx.id, subCtx.result);
+      } catch (_err) {
+        // Non-critical
+      }
+    }
 
     emit("sub-agent.failed", {
       status: subCtx.status,
@@ -4335,6 +4392,13 @@ export async function* agentLoop(messages, options) {
     // Sub-agent nesting level (0 = main loop); spawn_sub_agent caps at
     // MAX_SUB_AGENT_DEPTH using this.
     subAgentDepth: options.subAgentDepth || 0,
+    // Shared TOTAL-sub-agent counter for the whole run. Reuse the parent's
+    // instance (passed by reference) so every nested level draws from one pool;
+    // the main loop seeds it. Bounds breadth, complementing the depth cap.
+    subAgentBudget: options.subAgentBudget || {
+      spawned: 0,
+      max: MAX_SUB_AGENTS_PER_RUN,
+    },
   };
 
   throwIfAborted(signal);

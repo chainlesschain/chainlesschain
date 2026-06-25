@@ -80,6 +80,8 @@ const {
   executeTool,
   chatWithTools,
   agentLoop,
+  MAX_SUB_AGENT_DEPTH,
+  MAX_SUB_AGENTS_PER_RUN,
 } = await import("../../src/lib/agent-core.js");
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
@@ -1817,6 +1819,51 @@ describe("sub-agent system prompt guidance", () => {
 });
 
 // ─── Auto-Condensation ──────────────────────────────────────────────────
+
+describe("spawn_sub_agent nesting caps", () => {
+  it("refuses at the max nesting DEPTH (before any work)", async () => {
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "x", task: "y" },
+      { cwd: "/tmp", subAgentDepth: MAX_SUB_AGENT_DEPTH },
+    );
+    expect(result.error).toMatch(/max nesting depth/i);
+  });
+
+  it("refuses once the shared BREADTH counter is at its max", async () => {
+    const budget = { spawned: 3, max: 3 };
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "x", task: "y" },
+      { cwd: "/tmp", subAgentBudget: budget },
+    );
+    expect(result.error).toMatch(/max sub-agents per run/i);
+    expect(budget.spawned).toBe(3); // a refused spawn does not increment
+  });
+
+  it("increments the shared breadth counter for an accepted spawn", async () => {
+    // A minimal LLM stub so the spawned sub-agent completes immediately; the
+    // increment happens up front regardless of the run's outcome.
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: { role: "assistant", content: "ok" },
+      }),
+    });
+    const budget = { spawned: 0, max: 5 };
+    await executeTool(
+      "spawn_sub_agent",
+      { role: "x", task: "y" },
+      { cwd: "/tmp", parentMessages: [], subAgentBudget: budget },
+    );
+    expect(budget.spawned).toBe(1);
+  });
+
+  it("default breadth ceiling is generous but finite", () => {
+    expect(MAX_SUB_AGENTS_PER_RUN).toBeGreaterThanOrEqual(16);
+    expect(Number.isFinite(MAX_SUB_AGENTS_PER_RUN)).toBe(true);
+  });
+});
 
 describe("spawn_sub_agent auto-condensation", () => {
   it("auto-condenses parent messages when no explicit context provided", async () => {
