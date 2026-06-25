@@ -12,6 +12,7 @@
  */
 
 import fs from "fs";
+import { firstBalancedJson } from "../json-schema-output.js";
 import path from "path";
 
 // ── _deps for test injection ────────────────────────────
@@ -374,9 +375,9 @@ export class SkillImprover {
     if (!this.llmChat) return null;
     try {
       const response = await this.llmChat(messages);
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-      return JSON.parse(jsonMatch[0]);
+      const jsonText = firstBalancedJson(response, "{");
+      if (!jsonText) return null;
+      return JSON.parse(jsonText);
     } catch {
       return null;
     }

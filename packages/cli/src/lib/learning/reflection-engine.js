@@ -12,6 +12,7 @@
  */
 
 import { extractToolNames } from "./skill-synthesizer.js";
+import { firstBalancedJson } from "../json-schema-output.js";
 
 // ── _deps for test injection ────────────────────────
 const _deps = {
@@ -268,9 +269,9 @@ export class ReflectionEngine {
     try {
       const messages = buildReflectionPrompt(reportData);
       const response = await this.llmChat(messages);
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-      return JSON.parse(jsonMatch[0]);
+      const jsonText = firstBalancedJson(response, "{");
+      if (!jsonText) return null;
+      return JSON.parse(jsonText);
     } catch {
       return null;
     }

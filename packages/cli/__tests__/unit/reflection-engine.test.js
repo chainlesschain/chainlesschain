@@ -283,6 +283,27 @@ describe("reflection-engine", () => {
       expect(mockLLM).toHaveBeenCalled();
     });
 
+    it("parses LLM analysis even when the reply trails prose with a stray } (balanced extraction)", async () => {
+      createTrajectory(["read_file"], 0.9);
+
+      // The old greedy /\{[\s\S]*\}/ would span to the stray } in the prose
+      // and JSON.parse would throw → llmAnalysis silently null.
+      const mockLLM = vi.fn().mockResolvedValue(
+        JSON.stringify({
+          summary: "Solid",
+          strengths: [],
+          weaknesses: [],
+          recommendations: [],
+        }) + "\n备注：注意 } 的使用。",
+      );
+
+      const engine = new ReflectionEngine(db, mockLLM, store);
+      const report = await engine.reflect();
+
+      expect(report.llmAnalysis).toBeTruthy();
+      expect(report.llmAnalysis.summary).toBe("Solid");
+    });
+
     it("handles LLM failure gracefully", async () => {
       createTrajectory(["read_file"], 0.9);
 
