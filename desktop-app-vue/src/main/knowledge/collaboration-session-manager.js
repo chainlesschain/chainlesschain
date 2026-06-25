@@ -310,7 +310,12 @@ class CollaborationSessionManager extends EventEmitter {
    * @private
    */
   _startHeartbeatMonitor() {
-    setInterval(() => {
+    // 保存句柄，使 cleanup() 能停止它。原先丢弃句柄：cleanup() 后这个心跳 setInterval
+    // 仍按 heartbeatInterval 触发，闭包钉住 this（管理器无法 GC，定时器+管理器泄漏）。
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+    }
+    this._heartbeatTimer = setInterval(() => {
       const now = Date.now();
 
       for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
@@ -348,6 +353,12 @@ class CollaborationSessionManager extends EventEmitter {
    */
   async cleanup() {
     logger.info("[CollabSession] Cleaning up all sessions");
+
+    // 停止心跳定时器（否则其 setInterval 在 cleanup 后仍持续触发并钉住 this）
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
 
     for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
       for (const session of sessions) {
