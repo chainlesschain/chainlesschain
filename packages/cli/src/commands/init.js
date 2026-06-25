@@ -6,6 +6,7 @@
  */
 
 import chalk from "chalk";
+import { firstBalancedJson } from "../lib/json-schema-output.js";
 import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
@@ -1841,8 +1842,8 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
     // Parse LLM result
     let updatedCells;
     try {
-      const jsonMatch = llmResult.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);
-      updatedCells = JSON.parse(jsonMatch ? jsonMatch[0] : llmResult);
+      const jsonText = firstBalancedJson(llmResult, "[");
+      updatedCells = JSON.parse(jsonText || llmResult);
     } catch (_e) {
       return { success: false, error: "LLM 返回格式不正确，无法解析 JSON", hint: "请重试或简化修改指令" };
     }
@@ -1947,8 +1948,8 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
 
     let updatedRuns;
     try {
-      const jsonMatch = llmResult.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);
-      updatedRuns = JSON.parse(jsonMatch ? jsonMatch[0] : llmResult);
+      const jsonText = firstBalancedJson(llmResult, "[");
+      updatedRuns = JSON.parse(jsonText || llmResult);
     } catch (_e) {
       return { success: false, error: "LLM 返回格式不正确，无法解析 JSON", hint: "请重试或简化修改指令" };
     }
