@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.9] — feat: keyboard accept/reject for diff review
+
+- **You can now decide a diff review from the keyboard** instead of clicking the
+  notification button: **Cmd/Ctrl+Enter accepts**, **Cmd/Ctrl+Shift+Backspace
+  rejects** (mirrors Claude Code IDE). Both are scoped to a new
+  `chainlesschainDiffActive` context key, so they're inert unless a review is
+  actually open, and they're modifier-qualified so a bare Enter/Backspace still
+  edits the (editable) proposal pane normally. Closing the diff tab still rejects,
+  and the notification buttons still work — this just adds the keyboard path.
+  Also available as the `ChainlessChain: Accept/Reject Diff Review` commands.
+
 ## [0.36.8] — fix: getOpenEditors lists all open tabs, not just visible ones
 
 - **`getOpenEditors` now enumerates every open editor tab** (including background

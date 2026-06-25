@@ -251,6 +251,16 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
+    // Diff-review keyboard decisions (Claude-Code IDE parity): Accept / Reject
+    // the diff openDiff is currently blocking on, without reaching for the
+    // notification buttons. Scoped to `chainlesschainDiffActive` so the keys are
+    // inert when no review is open; a no-op if the review already settled.
+    vscode.commands.registerCommand("chainlesschain.diff.accept", () =>
+      facade.acceptActiveDiff?.(),
+    ),
+    vscode.commands.registerCommand("chainlesschain.diff.reject", () =>
+      facade.rejectActiveDiff?.(),
+    ),
     // App Preview (Claude-Code preview-pane parity): spawn the project's dev
     // server and open the served URL in Simple Browser; the dev server's own
     // HMR handles live reload on edits.

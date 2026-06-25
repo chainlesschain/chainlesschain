@@ -60,6 +60,23 @@ function createVscodeEditorFacade(vscode) {
     );
   }
 
+  // The diff review currently blocking openDiff, so a keybinding-driven command
+  // (Accept / Reject) can settle it without reaching for a notification button.
+  // Set/cleared as a review opens/settles; guards a `chainlesschainDiffActive`
+  // context key the keybindings are scoped to.
+  let activeReview = null;
+  const setDiffContext = (on) => {
+    try {
+      vscode.commands.executeCommand(
+        "setContext",
+        "chainlesschainDiffActive",
+        !!on,
+      );
+    } catch {
+      /* best-effort — a missing setContext just leaves the keybindings idle */
+    }
+  };
+
   return {
     async getSelection() {
       const ed = vscode.window.activeTextEditor;
@@ -176,6 +193,8 @@ function createVscodeEditorFacade(vscode) {
         const settle = (v) => {
           if (settled) return;
           settled = true;
+          activeReview = null; // a keybinding can no longer resolve this review
+          setDiffContext(false);
           try {
             sub?.dispose();
           } catch {
@@ -183,6 +202,9 @@ function createVscodeEditorFacade(vscode) {
           }
           resolve(v);
         };
+        // Expose this review to the Accept/Reject keybinding commands.
+        activeReview = { settle };
+        setDiffContext(true);
         const rightKey = rightDoc.uri.toString();
         // tabGroups landed in VS Code 1.67 — older hosts just keep the
         // button-only behavior (undefined → reject stays the fail-safe).
@@ -309,6 +331,21 @@ function createVscodeEditorFacade(vscode) {
       } finally {
         await closeDiffTab();
       }
+    },
+
+    // Keybinding-driven decisions for the diff review blocking openDiff (the
+    // command glue in extension.js binds Cmd/Ctrl+Enter → accept, a key → reject,
+    // both scoped to the `chainlesschainDiffActive` context). No-op when no
+    // review is open. Returns whether a review was actually settled.
+    acceptActiveDiff() {
+      if (!activeReview) return false;
+      activeReview.settle("Accept");
+      return true;
+    },
+    rejectActiveDiff() {
+      if (!activeReview) return false;
+      activeReview.settle("Reject");
+      return true;
     },
 
     // Batch review of a whole changeset (openMultiDiff): open VS Code's native

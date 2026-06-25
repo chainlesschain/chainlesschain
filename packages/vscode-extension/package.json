@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.36.8",
+  "version": "0.36.9",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -44,6 +44,14 @@
         "command": "chainlesschain.ide.openDashboard",
         "title": "ChainlessChain IDE: Open Dashboard",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "chainlesschain.diff.accept",
+        "title": "ChainlessChain: Accept Diff Review"
+      },
+      {
+        "command": "chainlesschain.diff.reject",
+        "title": "ChainlessChain: Reject Diff Review"
       },
       {
         "command": "chainlesschain.memory.init",
@@ -129,6 +137,18 @@
         "key": "ctrl+shift+t",
         "mac": "cmd+shift+t",
         "when": "focusedView == chainlesschainIdeChat"
+      },
+      {
+        "command": "chainlesschain.diff.accept",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "chainlesschainDiffActive"
+      },
+      {
+        "command": "chainlesschain.diff.reject",
+        "key": "ctrl+shift+backspace",
+        "mac": "cmd+shift+backspace",
+        "when": "chainlesschainDiffActive"
       }
     ],
     "viewsContainers": {

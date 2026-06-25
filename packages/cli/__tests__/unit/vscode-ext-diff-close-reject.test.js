@@ -292,3 +292,104 @@ describe("openDiff: a button decision closes the now-stale diff tab", () => {
     expect(fx.tabs).toHaveLength(0);
   });
 });
+
+/**
+ * Keybinding-driven decisions: the Accept/Reject commands (bound to
+ * Cmd/Ctrl+Enter / Cmd/Ctrl+Shift+Backspace, scoped to chainlesschainDiffActive)
+ * settle the diff openDiff is blocking on without a notification button. openDiff
+ * exposes facade.acceptActiveDiff()/rejectActiveDiff() and toggles the
+ * chainlesschainDiffActive context key while a review is open.
+ */
+function fakeVscodeForKeys() {
+  const message = deferred(); // never resolved → only the keybinding settles it
+  let untitledCounter = 0;
+  const ctx = []; // setContext(chainlesschainDiffActive, bool) calls, in order
+  const v = {
+    Uri: { file: (p) => ({ fsPath: p, toString: () => "file://" + p }) },
+    workspace: {
+      openTextDocument: async (arg) => {
+        if (arg && typeof arg === "object" && "content" in arg) {
+          const id = `untitled:Untitled-${++untitledCounter}`;
+          return {
+            uri: { toString: () => id },
+            getText: () => arg.content,
+            positionAt: (n) => n,
+            save: async () => {},
+          };
+        }
+        return {
+          uri: arg,
+          getText: () => "",
+          positionAt: (n) => n,
+          save: async () => {},
+        };
+      },
+      applyEdit: async () => true,
+    },
+    commands: {
+      executeCommand: async (cmd, key, value) => {
+        if (cmd === "setContext" && key === "chainlesschainDiffActive") {
+          ctx.push(value);
+        }
+      },
+    },
+    window: {
+      showInformationMessage: () => message.promise,
+      showQuickPick: async () => null,
+      tabGroups: { onDidChangeTabs: () => ({ dispose: () => {} }) },
+    },
+    WorkspaceEdit: class {
+      replace() {}
+    },
+    Range: class {},
+  };
+  return { vscode: v, ctx };
+}
+
+describe("openDiff: keybinding-driven accept / reject", () => {
+  it("acceptActiveDiff settles the open review as accepted", async () => {
+    const fx = fakeVscodeForKeys();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openDiff({ path: "/ws/a.js", modifiedText: "proposal" });
+    await tick();
+    expect(fx.ctx).toEqual([true]); // context turned on while the review is open
+
+    expect(facade.acceptActiveDiff()).toBe(true);
+    await expect(p).resolves.toMatchObject({
+      outcome: "accepted",
+      finalText: "proposal",
+    });
+    expect(fx.ctx).toEqual([true, false]); // turned back off when it settled
+  });
+
+  it("rejectActiveDiff settles the open review as rejected", async () => {
+    const fx = fakeVscodeForKeys();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openDiff({ path: "/ws/a.js", modifiedText: "x" });
+    await tick();
+
+    expect(facade.rejectActiveDiff()).toBe(true);
+    await expect(p).resolves.toMatchObject({ outcome: "rejected" });
+    expect(fx.ctx).toEqual([true, false]);
+  });
+
+  it("accept/reject are no-ops (return false) when no review is open", async () => {
+    const fx = fakeVscodeForKeys();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    expect(facade.acceptActiveDiff()).toBe(false);
+    expect(facade.rejectActiveDiff()).toBe(false);
+    expect(fx.ctx).toEqual([]); // never toggled the context key
+  });
+
+  it("a second keybinding press after settle is ignored (single decision)", async () => {
+    const fx = fakeVscodeForKeys();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openDiff({ path: "/ws/a.js", modifiedText: "y" });
+    await tick();
+
+    expect(facade.acceptActiveDiff()).toBe(true);
+    await expect(p).resolves.toMatchObject({ outcome: "accepted" });
+    // The review is already gone — a late press does nothing.
+    expect(facade.rejectActiveDiff()).toBe(false);
+  });
+});
