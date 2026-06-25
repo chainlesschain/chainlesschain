@@ -6,19 +6,12 @@
     :loading="loading"
   >
     <template #extra>
-      <a-button
-        type="link"
-        size="small"
-        @click="handleViewDetails"
-      >
+      <a-button type="link" size="small" @click="handleViewDetails">
         查看详情 <RightOutlined />
       </a-button>
     </template>
 
-    <a-row
-      :gutter="16"
-      class="stats-row"
-    >
+    <a-row :gutter="16" class="stats-row">
       <a-col :span="12">
         <a-statistic
           title="今日"
@@ -26,9 +19,7 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#1890ff' }"
         />
-        <div class="cost-label">
-          ${{ safeToFixed(stats.todayCost, 4) }}
-        </div>
+        <div class="cost-label">${{ safeToFixed(stats.todayCost, 4) }}</div>
       </a-col>
       <a-col :span="12">
         <a-statistic
@@ -37,9 +28,7 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#52c41a' }"
         />
-        <div class="cost-label">
-          ${{ safeToFixed(stats.weekCost, 4) }}
-        </div>
+        <div class="cost-label">${{ safeToFixed(stats.weekCost, 4) }}</div>
       </a-col>
     </a-row>
 
@@ -48,30 +37,18 @@
     <a-row :gutter="8">
       <a-col :span="12">
         <div class="metric-item">
-          <ThunderboltOutlined
-            class="metric-icon"
-            style="color: #faad14"
-          />
+          <ThunderboltOutlined class="metric-icon" style="color: #faad14" />
           <div class="metric-content">
-            <div class="metric-label">
-              缓存命中率
-            </div>
-            <div class="metric-value">
-              {{ stats.cacheHitRate }}%
-            </div>
+            <div class="metric-label">缓存命中率</div>
+            <div class="metric-value">{{ stats.cacheHitRate }}%</div>
           </div>
         </div>
       </a-col>
       <a-col :span="12">
         <div class="metric-item">
-          <DollarOutlined
-            class="metric-icon"
-            style="color: #13c2c2"
-          />
+          <DollarOutlined class="metric-icon" style="color: #13c2c2" />
           <div class="metric-content">
-            <div class="metric-label">
-              平均成本/次
-            </div>
+            <div class="metric-label">平均成本/次</div>
             <div class="metric-value">
               ${{ safeToFixed(stats.avgCostPerCall, 5) }}
             </div>
@@ -116,7 +93,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import {
@@ -255,14 +232,20 @@ function generateOptimizationTip() {
 }
 
 // 生命周期
+let statsTimer = null;
 onMounted(() => {
   loadStats();
+  // 每 30 秒刷新一次。注意：onMounted 的返回值会被 Vue 忽略（与 React
+  // useEffect 不同），所以定时器必须显式在 onUnmounted 里清除，否则组件卸载
+  // 后仍会每 30 秒在已销毁的组件上调用 loadStats。
+  statsTimer = setInterval(loadStats, 30000);
+});
 
-  // 每 30 秒刷新一次
-  const interval = setInterval(loadStats, 30000);
-
-  // 组件卸载时清除定时器
-  return () => clearInterval(interval);
+onUnmounted(() => {
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
 });
 </script>
 

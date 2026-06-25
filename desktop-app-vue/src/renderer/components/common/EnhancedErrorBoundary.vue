@@ -14,18 +14,11 @@
           :sub-title="errorSubtitle"
         >
           <template #icon>
-            <component
-              :is="errorIcon"
-              class="error-icon"
-            />
+            <component :is="errorIcon" class="error-icon" />
           </template>
 
           <template #extra>
-            <a-space
-              direction="vertical"
-              :size="12"
-              style="width: 100%"
-            >
+            <a-space direction="vertical" :size="12" style="width: 100%">
               <!-- 操作按钮 -->
               <a-space>
                 <a-button
@@ -37,26 +30,17 @@
                   {{ resetButtonText }}
                 </a-button>
 
-                <a-button
-                  v-if="showDetails"
-                  @click="toggleDetails"
-                >
+                <a-button v-if="showDetails" @click="toggleDetails">
                   <FileTextOutlined />
                   {{ detailsVisible ? "隐藏详情" : "查看详情" }}
                 </a-button>
 
-                <a-button
-                  :loading="reporting"
-                  @click="handleReport"
-                >
+                <a-button :loading="reporting" @click="handleReport">
                   <BugOutlined />
                   报告问题
                 </a-button>
 
-                <a-button
-                  v-if="showHome"
-                  @click="handleGoHome"
-                >
+                <a-button v-if="showHome" @click="handleGoHome">
                   <HomeOutlined />
                   返回首页
                 </a-button>
@@ -86,15 +70,9 @@
                   v-if="detailsVisible && errorDetails"
                   class="error-details"
                 >
-                  <a-tabs
-                    v-model:active-key="activeTab"
-                    size="small"
-                  >
+                  <a-tabs v-model:active-key="activeTab" size="small">
                     <!-- 错误信息 -->
-                    <a-tab-pane
-                      key="error"
-                      tab="错误信息"
-                    >
+                    <a-tab-pane key="error" tab="错误信息">
                       <div class="error-info">
                         <div class="info-item">
                           <span class="info-label">错误类型:</span>
@@ -122,20 +100,14 @@
                     </a-tab-pane>
 
                     <!-- 堆栈跟踪 -->
-                    <a-tab-pane
-                      key="stack"
-                      tab="堆栈跟踪"
-                    >
+                    <a-tab-pane key="stack" tab="堆栈跟踪">
                       <div class="stack-trace">
                         <pre>{{ errorInfo?.error?.stack || "无堆栈信息" }}</pre>
                       </div>
                     </a-tab-pane>
 
                     <!-- 组件信息 -->
-                    <a-tab-pane
-                      key="component"
-                      tab="组件信息"
-                    >
+                    <a-tab-pane key="component" tab="组件信息">
                       <div class="component-info">
                         <div class="info-item">
                           <span class="info-label">生命周期钩子:</span>
@@ -151,10 +123,7 @@
                     </a-tab-pane>
 
                     <!-- 环境信息 -->
-                    <a-tab-pane
-                      key="environment"
-                      tab="环境信息"
-                    >
+                    <a-tab-pane key="environment" tab="环境信息">
                       <div class="environment-info">
                         <div class="info-item">
                           <span class="info-label">浏览器:</span>
@@ -178,10 +147,7 @@
 
                   <!-- 复制按钮 -->
                   <div class="details-actions">
-                    <a-button
-                      size="small"
-                      @click="copyErrorDetails"
-                    >
+                    <a-button size="small" @click="copyErrorDetails">
                       <CopyOutlined />
                       复制错误信息
                     </a-button>
@@ -199,7 +165,14 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onErrorCaptured, provide, watch } from "vue";
+import {
+  ref,
+  computed,
+  onErrorCaptured,
+  provide,
+  watch,
+  onUnmounted,
+} from "vue";
 import { message } from "ant-design-vue";
 import {
   ReloadOutlined,
@@ -392,6 +365,14 @@ const startRetryCountdown = () => {
 const toggleDetails = () => {
   detailsVisible.value = !detailsVisible.value;
 };
+
+// 卸载时清除自动重试倒计时定时器，避免在已销毁组件上继续触发。
+onUnmounted(() => {
+  if (retryTimer) {
+    clearInterval(retryTimer);
+    retryTimer = null;
+  }
+});
 
 // 重置错误状态
 const handleReset = async () => {
