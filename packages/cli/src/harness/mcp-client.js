@@ -293,6 +293,20 @@ export class MCPClient extends EventEmitter {
           failPending(`MCP server "${name}" process error: ${err.message}`);
           this.emit("server-error", { name, error: err.message });
         });
+
+        // Writing to a stdio server that closed its stdin read end (or died
+        // mid-write) makes the stdin pipe emit an asynchronous 'error' (EPIPE).
+        // An 'error' event with no listener is an uncaught exception in Node and
+        // would CRASH the whole CLI — and the try/catch around stdin.write only
+        // catches synchronous throws, not this async event. Handle it: drain
+        // in-flight requests and surface it, mirroring the process 'error' path.
+        if (proc.stdin && typeof proc.stdin.on === "function") {
+          proc.stdin.on("error", (err) => {
+            entry.state = ServerState.ERROR;
+            failPending(`MCP server "${name}" stdin error: ${err.message}`);
+            this.emit("server-error", { name, error: err.message });
+          });
+        }
       } else {
         throw new Error(
           `transport "${transportKind}" is not supported by this client`,
@@ -384,6 +398,7 @@ export class MCPClient extends EventEmitter {
         try {
           entry.process.stdout?.removeAllListeners();
           entry.process.stderr?.removeAllListeners();
+          entry.process.stdin?.removeAllListeners?.();
           entry.process.removeAllListeners();
           entry.process.kill();
         } catch {
