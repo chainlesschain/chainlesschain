@@ -58,6 +58,17 @@ export function startApp(options = {}) {
   return child.pid;
 }
 
+/**
+ * Parse a PID-file's contents into a valid positive integer, or null.
+ * A corrupt / empty / partially-written file must not yield NaN — that NaN
+ * would otherwise flow into `taskkill /PID NaN` or `process.kill(NaN, …)`,
+ * which silently fails to act on the real process.
+ */
+export function parsePid(content) {
+  const pid = parseInt(String(content).trim(), 10);
+  return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
 export function stopApp() {
   const pidFile = getPidFilePath();
 
@@ -66,7 +77,16 @@ export function stopApp() {
     return false;
   }
 
-  const pid = parseInt(readFileSync(pidFile, "utf-8").trim(), 10);
+  const pid = parsePid(readFileSync(pidFile, "utf-8"));
+  if (pid === null) {
+    logger.warn("PID file is empty or corrupt; removing it.");
+    try {
+      unlinkSync(pidFile);
+    } catch {
+      /* best-effort */
+    }
+    return false;
+  }
 
   try {
     if (isWindows()) {
@@ -90,7 +110,15 @@ export function isAppRunning() {
     return false;
   }
 
-  const pid = parseInt(readFileSync(pidFile, "utf-8").trim(), 10);
+  const pid = parsePid(readFileSync(pidFile, "utf-8"));
+  if (pid === null) {
+    try {
+      unlinkSync(pidFile);
+    } catch {
+      /* best-effort */
+    }
+    return false;
+  }
 
   try {
     process.kill(pid, 0);
@@ -104,7 +132,7 @@ export function isAppRunning() {
 export function getAppPid() {
   const pidFile = getPidFilePath();
   if (!existsSync(pidFile)) return null;
-  return parseInt(readFileSync(pidFile, "utf-8").trim(), 10);
+  return parsePid(readFileSync(pidFile, "utf-8"));
 }
 
 function findExecutable(binDir, extension) {

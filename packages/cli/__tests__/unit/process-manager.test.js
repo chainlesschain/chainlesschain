@@ -58,4 +58,60 @@ describe("process-manager", () => {
     const { getAppPid } = await import("../../src/lib/process-manager.js");
     expect(getAppPid()).toBe(12345);
   });
+
+  function mockPaths(pidFile) {
+    vi.doMock("../../src/lib/paths.js", () => ({
+      getPidFilePath: () => pidFile,
+      getBinDir: () => join(tempDir, "bin"),
+      ensureDir: (d) => d,
+      getStatePath: () => tempDir,
+    }));
+    vi.resetModules();
+  }
+
+  it("getAppPid returns null for a corrupt PID file (not NaN)", async () => {
+    const pidFile = join(tempDir, "app.pid");
+    writeFileSync(pidFile, "not-a-pid");
+    mockPaths(pidFile);
+    const { getAppPid } = await import("../../src/lib/process-manager.js");
+    expect(getAppPid()).toBeNull();
+  });
+
+  it("isAppRunning treats a corrupt PID file as not-running and removes it", async () => {
+    const pidFile = join(tempDir, "app.pid");
+    writeFileSync(pidFile, "garbage\n");
+    mockPaths(pidFile);
+    const { isAppRunning } = await import("../../src/lib/process-manager.js");
+    expect(isAppRunning()).toBe(false);
+    expect(existsSync(pidFile)).toBe(false); // stale file cleaned up
+  });
+
+  it("stopApp returns false for a corrupt PID file instead of a false success", async () => {
+    const pidFile = join(tempDir, "app.pid");
+    writeFileSync(pidFile, "   ");
+    mockPaths(pidFile);
+    const { stopApp } = await import("../../src/lib/process-manager.js");
+    // Before the fix this returned true (taskkill/kill on NaN silently no-ops).
+    expect(stopApp()).toBe(false);
+    expect(existsSync(pidFile)).toBe(false); // corrupt file removed
+  });
+
+  describe("parsePid", () => {
+    it("parses valid positive integers (trimmed)", async () => {
+      vi.resetModules();
+      const { parsePid } = await import("../../src/lib/process-manager.js");
+      expect(parsePid("12345")).toBe(12345);
+      expect(parsePid("  678 \n")).toBe(678);
+    });
+
+    it("rejects corrupt / empty / non-positive content as null", async () => {
+      vi.resetModules();
+      const { parsePid } = await import("../../src/lib/process-manager.js");
+      expect(parsePid("not-a-pid")).toBeNull();
+      expect(parsePid("")).toBeNull();
+      expect(parsePid("   ")).toBeNull();
+      expect(parsePid("0")).toBeNull();
+      expect(parsePid("-5")).toBeNull();
+    });
+  });
 });
