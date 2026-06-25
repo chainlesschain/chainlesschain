@@ -215,6 +215,53 @@ describe("checkpoint-store (git engine)", () => {
     expect(c2.id).not.toBe(c1.id);
     expect(listCheckpoints(repo).length).toBe(2);
   });
+
+  describe("maxPerSession prune (auto-checkpoint history bound)", () => {
+    it("keeps only the newest N checkpoints, pruning the oldest", () => {
+      const session = "autotest";
+      for (let i = 0; i < 6; i++) {
+        writeFileSync(join(repo, "a.txt"), `v${i}\n`, "utf8");
+        createCheckpoint(repo, { session, label: `cp${i}`, maxPerSession: 3 });
+      }
+      const rows = listCheckpoints(repo, { session });
+      expect(rows.length).toBe(3); // capped at maxPerSession
+      const labels = rows.map((r) => r.label);
+      expect(labels).toContain("cp5"); // newest kept
+      expect(labels).toContain("cp3");
+      expect(labels).not.toContain("cp0"); // oldest pruned
+      expect(labels).not.toContain("cp2");
+    });
+
+    it("does not prune when maxPerSession is omitted (manual = unbounded)", () => {
+      const session = "manual";
+      for (let i = 0; i < 5; i++) {
+        writeFileSync(join(repo, "a.txt"), `m${i}\n`, "utf8");
+        createCheckpoint(repo, { session, label: `m${i}` });
+      }
+      expect(listCheckpoints(repo, { session }).length).toBe(5);
+    });
+
+    it("a pruned checkpoint's predecessor tree is still restorable via the kept chain", () => {
+      const session = "chain";
+      // 3 checkpoints, cap 2: the first is pruned but its tree lives on as the
+      // parent of the survivors — rewinding to a kept checkpoint still works.
+      writeFileSync(join(repo, "a.txt"), "one\n", "utf8");
+      createCheckpoint(repo, { session, label: "one", maxPerSession: 2 });
+      writeFileSync(join(repo, "a.txt"), "two\n", "utf8");
+      const keep = createCheckpoint(repo, {
+        session,
+        label: "two",
+        maxPerSession: 2,
+      });
+      writeFileSync(join(repo, "a.txt"), "three\n", "utf8");
+      createCheckpoint(repo, { session, label: "three", maxPerSession: 2 });
+
+      expect(listCheckpoints(repo, { session }).length).toBe(2);
+      // The kept "two" checkpoint still rewinds cleanly.
+      rewindTo(repo, keep.id, { session, skipSafety: true });
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("two\n");
+    });
+  });
 });
 
 describe("withinRoot — restore containment guard", () => {
@@ -227,7 +274,9 @@ describe("withinRoot — restore containment guard", () => {
   it("rejects paths that escape the root", () => {
     const root = join(tmpdir(), "cc-repo");
     expect(withinRoot(root, join(root, "..", "evil.txt"))).toBe(false);
-    expect(withinRoot(root, join(tmpdir(), "cc-repo-sibling", "x"))).toBe(false);
+    expect(withinRoot(root, join(tmpdir(), "cc-repo-sibling", "x"))).toBe(
+      false,
+    );
   });
 
   it("normalizes separator style (git forward-slash root vs native abs)", () => {

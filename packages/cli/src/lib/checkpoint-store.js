@@ -256,6 +256,29 @@ export function createCheckpoint(cwd = process.cwd(), opts = {}) {
       /* non-critical */
     }
 
+    // Bound the session's checkpoint history when asked. Auto-checkpointing
+    // (one ref per mutating tool) passes a cap so a long agentic run can't
+    // accumulate unbounded refs — which also keeps nextId's per-create
+    // for-each-ref scan bounded. Best-effort: pruning never fails the
+    // checkpoint, and the dropped commit objects stay reachable via newer
+    // checkpoints' parent chain (only addressability by id is lost for the
+    // oldest entries). Manual `cc checkpoint create` omits the cap → unbounded.
+    if (Number.isFinite(opts.maxPerSession) && opts.maxPerSession > 0) {
+      try {
+        const rows = listRefs(root, session); // oldest-first (creatordate)
+        const excess = rows.length - opts.maxPerSession;
+        for (let i = 0; i < excess; i++) {
+          try {
+            git(["update-ref", "-d", rows[i].ref], { cwd: root });
+          } catch {
+            /* best-effort — a failed prune never affects the new checkpoint */
+          }
+        }
+      } catch {
+        /* pruning is entirely best-effort */
+      }
+    }
+
     return { id, ref, commit, tree, parent, label, session, createdAt, files };
   } finally {
     rmQuiet(tmpIndex);

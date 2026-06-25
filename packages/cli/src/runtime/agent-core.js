@@ -4265,6 +4265,10 @@ const _CHECKPOINT_READ_ONLY = new Set([
   "search_sessions",
 ]);
 
+// Rolling cap on auto-checkpoints per agent session — the engine prunes the
+// oldest beyond this so a long run can't accumulate unbounded refs.
+const MAX_AUTO_CHECKPOINTS_PER_SESSION = 100;
+
 let _checkpointStoreP = null;
 function _loadCheckpointStore() {
   if (!_checkpointStoreP) {
@@ -4295,6 +4299,10 @@ async function _autoCheckpointBeforeTool(toolContext, toolName, toolArgs) {
         120,
       ),
       skipIfUnchanged: true,
+      // Bound auto-checkpoint history: a rolling safety net of the last N
+      // mutating-tool states. Prevents unbounded ref growth + O(n²) nextId over
+      // a long agentic run (rewinding 100+ tool calls back is already extreme).
+      maxPerSession: MAX_AUTO_CHECKPOINTS_PER_SESSION,
     });
     return res?.id || null;
   } catch {
