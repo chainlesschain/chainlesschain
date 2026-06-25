@@ -6,11 +6,7 @@
     :footer="null"
     @cancel="handleCancel"
   >
-    <a-steps
-      :current="currentStep"
-      size="small"
-      class="migration-steps"
-    >
+    <a-steps :current="currentStep" size="small" class="migration-steps">
       <a-step title="选择类型" />
       <a-step title="设置路径" />
       <a-step title="确认迁移" />
@@ -19,27 +15,16 @@
 
     <div class="migration-content">
       <!-- 步骤0: 选择迁移类型 -->
-      <div
-        v-if="currentStep === 0"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          选择要迁移的内容
-        </a-typography-title>
+      <div v-if="currentStep === 0" class="step-panel">
+        <a-typography-title :level="4"> 选择要迁移的内容 </a-typography-title>
         <a-radio-group
           v-model:value="migrationType"
           button-style="solid"
           size="large"
         >
-          <a-radio-button value="project">
-            项目文件
-          </a-radio-button>
-          <a-radio-button value="database">
-            数据库
-          </a-radio-button>
-          <a-radio-button value="both">
-            全部迁移
-          </a-radio-button>
+          <a-radio-button value="project"> 项目文件 </a-radio-button>
+          <a-radio-button value="database"> 数据库 </a-radio-button>
+          <a-radio-button value="both"> 全部迁移 </a-radio-button>
         </a-radio-group>
 
         <a-alert
@@ -52,23 +37,15 @@
       </div>
 
       <!-- 步骤1: 设置新路径 -->
-      <div
-        v-if="currentStep === 1"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          设置新路径
-        </a-typography-title>
+      <div v-if="currentStep === 1" class="step-panel">
+        <a-typography-title :level="4"> 设置新路径 </a-typography-title>
 
         <a-form layout="vertical">
           <a-form-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="当前项目路径"
           >
-            <a-input
-              :value="currentPaths.project"
-              disabled
-            />
+            <a-input :value="currentPaths.project" disabled />
           </a-form-item>
 
           <a-form-item
@@ -82,10 +59,7 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的项目路径"
               />
-              <a-button
-                style="width: 100px"
-                @click="browseProjectPath"
-              >
+              <a-button style="width: 100px" @click="browseProjectPath">
                 浏览...
               </a-button>
             </a-input-group>
@@ -95,10 +69,7 @@
             v-if="migrationType === 'database' || migrationType === 'both'"
             label="当前数据库路径"
           >
-            <a-input
-              :value="currentPaths.database"
-              disabled
-            />
+            <a-input :value="currentPaths.database" disabled />
           </a-form-item>
 
           <a-form-item
@@ -112,10 +83,7 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的数据库路径"
               />
-              <a-button
-                style="width: 100px"
-                @click="browseDatabasePath"
-              >
+              <a-button style="width: 100px" @click="browseDatabasePath">
                 浏览...
               </a-button>
             </a-input-group>
@@ -124,18 +92,10 @@
       </div>
 
       <!-- 步骤2: 确认迁移 -->
-      <div
-        v-if="currentStep === 2"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          确认迁移信息
-        </a-typography-title>
+      <div v-if="currentStep === 2" class="step-panel">
+        <a-typography-title :level="4"> 确认迁移信息 </a-typography-title>
 
-        <a-descriptions
-          bordered
-          :column="1"
-        >
+        <a-descriptions bordered :column="1">
           <a-descriptions-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="项目文件迁移"
@@ -161,29 +121,20 @@
           class="migration-alert"
         />
 
-        <a-checkbox
-          v-model:checked="confirmed"
-          class="migration-checkbox"
-        >
+        <a-checkbox v-model:checked="confirmed" class="migration-checkbox">
           我已阅读并理解上述提示，确认开始迁移
         </a-checkbox>
       </div>
 
       <!-- 步骤3: 迁移进度 -->
-      <div
-        v-if="currentStep === 3"
-        class="step-panel"
-      >
+      <div v-if="currentStep === 3" class="step-panel">
         <a-result
           :status="migrationStatus"
           :title="getMigrationStatusTitle()"
           :sub-title="migrationMessage"
         >
           <template #icon>
-            <a-spin
-              v-if="migrating"
-              size="large"
-            />
+            <a-spin v-if="migrating" size="large" />
           </template>
         </a-result>
 
@@ -196,10 +147,7 @@
     </div>
 
     <div class="migration-actions">
-      <a-button
-        v-if="currentStep > 0 && currentStep < 3"
-        @click="prevStep"
-      >
+      <a-button v-if="currentStep > 0 && currentStep < 3" @click="prevStep">
         上一步
       </a-button>
       <a-button
@@ -351,13 +299,17 @@ const prevStep = () => {
 };
 
 const handleMigrate = async () => {
+  // Declared out here so `finally` always clears it — a failed db/project
+  // migration jumps to catch, skips the clear, and the 500ms progress timer
+  // leaks forever.
+  let progressInterval = null;
   try {
     migrating.value = true;
     migrationProgress.value = 0;
     currentStep.value = 3;
 
     // 模拟迁移进度（实际应该调用后端API）
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (migrationProgress.value < 90) {
         migrationProgress.value += 10;
       }
@@ -374,7 +326,6 @@ const handleMigrate = async () => {
       await window.electronAPI.config.set("project.rootPath", newPaths.project);
     }
 
-    clearInterval(progressInterval);
     migrationProgress.value = 100;
     migrationStatus.value = "success";
     migrationMessage.value = "迁移完成！应用将在3秒后重启...";
@@ -391,6 +342,9 @@ const handleMigrate = async () => {
     migrationMessage.value = "迁移失败: " + error.message;
     message.error("迁移失败: " + error.message);
   } finally {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
     migrating.value = false;
   }
 };

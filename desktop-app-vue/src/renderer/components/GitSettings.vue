@@ -1,9 +1,6 @@
 <template>
   <div class="git-settings">
-    <a-card
-      title="Git 同步设置"
-      :loading="loading"
-    >
+    <a-card title="Git 同步设置" :loading="loading">
       <a-form
         :model="form"
         :label-col="{ span: 6 }"
@@ -25,9 +22,7 @@
               v-model:value="form.repoPath"
               placeholder="留空使用默认路径"
             />
-            <div class="form-hint">
-              Git仓库本地路径，留空将使用应用数据目录
-            </div>
+            <div class="form-hint">Git仓库本地路径，留空将使用应用数据目录</div>
           </a-form-item>
 
           <!-- 远程仓库URL -->
@@ -36,17 +31,12 @@
               v-model:value="form.remoteUrl"
               placeholder="https://github.com/username/repo.git"
             />
-            <div class="form-hint">
-              远程Git仓库URL（可选）
-            </div>
+            <div class="form-hint">远程Git仓库URL（可选）</div>
           </a-form-item>
 
           <!-- 作者信息 -->
           <a-form-item label="作者名称">
-            <a-input
-              v-model:value="form.authorName"
-              placeholder="Your Name"
-            />
+            <a-input v-model:value="form.authorName" placeholder="Your Name" />
           </a-form-item>
 
           <a-form-item label="作者邮箱">
@@ -59,15 +49,9 @@
           <!-- 认证信息 -->
           <a-form-item label="Git认证">
             <a-radio-group v-model:value="authType">
-              <a-radio value="none">
-                无需认证
-              </a-radio>
-              <a-radio value="password">
-                用户名/密码
-              </a-radio>
-              <a-radio value="token">
-                Personal Access Token
-              </a-radio>
+              <a-radio value="none"> 无需认证 </a-radio>
+              <a-radio value="password"> 用户名/密码 </a-radio>
+              <a-radio value="token"> Personal Access Token </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -97,10 +81,7 @@
             <a-switch v-model:checked="form.autoSync" />
           </a-form-item>
 
-          <a-form-item
-            v-if="form.autoSync"
-            label="同步间隔"
-          >
+          <a-form-item v-if="form.autoSync" label="同步间隔">
             <a-input-number
               v-model:value="syncIntervalMinutes"
               :min="1"
@@ -108,17 +89,12 @@
               style="width: 120px"
             />
             <span style="margin-left: 8px">分钟</span>
-            <div class="form-hint">
-              自动同步的时间间隔（1-60分钟）
-            </div>
+            <div class="form-hint">自动同步的时间间隔（1-60分钟）</div>
           </a-form-item>
 
           <!-- 导出路径 -->
           <a-form-item label="导出路径">
-            <a-input
-              v-model:value="form.exportPath"
-              placeholder="knowledge"
-            />
+            <a-input v-model:value="form.exportPath" placeholder="knowledge" />
             <div class="form-hint">
               Markdown文件在仓库中的存储路径（相对路径）
             </div>
@@ -136,16 +112,10 @@
         <!-- 操作按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button
-              type="primary"
-              html-type="submit"
-              :loading="saving"
-            >
+            <a-button type="primary" html-type="submit" :loading="saving">
               保存设置
             </a-button>
-            <a-button @click="handleReset">
-              重置
-            </a-button>
+            <a-button @click="handleReset"> 重置 </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -165,10 +135,7 @@
             </template>
             测试远程连接
           </a-button>
-          <a-button
-            :loading="exporting"
-            @click="handleExportMarkdown"
-          >
+          <a-button :loading="exporting" @click="handleExportMarkdown">
             <template #icon>
               <export-outlined />
             </template>
@@ -185,10 +152,7 @@
             </template>
             拉取更新 (Pull)
           </a-button>
-          <a-button
-            :loading="cloning"
-            @click="showCloneDialog = true"
-          >
+          <a-button :loading="cloning" @click="showCloneDialog = true">
             <template #icon>
               <cloud-download-outlined />
             </template>
@@ -227,17 +191,12 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="仓库URL"
-          required
-        >
+        <a-form-item label="仓库URL" required>
           <a-input
             v-model:value="cloneForm.url"
             placeholder="https://github.com/username/repo.git"
           />
-          <div class="form-hint">
-            远程Git仓库的URL（支持HTTPS和SSH）
-          </div>
+          <div class="form-hint">远程Git仓库的URL（支持HTTPS和SSH）</div>
         </a-form-item>
 
         <a-form-item label="目标路径">
@@ -245,22 +204,14 @@
             v-model:value="cloneForm.targetPath"
             placeholder="留空使用默认路径"
           />
-          <div class="form-hint">
-            克隆到本地的路径，留空将使用应用数据目录
-          </div>
+          <div class="form-hint">克隆到本地的路径，留空将使用应用数据目录</div>
         </a-form-item>
 
         <a-form-item label="认证方式">
           <a-radio-group v-model:value="cloneForm.authType">
-            <a-radio value="none">
-              无需认证
-            </a-radio>
-            <a-radio value="password">
-              用户名/密码
-            </a-radio>
-            <a-radio value="token">
-              Access Token
-            </a-radio>
+            <a-radio value="none"> 无需认证 </a-radio>
+            <a-radio value="password"> 用户名/密码 </a-radio>
+            <a-radio value="token"> Access Token </a-radio>
           </a-radio-group>
         </a-form-item>
 
@@ -286,10 +237,7 @@
         </template>
       </a-form>
 
-      <div
-        v-if="cloneProgress"
-        class="clone-progress"
-      >
+      <div v-if="cloneProgress" class="clone-progress">
         <a-progress
           :percent="cloneProgress.percent"
           :status="cloneProgress.status"
@@ -303,10 +251,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
-import { message } from 'ant-design-vue';
-import { ApiOutlined, ExportOutlined, DownloadOutlined, CloudDownloadOutlined } from '@ant-design/icons-vue';
-import GitConflictResolver from './GitConflictResolver.vue';
+import { ref, reactive, onMounted, computed } from "vue";
+import { message } from "ant-design-vue";
+import {
+  ApiOutlined,
+  ExportOutlined,
+  DownloadOutlined,
+  CloudDownloadOutlined,
+} from "@ant-design/icons-vue";
+import GitConflictResolver from "./GitConflictResolver.vue";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -324,30 +277,30 @@ const conflicts = ref([]);
 const showCloneDialog = ref(false);
 const cloneProgress = ref(null);
 const cloneForm = reactive({
-  url: '',
-  targetPath: '',
-  authType: 'none',
-  username: '',
-  password: '',
-  token: '',
+  url: "",
+  targetPath: "",
+  authType: "none",
+  username: "",
+  password: "",
+  token: "",
 });
 
 const form = reactive({
   enabled: false,
-  repoPath: '',
-  remoteUrl: '',
-  authorName: 'ChainlessChain User',
-  authorEmail: 'user@chainlesschain.com',
+  repoPath: "",
+  remoteUrl: "",
+  authorName: "ChainlessChain User",
+  authorEmail: "user@chainlesschain.com",
   autoSync: false,
   autoSyncInterval: 300000, // 5分钟
-  exportPath: 'knowledge',
+  exportPath: "knowledge",
   enableLogging: false, // 默认关闭日志输出
 });
 
-const authType = ref('none');
-const authUsername = ref('');
-const authPassword = ref('');
-const authToken = ref('');
+const authType = ref("none");
+const authUsername = ref("");
+const authPassword = ref("");
+const authToken = ref("");
 
 const syncIntervalMinutes = computed({
   get: () => form.autoSyncInterval / 60000,
@@ -363,28 +316,28 @@ async function loadConfig() {
     const config = await window.electronAPI.git.getConfig();
 
     form.enabled = config.enabled || false;
-    form.repoPath = config.repoPath || '';
-    form.remoteUrl = config.remoteUrl || '';
-    form.authorName = config.authorName || 'ChainlessChain User';
-    form.authorEmail = config.authorEmail || 'user@chainlesschain.com';
+    form.repoPath = config.repoPath || "";
+    form.remoteUrl = config.remoteUrl || "";
+    form.authorName = config.authorName || "ChainlessChain User";
+    form.authorEmail = config.authorEmail || "user@chainlesschain.com";
     form.autoSync = config.autoSync || false;
     form.autoSyncInterval = config.autoSyncInterval || 300000;
-    form.exportPath = config.exportPath || 'knowledge';
+    form.exportPath = config.exportPath || "knowledge";
     form.enableLogging = config.enableLogging || false;
 
     // 解析认证信息
     if (config.auth) {
       if (config.auth.password) {
-        authType.value = 'password';
-        authUsername.value = config.auth.username || '';
-        authPassword.value = config.auth.password || '';
+        authType.value = "password";
+        authUsername.value = config.auth.username || "";
+        authPassword.value = config.auth.password || "";
       } else if (config.auth.token) {
-        authType.value = 'token';
-        authToken.value = config.auth.token || '';
+        authType.value = "token";
+        authToken.value = config.auth.token || "";
       }
     }
   } catch (error) {
-    message.error('加载配置失败: ' + error.message);
+    message.error("加载配置失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -396,12 +349,16 @@ async function handleSave() {
   try {
     // 构建认证对象
     let auth = null;
-    if (authType.value === 'password' && authUsername.value && authPassword.value) {
+    if (
+      authType.value === "password" &&
+      authUsername.value &&
+      authPassword.value
+    ) {
       auth = {
         username: authUsername.value,
         password: authPassword.value,
       };
-    } else if (authType.value === 'token' && authToken.value) {
+    } else if (authType.value === "token" && authToken.value) {
       auth = {
         token: authToken.value,
       };
@@ -416,9 +373,9 @@ async function handleSave() {
     const plainConfig = JSON.parse(JSON.stringify(config));
     await window.electronAPI.git.setConfig(plainConfig);
 
-    message.success('配置保存成功！需要重启应用以应用新配置');
+    message.success("配置保存成功！需要重启应用以应用新配置");
   } catch (error) {
-    message.error('保存配置失败: ' + error.message);
+    message.error("保存配置失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -432,7 +389,7 @@ function handleReset() {
 // 测试连接
 async function handleTestConnection() {
   if (!form.remoteUrl) {
-    message.warning('请先配置远程仓库URL');
+    message.warning("请先配置远程仓库URL");
     return;
   }
 
@@ -446,18 +403,18 @@ async function handleTestConnection() {
     if (status.enabled) {
       testResult.value = {
         success: true,
-        message: '连接成功！当前分支: ' + status.branch,
+        message: "连接成功！当前分支: " + status.branch,
       };
     } else {
       testResult.value = {
         success: false,
-        message: 'Git同步未启用',
+        message: "Git同步未启用",
       };
     }
   } catch (error) {
     testResult.value = {
       success: false,
-      message: '连接失败: ' + error.message,
+      message: "连接失败: " + error.message,
     };
   } finally {
     testing.value = false;
@@ -471,7 +428,7 @@ async function handleExportMarkdown() {
     const files = await window.electronAPI.git.exportMarkdown();
     message.success(`成功导出 ${files.length} 个Markdown文件`);
   } catch (error) {
-    message.error('导出失败: ' + error.message);
+    message.error("导出失败: " + error.message);
   } finally {
     exporting.value = false;
   }
@@ -480,7 +437,7 @@ async function handleExportMarkdown() {
 // 拉取更新
 async function handlePull() {
   if (!form.remoteUrl) {
-    message.warning('请先配置远程仓库URL');
+    message.warning("请先配置远程仓库URL");
     return;
   }
 
@@ -492,19 +449,19 @@ async function handlePull() {
       // 检测到冲突，显示冲突解决器
       conflicts.value = result.conflicts || [];
       showConflictResolver.value = true;
-      message.warning('检测到合并冲突，请手动解决');
+      message.warning("检测到合并冲突，请手动解决");
     } else if (result.success) {
-      message.success('拉取成功！');
+      message.success("拉取成功！");
       testResult.value = {
         success: true,
-        message: '拉取成功，仓库已更新',
+        message: "拉取成功，仓库已更新",
       };
     }
   } catch (error) {
-    message.error('拉取失败: ' + error.message);
+    message.error("拉取失败: " + error.message);
     testResult.value = {
       success: false,
-      message: '拉取失败: ' + error.message,
+      message: "拉取失败: " + error.message,
     };
   } finally {
     pulling.value = false;
@@ -513,20 +470,20 @@ async function handlePull() {
 
 // 冲突解决完成
 function handleConflictResolved() {
-  message.success('所有冲突已解决，合并完成');
+  message.success("所有冲突已解决，合并完成");
   testResult.value = {
     success: true,
-    message: '冲突已解决，合并成功',
+    message: "冲突已解决，合并成功",
   };
   conflicts.value = [];
 }
 
 // 中止合并
 function handleConflictAborted() {
-  message.info('合并已中止');
+  message.info("合并已中止");
   testResult.value = {
     success: false,
-    message: '合并已中止',
+    message: "合并已中止",
   };
   conflicts.value = [];
 }
@@ -534,33 +491,42 @@ function handleConflictAborted() {
 // 克隆仓库
 async function handleClone() {
   if (!cloneForm.url) {
-    message.warning('请输入仓库URL');
+    message.warning("请输入仓库URL");
     return;
   }
 
   cloning.value = true;
   cloneProgress.value = {
     percent: 0,
-    status: 'active',
-    message: '正在克隆仓库...',
+    status: "active",
+    message: "正在克隆仓库...",
   };
+
+  // Declared out here so `finally` always clears it — otherwise a failed
+  // clone (bad URL / auth / network) jumps to catch, skips the clear, and the
+  // 500ms progress timer leaks forever.
+  let progressInterval = null;
 
   try {
     // 构建认证对象
     let auth = null;
-    if (cloneForm.authType === 'password' && cloneForm.username && cloneForm.password) {
+    if (
+      cloneForm.authType === "password" &&
+      cloneForm.username &&
+      cloneForm.password
+    ) {
       auth = {
         username: cloneForm.username,
         password: cloneForm.password,
       };
-    } else if (cloneForm.authType === 'token' && cloneForm.token) {
+    } else if (cloneForm.authType === "token" && cloneForm.token) {
       auth = {
         token: cloneForm.token,
       };
     }
 
     // 模拟进度更新
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (cloneProgress.value && cloneProgress.value.percent < 90) {
         cloneProgress.value.percent += 10;
       }
@@ -570,16 +536,14 @@ async function handleClone() {
     const result = await window.electronAPI.git.clone(
       cloneForm.url,
       cloneForm.targetPath || null,
-      auth
+      auth,
     );
-
-    clearInterval(progressInterval);
 
     if (result.success) {
       cloneProgress.value = {
         percent: 100,
-        status: 'success',
-        message: '克隆成功！',
+        status: "success",
+        message: "克隆成功！",
       };
 
       message.success(`仓库已成功克隆到: ${result.path}`);
@@ -598,23 +562,26 @@ async function handleClone() {
   } catch (error) {
     cloneProgress.value = {
       percent: 0,
-      status: 'exception',
-      message: '克隆失败: ' + error.message,
+      status: "exception",
+      message: "克隆失败: " + error.message,
     };
-    message.error('克隆失败: ' + error.message);
+    message.error("克隆失败: " + error.message);
   } finally {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
     cloning.value = false;
   }
 }
 
 // 重置克隆表单
 function resetCloneForm() {
-  cloneForm.url = '';
-  cloneForm.targetPath = '';
-  cloneForm.authType = 'none';
-  cloneForm.username = '';
-  cloneForm.password = '';
-  cloneForm.token = '';
+  cloneForm.url = "";
+  cloneForm.targetPath = "";
+  cloneForm.authType = "none";
+  cloneForm.username = "";
+  cloneForm.password = "";
+  cloneForm.token = "";
   cloneProgress.value = null;
 }
 
