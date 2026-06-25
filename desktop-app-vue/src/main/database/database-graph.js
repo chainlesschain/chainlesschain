@@ -8,6 +8,24 @@
  * Extracted on 2026-04-07.
  */
 
+// Stored relation `metadata` is app-written JSON, but a corrupt or legacy row
+// must not crash the whole graph query. Fall back to null on parse failure —
+// mirrors database-conversations' defensive parsing of context_data.
+function parseMetadata(raw, logger) {
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    logger?.warn?.(
+      "[database-graph] 解析 metadata 失败，回退为 null:",
+      e?.message,
+    );
+    return null;
+  }
+}
+
 function addRelation(
   dbManager,
   logger,
@@ -194,7 +212,7 @@ function getGraphData(dbManager, logger, options = {}) {
         target: edge.target_id,
         type: edge.relation_type,
         weight: edge.weight,
-        metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
+        metadata: parseMetadata(edge.metadata, logger),
       });
     }
     edgeStmt.free();
@@ -220,7 +238,7 @@ function getKnowledgeRelations(dbManager, logger, knowledgeId) {
       target: rel.target_id,
       type: rel.relation_type,
       weight: rel.weight,
-      metadata: rel.metadata ? JSON.parse(rel.metadata) : null,
+      metadata: parseMetadata(rel.metadata, logger),
       createdAt: rel.created_at,
     });
   }
@@ -338,7 +356,7 @@ function getKnowledgeNeighbors(dbManager, logger, knowledgeId, depth = 1) {
             target: edge.target_id,
             type: edge.relation_type,
             weight: edge.weight,
-            metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
+            metadata: parseMetadata(edge.metadata, logger),
           });
         }
       }
