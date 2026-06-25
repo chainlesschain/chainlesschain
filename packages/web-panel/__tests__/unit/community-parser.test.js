@@ -337,4 +337,11 @@ describe('tryParseJson (shared, balanced extraction)', () => {
       '{"deviceId":"d1","name":"phone"}\n[DatabaseManager] Database closed'
     expect(tryParseJson(out)).toEqual({ deviceId: 'd1', name: 'phone' })
   })
+
+  it('Analytics case: leading [Tag] no longer anchors the slice at the wrong bracket', () => {
+    // Analytics.vue 旧 tryParseJSON 用 search(/[{[]/) 取首括号再 slice 到结尾：
+    // 前缀 `[AppConfig]` 的 `[` 会被当成 JSON 起点 → JSON.parse 失败丢数据。
+    const out = '[AppConfig] init\n{"totalCalls":5,"totalTokens":99}'
+    expect(tryParseJson(out)).toEqual({ totalCalls: 5, totalTokens: 99 })
+  })
 })

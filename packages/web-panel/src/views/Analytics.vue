@@ -301,6 +301,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -376,17 +377,12 @@ function stripCommas(str) {
   return (str || '').replace(/,/g, '')
 }
 
+// Delegate to the shared balanced-extraction parser. The old inline version
+// did JSON.parse(trimmed.slice(firstBracket..end)), which over-captured any
+// trailing CLI-noise line after the JSON (and a leading `[Tag]` bracket
+// could anchor the slice at the wrong `[`) → parse failed → data lost.
 function tryParseJSON(output) {
-  try {
-    const trimmed = (output || '').trim()
-    const jsonStart = trimmed.search(/[{[]/)
-    if (jsonStart >= 0) {
-      return JSON.parse(trimmed.slice(jsonStart))
-    }
-    return null
-  } catch {
-    return null
-  }
+  return tryParseJson(output)
 }
 
 function parseSummaryText(output) {
