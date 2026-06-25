@@ -237,8 +237,13 @@ class DeviceSyncManager extends EventEmitter {
       // 检查队列大小
       if (deviceQueue.length >= this.config.maxQueueSize) {
         logger.warn("[DeviceSyncManager] 设备队列已满:", targetDeviceId);
-        // 移除最旧的消息
-        deviceQueue.shift();
+        // 移除最旧的消息，并清理其状态条目。否则被驱逐消息的 PENDING 状态会永久
+        // 残留在 messageStatus（并随 saveMessageStatus 持久化到磁盘），每次溢出
+        // 驱逐泄漏一条、无界增长。
+        const dropped = deviceQueue.shift();
+        if (dropped && dropped.id) {
+          this.messageStatus.delete(dropped.id);
+        }
       }
 
       // 加入队列
