@@ -8,6 +8,42 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
+ * 评估单条 hook 条件（纯函数，无 Android 依赖，便于单测）。
+ *
+ * MATCHES 用用户提供的正则匹配；非法 pattern（如 "(unclosed"、"[a-"）会让
+ * `Regex(...)` 抛 PatternSyntaxException，原先直接冒泡会崩掉整个 hook 引擎 ——
+ * 这里按「不匹配」安全降级，单条坏规则不再拖垮 hook 执行。
+ */
+internal fun evaluateHookCondition(
+    condition: HookCondition,
+    actualValue: String,
+): Boolean {
+    return when (condition.operator) {
+        ConditionOperator.EQUALS -> actualValue == condition.value
+        ConditionOperator.NOT_EQUALS -> actualValue != condition.value
+        ConditionOperator.CONTAINS -> actualValue.contains(condition.value)
+        ConditionOperator.NOT_CONTAINS -> !actualValue.contains(condition.value)
+        ConditionOperator.STARTS_WITH -> actualValue.startsWith(condition.value)
+        ConditionOperator.ENDS_WITH -> actualValue.endsWith(condition.value)
+        ConditionOperator.MATCHES -> try {
+            actualValue.matches(Regex(condition.value))
+        } catch (e: java.util.regex.PatternSyntaxException) {
+            false
+        }
+        ConditionOperator.GREATER_THAN -> {
+            val actual = actualValue.toDoubleOrNull() ?: 0.0
+            val expected = condition.value.toDoubleOrNull() ?: 0.0
+            actual > expected
+        }
+        ConditionOperator.LESS_THAN -> {
+            val actual = actualValue.toDoubleOrNull() ?: 0.0
+            val expected = condition.value.toDoubleOrNull() ?: 0.0
+            actual < expected
+        }
+    }
+}
+
+/**
  * Hook execution engine
  */
 @Singleton
@@ -116,27 +152,8 @@ class HookExecutor @Inject constructor(
         }
     }
 
-    private fun evaluateCondition(condition: HookCondition, actualValue: String): Boolean {
-        return when (condition.operator) {
-            ConditionOperator.EQUALS -> actualValue == condition.value
-            ConditionOperator.NOT_EQUALS -> actualValue != condition.value
-            ConditionOperator.CONTAINS -> actualValue.contains(condition.value)
-            ConditionOperator.NOT_CONTAINS -> !actualValue.contains(condition.value)
-            ConditionOperator.STARTS_WITH -> actualValue.startsWith(condition.value)
-            ConditionOperator.ENDS_WITH -> actualValue.endsWith(condition.value)
-            ConditionOperator.MATCHES -> actualValue.matches(Regex(condition.value))
-            ConditionOperator.GREATER_THAN -> {
-                val actual = actualValue.toDoubleOrNull() ?: 0.0
-                val expected = condition.value.toDoubleOrNull() ?: 0.0
-                actual > expected
-            }
-            ConditionOperator.LESS_THAN -> {
-                val actual = actualValue.toDoubleOrNull() ?: 0.0
-                val expected = condition.value.toDoubleOrNull() ?: 0.0
-                actual < expected
-            }
-        }
-    }
+    private fun evaluateCondition(condition: HookCondition, actualValue: String): Boolean =
+        evaluateHookCondition(condition, actualValue)
 
     private suspend fun executeSyncHandler(handler: HookHandler, context: HookContext): HookResponse {
         // Simulate sync handler execution
