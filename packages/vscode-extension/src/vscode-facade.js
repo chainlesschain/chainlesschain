@@ -203,7 +203,7 @@ function createVscodeEditorFacade(vscode) {
           resolve(v);
         };
         // Expose this review to the Accept/Reject keybinding commands.
-        activeReview = { settle };
+        activeReview = { settle, accept: "Accept", reject: "Reject" };
         setDiffContext(true);
         const rightKey = rightDoc.uri.toString();
         // tabGroups landed in VS Code 1.67 — older hosts just keep the
@@ -339,12 +339,12 @@ function createVscodeEditorFacade(vscode) {
     // review is open. Returns whether a review was actually settled.
     acceptActiveDiff() {
       if (!activeReview) return false;
-      activeReview.settle("Accept");
+      activeReview.settle(activeReview.accept);
       return true;
     },
     rejectActiveDiff() {
       if (!activeReview) return false;
-      activeReview.settle("Reject");
+      activeReview.settle(activeReview.reject);
       return true;
     },
 
@@ -395,18 +395,30 @@ function createVscodeEditorFacade(vscode) {
         // Multi-diff command unavailable (older host) — still prompt to decide.
       }
       const summary = changesetSummary(changed);
-      const choice = await vscode.window
-        .showInformationMessage(
-          `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})`,
-          { modal: false },
-          "Accept all",
-          "Pick files…",
-          "Reject",
-        )
-        .then(
-          (v) => v,
-          () => undefined,
-        );
+      // Block on the decision, also resolvable by the Accept/Reject keybindings
+      // (same chainlesschainDiffActive handle as openDiff — keyboard Accept maps
+      // to "Accept all", keyboard Reject to "Reject").
+      const choice = await new Promise((resolve) => {
+        let settled = false;
+        const settle = (v) => {
+          if (settled) return;
+          settled = true;
+          activeReview = null;
+          setDiffContext(false);
+          resolve(v);
+        };
+        activeReview = { settle, accept: "Accept all", reject: "Reject" };
+        setDiffContext(true);
+        vscode.window
+          .showInformationMessage(
+            `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})`,
+            { modal: false },
+            "Accept all",
+            "Pick files…",
+            "Reject",
+          )
+          .then(settle, () => settle(undefined));
+      });
 
       if (choice === "Accept all") {
         const writes = selectWrites(changed, null);

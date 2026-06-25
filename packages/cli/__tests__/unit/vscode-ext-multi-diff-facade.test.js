@@ -129,6 +129,99 @@ describe("openMultiDiff facade", () => {
   });
 });
 
+/**
+ * Keybinding-driven decisions also work for the batch review: the same
+ * Accept/Reject commands (chainlesschainDiffActive) settle openMultiDiff, with
+ * keyboard Accept mapping to "Accept all" and Reject to "Reject".
+ */
+function fakeVscodePending() {
+  const writes = [];
+  let untitled = 0;
+  const ctx = []; // setContext(chainlesschainDiffActive, bool) calls
+  const v = {
+    Uri: {
+      file: (p) => ({
+        fsPath: p,
+        scheme: "file",
+        toString: () => "file://" + p,
+      }),
+    },
+    workspace: {
+      openTextDocument: async (arg) => {
+        if (arg && typeof arg === "object" && "content" in arg) {
+          return {
+            uri: { toString: () => "untitled:U" + ++untitled },
+            getText: () => arg.content,
+            positionAt: (n) => n,
+            save: async () => {},
+          };
+        }
+        return {
+          uri: arg,
+          getText: () => "",
+          positionAt: (n) => n,
+          save: async () => {},
+        };
+      },
+      applyEdit: async () => true,
+    },
+    commands: {
+      executeCommand: async (cmd, key, value) => {
+        if (cmd === "setContext" && key === "chainlesschainDiffActive") {
+          ctx.push(value);
+        }
+      },
+    },
+    window: {
+      // Never resolves → only the keybinding command settles the review.
+      showInformationMessage: () => new Promise(() => {}),
+      showQuickPick: async () => null,
+    },
+    WorkspaceEdit: class {
+      replace(uri, _range, text) {
+        writes.push({ path: uri.fsPath, text });
+      }
+    },
+    Range: class {},
+  };
+  return { vscode: v, writes, ctx };
+}
+
+async function until(cond, max = 50) {
+  for (let i = 0; i < max && !cond(); i++) {
+    await new Promise((r) => setImmediate(r));
+  }
+}
+
+describe("openMultiDiff: keybinding-driven accept / reject", () => {
+  const CS = [{ path: "/ws/a.js", originalText: "1", modifiedText: "2" }];
+
+  it("acceptActiveDiff applies all changes (maps to 'Accept all')", async () => {
+    const fx = fakeVscodePending();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openMultiDiff({ files: CS });
+    await until(() => fx.ctx.includes(true));
+    expect(fx.ctx).toEqual([true]);
+
+    expect(facade.acceptActiveDiff()).toBe(true);
+    await expect(p).resolves.toMatchObject({ outcome: "accepted", applied: 1 });
+    expect(fx.writes.map((w) => w.path)).toEqual(["/ws/a.js"]);
+    expect(fx.ctx).toEqual([true, false]);
+  });
+
+  it("rejectActiveDiff writes nothing", async () => {
+    const fx = fakeVscodePending();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openMultiDiff({ files: CS });
+    await until(() => fx.ctx.includes(true));
+
+    expect(facade.rejectActiveDiff()).toBe(true);
+    await expect(p).resolves.toMatchObject({ outcome: "rejected" });
+    expect(fx.writes).toHaveLength(0);
+    expect(fx.ctx).toEqual([true, false]);
+  });
+});
+
 describe("buildIdeTools exposes openMultiDiff conditionally", () => {
   it("present when the facade supports it; absent otherwise", () => {
     const withIt = buildIdeTools({

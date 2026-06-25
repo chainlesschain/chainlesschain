@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.10] — feat: keyboard accept/reject also covers the multi-file review
+
+- **The Accept/Reject keybindings now work for the batch multi-file review
+  (`openMultiDiff`), not just single-file diffs.** 0.36.9 only wired the
+  single-file `openDiff`; a multi-file changeset still required clicking the
+  notification button. `openMultiDiff` now registers on the same
+  `chainlesschainDiffActive` handle, so **Cmd/Ctrl+Enter applies all** and
+  **Cmd/Ctrl+Shift+Backspace rejects** the whole changeset. No new keys or
+  commands — the existing bindings just cover both review types now.
+
 ## [0.36.9] — feat: keyboard accept/reject for diff review
 
 - **You can now decide a diff review from the keyboard** instead of clicking the
