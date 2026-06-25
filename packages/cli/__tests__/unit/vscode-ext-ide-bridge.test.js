@@ -406,3 +406,64 @@ describe("IdeMcpServer post-listen 'error' guard", () => {
     await server.stop();
   });
 });
+
+describe("pruneStaleLocks (crash cleanup)", () => {
+  let tmp;
+  const lockOrig = { ...lockfile._deps };
+  const err = (code) => {
+    const e = new Error(code);
+    e.code = code;
+    throw e;
+  };
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ide-prune-"));
+    lockfile._deps.homedir = () => tmp;
+  });
+  afterEach(() => {
+    Object.assign(lockfile._deps, lockOrig);
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it("removes dead-pid, corrupt, and pid-less locks; keeps live ones", () => {
+    const dir = lockfile.ideLockDir();
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "1.json"),
+      JSON.stringify({ port: 1, pid: 100 }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "2.json"),
+      JSON.stringify({ port: 2, pid: 200 }),
+    );
+    fs.writeFileSync(path.join(dir, "3.json"), "{ not valid json");
+    fs.writeFileSync(path.join(dir, "4.json"), JSON.stringify({ port: 4 })); // no pid
+    lockfile._deps.kill = (pid) => (pid === 100 ? true : err("ESRCH")); // only 100 alive
+
+    expect(lockfile.pruneStaleLocks()).toBe(3);
+    expect(fs.existsSync(path.join(dir, "1.json"))).toBe(true); // alive → kept
+    expect(fs.existsSync(path.join(dir, "2.json"))).toBe(false); // dead
+    expect(fs.existsSync(path.join(dir, "3.json"))).toBe(false); // corrupt
+    expect(fs.existsSync(path.join(dir, "4.json"))).toBe(false); // no pid
+  });
+
+  it("keeps a lock whose pid exists but isn't ours (EPERM = alive)", () => {
+    const dir = lockfile.ideLockDir();
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "9.json"),
+      JSON.stringify({ port: 9, pid: 999 }),
+    );
+    lockfile._deps.kill = () => err("EPERM");
+    expect(lockfile.pruneStaleLocks()).toBe(0);
+    expect(fs.existsSync(path.join(dir, "9.json"))).toBe(true);
+  });
+
+  it("returns 0 when the lock dir doesn't exist", () => {
+    expect(lockfile.pruneStaleLocks()).toBe(0);
+  });
+});

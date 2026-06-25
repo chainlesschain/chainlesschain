@@ -14,7 +14,21 @@ const crypto = require("crypto");
 const _deps = {
   homedir: () => os.homedir(),
   now: () => Date.now(),
+  // signal-0 existence probe (overridable in tests). Throws ESRCH for a dead
+  // pid, EPERM for a live one we don't own.
+  kill: (pid, sig) => process.kill(pid, sig),
 };
+
+/** True if `pid` names a live process (EPERM = alive but not ours). */
+function _isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    _deps.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return !!(e && e.code === "EPERM");
+  }
+}
 
 function ideLockDir() {
   return path.join(_deps.homedir(), ".chainlesschain", "ide");
@@ -91,4 +105,49 @@ function removeLock(port) {
   }
 }
 
-module.exports = { ideLockDir, generateToken, writeLock, removeLock, _deps };
+/**
+ * Remove lockfiles left behind by crashed / force-killed instances. The normal
+ * exit path calls removeLock, but a crash leaves the file — and because each run
+ * binds an ephemeral port, these orphans accumulate forever in the ide dir. A
+ * lock is stale when its owning process is gone (or the file is unparseable).
+ * Best-effort; returns the count removed. Mirrors Claude-Code's auto-cleanup of
+ * leaked registrations. Never removes a lock whose pid is still alive (so a live
+ * sibling editor's bridge is preserved).
+ */
+function pruneStaleLocks() {
+  const dir = ideLockDir();
+  let entries;
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return 0; // dir absent → nothing to prune
+  }
+  let removed = 0;
+  for (const name of entries) {
+    if (!name.endsWith(".json")) continue;
+    const file = path.join(dir, name);
+    let lock = null;
+    try {
+      lock = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      lock = null; // corrupt / unreadable → treat as stale
+    }
+    if (lock && _isProcessAlive(lock.pid)) continue; // owner alive → keep
+    try {
+      fs.unlinkSync(file);
+      removed++;
+    } catch {
+      /* best-effort */
+    }
+  }
+  return removed;
+}
+
+module.exports = {
+  ideLockDir,
+  generateToken,
+  writeLock,
+  removeLock,
+  pruneStaleLocks,
+  _deps,
+};

@@ -16,7 +16,12 @@ const vscode = require("vscode");
 const { IdeMcpServer } = require("./mcp-http-server");
 const { buildIdeTools } = require("./ide-tools");
 const { createVscodeEditorFacade } = require("./vscode-facade");
-const { writeLock, removeLock, generateToken } = require("./lockfile");
+const {
+  writeLock,
+  removeLock,
+  pruneStaleLocks,
+  generateToken,
+} = require("./lockfile");
 const { ActivityLog, summarizeArgs } = require("./activity-log");
 const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
@@ -80,6 +85,14 @@ async function stopBridge(context) {
 
 async function startBridge(context) {
   await stopBridge(context);
+  // Sweep lockfiles left by crashed/force-killed instances (ephemeral ports mean
+  // each crash leaves a distinct orphan that normal shutdown never cleans).
+  try {
+    const pruned = pruneStaleLocks();
+    if (pruned > 0) log(`pruned ${pruned} stale IDE lockfile(s)`);
+  } catch {
+    /* best-effort — pruning must never block bridge start */
+  }
   const enabled = vscode.workspace
     .getConfiguration("chainlesschain.ide")
     .get("enabled", true);

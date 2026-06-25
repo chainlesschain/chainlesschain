@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.14] — fix: clean up lockfiles left by crashed instances
+
+- **Stale IDE lockfiles from crashed or force-killed editor instances are now
+  swept on bridge start.** Normal shutdown removes its lockfile, but a crash
+  leaves it behind — and since each run binds an ephemeral port, those orphans
+  (`~/.chainlesschain/ide/<port>.json`) accumulated indefinitely. `startBridge`
+  now prunes any lockfile whose owning process is gone (or whose file is corrupt),
+  while preserving a live sibling editor's bridge. Mirrors Claude Code's automatic
+  cleanup of leaked registrations.
+
 ## [0.36.13] — fix: a late bridge-server error can't crash the extension
 
 - **A server error after the bridge is listening no longer risks taking down the
