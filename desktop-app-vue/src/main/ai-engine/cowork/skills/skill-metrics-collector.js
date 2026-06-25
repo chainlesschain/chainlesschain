@@ -52,30 +52,33 @@ class SkillMetricsCollector extends EventEmitter {
       return;
     }
 
+    // 保存绑定后的处理器引用，使 destroy() 能 off 掉它们。匿名监听器无法移除：
+    // skillRegistry/pipelineEngine 是注入的共享长期对象，destroy 后这些监听器仍会
+    // 触发 _onSkill*/_onPipeline*（钉住已销毁的 collector）+ re-init 累加重复分发。
+    this._h = {
+      skillStarted: (data) => this._onSkillStarted(data),
+      skillCompleted: (data) => this._onSkillCompleted(data),
+      skillFailed: (data) => this._onSkillFailed(data),
+      pipelineCompleted: (data) => this._onPipelineCompleted(data),
+      pipelineFailed: (data) => this._onPipelineFailed(data),
+      pipelineStepCompleted: (data) => this._onPipelineStepCompleted(data),
+    };
+
     // Listen to SkillRegistry events
     if (this.skillRegistry) {
-      this.skillRegistry.on("skill-started", (data) => {
-        this._onSkillStarted(data);
-      });
-      this.skillRegistry.on("skill-completed", (data) => {
-        this._onSkillCompleted(data);
-      });
-      this.skillRegistry.on("skill-failed", (data) => {
-        this._onSkillFailed(data);
-      });
+      this.skillRegistry.on("skill-started", this._h.skillStarted);
+      this.skillRegistry.on("skill-completed", this._h.skillCompleted);
+      this.skillRegistry.on("skill-failed", this._h.skillFailed);
     }
 
     // Listen to PipelineEngine events
     if (this.pipelineEngine) {
-      this.pipelineEngine.on("pipeline:completed", (data) => {
-        this._onPipelineCompleted(data);
-      });
-      this.pipelineEngine.on("pipeline:failed", (data) => {
-        this._onPipelineFailed(data);
-      });
-      this.pipelineEngine.on("pipeline:step-completed", (data) => {
-        this._onPipelineStepCompleted(data);
-      });
+      this.pipelineEngine.on("pipeline:completed", this._h.pipelineCompleted);
+      this.pipelineEngine.on("pipeline:failed", this._h.pipelineFailed);
+      this.pipelineEngine.on(
+        "pipeline:step-completed",
+        this._h.pipelineStepCompleted,
+      );
     }
 
     // Start periodic flush
@@ -332,6 +335,28 @@ class SkillMetricsCollector extends EventEmitter {
       clearInterval(this._flushTimer);
       this._flushTimer = null;
     }
+
+    // 移除注入依赖上的事件监听器（否则 destroy 后仍触发并钉住 collector，re-init 累加）
+    if (this._h) {
+      if (this.skillRegistry) {
+        this.skillRegistry.off("skill-started", this._h.skillStarted);
+        this.skillRegistry.off("skill-completed", this._h.skillCompleted);
+        this.skillRegistry.off("skill-failed", this._h.skillFailed);
+      }
+      if (this.pipelineEngine) {
+        this.pipelineEngine.off(
+          "pipeline:completed",
+          this._h.pipelineCompleted,
+        );
+        this.pipelineEngine.off("pipeline:failed", this._h.pipelineFailed);
+        this.pipelineEngine.off(
+          "pipeline:step-completed",
+          this._h.pipelineStepCompleted,
+        );
+      }
+      this._h = null;
+    }
+
     this.flush().catch(() => {});
     this._initialized = false;
     logger.info("[SkillMetricsCollector] Destroyed");
