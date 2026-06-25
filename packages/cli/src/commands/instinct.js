@@ -86,9 +86,14 @@ export function registerInstinctCommand(program) {
           logger.log(chalk.bold(`Learned Instincts (${instincts.length}):\n`));
           for (const inst of instincts) {
             const pct = (inst.confidence * 100).toFixed(0);
-            const bar =
-              "█".repeat(Math.round(inst.confidence * 10)) +
-              "░".repeat(10 - Math.round(inst.confidence * 10));
+            // Clamp to [0,10] so a stored confidence outside [0,1]
+            // (recordBatch upserts caller-supplied values unclamped) can't
+            // make repeat() go negative and crash the whole list.
+            const lvl = Math.max(
+              0,
+              Math.min(10, Math.round(inst.confidence * 10) || 0),
+            );
+            const bar = "█".repeat(lvl) + "░".repeat(10 - lvl);
             logger.log(
               `  ${chalk.gray(inst.id.slice(0, 8))}  ${chalk.cyan(inst.category.padEnd(18))} ${bar} ${pct}%`,
             );
@@ -124,7 +129,13 @@ export function registerInstinctCommand(program) {
           const fs = await import("fs");
           fs.writeFileSync(options.output, JSON.stringify(rows), "utf-8");
           if (options.json) {
-            console.log(JSON.stringify({ ok: true, count: rows.length, output: options.output }));
+            console.log(
+              JSON.stringify({
+                ok: true,
+                count: rows.length,
+                output: options.output,
+              }),
+            );
           } else {
             logger.log(`exported ${rows.length} instincts → ${options.output}`);
           }
@@ -141,7 +152,9 @@ export function registerInstinctCommand(program) {
   // instinct import — §8.3 restore: idempotent upsert by id from a JSON-array file
   instinct
     .command("import")
-    .description("Import instincts from a JSON array file (idempotent upsert by id; §8.3)")
+    .description(
+      "Import instincts from a JSON array file (idempotent upsert by id; §8.3)",
+    )
     .requiredOption("--input <file>", "JSON array of instincts to import")
     .option("--json", "Output JSON result")
     .action(async (options) => {

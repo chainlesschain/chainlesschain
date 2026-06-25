@@ -143,8 +143,11 @@ export function registerMemoryCommand(program) {
         } else {
           logger.log(chalk.bold(`Memory (${entries.length} entries):\n`));
           for (const e of entries) {
-            const stars =
-              "★".repeat(e.importance) + "☆".repeat(5 - e.importance);
+            // Clamp to [0,5] so an out-of-range stored importance (rows
+            // written outside the clamped `memory add` path) can't make
+            // repeat() go negative and crash the whole list.
+            const imp = Math.max(0, Math.min(5, Math.round(e.importance) || 0));
+            const stars = "★".repeat(imp) + "☆".repeat(5 - imp);
             logger.log(
               `  ${chalk.gray(e.id.slice(0, 12))}  ${chalk.yellow(stars)}  ${chalk.cyan(e.category)}`,
             );
@@ -180,9 +183,17 @@ export function registerMemoryCommand(program) {
           const fs = await import("fs");
           fs.writeFileSync(options.output, JSON.stringify(entries), "utf-8");
           if (options.json) {
-            console.log(JSON.stringify({ ok: true, count: entries.length, output: options.output }));
+            console.log(
+              JSON.stringify({
+                ok: true,
+                count: entries.length,
+                output: options.output,
+              }),
+            );
           } else {
-            logger.log(`exported ${entries.length} memory entries → ${options.output}`);
+            logger.log(
+              `exported ${entries.length} memory entries → ${options.output}`,
+            );
           }
         } else {
           console.log(JSON.stringify(entries)); // data command: emit the array
@@ -197,7 +208,9 @@ export function registerMemoryCommand(program) {
   // memory import — §8.3 restore: idempotent upsert by id from a JSON-array file
   memory
     .command("import")
-    .description("Import memory entries from a JSON array file (idempotent upsert by id; §8.3)")
+    .description(
+      "Import memory entries from a JSON array file (idempotent upsert by id; §8.3)",
+    )
     .requiredOption("--input <file>", "JSON array of memory entries to import")
     .option("--json", "Output JSON result")
     .action(async (options) => {
