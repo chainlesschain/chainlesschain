@@ -247,6 +247,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -308,8 +309,10 @@ async function loadBiTemplates() {
   biLoading.value = true
   try {
     const { output } = await ws.execute('bi templates --json', 15000)
-    const parsed = JSON.parse(output)
-    biTemplates.value = Array.isArray(parsed) ? parsed : (parsed.templates || [])
+    // Robust extraction tolerates CLI logger noise around the JSON; returns
+    // null (not throw) when absent, so guard the .templates access.
+    const parsed = tryParseJson(output)
+    biTemplates.value = Array.isArray(parsed) ? parsed : (parsed?.templates || [])
   } catch (_e) {
     biTemplates.value = []
   } finally {

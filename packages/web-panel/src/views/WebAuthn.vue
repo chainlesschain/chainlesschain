@@ -267,6 +267,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const { t } = useI18n()
 const ws = useWsStore()
@@ -292,12 +293,12 @@ function onTabChange(key) {
 }
 
 // --- Helpers ---
+// Delegate to the shared balanced-extraction parser. The old bare
+// JSON.parse(output) had no CLI-noise stripping, so any leading/trailing
+// logger line in the `cc` output made it throw → SSO/2FA/passkey panels
+// silently lost their data.
 function tryParseJSON(output) {
-  try {
-    return JSON.parse(output)
-  } catch (_e) {
-    return null
-  }
+  return tryParseJson(output)
 }
 
 function truncateId(id) {
