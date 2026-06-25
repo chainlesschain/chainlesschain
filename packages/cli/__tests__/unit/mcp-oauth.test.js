@@ -697,3 +697,128 @@ describe("HTTPS endpoint enforcement", () => {
     }
   });
 });
+
+describe("token store cross-process lock", () => {
+  // A fake fs with the lock primitives + an atomic-rename store, backed by an
+  // in-memory file map, so the O_EXCL lock path is actually exercised.
+  function makeLockFs({
+    initialStore = null,
+    lockHeld = false,
+    lockMtimeMs,
+  } = {}) {
+    const files = new Map();
+    const storeFile = oauth.tokenStorePath();
+    const lockPath = `${storeFile}.lock`;
+    if (initialStore) files.set(storeFile, JSON.stringify(initialStore));
+    const lockMtimes = new Map();
+    if (lockHeld) {
+      files.set(lockPath, "");
+      lockMtimes.set(lockPath, lockMtimeMs ?? Date.now());
+    }
+    const calls = [];
+    const fs = {
+      existsSync: (p) => files.has(p),
+      readFileSync: (p) => {
+        if (!files.has(p)) {
+          const e = new Error("ENOENT");
+          e.code = "ENOENT";
+          throw e;
+        }
+        return files.get(p);
+      },
+      writeFileSync: (p, c) => files.set(p, c),
+      mkdirSync: () => {},
+      renameSync: (a, b) => {
+        files.set(b, files.get(a));
+        files.delete(a);
+      },
+      chmodSync: () => {},
+      unlinkSync: (p) => {
+        calls.push(p === lockPath ? "unlink:lock" : "unlink:other");
+        files.delete(p);
+        lockMtimes.delete(p);
+      },
+      openSync: (p, flag) => {
+        calls.push(`open:${flag}`);
+        if (flag === "wx" && files.has(p)) {
+          const e = new Error("EEXIST");
+          e.code = "EEXIST";
+          throw e;
+        }
+        files.set(p, "");
+        if (p === lockPath) lockMtimes.set(p, Date.now());
+        return 99;
+      },
+      closeSync: () => calls.push("close"),
+      statSync: (p) => ({ mtimeMs: lockMtimes.get(p) ?? 0 }),
+    };
+    return { fs, files, calls, storeFile, lockPath };
+  }
+
+  it("acquires (O_EXCL) and releases the lock around a write", () => {
+    const { fs, calls, files, storeFile } = makeLockFs();
+    _deps.fs = fs;
+    const rec = oauth.saveStoredToken("https://m.example.com/mcp", {
+      access_token: "AT",
+    });
+    expect(rec.access_token).toBe("AT");
+    expect(calls).toContain("open:wx"); // exclusive create
+    expect(calls).toContain("close");
+    expect(calls).toContain("unlink:lock"); // released
+    const saved = JSON.parse(files.get(storeFile));
+    expect(
+      saved[oauth.serverKey("https://m.example.com/mcp")].access_token,
+    ).toBe("AT");
+  });
+
+  it("re-reads inside the lock so a concurrent server's token isn't lost", () => {
+    const { fs, files, storeFile } = makeLockFs({
+      initialStore: {
+        "https://a.example.com": {
+          server: "https://a.example.com",
+          access_token: "A",
+        },
+      },
+    });
+    _deps.fs = fs;
+    oauth.saveStoredToken("https://b.example.com/mcp", { access_token: "B" });
+    const saved = JSON.parse(files.get(storeFile));
+    expect(saved["https://a.example.com"].access_token).toBe("A"); // preserved
+    expect(
+      saved[oauth.serverKey("https://b.example.com/mcp")].access_token,
+    ).toBe("B");
+  });
+
+  it("steals a stale lock left by a crashed holder", () => {
+    const { fs, calls, files, storeFile } = makeLockFs({
+      lockHeld: true,
+      lockMtimeMs: Date.now() - 60_000, // older than STALE_MS (10s)
+    });
+    _deps.fs = fs;
+    oauth.saveStoredToken("https://m.example.com/mcp", { access_token: "AT" });
+    // First open throws EEXIST → stale lock unlinked (stolen) → second open wins.
+    expect(calls.filter((c) => c === "open:wx").length).toBeGreaterThanOrEqual(
+      2,
+    );
+    expect(calls).toContain("unlink:lock");
+    const saved = JSON.parse(files.get(storeFile));
+    expect(
+      saved[oauth.serverKey("https://m.example.com/mcp")].access_token,
+    ).toBe("AT");
+  });
+
+  it("runs unlocked when the fs lacks lock primitives (back-compat)", () => {
+    const files = new Map();
+    _deps.fs = {
+      existsSync: (p) => files.has(p),
+      readFileSync: (p) => files.get(p),
+      writeFileSync: (p, c) => files.set(p, c),
+      mkdirSync: () => {},
+      // no openSync/closeSync/unlinkSync → unlocked fallback
+    };
+    const rec = oauth.saveStoredToken("https://m.example.com/mcp", {
+      access_token: "AT",
+    });
+    expect(rec.access_token).toBe("AT");
+  });
+});

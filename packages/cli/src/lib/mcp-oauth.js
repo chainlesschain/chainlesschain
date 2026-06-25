@@ -416,26 +416,126 @@ function _writeStoreSecure(file, store) {
   }
 }
 
+/** Bounded synchronous sleep (the store lock is held only for a few file ops). */
+function _sleepSyncMs(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      /* spin — Atomics.wait unavailable (should not happen on modern Node) */
+    }
+  }
+}
+
+/**
+ * Run `fn` while holding a cross-process advisory lock on the token store.
+ *
+ * saveStoredToken / deleteStoredToken are read-modify-write (load → mutate →
+ * write). Two concurrent `cc mcp login` PROCESSES for different servers would
+ * each load the old store and the second writer would clobber the first's new
+ * entry (lost update) — the atomic temp+rename only prevents a torn file, not a
+ * lost update. An O_EXCL lockfile makes the whole RMW mutually exclusive across
+ * processes, so each writer re-reads the latest store inside the lock.
+ *
+ * Robustness: a stale lock (holder crashed) older than STALE_MS is stolen; if
+ * the lock can't be acquired within MAX_WAIT_MS we proceed anyway (degrading to
+ * the pre-lock last-writer-wins rather than failing the login). When the
+ * injected fs lacks the lock primitives (test fs / exotic fs) we run `fn`
+ * directly — single-process correctness is unchanged, only cross-process mutual
+ * exclusion is lost. Lock timing uses the wall clock (not the `now` test seam).
+ */
+function withStoreLock(file, fn) {
+  const fs = _deps.fs;
+  if (
+    typeof fs.openSync !== "function" ||
+    typeof fs.closeSync !== "function" ||
+    typeof fs.unlinkSync !== "function"
+  ) {
+    return fn(); // no lock primitives → run unlocked (back-compat)
+  }
+  const STALE_MS = 10_000;
+  const MAX_WAIT_MS = 5_000;
+  const lockPath = `${file}.lock`;
+  try {
+    fs.mkdirSync(pathDefault.dirname(file), { recursive: true, mode: 0o700 });
+  } catch {
+    /* dir may already exist — openSync below reports any real problem */
+  }
+  const start = Date.now();
+  let fd = null;
+  for (;;) {
+    try {
+      fd = fs.openSync(lockPath, "wx"); // O_CREAT|O_EXCL — fails if held
+      break;
+    } catch (err) {
+      if (!err || err.code !== "EEXIST") {
+        // Unexpected (e.g. ENOENT/EACCES): don't fail the login over the lock —
+        // proceed unlocked, same as a missing-primitives fs.
+        return fn();
+      }
+      let stale = false;
+      try {
+        const st = fs.statSync(lockPath);
+        const mtime = st.mtimeMs != null ? st.mtimeMs : 0;
+        stale = Date.now() - mtime > STALE_MS;
+      } catch {
+        /* lock vanished between open and stat → retry immediately */
+      }
+      if (stale) {
+        try {
+          fs.unlinkSync(lockPath); // steal a lock from a crashed holder
+        } catch {
+          /* someone else stole it first — retry */
+        }
+        continue;
+      }
+      if (Date.now() - start > MAX_WAIT_MS) break; // give up waiting; proceed
+      _sleepSyncMs(50);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (fd !== null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* ignore */
+      }
+      try {
+        fs.unlinkSync(lockPath);
+      } catch {
+        /* ignore — a stale-steal by another process may have removed it */
+      }
+    }
+  }
+}
+
 export function saveStoredToken(serverUrl, record) {
   const file = tokenStorePath();
-  const store = loadTokenStore();
-  store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
-  _writeStoreSecure(file, store);
-  return store[serverKey(serverUrl)];
+  return withStoreLock(file, () => {
+    const store = loadTokenStore(); // re-read inside the lock (latest state)
+    store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
+    _writeStoreSecure(file, store);
+    return store[serverKey(serverUrl)];
+  });
 }
 
 export function deleteStoredToken(serverUrl) {
   const file = tokenStorePath();
-  const store = loadTokenStore();
-  const key = serverKey(serverUrl);
-  if (!(key in store)) return false;
-  delete store[key];
-  try {
-    _writeStoreSecure(file, store);
-  } catch {
-    /* best-effort */
-  }
-  return true;
+  return withStoreLock(file, () => {
+    const store = loadTokenStore(); // re-read inside the lock (latest state)
+    const key = serverKey(serverUrl);
+    if (!(key in store)) return false;
+    delete store[key];
+    try {
+      _writeStoreSecure(file, store);
+    } catch {
+      /* best-effort */
+    }
+    return true;
+  });
 }
 
 /** True when a record's access token is missing or within `skewMs` of expiry. */
