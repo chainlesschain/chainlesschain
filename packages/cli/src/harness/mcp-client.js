@@ -18,6 +18,8 @@ import { EventEmitter } from "events";
 export const _deps = {
   spawn,
   fetch: (...args) => globalThis.fetch(...args),
+  // Backoff sleep seam (tests override with a no-op so retries don't wait).
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
 /**
@@ -91,6 +93,26 @@ export function isHttpTransport(transportKind) {
 export function isLikelyConnectionError(err) {
   const msg = String((err && err.message) || err || "");
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|HTTP 40[134]\b|not connected|not found|not available/i.test(
+    msg,
+  );
+}
+
+/** Capability-discovery retry tuning (Claude-Code 2.1.191 "short backoff"). */
+const MCP_DISCOVERY_RETRIES = 2; // up to 3 attempts total
+const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
+
+/**
+ * Is this a TRANSIENT error worth a short retry during capability discovery?
+ * Narrower than isLikelyConnectionError: connection-level failures and 5xx
+ * server errors retry, but 4xx (auth 401/403, not-found 404 = permanent for the
+ * same request), already-waited timeouts, and a dead stdio process do not —
+ * retrying those just wastes attempts.
+ */
+export function isTransientMcpError(err) {
+  const msg = String((err && err.message) || err || "");
+  if (/HTTP 4\d\d\b/i.test(msg)) return false; // any 4xx is permanent here
+  if (/Request timeout/i.test(msg)) return false; // already spent the full budget
+  return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|EPIPE|socket hang up|network error|HTTP 5\d\d\b/i.test(
     msg,
   );
 }
@@ -277,8 +299,8 @@ export class MCPClient extends EventEmitter {
         );
       }
 
-      // Initialize MCP protocol
-      const initResult = await this._sendRequest(name, "initialize", {
+      // Initialize MCP protocol (retried on transient network errors).
+      const initResult = await this._requestWithRetry(name, "initialize", {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {}, resources: {}, prompts: {} },
         clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
@@ -302,7 +324,11 @@ export class MCPClient extends EventEmitter {
       const advertisesTools =
         entry.capabilities && entry.capabilities.tools !== undefined;
       try {
-        const toolsResult = await this._sendRequest(name, "tools/list", {});
+        const toolsResult = await this._requestWithRetry(
+          name,
+          "tools/list",
+          {},
+        );
         entry.tools = toolsResult?.tools || [];
       } catch (err) {
         if (advertisesTools) {
@@ -590,6 +616,34 @@ export class MCPClient extends EventEmitter {
 
   // ─── Internal JSON-RPC transport ──────────────────────────────
 
+  /**
+   * Capability-discovery request with a short backoff retry on TRANSIENT
+   * network errors (Claude-Code 2.1.191: "capability discovery now retries
+   * transient network errors with short backoff"). Permanent errors (4xx,
+   * JSON-RPC errors, timeouts, dead stdio process) throw on the first failure.
+   */
+  async _requestWithRetry(
+    serverName,
+    method,
+    params,
+    attempts = MCP_DISCOVERY_RETRIES,
+  ) {
+    for (let i = 0; ; i++) {
+      try {
+        return await this._sendRequest(serverName, method, params);
+      } catch (err) {
+        if (i >= attempts || !isTransientMcpError(err)) throw err;
+        this.emit("server-retry", {
+          name: serverName,
+          method,
+          attempt: i + 1,
+          error: err?.message || String(err),
+        });
+        await _deps.sleep(MCP_DISCOVERY_BACKOFF_MS * (i + 1));
+      }
+    }
+  }
+
   _sendRequest(serverName, method, params) {
     const entry = this.servers.get(serverName);
     if (!entry) return Promise.reject(new Error("Server not available"));
@@ -719,9 +773,16 @@ export class MCPClient extends EventEmitter {
       if (!response.ok) {
         const text =
           typeof response.text === "function" ? await response.text() : "";
-        throw new Error(
-          `HTTP ${response.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
-        );
+        const detail = text ? `: ${text.slice(0, 200)}` : "";
+        // 404 usually means a wrong/stale server URL — name it and point at the
+        // MCP config (Claude-Code 2.1.191: "HTTP 404 errors now show the URL and
+        // point to your MCP config") instead of a bare "HTTP 404".
+        if (response.status === 404) {
+          throw new Error(
+            `HTTP 404${detail} — ${entry.httpUrl} returned Not Found; check this server's "url" in your MCP config`,
+          );
+        }
+        throw new Error(`HTTP ${response.status}${detail}`);
       }
 
       const contentType = response.headers?.get

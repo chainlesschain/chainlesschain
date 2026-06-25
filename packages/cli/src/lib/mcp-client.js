@@ -15,5 +15,6 @@ export {
   inferTransport,
   isHttpTransport,
   isLikelyConnectionError,
+  isTransientMcpError,
   _deps,
 } from "../harness/mcp-client.js";

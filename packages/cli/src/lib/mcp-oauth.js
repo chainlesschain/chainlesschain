@@ -36,7 +36,12 @@ export const _deps = {
   createServer: (h) => http.createServer(h),
   openBrowser: defaultOpenBrowser,
   now: () => Date.now(),
+  // Backoff sleep seam (tests override with a no-op so the retry doesn't wait).
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
+
+/** Discovery/token requests retry ONCE after a transient error (CC 2.1.191). */
+const MCP_OAUTH_RETRY_BACKOFF_MS = 300;
 
 const base64url = (buf) =>
   Buffer.from(buf)
@@ -103,10 +108,29 @@ export function renderCallbackPage(error) {
   );
 }
 
-async function fetchJson(url, opts) {
-  const res = await _deps.fetch(url, opts);
+async function fetchJson(url, opts, attempt = 0) {
+  let res;
+  try {
+    res = await _deps.fetch(url, opts);
+  } catch (netErr) {
+    // fetch rejected = transient network error → retry once after a short wait
+    // (CC 2.1.191: "discovery and token requests now retry once after transient
+    // network errors").
+    if (attempt < 1) {
+      await _deps.sleep(MCP_OAUTH_RETRY_BACKOFF_MS);
+      return fetchJson(url, opts, attempt + 1);
+    }
+    throw netErr;
+  }
   if (!res || !res.ok) {
     const status = res ? res.status : "no-response";
+    // 5xx is transient → retry once. 4xx is permanent — and discovery probes
+    // 404s on purpose (it falls through to the next metadata URL), so retrying
+    // those would only slow the expected fall-through.
+    if (attempt < 1 && typeof status === "number" && status >= 500) {
+      await _deps.sleep(MCP_OAUTH_RETRY_BACKOFF_MS);
+      return fetchJson(url, opts, attempt + 1);
+    }
     let body = "";
     try {
       body = res ? await res.text() : "";
@@ -310,7 +334,10 @@ export function getStoredToken(serverUrl) {
 // readable. writeFileSync's `mode` only applies when the file is created, so
 // also chmod (best-effort) to tighten a file an older version left at 0644.
 function _writeStoreSecure(file, store) {
-  _deps.fs.mkdirSync(pathDefault.dirname(file), { recursive: true, mode: 0o700 });
+  _deps.fs.mkdirSync(pathDefault.dirname(file), {
+    recursive: true,
+    mode: 0o700,
+  });
   const data = JSON.stringify(store, null, 2) + "\n";
   // Atomic temp+rename: the store holds live OAuth tokens, so a crash (or a
   // concurrent `cc mcp login`) mid-write must not truncate it and lose auth for
@@ -326,7 +353,11 @@ function _writeStoreSecure(file, store) {
       _deps.fs.renameSync(tmp, file);
     } catch (err) {
       try {
-        if (_deps.fs.existsSync && _deps.fs.existsSync(tmp) && _deps.fs.unlinkSync)
+        if (
+          _deps.fs.existsSync &&
+          _deps.fs.existsSync(tmp) &&
+          _deps.fs.unlinkSync
+        )
           _deps.fs.unlinkSync(tmp);
       } catch {
         /* best-effort temp cleanup */

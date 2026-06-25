@@ -183,6 +183,95 @@ describe("token exchange + refresh", () => {
   });
 });
 
+describe("fetchJson retry on transient errors (CC 2.1.191)", () => {
+  let slept;
+  let realSleep;
+  const TOKEN = { token_endpoint: "https://auth.example.com/token" };
+  const exch = () =>
+    oauth.exchangeCodeForToken(TOKEN, {
+      code: "C",
+      codeVerifier: "V",
+      clientId: "cid",
+      redirectUri: "http://x/cb",
+    });
+  const okRes = () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ access_token: "AT", expires_in: 60 }),
+    text: async () => "{}",
+  });
+
+  beforeEach(() => {
+    slept = [];
+    realSleep = _deps.sleep;
+    _deps.sleep = async (ms) => {
+      slept.push(ms);
+    };
+  });
+  afterEach(() => {
+    _deps.sleep = realSleep;
+  });
+
+  it("retries once after a network rejection, then succeeds", async () => {
+    let n = 0;
+    _deps.fetch = vi.fn(async () => {
+      n += 1;
+      if (n === 1) throw new Error("fetch failed");
+      return okRes();
+    });
+    const tok = await exch();
+    expect(tok.access_token).toBe("AT");
+    expect(n).toBe(2);
+    expect(slept).toEqual([300]);
+  });
+
+  it("retries once on a 5xx, then succeeds", async () => {
+    let n = 0;
+    _deps.fetch = vi.fn(async () => {
+      n += 1;
+      if (n === 1)
+        return {
+          ok: false,
+          status: 503,
+          text: async () => "busy",
+          json: async () => ({}),
+        };
+      return okRes();
+    });
+    const tok = await exch();
+    expect(tok.access_token).toBe("AT");
+    expect(n).toBe(2);
+    expect(slept).toEqual([300]);
+  });
+
+  it("does NOT retry a 4xx (permanent) and surfaces it", async () => {
+    let n = 0;
+    _deps.fetch = vi.fn(async () => {
+      n += 1;
+      return {
+        ok: false,
+        status: 400,
+        text: async () => "bad",
+        json: async () => ({}),
+      };
+    });
+    await expect(exch()).rejects.toThrow(/HTTP 400/);
+    expect(n).toBe(1);
+    expect(slept).toEqual([]);
+  });
+
+  it("gives up after a single retry on a persistent network error", async () => {
+    let n = 0;
+    _deps.fetch = vi.fn(async () => {
+      n += 1;
+      throw new Error("ECONNRESET");
+    });
+    await expect(exch()).rejects.toThrow(/ECONNRESET/);
+    expect(n).toBe(2); // original + one retry
+    expect(slept).toEqual([300]);
+  });
+});
+
 describe("token store + expiry", () => {
   it("save → get round-trips by server origin", () => {
     oauth.saveStoredToken("https://mcp.example.com/mcp", {
