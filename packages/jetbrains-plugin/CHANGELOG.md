@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.38] — fix: clean up lockfiles left by crashed instances
+
+- **Stale IDE lockfiles from crashed or force-killed IDE instances are now swept
+  on bridge start** (parity with the VS Code extension). Normal shutdown removes
+  its lockfile, but a crash leaves it behind — and since each run binds an
+  ephemeral port, those orphans (`~/.chainlesschain/ide/<port>.json`) accumulated
+  indefinitely. `LockfileWriter.pruneStale()` now removes any lock whose owning
+  process is gone (via `ProcessHandle`) or whose file is corrupt, while preserving
+  a live sibling IDE's bridge. Mirrors Claude Code's automatic cleanup of leaked
+  registrations.
+
 ## [0.4.37] — feat: surface unsaved-buffer state in getOpenEditors
 
 - **The `getOpenEditors` tool now reports `isDirty` per open file**

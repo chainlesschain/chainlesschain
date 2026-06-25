@@ -37,6 +37,15 @@ public final class IdeBridgeService implements Disposable {
     public synchronized void start() {
         if (server != null) return;
         try {
+            // Sweep lockfiles left by crashed/force-killed instances (ephemeral
+            // ports mean each crash leaves a distinct orphan that normal shutdown
+            // never cleans).
+            try {
+                int pruned = lockfile.pruneStale();
+                if (pruned > 0) LOG.info("pruned " + pruned + " stale IDE lockfile(s)");
+            } catch (Exception ignore) {
+                // best-effort — pruning must never block bridge start
+            }
             token = LockfileWriter.generateToken();
             IntellijEditorFacade facade = new IntellijEditorFacade(project);
             server = new McpServer(IdeTools.build(facade), token);

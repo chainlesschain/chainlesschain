@@ -22,6 +22,7 @@ import java.util.Set;
 public final class LockfileWriter {
 
     private final Path dir;
+    private final java.util.function.LongPredicate processAlive;
 
     public LockfileWriter() {
         this(Paths.get(System.getProperty("user.home"), ".chainlesschain", "ide"));
@@ -29,7 +30,23 @@ public final class LockfileWriter {
 
     /** Test seam: point the writer at an arbitrary directory. */
     public LockfileWriter(Path lockDir) {
+        this(lockDir, LockfileWriter::defaultProcessAlive);
+    }
+
+    /** Test seam: arbitrary directory + a custom pid-liveness probe. */
+    public LockfileWriter(Path lockDir, java.util.function.LongPredicate processAlive) {
         this.dir = lockDir;
+        this.processAlive = processAlive;
+    }
+
+    /** True if a process with {@code pid} is currently alive (Java 9+). */
+    static boolean defaultProcessAlive(long pid) {
+        if (pid <= 0) return false;
+        try {
+            return ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public Path lockDir() {
@@ -82,6 +99,48 @@ public final class LockfileWriter {
             return Files.deleteIfExists(dir.resolve(port + ".json"));
         } catch (IOException e) {
             return false;
+        }
+    }
+
+    /**
+     * Remove lockfiles left by crashed / force-killed instances. Normal shutdown
+     * calls remove(), but a crash leaves the file — and because each run binds an
+     * ephemeral port, these orphans accumulate forever. A lock is stale when its
+     * owning process is gone (or its file is unparseable). Best-effort; returns
+     * the count removed. Never removes a lock whose pid is still alive (so a live
+     * sibling IDE's bridge is preserved). Mirrors the VS Code pruneStaleLocks.
+     */
+    public int pruneStale() {
+        if (!Files.isDirectory(dir)) return 0;
+        List<Path> files;
+        try (java.util.stream.Stream<Path> s = Files.list(dir)) {
+            files = s.filter(p -> p.getFileName().toString().endsWith(".json"))
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (IOException e) {
+            return 0;
+        }
+        int removed = 0;
+        for (Path file : files) {
+            Long pid = readPid(file);
+            if (pid != null && processAlive.test(pid)) continue; // owner alive → keep
+            try {
+                if (Files.deleteIfExists(file)) removed++;
+            } catch (IOException ignore) {
+                // best-effort
+            }
+        }
+        return removed;
+    }
+
+    /** The pid from a lockfile, or null if missing / unparseable (→ stale). */
+    private static Long readPid(Path file) {
+        try {
+            String content = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+            Map<String, Object> lock = MiniJson.parseObject(content);
+            Object pid = lock == null ? null : lock.get("pid");
+            return (pid instanceof Number) ? ((Number) pid).longValue() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 

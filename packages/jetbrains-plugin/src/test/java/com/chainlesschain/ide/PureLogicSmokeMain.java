@@ -16,7 +16,7 @@ import java.util.Set;
  * IntelliJ SDK, no cc, no LLM — just plain {@code javac} + {@code java}.
  *
  * Repro (from packages/jetbrains-plugin):
- *   javac --release 8 -encoding UTF-8 -d .smoke-out \
+ *   javac --release 17 -encoding UTF-8 -d .smoke-out \
  *     src/main/java/com/chainlesschain/ide/*.java \
  *     src/test/java/com/chainlesschain/ide/PureLogicSmokeMain.java
  *   java -cp .smoke-out com.chainlesschain.ide.PureLogicSmokeMain
@@ -52,6 +52,7 @@ public final class PureLogicSmokeMain {
         fixWithCc();
         markdownLite();
         transcriptCap();
+        lockfilePrune();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -585,6 +586,41 @@ public final class PureLogicSmokeMain {
         // empty / null
         check(MarkdownLite.parse("").isEmpty(), "empty → no spans");
         check(MarkdownLite.parse(null).isEmpty(), "null → no spans");
+    }
+
+    private static void lockfilePrune() {
+        System.out.println("LockfileWriter.pruneStale:");
+        java.nio.file.Path tmp = null;
+        try {
+            tmp = java.nio.file.Files.createTempDirectory("ide-prune-");
+            // Only pid 100 is "alive"; 200 is dead.
+            LockfileWriter w = new LockfileWriter(tmp, pid -> pid == 100L);
+            w.write(1, "t", java.util.Collections.singletonList("/ws"), "http://x", 0L, 100L);
+            w.write(2, "t", java.util.Collections.singletonList("/ws"), "http://x", 0L, 200L);
+            java.nio.file.Files.write(tmp.resolve("3.json"),
+                    "{ not json".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            java.nio.file.Files.write(tmp.resolve("4.json"),
+                    "{\"port\":4}".getBytes(java.nio.charset.StandardCharsets.UTF_8)); // no pid
+
+            eq(w.pruneStale(), 3, "removes dead + corrupt + pidless");
+            check(java.nio.file.Files.exists(tmp.resolve("1.json")), "alive (pid 100) kept");
+            check(!java.nio.file.Files.exists(tmp.resolve("2.json")), "dead (pid 200) removed");
+            check(!java.nio.file.Files.exists(tmp.resolve("3.json")), "corrupt removed");
+            check(!java.nio.file.Files.exists(tmp.resolve("4.json")), "pidless removed");
+
+            // Absent dir → 0.
+            eq(new LockfileWriter(tmp.resolve("nope"), pid -> true).pruneStale(), 0, "absent dir → 0");
+        } catch (Exception e) {
+            check(false, "pruneStale smoke threw: " + e);
+        } finally {
+            if (tmp != null) {
+                try (java.util.stream.Stream<java.nio.file.Path> s = java.nio.file.Files.walk(tmp)) {
+                    s.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                        try { java.nio.file.Files.deleteIfExists(p); } catch (Exception ignore) { }
+                    });
+                } catch (Exception ignore) { }
+            }
+        }
     }
 
     private static void transcriptCap() {

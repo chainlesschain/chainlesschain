@@ -73,14 +73,14 @@ The code is split into two layers:
 ## Verification
 
 The protocol core is **not** taken on faith. On a machine with no IntelliJ SDK
-(and no Kotlin), it was compiled with `javac --release 8` and driven by the
+(and no Kotlin), it was compiled with `javac --release 17` and driven by the
 **real Node CLI MCP client** as a cross-language interop probe:
 
 ```bash
 # from packages/jetbrains-plugin/
 OUT=$(mktemp -d)
-javac -encoding UTF-8 --release 8 -d "$OUT" src/main/java/com/chainlesschain/ide/*.java
-javac -encoding UTF-8 --release 8 -cp "$OUT" -d "$OUT" src/test/java/com/chainlesschain/ide/InteropSmokeMain.java
+javac -encoding UTF-8 --release 17 -d "$OUT" src/main/java/com/chainlesschain/ide/*.java
+javac -encoding UTF-8 --release 17 -cp "$OUT" -d "$OUT" src/test/java/com/chainlesschain/ide/InteropSmokeMain.java
 java -cp "$OUT" com.chainlesschain.ide.InteropSmokeMain   # prints PORT=/TOKEN=/READY
 node interop-smoke.mjs <port> <token>                     # drives it with the CLI client
 ```
