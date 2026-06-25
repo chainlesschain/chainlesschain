@@ -8,6 +8,7 @@
  */
 
 import { EventEmitter } from "events";
+import { firstBalancedJson } from "./json-schema-output.js";
 
 /**
  * Required slots per intent type — must be filled before execution.
@@ -341,9 +342,9 @@ Keep values concise (single words or short strings).`;
       ]);
 
       const content = response?.message?.content || response?.content || "";
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      const jsonText = firstBalancedJson(content, "{");
+      if (jsonText) {
+        const parsed = JSON.parse(jsonText);
         // Filter out null values
         const result = {};
         for (const [key, value] of Object.entries(parsed)) {

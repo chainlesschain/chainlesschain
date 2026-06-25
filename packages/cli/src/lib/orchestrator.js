@@ -27,6 +27,7 @@ import crypto from "crypto";
 import { AgentRouter } from "./agent-router.js";
 import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
+import { firstBalancedJson } from "./json-schema-output.js";
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
 export const _deps = { execSync };
@@ -403,8 +404,9 @@ export class Orchestrator extends EventEmitter {
 
 /** Extract the first JSON array from an LLM response string. */
 function _extractJson(text) {
-  const match = text.match(/\[[\s\S]*\]/);
-  return match ? match[0] : "[]";
+  // Balanced extraction stops at the first complete array, so trailing prose
+  // (or a second array) no longer over-captures into an unparseable string.
+  return firstBalancedJson(text, "[") || "[]";
 }
 
 /** Parse error lines from CI output (test failures, lint errors). */
