@@ -10,15 +10,16 @@
  * @module CoworkLLMIntegration
  */
 
-const { logger, createLogger } = require('../../utils/logger');
+const { logger, createLogger } = require("../../utils/logger");
+const { looseParseJSON } = require("../../ai-engine/response-parser.js");
 
-const llmLogger = createLogger('cowork-llm');
+const llmLogger = createLogger("cowork-llm");
 
 class CoworkLLMIntegration {
   constructor(llmService) {
     this.llmService = llmService;
-    this.model = 'qwen2.5:latest';  // Default model (fast and accurate)
-    this.temperature = 0.7;   // Creativity vs. consistency
+    this.model = "qwen2.5:latest"; // Default model (fast and accurate)
+    this.temperature = 0.7; // Creativity vs. consistency
     this.maxTokens = 1000;
   }
 
@@ -30,7 +31,9 @@ class CoworkLLMIntegration {
    */
   async analyzeTask(task) {
     try {
-      llmLogger.info(`Analyzing task: ${task.description.substring(0, 100)}...`);
+      llmLogger.info(
+        `Analyzing task: ${task.description.substring(0, 100)}...`,
+      );
 
       const prompt = this._buildTaskAnalysisPrompt(task);
 
@@ -43,11 +46,13 @@ class CoworkLLMIntegration {
 
       const analysis = this._parseTaskAnalysis(response.text);
 
-      llmLogger.info(`Task analysis complete: complexity=${analysis.complexity}, recommended=${analysis.recommendedAgents} agents`);
+      llmLogger.info(
+        `Task analysis complete: complexity=${analysis.complexity}, recommended=${analysis.recommendedAgents} agents`,
+      );
 
       return analysis;
     } catch (error) {
-      llmLogger.error('Task analysis failed:', error);
+      llmLogger.error("Task analysis failed:", error);
 
       // Fallback to simple heuristics
       return this._fallbackTaskAnalysis(task);
@@ -66,24 +71,34 @@ class CoworkLLMIntegration {
     const { task, availableAgents } = params;
 
     try {
-      llmLogger.info(`Recommending agent for task: ${task.description.substring(0, 50)}...`);
+      llmLogger.info(
+        `Recommending agent for task: ${task.description.substring(0, 50)}...`,
+      );
 
-      const prompt = this._buildAgentRecommendationPrompt(task, availableAgents);
+      const prompt = this._buildAgentRecommendationPrompt(
+        task,
+        availableAgents,
+      );
 
       const response = await this.llmService.generate({
         model: this.model,
         prompt,
-        temperature: 0.3,  // Lower temperature for more deterministic choice
+        temperature: 0.3, // Lower temperature for more deterministic choice
         maxTokens: 500,
       });
 
-      const recommendation = this._parseAgentRecommendation(response.text, availableAgents);
+      const recommendation = this._parseAgentRecommendation(
+        response.text,
+        availableAgents,
+      );
 
-      llmLogger.info(`Agent recommendation: ${recommendation.agentId} (confidence: ${recommendation.confidence})`);
+      llmLogger.info(
+        `Agent recommendation: ${recommendation.agentId} (confidence: ${recommendation.confidence})`,
+      );
 
       return recommendation;
     } catch (error) {
-      llmLogger.error('Agent recommendation failed:', error);
+      llmLogger.error("Agent recommendation failed:", error);
 
       // Fallback: Choose agent with most matching capabilities
       return this._fallbackAgentRecommendation(task, availableAgents);
@@ -115,7 +130,7 @@ class CoworkLLMIntegration {
 
       return subtasks;
     } catch (error) {
-      llmLogger.error('Task decomposition failed:', error);
+      llmLogger.error("Task decomposition failed:", error);
       return [];
     }
   }
@@ -132,9 +147,14 @@ class CoworkLLMIntegration {
     const { conflictingOpinions, context } = params;
 
     try {
-      llmLogger.info(`Resolving conflict with ${conflictingOpinions.length} opinions`);
+      llmLogger.info(
+        `Resolving conflict with ${conflictingOpinions.length} opinions`,
+      );
 
-      const prompt = this._buildConflictResolutionPrompt(conflictingOpinions, context);
+      const prompt = this._buildConflictResolutionPrompt(
+        conflictingOpinions,
+        context,
+      );
 
       const response = await this.llmService.generate({
         model: this.model,
@@ -149,7 +169,7 @@ class CoworkLLMIntegration {
 
       return resolution;
     } catch (error) {
-      llmLogger.error('Conflict resolution failed:', error);
+      llmLogger.error("Conflict resolution failed:", error);
 
       // Fallback: Majority vote
       return this._fallbackConflictResolution(conflictingOpinions);
@@ -165,7 +185,9 @@ class CoworkLLMIntegration {
    */
   async generateStrategy(task, resources) {
     try {
-      llmLogger.info(`Generating strategy for task: ${task.description.substring(0, 50)}...`);
+      llmLogger.info(
+        `Generating strategy for task: ${task.description.substring(0, 50)}...`,
+      );
 
       const prompt = this._buildStrategyPrompt(task, resources);
 
@@ -182,12 +204,12 @@ class CoworkLLMIntegration {
 
       return strategy;
     } catch (error) {
-      llmLogger.error('Strategy generation failed:', error);
+      llmLogger.error("Strategy generation failed:", error);
 
       return {
-        approach: 'sequential',
-        steps: ['Execute task'],
-        estimatedTime: 'Unknown',
+        approach: "sequential",
+        steps: ["Execute task"],
+        estimatedTime: "Unknown",
       };
     }
   }
@@ -205,9 +227,9 @@ class CoworkLLMIntegration {
     return `Analyze the following task and provide recommendations:
 
 **Task Description**: ${task.description}
-**Task Type**: ${task.type || 'Unknown'}
-**Priority**: ${task.priority || 'Medium'}
-${task.input ? `**Input Data**: ${JSON.stringify(task.input, null, 2)}` : ''}
+**Task Type**: ${task.type || "Unknown"}
+**Priority**: ${task.priority || "Medium"}
+${task.input ? `**Input Data**: ${JSON.stringify(task.input, null, 2)}` : ""}
 
 Please analyze this task and provide:
 1. **Complexity Level** (1-10): How complex is this task?
@@ -246,7 +268,7 @@ Format your response as JSON:
 
 **Task**: ${task.description}
 **Task Type**: ${task.type}
-**Required Skills**: ${task.requiredSkills || 'Unknown'}
+**Required Skills**: ${task.requiredSkills || "Unknown"}
 
 **Available Agents**:
 ${JSON.stringify(agentsInfo, null, 2)}
@@ -274,7 +296,7 @@ Respond in JSON format:
 
 **Task**: ${task.description}
 **Task Type**: ${task.type}
-${task.input ? `**Input**: ${JSON.stringify(task.input)}` : ''}
+${task.input ? `**Input**: ${JSON.stringify(task.input)}` : ""}
 
 Break this down into 3-7 subtasks that can be executed sequentially or in parallel.
 Each subtask should be:
@@ -303,14 +325,18 @@ Respond in JSON format:
   _buildConflictResolutionPrompt(opinions, context) {
     return `Resolve the following conflict between agents:
 
-**Context**: ${context.description || 'Team decision-making'}
+**Context**: ${context.description || "Team decision-making"}
 
 **Conflicting Opinions**:
-${opinions.map((op, i) => `
+${opinions
+  .map(
+    (op, i) => `
 **Agent ${i + 1}** (${op.agentId}):
   - Position: ${op.position}
   - Reasoning: ${op.reasoning}
-`).join('\n')}
+`,
+  )
+  .join("\n")}
 
 Analyze the arguments and provide a resolution that:
 1. Weighs the merits of each position
@@ -339,8 +365,8 @@ Respond in JSON format:
 **Task Type**: ${task.type}
 **Available Resources**:
   - Agents: ${resources.agentCount || 0}
-  - Time Limit: ${resources.timeLimit || 'Unlimited'}
-  - Budget: ${resources.budget || 'N/A'}
+  - Time Limit: ${resources.timeLimit || "Unlimited"}
+  - Budget: ${resources.budget || "N/A"}
 
 Provide a detailed execution strategy including:
 1. Overall approach (sequential, parallel, hybrid)
@@ -374,12 +400,7 @@ Respond in JSON format:
   _parseTaskAnalysis(responseText) {
     try {
       // Extract JSON from response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const analysis = JSON.parse(jsonMatch[0]);
+      const analysis = looseParseJSON(responseText);
 
       return {
         complexity: analysis.complexity || 5,
@@ -387,11 +408,11 @@ Respond in JSON format:
         requiredSkills: analysis.requiredSkills || [],
         recommendedAgents: analysis.recommendedAgents || 1,
         canParallelize: analysis.canParallelize || false,
-        riskLevel: analysis.riskLevel || 'Medium',
-        reasoning: analysis.reasoning || '',
+        riskLevel: analysis.riskLevel || "Medium",
+        reasoning: analysis.reasoning || "",
       };
     } catch (error) {
-      llmLogger.error('Failed to parse task analysis:', error);
+      llmLogger.error("Failed to parse task analysis:", error);
       return this._fallbackTaskAnalysis();
     }
   }
@@ -403,20 +424,15 @@ Respond in JSON format:
    */
   _parseAgentRecommendation(responseText, availableAgents) {
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const recommendation = JSON.parse(jsonMatch[0]);
+      const recommendation = looseParseJSON(responseText);
 
       return {
         agentId: recommendation.agentId,
         confidence: recommendation.confidence || 0.5,
-        reasoning: recommendation.reasoning || '',
+        reasoning: recommendation.reasoning || "",
       };
     } catch (error) {
-      llmLogger.error('Failed to parse agent recommendation:', error);
+      llmLogger.error("Failed to parse agent recommendation:", error);
       return this._fallbackAgentRecommendation({}, availableAgents);
     }
   }
@@ -428,12 +444,7 @@ Respond in JSON format:
    */
   _parseSubtasks(responseText, parentTask) {
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = looseParseJSON(responseText);
 
       return parsed.subtasks.map((st, index) => ({
         description: st.description,
@@ -444,7 +455,7 @@ Respond in JSON format:
         order: index + 1,
       }));
     } catch (error) {
-      llmLogger.error('Failed to parse subtasks:', error);
+      llmLogger.error("Failed to parse subtasks:", error);
       return [];
     }
   }
@@ -456,22 +467,17 @@ Respond in JSON format:
    */
   _parseConflictResolution(responseText) {
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const resolution = JSON.parse(jsonMatch[0]);
+      const resolution = looseParseJSON(responseText);
 
       return {
         decision: resolution.decision,
         chosenPosition: resolution.chosenPosition,
-        reasoning: resolution.reasoning || '',
+        reasoning: resolution.reasoning || "",
         confidence: resolution.confidence || 0.5,
       };
     } catch (error) {
-      llmLogger.error('Failed to parse conflict resolution:', error);
-      return { decision: 'Unable to resolve', confidence: 0 };
+      llmLogger.error("Failed to parse conflict resolution:", error);
+      return { decision: "Unable to resolve", confidence: 0 };
     }
   }
 
@@ -482,17 +488,12 @@ Respond in JSON format:
    */
   _parseStrategy(responseText) {
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      return JSON.parse(jsonMatch[0]);
+      return looseParseJSON(responseText);
     } catch (error) {
-      llmLogger.error('Failed to parse strategy:', error);
+      llmLogger.error("Failed to parse strategy:", error);
       return {
-        approach: 'sequential',
-        steps: ['Execute task'],
+        approach: "sequential",
+        steps: ["Execute task"],
         resourceAllocation: { agents: 1, estimatedTime: 30 },
         risks: [],
         successCriteria: [],
@@ -510,7 +511,7 @@ Respond in JSON format:
    * @private
    */
   _fallbackTaskAnalysis(task = {}) {
-    const descLength = (task.description || '').length;
+    const descLength = (task.description || "").length;
     const complexity = Math.min(10, Math.max(1, Math.ceil(descLength / 50)));
 
     return {
@@ -519,8 +520,8 @@ Respond in JSON format:
       requiredSkills: [],
       recommendedAgents: complexity > 7 ? 3 : 1,
       canParallelize: complexity > 7,
-      riskLevel: complexity > 7 ? 'High' : 'Low',
-      reasoning: 'Fallback heuristic analysis (LLM unavailable)',
+      riskLevel: complexity > 7 ? "High" : "Low",
+      reasoning: "Fallback heuristic analysis (LLM unavailable)",
     };
   }
 
@@ -531,12 +532,13 @@ Respond in JSON format:
    */
   _fallbackAgentRecommendation(task, availableAgents) {
     // Choose first available agent
-    const agent = availableAgents.find((a) => a.status === 'active') || availableAgents[0];
+    const agent =
+      availableAgents.find((a) => a.status === "active") || availableAgents[0];
 
     return {
-      agentId: agent?.id || 'unknown',
+      agentId: agent?.id || "unknown",
       confidence: 0.3,
-      reasoning: 'Fallback selection (LLM unavailable)',
+      reasoning: "Fallback selection (LLM unavailable)",
     };
   }
 
@@ -557,7 +559,7 @@ Respond in JSON format:
 
     return {
       decision: majority[0],
-      chosenPosition: 'majority',
+      chosenPosition: "majority",
       reasoning: `Majority vote: ${majority[1]}/${opinions.length} agents`,
       confidence: majority[1] / opinions.length,
     };
