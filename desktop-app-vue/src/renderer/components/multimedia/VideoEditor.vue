@@ -375,7 +375,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   VideoCameraOutlined,
@@ -707,13 +707,20 @@ const formatDuration = (seconds) => {
   }
 };
 
-// 监听进度事件
-if (window.electronAPI) {
-  window.electronAPI.on("video:processing-progress", (event, data) => {
-    processProgress.value = data.percent;
-    processMessage.value = data.message || "";
-  });
-}
+// 监听进度事件。命名处理器 + onUnmounted 里解绑，否则每个实例都会泄漏一个
+// 永不移除的监听器，在已销毁组件的 ref 上继续写入进度。
+const handleProcessProgress = (event, data) => {
+  processProgress.value = data.percent;
+  processMessage.value = data.message || "";
+};
+
+onMounted(() => {
+  window.electronAPI?.on?.("video:processing-progress", handleProcessProgress);
+});
+
+onUnmounted(() => {
+  window.electronAPI?.off?.("video:processing-progress", handleProcessProgress);
+});
 </script>
 
 <style scoped lang="scss">
