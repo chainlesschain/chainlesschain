@@ -151,8 +151,13 @@ class ConnectionPool extends EventEmitter {
     if (this.connections.has(peerId)) {
       const conn = this.connections.get(peerId);
 
-      if (conn.isHealthy() && conn.isIdle()) {
-        // 连接可用，复用
+      if (conn.isHealthy()) {
+        // 健康连接直接复用（无论 active 还是 idle）。原先只复用 idle 连接，一个
+        // 健康但 active 的连接会落到下面 createConnection 重新建连并 set(peerId)
+        // 覆盖 Map，把旧的 active 连接孤儿化（底层 socket 不关闭 → 泄漏，且违反
+        // 每 peer 至多一条连接的不变量）。P2P 连接本就长期共享，重复 acquire 同一
+        // peer 应返回同一连接。markActive/idleDelete/activeAdd 对已 active 的连接
+        // 都是幂等的。
         conn.markActive();
         this.idleConnections.delete(peerId);
         this.activeConnections.add(peerId);
@@ -161,7 +166,7 @@ class ConnectionPool extends EventEmitter {
 
         logger.info(`[ConnectionPool] 复用连接: ${peerId}`);
         return conn.connection;
-      } else if (!conn.isHealthy()) {
+      } else {
         // 连接不健康，关闭并重建
         logger.info(`[ConnectionPool] 连接不健康，重建: ${peerId}`);
         await this.closeConnection(peerId);
