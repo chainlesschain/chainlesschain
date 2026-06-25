@@ -248,7 +248,7 @@ const bell = (state, patch = {}) => ({
  *                   with line/cursor; `submit:true` ⇒ run the line.
  */
 export function feedNormalKey(state, ch, key = {}) {
-  const s = { ...state, message: null };
+  const s = { ...state, message: null, notice: null };
   const line = s.line;
 
   // Enter → submit the line (parity with insert-mode Enter).
@@ -420,6 +420,18 @@ export function feedNormalKey(state, ch, key = {}) {
     case "t":
     case "T":
       return { ...s, awaitChar: { kind: ch }, count: String(count) };
+    case "/":
+    case "?":
+      // cc's NORMAL mode has no prompt-history search (readline owns history in
+      // INSERT mode). A user pressing `/` here most likely wants a slash
+      // command, so hint how to reach one instead of an opaque bell
+      // (Claude-Code 2.1.191: "hint how to reach slash commands").
+      return {
+        ...s,
+        count: "",
+        notice:
+          "NORMAL /: press i, then type /command (slash commands run in insert mode; history = ↑ or Ctrl-R)",
+      };
     default: {
       // Pure motions (h l 0 ^ $ w b e) and Backspace/arrows mapped to h/l.
       let motionCh = ch;

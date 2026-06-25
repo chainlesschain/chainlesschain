@@ -194,6 +194,24 @@ describe("submit / esc / unknown", () => {
   });
 });
 
+describe("NORMAL / hints toward slash commands (CC 2.1.191)", () => {
+  it("/ and ? set a notice instead of ringing the bell", () => {
+    for (const ch of ["/", "?"]) {
+      const s = feedNormalKey({ ...normal("abc", 0), count: "3" }, ch, {});
+      expect(s.notice).toMatch(/slash command/i);
+      expect(s.message).not.toBe("bell");
+      expect(s.count).toBe(""); // count consumed
+      expect(s.line).toBe("abc"); // line untouched
+    }
+  });
+  it("the notice does not linger into the next keypress", () => {
+    const hinted = feedNormalKey(normal("abc", 0), "/", {});
+    expect(hinted.notice).toBeTruthy();
+    const next = feedNormalKey(hinted, "l", {}); // a plain motion
+    expect(next.notice).toBeNull();
+  });
+});
+
 describe("modeLabel", () => {
   it("renders NORMAL/INSERT", () => {
     expect(modeLabel(normal("", 0))).toBe("NORMAL");

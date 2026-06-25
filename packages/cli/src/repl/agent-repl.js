@@ -1154,6 +1154,8 @@ export async function startAgentRepl(options = {}) {
         }
         _vim = res;
         if (res.message === "bell") process.stdout.write("\x07");
+        else if (res.notice)
+          process.stdout.write("\n" + chalk.gray(res.notice) + "\n");
         _vimSync(res);
         return;
       }
