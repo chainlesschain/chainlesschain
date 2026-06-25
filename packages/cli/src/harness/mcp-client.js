@@ -102,6 +102,17 @@ const MCP_DISCOVERY_RETRIES = 2; // up to 3 attempts total
 const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
 
 /**
+ * Hard cap on the unterminated stdout tail buffered per stdio server. JSON-RPC
+ * frames are newline-delimited; a runaway or non-MCP process that streams
+ * without ever emitting a newline would otherwise grow `entry._buffer` without
+ * bound and exhaust memory. 16M chars is far above any legitimate single MCP
+ * message (even a tool result with embedded base64), so crossing it signals a
+ * misbehaving server. Override per server with `config.maxBufferChars` (0
+ * disables the cap).
+ */
+const MCP_MAX_BUFFER_CHARS = 16 * 1024 * 1024;
+
+/**
  * Is this a TRANSIENT error worth a short retry during capability discovery?
  * Narrower than isLikelyConnectionError: connection-level failures and 5xx
  * server errors retry, but 4xx (auth 401/403, not-found 404 = permanent for the
@@ -882,6 +893,37 @@ export class MCPClient extends EventEmitter {
       } catch {
         // Skip malformed lines
       }
+    }
+
+    // Guard against unbounded buffer growth: a runaway / non-MCP server that
+    // streams without ever sending a newline would grow the unterminated tail
+    // forever and exhaust memory. If the leftover partial line exceeds the cap,
+    // treat it as a fatal transport error (drop the buffer, drain in-flight
+    // requests, kill the process) rather than letting it grow without limit.
+    const cap = Number.isFinite(entry.config?.maxBufferChars)
+      ? entry.config.maxBufferChars
+      : MCP_MAX_BUFFER_CHARS;
+    if (cap > 0 && entry._buffer.length > cap) {
+      entry._buffer = "";
+      entry.state = ServerState.ERROR;
+      const errMsg = `MCP server "${serverName}" exceeded the ${cap}-char line buffer with no newline (runaway or non-MCP output)`;
+      for (const [, pending] of entry._pending) {
+        if (pending.timeout) clearTimeout(pending.timeout);
+        try {
+          pending.reject(new Error(errMsg));
+        } catch {
+          // already settled — ignore
+        }
+      }
+      entry._pending.clear();
+      if (entry.process) {
+        try {
+          entry.process.kill();
+        } catch {
+          // best-effort — surfacing the error is what matters
+        }
+      }
+      this.emit("server-error", { name: serverName, error: errMsg });
     }
   }
 

@@ -114,3 +114,46 @@ describe("MCPClient stdio — broken stdin pipe doesn't crash the CLI", () => {
     expect(srv.state).toBe("error");
   });
 });
+
+describe("MCPClient stdio — runaway buffer is capped", () => {
+  let client;
+  let proc;
+
+  beforeEach(async () => {
+    const mod = await import("../../src/lib/mcp-client.js");
+    client = new MCPClient();
+    proc = makeFakeProc();
+    mod._deps.spawn = () => proc;
+  });
+
+  it("fails the transport when stdout streams past the cap with no newline", async () => {
+    // Small per-server cap so the test stays fast (no 16M allocation).
+    await client.connect("srv", { command: "fake-mcp", maxBufferChars: 1024 });
+
+    const errors = [];
+    client.on("server-error", (e) => errors.push(e));
+    const callPromise = client.callTool("srv", "doit", {});
+
+    // Server floods stdout with no newline — would grow _buffer unbounded.
+    proc.stdout.emit("data", Buffer.from("x".repeat(2048)));
+
+    await expect(callPromise).rejects.toThrow(/line buffer|runaway/i);
+    expect(errors.some((e) => /line buffer|runaway/i.test(e.error))).toBe(true);
+    const srv = client.listServers().find((s) => s.name === "srv");
+    expect(srv.state).toBe("error");
+  });
+
+  it("does not fire when complete newline-terminated lines keep the tail small", async () => {
+    await client.connect("srv", { command: "fake-mcp", maxBufferChars: 1024 });
+    const errors = [];
+    client.on("server-error", (e) => errors.push(e));
+
+    // 5 KB of data, but newline-delimited → each line processed, tail stays tiny.
+    let blob = "";
+    for (let i = 0; i < 50; i++) blob += "y".repeat(100) + "\n";
+    expect(() => proc.stdout.emit("data", Buffer.from(blob))).not.toThrow();
+    expect(errors).toHaveLength(0);
+    const srv = client.listServers().find((s) => s.name === "srv");
+    expect(srv.state).toBe("connected");
+  });
+});
