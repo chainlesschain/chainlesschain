@@ -184,6 +184,14 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.token = options.token || null;
     this.maxConnections = options.maxConnections || 10;
     this.timeout = options.timeout || 30000;
+    // Cap inbound message size. The `ws` default is 100 MiB, and every frame is
+    // decoded + JSON.parsed in _handleConnection BEFORE the dispatcher's auth
+    // gate — so without a cap an UNAUTHENTICATED client could force a ~100 MB
+    // allocation per frame (×maxConnections) on a LAN-exposed (Android remote)
+    // deployment: a pre-auth memory-DoS. 32 MiB is generous for control frames
+    // and base64 image pastes while bounding abuse; `ws` closes oversize frames
+    // with code 1009 without buffering past the limit. Override per server.
+    this.maxPayloadBytes = options.maxPayloadBytes || 32 * 1024 * 1024;
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;
@@ -214,6 +222,7 @@ export class ChainlessChainWSServer extends EventEmitter {
       this.wss = new WebSocketServer({
         port: this.port,
         host: this.host,
+        maxPayload: this.maxPayloadBytes,
       });
 
       this.wss.on("listening", () => {
@@ -339,6 +348,17 @@ export class ChainlessChainWSServer extends EventEmitter {
     ws.on("close", () => {
       this.clients.delete(clientId);
       this.emit("disconnection", { clientId });
+    });
+
+    // A misbehaving client (oversize frame → 1009, malformed protocol, abrupt
+    // reset) makes the per-connection socket emit 'error'. With no listener Node
+    // treats it as an uncaught exception and could crash the whole server — so
+    // handle it here; the 'close' that follows removes the client from the map.
+    ws.on("error", (err) => {
+      this.emit("client-error", {
+        clientId,
+        error: (err && err.message) || String(err),
+      });
     });
 
     ws.on("pong", () => {

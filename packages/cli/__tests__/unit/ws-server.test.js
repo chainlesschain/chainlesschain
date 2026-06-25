@@ -203,6 +203,8 @@ describe("ChainlessChainWSServer", () => {
       expect(server.token).toBeNull();
       expect(server.maxConnections).toBe(10);
       expect(server.timeout).toBe(30000);
+      // Bounded well below the ws 100 MiB default (pre-auth memory-DoS guard).
+      expect(server.maxPayloadBytes).toBe(32 * 1024 * 1024);
     });
 
     it("accepts custom options", () => {
@@ -212,12 +214,57 @@ describe("ChainlessChainWSServer", () => {
         token: "abc",
         maxConnections: 5,
         timeout: 5000,
+        maxPayloadBytes: 1024,
       });
       expect(server.port).toBe(9999);
       expect(server.host).toBe("0.0.0.0");
       expect(server.token).toBe("abc");
       expect(server.maxConnections).toBe(5);
       expect(server.timeout).toBe(5000);
+      expect(server.maxPayloadBytes).toBe(1024);
+    });
+  });
+
+  // ---- Inbound message-size cap (pre-auth memory-DoS guard) ----
+  describe("maxPayload enforcement", () => {
+    it("closes the connection with 1009 when a frame exceeds maxPayloadBytes", async () => {
+      port = nextPort();
+      // Tiny cap so the test sends a small (but over-cap) oversize frame.
+      server = new ChainlessChainWSServer({ port, maxPayloadBytes: 1024 });
+      await server.start();
+      const ws = await connect(port);
+      ws.on("error", () => {}); // an abnormal close also emits 'error' — absorb it
+      // The server emits client-error (handled) instead of crashing on the
+      // unhandled per-connection socket error the oversize frame triggers.
+      let serverSawError = false;
+      server.on("client-error", () => {
+        serverSawError = true;
+      });
+      const closeCode = await new Promise((resolve) => {
+        ws.on("close", (code) => resolve(code));
+        ws.send("x".repeat(4096)); // 4 KiB > 1 KiB cap
+      });
+      expect(closeCode).toBe(1009); // ws "message too big"
+      expect(serverSawError).toBe(true);
+      // The server must survive: a fresh connection still works.
+      const ws2 = await connect(port);
+      expect(ws2.readyState).toBe(WebSocket.OPEN);
+      ws2.close();
+    });
+
+    it("accepts a frame within the cap (no 1009)", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port, maxPayloadBytes: 1024 });
+      await server.start();
+      const ws = await connect(port);
+      let closed = null;
+      ws.on("close", (code) => {
+        closed = code;
+      });
+      ws.send(JSON.stringify({ type: "ping", id: "p1" })); // small, within cap
+      await new Promise((r) => setTimeout(r, 100));
+      expect(closed).toBeNull(); // an in-cap frame must not trip the size limit
+      ws.close();
     });
   });
 
