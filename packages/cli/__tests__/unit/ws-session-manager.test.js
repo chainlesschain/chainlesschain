@@ -129,6 +129,27 @@ describe("WSSessionManager", () => {
       expect(manager.db).toBe(mockDb);
       expect(manager.config).toEqual({ test: true });
     });
+
+    it("defaults maxSessions to 100 and accepts an override", () => {
+      expect(new WSSessionManager().maxSessions).toBe(100);
+      expect(new WSSessionManager({ maxSessions: 5 }).maxSessions).toBe(5);
+    });
+  });
+
+  describe("session cap (resource-exhaustion guard)", () => {
+    it("rejects createSession past maxSessions, and a close frees a slot", () => {
+      const m = new WSSessionManager({
+        db: mockDb,
+        config: { test: true },
+        maxSessions: 2,
+      });
+      const a = m.createSession();
+      m.createSession();
+      expect(() => m.createSession()).toThrow(/max_sessions_exceeded/);
+      // Closing one frees a slot.
+      m.closeSession(a.sessionId);
+      expect(() => m.createSession()).not.toThrow();
+    });
   });
 
   describe("createSession", () => {

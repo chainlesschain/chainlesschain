@@ -98,6 +98,17 @@ export class WSSessionManager {
 
     /** @type {Map<string, Session>} */
     this.sessions = new Map();
+
+    // Cap concurrent in-memory sessions. Each session holds a handler +
+    // interaction adapter + agent context, and nothing reaps them on client
+    // disconnect (they persist for resume; only closeSession removes one). An
+    // authenticated WS client could otherwise spam session-create to exhaust
+    // memory — this bounds it (mirrors the PTY manager's cap). Generous enough
+    // for legit multi-session use; resume does not create, so reconnecting to
+    // an existing session is never blocked by the cap. Override per manager.
+    this.maxSessions = Number.isFinite(options.maxSessions)
+      ? options.maxSessions
+      : 100;
   }
 
   _normalizeEnabledToolNames(enabledToolNames) {
@@ -264,6 +275,11 @@ export class WSSessionManager {
    * @returns {{ sessionId: string }}
    */
   createSession(options = {}) {
+    if (this.sessions.size >= this.maxSessions) {
+      throw new Error(
+        `max_sessions_exceeded: ${this.maxSessions} concurrent sessions reached — close some before creating more`,
+      );
+    }
     const sessionId = this._generateId();
     const type = options.type || "agent";
     const baseProjectRoot = options.projectRoot || this.defaultProjectRoot;
