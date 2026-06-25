@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   capToolResultString,
   MAX_TOOL_RESULT_CHARS,
+  safeStringifyToolResult,
 } from "../../src/runtime/agent-core.js";
 
 describe("capToolResultString", () => {
@@ -50,5 +51,52 @@ describe("capToolResultString", () => {
     expect(capToolResultString(undefined)).toBe("");
     expect(capToolResultString(null)).toBe("");
     expect(capToolResultString(12345)).toBe("12345");
+  });
+});
+
+describe("safeStringifyToolResult", () => {
+  it("matches JSON.stringify on the happy path", () => {
+    const v = { content: "ok", n: 1, arr: [1, 2], nested: { a: true } };
+    expect(safeStringifyToolResult(v)).toBe(JSON.stringify(v));
+    expect(safeStringifyToolResult("plain")).toBe('"plain"');
+    expect(safeStringifyToolResult(undefined)).toBe(undefined); // as JSON.stringify
+  });
+
+  it("does not throw on a circular reference (recovers with [Circular])", () => {
+    const a = { name: "node" };
+    a.self = a; // circular — plain JSON.stringify throws here
+    let out;
+    expect(() => {
+      out = safeStringifyToolResult(a);
+    }).not.toThrow();
+    expect(out).toContain("node");
+    expect(out).toContain("[Circular]");
+  });
+
+  it("does not throw on a BigInt (serializes it as a string)", () => {
+    let out;
+    expect(() => {
+      out = safeStringifyToolResult({ big: 10n, ok: 1 });
+    }).not.toThrow();
+    expect(out).toContain("10");
+  });
+
+  it("does not throw when a value's toJSON throws (last-resort string)", () => {
+    const bad = {
+      toJSON() {
+        throw new Error("boom");
+      },
+    };
+    let out;
+    expect(() => {
+      out = safeStringifyToolResult(bad);
+    }).not.toThrow();
+    expect(typeof out).toBe("string");
+  });
+
+  it("feeds cleanly into capToolResultString (the real call chain)", () => {
+    const a = {};
+    a.loop = a;
+    expect(() => capToolResultString(safeStringifyToolResult(a))).not.toThrow();
   });
 });

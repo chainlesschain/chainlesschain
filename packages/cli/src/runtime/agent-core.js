@@ -2766,6 +2766,39 @@ export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
 }
 
 /**
+ * Serialize a tool result for the transcript without ever throwing. A plain
+ * `JSON.stringify` throws on a circular reference, a BigInt, or a value whose
+ * `toJSON` throws — and that call sits OUTSIDE executeTool's try/catch, so one
+ * odd tool result would crash the whole agent turn. The happy path is identical
+ * to `JSON.stringify` (returns its value verbatim, including `undefined`, which
+ * `capToolResultString` already normalizes); only a throw falls back to a
+ * circular- and BigInt-safe pass, then a last-resort string form.
+ */
+export function safeStringifyToolResult(value) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (_k, v) => {
+        if (typeof v === "bigint") return v.toString();
+        if (v && typeof v === "object") {
+          if (seen.has(v)) return "[Circular]";
+          seen.add(v);
+        }
+        return v;
+      });
+    } catch {
+      try {
+        return String(value);
+      } catch {
+        return "[unserializable tool result]";
+      }
+    }
+  }
+}
+
+/**
  * Execute a spawn_sub_agent tool call.
  * Creates an isolated SubAgentContext, runs it, and returns only the summary.
  *
@@ -4739,7 +4772,9 @@ export async function* agentLoop(messages, options) {
       // Cap an individual tool result so one giant output can't blow the
       // context — but tell the model when we cut it (no more silent
       // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
-      const resultStr = capToolResultString(JSON.stringify(toolResult));
+      const resultStr = capToolResultString(
+        safeStringifyToolResult(toolResult),
+      );
       const toolContent = warningMsg
         ? `${resultStr}\n\n${warningMsg}`
         : resultStr;
