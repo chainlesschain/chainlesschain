@@ -45,6 +45,102 @@ import {
 import { getPlanModeManager } from "../lib/plan-mode.js";
 
 /**
+ * Resolve the streaming-delta coalesce window (ms). Adjacent partial-message
+ * text/thinking deltas are batched into a single `stream_event` line over this
+ * window, cutting per-token JSON.stringify + write + downstream parse/postMessage
+ * overhead (Claude-Code 2.1.191: "Reduced CPU usage during streaming responses by
+ * coalescing text updates"). `0` (or a negative / non-numeric value) disables
+ * batching, restoring the exact per-token emit behavior. Precedence:
+ * explicit `options.streamCoalesceMs` > `CC_STREAM_COALESCE_MS` env > default 50.
+ */
+export function resolveStreamCoalesceMs(options = {}, env = {}) {
+  const pick =
+    options.streamCoalesceMs !== undefined
+      ? options.streamCoalesceMs
+      : env.CC_STREAM_COALESCE_MS;
+  if (pick === undefined || pick === null || pick === "") return 50;
+  const n = Number(pick);
+  if (!Number.isFinite(n) || n < 0) return 50;
+  return n;
+}
+
+/**
+ * Coalescer for the NDJSON output stream. Every line still flows through `emit`,
+ * but consecutive partial-message text/thinking deltas are buffered and flushed
+ * as one batched `stream_event` line: on a short timer (`coalesceMs`), whenever a
+ * delta of the OTHER kind or any non-delta line is emitted (so ordering is always
+ * preserved — a batched text run is flushed before the tool_use/result that
+ * follows it), and at stream end (the terminal line routes through `emit`). With
+ * `coalesceMs <= 0` deltas pass straight through, matching the legacy behavior.
+ *
+ * The flush timer is `unref()`d so it never holds the process open. Pure aside
+ * from the injected `writeOut`/timer seams, so it unit-tests deterministically.
+ */
+export function createStreamCoalescer({
+  writeOut,
+  coalesceMs = 50,
+  setTimer,
+  clearTimer,
+} = {}) {
+  const rawEmit = (obj) => writeOut(JSON.stringify(obj) + "\n");
+  const startTimer =
+    setTimer ||
+    ((fn, ms) => {
+      const t = setTimeout(fn, ms);
+      if (t && typeof t.unref === "function") t.unref();
+      return t;
+    });
+  const stopTimer = clearTimer || ((t) => clearTimeout(t));
+
+  let pending = null; // { kind: "text" | "thinking", text: string }
+  let timer = null;
+
+  const buildLine = (kind, text) => ({
+    type: "stream_event",
+    event: {
+      type: "content_block_delta",
+      delta:
+        kind === "thinking"
+          ? { type: "thinking_delta", thinking: text }
+          : { type: "text_delta", text },
+    },
+  });
+
+  const flush = () => {
+    if (timer != null) {
+      stopTimer(timer);
+      timer = null;
+    }
+    if (!pending) return;
+    const p = pending;
+    pending = null;
+    rawEmit(buildLine(p.kind, p.text));
+  };
+
+  const delta = (kind, text) => {
+    if (!(coalesceMs > 0)) {
+      rawEmit(buildLine(kind, text));
+      return;
+    }
+    if (pending && pending.kind !== kind) flush();
+    if (!pending) pending = { kind, text: "" };
+    pending.text += text;
+    if (timer == null) timer = startTimer(flush, coalesceMs);
+  };
+
+  return {
+    // Any non-delta line flushes pending deltas first to preserve ordering.
+    emit: (obj) => {
+      flush();
+      rawEmit(obj);
+    },
+    emitTextDelta: (text) => delta("text", text),
+    emitThinkingDelta: (text) => delta("thinking", text),
+    flush,
+  };
+}
+
+/**
  * Structured view of the global plan-mode state for `plan_update` events
  * (the chat panel renders its plan card from this). Pure read; never throws.
  */
@@ -416,7 +512,17 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  const emit = (obj) => writeOut(JSON.stringify(obj) + "\n");
+  // Batch consecutive partial-message text/thinking deltas into one stream_event
+  // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
+  // pending deltas before writing a non-delta line, so ordering is preserved;
+  // CC_STREAM_COALESCE_MS=0 restores the per-token emit behavior.
+  const streamCoalescer =
+    deps.streamCoalescer ||
+    createStreamCoalescer({
+      writeOut,
+      coalesceMs: resolveStreamCoalesceMs(options, process.env),
+    });
+  const emit = streamCoalescer.emit;
 
   const getApprovalGate =
     deps.getApprovalGate ||
@@ -822,27 +928,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // `stream_event` lines. Output here is always NDJSON, so gating on the
     // flag alone suffices.
     onToken: options.includePartialMessages
-      ? (text) =>
-          emit({
-            type: "stream_event",
-            event: {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text },
-            },
-          })
+      ? (text) => streamCoalescer.emitTextDelta(text)
       : undefined,
     // Extended-thinking reasoning deltas (Anthropic; only when thinking is on).
     // Surfaced as a thinking_delta so consumers can render a dimmed/collapsed
     // reasoning block — the visible half of the /think toggle.
     onThinking: options.includePartialMessages
-      ? (thinking) =>
-          emit({
-            type: "stream_event",
-            event: {
-              type: "content_block_delta",
-              delta: { type: "thinking_delta", thinking },
-            },
-          })
+      ? (thinking) => streamCoalescer.emitThinkingDelta(thinking)
       : undefined,
     // Auto-retry notice (Claude-Code 2.1.181): the streaming call hit a
     // transient API connection drop and is retrying. Surfaced unconditionally
