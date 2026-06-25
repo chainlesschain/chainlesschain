@@ -80,6 +80,48 @@ export function validateAgainstSchema(value, schema, path = "$") {
   return errors;
 }
 
+/**
+ * Return the first *balanced* JSON object/array substring in `text`, honoring
+ * string literals so braces inside strings don't throw off the depth count.
+ *
+ * Unlike a greedy `/\{[\s\S]*\}/` match (which spans to the LAST bracket and
+ * over-captures trailing prose or a second object — making JSON.parse throw),
+ * this stops at the first complete top-level value.
+ *
+ * @param {string} text
+ * @param {"{"|"["} [only] restrict to object- or array-openers when set
+ * @returns {string|null} the balanced substring, or null if none is found
+ */
+export function firstBalancedJson(text, only) {
+  const s = String(text || "");
+  for (let i = 0; i < s.length; i++) {
+    const open = s[i];
+    if (open !== "{" && open !== "[") continue;
+    if (only && open !== only) continue;
+    const close = open === "{" ? "}" : "]";
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let j = i; j < s.length; j++) {
+      const c = s[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === "\\") esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') inStr = true;
+      else if (c === open) depth++;
+      else if (c === close) {
+        depth--;
+        if (depth === 0) return s.slice(i, j + 1);
+      }
+    }
+    // opener at i never closed — try the next opener
+  }
+  return null;
+}
+
 /** Pull a JSON payload out of an LLM reply (bare, fenced, or embedded). */
 export function extractJsonPayload(text) {
   const raw = String(text || "").trim();
@@ -87,6 +129,11 @@ export function extractJsonPayload(text) {
   tries.push(raw);
   const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(raw);
   if (fence) tries.push(fence[1].trim());
+  // Prefer a balanced run (stops at the first complete value) over the greedy
+  // first-bracket..last-bracket slice below, which over-captures on trailing
+  // prose or a second object.
+  const balanced = firstBalancedJson(raw);
+  if (balanced) tries.push(balanced);
   const firstObj = raw.indexOf("{");
   const lastObj = raw.lastIndexOf("}");
   if (firstObj !== -1 && lastObj > firstObj)

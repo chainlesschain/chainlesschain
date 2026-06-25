@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateAgainstSchema,
   extractJsonPayload,
+  firstBalancedJson,
   buildSchemaInstruction,
   runJsonSchemaConstrained,
   loadSchemaFile,
@@ -59,6 +60,35 @@ describe("extractJsonPayload", () => {
       extractJsonPayload('The answer is {"a":3} as requested.').value,
     ).toEqual({ a: 3 });
     expect(extractJsonPayload("no json here").ok).toBe(false);
+  });
+
+  it("stops at the first complete value instead of over-capturing (greedy slice would fail)", () => {
+    // 旧实现取首 { 到末 }，遇到尾随散文里的落单 } 或第二个对象就 JSON.parse 抛错。
+    expect(extractJsonPayload('{"a":1} note: use } sparingly').value).toEqual({
+      a: 1,
+    });
+    expect(extractJsonPayload('{"a":1} and {"b":2}').value).toEqual({ a: 1 });
+    expect(extractJsonPayload('[{"x":1}] (1 row) ]').value).toEqual([{ x: 1 }]);
+  });
+});
+
+describe("firstBalancedJson", () => {
+  it("returns the first balanced object/array and ignores trailing prose", () => {
+    expect(firstBalancedJson('{"a":1} and {"b":2}')).toBe('{"a":1}');
+    expect(firstBalancedJson('x {"a":{"b":2}} y')).toBe('{"a":{"b":2}}');
+    expect(firstBalancedJson('[{"x":1}] tail')).toBe('[{"x":1}]');
+  });
+
+  it("honors string literals so braces inside strings don't break the depth count", () => {
+    expect(firstBalancedJson('{"msg":"has } brace","n":1} tail')).toBe(
+      '{"msg":"has } brace","n":1}',
+    );
+  });
+
+  it("restricts to the requested opener and returns null when none match", () => {
+    expect(firstBalancedJson('{"a":1} [1,2,3]', "[")).toBe("[1,2,3]");
+    expect(firstBalancedJson("just words")).toBeNull();
+    expect(firstBalancedJson('{"a":1')).toBeNull(); // unbalanced
   });
 });
 
