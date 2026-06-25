@@ -18,6 +18,7 @@
  */
 
 import { chatWithStreaming, chatStream } from "./chat-core.js";
+import { firstBalancedJson } from "./json-schema-output.js";
 
 const DEFAULT_INTENT_TIMEOUT_MS = 15000;
 
@@ -76,8 +77,9 @@ function extractJson(content) {
   if (fenced) return fenced[1].trim();
   const generic = content.match(/```\s*([\s\S]*?)```/);
   if (generic) return generic[1].trim();
-  const bare = content.match(/\{[\s\S]*\}/);
-  return bare ? bare[0] : null;
+  // Balanced extraction stops at the first complete object instead of the old
+  // greedy /\{[\s\S]*\}/, which over-captured trailing prose with a stray }.
+  return firstBalancedJson(content, "{");
 }
 
 /**

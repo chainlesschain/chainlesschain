@@ -8,6 +8,7 @@
  */
 
 import { EventEmitter } from "events";
+import { firstBalancedJson } from "./json-schema-output.js";
 
 // Exported for test injection
 export const _deps = {
@@ -471,10 +472,10 @@ Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...},
 
   _parseSteps(text) {
     try {
-      // Extract JSON array from response
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) {
-        return JSON.parse(match[0]);
+      // Extract the first balanced JSON array from the response
+      const jsonText = firstBalancedJson(text, "[");
+      if (jsonText) {
+        return JSON.parse(jsonText);
       }
     } catch (_err) {
       // Parse failure
@@ -484,8 +485,8 @@ Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...},
 
   _parseJSON(text) {
     try {
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) return JSON.parse(match[0]);
+      const jsonText = firstBalancedJson(text, "{");
+      if (jsonText) return JSON.parse(jsonText);
     } catch (_err) {
       // Parse failure
     }

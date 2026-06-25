@@ -29,6 +29,23 @@ describe("CLIAutonomousAgent", () => {
     });
   });
 
+  // ── JSON extraction (balanced, via firstBalancedJson) ──
+
+  describe("_parseSteps / _parseJSON balanced extraction", () => {
+    it("_parseSteps stops at the first balanced array despite trailing prose", () => {
+      // 旧贪婪 /\[[\s\S]*\]/ 会吃到末尾散文里那个落单的 ] → 解析失败退回默认单步。
+      const steps = agent._parseSteps(
+        '[{"description":"a","tool":null,"params":{}}] note: ] end',
+      );
+      expect(steps).toHaveLength(1);
+      expect(steps[0].description).toBe("a");
+    });
+
+    it("_parseJSON stops at the first balanced object despite a stray }", () => {
+      expect(agent._parseJSON('{"ok":true} trailing }')).toEqual({ ok: true });
+    });
+  });
+
   // ── Initialize ──
 
   describe("initialize", () => {

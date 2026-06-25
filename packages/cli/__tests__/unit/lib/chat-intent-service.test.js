@@ -42,6 +42,12 @@ describe("chat-intent-service", () => {
     it("falls back to bare braces", () => {
       expect(_internal.extractJson('prefix {"x":3} suffix')).toBe('{"x":3}');
     });
+    it("stops at the first balanced object despite trailing prose with a stray }", () => {
+      // 旧贪婪 /\{[\s\S]*\}/ 会吃到末尾散文里那个落单的 } → 下游 JSON.parse 抛错。
+      expect(
+        _internal.extractJson('好的 {"intent":"search"} 希望有帮助 }'),
+      ).toBe('{"intent":"search"}');
+    });
     it("returns null when no JSON present", () => {
       expect(_internal.extractJson("no json at all")).toBeNull();
       expect(_internal.extractJson("")).toBeNull();

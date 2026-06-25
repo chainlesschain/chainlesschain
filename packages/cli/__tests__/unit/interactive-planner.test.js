@@ -100,6 +100,22 @@ describe("CLIInteractivePlanner", () => {
     expect(result.plan.overview.title).toBe("Refactor API");
   });
 
+  it("_generatePlan extracts the plan even with trailing prose after the JSON (balanced)", async () => {
+    // 旧贪婪 /\{[\s\S]*\}/ 会吃到末尾散文里那个落单的 } → 抛 "Failed to parse plan"。
+    const noisy = `${JSON.stringify(MOCK_PLAN)} 备注: 请谨慎使用 } 符号`;
+    const llmChatNoisy = vi
+      .fn()
+      .mockResolvedValue({ message: { content: noisy } });
+    const planner = new CLIInteractivePlanner({
+      llmChat: llmChatNoisy,
+      interaction,
+    });
+
+    const plan = await planner._generatePlan("Refactor the API", {});
+    expect(plan.title).toBe("Refactor API");
+    expect(plan.steps).toHaveLength(3);
+  });
+
   it("startPlanSession returns sessionId and plan", async () => {
     const planner = new CLIInteractivePlanner({ llmChat, interaction });
 

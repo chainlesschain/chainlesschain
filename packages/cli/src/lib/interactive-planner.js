@@ -9,6 +9,7 @@
 
 import { EventEmitter } from "events";
 import { createHash } from "crypto";
+import { firstBalancedJson } from "./json-schema-output.js";
 
 /**
  * Plan session statuses
@@ -345,12 +346,12 @@ Keep plans concise (3-8 steps). Use appropriate tools for each step.`;
     ]);
 
     const content = response?.message?.content || response?.content || "";
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const jsonText = firstBalancedJson(content, "{");
+    if (!jsonText) {
       throw new Error("Failed to parse plan from LLM response");
     }
 
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonText);
   }
 
   /**
