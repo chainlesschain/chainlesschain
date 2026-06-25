@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { resolveOllamaBaseUrl } from "../../src/commands/ask.js";
+import {
+  resolveOllamaBaseUrl,
+  extractCompletion,
+} from "../../src/commands/ask.js";
 
 describe("ask command — resolveOllamaBaseUrl precedence", () => {
   it("returns --base-url flag when set (highest precedence)", () => {
@@ -125,5 +128,34 @@ describe("ask command — queryLLM hits /api/chat for ollama", () => {
     // regression to /api/generate would fail this test if queryLLM ever
     // gets exported.
     expect(`${baseUrl}/api/chat`).toBe("http://127.0.0.1:18484/api/chat");
+  });
+});
+
+describe("ask command — extractCompletion", () => {
+  it("returns the assistant content from a well-formed response", () => {
+    const data = { choices: [{ message: { content: "hello" } }] };
+    expect(extractCompletion(data, "openai")).toBe("hello");
+  });
+
+  it("treats an empty-string completion as valid", () => {
+    const data = { choices: [{ message: { content: "" } }] };
+    expect(extractCompletion(data, "openai")).toBe("");
+  });
+
+  it("throws a clear error for empty choices (200 + no completion)", () => {
+    expect(() => extractCompletion({ choices: [] }, "volcengine")).toThrow(
+      /volcengine returned no completion/,
+    );
+  });
+
+  it("throws a clear error when choices is missing entirely", () => {
+    expect(() => extractCompletion({}, "openai")).toThrow(
+      /returned no completion/,
+    );
+  });
+
+  it("includes the provider error body when a 200 carries an error", () => {
+    const data = { error: { message: "content filtered" } };
+    expect(() => extractCompletion(data, "openai")).toThrow(/content filtered/);
   });
 });

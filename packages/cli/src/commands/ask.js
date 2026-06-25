@@ -74,6 +74,29 @@ export function resolveOllamaBaseUrl({
  * @param {object} options
  * @returns {Promise<string>}
  */
+/**
+ * Pull the assistant message out of an OpenAI-compatible chat-completion
+ * response. A 200 reply can still carry an error body or empty `choices`
+ * (e.g. content filtering), and `data.choices[0].message.content` then throws
+ * a cryptic "Cannot read properties of undefined". Surface a clear error
+ * instead. An empty-string completion is valid and returned as-is.
+ *
+ * @param {object} data    parsed JSON response body
+ * @param {string} [provider] for the error message
+ * @returns {string}
+ */
+export function extractCompletion(data, provider = "provider") {
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string") {
+    const apiErr = data?.error?.message || data?.error;
+    throw new Error(
+      `${provider} returned no completion (unexpected response shape)` +
+        (apiErr ? `: ${apiErr}` : ""),
+    );
+  }
+  return content;
+}
+
 async function queryLLM(question, options = {}) {
   const provider = options.provider || "ollama";
   const model = options.model || "qwen2:7b";
@@ -157,7 +180,7 @@ async function queryLLM(question, options = {}) {
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  return extractCompletion(data, provider);
 }
 
 export function registerAskCommand(program) {
