@@ -1,4 +1,4 @@
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * SQL 安全验证工具
@@ -12,11 +12,11 @@ class SqlSecurity {
    * @throws {Error} 如果不是有效值
    */
   static validateOrder(order) {
-    const validOrders = ['ASC', 'DESC', 'asc', 'desc'];
-    const normalized = String(order || '').toUpperCase();
+    const validOrders = ["ASC", "DESC", "asc", "desc"];
+    const normalized = String(order || "").toUpperCase();
 
-    if (!validOrders.map(v => v.toUpperCase()).includes(normalized)) {
-      logger.error('[SqlSecurity] 非法的排序方向:', order);
+    if (!validOrders.map((v) => v.toUpperCase()).includes(normalized)) {
+      logger.error("[SqlSecurity] 非法的排序方向:", order);
       throw new Error(`非法的排序方向: ${order}`);
     }
 
@@ -31,19 +31,19 @@ class SqlSecurity {
    * @throws {Error} 如果表名不在白名单中
    */
   static validateTableName(tableName, allowedTables) {
-    if (!tableName || typeof tableName !== 'string') {
-      throw new Error('表名无效');
+    if (!tableName || typeof tableName !== "string") {
+      throw new Error("表名无效");
     }
 
     // 检查是否只包含字母、数字和下划线
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
-      logger.error('[SqlSecurity] 非法的表名:', tableName);
+      logger.error("[SqlSecurity] 非法的表名:", tableName);
       throw new Error(`非法的表名: ${tableName}`);
     }
 
     // 白名单验证
     if (allowedTables && !allowedTables.includes(tableName)) {
-      logger.error('[SqlSecurity] 表名不在白名单中:', tableName);
+      logger.error("[SqlSecurity] 表名不在白名单中:", tableName);
       throw new Error(`不允许访问的表: ${tableName}`);
     }
 
@@ -58,19 +58,19 @@ class SqlSecurity {
    * @throws {Error} 如果列名无效
    */
   static validateColumnName(columnName, allowedColumns = null) {
-    if (!columnName || typeof columnName !== 'string') {
-      throw new Error('列名无效');
+    if (!columnName || typeof columnName !== "string") {
+      throw new Error("列名无效");
     }
 
     // 检查是否只包含字母、数字和下划线
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(columnName)) {
-      logger.error('[SqlSecurity] 非法的列名:', columnName);
+      logger.error("[SqlSecurity] 非法的列名:", columnName);
       throw new Error(`非法的列名: ${columnName}`);
     }
 
     // 白名单验证（可选）
     if (allowedColumns && !allowedColumns.includes(columnName)) {
-      logger.error('[SqlSecurity] 列名不在白名单中:', columnName);
+      logger.error("[SqlSecurity] 列名不在白名单中:", columnName);
       throw new Error(`不允许的列: ${columnName}`);
     }
 
@@ -88,11 +88,14 @@ class SqlSecurity {
     const num = parseInt(limit, 10);
 
     if (isNaN(num) || num < 0) {
-      throw new Error('LIMIT必须是非负整数');
+      throw new Error("LIMIT必须是非负整数");
     }
 
     if (num > maxLimit) {
-      logger.warn('[SqlSecurity] LIMIT超过最大值，已限制:', { limit: num, maxLimit });
+      logger.warn("[SqlSecurity] LIMIT超过最大值，已限制:", {
+        limit: num,
+        maxLimit,
+      });
       return maxLimit;
     }
 
@@ -109,7 +112,7 @@ class SqlSecurity {
     const num = parseInt(offset, 10);
 
     if (isNaN(num) || num < 0) {
-      throw new Error('OFFSET必须是非负整数');
+      throw new Error("OFFSET必须是非负整数");
     }
 
     return num;
@@ -121,7 +124,7 @@ class SqlSecurity {
    * @returns {boolean} 是否包含SQL注入模式
    */
   static containsSqlInjectionPattern(input) {
-    if (!input || typeof input !== 'string') {
+    if (!input || typeof input !== "string") {
       return false;
     }
 
@@ -129,17 +132,17 @@ class SqlSecurity {
     const dangerousPatterns = [
       /;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|EXEC|EXECUTE)\s+/i,
       /UNION\s+SELECT/i,
-      /--\s*$/,           // SQL注释
-      /\/\*.*\*\//,       // 多行注释
+      /--\s*$/, // SQL注释
+      /\/\*.*\*\//, // 多行注释
       /'\s*OR\s*'1'\s*=\s*'1/i,
       /'\s*OR\s*1\s*=\s*1/i,
-      /\bxp_\w+/i,        // SQL Server扩展存储过程
-      /\bsp_\w+/i,        // SQL Server系统存储过程
+      /\bxp_\w+/i, // SQL Server扩展存储过程
+      /\bsp_\w+/i, // SQL Server系统存储过程
       /\bEXEC\s*\(/i,
       /\bEXECUTE\s*\(/i,
     ];
 
-    return dangerousPatterns.some(pattern => pattern.test(input));
+    return dangerousPatterns.some((pattern) => pattern.test(input));
   }
 
   /**
@@ -148,13 +151,13 @@ class SqlSecurity {
    * @returns {string} 清理后的字符串
    */
   static sanitizeString(input) {
-    if (!input || typeof input !== 'string') {
-      return '';
+    if (!input || typeof input !== "string") {
+      return "";
     }
 
     // 移除危险字符
     return input
-      .replace(/[^\w\s\-@.]/g, '') // 只保留字母、数字、空格、连字符、@、点
+      .replace(/[^\w\s\-@.]/g, "") // 只保留字母、数字、空格、连字符、@、点
       .substring(0, 1000); // 限制长度
   }
 
@@ -164,16 +167,16 @@ class SqlSecurity {
    * @returns {string} 安全的LIKE模式
    */
   static buildLikePattern(searchTerm) {
-    if (!searchTerm || typeof searchTerm !== 'string') {
-      return '%';
+    if (!searchTerm || typeof searchTerm !== "string") {
+      return "%";
     }
 
     // 转义LIKE特殊字符
     const escaped = searchTerm
-      .replace(/\\/g, '\\\\')  // 反斜杠
-      .replace(/%/g, '\\%')    // 百分号
-      .replace(/_/g, '\\_')    // 下划线
-      .substring(0, 100);      // 限制长度
+      .replace(/\\/g, "\\\\") // 反斜杠
+      .replace(/%/g, "\\%") // 百分号
+      .replace(/_/g, "\\_") // 下划线
+      .substring(0, 100); // 限制长度
 
     return `%${escaped}%`;
   }
@@ -184,14 +187,14 @@ class SqlSecurity {
    * @returns {string} 安全的搜索关键词
    */
   static validateSearchKeyword(keyword) {
-    if (!keyword || typeof keyword !== 'string') {
-      return '';
+    if (!keyword || typeof keyword !== "string") {
+      return "";
     }
 
     // 检查SQL注入模式
     if (this.containsSqlInjectionPattern(keyword)) {
-      logger.error('[SqlSecurity] 检测到SQL注入模式:', keyword);
-      throw new Error('搜索关键词包含非法字符');
+      logger.error("[SqlSecurity] 检测到SQL注入模式:", keyword);
+      throw new Error("搜索关键词包含非法字符");
     }
 
     // 限制长度
@@ -205,51 +208,51 @@ class SqlSecurity {
   static getAllowedTables() {
     return [
       // 项目相关
-      'projects',
-      'project_files',
-      'project_tasks',
-      'project_conversations',
-      'project_templates',
+      "projects",
+      "project_files",
+      "project_tasks",
+      "project_conversations",
+      "project_templates",
 
       // 笔记和知识库
-      'notes',
-      'note_versions',
-      'knowledge_base',
+      "notes",
+      "note_versions",
+      "knowledge_base",
 
       // 对话和消息
-      'chat_conversations',
-      'messages',
-      'conversation_contexts',
+      "chat_conversations",
+      "messages",
+      "conversation_contexts",
 
       // 社交
-      'social_posts',
-      'social_comments',
-      'social_likes',
-      'social_follows',
+      "social_posts",
+      "social_comments",
+      "social_likes",
+      "social_follows",
 
       // DID和联系人
-      'did_identities',
-      'contacts',
-      'contact_groups',
+      "did_identities",
+      "contacts",
+      "contact_groups",
 
       // P2P和同步
-      'p2p_messages',
-      'p2p_peers',
-      'sync_queue',
+      "p2p_messages",
+      "p2p_peers",
+      "sync_queue",
 
       // LLM和AI
-      'llm_providers',
-      'llm_performance_logs',
-      'llm_sessions',
+      "llm_providers",
+      "llm_performance_logs",
+      "llm_sessions",
 
       // 其他
-      'settings',
-      'tags',
-      'categories',
-      'templates',
-      'skills',
-      'tools',
-      'notifications',
+      "settings",
+      "tags",
+      "categories",
+      "templates",
+      "skills",
+      "tools",
+      "notifications",
     ];
   }
 
@@ -260,8 +263,8 @@ class SqlSecurity {
    * @returns {Object} { whereClause, params }
    */
   static buildSafeWhereClause(filters, allowedFields) {
-    if (!filters || typeof filters !== 'object') {
-      return { whereClause: '', params: [] };
+    if (!filters || typeof filters !== "object") {
+      return { whereClause: "", params: [] };
     }
 
     const conditions = [];
@@ -270,7 +273,7 @@ class SqlSecurity {
     for (const [field, value] of Object.entries(filters)) {
       // 验证字段名
       if (!allowedFields.includes(field)) {
-        logger.warn('[SqlSecurity] 过滤字段不在白名单:', field);
+        logger.warn("[SqlSecurity] 过滤字段不在白名单:", field);
         continue;
       }
 
@@ -278,7 +281,7 @@ class SqlSecurity {
       try {
         this.validateColumnName(field);
       } catch (error) {
-        logger.error('[SqlSecurity] 非法的列名:', field);
+        logger.error("[SqlSecurity] 非法的列名:", field);
         continue;
       }
 
@@ -286,18 +289,23 @@ class SqlSecurity {
       if (value === null) {
         conditions.push(`${field} IS NULL`);
       } else if (Array.isArray(value)) {
-        const placeholders = value.map(() => '?').join(', ');
-        conditions.push(`${field} IN (${placeholders})`);
-        params.push(...value);
+        if (value.length === 0) {
+          // `field IN ()` 是 SQLite 语法错误。空集合不匹配任何行，
+          // 因此输出恒假谓词，而不是生成非法 SQL（与 QueryBuilder.whereIn 一致）。
+          conditions.push("1 = 0");
+        } else {
+          const placeholders = value.map(() => "?").join(", ");
+          conditions.push(`${field} IN (${placeholders})`);
+          params.push(...value);
+        }
       } else {
         conditions.push(`${field} = ?`);
         params.push(value);
       }
     }
 
-    const whereClause = conditions.length > 0
-      ? 'WHERE ' + conditions.join(' AND ')
-      : '';
+    const whereClause =
+      conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
 
     return { whereClause, params };
   }

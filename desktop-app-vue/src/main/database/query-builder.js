@@ -157,6 +157,12 @@ class QueryBuilder {
 
   whereIn(column, values) {
     assertSafeIdentifier(column, "column");
+    // `col IN ()` is a SQL syntax error (SQLite rejects it). An empty set
+    // matches nothing, so emit an always-false predicate instead of crashing.
+    if (!Array.isArray(values) || values.length === 0) {
+      this._wheres.push({ raw: "1 = 0", logic: "AND" });
+      return this;
+    }
     const placeholders = values.map(() => "?").join(", ");
     this._wheres.push({ raw: `${column} IN (${placeholders})`, logic: "AND" });
     this._params.push(...values);

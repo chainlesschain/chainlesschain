@@ -100,6 +100,16 @@ describe("QueryBuilder", () => {
       expect(params).toEqual([1, 2, 3]);
     });
 
+    it("should emit an always-false predicate for whereIn with an empty array (not invalid `IN ()`)", () => {
+      const { sql, params } = QueryBuilder.from(db)
+        .table("users")
+        .select()
+        .whereIn("id", [])
+        .buildSQL();
+      expect(sql).toBe("SELECT * FROM users WHERE 1 = 0");
+      expect(params).toEqual([]);
+    });
+
     it("should build SELECT with whereNull and whereNotNull", () => {
       const { sql } = QueryBuilder.from(db)
         .table("users")
