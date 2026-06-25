@@ -5,17 +5,7 @@
  * so the web-panel keeps working if a future CLI version drops a flag.
  */
 
-function tryParseJson(output) {
-  if (!output) return null
-  const trimmed = output.trim()
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    const match = trimmed.match(/(\[[\s\S]*\]|\{[\s\S]*\})/)
-    if (!match) return null
-    try { return JSON.parse(match[1]) } catch { return null }
-  }
-}
+import { tryParseJson } from './community-parser.js'
 
 function normalizeIdentity(raw, idx = 0) {
   if (!raw || typeof raw !== 'object') return null

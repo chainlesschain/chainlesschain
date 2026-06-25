@@ -25,6 +25,14 @@ describe('parseEntities', () => {
     expect(parseEntities('error: db locked')).toEqual([])
   })
 
+  it('survives trailing prose with a stray brace (old greedy local copy over-captured)', () => {
+    // 旧本地 tryParseJson 的贪婪正则会吃到末尾散文里那个落单的 } → 丢结果。
+    const noisy = '[{"id":"e1","name":"Alice","type":"Person"}] done }'
+    const list = parseEntities(noisy)
+    expect(list).toHaveLength(1)
+    expect(list[0].id).toBe('e1')
+  })
+
   it('parses a JSON array of entities', () => {
     const json = JSON.stringify([
       { id: 'e1', name: 'Alice', type: 'Person', tags: ['friend'], properties: { age: 30 } },

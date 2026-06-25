@@ -22,6 +22,13 @@ describe('parseProjectConfig', () => {
     expect(parseProjectConfig('Key not found: project')).toEqual(PROJECT_DEFAULTS)
   })
 
+  it('survives trailing prose with a stray brace (old greedy local copy over-captured)', () => {
+    // 旧本地 tryParseJson 的贪婪正则会吃到末尾那个落单的 } → 解析失败退回默认值。
+    const r = parseProjectConfig('{"rootPath":"/x","maxSizeMB":2000} note: } here')
+    expect(r.rootPath).toBe('/x')
+    expect(r.maxSizeMB).toBe(2000)
+  })
+
   it('parses full JSON object dump', () => {
     const json = JSON.stringify({
       rootPath: '/home/user/projects',

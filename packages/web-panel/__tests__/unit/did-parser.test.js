@@ -24,6 +24,14 @@ describe('parseDidList', () => {
     expect(parseDidList('error: db locked')).toEqual([])
   })
 
+  it('survives trailing prose with a stray bracket (old greedy local copy over-captured)', () => {
+    // 旧本地 tryParseJson 的贪婪正则会一路吃到末尾那个落单的 ] → JSON.parse 抛错丢结果。
+    const noisy = '[{"did":"did:chainless:abc","displayName":"alice"}] (1 identity) ]'
+    const list = parseDidList(noisy)
+    expect(list).toHaveLength(1)
+    expect(list[0].did).toBe('did:chainless:abc')
+  })
+
   it('parses a JSON array from `did list --json`', () => {
     const json = JSON.stringify([
       { did: 'did:chainless:abc', displayName: 'alice', isDefault: true, createdAt: '2026-04-21' },

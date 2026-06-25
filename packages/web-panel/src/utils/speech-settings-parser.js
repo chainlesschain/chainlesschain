@@ -12,6 +12,8 @@
  * size for marginal value.
  */
 
+import { tryParseJson } from './community-parser.js'
+
 export const SPEECH_DEFAULTS = Object.freeze({
   defaultEngine: 'webspeech',
   webSpeech: {
@@ -33,18 +35,6 @@ export const SPEECH_DEFAULTS = Object.freeze({
 })
 
 const ENGINE_OPTIONS = ['webspeech', 'whisper-api', 'whisper-local']
-
-function tryParseJson(output) {
-  if (!output) return null
-  const trimmed = output.trim()
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    const match = trimmed.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
-    if (!match) return null
-    try { return JSON.parse(match[1]) } catch { return null }
-  }
-}
 
 function coerceNum(v, fallback) {
   if (typeof v === 'number' && Number.isFinite(v)) return v

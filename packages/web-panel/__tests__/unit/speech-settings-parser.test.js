@@ -24,6 +24,12 @@ describe('parseSpeechConfig', () => {
     expect(parseSpeechConfig('Key not found: speech')).toEqual(SPEECH_DEFAULTS)
   })
 
+  it('survives trailing prose with a stray brace (old greedy local copy over-captured)', () => {
+    // 旧本地 tryParseJson 的贪婪正则会吃到末尾那个落单的 } → 解析失败退回默认值。
+    const r = parseSpeechConfig('{"defaultEngine":"whisper-api"} (loaded) }')
+    expect(r.defaultEngine).toBe('whisper-api')
+  })
+
   it('does not return the SPEECH_DEFAULTS constant by reference (so mutation cannot pollute defaults)', () => {
     const r = parseSpeechConfig('')
     r.defaultEngine = 'mutated'

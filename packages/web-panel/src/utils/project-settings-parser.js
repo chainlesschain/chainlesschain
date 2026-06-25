@@ -6,24 +6,14 @@
  * exits non-zero with stderr "Key not found".
  */
 
+import { tryParseJson } from './community-parser.js'
+
 export const PROJECT_DEFAULTS = Object.freeze({
   rootPath: '',
   maxSizeMB: 1000,
   autoSync: false,
   syncIntervalSeconds: 300,
 })
-
-function tryParseJson(output) {
-  if (!output) return null
-  const trimmed = output.trim()
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    const match = trimmed.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
-    if (!match) return null
-    try { return JSON.parse(match[1]) } catch { return null }
-  }
-}
 
 function coerceBool(v) {
   if (typeof v === 'boolean') return v
