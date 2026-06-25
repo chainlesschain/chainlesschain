@@ -102,7 +102,21 @@ class KnowledgeSyncHandler extends EventEmitter {
         params.push(folderId);
       }
 
-      query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+      // ORDER BY 不能参数化，而 sortBy/sortOrder 来自对端消息：必须按白名单校验，
+      // 否则恶意对端可经 ORDER BY 注入 SQL（如 `ORDER BY (CASE WHEN <子查询> ...)`
+      // 盲注窃取数据）。非法值回退到安全默认。
+      const SORT_COLUMNS = new Set([
+        "updated_at",
+        "created_at",
+        "title",
+        "id",
+        "folder_id",
+      ]);
+      const safeSortBy = SORT_COLUMNS.has(sortBy) ? sortBy : "updated_at";
+      const safeSortOrder =
+        String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+      query += ` ORDER BY ${safeSortBy} ${safeSortOrder} LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
       const notes = await this.db.all(query, params);
