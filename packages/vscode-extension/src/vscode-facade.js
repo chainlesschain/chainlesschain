@@ -394,21 +394,39 @@ function createVscodeEditorFacade(vscode) {
       } catch {
         // Multi-diff command unavailable (older host) — still prompt to decide.
       }
+      // The multi-diff editor that just opened, captured by reference so closing
+      // it can mean "reject" (parity with openDiff). Reference equality avoids
+      // parsing the less-standard multi-diff tab input type.
+      const multiTab = vscode.window.tabGroups?.activeTabGroup?.activeTab || null;
       const summary = changesetSummary(changed);
       // Block on the decision, also resolvable by the Accept/Reject keybindings
       // (same chainlesschainDiffActive handle as openDiff — keyboard Accept maps
-      // to "Accept all", keyboard Reject to "Reject").
+      // to "Accept all", keyboard Reject to "Reject") or by closing the tab.
+      const CLOSED = Symbol("multi-diff-closed");
       const choice = await new Promise((resolve) => {
         let settled = false;
+        let sub = null;
         const settle = (v) => {
           if (settled) return;
           settled = true;
           activeReview = null;
           setDiffContext(false);
+          try {
+            sub?.dispose();
+          } catch {
+            /* best-effort */
+          }
           resolve(v);
         };
         activeReview = { settle, accept: "Accept all", reject: "Reject" };
         setDiffContext(true);
+        // Closing the multi-diff tab is a reject — unblock the agent immediately
+        // instead of waiting for the notification to also be dismissed.
+        if (multiTab && vscode.window.tabGroups?.onDidChangeTabs) {
+          sub = vscode.window.tabGroups.onDidChangeTabs((e) => {
+            if ((e?.closed || []).includes(multiTab)) settle(CLOSED);
+          });
+        }
         vscode.window
           .showInformationMessage(
             `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})`,
@@ -420,6 +438,9 @@ function createVscodeEditorFacade(vscode) {
           .then(settle, () => settle(undefined));
       });
 
+      if (choice === CLOSED) {
+        return { outcome: "rejected", closedDiff: true };
+      }
       if (choice === "Accept all") {
         const writes = selectWrites(changed, null);
         for (const w of writes) {

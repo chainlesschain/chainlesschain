@@ -242,3 +242,92 @@ describe("buildIdeTools exposes openMultiDiff conditionally", () => {
     expect(without.map((t) => t.name)).not.toContain("openMultiDiff");
   });
 });
+
+/**
+ * Closing the multi-diff tab rejects (parity with openDiff): the agent unblocks
+ * immediately as rejected instead of waiting for the notification to also be
+ * dismissed. The tab is captured by reference (activeTabGroup.activeTab).
+ */
+function fakeVscodeWithTab() {
+  let untitled = 0;
+  const closeListeners = [];
+  const tab = { id: "multidiff-tab" }; // the captured multi-diff tab (by ref)
+  const v = {
+    Uri: {
+      file: (p) => ({
+        fsPath: p,
+        scheme: "file",
+        toString: () => "file://" + p,
+      }),
+    },
+    workspace: {
+      openTextDocument: async (arg) => ({
+        uri: {
+          toString: () =>
+            arg && "content" in arg ? "untitled:U" + ++untitled : "f",
+        },
+        getText: () => (arg && arg.content) || "",
+        positionAt: (n) => n,
+        save: async () => {},
+      }),
+      applyEdit: async () => true,
+    },
+    commands: { executeCommand: async () => {} },
+    window: {
+      showInformationMessage: () => new Promise(() => {}), // only tab-close settles
+      showQuickPick: async () => null,
+      tabGroups: {
+        activeTabGroup: { activeTab: tab },
+        onDidChangeTabs: (cb) => {
+          closeListeners.push(cb);
+          return { dispose: () => {} };
+        },
+      },
+    },
+    WorkspaceEdit: class {
+      replace() {}
+    },
+    Range: class {},
+  };
+  return {
+    vscode: v,
+    tab,
+    listenerCount: () => closeListeners.length,
+    fireClose: (t) => closeListeners.forEach((cb) => cb({ closed: [t] })),
+  };
+}
+
+describe("openMultiDiff: closing the tab rejects", () => {
+  const CS = [{ path: "/ws/a.js", originalText: "1", modifiedText: "2" }];
+
+  it("resolves rejected (+closedDiff) when the captured tab closes", async () => {
+    const fx = fakeVscodeWithTab();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openMultiDiff({ files: CS });
+    await until(() => fx.listenerCount() > 0); // watcher registered
+
+    fx.fireClose(fx.tab);
+    await expect(p).resolves.toMatchObject({
+      outcome: "rejected",
+      closedDiff: true,
+    });
+  });
+
+  it("ignores an unrelated tab closing", async () => {
+    const fx = fakeVscodeWithTab();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const p = facade.openMultiDiff({ files: CS });
+    await until(() => fx.listenerCount() > 0);
+
+    fx.fireClose({ id: "some-other-tab" });
+    let done = false;
+    p.then(() => {
+      done = true;
+    });
+    await new Promise((r) => setImmediate(r));
+    expect(done).toBe(false); // still blocked on the reviewer
+
+    fx.fireClose(fx.tab); // the real one settles it
+    await expect(p).resolves.toMatchObject({ outcome: "rejected" });
+  });
+});

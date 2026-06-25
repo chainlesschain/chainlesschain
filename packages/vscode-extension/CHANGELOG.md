@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.11] — fix: closing the multi-file review tab now rejects
+
+- **Closing the multi-file review tab now unblocks the agent as rejected**,
+  matching single-file `openDiff`. Previously `openMultiDiff` only resolved via
+  the notification buttons (or the new keybindings), so closing the multi-diff
+  editor left the agent waiting until you *also* dismissed the notification. The
+  tab is captured by reference when it opens, so closing it settles the review as
+  rejected. Degrades to the previous button-only behavior on hosts without the
+  `tabGroups` API.
+
 ## [0.36.10] — feat: keyboard accept/reject also covers the multi-file review
 
 - **The Accept/Reject keybindings now work for the batch multi-file review
