@@ -18,6 +18,7 @@ const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
+const { looseParseJSON } = require("../response-parser.js");
 
 // ============================================================
 // Constants
@@ -2066,24 +2067,11 @@ Respond ONLY with valid JSON.`;
 
     const str = typeof text === "string" ? text : String(text);
 
-    // Try direct parse first
-    try {
-      return JSON.parse(str);
-    } catch {
-      // Try extracting JSON from markdown code block
-      const codeBlockMatch = str.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        return JSON.parse(codeBlockMatch[1].trim());
-      }
-
-      // Try finding JSON object in text
-      const jsonMatch = str.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-
-      throw new Error("No valid JSON found in response");
-    }
+    // Delegate to the shared robust extractor. The previous local fallback used a
+    // greedy `/\{[\s\S]*\}/` (first `{` to last `}`), which over-captures and
+    // throws when the LLM appends prose with a stray `}` or emits several JSON
+    // objects; looseParseJSON tries each brace-balanced candidate before that.
+    return looseParseJSON(str);
   }
 
   /**

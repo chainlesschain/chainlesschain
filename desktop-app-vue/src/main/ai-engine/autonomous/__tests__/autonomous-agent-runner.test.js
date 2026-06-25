@@ -946,5 +946,14 @@ describe("AutonomousAgentRunner", () => {
     it("should throw for empty input", () => {
       expect(() => runner._parseJSON("")).toThrow();
     });
+
+    it("extracts JSON when trailing prose contains a stray brace (regression)", () => {
+      // The old greedy /\{[\s\S]*\}/ ate through the trailing } and threw.
+      expect(runner._parseJSON('{"d":4} note: keep } safe')).toEqual({ d: 4 });
+    });
+
+    it("returns the first object when the LLM emits several (regression)", () => {
+      expect(runner._parseJSON('{"e":5} {"f":6}')).toEqual({ e: 5 });
+    });
   });
 });
