@@ -188,6 +188,11 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider(
       "chainlesschainIdeChat",
       chatProvider,
+      // Keep the panel's DOM alive when you switch sidebar views and back, so the
+      // conversation transcript isn't lost (the panel doesn't replay it) and the
+      // webview isn't torn down + rebuilt each time. The transcript node cap
+      // (0.36.5) bounds the retained memory.
+      { webviewOptions: { retainContextWhenHidden: true } },
     ),
     chatProvider,
   );

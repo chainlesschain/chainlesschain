@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.12] — fix: the chat panel keeps its conversation when you switch sidebar views
+
+- **The chat panel no longer loses its transcript when you switch to another
+  sidebar view (Explorer, Source Control, …) and back.** The webview view provider
+  is now registered with `retainContextWhenHidden`, so the panel's DOM is kept
+  alive while hidden instead of being torn down and rebuilt empty (the panel never
+  replayed the transcript, so the visible conversation just vanished). Also avoids
+  re-running the view setup on every re-show. Retained memory stays bounded by the
+  transcript node cap added in 0.36.5.
+
 ## [0.36.11] — fix: closing the multi-file review tab now rejects
 
 - **Closing the multi-file review tab now unblocks the agent as rejected**,
