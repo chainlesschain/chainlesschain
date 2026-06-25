@@ -519,4 +519,78 @@ describe("waitForCallback (timeout-timer cleanup)", () => {
     expect(closed).toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  it("ignores a forged/mismatched-state callback and keeps waiting", async () => {
+    vi.useFakeTimers();
+    let handler;
+    const closed = vi.fn();
+    _deps.createServer = (h) => {
+      handler = h;
+      return { on: () => {}, listen: () => {}, close: closed };
+    };
+    const p = oauth.waitForCallback({
+      port: 0,
+      path: "/callback",
+      timeout: 60_000,
+      expectedState: "GOOD",
+    });
+
+    // A drive-by / duplicate hit with the WRONG state must not abort the login.
+    const res1 = { writeHead: vi.fn(), end: vi.fn() };
+    handler({ url: "/callback?code=evil&state=WRONG" }, res1);
+    expect(res1.writeHead).toHaveBeenCalledWith(400, expect.anything());
+    expect(closed).not.toHaveBeenCalled(); // server still listening
+    expect(vi.getTimerCount()).toBe(1); // backstop timer still armed
+
+    // The genuine redirect (matching state) resolves it.
+    handler(
+      { url: "/callback?code=real&state=GOOD" },
+      { writeHead: () => {}, end: () => {} },
+    );
+    await expect(p).resolves.toEqual({ code: "real", state: "GOOD" });
+    expect(closed).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rejects a provider error regardless of state (fast-fail on deny)", async () => {
+    vi.useFakeTimers();
+    let handler;
+    const closed = vi.fn();
+    _deps.createServer = (h) => {
+      handler = h;
+      return { on: () => {}, listen: () => {}, close: closed };
+    };
+    const p = oauth.waitForCallback({
+      port: 0,
+      path: "/callback",
+      timeout: 60_000,
+      expectedState: "GOOD",
+    });
+    handler(
+      { url: "/callback?error=access_denied" },
+      { writeHead: () => {}, end: () => {} },
+    );
+    await expect(p).rejects.toThrow(/access_denied/);
+    expect(closed).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rejects a no-code callback in legacy mode (no expectedState)", async () => {
+    vi.useFakeTimers();
+    let handler;
+    const closed = vi.fn();
+    _deps.createServer = (h) => {
+      handler = h;
+      return { on: () => {}, listen: () => {}, close: closed };
+    };
+    const p = oauth.waitForCallback({
+      port: 0,
+      path: "/callback",
+      timeout: 60_000,
+    });
+    handler({ url: "/callback" }, { writeHead: () => {}, end: () => {} });
+    await expect(p).rejects.toThrow(/no authorization code/);
+    expect(closed).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

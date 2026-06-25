@@ -440,12 +440,25 @@ function defaultOpenBrowser(url) {
   }
 }
 
-/** Wait for the OAuth redirect on a localhost callback server; resolve {code,state}. */
+/**
+ * Wait for the OAuth redirect on a localhost callback server; resolve
+ * {code,state}.
+ *
+ * When `expectedState` is given, a SUCCESS callback (`code`) is only accepted if
+ * its `state` matches: the callback port is fixed and guessable, so a duplicate
+ * browser request, a probe, or a drive-by request from a malicious local page
+ * must not abort the real login or inject a forged code — those are answered
+ * politely but the server keeps waiting for the genuine redirect (until the
+ * backstop timeout). A provider `error` is always terminal (so denying consent
+ * fails fast even if the provider omits state on error). With no `expectedState`
+ * the legacy contract is preserved (first `/callback` hit is terminal).
+ */
 export function waitForCallback({
   port,
   host = "127.0.0.1",
   path = "/callback",
   timeout = 300_000,
+  expectedState = null,
 }) {
   return new Promise((resolve, reject) => {
     const server = _deps.createServer((req, res) => {
@@ -465,13 +478,41 @@ export function waitForCallback({
       const code = u.searchParams.get("code");
       const state = u.searchParams.get("state");
       const error = u.searchParams.get("error");
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(renderCallbackPage(error));
+
+      // Provider error (e.g. user denied) — always terminal so we fail fast.
+      if (error) {
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        res.end(renderCallbackPage(error));
+        server.close();
+        clearTimeout(timer);
+        reject(new Error(`authorization error: ${error}`));
+        return;
+      }
+
+      const stateOk = expectedState == null || state === expectedState;
+      if (code && stateOk) {
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        res.end(renderCallbackPage(null));
+        server.close();
+        clearTimeout(timer);
+        resolve({ code, state });
+        return;
+      }
+
+      // A mismatched/forged/duplicate request to our fixed port must not abort
+      // the real login — answer it but keep listening for the genuine redirect.
+      if (expectedState != null) {
+        res.writeHead(400, { "content-type": "text/html; charset=utf-8" });
+        res.end(renderCallbackPage("state mismatch"));
+        return;
+      }
+
+      // Legacy contract (no expectedState): a /callback hit with no code ends it.
+      res.writeHead(400, { "content-type": "text/html; charset=utf-8" });
+      res.end(renderCallbackPage("missing code"));
       server.close();
       clearTimeout(timer);
-      if (error) reject(new Error(`authorization error: ${error}`));
-      else if (!code) reject(new Error("no authorization code in callback"));
-      else resolve({ code, state });
+      reject(new Error("no authorization code in callback"));
     });
     const timer = setTimeout(() => {
       server.close();
@@ -540,6 +581,9 @@ export async function authorizeInteractive(serverUrl, opts = {}) {
     host,
     path: redirectPath,
     timeout,
+    // Ignore callbacks that don't carry the state we issued (forged / drive-by /
+    // duplicate hits to the fixed localhost port) instead of aborting the login.
+    expectedState: state,
   });
   const opened = _deps.openBrowser(authorizeUrl);
   writeOut(
