@@ -25,13 +25,23 @@ class IdeMcpServer {
    * @param {object} [opts.serverInfo] { name, version }
    * @param {string} [opts.path]       request path (default "/mcp")
    */
-  constructor({ tools = [], token = null, serverInfo, path = "/mcp", onActivity } = {}) {
+  constructor({
+    tools = [],
+    token = null,
+    serverInfo,
+    path = "/mcp",
+    onActivity,
+    onError,
+  } = {}) {
     this._tools = tools;
     this._token = token;
     this._path = path;
     // Optional observer for the UI layer: fired on connect + every tool call.
     // Best-effort; never affects request handling.
     this._onActivity = typeof onActivity === "function" ? onActivity : null;
+    // Optional sink for a post-listen server 'error' event. Best-effort; its job
+    // is to keep that error from being thrown uncaught (see start()).
+    this._onError = typeof onError === "function" ? onError : null;
     this._serverInfo = serverInfo || {
       name: "chainlesschain-ide",
       version: "0.1.0",
@@ -51,6 +61,20 @@ class IdeMcpServer {
     // the held-open response is never cut (localhost + bearer-gated, trusted).
     this._server.requestTimeout = 0;
     this._server.timeout = 0;
+    // Persistent guard: the one-shot start-error listener below is removed once
+    // listen() succeeds, leaving the server with no 'error' handler — and Node
+    // throws an 'error' event with no listener as an UNCAUGHT exception, which
+    // could take down the extension host. Keep a listener for the server's whole
+    // life so any later error is swallowed (and surfaced via onError, if given).
+    this._server.on("error", (e) => {
+      if (this._onError) {
+        try {
+          this._onError(e);
+        } catch {
+          /* best-effort */
+        }
+      }
+    });
     await new Promise((resolve, reject) => {
       const onErr = (e) => reject(e);
       this._server.once("error", onErr);

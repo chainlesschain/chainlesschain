@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.13] — fix: a late bridge-server error can't crash the extension
+
+- **A server error after the bridge is listening no longer risks taking down the
+  extension.** The start path removes its one-shot error listener once `listen()`
+  succeeds, which left the HTTP server with no `error` handler — and Node throws
+  an `'error'` event with no listener as an *uncaught* exception. A persistent
+  guard now absorbs any later server error (and surfaces it through the new
+  `onError` hook, logged to the bridge output channel). Defensive hardening; the
+  localhost ephemeral-port server rarely errors post-listen, but it must not be
+  able to crash the host when it does.
+
 ## [0.36.12] — fix: the chat panel keeps its conversation when you switch sidebar views
 
 - **The chat panel no longer loses its transcript when you switch to another

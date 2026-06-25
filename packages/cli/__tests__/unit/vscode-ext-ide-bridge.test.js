@@ -38,8 +38,18 @@ function fakeFacade() {
     }),
     getDiagnostics: async ({ path: p } = {}) => {
       const all = [
-        { file: "/abs/ws/src/a.js", severity: "error", message: "boom", line: 3 },
-        { file: "/abs/ws/src/b.js", severity: "warning", message: "meh", line: 1 },
+        {
+          file: "/abs/ws/src/a.js",
+          severity: "error",
+          message: "boom",
+          line: 3,
+        },
+        {
+          file: "/abs/ws/src/b.js",
+          severity: "warning",
+          message: "meh",
+          line: 1,
+        },
       ];
       return p ? all.filter((d) => d.file === p) : all;
     },
@@ -104,7 +114,10 @@ describe("IdeMcpServer ↔ CLI MCPClient interop", () => {
   const TOKEN = "interop-secret";
 
   beforeEach(async () => {
-    server = new IdeMcpServer({ tools: buildIdeTools(fakeFacade()), token: TOKEN });
+    server = new IdeMcpServer({
+      tools: buildIdeTools(fakeFacade()),
+      token: TOKEN,
+    });
     await server.start({ port: 0 });
     client = new MCPClient();
   });
@@ -357,9 +370,39 @@ describe("lockfile ↔ CLI Phase-0 reader contract", () => {
   });
 
   it("removeLock makes the CLI no longer discover it", () => {
-    lockfile.writeLock({ port: 53777, token: "abc", workspaceFolders: ["/abs/ws"] });
+    lockfile.writeLock({
+      port: 53777,
+      token: "abc",
+      workspaceFolders: ["/abs/ws"],
+    });
     expect(readIdeLocks()).toHaveLength(1);
     expect(lockfile.removeLock(53777)).toBe(true);
     expect(readIdeLocks()).toHaveLength(0);
+  });
+});
+
+describe("IdeMcpServer post-listen 'error' guard", () => {
+  it("swallows a later server error (routes to onError) instead of throwing", async () => {
+    const errors = [];
+    const server = new IdeMcpServer({
+      tools: [],
+      token: "t",
+      onError: (e) => errors.push(e),
+    });
+    await server.start({ port: 0 });
+    // After listen() the one-shot start-error listener is removed; a server
+    // 'error' with no listener would be thrown uncaught by Node. The persistent
+    // guard must absorb it and surface it via onError.
+    const boom = new Error("socket boom");
+    expect(() => server._server.emit("error", boom)).not.toThrow();
+    expect(errors).toContain(boom);
+    await server.stop();
+  });
+
+  it("a server without onError still doesn't throw on a post-listen error", async () => {
+    const server = new IdeMcpServer({ tools: [], token: "t" });
+    await server.start({ port: 0 });
+    expect(() => server._server.emit("error", new Error("x"))).not.toThrow();
+    await server.stop();
   });
 });

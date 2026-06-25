@@ -122,6 +122,7 @@ async function startBridge(context) {
   _server = new IdeMcpServer({
     tools,
     token,
+    onError: (e) => log("ide bridge server error: " + (e?.message || e)),
     onActivity: (e) => {
       if (!_activityLog) return;
       const argsSummary =
