@@ -4,6 +4,7 @@ const {
   getGraphData,
   deleteRelations,
   getKnowledgeRelations,
+  findRelationPath,
 } = require("../database-graph");
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
@@ -90,5 +91,90 @@ describe("database-graph metadata parsing — a corrupt row must not crash", () 
     expect(rels).toHaveLength(2);
     expect(rels[0].metadata).toEqual({ k: 1 }); // valid → parsed
     expect(rels[1].metadata).toBeNull(); // corrupt → null, not a throw
+  });
+});
+
+describe("database-graph findRelationPath — BFS shortest path", () => {
+  // Build a db whose single `knowledge_relations` scan yields these edges.
+  // The SELECT aliases `id AS edge_id`, so rows expose `edge_id`.
+  function graphDb(edges) {
+    const rows = edges.map(([source_id, target_id, edge_id]) => ({
+      source_id,
+      target_id,
+      edge_id,
+      relation_type: "link",
+      weight: 1,
+    }));
+    return { db: { prepare: vi.fn(() => makeStmt(rows)) } };
+  }
+
+  it("returns a zero-length path when source equals target", () => {
+    const dbManager = { db: { prepare: vi.fn() } };
+    expect(findRelationPath(dbManager, logger, "x", "x")).toEqual({
+      nodes: ["x"],
+      edges: [],
+      length: 0,
+    });
+    expect(dbManager.db.prepare).not.toHaveBeenCalled();
+  });
+
+  it("finds a direct (1-edge) path", () => {
+    const db = graphDb([["a", "b", "e1"]]);
+    expect(findRelationPath(db, logger, "a", "b")).toEqual({
+      nodes: ["a", "b"],
+      edges: ["e1"],
+      length: 1,
+    });
+  });
+
+  it("finds the shortest 2-edge path", () => {
+    const db = graphDb([
+      ["a", "b", "e1"],
+      ["b", "c", "e2"],
+    ]);
+    expect(findRelationPath(db, logger, "a", "c")).toEqual({
+      nodes: ["a", "b", "c"],
+      edges: ["e1", "e2"],
+      length: 2,
+    });
+  });
+
+  it("traverses edges as undirected (reverse direction works)", () => {
+    const db = graphDb([["a", "b", "e1"]]);
+    expect(findRelationPath(db, logger, "b", "a")).toEqual({
+      nodes: ["b", "a"],
+      edges: ["e1"],
+      length: 1,
+    });
+  });
+
+  it("returns null when no path exists", () => {
+    const db = graphDb([["a", "b", "e1"]]);
+    expect(findRelationPath(db, logger, "a", "z")).toBeNull();
+  });
+
+  it("excludes paths longer than maxDepth", () => {
+    const chain = [
+      ["a", "b", "e1"],
+      ["b", "c", "e2"],
+      ["c", "d", "e3"],
+    ];
+    // a→d is 3 edges; maxDepth 2 must not find it, maxDepth 3 must.
+    expect(findRelationPath(graphDb(chain), logger, "a", "d", 2)).toBeNull();
+    expect(findRelationPath(graphDb(chain), logger, "a", "d", 3)).toMatchObject(
+      {
+        length: 3,
+      },
+    );
+  });
+
+  it("terminates on a cycle without finding an unreachable target", () => {
+    // a-b-c-a is a cycle; `d` is unreachable. Must return null, not hang.
+    const db = graphDb([
+      ["a", "b", "e1"],
+      ["b", "c", "e2"],
+      ["c", "a", "e3"],
+    ]);
+    expect(findRelationPath(db, logger, "a", "d")).toBeNull();
   });
 });
