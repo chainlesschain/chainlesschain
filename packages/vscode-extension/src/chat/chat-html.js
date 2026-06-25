@@ -158,7 +158,8 @@ function buildChatHtml({ cspSource, nonce }) {
   const ctxbar = document.getElementById("ctxbar");
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
-  let streamRaw = ""; // its raw markdown, re-rendered on every delta
+  let streamRaw = ""; // its raw markdown, re-rendered (coalesced) on deltas
+  let streamFrame = null; // pending requestAnimationFrame id for a deferred render
   let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
   let thinkingBody = null; // the body inside it where deltas are appended
   let lastSentText = ""; // last user prompt, for /retry (regenerate)
@@ -246,6 +247,37 @@ function buildChatHtml({ cspSource, nonce }) {
       streamRaw = "";
     }
     return streamEl;
+  }
+  // Coalesce streaming deltas. Each token re-parses the WHOLE growing markdown
+  // string (mdLite) and replaces innerHTML — O(n²) work + a DOM reflow per
+  // token, which pins CPU on fast streams. Instead, accumulate raw text
+  // synchronously and render at most once per animation frame (~60fps),
+  // mirroring Claude-Code 2.1.191 "reduced CPU during streaming via text update
+  // coalescing". flushStream() forces a synchronous render so a block is fully
+  // rendered before it is closed; cancelStreamFrame() drops a pending render
+  // when the block is being discarded (reset / tab switch).
+  function renderStreamNow() {
+    if (!streamEl) return;
+    streamEl.innerHTML = mdLite(streamRaw); // whitelist renderer, XSS-safe
+    decorateCodeBlocks(streamEl); // Copy buttons on fenced blocks (DOM-level)
+    log.scrollTop = log.scrollHeight;
+  }
+  function scheduleStreamRender() {
+    if (streamFrame !== null) return;
+    streamFrame = requestAnimationFrame(() => {
+      streamFrame = null;
+      renderStreamNow();
+    });
+  }
+  function cancelStreamFrame() {
+    if (streamFrame !== null) {
+      cancelAnimationFrame(streamFrame);
+      streamFrame = null;
+    }
+  }
+  function flushStream() {
+    cancelStreamFrame();
+    renderStreamNow();
   }
   // Collapsible reasoning block for extended thinking. A native <details> —
   // expanded while it streams, click the summary to collapse; auto-collapsed
@@ -574,11 +606,9 @@ function buildChatHtml({ cspSource, nonce }) {
         status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
         break;
       case "delta": {
-        const el = ensureStream();
+        ensureStream();
         streamRaw += m.text;
-        el.innerHTML = mdLite(streamRaw); // whitelist renderer, XSS-safe
-        decorateCodeBlocks(el); // Copy buttons on fenced blocks (DOM-level)
-        log.scrollTop = log.scrollHeight;
+        scheduleStreamRender(); // coalesced: render at most once per frame
         break;
       }
       case "thinking": {
@@ -590,6 +620,7 @@ function buildChatHtml({ cspSource, nonce }) {
         break;
       }
       case "tool":
+        flushStream(); // finalize streamed text before the tool block lands below it
         streamEl = null;
         closeThinking(); // collapse the reasoning that led to this action
         add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
@@ -602,6 +633,7 @@ function buildChatHtml({ cspSource, nonce }) {
         // The agent is BLOCKED on ask_user_question. Render an in-panel card with
         // clickable options (single → buttons, multi → checkboxes + submit) or a
         // text input — and reply {type:"answer",id,answer} (null = Skip).
+        flushStream(); // finalize any streamed text before the question card
         streamEl = null;
         const card = document.createElement("div");
         card.className = "approval"; // reuse the card styling
@@ -685,6 +717,7 @@ function buildChatHtml({ cspSource, nonce }) {
             decorateCodeBlocks(el);
           }
         }
+        flushStream(); // ensure the last streamed tokens are rendered before close
         streamEl = null;
         closeThinking(); // tuck the reasoning away now that the answer is in
         status.textContent = m.usage
@@ -709,6 +742,7 @@ function buildChatHtml({ cspSource, nonce }) {
       case "exited":
         add("info", "agent exited (code " + m.code + ") — next message restarts it");
         status.textContent = "stopped";
+        flushStream(); // render whatever streamed before the crash/exit
         streamEl = null;
         break;
       case "stderr":
@@ -716,6 +750,7 @@ function buildChatHtml({ cspSource, nonce }) {
         if (/error/i.test(m.text)) add("info", m.text);
         break;
       case "approval": {
+        flushStream(); // finalize any streamed text before the approval card
         streamEl = null;
         const card = document.createElement("div");
         card.className = "approval";
@@ -817,6 +852,7 @@ function buildChatHtml({ cspSource, nonce }) {
         add("mono", String(m.text || ""));
         break;
       case "reset":
+        cancelStreamFrame(); // drop a pending render — the log is being cleared
         log.textContent = "";
         if (activeTabId) tabNodes[activeTabId] = []; // forget this tab's transcript
         streamEl = null;
@@ -839,6 +875,7 @@ function buildChatHtml({ cspSource, nonce }) {
           else detachLogNodes(); // no owner yet → drop the bootstrap nodes
           activeTabId = m.activeId;
           attachLogNodes(tabNodes[activeTabId]);
+          cancelStreamFrame(); // drop the outgoing tab's pending render
           streamEl = null;
           streamRaw = "";
           planBox.style.display = "none";

@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.4] — perf: coalesce streaming deltas to cut chat-panel CPU
+
+- **Perf: the chat panel now renders streamed assistant text at most once per
+  animation frame instead of once per token.** Each delta used to re-parse the
+  entire growing markdown string (`mdLite`) and replace `innerHTML` — O(n²) work
+  plus a DOM reflow on every token, which pinned CPU on fast streams. Deltas are
+  now accumulated synchronously and the expensive render is batched into one
+  `requestAnimationFrame` per burst (~60fps), mirroring Claude Code 2.1.191's
+  "reduced CPU during streaming via text update coalescing". The block is flushed
+  synchronously before it closes (tool call / question / approval / turn end /
+  exit) so the final tokens are never lost, and a pending render is cancelled when
+  its block is discarded (new conversation / tab switch). Output is byte-identical;
+  only the render cadence changed.
+
 ## [0.36.3] — fix: pass the full LLM block so cloud providers don't fall through to ollama
 
 - **Fix: the chat panel now passes your endpoint + API key (`--base-url` /

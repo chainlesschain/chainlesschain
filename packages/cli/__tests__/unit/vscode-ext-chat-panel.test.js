@@ -299,6 +299,34 @@ describe("buildChatHtml", () => {
     }
   });
 
+  it("coalesces streaming deltas into one render per frame (Claude-Code 2.1.191 CPU fix)", () => {
+    const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "N1" });
+    // The deferred-render scaffolding is present and frame-driven.
+    expect(html).toContain("requestAnimationFrame");
+    expect(html).toContain("cancelAnimationFrame");
+    for (const fn of [
+      "scheduleStreamRender",
+      "flushStream",
+      "cancelStreamFrame",
+      "renderStreamNow",
+    ]) {
+      expect(html).toContain(fn);
+    }
+    // The delta handler must SCHEDULE a coalesced render — not re-parse the whole
+    // markdown string + reflow innerHTML on every single token (the old hotspot).
+    const deltaCase = html.slice(
+      html.indexOf('case "delta"'),
+      html.indexOf('case "thinking"'),
+    );
+    expect(deltaCase).toContain("scheduleStreamRender()");
+    expect(deltaCase).not.toContain("mdLite(streamRaw)");
+    // A stream block must be flushed synchronously before it is closed, so the
+    // final tokens are never lost to a still-pending frame.
+    expect(html).toMatch(/flushStream\(\);[^\n]*\n\s*streamEl = null;/);
+    // Discarded blocks (reset / tab switch) cancel the pending frame instead.
+    expect(html).toContain("cancelStreamFrame(); // drop a pending render");
+  });
+
   it("wires /compact to a compact control message (Claude-Code IDE parity)", () => {
     const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "N1" });
     // The SLASH map posts a compact control message …
