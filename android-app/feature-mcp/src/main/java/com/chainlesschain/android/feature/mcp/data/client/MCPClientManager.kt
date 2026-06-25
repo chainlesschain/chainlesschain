@@ -11,6 +11,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
+ * 工具是否被安全策略放行（纯函数，便于单测）：
+ *  - blockedTools 命中 → 拒绝（优先级最高，即便也在白名单里）；
+ *  - allowedTools 为 null → 全放行；非空 → 仅白名单内放行（空列表 = 全拒绝）。
+ */
+internal fun isToolAllowedByPolicy(policy: MCPSecurityPolicy, toolName: String): Boolean {
+    if (toolName in policy.blockedTools) return false
+    val allowed = policy.allowedTools ?: return true
+    return toolName in allowed
+}
+
+/**
  * Manages MCP server connections and tool calls
  */
 @Singleton
@@ -104,16 +115,14 @@ class MCPClientManager @Inject constructor(
     private fun checkToolPermission(server: MCPServer, toolName: String) {
         val policy = server.securityPolicy
 
-        // Check if tool is blocked
+        // Blocked takes precedence (distinct message).
         if (toolName in policy.blockedTools) {
             throw SecurityException("Tool is blocked by security policy: $toolName")
         }
 
-        // Check if tool is in allowed list (if specified)
-        policy.allowedTools?.let { allowed ->
-            if (toolName !in allowed) {
-                throw SecurityException("Tool not in allowed list: $toolName")
-            }
+        // Allowlist restriction (null = all allowed) — single source of truth.
+        if (!isToolAllowedByPolicy(policy, toolName)) {
+            throw SecurityException("Tool not in allowed list: $toolName")
         }
     }
 
