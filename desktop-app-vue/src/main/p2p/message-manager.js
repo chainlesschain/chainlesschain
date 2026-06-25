@@ -443,7 +443,12 @@ class MessageManager extends EventEmitter {
    * 启动清理定时器
    */
   startCleanupTimer() {
-    setInterval(() => {
+    // 保存句柄，使 cleanup() 能停止它。原先丢弃句柄：cleanup() 后这个 setInterval
+    // 仍每分钟触发 cleanupExpiredData()，闭包钉住 this 永不释放（定时器+管理器泄漏）。
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
+    this.cleanupTimer = setInterval(() => {
       this.cleanupExpiredData();
     }, 60000); // 每分钟清理一次
   }
@@ -501,6 +506,12 @@ class MessageManager extends EventEmitter {
    * 清理资源
    */
   cleanup() {
+    // 停止周期清理定时器（否则其 setInterval 在 cleanup 后仍每分钟触发）
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
     // 清除所有定时器
     for (const timer of this.batchTimers.values()) {
       clearTimeout(timer);
