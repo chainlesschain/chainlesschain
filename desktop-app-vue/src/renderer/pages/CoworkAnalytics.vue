@@ -276,6 +276,9 @@ onMounted(async () => {
 onUnmounted(() => {
   stopRealtimeMonitoring();
   disposeAllCharts();
+  // handleResize was added on the window in the chart-init path but never
+  // removed → it leaked (held the charts, fired after unmount).
+  window.removeEventListener("resize", handleResize);
 });
 
 // ==========================================

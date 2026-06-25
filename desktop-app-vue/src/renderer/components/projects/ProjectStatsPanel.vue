@@ -1,16 +1,8 @@
 <template>
   <div class="project-stats-panel">
-    <a-card
-      title="项目统计"
-      :bordered="false"
-      :loading="loading"
-    >
+    <a-card title="项目统计" :bordered="false" :loading="loading">
       <template #extra>
-        <a-button
-          type="link"
-          size="small"
-          @click="refreshStats"
-        >
+        <a-button type="link" size="small" @click="refreshStats">
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -19,10 +11,7 @@
       </template>
 
       <!-- 基础统计 -->
-      <a-row
-        :gutter="16"
-        class="stats-row"
-      >
+      <a-row :gutter="16" class="stats-row">
         <a-col :span="6">
           <a-statistic
             title="文件数量"
@@ -36,11 +25,7 @@
         </a-col>
 
         <a-col :span="6">
-          <a-statistic
-            title="总大小"
-            :value="totalSizeMB"
-            suffix="MB"
-          >
+          <a-statistic title="总大小" :value="totalSizeMB" suffix="MB">
             <template #prefix>
               <DatabaseOutlined style="color: #52c41a" />
             </template>
@@ -75,20 +60,11 @@
       <a-divider />
 
       <!-- ECharts图表 -->
-      <div
-        ref="chartRef"
-        style="height: 300px"
-      />
+      <div ref="chartRef" style="height: 300px" />
 
       <!-- 最后更新时间 -->
-      <div
-        v-if="stats.last_updated_at"
-        class="last-update"
-      >
-        <a-text
-          type="secondary"
-          style="font-size: 12px"
-        >
+      <div v-if="stats.last_updated_at" class="last-update">
+        <a-text type="secondary" style="font-size: 12px">
           最后更新: {{ formatTime(stats.last_updated_at) }}
         </a-text>
       </div>
@@ -265,6 +241,14 @@ const formatTime = (timestamp) => {
   return date.toLocaleString("zh-CN");
 };
 
+// Named handler so it can actually be removed on unmount (an anonymous
+// addEventListener arg can never be matched by removeEventListener).
+const handleResize = () => {
+  if (chartInstance) {
+    chartInstance.resize();
+  }
+};
+
 onMounted(() => {
   loadStats();
 
@@ -272,17 +256,15 @@ onMounted(() => {
   refreshTimer = setInterval(loadStats, 30000);
 
   // 监听窗口大小变化
-  window.addEventListener("resize", () => {
-    if (chartInstance) {
-      chartInstance.resize();
-    }
-  });
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer);
   }
+
+  window.removeEventListener("resize", handleResize);
 
   if (chartInstance) {
     chartInstance.dispose();

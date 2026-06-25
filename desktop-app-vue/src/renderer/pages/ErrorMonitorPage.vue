@@ -1011,18 +1011,22 @@ const refreshAll = () => {
   loadDailyTrend();
 };
 
+// Named handler so removeEventListener can match it on unmount.
+const handleResize = () => {
+  trendChart?.resize();
+};
+
 // 生命周期
 onMounted(() => {
   refreshAll();
   loadConfig();
 
   // 监听窗口大小变化
-  window.addEventListener("resize", () => {
-    trendChart?.resize();
-  });
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
   trendChart?.dispose();
 });
 </script>

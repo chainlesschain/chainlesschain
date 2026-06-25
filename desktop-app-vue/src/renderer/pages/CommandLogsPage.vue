@@ -1,9 +1,6 @@
 <template>
   <div class="command-logs-page">
-    <a-page-header
-      title="命令日志"
-      sub-title="远程命令执行日志与统计分析"
-    >
+    <a-page-header title="命令日志" sub-title="远程命令执行日志与统计分析">
       <template #extra>
         <a-space>
           <a-button @click="refreshData">
@@ -30,10 +27,7 @@
 
     <div class="content">
       <!-- 统计卡片 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="6">
           <a-card :loading="loading.stats">
             <a-statistic
@@ -55,9 +49,7 @@
               :prefix="h(CheckCircleOutlined)"
               :value-style="{ color: '#3f8600' }"
             >
-              <template #suffix>
-                %
-              </template>
+              <template #suffix> % </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -82,82 +74,47 @@
               :value="dashboard.realTime.avgDuration"
               :prefix="h(ClockCircleOutlined)"
             >
-              <template #suffix>
-                ms
-              </template>
+              <template #suffix> ms </template>
             </a-statistic>
           </a-card>
         </a-col>
       </a-row>
 
       <!-- 图表区域 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <!-- 命令执行趋势 -->
         <a-col :span="12">
-          <a-card
-            title="命令执行趋势"
-            :loading="loading.trend"
-          >
-            <div
-              ref="trendChartRef"
-              style="width: 100%; height: 300px"
-            />
+          <a-card title="命令执行趋势" :loading="loading.trend">
+            <div ref="trendChartRef" style="width: 100%; height: 300px" />
           </a-card>
         </a-col>
 
         <!-- 成功率统计 -->
         <a-col :span="12">
-          <a-card
-            title="命令状态分布"
-            :loading="loading.stats"
-          >
-            <div
-              ref="statusChartRef"
-              style="width: 100%; height: 300px"
-            />
+          <a-card title="命令状态分布" :loading="loading.stats">
+            <div ref="statusChartRef" style="width: 100%; height: 300px" />
           </a-card>
         </a-col>
       </a-row>
 
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <!-- 命令排行 -->
         <a-col :span="12">
-          <a-card
-            title="命令排行 TOP 10"
-            :loading="loading.ranking"
-          >
-            <div
-              ref="rankingChartRef"
-              style="width: 100%; height: 300px"
-            />
+          <a-card title="命令排行 TOP 10" :loading="loading.ranking">
+            <div ref="rankingChartRef" style="width: 100%; height: 300px" />
           </a-card>
         </a-col>
 
         <!-- 设备活跃度 -->
         <a-col :span="12">
-          <a-card
-            title="设备活跃度"
-            :loading="loading.activity"
-          >
-            <div
-              ref="activityChartRef"
-              style="width: 100%; height: 300px"
-            />
+          <a-card title="设备活跃度" :loading="loading.activity">
+            <div ref="activityChartRef" style="width: 100%; height: 300px" />
           </a-card>
         </a-col>
       </a-row>
 
       <!-- 日志列表 -->
-      <a-card
-        title="命令日志"
-        :loading="loading.logs"
-      >
+      <a-card title="命令日志" :loading="loading.logs">
         <template #extra>
           <a-space>
             <a-input-search
@@ -173,12 +130,8 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="ai">
-                AI 命令
-              </a-select-option>
-              <a-select-option value="system">
-                系统命令
-              </a-select-option>
+              <a-select-option value="ai"> AI 命令 </a-select-option>
+              <a-select-option value="system"> 系统命令 </a-select-option>
             </a-select>
             <a-select
               v-model:value="filter.status"
@@ -187,15 +140,9 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="success">
-                成功
-              </a-select-option>
-              <a-select-option value="failure">
-                失败
-              </a-select-option>
-              <a-select-option value="warning">
-                警告
-              </a-select-option>
+              <a-select-option value="success"> 成功 </a-select-option>
+              <a-select-option value="failure"> 失败 </a-select-option>
+              <a-select-option value="warning"> 警告 </a-select-option>
             </a-select>
           </a-space>
         </template>
@@ -210,10 +157,7 @@
         >
           <!-- 命令列 -->
           <template #command="{ record }">
-            <a-space
-              direction="vertical"
-              size="small"
-            >
+            <a-space direction="vertical" size="small">
               <a-tag color="blue">
                 {{ record.namespace }}
               </a-tag>
@@ -249,11 +193,7 @@
 
           <!-- 操作列 -->
           <template #action="{ record }">
-            <a-button
-              type="link"
-              size="small"
-              @click="viewLogDetail(record)"
-            >
+            <a-button type="link" size="small" @click="viewLogDetail(record)">
               查看详情
             </a-button>
           </template>
@@ -268,21 +208,11 @@
       width="800px"
       :footer="null"
     >
-      <a-descriptions
-        v-if="detailModal.log"
-        bordered
-        :column="2"
-      >
-        <a-descriptions-item
-          label="请求 ID"
-          :span="2"
-        >
+      <a-descriptions v-if="detailModal.log" bordered :column="2">
+        <a-descriptions-item label="请求 ID" :span="2">
           {{ detailModal.log.requestId }}
         </a-descriptions-item>
-        <a-descriptions-item
-          label="设备 DID"
-          :span="2"
-        >
+        <a-descriptions-item label="设备 DID" :span="2">
           {{ detailModal.log.deviceDid }}
         </a-descriptions-item>
         <a-descriptions-item label="设备名称">
@@ -307,10 +237,7 @@
         <a-descriptions-item label="时间">
           {{ formatTimestamp(detailModal.log.timestamp) }}
         </a-descriptions-item>
-        <a-descriptions-item
-          label="参数"
-          :span="2"
-        >
+        <a-descriptions-item label="参数" :span="2">
           <pre
             style="
               max-height: 200px;
@@ -319,7 +246,8 @@
               padding: 8px;
               border-radius: 4px;
             "
-          >{{ formatJSON(detailModal.log.params) }}</pre>
+            >{{ formatJSON(detailModal.log.params) }}</pre
+          >
         </a-descriptions-item>
         <a-descriptions-item
           v-if="detailModal.log.result"
@@ -334,18 +262,15 @@
               padding: 8px;
               border-radius: 4px;
             "
-          >{{ formatJSON(detailModal.log.result) }}</pre>
+            >{{ formatJSON(detailModal.log.result) }}</pre
+          >
         </a-descriptions-item>
         <a-descriptions-item
           v-if="detailModal.log.error"
           label="错误信息"
           :span="2"
         >
-          <a-alert
-            :message="detailModal.log.error"
-            type="error"
-            show-icon
-          />
+          <a-alert :message="detailModal.log.error" type="error" show-icon />
         </a-descriptions-item>
       </a-descriptions>
     </a-modal>
@@ -360,19 +285,12 @@
       <a-form layout="vertical">
         <a-form-item label="导出格式">
           <a-radio-group v-model:value="exportModal.format">
-            <a-radio value="json">
-              JSON
-            </a-radio>
-            <a-radio value="csv">
-              CSV
-            </a-radio>
+            <a-radio value="json"> JSON </a-radio>
+            <a-radio value="csv"> CSV </a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item label="时间范围">
-          <a-range-picker
-            v-model:value="exportModal.timeRange"
-            show-time
-          />
+          <a-range-picker v-model:value="exportModal.timeRange" show-time />
         </a-form-item>
         <a-form-item label="最大条数">
           <a-input-number
@@ -940,6 +858,14 @@ function formatJSON(data) {
 }
 
 // 生命周期
+// Named handler so removeEventListener can match it (an anonymous arrow can't).
+const handleResize = () => {
+  trendChart?.resize();
+  statusChart?.resize();
+  rankingChart?.resize();
+  activityChart?.resize();
+};
+
 onMounted(() => {
   // 初始化图表
   trendChart = echarts.init(trendChartRef.value);
@@ -948,12 +874,7 @@ onMounted(() => {
   activityChart = echarts.init(activityChartRef.value);
 
   // 响应式调整
-  window.addEventListener("resize", () => {
-    trendChart?.resize();
-    statusChart?.resize();
-    rankingChart?.resize();
-    activityChart?.resize();
-  });
+  window.addEventListener("resize", handleResize);
 
   // 加载初始数据
   fetchDashboard();
@@ -965,6 +886,8 @@ onUnmounted(() => {
   if (autoRefreshTimer) {
     clearInterval(autoRefreshTimer);
   }
+
+  window.removeEventListener("resize", handleResize);
 
   // 销毁图表
   trendChart?.dispose();
