@@ -628,6 +628,10 @@ export async function startAgentRepl(options = {}) {
   // emits `checkpoint` events, so `/rewind <n>` can also restore files to the
   // snapshot taken before that turn (Claude-Code rewind = code + conversation).
   const _checkpointMarks = [];
+  // Most recent conversation stashed by `/clear`, so `/rewind clear` can bring
+  // it back (Claude-Code 2.1.191). Nulled on a context swap so a stash from one
+  // session can't be restored into another. { messages, marks } | null.
+  let _clearedConversation = null;
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
     const { resolveOutputStyle } = await import("../lib/output-styles.js");
@@ -1453,7 +1457,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
       );
       logger.log(
-        `  ${chalk.cyan("/rewind")}     Rewind conversation + files to an earlier turn (double-Esc lists)`,
+        `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind clear")} restores a /clear`,
       );
       logger.log(
         `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
@@ -1695,9 +1699,20 @@ export async function startAgentRepl(options = {}) {
     }
 
     if (trimmed === "/clear") {
+      // Stash the conversation first so `/rewind clear` can restore it
+      // (Claude-Code 2.1.191). A no-op /clear (nothing to stash) keeps any
+      // existing restorable snapshot.
+      const { snapshotClearedConversation } =
+        await import("../lib/repl-rewind.js");
+      const snap = snapshotClearedConversation(messages, _checkpointMarks);
+      if (snap) _clearedConversation = snap;
       messages.length = 1; // Keep system prompt
       _checkpointMarks.length = 0; // checkpoint marks no longer map to anything
-      logger.info("Conversation cleared");
+      logger.info(
+        snap
+          ? "Conversation cleared — run /rewind clear to restore it"
+          : "Conversation cleared",
+      );
       prompt();
       return;
     }
@@ -1868,8 +1883,32 @@ export async function startAgentRepl(options = {}) {
           renderTurnList,
           pickCheckpointForTurn,
           pruneMarksAfter,
+          restoreClearedConversation,
         } = await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
+        if (arg === "clear" || arg === "undo-clear") {
+          // Restore the conversation stashed by /clear (Claude-Code 2.1.191).
+          const r = restoreClearedConversation(
+            messages,
+            _checkpointMarks,
+            _clearedConversation,
+          );
+          if (!r) {
+            logger.error("Nothing to restore — no /clear has been run.");
+          } else {
+            _clearedConversation = r.newCleared;
+            logger.log(
+              chalk.green(
+                `↺ restored ${r.restored} message(s) from before /clear` +
+                  (r.stashed
+                    ? ` (current ${r.stashed} stashed — /rewind clear swaps back)`
+                    : ""),
+              ),
+            );
+          }
+          prompt();
+          return;
+        }
         if (!arg) {
           logger.log(chalk.bold("\nRewind — pick a user turn (newest first):"));
           logger.log(renderTurnList(listUserTurns(messages)));
@@ -1877,6 +1916,13 @@ export async function startAgentRepl(options = {}) {
             ? "  (restores files to that point too — checkpoints are on)"
             : "  (conversation only — start with --checkpoint / git to also rewind files)";
           logger.log(chalk.gray(`Usage: /rewind <n>${fileHint}`));
+          if (_clearedConversation) {
+            logger.log(
+              chalk.gray(
+                `  /rewind clear — restore the ${_clearedConversation.messages.length} message(s) from before the last /clear`,
+              ),
+            );
+          }
         } else {
           const res = rewindToTurn(messages, arg);
           if (!res) {
@@ -2081,6 +2127,7 @@ export async function startAgentRepl(options = {}) {
             // a later /rewind restore files from the WRONG session's snapshot.
             // Same reset /clear does on a context swap.
             _checkpointMarks.length = 0;
+            _clearedConversation = null; // stash belongs to the swapped-out session
             logger.info(
               `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
             );
@@ -2098,6 +2145,7 @@ export async function startAgentRepl(options = {}) {
               sessionId = existing.id;
               // Drop the prior session's checkpoint marks (see JSONL branch).
               _checkpointMarks.length = 0;
+              _clearedConversation = null; // stash belongs to the swapped-out session
               logger.info(
                 `Resumed session ${sessionId} (${parsed.length} messages)`,
               );

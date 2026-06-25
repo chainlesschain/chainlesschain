@@ -7,6 +7,8 @@ import {
   buildResumeRecap,
   pickCheckpointForTurn,
   pruneMarksAfter,
+  snapshotClearedConversation,
+  restoreClearedConversation,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
 
@@ -149,5 +151,81 @@ describe("renderTurnList", () => {
     expect(out).toContain(" 1. ");
     expect(out.split("\n")).toHaveLength(3);
     expect(renderTurnList([])).toContain("no user turns");
+  });
+});
+
+describe("snapshotClearedConversation (CC 2.1.191 — /rewind clear)", () => {
+  it("captures the conversation minus the system prompt, plus marks", () => {
+    const marks = [{ atMessageCount: 4, id: "cp1" }];
+    const snap = snapshotClearedConversation(conv(), marks);
+    expect(snap.messages).toHaveLength(6); // 7 - system prompt
+    expect(snap.messages[0]).toMatchObject({ role: "user" });
+    expect(snap.marks).toEqual(marks);
+    // defensive copies — mutating the live arrays must not touch the snapshot
+    marks.push({ atMessageCount: 9, id: "cp2" });
+    expect(snap.marks).toHaveLength(1);
+  });
+
+  it("returns null for an empty conversation (no-op /clear keeps prior stash)", () => {
+    expect(
+      snapshotClearedConversation([{ role: "system", content: "S" }]),
+    ).toBeNull();
+    expect(snapshotClearedConversation([])).toBeNull();
+  });
+});
+
+describe("restoreClearedConversation (CC 2.1.191 — /rewind clear)", () => {
+  it("swaps the stash into the live conversation, keeping the system prompt", () => {
+    const messages = [{ role: "system", content: "SYS" }]; // post-clear (empty)
+    const marks = [];
+    const cleared = {
+      messages: [
+        { role: "user", content: "before clear" },
+        { role: "assistant", content: "prior reply" },
+      ],
+      marks: [{ atMessageCount: 2, id: "cpA" }],
+    };
+    const r = restoreClearedConversation(messages, marks, cleared);
+    expect(r.restored).toBe(2);
+    expect(r.stashed).toBe(0); // post-clear was empty
+    expect(r.newCleared).toBeNull();
+    expect(messages.map((m) => m.role)).toEqual([
+      "system",
+      "user",
+      "assistant",
+    ]);
+    expect(marks).toEqual([{ atMessageCount: 2, id: "cpA" }]);
+  });
+
+  it("is undoable — a non-empty current is stashed for a swap-back", () => {
+    const messages = [
+      { role: "system", content: "SYS" },
+      { role: "user", content: "new work" },
+    ];
+    const marks = [{ atMessageCount: 2, id: "cpNew" }];
+    const cleared = {
+      messages: [{ role: "user", content: "old" }],
+      marks: [{ atMessageCount: 2, id: "cpOld" }],
+    };
+    const r = restoreClearedConversation(messages, marks, cleared);
+    expect(r.restored).toBe(1);
+    expect(r.stashed).toBe(1);
+    expect(messages[1].content).toBe("old");
+    // the swapped-out current is now the stash
+    expect(r.newCleared.messages[0].content).toBe("new work");
+    expect(r.newCleared.marks).toEqual([{ atMessageCount: 2, id: "cpNew" }]);
+    // swapping back restores the original
+    const r2 = restoreClearedConversation(messages, marks, r.newCleared);
+    expect(messages[1].content).toBe("new work");
+    expect(r2.newCleared.messages[0].content).toBe("old");
+  });
+
+  it("returns null when there is nothing to restore", () => {
+    expect(
+      restoreClearedConversation([{ role: "system" }], [], null),
+    ).toBeNull();
+    expect(
+      restoreClearedConversation([{ role: "system" }], [], { messages: [] }),
+    ).toBeNull();
   });
 });

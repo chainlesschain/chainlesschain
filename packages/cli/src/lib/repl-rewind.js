@@ -161,6 +161,64 @@ export function buildResumeRecap(messages, { previewChars = 160 } = {}) {
   return lines;
 }
 
+/**
+ * Snapshot the live conversation so a later `/rewind clear` can restore it
+ * (Claude-Code 2.1.191: "/rewind support for resuming a conversation from
+ * before /clear was run"). Drops the system prompt (index 0, re-added on
+ * restore) and copies the checkpoint marks. Returns null when there is nothing
+ * worth stashing (empty conversation) so a no-op /clear can't clobber an
+ * existing restorable snapshot.
+ *
+ * @param {Array} messages
+ * @param {Array} [marks]
+ * @returns {{messages:Array, marks:Array}|null}
+ */
+export function snapshotClearedConversation(messages, marks) {
+  const body = (messages || []).slice(1);
+  if (body.length === 0) return null;
+  return {
+    messages: body.slice(),
+    marks: Array.isArray(marks) ? marks.slice() : [],
+  };
+}
+
+/**
+ * Restore a conversation stashed by /clear, swapping it IN PLACE with the
+ * current (post-clear) conversation so the restore is itself undoable. Keeps
+ * `messages[0]` (the system prompt). Returns the new stash (the swapped-out
+ * current state, or null when it was empty) plus counts, or null when there is
+ * nothing to restore.
+ *
+ * @param {Array} messages  live conversation (index 0 = system prompt, kept)
+ * @param {Array} marks     live checkpoint marks array (mutated in place)
+ * @param {{messages:Array, marks:Array}|null} cleared  stash from /clear
+ * @returns {{restored:number, stashed:number, newCleared:{messages:Array,marks:Array}|null}|null}
+ */
+export function restoreClearedConversation(messages, marks, cleared) {
+  if (
+    !cleared ||
+    !Array.isArray(cleared.messages) ||
+    cleared.messages.length === 0
+  ) {
+    return null;
+  }
+  const curMsgs = (messages || []).slice(1);
+  const curMarks = Array.isArray(marks) ? marks.slice() : [];
+  // Replace messages[1..] with the stashed conversation (system prompt kept).
+  messages.splice(1, messages.length - 1, ...cleared.messages);
+  if (Array.isArray(marks)) {
+    marks.splice(0, marks.length, ...(cleared.marks || []));
+  }
+  const newCleared = curMsgs.length
+    ? { messages: curMsgs, marks: curMarks }
+    : null;
+  return {
+    restored: cleared.messages.length,
+    stashed: curMsgs.length,
+    newCleared,
+  };
+}
+
 /** Render the picker list (shared by /rewind and double-Esc). */
 export function renderTurnList(turns) {
   if (!turns.length) return "  (no user turns yet)";
