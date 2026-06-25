@@ -69,20 +69,19 @@ class P2PConnectionHealthManager extends EventEmitter {
    * 设置事件监听
    */
   _setupEventListeners() {
-    // 监听连接建立
-    this.p2pManager.on("peer:connected", (peerId) => {
-      this._onPeerConnected(peerId);
-    });
-
-    // 监听连接断开
-    this.p2pManager.on("peer:disconnected", (peerId) => {
+    // 保存绑定后的处理器引用，使 cleanup() 能 off 掉它们。匿名监听器无法移除：
+    // 若不移除，initialize→cleanup→initialize 每个循环都会累加这三个监听器
+    // （cleanup 把 initialized 置 false，允许重新 initialize），导致同一 peer 事件
+    // 触发多次 _onPeer*（重复健康跟踪）+ 监听器/闭包内存泄漏。
+    this._onPeerConnectedHandler = (peerId) => this._onPeerConnected(peerId);
+    this._onPeerDisconnectedHandler = (peerId) =>
       this._onPeerDisconnected(peerId);
-    });
-
-    // 监听连接错误
-    this.p2pManager.on("peer:error", ({ peerId, error }) => {
+    this._onPeerErrorHandler = ({ peerId, error }) =>
       this._onPeerError(peerId, error);
-    });
+
+    this.p2pManager.on("peer:connected", this._onPeerConnectedHandler);
+    this.p2pManager.on("peer:disconnected", this._onPeerDisconnectedHandler);
+    this.p2pManager.on("peer:error", this._onPeerErrorHandler);
   }
 
   /**
@@ -426,6 +425,17 @@ class P2PConnectionHealthManager extends EventEmitter {
       clearTimeout(timer);
     }
     this.reconnectTimers.clear();
+
+    // 移除 p2pManager 事件监听器（否则 cleanup 后 initialized=false，重新
+    // initialize 会再加一组，监听器无界累加 + 事件重复分发）。
+    if (this._onPeerConnectedHandler) {
+      this.p2pManager.off("peer:connected", this._onPeerConnectedHandler);
+      this.p2pManager.off("peer:disconnected", this._onPeerDisconnectedHandler);
+      this.p2pManager.off("peer:error", this._onPeerErrorHandler);
+      this._onPeerConnectedHandler = null;
+      this._onPeerDisconnectedHandler = null;
+      this._onPeerErrorHandler = null;
+    }
 
     // 清空状态
     this.peerHealth.clear();
