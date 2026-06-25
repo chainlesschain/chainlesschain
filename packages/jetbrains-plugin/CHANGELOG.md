@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.37] — feat: surface unsaved-buffer state in getOpenEditors
+
+- **The `getOpenEditors` tool now reports `isDirty` per open file**
+  (`FileDocumentManager.isFileModified`) so the agent can tell that a file has
+  unsaved changes in the editor — meaning the on-disk copy it would read is stale.
+  Mirrors the VS Code panel and Claude Code IDE's `checkDocumentDirty`.
+  Backward-compatible (a new field on each entry).
+
 ## [0.4.36] — perf: cap the chat transcript to bound long-session memory
 
 - **Perf: the chat panel now keeps the transcript document under ~200k

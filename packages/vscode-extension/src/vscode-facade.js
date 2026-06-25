@@ -107,6 +107,10 @@ function createVscodeEditorFacade(vscode) {
           file: f,
           active: f === active,
           languageId: ed.document.languageId,
+          // Unsaved-buffer flag so the agent knows the on-disk copy is stale
+          // before it reads the file (Claude-Code IDE exposes checkDocumentDirty
+          // for the same reason). Always a boolean for older/fake hosts.
+          isDirty: Boolean(ed.document.isDirty),
         });
       }
       return out;

@@ -11,7 +11,7 @@
  * Facade contract (all may be async):
  *   getSelection()                      -> { file, languageId?, selection, text } | null
  *   getDiagnostics({ path? })           -> [{ file, severity, message, line, character, source? }]
- *   getOpenEditors()                    -> [{ file, active, languageId? }]
+ *   getOpenEditors()                    -> [{ file, active, languageId?, isDirty? }]
  *   openDiff({ path, originalText?, modifiedText, title? }) -> { shown, ... }
  *   executeCode?({ code, timeoutMs? })  -> { success, outputs:[{mime,text}] }
  *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
@@ -55,7 +55,9 @@ function buildIdeTools(editor) {
     {
       name: "getOpenEditors",
       description:
-        "List the files currently open in editor tabs, flagging the active one.",
+        "List the files currently open in editor tabs, flagging the active " +
+        "one and whether each has unsaved changes (isDirty: the on-disk copy " +
+        "is stale, so read it from the editor or ask the user to save first).",
       inputSchema: { type: "object", properties: {} },
       handler: async () => {
         const eds = await editor.getOpenEditors();

@@ -113,6 +113,10 @@ public final class IntellijEditorFacade implements EditorFacade {
                 e.put("file", vf.getPath());
                 e.put("active", vf.equals(activeFile));
                 e.put("languageId", vf.getFileType().getName());
+                // Unsaved-buffer flag so the agent knows the on-disk copy is
+                // stale before reading the file (VS Code parity / Claude-Code
+                // IDE checkDocumentDirty).
+                e.put("isDirty", FileDocumentManager.getInstance().isFileModified(vf));
                 out.add(e);
             }
             return out;

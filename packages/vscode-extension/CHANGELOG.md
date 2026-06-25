@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.7] — feat: surface unsaved-buffer state in getOpenEditors
+
+- **The `getOpenEditors` tool now reports `isDirty` per editor** so the agent can
+  tell that a file has unsaved changes in the editor — meaning the on-disk copy it
+  would read is stale. Previously it only returned `{ file, active, languageId }`,
+  so the agent could silently read a stale file while you had unsaved edits open.
+  Mirrors Claude Code IDE's `checkDocumentDirty`. Backward-compatible (a new field;
+  always a boolean even on hosts that don't report dirtiness), and the tool
+  description now tells the agent to read from the editor or ask you to save when a
+  file is dirty.
+
 ## [0.36.6] — fix: close the stale diff tab after a button decision
 
 - **Fix: a review diff tab is now closed once you decide via a button (Accept /
