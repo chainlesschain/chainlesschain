@@ -163,9 +163,9 @@ describe("matchPattern — url domain", () => {
       "https://Example.com/a",
       "https://EXAMPLE.COM/a",
     ]) {
-      expect(matchPattern("domain:Example.com", "web_fetch", { url }, "/")).toBe(
-        true,
-      );
+      expect(
+        matchPattern("domain:Example.com", "web_fetch", { url }, "/"),
+      ).toBe(true);
     }
     expect(
       matchPattern("domain:Example.com", "web_fetch", {
@@ -522,6 +522,49 @@ describe("Agent(type) — sub-agent type restriction (CC 2.1.186)", () => {
         tool: "spawn_sub_agent",
         args: { profile: "executor", task: "x" },
         rules: base,
+      }).decision,
+    ).toBe(null);
+  });
+});
+
+describe("evaluatePermissionRules — traversal cannot bypass a deny rule", () => {
+  const cwd = process.platform === "win32" ? "C:\proj" : "/proj";
+  const rules = { deny: ["Edit(./secret/**)", "Write(./secret/**)"] };
+
+  it("denies a direct path into the protected area", () => {
+    expect(
+      evaluatePermissionRules({
+        tool: "edit_file",
+        args: { path: "secret/key" },
+        cwd,
+        rules,
+      }).decision,
+    ).toBe("deny");
+  });
+
+  it("denies a `..`-obfuscated path that resolves into the protected area", () => {
+    // The arg never literally contains "secret/**"-shaped text, but resolves to
+    // <cwd>/secret/key — the engine must resolve BEFORE matching so the deny
+    // rule still fires (otherwise a relative-traversal path would bypass it).
+    for (const tool of ["edit_file", "edit_file_hashed", "write_file"]) {
+      expect(
+        evaluatePermissionRules({
+          tool,
+          args: { path: "sub/dir/../../secret/key" },
+          cwd,
+          rules,
+        }).decision,
+      ).toBe("deny");
+    }
+  });
+
+  it("does not deny a sibling path that only looks similar", () => {
+    expect(
+      evaluatePermissionRules({
+        tool: "edit_file",
+        args: { path: "secret-notes/key" }, // not under secret/
+        cwd,
+        rules,
       }).decision,
     ).toBe(null);
   });
