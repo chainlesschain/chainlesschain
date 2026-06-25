@@ -179,6 +179,15 @@ class MemoryStore extends EventEmitter {
   update(id, patch = {}) {
     const m = this._memories.get(id);
     if (!m) return null;
+    // Mirror add()'s invariant: content stays a non-empty string. Without this
+    // guard, update(id, { content: null }) would corrupt a record that add()
+    // would have rejected, breaking consumers that assume content is a string.
+    if (
+      patch.content !== undefined &&
+      (!patch.content || typeof patch.content !== "string")
+    ) {
+      throw new Error("MemoryStore.update: content must be a non-empty string");
+    }
     const allowed = ["content", "tags", "score", "metadata", "category"];
     for (const k of allowed) {
       if (patch[k] !== undefined) m[k] = patch[k];

@@ -235,6 +235,18 @@ describe("MemoryStore.update", () => {
     store.update(m.id, { content: "y" });
     expect(spy).toHaveBeenCalledOnce();
   });
+
+  it("rejects an invalid content patch, mirroring add()'s invariant", () => {
+    const store = new MemoryStore();
+    const m = store.add({ scope: SCOPE.GLOBAL, content: "keep" });
+    for (const bad of [null, "", 123, {}]) {
+      expect(() => store.update(m.id, { content: bad })).toThrow(/content/);
+    }
+    // the record is untouched after the rejected updates
+    expect(store.get(m.id).content).toBe("keep");
+    // updates that leave content alone still work
+    expect(store.update(m.id, { tags: ["t"] }).tags).toEqual(["t"]);
+  });
 });
 
 describe("MemoryStore.remove", () => {
