@@ -122,6 +122,17 @@ public final class PreviewService {
     /** Stop the dev server (kills the process tree) and clear the preview. */
     public synchronized void stop() {
         if (handler != null) {
+            Process proc = handler.getProcess();
+            if (proc != null) {
+                // destroyProcess() only ends the immediate process (cmd.exe / npm);
+                // the actual dev server is a grandchild (cmd/sh → npm → node) that
+                // would be orphaned holding the port. Kill the descendant tree too.
+                try {
+                    proc.descendants().forEach(ProcessHandle::destroy);
+                } catch (Exception ignore) {
+                    // best-effort — fall through to destroyProcess()
+                }
+            }
             handler.destroyProcess();
             handler = null;
         }

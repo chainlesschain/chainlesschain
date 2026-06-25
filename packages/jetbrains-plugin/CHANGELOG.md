@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.39] — fix: stopping App Preview kills the whole dev-server tree
+
+- **Stopping App Preview now terminates the actual dev server, not just the
+  `cmd`/`npm` wrapper** (parity with the VS Code extension). `npm run dev` runs
+  the dev server as a grandchild (`cmd.exe`/`sh` → `npm` → `node`), but
+  `OSProcessHandler.destroyProcess()` only ends the immediate process — leaving
+  the dev server orphaned, still holding the port. `stop()` now kills the whole
+  descendant tree (`Process.descendants()`) before destroying the handler, so the
+  port is freed and no `node` process is leaked.
+
 ## [0.4.38] — fix: clean up lockfiles left by crashed instances
 
 - **Stale IDE lockfiles from crashed or force-killed IDE instances are now swept
