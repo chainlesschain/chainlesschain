@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.5] — perf: cap the chat transcript to bound long-session memory
+
+- **Perf: the chat panel now keeps at most the 800 most-recent transcript nodes
+  instead of growing `#log` (and each tab's detached buffer) without bound.** A
+  long session used to accumulate every message, stream block, tool line and card
+  as a DOM node forever — steadily increasing memory and slowing scroll/reflow.
+  `add()` now trims the oldest off-screen nodes once the cap is exceeded
+  (`trimLog()` drops from the front), mirroring Claude Code 2.1.191's "reduced
+  long-session memory growth". The webview is purely a view — conversation state
+  for resume lives in the CLI — so this only trims old visual scrollback; nothing
+  functional is lost. Because `add()` always re-pins to the bottom, trimming the
+  oldest nodes never shifts what you're reading (no scroll jump), and the active
+  stream block plus any pending approval/question card are always the newest
+  nodes, so they're never removed.
+
 ## [0.36.4] — perf: coalesce streaming deltas to cut chat-panel CPU
 
 - **Perf: the chat panel now renders streamed assistant text at most once per

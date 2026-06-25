@@ -327,6 +327,21 @@ describe("buildChatHtml", () => {
     expect(html).toContain("cancelStreamFrame(); // drop a pending render");
   });
 
+  it("caps the transcript so long sessions don't grow #log without bound (Claude-Code 2.1.191 memory fix)", () => {
+    const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "N1" });
+    // A finite node cap exists and the trimmer drops the OLDEST (firstChild).
+    expect(html).toContain("MAX_LOG_NODES");
+    expect(html).toMatch(/MAX_LOG_NODES\s*=\s*\d+/);
+    expect(html).toContain("function trimLog()");
+    expect(html).toContain("log.removeChild(log.firstChild)");
+    // The cap is enforced on every append: add() calls trimLog().
+    const addFn = html.slice(
+      html.indexOf("function add(cls, text)"),
+      html.indexOf("return el;", html.indexOf("function add(cls, text)")),
+    );
+    expect(addFn).toContain("trimLog()");
+  });
+
   it("wires /compact to a compact control message (Claude-Code IDE parity)", () => {
     const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "N1" });
     // The SLASH map posts a compact control message …

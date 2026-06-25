@@ -163,6 +163,13 @@ function buildChatHtml({ cspSource, nonce }) {
   let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
   let thinkingBody = null; // the body inside it where deltas are appended
   let lastSentText = ""; // last user prompt, for /retry (regenerate)
+  // Cap the live transcript so a long session can't grow #log (and each tab's
+  // detached buffer) without bound. The webview is purely a view — conversation
+  // state for resume lives in the CLI — so dropping the oldest rendered nodes
+  // only trims visual scrollback, mirroring Claude-Code 2.1.191 "reduced
+  // long-session memory growth". add() always re-pins to the bottom, so trimming
+  // the oldest (off-screen) nodes never shifts what the user is reading.
+  const MAX_LOG_NODES = 800;
 
   // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
   // nodes (tabId -> Node[]), not an innerHTML string — detaching/re-appending
@@ -233,11 +240,18 @@ function buildChatHtml({ cspSource, nonce }) {
     tabsEl.appendChild(plus);
   }
 
+  // Drop the oldest top-level nodes once #log exceeds the cap. The active stream
+  // block and any pending approval/question card are always the NEWEST nodes, so
+  // removing from the front never touches live/interactive content.
+  function trimLog() {
+    while (log.childElementCount > MAX_LOG_NODES) log.removeChild(log.firstChild);
+  }
   function add(cls, text) {
     const el = document.createElement("div");
     el.className = "msg " + cls;
     el.textContent = text;
     log.appendChild(el);
+    trimLog(); // bound long-session memory (keep the most recent MAX_LOG_NODES)
     log.scrollTop = log.scrollHeight;
     return el;
   }
