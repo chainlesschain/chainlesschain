@@ -190,3 +190,43 @@ describe("PtyManager", () => {
     expect(getFakeIdle().proc.killed).toBe(true);
   });
 });
+
+// Multi-session harness: collects every spawned fake so a specific session's
+// exit can be driven (the shared makeMgr only exposes the last spawn).
+function makeMultiMgr(config = {}) {
+  const fakes = [];
+  const loadNodePty = () => ({
+    spawn(cmd, args, opts) {
+      const f = makeFakePty();
+      f.proc.spawnOpts = opts;
+      fakes.push(f);
+      return f.proc;
+    },
+  });
+  const mgr = new PtyManager({ config, _deps: { loadNodePty } });
+  return { mgr, fakes };
+}
+
+describe("PtyManager — concurrency cap counts only live sessions", () => {
+  it("a closed (dead, not-yet-reaped) session frees a slot", () => {
+    const { mgr, fakes } = makeMultiMgr({ maxConcurrentSessions: 2 });
+    const a = mgr.create({ shell: "pwsh" });
+    mgr.create({ shell: "pwsh" });
+    expect(() => mgr.create({ shell: "pwsh" })).toThrow(/max_concurrent/);
+
+    mgr.close(a.sessionId);
+    fakes[0].triggerExit({ exitCode: 0 }); // a now dead, still lingers in map
+    expect(mgr._sessionCount).toBe(2); // dead entry not yet reaped
+    expect(() => mgr.create({ shell: "pwsh" })).not.toThrow(); // slot freed
+  });
+});
+
+describe("PtyManager — env handling (remote frame input)", () => {
+  it("ignores a non-object env, merges a valid object env", () => {
+    const { mgr, fakes } = makeMultiMgr({});
+    mgr.create({ shell: "pwsh", env: "ATTACK" });
+    expect(fakes[0].proc.spawnOpts.env["0"]).toBeUndefined();
+    mgr.create({ shell: "pwsh", env: { MY_VAR: "x" } });
+    expect(fakes[1].proc.spawnOpts.env.MY_VAR).toBe("x");
+  });
+});

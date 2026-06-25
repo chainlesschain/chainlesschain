@@ -75,7 +75,14 @@ export class PtyManager extends EventEmitter {
 
   create(req = {}) {
     if (this._stopped) throw new Error("pty_manager_stopped");
-    if (this._sessions.size >= this.config.maxConcurrentSessions) {
+    // Count only LIVE sessions against the cap. A just-exited session lingers
+    // in _sessions for ~60s before the reaper removes it (see onExit), so
+    // counting `_sessions.size` would spuriously reject new sessions right
+    // after a client closes shells — painful over a reconnecting Android link
+    // where open/close churn is normal.
+    let aliveCount = 0;
+    for (const s of this._sessions.values()) if (s.alive) aliveCount++;
+    if (aliveCount >= this.config.maxConcurrentSessions) {
       throw new Error("max_concurrent_sessions_exceeded");
     }
     const shell = req.shell || this.config.defaultShell;
@@ -97,12 +104,18 @@ export class PtyManager extends EventEmitter {
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
     const cmd = resolveShellCmd(shell);
 
+    // req.env arrives from a remote WS frame; only merge a plain object, else a
+    // string/array would spread into garbage numeric env keys.
+    const extraEnv =
+      req.env && typeof req.env === "object" && !Array.isArray(req.env)
+        ? req.env
+        : {};
     const proc = pty.spawn(cmd, [], {
       name: "xterm-256color",
       cols,
       rows,
       cwd,
-      env: { ...process.env, ...(req.env || {}) },
+      env: { ...process.env, ...extraEnv },
     });
 
     const sessionId = randomUUID();
