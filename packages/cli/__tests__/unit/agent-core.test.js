@@ -82,6 +82,7 @@ const {
   agentLoop,
   MAX_SUB_AGENT_DEPTH,
   MAX_SUB_AGENTS_PER_RUN,
+  tokenizeShellWords,
 } = await import("../../src/lib/agent-core.js");
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
@@ -198,6 +199,45 @@ describe("agent tool registry compatibility", () => {
       getRuntimeToolDescriptorByCommand("chainlesschain mcp list")?.name,
     ).toBe("mcp");
     expect(getRuntimeToolDescriptorByCommand("echo ok")?.name).toBe("shell");
+  });
+});
+
+describe("git tool — shell-free (no command injection)", () => {
+  it("tokenizeShellWords keeps quoted args intact (incl. shell metachars)", () => {
+    expect(tokenizeShellWords('commit -m "fix: a; b | c"')).toEqual([
+      "commit",
+      "-m",
+      "fix: a; b | c",
+    ]);
+    expect(tokenizeShellWords("status")).toEqual(["status"]);
+    expect(tokenizeShellWords("log --oneline -10")).toEqual([
+      "log",
+      "--oneline",
+      "-10",
+    ]);
+  });
+
+  it("does not execute an injected command via `;`/`&&` (runs via argv)", async () => {
+    // With a shell, `git status; echo PWNED_MARKER` would run echo. Via argv,
+    // git just sees "status;" as an unknown subcommand and errors — no shell.
+    const res = await executeTool("git", {
+      command: "status; echo PWNED_MARKER",
+    });
+    const blob = `${res.stdout || ""}${res.error || ""}${res.stderr || ""}`;
+    // git rejected the bad subcommand …
+    expect(res.error || res.stderr).toBeTruthy();
+    // … and the injected echo never produced its marker as stdout
+    expect(res.stdout || "").not.toContain("PWNED_MARKER");
+    // (the marker only appears, if at all, inside git's "not a git command"
+    // error text — never as executed output)
+    expect(/not a git command|is not a git|unknown|invalid/i.test(blob)).toBe(
+      true,
+    );
+  });
+
+  it("runs a legitimate git command via argv", async () => {
+    const res = await executeTool("git", { command: "--version" });
+    expect(res.stdout || "").toMatch(/git version/i);
   });
 });
 

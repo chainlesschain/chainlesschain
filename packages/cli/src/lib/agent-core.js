@@ -7,6 +7,7 @@ export {
   MAX_TOOL_RESULT_CHARS,
   capToolResultString,
   safeStringifyToolResult,
+  tokenizeShellWords,
   reloadSkills,
   getAgentToolDefinitions,
   getAgentToolDescriptors,
