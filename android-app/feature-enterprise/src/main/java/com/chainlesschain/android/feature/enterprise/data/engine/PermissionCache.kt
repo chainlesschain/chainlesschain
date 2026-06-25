@@ -18,6 +18,14 @@ class PermissionCache @Inject constructor() {
     companion object {
         private const val DEFAULT_TTL_MS = 60_000L // 1 minute
         private const val MAX_CACHE_SIZE = 10_000
+
+        /**
+         * 编码字段内的 `:` 与 `%`，使拼接出的 key 里 `:` 只作结构分隔符。userId /
+         * resourceType / resourceId 都可能含 `:`（DID `did:key:...`、复合资源 id），
+         * 不编码会让 `(rtype="a:b", rid="c")` 与 `(rtype="a", rid="b:c")` 拼出同一个 key
+         * → 把别的组合的缓存结果误返回（权限判定错误）。先编码 `%` 再编码 `:` 保证单射。
+         */
+        internal fun enc(s: String): String = s.replace("%", "%25").replace(":", "%3A")
     }
 
     private val cache = ConcurrentHashMap<String, CacheEntry>()
@@ -81,7 +89,8 @@ class PermissionCache @Inject constructor() {
         resourceType: String?,
         resourceId: String?
     ): String {
-        return "$userId:${permission.name}:${resourceType ?: ""}:${resourceId ?: ""}"
+        // permission.name 是枚举名，不含 ":"/"%"；其余字段编码后再拼，防止 key 碰撞。
+        return "${enc(userId)}:${permission.name}:${enc(resourceType ?: "")}:${enc(resourceId ?: "")}"
     }
 
     /**
@@ -89,7 +98,7 @@ class PermissionCache @Inject constructor() {
      */
     suspend fun invalidateUser(userId: String) {
         mutex.withLock {
-            cache.keys.filter { it.startsWith("$userId:") }.forEach {
+            cache.keys.filter { it.startsWith("${enc(userId)}:") }.forEach {
                 cache.remove(it)
             }
         }
@@ -111,7 +120,7 @@ class PermissionCache @Inject constructor() {
      */
     suspend fun invalidateResource(resourceType: String, resourceId: String) {
         mutex.withLock {
-            cache.keys.filter { it.endsWith(":$resourceType:$resourceId") }.forEach {
+            cache.keys.filter { it.endsWith(":${enc(resourceType)}:${enc(resourceId)}") }.forEach {
                 cache.remove(it)
             }
         }
