@@ -139,3 +139,30 @@ describe("PreviewController.stop", () => {
     expect(() => ctrl.stop()).not.toThrow();
   });
 });
+
+describe("PreviewController stop uses the injected kill (process-tree kill seam)", () => {
+  it("routes stop() through the injected kill with the running child", () => {
+    const child = makeChild();
+    const killed = [];
+    const ctrl = new PreviewController({
+      spawn: () => child,
+      readPackageJson: () => ({ scripts: { dev: "vite" } }),
+      kill: (c) => killed.push(c),
+    });
+    ctrl.start("/ws");
+    ctrl.stop();
+    expect(killed).toEqual([child]); // tree-killer got the child, not child.kill()
+    expect(child.killed).toBe(false); // default child.kill() was NOT used
+  });
+
+  it("defaults to child.kill() when no kill dep is given", () => {
+    const child = makeChild();
+    const ctrl = new PreviewController({
+      spawn: () => child,
+      readPackageJson: () => ({ scripts: { dev: "vite" } }),
+    });
+    ctrl.start("/ws");
+    ctrl.stop();
+    expect(child.killed).toBe(true);
+  });
+});

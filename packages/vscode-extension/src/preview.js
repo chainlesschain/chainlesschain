@@ -17,12 +17,24 @@ class PreviewController {
    * @param {(url:string)=>void} deps.openUrl   open the URL (Simple Browser)
    * @param {(cwd:string)=>object|null} deps.readPackageJson
    * @param {(s:object)=>void} [deps.onStatus]  status sink (status bar / log)
+   * @param {(child:ChildProcess)=>void} [deps.kill]  terminate the dev server.
+   *   Defaults to child.kill(); the live wiring kills the whole PROCESS TREE
+   *   (npm wrapper → actual dev server) so the port isn't left held.
    */
   constructor(deps = {}) {
     this._spawn = deps.spawn;
     this._openUrl = deps.openUrl || (() => {});
     this._readPkg = deps.readPackageJson || (() => null);
     this._onStatus = deps.onStatus || (() => {});
+    this._kill =
+      deps.kill ||
+      ((child) => {
+        try {
+          child?.kill?.();
+        } catch {
+          /* best-effort */
+        }
+      });
     this.child = null;
     this.url = null;
     this.running = false;
@@ -91,13 +103,7 @@ class PreviewController {
     this.running = false;
     this.url = null;
     this.child = null;
-    if (child) {
-      try {
-        child.kill?.();
-      } catch {
-        /* best-effort */
-      }
-    }
+    if (child) this._kill(child);
     this._onStatus({ state: "stopped" });
   }
 
@@ -123,7 +129,47 @@ function createPreviewController(vscode, { log } = {}) {
         shell: true,
         env: process.env,
         windowsHide: true,
+        // POSIX: give the dev server its own process group so kill() below can
+        // signal the whole tree. (On Windows, detached opens a console window —
+        // there we use taskkill /T instead.)
+        detached: process.platform !== "win32",
       }),
+    // `npm run dev` runs the actual dev server as a grandchild (cmd/sh → npm →
+    // node), so a plain child.kill() leaves it orphaned holding the port. Kill
+    // the whole tree.
+    kill: (child) => {
+      const pid = child && child.pid;
+      if (!pid) {
+        try {
+          child && child.kill && child.kill();
+        } catch {
+          /* best-effort */
+        }
+        return;
+      }
+      if (process.platform === "win32") {
+        try {
+          cp.spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
+            windowsHide: true,
+          });
+          return;
+        } catch {
+          /* fall through to child.kill */
+        }
+      } else {
+        try {
+          process.kill(-pid, "SIGTERM"); // negative pid → the process group
+          return;
+        } catch {
+          /* fall through to child.kill */
+        }
+      }
+      try {
+        child.kill();
+      } catch {
+        /* best-effort */
+      }
+    },
     openUrl: (url) =>
       vscode.commands.executeCommand(
         "simpleBrowser.show",

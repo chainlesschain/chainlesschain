@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.15] — fix: stopping App Preview kills the whole dev-server tree
+
+- **Stopping App Preview (or closing the editor) now terminates the actual dev
+  server, not just the `npm` wrapper.** `npm run dev` launches the dev server as
+  a grandchild (`cmd`/`sh` → `npm` → `node`), so the previous `child.kill()` left
+  it orphaned — still holding the port, causing "port already in use" on the next
+  start and leaking `node` processes. The dev server is now spawned in its own
+  process group (POSIX) and killed by tree: `taskkill /T /F` on Windows,
+  `process.kill(-pid)` on POSIX. Tree-kill is an injected seam (defaults to
+  `child.kill()`), so the controller stays host-free testable.
+
 ## [0.36.14] — fix: clean up lockfiles left by crashed instances
 
 - **Stale IDE lockfiles from crashed or force-killed editor instances are now
