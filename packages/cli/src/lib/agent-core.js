@@ -28,6 +28,7 @@ export {
   listBackgroundShellTasks,
   killBackgroundShellTask,
   killAllBackgroundShellTasks,
+  reapIdleBackgroundShellTasks,
   writeFileVerified,
   formatProviderHttpError,
   _accumulateOllamaStream,
