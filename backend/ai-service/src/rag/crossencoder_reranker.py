@@ -7,6 +7,8 @@ from typing import List, Dict, Any
 from sentence_transformers import CrossEncoder
 import numpy as np
 
+from src.llm.llm_client import _run_blocking
+
 
 class CrossEncoderReranker:
     """CrossEncoder重排序器"""
@@ -121,9 +123,10 @@ class CrossEncoderReranker:
         Returns:
             重排序后的文档列表
         """
-        # CrossEncoder.predict 不是真正的异步操作
-        # 但我们提供async接口以便与FastAPI集成
-        return self.rerank(query, documents, top_k)
+        # CrossEncoder.predict 是同步的 CPU 密集前向推理（一次最多 top_k*3 对），
+        # 直接在 async def 里调用会卡住整个事件循环，使所有并发检索请求串行化。
+        # 经 _run_blocking 走线程池执行，兑现「异步接口」的真正非阻塞语义。
+        return await _run_blocking(self.rerank, query, documents, top_k)
 
     def get_model_info(self) -> Dict[str, Any]:
         """获取模型信息"""
