@@ -20,14 +20,8 @@
         :data-plugin-id="extension.pluginId"
       >
         <!-- 调试信息（仅开发模式） -->
-        <div
-          v-if="debug"
-          class="plugin-slot-debug"
-        >
-          <a-tag
-            color="purple"
-            size="small"
-          >
+        <div v-if="debug" class="plugin-slot-debug">
+          <a-tag color="purple" size="small">
             {{ extension.pluginName || extension.pluginId }}
           </a-tag>
         </div>
@@ -166,7 +160,13 @@ function evaluateCondition(condition, context) {
     case "notExists":
       return !(condition.field in context) || context[condition.field] == null;
     case "regex":
-      return new RegExp(condition.pattern).test(context[condition.field]);
+      try {
+        return new RegExp(condition.pattern).test(context[condition.field]);
+      } catch {
+        // A plugin slot-condition with an invalid pattern would otherwise
+        // throw and break the slot render — treat it as not matched.
+        return false;
+      }
     case "custom":
       // 自定义条件需要插件提供评估函数
       return true;
