@@ -23,7 +23,10 @@ export function createWsMessageDispatcher(server) {
       }
 
       const client = server.clients.get(clientId);
-      if (server.token && !client.authenticated && type !== "auth") {
+      // client may be undefined if it was removed mid-dispatch (heartbeat sweep
+      // / disconnect); treat a missing client as unauthenticated rather than
+      // throwing a TypeError (every sibling call site null-checks the client).
+      if (server.token && !client?.authenticated && type !== "auth") {
         server._send(ws, {
           id,
           type: "error",

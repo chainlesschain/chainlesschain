@@ -194,7 +194,11 @@ export class BackgroundTaskManager extends EventEmitter {
       return history;
     }
 
-    const items = history.slice(offset, offset + limit);
+    // offset + null === offset, so an offset-only page (no limit) used to
+    // slice(offset, offset) === [] and lose every item past the offset. Use
+    // history.length as the end when limit is null.
+    const end = limit === null ? history.length : offset + limit;
+    const items = history.slice(offset, end);
     return {
       items,
       total: history.length,
