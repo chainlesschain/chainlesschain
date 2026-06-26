@@ -66,6 +66,22 @@ export function mcpToolName(server, tool) {
 }
 
 /**
+ * Case-insensitive "does this header map already carry `name`?". HTTP header
+ * names are case-insensitive, so a caller-supplied `AUTHORIZATION` must count
+ * the same as `Authorization` — otherwise the OAuth-injection guard below would
+ * not see it and would add a SECOND, conflicting auth header, leaking our
+ * stored token where the user explicitly pinned their own credential.
+ */
+export function hasHeaderInsensitive(headers, name) {
+  if (!headers || typeof headers !== "object") return false;
+  const want = String(name).toLowerCase();
+  for (const k of Object.keys(headers)) {
+    if (k.toLowerCase() === want) return true;
+  }
+  return false;
+}
+
+/**
  * When an MCP connect fails with an authentication error (HTTP 401/403, or an
  * explicit Unauthorized/Forbidden) on a URL-based server, return an actionable
  * one-line hint pointing the user at `cc mcp login`. Returns null for non-auth
@@ -143,7 +159,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     // unless the config already supplies an Authorization header. Best-effort:
     // no token / a refresh failure just connects unauthenticated.
     let connectCfg = cfg;
-    if (cfg.url && !cfg.headers?.Authorization && !cfg.headers?.authorization) {
+    if (cfg.url && !hasHeaderInsensitive(cfg.headers, "Authorization")) {
       try {
         const { ensureValidToken } = await import("../lib/mcp-oauth.js");
         const token = await ensureValidToken(cfg.url);

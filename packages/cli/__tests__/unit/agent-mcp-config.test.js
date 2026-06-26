@@ -14,6 +14,7 @@ import {
   parseMcpServers,
   mcpToolName,
   mcpAuthHint,
+  hasHeaderInsensitive,
   setupMcpFromConfig,
   loadMcpConfig,
   resolvePermissionPromptTool,
@@ -21,6 +22,14 @@ import {
   makePermissionPromptConfirmer,
 } from "../../src/runtime/mcp-config.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+
+// setupMcpFromConfig dynamically imports mcp-oauth to discover a stored bearer
+// for url-based servers. A file-scoped mock returns a token so the injection
+// guard can be exercised. Existing url tests all carry an explicit Authorization
+// header (guard short-circuits → no import), so this mock doesn't perturb them.
+vi.mock("../../src/lib/mcp-oauth.js", () => ({
+  ensureValidToken: vi.fn(async () => "DISCOVERED_TOKEN"),
+}));
 
 // A minimal fake MCP client whose connect() returns a fixed tool inventory.
 function fakeClient(toolsByServer = {}) {
@@ -272,6 +281,64 @@ describe("setupMcpFromConfig", () => {
       { createClient: () => client },
     );
     expect(client.calls.sessionId).toEqual([]);
+  });
+
+  it("injects the discovered OAuth bearer for a url server with no auth header", async () => {
+    const client = fakeClient({ remote: [{ name: "t" }] });
+    await setupMcpFromConfig(
+      { remote: { url: "https://mcp.example.com/sse" } },
+      { createClient: () => client },
+    );
+    const { config } = client.calls.connect[0];
+    expect(config.headers.Authorization).toBe("Bearer DISCOVERED_TOKEN");
+  });
+
+  it("does NOT inject (or duplicate) a bearer when the caller supplied an auth header in ANY casing", async () => {
+    // Regression: the inject guard once only matched `.Authorization` /
+    // `.authorization`. An all-caps `AUTHORIZATION` slipped past it, so our
+    // stored token was added as a SECOND, conflicting header — leaking it where
+    // the user explicitly pinned their own credential. The guard is now
+    // case-insensitive: a caller header in any casing wins, untouched.
+    const client = fakeClient({ remote: [{ name: "t" }] });
+    await setupMcpFromConfig(
+      {
+        remote: {
+          url: "https://mcp.example.com/sse",
+          headers: { AUTHORIZATION: "Bearer mine" },
+        },
+      },
+      { createClient: () => client },
+    );
+    const { config } = client.calls.connect[0];
+    // Caller's header is preserved verbatim …
+    expect(config.headers.AUTHORIZATION).toBe("Bearer mine");
+    // … and no second canonical-cased header carrying our token was added.
+    expect(config.headers.Authorization).toBeUndefined();
+    const authHeaders = Object.keys(config.headers).filter(
+      (k) => k.toLowerCase() === "authorization",
+    );
+    expect(authHeaders).toEqual(["AUTHORIZATION"]);
+  });
+});
+
+describe("hasHeaderInsensitive", () => {
+  it("matches a header name regardless of casing", () => {
+    expect(hasHeaderInsensitive({ Authorization: "x" }, "authorization")).toBe(
+      true,
+    );
+    expect(hasHeaderInsensitive({ AUTHORIZATION: "x" }, "Authorization")).toBe(
+      true,
+    );
+    expect(hasHeaderInsensitive({ "content-type": "x" }, "CONTENT-TYPE")).toBe(
+      true,
+    );
+  });
+
+  it("returns false for an absent header or a non-object map", () => {
+    expect(hasHeaderInsensitive({ "x-foo": "y" }, "Authorization")).toBe(false);
+    expect(hasHeaderInsensitive(null, "Authorization")).toBe(false);
+    expect(hasHeaderInsensitive(undefined, "Authorization")).toBe(false);
+    expect(hasHeaderInsensitive("nope", "Authorization")).toBe(false);
   });
 });
 
