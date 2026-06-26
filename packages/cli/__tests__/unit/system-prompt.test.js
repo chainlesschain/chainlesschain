@@ -3,12 +3,21 @@
  * Filesystem access is injected so @file resolution never touches real disk.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import path from "path";
 import {
   resolvePromptText,
   composeSystemPrompt,
 } from "../../src/runtime/system-prompt.js";
+
+// Replace the project-memory loader with a deterministic sentinel block so the
+// INJECTION POSITION can be asserted without coupling to the cc.md/CLAUDE.md
+// file-discovery internals. Purely additive: every other test in this file
+// leaves projectMemory unset (default-off under vitest) or false, so the loader
+// is never invoked there and this mock is invisible to them.
+vi.mock("../../src/lib/project-instructions.js", () => ({
+  loadProjectInstructionsBlock: vi.fn(() => "MEMORY-BLOCK"),
+}));
 
 const cwd = process.cwd();
 
@@ -122,5 +131,34 @@ describe("composeSystemPrompt", () => {
         projectMemory: false,
       }),
     ).toBe("BASE\n\nEXTRA");
+  });
+
+  it("projectMemory:true injects the block AFTER base but BEFORE append + style", () => {
+    // Security-relevant contract: project memory (cc.md/CLAUDE.md — authored by
+    // a possibly-cloned/untrusted repo) must NOT come after the user's explicit
+    // --append-system-prompt or output-style. Later text gets the LLM's "last
+    // word", so the user's own instructions must always follow the repo memory.
+    expect(
+      composeSystemPrompt("BASE", {
+        projectMemory: true,
+        appendSystemPrompt: "EXTRA",
+        outputStyle: "STYLE",
+      }),
+    ).toBe("BASE\n\nMEMORY-BLOCK\n\nEXTRA\n\nSTYLE");
+  });
+
+  it("projectMemory:true block follows an override too (override → memory)", () => {
+    expect(
+      composeSystemPrompt("BASE", {
+        systemPrompt: "OVERRIDE",
+        projectMemory: true,
+      }),
+    ).toBe("OVERRIDE\n\nMEMORY-BLOCK");
+  });
+
+  it("projectMemory:true block stands alone when base/override are empty", () => {
+    expect(composeSystemPrompt("", { projectMemory: true })).toBe(
+      "MEMORY-BLOCK",
+    );
   });
 });
