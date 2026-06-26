@@ -196,11 +196,20 @@ class CrossFedTrust {
    */
   getTrustedDIDs(localCommunityId, opts = {}) {
     const now = opts.now || new Date();
+    const nowMs = now.getTime();
     const records = this.listTrusted(localCommunityId);
     const out = new Set();
     for (const r of records) {
-      if (r.expiresAt && new Date(r.expiresAt) <= now) {
-        continue;
+      if (r.expiresAt) {
+        const expMs = new Date(r.expiresAt).getTime();
+        // Fail closed: an unparseable expiry (NaN) is treated as expired rather
+        // than granting permanent trust. `NaN <= now` is false, so the old
+        // `new Date(r.expiresAt) <= now` check let a malformed expiresAt slip
+        // through as never-expiring — a security-relevant fail-open since these
+        // DIDs widen ChannelEnvelopeDistribution's accepted-issuer set.
+        if (Number.isNaN(expMs) || expMs <= nowMs) {
+          continue;
+        }
       }
       for (const did of r.remoteMembers || []) {
         out.add(did);

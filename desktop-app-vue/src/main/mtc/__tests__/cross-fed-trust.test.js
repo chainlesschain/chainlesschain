@@ -213,5 +213,22 @@ describe("CrossFedTrust", () => {
     it("returns empty for community with no records", () => {
       expect(trust.getTrustedDIDs("ghost")).toEqual([]);
     });
+
+    it("treats an unparseable expiresAt as expired (fail closed, not never-expiring)", () => {
+      // Persist a record whose expiresAt is malformed. `new Date("garbage")` is
+      // Invalid Date and `NaN <= now` is false, so the pre-fix filter let it
+      // through as never-expiring — a fail-open that would permanently trust
+      // these DIDs. The fix must exclude it.
+      trust.establishTrust("comm-X", {
+        remoteCommunityId: "garbage-fed",
+        remoteMembers: [DID_A],
+        expiresAt: "not-a-real-date",
+      });
+      trust.establishTrust("comm-X", {
+        remoteCommunityId: "live-fed",
+        remoteMembers: [DID_B],
+      });
+      expect(trust.getTrustedDIDs("comm-X")).toEqual([DID_B]);
+    });
   });
 });
