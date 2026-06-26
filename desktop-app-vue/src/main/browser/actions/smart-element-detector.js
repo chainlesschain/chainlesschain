@@ -12,34 +12,34 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
+const { EventEmitter } = require("events");
 
 /**
  * 检测策略
  */
 const DetectionStrategy = {
-  EXACT: 'exact',           // 精确匹配（ID, 唯一选择器）
-  FUZZY: 'fuzzy',           // 模糊匹配（文本相似度）
-  VISUAL: 'visual',         // 视觉检测（AI）
-  ACCESSIBILITY: 'accessibility', // 无障碍 API
-  HEURISTIC: 'heuristic',   // 启发式规则
-  CACHED: 'cached'          // 缓存命中
+  EXACT: "exact", // 精确匹配（ID, 唯一选择器）
+  FUZZY: "fuzzy", // 模糊匹配（文本相似度）
+  VISUAL: "visual", // 视觉检测（AI）
+  ACCESSIBILITY: "accessibility", // 无障碍 API
+  HEURISTIC: "heuristic", // 启发式规则
+  CACHED: "cached", // 缓存命中
 };
 
 /**
  * 元素类型
  */
 const ElementType = {
-  BUTTON: 'button',
-  LINK: 'link',
-  INPUT: 'input',
-  SELECT: 'select',
-  CHECKBOX: 'checkbox',
-  RADIO: 'radio',
-  IMAGE: 'image',
-  TEXT: 'text',
-  CONTAINER: 'container',
-  UNKNOWN: 'unknown'
+  BUTTON: "button",
+  LINK: "link",
+  INPUT: "input",
+  SELECT: "select",
+  CHECKBOX: "checkbox",
+  RADIO: "radio",
+  IMAGE: "image",
+  TEXT: "text",
+  CONTAINER: "container",
+  UNKNOWN: "unknown",
 };
 
 /**
@@ -48,7 +48,7 @@ const ElementType = {
 const CONFIDENCE_THRESHOLD = {
   HIGH: 0.9,
   MEDIUM: 0.7,
-  LOW: 0.5
+  LOW: 0.5,
 };
 
 class SmartElementDetector extends EventEmitter {
@@ -61,10 +61,11 @@ class SmartElementDetector extends EventEmitter {
       cacheMaxSize: config.cacheMaxSize || 1000,
       cacheTTL: config.cacheTTL || 300000, // 5 minutes
       enableVisualFallback: config.enableVisualFallback || false,
-      confidenceThreshold: config.confidenceThreshold || CONFIDENCE_THRESHOLD.MEDIUM,
+      confidenceThreshold:
+        config.confidenceThreshold || CONFIDENCE_THRESHOLD.MEDIUM,
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 500,
-      ...config
+      ...config,
     };
 
     // 元素缓存
@@ -80,7 +81,7 @@ class SmartElementDetector extends EventEmitter {
       exactMatches: 0,
       fuzzyMatches: 0,
       visualMatches: 0,
-      failures: 0
+      failures: 0,
     };
   }
 
@@ -100,7 +101,7 @@ class SmartElementDetector extends EventEmitter {
    */
   async detect(targetId, query) {
     if (!this.browserEngine) {
-      throw new Error('Browser engine not set');
+      throw new Error("Browser engine not set");
     }
 
     this.stats.totalDetections++;
@@ -114,16 +115,16 @@ class SmartElementDetector extends EventEmitter {
       const cached = this._checkCache(targetId, normalizedQuery);
       if (cached) {
         this.stats.cacheHits++;
-        this.emit('detected', {
+        this.emit("detected", {
           strategy: DetectionStrategy.CACHED,
           element: cached,
-          duration: Date.now() - startTime
+          duration: Date.now() - startTime,
         });
         return {
           success: true,
           element: cached,
           strategy: DetectionStrategy.CACHED,
-          confidence: 1.0
+          confidence: 1.0,
         };
       }
     }
@@ -133,7 +134,7 @@ class SmartElementDetector extends EventEmitter {
       () => this._detectExact(targetId, normalizedQuery),
       () => this._detectByAccessibility(targetId, normalizedQuery),
       () => this._detectFuzzy(targetId, normalizedQuery),
-      () => this._detectHeuristic(targetId, normalizedQuery)
+      () => this._detectHeuristic(targetId, normalizedQuery),
     ];
 
     // 如果启用了视觉回退
@@ -150,24 +151,24 @@ class SmartElementDetector extends EventEmitter {
             this._cacheElement(targetId, normalizedQuery, result.element);
           }
 
-          this.emit('detected', {
+          this.emit("detected", {
             strategy: result.strategy,
             element: result.element,
             confidence: result.confidence,
-            duration: Date.now() - startTime
+            duration: Date.now() - startTime,
           });
 
           return {
             success: true,
             ...result,
-            duration: Date.now() - startTime
+            duration: Date.now() - startTime,
           };
         }
       } catch (error) {
         // 继续尝试下一个策略
-        this.emit('strategyFailed', {
+        this.emit("strategyFailed", {
           strategy: strategy.name,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -176,9 +177,9 @@ class SmartElementDetector extends EventEmitter {
 
     return {
       success: false,
-      error: 'Element not found with any strategy',
+      error: "Element not found with any strategy",
       query: normalizedQuery,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 
@@ -187,12 +188,12 @@ class SmartElementDetector extends EventEmitter {
    * @private
    */
   _normalizeQuery(query) {
-    if (typeof query === 'string') {
+    if (typeof query === "string") {
       return {
         text: query,
         type: null,
         selector: null,
-        role: null
+        role: null,
       };
     }
     return {
@@ -202,7 +203,7 @@ class SmartElementDetector extends EventEmitter {
       role: query.role || null,
       attributes: query.attributes || {},
       near: query.near || null,
-      index: query.index || 0
+      index: query.index || 0,
     };
   }
 
@@ -212,7 +213,9 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectExact(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) {return null;}
+    if (!page) {
+      return null;
+    }
 
     // 如果有选择器，直接使用
     if (query.selector) {
@@ -223,21 +226,26 @@ class SmartElementDetector extends EventEmitter {
         return {
           strategy: DetectionStrategy.EXACT,
           element: info,
-          confidence: 1.0
+          confidence: 1.0,
         };
       }
     }
 
-    // 根据 ID 查找
+    // 根据 ID 查找。
+    // 不能用 CSS.escape：那是浏览器全局，主进程 Node 环境没有，调用会抛
+    // ReferenceError 并被 detect() 的 try/catch 吞掉 → 整条精确 ID 匹配路径静默失效。
+    // 改用属性选择器 + 引号字符串转义（转义 " 和 \），等价于按 id 精确匹配且不依赖
+    // 浏览器全局。
     if (query.text) {
-      const byId = await page.$(`#${CSS.escape(query.text)}`);
+      const escapedId = String(query.text).replace(/["\\]/g, "\\$&");
+      const byId = await page.$(`[id="${escapedId}"]`);
       if (byId) {
         const info = await this._getElementInfo(page, byId);
         this.stats.exactMatches++;
         return {
           strategy: DetectionStrategy.EXACT,
           element: info,
-          confidence: 1.0
+          confidence: 1.0,
         };
       }
     }
@@ -251,34 +259,45 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectByAccessibility(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) {return null;}
+    if (!page) {
+      return null;
+    }
 
     const result = await page.evaluate((q) => {
       const elements = [];
 
       // 获取所有可交互元素
       const interactiveSelectors = [
-        'button', 'a', 'input', 'select', 'textarea',
-        '[role="button"]', '[role="link"]', '[role="textbox"]',
-        '[tabindex]', '[onclick]'
+        "button",
+        "a",
+        "input",
+        "select",
+        "textarea",
+        '[role="button"]',
+        '[role="link"]',
+        '[role="textbox"]',
+        "[tabindex]",
+        "[onclick]",
       ];
 
-      const allElements = document.querySelectorAll(interactiveSelectors.join(','));
+      const allElements = document.querySelectorAll(
+        interactiveSelectors.join(","),
+      );
 
       for (const el of allElements) {
-        const ariaLabel = el.getAttribute('aria-label');
-        const ariaLabelledBy = el.getAttribute('aria-labelledby');
-        const title = el.getAttribute('title');
-        const placeholder = el.getAttribute('placeholder');
-        const name = el.getAttribute('name');
+        const ariaLabel = el.getAttribute("aria-label");
+        const ariaLabelledBy = el.getAttribute("aria-labelledby");
+        const title = el.getAttribute("title");
+        const placeholder = el.getAttribute("placeholder");
+        const name = el.getAttribute("name");
         const id = el.id;
         const textContent = el.textContent?.trim()?.substring(0, 100);
-        const role = el.getAttribute('role') || el.tagName.toLowerCase();
+        const role = el.getAttribute("role") || el.tagName.toLowerCase();
 
         // 构建可搜索的标签集合
         const labels = [ariaLabel, title, placeholder, name, id, textContent]
           .filter(Boolean)
-          .map(s => s.toLowerCase());
+          .map((s) => s.toLowerCase());
 
         // 检查是否匹配
         const queryText = q.text?.toLowerCase();
@@ -316,13 +335,13 @@ class SmartElementDetector extends EventEmitter {
               x: rect.left,
               y: rect.top,
               width: rect.width,
-              height: rect.height
+              height: rect.height,
             },
             attributes: {
               id: el.id,
               class: el.className,
-              name: el.name
-            }
+              name: el.name,
+            },
           });
         }
       }
@@ -338,7 +357,7 @@ class SmartElementDetector extends EventEmitter {
         return {
           strategy: DetectionStrategy.ACCESSIBILITY,
           element: match,
-          confidence: match.confidence
+          confidence: match.confidence,
         };
       }
     }
@@ -351,10 +370,14 @@ class SmartElementDetector extends EventEmitter {
    * @private
    */
   async _detectFuzzy(targetId, query) {
-    if (!query.text) {return null;}
+    if (!query.text) {
+      return null;
+    }
 
     const page = this.browserEngine.getPage(targetId);
-    if (!page) {return null;}
+    if (!page) {
+      return null;
+    }
 
     const result = await page.evaluate((q) => {
       // 简单的 Levenshtein 距离计算
@@ -374,7 +397,7 @@ class SmartElementDetector extends EventEmitter {
               matrix[i][j] = Math.min(
                 matrix[i - 1][j - 1] + 1,
                 matrix[i][j - 1] + 1,
-                matrix[i - 1][j] + 1
+                matrix[i - 1][j] + 1,
               );
             }
           }
@@ -385,7 +408,9 @@ class SmartElementDetector extends EventEmitter {
       function similarity(s1, s2) {
         const longer = s1.length > s2.length ? s1 : s2;
         const shorter = s1.length > s2.length ? s2 : s1;
-        if (longer.length === 0) {return 1.0;}
+        if (longer.length === 0) {
+          return 1.0;
+        }
         return (longer.length - levenshtein(longer, shorter)) / longer.length;
       }
 
@@ -397,7 +422,7 @@ class SmartElementDetector extends EventEmitter {
         document.body,
         NodeFilter.SHOW_ELEMENT,
         null,
-        false
+        false,
       );
 
       while (walker.nextNode()) {
@@ -417,8 +442,8 @@ class SmartElementDetector extends EventEmitter {
                   x: rect.left,
                   y: rect.top,
                   width: rect.width,
-                  height: rect.height
-                }
+                  height: rect.height,
+                },
               });
             }
           }
@@ -436,7 +461,7 @@ class SmartElementDetector extends EventEmitter {
         return {
           strategy: DetectionStrategy.FUZZY,
           element: match,
-          confidence: match.confidence
+          confidence: match.confidence,
         };
       }
     }
@@ -450,57 +475,70 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectHeuristic(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) {return null;}
+    if (!page) {
+      return null;
+    }
 
     // 基于类型的启发式规则
     const typeSelectors = {
-      [ElementType.BUTTON]: 'button, [role="button"], input[type="submit"], input[type="button"], .btn, .button',
+      [ElementType.BUTTON]:
+        'button, [role="button"], input[type="submit"], input[type="button"], .btn, .button',
       [ElementType.LINK]: 'a[href], [role="link"]',
-      [ElementType.INPUT]: 'input[type="text"], input[type="email"], input[type="password"], input:not([type]), textarea, [role="textbox"]',
+      [ElementType.INPUT]:
+        'input[type="text"], input[type="email"], input[type="password"], input:not([type]), textarea, [role="textbox"]',
       [ElementType.SELECT]: 'select, [role="listbox"], [role="combobox"]',
       [ElementType.CHECKBOX]: 'input[type="checkbox"], [role="checkbox"]',
       [ElementType.RADIO]: 'input[type="radio"], [role="radio"]',
-      [ElementType.IMAGE]: 'img, [role="img"], svg'
+      [ElementType.IMAGE]: 'img, [role="img"], svg',
     };
 
-    const selector = query.type ? typeSelectors[query.type] : Object.values(typeSelectors).join(',');
+    const selector = query.type
+      ? typeSelectors[query.type]
+      : Object.values(typeSelectors).join(",");
 
-    const result = await page.evaluate((sel, q) => {
-      const elements = document.querySelectorAll(sel);
-      const candidates = [];
+    const result = await page.evaluate(
+      (sel, q) => {
+        const elements = document.querySelectorAll(sel);
+        const candidates = [];
 
-      for (const el of elements) {
-        const text = el.textContent?.trim()?.toLowerCase() || '';
-        const ariaLabel = el.getAttribute('aria-label')?.toLowerCase() || '';
-        const placeholder = el.getAttribute('placeholder')?.toLowerCase() || '';
-        const value = el.value?.toLowerCase() || '';
+        for (const el of elements) {
+          const text = el.textContent?.trim()?.toLowerCase() || "";
+          const ariaLabel = el.getAttribute("aria-label")?.toLowerCase() || "";
+          const placeholder =
+            el.getAttribute("placeholder")?.toLowerCase() || "";
+          const value = el.value?.toLowerCase() || "";
 
-        const allText = `${text} ${ariaLabel} ${placeholder} ${value}`;
-        const queryText = q.text?.toLowerCase() || '';
+          const allText = `${text} ${ariaLabel} ${placeholder} ${value}`;
+          const queryText = q.text?.toLowerCase() || "";
 
-        let score = 0;
-        if (queryText && allText.includes(queryText)) {
-          score = queryText.length / Math.max(allText.length, 1);
+          let score = 0;
+          if (queryText && allText.includes(queryText)) {
+            score = queryText.length / Math.max(allText.length, 1);
+          }
+
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0 && score > 0) {
+            candidates.push({
+              tagName: el.tagName.toLowerCase(),
+              text: text.substring(0, 50),
+              confidence: Math.min(score + 0.3, 0.9), // 启发式最高 0.9
+              bounds: {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+              },
+            });
+          }
         }
 
-        const rect = el.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0 && score > 0) {
-          candidates.push({
-            tagName: el.tagName.toLowerCase(),
-            text: text.substring(0, 50),
-            confidence: Math.min(score + 0.3, 0.9), // 启发式最高 0.9
-            bounds: {
-              x: rect.left,
-              y: rect.top,
-              width: rect.width,
-              height: rect.height
-            }
-          });
-        }
-      }
-
-      return candidates.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
-    }, selector, query);
+        return candidates
+          .sort((a, b) => b.confidence - a.confidence)
+          .slice(0, 5);
+      },
+      selector,
+      query,
+    );
 
     if (result && result.length > 0) {
       const index = query.index || 0;
@@ -509,7 +547,7 @@ class SmartElementDetector extends EventEmitter {
         return {
           strategy: DetectionStrategy.HEURISTIC,
           element: match,
-          confidence: match.confidence
+          confidence: match.confidence,
         };
       }
     }
@@ -524,7 +562,7 @@ class SmartElementDetector extends EventEmitter {
   async _detectVisual(targetId, query) {
     // 需要 VisionAction 支持
     // 这里只是占位，实际实现需要集成 Vision AI
-    this.emit('visualDetectionAttempted', { query });
+    this.emit("visualDetectionAttempted", { query });
     return null;
   }
 
@@ -533,7 +571,7 @@ class SmartElementDetector extends EventEmitter {
    * @private
    */
   async _getElementInfo(page, element) {
-    return page.evaluate(el => {
+    return page.evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return {
         tagName: el.tagName.toLowerCase(),
@@ -542,15 +580,15 @@ class SmartElementDetector extends EventEmitter {
           x: rect.left,
           y: rect.top,
           width: rect.width,
-          height: rect.height
+          height: rect.height,
         },
         attributes: {
           id: el.id,
           class: el.className,
           name: el.name,
           type: el.type,
-          role: el.getAttribute('role')
-        }
+          role: el.getAttribute("role"),
+        },
       };
     }, element);
   }
@@ -586,7 +624,7 @@ class SmartElementDetector extends EventEmitter {
 
     this.elementCache.set(key, {
       element,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -613,7 +651,7 @@ class SmartElementDetector extends EventEmitter {
       this.elementCache.clear();
     }
 
-    this.emit('cacheCleared', { targetId });
+    this.emit("cacheCleared", { targetId });
   }
 
   /**
@@ -624,9 +662,12 @@ class SmartElementDetector extends EventEmitter {
     return {
       ...this.stats,
       cacheSize: this.elementCache.size,
-      cacheHitRate: this.stats.totalDetections > 0
-        ? (this.stats.cacheHits / this.stats.totalDetections * 100).toFixed(2) + '%'
-        : '0%'
+      cacheHitRate:
+        this.stats.totalDetections > 0
+          ? ((this.stats.cacheHits / this.stats.totalDetections) * 100).toFixed(
+              2,
+            ) + "%"
+          : "0%",
     };
   }
 
@@ -640,7 +681,7 @@ class SmartElementDetector extends EventEmitter {
       exactMatches: 0,
       fuzzyMatches: 0,
       visualMatches: 0,
-      failures: 0
+      failures: 0,
     };
   }
 
@@ -659,10 +700,10 @@ class SmartElementDetector extends EventEmitter {
     }
 
     return {
-      success: results.every(r => r.success),
-      found: results.filter(r => r.success).length,
+      success: results.every((r) => r.success),
+      found: results.filter((r) => r.success).length,
       total: queries.length,
-      results
+      results,
     };
   }
 
@@ -683,14 +724,14 @@ class SmartElementDetector extends EventEmitter {
       if (result.success) {
         return result;
       }
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
 
     return {
       success: false,
-      error: 'Timeout waiting for element',
+      error: "Timeout waiting for element",
       query,
-      timeout
+      timeout,
     };
   }
 }
@@ -712,5 +753,5 @@ module.exports = {
   DetectionStrategy,
   ElementType,
   CONFIDENCE_THRESHOLD,
-  getSmartElementDetector
+  getSmartElementDetector,
 };

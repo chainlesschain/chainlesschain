@@ -6,27 +6,27 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
+const { logger } = require("../../utils/logger");
 
 /**
  * Scroll direction types
  */
 const ScrollDirection = {
-  UP: 'up',
-  DOWN: 'down',
-  LEFT: 'left',
-  RIGHT: 'right',
-  TOP: 'top',
-  BOTTOM: 'bottom'
+  UP: "up",
+  DOWN: "down",
+  LEFT: "left",
+  RIGHT: "right",
+  TOP: "top",
+  BOTTOM: "bottom",
 };
 
 /**
  * Scroll behavior types
  */
 const ScrollBehavior = {
-  SMOOTH: 'smooth',
-  AUTO: 'auto',
-  INSTANT: 'instant'
+  SMOOTH: "smooth",
+  AUTO: "auto",
+  INSTANT: "instant",
 };
 
 /**
@@ -51,7 +51,7 @@ class ScrollAction {
       element,
       behavior = ScrollBehavior.SMOOTH,
       percentage,
-      toPosition
+      toPosition,
     } = options;
 
     try {
@@ -72,9 +72,8 @@ class ScrollAction {
 
       // Scroll by direction and distance
       return this._scrollByDirection(page, direction, distance, behavior);
-
     } catch (error) {
-      logger.error('[ScrollAction] Scroll failed', { error: error.message });
+      logger.error("[ScrollAction] Scroll failed", { error: error.message });
       throw error;
     }
   }
@@ -83,7 +82,7 @@ class ScrollAction {
    * Scroll element into view
    */
   async _scrollToElement(page, targetId, elementRef, options) {
-    const { ElementLocator } = require('../element-locator');
+    const { ElementLocator } = require("../element-locator");
     const element = this.browserEngine.findElement(targetId, elementRef);
 
     if (!element) {
@@ -98,7 +97,7 @@ class ScrollAction {
       await page.evaluate((selector) => {
         const el = document.querySelector(selector);
         if (el) {
-          el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          el.scrollIntoView({ block: "center", behavior: "smooth" });
         }
       }, element.selector);
     }
@@ -106,7 +105,7 @@ class ScrollAction {
     return {
       success: true,
       scrolledTo: elementRef,
-      position: await this._getScrollPosition(page)
+      position: await this._getScrollPosition(page),
     };
   }
 
@@ -116,14 +115,17 @@ class ScrollAction {
   async _scrollToPosition(page, position, behavior) {
     const { x = 0, y = 0 } = position;
 
-    await page.evaluate(({ x, y, behavior }) => {
-      window.scrollTo({ left: x, top: y, behavior });
-    }, { x, y, behavior });
+    await page.evaluate(
+      ({ x, y, behavior }) => {
+        window.scrollTo({ left: x, top: y, behavior });
+      },
+      { x, y, behavior },
+    );
 
     return {
       success: true,
       scrolledTo: { x, y },
-      position: await this._getScrollPosition(page)
+      position: await this._getScrollPosition(page),
     };
   }
 
@@ -136,14 +138,17 @@ class ScrollAction {
       return Math.round(maxScroll * (pct / 100));
     }, percentage);
 
-    await page.evaluate(({ y, behavior }) => {
-      window.scrollTo({ top: y, behavior });
-    }, { y: scrollTarget, behavior });
+    await page.evaluate(
+      ({ y, behavior }) => {
+        window.scrollTo({ top: y, behavior });
+      },
+      { y: scrollTarget, behavior },
+    );
 
     return {
       success: true,
       scrolledToPercentage: percentage,
-      position: await this._getScrollPosition(page)
+      position: await this._getScrollPosition(page),
     };
   }
 
@@ -151,7 +156,8 @@ class ScrollAction {
    * Scroll by direction and distance
    */
   async _scrollByDirection(page, direction, distance, behavior) {
-    let x = 0, y = 0;
+    let x = 0,
+      y = 0;
 
     switch (direction) {
       case ScrollDirection.DOWN:
@@ -168,33 +174,39 @@ class ScrollAction {
         break;
       case ScrollDirection.BOTTOM:
         await page.evaluate(() => {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth",
+          });
         });
         return {
           success: true,
-          scrolledTo: 'bottom',
-          position: await this._getScrollPosition(page)
+          scrolledTo: "bottom",
+          position: await this._getScrollPosition(page),
         };
       case ScrollDirection.TOP:
         await page.evaluate(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0, behavior: "smooth" });
         });
         return {
           success: true,
-          scrolledTo: 'top',
-          position: await this._getScrollPosition(page)
+          scrolledTo: "top",
+          position: await this._getScrollPosition(page),
         };
     }
 
-    await page.evaluate(({ x, y, behavior }) => {
-      window.scrollBy({ left: x, top: y, behavior });
-    }, { x, y, behavior });
+    await page.evaluate(
+      ({ x, y, behavior }) => {
+        window.scrollBy({ left: x, top: y, behavior });
+      },
+      { x, y, behavior },
+    );
 
     return {
       success: true,
       scrolled: { x, y },
       direction,
-      position: await this._getScrollPosition(page)
+      position: await this._getScrollPosition(page),
     };
   }
 
@@ -202,13 +214,20 @@ class ScrollAction {
    * Get current scroll position
    */
   async _getScrollPosition(page) {
-    return page.evaluate(() => ({
-      x: window.scrollX,
-      y: window.scrollY,
-      maxX: document.body.scrollWidth - window.innerWidth,
-      maxY: document.body.scrollHeight - window.innerHeight,
-      percentageY: Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100)
-    }));
+    return page.evaluate(() => {
+      const maxY = document.body.scrollHeight - window.innerHeight;
+      const maxX = document.body.scrollWidth - window.innerWidth;
+      return {
+        x: window.scrollX,
+        y: window.scrollY,
+        maxX: Math.max(0, maxX),
+        maxY: Math.max(0, maxY),
+        // Guard 0/0: a page that fits the viewport (scrollHeight===innerHeight)
+        // gives 0/0 → NaN, which silently breaks `percentageY >= target` checks.
+        // A non-scrollable page is effectively 100% scrolled (nothing more below).
+        percentageY: maxY > 0 ? Math.round((window.scrollY / maxY) * 100) : 100,
+      };
+    });
   }
 
   /**
@@ -223,7 +242,7 @@ class ScrollAction {
       maxScrolls = 10,
       scrollDelay = 1000,
       waitForSelector,
-      stopWhenNoNewContent = true
+      stopWhenNoNewContent = true,
     } = options;
 
     let scrollCount = 0;
@@ -235,7 +254,10 @@ class ScrollAction {
 
       // Scroll to bottom
       await page.evaluate(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: "smooth",
+        });
       });
 
       // Wait for new content
@@ -260,7 +282,7 @@ class ScrollAction {
       success: true,
       scrollCount,
       reachedEnd: !newContentLoaded,
-      position: await this._getScrollPosition(page)
+      position: await this._getScrollPosition(page),
     };
   }
 
@@ -273,32 +295,44 @@ class ScrollAction {
    */
   async scrollWithinElement(targetId, containerRef, options = {}) {
     const page = this.browserEngine.getPage(targetId);
-    const { direction = 'down', distance = 200 } = options;
+    const { direction = "down", distance = 200 } = options;
 
     const element = this.browserEngine.findElement(targetId, containerRef);
     if (!element) {
       throw new Error(`Container ${containerRef} not found`);
     }
 
-    let x = 0, y = 0;
+    let x = 0,
+      y = 0;
     switch (direction) {
-      case 'down': y = distance; break;
-      case 'up': y = -distance; break;
-      case 'right': x = distance; break;
-      case 'left': x = -distance; break;
+      case "down":
+        y = distance;
+        break;
+      case "up":
+        y = -distance;
+        break;
+      case "right":
+        x = distance;
+        break;
+      case "left":
+        x = -distance;
+        break;
     }
 
-    await page.evaluate(({ selector, x, y }) => {
-      const el = document.querySelector(selector);
-      if (el) {
-        el.scrollBy({ left: x, top: y, behavior: 'smooth' });
-      }
-    }, { selector: element.selector, x, y });
+    await page.evaluate(
+      ({ selector, x, y }) => {
+        const el = document.querySelector(selector);
+        if (el) {
+          el.scrollBy({ left: x, top: y, behavior: "smooth" });
+        }
+      },
+      { selector: element.selector, x, y },
+    );
 
     return {
       success: true,
       container: containerRef,
-      scrolled: { x, y }
+      scrolled: { x, y },
     };
   }
 }
@@ -306,5 +340,5 @@ class ScrollAction {
 module.exports = {
   ScrollAction,
   ScrollDirection,
-  ScrollBehavior
+  ScrollBehavior,
 };
