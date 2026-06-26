@@ -303,10 +303,9 @@ export function useChatExecution({
           duration: 5,
         });
 
-        // NOTE: 原文件这里用裸 setTimeout (而 PPT 分支用 safeSetTimeout)。
-        // 抽取时原样保留 — 这是一个 pre-existing 内存泄漏隐患（组件卸载
-        // 不会清理这个 timer），独立修。
-        setTimeout(() => {
+        // Mirror the PPT branch: use safeSetTimeout so the timer is cleared on
+        // unmount instead of firing emit("files-changed") on a torn-down context.
+        safeSetTimeout(() => {
           logger.info("[ChatPanel] 延迟刷新文件树（Word）");
           emit("files-changed");
         }, 2000);
