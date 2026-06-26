@@ -181,12 +181,22 @@ export class LLMProviderRegistry {
       .prepare("SELECT * FROM llm_providers WHERE custom = 1")
       .all();
     for (const row of rows) {
+      // Tolerate a corrupt `models` TEXT column: `|| "[]"` only covers null,
+      // not malformed JSON, and an unguarded throw here would abort the whole
+      // custom-provider load (and the registry constructor) over one bad row.
+      let models = [];
+      try {
+        const parsed = JSON.parse(row.models || "[]");
+        if (Array.isArray(parsed)) models = parsed;
+      } catch {
+        /* corrupt models column — fall back to no models for this provider */
+      }
       this.providers.set(row.name, {
         name: row.name,
         displayName: row.display_name,
         baseUrl: row.base_url,
         apiKeyEnv: row.api_key_env,
-        models: JSON.parse(row.models || "[]"),
+        models,
         custom: true,
         free: false,
       });
