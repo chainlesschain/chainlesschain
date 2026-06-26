@@ -30,6 +30,9 @@ function _git(cmd, cwd) {
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "ignore"],
         timeout: 1500,
+        // `status --porcelain` on a dirty repo with many files can exceed the
+        // 1 MB execSync default → ENOBUFS → null → "(clean)" misreport below.
+        maxBuffer: 16 * 1024 * 1024,
       })
       .trim();
   } catch (_e) {
@@ -61,11 +64,18 @@ export function buildTurnContext({
   if (branch) {
     const head = _git("rev-parse --short HEAD", cwd);
     const status = _git("status --porcelain", cwd);
-    const dirty = status && status.length > 0;
-    const fileCount = dirty ? status.split("\n").filter(Boolean).length : 0;
-    lines.push(
-      `- git: ${branch}@${head || "?"}${dirty ? ` (${fileCount} uncommitted)` : " (clean)"}`,
-    );
+    // Distinguish "command failed" (null — timeout / huge output) from "" (truly
+    // clean): the old `status && …` reported a repo as "(clean)" whenever status
+    // couldn't be determined, which is a wrong signal to the model.
+    let stateLabel;
+    if (status === null) {
+      stateLabel = " (status unknown)";
+    } else if (status.length > 0) {
+      stateLabel = ` (${status.split("\n").filter(Boolean).length} uncommitted)`;
+    } else {
+      stateLabel = " (clean)";
+    }
+    lines.push(`- git: ${branch}@${head || "?"}${stateLabel}`);
   }
 
   if (sessionId) {

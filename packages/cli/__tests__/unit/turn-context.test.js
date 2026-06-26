@@ -45,6 +45,35 @@ describe("turn-context — buildTurnContext", () => {
     expect(out).toMatch(/- git: feat\/x@def5 \(3 uncommitted\)/);
   });
 
+  it("reports '(status unknown)' — not '(clean)' — when git status fails", () => {
+    // branch/head resolve, but `status --porcelain` times out / exceeds the
+    // buffer (returns null). The old code conflated null with "" → "(clean)".
+    _deps.execSync = vi.fn((cmd) => {
+      if (cmd.includes("abbrev-ref")) return "main\n";
+      if (cmd.includes("short HEAD")) return "abc1234\n";
+      if (cmd.includes("porcelain")) throw new Error("ENOBUFS / timeout");
+      return "";
+    });
+    const out = buildTurnContext({ iteration: 1, cwd: "/tmp" });
+    expect(out).toMatch(/- git: main@abc1234 \(status unknown\)/);
+    expect(out).not.toMatch(/\(clean\)/);
+  });
+
+  it("passes a generous maxBuffer to git so a large status isn't ENOBUFS", () => {
+    let porcelainOpts = null;
+    _deps.execSync = vi.fn((cmd, opts) => {
+      if (cmd.includes("abbrev-ref")) return "main";
+      if (cmd.includes("short HEAD")) return "abc";
+      if (cmd.includes("porcelain")) {
+        porcelainOpts = opts;
+        return " M a.js";
+      }
+      return "";
+    });
+    buildTurnContext({ cwd: "/tmp" });
+    expect(porcelainOpts.maxBuffer).toBeGreaterThanOrEqual(8 * 1024 * 1024);
+  });
+
   it("omits git line when not a repo", () => {
     _deps.execSync = vi.fn(() => {
       throw new Error("fatal: not a git repo");
