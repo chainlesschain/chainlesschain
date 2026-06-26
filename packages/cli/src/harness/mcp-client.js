@@ -814,19 +814,18 @@ export class MCPClient extends EventEmitter {
       const contentType = response.headers?.get
         ? String(response.headers.get("content-type") || "").toLowerCase()
         : "";
+      // Bound the response body the same way the stdio path bounds its line
+      // buffer (per-server maxBufferChars override; 0 disables).
+      const cap = Number.isFinite(entry.config?.maxBufferChars)
+        ? entry.config.maxBufferChars
+        : MCP_MAX_BUFFER_CHARS;
 
       let envelope;
       if (contentType.includes("text/event-stream")) {
-        envelope = await _extractSseResponse(response, id);
+        envelope = await _extractSseResponse(response, id, cap);
       } else {
-        envelope =
-          typeof response.json === "function"
-            ? await response.json()
-            : JSON.parse(
-                typeof response.text === "function"
-                  ? await response.text()
-                  : "",
-              );
+        const text = await _readBodyCapped(response, cap);
+        envelope = text ? JSON.parse(text) : null;
       }
 
       if (!envelope || typeof envelope !== "object") {
@@ -957,28 +956,70 @@ export class MCPClient extends EventEmitter {
 }
 
 /**
- * Parse a `text/event-stream` HTTP response body and return the first
- * JSON-RPC envelope whose id matches `requestId`. Tolerates multiple
- * `data:` chunks, comments, and non-JSON-RPC events.
+ * Read an HTTP response body to text with a hard size cap, mirroring the stdio
+ * transport's MCP_MAX_BUFFER_CHARS guard. The per-call timeout bounds TIME but
+ * not MEMORY: a malicious/buggy HTTP MCP server could stream a multi-GB body
+ * within the timeout and OOM the client. When the body is a readable stream
+ * (real fetch) we accumulate with a running cap and cancel on overflow; for a
+ * non-stream response (test mocks) we fall back to text() + a post-hoc check.
+ * A declared Content-Length over the cap is rejected before any read. cap<=0
+ * disables the limit.
  */
-async function _extractSseResponse(response, requestId) {
-  let text;
-  if (typeof response.text === "function") {
-    text = await response.text();
-  } else if (response.body && typeof response.body.getReader === "function") {
+async function _readBodyCapped(response, cap) {
+  if (
+    cap > 0 &&
+    response.headers &&
+    typeof response.headers.get === "function"
+  ) {
+    const declared = Number(response.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > cap) {
+      throw new Error(
+        `MCP HTTP response exceeds the ${cap}-byte cap (content-length ${declared})`,
+      );
+    }
+  }
+  if (response.body && typeof response.body.getReader === "function") {
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     const chunks = [];
-    while (true) {
+    let total = 0;
+    for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
+      total += value && value.length ? value.length : 0;
+      if (cap > 0 && total > cap) {
+        try {
+          await reader.cancel();
+        } catch {
+          /* best-effort — the throw below is what matters */
+        }
+        throw new Error(
+          `MCP HTTP response exceeded the ${cap}-byte cap (runaway server)`,
+        );
+      }
       chunks.push(decoder.decode(value, { stream: true }));
     }
     chunks.push(decoder.decode());
-    text = chunks.join("");
-  } else {
-    throw new Error("SSE response is not readable");
+    return chunks.join("");
   }
+  if (typeof response.text !== "function") {
+    throw new Error("HTTP response is not readable");
+  }
+  const text = await response.text();
+  if (cap > 0 && text.length > cap) {
+    throw new Error(`MCP HTTP response exceeded the ${cap}-char cap`);
+  }
+  return text;
+}
+
+/**
+ * Parse a `text/event-stream` HTTP response body and return the first
+ * JSON-RPC envelope whose id matches `requestId`. Tolerates multiple
+ * `data:` chunks, comments, and non-JSON-RPC events. `cap` bounds the body
+ * size (see _readBodyCapped).
+ */
+async function _extractSseResponse(response, requestId, cap = 0) {
+  const text = await _readBodyCapped(response, cap);
 
   // Split into events on blank line, parse each event's concatenated `data:` lines.
   const events = text.split(/\r?\n\r?\n/);

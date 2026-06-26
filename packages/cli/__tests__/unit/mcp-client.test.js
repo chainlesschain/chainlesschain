@@ -613,6 +613,63 @@ describe("MCP Client", () => {
       ).rejects.toThrow(/requires a url/i);
     });
 
+    it("rejects an HTTP response whose Content-Length exceeds maxBufferChars", async () => {
+      const headers = new Map([
+        ["content-type", "application/json"],
+        ["content-length", "5000"],
+      ]);
+      fetchQueue.push({
+        ok: true,
+        status: 200,
+        headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+        async text() {
+          return JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} });
+        },
+      });
+      await expect(
+        client.connect("big", {
+          url: "https://big.example.com/mcp",
+          maxBufferChars: 1000, // smaller than the declared 5000
+        }),
+      ).rejects.toThrow(/exceeds the 1000-byte cap|content-length/i);
+    });
+
+    it("aborts a streaming HTTP body that overflows the cap (no unbounded read)", async () => {
+      // A body delivered via getReader() that streams past the cap must be
+      // cancelled mid-read, not buffered whole.
+      const headers = new Map([["content-type", "application/json"]]);
+      let cancelled = false;
+      const makeChunk = () => new Uint8Array(800); // 800 bytes per chunk
+      let sent = 0;
+      fetchQueue.push({
+        ok: true,
+        status: 200,
+        headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+        body: {
+          getReader() {
+            return {
+              read: async () => {
+                if (sent >= 10) return { done: true };
+                sent++;
+                return { value: makeChunk(), done: false };
+              },
+              cancel: async () => {
+                cancelled = true;
+              },
+            };
+          },
+        },
+      });
+      await expect(
+        client.connect("stream", {
+          url: "https://stream.example.com/mcp",
+          maxBufferChars: 2000, // ~3 chunks in, the 800-byte chunks blow the cap
+        }),
+      ).rejects.toThrow(/exceeded the 2000-byte cap/i);
+      expect(cancelled).toBe(true); // reader was cancelled, not drained
+      expect(sent).toBeLessThan(10); // stopped early
+    });
+
     it("rejects stdio config that is missing a command", async () => {
       await expect(
         client.connect("no-cmd", { transport: "stdio" }),
