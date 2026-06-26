@@ -149,7 +149,10 @@ export function credentialFileReasonResolved(targetPath, opts = {}) {
 // ── secret ENV-VAR + command detection ──────────────────────────────────────
 
 // Content-reader commands: when one of these is aimed at a credential file, the
-// file's bytes land in the agent's tool output.
+// file's bytes land in the agent's tool output. Includes text processors
+// (awk/sed), encoders (base64), and field/byte slicers — all of which dump a
+// file's content just like `cat`, so an agent told to "read the .env" can't
+// route around the guard with `base64 .env` / `awk '{print}' .env`.
 const READ_COMMANDS = new Set([
   "cat",
   "tac",
@@ -165,7 +168,30 @@ const READ_COMMANDS = new Set([
   "xxd",
   "od",
   "strings",
+  "awk",
+  "gawk",
+  "mawk",
+  "sed",
+  "base64",
+  "base32",
+  "cut",
+  "rev",
+  "sort",
+  "uniq",
+  "tr",
+  "fold",
+  "expand",
+  "unexpand",
+  "column",
+  "paste",
+  "pr",
 ]);
+
+// grep-family is a content-reader too, but its FIRST non-flag arg is the search
+// PATTERN (which may itself look credential-ish, e.g. `grep "id_rsa" notes.txt`)
+// — so it is handled separately, checking only the FILE args after the pattern,
+// to keep the guard precise (no false positive on the pattern).
+const GREP_COMMANDS = new Set(["grep", "egrep", "fgrep", "rg", "ag"]);
 
 // Commands whose job is to print a value into output — the exfil surface for a
 // secret env var (a tool that merely CONSUMES `$API_KEY` does not echo it).
@@ -270,6 +296,22 @@ export function commandReadsCredentials(command) {
     // (b) reading a credential file with a content-reader command.
     if (READ_COMMANDS.has(first)) {
       for (const tok of args) {
+        const r = credentialFileReason(tok);
+        if (r)
+          return {
+            reason: `reads ${r}`,
+            kind: "file",
+            target: tok,
+            segment: seg,
+          };
+      }
+    }
+
+    // (b2) grep-family: skip the search pattern (first non-flag arg) and check
+    //      only the file args, so `grep KEY .env` is caught but `grep "id_rsa"
+    //      notes.txt` (searching FOR that text) is not a false positive.
+    if (GREP_COMMANDS.has(first)) {
+      for (const tok of nonFlagArgs.slice(1)) {
         const r = credentialFileReason(tok);
         if (r)
           return {

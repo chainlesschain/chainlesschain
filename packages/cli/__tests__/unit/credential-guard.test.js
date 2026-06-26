@@ -166,6 +166,28 @@ describe("commandReadsCredentials", () => {
     expect(commandReadsCredentials("head -n 5 server.pem")?.kind).toBe("file");
   });
 
+  it("flags text-processor / encoder readers aimed at a credential file", () => {
+    // grep / awk / sed / base64 / cut dump file bytes just like cat — an agent
+    // must not route around the guard with them.
+    expect(commandReadsCredentials("grep . .env")?.kind).toBe("file");
+    expect(commandReadsCredentials("egrep API_KEY .env")?.kind).toBe("file");
+    expect(commandReadsCredentials("awk '{print}' .env")?.kind).toBe("file");
+    expect(commandReadsCredentials("sed -n p ~/.ssh/id_rsa")?.kind).toBe(
+      "file",
+    );
+    expect(commandReadsCredentials("base64 ~/.aws/credentials")?.kind).toBe(
+      "file",
+    );
+    expect(commandReadsCredentials("cut -d= -f2 .env")?.kind).toBe("file");
+  });
+
+  it("does NOT false-positive on a grep PATTERN that looks credential-ish", () => {
+    // grep's first non-flag arg is the search pattern, not a file to read.
+    expect(commandReadsCredentials('grep "id_rsa" notes.txt')).toBeNull();
+    expect(commandReadsCredentials("grep .env README.md")).toBeNull();
+    expect(commandReadsCredentials("egrep credentials report.log")).toBeNull();
+  });
+
   it("flags echoing a secret-looking env var", () => {
     expect(commandReadsCredentials("echo $ANTHROPIC_API_KEY")?.kind).toBe(
       "env-var",
