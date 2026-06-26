@@ -93,4 +93,34 @@ describe("composeSystemPrompt", () => {
       "EXTRA",
     );
   });
+
+  it("appends an output-style persona after the base", () => {
+    expect(composeSystemPrompt("BASE", { outputStyle: "STYLE" })).toBe(
+      "BASE\n\nSTYLE",
+    );
+  });
+
+  it("orders output-style LAST — after both override and append", () => {
+    // Documented contract: base/override → (project memory) → append → style.
+    expect(
+      composeSystemPrompt("BASE", {
+        systemPrompt: "OVERRIDE",
+        appendSystemPrompt: "EXTRA",
+        outputStyle: "STYLE",
+      }),
+    ).toBe("OVERRIDE\n\nEXTRA\n\nSTYLE");
+  });
+
+  it("output-style alone when base is empty", () => {
+    expect(composeSystemPrompt("", { outputStyle: "STYLE" })).toBe("STYLE");
+  });
+
+  it("explicit projectMemory:false injects no block (stays pure)", () => {
+    expect(
+      composeSystemPrompt("BASE", {
+        appendSystemPrompt: "EXTRA",
+        projectMemory: false,
+      }),
+    ).toBe("BASE\n\nEXTRA");
+  });
 });
