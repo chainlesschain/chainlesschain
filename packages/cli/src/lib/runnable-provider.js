@@ -31,7 +31,13 @@ export function isAuthError(err) {
         : null;
   if (status === 401 || status === 403) return true;
   const msg = String(err.message || err).toLowerCase();
-  return /\b401\b|\b403\b|unauthorized|forbidden|authentication failed|api[\s_-]*key required|invalid api[\s_-]*key|incorrect api[\s_-]*key|expired/.test(
+  // `expired` must be AUTH-scoped (key/token/credential/secret), not bare:
+  // a TLS "certificate has expired" or "cache expired" is an infra error, and
+  // misclassifying it as auth would trigger an env-key VENDOR hijack on a
+  // keyless provider — masking the real problem (the same anti-hijack spirit
+  // as the rest of this module). A genuine 401/403 is still caught by status
+  // and the explicit auth phrases below.
+  return /\b401\b|\b403\b|unauthorized|forbidden|authentication failed|api[\s_-]*key required|invalid api[\s_-]*key|incorrect api[\s_-]*key|(?:api[\s_-]*key|token|credentials?|secret)[\s_-]*(?:has\s+|is\s+|was\s+)?expired|expired[\s_-]+(?:api[\s_-]*key|token|credentials?|secret)/.test(
     msg,
   );
 }

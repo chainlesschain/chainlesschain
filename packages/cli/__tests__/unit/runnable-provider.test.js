@@ -123,6 +123,28 @@ describe("isAuthError", () => {
     expect(isAuthError({ status: 500 })).toBe(false);
     expect(isAuthError(null)).toBe(false);
   });
+
+  it("matches auth-scoped 'expired' but not bare/infra 'expired'", () => {
+    // Auth-scoped expiry IS an auth error.
+    for (const m of [
+      "API key expired",
+      "Your token has expired",
+      "credentials expired",
+      "expired API key",
+      "expired token",
+    ]) {
+      expect(isAuthError(new Error(m))).toBe(true);
+    }
+    // Infra errors that merely contain "expired" must NOT trigger the auth
+    // path (which would env-key hijack a keyless provider).
+    for (const m of [
+      "certificate has expired",
+      "cache expired",
+      "the lease expired",
+    ]) {
+      expect(isAuthError(new Error(m))).toBe(false);
+    }
+  });
 });
 
 describe("inferProviderFromBaseUrl", () => {
