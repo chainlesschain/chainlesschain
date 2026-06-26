@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { tryParseJson } from '../utils/community-parser.js'
 
 let msgCounter = 0
 const genId = () => `wp-${++msgCounter}`
@@ -499,9 +500,13 @@ export const useWsStore = defineStore('ws', () => {
     try {
       return JSON.parse(output.trim())
     } catch {
-      // Try to find JSON in output (may have extra text)
-      const match = output.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-      if (match) return JSON.parse(match[0])
+      // Output had prose/log noise around the JSON. Recover via the shared
+      // robust parser (strips CLI noise + balanced-candidate scanning, never
+      // throws). The previous bare greedy /\{[\s\S]*\}/ + unguarded
+      // JSON.parse over-captured (first { to last }) and threw a raw
+      // SyntaxError on noisy/multi-object output instead of the clean error.
+      const parsed = tryParseJson(output)
+      if (parsed !== null) return parsed
       throw new Error(`Invalid JSON output: ${output.slice(0, 200)}`)
     }
   }
