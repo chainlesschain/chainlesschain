@@ -341,6 +341,27 @@ describe("jsonl-session-store", () => {
       expect(rebuildMessages("legacy-session")).toHaveLength(2);
     });
 
+    it("fails-fast on a legacy file whose own id is a traversal id (no escape)", () => {
+      // The legacy payload names a traversal target; the file's basename is safe.
+      const legacyPath = join(sessionsDir, "evil.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id: "../../pwned",
+          messages: [{ role: "user", content: "x" }],
+        }),
+        "utf-8",
+      );
+      const escaped = join(testDir, "..", "pwned.jsonl");
+
+      const result = migrateLegacySessionFile(legacyPath, { force: true });
+      expect(result.migrated).toBe(false);
+      expect(result.failed).toBe(true);
+      expect(result.reason).toMatch(/unsafe session id/);
+      expect(result.attempts).toBe(1); // failed fast, no retry waste
+      expect(existsSync(escaped)).toBe(false); // nothing written outside the dir
+    });
+
     it("validates JSONL session structure", () => {
       const id = startSession("validate-me");
       appendUserMessage(id, "hello");

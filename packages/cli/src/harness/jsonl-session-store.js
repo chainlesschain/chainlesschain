@@ -371,6 +371,21 @@ function performLegacySessionMigration(sourcePath, options) {
   const legacy = normalizeLegacySession(parsed, basename(sourcePath, ".json"));
   const sessionId = legacy.id;
 
+  // A legacy file carries its OWN `id` (payload.id), so a crafted file could
+  // name a traversal target like "../../evil". sessionPath() throws on write
+  // (the backstop), but fail-fast HERE with a clear reason so the migration
+  // doesn't burn retry attempts on a deterministic error.
+  if (isUnsafeSessionId(sessionId)) {
+    return {
+      file: sourcePath,
+      sessionId,
+      migrated: false,
+      failed: true,
+      dryRun: Boolean(options.dryRun),
+      reason: "unsafe session id in legacy file",
+    };
+  }
+
   if (!options.force && sessionExists(sessionId)) {
     return {
       file: sourcePath,
