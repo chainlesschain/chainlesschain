@@ -14,6 +14,19 @@ const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const QRCode = require("qrcode");
 
+// Tolerate a corrupt metadata_json column so one malformed row doesn't throw out
+// of an invitation/link list .map and fail the whole list (outer catch → []).
+function safeParseMetadata(raw) {
+  if (!raw) {
+    return {};
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 /**
  * 邀请状态枚举
  */
@@ -779,7 +792,7 @@ class DIDInvitationManager {
 
       return invitations.map((inv) => ({
         ...inv,
-        metadata: inv.metadata_json ? JSON.parse(inv.metadata_json) : {},
+        metadata: safeParseMetadata(inv.metadata_json),
       }));
     } catch (error) {
       logger.error("[DIDInvitationManager] 获取收到的邀请失败:", error);
@@ -823,7 +836,7 @@ class DIDInvitationManager {
 
       return invitations.map((inv) => ({
         ...inv,
-        metadata: inv.metadata_json ? JSON.parse(inv.metadata_json) : {},
+        metadata: safeParseMetadata(inv.metadata_json),
       }));
     } catch (error) {
       logger.error("[DIDInvitationManager] 获取发送的邀请失败:", error);
@@ -1200,7 +1213,7 @@ class DIDInvitationManager {
         remainingUses: link.max_uses - link.used_count,
         expiresAt: link.expires_at,
         createdAt: link.created_at,
-        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {},
+        metadata: safeParseMetadata(link.metadata_json),
       };
     } catch (error) {
       logger.error("[DIDInvitationManager] 验证邀请令牌失败:", error);
@@ -1344,7 +1357,7 @@ class DIDInvitationManager {
 
       return links.map((link) => ({
         ...link,
-        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {},
+        metadata: safeParseMetadata(link.metadata_json),
         invitationUrl: `chainlesschain://invite/${link.invitation_token}`,
         remainingUses: link.max_uses - link.used_count,
         isExpired: link.expires_at && link.expires_at < Date.now(),
@@ -1388,7 +1401,7 @@ class DIDInvitationManager {
 
       return {
         ...link,
-        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {},
+        metadata: safeParseMetadata(link.metadata_json),
         invitationUrl: `chainlesschain://invite/${link.invitation_token}`,
         remainingUses: link.max_uses - link.used_count,
         isExpired: link.expires_at && link.expires_at < Date.now(),

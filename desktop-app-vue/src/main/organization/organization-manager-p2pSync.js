@@ -8,6 +8,19 @@
 const { logger } = require("../utils/logger.js");
 const { OrgP2PNetwork } = require("./org-p2p-network");
 
+// Tolerate a corrupt metadata column so one malformed change doesn't throw out
+// of the sync-payload .map and break the whole sync response.
+function safeParseMetadata(raw) {
+  if (!raw) {
+    return {};
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 module.exports = {
   async initializeOrgP2PNetwork(orgId) {
     if (!this.orgP2PNetwork) {
@@ -172,7 +185,7 @@ module.exports = {
         toVersion: await this.getLocalVersion(orgId),
         changes: changes.map((change) => ({
           ...change,
-          metadata: JSON.parse(change.metadata || "{}"),
+          metadata: safeParseMetadata(change.metadata),
         })),
         timestamp: Date.now(),
       };

@@ -57,10 +57,18 @@ class TenantManager extends EventEmitter {
         .prepare("SELECT * FROM saas_tenants WHERE status != 'deleted'")
         .all();
       for (const row of rows) {
-        this._tenants.set(row.id, {
-          ...row,
-          config: JSON.parse(row.config || "{}"),
-        });
+        // A single corrupt `config` (|| "{}" only guards null) must not throw
+        // out of the loop and drop every remaining tenant. Skip the bad one.
+        try {
+          this._tenants.set(row.id, {
+            ...row,
+            config: JSON.parse(row.config || "{}"),
+          });
+        } catch (err) {
+          logger.warn(
+            `[TenantManager] skipping tenant ${row.id} with unparseable config: ${err.message}`,
+          );
+        }
       }
     } catch (error) {
       logger.warn("[TenantManager] Failed to load tenants:", error.message);
