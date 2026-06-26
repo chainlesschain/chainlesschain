@@ -656,12 +656,17 @@ class PlanModeManager extends EventEmitter {
         `[PlanMode] Plan execution completed: ${this.currentPlan.id}`,
       );
 
+      // Snapshot the completed plan BEFORE exitPlanMode nulls currentPlan —
+      // otherwise the returned `plan` is always null on success and the
+      // renderer loses the completed-plan data.
+      const planJson = this.currentPlan ? this.currentPlan.toJSON() : null;
+
       // 退出计划模式
       this.exitPlanMode({ reason: "Plan execution completed" });
 
       return {
         success: true,
-        plan: this.currentPlan ? this.currentPlan.toJSON() : null,
+        plan: planJson,
         results,
       };
     } catch (error) {
