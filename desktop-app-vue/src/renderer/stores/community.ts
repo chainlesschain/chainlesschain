@@ -6,8 +6,8 @@
  * @version 0.42.0
  */
 
-import { defineStore } from 'pinia';
-import { createRetryableIPC } from '../utils/ipc';
+import { defineStore } from "pinia";
+import { createRetryableIPC } from "../utils/ipc";
 
 // ==================== Type Definitions ====================
 
@@ -20,8 +20,8 @@ export interface Community {
   creator_did: string;
   member_limit: number;
   member_count: number;
-  status: 'active' | 'archived' | 'banned';
-  my_role?: 'owner' | 'admin' | 'moderator' | 'member' | null;
+  status: "active" | "archived" | "banned";
+  my_role?: "owner" | "admin" | "moderator" | "member" | null;
   created_at: number;
   updated_at: number;
   [key: string]: any;
@@ -31,9 +31,9 @@ export interface CommunityMember {
   id: string;
   community_id: string;
   member_did: string;
-  role: 'owner' | 'admin' | 'moderator' | 'member';
+  role: "owner" | "admin" | "moderator" | "member";
   nickname: string | null;
-  status: 'active' | 'banned' | 'left';
+  status: "active" | "banned" | "left";
   contact_nickname?: string;
   joined_at: number;
   updated_at: number;
@@ -45,7 +45,7 @@ export interface Channel {
   community_id: string;
   name: string;
   description: string;
-  type: 'announcement' | 'discussion' | 'readonly' | 'subscription';
+  type: "announcement" | "discussion" | "readonly" | "subscription";
   sort_order: number;
   message_count?: number;
   created_at: number;
@@ -59,7 +59,7 @@ export interface ChannelMessage {
   sender_did: string;
   sender_nickname?: string;
   content: string;
-  message_type: 'text' | 'image' | 'file' | 'system';
+  message_type: "text" | "image" | "file" | "system";
   reply_to: string | null;
   is_pinned: number;
   reactions: Record<string, string[]>;
@@ -74,12 +74,12 @@ export interface Proposal {
   proposer_did: string;
   title: string;
   description: string;
-  proposal_type: 'rule_change' | 'role_change' | 'ban' | 'channel' | 'other';
-  status: 'discussion' | 'voting' | 'passed' | 'rejected' | 'executed';
+  proposal_type: "rule_change" | "role_change" | "ban" | "channel" | "other";
+  status: "discussion" | "voting" | "passed" | "rejected" | "executed";
   discussion_end: number;
   voting_end: number;
   vote_count?: number;
-  my_vote?: 'approve' | 'reject' | 'abstain' | null;
+  my_vote?: "approve" | "reject" | "abstain" | null;
   votes_summary?: Record<string, { count: number; weight: number }>;
   created_at: number;
   updated_at: number;
@@ -91,7 +91,7 @@ export interface Vote {
   proposal_id: string;
   voter_did: string;
   voter_nickname?: string;
-  vote: 'approve' | 'reject' | 'abstain';
+  vote: "approve" | "reject" | "abstain";
   weight: number;
   created_at: number;
   [key: string]: any;
@@ -101,13 +101,13 @@ export interface ModerationReport {
   id: string;
   community_id: string;
   content_id: string;
-  content_type: 'message' | 'post' | 'comment';
+  content_type: "message" | "post" | "comment";
   reporter_did: string;
   moderator_did: string | null;
-  action: 'approved' | 'removed' | 'warning' | 'escalated' | null;
+  action: "approved" | "removed" | "warning" | "escalated" | null;
   reason: string;
   ai_score: number | null;
-  status: 'pending' | 'reviewed' | 'resolved';
+  status: "pending" | "reviewed" | "resolved";
   created_at: number;
   resolved_at: number | null;
   [key: string]: any;
@@ -135,7 +135,7 @@ const ipcRenderer = createRetryableIPC((window as any).electron?.ipcRenderer, {
 
 // ==================== Store ====================
 
-export const useCommunityStore = defineStore('community', {
+export const useCommunityStore = defineStore("community", {
   state: (): CommunityState => ({
     communities: [],
     currentCommunity: null,
@@ -155,7 +155,7 @@ export const useCommunityStore = defineStore('community', {
      * Communities where user is owner
      */
     ownedCommunities(): Community[] {
-      return this.communities.filter((c) => c.my_role === 'owner');
+      return this.communities.filter((c) => c.my_role === "owner");
     },
 
     /**
@@ -177,7 +177,7 @@ export const useCommunityStore = defineStore('community', {
      */
     activeProposals(): Proposal[] {
       return this.proposals.filter(
-        (p) => p.status === 'discussion' || p.status === 'voting',
+        (p) => p.status === "discussion" || p.status === "voting",
       );
     },
 
@@ -185,7 +185,7 @@ export const useCommunityStore = defineStore('community', {
      * Pending moderation reports
      */
     pendingReports(): ModerationReport[] {
-      return this.moderationLog.filter((r) => r.status === 'pending');
+      return this.moderationLog.filter((r) => r.status === "pending");
     },
 
     /**
@@ -193,7 +193,7 @@ export const useCommunityStore = defineStore('community', {
      */
     isAdminOrOwner(): boolean {
       const role = this.currentCommunity?.my_role;
-      return role === 'owner' || role === 'admin';
+      return role === "owner" || role === "admin";
     },
 
     /**
@@ -201,7 +201,7 @@ export const useCommunityStore = defineStore('community', {
      */
     isModeratorOrAbove(): boolean {
       const role = this.currentCommunity?.my_role;
-      return role === 'owner' || role === 'admin' || role === 'moderator';
+      return role === "owner" || role === "admin" || role === "moderator";
     },
   },
 
@@ -214,11 +214,11 @@ export const useCommunityStore = defineStore('community', {
     async loadCommunities(): Promise<void> {
       this.loading = true;
       try {
-        const communities = await ipcRenderer.invoke('community:get-list');
+        const communities = await ipcRenderer.invoke("community:get-list");
         this.communities = Array.isArray(communities) ? communities : [];
       } catch (error: any) {
-        if (error?.message !== 'IPC not available') {
-          console.error('Failed to load communities:', error);
+        if (error?.message !== "IPC not available") {
+          console.error("Failed to load communities:", error);
         }
         this.communities = [];
       } finally {
@@ -237,11 +237,11 @@ export const useCommunityStore = defineStore('community', {
       memberLimit?: number;
     }): Promise<Community> {
       try {
-        const community = await ipcRenderer.invoke('community:create', options);
+        const community = await ipcRenderer.invoke("community:create", options);
         this.communities.unshift(community);
         return community;
       } catch (error) {
-        console.error('Failed to create community:', error);
+        console.error("Failed to create community:", error);
         throw error;
       }
     },
@@ -251,10 +251,10 @@ export const useCommunityStore = defineStore('community', {
      */
     async joinCommunity(communityId: string): Promise<void> {
       try {
-        await ipcRenderer.invoke('community:join', communityId);
+        await ipcRenderer.invoke("community:join", communityId);
         await this.loadCommunities();
       } catch (error) {
-        console.error('Failed to join community:', error);
+        console.error("Failed to join community:", error);
         throw error;
       }
     },
@@ -264,7 +264,7 @@ export const useCommunityStore = defineStore('community', {
      */
     async leaveCommunity(communityId: string): Promise<void> {
       try {
-        await ipcRenderer.invoke('community:leave', communityId);
+        await ipcRenderer.invoke("community:leave", communityId);
         this.communities = this.communities.filter((c) => c.id !== communityId);
         if (this.currentCommunity?.id === communityId) {
           this.currentCommunity = null;
@@ -273,7 +273,7 @@ export const useCommunityStore = defineStore('community', {
           this.channelMessages = [];
         }
       } catch (error) {
-        console.error('Failed to leave community:', error);
+        console.error("Failed to leave community:", error);
         throw error;
       }
     },
@@ -284,7 +284,10 @@ export const useCommunityStore = defineStore('community', {
     async selectCommunity(communityId: string): Promise<void> {
       this.loading = true;
       try {
-        const community = await ipcRenderer.invoke('community:get-by-id', communityId);
+        const community = await ipcRenderer.invoke(
+          "community:get-by-id",
+          communityId,
+        );
         this.currentCommunity = community;
         if (community) {
           await Promise.all([
@@ -294,7 +297,7 @@ export const useCommunityStore = defineStore('community', {
           ]);
         }
       } catch (error) {
-        console.error('Failed to select community:', error);
+        console.error("Failed to select community:", error);
       } finally {
         this.loading = false;
       }
@@ -305,11 +308,11 @@ export const useCommunityStore = defineStore('community', {
      */
     async searchCommunities(query: string): Promise<Community[]> {
       try {
-        const results = await ipcRenderer.invoke('community:search', query);
+        const results = await ipcRenderer.invoke("community:search", query);
         this.searchResults = Array.isArray(results) ? results : [];
         return this.searchResults;
       } catch (error) {
-        console.error('Failed to search communities:', error);
+        console.error("Failed to search communities:", error);
         this.searchResults = [];
         return [];
       }
@@ -322,10 +325,10 @@ export const useCommunityStore = defineStore('community', {
       const cid = communityId || this.currentCommunity?.id;
       if (!cid) return;
       try {
-        const members = await ipcRenderer.invoke('community:get-members', cid);
+        const members = await ipcRenderer.invoke("community:get-members", cid);
         this.members = Array.isArray(members) ? members : [];
       } catch (error) {
-        console.error('Failed to load members:', error);
+        console.error("Failed to load members:", error);
         this.members = [];
       }
     },
@@ -339,10 +342,10 @@ export const useCommunityStore = defineStore('community', {
       const cid = communityId || this.currentCommunity?.id;
       if (!cid) return;
       try {
-        const channels = await ipcRenderer.invoke('channel:get-list', cid);
+        const channels = await ipcRenderer.invoke("channel:get-list", cid);
         this.channels = Array.isArray(channels) ? channels : [];
       } catch (error) {
-        console.error('Failed to load channels:', error);
+        console.error("Failed to load channels:", error);
         this.channels = [];
       }
     },
@@ -361,10 +364,14 @@ export const useCommunityStore = defineStore('community', {
     /**
      * Send a message to the current channel
      */
-    async sendMessage(content: string, messageType: string = 'text', replyTo: string | null = null): Promise<ChannelMessage | null> {
+    async sendMessage(
+      content: string,
+      messageType: string = "text",
+      replyTo: string | null = null,
+    ): Promise<ChannelMessage | null> {
       if (!this.currentChannel) return null;
       try {
-        const message = await ipcRenderer.invoke('channel:send-message', {
+        const message = await ipcRenderer.invoke("channel:send-message", {
           channelId: this.currentChannel.id,
           content,
           messageType,
@@ -372,14 +379,14 @@ export const useCommunityStore = defineStore('community', {
         });
         if (message) {
           // Parse reactions if needed
-          if (typeof message.reactions === 'string') {
+          if (typeof message.reactions === "string") {
             message.reactions = JSON.parse(message.reactions);
           }
           this.channelMessages.push(message);
         }
         return message;
       } catch (error) {
-        console.error('Failed to send message:', error);
+        console.error("Failed to send message:", error);
         throw error;
       }
     },
@@ -387,22 +394,39 @@ export const useCommunityStore = defineStore('community', {
     /**
      * Load messages for a channel
      */
-    async loadMessages(channelId?: string, options?: { limit?: number; offset?: number }): Promise<void> {
+    async loadMessages(
+      channelId?: string,
+      options?: { limit?: number; offset?: number },
+    ): Promise<void> {
       const cid = channelId || this.currentChannel?.id;
       if (!cid) return;
       this.messagesLoading = true;
       try {
-        const messages = await ipcRenderer.invoke('channel:get-messages', cid, options);
+        const messages = await ipcRenderer.invoke(
+          "channel:get-messages",
+          cid,
+          options,
+        );
         const parsed = Array.isArray(messages)
-          ? messages.map((m: any) => ({
-              ...m,
-              reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : (m.reactions || {}),
-            }))
+          ? messages.map((m: any) => {
+              // Guard per-item: a single malformed reactions string must not
+              // throw out of the whole map and drop EVERY message (the catch
+              // below empties channelMessages). Bad JSON → empty reactions.
+              let reactions = m.reactions || {};
+              if (typeof m.reactions === "string") {
+                try {
+                  reactions = JSON.parse(m.reactions);
+                } catch {
+                  reactions = {};
+                }
+              }
+              return { ...m, reactions };
+            })
           : [];
         // Messages come DESC from server, reverse for display
         this.channelMessages = parsed.reverse();
       } catch (error) {
-        console.error('Failed to load messages:', error);
+        console.error("Failed to load messages:", error);
         this.channelMessages = [];
       } finally {
         this.messagesLoading = false;
@@ -421,11 +445,14 @@ export const useCommunityStore = defineStore('community', {
       proposalType?: string;
     }): Promise<Proposal> {
       try {
-        const proposal = await ipcRenderer.invoke('governance:create-proposal', options);
+        const proposal = await ipcRenderer.invoke(
+          "governance:create-proposal",
+          options,
+        );
         this.proposals.unshift(proposal);
         return proposal;
       } catch (error) {
-        console.error('Failed to create proposal:', error);
+        console.error("Failed to create proposal:", error);
         throw error;
       }
     },
@@ -433,9 +460,12 @@ export const useCommunityStore = defineStore('community', {
     /**
      * Cast a vote on a proposal
      */
-    async castVote(proposalId: string, vote: 'approve' | 'reject' | 'abstain'): Promise<void> {
+    async castVote(
+      proposalId: string,
+      vote: "approve" | "reject" | "abstain",
+    ): Promise<void> {
       try {
-        await ipcRenderer.invoke('governance:vote', proposalId, vote);
+        await ipcRenderer.invoke("governance:vote", proposalId, vote);
         // Update local state
         const proposal = this.proposals.find((p) => p.id === proposalId);
         if (proposal) {
@@ -443,7 +473,7 @@ export const useCommunityStore = defineStore('community', {
           proposal.vote_count = (proposal.vote_count || 0) + 1;
         }
       } catch (error) {
-        console.error('Failed to cast vote:', error);
+        console.error("Failed to cast vote:", error);
         throw error;
       }
     },
@@ -455,10 +485,13 @@ export const useCommunityStore = defineStore('community', {
       const cid = communityId || this.currentCommunity?.id;
       if (!cid) return;
       try {
-        const proposals = await ipcRenderer.invoke('governance:get-proposals', cid);
+        const proposals = await ipcRenderer.invoke(
+          "governance:get-proposals",
+          cid,
+        );
         this.proposals = Array.isArray(proposals) ? proposals : [];
       } catch (error) {
-        console.error('Failed to load proposals:', error);
+        console.error("Failed to load proposals:", error);
         this.proposals = [];
       }
     },
@@ -476,9 +509,9 @@ export const useCommunityStore = defineStore('community', {
       contentText?: string;
     }): Promise<void> {
       try {
-        await ipcRenderer.invoke('moderation:report', options);
+        await ipcRenderer.invoke("moderation:report", options);
       } catch (error) {
-        console.error('Failed to report content:', error);
+        console.error("Failed to report content:", error);
         throw error;
       }
     },
@@ -490,10 +523,10 @@ export const useCommunityStore = defineStore('community', {
       const cid = communityId || this.currentCommunity?.id;
       if (!cid) return;
       try {
-        const log = await ipcRenderer.invoke('moderation:get-log', cid);
+        const log = await ipcRenderer.invoke("moderation:get-log", cid);
         this.moderationLog = Array.isArray(log) ? log : [];
       } catch (error) {
-        console.error('Failed to load moderation log:', error);
+        console.error("Failed to load moderation log:", error);
         this.moderationLog = [];
       }
     },
