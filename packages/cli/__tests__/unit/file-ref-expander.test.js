@@ -75,7 +75,12 @@ function makeFs(files, dirs = {}) {
     readSync(fd, buffer, offset, length, position) {
       const src = fds.get(fd);
       const start = position == null ? 0 : position;
-      const n = src.copy(buffer, offset, start, Math.min(start + length, src.length));
+      const n = src.copy(
+        buffer,
+        offset,
+        start,
+        Math.min(start + length, src.length),
+      );
       calls.readSyncBytes += n;
       return n;
     },
@@ -211,6 +216,64 @@ describe("expandFileRefs", () => {
   });
 });
 
+describe("expandFileRefs — credential/secret file guard", () => {
+  it("refuses to inject a .env file — warns, never reads or inlines it", () => {
+    const fs = makeFs({ ".env": "API_KEY=supersecret\nDB_PASS=hunter2\n" });
+    const r = expandFileRefs("check @.env please", { cwd, deps: { fs } });
+    // Not expanded → no <file> block, secret bytes never appear in the prompt.
+    expect(r.refs).toEqual([]);
+    expect(r.prompt).toBe("check @.env please");
+    expect(r.prompt).not.toContain("supersecret");
+    expect(r.prompt).not.toContain("hunter2");
+    expect(r.warnings.join("\n")).toMatch(/@\.env — refused:.*not injected/);
+    // The secret file's bytes were never loaded into memory.
+    expect(fs._calls.readFileSyncBytes).toBe(0);
+    expect(fs._calls.readSyncBytes).toBe(0);
+  });
+
+  it("refuses other secret-classed files (private key ext, SSH key, aws credentials)", () => {
+    for (const [token, files] of [
+      ["@deploy.key", { "deploy.key": "-----BEGIN PRIVATE KEY-----\n" }],
+      ["@secrets/id_rsa", { "secrets/id_rsa": "ssh-rsa-private\n" }],
+      ["@.aws/credentials", { ".aws/credentials": "aws_secret=x\n" }],
+    ]) {
+      const fs = makeFs(files);
+      const r = expandFileRefs(`look at ${token}`, { cwd, deps: { fs } });
+      expect(r.refs).toEqual([]);
+      expect(r.warnings.join("\n")).toMatch(/refused:.*not injected/);
+      expect(fs._calls.readFileSyncBytes + fs._calls.readSyncBytes).toBe(0);
+    }
+  });
+
+  it("still injects an ordinary (non-secret) file next to a refused one", () => {
+    const fs = makeFs({
+      ".env": "SECRET=1\n",
+      "src/app.js": "export const x = 1;\n",
+    });
+    const r = expandFileRefs("diff @.env vs @src/app.js", {
+      cwd,
+      deps: { fs },
+    });
+    expect(r.refs.map((x) => x.rel)).toEqual(["src/app.js"]);
+    expect(r.prompt).toContain("export const x = 1;");
+    expect(r.prompt).not.toContain("SECRET=1");
+  });
+
+  it("honors the CC_CREDENTIAL_GUARD=0 opt-out (injects the secret)", () => {
+    const prev = process.env.CC_CREDENTIAL_GUARD;
+    process.env.CC_CREDENTIAL_GUARD = "0";
+    try {
+      const fs = makeFs({ ".env": "API_KEY=visible\n" });
+      const r = expandFileRefs("check @.env", { cwd, deps: { fs } });
+      expect(r.refs).toHaveLength(1);
+      expect(r.prompt).toContain("API_KEY=visible");
+    } finally {
+      if (prev === undefined) delete process.env.CC_CREDENTIAL_GUARD;
+      else process.env.CC_CREDENTIAL_GUARD = prev;
+    }
+  });
+});
+
 describe("parseLineRange", () => {
   it("parses #L5-10, #5-10, #L5, #5", () => {
     expect(parseLineRange("src/x.js#L5-10")).toEqual({
@@ -223,8 +286,16 @@ describe("parseLineRange", () => {
       start: 5,
       end: 10,
     });
-    expect(parseLineRange("a.ts#L7")).toEqual({ path: "a.ts", start: 7, end: 7 });
-    expect(parseLineRange("a.ts#7")).toEqual({ path: "a.ts", start: 7, end: 7 });
+    expect(parseLineRange("a.ts#L7")).toEqual({
+      path: "a.ts",
+      start: 7,
+      end: 7,
+    });
+    expect(parseLineRange("a.ts#7")).toEqual({
+      path: "a.ts",
+      start: 7,
+      end: 7,
+    });
   });
 
   it("returns null for no range / invalid / non-positive", () => {
@@ -248,7 +319,11 @@ describe("expandFileRefs — @file#Lstart-end line ranges", () => {
   it("injects only the requested lines with a lines= attribute", () => {
     const r = run("see @src/x.js#L2-4", { "src/x.js": SRC });
     expect(r.refs).toHaveLength(1);
-    expect(r.refs[0]).toMatchObject({ rel: "src/x.js", lineStart: 2, lineEnd: 4 });
+    expect(r.refs[0]).toMatchObject({
+      rel: "src/x.js",
+      lineStart: 2,
+      lineEnd: 4,
+    });
     expect(r.prompt).toContain('<file path="src/x.js" bytes="');
     expect(r.prompt).toContain('lines="2-4"');
     expect(r.prompt).toContain("L2\nL3\nL4");
@@ -299,9 +374,16 @@ describe("expandFileRefsAsync — @file.pdf page extraction", () => {
       text: `pages ${firstPage}-${lastPage} text`,
       truncated: false,
     }));
-    const r = await runAsync("read @doc.pdf#2-3", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    const r = await runAsync(
+      "read @doc.pdf#2-3",
+      { "doc.pdf": "%PDF-1.4" },
+      { extractPdfPages },
+    );
     expect(extractPdfPages).toHaveBeenCalledTimes(1);
-    expect(extractPdfPages.mock.calls[0][1]).toMatchObject({ firstPage: 2, lastPage: 3 });
+    expect(extractPdfPages.mock.calls[0][1]).toMatchObject({
+      firstPage: 2,
+      lastPage: 3,
+    });
     expect(r.prompt).toContain('<file path="doc.pdf"');
     expect(r.prompt).toContain('type="pdf"');
     expect(r.prompt).toContain('pages="2-3"');
@@ -309,8 +391,15 @@ describe("expandFileRefsAsync — @file.pdf page extraction", () => {
   });
 
   it("extracts the whole PDF (null range) when no #pages given", async () => {
-    const extractPdfPages = vi.fn(async () => ({ text: "all pages", truncated: false }));
-    const r = await runAsync("@doc.pdf", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    const extractPdfPages = vi.fn(async () => ({
+      text: "all pages",
+      truncated: false,
+    }));
+    const r = await runAsync(
+      "@doc.pdf",
+      { "doc.pdf": "%PDF-1.4" },
+      { extractPdfPages },
+    );
     expect(extractPdfPages.mock.calls[0][1]).toMatchObject({
       firstPage: null,
       lastPage: null,
@@ -325,7 +414,11 @@ describe("expandFileRefsAsync — @file.pdf page extraction", () => {
       e.code = "PDF_LIB_MISSING";
       throw e;
     };
-    const r = await runAsync("@doc.pdf#1", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    const r = await runAsync(
+      "@doc.pdf#1",
+      { "doc.pdf": "%PDF-1.4" },
+      { extractPdfPages },
+    );
     expect(r.prompt).toContain('type="pdf"');
     expect(r.prompt).toContain("install the optional");
     expect(r.warnings.some((w) => /pdf-parse/.test(w))).toBe(true);

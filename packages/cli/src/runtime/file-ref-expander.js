@@ -24,6 +24,10 @@
 
 import fsDefault from "fs";
 import pathDefault from "path";
+import {
+  credentialFileReasonResolved,
+  credentialGuardDisabled,
+} from "../lib/credential-guard.js";
 
 export const DEFAULT_MAX_BYTES = 100 * 1024; // 100 KB per referenced file
 export const DEFAULT_MAX_DIR_ENTRIES = 200;
@@ -181,6 +185,27 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       };
     }
     if (stat.isFile()) {
+      // Refuse to inline a credential / secret file. `@file` expansion pulls
+      // file contents straight into the (possibly cloud) LLM prompt, so it is a
+      // second channel for file→LLM exfiltration that must honour the same guard
+      // as read_file / run_shell / the project-memory @import path. Checked on
+      // the RESOLVED path (the read follows symlinks, so a notes.txt → id_rsa
+      // link would otherwise leak the key) and BEFORE any read, so the secret
+      // bytes are never loaded. CC_CREDENTIAL_GUARD=0 opts out.
+      if (!credentialGuardDisabled()) {
+        const credReason = credentialFileReasonResolved(abs, {
+          cwd,
+          deps: { realpathSync: fs.realpathSync, resolve: path.resolve },
+        });
+        if (credReason) {
+          return {
+            kind: "blocked",
+            raw: cand,
+            rel: fsPath,
+            reason: credReason,
+          };
+        }
+      }
       // PDFs (pdf-parse needs the bytes) and line ranges (must reach the end
       // line) need the whole file; a plain inline only ever shows the first
       // maxBytes, so cap the read there instead of slurping the entire file.
@@ -222,7 +247,12 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       }
       if (range) {
         // Slice the requested lines (clamped to the file), then byte-cap them.
-        const sl = sliceLines(buf.toString("utf-8"), range.start, range.end, maxBytes);
+        const sl = sliceLines(
+          buf.toString("utf-8"),
+          range.start,
+          range.end,
+          maxBytes,
+        );
         return {
           kind: "file",
           raw: cand,
@@ -296,7 +326,9 @@ function renderBlock(refs) {
     } else if (ref.kind === "pdf") {
       if (typeof ref.content === "string") {
         const pageAttr =
-          ref.pageStart != null ? ` pages="${ref.pageStart}-${ref.pageEnd}"` : "";
+          ref.pageStart != null
+            ? ` pages="${ref.pageStart}-${ref.pageEnd}"`
+            : "";
         const attrs =
           `path="${escapeAttr(ref.rel)}" bytes="${ref.bytes}" type="pdf"` +
           pageAttr +
@@ -306,7 +338,9 @@ function renderBlock(refs) {
         parts.push(`<file ${attrs}>`);
         parts.push(ref.content);
         if (ref.truncated) {
-          parts.push(`\n… [truncated — PDF text exceeds ${DEFAULT_MAX_BYTES} bytes]`);
+          parts.push(
+            `\n… [truncated — PDF text exceeds ${DEFAULT_MAX_BYTES} bytes]`,
+          );
         }
         parts.push("</file>");
       } else {
@@ -367,6 +401,13 @@ function _resolveAllRefs(text, opts) {
     }
     if (ref.kind === "error") {
       warnings.push(`@${ref.raw} — ${ref.message} (left as-is)`);
+      continue;
+    }
+    if (ref.kind === "blocked") {
+      // Credential/secret file — never read or injected; only a visible warning.
+      warnings.push(
+        `@${ref.raw} — refused: ${ref.reason}; not injected into the prompt`,
+      );
       continue;
     }
     refs.push(ref);
@@ -440,7 +481,10 @@ export async function expandFileRefsAsync(prompt, opts = {}) {
  * when those are null), byte-capped at maxBytes. Throws code `PDF_LIB_MISSING`
  * when the optional dependency is not installed.
  */
-async function _extractPdfPages(buffer, { firstPage, lastPage, maxBytes } = {}) {
+async function _extractPdfPages(
+  buffer,
+  { firstPage, lastPage, maxBytes } = {},
+) {
   let pdfParse;
   try {
     // pdf-parse's index.js runs debug code under ESM (no module.parent), so
@@ -459,9 +503,9 @@ async function _extractPdfPages(buffer, { firstPage, lastPage, maxBytes } = {}) 
         if (firstPage && n < firstPage) return "";
         if (lastPage && n > lastPage) return "";
       }
-      return pageData.getTextContent().then((tc) =>
-        (tc.items || []).map((it) => it.str).join(" "),
-      );
+      return pageData
+        .getTextContent()
+        .then((tc) => (tc.items || []).map((it) => it.str).join(" "));
     },
   });
   let out = String(data?.text || "").trim();
