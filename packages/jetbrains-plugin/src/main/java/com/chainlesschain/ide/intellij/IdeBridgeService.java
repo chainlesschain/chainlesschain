@@ -58,6 +58,11 @@ public final class IdeBridgeService implements Disposable {
             long pid = ProcessHandle.current().pid();
             lockfile.write(port, token, folders, server.url(), System.currentTimeMillis(), pid);
             LOG.info("ChainlessChain IDE bridge up on " + server.url() + " (server \"ide\")");
+
+            // Warm up discovery of IDEA's OWN built-in MCP server (IDEA 2025.2+)
+            // off the EDT, so the first chat spawn can inject its endpoint as
+            // server `idea`. No-op when unsupported / disabled.
+            com.chainlesschain.ide.JetbrainsMcpLocator.refreshAsync();
         } catch (Exception e) {
             LOG.warn("ChainlessChain IDE bridge failed to start: " + e.getMessage(), e);
             stop();

@@ -77,6 +77,40 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔌 IDEA built-in MCP auto-connect (server `idea`) — code-complete, NOT published
+
+Auto-connect IntelliJ IDEA's OWN built-in MCP server (IDEA **2025.2+**, Settings |
+Tools | MCP Server) so the spawned `cc agent` gets the IDE's indexed ops (find
+usages / file-by-path / search / run configs / VCS) as `mcp__idea__*` tools —
+fewer tokens, faster (rides the index). This is **separate** from our own `ide`
+bridge (that exposes selection/diagnostics/diff; this exposes IntelliJ's native
+tools). Reserved cc server name `idea`.
+
+- [x] **cc side (shipped to main, `cb249bb2ac`)** — `chainlesschain` reads
+      `CHAINLESSCHAIN_JETBRAINS_MCP_URL` (+ `_TOKEN`/`_TRANSPORT`), connects it as
+      `idea`. No URL = no connect (unsupported / disabled). `cc ide jetbrains`
+      diagnoses. 20 tests; e2e-verified vs a real Streamable-HTTP MCP server.
+- [x] **Pure layer** `com.chainlesschain.ide.JetbrainsMcpProbe` — `candidateUrls`
+      (native 64342… before built-in 63342…, `/stream` before `/sse`/`/mcp`),
+      `looksLikeMcpResponse`, `selectLiveUrl`. **PureLogicSmokeMain 242 passed.**
+- [x] **Locator** `com.chainlesschain.ide.JetbrainsMcpLocator` — pure-JDK
+      (`java.net.http` + daemon thread, cached, TTL 60s, off-EDT). Probes the
+      candidates, caches the first live `/stream` endpoint. **compileJava OK.**
+- [x] **Glue wiring** — `ConversationView` injects `CHAINLESSCHAIN_JETBRAINS_MCP_URL`
+      from `JetbrainsMcpLocator.cachedUrl()` (mirrors the `CHAINLESSCHAIN_IDE_PORT`
+      injection); `IdeBridgeService.start()` warms the locator off-EDT.
+      **`./gradlew compileJava` BUILD SUCCESSFUL against IntelliJ 2024.2 SDK.**
+- [ ] **runIde + live verify (GATE before publish)** — needs a running IDEA
+      **2025.2+** with MCP enabled (port 64342/stream observed). Confirm: locator
+      finds it → env injected → cc connects `idea` → `mcp__idea__*` usable. Per the
+      dead-panel lesson this manual pass is required before publishing.
+- [ ] **Publish** — bump version + CHANGELOG + tag `ide-jetbrains-v*`. **HELD**
+      (user: don't publish until verified on a real 2025.2 IDE; cc side also
+      unpublished — ship cc npm + plugin together). See memory
+      `cli_jetbrains_idea_mcp_bridge`.
+- Note: discovery is a port **probe** (IDEA writes no lockfile, doesn't publish
+      its port). If a future IntelliJ API exposes the MCP port directly, prefer it.
+
 ## Compatibility (verifier history)
 0.4.4 getTerminalOutput broke on 2024.3+ (terminal API) → reverted 0.4.5 → 0.4.6
 cleared 2025.2 deprecated → 0.4.7 cleared 2026.x scheduled-for-removal + deprecated

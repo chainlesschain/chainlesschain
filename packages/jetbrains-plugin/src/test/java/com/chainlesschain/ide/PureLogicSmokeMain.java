@@ -53,6 +53,7 @@ public final class PureLogicSmokeMain {
         markdownLite();
         transcriptCap();
         lockfilePrune();
+        jetbrainsMcpProbe();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -646,5 +647,53 @@ public final class PureLogicSmokeMain {
         check(TranscriptCap.DEFAULT_MAX_CHARS > 0, "default cap > 0");
         check(TranscriptCap.removeCount(TranscriptCap.DEFAULT_MAX_CHARS, -1, false,
                 TranscriptCap.DEFAULT_MAX_CHARS) == 0, "exactly default cap → 0");
+    }
+
+    private static void jetbrainsMcpProbe() {
+        System.out.println("JetbrainsMcpProbe:");
+        List<String> c = JetbrainsMcpProbe.candidateUrls();
+        // Native MCP range (64342…) is tried before the built-in range (63342…).
+        check(c.get(0).equals("http://127.0.0.1:64342/stream"), "first = 64342/stream");
+        int i64 = c.indexOf("http://127.0.0.1:64342/stream");
+        int i63 = c.indexOf("http://127.0.0.1:63342/stream");
+        check(i64 >= 0 && i63 >= 0 && i64 < i63, "native 64342 before builtin 63342");
+        // /stream before /sse for the same port.
+        check(c.indexOf("http://127.0.0.1:64342/stream")
+                < c.indexOf("http://127.0.0.1:64342/sse"), "/stream before /sse");
+        check(c.contains("http://127.0.0.1:64342/mcp"), "/mcp path included");
+        check(c.size() == new HashSet<>(c).size(), "no duplicate candidates");
+        // 11 ports × 2 ranges × 3 paths = 66.
+        check(c.size() == 66, "66 candidates (11+11 ports × 3 paths)");
+        // A pinned URL is tried first and never duplicated.
+        List<String> p = JetbrainsMcpProbe.candidateUrls("http://127.0.0.1:64342/stream");
+        check(p.get(0).equals("http://127.0.0.1:64342/stream"), "pinned url first");
+        check(p.size() == 66, "pinned dups collapse (already a candidate)");
+        List<String> p2 = JetbrainsMcpProbe.candidateUrls("http://127.0.0.1:9999/custom");
+        check(p2.get(0).equals("http://127.0.0.1:9999/custom"), "novel pinned url first");
+        check(p2.size() == 67, "novel pinned url adds one");
+
+        // looksLikeMcpResponse: 2xx + handshake marker accepted; others rejected.
+        check(JetbrainsMcpProbe.looksLikeMcpResponse(200,
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2024-11-05\"}}"),
+                "200 + jsonrpc result accepted");
+        check(JetbrainsMcpProbe.looksLikeMcpResponse(200,
+                "event: message\ndata: {\"jsonrpc\":\"2.0\",\"result\":{\"serverInfo\":{}}}\n"),
+                "200 + SSE data line accepted");
+        check(!JetbrainsMcpProbe.looksLikeMcpResponse(404, "Not Found"), "404 rejected");
+        check(!JetbrainsMcpProbe.looksLikeMcpResponse(200, "<html>hi</html>"), "200 non-MCP body rejected");
+        check(!JetbrainsMcpProbe.looksLikeMcpResponse(500,
+                "{\"jsonrpc\":\"2.0\"}"), "5xx rejected even with marker");
+        check(!JetbrainsMcpProbe.looksLikeMcpResponse(200, null), "null body rejected");
+
+        // selectLiveUrl: first live candidate wins; a throwing probe is skipped.
+        List<String> cand = java.util.Arrays.asList("a", "b", "c");
+        eq(JetbrainsMcpProbe.selectLiveUrl(cand, u -> u.equals("b")), "b", "first live wins");
+        eq(JetbrainsMcpProbe.selectLiveUrl(cand, u -> false), null, "none live → null");
+        eq(JetbrainsMcpProbe.selectLiveUrl(cand, u -> {
+            if (u.equals("a")) throw new RuntimeException("boom");
+            return u.equals("c");
+        }), "c", "throwing probe skipped, scan continues");
+        eq(JetbrainsMcpProbe.selectLiveUrl(null, u -> true), null, "null candidates → null");
+        eq(JetbrainsMcpProbe.selectLiveUrl(cand, null), null, "null prober → null");
     }
 }

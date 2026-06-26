@@ -617,6 +617,18 @@ final class ConversationView {
                 o.extraEnv.put("CHAINLESSCHAIN_IDE_TOKEN", bridge.getToken());
             }
         }
+        // IDEA's OWN built-in MCP server (IDEA 2025.2+), separate from our bridge
+        // above. If the locator already found IntelliJ's MCP endpoint, inject it
+        // so the spawned cc connects it as server `idea` (mcp__idea__*) and can
+        // use the IDE's indexed operations (find usages / file-by-path / search)
+        // instead of reading + grepping files — fewer tokens, faster. Best-effort
+        // + cached; nothing found (IDE < 2025.2 or MCP disabled) → inject nothing
+        // → cc does not connect. Also nudge a refresh for the next spawn.
+        String jbMcpUrl = com.chainlesschain.ide.JetbrainsMcpLocator.cachedUrl();
+        if (jbMcpUrl != null && !jbMcpUrl.isEmpty()) {
+            o.extraEnv.put("CHAINLESSCHAIN_JETBRAINS_MCP_URL", jbMcpUrl);
+        }
+        com.chainlesschain.ide.JetbrainsMcpLocator.refreshAsync();
         // Opt into the ask_user_question round-trip: the agent's questions pop a
         // dialog here (an old `cc` ignores the env var → graceful degrade).
         o.extraEnv.put("CC_INTERACTIVE_QUESTIONS", "1");
