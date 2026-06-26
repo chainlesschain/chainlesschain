@@ -50,7 +50,9 @@ class SIEMExporter extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS siem_exports (
@@ -76,9 +78,9 @@ class SIEMExporter extends EventEmitter {
     // Load existing targets from DB
     try {
       if (this.database && this.database.db) {
-        const rows = this.database.db.prepare(
-          "SELECT * FROM siem_exports WHERE status = 'active'"
-        ).all();
+        const rows = this.database.db
+          .prepare("SELECT * FROM siem_exports WHERE status = 'active'")
+          .all();
 
         for (const row of rows) {
           this._targets.set(row.id, {
@@ -95,11 +97,14 @@ class SIEMExporter extends EventEmitter {
 
           // Restore the most recent last_exported_id across all targets
           if (row.last_exported_log_id) {
-            this._lastExportedId = this._lastExportedId || row.last_exported_log_id;
+            this._lastExportedId =
+              this._lastExportedId || row.last_exported_log_id;
           }
         }
 
-        logger.info(`[SIEMExporter] Loaded ${this._targets.size} active target(s)`);
+        logger.info(
+          `[SIEMExporter] Loaded ${this._targets.size} active target(s)`,
+        );
       }
     } catch (err) {
       logger.error("[SIEMExporter] Failed to load targets:", err);
@@ -121,7 +126,9 @@ class SIEMExporter extends EventEmitter {
   async addTarget({ type, url, format, config } = {}) {
     const validTypes = Object.values(SIEM_TARGETS);
     if (!validTypes.includes(type)) {
-      throw new Error(`Invalid target type: ${type}. Must be one of: ${validTypes.join(", ")}`);
+      throw new Error(
+        `Invalid target type: ${type}. Must be one of: ${validTypes.join(", ")}`,
+      );
     }
     if (!url) {
       throw new Error("Target URL is required");
@@ -145,10 +152,14 @@ class SIEMExporter extends EventEmitter {
 
     // Persist to DB
     if (this.database && this.database.db) {
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         INSERT INTO siem_exports (id, target_type, target_url, format, status, config, created_at)
         VALUES (?, ?, ?, ?, 'active', ?, ?)
-      `).run(id, type, url, targetFormat, JSON.stringify(config || {}), now);
+      `,
+        )
+        .run(id, type, url, targetFormat, JSON.stringify(config || {}), now);
     }
 
     this._targets.set(id, target);
@@ -167,9 +178,9 @@ class SIEMExporter extends EventEmitter {
     }
 
     if (this.database && this.database.db) {
-      this.database.db.prepare(
-        "UPDATE siem_exports SET status = 'removed' WHERE id = ?"
-      ).run(targetId);
+      this.database.db
+        .prepare("UPDATE siem_exports SET status = 'removed' WHERE id = ?")
+        .run(targetId);
     }
 
     const target = this._targets.get(targetId);
@@ -207,13 +218,15 @@ class SIEMExporter extends EventEmitter {
     if (this.database && this.database.db) {
       const lastId = target.lastExportedLogId;
       if (lastId) {
-        logs = this.database.db.prepare(
-          "SELECT * FROM audit_logs WHERE id > ? ORDER BY id ASC LIMIT ?"
-        ).all(lastId, batchLimit);
+        logs = this.database.db
+          .prepare(
+            "SELECT * FROM audit_logs WHERE id > ? ORDER BY id ASC LIMIT ?",
+          )
+          .all(lastId, batchLimit);
       } else {
-        logs = this.database.db.prepare(
-          "SELECT * FROM audit_logs ORDER BY id ASC LIMIT ?"
-        ).all(batchLimit);
+        logs = this.database.db
+          .prepare("SELECT * FROM audit_logs ORDER BY id ASC LIMIT ?")
+          .all(batchLimit);
       }
     }
 
@@ -231,11 +244,14 @@ class SIEMExporter extends EventEmitter {
       try {
         // In production, this would be an HTTP POST to target.url
         logger.info(
-          `[SIEMExporter] Sending batch of ${batch.length} logs to ${target.type} (${target.url})`
+          `[SIEMExporter] Sending batch of ${batch.length} logs to ${target.type} (${target.url})`,
         );
         sent += batch.length;
       } catch (err) {
-        logger.error(`[SIEMExporter] Failed to send batch to ${target.type}:`, err);
+        logger.error(
+          `[SIEMExporter] Failed to send batch to ${target.type}:`,
+          err,
+        );
         break;
       }
     }
@@ -248,11 +264,15 @@ class SIEMExporter extends EventEmitter {
     target.lastExportAt = now;
 
     if (this.database && this.database.db) {
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         UPDATE siem_exports
         SET last_exported_log_id = ?, exported_count = ?, last_export_at = ?
         WHERE id = ?
-      `).run(lastLogId, target.exportedCount, now, targetId);
+      `,
+        )
+        .run(lastLogId, target.exportedCount, now, targetId);
     }
 
     this._lastExportedId = lastLogId;
@@ -268,11 +288,16 @@ class SIEMExporter extends EventEmitter {
   async exportAll() {
     const results = {};
     for (const [targetId, target] of this._targets) {
-      if (target.status !== "active") {continue;}
+      if (target.status !== "active") {
+        continue;
+      }
       try {
         results[targetId] = await this.exportLogs({ targetId });
       } catch (err) {
-        logger.error(`[SIEMExporter] Export failed for target ${targetId}:`, err);
+        logger.error(
+          `[SIEMExporter] Export failed for target ${targetId}:`,
+          err,
+        );
         results[targetId] = { exported: 0, error: err.message };
       }
     }
@@ -307,8 +332,16 @@ class SIEMExporter extends EventEmitter {
    * @returns {string} CEF formatted string
    */
   _toCEF(logEntry) {
-    const eventId = logEntry.id || "unknown";
-    const eventName = logEntry.action || logEntry.message || "AuditEvent";
+    // CEF header fields (signatureID, name) must escape `\` then `|`, otherwise
+    // an action/id value containing `|` shifts every subsequent header field
+    // (severity, extension) — corrupting the event or letting a logged value
+    // forge fields in the SIEM record. (msg in the extension is already sanitized.)
+    const cefHeader = (s) =>
+      String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+    const eventId = cefHeader(logEntry.id || "unknown");
+    const eventName = cefHeader(
+      logEntry.action || logEntry.message || "AuditEvent",
+    );
     const severity = this._cefSeverity(logEntry.severity || logEntry.level);
     const extension = [
       `src=${logEntry.ip_address || ""}`,
@@ -362,7 +395,15 @@ class SIEMExporter extends EventEmitter {
    * @returns {number}
    */
   _cefSeverity(level) {
-    const map = { DEBUG: 1, INFO: 3, WARN: 5, WARNING: 5, ERROR: 7, CRITICAL: 9, FATAL: 10 };
+    const map = {
+      DEBUG: 1,
+      INFO: 3,
+      WARN: 5,
+      WARNING: 5,
+      ERROR: 7,
+      CRITICAL: 9,
+      FATAL: 10,
+    };
     return map[(level || "INFO").toUpperCase()] || 3;
   }
 
@@ -396,7 +437,9 @@ class SIEMExporter extends EventEmitter {
 
 let _instance;
 function getSIEMExporter() {
-  if (!_instance) {_instance = new SIEMExporter();}
+  if (!_instance) {
+    _instance = new SIEMExporter();
+  }
   return _instance;
 }
 
