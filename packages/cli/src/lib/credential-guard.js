@@ -25,8 +25,16 @@
  */
 
 import { createRequire } from "node:module";
+import fsDefault from "node:fs";
+import pathDefault from "node:path";
 
 const require_ = createRequire(import.meta.url);
+
+// Injectable for tests (realpath of a symlink without touching the real fs).
+export const _deps = {
+  realpathSync: fsDefault.realpathSync,
+  resolve: pathDefault.resolve,
+};
 // Reuse the shell policy's compound-command splitter (separators + $()/backtick
 // extraction). It is regex-based on separators and leaves backslashes intact,
 // so Windows paths survive (unlike the escaping tokenizer, which strips `\`).
@@ -104,6 +112,36 @@ export function credentialFileReason(targetPath) {
   if (SECRETS_FILE_RE.test(norm)) return `secrets file (${base})`;
   for (const re of CREDENTIAL_PATH_RE) {
     if (re.test(norm)) return `credential file (${base})`;
+  }
+  return null;
+}
+
+/**
+ * Like credentialFileReason, but also follows a symlink to its real target and
+ * re-checks. The name-only guard is bypassable: `read_file({path:"notes.txt"})`
+ * where notes.txt → ~/.ssh/id_rsa reads the key while the guard sees only the
+ * innocent name. fs.readFileSync follows symlinks, so the guard must too —
+ * resolve the real path and re-check its basename/patterns. Falls back to the
+ * literal check when the path can't be resolved (non-existent → the read fails
+ * anyway, nothing to gate). `cwd` anchors a relative target before realpath.
+ *
+ * @param {string} targetPath
+ * @param {object} [opts] { cwd, deps }
+ * @returns {string|null}
+ */
+export function credentialFileReasonResolved(targetPath, opts = {}) {
+  const direct = credentialFileReason(targetPath);
+  if (direct) return direct;
+  const deps = opts.deps || _deps;
+  const cwd = opts.cwd || process.cwd();
+  try {
+    const real = deps.realpathSync(
+      deps.resolve(cwd, String(targetPath || ".")),
+    );
+    const viaLink = credentialFileReason(real);
+    if (viaLink) return `${viaLink} (via symlink)`;
+  } catch {
+    // Unresolvable / non-existent — the read itself would fail; nothing to gate.
   }
   return null;
 }

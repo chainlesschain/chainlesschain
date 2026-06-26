@@ -1127,14 +1127,16 @@ export async function executeTool(name, args, context = {}) {
   // customizations), this safety surface stays on under --safe-mode by design.
   if (!ruleAllowed && (name === "read_file" || name === "run_shell")) {
     const {
-      credentialFileReason,
+      credentialFileReasonResolved,
       commandReadsCredentials,
       credentialGuardDisabled,
     } = await import("../lib/credential-guard.js");
     if (!credentialGuardDisabled(process.env)) {
       let credReason = null;
       if (name === "read_file" && args?.path) {
-        credReason = credentialFileReason(args.path);
+        // Resolve symlinks: an innocent-named link to a credential file must not
+        // skip the prompt (fs.readFileSync follows the link).
+        credReason = credentialFileReasonResolved(args.path, { cwd });
       } else if (name === "run_shell" && args?.command) {
         const hit = commandReadsCredentials(args.command);
         credReason = hit ? hit.reason : null;

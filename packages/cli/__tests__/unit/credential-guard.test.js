@@ -11,8 +11,10 @@ import path from "node:path";
 import os from "node:os";
 import {
   credentialFileReason,
+  credentialFileReasonResolved,
   commandReadsCredentials,
   credentialGuardDisabled,
+  _deps as credGuardDeps,
 } from "../../src/lib/credential-guard.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
@@ -89,6 +91,65 @@ describe("credentialFileReason", () => {
     expect(credentialFileReason("docs/env.md")).toBeNull();
     expect(credentialFileReason("kubernetes.yaml")).toBeNull(); // not a kubeconfig
     expect(credentialFileReason("")).toBeNull();
+  });
+});
+
+describe("credentialFileReasonResolved (symlink-aware)", () => {
+  afterEach(() => {
+    // Restore the real impls in case a test swapped them.
+    credGuardDeps.realpathSync = fs.realpathSync;
+    credGuardDeps.resolve = path.resolve;
+  });
+
+  it("flags an innocent-named path whose real target is a credential file", () => {
+    // Deterministic fake: notes.txt resolves to ~/.ssh/id_rsa.
+    credGuardDeps.realpathSync = (p) => {
+      if (String(p).endsWith("notes.txt")) return "/home/u/.ssh/id_rsa";
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    };
+    const reason = credentialFileReasonResolved("notes.txt", { cwd: "/work" });
+    expect(reason).toMatch(/credential file/);
+    expect(reason).toMatch(/\(via symlink\)/);
+  });
+
+  it("short-circuits on a literal credential name (no symlink suffix)", () => {
+    let called = false;
+    credGuardDeps.realpathSync = () => {
+      called = true;
+      return "/x";
+    };
+    const reason = credentialFileReasonResolved(".env", { cwd: "/work" });
+    expect(reason).toMatch(/environment\/secret/);
+    expect(reason).not.toMatch(/via symlink/);
+    expect(called).toBe(false); // literal hit wins; never touches the fs
+  });
+
+  it("returns null for an ordinary file that resolves to an ordinary file", () => {
+    credGuardDeps.realpathSync = (p) =>
+      `/canonical/${path.basename(String(p))}`;
+    expect(
+      credentialFileReasonResolved("notes.txt", { cwd: "/work" }),
+    ).toBeNull();
+  });
+
+  it("falls back to null when the path can't be resolved (read would fail anyway)", () => {
+    credGuardDeps.realpathSync = () => {
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    };
+    expect(
+      credentialFileReasonResolved("missing.txt", { cwd: "/work" }),
+    ).toBeNull();
+  });
+
+  it("accepts an injected deps object via opts.deps", () => {
+    const reason = credentialFileReasonResolved("link", {
+      cwd: "/w",
+      deps: {
+        resolve: (a, b) => `${a}/${b}`,
+        realpathSync: () => "/secrets/id_ed25519",
+      },
+    });
+    expect(reason).toMatch(/credential file.*\(via symlink\)/);
   });
 });
 
@@ -258,6 +319,31 @@ describe("executeTool credential-guard seam", () => {
     );
     expect(res.error).toBeUndefined();
     expect(res.content).toBe("plain");
+  });
+
+  it("blocks a symlink-obfuscated credential read (real symlink, where privileged)", async () => {
+    fs.writeFileSync(
+      path.join(tmp, "id_rsa"),
+      "-----PRIVATE KEY-----",
+      "utf-8",
+    );
+    let linked = false;
+    try {
+      fs.symlinkSync(path.join(tmp, "id_rsa"), path.join(tmp, "notes.txt"));
+      linked = true;
+    } catch {
+      // Unprivileged Windows / restricted FS — symlink creation denied; skip.
+    }
+    if (!linked) return;
+
+    const res = await executeTool(
+      "read_file",
+      { path: "notes.txt" },
+      { cwd: tmp },
+    );
+    expect(res.error).toMatch(/\[Credential Guard\]/);
+    expect(res.policy).toMatchObject({ via: "credential-guard" });
+    expect(res.content).toBeUndefined();
   });
 
   it("run_shell credential reads fail closed before executing (cross-platform deny path)", async () => {
