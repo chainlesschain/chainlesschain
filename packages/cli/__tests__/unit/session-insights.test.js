@@ -103,6 +103,23 @@ describe("analyzeSession", () => {
     expect(r.usage.total.totalTokens).toBe(0);
   });
 
+  it("computes duration on a large session without RangeError (no Math.min spread)", () => {
+    // Math.min(...stamps) throws "Maximum call stack size exceeded" past ~130k
+    // elements; a long session must not crash `cc insights`.
+    const n = 200_000;
+    const evts = new Array(n);
+    for (let i = 0; i < n; i++) {
+      evts[i] = {
+        type: i % 2 ? "assistant_message" : "user_message",
+        timestamp: 1000 + i,
+      };
+    }
+    const r = analyzeSession(evts, "big");
+    expect(r.events).toBe(n);
+    expect(r.meta.durationMs).toBe(n - 1); // max(1000+n-1) - min(1000)
+    expect(r.messages.total).toBe(n);
+  });
+
   it("falls back to usage model when no session_start", () => {
     const r = analyzeSession(
       [
@@ -148,9 +165,17 @@ describe("analyzeSession", () => {
     const r = analyzeSession(
       [
         { type: "tool_call", timestamp: 1, data: { tool: "x" } },
-        { type: "tool_result", timestamp: 2, data: { tool: "x", result: { is_error: true } } },
+        {
+          type: "tool_result",
+          timestamp: 2,
+          data: { tool: "x", result: { is_error: true } },
+        },
         { type: "tool_call", timestamp: 3, data: { tool: "y" } },
-        { type: "tool_result", timestamp: 4, data: { tool: "y", error: "nope" } },
+        {
+          type: "tool_result",
+          timestamp: 4,
+          data: { tool: "y", error: "nope" },
+        },
       ],
       "s",
     );

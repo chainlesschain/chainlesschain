@@ -31,7 +31,7 @@ function isToolError(event) {
   const r = event?.data?.result;
   return Boolean(
     event?.data?.error ||
-      (r && typeof r === "object" && (r.error || r.is_error || r.isError)),
+    (r && typeof r === "object" && (r.error || r.is_error || r.isError)),
   );
 }
 
@@ -46,11 +46,18 @@ export function analyzeSession(events, sessionId) {
   const evs = Array.isArray(events) ? events : [];
   const start = evs.find((e) => e && e.type === "session_start");
 
-  const stamps = evs
-    .map((e) => Number(e?.timestamp))
-    .filter((t) => Number.isFinite(t) && t > 0);
-  const startedAt = stamps.length ? Math.min(...stamps) : null;
-  const endedAt = stamps.length ? Math.max(...stamps) : null;
+  // Single-pass min/max (NOT Math.min(...stamps)): spreading a per-event array
+  // throws RangeError "Maximum call stack size exceeded" past ~130k elements, so
+  // a long session would crash `cc insights`. A reduce-style scan is O(n) and
+  // size-independent.
+  let startedAt = null;
+  let endedAt = null;
+  for (const e of evs) {
+    const t = Number(e?.timestamp);
+    if (!Number.isFinite(t) || t <= 0) continue;
+    if (startedAt == null || t < startedAt) startedAt = t;
+    if (endedAt == null || t > endedAt) endedAt = t;
+  }
   const durationMs =
     startedAt != null && endedAt != null ? endedAt - startedAt : 0;
 
