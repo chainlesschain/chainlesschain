@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 import uuid
 
 from .crossencoder_reranker import get_reranker
+from src.llm.llm_client import _run_blocking
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +100,10 @@ class RAGEngine:
             raise Exception("RAG engine not ready")
 
         try:
-            # 生成embedding
-            embedding = self.embedding_model.encode(text).tolist()
+            # 生成embedding。encode() 是 CPU 密集的同步前向推理、upsert() 是同步阻塞
+            # HTTP，直接在 async def 里调用会卡住事件循环（逐 chunk 索引时尤甚），统一
+            # 经 _run_blocking 走线程池。
+            embedding = (await _run_blocking(self.embedding_model.encode, text)).tolist()
 
             # 生成唯一ID
             knowledge_id = str(uuid.uuid4())
@@ -113,7 +116,8 @@ class RAGEngine:
             }
 
             # 插入Qdrant
-            self.client.upsert(
+            await _run_blocking(
+                self.client.upsert,
                 collection_name=self.collection_name,
                 points=[
                     PointStruct(
@@ -151,8 +155,8 @@ class RAGEngine:
             raise Exception("RAG engine not ready")
 
         try:
-            # 生成查询embedding
-            query_embedding = self.embedding_model.encode(query).tolist()
+            # 生成查询embedding（同步 CPU 推理 → 线程池，避免阻塞事件循环）
+            query_embedding = (await _run_blocking(self.embedding_model.encode, query)).tolist()
 
             # 构建过滤条件
             search_filter = None
@@ -166,8 +170,9 @@ class RAGEngine:
                     ]
                 )
 
-            # 执行检索
-            search_results = self.client.search(
+            # 执行检索（同步 Qdrant 客户端 → 线程池）
+            search_results = await _run_blocking(
+                self.client.search,
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
                 query_filter=search_filter,
@@ -208,7 +213,8 @@ class RAGEngine:
             raise Exception("RAG engine not ready")
 
         try:
-            self.client.delete(
+            await _run_blocking(
+                self.client.delete,
                 collection_name=self.collection_name,
                 points_selector=Filter(
                     must=[
@@ -230,7 +236,7 @@ class RAGEngine:
             return {"ready": False}
 
         try:
-            collection_info = self.client.get_collection(self.collection_name)
+            collection_info = await _run_blocking(self.client.get_collection, self.collection_name)
             return {
                 "ready": True,
                 "total_points": collection_info.points_count,
