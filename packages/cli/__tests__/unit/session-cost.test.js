@@ -64,6 +64,37 @@ describe("addUsage / costAggregate", () => {
     addUsage(s, undefined);
     expect(costAggregate(s).total.calls).toBe(0);
   });
+
+  it("sanitizes non-finite token counts to 0 (totals never become NaN)", () => {
+    const s = newCostStore();
+    // A buggy provider event: non-numeric input, valid output.
+    addUsage(s, [
+      {
+        provider: "anthropic",
+        model: "haiku",
+        usage: { input_tokens: "5x", output_tokens: 50 },
+      },
+    ]);
+    // A fully non-finite event → every field sanitizes to 0 → skipped.
+    addUsage(s, [
+      {
+        provider: "x",
+        model: "y",
+        usage: {
+          input_tokens: NaN,
+          output_tokens: "abc",
+          total_tokens: undefined,
+        },
+      },
+    ]);
+    const agg = costAggregate(s);
+    expect(Number.isFinite(agg.total.inputTokens)).toBe(true);
+    expect(Number.isFinite(agg.total.outputTokens)).toBe(true);
+    expect(agg.total.inputTokens).toBe(0); // "5x" → 0
+    expect(agg.total.outputTokens).toBe(50); // valid token survives
+    expect(agg.total.calls).toBe(1); // the all-garbage event was skipped
+    expect(agg.byModel).toHaveLength(1);
+  });
 });
 
 describe("renderSessionCost", () => {
