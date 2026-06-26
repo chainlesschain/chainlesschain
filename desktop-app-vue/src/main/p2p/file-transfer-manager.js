@@ -394,13 +394,20 @@ class FileTransferManager extends EventEmitter {
 
     const writeStream = fs.createWriteStream(tempPath);
 
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkData = chunks.get(i);
-      if (!chunkData) {
-        throw new Error(`分块 ${i} 缺失`);
-      }
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkData = chunks.get(i);
+        if (!chunkData) {
+          throw new Error(`分块 ${i} 缺失`);
+        }
 
-      writeStream.write(chunkData);
+        writeStream.write(chunkData);
+      }
+    } catch (err) {
+      // Close the stream (and its OS file descriptor) before propagating — the
+      // throw used to exit before writeStream.end(), leaking the fd until GC.
+      writeStream.destroy();
+      throw err;
     }
 
     return new Promise((resolve, reject) => {

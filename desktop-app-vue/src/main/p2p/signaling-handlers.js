@@ -246,7 +246,10 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
-  if (targetPeer && registry.isOnline(to)) {
+  // Guard targetPeer.socket: an online local-PC peer can have no socket until
+  // MobileBridge connects (handleOffer guards the same case), and a null socket
+  // would crash sendMessage on socket.readyState. Fall through to the queue.
+  if (targetPeer && registry.isOnline(to) && targetPeer.socket) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded answer: ${from} -> ${to}`);
@@ -398,7 +401,8 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
-  if (targetPeer && registry.isOnline(to)) {
+  // Same null-socket guard as handleAnswer/handleOffer.
+  if (targetPeer && registry.isOnline(to) && targetPeer.socket) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded message: ${from} -> ${to}`);
