@@ -123,6 +123,33 @@ export class WSSessionManager {
     this.maxPendingPatches = Number.isFinite(options.maxPendingPatches)
       ? options.maxPendingPatches
       : 50;
+    // The entry-count caps above bound how MANY patches are kept, but a SINGLE
+    // proposed patch (a client-reachable `patch-propose`) could still carry an
+    // unbounded number of files, each with unbounded before/after/diff content
+    // — all held in memory AND serialized to disk by _persistSessionState. One
+    // file with a multi-GB diff string is enough to OOM. Bound a single patch's
+    // payload: cap the file count and truncate each content field.
+    this.maxPatchFiles = Number.isFinite(options.maxPatchFiles)
+      ? options.maxPatchFiles
+      : 200;
+    this.maxPatchContentChars = Number.isFinite(options.maxPatchContentChars)
+      ? options.maxPatchContentChars
+      : 512 * 1024; // 512 KB per before/after/diff field
+  }
+
+  /**
+   * Truncate a patch content field (before/after/diff) to maxPatchContentChars,
+   * appending a visible marker. Preserves the null-vs-string distinction (a null
+   * field stays null — it signals create/delete ops). Pure.
+   */
+  _capPatchContent(value) {
+    if (value == null) return null;
+    const s = String(value);
+    if (s.length <= this.maxPatchContentChars) return s;
+    return (
+      s.slice(0, this.maxPatchContentChars) +
+      `\n…[truncated for storage: field was ${s.length} chars]`
+    );
   }
 
   _normalizeEnabledToolNames(enabledToolNames) {
@@ -854,8 +881,13 @@ export class WSSessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
 
-    const files = Array.isArray(payload.files) ? payload.files : [];
-    if (files.length === 0) return null;
+    const rawFiles = Array.isArray(payload.files) ? payload.files : [];
+    if (rawFiles.length === 0) return null;
+    // Cap the per-patch file count; a proposal touching more than this is
+    // pathological for review. Excess files are dropped (count recorded below)
+    // so one message can't pin unbounded memory / disk.
+    const files = rawFiles.slice(0, this.maxPatchFiles);
+    const droppedFiles = rawFiles.length - files.length;
 
     const patchId = `patch-${this._generateId()}`;
     const now = new Date().toISOString();
@@ -866,9 +898,9 @@ export class WSSessionManager {
         index,
         path: file.path || `unknown-${index}`,
         op,
-        before: file.before == null ? null : String(file.before),
-        after: file.after == null ? null : String(file.after),
-        diff: file.diff == null ? null : String(file.diff),
+        before: this._capPatchContent(file.before),
+        after: this._capPatchContent(file.after),
+        diff: this._capPatchContent(file.diff),
         stats,
       };
     });
@@ -895,6 +927,8 @@ export class WSSessionManager {
         fileCount: normalizedFiles.length,
         added: totalStats.added,
         removed: totalStats.removed,
+        // Surfaced so the reviewer/UI knows the proposal was capped for storage.
+        ...(droppedFiles > 0 ? { droppedFiles } : {}),
       },
     };
 

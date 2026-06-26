@@ -236,6 +236,59 @@ describe("WSSessionManager", () => {
       expect(map.has("mid")).toBe(true);
       expect(map.has("new")).toBe(true);
     });
+
+    it("caps a single patch's file count (records droppedFiles)", () => {
+      const m = new WSSessionManager({
+        db: mockDb,
+        config: { test: true },
+        maxPatchFiles: 3,
+      });
+      const { sessionId } = m.createSession();
+      const files = Array.from({ length: 10 }, (_, i) => ({
+        path: `f${i}.js`,
+        after: "x",
+      }));
+      const patch = m.proposePatch(sessionId, { files });
+      expect(patch.files).toHaveLength(3); // capped
+      expect(patch.stats.fileCount).toBe(3);
+      expect(patch.stats.droppedFiles).toBe(7); // surfaced for the reviewer
+    });
+
+    it("truncates oversized before/after/diff content (no unbounded persist)", () => {
+      const m = new WSSessionManager({
+        db: mockDb,
+        config: { test: true },
+        maxPatchContentChars: 100,
+      });
+      const { sessionId } = m.createSession();
+      const huge = "a".repeat(5000);
+      const patch = m.proposePatch(sessionId, {
+        files: [{ path: "big.js", before: huge, after: huge, diff: huge }],
+      });
+      const f = patch.files[0];
+      // Each field capped to ~100 chars + a visible truncation marker, not 5000.
+      expect(f.before.length).toBeLessThan(200);
+      expect(f.after.length).toBeLessThan(200);
+      expect(f.diff.length).toBeLessThan(200);
+      expect(f.before).toMatch(/truncated for storage: field was 5000 chars/);
+    });
+
+    it("leaves a null content field null (create/delete signal preserved)", () => {
+      const m = new WSSessionManager({ db: mockDb, config: { test: true } });
+      const { sessionId } = m.createSession();
+      const patch = m.proposePatch(sessionId, {
+        files: [{ path: "new.js", op: "create", after: "x", before: null }],
+      });
+      expect(patch.files[0].before).toBeNull();
+      expect(patch.files[0].after).toBe("x");
+      expect(patch.stats.droppedFiles).toBeUndefined(); // none dropped
+    });
+
+    it("defaults: maxPatchFiles=200, maxPatchContentChars=512KB", () => {
+      const m = new WSSessionManager();
+      expect(m.maxPatchFiles).toBe(200);
+      expect(m.maxPatchContentChars).toBe(512 * 1024);
+    });
   });
 
   describe("createSession", () => {
