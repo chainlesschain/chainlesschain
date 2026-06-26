@@ -63,11 +63,31 @@ describe("credentialFileReason", () => {
     expect(credentialFileReason("secret.yaml")).toMatch(/secrets/);
   });
 
+  it("flags FIDO SSH keys, kubeconfig, .htpasswd, terraformrc", () => {
+    expect(credentialFileReason("~/.ssh/id_ed25519_sk")).toMatch(/credential/);
+    expect(credentialFileReason("~/.ssh/id_ecdsa_sk")).toMatch(/credential/);
+    expect(credentialFileReason("/etc/nginx/.htpasswd")).toMatch(/credential/);
+    expect(credentialFileReason("deploy/kubeconfig")).toMatch(/credential/);
+    expect(credentialFileReason("~/.terraformrc")).toMatch(/credential/);
+    expect(credentialFileReason("terraform.rc")).toMatch(/credential/);
+  });
+
+  it("flags GCP service-account key JSON (but not arbitrary json)", () => {
+    expect(credentialFileReason("gcp/service-account.json")).toMatch(
+      /credential/,
+    );
+    expect(credentialFileReason("my-service_account-key.json")).toMatch(
+      /credential/,
+    );
+    expect(credentialFileReason("config/app-config.json")).toBeNull();
+  });
+
   it("leaves everyday files alone", () => {
     expect(credentialFileReason("src/index.js")).toBeNull();
     expect(credentialFileReason("package.json")).toBeNull();
     expect(credentialFileReason("README.md")).toBeNull();
     expect(credentialFileReason("docs/env.md")).toBeNull();
+    expect(credentialFileReason("kubernetes.yaml")).toBeNull(); // not a kubeconfig
     expect(credentialFileReason("")).toBeNull();
   });
 });

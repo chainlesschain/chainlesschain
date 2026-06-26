@@ -51,6 +51,12 @@ const CREDENTIAL_BASENAMES = new Set([
   "id_dsa",
   "id_ecdsa",
   "id_ed25519", // private SSH keys (the `.pub` siblings have a different basename)
+  "id_ecdsa_sk",
+  "id_ed25519_sk", // FIDO/security-key SSH keys
+  ".htpasswd", // web-server basic-auth hashes
+  "kubeconfig", // bare KUBECONFIG file (the ~/.kube/config form is matched below)
+  ".terraformrc", // Terraform registry/API tokens
+  "terraform.rc",
 ]);
 
 // Extensions whose BYTES are the secret (private keys / cert bundles / keyrings).
@@ -67,6 +73,7 @@ const CREDENTIAL_PATH_RE = [
   /[\\/]\.docker[\\/]config\.json$/i,
   /[\\/]\.config[\\/]gh[\\/]hosts\.yml$/i, // GitHub CLI OAuth token
   /[\\/]\.gnupg[\\/]/i, // GPG keyring directory
+  /service[-_]account[^\\/]*\.json$/i, // GCP service-account key JSON
 ];
 
 // secret(s).{json,yml,yaml,env,txt}
