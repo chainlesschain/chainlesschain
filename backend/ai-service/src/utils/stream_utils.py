@@ -44,14 +44,19 @@ async def stream_ollama_chat(
     import ollama
 
     try:
-        stream = ollama.chat(
+        # ollama.chat(stream=True) 是同步客户端：发起阻塞 HTTP 请求，且 `for chunk in
+        # stream` 的迭代是阻塞网络读——整段 SSE 生成会卡住事件循环，使所有并发请求
+        # 串行化。改用 AsyncClient + `async for`（与下方 stream_openai_chat 同款真异步
+        # 迭代）。AsyncClient 同样读取 OLLAMA_HOST / 默认 localhost:11434。
+        client = ollama.AsyncClient()
+        stream = await client.chat(
             model=model,
             messages=messages,
             stream=True,
             options=options or {}
         )
 
-        for chunk in stream:
+        async for chunk in stream:
             content = chunk.get('message', {}).get('content', '')
             done = chunk.get('done', False)
 
