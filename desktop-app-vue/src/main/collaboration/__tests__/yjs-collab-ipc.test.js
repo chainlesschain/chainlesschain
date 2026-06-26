@@ -91,7 +91,9 @@ const mockY = {
 
 // getYjsManager is injected via _deps to bypass require() interop failure.
 const mockGetYjsManager = () => {
-  if (!config.yjsManagerActive) {return null;}
+  if (!config.yjsManagerActive) {
+    return null;
+  }
   return { getDocument: () => config.docToReturn };
 };
 
@@ -446,6 +448,79 @@ describe("Yjs Collab IPC Handlers", () => {
 
       registerRealtimeCollabIPC(baseDb, mockDeps);
       expect(freshDb.prepare).not.toHaveBeenCalled();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // collab:subscribe-changes — dedup + teardown (listener-leak regression)
+  // -------------------------------------------------------------------------
+
+  describe("collab:subscribe-changes", () => {
+    // Inject a fake RealtimeCollabManager whose subscribeToChanges returns a spy
+    // unsubscribe, so we can assert the handler dedups and tears down. (The real
+    // handler previously discarded the unsubscribe handle — a permanent leak.)
+    async function setupSubManager() {
+      const { registerRealtimeCollabIPC } =
+        await import("../realtime-collab-ipc.js");
+      const unsubs = [];
+      const subscribeToChanges = vi.fn(() => {
+        const u = vi.fn();
+        unsubs.push(u);
+        return u;
+      });
+      const deps = {
+        ...mockDeps,
+        getRealtimeManager: () => ({ subscribeToChanges }),
+      };
+      registerRealtimeCollabIPC(makeMockDb(), deps);
+      return { unsubs, subscribeToChanges, registerRealtimeCollabIPC };
+    }
+
+    it("dedups: re-subscribing the same window+doc unsubscribes the prior one", async () => {
+      const { unsubs, subscribeToChanges, registerRealtimeCollabIPC } =
+        await setupSubManager();
+      const sender = { id: 7, once: vi.fn() };
+
+      await capturedHandlers["collab:subscribe-changes"](
+        { sender },
+        { docId: "doc-dedup" },
+      );
+      await capturedHandlers["collab:subscribe-changes"](
+        { sender },
+        { docId: "doc-dedup" },
+      );
+
+      expect(subscribeToChanges).toHaveBeenCalledTimes(2);
+      // The first subscription's unsubscribe was invoked when the second arrived.
+      expect(unsubs[0]).toHaveBeenCalledTimes(1);
+      expect(unsubs[1]).not.toHaveBeenCalled();
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
+    });
+
+    it("unsubscribes when the renderer window is destroyed", async () => {
+      const { unsubs, registerRealtimeCollabIPC } = await setupSubManager();
+      const destroyedHandlers = [];
+      const sender = {
+        id: 8,
+        once: (ev, h) => {
+          if (ev === "destroyed") {
+            destroyedHandlers.push(h);
+          }
+        },
+      };
+
+      await capturedHandlers["collab:subscribe-changes"](
+        { sender },
+        { docId: "doc-teardown" },
+      );
+      expect(unsubs[0]).not.toHaveBeenCalled();
+
+      // Simulate the window closing.
+      destroyedHandlers.forEach((h) => h());
+      expect(unsubs[0]).toHaveBeenCalledTimes(1);
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
     });
   });
 });
