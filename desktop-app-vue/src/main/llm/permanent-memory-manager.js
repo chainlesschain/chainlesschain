@@ -429,7 +429,10 @@ _此文件会自动更新,也可手动编辑。_
       const today = new Date().toISOString().split("T")[0];
       let newContent = content;
       if (newContent.includes("> 最后更新:")) {
-        newContent = newContent.replace(/> 最后更新: .+/, `> 最后更新: ${today}`);
+        newContent = newContent.replace(
+          /> 最后更新: .+/,
+          `> 最后更新: ${today}`,
+        );
       }
 
       await fs.writeFile(this.memoryFilePath, newContent, "utf-8");
@@ -440,7 +443,10 @@ _此文件会自动更新,也可手动编辑。_
       logger.info("[PermanentMemoryManager] MEMORY.md 已完整更新");
 
       // 触发事件
-      this.emit("memory-updated", { fullUpdate: true, filePath: this.memoryFilePath });
+      this.emit("memory-updated", {
+        fullUpdate: true,
+        filePath: this.memoryFilePath,
+      });
     } catch (error) {
       logger.error("[PermanentMemoryManager] 更新 MEMORY.md 失败:", error);
       throw error;
@@ -1075,24 +1081,40 @@ _此文件会自动更新,也可手动编辑。_
       logger.info("[PermanentMemoryManager] 删除索引:", relativePath);
 
       // 从混合搜索引擎中删除文档
-      if (this.hybridSearchEngine && typeof this.hybridSearchEngine.removeDocument === 'function') {
+      if (
+        this.hybridSearchEngine &&
+        typeof this.hybridSearchEngine.removeDocument === "function"
+      ) {
         // 使用 relativePath 作为文档 ID
         this.hybridSearchEngine.removeDocument(relativePath);
-        logger.info("[PermanentMemoryManager] 从混合搜索引擎中删除文档成功:", relativePath);
+        logger.info(
+          "[PermanentMemoryManager] 从混合搜索引擎中删除文档成功:",
+          relativePath,
+        );
       }
 
       // 从 RAG Manager 中删除（如果支持）
-      if (this.ragManager && typeof this.ragManager.deleteDocument === 'function') {
+      if (
+        this.ragManager &&
+        typeof this.ragManager.deleteDocument === "function"
+      ) {
         await this.ragManager.deleteDocument(relativePath);
-        logger.info("[PermanentMemoryManager] 从 RAG Manager 中删除文档成功:", relativePath);
+        logger.info(
+          "[PermanentMemoryManager] 从 RAG Manager 中删除文档成功:",
+          relativePath,
+        );
       }
 
       // 从嵌入缓存中删除
-      if (this.database) {
+      if (this.db) {
         try {
-          this.database.prepare(`
+          this.db
+            .prepare(
+              `
             DELETE FROM embedding_cache WHERE document_id = ?
-          `).run(relativePath);
+          `,
+            )
+            .run(relativePath);
         } catch (e) {
           // 表可能不存在，忽略
         }
@@ -1216,13 +1238,17 @@ ${content}
           config: "🔧 系统配置",
         };
 
-        const section = options.section || sectionMap[type] || "📚 重要技术发现";
+        const section =
+          options.section || sectionMap[type] || "📚 重要技术发现";
         const formattedContent = `### ${timestamp}
 
 ${content}
 `;
         await this.appendToMemory(formattedContent, { section });
-        logger.info("[PermanentMemoryManager] 内容已保存到 MEMORY.md:", section);
+        logger.info(
+          "[PermanentMemoryManager] 内容已保存到 MEMORY.md:",
+          section,
+        );
 
         return {
           savedTo: "memory_md",
@@ -1294,7 +1320,10 @@ ${conversationSummary}
             );
           }
         } catch (error) {
-          logger.warn("[PermanentMemoryManager] 技术发现提取失败:", error.message);
+          logger.warn(
+            "[PermanentMemoryManager] 技术发现提取失败:",
+            error.message,
+          );
         }
       }
 
@@ -1329,9 +1358,7 @@ ${conversationSummary}
 
       // 截断过长的内容
       const truncatedContent =
-        content.length > 500
-          ? content.substring(0, 500) + "..."
-          : content;
+        content.length > 500 ? content.substring(0, 500) + "..." : content;
 
       lines.push(`**${role}**: ${truncatedContent}`);
 
@@ -1424,13 +1451,13 @@ ${conversationText.substring(0, 3000)}
       // 然后处理每个章节
       for (let i = 0; i < matches.length; i++) {
         const current = matches[i];
-        const nextIndex = i + 1 < matches.length
-          ? matches[i + 1].index
-          : content.length;
+        const nextIndex =
+          i + 1 < matches.length ? matches[i + 1].index : content.length;
 
         // 提取章节内容
         const sectionContent = content.substring(current.index, nextIndex);
-        const itemCount = (sectionContent.match(/^- /gm) || []).length +
+        const itemCount =
+          (sectionContent.match(/^- /gm) || []).length +
           (sectionContent.match(/^### /gm) || []).length;
 
         sections.push({

@@ -354,7 +354,11 @@ class PromptCompressor {
     const otherMessages = nonSystemMessages.filter(
       (msg) => msg !== lastUserMessage,
     );
-    const recentMessages = otherMessages.slice(-availableSlots);
+    // slice(-n) with n<=0 returns the WHOLE array (slice(-0) === slice(0)), so a
+    // history dominated by system messages would silently skip truncation and
+    // send an over-long prompt. Keep none when there are no available slots.
+    const recentMessages =
+      availableSlots > 0 ? otherMessages.slice(-availableSlots) : [];
 
     // 重新组合
     const result = [...systemMessages, ...recentMessages];

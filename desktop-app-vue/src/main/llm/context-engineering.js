@@ -716,7 +716,7 @@ ${JSON.stringify(parameters, null, 2)}`;
     const sections = [];
 
     for (const skill of skills) {
-      const skillTools = skill.toolNames
+      const skillTools = (skill.toolNames || [])
         .map((tn) => allTools.find((t) => t.name === tn))
         .filter((t) => t && t.available !== false);
 
