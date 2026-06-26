@@ -3,25 +3,25 @@
  * 用于缓存文件内容、解析结果等大数据，支持离线访问
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // ==================== 常量定义 ====================
 
-const DB_NAME = 'ChainlessChainCache';
+const DB_NAME = "ChainlessChainCache";
 const DB_VERSION = 1;
 
 /**
  * 存储对象名称
  */
 export const STORES = {
-  FILE_CONTENT: 'fileContent',
-  FILE_METADATA: 'fileMetadata',
-  PARSE_RESULTS: 'parseResults',
-  SYNTAX_CACHE: 'syntaxCache',
-  THUMBNAILS: 'thumbnails',
+  FILE_CONTENT: "fileContent",
+  FILE_METADATA: "fileMetadata",
+  PARSE_RESULTS: "parseResults",
+  SYNTAX_CACHE: "syntaxCache",
+  THUMBNAILS: "thumbnails",
 } as const;
 
-export type StoreName = typeof STORES[keyof typeof STORES];
+export type StoreName = (typeof STORES)[keyof typeof STORES];
 
 // ==================== 类型定义 ====================
 
@@ -103,7 +103,7 @@ export interface CacheStats {
 /**
  * IDB事务模式
  */
-type IDBTransactionMode = 'readonly' | 'readwrite';
+type IDBTransactionMode = "readonly" | "readwrite";
 
 // ==================== IndexedDB 包装器类 ====================
 
@@ -131,14 +131,14 @@ class IndexedDBWrapper {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        logger.error('IndexedDB open error:', request.error);
+        logger.error("IndexedDB open error:", request.error);
         reject(request.error);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
         this.initialized = true;
-        logger.info('IndexedDB initialized successfully');
+        logger.info("IndexedDB initialized successfully");
         resolve(this.db);
       };
 
@@ -148,49 +148,57 @@ class IndexedDBWrapper {
         // 创建文件内容存储
         if (!db.objectStoreNames.contains(STORES.FILE_CONTENT)) {
           const fileContentStore = db.createObjectStore(STORES.FILE_CONTENT, {
-            keyPath: 'id',
+            keyPath: "id",
           });
-          fileContentStore.createIndex('projectId', 'projectId', { unique: false });
-          fileContentStore.createIndex('filePath', 'filePath', { unique: false });
-          fileContentStore.createIndex('timestamp', 'timestamp', { unique: false });
+          fileContentStore.createIndex("projectId", "projectId", {
+            unique: false,
+          });
+          fileContentStore.createIndex("filePath", "filePath", {
+            unique: false,
+          });
+          fileContentStore.createIndex("timestamp", "timestamp", {
+            unique: false,
+          });
         }
 
         // 创建文件元数据存储
         if (!db.objectStoreNames.contains(STORES.FILE_METADATA)) {
           const metadataStore = db.createObjectStore(STORES.FILE_METADATA, {
-            keyPath: 'id',
+            keyPath: "id",
           });
-          metadataStore.createIndex('projectId', 'projectId', { unique: false });
-          metadataStore.createIndex('filePath', 'filePath', { unique: false });
+          metadataStore.createIndex("projectId", "projectId", {
+            unique: false,
+          });
+          metadataStore.createIndex("filePath", "filePath", { unique: false });
         }
 
         // 创建解析结果存储
         if (!db.objectStoreNames.contains(STORES.PARSE_RESULTS)) {
           const parseStore = db.createObjectStore(STORES.PARSE_RESULTS, {
-            keyPath: 'id',
+            keyPath: "id",
           });
-          parseStore.createIndex('fileId', 'fileId', { unique: false });
-          parseStore.createIndex('fileType', 'fileType', { unique: false });
+          parseStore.createIndex("fileId", "fileId", { unique: false });
+          parseStore.createIndex("fileType", "fileType", { unique: false });
         }
 
         // 创建语法高亮缓存存储
         if (!db.objectStoreNames.contains(STORES.SYNTAX_CACHE)) {
           const syntaxStore = db.createObjectStore(STORES.SYNTAX_CACHE, {
-            keyPath: 'id',
+            keyPath: "id",
           });
-          syntaxStore.createIndex('fileId', 'fileId', { unique: false });
-          syntaxStore.createIndex('language', 'language', { unique: false });
+          syntaxStore.createIndex("fileId", "fileId", { unique: false });
+          syntaxStore.createIndex("language", "language", { unique: false });
         }
 
         // 创建缩略图存储
         if (!db.objectStoreNames.contains(STORES.THUMBNAILS)) {
           const thumbnailStore = db.createObjectStore(STORES.THUMBNAILS, {
-            keyPath: 'id',
+            keyPath: "id",
           });
-          thumbnailStore.createIndex('fileId', 'fileId', { unique: false });
+          thumbnailStore.createIndex("fileId", "fileId", { unique: false });
         }
 
-        logger.info('IndexedDB schema upgraded to version', DB_VERSION);
+        logger.info("IndexedDB schema upgraded to version", DB_VERSION);
       };
     });
 
@@ -200,7 +208,10 @@ class IndexedDBWrapper {
   /**
    * 获取对象存储
    */
-  async getStore(storeName: StoreName, mode: IDBTransactionMode = 'readonly'): Promise<IDBObjectStore> {
+  async getStore(
+    storeName: StoreName,
+    mode: IDBTransactionMode = "readonly",
+  ): Promise<IDBObjectStore> {
     await this.init();
     const transaction = this.db!.transaction(storeName, mode);
     return transaction.objectStore(storeName);
@@ -210,7 +221,7 @@ class IndexedDBWrapper {
    * 添加或更新数据
    */
   async put<T>(storeName: StoreName, data: T): Promise<IDBValidKey> {
-    const store = await this.getStore(storeName, 'readwrite');
+    const store = await this.getStore(storeName, "readwrite");
 
     return new Promise((resolve, reject) => {
       const request = store.put(data);
@@ -224,7 +235,7 @@ class IndexedDBWrapper {
    * 获取数据
    */
   async get<T>(storeName: StoreName, key: string): Promise<T | undefined> {
-    const store = await this.getStore(storeName, 'readonly');
+    const store = await this.getStore(storeName, "readonly");
 
     return new Promise((resolve, reject) => {
       const request = store.get(key);
@@ -238,7 +249,7 @@ class IndexedDBWrapper {
    * 删除数据
    */
   async delete(storeName: StoreName, key: string): Promise<void> {
-    const store = await this.getStore(storeName, 'readwrite');
+    const store = await this.getStore(storeName, "readwrite");
 
     return new Promise((resolve, reject) => {
       const request = store.delete(key);
@@ -251,8 +262,12 @@ class IndexedDBWrapper {
   /**
    * 通过索引查询数据
    */
-  async getByIndex<T>(storeName: StoreName, indexName: string, value: IDBValidKey): Promise<T[]> {
-    const store = await this.getStore(storeName, 'readonly');
+  async getByIndex<T>(
+    storeName: StoreName,
+    indexName: string,
+    value: IDBValidKey,
+  ): Promise<T[]> {
+    const store = await this.getStore(storeName, "readonly");
     const index = store.index(indexName);
 
     return new Promise((resolve, reject) => {
@@ -267,7 +282,7 @@ class IndexedDBWrapper {
    * 清空存储
    */
   async clear(storeName: StoreName): Promise<void> {
-    const store = await this.getStore(storeName, 'readwrite');
+    const store = await this.getStore(storeName, "readwrite");
 
     return new Promise((resolve, reject) => {
       const request = store.clear();
@@ -281,7 +296,7 @@ class IndexedDBWrapper {
    * 获取所有数据
    */
   async getAll<T>(storeName: StoreName): Promise<T[]> {
-    const store = await this.getStore(storeName, 'readonly');
+    const store = await this.getStore(storeName, "readonly");
 
     return new Promise((resolve, reject) => {
       const request = store.getAll();
@@ -334,7 +349,7 @@ export class FileCacheManager {
     projectId: string,
     filePath: string,
     content: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ): Promise<void> {
     const id = this.generateKey(projectId, filePath);
 
@@ -355,7 +370,7 @@ export class FileCacheManager {
       // 检查缓存大小
       await this.checkCacheSize();
     } catch (error) {
-      logger.error('Failed to cache file content:', error);
+      logger.error("Failed to cache file content:", error);
       throw error;
     }
   }
@@ -363,7 +378,10 @@ export class FileCacheManager {
   /**
    * 获取缓存的文件内容
    */
-  async getCachedFileContent(projectId: string, filePath: string): Promise<FileContentData | null> {
+  async getCachedFileContent(
+    projectId: string,
+    filePath: string,
+  ): Promise<FileContentData | null> {
     const id = this.generateKey(projectId, filePath);
 
     try {
@@ -382,7 +400,7 @@ export class FileCacheManager {
       logger.info(`Cache hit: ${filePath}`);
       return data;
     } catch (error) {
-      logger.error('Failed to get cached file content:', error);
+      logger.error("Failed to get cached file content:", error);
       return null;
     }
   }
@@ -390,7 +408,11 @@ export class FileCacheManager {
   /**
    * 缓存解析结果
    */
-  async cacheParseResult(fileId: string, fileType: string, result: any): Promise<void> {
+  async cacheParseResult(
+    fileId: string,
+    fileType: string,
+    result: any,
+  ): Promise<void> {
     const id = `${fileId}:${fileType}`;
 
     const data: ParseResultData = {
@@ -405,7 +427,7 @@ export class FileCacheManager {
       await this.db.put(STORES.PARSE_RESULTS, data);
       logger.info(`Cached parse result: ${fileId} (${fileType})`);
     } catch (error) {
-      logger.error('Failed to cache parse result:', error);
+      logger.error("Failed to cache parse result:", error);
       throw error;
     }
   }
@@ -413,7 +435,10 @@ export class FileCacheManager {
   /**
    * 获取缓存的解析结果
    */
-  async getCachedParseResult(fileId: string, fileType: string): Promise<any | null> {
+  async getCachedParseResult(
+    fileId: string,
+    fileType: string,
+  ): Promise<any | null> {
     const id = `${fileId}:${fileType}`;
 
     try {
@@ -431,7 +456,7 @@ export class FileCacheManager {
 
       return data.result;
     } catch (error) {
-      logger.error('Failed to get cached parse result:', error);
+      logger.error("Failed to get cached parse result:", error);
       return null;
     }
   }
@@ -439,7 +464,11 @@ export class FileCacheManager {
   /**
    * 缓存语法高亮结果
    */
-  async cacheSyntaxResult(fileId: string, language: string, result: any): Promise<void> {
+  async cacheSyntaxResult(
+    fileId: string,
+    language: string,
+    result: any,
+  ): Promise<void> {
     const id = `${fileId}:${language}`;
 
     const data: SyntaxCacheData = {
@@ -454,7 +483,7 @@ export class FileCacheManager {
       await this.db.put(STORES.SYNTAX_CACHE, data);
       logger.info(`Cached syntax result: ${fileId} (${language})`);
     } catch (error) {
-      logger.error('Failed to cache syntax result:', error);
+      logger.error("Failed to cache syntax result:", error);
       throw error;
     }
   }
@@ -462,7 +491,10 @@ export class FileCacheManager {
   /**
    * 获取缓存的语法高亮结果
    */
-  async getCachedSyntaxResult(fileId: string, language: string): Promise<any | null> {
+  async getCachedSyntaxResult(
+    fileId: string,
+    language: string,
+  ): Promise<any | null> {
     const id = `${fileId}:${language}`;
 
     try {
@@ -480,7 +512,7 @@ export class FileCacheManager {
 
       return data.result;
     } catch (error) {
-      logger.error('Failed to get cached syntax result:', error);
+      logger.error("Failed to get cached syntax result:", error);
       return null;
     }
   }
@@ -492,8 +524,8 @@ export class FileCacheManager {
     try {
       const files = await this.db.getByIndex<FileContentData>(
         STORES.FILE_CONTENT,
-        'projectId',
-        projectId
+        "projectId",
+        projectId,
       );
 
       for (const file of files) {
@@ -502,7 +534,7 @@ export class FileCacheManager {
 
       logger.info(`Cleared cache for project: ${projectId}`);
     } catch (error) {
-      logger.error('Failed to clear project cache:', error);
+      logger.error("Failed to clear project cache:", error);
       throw error;
     }
   }
@@ -512,13 +544,20 @@ export class FileCacheManager {
    */
   async checkCacheSize(): Promise<void> {
     try {
-      const allFiles = await this.db.getAll<FileContentData>(STORES.FILE_CONTENT);
+      const allFiles = await this.db.getAll<FileContentData>(
+        STORES.FILE_CONTENT,
+      );
 
       // 计算总大小
-      const totalSize = allFiles.reduce((sum, file) => sum + (file.size || 0), 0);
+      const totalSize = allFiles.reduce(
+        (sum, file) => sum + (file.size || 0),
+        0,
+      );
 
       if (totalSize > this.maxCacheSize) {
-        logger.info(`Cache size (${totalSize}) exceeds limit (${this.maxCacheSize}), cleaning...`);
+        logger.info(
+          `Cache size (${totalSize}) exceeds limit (${this.maxCacheSize}), cleaning...`,
+        );
 
         // 按时间戳排序，删除最旧的
         allFiles.sort((a, b) => a.timestamp - b.timestamp);
@@ -526,7 +565,10 @@ export class FileCacheManager {
         let currentSize = totalSize;
         let index = 0;
 
-        while (currentSize > this.maxCacheSize * 0.8 && index < allFiles.length) {
+        while (
+          currentSize > this.maxCacheSize * 0.8 &&
+          index < allFiles.length
+        ) {
           const file = allFiles[index];
           await this.db.delete(STORES.FILE_CONTENT, file.id);
           currentSize -= file.size || 0;
@@ -536,7 +578,7 @@ export class FileCacheManager {
         logger.info(`Cleaned ${index} old cache entries`);
       }
     } catch (error) {
-      logger.error('Failed to check cache size:', error);
+      logger.error("Failed to check cache size:", error);
     }
   }
 
@@ -545,11 +587,20 @@ export class FileCacheManager {
    */
   async getStats(): Promise<CacheStats | null> {
     try {
-      const fileContents = await this.db.getAll<FileContentData>(STORES.FILE_CONTENT);
-      const parseResults = await this.db.getAll<ParseResultData>(STORES.PARSE_RESULTS);
-      const syntaxCache = await this.db.getAll<SyntaxCacheData>(STORES.SYNTAX_CACHE);
+      const fileContents = await this.db.getAll<FileContentData>(
+        STORES.FILE_CONTENT,
+      );
+      const parseResults = await this.db.getAll<ParseResultData>(
+        STORES.PARSE_RESULTS,
+      );
+      const syntaxCache = await this.db.getAll<SyntaxCacheData>(
+        STORES.SYNTAX_CACHE,
+      );
 
-      const totalSize = fileContents.reduce((sum, file) => sum + (file.size || 0), 0);
+      const totalSize = fileContents.reduce(
+        (sum, file) => sum + (file.size || 0),
+        0,
+      );
 
       return {
         fileContents: {
@@ -565,10 +616,10 @@ export class FileCacheManager {
         },
         maxCacheSize: this.maxCacheSize,
         maxCacheSizeFormatted: this.formatSize(this.maxCacheSize),
-        usage: ((totalSize / this.maxCacheSize) * 100).toFixed(2) + '%',
+        usage: ((totalSize / this.maxCacheSize) * 100).toFixed(2) + "%",
       };
     } catch (error) {
-      logger.error('Failed to get cache stats:', error);
+      logger.error("Failed to get cache stats:", error);
       return null;
     }
   }
@@ -577,13 +628,18 @@ export class FileCacheManager {
    * 格式化大小
    */
   formatSize(bytes: number): string {
-    if (bytes === 0) {
-      return '0 B';
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+      return "0 B";
     }
 
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+    // Clamp the unit index — without it a >=1 TB total (or a corrupt size sum)
+    // indexes past the array and the string renders "<n> undefined".
+    const i = Math.max(
+      0,
+      Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k))),
+    );
 
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   }
@@ -599,9 +655,9 @@ export class FileCacheManager {
       await this.db.clear(STORES.SYNTAX_CACHE);
       await this.db.clear(STORES.THUMBNAILS);
 
-      logger.info('All caches cleared');
+      logger.info("All caches cleared");
     } catch (error) {
-      logger.error('Failed to clear all caches:', error);
+      logger.error("Failed to clear all caches:", error);
       throw error;
     }
   }
