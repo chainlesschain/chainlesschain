@@ -383,11 +383,26 @@ describe("Orchestrator: status()", () => {
     });
     orchDeps.execSync = vi.fn(() => "ok");
 
-    const orch = new Orchestrator({ cwd: "/tmp" });
+    const orch = new Orchestrator({ cwd: "/tmp", ciCommand: "yarn test" });
     const s = orch.status();
     expect(s.tasks).toEqual([]);
     expect(s.pool).toBeDefined();
     expect(typeof s.cronActive).toBe("boolean");
+    // status() must surface the configured CI command (was a dead `cliCommand`
+    // typo → always undefined).
+    expect(s.ciCommand).toBe("yarn test");
+  });
+
+  it("runs CI with a generous maxBuffer so verbose passing output isn't a false failure", async () => {
+    const { orch } = buildOrchestrator({ ciPasses: true });
+    await orch.addTask("do a thing");
+    // The CI exec must pass a large maxBuffer; the default 1 MB would throw
+    // ENOBUFS on big output and be misreported as a CI failure.
+    const ciCall = orchDeps.execSync.mock.calls.find(
+      (c) => c[1] && typeof c[1].maxBuffer === "number",
+    );
+    expect(ciCall).toBeTruthy();
+    expect(ciCall[1].maxBuffer).toBeGreaterThanOrEqual(16 * 1024 * 1024);
   });
 });
 

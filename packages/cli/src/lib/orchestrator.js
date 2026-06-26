@@ -183,7 +183,7 @@ export class Orchestrator extends EventEmitter {
     return {
       tasks,
       pool: this._router.summary(),
-      cliCommand: this.cliCommand,
+      ciCommand: this.ciCommand,
       cronActive: this._cronTimer !== null,
     };
   }
@@ -278,7 +278,7 @@ export class Orchestrator extends EventEmitter {
   async _dispatch(task) {
     this.emit("agents:dispatched", { task, count: task.subtasks.length });
     this._log(
-      `Dispatching ${task.subtasks.length} subtask(s) to ${this.cliCommand} agents`,
+      `Dispatching ${task.subtasks.length} subtask(s) to ${this._router.summary().length} agent backend(s)`,
     );
 
     const results = await this._router.dispatch(task.subtasks, {
@@ -372,6 +372,11 @@ export class Orchestrator extends EventEmitter {
         cwd,
         encoding: "utf-8",
         timeout: 180_000,
+        // execSync defaults maxBuffer to 1 MB; a verbose-but-PASSING test run
+        // that prints more than that throws ENOBUFS, which the catch below
+        // would misreport as a CI failure (triggering needless retries +
+        // re-dispatch). Give CI output generous headroom.
+        maxBuffer: 64 * 1024 * 1024,
         stdio: "pipe",
       });
       return {
