@@ -47,6 +47,11 @@ class LayerZeroBridge extends EventEmitter {
     // Transaction tracking
     this.pendingTransactions = new Map();
 
+    // Active destination-chain monitor intervals, tracked so close() can stop
+    // them — otherwise each keeps polling RPC every 5s for up to 5 min after
+    // shutdown (the handle used to be a local var unreachable from close()).
+    this._activeMonitors = new Set();
+
     // Retry configuration
     this.maxRetries = config.maxRetries || 3;
     this.retryDelay = config.retryDelay || 5000;
@@ -299,13 +304,22 @@ class LayerZeroBridge extends EventEmitter {
     const maxAttempts = 60; // 5 minutes
     let attempts = 0;
 
-    const checkInterval = setInterval(async () => {
+    let checkInterval = null;
+    const stop = () => {
+      if (checkInterval === null) {
+        return;
+      }
+      clearInterval(checkInterval);
+      this._activeMonitors.delete(checkInterval);
+      checkInterval = null;
+    };
+    checkInterval = setInterval(async () => {
       try {
         attempts++;
 
         const bridgeAddress = this.bridgeContracts[chainId];
         if (!bridgeAddress) {
-          clearInterval(checkInterval);
+          stop();
           return;
         }
 
@@ -341,17 +355,18 @@ class LayerZeroBridge extends EventEmitter {
             destinationTxHash: event.transactionHash,
           });
 
-          clearInterval(checkInterval);
+          stop();
         }
 
         if (attempts >= maxAttempts) {
           logger.warn("[LayerZeroBridge] Monitoring timeout");
-          clearInterval(checkInterval);
+          stop();
         }
       } catch (error) {
         logger.error("[LayerZeroBridge] Monitoring error:", error);
       }
     }, 5000); // Check every 5 seconds
+    this._activeMonitors.add(checkInterval);
   }
 
   /**
@@ -474,6 +489,10 @@ class LayerZeroBridge extends EventEmitter {
    */
   async close() {
     logger.info("[LayerZeroBridge] Closing...");
+    for (const interval of this._activeMonitors) {
+      clearInterval(interval);
+    }
+    this._activeMonitors.clear();
     this.pendingTransactions.clear();
     this.removeAllListeners();
   }
