@@ -96,9 +96,10 @@ const round = (n, dp = 6) => {
  *
  * Per provider, a user entry whose `match` equals a built-in pattern REPLACES
  * it; brand-new patterns are prepended so they win ties; unknown providers are
- * added. Malformed entries (missing match / non-numeric rate) are skipped so a
- * bad config line can't crash cost reporting. Returns a new table; never
- * mutates PRICE_TABLE or the input.
+ * added. Malformed entries (missing match / non-numeric / negative / Infinity
+ * rate) are skipped so a bad config line can't crash cost reporting or produce a
+ * negative cost that undercounts spend. Returns a new table; never mutates
+ * PRICE_TABLE or the input.
  *
  * @param {object} [overrides]
  * @param {object} [base=PRICE_TABLE]
@@ -123,8 +124,14 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
           e &&
           typeof e.match === "string" &&
           e.match.trim() &&
+          // Rates must be finite AND non-negative — a negative price would
+          // produce a negative cost that undercounts spend (and could keep a
+          // CostBudget under its cap). `>= 0` also rejects NaN (NaN >= 0 is
+          // false); isFinite additionally rejects Infinity.
           Number.isFinite(Number(e.in)) &&
-          Number.isFinite(Number(e.out)),
+          Number(e.in) >= 0 &&
+          Number.isFinite(Number(e.out)) &&
+          Number(e.out) >= 0,
       )
       .map((e) => ({
         match: e.match.toLowerCase(),

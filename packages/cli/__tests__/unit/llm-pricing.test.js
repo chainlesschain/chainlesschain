@@ -278,6 +278,30 @@ describe("llm-pricing — mergePricing (config overrides)", () => {
     expect(lookupRate("openai", "bad-1", table)).toBeNull();
   });
 
+  it("rejects negative and Infinity rates (a price can't be < 0 or unbounded)", () => {
+    const table = mergePricing({
+      anthropic: [
+        { match: "haiku", in: -5, out: 10 }, // negative input rate
+        { match: "neg-out", in: 2, out: -1 }, // negative output rate
+        { match: "inf", in: Infinity, out: 1 }, // unbounded
+        { match: "ok", in: 4, out: 8 }, // valid → kept
+      ],
+    });
+    // The negative haiku override is dropped → the built-in haiku rate stands.
+    expect(lookupRate("anthropic", "claude-haiku", table)).toMatchObject({
+      in: 1,
+      out: 5,
+    });
+    // Other invalid entries never enter the table…
+    expect(lookupRate("anthropic", "neg-out-x", table)).toBeNull();
+    expect(lookupRate("anthropic", "inf-x", table)).toBeNull();
+    // …and the one valid override does apply.
+    expect(lookupRate("anthropic", "ok-x", table)).toMatchObject({
+      in: 4,
+      out: 8,
+    });
+  });
+
   it("returns the base table untouched when overrides are absent/invalid", () => {
     expect(lookupRate("openai", "gpt-4o", mergePricing()).pattern).toBe(
       "gpt-4o",
