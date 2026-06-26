@@ -365,6 +365,15 @@ export class SubAgentContext {
       return this.result;
     }
 
+    // If the loop already force-completed (abort signal or token budget),
+    // preserve that result. The normal completion below would otherwise
+    // overwrite the cancellation / budget marker with a plain summary of
+    // whatever was streamed so far — the parent agent would then mistake a
+    // truncated/cancelled run for a clean one.
+    if (this.status !== "active") {
+      return this.result;
+    }
+
     // Summarize the result
     const summary = this.summarize(lastContent);
 
