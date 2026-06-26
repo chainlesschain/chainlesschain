@@ -483,8 +483,13 @@ class P2PManager extends EventEmitter {
             `[P2P] NAT类型: ${this.natInfo.type}, 公网IP: ${this.natInfo.publicIP || "未知"}`,
           );
 
-          // 定期重新检测
-          setInterval(() => {
+          // 定期重新检测。存句柄以便 close() 能停掉它——否则节点关闭后该 interval
+          // 仍每隔 detectionInterval 发 STUN 查询，且闭包钉住 this(整个 P2PManager+
+          // natDetector) 永不 GC；重复 init 时也会清掉旧的避免叠加。
+          if (this._natDetectInterval) {
+            clearInterval(this._natDetectInterval);
+          }
+          this._natDetectInterval = setInterval(() => {
             this.natDetector
               .detectNATType(this.p2pConfig.stun.servers)
               .then((info) => {
@@ -2031,6 +2036,12 @@ class P2PManager extends EventEmitter {
    */
   async close() {
     logger.info("[P2PManager] 关闭 P2P 节点");
+
+    // 停止 NAT 周期重检测定时器（否则节点关闭后仍发 STUN 查询并泄漏 this）
+    if (this._natDetectInterval) {
+      clearInterval(this._natDetectInterval);
+      this._natDetectInterval = null;
+    }
 
     // 停止嵌入式信令服务器
     await this.stopSignalingServer();

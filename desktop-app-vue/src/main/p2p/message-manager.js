@@ -109,13 +109,17 @@ class MessageManager extends EventEmitter {
       this.stats.bytesCompressed += JSON.stringify(payload).length;
     }
 
-    // 记录已发送消息
-    this.sentMessages.set(messageId, {
-      message,
-      peerId,
-      sentAt: Date.now(),
-      retries: 0,
-    });
+    // 记录已发送消息——仅 requireAck。sentMessages 只被 ack(receiveAck)/重试
+    // (handleAckTimeout) 路径读写；非 ack 消息（默认）存进来后永不删除（cleanup
+    // 全量清理除外）→ 长会话内随发送量无界增长。故只为需要确认的消息记录。
+    if (requireAck) {
+      this.sentMessages.set(messageId, {
+        message,
+        peerId,
+        sentAt: Date.now(),
+        retries: 0,
+      });
+    }
 
     // 高优先级或立即发送
     if (priority === "high" || immediate) {
@@ -480,6 +484,18 @@ class MessageManager extends EventEmitter {
         this.receivedMessages.delete(messageId);
         cleanedCount++;
       });
+    }
+
+    // 兜底清理滞留的已发送记录：requireAck 消息正常在 ack 或重试耗尽时删除，但若
+    // 重试路径中途抛错（handleAckTimeout 的 await sendImmediately 失败，未再 arm
+    // waitForAck）会残留。超过宽松阈值（5 分钟，远长于正常 ack/重试周期）即清除。
+    const SENT_TTL = 5 * 60 * 1000;
+    for (const [messageId, info] of this.sentMessages.entries()) {
+      if (now - info.sentAt > SENT_TTL) {
+        this.sentMessages.delete(messageId);
+        this.pendingAcks.delete(messageId);
+        cleanedCount++;
+      }
     }
 
     if (cleanedCount > 0) {
