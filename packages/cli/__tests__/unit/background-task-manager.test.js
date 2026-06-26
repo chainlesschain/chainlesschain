@@ -101,6 +101,22 @@ describe("BackgroundTaskManager", () => {
       expect(page.nextOffset).toBe(3);
     });
 
+    it("returns all items past the offset when no limit is given", () => {
+      const task = manager.create({ command: "echo history" });
+      manager._recordHistory(task, "step-1");
+      manager._recordHistory(task, "step-2");
+      manager._recordHistory(task, "step-3");
+
+      // Regression: an offset-only page (no limit) used to compute
+      // slice(offset, offset + null) === slice(offset, offset) === [].
+      const page = manager.getHistory(task.id, { offset: 1 });
+      expect(page.items).toHaveLength(3);
+      expect(page.items[0].event).toBe("step-1");
+      expect(page.items[2].event).toBe("step-3");
+      expect(page.hasMore).toBe(false);
+      expect(page.nextOffset).toBeNull();
+    });
+
     it("lists all tasks sorted by creation", () => {
       manager.create({ command: "echo 1" });
       manager.create({ command: "echo 2" });
@@ -204,7 +220,9 @@ describe("BackgroundTaskManager", () => {
       expect(handler).toHaveBeenCalledOnce();
       expect(handler.mock.calls[0][0].status).toBe(TaskStatus.COMPLETED);
       expect(handler.mock.calls[0][0].result).toBe("output");
-      expect(handler.mock.calls[0][0].outputSummary.preview).toContain("output");
+      expect(handler.mock.calls[0][0].outputSummary.preview).toContain(
+        "output",
+      );
     });
 
     it("emits task:complete on failure", () => {
@@ -255,7 +273,11 @@ describe("BackgroundTaskManager", () => {
       const restored = recovered.get(task.id);
       expect(restored.status).toBe(TaskStatus.PENDING);
       expect(restored.recoveredFromRestart).toBe(true);
-      expect(recovered.getHistory(task.id).some((item) => item.event === "recovered")).toBe(true);
+      expect(
+        recovered
+          .getHistory(task.id)
+          .some((item) => item.event === "recovered"),
+      ).toBe(true);
       recovered.destroy();
     });
 
@@ -286,7 +308,11 @@ describe("BackgroundTaskManager", () => {
       const restored = recovered.get("task-foreign");
       expect(restored.status).toBe(TaskStatus.RUNNING);
       expect(restored.recoveredFromRestart).toBe(false);
-      expect(recovered.getHistory("task-foreign").some((item) => item.event === "recovery-skipped")).toBe(true);
+      expect(
+        recovered
+          .getHistory("task-foreign")
+          .some((item) => item.event === "recovery-skipped"),
+      ).toBe(true);
       recovered.destroy();
     });
   });
