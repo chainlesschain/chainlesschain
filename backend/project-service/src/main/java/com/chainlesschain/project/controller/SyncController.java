@@ -62,8 +62,12 @@ public class SyncController {
     @Operation(summary = "批量上传数据", description = "客户端批量上传本地变更的数据到服务器")
     public Result<Map<String, Object>> uploadBatch(@Validated @RequestBody SyncRequestDTO request,
             org.springframework.security.core.Authentication authentication) {
+        // Guard null records: this log runs BEFORE the try below, so a request
+        // body without "records" would otherwise throw an uncaught NPE → HTTP 500
+        // (instead of the graceful error the service path returns).
         log.info("[SyncController] 收到批量上传请求: table={}, deviceId={}, records={}",
-            request.getTableName(), request.getDeviceId(), request.getRecords().size());
+            request.getTableName(), request.getDeviceId(),
+            request.getRecords() != null ? request.getRecords().size() : 0);
 
         try {
             Map<String, Object> result = syncService.uploadBatch(request, authentication);

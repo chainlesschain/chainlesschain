@@ -286,7 +286,7 @@ public class SearchService {
             result.setSnippet(snippet);
             result.setHighlight(highlightKeyword(snippet, keyword));
             // 标题匹配权重更高
-            boolean titleMatch = item.getTitle() != null && item.getTitle().toLowerCase().contains(keyword.toLowerCase());
+            boolean titleMatch = item.getTitle() != null && item.getTitle().toLowerCase().contains((keyword == null ? "" : keyword.toLowerCase()));
             result.setScore(titleMatch ? 0.88 : 0.72);
             result.setCreatedAt(formatDateTime(item.getCreatedAt()));
             result.setAuthor(item.getUserId());
@@ -372,13 +372,13 @@ public class SearchService {
             result.setType("file");
             result.setTitle(file.getFileName());
             String snippet = file.getFilePath();
-            if (StringUtils.hasText(file.getContent()) && file.getContent().toLowerCase().contains(keyword.toLowerCase())) {
+            if (StringUtils.hasText(file.getContent()) && file.getContent().toLowerCase().contains((keyword == null ? "" : keyword.toLowerCase()))) {
                 snippet = truncate(file.getContent(), MAX_SNIPPET_LENGTH);
             }
             result.setSnippet(snippet);
             result.setHighlight(highlightKeyword(snippet, keyword));
             // 文件名精确匹配权重高
-            boolean nameMatch = file.getFileName() != null && file.getFileName().toLowerCase().contains(keyword.toLowerCase());
+            boolean nameMatch = file.getFileName() != null && file.getFileName().toLowerCase().contains((keyword == null ? "" : keyword.toLowerCase()));
             result.setScore(nameMatch ? 0.85 : 0.65);
             result.setCreatedAt(formatDateTime(file.getCreatedAt()));
             result.setAuthor(file.getGeneratedBy());

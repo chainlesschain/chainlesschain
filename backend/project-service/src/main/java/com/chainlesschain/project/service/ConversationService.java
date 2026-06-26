@@ -186,7 +186,10 @@ public class ConversationService {
         wrapper.orderByAsc("created_at");
 
         if (limit != null && limit > 0) {
-            wrapper.last("LIMIT " + limit + (offset != null ? " OFFSET " + offset : ""));
+            // Guard a negative offset (PostgreSQL rejects "OFFSET -N"); only
+            // append OFFSET for a positive value.
+            wrapper.last("LIMIT " + limit
+                + (offset != null && offset > 0 ? " OFFSET " + offset : ""));
         }
 
         List<ConversationMessage> messages = messageMapper.selectList(wrapper);
