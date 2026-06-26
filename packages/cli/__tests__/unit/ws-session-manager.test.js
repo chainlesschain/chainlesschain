@@ -134,6 +134,18 @@ describe("WSSessionManager", () => {
       expect(new WSSessionManager().maxSessions).toBe(100);
       expect(new WSSessionManager({ maxSessions: 5 }).maxSessions).toBe(5);
     });
+
+    it("defaults patch caps and accepts overrides", () => {
+      const def = new WSSessionManager();
+      expect(def.maxPatchHistory).toBe(200);
+      expect(def.maxPendingPatches).toBe(50);
+      const m = new WSSessionManager({
+        maxPatchHistory: 3,
+        maxPendingPatches: 2,
+      });
+      expect(m.maxPatchHistory).toBe(3);
+      expect(m.maxPendingPatches).toBe(2);
+    });
   });
 
   describe("session cap (resource-exhaustion guard)", () => {
@@ -149,6 +161,80 @@ describe("WSSessionManager", () => {
       // Closing one frees a slot.
       m.closeSession(a.sessionId);
       expect(() => m.createSession()).not.toThrow();
+    });
+  });
+
+  describe("patch bookkeeping caps (resource-exhaustion guard)", () => {
+    it("evicts the oldest pending patch once at maxPendingPatches (FIFO)", () => {
+      const m = new WSSessionManager({
+        db: mockDb,
+        config: { test: true },
+        maxPendingPatches: 2,
+      });
+      const { sessionId } = m.createSession();
+      const p1 = m.proposePatch(sessionId, {
+        files: [{ path: "a.js", after: "x" }],
+      });
+      const p2 = m.proposePatch(sessionId, {
+        files: [{ path: "b.js", after: "y" }],
+      });
+      const p3 = m.proposePatch(sessionId, {
+        files: [{ path: "c.js", after: "z" }],
+      });
+      const summary = m.getPatchSummary(sessionId);
+      const pendingIds = summary.pending.map((p) => p.patchId);
+      expect(pendingIds).toHaveLength(2);
+      expect(pendingIds).not.toContain(p1.patchId); // oldest evicted
+      expect(pendingIds).toContain(p2.patchId);
+      expect(pendingIds).toContain(p3.patchId);
+    });
+
+    it("trims patchHistory to maxPatchHistory, oldest first", () => {
+      const m = new WSSessionManager({
+        db: mockDb,
+        config: { test: true },
+        maxPatchHistory: 2,
+      });
+      const { sessionId } = m.createSession();
+      const applied = [];
+      for (let i = 0; i < 4; i++) {
+        const p = m.proposePatch(sessionId, {
+          files: [{ path: `f${i}.js`, after: "x" }],
+        });
+        m.applyPatch(sessionId, p.patchId);
+        applied.push(p.patchId);
+      }
+      const summary = m.getPatchSummary(sessionId);
+      expect(summary.history).toHaveLength(2);
+      const histIds = summary.history.map((p) => p.patchId);
+      expect(histIds).toEqual([applied[2], applied[3]]); // newest two kept
+    });
+
+    it("_boundPatchHistory keeps the most recent entries (load-path defense)", () => {
+      const m = new WSSessionManager({ maxPatchHistory: 2 });
+      const hydrated = m._boundPatchHistory([
+        { patchId: "old" },
+        { patchId: "mid" },
+        { patchId: "new" },
+      ]);
+      expect(hydrated.map((p) => p.patchId)).toEqual(["mid", "new"]);
+      // Returns a fresh array (never the caller's reference).
+      const small = [{ patchId: "a" }];
+      expect(m._boundPatchHistory(small)).not.toBe(small);
+      expect(m._boundPatchHistory(null)).toEqual([]);
+    });
+
+    it("_hydratePendingPatches caps to the most recent on load", () => {
+      const m = new WSSessionManager({ maxPendingPatches: 2 });
+      const map = m._hydratePendingPatches([
+        { patchId: "old" },
+        { patchId: "mid" },
+        { patchId: "new" },
+      ]);
+      expect(map.size).toBe(2);
+      expect(map.has("old")).toBe(false);
+      expect(map.has("mid")).toBe(true);
+      expect(map.has("new")).toBe(true);
     });
   });
 

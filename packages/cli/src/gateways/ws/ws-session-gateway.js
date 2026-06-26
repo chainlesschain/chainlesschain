@@ -109,6 +109,20 @@ export class WSSessionManager {
     this.maxSessions = Number.isFinite(options.maxSessions)
       ? options.maxSessions
       : 100;
+
+    // Cap patch bookkeeping per session. `patchHistory` is append-only (every
+    // applyPatch/rejectPatch pushes, nothing trims) and `pendingPatches` grows
+    // with each proposePatch — both are serialized in full by
+    // _persistSessionState on every session op, so unbounded growth means
+    // O(n) memory AND an O(n²) rewrite cost over a long session (and a tool
+    // proposing many large before/after/diff blobs amplifies it). Keep a
+    // recent window; oldest entries fall off (FIFO).
+    this.maxPatchHistory = Number.isFinite(options.maxPatchHistory)
+      ? options.maxPatchHistory
+      : 200;
+    this.maxPendingPatches = Number.isFinite(options.maxPendingPatches)
+      ? options.maxPendingPatches
+      : 50;
   }
 
   _normalizeEnabledToolNames(enabledToolNames) {
@@ -499,9 +513,7 @@ export class WSSessionManager {
         permanentMemory,
         reviewState: metadata.reviewState || null,
         pendingPatches: this._hydratePendingPatches(metadata.pendingPatches),
-        patchHistory: Array.isArray(metadata.patchHistory)
-          ? metadata.patchHistory
-          : [],
+        patchHistory: this._boundPatchHistory(metadata.patchHistory),
         taskGraph: this._hydrateTaskGraph(metadata.taskGraph),
         interaction: null,
         createdAt: dbSession.created_at,
@@ -889,6 +901,15 @@ export class WSSessionManager {
     if (!(session.pendingPatches instanceof Map)) {
       session.pendingPatches = new Map();
     }
+    // Bound un-reviewed proposals: evict the oldest pending (Map preserves
+    // insertion order) once at cap. 50 unresolved patches is already
+    // pathological; dropping the stalest keeps memory + persisted state bounded
+    // without blocking a legitimate new proposal.
+    while (session.pendingPatches.size >= this.maxPendingPatches) {
+      const oldestKey = session.pendingPatches.keys().next().value;
+      if (oldestKey === undefined) break;
+      session.pendingPatches.delete(oldestKey);
+    }
     session.pendingPatches.set(patchId, patch);
     session.lastActivity = now;
     this._persistSessionState(sessionId);
@@ -917,9 +938,33 @@ export class WSSessionManager {
       session.patchHistory = [];
     }
     session.patchHistory.push(patch);
+    this._trimPatchHistory(session);
     session.lastActivity = patch.resolvedAt;
     this._persistSessionState(sessionId);
     return patch;
+  }
+
+  /**
+   * Keep `patchHistory` bounded to the most recent maxPatchHistory entries.
+   * Oldest fall off the front (FIFO) so memory + persisted JSON stay bounded.
+   */
+  _trimPatchHistory(session) {
+    if (!Array.isArray(session.patchHistory)) return;
+    const overflow = session.patchHistory.length - this.maxPatchHistory;
+    if (overflow > 0) {
+      session.patchHistory.splice(0, overflow);
+    }
+  }
+
+  /**
+   * Bound a (possibly persisted/tampered) patchHistory array on load, keeping
+   * the most recent entries. Returns a fresh array (never the input).
+   */
+  _boundPatchHistory(list) {
+    if (!Array.isArray(list)) return [];
+    return list.length > this.maxPatchHistory
+      ? list.slice(list.length - this.maxPatchHistory)
+      : list.slice();
   }
 
   /**
@@ -944,6 +989,7 @@ export class WSSessionManager {
       session.patchHistory = [];
     }
     session.patchHistory.push(patch);
+    this._trimPatchHistory(session);
     session.lastActivity = patch.resolvedAt;
     this._persistSessionState(sessionId);
     return patch;
@@ -1339,7 +1385,13 @@ export class WSSessionManager {
   _hydratePendingPatches(list) {
     const map = new Map();
     if (Array.isArray(list)) {
-      for (const patch of list) {
+      // Trim from the front so the most recent proposals survive a reload even
+      // if a prior (or tampered) persisted state exceeded the cap.
+      const bounded =
+        list.length > this.maxPendingPatches
+          ? list.slice(list.length - this.maxPendingPatches)
+          : list;
+      for (const patch of bounded) {
         if (patch && patch.patchId) {
           map.set(patch.patchId, patch);
         }
