@@ -398,7 +398,7 @@ class DIDUpdater extends EventEmitter {
         )
       `,
         )
-        .all([did, did, this.config.maxVersionHistory]);
+        .run([did, did, this.config.maxVersionHistory]);
 
       this.didManager.db.saveToFile();
     } catch (error) {
@@ -424,14 +424,14 @@ class DIDUpdater extends EventEmitter {
         )
         .all([did]);
 
-      if (!result || result.length === 0 || !result[0].values) {
-        return [];
-      }
-
-      return result[0].values.map((row) => ({
-        version: row[0],
-        changes: row[1],
-        updatedAt: row[2],
+      // On the active better-sqlite3 backend `.all()` returns plain row
+      // objects, so the old `result[0].values` (sql.js shape) was always
+      // undefined → this always returned []. Normalize both backends' shapes
+      // (the same helper did-manager uses) and read by column name.
+      return this.didManager._normalizeRows(result).map((row) => ({
+        version: row.version,
+        changes: row.changes,
+        updatedAt: row.updated_at,
       }));
     } catch (error) {
       logger.error("[DIDUpdater] 获取版本历史失败:", error);
