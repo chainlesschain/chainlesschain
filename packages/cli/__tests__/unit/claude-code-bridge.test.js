@@ -404,6 +404,28 @@ describe("ClaudeCodePool", () => {
     expect(status.activeCount).toBe(0);
   });
 
+  it("bounds _completed history to maxCompleted (no unbounded leak)", async () => {
+    _deps.spawn = vi.fn(() =>
+      makeChildProcess({
+        stdout: JSON.stringify({ type: "result", result: "ok" }) + "\n",
+        exitCode: 0,
+      }),
+    );
+    expect(new ClaudeCodePool().maxCompleted).toBe(1000); // default
+    expect(new ClaudeCodePool({ maxCompleted: 0 }).maxCompleted).toBe(1000); // invalid → default
+
+    const pool = new ClaudeCodePool({ maxParallel: 5, maxCompleted: 3 });
+    const tasks = Array.from({ length: 12 }, (_, i) => ({
+      id: `t${i}`,
+      description: "x",
+    }));
+    await pool.dispatch(tasks, { cwd: "/tmp" });
+
+    // All 12 ran, but only the most recent 3 are retained.
+    expect(pool._completed.length).toBe(3);
+    expect(pool._completed.map((c) => c.taskId)).toEqual(["t9", "t10", "t11"]);
+  });
+
   it("forwards agent:output events from agents", async () => {
     _deps.spawn = vi.fn(() =>
       makeChildProcess({

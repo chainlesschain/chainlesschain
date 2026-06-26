@@ -290,6 +290,15 @@ export class ClaudeCodePool extends EventEmitter {
     this.model = options.model || null;
     this.agentTimeout = options.agentTimeout || 300_000;
 
+    // Bound retained completion history. dispatch() returns results directly,
+    // so _completed is only a recent-history buffer — but it was an unbounded
+    // array, so a long-lived pool dispatching many tasks leaked memory forever.
+    // Keep a recent window (FIFO). Default 1000; 0/invalid → 1000.
+    this.maxCompleted =
+      Number.isFinite(options.maxCompleted) && options.maxCompleted > 0
+        ? options.maxCompleted
+        : 1000;
+
     /** @type {Map<string, ClaudeCodeAgent>} */
     this._agents = new Map();
     this._completed = [];
@@ -348,6 +357,9 @@ export class ClaudeCodePool extends EventEmitter {
 
     this._agents.delete(agent.id);
     this._completed.push({ ...result, taskId: task.id });
+    if (this._completed.length > this.maxCompleted) {
+      this._completed.splice(0, this._completed.length - this.maxCompleted);
+    }
 
     this.emit("agent:complete", { taskId: task.id, ...result });
     return { taskId: task.id, ...result };
