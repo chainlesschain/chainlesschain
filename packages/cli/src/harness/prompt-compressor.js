@@ -12,6 +12,12 @@
 import { createHash } from "node:crypto";
 import { feature, featureVariant } from "../lib/feature-flags.js";
 
+// Bounds for the fuzzy near-dup pass in _deduplicate (see there). Generous
+// enough that real near-dups are still caught; small enough that compaction of
+// a long, tool-heavy history stays sub-second instead of O(n²·content).
+const DEDUP_JACCARD_MAX_CHARS = 4000;
+const DEDUP_FUZZY_WINDOW = 100;
+
 export function estimateTokens(text) {
   if (!text) return 0;
   const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
@@ -320,8 +326,18 @@ export class PromptCompressor {
     const last = [...messages].reverse().find((m) => m.role === "user");
     const rest = messages.filter((m) => m.role !== "system" && m !== last);
 
+    // Bound the fuzzy pass so it stays usable on the very conversations
+    // compaction targets (long + tool-heavy). The naive version compared every
+    // message against EVERY prior one (O(n²)) and ran jaccard over full content
+    // (O(content) per compare) — 300 msgs × ~8 KB tool results blocked ~3.4 s.
+    //  • Exact dedup (the md5 hash set) still covers ALL messages.
+    //  • The fuzzy near-dup compare uses a capped prefix (char-set jaccard is
+    //    alphabet-bounded, so a prefix barely changes the decision) and only the
+    //    most-recent kept entries (near-dups cluster; this can only UNDER-dedup,
+    //    never drop a genuinely-distinct message).
     const seen = new Map();
     const deduped = [];
+    const recent = []; // rolling window of recent kept {capped} contents
 
     for (const msg of rest) {
       const content = getContent(msg);
@@ -329,12 +345,13 @@ export class PromptCompressor {
 
       if (seen.has(hash)) continue;
 
+      const capped =
+        content.length > DEDUP_JACCARD_MAX_CHARS
+          ? content.slice(0, DEDUP_JACCARD_MAX_CHARS)
+          : content;
       let isDup = false;
-      for (const [, existing] of seen) {
-        if (
-          jaccardSimilarity(content, getContent(existing)) >=
-          this.similarityThreshold
-        ) {
+      for (const prev of recent) {
+        if (jaccardSimilarity(capped, prev) >= this.similarityThreshold) {
           isDup = true;
           break;
         }
@@ -343,6 +360,8 @@ export class PromptCompressor {
       if (!isDup) {
         seen.set(hash, msg);
         deduped.push(msg);
+        recent.push(capped);
+        if (recent.length > DEDUP_FUZZY_WINDOW) recent.shift();
       }
     }
 

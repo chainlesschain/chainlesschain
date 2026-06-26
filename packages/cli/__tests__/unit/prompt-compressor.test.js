@@ -127,6 +127,43 @@ describe("PromptCompressor", () => {
       expect(messages[0].content).toBe("sys");
       expect(messages[messages.length - 1].content).toBe("dup");
     });
+
+    it("still removes an EXACT duplicate far outside the fuzzy window", async () => {
+      // Exact dedup uses the md5 hash set (all messages), so distance doesn't
+      // matter even though the fuzzy pass only looks at recent entries.
+      const c = new PromptCompressor({ maxMessages: 1000, maxTokens: 1e9 });
+      const msgs = [{ role: "system", content: "sys" }];
+      msgs.push({ role: "assistant", content: "DUPLICATE-LINE" });
+      for (let i = 0; i < 200; i++) {
+        msgs.push({ role: "assistant", content: `unique-${i}` });
+      }
+      msgs.push({ role: "assistant", content: "DUPLICATE-LINE" }); // 200 apart
+      msgs.push({ role: "user", content: "last" });
+      const { messages } = await c.compress(msgs);
+      const dups = messages.filter((m) => m.content === "DUPLICATE-LINE");
+      expect(dups).toHaveLength(1);
+    });
+
+    it("compacts a long, large-content history quickly (no O(n²·content) blowup)", async () => {
+      // 600 messages with ~16 KB distinct tool results. The old all-pairs /
+      // full-content dedup blocked many seconds here; the bounded pass keeps it
+      // well under a generous ceiling.
+      const c = new PromptCompressor({ maxMessages: 40, maxTokens: 1e9 });
+      const msgs = [{ role: "system", content: "sys" }];
+      for (let i = 0; i < 300; i++) {
+        msgs.push({ role: "assistant", content: `turn ${i}` });
+        msgs.push({
+          role: "tool",
+          tool_call_id: `t${i}`,
+          content: `R${i}`.repeat(8000),
+        });
+      }
+      msgs.push({ role: "user", content: "last" });
+      const t = Date.now();
+      const { messages } = await c.compress(msgs);
+      expect(Date.now() - t).toBeLessThan(8000); // was ~14s+ unbounded
+      expect(messages.length).toBeGreaterThan(0);
+    });
   });
 
   // ── Strategy 2: Truncation ──────────────────────────────────────────
