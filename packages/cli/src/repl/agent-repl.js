@@ -185,8 +185,11 @@ async function executeTool(name, args) {
 
 /**
  * Agentic loop — wraps agent-core's async generator with REPL display output.
+ * Exported so its event-translation contract (checkpoint-mark accuracy for
+ * `/rewind`, content/usage extraction, forced-off in-loop compaction) is
+ * unit-testable via the `options._coreLoop` injection seam.
  */
-async function agentLoop(messages, options) {
+export async function agentLoop(messages, options) {
   // Resume-degenerate role merge (Claude Code 2.1.187 parity), gated by the
   // one-shot `mergeRoles` flag so it fires only on the first model call after
   // resuming a session whose prior run produced no assistant response. Collapse
@@ -212,12 +215,16 @@ async function agentLoop(messages, options) {
           `\n  ⚠️  ${info.message || `已从 "${info.from}" 切换到 "${info.to}"`}\n`,
         ),
       ));
-  // The REPL runs its own auto-compaction (after each turn, with metrics +
-  // persisted compact events), so opt out of the agent loop's in-loop
-  // compaction to avoid compacting the same history twice.
-  for await (const event of coreAgentLoop(messages, {
-    autoCompact: false,
+  // `_coreLoop` is an injectable seam (defaults to agent-core's loop) so the
+  // wrapper's event translation can be unit-tested without a live model.
+  const runCoreLoop = options._coreLoop || coreAgentLoop;
+  for await (const event of runCoreLoop(messages, {
     ...options,
+    // FORCE in-loop compaction off — the REPL runs its OWN post-turn compaction
+    // (with metrics + persisted compact events), so letting agent-core compact
+    // too would trim the same history twice. Placed AFTER the spread so a
+    // caller's options.autoCompact can never silently re-enable the double pass.
+    autoCompact: false,
     onProviderFallback,
   })) {
     if (event.type === "checkpoint") {
