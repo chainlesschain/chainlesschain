@@ -215,11 +215,49 @@ describe("auth", () => {
 });
 
 describe("buildTools caps", () => {
-  it("read_file truncates oversized files", () => {
+  it("read_file truncates oversized files and reports the total size", () => {
     const big = path.join(tmp, "big.txt");
     fs.writeFileSync(big, "x".repeat(250 * 1024), "utf-8");
     const tools = buildTools({ root: tmp });
     const out = tools.read_file.handler({ path: "big.txt" });
     expect(out.content[0].text).toContain("[truncated");
+    expect(out.content[0].text).toContain(String(250 * 1024)); // total size
+    // Only the cap's worth of bytes is returned, never the whole file.
+    expect(out.content[0].text.length).toBeLessThan(210 * 1024);
+  });
+
+  it("read_file never pulls more than the cap into memory (bounded fd read)", () => {
+    // Spy on the injected fs: readFileSync MUST NOT be used for a huge file —
+    // the handler reads via openSync/readSync with a fixed MAX_READ_BYTES+1
+    // buffer, so file size can't drive memory (OOM guard).
+    const real = fs;
+    let readFileSyncCalls = 0;
+    let maxReadLen = 0;
+    const spyFs = {
+      ...real,
+      readFileSync: (...a) => {
+        readFileSyncCalls++;
+        return real.readFileSync(...a);
+      },
+      readSync: (fd, buf, off, len, pos) => {
+        maxReadLen = Math.max(maxReadLen, len);
+        return real.readSync(fd, buf, off, len, pos);
+      },
+    };
+    const big = path.join(tmp, "huge.txt");
+    fs.writeFileSync(big, "y".repeat(2 * 1024 * 1024), "utf-8"); // 2 MB
+    const tools = buildTools({ root: tmp, deps: { fs: spyFs, path } });
+    const out = tools.read_file.handler({ path: "huge.txt" });
+    expect(out.content[0].text).toContain("[truncated");
+    expect(readFileSyncCalls).toBe(0); // whole-file read avoided
+    expect(maxReadLen).toBeLessThanOrEqual(200 * 1024 + 1); // bounded buffer
+  });
+
+  it("read_file returns a small file verbatim (no truncation marker)", () => {
+    fs.writeFileSync(path.join(tmp, "small.txt"), "hello world", "utf-8");
+    const tools = buildTools({ root: tmp });
+    const out = tools.read_file.handler({ path: "small.txt" });
+    expect(out.content[0].text).toBe("hello world");
+    expect(out.content[0].text).not.toContain("[truncated");
   });
 });

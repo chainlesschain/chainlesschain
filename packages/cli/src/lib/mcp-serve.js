@@ -108,6 +108,35 @@ export function buildTools({ root, readOnly = false, deps = _deps }) {
       },
       handler: ({ path: rel }) => {
         const abs = confine(root, rel, deps);
+        // Bounded read: pull at most MAX_READ_BYTES+1 bytes into memory. The
+        // old `readFileSync(abs)` loaded the WHOLE file before truncating, so
+        // MAX_READ_BYTES only capped the RESPONSE — a multi-GB file under the
+        // serve root would OOM the process. The +1 byte detects "longer than
+        // the cap" without reading the rest. Fall back to readFileSync only
+        // when the fd API isn't available on an injected fs.
+        if (typeof fs.openSync === "function") {
+          const fd = fs.openSync(abs, "r");
+          try {
+            const buf = Buffer.alloc(MAX_READ_BYTES + 1);
+            const n = fs.readSync(fd, buf, 0, MAX_READ_BYTES + 1, 0);
+            const truncated = n > MAX_READ_BYTES;
+            const text = buf
+              .slice(0, truncated ? MAX_READ_BYTES : n)
+              .toString("utf-8");
+            if (!truncated) return ok(text);
+            let total = null;
+            try {
+              total = fs.statSync(abs).size;
+            } catch {
+              /* size is best-effort for the message */
+            }
+            return ok(
+              `${text}\n… [truncated${total != null ? ` ${total} bytes` : ""}]`,
+            );
+          } finally {
+            fs.closeSync(fd);
+          }
+        }
         const buf = fs.readFileSync(abs);
         const truncated = buf.length > MAX_READ_BYTES;
         const text = (truncated ? buf.slice(0, MAX_READ_BYTES) : buf).toString(
