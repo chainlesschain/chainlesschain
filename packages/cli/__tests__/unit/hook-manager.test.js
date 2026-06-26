@@ -406,6 +406,22 @@ describe("Hook Manager", () => {
       expect(outcome.success).toBe(false);
       expect(outcome.error).toContain("No handler command");
     });
+
+    it("does not ENOBUFS-fail a command hook that prints > 1 MB (maxBuffer guard)", async () => {
+      // The default execSync maxBuffer is 1 MB; before the fix a hook printing
+      // ~2 MB threw ENOBUFS and was reported as a failure despite succeeding.
+      const hook = {
+        event: HookEvents.PreIPCCall,
+        type: HookType.COMMAND,
+        // ~2 MB of output to stdout, cross-platform via node.
+        handler: `node -e "process.stdout.write('x'.repeat(2*1024*1024))"`,
+        timeout: 20000,
+      };
+      const outcome = await executeHook(hook, {});
+      expect(outcome.success).toBe(true);
+      expect(outcome.error).toBeNull();
+      expect(outcome.result.length).toBeGreaterThan(1024 * 1024);
+    });
   });
 
   // ─── executeHooks ───────────────────────────────────────

@@ -285,6 +285,10 @@ export async function executeHook(hook, context = {}) {
       const output = execSync(cmd, {
         encoding: "utf-8",
         timeout: hook.timeout || 5000,
+        // execSync defaults maxBuffer to 1 MB; a hook that prints more (a
+        // linter/build dumping output) would throw ENOBUFS and be reported as a
+        // FAILURE even though it succeeded. Give hook output generous headroom.
+        maxBuffer: 16 * 1024 * 1024,
         env,
       });
       const executionTime = Date.now() - start;
