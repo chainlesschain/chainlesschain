@@ -159,7 +159,15 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         },
         options.timeoutMs || 5 * 60 * 1000,
       );
-      this._pending.set(requestId, { resolve, reject, timeoutId });
+      // `kind` tags what KIND of response settles this request ("question" vs
+      // "host-tool"). Checked in _resolvePending so a peer's session-answer can
+      // never resolve a host-tool call with a plain string (or vice versa).
+      this._pending.set(requestId, {
+        resolve,
+        reject,
+        timeoutId,
+        kind: options.kind || null,
+      });
 
       this._sendWs({
         ...message,
@@ -170,12 +178,15 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   }
 
   _ask(questionType, question, extra = {}) {
-    return this._request({
-      type: "question",
-      questionType,
-      question,
-      ...extra,
-    });
+    return this._request(
+      {
+        type: "question",
+        questionType,
+        question,
+        ...extra,
+      },
+      { kind: "question" },
+    );
   }
 
   async askInput(question, options = {}) {
@@ -200,7 +211,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * Resolves the corresponding pending promise.
    */
   resolveAnswer(requestId, answer) {
-    this._resolvePending(requestId, answer);
+    this._resolvePending(requestId, answer, "question");
   }
 
   async requestHostTool(toolName, args = {}, extra = {}) {
@@ -211,12 +222,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         args,
         ...extra,
       },
-      { timeoutMs: extra.timeoutMs || 60 * 1000 },
+      { timeoutMs: extra.timeoutMs || 60 * 1000, kind: "host-tool" },
     );
   }
 
   resolveHostTool(requestId, payload) {
-    this._resolvePending(requestId, payload);
+    this._resolvePending(requestId, payload, "host-tool");
   }
 
   rejectAllPending(reason = createAbortError("Interaction interrupted")) {
@@ -310,9 +321,19 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     }
   }
 
-  _resolvePending(requestId, payload) {
+  _resolvePending(requestId, payload, expectedKind = null) {
     const pending = this._pending.get(requestId);
     if (!pending) {
+      return;
+    }
+    // Kind guard: a question-answer must not settle a host-tool request (or
+    // vice versa). On a mismatch, IGNORE the message — leave the request pending
+    // so its correct resolver (or its timeout) can still settle it. Prevents a
+    // peer from resolving a host-tool call with a plain question string, or a
+    // question with a structured tool payload (type confusion of the awaited
+    // value). Backward-compatible: callers passing no expectedKind, and
+    // pre-kind pending entries, behave exactly as before.
+    if (expectedKind && pending.kind && pending.kind !== expectedKind) {
       return;
     }
 

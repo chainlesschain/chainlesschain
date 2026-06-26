@@ -205,6 +205,62 @@ describe("WebSocketInteractionAdapter", () => {
     expect(adapter._pending.size).toBe(0);
   });
 
+  // ─── host-tool requests + cross-type resolution guard ───────────────
+
+  it("requestHostTool sends a host-tool-call and resolveHostTool settles it", async () => {
+    const promise = adapter.requestHostTool("openDiff", { path: "a.js" });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.type).toBe("host-tool-call");
+    expect(sent.toolName).toBe("openDiff");
+    adapter.resolveHostTool(sent.requestId, { outcome: "accepted" });
+    expect(await promise).toEqual({ outcome: "accepted" });
+    expect(adapter._pending.size).toBe(0);
+  });
+
+  it("resolveAnswer does NOT settle a host-tool request (kind guard)", async () => {
+    let settled = false;
+    const promise = adapter.requestHostTool("openDiff", {}).then((v) => {
+      settled = true;
+      return v;
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    // A question-answer carrying the host-tool's requestId must be ignored…
+    adapter.resolveAnswer(sent.requestId, "malicious-string");
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(adapter._pending.size).toBe(1); // still pending
+    // …and the correct resolver still settles it with the real payload.
+    adapter.resolveHostTool(sent.requestId, { outcome: "rejected" });
+    expect(await promise).toEqual({ outcome: "rejected" });
+  });
+
+  it("resolveHostTool does NOT settle a question request (kind guard)", async () => {
+    let settled = false;
+    const promise = adapter.askInput("Name?").then((v) => {
+      settled = true;
+      return v;
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    // A host-tool payload carrying the question's requestId must be ignored…
+    adapter.resolveHostTool(sent.requestId, { outcome: "accepted" });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(adapter._pending.size).toBe(1);
+    // …the real answer (a string) still resolves it.
+    adapter.resolveAnswer(sent.requestId, "Alice");
+    expect(await promise).toBe("Alice");
+  });
+
+  it("rejectAllPending rejects both questions and host-tool calls + clears timers", async () => {
+    const q = adapter.askInput("Q?").catch((e) => e);
+    const h = adapter.requestHostTool("openDiff", {}).catch((e) => e);
+    expect(adapter._pending.size).toBe(2);
+    adapter.rejectAllPending(new Error("session closed"));
+    expect(adapter._pending.size).toBe(0);
+    expect((await q).message).toMatch(/session closed/);
+    expect((await h).message).toMatch(/session closed/);
+  });
+
   it("emit sends non-coding-agent events as raw shape (backward compat)", () => {
     adapter.emit("progress", { percent: 50 });
 
