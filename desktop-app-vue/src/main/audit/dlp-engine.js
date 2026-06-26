@@ -57,7 +57,9 @@ class DLPEngine extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) { return; }
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS dlp_incidents (
@@ -96,7 +98,12 @@ class DLPEngine extends EventEmitter {
    */
   async scanContent({ content, channel, userId, metadata = {} }) {
     if (!content) {
-      return { allowed: true, action: DLP_ACTIONS.ALLOW, matchedPolicies: [], incidents: [] };
+      return {
+        allowed: true,
+        action: DLP_ACTIONS.ALLOW,
+        matchedPolicies: [],
+        incidents: [],
+      };
     }
 
     this._stats.scanned++;
@@ -111,7 +118,12 @@ class DLPEngine extends EventEmitter {
     const matchedPolicies = [];
     const incidents = [];
     let highestAction = DLP_ACTIONS.ALLOW;
-    const actionPriority = [DLP_ACTIONS.ALLOW, DLP_ACTIONS.ALERT, DLP_ACTIONS.BLOCK, DLP_ACTIONS.QUARANTINE];
+    const actionPriority = [
+      DLP_ACTIONS.ALLOW,
+      DLP_ACTIONS.ALERT,
+      DLP_ACTIONS.BLOCK,
+      DLP_ACTIONS.QUARANTINE,
+    ];
 
     // Get active policies for the channel
     let policies = [];
@@ -120,10 +132,11 @@ class DLPEngine extends EventEmitter {
     }
 
     for (const policy of policies) {
-      const patterns = typeof policy.patterns === "string" ? JSON.parse(policy.patterns) : policy.patterns;
-      const keywords = policy.keywords
-        ? (typeof policy.keywords === "string" ? JSON.parse(policy.keywords) : policy.keywords)
-        : [];
+      // Guard per-policy: a malformed patterns/keywords JSON column must not
+      // throw out of the loop and skip EVERY remaining policy (silently
+      // disabling DLP for the channel). Bad/non-array → empty list.
+      const patterns = this._safeParseList(policy.patterns);
+      const keywords = this._safeParseList(policy.keywords);
 
       const patternMatches = this._matchPatterns(content, patterns);
       const keywordMatches = this._matchKeywords(content, keywords);
@@ -165,7 +178,10 @@ class DLPEngine extends EventEmitter {
         incidents.push(incident);
 
         // Update stats
-        if (policy.action === DLP_ACTIONS.BLOCK || policy.action === DLP_ACTIONS.QUARANTINE) {
+        if (
+          policy.action === DLP_ACTIONS.BLOCK ||
+          policy.action === DLP_ACTIONS.QUARANTINE
+        ) {
           this._stats.blocked++;
         } else if (policy.action === DLP_ACTIONS.ALERT) {
           this._stats.alerted++;
@@ -173,16 +189,30 @@ class DLPEngine extends EventEmitter {
       }
     }
 
-    const allowed = highestAction === DLP_ACTIONS.ALLOW || highestAction === DLP_ACTIONS.ALERT;
-    const result = { allowed, action: highestAction, matchedPolicies, incidents };
+    const allowed =
+      highestAction === DLP_ACTIONS.ALLOW ||
+      highestAction === DLP_ACTIONS.ALERT;
+    const result = {
+      allowed,
+      action: highestAction,
+      matchedPolicies,
+      incidents,
+    };
 
     // Cache result (TTL: 5 minutes)
     this._scanCache.set(cacheKey, result);
     setTimeout(() => this._scanCache.delete(cacheKey), 5 * 60 * 1000);
 
     if (matchedPolicies.length > 0) {
-      this.emit("scan-match", { channel, action: highestAction, matchedPolicies, userId });
-      logger.info(`[DLPEngine] Scan match on channel=${channel} action=${highestAction} policies=${matchedPolicies.length}`);
+      this.emit("scan-match", {
+        channel,
+        action: highestAction,
+        matchedPolicies,
+        userId,
+      });
+      logger.info(
+        `[DLPEngine] Scan match on channel=${channel} action=${highestAction} policies=${matchedPolicies.length}`,
+      );
     }
 
     return result;
@@ -208,13 +238,15 @@ class DLPEngine extends EventEmitter {
       params.push(severity);
     }
 
-    const countRow = this.database.db.prepare(
-      `SELECT COUNT(*) as total FROM dlp_incidents ${where}`
-    ).get(...params);
+    const countRow = this.database.db
+      .prepare(`SELECT COUNT(*) as total FROM dlp_incidents ${where}`)
+      .get(...params);
 
-    const incidents = this.database.db.prepare(
-      `SELECT * FROM dlp_incidents ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-    ).all(...params, limit, offset);
+    const incidents = this.database.db
+      .prepare(
+        `SELECT * FROM dlp_incidents ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset);
 
     return { incidents, total: countRow ? countRow.total : 0 };
   }
@@ -227,9 +259,11 @@ class DLPEngine extends EventEmitter {
       throw new Error("Database not available");
     }
 
-    this.database.db.prepare(
-      `UPDATE dlp_incidents SET resolved_at = ?, resolution = ? WHERE id = ?`
-    ).run(Date.now(), resolution, incidentId);
+    this.database.db
+      .prepare(
+        `UPDATE dlp_incidents SET resolved_at = ?, resolution = ? WHERE id = ?`,
+      )
+      .run(Date.now(), resolution, incidentId);
 
     this.emit("incident-resolved", { incidentId, resolution });
     logger.info(`[DLPEngine] Incident ${incidentId} resolved`);
@@ -242,12 +276,14 @@ class DLPEngine extends EventEmitter {
   async getStats() {
     let dbStats = { total: 0, unresolved: 0 };
     if (this.database && this.database.db) {
-      const totalRow = this.database.db.prepare(
-        "SELECT COUNT(*) as total FROM dlp_incidents"
-      ).get();
-      const unresolvedRow = this.database.db.prepare(
-        "SELECT COUNT(*) as total FROM dlp_incidents WHERE resolved_at IS NULL"
-      ).get();
+      const totalRow = this.database.db
+        .prepare("SELECT COUNT(*) as total FROM dlp_incidents")
+        .get();
+      const unresolvedRow = this.database.db
+        .prepare(
+          "SELECT COUNT(*) as total FROM dlp_incidents WHERE resolved_at IS NULL",
+        )
+        .get();
       dbStats = {
         total: totalRow ? totalRow.total : 0,
         unresolved: unresolvedRow ? unresolvedRow.total : 0,
@@ -269,9 +305,31 @@ class DLPEngine extends EventEmitter {
    * @param {string[]} patterns - Array of regex pattern strings
    * @returns {Array<{pattern: string, matches: string[]}>}
    */
+  /**
+   * Parse a patterns/keywords column into an array, tolerating malformed JSON
+   * or a non-array value (returns []) so one bad policy row can't throw out of
+   * the scan loop and disable DLP for the whole channel.
+   */
+  _safeParseList(raw) {
+    if (Array.isArray(raw)) {
+      return raw;
+    }
+    if (typeof raw !== "string") {
+      return [];
+    }
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  }
+
   _matchPatterns(content, patterns) {
     const results = [];
-    if (!patterns || !Array.isArray(patterns)) { return results; }
+    if (!patterns || !Array.isArray(patterns)) {
+      return results;
+    }
 
     for (const pattern of patterns) {
       try {
@@ -296,10 +354,15 @@ class DLPEngine extends EventEmitter {
    */
   _matchKeywords(content, keywords) {
     const results = [];
-    if (!keywords || !Array.isArray(keywords)) { return results; }
+    if (!keywords || !Array.isArray(keywords)) {
+      return results;
+    }
 
     const lowerContent = content.toLowerCase();
     for (const keyword of keywords) {
+      if (typeof keyword !== "string") {
+        continue;
+      }
       if (lowerContent.includes(keyword.toLowerCase())) {
         results.push({ keyword });
       }
@@ -318,18 +381,32 @@ class DLPEngine extends EventEmitter {
    * Persist an incident to the database.
    */
   _saveIncident(incident) {
-    if (!this.database || !this.database.db) { return; }
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     try {
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         INSERT INTO dlp_incidents (id, policy_id, channel, action_taken, content_hash, matched_patterns, severity, user_id, metadata, created_at, resolved_at, resolution)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        incident.id, incident.policy_id, incident.channel, incident.action_taken,
-        incident.content_hash, incident.matched_patterns, incident.severity,
-        incident.user_id, incident.metadata, incident.created_at,
-        incident.resolved_at, incident.resolution
-      );
+      `,
+        )
+        .run(
+          incident.id,
+          incident.policy_id,
+          incident.channel,
+          incident.action_taken,
+          incident.content_hash,
+          incident.matched_patterns,
+          incident.severity,
+          incident.user_id,
+          incident.metadata,
+          incident.created_at,
+          incident.resolved_at,
+          incident.resolution,
+        );
     } catch (err) {
       logger.error("[DLPEngine] Failed to save incident:", err);
     }
@@ -345,7 +422,9 @@ class DLPEngine extends EventEmitter {
 
 let _instance;
 function getDLPEngine() {
-  if (!_instance) { _instance = new DLPEngine(); }
+  if (!_instance) {
+    _instance = new DLPEngine();
+  }
   return _instance;
 }
 
