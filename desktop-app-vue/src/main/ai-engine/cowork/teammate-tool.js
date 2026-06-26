@@ -949,13 +949,24 @@ class TeammateTool extends EventEmitter {
         const winner = Array.from(voteCounts.entries()).sort(
           (a, b) => b[1] - a[1],
         )[0];
-        mergedResult = {
-          type: "vote",
-          result: JSON.parse(winner[0]),
-          votes: winner[1],
-          totalResults: results.length,
-          timestamp: Date.now(),
-        };
+        // Guard empty results: winner is undefined, and the sibling strategies
+        // (aggregate/concatenate/average) all return a null/empty result rather
+        // than crashing on `winner[0]`.
+        mergedResult = winner
+          ? {
+              type: "vote",
+              result: JSON.parse(winner[0]),
+              votes: winner[1],
+              totalResults: results.length,
+              timestamp: Date.now(),
+            }
+          : {
+              type: "vote",
+              result: null,
+              votes: 0,
+              totalResults: results.length,
+              timestamp: Date.now(),
+            };
         break;
       }
 

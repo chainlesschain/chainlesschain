@@ -315,6 +315,9 @@ class SkillLoader extends EventEmitter {
     this.layerDefinitions.bundled.clear();
     this.layerDefinitions.managed.clear();
     this.layerDefinitions.workspace.clear();
+    // marketplace was omitted: loadLayer only .set()s entries, so a marketplace
+    // skill deleted from disk would otherwise persist (stale) across reload().
+    this.layerDefinitions.marketplace.clear();
     this.resolvedSkills.clear();
 
     // 清除门控缓存

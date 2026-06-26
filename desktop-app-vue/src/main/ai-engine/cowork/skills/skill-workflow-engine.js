@@ -297,6 +297,13 @@ class SkillWorkflowEngine extends EventEmitter {
 
       return result;
     } catch (error) {
+      // Remove the step listeners — the success path removes them above, but
+      // this path used to leak all three closures on the long-lived shared
+      // pipelineEngine (accumulating on every failed run, and re-firing stale
+      // step:* events for a finished workflow on later pipeline executions).
+      this.pipelineEngine.off("step:started", onStepStart);
+      this.pipelineEngine.off("step:completed", onStepComplete);
+      this.pipelineEngine.off("step:failed", onStepFail);
       // Cleanup temp pipeline
       try {
         this.pipelineEngine.deletePipeline(pipelineId);

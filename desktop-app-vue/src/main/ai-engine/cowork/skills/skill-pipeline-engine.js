@@ -428,26 +428,29 @@ class SkillPipelineEngine extends EventEmitter {
       let result;
       let success = true;
 
-      try {
+      // Dispatch by step type, defined once so the retry path re-runs the
+      // ACTUAL step type. The retry used to hardcode _executeSkillStep, so a
+      // transform/condition/loop/parallel step with retries>0 re-ran as a bogus
+      // skill step (resolveVariables(undefined) → "技能不存在: undefined").
+      const runStepByType = async () => {
         switch (step.type) {
           case StepType.SKILL:
-            result = await this._executeSkillStep(step, execution.context);
-            break;
+            return await this._executeSkillStep(step, execution.context);
           case StepType.CONDITION:
-            result = await this._executeConditionStep(step, execution);
-            break;
+            return await this._executeConditionStep(step, execution);
           case StepType.PARALLEL:
-            result = await this._executeParallelStep(step, execution.context);
-            break;
+            return await this._executeParallelStep(step, execution.context);
           case StepType.TRANSFORM:
-            result = this._executeTransformStep(step, execution.context);
-            break;
+            return this._executeTransformStep(step, execution.context);
           case StepType.LOOP:
-            result = await this._executeLoopStep(step, execution);
-            break;
+            return await this._executeLoopStep(step, execution);
           default:
             throw new Error(`Unknown step type: ${step.type}`);
         }
+      };
+
+      try {
+        result = await runStepByType();
       } catch (error) {
         success = false;
         // Retry logic
@@ -457,7 +460,7 @@ class SkillPipelineEngine extends EventEmitter {
               logger.info(
                 `[SkillPipelineEngine] Retrying step ${stepName} (${retry + 1}/${step.retries})`,
               );
-              result = await this._executeSkillStep(step, execution.context);
+              result = await runStepByType();
               success = true;
               break;
             } catch (retryError) {
