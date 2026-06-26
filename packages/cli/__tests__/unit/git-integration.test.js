@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // Mock child_process and fs
 vi.mock("child_process", () => ({
   execSync: vi.fn(),
+  // gitExecArgs (argv, no shell) routes free-text commit messages here.
+  spawnSync: vi.fn(() => ({ status: 0, stdout: "" })),
 }));
 
 vi.mock("fs", () => ({
@@ -12,7 +14,7 @@ vi.mock("fs", () => ({
   chmodSync: vi.fn(),
 }));
 
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { existsSync, writeFileSync, chmodSync } from "fs";
 import {
   isGitRepo,
@@ -116,6 +118,8 @@ describe("assertSafeGitPath (shell-injection guard for interpolated file paths)"
 describe("Git Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks wipes the default impl; restore the success return.
+    spawnSync.mockReturnValue({ status: 0, stdout: "" });
   });
 
   // ─── isGitRepo ────────────────────────────────────────────────
@@ -255,8 +259,7 @@ describe("Git Integration", () => {
         .mockReturnValueOnce(" M file.txt\n") // status --porcelain
         .mockReturnValueOnce("main\n") // branch
         .mockReturnValueOnce("") // add -A
-        .mockReturnValueOnce("") // commit
-        .mockReturnValueOnce("abc1234\n"); // rev-parse
+        .mockReturnValueOnce("abc1234\n"); // rev-parse (commit goes via spawnSync)
 
       const result = gitAutoCommit("/test", "custom message");
       expect(result.committed).toBe(true);
@@ -270,12 +273,35 @@ describe("Git Integration", () => {
         .mockReturnValueOnce(" M file1.txt\n M file2.txt\n")
         .mockReturnValueOnce("main\n")
         .mockReturnValueOnce("")
-        .mockReturnValueOnce("")
         .mockReturnValueOnce("def5678\n");
 
       const result = gitAutoCommit("/test");
       expect(result.committed).toBe(true);
       expect(result.message).toContain("2 file(s) changed");
+    });
+
+    it("commits the message via argv (no shell) so $()/backticks can't inject", () => {
+      existsSync.mockReturnValue(true);
+      execSync
+        .mockReturnValueOnce(" M file.txt\n") // status --porcelain
+        .mockReturnValueOnce("main\n") // branch
+        .mockReturnValueOnce("") // add -A
+        .mockReturnValueOnce(" feed00d\n"); // rev-parse
+
+      const evil = "$(touch PWNED)`touch PWNED`; rm -rf ~";
+      const result = gitAutoCommit("/test", evil);
+      expect(result.committed).toBe(true);
+      // The message went through spawnSync as a verbatim argv element — never a
+      // shell string — so the substitution is inert and stored literally.
+      expect(spawnSync).toHaveBeenCalledWith(
+        "git",
+        ["commit", "-m", evil],
+        expect.objectContaining({ cwd: "/test" }),
+      );
+      // And `git commit -m "<evil>"` was never built as a shell command.
+      for (const call of execSync.mock.calls) {
+        expect(call[0]).not.toContain("commit -m");
+      }
     });
   });
 
@@ -323,6 +349,36 @@ describe("Git Integration", () => {
         throw new Error("no commits");
       });
       expect(gitLog("/test")).toEqual([]);
+    });
+
+    it("coerces a non-numeric limit to a safe integer (no shell injection)", () => {
+      existsSync.mockReturnValue(true);
+      execSync.mockReturnValue("");
+      // A hostile limit would otherwise be interpolated into the shell string.
+      // parseInt keeps only the leading digits (5) and drops the payload.
+      gitLog("/test", "5; touch PWNED");
+      const cmd = execSync.mock.calls[0][0];
+      expect(cmd).toContain("log --oneline --no-decorate -5 ");
+      expect(cmd).not.toContain("touch PWNED");
+      expect(cmd).not.toContain(";");
+
+      // A fully non-numeric limit falls back to the default 10.
+      execSync.mockClear();
+      gitLog("/test", "$(touch PWNED)");
+      const cmd2 = execSync.mock.calls[0][0];
+      expect(cmd2).toContain("log --oneline --no-decorate -10 ");
+      expect(cmd2).not.toContain("touch PWNED");
+      expect(cmd2).not.toContain("$(");
+    });
+
+    it("uses a valid numeric limit verbatim and clamps absurd values", () => {
+      existsSync.mockReturnValue(true);
+      execSync.mockReturnValue("");
+      gitLog("/test", 5);
+      expect(execSync.mock.calls[0][0]).toContain("-5 ");
+      execSync.mockClear();
+      gitLog("/test", 999999);
+      expect(execSync.mock.calls[0][0]).toContain("-10000 "); // clamped
     });
   });
 

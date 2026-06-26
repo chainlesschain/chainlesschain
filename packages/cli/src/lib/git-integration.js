@@ -188,7 +188,11 @@ export function gitAutoCommit(dir, message) {
     message ||
     `auto: ${status.files.length} file(s) changed — ${new Date().toISOString().slice(0, 16)}`;
 
-  gitExec(`commit -m "${commitMsg.replace(/"/g, '\\"')}"`, dir);
+  // Free-text message → argv (no shell) so `$()` / backticks / `;` in a
+  // caller-supplied message (e.g. `cc git auto-commit --message …`) can't
+  // inject a command. The prior `-m "${msg.replace(/"/g,'\\"')}"` only escaped
+  // double quotes — same gap fixed in worktree-isolator / mergeWorktree.
+  gitExecArgs(["commit", "-m", commitMsg], dir);
 
   const hash = gitExec("rev-parse --short HEAD", dir);
 
@@ -209,12 +213,17 @@ export function gitLog(dir, limit = 10) {
   }
 
   try {
+    // Coerce `limit` to a bounded positive integer before it is interpolated
+    // into the shell string — a non-numeric value (`5; rm -rf ~`) would
+    // otherwise inject. The only in-tree caller already passes an int; this is
+    // defense-in-depth at the exported boundary.
+    const n = Math.min(10000, Math.max(1, Number.parseInt(limit, 10) || 10));
     // Subject (%s) is free text that often contains "|"; keep it LAST so a
     // pipe in the subject can't shift the date/author fields, then re-join the
     // remainder. (Field order kept as %X|%X — Windows cmd.exe expands adjacent
     // %VAR% pairs, so a control-char separator like %x1f is not portable here.)
     const output = gitExec(
-      `log --oneline --no-decorate -${limit} --format="%H|%h|%ai|%an|%s"`,
+      `log --oneline --no-decorate -${n} --format="%H|%h|%ai|%an|%s"`,
       dir,
     );
     return output
