@@ -78,4 +78,36 @@ describe("FileTransferManager.handleRequestChunks", () => {
 
     expect(sent).toEqual([0]); // chunk 9 (start 36 > fileSize) skipped
   });
+
+  it("handleChunk counts bytes once per chunk even on resend", async () => {
+    // Regression: bytesDownloaded += chunkData.length ran on EVERY arrival, so a
+    // re-sent chunk (resume/retry path, now functional) double-counted and
+    // inflated progress past the file size. receivedChunks (a Set) is idempotent.
+    const mgr = new FileTransferManager({ on: vi.fn() }, { chunkSize: 4 });
+    mgr.downloads.set("d1", {
+      transferId: "d1",
+      chunks: new Map(),
+      receivedChunks: new Set(),
+      totalChunks: 2,
+      fileSize: 8,
+      bytesDownloaded: 0,
+    });
+
+    const chunk0 = Buffer.from("ABCD").toString("base64");
+    await mgr.handleChunk("peer", {
+      transferId: "d1",
+      chunkIndex: 0,
+      data: chunk0,
+    });
+    // Same chunk re-sent (duplicate).
+    await mgr.handleChunk("peer", {
+      transferId: "d1",
+      chunkIndex: 0,
+      data: chunk0,
+    });
+
+    const task = mgr.downloads.get("d1");
+    expect(task.receivedChunks.size).toBe(1);
+    expect(task.bytesDownloaded).toBe(4); // not 8
+  });
 });

@@ -636,10 +636,15 @@ class FileTransferManager extends EventEmitter {
     // 解码分块数据
     const chunkData = Buffer.from(data, "base64");
 
-    // 保存分块
+    // 保存分块。仅对首次收到的分块累加字节数——重发分块（断点续传/重试路径，现已
+    // 真正生效）会重复进入 handleChunk，否则 bytesDownloaded 重复计数、进度字节数
+    // 虚高甚至超过文件总大小。receivedChunks 是 Set 本就幂等。
+    const isNewChunk = !downloadTask.receivedChunks.has(chunkIndex);
     downloadTask.chunks.set(chunkIndex, chunkData);
     downloadTask.receivedChunks.add(chunkIndex);
-    downloadTask.bytesDownloaded += chunkData.length;
+    if (isNewChunk) {
+      downloadTask.bytesDownloaded += chunkData.length;
+    }
 
     // 更新进度
     this.emit("download:progress", {
