@@ -35,6 +35,7 @@ import {
   resolvePermissionMode,
   resolveEnabledTools,
   parseToolList,
+  installPipeSafety,
 } from "./headless-runner.js";
 import {
   startSession as jsonlStartSession,
@@ -513,6 +514,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  // Guard the real stdout/stderr against a downstream `| head` closing the pipe
+  // (unhandled async EPIPE → crash). Only when we own the streams (no injected
+  // seams = production, not tests). Idempotent; shared with the -p runner.
+  if (!deps.writeOut && !deps.writeErr) {
+    installPipeSafety();
+  }
   // Batch consecutive partial-message text/thinking deltas into one stream_event
   // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
   // pending deltas before writing a non-delta line, so ordering is preserved;
