@@ -13,6 +13,12 @@ import {
   listJsonlSessions,
 } from "../harness/jsonl-session-store.js";
 
+// Injectable disk seams (tests override). readEvents skips malformed JSON lines
+// but does NOT guard readFileSync, so an unreadable session file (EACCES /
+// EISDIR / a Windows lock / an ENOENT race after existsSync) throws — which
+// allSessionsUsage tolerates per-session below.
+export const _deps = { readEvents, listJsonlSessions };
+
 const USAGE_EVENT_TYPES = new Set([
   "token_usage",
   "assistant_message",
@@ -138,7 +144,7 @@ export function aggregateUsage(events) {
  * Roll up usage for a single JSONL session.
  */
 export function sessionUsage(sessionId) {
-  const events = readEvents(sessionId);
+  const events = _deps.readEvents(sessionId);
   const agg = aggregateUsage(events);
   return { sessionId, ...agg };
 }
@@ -147,8 +153,19 @@ export function sessionUsage(sessionId) {
  * Roll up usage across every JSONL session on disk.
  */
 export function allSessionsUsage({ limit = 1000 } = {}) {
-  const sessions = listJsonlSessions({ limit });
-  const perSession = sessions.map((s) => sessionUsage(s.id));
+  const sessions = _deps.listJsonlSessions({ limit });
+  // One unreadable / corrupt session file (sessionUsage → readEvents →
+  // readFileSync can throw on EACCES/EISDIR/lock) must NOT abort the whole
+  // roll-up. Skip the failed session and report how many were skipped.
+  const perSession = [];
+  let skipped = 0;
+  for (const s of sessions || []) {
+    try {
+      perSession.push(sessionUsage(s.id));
+    } catch {
+      skipped++;
+    }
+  }
 
   const total = {
     inputTokens: 0,
@@ -191,6 +208,7 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
 
   return {
     sessions: perSession,
+    skipped,
     total,
     byModel: Array.from(byKey.values()).sort(
       (a, b) => b.totalTokens - a.totalTokens,

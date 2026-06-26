@@ -1,5 +1,16 @@
-import { describe, it, expect } from "vitest";
-import { extractUsage, aggregateUsage } from "../../src/lib/session-usage.js";
+import { describe, it, expect, afterEach } from "vitest";
+import {
+  extractUsage,
+  aggregateUsage,
+  sessionUsage,
+  allSessionsUsage,
+  _deps,
+} from "../../src/lib/session-usage.js";
+
+const usageEvent = (model, input, output) => ({
+  type: "token_usage",
+  data: { model, usage: { input_tokens: input, output_tokens: output } },
+});
 
 describe("session-usage", () => {
   describe("extractUsage", () => {
@@ -155,6 +166,55 @@ describe("session-usage", () => {
       ]);
       expect(agg.byModel[0].model).toBe("big");
       expect(agg.byModel[1].model).toBe("small");
+    });
+  });
+
+  describe("allSessionsUsage (resilient roll-up)", () => {
+    const origReadEvents = _deps.readEvents;
+    const origListSessions = _deps.listJsonlSessions;
+    afterEach(() => {
+      _deps.readEvents = origReadEvents;
+      _deps.listJsonlSessions = origListSessions;
+    });
+
+    it("aggregates across sessions and skips one that fails to read", () => {
+      _deps.listJsonlSessions = () => [
+        { id: "good-1" },
+        { id: "bad" },
+        { id: "good-2" },
+      ];
+      _deps.readEvents = (id) => {
+        if (id === "bad") {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        }
+        return [usageEvent("opus", 100, 50)];
+      };
+
+      const r = allSessionsUsage();
+      expect(r.skipped).toBe(1); // the unreadable session didn't abort the rest
+      expect(r.sessions).toHaveLength(2); // good-1 + good-2
+      expect(r.total.calls).toBe(2);
+      expect(r.total.totalTokens).toBe(300); // 2 × (100+50)
+      expect(r.byModel[0]).toMatchObject({ model: "opus", calls: 2 });
+    });
+
+    it("reports zero skipped when every session reads cleanly", () => {
+      _deps.listJsonlSessions = () => [{ id: "a" }, { id: "b" }];
+      _deps.readEvents = () => [usageEvent("gpt-4o", 10, 5)];
+      const r = allSessionsUsage();
+      expect(r.skipped).toBe(0);
+      expect(r.sessions).toHaveLength(2);
+    });
+
+    it("sessionUsage rolls up a single session via the injected reader", () => {
+      _deps.readEvents = () => [
+        usageEvent("opus", 100, 50),
+        usageEvent("opus", 30, 10),
+      ];
+      const r = sessionUsage("s1");
+      expect(r.sessionId).toBe("s1");
+      expect(r.total.calls).toBe(2);
+      expect(r.total.inputTokens).toBe(130);
     });
   });
 });
