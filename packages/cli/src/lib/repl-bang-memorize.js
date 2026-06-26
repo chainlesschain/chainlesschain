@@ -25,6 +25,11 @@ import { findProjectRoot } from "./project-instructions.js";
 export const BANG_TIMEOUT_MS = 120_000;
 export const BANG_MAX_BUFFER = 10 * 1024 * 1024;
 export const BANG_OUTPUT_CAP = 30_000;
+// A `#` note is a terse one-liner, but readline accepts a long pasted line and
+// the note lands verbatim in cc.md — which is auto-loaded into EVERY future
+// session's system prompt. Without a cap, an accidental fat paste silently
+// bloats every later session's context. Truncate to a sane single-note size.
+export const MEMO_NOTE_MAX = 4_000;
 
 export const _deps = {
   spawnSync: spawnSyncDefault,
@@ -138,7 +143,10 @@ export function appendMemoryNote(rawLine, opts = {}) {
   const fs = opts.deps?.fs || _deps.fs;
   const path = opts.deps?.path || _deps.path;
   const cwd = opts.cwd || process.cwd();
-  const note = String(rawLine).replace(/^#/, "").trim();
+  let note = String(rawLine).replace(/^#/, "").trim();
+  if (note.length > MEMO_NOTE_MAX) {
+    note = `${note.slice(0, MEMO_NOTE_MAX)} …[truncated]`;
+  }
   const stamp = opts.date || new Date().toISOString().slice(0, 10);
 
   const root =

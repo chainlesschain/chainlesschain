@@ -140,6 +140,28 @@ describe("appendMemoryNote", () => {
     expect(text).toMatch(/## Stack[\s\S]*## Notes[\s\S]*- fresh/);
   });
 
+  it("caps an oversized pasted note so cc.md (auto-loaded每 session) can't bloat", () => {
+    fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
+    const huge = "x".repeat(50_000); // accidental fat paste after `#`
+    const res = appendMemoryNote(`# ${huge}`, { cwd: tmp, date: "2026-06-11" });
+    expect(res.note.length).toBeLessThan(50_000);
+    expect(res.note).toMatch(/…\[truncated\]$/);
+    const text = fs.readFileSync(path.join(tmp, "cc.md"), "utf-8");
+    expect(text).toContain("…[truncated]");
+    // The note line stays bounded (cap + marker + date), not 50 KB.
+    expect(text.length).toBeLessThan(5_000);
+  });
+
+  it("does not truncate a normal-length note", () => {
+    fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
+    const res = appendMemoryNote("# a perfectly reasonable note", {
+      cwd: tmp,
+      date: "2026-06-11",
+    });
+    expect(res.note).toBe("a perfectly reasonable note");
+    expect(res.note).not.toContain("truncated");
+  });
+
   it("round-trips: the note is picked up by the project-instructions loader", async () => {
     fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
     appendMemoryNote("# loader sees this", { cwd: tmp, date: "2026-06-11" });
