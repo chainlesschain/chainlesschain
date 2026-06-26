@@ -418,27 +418,50 @@ class ApprovalWorkflowManager extends EventEmitter {
 
       // Filter to only show requests where user can approve
       const pendingForUser = requests.filter((r) => {
-        const approvers = JSON.parse(r.approvers);
+        // A corrupt `approvers` JSON on one workflow must not throw out of the
+        // filter and break the entire pending-approvals list. Treat an
+        // unparseable workflow as not-approvable (fail-closed) and skip it.
+        let approvers;
+        try {
+          approvers = JSON.parse(r.approvers);
+        } catch (err) {
+          logger.warn(
+            `[ApprovalWorkflow] request ${r.id} has unparseable approvers; skipping: ${err.message}`,
+          );
+          return false;
+        }
         const currentApprovers = approvers[r.current_step];
         return this._isAuthorizedApprover(approverDid, currentApprovers);
       });
 
       return {
         success: true,
-        requests: pendingForUser.map((r) => ({
-          id: r.id,
-          workflowId: r.workflow_id,
-          workflowName: r.workflow_name,
-          requesterDid: r.requester_did,
-          requesterName: r.requester_name,
-          resourceType: r.resource_type,
-          resourceId: r.resource_id,
-          action: r.action,
-          requestData: r.request_data ? JSON.parse(r.request_data) : null,
-          currentStep: r.current_step,
-          totalSteps: r.total_steps,
-          createdAt: r.created_at,
-        })),
+        requests: pendingForUser.map((r) => {
+          // Guard request_data too: a malformed non-empty value would otherwise
+          // throw out of this map and (via the outer catch) break the whole list.
+          let requestData = null;
+          if (r.request_data) {
+            try {
+              requestData = JSON.parse(r.request_data);
+            } catch {
+              requestData = null;
+            }
+          }
+          return {
+            id: r.id,
+            workflowId: r.workflow_id,
+            workflowName: r.workflow_name,
+            requesterDid: r.requester_did,
+            requesterName: r.requester_name,
+            resourceType: r.resource_type,
+            resourceId: r.resource_id,
+            action: r.action,
+            requestData,
+            currentStep: r.current_step,
+            totalSteps: r.total_steps,
+            createdAt: r.created_at,
+          };
+        }),
       };
     } catch (error) {
       logger.error(

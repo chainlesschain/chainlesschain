@@ -8,6 +8,21 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 
+// A corrupt permissions column (malformed non-empty JSON — `|| "[]"` only guards
+// null/empty) must not throw out of getRoles/getRole and take down the entire
+// RBAC role list. Default to [] (no permissions = fail-closed) and log, so one
+// bad row degrades only that role.
+function safeParsePermissions(raw, roleId) {
+  try {
+    return JSON.parse(raw || "[]");
+  } catch (err) {
+    logger.warn(
+      `[OrganizationManager] role ${roleId} has unparseable permissions; treating as none: ${err.message}`,
+    );
+    return [];
+  }
+}
+
 module.exports = {
   async initializeBuiltinRoles(orgId) {
     const builtinRoles = [
@@ -161,7 +176,7 @@ module.exports = {
 
     return roles.map((role) => ({
       ...role,
-      permissions: JSON.parse(role.permissions || "[]"),
+      permissions: safeParsePermissions(role.permissions, role.id),
     }));
   },
 
@@ -176,7 +191,7 @@ module.exports = {
 
     return {
       ...role,
-      permissions: JSON.parse(role.permissions || "[]"),
+      permissions: safeParsePermissions(role.permissions, role.id),
     };
   },
 

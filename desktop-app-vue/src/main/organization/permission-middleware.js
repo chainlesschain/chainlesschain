@@ -694,10 +694,20 @@ class PermissionMiddleware extends EventEmitter {
 
       const logs = db.prepare(query).all(...params);
 
-      return logs.map((log) => ({
-        ...log,
-        context: JSON.parse(log.context),
-      }));
+      return logs.map((log) => {
+        // A single corrupt `context` must not throw out of the .map and wipe the
+        // ENTIRE audit-log view (the outer catch returns []). Degrade that row's
+        // context to null instead.
+        let context = null;
+        if (log.context) {
+          try {
+            context = JSON.parse(log.context);
+          } catch {
+            context = null;
+          }
+        }
+        return { ...log, context };
+      });
     } catch (error) {
       logger.error("[PermissionMiddleware] Failed to get audit log:", error);
       return [];
