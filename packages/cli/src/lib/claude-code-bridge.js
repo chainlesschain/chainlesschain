@@ -29,6 +29,13 @@ export const AGENT_STATUS = {
   TIMEOUT: "timeout",
 };
 
+// Bound how much of a child's stdout/stderr we retain in memory. A verbose or
+// runaway `claude -p` can stream unbounded stream-json; without a cap,
+// outputChunks.join("") OOMs the orchestrator. We keep the TAIL (oldest chunks
+// dropped) because stream-json's terminal `result` / last-assistant line — the
+// only thing _parseStreamJson needs — is at the end.
+export const MAX_AGENT_OUTPUT_BYTES = 32 * 1024 * 1024;
+
 // ─── Detection ───────────────────────────────────────────────────
 
 /**
@@ -98,6 +105,7 @@ export class ClaudeCodeAgent extends EventEmitter {
       context = "",
       allowedTools = null,
       killGraceMs = 3000,
+      maxOutputBytes = MAX_AGENT_OUTPUT_BYTES,
     } = options;
 
     const fullPrompt = context
@@ -126,6 +134,19 @@ export class ClaudeCodeAgent extends EventEmitter {
       const outDecoder = new TextDecoder("utf-8");
       const errDecoder = new TextDecoder("utf-8");
       let timedOut = false;
+      // Tail-bounded byte counters for the two buffers (see MAX_AGENT_OUTPUT_BYTES).
+      let outBytes = 0;
+      let errBytes = 0;
+      let outputTruncated = false;
+      // Drop oldest chunks until the buffer is back under the cap, keeping ≥1
+      // chunk (the most recent, where the result line lives).
+      const trim = (chunks, bytesRef) => {
+        let bytes = bytesRef;
+        while (bytes > maxOutputBytes && chunks.length > 1) {
+          bytes -= Buffer.byteLength(chunks.shift());
+        }
+        return bytes;
+      };
 
       const proc = _deps.spawn(this.cliCommand, args, {
         cwd,
@@ -155,15 +176,26 @@ export class ClaudeCodeAgent extends EventEmitter {
             ? data
             : outDecoder.decode(data, { stream: true });
         outputChunks.push(chunk);
+        outBytes += Buffer.byteLength(chunk);
+        if (outBytes > maxOutputBytes) {
+          outputTruncated = true;
+          outBytes = trim(outputChunks, outBytes);
+        }
+        // The live `output` event still streams every chunk verbatim — the cap
+        // only bounds what we RETAIN for the final rawOutput.
         this.emit("output", { agentId: this.id, chunk });
       });
 
       proc.stderr.on("data", (data) => {
-        errorChunks.push(
+        const chunk =
           typeof data === "string"
             ? data
-            : errDecoder.decode(data, { stream: true }),
-        );
+            : errDecoder.decode(data, { stream: true });
+        errorChunks.push(chunk);
+        errBytes += Buffer.byteLength(chunk);
+        if (errBytes > maxOutputBytes) {
+          errBytes = trim(errorChunks, errBytes);
+        }
       });
 
       proc.on("close", (code) => {
@@ -188,6 +220,7 @@ export class ClaudeCodeAgent extends EventEmitter {
           success: code === 0 && !timedOut,
           output: parsedOutput || rawOutput.slice(-4000), // last 4K chars fallback
           rawOutput,
+          outputTruncated, // true when the child exceeded maxOutputBytes
           exitCode: code,
           duration,
           timedOut,

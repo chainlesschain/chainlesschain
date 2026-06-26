@@ -171,6 +171,42 @@ describe("ClaudeCodeAgent", () => {
     expect(result.rawOutput).not.toContain("�");
   });
 
+  it("bounds retained output (tail-kept) when the child floods stdout past the cap", async () => {
+    const { EventEmitter } = require("events");
+    const resultLine =
+      JSON.stringify({ type: "result", result: "FINAL-ANSWER" }) + "\n";
+    _deps.spawn = vi.fn(() => {
+      const proc = new EventEmitter();
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+      process.nextTick(() => {
+        // 20 noisy ~1 KB stream-json-style lines, then the terminal result line.
+        // Newline-terminated so the surviving tail stays line-parseable.
+        for (let i = 0; i < 20; i++) {
+          proc.stdout.emit("data", Buffer.from("x".repeat(1023) + "\n"));
+        }
+        proc.stdout.emit("data", Buffer.from(resultLine));
+        proc.emit("close", 0);
+      });
+      return proc;
+    });
+    const agent = new ClaudeCodeAgent({ id: "flood", cliCommand: "claude" });
+    // Cap at 4 KB → the ~20 KB of noise must be dropped from the front.
+    const result = await agent.executeTask("noisy", {
+      cwd: "/tmp",
+      maxOutputBytes: 4096,
+    });
+
+    expect(result.outputTruncated).toBe(true);
+    // Memory is bounded near the cap, not the full ~21 KB.
+    expect(Buffer.byteLength(result.rawOutput)).toBeLessThanOrEqual(
+      4096 + 1024,
+    );
+    // The tail (terminal result line) survived, so parsing still works.
+    expect(result.output).toBe("FINAL-ANSWER");
+  });
+
   it("marks task as FAILED when exit code is non-zero", async () => {
     _deps.spawn = vi.fn(() => makeChildProcess({ stdout: "", exitCode: 1 }));
     const agent = new ClaudeCodeAgent({ id: "a3" });
