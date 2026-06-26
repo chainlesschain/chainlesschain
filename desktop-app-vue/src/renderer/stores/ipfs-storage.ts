@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== Type Definitions ====================
 
@@ -16,7 +16,7 @@ import { defineStore } from 'pinia';
  */
 export interface IPFSNodeStatus {
   running: boolean;
-  mode: 'embedded' | 'external';
+  mode: "embedded" | "external";
   peerId: string | null;
   peerCount: number;
 }
@@ -95,7 +95,7 @@ interface IPFSStorageState {
 
 // ==================== Store ====================
 
-export const useIPFSStorageStore = defineStore('ipfs-storage', {
+export const useIPFSStorageStore = defineStore("ipfs-storage", {
   state: (): IPFSStorageState => ({
     // ==========================================
     // Node Status
@@ -103,7 +103,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
     nodeStatus: {
       running: false,
-      mode: 'embedded',
+      mode: "embedded",
       peerId: null,
       peerCount: 0,
     },
@@ -208,8 +208,8 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:initialize',
-          config || {}
+          "ipfs:initialize",
+          config || {},
         );
 
         if (result.success && result.data) {
@@ -218,7 +218,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Initialize failed:', error);
+        console.error("[IPFSStore] Initialize failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -234,7 +234,9 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:start-node');
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:start-node",
+        );
 
         if (result.success && result.data) {
           this.nodeStatus = result.data;
@@ -242,7 +244,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Start node failed:', error);
+        console.error("[IPFSStore] Start node failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -258,7 +260,9 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:stop-node');
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:stop-node",
+        );
 
         if (result.success && result.data) {
           this.nodeStatus = result.data;
@@ -266,7 +270,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Stop node failed:', error);
+        console.error("[IPFSStore] Stop node failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -280,7 +284,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
     async fetchNodeStatus(): Promise<IPCResponse> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:get-node-status'
+          "ipfs:get-node-status",
         );
 
         if (result.success && result.data) {
@@ -289,7 +293,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Fetch node status failed:', error);
+        console.error("[IPFSStore] Fetch node status failed:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -304,7 +308,11 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      */
     async addContent(
       content: string,
-      options?: { encrypt?: boolean; metadata?: Record<string, any>; filename?: string }
+      options?: {
+        encrypt?: boolean;
+        metadata?: Record<string, any>;
+        filename?: string;
+      },
     ): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
@@ -312,10 +320,13 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
       try {
         this.uploadProgress = 50;
-        const result = await (window as any).electronAPI.invoke('ipfs:add-content', {
-          content,
-          options: options || {},
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:add-content",
+          {
+            content,
+            options: options || {},
+          },
+        );
 
         this.uploadProgress = 100;
 
@@ -327,7 +338,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Add content failed:', error);
+        console.error("[IPFSStore] Add content failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -343,7 +354,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      */
     async addFile(
       filePath: string,
-      options?: { encrypt?: boolean; metadata?: Record<string, any> }
+      options?: { encrypt?: boolean; metadata?: Record<string, any> },
     ): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
@@ -351,10 +362,13 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
       try {
         this.uploadProgress = 30;
-        const result = await (window as any).electronAPI.invoke('ipfs:add-file', {
-          filePath,
-          options: options || {},
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:add-file",
+          {
+            filePath,
+            options: options || {},
+          },
+        );
 
         this.uploadProgress = 100;
 
@@ -365,7 +379,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Add file failed:', error);
+        console.error("[IPFSStore] Add file failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -381,20 +395,23 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      */
     async getContent(
       cid: string,
-      options?: Record<string, any>
+      options?: Record<string, any>,
     ): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:get-content', {
-          cid,
-          options: options || {},
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:get-content",
+          {
+            cid,
+            options: options || {},
+          },
+        );
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Get content failed:', error);
+        console.error("[IPFSStore] Get content failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -410,14 +427,17 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:get-file', {
-          cid,
-          outputPath,
-        });
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:get-file",
+          {
+            cid,
+            outputPath,
+          },
+        );
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Get file failed:', error);
+        console.error("[IPFSStore] Get file failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -437,7 +457,10 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:pin', cid);
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:pin",
+          cid,
+        );
 
         if (result.success) {
           // Update local state
@@ -450,7 +473,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Pin failed:', error);
+        console.error("[IPFSStore] Pin failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -466,7 +489,10 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:unpin', cid);
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:unpin",
+          cid,
+        );
 
         if (result.success) {
           // Remove from local pinned list
@@ -477,7 +503,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Unpin failed:', error);
+        console.error("[IPFSStore] Unpin failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -488,16 +514,18 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
     /**
      * Fetch the list of pinned content
      */
-    async fetchPinnedContent(
-      options?: { offset?: number; limit?: number; sortBy?: string }
-    ): Promise<IPCResponse> {
+    async fetchPinnedContent(options?: {
+      offset?: number;
+      limit?: number;
+      sortBy?: string;
+    }): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:list-pins',
-          options || {}
+          "ipfs:list-pins",
+          options || {},
         );
 
         if (result.success && result.data) {
@@ -517,7 +545,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Fetch pinned content failed:', error);
+        console.error("[IPFSStore] Fetch pinned content failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -535,7 +563,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
     async fetchStorageStats(): Promise<IPCResponse> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:get-storage-stats'
+          "ipfs:get-storage-stats",
         );
 
         if (result.success && result.data) {
@@ -544,7 +572,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Fetch storage stats failed:', error);
+        console.error("[IPFSStore] Fetch storage stats failed:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -559,7 +587,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:garbage-collect'
+          "ipfs:garbage-collect",
         );
 
         if (result.success) {
@@ -569,7 +597,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Garbage collect failed:', error);
+        console.error("[IPFSStore] Garbage collect failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -586,8 +614,8 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:set-quota',
-          quotaBytes
+          "ipfs:set-quota",
+          quotaBytes,
         );
 
         if (result.success) {
@@ -596,7 +624,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Set quota failed:', error);
+        console.error("[IPFSStore] Set quota failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -611,12 +639,15 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
     /**
      * Set operating mode (embedded or external)
      */
-    async setMode(mode: 'embedded' | 'external'): Promise<IPCResponse> {
+    async setMode(mode: "embedded" | "external"): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:set-mode', mode);
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:set-mode",
+          mode,
+        );
 
         if (result.success && result.data) {
           this.nodeStatus = result.data.nodeStatus || {
@@ -628,7 +659,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Set mode failed:', error);
+        console.error("[IPFSStore] Set mode failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -641,7 +672,9 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      */
     async fetchConfig(): Promise<IPCResponse> {
       try {
-        const result = await (window as any).electronAPI.invoke('ipfs:get-config');
+        const result = await (window as any).electronAPI.invoke(
+          "ipfs:get-config",
+        );
 
         if (result.success && result.data) {
           this.config = result.data;
@@ -649,7 +682,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Fetch config failed:', error);
+        console.error("[IPFSStore] Fetch config failed:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -665,15 +698,15 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
     async addKnowledgeAttachment(
       knowledgeId: string,
       content: string,
-      metadata?: Record<string, any>
+      metadata?: Record<string, any>,
     ): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:add-knowledge-attachment',
-          { knowledgeId, content, metadata: metadata || {} }
+          "ipfs:add-knowledge-attachment",
+          { knowledgeId, content, metadata: metadata || {} },
         );
 
         if (result.success) {
@@ -683,7 +716,7 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Add knowledge attachment failed:', error);
+        console.error("[IPFSStore] Add knowledge attachment failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -696,20 +729,20 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      */
     async getKnowledgeAttachment(
       knowledgeId: string,
-      cid: string
+      cid: string,
     ): Promise<IPCResponse> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'ipfs:get-knowledge-attachment',
-          { knowledgeId, cid }
+          "ipfs:get-knowledge-attachment",
+          { knowledgeId, cid },
         );
 
         return result;
       } catch (error) {
-        console.error('[IPFSStore] Get knowledge attachment failed:', error);
+        console.error("[IPFSStore] Get knowledge attachment failed:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -725,10 +758,15 @@ export const useIPFSStorageStore = defineStore('ipfs-storage', {
      * Format bytes to human-readable string
      */
     formatBytes(bytes: number): string {
-      if (bytes === 0) return '0 B';
-      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB", "TB", "PB"];
       const k = 1024;
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      // Clamp the unit index — an unclamped index renders "<n> undefined" for
+      // sizes >= 1 PB (and NaN for negative/non-finite input).
+      const i = Math.max(
+        0,
+        Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(k))),
+      );
       const value = bytes / Math.pow(k, i);
       return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
     },
