@@ -246,7 +246,11 @@ class HookExecutor extends EventEmitter {
       throw new Error("Hook execution aborted (timeout)");
     }
 
-    const result = await hook.handler({
+    // controller.abort() (the timeout) only sets signal.aborted; a handler that
+    // ignores the signal would hang trigger() forever despite the configured
+    // timeout. Race the handler against an abort rejection so the timeout is
+    // actually enforced for function hooks (command/script hooks already abort).
+    const handlerPromise = hook.handler({
       event: {
         name: event.eventName,
         id: event.eventId,
@@ -256,6 +260,16 @@ class HookExecutor extends EventEmitter {
       context: event.context,
       signal,
     });
+
+    const abortPromise = new Promise((_, reject) => {
+      signal.addEventListener(
+        "abort",
+        () => reject(new Error("Hook execution aborted (timeout)")),
+        { once: true },
+      );
+    });
+
+    const result = await Promise.race([handlerPromise, abortPromise]);
 
     return this._normalizeResult(result);
   }
