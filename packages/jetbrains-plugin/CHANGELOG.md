@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.40] — feat: auto-connect IntelliJ IDEA's built-in MCP server
+
+- **The agent can now use IntelliJ IDEA's own built-in MCP server (IDEA 2025.2+,
+  Settings | Tools | MCP Server).** When that server is running, the plugin
+  locates its endpoint and hands it to the `cc agent` it spawns, which connects
+  it as the `idea` server (`mcp__idea__*`) — so the agent calls the IDE's
+  indexed operations (find usages, file-by-path, search, run configs, VCS) as
+  tools instead of reading and grepping files itself: **fewer tokens, faster**
+  (it rides IntelliJ's index). This is separate from, and complements, the
+  plugin's own bridge (selection / diagnostics / native diff). **Best-effort and
+  fail-safe:** if the IDE is older than 2025.2 or the MCP server is disabled,
+  nothing is injected and the agent behaves exactly as before. Requires
+  `cc` ≥ 0.162.125.
+
 ## [0.4.39] — fix: stopping App Preview kills the whole dev-server tree
 
 - **Stopping App Preview now terminates the actual dev server, not just the
