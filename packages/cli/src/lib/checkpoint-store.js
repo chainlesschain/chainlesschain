@@ -76,9 +76,19 @@ function gitDir(root) {
   return path.resolve(root, git(["rev-parse", "--git-dir"], { cwd: root }));
 }
 
-/** Ref-safe session segment. */
+/**
+ * Ref-safe session segment. Beyond the charset filter, enforce git's per-
+ * component ref rules so a legit-looking name never makes every checkpoint op
+ * throw: a component may not begin with `.`, contain `..`, or end with `.lock`
+ * (`/` is already collapsed to `-`, so the session is always a single segment
+ * and cannot traverse the ref namespace).
+ */
 function sanitizeSession(session) {
-  const s = String(session || "default").replace(/[^A-Za-z0-9._-]/g, "-");
+  let s = String(session || "default").replace(/[^A-Za-z0-9._-]/g, "-");
+  s = s.replace(/\.{2,}/g, "."); // git forbids ".." in a refname
+  s = s.replace(/^\.+/, ""); // a component may not begin with "."
+  s = s.replace(/\.lock$/i, "-lock"); // nor end with ".lock"
+  s = s.replace(/\.+$/, ""); // nor end with a dot
   return s || "default";
 }
 
@@ -86,9 +96,20 @@ function sessionPrefix(session) {
   return `${REF_NS}/${sanitizeSession(session)}`;
 }
 
+// Monotonic per-process counter so two temp-index paths minted in the same
+// millisecond never collide. pid disambiguates across processes; Date.now() +
+// this counter disambiguate within one. A collision would mean two operations
+// sharing one GIT_INDEX_FILE (corrupt snapshot) or one's cleanup deleting the
+// other's live index.
+let _indexSeq = 0;
+
 /** Unique temp index path inside .git (never the real index). */
 function tempIndexPath(dir) {
-  return path.join(dir, `cc-checkpoint-index-${process.pid}-${Date.now()}`);
+  _indexSeq = (_indexSeq + 1) >>> 0;
+  return path.join(
+    dir,
+    `cc-checkpoint-index-${process.pid}-${Date.now()}-${_indexSeq}`,
+  );
 }
 
 /**
@@ -580,4 +601,10 @@ export function clearCheckpoints(cwd = process.cwd(), opts = {}) {
 }
 
 // Exposed for unit tests / advanced callers.
-export const _internals = { git, repoRoot, sanitizeSession, snapshotTree };
+export const _internals = {
+  git,
+  repoRoot,
+  sanitizeSession,
+  snapshotTree,
+  tempIndexPath,
+};

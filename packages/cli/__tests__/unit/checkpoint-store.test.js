@@ -22,6 +22,7 @@ import {
   deleteCheckpoint,
   clearCheckpoints,
   withinRoot,
+  _internals,
 } from "../../src/lib/checkpoint-store.js";
 
 /** Run git in the repo (test helper). */
@@ -261,6 +262,66 @@ describe("checkpoint-store (git engine)", () => {
       rewindTo(repo, keep.id, { session, skipSafety: true });
       expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("two\n");
     });
+  });
+});
+
+describe("sanitizeSession — ref-format hardening", () => {
+  const { sanitizeSession } = _internals;
+
+  it("strips a leading dot (git forbids a component beginning with '.')", () => {
+    expect(sanitizeSession(".hidden")).toBe("hidden");
+    expect(sanitizeSession("...x")).toBe("x");
+  });
+
+  it("collapses '..' which git forbids in a refname", () => {
+    expect(sanitizeSession("a..b")).toBe("a.b");
+    expect(sanitizeSession("a....b")).toBe("a.b");
+  });
+
+  it("avoids a trailing dot and a '.lock' ending", () => {
+    expect(sanitizeSession("trailing.")).toBe("trailing");
+    expect(sanitizeSession("my.lock")).toBe("my-lock");
+  });
+
+  it("collapses '/' (no namespace traversal) and falls back to 'default'", () => {
+    expect(sanitizeSession("a/b")).toBe("a-b");
+    expect(sanitizeSession("..")).toBe("default"); // collapses to '.', stripped → empty
+    expect(sanitizeSession("")).toBe("default");
+    expect(sanitizeSession(null)).toBe("default");
+  });
+
+  it("leaves an ordinary session untouched", () => {
+    expect(sanitizeSession("sess-2026_06")).toBe("sess-2026_06");
+  });
+});
+
+describe("sanitizeSession — end-to-end with a real repo", () => {
+  let repo;
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), "cc-cpsess-"));
+    spawnSync("git", ["init", "-q"], { cwd: repo });
+    spawnSync("git", ["config", "user.email", "t@test.local"], { cwd: repo });
+    spawnSync("git", ["config", "user.name", "tester"], { cwd: repo });
+    writeFileSync(join(repo, "a.txt"), "x\n", "utf8");
+    spawnSync("git", ["add", "-A"], { cwd: repo });
+    spawnSync("git", ["commit", "-q", "-m", "init"], { cwd: repo });
+  });
+  afterEach(() => rmSync(repo, { recursive: true, force: true }));
+
+  it("a dotted session name that git would reject still checkpoints", () => {
+    // Before hardening, the ".hidden" ref component made git reject every op.
+    const cp = createCheckpoint(repo, { session: ".hidden", label: "ok" });
+    expect(cp.commit).toMatch(/^[0-9a-f]{40}$/);
+    expect(listCheckpoints(repo, { session: ".hidden" })).toHaveLength(1);
+  });
+});
+
+describe("tempIndexPath — uniqueness guard", () => {
+  it("never repeats within a process even in the same millisecond", () => {
+    const { tempIndexPath } = _internals;
+    const seen = new Set();
+    for (let i = 0; i < 1000; i++) seen.add(tempIndexPath("/git/dir"));
+    expect(seen.size).toBe(1000);
   });
 });
 
