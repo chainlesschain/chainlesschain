@@ -33,7 +33,7 @@ const POLICY_WEIGHTS = {
   access_control: 0.25,
   encryption: 0.25,
   data_classification: 0.15,
-  audit_trail: 0.20,
+  audit_trail: 0.2,
 };
 
 class ComplianceManager {
@@ -131,14 +131,28 @@ class ComplianceManager {
 
   async createPolicy(policyData) {
     try {
-      if (!policyData.name || !policyData.type || !policyData.framework || !policyData.rules) {
-        return { success: false, error: "Missing required fields: name, type, framework, rules" };
+      if (
+        !policyData.name ||
+        !policyData.type ||
+        !policyData.framework ||
+        !policyData.rules
+      ) {
+        return {
+          success: false,
+          error: "Missing required fields: name, type, framework, rules",
+        };
       }
       if (!POLICY_TYPES.includes(policyData.type)) {
-        return { success: false, error: `Invalid policy type: ${policyData.type}. Must be one of: ${POLICY_TYPES.join(", ")}` };
+        return {
+          success: false,
+          error: `Invalid policy type: ${policyData.type}. Must be one of: ${POLICY_TYPES.join(", ")}`,
+        };
       }
       if (!FRAMEWORKS.includes(policyData.framework)) {
-        return { success: false, error: `Invalid framework: ${policyData.framework}. Must be one of: ${FRAMEWORKS.join(", ")}` };
+        return {
+          success: false,
+          error: `Invalid framework: ${policyData.framework}. Must be one of: ${FRAMEWORKS.join(", ")}`,
+        };
       }
 
       const now = Date.now();
@@ -149,7 +163,10 @@ class ComplianceManager {
         description: policyData.description || "",
         type: policyData.type,
         framework: policyData.framework,
-        rules: typeof policyData.rules === "string" ? policyData.rules : JSON.stringify(policyData.rules),
+        rules:
+          typeof policyData.rules === "string"
+            ? policyData.rules
+            : JSON.stringify(policyData.rules),
         enabled: policyData.enabled !== false ? 1 : 0,
         severity: policyData.severity || "medium",
         created_at: now,
@@ -159,14 +176,33 @@ class ComplianceManager {
       await this.db.run(
         `INSERT INTO compliance_policies (id, name, description, type, framework, rules, enabled, severity, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [policy.id, policy.name, policy.description, policy.type, policy.framework,
-         policy.rules, policy.enabled, policy.severity, policy.created_at, policy.updated_at],
+        [
+          policy.id,
+          policy.name,
+          policy.description,
+          policy.type,
+          policy.framework,
+          policy.rules,
+          policy.enabled,
+          policy.severity,
+          policy.created_at,
+          policy.updated_at,
+        ],
       );
 
-      await this._logAudit("policy_created", { policyId: id, name: policy.name, framework: policy.framework });
-      logger.info(`[ComplianceManager] Policy created: ${policy.name} (${policy.framework}/${policy.type})`);
+      await this._logAudit("policy_created", {
+        policyId: id,
+        name: policy.name,
+        framework: policy.framework,
+      });
+      logger.info(
+        `[ComplianceManager] Policy created: ${policy.name} (${policy.framework}/${policy.type})`,
+      );
 
-      return { success: true, data: { ...policy, rules: JSON.parse(policy.rules) } };
+      return {
+        success: true,
+        data: { ...policy, rules: JSON.parse(policy.rules) },
+      };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to create policy:", error);
       return { success: false, error: error.message };
@@ -175,21 +211,42 @@ class ComplianceManager {
 
   async updatePolicy(id, updates) {
     try {
-      if (!id) {return { success: false, error: "Policy ID is required" };}
+      if (!id) {
+        return { success: false, error: "Policy ID is required" };
+      }
 
-      const existing = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!existing) {return { success: false, error: `Policy not found: ${id}` };}
+      const existing = await this.db.get(
+        "SELECT * FROM compliance_policies WHERE id = ?",
+        [id],
+      );
+      if (!existing) {
+        return { success: false, error: `Policy not found: ${id}` };
+      }
       if (updates.type && !POLICY_TYPES.includes(updates.type)) {
-        return { success: false, error: `Invalid policy type: ${updates.type}` };
+        return {
+          success: false,
+          error: `Invalid policy type: ${updates.type}`,
+        };
       }
       if (updates.framework && !FRAMEWORKS.includes(updates.framework)) {
-        return { success: false, error: `Invalid framework: ${updates.framework}` };
+        return {
+          success: false,
+          error: `Invalid framework: ${updates.framework}`,
+        };
       }
 
       const now = Date.now();
       const fields = [];
       const values = [];
-      const allowedFields = ["name", "description", "type", "framework", "rules", "enabled", "severity"];
+      const allowedFields = [
+        "name",
+        "description",
+        "type",
+        "framework",
+        "rules",
+        "enabled",
+        "severity",
+      ];
 
       for (const field of allowedFields) {
         if (updates[field] !== undefined) {
@@ -203,16 +260,27 @@ class ComplianceManager {
           }
         }
       }
-      if (fields.length === 0) {return { success: false, error: "No valid fields to update" };}
+      if (fields.length === 0) {
+        return { success: false, error: "No valid fields to update" };
+      }
 
       fields.push("updated_at = ?");
       values.push(now);
       values.push(id);
 
-      await this.db.run(`UPDATE compliance_policies SET ${fields.join(", ")} WHERE id = ?`, values);
-      const updated = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
+      await this.db.run(
+        `UPDATE compliance_policies SET ${fields.join(", ")} WHERE id = ?`,
+        values,
+      );
+      const updated = await this.db.get(
+        "SELECT * FROM compliance_policies WHERE id = ?",
+        [id],
+      );
 
-      await this._logAudit("policy_updated", { policyId: id, updates: Object.keys(updates) });
+      await this._logAudit("policy_updated", {
+        policyId: id,
+        updates: Object.keys(updates),
+      });
       logger.info(`[ComplianceManager] Policy updated: ${id}`);
 
       return { success: true, data: this._parsePolicy(updated) };
@@ -224,16 +292,31 @@ class ComplianceManager {
 
   async deletePolicy(id) {
     try {
-      if (!id) {return { success: false, error: "Policy ID is required" };}
+      if (!id) {
+        return { success: false, error: "Policy ID is required" };
+      }
 
-      const existing = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!existing) {return { success: false, error: `Policy not found: ${id}` };}
+      const existing = await this.db.get(
+        "SELECT * FROM compliance_policies WHERE id = ?",
+        [id],
+      );
+      if (!existing) {
+        return { success: false, error: `Policy not found: ${id}` };
+      }
 
       await this.db.run("DELETE FROM compliance_policies WHERE id = ?", [id]);
-      await this.db.run("DELETE FROM compliance_check_results WHERE policy_id = ?", [id]);
+      await this.db.run(
+        "DELETE FROM compliance_check_results WHERE policy_id = ?",
+        [id],
+      );
 
-      await this._logAudit("policy_deleted", { policyId: id, name: existing.name });
-      logger.info(`[ComplianceManager] Policy deleted: ${existing.name} (${id})`);
+      await this._logAudit("policy_deleted", {
+        policyId: id,
+        name: existing.name,
+      });
+      logger.info(
+        `[ComplianceManager] Policy deleted: ${existing.name} (${id})`,
+      );
 
       return { success: true, data: { id, name: existing.name } };
     } catch (error) {
@@ -244,9 +327,16 @@ class ComplianceManager {
 
   async getPolicy(id) {
     try {
-      if (!id) {return { success: false, error: "Policy ID is required" };}
-      const policy = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!policy) {return { success: false, error: `Policy not found: ${id}` };}
+      if (!id) {
+        return { success: false, error: "Policy ID is required" };
+      }
+      const policy = await this.db.get(
+        "SELECT * FROM compliance_policies WHERE id = ?",
+        [id],
+      );
+      if (!policy) {
+        return { success: false, error: `Policy not found: ${id}` };
+      }
       return { success: true, data: this._parsePolicy(policy) };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to get policy:", error);
@@ -259,17 +349,30 @@ class ComplianceManager {
       const conditions = [];
       const params = [];
 
-      if (filters.framework) { conditions.push("framework = ?"); params.push(filters.framework); }
-      if (filters.type) { conditions.push("type = ?"); params.push(filters.type); }
-      if (filters.enabled !== undefined) { conditions.push("enabled = ?"); params.push(filters.enabled ? 1 : 0); }
+      if (filters.framework) {
+        conditions.push("framework = ?");
+        params.push(filters.framework);
+      }
+      if (filters.type) {
+        conditions.push("type = ?");
+        params.push(filters.type);
+      }
+      if (filters.enabled !== undefined) {
+        conditions.push("enabled = ?");
+        params.push(filters.enabled ? 1 : 0);
+      }
 
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+      const where =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
       const policies = await this.db.all(
         `SELECT * FROM compliance_policies ${where} ORDER BY framework, type, created_at DESC`,
         params,
       );
 
-      return { success: true, data: (policies || []).map((p) => this._parsePolicy(p)) };
+      return {
+        success: true,
+        data: (policies || []).map((p) => this._parsePolicy(p)),
+      };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to get policies:", error);
       return { success: false, error: error.message };
@@ -282,12 +385,19 @@ class ComplianceManager {
 
   async checkCompliance(framework) {
     try {
-      if (!framework) {return { success: false, error: "Framework is required" };}
+      if (!framework) {
+        return { success: false, error: "Framework is required" };
+      }
       if (!FRAMEWORKS.includes(framework)) {
-        return { success: false, error: `Invalid framework: ${framework}. Must be one of: ${FRAMEWORKS.join(", ")}` };
+        return {
+          success: false,
+          error: `Invalid framework: ${framework}. Must be one of: ${FRAMEWORKS.join(", ")}`,
+        };
       }
 
-      logger.info(`[ComplianceManager] Running compliance check for: ${framework}`);
+      logger.info(
+        `[ComplianceManager] Running compliance check for: ${framework}`,
+      );
 
       const policies = await this.db.all(
         "SELECT * FROM compliance_policies WHERE framework = ? AND enabled = 1",
@@ -298,8 +408,15 @@ class ComplianceManager {
         return {
           success: true,
           data: {
-            framework, score: 0, totalPolicies: 0, passed: 0, failed: 0, checks: [],
-            recommendations: ["No policies configured for this framework. Add policies to begin compliance tracking."],
+            framework,
+            score: 0,
+            totalPolicies: 0,
+            passed: 0,
+            failed: 0,
+            checks: [],
+            recommendations: [
+              "No policies configured for this framework. Add policies to begin compliance tracking.",
+            ],
             checkedAt: Date.now(),
           },
         };
@@ -309,24 +426,51 @@ class ComplianceManager {
       const now = Date.now();
 
       for (const policy of policies) {
-        const parsedRules = JSON.parse(policy.rules);
+        let parsedRules;
+        try {
+          parsedRules = JSON.parse(policy.rules);
+        } catch (err) {
+          // A single policy with corrupt rules JSON must not abort the whole
+          // framework's compliance check (and generateReport). Skip it — it's
+          // excluded from this assessment — and keep evaluating the rest.
+          logger.warn(
+            `[ComplianceManager] skipping policy ${policy.id} with unparseable rules: ${err.message}`,
+          );
+          continue;
+        }
         const checkResult = await this._evaluatePolicy(policy, parsedRules);
         const resultId = uuidv4();
 
         const result = {
-          id: resultId, framework, policyId: policy.id, policyName: policy.name,
-          policyType: policy.type, status: checkResult.passed ? "passed" : "failed",
-          score: checkResult.score, details: checkResult.details,
-          evidence: checkResult.evidence, recommendations: checkResult.recommendations,
+          id: resultId,
+          framework,
+          policyId: policy.id,
+          policyName: policy.name,
+          policyType: policy.type,
+          status: checkResult.passed ? "passed" : "failed",
+          score: checkResult.score,
+          details: checkResult.details,
+          evidence: checkResult.evidence,
+          recommendations: checkResult.recommendations,
           checkedAt: now,
         };
 
         await this.db.run(
           `INSERT INTO compliance_check_results (id, framework, policy_id, policy_name, policy_type, status, score, details, evidence, recommendations, checked_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [resultId, framework, policy.id, policy.name, policy.type, result.status,
-           result.score, JSON.stringify(result.details), JSON.stringify(result.evidence),
-           JSON.stringify(result.recommendations), now],
+          [
+            resultId,
+            framework,
+            policy.id,
+            policy.name,
+            policy.type,
+            result.status,
+            result.score,
+            JSON.stringify(result.details),
+            JSON.stringify(result.evidence),
+            JSON.stringify(result.recommendations),
+            now,
+          ],
         );
         checkResults.push(result);
       }
@@ -339,24 +483,50 @@ class ComplianceManager {
       await this.db.run(
         `INSERT INTO compliance_score_history (id, framework, score, total_policies, passed, failed, details, recorded_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), framework, overallScore, policies.length, passed, failed,
-         JSON.stringify({ checks: checkResults.map((r) => ({ id: r.id, policyName: r.policyName, status: r.status, score: r.score })) }),
-         now],
+        [
+          uuidv4(),
+          framework,
+          overallScore,
+          policies.length,
+          passed,
+          failed,
+          JSON.stringify({
+            checks: checkResults.map((r) => ({
+              id: r.id,
+              policyName: r.policyName,
+              status: r.status,
+              score: r.score,
+            })),
+          }),
+          now,
+        ],
       );
 
       const allRecommendations = checkResults
         .filter((r) => r.recommendations && r.recommendations.length > 0)
         .flatMap((r) => r.recommendations);
 
-      await this._logAudit("compliance_check", { framework, score: overallScore, passed, failed });
-      logger.info(`[ComplianceManager] Compliance check complete: ${framework} - Score: ${overallScore}, Passed: ${passed}/${policies.length}`);
+      await this._logAudit("compliance_check", {
+        framework,
+        score: overallScore,
+        passed,
+        failed,
+      });
+      logger.info(
+        `[ComplianceManager] Compliance check complete: ${framework} - Score: ${overallScore}, Passed: ${passed}/${policies.length}`,
+      );
 
       return {
         success: true,
         data: {
-          framework, score: overallScore, totalPolicies: policies.length,
-          passed, failed, checks: checkResults,
-          recommendations: allRecommendations, checkedAt: now,
+          framework,
+          score: overallScore,
+          totalPolicies: policies.length,
+          passed,
+          failed,
+          checks: checkResults,
+          recommendations: allRecommendations,
+          checkedAt: now,
         },
       };
     } catch (error) {
@@ -375,8 +545,15 @@ class ComplianceManager {
     };
     const handler = handlers[policy.type];
     if (!handler) {
-      return { passed: false, score: 0, details: { message: `Unknown policy type: ${policy.type}` },
-        evidence: [], recommendations: [`Configure check handler for policy type: ${policy.type}`] };
+      return {
+        passed: false,
+        score: 0,
+        details: { message: `Unknown policy type: ${policy.type}` },
+        evidence: [],
+        recommendations: [
+          `Configure check handler for policy type: ${policy.type}`,
+        ],
+      };
     }
     return handler();
   }
@@ -384,160 +561,415 @@ class ComplianceManager {
   async _checkEncryption(policy, rules) {
     const evidence = [];
     const recommendations = [];
-    let total = 0, passed = 0;
+    let total = 0,
+      passed = 0;
 
     if (rules.requireDatabaseEncryption !== false) {
       total++;
       try {
         const dbInfo = await this.db.get("PRAGMA cipher_version");
-        if (dbInfo) { passed++; evidence.push({ check: "database_encryption", status: "enabled", detail: "SQLCipher active" }); }
-        else { evidence.push({ check: "database_encryption", status: "disabled" }); recommendations.push("Enable SQLCipher database encryption"); }
-      } catch { evidence.push({ check: "database_encryption", status: "unknown" }); recommendations.push("Verify database encryption configuration"); }
+        if (dbInfo) {
+          passed++;
+          evidence.push({
+            check: "database_encryption",
+            status: "enabled",
+            detail: "SQLCipher active",
+          });
+        } else {
+          evidence.push({ check: "database_encryption", status: "disabled" });
+          recommendations.push("Enable SQLCipher database encryption");
+        }
+      } catch {
+        evidence.push({ check: "database_encryption", status: "unknown" });
+        recommendations.push("Verify database encryption configuration");
+      }
     }
     if (rules.minKeyLength) {
       total++;
-      if (rules.minKeyLength >= 256) { passed++; evidence.push({ check: "key_length", status: "compliant", detail: `${rules.minKeyLength} bits` }); }
-      else { evidence.push({ check: "key_length", status: "non_compliant", detail: `${rules.minKeyLength} < 256 bits` }); recommendations.push("Increase encryption key length to at least 256 bits"); }
+      if (rules.minKeyLength >= 256) {
+        passed++;
+        evidence.push({
+          check: "key_length",
+          status: "compliant",
+          detail: `${rules.minKeyLength} bits`,
+        });
+      } else {
+        evidence.push({
+          check: "key_length",
+          status: "non_compliant",
+          detail: `${rules.minKeyLength} < 256 bits`,
+        });
+        recommendations.push(
+          "Increase encryption key length to at least 256 bits",
+        );
+      }
     }
     if (rules.requireTLS !== false) {
-      total++; passed++;
-      evidence.push({ check: "tls_enabled", status: "compliant", detail: "TLS enforced for network communications" });
+      total++;
+      passed++;
+      evidence.push({
+        check: "tls_enabled",
+        status: "compliant",
+        detail: "TLS enforced for network communications",
+      });
     }
 
     const score = total > 0 ? Math.round((passed / total) * 100) : 100;
-    return { passed: score >= (rules.passThreshold || 80), score, details: { checksTotal: total, checksPassed: passed, policyName: policy.name }, evidence, recommendations };
+    return {
+      passed: score >= (rules.passThreshold || 80),
+      score,
+      details: {
+        checksTotal: total,
+        checksPassed: passed,
+        policyName: policy.name,
+      },
+      evidence,
+      recommendations,
+    };
   }
 
   async _checkAuditTrail(policy, rules) {
     const evidence = [];
     const recommendations = [];
-    let total = 0, passed = 0;
+    let total = 0,
+      passed = 0;
 
     if (rules.requireAuditLogging !== false) {
       total++;
-      if (this.auditLogger) { passed++; evidence.push({ check: "audit_logging", status: "active" }); }
-      else { evidence.push({ check: "audit_logging", status: "inactive" }); recommendations.push("Configure audit logging for all sensitive operations"); }
+      if (this.auditLogger) {
+        passed++;
+        evidence.push({ check: "audit_logging", status: "active" });
+      } else {
+        evidence.push({ check: "audit_logging", status: "inactive" });
+        recommendations.push(
+          "Configure audit logging for all sensitive operations",
+        );
+      }
     }
     if (rules.minRetentionDays) {
       total++;
       const cutoff = Date.now() - rules.minRetentionDays * 86400000;
       try {
-        const oldest = await this.db.get("SELECT MIN(checked_at) as oldest FROM compliance_check_results");
-        if (oldest && oldest.oldest && oldest.oldest <= cutoff) { passed++; evidence.push({ check: "log_retention", status: "compliant", detail: `${rules.minRetentionDays}+ days` }); }
-        else { evidence.push({ check: "log_retention", status: "insufficient" }); recommendations.push(`Ensure audit logs retained for at least ${rules.minRetentionDays} days`); }
-      } catch { evidence.push({ check: "log_retention", status: "unknown" }); recommendations.push("Verify audit log retention configuration"); }
+        const oldest = await this.db.get(
+          "SELECT MIN(checked_at) as oldest FROM compliance_check_results",
+        );
+        if (oldest && oldest.oldest && oldest.oldest <= cutoff) {
+          passed++;
+          evidence.push({
+            check: "log_retention",
+            status: "compliant",
+            detail: `${rules.minRetentionDays}+ days`,
+          });
+        } else {
+          evidence.push({ check: "log_retention", status: "insufficient" });
+          recommendations.push(
+            `Ensure audit logs retained for at least ${rules.minRetentionDays} days`,
+          );
+        }
+      } catch {
+        evidence.push({ check: "log_retention", status: "unknown" });
+        recommendations.push("Verify audit log retention configuration");
+      }
     }
     if (rules.requireCompleteLogs !== false) {
       total++;
       try {
-        const recent = await this.db.get("SELECT COUNT(*) as count FROM compliance_check_results WHERE checked_at > ?", [Date.now() - 604800000]);
-        if (recent && recent.count > 0) { passed++; evidence.push({ check: "log_completeness", status: "compliant", detail: `${recent.count} records in last 7 days` }); }
-        else { evidence.push({ check: "log_completeness", status: "incomplete" }); recommendations.push("Run compliance checks regularly (at least weekly)"); }
-      } catch { evidence.push({ check: "log_completeness", status: "unknown" }); }
+        const recent = await this.db.get(
+          "SELECT COUNT(*) as count FROM compliance_check_results WHERE checked_at > ?",
+          [Date.now() - 604800000],
+        );
+        if (recent && recent.count > 0) {
+          passed++;
+          evidence.push({
+            check: "log_completeness",
+            status: "compliant",
+            detail: `${recent.count} records in last 7 days`,
+          });
+        } else {
+          evidence.push({ check: "log_completeness", status: "incomplete" });
+          recommendations.push(
+            "Run compliance checks regularly (at least weekly)",
+          );
+        }
+      } catch {
+        evidence.push({ check: "log_completeness", status: "unknown" });
+      }
     }
 
     const score = total > 0 ? Math.round((passed / total) * 100) : 100;
-    return { passed: score >= (rules.passThreshold || 80), score, details: { checksTotal: total, checksPassed: passed, policyName: policy.name }, evidence, recommendations };
+    return {
+      passed: score >= (rules.passThreshold || 80),
+      score,
+      details: {
+        checksTotal: total,
+        checksPassed: passed,
+        policyName: policy.name,
+      },
+      evidence,
+      recommendations,
+    };
   }
 
   async _checkAccessControl(policy, rules) {
     const evidence = [];
     const recommendations = [];
-    let total = 0, passed = 0;
+    let total = 0,
+      passed = 0;
 
     if (rules.requireRBAC !== false) {
       total++;
       try {
-        const tbl = await this.db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='permission_grants'");
-        if (tbl) { passed++; evidence.push({ check: "rbac_enabled", status: "compliant" }); }
-        else { evidence.push({ check: "rbac_enabled", status: "not_configured" }); recommendations.push("Enable Role-Based Access Control (RBAC)"); }
-      } catch { evidence.push({ check: "rbac_enabled", status: "unknown" }); }
+        const tbl = await this.db.get(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='permission_grants'",
+        );
+        if (tbl) {
+          passed++;
+          evidence.push({ check: "rbac_enabled", status: "compliant" });
+        } else {
+          evidence.push({ check: "rbac_enabled", status: "not_configured" });
+          recommendations.push("Enable Role-Based Access Control (RBAC)");
+        }
+      } catch {
+        evidence.push({ check: "rbac_enabled", status: "unknown" });
+      }
     }
     if (rules.requireAuthentication !== false) {
       total++;
       try {
-        const tbl = await this.db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='did_identities'");
-        if (tbl) { passed++; evidence.push({ check: "authentication", status: "compliant" }); }
-        else { evidence.push({ check: "authentication", status: "not_configured" }); recommendations.push("Configure DID-based authentication"); }
-      } catch { evidence.push({ check: "authentication", status: "unknown" }); }
+        const tbl = await this.db.get(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='did_identities'",
+        );
+        if (tbl) {
+          passed++;
+          evidence.push({ check: "authentication", status: "compliant" });
+        } else {
+          evidence.push({ check: "authentication", status: "not_configured" });
+          recommendations.push("Configure DID-based authentication");
+        }
+      } catch {
+        evidence.push({ check: "authentication", status: "unknown" });
+      }
     }
     if (rules.requireSessionManagement !== false) {
-      total++; passed++;
-      evidence.push({ check: "session_management", status: "compliant", detail: "Session management is active" });
+      total++;
+      passed++;
+      evidence.push({
+        check: "session_management",
+        status: "compliant",
+        detail: "Session management is active",
+      });
     }
     if (rules.enforceLeastPrivilege) {
       total++;
       try {
-        const wc = await this.db.get("SELECT COUNT(*) as count FROM permission_grants WHERE resource_id = '*'");
-        if (!wc || wc.count === 0) { passed++; evidence.push({ check: "least_privilege", status: "compliant" }); }
-        else { evidence.push({ check: "least_privilege", status: "warning", detail: `${wc.count} wildcard grants` }); recommendations.push("Restrict wildcard permission grants"); }
-      } catch { evidence.push({ check: "least_privilege", status: "unknown" }); }
+        const wc = await this.db.get(
+          "SELECT COUNT(*) as count FROM permission_grants WHERE resource_id = '*'",
+        );
+        if (!wc || wc.count === 0) {
+          passed++;
+          evidence.push({ check: "least_privilege", status: "compliant" });
+        } else {
+          evidence.push({
+            check: "least_privilege",
+            status: "warning",
+            detail: `${wc.count} wildcard grants`,
+          });
+          recommendations.push("Restrict wildcard permission grants");
+        }
+      } catch {
+        evidence.push({ check: "least_privilege", status: "unknown" });
+      }
     }
 
     const score = total > 0 ? Math.round((passed / total) * 100) : 100;
-    return { passed: score >= (rules.passThreshold || 80), score, details: { checksTotal: total, checksPassed: passed, policyName: policy.name }, evidence, recommendations };
+    return {
+      passed: score >= (rules.passThreshold || 80),
+      score,
+      details: {
+        checksTotal: total,
+        checksPassed: passed,
+        policyName: policy.name,
+      },
+      evidence,
+      recommendations,
+    };
   }
 
   async _checkRetention(policy, rules) {
     const evidence = [];
     const recommendations = [];
-    let total = 0, passed = 0;
+    let total = 0,
+      passed = 0;
 
     if (rules.maxRetentionDays) {
-      total++; passed++;
-      evidence.push({ check: "retention_policy_defined", status: "compliant", detail: `Max retention: ${rules.maxRetentionDays} days` });
+      total++;
+      passed++;
+      evidence.push({
+        check: "retention_policy_defined",
+        status: "compliant",
+        detail: `Max retention: ${rules.maxRetentionDays} days`,
+      });
 
       total++;
       const cutoff = Date.now() - rules.maxRetentionDays * 86400000;
       try {
-        const expired = await this.db.get("SELECT COUNT(*) as count FROM notes WHERE created_at < ? AND archived = 0", [cutoff]);
-        if (!expired || expired.count === 0) { passed++; evidence.push({ check: "expired_data", status: "compliant" }); }
-        else { evidence.push({ check: "expired_data", status: "non_compliant", detail: `${expired.count} records exceed retention` }); recommendations.push(`Archive or delete ${expired.count} records exceeding ${rules.maxRetentionDays}-day retention`); }
-      } catch { passed++; evidence.push({ check: "expired_data", status: "compliant", detail: "No applicable data found" }); }
+        const expired = await this.db.get(
+          "SELECT COUNT(*) as count FROM notes WHERE created_at < ? AND archived = 0",
+          [cutoff],
+        );
+        if (!expired || expired.count === 0) {
+          passed++;
+          evidence.push({ check: "expired_data", status: "compliant" });
+        } else {
+          evidence.push({
+            check: "expired_data",
+            status: "non_compliant",
+            detail: `${expired.count} records exceed retention`,
+          });
+          recommendations.push(
+            `Archive or delete ${expired.count} records exceeding ${rules.maxRetentionDays}-day retention`,
+          );
+        }
+      } catch {
+        passed++;
+        evidence.push({
+          check: "expired_data",
+          status: "compliant",
+          detail: "No applicable data found",
+        });
+      }
     }
     if (rules.requireDeletionVerification) {
       total++;
-      if (this.auditLogger) { passed++; evidence.push({ check: "deletion_verification", status: "compliant" }); }
-      else { evidence.push({ check: "deletion_verification", status: "non_compliant" }); recommendations.push("Enable audit logging for data deletion verification"); }
+      if (this.auditLogger) {
+        passed++;
+        evidence.push({ check: "deletion_verification", status: "compliant" });
+      } else {
+        evidence.push({
+          check: "deletion_verification",
+          status: "non_compliant",
+        });
+        recommendations.push(
+          "Enable audit logging for data deletion verification",
+        );
+      }
     }
 
     const score = total > 0 ? Math.round((passed / total) * 100) : 100;
-    return { passed: score >= (rules.passThreshold || 80), score, details: { checksTotal: total, checksPassed: passed, policyName: policy.name }, evidence, recommendations };
+    return {
+      passed: score >= (rules.passThreshold || 80),
+      score,
+      details: {
+        checksTotal: total,
+        checksPassed: passed,
+        policyName: policy.name,
+      },
+      evidence,
+      recommendations,
+    };
   }
 
   async _checkDataClassification(policy, rules) {
     const evidence = [];
     const recommendations = [];
-    let total = 0, passed = 0;
+    let total = 0,
+      passed = 0;
 
     if (rules.requireClassification !== false) {
-      total++; passed++;
-      const levels = rules.levels || ["public", "internal", "confidential", "restricted"];
-      evidence.push({ check: "classification_schema", status: "defined", detail: `Levels: ${levels.join(", ")}` });
+      total++;
+      passed++;
+      const levels = rules.levels || [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+      ];
+      evidence.push({
+        check: "classification_schema",
+        status: "defined",
+        detail: `Levels: ${levels.join(", ")}`,
+      });
     }
     if (rules.requireSensitiveDataHandling) {
       total++;
       try {
         const enc = await this.db.get("PRAGMA cipher_version");
-        if (enc) { passed++; evidence.push({ check: "sensitive_data_handling", status: "compliant" }); }
-        else { evidence.push({ check: "sensitive_data_handling", status: "non_compliant" }); recommendations.push("Ensure sensitive data is stored in encrypted storage"); }
-      } catch { evidence.push({ check: "sensitive_data_handling", status: "unknown" }); recommendations.push("Verify sensitive data handling procedures"); }
+        if (enc) {
+          passed++;
+          evidence.push({
+            check: "sensitive_data_handling",
+            status: "compliant",
+          });
+        } else {
+          evidence.push({
+            check: "sensitive_data_handling",
+            status: "non_compliant",
+          });
+          recommendations.push(
+            "Ensure sensitive data is stored in encrypted storage",
+          );
+        }
+      } catch {
+        evidence.push({ check: "sensitive_data_handling", status: "unknown" });
+        recommendations.push("Verify sensitive data handling procedures");
+      }
     }
     if (rules.requireLabeling) {
       total++;
       try {
-        const labeled = await this.db.get("SELECT COUNT(*) as count FROM notes WHERE tags IS NOT NULL AND tags != ''");
+        const labeled = await this.db.get(
+          "SELECT COUNT(*) as count FROM notes WHERE tags IS NOT NULL AND tags != ''",
+        );
         const all = await this.db.get("SELECT COUNT(*) as count FROM notes");
         if (all && all.count > 0 && labeled) {
           const rate = (labeled.count / all.count) * 100;
-          if (rate >= (rules.minLabelRate || 80)) { passed++; evidence.push({ check: "data_labeling", status: "compliant", detail: `${Math.round(rate)}% labeled` }); }
-          else { evidence.push({ check: "data_labeling", status: "partial", detail: `${Math.round(rate)}% < ${rules.minLabelRate || 80}%` }); recommendations.push(`Increase data labeling to at least ${rules.minLabelRate || 80}%`); }
-        } else { passed++; evidence.push({ check: "data_labeling", status: "compliant", detail: "No applicable data" }); }
-      } catch { passed++; evidence.push({ check: "data_labeling", status: "compliant", detail: "No applicable data found" }); }
+          if (rate >= (rules.minLabelRate || 80)) {
+            passed++;
+            evidence.push({
+              check: "data_labeling",
+              status: "compliant",
+              detail: `${Math.round(rate)}% labeled`,
+            });
+          } else {
+            evidence.push({
+              check: "data_labeling",
+              status: "partial",
+              detail: `${Math.round(rate)}% < ${rules.minLabelRate || 80}%`,
+            });
+            recommendations.push(
+              `Increase data labeling to at least ${rules.minLabelRate || 80}%`,
+            );
+          }
+        } else {
+          passed++;
+          evidence.push({
+            check: "data_labeling",
+            status: "compliant",
+            detail: "No applicable data",
+          });
+        }
+      } catch {
+        passed++;
+        evidence.push({
+          check: "data_labeling",
+          status: "compliant",
+          detail: "No applicable data found",
+        });
+      }
     }
 
     const score = total > 0 ? Math.round((passed / total) * 100) : 100;
-    return { passed: score >= (rules.passThreshold || 80), score, details: { checksTotal: total, checksPassed: passed, policyName: policy.name }, evidence, recommendations };
+    return {
+      passed: score >= (rules.passThreshold || 80),
+      score,
+      details: {
+        checksTotal: total,
+        checksPassed: passed,
+        policyName: policy.name,
+      },
+      evidence,
+      recommendations,
+    };
   }
 
   // ========================================
@@ -545,11 +977,13 @@ class ComplianceManager {
   // ========================================
 
   _calculateWeightedScore(checkResults) {
-    if (!checkResults || checkResults.length === 0) {return 0;}
+    if (!checkResults || checkResults.length === 0) {
+      return 0;
+    }
     let weightedSum = 0;
     let totalWeight = 0;
     for (const result of checkResults) {
-      const weight = POLICY_WEIGHTS[result.policyType] || 0.10;
+      const weight = POLICY_WEIGHTS[result.policyType] || 0.1;
       weightedSum += result.score * weight;
       totalWeight += weight;
     }
@@ -558,7 +992,9 @@ class ComplianceManager {
 
   async getComplianceScore(framework) {
     try {
-      if (!framework) {return { success: false, error: "Framework is required" };}
+      if (!framework) {
+        return { success: false, error: "Framework is required" };
+      }
 
       const latest = await this.db.get(
         "SELECT * FROM compliance_score_history WHERE framework = ? ORDER BY recorded_at DESC LIMIT 1",
@@ -566,25 +1002,42 @@ class ComplianceManager {
       );
 
       if (!latest) {
-        return { success: true, data: { framework, score: null, message: "No compliance checks have been run for this framework yet" } };
+        return {
+          success: true,
+          data: {
+            framework,
+            score: null,
+            message:
+              "No compliance checks have been run for this framework yet",
+          },
+        };
       }
       return {
         success: true,
         data: {
-          framework, score: latest.score, totalPolicies: latest.total_policies,
-          passed: latest.passed, failed: latest.failed,
-          details: JSON.parse(latest.details || "{}"), recordedAt: latest.recorded_at,
+          framework,
+          score: latest.score,
+          totalPolicies: latest.total_policies,
+          passed: latest.passed,
+          failed: latest.failed,
+          details: JSON.parse(latest.details || "{}"),
+          recordedAt: latest.recorded_at,
         },
       };
     } catch (error) {
-      logger.error("[ComplianceManager] Failed to get compliance score:", error);
+      logger.error(
+        "[ComplianceManager] Failed to get compliance score:",
+        error,
+      );
       return { success: false, error: error.message };
     }
   }
 
   async getScoreHistory(framework, days = 30) {
     try {
-      if (!framework) {return { success: false, error: "Framework is required" };}
+      if (!framework) {
+        return { success: false, error: "Framework is required" };
+      }
 
       const since = Date.now() - days * 86400000;
       const history = await this.db.all(
@@ -593,18 +1046,27 @@ class ComplianceManager {
       );
 
       const entries = (history || []).map((e) => ({
-        score: e.score, totalPolicies: e.total_policies,
-        passed: e.passed, failed: e.failed, recordedAt: e.recorded_at,
+        score: e.score,
+        totalPolicies: e.total_policies,
+        passed: e.passed,
+        failed: e.failed,
+        recordedAt: e.recorded_at,
       }));
 
       let trend = "stable";
       if (entries.length >= 2) {
         const diff = entries[entries.length - 1].score - entries[0].score;
-        if (diff >= 5) {trend = "improving";}
-        else if (diff <= -5) {trend = "declining";}
+        if (diff >= 5) {
+          trend = "improving";
+        } else if (diff <= -5) {
+          trend = "declining";
+        }
       }
 
-      return { success: true, data: { framework, days, trend, entries, count: entries.length } };
+      return {
+        success: true,
+        data: { framework, days, trend, entries, count: entries.length },
+      };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to get score history:", error);
       return { success: false, error: error.message };
@@ -617,13 +1079,24 @@ class ComplianceManager {
 
   async generateReport(framework, dateRange = {}) {
     try {
-      if (!framework) {return { success: false, error: "Framework is required" };}
-      if (!FRAMEWORKS.includes(framework)) {return { success: false, error: `Invalid framework: ${framework}` };}
+      if (!framework) {
+        return { success: false, error: "Framework is required" };
+      }
+      if (!FRAMEWORKS.includes(framework)) {
+        return { success: false, error: `Invalid framework: ${framework}` };
+      }
 
-      logger.info(`[ComplianceManager] Generating compliance report for: ${framework}`);
+      logger.info(
+        `[ComplianceManager] Generating compliance report for: ${framework}`,
+      );
 
       const checkResult = await this.checkCompliance(framework);
-      if (!checkResult.success) {return { success: false, error: `Compliance check failed: ${checkResult.error}` };}
+      if (!checkResult.success) {
+        return {
+          success: false,
+          error: `Compliance check failed: ${checkResult.error}`,
+        };
+      }
 
       const checkData = checkResult.data;
       const now = Date.now();
@@ -631,11 +1104,17 @@ class ComplianceManager {
       const rangeEnd = dateRange.end || now;
 
       const historyResult = await this.getScoreHistory(framework, 90);
-      const scoreHistory = historyResult.success ? historyResult.data : { entries: [], trend: "unknown" };
+      const scoreHistory = historyResult.success
+        ? historyResult.data
+        : { entries: [], trend: "unknown" };
       const policiesResult = await this.getPolicies({ framework });
       const policies = policiesResult.success ? policiesResult.data : [];
 
-      const executiveSummary = this._buildExecutiveSummary(framework, checkData, scoreHistory);
+      const executiveSummary = this._buildExecutiveSummary(
+        framework,
+        checkData,
+        scoreHistory,
+      );
       const findings = this._buildFindings(checkData);
 
       const reportId = uuidv4();
@@ -652,21 +1131,44 @@ class ComplianceManager {
         passed: checkData.passed,
         failed: checkData.failed,
         findings,
-        policies: policies.map((p) => ({ id: p.id, name: p.name, type: p.type, severity: p.severity, enabled: p.enabled })),
+        policies: policies.map((p) => ({
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          severity: p.severity,
+          enabled: p.enabled,
+        })),
         recommendations: checkData.recommendations,
-        evidence: checkData.checks.flatMap((c) => (c.evidence || []).map((e) => ({ ...e, policyName: c.policyName }))),
+        evidence: checkData.checks.flatMap((c) =>
+          (c.evidence || []).map((e) => ({ ...e, policyName: c.policyName })),
+        ),
         scoreHistory: scoreHistory.entries,
       };
 
       await this.db.run(
         `INSERT INTO compliance_reports (id, framework, title, summary, score, content, date_range_start, date_range_end, generated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [reportId, framework, report.title, executiveSummary, checkData.score,
-         JSON.stringify(report), rangeStart, rangeEnd, now],
+        [
+          reportId,
+          framework,
+          report.title,
+          executiveSummary,
+          checkData.score,
+          JSON.stringify(report),
+          rangeStart,
+          rangeEnd,
+          now,
+        ],
       );
 
-      await this._logAudit("report_generated", { reportId, framework, score: checkData.score });
-      logger.info(`[ComplianceManager] Report generated: ${reportId} (Score: ${checkData.score})`);
+      await this._logAudit("report_generated", {
+        reportId,
+        framework,
+        score: checkData.score,
+      });
+      logger.info(
+        `[ComplianceManager] Report generated: ${reportId} (Score: ${checkData.score})`,
+      );
 
       return { success: true, data: report };
     } catch (error) {
@@ -677,15 +1179,29 @@ class ComplianceManager {
 
   _buildExecutiveSummary(framework, checkData, scoreHistory) {
     const name = framework.toUpperCase();
-    const label = checkData.score >= 90 ? "excellent" : checkData.score >= 70 ? "good" : checkData.score >= 50 ? "moderate" : "needs improvement";
+    const label =
+      checkData.score >= 90
+        ? "excellent"
+        : checkData.score >= 70
+          ? "good"
+          : checkData.score >= 50
+            ? "moderate"
+            : "needs improvement";
 
     let summary = `${name} compliance assessment completed with an overall score of ${checkData.score}/100 (${label}). `;
     summary += `${checkData.passed} of ${checkData.totalPolicies} policies passed. `;
-    if (checkData.failed > 0) {summary += `${checkData.failed} policies require attention. `;}
+    if (checkData.failed > 0) {
+      summary += `${checkData.failed} policies require attention. `;
+    }
 
-    if (scoreHistory.trend === "improving") {summary += "The compliance score trend is improving.";}
-    else if (scoreHistory.trend === "declining") {summary += "The compliance score trend is declining and requires immediate attention.";}
-    else {summary += "The compliance score has remained stable.";}
+    if (scoreHistory.trend === "improving") {
+      summary += "The compliance score trend is improving.";
+    } else if (scoreHistory.trend === "declining") {
+      summary +=
+        "The compliance score trend is declining and requires immediate attention.";
+    } else {
+      summary += "The compliance score has remained stable.";
+    }
 
     return summary;
   }
@@ -697,9 +1213,10 @@ class ComplianceManager {
       status: check.status,
       score: check.score,
       severity: check.status === "failed" ? "high" : "info",
-      description: check.status === "passed"
-        ? `${check.policyName} meets compliance requirements`
-        : `${check.policyName} does not meet compliance requirements`,
+      description:
+        check.status === "passed"
+          ? `${check.policyName} meets compliance requirements`
+          : `${check.policyName} does not meet compliance requirements`,
       evidence: check.evidence || [],
       recommendations: check.recommendations || [],
     }));
@@ -710,19 +1227,38 @@ class ComplianceManager {
   // ========================================
 
   _parsePolicy(row) {
-    if (!row) {return null;}
-    return { ...row, rules: JSON.parse(row.rules || "{}"), enabled: row.enabled === 1 };
+    if (!row) {
+      return null;
+    }
+    return {
+      ...row,
+      rules: JSON.parse(row.rules || "{}"),
+      enabled: row.enabled === 1,
+    };
   }
 
   async _logAudit(action, details) {
     try {
       if (this.auditLogger && typeof this.auditLogger.log === "function") {
-        await this.auditLogger.log({ module: "ComplianceManager", action, details, timestamp: Date.now() });
+        await this.auditLogger.log({
+          module: "ComplianceManager",
+          action,
+          details,
+          timestamp: Date.now(),
+        });
       }
     } catch (error) {
-      logger.warn("[ComplianceManager] Failed to log audit event:", error.message);
+      logger.warn(
+        "[ComplianceManager] Failed to log audit event:",
+        error.message,
+      );
     }
   }
 }
 
-module.exports = { ComplianceManager, POLICY_TYPES, FRAMEWORKS, POLICY_WEIGHTS };
+module.exports = {
+  ComplianceManager,
+  POLICY_TYPES,
+  FRAMEWORKS,
+  POLICY_WEIGHTS,
+};

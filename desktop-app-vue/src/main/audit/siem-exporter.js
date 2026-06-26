@@ -310,6 +310,18 @@ class SIEMExporter extends EventEmitter {
    * @returns {Object} Formatted JSON object
    */
   _toJSON(logEntry) {
+    // Guard a corrupt details column: a single malformed JSON row must not throw
+    // out of the export .map and wedge the whole batch — exportLogs would never
+    // advance lastExportedLogId, so the target gets stuck re-fetching the
+    // poisoned row forever and never exports newer logs.
+    let detailFields = {};
+    if (logEntry.details) {
+      try {
+        detailFields = JSON.parse(logEntry.details);
+      } catch {
+        detailFields = {};
+      }
+    }
     return {
       timestamp: logEntry.created_at || logEntry.timestamp || Date.now(),
       severity: logEntry.severity || logEntry.level || "INFO",
@@ -321,7 +333,7 @@ class SIEMExporter extends EventEmitter {
         action: logEntry.action,
         resource: logEntry.resource,
         ip: logEntry.ip_address,
-        ...(logEntry.details ? JSON.parse(logEntry.details) : {}),
+        ...detailFields,
       },
     };
   }

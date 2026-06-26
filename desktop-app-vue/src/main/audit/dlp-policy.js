@@ -32,11 +32,15 @@ class DLPPolicyManager extends EventEmitter {
     this._ensureTables();
     await this._loadPolicies();
     this.initialized = true;
-    logger.info(`[DLPPolicyManager] DLP policy manager initialized (${this._policies.size} policies loaded)`);
+    logger.info(
+      `[DLPPolicyManager] DLP policy manager initialized (${this._policies.size} policies loaded)`,
+    );
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) { return; }
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS dlp_policies (
@@ -60,7 +64,9 @@ class DLPPolicyManager extends EventEmitter {
    * Load all policies from DB into in-memory Map.
    */
   async _loadPolicies() {
-    if (!this.database || !this.database.db) { return; }
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     try {
       const rows = this.database.db.prepare("SELECT * FROM dlp_policies").all();
@@ -84,7 +90,15 @@ class DLPPolicyManager extends EventEmitter {
    * @param {string} [params.severity='medium'] - Severity level
    * @returns {Promise<object>} The created policy
    */
-  async createPolicy({ name, description, channels, patterns, keywords, action = "alert", severity = "medium" }) {
+  async createPolicy({
+    name,
+    description,
+    channels,
+    patterns,
+    keywords,
+    action = "alert",
+    severity = "medium",
+  }) {
     if (!name || !name.trim()) {
       throw new Error("Policy name is required");
     }
@@ -109,19 +123,33 @@ class DLPPolicyManager extends EventEmitter {
     };
 
     if (this.database && this.database.db) {
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         INSERT INTO dlp_policies (id, name, description, enabled, channels, patterns, keywords, action, severity, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        policy.id, policy.name, policy.description, policy.enabled,
-        policy.channels, policy.patterns, policy.keywords,
-        policy.action, policy.severity, policy.created_at, policy.updated_at
-      );
+      `,
+        )
+        .run(
+          policy.id,
+          policy.name,
+          policy.description,
+          policy.enabled,
+          policy.channels,
+          policy.patterns,
+          policy.keywords,
+          policy.action,
+          policy.severity,
+          policy.created_at,
+          policy.updated_at,
+        );
     }
 
     this._policies.set(policy.id, policy);
     this.emit("policy-created", policy);
-    logger.info(`[DLPPolicyManager] Policy created: ${policy.id} (${policy.name})`);
+    logger.info(
+      `[DLPPolicyManager] Policy created: ${policy.id} (${policy.name})`,
+    );
     return policy;
   }
 
@@ -152,7 +180,16 @@ class DLPPolicyManager extends EventEmitter {
       updates.keywords = JSON.stringify(updates.keywords);
     }
 
-    const allowedFields = ["name", "description", "enabled", "channels", "patterns", "keywords", "action", "severity"];
+    const allowedFields = [
+      "name",
+      "description",
+      "enabled",
+      "channels",
+      "patterns",
+      "keywords",
+      "action",
+      "severity",
+    ];
     const setClauses = [];
     const values = [];
 
@@ -172,9 +209,11 @@ class DLPPolicyManager extends EventEmitter {
     values.push(id);
 
     if (this.database && this.database.db) {
-      this.database.db.prepare(
-        `UPDATE dlp_policies SET ${setClauses.join(", ")} WHERE id = ?`
-      ).run(...values);
+      this.database.db
+        .prepare(
+          `UPDATE dlp_policies SET ${setClauses.join(", ")} WHERE id = ?`,
+        )
+        .run(...values);
     }
 
     // Reload the policy from DB or merge locally
@@ -209,10 +248,14 @@ class DLPPolicyManager extends EventEmitter {
    */
   async getPolicy(id) {
     const cached = this._policies.get(id);
-    if (cached) { return cached; }
+    if (cached) {
+      return cached;
+    }
 
     if (this.database && this.database.db) {
-      const row = this.database.db.prepare("SELECT * FROM dlp_policies WHERE id = ?").get(id);
+      const row = this.database.db
+        .prepare("SELECT * FROM dlp_policies WHERE id = ?")
+        .get(id);
       if (row) {
         this._policies.set(row.id, row);
         return row;
@@ -245,8 +288,26 @@ class DLPPolicyManager extends EventEmitter {
   async getActivePoliciesForChannel(channel) {
     const all = Array.from(this._policies.values());
     return all.filter((p) => {
-      if (p.enabled !== 1) { return false; }
-      const channels = typeof p.channels === "string" ? JSON.parse(p.channels) : (p.channels || []);
+      if (p.enabled !== 1) {
+        return false;
+      }
+      let channels = [];
+      if (typeof p.channels === "string") {
+        // A corrupt channels JSON must not throw here: it propagates out of
+        // scanContent (which has no try/catch) and silently fails DLP OPEN for
+        // ALL channels. Default to [] (= applies to all channels), the fail-safe
+        // direction consistent with the no-channels-specified semantics below.
+        try {
+          channels = JSON.parse(p.channels);
+        } catch (err) {
+          logger.warn(
+            `[DLPPolicy] policy ${p.id} has unparseable channels; treating as all-channels: ${err.message}`,
+          );
+          channels = [];
+        }
+      } else if (Array.isArray(p.channels)) {
+        channels = p.channels;
+      }
       // If no channels specified, policy applies to all channels
       return channels.length === 0 || channels.includes(channel);
     });
@@ -276,7 +337,9 @@ class DLPPolicyManager extends EventEmitter {
 
 let _instance;
 function getDLPPolicyManager() {
-  if (!_instance) { _instance = new DLPPolicyManager(); }
+  if (!_instance) {
+    _instance = new DLPPolicyManager();
+  }
   return _instance;
 }
 
