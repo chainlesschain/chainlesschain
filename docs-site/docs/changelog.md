@@ -7,6 +7,13 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Added — cc CLI 0.162.124：Claude Code 2.1.193 平价两则 + 自 0.162.123 起累积安全/稳健性修复（已发 npm）
+
+> CLI-only 发版（`chainlesschain` 0.162.123 → **0.162.124**，已发 npm `latest`）。纯 `packages/cli/src` / `src/runtime`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。本版除下列两则 2.1.193 平价新功能外，还一并发布自 0.162.123 以来累积的安全/稳健性修复（凭据守卫覆盖 FIDO SSH/kubeconfig/htpasswd/GCP SA、`web_fetch` 阻断 DNS-based SSRF、envelope HTTP server 防畸形百分号编码 DoS、git agent 走 argv 关命令注入、mcp serve 常量时间 Bearer + 符号链接越界拦截、WS 会话上限防内存膨胀、worktree 命令注入收口等）。全部带回归单测。
+
+- **REPL `!` bash 模式文件路径自动补全（对照 Claude Code 2.1.193）**：REPL 补全器此前只补 `@path` 与 `/command`，`!cat src/fo<TAB>` 补不出东西；新增在 `!` bash 模式下把尾随 token 补全为 cwd 下的文件系统路径（`@` 引用之前判定，故 bash 命令里出现 `@` 仍补尾随路径 token）。
+- **内存压力下回收空闲后台 shell 任务（对照 Claude Code 2.1.193）**：长 agent 运行可能累积被遗忘的后台命令（dev server、卡死的 build）长期占内存；新增 `reapIdleBackgroundShellTasks()`——系统内存压力（free/total < 10%）时回收 5 分钟无输出的运行中后台任务（经新增 `task.lastActivityAt` 跟踪），在每次新后台 spawn 前触发。机器健康或 `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1` 时 no-op。IDE 面板同样受益（面板跑 `cc agent`）。
+
 #### Added — cc CLI 0.162.123：凭据读取保护 + Claude Code 2.1.191 平价五则（已发 npm）
 
 > CLI-only 发版（`chainlesschain` 0.162.122 → **0.162.123**，已发 npm `latest`；弃用 `<0.162.123 || >0.162.123`，212 个历史版本仅 0.162.123 live）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。全部带回归单测；面板（IDE chat panel）实测 stream-json 模式真 LLM 往返成功。
