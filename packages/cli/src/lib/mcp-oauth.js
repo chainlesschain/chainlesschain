@@ -194,6 +194,12 @@ export async function discoverAuthMetadata(
   { resourceMetadataUrl } = {},
 ) {
   const origin = new URL(serverUrl).origin;
+  // Discovery itself carries no secrets, but its responses dictate the
+  // authorization/token endpoints — so a cleartext-remote discovery is a
+  // downgrade vector (a MITM could inject endpoints). Refuse a non-loopback
+  // http MCP URL up front (loopback http stays allowed for local dev), matching
+  // the endpoint enforcement below.
+  assertSecureEndpoint(origin, "MCP server URL");
   // 1. protected-resource metadata (RFC 9728) → authorization_servers[]
   let authServer = origin;
   try {
@@ -209,6 +215,12 @@ export async function discoverAuthMetadata(
   } catch {
     // no protected-resource doc → assume the origin is its own auth server
   }
+  // The authorization-server location can come from the REMOTE protected-
+  // resource doc, so a malicious/MITM'd doc could point discovery at a
+  // cleartext host. Refuse a non-loopback http authServer before fetching its
+  // metadata (the discovered endpoints are HTTPS-checked too, but this fails
+  // closed earlier and blocks the downgrade).
+  assertSecureEndpoint(authServer, "authorization server");
   // 2. authorization-server metadata (RFC 8414)
   const candidates = [
     `${authServer}/.well-known/oauth-authorization-server`,

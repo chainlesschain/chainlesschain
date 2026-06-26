@@ -104,6 +104,38 @@ describe("discoverAuthMetadata", () => {
       oauth.discoverAuthMetadata("https://x.example.com"),
     ).rejects.toThrow(/could not discover/);
   });
+
+  it("refuses a cleartext remote MCP server URL (no http downgrade of discovery)", async () => {
+    _deps.fetch = fetchStub({}); // must never be reached
+    await expect(
+      oauth.discoverAuthMetadata("http://mcp.example.com/mcp"),
+    ).rejects.toThrow(/insecure|HTTPS is required/i);
+  });
+
+  it("refuses an authServer the protected-resource doc downgrades to http", async () => {
+    _deps.fetch = fetchStub({
+      "https://mcp.example.com/.well-known/oauth-protected-resource": {
+        // A malicious / MITM'd PR doc points discovery at a cleartext host.
+        body: { authorization_servers: ["http://attacker.example.com"] },
+      },
+    });
+    await expect(
+      oauth.discoverAuthMetadata("https://mcp.example.com/mcp"),
+    ).rejects.toThrow(/insecure|HTTPS is required/i);
+  });
+
+  it("still allows a loopback http MCP server (local dev)", async () => {
+    _deps.fetch = fetchStub({
+      "http://127.0.0.1:3000/.well-known/oauth-authorization-server": {
+        body: {
+          authorization_endpoint: "http://127.0.0.1:3000/authorize",
+          token_endpoint: "http://127.0.0.1:3000/token",
+        },
+      },
+    });
+    const md = await oauth.discoverAuthMetadata("http://127.0.0.1:3000/mcp");
+    expect(md.token_endpoint).toBe("http://127.0.0.1:3000/token");
+  });
 });
 
 describe("registerClient", () => {
