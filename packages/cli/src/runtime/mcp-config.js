@@ -28,6 +28,11 @@ import {
   pdhServerToMcpConfig,
   isInPdhTerminal,
 } from "../lib/pdh-bridge.js";
+import {
+  discoverJetbrainsServer,
+  jetbrainsServerToMcpConfig,
+  isInJetbrainsContext,
+} from "../lib/jetbrains-bridge.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -464,6 +469,47 @@ export async function loadPdhMcp(opts = {}, deps = {}) {
 }
 
 /**
+ * Connect IntelliJ IDEA's built-in MCP server (IDEA >= 2025.2) as the reserved
+ * server `idea` -> tools `mcp__idea__*`. The ChainlessChain JetBrains plugin
+ * injects the exact endpoint (CHAINLESSCHAIN_JETBRAINS_MCP_URL + optional
+ * _TOKEN) into the cc it spawns ONLY when the IDE actually supports + enables
+ * MCP; absent that, this is a no-op (we never scan/guess/spawn a proxy — if
+ * the IDE's MCP is unsupported, we don't connect). Best-effort: returns
+ * `deps.into` (or null) on nothing found / bad config, never throws. An explicit
+ * user registration of a server named `idea` wins (yield + one-line warning).
+ *
+ * @param {object} opts  { env? }
+ * @param {object} [deps] { writeErr, into, discoverJetbrainsServer, jetbrainsServerToMcpConfig }
+ */
+export async function loadJetbrainsMcp(opts = {}, deps = {}) {
+  const discover = deps.discoverJetbrainsServer || discoverJetbrainsServer;
+  const toCfg = deps.jetbrainsServerToMcpConfig || jetbrainsServerToMcpConfig;
+  const found = discover({ env: opts.env });
+  if (!found) return deps.into || null;
+  if (deps.into?.mcpClient?.servers?.has?.("idea")) {
+    (deps.writeErr || (() => {}))(
+      `  idea: server "idea" already registered explicitly — ` +
+        `skipping IDEA built-in MCP auto-connect\n`,
+    );
+    return deps.into;
+  }
+  const cfg = toCfg(found);
+  if (!cfg) return deps.into || null;
+  const out = await setupMcpFromConfig({ idea: cfg }, deps);
+  // Hot reconnect: re-read the injected env on a failed mcp__idea__* call (the
+  // IDE may have restarted its MCP server on a new port/token, and the plugin
+  // re-injects a fresh CHAINLESSCHAIN_JETBRAINS_MCP_URL into the next spawn —
+  // though within one run the env is fixed, so this just re-validates it).
+  if (out?.mcpClient?.setReconnector) {
+    out.mcpClient.setReconnector("idea", () => {
+      const fresh = discover({ env: opts.env });
+      return fresh ? toCfg(fresh) : null;
+    });
+  }
+  return out;
+}
+
+/**
  * Discover + connect a project-scoped `.mcp.json` (Claude-Code parity). Reads a
  * `.mcp.json` from the git project root (walked up from cwd, same as the
  * `.claude` config layers) and from cwd itself, merging their `mcpServers`
@@ -534,10 +580,13 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
  * there's nothing. Throws only on a bad `--mcp-config` file (explicit request).
  *
  * IDE discovery: default ON only inside an IDE integrated terminal; `ide:true`
- * (`--ide`) forces it; `ide:false` (`--no-ide`) disables it.
+ * (`--ide`) forces it; `ide:false` (`--no-ide`) disables it. IDEA built-in MCP
+ * (reserved `idea`): default ON only when the JetBrains plugin injected
+ * `CHAINLESSCHAIN_JETBRAINS_MCP_URL`; `jetbrains:true` (`--jetbrains`) forces;
+ * `jetbrains:false` (`--no-jetbrains`) disables.
  *
- * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false, ide?, pdh?, cwd?, env? }
- * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp, loadIdeMcp, loadPdhMcp, isInIdeTerminal, isInPdhTerminal }
+ * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false, ide?, pdh?, jetbrains?, cwd?, env? }
+ * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp, loadIdeMcp, loadPdhMcp, loadJetbrainsMcp, isInIdeTerminal, isInPdhTerminal, isInJetbrainsContext }
  */
 export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
@@ -545,6 +594,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const doProject = deps.loadProjectMcp || loadProjectMcp;
   const doIde = deps.loadIdeMcp || loadIdeMcp;
   const doPdh = deps.loadPdhMcp || loadPdhMcp;
+  const doJetbrains = deps.loadJetbrainsMcp || loadJetbrainsMcp;
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   const fwd =
@@ -597,6 +647,25 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     if (args.pdh === true || inPdh) {
       result = await doPdh(
         { env, force: args.pdh === true },
+        { ...fwd, into: result || undefined },
+      );
+    }
+  }
+  // IntelliJ IDEA built-in MCP (IDEA >= 2025.2), reserved name `idea` ->
+  // mcp__idea__*. Scoped to the JetBrains plugin context: the plugin injects
+  // CHAINLESSCHAIN_JETBRAINS_MCP_URL only when the IDE supports + enables MCP,
+  // so default-ON is gated on that env being present (isInJetbrainsContext).
+  // `jetbrains:true` (--jetbrains) forces the attempt; `jetbrains:false`
+  // (--no-jetbrains) disables it. No URL = no connect (unsupported IDE).
+  // Skipped under --strict-mcp-config (returned above).
+  if (args.jetbrains !== false) {
+    const env = args.env || process.env;
+    const inJetbrains = (deps.isInJetbrainsContext || isInJetbrainsContext)(
+      env,
+    );
+    if (args.jetbrains === true || inJetbrains) {
+      result = await doJetbrains(
+        { env },
         { ...fwd, into: result || undefined },
       );
     }

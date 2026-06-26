@@ -801,6 +801,10 @@ export async function startAgentRepl(options = {}) {
           // (parity with headless; auto-detect already works via process.env).
           ide: options.ide,
           pdh: options.pdh,
+          // IDEA built-in MCP (server `idea`): auto-connect when the JetBrains
+          // plugin injected CHAINLESSCHAIN_JETBRAINS_MCP_URL. --jetbrains forces,
+          // --no-jetbrains disables.
+          jetbrains: options.jetbrains,
           cwd: process.cwd(),
           // advertise the session id to spawned stdio MCP servers
           sessionId,

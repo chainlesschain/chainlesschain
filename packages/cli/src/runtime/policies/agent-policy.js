@@ -38,6 +38,9 @@ export function resolveAgentPolicy({
     // IDE bridge tri-state (undefined=auto / true=--ide / false=--no-ide); the
     // REPL forwards it to resolveAgentMcp so --ide/--no-ide work interactively.
     ide: overrides.ide,
+    // IDEA built-in MCP tri-state (undefined=auto when the JetBrains plugin
+    // injected the endpoint / true=--jetbrains / false=--no-jetbrains).
+    jetbrains: overrides.jetbrains,
   };
 }
 

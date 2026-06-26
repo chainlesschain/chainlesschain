@@ -678,6 +678,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           strict: options.strictMcpConfig === true,
           ide: options.ide,
           pdh: options.pdh,
+          jetbrains: options.jetbrains,
           cwd: options.cwd || process.cwd(),
           // advertise the session id to spawned stdio MCP servers
           sessionId,
@@ -687,6 +688,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
           loadIdeMcp: deps.loadIdeMcp,
+          loadJetbrainsMcp: deps.loadJetbrainsMcp,
         },
       );
       if (mcp && isText) {

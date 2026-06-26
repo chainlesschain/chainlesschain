@@ -276,6 +276,11 @@ export function registerAgentCommand(program) {
     )
     .option("--no-pdh", "Disable PDH bridge auto-connect")
     .option(
+      "--jetbrains",
+      "Force-enable IntelliJ IDEA built-in MCP (IDEA >= 2025.2) as server `idea` (default: auto when the ChainlessChain JetBrains plugin injects CHAINLESSCHAIN_JETBRAINS_MCP_URL)",
+    )
+    .option("--no-jetbrains", "Disable IDEA built-in MCP auto-connect")
+    .option(
       "--interactive-approvals",
       "Stream mode: confirm-tier approvals become approval_request/approval stdin-stdout events instead of failing closed (chat-panel UX)",
     )
@@ -642,6 +647,7 @@ export function registerAgentCommand(program) {
             useRegisteredMcp: options.mcp !== false,
             ide: options.ide,
             pdh: options.pdh,
+            jetbrains: options.jetbrains,
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
             interactiveApprovals: options.interactiveApprovals === true,
@@ -756,6 +762,8 @@ export function registerAgentCommand(program) {
           ide: options.ide,
           // --pdh / --no-pdh: auto-connect the Android app's PDH bridge
           pdh: options.pdh,
+          // --jetbrains / --no-jetbrains: IDEA built-in MCP (server `idea`)
+          jetbrains: options.jetbrains,
           cwd: process.cwd(),
           // --permission-prompt-tool: defer approvals to an MCP tool
           permissionPromptTool: options.permissionPromptTool || null,
@@ -859,6 +867,8 @@ export function registerAgentCommand(program) {
         ide: options.ide,
         // --pdh / --no-pdh: PDH bridge auto-connect for the interactive session
         pdh: options.pdh,
+        // --jetbrains / --no-jetbrains: IDEA built-in MCP for the interactive session
+        jetbrains: options.jetbrains,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

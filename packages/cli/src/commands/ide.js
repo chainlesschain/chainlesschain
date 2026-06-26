@@ -21,6 +21,7 @@ import {
   ideLockDir,
   diagnoseIde,
 } from "../lib/ide-bridge.js";
+import { diagnoseJetbrains } from "../lib/jetbrains-bridge.js";
 
 function emit(obj) {
   console.log(JSON.stringify(obj, null, 2));
@@ -29,7 +30,9 @@ function emit(obj) {
 export function registerIdeCommand(program) {
   const ide = program
     .command("ide")
-    .description("Inspect IDE bridge discovery (editor MCP server auto-connect)");
+    .description(
+      "Inspect IDE bridge discovery (editor MCP server auto-connect)",
+    );
 
   ide
     .command("list")
@@ -47,9 +50,7 @@ export function registerIdeCommand(program) {
         return;
       }
       if (!locks.length) {
-        console.log(
-          chalk.gray(`No live IDE lockfiles in ${ideLockDir()}`),
-        );
+        console.log(chalk.gray(`No live IDE lockfiles in ${ideLockDir()}`));
         console.log(
           chalk.gray(
             "Start an IDE extension that advertises one, or run `cc ide doctor`.",
@@ -57,7 +58,9 @@ export function registerIdeCommand(program) {
         );
         return;
       }
-      console.log(chalk.bold(`IDE servers (${locks.length}) in ${ideLockDir()}:`));
+      console.log(
+        chalk.bold(`IDE servers (${locks.length}) in ${ideLockDir()}:`),
+      );
       for (const l of locks) {
         console.log(
           `  ${chalk.cyan(l.ide)}  port ${l.port}  ${l.transport}  ` +
@@ -162,6 +165,58 @@ export function registerIdeCommand(program) {
         }`,
       );
       console.log(`  reason         : ${diag.reason}`);
+    });
+
+  ide
+    .command("jetbrains")
+    .description(
+      "Show whether IntelliJ IDEA's built-in MCP (server `idea`) would auto-connect",
+    )
+    .option("--json", "Machine-readable output")
+    .action((options) => {
+      const diag = diagnoseJetbrains({ env: process.env });
+      if (options.json) {
+        emit(diag);
+        return;
+      }
+      console.log(chalk.bold("IDEA built-in MCP (server `idea`)"));
+      console.log(
+        `  endpoint injected: ${
+          diag.supported ? chalk.green("yes") : chalk.gray("no")
+        }`,
+      );
+      if (diag.chosen) {
+        console.log(
+          `  would connect    : ${chalk.cyan(diag.chosen.url)} ` +
+            `(${diag.chosen.transport}) ` +
+            `${diag.chosen.hasToken ? chalk.green("token") : chalk.yellow("no-token")}`,
+        );
+      } else {
+        console.log(`  would connect    : ${chalk.yellow("nothing")}`);
+      }
+      console.log(`  reason           : ${diag.reason}`);
+      if (!diag.supported) {
+        console.log(
+          chalk.gray(
+            "\n  IDEA 2025.2+ exposes a built-in MCP server (Settings | Tools |",
+          ),
+        );
+        console.log(
+          chalk.gray(
+            "  MCP Server). The ChainlessChain JetBrains plugin injects its",
+          ),
+        );
+        console.log(
+          chalk.gray(
+            "  endpoint into the cc it spawns — run cc from the plugin's chat",
+          ),
+        );
+        console.log(
+          chalk.gray(
+            "  panel / IDE terminal, or set CHAINLESSCHAIN_JETBRAINS_MCP_URL.",
+          ),
+        );
+      }
     });
 
   return ide;
