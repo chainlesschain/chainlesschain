@@ -21,7 +21,32 @@ function getSessionsDir() {
   return dir;
 }
 
+/**
+ * A session id must be a single safe path segment. Ids are generated as
+ * `session-<ts>-<hex>`, but also arrive from CLI args (`cc agent --resume <id>`,
+ * `cc insights <id>`, `cc session show <id>`), so an id like `../../etc/x` would
+ * otherwise let sessionPath() read / append / delete a .jsonl OUTSIDE the
+ * sessions dir. Reject any separator or `..` (mirrors goal-store's
+ * isUnsafeGoalId / FileUploadService.isUnsafeSegment).
+ */
+export function isUnsafeSessionId(id) {
+  return (
+    id == null ||
+    id === "" ||
+    typeof id !== "string" ||
+    id.includes("/") ||
+    id.includes("\\") ||
+    id.includes("..")
+  );
+}
+
 export function sessionPath(sessionId) {
+  // Fail closed for path building: every write/delete goes through here, so a
+  // traversal id can never escape the sessions dir. Reads guard separately and
+  // degrade to not-found instead of throwing.
+  if (isUnsafeSessionId(sessionId)) {
+    throw new Error(`unsafe session id: ${String(sessionId).slice(0, 60)}`);
+  }
   return join(getSessionsDir(), `${sessionId}.jsonl`);
 }
 
@@ -69,6 +94,7 @@ export function appendCompactEvent(sessionId, stats) {
 }
 
 export function readEvents(sessionId) {
+  if (isUnsafeSessionId(sessionId)) return []; // traversal id → treat as empty
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath)) return [];
 
@@ -184,6 +210,7 @@ export function forkSession(sourceId) {
 }
 
 export function sessionExists(sessionId) {
+  if (isUnsafeSessionId(sessionId)) return false; // never resolve a traversal id
   return existsSync(sessionPath(sessionId));
 }
 
@@ -266,6 +293,15 @@ export function migrateLegacySessionFile(filePath, options = {}) {
 }
 
 export function validateJsonlSession(sessionId) {
+  if (isUnsafeSessionId(sessionId)) {
+    return {
+      sessionId,
+      valid: false,
+      reason: "invalid session id",
+      malformedLines: 0,
+      eventCount: 0,
+    };
+  }
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath)) {
     return {

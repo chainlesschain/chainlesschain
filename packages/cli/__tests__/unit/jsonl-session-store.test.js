@@ -29,6 +29,8 @@ const {
   migrateLegacySessionsBatch,
   sampleMigratedSessionsValidation,
   validateJsonlSession,
+  sessionPath,
+  isUnsafeSessionId,
 } = await import("../../src/lib/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
@@ -40,6 +42,57 @@ describe("jsonl-session-store", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+  });
+
+  // ── path-traversal safety ─────────────────────────────────────────
+  describe("session id path-traversal safety", () => {
+    it("flags separators / `..` / empty / non-string ids as unsafe", () => {
+      for (const bad of [
+        "../../etc/passwd",
+        "a/b",
+        "a\\b",
+        "..",
+        "x/..",
+        "",
+        null,
+        undefined,
+        123,
+      ]) {
+        expect(isUnsafeSessionId(bad)).toBe(true);
+      }
+      for (const ok of ["session-123-abc", "my_session.1", "abc"]) {
+        expect(isUnsafeSessionId(ok)).toBe(false);
+      }
+    });
+
+    it("sessionPath throws on a traversal id but builds a safe path otherwise", () => {
+      expect(() => sessionPath("../../evil")).toThrow(/unsafe session id/);
+      expect(sessionPath("good-1").endsWith("good-1.jsonl")).toBe(true);
+    });
+
+    it("reads/exists treat a traversal id as not-found (no escape, no throw)", () => {
+      // A sibling file OUTSIDE the sessions dir that a crafted id could target.
+      const victim = join(testDir, "victim.jsonl");
+      writeFileSync(victim, JSON.stringify({ secret: 1 }) + "\n", "utf-8");
+      try {
+        const travId = "../victim"; // sessionPath would append .jsonl
+        expect(readEvents(travId)).toEqual([]);
+        expect(sessionExists(travId)).toBe(false);
+        expect(validateJsonlSession(travId).reason).toBe("invalid session id");
+        expect(existsSync(victim)).toBe(true); // never read/deleted
+      } finally {
+        rmSync(victim, { force: true });
+      }
+    });
+
+    it("writes refuse a traversal id (nothing created outside the dir)", () => {
+      const escaped = join(testDir, "pwned.jsonl");
+      expect(() => appendEvent("../pwned", "x", {})).toThrow(
+        /unsafe session id/,
+      );
+      expect(() => startSession("../pwned")).toThrow(/unsafe session id/);
+      expect(existsSync(escaped)).toBe(false);
+    });
   });
 
   // ── startSession ──────────────────────────────────────────────────
@@ -301,12 +354,18 @@ describe("jsonl-session-store", () => {
     it("builds a dry-run batch migration report", () => {
       writeFileSync(
         join(sessionsDir, "legacy-a.json"),
-        JSON.stringify({ id: "legacy-a", messages: [{ role: "user", content: "a" }] }),
+        JSON.stringify({
+          id: "legacy-a",
+          messages: [{ role: "user", content: "a" }],
+        }),
         "utf-8",
       );
       writeFileSync(
         join(sessionsDir, "legacy-b.json"),
-        JSON.stringify({ id: "legacy-b", messages: [{ role: "assistant", content: "b" }] }),
+        JSON.stringify({
+          id: "legacy-b",
+          messages: [{ role: "assistant", content: "b" }],
+        }),
         "utf-8",
       );
 
@@ -331,7 +390,9 @@ describe("jsonl-session-store", () => {
       );
 
       const migrated = migrateLegacySessionFile(file);
-      const sample = sampleMigratedSessionsValidation([migrated], { sampleSize: 1 });
+      const sample = sampleMigratedSessionsValidation([migrated], {
+        sampleSize: 1,
+      });
       expect(sample).toHaveLength(1);
       expect(sample[0].valid).toBe(true);
       expect(sample[0].matchesExpectedMessages).toBe(true);

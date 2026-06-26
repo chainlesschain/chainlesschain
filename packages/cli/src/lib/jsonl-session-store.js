@@ -30,5 +30,6 @@ export {
   validateAllJsonlSessions,
   sampleMigratedSessionsValidation,
   sessionPath,
+  isUnsafeSessionId,
   appendTokenUsage,
 } from "../harness/jsonl-session-store.js";
