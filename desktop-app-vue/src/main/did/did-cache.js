@@ -133,8 +133,20 @@ class DIDCache extends EventEmitter {
       let loadedCount = 0;
 
       for (const row of rows) {
+        // A single corrupt `document` must not throw out of the loop and drop
+        // every DID after it (the outer catch would abort the whole load). Skip
+        // the bad row and keep loading the rest.
+        let document;
+        try {
+          document = JSON.parse(row.document);
+        } catch (err) {
+          logger.warn(
+            `[DIDCache] 跳过无法解析 document 的缓存行 ${row.did}: ${err.message}`,
+          );
+          continue;
+        }
         this.cache.set(row.did, {
-          document: JSON.parse(row.document),
+          document,
           cachedAt: row.cached_at,
           expiresAt: row.expires_at,
           accessCount: row.access_count,

@@ -65,6 +65,39 @@ describe("DIDv2Manager", () => {
     expect(db.exec).toHaveBeenCalledTimes(1);
   });
 
+  it("_loadDIDs skips a row with corrupt document without dropping the rest", async () => {
+    // Regression: `|| "{}"` only guards null, so a malformed non-empty document
+    // threw out of the load loop (outer catch) and dropped every active DID
+    // after the bad row. The corrupt row is now skipped; the rest still load.
+    db._prep.all.mockReturnValue([
+      {
+        id: "did:good1",
+        document: JSON.stringify({ id: "did:good1" }),
+        recovery_keys: "[]",
+        status: "active",
+      },
+      {
+        id: "did:bad",
+        document: "{corrupt-json",
+        recovery_keys: "[]",
+        status: "active",
+      },
+      {
+        id: "did:good2",
+        document: JSON.stringify({ id: "did:good2" }),
+        recovery_keys: JSON.stringify(["k"]),
+        status: "active",
+      },
+    ]);
+
+    await manager.initialize(db);
+
+    expect(manager._dids.has("did:good1")).toBe(true);
+    expect(manager._dids.has("did:good2")).toBe(true); // would be dropped pre-fix
+    expect(manager._dids.has("did:bad")).toBe(false);
+    expect(manager._dids.size).toBe(2);
+  });
+
   // ── create ───────────────────────────────────────────────────────────────
   it("should create a DID document", async () => {
     await manager.initialize(db);

@@ -54,11 +54,20 @@ class DIDv2Manager extends EventEmitter {
         .prepare("SELECT * FROM did_v2_documents WHERE status = 'active'")
         .all();
       for (const row of rows) {
-        this._dids.set(row.id, {
-          ...row,
-          document: JSON.parse(row.document || "{}"),
-          recovery_keys: JSON.parse(row.recovery_keys || "[]"),
-        });
+        // `|| "{}"`/`|| "[]"` only guard null — a malformed non-empty value
+        // would throw out of the loop (outer catch) and drop every remaining
+        // active DID. Skip the unparseable row instead.
+        try {
+          this._dids.set(row.id, {
+            ...row,
+            document: JSON.parse(row.document || "{}"),
+            recovery_keys: JSON.parse(row.recovery_keys || "[]"),
+          });
+        } catch (err) {
+          logger.warn(
+            `[DIDv2] skipping DID ${row.id} with unparseable document/recovery_keys: ${err.message}`,
+          );
+        }
       }
     } catch (error) {
       logger.warn("[DIDv2] Failed to load DIDs:", error.message);

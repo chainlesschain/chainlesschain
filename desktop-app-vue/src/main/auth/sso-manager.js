@@ -26,6 +26,23 @@ const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 const crypto = require("crypto");
 
+// Tolerate a corrupt user_info column so one malformed row doesn't throw out of
+// getActiveSessions' .map (the outer catch returns [] — wiping the whole
+// session list) or out of the single-session loader.
+function safeParseUserInfo(raw) {
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[SSOManager] unparseable user_info; treating as null: ${err.message}`,
+    );
+    return null;
+  }
+}
+
 // ─── Provider Types ───
 
 const ProviderType = {
@@ -1117,7 +1134,7 @@ class SSOManager extends EventEmitter {
         externalUserId: row.external_user_id,
         state: row.state,
         expiresAt: row.expires_at,
-        userInfo: row.user_info ? JSON.parse(row.user_info) : null,
+        userInfo: safeParseUserInfo(row.user_info),
         ipAddress: row.ip_address,
         userAgent: row.user_agent,
         createdAt: row.created_at,
@@ -1671,7 +1688,7 @@ class SSOManager extends EventEmitter {
         tokenType: row.token_type,
         expiresAt: row.expires_at,
         scopes: row.scopes,
-        userInfo: row.user_info ? JSON.parse(row.user_info) : null,
+        userInfo: safeParseUserInfo(row.user_info),
         state: row.state,
         samlSessionIndex: row.saml_session_index,
         samlNameId: row.saml_name_id,
