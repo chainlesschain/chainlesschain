@@ -135,14 +135,8 @@ class YjsCollabManager extends EventEmitter {
     if (!this.documents.has(docId)) {
       const ydoc = new Y.Doc();
 
-      // Listen for updates
-      ydoc.on("update", (update, origin) => {
-        // Don't broadcast updates that came from network
-        if (origin !== "network") {
-          this._broadcastUpdate(docId, update);
-          this._saveUpdate(docId, update);
-        }
-      });
+      // Listen for updates (extracted so restoreSnapshot can re-attach it).
+      this._attachUpdateListener(docId, ydoc);
 
       this.documents.set(docId, ydoc);
 
@@ -151,6 +145,22 @@ class YjsCollabManager extends EventEmitter {
     }
 
     return this.documents.get(docId);
+  }
+
+  /**
+   * Attach the local-update listener that broadcasts + persists edits. Must be
+   * re-attached whenever the underlying Y.Doc is replaced (e.g. restoreSnapshot
+   * swaps in a fresh doc), otherwise local edits to the new doc fire `update`
+   * with no listener and are silently lost (not broadcast, not saved).
+   */
+  _attachUpdateListener(docId, ydoc) {
+    ydoc.on("update", (update, origin) => {
+      // Don't broadcast updates that came from network
+      if (origin !== "network") {
+        this._broadcastUpdate(docId, update);
+        this._saveUpdate(docId, update);
+      }
+    });
   }
 
   /**
@@ -343,6 +353,10 @@ class YjsCollabManager extends EventEmitter {
 
       // Replace current document
       this.documents.set(docId, restoredDoc);
+
+      // Re-attach the update listener — the restored doc is brand new and would
+      // otherwise drop (not broadcast/persist) every subsequent local edit.
+      this._attachUpdateListener(docId, restoredDoc);
 
       // Broadcast update to all peers
       const update = Y.encodeStateAsUpdate(restoredDoc);
