@@ -90,7 +90,9 @@ ${outline ? `\n大纲:\n${outline}` : ""}
 
     const response = await this.callLLM({
       systemPrompt,
-      messages: [{ role: "user", content: `请撰写关于"${topic}"的${documentType}` }],
+      messages: [
+        { role: "user", content: `请撰写关于"${topic}"的${documentType}` },
+      ],
     });
 
     return {
@@ -111,11 +113,7 @@ ${outline ? `\n大纲:\n${outline}` : ""}
    * @param {Object} context - 上下文
    */
   async editDocument(input, context) {
-    const {
-      content,
-      editInstructions,
-      preserveStyle = true,
-    } = input;
+    const { content, editInstructions, preserveStyle = true } = input;
 
     const systemPrompt = `你是一个专业的文档编辑。请根据指示编辑文档。
 
@@ -170,12 +168,19 @@ ${focus ? `重点关注: ${focus}` : ""}
       messages: [{ role: "user", content: `请摘要以下内容：\n\n${content}` }],
     });
 
+    const originalLength = this._countWords(content);
+    const summaryLength = this._countWords(response);
     return {
       success: true,
       summary: response,
-      originalLength: this._countWords(content),
-      summaryLength: this._countWords(response),
-      compressionRatio: (this._countWords(response) / this._countWords(content)).toFixed(2),
+      originalLength,
+      summaryLength,
+      // Guard the divide-by-zero: empty/whitespace/punctuation-only content has
+      // 0 words, which would make the ratio "NaN".
+      compressionRatio:
+        originalLength > 0
+          ? (summaryLength / originalLength).toFixed(2)
+          : "0.00",
     };
   }
 
@@ -221,11 +226,7 @@ ${sourceLanguage !== "auto" ? `源语言: ${sourceLanguage}` : ""}
    * @param {Object} context - 上下文
    */
   async formatConvert(input, context) {
-    const {
-      content,
-      sourceFormat,
-      targetFormat,
-    } = input;
+    const { content, sourceFormat, targetFormat } = input;
 
     const systemPrompt = `你是一个格式转换专家。请将文档从 ${sourceFormat} 格式转换为 ${targetFormat} 格式。
 
@@ -341,7 +342,9 @@ ${extractTypes.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 
     const response = await this.callLLM({
       systemPrompt,
-      messages: [{ role: "user", content: `请从以下内容提取信息：\n\n${content}` }],
+      messages: [
+        { role: "user", content: `请从以下内容提取信息：\n\n${content}` },
+      ],
     });
 
     return {
@@ -360,10 +363,16 @@ ${extractTypes.map((t, i) => `${i + 1}. ${t}`).join("\n")}
    * @private
    */
   _countWords(text) {
-    if (!text) {return 0;}
+    if (!text) {
+      return 0;
+    }
     // 中文按字符计算，英文按空格分词
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-    const englishWords = text.replace(/[\u4e00-\u9fa5]/g, "").trim().split(/\s+/).filter(Boolean).length;
+    const englishWords = text
+      .replace(/[\u4e00-\u9fa5]/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
     return chineseChars + englishWords;
   }
 

@@ -61,11 +61,7 @@ class DataAnalysisAgent extends SpecializedAgent {
    * @param {Object} context - 上下文
    */
   async analyzeData(input, context) {
-    const {
-      data,
-      analysisType = "general",
-      questions = [],
-    } = input;
+    const { data, analysisType = "general", questions = [] } = input;
 
     const dataPreview = this._getDataPreview(data);
 
@@ -95,7 +91,9 @@ ${questions.length > 0 ? `需要回答的问题:\n${questions.map((q, i) => `${i
       analysis: response,
       dataInfo: {
         type: Array.isArray(data) ? "array" : typeof data,
-        size: Array.isArray(data) ? data.length : Object.keys(data || {}).length,
+        size: Array.isArray(data)
+          ? data.length
+          : Object.keys(data || {}).length,
       },
     };
   }
@@ -106,11 +104,7 @@ ${questions.length > 0 ? `需要回答的问题:\n${questions.map((q, i) => `${i
    * @param {Object} context - 上下文
    */
   async visualizeData(input, context) {
-    const {
-      data,
-      chartType = null,
-      purpose = "展示数据趋势",
-    } = input;
+    const { data, chartType = null, purpose = "展示数据趋势" } = input;
 
     const dataPreview = this._getDataPreview(data);
 
@@ -136,7 +130,9 @@ ${chartType ? `指定图表类型: ${chartType}` : ""}
     });
 
     // 提取 ECharts 配置
-    const configMatch = response.match(/```(?:json|javascript)?\n([\s\S]*?)```/);
+    const configMatch = response.match(
+      /```(?:json|javascript)?\n([\s\S]*?)```/,
+    );
 
     return {
       success: true,
@@ -151,11 +147,7 @@ ${chartType ? `指定图表类型: ${chartType}` : ""}
    * @param {Object} context - 上下文
    */
   async transformData(input, context) {
-    const {
-      data,
-      transformations,
-      targetFormat = null,
-    } = input;
+    const { data, transformations, targetFormat = null } = input;
 
     const systemPrompt = `你是一个数据转换专家。请根据要求转换数据。
 
@@ -193,11 +185,7 @@ ${targetFormat ? `\n目标格式: ${targetFormat}` : ""}
    * @param {Object} context - 上下文
    */
   async aggregateData(input, context) {
-    const {
-      data,
-      groupBy,
-      aggregations = ["sum", "count", "average"],
-    } = input;
+    const { data, groupBy, aggregations = ["sum", "count", "average"] } = input;
 
     if (!Array.isArray(data)) {
       throw new Error("数据必须是数组格式");
@@ -286,11 +274,7 @@ ${fields ? `关注字段: ${fields.join(", ")}` : ""}
    * @param {Object} context - 上下文
    */
   async predictTrend(input, context) {
-    const {
-      data,
-      targetField,
-      periods = 5,
-    } = input;
+    const { data, targetField, periods = 5 } = input;
 
     const systemPrompt = `你是一个数据预测专家。请根据历史数据预测未来趋势。
 
@@ -327,10 +311,8 @@ ${fields ? `关注字段: ${fields.join(", ")}` : ""}
    * @param {Object} context - 上下文
    */
   async cleanData(input, context) {
-    const {
-      data,
-      rules = ["remove_nulls", "remove_duplicates", "fix_types"],
-    } = input;
+    const { data, rules = ["remove_nulls", "remove_duplicates", "fix_types"] } =
+      input;
 
     const systemPrompt = `你是一个数据清洗专家。请根据规则清洗数据。
 
@@ -367,11 +349,7 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
    * @param {Object} context - 上下文
    */
   async exportData(input, context) {
-    const {
-      data,
-      format = "csv",
-      options = {},
-    } = input;
+    const { data, format = "csv", options = {} } = input;
 
     let exportedData;
 
@@ -424,6 +402,22 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
     const sorted = [...numbers].sort((a, b) => a - b);
     const n = sorted.length;
 
+    // An empty array reaches here (`[].every(...)` is true), where 0/0 would
+    // produce NaN mean/std and undefined median/min/max. Return a clean
+    // empty-stats object instead.
+    if (n === 0) {
+      return {
+        count: 0,
+        sum: 0,
+        mean: null,
+        median: null,
+        min: null,
+        max: null,
+        std: null,
+        variance: null,
+      };
+    }
+
     const sum = sorted.reduce((a, b) => a + b, 0);
     const mean = sum / n;
 
@@ -432,7 +426,8 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
         ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2
         : sorted[Math.floor(n / 2)];
 
-    const variance = sorted.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
+    const variance =
+      sorted.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
     const std = Math.sqrt(variance);
 
     return {
@@ -452,7 +447,9 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
    * @private
    */
   _basicClean(data, rules) {
-    if (!Array.isArray(data)) {return data;}
+    if (!Array.isArray(data)) {
+      return data;
+    }
 
     let cleaned = [...data];
 
@@ -460,17 +457,17 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
       switch (rule) {
         case "remove_nulls":
           cleaned = cleaned.filter(
-            (item) => item !== null && item !== undefined
+            (item) => item !== null && item !== undefined,
           );
           break;
         case "remove_duplicates":
           cleaned = [...new Set(cleaned.map((i) => JSON.stringify(i)))].map(
-            (s) => JSON.parse(s)
+            (s) => JSON.parse(s),
           );
           break;
         case "trim_strings":
           cleaned = cleaned.map((item) =>
-            typeof item === "string" ? item.trim() : item
+            typeof item === "string" ? item.trim() : item,
           );
           break;
       }
@@ -502,7 +499,7 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
             }
             return value ?? "";
           })
-          .join(delimiter)
+          .join(delimiter),
       ),
     ];
 
@@ -523,7 +520,7 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
     const headerRow = `| ${headers.join(" | ")} |`;
     const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`;
     const dataRows = data.map(
-      (row) => `| ${headers.map((h) => row[h] ?? "").join(" | ")} |`
+      (row) => `| ${headers.map((h) => row[h] ?? "").join(" | ")} |`,
     );
 
     return [headerRow, separatorRow, ...dataRows].join("\n");
