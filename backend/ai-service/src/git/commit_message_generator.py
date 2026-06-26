@@ -5,6 +5,8 @@ AI提交消息生成器
 import logging
 from typing import Optional
 
+from src.llm.llm_client import _run_blocking
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -26,16 +28,18 @@ async def generate_commit_message(repo, staged_files: Optional[list] = None, dif
         生成的提交消息
     """
     try:
-        # 如果repo是字符串路径，转换为Repo对象
+        # 如果repo是字符串路径，转换为Repo对象。GitPython 的 Repo/git.diff/
+        # index.diff 都会 shell 出 git 子进程，是同步阻塞操作——在 async def 里直接
+        # 调用会卡住事件循环，统一经 _run_blocking 走线程池。
         if isinstance(repo, str):
-            repo = Repo(repo)
+            repo = await _run_blocking(Repo, repo)
 
         # 获取差异内容
         if diff_content is None:
             try:
-                diff_content = repo.git.diff("--cached")
+                diff_content = await _run_blocking(repo.git.diff, "--cached")
                 if not diff_content:
-                    diff_content = repo.git.diff()
+                    diff_content = await _run_blocking(repo.git.diff)
             except Exception as e:
                 logger.warning(f"获取diff内容失败: {e}")
                 diff_content = ""
@@ -43,7 +47,8 @@ async def generate_commit_message(repo, staged_files: Optional[list] = None, dif
         # 获取暂存的文件
         if staged_files is None:
             try:
-                staged_files = [item.a_path for item in repo.index.diff("HEAD")]
+                index_diff = await _run_blocking(repo.index.diff, "HEAD")
+                staged_files = [item.a_path for item in index_diff]
             except Exception:
                 staged_files = []
 

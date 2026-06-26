@@ -7,6 +7,8 @@ from typing import List, Optional, Dict, Any
 from pathlib import Path
 import logging
 
+from src.llm.llm_client import _run_blocking
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -122,13 +124,16 @@ class GitManager:
             包含提交信息的字典
         """
         try:
-            repo = Repo(repo_path)
+            # GitPython 的 Repo/index/git.* 都是同步操作，会 shell 出 git 子进程并写
+            # 索引/磁盘；在 async def 里直接调用会阻塞事件循环（大仓库 / 慢盘尤甚），
+            # 统一经 _run_blocking 走线程池。
+            repo = await _run_blocking(Repo, repo_path)
 
             # 添加文件到暂存区
             if files:
-                repo.index.add(files)
+                await _run_blocking(repo.index.add, files)
             else:
-                repo.git.add(A=True)  # 添加所有文件
+                await _run_blocking(repo.git.add, A=True)  # 添加所有文件
 
             # 生成提交消息（如果需要）
             if auto_generate_message and not message:
@@ -139,7 +144,7 @@ class GitManager:
                 message = "Update files"  # 默认消息
 
             # 提交
-            commit = repo.index.commit(message)
+            commit = await _run_blocking(repo.index.commit, message)
 
             logger.info(f"Git提交成功: {commit.hexsha[:8]}")
 
