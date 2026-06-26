@@ -124,8 +124,10 @@ class GlobalShortcutManager {
     if (oldAccelerator !== newAccelerator) {
       const data = this.shortcuts.get(oldAccelerator);
       this.unregister(oldAccelerator);
-      this.register(newAccelerator, handler || data.handler, {
-        description: data.description,
+      // data may be undefined if oldAccelerator was never registered (e.g. the
+      // OS rejected it); optional-chain to avoid a TypeError.
+      this.register(newAccelerator, handler || data?.handler, {
+        description: data?.description,
       });
     }
   }

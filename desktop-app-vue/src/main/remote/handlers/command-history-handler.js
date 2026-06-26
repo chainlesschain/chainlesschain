@@ -13,6 +13,23 @@
 const { logger } = require("../../utils/logger");
 
 /**
+ * Parse a JSON column tolerantly: a truncated/corrupted row must not throw out
+ * of the row mapper and fail the entire history query (only the newer
+ * getCommand/replayCommand guarded their parses; the list/search/export
+ * methods did not).
+ */
+function safeJsonParse(value, fallback) {
+  if (!value) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * 命令历史处理器类
  */
 class CommandHistoryHandler {
@@ -189,9 +206,9 @@ class CommandHistoryHandler {
     // 解析 JSON 字段
     const history = rows.map((row) => ({
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     }));
 
     return {
@@ -222,9 +239,9 @@ class CommandHistoryHandler {
 
     return {
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     };
   }
 
@@ -246,9 +263,9 @@ class CommandHistoryHandler {
 
     const results = rows.map((row) => ({
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     }));
 
     return { results, total: results.length };
@@ -364,9 +381,9 @@ class CommandHistoryHandler {
 
     const history = rows.map((row) => ({
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     }));
 
     if (format === "json") {
@@ -444,9 +461,9 @@ class CommandHistoryHandler {
 
     const history = rows.map((row) => ({
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     }));
 
     return {
@@ -476,9 +493,9 @@ class CommandHistoryHandler {
 
     const history = rows.map((row) => ({
       ...row,
-      params: row.params ? JSON.parse(row.params) : {},
-      result: row.result ? JSON.parse(row.result) : null,
-      error: row.error ? JSON.parse(row.error) : null,
+      params: safeJsonParse(row.params, {}),
+      result: safeJsonParse(row.result, null),
+      error: safeJsonParse(row.error, null),
     }));
 
     return {

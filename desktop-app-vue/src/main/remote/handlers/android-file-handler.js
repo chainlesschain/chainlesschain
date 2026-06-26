@@ -361,6 +361,12 @@ class AndroidFileHandler {
     if (typeof chunkData !== "string") {
       throw new Error("chunkData must be base64 string");
     }
+    // chunkIndex comes from the remote peer; an undefined/NaN/fractional value
+    // would make `offset` NaN/garbage and silently corrupt the uploaded file
+    // (the sibling file-transfer-handler validates the same way).
+    if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
+      throw new Error("chunkIndex must be a non-negative integer");
+    }
     const buf = Buffer.from(chunkData, "base64");
     const offset = chunkIndex * t.chunkSize;
     await t.fd.write(buf, 0, buf.length, offset);
