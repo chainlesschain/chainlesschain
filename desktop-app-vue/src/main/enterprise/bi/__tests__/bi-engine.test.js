@@ -154,6 +154,13 @@ describe("BIEngine", () => {
     expect(result.anomalies).toHaveLength(0);
   });
 
+  it("should not crash on null/sparse elements in the dataset", () => {
+    // A null element used to throw (typeof null === "object" → null.value).
+    const result = bi.detectAnomaly([10, null, 11, undefined, 10, 12]);
+    expect(result.anomalies).toBeDefined();
+    expect(result.mean).toBeDefined();
+  });
+
   // ── predictTrend ─────────────────────────────────────────────────────────
   it("should predict upward trend", () => {
     const data = [10, 20, 30, 40, 50];
@@ -173,6 +180,11 @@ describe("BIEngine", () => {
   it("should return insufficient data message for single point", () => {
     const result = bi.predictTrend([10]);
     expect(result.message).toMatch(/Insufficient/);
+  });
+
+  it("should not crash on null/sparse elements in the dataset", () => {
+    const result = bi.predictTrend([10, null, 30, undefined, 50], 2);
+    expect(result.predictions).toHaveLength(2);
   });
 
   // ── listTemplates ────────────────────────────────────────────────────────

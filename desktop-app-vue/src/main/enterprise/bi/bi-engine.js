@@ -150,7 +150,9 @@ class BIEngine extends EventEmitter {
     if (!Array.isArray(data) || data.length < 3) {
       return { anomalies: [], message: "Insufficient data" };
     }
-    const values = data.map((d) => (typeof d === "number" ? d : d.value || 0));
+    const values = data.map((d) =>
+      typeof d === "number" ? d : (d && d.value) || 0,
+    );
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const std = Math.sqrt(
       values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length,
@@ -170,7 +172,9 @@ class BIEngine extends EventEmitter {
     if (!Array.isArray(data) || data.length < 2) {
       return { predictions: [], message: "Insufficient data" };
     }
-    const values = data.map((d) => (typeof d === "number" ? d : d.value || 0));
+    const values = data.map((d) =>
+      typeof d === "number" ? d : (d && d.value) || 0,
+    );
     const n = values.length;
     const slope = (values[n - 1] - values[0]) / (n - 1);
     const lastValue = values[n - 1];
