@@ -608,8 +608,9 @@ Respond ONLY with valid JSON.`;
     );
 
     // Set up timeout
+    let timeoutHandle;
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(
+      timeoutHandle = setTimeout(
         () => reject(new Error("Step execution timed out")),
         this.config.stepTimeoutMs,
       );
@@ -670,6 +671,11 @@ Respond ONLY with valid JSON.`;
         output: null,
         error: error.message,
       };
+    } finally {
+      // Clear the step-timeout timer on every exit (race win, early COMPLETE/
+      // unknown-action return, or error) — otherwise it stays armed for
+      // stepTimeoutMs (~120s) per step, accumulating across the ReAct loop.
+      clearTimeout(timeoutHandle);
     }
   }
 
