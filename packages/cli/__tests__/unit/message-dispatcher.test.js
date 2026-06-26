@@ -146,4 +146,41 @@ describe("ws message dispatcher", () => {
       },
     );
   });
+
+  // ─── dynamic feature-map routing (post-refactor regression) ─────────
+  // After dropping the per-message route-table rebuild, each feature handler
+  // map must still be reached on demand. The bare stub lacks the real handler
+  // deps, so a routed handler typically answers with its category error code —
+  // any reply that is NOT UNKNOWN_TYPE proves the route resolved to the map.
+  const codesSent = (server) =>
+    server._send.mock.calls.map((c) => c[1] && c[1].code);
+
+  it.each([
+    ["session-core request route", "sessions.list"],
+    ["video request route", "video.assets.list"],
+    ["personal-data-hub request route", "personal-data-hub.ask"],
+  ])(
+    "routes a %s to its feature handler (not UNKNOWN_TYPE)",
+    async (_label, type) => {
+      const server = createServerStub();
+      const dispatcher = createWsMessageDispatcher(server);
+      await dispatcher.dispatch("client-1", {}, { id: "d1", type });
+      const codes = codesSent(server);
+      expect(server._send).toHaveBeenCalled();
+      expect(codes).not.toContain("UNKNOWN_TYPE");
+    },
+  );
+
+  it("a feature handler map can NOT shadow a core static route (ping stays core)", async () => {
+    // ping is a static route; the refactor checks static routes BEFORE any
+    // feature map, so even if a map ever defined "ping" the core handler wins.
+    const server = createServerStub();
+    const dispatcher = createWsMessageDispatcher(server);
+    const ws = {};
+    await dispatcher.dispatch("client-1", ws, { id: "p1", type: "ping" });
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({ id: "p1", type: "pong" }),
+    );
+  });
 });

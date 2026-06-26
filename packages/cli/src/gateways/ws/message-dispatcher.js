@@ -106,199 +106,179 @@ export function createWsMessageDispatcher(server) {
         "llm.chat": () => server._handleLlmChat(id, ws, message),
       };
 
-      // Phase I — Hosted Session API streaming routes (stream.run).
-      // Each intermediate event goes out as { id, type: "stream.event", event }
-      // and the final response is sent by the normal ok/err wrapper.
-      for (const streamingType of Object.keys(
-        SESSION_CORE_STREAMING_HANDLERS,
-      )) {
-        routes[streamingType] = async () => {
-          const controller = new AbortController();
-          const client = server.clients.get(clientId);
-          if (client) {
-            client._streamAborts = client._streamAborts || new Map();
-            client._streamAborts.set(id, controller);
-          }
-          const sender = (payload) => server._send(ws, { id, ...payload });
-          const context = { server, ws, clientId };
-          try {
-            const result = await SESSION_CORE_STREAMING_HANDLERS[streamingType](
-              message,
-              sender,
-              controller.signal,
-              context,
-            );
-            server._send(ws, {
-              id,
-              type: `${streamingType}.end`,
-              ...result,
-            });
-          } catch (err) {
-            server._send(ws, {
-              id,
-              type: "error",
-              code: "STREAM_RUN_ERROR",
-              message: err?.message || String(err),
-            });
-          } finally {
-            if (client?._streamAborts) client._streamAborts.delete(id);
-          }
-        };
+      // Static core routes take precedence and are dispatched directly. The
+      // feature handler maps below are consulted ONLY when no static route
+      // matches — so a feature topic can never shadow a core protocol route
+      // (auth/cancel/ping/execute), and we no longer allocate a closure for all
+      // ~79 feature keys on every message (the old per-message Object.keys loops
+      // built the entire route table each dispatch). Only the matched handler
+      // runs.
+      const staticHandler = routes[type];
+      if (staticHandler) {
+        return staticHandler();
+      }
+
+      // Phase I — Hosted Session API streaming routes (stream.run). Each
+      // intermediate event goes out as { id, type:"stream.event", event } and
+      // the final response is sent by the normal ok/err wrapper.
+      if (SESSION_CORE_STREAMING_HANDLERS[type]) {
+        const controller = new AbortController();
+        const client = server.clients.get(clientId);
+        if (client) {
+          client._streamAborts = client._streamAborts || new Map();
+          client._streamAborts.set(id, controller);
+        }
+        const sender = (payload) => server._send(ws, { id, ...payload });
+        const context = { server, ws, clientId };
+        try {
+          const result = await SESSION_CORE_STREAMING_HANDLERS[type](
+            message,
+            sender,
+            controller.signal,
+            context,
+          );
+          server._send(ws, { id, type: `${type}.end`, ...result });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "STREAM_RUN_ERROR",
+            message: err?.message || String(err),
+          });
+        } finally {
+          if (client?._streamAborts) client._streamAborts.delete(id);
+        }
+        return;
       }
 
       // Video Editing streaming routes
-      for (const videoStreamType of Object.keys(VIDEO_STREAMING_HANDLERS)) {
-        routes[videoStreamType] = async () => {
-          const controller = new AbortController();
-          const client = server.clients.get(clientId);
-          if (client) {
-            client._streamAborts = client._streamAborts || new Map();
-            client._streamAborts.set(id, controller);
-          }
-          const sender = (payload) => server._send(ws, { id, ...payload });
-          try {
-            const result = await VIDEO_STREAMING_HANDLERS[videoStreamType](
-              message,
-              sender,
-              controller.signal,
-            );
-            server._send(ws, {
-              id,
-              type: `${videoStreamType}.end`,
-              ...result,
-            });
-          } catch (err) {
-            server._send(ws, {
-              id,
-              type: "error",
-              code: "VIDEO_STREAM_ERROR",
-              message: err?.message || String(err),
-            });
-          } finally {
-            if (client?._streamAborts) client._streamAborts.delete(id);
-          }
-        };
+      if (VIDEO_STREAMING_HANDLERS[type]) {
+        const controller = new AbortController();
+        const client = server.clients.get(clientId);
+        if (client) {
+          client._streamAborts = client._streamAborts || new Map();
+          client._streamAborts.set(id, controller);
+        }
+        const sender = (payload) => server._send(ws, { id, ...payload });
+        try {
+          const result = await VIDEO_STREAMING_HANDLERS[type](
+            message,
+            sender,
+            controller.signal,
+          );
+          server._send(ws, { id, type: `${type}.end`, ...result });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "VIDEO_STREAM_ERROR",
+            message: err?.message || String(err),
+          });
+        } finally {
+          if (client?._streamAborts) client._streamAborts.delete(id);
+        }
+        return;
       }
 
       // Video Editing request/response routes
-      for (const videoType of Object.keys(VIDEO_HANDLERS)) {
-        routes[videoType] = async () => {
-          try {
-            const result = await VIDEO_HANDLERS[videoType](message);
-            server._send(ws, {
-              id,
-              type: `${videoType}.response`,
-              ...result,
-            });
-          } catch (err) {
-            server._send(ws, {
-              id,
-              type: "error",
-              code: "VIDEO_ERROR",
-              message: err?.message || String(err),
-            });
-          }
-        };
+      if (VIDEO_HANDLERS[type]) {
+        try {
+          const result = await VIDEO_HANDLERS[type](message);
+          server._send(ws, { id, type: `${type}.response`, ...result });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "VIDEO_ERROR",
+            message: err?.message || String(err),
+          });
+        }
+        return;
       }
 
       // Personal Data Hub topics — same 10 surfaces as the Electron IPC
       // (see desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js). Each
       // handler returns { result } or { error }; we wrap with the standard
       // response envelope so renderer code is shell-agnostic.
-      for (const hubType of Object.keys(PERSONAL_DATA_HUB_HANDLERS)) {
-        routes[hubType] = async () => {
-          try {
-            const out = await PERSONAL_DATA_HUB_HANDLERS[hubType](message);
-            if (out && out.error) {
-              server._send(ws, {
-                id,
-                type: "error",
-                code: "PERSONAL_DATA_HUB_ERROR",
-                message: out.error,
-              });
-            } else {
-              server._send(ws, {
-                id,
-                type: `${hubType}.response`,
-                result: out && out.result !== undefined ? out.result : out,
-              });
-            }
-          } catch (err) {
+      if (PERSONAL_DATA_HUB_HANDLERS[type]) {
+        try {
+          const out = await PERSONAL_DATA_HUB_HANDLERS[type](message);
+          if (out && out.error) {
             server._send(ws, {
               id,
               type: "error",
               code: "PERSONAL_DATA_HUB_ERROR",
-              message: err?.message || String(err),
+              message: out.error,
+            });
+          } else {
+            server._send(ws, {
+              id,
+              type: `${type}.response`,
+              result: out && out.result !== undefined ? out.result : out,
             });
           }
-        };
-      }
-
-      // Phase 5.7 — streaming sync routes. Adapter progress events are
-      // pushed as `<topic>.event` messages tagged with the request id;
-      // the final report comes as `<topic>.end`.
-      for (const streamType of Object.keys(
-        PERSONAL_DATA_HUB_STREAMING_HANDLERS,
-      )) {
-        routes[streamType] = async () => {
-          const sender = (payload) => server._send(ws, { id, ...payload });
-          try {
-            const out = await PERSONAL_DATA_HUB_STREAMING_HANDLERS[streamType](
-              message,
-              sender,
-            );
-            server._send(ws, {
-              id,
-              type: `${streamType}.end`,
-              ...(out && out.result !== undefined
-                ? { result: out.result }
-                : out || {}),
-            });
-          } catch (err) {
-            server._send(ws, {
-              id,
-              type: "error",
-              code: "PERSONAL_DATA_HUB_STREAM_ERROR",
-              message: err?.message || String(err),
-            });
-          }
-        };
-      }
-
-      // Phase I — Hosted Session API (session-core, memory, beta, usage)
-      for (const sessionCoreType of Object.keys(SESSION_CORE_HANDLERS)) {
-        routes[sessionCoreType] = async () => {
-          try {
-            const result =
-              await SESSION_CORE_HANDLERS[sessionCoreType](message);
-            server._send(ws, {
-              id,
-              type: `${sessionCoreType}.response`,
-              ...result,
-            });
-          } catch (err) {
-            server._send(ws, {
-              id,
-              type: "error",
-              code: "SESSION_CORE_ERROR",
-              message: err?.message || String(err),
-            });
-          }
-        };
-      }
-
-      const handler = routes[type];
-      if (!handler) {
-        server._send(ws, {
-          id,
-          type: "error",
-          code: "UNKNOWN_TYPE",
-          message: `Unknown message type: ${type}`,
-        });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "PERSONAL_DATA_HUB_ERROR",
+            message: err?.message || String(err),
+          });
+        }
         return;
       }
 
-      return handler();
+      // Phase 5.7 — streaming sync routes. Adapter progress events are pushed
+      // as `<topic>.event` messages tagged with the request id; the final
+      // report comes as `<topic>.end`.
+      if (PERSONAL_DATA_HUB_STREAMING_HANDLERS[type]) {
+        const sender = (payload) => server._send(ws, { id, ...payload });
+        try {
+          const out = await PERSONAL_DATA_HUB_STREAMING_HANDLERS[type](
+            message,
+            sender,
+          );
+          server._send(ws, {
+            id,
+            type: `${type}.end`,
+            ...(out && out.result !== undefined
+              ? { result: out.result }
+              : out || {}),
+          });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "PERSONAL_DATA_HUB_STREAM_ERROR",
+            message: err?.message || String(err),
+          });
+        }
+        return;
+      }
+
+      // Phase I — Hosted Session API (session-core, memory, beta, usage)
+      if (SESSION_CORE_HANDLERS[type]) {
+        try {
+          const result = await SESSION_CORE_HANDLERS[type](message);
+          server._send(ws, { id, type: `${type}.response`, ...result });
+        } catch (err) {
+          server._send(ws, {
+            id,
+            type: "error",
+            code: "SESSION_CORE_ERROR",
+            message: err?.message || String(err),
+          });
+        }
+        return;
+      }
+
+      server._send(ws, {
+        id,
+        type: "error",
+        code: "UNKNOWN_TYPE",
+        message: `Unknown message type: ${type}`,
+      });
+      return;
     },
   };
 }
