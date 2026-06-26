@@ -46,10 +46,20 @@ class EnterpriseKG extends EventEmitter {
   }
 
   async _loadGraph() {
+    // Per-row guard: one malformed properties column must not throw out of the
+    // shared try and drop the remaining entities + ALL relationships (silent
+    // partial graph for the whole session). A bad row → empty properties.
+    const safeProps = (raw) => {
+      try {
+        return JSON.parse(raw || "{}");
+      } catch {
+        return {};
+      }
+    };
     try {
       const entities = this.db.prepare("SELECT * FROM kg_entities").all();
       for (const e of entities) {
-        const entity = { ...e, properties: JSON.parse(e.properties || "{}") };
+        const entity = { ...e, properties: safeProps(e.properties) };
         this._entities.set(e.id, entity);
         if (!this._entityIndex.has(e.type)) {
           this._entityIndex.set(e.type, new Set());
@@ -60,7 +70,7 @@ class EnterpriseKG extends EventEmitter {
       for (const r of rels) {
         this._relationships.set(r.id, {
           ...r,
-          properties: JSON.parse(r.properties || "{}"),
+          properties: safeProps(r.properties),
         });
       }
     } catch (error) {
@@ -169,17 +179,21 @@ class EnterpriseKG extends EventEmitter {
   }
 
   reason(entityId, depth = 2) {
+    // Clamp depth: _traverse accumulates one entry per root-to-leaf path before
+    // the slice(20), so an uncapped large depth on a dense graph blows up
+    // memory. Default 2; cap at a generous 8.
+    const safeDepth = Math.min(Math.max(0, Number(depth) || 0), 8);
     const visited = new Set();
     const paths = [];
-    this._traverse(entityId, depth, [], visited, paths);
+    this._traverse(entityId, safeDepth, [], visited, paths);
     return {
       entityId,
-      depth,
+      depth: safeDepth,
       paths: paths.slice(0, 20),
       inferences:
         paths.length > 0
           ? [
-              `Entity has ${paths.length} connection paths within depth ${depth}`,
+              `Entity has ${paths.length} connection paths within depth ${safeDepth}`,
             ]
           : [],
     };
@@ -224,13 +238,13 @@ class EnterpriseKG extends EventEmitter {
   }
 
   graphRAGSearch(query, options = {}) {
-    const searchTerm = query.toLowerCase();
+    const searchTerm = (query || "").toLowerCase();
     const matchedEntities = Array.from(this._entities.values()).filter(
       (e) =>
-        // Guard e.name (see query()): one null-named entity must not break
-        // search for every query.
+        // Guard both fields (see query()): a null query, or one null-named /
+        // null-properties entity, must not break search for every query.
         (e.name || "").toLowerCase().includes(searchTerm) ||
-        (e.properties.description || "").toLowerCase().includes(searchTerm),
+        (e.properties?.description || "").toLowerCase().includes(searchTerm),
     );
     const context = [];
     for (const entity of matchedEntities.slice(0, 5)) {
