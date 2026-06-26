@@ -86,8 +86,19 @@ export class CostBudget {
     if (est.free) {
       this.sawFree = true;
     } else if (est.matched) {
-      this.spentUsd = round(this.spentUsd + est.totalCost);
-      this.priced = true;
+      // Defense-in-depth for a SAFETY control: a non-finite/negative cost (e.g.
+      // a malformed price table entry, or a non-numeric token count in a
+      // provider's usage event) must NOT poison spentUsd into NaN — `NaN >=
+      // limit` is always false, which would silently DISABLE the hard cap and
+      // allow unbounded spend on an unattended run. Only fold a clean cost;
+      // otherwise treat the record as unpriced.
+      const cost = Number(est.totalCost);
+      if (Number.isFinite(cost) && cost >= 0) {
+        this.spentUsd = round(this.spentUsd + cost);
+        this.priced = true;
+      } else {
+        this.sawUnpriced = true;
+      }
     } else if (tokens > 0) {
       this.sawUnpriced = true;
     }

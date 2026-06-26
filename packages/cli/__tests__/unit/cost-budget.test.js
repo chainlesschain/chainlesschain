@@ -56,6 +56,32 @@ describe("CostBudget", () => {
     expect(b.remaining()).toBeCloseTo(9, 5);
   });
 
+  it("a non-finite cost (bad token count) does not poison spentUsd / disable the cap", () => {
+    const b = new CostBudget({ limitUsd: 1 });
+    // A buggy provider usage event with a non-numeric token count makes
+    // estimateCost return totalCost=NaN. spentUsd must stay finite — otherwise
+    // `NaN >= limit` is always false and the hard cap is silently disabled.
+    const est = b.add({
+      provider: "anthropic",
+      model: "haiku",
+      usage: { input_tokens: "5x" },
+    });
+    expect(est.matched).toBe(true);
+    expect(Number.isNaN(est.totalCost)).toBe(true);
+    expect(Number.isFinite(b.spentUsd)).toBe(true);
+    expect(b.spentUsd).toBe(0); // the bad record was treated as unpriced
+    expect(b.priced).toBe(false);
+
+    // A subsequent real charge still registers and still trips the cap.
+    b.add({
+      provider: "anthropic",
+      model: "haiku",
+      usage: { input_tokens: 2_000_000 }, // 2M × $1/1M = $2 > $1 cap
+    });
+    expect(b.spentUsd).toBeCloseTo(2, 5);
+    expect(b.exceeded()).toBe(true);
+  });
+
   it("free/local providers never trip the cap and warn once", () => {
     const b = new CostBudget({ limitUsd: 1 });
     b.add({
