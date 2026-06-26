@@ -52,7 +52,16 @@ function createLedger(db, opts) {
       .prepare(`SELECT did, alg, pubkey_jwk FROM settlement_members WHERE did = ?`)
       .get(did);
     if (!row) return null;
-    return { did: row.did, alg: row.alg, pubkeyJwk: JSON.parse(row.pubkey_jwk) };
+    let pubkeyJwk;
+    try {
+      pubkeyJwk = JSON.parse(row.pubkey_jwk);
+    } catch {
+      // verifyChain is a forensic re-check over an untrusted/tampered DB; a
+      // corrupt pubkey_jwk must surface as bad_sig (the member is unverifiable),
+      // not throw an uncaught SyntaxError out of the audit loop.
+      return null;
+    }
+    return { did: row.did, alg: row.alg, pubkeyJwk };
   }
 
   // 所有读/链查询都按 ledger_id 隔离：一个 DB 可托管多个联邦账本（schema 每条

@@ -66,6 +66,20 @@ describe("verifyChain — full invariant re-validation (anti node/member collusi
     expect(ledger.verifyChain()).toMatchObject({ ok: true, count: 2 });
   });
 
+  it("returns bad_sig (does not throw) when a member's pubkey_jwk is corrupt (tampered DB)", () => {
+    const { db, ledger, genesis, alice } = ctx;
+    ledger.signAndMint({ to: alice.did, amount: 100, secretKey: genesis.secretKey });
+    // Corrupt the signing member's pubkey_jwk — exactly the tampering verifyChain
+    // exists to catch. getMember used to JSON.parse it unguarded → uncaught throw.
+    db.prepare("UPDATE settlement_members SET pubkey_jwk = ? WHERE did = ?").run(
+      "not-json{",
+      genesis.did,
+    );
+    const v = ledger.verifyChain();
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe("bad_sig");
+  });
+
   it("detects an unauthorized self-mint signed by a non-genesis member", () => {
     const { db, ledger, genesis, alice } = ctx;
     ledger.signAndMint({ to: alice.did, amount: 100, secretKey: genesis.secretKey });
