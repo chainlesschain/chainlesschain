@@ -482,8 +482,8 @@ export function registerIncentiveCommand(program) {
     .command("register-account-v2 <account-id>")
     .description("V2: register a tracked account (tags ACTIVE)")
     .option("-m, --metadata <meta>", "Metadata (JSON)")
-    .action((accountId, opts) => {
-      const ctx = bootstrap();
+    .action(async (accountId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
@@ -511,8 +511,8 @@ export function registerIncentiveCommand(program) {
     .description("V2: transition account status (active|frozen|closed)")
     .option("-r, --reason <reason>", "Reason")
     .option("-m, --metadata <meta>", "Metadata (JSON)")
-    .action((accountId, status, opts) => {
-      const ctx = bootstrap();
+    .action(async (accountId, status, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
@@ -530,8 +530,8 @@ export function registerIncentiveCommand(program) {
     .command("freeze-account <account-id>")
     .description("V2: shortcut → frozen")
     .option("-r, --reason <reason>", "Reason")
-    .action((accountId, opts) => {
-      const ctx = bootstrap();
+    .action(async (accountId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = freezeAccount(db, accountId, opts.reason);
@@ -545,8 +545,8 @@ export function registerIncentiveCommand(program) {
     .command("unfreeze-account <account-id>")
     .description("V2: shortcut → active (from frozen)")
     .option("-r, --reason <reason>", "Reason")
-    .action((accountId, opts) => {
-      const ctx = bootstrap();
+    .action(async (accountId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = unfreezeAccount(db, accountId, opts.reason);
@@ -560,8 +560,8 @@ export function registerIncentiveCommand(program) {
     .command("close-account <account-id>")
     .description("V2: shortcut → closed")
     .option("-r, --reason <reason>", "Reason")
-    .action((accountId, opts) => {
-      const ctx = bootstrap();
+    .action(async (accountId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = closeAccount(db, accountId, opts.reason);
@@ -578,8 +578,8 @@ export function registerIncentiveCommand(program) {
     .requiredOption("-a, --amount <amount>", "Amount")
     .option("-c, --contribution <id>", "Contribution ID")
     .option("-m, --metadata <meta>", "Metadata (JSON)")
-    .action((claimId, opts) => {
-      const ctx = bootstrap();
+    .action(async (claimId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
@@ -613,8 +613,8 @@ export function registerIncentiveCommand(program) {
     .description("V2: transition claim (pending|approved|paid|rejected)")
     .option("-r, --reason <reason>", "Reason")
     .option("-m, --metadata <meta>", "Metadata (JSON)")
-    .action((claimId, status, opts) => {
-      const ctx = bootstrap();
+    .action(async (claimId, status, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
@@ -632,8 +632,8 @@ export function registerIncentiveCommand(program) {
     .command("approve-claim <claim-id>")
     .description("V2: shortcut → approved")
     .option("-r, --reason <reason>", "Reason")
-    .action((claimId, opts) => {
-      const ctx = bootstrap();
+    .action(async (claimId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = approveClaim(db, claimId, opts.reason);
@@ -647,8 +647,8 @@ export function registerIncentiveCommand(program) {
     .command("reject-claim <claim-id>")
     .description("V2: shortcut → rejected")
     .option("-r, --reason <reason>", "Reason")
-    .action((claimId, opts) => {
-      const ctx = bootstrap();
+    .action(async (claimId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = rejectClaim(db, claimId, opts.reason);
@@ -662,8 +662,8 @@ export function registerIncentiveCommand(program) {
     .command("pay-claim <claim-id>")
     .description("V2: shortcut → paid (stamps paidAt)")
     .option("-r, --reason <reason>", "Reason")
-    .action((claimId, opts) => {
-      const ctx = bootstrap();
+    .action(async (claimId, opts) => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const entry = payClaim(db, claimId, opts.reason);
@@ -676,8 +676,8 @@ export function registerIncentiveCommand(program) {
   inc
     .command("auto-expire-unclaimed-claims")
     .description("V2: bulk-reject stale PENDING claims")
-    .action(() => {
-      const ctx = bootstrap();
+    .action(async () => {
+      const ctx = await bootstrap({ verbose: program.opts().verbose });
       try {
         const db = _dbFromCtx(ctx);
         const expired = autoExpireUnclaimedClaims(db);
