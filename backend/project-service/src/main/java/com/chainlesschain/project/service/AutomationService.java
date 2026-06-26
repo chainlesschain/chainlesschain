@@ -151,7 +151,7 @@ public class AutomationService {
 
         ProjectAutomationRule rule = getRule(projectId, ruleId);
 
-        if (!rule.getIsEnabled()) {
+        if (!Boolean.TRUE.equals(rule.getIsEnabled())) {
             throw new RuntimeException("规则已禁用");
         }
 
@@ -333,8 +333,10 @@ public class AutomationService {
         AutomationStatsDTO stats = new AutomationStatsDTO();
         stats.setProjectId(projectId);
         stats.setTotalRules(rules.size());
-        stats.setEnabledRules((int) rules.stream().filter(ProjectAutomationRule::getIsEnabled).count());
-        stats.setDisabledRules((int) rules.stream().filter(r -> !r.getIsEnabled()).count());
+        // Null-safe unbox: is_enabled is a nullable Boolean column, so a null
+        // would NPE when auto-unboxed by the predicate / method reference.
+        stats.setEnabledRules((int) rules.stream().filter(r -> Boolean.TRUE.equals(r.getIsEnabled())).count());
+        stats.setDisabledRules((int) rules.stream().filter(r -> !Boolean.TRUE.equals(r.getIsEnabled())).count());
 
         // 单次遍历同时统计触发类型分布、动作类型分布与总执行次数
         // （原先对同一 rules 列表做了三次独立遍历）。
