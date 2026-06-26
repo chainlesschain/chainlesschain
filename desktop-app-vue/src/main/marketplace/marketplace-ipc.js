@@ -9,6 +9,20 @@
 
 const { logger } = require("../utils/logger.js");
 
+// Tolerate a corrupt metadata column so one malformed row doesn't throw out of
+// the installed-plugins .map and fail the whole marketplace:list-installed
+// response (the outer catch returns {success:false}).
+function safeParseColumn(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Register all marketplace IPC handlers.
  *
@@ -356,7 +370,7 @@ function registerMarketplaceIPC(dependencies) {
         enabled: row.enabled === 1,
         autoUpdate: row.auto_update === 1,
         source: row.source,
-        metadata: row.metadata ? JSON.parse(row.metadata) : null,
+        metadata: safeParseColumn(row.metadata, null),
       }));
 
       return { success: true, data: plugins };
@@ -404,7 +418,7 @@ function registerMarketplaceIPC(dependencies) {
           enabled: row.enabled === 1,
           autoUpdate: row.auto_update === 1,
           source: row.source,
-          metadata: row.metadata ? JSON.parse(row.metadata) : null,
+          metadata: safeParseColumn(row.metadata, null),
           updateHistory: (historyRows || []).map((h) => ({
             id: h.id,
             fromVersion: h.from_version,

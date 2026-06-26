@@ -23,6 +23,31 @@ const SKILL_STATUS = {
   ARCHIVED: "archived",
 };
 
+function safeParse(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+// Map a registry row to a skill object, tolerating a corrupt JSON column so one
+// malformed row doesn't abort loading the rest of the registry (the init
+// for-loop stopped at the first bad row) or throw the whole listSkills() result
+// into the in-memory fallback.
+function mapSkillRow(r) {
+  return {
+    ...r,
+    input_schema: safeParse(r.input_schema, {}),
+    output_schema: safeParse(r.output_schema, {}),
+    dependencies: safeParse(r.dependencies, []),
+    sla: safeParse(r.sla, {}),
+  };
+}
+
 class SkillServiceProtocol extends EventEmitter {
   constructor(database) {
     super();
@@ -82,13 +107,7 @@ class SkillServiceProtocol extends EventEmitter {
           )
           .all();
         for (const s of skills) {
-          this._skills.set(s.id, {
-            ...s,
-            input_schema: s.input_schema ? JSON.parse(s.input_schema) : {},
-            output_schema: s.output_schema ? JSON.parse(s.output_schema) : {},
-            dependencies: s.dependencies ? JSON.parse(s.dependencies) : [],
-            sla: s.sla ? JSON.parse(s.sla) : {},
-          });
+          this._skills.set(s.id, mapSkillRow(s));
         }
         logger.info(`[SkillServiceProtocol] Loaded ${skills.length} skills`);
       } catch (err) {
@@ -115,13 +134,7 @@ class SkillServiceProtocol extends EventEmitter {
         sql += " ORDER BY created_at DESC LIMIT ?";
         params.push(filter.limit || 50);
         const rows = this.database.db.prepare(sql).all(...params);
-        return rows.map((r) => ({
-          ...r,
-          input_schema: r.input_schema ? JSON.parse(r.input_schema) : {},
-          output_schema: r.output_schema ? JSON.parse(r.output_schema) : {},
-          dependencies: r.dependencies ? JSON.parse(r.dependencies) : [],
-          sla: r.sla ? JSON.parse(r.sla) : {},
-        }));
+        return rows.map(mapSkillRow);
       } catch (err) {
         logger.error("[SkillServiceProtocol] Failed to list skills:", err);
       }

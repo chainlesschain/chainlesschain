@@ -5,6 +5,19 @@ const fs = require("fs");
 // intercept fs.promises for inlined CJS modules)
 const _deps = { fsp: fs.promises };
 
+// Tolerate a corrupt JSON column so one malformed row doesn't throw out of a
+// list-building .map and fail the whole plugins/extensions list load.
+function safeParseColumn(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * PluginRegistry - 插件注册表
  *
@@ -249,7 +262,7 @@ class PluginRegistry {
 
     return rows.map((row) => ({
       ...row,
-      manifest: JSON.parse(row.manifest),
+      manifest: safeParseColumn(row.manifest, {}),
       enabled: row.enabled === 1,
     }));
   }
@@ -415,7 +428,7 @@ class PluginRegistry {
 
     return rows.map((row) => ({
       ...row,
-      config: row.config ? JSON.parse(row.config) : null,
+      config: safeParseColumn(row.config, null),
       enabled: row.enabled === 1,
     }));
   }
@@ -482,7 +495,7 @@ class PluginRegistry {
 
     return rows.map((row) => ({
       ...row,
-      config: row.config ? JSON.parse(row.config) : null,
+      config: safeParseColumn(row.config, null),
     }));
   }
 
