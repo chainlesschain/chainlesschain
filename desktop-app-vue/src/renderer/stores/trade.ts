@@ -12,8 +12,8 @@
  * 8. UI状态 (ui)
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -22,7 +22,7 @@ import { defineStore } from 'pinia';
 /**
  * 资产类型
  */
-export type AssetType = 'token' | 'nft' | 'knowledge' | 'service';
+export type AssetType = "token" | "nft" | "knowledge" | "service";
 
 /**
  * 资产信息
@@ -89,12 +89,12 @@ export interface AssetState {
 /**
  * 订单类型
  */
-export type OrderType = 'buy' | 'sell' | 'service' | 'barter';
+export type OrderType = "buy" | "sell" | "service" | "barter";
 
 /**
  * 订单状态
  */
-export type OrderStatus = 'open' | 'closed' | 'cancelled';
+export type OrderStatus = "open" | "closed" | "cancelled";
 
 /**
  * 市场订单
@@ -131,8 +131,8 @@ export interface Transaction {
  * 市场筛选条件
  */
 export interface MarketplaceFilters {
-  orderType: OrderType | '';
-  status: OrderStatus | '';
+  orderType: OrderType | "";
+  status: OrderStatus | "";
   searchKeyword: string;
 }
 
@@ -169,7 +169,7 @@ export interface MarketplaceState {
 /**
  * 托管状态类型
  */
-export type EscrowStatus = 'locked' | 'released' | 'refunded' | 'disputed';
+export type EscrowStatus = "locked" | "released" | "refunded" | "disputed";
 
 /**
  * 托管信息
@@ -223,7 +223,7 @@ export interface EscrowState {
 /**
  * 合约状态类型
  */
-export type ContractStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+export type ContractStatus = "draft" | "active" | "completed" | "cancelled";
 
 /**
  * 合约信息
@@ -289,7 +289,7 @@ export interface ContractSignature {
  * 合约筛选条件
  */
 export interface ContractFilters {
-  status: ContractStatus | '';
+  status: ContractStatus | "";
   templateType: string;
 }
 
@@ -324,7 +324,7 @@ export interface ContractState {
 /**
  * 信用等级
  */
-export type CreditLevel = 'diamond' | 'gold' | 'silver' | 'bronze' | 'newbie';
+export type CreditLevel = "diamond" | "gold" | "silver" | "bronze" | "newbie";
 
 /**
  * 用户信用信息
@@ -387,7 +387,7 @@ export interface CreditState {
 /**
  * 评价目标类型
  */
-export type ReviewTargetType = 'order' | 'user' | 'content' | 'service';
+export type ReviewTargetType = "order" | "user" | "content" | "service";
 
 /**
  * 评价信息
@@ -444,7 +444,7 @@ export interface ReviewState {
 /**
  * 内容类型
  */
-export type ContentType = 'article' | 'video' | 'audio' | 'course' | 'ebook';
+export type ContentType = "article" | "video" | "audio" | "course" | "ebook";
 
 /**
  * 知识内容
@@ -542,7 +542,13 @@ export interface KnowledgeState {
 /**
  * 活动Tab类型
  */
-export type ActiveTab = 'marketplace' | 'assets' | 'escrow' | 'contracts' | 'credit' | 'knowledge';
+export type ActiveTab =
+  | "marketplace"
+  | "assets"
+  | "escrow"
+  | "contracts"
+  | "credit"
+  | "knowledge";
 
 /**
  * UI状态
@@ -570,7 +576,7 @@ export interface TradeState {
 
 // ==================== Store ====================
 
-export const useTradeStore = defineStore('trade', {
+export const useTradeStore = defineStore("trade", {
   state: (): TradeState => ({
     // ==================== 资产管理 ====================
     asset: {
@@ -591,9 +597,9 @@ export const useTradeStore = defineStore('trade', {
       transactions: [],
       currentOrder: null,
       filters: {
-        orderType: '',
-        status: '',
-        searchKeyword: '',
+        orderType: "",
+        status: "",
+        searchKeyword: "",
       },
       loading: false,
       purchasing: false,
@@ -623,8 +629,8 @@ export const useTradeStore = defineStore('trade', {
       events: [],
       signatures: [],
       filters: {
-        status: '',
-        templateType: '',
+        status: "",
+        templateType: "",
       },
       loading: false,
       executing: false,
@@ -663,7 +669,7 @@ export const useTradeStore = defineStore('trade', {
 
     // ==================== UI状态 ====================
     ui: {
-      activeTab: 'marketplace',
+      activeTab: "marketplace",
       selectedDid: null,
     },
   }),
@@ -687,28 +693,28 @@ export const useTradeStore = defineStore('trade', {
      * 我的通证资产
      */
     myTokenAssets(): Asset[] {
-      return this.asset.myAssets.filter((a) => a.asset_type === 'token');
+      return this.asset.myAssets.filter((a) => a.asset_type === "token");
     },
 
     /**
      * 我的NFT资产
      */
     myNFTAssets(): Asset[] {
-      return this.asset.myAssets.filter((a) => a.asset_type === 'nft');
+      return this.asset.myAssets.filter((a) => a.asset_type === "nft");
     },
 
     /**
      * 我的知识产品
      */
     myKnowledgeAssets(): Asset[] {
-      return this.asset.myAssets.filter((a) => a.asset_type === 'knowledge');
+      return this.asset.myAssets.filter((a) => a.asset_type === "knowledge");
     },
 
     /**
      * 我的服务凭证
      */
     myServiceAssets(): Asset[] {
-      return this.asset.myAssets.filter((a) => a.asset_type === 'service');
+      return this.asset.myAssets.filter((a) => a.asset_type === "service");
     },
 
     // ===== 市场 Getters =====
@@ -731,7 +737,7 @@ export const useTradeStore = defineStore('trade', {
         orders = orders.filter(
           (o) =>
             o.title?.toLowerCase().includes(keyword) ||
-            (o.description && o.description.toLowerCase().includes(keyword))
+            (o.description && o.description.toLowerCase().includes(keyword)),
         );
       }
 
@@ -742,7 +748,7 @@ export const useTradeStore = defineStore('trade', {
      * 开放的订单（可购买）
      */
     openOrders(): MarketOrder[] {
-      return this.marketplace.orders.filter((o) => o.status === 'open');
+      return this.marketplace.orders.filter((o) => o.status === "open");
     },
 
     // ===== 合约 Getters =====
@@ -768,14 +774,14 @@ export const useTradeStore = defineStore('trade', {
      * 活跃的合约
      */
     activeContracts(): Contract[] {
-      return this.contract.contracts.filter((c) => c.status === 'active');
+      return this.contract.contracts.filter((c) => c.status === "active");
     },
 
     /**
      * 待签名的合约
      */
     pendingSignContracts(): Contract[] {
-      return this.contract.contracts.filter((c) => c.status === 'draft');
+      return this.contract.contracts.filter((c) => c.status === "draft");
     },
 
     // ===== 信用 Getters =====
@@ -806,18 +812,18 @@ export const useTradeStore = defineStore('trade', {
     creditLevelColor(): string {
       const score = this.credit.userCredit?.credit_score || 0;
       if (score >= 901) {
-        return '#52c41a';
+        return "#52c41a";
       } // 钻石 - 绿色
       if (score >= 601) {
-        return '#faad14';
+        return "#faad14";
       } // 黄金 - 金色
       if (score >= 301) {
-        return '#1890ff';
+        return "#1890ff";
       } // 白银 - 蓝色
       if (score >= 101) {
-        return '#8c8c8c';
+        return "#8c8c8c";
       } // 青铜 - 灰色
-      return '#d9d9d9'; // 新手 - 浅灰
+      return "#d9d9d9"; // 新手 - 浅灰
     },
   },
 
@@ -830,16 +836,17 @@ export const useTradeStore = defineStore('trade', {
     async loadMyAssets(ownerDid: string): Promise<void> {
       this.asset.loading = true;
       try {
-        const assets: Asset[] = await (window as any).electronAPI.asset.getByOwner(ownerDid);
+        const assets: Asset[] = await (
+          window as any
+        ).electronAPI.asset.getByOwner(ownerDid);
         this.asset.myAssets = assets || [];
 
         // 同时加载余额
         for (const asset of this.asset.myAssets) {
           try {
-            const balance: number = await (window as any).electronAPI.asset.getBalance(
-              ownerDid,
-              asset.id
-            );
+            const balance: number = await (
+              window as any
+            ).electronAPI.asset.getBalance(ownerDid, asset.id);
             this.asset.balances[asset.id] = balance || 0;
           } catch (error) {
             logger.warn(`加载资产 ${asset.id} 余额失败:`, error as any);
@@ -847,7 +854,7 @@ export const useTradeStore = defineStore('trade', {
           }
         }
       } catch (error) {
-        logger.error('加载我的资产失败:', error as any);
+        logger.error("加载我的资产失败:", error as any);
         throw error;
       } finally {
         this.asset.loading = false;
@@ -860,10 +867,12 @@ export const useTradeStore = defineStore('trade', {
     async loadAllAssets(filters: Record<string, any> = {}): Promise<void> {
       this.asset.loading = true;
       try {
-        const assets: Asset[] = await (window as any).electronAPI.asset.getAll(filters);
+        const assets: Asset[] = await (window as any).electronAPI.asset.getAll(
+          filters,
+        );
         this.asset.allAssets = assets || [];
       } catch (error) {
-        logger.error('加载所有资产失败:', error as any);
+        logger.error("加载所有资产失败:", error as any);
         throw error;
       } finally {
         this.asset.loading = false;
@@ -876,18 +885,22 @@ export const useTradeStore = defineStore('trade', {
     async createAsset(options: AssetCreateOptions): Promise<Asset> {
       this.asset.creating = true;
       try {
-        const asset: Asset = await (window as any).electronAPI.asset.create(options);
+        const asset: Asset = await (window as any).electronAPI.asset.create(
+          options,
+        );
         this.asset.myAssets.push(asset);
         return asset;
       } catch (error) {
-        logger.error('创建资产失败:', error as any);
+        logger.error("创建资产失败:", error as any);
 
-        // 友好错误提示
-        let userMessage = '创建资产失败';
-        if ((error as Error).message.includes('DID')) {
-          userMessage = '请先创建DID身份';
-        } else if ((error as Error).message.includes('symbol')) {
-          userMessage = '资产符号已存在，请更换';
+        // 友好错误提示 — error 可能不是 Error 实例（IPC 可能 reject 字符串/对象），
+        // 直接 (error as Error).message 会在非 Error 时抛 TypeError 掩盖真实错误。
+        const msg = String((error as any)?.message ?? error ?? "");
+        let userMessage = "创建资产失败";
+        if (msg.includes("DID")) {
+          userMessage = "请先创建DID身份";
+        } else if (msg.includes("symbol")) {
+          userMessage = "资产符号已存在，请更换";
         }
 
         throw new Error(userMessage);
@@ -903,29 +916,25 @@ export const useTradeStore = defineStore('trade', {
       assetId: string,
       toDid: string,
       amount: number,
-      memo?: string
+      memo?: string,
     ): Promise<Transaction> {
       try {
-        const tx: Transaction = await (window as any).electronAPI.asset.transfer(
-          assetId,
-          toDid,
-          amount,
-          memo
-        );
+        const tx: Transaction = await (
+          window as any
+        ).electronAPI.asset.transfer(assetId, toDid, amount, memo);
 
         // 更新余额
         const ownerDid = this.ui.selectedDid;
         if (ownerDid) {
-          const newBalance: number = await (window as any).electronAPI.asset.getBalance(
-            ownerDid,
-            assetId
-          );
+          const newBalance: number = await (
+            window as any
+          ).electronAPI.asset.getBalance(ownerDid, assetId);
           this.asset.balances[assetId] = newBalance || 0;
         }
 
         return tx;
       } catch (error) {
-        logger.error('转账失败:', error as any);
+        logger.error("转账失败:", error as any);
         throw error;
       }
     },
@@ -933,9 +942,17 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 铸造资产
      */
-    async mintAsset(assetId: string, toDid: string, amount: number): Promise<any> {
+    async mintAsset(
+      assetId: string,
+      toDid: string,
+      amount: number,
+    ): Promise<any> {
       try {
-        const result = await (window as any).electronAPI.asset.mint(assetId, toDid, amount);
+        const result = await (window as any).electronAPI.asset.mint(
+          assetId,
+          toDid,
+          amount,
+        );
 
         // 刷新资产列表
         if (this.ui.selectedDid) {
@@ -944,7 +961,7 @@ export const useTradeStore = defineStore('trade', {
 
         return result;
       } catch (error) {
-        logger.error('铸造资产失败:', error as any);
+        logger.error("铸造资产失败:", error as any);
         throw error;
       }
     },
@@ -954,21 +971,23 @@ export const useTradeStore = defineStore('trade', {
      */
     async burnAsset(assetId: string, amount: number): Promise<any> {
       try {
-        const result = await (window as any).electronAPI.asset.burn(assetId, amount);
+        const result = await (window as any).electronAPI.asset.burn(
+          assetId,
+          amount,
+        );
 
         // 更新余额
         const ownerDid = this.ui.selectedDid;
         if (ownerDid) {
-          const newBalance: number = await (window as any).electronAPI.asset.getBalance(
-            ownerDid,
-            assetId
-          );
+          const newBalance: number = await (
+            window as any
+          ).electronAPI.asset.getBalance(ownerDid, assetId);
           this.asset.balances[assetId] = newBalance || 0;
         }
 
         return result;
       } catch (error) {
-        logger.error('销毁资产失败:', error as any);
+        logger.error("销毁资产失败:", error as any);
         throw error;
       }
     },
@@ -978,13 +997,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadAssetHistory(assetId: string, limit: number = 50): Promise<void> {
       try {
-        const history: AssetHistoryRecord[] = await (window as any).electronAPI.asset.getHistory(
-          assetId,
-          limit
-        );
+        const history: AssetHistoryRecord[] = await (
+          window as any
+        ).electronAPI.asset.getHistory(assetId, limit);
         this.asset.assetHistory = history || [];
       } catch (error) {
-        logger.error('加载资产历史失败:', error as any);
+        logger.error("加载资产历史失败:", error as any);
         throw error;
       }
     },
@@ -1004,11 +1022,12 @@ export const useTradeStore = defineStore('trade', {
     async loadOrders(filters: Record<string, any> = {}): Promise<void> {
       this.marketplace.loading = true;
       try {
-        const orders: MarketOrder[] =
-          await (window as any).electronAPI.marketplace.getOrders(filters);
+        const orders: MarketOrder[] = await (
+          window as any
+        ).electronAPI.marketplace.getOrders(filters);
         this.marketplace.orders = orders || [];
       } catch (error) {
-        logger.error('加载订单失败:', error as any);
+        logger.error("加载订单失败:", error as any);
         throw error;
       } finally {
         this.marketplace.loading = false;
@@ -1021,12 +1040,14 @@ export const useTradeStore = defineStore('trade', {
     async loadMyOrders(userDid: string): Promise<void> {
       this.marketplace.loading = true;
       try {
-        const result: { createdOrders: MarketOrder[]; purchasedOrders: MarketOrder[] } =
-          await (window as any).electronAPI.marketplace.getMyOrders(userDid);
+        const result: {
+          createdOrders: MarketOrder[];
+          purchasedOrders: MarketOrder[];
+        } = await (window as any).electronAPI.marketplace.getMyOrders(userDid);
         this.marketplace.myCreatedOrders = result.createdOrders || [];
         this.marketplace.myPurchasedOrders = result.purchasedOrders || [];
       } catch (error) {
-        logger.error('加载我的订单失败:', error as any);
+        logger.error("加载我的订单失败:", error as any);
         throw error;
       } finally {
         this.marketplace.loading = false;
@@ -1038,13 +1059,14 @@ export const useTradeStore = defineStore('trade', {
      */
     async createOrder(options: CreateOrderOptions): Promise<MarketOrder> {
       try {
-        const order: MarketOrder =
-          await (window as any).electronAPI.marketplace.createOrder(options);
+        const order: MarketOrder = await (
+          window as any
+        ).electronAPI.marketplace.createOrder(options);
         this.marketplace.myCreatedOrders.push(order);
         this.marketplace.orders.push(order);
         return order;
       } catch (error) {
-        logger.error('创建订单失败:', error as any);
+        logger.error("创建订单失败:", error as any);
         throw error;
       }
     },
@@ -1052,13 +1074,15 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 购买订单（匹配订单）
      */
-    async purchaseOrder(orderId: string, quantity: number): Promise<Transaction> {
+    async purchaseOrder(
+      orderId: string,
+      quantity: number,
+    ): Promise<Transaction> {
       this.marketplace.purchasing = true;
       try {
-        const transaction: Transaction = await (window as any).electronAPI.marketplace.matchOrder(
-          orderId,
-          quantity
-        );
+        const transaction: Transaction = await (
+          window as any
+        ).electronAPI.marketplace.matchOrder(orderId, quantity);
 
         // 刷新订单和交易列表
         await this.loadOrders();
@@ -1066,7 +1090,7 @@ export const useTradeStore = defineStore('trade', {
 
         return transaction;
       } catch (error) {
-        logger.error('购买订单失败:', error as any);
+        logger.error("购买订单失败:", error as any);
         throw error;
       } finally {
         this.marketplace.purchasing = false;
@@ -1081,15 +1105,17 @@ export const useTradeStore = defineStore('trade', {
         await (window as any).electronAPI.marketplace.cancelOrder(orderId);
 
         // 更新本地状态
-        const orderIndex = this.marketplace.myCreatedOrders.findIndex((o) => o.id === orderId);
+        const orderIndex = this.marketplace.myCreatedOrders.findIndex(
+          (o) => o.id === orderId,
+        );
         if (orderIndex !== -1) {
-          this.marketplace.myCreatedOrders[orderIndex].status = 'cancelled';
+          this.marketplace.myCreatedOrders[orderIndex].status = "cancelled";
         }
 
         // 刷新订单列表
         await this.loadOrders();
       } catch (error) {
-        logger.error('取消订单失败:', error as any);
+        logger.error("取消订单失败:", error as any);
         throw error;
       }
     },
@@ -1099,11 +1125,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadTransactions(filters: Record<string, any> = {}): Promise<void> {
       try {
-        const transactions: Transaction[] =
-          await (window as any).electronAPI.marketplace.getTransactions(filters);
+        const transactions: Transaction[] = await (
+          window as any
+        ).electronAPI.marketplace.getTransactions(filters);
         this.marketplace.transactions = transactions || [];
       } catch (error) {
-        logger.error('加载交易记录失败:', error as any);
+        logger.error("加载交易记录失败:", error as any);
         throw error;
       }
     },
@@ -1113,10 +1140,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async confirmDelivery(transactionId: string): Promise<void> {
       try {
-        await (window as any).electronAPI.marketplace.confirmDelivery(transactionId);
+        await (window as any).electronAPI.marketplace.confirmDelivery(
+          transactionId,
+        );
         await this.loadTransactions();
       } catch (error) {
-        logger.error('确认交付失败:', error as any);
+        logger.error("确认交付失败:", error as any);
         throw error;
       }
     },
@@ -1126,10 +1155,13 @@ export const useTradeStore = defineStore('trade', {
      */
     async requestRefund(transactionId: string, reason: string): Promise<void> {
       try {
-        await (window as any).electronAPI.marketplace.requestRefund(transactionId, reason);
+        await (window as any).electronAPI.marketplace.requestRefund(
+          transactionId,
+          reason,
+        );
         await this.loadTransactions();
       } catch (error) {
-        logger.error('申请退款失败:', error as any);
+        logger.error("申请退款失败:", error as any);
         throw error;
       }
     },
@@ -1139,7 +1171,7 @@ export const useTradeStore = defineStore('trade', {
      */
     setMarketplaceFilter<K extends keyof MarketplaceFilters>(
       key: K,
-      value: MarketplaceFilters[K]
+      value: MarketplaceFilters[K],
     ): void {
       this.marketplace.filters[key] = value;
     },
@@ -1159,10 +1191,12 @@ export const useTradeStore = defineStore('trade', {
     async loadEscrows(filters: Record<string, any> = {}): Promise<void> {
       this.escrow.loading = true;
       try {
-        const escrows: Escrow[] = await (window as any).electronAPI.escrow.getList(filters);
+        const escrows: Escrow[] = await (
+          window as any
+        ).electronAPI.escrow.getList(filters);
         this.escrow.escrows = escrows || [];
       } catch (error) {
-        logger.error('加载托管列表失败:', error as any);
+        logger.error("加载托管列表失败:", error as any);
         throw error;
       } finally {
         this.escrow.loading = false;
@@ -1174,10 +1208,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadEscrowDetail(escrowId: string): Promise<void> {
       try {
-        const escrow: Escrow = await (window as any).electronAPI.escrow.get(escrowId);
+        const escrow: Escrow = await (window as any).electronAPI.escrow.get(
+          escrowId,
+        );
         this.escrow.currentEscrow = escrow;
       } catch (error) {
-        logger.error('加载托管详情失败:', error as any);
+        logger.error("加载托管详情失败:", error as any);
         throw error;
       }
     },
@@ -1187,11 +1223,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadEscrowHistory(escrowId: string): Promise<void> {
       try {
-        const history: EscrowHistoryRecord[] =
-          await (window as any).electronAPI.escrow.getHistory(escrowId);
+        const history: EscrowHistoryRecord[] = await (
+          window as any
+        ).electronAPI.escrow.getHistory(escrowId);
         this.escrow.escrowHistory = history || [];
       } catch (error) {
-        logger.error('加载托管历史失败:', error as any);
+        logger.error("加载托管历史失败:", error as any);
         throw error;
       }
     },
@@ -1205,7 +1242,7 @@ export const useTradeStore = defineStore('trade', {
         await this.loadEscrowDetail(escrowId);
         await this.loadEscrows();
       } catch (error) {
-        logger.error('发起争议失败:', error as any);
+        logger.error("发起争议失败:", error as any);
         throw error;
       }
     },
@@ -1215,8 +1252,9 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadEscrowStatistics(): Promise<void> {
       try {
-        const statistics: EscrowStatistics =
-          await (window as any).electronAPI.escrow.getStatistics();
+        const statistics: EscrowStatistics = await (
+          window as any
+        ).electronAPI.escrow.getStatistics();
         this.escrow.statistics = statistics || {
           total: 0,
           locked: 0,
@@ -1225,7 +1263,7 @@ export const useTradeStore = defineStore('trade', {
           disputed: 0,
         };
       } catch (error) {
-        logger.error('加载托管统计失败:', error as any);
+        logger.error("加载托管统计失败:", error as any);
         throw error;
       }
     },
@@ -1238,10 +1276,12 @@ export const useTradeStore = defineStore('trade', {
     async loadContracts(filters: Record<string, any> = {}): Promise<void> {
       this.contract.loading = true;
       try {
-        const contracts: Contract[] = await (window as any).electronAPI.contract.getList(filters);
+        const contracts: Contract[] = await (
+          window as any
+        ).electronAPI.contract.getList(filters);
         this.contract.contracts = contracts || [];
       } catch (error) {
-        logger.error('加载合约失败:', error as any);
+        logger.error("加载合约失败:", error as any);
         throw error;
       } finally {
         this.contract.loading = false;
@@ -1253,11 +1293,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadContractTemplates(): Promise<void> {
       try {
-        const templates: ContractTemplate[] =
-          await (window as any).electronAPI.contract.getTemplates();
+        const templates: ContractTemplate[] = await (
+          window as any
+        ).electronAPI.contract.getTemplates();
         this.contract.templates = templates || [];
       } catch (error) {
-        logger.error('加载合约模板失败:', error as any);
+        logger.error("加载合约模板失败:", error as any);
         throw error;
       }
     },
@@ -1267,11 +1308,13 @@ export const useTradeStore = defineStore('trade', {
      */
     async createContract(options: CreateContractOptions): Promise<Contract> {
       try {
-        const contract: Contract = await (window as any).electronAPI.contract.create(options);
+        const contract: Contract = await (
+          window as any
+        ).electronAPI.contract.create(options);
         this.contract.contracts.push(contract);
         return contract;
       } catch (error) {
-        logger.error('创建合约失败:', error as any);
+        logger.error("创建合约失败:", error as any);
         throw error;
       }
     },
@@ -1281,17 +1324,16 @@ export const useTradeStore = defineStore('trade', {
      */
     async createContractFromTemplate(
       templateId: string,
-      params: Record<string, any>
+      params: Record<string, any>,
     ): Promise<Contract> {
       try {
-        const contract: Contract = await (window as any).electronAPI.contract.createFromTemplate(
-          templateId,
-          params
-        );
+        const contract: Contract = await (
+          window as any
+        ).electronAPI.contract.createFromTemplate(templateId, params);
         this.contract.contracts.push(contract);
         return contract;
       } catch (error) {
-        logger.error('从模板创建合约失败:', error as any);
+        logger.error("从模板创建合约失败:", error as any);
         throw error;
       }
     },
@@ -1306,7 +1348,7 @@ export const useTradeStore = defineStore('trade', {
         // 刷新合约列表
         await this.loadContracts();
       } catch (error) {
-        logger.error('激活合约失败:', error as any);
+        logger.error("激活合约失败:", error as any);
         throw error;
       }
     },
@@ -1319,13 +1361,15 @@ export const useTradeStore = defineStore('trade', {
         await (window as any).electronAPI.contract.sign(contractId, signature);
 
         // 刷新合约详情
-        const contract: Contract = await (window as any).electronAPI.contract.get(contractId);
+        const contract: Contract = await (
+          window as any
+        ).electronAPI.contract.get(contractId);
         this.contract.currentContract = contract;
 
         // 刷新合约列表
         await this.loadContracts();
       } catch (error) {
-        logger.error('签名合约失败:', error as any);
+        logger.error("签名合约失败:", error as any);
         throw error;
       }
     },
@@ -1341,7 +1385,7 @@ export const useTradeStore = defineStore('trade', {
         // 刷新合约列表
         await this.loadContracts();
       } catch (error) {
-        logger.error('执行合约失败:', error as any);
+        logger.error("执行合约失败:", error as any);
         throw error;
       } finally {
         this.contract.executing = false;
@@ -1358,7 +1402,7 @@ export const useTradeStore = defineStore('trade', {
         // 刷新合约列表
         await this.loadContracts();
       } catch (error) {
-        logger.error('取消合约失败:', error as any);
+        logger.error("取消合约失败:", error as any);
         throw error;
       }
     },
@@ -1368,10 +1412,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async checkContractConditions(contractId: string): Promise<any> {
       try {
-        const result = await (window as any).electronAPI.contract.checkConditions(contractId);
+        const result = await (
+          window as any
+        ).electronAPI.contract.checkConditions(contractId);
         return result;
       } catch (error) {
-        logger.error('检查合约条件失败:', error as any);
+        logger.error("检查合约条件失败:", error as any);
         throw error;
       }
     },
@@ -1381,11 +1427,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadContractConditions(contractId: string): Promise<void> {
       try {
-        const conditions: ContractCondition[] =
-          await (window as any).electronAPI.contract.getConditions(contractId);
+        const conditions: ContractCondition[] = await (
+          window as any
+        ).electronAPI.contract.getConditions(contractId);
         this.contract.conditions = conditions || [];
       } catch (error) {
-        logger.error('加载合约条件失败:', error as any);
+        logger.error("加载合约条件失败:", error as any);
         throw error;
       }
     },
@@ -1395,11 +1442,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadContractEvents(contractId: string): Promise<void> {
       try {
-        const events: ContractEvent[] =
-          await (window as any).electronAPI.contract.getEvents(contractId);
+        const events: ContractEvent[] = await (
+          window as any
+        ).electronAPI.contract.getEvents(contractId);
         this.contract.events = events || [];
       } catch (error) {
-        logger.error('加载合约事件失败:', error as any);
+        logger.error("加载合约事件失败:", error as any);
         throw error;
       }
     },
@@ -1407,12 +1455,20 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 发起仲裁
      */
-    async initiateArbitration(contractId: string, reason: string, evidence: any): Promise<void> {
+    async initiateArbitration(
+      contractId: string,
+      reason: string,
+      evidence: any,
+    ): Promise<void> {
       try {
-        await (window as any).electronAPI.contract.initiateArbitration(contractId, reason, evidence);
+        await (window as any).electronAPI.contract.initiateArbitration(
+          contractId,
+          reason,
+          evidence,
+        );
         await this.loadContracts();
       } catch (error) {
-        logger.error('发起仲裁失败:', error as any);
+        logger.error("发起仲裁失败:", error as any);
         throw error;
       }
     },
@@ -1420,12 +1476,18 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 解决仲裁
      */
-    async resolveArbitration(arbitrationId: string, resolution: any): Promise<void> {
+    async resolveArbitration(
+      arbitrationId: string,
+      resolution: any,
+    ): Promise<void> {
       try {
-        await (window as any).electronAPI.contract.resolveArbitration(arbitrationId, resolution);
+        await (window as any).electronAPI.contract.resolveArbitration(
+          arbitrationId,
+          resolution,
+        );
         await this.loadContracts();
       } catch (error) {
-        logger.error('解决仲裁失败:', error as any);
+        logger.error("解决仲裁失败:", error as any);
         throw error;
       }
     },
@@ -1433,7 +1495,10 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 设置合约筛选条件
      */
-    setContractFilter<K extends keyof ContractFilters>(key: K, value: ContractFilters[K]): void {
+    setContractFilter<K extends keyof ContractFilters>(
+      key: K,
+      value: ContractFilters[K],
+    ): void {
       this.contract.filters[key] = value;
     },
 
@@ -1452,11 +1517,12 @@ export const useTradeStore = defineStore('trade', {
     async loadUserCredit(userDid: string): Promise<void> {
       this.credit.loading = true;
       try {
-        const credit: UserCredit =
-          await (window as any).electronAPI.credit.getUserCredit(userDid);
+        const credit: UserCredit = await (
+          window as any
+        ).electronAPI.credit.getUserCredit(userDid);
         this.credit.userCredit = credit;
       } catch (error) {
-        logger.error('加载信用信息失败:', error as any);
+        logger.error("加载信用信息失败:", error as any);
         throw error;
       } finally {
         this.credit.loading = false;
@@ -1471,7 +1537,7 @@ export const useTradeStore = defineStore('trade', {
         await (window as any).electronAPI.credit.updateScore(userDid);
         await this.loadUserCredit(userDid);
       } catch (error) {
-        logger.error('更新信用评分失败:', error as any);
+        logger.error("更新信用评分失败:", error as any);
         throw error;
       }
     },
@@ -1481,11 +1547,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadScoreHistory(userDid: string, limit: number = 50): Promise<void> {
       try {
-        const history: ScoreHistoryRecord[] =
-          await (window as any).electronAPI.credit.getScoreHistory(userDid, limit);
+        const history: ScoreHistoryRecord[] = await (
+          window as any
+        ).electronAPI.credit.getScoreHistory(userDid, limit);
         this.credit.scoreHistory = history || [];
       } catch (error) {
-        logger.error('加载评分历史失败:', error as any);
+        logger.error("加载评分历史失败:", error as any);
         throw error;
       }
     },
@@ -1495,11 +1562,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadLeaderboard(limit: number = 50): Promise<void> {
       try {
-        const leaderboard: LeaderboardItem[] =
-          await (window as any).electronAPI.credit.getLeaderboard(limit);
+        const leaderboard: LeaderboardItem[] = await (
+          window as any
+        ).electronAPI.credit.getLeaderboard(limit);
         this.credit.leaderboard = leaderboard || [];
       } catch (error) {
-        logger.error('加载排行榜失败:', error as any);
+        logger.error("加载排行榜失败:", error as any);
         throw error;
       }
     },
@@ -1509,11 +1577,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadCreditStatistics(): Promise<void> {
       try {
-        const statistics: CreditStatistics =
-          await (window as any).electronAPI.credit.getStatistics();
+        const statistics: CreditStatistics = await (
+          window as any
+        ).electronAPI.credit.getStatistics();
         this.credit.statistics = statistics;
       } catch (error) {
-        logger.error('加载信用统计失败:', error as any);
+        logger.error("加载信用统计失败:", error as any);
         throw error;
       }
     },
@@ -1526,18 +1595,16 @@ export const useTradeStore = defineStore('trade', {
     async loadReviews(
       targetId: string,
       targetType: ReviewTargetType,
-      filters: Record<string, any> = {}
+      filters: Record<string, any> = {},
     ): Promise<void> {
       this.review.loading = true;
       try {
-        const reviews: Review[] = await (window as any).electronAPI.review.getByTarget(
-          targetId,
-          targetType,
-          filters
-        );
+        const reviews: Review[] = await (
+          window as any
+        ).electronAPI.review.getByTarget(targetId, targetType, filters);
         this.review.targetReviews = reviews || [];
       } catch (error) {
-        logger.error('加载评价失败:', error as any);
+        logger.error("加载评价失败:", error as any);
         throw error;
       } finally {
         this.review.loading = false;
@@ -1550,11 +1617,12 @@ export const useTradeStore = defineStore('trade', {
     async loadMyReviews(userDid: string): Promise<void> {
       this.review.loading = true;
       try {
-        const reviews: Review[] =
-          await (window as any).electronAPI.review.getMyReviews(userDid);
+        const reviews: Review[] = await (
+          window as any
+        ).electronAPI.review.getMyReviews(userDid);
         this.review.myReviews = reviews || [];
       } catch (error) {
-        logger.error('加载我的评价失败:', error as any);
+        logger.error("加载我的评价失败:", error as any);
         throw error;
       } finally {
         this.review.loading = false;
@@ -1566,11 +1634,13 @@ export const useTradeStore = defineStore('trade', {
      */
     async createReview(options: CreateReviewOptions): Promise<Review> {
       try {
-        const review: Review = await (window as any).electronAPI.review.create(options);
+        const review: Review = await (window as any).electronAPI.review.create(
+          options,
+        );
         this.review.myReviews.push(review);
         return review;
       } catch (error) {
-        logger.error('创建评价失败:', error as any);
+        logger.error("创建评价失败:", error as any);
         throw error;
       }
     },
@@ -1578,9 +1648,15 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 更新评价
      */
-    async updateReview(reviewId: string, updates: Partial<Review>): Promise<Review> {
+    async updateReview(
+      reviewId: string,
+      updates: Partial<Review>,
+    ): Promise<Review> {
       try {
-        const review: Review = await (window as any).electronAPI.review.update(reviewId, updates);
+        const review: Review = await (window as any).electronAPI.review.update(
+          reviewId,
+          updates,
+        );
 
         // 更新本地列表
         const index = this.review.myReviews.findIndex((r) => r.id === reviewId);
@@ -1590,7 +1666,7 @@ export const useTradeStore = defineStore('trade', {
 
         return review;
       } catch (error) {
-        logger.error('更新评价失败:', error as any);
+        logger.error("更新评价失败:", error as any);
         throw error;
       }
     },
@@ -1603,10 +1679,12 @@ export const useTradeStore = defineStore('trade', {
         await (window as any).electronAPI.review.reply(reviewId, content);
 
         // 刷新评价详情
-        const review: Review = await (window as any).electronAPI.review.get(reviewId);
+        const review: Review = await (window as any).electronAPI.review.get(
+          reviewId,
+        );
         this.review.currentReview = review;
       } catch (error) {
-        logger.error('回复评价失败:', error as any);
+        logger.error("回复评价失败:", error as any);
         throw error;
       }
     },
@@ -1618,7 +1696,7 @@ export const useTradeStore = defineStore('trade', {
       try {
         await (window as any).electronAPI.review.markHelpful(reviewId, helpful);
       } catch (error) {
-        logger.error('标记评价失败:', error as any);
+        logger.error("标记评价失败:", error as any);
         throw error;
       }
     },
@@ -1626,11 +1704,19 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 举报评价
      */
-    async reportReview(reviewId: string, reason: string, description: string): Promise<void> {
+    async reportReview(
+      reviewId: string,
+      reason: string,
+      description: string,
+    ): Promise<void> {
       try {
-        await (window as any).electronAPI.review.report(reviewId, reason, description);
+        await (window as any).electronAPI.review.report(
+          reviewId,
+          reason,
+          description,
+        );
       } catch (error) {
-        logger.error('举报评价失败:', error as any);
+        logger.error("举报评价失败:", error as any);
         throw error;
       }
     },
@@ -1638,15 +1724,17 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 加载评价统计
      */
-    async loadReviewStatistics(targetId: string, targetType: ReviewTargetType): Promise<void> {
+    async loadReviewStatistics(
+      targetId: string,
+      targetType: ReviewTargetType,
+    ): Promise<void> {
       try {
-        const statistics: ReviewStatistics = await (window as any).electronAPI.review.getStatistics(
-          targetId,
-          targetType
-        );
+        const statistics: ReviewStatistics = await (
+          window as any
+        ).electronAPI.review.getStatistics(targetId, targetType);
         this.review.statistics = statistics;
       } catch (error) {
-        logger.error('加载评价统计失败:', error as any);
+        logger.error("加载评价统计失败:", error as any);
         throw error;
       }
     },
@@ -1656,14 +1744,17 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 加载知识内容列表
      */
-    async loadKnowledgeContents(filters: Record<string, any> = {}): Promise<void> {
+    async loadKnowledgeContents(
+      filters: Record<string, any> = {},
+    ): Promise<void> {
       this.knowledge.loading = true;
       try {
-        const contents: KnowledgeContent[] =
-          await (window as any).electronAPI.knowledge.listContents(filters);
+        const contents: KnowledgeContent[] = await (
+          window as any
+        ).electronAPI.knowledge.listContents(filters);
         this.knowledge.contents = contents || [];
       } catch (error) {
-        logger.error('加载知识内容失败:', error as any);
+        logger.error("加载知识内容失败:", error as any);
         throw error;
       } finally {
         this.knowledge.loading = false;
@@ -1675,11 +1766,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadMyContents(creatorDid: string): Promise<void> {
       try {
-        const contents: KnowledgeContent[] =
-          await (window as any).electronAPI.knowledge.listContents({ creator_did: creatorDid });
+        const contents: KnowledgeContent[] = await (
+          window as any
+        ).electronAPI.knowledge.listContents({ creator_did: creatorDid });
         this.knowledge.myContents = contents || [];
       } catch (error) {
-        logger.error('加载我的内容失败:', error as any);
+        logger.error("加载我的内容失败:", error as any);
         throw error;
       }
     },
@@ -1687,14 +1779,17 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 创建知识内容
      */
-    async createKnowledgeContent(options: CreateContentOptions): Promise<KnowledgeContent> {
+    async createKnowledgeContent(
+      options: CreateContentOptions,
+    ): Promise<KnowledgeContent> {
       try {
-        const content: KnowledgeContent =
-          await (window as any).electronAPI.knowledge.createContent(options);
+        const content: KnowledgeContent = await (
+          window as any
+        ).electronAPI.knowledge.createContent(options);
         this.knowledge.myContents.push(content);
         return content;
       } catch (error) {
-        logger.error('创建知识内容失败:', error as any);
+        logger.error("创建知识内容失败:", error as any);
         throw error;
       }
     },
@@ -1704,23 +1799,24 @@ export const useTradeStore = defineStore('trade', {
      */
     async updateKnowledgeContent(
       contentId: string,
-      updates: Partial<KnowledgeContent>
+      updates: Partial<KnowledgeContent>,
     ): Promise<KnowledgeContent> {
       try {
-        const content: KnowledgeContent = await (window as any).electronAPI.knowledge.updateContent(
-          contentId,
-          updates
-        );
+        const content: KnowledgeContent = await (
+          window as any
+        ).electronAPI.knowledge.updateContent(contentId, updates);
 
         // 更新本地列表
-        const index = this.knowledge.myContents.findIndex((c) => c.id === contentId);
+        const index = this.knowledge.myContents.findIndex(
+          (c) => c.id === contentId,
+        );
         if (index !== -1) {
           this.knowledge.myContents[index] = content;
         }
 
         return content;
       } catch (error) {
-        logger.error('更新知识内容失败:', error as any);
+        logger.error("更新知识内容失败:", error as any);
         throw error;
       }
     },
@@ -1728,14 +1824,18 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 购买内容
      */
-    async purchaseContent(contentId: string, paymentAssetId: string): Promise<PurchaseRecord> {
+    async purchaseContent(
+      contentId: string,
+      paymentAssetId: string,
+    ): Promise<PurchaseRecord> {
       try {
-        const purchase: PurchaseRecord =
-          await (window as any).electronAPI.knowledge.purchaseContent(contentId, paymentAssetId);
+        const purchase: PurchaseRecord = await (
+          window as any
+        ).electronAPI.knowledge.purchaseContent(contentId, paymentAssetId);
         this.knowledge.myPurchases.push(purchase);
         return purchase;
       } catch (error) {
-        logger.error('购买内容失败:', error as any);
+        logger.error("购买内容失败:", error as any);
         throw error;
       }
     },
@@ -1743,16 +1843,18 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 订阅创作者
      */
-    async subscribeToCreator(planId: string, paymentAssetId: string): Promise<Subscription> {
+    async subscribeToCreator(
+      planId: string,
+      paymentAssetId: string,
+    ): Promise<Subscription> {
       try {
-        const subscription: Subscription = await (window as any).electronAPI.knowledge.subscribe(
-          planId,
-          paymentAssetId
-        );
+        const subscription: Subscription = await (
+          window as any
+        ).electronAPI.knowledge.subscribe(planId, paymentAssetId);
         this.knowledge.mySubscriptions.push(subscription);
         return subscription;
       } catch (error) {
-        logger.error('订阅失败:', error as any);
+        logger.error("订阅失败:", error as any);
         throw error;
       }
     },
@@ -1765,12 +1867,14 @@ export const useTradeStore = defineStore('trade', {
         await (window as any).electronAPI.knowledge.unsubscribe(planId);
 
         // 从本地列表移除
-        const index = this.knowledge.mySubscriptions.findIndex((s) => s.plan_id === planId);
+        const index = this.knowledge.mySubscriptions.findIndex(
+          (s) => s.plan_id === planId,
+        );
         if (index !== -1) {
           this.knowledge.mySubscriptions.splice(index, 1);
         }
       } catch (error) {
-        logger.error('取消订阅失败:', error as any);
+        logger.error("取消订阅失败:", error as any);
         throw error;
       }
     },
@@ -1780,11 +1884,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadMyPurchases(userDid: string): Promise<void> {
       try {
-        const purchases: PurchaseRecord[] =
-          await (window as any).electronAPI.knowledge.getMyPurchases(userDid);
+        const purchases: PurchaseRecord[] = await (
+          window as any
+        ).electronAPI.knowledge.getMyPurchases(userDid);
         this.knowledge.myPurchases = purchases || [];
       } catch (error) {
-        logger.error('加载购买记录失败:', error as any);
+        logger.error("加载购买记录失败:", error as any);
         throw error;
       }
     },
@@ -1794,11 +1899,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadMySubscriptions(userDid: string): Promise<void> {
       try {
-        const subscriptions: Subscription[] =
-          await (window as any).electronAPI.knowledge.getMySubscriptions(userDid);
+        const subscriptions: Subscription[] = await (
+          window as any
+        ).electronAPI.knowledge.getMySubscriptions(userDid);
         this.knowledge.mySubscriptions = subscriptions || [];
       } catch (error) {
-        logger.error('加载订阅记录失败:', error as any);
+        logger.error("加载订阅记录失败:", error as any);
         throw error;
       }
     },
@@ -1808,12 +1914,13 @@ export const useTradeStore = defineStore('trade', {
      */
     async accessContent(contentId: string): Promise<KnowledgeContent> {
       try {
-        const content: KnowledgeContent =
-          await (window as any).electronAPI.knowledge.accessContent(contentId);
+        const content: KnowledgeContent = await (
+          window as any
+        ).electronAPI.knowledge.accessContent(contentId);
         this.knowledge.currentContent = content;
         return content;
       } catch (error) {
-        logger.error('访问内容失败:', error as any);
+        logger.error("访问内容失败:", error as any);
         throw error;
       }
     },
@@ -1821,15 +1928,17 @@ export const useTradeStore = defineStore('trade', {
     /**
      * 检查内容访问权限
      */
-    async checkContentAccess(contentId: string, userDid: string): Promise<boolean> {
+    async checkContentAccess(
+      contentId: string,
+      userDid: string,
+    ): Promise<boolean> {
       try {
-        const hasAccess: boolean = await (window as any).electronAPI.knowledge.checkAccess(
-          contentId,
-          userDid
-        );
+        const hasAccess: boolean = await (
+          window as any
+        ).electronAPI.knowledge.checkAccess(contentId, userDid);
         return hasAccess;
       } catch (error) {
-        logger.error('检查访问权限失败:', error as any);
+        logger.error("检查访问权限失败:", error as any);
         return false;
       }
     },
@@ -1839,11 +1948,12 @@ export const useTradeStore = defineStore('trade', {
      */
     async loadKnowledgeStatistics(creatorDid: string): Promise<void> {
       try {
-        const statistics: CreatorStatistics =
-          await (window as any).electronAPI.knowledge.getStatistics(creatorDid);
+        const statistics: CreatorStatistics = await (
+          window as any
+        ).electronAPI.knowledge.getStatistics(creatorDid);
         this.knowledge.statistics = statistics;
       } catch (error) {
-        logger.error('加载知识统计失败:', error as any);
+        logger.error("加载知识统计失败:", error as any);
         throw error;
       }
     },
@@ -1857,9 +1967,9 @@ export const useTradeStore = defineStore('trade', {
       this.ui.activeTab = tab;
       // 保存到localStorage
       try {
-        localStorage.setItem('trading-hub-active-tab', tab);
+        localStorage.setItem("trading-hub-active-tab", tab);
       } catch (error) {
-        logger.warn('保存Tab状态失败:', error as any);
+        logger.warn("保存Tab状态失败:", error as any);
       }
     },
 
@@ -1876,12 +1986,14 @@ export const useTradeStore = defineStore('trade', {
     initUI(): void {
       // 从localStorage恢复活跃Tab
       try {
-        const savedTab = localStorage.getItem('trading-hub-active-tab') as ActiveTab | null;
+        const savedTab = localStorage.getItem(
+          "trading-hub-active-tab",
+        ) as ActiveTab | null;
         if (savedTab) {
           this.ui.activeTab = savedTab;
         }
       } catch (error) {
-        logger.warn('恢复Tab状态失败:', error as any);
+        logger.warn("恢复Tab状态失败:", error as any);
       }
     },
   },
