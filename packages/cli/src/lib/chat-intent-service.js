@@ -23,6 +23,40 @@ import { firstBalancedJson } from "./json-schema-output.js";
 const DEFAULT_INTENT_TIMEOUT_MS = 15000;
 
 /**
+ * Resolve the per-call intent-classification budget. `llmOptions.intentTimeoutMs`
+ * overrides the default; an explicit 0 disables the cap; NaN/negative/absent →
+ * default.
+ */
+function resolveIntentTimeout(llmOptions) {
+  const raw = llmOptions?.intentTimeoutMs;
+  if (raw === 0) return 0; // explicit disable
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_INTENT_TIMEOUT_MS;
+}
+
+/**
+ * Bound an LLM call to the intent budget. chat-core has its OWN stall guard, but
+ * it only fires on SILENCE (no bytes for 180s) — a slow trickling stream never
+ * trips it, so without this the declared 15s intent budget was never enforced
+ * and classification could block for minutes. Racing the deadline makes it fail
+ * fast into the caller's graceful rule/verbatim fallback. `ms <= 0` disables.
+ * The losing background request is harmless (chat-core releases its own socket);
+ * the timer is unref'd so it never holds the process open.
+ */
+function withIntentTimeout(promise, ms) {
+  if (!(Number(ms) > 0)) return promise;
+  let timer;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`intent LLM call timed out after ${ms}ms`)),
+      Number(ms),
+    );
+    if (timer && typeof timer.unref === "function") timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
  * Build the V5 understandIntent system + user prompt pair.
  *
  * `history` is optional — when provided, the last few exchanges are
@@ -123,17 +157,20 @@ export async function understandIntent({
   );
 
   try {
-    const fullContent = await chatWithStreaming(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      {
-        ...llmOptions,
-        // Lower temperature → more deterministic JSON output.
-        temperature: 0.3,
-        maxTokens: 500,
-      },
+    const fullContent = await withIntentTimeout(
+      chatWithStreaming(
+        [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        {
+          ...llmOptions,
+          // Lower temperature → more deterministic JSON output.
+          temperature: 0.3,
+          maxTokens: 500,
+        },
+      ),
+      resolveIntentTimeout(llmOptions),
     );
 
     const jsonText = extractJson(fullContent);
@@ -204,6 +241,11 @@ export async function* understandIntentStream({
   );
   let buffer = "";
   try {
+    // Incremental token yielding makes a per-call deadline awkward to apply
+    // here; this streaming variant is instead bounded by chat-core's own
+    // silence-based stall guard (CC_CHAT_STALL_MS, default 180s). The awaited
+    // understandIntent / classifyFollowupIntent paths enforce the tighter
+    // intent budget (resolveIntentTimeout) directly.
     for await (const event of chatStream(
       [
         { role: "system", content: systemPrompt },
@@ -452,16 +494,19 @@ ${
 
 async function llmBasedClassify(userInput, context, llmOptions) {
   const { systemPrompt, userPrompt } = buildFollowupPrompts(userInput, context);
-  const fullContent = await chatWithStreaming(
-    [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    {
-      ...llmOptions,
-      temperature: 0.1,
-      maxTokens: 300,
-    },
+  const fullContent = await withIntentTimeout(
+    chatWithStreaming(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      {
+        ...llmOptions,
+        temperature: 0.1,
+        maxTokens: 300,
+      },
+    ),
+    resolveIntentTimeout(llmOptions),
   );
   const jsonText = extractJson(fullContent);
   if (!jsonText) throw new Error("LLM response missing JSON");
@@ -540,5 +585,7 @@ export const _internal = {
   buildFollowupPrompts,
   extractJson,
   ruleBasedClassify,
+  resolveIntentTimeout,
+  withIntentTimeout,
   DEFAULT_INTENT_TIMEOUT_MS,
 };

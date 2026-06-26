@@ -233,4 +233,79 @@ describe("chat-intent-service", () => {
       expect(typeof r.latency).toBe("number");
     });
   });
+
+  // ------------------------------------------------------------
+  // Intent-classification timeout (DEFAULT_INTENT_TIMEOUT_MS was declared but
+  // never enforced — a slow LLM could block intent classification for minutes).
+  // ------------------------------------------------------------
+  describe("_internal.resolveIntentTimeout", () => {
+    it("defaults to 15s and honors a positive override", () => {
+      expect(_internal.resolveIntentTimeout(undefined)).toBe(
+        _internal.DEFAULT_INTENT_TIMEOUT_MS,
+      );
+      expect(_internal.resolveIntentTimeout({})).toBe(15000);
+      expect(_internal.resolveIntentTimeout({ intentTimeoutMs: 500 })).toBe(
+        500,
+      );
+    });
+    it("treats explicit 0 as disabled and NaN/negative as the default", () => {
+      expect(_internal.resolveIntentTimeout({ intentTimeoutMs: 0 })).toBe(0);
+      expect(_internal.resolveIntentTimeout({ intentTimeoutMs: -5 })).toBe(
+        15000,
+      );
+      expect(_internal.resolveIntentTimeout({ intentTimeoutMs: "x" })).toBe(
+        15000,
+      );
+    });
+  });
+
+  describe("_internal.withIntentTimeout", () => {
+    it("rejects a slow promise once the budget elapses", async () => {
+      const slow = new Promise((resolve) => setTimeout(resolve, 1000, "late"));
+      await expect(_internal.withIntentTimeout(slow, 20)).rejects.toThrow(
+        /timed out after 20ms/,
+      );
+    });
+    it("passes a fast promise through unchanged", async () => {
+      await expect(
+        _internal.withIntentTimeout(Promise.resolve("ok"), 1000),
+      ).resolves.toBe("ok");
+    });
+    it("disables the cap when ms <= 0 (returns the bare promise)", async () => {
+      const p = Promise.resolve("v");
+      expect(_internal.withIntentTimeout(p, 0)).toBe(p);
+    });
+  });
+
+  describe("understandIntent enforces the intent timeout", () => {
+    it("falls back gracefully when the LLM call exceeds the budget", async () => {
+      // chatWithStreaming hangs well past the (tiny) per-call budget.
+      chatMock.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(resolve, 1000, "{}")),
+      );
+      const r = await understandIntent({
+        userInput: "build me a dashboard",
+        llmOptions: { ...validLlmOptions, intentTimeoutMs: 20 },
+      });
+      expect(r.success).toBe(false);
+      expect(r.intent).toBe("general");
+      expect(r.correctedInput).toBe("build me a dashboard"); // verbatim passthrough
+      expect(r.error).toMatch(/timed out/);
+    });
+  });
+
+  describe("classifyFollowupIntent enforces the intent timeout", () => {
+    it("times out the LLM and returns the rule result", async () => {
+      chatMock.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(resolve, 1000, "{}")),
+      );
+      // "标题颜色" has CLARIFICATION signal (~0.6) but stays below the 0.8
+      // short-circuit, so the LLM path runs — and then times out into the rule.
+      const r = await classifyFollowupIntent({
+        input: "标题颜色",
+        llmOptions: { ...validLlmOptions, intentTimeoutMs: 20 },
+      });
+      expect(r.method).toBe("rule_fallback");
+    });
+  });
 });
