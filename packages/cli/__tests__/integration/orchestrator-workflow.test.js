@@ -435,3 +435,50 @@ describe("Orchestrator: cron watch", () => {
     orch.stopCronWatch();
   });
 });
+
+// ─── task map cap (unbounded-growth guard) ────────────────────────
+
+describe("Orchestrator: task map cap", () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it("defaults maxTasks to 500 and accepts a positive override", () => {
+    bridgeDeps.execSync = vi.fn(() => {
+      throw new Error();
+    });
+    expect(new Orchestrator({ cwd: "/tmp" }).maxTasks).toBe(500);
+    expect(new Orchestrator({ cwd: "/tmp", maxTasks: 10 }).maxTasks).toBe(10);
+    // 0 / invalid falls back to the default.
+    expect(new Orchestrator({ cwd: "/tmp", maxTasks: 0 }).maxTasks).toBe(500);
+  });
+
+  it("evicts the oldest completed tasks beyond maxTasks, keeping the newest", async () => {
+    const { orch } = buildOrchestrator({ ciPasses: true });
+    orch.maxTasks = 2;
+    const a = await orch.addTask("task A");
+    const b = await orch.addTask("task B");
+    const c = await orch.addTask("task C");
+
+    expect(orch._tasks.size).toBeLessThanOrEqual(2);
+    expect(orch._tasks.has(c.id)).toBe(true); // newest kept
+    expect(orch._tasks.has(b.id)).toBe(true);
+    expect(orch._tasks.has(a.id)).toBe(false); // oldest evicted
+    expect(a.status).toBe(TASK_STATUS.COMPLETED); // was terminal → evictable
+  });
+
+  it("_pruneTasks never drops an in-flight task even past the cap", () => {
+    bridgeDeps.execSync = vi.fn(() => {
+      throw new Error();
+    });
+    const orch = new Orchestrator({ cwd: "/tmp", maxTasks: 1 });
+    // Two terminal + one still-active task, all over the cap of 1.
+    orch._tasks.set("done1", { id: "done1", status: TASK_STATUS.COMPLETED });
+    orch._tasks.set("done2", { id: "done2", status: TASK_STATUS.FAILED });
+    orch._tasks.set("live", { id: "live", status: TASK_STATUS.DISPATCHED });
+    orch._pruneTasks();
+
+    // Terminal tasks evicted; the in-flight one survives even though size>cap.
+    expect(orch._tasks.has("live")).toBe(true);
+    expect(orch._tasks.has("done1")).toBe(false);
+    expect(orch._tasks.has("done2")).toBe(false);
+  });
+});

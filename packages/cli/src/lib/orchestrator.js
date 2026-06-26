@@ -82,6 +82,16 @@ export class Orchestrator extends EventEmitter {
     this.ciCommand = options.ciCommand || "npm test";
     this.verbose = options.verbose || false;
 
+    // Cap retained task history. Every addTask stores a record in _tasks and
+    // nothing ever removes it, so a long-running orchestrator (cron-watch /
+    // daemon) accumulates tasks without bound. Prune the oldest TERMINAL tasks
+    // beyond this cap (in-flight tasks are never dropped). Generous default;
+    // 0/invalid → 500.
+    this.maxTasks =
+      Number.isFinite(options.maxTasks) && options.maxTasks > 0
+        ? options.maxTasks
+        : 500;
+
     /** @type {Map<string, object>} taskId → task */
     this._tasks = new Map();
 
@@ -151,6 +161,7 @@ export class Orchestrator extends EventEmitter {
     };
 
     this._tasks.set(task.id, task);
+    this._pruneTasks();
     this.emit("task:added", task);
 
     if (this.notifier.isConfigured && task.notify) {
@@ -389,6 +400,26 @@ export class Orchestrator extends EventEmitter {
       const output = (err.stdout || "") + (err.stderr || "");
       const errors = _parseErrors(output);
       return { pass: false, output, errors };
+    }
+  }
+
+  /**
+   * Bound retained task history to maxTasks. Evicts the oldest TERMINAL tasks
+   * first (Map preserves insertion order = FIFO); an in-flight task is never
+   * dropped, so a burst of concurrent runs can briefly exceed the cap rather
+   * than losing live work. The dropped records are completed/failed history
+   * the caller has already seen via task:complete / task:failed events.
+   */
+  _pruneTasks() {
+    if (this._tasks.size <= this.maxTasks) return;
+    for (const [id, t] of this._tasks) {
+      if (this._tasks.size <= this.maxTasks) break;
+      if (
+        t.status === TASK_STATUS.COMPLETED ||
+        t.status === TASK_STATUS.FAILED
+      ) {
+        this._tasks.delete(id);
+      }
     }
   }
 
