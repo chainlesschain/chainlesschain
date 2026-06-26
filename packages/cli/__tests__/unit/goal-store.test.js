@@ -209,6 +209,28 @@ describe("goal-store", () => {
       }
     });
 
+    it("createGoal rejects a crafted id without writing outside the root", () => {
+      // goalFile appends .json, so this id would target <root>/../escaped.json.
+      const escaped = join(root, "..", "escaped");
+      try {
+        expect(() =>
+          createGoal({ objective: "x", id: "../escaped" }, o()),
+        ).toThrow(/goal id/);
+        expect(existsSync(`${escaped}.json`)).toBe(false); // nothing written out
+      } finally {
+        rmSync(`${escaped}.json`, { force: true });
+      }
+    });
+
+    it("mutating ops reject a traversal id (no stray lock file outside root)", async () => {
+      const { addKeyResult } = await import("../../src/lib/goal-store.js");
+      expect(() => addKeyResult("../escaped", "kr", {}, o())).toThrow(
+        /no such goal/,
+      );
+      // The lock helper must not have created a file outside the root.
+      expect(existsSync(join(root, "..", "escaped.json.lock"))).toBe(false);
+    });
+
     it("listGoals tolerates an oddly-named .json file in the dir", () => {
       // A file whose stem normalizes to ".." must be skipped, not throw.
       writeFileSync(join(root, "...json"), "{}", "utf-8");

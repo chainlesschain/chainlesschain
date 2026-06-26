@@ -124,6 +124,13 @@ export function createGoal(input = {}, opts = {}) {
     throw new Error("createGoal requires an objective");
   }
   const id = input.id || newId("goal");
+  // Generated ids are always safe, but `input.id` is caller-supplied — guard it
+  // like every other op (getGoal/saveGoal/deleteGoal) so a crafted id such as
+  // `../../etc/x` can't make atomicWriteFileSync write a .json OUTSIDE the
+  // goals dir. createGoal was the one mutation missing this check.
+  if (isUnsafeGoalId(id)) {
+    throw new Error(`非法 goal id: ${String(id).slice(0, 60)}`);
+  }
   const keyResults = (input.keyResults || []).map((kr) => normalizeKr(kr));
   const goal = {
     id,
@@ -207,6 +214,10 @@ function mutate(id, fn, opts = {}) {
   // sharing the goals dir) so concurrent goal edits don't lose an update.
   // Best-effort lock (with-file-lock): on contention timeout it proceeds anyway,
   // so the CLI never hangs.
+  // Guard before deriving the lock path: an unsafe id would otherwise place the
+  // lock file at a traversal path (`<root>/../../x.json.lock`) before getGoal
+  // even runs. getGoal/saveGoal also guard, but keep the lock inside the dir.
+  if (isUnsafeGoalId(id)) throw new Error(`no such goal: ${id}`);
   const root = opts.root || defaultRoot();
   return withFileLock(goalFile(root, id), () => {
     const goal = getGoal(id, opts);
