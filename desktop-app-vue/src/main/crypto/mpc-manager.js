@@ -476,10 +476,17 @@ class MPCManager extends EventEmitter {
       participants: participantValues.length,
     });
 
-    const values = participantValues.map((pv) => pv.value);
+    const values = Array.isArray(participantValues)
+      ? participantValues.map((pv) => pv.value)
+      : [];
+    if (values.length === 0) {
+      // Over zero participants the branches below yield NaN/±Infinity (average
+      // 0/0, max/min of []) that would be returned as a successful result.
+      throw new Error("spdzCompute requires at least one participant value");
+    }
     let result;
 
-    switch (expression.toLowerCase()) {
+    switch (String(expression).toLowerCase()) {
       case "sum":
         result = values.reduce((a, b) => a + b, 0);
         break;

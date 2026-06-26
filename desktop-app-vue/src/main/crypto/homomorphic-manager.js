@@ -630,7 +630,9 @@ class HomomorphicManager extends EventEmitter {
         result = recordCount.toString();
         break;
       case "sum":
-        result = (hashNum % (recordCount * 1000)).toString();
+        // recordCount can be 0 (empty dataset passes the !dataset guard since
+        // [] is truthy); `% 0` is NaN. Clamp like the avg case below.
+        result = (hashNum % (Math.max(recordCount, 1) * 1000)).toString();
         break;
       case "avg":
         result = (

@@ -314,9 +314,17 @@ class VideoImporter extends EventEmitter {
     }
     const parts = fpsString.split("/");
     if (parts.length === 2) {
-      return parseFloat(parts[0]) / parseFloat(parts[1]);
+      const num = parseFloat(parts[0]);
+      const den = parseFloat(parts[1]);
+      // ffprobe can return "0/0" or "N/0" for streams without a defined frame
+      // rate; den 0 / NaN would yield NaN/Infinity that then persists as fps.
+      if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) {
+        return 0;
+      }
+      return num / den;
     }
-    return parseFloat(fpsString);
+    const single = parseFloat(fpsString);
+    return Number.isFinite(single) ? single : 0;
   }
 
   /**
