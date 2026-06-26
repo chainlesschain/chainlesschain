@@ -37,6 +37,18 @@ describe("loadStatusLineConfig", () => {
     settingsLayers = [{ statusLine: "a.sh" }, { statusLine: false }];
     expect(loadStatusLineConfig({ cwd: "/x" })).toBeNull();
   });
+  it("clamps an over-large / non-finite padding to <=80 (avoids repeat RangeError)", () => {
+    for (const [padding, expected] of [
+      [999999999, 80],
+      ["1e999", 80], // Number("1e999") === Infinity
+      [-5, 0],
+      ["abc", 0],
+      [5.7, 5],
+    ]) {
+      settingsLayers = [{ statusLine: { command: "s.sh", padding } }];
+      expect(loadStatusLineConfig({ cwd: "/x" }).padding).toBe(expected);
+    }
+  });
 });
 
 describe("renderStatusLine", () => {

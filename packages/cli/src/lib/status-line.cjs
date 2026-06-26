@@ -48,7 +48,10 @@ function loadStatusLineConfig({ cwd = process.cwd(), settingsFile } = {}) {
       cfg = {
         type: sl.type || "command",
         command: sl.command,
-        padding: Number(sl.padding) || 0,
+        // Clamp to [0,80]: a non-finite/huge padding (e.g. "1e999" → Infinity,
+        // or 999999999) would make " ".repeat(padding) at render time throw
+        // RangeError on every REPL prompt, bricking the status line.
+        padding: Math.max(0, Math.min(80, Math.floor(Number(sl.padding)) || 0)),
       };
     } else if (sl === false || sl === null) {
       cfg = null; // an explicit disable in a higher layer wins
