@@ -107,6 +107,44 @@ describe("CLIAutonomousAgent", () => {
     });
   });
 
+  // ── goal history cap (unbounded-growth guard) ──
+
+  describe("goal history cap", () => {
+    it("defaults _maxGoals to 200 and accepts a positive override", () => {
+      expect(new CLIAutonomousAgent()._maxGoals).toBe(200);
+      const a = new CLIAutonomousAgent();
+      a.initialize({ maxGoals: 5 });
+      expect(a._maxGoals).toBe(5);
+      a.initialize({ maxGoals: 0 }); // invalid → keep current
+      expect(a._maxGoals).toBe(5);
+    });
+
+    it("_pruneGoals evicts oldest TERMINAL goals but never an active one", () => {
+      const a = new CLIAutonomousAgent();
+      a._maxGoals = 2;
+      // Two terminal (oldest) + one still-running, over the cap of 2.
+      a._goals.set("done1", { id: "done1", status: GoalStatus.COMPLETED });
+      a._goals.set("done2", { id: "done2", status: GoalStatus.CANCELLED });
+      a._goals.set("live", { id: "live", status: GoalStatus.RUNNING });
+      a._pruneGoals();
+      expect(a._goals.has("live")).toBe(true); // active never dropped
+      expect(a._goals.has("done1")).toBe(false); // oldest terminal evicted
+      expect(a._goals.size).toBeLessThanOrEqual(2);
+    });
+
+    it("keeps an active goal even when every slot is over the cap", () => {
+      const a = new CLIAutonomousAgent();
+      a._maxGoals = 1;
+      a._goals.set("d1", { id: "d1", status: GoalStatus.FAILED });
+      a._goals.set("d2", { id: "d2", status: GoalStatus.COMPLETED });
+      a._goals.set("running", { id: "running", status: GoalStatus.RUNNING });
+      a._pruneGoals();
+      expect(a._goals.has("running")).toBe(true);
+      expect(a._goals.has("d1")).toBe(false);
+      expect(a._goals.has("d2")).toBe(false);
+    });
+  });
+
   // ── pauseGoal / resumeGoal / cancelGoal ──
 
   describe("goal lifecycle", () => {

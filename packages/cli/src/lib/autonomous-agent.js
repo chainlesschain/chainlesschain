@@ -48,6 +48,12 @@ export class CLIAutonomousAgent extends EventEmitter {
     this._initialized = false;
     this._maxIterations = 20;
     this._maxRetries = 3;
+    // Cap retained goal history. submitGoal stores every goal in _goals and
+    // nothing removes it; the REPL keeps one long-lived agent for the whole
+    // session, so goals (each holding steps/errors/result) accumulate without
+    // bound — and listGoals() returns the whole growing Map. Prune the oldest
+    // TERMINAL goals beyond this cap; running/pending/paused goals are kept.
+    this._maxGoals = 200;
   }
 
   /**
@@ -58,12 +64,14 @@ export class CLIAutonomousAgent extends EventEmitter {
     toolExecutor,
     hookManager,
     maxIterations,
+    maxGoals,
     iterationBudget,
   } = {}) {
     this._llmChat = llmChat || null;
     this._toolExecutor = toolExecutor || null;
     this._hookManager = hookManager || null;
     if (maxIterations) this._maxIterations = maxIterations;
+    if (Number.isFinite(maxGoals) && maxGoals > 0) this._maxGoals = maxGoals;
     this._iterationBudget = iterationBudget || null; // shared budget from caller
     this._initialized = true;
   }
@@ -96,6 +104,7 @@ export class CLIAutonomousAgent extends EventEmitter {
     };
 
     this._goals.set(goalId, goal);
+    this._pruneGoals();
     this.emit("goal:submitted", { goalId, description });
 
     // Start the ReAct loop asynchronously
@@ -106,6 +115,26 @@ export class CLIAutonomousAgent extends EventEmitter {
     });
 
     return { goalId };
+  }
+
+  /**
+   * Bound retained goal history to _maxGoals. Evicts the oldest TERMINAL goals
+   * (completed/failed/cancelled) FIFO; a still-active goal (pending/running/
+   * paused) is never dropped, so a burst of concurrent goals can briefly exceed
+   * the cap rather than losing live work.
+   */
+  _pruneGoals() {
+    if (this._goals.size <= this._maxGoals) return;
+    for (const [id, g] of this._goals) {
+      if (this._goals.size <= this._maxGoals) break;
+      if (
+        g.status === GoalStatus.COMPLETED ||
+        g.status === GoalStatus.FAILED ||
+        g.status === GoalStatus.CANCELLED
+      ) {
+        this._goals.delete(id);
+      }
+    }
   }
 
   /**
