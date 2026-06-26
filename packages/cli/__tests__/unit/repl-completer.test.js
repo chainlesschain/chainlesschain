@@ -9,6 +9,7 @@ import path from "node:path";
 import os from "node:os";
 import {
   extractAtPrefix,
+  extractBashPathPrefix,
   fileCandidates,
   makeAtCompleter,
 } from "../../src/lib/repl-completer.js";
@@ -26,6 +27,23 @@ describe("extractAtPrefix", () => {
     expect(extractAtPrefix("mail a@b.com")).toBe(null); // @ not after whitespace
     expect(extractAtPrefix("@a.js done")).toBe(null); // token not at cursor
     expect(extractAtPrefix("")).toBe(null);
+  });
+});
+
+describe("extractBashPathPrefix", () => {
+  it("returns the trailing token in `!` bash mode", () => {
+    expect(extractBashPathPrefix("!cat src/fo")).toEqual({ prefix: "src/fo" });
+    expect(extractBashPathPrefix("!ls ")).toEqual({ prefix: "" }); // after a space
+    expect(extractBashPathPrefix("  !grep x file")).toEqual({ prefix: "file" });
+  });
+  it("strips a leading `!` from the first token", () => {
+    expect(extractBashPathPrefix("!scr")).toEqual({ prefix: "scr" });
+    expect(extractBashPathPrefix("!")).toEqual({ prefix: "" });
+  });
+  it("returns null when the line isn't in bash mode", () => {
+    expect(extractBashPathPrefix("cat src/fo")).toBe(null);
+    expect(extractBashPathPrefix("@a.js")).toBe(null);
+    expect(extractBashPathPrefix("")).toBe(null);
   });
 });
 
@@ -84,6 +102,29 @@ describe("makeAtCompleter", () => {
     const [hits, replaced] = c("look at @ap");
     expect(hits).toEqual(["@app.js"]);
     expect(replaced).toBe("@ap");
+  });
+
+  it("completes filesystem paths in `!` bash mode (no @ prefix)", () => {
+    const c = makeAtCompleter({ cwd: tmp });
+    // trailing path token after a command word
+    let [hits, replaced] = c("!cat ap");
+    expect(hits).toEqual(["app.js"]);
+    expect(replaced).toBe("ap");
+    // the first token (after `!`) also completes as a path
+    [hits, replaced] = c("!ap");
+    expect(hits).toEqual(["app.js"]);
+    expect(replaced).toBe("ap");
+    // empty trailing token → lists cwd entries
+    [hits] = c("!ls ");
+    expect(hits).toContain("app.js");
+  });
+
+  it("does not @-complete a trailing @token inside a bash command", () => {
+    const c = makeAtCompleter({ cwd: tmp });
+    // bash mode wins: the trailing path token completes, candidates carry no @
+    const [hits, replaced] = c("!grep x ap");
+    expect(hits).toEqual(["app.js"]);
+    expect(replaced).toBe("ap");
   });
 
   it("merges IDE open tabs first (relative inside cwd, absolute outside)", async () => {

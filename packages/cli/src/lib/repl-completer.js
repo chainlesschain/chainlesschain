@@ -32,6 +32,20 @@ export function extractAtPrefix(line) {
   return m ? { prefix: m[2] } : null;
 }
 
+/**
+ * In `!` bash mode (the line starts with `!`), the trailing whitespace-delimited
+ * token completes to a filesystem path (Claude-Code 2.1.193 bash-mode file
+ * autocomplete). Returns `{ prefix }` — the token with any leading `!` stripped
+ * (so `!cat src/fo` → `src/fo`, `!scr` → `scr`) — or null when not in bash mode.
+ */
+export function extractBashPathPrefix(line) {
+  if (!/^\s*!/.test(line || "")) return null;
+  const m = /(\S*)$/.exec(line || "");
+  let tok = m ? m[1] : "";
+  if (tok.startsWith("!")) tok = tok.slice(1); // `!src/fo` → `src/fo`
+  return { prefix: tok };
+}
+
 /** Normalize to forward slashes (what @refs use on every platform). */
 function fwd(p) {
   return String(p).replace(/\\/g, "/");
@@ -182,6 +196,21 @@ export function makeAtCompleter(opts = {}) {
         const hits = all.filter((c) => c.toLowerCase().startsWith(pref));
         return [hits, line];
       }
+    }
+    // `!` bash-mode file-path completion (Claude-Code 2.1.193 parity): the
+    // trailing token completes to filesystem paths under cwd — a shell command
+    // runs from cwd, so this uses the filesystem candidate set only (not the
+    // editor's open-file list). Checked before @refs so a `@` inside a bash
+    // command (e.g. `!grep @x file`) still completes the trailing path token.
+    const bash = extractBashPathPrefix(line);
+    if (bash) {
+      const fromFs = fileCandidates(bash.prefix, {
+        cwd: getCwd(),
+        deps: opts.deps,
+      });
+      // readline replaces the trailing `prefix` with the chosen path, leaving
+      // the `!` and the rest of the command intact.
+      return [fromFs.slice(0, MAX_CANDIDATES), bash.prefix];
     }
     const at = extractAtPrefix(line);
     if (!at) return [[], line];
