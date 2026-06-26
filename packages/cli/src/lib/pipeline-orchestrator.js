@@ -553,7 +553,25 @@ export function retryStage(db, pipelineId, stageIndex) {
   const pipeline = _getPipelineRow(db, pipelineId);
   if (!pipeline) throw new Error(`Pipeline not found: ${pipelineId}`);
 
-  const stage = _getStageRow(db, pipelineId, stageIndex);
+  // A retry may only re-open the CURRENT stage or an EARLIER one. A forward
+  // jump would move current_stage past the intervening stages — skipping their
+  // approval GATES (CODE_REVIEW / DEPLOY) — and let a caller (`cc pipeline retry
+  // --stage N`, user-supplied) reach a later stage without the gates that guard
+  // it. Going backward is safe: advancing from there re-runs through every gate
+  // again. Mirrors the state-machine rigor of completeStage / approveGate.
+  const idx = Number(stageIndex);
+  if (!Number.isInteger(idx) || idx < 0) {
+    throw new Error(`Invalid stage index: ${stageIndex}`);
+  }
+  if (idx > pipeline.current_stage) {
+    throw new Error(
+      `Cannot retry stage ${idx}: it is ahead of the current stage ` +
+        `(${pipeline.current_stage}) — retrying forward would skip the ` +
+        `intervening stages and their approval gates`,
+    );
+  }
+
+  const stage = _getStageRow(db, pipelineId, idx);
   if (!stage) throw new Error(`Stage ${stageIndex} not found`);
 
   const now = _now();
@@ -572,7 +590,7 @@ export function retryStage(db, pipelineId, stageIndex) {
   });
   _updatePipelineFields(db, pipelineId, {
     status: PIPELINE_STATUS.RUNNING,
-    current_stage: stageIndex,
+    current_stage: idx,
     error_message: null,
     completed_at: null,
   });

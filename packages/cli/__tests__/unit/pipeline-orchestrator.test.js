@@ -364,6 +364,38 @@ describe("pipeline-orchestrator", () => {
       expect(retried.stages[2].status).toBe("gate-waiting");
       expect(retried.stages[2].gateRejectReason).toBeNull();
     });
+
+    it("refuses a FORWARD jump that would skip intervening stages + gates", () => {
+      // Fail at stage 0; jumping to a later stage would move current_stage past
+      // the code-review / deploy gates without ever running them.
+      const p = createPipeline(db, { template: "feature" });
+      startPipeline(db, p.id);
+      failStage(db, p.id, "boom"); // current_stage stays 0
+      expect(() => retryStage(db, p.id, 3)).toThrow(/ahead of the current/i);
+      // The pipeline is untouched (still failed, still at stage 0).
+      const after = getPipeline(db, p.id);
+      expect(after.status).toBe("failed");
+      expect(after.currentStage).toBe(0);
+    });
+
+    it("allows a BACKWARD retry (re-runs through later gates again)", () => {
+      const p = createPipeline(db, { template: "security-audit" });
+      startPipeline(db, p.id);
+      completeStage(db, p.id);
+      completeStage(db, p.id); // advance current_stage to 2
+      failStage(db, p.id, "boom"); // current_stage stays 2
+      const retried = retryStage(db, p.id, 0); // earlier stage — allowed
+      expect(retried.status).toBe("running");
+      expect(retried.currentStage).toBe(0);
+    });
+
+    it("rejects a negative / non-integer stage index", () => {
+      const p = createPipeline(db, { template: "feature" });
+      startPipeline(db, p.id);
+      failStage(db, p.id, "boom");
+      expect(() => retryStage(db, p.id, -1)).toThrow(/invalid stage index/i);
+      expect(() => retryStage(db, p.id, 1.5)).toThrow(/invalid stage index/i);
+    });
   });
 
   /* ── Gate approval ─────────────────────────────────────── */
