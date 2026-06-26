@@ -462,7 +462,11 @@ export function applyWorktreeAutomationCandidate(
     const commitMessage =
       options.commitMessage ||
       `Resolve ${filePath} via ${candidate.label || candidateId}`;
-    gitExec(`commit -m "${commitMessage.replace(/"/g, '\\"')}"`, worktree.path);
+    // Free-text message → argv (no shell) so `$()` / backticks / quotes in a
+    // caller-supplied commitMessage can't inject a command. The prior
+    // `-m "${msg.replace(/"/g,'\\"')}"` only neutralized double quotes — the
+    // same gap already fixed in mergeWorktree.
+    gitExecArgs(["commit", "-m", commitMessage], worktree.path);
 
     const diff = diffWorktree(repoDir, branchName, { baseBranch });
     const filesChanged = diff.summary?.filesChanged || 0;

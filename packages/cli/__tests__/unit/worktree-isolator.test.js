@@ -359,6 +359,45 @@ describe("worktree-isolator", () => {
       expect(existsSync(join(repoDir, "INJECTED"))).toBe(false);
     });
 
+    it("does not execute shell metacharacters in an automation-candidate commit message", () => {
+      // Set up a real both_modified conflict so the candidate commits a message.
+      const worktree = createWorktree(repoDir, "agent/auto-msg-branch");
+
+      writeFileSync(join(repoDir, "README.md"), "# main side\n", "utf-8");
+      execSync("git add README.md", { cwd: repoDir });
+      execSync('git commit -m "main side"', { cwd: repoDir });
+
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# branch side\n",
+        "utf-8",
+      );
+      execSync("git add README.md", { cwd: worktree.path });
+      execSync('git commit -m "branch side"', { cwd: worktree.path });
+
+      const sentinel = join(repoDir, "AUTO_PWNED");
+      const result = applyWorktreeAutomationCandidate(
+        repoDir,
+        "agent/auto-msg-branch",
+        {
+          baseBranch: "HEAD",
+          filePath: "README.md",
+          candidateId: "accept-current",
+          conflictType: "both_modified",
+          // Free-text caller message with command substitution. argv makes it inert.
+          commitMessage: `$(touch "${sentinel}")\`touch "${sentinel}"\``,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(existsSync(sentinel)).toBe(false); // substitution did NOT run
+      const lastMsg = execSync("git log -1 --pretty=%B", {
+        cwd: worktree.path,
+        encoding: "utf-8",
+      }).trim();
+      expect(lastMsg).toContain("$(touch"); // stored literally
+    });
+
     it("does not execute shell metacharacters in a merge commit message", () => {
       const worktree = createWorktree(repoDir, "agent/msg-branch");
       // Non-conflicting change so the squash merge applies cleanly.
