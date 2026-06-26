@@ -3,6 +3,7 @@ import {
   executeTool,
   listBackgroundShellTasks,
   killAllBackgroundShellTasks,
+  reapIdleBackgroundShellTasks,
 } from "../../src/runtime/agent-core.js";
 
 // run_shell { run_in_background:true } + check_shell polling pair (Claude-Code
@@ -245,5 +246,65 @@ describe("agent-core killAllBackgroundShellTasks (REPL/headless teardown seam)",
     );
     await drainAllTasks();
     expect(killAllBackgroundShellTasks()).toBe(0);
+  });
+});
+
+describe("reapIdleBackgroundShellTasks (memory-pressure reaping)", () => {
+  afterEach(async () => {
+    await drainAllTasks();
+    delete process.env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP;
+  });
+
+  // A silent long-runner: stays "running", produces no output (so it counts as
+  // idle the moment it starts when idleMs is 0).
+  const silent = async () => {
+    const r = await executeTool(
+      "run_shell",
+      {
+        command: `"${NODE}" -e "setTimeout(()=>{},60000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    expect(r.status).toBe("running");
+    return r.task_id;
+  };
+  const lowMem = { freemem: () => 5, totalmem: () => 100 }; // 5% free = pressure
+  const okMem = { freemem: () => 80, totalmem: () => 100 }; // 80% free = healthy
+
+  it("reaps an idle running task under memory pressure", async () => {
+    const id = await silent();
+    const reaped = reapIdleBackgroundShellTasks({ ...lowMem, idleMs: 0 });
+    expect(reaped).toContain(id);
+    const task = listBackgroundShellTasks().find((t) => t.id === id);
+    expect(task.status).toBe("reaped");
+  });
+
+  it("does NOT reap when memory is healthy (no pressure)", async () => {
+    const id = await silent();
+    expect(reapIdleBackgroundShellTasks({ ...okMem, idleMs: 0 })).toEqual([]);
+    expect(listBackgroundShellTasks().find((t) => t.id === id).status).toBe(
+      "running",
+    );
+  });
+
+  it("does NOT reap a task still inside the idle window", async () => {
+    const id = await silent();
+    // 60s idle window, task just started → not yet idle even under pressure.
+    expect(reapIdleBackgroundShellTasks({ ...lowMem, idleMs: 60000 })).toEqual(
+      [],
+    );
+    expect(listBackgroundShellTasks().find((t) => t.id === id).status).toBe(
+      "running",
+    );
+  });
+
+  it("is disabled by CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1", async () => {
+    const id = await silent();
+    process.env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP = "1";
+    expect(reapIdleBackgroundShellTasks({ ...lowMem, idleMs: 0 })).toEqual([]);
+    expect(listBackgroundShellTasks().find((t) => t.id === id).status).toBe(
+      "running",
+    );
   });
 });

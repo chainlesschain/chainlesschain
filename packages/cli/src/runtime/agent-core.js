@@ -218,6 +218,49 @@ export function killAllBackgroundShellTasks() {
   return killed;
 }
 
+// Idle-reap tuning (Claude-Code 2.1.193 "automatic memory-pressure reaping for
+// idle background shell commands"). A running task is a reap candidate when it
+// has produced no output for BG_IDLE_REAP_MS AND the system is under memory
+// pressure (free/total below BG_MEM_PRESSURE_RATIO). Conservative on purpose:
+// idle-but-active tasks and a healthy machine are left alone, and the whole
+// behaviour is off when CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1.
+const BG_IDLE_REAP_MS = 5 * 60 * 1000; // 5 min of silence
+const BG_MEM_PRESSURE_RATIO = 0.1; // free < 10% of total = pressure
+
+/**
+ * Reap idle background shell tasks when the system is under memory pressure, so
+ * a forgotten `npm run dev` or a wedged build can't sit on memory indefinitely.
+ * No-op on a healthy machine (the pressure gate) or when disabled by env. Deps
+ * (now / freemem / totalmem / thresholds) are injectable for tests.
+ * @returns {string[]} ids of reaped tasks
+ */
+export function reapIdleBackgroundShellTasks(deps = {}) {
+  if (process.env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP === "1") return [];
+  const now = deps.now || Date.now;
+  const freemem = deps.freemem || os.freemem;
+  const totalmem = deps.totalmem || os.totalmem;
+  const idleMs = deps.idleMs != null ? deps.idleMs : BG_IDLE_REAP_MS;
+  const ratio =
+    deps.pressureRatio != null ? deps.pressureRatio : BG_MEM_PRESSURE_RATIO;
+  const total = totalmem();
+  const free = freemem();
+  if (!(total > 0) || free / total >= ratio) return []; // healthy → nothing to do
+  const t = now();
+  const reaped = [];
+  for (const task of _backgroundShellTasks.values()) {
+    if (task.status !== "running") continue;
+    const last = task.lastActivityAt || Date.parse(task.startedAt) || 0;
+    if (t - last < idleMs) continue; // still producing output recently
+    if (_killTask(task)) {
+      task.status = "reaped";
+      task.endedAt = new Date().toISOString();
+      task.error = "reaped: idle under memory pressure";
+      reaped.push(task.id);
+    }
+  }
+  return reaped;
+}
+
 // Foreground (synchronous) run_shell timeout. Configurable per-call via the
 // optional `timeout` arg; defaults to 60s and is hard-capped at 10 min so a
 // synchronous call can never wedge the loop indefinitely (use run_in_background
@@ -1841,6 +1884,10 @@ async function executeToolInner(
       // polls output + completion via check_shell. No timeout — that's the whole
       // point of backgrounding (builds, test suites, dev servers).
       if (args.run_in_background === true) {
+        // Free memory from idle background tasks before adding another, so a
+        // long agent run can't accumulate forgotten dev servers (no-op unless
+        // the machine is actually under memory pressure).
+        reapIdleBackgroundShellTasks();
         const id = `bg_${++_backgroundTaskSeq}`;
         const task = {
           id,
@@ -1851,6 +1898,7 @@ async function executeToolInner(
           signal: null,
           error: null,
           startedAt: new Date().toISOString(),
+          lastActivityAt: Date.now(),
           endedAt: null,
           out: _newBgStream(),
           err: _newBgStream(),
@@ -1882,11 +1930,17 @@ async function executeToolInner(
           task.child = child;
           if (child.stdout) {
             child.stdout.setEncoding("utf8");
-            child.stdout.on("data", (d) => _appendBgStream(task.out, d));
+            child.stdout.on("data", (d) => {
+              task.lastActivityAt = Date.now();
+              _appendBgStream(task.out, d);
+            });
           }
           if (child.stderr) {
             child.stderr.setEncoding("utf8");
-            child.stderr.on("data", (d) => _appendBgStream(task.err, d));
+            child.stderr.on("data", (d) => {
+              task.lastActivityAt = Date.now();
+              _appendBgStream(task.err, d);
+            });
           }
           child.on("error", (err) => {
             task.status = "error";
