@@ -161,4 +161,39 @@ describe("useSSOStore", () => {
       expect(store.loginUrl).toBeNull();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // verifyLink (IPC) — regression for the success-path method-name typo
+  // -------------------------------------------------------------------------
+
+  describe("verifyLink", () => {
+    afterEach(() => {
+      delete (window as any).electronAPI;
+    });
+
+    it("on success refreshes linked identities without throwing", async () => {
+      // Regression: the success branch called this.getLinkedIdentities() which
+      // does not exist (the method is fetchLinkedIdentities). That threw a
+      // TypeError caught by the catch block, so a SUCCESSFUL verify was
+      // surfaced to the UI as a failure and the list never refreshed.
+      const invoke = vi.fn(async (channel: string) => {
+        if (channel === "sso:verify-link") return { success: true };
+        if (channel === "sso:get-linked-identities")
+          return { success: true, identities: [mapping("m1", true)] };
+        return { success: false };
+      });
+      (window as any).electronAPI = { invoke };
+
+      const store = useSSOStore();
+      const result = await store.verifyLink("link-1");
+
+      expect(result.success).toBe(true);
+      expect(store.error).toBeNull();
+      // success path must refresh via fetchLinkedIdentities()
+      expect(invoke).toHaveBeenCalledWith("sso:get-linked-identities", {
+        did: "",
+      });
+      expect(store.linkedIdentities).toHaveLength(1);
+    });
+  });
 });

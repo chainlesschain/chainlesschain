@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -15,7 +15,7 @@ import { defineStore } from 'pinia';
  */
 export interface SSOProvider {
   id: string;
-  provider_type: 'saml' | 'oauth' | 'oidc';
+  provider_type: "saml" | "oauth" | "oidc";
   provider_name: string;
   enabled: boolean;
   config: string;
@@ -62,7 +62,7 @@ interface SSOState {
 
 // ==================== Store ====================
 
-export const useSSOStore = defineStore('sso', {
+export const useSSOStore = defineStore("sso", {
   state: (): SSOState => ({
     // ==========================================
     // 提供者管理
@@ -172,7 +172,7 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:list-providers'
+          "sso:list-providers",
         );
 
         if (result.success) {
@@ -181,7 +181,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 获取提供者列表失败:', error);
+        console.error("[SSOStore] 获取提供者列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -192,14 +192,16 @@ export const useSSOStore = defineStore('sso', {
     /**
      * 添加 SSO 提供者
      */
-    async addProvider(data: Omit<SSOProvider, 'id' | 'created_at' | 'updated_at'>): Promise<any> {
+    async addProvider(
+      data: Omit<SSOProvider, "id" | "created_at" | "updated_at">,
+    ): Promise<any> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:add-provider',
-          data
+          "sso:add-provider",
+          data,
         );
 
         if (result.success && result.provider) {
@@ -208,7 +210,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 添加提供者失败:', error);
+        console.error("[SSOStore] 添加提供者失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -219,14 +221,17 @@ export const useSSOStore = defineStore('sso', {
     /**
      * 更新 SSO 提供者
      */
-    async updateProvider(id: string, updates: Partial<SSOProvider>): Promise<any> {
+    async updateProvider(
+      id: string,
+      updates: Partial<SSOProvider>,
+    ): Promise<any> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:update-provider',
-          { id, updates }
+          "sso:update-provider",
+          { id, updates },
         );
 
         if (result.success) {
@@ -241,7 +246,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 更新提供者失败:', error);
+        console.error("[SSOStore] 更新提供者失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -258,8 +263,8 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:delete-provider',
-          { id }
+          "sso:delete-provider",
+          { id },
         );
 
         if (result.success) {
@@ -271,7 +276,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 删除提供者失败:', error);
+        console.error("[SSOStore] 删除提供者失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -288,13 +293,13 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:test-connection',
-          { id }
+          "sso:test-connection",
+          { id },
         );
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 测试连接失败:', error);
+        console.error("[SSOStore] 测试连接失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -315,8 +320,8 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:initiate-login',
-          { providerId }
+          "sso:initiate-login",
+          { providerId },
         );
 
         if (result.success) {
@@ -325,7 +330,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 发起登录失败:', error);
+        console.error("[SSOStore] 发起登录失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -336,14 +341,17 @@ export const useSSOStore = defineStore('sso', {
     /**
      * 处理 SSO 回调
      */
-    async handleCallback(providerId: string, callbackData: Record<string, any>): Promise<any> {
+    async handleCallback(
+      providerId: string,
+      callbackData: Record<string, any>,
+    ): Promise<any> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:handle-callback',
-          { providerId, callbackData }
+          "sso:handle-callback",
+          { providerId, callbackData },
         );
 
         if (result.success && result.session) {
@@ -352,7 +360,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 处理回调失败:', error);
+        console.error("[SSOStore] 处理回调失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -368,10 +376,9 @@ export const useSSOStore = defineStore('sso', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke(
-          'sso:logout',
-          { sessionId }
-        );
+        const result = await (window as any).electronAPI.invoke("sso:logout", {
+          sessionId,
+        });
 
         if (result.success) {
           this.sessions = this.sessions.filter((s) => s.id !== sessionId);
@@ -379,7 +386,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 登出失败:', error);
+        console.error("[SSOStore] 登出失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -400,8 +407,8 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:get-sessions',
-          { userDid }
+          "sso:get-sessions",
+          { userDid },
         );
 
         if (result.success) {
@@ -410,7 +417,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 获取会话列表失败:', error);
+        console.error("[SSOStore] 获取会话列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -429,15 +436,15 @@ export const useSSOStore = defineStore('sso', {
       did: string,
       providerId: string,
       ssoSubject: string,
-      attrs?: string
+      attrs?: string,
     ): Promise<any> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:link-identity',
-          { did, providerId, ssoSubject, ssoAttributes: attrs }
+          "sso:link-identity",
+          { did, providerId, ssoSubject, ssoAttributes: attrs },
         );
 
         if (result.success && result.identity) {
@@ -446,7 +453,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 关联身份失败:', error);
+        console.error("[SSOStore] 关联身份失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -463,19 +470,19 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:unlink-identity',
-          { did, providerId }
+          "sso:unlink-identity",
+          { did, providerId },
         );
 
         if (result.success) {
           this.linkedIdentities = this.linkedIdentities.filter(
-            (i) => !(i.did === did && i.provider_id === providerId)
+            (i) => !(i.did === did && i.provider_id === providerId),
           );
         }
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 取消关联失败:', error);
+        console.error("[SSOStore] 取消关联失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -492,8 +499,8 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:get-linked-identities',
-          { did: did || '' }
+          "sso:get-linked-identities",
+          { did: did || "" },
         );
 
         if (result.success) {
@@ -502,7 +509,7 @@ export const useSSOStore = defineStore('sso', {
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] 获取已关联身份失败:', error);
+        console.error("[SSOStore] 获取已关联身份失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -519,20 +526,22 @@ export const useSSOStore = defineStore('sso', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'sso:verify-link',
-          { mappingId: linkId }
+          "sso:verify-link",
+          { mappingId: linkId },
         );
 
         if (result.success) {
-          // 刷新已关联身份列表
-          await this.getLinkedIdentities();
+          // 刷新已关联身份列表（方法名为 fetchLinkedIdentities；此前误写成不存在的
+          // getLinkedIdentities，导致验证成功的回合反而抛 TypeError 被 catch 捕获，
+          // 把成功上报成失败且列表不刷新）。
+          await this.fetchLinkedIdentities();
         } else {
-          this.error = result.error || '验证失败';
+          this.error = result.error || "验证失败";
         }
 
         return result;
       } catch (error) {
-        console.error('[SSOStore] verifyLink 失败:', error);
+        console.error("[SSOStore] verifyLink 失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -543,12 +552,17 @@ export const useSSOStore = defineStore('sso', {
     /**
      * 创建身份关联（临时实现，使用 linkIdentity）
      */
-    async createLink(params: { did: string; providerId: string; ssoSubject: string; ssoAttributes?: string }): Promise<any> {
+    async createLink(params: {
+      did: string;
+      providerId: string;
+      ssoSubject: string;
+      ssoAttributes?: string;
+    }): Promise<any> {
       return this.linkIdentity(
         params.did,
         params.providerId,
         params.ssoSubject,
-        params.ssoAttributes
+        params.ssoAttributes,
       );
     },
 
