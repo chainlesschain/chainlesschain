@@ -80,6 +80,69 @@ describe("readJsonLines", () => {
     for await (const l of readJsonLines(src(a, b))) out.push(l);
     expect(out).toEqual(['{"text":"你好"}']);
   });
+
+  it("caps an over-long unterminated line instead of buffering it without bound", async () => {
+    // A producer that streams a huge line with no newline must NOT accumulate
+    // the whole thing in memory (OOM). With a tiny cap, the monster line is
+    // truncated to a short head (surfaced as an invalid-JSON error by the
+    // caller), not the full multi-chunk payload.
+    const huge = "x".repeat(50);
+    const out = [];
+    for await (const l of readJsonLines(src(huge, huge, huge), {
+      maxLineLength: 10,
+    })) {
+      out.push(l);
+    }
+    // Only the 200-char head is ever materialized (here ≤ the 150 chars sent).
+    expect(out).toHaveLength(1);
+    expect(out[0].length).toBeLessThanOrEqual(200);
+    expect(out[0]).toMatch(/^x+$/);
+  });
+
+  it("resyncs to the next well-formed line after an over-long line is dropped", async () => {
+    // First chunk is an UNTERMINATED monster line → triggers overflow + head
+    // emission. The newline that ends it (plus the next clean line) arrive in a
+    // later chunk: the overflow tail is discarded up to that newline and the
+    // follow-up line is parsed normally — the stream is not permanently wedged.
+    const out = [];
+    for await (const l of readJsonLines(
+      src("x".repeat(50), 'tail-of-monster\n{"text":"ok"}\n'),
+      { maxLineLength: 10 },
+    )) {
+      out.push(l);
+    }
+    // head of the monster line, then the clean follow-up line (its discarded
+    // tail "tail-of-monster" never surfaces).
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatch(/^x+$/);
+    expect(out[1]).toBe('{"text":"ok"}');
+  });
+
+  it("does not emit a dangling over-long line when the stream ends mid-overflow", async () => {
+    const out = [];
+    for await (const l of readJsonLines(src("x".repeat(50)), {
+      maxLineLength: 10,
+    })) {
+      out.push(l);
+    }
+    // The 200-char head is emitted once; no second (final-flush) emission of the
+    // unterminated remainder.
+    expect(out).toHaveLength(1);
+  });
+
+  it("honors CC_MAX_INPUT_LINE_BYTES env when no explicit cap is given", async () => {
+    const prev = process.env.CC_MAX_INPUT_LINE_BYTES;
+    process.env.CC_MAX_INPUT_LINE_BYTES = "10";
+    try {
+      const out = [];
+      for await (const l of readJsonLines(src("y".repeat(40)))) out.push(l);
+      expect(out).toHaveLength(1);
+      expect(out[0].length).toBeLessThanOrEqual(200);
+    } finally {
+      if (prev === undefined) delete process.env.CC_MAX_INPUT_LINE_BYTES;
+      else process.env.CC_MAX_INPUT_LINE_BYTES = prev;
+    }
+  });
 });
 
 describe("runAgentHeadlessStream", () => {

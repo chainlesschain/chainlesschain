@@ -318,9 +318,26 @@ export function sanitizeLlmHint(raw) {
 /**
  * Yield NDJSON lines from a byte/string stream (stdin). Splits on "\n" and
  * flushes any trailing partial line when the stream ends.
+ *
+ * A single line with no terminating "\n" must never accumulate without bound:
+ * a stuck / garbage producer (or a runaway multi-MB inline payload) that never
+ * emits a newline would otherwise grow `buf` unbounded and OOM this long-lived
+ * stream process. When a line exceeds the cap, a short head is yielded (so the
+ * caller surfaces it as an invalid-JSON error rather than dropping it silently)
+ * and the rest of that monster line is discarded until its newline — the stream
+ * resyncs cleanly to the next well-formed line. Cap precedence:
+ * `opts.maxLineLength` > `CC_MAX_INPUT_LINE_BYTES` env > 16 MB default.
  */
-export async function* readJsonLines(input) {
+export async function* readJsonLines(input, opts = {}) {
+  const envCap = Number(process.env.CC_MAX_INPUT_LINE_BYTES);
+  const maxLineLength =
+    Number.isFinite(opts.maxLineLength) && opts.maxLineLength > 0
+      ? opts.maxLineLength
+      : Number.isFinite(envCap) && envCap > 0
+        ? envCap
+        : 16 * 1024 * 1024;
   let buf = "";
+  let overflow = false; // discarding the tail of an over-long line until its \n
   // Reuse ONE streaming decoder across chunks so a multi-byte UTF-8 character
   // (e.g. a 3-byte Chinese char) split across two Buffer chunks is reassembled
   // rather than corrupted. process.stdin yields Buffers with no setEncoding, so
@@ -332,14 +349,34 @@ export async function* readJsonLines(input) {
       typeof chunk === "string"
         ? chunk
         : decoder.decode(chunk, { stream: true });
+    // Still skipping past an over-long line: drop everything up to (and
+    // including) the next newline, then resume normal line parsing. While no
+    // newline has arrived, keep `buf` empty so we don't re-grow it.
+    if (overflow) {
+      const nl = buf.indexOf("\n");
+      if (nl < 0) {
+        buf = "";
+        continue;
+      }
+      buf = buf.slice(nl + 1);
+      overflow = false;
+    }
     let idx;
     while ((idx = buf.indexOf("\n")) >= 0) {
       yield buf.slice(0, idx);
       buf = buf.slice(idx + 1);
     }
+    // No newline in the remaining buffer and it has blown past the cap — this is
+    // a pathological unterminated line. Yield a short head (an invalid-JSON
+    // error for the caller) and discard the rest until the next newline.
+    if (buf.length > maxLineLength) {
+      yield buf.slice(0, 200);
+      buf = "";
+      overflow = true;
+    }
   }
   buf += decoder.decode(); // flush any bytes held from a final partial char
-  if (buf.trim()) yield buf;
+  if (!overflow && buf.trim()) yield buf;
 }
 
 /**
