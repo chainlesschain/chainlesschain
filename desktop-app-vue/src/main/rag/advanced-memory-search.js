@@ -18,9 +18,9 @@ const { logger } = require("../utils/logger.js");
  * 记忆层级定义
  */
 const MEMORY_TIERS = {
-  WORKING: "working",     // 工作记忆 - 最近 7 天
-  RECALL: "recall",       // 召回记忆 - 8-30 天
-  ARCHIVAL: "archival",   // 归档记忆 - 30 天以上
+  WORKING: "working", // 工作记忆 - 最近 7 天
+  RECALL: "recall", // 召回记忆 - 8-30 天
+  ARCHIVAL: "archival", // 归档记忆 - 30 天以上
 };
 
 /**
@@ -39,11 +39,11 @@ const MEMORY_TYPES = {
  * 重要性级别
  */
 const IMPORTANCE_LEVELS = {
-  CRITICAL: 5,  // 关键 - 永不过期
-  HIGH: 4,      // 高 - 延长保留
-  NORMAL: 3,    // 普通
-  LOW: 2,       // 低 - 优先清理
-  TRIVIAL: 1,   // 琐碎 - 可删除
+  CRITICAL: 5, // 关键 - 永不过期
+  HIGH: 4, // 高 - 延长保留
+  NORMAL: 3, // 普通
+  LOW: 2, // 低 - 优先清理
+  TRIVIAL: 1, // 琐碎 - 可删除
 };
 
 /**
@@ -68,8 +68,8 @@ class AdvancedMemorySearch {
 
     // 层级时间阈值 (毫秒)
     this.tierThresholds = {
-      working: 7 * 24 * 60 * 60 * 1000,      // 7 天
-      recall: 30 * 24 * 60 * 60 * 1000,      // 30 天
+      working: 7 * 24 * 60 * 60 * 1000, // 7 天
+      recall: 30 * 24 * 60 * 60 * 1000, // 30 天
     };
 
     // 缓存
@@ -93,18 +93,18 @@ class AdvancedMemorySearch {
       // 时间过滤
       dateFrom = null,
       dateTo = null,
-      tier = null,           // 记忆层级: working, recall, archival, null (全部)
+      tier = null, // 记忆层级: working, recall, archival, null (全部)
 
       // 类型过滤
-      types = null,          // 记忆类型数组
-      sources = null,        // 来源数组 (daily_notes, memory_md)
+      types = null, // 记忆类型数组
+      sources = null, // 来源数组 (daily_notes, memory_md)
 
       // 重要性过滤
       minImportance = 1,
       maxImportance = 5,
 
       // 排序
-      sortBy = "relevance",  // relevance, date, importance
+      sortBy = "relevance", // relevance, date, importance
       sortOrder = "desc",
 
       // 分页
@@ -344,7 +344,10 @@ class AdvancedMemorySearch {
       // 清除缓存
       this.searchCache.clear();
 
-      logger.info("[AdvancedMemorySearch] 重要性已更新:", { memoryId, importance });
+      logger.info("[AdvancedMemorySearch] 重要性已更新:", {
+        memoryId,
+        importance,
+      });
       return true;
     } catch (error) {
       logger.error("[AdvancedMemorySearch] 设置重要性失败:", error);
@@ -363,14 +366,18 @@ class AdvancedMemorySearch {
       const recallCutoff = now - this.tierThresholds.recall;
 
       // Daily Notes 统计
-      const dailyStats = this.db.prepare(`
+      const dailyStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as total,
           SUM(word_count) as totalWords,
           SUM(conversation_count) as totalConversations,
           SUM(discoveries_count) as totalDiscoveries
         FROM daily_notes_metadata
-      `).get();
+      `,
+        )
+        .get();
 
       // 按层级统计
       const tierStats = {
@@ -380,24 +387,33 @@ class AdvancedMemorySearch {
       };
 
       // 重要性分布
-      const importanceStats = this.db.prepare(`
+      const importanceStats = this.db
+        .prepare(
+          `
         SELECT importance, COUNT(*) as count
         FROM memory_sections
         GROUP BY importance
-      `).all();
+      `,
+        )
+        .all();
 
       // 搜索统计
-      const searchStats = this.db.prepare(`
+      const searchStats =
+        this.db
+          .prepare(
+            `
         SELECT
-          hybrid_search_count,
-          vector_search_count,
-          bm25_search_count,
+          hybrid_searches AS hybrid_search_count,
+          vector_searches AS vector_search_count,
+          bm25_searches AS bm25_search_count,
           cache_hits,
           cache_misses,
           avg_search_latency
         FROM memory_stats
         WHERE date = ?
-      `).get(new Date().toISOString().split("T")[0]) || {};
+      `,
+          )
+          .get(new Date().toISOString().split("T")[0]) || {};
 
       return {
         dailyNotes: dailyStats,
@@ -471,7 +487,10 @@ class AdvancedMemorySearch {
         source: "hybrid",
       }));
     } catch (error) {
-      logger.warn("[AdvancedMemorySearch] 混合搜索失败，回退到数据库搜索:", error.message);
+      logger.warn(
+        "[AdvancedMemorySearch] 混合搜索失败，回退到数据库搜索:",
+        error.message,
+      );
       return this._databaseSearch(query, options);
     }
   }
@@ -486,12 +505,16 @@ class AdvancedMemorySearch {
 
     try {
       // 搜索 Daily Notes
-      const dailyNotes = this.db.prepare(`
+      const dailyNotes = this.db
+        .prepare(
+          `
         SELECT * FROM daily_notes_metadata
         WHERE title LIKE ? OR date LIKE ?
         ORDER BY date DESC
         LIMIT 100
-      `).all(`%${query}%`, `%${query}%`);
+      `,
+        )
+        .all(`%${query}%`, `%${query}%`);
 
       for (const note of dailyNotes) {
         results.push({
@@ -508,12 +531,16 @@ class AdvancedMemorySearch {
       }
 
       // 搜索 Memory Sections
-      const sections = this.db.prepare(`
+      const sections = this.db
+        .prepare(
+          `
         SELECT * FROM memory_sections
         WHERE content LIKE ? OR category LIKE ?
         ORDER BY importance DESC, updated_at DESC
         LIMIT 100
-      `).all(`%${query}%`, `%${query}%`);
+      `,
+        )
+        .all(`%${query}%`, `%${query}%`);
 
       for (const section of sections) {
         results.push({
@@ -555,9 +582,10 @@ class AdvancedMemorySearch {
 
       // 来源过滤
       if (filters.sources && filters.sources.length > 0) {
-        const source = metadata.type === MEMORY_TYPES.DAILY_NOTE
-          ? "daily_notes"
-          : "memory_md";
+        const source =
+          metadata.type === MEMORY_TYPES.DAILY_NOTE
+            ? "daily_notes"
+            : "memory_md";
         if (!filters.sources.includes(source)) {
           return false;
         }
@@ -565,7 +593,10 @@ class AdvancedMemorySearch {
 
       // 重要性过滤
       const importance = metadata.importance || 3;
-      if (importance < filters.minImportance || importance > filters.maxImportance) {
+      if (
+        importance < filters.minImportance ||
+        importance > filters.maxImportance
+      ) {
         return false;
       }
 
@@ -574,7 +605,10 @@ class AdvancedMemorySearch {
         const date = metadata.date || metadata.createdAt;
         if (date) {
           const timestamp = new Date(date).getTime();
-          if (timestamp < filters.timeRange.from || timestamp > filters.timeRange.to) {
+          if (
+            timestamp < filters.timeRange.from ||
+            timestamp > filters.timeRange.to
+          ) {
             return false;
           }
         }
@@ -596,8 +630,12 @@ class AdvancedMemorySearch {
 
       switch (sortBy) {
         case "date":
-          valueA = new Date(a.metadata?.date || a.metadata?.createdAt || 0).getTime();
-          valueB = new Date(b.metadata?.date || b.metadata?.createdAt || 0).getTime();
+          valueA = new Date(
+            a.metadata?.date || a.metadata?.createdAt || 0,
+          ).getTime();
+          valueB = new Date(
+            b.metadata?.date || b.metadata?.createdAt || 0,
+          ).getTime();
           break;
         case "importance":
           valueA = a.metadata?.importance || 3;
@@ -642,9 +680,8 @@ class AdvancedMemorySearch {
       facets.importance[importance] = (facets.importance[importance] || 0) + 1;
 
       // 来源统计
-      const source = metadata.type === MEMORY_TYPES.DAILY_NOTE
-        ? "daily_notes"
-        : "memory_md";
+      const source =
+        metadata.type === MEMORY_TYPES.DAILY_NOTE ? "daily_notes" : "memory_md";
       facets.sources[source] = (facets.sources[source] || 0) + 1;
     }
 
@@ -682,11 +719,15 @@ class AdvancedMemorySearch {
       const fromDate = new Date(fromMs).toISOString().split("T")[0];
       const toDate = new Date(toMs).toISOString().split("T")[0];
 
-      const row = this.db.prepare(`
+      const row = this.db
+        .prepare(
+          `
         SELECT COUNT(*) as count
         FROM daily_notes_metadata
         WHERE date >= ? AND date < ?
-      `).get(fromDate, toDate);
+      `,
+        )
+        .get(fromDate, toDate);
 
       return row?.count || 0;
     } catch (error) {

@@ -190,9 +190,9 @@ class MemoryAnalytics {
           `
         SELECT
           date,
-          hybrid_search_count,
-          vector_search_count,
-          bm25_search_count,
+          hybrid_searches AS hybrid_search_count,
+          vector_searches AS vector_search_count,
+          bm25_searches AS bm25_search_count,
           cache_hits,
           cache_misses
         FROM memory_stats
@@ -323,9 +323,9 @@ class MemoryAnalytics {
           .prepare(
             `
         SELECT
-          hybrid_search_count,
-          vector_search_count,
-          bm25_search_count,
+          hybrid_searches AS hybrid_search_count,
+          vector_searches AS vector_search_count,
+          bm25_searches AS bm25_search_count,
           cache_hits,
           cache_misses,
           avg_search_latency
@@ -341,9 +341,9 @@ class MemoryAnalytics {
           .prepare(
             `
         SELECT
-          SUM(hybrid_search_count) as totalHybrid,
-          SUM(vector_search_count) as totalVector,
-          SUM(bm25_search_count) as totalBm25,
+          SUM(hybrid_searches) as totalHybrid,
+          SUM(vector_searches) as totalVector,
+          SUM(bm25_searches) as totalBm25,
           SUM(cache_hits) as totalCacheHits,
           SUM(cache_misses) as totalCacheMisses,
           AVG(avg_search_latency) as avgLatency
@@ -531,12 +531,12 @@ class MemoryAnalytics {
 
       // 更新统计
       const columnMap = {
-        hybrid: "hybrid_search_count",
-        vector: "vector_search_count",
-        bm25: "bm25_search_count",
+        hybrid: "hybrid_searches",
+        vector: "vector_searches",
+        bm25: "bm25_searches",
       };
 
-      const column = columnMap[searchType] || "hybrid_search_count";
+      const column = columnMap[searchType] || "hybrid_searches";
       const cacheColumn = cacheHit ? "cache_hits" : "cache_misses";
 
       this.db
