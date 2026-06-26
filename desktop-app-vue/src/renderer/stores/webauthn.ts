@@ -51,7 +51,7 @@ export const useWebAuthnStore = defineStore("webauthn", {
       this.loading = true;
       try {
         const result = await invoke("webauthn:list-passkeys", {});
-        if (result.success) this.passkeys = result.data;
+        if (result.success) this.passkeys = result.data || [];
         else this.error = result.error;
       } catch (error: unknown) {
         this.error = (error as Error).message;

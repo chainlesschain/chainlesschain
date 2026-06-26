@@ -75,7 +75,7 @@ export const useZKPCredentialsStore = defineStore("zkpCredentials", {
         const result = await invoke("zkp-vc:list-credentials", {
           filter,
         });
-        if (result.success) this.credentials = result.data;
+        if (result.success) this.credentials = result.data || [];
         else this.error = result.error;
       } catch (error: unknown) {
         this.error = (error as Error).message;
@@ -143,7 +143,7 @@ export const useZKPCredentialsStore = defineStore("zkpCredentials", {
       this.loading = true;
       try {
         const result = await invoke("zkp:list-proofs", { filter });
-        if (result.success) this.proofs = result.data;
+        if (result.success) this.proofs = result.data || [];
         else this.error = result.error;
       } catch (error: unknown) {
         this.error = (error as Error).message;
