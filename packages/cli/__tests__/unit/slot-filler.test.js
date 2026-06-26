@@ -406,4 +406,69 @@ describe("CLISlotFiller", () => {
       expect(result.entities.path).toBe("src/index.js");
     });
   });
+
+  // ------------------------------------------------------------
+  // inferWithLLM — the LLM-output boundary. The model's JSON reply is untrusted:
+  // only whitelisted slot keys may pass, nulls are dropped, values are coerced
+  // to strings, and a malformed reply degrades to {} (the intent object these
+  // slots feed is later acted on by file/command tools).
+  // ------------------------------------------------------------
+  describe("inferWithLLM output boundary", () => {
+    it("returns {} when no llmChat is configured", async () => {
+      const filler = new CLISlotFiller({ interaction });
+      expect(
+        await filler.inferWithLLM(["directory"], {}, {}, "search"),
+      ).toEqual({});
+    });
+
+    it("keeps ONLY whitelisted slot keys — a hallucinated/injected key is dropped", async () => {
+      const llmChat = vi.fn().mockResolvedValue({
+        content:
+          '{"directory":"/ok","path":"/etc/passwd","__proto__":{"polluted":true}}',
+      });
+      const filler = new CLISlotFiller({ llmChat, interaction });
+      const out = await filler.inferWithLLM(["directory"], {}, {}, "search");
+      expect(out).toEqual({ directory: "/ok" });
+      expect("path" in out).toBe(false); // not in the slot whitelist → dropped
+      expect({}.polluted).toBeUndefined(); // no prototype pollution
+    });
+
+    it("drops null/undefined values and coerces others to strings", async () => {
+      const llmChat = vi.fn().mockResolvedValue({
+        content: '{"directory":null,"fileType":42,"recursive":true}',
+      });
+      const filler = new CLISlotFiller({ llmChat, interaction });
+      const out = await filler.inferWithLLM(
+        ["directory", "fileType", "recursive"],
+        {},
+        {},
+        "search",
+      );
+      expect("directory" in out).toBe(false); // null dropped
+      expect(out.fileType).toBe("42"); // number coerced
+      expect(out.recursive).toBe("true"); // boolean coerced
+    });
+
+    it("returns {} on a non-JSON / malformed response (guarded parse)", async () => {
+      const llmChat = vi
+        .fn()
+        .mockResolvedValue({ content: "sorry, no JSON here" });
+      const filler = new CLISlotFiller({ llmChat, interaction });
+      expect(
+        await filler.inferWithLLM(["directory"], {}, {}, "search"),
+      ).toEqual({});
+    });
+
+    it("reads content from response.message.content or response.content", async () => {
+      const filler = new CLISlotFiller({
+        llmChat: vi
+          .fn()
+          .mockResolvedValue({ message: { content: '{"directory":"/m"}' } }),
+        interaction,
+      });
+      expect(
+        await filler.inferWithLLM(["directory"], {}, {}, "search"),
+      ).toEqual({ directory: "/m" });
+    });
+  });
 });
