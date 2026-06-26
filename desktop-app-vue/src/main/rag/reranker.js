@@ -145,7 +145,7 @@ class Reranker extends EventEmitter {
     const docList = documents
       .map(
         (doc, index) =>
-          `文档${index + 1}:\n标题: ${doc.title || "无标题"}\n内容: ${doc.content.substring(0, 200)}...\n`,
+          `文档${index + 1}:\n标题: ${doc.title || "无标题"}\n内容: ${(doc.content || doc.text || doc.title || "").substring(0, 200)}...\n`,
       )
       .join("\n");
 
