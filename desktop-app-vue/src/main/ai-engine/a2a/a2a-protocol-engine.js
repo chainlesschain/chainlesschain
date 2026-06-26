@@ -253,7 +253,13 @@ class A2AProtocolEngine extends EventEmitter {
       task.status = "failed";
       task.output = err.message;
       task.history.push({ status: "failed", timestamp: Date.now() });
+      // Mirror the success path (and the non-isolated failTask): persist the
+      // terminal state and notify subscribers. Without these the DB row stays
+      // at "submitted" and subscribeToTask callers never get the terminal
+      // callback (hang + DB/memory divergence after restart).
+      this._persistTask(task);
       this.emit("task:failed", { taskId, error: err.message });
+      this._notifySubscribers(task);
     }
 
     return { taskId, status: task.status, subAgentId: subCtx.id };
