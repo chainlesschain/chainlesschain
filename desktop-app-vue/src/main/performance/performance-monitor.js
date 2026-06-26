@@ -149,7 +149,10 @@ class PerformanceMonitor extends EventEmitter {
       totalIdle += cpu.times.idle;
     });
 
-    const systemUsage = 100 - (100 * totalIdle) / totalTick;
+    // Guard the divide-by-zero at source: os.cpus() can return [] in some
+    // sandboxed/container environments → totalTick 0 → 0/0 NaN, and the
+    // Math.min/Math.max clamp below does NOT neutralize NaN.
+    const systemUsage = totalTick > 0 ? 100 - (100 * totalIdle) / totalTick : 0;
 
     return {
       usage: Math.min(100, Math.max(0, processUsage)),
