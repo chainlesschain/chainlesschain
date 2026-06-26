@@ -298,7 +298,11 @@ function handleIceCandidate(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
-  if (targetPeer && registry.isOnline(to)) {
+  // Guard targetPeer.socket: an online local-PC peer can have no socket until
+  // MobileBridge connects; a null socket would crash sendMessage on
+  // socket.readyState (handleAnswer/handleOffer guard the same case). Fall
+  // through to the queue instead of throwing and losing the candidate.
+  if (targetPeer && registry.isOnline(to) && targetPeer.socket) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
     // Don't log every ICE candidate to avoid spam
@@ -347,7 +351,9 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
-  if (targetPeer && registry.isOnline(to)) {
+  // Guard targetPeer.socket (see handleAnswer): a socket-less local-PC peer
+  // would otherwise crash sendMessage; fall through to the queue.
+  if (targetPeer && registry.isOnline(to) && targetPeer.socket) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
     logger.info(
@@ -505,7 +511,9 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
-  if (targetPeer && registry.isOnline(to)) {
+  // Guard targetPeer.socket (see handleAnswer): a socket-less local-PC peer
+  // would otherwise crash sendMessage; fall through to the queue.
+  if (targetPeer && registry.isOnline(to) && targetPeer.socket) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded ${message.type}: ${from} -> ${to}`);

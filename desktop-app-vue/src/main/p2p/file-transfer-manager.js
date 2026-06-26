@@ -664,18 +664,30 @@ class FileTransferManager extends EventEmitter {
 
     logger.info(`[FileTransfer] 重新发送 ${chunks.length} 个分块`);
 
-    // 重新发送请求的分块
-    for (const chunkIndex of chunks) {
-      // 读取分块数据
-      const start = chunkIndex * this.options.chunkSize;
-      const end = Math.min(start + this.options.chunkSize, uploadTask.fileSize);
+    // 重新发送请求的分块。
+    // 注意：fs.readFileSync 不支持 {start,end}（那是 createReadStream/fd 读的选项），
+    // 传进去会被静默忽略并返回**整个文件** → 接收端把每个重发分块都覆盖成全文件
+    // 内容，重组后 sha256 完整性校验必然失败（任何丢一个分块触发重发的传输都不可恢复）。
+    // 用文件描述符 + readSync 精确读取每个分块的字节区间。
+    const fd = fs.openSync(uploadTask.filePath, "r");
+    try {
+      for (const chunkIndex of chunks) {
+        const start = chunkIndex * this.options.chunkSize;
+        const end = Math.min(
+          start + this.options.chunkSize,
+          uploadTask.fileSize,
+        );
+        const length = end - start;
+        if (length <= 0) {
+          continue; // out-of-range chunk index — skip rather than crash
+        }
+        const chunkData = Buffer.alloc(length);
+        fs.readSync(fd, chunkData, 0, length, start);
 
-      const chunkData = fs.readFileSync(uploadTask.filePath, {
-        start,
-        end: end - 1,
-      });
-
-      await this.sendChunk(uploadTask, chunkIndex, chunkData);
+        await this.sendChunk(uploadTask, chunkIndex, chunkData);
+      }
+    } finally {
+      fs.closeSync(fd);
     }
   }
 
