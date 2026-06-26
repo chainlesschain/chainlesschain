@@ -99,6 +99,19 @@ describe("chat-intent-service", () => {
       const r = _internal.ruleBasedClassify("标题用宋体");
       expect(r.intent).toBe("CLARIFICATION");
     });
+    it("'正文采用黑体颜色' → CLARIFICATION (de-catastrophized 用…颜色 pattern still matches)", () => {
+      const r = _internal.ruleBasedClassify("正文采用黑体颜色");
+      expect(r.intent).toBe("CLARIFICATION");
+    });
+    it("does not catastrophically backtrack on a huge adversarial input (ReDoS guard)", () => {
+      // Before the fix, ~2 KB of "用" took ~3 s on one CLARIFICATION pattern.
+      const huge = "用".repeat(500_000);
+      const t = Date.now();
+      const r = _internal.ruleBasedClassify(huge);
+      const ms = Date.now() - t;
+      expect(ms).toBeLessThan(500); // bounded by input cap + non-exp regex
+      expect(typeof r.intent).toBe("string");
+    });
   });
 
   // ------------------------------------------------------------

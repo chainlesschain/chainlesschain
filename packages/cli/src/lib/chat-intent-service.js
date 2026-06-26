@@ -319,7 +319,12 @@ const FOLLOWUP_RULES = {
       /(颜色|字体|大小|位置|标题).*(是|用|为)/,
       /^.{1,20}(应该|具体)(是|为)/,
       /^数据(来源|是)/,
-      /.*(用|采用).*(字体|颜色|大小)/,
+      // De-catastrophized: the old `/.*(用|采用).*(字体…)/` had a leading greedy
+      // `.*` overlapping `(用)`, causing exponential backtracking (a 2 KB input
+      // of "用" took ~3 s). `.test()` already searches anywhere, so the leading
+      // `.*` is redundant; a lazy middle drops it to quadratic, and the input
+      // cap in ruleBasedClassify bounds that.
+      /(用|采用)[\s\S]*?(字体|颜色|大小)/,
     ],
   },
   CANCEL_TASK: {
@@ -334,8 +339,15 @@ const FOLLOWUP_RULES = {
   },
 };
 
+// A follow-up intent (continue / modify / clarify / cancel) is determinable
+// from the start of the message; cap the text the heuristic regexes see so a
+// huge paste can't drive their (quadratic) backtracking into a DoS. The full
+// input is still forwarded to the LLM path / downstream — only this local
+// classification is truncated.
+const MAX_CLASSIFY_INPUT = 2000;
+
 function ruleBasedClassify(userInput) {
-  const input = (userInput || "").trim();
+  const input = (userInput || "").trim().slice(0, MAX_CLASSIFY_INPUT);
 
   if (input.length === 0) {
     return {
