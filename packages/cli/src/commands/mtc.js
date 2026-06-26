@@ -595,7 +595,11 @@ export function registerMtcCommand(program) {
           return;
         }
         if (result.ok) {
-          logger.log(signerInfo ? signerInfo.banner : STOPGAP_BANNER);
+          // `verify` reads envelope+landmark from disk and creates no signer,
+          // so signerInfo is never defined here — referencing it threw a
+          // ReferenceError that the catch reported as "verify failed" on a
+          // SUCCESSFUL verify. Use the stopgap banner directly.
+          logger.log(STOPGAP_BANNER);
           logger.success(`Envelope verified`);
           logger.log(
             `  ${chalk.bold("Subject:")}   ${result.leaf.subject || "(no subject)"}`,
