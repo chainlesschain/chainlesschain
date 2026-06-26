@@ -51,9 +51,34 @@ describe("mergeConsecutiveMessages", () => {
     // A multi-tool turn produces back-to-back `tool` results — folding them
     // would drop tool_call_ids and corrupt the tool-call pairing.
     const msgs = [
-      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "a" }, { id: "b" }],
+      },
       { role: "tool", content: "r1", tool_call_id: "a" },
       { role: "tool", content: "r2", tool_call_id: "b" },
+    ];
+    expect(mergeConsecutiveMessages(msgs)).toEqual(msgs);
+  });
+
+  it("never merges a structured assistant tool-call turn (tool_calls preserved)", () => {
+    // Two consecutive assistants where the SECOND carries tool_calls — folding
+    // would drop them (orphaning the result) and the strict API would 400.
+    const msgs = [
+      { role: "assistant", content: "let me check" },
+      { role: "assistant", content: "", tool_calls: [{ id: "c1" }] },
+      { role: "tool", content: "result", tool_call_id: "c1" },
+    ];
+    expect(mergeConsecutiveMessages(msgs)).toEqual(msgs);
+  });
+
+  it("never folds two consecutive assistants when the FIRST has tool_calls", () => {
+    // e.g. after a compaction dropped the tool results — merging would mutate
+    // the structured turn's content and keep its now-unanswered tool_calls.
+    const msgs = [
+      { role: "assistant", content: "", tool_calls: [{ id: "a" }] },
+      { role: "assistant", content: "fallback text" },
     ];
     expect(mergeConsecutiveMessages(msgs)).toEqual(msgs);
   });
@@ -202,14 +227,22 @@ describe("collapseConsecutiveMessagesInPlace", () => {
     const messages = [
       { role: "user", content: "u1" },
       { role: "user", content: "u2" },
-      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "a" }, { id: "b" }],
+      },
       { role: "tool", content: "r1", tool_call_id: "a" },
       { role: "tool", content: "r2", tool_call_id: "b" },
     ];
     expect(collapseConsecutiveMessagesInPlace(messages)).toBe(true);
     expect(messages).toEqual([
       { role: "user", content: "u1\n\nu2" },
-      { role: "assistant", content: "", tool_calls: [{ id: "a" }, { id: "b" }] },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "a" }, { id: "b" }],
+      },
       { role: "tool", content: "r1", tool_call_id: "a" },
       { role: "tool", content: "r2", tool_call_id: "b" },
     ]);

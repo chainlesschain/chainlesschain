@@ -65,6 +65,17 @@ function joinContent(a, b) {
 const MERGEABLE_ROLES = new Set(["user", "assistant"]);
 
 /**
+ * Does this message carry tool calls? An assistant turn with `tool_calls` is a
+ * STRUCTURED turn whose calls must stay paired with their `tool` results —
+ * folding it loses one side's tool_calls (orphaning results / unanswered calls)
+ * and the strict-API 400s. Such turns are never merged (left to alternate; the
+ * tool-pair fix lives in sanitizeToolPairs, not here).
+ */
+function hasToolCalls(msg) {
+  return Array.isArray(msg && msg.tool_calls) && msg.tool_calls.length > 0;
+}
+
+/**
  * Merge consecutive same-role messages so the conversation alternates roles for
  * the provider. Only `user`/`assistant` turns fold; `tool` and `system` turns
  * are passed through untouched and never participate in a merge. Falsy /
@@ -85,7 +96,9 @@ export function mergeConsecutiveMessages(messages) {
       msg &&
       typeof msg.role === "string" &&
       MERGEABLE_ROLES.has(msg.role) &&
-      prev.role === msg.role
+      prev.role === msg.role &&
+      !hasToolCalls(prev) && // never fold a structured tool-call turn — merging
+      !hasToolCalls(msg) //     drops one side's tool_calls and breaks pairing
     ) {
       out[out.length - 1] = {
         ...prev,
