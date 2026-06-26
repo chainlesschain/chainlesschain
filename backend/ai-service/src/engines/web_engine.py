@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, AsyncGenerator
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import ollama
 from openai import AsyncOpenAI
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import get_llm_client, _run_blocking
 from src.utils.text_utils import strip_code_fences
 from src.templates.web_templates import get_template, has_template
 from src.utils.stream_utils import (
@@ -193,7 +193,8 @@ class WebEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "你是Web项目规格专家，总是返回有效的JSON。"},
@@ -263,7 +264,8 @@ class WebEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "你是专业的前端开发工程师，擅长编写简洁优雅的HTML代码。"},
@@ -331,7 +333,8 @@ class WebEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "你是专业的CSS工程师，擅长现代化响应式设计。"},
@@ -395,7 +398,8 @@ class WebEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "你是专业的JavaScript工程师，擅长编写简洁高效的前端代码。"},

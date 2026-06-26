@@ -287,8 +287,12 @@ class ConflictResolver:
             start = conflict['start_line']
             end = conflict['end_line']
 
-            # 替换冲突块
-            new_lines = lines[:start] + resolution['resolved_content'].split('\n') + lines[end+1:]
+            # 替换冲突块。AI 路径可能返回缺少 resolved_content 的 JSON——此时跳过
+            # 替换（保留原始冲突块），而不是 KeyError 崩溃或把冲突块静默删空。
+            resolved = resolution.get('resolved_content')
+            if resolved is None:
+                continue
+            new_lines = lines[:start] + resolved.split('\n') + lines[end+1:]
             lines = new_lines
 
         resolved_content = '\n'.join(lines)
@@ -305,7 +309,7 @@ class ConflictResolver:
             'resolutions': resolutions,
             'resolved_content': resolved_content,
             'auto_applied': auto_resolve,
-            'average_confidence': sum(r['confidence'] for r in resolutions) / len(resolutions) if resolutions else 0
+            'average_confidence': sum(r.get('confidence', 0) for r in resolutions) / len(resolutions) if resolutions else 0
         }
 
     def _apply_strategy(self, conflict: Dict[str, Any], strategy: str) -> Dict[str, Any]:

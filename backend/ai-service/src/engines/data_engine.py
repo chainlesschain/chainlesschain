@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 import matplotlib
 matplotlib.use('Agg')  # 无GUI后端
 import matplotlib.font_manager as fm
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import get_llm_client, _run_blocking
 from src.utils.text_utils import strip_code_fences
 
 # 清除matplotlib字体缓存并重新加载
@@ -193,7 +193,8 @@ class DataEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "You are a data analysis expert. Return valid JSON only."},
