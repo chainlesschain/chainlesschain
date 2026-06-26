@@ -1595,6 +1595,47 @@ export function renderNotebook(text) {
 }
 
 /**
+ * Ingest the raw stdout of a search_files command into the shared hit
+ * accumulator: split into lines, dedup via `seen`, redact credential-file
+ * content hits, label multi-root results, and stop at the hit cap. Pure aside
+ * from mutating the passed-in `seen`/`hits`/`redactedCreds` collectors.
+ *
+ * Shared by the success path AND the maxBuffer-overflow salvage path: a search
+ * on a large tree (especially Windows, where `findstr`/`dir /s` have no `head`
+ * cap) can exceed execSync's maxBuffer and throw ENOBUFS — but the error still
+ * carries the first maxBuffer of matches in `err.stdout`, so the same ingest is
+ * run on it instead of dropping every match as a false "no matches".
+ *
+ * @param {string} output  raw command stdout (or a truncated partial)
+ * @param {object} ctx  { isContent, root, multiRoot, seen, hits, redactedCreds,
+ *                        credentialFileReason, limit? }
+ */
+export function _ingestSearchOutput(output, ctx) {
+  const limit = ctx.limit ?? 20;
+  for (const line of String(output || "")
+    .trim()
+    .split("\n")) {
+    const v = line.trim();
+    if (!v || ctx.seen.has(v)) continue;
+    if (ctx.isContent) {
+      // content hit is `file:line:text` (findstr /n) or a bare filename
+      // (grep -l); pull the source file and redact credential matches.
+      const src = v.match(/^(.+?):\d+:/)?.[1] ?? v;
+      if (ctx.credentialFileReason(src)) {
+        ctx.redactedCreds.add(src.replace(/\\/g, "/"));
+        ctx.seen.add(v);
+        continue;
+      }
+    }
+    // Qualify with the root so multi-root results stay unambiguous.
+    const labeled = ctx.multiRoot ? `${ctx.root}: ${v}` : v;
+    ctx.seen.add(v);
+    ctx.hits.push(labeled);
+    if (ctx.hits.length >= limit) return;
+  }
+}
+
+/**
  * Inner tool execution — no hooks, no plan-mode checks.
  */
 async function executeToolInner(
@@ -2326,34 +2367,34 @@ async function executeToolInner(
       const redactedCreds = new Set();
       for (const root of roots) {
         if (hits.length >= 20) break;
+        const ictx = {
+          isContent,
+          root,
+          multiRoot: roots.length > 1,
+          seen,
+          hits,
+          redactedCreds,
+          credentialFileReason,
+        };
         try {
           if (!fs.existsSync(root)) continue;
           const output = execSync(cmd, {
             cwd: root,
             encoding: "utf8",
             timeout: 10000,
+            // Windows `findstr`/`dir /s` have no `head` cap (unlike the POSIX
+            // `| head -20`), so a large tree can blow past execSync's 1 MB
+            // default and throw ENOBUFS. Give it real headroom AND salvage the
+            // partial below — otherwise a busy repo silently reports "no matches".
+            maxBuffer: 8 * 1024 * 1024,
           });
-          for (const line of output.trim().split("\n")) {
-            const v = line.trim();
-            if (!v || seen.has(v)) continue;
-            if (isContent) {
-              // content hit is `file:line:text` (findstr /n) or a bare filename
-              // (grep -l); pull the source file and redact credential matches.
-              const src = v.match(/^(.+?):\d+:/)?.[1] ?? v;
-              if (credentialFileReason(src)) {
-                redactedCreds.add(src.replace(/\\/g, "/"));
-                seen.add(v);
-                continue;
-              }
-            }
-            // Qualify with the root so multi-root results stay unambiguous.
-            const labeled = roots.length > 1 ? `${root}: ${v}` : v;
-            seen.add(v);
-            hits.push(labeled);
-            if (hits.length >= 20) break;
-          }
-        } catch {
-          // No matches in this root — continue to the next.
+          _ingestSearchOutput(output, ictx);
+        } catch (err) {
+          // A maxBuffer overflow still carries the first 8 MB of matches in
+          // err.stdout — ingest those rather than dropping every hit as a false
+          // "No matches found". A genuine no-match / command failure leaves
+          // err.stdout empty, so hits stay unchanged (same as before).
+          if (err && err.stdout) _ingestSearchOutput(err.stdout, ictx);
         }
       }
 

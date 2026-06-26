@@ -29,6 +29,7 @@ export {
   killBackgroundShellTask,
   killAllBackgroundShellTasks,
   reapIdleBackgroundShellTasks,
+  _ingestSearchOutput,
   writeFileVerified,
   formatProviderHttpError,
   _accumulateOllamaStream,
