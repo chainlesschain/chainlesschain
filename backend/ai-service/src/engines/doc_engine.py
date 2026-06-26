@@ -19,7 +19,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import io
 import ollama
 from openai import AsyncOpenAI
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import get_llm_client, _run_blocking
 from src.utils.text_utils import strip_code_fences
 
 # 配置日志
@@ -188,7 +188,11 @@ class DocumentEngine:
 
         try:
             if self.llm_provider == "ollama":
-                response = ollama.chat(
+                # ollama SDK 是同步阻塞的；直接在 async def 里调用会卡住整个事件循环
+                # （并发请求与健康检查全部串行化）。统一经 _run_blocking 走线程池，
+                # 与 data_engine.py 同款处理。
+                response = await _run_blocking(
+                    ollama.chat,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": "你是文档结构专家，擅长设计清晰的文档大纲。"},
@@ -289,7 +293,9 @@ class DocumentEngine:
 
             try:
                 if self.llm_provider == "ollama":
-                    response = ollama.chat(
+                    # 同步 ollama SDK 经线程池执行，避免阻塞事件循环（见上方 _generate_outline）。
+                    response = await _run_blocking(
+                        ollama.chat,
                         model=self.model_name,
                         messages=[
                             {"role": "system", "content": "你是专业的文档撰写专家。"},
