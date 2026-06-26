@@ -24,6 +24,8 @@ class AppBuilder extends EventEmitter {
     this._ensureTables();
     this._loadDefaultComponents();
     await this._loadApps();
+    this._loadVersions();
+    this._loadDataSources();
     this.initialized = true;
     logger.info(
       `[AppBuilder] Initialized with ${this._apps.size} apps, ${this._components.size} components`,
@@ -155,13 +157,79 @@ class AppBuilder extends EventEmitter {
     try {
       const rows = this.db.prepare("SELECT * FROM lowcode_apps").all();
       for (const row of rows) {
-        this._apps.set(row.id, {
-          ...row,
-          design: JSON.parse(row.design || "{}"),
-        });
+        // Per-row guard: one corrupt design JSON must not abort the loop and
+        // silently drop every app ordered after it.
+        try {
+          this._apps.set(row.id, {
+            ...row,
+            design: JSON.parse(row.design || "{}"),
+          });
+        } catch (rowErr) {
+          logger.warn(
+            `[AppBuilder] Skipping app ${row.id} with bad design JSON: ${rowErr.message}`,
+          );
+        }
       }
     } catch (error) {
       logger.warn("[AppBuilder] Failed to load apps:", error.message);
+    }
+  }
+
+  // Versions are persisted by _saveVersion but were never reloaded on init, so
+  // getVersions/rollback saw an empty Map after restart ("Version not found"
+  // for versions that exist in the DB). Rehydrate _versions here.
+  _loadVersions() {
+    try {
+      const rows = this.db
+        .prepare("SELECT * FROM lowcode_versions ORDER BY version ASC")
+        .all();
+      for (const row of rows) {
+        try {
+          const entry = {
+            id: row.id,
+            appId: row.app_id,
+            version: row.version,
+            snapshot: JSON.parse(row.snapshot || "{}"),
+          };
+          if (!this._versions.has(row.app_id)) {
+            this._versions.set(row.app_id, []);
+          }
+          this._versions.get(row.app_id).push(entry);
+        } catch (rowErr) {
+          logger.warn(
+            `[AppBuilder] Skipping version ${row.id} with bad snapshot JSON: ${rowErr.message}`,
+          );
+        }
+      }
+    } catch (error) {
+      // lowcode_versions may be absent on an older schema — non-fatal.
+      logger.warn("[AppBuilder] Failed to load versions:", error.message);
+    }
+  }
+
+  // Same as versions: data sources were write-only to the DB, so after restart
+  // testConnection returned "DataSource not found" and exportApp lost them.
+  _loadDataSources() {
+    try {
+      const rows = this.db.prepare("SELECT * FROM lowcode_datasources").all();
+      for (const row of rows) {
+        try {
+          this._dataSources.set(row.id, {
+            id: row.id,
+            app_id: row.app_id,
+            name: row.name,
+            type: row.type,
+            config: JSON.parse(row.config || "{}"),
+            status: row.status || "active",
+          });
+        } catch (rowErr) {
+          logger.warn(
+            `[AppBuilder] Skipping datasource ${row.id} with bad config JSON: ${rowErr.message}`,
+          );
+        }
+      }
+    } catch (error) {
+      logger.warn("[AppBuilder] Failed to load datasources:", error.message);
     }
   }
 
@@ -311,7 +379,13 @@ class AppBuilder extends EventEmitter {
     if (!this._versions.has(appId)) {
       this._versions.set(appId, []);
     }
-    this._versions.get(appId).push(entry);
+    const verArr = this._versions.get(appId);
+    verArr.push(entry);
+    // Bound in-memory growth across a long editing session (the DB retains the
+    // full history); 200 versions per app is far beyond practical use.
+    if (verArr.length > 200) {
+      verArr.shift();
+    }
     try {
       this.db
         .prepare(

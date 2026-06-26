@@ -144,11 +144,19 @@ class AutomationEngine extends EventEmitter {
     try {
       const rows = this.db.prepare("SELECT * FROM automation_flows").all();
       for (const row of rows) {
-        this._flows.set(row.id, {
-          ...row,
-          steps: JSON.parse(row.steps || "[]"),
-          triggers: JSON.parse(row.triggers || "[]"),
-        });
+        // Per-row guard: one corrupt steps/triggers JSON must not abort the
+        // loop and silently drop every flow ordered after it.
+        try {
+          this._flows.set(row.id, {
+            ...row,
+            steps: JSON.parse(row.steps || "[]"),
+            triggers: JSON.parse(row.triggers || "[]"),
+          });
+        } catch (rowErr) {
+          logger.warn(
+            `[AutomationEngine] Skipping flow ${row.id} with bad JSON: ${rowErr.message}`,
+          );
+        }
       }
     } catch (error) {
       logger.warn("[AutomationEngine] Failed to load flows:", error.message);
