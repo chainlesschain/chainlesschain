@@ -302,6 +302,23 @@ describe("Hook Manager", () => {
       expect(fn("Write")).toBe(false);
     });
 
+    it("exact-matches, never substring (Claude-Code 2.1.195 hyphen fix)", () => {
+      // A plain (incl. hyphenated) matcher must NOT match a longer tool name —
+      // the matcher is anchored ^…$. Claude-Code 2.1.195 fixed hyphenated
+      // identifiers accidentally substring-matching; verify we never had it.
+      const edit = compileMatcher("Edit");
+      expect(edit("EditFile")).toBe(false);
+      expect(edit("PreEdit")).toBe(false);
+      const tool = compileMatcher("my-tool");
+      expect(tool("my-tool")).toBe(true);
+      expect(tool("my-tool-extra")).toBe(false);
+      expect(tool("x-my-tool")).toBe(false);
+      // hyphen is a literal, not a regex range/metachar
+      const mcp = compileMatcher("mcp__srv__do-thing");
+      expect(mcp("mcp__srv__do-thing")).toBe(true);
+      expect(mcp("mcp__srv__do-thing-2")).toBe(false);
+    });
+
     it("matches wildcard *", () => {
       const fn = compileMatcher("Pre*");
       expect(fn("PreIPCCall")).toBe(true);
