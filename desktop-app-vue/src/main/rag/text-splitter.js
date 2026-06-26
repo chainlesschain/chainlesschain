@@ -291,6 +291,20 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
   getChunkStats(text) {
     const chunks = this.splitText(text);
 
+    // 空/纯空白输入时 splitText 返回 []，此时 Math.min(...[])=Infinity、
+    // Math.max(...[])=-Infinity、text.length/0=Infinity 都会渲染成 "Infinity"。
+    // 无分块时直接返回零值统计。
+    if (chunks.length === 0) {
+      return {
+        totalChunks: 0,
+        originalLength: text ? text.length : 0,
+        avgChunkSize: 0,
+        minChunkSize: 0,
+        maxChunkSize: 0,
+        compressionRatio: "0.00",
+      };
+    }
+
     const sizes = chunks.map((c) => c.content.length);
     const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length || 0;
     const minSize = Math.min(...sizes);

@@ -569,6 +569,12 @@ class MemoryAnalytics {
 
     for (const day of dailyData) {
       const date = new Date(day.date);
+      // daily_notes_metadata.date 是自由 TEXT 字段（无 CHECK），单条空/损坏日期会让
+      // 下方 toISOString() 抛 RangeError 中断整个周聚合，并被 getTrends 外层 catch 吞掉
+      // ——连 daily/search 趋势也一起消失。跳过无效日期行，而非让一行坏数据清空看板。
+      if (Number.isNaN(date.getTime())) {
+        continue;
+      }
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().split("T")[0];
