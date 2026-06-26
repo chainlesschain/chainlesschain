@@ -196,6 +196,15 @@ class MCPFunctionExecutor {
   _transformResult(mcpResult) {
     // MCP 结果格式: { content: [{ type, text/data }], isError }
 
+    // A tool/server can resolve to null/undefined; dereferencing .isError on it
+    // would throw a TypeError up to the LLM function-calling caller.
+    if (mcpResult == null) {
+      return {
+        success: false,
+        error: "MCP tool returned no result",
+        content: [],
+      };
+    }
     if (mcpResult.isError) {
       const errorMessage = this._extractTextContent(mcpResult.content);
       return {

@@ -603,9 +603,9 @@ class MCPClientManager extends EventEmitter {
       successfulCalls: this.metrics.successfulCalls,
       failedCalls: this.metrics.totalCalls - this.metrics.successfulCalls,
       successRate:
-        (
-          (this.metrics.successfulCalls / this.metrics.totalCalls) *
-          100
+        (this.metrics.totalCalls > 0
+          ? (this.metrics.successfulCalls / this.metrics.totalCalls) * 100
+          : 0
         ).toFixed(2) + "%",
       connectionTimes: Object.fromEntries(this.metrics.connectionTimes),
       toolLatencies: avgLatencies,

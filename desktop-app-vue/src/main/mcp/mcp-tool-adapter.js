@@ -413,6 +413,15 @@ class MCPToolAdapter extends EventEmitter {
   _transformMCPResult(mcpResult) {
     // MCP result format: { content: [{ type, text/data }], isError }
 
+    // Guard against a tool/server resolving to null/undefined (dereferencing
+    // .isError would otherwise throw).
+    if (mcpResult == null) {
+      return {
+        success: false,
+        error: "MCP tool returned no result",
+        mcpResult: null,
+      };
+    }
     if (mcpResult.isError) {
       return {
         success: false,
