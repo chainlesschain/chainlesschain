@@ -96,8 +96,13 @@ export const extractWorktreePatchForFile = (diffText, filePath) => {
     return "";
   }
   const normalizedPath = String(filePath).replace(/\\/g, "/");
+  // Tempered-greedy: consume every line up to (but not including) the next
+  // `diff --git` header, or to end-of-input for the last file. The previous
+  // pattern used `\Z` as an end-of-string anchor, but JS has no `\Z` — it is
+  // an identity escape meaning a literal "Z", so the lazy match truncated the
+  // patch at the first "Z" in the diff (filenames, identifiers, ISO timestamps).
   const pattern = new RegExp(
-    `^diff --git a/${escapeRegExp(normalizedPath)} b/${escapeRegExp(normalizedPath)}[\\s\\S]*?(?=^diff --git |\\Z)`,
+    `^diff --git a/${escapeRegExp(normalizedPath)} b/${escapeRegExp(normalizedPath)}(?:(?!^diff --git )[\\s\\S])*`,
     "m",
   );
   const match = String(diffText).match(pattern);
