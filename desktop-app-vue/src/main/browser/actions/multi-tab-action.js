@@ -190,20 +190,32 @@ class MultiTabAction {
       }
     });
 
-    const results = await Promise.race([
-      Promise.all(promises),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Parallel action timeout")), timeout),
-      ),
-    ]);
+    let timeoutHandle;
+    try {
+      const results = await Promise.race([
+        Promise.all(promises),
+        new Promise((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error("Parallel action timeout")),
+            timeout,
+          );
+        }),
+      ]);
 
-    return {
-      success: true,
-      action: TabAction.PARALLEL,
-      tabs: tabs.length,
-      results,
-      successCount: results.filter((r) => r.success).length,
-    };
+      return {
+        success: true,
+        action: TabAction.PARALLEL,
+        tabs: tabs.length,
+        results,
+        successCount: results.filter((r) => r.success).length,
+      };
+    } finally {
+      // Clear the timer once the race settles — on the normal (fast) success
+      // path it would otherwise stay armed for the full timeout window,
+      // holding the closure + an event-loop reference and stacking across
+      // repeated parallel actions.
+      clearTimeout(timeoutHandle);
+    }
   }
 
   /**
