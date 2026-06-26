@@ -19,6 +19,20 @@
 const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
+// Tolerate a corrupt permissions column so one malformed row doesn't throw out
+// of the templates/groups .map and fail the whole list (outer catch returns
+// {success:false}). Default to [] (no permissions = fail-closed).
+function safeParsePermissions(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 class PermissionIPC {
   constructor(database, permissionManager, permissionMiddleware) {
     this.database = database;
@@ -382,7 +396,7 @@ class PermissionIPC {
           success: true,
           templates: templates.map((t) => ({
             ...t,
-            permissions: JSON.parse(t.permissions),
+            permissions: safeParsePermissions(t.permissions),
           })),
         };
       } catch (error) {
@@ -548,7 +562,7 @@ class PermissionIPC {
           success: true,
           groups: groups.map((g) => ({
             ...g,
-            permissions: JSON.parse(g.permissions),
+            permissions: safeParsePermissions(g.permissions),
           })),
         };
       } catch (error) {
