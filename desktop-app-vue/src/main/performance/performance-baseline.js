@@ -269,7 +269,7 @@ class PerformanceBaseline extends EventEmitter {
     const regressions = [];
 
     // Check IPC latency regression
-    if (baseline.metrics.ipc.p95 > 0 && current.metrics.ipc.p95 > 0) {
+    if (baseline.metrics.ipc?.p95 > 0 && current.metrics.ipc?.p95 > 0) {
       const ratio = current.metrics.ipc.p95 / baseline.metrics.ipc.p95;
       if (ratio > defaultThresholds.ipcLatencyP95) {
         regressions.push({
@@ -283,7 +283,7 @@ class PerformanceBaseline extends EventEmitter {
     }
 
     // Check memory regression
-    if (baseline.metrics.memory.rss > 0 && current.metrics.memory.rss > 0) {
+    if (baseline.metrics.memory?.rss > 0 && current.metrics.memory?.rss > 0) {
       const ratio = current.metrics.memory.rss / baseline.metrics.memory.rss;
       if (ratio > defaultThresholds.memoryRss) {
         regressions.push({
@@ -297,7 +297,7 @@ class PerformanceBaseline extends EventEmitter {
     }
 
     // Check DB query regression
-    if (baseline.metrics.db.p95 > 0 && current.metrics.db.p95 > 0) {
+    if (baseline.metrics.db?.p95 > 0 && current.metrics.db?.p95 > 0) {
       const ratio = current.metrics.db.p95 / baseline.metrics.db.p95;
       if (ratio > defaultThresholds.dbQueryP95) {
         regressions.push({
