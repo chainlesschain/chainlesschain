@@ -571,8 +571,12 @@ class PluginInstaller {
           manifest.name || pluginId,
           manifest.author || installed.data.author || "",
           JSON.stringify({
-            ...(installed.data.metadata
-              ? JSON.parse(installed.data.metadata)
+            // getInstalledDetail() already parses metadata into an object via
+            // _parsePluginRow; JSON.parse(object) coerces to "[object Object]"
+            // and throws, failing EVERY plugin update. Spread the object.
+            ...(installed.data.metadata &&
+            typeof installed.data.metadata === "object"
+              ? installed.data.metadata
               : {}),
             description: manifest.description || "",
             lastUpdated: now,
@@ -1006,7 +1010,13 @@ class PluginInstaller {
         const resolvedPath = path.resolve(entryPath);
         const resolvedDest = path.resolve(destDir);
 
-        if (!resolvedPath.startsWith(resolvedDest)) {
+        // Require an exact match or a true subpath (destDir + separator): bare
+        // startsWith lets a sibling dir sharing the prefix (e.g. "<dest>-evil")
+        // pass and extract outside the intended plugin directory.
+        if (
+          resolvedPath !== resolvedDest &&
+          !resolvedPath.startsWith(resolvedDest + path.sep)
+        ) {
           throw new Error(
             `Zip slip detected: entry "${entry.entryName}" would extract outside target directory`,
           );
