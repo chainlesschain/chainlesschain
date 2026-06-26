@@ -33,6 +33,7 @@
 import fsDefault from "fs";
 import pathDefault from "path";
 import osDefault from "os";
+import { credentialFileReason } from "./credential-guard.js";
 
 export const DEFAULT_MAX_FILE_BYTES = 48 * 1024; // per instruction/import file
 export const DEFAULT_MAX_TOTAL_BYTES = 192 * 1024; // whole block budget
@@ -321,6 +322,18 @@ export function loadProjectInstructions(opts = {}) {
       const resolved = path.resolve(baseDir, target);
       if (visited.has(resolved) || !isFile(fs, resolved)) continue; // silent:
       // non-files are decorative @tokens (npm scopes, emails), not imports.
+      // Refuse to import a credential / secret file. `cc agent` auto-loads
+      // project memory, so a cloned/untrusted repo's cc.md must NOT be able to
+      // pull `@~/.ssh/id_rsa` / `@../.env` into the LLM-bound system prompt
+      // (mirrors the read_file/run_shell credential guard).
+      const credReason = credentialFileReason(resolved);
+      if (credReason) {
+        visited.add(resolved); // don't re-warn on a second reference
+        warnings.push(
+          `refused @import of ${resolved} — ${credReason}; project memory must not pull secrets into the prompt`,
+        );
+        continue;
+      }
       visited.add(resolved);
       queue.push({ abs: resolved, scope: "import", depth: depth + 1 });
     }

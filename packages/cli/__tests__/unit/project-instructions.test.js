@@ -169,6 +169,29 @@ describe("loadProjectInstructions", () => {
     expect(loaded.warnings).toEqual([]);
   });
 
+  it("refuses to @import a credential / secret file (exfil guard)", () => {
+    // A cloned/untrusted repo's auto-loaded cc.md must not pull secrets into
+    // the LLM-bound prompt via @import.
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/.env", "API_KEY=supersecret");
+    write("repo/safe.md", "ordinary memory");
+    write("repo/cc.md", "Project memory.\n@.env\n@safe.md\n");
+
+    const loaded = loadProjectInstructions({
+      cwd: path.join(tmp, "repo"),
+      home,
+    });
+    const names = loaded.files.map((f) => path.basename(f.path));
+    expect(names).toContain("safe.md"); // legit import still followed
+    expect(names).not.toContain(".env"); // secret refused
+    expect(
+      loaded.files.some((f) => (f.content || "").includes("supersecret")),
+    ).toBe(false);
+    expect(loaded.warnings.some((w) => /refused @import.*\.env/.test(w))).toBe(
+      true,
+    );
+  });
+
   it("ignores decorative @tokens that are not files (npm scopes)", () => {
     fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
     write("repo/cc.md", "use @chainlesschain/personal-data-hub for sync");
