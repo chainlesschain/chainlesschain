@@ -5,7 +5,77 @@ import {
   checkAllowed,
   htmlToMarkdown,
   webFetch,
+  makeSafeLookup,
 } from "../../src/lib/web-fetch.js";
+
+describe("web-fetch — makeSafeLookup() DNS-SSRF guard", () => {
+  // Fake resolver: maps a hostname → addresses, mimicking dns.lookup({all:true}).
+  function fakeLookup(map) {
+    return (hostname, _opts, cb) => {
+      const addrs = map[hostname];
+      if (!addrs) return cb(new Error("ENOTFOUND"));
+      cb(null, addrs);
+    };
+  }
+
+  it("rejects a public-looking host that resolves to a private/metadata IP", () => {
+    const lookup = makeSafeLookup(false, {
+      lookup: fakeLookup({
+        "evil.example.com": [{ address: "169.254.169.254", family: 4 }],
+      }),
+    });
+    let err = null;
+    lookup("evil.example.com", {}, (e) => (err = e));
+    expect(err).toBeTruthy();
+    expect(err.message).toMatch(/private\/loopback resolved IP blocked/);
+  });
+
+  it("rejects if ANY resolved address is private (mixed records)", () => {
+    const lookup = makeSafeLookup(false, {
+      lookup: fakeLookup({
+        "rebind.example.com": [
+          { address: "93.184.216.34", family: 4 }, // public
+          { address: "127.0.0.1", family: 4 }, // private
+        ],
+      }),
+    });
+    let err = null;
+    lookup("rebind.example.com", {}, (e) => (err = e));
+    expect(err).toBeTruthy();
+  });
+
+  it("allows a host that resolves only to public IPs", () => {
+    const lookup = makeSafeLookup(false, {
+      lookup: fakeLookup({
+        "ok.example.com": [{ address: "93.184.216.34", family: 4 }],
+      }),
+    });
+    let result = null;
+    lookup("ok.example.com", {}, (e, addr, fam) => (result = { e, addr, fam }));
+    expect(result.e).toBeFalsy();
+    expect(result.addr).toBe("93.184.216.34");
+    expect(result.fam).toBe(4);
+  });
+
+  it("honors allowPrivateHosts=true (opt-out)", () => {
+    const lookup = makeSafeLookup(true, {
+      lookup: fakeLookup({
+        "internal.corp": [{ address: "10.0.0.5", family: 4 }],
+      }),
+    });
+    let result = null;
+    lookup("internal.corp", {}, (e, addr) => (result = { e, addr }));
+    expect(result.e).toBeFalsy();
+    expect(result.addr).toBe("10.0.0.5");
+  });
+
+  it("propagates a resolution failure", () => {
+    const lookup = makeSafeLookup(false, { lookup: fakeLookup({}) });
+    let err = null;
+    lookup("nope.example.com", {}, (e) => (err = e));
+    expect(err).toBeTruthy();
+  });
+});
 
 describe("web-fetch — isPrivateHost()", () => {
   it("flags loopback and RFC1918 hosts", () => {

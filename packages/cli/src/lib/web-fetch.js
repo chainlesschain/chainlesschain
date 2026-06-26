@@ -7,6 +7,7 @@
 
 import http from "http";
 import https from "https";
+import { lookup as dnsLookup } from "dns";
 import { URL } from "url";
 
 const DEFAULT_MAX_BYTES = 2_000_000;
@@ -139,7 +140,46 @@ function stripTags(html) {
   return String(html).replace(/<[^>]+>/g, "");
 }
 
-async function _doRequest(parsed, { maxBytes, timeout, headers }) {
+/**
+ * A `lookup` for http(s).request that resolves the hostname and REJECTS the
+ * connection if any resolved IP is private/loopback/link-local. checkAllowed
+ * only inspects the URL's literal hostname, so a public-looking domain that
+ * DNS-resolves to an internal IP (e.g. 169.254.169.254 cloud metadata) would
+ * otherwise sail through — classic DNS-based SSRF. Because Node connects to the
+ * exact address this returns, it also closes the DNS-rebinding TOCTOU window.
+ * Returns a Node-style lookup fn; `allowPrivateHosts` opts out (same flag as
+ * checkAllowed).
+ */
+export function makeSafeLookup(allowPrivateHosts, deps = _deps) {
+  const lookup = deps.lookup || dnsLookup;
+  return (hostname, options, callback) => {
+    const cb = typeof options === "function" ? options : callback;
+    const opts = typeof options === "function" ? {} : options || {};
+    lookup(hostname, { ...opts, all: true }, (err, addresses) => {
+      if (err) return cb(err);
+      const list = Array.isArray(addresses) ? addresses : [];
+      if (list.length === 0) {
+        return cb(new Error(`could not resolve host: ${hostname}`));
+      }
+      if (!allowPrivateHosts) {
+        for (const a of list) {
+          if (isPrivateHost(a.address)) {
+            return cb(
+              new Error(`private/loopback resolved IP blocked: ${a.address}`),
+            );
+          }
+        }
+      }
+      const chosen = list[0];
+      cb(null, chosen.address, chosen.family);
+    });
+  };
+}
+
+async function _doRequest(
+  parsed,
+  { maxBytes, timeout, headers, allowPrivateHosts },
+) {
   const lib = parsed.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     const req = lib.request(
@@ -149,6 +189,10 @@ async function _doRequest(parsed, { maxBytes, timeout, headers }) {
         hostname: parsed.hostname,
         port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
         path: parsed.pathname + parsed.search,
+        // Resolve-and-check: reject the connection if the host resolves to a
+        // private IP (DNS-SSRF + rebinding guard). String-host check is in
+        // checkAllowed; this covers the resolved address.
+        lookup: makeSafeLookup(allowPrivateHosts),
         headers: {
           "User-Agent": "ChainlessChain-Agent/1.0",
           Accept: "*/*",
@@ -210,7 +254,12 @@ export async function webFetch(url, options = {}) {
   let redirects = 0;
   let response;
   while (true) {
-    response = await _doRequest(parsed, { maxBytes, timeout, headers });
+    response = await _doRequest(parsed, {
+      maxBytes,
+      timeout,
+      headers,
+      allowPrivateHosts: config.allowPrivateHosts,
+    });
     if (!response.redirect) break;
     if (++redirects > maxRedirects) {
       return { error: "too many redirects" };
@@ -250,7 +299,9 @@ export async function webFetch(url, options = {}) {
   };
 }
 
-export const _deps = { http, https };
+// `lookup` is injectable so tests can resolve a domain to a private IP without
+// real network; production uses the system resolver.
+export const _deps = { http, https, lookup: dnsLookup };
 
 // ===== V2 Surface: Web Fetch governance overlay (CLI v0.142.0) =====
 export const WFET_TARGET_MATURITY_V2 = Object.freeze({
