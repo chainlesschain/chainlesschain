@@ -64,7 +64,9 @@ class SOC2Compliance extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS soc2_evidence (
@@ -98,7 +100,8 @@ class SOC2Compliance extends EventEmitter {
   async collectAuditLogEvidence(options = {}) {
     try {
       const periodEnd = options.periodEnd || Date.now();
-      const periodStart = options.periodStart || periodEnd - 30 * 24 * 60 * 60 * 1000;
+      const periodStart =
+        options.periodStart || periodEnd - 30 * 24 * 60 * 60 * 1000;
 
       let auditCount = 0;
       let accessEvents = 0;
@@ -107,7 +110,9 @@ class SOC2Compliance extends EventEmitter {
       if (this.database && this.database.db) {
         try {
           const result = this.database.db
-            .prepare("SELECT COUNT(*) as count FROM enterprise_audit_log WHERE timestamp >= ? AND timestamp <= ?")
+            .prepare(
+              "SELECT COUNT(*) as count FROM enterprise_audit_log WHERE timestamp >= ? AND timestamp <= ?",
+            )
             .get(periodStart, periodEnd);
           auditCount = result?.count || 0;
         } catch {
@@ -116,8 +121,13 @@ class SOC2Compliance extends EventEmitter {
 
         try {
           const result = this.database.db
-            .prepare("SELECT COUNT(*) as count FROM permission_audit_log WHERE created_at >= ? AND created_at <= ?")
-            .get(new Date(periodStart).toISOString(), new Date(periodEnd).toISOString());
+            .prepare(
+              "SELECT COUNT(*) as count FROM permission_audit_log WHERE created_at >= ? AND created_at <= ?",
+            )
+            .get(
+              new Date(periodStart).toISOString(),
+              new Date(periodEnd).toISOString(),
+            );
           accessEvents = result?.count || 0;
         } catch {
           // Expected error, ignore
@@ -147,7 +157,10 @@ class SOC2Compliance extends EventEmitter {
       this.emit("evidence:collected", evidence);
       return evidence;
     } catch (error) {
-      logger.error("[SOC2Compliance] Failed to collect audit log evidence:", error);
+      logger.error(
+        "[SOC2Compliance] Failed to collect audit log evidence:",
+        error,
+      );
       throw error;
     }
   }
@@ -163,13 +176,17 @@ class SOC2Compliance extends EventEmitter {
 
       if (this.database && this.database.db) {
         try {
-          const users = this.database.db.prepare("SELECT COUNT(*) as count FROM did_identities").get();
+          const users = this.database.db
+            .prepare("SELECT COUNT(*) as count FROM did_identities")
+            .get();
           userCount = users?.count || 0;
         } catch {
           // Expected error, ignore
         }
         try {
-          const roles = this.database.db.prepare("SELECT COUNT(*) as count FROM organization_roles").get();
+          const roles = this.database.db
+            .prepare("SELECT COUNT(*) as count FROM organization_roles")
+            .get();
           roleCount = roles?.count || 0;
         } catch {
           // Expected error, ignore
@@ -197,7 +214,10 @@ class SOC2Compliance extends EventEmitter {
       await this._saveEvidence(evidence);
       return evidence;
     } catch (error) {
-      logger.error("[SOC2Compliance] Failed to collect access control evidence:", error);
+      logger.error(
+        "[SOC2Compliance] Failed to collect access control evidence:",
+        error,
+      );
       throw error;
     }
   }
@@ -230,7 +250,10 @@ class SOC2Compliance extends EventEmitter {
       await this._saveEvidence(evidence);
       return evidence;
     } catch (error) {
-      logger.error("[SOC2Compliance] Failed to collect config evidence:", error);
+      logger.error(
+        "[SOC2Compliance] Failed to collect config evidence:",
+        error,
+      );
       throw error;
     }
   }
@@ -243,27 +266,40 @@ class SOC2Compliance extends EventEmitter {
   async generateReport(options = {}) {
     try {
       const periodEnd = options.periodEnd || Date.now();
-      const periodStart = options.periodStart || periodEnd - 90 * 24 * 60 * 60 * 1000;
+      const periodStart =
+        options.periodStart || periodEnd - 90 * 24 * 60 * 60 * 1000;
 
       let evidenceList = [];
       if (this.database && this.database.db) {
         evidenceList = this.database.db
           .prepare(
-            `SELECT * FROM soc2_evidence WHERE period_start >= ? OR period_end <= ? ORDER BY created_at DESC`,
+            // Overlap test: evidence [period_start, period_end] must intersect
+            // the requested [periodStart, periodEnd] window. The old
+            // `period_start >= ? OR period_end <= ?` had inverted operators AND
+            // an OR, so it matched almost every stored row → reports counted
+            // out-of-period evidence.
+            `SELECT * FROM soc2_evidence WHERE period_start <= ? AND (period_end >= ? OR period_end IS NULL) ORDER BY created_at DESC`,
           )
-          .all(periodStart, periodEnd);
+          .all(periodEnd, periodStart);
       }
 
       // Organize by criteria
       const byCriteria = {};
       for (const criteria of Object.values(TRUST_SERVICE_CRITERIA)) {
-        byCriteria[criteria] = evidenceList.filter((e) => e.criteria === criteria);
+        byCriteria[criteria] = evidenceList.filter(
+          (e) => e.criteria === criteria,
+        );
       }
 
       // Calculate compliance score
       const totalCriteria = Object.keys(TRUST_SERVICE_CRITERIA).length;
-      const coveredCriteria = Object.values(byCriteria).filter((arr) => arr.length > 0).length;
-      const complianceScore = totalCriteria > 0 ? Math.round((coveredCriteria / totalCriteria) * 100) : 0;
+      const coveredCriteria = Object.values(byCriteria).filter(
+        (arr) => arr.length > 0,
+      ).length;
+      const complianceScore =
+        totalCriteria > 0
+          ? Math.round((coveredCriteria / totalCriteria) * 100)
+          : 0;
 
       const report = {
         title: "SOC 2 Type II Compliance Report",
@@ -299,7 +335,9 @@ class SOC2Compliance extends EventEmitter {
           recommendation: `No evidence collected for ${criteria}. Schedule evidence collection.`,
         });
       } else {
-        const expired = evidence.filter((e) => e.status === EVIDENCE_STATUS.EXPIRED);
+        const expired = evidence.filter(
+          (e) => e.status === EVIDENCE_STATUS.EXPIRED,
+        );
         if (expired.length > 0) {
           recommendations.push({
             criteria,
@@ -320,7 +358,9 @@ class SOC2Compliance extends EventEmitter {
    */
   async verifyEvidence(evidenceId, verifiedBy) {
     try {
-      if (!this.database || !this.database.db) {throw new Error("Database not initialized");}
+      if (!this.database || !this.database.db) {
+        throw new Error("Database not initialized");
+      }
 
       this.database.db
         .prepare(
@@ -343,9 +383,13 @@ class SOC2Compliance extends EventEmitter {
    */
   async getEvidenceByCriteria(criteria) {
     try {
-      if (!this.database || !this.database.db) {return [];}
+      if (!this.database || !this.database.db) {
+        return [];
+      }
       return this.database.db
-        .prepare("SELECT * FROM soc2_evidence WHERE criteria = ? ORDER BY created_at DESC")
+        .prepare(
+          "SELECT * FROM soc2_evidence WHERE criteria = ? ORDER BY created_at DESC",
+        )
         .all(criteria);
     } catch (error) {
       logger.error("[SOC2Compliance] Failed to get evidence:", error);
@@ -354,7 +398,9 @@ class SOC2Compliance extends EventEmitter {
   }
 
   async _saveEvidence(evidence) {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db
       .prepare(
@@ -386,7 +432,9 @@ class SOC2Compliance extends EventEmitter {
 
 let _instance;
 function getSOC2Compliance() {
-  if (!_instance) {_instance = new SOC2Compliance();}
+  if (!_instance) {
+    _instance = new SOC2Compliance();
+  }
   return _instance;
 }
 
