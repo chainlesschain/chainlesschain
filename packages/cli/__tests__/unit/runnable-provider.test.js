@@ -164,6 +164,21 @@ describe("inferProviderFromBaseUrl", () => {
     expect(inferProviderFromBaseUrl("")).toBeNull();
     expect(inferProviderFromBaseUrl(null)).toBeNull();
   });
+
+  it("rejects subdomain-confusion hosts (dot-boundary match, not substring)", () => {
+    // A relabel keeps the SAME baseUrl, but the match must not be foolable into
+    // treating an attacker-controlled host as a built-in provider. `includes`/
+    // `endsWith` without the leading dot would wrongly match these.
+    expect(inferProviderFromBaseUrl("https://api.openai.com.evil.com/v1")).toBe(
+      null,
+    );
+    expect(inferProviderFromBaseUrl("https://evil-volces.com/api")).toBe(null);
+    expect(inferProviderFromBaseUrl("https://notanthropic.com/v1")).toBe(null);
+    // …but a genuine subdomain (real dot boundary) still resolves.
+    expect(inferProviderFromBaseUrl("https://my-proxy.api.openai.com/v1")).toBe(
+      "openai",
+    );
+  });
 });
 
 describe("makeRunnableProviderFallback", () => {
