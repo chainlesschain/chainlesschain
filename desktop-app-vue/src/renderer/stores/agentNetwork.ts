@@ -6,7 +6,14 @@
  * @version 1.1.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
+
+// IPC 事件监听在应用会话内只应绑定一次：本 store 是单例、事件是应用级广播，但每个
+// 使用它的页面都会在 onMounted 里调 initEventListeners()（FederatedNetworkPage 等且
+// 无 onUnmounted 清理）。通用 electronAPI.on 注册的是匿名包装函数、off(callback) 无法
+// 精准移除，故用模块级标志保证只绑定一次，避免每次进入页面都累加重复监听器（重复
+// 合并 + 触发 ipcRenderer MaxListeners 告警）。
+let eventListenersBound = false;
 
 // ==================== 类型定义 ====================
 
@@ -14,7 +21,7 @@ export interface AgentDID {
   did: string;
   publicKey: string;
   skills: string[];
-  status: 'active' | 'revoked';
+  status: "active" | "revoked";
   createdAt: string;
 }
 
@@ -43,7 +50,13 @@ export interface RemoteTask {
   id: string;
   type: string;
   targetAgent: string;
-  status: 'pending' | 'routing' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status:
+    | "pending"
+    | "routing"
+    | "running"
+    | "completed"
+    | "failed"
+    | "cancelled";
   input: any;
   output?: any;
   sla?: { maxDuration: number; priority: string };
@@ -87,7 +100,7 @@ interface AgentNetworkState {
 
 // ==================== Store ====================
 
-export const useAgentNetworkStore = defineStore('agentNetwork', {
+export const useAgentNetworkStore = defineStore("agentNetwork", {
   state: (): AgentNetworkState => ({
     myDID: null,
     allDIDs: [],
@@ -111,12 +124,15 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     myReputation(): number {
       if (!this.myDID) return 0;
-      const score = this.reputationScores.find((r) => r.did === this.myDID!.did);
+      const score = this.reputationScores.find(
+        (r) => r.did === this.myDID!.did,
+      );
       return score?.score ?? 0;
     },
 
     tasksByStatus(): (status: string) => RemoteTask[] {
-      return (status: string) => this.remoteTasks.filter((t) => t.status === status);
+      return (status: string) =>
+        this.remoteTasks.filter((t) => t.status === status);
     },
   },
 
@@ -127,7 +143,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await (window as any).electronAPI.invoke('agent-did:create', config);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-did:create",
+          config,
+        );
         if (result.success && result.data) {
           this.myDID = result.data;
         } else {
@@ -144,7 +163,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async resolveDID(did: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-did:resolve', did);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-did:resolve",
+          did,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -153,7 +175,9 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getAllDIDs() {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-did:get-all');
+        const result = await (window as any).electronAPI.invoke(
+          "agent-did:get-all",
+        );
         if (result.success && result.data) {
           this.allDIDs = result.data;
         }
@@ -165,7 +189,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async revokeDID(did: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-did:revoke', did);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-did:revoke",
+          did,
+        );
         if (result.success) {
           await this.getAllDIDs();
         }
@@ -181,7 +208,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await (window as any).electronAPI.invoke('fed-registry:discover', query);
+        const result = await (window as any).electronAPI.invoke(
+          "fed-registry:discover",
+          query,
+        );
         if (result.success && result.data) {
           this.discoveredAgents = result.data;
         } else {
@@ -199,7 +229,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
     async registerAgent(agentInfo: any) {
       this.loading = true;
       try {
-        const result = await (window as any).electronAPI.invoke('fed-registry:register', agentInfo);
+        const result = await (window as any).electronAPI.invoke(
+          "fed-registry:register",
+          agentInfo,
+        );
         if (result.success) {
           this.error = null;
         } else {
@@ -216,7 +249,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async querySkills(skillQuery: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('fed-registry:query-skills', skillQuery);
+        const result = await (window as any).electronAPI.invoke(
+          "fed-registry:query-skills",
+          skillQuery,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -225,7 +261,9 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getNetworkStats() {
       try {
-        const result = await (window as any).electronAPI.invoke('fed-registry:get-network-stats');
+        const result = await (window as any).electronAPI.invoke(
+          "fed-registry:get-network-stats",
+        );
         if (result.success && result.data) {
           this.networkStats = result.data;
         }
@@ -239,7 +277,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async issueCredential(data: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-cred:issue', data);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-cred:issue",
+          data,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -248,7 +289,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async verifyCredential(cred: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-cred:verify', cred);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-cred:verify",
+          cred,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -257,7 +301,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async revokeCredential(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('agent-cred:revoke', id);
+        const result = await (window as any).electronAPI.invoke(
+          "agent-cred:revoke",
+          id,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -269,7 +316,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
     async routeTask(task: any) {
       this.loading = true;
       try {
-        const result = await (window as any).electronAPI.invoke('cross-org:route-task', task);
+        const result = await (window as any).electronAPI.invoke(
+          "cross-org:route-task",
+          task,
+        );
         if (result.success) {
           await this.getTaskLog();
         }
@@ -283,7 +333,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getTaskStatus(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('cross-org:get-task-status', id);
+        const result = await (window as any).electronAPI.invoke(
+          "cross-org:get-task-status",
+          id,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -292,7 +345,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async cancelTask(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('cross-org:cancel-task', id);
+        const result = await (window as any).electronAPI.invoke(
+          "cross-org:cancel-task",
+          id,
+        );
         if (result.success) {
           await this.getTaskLog();
         }
@@ -304,7 +360,9 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getTaskLog() {
       try {
-        const result = await (window as any).electronAPI.invoke('cross-org:get-log');
+        const result = await (window as any).electronAPI.invoke(
+          "cross-org:get-log",
+        );
         if (result.success && result.data) {
           this.remoteTasks = result.data;
         }
@@ -318,7 +376,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getReputation(did: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('reputation:get-score', did);
+        const result = await (window as any).electronAPI.invoke(
+          "reputation:get-score",
+          did,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -327,7 +388,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getRanking(options?: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('reputation:get-ranking', options);
+        const result = await (window as any).electronAPI.invoke(
+          "reputation:get-ranking",
+          options,
+        );
         if (result.success && result.data) {
           this.reputationScores = result.data;
         }
@@ -339,7 +403,11 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async updateReputation(did: string, feedback: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('reputation:update', did, feedback);
+        const result = await (window as any).electronAPI.invoke(
+          "reputation:update",
+          did,
+          feedback,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -348,7 +416,10 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getReputationHistory(did: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('reputation:get-history', did);
+        const result = await (window as any).electronAPI.invoke(
+          "reputation:get-history",
+          did,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -359,7 +430,9 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
 
     async getConfig() {
       try {
-        const result = await (window as any).electronAPI.invoke('decentralized:get-config');
+        const result = await (window as any).electronAPI.invoke(
+          "decentralized:get-config",
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -369,15 +442,19 @@ export const useAgentNetworkStore = defineStore('agentNetwork', {
     // ==================== 事件监听 ====================
 
     initEventListeners() {
+      if (eventListenersBound) {
+        return;
+      }
       const api = (window as any).electronAPI;
       if (api && api.on) {
-        api.on('agent-network:agent-discovered', (_event: any, data: any) => {
+        eventListenersBound = true;
+        api.on("agent-network:agent-discovered", (_event: any, data: any) => {
           const exists = this.discoveredAgents.find((a) => a.did === data.did);
           if (!exists) {
             this.discoveredAgents.push(data);
           }
         });
-        api.on('agent-network:task-updated', (_event: any, data: any) => {
+        api.on("agent-network:task-updated", (_event: any, data: any) => {
           const idx = this.remoteTasks.findIndex((t) => t.id === data.id);
           if (idx !== -1) {
             this.remoteTasks[idx] = { ...this.remoteTasks[idx], ...data };

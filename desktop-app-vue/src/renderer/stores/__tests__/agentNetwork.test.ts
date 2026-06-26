@@ -206,4 +206,39 @@ describe("useAgentNetworkStore", () => {
       expect(store.error).toBe("offline");
     });
   });
+
+  // -------------------------------------------------------------------------
+  // initEventListeners — bind-once guard (listener-leak regression)
+  // -------------------------------------------------------------------------
+
+  describe("initEventListeners", () => {
+    it("binds each IPC listener only once across repeated calls", async () => {
+      // Regression: every page using this store calls initEventListeners() in
+      // onMounted with no onUnmounted teardown, and the generic electronAPI.on
+      // returns no unsubscribe — so repeated mounts accumulated duplicate
+      // 'agent-network:*' listeners. A module-level guard must bind once only.
+      // Fresh module import resets that module-level flag deterministically.
+      vi.resetModules();
+      const on = vi.fn();
+      (window as any).electronAPI = { invoke: mockInvoke, on };
+      const mod = await import("../agentNetwork");
+      setActivePinia(createPinia());
+      const store = mod.useAgentNetworkStore();
+
+      store.initEventListeners();
+      store.initEventListeners();
+      store.initEventListeners();
+
+      // two distinct events, each bound exactly once — not 6 registrations
+      expect(on).toHaveBeenCalledTimes(2);
+      expect(on).toHaveBeenCalledWith(
+        "agent-network:agent-discovered",
+        expect.any(Function),
+      );
+      expect(on).toHaveBeenCalledWith(
+        "agent-network:task-updated",
+        expect.any(Function),
+      );
+    });
+  });
 });
