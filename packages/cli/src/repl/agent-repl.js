@@ -84,6 +84,7 @@ import { formatBackgroundTasks } from "./tasks-status.js";
 import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
 import { prepareVisionTurn } from "../lib/image-input.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
+import { installPipeSafety } from "../runtime/pipe-safety.js";
 import {
   makeFallbackChatFn,
   normalizeFallbackModels,
@@ -297,6 +298,27 @@ async function agentLoop(messages, options) {
  * Start the agentic REPL
  */
 export async function startAgentRepl(options = {}) {
+  // EPIPE guard: if the REPL's stdout is piped and the consumer closes (e.g.
+  // `cc agent | head`), the async stream `error` would otherwise crash the
+  // process. Route a broken pipe into the REPL's own graceful shutdown (the
+  // rl "close" handler — MCP disconnect, kill background tasks) when the
+  // interface exists, else exit cleanly. `_replClosing` makes it fire once so a
+  // cleanup write that also EPIPEs can't loop. `_replRl` is set when rl is built.
+  let _replRl = null;
+  let _replClosing = false;
+  installPipeSafety(undefined, () => {
+    if (_replClosing) return;
+    _replClosing = true;
+    if (_replRl) {
+      try {
+        _replRl.close(); // triggers the graceful "close" cleanup → process.exit
+        return;
+      } catch {
+        /* fall through to a bare exit */
+      }
+    }
+    process.exit(0);
+  });
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
@@ -1030,6 +1052,9 @@ export async function startAgentRepl(options = {}) {
     terminal: true,
     completer: atCompleter,
   });
+  // Let the EPIPE guard route a broken pipe through this interface's graceful
+  // "close" cleanup instead of a bare exit.
+  _replRl = rl;
 
   // Vim-mode plumbing: capture readline's OWN keypress listeners now so we can
   // suspend them while in NORMAL mode (the engine drives editing then) and

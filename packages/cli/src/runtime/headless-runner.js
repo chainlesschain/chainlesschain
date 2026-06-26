@@ -69,45 +69,10 @@ const VALID_PERMISSION_MODES = Object.freeze([
 
 const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
 
-const _PIPE_SAFE = Symbol.for("cc.headless.pipeSafe");
-
-/**
- * Make a write stream EPIPE-safe so `cc agent -p … | head` exits cleanly
- * instead of crashing. When a downstream consumer closes the pipe, the next
- * write fails ASYNCHRONOUSLY via the stream's `error` event — which the
- * try/catch around writeOut cannot catch, so an unhandled EPIPE crashes the
- * process with a stack trace. Install an idempotent `error` listener that
- * treats EPIPE as "consumer done → exit 0" (the Unix pipeline convention) and
- * surfaces other stream errors best-effort. Injectable for tests.
- *
- * @param {Array<NodeJS.WriteStream>} [streams]
- * @param {() => void} [onEpipe]
- */
-export function installPipeSafety(streams, onEpipe) {
-  const targets = streams || [process.stdout, process.stderr];
-  const handleEpipe = onEpipe || (() => process.exit(0));
-  for (const stream of targets) {
-    if (!stream || typeof stream.on !== "function" || stream[_PIPE_SAFE]) {
-      continue;
-    }
-    stream[_PIPE_SAFE] = true;
-    stream.on("error", (err) => {
-      if (err && err.code === "EPIPE") {
-        handleEpipe();
-        return;
-      }
-      // Non-EPIPE stream error: surface best-effort (never onto the stream that
-      // just errored, to avoid a loop) and otherwise swallow.
-      try {
-        if (stream !== process.stderr) {
-          process.stderr.write(`stream error: ${err?.message || err}\n`);
-        }
-      } catch {
-        /* nothing more we can do */
-      }
-    });
-  }
-}
+// EPIPE guard for `cc agent -p … | head`. Lives in pipe-safety.js (shared with
+// the stream-json driver + REPL); re-exported here for existing importers.
+export { installPipeSafety } from "./pipe-safety.js";
+import { installPipeSafety } from "./pipe-safety.js";
 
 /**
  * Resolve a --permission-mode string into the session-policy tier + a

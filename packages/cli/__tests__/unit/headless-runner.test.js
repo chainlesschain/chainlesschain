@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-import { EventEmitter } from "events";
 import {
   runAgentHeadless,
   resolvePermissionMode,
@@ -7,39 +6,11 @@ import {
   resolveHeadlessSession,
   applyForkSession,
   parseToolList,
-  installPipeSafety,
   READ_ONLY_TOOLS,
 } from "../../src/runtime/headless-runner.js";
 
-describe("installPipeSafety (EPIPE guard for `cc agent -p … | head`)", () => {
-  it("treats an EPIPE stream error as a clean exit, not a crash", () => {
-    const s = new EventEmitter();
-    let exited = 0;
-    installPipeSafety([s], () => exited++);
-    // Without the listener this would be an unhandled 'error' → process crash.
-    s.emit("error", Object.assign(new Error("write EPIPE"), { code: "EPIPE" }));
-    expect(exited).toBe(1);
-  });
-
-  it("does not exit on a non-EPIPE stream error", () => {
-    const s = new EventEmitter();
-    let exited = 0;
-    installPipeSafety([s], () => exited++);
-    s.emit("error", Object.assign(new Error("boom"), { code: "EAGAIN" }));
-    expect(exited).toBe(0);
-  });
-
-  it("is idempotent — one listener per stream across repeated installs", () => {
-    const s = new EventEmitter();
-    let exited = 0;
-    installPipeSafety([s], () => exited++);
-    installPipeSafety([s], () => exited++);
-    installPipeSafety([s], () => exited++);
-    expect(s.listenerCount("error")).toBe(1);
-    s.emit("error", Object.assign(new Error("x"), { code: "EPIPE" }));
-    expect(exited).toBe(1); // only the first handler is wired
-  });
-});
+// installPipeSafety moved to pipe-safety.js (canonical tests in
+// pipe-safety.test.js); headless-runner re-exports it for back-compat.
 
 /** A capturing fake of the persistent ApprovalGate singleton. */
 function fakeGate() {
