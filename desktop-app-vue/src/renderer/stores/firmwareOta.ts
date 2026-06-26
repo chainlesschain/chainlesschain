@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 export interface FirmwareVersion {
   id: string;
@@ -23,13 +23,14 @@ export interface FirmwareUpdate {
   error_message: string | null;
 }
 
-const electronAPI = (window as any).electronAPI || (window as any).electron?.ipcRenderer;
+const electronAPI =
+  (window as any).electronAPI || (window as any).electron?.ipcRenderer;
 function invoke(channel: string, ...args: any[]) {
   if (electronAPI?.invoke) return electronAPI.invoke(channel, ...args);
-  return Promise.reject(new Error('IPC not available'));
+  return Promise.reject(new Error("IPC not available"));
 }
 
-export const useFirmwareOtaStore = defineStore('firmwareOta', {
+export const useFirmwareOtaStore = defineStore("firmwareOta", {
   state: () => ({
     availableUpdates: [] as FirmwareVersion[],
     updateHistory: [] as FirmwareUpdate[],
@@ -40,7 +41,8 @@ export const useFirmwareOtaStore = defineStore('firmwareOta', {
 
   getters: {
     hasUpdate: (state) => state.availableUpdates.length > 0,
-    criticalUpdates: (state) => state.availableUpdates.filter(u => u.is_critical === 1),
+    criticalUpdates: (state) =>
+      state.availableUpdates.filter((u) => u.is_critical === 1),
     isUpdating: (state) => state.currentUpdate !== null,
   },
 
@@ -49,7 +51,10 @@ export const useFirmwareOtaStore = defineStore('firmwareOta', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('firmware:check-updates', { currentVersion, channel });
+        const result = await invoke("firmware:check-updates", {
+          currentVersion,
+          channel,
+        });
         if (result.success && result.availableUpdate) {
           this.availableUpdates = [result.availableUpdate];
         } else if (!result.success) {
@@ -68,7 +73,10 @@ export const useFirmwareOtaStore = defineStore('firmwareOta', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('firmware:list-versions', { channel, limit });
+        const result = await invoke("firmware:list-versions", {
+          channel,
+          limit,
+        });
         if (result.success) this.availableUpdates = result.versions || [];
         else this.error = result.error;
         return result;
@@ -84,7 +92,10 @@ export const useFirmwareOtaStore = defineStore('firmwareOta', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('firmware:start-update', { versionId, allowRollback });
+        const result = await invoke("firmware:start-update", {
+          versionId,
+          allowRollback,
+        });
         if (result.success) {
           this.currentUpdate = result.update;
           await this.fetchHistory();
@@ -96,14 +107,16 @@ export const useFirmwareOtaStore = defineStore('firmwareOta', {
         this.error = err.message;
         return { success: false, error: err.message };
       } finally {
+        // Do NOT clear currentUpdate here: it is set on success above and must
+        // persist so the isUpdating getter reflects the in-progress update.
+        // Clearing it unconditionally made every successful start look idle.
         this.loading = false;
-        this.currentUpdate = null;
       }
     },
 
     async fetchHistory(limit?: number) {
       try {
-        const result = await invoke('firmware:get-history', { limit });
+        const result = await invoke("firmware:get-history", { limit });
         if (result.success) this.updateHistory = result.history || [];
         return result;
       } catch (err: any) {
