@@ -5,6 +5,24 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 
+/**
+ * Parse a stored JSON column defensively. One corrupt capability `history` row
+ * must not throw out of the load loop and silently drop ALL remaining
+ * capabilities at startup (restart-blind trend tracking).
+ * @param {string} raw
+ * @param {*} fallback returned on null/empty/malformed
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 class SelfEvolvingSystem extends EventEmitter {
   constructor() {
     super();
@@ -75,7 +93,7 @@ class SelfEvolvingSystem extends EventEmitter {
       for (const row of rows) {
         this._capabilities.set(row.id, {
           ...row,
-          history: JSON.parse(row.history || "[]"),
+          history: safeParse(row.history, []),
         });
       }
     } catch (error) {

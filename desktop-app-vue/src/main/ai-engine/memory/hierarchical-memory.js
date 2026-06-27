@@ -6,6 +6,24 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 
+/**
+ * Parse a stored JSON column defensively. One corrupt/truncated row must not
+ * throw out of the load loop and silently drop ALL remaining memories for the
+ * whole session (mirrors enterprise-kg.js's safeProps helper).
+ * @param {string} raw
+ * @param {*} fallback returned on null/empty/malformed
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 class HierarchicalMemory extends EventEmitter {
   constructor() {
     super();
@@ -92,8 +110,8 @@ class HierarchicalMemory extends EventEmitter {
       for (const row of rows) {
         this._longTerm.set(row.id, {
           ...row,
-          associations: JSON.parse(row.associations || "[]"),
-          metadata: JSON.parse(row.metadata || "{}"),
+          associations: safeParse(row.associations, []),
+          metadata: safeParse(row.metadata, {}),
         });
       }
     } catch (error) {
@@ -110,7 +128,7 @@ class HierarchicalMemory extends EventEmitter {
       for (const row of rows) {
         this._core.set(row.id, {
           ...row,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
         });
       }
     } catch (error) {
