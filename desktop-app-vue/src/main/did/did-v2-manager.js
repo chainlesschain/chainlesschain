@@ -185,7 +185,9 @@ class DIDv2Manager extends EventEmitter {
   }
 
   aggregateReputation(didId, sources = []) {
-    const scores = sources.map((s) => s.score || 0);
+    // 防御外部传入的 sources：null 元素会让 s.score 抛 TypeError、非数字
+    // score 会让 avg 变 NaN 写进 score REAL 列。Number(...)||0 同时兜住两者。
+    const scores = sources.map((s) => Number(s?.score) || 0);
     const avgScore =
       scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const reputation = {

@@ -1370,6 +1370,20 @@ class DIDManager extends EventEmitter {
     // 停止自动重新发布
     this.stopAutoRepublish();
 
+    // 释放子对象的定时器/监听器：DIDCache 的 cleanupTimer 在 initialize() 里
+    // 无条件启动，DIDUpdater 持有 update/republish 定时器。两者都有 destroy()，
+    // 但此前 close() 从不调用 → 定时器永远跑、钉死 cache(含 db 句柄)。
+    try {
+      await this.cache?.destroy();
+    } catch (err) {
+      logger.warn("[DIDManager] 关闭缓存失败:", err.message);
+    }
+    try {
+      await this.updater?.destroy();
+    } catch (err) {
+      logger.warn("[DIDManager] 关闭更新器失败:", err.message);
+    }
+
     this.currentIdentity = null;
     this.emit("closed");
   }
