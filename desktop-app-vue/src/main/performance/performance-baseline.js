@@ -16,6 +16,24 @@ import { logger } from "../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Parse a stored JSON column defensively. One corrupt/truncated row must not
+ * throw out of the load loop / list .map() and silently drop EVERY baseline
+ * (the unguarded-JSON.parse-in-list-loop bug class).
+ * @param {string} raw
+ * @param {*} fallback returned on null/empty/malformed
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -83,8 +101,8 @@ class PerformanceBaseline extends EventEmitter {
         for (const b of baselines) {
           this._baselines.set(b.id, {
             ...b,
-            metrics: b.metrics ? JSON.parse(b.metrics) : {},
-            environment: b.environment ? JSON.parse(b.environment) : {},
+            metrics: safeParse(b.metrics, {}),
+            environment: safeParse(b.environment, {}),
           });
         }
         logger.info(
@@ -340,8 +358,8 @@ class PerformanceBaseline extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(filter.limit || 50);
         return rows.map((r) => ({
           ...r,
-          metrics: r.metrics ? JSON.parse(r.metrics) : {},
-          environment: r.environment ? JSON.parse(r.environment) : {},
+          metrics: safeParse(r.metrics, {}),
+          environment: safeParse(r.environment, {}),
         }));
       } catch (err) {
         logger.error("[PerformanceBaseline] Failed to get baselines:", err);

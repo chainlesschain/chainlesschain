@@ -83,6 +83,19 @@ describe("PerformanceBaseline", () => {
       await manager.initialize();
       expect(manager._baselines.size).toBe(1);
     });
+
+    it("does not drop every baseline when one row has corrupt metrics JSON", async () => {
+      mockAllStmt.all.mockReturnValueOnce([
+        { id: "good", name: "ok", metrics: '{"a":1}', environment: "{}" },
+        { id: "bad", name: "corrupt", metrics: "{not json", environment: "{}" },
+      ]);
+      // Before the fix the corrupt row threw out of the load loop → the valid
+      // baseline(s) were lost too. Now the bad cell falls back to {} and both load.
+      await manager.initialize();
+      expect(manager._baselines.size).toBe(2);
+      expect(manager._baselines.get("good").metrics).toEqual({ a: 1 });
+      expect(manager._baselines.get("bad").metrics).toEqual({});
+    });
   });
 
   describe("_ensureTables()", () => {
