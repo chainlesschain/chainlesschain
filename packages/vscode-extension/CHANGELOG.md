@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.36.16] — chore: publish to the official VS Code Marketplace
+
+- **No functional changes** — same code as 0.36.15. This version exists to
+  publish the extension to the **official VS Code Marketplace**
+  (marketplace.visualstudio.com), in addition to Open VSX, now that a `VSCE_PAT`
+  secret is configured. Real VS Code users can now find "ChainlessChain IDE
+  Bridge" in the Extensions panel.
+
 ## [0.36.15] — fix: stopping App Preview kills the whole dev-server tree
 
 - **Stopping App Preview (or closing the editor) now terminates the actual dev
