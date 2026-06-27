@@ -550,6 +550,11 @@ function _hasUncommittedChanges(worktreePath) {
     const output = execSync("git status --porcelain", {
       cwd: worktreePath,
       encoding: "utf-8",
+      // A worktree with many dirty files produces >1 MB of porcelain output and
+      // would ENOBUFS on the default cap — the catch below then reports "clean"
+      // (fail-OPEN), which could let a caller discard a worktree full of
+      // uncommitted work. Give it the same 64 MB headroom as gitExec.
+      maxBuffer: 64 * 1024 * 1024,
     });
     return output.trim().length > 0;
   } catch (_e) {

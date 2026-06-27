@@ -105,6 +105,11 @@ export function gitExec(args, cwd) {
     return execSync(`git ${args}`, {
       cwd,
       encoding: "utf-8",
+      // git diff/log/worktree-list output on a large repo easily exceeds
+      // execSync's 1 MB default → ENOBUFS. Match gitExecArgs' 64 MB ceiling so
+      // a big diff/log doesn't spuriously fail (e.g. worktree-diff's --numstat
+      // pass, which isn't wrapped in a degrade-gracefully try/catch).
+      maxBuffer: 64 * 1024 * 1024,
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
   } catch (err) {

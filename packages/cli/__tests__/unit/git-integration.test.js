@@ -160,6 +160,17 @@ describe("Git Integration", () => {
         "fatal: not a git repository",
       );
     });
+
+    it("raises maxBuffer to 64 MB so a large diff/log can't ENOBUFS", () => {
+      // Parity with gitExecArgs — git diff/log/worktree-list output on a big
+      // repo exceeds execSync's 1 MB default and would spuriously fail.
+      execSync.mockReturnValue("");
+      gitExec("log --oneline", "/test");
+      expect(execSync).toHaveBeenCalledWith(
+        "git log --oneline",
+        expect.objectContaining({ maxBuffer: 64 * 1024 * 1024 }),
+      );
+    });
   });
 
   // ─── gitInit ──────────────────────────────────────────────────
