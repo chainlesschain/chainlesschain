@@ -187,6 +187,11 @@ class CollaborationSessionManager extends EventEmitter {
             knowledgeId = kid;
             sessionInfo = session;
             sessions.delete(session);
+            // Drop the now-empty Set so activeSessions doesn't accumulate a
+            // permanent key per knowledgeId ever collaborated on.
+            if (sessions.size === 0) {
+              this.activeSessions.delete(kid);
+            }
             break;
           }
         }
@@ -318,14 +323,24 @@ class CollaborationSessionManager extends EventEmitter {
     this._heartbeatTimer = setInterval(() => {
       const now = Date.now();
 
-      for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
+      // Collect timed-out ids first, then end them — avoids mutating the Set
+      // mid-iteration (endSession deletes from it) and lets us catch the
+      // fire-and-forget async rejection so it isn't an unhandled rejection.
+      const timedOut = [];
+      for (const [, sessions] of this.activeSessions.entries()) {
         for (const session of sessions) {
-          // Check if session has timed out
           if (now - session.lastActivity > this.sessionTimeout) {
-            logger.info(`[CollabSession] Session ${session.id} timed out`);
-            this.endSession(session.id);
+            timedOut.push(session.id);
           }
         }
+      }
+      for (const sessionId of timedOut) {
+        logger.info(`[CollabSession] Session ${sessionId} timed out`);
+        Promise.resolve(this.endSession(sessionId)).catch((err) => {
+          logger.warn(
+            `[CollabSession] endSession(${sessionId}) failed: ${err.message}`,
+          );
+        });
       }
     }, this.heartbeatInterval);
   }

@@ -100,7 +100,7 @@ class StaticSiteExporter {
         const date = new Date(
           note.updated_at || note.created_at,
         ).toLocaleDateString();
-        const tags = note.tags ? JSON.parse(note.tags) : [];
+        const tags = this._parseTags(note.tags);
         const tagHtml = tags
           .map((t) => `<span class="tag">${this._escapeHtml(t)}</span>`)
           .join(" ");
@@ -109,7 +109,7 @@ class StaticSiteExporter {
       .join("\n");
 
     return `<!DOCTYPE html>
-<html lang="zh-CN" data-theme="${theme}">
+<html lang="zh-CN" data-theme="${this._safeTheme(theme)}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -129,13 +129,13 @@ class StaticSiteExporter {
     const date = new Date(
       note.updated_at || note.created_at,
     ).toLocaleDateString();
-    const tags = note.tags ? JSON.parse(note.tags) : [];
+    const tags = this._parseTags(note.tags);
     const tagHtml = tags
       .map((t) => `<span class="tag">${this._escapeHtml(t)}</span>`)
       .join(" ");
 
     return `<!DOCTYPE html>
-<html lang="zh-CN" data-theme="${theme}">
+<html lang="zh-CN" data-theme="${this._safeTheme(theme)}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -231,7 +231,27 @@ footer { margin-top: 3rem; text-align: center; color: #888; font-size: 0.85rem; 
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // Whitelist the theme so an attacker-controlled export option can't break out
+  // of the data-theme="" attribute and inject markup into every page.
+  _safeTheme(theme) {
+    return theme === "dark" ? "dark" : "light";
+  }
+
+  // One bad tags row must not throw out of notes.map() and abort the whole export.
+  _parseTags(raw) {
+    if (!raw) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 }
 
