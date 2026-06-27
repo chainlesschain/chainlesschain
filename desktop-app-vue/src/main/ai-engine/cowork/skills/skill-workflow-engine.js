@@ -250,27 +250,34 @@ class SkillWorkflowEngine extends EventEmitter {
       .filter((n) => n.type !== "start" && n.type !== "end")
       .map((n) => n.id);
 
-    try {
-      // Emit step-level events during execution
-      let stepIndex = 0;
-      const onStepStart = (data) => {
-        const nodeId = nodeIds[stepIndex] || data.stepName;
-        this.emit("step:started", { workflowId, nodeId, stepIndex, ...data });
-      };
-      const onStepComplete = (data) => {
-        const nodeId = nodeIds[stepIndex] || data.stepName;
-        this.emit("step:completed", { workflowId, nodeId, stepIndex, ...data });
-        stepIndex++;
-      };
-      const onStepFail = (data) => {
-        const nodeId = nodeIds[stepIndex] || data.stepName;
-        this.emit("step:failed", { workflowId, nodeId, stepIndex, ...data });
-        stepIndex++;
-      };
+    // Step listener closures — declared OUTSIDE the try so the catch's cleanup
+    // (.off) can reference them. Previously const-scoped to the try, so the
+    // error path threw "onStepStart is not defined", masking the real error and
+    // skipping temp-pipeline cleanup. (The this.emit("step:*") names are the
+    // workflow's OWN public events; only the pipeline subscriptions were wrong.)
+    let stepIndex = 0;
+    const onStepStart = (data) => {
+      const nodeId = nodeIds[stepIndex] || data.stepName;
+      this.emit("step:started", { workflowId, nodeId, stepIndex, ...data });
+    };
+    const onStepComplete = (data) => {
+      const nodeId = nodeIds[stepIndex] || data.stepName;
+      this.emit("step:completed", { workflowId, nodeId, stepIndex, ...data });
+      stepIndex++;
+    };
+    const onStepFail = (data) => {
+      const nodeId = nodeIds[stepIndex] || data.stepName;
+      this.emit("step:failed", { workflowId, nodeId, stepIndex, ...data });
+      stepIndex++;
+    };
 
-      this.pipelineEngine.on("step:started", onStepStart);
-      this.pipelineEngine.on("step:completed", onStepComplete);
-      this.pipelineEngine.on("step:failed", onStepFail);
+    try {
+      // SkillPipelineEngine emits "pipeline:step-started/-completed/-failed";
+      // the old "step:*" names never matched, so per-node workflow progress was
+      // silently dead (the Vue Flow editor showed no step progress).
+      this.pipelineEngine.on("pipeline:step-started", onStepStart);
+      this.pipelineEngine.on("pipeline:step-completed", onStepComplete);
+      this.pipelineEngine.on("pipeline:step-failed", onStepFail);
 
       // Execute the pipeline
       const result = await this.pipelineEngine.executePipeline(pipelineId, {
@@ -279,9 +286,9 @@ class SkillWorkflowEngine extends EventEmitter {
       });
 
       // Cleanup listeners
-      this.pipelineEngine.off("step:started", onStepStart);
-      this.pipelineEngine.off("step:completed", onStepComplete);
-      this.pipelineEngine.off("step:failed", onStepFail);
+      this.pipelineEngine.off("pipeline:step-started", onStepStart);
+      this.pipelineEngine.off("pipeline:step-completed", onStepComplete);
+      this.pipelineEngine.off("pipeline:step-failed", onStepFail);
 
       workflow.executionCount++;
       workflow.lastExecutedAt = Date.now();
@@ -300,10 +307,11 @@ class SkillWorkflowEngine extends EventEmitter {
       // Remove the step listeners — the success path removes them above, but
       // this path used to leak all three closures on the long-lived shared
       // pipelineEngine (accumulating on every failed run, and re-firing stale
-      // step:* events for a finished workflow on later pipeline executions).
-      this.pipelineEngine.off("step:started", onStepStart);
-      this.pipelineEngine.off("step:completed", onStepComplete);
-      this.pipelineEngine.off("step:failed", onStepFail);
+      // step events for a finished workflow on later pipeline executions).
+      // Names must match the subscriptions (pipeline:step-*).
+      this.pipelineEngine.off("pipeline:step-started", onStepStart);
+      this.pipelineEngine.off("pipeline:step-completed", onStepComplete);
+      this.pipelineEngine.off("pipeline:step-failed", onStepFail);
       // Cleanup temp pipeline
       try {
         this.pipelineEngine.deletePipeline(pipelineId);

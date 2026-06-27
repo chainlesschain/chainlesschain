@@ -8,6 +8,12 @@ const path = require("path");
 const EventEmitter = require("events");
 const cron = require("node-cron");
 
+// Bound the in-memory detailed execution history. Each executeSkill() pushes a
+// full record (params + result); in the long-lived main process this grew
+// without limit. Lifetime aggregate stats are tracked separately by
+// skillManager.recordExecution, so capping the detailed list is safe.
+const MAX_EXECUTION_HISTORY = 1000;
+
 class SkillExecutor extends EventEmitter {
   constructor(skillManager, toolManager) {
     super();
@@ -93,6 +99,12 @@ class SkillExecutor extends EventEmitter {
       };
 
       this.executionHistory.push(executionRecord);
+      if (this.executionHistory.length > MAX_EXECUTION_HISTORY) {
+        this.executionHistory.splice(
+          0,
+          this.executionHistory.length - MAX_EXECUTION_HISTORY,
+        );
+      }
 
       // 6. 更新统计信息
       await this.skillManager.recordExecution(

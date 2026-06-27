@@ -11,6 +11,10 @@ const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../../utils/logger.js");
 
+// Cap retained pipeline executions so the executions Map can't grow without
+// bound across the life of the main process.
+const MAX_PIPELINE_EXECUTIONS = 500;
+
 /**
  * Step types
  */
@@ -198,6 +202,16 @@ class SkillPipelineEngine extends EventEmitter {
     };
 
     this.executions.set(executionId, execution);
+    // Bound the executions Map: entries were never deleted, so every run (with
+    // its full context/stepResults) accumulated forever in the long-lived main
+    // process. Evict the oldest once over the cap — recent runs stay queryable
+    // via getPipelineStatus/pause/resume/cancel; long-completed ones are reaped.
+    if (this.executions.size > MAX_PIPELINE_EXECUTIONS) {
+      const oldest = this.executions.keys().next().value;
+      if (oldest !== undefined) {
+        this.executions.delete(oldest);
+      }
+    }
     pipeline.executionCount++;
     pipeline.lastExecutedAt = Date.now();
 
@@ -453,6 +467,7 @@ class SkillPipelineEngine extends EventEmitter {
         result = await runStepByType();
       } catch (error) {
         success = false;
+        let finalError = error;
         // Retry logic
         if (step.retries && step.retries > 0) {
           for (let retry = 0; retry < step.retries; retry++) {
@@ -464,16 +479,22 @@ class SkillPipelineEngine extends EventEmitter {
               success = true;
               break;
             } catch (retryError) {
-              if (retry === step.retries - 1) {
-                throw retryError;
-              }
+              finalError = retryError;
             }
           }
-          if (!success) {
-            throw error;
-          }
-        } else {
-          throw error;
+        }
+        if (!success) {
+          // Surface a per-step failure event before aborting so consumers (the
+          // visual workflow editor) can mark the failing node — the pipeline
+          // only emits step-completed on success and otherwise aborts straight
+          // to pipeline:failed.
+          this.emit("pipeline:step-failed", {
+            executionId: execution.id,
+            stepIndex: i,
+            stepName,
+            error: finalError?.message,
+          });
+          throw finalError;
         }
       }
 
