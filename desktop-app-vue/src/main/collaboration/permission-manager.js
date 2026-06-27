@@ -20,6 +20,25 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
+/**
+ * Parse a stored permissions blob defensively. `permissions` is free-form TEXT,
+ * so one corrupt/legacy row must not throw out of a list loop/map and make the
+ * whole accessible-resources query silently return [] (or null for summaries).
+ * @param {string} raw
+ * @returns {Object} parsed object, or {} on failure
+ */
+function safeParsePermissions(raw) {
+  if (raw == null || raw === "") {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_err) {
+    return {};
+  }
+}
+
 class PermissionManager extends EventEmitter {
   constructor(database) {
     super();
@@ -400,7 +419,7 @@ class PermissionManager extends EventEmitter {
         if (canAccess) {
           accessibleFolders.push({
             ...folder,
-            permissions: JSON.parse(folder.permissions),
+            permissions: safeParsePermissions(folder.permissions),
             effectivePermissions: await this.getEffectivePermissions(
               orgId,
               userDID,
@@ -462,7 +481,7 @@ class PermissionManager extends EventEmitter {
         if (canAccess) {
           accessibleKnowledge.push({
             ...knowledge,
-            permissions: JSON.parse(knowledge.permissions),
+            permissions: safeParsePermissions(knowledge.permissions),
             effectivePermissions: await this.getEffectivePermissions(
               orgId,
               userDID,
@@ -653,8 +672,8 @@ class PermissionManager extends EventEmitter {
     };
 
     const allResources = [
-      ...folders.map((f) => JSON.parse(f.permissions)),
-      ...knowledge.map((k) => JSON.parse(k.permissions)),
+      ...folders.map((f) => safeParsePermissions(f.permissions)),
+      ...knowledge.map((k) => safeParsePermissions(k.permissions)),
     ];
 
     for (const permissions of allResources) {

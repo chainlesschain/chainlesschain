@@ -17,6 +17,25 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
+/**
+ * Parse a stored permissions blob defensively. The `permissions` column is
+ * free-form TEXT written from P2P-broadcast payloads, so one corrupt/legacy row
+ * must not throw out of a list .map() and silently wipe the whole result.
+ * @param {string} raw
+ * @returns {Object} parsed object, or {} on failure
+ */
+function safeParsePermissions(raw) {
+  if (raw == null || raw === "") {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_err) {
+    return {};
+  }
+}
+
 class OrgKnowledgeSyncManager extends EventEmitter {
   constructor(orgP2PNetwork, yjsCollabManager, database, didManager) {
     super();
@@ -451,7 +470,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
 
       return knowledge.map((k) => ({
         ...k,
-        permissions: JSON.parse(k.permissions),
+        permissions: safeParsePermissions(k.permissions),
       }));
     } catch (error) {
       logger.error(
@@ -481,7 +500,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
 
       return folders.map((f) => ({
         ...f,
-        permissions: JSON.parse(f.permissions),
+        permissions: safeParsePermissions(f.permissions),
       }));
     } catch (error) {
       logger.error("[OrgKnowledgeSync] Error getting folders:", error);
@@ -855,7 +874,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
         return false;
       }
 
-      const permissions = JSON.parse(orgKnowledge.permissions);
+      const permissions = safeParsePermissions(orgKnowledge.permissions);
 
       // Check if user's role has permission
       const actionPermissions = permissions[action] || permissions.edit || [];
