@@ -146,7 +146,9 @@ describe("runReview", () => {
   });
 
   it("returns empty when there is no diff and no untracked", async () => {
-    const deps = baseDeps({ git: makeGit({ diff: "", stat: "", untracked: "" }) });
+    const deps = baseDeps({
+      git: makeGit({ diff: "", stat: "", untracked: "" }),
+    });
     const r = await runReview({ cwd: "/repo" }, deps);
     expect(r.empty).toBe(true);
     expect(deps.runAgentHeadless).not.toHaveBeenCalled();
@@ -247,13 +249,23 @@ describe("parseFindings", () => {
     expect(f).toHaveLength(1);
     expect(f[0].path).toBe("a");
   });
+  it("survives trailing prose with a stray ] (no greedy over-capture)", () => {
+    // Greedy first-[..last-] would slice through the trailing "[1]" and fail to
+    // parse, silently dropping the real finding. Balanced extraction recovers it.
+    const f = parseFindings(
+      'Findings: [{"path":"a.js","line":7,"body":"bug"}]. See note [1] for context.',
+    );
+    expect(f).toHaveLength(1);
+    expect(f[0].path).toBe("a.js");
+    expect(f[0].line).toBe(7);
+  });
 });
 
 describe("buildCommentBody / buildReviewPayload", () => {
   it("formats a comment body with severity + title", () => {
-    expect(
-      buildCommentBody({ severity: "High", title: "T", body: "B" }),
-    ).toBe("**[High]** T\n\nB");
+    expect(buildCommentBody({ severity: "High", title: "T", body: "B" })).toBe(
+      "**[High]** T\n\nB",
+    );
   });
   it("builds a GitHub review payload with inline comments", () => {
     const payload = buildReviewPayload(
@@ -310,7 +322,9 @@ describe("runReviewComment", () => {
     isGitRepo: () => true,
     loadConfig: () => ({ llm: {} }),
     applyConfigLlmDefaults: vi.fn(),
-    gh: vi.fn((args) => (args[1] === "view" ? prJson : '{"nameWithOwner":"o/r"}')),
+    gh: vi.fn((args) =>
+      args[1] === "view" ? prJson : '{"nameWithOwner":"o/r"}',
+    ),
     runAgentHeadless: vi.fn(async () => ({
       result:
         '[{"path":"a.js","line":2,"severity":"High","title":"bug","body":"fix"}]',

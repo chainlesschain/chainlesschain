@@ -33,6 +33,7 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { firstBalancedJson } from "../lib/json-schema-output.js";
 
 /** Diffs larger than this are truncated before going to the model. */
 const MAX_DIFF_CHARS = 200_000;
@@ -367,8 +368,9 @@ function resolvePr(cwd, gh) {
   }
   let repo = null;
   try {
-    repo = JSON.parse(gh(["repo", "view", "--json", "nameWithOwner"], { cwd }))
-      .nameWithOwner;
+    repo = JSON.parse(
+      gh(["repo", "view", "--json", "nameWithOwner"], { cwd }),
+    ).nameWithOwner;
   } catch {
     repo = null;
   }
@@ -386,16 +388,29 @@ export function parseFindings(text) {
   let s = String(text).trim();
   const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence) s = fence[1].trim();
+  // Try a BALANCED array first (stops at the first complete [...]); fall back to
+  // the greedy first-[..last-] slice. The greedy slice ALONE over-captures when
+  // the reply has trailing prose or a stray `]` (e.g. "findings: [ … ]. See [1]")
+  // — JSON.parse then fails and EVERY finding is silently dropped.
+  const candidates = [];
+  const balanced = firstBalancedJson(s, "[");
+  if (balanced) candidates.push(balanced);
   const start = s.indexOf("[");
   const end = s.lastIndexOf("]");
-  if (start === -1 || end === -1 || end < start) return [];
-  let arr;
-  try {
-    arr = JSON.parse(s.slice(start, end + 1));
-  } catch {
-    return [];
+  if (start !== -1 && end > start) candidates.push(s.slice(start, end + 1));
+  let arr = null;
+  for (const c of candidates) {
+    try {
+      const parsed = JSON.parse(c);
+      if (Array.isArray(parsed)) {
+        arr = parsed;
+        break;
+      }
+    } catch {
+      /* try the next candidate */
+    }
   }
-  if (!Array.isArray(arr)) return [];
+  if (!arr) return [];
   return arr
     .filter(
       (f) =>
@@ -442,7 +457,11 @@ export function buildReviewPayload(findings, { commitId } = {}) {
  * Post the findings to the PR as a single review with inline comments
  * (outward-facing — callers gate this behind --dry-run / confirmation).
  */
-export function postReviewComments(pr, findings, { gh = ghCli, cwd, commitId } = {}) {
+export function postReviewComments(
+  pr,
+  findings,
+  { gh = ghCli, cwd, commitId } = {},
+) {
   if (!pr || !pr.repo || !pr.number) {
     throw new Error("cannot post: PR repo/number not resolved.");
   }
@@ -487,7 +506,10 @@ export async function runReviewComment(options = {}, deps = {}) {
   // Default the scope to the PR's base branch (review the PR's changes) unless
   // the user gave an explicit scope.
   const explicitScope =
-    options.staged || options.base || options.range || (options.paths || []).length;
+    options.staged ||
+    options.base ||
+    options.range ||
+    (options.paths || []).length;
   const scopeOpts = {
     staged: options.staged === true,
     base: options.base || (explicitScope ? null : pr.baseRefName),
@@ -586,12 +608,20 @@ export async function runReview(options = {}, deps = {}) {
     paths: options.paths || [],
   };
 
-  const { diff, summary, scope, label, untracked, hasDiff, hasUntracked, truncated } =
-    collectReviewDiff(scopeOpts, {
-      cwd,
-      git,
-      includeUntracked: options.untracked !== false,
-    });
+  const {
+    diff,
+    summary,
+    scope,
+    label,
+    untracked,
+    hasDiff,
+    hasUntracked,
+    truncated,
+  } = collectReviewDiff(scopeOpts, {
+    cwd,
+    git,
+    includeUntracked: options.untracked !== false,
+  });
   if (!hasDiff && !hasUntracked) {
     return { exitCode: 0, isError: false, scope, empty: true };
   }
