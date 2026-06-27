@@ -965,7 +965,7 @@ export async function executeTool(name, args, context = {}) {
   // 1. settings deny
   if (settingsVerdict.decision === "deny") {
     return {
-      error: `[Permission] Tool "${name}" denied by settings rule: ${settingsVerdict.rule}`,
+      error: `[Permission] Tool "${name}" denied by settings rule: ${settingsVerdict.rule}. This is a configured policy — retrying won't help; tell the user if the task genuinely needs it.`,
       policy: { decision: "deny", rule: settingsVerdict.rule, via: "settings" },
     };
   }
@@ -1037,7 +1037,7 @@ export async function executeTool(name, args, context = {}) {
         : false;
     if (!ok) {
       return {
-        error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${settingsVerdict.rule}) — denied.`,
+        error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${settingsVerdict.rule}) but this run is non-interactive — denied. Do not retry; tell the user this action needs their approval.`,
         policy: {
           decision: "ask",
           rule: settingsVerdict.rule,
@@ -1902,12 +1902,18 @@ async function executeToolInner(
           policy: gated.policy,
         };
         if (!gated.allowed) {
+          // Make a policy denial ACTIONABLE for the model (Claude-Code 2.1.193
+          // "denial reasons to transcripts"): tell it this won't change on
+          // retry and to involve the user, so it stops re-issuing the same
+          // blocked command (which otherwise just burns turns + tokens).
+          const tierLabel =
+            typeof gated.policy === "string" ? `"${gated.policy}" ` : "";
           return attachDescriptor(
             {
               error:
                 gated.via === "shell-policy"
-                  ? `[Shell Policy] ${gated.reason}`
-                  : `[ApprovalGate] command denied (${gated.via})`,
+                  ? `[Shell Policy] ${gated.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`
+                  : `[ApprovalGate] command denied by the ${tierLabel}approval policy (via ${gated.via}). Retrying the same command will not help — it needs user approval. Tell the user (they can run it themselves, approve it, or relax the policy) and continue with other work.`,
               shellCommandPolicy: shellPolicy,
               approval: approvalOutcome,
             },
@@ -1919,7 +1925,7 @@ async function executeToolInner(
         if (!shellPolicy.allowed) {
           return attachDescriptor(
             {
-              error: `[Shell Policy] ${shellPolicy.reason}`,
+              error: `[Shell Policy] ${shellPolicy.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`,
               shellCommandPolicy: shellPolicy,
             },
             override || runtimeDescriptor,

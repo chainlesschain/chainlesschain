@@ -28,6 +28,10 @@ describe("agent-core run_shell + ApprovalGate", () => {
       { approvalGate: gate },
     );
     expect(res.error).toMatch(/\[ApprovalGate\]/);
+    // The denial reason must be ACTIONABLE for the model: tell it retrying
+    // won't help and to involve the user (Claude-Code 2.1.193 denial reasons).
+    expect(res.error).toMatch(/approval/i);
+    expect(res.error).toMatch(/retry|retrying|user/i);
     expect(res.approval?.via).toBe("no-confirmer");
     expect(res.stdout).toBeUndefined();
   });
