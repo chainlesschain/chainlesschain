@@ -6,6 +6,9 @@ const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 
 class BIEngine extends EventEmitter {
+  // Cap the in-memory report cache (reports are persisted to DB anyway).
+  static MAX_CACHED_REPORTS = 500;
+
   constructor() {
     super();
     this.db = null;
@@ -110,6 +113,13 @@ class BIEngine extends EventEmitter {
       data: options.data || {},
     };
     this._reports.set(id, report);
+    // The report is also persisted to DB, so the in-memory copy is just a cache.
+    // generateReport runs on a long-lived singleton with a fresh id each call —
+    // without a cap, _reports (which embeds arbitrary options.data) grows forever.
+    if (this._reports.size > BIEngine.MAX_CACHED_REPORTS) {
+      const oldest = this._reports.keys().next().value;
+      this._reports.delete(oldest);
+    }
     try {
       this.db
         .prepare(
