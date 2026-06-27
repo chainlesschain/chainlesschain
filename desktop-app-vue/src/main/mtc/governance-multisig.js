@@ -621,10 +621,29 @@ class GovernanceMultiSig {
     if (!fs.existsSync(dir)) {
       return [];
     }
+    // Per-file guard: writeFileSync is not atomic, so a crash mid-write (or
+    // tampering) leaves a truncated signatures/<did>.json. Without this, one
+    // corrupt file makes the whole .map throw out of finalize()/getStatus(),
+    // permanently blocking an M-of-N proposal that already has enough valid
+    // signatures. Skip malformed files (mirrors cross-fed-trust.listTrusted);
+    // _distinctMemberSignatures still enforces membership + DID dedup.
     return fs
       .readdirSync(dir)
       .filter((n) => n.endsWith(".json"))
-      .map((n) => JSON.parse(fs.readFileSync(path.join(dir, n), "utf-8")));
+      .map((n) => {
+        try {
+          return JSON.parse(fs.readFileSync(path.join(dir, n), "utf-8"));
+        } catch (err) {
+          logger.warn(
+            "[GovernanceMultiSig] signature parse failed at " +
+              n +
+              ": " +
+              err.message,
+          );
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   /**
