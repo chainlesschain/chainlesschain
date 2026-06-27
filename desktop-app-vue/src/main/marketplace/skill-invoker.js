@@ -45,6 +45,11 @@ class SkillInvoker {
       timestamp: Date.now(),
     };
     this._invokeHistory.push(result);
+    // Bound the history — getHistory only returns a tail slice, and this is a
+    // long-lived singleton, so an uncapped array leaks every result forever.
+    if (this._invokeHistory.length > 500) {
+      this._invokeHistory.shift();
+    }
     return result;
   }
 

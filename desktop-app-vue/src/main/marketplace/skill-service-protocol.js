@@ -246,6 +246,12 @@ class SkillServiceProtocol extends EventEmitter {
         );
     }
     this._invocations.set(invocationId, invocation);
+    // Cap the in-memory invocation map (already persisted to skill_invocations);
+    // the key is a fresh UUID per call, so on a long-lived singleton it would
+    // otherwise grow without bound, retaining full input/output payloads.
+    if (this._invocations.size > 500) {
+      this._invocations.delete(this._invocations.keys().next().value);
+    }
     this.emit("skill-invoked", invocation);
     return invocation;
   }
