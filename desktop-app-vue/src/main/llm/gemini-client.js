@@ -129,8 +129,14 @@ class GeminiClient {
 
   /**
    * 流式聊天
+   *
+   * Signature is (messages, onChunk, options) to match every other client and
+   * all callers (LLMManager.chatWithMessagesStream, conversation-ipc). The
+   * previous (messages, options, onChunk) order bound onChunk to the options
+   * object → "onChunk is not a function" TypeError on the first delta, crashing
+   * any streaming chat whenever the configured provider was Gemini.
    */
-  async chatStream(messages, options = {}, onChunk) {
+  async chatStream(messages, onChunk, options = {}) {
     const { systemInstruction, contents } = this._convertMessages(messages);
 
     const payload = {

@@ -153,7 +153,7 @@ class OpenAIClient extends EventEmitter {
           finish_reason: choice.finish_reason,
           model: response.data.model,
           usage: response.data.usage,
-          tokens: response.data.usage.total_tokens,
+          tokens: response.data.usage?.total_tokens || 0,
         };
       } catch (error) {
         lastError = error;
@@ -326,7 +326,7 @@ class OpenAIClient extends EventEmitter {
         finish_reason: choice.finish_reason,
         model: response.data.model,
         usage: response.data.usage,
-        tokens: response.data.usage.total_tokens,
+        tokens: response.data.usage?.total_tokens || 0,
       };
     } catch (error) {
       logger.error("[OpenAIClient] 补全失败:", error.response?.data || error);
@@ -403,7 +403,7 @@ class OpenAIClient extends EventEmitter {
   _formatAPIError(error) {
     const status = error.response?.status;
     const serverMessage = error.response?.data?.error?.message;
-    const baseURL = this.baseURL || '';
+    const baseURL = this.baseURL || "";
 
     switch (status) {
       case 401:
@@ -419,13 +419,16 @@ class OpenAIClient extends EventEmitter {
       case 404:
         return `API 端点不存在或模型不可用，请检查 API 地址和模型配置（${baseURL}）`;
       default:
-        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        if (
+          error.code === "ECONNABORTED" ||
+          error.message?.includes("timeout")
+        ) {
           return `API 请求超时，请检查网络连接或稍后重试（${baseURL}）`;
         }
-        if (error.code === 'ECONNREFUSED') {
+        if (error.code === "ECONNREFUSED") {
           return `无法连接到 API 服务，请检查服务地址是否正确（${baseURL}）`;
         }
-        if (error.code === 'ENOTFOUND') {
+        if (error.code === "ENOTFOUND") {
           return `无法解析 API 服务地址，请检查网络连接和 API 地址配置（${baseURL}）`;
         }
         return serverMessage || error.message;

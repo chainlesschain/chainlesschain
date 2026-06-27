@@ -300,18 +300,22 @@ class OllamaClient extends EventEmitter {
       );
 
       return new Promise((resolve, reject) => {
+        let settled = false;
+        let lastData = null;
         response.data.on("data", (chunk) => {
           const lines = chunk.toString().split("\n").filter(Boolean);
 
           for (const line of lines) {
             try {
               const data = JSON.parse(line);
+              lastData = data;
 
               if (onProgress) {
                 onProgress(data);
               }
 
               if (data.status === "success") {
+                settled = true;
                 resolve(data);
               }
             } catch (e) {
@@ -320,8 +324,25 @@ class OllamaClient extends EventEmitter {
           }
         });
 
+        // Settle on stream end even if no "success" line arrived — otherwise a
+        // partial/aborted/non-success-terminal pull leaves the caller hanging
+        // forever (generateStream/chatStream both resolve on 'end'; this didn't).
+        response.data.on("end", () => {
+          if (!settled) {
+            settled = true;
+            reject(
+              new Error(
+                `Model pull ended without success status${lastData?.status ? ` (last status: ${lastData.status})` : ""}`,
+              ),
+            );
+          }
+        });
+
         response.data.on("error", (error) => {
-          reject(error);
+          if (!settled) {
+            settled = true;
+            reject(error);
+          }
         });
       });
     } catch (error) {

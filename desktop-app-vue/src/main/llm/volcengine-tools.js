@@ -369,8 +369,19 @@ class VolcengineToolsClient {
       options,
     );
 
+    // Bound the tool-call loop: a model stuck returning tool_calls every turn
+    // would otherwise re-invoke the API forever. Cap the iterations.
+    const maxToolIterations = options.maxToolIterations || 10;
+    let toolIterations = 0;
+
     // 如果模型决定调用函数
     while (result.choices?.[0]?.message?.tool_calls) {
+      if (++toolIterations > maxToolIterations) {
+        logger.warn(
+          `[VolcengineTools] 工具调用循环达到上限 (${maxToolIterations})，停止继续调用`,
+        );
+        break;
+      }
       const toolCalls = result.choices[0].message.tool_calls;
       logger.info("[VolcengineTools] 模型请求调用", toolCalls.length, "个函数");
 
@@ -378,12 +389,17 @@ class VolcengineToolsClient {
       const functionResults = [];
       for (const toolCall of toolCalls) {
         const functionName = toolCall.function.name;
-        const functionArgs = JSON.parse(toolCall.function.arguments);
-
-        logger.info("[VolcengineTools] 执行函数:", functionName);
-        logger.info("[VolcengineTools] 参数:", functionArgs);
 
         try {
+          // Parse args inside the try: model tool-call arguments are frequently
+          // malformed/truncated (length-limited / streamed), and an unguarded
+          // JSON.parse here threw out of the WHOLE flow instead of being handled
+          // per-tool like execution errors below.
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+
+          logger.info("[VolcengineTools] 执行函数:", functionName);
+          logger.info("[VolcengineTools] 参数:", functionArgs);
+
           const execResult = await functionExecutor.execute(
             functionName,
             functionArgs,
