@@ -218,3 +218,33 @@ describe("readBooleanSetting — layered top-level boolean", () => {
     ).toBeUndefined();
   });
 });
+
+describe("readBooleanSetting — dotted nested path (autoMode.classifyAllShell)", () => {
+  const { readBooleanSetting } = loader;
+
+  it("reads a nested boolean via a dotted key", () => {
+    setFile(userFile, { autoMode: { classifyAllShell: true } });
+    expect(readBooleanSetting("autoMode.classifyAllShell", { cwd: CWD })).toBe(
+      true,
+    );
+  });
+
+  it("closest layer wins for a nested key", () => {
+    setFile(userFile, { autoMode: { classifyAllShell: true } });
+    setFile(localFile, { autoMode: { classifyAllShell: false } });
+    expect(readBooleanSetting("autoMode.classifyAllShell", { cwd: CWD })).toBe(
+      false,
+    );
+  });
+
+  it("returns undefined when the parent is missing or not an object", () => {
+    setFile(userFile, { autoMode: "nope" });
+    expect(
+      readBooleanSetting("autoMode.classifyAllShell", { cwd: CWD }),
+    ).toBeUndefined();
+    setFile(localFile, { permissions: { allow: ["Read"] } });
+    expect(
+      readBooleanSetting("autoMode.classifyAllShell", { cwd: CWD }),
+    ).toBeUndefined();
+  });
+});

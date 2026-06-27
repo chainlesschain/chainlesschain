@@ -305,6 +305,23 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // autoMode.classifyAllShell (Claude-Code 2.1.193): route the built-in
+  // verification allowlist through the shell-policy classifier instead of
+  // fast-pathing it. Explicit option wins; otherwise read settings.json.
+  let classifyAllShell = options.classifyAllShell || false;
+  if (!classifyAllShell) {
+    try {
+      const { readBooleanSetting } = await import("../lib/settings-loader.cjs");
+      classifyAllShell =
+        readBooleanSetting("autoMode.classifyAllShell", {
+          cwd,
+          settingsFile: options.settingsFile,
+        }) === true;
+    } catch {
+      classifyAllShell = false; // fail-open
+    }
+  }
+
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
   const getApprovalGate =
@@ -776,6 +793,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     approvalGate,
     permissionRules,
     settingsHooks,
+    classifyAllShell,
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,

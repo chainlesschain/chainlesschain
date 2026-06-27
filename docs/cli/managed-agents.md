@@ -1045,6 +1045,18 @@ REPL 里 `run_shell` 撞 ApprovalGate 风险确认时,提示是 **`[y]es once / 
 上面的 `allow` 短路)。显式 `ask` 规则保持 y/N(asking 是声明意图;且 deny>ask>allow 下
 allow 也盖不过 ask)。
 
+### `autoMode.classifyAllShell`(Claude-Code 2.1.193 平价)
+
+shell-policy 默认给一组**验证类命令**(`npm test` / `npm run lint` / `npm run build` /
+单文件 Playwright / `rg`)走**快车道 ALLOW**(风险 LOW,自动放行不弹确认)。在
+`.claude/settings.json` 里设 `{ "autoMode": { "classifyAllShell": true } }` 后,这组内置
+白名单也被**降级为 WARN**(风险 MEDIUM)→ 经 ApprovalGate 确认,**任何 shell 命令都不再静默自跑**。
+
+- 只影响**内置便利白名单**;硬黑名单(`rm`/`curl`/destructive git/disk)仍 **DENY**,未分类命令本就是 WARN。
+- 用户显式的 settings `allow` 规则(`Bash(npm run test:*)`)是**另一层有意预授权**,不受此开关影响。
+- 层级与其它设置一致(`~/.claude` < 项目 < `.local` < `--settings`,最近层胜);未设 = 关。
+- 无 ApprovalGate 时(纯 headless 无 gate)降级为 WARN 仍是 allowed——开关的"牙齿"来自交互档位的确认。
+
 ## Credential 读取保护(Claude-Code 2.1.189 `sandbox.credentials` 平价)
 
 cc 不做 OS 沙箱,但同样的意图在**工具层**落地:Agent 不应把用户的密钥静默吸进模型上下文

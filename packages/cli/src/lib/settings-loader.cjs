@@ -240,12 +240,16 @@ function loadSettingsConfig(opts = {}) {
 }
 
 /**
- * Read a top-level boolean setting across the layered `.claude/settings.json`
- * files (last/closest layer wins — same precedence as the permission rules).
- * Non-boolean values are ignored. Returns `undefined` when no layer sets it, so
- * a caller can distinguish "unset" from an explicit `false`.
+ * Read a boolean setting across the layered `.claude/settings.json` files
+ * (last/closest layer wins — same precedence as the permission rules). The key
+ * may be a dotted path for nested settings (e.g. `autoMode.classifyAllShell`);
+ * a plain key walks a one-element path, so existing callers are unaffected.
+ * Non-boolean values (and partial paths through a non-object) are ignored.
+ * Returns `undefined` when no layer sets it, so a caller can distinguish
+ * "unset" from an explicit `false`.
  *
- * @param {string} key  top-level settings key (e.g. "respondToBashCommands")
+ * @param {string} key  settings key or dotted path (e.g. "respondToBashCommands"
+ *                       or "autoMode.classifyAllShell")
  * @param {object} [opts]
  * @param {string} [opts.cwd=process.cwd()]
  * @param {string} [opts.settingsFile]
@@ -254,11 +258,16 @@ function loadSettingsConfig(opts = {}) {
  */
 function readBooleanSetting(key, opts = {}) {
   const cwd = opts.cwd || process.cwd();
+  const parts = String(key).split(".");
   let value;
   for (const file of settingsPaths(cwd, opts.settingsFile)) {
     const data = readSettingsFile(file, { onWarn: opts.onWarn });
-    if (data && typeof data[key] === "boolean") {
-      value = data[key]; // last (closest) layer wins
+    let node = data;
+    for (const p of parts) {
+      node = node && typeof node === "object" ? node[p] : undefined;
+    }
+    if (typeof node === "boolean") {
+      value = node; // last (closest) layer wins
     }
   }
   return value;

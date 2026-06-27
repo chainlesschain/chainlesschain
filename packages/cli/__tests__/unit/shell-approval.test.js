@@ -93,4 +93,18 @@ describe("evaluateShellCommandWithApproval", () => {
     expect(res.riskLevel).toBe("low");
     expect(res.via).toBe("policy");
   });
+
+  it("classifyAllShell lifts an allowlisted command from low to medium risk", async () => {
+    // The built-in allowlist normally fast-paths `npm run test` to LOW (above).
+    // With autoMode.classifyAllShell it is classified as MEDIUM, so the gate
+    // decides instead of auto-passing — a strict tier then asks/denies.
+    const gate = new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.STRICT });
+    const res = await evaluateShellCommandWithApproval({
+      command: "npm run test",
+      approvalGate: gate,
+      shellPolicyOptions: { classifyAllShell: true },
+    });
+    expect(res.riskLevel).toBe("medium");
+    expect(res.shellPolicy.decision).toBe("warn");
+  });
 });

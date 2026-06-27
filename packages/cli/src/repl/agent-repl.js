@@ -118,6 +118,10 @@ let _settingsHooks = null;
 // `!command` auto-triggers an assistant response to its output. undefined =
 // unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
 let _respondToBash;
+// .claude/settings.json `autoMode.classifyAllShell` (Claude-Code 2.1.193): route
+// the built-in verification allowlist through the shell-policy classifier (→
+// ApprovalGate confirm) instead of fast-pathing it. false = unset → off.
+let _classifyAllShell = false;
 
 /**
  * Fire settings.json Notification hooks (observe-only) — the agent needs the
@@ -180,6 +184,7 @@ async function executeTool(name, args) {
     permissionRules: _permissionRules,
     permissionConfirm: _permissionConfirm,
     settingsHooks: _settingsHooks,
+    classifyAllShell: _classifyAllShell,
   });
 }
 
@@ -510,6 +515,11 @@ export async function startAgentRepl(options = {}) {
     _respondToBash = readBooleanSetting("respondToBashCommands", {
       cwd: process.cwd(),
     });
+    // Claude-Code 2.1.193 autoMode.classifyAllShell (default OFF when unset).
+    _classifyAllShell =
+      readBooleanSetting("autoMode.classifyAllShell", {
+        cwd: process.cwd(),
+      }) === true;
     const total =
       loaded.rules.allow.length +
       loaded.rules.ask.length +
@@ -3523,6 +3533,7 @@ export async function startAgentRepl(options = {}) {
         permissionRules: _permissionRules,
         permissionConfirm: _permissionConfirm,
         settingsHooks: _settingsHooks,
+        classifyAllShell: _classifyAllShell,
         // Interactive session: gate run_code through the ApprovalGate (like
         // run_shell) so a strict tier prompts before arbitrary code runs.
         interactiveApproval: true,

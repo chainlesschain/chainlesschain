@@ -1653,6 +1653,7 @@ async function executeToolInner(
     mcpClient,
     llmOptions,
     shellPolicyOverrides,
+    classifyAllShell = false,
     approvalGate,
     shellConfirm,
     additionalDirectories,
@@ -1872,9 +1873,12 @@ async function executeToolInner(
     }
 
     case "run_shell": {
-      const shellPolicyOpts = shellPolicyOverrides
-        ? { overrideRuleIds: shellPolicyOverrides }
-        : {};
+      const shellPolicyOpts = {
+        ...(shellPolicyOverrides
+          ? { overrideRuleIds: shellPolicyOverrides }
+          : {}),
+        ...(classifyAllShell ? { classifyAllShell: true } : {}),
+      };
       const override = getRuntimeToolDescriptorByCommand(args.command);
       let shellPolicy;
       let approvalOutcome = null;
@@ -4542,6 +4546,10 @@ export async function* agentLoop(messages, options) {
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
     shellPolicyOverrides: options.shellPolicyOverrides || null,
+    // autoMode.classifyAllShell (Claude-Code 2.1.193): when true, the built-in
+    // verification allowlist (npm test / rg / …) is classified through the
+    // ApprovalGate instead of fast-pathed, so no shell command auto-runs.
+    classifyAllShell: options.classifyAllShell || false,
     approvalGate: options.approvalGate || null,
     shellConfirm: options.shellConfirm || null,
     // Interactive sessions (the REPL) set this so run_code is gated through the

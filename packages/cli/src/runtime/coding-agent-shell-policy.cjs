@@ -288,7 +288,7 @@ const DECISION_SEVERITY = Object.freeze({
 });
 
 /** Classify ONE command segment (no separators). */
-function evaluateSegmentPolicy(segment, overrideRuleIds) {
+function evaluateSegmentPolicy(segment, overrideRuleIds, classifyAllShell) {
   const normalized = normalizeShellCommand(segment);
   const tokens = tokenizeShellCommand(normalized);
   const firstToken = (tokens[0] || "").toLowerCase();
@@ -326,6 +326,20 @@ function evaluateSegmentPolicy(segment, overrideRuleIds) {
     rule.test(context),
   );
   if (allowlistedRule) {
+    // `classifyAllShell` (Claude-Code 2.1.193 `autoMode.classifyAllShell`):
+    // don't fast-path the built-in verification allowlist to ALLOW (risk LOW,
+    // auto-approved). Downgrade to WARN so EVERY shell command is classified
+    // and routed through the ApprovalGate confirm — the allowlist still
+    // documents intent, but the agent can't silently run even `npm test`.
+    if (classifyAllShell) {
+      return {
+        allowed: true,
+        decision: SHELL_POLICY_DECISIONS.WARN,
+        reason: `${allowlistedRule.reason} (classifyAllShell: confirm required)`,
+        ruleId: allowlistedRule.id,
+        normalizedCommand: normalized,
+      };
+    }
     return {
       allowed: true,
       decision: SHELL_POLICY_DECISIONS.ALLOW,
@@ -350,6 +364,9 @@ function evaluateShellCommandPolicy(command, options = {}) {
   const overrideRuleIds = Array.isArray(options.overrideRuleIds)
     ? new Set(options.overrideRuleIds)
     : new Set();
+  // When set, allowlisted commands are classified (WARN) instead of fast-pathed
+  // (ALLOW) — see evaluateSegmentPolicy.
+  const classifyAllShell = options.classifyAllShell === true;
 
   // Inspect EVERY segment of a compound command, not just the first — a
   // dangerous segment after `&&` / `;` / `|` must still be caught. The most
@@ -368,7 +385,11 @@ function evaluateShellCommandPolicy(command, options = {}) {
 
   let worst = null;
   for (const segment of segments) {
-    const result = evaluateSegmentPolicy(segment, overrideRuleIds);
+    const result = evaluateSegmentPolicy(
+      segment,
+      overrideRuleIds,
+      classifyAllShell,
+    );
     const sev = DECISION_SEVERITY[result.decision] ?? 1;
     const worstSev = worst ? (DECISION_SEVERITY[worst.decision] ?? 1) : -1;
     if (sev > worstSev) worst = result;

@@ -182,6 +182,77 @@ describe("coding-agent shell policy", () => {
     );
   });
 
+  describe("classifyAllShell (autoMode.classifyAllShell, CC 2.1.193)", () => {
+    it("classifies an allowlisted command as WARN instead of ALLOW", () => {
+      // Without the flag the allowlist fast-paths to ALLOW (risk LOW)…
+      expect(evaluateShellCommandPolicy("npm run test:unit")).toEqual(
+        expect.objectContaining({
+          allowed: true,
+          decision: SHELL_POLICY_DECISIONS.ALLOW,
+          ruleId: "npm-test",
+        }),
+      );
+      // …with classifyAllShell it stays allowed but is downgraded to WARN, so
+      // the ApprovalGate confirm runs (risk MEDIUM) — nothing auto-runs.
+      expect(
+        evaluateShellCommandPolicy("npm run test:unit", {
+          classifyAllShell: true,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          allowed: true,
+          decision: SHELL_POLICY_DECISIONS.WARN,
+          ruleId: "npm-test",
+        }),
+      );
+    });
+
+    it("still hard-DENYs blocked commands under classifyAllShell", () => {
+      expect(
+        evaluateShellCommandPolicy("git reset --hard HEAD~1", {
+          classifyAllShell: true,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          allowed: false,
+          decision: SHELL_POLICY_DECISIONS.DENY,
+        }),
+      );
+    });
+
+    it("does not change an already-WARN unclassified command", () => {
+      expect(
+        evaluateShellCommandPolicy("echo hello", { classifyAllShell: true }),
+      ).toEqual(
+        expect.objectContaining({
+          allowed: true,
+          decision: SHELL_POLICY_DECISIONS.WARN,
+          ruleId: "unclassified-command",
+        }),
+      );
+    });
+
+    it("a fully-allowlisted compound becomes WARN under classifyAllShell", () => {
+      // Every segment allowlisted → ALLOW normally; classifyAllShell lifts the
+      // whole compound to WARN (most-restrictive segment wins).
+      expect(
+        evaluateShellCommandPolicy("npm run lint && npm run test:unit"),
+      ).toEqual(
+        expect.objectContaining({ decision: SHELL_POLICY_DECISIONS.ALLOW }),
+      );
+      expect(
+        evaluateShellCommandPolicy("npm run lint && npm run test:unit", {
+          classifyAllShell: true,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          allowed: true,
+          decision: SHELL_POLICY_DECISIONS.WARN,
+        }),
+      );
+    });
+  });
+
   describe("IaC destroy (terraform/pulumi/cdk/terragrunt)", () => {
     it("blocks destroy subcommands", () => {
       for (const cmd of [
