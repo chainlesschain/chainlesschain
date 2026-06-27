@@ -87,6 +87,7 @@ class HttpSseTransport extends EventEmitter {
     this.pendingResponses = new Map(); // requestId -> {resolve, reject, timer}
     this.nextRequestId = 1;
     this.retryCount = 0;
+    this._reconnectTimer = null; // pending reconnect setTimeout handle (single-flight)
 
     // Heartbeat
     this.heartbeatTimer = null;
@@ -273,8 +274,24 @@ class HttpSseTransport extends EventEmitter {
    * @private
    */
   async _reconnectSSE() {
+    // Single-flight: the SSE error handler, the SSE end handler, and the
+    // missed-heartbeat path all call this. Without this guard they spawned
+    // parallel reconnect chains, each overwriting this.sseConnection and leaking
+    // the previous socket. The internal retry below re-enters only after the
+    // timer fires (handle cleared first), so the retry loop still works.
+    if (this._reconnectTimer) {
+      return;
+    }
+
     if (this.retryCount >= this.config.maxRetries) {
       logger.error("[HttpSseTransport] Max retries reached, giving up");
+      this.isConnected = false;
+      // Stop the heartbeat/health-check timers — otherwise they keep firing
+      // forever against a permanently-dead transport (each tick throwing and
+      // re-triggering reconnect). The client manager doesn't call stop() on the
+      // transport's disconnect, so nothing else clears them.
+      this._stopHeartbeat();
+      this._stopHealthCheck();
       this.emit("error", new Error("Failed to reconnect after max retries"));
       return;
     }
@@ -286,7 +303,9 @@ class HttpSseTransport extends EventEmitter {
       `[HttpSseTransport] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${this.config.maxRetries})`,
     );
 
-    setTimeout(async () => {
+    // Store the handle so stop() can cancel a pending reconnect.
+    this._reconnectTimer = setTimeout(async () => {
+      this._reconnectTimer = null;
       try {
         await this._connectSSE();
         this.retryCount = 0; // Reset on successful connection
@@ -453,8 +472,10 @@ class HttpSseTransport extends EventEmitter {
       message.id,
     );
 
-    // Check if this is a response to a pending request
-    if (message.id && this.pendingResponses.has(message.id)) {
+    // Check if this is a response to a pending request. Use != null (not
+    // truthiness): a JSON-RPC id of 0 is spec-valid, and `message.id &&` would
+    // drop such a response, hanging its awaiter until the request timeout.
+    if (message.id != null && this.pendingResponses.has(message.id)) {
       const { resolve, reject, timer } = this.pendingResponses.get(message.id);
       clearTimeout(timer);
       this.pendingResponses.delete(message.id);
@@ -488,6 +509,13 @@ class HttpSseTransport extends EventEmitter {
     if (this.circuitBreakerTimer) {
       clearTimeout(this.circuitBreakerTimer);
       this.circuitBreakerTimer = null;
+    }
+
+    // Cancel any pending reconnect — otherwise it fires after stop() and
+    // resurrects a connection the caller asked to tear down.
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
     }
 
     if (this.sseConnection) {
