@@ -10,28 +10,28 @@
  * @version 0.27.0
  */
 
-const { logger } = require('../utils/logger.js');
-const crypto = require('crypto');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
+const { EventEmitter } = require("events");
 
 /**
  * 冲突类型
  */
 const ConflictType = {
-  VERSION_MISMATCH: 'version_mismatch', // 版本冲突
-  CONCURRENT_EDIT: 'concurrent_edit', // 并发编辑
-  DELETE_MODIFY: 'delete_modify', // 删除-修改冲突
-  BINARY_CONFLICT: 'binary_conflict', // 二进制文件冲突
+  VERSION_MISMATCH: "version_mismatch", // 版本冲突
+  CONCURRENT_EDIT: "concurrent_edit", // 并发编辑
+  DELETE_MODIFY: "delete_modify", // 删除-修改冲突
+  BINARY_CONFLICT: "binary_conflict", // 二进制文件冲突
 };
 
 /**
  * 冲突解决策略
  */
 const ResolutionStrategy = {
-  USE_MINE: 'use-mine', // 使用本地版本
-  USE_THEIRS: 'use-theirs', // 使用服务器版本
-  MERGE: 'merge', // 手动合并
-  AUTO_MERGE: 'auto-merge', // 自动合并
+  USE_MINE: "use-mine", // 使用本地版本
+  USE_THEIRS: "use-theirs", // 使用服务器版本
+  MERGE: "merge", // 手动合并
+  AUTO_MERGE: "auto-merge", // 自动合并
 };
 
 /**
@@ -80,8 +80,8 @@ class FileConflict {
       return null;
     }
 
-    const currentLines = this.currentContent.split('\n');
-    const newLines = this.newContent.split('\n');
+    const currentLines = this.currentContent.split("\n");
+    const newLines = this.newContent.split("\n");
 
     // 简单的行级差异（生产环境应使用 diff 库）
     const diff = {
@@ -125,9 +125,9 @@ class FileConflict {
     }
 
     const markers = {
-      start: '<<<<<<< LOCAL (当前版本)',
-      separator: '=======',
-      end: '>>>>>>> REMOTE (新版本)',
+      start: "<<<<<<< LOCAL (当前版本)",
+      separator: "=======",
+      end: ">>>>>>> REMOTE (新版本)",
     };
 
     // 生成带冲突标记的内容
@@ -137,7 +137,7 @@ class FileConflict {
       markers.separator,
       this.newContent,
       markers.end,
-    ].join('\n');
+    ].join("\n");
 
     this.conflictMarkers = {
       markers,
@@ -152,17 +152,21 @@ class FileConflict {
    */
   async autoMerge() {
     if (!this.baseContent || !this.currentContent || !this.newContent) {
-      return { success: false, reason: '缺少基础版本，无法自动合并' };
+      return { success: false, reason: "缺少基础版本，无法自动合并" };
     }
 
-    const baseLines = this.baseContent.split('\n');
-    const currentLines = this.currentContent.split('\n');
-    const newLines = this.newContent.split('\n');
+    const baseLines = this.baseContent.split("\n");
+    const currentLines = this.currentContent.split("\n");
+    const newLines = this.newContent.split("\n");
 
     const mergedLines = [];
     let hasConflict = false;
 
-    const maxLen = Math.max(baseLines.length, currentLines.length, newLines.length);
+    const maxLen = Math.max(
+      baseLines.length,
+      currentLines.length,
+      newLines.length,
+    );
 
     for (let i = 0; i < maxLen; i++) {
       const baseLine = baseLines[i];
@@ -171,18 +175,18 @@ class FileConflict {
 
       if (currentLine === newLine) {
         // 两边相同，使用任意一个
-        mergedLines.push(currentLine || '');
+        mergedLines.push(currentLine || "");
       } else if (currentLine === baseLine) {
         // 只有远程改变，使用远程版本
-        mergedLines.push(newLine || '');
+        mergedLines.push(newLine || "");
       } else if (newLine === baseLine) {
         // 只有本地改变，使用本地版本
-        mergedLines.push(currentLine || '');
+        mergedLines.push(currentLine || "");
       } else {
         // 两边都改变，无法自动合并
         hasConflict = true;
         mergedLines.push(
-          `<<<<<<< LOCAL\n${currentLine || ''}\n=======\n${newLine || ''}\n>>>>>>> REMOTE`
+          `<<<<<<< LOCAL\n${currentLine || ""}\n=======\n${newLine || ""}\n>>>>>>> REMOTE`,
         );
       }
     }
@@ -190,15 +194,15 @@ class FileConflict {
     if (hasConflict) {
       return {
         success: false,
-        reason: '存在冲突行，需要手动解决',
-        mergedContent: mergedLines.join('\n'),
+        reason: "存在冲突行，需要手动解决",
+        mergedContent: mergedLines.join("\n"),
         hasConflictMarkers: true,
       };
     }
 
     return {
       success: true,
-      mergedContent: mergedLines.join('\n'),
+      mergedContent: mergedLines.join("\n"),
     };
   }
 
@@ -295,11 +299,14 @@ class ConflictResolver extends EventEmitter {
 
     // 2. 检查版本号
     const currentVersion = currentFile.version || 1;
-    const expectedVersion = version !== undefined && version !== null ? version : currentVersion;
+    const expectedVersion =
+      version !== undefined && version !== null ? version : currentVersion;
 
     if (currentVersion !== expectedVersion) {
       // 版本冲突
-      logger.warn(`[ConflictResolver] 检测到版本冲突: 当前=${currentVersion}, 期望=${expectedVersion}`);
+      logger.warn(
+        `[ConflictResolver] 检测到版本冲突: 当前=${currentVersion}, 期望=${expectedVersion}`,
+      );
 
       const conflict = new FileConflict({
         fileId,
@@ -324,7 +331,7 @@ class ConflictResolver extends EventEmitter {
       const autoMergeResult = await conflict.autoMerge();
 
       this.conflicts.set(fileId, conflict);
-      this.emit('conflict-detected', conflict);
+      this.emit("conflict-detected", conflict);
 
       return {
         hasConflict: true,
@@ -367,11 +374,15 @@ class ConflictResolver extends EventEmitter {
       updated_at: Date.now(),
     });
 
-    // 移到历史记录
+    // 移到历史记录（上限保护：长生命周期单例，每条含完整 content/diff，
+    // getConflictHistory 只读尾部 slice 不缩减底层数组）
     this.history.push(conflict);
+    if (this.history.length > 500) {
+      this.history = this.history.slice(-500);
+    }
     this.conflicts.delete(fileId);
 
-    this.emit('conflict-resolved', {
+    this.emit("conflict-resolved", {
       fileId,
       conflict,
       resolution,
@@ -405,7 +416,7 @@ class ConflictResolver extends EventEmitter {
    */
   clearHistory() {
     this.history = [];
-    logger.info('[ConflictResolver] 冲突历史已清除');
+    logger.info("[ConflictResolver] 冲突历史已清除");
   }
 
   /**
@@ -413,11 +424,11 @@ class ConflictResolver extends EventEmitter {
    */
   async _getCurrentFile(fileId) {
     if (!this.database || !this.database.db) {
-      throw new Error('数据库未初始化');
+      throw new Error("数据库未初始化");
     }
 
     const file = this.database.db
-      .prepare('SELECT * FROM project_files WHERE id = ?')
+      .prepare("SELECT * FROM project_files WHERE id = ?")
       .get(fileId);
 
     return file || null;
@@ -434,12 +445,14 @@ class ConflictResolver extends EventEmitter {
 
     try {
       const baseVersion = this.database.db
-        .prepare('SELECT content FROM file_versions WHERE file_id = ? AND version = ?')
+        .prepare(
+          "SELECT content FROM file_versions WHERE file_id = ? AND version = ?",
+        )
         .get(fileId, version);
 
       return baseVersion ? baseVersion.content : null;
     } catch (error) {
-      logger.warn('[ConflictResolver] 无法获取基础版本:', error.message);
+      logger.warn("[ConflictResolver] 无法获取基础版本:", error.message);
       return null;
     }
   }
@@ -449,13 +462,13 @@ class ConflictResolver extends EventEmitter {
    */
   async _updateFile(fileId, updates) {
     if (!this.database || !this.database.db) {
-      throw new Error('数据库未初始化');
+      throw new Error("数据库未初始化");
     }
 
     const fields = Object.keys(updates);
     const values = Object.values(updates);
 
-    const setClause = fields.map((f) => `${f} = ?`).join(', ');
+    const setClause = fields.map((f) => `${f} = ?`).join(", ");
 
     this.database.db
       .prepare(`UPDATE project_files SET ${setClause} WHERE id = ?`)
@@ -473,7 +486,7 @@ let conflictResolverInstance = null;
 function getConflictResolver(database) {
   if (!conflictResolverInstance) {
     conflictResolverInstance = new ConflictResolver(database);
-    logger.info('[ConflictResolver] 冲突解决器已初始化');
+    logger.info("[ConflictResolver] 冲突解决器已初始化");
   }
   return conflictResolverInstance;
 }

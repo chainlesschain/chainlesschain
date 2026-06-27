@@ -21,6 +21,7 @@ class AutomationManager extends EventEmitter {
     this.rules = new Map(); // 规则存储
     this.scheduledTasks = new Map(); // 定时任务
     this.fileWatchers = new Map(); // 文件监听器
+    this.taskCompleteHandlers = new Map(); // ruleId -> task:complete 监听器（供 stopRule 精准移除）
     this.initialized = false;
   }
 
@@ -214,15 +215,24 @@ class AutomationManager extends EventEmitter {
           );
           break;
 
-        case "task_complete":
-          // 通过事件监听实现
-          this.on("task:complete", async (taskData) => {
+        case "task_complete": {
+          // 通过事件监听实现。存 handler 以便 stopRule 精准 off（否则 updateRule
+          // 反复 stopRule+registerRule 会累加监听器：泄漏 + 重复执行 + MaxListeners 告警）。
+          const taskCompleteHandler = async (taskData) => {
             if (this.matchesCondition(taskData, triggerConf)) {
               await this.executeAction(action_type, actionConf);
               await this.updateLastRun(id);
             }
-          });
+          };
+          // 同一 ruleId 若已注册旧 handler，先移除
+          const prev = this.taskCompleteHandlers.get(id);
+          if (prev) {
+            this.off("task:complete", prev);
+          }
+          this.taskCompleteHandlers.set(id, taskCompleteHandler);
+          this.on("task:complete", taskCompleteHandler);
           break;
+        }
 
         case "manual":
           // 手动触发，不需要注册
@@ -1023,6 +1033,12 @@ class AutomationManager extends EventEmitter {
       const watcher = this.fileWatchers.get(ruleId);
       watcher.close();
       this.fileWatchers.delete(ruleId);
+    }
+
+    // 移除 task:complete 监听器（否则 updateRule 反复注册会累加泄漏）
+    if (this.taskCompleteHandlers.has(ruleId)) {
+      this.off("task:complete", this.taskCompleteHandlers.get(ruleId));
+      this.taskCompleteHandlers.delete(ruleId);
     }
 
     // 从缓存中删除

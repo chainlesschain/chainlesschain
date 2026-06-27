@@ -5,9 +5,9 @@
  * @module template-library
  */
 
-const { logger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 const {
   ProjectTemplates,
   TemplateCategory,
@@ -15,12 +15,12 @@ const {
   getTemplateById,
   getTemplatesByCategory,
   searchTemplates,
-} = require('./project-types.js');
+} = require("./project-types.js");
 
 /**
  * 自定义模板存储文件名
  */
-const CUSTOM_TEMPLATES_FILE = 'custom_templates.json';
+const CUSTOM_TEMPLATES_FILE = "custom_templates.json";
 
 /**
  * 模板库管理器
@@ -39,16 +39,18 @@ class TemplateLibraryManager {
    * @private
    */
   _getDefaultConfigDir() {
-    const { app } = require('electron');
-    const userDataPath = app ? app.getPath('userData') : process.cwd();
-    return path.join(userDataPath, '.chainlesschain');
+    const { app } = require("electron");
+    const userDataPath = app ? app.getPath("userData") : process.cwd();
+    return path.join(userDataPath, ".chainlesschain");
   }
 
   /**
    * 初始化模板库
    */
   async initialize() {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
       // 确保配置目录存在
@@ -58,9 +60,9 @@ class TemplateLibraryManager {
       await this._loadCustomTemplates();
 
       this.initialized = true;
-      logger.info('[TemplateLibrary] 初始化完成');
+      logger.info("[TemplateLibrary] 初始化完成");
     } catch (error) {
-      logger.error('[TemplateLibrary] 初始化失败:', error);
+      logger.error("[TemplateLibrary] 初始化失败:", error);
       throw error;
     }
   }
@@ -71,18 +73,18 @@ class TemplateLibraryManager {
    */
   async _loadCustomTemplates() {
     try {
-      const data = await fs.readFile(this.customTemplatesPath, 'utf-8');
+      const data = await fs.readFile(this.customTemplatesPath, "utf-8");
       this.customTemplates = JSON.parse(data);
       logger.info(
-        `[TemplateLibrary] 加载了 ${Object.keys(this.customTemplates).length} 个自定义模板`
+        `[TemplateLibrary] 加载了 ${Object.keys(this.customTemplates).length} 个自定义模板`,
       );
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.code === "ENOENT") {
         // 文件不存在，使用空对象
         this.customTemplates = {};
-        logger.info('[TemplateLibrary] 自定义模板文件不存在，使用空模板库');
+        logger.info("[TemplateLibrary] 自定义模板文件不存在，使用空模板库");
       } else {
-        logger.error('[TemplateLibrary] 加载自定义模板失败:', error);
+        logger.error("[TemplateLibrary] 加载自定义模板失败:", error);
         this.customTemplates = {};
       }
     }
@@ -97,11 +99,11 @@ class TemplateLibraryManager {
       await fs.writeFile(
         this.customTemplatesPath,
         JSON.stringify(this.customTemplates, null, 2),
-        'utf-8'
+        "utf-8",
       );
-      logger.info('[TemplateLibrary] 自定义模板已保存');
+      logger.info("[TemplateLibrary] 自定义模板已保存");
     } catch (error) {
-      logger.error('[TemplateLibrary] 保存自定义模板失败:', error);
+      logger.error("[TemplateLibrary] 保存自定义模板失败:", error);
       throw error;
     }
   }
@@ -195,18 +197,24 @@ class TemplateLibraryManager {
 
     // 搜索自定义模板
     if (includeCustom) {
-      const lowerQuery = (query || '').toLowerCase().trim();
+      const lowerQuery = (query || "").toLowerCase().trim();
 
       const customResults = Object.values(this.customTemplates)
         .filter((template) => {
-          if (!lowerQuery) {return true;}
+          if (!lowerQuery) {
+            return true;
+          }
 
-          const matchName = template.name.toLowerCase().includes(lowerQuery);
-          const matchDescription = template.description
+          // customTemplates 来自可导入的用户 JSON，无 schema 校验：一条缺
+          // name/description 的模板会让整个 filter 抛 TypeError、搜索全挂。
+          const matchName = (template.name || "")
+            .toLowerCase()
+            .includes(lowerQuery);
+          const matchDescription = (template.description || "")
             .toLowerCase()
             .includes(lowerQuery);
           const matchTags = (template.tags || []).some((tag) =>
-            tag.toLowerCase().includes(lowerQuery)
+            tag.toLowerCase().includes(lowerQuery),
           );
           return matchName || matchDescription || matchTags;
         })
@@ -239,7 +247,7 @@ class TemplateLibraryManager {
    * @returns {Array} 推荐的模板列表
    */
   recommend(description, limit = 5) {
-    if (!description || description.trim() === '') {
+    if (!description || description.trim() === "") {
       // 没有描述时返回热门模板
       return this.getAllTemplates().slice(0, limit);
     }
@@ -250,44 +258,44 @@ class TemplateLibraryManager {
     // 关键词权重映射
     const keywordWeights = {
       // 移动端
-      android: ['android-app', 'kotlin-multiplatform', 'flutter-app'],
-      ios: ['flutter-app', 'kotlin-multiplatform'],
-      mobile: ['android-app', 'flutter-app', 'kotlin-multiplatform'],
-      app: ['android-app', 'flutter-app'],
+      android: ["android-app", "kotlin-multiplatform", "flutter-app"],
+      ios: ["flutter-app", "kotlin-multiplatform"],
+      mobile: ["android-app", "flutter-app", "kotlin-multiplatform"],
+      app: ["android-app", "flutter-app"],
 
       // Web前端
-      react: ['react-webapp'],
-      vue: ['vue-webapp'],
-      web: ['react-webapp', 'vue-webapp', 'django-web'],
-      frontend: ['react-webapp', 'vue-webapp'],
+      react: ["react-webapp"],
+      vue: ["vue-webapp"],
+      web: ["react-webapp", "vue-webapp", "django-web"],
+      frontend: ["react-webapp", "vue-webapp"],
 
       // 后端
-      api: ['nodejs-api', 'express-api', 'spring-boot'],
-      backend: ['nodejs-api', 'express-api', 'spring-boot'],
-      rest: ['nodejs-api', 'express-api', 'spring-boot'],
-      server: ['nodejs-api', 'express-api', 'spring-boot'],
-      node: ['nodejs-api', 'express-api'],
-      express: ['express-api'],
-      spring: ['spring-boot'],
-      java: ['spring-boot'],
-      kotlin: ['kotlin-multiplatform', 'spring-boot', 'android-app'],
+      api: ["nodejs-api", "express-api", "spring-boot"],
+      backend: ["nodejs-api", "express-api", "spring-boot"],
+      rest: ["nodejs-api", "express-api", "spring-boot"],
+      server: ["nodejs-api", "express-api", "spring-boot"],
+      node: ["nodejs-api", "express-api"],
+      express: ["express-api"],
+      spring: ["spring-boot"],
+      java: ["spring-boot"],
+      kotlin: ["kotlin-multiplatform", "spring-boot", "android-app"],
 
       // 数据科学
-      data: ['python-datascience'],
-      python: ['python-datascience', 'django-web'],
-      jupyter: ['python-datascience'],
-      analysis: ['python-datascience'],
-      ml: ['python-datascience'],
-      machine: ['python-datascience'],
+      data: ["python-datascience"],
+      python: ["python-datascience", "django-web"],
+      jupyter: ["python-datascience"],
+      analysis: ["python-datascience"],
+      ml: ["python-datascience"],
+      machine: ["python-datascience"],
 
       // 全栈
-      django: ['django-web'],
-      fullstack: ['django-web', 'vue-webapp'],
+      django: ["django-web"],
+      fullstack: ["django-web", "vue-webapp"],
 
       // Flutter
-      flutter: ['flutter-app'],
-      dart: ['flutter-app'],
-      cross: ['flutter-app', 'kotlin-multiplatform'],
+      flutter: ["flutter-app"],
+      dart: ["flutter-app"],
+      cross: ["flutter-app", "kotlin-multiplatform"],
     };
 
     // 计算每个模板的得分
@@ -371,13 +379,13 @@ class TemplateLibraryManager {
 
     // 添加目录
     (template.directories || []).forEach((dir) => {
-      this._addPathToTree(tree, dir, 'directory', paths);
+      this._addPathToTree(tree, dir, "directory", paths);
     });
 
     // 添加文件
     (template.files || []).forEach((file) => {
-      const filePath = typeof file === 'string' ? file : file.path;
-      this._addPathToTree(tree, filePath, 'file', paths);
+      const filePath = typeof file === "string" ? file : file.path;
+      this._addPathToTree(tree, filePath, "file", paths);
     });
 
     return tree;
@@ -388,12 +396,12 @@ class TemplateLibraryManager {
    * @private
    */
   _addPathToTree(tree, pathStr, type, existingPaths) {
-    const parts = pathStr.split('/').filter((p) => p);
+    const parts = pathStr.split("/").filter((p) => p);
     let currentLevel = tree;
 
     parts.forEach((part, index) => {
       const isLast = index === parts.length - 1;
-      const currentPath = parts.slice(0, index + 1).join('/');
+      const currentPath = parts.slice(0, index + 1).join("/");
 
       // 检查是否已存在
       let existingNode = currentLevel.find((node) => node.name === part);
@@ -402,8 +410,8 @@ class TemplateLibraryManager {
         const newNode = {
           name: part,
           path: currentPath,
-          type: isLast ? type : 'directory',
-          children: isLast && type === 'file' ? undefined : [],
+          type: isLast ? type : "directory",
+          children: isLast && type === "file" ? undefined : [],
         };
         currentLevel.push(newNode);
         existingPaths.add(currentPath);
@@ -435,11 +443,11 @@ class TemplateLibraryManager {
     // 确保必要字段存在
     const savedTemplate = {
       id: template.id,
-      name: template.name || '未命名模板',
-      description: template.description || '',
+      name: template.name || "未命名模板",
+      description: template.description || "",
       category: template.category || TemplateCategory.OTHER,
-      projectType: template.projectType || 'other',
-      icon: template.icon || 'folder',
+      projectType: template.projectType || "other",
+      icon: template.icon || "folder",
       tags: template.tags || [],
       directories: template.directories || [],
       files: template.files || [],
@@ -455,7 +463,7 @@ class TemplateLibraryManager {
     this.customTemplates[savedTemplate.id] = savedTemplate;
     await this._saveCustomTemplates();
 
-    logger.info('[TemplateLibrary] 保存自定义模板:', savedTemplate.id);
+    logger.info("[TemplateLibrary] 保存自定义模板:", savedTemplate.id);
 
     return { ...savedTemplate, isBuiltin: false, isCustom: true };
   }
@@ -475,7 +483,7 @@ class TemplateLibraryManager {
     delete this.customTemplates[templateId];
     await this._saveCustomTemplates();
 
-    logger.info('[TemplateLibrary] 删除自定义模板:', templateId);
+    logger.info("[TemplateLibrary] 删除自定义模板:", templateId);
 
     return true;
   }
@@ -512,7 +520,7 @@ class TemplateLibraryManager {
     const exportData = {
       ...template,
       exportedAt: Date.now(),
-      version: '1.0.0',
+      version: "1.0.0",
     };
 
     delete exportData.isBuiltin;
@@ -539,7 +547,7 @@ class TemplateLibraryManager {
     }
 
     return {
-      version: '1.0.0',
+      version: "1.0.0",
       exportedAt: Date.now(),
       count: templates.length,
       templates,
@@ -573,7 +581,7 @@ class TemplateLibraryManager {
           results.skipped.push({
             id: template.id,
             name: template.name,
-            reason: '与预置模板ID冲突',
+            reason: "与预置模板ID冲突",
           });
           continue;
         }
@@ -583,7 +591,7 @@ class TemplateLibraryManager {
           results.skipped.push({
             id: template.id,
             name: template.name,
-            reason: '模板已存在',
+            reason: "模板已存在",
           });
           continue;
         }
@@ -591,7 +599,9 @@ class TemplateLibraryManager {
         // 保存模板
         const savedTemplate = await this.saveCustomTemplate({
           ...template,
-          id: overwrite ? template.id : `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: overwrite
+            ? template.id
+            : `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           importedAt: Date.now(),
         });
 
@@ -609,7 +619,7 @@ class TemplateLibraryManager {
     }
 
     logger.info(
-      `[TemplateLibrary] 导入完成: 成功 ${results.success.length}, 失败 ${results.failed.length}, 跳过 ${results.skipped.length}`
+      `[TemplateLibrary] 导入完成: 成功 ${results.success.length}, 失败 ${results.failed.length}, 跳过 ${results.skipped.length}`,
     );
 
     return results;
@@ -628,7 +638,7 @@ class TemplateLibraryManager {
     const files = [];
 
     // 扫描项目目录结构
-    await this._scanDirectory(projectPath, '', directories, files);
+    await this._scanDirectory(projectPath, "", directories, files);
 
     const template = {
       ...templateInfo,
@@ -645,8 +655,16 @@ class TemplateLibraryManager {
    * 扫描目录
    * @private
    */
-  async _scanDirectory(basePath, relativePath, directories, files, maxDepth = 10) {
-    if (maxDepth <= 0) {return;}
+  async _scanDirectory(
+    basePath,
+    relativePath,
+    directories,
+    files,
+    maxDepth = 10,
+  ) {
+    if (maxDepth <= 0) {
+      return;
+    }
 
     const currentPath = path.join(basePath, relativePath);
 
@@ -656,12 +674,12 @@ class TemplateLibraryManager {
       for (const entry of entries) {
         // 跳过隐藏文件和常见的忽略目录
         if (
-          entry.name.startsWith('.') ||
-          entry.name === 'node_modules' ||
-          entry.name === '__pycache__' ||
-          entry.name === 'venv' ||
-          entry.name === 'dist' ||
-          entry.name === 'build'
+          entry.name.startsWith(".") ||
+          entry.name === "node_modules" ||
+          entry.name === "__pycache__" ||
+          entry.name === "venv" ||
+          entry.name === "dist" ||
+          entry.name === "build"
         ) {
           continue;
         }
@@ -677,7 +695,7 @@ class TemplateLibraryManager {
             entryRelativePath,
             directories,
             files,
-            maxDepth - 1
+            maxDepth - 1,
           );
         } else if (entry.isFile()) {
           // 读取文件内容（限制大小）
@@ -686,7 +704,7 @@ class TemplateLibraryManager {
 
           if (stats.size < 100 * 1024) {
             // 小于100KB的文件
-            const content = await fs.readFile(filePath, 'utf-8');
+            const content = await fs.readFile(filePath, "utf-8");
             files.push({
               path: entryRelativePath,
               content,
@@ -694,14 +712,17 @@ class TemplateLibraryManager {
           } else {
             files.push({
               path: entryRelativePath,
-              content: '',
-              note: '文件过大，未包含内容',
+              content: "",
+              note: "文件过大，未包含内容",
             });
           }
         }
       }
     } catch (error) {
-      logger.warn(`[TemplateLibrary] 扫描目录失败: ${currentPath}`, error.message);
+      logger.warn(
+        `[TemplateLibrary] 扫描目录失败: ${currentPath}`,
+        error.message,
+      );
     }
   }
 }
