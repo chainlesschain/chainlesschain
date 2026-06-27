@@ -132,6 +132,24 @@ describe("config-manager", () => {
     expect(config.setupCompleted).toBe(false); // falls back to defaults
   });
 
+  it("warns (once) that settings are ignored when the config is malformed", async () => {
+    const mod = await import("../../src/lib/config-manager.js");
+    const warn = vi.fn();
+    mod._deps.warn = warn;
+    writeFileSync(configPath, "{ broken json", "utf-8");
+
+    const config = mod.loadConfig();
+    expect(config.llm.provider).toBe("volcengine"); // still falls back, no throw
+    // The silent drop is now visible and points at the file + what's lost.
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(configPath);
+    expect(warn.mock.calls[0][0]).toMatch(/IGNORED|defaults/i);
+
+    // De-duped: a second load of the same bad path does not re-warn.
+    mod.loadConfig();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   describe("renameWithRetry (Windows EPERM hardening)", () => {
     it("retries transient rename errors then succeeds", async () => {
       const { renameWithRetry } =

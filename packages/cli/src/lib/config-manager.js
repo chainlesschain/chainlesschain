@@ -11,6 +11,16 @@ import { getConfigPath } from "./paths.js";
 import { DEFAULT_CONFIG } from "../constants.js";
 import { withFileLock } from "./with-file-lock.js";
 
+// Warn at most once per config path per process. Injectable seam: the default
+// stays silent under vitest so test output isn't polluted; tests override
+// `_deps.warn` to assert it fired.
+const _warnedConfigPaths = new Set();
+export const _deps = {
+  warn: (msg) => {
+    if (!process.env.VITEST) process.stderr.write(msg);
+  },
+};
+
 export function loadConfig() {
   const configPath = getConfigPath();
   if (!existsSync(configPath)) {
@@ -20,7 +30,21 @@ export function loadConfig() {
     const raw = readFileSync(configPath, "utf-8");
     const parsed = JSON.parse(raw);
     return deepMerge(structuredClone(DEFAULT_CONFIG), parsed);
-  } catch {
+  } catch (err) {
+    // The file EXISTS but couldn't be read/parsed (a typo, trailing comma, or
+    // truncated write). Silently returning defaults drops the user's entire
+    // config — provider, model, baseUrl, API key — and falls back to the
+    // default provider, producing a baffling "configured X but it runs Y / says
+    // no API key". Warn once so the failure is visible; still fall back so cc
+    // keeps working.
+    if (!_warnedConfigPaths.has(configPath)) {
+      _warnedConfigPaths.add(configPath);
+      _deps.warn(
+        `⚠️  Could not read config at ${configPath} (${err.message}). ` +
+          `Using defaults — your saved settings (provider / model / API key) are being IGNORED. ` +
+          `Fix the JSON to restore them.\n`,
+      );
+    }
     return { ...structuredClone(DEFAULT_CONFIG) };
   }
 }
