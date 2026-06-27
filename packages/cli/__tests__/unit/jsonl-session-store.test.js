@@ -330,6 +330,35 @@ describe("jsonl-session-store", () => {
       const sessions = listJsonlSessions({ limit: 3 });
       expect(sessions.length).toBe(3);
     });
+
+    it("does not crash on a session with a missing / invalid timestamp", () => {
+      // A corrupt session_start line (valid JSON, no/garbage timestamp) used to
+      // make `new Date(undefined).toISOString()` throw and abort the WHOLE list.
+      writeFileSync(
+        sessionPath("s-bad-ts"),
+        [
+          JSON.stringify({ type: "session_start", data: { title: "NoTs" } }),
+          JSON.stringify({
+            type: "user_message",
+            data: { role: "user", content: "hi" },
+            timestamp: "not-a-number",
+          }),
+        ].join("\n") + "\n",
+        "utf-8",
+      );
+      // A healthy session must still appear alongside the corrupt one.
+      startSession("s-good", { title: "Good" });
+
+      const sessions = listJsonlSessions();
+      const bad = sessions.find((s) => s.id === "s-bad-ts");
+      const good = sessions.find((s) => s.id === "s-good");
+      expect(bad).toBeTruthy();
+      expect(bad.created_at).toBe(""); // invalid → empty, not a thrown RangeError
+      expect(bad.updated_at).toBe("");
+      expect(bad.title).toBe("NoTs");
+      expect(good).toBeTruthy();
+      expect(good.created_at).not.toBe(""); // healthy session keeps its date
+    });
   });
 
   // ── forkSession ───────────────────────────────────────────────────

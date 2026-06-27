@@ -163,6 +163,16 @@ export function rebuildMessages(sessionId) {
   return messages;
 }
 
+/** ISO string for a numeric ms timestamp, or "" when missing / non-finite /
+ * invalid — `new Date(undefined).toISOString()` throws "Invalid time value",
+ * and one corrupt session_start line must not crash the whole `cc session list`. */
+function toIsoSafe(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n)) return "";
+  const d = new Date(n);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+}
+
 export function listJsonlSessions(options = {}) {
   const dir = getSessionsDir();
   if (!existsSync(dir)) return [];
@@ -185,12 +195,8 @@ export function listJsonlSessions(options = {}) {
         provider: startEvent?.data?.provider || "",
         model: startEvent?.data?.model || "",
         message_count: messageCount,
-        created_at: startEvent
-          ? new Date(startEvent.timestamp).toISOString()
-          : "",
-        updated_at: lastEvent
-          ? new Date(lastEvent.timestamp).toISOString()
-          : "",
+        created_at: toIsoSafe(startEvent?.timestamp),
+        updated_at: toIsoSafe(lastEvent?.timestamp),
         _lastTs: lastEvent?.timestamp || 0,
         _eventCount: events.length,
       };
