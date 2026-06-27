@@ -21,6 +21,25 @@ class WebIDEManager {
   }
 
   /**
+   * 解析并校验项目目录，防止路径穿越。
+   * projectId 来自渲染端 IPC（webide:loadProject/deleteProject 等），未校验时
+   * `../..` 可逃出 projectsPath —— deleteProject 还会 fs.rm(recursive,force) 任意目录。
+   * @param {string} projectId
+   * @returns {string} 受限在 projectsPath 内的绝对路径
+   */
+  _resolveProjectDir(projectId) {
+    if (typeof projectId !== "string" || !projectId.trim()) {
+      throw new Error("无效的项目ID");
+    }
+    const root = path.resolve(this.projectsPath);
+    const resolved = path.resolve(root, projectId);
+    if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+      throw new Error("非法的项目ID（疑似路径穿越）");
+    }
+    return resolved;
+  }
+
+  /**
    * 初始化目录结构
    */
   async initDirectories() {
@@ -53,7 +72,7 @@ class WebIDEManager {
       logger.info(`[WebIDE Manager] 保存项目: ${name} (ID: ${id})`);
 
       // 创建项目目录
-      const projectDir = path.join(this.projectsPath, id);
+      const projectDir = this._resolveProjectDir(id);
       await fs.mkdir(projectDir, { recursive: true });
 
       // 保存文件
@@ -106,7 +125,7 @@ class WebIDEManager {
     try {
       logger.info(`[WebIDE Manager] 加载项目: ${projectId}`);
 
-      const projectDir = path.join(this.projectsPath, projectId);
+      const projectDir = this._resolveProjectDir(projectId);
 
       // 检查项目是否存在
       const exists = await this.checkPathExists(projectDir);
@@ -198,7 +217,7 @@ class WebIDEManager {
     try {
       logger.info(`[WebIDE Manager] 删除项目: ${projectId}`);
 
-      const projectDir = path.join(this.projectsPath, projectId);
+      const projectDir = this._resolveProjectDir(projectId);
 
       // 检查项目是否存在
       const exists = await this.checkPathExists(projectDir);
