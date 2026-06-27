@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import { safeJsonParse } from "./safe-json.js";
 
 /**
  * Event types for audit logging.
@@ -232,7 +233,8 @@ export function queryLogs(db, filters = {}) {
   const rows = db.prepare(sql).all(...params);
   return rows.map((r) => ({
     ...r,
-    details: r.details ? JSON.parse(r.details) : null,
+    // One corrupt details cell must not throw out of the whole query.
+    details: safeJsonParse(r.details, null),
     success: r.success === 1,
   }));
 }

@@ -22,6 +22,7 @@
  */
 
 import { EventEmitter } from "events";
+import { safeJsonParse } from "./safe-json.js";
 
 /* ── Edge types ────────────────────────────────────────────── */
 
@@ -325,7 +326,8 @@ export function loadFromDb(db) {
     )
     .all();
   for (const row of rows) {
-    const metadata = row.metadata ? JSON.parse(row.metadata) : null;
+    // A single corrupt metadata cell must not crash the whole graph load.
+    const metadata = safeJsonParse(row.metadata, null);
     // Hydrate without re-emitting events (bulk load).
     _hydrateEdge({
       sourceDid: row.source_did,

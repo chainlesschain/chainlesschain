@@ -95,6 +95,23 @@ describe("Permission Engine", () => {
       const admin = roles.find((r) => r.name === "admin");
       expect(Array.isArray(admin.permissions)).toBe(true);
     });
+
+    it("does not crash the whole list when one role has corrupt permissions JSON", () => {
+      ensurePermissionTables(db); // seeds built-in roles
+      // A corrupt permissions cell (drift / bad write) used to throw out of the
+      // ENTIRE getRoles() — hiding every role, not just the bad one.
+      db.data.get("rbac_roles").push({
+        id: "corrupt-1",
+        name: "corrupt",
+        description: "bad row",
+        permissions: "{not valid json",
+        is_builtin: 0,
+      });
+      const roles = getRoles(db);
+      expect(roles.find((r) => r.name === "admin")).toBeTruthy(); // built-ins survive
+      const bad = roles.find((r) => r.name === "corrupt");
+      expect(bad.permissions).toEqual([]); // corrupt → safe [], not a throw
+    });
   });
 
   // ─── createRole ───────────────────────────────────────────

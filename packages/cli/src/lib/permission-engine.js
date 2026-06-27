@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import { safeJsonParse } from "./safe-json.js";
 
 function generateId() {
   return crypto.randomUUID();
@@ -160,7 +161,9 @@ export function getRoles(db) {
     .all();
   return rows.map((r) => ({
     ...r,
-    permissions: JSON.parse(r.permissions || "[]"),
+    // `|| "[]"` only guarded null — a corrupt permissions cell still threw out
+    // of the whole role list (and could break permission checks). Skip it.
+    permissions: safeJsonParse(r.permissions, []),
     isBuiltin: r.is_builtin === 1,
   }));
 }
