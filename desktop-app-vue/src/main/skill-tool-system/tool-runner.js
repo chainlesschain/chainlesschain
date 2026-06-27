@@ -251,13 +251,23 @@ class ToolRunner {
       const safePath = path.normalize(resolvedPath);
       const content = await this._fs.readFile(safePath, "utf8");
 
+      // Compute newContent + replacement count per-mode. For literal (all/first)
+      // modes do NOT build a RegExp from `search`: a literal search containing
+      // regex metacharacters (e.g. "(", "[", "*") would throw in new RegExp —
+      // and the old code did that AFTER writing the file, so the tool reported
+      // failure while the file was in fact already modified (inconsistent state).
       let newContent;
-      if (mode === "all") {
+      let replacements = 0;
+      if (mode === "regex") {
+        const re = new RegExp(search, "g");
+        newContent = content.replace(re, replace);
+        replacements = (content.match(re) || []).length;
+      } else if (mode === "all") {
         newContent = content.replaceAll(search, replace);
-      } else if (mode === "regex") {
-        newContent = content.replace(new RegExp(search, "g"), replace);
+        replacements = search ? content.split(search).length - 1 : 0;
       } else {
         newContent = content.replace(search, replace);
+        replacements = search && content.includes(search) ? 1 : 0;
       }
 
       await this._fs.writeFile(safePath, newContent, "utf8");
@@ -265,7 +275,7 @@ class ToolRunner {
       return {
         success: true,
         filePath: safePath,
-        replacements: (content.match(new RegExp(search, "g")) || []).length,
+        replacements,
       };
     };
   }
