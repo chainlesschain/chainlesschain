@@ -168,6 +168,31 @@ export async function setupMcpFromConfig(servers, deps = {}) {
             ...cfg,
             headers: { ...cfg.headers, Authorization: `Bearer ${token}` },
           };
+          // Auto-recover from a mid-session 401/403 (server-side token rotation
+          // / revocation while the locally-stored copy still looks unexpired):
+          // register a reconnector that force-refreshes the bearer, so the
+          // mcp-client's callTool retry path reconnects and re-runs the call
+          // once with a fresh token (Claude-Code 2.1.193: "MCP auth re-runs and
+          // reconnects automatically on 401/403"). Best-effort, and skipped for
+          // a server whose config carries its own Authorization header (handled
+          // by the guard above) — an explicit IDE-bridge reconnector registered
+          // after setup still wins on any name clash.
+          if (typeof mcpClient.setReconnector === "function") {
+            const baseCfg = cfg;
+            mcpClient.setReconnector(name, async () => {
+              const { ensureValidToken: reauth } =
+                await import("../lib/mcp-oauth.js");
+              const fresh = await reauth(baseCfg.url, { forceRefresh: true });
+              if (!fresh) return null;
+              return {
+                ...baseCfg,
+                headers: {
+                  ...baseCfg.headers,
+                  Authorization: `Bearer ${fresh}`,
+                },
+              };
+            });
+          }
         }
       } catch {
         // OAuth wiring is best-effort

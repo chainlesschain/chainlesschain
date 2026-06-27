@@ -560,13 +560,28 @@ export function isTokenExpired(record, { skewMs = 60_000 } = {}) {
 /**
  * Return a valid bearer token for a server, refreshing if expired. Returns the
  * access_token string, or null if there's no stored token / refresh failed.
+ *
+ * `forceRefresh` bypasses the local-expiry check and exchanges the refresh
+ * token unconditionally. Use it when the server REJECTED a stored token that
+ * still looked unexpired locally (mid-session 401/403 from a rotated/revoked
+ * grant): the cached access_token is known-bad, so reusing it is pointless —
+ * we either mint a fresh one or return null to signal "re-login needed".
+ *
+ * @param {string} serverUrl
+ * @param {{ forceRefresh?: boolean }} [opts]
  */
-export async function ensureValidToken(serverUrl) {
+export async function ensureValidToken(
+  serverUrl,
+  { forceRefresh = false } = {},
+) {
   const record = getStoredToken(serverUrl);
   if (!record) return null;
-  if (!isTokenExpired(record)) return record.access_token;
+  if (!forceRefresh && !isTokenExpired(record)) return record.access_token;
   if (!record.refresh_token || !record.endpoints?.token_endpoint) {
-    return record.access_token || null; // can't refresh → use what we have
+    // Can't refresh. On a forced refresh the cached token is known-rejected, so
+    // hand back null (caller should stop retrying and prompt re-login); on the
+    // proactive path keep the existing behaviour of using what we have.
+    return forceRefresh ? null : record.access_token || null;
   }
   try {
     const tok = await refreshAccessToken(
@@ -576,7 +591,7 @@ export async function ensureValidToken(serverUrl) {
     const updated = saveStoredToken(serverUrl, { ...record, ...tok });
     return updated.access_token;
   } catch {
-    return record.access_token || null;
+    return forceRefresh ? null : record.access_token || null;
   }
 }
 

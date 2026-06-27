@@ -416,6 +416,46 @@ describe("token store + expiry", () => {
   it("ensureValidToken returns null when nothing stored", async () => {
     expect(await oauth.ensureValidToken("https://none.example.com")).toBeNull();
   });
+
+  it("ensureValidToken({forceRefresh}) refreshes even a locally-valid token", async () => {
+    oauth.saveStoredToken("https://m.example.com", {
+      access_token: "STALE",
+      refresh_token: "RT",
+      expires_at: 1_000_000 + 600_000, // NOT expired locally
+      client_id: "cid",
+      endpoints: { token_endpoint: "https://auth.example.com/token" },
+    });
+    _deps.fetch = fetchStub({
+      "POST https://auth.example.com/token": {
+        body: { access_token: "ROTATED", expires_in: 3600 },
+      },
+    });
+    // Proactive path hands back the locally-valid token untouched…
+    expect(await oauth.ensureValidToken("https://m.example.com")).toBe("STALE");
+    // …but a forced refresh (server rejected it) exchanges the refresh token.
+    expect(
+      await oauth.ensureValidToken("https://m.example.com", {
+        forceRefresh: true,
+      }),
+    ).toBe("ROTATED");
+  });
+
+  it("ensureValidToken({forceRefresh}) returns null when it cannot refresh", async () => {
+    oauth.saveStoredToken("https://norefresh.example.com", {
+      access_token: "REJECTED", // looks valid locally, no refresh capability
+      expires_at: 1_000_000 + 600_000,
+    });
+    // Proactive path still returns the cached token…
+    expect(await oauth.ensureValidToken("https://norefresh.example.com")).toBe(
+      "REJECTED",
+    );
+    // …but a forced refresh has no way to recover → null (re-login needed).
+    expect(
+      await oauth.ensureValidToken("https://norefresh.example.com", {
+        forceRefresh: true,
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("connect wiring (setupMcpFromConfig)", () => {
@@ -475,6 +515,86 @@ describe("connect wiring (setupMcpFromConfig)", () => {
       { createClient: () => fakeClient },
     );
     expect(seenCfg.headers.Authorization).toBe("Bearer MANUAL");
+  });
+
+  it("registers a reconnector that force-refreshes the bearer on a 401/403", async () => {
+    fakeStore({
+      "https://m.example.com": {
+        server: "https://m.example.com",
+        access_token: "AT",
+        refresh_token: "RT",
+        client_id: "cid",
+        endpoints: { token_endpoint: "https://auth.example.com/token" },
+      },
+    });
+    _deps.fetch = fetchStub({
+      "POST https://auth.example.com/token": {
+        body: { access_token: "FRESH", expires_in: 3600 },
+      },
+    });
+    let reconnector = null;
+    const fakeClient = {
+      servers: new Map(),
+      connect: async () => ({ tools: [] }),
+      setReconnector: (_name, fn) => {
+        reconnector = fn;
+      },
+    };
+    await setupMcpFromConfig(
+      { remote: { url: "https://m.example.com/mcp", headers: {} } },
+      { createClient: () => fakeClient },
+    );
+    expect(typeof reconnector).toBe("function");
+    // Simulate the mcp-client callTool retry path invoking it after a 401:
+    // it force-refreshes and returns a fresh-bearer config to reconnect with.
+    const fresh = await reconnector();
+    expect(fresh.headers.Authorization).toBe("Bearer FRESH");
+    expect(fresh.url).toBe("https://m.example.com/mcp");
+  });
+
+  it("reconnector returns null when the token cannot be refreshed", async () => {
+    fakeStore({
+      "https://m.example.com": {
+        server: "https://m.example.com",
+        access_token: "AT", // no refresh_token → forced refresh can't recover
+      },
+    });
+    let reconnector = null;
+    const fakeClient = {
+      servers: new Map(),
+      connect: async () => ({ tools: [] }),
+      setReconnector: (_name, fn) => {
+        reconnector = fn;
+      },
+    };
+    await setupMcpFromConfig(
+      { remote: { url: "https://m.example.com/mcp", headers: {} } },
+      { createClient: () => fakeClient },
+    );
+    expect(typeof reconnector).toBe("function");
+    expect(await reconnector()).toBeNull();
+  });
+
+  it("does not register a reconnector when the config carries its own auth", async () => {
+    fakeStore({});
+    let called = false;
+    const fakeClient = {
+      servers: new Map(),
+      connect: async () => ({ tools: [] }),
+      setReconnector: () => {
+        called = true;
+      },
+    };
+    await setupMcpFromConfig(
+      {
+        remote: {
+          url: "https://m.example.com/mcp",
+          headers: { Authorization: "Bearer MANUAL" },
+        },
+      },
+      { createClient: () => fakeClient },
+    );
+    expect(called).toBe(false);
   });
 });
 
