@@ -2,10 +2,7 @@
   <div class="project-management-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <a-page-header
-        title="项目列表管理"
-        sub-title="管理和维护所有项目"
-      >
+      <a-page-header title="项目列表管理" sub-title="管理和维护所有项目">
         <template #extra>
           <a-space>
             <a-button @click="handleExport">
@@ -24,10 +21,7 @@
               </template>
               批量删除
             </a-button>
-            <a-button
-              type="primary"
-              @click="showCreateModal"
-            >
+            <a-button type="primary" @click="showCreateModal">
               <template #icon>
                 <PlusOutlined />
               </template>
@@ -39,10 +33,7 @@
     </div>
 
     <!-- 统计卡片区域 -->
-    <a-row
-      :gutter="16"
-      class="stats-row"
-    >
+    <a-row :gutter="16" class="stats-row">
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -102,10 +93,7 @@
     </a-row>
 
     <!-- 筛选和搜索区域 -->
-    <a-card
-      class="filter-card"
-      title="筛选和搜索"
-    >
+    <a-card class="filter-card" title="筛选和搜索">
       <a-row :gutter="16">
         <a-col :span="6">
           <a-input-search
@@ -123,27 +111,13 @@
             style="width: 100%"
             @change="handleFilterChange"
           >
-            <a-select-option value="">
-              全部类型
-            </a-select-option>
-            <a-select-option value="web">
-              网页
-            </a-select-option>
-            <a-select-option value="document">
-              文档
-            </a-select-option>
-            <a-select-option value="data">
-              数据
-            </a-select-option>
-            <a-select-option value="app">
-              应用
-            </a-select-option>
-            <a-select-option value="presentation">
-              演示
-            </a-select-option>
-            <a-select-option value="spreadsheet">
-              表格
-            </a-select-option>
+            <a-select-option value=""> 全部类型 </a-select-option>
+            <a-select-option value="web"> 网页 </a-select-option>
+            <a-select-option value="document"> 文档 </a-select-option>
+            <a-select-option value="data"> 数据 </a-select-option>
+            <a-select-option value="app"> 应用 </a-select-option>
+            <a-select-option value="presentation"> 演示 </a-select-option>
+            <a-select-option value="spreadsheet"> 表格 </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="4">
@@ -154,27 +128,15 @@
             style="width: 100%"
             @change="handleFilterChange"
           >
-            <a-select-option value="">
-              全部状态
-            </a-select-option>
-            <a-select-option value="draft">
-              草稿
-            </a-select-option>
-            <a-select-option value="active">
-              活跃
-            </a-select-option>
-            <a-select-option value="completed">
-              已完成
-            </a-select-option>
-            <a-select-option value="archived">
-              已归档
-            </a-select-option>
+            <a-select-option value=""> 全部状态 </a-select-option>
+            <a-select-option value="draft"> 草稿 </a-select-option>
+            <a-select-option value="active"> 活跃 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="archived"> 已归档 </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="2">
-          <a-button @click="handleResetFilters">
-            重置
-          </a-button>
+          <a-button @click="handleResetFilters"> 重置 </a-button>
         </a-col>
       </a-row>
     </a-card>
@@ -197,10 +159,7 @@
               <div class="name">
                 {{ record.name }}
               </div>
-              <div
-                v-if="record.description"
-                class="description"
-              >
+              <div v-if="record.description" class="description">
                 {{ record.description }}
               </div>
             </div>
@@ -236,21 +195,13 @@
 
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleView(record)"
-              >
+              <a-button type="link" size="small" @click="handleView(record)">
                 <template #icon>
                   <EyeOutlined />
                 </template>
                 查看
               </a-button>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleEdit(record)"
-              >
+              <a-button type="link" size="small" @click="handleEdit(record)">
                 <template #icon>
                   <EditOutlined />
                 </template>
@@ -262,11 +213,7 @@
                 cancel-text="取消"
                 @confirm="handleDelete(record.id)"
               >
-                <a-button
-                  type="link"
-                  danger
-                  size="small"
-                >
+                <a-button type="link" danger size="small">
                   <template #icon>
                     <DeleteOutlined />
                   </template>
@@ -294,20 +241,11 @@
         :label-col="{ span: 5 }"
         :wrapper-col="{ span: 19 }"
       >
-        <a-form-item
-          label="项目名称"
-          name="name"
-        >
-          <a-input
-            v-model:value="formData.name"
-            placeholder="请输入项目名称"
-          />
+        <a-form-item label="项目名称" name="name">
+          <a-input v-model:value="formData.name" placeholder="请输入项目名称" />
         </a-form-item>
 
-        <a-form-item
-          label="项目描述"
-          name="description"
-        >
+        <a-form-item label="项目描述" name="description">
           <a-textarea
             v-model:value="formData.description"
             placeholder="请输入项目描述（可选）"
@@ -315,62 +253,33 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="项目类型"
-          name="project_type"
-        >
+        <a-form-item label="项目类型" name="project_type">
           <a-select
             v-model:value="formData.project_type"
             placeholder="请选择项目类型"
           >
-            <a-select-option value="web">
-              网页
-            </a-select-option>
-            <a-select-option value="document">
-              文档
-            </a-select-option>
-            <a-select-option value="data">
-              数据
-            </a-select-option>
-            <a-select-option value="app">
-              应用
-            </a-select-option>
-            <a-select-option value="presentation">
-              演示
-            </a-select-option>
-            <a-select-option value="spreadsheet">
-              表格
-            </a-select-option>
+            <a-select-option value="web"> 网页 </a-select-option>
+            <a-select-option value="document"> 文档 </a-select-option>
+            <a-select-option value="data"> 数据 </a-select-option>
+            <a-select-option value="app"> 应用 </a-select-option>
+            <a-select-option value="presentation"> 演示 </a-select-option>
+            <a-select-option value="spreadsheet"> 表格 </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="项目状态"
-          name="status"
-        >
+        <a-form-item label="项目状态" name="status">
           <a-select
             v-model:value="formData.status"
             placeholder="请选择项目状态"
           >
-            <a-select-option value="draft">
-              草稿
-            </a-select-option>
-            <a-select-option value="active">
-              活跃
-            </a-select-option>
-            <a-select-option value="completed">
-              已完成
-            </a-select-option>
-            <a-select-option value="archived">
-              已归档
-            </a-select-option>
+            <a-select-option value="draft"> 草稿 </a-select-option>
+            <a-select-option value="active"> 活跃 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="archived"> 已归档 </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="标签"
-          name="tags"
-        >
+        <a-form-item label="标签" name="tags">
           <a-select
             v-model:value="formData.tags"
             mode="tags"
@@ -646,13 +555,26 @@ const handleEdit = (record) => {
   isEditing.value = true;
   currentEditId.value = record.id;
 
+  // tags 是 DB/store 字符串；legacy/import/损坏的非 JSON 值不能让 JSON.parse 抛出
+  // 阻断编辑弹窗打开。容错解析（已是数组直接用，解析失败回退 []）。
+  let tags = [];
+  if (Array.isArray(record.tags)) {
+    tags = record.tags;
+  } else if (record.tags) {
+    try {
+      tags = JSON.parse(record.tags);
+    } catch {
+      tags = [];
+    }
+  }
+
   // 回显数据
   Object.assign(formData, {
     name: record.name,
     description: record.description || "",
     project_type: record.project_type,
     status: record.status,
-    tags: record.tags ? JSON.parse(record.tags) : [],
+    tags,
   });
 
   modalVisible.value = true;

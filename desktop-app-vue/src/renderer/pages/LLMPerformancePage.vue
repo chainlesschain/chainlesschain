@@ -363,9 +363,13 @@ const getDateRange = () => {
 const generateTestData = async () => {
   generatingTestData.value = true;
   testDataProgress.value = 0;
+  // Declared outside try so finally can always clear it — if the IPC invoke
+  // rejects, the inline clearInterval was skipped and the 200ms interval leaked
+  // forever (the const was unreachable from the catch/finally).
+  let progressInterval = null;
 
   try {
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (testDataProgress.value < 90) {
         testDataProgress.value += 10;
       }
@@ -377,7 +381,6 @@ const generateTestData = async () => {
       clear: false,
     });
 
-    clearInterval(progressInterval);
     testDataProgress.value = 100;
 
     if (result && result.success) {
@@ -391,6 +394,9 @@ const generateTestData = async () => {
     logger.error("生成测试数据失败:", error);
     message.error("生成测试数据失败: " + error.message);
   } finally {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
     generatingTestData.value = false;
     testDataProgress.value = 0;
   }
