@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import { safeJsonParse } from "./safe-json.js";
 import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
@@ -429,9 +430,9 @@ export function getSandbox(db, sandboxId) {
     id: row.id,
     agentId: row.agent_id,
     status: row.status,
-    permissions: JSON.parse(row.permissions || "{}"),
-    quota: JSON.parse(row.quota || "{}"),
-    resourceUsage: JSON.parse(row.resource_usage || "{}"),
+    permissions: safeJsonParse(row.permissions, {}),
+    quota: safeJsonParse(row.quota, {}),
+    resourceUsage: safeJsonParse(row.resource_usage, {}),
     createdAt: row.created_at,
   };
 }
@@ -609,9 +610,9 @@ export function restoreFromDb(db) {
       id: row.id,
       agentId: row.agent_id,
       status: row.status || "active",
-      permissions: JSON.parse(row.permissions || "{}"),
-      quota: JSON.parse(row.quota || "{}"),
-      resourceUsage: JSON.parse(row.resource_usage || "{}"),
+      permissions: safeJsonParse(row.permissions, {}),
+      quota: safeJsonParse(row.quota, {}),
+      resourceUsage: safeJsonParse(row.resource_usage, {}),
       createdAt: row.created_at || new Date(now).toISOString(),
       policy,
       createdAtMs: row.created_at_ms || now,

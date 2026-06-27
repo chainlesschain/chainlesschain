@@ -4,6 +4,7 @@
  */
 
 import fs from "fs";
+import { safeJsonParse } from "../lib/safe-json.js";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { numericOption } from "../lib/cli-numeric.js";
@@ -168,7 +169,8 @@ function _loadPoliciesFromDb(db, framework) {
       name: r.name,
       type: r.type,
       framework: r.framework,
-      rules: r.rules ? JSON.parse(r.rules) : {},
+      // One corrupt rules cell must not crash the whole policy list.
+      rules: safeJsonParse(r.rules, {}),
       enabled: !!r.enabled,
       severity: r.severity,
       createdAt: r.created_at,
