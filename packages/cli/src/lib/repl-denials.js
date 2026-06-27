@@ -1,7 +1,9 @@
 /**
- * repl-denials — record + render the policy denials seen during an agent
- * session, so `/permissions denials` can review what got blocked (Claude-Code
- * 2.1.193 parity: "auto-mode denial reasons … /permissions recent denials").
+ * repl-denials — record + render the policy denials seen during an agent run,
+ * so the interactive REPL's `/permissions denials` can review what got blocked
+ * AND a headless run (`cc agent -p`) can print an end-of-run summary (Claude-
+ * Code 2.1.193 parity: "auto-mode denial reasons … /permissions recent
+ * denials"). The helpers are generic (not REPL-specific) and shared by both.
  *
  * A *denial* is a tool call the agent was NOT allowed to run — blocked by the
  * shell policy, an ApprovalGate tier, a settings permission rule, or a hook. It

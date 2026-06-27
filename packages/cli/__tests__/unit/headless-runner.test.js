@@ -318,6 +318,70 @@ describe("headless-runner — max-turns", () => {
   });
 });
 
+describe("headless-runner — denials summary", () => {
+  // chatFn asks to run a hard-blocked command first (shell-policy DENY fires
+  // regardless of the gate), then returns a final answer so the loop ends.
+  function denyThenDone() {
+    let n = 0;
+    return vi.fn(async () => {
+      n++;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "c1",
+                function: {
+                  name: "run_shell",
+                  arguments: JSON.stringify({ command: "rm -rf /" }),
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    });
+  }
+
+  it("prints an end-of-run summary of policy-denied tool calls (text mode)", async () => {
+    const { deps, err } = makeDeps(denyThenDone());
+    const r = await runAgentHeadless(
+      { prompt: "delete everything", outputFormat: "text" },
+      deps,
+    );
+    expect(r.exitCode).toBe(0);
+    const stderr = err.join("");
+    expect(stderr).toMatch(/1 tool call\(s\) were denied by policy/);
+    expect(stderr).toMatch(/Recent denials/);
+    expect(stderr).toMatch(/run_shell/);
+  });
+
+  it("emits a denials_summary stream event (stream-json mode)", async () => {
+    const { deps, out } = makeDeps(denyThenDone());
+    await runAgentHeadless(
+      { prompt: "delete everything", outputFormat: "stream-json" },
+      deps,
+    );
+    const events = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    const summary = events.find((e) => e.type === "denials_summary");
+    expect(summary).toBeTruthy();
+    expect(summary.count).toBe(1);
+    expect(summary.denials[0].tool).toBe("run_shell");
+  });
+
+  it("prints no summary when nothing was denied", async () => {
+    const { deps, err } = makeDeps(replyText("hi"));
+    await runAgentHeadless({ prompt: "hello", outputFormat: "text" }, deps);
+    expect(err.join("")).not.toMatch(/denied by policy/);
+  });
+});
+
 describe("headless-runner — permission wiring", () => {
   it("forces the session policy tier on the approval gate", async () => {
     const { deps, gate } = makeDeps(replyText("ok"));

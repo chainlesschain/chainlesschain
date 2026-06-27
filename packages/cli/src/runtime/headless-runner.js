@@ -50,6 +50,11 @@ import { mergeConsecutiveMessages } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
+import {
+  classifyDenial,
+  recordDenial,
+  formatDenials,
+} from "../lib/repl-denials.js";
 
 /** Tools that cannot mutate the filesystem or run commands. */
 export const READ_ONLY_TOOLS = Object.freeze([
@@ -865,6 +870,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
 
   const startedAt = deps.now ? deps.now() : Date.now();
   const toolCalls = [];
+  // Policy denials (blocked tool calls) collected for an end-of-run summary,
+  // so a non-interactive run surfaces what got blocked the way the REPL's
+  // `/permissions denials` does (Claude-Code 2.1.193 denial reasons).
+  const denials = [];
   const usage = {
     input_tokens: 0,
     output_tokens: 0,
@@ -941,6 +950,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           });
           if (toolCalls.length > 0) {
             toolCalls[toolCalls.length - 1].is_error = Boolean(err);
+          }
+          // Track policy denials (not plain tool failures) for the end-of-run
+          // summary. The preceding tool-executing pushed the args.
+          if (err) {
+            const last = toolCalls[toolCalls.length - 1];
+            const denial = classifyDenial({
+              tool: event.tool,
+              result: event.result,
+              error: event.error,
+              argsSummary:
+                last && last.tool === event.tool
+                  ? formatToolArgs(event.tool, last.args)
+                  : "",
+            });
+            if (denial) {
+              recordDenial(denials, {
+                ...denial,
+                at: deps.now ? deps.now() : Date.now(),
+              });
+            }
           }
           break;
         }
@@ -1147,6 +1176,21 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       }
     } catch {
       /* assessment is best-effort — never affect the run outcome */
+    }
+  }
+
+  // End-of-run policy-denial summary so a non-interactive run surfaces what was
+  // blocked (mirrors the REPL's `/permissions denials`). Text → stderr lines;
+  // stream → a `denials_summary` event before the final result.
+  if (denials.length) {
+    if (isText) {
+      writeErr(
+        `\n  ${denials.length} tool call(s) were denied by policy this run:\n` +
+          formatDenials(denials, { now: deps.now ? deps.now() : Date.now() }) +
+          "\n",
+      );
+    } else if (isStream) {
+      emitStream({ type: "denials_summary", count: denials.length, denials });
     }
   }
 
