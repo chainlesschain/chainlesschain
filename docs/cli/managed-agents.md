@@ -1036,7 +1036,7 @@ chainlesschain permissions add allow "Read" --user          # → ~/.claude/sett
 
 **`/permissions denials`**（Claude-Code 2.1.193 "recent denials" 平价）：回看本会话被**拦下**的工具调用——shell-policy / ApprovalGate 档位 / settings 规则 / hook 拦截。每条显示工具+尝试的参数摘要、命中的 `via`(+规则名)、相对时间、原因文本(最近在上,封顶 20 条,纯内存)。**只记策略拒绝,不记普通执行失败**(命令退非零 / 文件不存在等本就有 `error` 但无拦截标记)。主 `/permissions` 视图在有拦截时附一行提示导向它。连续重复的同一拦截会**折叠成 `×N`**(模型撞墙后常反复重试,避免挤掉其它不同的拦截)。
 
-**Headless 拦截汇总**：非交互运行(`cc agent -p`)在结束时把被拦的工具调用汇总输出——text 模式打到 **stderr**(`N tool call(s) were denied by policy this run:` + 同款列表),stream-json 模式在最终 `result` 事件前发一条 `denials_summary` 事件(`{count, denials[]}`)。让 CI / 脚本能一眼看出 agent 被什么策略挡了(等价 REPL 的 `/permissions denials`)。**模型侧**:每条策略拒绝回给模型的 tool result 也是**可操作的**——明说这是策略决定、重试无用、该让用户介入(减少撞墙重试空耗 turn/token)。
+**Headless 拦截汇总**：非交互运行(`cc agent -p`)在结束时把被拦的工具调用汇总输出,三种 `--output-format` 都覆盖——text 打到 **stderr**(`N tool call(s) were denied by policy this run:` + 同款列表);stream-json 在最终 `result` 事件前发一条 `denials_summary` 事件(`{count, denials[]}`);**json** 在 result envelope 里带一个 `denials` 数组(仅有拦截时出现 → 无拦截时 envelope 逐字节不变)。让 CI / 脚本能一眼/可解析地看出 agent 被什么策略挡了(等价 REPL 的 `/permissions denials`)。**模型侧**:每条策略拒绝回给模型的 tool result 也是**可操作的**——明说这是策略决定、重试无用、该让用户介入(减少撞墙重试空耗 turn/token)。
 
 - `test` 是调规则的杀手锏——执行前看清某调用会被哪条规则、哪个文件决定(`fallthrough`=
   无规则命中,回落档位逻辑)。伞名 `Bash` 会解析成具体工具 `run_shell`。

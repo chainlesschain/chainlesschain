@@ -380,6 +380,25 @@ describe("headless-runner — denials summary", () => {
     await runAgentHeadless({ prompt: "hello", outputFormat: "text" }, deps);
     expect(err.join("")).not.toMatch(/denied by policy/);
   });
+
+  it("includes a denials field in the json result envelope when blocked", async () => {
+    const { deps, out } = makeDeps(denyThenDone());
+    await runAgentHeadless(
+      { prompt: "delete everything", outputFormat: "json" },
+      deps,
+    );
+    const env = JSON.parse(out.join("").trim());
+    expect(Array.isArray(env.denials)).toBe(true);
+    expect(env.denials).toHaveLength(1);
+    expect(env.denials[0].tool).toBe("run_shell");
+  });
+
+  it("omits the denials field from the json envelope when nothing was denied", async () => {
+    const { deps, out } = makeDeps(replyText("ok"));
+    await runAgentHeadless({ prompt: "hi", outputFormat: "json" }, deps);
+    const env = JSON.parse(out.join("").trim());
+    expect("denials" in env).toBe(false);
+  });
 });
 
 describe("headless-runner — permission wiring", () => {

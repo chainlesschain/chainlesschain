@@ -1060,6 +1060,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             usage,
             numTurns: budget.consumed,
             durationMs: (deps.now ? deps.now() : Date.now()) - startedAt,
+            denials,
           }),
         ) + "\n",
       );
@@ -1217,6 +1218,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           usage,
           numTurns: budget.consumed,
           durationMs,
+          denials,
         }),
       ) + "\n",
     );
@@ -1237,8 +1239,9 @@ function buildResultEnvelope({
   usage,
   numTurns,
   durationMs,
+  denials,
 }) {
-  return {
+  const env = {
     type: "result",
     subtype,
     is_error: isError,
@@ -1249,4 +1252,8 @@ function buildResultEnvelope({
     tool_calls: toolCalls,
     usage,
   };
+  // Only present when something was blocked — keeps the no-denial envelope
+  // byte-identical to before (Claude-Code 2.1.193 denial reasons, json mode).
+  if (Array.isArray(denials) && denials.length) env.denials = denials;
+  return env;
 }
