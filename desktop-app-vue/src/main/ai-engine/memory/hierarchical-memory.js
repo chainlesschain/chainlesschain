@@ -222,9 +222,14 @@ class HierarchicalMemory extends EventEmitter {
             ? memory.content
             : JSON.stringify(memory.content)
         ).toLowerCase();
+        // String.includes("") is always true, so an empty query would match
+        // EVERY memory (and an empty-content memory would match every query),
+        // returning arbitrary memories as "relevant" context. Require each side
+        // of the comparison to be non-empty.
+        const prefix = contentStr.substring(0, 50);
         if (
-          contentStr.includes(searchText) ||
-          searchText.includes(contentStr.substring(0, 50))
+          (searchText.length > 0 && contentStr.includes(searchText)) ||
+          (prefix.length > 0 && searchText.includes(prefix))
         ) {
           // Apply forgetting curve
           const age =

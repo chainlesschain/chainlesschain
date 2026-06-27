@@ -58,10 +58,7 @@ class AgentOrchestrator extends EventEmitter {
     this._stateBusSubscriptions = [];
     if (options.enableStateBus !== false) {
       try {
-        const {
-          getLLMStateBus,
-          Events,
-        } = require("../../llm/llm-state-bus");
+        const { getLLMStateBus, Events } = require("../../llm/llm-state-bus");
         const bus = getLLMStateBus();
         const onProviderChange = (payload) => {
           this._log(
@@ -103,10 +100,7 @@ class AgentOrchestrator extends EventEmitter {
    * L1: 解绑状态总线订阅 (在销毁前调用)
    */
   unbindStateBus() {
-    if (
-      this._stateBusSubscriptions &&
-      this._stateBusSubscriptions.length > 0
-    ) {
+    if (this._stateBusSubscriptions && this._stateBusSubscriptions.length > 0) {
       try {
         const { getLLMStateBus } = require("../../llm/llm-state-bus");
         const bus = getLLMStateBus();
@@ -520,12 +514,18 @@ class AgentOrchestrator extends EventEmitter {
    * @private
    */
   _executeWithTimeout(promise, timeout, timeoutMessage) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(timeoutMessage)), timeout),
-      ),
-    ]);
+    // Store + clear the timer: when `promise` settles first (the normal case)
+    // the timeout was previously left armed for the full duration, leaking a
+    // timer per dispatch (hundreds under bursty parallel/chain execution).
+    let timer = null;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(timeoutMessage)), timeout);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    });
   }
 
   /**

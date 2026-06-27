@@ -142,6 +142,23 @@ describe("HierarchicalMemory", () => {
     expect(results).toHaveLength(0);
   });
 
+  it("should not match every memory on an empty query", async () => {
+    await memory.initialize(db);
+    memory.store("alpha note", { importance: 0.5 });
+    memory.store("beta note", { importance: 0.5 });
+    // Before the fix String.includes("") was always true, so recall("")
+    // returned every memory as "relevant".
+    expect(memory.recall("")).toHaveLength(0);
+  });
+
+  it("an empty-content memory does not match every query", async () => {
+    await memory.initialize(db);
+    memory.store("", { importance: 0.95 }); // empty content → core layer
+    // Before the fix searchText.includes(contentStr.substring(0,50)) ==
+    // searchText.includes("") was always true → matched any query.
+    expect(memory.recall("anyquery")).toHaveLength(0);
+  });
+
   it("should increment access_count on recall", async () => {
     await memory.initialize(db);
     memory.store("unique test content", { importance: 0.95 });
