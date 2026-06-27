@@ -357,6 +357,11 @@ class EmailClient extends EventEmitter {
 
           const emails = [];
 
+          // Track each message's async parse so the fetch "end" event waits for
+          // them — simpleParser is async, so resolving on "end" directly returned
+          // a partial/empty array (parsed pushes landed after resolution).
+          const parsePromises = [];
+
           fetch.on("message", (msg, seqno) => {
             let buffer = "";
 
@@ -366,13 +371,17 @@ class EmailClient extends EventEmitter {
               });
             });
 
-            msg.once("end", async () => {
-              try {
-                const parsed = await simpleParser(buffer);
-                emails.push(this.normalizeEmail(parsed, seqno));
-              } catch (error) {
-                logger.error("[EmailClient] 解析邮件失败:", error);
-              }
+            msg.once("end", () => {
+              parsePromises.push(
+                (async () => {
+                  try {
+                    const parsed = await simpleParser(buffer);
+                    emails.push(this.normalizeEmail(parsed, seqno));
+                  } catch (error) {
+                    logger.error("[EmailClient] 解析邮件失败:", error);
+                  }
+                })(),
+              );
             });
           });
 
@@ -381,7 +390,7 @@ class EmailClient extends EventEmitter {
           });
 
           fetch.once("end", () => {
-            resolve(emails);
+            Promise.all(parsePromises).then(() => resolve(emails));
           });
         });
       });

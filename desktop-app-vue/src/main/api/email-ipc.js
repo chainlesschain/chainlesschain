@@ -842,12 +842,19 @@ class EmailIPCHandler {
       );
       const drafts = stmt.all([accountId]);
 
-      // 解析 JSON 字段
+      // 解析 JSON 字段（per-field 守卫：一条坏草稿不应让整个草稿列表抛错返失败）
+      const safeArr = (raw) => {
+        try {
+          return JSON.parse(raw || "[]");
+        } catch {
+          return [];
+        }
+      };
       drafts.forEach((draft) => {
-        draft.to_address = JSON.parse(draft.to_address || "[]");
-        draft.cc_address = JSON.parse(draft.cc_address || "[]");
-        draft.bcc_address = JSON.parse(draft.bcc_address || "[]");
-        draft.attachments = JSON.parse(draft.attachments || "[]");
+        draft.to_address = safeArr(draft.to_address);
+        draft.cc_address = safeArr(draft.cc_address);
+        draft.bcc_address = safeArr(draft.bcc_address);
+        draft.attachments = safeArr(draft.attachments);
       });
 
       return { success: true, drafts };
