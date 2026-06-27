@@ -136,7 +136,22 @@ class MCPFunctionExecutor {
    */
   _parseFunctionName(name) {
     // 格式: mcp_${serverName}_${toolName}
-    // 注意: toolName 可能包含下划线，所以只分割前两个下划线
+    // 优先用 adapter 的权威注册表精确解析——serverName 本身也可能含下划线（如
+    // github_mcp / my_server），下面的正则 [^_]+ 会把它截断（github_mcp → "github"），
+    // 导致 callTool 路由到不存在的服务器。注册表里存的就是 LLM 看到的 toolId。
+    const info =
+      this.mcpToolAdapter &&
+      typeof this.mcpToolAdapter.getToolInfo === "function"
+        ? this.mcpToolAdapter.getToolInfo(name)
+        : null;
+    if (info) {
+      return {
+        serverName: info.serverName,
+        toolName: info.originalToolName,
+      };
+    }
+
+    // 兜底：注册表未命中时按首个下划线切分（仅对无下划线的 serverName 正确）。
     const match = name.match(/^mcp_([^_]+)_(.+)$/);
     if (!match) {
       return null;

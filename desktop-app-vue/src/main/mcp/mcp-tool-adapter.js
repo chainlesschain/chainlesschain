@@ -229,6 +229,24 @@ class MCPToolAdapter extends EventEmitter {
   }
 
   /**
+   * Get the authoritative { serverName, originalToolName } for a registered MCP
+   * tool id. Avoids re-parsing the "mcp_<server>_<tool>" name with a regex,
+   * which mis-splits when the server name itself contains underscores.
+   * @param {string} toolId - Tool ID (the mcp_<server>_<tool> function name)
+   * @returns {{ serverName: string, originalToolName: string } | null}
+   */
+  getToolInfo(toolId) {
+    const info = this.mcpToolRegistry.get(toolId);
+    if (!info) {
+      return null;
+    }
+    return {
+      serverName: info.serverName,
+      originalToolName: info.originalToolName,
+    };
+  }
+
+  /**
    * Refresh tools from a server (re-fetch and update)
    * @param {string} serverName - Server identifier
    */
