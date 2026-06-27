@@ -478,6 +478,7 @@ class PluginInstaller {
 
     let backupDir = null;
     let fromVersion = null;
+    let downloadPath = null;
 
     try {
       // Check if plugin is installed
@@ -515,10 +516,7 @@ class PluginInstaller {
       await this._safeDeleteDir(pluginDir);
 
       // Step 3: Download and extract new version
-      const downloadPath = path.join(
-        this.tempDir,
-        `${pluginId}-${newVersion}.zip`,
-      );
+      downloadPath = path.join(this.tempDir, `${pluginId}-${newVersion}.zip`);
 
       // Download new version
       logger.info(`[PluginInstaller] Downloading ${pluginId}@${newVersion}...`);
@@ -614,6 +612,13 @@ class PluginInstaller {
       };
     } catch (error) {
       logger.error(`[PluginInstaller] Update failed for ${pluginId}:`, error);
+
+      // Clean up the downloaded temp zip — on the error path the success-path
+      // _safeDelete(downloadPath) was skipped (downloadPath was a const scoped
+      // to the try), leaking a zip per failed update until the 24h cleanup.
+      if (downloadPath) {
+        await this._safeDelete(downloadPath);
+      }
 
       // Restore from backup if available
       if (backupDir) {

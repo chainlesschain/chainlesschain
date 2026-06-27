@@ -311,25 +311,51 @@ class PluginLoader {
    * @param {string} extractPath - 解压目标路径
    */
   async extractZip(zipPath, extractPath) {
-    // 使用 adm-zip 库（需要安装）
+    // adm-zip 可用性单独探测，避免把「解压/zip-slip 校验错误」误当成「adm-zip 缺失」
+    // 而回退到系统命令（那条路径同样不做 zip-slip 校验，会让恶意 entry 照样落地）。
+    let AdmZip = null;
     try {
-      const AdmZip = require("adm-zip");
+      AdmZip = require("adm-zip");
+    } catch {
+      AdmZip = null;
+    }
+
+    if (AdmZip) {
       const zip = new AdmZip(zipPath);
+
+      // Security: adm-zip 不会清洗 entry 路径，恶意 entry（如 "../../x"）会写到
+      // extractPath 之外（zip-slip）。本方法经 plugin:install IPC 由渲染层可达，
+      // 故逐 entry 校验解析后路径必须在目标目录内（对齐 plugin-installer 的守卫）。
+      const resolvedDest = path.resolve(extractPath);
+      for (const entry of zip.getEntries()) {
+        const resolvedPath = path.resolve(
+          path.join(extractPath, entry.entryName),
+        );
+        if (
+          resolvedPath !== resolvedDest &&
+          !resolvedPath.startsWith(resolvedDest + path.sep)
+        ) {
+          throw new Error(
+            `Zip slip detected: entry "${entry.entryName}" would extract outside target directory`,
+          );
+        }
+      }
 
       fs.mkdirSync(extractPath, { recursive: true });
       zip.extractAllTo(extractPath, true);
 
       logger.info(`[PluginLoader] ZIP解压成功: ${extractPath}`);
-    } catch (error) {
-      // 如果没有 adm-zip，使用系统命令
-      if (process.platform === "win32") {
-        await this.execCommand("powershell", [
-          "-Command",
-          `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractPath}" -Force`,
-        ]);
-      } else {
-        await this.execCommand("unzip", ["-q", zipPath, "-d", extractPath]);
-      }
+      return;
+    }
+
+    // 仅当 adm-zip 缺失时回退系统命令（adm-zip 是声明依赖，正常不会走到这里）
+    if (process.platform === "win32") {
+      await this.execCommand("powershell", [
+        "-Command",
+        `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractPath}" -Force`,
+      ]);
+    } else {
+      await this.execCommand("unzip", ["-q", zipPath, "-d", extractPath]);
     }
   }
 

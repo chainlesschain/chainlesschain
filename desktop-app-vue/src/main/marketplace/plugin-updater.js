@@ -621,8 +621,16 @@ class PluginUpdater extends EventEmitter {
         this._saveSettingValue(`marketplace.${key}`, value);
       }
 
-      // If check interval changed, restart the auto-check timer
-      if (settings.checkInterval && this._checkTimer) {
+      // If check interval changed, restart the auto-check timer — but only with
+      // a VALID interval. The validation above merely `continue`s (skips
+      // persistence) for checkInterval < 60000; without this same floor here, a
+      // rejected value (e.g. 1000) would still be applied to the live timer,
+      // hammering the marketplace API every second.
+      if (
+        typeof settings.checkInterval === "number" &&
+        settings.checkInterval >= 60000 &&
+        this._checkTimer
+      ) {
         this._restartCheckTimer(settings.checkInterval);
       }
 
