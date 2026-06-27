@@ -510,36 +510,37 @@ class GroupChatSyncManager extends EventEmitter {
    * 启动实时同步
    */
   startRealTimeSync() {
-    // 监听群聊管理器的事件
-    this.groupChatManager.on("message:sent", async ({ groupId, message }) => {
-      await this.syncMessage(groupId, message);
-    });
-
-    this.groupChatManager.on("member:added", async ({ groupId, memberDid }) => {
-      await this.syncMemberChange(groupId, {
-        type: "member-added",
-        memberDid,
-        timestamp: Date.now(),
-      });
-    });
-
-    this.groupChatManager.on(
-      "member:removed",
-      async ({ groupId, memberDid }) => {
+    // 只绑定一次并保存处理器引用：匿名监听器无法在 cleanup() 里精准移除，
+    // 多次 new+cleanup 会在长生命周期的 groupChatManager 上累加监听器（钉住已
+    // 销毁的实例 + MaxListeners 告警 + 在已拆除实例上触发同步）。
+    if (this._realtimeHandlers) {
+      return;
+    }
+    this._realtimeHandlers = {
+      "message:sent": async ({ groupId, message }) => {
+        await this.syncMessage(groupId, message);
+      },
+      "member:added": async ({ groupId, memberDid }) => {
+        await this.syncMemberChange(groupId, {
+          type: "member-added",
+          memberDid,
+          timestamp: Date.now(),
+        });
+      },
+      "member:removed": async ({ groupId, memberDid }) => {
         await this.syncMemberChange(groupId, {
           type: "member-removed",
           memberDid,
           timestamp: Date.now(),
         });
       },
-    );
-
-    this.groupChatManager.on(
-      "settings:changed",
-      async ({ groupId, settings }) => {
+      "settings:changed": async ({ groupId, settings }) => {
         await this.syncGroupSettings(groupId, settings);
       },
-    );
+    };
+    for (const [event, handler] of Object.entries(this._realtimeHandlers)) {
+      this.groupChatManager.on(event, handler);
+    }
 
     logger.info("[GroupChatSyncManager] 实时同步已启动");
   }
@@ -628,6 +629,13 @@ class GroupChatSyncManager extends EventEmitter {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
+    }
+    // 移除注册到 groupChatManager 上的实时同步监听器（否则累加 + 钉住已销毁实例）
+    if (this._realtimeHandlers) {
+      for (const [event, handler] of Object.entries(this._realtimeHandlers)) {
+        this.groupChatManager.off(event, handler);
+      }
+      this._realtimeHandlers = null;
     }
     this.messageQueues.clear();
     this.messageCache.clear();

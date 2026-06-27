@@ -962,6 +962,14 @@ class DBSyncManager extends EventEmitter {
       this.periodicSyncTimer = null;
     }
 
+    // startPeriodicCleanup() returns a setInterval handle stored here; without
+    // clearing it the 24h cleanup keeps firing on a destroyed manager, pinning
+    // the manager + database in memory.
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
     this.syncQueue.clear();
     this.removeAllListeners();
 
