@@ -2237,12 +2237,17 @@ async function executeToolInner(
           args: { language: args.language },
         });
         if (gate.decision !== APPROVAL_DECISION.ALLOW) {
+          // Actionable denial (matches run_shell, Claude-Code 2.1.193): tell the
+          // model retrying won't help and to involve the user.
+          const tierLabel =
+            typeof gate.policy === "string" ? `"${gate.policy}" ` : "";
           return attachDescriptor({
-            error: `[ApprovalGate] run_code denied (${gate.via})`,
+            error: `[ApprovalGate] run_code denied by the ${tierLabel}approval policy (via ${gate.via}). Retrying won't help — running arbitrary code needs user approval. Tell the user (they can approve it or relax the policy) and continue with other work.`,
             approval: {
               decision: gate.decision,
               via: gate.via,
               riskLevel: "high",
+              policy: gate.policy,
             },
           });
         }

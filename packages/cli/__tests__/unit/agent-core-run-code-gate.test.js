@@ -33,6 +33,9 @@ describe("run_code ApprovalGate gate (interactive-only)", () => {
       interactiveApproval: true,
     });
     expect(res.error).toMatch(/\[ApprovalGate\] run_code denied/);
+    // Actionable for the model (parity with run_shell): retry won't help, ask user.
+    expect(res.error).toMatch(/approval/i);
+    expect(res.error).toMatch(/retry|user/i);
     expect(res.approval).toMatchObject({ riskLevel: "high" });
     // The gate was consulted for the run_code tool at HIGH risk.
     expect(g.calls[0]).toMatchObject({ tool: "run_code" });
