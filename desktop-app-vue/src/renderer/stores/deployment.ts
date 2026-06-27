@@ -6,7 +6,12 @@
  * @version 1.1.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
+
+// 只绑定一次：DeploymentMonitorPage 在 onMounted 调 initEventListeners() 且无
+// onUnmounted 清理 → 每次进入页面累加监听器（重复 dispatch + 泄漏）。匿名包装无法
+// 精准 off，故用模块级标志（同 agentNetwork.ts / autonomous-agent.ts）。
+let deploymentEventListenersBound = false;
 
 // ==================== 类型定义 ====================
 
@@ -14,7 +19,13 @@ export interface PipelineStage {
   id: string;
   name: string;
   type: string;
-  status: 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'gate_pending';
+  status:
+    | "pending"
+    | "running"
+    | "success"
+    | "failed"
+    | "skipped"
+    | "gate_pending";
   startedAt?: string;
   completedAt?: string;
   duration?: number;
@@ -26,7 +37,7 @@ export interface Pipeline {
   id: string;
   name: string;
   template?: string;
-  status: 'pending' | 'running' | 'paused' | 'success' | 'failed' | 'cancelled';
+  status: "pending" | "running" | "paused" | "success" | "failed" | "cancelled";
   stages: PipelineStage[];
   config: any;
   createdAt: string;
@@ -70,7 +81,7 @@ interface DeploymentState {
 
 // ==================== Store ====================
 
-export const useDeploymentStore = defineStore('deployment', {
+export const useDeploymentStore = defineStore("deployment", {
   state: (): DeploymentState => ({
     currentPipeline: null,
     pipelines: [],
@@ -82,14 +93,16 @@ export const useDeploymentStore = defineStore('deployment', {
 
   getters: {
     activePipelines(): Pipeline[] {
-      return this.pipelines.filter((p) => p.status === 'running' || p.status === 'paused');
+      return this.pipelines.filter(
+        (p) => p.status === "running" || p.status === "paused",
+      );
     },
 
     pendingGates(): { pipeline: Pipeline; stage: PipelineStage }[] {
       const gates: { pipeline: Pipeline; stage: PipelineStage }[] = [];
       for (const p of this.pipelines) {
         for (const s of p.stages) {
-          if (s.status === 'gate_pending') {
+          if (s.status === "gate_pending") {
             gates.push({ pipeline: p, stage: s });
           }
         }
@@ -109,7 +122,10 @@ export const useDeploymentStore = defineStore('deployment', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:create', config);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:create",
+          config,
+        );
         if (result.success) {
           await this.getAllPipelines();
         } else {
@@ -128,7 +144,10 @@ export const useDeploymentStore = defineStore('deployment', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:start', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:start",
+          id,
+        );
         if (result.success) {
           await this.getStatus(id);
         } else {
@@ -145,7 +164,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async pausePipeline(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:pause', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:pause",
+          id,
+        );
         if (result.success) {
           await this.getStatus(id);
         }
@@ -157,7 +179,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async resumePipeline(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:resume', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:resume",
+          id,
+        );
         if (result.success) {
           await this.getStatus(id);
         }
@@ -169,7 +194,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async cancelPipeline(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:cancel', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:cancel",
+          id,
+        );
         if (result.success) {
           await this.getStatus(id);
         }
@@ -181,7 +209,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async getStatus(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:get-status', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:get-status",
+          id,
+        );
         if (result.success && result.data) {
           this.currentPipeline = result.data;
           const idx = this.pipelines.findIndex((p) => p.id === id);
@@ -198,7 +229,9 @@ export const useDeploymentStore = defineStore('deployment', {
     async getAllPipelines() {
       this.loading = true;
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:get-all');
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:get-all",
+        );
         if (result.success && result.data) {
           this.pipelines = result.data;
         }
@@ -215,7 +248,7 @@ export const useDeploymentStore = defineStore('deployment', {
     async approveGate(id: string, stageId: string) {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'dev-pipeline:approve-gate',
+          "dev-pipeline:approve-gate",
           id,
           stageId,
         );
@@ -231,7 +264,7 @@ export const useDeploymentStore = defineStore('deployment', {
     async rejectGate(id: string, stageId: string, reason: string) {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'dev-pipeline:reject-gate',
+          "dev-pipeline:reject-gate",
           id,
           stageId,
           reason,
@@ -249,7 +282,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async getArtifacts(id: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:get-artifacts', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:get-artifacts",
+          id,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -259,7 +295,7 @@ export const useDeploymentStore = defineStore('deployment', {
     async getStageDetail(id: string, stageId: string) {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'dev-pipeline:get-stage-detail',
+          "dev-pipeline:get-stage-detail",
           id,
           stageId,
         );
@@ -271,7 +307,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async getMetrics(id?: string) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:get-metrics', id);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:get-metrics",
+          id,
+        );
         if (result.success && result.data) {
           this.metrics = result.data;
         }
@@ -285,7 +324,9 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async getTemplates() {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:get-templates');
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:get-templates",
+        );
         if (result.success && result.data) {
           this.templates = result.data;
         }
@@ -297,7 +338,10 @@ export const useDeploymentStore = defineStore('deployment', {
 
     async configure(config: any) {
       try {
-        const result = await (window as any).electronAPI.invoke('dev-pipeline:configure', config);
+        const result = await (window as any).electronAPI.invoke(
+          "dev-pipeline:configure",
+          config,
+        );
         return result;
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -307,21 +351,35 @@ export const useDeploymentStore = defineStore('deployment', {
     // ==================== 事件监听 ====================
 
     initEventListeners() {
+      if (deploymentEventListenersBound) {
+        return;
+      }
       const api = (window as any).electronAPI;
       if (api && api.on) {
-        api.on('dev-pipeline:stage-updated', (_event: any, data: any) => {
-          if (this.currentPipeline && this.currentPipeline.id === data.pipelineId) {
-            const stage = this.currentPipeline.stages.find((s) => s.id === data.stageId);
+        deploymentEventListenersBound = true;
+        api.on("dev-pipeline:stage-updated", (_event: any, data: any) => {
+          if (
+            this.currentPipeline &&
+            this.currentPipeline.id === data.pipelineId
+          ) {
+            const stage = this.currentPipeline.stages.find(
+              (s) => s.id === data.stageId,
+            );
             if (stage) {
               Object.assign(stage, data);
             }
           }
         });
-        api.on('dev-pipeline:gate-pending', (_event: any, data: any) => {
-          if (this.currentPipeline && this.currentPipeline.id === data.pipelineId) {
-            const stage = this.currentPipeline.stages.find((s) => s.id === data.stageId);
+        api.on("dev-pipeline:gate-pending", (_event: any, data: any) => {
+          if (
+            this.currentPipeline &&
+            this.currentPipeline.id === data.pipelineId
+          ) {
+            const stage = this.currentPipeline.stages.find(
+              (s) => s.id === data.stageId,
+            );
             if (stage) {
-              stage.status = 'gate_pending';
+              stage.status = "gate_pending";
             }
           }
         });

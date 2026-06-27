@@ -15,6 +15,12 @@ import { defineStore } from "pinia";
 
 const autonomousLogger = createLogger("autonomous-agent-store");
 
+// IPC 事件监听在应用会话内只应绑定一次：store 是单例、事件是应用级广播，但
+// AutonomousAgentPage 在 onMounted 调 initEventListeners() 且无 onUnmounted 清理 →
+// 每次进入页面都会累加 10 个匿名监听器（重复 dispatch + 泄漏）。通用 electronAPI.on
+// 注册匿名包装、off 无法精准移除，故用模块级标志保证只绑定一次（同 agentNetwork.ts）。
+let autonomousEventListenersBound = false;
+
 // ==================== Type Definitions ====================
 
 /**
@@ -920,6 +926,9 @@ export const useAutonomousAgentStore = defineStore("autonomous-agent", {
      * Initialize event listeners for real-time updates from main process
      */
     initEventListeners(): void {
+      if (autonomousEventListenersBound) {
+        return;
+      }
       if (!(window as any).electronAPI || !(window as any).electronAPI.on) {
         autonomousLogger.warn(
           "electronAPI.on not available, skipping event listeners",
@@ -928,6 +937,7 @@ export const useAutonomousAgentStore = defineStore("autonomous-agent", {
       }
 
       const api = (window as any).electronAPI;
+      autonomousEventListenersBound = true;
 
       // Goal progress updates
       api.on("agent:goal-progress", (data: GoalProgressEvent) => {

@@ -897,6 +897,10 @@ export const useSocialStore = defineStore("social", {
       };
 
       this.notifications.unshift(notificationData);
+      // 上限保护：每次好友上线/下线/消息/系统事件都 unshift，长会话下无限增长。
+      if (this.notifications.length > 200) {
+        this.notifications.length = 200;
+      }
       this.unreadNotifications++;
 
       // 发送桌面通知
