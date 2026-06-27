@@ -635,8 +635,11 @@ class HomomorphicManager extends EventEmitter {
         result = (hashNum % (Math.max(recordCount, 1) * 1000)).toString();
         break;
       case "avg":
+        // Clamp the modulo too (not just the division): recordCount can be 0 on
+        // an empty dataset, and `hashNum % 0` is NaN → "NaN" result. Mirrors the
+        // sum case above.
         result = (
-          (hashNum % (recordCount * 1000)) /
+          (hashNum % (Math.max(recordCount, 1) * 1000)) /
           Math.max(recordCount, 1)
         ).toFixed(2);
         break;

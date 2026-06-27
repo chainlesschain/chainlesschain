@@ -791,6 +791,22 @@ describe("AdvancedCryptoManager", () => {
       expect(result.keyMaterial).toBeNull();
     });
 
+    it("duplicate approvals from one agent do NOT satisfy an M-of-N threshold", async () => {
+      const agents = ["agent-1", "agent-2", "agent-3"];
+      const { escrowId } = await manager.keyEscrowSetup("dedup-key", agents, 2);
+
+      // Before the fix, ['agent-1','agent-1'] counted as 2 approvals → granted,
+      // letting one agent (or anyone knowing one valid id) bypass the threshold.
+      const result = await manager.emergencyAccess(escrowId, [
+        "agent-1",
+        "agent-1",
+      ]);
+
+      expect(result.accessGranted).toBe(false);
+      expect(result.approvalsReceived).toBe(1);
+      expect(result.keyMaterial).toBeNull();
+    });
+
     it("keyMaterial should be returned when access is granted", async () => {
       const agents = ["x", "y"];
       const { escrowId } = await manager.keyEscrowSetup("km-key", agents, 1);

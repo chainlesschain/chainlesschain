@@ -1004,6 +1004,17 @@ class DIDManager extends EventEmitter {
         throw new Error("DID 文档签名验证失败");
       }
 
+      // 确认解析到的文档确实属于所请求的 DID（防 id 替换）。verifyDIDDocument 只验证
+      // 文档自身 id↔签名密钥的绑定，不保证该 id == 所查询的 DID。攻击者可在受害者
+      // DID 的 DHT 槽位投放一份「自洽但 id 不同」的文档（其自己的 id+密钥），否则会被
+      // 当作受害者的身份返回并缓存，导致 P2P/通道里把攻击者公钥当成受害者公钥。
+      const resolvedId = publishData.didDocument?.id;
+      if (resolvedId !== did) {
+        throw new Error(
+          `DID 文档 id 与请求不符，疑似 id 替换 (请求 ${did}, 文档 ${resolvedId})`,
+        );
+      }
+
       // 3. 缓存DID文档
       await this.cache.set(did, publishData);
 

@@ -888,9 +888,15 @@ class AdvancedCryptoManager extends EventEmitter {
       throw new Error(`Escrow not found: ${escrowId}`);
     }
 
-    const validApprovals = (agentApprovals || []).filter((a) =>
-      escrow.agents.includes(a),
-    );
+    // Count DISTINCT approving agents — without de-duplication a single agent
+    // (or anyone knowing one valid agent id) could pass an M-of-N threshold by
+    // repeating its id (e.g. ['a','a'] satisfies threshold 2), defeating the
+    // whole key-escrow recovery guarantee and releasing escrow.keyMaterial.
+    const validApprovals = [
+      ...new Set(
+        (agentApprovals || []).filter((a) => escrow.agents.includes(a)),
+      ),
+    ];
     const accessGranted = validApprovals.length >= escrow.threshold;
 
     this._logAudit("emergency-access", CATEGORIES.ESCROW, {
