@@ -38,6 +38,10 @@ export const _deps = {
   now: () => Date.now(),
   // Backoff sleep seam (tests override with a no-op so the retry doesn't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  // Visible-warning seam (silent under vitest; tests override to assert).
+  warn: (msg) => {
+    if (!process.env.VITEST) process.stderr.write(msg);
+  },
 };
 
 /** Discovery/token requests retry ONCE after a transient error (CC 2.1.191). */
@@ -371,15 +375,54 @@ export function tokenStorePath() {
   return pathDefault.join(_deps.homedir(), ".chainlesschain", "mcp-oauth.json");
 }
 
+/**
+ * Read the token store, distinguishing "absent / empty" (ok) from "exists but
+ * unreadable / corrupt" (ok:false). The distinction matters on the WRITE path:
+ * a read-modify-write that treats an unreadable store as `{}` would overwrite
+ * and silently destroy every other server's token.
+ */
+function _readStore(file) {
+  if (!_deps.fs.existsSync(file)) return { ok: true, store: {} };
+  try {
+    const data = JSON.parse(_deps.fs.readFileSync(file, "utf-8"));
+    return { ok: true, store: data && typeof data === "object" ? data : {} };
+  } catch (err) {
+    return { ok: false, store: {}, err };
+  }
+}
+
+const _warnedCorruptStore = new Set();
+function _warnCorruptStoreOnce(file, err, archived) {
+  if (_warnedCorruptStore.has(file)) return;
+  _warnedCorruptStore.add(file);
+  _deps.warn(
+    `⚠️  MCP OAuth token store at ${file} is unreadable (${err?.message || "parse error"}). ` +
+      `Saved MCP logins are unavailable${archived ? `; the unreadable file was preserved as ${archived}` : ""} — ` +
+      "re-run `cc mcp login <url>` for the servers you use.\n",
+  );
+}
+
+/** Move an unreadable store aside so a fresh write doesn't destroy it. Returns
+ *  the archive path, or "" when it couldn't be moved (best-effort). */
+function _archiveCorruptStore(file) {
+  if (typeof _deps.fs.renameSync !== "function") return "";
+  const ts = typeof _deps.now === "function" ? _deps.now() : Date.now();
+  const dest = `${file}.corrupt-${ts}`;
+  try {
+    _deps.fs.renameSync(file, dest);
+    return dest;
+  } catch {
+    return "";
+  }
+}
+
 export function loadTokenStore() {
   const file = tokenStorePath();
-  try {
-    if (!_deps.fs.existsSync(file)) return {};
-    const data = JSON.parse(_deps.fs.readFileSync(file, "utf-8"));
-    return data && typeof data === "object" ? data : {};
-  } catch {
-    return {};
-  }
+  const r = _readStore(file);
+  // Read callers (getStoredToken) treat an unreadable store as "no token", but
+  // the user should still know their saved logins silently vanished.
+  if (!r.ok) _warnCorruptStoreOnce(file, r.err, "");
+  return r.store;
 }
 
 export function getStoredToken(serverUrl) {
@@ -527,7 +570,15 @@ function withStoreLock(file, fn) {
 export function saveStoredToken(serverUrl, record) {
   const file = tokenStorePath();
   return withStoreLock(file, () => {
-    const store = loadTokenStore(); // re-read inside the lock (latest state)
+    const r = _readStore(file); // re-read inside the lock (latest state)
+    if (!r.ok) {
+      // The existing store is unreadable. Writing a fresh single-entry store
+      // here would silently destroy every other server's token — move the
+      // unreadable file aside first so it can be recovered, and surface it.
+      const archived = _archiveCorruptStore(file);
+      _warnCorruptStoreOnce(file, r.err, archived);
+    }
+    const store = r.store;
     store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
     _writeStoreSecure(file, store);
     return store[serverKey(serverUrl)];

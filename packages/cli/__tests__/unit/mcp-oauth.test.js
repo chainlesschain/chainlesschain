@@ -458,6 +458,46 @@ describe("token store + expiry", () => {
   });
 });
 
+describe("corrupt token store (unreadable file is not silently destroyed)", () => {
+  // NOTE: keep the load-warn case FIRST — the once-per-path warn guard is
+  // module-level (no resetModules here), so a later case can't re-trigger it.
+  it("loadTokenStore warns once and returns {} when the store is unreadable", () => {
+    store.content = "{ broken json";
+    store.__written = true;
+    const warn = vi.fn();
+    _deps.warn = warn;
+    expect(oauth.loadTokenStore()).toEqual({});
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(oauth.tokenStorePath());
+    expect(warn.mock.calls[0][0]).toMatch(/cc mcp login/);
+  });
+
+  it("saveStoredToken writes a FRESH store (does not merge into corrupt bytes)", () => {
+    store.content = "{ broken json";
+    store.__written = true;
+    _deps.warn = vi.fn();
+    oauth.saveStoredToken("https://x.example.com", { access_token: "NEW" });
+    const written = JSON.parse(store.content);
+    // only the new entry survives — the unreadable store wasn't merged/clobbered
+    // into a half-broken result, and the other (lost) tokens aren't faked back.
+    expect(Object.keys(written)).toEqual(["https://x.example.com"]);
+    expect(written["https://x.example.com"].access_token).toBe("NEW");
+  });
+
+  it("saveStoredToken archives the unreadable file when renameSync exists", () => {
+    store.content = "{ broken json";
+    store.__written = true;
+    const renamed = [];
+    _deps.fs.renameSync = (from, to) => renamed.push([from, to]);
+    _deps.warn = vi.fn();
+    oauth.saveStoredToken("https://x.example.com", { access_token: "NEW" });
+    // the corrupt file was moved aside to a `.corrupt-<ts>` path before writing
+    expect(renamed.some(([, to]) => String(to).includes(".corrupt-"))).toBe(
+      true,
+    );
+  });
+});
+
 describe("connect wiring (setupMcpFromConfig)", () => {
   function fakeStore(json) {
     _deps.fs = {
