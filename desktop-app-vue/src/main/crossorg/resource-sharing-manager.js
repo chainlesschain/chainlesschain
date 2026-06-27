@@ -6,10 +6,23 @@
  * @module crossorg/resource-sharing-manager
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
+
+// One corrupt row's stored JSON column must not throw out of a list .map and
+// fail the whole query (returning nothing instead of the other valid rows).
+function safeParse(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+const EventEmitter = require("events");
 
 class ResourceSharingManager extends EventEmitter {
   constructor(database) {
@@ -32,37 +45,46 @@ class ResourceSharingManager extends EventEmitter {
 
       // Verify partnership or workspace membership
       if (shareData.targetOrgId) {
-        const partnership = db.prepare(`
+        const partnership = db
+          .prepare(
+            `
           SELECT id, trust_level FROM org_partnerships
           WHERE ((initiator_org_id = ? AND partner_org_id = ?)
              OR (initiator_org_id = ? AND partner_org_id = ?))
             AND status = 'active'
-        `).get(
-          shareData.sourceOrgId,
-          shareData.targetOrgId,
-          shareData.targetOrgId,
-          shareData.sourceOrgId
-        );
+        `,
+          )
+          .get(
+            shareData.sourceOrgId,
+            shareData.targetOrgId,
+            shareData.targetOrgId,
+            shareData.sourceOrgId,
+          );
 
         if (!partnership) {
-          return { success: false, error: 'NO_PARTNERSHIP' };
+          return { success: false, error: "NO_PARTNERSHIP" };
         }
       }
 
       // Generate encryption key if needed
       let encryptionKeyId = null;
       if (shareData.encrypt !== false) {
-        encryptionKeyId = await this._createShareKey(shareId, shareData.sourceOrgId);
+        encryptionKeyId = await this._createShareKey(
+          shareId,
+          shareData.sourceOrgId,
+        );
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO cross_org_shares (
           id, source_org_id, target_org_id, target_workspace_id,
           resource_type, resource_id, resource_name, share_type,
           permissions, encryption_key_id, expires_at, shared_by_did,
           status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
-      `).run(
+      `,
+      ).run(
         shareId,
         shareData.sourceOrgId,
         shareData.targetOrgId,
@@ -70,13 +92,13 @@ class ResourceSharingManager extends EventEmitter {
         shareData.resourceType,
         shareData.resourceId,
         shareData.resourceName,
-        shareData.shareType || 'reference',
-        JSON.stringify(shareData.permissions || ['read']),
+        shareData.shareType || "reference",
+        JSON.stringify(shareData.permissions || ["read"]),
         encryptionKeyId,
         shareData.expiresAt,
         shareData.sharedByDid,
         now,
-        now
+        now,
       );
 
       // Log audit
@@ -84,27 +106,29 @@ class ResourceSharingManager extends EventEmitter {
         shareData.sourceOrgId,
         shareData.targetOrgId,
         shareData.sharedByDid,
-        'resource_shared',
+        "resource_shared",
         {
           shareId,
           resourceType: shareData.resourceType,
-          resourceId: shareData.resourceId
-        }
+          resourceId: shareData.resourceId,
+        },
       );
 
-      this.emit('resource-shared', {
+      this.emit("resource-shared", {
         shareId,
         sourceOrgId: shareData.sourceOrgId,
         targetOrgId: shareData.targetOrgId,
         resourceType: shareData.resourceType,
-        resourceId: shareData.resourceId
+        resourceId: shareData.resourceId,
       });
 
-      logger.info(`[ResourceSharing] Shared resource ${shareData.resourceId} -> ${shareData.targetOrgId || shareData.targetWorkspaceId}`);
+      logger.info(
+        `[ResourceSharing] Shared resource ${shareData.resourceId} -> ${shareData.targetOrgId || shareData.targetWorkspaceId}`,
+      );
 
       return { success: true, shareId, encryptionKeyId };
     } catch (error) {
-      logger.error('[ResourceSharing] Error sharing resource:', error);
+      logger.error("[ResourceSharing] Error sharing resource:", error);
       throw error;
     }
   }
@@ -117,19 +141,25 @@ class ResourceSharingManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const share = db.prepare(`
+      const share = db
+        .prepare(
+          `
         SELECT * FROM cross_org_shares WHERE id = ?
-      `).get(shareId);
+      `,
+        )
+        .get(shareId);
 
       if (!share) {
-        return { success: false, error: 'SHARE_NOT_FOUND' };
+        return { success: false, error: "SHARE_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE cross_org_shares
         SET status = 'revoked', updated_at = ?
         WHERE id = ?
-      `).run(now, shareId);
+      `,
+      ).run(now, shareId);
 
       // Delete encryption key
       if (share.encryption_key_id) {
@@ -140,15 +170,15 @@ class ResourceSharingManager extends EventEmitter {
         share.source_org_id,
         share.target_org_id,
         unsharerDid,
-        'resource_unshared',
-        { shareId, resourceId: share.resource_id }
+        "resource_unshared",
+        { shareId, resourceId: share.resource_id },
       );
 
       logger.info(`[ResourceSharing] Unshared resource ${shareId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[ResourceSharing] Error unsharing resource:', error);
+      logger.error("[ResourceSharing] Error unsharing resource:", error);
       throw error;
     }
   }
@@ -163,10 +193,10 @@ class ResourceSharingManager extends EventEmitter {
       let query;
       const params = [];
 
-      if (options.direction === 'outgoing') {
+      if (options.direction === "outgoing") {
         query = `SELECT * FROM cross_org_shares WHERE source_org_id = ?`;
         params.push(orgId);
-      } else if (options.direction === 'incoming') {
+      } else if (options.direction === "incoming") {
         query = `SELECT * FROM cross_org_shares WHERE target_org_id = ?`;
         params.push(orgId);
       } else {
@@ -202,7 +232,7 @@ class ResourceSharingManager extends EventEmitter {
 
       return {
         success: true,
-        shares: shares.map(s => ({
+        shares: shares.map((s) => ({
           id: s.id,
           sourceOrgId: s.source_org_id,
           targetOrgId: s.target_org_id,
@@ -211,18 +241,18 @@ class ResourceSharingManager extends EventEmitter {
           resourceId: s.resource_id,
           resourceName: s.resource_name,
           shareType: s.share_type,
-          permissions: s.permissions ? JSON.parse(s.permissions) : [],
+          permissions: safeParse(s.permissions, []),
           encrypted: !!s.encryption_key_id,
           expiresAt: s.expires_at,
           status: s.status,
           sharedByDid: s.shared_by_did,
           createdAt: s.created_at,
           accessCount: s.access_count || 0,
-          lastAccessedAt: s.last_accessed_at
-        }))
+          lastAccessedAt: s.last_accessed_at,
+        })),
       };
     } catch (error) {
-      logger.error('[ResourceSharing] Error getting shared resources:', error);
+      logger.error("[ResourceSharing] Error getting shared resources:", error);
       throw error;
     }
   }
@@ -235,58 +265,73 @@ class ResourceSharingManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const share = db.prepare(`
+      const share = db
+        .prepare(
+          `
         SELECT * FROM cross_org_shares WHERE id = ? AND status = 'active'
-      `).get(shareId);
+      `,
+        )
+        .get(shareId);
 
       if (!share) {
-        return { success: false, error: 'SHARE_NOT_FOUND' };
+        return { success: false, error: "SHARE_NOT_FOUND" };
       }
 
       // Verify accessor org has access
       if (share.target_org_id && share.target_org_id !== accessorOrgId) {
         // Check workspace membership
         if (share.target_workspace_id) {
-          const membership = db.prepare(`
+          const membership = db
+            .prepare(
+              `
             SELECT id FROM shared_workspace_members
             WHERE workspace_id = ? AND member_did = ?
-          `).get(share.target_workspace_id, accessorDid);
+          `,
+            )
+            .get(share.target_workspace_id, accessorDid);
 
           if (!membership) {
-            return { success: false, error: 'ACCESS_DENIED' };
+            return { success: false, error: "ACCESS_DENIED" };
           }
         } else {
-          return { success: false, error: 'ACCESS_DENIED' };
+          return { success: false, error: "ACCESS_DENIED" };
         }
       }
 
       // Check expiry
       if (share.expires_at && share.expires_at < now) {
-        db.prepare(`
+        db.prepare(
+          `
           UPDATE cross_org_shares SET status = 'expired', updated_at = ? WHERE id = ?
-        `).run(now, shareId);
-        return { success: false, error: 'SHARE_EXPIRED' };
+        `,
+        ).run(now, shareId);
+        return { success: false, error: "SHARE_EXPIRED" };
       }
 
       // Update access stats
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE cross_org_shares
         SET access_count = COALESCE(access_count, 0) + 1, last_accessed_at = ?, updated_at = ?
         WHERE id = ?
-      `).run(now, now, shareId);
+      `,
+      ).run(now, now, shareId);
 
       // Get decryption key if encrypted
       let decryptionKey = null;
       if (share.encryption_key_id) {
-        decryptionKey = await this._getShareKey(share.encryption_key_id, accessorOrgId);
+        decryptionKey = await this._getShareKey(
+          share.encryption_key_id,
+          accessorOrgId,
+        );
       }
 
       this._logAudit(
         share.source_org_id,
         accessorOrgId,
         accessorDid,
-        'resource_accessed',
-        { shareId, resourceId: share.resource_id }
+        "resource_accessed",
+        { shareId, resourceId: share.resource_id },
       );
 
       return {
@@ -296,11 +341,11 @@ class ResourceSharingManager extends EventEmitter {
           resourceId: share.resource_id,
           resourceName: share.resource_name,
           permissions: share.permissions ? JSON.parse(share.permissions) : [],
-          decryptionKey
-        }
+          decryptionKey,
+        },
       };
     } catch (error) {
-      logger.error('[ResourceSharing] Error accessing shared resource:', error);
+      logger.error("[ResourceSharing] Error accessing shared resource:", error);
       throw error;
     }
   }
@@ -313,31 +358,40 @@ class ResourceSharingManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const share = db.prepare(`
+      const share = db
+        .prepare(
+          `
         SELECT * FROM cross_org_shares WHERE id = ?
-      `).get(shareId);
+      `,
+        )
+        .get(shareId);
 
       if (!share) {
-        return { success: false, error: 'SHARE_NOT_FOUND' };
+        return { success: false, error: "SHARE_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE cross_org_shares
         SET permissions = ?, updated_at = ?
         WHERE id = ?
-      `).run(JSON.stringify(permissions), now, shareId);
+      `,
+      ).run(JSON.stringify(permissions), now, shareId);
 
       this._logAudit(
         share.source_org_id,
         share.target_org_id,
         updatedByDid,
-        'share_permissions_updated',
-        { shareId, newPermissions: permissions }
+        "share_permissions_updated",
+        { shareId, newPermissions: permissions },
       );
 
       return { success: true };
     } catch (error) {
-      logger.error('[ResourceSharing] Error updating share permissions:', error);
+      logger.error(
+        "[ResourceSharing] Error updating share permissions:",
+        error,
+      );
       throw error;
     }
   }
@@ -349,7 +403,9 @@ class ResourceSharingManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const stats = db.prepare(`
+      const stats = db
+        .prepare(
+          `
         SELECT
           COUNT(CASE WHEN source_org_id = ? THEN 1 END) as outgoingShares,
           COUNT(CASE WHEN target_org_id = ? THEN 1 END) as incomingShares,
@@ -357,16 +413,24 @@ class ResourceSharingManager extends EventEmitter {
           SUM(CASE WHEN target_org_id = ? THEN access_count ELSE 0 END) as totalIncomingAccess
         FROM cross_org_shares
         WHERE (source_org_id = ? OR target_org_id = ?) AND status = 'active'
-      `).get(orgId, orgId, orgId, orgId, orgId, orgId);
+      `,
+        )
+        .get(orgId, orgId, orgId, orgId, orgId, orgId);
 
-      const byType = db.prepare(`
+      const byType = db
+        .prepare(
+          `
         SELECT resource_type, COUNT(*) as count
         FROM cross_org_shares
         WHERE source_org_id = ? AND status = 'active'
         GROUP BY resource_type
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
-      const topPartners = db.prepare(`
+      const topPartners = db
+        .prepare(
+          `
         SELECT
           CASE WHEN source_org_id = ? THEN target_org_id ELSE source_org_id END as partnerId,
           COUNT(*) as shareCount
@@ -375,7 +439,9 @@ class ResourceSharingManager extends EventEmitter {
         GROUP BY partnerId
         ORDER BY shareCount DESC
         LIMIT 5
-      `).all(orgId, orgId, orgId);
+      `,
+        )
+        .all(orgId, orgId, orgId);
 
       return {
         success: true,
@@ -388,11 +454,11 @@ class ResourceSharingManager extends EventEmitter {
             acc[t.resource_type] = t.count;
             return acc;
           }, {}),
-          topPartners
-        }
+          topPartners,
+        },
       };
     } catch (error) {
-      logger.error('[ResourceSharing] Error getting share analytics:', error);
+      logger.error("[ResourceSharing] Error getting share analytics:", error);
       throw error;
     }
   }
@@ -405,30 +471,36 @@ class ResourceSharingManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const share = db.prepare(`
+      const share = db
+        .prepare(
+          `
         SELECT * FROM cross_org_shares WHERE id = ? AND share_type = 'copy' AND status = 'active'
-      `).get(shareId);
+      `,
+        )
+        .get(shareId);
 
       if (!share) {
-        return { success: false, error: 'SHARE_NOT_FOUND_OR_NOT_COPY' };
+        return { success: false, error: "SHARE_NOT_FOUND_OR_NOT_COPY" };
       }
 
       // This would trigger actual resource sync logic
       // For now, just update sync timestamp
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE cross_org_shares SET last_synced_at = ?, updated_at = ? WHERE id = ?
-      `).run(now, now, shareId);
+      `,
+      ).run(now, now, shareId);
 
-      this.emit('resource-synced', {
+      this.emit("resource-synced", {
         shareId,
-        resourceId: share.resource_id
+        resourceId: share.resource_id,
       });
 
       logger.info(`[ResourceSharing] Synced resource ${shareId}`);
 
       return { success: true, syncedAt: now };
     } catch (error) {
-      logger.error('[ResourceSharing] Error syncing resource:', error);
+      logger.error("[ResourceSharing] Error syncing resource:", error);
       throw error;
     }
   }
@@ -443,38 +515,40 @@ class ResourceSharingManager extends EventEmitter {
       const requestId = uuidv4();
 
       // Store as a pending share request
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO cross_org_shares (
           id, source_org_id, target_org_id, resource_type, resource_id,
           resource_name, share_type, permissions, status, shared_by_did,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'requested', ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         requestId,
         requestData.ownerOrgId,
         requestData.requesterOrgId,
         requestData.resourceType,
         requestData.resourceId,
         requestData.resourceName,
-        'reference',
-        JSON.stringify(requestData.requestedPermissions || ['read']),
+        "reference",
+        JSON.stringify(requestData.requestedPermissions || ["read"]),
         requestData.requesterDid,
         now,
-        now
+        now,
       );
 
-      this.emit('resource-requested', {
+      this.emit("resource-requested", {
         requestId,
         ownerOrgId: requestData.ownerOrgId,
         requesterOrgId: requestData.requesterOrgId,
-        resourceId: requestData.resourceId
+        resourceId: requestData.resourceId,
       });
 
       logger.info(`[ResourceSharing] Resource access requested: ${requestId}`);
 
       return { success: true, requestId };
     } catch (error) {
-      logger.error('[ResourceSharing] Error requesting resource:', error);
+      logger.error("[ResourceSharing] Error requesting resource:", error);
       throw error;
     }
   }
@@ -518,18 +592,21 @@ class ResourceSharingManager extends EventEmitter {
 
       return {
         success: true,
-        results: results.map(r => ({
+        results: results.map((r) => ({
           shareId: r.id,
           sourceOrgId: r.source_org_id,
           resourceType: r.resource_type,
           resourceId: r.resource_id,
           resourceName: r.resource_name,
           permissions: r.permissions ? JSON.parse(r.permissions) : [],
-          sharedAt: r.created_at
-        }))
+          sharedAt: r.created_at,
+        })),
       };
     } catch (error) {
-      logger.error('[ResourceSharing] Error searching shared resources:', error);
+      logger.error(
+        "[ResourceSharing] Error searching shared resources:",
+        error,
+      );
       throw error;
     }
   }
@@ -562,14 +639,18 @@ class ResourceSharingManager extends EventEmitter {
       `);
 
       // Store key as base64 (in production, encrypt with org's public key)
-      const encryptedKey = key.toString('base64');
+      const encryptedKey = key.toString("base64");
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO share_keys (id, share_id, source_org_id, encrypted_key, created_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run(keyId, shareId, sourceOrgId, encryptedKey, now);
+      `,
+      ).run(keyId, shareId, sourceOrgId, encryptedKey, now);
 
-      logger.debug(`[ResourceSharing] Created share key ${keyId} for ${shareId}`);
+      logger.debug(
+        `[ResourceSharing] Created share key ${keyId} for ${shareId}`,
+      );
       return keyId;
     } catch (error) {
       logger.error(`[ResourceSharing] Failed to create share key:`, error);
@@ -582,22 +663,28 @@ class ResourceSharingManager extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Get the key and verify accessor has permission
-      const keyRecord = db.prepare(`
+      const keyRecord = db
+        .prepare(
+          `
         SELECT sk.encrypted_key, sk.share_id, sk.source_org_id
         FROM share_keys sk
         JOIN cross_org_shares cs ON sk.share_id = cs.id
         WHERE sk.id = ?
           AND (cs.target_org_id = ? OR cs.source_org_id = ?)
           AND cs.status = 'active'
-      `).get(keyId, accessorOrgId, accessorOrgId);
+      `,
+        )
+        .get(keyId, accessorOrgId, accessorOrgId);
 
       if (!keyRecord) {
-        logger.warn(`[ResourceSharing] Share key ${keyId} not found or access denied`);
+        logger.warn(
+          `[ResourceSharing] Share key ${keyId} not found or access denied`,
+        );
         return null;
       }
 
       // Return the key (in production, decrypt using accessor's credentials)
-      return Buffer.from(keyRecord.encrypted_key, 'base64');
+      return Buffer.from(keyRecord.encrypted_key, "base64");
     } catch (error) {
       logger.error(`[ResourceSharing] Failed to get share key:`, error);
       return null;
@@ -622,12 +709,14 @@ class ResourceSharingManager extends EventEmitter {
       const now = Date.now();
       const id = uuidv4();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO cross_org_audit_log (
           id, source_org_id, target_org_id, actor_did, action,
           resource_type, resource_id, details, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         id,
         sourceOrgId,
         targetOrgId,
@@ -636,10 +725,10 @@ class ResourceSharingManager extends EventEmitter {
         details.resourceType || null,
         details.resourceId || null,
         JSON.stringify(details),
-        now
+        now,
       );
     } catch (error) {
-      logger.error('[ResourceSharing] Error logging audit:', error);
+      logger.error("[ResourceSharing] Error logging audit:", error);
     }
   }
 }
@@ -655,5 +744,5 @@ function getResourceSharingManager(database) {
 
 module.exports = {
   ResourceSharingManager,
-  getResourceSharingManager
+  getResourceSharingManager,
 };

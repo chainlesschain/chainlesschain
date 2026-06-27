@@ -6,9 +6,22 @@
  * @module crossorg/partnership-manager
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+
+// One corrupt row's stored JSON column must not throw out of a list .map and
+// fail the whole query (returning nothing instead of the other valid rows).
+function safeParse(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+const EventEmitter = require("events");
 
 class PartnershipManager extends EventEmitter {
   constructor(database) {
@@ -30,54 +43,60 @@ class PartnershipManager extends EventEmitter {
       const partnershipId = uuidv4();
 
       // Check if partnership already exists
-      const existing = db.prepare(`
+      const existing = db
+        .prepare(
+          `
         SELECT id FROM org_partnerships
         WHERE (initiator_org_id = ? AND partner_org_id = ?)
            OR (initiator_org_id = ? AND partner_org_id = ?)
-      `).get(
-        partnershipData.initiatorOrgId,
-        partnershipData.partnerOrgId,
-        partnershipData.partnerOrgId,
-        partnershipData.initiatorOrgId
-      );
+      `,
+        )
+        .get(
+          partnershipData.initiatorOrgId,
+          partnershipData.partnerOrgId,
+          partnershipData.partnerOrgId,
+          partnershipData.initiatorOrgId,
+        );
 
       if (existing) {
-        return { success: false, error: 'PARTNERSHIP_EXISTS' };
+        return { success: false, error: "PARTNERSHIP_EXISTS" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO org_partnerships (
           id, initiator_org_id, initiator_org_name, partner_org_id, partner_org_name,
           partnership_type, status, trust_level, agreement_hash, terms,
           invited_by_did, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         partnershipId,
         partnershipData.initiatorOrgId,
         partnershipData.initiatorOrgName,
         partnershipData.partnerOrgId,
         partnershipData.partnerOrgName,
-        partnershipData.partnershipType || 'collaboration',
-        partnershipData.trustLevel || 'standard',
+        partnershipData.partnershipType || "collaboration",
+        partnershipData.trustLevel || "standard",
         partnershipData.agreementHash,
         partnershipData.terms ? JSON.stringify(partnershipData.terms) : null,
         partnershipData.invitedByDid,
         now,
-        now
+        now,
       );
 
       // Emit event for notification
-      this.emit('partnership-requested', {
+      this.emit("partnership-requested", {
         partnershipId,
         initiatorOrgId: partnershipData.initiatorOrgId,
-        partnerOrgId: partnershipData.partnerOrgId
+        partnerOrgId: partnershipData.partnerOrgId,
       });
 
       logger.info(`[Partnership] Created partnership request ${partnershipId}`);
 
       return { success: true, partnershipId };
     } catch (error) {
-      logger.error('[Partnership] Error creating partnership:', error);
+      logger.error("[Partnership] Error creating partnership:", error);
       throw error;
     }
   }
@@ -90,31 +109,37 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const partnership = db.prepare(`
+      const partnership = db
+        .prepare(
+          `
         SELECT * FROM org_partnerships WHERE id = ? AND status = 'pending'
-      `).get(partnershipId);
+      `,
+        )
+        .get(partnershipId);
 
       if (!partnership) {
-        return { success: false, error: 'PARTNERSHIP_NOT_FOUND' };
+        return { success: false, error: "PARTNERSHIP_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_partnerships
         SET status = 'active', accepted_by_did = ?, accepted_at = ?, updated_at = ?
         WHERE id = ?
-      `).run(acceptedByDid, now, now, partnershipId);
+      `,
+      ).run(acceptedByDid, now, now, partnershipId);
 
-      this.emit('partnership-accepted', {
+      this.emit("partnership-accepted", {
         partnershipId,
         initiatorOrgId: partnership.initiator_org_id,
-        partnerOrgId: partnership.partner_org_id
+        partnerOrgId: partnership.partner_org_id,
       });
 
       logger.info(`[Partnership] Accepted partnership ${partnershipId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error accepting partnership:', error);
+      logger.error("[Partnership] Error accepting partnership:", error);
       throw error;
     }
   }
@@ -127,36 +152,42 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const partnership = db.prepare(`
+      const partnership = db
+        .prepare(
+          `
         SELECT * FROM org_partnerships WHERE id = ? AND status = 'pending'
-      `).get(partnershipId);
+      `,
+        )
+        .get(partnershipId);
 
       if (!partnership) {
-        return { success: false, error: 'PARTNERSHIP_NOT_FOUND' };
+        return { success: false, error: "PARTNERSHIP_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_partnerships
         SET status = 'rejected', updated_at = ?
         WHERE id = ?
-      `).run(now, partnershipId);
+      `,
+      ).run(now, partnershipId);
 
       // Log rejection
       this._logAudit(
         partnership.initiator_org_id,
         partnership.partner_org_id,
         rejectedByDid,
-        'partnership_rejected',
-        { partnershipId, reason }
+        "partnership_rejected",
+        { partnershipId, reason },
       );
 
-      this.emit('partnership-rejected', { partnershipId, reason });
+      this.emit("partnership-rejected", { partnershipId, reason });
 
       logger.info(`[Partnership] Rejected partnership ${partnershipId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error rejecting partnership:', error);
+      logger.error("[Partnership] Error rejecting partnership:", error);
       throw error;
     }
   }
@@ -169,15 +200,20 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const allowedFields = ['partnership_type', 'trust_level', 'agreement_hash', 'terms'];
+      const allowedFields = [
+        "partnership_type",
+        "trust_level",
+        "agreement_hash",
+        "terms",
+      ];
       const updateParts = [];
       const values = [];
 
       for (const [key, value] of Object.entries(updates)) {
-        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
         if (allowedFields.includes(dbKey)) {
           updateParts.push(`${dbKey} = ?`);
-          values.push(key === 'terms' ? JSON.stringify(value) : value);
+          values.push(key === "terms" ? JSON.stringify(value) : value);
         }
       }
 
@@ -185,17 +221,19 @@ class PartnershipManager extends EventEmitter {
         return { success: true };
       }
 
-      updateParts.push('updated_at = ?');
+      updateParts.push("updated_at = ?");
       values.push(now);
       values.push(partnershipId);
 
-      db.prepare(`
-        UPDATE org_partnerships SET ${updateParts.join(', ')} WHERE id = ?
-      `).run(...values);
+      db.prepare(
+        `
+        UPDATE org_partnerships SET ${updateParts.join(", ")} WHERE id = ?
+      `,
+      ).run(...values);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error updating partnership:', error);
+      logger.error("[Partnership] Error updating partnership:", error);
       throw error;
     }
   }
@@ -208,49 +246,57 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const partnership = db.prepare(`
+      const partnership = db
+        .prepare(
+          `
         SELECT * FROM org_partnerships WHERE id = ? AND status = 'active'
-      `).get(partnershipId);
+      `,
+        )
+        .get(partnershipId);
 
       if (!partnership) {
-        return { success: false, error: 'PARTNERSHIP_NOT_FOUND' };
+        return { success: false, error: "PARTNERSHIP_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_partnerships
         SET status = 'terminated', terminated_at = ?, updated_at = ?
         WHERE id = ?
-      `).run(now, now, partnershipId);
+      `,
+      ).run(now, now, partnershipId);
 
       // Revoke all shared resources
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE cross_org_shares
         SET status = 'revoked', updated_at = ?
         WHERE (source_org_id = ? AND target_org_id = ?)
            OR (source_org_id = ? AND target_org_id = ?)
-      `).run(
+      `,
+      ).run(
         now,
         partnership.initiator_org_id,
         partnership.partner_org_id,
         partnership.partner_org_id,
-        partnership.initiator_org_id
+        partnership.initiator_org_id,
       );
 
       this._logAudit(
         partnership.initiator_org_id,
         partnership.partner_org_id,
         terminatedByDid,
-        'partnership_terminated',
-        { partnershipId, reason }
+        "partnership_terminated",
+        { partnershipId, reason },
       );
 
-      this.emit('partnership-terminated', { partnershipId, reason });
+      this.emit("partnership-terminated", { partnershipId, reason });
 
       logger.info(`[Partnership] Terminated partnership ${partnershipId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error terminating partnership:', error);
+      logger.error("[Partnership] Error terminating partnership:", error);
       throw error;
     }
   }
@@ -293,7 +339,7 @@ class PartnershipManager extends EventEmitter {
 
       return {
         success: true,
-        partnerships: partnerships.map(p => ({
+        partnerships: partnerships.map((p) => ({
           id: p.id,
           initiatorOrgId: p.initiator_org_id,
           initiatorOrgName: p.initiator_org_name,
@@ -302,13 +348,13 @@ class PartnershipManager extends EventEmitter {
           partnershipType: p.partnership_type,
           status: p.status,
           trustLevel: p.trust_level,
-          terms: p.terms ? JSON.parse(p.terms) : null,
+          terms: safeParse(p.terms, null),
           createdAt: p.created_at,
-          acceptedAt: p.accepted_at
-        }))
+          acceptedAt: p.accepted_at,
+        })),
       };
     } catch (error) {
-      logger.error('[Partnership] Error getting partnerships:', error);
+      logger.error("[Partnership] Error getting partnerships:", error);
       throw error;
     }
   }
@@ -320,12 +366,16 @@ class PartnershipManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const partnerships = db.prepare(`
+      const partnerships = db
+        .prepare(
+          `
         SELECT * FROM org_partnerships
         WHERE (initiator_org_id = ? OR partner_org_id = ?) AND status = 'active'
-      `).all(orgId, orgId);
+      `,
+        )
+        .all(orgId, orgId);
 
-      const partners = partnerships.map(p => {
+      const partners = partnerships.map((p) => {
         const isInitiator = p.initiator_org_id === orgId;
         return {
           orgId: isInitiator ? p.partner_org_id : p.initiator_org_id,
@@ -333,13 +383,13 @@ class PartnershipManager extends EventEmitter {
           partnershipId: p.id,
           partnershipType: p.partnership_type,
           trustLevel: p.trust_level,
-          since: p.accepted_at
+          since: p.accepted_at,
         };
       });
 
       return { success: true, partners };
     } catch (error) {
-      logger.error('[Partnership] Error getting partner orgs:', error);
+      logger.error("[Partnership] Error getting partner orgs:", error);
       throw error;
     }
   }
@@ -352,38 +402,46 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const validLevels = ['minimal', 'standard', 'elevated', 'full'];
+      const validLevels = ["minimal", "standard", "elevated", "full"];
       if (!validLevels.includes(trustLevel)) {
-        return { success: false, error: 'INVALID_TRUST_LEVEL' };
+        return { success: false, error: "INVALID_TRUST_LEVEL" };
       }
 
-      const partnership = db.prepare(`
+      const partnership = db
+        .prepare(
+          `
         SELECT * FROM org_partnerships WHERE id = ?
-      `).get(partnershipId);
+      `,
+        )
+        .get(partnershipId);
 
       if (!partnership) {
-        return { success: false, error: 'PARTNERSHIP_NOT_FOUND' };
+        return { success: false, error: "PARTNERSHIP_NOT_FOUND" };
       }
 
       const oldLevel = partnership.trust_level;
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_partnerships SET trust_level = ?, updated_at = ? WHERE id = ?
-      `).run(trustLevel, now, partnershipId);
+      `,
+      ).run(trustLevel, now, partnershipId);
 
       this._logAudit(
         partnership.initiator_org_id,
         partnership.partner_org_id,
         updatedByDid,
-        'trust_level_changed',
-        { partnershipId, oldLevel, newLevel: trustLevel }
+        "trust_level_changed",
+        { partnershipId, oldLevel, newLevel: trustLevel },
       );
 
-      logger.info(`[Partnership] Updated trust level for ${partnershipId}: ${oldLevel} -> ${trustLevel}`);
+      logger.info(
+        `[Partnership] Updated trust level for ${partnershipId}: ${oldLevel} -> ${trustLevel}`,
+      );
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error updating trust level:', error);
+      logger.error("[Partnership] Error updating trust level:", error);
       throw error;
     }
   }
@@ -431,7 +489,7 @@ class PartnershipManager extends EventEmitter {
 
       return {
         success: true,
-        organizations: orgs.map(o => ({
+        organizations: orgs.map((o) => ({
           orgId: o.org_id,
           name: o.name,
           description: o.description,
@@ -439,12 +497,12 @@ class PartnershipManager extends EventEmitter {
           region: o.region,
           website: o.website,
           contactEmail: o.contact_email,
-          capabilities: o.capabilities ? JSON.parse(o.capabilities) : [],
-          certifications: o.certifications ? JSON.parse(o.certifications) : []
-        }))
+          capabilities: safeParse(o.capabilities, []),
+          certifications: safeParse(o.certifications, []),
+        })),
       };
     } catch (error) {
-      logger.error('[Partnership] Error discovering orgs:', error);
+      logger.error("[Partnership] Error discovering orgs:", error);
       throw error;
     }
   }
@@ -456,12 +514,16 @@ class PartnershipManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const profile = db.prepare(`
+      const profile = db
+        .prepare(
+          `
         SELECT * FROM cross_org_discovery WHERE org_id = ?
-      `).get(orgId);
+      `,
+        )
+        .get(orgId);
 
       if (!profile) {
-        return { success: false, error: 'ORG_NOT_FOUND' };
+        return { success: false, error: "ORG_NOT_FOUND" };
       }
 
       return {
@@ -474,13 +536,17 @@ class PartnershipManager extends EventEmitter {
           region: profile.region,
           website: profile.website,
           contactEmail: profile.contact_email,
-          capabilities: profile.capabilities ? JSON.parse(profile.capabilities) : [],
-          certifications: profile.certifications ? JSON.parse(profile.certifications) : [],
-          visibility: profile.visibility
-        }
+          capabilities: profile.capabilities
+            ? JSON.parse(profile.capabilities)
+            : [],
+          certifications: profile.certifications
+            ? JSON.parse(profile.certifications)
+            : [],
+          visibility: profile.visibility,
+        },
       };
     } catch (error) {
-      logger.error('[Partnership] Error getting org profile:', error);
+      logger.error("[Partnership] Error getting org profile:", error);
       throw error;
     }
   }
@@ -493,39 +559,51 @@ class PartnershipManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const existing = db.prepare(`
+      const existing = db
+        .prepare(
+          `
         SELECT id FROM cross_org_discovery WHERE org_id = ?
-      `).get(orgId);
+      `,
+        )
+        .get(orgId);
 
       if (existing) {
-        db.prepare(`
+        db.prepare(
+          `
           UPDATE cross_org_discovery
           SET name = ?, description = ?, industry = ?, region = ?,
               website = ?, contact_email = ?, capabilities = ?,
               certifications = ?, visibility = ?, updated_at = ?
           WHERE org_id = ?
-        `).run(
+        `,
+        ).run(
           profileData.name,
           profileData.description,
           profileData.industry,
           profileData.region,
           profileData.website,
           profileData.contactEmail,
-          profileData.capabilities ? JSON.stringify(profileData.capabilities) : null,
-          profileData.certifications ? JSON.stringify(profileData.certifications) : null,
-          profileData.visibility || 'public',
+          profileData.capabilities
+            ? JSON.stringify(profileData.capabilities)
+            : null,
+          profileData.certifications
+            ? JSON.stringify(profileData.certifications)
+            : null,
+          profileData.visibility || "public",
           now,
-          orgId
+          orgId,
         );
       } else {
         const id = uuidv4();
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO cross_org_discovery (
             id, org_id, name, description, industry, region,
             website, contact_email, capabilities, certifications,
             visibility, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `,
+        ).run(
           id,
           orgId,
           profileData.name,
@@ -534,17 +612,21 @@ class PartnershipManager extends EventEmitter {
           profileData.region,
           profileData.website,
           profileData.contactEmail,
-          profileData.capabilities ? JSON.stringify(profileData.capabilities) : null,
-          profileData.certifications ? JSON.stringify(profileData.certifications) : null,
-          profileData.visibility || 'public',
+          profileData.capabilities
+            ? JSON.stringify(profileData.capabilities)
+            : null,
+          profileData.certifications
+            ? JSON.stringify(profileData.certifications)
+            : null,
+          profileData.visibility || "public",
           now,
-          now
+          now,
         );
       }
 
       return { success: true };
     } catch (error) {
-      logger.error('[Partnership] Error updating org profile:', error);
+      logger.error("[Partnership] Error updating org profile:", error);
       throw error;
     }
   }
@@ -559,12 +641,14 @@ class PartnershipManager extends EventEmitter {
       const now = Date.now();
       const id = uuidv4();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO cross_org_audit_log (
           id, source_org_id, target_org_id, actor_did, action, resource_type,
           resource_id, details, ip_address, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         id,
         sourceOrgId,
         targetOrgId,
@@ -574,10 +658,10 @@ class PartnershipManager extends EventEmitter {
         details.resourceId || null,
         JSON.stringify(details),
         null,
-        now
+        now,
       );
     } catch (error) {
-      logger.error('[Partnership] Error logging audit:', error);
+      logger.error("[Partnership] Error logging audit:", error);
     }
   }
 }
@@ -593,5 +677,5 @@ function getPartnershipManager(database) {
 
 module.exports = {
   PartnershipManager,
-  getPartnershipManager
+  getPartnershipManager,
 };

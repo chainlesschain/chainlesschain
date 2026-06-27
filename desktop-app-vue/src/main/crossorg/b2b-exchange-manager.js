@@ -6,10 +6,23 @@
  * @module crossorg/b2b-exchange-manager
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+
+// One corrupt row's stored JSON column must not throw out of a list .map and
+// fail the whole query (returning nothing instead of the other valid rows).
+function safeParse(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+const crypto = require("crypto");
+const EventEmitter = require("events");
 
 class B2BExchangeManager extends EventEmitter {
   constructor(database) {
@@ -31,44 +44,54 @@ class B2BExchangeManager extends EventEmitter {
       const transactionId = uuidv4();
 
       // Verify partnership
-      const partnership = db.prepare(`
+      const partnership = db
+        .prepare(
+          `
         SELECT id, trust_level FROM org_partnerships
         WHERE ((initiator_org_id = ? AND partner_org_id = ?)
            OR (initiator_org_id = ? AND partner_org_id = ?))
           AND status = 'active'
-      `).get(
-        transactionData.senderOrgId,
-        transactionData.receiverOrgId,
-        transactionData.receiverOrgId,
-        transactionData.senderOrgId
-      );
+      `,
+        )
+        .get(
+          transactionData.senderOrgId,
+          transactionData.receiverOrgId,
+          transactionData.receiverOrgId,
+          transactionData.senderOrgId,
+        );
 
       if (!partnership) {
-        return { success: false, error: 'NO_PARTNERSHIP' };
+        return { success: false, error: "NO_PARTNERSHIP" };
       }
 
       // Compute data hash for integrity verification
-      const dataHash = this._computeHash(transactionData.data || transactionData.dataReference);
+      const dataHash = this._computeHash(
+        transactionData.data || transactionData.dataReference,
+      );
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO b2b_data_transactions (
           id, sender_org_id, receiver_org_id, transaction_type, data_type,
           data_hash, data_size, encryption_method, status, metadata,
           initiated_by_did, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         transactionId,
         transactionData.senderOrgId,
         transactionData.receiverOrgId,
-        transactionData.transactionType || 'data_transfer',
+        transactionData.transactionType || "data_transfer",
         transactionData.dataType,
         dataHash,
         transactionData.dataSize || 0,
-        transactionData.encryptionMethod || 'AES-256-GCM',
-        transactionData.metadata ? JSON.stringify(transactionData.metadata) : null,
+        transactionData.encryptionMethod || "AES-256-GCM",
+        transactionData.metadata
+          ? JSON.stringify(transactionData.metadata)
+          : null,
         transactionData.initiatedByDid,
         now,
-        now
+        now,
       );
 
       // Log audit
@@ -76,25 +99,25 @@ class B2BExchangeManager extends EventEmitter {
         transactionData.senderOrgId,
         transactionData.receiverOrgId,
         transactionData.initiatedByDid,
-        'transaction_initiated',
+        "transaction_initiated",
         {
           transactionId,
           transactionType: transactionData.transactionType,
-          dataType: transactionData.dataType
-        }
+          dataType: transactionData.dataType,
+        },
       );
 
-      this.emit('transaction-initiated', {
+      this.emit("transaction-initiated", {
         transactionId,
         senderOrgId: transactionData.senderOrgId,
-        receiverOrgId: transactionData.receiverOrgId
+        receiverOrgId: transactionData.receiverOrgId,
       });
 
       logger.info(`[B2BExchange] Initiated transaction ${transactionId}`);
 
       return { success: true, transactionId, dataHash };
     } catch (error) {
-      logger.error('[B2BExchange] Error initiating transaction:', error);
+      logger.error("[B2BExchange] Error initiating transaction:", error);
       throw error;
     }
   }
@@ -107,39 +130,45 @@ class B2BExchangeManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const transaction = db.prepare(`
+      const transaction = db
+        .prepare(
+          `
         SELECT * FROM b2b_data_transactions WHERE id = ? AND status = 'pending'
-      `).get(transactionId);
+      `,
+        )
+        .get(transactionId);
 
       if (!transaction) {
-        return { success: false, error: 'TRANSACTION_NOT_FOUND' };
+        return { success: false, error: "TRANSACTION_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE b2b_data_transactions
         SET status = 'accepted', accepted_at = ?, accepted_by_did = ?, updated_at = ?
         WHERE id = ?
-      `).run(now, acceptedByDid, now, transactionId);
+      `,
+      ).run(now, acceptedByDid, now, transactionId);
 
       this._logAudit(
         transaction.sender_org_id,
         transaction.receiver_org_id,
         acceptedByDid,
-        'transaction_accepted',
-        { transactionId }
+        "transaction_accepted",
+        { transactionId },
       );
 
-      this.emit('transaction-accepted', {
+      this.emit("transaction-accepted", {
         transactionId,
         senderOrgId: transaction.sender_org_id,
-        receiverOrgId: transaction.receiver_org_id
+        receiverOrgId: transaction.receiver_org_id,
       });
 
       logger.info(`[B2BExchange] Accepted transaction ${transactionId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[B2BExchange] Error accepting transaction:', error);
+      logger.error("[B2BExchange] Error accepting transaction:", error);
       throw error;
     }
   }
@@ -152,39 +181,45 @@ class B2BExchangeManager extends EventEmitter {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const transaction = db.prepare(`
+      const transaction = db
+        .prepare(
+          `
         SELECT * FROM b2b_data_transactions WHERE id = ? AND status = 'pending'
-      `).get(transactionId);
+      `,
+        )
+        .get(transactionId);
 
       if (!transaction) {
-        return { success: false, error: 'TRANSACTION_NOT_FOUND' };
+        return { success: false, error: "TRANSACTION_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE b2b_data_transactions
         SET status = 'rejected', rejected_at = ?, rejected_by_did = ?,
             rejection_reason = ?, updated_at = ?
         WHERE id = ?
-      `).run(now, rejectedByDid, reason, now, transactionId);
+      `,
+      ).run(now, rejectedByDid, reason, now, transactionId);
 
       this._logAudit(
         transaction.sender_org_id,
         transaction.receiver_org_id,
         rejectedByDid,
-        'transaction_rejected',
-        { transactionId, reason }
+        "transaction_rejected",
+        { transactionId, reason },
       );
 
-      this.emit('transaction-rejected', {
+      this.emit("transaction-rejected", {
         transactionId,
-        reason
+        reason,
       });
 
       logger.info(`[B2BExchange] Rejected transaction ${transactionId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[B2BExchange] Error rejecting transaction:', error);
+      logger.error("[B2BExchange] Error rejecting transaction:", error);
       throw error;
     }
   }
@@ -192,57 +227,69 @@ class B2BExchangeManager extends EventEmitter {
   /**
    * Complete a transaction (after data transfer)
    */
-  async completeTransaction(transactionId, completedByDid, verificationData = null) {
+  async completeTransaction(
+    transactionId,
+    completedByDid,
+    verificationData = null,
+  ) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const transaction = db.prepare(`
+      const transaction = db
+        .prepare(
+          `
         SELECT * FROM b2b_data_transactions WHERE id = ? AND status = 'accepted'
-      `).get(transactionId);
+      `,
+        )
+        .get(transactionId);
 
       if (!transaction) {
-        return { success: false, error: 'TRANSACTION_NOT_FOUND' };
+        return { success: false, error: "TRANSACTION_NOT_FOUND" };
       }
 
       // Verify data integrity if verification data provided
       if (verificationData?.receivedHash) {
         if (verificationData.receivedHash !== transaction.data_hash) {
-          db.prepare(`
+          db.prepare(
+            `
             UPDATE b2b_data_transactions
             SET status = 'failed', failure_reason = 'DATA_INTEGRITY_MISMATCH', updated_at = ?
             WHERE id = ?
-          `).run(now, transactionId);
+          `,
+          ).run(now, transactionId);
 
-          return { success: false, error: 'DATA_INTEGRITY_MISMATCH' };
+          return { success: false, error: "DATA_INTEGRITY_MISMATCH" };
         }
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE b2b_data_transactions
         SET status = 'completed', completed_at = ?, updated_at = ?
         WHERE id = ?
-      `).run(now, now, transactionId);
+      `,
+      ).run(now, now, transactionId);
 
       this._logAudit(
         transaction.sender_org_id,
         transaction.receiver_org_id,
         completedByDid,
-        'transaction_completed',
-        { transactionId }
+        "transaction_completed",
+        { transactionId },
       );
 
-      this.emit('transaction-completed', {
+      this.emit("transaction-completed", {
         transactionId,
         senderOrgId: transaction.sender_org_id,
-        receiverOrgId: transaction.receiver_org_id
+        receiverOrgId: transaction.receiver_org_id,
       });
 
       logger.info(`[B2BExchange] Completed transaction ${transactionId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[B2BExchange] Error completing transaction:', error);
+      logger.error("[B2BExchange] Error completing transaction:", error);
       throw error;
     }
   }
@@ -261,10 +308,10 @@ class B2BExchangeManager extends EventEmitter {
       let query;
       const params = [];
 
-      if (options.direction === 'outgoing') {
+      if (options.direction === "outgoing") {
         query = `SELECT * FROM b2b_data_transactions WHERE sender_org_id = ?`;
         params.push(orgId);
-      } else if (options.direction === 'incoming') {
+      } else if (options.direction === "incoming") {
         query = `SELECT * FROM b2b_data_transactions WHERE receiver_org_id = ?`;
         params.push(orgId);
       } else {
@@ -303,7 +350,7 @@ class B2BExchangeManager extends EventEmitter {
 
       return {
         success: true,
-        transactions: transactions.map(t => ({
+        transactions: transactions.map((t) => ({
           id: t.id,
           senderOrgId: t.sender_org_id,
           receiverOrgId: t.receiver_org_id,
@@ -313,17 +360,17 @@ class B2BExchangeManager extends EventEmitter {
           dataSize: t.data_size,
           encryptionMethod: t.encryption_method,
           status: t.status,
-          metadata: t.metadata ? JSON.parse(t.metadata) : null,
+          metadata: safeParse(t.metadata, null),
           initiatedByDid: t.initiated_by_did,
           createdAt: t.created_at,
           acceptedAt: t.accepted_at,
           completedAt: t.completed_at,
           rejectedAt: t.rejected_at,
-          rejectionReason: t.rejection_reason
-        }))
+          rejectionReason: t.rejection_reason,
+        })),
       };
     } catch (error) {
-      logger.error('[B2BExchange] Error getting transactions:', error);
+      logger.error("[B2BExchange] Error getting transactions:", error);
       throw error;
     }
   }
@@ -335,12 +382,16 @@ class B2BExchangeManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const transaction = db.prepare(`
+      const transaction = db
+        .prepare(
+          `
         SELECT data_hash FROM b2b_data_transactions WHERE id = ?
-      `).get(transactionId);
+      `,
+        )
+        .get(transactionId);
 
       if (!transaction) {
-        return { success: false, error: 'TRANSACTION_NOT_FOUND' };
+        return { success: false, error: "TRANSACTION_NOT_FOUND" };
       }
 
       const isValid = transaction.data_hash === providedHash;
@@ -349,10 +400,10 @@ class B2BExchangeManager extends EventEmitter {
         success: true,
         isValid,
         expectedHash: transaction.data_hash,
-        providedHash
+        providedHash,
       };
     } catch (error) {
-      logger.error('[B2BExchange] Error verifying data integrity:', error);
+      logger.error("[B2BExchange] Error verifying data integrity:", error);
       throw error;
     }
   }
@@ -401,7 +452,7 @@ class B2BExchangeManager extends EventEmitter {
 
       return {
         success: true,
-        logs: logs.map(l => ({
+        logs: logs.map((l) => ({
           id: l.id,
           sourceOrgId: l.source_org_id,
           targetOrgId: l.target_org_id,
@@ -409,13 +460,13 @@ class B2BExchangeManager extends EventEmitter {
           action: l.action,
           resourceType: l.resource_type,
           resourceId: l.resource_id,
-          details: l.details ? JSON.parse(l.details) : null,
+          details: safeParse(l.details, null),
           ipAddress: l.ip_address,
-          createdAt: l.created_at
-        }))
+          createdAt: l.created_at,
+        })),
       };
     } catch (error) {
-      logger.error('[B2BExchange] Error getting audit log:', error);
+      logger.error("[B2BExchange] Error getting audit log:", error);
       throw error;
     }
   }
@@ -427,7 +478,9 @@ class B2BExchangeManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
 
-      const stats = db.prepare(`
+      const stats = db
+        .prepare(
+          `
         SELECT
           COUNT(CASE WHEN sender_org_id = ? THEN 1 END) as outgoingCount,
           COUNT(CASE WHEN receiver_org_id = ? THEN 1 END) as incomingCount,
@@ -437,21 +490,31 @@ class B2BExchangeManager extends EventEmitter {
           SUM(CASE WHEN status = 'completed' THEN data_size ELSE 0 END) as totalDataTransferred
         FROM b2b_data_transactions
         WHERE sender_org_id = ? OR receiver_org_id = ?
-      `).get(orgId, orgId, orgId, orgId);
+      `,
+        )
+        .get(orgId, orgId, orgId, orgId);
 
-      const byType = db.prepare(`
+      const byType = db
+        .prepare(
+          `
         SELECT transaction_type, COUNT(*) as count
         FROM b2b_data_transactions
         WHERE sender_org_id = ? OR receiver_org_id = ?
         GROUP BY transaction_type
-      `).all(orgId, orgId);
+      `,
+        )
+        .all(orgId, orgId);
 
-      const byDataType = db.prepare(`
+      const byDataType = db
+        .prepare(
+          `
         SELECT data_type, COUNT(*) as count
         FROM b2b_data_transactions
         WHERE sender_org_id = ? OR receiver_org_id = ?
         GROUP BY data_type
-      `).all(orgId, orgId);
+      `,
+        )
+        .all(orgId, orgId);
 
       return {
         success: true,
@@ -469,11 +532,11 @@ class B2BExchangeManager extends EventEmitter {
           byDataType: byDataType.reduce((acc, t) => {
             acc[t.data_type] = t.count;
             return acc;
-          }, {})
-        }
+          }, {}),
+        },
       };
     } catch (error) {
-      logger.error('[B2BExchange] Error getting transaction stats:', error);
+      logger.error("[B2BExchange] Error getting transaction stats:", error);
       throw error;
     }
   }
@@ -483,10 +546,13 @@ class B2BExchangeManager extends EventEmitter {
   // ========================================
 
   _computeHash(data) {
-    if (typeof data === 'string') {
-      return crypto.createHash('sha256').update(data).digest('hex');
+    if (typeof data === "string") {
+      return crypto.createHash("sha256").update(data).digest("hex");
     }
-    return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+    return crypto
+      .createHash("sha256")
+      .update(JSON.stringify(data))
+      .digest("hex");
   }
 
   _logAudit(sourceOrgId, targetOrgId, actorDid, action, details) {
@@ -495,24 +561,26 @@ class B2BExchangeManager extends EventEmitter {
       const now = Date.now();
       const id = uuidv4();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO cross_org_audit_log (
           id, source_org_id, target_org_id, actor_did, action,
           resource_type, resource_id, details, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         id,
         sourceOrgId,
         targetOrgId,
         actorDid,
         action,
-        'transaction',
+        "transaction",
         details.transactionId || null,
         JSON.stringify(details),
-        now
+        now,
       );
     } catch (error) {
-      logger.error('[B2BExchange] Error logging audit:', error);
+      logger.error("[B2BExchange] Error logging audit:", error);
     }
   }
 }
@@ -528,5 +596,5 @@ function getB2BExchangeManager(database) {
 
 module.exports = {
   B2BExchangeManager,
-  getB2BExchangeManager
+  getB2BExchangeManager,
 };
