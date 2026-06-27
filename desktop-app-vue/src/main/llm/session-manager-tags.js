@@ -65,10 +65,17 @@ module.exports = {
 
       const tagCount = new Map();
       for (const row of rows) {
-        const metadata =
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata || "{}")
-            : row.metadata || {};
+        // per-row 守卫：一条坏 metadata 不应让整个标签聚合抛错（getGlobalStats/
+        // getTagDetails 都依赖它）
+        let metadata = {};
+        try {
+          metadata =
+            typeof row.metadata === "string"
+              ? JSON.parse(row.metadata || "{}")
+              : row.metadata || {};
+        } catch {
+          metadata = {};
+        }
         const tags = metadata.tags || [];
         for (const tag of tags) {
           tagCount.set(tag, (tagCount.get(tag) || 0) + 1);

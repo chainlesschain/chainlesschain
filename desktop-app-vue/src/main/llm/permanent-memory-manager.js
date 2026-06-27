@@ -956,15 +956,21 @@ _此文件会自动更新,也可手动编辑。_
     try {
       await this.fileWatcher.start();
 
-      // 监听索引需求事件
-      this.fileWatcher.on("index-needed", async (data) => {
-        await this._handleIndexNeeded(data);
-      });
+      // 仅绑定一次：每次 start/stop 循环都会再 .on() → 监听器累积（重复索引 +
+      // MaxListenersExceeded 警告 + 闭包泄漏），stopFileWatcher 又不移除它们。
+      if (!this._indexListenersBound) {
+        // 监听索引需求事件
+        this.fileWatcher.on("index-needed", async (data) => {
+          await this._handleIndexNeeded(data);
+        });
 
-      // 监听索引删除事件
-      this.fileWatcher.on("index-delete", async (data) => {
-        await this._handleIndexDelete(data);
-      });
+        // 监听索引删除事件
+        this.fileWatcher.on("index-delete", async (data) => {
+          await this._handleIndexDelete(data);
+        });
+
+        this._indexListenersBound = true;
+      }
 
       logger.info("[PermanentMemoryManager] 文件监听已启动");
       this.emit("file-watcher-started");

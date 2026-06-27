@@ -613,14 +613,24 @@ class SessionManager extends EventEmitter {
    * @private
    */
   _parseSessionRow(row) {
+    // Guard the parse: this helper runs inside .map() in listSessions/
+    // getRecentSessions/searchSessions whose catch blocks rethrow, so one row
+    // with corrupt metadata would blank the ENTIRE list instead of that row.
+    let metadata = {};
+    if (row.metadata && typeof row.metadata === "object") {
+      metadata = row.metadata;
+    } else if (typeof row.metadata === "string") {
+      try {
+        metadata = JSON.parse(row.metadata || "{}");
+      } catch {
+        metadata = {};
+      }
+    }
     return {
       id: row.id,
       conversationId: row.conversation_id,
       title: row.title,
-      metadata:
-        typeof row.metadata === "string"
-          ? JSON.parse(row.metadata || "{}")
-          : row.metadata || {},
+      metadata,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

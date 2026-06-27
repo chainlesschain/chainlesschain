@@ -159,19 +159,28 @@ module.exports = {
       const stmt = this.db.prepare(sql);
       const rows = stmt.all(...params);
 
-      return rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        category: row.category,
-        sourceSessionId: row.source_session_id,
-        metadata:
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata || "{}")
-            : row.metadata || {},
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      }));
+      return rows.map((row) => {
+        // per-row 守卫：一条坏 metadata 不应让整个模板列表抛错返空
+        let metadata = {};
+        try {
+          metadata =
+            typeof row.metadata === "string"
+              ? JSON.parse(row.metadata || "{}")
+              : row.metadata || {};
+        } catch {
+          metadata = {};
+        }
+        return {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          category: row.category,
+          sourceSessionId: row.source_session_id,
+          metadata,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        };
+      });
     } catch (error) {
       logger.error("[SessionManager] 列出模板失败:", error);
       throw error;

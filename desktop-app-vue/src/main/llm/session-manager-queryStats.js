@@ -152,8 +152,13 @@ module.exports = {
           // 避免重复
           if (!results.find((r) => r.id === row.id)) {
             const session = this._parseSessionRow(row);
-            // 找出匹配的消息
-            const messages = JSON.parse(row.messages || "[]");
+            // 找出匹配的消息（per-row 守卫：一条坏 messages 不应让整个搜索抛错返空）
+            let messages = [];
+            try {
+              messages = JSON.parse(row.messages || "[]");
+            } catch {
+              messages = [];
+            }
             const matchedMessages = messages.filter((msg) => {
               const content =
                 typeof msg.content === "string"
