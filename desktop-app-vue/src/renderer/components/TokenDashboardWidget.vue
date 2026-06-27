@@ -17,9 +17,7 @@
 
     <!-- 本周支出 -->
     <div class="main-stat">
-      <div class="stat-label">
-        本周支出
-      </div>
+      <div class="stat-label">本周支出</div>
       <div class="stat-value">
         <span class="amount">${{ safeToFixed(weekSpend, 2) }}</span>
         <span class="limit">/ ${{ safeToFixed(weekLimit, 2) }}</span>
@@ -37,20 +35,13 @@
     <a-divider style="margin: 12px 0" />
 
     <!-- 关键指标 -->
-    <a-row
-      :gutter="8"
-      class="metrics-row"
-    >
+    <a-row :gutter="8" class="metrics-row">
       <a-col :span="12">
         <div class="metric-box">
           <ThunderboltOutlined class="metric-icon cache" />
           <div class="metric-info">
-            <div class="metric-label">
-              缓存命中
-            </div>
-            <div class="metric-value">
-              {{ cacheHitRate }}%
-            </div>
+            <div class="metric-label">缓存命中</div>
+            <div class="metric-value">{{ cacheHitRate }}%</div>
           </div>
         </div>
       </a-col>
@@ -58,12 +49,8 @@
         <div class="metric-box">
           <DollarOutlined class="metric-icon cost" />
           <div class="metric-info">
-            <div class="metric-label">
-              节省成本
-            </div>
-            <div class="metric-value">
-              ${{ safeToFixed(savedCost, 2) }}
-            </div>
+            <div class="metric-label">节省成本</div>
+            <div class="metric-value">${{ safeToFixed(savedCost, 2) }}</div>
           </div>
         </div>
       </a-col>
@@ -129,6 +116,9 @@ const todayCalls = ref(0);
 const todayCost = ref(0);
 
 let refreshInterval = null;
+// Handle for the IPC-not-ready self-retry, so onUnmounted can cancel a pending
+// loadStats() and it doesn't fire (and re-reschedule) on a dead component.
+let retryTimeout = null;
 
 /**
  * 安全格式化数值，防止 undefined/null 导致的 toFixed 错误
@@ -195,7 +185,7 @@ async function loadStats() {
   // 检查 IPC API 是否就绪
   if (!window.electronAPI?.llm) {
     logger.warn("[TokenDashboardWidget] IPC API 未就绪，稍后重试");
-    setTimeout(loadStats, 500);
+    retryTimeout = setTimeout(loadStats, 500);
     return;
   }
 
@@ -245,7 +235,7 @@ async function loadStats() {
     // IPC 未就绪时静默处理
     if (error.message?.includes("No handler registered")) {
       logger.warn("[TokenDashboardWidget] IPC 处理器未注册，稍后重试");
-      setTimeout(loadStats, 1000);
+      retryTimeout = setTimeout(loadStats, 1000);
       return;
     }
     logger.error("加载 Dashboard 统计失败:", error);
@@ -269,6 +259,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval);
+  }
+  if (retryTimeout) {
+    clearTimeout(retryTimeout);
   }
 });
 </script>

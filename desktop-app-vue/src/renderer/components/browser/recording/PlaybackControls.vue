@@ -150,21 +150,30 @@ const progressPercent = ref(0);
 
 let unsubscribe = null;
 
-// Computed
-const totalEvents = computed(() => {
+// recording.events is a JSON string; a malformed/legacy value must not throw out
+// of a computed during render and break the whole playback panel (the sibling
+// RecordingTimeline guards the same parse). Return [] on any failure.
+const parseEvents = () => {
   const events = props.recording?.events;
-  return events ? JSON.parse(events).length : 0;
-});
+  if (!events) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(events);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+// Computed
+const totalEvents = computed(() => parseEvents().length);
 
 const totalDuration = computed(() => props.recording?.duration || 0);
 
 const currentEvent = computed(() => {
-  const events = props.recording?.events;
-  if (!events) {
-    return null;
-  }
-  const parsed = JSON.parse(events);
-  return parsed[currentEventIndex.value];
+  const parsed = parseEvents();
+  return parsed[currentEventIndex.value] ?? null;
 });
 
 const statusText = computed(() => {
@@ -297,13 +306,10 @@ const updateProgress = () => {
       ? (currentEventIndex.value / totalEvents.value) * 100
       : 0;
 
-  const events = props.recording?.events;
-  if (events) {
-    const parsed = JSON.parse(events);
-    const event = parsed[currentEventIndex.value];
-    if (event) {
-      currentTime.value = event.timestamp - parsed[0].timestamp;
-    }
+  const parsed = parseEvents();
+  const event = parsed[currentEventIndex.value];
+  if (event && parsed[0]) {
+    currentTime.value = event.timestamp - parsed[0].timestamp;
   }
 };
 
