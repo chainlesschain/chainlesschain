@@ -47,6 +47,24 @@ const IMPORTANCE_LEVELS = {
 };
 
 /**
+ * 安全解析 tags 字段。tags 是自由文本 TEXT 列，单条损坏/历史脏数据不应
+ * 在 .map() 中抛出，否则会让整批重要记忆静默返回 []。
+ * @param {string} raw
+ * @returns {Array}
+ */
+function safeParseTags(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+/**
  * AdvancedMemorySearch 类
  */
 class AdvancedMemorySearch {
@@ -270,7 +288,7 @@ class AdvancedMemorySearch {
         category: row.category,
         subcategory: row.subcategory,
         importance: row.importance,
-        tags: row.tags ? JSON.parse(row.tags) : [],
+        tags: safeParseTags(row.tags),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         tier: MEMORY_TIERS.WORKING, // 重要记忆始终在工作层
