@@ -33,6 +33,10 @@ class BlockchainAdapter extends EventEmitter {
     // 网络提供者映射 (chainId => Provider)
     this.providers = new Map();
 
+    // 活动事件监听的 Contract 实例 (`${address}:${event}` => Contract)，
+    // 用于 stopListening 时移除真正注册了监听器的那个实例。
+    this._eventContracts = new Map();
+
     // 当前链ID（默认以太坊主网）
     this.currentChainId = 1;
 
@@ -772,7 +776,19 @@ class BlockchainAdapter extends EventEmitter {
     );
 
     const provider = this.getProvider();
+    const key = `${contractAddress}:${eventName}`;
+
+    // 若该 (地址,事件) 已有监听，先移除旧实例的监听器，避免重复注册时泄漏前一个轮询器。
+    const existing = this._eventContracts.get(key);
+    if (existing) {
+      existing.removeAllListeners(eventName);
+      this._eventContracts.delete(key);
+    }
+
     const contract = new ethers.Contract(contractAddress, abi, provider);
+    // 保留真正注册了监听器的实例，供 stopListening 取消（否则 removeAllListeners
+    // 作用在一个全新的空实例上，原监听器永不解绑，RPC 轮询器一直泄漏）。
+    this._eventContracts.set(key, contract);
 
     // 监听事件
     contract.on(eventName, (...args) => {
@@ -808,11 +824,18 @@ class BlockchainAdapter extends EventEmitter {
       `[BlockchainAdapter] 停止监听事件: ${contractAddress} - ${eventName}`,
     );
 
-    const provider = this.getProvider();
-    const contract = new ethers.Contract(contractAddress, abi, provider);
+    const key = `${contractAddress}:${eventName}`;
+    const contract = this._eventContracts.get(key);
+    if (!contract) {
+      logger.warn(
+        `[BlockchainAdapter] 未找到活动的事件监听: ${key}（可能已移除）`,
+      );
+      return;
+    }
 
-    // 移除所有该事件的监听器
+    // 移除真正注册了监听器的那个实例上的监听器
     contract.removeAllListeners(eventName);
+    this._eventContracts.delete(key);
 
     logger.info(`[BlockchainAdapter] 事件监听已移除: ${eventName}`);
   }
