@@ -186,14 +186,21 @@ class ArchiveManager {
    */
   async extract7zFile(archivePath, filePath, outputPath) {
     return new Promise((resolve, reject) => {
-      const sevenZip = Seven.extractFull(
-        archivePath,
-        path.dirname(outputPath),
-        {
-          $bin: this.get7zBinary(),
-          $cherryPick: [filePath],
-        },
-      );
+      // Zip-Slip 防护：filePath 是攻击者控制的归档内条目名，node-7z 会按其内部
+      // 路径解压（不像 adm-zip 那样自带防护），`../../../x` 可越界写。
+      const extractDir = path.dirname(outputPath);
+      const finalPath = path.resolve(extractDir, filePath);
+      if (
+        finalPath !== path.resolve(extractDir) &&
+        !finalPath.startsWith(path.resolve(extractDir) + path.sep)
+      ) {
+        reject(new Error(`非法归档条目路径(疑似路径穿越): ${filePath}`));
+        return;
+      }
+      const sevenZip = Seven.extractFull(archivePath, extractDir, {
+        $bin: this.get7zBinary(),
+        $cherryPick: [filePath],
+      });
 
       sevenZip.on("end", () => {
         resolve(path.join(path.dirname(outputPath), filePath));
