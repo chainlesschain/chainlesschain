@@ -43,6 +43,7 @@ import {
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
+import { buildSearchCommand } from "../lib/search-command.js";
 import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
@@ -2354,13 +2355,14 @@ async function executeToolInner(
         ? [path.resolve(cwd, args.directory)]
         : [cwd, ...extraRoots];
       const isContent = Boolean(args.content_search);
-      const cmd = isContent
-        ? process.platform === "win32"
-          ? `findstr /s /i /n "${args.pattern}" *`
-          : `grep -r -l -i "${args.pattern}" . --include="*" 2>/dev/null | head -20`
-        : process.platform === "win32"
-          ? `dir /s /b *${args.pattern}* 2>NUL`
-          : `find . -name "*${args.pattern}*" -type f 2>/dev/null | head -20`;
+      // Pattern is model/user-supplied and flows into a shell — build the
+      // command with it SAFELY quoted (see search-command.js). Raw interpolation
+      // here was a command-injection bypass of the run_shell guards.
+      const built = buildSearchCommand({ pattern: args.pattern, isContent });
+      if (built.error) {
+        return attachDescriptor({ error: built.error });
+      }
+      const cmd = built.cmd;
 
       // Credential guard (Claude-Code 2.1.189 parity): a CONTENT search must not
       // become a side channel that exfils secrets the read_file / run_shell
