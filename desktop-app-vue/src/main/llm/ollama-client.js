@@ -117,8 +117,15 @@ class OllamaClient extends EventEmitter {
       let lastContext = null;
 
       return new Promise((resolve, reject) => {
+        let buffer = "";
         response.data.on("data", (chunk) => {
-          const lines = chunk.toString().split("\n").filter(Boolean);
+          // Buffer across 'data' events: one NDJSON object can be split across
+          // TCP chunks; parsing each chunk independently dropped the halves
+          // (lost tokens, and a split final object lost the done/eval counts).
+          buffer += chunk.toString();
+          const parts = buffer.split("\n");
+          buffer = parts.pop() || "";
+          const lines = parts.filter(Boolean);
 
           for (const line of lines) {
             try {
@@ -237,8 +244,14 @@ class OllamaClient extends EventEmitter {
       };
 
       return new Promise((resolve, reject) => {
+        let buffer = "";
         response.data.on("data", (chunk) => {
-          const lines = chunk.toString().split("\n").filter(Boolean);
+          // Buffer across 'data' events: one NDJSON object can be split across
+          // TCP chunks; parsing each chunk independently dropped the halves.
+          buffer += chunk.toString();
+          const parts = buffer.split("\n");
+          buffer = parts.pop() || "";
+          const lines = parts.filter(Boolean);
 
           for (const line of lines) {
             try {

@@ -236,14 +236,21 @@ class OpenAIClient extends EventEmitter {
       };
 
       return new Promise((resolve, reject) => {
+        let buffer = "";
         response.data.on("data", (chunk) => {
-          const lines = chunk
-            .toString()
-            .split("\n")
-            .filter((line) => line.trim().startsWith("data: "));
+          // Buffer across 'data' events: a single SSE "data:" frame can be split
+          // across TCP chunks; parsing each chunk independently dropped the
+          // halves (silently losing tokens). anthropic/gemini clients buffer;
+          // this one didn't. Keep the trailing incomplete line in the buffer.
+          buffer += chunk.toString();
+          const parts = buffer.split("\n");
+          buffer = parts.pop() || "";
+          const lines = parts.filter((line) =>
+            line.trim().startsWith("data: "),
+          );
 
           for (const line of lines) {
-            const data = line.replace(/^data: /, "");
+            const data = line.trim().replace(/^data: /, "");
 
             if (data === "[DONE]") {
               resolve({
