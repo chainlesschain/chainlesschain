@@ -188,7 +188,13 @@ export function registerSessionCommand(program) {
 
           let messages = sess.messages;
           if (options.limit) {
-            messages = messages.slice(-numericOption(options.limit, { name: "--limit", integer: true, min: 1 }));
+            messages = messages.slice(
+              -numericOption(options.limit, {
+                name: "--limit",
+                integer: true,
+                min: 1,
+              }),
+            );
           }
 
           for (const msg of messages) {
@@ -383,7 +389,10 @@ export function registerSessionCommand(program) {
               session: s.id,
               title: s.title,
               role: ev.type === "user_message" ? "user" : "assistant",
-              when: ev.timestamp ? new Date(ev.timestamp).toISOString() : "",
+              // toIsoSafe (not a bare truthy guard): an invalid-but-truthy
+              // timestamp on a corrupt event would otherwise throw RangeError
+              // and crash the whole search.
+              when: store.toIsoSafe(ev.timestamp),
               preview: text
                 .slice(from, idx + q.length + 50)
                 .replace(/\s+/g, " ")

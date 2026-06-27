@@ -164,9 +164,12 @@ export function rebuildMessages(sessionId) {
 }
 
 /** ISO string for a numeric ms timestamp, or "" when missing / non-finite /
- * invalid — `new Date(undefined).toISOString()` throws "Invalid time value",
- * and one corrupt session_start line must not crash the whole `cc session list`. */
-function toIsoSafe(ts) {
+ * invalid — `new Date(undefined).toISOString()` (and `new Date("garbage")`)
+ * throw "Invalid time value", and one corrupt event must not crash a whole
+ * `cc session list` / `cc session search`. Exported so command-layer readers of
+ * the same (hand-editable) JSONL share the guard. */
+export function toIsoSafe(ts) {
+  if (ts == null) return ""; // null/undefined → "" (Number(null) is 0 = epoch)
   const n = Number(ts);
   if (!Number.isFinite(n)) return "";
   const d = new Date(n);

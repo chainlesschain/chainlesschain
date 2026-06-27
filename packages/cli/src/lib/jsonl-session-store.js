@@ -32,4 +32,5 @@ export {
   sessionPath,
   isUnsafeSessionId,
   appendTokenUsage,
+  toIsoSafe,
 } from "../harness/jsonl-session-store.js";

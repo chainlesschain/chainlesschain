@@ -31,6 +31,7 @@ const {
   validateJsonlSession,
   sessionPath,
   isUnsafeSessionId,
+  toIsoSafe,
 } = await import("../../src/lib/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
@@ -223,6 +224,19 @@ describe("jsonl-session-store", () => {
 
     it("returns empty for non-existent session", () => {
       expect(rebuildMessages("nope")).toEqual([]);
+    });
+
+    it("toIsoSafe converts valid ms but returns '' for missing / invalid (no throw)", () => {
+      const ms = Date.UTC(2026, 0, 2, 3, 4, 5);
+      expect(toIsoSafe(ms)).toBe(new Date(ms).toISOString());
+      // The cases a bare `ts ? ...` truthy guard would miss or crash on:
+      expect(toIsoSafe(undefined)).toBe("");
+      expect(toIsoSafe(null)).toBe("");
+      expect(toIsoSafe("not-a-number")).toBe(""); // truthy but invalid → no RangeError
+      expect(toIsoSafe(NaN)).toBe("");
+      expect(toIsoSafe(Infinity)).toBe("");
+      // numeric string is coerced (Number("123") → 123)
+      expect(toIsoSafe(String(ms))).toBe(new Date(ms).toISOString());
     });
 
     it("does not crash on a malformed compact event (missing / null data)", () => {
