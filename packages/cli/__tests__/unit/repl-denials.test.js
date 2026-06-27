@@ -96,9 +96,11 @@ describe("classifyDenial", () => {
 describe("recordDenial (bounded ring buffer)", () => {
   it("appends most-recent-last and caps at MAX_RECENT_DENIALS", () => {
     const log = [];
+    // distinct summaries so they don't coalesce — this exercises the ring cap.
     for (let i = 0; i < MAX_RECENT_DENIALS + 5; i++) {
       recordDenial(log, {
         tool: "run_shell",
+        summary: `cmd-${i}`,
         reason: `r${i}`,
         via: "settings",
       });
@@ -117,6 +119,48 @@ describe("recordDenial (bounded ring buffer)", () => {
     expect(log.map((d) => d.tool)).toEqual(["b", "c"]);
     expect(recordDenial(log, null, 2)).toBe(log); // no-op
     expect(log.length).toBe(2);
+  });
+
+  it("coalesces consecutive identical denials into a count (not new rows)", () => {
+    const log = [];
+    const mk = (at) => ({
+      tool: "run_shell",
+      summary: "rm -rf build",
+      via: "settings",
+      rule: "Bash(rm:*)",
+      at,
+    });
+    recordDenial(log, mk(1000));
+    recordDenial(log, mk(2000));
+    recordDenial(log, mk(3000));
+    expect(log).toHaveLength(1);
+    expect(log[0].count).toBe(3);
+    expect(log[0].at).toBe(3000); // refreshed to the latest attempt
+  });
+
+  it("does NOT coalesce when a different denial intervenes", () => {
+    const log = [];
+    const rm = {
+      tool: "run_shell",
+      summary: "rm -rf x",
+      via: "settings",
+      rule: "r1",
+    };
+    const curl = {
+      tool: "run_shell",
+      summary: "curl y",
+      via: "shell-policy",
+      rule: null,
+    };
+    recordDenial(log, { ...rm });
+    recordDenial(log, { ...curl });
+    recordDenial(log, { ...rm }); // same as first but not consecutive
+    expect(log.map((d) => d.summary)).toEqual([
+      "rm -rf x",
+      "curl y",
+      "rm -rf x",
+    ]);
+    expect(log.every((d) => !d.count || d.count === 1)).toBe(true);
   });
 });
 
@@ -153,5 +197,23 @@ describe("formatDenials", () => {
     expect(out).toContain("[settings:Bash(rm:*) · 30s ago]");
     expect(out).toContain("[shell-policy · 5s ago]");
     expect(out).toContain("[Shell Policy] dangerous git");
+  });
+
+  it("shows a ×N multiplier for a coalesced repeated denial", () => {
+    const out = formatDenials([
+      {
+        tool: "run_shell",
+        summary: "rm -rf x",
+        via: "settings",
+        rule: "r",
+        count: 4,
+      },
+    ]);
+    expect(out).toContain("rm -rf x ×4");
+    // a single (count 1 / unset) denial has no multiplier
+    const single = formatDenials([
+      { tool: "run_shell", summary: "ls", via: "settings", rule: "r" },
+    ]);
+    expect(single).not.toContain("×");
   });
 });

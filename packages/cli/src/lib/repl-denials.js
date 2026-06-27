@@ -70,12 +70,35 @@ export function classifyDenial(ev = {}) {
   };
 }
 
+/** Two denials are "the same" attempt when tool + command + rule + via match. */
+function sameDenial(a, b) {
+  return (
+    a &&
+    b &&
+    a.tool === b.tool &&
+    a.summary === b.summary &&
+    a.via === b.via &&
+    a.rule === b.rule
+  );
+}
+
 /**
  * Append a denial to a bounded most-recent-last ring buffer (mutates + returns
  * it). Drops the oldest entries beyond `max`. No-op on a bad log/record.
+ *
+ * Consecutive identical denials are COALESCED: a model that hits a policy block
+ * usually retries the same command several times, which would otherwise flood
+ * the cap and evict other distinct denials. A repeat bumps the last entry's
+ * `count` and refreshes its `at` instead of appending.
  */
 export function recordDenial(log, record, max = MAX_RECENT_DENIALS) {
   if (!Array.isArray(log) || !record) return log;
+  const last = log[log.length - 1];
+  if (sameDenial(last, record)) {
+    last.count = (last.count || 1) + 1;
+    if (typeof record.at === "number") last.at = record.at;
+    return log;
+  }
   log.push(record);
   while (log.length > max) log.shift();
   return log;
@@ -104,7 +127,8 @@ export function formatDenials(log, opts = {}) {
         : "";
     const where = d.rule ? `${d.via}:${d.rule}` : d.via || "policy";
     const what = d.summary ? `${d.tool} ${d.summary}` : d.tool || "?";
-    lines.push(`  • ${what}  [${where}${ago}]`);
+    const times = d.count > 1 ? ` ×${d.count}` : "";
+    lines.push(`  • ${what}${times}  [${where}${ago}]`);
     if (d.reason) lines.push(`      ${d.reason}`);
   }
   return lines.join("\n");
