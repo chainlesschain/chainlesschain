@@ -113,20 +113,36 @@ export function readEvents(sessionId) {
   return events;
 }
 
+/**
+ * A replayable chat message must be a `{ role, content }` object — guard
+ * against a corrupt / partially-written / hand-edited event whose `data` is
+ * missing, null, or not a message (it would otherwise inject `undefined` into
+ * the resumed history and break the next LLM request).
+ */
+function isReplayableMessage(m) {
+  return Boolean(m) && typeof m === "object" && typeof m.role === "string";
+}
+
 export function rebuildMessages(sessionId) {
   const events = readEvents(sessionId);
   const messages = [];
   let lastCompactIndex = -1;
 
+  // A `compact` event carries the pre-compaction snapshot in data.messages. A
+  // malformed compact line (type present but data null / messages not an array)
+  // must not crash the resume — skip it and look further back.
   for (let i = events.length - 1; i >= 0; i--) {
-    if (events[i].type === "compact" && events[i].data.messages) {
+    const e = events[i];
+    if (e && e.type === "compact" && Array.isArray(e.data?.messages)) {
       lastCompactIndex = i;
       break;
     }
   }
 
-  if (lastCompactIndex >= 0 && events[lastCompactIndex].data.messages) {
-    messages.push(...events[lastCompactIndex].data.messages);
+  if (lastCompactIndex >= 0) {
+    for (const m of events[lastCompactIndex].data.messages) {
+      if (isReplayableMessage(m)) messages.push(m);
+    }
   }
 
   const startIndex = lastCompactIndex >= 0 ? lastCompactIndex + 1 : 0;
@@ -134,9 +150,11 @@ export function rebuildMessages(sessionId) {
   for (let i = startIndex; i < events.length; i++) {
     const event = events[i];
     if (
-      event.type === "user_message" ||
-      event.type === "assistant_message" ||
-      event.type === "system"
+      event &&
+      (event.type === "user_message" ||
+        event.type === "assistant_message" ||
+        event.type === "system") &&
+      isReplayableMessage(event.data)
     ) {
       messages.push(event.data);
     }

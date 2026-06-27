@@ -224,6 +224,78 @@ describe("jsonl-session-store", () => {
     it("returns empty for non-existent session", () => {
       expect(rebuildMessages("nope")).toEqual([]);
     });
+
+    it("does not crash on a malformed compact event (missing / null data)", () => {
+      // A partially-written / hand-edited line can be valid JSON but have a
+      // `compact` type with no usable data — this used to throw a TypeError
+      // ("Cannot read properties of null") and abort the whole resume.
+      const id = "s-corrupt-compact";
+      const lines =
+        [
+          JSON.stringify({
+            type: "user_message",
+            data: { role: "user", content: "hi" },
+          }),
+          JSON.stringify({ type: "compact" }), // no data
+          JSON.stringify({ type: "compact", data: null }), // null data
+          JSON.stringify({
+            type: "assistant_message",
+            data: { role: "assistant", content: "yo" },
+          }),
+        ].join("\n") + "\n";
+      writeFileSync(sessionPath(id), lines, "utf-8");
+      const messages = rebuildMessages(id);
+      expect(messages).toEqual([
+        { role: "user", content: "hi" },
+        { role: "assistant", content: "yo" },
+      ]);
+    });
+
+    it("drops malformed message events (null / no-role data) instead of injecting them", () => {
+      const id = "s-corrupt-msg";
+      const lines =
+        [
+          JSON.stringify({
+            type: "user_message",
+            data: { role: "user", content: "real" },
+          }),
+          JSON.stringify({ type: "assistant_message", data: null }),
+          JSON.stringify({ type: "user_message" }), // no data
+          JSON.stringify({ type: "system", data: { content: "no role" } }),
+          JSON.stringify({
+            type: "assistant_message",
+            data: { role: "assistant", content: "ok" },
+          }),
+        ].join("\n") + "\n";
+      writeFileSync(sessionPath(id), lines, "utf-8");
+      expect(rebuildMessages(id)).toEqual([
+        { role: "user", content: "real" },
+        { role: "assistant", content: "ok" },
+      ]);
+    });
+
+    it("skips a malformed compact and falls back to an earlier valid one", () => {
+      const id = "s-compact-fallback";
+      const lines =
+        [
+          JSON.stringify({
+            type: "compact",
+            data: { messages: [{ role: "system", content: "summary" }] },
+          }),
+          JSON.stringify({
+            type: "user_message",
+            data: { role: "user", content: "after" },
+          }),
+          JSON.stringify({
+            type: "compact",
+            data: { messages: "not-an-array" },
+          }),
+        ].join("\n") + "\n";
+      writeFileSync(sessionPath(id), lines, "utf-8");
+      const messages = rebuildMessages(id);
+      expect(messages[0]).toEqual({ role: "system", content: "summary" });
+      expect(messages.some((m) => m.content === "after")).toBe(true);
+    });
   });
 
   // ── listJsonlSessions ────────────────────────────────────────────
