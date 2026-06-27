@@ -273,11 +273,19 @@ async function getRecentActivities(database, orgId, limit) {
       )
       .all(orgId, limit);
 
-    // Parse metadata JSON
-    const parsedActivities = activities.map((activity) => ({
-      ...activity,
-      metadata: activity.metadata ? JSON.parse(activity.metadata) : {},
-    }));
+    // Parse metadata JSON — per-row guard so one corrupt row doesn't fail the
+    // whole recent-activities panel.
+    const parsedActivities = activities.map((activity) => {
+      let metadata = {};
+      if (activity.metadata) {
+        try {
+          metadata = JSON.parse(activity.metadata);
+        } catch {
+          metadata = {};
+        }
+      }
+      return { ...activity, metadata };
+    });
 
     return {
       success: true,

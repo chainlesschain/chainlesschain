@@ -765,9 +765,12 @@ class DIDInvitationManager {
    * @param {string} status - 状态过滤（可选）
    * @returns {Array<Object>} 邀请列表
    */
-  getReceivedInvitations(status = null) {
+  async getReceivedInvitations(status = null) {
     try {
-      const currentDID = this.didManager.getCurrentDID();
+      // getCurrentDID() is async (every other call site awaits it); without
+      // await, currentDID is a Promise — truthy so the guard never fires, and
+      // bound as a SQL param it matches no rows → list always empty.
+      const currentDID = await this.didManager.getCurrentDID();
       if (!currentDID) {
         return [];
       }
@@ -806,9 +809,10 @@ class DIDInvitationManager {
    * @param {string} status - 状态过滤（可选）
    * @returns {Array<Object>} 邀请列表
    */
-  getSentInvitations(orgId = null, status = null) {
+  async getSentInvitations(orgId = null, status = null) {
     try {
-      const currentDID = this.didManager.getCurrentDID();
+      // await: getCurrentDID() is async; unawaited Promise param matches no rows.
+      const currentDID = await this.didManager.getCurrentDID();
       if (!currentDID) {
         return [];
       }
@@ -913,9 +917,10 @@ class DIDInvitationManager {
    * @param {string} orgId - 组织ID（可选）
    * @returns {Object} 统计信息
    */
-  getInvitationStats(orgId = null) {
+  async getInvitationStats(orgId = null) {
     try {
-      const currentDID = this.didManager.getCurrentDID();
+      // await: getCurrentDID() is async; unawaited Promise param zeroes all counts.
+      const currentDID = await this.didManager.getCurrentDID();
       if (!currentDID) {
         return {
           sent: 0,

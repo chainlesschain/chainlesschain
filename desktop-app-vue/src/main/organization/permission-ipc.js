@@ -433,13 +433,15 @@ class PermissionIPC {
         // Apply permissions based on target type
         if (targetType === "role") {
           // Update role permissions
+          // organization_roles schema columns: id, org_id, name, description,
+          // permissions, is_builtin, created_at — no role_name, no updated_at.
           db.prepare(
             `
             UPDATE organization_roles
-            SET permissions = ?, updated_at = ?
-            WHERE org_id = ? AND role_name = ?
+            SET permissions = ?
+            WHERE org_id = ? AND name = ?
           `,
-          ).run(JSON.stringify(permissions), Date.now(), orgId, targetId);
+          ).run(JSON.stringify(permissions), orgId, targetId);
         } else if (targetType === "folder") {
           // Update folder permissions
           await this.permissionManager.updateFolderPermissions(

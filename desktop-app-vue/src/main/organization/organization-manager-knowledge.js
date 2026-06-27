@@ -131,15 +131,25 @@ module.exports = {
 
       return {
         success: true,
-        knowledge: knowledge.map((k) => ({
-          knowledgeId: k.knowledge_id,
-          title: k.title,
-          content: JSON.parse(k.content || "{}"),
-          authorDID: k.author_did,
-          createdAt: k.created_at,
-          updatedAt: k.updated_at,
-          isDeleted: k.is_deleted === 1,
-        })),
+        // per-row guard: this feeds a joining member's initial knowledge sync;
+        // one corrupt content row must not block the whole sync.
+        knowledge: knowledge.map((k) => {
+          let content = {};
+          try {
+            content = JSON.parse(k.content || "{}");
+          } catch {
+            content = {};
+          }
+          return {
+            knowledgeId: k.knowledge_id,
+            title: k.title,
+            content,
+            authorDID: k.author_did,
+            createdAt: k.created_at,
+            updatedAt: k.updated_at,
+            isDeleted: k.is_deleted === 1,
+          };
+        }),
         count: knowledge.length,
         lastTimestamp:
           knowledge.length > 0

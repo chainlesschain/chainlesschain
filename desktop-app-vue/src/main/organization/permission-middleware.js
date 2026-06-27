@@ -437,7 +437,7 @@ class PermissionMiddleware extends EventEmitter {
       .prepare(
         `
       SELECT permissions FROM organization_roles
-      WHERE org_id = ? AND role_name = ?
+      WHERE org_id = ? AND name = ?
     `,
       )
       .get(orgId, userRole);
