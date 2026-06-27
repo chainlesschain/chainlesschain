@@ -74,7 +74,10 @@ class CollabSync extends EventEmitter {
     }
 
     // Handle incoming sync protocol messages
-    if (this.p2pManager.node && typeof this.p2pManager.node.handle === "function") {
+    if (
+      this.p2pManager.node &&
+      typeof this.p2pManager.node.handle === "function"
+    ) {
       this.p2pManager.node.handle(
         PROTOCOL_SOCIAL_COLLAB,
         async ({ stream, connection }) => {
@@ -134,7 +137,9 @@ class CollabSync extends EventEmitter {
       await this.requestFullState(docId, peerId);
 
       this.emit("sync:connected", { docId, peerId });
-      logger.info(`[CollabSync] Sync started for doc ${docId} with peer ${peerId}`);
+      logger.info(
+        `[CollabSync] Sync started for doc ${docId} with peer ${peerId}`,
+      );
 
       return { success: true, docId, peerId };
     } catch (error) {
@@ -173,7 +178,9 @@ class CollabSync extends EventEmitter {
         });
 
         this.emit("sync:disconnected", { docId, peerId });
-        logger.info(`[CollabSync] Sync stopped for doc ${docId} with peer ${peerId}`);
+        logger.info(
+          `[CollabSync] Sync stopped for doc ${docId} with peer ${peerId}`,
+        );
 
         if (session.peers.size === 0) {
           session.active = false;
@@ -227,7 +234,9 @@ class CollabSync extends EventEmitter {
       const updatePayload = {
         type: MessageType.UPDATE,
         docId,
-        data: Array.from(update instanceof Buffer ? update : new Uint8Array(update)),
+        data: Array.from(
+          update instanceof Buffer ? update : new Uint8Array(update),
+        ),
         timestamp: Date.now(),
       };
 
@@ -236,7 +245,10 @@ class CollabSync extends EventEmitter {
           await this._sendMessage(peerId, updatePayload);
           peersNotified++;
         } catch (error) {
-          logger.warn(`[CollabSync] Failed to send update to peer ${peerId}:`, error.message);
+          logger.warn(
+            `[CollabSync] Failed to send update to peer ${peerId}:`,
+            error.message,
+          );
         }
       }
 
@@ -267,7 +279,9 @@ class CollabSync extends EventEmitter {
         timestamp: Date.now(),
       });
 
-      logger.info(`[CollabSync] Full state requested for doc ${docId} from peer ${peerId}`);
+      logger.info(
+        `[CollabSync] Full state requested for doc ${docId} from peer ${peerId}`,
+      );
 
       return { success: true };
     } catch (error) {
@@ -302,7 +316,10 @@ class CollabSync extends EventEmitter {
                 Y.applyUpdate(ydoc, updateBytes, "network");
               }
             } catch (err) {
-              logger.warn("[CollabSync] Failed to apply Yjs update:", err.message);
+              logger.warn(
+                "[CollabSync] Failed to apply Yjs update:",
+                err.message,
+              );
             }
           }
 
@@ -326,7 +343,10 @@ class CollabSync extends EventEmitter {
                 });
               }
             } catch (err) {
-              logger.warn("[CollabSync] Failed to send full state:", err.message);
+              logger.warn(
+                "[CollabSync] Failed to send full state:",
+                err.message,
+              );
             }
           }
           break;
@@ -343,7 +363,10 @@ class CollabSync extends EventEmitter {
                 Y.applyUpdate(ydoc, stateBytes, "network");
               }
             } catch (err) {
-              logger.warn("[CollabSync] Failed to apply full state:", err.message);
+              logger.warn(
+                "[CollabSync] Failed to apply full state:",
+                err.message,
+              );
             }
           }
 
@@ -359,7 +382,9 @@ class CollabSync extends EventEmitter {
           this.syncSessions.get(docId).peers.add(peerId);
 
           this.emit("sync:connected", { docId, peerId });
-          logger.info(`[CollabSync] Peer ${peerId} joined sync for doc ${docId}`);
+          logger.info(
+            `[CollabSync] Peer ${peerId} joined sync for doc ${docId}`,
+          );
           break;
         }
 
@@ -421,12 +446,21 @@ class CollabSync extends EventEmitter {
       const chunks = [];
 
       await new Promise((resolve, reject) => {
+        // Clear the timeout on end/error, otherwise the 30s timer stays pending
+        // after the stream resolves (orphan handles accumulate under P2P traffic).
+        const timer = setTimeout(() => resolve(), 30000);
+        if (timer.unref) {
+          timer.unref();
+        }
         stream.on("data", (chunk) => chunks.push(chunk));
-        stream.on("end", resolve);
-        stream.on("error", reject);
-
-        // Timeout for stream reading
-        setTimeout(() => resolve(), 30000);
+        stream.on("end", () => {
+          clearTimeout(timer);
+          resolve();
+        });
+        stream.on("error", (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
       });
 
       if (chunks.length === 0) {
@@ -494,7 +528,9 @@ class CollabSync extends EventEmitter {
     for (const [docId, session] of this.syncSessions) {
       if (session.peers.has(peerId)) {
         this.emit("sync:disconnected", { docId, peerId });
-        logger.info(`[CollabSync] Peer ${peerId} disconnected from doc ${docId}`);
+        logger.info(
+          `[CollabSync] Peer ${peerId} disconnected from doc ${docId}`,
+        );
       }
     }
   }

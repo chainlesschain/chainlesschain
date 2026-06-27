@@ -15,6 +15,10 @@ const QUALITY_LEVEL = {
 };
 
 class ContentQualityAssessor {
+  // Cap the in-memory assessment cache (each assessment is also persisted to DB)
+  // — the key is a fresh UUID per call, so without a cap the Map grows forever.
+  static MAX_ASSESSMENTS = 500;
+
   constructor(database) {
     this.database = database;
     this._assessments = new Map();
@@ -95,6 +99,9 @@ class ContentQualityAssessor {
         );
     }
     this._assessments.set(id, assessment);
+    if (this._assessments.size > ContentQualityAssessor.MAX_ASSESSMENTS) {
+      this._assessments.delete(this._assessments.keys().next().value);
+    }
     return assessment;
   }
 

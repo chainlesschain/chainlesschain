@@ -48,7 +48,9 @@ class AnonymousMode extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info("[AnonymousMode] Anonymous mode manager initialized successfully");
+      logger.info(
+        "[AnonymousMode] Anonymous mode manager initialized successfully",
+      );
     } catch (error) {
       logger.error("[AnonymousMode] Initialization failed:", error);
       throw error;
@@ -172,7 +174,10 @@ class AnonymousMode extends EventEmitter {
 
       return identity;
     } catch (error) {
-      logger.error("[AnonymousMode] Failed to create anonymous identity:", error);
+      logger.error(
+        "[AnonymousMode] Failed to create anonymous identity:",
+        error,
+      );
       throw error;
     }
   }
@@ -199,7 +204,9 @@ class AnonymousMode extends EventEmitter {
 
       const db = this.database.db;
       const identity = db
-        .prepare("SELECT * FROM anonymous_identities WHERE id = ? AND is_active = 1")
+        .prepare(
+          "SELECT * FROM anonymous_identities WHERE id = ? AND is_active = 1",
+        )
         .get(identityId);
 
       if (!identity) {
@@ -258,7 +265,10 @@ class AnonymousMode extends EventEmitter {
       // Parse public params
       let params;
       try {
-        params = typeof publicParams === "string" ? JSON.parse(publicParams) : publicParams;
+        params =
+          typeof publicParams === "string"
+            ? JSON.parse(publicParams)
+            : publicParams;
       } catch (_e) {
         return { valid: false, reason: "Invalid public parameters format" };
       }
@@ -289,7 +299,9 @@ class AnonymousMode extends EventEmitter {
         alias: proof.alias,
         statement: proof.statement,
         verifiedAt: now,
-        reason: isStructurallyValid ? "Proof verified" : "Invalid proof structure",
+        reason: isStructurallyValid
+          ? "Proof verified"
+          : "Invalid proof structure",
       };
 
       logger.info(
@@ -325,7 +337,9 @@ class AnonymousMode extends EventEmitter {
 
       const db = this.database.db;
       const identity = db
-        .prepare("SELECT * FROM anonymous_identities WHERE id = ? AND is_active = 1")
+        .prepare(
+          "SELECT * FROM anonymous_identities WHERE id = ? AND is_active = 1",
+        )
         .get(identityId);
 
       if (!identity) {
@@ -381,13 +395,22 @@ class AnonymousMode extends EventEmitter {
 
       // Mark expired identities
       const now = Date.now();
-      return identities.map((identity) => ({
-        ...identity,
-        is_expired: identity.expires_at ? identity.expires_at < now : false,
-        public_params: identity.public_params
-          ? JSON.parse(identity.public_params)
-          : null,
-      }));
+      return identities.map((identity) => {
+        // per-row 守卫：一条坏 public_params 不应让整个身份列表抛错（隐藏其余身份）
+        let publicParams = null;
+        if (identity.public_params) {
+          try {
+            publicParams = JSON.parse(identity.public_params);
+          } catch {
+            publicParams = null;
+          }
+        }
+        return {
+          ...identity,
+          is_expired: identity.expires_at ? identity.expires_at < now : false,
+          public_params: publicParams,
+        };
+      });
     } catch (error) {
       logger.error("[AnonymousMode] Failed to list identities:", error);
       throw error;
