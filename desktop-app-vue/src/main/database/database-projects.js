@@ -8,6 +8,7 @@
  * Extracted on 2026-04-07.
  */
 
+const fs = require("fs");
 const SqlSecurity = require("./sql-security");
 const { v4: uuidv4 } = require("uuid");
 
