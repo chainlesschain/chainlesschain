@@ -164,7 +164,7 @@ class APWebFinger {
     };
   }
 
-  async _httpGet(url) {
+  async _httpGet(url, redirectsLeft = 5) {
     return new Promise((resolve, reject) => {
       const mod = url.startsWith("https") ? https : http;
       const req = mod.get(
@@ -179,7 +179,13 @@ class APWebFinger {
             res.statusCode < 400 &&
             res.headers.location
           ) {
-            return this._httpGet(res.headers.location)
+            // Bound redirect-following: a hostile/misconfigured remote serving a
+            // self-referential or cyclic redirect would otherwise recurse/hang
+            // forever (each hop bounded only by the 10s per-request timeout).
+            if (redirectsLeft <= 0) {
+              return reject(new Error("Too many redirects"));
+            }
+            return this._httpGet(res.headers.location, redirectsLeft - 1)
               .then(resolve)
               .catch(reject);
           }

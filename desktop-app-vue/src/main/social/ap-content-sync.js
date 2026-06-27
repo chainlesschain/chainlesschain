@@ -165,6 +165,17 @@ class APContentSync extends EventEmitter {
         throw new Error("Note content is required");
       }
 
+      // Guard a malformed remote `published` date: a truthy-but-unparseable
+      // value yields getTime()===NaN, corrupting feed ORDER BY created_at and
+      // making downstream new Date(NaN).toISOString() throw. Fall back to now.
+      let createdAt = Date.now();
+      if (noteObject.published) {
+        const parsed = new Date(noteObject.published).getTime();
+        if (Number.isFinite(parsed)) {
+          createdAt = parsed;
+        }
+      }
+
       const post = {
         id: noteObject.id || uuidv4(),
         author_did: ownerDid,
@@ -173,9 +184,7 @@ class APContentSync extends EventEmitter {
         source: "activitypub",
         remote_id: noteObject.id,
         remote_actor: noteObject.attributedTo,
-        created_at: noteObject.published
-          ? new Date(noteObject.published).getTime()
-          : Date.now(),
+        created_at: createdAt,
       };
 
       this.emit("note:imported", post);

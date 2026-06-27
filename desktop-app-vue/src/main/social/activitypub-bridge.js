@@ -61,7 +61,9 @@ class ActivityPubBridge extends EventEmitter {
     this._localDomain = options.domain || "localhost";
     this._ensureTables();
     this.initialized = true;
-    logger.info("[ActivityPubBridge] ActivityPub bridge initialized successfully");
+    logger.info(
+      "[ActivityPubBridge] ActivityPub bridge initialized successfully",
+    );
   }
 
   _ensureTables() {
@@ -121,7 +123,8 @@ class ActivityPubBridge extends EventEmitter {
    */
   async createLocalActor(did, profile = {}) {
     try {
-      const username = profile.username || did.split(":").pop().substring(0, 16);
+      const username =
+        profile.username || did.split(":").pop().substring(0, 16);
       const actorId = `https://${this._localDomain}/users/${username}`;
 
       // Generate RSA key pair for HTTP Signatures
@@ -186,9 +189,13 @@ class ActivityPubBridge extends EventEmitter {
    */
   async getActorByDid(did) {
     try {
-      if (this._actorCache.has(did)) {return this._actorCache.get(did);}
+      if (this._actorCache.has(did)) {
+        return this._actorCache.get(did);
+      }
 
-      if (!this.database || !this.database.db) {return null;}
+      if (!this.database || !this.database.db) {
+        return null;
+      }
 
       const row = this.database.db
         .prepare("SELECT * FROM activitypub_actors WHERE did = ?")
@@ -211,7 +218,9 @@ class ActivityPubBridge extends EventEmitter {
    */
   async buildActorDocument(did) {
     const actor = await this.getActorByDid(did);
-    if (!actor) {throw new Error("Actor not found for DID: " + did);}
+    if (!actor) {
+      throw new Error("Actor not found for DID: " + did);
+    }
 
     return {
       "@context": [AP_CONTEXT, AP_SECURITY_CONTEXT],
@@ -229,9 +238,7 @@ class ActivityPubBridge extends EventEmitter {
         owner: actor.id,
         publicKeyPem: actor.public_key_pem,
       },
-      icon: actor.icon_url
-        ? { type: "Image", url: actor.icon_url }
-        : undefined,
+      icon: actor.icon_url ? { type: "Image", url: actor.icon_url } : undefined,
     };
   }
 
@@ -245,7 +252,9 @@ class ActivityPubBridge extends EventEmitter {
   async createActivity(actorDid, type, object) {
     try {
       const actor = await this.getActorByDid(actorDid);
-      if (!actor) {throw new Error("Actor not found");}
+      if (!actor) {
+        throw new Error("Actor not found");
+      }
 
       const activityId = `https://${this._localDomain}/activities/${uuidv4()}`;
       const now = Date.now();
@@ -299,6 +308,13 @@ class ActivityPubBridge extends EventEmitter {
 
       const now = Date.now();
 
+      // Inbound activities are often anonymous/embedded with no top-level id.
+      // Compute the stored row id ONCE (with a fallback) and reuse it for the
+      // mark-processed UPDATE below — passing the raw (undefined) activity.id to
+      // better-sqlite3 throws "Undefined value used as bound parameter", so the
+      // activity would never be marked processed and would be retried forever.
+      const activityRowId = activity.id || `urn:uuid:${uuidv4()}`;
+
       // Store activity
       this.database.db
         .prepare(
@@ -307,12 +323,18 @@ class ActivityPubBridge extends EventEmitter {
            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
         )
         .run(
-          activity.id || `urn:uuid:${uuidv4()}`,
+          activityRowId,
           activity.type,
-          typeof activity.actor === "string" ? activity.actor : activity.actor?.id || "",
+          typeof activity.actor === "string"
+            ? activity.actor
+            : activity.actor?.id || "",
           activity.object?.type || null,
-          typeof activity.object === "string" ? activity.object : activity.object?.id || null,
-          typeof activity.object === "string" ? activity.object : JSON.stringify(activity.object),
+          typeof activity.object === "string"
+            ? activity.object
+            : activity.object?.id || null,
+          typeof activity.object === "string"
+            ? activity.object
+            : JSON.stringify(activity.object),
           JSON.stringify(activity),
           now,
         );
@@ -336,33 +358,45 @@ class ActivityPubBridge extends EventEmitter {
           result = await this._handleUndo(activity);
           break;
         default:
-          logger.info("[ActivityPubBridge] Unhandled activity type:", activity.type);
+          logger.info(
+            "[ActivityPubBridge] Unhandled activity type:",
+            activity.type,
+          );
       }
 
-      // Mark as processed
+      // Mark as processed (use the same id we stored under, not the raw
+      // possibly-undefined activity.id)
       this.database.db
         .prepare("UPDATE activitypub_activities SET processed = 1 WHERE id = ?")
-        .run(activity.id);
+        .run(activityRowId);
 
       this.database.saveToFile();
       this.emit("inbox:received", { activity, result });
 
       return result;
     } catch (error) {
-      logger.error("[ActivityPubBridge] Failed to process inbox activity:", error);
+      logger.error(
+        "[ActivityPubBridge] Failed to process inbox activity:",
+        error,
+      );
       throw error;
     }
   }
 
   async _handleFollow(activity) {
-    const targetActorId = typeof activity.object === "string" ? activity.object : activity.object?.id;
+    const targetActorId =
+      typeof activity.object === "string"
+        ? activity.object
+        : activity.object?.id;
     const actor = this.database.db
       .prepare("SELECT * FROM activitypub_actors WHERE id = ?")
       .get(targetActorId);
 
     if (actor && actor.is_local) {
       this.database.db
-        .prepare("UPDATE activitypub_actors SET follower_count = follower_count + 1 WHERE id = ?")
+        .prepare(
+          "UPDATE activitypub_actors SET follower_count = follower_count + 1 WHERE id = ?",
+        )
         .run(targetActorId);
       return { accepted: true, type: "follow" };
     }
@@ -375,12 +409,18 @@ class ActivityPubBridge extends EventEmitter {
   }
 
   async _handleLike(activity) {
-    this.emit("like:received", { actor: activity.actor, object: activity.object });
+    this.emit("like:received", {
+      actor: activity.actor,
+      object: activity.object,
+    });
     return { accepted: true, type: "like" };
   }
 
   async _handleAnnounce(activity) {
-    this.emit("boost:received", { actor: activity.actor, object: activity.object });
+    this.emit("boost:received", {
+      actor: activity.actor,
+      object: activity.object,
+    });
     return { accepted: true, type: "announce" };
   }
 
@@ -427,7 +467,9 @@ class ActivityPubBridge extends EventEmitter {
         Signature: `keyId="${actor.id}#main-key",headers="(request-target) host date${digest ? " digest" : ""}",signature="${signature}"`,
       };
 
-      if (digest) {headers.Digest = digest;}
+      if (digest) {
+        headers.Digest = digest;
+      }
 
       return headers;
     } catch (error) {
@@ -445,7 +487,9 @@ class ActivityPubBridge extends EventEmitter {
   async getOutbox(actorDid, options = {}) {
     try {
       const actor = await this.getActorByDid(actorDid);
-      if (!actor) {throw new Error("Actor not found");}
+      if (!actor) {
+        throw new Error("Actor not found");
+      }
 
       const limit = options.limit || 20;
       const offset = options.offset || 0;
@@ -459,7 +503,9 @@ class ActivityPubBridge extends EventEmitter {
         .all(actor.id, limit, offset);
 
       const total = this.database.db
-        .prepare("SELECT COUNT(*) as count FROM activitypub_activities WHERE actor_id = ? AND is_local = 1")
+        .prepare(
+          "SELECT COUNT(*) as count FROM activitypub_activities WHERE actor_id = ? AND is_local = 1",
+        )
         .get(actor.id);
 
       return {
@@ -487,11 +533,18 @@ class ActivityPubBridge extends EventEmitter {
   async getStatus() {
     try {
       if (!this.database || !this.database.db) {
-        return { initialized: this.initialized, domain: this._localDomain, actorCount: 0, activityCount: 0 };
+        return {
+          initialized: this.initialized,
+          domain: this._localDomain,
+          actorCount: 0,
+          activityCount: 0,
+        };
       }
 
       const actorCount = this.database.db
-        .prepare("SELECT COUNT(*) as count FROM activitypub_actors WHERE is_local = 1")
+        .prepare(
+          "SELECT COUNT(*) as count FROM activitypub_actors WHERE is_local = 1",
+        )
         .get();
 
       const activityCount = this.database.db
@@ -520,7 +573,9 @@ class ActivityPubBridge extends EventEmitter {
 
 let _instance;
 function getActivityPubBridge() {
-  if (!_instance) {_instance = new ActivityPubBridge();}
+  if (!_instance) {
+    _instance = new ActivityPubBridge();
+  }
   return _instance;
 }
 
