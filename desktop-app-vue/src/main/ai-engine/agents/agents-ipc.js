@@ -125,11 +125,15 @@ function registerAgentsIPC(dependencies = {}) {
     "agents:list-templates",
     "List templates",
     async (_event, payload = {}) => {
-      const templates = getTemplateManager().listTemplates(payload.filters || {});
+      // listTemplates resolves to { templates, total }
+      const result = await getTemplateManager().listTemplates(
+        payload.filters || {},
+      );
+      const templates = result?.templates || [];
       return {
         success: true,
         data: templates,
-        total: templates.length,
+        total: result?.total ?? templates.length,
       };
     },
   );
@@ -142,7 +146,7 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Template ID is required" };
       }
 
-      const template = getTemplateManager().getTemplate(templateId);
+      const template = await getTemplateManager().getTemplate(templateId);
       if (!template) {
         return { success: false, error: `Template not found: ${templateId}` };
       }
@@ -159,8 +163,10 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Template name and type are required" };
       }
 
-      const created = getTemplateManager().createTemplate(template);
-      logger.info(`[AgentsIPC] Template created: ${created.id} (${created.name})`);
+      const created = await getTemplateManager().createTemplate(template);
+      logger.info(
+        `[AgentsIPC] Template created: ${created.id} (${created.name})`,
+      );
       return { success: true, data: created };
     },
   );
@@ -177,7 +183,10 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "No updates provided" };
       }
 
-      const updated = getTemplateManager().updateTemplate(templateId, updates);
+      const updated = await getTemplateManager().updateTemplate(
+        templateId,
+        updates,
+      );
       if (!updated) {
         return { success: false, error: `Template not found: ${templateId}` };
       }
@@ -195,9 +204,13 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Template ID is required" };
       }
 
-      const deleted = getTemplateManager().deleteTemplate(templateId);
-      if (!deleted) {
-        return { success: false, error: `Template not found: ${templateId}` };
+      // deleteTemplate resolves to { success, error? }
+      const deleted = await getTemplateManager().deleteTemplate(templateId);
+      if (!deleted || !deleted.success) {
+        return {
+          success: false,
+          error: deleted?.error || `Template not found: ${templateId}`,
+        };
       }
 
       logger.info(`[AgentsIPC] Template deleted: ${templateId}`);
@@ -214,7 +227,9 @@ function registerAgentsIPC(dependencies = {}) {
       }
 
       const instance = await getAgentRegistry().deploy(templateId, config);
-      logger.info(`[AgentsIPC] Agent deployed: ${instance.id} from template ${templateId}`);
+      logger.info(
+        `[AgentsIPC] Agent deployed: ${instance.id} from template ${templateId}`,
+      );
       return { success: true, data: instance };
     },
   );
@@ -277,7 +292,11 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task description is required" };
       }
 
-      return getAgentCoordinator().assignTask(agentId, taskDescription, options);
+      return getAgentCoordinator().assignTask(
+        agentId,
+        taskDescription,
+        options,
+      );
     },
   );
 
@@ -317,7 +336,9 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task description is required" };
       }
 
-      logger.info(`[AgentsIPC] Orchestrating: ${taskDescription.substring(0, 100)}...`);
+      logger.info(
+        `[AgentsIPC] Orchestrating: ${taskDescription.substring(0, 100)}...`,
+      );
       return getAgentCoordinator().orchestrate(taskDescription, options);
     },
   );
@@ -348,7 +369,9 @@ function registerAgentsIPC(dependencies = {}) {
     return { success: true, data: stats };
   });
 
-  logger.info(`[AgentsIPC] Registered ${AGENTS_IPC_CHANNELS.length} IPC handlers`);
+  logger.info(
+    `[AgentsIPC] Registered ${AGENTS_IPC_CHANNELS.length} IPC handlers`,
+  );
   return { handlerCount: AGENTS_IPC_CHANNELS.length };
 }
 
