@@ -15,6 +15,21 @@ import { logger } from "../../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Parse a stored JSON column defensively. One corrupt field on one row must not
+ * throw out of the load loop / .map and silently drop every other dev session.
+ */
+function safeParseJSON(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 const SESSION_STATUS = {
   INTENT: "intent",
   PRD: "prd",
@@ -95,12 +110,10 @@ class AutonomousDeveloper extends EventEmitter {
         for (const s of sessions) {
           this._sessions.set(s.id, {
             ...s,
-            prd: s.prd ? JSON.parse(s.prd) : null,
-            architecture: s.architecture ? JSON.parse(s.architecture) : null,
-            generated_code: s.generated_code
-              ? JSON.parse(s.generated_code)
-              : null,
-            review_result: s.review_result ? JSON.parse(s.review_result) : null,
+            prd: safeParseJSON(s.prd, null),
+            architecture: safeParseJSON(s.architecture, null),
+            generated_code: safeParseJSON(s.generated_code, null),
+            review_result: safeParseJSON(s.review_result, null),
           });
         }
         logger.info(`[AutonomousDeveloper] Loaded ${sessions.length} sessions`);
@@ -354,12 +367,10 @@ class AutonomousDeveloper extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          prd: r.prd ? JSON.parse(r.prd) : null,
-          architecture: r.architecture ? JSON.parse(r.architecture) : null,
-          generated_code: r.generated_code
-            ? JSON.parse(r.generated_code)
-            : null,
-          review_result: r.review_result ? JSON.parse(r.review_result) : null,
+          prd: safeParseJSON(r.prd, null),
+          architecture: safeParseJSON(r.architecture, null),
+          generated_code: safeParseJSON(r.generated_code, null),
+          review_result: safeParseJSON(r.review_result, null),
         }));
       } catch (err) {
         logger.error("[AutonomousDeveloper] Failed to list sessions:", err);

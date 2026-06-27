@@ -15,6 +15,22 @@ import { logger } from "../../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Parse a stored JSON column defensively. One corrupt row must not throw out of
+ * the load loop / .map and silently drop ALL governance decisions (the
+ * human-approval gateway for security/architecture/migration).
+ */
+function safeParseJSON(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 const DECISION_STATUS = {
   PENDING: "pending",
   APPROVED: "approved",
@@ -110,7 +126,7 @@ class CollaborationGovernance extends EventEmitter {
         for (const d of decisions) {
           this._decisions.set(d.id, {
             ...d,
-            context: d.context ? JSON.parse(d.context) : {},
+            context: safeParseJSON(d.context, {}),
           });
         }
 
@@ -216,7 +232,7 @@ class CollaborationGovernance extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          context: r.context ? JSON.parse(r.context) : {},
+          context: safeParseJSON(r.context, {}),
         }));
       } catch (err) {
         logger.error("[CollaborationGovernance] Failed to get pending:", err);

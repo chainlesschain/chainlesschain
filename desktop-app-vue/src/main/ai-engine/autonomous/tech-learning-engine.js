@@ -15,6 +15,21 @@ import { logger } from "../../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Parse a stored JSON column defensively. One corrupt field on one row must not
+ * throw out of the .map and silently blank the whole tech-stack profile list.
+ */
+function safeParseJSON(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 const PROFILE_STATUS = {
   DETECTED: "detected",
   ANALYZING: "analyzing",
@@ -151,10 +166,10 @@ class TechLearningEngine extends EventEmitter {
           .all(filter.limit || 50);
         return rows.map((r) => ({
           ...r,
-          languages: r.languages ? JSON.parse(r.languages) : [],
-          frameworks: r.frameworks ? JSON.parse(r.frameworks) : [],
-          build_tools: r.build_tools ? JSON.parse(r.build_tools) : [],
-          details: r.details ? JSON.parse(r.details) : {},
+          languages: safeParseJSON(r.languages, []),
+          frameworks: safeParseJSON(r.frameworks, []),
+          build_tools: safeParseJSON(r.build_tools, []),
+          details: safeParseJSON(r.details, {}),
         }));
       } catch (err) {
         logger.error("[TechLearningEngine] Failed to get profiles:", err);
