@@ -612,7 +612,7 @@ public class SyncServiceImpl implements SyncService {
             // 如果服务器端数据更新且不是同一个设备，则存在冲突
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 Project 冲突: id={}, serverTime={}, clientTime={}",
                     id, serverUpdatedAt, clientUpdatedAt);
                 return true;
@@ -674,7 +674,7 @@ public class SyncServiceImpl implements SyncService {
             // 时间戳冲突检测（备用）
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 ProjectFile 时间冲突: id={}, serverTime={}, clientTime={}",
                     id, serverUpdatedAt, clientUpdatedAt);
                 return true;
@@ -767,7 +767,7 @@ public class SyncServiceImpl implements SyncService {
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 ProjectTask 冲突: id={}", id);
                 return true;
             }
@@ -814,7 +814,7 @@ public class SyncServiceImpl implements SyncService {
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 ProjectCollaborator 冲突: id={}", id);
                 return true;
             }
@@ -858,7 +858,7 @@ public class SyncServiceImpl implements SyncService {
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 ProjectComment 冲突: id={}", id);
                 return true;
             }
@@ -902,7 +902,7 @@ public class SyncServiceImpl implements SyncService {
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 Conversation 冲突: id={}", id);
                 return true;
             }
@@ -982,7 +982,7 @@ public class SyncServiceImpl implements SyncService {
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
-                !deviceId.equals(existing.getDeviceId())) {
+                !Objects.equals(deviceId, existing.getDeviceId())) {
                 log.warn("[SyncService] 检测到 KnowledgeItem 冲突: id={}", id);
                 return true;
             }

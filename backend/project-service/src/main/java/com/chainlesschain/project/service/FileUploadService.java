@@ -242,9 +242,13 @@ public class FileUploadService {
         g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
         g.dispose();
 
-        // 保存缩略图
+        // 保存缩略图。ImageIO.write 在没有对应格式 writer 时返回 false 且不写文件——
+        // 必须检查返回值，否则上层会返回一个指向不存在文件的 thumbnailUrl。
         String format = getFileExtension(thumbnailFile.getName());
-        ImageIO.write(thumbnail, format, thumbnailFile);
+        boolean written = ImageIO.write(thumbnail, format, thumbnailFile);
+        if (!written) {
+            throw new IOException("No ImageIO writer for thumbnail format: " + format);
+        }
     }
 
     /**

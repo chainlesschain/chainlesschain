@@ -549,8 +549,21 @@ public class ProjectService {
             if (filesMetadata != null) {
                 for (Map<String, Object> fileMetadata : filesMetadata) {
                     String filePath = (String) fileMetadata.get("filePath");
-                    String sourceFile = Paths.get(tempDir, filePath).toString();
-                    String targetFile = Paths.get(newProjectPath, filePath).toString();
+
+                    // 路径穿越防护：filePath 来自攻击者提供的 project.json，必须落在
+                    // tempDir(源) 与 newProjectPath(目标) 内，否则跳过该条。
+                    Path tempRoot = Paths.get(tempDir).normalize();
+                    Path projRoot = Paths.get(newProjectPath).normalize();
+                    Path sourcePath = tempRoot.resolve(filePath == null ? "" : filePath).normalize();
+                    Path targetPath = projRoot.resolve(filePath == null ? "" : filePath).normalize();
+                    if (filePath == null
+                            || !sourcePath.startsWith(tempRoot)
+                            || !targetPath.startsWith(projRoot)) {
+                        log.warn("跳过非法导入文件路径(疑似路径穿越): {}", filePath);
+                        continue;
+                    }
+                    String sourceFile = sourcePath.toString();
+                    String targetFile = targetPath.toString();
 
                     // 复制文件
                     if (Files.exists(Paths.get(sourceFile))) {
@@ -637,18 +650,26 @@ public class ProjectService {
     }
 
     private void unzipFile(String zipFilePath, String destDir) throws Exception {
+        // Zip-Slip 防护：所有解压目标必须落在 destDir 内。entry.getName() 来自
+        // 攻击者完全控制的 zip（POST /project/import），形如 ../../../x 可越界写任意文件。
+        Path destRoot = Paths.get(destDir).normalize();
         try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
                 new java.io.FileInputStream(zipFilePath))) {
 
             java.util.zip.ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                Path filePath = Paths.get(destDir, entry.getName());
+                Path filePath = destRoot.resolve(entry.getName()).normalize();
+
+                if (!filePath.startsWith(destRoot)) {
+                    throw new SecurityException(
+                            "Illegal zip entry (path traversal): " + entry.getName());
+                }
 
                 if (entry.isDirectory()) {
                     Files.createDirectories(filePath);
                 } else {
                     Files.createDirectories(filePath.getParent());
-                    Files.copy(zis, filePath);
+                    Files.copy(zis, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
                 zis.closeEntry();
             }
