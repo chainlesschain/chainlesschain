@@ -371,9 +371,14 @@ class VCTemplateManager extends EventEmitter {
       let userTemplates = [];
       if (rows && rows.length > 0) {
         userTemplates = rows.map((row) => {
-          // 解析 fields JSON
+          // 解析 fields JSON（per-row 守卫：一条坏 fields 不应让整个 .map 抛错
+          // → 静默丢掉所有用户模板、只剩内置模板）
           const template = { ...row };
-          template.fields = JSON.parse(template.fields);
+          try {
+            template.fields = JSON.parse(template.fields);
+          } catch {
+            template.fields = [];
+          }
           template.isBuiltIn = false;
 
           return template;

@@ -26,6 +26,39 @@ function registerImageIPC({ imageUploader, llmManager, mainWindow }) {
 
   logger.info("[Image IPC] Registering Image IPC handlers...");
 
+  // Forward imageUploader events to the renderer ONCE here — previously these
+  // were re-registered inside each image:upload / image:upload-batch IPC call,
+  // so every upload permanently added listeners (duplicate IPC sends +
+  // MaxListenersExceeded). registerImageIPC is guarded against double-register
+  // above, so this binds exactly once per app session.
+  if (imageUploader && typeof imageUploader.on === "function") {
+    imageUploader.on("upload-start", (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send("image:upload-start", data);
+      }
+    });
+    imageUploader.on("upload-complete", (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send("image:upload-complete", data);
+      }
+    });
+    imageUploader.on("ocr:progress", (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send("image:ocr-progress", data);
+      }
+    });
+    imageUploader.on("batch-progress", (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send("image:batch-progress", data);
+      }
+    });
+    imageUploader.on("batch-complete", (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send("image:batch-complete", data);
+      }
+    });
+  }
+
   // ============================================================
   // 图片选择与上传操作 (3 handlers)
   // ============================================================
@@ -75,25 +108,7 @@ function registerImageIPC({ imageUploader, llmManager, mainWindow }) {
         throw new Error("图片上传器未初始化");
       }
 
-      // 设置事件监听器
-      imageUploader.on("upload-start", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("image:upload-start", data);
-        }
-      });
-
-      imageUploader.on("upload-complete", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("image:upload-complete", data);
-        }
-      });
-
-      imageUploader.on("ocr:progress", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("image:ocr-progress", data);
-        }
-      });
-
+      // (event forwarders registered once in registerImageIPC)
       const result = await imageUploader.uploadImage(imagePath, options);
       return result;
     } catch (error) {
@@ -111,18 +126,7 @@ function registerImageIPC({ imageUploader, llmManager, mainWindow }) {
         throw new Error("图片上传器未初始化");
       }
 
-      // 设置事件监听器
-      imageUploader.on("batch-progress", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("image:batch-progress", data);
-        }
-      });
-
-      imageUploader.on("batch-complete", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("image:batch-complete", data);
-        }
-      });
+      // (event forwarders registered once in registerImageIPC)
 
       const results = await imageUploader.uploadImages(imagePaths, options);
       return results;
