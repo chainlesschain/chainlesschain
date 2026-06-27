@@ -240,8 +240,13 @@ class LendingManager extends EventEmitter {
           level: score?.level || 3,
           approved: (score?.level || 3) >= (pool?.min_credit_level || 1),
         };
-      } catch {
-        // Default approve on error
+      } catch (err) {
+        // Fail closed: a credit-check error must NOT auto-approve a loan that
+        // debits pool liquidity. Reject so it can be retried/reviewed.
+        logger.warn(
+          `[LendingManager] credit check failed for ${loan.borrower_id}, rejecting: ${err.message}`,
+        );
+        creditCheck = { level: 0, approved: false };
       }
     }
 
