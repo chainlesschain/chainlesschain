@@ -75,6 +75,53 @@ describe("agentLoop() wrapper", () => {
     expect(res.usageEvents).toEqual([]);
   });
 
+  it("records a policy denial into options.denialLog (not plain tool failures)", async () => {
+    // /permissions denials reviews blocked calls; a tool that ran and merely
+    // failed (non-zero exit) must NOT be logged as a denial.
+    const denialLog = [];
+    const core = coreLoop([
+      {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "rm -rf build" },
+      },
+      {
+        type: "tool-result",
+        tool: "run_shell",
+        error: "[Shell Policy] Destructive command blocked.",
+        result: {
+          error: "[Shell Policy] Destructive command blocked.",
+          shellCommandPolicy: {
+            allowed: false,
+            ruleId: "rm-rf",
+            normalizedCommand: "rm -rf build",
+          },
+        },
+      },
+      {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "ls /nope" },
+      },
+      {
+        type: "tool-result",
+        tool: "run_shell",
+        error: "exited with code 2",
+        result: { error: "exited with code 2" },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+    await agentLoop([], { _coreLoop: core, denialLog });
+    expect(denialLog).toHaveLength(1);
+    expect(denialLog[0]).toMatchObject({
+      tool: "run_shell",
+      via: "shell-policy",
+      rule: "rm-rf",
+      summary: "rm -rf build",
+    });
+    expect(typeof denialLog[0].at).toBe("number");
+  });
+
   it("uses a caller-supplied onProviderFallback over the default", async () => {
     const seen = [];
     const core = coreLoop([{ type: "response-complete", content: "ok" }]);

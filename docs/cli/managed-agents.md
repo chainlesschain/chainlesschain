@@ -1034,6 +1034,8 @@ chainlesschain permissions add allow "Read" --user          # → ~/.claude/sett
 
 **交互 REPL `/permissions`**（Claude-Code 平价）：在 `chainlesschain agent` 会话里输入 `/permissions` 查看**本会话生效**的 allow/ask/deny 规则（按 deny>ask>allow 优先级排列）+ 来源文件 + "危险 shell 命令永远需批准"提示。会话期间用 always-allow 现加的规则也即时反映。等价 `cc permissions list` 的会话内即时版。
 
+**`/permissions denials`**（Claude-Code 2.1.193 "recent denials" 平价）：回看本会话被**拦下**的工具调用——shell-policy / ApprovalGate 档位 / settings 规则 / hook 拦截。每条显示工具+尝试的参数摘要、命中的 `via`(+规则名)、相对时间、原因文本(最近在上,封顶 20 条,纯内存)。**只记策略拒绝,不记普通执行失败**(命令退非零 / 文件不存在等本就有 `error` 但无拦截标记)。主 `/permissions` 视图在有拦截时附一行提示导向它。
+
 - `test` 是调规则的杀手锏——执行前看清某调用会被哪条规则、哪个文件决定(`fallthrough`=
   无规则命中,回落档位逻辑)。伞名 `Bash` 会解析成具体工具 `run_shell`。
 - `perm` 已被 RBAC Permission Engine V2 占用,故权限规则命令用全名 `permissions`。

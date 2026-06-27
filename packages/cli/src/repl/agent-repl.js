@@ -29,6 +29,11 @@ import {
   analyzeContinuation,
   joinContinuation,
 } from "../lib/repl-multiline.js";
+import {
+  classifyDenial,
+  recordDenial,
+  formatDenials,
+} from "../lib/repl-denials.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createSession,
@@ -122,6 +127,10 @@ let _respondToBash;
 // the built-in verification allowlist through the shell-policy classifier (→
 // ApprovalGate confirm) instead of fast-pathing it. false = unset → off.
 let _classifyAllShell = false;
+// Bounded log of tool calls the agent was BLOCKED from running this session
+// (shell-policy / ApprovalGate / settings rule / hook). Surfaced by
+// `/permissions denials` (Claude-Code 2.1.193 "recent denials"). In-memory only.
+const _recentDenials = [];
 
 /**
  * Fire settings.json Notification hooks (observe-only) — the agent needs the
@@ -223,6 +232,9 @@ export async function agentLoop(messages, options) {
   // `_coreLoop` is an injectable seam (defaults to agent-core's loop) so the
   // wrapper's event translation can be unit-tested without a live model.
   const runCoreLoop = options._coreLoop || coreAgentLoop;
+  // The tool-result event carries no args; remember the last tool-executing
+  // pair so a recorded denial can show what was attempted (/permissions denials).
+  let _lastExec = null;
   for await (const event of runCoreLoop(messages, {
     ...options,
     // FORCE in-loop compaction off — the REPL runs its OWN post-turn compaction
@@ -248,6 +260,7 @@ export async function agentLoop(messages, options) {
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
       );
     } else if (event.type === "tool-executing") {
+      _lastExec = { tool: event.tool, args: event.args };
       process.stdout.write(
         chalk.gray(
           `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}\n`,
@@ -258,6 +271,24 @@ export async function agentLoop(messages, options) {
         process.stdout.write(
           chalk.red(`  Error: ${event.error || event.result?.error}\n`),
         );
+        // Record policy denials (not plain tool failures) into the caller's
+        // denial log for review via `/permissions denials` (Claude-Code 2.1.193
+        // recent denials). Caller passes the session log (mirrors checkpointMarks)
+        // so the wrapper stays unit-testable.
+        if (Array.isArray(options.denialLog)) {
+          const denial = classifyDenial({
+            tool: event.tool,
+            result: event.result,
+            error: event.error,
+            argsSummary:
+              _lastExec && _lastExec.tool === event.tool
+                ? formatToolArgs(event.tool, _lastExec.args)
+                : "",
+          });
+          if (denial) {
+            recordDenial(options.denialLog, { ...denial, at: Date.now() });
+          }
+        }
         // Parity with Desktop AIChatPage's `Switch to Trusted` button:
         // when the deny came from ApprovalGate (not shell-policy), surface
         // the exact CLI command the user can run to relax the per-session
@@ -1499,7 +1530,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
       );
       logger.log(
-        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set/cycle tier (/permissions <tier> · Shift+Tab cycles)`,
+        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set/cycle tier (/permissions <tier> · Shift+Tab); /permissions denials to review blocked calls`,
       );
       logger.log(
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
@@ -3051,6 +3082,13 @@ export async function startAgentRepl(options = {}) {
     // parity): what the agent runs unprompted, asks about, or is blocked from.
     if (trimmed === "/permissions" || trimmed.startsWith("/permissions ")) {
       const arg = trimmed.slice("/permissions".length).trim();
+      if (arg === "denials" || arg === "denied") {
+        // Review what the agent was BLOCKED from running this session
+        // (Claude-Code 2.1.193 "recent denials").
+        logger.log(formatDenials(_recentDenials));
+        prompt();
+        return;
+      }
       if (arg) {
         // Set this session's approval tier mid-session (Claude-Code
         // permission-mode / Shift+Tab parity; mirrors `cc session policy --set`).
@@ -3096,6 +3134,13 @@ export async function startAgentRepl(options = {}) {
           "  Set tier mid-session: /permissions <strict|trusted|autopilot>",
         ),
       );
+      if (_recentDenials.length) {
+        logger.log(
+          chalk.gray(
+            `  ${_recentDenials.length} tool call(s) denied this session — /permissions denials to review`,
+          ),
+        );
+      }
       prompt();
       return;
     }
@@ -3528,6 +3573,7 @@ export async function startAgentRepl(options = {}) {
         autoCheckpoint,
         checkpointSession: sessionId,
         checkpointMarks: _checkpointMarks,
+        denialLog: _recentDenials,
         prepareCall,
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,
