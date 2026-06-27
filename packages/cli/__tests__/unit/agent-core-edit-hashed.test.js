@@ -382,3 +382,34 @@ describe("edit_file uniqueness + replace_all (Claude-Code Edit parity)", () => {
     expect(readFileSync(p, "utf8")).toBe("value: $1 & $& done end");
   });
 });
+
+describe("read_file / list_dir give clear errors on a dir/file mismatch", () => {
+  let tempDir;
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cc-dirfile-"));
+  });
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("read_file on a directory → clear 'is a directory' error (not EISDIR)", async () => {
+    const res = await executeTool("read_file", { path: "." }, { cwd: tempDir });
+    expect(res.content).toBeUndefined();
+    expect(res.error).toMatch(/is a directory/i);
+    expect(res.error).toMatch(/list_dir/);
+    expect(res.error).not.toMatch(/EISDIR/);
+  });
+
+  it("list_dir on a file → clear 'is a file' error (not ENOTDIR)", async () => {
+    writeFileSync(join(tempDir, "f.txt"), "hi", "utf8");
+    const res = await executeTool(
+      "list_dir",
+      { path: "f.txt" },
+      { cwd: tempDir },
+    );
+    expect(res.entries).toBeUndefined();
+    expect(res.error).toMatch(/is a file/i);
+    expect(res.error).toMatch(/read_file/);
+    expect(res.error).not.toMatch(/ENOTDIR/);
+  });
+});

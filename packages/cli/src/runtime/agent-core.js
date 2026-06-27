@@ -1734,6 +1734,13 @@ async function executeToolInner(
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
+      // A clear, self-correcting error beats the cryptic "EISDIR: illegal
+      // operation on a directory" that readFileSync throws on a directory.
+      if (fs.statSync(filePath).isDirectory()) {
+        return attachDescriptor({
+          error: `Path is a directory, not a file: ${filePath}. Use list_dir to see its contents.`,
+        });
+      }
       const content = fs.readFileSync(filePath, "utf8");
       // Jupyter notebooks: render a compact cell listing (index/id/type/source,
       // outputs summarized) so the model can find cells for notebook_edit
@@ -2481,6 +2488,12 @@ async function executeToolInner(
       const dirPath = args.path ? path.resolve(cwd, args.path) : cwd;
       if (!fs.existsSync(dirPath)) {
         return attachDescriptor({ error: `Directory not found: ${dirPath}` });
+      }
+      // Clear error instead of the cryptic "ENOTDIR" readdirSync throws on a file.
+      if (!fs.statSync(dirPath).isDirectory()) {
+        return attachDescriptor({
+          error: `Path is a file, not a directory: ${dirPath}. Use read_file to read it.`,
+        });
       }
       const entries = fs.readdirSync(dirPath, { withFileTypes: true });
       return attachDescriptor({
