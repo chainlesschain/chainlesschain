@@ -141,18 +141,25 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     title: "Edit File",
     kind: "filesystem",
     tier: "mvp",
-    description: "Replace a specific string in a file with new content",
+    description:
+      "Replace a string in a file. old_string must match EXACTLY ONE place — include enough surrounding context to make it unique, or the edit is rejected. Pass replace_all:true to change every occurrence instead.",
     inputSchema: {
       type: "object",
       properties: {
         path: { type: "string", description: "File path" },
         old_string: {
           type: "string",
-          description: "Exact string to find and replace",
+          description:
+            "Exact string to replace; must be unique in the file unless replace_all is true",
         },
         new_string: {
           type: "string",
           description: "Replacement string",
+        },
+        replace_all: {
+          type: "boolean",
+          description:
+            "Replace every occurrence of old_string instead of requiring a unique match (default false)",
         },
       },
       required: ["path", "old_string", "new_string"],

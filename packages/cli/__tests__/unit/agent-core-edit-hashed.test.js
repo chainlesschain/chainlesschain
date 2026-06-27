@@ -302,3 +302,83 @@ describe("edit_file — new_string with $ sequences is inserted literally", () =
     expect(readFileSync(filePath, "utf8")).toBe("$$");
   });
 });
+
+describe("edit_file uniqueness + replace_all (Claude-Code Edit parity)", () => {
+  let tempDir;
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cc-edit-uniq-"));
+  });
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  const write = (name, content) => {
+    const p = join(tempDir, name);
+    writeFileSync(p, content, "utf8");
+    return p;
+  };
+
+  it("replaces a UNIQUE old_string", async () => {
+    const p = write("f.txt", "alpha\nbeta\ngamma");
+    const res = await executeTool(
+      "edit_file",
+      { path: "f.txt", old_string: "beta", new_string: "BETA" },
+      { cwd: tempDir },
+    );
+    expect(res.success).toBe(true);
+    expect(res.replaced).toBe(1);
+    expect(readFileSync(p, "utf8")).toBe("alpha\nBETA\ngamma");
+  });
+
+  it("REJECTS a non-unique old_string instead of editing the first (the bug)", async () => {
+    const p = write("f.txt", "x = 1\nx = 1\nx = 1");
+    const res = await executeTool(
+      "edit_file",
+      { path: "f.txt", old_string: "x = 1", new_string: "x = 2" },
+      { cwd: tempDir },
+    );
+    expect(res.success).toBeUndefined();
+    expect(res.error).toMatch(/not unique/);
+    expect(res.occurrences).toBe(3);
+    expect(readFileSync(p, "utf8")).toBe("x = 1\nx = 1\nx = 1"); // unchanged
+  });
+
+  it("replace_all:true changes every occurrence", async () => {
+    const p = write("f.txt", "x = 1\nx = 1\nx = 1");
+    const res = await executeTool(
+      "edit_file",
+      {
+        path: "f.txt",
+        old_string: "x = 1",
+        new_string: "x = 2",
+        replace_all: true,
+      },
+      { cwd: tempDir },
+    );
+    expect(res.success).toBe(true);
+    expect(res.replaced).toBe(3);
+    expect(readFileSync(p, "utf8")).toBe("x = 2\nx = 2\nx = 2");
+  });
+
+  it("errors when old_string is not found", async () => {
+    write("f.txt", "hello");
+    const res = await executeTool(
+      "edit_file",
+      { path: "f.txt", old_string: "nope", new_string: "x" },
+      { cwd: tempDir },
+    );
+    expect(res.error).toMatch(/not found/);
+  });
+
+  it("treats new_string literally — no $-pattern expansion", async () => {
+    const p = write("f.txt", "value: PLACEHOLDER end");
+    const res = await executeTool(
+      "edit_file",
+      { path: "f.txt", old_string: "PLACEHOLDER", new_string: "$1 & $& done" },
+      { cwd: tempDir },
+    );
+    expect(res.success).toBe(true);
+    // $1 / $& would be mangled by a naive String.replace; split/join keeps them.
+    expect(readFileSync(p, "utf8")).toBe("value: $1 & $& done end");
+  });
+});

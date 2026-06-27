@@ -757,6 +757,27 @@ export function tokenizeShellWords(input) {
 }
 
 /**
+ * Literal string edit shared by the edit_file preview + execution paths.
+ * Uses split/join so `old_string` and `new_string` are treated as LITERAL text
+ * (no regex / `$&` / `$1` pattern interpretation — a plain `String.replace`
+ * with a string pattern still expands `$` sequences in the replacement).
+ * Returns the occurrence count so the caller can require a UNIQUE match
+ * (Claude-Code Edit parity): replacing the first of several identical strings
+ * silently edits the wrong place.
+ *
+ * @returns {{ count:number, newContent:string }}
+ */
+function applyLiteralEdit(content, oldStr, newStr, replaceAll) {
+  const parts = content.split(oldStr);
+  const count = parts.length - 1;
+  if (count === 0) return { count: 0, newContent: content };
+  const newContent = replaceAll
+    ? parts.join(newStr)
+    : parts[0] + newStr + parts.slice(1).join(oldStr); // first occurrence only
+  return { count, newContent };
+}
+
+/**
  * Compute the content an edit tool WOULD write, without writing it — the
  * left/right sides for an IDE diff review. Mirrors the corresponding
  * executeToolInner cases exactly (write_file / edit_file / edit_file_hashed,
@@ -782,15 +803,22 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
       const content = fs.readFileSync(filePath, "utf8");
       if (
         typeof args.old_string !== "string" ||
-        !content.includes(args.old_string)
+        args.old_string === "" ||
+        typeof args.new_string !== "string"
       ) {
         return null;
       }
-      return {
-        filePath,
-        newContent: content.replace(args.old_string, () => args.new_string),
-        originalText: content,
-      };
+      const replaceAll = args.replace_all === true;
+      const { count, newContent } = applyLiteralEdit(
+        content,
+        args.old_string,
+        args.new_string,
+        replaceAll,
+      );
+      // No match, or a non-unique match without replace_all → the edit will be
+      // rejected, so show no (misleading) diff and let the tool report it.
+      if (count === 0 || (count > 1 && !replaceAll)) return null;
+      return { filePath, newContent, originalText: content };
     }
     if (name === "edit_file_hashed") {
       if (!fs.existsSync(filePath)) return null;
@@ -1806,20 +1834,40 @@ async function executeToolInner(
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
+      if (typeof args.old_string !== "string" || args.old_string === "") {
+        return attachDescriptor({
+          error: "old_string must be a non-empty string",
+        });
+      }
+      if (typeof args.new_string !== "string") {
+        return attachDescriptor({ error: "new_string must be a string" });
+      }
       const content = fs.readFileSync(filePath, "utf8");
-      if (!content.includes(args.old_string)) {
+      const replaceAll = args.replace_all === true;
+      const { count, newContent } = applyLiteralEdit(
+        content,
+        args.old_string,
+        args.new_string,
+        replaceAll,
+      );
+      if (count === 0) {
         return attachDescriptor({ error: "old_string not found in file" });
       }
-      const newContent = content.replace(
-        args.old_string,
-        () => args.new_string,
-      );
+      // Require a UNIQUE match (Claude-Code Edit parity) — replacing the first
+      // of several identical strings silently edits the wrong occurrence.
+      if (count > 1 && !replaceAll) {
+        return attachDescriptor({
+          error: `old_string is not unique — it appears ${count} times. Add surrounding context so it matches exactly one occurrence, or pass replace_all:true to change all of them.`,
+          occurrences: count,
+        });
+      }
       const wrote = writeFileVerified(filePath, newContent);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       return attachDescriptor({
         success: true,
         path: filePath,
         size: wrote.size,
+        replaced: replaceAll ? count : 1,
       });
     }
 
