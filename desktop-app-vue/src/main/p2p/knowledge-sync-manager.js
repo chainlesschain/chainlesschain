@@ -519,10 +519,15 @@ class KnowledgeSyncManager extends EventEmitter {
    * 启动自动同步
    */
   startAutoSync() {
-    setInterval(() => {
+    // 存句柄并 unref，否则定时器在 cleanup() 后仍持续触发、闭包钉死
+    // manager（含 database/messageManager）；cleanup() 现会停止它。
+    this._autoSyncTimer = setInterval(() => {
       // 对所有已配对设备进行同步
       // 这里简化处理，实际应该从设备管理器获取设备列表
     }, this.options.syncInterval);
+    if (this._autoSyncTimer.unref) {
+      this._autoSyncTimer.unref();
+    }
   }
 
   /**
@@ -572,6 +577,10 @@ class KnowledgeSyncManager extends EventEmitter {
    * 清理资源
    */
   cleanup() {
+    if (this._autoSyncTimer) {
+      clearInterval(this._autoSyncTimer);
+      this._autoSyncTimer = null;
+    }
     this.lastSyncTime.clear();
     this.syncProgress.clear();
     this.conflicts = [];

@@ -273,7 +273,9 @@ class DevicePairingHandler extends EventEmitter {
    * 定期清理过期配对请求
    */
   startCleanupTimer() {
-    setInterval(() => {
+    // 存句柄并 unref，否则定时器永远跑、闭包钉死整个 handler 实例（含
+    // p2pManager/mobileBridge/deviceManager 引用），且无法在 destroy 时停止。
+    this._cleanupTimer = setInterval(() => {
       const now = Date.now();
       const expired = [];
 
@@ -293,6 +295,21 @@ class DevicePairingHandler extends EventEmitter {
         );
       }
     }, 60000); // 每分钟清理一次
+    if (this._cleanupTimer.unref) {
+      this._cleanupTimer.unref();
+    }
+  }
+
+  /**
+   * 释放资源（停止清理定时器、移除监听器）
+   */
+  destroy() {
+    if (this._cleanupTimer) {
+      clearInterval(this._cleanupTimer);
+      this._cleanupTimer = null;
+    }
+    this.pendingPairings.clear();
+    this.removeAllListeners();
   }
 
   /**

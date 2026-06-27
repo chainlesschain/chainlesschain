@@ -12,6 +12,22 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
+/**
+ * 安全解析 note.tags（TEXT 列）。一条坏 tags 不应在 .map 里抛出而让整个
+ * 列表/搜索响应失败（getTagCloud 在 line ~358 已用 per-row try/catch，此处对齐）。
+ */
+function safeParseTags(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 class KnowledgeSyncHandler extends EventEmitter {
   constructor(databaseManager, p2pManager, mobileBridge) {
     super();
@@ -138,7 +154,7 @@ class KnowledgeSyncHandler extends EventEmitter {
         data: {
           notes: notes.map((note) => ({
             ...note,
-            tags: note.tags ? JSON.parse(note.tags) : [],
+            tags: safeParseTags(note.tags),
             preview: note.preview || "",
             contentLength: note.content_length || 0,
           })),
@@ -196,7 +212,7 @@ class KnowledgeSyncHandler extends EventEmitter {
       }
 
       // 解析tags
-      note.tags = note.tags ? JSON.parse(note.tags) : [];
+      note.tags = safeParseTags(note.tags);
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
@@ -256,7 +272,7 @@ class KnowledgeSyncHandler extends EventEmitter {
         data: {
           notes: notes.map((note) => ({
             ...note,
-            tags: note.tags ? JSON.parse(note.tags) : [],
+            tags: safeParseTags(note.tags),
             snippet: note.snippet || "",
             contentLength: note.content_length || 0,
           })),
