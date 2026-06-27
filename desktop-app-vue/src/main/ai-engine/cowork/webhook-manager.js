@@ -202,11 +202,15 @@ class WebhookManager extends EventEmitter {
 
     this.webhooks.delete(webhookId);
 
-    // Clear pending retries
-    const retryTimer = this._retryTimers.get(webhookId);
-    if (retryTimer) {
-      clearTimeout(retryTimer);
-      this._retryTimers.delete(webhookId);
+    // Clear pending retries. Timers are keyed `${webhookId}:${deliveryId}`, so a
+    // bare-id lookup never matched — leaked timers fired against a removed
+    // webhook. Clear every timer belonging to this webhook.
+    const prefix = `${webhookId}:`;
+    for (const [key, retryTimer] of this._retryTimers) {
+      if (key === webhookId || key.startsWith(prefix)) {
+        clearTimeout(retryTimer);
+        this._retryTimers.delete(key);
+      }
     }
 
     // Remove from DB

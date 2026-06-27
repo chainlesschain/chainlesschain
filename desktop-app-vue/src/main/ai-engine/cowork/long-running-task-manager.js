@@ -885,10 +885,11 @@ class LongRunningTaskManager extends EventEmitter {
     if (task.retryCount <= task.maxRetries && autoRecovery) {
       this._log(`准备重试任务 (${task.retryCount}/${task.maxRetries})`, "warn");
 
-      // 延迟后自动重试
+      // 延迟后自动重试。注意：不能重置 retryCount，否则 maxRetries 上限永远
+      // 触发不到 → 永久失败的任务每 retryDelay 无限重试（泄漏定时器/工作量）。
       setTimeout(async () => {
         try {
-          await this.retryTask(task.id);
+          await this.retryTask(task.id, { resetRetryCount: false });
         } catch (retryError) {
           this._log(`重试任务失败: ${retryError.message}`, "error");
         }
@@ -1237,9 +1238,14 @@ class LongRunningTaskManager extends EventEmitter {
   /**
    * 重试失败的任务
    * @param {string} taskId - 任务ID
+   * @param {object} [options]
+   * @param {boolean} [options.resetRetryCount=true] - 是否重置重试计数。手动重试
+   *   默认重置（全新开始）；自动恢复路径必须传 false 以保留累计计数，否则
+   *   maxRetries 上限永远触发不到，永久失败的任务会无限重试。
    * @returns {Promise<void>}
    */
-  async retryTask(taskId) {
+  async retryTask(taskId, options = {}) {
+    const { resetRetryCount = true } = options;
     const task = this.activeTasks.get(taskId);
     if (!task) {
       throw new Error(`任务不存在: ${taskId}`);
@@ -1252,7 +1258,9 @@ class LongRunningTaskManager extends EventEmitter {
     // 重置任务状态
     task.status = TaskStatus.PENDING;
     task.currentRetry = 0;
-    task.retryCount = 0; // 重置重试计数
+    if (resetRetryCount) {
+      task.retryCount = 0; // 仅手动重试时重置重试计数
+    }
     task.error = null;
     task.completedAt = null;
 
