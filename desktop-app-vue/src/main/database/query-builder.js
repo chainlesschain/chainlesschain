@@ -74,6 +74,20 @@ function assertSafeDirection(direction) {
 }
 
 class QueryBuilder {
+  /**
+   * Coerce a LIMIT/OFFSET value to a non-negative integer for safe inline
+   * interpolation, or null (omit the clause) when it isn't a usable count.
+   * `Number.parseInt` takes only the leading integer, so a value like
+   * "10; DROP TABLE x" becomes 10 — never an injection.
+   */
+  static _toSafeCount(v) {
+    if (v === null || v === undefined) {
+      return null;
+    }
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
   constructor(db) {
     this.db = db;
     this._table = null;
@@ -288,12 +302,17 @@ class QueryBuilder {
       sql += ` ORDER BY ${this._orderBy.map((o) => `${o.column} ${o.direction}`).join(", ")}`;
     }
 
-    // LIMIT + OFFSET
-    if (this._limit !== null) {
-      sql += ` LIMIT ${this._limit}`;
+    // LIMIT + OFFSET. These can't be bound as `?` params in all SQLite call
+    // sites, so they're interpolated — coerce to a non-negative integer at this
+    // sink so a non-numeric value (e.g. "10; DROP TABLE x") can't inject SQL.
+    // A clean integer is byte-identical to before.
+    const limit = QueryBuilder._toSafeCount(this._limit);
+    if (limit !== null) {
+      sql += ` LIMIT ${limit}`;
     }
-    if (this._offset !== null) {
-      sql += ` OFFSET ${this._offset}`;
+    const offset = QueryBuilder._toSafeCount(this._offset);
+    if (offset !== null) {
+      sql += ` OFFSET ${offset}`;
     }
 
     return { sql, params };

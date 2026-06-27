@@ -143,6 +143,28 @@ describe("QueryBuilder", () => {
       expect(sql).toBe("SELECT * FROM users LIMIT 10 OFFSET 20");
     });
 
+    it("neutralizes a non-numeric LIMIT/OFFSET (no SQL injection)", () => {
+      const { sql } = QueryBuilder.from(db)
+        .table("users")
+        .select()
+        .limit("10; DROP TABLE users")
+        .offset("5 OR 1=1")
+        .buildSQL();
+      // Only the leading integer survives — the injected tail is gone.
+      expect(sql).toBe("SELECT * FROM users LIMIT 10 OFFSET 5");
+      expect(sql).not.toMatch(/DROP TABLE/);
+      expect(sql).not.toMatch(/1=1/);
+    });
+
+    it("omits the clause for a fully non-numeric LIMIT", () => {
+      const { sql } = QueryBuilder.from(db)
+        .table("users")
+        .select()
+        .limit("abc")
+        .buildSQL();
+      expect(sql).toBe("SELECT * FROM users");
+    });
+
     it("should build SELECT with JOIN", () => {
       const { sql } = QueryBuilder.from(db)
         .table("users")
