@@ -45,8 +45,8 @@ import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
 import {
   isRetryableStreamError,
-  STREAM_RETRY_MAX,
   STREAM_RETRY_BASE_MS,
+  resolveStreamRetryMax,
 } from "../lib/stream-retry.js";
 import {
   annotateLines,
@@ -3730,7 +3730,9 @@ const _STREAM_STALL = Symbol("stream-stall");
  * @param {object} opts  { signal?, retries?, baseDelayMs?, onRetry?, sleep? }
  */
 export async function _retryStreamingChat(streamFn, opts = {}) {
-  const retries = opts.retries ?? STREAM_RETRY_MAX;
+  // Default budget honors CC_MAX_RETRIES / CLAUDE_CODE_MAX_RETRIES (capped 15);
+  // an explicit opts.retries still wins (tests / callers that pin it).
+  const retries = opts.retries ?? resolveStreamRetryMax();
   const base = opts.baseDelayMs ?? STREAM_RETRY_BASE_MS;
   const signal = opts.signal;
   const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));

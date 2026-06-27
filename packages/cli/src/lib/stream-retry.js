@@ -19,6 +19,33 @@ export const STREAM_RETRY_MAX = 2;
 export const STREAM_RETRY_BASE_MS = 400;
 
 /**
+ * Hard ceiling on the *configurable* retry budget (Claude-Code 2.1.186:
+ * "CLAUDE_CODE_MAX_RETRIES capped at 15") — keeps a stray huge value from
+ * turning a dead endpoint into a multi-minute exponential-backoff hang.
+ */
+export const STREAM_RETRY_MAX_CAP = 15;
+
+/**
+ * Resolve the streaming-retry budget. Users can raise (or lower) the default
+ * via `CC_MAX_RETRIES` (native) or `CLAUDE_CODE_MAX_RETRIES` (Claude-Code
+ * parity); the value is clamped to `[0, STREAM_RETRY_MAX_CAP]`. Unset / blank /
+ * non-numeric falls back to the default `STREAM_RETRY_MAX`; a negative value
+ * clamps to 0 (retries disabled). `CC_MAX_RETRIES` wins when both are set.
+ *
+ * @param {Record<string,string|undefined>} [env=process.env]
+ * @returns {number}
+ */
+export function resolveStreamRetryMax(env = process.env) {
+  const raw = env.CC_MAX_RETRIES ?? env.CLAUDE_CODE_MAX_RETRIES;
+  if (raw == null || String(raw).trim() === "") return STREAM_RETRY_MAX;
+  const n = Number.parseInt(String(raw).trim(), 10);
+  if (!Number.isFinite(n)) return STREAM_RETRY_MAX;
+  if (n < 0) return 0;
+  if (n > STREAM_RETRY_MAX_CAP) return STREAM_RETRY_MAX_CAP;
+  return n;
+}
+
+/**
  * Is this error from a streaming chat request a transient API CONNECTION drop
  * that is safe to retry? True only for genuine network failures (reset /
  * timeout / DNS / refused / socket hangup / undici "terminated" / "fetch

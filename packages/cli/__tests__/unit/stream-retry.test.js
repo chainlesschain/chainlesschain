@@ -7,6 +7,8 @@ import {
   isRetryableStreamError,
   STREAM_RETRY_MAX,
   STREAM_RETRY_BASE_MS,
+  STREAM_RETRY_MAX_CAP,
+  resolveStreamRetryMax,
 } from "../../src/lib/stream-retry.js";
 
 describe("isRetryableStreamError", () => {
@@ -55,5 +57,44 @@ describe("isRetryableStreamError", () => {
   it("exposes a bounded, sane retry budget", () => {
     expect(STREAM_RETRY_MAX).toBeGreaterThanOrEqual(1);
     expect(STREAM_RETRY_BASE_MS).toBeGreaterThan(0);
+  });
+});
+
+describe("resolveStreamRetryMax (CC_MAX_RETRIES / CLAUDE_CODE_MAX_RETRIES)", () => {
+  it("defaults to STREAM_RETRY_MAX when unset / blank / non-numeric", () => {
+    expect(resolveStreamRetryMax({})).toBe(STREAM_RETRY_MAX);
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "" })).toBe(
+      STREAM_RETRY_MAX,
+    );
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "  " })).toBe(
+      STREAM_RETRY_MAX,
+    );
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "abc" })).toBe(
+      STREAM_RETRY_MAX,
+    );
+  });
+
+  it("honors an explicit numeric value", () => {
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "5" })).toBe(5);
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: " 7 " })).toBe(7);
+    expect(resolveStreamRetryMax({ CLAUDE_CODE_MAX_RETRIES: "4" })).toBe(4);
+  });
+
+  it("caps at STREAM_RETRY_MAX_CAP (15) and clamps negatives to 0", () => {
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "999" })).toBe(
+      STREAM_RETRY_MAX_CAP,
+    );
+    expect(STREAM_RETRY_MAX_CAP).toBe(15);
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "-3" })).toBe(0);
+    expect(resolveStreamRetryMax({ CC_MAX_RETRIES: "0" })).toBe(0);
+  });
+
+  it("CC_MAX_RETRIES wins over CLAUDE_CODE_MAX_RETRIES when both set", () => {
+    expect(
+      resolveStreamRetryMax({
+        CC_MAX_RETRIES: "6",
+        CLAUDE_CODE_MAX_RETRIES: "9",
+      }),
+    ).toBe(6);
   });
 });

@@ -13,8 +13,8 @@ import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { appendTokenUsage } from "../harness/jsonl-session-store.js";
 import {
   isRetryableStreamError,
-  STREAM_RETRY_MAX,
   STREAM_RETRY_BASE_MS,
+  resolveStreamRetryMax,
 } from "./stream-retry.js";
 
 // A streaming chat call must not hang forever if the API accepts the connection
@@ -513,6 +513,9 @@ export async function* chatStream(messages, options) {
   // any token still terminates the generator cleanly.
   const streamPromise = (async () => {
     try {
+      // Budget honors CC_MAX_RETRIES / CLAUDE_CODE_MAX_RETRIES (capped 15),
+      // same as the agent path.
+      const maxRetries = resolveStreamRetryMax();
       let attempt = 0;
       for (;;) {
         try {
@@ -524,7 +527,7 @@ export async function* chatStream(messages, options) {
           // zero-output retry safety (cc agent parity). Stall aborts (180s) and
           // HTTP/auth errors are not retryable and surface immediately.
           if (
-            attempt >= STREAM_RETRY_MAX ||
+            attempt >= maxRetries ||
             tokensEmitted > 0 ||
             !isRetryableStreamError(err)
           ) {
