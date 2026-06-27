@@ -250,8 +250,7 @@ class HierarchicalMemory extends EventEmitter {
           (prefix.length > 0 && searchText.includes(prefix))
         ) {
           // Apply forgetting curve
-          const age =
-            (Date.now() - new Date(memory.created_at).getTime()) / 3600000; // hours
+          const age = this._ageInHours(memory.created_at, Date.now());
           const retention = Math.exp(-memory.decay_rate * age);
 
           if (
@@ -287,6 +286,23 @@ class HierarchicalMemory extends EventEmitter {
     return results.slice(0, limit);
   }
 
+  /**
+   * Age of a memory in hours, robust to a corrupt / missing created_at. A bad
+   * timestamp makes `new Date(x).getTime()` NaN → NaN age → NaN retention, and
+   * `NaN >= threshold` / `NaN < threshold` / `NaN > maxAge` are ALL false — so
+   * such a memory would be neither recalled NOR consolidated/forgotten/pruned:
+   * permanently stuck AND invisible. Treat an unparseable (or future) timestamp
+   * as age 0 — fresh and recallable — rather than silently losing the memory.
+   */
+  _ageInHours(createdAt, now) {
+    const t = new Date(createdAt).getTime();
+    if (!Number.isFinite(t)) {
+      return 0;
+    }
+    const hrs = (now - t) / 3600000;
+    return hrs > 0 ? hrs : 0;
+  }
+
   // Memory consolidation (simulates sleep-based memory integration)
   consolidate() {
     let promoted = 0;
@@ -304,7 +320,7 @@ class HierarchicalMemory extends EventEmitter {
 
     // Short-term → Long-term (important + reinforced)
     for (const [id, memory] of this._shortTerm) {
-      const age = (now - new Date(memory.created_at).getTime()) / 3600000;
+      const age = this._ageInHours(memory.created_at, now);
       if (memory.access_count >= 5 || memory.importance >= 0.6) {
         this._longTerm.set(id, memory);
         this._shortTerm.delete(id);
@@ -319,7 +335,7 @@ class HierarchicalMemory extends EventEmitter {
 
     // Forget weak long-term memories
     for (const [id, memory] of this._longTerm) {
-      const age = (now - new Date(memory.created_at).getTime()) / 3600000;
+      const age = this._ageInHours(memory.created_at, now);
       const retention = Math.exp(-memory.decay_rate * age);
       if (retention < this._config.recallThreshold && memory.access_count < 3) {
         this._longTerm.delete(id);
@@ -388,7 +404,7 @@ class HierarchicalMemory extends EventEmitter {
     let pruned = 0;
 
     for (const [id, memory] of this._longTerm) {
-      const age = (now - new Date(memory.created_at).getTime()) / 3600000;
+      const age = this._ageInHours(memory.created_at, now);
       if (age > maxAge && memory.access_count < 2 && memory.importance < 0.5) {
         this._longTerm.delete(id);
         pruned++;

@@ -127,6 +127,29 @@ describe("HierarchicalMemory", () => {
     expect(results[0].content).toContain("JavaScript");
   });
 
+  it("_ageInHours is robust to a corrupt / missing / future timestamp", () => {
+    const now = Date.parse("2026-01-02T00:00:00Z");
+    expect(memory._ageInHours("2026-01-01T00:00:00Z", now)).toBe(24);
+    expect(memory._ageInHours("not-a-date", now)).toBe(0); // unparseable → 0
+    expect(memory._ageInHours(undefined, now)).toBe(0);
+    expect(memory._ageInHours(NaN, now)).toBe(0);
+    expect(memory._ageInHours("2999-01-01T00:00:00Z", now)).toBe(0); // future → 0
+  });
+
+  it("still recalls a memory whose created_at is corrupt (not stuck on NaN age)", async () => {
+    await memory.initialize(db);
+    memory.store("corrupt timestamp memory about widgets", { importance: 0.7 });
+    // Drift / bad migration leaves an unparseable timestamp.
+    for (const m of memory._longTerm.values()) {
+      m.created_at = "not-a-date";
+    }
+    // Before the fix: NaN age → NaN retention → `NaN >= threshold` is false, so
+    // the memory was silently never recalled (and never pruned — stuck forever).
+    const results = memory.recall("widgets");
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results[0].content).toContain("widgets");
+  });
+
   it("should always recall core memories regardless of decay", async () => {
     await memory.initialize(db);
     memory.store("core fact about AI", { importance: 0.95 });
