@@ -307,6 +307,10 @@ async def query_knowledge(query: str, project_id: Optional[str] = None):
     Returns:
         检索到的相关知识
     """
+    if rag_engine is None:
+        raise HTTPException(
+            status_code=503, detail="RAG 引擎未启用（等待 sentence-transformers 安装）"
+        )
     try:
         results = await rag_engine.search(
             query=query,
@@ -806,6 +810,10 @@ class EnhancedQueryRequest(BaseModel):
 @app.post("/api/rag/index/project")
 async def index_project_files(request: ProjectIndexRequest):
     """索引项目所有文件"""
+    if file_indexer is None:
+        raise HTTPException(
+            status_code=503, detail="文件索引器未启用（等待 RAG 引擎可用）"
+        )
     try:
         result = await file_indexer.index_project(
             request.project_id,
@@ -821,6 +829,10 @@ async def index_project_files(request: ProjectIndexRequest):
 @app.get("/api/rag/index/stats")
 async def get_index_stats(project_id: Optional[str] = None):
     """获取项目索引统计"""
+    if file_indexer is None:
+        raise HTTPException(
+            status_code=503, detail="文件索引器未启用（等待 RAG 引擎可用）"
+        )
     try:
         if not project_id:
             # 返回所有项目的统计
@@ -837,6 +849,10 @@ async def get_index_stats(project_id: Optional[str] = None):
 @app.post("/api/rag/query/enhanced")
 async def enhanced_query(request: EnhancedQueryRequest):
     """增强RAG查询（多源+重排）"""
+    if rag_engine is None:
+        raise HTTPException(
+            status_code=503, detail="RAG 引擎未启用（等待 sentence-transformers 安装）"
+        )
     try:
         result = await rag_engine.enhanced_search(
             request.query,
@@ -853,6 +869,10 @@ async def enhanced_query(request: EnhancedQueryRequest):
 @app.delete("/api/rag/index/project/{project_id}")
 async def delete_project_index(project_id: str):
     """删除项目索引"""
+    if rag_engine is None:
+        raise HTTPException(
+            status_code=503, detail="RAG 引擎未启用（等待 sentence-transformers 安装）"
+        )
     try:
         result = await rag_engine.delete_by_project(project_id)
         return {"success": result, "project_id": project_id}
@@ -863,6 +883,10 @@ async def delete_project_index(project_id: str):
 @app.post("/api/rag/index/update-file")
 async def update_file_index(request: FileIndexUpdateRequest):
     """更新单个文件索引"""
+    if file_indexer is None:
+        raise HTTPException(
+            status_code=503, detail="文件索引器未启用（等待 RAG 引擎可用）"
+        )
     try:
         result = await file_indexer.update_file_index(
             request.project_id,

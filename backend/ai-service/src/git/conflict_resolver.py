@@ -4,6 +4,7 @@ Git冲突解决器 - AI辅助
 """
 import os
 import re
+import asyncio
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
@@ -362,10 +363,12 @@ class ConflictResolver:
             # 获取未合并的路径
             unmerged = repo.index.unmerged_blobs()
             conflicted_files = list(unmerged.keys())
-        except:
-            # 备选方案：检查status
+        except Exception:
+            # 备选方案：检查status。subprocess.run 会阻塞事件循环，必须放到线程池，
+            # 否则单 worker 下所有并发请求 + 健康检查都被这个 git 子进程卡住。
             import subprocess
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 ['git', 'diff', '--name-only', '--diff-filter=U'],
                 cwd=repo_path,
                 capture_output=True,
