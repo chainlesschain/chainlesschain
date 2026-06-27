@@ -9,12 +9,25 @@
  * - RAG集成
  */
 
-const { logger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
+const { v4: uuidv4 } = require("uuid");
+
+// One corrupt metadata/tags row must not throw out of a list .map and fail the
+// whole file-list/search (tags are renderer-writable via external-file:update-tags).
+function safeParse(raw, fallback) {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
 const {
   FILE_SYNC_PROTOCOLS,
   FILE_CATEGORIES,
@@ -22,13 +35,19 @@ const {
   TRANSFER_STATUS,
   TRANSFER_TYPE,
   SYNC_TYPE,
-} = require('../p2p/file-sync-protocols');
-const PerformanceMetrics = require('./performance-metrics');
-const FileSecurityValidator = require('./file-security-validator');
-const { RetryManager, RETRY_STRATEGIES } = require('./retry-manager');
+} = require("../p2p/file-sync-protocols");
+const PerformanceMetrics = require("./performance-metrics");
+const FileSecurityValidator = require("./file-security-validator");
+const { RetryManager, RETRY_STRATEGIES } = require("./retry-manager");
 
 class ExternalDeviceFileManager extends EventEmitter {
-  constructor(database, p2pManager, fileTransferManager, ragManager, options = {}) {
+  constructor(
+    database,
+    p2pManager,
+    fileTransferManager,
+    ragManager,
+    options = {},
+  ) {
     super();
 
     this.db = database;
@@ -39,7 +58,9 @@ class ExternalDeviceFileManager extends EventEmitter {
     // 配置选项
     this.options = {
       // 缓存配置
-      cacheDir: options.cacheDir || path.join(process.cwd(), 'data', 'external-file-cache'),
+      cacheDir:
+        options.cacheDir ||
+        path.join(process.cwd(), "data", "external-file-cache"),
       maxCacheSize: options.maxCacheSize || 1024 * 1024 * 1024, // 1GB
       cacheExpiry: options.cacheExpiry || 7 * 24 * 60 * 60 * 1000, // 7天
 
@@ -77,7 +98,7 @@ class ExternalDeviceFileManager extends EventEmitter {
     // 注册P2P协议处理器
     this.registerProtocolHandlers();
 
-    logger.info('[ExternalDeviceFileManager] 初始化完成', {
+    logger.info("[ExternalDeviceFileManager] 初始化完成", {
       cacheDir: this.options.cacheDir,
       maxCacheSize: this.options.maxCacheSize,
     });
@@ -89,7 +110,10 @@ class ExternalDeviceFileManager extends EventEmitter {
   ensureCacheDir() {
     if (!fs.existsSync(this.options.cacheDir)) {
       fs.mkdirSync(this.options.cacheDir, { recursive: true });
-      logger.info('[ExternalDeviceFileManager] 创建缓存目录:', this.options.cacheDir);
+      logger.info(
+        "[ExternalDeviceFileManager] 创建缓存目录:",
+        this.options.cacheDir,
+      );
     }
   }
 
@@ -98,7 +122,9 @@ class ExternalDeviceFileManager extends EventEmitter {
    */
   registerProtocolHandlers() {
     if (!this.p2pManager || !this.p2pManager.messageManager) {
-      logger.warn('[ExternalDeviceFileManager] P2P管理器未初始化，跳过协议注册');
+      logger.warn(
+        "[ExternalDeviceFileManager] P2P管理器未初始化，跳过协议注册",
+      );
       return;
     }
 
@@ -125,16 +151,19 @@ class ExternalDeviceFileManager extends EventEmitter {
     });
 
     // 文件传输完成处理器
-    messageManager.on(FILE_SYNC_PROTOCOLS.FILE_TRANSFER_COMPLETE, async (data) => {
-      await this.handleTransferComplete(data);
-    });
+    messageManager.on(
+      FILE_SYNC_PROTOCOLS.FILE_TRANSFER_COMPLETE,
+      async (data) => {
+        await this.handleTransferComplete(data);
+      },
+    );
 
     // 文件传输错误处理器
     messageManager.on(FILE_SYNC_PROTOCOLS.FILE_TRANSFER_ERROR, (data) => {
       this.handleTransferError(data);
     });
 
-    logger.info('[ExternalDeviceFileManager] P2P协议处理器注册完成');
+    logger.info("[ExternalDeviceFileManager] P2P协议处理器注册完成");
   }
 
   /**
@@ -179,7 +208,7 @@ class ExternalDeviceFileManager extends EventEmitter {
     const startTime = Date.now();
     const syncId = uuidv4();
 
-    logger.info('[ExternalDeviceFileManager] 开始同步设备文件索引:', {
+    logger.info("[ExternalDeviceFileManager] 开始同步设备文件索引:", {
       deviceId,
       syncId,
       options,
@@ -188,15 +217,18 @@ class ExternalDeviceFileManager extends EventEmitter {
     try {
       // 检查是否已有同步任务在执行
       if (this.syncQueue.has(deviceId)) {
-        logger.warn('[ExternalDeviceFileManager] 设备已有同步任务在执行:', deviceId);
-        return { success: false, error: 'Sync already in progress' };
+        logger.warn(
+          "[ExternalDeviceFileManager] 设备已有同步任务在执行:",
+          deviceId,
+        );
+        return { success: false, error: "Sync already in progress" };
       }
 
       // 创建同步任务
       const syncTask = {
         syncId,
         deviceId,
-        status: 'running',
+        status: "running",
         startTime,
         totalItems: 0,
         syncedItems: 0,
@@ -236,7 +268,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         const response = await this.sendIndexRequestAndWait(deviceId, request);
 
         if (!response || !response.files) {
-          logger.error('[ExternalDeviceFileManager] 索引同步失败：响应无效');
+          logger.error("[ExternalDeviceFileManager] 索引同步失败：响应无效");
           break;
         }
 
@@ -246,14 +278,14 @@ class ExternalDeviceFileManager extends EventEmitter {
         totalSynced += response.files.length;
         hasMore = response.hasMore;
 
-        logger.info('[ExternalDeviceFileManager] 索引同步进度:', {
+        logger.info("[ExternalDeviceFileManager] 索引同步进度:", {
           synced: totalSynced,
           total: response.totalCount,
           hasMore,
         });
 
         // 发送进度事件
-        this.emit('sync-progress', {
+        this.emit("sync-progress", {
           deviceId,
           synced: totalSynced,
           total: response.totalCount,
@@ -269,7 +301,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         syncType: SYNC_TYPE.INDEX_SYNC,
         itemsCount: totalSynced,
         durationMs: duration,
-        status: 'success',
+        status: "success",
       });
 
       // 记录性能指标
@@ -278,13 +310,13 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 移除同步任务
       this.syncQueue.delete(deviceId);
 
-      logger.info('[ExternalDeviceFileManager] 索引同步完成:', {
+      logger.info("[ExternalDeviceFileManager] 索引同步完成:", {
         deviceId,
         totalSynced,
         duration,
       });
 
-      this.emit('sync-completed', {
+      this.emit("sync-completed", {
         deviceId,
         totalSynced,
         duration,
@@ -296,14 +328,14 @@ class ExternalDeviceFileManager extends EventEmitter {
         duration,
       };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 索引同步失败:', error);
+      logger.error("[ExternalDeviceFileManager] 索引同步失败:", error);
 
       // 记录同步失败日志
       await this.logSyncActivity(deviceId, {
         syncType: SYNC_TYPE.INDEX_SYNC,
         itemsCount: 0,
         durationMs: Date.now() - startTime,
-        status: 'failed',
+        status: "failed",
         errorDetails: error.message,
       });
 
@@ -313,7 +345,7 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 移除同步任务
       this.syncQueue.delete(deviceId);
 
-      this.emit('sync-error', { deviceId, error: error.message });
+      this.emit("sync-error", { deviceId, error: error.message });
 
       return {
         success: false,
@@ -335,8 +367,8 @@ class ExternalDeviceFileManager extends EventEmitter {
       () => {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            this.removeListener('index-response-' + request.requestId, handler);
-            reject(new Error('Index request timeout'));
+            this.removeListener("index-response-" + request.requestId, handler);
+            reject(new Error("Index request timeout"));
           }, this.options.syncTimeout);
 
           const handler = (response) => {
@@ -344,14 +376,14 @@ class ExternalDeviceFileManager extends EventEmitter {
             resolve(response);
           };
 
-          this.once('index-response-' + request.requestId, handler);
+          this.once("index-response-" + request.requestId, handler);
 
           // 发送请求
           this.p2pManager.messageManager.sendMessage(deviceId, request);
         });
       },
       {
-        operationName: 'sendIndexRequest',
+        operationName: "sendIndexRequest",
         maxRetries: 3,
         onRetry: (attempt, error) => {
           logger.warn(`[ExternalDeviceFileManager] 索引请求重试`, {
@@ -362,7 +394,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           });
         },
         ...retryOptions,
-      }
+      },
     );
   }
 
@@ -371,13 +403,13 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @param {Object} data - 响应数据
    */
   async handleIndexResponse(data) {
-    logger.info('[ExternalDeviceFileManager] 收到索引响应:', {
+    logger.info("[ExternalDeviceFileManager] 收到索引响应:", {
       requestId: data.requestId,
       filesCount: data.files?.length,
     });
 
     // 触发响应事件
-    this.emit('index-response-' + data.requestId, data);
+    this.emit("index-response-" + data.requestId, data);
   }
 
   /**
@@ -385,10 +417,10 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @param {Object} data - 通知数据
    */
   async handleIndexChanged(data) {
-    logger.info('[ExternalDeviceFileManager] 收到索引变更通知:', data);
+    logger.info("[ExternalDeviceFileManager] 收到索引变更通知:", data);
 
     // 触发变更事件
-    this.emit('index-changed', data);
+    this.emit("index-changed", data);
 
     // 可选：自动触发增量同步
     if (this.options.autoSync) {
@@ -434,16 +466,16 @@ class ExternalDeviceFileManager extends EventEmitter {
           JSON.stringify(file.metadata || {}),
           SYNC_STATUS.SYNCED,
           now,
-          now
+          now,
         );
       }
 
-      logger.info('[ExternalDeviceFileManager] 本地索引更新完成:', {
+      logger.info("[ExternalDeviceFileManager] 本地索引更新完成:", {
         deviceId,
         count: files.length,
       });
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 更新本地索引失败:', error);
+      logger.error("[ExternalDeviceFileManager] 更新本地索引失败:", error);
       throw error;
     }
   }
@@ -558,7 +590,7 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 分类过滤
       if (options.category) {
         if (Array.isArray(options.category)) {
-          query += ` AND category IN (${options.category.map(() => '?').join(',')})`;
+          query += ` AND category IN (${options.category.map(() => "?").join(",")})`;
           params.push(...options.category);
         } else {
           query += ` AND category = ?`;
@@ -590,9 +622,23 @@ class ExternalDeviceFileManager extends EventEmitter {
         params.push(`%${options.search}%`);
       }
 
-      // 排序
-      const orderBy = options.orderBy || 'indexed_at';
-      const orderDir = options.orderDir || 'DESC';
+      // 排序：orderBy/orderDir 来自渲染端 IPC filters，必须白名单化，否则
+      // 字符串拼进 SQL 形成注入（其它子句都用 ? 占位，唯独 ORDER BY 不能参数化）。
+      const ALLOWED_ORDER_COLUMNS = new Set([
+        "indexed_at",
+        "display_name",
+        "file_name",
+        "file_size",
+        "modified_at",
+        "created_at",
+        "last_access",
+        "file_type",
+      ]);
+      const orderBy = ALLOWED_ORDER_COLUMNS.has(options.orderBy)
+        ? options.orderBy
+        : "indexed_at";
+      const orderDir =
+        String(options.orderDir).toUpperCase() === "ASC" ? "ASC" : "DESC";
       query += ` ORDER BY ${orderBy} ${orderDir}`;
 
       // 分页
@@ -610,11 +656,11 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 解析metadata
       return files.map((file) => ({
         ...file,
-        metadata: file.metadata ? JSON.parse(file.metadata) : {},
-        tags: file.tags ? JSON.parse(file.tags) : [],
+        metadata: safeParse(file.metadata, {}),
+        tags: safeParse(file.tags, []),
       }));
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 获取文件列表失败:', error);
+      logger.error("[ExternalDeviceFileManager] 获取文件列表失败:", error);
       throw error;
     }
   }
@@ -700,24 +746,24 @@ class ExternalDeviceFileManager extends EventEmitter {
     try {
       // 获取文件信息
       const file = this.db
-        .prepare('SELECT * FROM external_device_files WHERE id = ?')
+        .prepare("SELECT * FROM external_device_files WHERE id = ?")
         .get(fileId);
 
       if (!file) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
 
       // 安全性验证
       const validation = this.securityValidator.validate(file);
       if (!validation.valid) {
-        const errorMsg = `文件安全验证失败: ${validation.errors.join(', ')}`;
-        logger.error('[ExternalDeviceFileManager]', errorMsg);
+        const errorMsg = `文件安全验证失败: ${validation.errors.join(", ")}`;
+        logger.error("[ExternalDeviceFileManager]", errorMsg);
         throw new Error(errorMsg);
       }
 
       // 记录安全警告
       if (validation.warnings.length > 0) {
-        logger.warn('[ExternalDeviceFileManager] 文件安全警告:', {
+        logger.warn("[ExternalDeviceFileManager] 文件安全警告:", {
           fileId,
           warnings: validation.warnings,
         });
@@ -725,7 +771,10 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       // 检查是否已缓存
       if (file.is_cached && file.cache_path && fs.existsSync(file.cache_path)) {
-        logger.info('[ExternalDeviceFileManager] 文件已缓存，跳过拉取:', fileId);
+        logger.info(
+          "[ExternalDeviceFileManager] 文件已缓存，跳过拉取:",
+          fileId,
+        );
 
         // 记录缓存命中
         this.metrics.recordCacheHit();
@@ -762,18 +811,18 @@ class ExternalDeviceFileManager extends EventEmitter {
         transferId,
         options: {
           cache: options.cache !== false,
-          priority: options.priority || 'normal',
+          priority: options.priority || "normal",
         },
       };
 
       // 等待拉取响应
       const response = await this.sendFilePullRequestAndWait(
         file.device_id,
-        request
+        request,
       );
 
       if (!response.accepted) {
-        throw new Error(response.error || 'File pull rejected');
+        throw new Error(response.error || "File pull rejected");
       }
 
       // 更新传输任务状态
@@ -786,7 +835,7 @@ class ExternalDeviceFileManager extends EventEmitter {
       const cachePath = path.join(
         this.options.cacheDir,
         file.device_id,
-        `${file.file_id}_${file.display_name}`
+        `${file.file_id}_${file.display_name}`,
       );
 
       // 确保目录存在
@@ -801,11 +850,11 @@ class ExternalDeviceFileManager extends EventEmitter {
           return await this.fileTransferManager.downloadFile(
             file.device_id,
             transferId,
-            cachePath
+            cachePath,
           );
         },
         {
-          operationName: 'downloadFile',
+          operationName: "downloadFile",
           maxRetries: 3,
           initialDelay: 2000,
           onRetry: (attempt, error) => {
@@ -817,14 +866,14 @@ class ExternalDeviceFileManager extends EventEmitter {
             });
 
             // 发送重试事件
-            this.emit('file-download-retry', {
+            this.emit("file-download-retry", {
               fileId,
               transferId,
               attempt,
               error: error.message,
             });
           },
-        }
+        },
       );
 
       // 验证文件
@@ -834,7 +883,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         if (fs.existsSync(cachePath)) {
           fs.unlinkSync(cachePath);
         }
-        throw new Error('File verification failed');
+        throw new Error("File verification failed");
       }
 
       // 更新文件记录
@@ -844,7 +893,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         UPDATE external_device_files
         SET is_cached = 1, cache_path = ?, last_access = ?, updated_at = ?
         WHERE id = ?
-      `
+      `,
         )
         .run(cachePath, Date.now(), Date.now(), fileId);
 
@@ -857,7 +906,7 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       const duration = Date.now() - startTime;
 
-      logger.info('[ExternalDeviceFileManager] 文件拉取完成:', {
+      logger.info("[ExternalDeviceFileManager] 文件拉取完成:", {
         fileId,
         cachePath,
         duration,
@@ -866,7 +915,7 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 记录传输性能指标
       this.metrics.recordTransfer(duration, file.file_size, fileId);
 
-      this.emit('file-pulled', {
+      this.emit("file-pulled", {
         fileId,
         cachePath,
         duration,
@@ -878,12 +927,12 @@ class ExternalDeviceFileManager extends EventEmitter {
         duration,
       };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 文件拉取失败:', error);
+      logger.error("[ExternalDeviceFileManager] 文件拉取失败:", error);
 
       // 记录传输错误
       this.metrics.recordTransferError(error);
 
-      this.emit('file-pull-error', {
+      this.emit("file-pull-error", {
         fileId,
         error: error.message,
       });
@@ -905,8 +954,11 @@ class ExternalDeviceFileManager extends EventEmitter {
       () => {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            this.removeListener('file-pull-response-' + request.requestId, handler);
-            reject(new Error('File pull request timeout'));
+            this.removeListener(
+              "file-pull-response-" + request.requestId,
+              handler,
+            );
+            reject(new Error("File pull request timeout"));
           }, this.options.syncTimeout);
 
           const handler = (response) => {
@@ -914,14 +966,14 @@ class ExternalDeviceFileManager extends EventEmitter {
             resolve(response);
           };
 
-          this.once('file-pull-response-' + request.requestId, handler);
+          this.once("file-pull-response-" + request.requestId, handler);
 
           // 发送请求
           this.p2pManager.messageManager.sendMessage(deviceId, request);
         });
       },
       {
-        operationName: 'sendFilePullRequest',
+        operationName: "sendFilePullRequest",
         maxRetries: 3,
         onRetry: (attempt, error) => {
           logger.warn(`[ExternalDeviceFileManager] 文件拉取请求重试`, {
@@ -933,7 +985,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           });
         },
         ...retryOptions,
-      }
+      },
     );
   }
 
@@ -942,13 +994,13 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @param {Object} data - 响应数据
    */
   async handleFilePullResponse(data) {
-    logger.info('[ExternalDeviceFileManager] 收到文件拉取响应:', {
+    logger.info("[ExternalDeviceFileManager] 收到文件拉取响应:", {
       requestId: data.requestId,
       accepted: data.accepted,
     });
 
     // 触发响应事件
-    this.emit('file-pull-response-' + data.requestId, data);
+    this.emit("file-pull-response-" + data.requestId, data);
   }
 
   /**
@@ -967,15 +1019,15 @@ class ExternalDeviceFileManager extends EventEmitter {
         SET progress = ?, bytes_transferred = ?
         WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ?)
         LIMIT 1
-      `
+      `,
         )
         .run(progress, bytesTransferred, `%${transferId}%`);
     } catch (error) {
-      logger.warn('[ExternalDeviceFileManager] 更新传输进度失败:', error);
+      logger.warn("[ExternalDeviceFileManager] 更新传输进度失败:", error);
     }
 
     // 触发进度事件
-    this.emit('transfer-progress', data);
+    this.emit("transfer-progress", data);
   }
 
   /**
@@ -983,10 +1035,10 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @param {Object} data - 完成数据
    */
   async handleTransferComplete(data) {
-    logger.info('[ExternalDeviceFileManager] 文件传输完成:', data);
+    logger.info("[ExternalDeviceFileManager] 文件传输完成:", data);
 
     // 触发完成事件
-    this.emit('transfer-complete', data);
+    this.emit("transfer-complete", data);
   }
 
   /**
@@ -994,7 +1046,7 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @param {Object} data - 错误数据
    */
   handleTransferError(data) {
-    logger.error('[ExternalDeviceFileManager] 文件传输错误:', data);
+    logger.error("[ExternalDeviceFileManager] 文件传输错误:", data);
 
     // 更新数据库中的传输任务
     try {
@@ -1005,15 +1057,15 @@ class ExternalDeviceFileManager extends EventEmitter {
         SET status = 'failed', error_message = ?
         WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ?)
         LIMIT 1
-      `
+      `,
         )
         .run(data.error, `%${data.transferId}%`);
     } catch (error) {
-      logger.warn('[ExternalDeviceFileManager] 更新传输状态失败:', error);
+      logger.warn("[ExternalDeviceFileManager] 更新传输状态失败:", error);
     }
 
     // 触发错误事件
-    this.emit('transfer-error', data);
+    this.emit("transfer-error", data);
   }
 
   /**
@@ -1085,39 +1137,41 @@ class ExternalDeviceFileManager extends EventEmitter {
     try {
       // 获取文件信息
       const file = this.db
-        .prepare('SELECT * FROM external_device_files WHERE id = ?')
+        .prepare("SELECT * FROM external_device_files WHERE id = ?")
         .get(fileId);
 
       if (!file) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
 
       // 确保文件已缓存
       if (!file.is_cached || !file.cache_path) {
-        logger.info('[ExternalDeviceFileManager] 文件未缓存，先拉取文件');
+        logger.info("[ExternalDeviceFileManager] 文件未缓存，先拉取文件");
         await this.pullFile(fileId);
 
         // 重新获取文件信息
         const updatedFile = this.db
-          .prepare('SELECT * FROM external_device_files WHERE id = ?')
+          .prepare("SELECT * FROM external_device_files WHERE id = ?")
           .get(fileId);
         file.cache_path = updatedFile.cache_path;
       }
 
       // 调用RAG系统的文件导入API
-      logger.info('[ExternalDeviceFileManager] 导入文件到RAG:', {
+      logger.info("[ExternalDeviceFileManager] 导入文件到RAG:", {
         fileId,
         filePath: file.cache_path,
         fileName: file.display_name,
       });
 
       // 读取文件内容
-      let content = '';
+      let content = "";
       try {
-        const fileContent = fs.readFileSync(file.cache_path, 'utf8');
+        const fileContent = fs.readFileSync(file.cache_path, "utf8");
         content = fileContent;
       } catch (readError) {
-        logger.warn('[ExternalDeviceFileManager] 无法读取文件为文本，可能是二进制文件');
+        logger.warn(
+          "[ExternalDeviceFileManager] 无法读取文件为文本，可能是二进制文件",
+        );
         // 对于PDF等二进制文件，使用文件名和元数据
         content = `File: ${file.display_name}\nCategory: ${file.category}\nSize: ${file.size} bytes`;
       }
@@ -1130,26 +1184,31 @@ class ExternalDeviceFileManager extends EventEmitter {
         metadata: {
           title: options.title || file.display_name,
           fileName: file.display_name,
-          source: 'external-device',
+          source: "external-device",
           deviceId: file.device_id,
           category: file.category,
           mimeType: file.mime_type,
           size: file.size,
           createdAt: new Date(file.last_modified).toISOString(),
           updatedAt: new Date().toISOString(),
-          type: 'external-file',
+          type: "external-file",
           ...options.metadata,
         },
       };
 
       if (this.ragManager) {
         await this.ragManager.addDocument(ragDoc);
-        logger.info('[ExternalDeviceFileManager] 文件已成功导入RAG系统:', ragDocId);
+        logger.info(
+          "[ExternalDeviceFileManager] 文件已成功导入RAG系统:",
+          ragDocId,
+        );
       } else {
-        logger.warn('[ExternalDeviceFileManager] RAGManager未初始化，跳过RAG导入');
+        logger.warn(
+          "[ExternalDeviceFileManager] RAGManager未初始化，跳过RAG导入",
+        );
       }
 
-      this.emit('file-imported', {
+      this.emit("file-imported", {
         fileId,
         fileName: file.display_name,
         ragId: ragDocId,
@@ -1162,7 +1221,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         ragId: ragDocId,
       };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 导入RAG失败:', error);
+      logger.error("[ExternalDeviceFileManager] 导入RAG失败:", error);
       throw error;
     }
   }
@@ -1253,40 +1312,40 @@ class ExternalDeviceFileManager extends EventEmitter {
     try {
       // 获取文件信息
       const file = this.db
-        .prepare('SELECT * FROM external_device_files WHERE id = ?')
+        .prepare("SELECT * FROM external_device_files WHERE id = ?")
         .get(fileId);
 
       if (!file) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
 
       // 确保文件已缓存
       if (!file.is_cached || !file.cache_path) {
-        logger.info('[ExternalDeviceFileManager] 文件未缓存，先拉取文件');
+        logger.info("[ExternalDeviceFileManager] 文件未缓存，先拉取文件");
         await this.pullFile(fileId);
 
         // 重新获取文件信息
         const updatedFile = this.db
-          .prepare('SELECT * FROM external_device_files WHERE id = ?')
+          .prepare("SELECT * FROM external_device_files WHERE id = ?")
           .get(fileId);
         file.cache_path = updatedFile.cache_path;
       }
 
       // 获取项目信息
       const project = this.db
-        .prepare('SELECT * FROM projects WHERE id = ?')
+        .prepare("SELECT * FROM projects WHERE id = ?")
         .get(projectId);
 
       if (!project) {
-        throw new Error('Project not found');
+        throw new Error("Project not found");
       }
 
       // 确定目标路径
       const projectFilesDir = path.join(
         path.dirname(this.db.dbPath),
-        'projects',
+        "projects",
         projectId,
-        'files'
+        "files",
       );
 
       // 确保项目文件目录存在
@@ -1304,7 +1363,7 @@ class ExternalDeviceFileManager extends EventEmitter {
       // 复制文件到项目目录
       fs.copyFileSync(file.cache_path, targetPath);
 
-      logger.info('[ExternalDeviceFileManager] 文件已复制到项目目录:', {
+      logger.info("[ExternalDeviceFileManager] 文件已复制到项目目录:", {
         sourcePath: file.cache_path,
         targetPath,
       });
@@ -1320,7 +1379,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           id, project_id, file_name, file_path, file_type,
           file_size, source, metadata, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
+      `,
         )
         .run(
           projectFileId,
@@ -1329,7 +1388,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           targetPath,
           file.mime_type,
           file.file_size,
-          'external-device',
+          "external-device",
           JSON.stringify({
             deviceId: file.device_id,
             originalFileId: file.file_id,
@@ -1337,16 +1396,16 @@ class ExternalDeviceFileManager extends EventEmitter {
             importedAt: now,
           }),
           now,
-          now
+          now,
         );
 
-      logger.info('[ExternalDeviceFileManager] 文件已导入项目:', {
+      logger.info("[ExternalDeviceFileManager] 文件已导入项目:", {
         projectId,
         fileId: projectFileId,
         fileName: file.display_name,
       });
 
-      this.emit('file-imported-to-project', {
+      this.emit("file-imported-to-project", {
         fileId,
         projectId,
         projectFileId,
@@ -1362,7 +1421,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         filePath: targetPath,
       };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 导入项目失败:', error);
+      logger.error("[ExternalDeviceFileManager] 导入项目失败:", error);
       throw error;
     }
   }
@@ -1436,7 +1495,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         FROM external_device_files
         WHERE is_cached = 1
         ORDER BY last_access ASC
-      `
+      `,
         )
         .all();
 
@@ -1462,21 +1521,21 @@ class ExternalDeviceFileManager extends EventEmitter {
               UPDATE external_device_files
               SET is_cached = 0, cache_path = NULL
               WHERE id = ?
-            `
+            `,
               )
               .run(file.id);
 
-            logger.info('[ExternalDeviceFileManager] 淘汰缓存文件:', {
+            logger.info("[ExternalDeviceFileManager] 淘汰缓存文件:", {
               fileId: file.id,
               size: file.file_size,
             });
           } catch (error) {
-            logger.warn('[ExternalDeviceFileManager] 删除缓存文件失败:', error);
+            logger.warn("[ExternalDeviceFileManager] 删除缓存文件失败:", error);
           }
         }
       }
 
-      logger.info('[ExternalDeviceFileManager] LRU缓存淘汰完成:', {
+      logger.info("[ExternalDeviceFileManager] LRU缓存淘汰完成:", {
         evictedCount: evictedFiles.length,
         freedSpace,
       });
@@ -1489,7 +1548,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         freedSpace,
       };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] LRU缓存淘汰失败:', error);
+      logger.error("[ExternalDeviceFileManager] LRU缓存淘汰失败:", error);
       throw error;
     }
   }
@@ -1503,8 +1562,9 @@ class ExternalDeviceFileManager extends EventEmitter {
       const currentSize = await this.getCurrentCacheSize();
 
       if (currentSize + requiredSpace > this.options.maxCacheSize) {
-        const spaceToFree = currentSize + requiredSpace - this.options.maxCacheSize;
-        logger.info('[ExternalDeviceFileManager] 缓存空间不足，执行LRU淘汰:', {
+        const spaceToFree =
+          currentSize + requiredSpace - this.options.maxCacheSize;
+        logger.info("[ExternalDeviceFileManager] 缓存空间不足，执行LRU淘汰:", {
           currentSize,
           requiredSpace,
           spaceToFree,
@@ -1513,7 +1573,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         await this.evictLRUCacheFiles(spaceToFree);
       }
     } catch (error) {
-      logger.warn('[ExternalDeviceFileManager] 检查缓存空间失败:', error);
+      logger.warn("[ExternalDeviceFileManager] 检查缓存空间失败:", error);
     }
   }
 
@@ -1529,13 +1589,13 @@ class ExternalDeviceFileManager extends EventEmitter {
         SELECT SUM(file_size) as total
         FROM external_device_files
         WHERE is_cached = 1
-      `
+      `,
         )
         .get();
 
       return result.total || 0;
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 获取缓存大小失败:', error);
+      logger.error("[ExternalDeviceFileManager] 获取缓存大小失败:", error);
       return 0;
     }
   }
@@ -1548,24 +1608,24 @@ class ExternalDeviceFileManager extends EventEmitter {
    */
   async verifyFileCached(filePath, expectedChecksum) {
     if (!expectedChecksum) {
-      logger.warn('[ExternalDeviceFileManager] 没有提供校验和，跳过验证');
+      logger.warn("[ExternalDeviceFileManager] 没有提供校验和，跳过验证");
       return true;
     }
 
     try {
-      const hash = crypto.createHash('sha256');
+      const hash = crypto.createHash("sha256");
       const stream = fs.createReadStream(filePath);
 
       return new Promise((resolve, reject) => {
-        stream.on('data', (data) => hash.update(data));
-        stream.on('end', () => {
-          const checksum = 'sha256:' + hash.digest('hex');
+        stream.on("data", (data) => hash.update(data));
+        stream.on("end", () => {
+          const checksum = "sha256:" + hash.digest("hex");
           resolve(checksum === expectedChecksum);
         });
-        stream.on('error', reject);
+        stream.on("error", reject);
       });
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 文件验证失败:', error);
+      logger.error("[ExternalDeviceFileManager] 文件验证失败:", error);
       return false;
     }
   }
@@ -1585,7 +1645,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         id, device_id, file_id, transfer_type, status,
         total_bytes, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `
+    `,
       )
       .run(
         taskId,
@@ -1594,7 +1654,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         task.transferType,
         TRANSFER_STATUS.PENDING,
         task.totalBytes,
-        Date.now()
+        Date.now(),
       );
 
     return taskId;
@@ -1624,9 +1684,9 @@ class ExternalDeviceFileManager extends EventEmitter {
       .prepare(
         `
       UPDATE file_transfer_tasks
-      SET ${fields.join(', ')}
+      SET ${fields.join(", ")}
       WHERE id = ?
-    `
+    `,
       )
       .run(...values);
   }
@@ -1646,7 +1706,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         id, device_id, sync_type, items_count, bytes_transferred,
         duration_ms, status, error_details, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
+    `,
       )
       .run(
         logId,
@@ -1657,7 +1717,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         log.durationMs,
         log.status,
         log.errorDetails || null,
-        Date.now()
+        Date.now(),
       );
   }
 
@@ -1674,13 +1734,13 @@ class ExternalDeviceFileManager extends EventEmitter {
         SELECT MAX(created_at) as last_sync
         FROM file_sync_logs
         WHERE device_id = ? AND sync_type = ? AND status = 'success'
-      `
+      `,
         )
         .get(deviceId, SYNC_TYPE.INDEX_SYNC);
 
       return result?.last_sync || 0;
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 获取上次同步时间失败:', error);
+      logger.error("[ExternalDeviceFileManager] 获取上次同步时间失败:", error);
       return 0;
     }
   }
@@ -1797,11 +1857,11 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       return files.map((file) => ({
         ...file,
-        metadata: file.metadata ? JSON.parse(file.metadata) : {},
-        tags: file.tags ? JSON.parse(file.tags) : [],
+        metadata: safeParse(file.metadata, {}),
+        tags: safeParse(file.tags, []),
       }));
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 搜索文件失败:', error);
+      logger.error("[ExternalDeviceFileManager] 搜索文件失败:", error);
       throw error;
     }
   }
@@ -1819,7 +1879,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         UPDATE file_transfer_tasks
         SET status = 'cancelled'
         WHERE id = ?
-      `
+      `,
         )
         .run(transferId);
 
@@ -1833,11 +1893,11 @@ class ExternalDeviceFileManager extends EventEmitter {
         this.activeTransfers.delete(transferId);
       }
 
-      logger.info('[ExternalDeviceFileManager] 传输任务已取消:', transferId);
+      logger.info("[ExternalDeviceFileManager] 传输任务已取消:", transferId);
 
-      this.emit('transfer-cancelled', { transferId });
+      this.emit("transfer-cancelled", { transferId });
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 取消传输失败:', error);
+      logger.error("[ExternalDeviceFileManager] 取消传输失败:", error);
       throw error;
     }
   }
@@ -1850,12 +1910,12 @@ class ExternalDeviceFileManager extends EventEmitter {
   async getTransferProgress(transferId) {
     try {
       const task = this.db
-        .prepare('SELECT * FROM file_transfer_tasks WHERE id = ?')
+        .prepare("SELECT * FROM file_transfer_tasks WHERE id = ?")
         .get(transferId);
 
       return task;
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 获取传输进度失败:', error);
+      logger.error("[ExternalDeviceFileManager] 获取传输进度失败:", error);
       throw error;
     }
   }
@@ -1873,7 +1933,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           `
         SELECT id, cache_path FROM external_device_files
         WHERE is_cached = 1 AND last_access < ?
-      `
+      `,
         )
         .all(expiryTime);
 
@@ -1891,22 +1951,22 @@ class ExternalDeviceFileManager extends EventEmitter {
               UPDATE external_device_files
               SET is_cached = 0, cache_path = NULL
               WHERE id = ?
-            `
+            `,
               )
               .run(file.id);
           } catch (error) {
-            logger.warn('[ExternalDeviceFileManager] 删除过期缓存失败:', error);
+            logger.warn("[ExternalDeviceFileManager] 删除过期缓存失败:", error);
           }
         }
       }
 
-      logger.info('[ExternalDeviceFileManager] 清理过期缓存完成:', {
+      logger.info("[ExternalDeviceFileManager] 清理过期缓存完成:", {
         cleanedCount,
       });
 
       return { cleanedCount };
     } catch (error) {
-      logger.error('[ExternalDeviceFileManager] 清理过期缓存失败:', error);
+      logger.error("[ExternalDeviceFileManager] 清理过期缓存失败:", error);
       throw error;
     }
   }
@@ -1950,7 +2010,7 @@ class ExternalDeviceFileManager extends EventEmitter {
    */
   resetPerformanceMetrics() {
     this.metrics.reset();
-    logger.info('[ExternalDeviceFileManager] 性能统计已重置');
+    logger.info("[ExternalDeviceFileManager] 性能统计已重置");
   }
 
   /**
@@ -1977,7 +2037,7 @@ class ExternalDeviceFileManager extends EventEmitter {
    */
   resetRetryStats() {
     this.retryManager.resetStats();
-    logger.info('[ExternalDeviceFileManager] 重试统计已重置');
+    logger.info("[ExternalDeviceFileManager] 重试统计已重置");
   }
 }
 

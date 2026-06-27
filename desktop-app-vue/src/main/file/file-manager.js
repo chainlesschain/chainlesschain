@@ -196,11 +196,18 @@ class FileManager {
 
     const files = this.db.prepare(query).all(...params);
 
-    // 解析JSON字段
-    return files.map((file) => ({
-      ...file,
-      shared_with: file.shared_with ? JSON.parse(file.shared_with) : null,
-    }));
+    // 解析JSON字段（per-row 守卫：一条坏 shared_with 不应让整个文件列表抛错）
+    return files.map((file) => {
+      let sharedWith = null;
+      if (file.shared_with) {
+        try {
+          sharedWith = JSON.parse(file.shared_with);
+        } catch {
+          sharedWith = null;
+        }
+      }
+      return { ...file, shared_with: sharedWith };
+    });
   }
 
   /**
