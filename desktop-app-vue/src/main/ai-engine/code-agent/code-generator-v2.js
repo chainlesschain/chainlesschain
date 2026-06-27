@@ -6,6 +6,11 @@ const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 
 class CodeGeneratorV2 extends EventEmitter {
+  // Cap the in-memory history (also persisted to DB) — this is a lifetime
+  // singleton; each entry retains the full generated code, so an uncapped
+  // array leaks the heap for the whole process.
+  static MAX_HISTORY = 200;
+
   constructor() {
     super();
     this.db = null;
@@ -120,6 +125,9 @@ class CodeGeneratorV2 extends EventEmitter {
     };
 
     this._generationHistory.push(result);
+    if (this._generationHistory.length > CodeGeneratorV2.MAX_HISTORY) {
+      this._generationHistory.shift();
+    }
     this._persistGeneration(result);
     this.emit("code:generated", { id, language, type: result.type });
     return result;
@@ -165,6 +173,9 @@ class CodeGeneratorV2 extends EventEmitter {
     };
 
     this._reviewHistory.push(result);
+    if (this._reviewHistory.length > CodeGeneratorV2.MAX_HISTORY) {
+      this._reviewHistory.shift();
+    }
     this._persistReview(result, code);
     this.emit("code:reviewed", {
       id,
