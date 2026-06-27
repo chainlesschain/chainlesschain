@@ -545,13 +545,27 @@ class YjsCollabManager extends EventEmitter {
         )
         .all(docId);
 
-      // Apply all updates
+      // Apply all updates. Guard each one (like the snapshot path above): a
+      // single corrupt/truncated update_data row must NOT throw out of the loop
+      // and silently drop every LATER update — that would truncate the document
+      // to a stale state. Skip the bad update and keep applying the rest.
+      let applied = 0;
+      let skipped = 0;
       for (const { update_data } of updates) {
-        Y.applyUpdate(ydoc, update_data, "network");
+        try {
+          Y.applyUpdate(ydoc, update_data, "network");
+          applied++;
+        } catch (error) {
+          skipped++;
+          logger.warn(
+            `[YjsCollab] Skipped a corrupt update for document ${docId}: ${error.message}`,
+          );
+        }
       }
 
       logger.info(
-        `[YjsCollab] Loaded ${updates.length} updates for document ${docId}`,
+        `[YjsCollab] Loaded ${applied}/${updates.length} updates for document ${docId}` +
+          (skipped ? ` (${skipped} corrupt skipped)` : ""),
       );
     } catch (error) {
       logger.error("[YjsCollab] Error loading document:", error);
