@@ -5,6 +5,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single template with a corrupt variables string
+ * must not throw out of the .map and drop the whole template list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PromptTemplateManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -2860,7 +2879,7 @@ H2: [假设内容]
     // 解析 variables JSON
     return templates.map((template) => ({
       ...template,
-      variables: template.variables ? JSON.parse(template.variables) : [],
+      variables: safeParse(template.variables, []),
       is_system: Boolean(template.is_system),
     }));
   }
@@ -2882,7 +2901,7 @@ H2: [假设内容]
 
     return {
       ...template,
-      variables: template.variables ? JSON.parse(template.variables) : [],
+      variables: safeParse(template.variables, []),
       is_system: Boolean(template.is_system),
     };
   }
@@ -3038,7 +3057,7 @@ H2: [假设内容]
 
     return templates.map((template) => ({
       ...template,
-      variables: template.variables ? JSON.parse(template.variables) : [],
+      variables: safeParse(template.variables, []),
       is_system: Boolean(template.is_system),
     }));
   }

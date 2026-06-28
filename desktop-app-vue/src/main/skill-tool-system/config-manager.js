@@ -4,6 +4,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single skill-tool with a corrupt config_override
+ * string must not throw out of the .map and drop the whole tool list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[ConfigManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -76,9 +95,7 @@ class ConfigManager {
           tool_id: st.tool_id,
           role: st.role,
           priority: st.priority,
-          config_override: st.config_override
-            ? JSON.parse(st.config_override)
-            : null,
+          config_override: safeParse(st.config_override, null),
         }));
 
         // 同时导出关联的工具定义

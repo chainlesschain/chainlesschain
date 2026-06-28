@@ -5,6 +5,25 @@
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
 
+/**
+ * Tolerant JSON column parse — a single sandbox row with a corrupt policy string
+ * must not throw out of the load loop and drop every later policy. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[AgentSandbox] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+
 // Phase 4 (Sandbox Policy): shared policy schema from session-core.
 let _sandboxPolicy = null;
 function getSandboxPolicy() {
@@ -528,7 +547,7 @@ class AgentSandboxV2 extends EventEmitter {
         if (!row || !row.id) {
           continue;
         }
-        const policy = row.policy ? JSON.parse(row.policy) : null;
+        const policy = safeParse(row.policy, null);
         this._sandboxes.set(row.id, {
           id: row.id,
           agentId: row.agent_id,
