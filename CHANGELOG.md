@@ -55,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
 
+## [v5.0.3.131] - 2026-06-28 — MIUI/AOSP 浏览历史采集器（闭合 schema 字典「适配缺口」）
+
+### Added — `browser-history-aosp` 采集器（device-verified schema，全平台上船）
+
+> 个人数据采集补全：此前只有 `browser-history-chrome/-edge` 读 Chrome `urls/visits`（WebKit-µs），读不了 Xiaomi/Redmi 默认浏览器 `com.android.browser` 的 `browser2.db`（单 `history` 表 + ms 时间戳，schema 不同）→ MIUI 默认浏览器的浏览-兴趣画像一直未采集。`docs/internal/pdh-app-db-schemas.md` 已标其为「适配缺口」。
+
+- **新 `browser-history-aosp` 适配器**：直读 `browser2.db` 的 `history`/`bookmarks`（列名经 `PRAGMA table_info` 动态解析，ROM 变体安全）；**复用 `BrowserHistoryChromeAdapter.normalize()`** 产出 identical `BROWSE` Event / `LINK` Item（`extra.browser="aosp"`），下游分析一致。输入 = root-pull 的 `browser2.db`（`opts.dbPath`，目录自动找）。
+- **`pdh-device-collect.mjs` 接线**：root-pull `/data/data/com.android.browser/databases/browser2.db` → `syncAdapter`（`--no-browser` 跳过）。注册 lib/index + adapter-guide + CLI/desktop wiring 共 4 站，16 fixture 测试。
+- **发版链**：pdh `0.4.36→0.4.37` + cli `0.162.126→0.162.127`（已发 npm `latest`）+ USR_VERSION `58→59` + cc bundle `v20260624→v20260628`（携 pdh 0.4.37 + 新适配器，已实测验证）。桌面/CLI 用户经 `npm i -g` 即得；Android 真机装本 APK 后 USR 重提取生效。
+- **schema 字典刷新**：把抖音 `participant`/`conversation_list`、微博 sqlite `home/like/follower` 的「⚠️尚未/已知坑」陈旧标记改为实况（均早已实现），避免重复调查。
+
 ## [v5.0.3.130] - 2026-06-24 — QQ空间一键采集（App 内嵌 WebView 登录 → 说说/留言板/相册）+ 朋友圈采集上设备
 
 ### Added — QQ空间 in-app 一键采集（手机端，无需 PC / root / 手动 cookie）
