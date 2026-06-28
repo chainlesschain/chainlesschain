@@ -12,6 +12,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single snapshot with a corrupt metadata string
+ * must not throw out of the versions .map and drop the whole history. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[RealtimeCollab] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -895,7 +914,7 @@ class RealtimeCollabManager extends EventEmitter {
         versions: snapshots.map((s, index) => ({
           id: s.id,
           version: snapshots.length - index,
-          metadata: s.metadata ? JSON.parse(s.metadata) : {},
+          metadata: safeParse(s.metadata, {}),
           createdAt: s.created_at,
         })),
       };

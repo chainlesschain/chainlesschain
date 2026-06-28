@@ -36,6 +36,23 @@ function safeParsePermissions(raw) {
   }
 }
 
+/**
+ * Generic tolerant JSON column parse with a caller-supplied fallback (sibling of
+ * safeParsePermissions, for columns like activity metadata whose miss/corrupt
+ * fallback is not {}). A corrupt row must not throw out of a .map and drop the
+ * whole list. `x ? JSON.parse(x) : d` only guarded NULL, not a corrupt string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (_err) {
+    return fallback;
+  }
+}
+
 class OrgKnowledgeSyncManager extends EventEmitter {
   constructor(orgP2PNetwork, yjsCollabManager, database, didManager) {
     super();
@@ -544,7 +561,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
 
       return activities.map((a) => ({
         ...a,
-        metadata: a.metadata ? JSON.parse(a.metadata) : null,
+        metadata: safeParse(a.metadata, null),
       }));
     } catch (error) {
       logger.error("[OrgKnowledgeSync] Error getting activity log:", error);
