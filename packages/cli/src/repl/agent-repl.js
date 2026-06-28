@@ -586,12 +586,21 @@ export async function startAgentRepl(options = {}) {
   // PostToolUse). The interactive _permissionConfirm above doubles as the
   // confirmer for a hook `ask` decision.
   try {
-    const { loadHooks } = await import("../lib/settings-hooks.cjs");
+    const { loadHooks, projectHookTrustNotice } =
+      await import("../lib/settings-hooks.cjs");
     const loaded = loadHooks({ cwd: process.cwd() });
     _settingsHooks =
       loaded.hooks && Object.keys(loaded.hooks).length > 0
         ? loaded.hooks
         : null;
+    // First-run trust notice for an untrusted/cloned repo's shell-running
+    // hooks (Claude-Code 2.1.195 parity). Best-effort, stderr-only.
+    try {
+      const notice = projectHookTrustNotice({ cwd: process.cwd() });
+      if (notice) process.stderr.write(notice + "\n");
+    } catch {
+      /* trust notice is best-effort */
+    }
   } catch (_err) {
     _settingsHooks = null;
   }

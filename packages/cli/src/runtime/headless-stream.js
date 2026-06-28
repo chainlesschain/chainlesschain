@@ -534,12 +534,24 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let settingsHooks = options.settingsHooks || null;
   if (!settingsHooks) {
     try {
-      const { loadHooks } = await import("../lib/settings-hooks.cjs");
+      const { loadHooks, projectHookTrustNotice } =
+        await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
       settingsHooks =
         loaded.hooks && Object.keys(loaded.hooks).length > 0
           ? loaded.hooks
           : null;
+      // First-run trust notice for an untrusted/cloned repo's shell-running
+      // hooks (Claude-Code 2.1.195 parity). stderr keeps the NDJSON stdout clean.
+      try {
+        const notice = projectHookTrustNotice({
+          cwd,
+          settingsFile: options.settingsFile,
+        });
+        if (notice) process.stderr.write(notice + "\n");
+      } catch {
+        /* trust notice is best-effort */
+      }
     } catch {
       settingsHooks = null; // fail-open
     }
