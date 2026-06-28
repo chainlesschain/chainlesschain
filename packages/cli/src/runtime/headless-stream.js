@@ -22,7 +22,20 @@ import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
 import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
-import { detectImagePaths } from "../lib/image-input.js";
+// Per-turn helpers resolved at module load (not re-`await import`ed inside the
+// turn loop). image-input + ide-context are pure local modules; pulling them up
+// here — the same pattern as expandFileRefsAsync above — drops a per-turn ESM
+// cache lookup + microtask on a long-lived stream session (the IDE chat panel).
+import {
+  detectImagePaths,
+  resolveImages,
+  buildUserContent,
+  resolveVisionLlm,
+} from "../lib/image-input.js";
+import {
+  buildIdePromptContext,
+  expandIdeMentions,
+} from "../lib/ide-context.js";
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
 import {
   resolveAgentMcp,
@@ -1404,8 +1417,6 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // IDE bridge is connected — the user's selection moves between prompts.
     // Best-effort; CC_IDE_CONTEXT=0 disables.
     try {
-      const { buildIdePromptContext, expandIdeMentions } =
-        await import("../lib/ide-context.js");
       const ideCtx = await (
         deps.buildIdePromptContext || buildIdePromptContext
       )(mcp);
@@ -1427,8 +1438,6 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     let turnContent = userContent;
     if (parsed.images && parsed.images.length) {
       try {
-        const { resolveImages, buildUserContent } =
-          await import("../lib/image-input.js");
         turnContent = buildUserContent(
           userContent,
           resolveImages(parsed.images),
@@ -1451,7 +1460,6 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // isn't sent to a text-only default model that can't read the history.
     let turnVisionLlm = null;
     if (conversationHasImages) {
-      const { resolveVisionLlm } = await import("../lib/image-input.js");
       turnVisionLlm = resolveVisionLlm({
         hasImage: true,
         flags: {},
