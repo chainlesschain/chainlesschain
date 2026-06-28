@@ -27,18 +27,25 @@ function registerSpeechIPC({ initializeSpeechManager }) {
   ipcMain.handle(
     "speech:transcribe-file",
     async (event, filePath, options = {}) => {
+      let manager;
+      const onProgress = (progress) => {
+        event.sender.send("speech:progress", progress);
+      };
       try {
-        const manager = await initializeSpeechManager();
+        manager = await initializeSpeechManager();
 
-        // 转发进度事件
-        manager.on("transcribe-progress", (progress) => {
-          event.sender.send("speech:progress", progress);
-        });
+        // per-call 监听器，finally 中移除——manager 是单例，否则每次调用都累加
+        // 监听器（泄漏 + 重复 IPC 发送 + MaxListeners 告警）
+        manager.on("transcribe-progress", onProgress);
 
         return await manager.transcribeFile(filePath, options);
       } catch (error) {
         logger.error("[Speech] 转录音频失败:", error);
         throw error;
+      } finally {
+        if (manager) {
+          manager.off("transcribe-progress", onProgress);
+        }
       }
     },
   );
@@ -49,18 +56,24 @@ function registerSpeechIPC({ initializeSpeechManager }) {
   ipcMain.handle(
     "speech:transcribe-batch",
     async (event, filePaths, options = {}) => {
+      let manager;
+      const onBatchProgress = (progress) => {
+        event.sender.send("speech:batch-progress", progress);
+      };
       try {
-        const manager = await initializeSpeechManager();
+        manager = await initializeSpeechManager();
 
-        // 转发批处理进度事件
-        manager.on("batch-progress", (progress) => {
-          event.sender.send("speech:batch-progress", progress);
-        });
+        // per-call 监听器，finally 中移除（同上，避免单例上累加）
+        manager.on("batch-progress", onBatchProgress);
 
         return await manager.transcribeBatch(filePaths, options);
       } catch (error) {
         logger.error("[Speech] 批量转录失败:", error);
         throw error;
+      } finally {
+        if (manager) {
+          manager.off("batch-progress", onBatchProgress);
+        }
       }
     },
   );

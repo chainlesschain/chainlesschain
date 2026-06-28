@@ -19,6 +19,30 @@ const { ipcMain, dialog } = require("electron");
 function registerVideoIPC({ videoImporter, mainWindow, llmManager }) {
   logger.info("[Video IPC] Registering Video IPC handlers...");
 
+  // Forward videoImporter events to the renderer ONCE here — previously these
+  // 8 import/analysis (+3 batch) listeners were re-registered inside every
+  // video:import-file / video:import-files IPC call, so each import permanently
+  // added listeners (duplicate renderer sends + MaxListenersExceeded).
+  if (videoImporter && typeof videoImporter.on === "function") {
+    const fwd = (evt, channel) =>
+      videoImporter.on(evt, (data) => {
+        if (mainWindow) {
+          mainWindow.webContents.send(channel, data);
+        }
+      });
+    fwd("import:start", "video:import:start");
+    fwd("import:progress", "video:import:progress");
+    fwd("import:complete", "video:import:complete");
+    fwd("import:error", "video:import:error");
+    fwd("analysis:start", "video:analysis:start");
+    fwd("analysis:progress", "video:analysis:progress");
+    fwd("analysis:complete", "video:analysis:complete");
+    fwd("analysis:error", "video:analysis:error");
+    fwd("batch:start", "video:batch:start");
+    fwd("batch:progress", "video:batch:progress");
+    fwd("batch:complete", "video:batch:complete");
+  }
+
   // ============================================================
   // 文件选择与导入操作 (4 handlers)
   // ============================================================
@@ -79,55 +103,7 @@ function registerVideoIPC({ videoImporter, mainWindow, llmManager }) {
         throw new Error("视频导入器未初始化");
       }
 
-      // 设置事件监听器，向渲染进程发送进度
-      videoImporter.on("import:start", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:import:start", data);
-        }
-      });
-
-      videoImporter.on("import:progress", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:import:progress", data);
-        }
-      });
-
-      videoImporter.on("import:complete", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:import:complete", data);
-        }
-      });
-
-      videoImporter.on("import:error", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:import:error", data);
-        }
-      });
-
-      videoImporter.on("analysis:start", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:analysis:start", data);
-        }
-      });
-
-      videoImporter.on("analysis:progress", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:analysis:progress", data);
-        }
-      });
-
-      videoImporter.on("analysis:complete", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:analysis:complete", data);
-        }
-      });
-
-      videoImporter.on("analysis:error", (data) => {
-        if (mainWindow) {
-          mainWindow.webContents.send("video:analysis:error", data);
-        }
-      });
-
+      // (event forwarders registered once in registerVideoIPC)
       const result = await videoImporter.importVideo(filePath, options);
       return result;
     } catch (error) {
