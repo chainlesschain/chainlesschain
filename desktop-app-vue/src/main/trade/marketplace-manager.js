@@ -831,13 +831,15 @@ class MarketplaceManager extends EventEmitter {
         );
       }
 
-      // 如果有资产，转账给买家
+      // 如果有资产，从卖家转账给买家
       if (transaction.asset_id && this.assetManager) {
         await this.assetManager.transferAsset(
           transaction.asset_id,
           transaction.buyer_did,
           transaction.quantity,
           `交易 ${transactionId} 完成`,
+          {},
+          transaction.seller_did, // 卖家是资产发送方（确认交付者是买家=当前用户，不可作发送方）
         );
       }
 

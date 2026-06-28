@@ -379,7 +379,14 @@ class AssetManager extends EventEmitter {
    * @param {string} onChainOptions.walletId - 钱包 ID
    * @param {string} onChainOptions.password - 钱包密码
    */
-  async transferAsset(assetId, toDid, amount, memo = "", onChainOptions = {}) {
+  async transferAsset(
+    assetId,
+    toDid,
+    amount,
+    memo = "",
+    onChainOptions = {},
+    fromDid = null,
+  ) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
@@ -387,7 +394,13 @@ class AssetManager extends EventEmitter {
         throw new Error("未登录");
       }
 
-      if (currentDid === toDid) {
+      // 发送方默认是当前登录用户。internal 调用方（如托管释放/退款）可显式传
+      // fromDid（如 ESCROW_SYSTEM、卖家）从其它账户扣款。`fromDid` 是第 6 个
+      // 位置参数且不经 IPC 透传（asset-ipc 只传前 4 个），故 renderer 无法借此
+      // 从任意账户转账。
+      const senderDid = fromDid || currentDid;
+
+      if (senderDid === toDid) {
         throw new Error("不能转账给自己");
       }
 
@@ -406,8 +419,8 @@ class AssetManager extends EventEmitter {
         throw new Error("资产不存在");
       }
 
-      // 检查余额
-      const balance = await this.getBalance(currentDid, assetId);
+      // 检查余额（发送方账户）
+      const balance = await this.getBalance(senderDid, assetId);
 
       if (balance < amount) {
         throw new Error("余额不足");
@@ -501,7 +514,7 @@ class AssetManager extends EventEmitter {
         SET amount = amount - ?, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
       `,
-      ).run(amount, now, assetId, currentDid);
+      ).run(amount, now, assetId, senderDid);
 
       // 增加接收者余额
       db.prepare(
@@ -524,7 +537,7 @@ class AssetManager extends EventEmitter {
       ).run(
         transferId,
         assetId,
-        currentDid,
+        senderDid,
         toDid,
         amount,
         TransactionType.TRANSFER,
@@ -536,7 +549,7 @@ class AssetManager extends EventEmitter {
       logger.info(
         "[AssetManager] 已转账资产:",
         assetId,
-        currentDid,
+        senderDid,
         "->",
         toDid,
         amount,
@@ -551,7 +564,7 @@ class AssetManager extends EventEmitter {
               type: "asset-transfer",
               transferId,
               assetId,
-              fromDid: currentDid,
+              fromDid: senderDid,
               amount,
               memo,
               blockchainTxHash,
@@ -565,7 +578,7 @@ class AssetManager extends EventEmitter {
 
       this.emit("asset:transferred", {
         assetId,
-        fromDid: currentDid,
+        fromDid: senderDid,
         toDid,
         amount,
         blockchainTxHash,

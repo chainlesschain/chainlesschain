@@ -227,6 +227,8 @@ class EscrowManager extends EventEmitter {
         "ESCROW_SYSTEM", // 系统托管账户
         escrow.amount,
         `托管 ${escrowId} - 锁定资金`,
+        {},
+        escrow.buyer_did, // 显式从买家账户扣款（不依赖当前登录用户）
       );
 
       const now = Date.now();
@@ -288,6 +290,8 @@ class EscrowManager extends EventEmitter {
         escrow.seller_did,
         escrow.amount,
         `托管 ${escrowId} - 释放资金`,
+        {},
+        "ESCROW_SYSTEM", // 从托管账户扣款，而非当前登录用户
       );
 
       const now = Date.now();
@@ -348,6 +352,8 @@ class EscrowManager extends EventEmitter {
         escrow.buyer_did,
         escrow.amount,
         `托管 ${escrowId} - 退款`,
+        {},
+        "ESCROW_SYSTEM", // 从托管账户扣款，而非当前登录用户（买家触发时避免自转账报错）
       );
 
       const now = Date.now();
