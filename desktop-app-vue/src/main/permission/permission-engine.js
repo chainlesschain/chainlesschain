@@ -325,9 +325,7 @@ class PermissionEngine extends EventEmitter {
             id: d.id,
             delegatorDid: d.delegator_did,
             permissions: safeParse(d.permissions, []),
-            resourceScope: d.resource_scope
-              ? JSON.parse(d.resource_scope)
-              : null,
+            resourceScope: safeParse(d.resource_scope, null),
             expiresAt: d.end_date,
           })),
         },

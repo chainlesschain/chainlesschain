@@ -1211,7 +1211,7 @@ class SmartContractEngine extends EventEmitter {
 
       return events.map((e) => ({
         ...e,
-        event_data: e.event_data ? JSON.parse(e.event_data) : null,
+        event_data: safeParse(e.event_data, null),
       }));
     } catch (error) {
       logger.error("[ContractEngine] 获取合约事件失败:", error);
