@@ -1085,19 +1085,7 @@ class RealtimeCollabManager extends EventEmitter {
       let exportContent = doc.content || "";
 
       if (format === "markdown") {
-        // Insert comment markers
-        const sortedComments = [...comments].sort(
-          (a, b) => b.position_start - a.position_start,
-        );
-        for (const comment of sortedComments) {
-          if (comment.position_end !== null) {
-            const marker = `[^${comment.id.substring(0, 8)}]`;
-            exportContent =
-              exportContent.slice(0, comment.position_end) +
-              marker +
-              exportContent.slice(comment.position_end);
-          }
-        }
+        exportContent = insertCommentMarkers(exportContent, comments);
 
         // Append footnotes
         if (comments.length > 0) {
@@ -1341,8 +1329,35 @@ function setRealtimeCollabManager(manager) {
   realtimeCollabManager = manager;
 }
 
+/**
+ * 把评论脚注标记插入到内容字符串中（用于 markdown 导出）。
+ *
+ * 标记插入在 `position_end` 处，因此必须按 `position_end` 降序从右往左插入，
+ * 否则靠左的插入会移动后续插入点的下标，导致标记错位。旧实现按 `position_start`
+ * 降序排序——当评论区间重叠/嵌套（如整篇评论 end=N 与内部词评论 end=m<N，但
+ * start 顺序相反）时，插入顺序与 end 顺序不一致，标记会落到错误位置。
+ * @param {string} content
+ * @param {Array<{id:string, position_end:number|null}>} comments
+ * @returns {string}
+ */
+function insertCommentMarkers(content, comments) {
+  let out = content || "";
+  const sorted = [...(comments || [])]
+    .filter((c) => c.position_end !== null && c.position_end !== undefined)
+    .sort((a, b) => b.position_end - a.position_end);
+  for (const comment of sorted) {
+    const marker = `[^${String(comment.id).substring(0, 8)}]`;
+    out =
+      out.slice(0, comment.position_end) +
+      marker +
+      out.slice(comment.position_end);
+  }
+  return out;
+}
+
 module.exports = {
   RealtimeCollabManager,
   getRealtimeCollabManager,
   setRealtimeCollabManager,
+  insertCommentMarkers,
 };
