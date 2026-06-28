@@ -127,9 +127,12 @@ async function extractBill(email, opts = {}) {
   if (billingPeriod && billingPeriod.start instanceof Date) {
     billingMonth = formatMonthKey(billingPeriod.start);
   } else if (dueDate instanceof Date) {
-    // "11 月对账单 due 12-25" → bill is for month BEFORE due
-    const prev = new Date(dueDate);
-    prev.setMonth(prev.getMonth() - 1);
+    // "11 月对账单 due 12-25" → bill is for month BEFORE due.
+    // Build from (year, month-1, 1): a naive setMonth(getMonth()-1) keeps the
+    // day, so a due-day of 29-31 overflows into the wrong month (Mar 31 − 1mo
+    // → Feb 31 → rolls to Mar 3 → wrong "-03" instead of "-02"). Month -1
+    // (January → December prior year) is handled correctly by the Date ctor.
+    const prev = new Date(dueDate.getFullYear(), dueDate.getMonth() - 1, 1);
     billingMonth = formatMonthKey(prev);
   } else {
     const m = (email.subject || "").match(/(\d{1,2})\s*月.*(?:对账单|月结|账单)/);

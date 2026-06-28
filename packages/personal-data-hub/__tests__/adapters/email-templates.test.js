@@ -241,6 +241,27 @@ describe("extractBill — bank statement", () => {
     expect(r.fields.billingMonth).toMatch(/-08$/);
   });
 
+  it("billingMonth from dueDate = month BEFORE due, no day-overflow (due on 31st)", async () => {
+    // due 2026-03-31, no billing period → bill is for February. A naive
+    // setMonth(getMonth()-1) keeps day 31 → Feb 31 rolls to Mar → wrong "-03".
+    const r = await extractBill(emailOf({
+      from: [{ address: "card@cmbchina.com" }],
+      subject: "招商银行信用卡对账单",
+      textBody: "本期应还金额 ¥1,000 元，最后还款日 2026-03-31。",
+    }));
+    expect(r.fields.dueDate).toBeGreaterThan(0);
+    expect(r.fields.billingMonth).toBe("2026-02");
+  });
+
+  it("billingMonth from dueDate crosses the year boundary (Jan due → prior Dec)", async () => {
+    const r = await extractBill(emailOf({
+      from: [{ address: "card@cmbchina.com" }],
+      subject: "招商银行信用卡对账单",
+      textBody: "本期应还金额 ¥1,000 元，最后还款日 2026-01-15。",
+    }));
+    expect(r.fields.billingMonth).toBe("2025-12");
+  });
+
   it("graceful fallback: no amount → empty fields + warning", async () => {
     const r = await extractBill(emailOf({
       from: [{ address: "ebank@somebank.com" }],

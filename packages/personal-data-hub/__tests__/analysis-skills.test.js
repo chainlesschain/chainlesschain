@@ -682,6 +682,22 @@ describe("TimelineSkill", () => {
     expect(ids).not.toContain("event-douyin-usage");
     expect(r.summary.totalEvents).toBe(1);
   });
+
+  it("honors an explicit sinceMonths window (not shadowed by the 7-day default)", async () => {
+    const day = 24 * 3600_000;
+    // ~45 days ago: outside the default 7-day window, inside a 3-month window.
+    makePayment(rig.vault, {
+      id: "tl-old", occurredAt: Date.now() - 45 * day,
+      counterpartyName: "美团", amount: 38, adapter: "alipay-bill", title: "外卖",
+    });
+    const skill = new TimelineSkill({ vault: rig.vault });
+
+    const def = await skill.run({}); // default 7-day window → excluded
+    expect(def.entries.map((e) => e.id)).not.toContain("tl-old");
+
+    const wide = await skill.run({ sinceMonths: 3 }); // 3-month window → included
+    expect(wide.entries.map((e) => e.id)).toContain("tl-old");
+  });
 });
 
 // ─── runAnalysisSkill dispatcher ─────────────────────────────────────────

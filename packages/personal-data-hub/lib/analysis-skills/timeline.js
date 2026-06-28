@@ -82,10 +82,15 @@ class TimelineSkill extends AnalysisSkill {
   }
 
   async run(options = {}) {
-    const window = this.resolveTimeWindow({
-      sinceDays: options.sinceDays ?? (options.since ? null : 7), // default 7d
-      ...options,
-    });
+    // Default to the last 7 days only when the caller gave no window at all.
+    // The old `{ sinceDays: …, ...options }` merge injected sinceDays:7 ahead
+    // of resolveTimeWindow's since > sinceDays > sinceMonths precedence, so an
+    // explicit `sinceMonths: N` was silently shadowed into a 7-day window.
+    const hasWindow =
+      (typeof options.since === "number" && options.since > 0) ||
+      (typeof options.sinceDays === "number" && options.sinceDays > 0) ||
+      (typeof options.sinceMonths === "number" && options.sinceMonths > 0);
+    const window = this.resolveTimeWindow(hasWindow ? options : { sinceDays: 7 });
     const limit = Number.isFinite(options.limit) && options.limit > 0
       ? Math.min(options.limit, 1000)
       : 100;
