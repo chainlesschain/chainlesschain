@@ -44,6 +44,16 @@ const URL_TRANSPORTS = new Set(["http", "https", "sse", "ws", "wss"]);
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
 
 /**
+ * Default per-call timeout for stdio MCP requests — the same 30s default as the
+ * HTTP path. The stdio request path now honours the SAME `config.longRunning`
+ * exemption and `config.requestTimeoutMs` override (0 disables) the HTTP path
+ * already respected; previously stdio hardcoded 30s, so a long-running stdio
+ * tool (one that blocks on human input or a long computation) was killed at a
+ * hard 30s regardless of its config — an inconsistency with HTTP servers.
+ */
+const STDIO_REQUEST_TIMEOUT_MS = 30000;
+
+/**
  * Infer the transport kind for a server config. Falls back to "stdio".
  * Prefers an explicit `transport` field; otherwise derives from URL scheme
  * (http → http, https → https, ws/wss preserved); otherwise stdio.
@@ -693,18 +703,32 @@ export class MCPClient extends EventEmitter {
 
       entry._pending.set(id, { resolve, reject });
 
-      // Set timeout
-      const timeout = setTimeout(() => {
-        entry._pending.delete(id);
-        reject(new Error(`Request timeout: ${method}`));
-      }, 30000);
-
-      entry._pending.get(id).timeout = timeout;
+      // Per-call timeout — honour the same config knobs as the HTTP path so the
+      // two transports behave consistently: `longRunning` servers (a tool that
+      // blocks on human input / a long computation) are exempt, and
+      // `requestTimeoutMs` overrides the 30s default (0 disables). Previously
+      // this was a hard 30s that silently killed a long-running stdio request
+      // even when the server was configured otherwise. When no timer is armed
+      // the pending entry simply has no `.timeout`; every consumer
+      // (_handleMessage / failPending / buffer-overflow drain) already tolerates
+      // an absent timeout.
+      const longRunning = Boolean(entry.config && entry.config.longRunning);
+      const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
+        ? entry.config.requestTimeoutMs
+        : STDIO_REQUEST_TIMEOUT_MS;
+      let timeout = null;
+      if (!longRunning && timeoutMs > 0) {
+        timeout = setTimeout(() => {
+          entry._pending.delete(id);
+          reject(new Error(`Request timeout: ${method}`));
+        }, timeoutMs);
+        entry._pending.get(id).timeout = timeout;
+      }
 
       try {
         entry.process.stdin.write(message + "\n");
       } catch (err) {
-        clearTimeout(timeout);
+        clearTimeout(timeout); // clearTimeout(null) is a safe no-op
         entry._pending.delete(id);
         reject(err);
       }
