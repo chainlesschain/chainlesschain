@@ -10,6 +10,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -501,7 +502,7 @@ class TaskPlannerEnhanced extends EventEmitter {
           maxTokens: 2000,
         });
 
-        taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+        taskPlan = looseParseJSON(this.cleanAndFixJSON(response.text));
         logger.info("[TaskPlannerEnhanced] ✅ 主LLM成功");
       } catch (error1) {
         logger.warn("[TaskPlannerEnhanced] 主LLM失败:", error1.message);
@@ -511,7 +512,7 @@ class TaskPlannerEnhanced extends EventEmitter {
           try {
             logger.info("[TaskPlannerEnhanced] 尝试2: 修复JSON格式");
             const cleaned = this.cleanAndFixJSON(response.text);
-            taskPlan = JSON.parse(cleaned);
+            taskPlan = looseParseJSON(cleaned);
             logger.info("[TaskPlannerEnhanced] ✅ JSON修复成功");
           } catch (error2) {
             logger.warn("[TaskPlannerEnhanced] JSON修复失败:", error2.message);
@@ -525,7 +526,7 @@ class TaskPlannerEnhanced extends EventEmitter {
                 temperature: 0.3,
               });
 
-              taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+              taskPlan = looseParseJSON(this.cleanAndFixJSON(response.text));
               logger.info("[TaskPlannerEnhanced] ✅ 后端AI服务成功");
             } catch (error3) {
               logger.warn(
@@ -858,7 +859,7 @@ ${userRequest}
    * 尝试修复常见的JSON格式错误
    */
   cleanAndFixJSON(jsonText) {
-    let cleaned = jsonText
+    const cleaned = jsonText
       // 移除代码块标记
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")
@@ -878,12 +879,8 @@ ${userRequest}
       .join("")
       .trim();
 
-    // 尝试提取JSON对象
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      cleaned = jsonMatch[0];
-    }
-
+    // 注意：JSON 对象的提取交给调用方的 looseParseJSON（括号配对候选，抗追加散文/
+    // 多对象），不再在此做贪婪 `match(/{[\s\S]*}/)` 截取（会过度捕获到散文里的 `}`）。
     return cleaned;
   }
 

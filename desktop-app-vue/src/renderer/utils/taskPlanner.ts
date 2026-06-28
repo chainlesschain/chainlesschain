@@ -3,7 +3,8 @@
  * 类似Claude Code的plan模式，通过对话收集信息并制定详细计划
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
+import { looseParseJSON } from "@/utils/loose-json";
 
 // ==================== 类型定义 ====================
 
@@ -11,17 +12,18 @@ import { logger } from '@/utils/logger';
  * 规划状态枚举
  */
 export const PlanningState = {
-  IDLE: 'idle',
-  ANALYZING: 'analyzing',
-  INTERVIEWING: 'interviewing',
-  PLANNING: 'planning',
-  CONFIRMING: 'confirming',
-  EXECUTING: 'executing',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled'
+  IDLE: "idle",
+  ANALYZING: "analyzing",
+  INTERVIEWING: "interviewing",
+  PLANNING: "planning",
+  CONFIRMING: "confirming",
+  EXECUTING: "executing",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
 } as const;
 
-export type PlanningStateValue = typeof PlanningState[keyof typeof PlanningState];
+export type PlanningStateValue =
+  (typeof PlanningState)[keyof typeof PlanningState];
 
 /**
  * 问题选项
@@ -124,7 +126,7 @@ export class PlanningSession {
   createdAt: number;
   updatedAt: number;
 
-  constructor(userInput: string, projectType: string = 'document') {
+  constructor(userInput: string, projectType: string = "document") {
     this.id = `plan_${Date.now()}`;
     this.state = PlanningState.IDLE;
     this.userInput = userInput;
@@ -135,23 +137,23 @@ export class PlanningSession {
       confidence: 0,
       missing: [],
       collected: {},
-      suggestions: []
+      suggestions: [],
     };
 
     this.interview = {
       questions: [],
       currentIndex: 0,
       answers: {},
-      completed: false
+      completed: false,
     };
 
     this.plan = {
-      title: '',
-      summary: '',
+      title: "",
+      summary: "",
       tasks: [],
       resources: [],
-      estimatedDuration: '',
-      outputs: []
+      estimatedDuration: "",
+      outputs: [],
     };
 
     this.confirmed = false;
@@ -183,7 +185,7 @@ export class PlanningSession {
       question,
       key,
       required,
-      answered: false
+      answered: false,
     });
   }
 
@@ -196,9 +198,10 @@ export class PlanningSession {
       question.answered = true;
       this.interview.answers[question.key] = answer;
 
-      const stringValue = typeof answer === 'string'
-        ? answer
-        : `${answer.selectedOption || ''}${answer.additionalInput ? ` - ${answer.additionalInput}` : ''}`;
+      const stringValue =
+        typeof answer === "string"
+          ? answer
+          : `${answer.selectedOption || ""}${answer.additionalInput ? ` - ${answer.additionalInput}` : ""}`;
       this.addCollectedInfo(question.key, stringValue);
     }
   }
@@ -241,9 +244,9 @@ export class TaskPlanner {
   static async analyzeRequirements(
     userInput: string,
     projectType: string,
-    llmService: LLMService
+    llmService: LLMService,
   ): Promise<RequirementAnalysis> {
-    logger.info('[TaskPlanner] 开始分析需求完整性:', userInput);
+    logger.info("[TaskPlanner] 开始分析需求完整性:", userInput);
 
     const prompt = `请分析以下用户需求的完整性：
 
@@ -289,141 +292,218 @@ export class TaskPlanner {
 }`;
 
     try {
-      logger.info('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
+      logger.info("[TaskPlanner] 开始调用LLM，设置10分钟超时...");
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('LLM调用超时（10分钟）')), 600000);
+        setTimeout(() => reject(new Error("LLM调用超时（10分钟）")), 600000);
       });
 
       const response = await Promise.race([
         llmService.chat(prompt),
-        timeoutPromise
+        timeoutPromise,
       ]);
 
-      logger.info('[TaskPlanner] ✅ LLM响应成功，长度:', response?.length || 0);
+      logger.info("[TaskPlanner] ✅ LLM响应成功，长度:", response?.length || 0);
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const analysis: RequirementAnalysis = JSON.parse(jsonMatch[0]);
-        logger.info('[TaskPlanner] 需求分析完成:', analysis);
+      let analysis: RequirementAnalysis | null = null;
+      try {
+        analysis = looseParseJSON(response) as RequirementAnalysis;
+      } catch {
+        analysis = null;
+      }
+      if (analysis) {
+        logger.info("[TaskPlanner] 需求分析完成:", analysis);
         return analysis;
       }
 
-      logger.warn('[TaskPlanner] 无法解析分析结果，使用默认值');
+      logger.warn("[TaskPlanner] 无法解析分析结果，使用默认值");
       return {
         isComplete: false,
         confidence: 0.5,
-        missing: ['详细要求'],
+        missing: ["详细要求"],
         collected: {},
         needsInterview: true,
         suggestedQuestions: [
-          { key: 'details', question: '能否详细描述一下您的需求？', required: true }
-        ]
+          {
+            key: "details",
+            question: "能否详细描述一下您的需求？",
+            required: true,
+          },
+        ],
       };
     } catch (error) {
-      logger.error('[TaskPlanner] ❌ 需求分析失败:', error);
+      logger.error("[TaskPlanner] ❌ 需求分析失败:", error);
 
-      logger.warn('[TaskPlanner] 使用降级方案：返回默认采访问题');
+      logger.warn("[TaskPlanner] 使用降级方案：返回默认采访问题");
 
       const defaultQuestions: Record<string, InterviewQuestion[]> = {
         document: [
           {
-            key: 'audience',
-            question: '这份文档的目标受众是谁？',
+            key: "audience",
+            question: "这份文档的目标受众是谁？",
             required: true,
             options: [
-              { value: 'beginner', label: '初学者/新手', description: '需要详细解释基础概念' },
-              { value: 'professional', label: '专业人士', description: '可以使用行业术语' },
-              { value: 'general', label: '普通大众', description: '通俗易懂的语言' }
+              {
+                value: "beginner",
+                label: "初学者/新手",
+                description: "需要详细解释基础概念",
+              },
+              {
+                value: "professional",
+                label: "专业人士",
+                description: "可以使用行业术语",
+              },
+              {
+                value: "general",
+                label: "普通大众",
+                description: "通俗易懂的语言",
+              },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
           {
-            key: 'style',
-            question: '您期望的风格是？',
+            key: "style",
+            question: "您期望的风格是？",
             required: false,
             options: [
-              { value: 'formal', label: '正式专业', description: '适合商务、学术场景' },
-              { value: 'casual', label: '轻松随意', description: '适合日常交流' },
-              { value: 'technical', label: '技术性强', description: '包含详细技术细节' },
-              { value: 'creative', label: '创意活泼', description: '生动有趣的表达' }
+              {
+                value: "formal",
+                label: "正式专业",
+                description: "适合商务、学术场景",
+              },
+              {
+                value: "casual",
+                label: "轻松随意",
+                description: "适合日常交流",
+              },
+              {
+                value: "technical",
+                label: "技术性强",
+                description: "包含详细技术细节",
+              },
+              {
+                value: "creative",
+                label: "创意活泼",
+                description: "生动有趣的表达",
+              },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
           {
-            key: 'length',
-            question: '文档大概需要多长？',
+            key: "length",
+            question: "文档大概需要多长？",
             required: false,
             options: [
-              { value: 'short', label: '简短（1-2页）', description: '约500-1000字' },
-              { value: 'medium', label: '中等（3-5页）', description: '约1500-3000字' },
-              { value: 'long', label: '详细（5页以上）', description: '3000字以上' }
+              {
+                value: "short",
+                label: "简短（1-2页）",
+                description: "约500-1000字",
+              },
+              {
+                value: "medium",
+                label: "中等（3-5页）",
+                description: "约1500-3000字",
+              },
+              {
+                value: "long",
+                label: "详细（5页以上）",
+                description: "3000字以上",
+              },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
         ],
         web: [
           {
-            key: 'purpose',
-            question: '这个网页的主要目的是什么？',
+            key: "purpose",
+            question: "这个网页的主要目的是什么？",
             required: true,
             options: [
-              { value: 'marketing', label: '营销推广', description: '产品或服务宣传' },
-              { value: 'information', label: '信息展示', description: '展示内容和资讯' },
-              { value: 'ecommerce', label: '电商销售', description: '在线购物功能' },
-              { value: 'community', label: '社区互动', description: '用户交流平台' }
+              {
+                value: "marketing",
+                label: "营销推广",
+                description: "产品或服务宣传",
+              },
+              {
+                value: "information",
+                label: "信息展示",
+                description: "展示内容和资讯",
+              },
+              {
+                value: "ecommerce",
+                label: "电商销售",
+                description: "在线购物功能",
+              },
+              {
+                value: "community",
+                label: "社区互动",
+                description: "用户交流平台",
+              },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
           {
-            key: 'target_users',
-            question: '目标用户群体是谁？',
+            key: "target_users",
+            question: "目标用户群体是谁？",
             required: false,
             options: [
-              { value: 'youth', label: '年轻用户（18-30岁）' },
-              { value: 'professional', label: '职场人士' },
-              { value: 'senior', label: '中老年用户' },
-              { value: 'all', label: '全年龄段' }
+              { value: "youth", label: "年轻用户（18-30岁）" },
+              { value: "professional", label: "职场人士" },
+              { value: "senior", label: "中老年用户" },
+              { value: "all", label: "全年龄段" },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
         ],
         data: [
           {
-            key: 'data_source',
-            question: '数据来源是什么？',
+            key: "data_source",
+            question: "数据来源是什么？",
             required: true,
             options: [
-              { value: 'csv', label: 'CSV文件' },
-              { value: 'excel', label: 'Excel表格' },
-              { value: 'database', label: '数据库' },
-              { value: 'api', label: 'API接口' }
+              { value: "csv", label: "CSV文件" },
+              { value: "excel", label: "Excel表格" },
+              { value: "database", label: "数据库" },
+              { value: "api", label: "API接口" },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
           {
-            key: 'analysis_goal',
-            question: '分析的目标是什么？',
+            key: "analysis_goal",
+            question: "分析的目标是什么？",
             required: true,
             options: [
-              { value: 'visualization', label: '数据可视化', description: '图表展示' },
-              { value: 'statistics', label: '统计分析', description: '计算指标和趋势' },
-              { value: 'report', label: '分析报告', description: '生成完整报告' }
+              {
+                value: "visualization",
+                label: "数据可视化",
+                description: "图表展示",
+              },
+              {
+                value: "statistics",
+                label: "统计分析",
+                description: "计算指标和趋势",
+              },
+              {
+                value: "report",
+                label: "分析报告",
+                description: "生成完整报告",
+              },
             ],
-            allowCustom: true
+            allowCustom: true,
           },
-        ]
+        ],
       };
 
-      const questions = defaultQuestions[projectType] || defaultQuestions.document;
+      const questions =
+        defaultQuestions[projectType] || defaultQuestions.document;
 
       return {
         isComplete: false,
         confidence: 0.3,
-        missing: ['具体需求细节'],
+        missing: ["具体需求细节"],
         collected: { userInput },
         needsInterview: true,
-        suggestedQuestions: questions
+        suggestedQuestions: questions,
       };
     }
   }
@@ -431,23 +511,32 @@ export class TaskPlanner {
   /**
    * 生成任务计划
    */
-  static async generatePlan(session: PlanningSession, llmService: LLMService): Promise<TaskPlan> {
-    logger.info('[TaskPlanner] 开始生成任务计划');
+  static async generatePlan(
+    session: PlanningSession,
+    llmService: LLMService,
+  ): Promise<TaskPlan> {
+    logger.info("[TaskPlanner] 开始生成任务计划");
 
     const collectedInfo = Object.entries(session.analysis.collected)
       .map(([key, value]) => `- ${key}: ${value}`)
-      .join('\n');
+      .join("\n");
 
     const interviewAnswers = Object.entries(session.interview.answers)
       .map(([key, value]) => {
-        if (typeof value === 'object' && value !== null && 'selectedOption' in value) {
-          const optionText = value.selectedOption || '(未选择)';
-          const additionalText = value.additionalInput ? ` - ${value.additionalInput}` : '';
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          "selectedOption" in value
+        ) {
+          const optionText = value.selectedOption || "(未选择)";
+          const additionalText = value.additionalInput
+            ? ` - ${value.additionalInput}`
+            : "";
           return `- ${key}: ${optionText}${additionalText}`;
         }
         return `- ${key}: ${value}`;
       })
-      .join('\n');
+      .join("\n");
 
     const prompt = `基于以下信息，请生成详细的任务执行计划：
 
@@ -485,70 +574,72 @@ ${interviewAnswers}
 
     try {
       const response = await llmService.chat(prompt);
-      logger.info('[TaskPlanner] LLM响应:', response);
-      logger.info('[TaskPlanner] 响应长度:', response?.length || 0);
+      logger.info("[TaskPlanner] LLM响应:", response);
+      logger.info("[TaskPlanner] 响应长度:", response?.length || 0);
 
       if (!response || response.length === 0) {
-        throw new Error('LLM返回空响应');
+        throw new Error("LLM返回空响应");
       }
 
       let jsonText: string | null = null;
 
-      const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const codeBlockMatch = response.match(
+        /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
+      );
       if (codeBlockMatch) {
         jsonText = codeBlockMatch[1];
-        logger.info('[TaskPlanner] 从代码块中提取JSON');
+        logger.info("[TaskPlanner] 从代码块中提取JSON");
       }
 
       if (!jsonText) {
         const jsonMatch = response.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
         if (jsonMatch) {
           jsonText = jsonMatch[0];
-          logger.info('[TaskPlanner] 使用简单匹配提取JSON');
+          logger.info("[TaskPlanner] 使用简单匹配提取JSON");
         }
       }
 
       if (!jsonText) {
-        const firstBrace = response.indexOf('{');
-        const lastBrace = response.lastIndexOf('}');
+        const firstBrace = response.indexOf("{");
+        const lastBrace = response.lastIndexOf("}");
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
           jsonText = response.substring(firstBrace, lastBrace + 1);
-          logger.info('[TaskPlanner] 使用{}匹配提取JSON');
+          logger.info("[TaskPlanner] 使用{}匹配提取JSON");
         }
       }
 
       if (!jsonText) {
-        logger.error('[TaskPlanner] 无法从响应中提取JSON');
-        logger.error('[TaskPlanner] 完整响应:', response);
-        throw new Error('响应中未找到JSON格式的任务计划');
+        logger.error("[TaskPlanner] 无法从响应中提取JSON");
+        logger.error("[TaskPlanner] 完整响应:", response);
+        throw new Error("响应中未找到JSON格式的任务计划");
       }
 
       let plan: TaskPlan;
       try {
-        plan = JSON.parse(jsonText);
-        logger.info('[TaskPlanner] JSON解析成功:', plan);
+        // looseParseJSON 在提取串上再做括号配对兜底，纠正 lastBrace 贪婪过度捕获
+        plan = looseParseJSON(jsonText) as TaskPlan;
+        logger.info("[TaskPlanner] JSON解析成功:", plan);
       } catch (parseError) {
-        logger.error('[TaskPlanner] JSON解析失败:', parseError);
-        logger.error('[TaskPlanner] 尝试解析的文本:', jsonText);
+        logger.error("[TaskPlanner] JSON解析失败:", parseError);
+        logger.error("[TaskPlanner] 尝试解析的文本:", jsonText);
         throw new Error(`JSON解析失败: ${(parseError as Error).message}`);
       }
 
       if (!plan.title || !plan.tasks || !Array.isArray(plan.tasks)) {
-        logger.warn('[TaskPlanner] 计划缺少必要字段，使用默认值补充');
-        plan.title = plan.title || '任务执行计划';
-        plan.summary = plan.summary || '根据您的需求生成的任务计划';
+        logger.warn("[TaskPlanner] 计划缺少必要字段，使用默认值补充");
+        plan.title = plan.title || "任务执行计划";
+        plan.summary = plan.summary || "根据您的需求生成的任务计划";
         plan.tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
         plan.outputs = plan.outputs || [];
         plan.notes = plan.notes || [];
       }
 
-      logger.info('[TaskPlanner] 任务计划生成完成:', plan);
+      logger.info("[TaskPlanner] 任务计划生成完成:", plan);
       return plan;
-
     } catch (error) {
-      logger.error('[TaskPlanner] 任务计划生成失败:', error);
+      logger.error("[TaskPlanner] 任务计划生成失败:", error);
 
-      logger.warn('[TaskPlanner] 使用降级方案：生成默认任务计划');
+      logger.warn("[TaskPlanner] 使用降级方案：生成默认任务计划");
 
       const defaultPlan: TaskPlan = {
         title: `执行计划：${session.userInput}`,
@@ -556,38 +647,38 @@ ${interviewAnswers}
         tasks: [
           {
             id: 1,
-            name: '需求分析',
-            description: '详细分析用户需求',
+            name: "需求分析",
+            description: "详细分析用户需求",
             action: `分析"${session.userInput}"的具体要求`,
-            output: '需求分析报告'
+            output: "需求分析报告",
           },
           {
             id: 2,
-            name: '方案设计',
-            description: '设计实施方案',
-            action: '根据需求设计具体实施方案',
-            output: '实施方案文档'
+            name: "方案设计",
+            description: "设计实施方案",
+            action: "根据需求设计具体实施方案",
+            output: "实施方案文档",
           },
           {
             id: 3,
-            name: '执行实施',
-            description: '按照方案执行',
-            action: '按照设计的方案逐步实施',
-            output: '任务成果'
+            name: "执行实施",
+            description: "按照方案执行",
+            action: "按照设计的方案逐步实施",
+            output: "任务成果",
           },
           {
             id: 4,
-            name: '验证优化',
-            description: '验证结果并优化',
-            action: '检查成果质量并进行必要的优化',
-            output: '最终成果'
-          }
+            name: "验证优化",
+            description: "验证结果并优化",
+            action: "检查成果质量并进行必要的优化",
+            output: "最终成果",
+          },
         ],
-        outputs: ['最终成果文档', '相关文件'],
-        notes: ['请根据实际情况调整计划', '遇到问题及时沟通']
+        outputs: ["最终成果文档", "相关文件"],
+        notes: ["请根据实际情况调整计划", "遇到问题及时沟通"],
       };
 
-      logger.info('[TaskPlanner] 返回默认计划:', defaultPlan);
+      logger.info("[TaskPlanner] 返回默认计划:", defaultPlan);
       return defaultPlan;
     }
   }
@@ -610,18 +701,18 @@ ${interviewAnswers}
 
     if (plan.outputs && plan.outputs.length > 0) {
       markdown += `## 🎯 预期输出\n\n`;
-      plan.outputs.forEach(output => {
+      plan.outputs.forEach((output) => {
         markdown += `- ${output}\n`;
       });
-      markdown += '\n';
+      markdown += "\n";
     }
 
     if (plan.notes && plan.notes.length > 0) {
       markdown += `## ⚠️ 注意事项\n\n`;
-      plan.notes.forEach(note => {
+      plan.notes.forEach((note) => {
         markdown += `- ${note}\n`;
       });
-      markdown += '\n';
+      markdown += "\n";
     }
 
     return markdown;
