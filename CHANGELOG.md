@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests — 修复 3 个并行改动遗留的陈旧单元测试（全测试金字塔转绿，无源码行为变更）
+
+> 全量复跑 CLI（unit 20,682 / integration 922 / e2e 617）+ web-panel 2,429 + PDH 2,945 + 桌面 renderer store 1,677，唯一失败为 3 个**陈旧测试**——均是并行 session 的产品修复/重构未同步对应测试导致的确定性失败（非线上 bug）。逐个根因定位后修测试断言，不改源码。
+
+- **`insights-command.test.js`**：`e08157adcf` 给 `session-usage.js` 的静态 import/`_deps` 加了 `listJsonlSessions`，把它带入 `session-insights → insights` 的模块加载图；测试对 `jsonl-session-store` 的 mock 没补这个导出 → 分析路径在模块加载期抛错（被吞进 "insights failed"）→ 命令零输出。补全 mock。
+- **`agent-include-partial-messages.test.js`**：流式 delta 合并（CC 2.1.191，默认 50ms）现在把 "Hel"+"lo" 批成 "Hello"；该测试早于合并特性，仍断言逐 token。传 `streamCoalesceMs:0` 保留 legacy 逐 token 断言（默认合并路径已由 `headless-stream-coalesce.test.js` 覆盖）。
+- **`firmwareOta.test.ts`**：`42f8ae8116` 改 `startUpdate` 成功后**保留** `currentUpdate`（使 `isUpdating` getter 反映进行中的更新），但 store 测试仍断言旧的 "finally 清空 currentUpdate"。改断言为 currentUpdate 已设置 + isUpdating=true。
+
 ### Added — cc CLI 0.162.123：凭据读取保护 + Claude Code 2.1.191 平价五则（已发 npm）
 
 > CLI-only 发版（`chainlesschain` 0.162.122 → **0.162.123**，已发 npm `latest`，弃用区间 `<0.162.123 || >0.162.123`，212 版仅 0.162.123 live）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。全部带回归单测。
