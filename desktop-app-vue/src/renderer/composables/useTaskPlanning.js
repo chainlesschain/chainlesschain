@@ -1,6 +1,7 @@
 import { nextTick } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import { logger } from "@/utils/logger";
+import { looseParseJSON } from "@/utils/loose-json";
 import { TaskPlanner } from "../utils/taskPlanner";
 import {
   MessageType,
@@ -633,16 +634,13 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
       const outlineResponse = await llmService.chat(outlinePrompt);
 
-      const jsonMatch =
-        outlineResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
-        outlineResponse.match(/(\{[\s\S]*\})/);
-
-      if (!jsonMatch) {
+      let outline;
+      try {
+        // looseParseJSON: 直接→```fenced```→括号配对候选→贪婪兜底（抗追加散文/多对象）
+        outline = looseParseJSON(sanitizeJSONString(outlineResponse));
+      } catch {
         throw new Error("无法从LLM响应中提取PPT大纲JSON");
       }
-
-      const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-      const outline = JSON.parse(sanitizedJSON);
 
       generatingPPTMsg.content = "⏳ 正在写入PPT文件...";
       messages.value = [...messages.value];
@@ -747,16 +745,14 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
       const structureResponse = await llmService.chat(structurePrompt);
 
-      const jsonMatch =
-        structureResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
-        structureResponse.match(/(\{[\s\S]*\})/);
-
-      if (!jsonMatch) {
+      let rawDocumentStructure;
+      try {
+        rawDocumentStructure = looseParseJSON(
+          sanitizeJSONString(structureResponse),
+        );
+      } catch {
         throw new Error("无法从LLM响应中提取文档结构JSON");
       }
-
-      const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-      const rawDocumentStructure = JSON.parse(sanitizedJSON);
 
       // LLM 返回 { heading: "string", level: number, content: "string" }；
       // word-engine 期望 { text: "string", heading: number }
@@ -872,16 +868,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
       const dataResponse = await llmService.chat(dataPrompt);
 
-      const jsonMatch =
-        dataResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
-        dataResponse.match(/(\{[\s\S]*\})/);
-
-      if (!jsonMatch) {
+      let dataStructure;
+      try {
+        dataStructure = looseParseJSON(sanitizeJSONString(dataResponse));
+      } catch {
         throw new Error("无法从LLM响应中提取数据结构JSON");
       }
-
-      const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-      const dataStructure = JSON.parse(sanitizedJSON);
 
       generatingExcelMsg.content = "⏳ 正在写入Excel文件...";
       messages.value = [...messages.value];
