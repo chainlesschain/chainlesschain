@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.133 · 2026-06-28',
+    title: '个人数据中台采集/分析三连：MIUI 浏览历史 + 账单月份/时间线修复 + 微博私信',
+    sub: '累计 v5.0.3.131–133：MIUI/AOSP 默认浏览器历史采集器；PDH 分析层两处日期正确性修复上设备；微博私信采集（device-verified schema，高敏感 opt-in）。pdh 0.4.36 → 0.4.39 + cli 0.162.117 → 0.162.129 已发 npm；Android cc bundle internal-binaries-android-v20260628c（USR_VERSION 61）。',
+    desc: 'v5.0.3.131 MIUI/AOSP 浏览历史采集器：新增 browser-history-aosp 适配器，直读 com.android.browser 的 browser2.db（history / bookmarks，列名经 PRAGMA table_info 动态解析，ROM 变体安全），复用 Chrome 适配器 normalize() 产出一致的 BROWSE Event / LINK Item，闭合 schema 字典记录的 MIUI 默认浏览器「适配缺口」。v5.0.3.132 PDH 分析层日期修复上设备：账单月份从 dueDate 推算时 naive setMonth(getMonth()-1) 在还款日 29–31 号溢出到错误月份（改 new Date(year, month-1, 1)）；时间线显式 sinceMonths 被默认 7 天窗口静默遮蔽（改为仅未给窗口时套默认）；新增桥接连通集成测试（6 测试，自动化跨设备验证法）。v5.0.3.133 微博私信采集：补全 message_<uid>.db（t_buddy → PERSON / t_session → TOPIC / t_message → EVENT，列名真机 device-verified），高敏感 → opt-in includeDm:true（默认关），不影响既有 posts / likes / follows。版本面：productVersion v5.0.3.130 → v5.0.3.133；pdh 0.4.39 + chainlesschain 0.162.129 已发 npm；USR_VERSION 61 / binariesVersion 20260628c。',
+  },
+  {
     tag: 'v5.0.3.130 · 2026-06-24',
     title: 'QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口',
     sub: '累计 v5.0.3.127–130：QQ空间（Qzone）App 内嵌 WebView 一键采集（说说/留言板/相册，真机 404 事件）+ 微信朋友圈明文采集（真机 2824 条）；§8.3 学习层备份命令上设备；个人助手卡死看门狗 + 待裁决信任卡固定可见。pdh 0.4.36 + cli 0.162.117 已发 npm；Android cc bundle internal-binaries-android-v20260624（USR_VERSION 58）。',

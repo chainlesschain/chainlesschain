@@ -45,6 +45,17 @@
 
 ---
 
+## 2026-06-28 Release — **v5.0.3.131–133: PDH collection/analysis trio (MIUI browser history + bill-month/timeline fixes + Weibo DMs) (pdh 0.4.39 / cli 0.162.129)**
+
+> Cumulative v5.0.3.131–133: MIUI/AOSP default-browser history collector; two PDH analysis-layer date-correctness fixes shipped on device; Weibo direct-message collection (device-verified schema, high-sensitivity opt-in). Per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **v5.0.3.131 — MIUI/AOSP browser-history collector**: new `browser-history-aosp` adapter reads `com.android.browser`'s `browser2.db` (`history`/`bookmarks`, columns resolved dynamically via `PRAGMA table_info` for ROM-variant safety), reusing the Chrome adapter's `normalize()` to emit identical `BROWSE` Event / `LINK` Item — closing the "adaptation gap" the schema dictionary recorded for MIUI's default browser.
+- **v5.0.3.132 — PDH analysis date fixes on device**: deriving the bill month from `dueDate` used a naive `setMonth(getMonth()-1)` that overflowed to the wrong month for due-days 29–31 (now `new Date(year, month-1, 1)`); an explicit `sinceMonths` timeline window was silently masked by the default 7-day window (now the default only applies when no window is given). New bridge-connect integration test (6 tests) automating the cross-device verification flow.
+- **v5.0.3.133 — Weibo DM collection**: fills in `message_<uid>.db` (`t_buddy`→PERSON / `t_session`→TOPIC / `t_message`→EVENT, columns device-verified), **high-sensitivity → opt-in `includeDm:true` (off by default)**, leaving existing posts/likes/follows untouched.
+- **Versions**: productVersion v5.0.3.130 → v5.0.3.133; pdh 0.4.36 → 0.4.39 + `chainlesschain` 0.162.117 → 0.162.129 published to npm; Android cc bundle `internal-binaries-android-v20260628c` (USR_VERSION 61).
+
+---
+
 ## 2026-06-24 Release — **v5.0.3.130: Qzone one-tap collection + WeChat Moments collection + §8.3 learning-layer backup on device + personal-assistant UX (pdh 0.4.36 / cli 0.162.117)**
 
 > Cumulative v5.0.3.127–130: QQ Zone (Qzone) one-tap collection via an in-app WebView (feed / message board / albums) + WeChat Moments plaintext collection; §8.3 learning-layer backup commands on device; personal-assistant stuck-watchdog + sticky always-visible trust cards. Per-version detail in [CHANGELOG.md](CHANGELOG.md).
