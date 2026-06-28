@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load map. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[FewShot] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 /**
  * 动态Few-shot学习器
  *
@@ -88,7 +101,7 @@ class DynamicFewShotLearner {
         input: row.user_input,
         output: {
           intent: row.intent,
-          entities: JSON.parse(row.entities || "{}"),
+          entities: safeParse(row.entities, {}),
         },
         confidence: row.confidence,
         timestamp: row.created_at,
@@ -197,7 +210,7 @@ class DynamicFewShotLearner {
         input: row.user_input,
         output: {
           intent: row.intent,
-          entities: JSON.parse(row.entities || "{}"),
+          entities: safeParse(row.entities, {}),
         },
         confidence: row.avg_confidence,
         isGeneric: true,

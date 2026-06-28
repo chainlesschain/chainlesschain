@@ -14,6 +14,19 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load map. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[SpecTranslator] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -458,7 +471,7 @@ class SpecTranslator extends EventEmitter {
         .all(max);
       return rows.map((r) => ({
         ...r,
-        spec_json: JSON.parse(r.spec_json || "{}"),
+        spec_json: safeParse(r.spec_json, {}),
       }));
     } catch {
       return [];

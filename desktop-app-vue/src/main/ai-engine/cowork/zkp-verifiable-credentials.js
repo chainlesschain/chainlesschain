@@ -20,6 +20,19 @@ const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const crypto = require("crypto");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ZKP-VC] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -162,9 +175,9 @@ class ZKPVerifiableCredentials extends EventEmitter {
           type: row.credential_type,
           issuerDid: row.issuer_did,
           subjectDid: row.subject_did,
-          claims: JSON.parse(row.claims || "{}"),
-          disclosedClaims: JSON.parse(row.disclosed_claims || "[]"),
-          proof: JSON.parse(row.proof || "{}"),
+          claims: safeParse(row.claims, {}),
+          disclosedClaims: safeParse(row.disclosed_claims, []),
+          proof: safeParse(row.proof, {}),
           proofScheme: row.proof_scheme,
           revocationId: row.revocation_id,
           status: row.status,

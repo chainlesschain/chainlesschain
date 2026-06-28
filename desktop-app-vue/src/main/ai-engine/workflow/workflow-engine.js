@@ -12,6 +12,19 @@ const { logger } = require("../../utils/logger.js");
 const MAX_EXECUTIONS = 500;
 const TERMINAL_EXEC_STATES = new Set(["completed", "failed", "rolled_back"]);
 
+/** Tolerant JSON column parse — a corrupt row must not abort the workflow load. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[WorkflowEngine] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 class WorkflowEngine extends EventEmitter {
   constructor() {
     super();
@@ -80,7 +93,7 @@ class WorkflowEngine extends EventEmitter {
       for (const row of rows) {
         this._workflows.set(row.id, {
           ...row,
-          dag: JSON.parse(row.dag || "{}"),
+          dag: safeParse(row.dag, {}),
         });
       }
     } catch (error) {

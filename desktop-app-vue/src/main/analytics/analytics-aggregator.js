@@ -15,6 +15,19 @@ const { EventEmitter } = require("events");
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load map. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[Analytics] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 class AnalyticsAggregator extends EventEmitter {
   constructor() {
     super();
@@ -78,7 +91,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @private
    */
   _ensureTable() {
-    if (!this.database) {return;}
+    if (!this.database) {
+      return;
+    }
 
     try {
       const db = this.database.db || this.database;
@@ -114,7 +129,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @returns {Object|null}
    */
   _getDb() {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
     return this.database.db || this.database;
   }
 
@@ -187,7 +204,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @private
    */
   async _pushRealtime() {
-    if (!this.mainWindow?.webContents) {return;}
+    if (!this.mainWindow?.webContents) {
+      return;
+    }
     try {
       const snapshot = await this._collectAllMetrics();
       this.mainWindow.webContents.send("analytics:realtime-update", snapshot);
@@ -281,9 +300,10 @@ class AnalyticsAggregator extends EventEmitter {
         metrics.errors.errorRate = errorStats.errorRate || 0;
         metrics.errors.byType =
           errorStats.byType || errorStats.byCategory || {};
-        metrics.errors.recentErrors = (
-          errorStats.recentErrors || []
-        ).slice(0, 10);
+        metrics.errors.recentErrors = (errorStats.recentErrors || []).slice(
+          0,
+          10,
+        );
       } catch (e) {
         logger.debug("[Analytics] ErrorMonitor collection failed:", e.message);
       }
@@ -339,7 +359,9 @@ class AnalyticsAggregator extends EventEmitter {
    */
   async getTimeSeries(metric, { from, to, granularity = "hourly" } = {}) {
     const db = this._getDb();
-    if (!db) {return [];}
+    if (!db) {
+      return [];
+    }
 
     try {
       let query =
@@ -515,7 +537,9 @@ class AnalyticsAggregator extends EventEmitter {
   async cleanupOldData(retentionDays) {
     const days = retentionDays || this.config.retentionDays;
     const db = this._getDb();
-    if (!db) {return { deleted: 0 };}
+    if (!db) {
+      return { deleted: 0 };
+    }
 
     try {
       const cutoff = new Date(Date.now() - days * 86400000).toISOString();
@@ -547,7 +571,9 @@ class AnalyticsAggregator extends EventEmitter {
    */
   async getAggregationHistory({ limit = 50, offset = 0 } = {}) {
     const db = this._getDb();
-    if (!db) {return [];}
+    if (!db) {
+      return [];
+    }
 
     try {
       const stmt = db.prepare(
@@ -559,7 +585,7 @@ class AnalyticsAggregator extends EventEmitter {
         id: row.id,
         bucketKey: row.bucket_key,
         granularity: row.granularity,
-        metrics: JSON.parse(row.metrics || "{}"),
+        metrics: safeParse(row.metrics, {}),
         createdAt: row.created_at,
       }));
     } catch (error) {

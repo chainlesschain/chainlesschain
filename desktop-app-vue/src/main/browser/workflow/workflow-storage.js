@@ -9,6 +9,19 @@
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../utils/logger");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[WorkflowStorage] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 /**
  * Workflow Storage class for database operations
  */
@@ -664,10 +677,10 @@ class WorkflowStorage {
       id: row.id,
       name: row.name,
       description: row.description,
-      steps: JSON.parse(row.steps || "[]"),
-      variables: JSON.parse(row.variables || "{}"),
-      triggers: JSON.parse(row.triggers || "[]"),
-      tags: JSON.parse(row.tags || "[]"),
+      steps: safeParse(row.steps, []),
+      variables: safeParse(row.variables, {}),
+      triggers: safeParse(row.triggers, []),
+      tags: safeParse(row.tags, []),
       isTemplate: row.is_template === 1,
       isEnabled: row.is_enabled === 1,
       usageCount: row.usage_count || 0,
@@ -687,8 +700,8 @@ class WorkflowStorage {
       workflowName: row.workflow_name,
       targetId: row.target_id,
       status: row.status,
-      variablesSnapshot: JSON.parse(row.variables_snapshot || "{}"),
-      results: JSON.parse(row.results || "[]"),
+      variablesSnapshot: safeParse(row.variables_snapshot, {}),
+      results: safeParse(row.results, []),
       currentStep: row.current_step || 0,
       totalSteps: row.total_steps || 0,
       errorMessage: row.error_message,

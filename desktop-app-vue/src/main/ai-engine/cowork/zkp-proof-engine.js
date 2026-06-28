@@ -19,6 +19,19 @@ const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const crypto = require("crypto");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ZKP-Proof] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -691,8 +704,8 @@ class ZKPProofEngine extends EventEmitter {
       scheme: row.scheme,
       proverDid: row.prover_did,
       verifierDid: row.verifier_did,
-      proofData: JSON.parse(row.proof_data || "{}"),
-      publicInputs: JSON.parse(row.public_inputs || "{}"),
+      proofData: safeParse(row.proof_data, {}),
+      publicInputs: safeParse(row.public_inputs, {}),
       status: row.status,
       verifiedAt: row.verified_at,
       expiresAt: row.expires_at,
