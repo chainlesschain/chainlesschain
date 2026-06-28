@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 
 /**
  * 分层任务规划器
@@ -570,17 +571,9 @@ class HierarchicalTaskPlanner {
    */
   parseJSON(text) {
     try {
-      return JSON.parse(text);
-    } catch (error) {
-      const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          logger.error("JSON解析失败:", e);
-          return null;
-        }
-      }
+      return looseParseJSON(text);
+    } catch (e) {
+      logger.error("JSON解析失败:", e);
       return null;
     }
   }

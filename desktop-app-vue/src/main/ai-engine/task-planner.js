@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 const { getLLMService } = require("../llm/llm-manager");
 const { getProjectRAGManager } = require("../project/project-rag");
 
@@ -107,13 +108,8 @@ class TaskPlanner {
       // 4. 解析LLM返回的JSON
       let taskPlan;
       try {
-        // 提取JSON部分（可能包含markdown代码块）
-        const jsonMatch =
-          result.match(/```json\n([\s\S]*?)\n```/) ||
-          result.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : result;
-
-        taskPlan = JSON.parse(jsonStr);
+        // looseParseJSON: 直接→```fenced```→括号配对候选→贪婪兜底（抗追加散文/多对象）
+        taskPlan = looseParseJSON(result);
       } catch (error) {
         logger.error("[TaskPlanner] 解析JSON失败，使用快速拆解模式");
         return this.quickDecompose(userRequest, projectContext);

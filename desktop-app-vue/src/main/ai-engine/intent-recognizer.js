@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 
 /**
  * 智能意图识别器（增强版）
@@ -141,24 +142,14 @@ async function recognizeProjectIntent(userInput, llmManager) {
     logger.info(`[IntentRecognizer] LLM响应完成，耗时: ${duration}ms`);
 
     // 提取JSON响应
-    let responseText = result.content || result.text || "";
+    const responseText = result.content || result.text || "";
     logger.info(
       "[IntentRecognizer] LLM原始响应:",
       responseText.substring(0, 300),
     );
 
-    // 尝试提取JSON（可能被包裹在```json...```中）
-    const jsonMatch =
-      responseText.match(/```json\s*([\s\S]*?)```/) ||
-      responseText.match(/```\s*([\s\S]*?)```/) ||
-      responseText.match(/\{[\s\S]*\}/);
-
-    if (jsonMatch) {
-      responseText = jsonMatch[1] || jsonMatch[0];
-    }
-
-    // 解析JSON
-    const intentData = JSON.parse(responseText);
+    // 解析JSON（looseParseJSON: 直接→```fenced```→括号配对候选→贪婪兜底）
+    const intentData = looseParseJSON(responseText);
 
     // 验证必需字段
     if (!intentData.projectType) {

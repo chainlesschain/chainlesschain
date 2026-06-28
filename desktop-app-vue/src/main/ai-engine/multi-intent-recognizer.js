@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 
 /**
  * 多意图识别器
@@ -439,19 +440,10 @@ ${JSON.stringify(context, null, 2)}
    */
   parseJSON(text) {
     try {
-      // 尝试直接解析
-      return JSON.parse(text);
-    } catch (error) {
-      // 尝试提取JSON部分
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          logger.error("JSON解析失败:", e);
-          return null;
-        }
-      }
+      // 尝试直接解析 / 提取（looseParseJSON: 直接→fenced→括号配对→贪婪兜底）
+      return looseParseJSON(text);
+    } catch (e) {
+      logger.error("JSON解析失败:", e);
       return null;
     }
   }

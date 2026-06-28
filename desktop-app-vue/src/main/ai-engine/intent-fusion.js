@@ -12,6 +12,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("./response-parser.js");
 const DatabaseManager = require("../database");
 
 /**
@@ -761,16 +762,8 @@ ${intentsJson}
    */
   _parseLLMFusionResponse(response) {
     try {
-      // 提取JSON（可能被markdown包裹）
-      let jsonStr = response;
-      const jsonMatch =
-        response.match(/```json\n?([\s\S]*?)\n?```/) ||
-        response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1] || jsonMatch[0];
-      }
-
-      const result = JSON.parse(jsonStr);
+      // looseParseJSON: 直接→```fenced```→括号配对候选→贪婪兜底
+      const result = looseParseJSON(response);
 
       if (!result.canFuse) {
         return null;
