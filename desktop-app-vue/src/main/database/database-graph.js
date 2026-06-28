@@ -113,11 +113,12 @@ function deleteRelations(dbManager, logger, noteId, types = []) {
   }
 
   const stmt = dbManager.db.prepare(query);
-  stmt.run(params);
-  const changes = dbManager.db.getRowsModified();
+  // better-sqlite3 run() 直接返回 { changes }；旧代码用 sql.js 的
+  // db.getRowsModified()，但 SQLCipher 包装器没有该方法（会抛错）。
+  const info = stmt.run(params);
   stmt.free();
 
-  return changes;
+  return info.changes || 0;
 }
 
 function getGraphData(dbManager, logger, options = {}) {
@@ -150,18 +151,11 @@ function getGraphData(dbManager, logger, options = {}) {
     WHERE relation_type IN (${relationTypesList}) AND weight >= ?
     LIMIT ?
   `);
-  relStmt.bind([
-    ...relationTypes,
-    minWeight,
-    ...relationTypes,
-    minWeight,
-    limit,
-  ]);
-
-  const nodeIds = [];
-  while (relStmt.step()) {
-    nodeIds.push(relStmt.getAsObject().id);
-  }
+  // better-sqlite3 风格 .all()；旧 sql.js 的 bind()+while(step()){getAsObject()}
+  // 对 SQLCipher 包装器恒返空（step()->false / getAsObject()->null）。
+  const nodeIds = relStmt
+    .all([...relationTypes, minWeight, ...relationTypes, minWeight, limit])
+    .map((r) => r.id);
   relStmt.free();
 
   // 2. 查询这些笔记的详细信息
@@ -174,10 +168,7 @@ function getGraphData(dbManager, logger, options = {}) {
       FROM knowledge_items
       WHERE id IN (${idsFilter}) AND type IN (${nodeTypesFilter})
     `);
-    nodeStmt.bind([...nodeIds, ...nodeTypes]);
-
-    while (nodeStmt.step()) {
-      const node = nodeStmt.getAsObject();
+    for (const node of nodeStmt.all([...nodeIds, ...nodeTypes])) {
       nodes.push({
         id: node.id,
         title: node.title,
@@ -202,10 +193,12 @@ function getGraphData(dbManager, logger, options = {}) {
         AND relation_type IN (${relationTypesFilter})
         AND weight >= ?
     `);
-    edgeStmt.bind([...nodeIds, ...nodeIds, ...relationTypes, minWeight]);
-
-    while (edgeStmt.step()) {
-      const edge = edgeStmt.getAsObject();
+    for (const edge of edgeStmt.all([
+      ...nodeIds,
+      ...nodeIds,
+      ...relationTypes,
+      minWeight,
+    ])) {
       edges.push({
         id: edge.id,
         source: edge.source_id,
@@ -227,11 +220,8 @@ function getKnowledgeRelations(dbManager, logger, knowledgeId) {
     WHERE source_id = ? OR target_id = ?
     ORDER BY weight DESC
   `);
-  stmt.bind([knowledgeId, knowledgeId]);
-
   const relations = [];
-  while (stmt.step()) {
-    const rel = stmt.getAsObject();
+  for (const rel of stmt.all([knowledgeId, knowledgeId])) {
     relations.push({
       id: rel.id,
       source: rel.source_id,
@@ -263,9 +253,7 @@ function findRelationPath(dbManager, logger, sourceId, targetId, maxDepth = 3) {
   `);
 
   const graph = new Map();
-  while (stmt.step()) {
-    const rel = stmt.getAsObject();
-
+  for (const rel of stmt.all()) {
     // 正向边
     if (!graph.has(rel.source_id)) {
       graph.set(rel.source_id, []);
@@ -337,10 +325,7 @@ function getKnowledgeNeighbors(dbManager, logger, knowledgeId, depth = 1) {
         FROM knowledge_relations
         WHERE source_id = ? OR target_id = ?
       `);
-      stmt.bind([nodeId, nodeId]);
-
-      while (stmt.step()) {
-        const edge = stmt.getAsObject();
+      for (const edge of stmt.all([nodeId, nodeId])) {
         const otherId =
           edge.source_id === nodeId ? edge.target_id : edge.source_id;
 
@@ -376,10 +361,7 @@ function getKnowledgeNeighbors(dbManager, logger, knowledgeId, depth = 1) {
       FROM knowledge_items
       WHERE id IN (${idsFilter})
     `);
-    stmt.bind(nodeIds);
-
-    while (stmt.step()) {
-      const node = stmt.getAsObject();
+    for (const node of stmt.all(nodeIds)) {
       nodes.push({
         id: node.id,
         title: node.title,
@@ -398,11 +380,12 @@ function getKnowledgeNeighbors(dbManager, logger, knowledgeId, depth = 1) {
 }
 
 function buildTagRelations(dbManager, logger) {
-  // 清除旧的标签关系
+  // 清除旧的标签关系（用 run() 执行；旧代码用 step() 执行 DELETE，但包装器的
+  // step() 恒返 false，DELETE 从不执行 → 旧关系永远清不掉）。
   const deleteStmt = dbManager.db.prepare(`
     DELETE FROM knowledge_relations WHERE relation_type = 'tag'
   `);
-  deleteStmt.step();
+  deleteStmt.run();
   deleteStmt.free();
 
   // 查询共享标签的笔记对
@@ -419,9 +402,7 @@ function buildTagRelations(dbManager, logger) {
   `);
 
   const relations = [];
-  while (stmt.step()) {
-    const row = stmt.getAsObject();
-
+  for (const row of stmt.all()) {
     // 计算权重：共享标签数 / 最大标签数
     const source = dbManager.getKnowledgeTags(row.source_id);
     const target = dbManager.getKnowledgeTags(row.target_id);
@@ -443,11 +424,11 @@ function buildTagRelations(dbManager, logger) {
 }
 
 function buildTemporalRelations(dbManager, logger, windowDays = 7) {
-  // 清除旧的时间关系
+  // 清除旧的时间关系（用 run() 执行；见 buildTagRelations 同样的 step() 失效说明）。
   const deleteStmt = dbManager.db.prepare(`
     DELETE FROM knowledge_relations WHERE relation_type = 'temporal'
   `);
-  deleteStmt.step();
+  deleteStmt.run();
   deleteStmt.free();
 
   const windowMs = windowDays * 24 * 60 * 60 * 1000;
@@ -464,11 +445,8 @@ function buildTemporalRelations(dbManager, logger, windowDays = 7) {
     WHERE ABS(k1.created_at - k2.created_at) <= ?
     ORDER BY k1.created_at ASC
   `);
-  stmt.bind([windowMs]);
-
   const relations = [];
-  while (stmt.step()) {
-    const row = stmt.getAsObject();
+  for (const row of stmt.all([windowMs])) {
     const timeDiff = Math.abs(row.target_time - row.source_time);
     const daysDiff = timeDiff / (24 * 60 * 60 * 1000);
 
