@@ -62,6 +62,7 @@ let LocalVault,
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  BrowserHistoryAospAdapter,
   VSCodeAdapter,
   WinRecentAdapter,
   GitActivityAdapter,
@@ -184,6 +185,7 @@ function ensurePdhLoaded() {
         SystemDataAndroidAdapter,
         BrowserHistoryChromeAdapter,
         BrowserHistoryEdgeAdapter,
+        BrowserHistoryAospAdapter,
         VSCodeAdapter,
         WinRecentAdapter,
         GitActivityAdapter,
@@ -622,6 +624,18 @@ async function initHub() {
   try {
     const edge = new BrowserHistoryEdgeAdapter();
     if (!registry.has(edge.name)) registry.register(edge);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // AOSP / MIUI stock browser (com.android.browser → browser2.db). No host
+  // default — needs a device-pulled browser2.db via opts.dbPath at sync time
+  // (cc hub sync-adapter browser-history-aosp --db-path <pulled>), so bare
+  // registration is inert (healthCheck ok:false) until input is supplied,
+  // exactly like the snapshot adapters.
+  try {
+    const aospBrowser = new BrowserHistoryAospAdapter();
+    if (!registry.has(aospBrowser.name)) registry.register(aospBrowser);
   } catch (_err) {
     // Continue boot
   }

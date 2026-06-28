@@ -287,7 +287,7 @@ DB 文件：`/data/data/com.android.browser/databases/browser2.db`（明文；**
 | `history` | `_id`,`title`,`url`,`date`(ms),`visits` | 浏览历史 | **EVENT**(`browse`) | `date`=ms(1970)；`visits`=访问次数 |
 | `bookmarks` | `title`,`url`,`folder`,`deleted` | 书签(folder=1)+部分历史 | ITEM/EVENT | `folder=0` 才是书签条目 |
 
-**适配缺口**：仅有 `browser-history-chrome`/`-edge` 适配器（读 Chrome `urls`+`visits`，WebKit-µs 时间）。AOSP `browser2.db` 须**转 Chrome 形再喂**：建临时 `History`(urls+visits)，`visit_time=(date_ms+11644473600000)*1000`，然后 `syncAdapter("browser-history-chrome",{profilePath})`（见 `pdh-device-collect` 同款思路）。
+**适配状态（已补，2026-06-28）**：新增专用 `browser-history-aosp` 适配器（`lib/adapters/browser-history-aosp/`）——直接读 `browser2.db` 的 `history`(ms 时间，无需 WebKit 转换)+`bookmarks`(folder=0/deleted=0 叶子)，列名经 `PRAGMA table_info` 动态解析；复用 `BrowserHistoryChromeAdapter.normalize()` 产出 **identical BROWSE Event / LINK Item**（`extra.browser="aosp"`）。输入 = root-pull 的 `browser2.db` 文件（`opts.dbPath`，或目录自动找 `browser2.db`）。`pdh-device-collect.mjs` 已接：root-pull `/data/data/com.android.browser/databases/browser2.db` → `syncAdapter("browser-history-aosp",{dbPath})`（`--no-browser` 跳过）。已在 lib/index.js + adapter-guide(DISPLAY「MIUI/AOSP 浏览历史」) + CLI/desktop wiring 注册；16 fixture 测试。
 **AI/决策**：浏览 `url` 域名分布=兴趣/关注；但本测试机多为应用市场/推送落地页（噪声多，需过滤 `*.market.xiaomi.com`/push 域）。**UI**：按域名聚合的访问 Top + 时间线。
 
 ---

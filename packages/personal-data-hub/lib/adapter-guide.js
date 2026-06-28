@@ -104,6 +104,7 @@ const DISPLAY_NAMES = Object.freeze({
   "gov-12123": "交管12123",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
+  "browser-history-aosp": "MIUI/AOSP 浏览历史",
   "vscode": "VS Code",
   "win-recent": "Windows 最近使用",
   "git-activity": "Git 提交记录",

@@ -113,6 +113,7 @@ const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
 const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const browserHistoryEdge = require("./adapters/browser-history-edge");
+const browserHistoryAosp = require("./adapters/browser-history-aosp");
 const vscodeAdapter = require("./adapters/vscode");
 const winRecentAdapter = require("./adapters/win-recent");
 const gitActivityAdapter = require("./adapters/git-activity");
@@ -397,6 +398,12 @@ module.exports = {
   BrowserHistoryEdgeAdapter: browserHistoryEdge.BrowserHistoryEdgeAdapter,
   BROWSER_HISTORY_EDGE_NAME: browserHistoryEdge.BROWSER_HISTORY_EDGE_NAME,
   BROWSER_HISTORY_EDGE_VERSION: browserHistoryEdge.BROWSER_HISTORY_EDGE_VERSION,
+
+  // AOSP / MIUI stock browser — different schema (browser2.db, ms timestamps),
+  // reuses the Chrome normalize() for an identical BROWSE Event / LINK Item shape.
+  BrowserHistoryAospAdapter: browserHistoryAosp.BrowserHistoryAospAdapter,
+  BROWSER_HISTORY_AOSP_NAME: browserHistoryAosp.BROWSER_HISTORY_AOSP_NAME,
+  BROWSER_HISTORY_AOSP_VERSION: browserHistoryAosp.BROWSER_HISTORY_AOSP_VERSION,
 
   // VS Code — workspace history + global terminal command/dir history.
   VSCodeAdapter: vscodeAdapter.VSCodeAdapter,

@@ -46,6 +46,7 @@ const {
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  BrowserHistoryAospAdapter,
   VSCodeAdapter,
   WinRecentAdapter,
   GitActivityAdapter,
@@ -506,6 +507,20 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register browser-history-edge adapter",
+      err && err.message,
+    );
+  }
+
+  // AOSP / MIUI stock browser (browser2.db). Needs a device-pulled db via
+  // opts.dbPath at sync time, so bare registration is inert until input.
+  try {
+    const aospBrowser = new BrowserHistoryAospAdapter();
+    if (!registry.has(aospBrowser.name)) {
+      registry.register(aospBrowser);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-aosp adapter",
       err && err.message,
     );
   }

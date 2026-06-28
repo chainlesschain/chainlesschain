@@ -13,6 +13,8 @@
 //   • call_log  → adb `content query --uri content://call_log/calls` (works, no root)
 //   • apps      → adb `pm list packages -3`
 //   • media     → adb `find /sdcard/{DCIM/Camera,Pictures,Movies,Download,Documents}` (metadata only)
+//   • browser   → root-pull /data/data/com.android.browser/databases/browser2.db
+//                 (MIUI/AOSP stock browser history → browser-history-aosp adapter)
 //
 // WHY THIS FIRST (lesson 2026-06-17): system data >> app IM for real-device
 // collection — plain / content-query accessible, high-volume, no encryption
@@ -30,6 +32,7 @@
 //     --no-calls       skip call_log
 //     --no-apps        skip installed-app list
 //     --no-media       skip media-file metadata
+//     --no-browser     skip MIUI/AOSP stock browser history (browser2.db)
 //     --dry-run        read + count only, do NOT write to the vault
 //
 // Verify after:  cc hub stats   |   cc hub search --adapter system-data-android
@@ -57,6 +60,7 @@ const include = {
   calls: !has("--no-calls"),
   apps: !has("--no-apps"),
   media: !has("--no-media"),
+  browser: !has("--no-browser"),
 };
 
 // ---- adb helpers ----
@@ -104,6 +108,26 @@ function readContacts() {
   }
 }
 
+// ---- AOSP/MIUI stock browser: root-pull browser2.db to a local temp file ----
+// Returns the local path (caller ingests via browser-history-aosp, then
+// deletes it) or null when the stock browser isn't installed / has no DB.
+function pullAospBrowserDb() {
+  const src = "/data/data/com.android.browser/databases/browser2.db";
+  const tmpDev = "/data/local/tmp/cc_browser2_collect.db";
+  const tmpLocal = path.join(os.tmpdir(), `cc_browser2_${Date.now()}.db`);
+  try {
+    adb(["shell", `su -c 'test -f ${src} && cp ${src} ${tmpDev} && chmod 666 ${tmpDev} || echo NO_DB'`]);
+    // pull fails loudly if the cp above hit NO_DB (tmpDev absent)
+    adb(["pull", tmpDev, tmpLocal]);
+    return fs.existsSync(tmpLocal) ? tmpLocal : null;
+  } catch (_e) {
+    try { fs.unlinkSync(tmpLocal); } catch (_) {}
+    return null; // stock browser absent or unreadable — skip, not fatal
+  } finally {
+    try { adb(["shell", `su -c 'rm -f ${tmpDev}'`]); } catch (_) {}
+  }
+}
+
 // ---- main ----
 console.log(`[pdh-device-collect] device=${SERIAL} dry-run=${DRY} include=${JSON.stringify(include)}`);
 
@@ -112,7 +136,7 @@ if (include.contacts) console.log(`  contacts: ${contacts.length} (phones=${cont
 
 const wiring = await import(pathToFileURL(path.join(ROOT, "packages/cli/src/lib/personal-data-hub-wiring.js")).href);
 const { createHostAdbBridge } = await import(pathToFileURL(path.join(ROOT, "packages/cli/src/lib/host-adb-bridge.js")).href);
-const { SystemDataAndroidAdapter } = require(path.join(ROOT, "packages/personal-data-hub/lib/index.js"));
+const { SystemDataAndroidAdapter, BrowserHistoryAospAdapter } = require(path.join(ROOT, "packages/personal-data-hub/lib/index.js"));
 
 const adbBridge = createHostAdbBridge({ serial: SERIAL });
 const bridge = {
@@ -145,6 +169,29 @@ const report = await hub.registry.syncAdapter("system-data-android", { useBridge
 console.log("[report]", JSON.stringify({
   adapter: report.adapter, rawCount: report.rawCount, invalidCount: report.invalidCount, error: report.error,
 }, null, 2));
+
+// ---- AOSP/MIUI stock browser history (browser2.db) ----
+// A fresh adapter instance carrying the pulled db path — the registry gates on
+// healthCheck() (no args), so the bare-registered instance can't see opts.dbPath.
+if (include.browser) {
+  const browserDb = pullAospBrowserDb();
+  if (!browserDb) {
+    console.log("  browser: stock browser2.db not found (skip)");
+  } else {
+    try {
+      const aosp = new BrowserHistoryAospAdapter({ dbPath: browserDb });
+      try { hub.registry.unregister("browser-history-aosp"); } catch (_) {} // drop the bare instance
+      hub.registry.register(aosp);
+      console.log("[ingest] syncing browser-history-aosp...");
+      const bReport = await hub.registry.syncAdapter("browser-history-aosp");
+      console.log("[report]", JSON.stringify({
+        adapter: bReport.adapter, rawCount: bReport.rawCount, invalidCount: bReport.invalidCount, error: bReport.error,
+      }, null, 2));
+    } finally {
+      try { fs.unlinkSync(browserDb); } catch (_) {}
+    }
+  }
+}
 
 const after = hub.registry.vault.stats ? hub.registry.vault.stats() : null;
 if (before && after) {
