@@ -16,6 +16,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single preference row with a corrupt metadata
+ * string must not throw out of the .map and drop the whole preference list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PreferenceManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -528,7 +547,7 @@ class PreferenceManager extends EventEmitter {
         id: row.id,
         feature: row.feature,
         action: row.action,
-        metadata: row.metadata ? JSON.parse(row.metadata) : null,
+        metadata: safeParse(row.metadata, null),
         durationMs: row.duration_ms,
         success: row.success === 1,
         createdAt: row.created_at,

@@ -1,4 +1,24 @@
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single version row with a corrupt
+ * content_snapshot/metadata string must not throw out of the history .map and
+ * drop the whole version list. The `x ? JSON.parse(x) : d` form it replaces only
+ * guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[VersionManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -181,10 +201,8 @@ class KnowledgeVersionManager {
 
       return versions.map((v) => ({
         ...v,
-        content_snapshot: v.content_snapshot
-          ? JSON.parse(v.content_snapshot)
-          : null,
-        metadata: v.metadata ? JSON.parse(v.metadata) : null,
+        content_snapshot: safeParse(v.content_snapshot, null),
+        metadata: safeParse(v.metadata, null),
       }));
     } catch (error) {
       logger.error("[VersionManager] 获取版本历史失败:", error);

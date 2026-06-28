@@ -14,6 +14,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single behavior row with a corrupt action_data
+ * string must not throw out of the .map and drop the whole behavior list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[BehaviorTracker] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -988,7 +1007,7 @@ class BehaviorTracker extends EventEmitter {
         title: r.title,
         description: r.description,
         reason: r.reason,
-        actionData: r.action_data ? JSON.parse(r.action_data) : null,
+        actionData: safeParse(r.action_data, null),
         score: r.score,
         priority: r.priority,
         shownCount: r.shown_count,
