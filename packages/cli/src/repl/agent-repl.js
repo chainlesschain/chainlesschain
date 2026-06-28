@@ -1048,6 +1048,7 @@ export async function startAgentRepl(options = {}) {
       "/exit",
       "/export",
       "/help",
+      "/hooks",
       "/ide",
       "/mcp",
       "/memory",
@@ -1074,6 +1075,7 @@ export async function startAgentRepl(options = {}) {
       "/terminal-setup",
       "/theme",
       "/think",
+      "/todos",
       "/ultrathink",
       "/vim",
     ],
@@ -1603,10 +1605,16 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/tasks")}      Show background shell tasks (kill <id> · kill-all)`,
       );
       logger.log(
+        `  ${chalk.cyan("/todos")}      Show the session TODO list (what the agent tracks with todo_write)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/ide")}        IDE bridge status (connected editor, tools, or why not)`,
       );
       logger.log(
         `  ${chalk.cyan("/mcp")}        MCP server status + tools (/mcp <name> for one server)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/hooks")}      Loaded .claude/settings.json hooks (cc hook for observe-only DB hooks)`,
       );
       logger.log(chalk.bold("\nCapabilities:"));
       logger.log("  Read, write, and edit files");
@@ -1666,6 +1674,35 @@ export async function startAgentRepl(options = {}) {
         logger.log(
           "\n" + formatBackgroundTasks(listBackgroundShellTasks()) + "\n",
         );
+      }
+      prompt();
+      return;
+    }
+
+    // `/todos` — the session's TODO list (what the agent tracks with the
+    // todo_write tool). Read-only view; the data lives in todo-manager keyed by
+    // sessionId (same store the tool writes). Claude-Code /todos parity.
+    if (trimmed === "/todos" || trimmed === "/todo") {
+      try {
+        const { getTodos } = await import("../lib/todo-manager.js");
+        const { formatTodos } = await import("./todos-status.js");
+        logger.log("\n" + formatTodos(getTodos(sessionId)) + "\n");
+      } catch (err) {
+        logger.error(chalk.red(`/todos failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/hooks` — the decision-capable .claude/settings.json `hooks` block loaded
+    // for this session (PreToolUse/PostToolUse/…). Observe-only DB hooks
+    // (`cc hook add`) are managed via the `cc hook` CLI. Claude-Code /hooks parity.
+    if (trimmed === "/hooks" || trimmed.startsWith("/hooks ")) {
+      try {
+        const { formatSettingsHooks } = await import("./hooks-status.js");
+        logger.log("\n" + formatSettingsHooks(_settingsHooks) + "\n");
+      } catch (err) {
+        logger.error(chalk.red(`/hooks failed: ${err.message}`));
       }
       prompt();
       return;
