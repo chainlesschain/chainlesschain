@@ -409,6 +409,7 @@ class KnowledgeSyncManager extends EventEmitter {
     // 批量上传
     const batches = this.chunkArray(localChanges, this.options.batchSize);
 
+    let synced = 0;
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
 
@@ -428,10 +429,12 @@ class KnowledgeSyncManager extends EventEmitter {
 
       this.stats.notesUploaded += batch.length;
 
-      // 更新进度
+      // 更新进度：累计真实已发送条数。旧代码用 (i+1)*batchSize，最后一个不满批时
+      // 会超过 total（如 125 项 / 批 50 → 末批 synced=150 > 125，进度 120%）。
+      synced += batch.length;
       this.syncProgress.set(peerId, {
         total: localChanges.length,
-        synced: (i + 1) * this.options.batchSize,
+        synced,
       });
 
       this.emit("sync:progress", {
