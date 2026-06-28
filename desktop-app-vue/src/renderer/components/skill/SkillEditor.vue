@@ -95,6 +95,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 
 import { ref, watch } from "vue";
 import { message } from "ant-design-vue";
@@ -155,14 +156,8 @@ watch(
         description: newSkill.description || "",
         category: newSkill.category || "code",
         icon: newSkill.icon || "",
-        tags:
-          typeof newSkill.tags === "string"
-            ? JSON.parse(newSkill.tags || "[]")
-            : newSkill.tags || [],
-        config:
-          typeof newSkill.config === "string"
-            ? JSON.parse(newSkill.config || "{}")
-            : newSkill.config || {},
+        tags: safeJsonParse(newSkill.tags, []),
+        config: safeJsonParse(newSkill.config, {}),
         enabled: newSkill.enabled === 1,
       };
 
