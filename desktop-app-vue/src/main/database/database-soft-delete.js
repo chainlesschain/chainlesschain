@@ -165,8 +165,11 @@ function getSoftDeletedStats(dbManager, logger) {
         `SELECT COUNT(*) as count FROM ${safeTableName} WHERE deleted = 1`,
       );
 
-      stmt.step();
-      const count = stmt.getAsObject().count || 0;
+      // 使用 better-sqlite3 风格的 .get()。旧代码用 sql.js 风格的 step()/getAsObject()，
+      // 但 SQLCipher 包装器把 step() 桩成恒返 false、getAsObject() 桩成恒返 null
+      // → null.count 抛 TypeError 被下方 catch 吞 → 每张表恒计 0，统计永远为零。
+      const row = stmt.get();
+      const count = row ? row.count : 0;
       stmt.free();
 
       stats.byTable[tableName] = count;

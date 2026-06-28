@@ -213,6 +213,9 @@ class SqlSecurity {
       "project_tasks",
       "project_conversations",
       "project_templates",
+      "project_collaborators",
+      "project_comments",
+      "knowledge_items",
 
       // 笔记和知识库
       "notes",
