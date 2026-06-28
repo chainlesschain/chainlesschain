@@ -686,7 +686,9 @@ export async function startAgentRepl(options = {}) {
   // --system-prompt replaces the built-in prompt; --append-system-prompt
   // extends it (parity with the headless runners). The base is kept so an
   // output-style persona can be swapped in/out at runtime via /output-style.
-  const _replBaseSystem = composeSystemPrompt(
+  // `let` (not const): /add-dir rebuilds this mid-session to re-advertise the
+  // updated working roots; output-style swaps also read it live.
+  let _replBaseSystem = composeSystemPrompt(
     buildSystemPrompt(process.cwd(), { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
@@ -1035,6 +1037,7 @@ export async function startAgentRepl(options = {}) {
     // so it follows `/cd` mid-session.
     // Keep in sync with the rl.on("line") handlers + /help below.
     slashCommands: [
+      "/add-dir",
       "/auto",
       "/cd",
       "/clear",
@@ -1050,6 +1053,7 @@ export async function startAgentRepl(options = {}) {
       "/help",
       "/hooks",
       "/ide",
+      "/init",
       "/mcp",
       "/memory",
       "/microcompact",
@@ -1532,6 +1536,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/memory")}     Project-memory files loaded (cc.md hierarchy + rules)`,
       );
       logger.log(
+        `  ${chalk.cyan("/init")}       Inventory this folder into a cc.md project-memory file (/init [--force])`,
+      );
+      logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
       );
       logger.log(
@@ -1551,6 +1558,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/add-dir")}    Add an extra working root (/add-dir <dir>; no arg lists roots)`,
       );
       logger.log(
         `  ${chalk.cyan("/reload-skills")} Re-scan skill layers without restarting`,
@@ -1703,6 +1713,99 @@ export async function startAgentRepl(options = {}) {
         logger.log("\n" + formatSettingsHooks(_settingsHooks) + "\n");
       } catch (err) {
         logger.error(chalk.red(`/hooks failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/add-dir [dir]` — add an extra working root mid-session (or, with no
+    // arg, list the current roots). The new root is threaded into every
+    // subsequent turn's options.additionalDirectories (so read/search/edit span
+    // it) and re-advertised in the system prompt. Claude-Code /add-dir parity.
+    if (trimmed === "/add-dir" || trimmed.startsWith("/add-dir ")) {
+      const arg = trimmed.slice("/add-dir".length).trim();
+      try {
+        const { resolveAddDir, formatAddDirRoots } =
+          await import("./add-dir.js");
+        if (!arg) {
+          logger.log(
+            "\n" +
+              formatAddDirRoots(process.cwd(), additionalDirectories) +
+              "\n",
+          );
+        } else {
+          const res = resolveAddDir(arg, {
+            cwd: process.cwd(),
+            existing: additionalDirectories,
+          });
+          if (!res.ok) {
+            logger.log(chalk.yellow(`/add-dir: ${res.reason}`));
+          } else if (res.alreadyPresent) {
+            logger.log(chalk.dim(`Already a working root: ${res.dir}`));
+          } else {
+            additionalDirectories.push(res.dir);
+            // Re-advertise the updated roots in the system prompt; keep the
+            // active output-style body layered on top (same as /output-style).
+            _replBaseSystem = composeSystemPrompt(
+              buildSystemPrompt(process.cwd(), { additionalDirectories }),
+              {
+                systemPrompt: options.systemPrompt,
+                appendSystemPrompt: options.appendSystemPrompt,
+              },
+            );
+            messages[0].content = _activeOutputStyle
+              ? `${_replBaseSystem}\n\n${_activeOutputStyle.body}`
+              : _replBaseSystem;
+            logger.log(chalk.green(`Added working root: ${res.dir}`));
+          }
+        }
+      } catch (err) {
+        logger.error(chalk.red(`/add-dir failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/init [--force]` — inventory the current folder into a cc.md
+    // project-memory file (Claude-Code /init parity). Non-interactive: reuses
+    // the same offline census as `cc init`. Loaded as project context next
+    // session (or inspect with /memory).
+    if (trimmed === "/init" || trimmed.startsWith("/init ")) {
+      const force = /(^|\s)(--force|-f)(\s|$)/.test(trimmed);
+      try {
+        const { inventoryProject, renderMemoryFile } =
+          await import("../lib/project-inventory.js");
+        const initCwd = process.cwd();
+        const target = path.join(initCwd, "cc.md");
+        if (fs.existsSync(target) && !force) {
+          logger.log(
+            chalk.yellow(
+              `cc.md already exists at ${target} — /init --force to overwrite.`,
+            ),
+          );
+        } else {
+          const inv = inventoryProject(initCwd);
+          fs.writeFileSync(target, renderMemoryFile(inv), "utf-8");
+          logger.log(chalk.green(`Generated ${target}`));
+          const langs = (inv.languages || [])
+            .slice(0, 5)
+            .map(([l, n]) => `${l} (${n})`)
+            .join(", ");
+          if (langs) logger.log(chalk.dim(`  Languages: ${langs}`));
+          if (inv.packageManager)
+            logger.log(chalk.dim(`  Package manager: ${inv.packageManager}`));
+          if (inv.scripts && inv.scripts.length)
+            logger.log(
+              chalk.dim(`  Scripts documented: ${inv.scripts.length}`),
+            );
+          logger.log(
+            chalk.dim(
+              "  Loaded as project context next session (or /memory to inspect).",
+            ),
+          );
+        }
+      } catch (err) {
+        logger.error(chalk.red(`/init failed: ${err.message}`));
       }
       prompt();
       return;
