@@ -245,7 +245,18 @@ function parseIntent(text) {
   if (AMOUNT_HINT.test(text) && HOW_MUCH.test(text)) {
     return "sum-amount";
   }
-  if (/(最近|最新|latest|recent)/i.test(text)) return "latest";
+  // "最近/最新" alone ⇒ newest few (intent=latest, 3-row cap). BUT when the
+  // question also carries an aggregation ("谁…最多", "排名") or a topic/summary
+  // signal ("最近聊什么", "什么话题", "都在讨论啥"), 3 rows can't answer it —
+  // route those to intent=list (≤80 facts + FTS augmentation) instead. Without
+  // this, "最近谁给我发消息最多" / "群里最近在聊什么" returned only 3 newest rows
+  // and the LLM said "没有相关记录". See pdh_analysis_engine_intent_routing.md.
+  const NEEDS_BREADTH =
+    /(最多|最少|最频繁|最常|排名|排行|top|前\s*\d+|谁.{0,8}(最|多)|哪个.{0,8}最|哪些.{0,8}最|聊什么|聊些什么|聊啥|聊了啥|聊了什么|什么话题|啥话题|哪些话题|讨论什么|讨论啥|在聊|都聊|聊的(什么|啥)|什么内容|talking\s+about|topics?|ranking|most\s)/i;
+  if (/(最近|最新|latest|recent)/i.test(text)) {
+    if (NEEDS_BREADTH.test(text)) return "list";
+    return "latest";
+  }
   return "list";
 }
 

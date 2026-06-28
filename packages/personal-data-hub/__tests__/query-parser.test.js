@@ -184,6 +184,19 @@ describe("parseIntent", () => {
 
   it("latest when 'recent / latest'", () => {
     expect(parseIntent("最近一次转账")).toBe("latest");
+    expect(parseIntent("最新消息")).toBe("latest");
+    expect(parseIntent("最近的订单")).toBe("latest");
+  });
+
+  it("latest does NOT steal aggregation/summary questions (3-row cap can't answer them)", () => {
+    // Regression: "最近" routed these to intent=latest → hard-capped to 3 rows
+    // → LLM said "没有相关记录". They need the broad list path (≤80 + FTS).
+    expect(parseIntent("最近谁给我发QQ消息最多")).toBe("list");
+    expect(parseIntent("我的QQ群里大家最近在聊什么")).toBe("list");
+    expect(parseIntent("我QQ最近聊了啥新话题")).toBe("list");
+    expect(parseIntent("最近谁给我打电话最多")).toBe("list");
+    expect(parseIntent("最近都在讨论什么")).toBe("list");
+    expect(parseIntent("最近聊天记录里有哪些话题")).toBe("list");
   });
 
   it("list as default", () => {
