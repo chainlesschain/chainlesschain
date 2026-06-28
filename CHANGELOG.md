@@ -55,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
 
+## [v5.0.3.133] - 2026-06-28 — 微博私信采集（message_<uid>.db，device-verified schema，高敏感 opt-in）
+
+### Added — `social-weibo` 私信采集（v0.8.0，全平台上船）
+
+> 补全微博私信采集（schema 字典记录的 `message_<uid>.db` 缺口）。旧参考机账号为空、列名无法验证；本次借真机已登录账号（device-verified schema 2026-06-28）实现，复用 douyin-IM 模式。
+
+- **`t_buddy`→PERSON(CONTACT)** / **`t_session`→TOPIC** / **`t_message`→EVENT(MESSAGE)**；列名真机实测（t_buddy 2 行 + t_session 4 行；t_message 列实测但本机 0 行，content 编码 best-effort，非文本 `content_type`→`[type:N]` 占位不泄原文）。
+- **高敏感 → opt-in `opts.includeDm:true`（默认关）**，不影响既有 posts/likes/follows；从 `sina_weibo` 同目录派生 `message_<uid>.db`（或 `opts.messageDbPath`）。
+- +8 单测全 schema-valid + 真机实测 persons=2/topics=4/events=0 与表行数一致。
+- **发版链**：pdh `0.4.38→0.4.39` + cli `0.162.128→0.162.129`（已发 npm `latest`）+ USR `60→61` + cc bundle `v20260628b→v20260628c`（携 pdh 0.4.39，已下载实测）。
+
 ## [v5.0.3.132] - 2026-06-28 — PDH 分析层两处日期正确性修复上设备（账单月份溢出 + 时间线月窗口）
 
 ### Fixed — 个人数据中台 analysis/adapter 两处真 bug（pdh 0.4.38 上船 cc bundle，经完整 traps #27/#28 链）
