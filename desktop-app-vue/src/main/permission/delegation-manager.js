@@ -6,8 +6,28 @@
  * @module permission/delegation-manager
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single delegation row with a corrupt
+ * permissions/resource_scope string must not throw out of the .map and drop the
+ * whole delegation list. permissions fall back to [] (fail-closed: no perms).
+ * The `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[DelegationManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+const { v4: uuidv4 } = require("uuid");
 
 class DelegationManager {
   constructor(database) {
@@ -23,13 +43,15 @@ class DelegationManager {
       const now = Date.now();
       const delegationId = uuidv4();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO permission_delegations (
           id, org_id, delegator_did, delegate_did, delegate_name,
           permissions, resource_scope, reason, start_date, end_date,
           status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
-      `).run(
+      `,
+      ).run(
         delegationId,
         params.orgId,
         params.delegatorDid,
@@ -41,14 +63,16 @@ class DelegationManager {
         params.startDate,
         params.endDate,
         now,
-        now
+        now,
       );
 
-      logger.info(`[Delegation] Created delegation ${delegationId} from ${params.delegatorDid} to ${params.delegateDid}`);
+      logger.info(
+        `[Delegation] Created delegation ${delegationId} from ${params.delegatorDid} to ${params.delegateDid}`,
+      );
 
       return { success: true, delegationId };
     } catch (error) {
-      logger.error('[Delegation] Error creating delegation:', error);
+      logger.error("[Delegation] Error creating delegation:", error);
       throw error;
     }
   }
@@ -61,29 +85,35 @@ class DelegationManager {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const delegation = db.prepare(`
+      const delegation = db
+        .prepare(
+          `
         SELECT * FROM permission_delegations WHERE id = ?
-      `).get(delegationId);
+      `,
+        )
+        .get(delegationId);
 
       if (!delegation) {
-        return { success: false, error: 'DELEGATION_NOT_FOUND' };
+        return { success: false, error: "DELEGATION_NOT_FOUND" };
       }
 
       if (delegation.delegator_did !== revokerDid) {
-        return { success: false, error: 'NOT_DELEGATOR' };
+        return { success: false, error: "NOT_DELEGATOR" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE permission_delegations
         SET status = 'revoked', updated_at = ?
         WHERE id = ?
-      `).run(now, delegationId);
+      `,
+      ).run(now, delegationId);
 
       logger.info(`[Delegation] Revoked delegation ${delegationId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Delegation] Error revoking delegation:', error);
+      logger.error("[Delegation] Error revoking delegation:", error);
       throw error;
     }
   }
@@ -98,10 +128,10 @@ class DelegationManager {
       let query = `SELECT * FROM permission_delegations WHERE org_id = ?`;
       const params = [orgId];
 
-      if (options.type === 'delegated') {
+      if (options.type === "delegated") {
         query += ` AND delegator_did = ?`;
         params.push(userDid);
-      } else if (options.type === 'received') {
+      } else if (options.type === "received") {
         query += ` AND delegate_did = ?`;
         params.push(userDid);
       } else {
@@ -120,22 +150,22 @@ class DelegationManager {
 
       return {
         success: true,
-        delegations: delegations.map(d => ({
+        delegations: delegations.map((d) => ({
           id: d.id,
           delegatorDid: d.delegator_did,
           delegateDid: d.delegate_did,
           delegateName: d.delegate_name,
-          permissions: d.permissions ? JSON.parse(d.permissions) : [],
-          resourceScope: d.resource_scope ? JSON.parse(d.resource_scope) : null,
+          permissions: safeParse(d.permissions, []),
+          resourceScope: safeParse(d.resource_scope, null),
           reason: d.reason,
           startDate: d.start_date,
           endDate: d.end_date,
           status: d.status,
-          createdAt: d.created_at
-        }))
+          createdAt: d.created_at,
+        })),
       };
     } catch (error) {
-      logger.error('[Delegation] Error getting delegations:', error);
+      logger.error("[Delegation] Error getting delegations:", error);
       throw error;
     }
   }
@@ -148,26 +178,32 @@ class DelegationManager {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      const delegation = db.prepare(`
+      const delegation = db
+        .prepare(
+          `
         SELECT * FROM permission_delegations
         WHERE id = ? AND delegate_did = ? AND status = 'pending'
-      `).get(delegationId, delegateDid);
+      `,
+        )
+        .get(delegationId, delegateDid);
 
       if (!delegation) {
-        return { success: false, error: 'DELEGATION_NOT_FOUND' };
+        return { success: false, error: "DELEGATION_NOT_FOUND" };
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE permission_delegations
         SET status = 'active', updated_at = ?
         WHERE id = ?
-      `).run(now, delegationId);
+      `,
+      ).run(now, delegationId);
 
       logger.info(`[Delegation] Accepted delegation ${delegationId}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Delegation] Error accepting delegation:', error);
+      logger.error("[Delegation] Error accepting delegation:", error);
       throw error;
     }
   }
@@ -184,5 +220,5 @@ function getDelegationManager(database) {
 
 module.exports = {
   DelegationManager,
-  getDelegationManager
+  getDelegationManager,
 };

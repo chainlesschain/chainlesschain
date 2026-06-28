@@ -43,6 +43,22 @@ function safeParsePermissions(raw) {
   }
 }
 
+/**
+ * Generic tolerant JSON column parse (sibling of safeParsePermissions, for
+ * columns like audit-log context whose miss/corrupt fallback is not []). A
+ * corrupt row must not throw out of a .map and drop the whole log list.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 let databaseInitPromise = null;
 
 async function ensureDatabase(database) {
@@ -643,7 +659,7 @@ function registerPermissionIPC(database) {
         .all(...queryParams)
         .map((log) => ({
           ...log,
-          context: log.context ? JSON.parse(log.context) : null,
+          context: safeParse(log.context, null),
         }));
 
       return { success: true, logs };

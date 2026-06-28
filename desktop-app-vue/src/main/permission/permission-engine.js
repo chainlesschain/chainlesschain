@@ -14,6 +14,26 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single grant/delegation/inheritance row with a
+ * corrupt permissions/conditions string must not throw out of the load/.map and
+ * drop the whole permission set. permissions fall back to [] (fail-closed). The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PermissionEngine] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 
@@ -304,7 +324,7 @@ class PermissionEngine extends EventEmitter {
           delegated: delegatedPerms.map((d) => ({
             id: d.id,
             delegatorDid: d.delegator_did,
-            permissions: d.permissions ? JSON.parse(d.permissions) : [],
+            permissions: safeParse(d.permissions, []),
             resourceScope: d.resource_scope
               ? JSON.parse(d.resource_scope)
               : null,
@@ -514,9 +534,7 @@ class PermissionEngine extends EventEmitter {
       .all(orgId, resourceType, resourceId);
 
     for (const inherit of inheritance) {
-      const inheritPerms = inherit.inherit_permissions
-        ? JSON.parse(inherit.inherit_permissions)
-        : null;
+      const inheritPerms = safeParse(inherit.inherit_permissions, null);
       if (inheritPerms && !inheritPerms.includes(permission)) {
         continue;
       }
@@ -557,12 +575,8 @@ class PermissionEngine extends EventEmitter {
       .all(orgId, userDid, now, now);
 
     for (const delegation of delegations) {
-      const perms = delegation.permissions
-        ? JSON.parse(delegation.permissions)
-        : [];
-      const scope = delegation.resource_scope
-        ? JSON.parse(delegation.resource_scope)
-        : null;
+      const perms = safeParse(delegation.permissions, []);
+      const scope = safeParse(delegation.resource_scope, null);
 
       if (perms.includes(permission)) {
         if (!scope) {
@@ -658,7 +672,7 @@ class PermissionEngine extends EventEmitter {
       resourceType: grant.resource_type,
       resourceId: grant.resource_id,
       permission: grant.permission,
-      conditions: grant.conditions ? JSON.parse(grant.conditions) : null,
+      conditions: safeParse(grant.conditions, null),
       expiresAt: grant.expires_at,
       createdAt: grant.created_at,
     };
