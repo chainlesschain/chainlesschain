@@ -10,6 +10,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single holding/asset row with a corrupt
+ * metadata string must not throw out of the .map and drop the whole holdings/
+ * asset list. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[AssetManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -938,7 +957,7 @@ class AssetManager extends EventEmitter {
 
       return holdings.map((h) => ({
         ...h,
-        metadata: h.metadata ? JSON.parse(h.metadata) : {},
+        metadata: safeParse(h.metadata, {}),
       }));
     } catch (error) {
       logger.error("[AssetManager] 获取资产列表失败:", error);
@@ -1028,7 +1047,7 @@ class AssetManager extends EventEmitter {
 
       return assets.map((a) => ({
         ...a,
-        metadata: a.metadata ? JSON.parse(a.metadata) : {},
+        metadata: safeParse(a.metadata, {}),
       }));
     } catch (error) {
       logger.error("[AssetManager] 获取资产列表失败:", error);

@@ -10,6 +10,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single escrow row with a corrupt metadata
+ * string must not throw out of the .map and drop the whole escrow list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[EscrowManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -549,7 +568,7 @@ class EscrowManager extends EventEmitter {
 
       return escrows.map((e) => ({
         ...e,
-        metadata: e.metadata ? JSON.parse(e.metadata) : {},
+        metadata: safeParse(e.metadata, {}),
       }));
     } catch (error) {
       logger.error("[EscrowManager] 获取托管列表失败:", error);

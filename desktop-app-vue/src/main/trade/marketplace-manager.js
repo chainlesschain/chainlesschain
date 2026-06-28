@@ -9,6 +9,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single order row with a corrupt metadata string
+ * must not throw out of the .map and drop the whole order list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[MarketplaceManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -513,7 +532,7 @@ class MarketplaceManager extends EventEmitter {
         const orders = db.prepare(baseQuery).all(...params);
         return orders.map((o) => ({
           ...o,
-          metadata: o.metadata ? JSON.parse(o.metadata) : {},
+          metadata: safeParse(o.metadata, {}),
         }));
       }
 
@@ -533,7 +552,7 @@ class MarketplaceManager extends EventEmitter {
       return {
         items: orders.map((o) => ({
           ...o,
-          metadata: o.metadata ? JSON.parse(o.metadata) : {},
+          metadata: safeParse(o.metadata, {}),
         })),
         total,
         page,
