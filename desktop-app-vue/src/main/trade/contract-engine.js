@@ -1101,9 +1101,9 @@ class SmartContractEngine extends EventEmitter {
 
       return {
         ...contract,
-        parties: JSON.parse(contract.parties),
-        terms: JSON.parse(contract.terms),
-        metadata: contract.metadata ? JSON.parse(contract.metadata) : {},
+        parties: safeParse(contract.parties, []),
+        terms: safeParse(contract.terms, {}),
+        metadata: safeParse(contract.metadata, {}),
       };
     } catch (error) {
       logger.error("[ContractEngine] 获取合约详情失败:", error);
