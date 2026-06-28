@@ -54,6 +54,22 @@ describe("loadHooks — hierarchy concatenation", () => {
     expect(contributed).toEqual([userFile, projFile, localFile]);
   });
 
+  it("dedups the same physical file (explicit --settings aliasing an auto-loaded path)", () => {
+    setFile(projFile, {
+      hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] },
+    });
+    // --settings points at the very file cwd already auto-loads. Without path
+    // dedup this hook group would be read twice and fire twice.
+    const { hooks, files: contributed } = loadHooks({
+      cwd: CWD,
+      settingsFile: projFile,
+    });
+    expect(hooks.PreToolUse).toHaveLength(1);
+    expect(hooks.PreToolUse[0].hooks[0].command).toBe("guard.sh");
+    // And the file is reported once, not twice.
+    expect(contributed.filter((f) => f === projFile)).toHaveLength(1);
+  });
+
   it("filters out non-command hook entries", () => {
     setFile(projFile, {
       hooks: {

@@ -94,7 +94,17 @@ function loadHooks({ cwd = process.cwd(), settingsFile, onWarn } = {}) {
   if (process.env.CC_SETTINGS_HOOKS === "0") {
     return { hooks: merged, files };
   }
+  const seenPaths = new Set();
   for (const file of settingsFiles(cwd, settingsFile)) {
+    // Dedup by RESOLVED path so the SAME physical file is never read twice — e.g.
+    // `--settings .claude/settings.json` from the project root aliases the
+    // auto-loaded cwd file, which would otherwise CONCATENATE its hook groups a
+    // second time and double-fire every hook in it. (Cross-FILE concatenation
+    // across the user/project/local hierarchy is intentional and untouched —
+    // identical commands from DIFFERENT layers still both run.)
+    const resolved = path.resolve(file);
+    if (seenPaths.has(resolved)) continue;
+    seenPaths.add(resolved);
     const data = readJson(file, onWarn);
     const block =
       data && data.hooks && typeof data.hooks === "object" ? data.hooks : null;
