@@ -19,6 +19,25 @@
  */
 
 const { logger } = require("../../utils/logger");
+
+/**
+ * Tolerant JSON column parse — a single notification with a corrupt actions/data
+ * string must not throw out of the .map and drop the whole notification list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[NotificationHandler] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { Notification } = require("electron");
 const crypto = require("crypto");
 
@@ -507,8 +526,8 @@ class NotificationHandler {
       return {
         items: items.map((item) => ({
           ...item,
-          actions: item.actions ? JSON.parse(item.actions) : null,
-          data: item.data ? JSON.parse(item.data) : null,
+          actions: safeParse(item.actions, null),
+          data: safeParse(item.data, null),
         })),
         total,
       };

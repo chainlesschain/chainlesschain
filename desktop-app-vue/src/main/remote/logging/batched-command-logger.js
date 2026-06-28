@@ -9,9 +9,28 @@
  * @module remote/logging/batched-command-logger
  */
 
-const { logger } = require('../../utils/logger');
-const EventEmitter = require('events');
-const { getConfig } = require('./performance-config');
+const { logger } = require("../../utils/logger");
+
+/**
+ * Tolerant JSON column parse — a single log row with a corrupt params/result
+ * string must not throw out of the .map and drop the whole log list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[BatchedCommandLogger] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+const EventEmitter = require("events");
+const { getConfig } = require("./performance-config");
 
 /**
  * 批处理命令日志记录器类
@@ -24,14 +43,17 @@ class BatchedCommandLogger extends EventEmitter {
 
     // 配置
     this.config = {
-      batchSize: getConfig('logging.batchSize', 50),
-      batchInterval: getConfig('logging.batchInterval', 1000),
-      maxBatchWait: getConfig('logging.maxBatchWait', 5000),
-      maxLogAge: getConfig('logging.maxLogAge', 30 * 24 * 60 * 60 * 1000),
-      maxLogCount: getConfig('logging.maxLogCount', 100000),
-      autoCleanupInterval: getConfig('logging.autoCleanupInterval', 24 * 60 * 60 * 1000),
-      enableAutoCleanup: getConfig('logging.enableAutoCleanup', true),
-      ...options
+      batchSize: getConfig("logging.batchSize", 50),
+      batchInterval: getConfig("logging.batchInterval", 1000),
+      maxBatchWait: getConfig("logging.maxBatchWait", 5000),
+      maxLogAge: getConfig("logging.maxLogAge", 30 * 24 * 60 * 60 * 1000),
+      maxLogCount: getConfig("logging.maxLogCount", 100000),
+      autoCleanupInterval: getConfig(
+        "logging.autoCleanupInterval",
+        24 * 60 * 60 * 1000,
+      ),
+      enableAutoCleanup: getConfig("logging.enableAutoCleanup", true),
+      ...options,
     };
 
     // 批处理缓冲区
@@ -47,7 +69,7 @@ class BatchedCommandLogger extends EventEmitter {
       batchedWrites: 0,
       singleWrites: 0,
       avgBatchSize: 0,
-      maxBufferSize: 0
+      maxBufferSize: 0,
     };
 
     // 准备语句（预编译 SQL，提升性能）
@@ -63,9 +85,9 @@ class BatchedCommandLogger extends EventEmitter {
       this.startAutoCleanup();
     }
 
-    logger.info('[BatchedCommandLogger] 批处理日志记录器已初始化', {
+    logger.info("[BatchedCommandLogger] 批处理日志记录器已初始化", {
       batchSize: this.config.batchSize,
-      batchInterval: this.config.batchInterval
+      batchInterval: this.config.batchInterval,
     });
   }
 
@@ -103,9 +125,9 @@ class BatchedCommandLogger extends EventEmitter {
         CREATE INDEX IF NOT EXISTS idx_remote_logs_namespace ON remote_command_logs(command_namespace);
       `);
 
-      logger.info('[BatchedCommandLogger] 数据库表已初始化');
+      logger.info("[BatchedCommandLogger] 数据库表已初始化");
     } catch (error) {
-      logger.error('[BatchedCommandLogger] 初始化数据库表失败:', error);
+      logger.error("[BatchedCommandLogger] 初始化数据库表失败:", error);
       throw error;
     }
   }
@@ -125,9 +147,9 @@ class BatchedCommandLogger extends EventEmitter {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      logger.info('[BatchedCommandLogger] SQL 语句已预编译');
+      logger.info("[BatchedCommandLogger] SQL 语句已预编译");
     } catch (error) {
-      logger.error('[BatchedCommandLogger] 预编译 SQL 失败:', error);
+      logger.error("[BatchedCommandLogger] 预编译 SQL 失败:", error);
       throw error;
     }
   }
@@ -138,8 +160,13 @@ class BatchedCommandLogger extends EventEmitter {
    */
   log(logEntry) {
     // 验证必要字段
-    if (!logEntry.requestId || !logEntry.deviceDid || !logEntry.namespace || !logEntry.action) {
-      throw new Error('Missing required fields in log entry');
+    if (
+      !logEntry.requestId ||
+      !logEntry.deviceDid ||
+      !logEntry.namespace ||
+      !logEntry.action
+    ) {
+      throw new Error("Missing required fields in log entry");
     }
 
     // 标准化日志条目
@@ -149,14 +176,20 @@ class BatchedCommandLogger extends EventEmitter {
       deviceName: logEntry.deviceName || null,
       namespace: logEntry.namespace,
       action: logEntry.action,
-      params: typeof logEntry.params === 'object' ? JSON.stringify(logEntry.params) : logEntry.params,
-      result: typeof logEntry.result === 'object' ? JSON.stringify(logEntry.result) : logEntry.result,
+      params:
+        typeof logEntry.params === "object"
+          ? JSON.stringify(logEntry.params)
+          : logEntry.params,
+      result:
+        typeof logEntry.result === "object"
+          ? JSON.stringify(logEntry.result)
+          : logEntry.result,
       error: logEntry.error || null,
-      status: logEntry.status || 'success',
-      level: logEntry.level || 'info',
+      status: logEntry.status || "success",
+      level: logEntry.level || "info",
       duration: logEntry.duration || 0,
       timestamp: logEntry.timestamp || Date.now(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     // 添加到缓冲区
@@ -169,7 +202,7 @@ class BatchedCommandLogger extends EventEmitter {
     }
 
     // 触发事件
-    this.emit('log', normalizedEntry);
+    this.emit("log", normalizedEntry);
 
     // 如果缓冲区已满，立即刷新
     if (this.logBuffer.length >= this.config.batchSize) {
@@ -189,7 +222,7 @@ class BatchedCommandLogger extends EventEmitter {
       }
     }, this.config.batchInterval);
 
-    logger.info('[BatchedCommandLogger] 批处理定时器已启动');
+    logger.info("[BatchedCommandLogger] 批处理定时器已启动");
   }
 
   /**
@@ -224,7 +257,7 @@ class BatchedCommandLogger extends EventEmitter {
             log.level,
             log.duration,
             log.timestamp,
-            log.createdAt
+            log.createdAt,
           );
         }
       });
@@ -233,24 +266,23 @@ class BatchedCommandLogger extends EventEmitter {
 
       // 更新统计
       this.stats.batchedWrites++;
-      this.stats.avgBatchSize = (
+      this.stats.avgBatchSize =
         (this.stats.avgBatchSize * (this.stats.batchedWrites - 1) + batchSize) /
-        this.stats.batchedWrites
-      );
+        this.stats.batchedWrites;
 
       // 触发刷新事件
-      this.emit('flush', {
+      this.emit("flush", {
         count: batchSize,
-        remaining: this.logBuffer.length
+        remaining: this.logBuffer.length,
       });
 
-      logger.debug('[BatchedCommandLogger] 批量写入日志成功', {
+      logger.debug("[BatchedCommandLogger] 批量写入日志成功", {
         batchSize,
-        remaining: this.logBuffer.length
+        remaining: this.logBuffer.length,
       });
     } catch (error) {
-      logger.error('[BatchedCommandLogger] 批量写入日志失败:', error);
-      this.emit('error', error);
+      logger.error("[BatchedCommandLogger] 批量写入日志失败:", error);
+      this.emit("error", error);
     } finally {
       this.bufferLock = false;
     }
@@ -283,8 +315,8 @@ class BatchedCommandLogger extends EventEmitter {
       search,
       startTime,
       endTime,
-      sortBy = 'timestamp',
-      sortOrder = 'DESC'
+      sortBy = "timestamp",
+      sortOrder = "DESC",
     } = options;
 
     try {
@@ -293,41 +325,44 @@ class BatchedCommandLogger extends EventEmitter {
       const params = [];
 
       if (namespace) {
-        conditions.push('command_namespace = ?');
+        conditions.push("command_namespace = ?");
         params.push(namespace);
       }
 
       if (status) {
-        conditions.push('status = ?');
+        conditions.push("status = ?");
         params.push(status);
       }
 
       if (level) {
-        conditions.push('level = ?');
+        conditions.push("level = ?");
         params.push(level);
       }
 
       if (deviceDid) {
-        conditions.push('device_did = ?');
+        conditions.push("device_did = ?");
         params.push(deviceDid);
       }
 
       if (search) {
-        conditions.push('(command_action LIKE ? OR device_did LIKE ? OR error LIKE ?)');
+        conditions.push(
+          "(command_action LIKE ? OR device_did LIKE ? OR error LIKE ?)",
+        );
         params.push(`%${search}%`, `%${search}%`, `%${search}%`);
       }
 
       if (startTime) {
-        conditions.push('timestamp >= ?');
+        conditions.push("timestamp >= ?");
         params.push(startTime);
       }
 
       if (endTime) {
-        conditions.push('timestamp <= ?');
+        conditions.push("timestamp <= ?");
         params.push(endTime);
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       // 查询总数
       const countSql = `SELECT COUNT(*) as total FROM remote_command_logs ${whereClause}`;
@@ -348,8 +383,8 @@ class BatchedCommandLogger extends EventEmitter {
       // 解析 JSON 字段
       const parsedLogs = logs.map((log) => ({
         ...log,
-        params: log.params ? JSON.parse(log.params) : null,
-        result: log.result ? JSON.parse(log.result) : null
+        params: safeParse(log.params, null),
+        result: safeParse(log.result, null),
       }));
 
       return {
@@ -357,10 +392,10 @@ class BatchedCommandLogger extends EventEmitter {
         total,
         page,
         pageSize,
-        totalPages: Math.ceil(total / pageSize)
+        totalPages: Math.ceil(total / pageSize),
       };
     } catch (error) {
-      logger.error('[BatchedCommandLogger] 查询日志失败:', error);
+      logger.error("[BatchedCommandLogger] 查询日志失败:", error);
       throw error;
     }
   }
@@ -373,7 +408,7 @@ class BatchedCommandLogger extends EventEmitter {
     return {
       ...this.stats,
       bufferSize: this.logBuffer.length,
-      isBufferLocked: this.bufferLock
+      isBufferLocked: this.bufferLock,
     };
   }
 
@@ -385,7 +420,7 @@ class BatchedCommandLogger extends EventEmitter {
       this.cleanup();
     }, this.config.autoCleanupInterval);
 
-    logger.info('[BatchedCommandLogger] 自动清理已启动');
+    logger.info("[BatchedCommandLogger] 自动清理已启动");
   }
 
   /**
@@ -396,11 +431,15 @@ class BatchedCommandLogger extends EventEmitter {
       const cutoffTime = Date.now() - this.config.maxLogAge;
 
       // 删除过期日志
-      const deleteStmt = this.database.prepare('DELETE FROM remote_command_logs WHERE timestamp < ?');
+      const deleteStmt = this.database.prepare(
+        "DELETE FROM remote_command_logs WHERE timestamp < ?",
+      );
       const result1 = deleteStmt.run(cutoffTime);
 
       // 如果超过最大数量，删除最旧的
-      const countStmt = this.database.prepare('SELECT COUNT(*) as total FROM remote_command_logs');
+      const countStmt = this.database.prepare(
+        "SELECT COUNT(*) as total FROM remote_command_logs",
+      );
       const { total } = countStmt.get();
 
       if (total > this.config.maxLogCount) {
@@ -414,22 +453,22 @@ class BatchedCommandLogger extends EventEmitter {
         `);
         const result2 = deleteOldestStmt.run(total - this.config.maxLogCount);
 
-        logger.info('[BatchedCommandLogger] 清理完成', {
+        logger.info("[BatchedCommandLogger] 清理完成", {
           deletedByAge: result1.changes,
-          deletedByCount: result2.changes
+          deletedByCount: result2.changes,
         });
       } else {
-        logger.info('[BatchedCommandLogger] 清理完成', {
-          deletedByAge: result1.changes
+        logger.info("[BatchedCommandLogger] 清理完成", {
+          deletedByAge: result1.changes,
         });
       }
 
-      this.emit('cleanup', {
+      this.emit("cleanup", {
         deletedByAge: result1.changes,
-        currentTotal: total
+        currentTotal: total,
       });
     } catch (error) {
-      logger.error('[BatchedCommandLogger] 清理失败:', error);
+      logger.error("[BatchedCommandLogger] 清理失败:", error);
     }
   }
 
@@ -448,8 +487,8 @@ class BatchedCommandLogger extends EventEmitter {
     // 刷新剩余日志
     await this.forceFlush();
 
-    logger.info('[BatchedCommandLogger] 日志记录器已关闭', {
-      stats: this.stats
+    logger.info("[BatchedCommandLogger] 日志记录器已关闭", {
+      stats: this.stats,
     });
   }
 }

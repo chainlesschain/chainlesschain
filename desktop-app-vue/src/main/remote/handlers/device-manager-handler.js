@@ -12,6 +12,25 @@
  */
 
 const { logger } = require("../../utils/logger");
+
+/**
+ * Tolerant JSON column parse — a single device/log row with a corrupt metadata/
+ * details string must not throw out of the .map and drop the whole device/log
+ * list. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[DeviceManagerHandler] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 
 /**
@@ -349,7 +368,7 @@ class DeviceManagerHandler extends EventEmitter {
 
     const devices = rows.map((row) => ({
       ...row,
-      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      metadata: safeParse(row.metadata, {}),
       is_trusted: Boolean(row.is_trusted),
     }));
 
@@ -381,7 +400,7 @@ class DeviceManagerHandler extends EventEmitter {
 
     return {
       ...row,
-      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      metadata: safeParse(row.metadata, {}),
       is_trusted: Boolean(row.is_trusted),
     };
   }
@@ -697,7 +716,7 @@ class DeviceManagerHandler extends EventEmitter {
 
     const logs = rows.map((row) => ({
       ...row,
-      details: row.details ? JSON.parse(row.details) : {},
+      details: safeParse(row.details, {}),
     }));
 
     return {
@@ -782,22 +801,28 @@ class DeviceManagerHandler extends EventEmitter {
       // 尝试通过 Peer ID 或多地址连接
       if (device.peer_id) {
         // 使用 P2P Manager 连接到 Peer
-        if (typeof this.p2pManager.connectToPeer === 'function') {
+        if (typeof this.p2pManager.connectToPeer === "function") {
           let timeoutId;
           connected = await Promise.race([
             this.p2pManager.connectToPeer(device.peer_id, device.multiaddr),
             new Promise((_, reject) => {
-              timeoutId = setTimeout(() => reject(new Error('Connection timeout')), timeout);
+              timeoutId = setTimeout(
+                () => reject(new Error("Connection timeout")),
+                timeout,
+              );
             }),
           ]).finally(() => clearTimeout(timeoutId));
-        } else if (typeof this.p2pManager.dial === 'function') {
+        } else if (typeof this.p2pManager.dial === "function") {
           // 兼容 libp2p dial 方法
           const multiaddr = device.multiaddr || `/p2p/${device.peer_id}`;
           let timeoutId;
           await Promise.race([
             this.p2pManager.dial(multiaddr),
             new Promise((_, reject) => {
-              timeoutId = setTimeout(() => reject(new Error('Connection timeout')), timeout);
+              timeoutId = setTimeout(
+                () => reject(new Error("Connection timeout")),
+                timeout,
+              );
             }),
           ]).finally(() => clearTimeout(timeoutId));
           connected = true;
