@@ -3672,6 +3672,31 @@ class HubLocalViewModel @Inject constructor(
                 }
                 return@launch
             }
+            // Hard auth failure (e.g. status_code 2154 token-expired) — lazy
+            // secUid resolution can't fix a genuinely bad/expired token, so
+            // surface the error to the user. Only the soft anti-crawler case
+            // (ERR_NO_SEC_UID: passport ok-shape but no sec_user_id, cookie may
+            // still be valid) gets the lazy save+resolve path below.
+            val loginErrorCode = douyinCollector.lastLoginErrorCode
+            if (loginErrorCode !=
+                com.chainlesschain.android.pdh.social.douyin.DouyinApiClient.ERR_NO_SEC_UID
+            ) {
+                val loginErrorMsg = douyinCollector.lastLoginErrorMessage
+                Timber.w(
+                    "HubLocalViewModel: Douyin login hard-failed (code=$loginErrorCode) — surfacing",
+                )
+                _state.update {
+                    it.copy(
+                        pendingLogin = null,
+                        douyin = it.douyin.copy(
+                            isLoggedIn = false,
+                            errorMessage =
+                                "抖音登录失败 (code=$loginErrorCode): ${loginErrorMsg ?: "未知错误"}",
+                        ),
+                    )
+                }
+                return@launch
+            }
             // Lazy secUid fallback: passport/info/v2 couldn't return sec_user_id
             // (Douyin anti-crawler), but the cookie is valid — save it and let
             // syncDouyin resolve secUid via the unsigned fetchProfile. If the

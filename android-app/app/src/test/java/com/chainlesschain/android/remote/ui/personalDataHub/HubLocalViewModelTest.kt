@@ -1777,9 +1777,13 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `onDouyinLoginCookie surfaces apiClient error code+message when fetchProfile fails`() = runTest(testDispatcher) {
-        // Simulate the "ok but no sec_user_id" branch (anonymous shape) —
-        // apiClient sets code=-7 + dataKeys hint; VM should surface both.
+    fun `onDouyinLoginCookie soft no-secUid (-7) saves cookie + lazy-resolves instead of erroring`() = runTest(testDispatcher) {
+        // The "ok but no sec_user_id" anti-crawler case (ERR_NO_SEC_UID = -7):
+        // acrawler isn't loaded on the login page so secUid can't be resolved at
+        // login time, but the cookie may still be valid. The VM must SAVE the
+        // cookie (not drop it) and lazy-resolve secUid on sync — it must NOT
+        // surface a hard error for this soft case. (Hard codes like 2154 do
+        // surface — see the token-expired test below.)
         coEvery { douyinCollector.acceptLoginCookie(any(), any()) } returns false
         every { douyinCollector.lastLoginErrorCode } returns -7
         every { douyinCollector.lastLoginErrorMessage } returns
@@ -1791,13 +1795,11 @@ class HubLocalViewModelTest {
         vm.onDouyinLoginCookie("sessionid=incomplete")
         advanceUntilIdle()
 
+        // cookie saved (lazy path), pending login cleared, and crucially NO hard
+        // error surfaced for the soft anti-crawler case.
+        io.mockk.coVerify { douyinCredentials.saveCookieOnly("sessionid=incomplete", null, null) }
         assertNull(vm.state.value.pendingLogin)
-        assertFalse(vm.state.value.douyin.isLoggedIn)
-        val err = vm.state.value.douyin.errorMessage
-        assertNotNull(err)
-        assertTrue(err!!.contains("code=-7"), "expected error to expose code; got: $err")
-        assertTrue(err.contains("sec_user_id"), "expected error to mention sec_user_id; got: $err")
-        assertTrue(err.contains("dataKeys=[device_id,install_id]"), "expected error to expose dataKeys hint; got: $err")
+        assertNull(vm.state.value.douyin.errorMessage)
     }
 
     @Test

@@ -163,7 +163,7 @@ class DouyinApiClient @Inject constructor() {
                 dataKeys, obj.toString().length,
             )
             setLastError(
-                -7,
+                ERR_NO_SEC_UID,
                 "ok but data lacks sec_user_id (cookie likely missing sessionid); dataKeys=[$dataKeys]",
             )
             return@withContext null
@@ -383,6 +383,17 @@ class DouyinApiClient @Inject constructor() {
     }
 
     companion object {
+        /**
+         * lastErrorCode sentinel for the "soft" anti-crawler case: passport
+         * /info/v2 returned an ok-shaped body but with no `sec_user_id` (cookie
+         * may still be valid; Douyin's acrawler isn't loaded on the login page
+         * so secUid can't be resolved at login time). Callers treat this as a
+         * lazy-resolve case (save the cookie, resolve secUid later) rather than
+         * a hard auth failure. Genuine upstream errors carry the real
+         * `status_code` (e.g. 2154 token-expired) and must be surfaced instead.
+         */
+        const val ERR_NO_SEC_UID = -7
+
         /**
          * 从抖音 web cookie 中抠 short_id (numeric)。cookie key 是 `uid_tt`
          * 或 `uid_tt_ss`，值是 32-char hex（不是直接 short id），实际 short
