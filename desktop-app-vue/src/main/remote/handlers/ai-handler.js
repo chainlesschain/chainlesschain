@@ -14,6 +14,24 @@
 const { logger } = require("../../utils/logger");
 
 /**
+ * Tolerant JSON column parse — a single conversation/agent/template row with a
+ * corrupt metadata/config/variables string must not throw out of the .map and
+ * drop the whole list. The `x ? JSON.parse(x) : d` form it replaces only guarded
+ * NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[AIHandler] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
+/**
  * AI 命令处理器类
  */
 class AICommandHandler {
@@ -475,7 +493,7 @@ class AICommandHandler {
       // 解析 metadata
       const result = conversations.map((conv) => ({
         ...conv,
-        metadata: conv.metadata ? JSON.parse(conv.metadata) : null,
+        metadata: safeParse(conv.metadata, null),
       }));
 
       return {
@@ -749,7 +767,7 @@ class AICommandHandler {
 
             agents = dbAgents.map((a) => ({
               ...a,
-              config: a.config ? JSON.parse(a.config) : null,
+              config: safeParse(a.config, null),
             }));
           }
 
@@ -1373,7 +1391,7 @@ class AICommandHandler {
       name: r.name,
       description: r.description,
       template: r.template,
-      variables: r.variables ? JSON.parse(r.variables) : [],
+      variables: safeParse(r.variables, []),
       category: r.category,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
