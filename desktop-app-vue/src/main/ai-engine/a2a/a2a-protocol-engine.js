@@ -6,6 +6,24 @@ const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
 
+/**
+ * Tolerant JSON column parse — a single corrupt/legacy/truncated row must not
+ * throw out of a list-load loop and silently drop every other agent card.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[A2AProtocol] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+
 class A2AProtocolEngine extends EventEmitter {
   constructor() {
     super();
@@ -71,9 +89,9 @@ class A2AProtocolEngine extends EventEmitter {
       for (const row of rows) {
         this._agentCards.set(row.id, {
           ...row,
-          capabilities: JSON.parse(row.capabilities || "[]"),
-          skills: JSON.parse(row.skills || "[]"),
-          metadata: JSON.parse(row.metadata || "{}"),
+          capabilities: safeParse(row.capabilities, []),
+          skills: safeParse(row.skills, []),
+          metadata: safeParse(row.metadata, {}),
         });
       }
     } catch (error) {

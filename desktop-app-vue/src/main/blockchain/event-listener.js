@@ -13,6 +13,24 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { ethers } = require("ethers");
 
+/**
+ * Tolerant JSON column parse — a single corrupt event_data row must not throw
+ * out of the getProcessedEvents map and fail the whole event list.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[EventListener] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+
 class BlockchainEventListener extends EventEmitter {
   constructor(database, blockchainAdapter, assetManager, contractEngine) {
     super();
@@ -804,7 +822,7 @@ class BlockchainEventListener extends EventEmitter {
 
       return events.map((e) => ({
         ...e,
-        event_data: JSON.parse(e.event_data),
+        event_data: safeParse(e.event_data, null),
       }));
     } catch (error) {
       logger.error("[EventListener] 获取已处理事件失败:", error);

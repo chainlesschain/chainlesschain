@@ -17,6 +17,22 @@ const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 
 /**
+ * Tolerant JSON column parse — a single corrupt/legacy row must not throw out of
+ * the load loop and silently drop EVERY registered webhook.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[Webhook] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
+/**
  * Webhook event types
  */
 const WEBHOOK_EVENTS = {
@@ -687,9 +703,9 @@ class WebhookManager extends EventEmitter {
         this.webhooks.set(row.id, {
           id: row.id,
           url: row.url,
-          events: JSON.parse(row.events || "[]"),
+          events: safeParse(row.events, []),
           secret: row.secret,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
           active: !!row.active,
           deliveryCount: row.delivery_count || 0,
           lastDelivery: row.last_delivery,
