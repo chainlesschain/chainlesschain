@@ -20,7 +20,7 @@
 # that bloated .git history by ~1.2 GB / 24 cc-cli.tgz versions in v5.0.3.97
 # pre-slim state).
 
-168d6dee735720d68ce8ca61347e350e5651a22296de7402b0f96982d7cea0b2  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+5ee5a05794d2fd95699bb74605ffdf65e0abb96b891a4eda7001b8b006a61957  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
 47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f  libnode.so                       android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so
 b74d37b407a9092573671dd031ccaa8c36576bb067d21c9effa2edb748526400  libicudata.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicudata.so
 5c08255d1f0ca3529ec79daab5b3cd8d0064ed27efc66b2937415460e02522b1  libicui18n.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicui18n.so
