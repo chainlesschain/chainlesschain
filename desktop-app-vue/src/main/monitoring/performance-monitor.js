@@ -1,5 +1,20 @@
 const { logger } = require("../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PerformanceMonitor] Bad JSON column, fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+
 /**
  * 性能监控系统 (Performance Monitor)
  * 记录和分析AI Pipeline各阶段的性能指标
@@ -430,7 +445,7 @@ class PerformanceMonitor {
         phaseBreakdown[phase].totalDuration += row.duration;
         phaseBreakdown[phase].records.push({
           duration: row.duration,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
           timestamp: row.created_at,
         });
       }
@@ -636,7 +651,7 @@ class PerformanceMonitor {
 
       return rows.map((row) => ({
         ...row,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: safeParse(row.metadata, {}),
         created_at: new Date(row.created_at).toISOString(),
       }));
     } catch (error) {

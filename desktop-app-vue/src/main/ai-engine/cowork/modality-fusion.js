@@ -14,6 +14,19 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ModalityFusion] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -257,7 +270,7 @@ class ModalityFusion extends EventEmitter {
         .all(sessionId)
         .map((r) => ({
           ...r,
-          metadata: JSON.parse(r.metadata || "{}"),
+          metadata: safeParse(r.metadata, {}),
         }));
     } catch {
       return [];
@@ -529,12 +542,12 @@ class ModalityFusion extends EventEmitter {
       }
       const session = {
         id: row.id,
-        modalities: JSON.parse(row.modalities || "[]"),
+        modalities: safeParse(row.modalities, []),
         inputs: [],
         inputCount: row.input_count,
         fusedContextPreview: row.fused_context,
         status: row.status,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: safeParse(row.metadata, {}),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };

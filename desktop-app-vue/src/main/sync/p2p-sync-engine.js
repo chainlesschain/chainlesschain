@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[P2PSync] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const crypto = require("crypto");
 const { EventEmitter } = require("events");
 
@@ -1194,7 +1207,7 @@ class P2PSyncEngine extends EventEmitter {
             action: "update",
             data: {
               name: r.name,
-              permissions: JSON.parse(r.permissions || "[]"),
+              permissions: safeParse(r.permissions, []),
             },
             timestamp: r.timestamp,
           })),

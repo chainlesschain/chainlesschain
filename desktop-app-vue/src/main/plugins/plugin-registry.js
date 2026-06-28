@@ -222,7 +222,7 @@ class PluginRegistry {
     if (row) {
       return {
         ...row,
-        manifest: JSON.parse(row.manifest),
+        manifest: safeParseColumn(row.manifest, {}),
         enabled: row.enabled === 1,
       };
     }

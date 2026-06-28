@@ -15,6 +15,19 @@
  */
 
 const { logger } = require("../../utils/logger");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[WorkflowHandler] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const {
   WorkflowEngine,
   WORKFLOW_STATUS,
@@ -415,7 +428,7 @@ class WorkflowHandler {
             id: row.id,
             name: row.name,
             description: row.description,
-            tags: JSON.parse(row.tags || "[]"),
+            tags: safeParse(row.tags, []),
             enabled: Boolean(row.enabled),
             createdAt: row.created_at,
             updatedAt: row.updated_at,
