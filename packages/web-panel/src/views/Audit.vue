@@ -286,6 +286,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { tryParseJson } from '../utils/community-parser.js'
 import {
   ReloadOutlined,
   DownloadOutlined,
@@ -384,13 +385,7 @@ async function checkMtcStatus(record) {
   const id = record.auditMtcEventId.replace(/"/g, '\\"')
   try {
     const r = await ws.execute(`audit mtc reconcile-check "${id}" --json`, 8000)
-    let parsed
-    try {
-      parsed = JSON.parse(r.output.trim())
-    } catch {
-      const m = r.output.match(/\{[\s\S]*\}/)
-      parsed = m ? JSON.parse(m[0]) : null
-    }
+    const parsed = tryParseJson(r.output)
     if (!parsed) {
       message.warning(t('audit.mtc.noJson'))
       return

@@ -1,15 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useWsStore } from './ws.js'
-import { stripCliNoise } from '../utils/community-parser.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
+// Robust CLI-JSON parse: strips CLI noise + walks brace-balanced candidates
+// (skipping string literals) before a greedy fallback — so a stray `[tag]` or
+// trailing prose `}` in the output doesn't make a greedy `/\{[\s\S]*\}/` over-
+// capture and fail. Shared with all web-panel CLI consumers.
 function parseCliJson(output) {
-  const cleaned = stripCliNoise(output)
-  if (!cleaned) return null
-  try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
-  const m = cleaned.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
-  if (!m) return null
-  try { return JSON.parse(m[0]) } catch { return null }
+  return tryParseJson(output)
 }
 
 function createEmptyCompression() {

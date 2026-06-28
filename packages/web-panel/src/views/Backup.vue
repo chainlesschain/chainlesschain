@@ -329,6 +329,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { tryParseJson } from '../utils/community-parser.js'
 import {
   CloudUploadOutlined, SyncOutlined, HddOutlined,
   PlusOutlined, DeleteOutlined, ReloadOutlined,
@@ -613,17 +614,11 @@ async function unpinFile(record) {
 }
 
 // ==================== Helpers ====================
+// Delegate to the shared robust parser (strips CLI noise + brace-balanced
+// candidate extraction) instead of a greedy `/\{[\s\S]*\}/` that over-captures
+// when the CLI output wraps the JSON in prose / bracketed tags.
 function safeParseJson(str) {
-  if (!str || !str.trim()) return null
-  try {
-    return JSON.parse(str.trim())
-  } catch (_e) {
-    const match = str.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-    if (match) {
-      try { return JSON.parse(match[0]) } catch (_e2) { /* ignore */ }
-    }
-    return null
-  }
+  return tryParseJson(str)
 }
 
 async function exportBackupList() {

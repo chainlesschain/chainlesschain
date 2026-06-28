@@ -189,6 +189,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ReadOutlined, PlusOutlined, ReloadOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { tryParseJson } from '../utils/community-parser.js'
 
 const ws = useWsStore()
 
@@ -242,15 +243,10 @@ function formatTime(t) {
   }
 }
 
+// Shared robust parser: strips CLI noise + walks brace-balanced candidates
+// instead of a greedy regex that over-captures on surrounding prose/tags.
 function safeParseJson(output) {
-  try {
-    // Try to find JSON array or object in output
-    const jsonMatch = output.match(/(\[[\s\S]*\]|\{[\s\S]*\})/)
-    if (jsonMatch) return JSON.parse(jsonMatch[1])
-  } catch {
-    /* ignore */
-  }
-  return null
+  return tryParseJson(output)
 }
 
 // --- Load Feeds ---
