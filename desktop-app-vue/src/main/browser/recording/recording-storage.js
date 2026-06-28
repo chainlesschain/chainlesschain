@@ -6,12 +6,14 @@
  * @since v0.30.0
  */
 
-const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../../utils/logger');
+const { v4: uuidv4 } = require("uuid");
+const { logger } = require("../../utils/logger");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === '') return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -60,12 +62,15 @@ class RecordingStorage {
       recording.workflowId || null,
       JSON.stringify(recording.options || {}),
       now,
-      now
+      now,
     ];
 
     try {
       this.db.run(sql, params);
-      logger.info('[RecordingStorage] Recording saved', { id, name: recording.name });
+      logger.info("[RecordingStorage] Recording saved", {
+        id,
+        name: recording.name,
+      });
 
       return {
         id,
@@ -73,10 +78,12 @@ class RecordingStorage {
         url: recording.startUrl || recording.url,
         eventCount: recording.events?.length || 0,
         duration: recording.duration,
-        createdAt: now
+        createdAt: now,
       };
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to save recording', { error: error.message });
+      logger.error("[RecordingStorage] Failed to save recording", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -90,19 +97,16 @@ class RecordingStorage {
     const sql = `SELECT * FROM browser_recordings WHERE id = ?`;
 
     try {
-      const stmt = this.db.prepare(sql);
-      stmt.bind([id]);
-
-      if (stmt.step()) {
-        const row = stmt.getAsObject();
-        stmt.free();
-        return this._deserializeRecording(row);
-      }
-
-      stmt.free();
-      return null;
+      // better-sqlite3 (via SQLCipher wrapper) API — the legacy sql.js
+      // bind()/step()/getAsObject() were stubbed to no-op on this db, so every
+      // read here silently returned null/empty. Use .get()/.all() instead.
+      const row = this.db.prepare(sql).get(id);
+      return row ? this._deserializeRecording(row) : null;
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to get recording', { id, error: error.message });
+      logger.error("[RecordingStorage] Failed to get recording", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -124,27 +128,21 @@ class RecordingStorage {
     }
 
     if (tags && tags.length > 0) {
-      const tagConditions = tags.map(() => `tags LIKE ?`).join(' OR ');
+      const tagConditions = tags.map(() => `tags LIKE ?`).join(" OR ");
       sql += ` AND (${tagConditions})`;
-      tags.forEach(tag => params.push(`%"${tag}"%`));
+      tags.forEach((tag) => params.push(`%"${tag}"%`));
     }
 
     sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
     try {
-      const stmt = this.db.prepare(sql);
-      stmt.bind(params);
-
-      const recordings = [];
-      while (stmt.step()) {
-        recordings.push(this._deserializeRecording(stmt.getAsObject()));
-      }
-      stmt.free();
-
-      return recordings;
+      const rows = this.db.prepare(sql).all(...params);
+      return rows.map((row) => this._deserializeRecording(row));
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to list recordings', { error: error.message });
+      logger.error("[RecordingStorage] Failed to list recordings", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -156,14 +154,14 @@ class RecordingStorage {
    * @returns {Promise<Object>} Updated recording
    */
   async updateRecording(id, updates) {
-    const allowed = ['name', 'description', 'tags', 'workflowId'];
+    const allowed = ["name", "description", "tags", "workflowId"];
     const setClauses = [];
     const params = [];
 
     for (const key of allowed) {
       if (updates[key] !== undefined) {
-        const dbKey = key === 'workflowId' ? 'workflow_id' : key;
-        if (key === 'tags') {
+        const dbKey = key === "workflowId" ? "workflow_id" : key;
+        if (key === "tags") {
           setClauses.push(`${dbKey} = ?`);
           params.push(JSON.stringify(updates[key]));
         } else {
@@ -177,17 +175,20 @@ class RecordingStorage {
       return this.getRecording(id);
     }
 
-    setClauses.push('updated_at = ?');
+    setClauses.push("updated_at = ?");
     params.push(Date.now());
     params.push(id);
 
-    const sql = `UPDATE browser_recordings SET ${setClauses.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE browser_recordings SET ${setClauses.join(", ")} WHERE id = ?`;
 
     try {
       this.db.run(sql, params);
       return this.getRecording(id);
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to update recording', { id, error: error.message });
+      logger.error("[RecordingStorage] Failed to update recording", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -202,10 +203,13 @@ class RecordingStorage {
 
     try {
       this.db.run(sql, [id]);
-      logger.info('[RecordingStorage] Recording deleted', { id });
+      logger.info("[RecordingStorage] Recording deleted", { id });
       return true;
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to delete recording', { id, error: error.message });
+      logger.error("[RecordingStorage] Failed to delete recording", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -235,7 +239,7 @@ class RecordingStorage {
       baseline.description || null,
       baseline.targetUrl || null,
       baseline.elementRef || null,
-      baseline.screenshot,  // Buffer or base64
+      baseline.screenshot, // Buffer or base64
       baseline.thumbnail || null,
       baseline.width || null,
       baseline.height || null,
@@ -243,16 +247,21 @@ class RecordingStorage {
       baseline.workflowId || null,
       JSON.stringify(baseline.tags || []),
       now,
-      now
+      now,
     ];
 
     try {
       this.db.run(sql, params);
-      logger.info('[RecordingStorage] Baseline saved', { id, name: baseline.name });
+      logger.info("[RecordingStorage] Baseline saved", {
+        id,
+        name: baseline.name,
+      });
 
       return { id, name: baseline.name, createdAt: now };
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to save baseline', { error: error.message });
+      logger.error("[RecordingStorage] Failed to save baseline", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -266,19 +275,13 @@ class RecordingStorage {
     const sql = `SELECT * FROM browser_baselines WHERE id = ?`;
 
     try {
-      const stmt = this.db.prepare(sql);
-      stmt.bind([id]);
-
-      if (stmt.step()) {
-        const row = stmt.getAsObject();
-        stmt.free();
-        return this._deserializeBaseline(row);
-      }
-
-      stmt.free();
-      return null;
+      const row = this.db.prepare(sql).get(id);
+      return row ? this._deserializeBaseline(row) : null;
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to get baseline', { id, error: error.message });
+      logger.error("[RecordingStorage] Failed to get baseline", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -304,31 +307,24 @@ class RecordingStorage {
     params.push(limit, offset);
 
     try {
-      const stmt = this.db.prepare(sql);
-      stmt.bind(params);
-
-      const baselines = [];
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        baselines.push({
-          id: row.id,
-          name: row.name,
-          description: row.description,
-          targetUrl: row.target_url,
-          elementRef: row.element_ref,
-          width: row.width,
-          height: row.height,
-          workflowId: row.workflow_id,
-          tags: safeParse(row.tags, []),
-          createdAt: row.created_at,
-          updatedAt: row.updated_at
-        });
-      }
-      stmt.free();
-
-      return baselines;
+      const rows = this.db.prepare(sql).all(...params);
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        targetUrl: row.target_url,
+        elementRef: row.element_ref,
+        width: row.width,
+        height: row.height,
+        workflowId: row.workflow_id,
+        tags: safeParse(row.tags, []),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to list baselines', { error: error.message });
+      logger.error("[RecordingStorage] Failed to list baselines", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -345,7 +341,10 @@ class RecordingStorage {
       this.db.run(sql, [id]);
       return true;
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to delete baseline', { id, error: error.message });
+      logger.error("[RecordingStorage] Failed to delete baseline", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -378,14 +377,16 @@ class RecordingStorage {
       diff.diffPixels || 0,
       diff.status,
       diff.threshold || 0.95,
-      now
+      now,
     ];
 
     try {
       this.db.run(sql, params);
       return { id, status: diff.status, matchPercentage: diff.matchPercentage };
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to save diff', { error: error.message });
+      logger.error("[RecordingStorage] Failed to save diff", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -408,28 +409,23 @@ class RecordingStorage {
     `;
 
     try {
-      const stmt = this.db.prepare(sql);
-      stmt.bind([baselineId, limit]);
-
-      const diffs = [];
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        diffs.push({
-          id: row.id,
-          baselineId: row.baseline_id,
-          executionId: row.execution_id,
-          matchPercentage: row.match_percentage,
-          diffPixels: row.diff_pixels,
-          status: row.status,
-          threshold: row.threshold,
-          createdAt: row.created_at
-        });
-      }
-      stmt.free();
+      const rows = this.db.prepare(sql).all(baselineId, limit);
+      const diffs = rows.map((row) => ({
+        id: row.id,
+        baselineId: row.baseline_id,
+        executionId: row.execution_id,
+        matchPercentage: row.match_percentage,
+        diffPixels: row.diff_pixels,
+        status: row.status,
+        threshold: row.threshold,
+        createdAt: row.created_at,
+      }));
 
       return diffs;
     } catch (error) {
-      logger.error('[RecordingStorage] Failed to get diffs', { error: error.message });
+      logger.error("[RecordingStorage] Failed to get diffs", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -450,7 +446,7 @@ class RecordingStorage {
       workflowId: row.workflow_id,
       options: safeParse(row.recording_options, {}),
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 
@@ -469,7 +465,7 @@ class RecordingStorage {
       workflowId: row.workflow_id,
       tags: safeParse(row.tags, []),
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 }
