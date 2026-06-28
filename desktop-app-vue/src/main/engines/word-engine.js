@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const nodeFs = require("fs");
 const path = require("path");
 const { getFileHandler } = require("../utils/file-handler");
@@ -699,9 +700,8 @@ ${description}
       }
 
       // 提取JSON
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const structure = JSON.parse(jsonMatch[0]);
+      const structure = looseParseJSON(responseText);
+      if (structure) {
         return this.normalizeDocumentStructure(structure, description);
       }
 

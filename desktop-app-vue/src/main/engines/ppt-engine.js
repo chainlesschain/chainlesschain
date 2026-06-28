@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const pptxgen = require("pptxgenjs");
 const fs = require("fs").promises;
 const path = require("path");
@@ -512,9 +513,9 @@ ${description}
         responseText = await this.queryBackendAI(prompt);
       }
 
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      const parsed = looseParseJSON(responseText);
+      if (parsed) {
+        return parsed;
       }
       return this.getDefaultOutline(description);
     } catch (error) {

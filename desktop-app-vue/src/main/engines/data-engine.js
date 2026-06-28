@@ -4,6 +4,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -1078,9 +1079,9 @@ ${description}
       }
 
       // 提取JSON
-      const jsonMatch = String(responseText).match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      const parsed = looseParseJSON(String(responseText));
+      if (parsed) {
+        return parsed;
       }
     } catch (error) {
       logger.warn(

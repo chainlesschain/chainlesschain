@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const fs = require("fs").promises;
 const path = require("path");
 const PreviewServer = require("./preview-server");
@@ -983,13 +984,7 @@ MIT License
         });
 
         // 提取JSON
-        const jsonMatch =
-          response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
-          response.text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch
-          ? jsonMatch[1] || jsonMatch[0]
-          : response.text;
-        parsedRequirements = JSON.parse(jsonText);
+        parsedRequirements = looseParseJSON(response.text);
       } catch (parseError) {
         logger.warn(
           "[Web Engine] LLM解析失败，使用默认配置:",
