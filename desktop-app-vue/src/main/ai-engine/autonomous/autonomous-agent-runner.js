@@ -194,11 +194,15 @@ class AutonomousAgentRunner extends EventEmitter {
       return { success: false, error: "Goal description is required" };
     }
 
-    // Check concurrent goal limit
+    // Check concurrent goal limit. When at/over the limit the goal is created
+    // QUEUED and NOT executed; _drainQueue() starts it once a running goal frees
+    // a slot. (Previously this only LOGGED "queuing" then ran every goal anyway,
+    // so maxConcurrentGoals was never enforced.)
     const runningCount = Array.from(this.activeGoals.values()).filter(
       (g) => g.status === GOAL_STATUS.RUNNING,
     ).length;
-    if (runningCount >= this.config.maxConcurrentGoals) {
+    const atLimit = runningCount >= this.config.maxConcurrentGoals;
+    if (atLimit) {
       logger.info(
         `[AutonomousAgent] Max concurrent goals reached (${runningCount}/${this.config.maxConcurrentGoals}), queuing goal ${goalId}`,
       );
@@ -228,7 +232,7 @@ class AutonomousAgentRunner extends EventEmitter {
       id: goalId,
       description,
       priority,
-      status: GOAL_STATUS.RUNNING,
+      status: atLimit ? GOAL_STATUS.QUEUED : GOAL_STATUS.RUNNING,
       toolPermissions,
       context,
       plan,
@@ -269,13 +273,18 @@ class AutonomousAgentRunner extends EventEmitter {
       `Goal submitted: ${description}`,
     );
 
-    // Start execution (non-blocking)
-    this._executeGoal(goalId).catch((err) => {
-      logger.error(
-        `[AutonomousAgent] Unhandled error in goal ${goalId}:`,
-        err.message,
-      );
-    });
+    // Start execution (non-blocking) unless queued. A queued goal is started by
+    // _drainQueue() when a running goal finishes and a slot opens up.
+    if (!atLimit) {
+      this._executeGoal(goalId)
+        .catch((err) => {
+          logger.error(
+            `[AutonomousAgent] Unhandled error in goal ${goalId}:`,
+            err.message,
+          );
+        })
+        .finally(() => this._drainQueue());
+    }
 
     this.emit("goal-submitted", {
       goalId,
@@ -288,13 +297,56 @@ class AutonomousAgentRunner extends EventEmitter {
       success: true,
       data: {
         goalId,
-        status: GOAL_STATUS.RUNNING,
+        status: goalState.status,
         description,
         priority,
         plan,
         steps: [],
       },
     };
+  }
+
+  /**
+   * Start queued goals while the running count is below the concurrency limit.
+   * Called when a running goal settles (completes/fails/pauses) and frees a slot.
+   * Higher-priority, then older, queued goals start first. Defensive: re-checks
+   * the running count before each start so it never over-subscribes.
+   * @private
+   */
+  _drainQueue() {
+    const limit = this.config.maxConcurrentGoals;
+    let running = Array.from(this.activeGoals.values()).filter(
+      (g) => g.status === GOAL_STATUS.RUNNING,
+    ).length;
+    if (running >= limit) {
+      return;
+    }
+
+    const queued = Array.from(this.activeGoals.values())
+      .filter((g) => g.status === GOAL_STATUS.QUEUED)
+      .sort(
+        (a, b) =>
+          (b.priority || 0) - (a.priority || 0) ||
+          (a.createdAt < b.createdAt ? -1 : 1),
+      );
+
+    for (const goal of queued) {
+      if (running >= limit) {
+        break;
+      }
+      goal.status = GOAL_STATUS.RUNNING;
+      this._saveGoalToDB(goal);
+      this.emit("goal-dequeued", { goalId: goal.id });
+      running++;
+      this._executeGoal(goal.id)
+        .catch((err) => {
+          logger.error(
+            `[AutonomousAgent] Unhandled error in goal ${goal.id}:`,
+            err.message,
+          );
+        })
+        .finally(() => this._drainQueue());
+    }
   }
 
   /**
@@ -1005,6 +1057,9 @@ Respond ONLY with valid JSON.`;
     this.activeGoals.delete(goalId);
     this.emit("goal-cancelled", { goalId });
 
+    // Cancelling a running goal frees a concurrency slot — start any queued goal.
+    this._drainQueue();
+
     logger.info(`[AutonomousAgent] Goal ${goalId} cancelled`);
     return { success: true, data: { goalId, status: GOAL_STATUS.CANCELLED } };
   }
@@ -1068,10 +1123,26 @@ Respond ONLY with valid JSON.`;
 
     await this._logStep(goalId, "input-provided", `User input: ${input}`);
 
-    // Resolve the input promise to resume the loop
-    if (goal._inputResolve) {
-      goal._inputResolve(input);
+    // Resume execution. If the loop is currently awaiting at _waitForInput,
+    // resolving its promise continues it. But the `ask_user` action sets
+    // WAITING_INPUT *mid-step*, which makes the execution loop's
+    // `status === RUNNING` guard fail and the loop EXIT before it ever reaches
+    // _waitForInput — so _inputResolve stays null and nothing would restart the
+    // goal (it would hang forever). In that case, re-enter _executeGoal to
+    // continue from the existing state (stepCount/stepHistory are preserved, so
+    // it resumes rather than restarts). The null-vs-set check prevents a second
+    // concurrent loop when one is already awaiting.
+    if (typeof goal._inputResolve === "function") {
+      const resolve = goal._inputResolve;
       goal._inputResolve = null;
+      resolve(input);
+    } else {
+      this._executeGoal(goalId).catch((err) => {
+        logger.error(
+          `[AutonomousAgent] Error resuming goal ${goalId} after user input:`,
+          err.message,
+        );
+      });
     }
 
     this.emit("input-provided", { goalId, input });

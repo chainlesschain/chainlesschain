@@ -585,6 +585,47 @@ describe("AutonomousAgentRunner", () => {
       expect(goal.status).toBe(GOAL_STATUS.RUNNING);
     });
 
+    it("re-enters _executeGoal when no _inputResolve is pending (ask_user hang fix)", async () => {
+      // ask_user sets WAITING_INPUT mid-step → the execution loop exits before
+      // reaching _waitForInput, so _inputResolve stays null. Without re-driving,
+      // the goal hangs forever. provideUserInput must restart the loop.
+      const goal = makeGoalState({
+        id: "goal-1",
+        status: "waiting_input",
+        waitingForInput: true,
+        _inputResolve: null,
+      });
+      runner.activeGoals.set("goal-1", goal);
+      const execSpy = vi
+        .spyOn(runner, "_executeGoal")
+        .mockResolvedValue(undefined);
+
+      await runner.provideUserInput("goal-1", "the answer");
+
+      expect(goal.status).toBe(GOAL_STATUS.RUNNING);
+      expect(goal.lastUserInput).toBe("the answer");
+      expect(execSpy).toHaveBeenCalledWith("goal-1");
+    });
+
+    it("does NOT re-enter _executeGoal when a _inputResolve is pending (no second loop)", async () => {
+      const inputResolve = vi.fn();
+      const goal = makeGoalState({
+        id: "goal-1",
+        status: "waiting_input",
+        waitingForInput: true,
+        _inputResolve: inputResolve,
+      });
+      runner.activeGoals.set("goal-1", goal);
+      const execSpy = vi
+        .spyOn(runner, "_executeGoal")
+        .mockResolvedValue(undefined);
+
+      await runner.provideUserInput("goal-1", "answer");
+
+      expect(inputResolve).toHaveBeenCalledWith("answer");
+      expect(execSpy).not.toHaveBeenCalled();
+    });
+
     it("should return success=false for a non-existent goal", async () => {
       const result = await runner.provideUserInput("no-such-goal", "answer");
       expect(result.success).toBe(false);
