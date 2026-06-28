@@ -5046,8 +5046,30 @@ export async function* agentLoop(messages, options) {
 
     for (const call of toolCalls) {
       throwIfAborted(signal);
-      const fn = call.function;
-      const toolName = fn.name;
+      const fn = call?.function;
+      const toolName = fn?.name;
+      // A malformed tool call (no `function` / no `name` — a provider quirk or a
+      // bad MCP tool definition) must not crash the whole turn with a TypeError.
+      // Record an error tool result so the assistant turn stays BALANCED — a
+      // tool_call without its matching tool_result wedges strict providers
+      // (Anthropic/Bedrock) on the very next request — and let the model recover
+      // on the following iteration instead of the run dying on a recoverable
+      // malformed call.
+      if (typeof toolName !== "string" || !toolName) {
+        const reason = "malformed tool call: missing function name";
+        yield {
+          type: "tool-result",
+          tool: "(unknown)",
+          result: { error: reason },
+          error: reason,
+        };
+        messages.push({
+          role: "tool",
+          content: `Error: ${reason}.`,
+          tool_call_id: call?.id,
+        });
+        continue;
+      }
       let toolArgs;
 
       try {

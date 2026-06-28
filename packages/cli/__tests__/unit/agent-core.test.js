@@ -1553,6 +1553,58 @@ describe("agentLoop", () => {
     expect(execEvent.tool).toBe("list_dir");
   });
 
+  it("does not crash on a malformed tool call (missing function) and stays balanced", async () => {
+    // A tool_call with an id but NO `function` object. Before the guard,
+    // `call.function.name` threw a TypeError that crashed the whole turn AND
+    // left the assistant turn's tool_calls unbalanced (a non-abort error, so
+    // callers don't sanitize). Driven via the chatFn seam so we exercise the
+    // tool loop's own handling directly.
+    let callCount = 0;
+    const chatFn = async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [{ id: "bad-1", type: "function" }], // no `function`
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "Recovered." } };
+    };
+
+    const messages = [{ role: "user", content: "do a thing" }];
+    const events = [];
+    // Must NOT throw.
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      chatFn,
+      runnableProviderFallback: false, // call chatFn verbatim
+    })) {
+      events.push(event);
+    }
+
+    // Surfaced an error tool-result for the malformed call instead of throwing.
+    const toolResult = events.find((e) => e.type === "tool-result");
+    expect(toolResult).toBeDefined();
+    expect(String(toolResult.error)).toMatch(/malformed tool call/i);
+
+    // The run recovered and completed on the next iteration.
+    const complete = events.find((e) => e.type === "response-complete");
+    expect(complete.content).toBe("Recovered.");
+
+    // BALANCED: the malformed tool_call got a matching tool result (same
+    // tool_call_id), so a strict provider wouldn't reject the follow-up request.
+    const toolMsg = messages.find(
+      (m) => m.role === "tool" && m.tool_call_id === "bad-1",
+    );
+    expect(toolMsg).toBeDefined();
+    expect(toolMsg.content).toMatch(/malformed tool call/i);
+  });
+
   it("respects MAX_ITERATIONS", async () => {
     // Always return tool calls so it hits the limit
     globalThis.fetch = vi.fn().mockResolvedValue({
