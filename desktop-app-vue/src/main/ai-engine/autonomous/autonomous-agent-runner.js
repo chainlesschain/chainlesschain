@@ -1137,12 +1137,17 @@ Respond ONLY with valid JSON.`;
       goal._inputResolve = null;
       resolve(input);
     } else {
-      this._executeGoal(goalId).catch((err) => {
-        logger.error(
-          `[AutonomousAgent] Error resuming goal ${goalId} after user input:`,
-          err.message,
-        );
-      });
+      // Drain the queue when this resumed goal settles, matching submitGoal /
+      // _drainQueue — otherwise a goal resumed via user input that then
+      // completes would not free its concurrency slot for a QUEUED goal.
+      this._executeGoal(goalId)
+        .catch((err) => {
+          logger.error(
+            `[AutonomousAgent] Error resuming goal ${goalId} after user input:`,
+            err.message,
+          );
+        })
+        .finally(() => this._drainQueue());
     }
 
     this.emit("input-provided", { goalId, input });

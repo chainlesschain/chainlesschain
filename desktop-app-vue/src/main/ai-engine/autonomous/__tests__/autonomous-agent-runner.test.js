@@ -599,12 +599,20 @@ describe("AutonomousAgentRunner", () => {
       const execSpy = vi
         .spyOn(runner, "_executeGoal")
         .mockResolvedValue(undefined);
+      const drainSpy = vi
+        .spyOn(runner, "_drainQueue")
+        .mockImplementation(() => {});
 
       await runner.provideUserInput("goal-1", "the answer");
 
       expect(goal.status).toBe(GOAL_STATUS.RUNNING);
       expect(goal.lastUserInput).toBe("the answer");
       expect(execSpy).toHaveBeenCalledWith("goal-1");
+
+      // The resumed goal must free its slot on settle (drain the queue),
+      // matching submitGoal / _drainQueue.
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(drainSpy).toHaveBeenCalled();
     });
 
     it("does NOT re-enter _executeGoal when a _inputResolve is pending (no second loop)", async () => {
