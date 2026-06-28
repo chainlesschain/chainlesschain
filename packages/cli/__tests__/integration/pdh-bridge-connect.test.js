@@ -75,10 +75,7 @@ function pdhTools() {
 }
 
 /** Write a fresh (live pid, recent mtime) PDH lockfile into `homeDir`. */
-function writeLock(
-  homeDir,
-  { port, url, token = TOKEN, pid = process.pid } = {},
-) {
+function writeLock(homeDir, { port, url, token = TOKEN, pid = process.pid } = {}) {
   const dir = path.join(homeDir, ".chainlesschain", "pdh-bridge");
   fs.mkdirSync(dir, { recursive: true });
   const fp = path.join(dir, `${port}.json`);

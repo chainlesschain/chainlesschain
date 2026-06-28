@@ -25,9 +25,7 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[GovernanceAI] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[GovernanceAI] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }

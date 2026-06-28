@@ -175,12 +175,7 @@ const PR_INSTRUCTION =
  * Throws on fetch failure (the REPL surfaces it and skips the turn).
  */
 export async function expandPrComments(line, { deps } = {}) {
-  if (
-    !String(line || "")
-      .trim()
-      .startsWith("/pr-comments")
-  )
-    return null;
+  if (!String(line || "").trim().startsWith("/pr-comments")) return null;
   const { pr, repo } = parsePrCommentsArg(line);
   const data = await fetchPrComments({ pr, repo, deps });
   const block = formatPrComments(data);
@@ -188,10 +183,5 @@ export async function expandPrComments(line, { deps } = {}) {
     (data.reviews?.length || 0) +
     (data.conversation?.length || 0) +
     (data.inline?.length || 0);
-  return {
-    number: data.number,
-    count,
-    block,
-    text: `${PR_INSTRUCTION}\n\n${block}`,
-  };
+  return { number: data.number, count, block, text: `${PR_INSTRUCTION}\n\n${block}` };
 }

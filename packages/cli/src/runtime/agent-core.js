@@ -5091,11 +5091,7 @@ export async function* agentLoop(messages, options) {
       });
       for (const { call, toolArgs, promise } of inflight) {
         throwIfAborted(signal);
-        yield {
-          type: "tool-executing",
-          tool: call.function.name,
-          args: toolArgs,
-        };
+        yield { type: "tool-executing", tool: call.function.name, args: toolArgs };
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
         const warningMsg = budget.toWarningMessage();

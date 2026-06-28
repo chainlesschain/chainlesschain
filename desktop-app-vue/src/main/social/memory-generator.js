@@ -35,9 +35,7 @@ class MemoryGenerator extends EventEmitter {
     try {
       // social_memories table is created by TimeMachine; no separate table needed
       this.initialized = true;
-      logger.info(
-        "[MemoryGenerator] Memory generator initialized successfully",
-      );
+      logger.info("[MemoryGenerator] Memory generator initialized successfully");
     } catch (error) {
       logger.error("[MemoryGenerator] Initialization failed:", error);
       throw error;
@@ -71,10 +69,7 @@ class MemoryGenerator extends EventEmitter {
         .all(`%-${monthDay}`, `${currentYear}-%`);
 
       if (pastSnapshots.length === 0) {
-        logger.info(
-          "[MemoryGenerator] No past entries found for on-this-day:",
-          monthDay,
-        );
+        logger.info("[MemoryGenerator] No past entries found for on-this-day:", monthDay);
         return null;
       }
 
@@ -114,10 +109,7 @@ class MemoryGenerator extends EventEmitter {
             }
           }
         } catch (llmError) {
-          logger.warn(
-            "[MemoryGenerator] LLM generation failed, using fallback:",
-            llmError.message,
-          );
+          logger.warn("[MemoryGenerator] LLM generation failed, using fallback:", llmError.message);
         }
       }
 
@@ -186,30 +178,16 @@ class MemoryGenerator extends EventEmitter {
       }
 
       const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
       ];
-      const peakMonthName = peakMonth
-        ? monthNames[parseInt(peakMonth, 10) - 1]
-        : "N/A";
+      const peakMonthName = peakMonth ? monthNames[parseInt(peakMonth, 10) - 1] : "N/A";
 
       let title = `${year} Annual Report`;
       let description = `In ${year}, you created ${totalCount?.count || 0} timeline entries. `;
       description += `Your most active month was ${peakMonthName} with ${peakCount} entries. `;
 
-      const typeBreakdown = byType
-        .map((t) => `${t.count} ${t.source_type}(s)`)
-        .join(", ");
+      const typeBreakdown = byType.map((t) => `${t.count} ${t.source_type}(s)`).join(", ");
       if (typeBreakdown) {
         description += `Breakdown: ${typeBreakdown}.`;
       }
@@ -240,10 +218,7 @@ class MemoryGenerator extends EventEmitter {
             }
           }
         } catch (llmError) {
-          logger.warn(
-            "[MemoryGenerator] LLM annual report generation failed:",
-            llmError.message,
-          );
+          logger.warn("[MemoryGenerator] LLM annual report generation failed:", llmError.message);
         }
       }
 
@@ -259,10 +234,7 @@ class MemoryGenerator extends EventEmitter {
       this.emit("report:ready", { memory, year });
       return memory;
     } catch (error) {
-      logger.error(
-        "[MemoryGenerator] Failed to generate annual report:",
-        error,
-      );
+      logger.error("[MemoryGenerator] Failed to generate annual report:", error);
       throw error;
     }
   }
@@ -324,10 +296,7 @@ class MemoryGenerator extends EventEmitter {
             // Keep default description
           }
         } catch (llmError) {
-          logger.warn(
-            "[MemoryGenerator] LLM milestone generation failed:",
-            llmError.message,
-          );
+          logger.warn("[MemoryGenerator] LLM milestone generation failed:", llmError.message);
         }
       }
 
@@ -472,10 +441,7 @@ class MemoryGenerator extends EventEmitter {
             summary = responseText.substring(0, 1000);
           }
         } catch (llmError) {
-          logger.warn(
-            "[MemoryGenerator] LLM conversation summary failed:",
-            llmError.message,
-          );
+          logger.warn("[MemoryGenerator] LLM conversation summary failed:", llmError.message);
         }
       }
 
@@ -487,10 +453,7 @@ class MemoryGenerator extends EventEmitter {
         summary,
       };
     } catch (error) {
-      logger.error(
-        "[MemoryGenerator] Failed to summarize conversation:",
-        error,
-      );
+      logger.error("[MemoryGenerator] Failed to summarize conversation:", error);
       throw error;
     }
   }
@@ -501,14 +464,7 @@ class MemoryGenerator extends EventEmitter {
    * @param {Object} options - Memory options
    * @returns {Object} Saved memory
    */
-  async _saveMemory({
-    memoryType,
-    title,
-    description,
-    coverImage,
-    relatedPosts,
-    targetDate,
-  }) {
+  async _saveMemory({ memoryType, title, description, coverImage, relatedPosts, targetDate }) {
     const db = this.database.db;
     const memoryId = uuidv4();
     const now = Date.now();
@@ -523,9 +479,7 @@ class MemoryGenerator extends EventEmitter {
       title,
       description || null,
       coverImage || null,
-      relatedPosts && relatedPosts.length > 0
-        ? JSON.stringify(relatedPosts)
-        : null,
+      relatedPosts && relatedPosts.length > 0 ? JSON.stringify(relatedPosts) : null,
       targetDate || null,
       now,
     );
@@ -553,10 +507,7 @@ class MemoryGenerator extends EventEmitter {
     for (const s of snapshots) {
       if (s.media_urls) {
         try {
-          const urls =
-            typeof s.media_urls === "string"
-              ? JSON.parse(s.media_urls)
-              : s.media_urls;
+          const urls = typeof s.media_urls === "string" ? JSON.parse(s.media_urls) : s.media_urls;
           if (Array.isArray(urls) && urls.length > 0) {
             return urls[0];
           }

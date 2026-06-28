@@ -859,7 +859,7 @@ ${userRequest}
    * 尝试修复常见的JSON格式错误
    */
   cleanAndFixJSON(jsonText) {
-    const cleaned = jsonText
+    let cleaned = jsonText
       // 移除代码块标记
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")

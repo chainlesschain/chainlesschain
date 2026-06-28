@@ -49,21 +49,12 @@ describe("formatPrComments", () => {
     title: "Add feature",
     url: "https://github.com/o/r/pull/12",
     reviews: [
-      {
-        author: { login: "alice" },
-        state: "CHANGES_REQUESTED",
-        body: "Fix the null check",
-      },
+      { author: { login: "alice" }, state: "CHANGES_REQUESTED", body: "Fix the null check" },
       { author: { login: "bot" }, state: "COMMENTED", body: "" }, // filtered out
     ],
     conversation: [{ user: { login: "bob" }, body: "Looks close!" }],
     inline: [
-      {
-        user: { login: "carol" },
-        path: "src/x.js",
-        line: 40,
-        body: "rename this",
-      },
+      { user: { login: "carol" }, path: "src/x.js", line: 40, body: "rename this" },
     ],
   };
 
@@ -150,16 +141,10 @@ describe("expandPrComments", () => {
             url: "https://github.com/o/r/pull/3",
             comments: [{ user: { login: "u" }, body: "c1" }],
             reviews: [
-              {
-                author: { login: "a" },
-                state: "CHANGES_REQUESTED",
-                body: "r1",
-              },
+              { author: { login: "a" }, state: "CHANGES_REQUESTED", body: "r1" },
             ],
           })
-        : JSON.stringify([
-            { user: { login: "c" }, path: "a.js", line: 1, body: "i1" },
-          ]);
+        : JSON.stringify([{ user: { login: "c" }, path: "a.js", line: 1, body: "i1" }]);
     const res = await expandPrComments("/pr-comments 3", { deps: { runGh } });
     expect(res.number).toBe(3);
     expect(res.count).toBe(3); // 1 review + 1 conversation + 1 inline

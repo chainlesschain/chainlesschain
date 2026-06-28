@@ -23,9 +23,7 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[TimeMachine] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[TimeMachine] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }
@@ -57,9 +55,7 @@ class TimeMachine extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info(
-        "[TimeMachine] Timeline time machine initialized successfully",
-      );
+      logger.info("[TimeMachine] Timeline time machine initialized successfully");
     } catch (error) {
       logger.error("[TimeMachine] Initialization failed:", error);
       throw error;
@@ -378,13 +374,9 @@ class TimeMachine extends EventEmitter {
       for (const row of monthlyRows) {
         const m = row.month;
         if (months[m]) {
-          if (row.source_type === "post") {
-            months[m].posts = row.count;
-          } else if (row.source_type === "message") {
-            months[m].messages = row.count;
-          } else if (row.source_type === "event") {
-            months[m].events = row.count;
-          }
+          if (row.source_type === "post") {months[m].posts = row.count;}
+          else if (row.source_type === "message") {months[m].messages = row.count;}
+          else if (row.source_type === "event") {months[m].events = row.count;}
           months[m].total += row.count;
         }
       }

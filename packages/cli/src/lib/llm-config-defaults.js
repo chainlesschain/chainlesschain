@@ -38,16 +38,18 @@ export async function reconcileConfigLlmProvider(cfgLlm = {}) {
   if (!cfgLlm || !cfgLlm.provider || !cfgLlm.baseUrl) {
     return { llm: cfgLlm, changed: false };
   }
-  const { inferProviderFromBaseUrl, modelForeignToProvider } =
-    await import("./runnable-provider.js");
+  const { inferProviderFromBaseUrl, modelForeignToProvider } = await import(
+    "./runnable-provider.js"
+  );
   const inferred = inferProviderFromBaseUrl(cfgLlm.baseUrl);
   if (!inferred || inferred === cfgLlm.provider) {
     return { llm: cfgLlm, changed: false };
   }
   const corrected = { ...cfgLlm, provider: inferred };
   if (modelForeignToProvider(inferred, cfgLlm.model)) {
-    const { selectModelForTask, TaskType } =
-      await import("./task-model-selector.js");
+    const { selectModelForTask, TaskType } = await import(
+      "./task-model-selector.js"
+    );
     const def = selectModelForTask(inferred, TaskType.CHAT);
     if (def) corrected.model = def;
   }

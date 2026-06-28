@@ -54,9 +54,7 @@ describe("parseAgentsCommand", () => {
   });
 
   it("parses --claude and --personal locations", () => {
-    expect(parseAgentsCommand("/agents new b --claude").location).toBe(
-      "claude",
-    );
+    expect(parseAgentsCommand("/agents new b --claude").location).toBe("claude");
     expect(parseAgentsCommand("/agents new b --personal").location).toBe(
       "personal",
     );
@@ -94,9 +92,7 @@ describe("formatAgentsList", () => {
     );
     expect(out).toMatch(/Agent definitions \(1\)/);
     expect(out).toMatch(/review:security {2}\[project\] {2}Security audit/);
-    expect(out).toMatch(
-      /tools: read_file,search_files · model: claude-opus-4-8/,
-    );
+    expect(out).toMatch(/tools: read_file,search_files · model: claude-opus-4-8/);
     expect(out).toMatch(/Built-in profiles/);
     expect(out).toMatch(/explorer — read-only research/);
   });

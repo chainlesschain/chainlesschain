@@ -12,8 +12,7 @@ function memFs(existing = {}) {
     files,
     deps: {
       fs: {
-        existsSync: (p) =>
-          Object.prototype.hasOwnProperty.call(files, path.resolve(p)),
+        existsSync: (p) => Object.prototype.hasOwnProperty.call(files, path.resolve(p)),
         mkdirSync: () => {},
         writeFileSync: (p, content) => {
           files[path.resolve(p)] = content;
@@ -52,12 +51,7 @@ describe("scaffoldAgent", () => {
   });
 
   it("honors --claude and --personal locations", () => {
-    const claude = scaffoldAgent({
-      name: "a",
-      cwd: CWD,
-      location: "claude",
-      deps: memFs().deps,
-    });
+    const claude = scaffoldAgent({ name: "a", cwd: CWD, location: "claude", deps: memFs().deps });
     expect(claude.file).toBe(path.join(CWD, ".claude", "agents", "a.md"));
     const personal = scaffoldAgent({
       name: "a",
@@ -74,25 +68,14 @@ describe("scaffoldAgent", () => {
     const res = scaffoldAgent({ name: "review:security", cwd: CWD, deps });
     expect(res.ok).toBe(true);
     expect(res.name).toBe("review:security");
-    const expected = path.join(
-      CWD,
-      ".chainlesschain",
-      "agents",
-      "review",
-      "security.md",
-    );
+    const expected = path.join(CWD, ".chainlesschain", "agents", "review", "security.md");
     expect(res.file).toBe(expected);
     expect(files[path.resolve(expected)]).toMatch(/name: review:security/);
   });
 
   it("writes a tools line when --tools is given", () => {
     const { files, deps } = memFs();
-    const res = scaffoldAgent({
-      name: "b",
-      tools: "read_file,git",
-      cwd: CWD,
-      deps,
-    });
+    const res = scaffoldAgent({ name: "b", tools: "read_file,git", cwd: CWD, deps });
     expect(files[path.resolve(res.file)]).toMatch(/^tools: read_file,git$/m);
   });
 

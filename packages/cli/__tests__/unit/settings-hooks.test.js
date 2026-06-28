@@ -55,9 +55,7 @@ describe("loadHooks — hierarchy concatenation", () => {
   });
 
   it("dedups the same physical file (explicit --settings aliasing an auto-loaded path)", () => {
-    setFile(projFile, {
-      hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] },
-    });
+    setFile(projFile, { hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] } });
     // --settings points at the very file cwd already auto-loads. Without path
     // dedup this hook group would be read twice and fire twice.
     const { hooks, files: contributed } = loadHooks({

@@ -33,7 +33,8 @@ function fmtHook(h) {
  * @param {object|null} hooks  the merged `hooks` object, or null when none
  */
 export function formatSettingsHooks(hooks) {
-  const events = hooks && typeof hooks === "object" ? Object.keys(hooks) : [];
+  const events =
+    hooks && typeof hooks === "object" ? Object.keys(hooks) : [];
   if (events.length === 0) {
     return (
       "No settings.json hooks loaded.\n" +

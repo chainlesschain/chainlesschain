@@ -61,10 +61,7 @@ export function resolveAddDir(input, { cwd, existing = [], deps } = {}) {
  */
 export function formatAddDirRoots(cwd, extraRoots) {
   const extras = Array.isArray(extraRoots) ? extraRoots : [];
-  const lines = [
-    `Working roots (${1 + extras.length}):`,
-    `  ${cwd}  (primary)`,
-  ];
+  const lines = [`Working roots (${1 + extras.length}):`, `  ${cwd}  (primary)`];
   for (const r of extras) lines.push(`  ${r}`);
   if (extras.length === 0) {
     lines.push("  (no extra roots — add one with /add-dir <dir>)");

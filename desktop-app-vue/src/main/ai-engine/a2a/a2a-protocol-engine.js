@@ -11,15 +11,11 @@ const { SubAgentContext } = require("../agents/sub-agent-context.js");
  * throw out of a list-load loop and silently drop every other agent card.
  */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === "") return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[A2AProtocol] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[A2AProtocol] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }

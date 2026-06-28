@@ -1,11 +1,9 @@
-const { logger } = require("../utils/logger.js");
-const { v4: uuidv4 } = require("uuid");
+const { logger } = require('../utils/logger.js');
+const { v4: uuidv4 } = require('uuid');
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === '') return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -56,7 +54,7 @@ class TaskManager {
    * @returns {Promise<Object>} 创建的任务信息
    */
   async createTask(taskData, creatorDID) {
-    logger.info("[TaskManager] 创建任务:", taskData.title);
+    logger.info('[TaskManager] 创建任务:', taskData.title);
 
     try {
       // 1. 检查权限
@@ -64,15 +62,15 @@ class TaskManager {
         const hasPermission = await this.organizationManager.checkPermission(
           taskData.org_id,
           creatorDID,
-          "task.create",
+          'task.create'
         );
         if (!hasPermission) {
-          throw new Error("没有权限创建任务");
+          throw new Error('没有权限创建任务');
         }
       }
 
       // 2. 创建任务
-      const taskId = `task_${uuidv4().replace(/-/g, "")}`;
+      const taskId = `task_${uuidv4().replace(/-/g, '')}`;
       const now = Date.now();
 
       const task = {
@@ -81,9 +79,9 @@ class TaskManager {
         org_id: taskData.org_id || null,
         workspace_id: taskData.workspace_id || null,
         title: taskData.title,
-        description: taskData.description || "",
-        status: taskData.status || "pending",
-        priority: taskData.priority || "medium",
+        description: taskData.description || '',
+        status: taskData.status || 'pending',
+        priority: taskData.priority || 'medium',
         assigned_to: taskData.assigned_to || null,
         collaborators: JSON.stringify(taskData.collaborators || []),
         labels: JSON.stringify(taskData.labels || []),
@@ -95,73 +93,48 @@ class TaskManager {
         created_by: creatorDID,
         created_at: now,
         updated_at: now,
-        completed_at: null,
+        completed_at: null
       };
 
-      this.db
-        .prepare(
-          `
+      this.db.prepare(`
         INSERT INTO project_tasks
         (id, project_id, org_id, workspace_id, title, description, status, priority,
          assigned_to, collaborators, labels, due_date, reminder_at, blocked_by,
          estimate_hours, actual_hours, created_by, created_at, updated_at, completed_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .run(
-          task.id,
-          task.project_id,
-          task.org_id,
-          task.workspace_id,
-          task.title,
-          task.description,
-          task.status,
-          task.priority,
-          task.assigned_to,
-          task.collaborators,
-          task.labels,
-          task.due_date,
-          task.reminder_at,
-          task.blocked_by,
-          task.estimate_hours,
-          task.actual_hours,
-          task.created_by,
-          task.created_at,
-          task.updated_at,
-          task.completed_at,
-        );
+      `).run(
+        task.id, task.project_id, task.org_id, task.workspace_id, task.title,
+        task.description, task.status, task.priority, task.assigned_to,
+        task.collaborators, task.labels, task.due_date, task.reminder_at,
+        task.blocked_by, task.estimate_hours, task.actual_hours,
+        task.created_by, task.created_at, task.updated_at, task.completed_at
+      );
 
       // 3. 记录变更历史
-      await this.recordChange(
-        taskId,
-        creatorDID,
-        "create",
-        null,
-        JSON.stringify(task),
-      );
+      await this.recordChange(taskId, creatorDID, 'create', null, JSON.stringify(task));
 
       // 4. 记录活动日志
       if (task.org_id) {
         await this.organizationManager.logActivity(
           task.org_id,
           creatorDID,
-          "create_task",
-          "task",
+          'create_task',
+          'task',
           taskId,
-          { title: task.title, projectId: task.project_id },
+          { title: task.title, projectId: task.project_id }
         );
       }
 
-      logger.info("[TaskManager] ✓ 任务创建成功:", taskId);
+      logger.info('[TaskManager] ✓ 任务创建成功:', taskId);
 
       return {
         ...task,
         collaborators: safeParse(task.collaborators, []),
         labels: safeParse(task.labels, []),
-        blocked_by: safeParse(task.blocked_by, []),
+        blocked_by: safeParse(task.blocked_by, [])
       };
     } catch (error) {
-      logger.error("[TaskManager] 创建任务失败:", error);
+      logger.error('[TaskManager] 创建任务失败:', error);
       throw error;
     }
   }
@@ -178,7 +151,7 @@ class TaskManager {
       // 1. 获取原任务
       const oldTask = await this.getTask(taskId);
       if (!oldTask) {
-        return { success: false, error: "任务不存在" };
+        return { success: false, error: '任务不存在' };
       }
 
       // 2. 检查权限
@@ -186,10 +159,10 @@ class TaskManager {
         const hasPermission = await this.organizationManager.checkPermission(
           oldTask.org_id,
           updaterDID,
-          "task.edit",
+          'task.edit'
         );
         if (!hasPermission) {
-          return { success: false, error: "没有权限编辑任务" };
+          return { success: false, error: '没有权限编辑任务' };
         }
       }
 
@@ -199,18 +172,18 @@ class TaskManager {
       const changes = [];
 
       const updateFields = {
-        title: "TEXT",
-        description: "TEXT",
-        status: "TEXT",
-        priority: "TEXT",
-        assigned_to: "TEXT",
-        collaborators: "JSON",
-        labels: "JSON",
-        due_date: "INTEGER",
-        reminder_at: "INTEGER",
-        blocked_by: "JSON",
-        estimate_hours: "REAL",
-        actual_hours: "REAL",
+        title: 'TEXT',
+        description: 'TEXT',
+        status: 'TEXT',
+        priority: 'TEXT',
+        assigned_to: 'TEXT',
+        collaborators: 'JSON',
+        labels: 'JSON',
+        due_date: 'INTEGER',
+        reminder_at: 'INTEGER',
+        blocked_by: 'JSON',
+        estimate_hours: 'REAL',
+        actual_hours: 'REAL'
       };
 
       for (const [field, type] of Object.entries(updateFields)) {
@@ -218,7 +191,7 @@ class TaskManager {
           fields.push(`${field} = ?`);
 
           let value = updates[field];
-          if (type === "JSON" && typeof value !== "string") {
+          if (type === 'JSON' && typeof value !== 'string') {
             value = JSON.stringify(value);
           }
 
@@ -229,32 +202,31 @@ class TaskManager {
           if (JSON.stringify(oldValue) !== JSON.stringify(updates[field])) {
             changes.push({
               field,
-              oldValue:
-                type === "JSON" ? JSON.parse(oldValue || "[]") : oldValue,
-              newValue: updates[field],
+              oldValue: type === 'JSON' ? JSON.parse(oldValue || '[]') : oldValue,
+              newValue: updates[field]
             });
           }
         }
       }
 
       if (fields.length === 0) {
-        return { success: false, error: "没有需要更新的字段" };
+        return { success: false, error: '没有需要更新的字段' };
       }
 
       // 状态变更为完成时，设置完成时间
-      if (updates.status === "completed" && oldTask.status !== "completed") {
-        fields.push("completed_at = ?");
+      if (updates.status === 'completed' && oldTask.status !== 'completed') {
+        fields.push('completed_at = ?');
         values.push(Date.now());
       }
 
       // 添加更新时间
-      fields.push("updated_at = ?");
+      fields.push('updated_at = ?');
       values.push(Date.now());
 
       values.push(taskId);
 
       // 4. 执行更新
-      const sql = `UPDATE project_tasks SET ${fields.join(", ")} WHERE id = ?`;
+      const sql = `UPDATE project_tasks SET ${fields.join(', ')} WHERE id = ?`;
       this.db.prepare(sql).run(...values);
 
       // 5. 记录所有变更
@@ -264,7 +236,7 @@ class TaskManager {
           updaterDID,
           change.field,
           JSON.stringify(change.oldValue),
-          JSON.stringify(change.newValue),
+          JSON.stringify(change.newValue)
         );
       }
 
@@ -273,18 +245,18 @@ class TaskManager {
         await this.organizationManager.logActivity(
           oldTask.org_id,
           updaterDID,
-          "update_task",
-          "task",
+          'update_task',
+          'task',
           taskId,
-          { changes: changes.map((c) => c.field) },
+          { changes: changes.map(c => c.field) }
         );
       }
 
-      logger.info("[TaskManager] ✓ 任务更新成功:", taskId);
+      logger.info('[TaskManager] ✓ 任务更新成功:', taskId);
 
       return { success: true };
     } catch (error) {
-      logger.error("[TaskManager] 更新任务失败:", error);
+      logger.error('[TaskManager] 更新任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -299,7 +271,7 @@ class TaskManager {
     try {
       const task = await this.getTask(taskId);
       if (!task) {
-        return { success: false, error: "任务不存在" };
+        return { success: false, error: '任务不存在' };
       }
 
       // 检查权限
@@ -307,37 +279,35 @@ class TaskManager {
         const hasPermission = await this.organizationManager.checkPermission(
           task.org_id,
           deleterDID,
-          "task.delete",
+          'task.delete'
         );
         if (!hasPermission) {
-          return { success: false, error: "没有权限删除任务" };
+          return { success: false, error: '没有权限删除任务' };
         }
       }
 
       // 删除任务（级联删除评论和变更历史）
-      this.db.prepare("DELETE FROM project_tasks WHERE id = ?").run(taskId);
-      this.db
-        .prepare("DELETE FROM task_comments WHERE task_id = ?")
-        .run(taskId);
-      this.db.prepare("DELETE FROM task_changes WHERE task_id = ?").run(taskId);
+      this.db.prepare('DELETE FROM project_tasks WHERE id = ?').run(taskId);
+      this.db.prepare('DELETE FROM task_comments WHERE task_id = ?').run(taskId);
+      this.db.prepare('DELETE FROM task_changes WHERE task_id = ?').run(taskId);
 
       // 记录活动日志
       if (task.org_id) {
         await this.organizationManager.logActivity(
           task.org_id,
           deleterDID,
-          "delete_task",
-          "task",
+          'delete_task',
+          'task',
           taskId,
-          { title: task.title },
+          { title: task.title }
         );
       }
 
-      logger.info("[TaskManager] ✓ 任务删除成功:", taskId);
+      logger.info('[TaskManager] ✓ 任务删除成功:', taskId);
 
       return { success: true };
     } catch (error) {
-      logger.error("[TaskManager] 删除任务失败:", error);
+      logger.error('[TaskManager] 删除任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -356,56 +326,56 @@ class TaskManager {
    */
   async getTasks(filters = {}) {
     try {
-      let sql = "SELECT * FROM project_tasks WHERE 1=1";
+      let sql = 'SELECT * FROM project_tasks WHERE 1=1';
       const params = [];
 
       if (filters.org_id) {
-        sql += " AND org_id = ?";
+        sql += ' AND org_id = ?';
         params.push(filters.org_id);
       }
 
       if (filters.workspace_id) {
-        sql += " AND workspace_id = ?";
+        sql += ' AND workspace_id = ?';
         params.push(filters.workspace_id);
       }
 
       if (filters.project_id) {
-        sql += " AND project_id = ?";
+        sql += ' AND project_id = ?';
         params.push(filters.project_id);
       }
 
       if (filters.status) {
-        sql += " AND status = ?";
+        sql += ' AND status = ?';
         params.push(filters.status);
       }
 
       if (filters.assigned_to) {
-        sql += " AND assigned_to = ?";
+        sql += ' AND assigned_to = ?';
         params.push(filters.assigned_to);
       }
 
-      sql += " ORDER BY created_at DESC";
+      sql += ' ORDER BY created_at DESC';
 
       if (filters.limit) {
-        sql += " LIMIT ?";
+        sql += ' LIMIT ?';
         params.push(filters.limit);
 
         if (filters.offset) {
-          sql += " OFFSET ?";
+          sql += ' OFFSET ?';
           params.push(filters.offset);
         }
       }
 
       const tasks = this.db.prepare(sql).all(...params);
 
-      return tasks.map((task) => ({
+      return tasks.map(task => ({
         ...task,
         collaborators: safeParse(task.collaborators, []),
         labels: safeParse(task.labels, []),
-        blocked_by: safeParse(task.blocked_by, []),
+        blocked_by: safeParse(task.blocked_by, [])
       }));
     } catch (error) {
-      logger.error("[TaskManager] 获取任务列表失败:", error);
+      logger.error('[TaskManager] 获取任务列表失败:', error);
       return [];
     }
   }
@@ -417,9 +387,9 @@ class TaskManager {
    */
   async getTask(taskId) {
     try {
-      const task = this.db
-        .prepare("SELECT * FROM project_tasks WHERE id = ?")
-        .get(taskId);
+      const task = this.db.prepare(
+        'SELECT * FROM project_tasks WHERE id = ?'
+      ).get(taskId);
 
       if (!task) {
         return null;
@@ -429,10 +399,10 @@ class TaskManager {
         ...task,
         collaborators: safeParse(task.collaborators, []),
         labels: safeParse(task.labels, []),
-        blocked_by: safeParse(task.blocked_by, []),
+        blocked_by: safeParse(task.blocked_by, [])
       };
     } catch (error) {
-      logger.error("[TaskManager] 获取任务失败:", error);
+      logger.error('[TaskManager] 获取任务失败:', error);
       return null;
     }
   }
@@ -448,7 +418,7 @@ class TaskManager {
     try {
       const task = await this.getTask(taskId);
       if (!task) {
-        return { success: false, error: "任务不存在" };
+        return { success: false, error: '任务不存在' };
       }
 
       // 检查权限
@@ -456,36 +426,34 @@ class TaskManager {
         const hasPermission = await this.organizationManager.checkPermission(
           task.org_id,
           assignerDID,
-          "task.assign",
+          'task.assign'
         );
         if (!hasPermission) {
-          return { success: false, error: "没有权限分配任务" };
+          return { success: false, error: '没有权限分配任务' };
         }
       }
 
       const oldAssignee = task.assigned_to;
 
       // 更新指派
-      this.db
-        .prepare(
-          "UPDATE project_tasks SET assigned_to = ?, updated_at = ? WHERE id = ?",
-        )
-        .run(assignedTo, Date.now(), taskId);
+      this.db.prepare(
+        'UPDATE project_tasks SET assigned_to = ?, updated_at = ? WHERE id = ?'
+      ).run(assignedTo, Date.now(), taskId);
 
       // 记录变更
       await this.recordChange(
         taskId,
         assignerDID,
-        "assigned_to",
+        'assigned_to',
         oldAssignee,
-        assignedTo,
+        assignedTo
       );
 
-      logger.info("[TaskManager] ✓ 任务分配成功:", taskId, "→", assignedTo);
+      logger.info('[TaskManager] ✓ 任务分配成功:', taskId, '→', assignedTo);
 
       return { success: true };
     } catch (error) {
-      logger.error("[TaskManager] 分配任务失败:", error);
+      logger.error('[TaskManager] 分配任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -525,38 +493,28 @@ class TaskManager {
         attachments: JSON.stringify(commentData.attachments || []),
         created_at: now,
         updated_at: now,
-        is_deleted: 0,
+        is_deleted: 0
       };
 
-      this.db
-        .prepare(
-          `
+      this.db.prepare(`
         INSERT INTO task_comments
         (id, task_id, author_did, content, mentions, attachments, created_at, updated_at, is_deleted)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .run(
-          comment.id,
-          comment.task_id,
-          comment.author_did,
-          comment.content,
-          comment.mentions,
-          comment.attachments,
-          comment.created_at,
-          comment.updated_at,
-          comment.is_deleted,
-        );
+      `).run(
+        comment.id, comment.task_id, comment.author_did, comment.content,
+        comment.mentions, comment.attachments, comment.created_at,
+        comment.updated_at, comment.is_deleted
+      );
 
-      logger.info("[TaskManager] ✓ 评论添加成功:", commentId);
+      logger.info('[TaskManager] ✓ 评论添加成功:', commentId);
 
       return {
         ...comment,
         mentions: safeParse(comment.mentions, []),
-        attachments: safeParse(comment.attachments, []),
+        attachments: safeParse(comment.attachments, [])
       };
     } catch (error) {
-      logger.error("[TaskManager] 添加评论失败:", error);
+      logger.error('[TaskManager] 添加评论失败:', error);
       throw error;
     }
   }
@@ -568,20 +526,18 @@ class TaskManager {
    */
   async getComments(taskId) {
     try {
-      const comments = this.db
-        .prepare(
-          "SELECT * FROM task_comments WHERE task_id = ? AND is_deleted = 0 ORDER BY created_at ASC",
-        )
-        .all(taskId);
+      const comments = this.db.prepare(
+        'SELECT * FROM task_comments WHERE task_id = ? AND is_deleted = 0 ORDER BY created_at ASC'
+      ).all(taskId);
 
-      return comments.map((comment) => ({
+      return comments.map(comment => ({
         ...comment,
         is_deleted: Boolean(comment.is_deleted),
         mentions: safeParse(comment.mentions, []),
-        attachments: safeParse(comment.attachments, []),
+        attachments: safeParse(comment.attachments, [])
       }));
     } catch (error) {
-      logger.error("[TaskManager] 获取评论列表失败:", error);
+      logger.error('[TaskManager] 获取评论列表失败:', error);
       return [];
     }
   }
@@ -595,17 +551,15 @@ class TaskManager {
   async deleteComment(commentId, _deleterDID) {
     try {
       // 软删除
-      this.db
-        .prepare(
-          "UPDATE task_comments SET is_deleted = 1, updated_at = ? WHERE id = ?",
-        )
-        .run(Date.now(), commentId);
+      this.db.prepare(
+        'UPDATE task_comments SET is_deleted = 1, updated_at = ? WHERE id = ?'
+      ).run(Date.now(), commentId);
 
-      logger.info("[TaskManager] ✓ 评论删除成功:", commentId);
+      logger.info('[TaskManager] ✓ 评论删除成功:', commentId);
 
       return { success: true };
     } catch (error) {
-      logger.error("[TaskManager] 删除评论失败:", error);
+      logger.error('[TaskManager] 删除评论失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -617,15 +571,13 @@ class TaskManager {
    */
   async getChanges(taskId) {
     try {
-      const changes = this.db
-        .prepare(
-          "SELECT * FROM task_changes WHERE task_id = ? ORDER BY changed_at DESC",
-        )
-        .all(taskId);
+      const changes = this.db.prepare(
+        'SELECT * FROM task_changes WHERE task_id = ? ORDER BY changed_at DESC'
+      ).all(taskId);
 
       return changes || [];
     } catch (error) {
-      logger.error("[TaskManager] 获取变更历史失败:", error);
+      logger.error('[TaskManager] 获取变更历史失败:', error);
       return [];
     }
   }
@@ -643,24 +595,12 @@ class TaskManager {
     try {
       const changeId = uuidv4();
 
-      this.db
-        .prepare(
-          `
+      this.db.prepare(`
         INSERT INTO task_changes (id, task_id, changed_by, change_type, old_value, new_value, changed_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .run(
-          changeId,
-          taskId,
-          changerDID,
-          changeType,
-          oldValue,
-          newValue,
-          Date.now(),
-        );
+      `).run(changeId, taskId, changerDID, changeType, oldValue, newValue, Date.now());
     } catch (error) {
-      logger.error("[TaskManager] 记录变更失败:", error);
+      logger.error('[TaskManager] 记录变更失败:', error);
     }
   }
 
@@ -682,53 +622,36 @@ class TaskManager {
         org_id: orgId,
         workspace_id: boardData.workspace_id || null,
         name: boardData.name,
-        description: boardData.description || "",
-        columns: JSON.stringify(
-          boardData.columns || [
-            { id: "pending", name: "待处理", status: "pending", order: 1 },
-            {
-              id: "in_progress",
-              name: "进行中",
-              status: "in_progress",
-              order: 2,
-            },
-            { id: "completed", name: "已完成", status: "completed", order: 3 },
-          ],
-        ),
+        description: boardData.description || '',
+        columns: JSON.stringify(boardData.columns || [
+          { id: 'pending', name: '待处理', status: 'pending', order: 1 },
+          { id: 'in_progress', name: '进行中', status: 'in_progress', order: 2 },
+          { id: 'completed', name: '已完成', status: 'completed', order: 3 }
+        ]),
         filters: JSON.stringify(boardData.filters || {}),
         created_by: creatorDID,
-        created_at: Date.now(),
+        created_at: Date.now()
       };
 
-      this.db
-        .prepare(
-          `
+      this.db.prepare(`
         INSERT INTO task_boards
         (id, org_id, workspace_id, name, description, columns, filters, created_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .run(
-          board.id,
-          board.org_id,
-          board.workspace_id,
-          board.name,
-          board.description,
-          board.columns,
-          board.filters,
-          board.created_by,
-          board.created_at,
-        );
+      `).run(
+        board.id, board.org_id, board.workspace_id, board.name,
+        board.description, board.columns, board.filters,
+        board.created_by, board.created_at
+      );
 
-      logger.info("[TaskManager] ✓ 任务看板创建成功:", boardId);
+      logger.info('[TaskManager] ✓ 任务看板创建成功:', boardId);
 
       return {
         ...board,
         columns: safeParse(board.columns, []),
-        filters: safeParse(board.filters, {}),
+        filters: safeParse(board.filters, {})
       };
     } catch (error) {
-      logger.error("[TaskManager] 创建看板失败:", error);
+      logger.error('[TaskManager] 创建看板失败:', error);
       throw error;
     }
   }
@@ -741,25 +664,25 @@ class TaskManager {
    */
   async getBoards(orgId, workspaceId = null) {
     try {
-      let sql = "SELECT * FROM task_boards WHERE org_id = ?";
+      let sql = 'SELECT * FROM task_boards WHERE org_id = ?';
       const params = [orgId];
 
       if (workspaceId) {
-        sql += " AND workspace_id = ?";
+        sql += ' AND workspace_id = ?';
         params.push(workspaceId);
       }
 
-      sql += " ORDER BY created_at DESC";
+      sql += ' ORDER BY created_at DESC';
 
       const boards = this.db.prepare(sql).all(...params);
 
-      return boards.map((board) => ({
+      return boards.map(board => ({
         ...board,
         columns: safeParse(board.columns, []),
-        filters: safeParse(board.filters, {}),
+        filters: safeParse(board.filters, {})
       }));
     } catch (error) {
-      logger.error("[TaskManager] 获取看板列表失败:", error);
+      logger.error('[TaskManager] 获取看板列表失败:', error);
       return [];
     }
   }
@@ -776,24 +699,16 @@ class TaskManager {
    */
   async updateBoard(boardId, updates) {
     try {
-      logger.info("[TaskManager] 更新看板:", boardId);
+      logger.info('[TaskManager] 更新看板:', boardId);
 
       // 检查看板是否存在
-      const board = this.db
-        .prepare("SELECT * FROM task_boards WHERE id = ?")
-        .get(boardId);
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
       if (!board) {
-        return { success: false, error: "看板不存在" };
+        return { success: false, error: '看板不存在' };
       }
 
       // 构建更新SQL
-      const allowedFields = [
-        "name",
-        "description",
-        "columns",
-        "filters",
-        "workspace_id",
-      ];
+      const allowedFields = ['name', 'description', 'columns', 'filters', 'workspace_id'];
       const updateParts = [];
       const values = [];
 
@@ -801,7 +716,7 @@ class TaskManager {
         if (allowedFields.includes(key)) {
           updateParts.push(`${key} = ?`);
           // JSON字段需要序列化
-          if (key === "columns" || key === "filters") {
+          if (key === 'columns' || key === 'filters') {
             values.push(JSON.stringify(value));
           } else {
             values.push(value);
@@ -810,39 +725,33 @@ class TaskManager {
       }
 
       if (updateParts.length === 0) {
-        return { success: true, message: "无需更新" };
+        return { success: true, message: '无需更新' };
       }
 
       // 添加更新时间
-      updateParts.push("updated_at = ?");
+      updateParts.push('updated_at = ?');
       values.push(Date.now());
       values.push(boardId);
 
-      this.db
-        .prepare(
-          `
-        UPDATE task_boards SET ${updateParts.join(", ")} WHERE id = ?
-      `,
-        )
-        .run(...values);
+      this.db.prepare(`
+        UPDATE task_boards SET ${updateParts.join(', ')} WHERE id = ?
+      `).run(...values);
 
       // 获取更新后的看板
-      const updatedBoard = this.db
-        .prepare("SELECT * FROM task_boards WHERE id = ?")
-        .get(boardId);
+      const updatedBoard = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
 
-      logger.info("[TaskManager] ✓ 看板更新成功:", boardId);
+      logger.info('[TaskManager] ✓ 看板更新成功:', boardId);
 
       return {
         success: true,
         board: {
           ...updatedBoard,
           columns: safeParse(updatedBoard.columns, []),
-          filters: safeParse(updatedBoard.filters, {}),
-        },
+          filters: safeParse(updatedBoard.filters, {})
+        }
       };
     } catch (error) {
-      logger.error("[TaskManager] 更新看板失败:", error);
+      logger.error('[TaskManager] 更新看板失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -857,78 +766,62 @@ class TaskManager {
    */
   async deleteBoard(boardId, options = {}) {
     try {
-      logger.info("[TaskManager] 删除看板:", boardId);
+      logger.info('[TaskManager] 删除看板:', boardId);
 
       // 检查看板是否存在
-      const board = this.db
-        .prepare("SELECT * FROM task_boards WHERE id = ?")
-        .get(boardId);
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
       if (!board) {
-        return { success: false, error: "看板不存在" };
+        return { success: false, error: '看板不存在' };
       }
 
       // 检查是否有关联任务
-      const taskCount = this.db
-        .prepare(
-          `
+      const taskCount = this.db.prepare(`
         SELECT COUNT(*) as count FROM tasks WHERE board_id = ?
-      `,
-        )
-        .get(boardId);
+      `).get(boardId);
 
       if (taskCount?.count > 0 && !options.force) {
         if (options.archive) {
           // 归档看板
-          this.db
-            .prepare(
-              `
+          this.db.prepare(`
             UPDATE task_boards SET is_archived = 1, updated_at = ? WHERE id = ?
-          `,
-            )
-            .run(Date.now(), boardId);
+          `).run(Date.now(), boardId);
 
-          logger.info("[TaskManager] ✓ 看板已归档:", boardId);
+          logger.info('[TaskManager] ✓ 看板已归档:', boardId);
           return {
             success: true,
             archived: true,
             taskCount: taskCount.count,
-            message: `看板已归档，包含 ${taskCount.count} 个任务`,
+            message: `看板已归档，包含 ${taskCount.count} 个任务`
           };
         }
 
         return {
           success: false,
-          error: "BOARD_HAS_TASKS",
+          error: 'BOARD_HAS_TASKS',
           taskCount: taskCount.count,
-          message: `看板包含 ${taskCount.count} 个任务，请使用强制删除或归档`,
+          message: `看板包含 ${taskCount.count} 个任务，请使用强制删除或归档`
         };
       }
 
       // 如果强制删除，先将任务的 board_id 设为 null
       if (taskCount?.count > 0 && options.force) {
-        this.db
-          .prepare(
-            `
+        this.db.prepare(`
           UPDATE tasks SET board_id = NULL, updated_at = ? WHERE board_id = ?
-        `,
-          )
-          .run(Date.now(), boardId);
-        logger.info(
-          `[TaskManager] 已解除 ${taskCount.count} 个任务与看板的关联`,
-        );
+        `).run(Date.now(), boardId);
+        logger.info(`[TaskManager] 已解除 ${taskCount.count} 个任务与看板的关联`);
       }
 
       // 删除看板
-      this.db.prepare("DELETE FROM task_boards WHERE id = ?").run(boardId);
+      this.db.prepare('DELETE FROM task_boards WHERE id = ?').run(boardId);
 
-      logger.info("[TaskManager] ✓ 看板删除成功:", boardId);
+      logger.info('[TaskManager] ✓ 看板删除成功:', boardId);
 
       return {
         success: true,
-        deletedTaskLinks: taskCount?.count || 0,
+        deletedTaskLinks: taskCount?.count || 0
       };
     } catch (error) {
-      logger.error("[TaskManager] 删除看板失败:", error);
+      logger.error('[TaskManager] 删除看板失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -940,37 +833,31 @@ class TaskManager {
    */
   async getBoard(boardId) {
     try {
-      const board = this.db
-        .prepare("SELECT * FROM task_boards WHERE id = ?")
-        .get(boardId);
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
 
       if (!board) {
         return null;
       }
 
       // 获取看板下的任务统计
-      const taskStats = this.db
-        .prepare(
-          `
+      const taskStats = this.db.prepare(`
         SELECT
           status,
           COUNT(*) as count
         FROM tasks
         WHERE board_id = ?
         GROUP BY status
-      `,
-        )
-        .all(boardId);
+      `).all(boardId);
 
       const stats = {
         total: 0,
         pending: 0,
         in_progress: 0,
         completed: 0,
-        cancelled: 0,
+        cancelled: 0
       };
 
-      taskStats.forEach((s) => {
+      taskStats.forEach(s => {
         stats[s.status] = s.count;
         stats.total += s.count;
       });
@@ -979,10 +866,10 @@ class TaskManager {
         ...board,
         columns: safeParse(board.columns, []),
         filters: safeParse(board.filters, {}),
-        taskStats: stats,
+        taskStats: stats
       };
     } catch (error) {
-      logger.error("[TaskManager] 获取看板详情失败:", error);
+      logger.error('[TaskManager] 获取看板详情失败:', error);
       return null;
     }
   }
@@ -1003,5 +890,5 @@ function getTaskManager(database) {
 
 module.exports = {
   TaskManager,
-  getTaskManager,
+  getTaskManager
 };

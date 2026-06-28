@@ -623,11 +623,7 @@ describe("ChainlessChainWSServer", () => {
       await server.start();
 
       const ws = await connect(port);
-      const authResp = await rpc(ws, {
-        id: "1",
-        type: "auth",
-        token: "secret",
-      });
+      const authResp = await rpc(ws, { id: "1", type: "auth", token: "secret" });
       expect(authResp.success).toBe(true);
 
       // Wait well past the grace window — an authenticated client must survive.

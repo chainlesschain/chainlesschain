@@ -132,11 +132,7 @@ describe("project-detector", () => {
 
       // Rewrite with new content and force a distinctly newer mtime (a same-tick
       // overwrite could keep the same mtimeMs on coarse-resolution filesystems).
-      writeFileSync(
-        cfgPath,
-        JSON.stringify({ name: "b", extra: true }),
-        "utf-8",
-      );
+      writeFileSync(cfgPath, JSON.stringify({ name: "b", extra: true }), "utf-8");
       const bumped = new Date(statSync(cfgPath).mtimeMs + 5000);
       utimesSync(cfgPath, bumped, bumped);
 

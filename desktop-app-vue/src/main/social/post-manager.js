@@ -23,9 +23,7 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[PostManager] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[PostManager] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }

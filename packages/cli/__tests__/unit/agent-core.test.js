@@ -1617,10 +1617,7 @@ describe("agentLoop", () => {
     const readCall = (id, name) => ({
       id,
       type: "function",
-      function: {
-        name: "read_file",
-        arguments: JSON.stringify({ path: name }),
-      },
+      function: { name: "read_file", arguments: JSON.stringify({ path: name }) },
     });
 
     it("runs a read-only batch concurrently, preserving event + result order", async () => {
@@ -1657,7 +1654,9 @@ describe("agentLoop", () => {
 
       // Event ORDER is byte-identical to the sequential path.
       const seq = events
-        .filter((e) => e.type === "tool-executing" || e.type === "tool-result")
+        .filter(
+          (e) => e.type === "tool-executing" || e.type === "tool-result",
+        )
         .map((e) => e.type);
       expect(seq).toEqual([
         "tool-executing",

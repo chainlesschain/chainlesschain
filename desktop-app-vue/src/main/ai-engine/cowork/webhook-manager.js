@@ -21,9 +21,7 @@ const crypto = require("crypto");
  * the load loop and silently drop EVERY registered webhook.
  */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === "") return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {

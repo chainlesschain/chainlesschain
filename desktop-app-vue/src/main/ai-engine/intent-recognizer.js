@@ -142,7 +142,7 @@ async function recognizeProjectIntent(userInput, llmManager) {
     logger.info(`[IntentRecognizer] LLM响应完成，耗时: ${duration}ms`);
 
     // 提取JSON响应
-    const responseText = result.content || result.text || "";
+    let responseText = result.content || result.text || "";
     logger.info(
       "[IntentRecognizer] LLM原始响应:",
       responseText.substring(0, 300),

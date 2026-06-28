@@ -28,9 +28,7 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[SiemExporter] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[SiemExporter] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }

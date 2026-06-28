@@ -9,20 +9,16 @@
  * - 自动清理过期检查点
  */
 
-const { logger } = require("../utils/logger");
-const crypto = require("crypto");
+const { logger } = require('../utils/logger');
+const crypto = require('crypto');
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === '') return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[CheckpointManager] Bad JSON column, fallback: ${err.message}`,
-    );
+    logger.warn(`[CheckpointManager] Bad JSON column, fallback: ${err.message}`);
     return fallback;
   }
 }
@@ -38,7 +34,7 @@ class CheckpointManager {
    */
   initializeTable() {
     if (!this.database || !this.database.db) {
-      logger.warn("[CheckpointManager] 数据库未初始化，跳过表创建");
+      logger.warn('[CheckpointManager] 数据库未初始化，跳过表创建');
       return;
     }
 
@@ -73,9 +69,9 @@ class CheckpointManager {
         ON project_checkpoints(expires_at);
       `);
 
-      logger.info("[CheckpointManager] 检查点表已初始化");
+      logger.info('[CheckpointManager] 检查点表已初始化');
     } catch (error) {
-      logger.error("[CheckpointManager] 初始化表失败:", error);
+      logger.error('[CheckpointManager] 初始化表失败:', error);
     }
   }
 
@@ -87,12 +83,12 @@ class CheckpointManager {
   createCheckpoint(options) {
     const {
       projectId = null,
-      operation = "create-stream",
+      operation = 'create-stream',
       currentStage = null,
       completedStages = [],
       completedFiles = [],
       accumulatedData = {},
-      ttl = 24 * 60 * 60 * 1000, // 默认24小时过期
+      ttl = 24 * 60 * 60 * 1000 // 默认24小时过期
     } = options;
 
     const now = Date.now();
@@ -100,7 +96,7 @@ class CheckpointManager {
       id: crypto.randomUUID(),
       project_id: projectId,
       operation,
-      status: "in_progress",
+      status: 'in_progress',
       current_stage: currentStage,
       completed_stages: JSON.stringify(completedStages),
       completed_files: JSON.stringify(completedFiles),
@@ -109,40 +105,36 @@ class CheckpointManager {
       retry_count: 0,
       created_at: now,
       updated_at: now,
-      expires_at: now + ttl,
+      expires_at: now + ttl
     };
 
     try {
-      this.database.db
-        .prepare(
-          `
+      this.database.db.prepare(`
         INSERT INTO project_checkpoints (
           id, project_id, operation, status, current_stage,
           completed_stages, completed_files, accumulated_data,
           error_message, retry_count, created_at, updated_at, expires_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .run(
-          checkpoint.id,
-          checkpoint.project_id,
-          checkpoint.operation,
-          checkpoint.status,
-          checkpoint.current_stage,
-          checkpoint.completed_stages,
-          checkpoint.completed_files,
-          checkpoint.accumulated_data,
-          checkpoint.error_message,
-          checkpoint.retry_count,
-          checkpoint.created_at,
-          checkpoint.updated_at,
-          checkpoint.expires_at,
-        );
+      `).run(
+        checkpoint.id,
+        checkpoint.project_id,
+        checkpoint.operation,
+        checkpoint.status,
+        checkpoint.current_stage,
+        checkpoint.completed_stages,
+        checkpoint.completed_files,
+        checkpoint.accumulated_data,
+        checkpoint.error_message,
+        checkpoint.retry_count,
+        checkpoint.created_at,
+        checkpoint.updated_at,
+        checkpoint.expires_at
+      );
 
       logger.info(`[CheckpointManager] 检查点已创建: ${checkpoint.id}`);
       return checkpoint;
     } catch (error) {
-      logger.error("[CheckpointManager] 创建检查点失败:", error);
+      logger.error('[CheckpointManager] 创建检查点失败:', error);
       throw error;
     }
   }
@@ -159,7 +151,7 @@ class CheckpointManager {
       completedFiles,
       accumulatedData,
       status,
-      errorMessage,
+      errorMessage
     } = updates;
 
     try {
@@ -167,53 +159,49 @@ class CheckpointManager {
       const params = [];
 
       if (currentStage !== undefined) {
-        updateFields.push("current_stage = ?");
+        updateFields.push('current_stage = ?');
         params.push(currentStage);
       }
 
       if (completedStages !== undefined) {
-        updateFields.push("completed_stages = ?");
+        updateFields.push('completed_stages = ?');
         params.push(JSON.stringify(completedStages));
       }
 
       if (completedFiles !== undefined) {
-        updateFields.push("completed_files = ?");
+        updateFields.push('completed_files = ?');
         params.push(JSON.stringify(completedFiles));
       }
 
       if (accumulatedData !== undefined) {
-        updateFields.push("accumulated_data = ?");
+        updateFields.push('accumulated_data = ?');
         params.push(JSON.stringify(accumulatedData));
       }
 
       if (status !== undefined) {
-        updateFields.push("status = ?");
+        updateFields.push('status = ?');
         params.push(status);
       }
 
       if (errorMessage !== undefined) {
-        updateFields.push("error_message = ?");
+        updateFields.push('error_message = ?');
         params.push(errorMessage);
       }
 
-      updateFields.push("updated_at = ?");
+      updateFields.push('updated_at = ?');
       params.push(Date.now());
 
       params.push(checkpointId);
 
-      this.database.db
-        .prepare(
-          `
+      this.database.db.prepare(`
         UPDATE project_checkpoints
-        SET ${updateFields.join(", ")}
+        SET ${updateFields.join(', ')}
         WHERE id = ?
-      `,
-        )
-        .run(...params);
+      `).run(...params);
 
       logger.info(`[CheckpointManager] 检查点已更新: ${checkpointId}`);
     } catch (error) {
-      logger.error("[CheckpointManager] 更新检查点失败:", error);
+      logger.error('[CheckpointManager] 更新检查点失败:', error);
       throw error;
     }
   }
@@ -225,22 +213,18 @@ class CheckpointManager {
    */
   markAsFailed(checkpointId, errorMessage) {
     try {
-      this.database.db
-        .prepare(
-          `
+      this.database.db.prepare(`
         UPDATE project_checkpoints
         SET status = 'failed',
             error_message = ?,
             retry_count = retry_count + 1,
             updated_at = ?
         WHERE id = ?
-      `,
-        )
-        .run(errorMessage, Date.now(), checkpointId);
+      `).run(errorMessage, Date.now(), checkpointId);
 
       logger.info(`[CheckpointManager] 检查点标记为失败: ${checkpointId}`);
     } catch (error) {
-      logger.error("[CheckpointManager] 标记失败时出错:", error);
+      logger.error('[CheckpointManager] 标记失败时出错:', error);
     }
   }
 
@@ -250,20 +234,16 @@ class CheckpointManager {
    */
   markAsCompleted(checkpointId) {
     try {
-      this.database.db
-        .prepare(
-          `
+      this.database.db.prepare(`
         UPDATE project_checkpoints
         SET status = 'completed',
             updated_at = ?
         WHERE id = ?
-      `,
-        )
-        .run(Date.now(), checkpointId);
+      `).run(Date.now(), checkpointId);
 
       logger.info(`[CheckpointManager] 检查点标记为完成: ${checkpointId}`);
     } catch (error) {
-      logger.error("[CheckpointManager] 标记完成时出错:", error);
+      logger.error('[CheckpointManager] 标记完成时出错:', error);
     }
   }
 
@@ -274,13 +254,9 @@ class CheckpointManager {
    */
   getCheckpoint(checkpointId) {
     try {
-      const checkpoint = this.database.db
-        .prepare(
-          `
+      const checkpoint = this.database.db.prepare(`
         SELECT * FROM project_checkpoints WHERE id = ?
-      `,
-        )
-        .get(checkpointId);
+      `).get(checkpointId);
 
       if (!checkpoint) {
         return null;
@@ -291,10 +267,10 @@ class CheckpointManager {
         ...checkpoint,
         completed_stages: safeParse(checkpoint.completed_stages, []),
         completed_files: safeParse(checkpoint.completed_files, []),
-        accumulated_data: safeParse(checkpoint.accumulated_data, {}),
+        accumulated_data: safeParse(checkpoint.accumulated_data, {})
       };
     } catch (error) {
-      logger.error("[CheckpointManager] 获取检查点失败:", error);
+      logger.error('[CheckpointManager] 获取检查点失败:', error);
       return null;
     }
   }
@@ -305,7 +281,7 @@ class CheckpointManager {
    * @param {string} operation - 操作类型
    * @returns {Object|null} 检查点对象
    */
-  findLatestCheckpoint(projectId, operation = "create-stream") {
+  findLatestCheckpoint(projectId, operation = 'create-stream') {
     try {
       let query = `
         SELECT * FROM project_checkpoints
@@ -314,11 +290,11 @@ class CheckpointManager {
       const params = [operation];
 
       if (projectId) {
-        query += " AND project_id = ?";
+        query += ' AND project_id = ?';
         params.push(projectId);
       }
 
-      query += " ORDER BY created_at DESC LIMIT 1";
+      query += ' ORDER BY created_at DESC LIMIT 1';
 
       const checkpoint = this.database.db.prepare(query).get(...params);
 
@@ -329,7 +305,7 @@ class CheckpointManager {
       // 检查是否过期
       if (checkpoint.expires_at < Date.now()) {
         logger.info(`[CheckpointManager] 检查点已过期: ${checkpoint.id}`);
-        this.markAsFailed(checkpoint.id, "检查点已过期");
+        this.markAsFailed(checkpoint.id, '检查点已过期');
         return null;
       }
 
@@ -338,10 +314,10 @@ class CheckpointManager {
         ...checkpoint,
         completed_stages: safeParse(checkpoint.completed_stages, []),
         completed_files: safeParse(checkpoint.completed_files, []),
-        accumulated_data: safeParse(checkpoint.accumulated_data, {}),
+        accumulated_data: safeParse(checkpoint.accumulated_data, {})
       };
     } catch (error) {
-      logger.error("[CheckpointManager] 查找检查点失败:", error);
+      logger.error('[CheckpointManager] 查找检查点失败:', error);
       return null;
     }
   }
@@ -352,17 +328,13 @@ class CheckpointManager {
    */
   deleteCheckpoint(checkpointId) {
     try {
-      this.database.db
-        .prepare(
-          `
+      this.database.db.prepare(`
         DELETE FROM project_checkpoints WHERE id = ?
-      `,
-        )
-        .run(checkpointId);
+      `).run(checkpointId);
 
       logger.info(`[CheckpointManager] 检查点已删除: ${checkpointId}`);
     } catch (error) {
-      logger.error("[CheckpointManager] 删除检查点失败:", error);
+      logger.error('[CheckpointManager] 删除检查点失败:', error);
     }
   }
 
@@ -375,21 +347,17 @@ class CheckpointManager {
     try {
       const expiryTime = Date.now() - olderThan;
 
-      const result = this.database.db
-        .prepare(
-          `
+      const result = this.database.db.prepare(`
         DELETE FROM project_checkpoints
         WHERE expires_at < ? OR (status = 'completed' AND updated_at < ?)
-      `,
-        )
-        .run(Date.now(), expiryTime);
+      `).run(Date.now(), expiryTime);
 
       const deletedCount = result.changes || 0;
       logger.info(`[CheckpointManager] 清理了 ${deletedCount} 个过期检查点`);
 
       return deletedCount;
     } catch (error) {
-      logger.error("[CheckpointManager] 清理检查点失败:", error);
+      logger.error('[CheckpointManager] 清理检查点失败:', error);
       return 0;
     }
   }
@@ -400,33 +368,29 @@ class CheckpointManager {
    */
   getStats() {
     try {
-      const stats = this.database.db
-        .prepare(
-          `
+      const stats = this.database.db.prepare(`
         SELECT
           status,
           COUNT(*) as count
         FROM project_checkpoints
         GROUP BY status
-      `,
-        )
-        .all();
+      `).all();
 
       const result = {
         total: 0,
         in_progress: 0,
         completed: 0,
-        failed: 0,
+        failed: 0
       };
 
-      stats.forEach((row) => {
+      stats.forEach(row => {
         result.total += row.count;
         result[row.status] = row.count;
       });
 
       return result;
     } catch (error) {
-      logger.error("[CheckpointManager] 获取统计信息失败:", error);
+      logger.error('[CheckpointManager] 获取统计信息失败:', error);
       return { total: 0, in_progress: 0, completed: 0, failed: 0 };
     }
   }

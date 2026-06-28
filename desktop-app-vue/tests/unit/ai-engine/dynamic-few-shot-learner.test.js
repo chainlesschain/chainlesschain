@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * DynamicFewShotLearner 单元测试
@@ -23,15 +23,14 @@ describe("DynamicFewShotLearner", () => {
     vi.clearAllMocks();
 
     // Dynamic import
-    const module =
-      await import("../../../src/main/ai-engine/dynamic-few-shot-learner.js");
+    const module = await import("../../../src/main/ai-engine/dynamic-few-shot-learner.js");
     DynamicFewShotLearner = module.default;
 
     // Mock database
     mockDatabase = {
       all: vi.fn(),
       get: vi.fn(),
-      run: vi.fn(),
+      run: vi.fn()
     };
 
     // Create instance
@@ -47,7 +46,7 @@ describe("DynamicFewShotLearner", () => {
     });
 
     it("应该有正确的缓存配置", () => {
-      expect(learner.cacheConfig.maxAge).toBe(3600000); // 1小时
+      expect(learner.cacheConfig.maxAge).toBe(3600000);  // 1小时
       expect(learner.cacheConfig.maxSize).toBe(100);
     });
 
@@ -64,42 +63,42 @@ describe("DynamicFewShotLearner", () => {
     it("应该从数据库获取用户示例", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML"}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
 
       expect(mockDatabase.all).toHaveBeenCalled();
       expect(examples).toHaveLength(1);
-      expect(examples[0].input).toBe("创建网站");
-      expect(examples[0].output.intent).toBe("CREATE_FILE");
-      expect(examples[0].output.entities.fileType).toBe("HTML");
+      expect(examples[0].input).toBe('创建网站');
+      expect(examples[0].output.intent).toBe('CREATE_FILE');
+      expect(examples[0].output.entities.fileType).toBe('HTML');
     });
 
     it("应该使用缓存", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
-          entities: "{}",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
+          entities: '{}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
 
       // 第一次调用
-      await learner.getUserExamples("user123");
+      await learner.getUserExamples('user123');
       // 第二次调用（应该使用缓存）
-      await learner.getUserExamples("user123");
+      await learner.getUserExamples('user123');
 
       expect(mockDatabase.all).toHaveBeenCalledTimes(1);
     });
@@ -107,16 +106,16 @@ describe("DynamicFewShotLearner", () => {
     it("应该支持按意图类型过滤", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123", "CREATE_FILE");
+      await learner.getUserExamples('user123', 'CREATE_FILE');
 
       const query = mockDatabase.all.mock.calls[0][0];
-      expect(query).toContain("AND intent = ?");
+      expect(query).toContain('AND intent = ?');
     });
 
     it("应该支持自定义限制数量", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123", null, 5);
+      await learner.getUserExamples('user123', null, 5);
 
       const params = mockDatabase.all.mock.calls[0][1];
       expect(params[params.length - 1]).toBe(5);
@@ -125,16 +124,16 @@ describe("DynamicFewShotLearner", () => {
     it("应该过滤低置信度记录", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123");
+      await learner.getUserExamples('user123');
 
       const params = mockDatabase.all.mock.calls[0][1];
-      expect(params[1]).toBe(0.85); // minConfidence
+      expect(params[1]).toBe(0.85);  // minConfidence
     });
 
     it("应该在数据库错误时返回空数组", async () => {
-      mockDatabase.all.mockRejectedValue(new Error("DB error"));
+      mockDatabase.all.mockRejectedValue(new Error('DB error'));
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
 
       expect(examples).toEqual([]);
     });
@@ -142,38 +141,38 @@ describe("DynamicFewShotLearner", () => {
     it("应该解析entities JSON", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML","theme":"blog"}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
 
       expect(examples[0].output.entities).toEqual({
-        fileType: "HTML",
-        theme: "blog",
+        fileType: 'HTML',
+        theme: 'blog'
       });
     });
 
     it("应该处理空entities", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: null,
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
 
       expect(examples[0].output.entities).toEqual({});
     });
@@ -183,30 +182,30 @@ describe("DynamicFewShotLearner", () => {
     it("应该构建包含用户示例的prompt", async () => {
       const mockExamples = [
         {
-          input: "创建网站",
-          output: { intent: "CREATE_FILE", entities: { fileType: "HTML" } },
+          input: '创建网站',
+          output: { intent: 'CREATE_FILE', entities: { fileType: 'HTML' } },
           confidence: 0.9,
-          timestamp: Date.now(),
-        },
+          timestamp: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue([
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML"}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ]);
 
-      const prompt = await learner.buildDynamicPrompt("做个博客", "user123");
+      const prompt = await learner.buildDynamicPrompt('做个博客', 'user123');
 
-      expect(prompt).toContain("你是一个智能意图识别助手");
-      expect(prompt).toContain("参考示例");
-      expect(prompt).toContain("创建网站");
-      expect(prompt).toContain("现在识别");
-      expect(prompt).toContain("做个博客");
+      expect(prompt).toContain('你是一个智能意图识别助手');
+      expect(prompt).toContain('参考示例');
+      expect(prompt).toContain('创建网站');
+      expect(prompt).toContain('现在识别');
+      expect(prompt).toContain('做个博客');
     });
 
     it("应该在用户示例不足时补充通用示例", async () => {
@@ -216,45 +215,45 @@ describe("DynamicFewShotLearner", () => {
       // 通用示例
       mockDatabase.all.mockResolvedValueOnce([
         {
-          user_input: "创建HTML",
-          intent: "CREATE_FILE",
-          entities: "{}",
-          avg_confidence: 0.9,
-        },
+          user_input: '创建HTML',
+          intent: 'CREATE_FILE',
+          entities: '{}',
+          avg_confidence: 0.9
+        }
       ]);
 
-      const prompt = await learner.buildDynamicPrompt("做个博客", "user123");
+      const prompt = await learner.buildDynamicPrompt('做个博客', 'user123');
 
-      expect(prompt).toContain("创建HTML");
+      expect(prompt).toContain('创建HTML');
       expect(mockDatabase.all).toHaveBeenCalledTimes(2);
     });
 
     it("应该支持不包含系统提示", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      const prompt = await learner.buildDynamicPrompt("做个博客", "user123", {
-        includeSystemPrompt: false,
+      const prompt = await learner.buildDynamicPrompt('做个博客', 'user123', {
+        includeSystemPrompt: false
       });
 
-      expect(prompt).not.toContain("你是一个智能意图识别助手");
+      expect(prompt).not.toContain('你是一个智能意图识别助手');
     });
 
     it("应该支持指定意图类型", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.buildDynamicPrompt("做个博客", "user123", {
-        includeIntent: "CREATE_FILE",
+      await learner.buildDynamicPrompt('做个博客', 'user123', {
+        includeIntent: 'CREATE_FILE'
       });
 
       const firstCall = mockDatabase.all.mock.calls[0];
-      expect(firstCall[0]).toContain("AND intent = ?");
+      expect(firstCall[0]).toContain('AND intent = ?');
     });
 
     it("应该支持指定示例数量", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.buildDynamicPrompt("做个博客", "user123", {
-        exampleCount: 5,
+      await learner.buildDynamicPrompt('做个博客', 'user123', {
+        exampleCount: 5
       });
 
       const params = mockDatabase.all.mock.calls[0][1];
@@ -264,21 +263,19 @@ describe("DynamicFewShotLearner", () => {
     it("应该正确格式化示例", async () => {
       mockDatabase.all.mockResolvedValue([
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML"}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ]);
 
-      const prompt = await learner.buildDynamicPrompt("做个博客", "user123");
+      const prompt = await learner.buildDynamicPrompt('做个博客', 'user123');
 
-      expect(prompt).toContain("示例1:");
+      expect(prompt).toContain('示例1:');
       expect(prompt).toContain('输入: "创建网站"');
-      expect(prompt).toContain(
-        '输出: {"intent":"CREATE_FILE","entities":{"fileType":"HTML"}}',
-      );
+      expect(prompt).toContain('输出: {"intent":"CREATE_FILE","entities":{"fileType":"HTML"}}');
     });
   });
 
@@ -286,11 +283,11 @@ describe("DynamicFewShotLearner", () => {
     it("应该从数据库获取通用示例", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML"}',
-          avg_confidence: 0.9,
-        },
+          avg_confidence: 0.9
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
@@ -305,51 +302,51 @@ describe("DynamicFewShotLearner", () => {
     it("应该支持按意图类型过滤", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getGenericExamples("CREATE_FILE", 5);
+      await learner.getGenericExamples('CREATE_FILE', 5);
 
       const query = mockDatabase.all.mock.calls[0][0];
-      expect(query).toContain("AND intent = ?");
+      expect(query).toContain('AND intent = ?');
     });
 
     it("应该在数据库错误时降级到硬编码示例", async () => {
-      mockDatabase.all.mockRejectedValue(new Error("DB error"));
+      mockDatabase.all.mockRejectedValue(new Error('DB error'));
 
-      const examples = await learner.getGenericExamples("CREATE_FILE", 3);
+      const examples = await learner.getGenericExamples('CREATE_FILE', 3);
 
       expect(examples).toHaveLength(3);
-      expect(examples[0].output.intent).toBe("CREATE_FILE");
+      expect(examples[0].output.intent).toBe('CREATE_FILE');
     });
   });
 
   describe("getHardcodedExamples - 获取硬编码示例", () => {
     it("应该返回指定意图的示例", () => {
-      const examples = learner.getHardcodedExamples("CREATE_FILE", 2);
+      const examples = learner.getHardcodedExamples('CREATE_FILE', 2);
 
       expect(examples).toHaveLength(2);
-      examples.forEach((ex) => {
-        expect(ex.output.intent).toBe("CREATE_FILE");
+      examples.forEach(ex => {
+        expect(ex.output.intent).toBe('CREATE_FILE');
       });
     });
 
     it("应该支持EDIT_FILE意图", () => {
-      const examples = learner.getHardcodedExamples("EDIT_FILE", 2);
+      const examples = learner.getHardcodedExamples('EDIT_FILE', 2);
 
       expect(examples).toHaveLength(2);
-      expect(examples[0].input).toContain("修改");
+      expect(examples[0].input).toContain('修改');
     });
 
     it("应该支持DEPLOY_PROJECT意图", () => {
-      const examples = learner.getHardcodedExamples("DEPLOY_PROJECT", 2);
+      const examples = learner.getHardcodedExamples('DEPLOY_PROJECT', 2);
 
       expect(examples).toHaveLength(2);
-      expect(examples[0].input).toContain("部署");
+      expect(examples[0].input).toContain('部署');
     });
 
     it("应该支持ANALYZE_DATA意图", () => {
-      const examples = learner.getHardcodedExamples("ANALYZE_DATA", 2);
+      const examples = learner.getHardcodedExamples('ANALYZE_DATA', 2);
 
       expect(examples).toHaveLength(2);
-      expect(examples[0].input).toContain("分析");
+      expect(examples[0].input).toContain('分析');
     });
 
     it("应该在未指定意图时返回混合示例", () => {
@@ -358,18 +355,18 @@ describe("DynamicFewShotLearner", () => {
       expect(examples).toHaveLength(5);
 
       // 应该包含多种意图
-      const intents = new Set(examples.map((ex) => ex.output.intent));
+      const intents = new Set(examples.map(ex => ex.output.intent));
       expect(intents.size).toBeGreaterThan(1);
     });
 
     it("应该限制返回数量", () => {
-      const examples = learner.getHardcodedExamples("CREATE_FILE", 1);
+      const examples = learner.getHardcodedExamples('CREATE_FILE', 1);
 
       expect(examples).toHaveLength(1);
     });
 
     it("应该在未知意图时返回混合示例", () => {
-      const examples = learner.getHardcodedExamples("UNKNOWN_INTENT", 3);
+      const examples = learner.getHardcodedExamples('UNKNOWN_INTENT', 3);
 
       expect(examples).toHaveLength(3);
     });
@@ -379,50 +376,40 @@ describe("DynamicFewShotLearner", () => {
     it("应该记录成功的识别结果", async () => {
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition(
-        "user123",
-        "创建网站",
-        {
-          intent: "CREATE_FILE",
-          entities: { fileType: "HTML" },
-          confidence: 0.9,
-        },
-        true,
-      );
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE',
+        entities: { fileType: 'HTML' },
+        confidence: 0.9
+      }, true);
 
       expect(mockDatabase.run).toHaveBeenCalled();
       const args = mockDatabase.run.mock.calls[0][1];
-      expect(args[0]).toBe("user123");
-      expect(args[1]).toBe("创建网站");
-      expect(args[2]).toBe("CREATE_FILE");
-      expect(args[5]).toBe(1); // success = 1
+      expect(args[0]).toBe('user123');
+      expect(args[1]).toBe('创建网站');
+      expect(args[2]).toBe('CREATE_FILE');
+      expect(args[5]).toBe(1);  // success = 1
     });
 
     it("应该记录失败的识别结果", async () => {
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition(
-        "user123",
-        "创建网站",
-        {
-          intent: "CREATE_FILE",
-          entities: {},
-          confidence: 0.5,
-        },
-        false,
-      );
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE',
+        entities: {},
+        confidence: 0.5
+      }, false);
 
       const args = mockDatabase.run.mock.calls[0][1];
-      expect(args[5]).toBe(0); // success = 0
+      expect(args[5]).toBe(0);  // success = 0
     });
 
     it("应该序列化entities为JSON", async () => {
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition("user123", "创建网站", {
-        intent: "CREATE_FILE",
-        entities: { fileType: "HTML", theme: "blog" },
-        confidence: 0.9,
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE',
+        entities: { fileType: 'HTML', theme: 'blog' },
+        confidence: 0.9
       });
 
       const args = mockDatabase.run.mock.calls[0][1];
@@ -432,20 +419,20 @@ describe("DynamicFewShotLearner", () => {
     it("应该处理缺失的entities", async () => {
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition("user123", "创建网站", {
-        intent: "CREATE_FILE",
-        confidence: 0.9,
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE',
+        confidence: 0.9
       });
 
       const args = mockDatabase.run.mock.calls[0][1];
-      expect(args[3]).toBe("{}");
+      expect(args[3]).toBe('{}');
     });
 
     it("应该使用默认置信度0.5", async () => {
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition("user123", "创建网站", {
-        intent: "CREATE_FILE",
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE'
       });
 
       const args = mockDatabase.run.mock.calls[0][1];
@@ -454,26 +441,24 @@ describe("DynamicFewShotLearner", () => {
 
     it("应该清除用户缓存", async () => {
       // 先设置缓存
-      learner.setToCache("user123_all_3", []);
+      learner.setToCache('user123_all_3', []);
       expect(learner.exampleCache.size).toBe(1);
 
       mockDatabase.run.mockResolvedValue();
 
-      await learner.recordRecognition("user123", "创建网站", {
-        intent: "CREATE_FILE",
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE'
       });
 
       expect(learner.exampleCache.size).toBe(0);
     });
 
     it("应该处理数据库错误", async () => {
-      mockDatabase.run.mockRejectedValue(new Error("DB error"));
+      mockDatabase.run.mockRejectedValue(new Error('DB error'));
 
       // 不应该抛出错误
       await expect(
-        learner.recordRecognition("user123", "创建网站", {
-          intent: "CREATE_FILE",
-        }),
+        learner.recordRecognition('user123', '创建网站', { intent: 'CREATE_FILE' })
       ).resolves.toBeUndefined();
     });
   });
@@ -482,43 +467,43 @@ describe("DynamicFewShotLearner", () => {
     it("应该返回用户意图偏好统计", async () => {
       const mockRows = [
         {
-          intent: "CREATE_FILE",
+          intent: 'CREATE_FILE',
           usage_count: 10,
           avg_confidence: 0.9,
-          last_used: Date.now(),
+          last_used: Date.now()
         },
         {
-          intent: "EDIT_FILE",
+          intent: 'EDIT_FILE',
           usage_count: 5,
           avg_confidence: 0.85,
-          last_used: Date.now() - 1000,
-        },
+          last_used: Date.now() - 1000
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
 
-      const preferences = await learner.getUserIntentPreference("user123");
+      const preferences = await learner.getUserIntentPreference('user123');
 
       expect(preferences).toHaveLength(2);
-      expect(preferences[0].intent).toBe("CREATE_FILE");
+      expect(preferences[0].intent).toBe('CREATE_FILE');
       expect(preferences[0].usageCount).toBe(10);
       expect(preferences[0].avgConfidence).toBe(0.9);
-      expect(preferences[1].intent).toBe("EDIT_FILE");
+      expect(preferences[1].intent).toBe('EDIT_FILE');
     });
 
     it("应该支持自定义限制数量", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserIntentPreference("user123", 5);
+      await learner.getUserIntentPreference('user123', 5);
 
       const params = mockDatabase.all.mock.calls[0][1];
       expect(params[1]).toBe(5);
     });
 
     it("应该在数据库错误时返回空数组", async () => {
-      mockDatabase.all.mockRejectedValue(new Error("DB error"));
+      mockDatabase.all.mockRejectedValue(new Error('DB error'));
 
-      const preferences = await learner.getUserIntentPreference("user123");
+      const preferences = await learner.getUserIntentPreference('user123');
 
       expect(preferences).toEqual([]);
     });
@@ -526,10 +511,10 @@ describe("DynamicFewShotLearner", () => {
     it("应该按使用次数降序排序", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserIntentPreference("user123");
+      await learner.getUserIntentPreference('user123');
 
       const query = mockDatabase.all.mock.calls[0][0];
-      expect(query).toContain("ORDER BY usage_count DESC");
+      expect(query).toContain('ORDER BY usage_count DESC');
     });
   });
 
@@ -537,40 +522,40 @@ describe("DynamicFewShotLearner", () => {
     it("应该在成功率高时减少示例数", async () => {
       mockDatabase.get.mockResolvedValue({
         total: 100,
-        successes: 95, // 95% 成功率
+        successes: 95  // 95% 成功率
       });
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
-      expect(count).toBe(2); // 3 - 1
+      expect(count).toBe(2);  // 3 - 1
     });
 
     it("应该在成功率低时增加示例数", async () => {
       mockDatabase.get.mockResolvedValue({
         total: 100,
-        successes: 65, // 65% 成功率
+        successes: 65  // 65% 成功率
       });
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
-      expect(count).toBe(5); // 3 + 2
+      expect(count).toBe(5);  // 3 + 2
     });
 
     it("应该在成功率适中时保持不变", async () => {
       mockDatabase.get.mockResolvedValue({
         total: 100,
-        successes: 80, // 80% 成功率
+        successes: 80  // 80% 成功率
       });
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
-      expect(count).toBe(3); // 保持不变
+      expect(count).toBe(3);  // 保持不变
     });
 
     it("应该在没有历史数据时返回基础值", async () => {
       mockDatabase.get.mockResolvedValue({ total: 0, successes: 0 });
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
       expect(count).toBe(3);
     });
@@ -578,7 +563,7 @@ describe("DynamicFewShotLearner", () => {
     it("应该在数据库返回null时返回基础值", async () => {
       mockDatabase.get.mockResolvedValue(null);
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
       expect(count).toBe(3);
     });
@@ -586,29 +571,29 @@ describe("DynamicFewShotLearner", () => {
     it("应该不低于最小示例数", async () => {
       mockDatabase.get.mockResolvedValue({
         total: 100,
-        successes: 95, // 高成功率
+        successes: 95  // 高成功率
       });
 
-      const count = await learner.adaptiveExampleCount("user123", 1);
+      const count = await learner.adaptiveExampleCount('user123', 1);
 
-      expect(count).toBe(1); // minExamples = 1
+      expect(count).toBe(1);  // minExamples = 1
     });
 
     it("应该不超过最大示例数", async () => {
       mockDatabase.get.mockResolvedValue({
         total: 100,
-        successes: 50, // 低成功率
+        successes: 50  // 低成功率
       });
 
-      const count = await learner.adaptiveExampleCount("user123", 9);
+      const count = await learner.adaptiveExampleCount('user123', 9);
 
-      expect(count).toBe(10); // maxExamples = 10
+      expect(count).toBe(10);  // maxExamples = 10
     });
 
     it("应该在数据库错误时返回基础值", async () => {
-      mockDatabase.get.mockRejectedValue(new Error("DB error"));
+      mockDatabase.get.mockRejectedValue(new Error('DB error'));
 
-      const count = await learner.adaptiveExampleCount("user123", 3);
+      const count = await learner.adaptiveExampleCount('user123', 3);
 
       expect(count).toBe(3);
     });
@@ -636,7 +621,7 @@ describe("DynamicFewShotLearner", () => {
     });
 
     it("应该在数据库错误时返回0", async () => {
-      mockDatabase.run.mockRejectedValue(new Error("DB error"));
+      mockDatabase.run.mockRejectedValue(new Error('DB error'));
 
       const deleted = await learner.cleanOldData(90);
 
@@ -658,63 +643,63 @@ describe("DynamicFewShotLearner", () => {
   describe("缓存管理", () => {
     describe("getFromCache", () => {
       it("应该从缓存获取数据", () => {
-        const data = [{ test: "data" }];
-        learner.setToCache("test_key", data);
+        const data = [{ test: 'data' }];
+        learner.setToCache('test_key', data);
 
-        const cached = learner.getFromCache("test_key");
+        const cached = learner.getFromCache('test_key');
 
         expect(cached).toEqual(data);
       });
 
       it("应该在缓存未命中时返回null", () => {
-        const cached = learner.getFromCache("nonexistent");
+        const cached = learner.getFromCache('nonexistent');
 
         expect(cached).toBeNull();
       });
 
       it("应该在缓存过期时返回null", () => {
-        const data = [{ test: "data" }];
-        learner.exampleCache.set("test_key", {
+        const data = [{ test: 'data' }];
+        learner.exampleCache.set('test_key', {
           data,
-          timestamp: Date.now() - 3700000, // 超过1小时
+          timestamp: Date.now() - 3700000  // 超过1小时
         });
 
-        const cached = learner.getFromCache("test_key");
+        const cached = learner.getFromCache('test_key');
 
         expect(cached).toBeNull();
-        expect(learner.exampleCache.has("test_key")).toBe(false);
+        expect(learner.exampleCache.has('test_key')).toBe(false);
       });
     });
 
     describe("setToCache", () => {
       it("应该设置缓存", () => {
-        const data = [{ test: "data" }];
-        learner.setToCache("test_key", data);
+        const data = [{ test: 'data' }];
+        learner.setToCache('test_key', data);
 
-        expect(learner.exampleCache.has("test_key")).toBe(true);
-        expect(learner.exampleCache.get("test_key").data).toEqual(data);
+        expect(learner.exampleCache.has('test_key')).toBe(true);
+        expect(learner.exampleCache.get('test_key').data).toEqual(data);
       });
 
       it("应该在超过最大大小时删除最旧的缓存", () => {
         // 设置maxSize为2便于测试
         learner.cacheConfig.maxSize = 2;
 
-        learner.setToCache("key1", [1]);
-        learner.setToCache("key2", [2]);
-        learner.setToCache("key3", [3]); // 应该删除key1
+        learner.setToCache('key1', [1]);
+        learner.setToCache('key2', [2]);
+        learner.setToCache('key3', [3]);  // 应该删除key1
 
         expect(learner.exampleCache.size).toBe(2);
-        expect(learner.exampleCache.has("key1")).toBe(false);
-        expect(learner.exampleCache.has("key2")).toBe(true);
-        expect(learner.exampleCache.has("key3")).toBe(true);
+        expect(learner.exampleCache.has('key1')).toBe(false);
+        expect(learner.exampleCache.has('key2')).toBe(true);
+        expect(learner.exampleCache.has('key3')).toBe(true);
       });
 
       it("应该记录时间戳", () => {
         const before = Date.now();
-        learner.setToCache("test_key", []);
+        learner.setToCache('test_key', []);
         const after = Date.now();
 
-        const cached = learner.exampleCache.get("test_key");
+        const cached = learner.exampleCache.get('test_key');
         expect(cached.timestamp).toBeGreaterThanOrEqual(before);
         expect(cached.timestamp).toBeLessThanOrEqual(after);
       });
@@ -722,31 +707,31 @@ describe("DynamicFewShotLearner", () => {
 
     describe("clearUserCache", () => {
       it("应该清除指定用户的所有缓存", () => {
-        learner.setToCache("user123_all_3", [1]);
-        learner.setToCache("user123_CREATE_FILE_5", [2]);
-        learner.setToCache("user456_all_3", [3]);
+        learner.setToCache('user123_all_3', [1]);
+        learner.setToCache('user123_CREATE_FILE_5', [2]);
+        learner.setToCache('user456_all_3', [3]);
 
-        learner.clearUserCache("user123");
+        learner.clearUserCache('user123');
 
-        expect(learner.exampleCache.has("user123_all_3")).toBe(false);
-        expect(learner.exampleCache.has("user123_CREATE_FILE_5")).toBe(false);
-        expect(learner.exampleCache.has("user456_all_3")).toBe(true);
+        expect(learner.exampleCache.has('user123_all_3')).toBe(false);
+        expect(learner.exampleCache.has('user123_CREATE_FILE_5')).toBe(false);
+        expect(learner.exampleCache.has('user456_all_3')).toBe(true);
       });
 
       it("应该处理不存在的用户", () => {
-        learner.setToCache("user123_all_3", [1]);
+        learner.setToCache('user123_all_3', [1]);
 
         // 不应该抛出错误
-        expect(() => learner.clearUserCache("nonexistent")).not.toThrow();
-        expect(learner.exampleCache.has("user123_all_3")).toBe(true);
+        expect(() => learner.clearUserCache('nonexistent')).not.toThrow();
+        expect(learner.exampleCache.has('user123_all_3')).toBe(true);
       });
     });
 
     describe("clearAllCache", () => {
       it("应该清除所有缓存", () => {
-        learner.setToCache("key1", [1]);
-        learner.setToCache("key2", [2]);
-        learner.setToCache("key3", [3]);
+        learner.setToCache('key1', [1]);
+        learner.setToCache('key2', [2]);
+        learner.setToCache('key3', [3]);
 
         learner.clearAllCache();
 
@@ -756,8 +741,8 @@ describe("DynamicFewShotLearner", () => {
 
     describe("getCacheStats", () => {
       it("应该返回缓存统计信息", () => {
-        learner.setToCache("key1", [1]);
-        learner.setToCache("key2", [2]);
+        learner.setToCache('key1', [1]);
+        learner.setToCache('key2', [2]);
 
         const stats = learner.getCacheStats();
 
@@ -772,31 +757,29 @@ describe("DynamicFewShotLearner", () => {
     it("应该处理数据库返回空数组", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
 
       expect(examples).toEqual([]);
     });
 
     it("应该处理超长用户输入", async () => {
-      const longInput = "x".repeat(10000);
+      const longInput = 'x'.repeat(10000);
       mockDatabase.run.mockResolvedValue();
 
       await expect(
-        learner.recordRecognition("user123", longInput, {
-          intent: "CREATE_FILE",
-        }),
+        learner.recordRecognition('user123', longInput, { intent: 'CREATE_FILE' })
       ).resolves.toBeUndefined();
     });
 
     it("应该处理无效的JSON entities", async () => {
       const mockRows = [
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
-          entities: "invalid json",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
+          entities: 'invalid json',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ];
 
       mockDatabase.all.mockResolvedValue(mockRows);
@@ -804,26 +787,26 @@ describe("DynamicFewShotLearner", () => {
       // safeParse fix: a corrupt `entities` row must NOT abort the whole list
       // (the old behavior returned []). The example is still returned, with
       // entities falling back to {}.
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
       expect(examples).toHaveLength(1);
-      expect(examples[0].input).toBe("创建网站");
+      expect(examples[0].input).toBe('创建网站');
       expect(examples[0].output.entities).toEqual({});
     });
 
     it("应该处理limit为0的情况", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123", null, 0);
+      await learner.getUserExamples('user123', null, 0);
 
       // 0会被 || 运算符替换为默认值
       const params = mockDatabase.all.mock.calls[0][1];
-      expect(params[params.length - 1]).toBe(3); // defaultExamples
+      expect(params[params.length - 1]).toBe(3);  // defaultExamples
     });
 
     it("应该处理用户ID包含特殊字符", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user_123-456@test.com");
+      await learner.getUserExamples('user_123-456@test.com');
 
       expect(mockDatabase.all).toHaveBeenCalled();
     });
@@ -840,17 +823,17 @@ describe("DynamicFewShotLearner", () => {
     it("应该处理空意图类型", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123", "");
+      await learner.getUserExamples('user123', '');
 
       // 空字符串是falsy，不会触发if (intent)条件
       const query = mockDatabase.all.mock.calls[0][0];
-      expect(query).not.toContain("AND intent = ?");
+      expect(query).not.toContain('AND intent = ?');
     });
 
     it("应该处理负数limit", async () => {
       mockDatabase.all.mockResolvedValue([]);
 
-      await learner.getUserExamples("user123", null, -1);
+      await learner.getUserExamples('user123', null, -1);
 
       // 负数不是falsy值，会被原样传递给SQL
       const params = mockDatabase.all.mock.calls[0][1];
@@ -862,30 +845,30 @@ describe("DynamicFewShotLearner", () => {
     it("应该完整演示Few-shot学习流程", async () => {
       // 1. 记录用户识别结果
       mockDatabase.run.mockResolvedValue();
-      await learner.recordRecognition("user123", "创建网站", {
-        intent: "CREATE_FILE",
-        entities: { fileType: "HTML" },
-        confidence: 0.9,
+      await learner.recordRecognition('user123', '创建网站', {
+        intent: 'CREATE_FILE',
+        entities: { fileType: 'HTML' },
+        confidence: 0.9
       });
 
       // 2. 获取用户示例
       mockDatabase.all.mockResolvedValue([
         {
-          user_input: "创建网站",
-          intent: "CREATE_FILE",
+          user_input: '创建网站',
+          intent: 'CREATE_FILE',
           entities: '{"fileType":"HTML"}',
           confidence: 0.9,
-          created_at: Date.now(),
-        },
+          created_at: Date.now()
+        }
       ]);
 
-      const examples = await learner.getUserExamples("user123");
+      const examples = await learner.getUserExamples('user123');
       expect(examples).toHaveLength(1);
 
       // 3. 构建动态prompt
-      const prompt = await learner.buildDynamicPrompt("做个博客", "user123");
-      expect(prompt).toContain("创建网站");
-      expect(prompt).toContain("做个博客");
+      const prompt = await learner.buildDynamicPrompt('做个博客', 'user123');
+      expect(prompt).toContain('创建网站');
+      expect(prompt).toContain('做个博客');
     });
 
     it("应该正确处理无历史用户的情况", async () => {
@@ -895,11 +878,11 @@ describe("DynamicFewShotLearner", () => {
       // 通用示例也为空
       mockDatabase.all.mockResolvedValueOnce([]);
 
-      const prompt = await learner.buildDynamicPrompt("创建网站", "newuser");
+      const prompt = await learner.buildDynamicPrompt('创建网站', 'newuser');
 
       // 应该包含硬编码示例
-      expect(prompt).toContain("现在识别");
-      expect(prompt).toContain("创建网站");
+      expect(prompt).toContain('现在识别');
+      expect(prompt).toContain('创建网站');
     });
   });
 });

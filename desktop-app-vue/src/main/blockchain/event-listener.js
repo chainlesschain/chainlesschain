@@ -18,15 +18,11 @@ const { ethers } = require("ethers");
  * out of the getProcessedEvents map and fail the whole event list.
  */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === "") return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(
-      `[EventListener] Bad JSON column, using fallback: ${err.message}`,
-    );
+    logger.warn(`[EventListener] Bad JSON column, using fallback: ${err.message}`);
     return fallback;
   }
 }

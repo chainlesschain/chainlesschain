@@ -65,13 +65,7 @@ export function parseAgentsCommand(line) {
   if (first === "help") return { action: "help" };
   if (first === "show") return { action: "show", name: tokens[1] || null };
   if (first === "new") {
-    return {
-      action: "new",
-      name: tokens[1] || null,
-      description,
-      tools,
-      location,
-    };
+    return { action: "new", name: tokens[1] || null, description, tools, location };
   }
   // A bare token is treated as a name to show.
   return { action: "show", name: first };
@@ -101,7 +95,7 @@ export function formatAgentsList(agents, profiles) {
   }
   lines.push(
     "",
-    'Manage: /agents show <name> · /agents new <name> · run via `cc agents run <name> "<task>"`',
+    "Manage: /agents show <name> · /agents new <name> · run via `cc agents run <name> \"<task>\"`",
   );
   return lines.join("\n");
 }

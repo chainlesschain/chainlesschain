@@ -21,9 +21,7 @@ import { v4 as uuidv4 } from "uuid";
  * 256/396 already guard their own attribute parse; this matches them).
  */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
+  if (raw == null || raw === "") return fallback;
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -68,9 +66,7 @@ class SCIMServer extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) {
-      return;
-    }
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS scim_resources (
@@ -161,14 +157,10 @@ class SCIMServer extends EventEmitter {
   async getUser(userId) {
     try {
       const row = this.database.db
-        .prepare(
-          "SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?",
-        )
+        .prepare("SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?")
         .get(userId, RESOURCE_TYPES.USER);
 
-      if (!row) {
-        return this._buildError(404, "User not found");
-      }
+      if (!row) {return this._buildError(404, "User not found");}
 
       return this._rowToUserResponse(row);
     } catch (error) {
@@ -196,11 +188,7 @@ class SCIMServer extends EventEmitter {
         const match = filter.match(/(\w+)\s+eq\s+"([^"]+)"/);
         if (match) {
           const [, field, value] = match;
-          const columnMap = {
-            userName: "user_name",
-            displayName: "display_name",
-            externalId: "external_id",
-          };
+          const columnMap = { userName: "user_name", displayName: "display_name", externalId: "external_id" };
           const column = columnMap[field] || field;
           query += ` AND ${column} = ?`;
           params.push(value);
@@ -274,19 +262,13 @@ class SCIMServer extends EventEmitter {
   async patchUser(userId, patchOp) {
     try {
       const row = this.database.db
-        .prepare(
-          "SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?",
-        )
+        .prepare("SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?")
         .get(userId, RESOURCE_TYPES.USER);
 
-      if (!row) {
-        return this._buildError(404, "User not found");
-      }
+      if (!row) {return this._buildError(404, "User not found");}
 
       let attrs = {};
-      try {
-        attrs = JSON.parse(row.attributes || "{}");
-      } catch {
+      try { attrs = JSON.parse(row.attributes || "{}"); } catch {
         // Expected error, ignore
       }
 
@@ -323,9 +305,7 @@ class SCIMServer extends EventEmitter {
   async deleteUser(userId) {
     try {
       this.database.db
-        .prepare(
-          "DELETE FROM scim_resources WHERE id = ? AND resource_type = ?",
-        )
+        .prepare("DELETE FROM scim_resources WHERE id = ? AND resource_type = ?")
         .run(userId, RESOURCE_TYPES.USER);
 
       this.database.saveToFile();
@@ -367,11 +347,7 @@ class SCIMServer extends EventEmitter {
 
       this.database.saveToFile();
       this._logOperation("create", RESOURCE_TYPES.GROUP, id);
-      return {
-        schemas: [SCIM_SCHEMAS.GROUP],
-        id,
-        displayName: groupData.displayName,
-      };
+      return { schemas: [SCIM_SCHEMAS.GROUP], id, displayName: groupData.displayName };
     } catch (error) {
       logger.error("[SCIMServer] Create group failed:", error);
       throw error;
@@ -384,15 +360,11 @@ class SCIMServer extends EventEmitter {
       const startIndex = options.startIndex || 1;
 
       const rows = this.database.db
-        .prepare(
-          "SELECT * FROM scim_resources WHERE resource_type = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-        )
+        .prepare("SELECT * FROM scim_resources WHERE resource_type = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
         .all(RESOURCE_TYPES.GROUP, count, startIndex - 1);
 
       const total = this.database.db
-        .prepare(
-          "SELECT COUNT(*) as count FROM scim_resources WHERE resource_type = ?",
-        )
+        .prepare("SELECT COUNT(*) as count FROM scim_resources WHERE resource_type = ?")
         .get(RESOURCE_TYPES.GROUP);
 
       return {
@@ -424,9 +396,7 @@ class SCIMServer extends EventEmitter {
       userName: userData.userName,
       name: userData.name || { givenName: "", familyName: "" },
       displayName: userData.displayName || userData.userName,
-      emails:
-        userData.emails ||
-        (userData.email ? [{ value: userData.email, primary: true }] : []),
+      emails: userData.emails || (userData.email ? [{ value: userData.email, primary: true }] : []),
       active: userData.active !== false,
       meta: {
         resourceType: RESOURCE_TYPES.USER,
@@ -438,9 +408,7 @@ class SCIMServer extends EventEmitter {
 
   _rowToUserResponse(row) {
     let attrs = {};
-    try {
-      attrs = JSON.parse(row.attributes || "{}");
-    } catch {
+    try { attrs = JSON.parse(row.attributes || "{}"); } catch {
       // Expected error, ignore
     }
     return {
@@ -449,9 +417,7 @@ class SCIMServer extends EventEmitter {
       externalId: row.external_id,
       userName: row.user_name,
       displayName: row.display_name,
-      emails:
-        attrs.emails ||
-        (row.email ? [{ value: row.email, primary: true }] : []),
+      emails: attrs.emails || (row.email ? [{ value: row.email, primary: true }] : []),
       active: row.active === 1,
       meta: {
         resourceType: RESOURCE_TYPES.USER,
@@ -467,21 +433,12 @@ class SCIMServer extends EventEmitter {
 
   _logOperation(operation, resourceType, resourceId, provider) {
     try {
-      if (!this.database || !this.database.db) {
-        return;
-      }
+      if (!this.database || !this.database.db) {return;}
       this.database.db
         .prepare(
           "INSERT INTO scim_sync_log (id, operation, resource_type, resource_id, provider, created_at) VALUES (?, ?, ?, ?, ?, ?)",
         )
-        .run(
-          uuidv4(),
-          operation,
-          resourceType,
-          resourceId,
-          provider || null,
-          Date.now(),
-        );
+        .run(uuidv4(), operation, resourceType, resourceId, provider || null, Date.now());
     } catch {
       // Expected error, ignore
     }
@@ -496,9 +453,7 @@ class SCIMServer extends EventEmitter {
 
 let _instance;
 function getSCIMServer() {
-  if (!_instance) {
-    _instance = new SCIMServer();
-  }
+  if (!_instance) {_instance = new SCIMServer();}
   return _instance;
 }
 
