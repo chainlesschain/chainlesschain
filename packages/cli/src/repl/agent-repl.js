@@ -1067,6 +1067,7 @@ export async function startAgentRepl(options = {}) {
       "/provider",
       "/quit",
       "/reindex",
+      "/release-notes",
       "/reload-skills",
       "/review",
       "/rewind",
@@ -1074,6 +1075,7 @@ export async function startAgentRepl(options = {}) {
       "/session",
       "/sessions",
       "/stats",
+      "/status",
       "/statusline",
       "/sub-agents",
       "/task",
@@ -1533,6 +1535,12 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/status")}     Environment snapshot (version/model/session/cwd/roots/IDE·MCP·hooks)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/release-notes")} Running version + changelog links + how to upgrade`,
       );
       logger.log(
         `  ${chalk.cyan("/memory")}     Project-memory files loaded (cc.md hierarchy + rules)`,
@@ -3265,6 +3273,73 @@ export async function startAgentRepl(options = {}) {
         settingsHooks: _settingsHooks,
       });
       logger.log(renderDoctor(checks));
+      prompt();
+      return;
+    }
+
+    // `/status` — concise environment snapshot (version / model / session / cwd
+    // / roots / IDE·MCP·hooks). Lighter than /doctor. Claude-Code /status parity
+    // (minus account/billing, which cc has no notion of).
+    if (trimmed === "/status" || trimmed.startsWith("/status ")) {
+      try {
+        const { VERSION } = await import("../constants.js");
+        const { readDiskVersion } = await import("../lib/version-skew.js");
+        const { ideToolNames } = await import("./ide-status.js");
+        const { formatStatus } = await import("./status-summary.js");
+        const mcpConnected = _adhocMcp?.connected;
+        const mcpCount = Array.isArray(mcpConnected)
+          ? mcpConnected.length
+          : typeof mcpConnected === "number"
+            ? mcpConnected
+            : mcpConnected
+              ? 1
+              : 0;
+        logger.log(
+          "\n" +
+            formatStatus({
+              version: VERSION,
+              installedVersion: readDiskVersion(),
+              node: process.version,
+              platform: `${process.platform}-${process.arch}`,
+              provider,
+              model: _curModel || model,
+              sessionId,
+              messageCount: messages.length,
+              cwd: process.cwd(),
+              extraRoots: additionalDirectories.length,
+              ideConnected: ideToolNames(_adhocMcp).length > 0,
+              mcpServers: mcpCount,
+              hookEvents: _settingsHooks
+                ? Object.keys(_settingsHooks).length
+                : 0,
+            }) +
+            "\n",
+        );
+      } catch (err) {
+        logger.error(chalk.red(`/status failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/release-notes` — running version + a pointer to the full changelog +
+    // how to upgrade. Claude-Code /release-notes parity.
+    if (trimmed === "/release-notes" || trimmed.startsWith("/release-notes ")) {
+      try {
+        const { VERSION } = await import("../constants.js");
+        const { readDiskVersion } = await import("../lib/version-skew.js");
+        const { formatReleaseNotes } = await import("./release-notes.js");
+        logger.log(
+          "\n" +
+            formatReleaseNotes({
+              version: VERSION,
+              installedVersion: readDiskVersion(),
+            }) +
+            "\n",
+        );
+      } catch (err) {
+        logger.error(chalk.red(`/release-notes failed: ${err.message}`));
+      }
       prompt();
       return;
     }
