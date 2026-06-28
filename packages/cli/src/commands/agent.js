@@ -533,11 +533,50 @@ export function registerAgentCommand(program) {
       // flags there, and BEFORE every dispatch (headless/stream/REPL) since
       // they all read options.provider/model/baseUrl/apiKey.
       {
-        const { applyConfigLlmDefaults } =
+        const { applyConfigLlmDefaults, reconcileConfigLlmProvider } =
           await import("../lib/llm-config-defaults.js");
-        applyConfigLlmDefaults(options, loadConfig().llm || {}, {
+
+        // Self-repair a MISLABELED config (provider disagrees with the provider
+        // its baseUrl actually belongs to — the recurring "anthropic + volces
+        // baseUrl + haiku" corruption whose writer was never found). The baseUrl
+        // is authoritative, so correct provider/model to match it AND persist:
+        // without this the on-disk config stays wrong and runnable-provider
+        // relabels on EVERY run, re-emitting "provider 配置与 baseUrl 不一致".
+        // Persisting also fixes what `cc config` and the editor plugin read next.
+        const fullConfig = loadConfig();
+        const { llm: repairedLlm, changed: cfgRepaired } =
+          await reconcileConfigLlmProvider(fullConfig.llm || {});
+        if (cfgRepaired) {
+          try {
+            const { saveConfig } = await import("../lib/config-manager.js");
+            saveConfig({ ...fullConfig, llm: repairedLlm });
+            if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
+              process.stderr.write(
+                `\x1b[33m[config] 已修正 llm.provider → "${repairedLlm.provider}"` +
+                  `（原配置 provider 与 baseUrl 不一致；baseUrl 为准）。\x1b[0m\n`,
+              );
+            }
+          } catch {
+            /* best-effort: a config repair must never fail the run */
+          }
+        }
+
+        applyConfigLlmDefaults(options, repairedLlm, {
           explicitModel: explicitCliModel, // settings-file model must not ride
         });
+
+        // Also reconcile the RESOLVED options: the editor panel may have already
+        // spawned us with an explicit `--provider anthropic` (read from the
+        // pre-repair config), which applyConfigLlmDefaults leaves intact. Correct
+        // it here so it agrees with the baseUrl before the call runs — this is
+        // exactly what runnable-provider would do, just earlier and without the
+        // every-turn "已按 baseUrl 切换" notice (we already surfaced the repair).
+        const { llm: fixedOpts, changed: optsFixed } =
+          await reconcileConfigLlmProvider(options);
+        if (optsFixed) {
+          options.provider = fixedOpts.provider;
+          if (fixedOpts.model) options.model = fixedOpts.model;
+        }
       }
 
       // Claude-Code 2.1.183 parity: warn up front if the now-resolved model is

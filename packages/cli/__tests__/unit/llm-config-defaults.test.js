@@ -5,7 +5,10 @@
  * Regression for: editor chat panel "fetch failed" against a cloud config.
  */
 import { describe, it, expect } from "vitest";
-import { applyConfigLlmDefaults } from "../../src/lib/llm-config-defaults.js";
+import {
+  applyConfigLlmDefaults,
+  reconcileConfigLlmProvider,
+} from "../../src/lib/llm-config-defaults.js";
 
 const CFG = {
   provider: "volcengine",
@@ -71,5 +74,78 @@ describe("applyConfigLlmDefaults", () => {
     expect(applyConfigLlmDefaults({ model: "m" }, { model: "x" })).toEqual({
       model: "m",
     });
+  });
+});
+
+describe("reconcileConfigLlmProvider — self-repair of a mislabeled config", () => {
+  // The recurring corruption: provider/model reset to cc's defaults
+  // (anthropic/haiku) while baseUrl/apiKey stay volcengine. The baseUrl is the
+  // real endpoint, so it wins → relabel to volcengine + swap the foreign model.
+  it("corrects provider AND foreign model to match the baseUrl endpoint", async () => {
+    const { llm, changed } = await reconcileConfigLlmProvider({
+      provider: "anthropic",
+      model: "haiku",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-x",
+    });
+    expect(changed).toBe(true);
+    expect(llm.provider).toBe("volcengine");
+    expect(llm.model).not.toBe("haiku"); // foreign → provider default
+    expect(llm.apiKey).toBe("sk-x"); // key + baseUrl preserved verbatim
+    expect(llm.baseUrl).toBe("https://ark.cn-beijing.volces.com/api/v3");
+  });
+
+  it("keeps a non-foreign model when only the provider label is wrong", async () => {
+    const { llm, changed } = await reconcileConfigLlmProvider({
+      provider: "anthropic", // mislabeled
+      model: "doubao-seed-2-1-pro-260628", // already a volcengine model
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    });
+    expect(changed).toBe(true);
+    expect(llm.provider).toBe("volcengine");
+    expect(llm.model).toBe("doubao-seed-2-1-pro-260628"); // untouched
+  });
+
+  it("a consistent config is a no-op (no copy, no write churn)", async () => {
+    const cfg = {
+      provider: "volcengine",
+      model: "doubao-seed-2-1-pro-260628",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    };
+    const r = await reconcileConfigLlmProvider(cfg);
+    expect(r.changed).toBe(false);
+    expect(r.llm).toBe(cfg); // same reference — caller won't persist
+  });
+
+  it("leaves a custom/proxy host and a baseUrl-less config untouched", async () => {
+    expect(
+      (
+        await reconcileConfigLlmProvider({
+          provider: "anthropic",
+          model: "x",
+          baseUrl: "https://my-proxy.internal/v1",
+        })
+      ).changed,
+    ).toBe(false);
+    expect(
+      (
+        await reconcileConfigLlmProvider({
+          provider: "anthropic",
+          model: "haiku",
+        })
+      ).changed,
+    ).toBe(false);
+    expect((await reconcileConfigLlmProvider({})).changed).toBe(false);
+  });
+
+  it("does not mutate the input object", async () => {
+    const cfg = {
+      provider: "anthropic",
+      model: "haiku",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    };
+    await reconcileConfigLlmProvider(cfg);
+    expect(cfg.provider).toBe("anthropic"); // original untouched
+    expect(cfg.model).toBe("haiku");
   });
 });

@@ -17,6 +17,43 @@
  *    lesson as the --settings "opus"→404 vision trap.
  *  - No configured provider → unchanged (runner defaults apply: ollama).
  */
+/**
+ * Reconcile a MISLABELED llm config/options object. The `baseUrl` is the
+ * authoritative signal of which provider you actually reach, so when `provider`
+ * disagrees with the provider its `baseUrl` belongs to, the config is simply
+ * mislabeled — the recurring "provider:anthropic + volces baseUrl + model:haiku"
+ * corruption that makes runnable-provider relabel (and emit "provider 配置与
+ * baseUrl 不一致") on EVERY run because the on-disk config never gets fixed.
+ *
+ * Correct `provider` to match the endpoint, and if the model is foreign to the
+ * corrected provider, replace it with that provider's default. Pure: the input
+ * is never mutated — returns `{ llm, changed }` where `llm` is the original
+ * object (changed:false) or a corrected shallow copy (changed:true). Works for
+ * both a `config.llm` block and a resolved request-`options` (same shape).
+ *
+ * `inferProviderFromBaseUrl` returns null for unknown/custom hosts (proxies),
+ * so an intentionally-custom endpoint is left untouched.
+ */
+export async function reconcileConfigLlmProvider(cfgLlm = {}) {
+  if (!cfgLlm || !cfgLlm.provider || !cfgLlm.baseUrl) {
+    return { llm: cfgLlm, changed: false };
+  }
+  const { inferProviderFromBaseUrl, modelForeignToProvider } =
+    await import("./runnable-provider.js");
+  const inferred = inferProviderFromBaseUrl(cfgLlm.baseUrl);
+  if (!inferred || inferred === cfgLlm.provider) {
+    return { llm: cfgLlm, changed: false };
+  }
+  const corrected = { ...cfgLlm, provider: inferred };
+  if (modelForeignToProvider(inferred, cfgLlm.model)) {
+    const { selectModelForTask, TaskType } =
+      await import("./task-model-selector.js");
+    const def = selectModelForTask(inferred, TaskType.CHAT);
+    if (def) corrected.model = def;
+  }
+  return { llm: corrected, changed: true };
+}
+
 export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
   // The IDE chat panel pins --provider/--model (read from config) but DROPS
   // --base-url/--api-key. With an explicit --provider the block below bails, so
