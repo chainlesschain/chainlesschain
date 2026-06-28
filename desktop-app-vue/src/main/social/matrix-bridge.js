@@ -13,6 +13,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single message row with a corrupt content/
+ * decrypted_content string must not throw out of the .map and drop the whole
+ * message list. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[MatrixBridge] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -286,10 +305,8 @@ class MatrixBridge extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          content: r.content ? JSON.parse(r.content) : {},
-          decrypted_content: r.decrypted_content
-            ? JSON.parse(r.decrypted_content)
-            : null,
+          content: safeParse(r.content, {}),
+          decrypted_content: safeParse(r.decrypted_content, null),
         }));
       } catch (err) {
         logger.error("[MatrixBridge] Failed to get messages:", err);

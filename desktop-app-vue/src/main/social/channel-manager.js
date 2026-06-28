@@ -8,6 +8,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single message with a corrupt reactions string
+ * must not throw out of the .map and drop the whole message list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[ChannelManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -740,7 +759,7 @@ class ChannelManager extends EventEmitter {
       // Parse reactions JSON
       return (messages || []).map((msg) => ({
         ...msg,
-        reactions: msg.reactions ? JSON.parse(msg.reactions) : {},
+        reactions: safeParse(msg.reactions, {}),
       }));
     } catch (error) {
       logger.error("[ChannelManager] Failed to get messages:", error);

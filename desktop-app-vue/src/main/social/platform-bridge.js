@@ -16,6 +16,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single connection with a corrupt relay_urls
+ * string must not throw out of the .map and drop the whole connection list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PlatformBridge] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
@@ -480,7 +499,7 @@ class PlatformBridge extends EventEmitter {
 
       return connections.map((conn) => ({
         ...conn,
-        relay_urls: conn.relay_urls ? JSON.parse(conn.relay_urls) : null,
+        relay_urls: safeParse(conn.relay_urls, null),
         // Never expose access_token or private keys in listings
         access_token: conn.access_token ? "***" : null,
       }));

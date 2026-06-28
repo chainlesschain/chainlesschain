@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single event row with a corrupt tags string
+ * must not throw out of the .map and drop the whole event list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[NostrBridge] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -623,7 +642,7 @@ class NostrBridge extends EventEmitter {
       // Parse tags JSON
       return rows.map((row) => ({
         ...row,
-        tags: row.tags ? JSON.parse(row.tags) : [],
+        tags: safeParse(row.tags, []),
       }));
     } catch (err) {
       logger.error("[NostrBridge] Failed to get events:", err);
