@@ -104,6 +104,23 @@ class StatisticsCollector extends EventEmitter {
         CREATE INDEX IF NOT EXISTS idx_stats_namespace ON remote_command_stats(command_namespace);
       `);
 
+      // 迁移：为聚合分组键建立唯一索引，使 aggregate() 的 upsert 真正去重。
+      // 历史上 upsert 用 ON CONFLICT(id)（id 为 AUTOINCREMENT 永不冲突）→ 每次 tick
+      // 都新插重复行（getTrend 的 SUM 翻倍 + 表无限增长）。SQLite 视 NULL 为互异，
+      // 故先把分组列的 NULL 归一为 ''，再按分组键去重（保留每组 MAX(id)），最后建唯一索引。
+      // 全程幂等：干净数据上 UPDATE/DELETE 均为 no-op，索引 IF NOT EXISTS。
+      this.database.exec(`
+        UPDATE remote_command_stats SET device_did = '' WHERE device_did IS NULL;
+        UPDATE remote_command_stats SET command_namespace = '' WHERE command_namespace IS NULL;
+        UPDATE remote_command_stats SET command_action = '' WHERE command_action IS NULL;
+        DELETE FROM remote_command_stats WHERE id NOT IN (
+          SELECT MAX(id) FROM remote_command_stats
+          GROUP BY period_type, period_start, device_did, command_namespace, command_action
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_stats_unique
+          ON remote_command_stats(period_type, period_start, device_did, command_namespace, command_action);
+      `);
+
       logger.info("[StatisticsCollector] 统计表已初始化");
     } catch (error) {
       logger.error("[StatisticsCollector] 初始化数据库表失败:", error);
@@ -314,9 +331,9 @@ class StatisticsCollector extends EventEmitter {
 
         if (!statsMap.has(key)) {
           statsMap.set(key, {
-            device_did: log.device_did,
-            command_namespace: log.command_namespace,
-            command_action: log.command_action,
+            device_did: log.device_did || "",
+            command_namespace: log.command_namespace || "",
+            command_action: log.command_action || "",
             total_count: 0,
             success_count: 0,
             failure_count: 0,
@@ -351,7 +368,7 @@ class StatisticsCollector extends EventEmitter {
           total_duration, avg_duration, min_duration, max_duration,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
+        ON CONFLICT(period_type, period_start, device_did, command_namespace, command_action) DO UPDATE SET
           total_count = excluded.total_count,
           success_count = excluded.success_count,
           failure_count = excluded.failure_count,
