@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single PQC key with a corrupt metadata string
+ * must not throw out of the load loop and drop every active key. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PQCMigrationManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -106,7 +125,7 @@ class PQCMigrationManager extends EventEmitter {
         for (const key of keys) {
           this._keys.set(key.id, {
             ...key,
-            metadata: key.metadata ? JSON.parse(key.metadata) : {},
+            metadata: safeParse(key.metadata, {}),
           });
         }
 

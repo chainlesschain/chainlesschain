@@ -5,6 +5,25 @@
  * @version 3.2.0
  */
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single HSM adapter with a corrupt
+ * supported_algorithms string must not throw out of the load loop and drop every
+ * adapter. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[HSMAdapterManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -56,9 +75,7 @@ class HsmAdapterManager extends EventEmitter {
         for (const a of adapters) {
           this._adapters.set(a.id, {
             ...a,
-            supported_algorithms: a.supported_algorithms
-              ? JSON.parse(a.supported_algorithms)
-              : [],
+            supported_algorithms: safeParse(a.supported_algorithms, []),
           });
         }
         logger.info(`[HsmAdapterManager] Loaded ${adapters.length} adapters`);

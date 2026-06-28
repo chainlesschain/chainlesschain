@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single attestation with a corrupt
+ * attestation_chain string must not throw out of the load loop and drop every
+ * attestation. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[TrustRootManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -79,9 +98,7 @@ class TrustRootManager extends EventEmitter {
         for (const a of attestations) {
           this._attestations.set(a.id, {
             ...a,
-            attestation_chain: a.attestation_chain
-              ? JSON.parse(a.attestation_chain)
-              : [],
+            attestation_chain: safeParse(a.attestation_chain, []),
           });
         }
         logger.info(
