@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single corrupt report row must not throw out of
+ * a loop/.map and drop the whole audit list. `x ? JSON.parse(x) : d` guarded only
+ * NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[SecurityAuditor] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -88,8 +107,8 @@ class SecurityAuditor extends EventEmitter {
         for (const r of reports) {
           this._reports.set(r.id, {
             ...r,
-            findings: r.findings ? JSON.parse(r.findings) : [],
-            summary: r.summary ? JSON.parse(r.summary) : {},
+            findings: safeParse(r.findings, []),
+            summary: safeParse(r.summary, {}),
           });
         }
         logger.info(`[SecurityAuditor] Loaded ${reports.length} reports`);
@@ -208,8 +227,8 @@ class SecurityAuditor extends EventEmitter {
           .all(filter.limit || 50);
         return rows.map((r) => ({
           ...r,
-          findings: r.findings ? JSON.parse(r.findings) : [],
-          summary: r.summary ? JSON.parse(r.summary) : {},
+          findings: safeParse(r.findings, []),
+          summary: safeParse(r.summary, {}),
         }));
       } catch (err) {
         logger.error("[SecurityAuditor] Failed to get reports:", err);
@@ -244,8 +263,8 @@ class SecurityAuditor extends EventEmitter {
         if (row) {
           return {
             ...row,
-            findings: row.findings ? JSON.parse(row.findings) : [],
-            summary: row.summary ? JSON.parse(row.summary) : {},
+            findings: safeParse(row.findings, []),
+            summary: safeParse(row.summary, {}),
           };
         }
       } catch (err) {

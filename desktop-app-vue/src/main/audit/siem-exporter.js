@@ -15,6 +15,25 @@
 
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — one corrupt target row must not throw out of the
+ * restore loop and drop every export target. The `x ? JSON.parse(x) : d` form it
+ * replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[SiemExporter] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 // ============================================================
@@ -92,7 +111,7 @@ class SIEMExporter extends EventEmitter {
             lastExportAt: row.last_export_at,
             lastExportedLogId: row.last_exported_log_id,
             status: row.status,
-            config: row.config ? JSON.parse(row.config) : {},
+            config: safeParse(row.config, {}),
           });
 
           // Restore the most recent last_exported_id across all targets

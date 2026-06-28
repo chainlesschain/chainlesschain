@@ -9,6 +9,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — one corrupt audit row must not throw out of
+ * _row() (shared by both list .map and single getters). The `x ? JSON.parse(x)
+ * : d` form it replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[AuditLogger] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 
@@ -452,8 +471,8 @@ class EnterpriseAuditLogger extends EventEmitter {
       actor: r.actor,
       riskLevel: r.risk_level,
       success: r.success === 1,
-      details: r.details ? JSON.parse(r.details) : {},
-      context: r.context ? JSON.parse(r.context) : null,
+      details: safeParse(r.details, {}),
+      context: safeParse(r.context, null),
       errorMessage: r.error_message,
       duration: r.duration,
       ipAddress: r.ip_address,

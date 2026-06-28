@@ -13,6 +13,25 @@
  */
 
 import { logger } from "../../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single corrupt row must not throw out of a
+ * .map and drop the whole list. The `x ? JSON.parse(x) : d` form it replaces
+ * only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[ReputationOptimizer] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -154,7 +173,7 @@ class ReputationOptimizer extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          details: r.details ? JSON.parse(r.details) : {},
+          details: safeParse(r.details, {}),
         }));
       } catch (err) {
         logger.error("[ReputationOptimizer] Failed to get analytics:", err);
@@ -224,8 +243,8 @@ class ReputationOptimizer extends EventEmitter {
           .all(filter.limit || 50);
         return rows.map((r) => ({
           ...r,
-          parameters: r.parameters ? JSON.parse(r.parameters) : {},
-          result: r.result ? JSON.parse(r.result) : {},
+          parameters: safeParse(r.parameters, {}),
+          result: safeParse(r.result, {}),
         }));
       } catch (err) {
         logger.error("[ReputationOptimizer] Failed to get history:", err);
