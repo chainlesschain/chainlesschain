@@ -115,21 +115,31 @@ class TestMergeStreamContent:
 # stream_ollama_chat — 函数内 `import ollama`，桩 sys.modules
 # --------------------------------------------------------------------------- #
 class _FakeOllama:
+    # Mocks ollama.AsyncClient: the source now does `client = ollama.AsyncClient()`
+    # then `stream = await client.chat(...)` + `async for chunk in stream`
+    # (commit 47f642708a — true async, non-blocking event loop). So chat() is a
+    # coroutine returning an async iterator over the chunks; raise_exc surfaces on
+    # the `await client.chat(...)`.
     def __init__(self, chunks=None, raise_exc=None):
         self._chunks = chunks or []
         self._raise = raise_exc
 
-    def chat(self, model, messages, stream, options):
+    async def chat(self, model, messages, stream, options):
         if self._raise:
             raise self._raise
-        return iter(self._chunks)
+
+        async def _aiter():
+            for chunk in self._chunks:
+                yield chunk
+
+        return _aiter()
 
 
 @pytest.fixture
 def stub_ollama(monkeypatch):
     def _install(fake):
         mod = types.ModuleType("ollama")
-        mod.chat = fake.chat
+        mod.AsyncClient = lambda *args, **kwargs: fake
         monkeypatch.setitem(sys.modules, "ollama", mod)
         return fake
     return _install
