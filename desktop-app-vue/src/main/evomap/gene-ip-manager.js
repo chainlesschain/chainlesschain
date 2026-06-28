@@ -5,6 +5,26 @@
  * @version 3.4.0
  */
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single ownership row with a corrupt
+ * originality_proof/derivation_chain/revenue_split string must not throw out of
+ * the load loop and drop every ownership. The `x ? JSON.parse(x) : d` form it
+ * replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[GeneIPManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -48,13 +68,9 @@ class GeneIPManager extends EventEmitter {
         for (const o of ownerships) {
           this._ownerships.set(o.id, {
             ...o,
-            originality_proof: o.originality_proof
-              ? JSON.parse(o.originality_proof)
-              : null,
-            derivation_chain: o.derivation_chain
-              ? JSON.parse(o.derivation_chain)
-              : [],
-            revenue_split: o.revenue_split ? JSON.parse(o.revenue_split) : {},
+            originality_proof: safeParse(o.originality_proof, null),
+            derivation_chain: safeParse(o.derivation_chain, []),
+            revenue_split: safeParse(o.revenue_split, {}),
           });
         }
         logger.info(

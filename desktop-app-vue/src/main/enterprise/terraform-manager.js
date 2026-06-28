@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single workspace with a corrupt variables/
+ * providers string must not throw out of the load/.map and drop every workspace.
+ * The `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[TerraformManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -117,8 +136,8 @@ class TerraformManager extends EventEmitter {
         for (const ws of workspaces) {
           this._workspaces.set(ws.id, {
             ...ws,
-            variables: ws.variables ? JSON.parse(ws.variables) : {},
-            providers: ws.providers ? JSON.parse(ws.providers) : [],
+            variables: safeParse(ws.variables, {}),
+            providers: safeParse(ws.providers, []),
           });
         }
         logger.info(
@@ -159,8 +178,8 @@ class TerraformManager extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          variables: r.variables ? JSON.parse(r.variables) : {},
-          providers: r.providers ? JSON.parse(r.providers) : [],
+          variables: safeParse(r.variables, {}),
+          providers: safeParse(r.providers, []),
         }));
       } catch (err) {
         logger.error("[TerraformManager] Failed to list workspaces:", err);
