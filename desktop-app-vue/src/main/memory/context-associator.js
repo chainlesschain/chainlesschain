@@ -17,6 +17,26 @@ const { logger } = require("../utils/logger.js");
 const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const _fs = require("fs").promises;
 const _path = require("path");
+
+/**
+ * Tolerant JSON column parse — a single corrupt row must not throw out of a
+ * .map and drop the whole topics/knowledge list. The `x ? JSON.parse(x) : d`
+ * form it replaces only guarded NULL, not a corrupt non-empty string.
+ * (Distinct from looseParseJSON above, which parses untrusted LLM text.)
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[ContextAssociator] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -933,7 +953,7 @@ Respond in JSON format:
         sessionId: r.related_session_id,
         associationType: r.association_type,
         similarity: r.similarity_score,
-        sharedTopics: r.shared_topics ? JSON.parse(r.shared_topics) : [],
+        sharedTopics: safeParse(r.shared_topics, []),
         confirmed: r.is_confirmed === 1,
       }));
     } catch (error) {
@@ -1026,7 +1046,7 @@ Respond in JSON format:
         type: k.knowledge_type,
         content: k.content,
         summary: k.summary,
-        tags: k.tags ? JSON.parse(k.tags) : [],
+        tags: safeParse(k.tags, []),
         importance: k.importance,
         confidence: k.confidence,
         createdAt: k.created_at,
@@ -1064,7 +1084,7 @@ Respond in JSON format:
         type: k.knowledge_type,
         content: k.content,
         summary: k.summary,
-        tags: k.tags ? JSON.parse(k.tags) : [],
+        tags: safeParse(k.tags, []),
         importance: k.importance,
         confidence: k.confidence,
         createdAt: k.created_at,
