@@ -864,11 +864,15 @@ class SmartContractEngine extends EventEmitter {
    * @param {string} contractId - 合约 ID
    * @param {string} reason - 取消原因
    */
-  async cancelContract(contractId, reason) {
+  async cancelContract(contractId, reason, options = {}) {
     try {
+      // options.system 为系统自动取消（如时间锁到期），跳过登录与参与方校验。
+      // 它是第 3 个参数且不经 IPC 透传（contract-ipc 只传 contractId/reason），
+      // 故 renderer 无法借此取消任意合约。actorDid 用于事件记录归属。
+      const { system = false } = options;
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
-      if (!currentDid) {
+      if (!system && !currentDid) {
         throw new Error("未登录");
       }
 
@@ -884,9 +888,11 @@ class SmartContractEngine extends EventEmitter {
       }
 
       const parties = JSON.parse(contract.parties);
-      if (!parties.includes(currentDid)) {
+      if (!system && !parties.includes(currentDid)) {
         throw new Error("只有合约参与方才能取消合约");
       }
+
+      const actor = system ? options.actorDid || "SYSTEM" : currentDid;
 
       if (
         ![ContractStatus.DRAFT, ContractStatus.ACTIVE].includes(contract.status)
@@ -906,7 +912,7 @@ class SmartContractEngine extends EventEmitter {
       );
 
       // 记录事件
-      this.recordEvent(contractId, "cancelled", { reason }, currentDid);
+      this.recordEvent(contractId, "cancelled", { reason }, actor);
 
       logger.info("[ContractEngine] 合约已取消:", contractId);
 
@@ -1309,8 +1315,10 @@ class SmartContractEngine extends EventEmitter {
       for (const contract of expiredContracts) {
         logger.info("[ContractEngine] 合约已过期，自动处理:", contract.id);
         try {
-          // 时间锁到期，执行退款
-          await this.cancelContract(contract.id, "合约已过期");
+          // 时间锁到期，系统自动退款（不依赖当前登录用户是否为参与方）
+          await this.cancelContract(contract.id, "合约已过期", {
+            system: true,
+          });
         } catch (error) {
           logger.error(
             "[ContractEngine] 处理过期合约失败:",
