@@ -16,6 +16,19 @@
 
 const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[LearnedPattern] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const path = require("path");
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
@@ -848,7 +861,7 @@ class LearnedPatternManager extends EventEmitter {
         id: row.id,
         name: row.name,
         description: row.description,
-        steps: JSON.parse(row.steps),
+        steps: safeParse(row.steps, []),
         category: row.category,
         useCount: row.use_count,
         completionRate: row.completion_rate,

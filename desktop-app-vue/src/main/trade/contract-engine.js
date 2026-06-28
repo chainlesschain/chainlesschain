@@ -11,6 +11,19 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ContractEngine] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -1140,9 +1153,9 @@ class SmartContractEngine extends EventEmitter {
 
       return contracts.map((c) => ({
         ...c,
-        parties: JSON.parse(c.parties),
-        terms: JSON.parse(c.terms),
-        metadata: c.metadata ? JSON.parse(c.metadata) : {},
+        parties: safeParse(c.parties, []),
+        terms: safeParse(c.terms, {}),
+        metadata: safeParse(c.metadata, {}),
       }));
     } catch (error) {
       logger.error("[ContractEngine] 获取合约列表失败:", error);
@@ -1166,7 +1179,7 @@ class SmartContractEngine extends EventEmitter {
 
       return conditions.map((c) => ({
         ...c,
-        condition_data: JSON.parse(c.condition_data),
+        condition_data: safeParse(c.condition_data, {}),
         is_required: Boolean(c.is_required),
         is_met: Boolean(c.is_met),
       }));

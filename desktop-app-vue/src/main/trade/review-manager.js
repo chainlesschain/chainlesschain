@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ReviewManager] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 
 /**
@@ -639,8 +652,8 @@ class ReviewManager extends EventEmitter {
       revieweeDid: row.reviewee_did,
       rating: row.rating,
       content: row.content,
-      tags: JSON.parse(row.tags || "[]"),
-      images: JSON.parse(row.images || "[]"),
+      tags: safeParse(row.tags, []),
+      images: safeParse(row.images, []),
       isAnonymous: row.is_anonymous === 1,
       helpfulCount: row.helpful_count,
       status: row.status,

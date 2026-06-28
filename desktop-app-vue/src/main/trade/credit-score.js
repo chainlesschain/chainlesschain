@@ -1,6 +1,19 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[CreditScore] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 /**
  * 信用评分管理器
  * 负责计算和管理用户信用评分
@@ -714,7 +727,7 @@ class CreditScoreManager extends EventEmitter {
       creditScore: row.credit_score,
       creditLevel: row.credit_level,
       date: row.snapshot_date,
-      metadata: JSON.parse(row.metadata || "{}"),
+      metadata: safeParse(row.metadata, {}),
     }));
   }
 

@@ -13,6 +13,19 @@
 
 const { logger } = require("../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[MemorySearch] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 /**
  * Search modes
  */
@@ -385,12 +398,12 @@ class MemorySearchEngine {
       for (const row of rows) {
         results.push({
           id: row.id,
-          content: JSON.parse(row.content || "{}"),
+          content: safeParse(row.content, {}),
           type: row.type,
           relevance: row.importance || 0.5,
           source: "temporal",
           createdAt: row.created_at,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
         });
       }
     } catch (error) {
