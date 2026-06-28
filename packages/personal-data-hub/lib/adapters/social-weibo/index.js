@@ -57,13 +57,20 @@ const {
 } = require("../../constants");
 
 const NAME = "social-weibo";
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_POST = "post";
 const KIND_FAVOURITE = "favourite";
 const KIND_FOLLOW = "follow";
 const KIND_SEARCH = "search"; // legacy sqlite-mode only
+// Private-message (私信) kinds — read from the sibling `message_<uid>.db`
+// (device-verified schema 2026-06-28: t_buddy/t_session/t_message). Opt-in
+// (opts.includeDm) because DMs are high-sensitivity. See
+// docs/internal/pdh-app-db-schemas.md → 微博 message_<uid>.db.
+const KIND_DM_BUDDY = "dm-buddy"; // t_buddy   → PERSON(CONTACT)
+const KIND_DM_SESSION = "dm-session"; // t_session → TOPIC
+const KIND_DM_MESSAGE = "dm-message"; // t_message → EVENT(MESSAGE)
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_POST, KIND_FAVOURITE, KIND_FOLLOW]);
 
 function stableOriginalId(kind, id) {
@@ -122,6 +129,9 @@ class WeiboAdapter {
         "weibo:favourite (mid / text / author)",
         "weibo:follow (uid / screen_name)",
         "weibo:search_history (legacy sqlite mode)",
+        "weibo:dm-buddy (uid / nick / remark) — HIGH sensitivity, opt-in (includeDm)",
+        "weibo:dm-session (session_id / unread) — HIGH sensitivity, opt-in",
+        "weibo:dm-message (time / outgoing / content) — HIGH sensitivity, opt-in",
       ],
       sensitivity: "medium",
       legalGate: false,
@@ -129,6 +139,8 @@ class WeiboAdapter {
         post: true,
         favourite: true,
         follow: true,
+        // Private messages are off by default — require opts.includeDm:true.
+        dm: false,
       },
     };
 
@@ -331,6 +343,78 @@ class WeiboAdapter {
     } finally {
       try { db.close(); } catch (_e) { /* ignore */ }
     }
+
+    // Private messages live in a SEPARATE sibling DB `message_<uid>.db`.
+    // High-sensitivity → opt-in only (opts.includeDm === true).
+    if (opts.includeDm === true) {
+      yield* this._syncDmMessages(opts, selfUid);
+    }
+  }
+
+  // Reads the Weibo private-message DB `message_<uid>.db` (a sibling of the
+  // `sina_weibo` file, or opts.messageDbPath). device-verified schema:
+  //   t_buddy   → PERSON  (DM contacts: uid/nick/remark/screen_name)
+  //   t_session → TOPIC   (conversation threads: session_id/type/update_time)
+  //   t_message → EVENT   (messages: time/outgoing/content_type/content/sender_id)
+  // Columns confirmed against a real populated device (2026-06-28); t_message
+  // content encoding is best-effort (no rows on the reference account).
+  async *_syncDmMessages(opts, selfUid) {
+    const path = require("node:path");
+    const baseDbPath = opts.dbPath || this._dbPath;
+    const msgDbPath =
+      opts.messageDbPath ||
+      (baseDbPath
+        ? path.join(path.dirname(baseDbPath), `message_${selfUid}.db`)
+        : null);
+    if (!msgDbPath || !this._deps.fs.existsSync(msgDbPath)) return;
+    const Driver = this._deps.dbDriverFactory
+      ? this._deps.dbDriverFactory()
+      : require("better-sqlite3-multiple-ciphers");
+    const db = new Driver(msgDbPath, { readonly: true });
+    try {
+      // BUDDIES → PERSON
+      const buddies = trySelect(db, "SELECT * FROM t_buddy LIMIT 5000") || [];
+      for (const row of buddies) {
+        if (row.uid == null) continue;
+        yield {
+          adapter: NAME,
+          originalId: `dm-buddy-${row.uid}`,
+          capturedAt: Date.now(),
+          payload: { row, kind: KIND_DM_BUDDY },
+        };
+      }
+      // SESSIONS → TOPIC
+      const sessions =
+        trySelect(
+          db,
+          "SELECT * FROM t_session ORDER BY update_time DESC LIMIT 5000",
+        ) || [];
+      for (const row of sessions) {
+        if (row.session_id == null) continue;
+        yield {
+          adapter: NAME,
+          originalId: `dm-session-${row.session_id}`,
+          capturedAt: parseTime(row.update_time) || Date.now(),
+          payload: { row, kind: KIND_DM_SESSION },
+        };
+      }
+      // MESSAGES → EVENT (content best-effort; schema device-verified)
+      const messages =
+        trySelect(
+          db,
+          "SELECT * FROM t_message ORDER BY time DESC LIMIT 10000",
+        ) || [];
+      for (const row of messages) {
+        yield {
+          adapter: NAME,
+          originalId: `dm-msg-${row.global_id || row.id}`,
+          capturedAt: parseTime(row.time) || Date.now(),
+          payload: { row, kind: KIND_DM_MESSAGE },
+        };
+      }
+    } finally {
+      try { db.close(); } catch (_e) { /* ignore */ }
+    }
   }
 
   normalize(raw) {
@@ -354,6 +438,15 @@ class WeiboAdapter {
     }
     if (kind === KIND_FOLLOW) {
       return normalizeFollow(p, raw, ingestedAt);
+    }
+    if (kind === KIND_DM_BUDDY) {
+      return normalizeDmBuddy(p, raw, ingestedAt);
+    }
+    if (kind === KIND_DM_SESSION) {
+      return normalizeDmSession(p, raw, ingestedAt);
+    }
+    if (kind === KIND_DM_MESSAGE) {
+      return normalizeDmMessage(p, raw, ingestedAt);
     }
     throw new Error(`WeiboAdapter.normalize: unknown kind ${kind}`);
   }
@@ -531,6 +624,93 @@ function normalizeFollow(p, raw, ingestedAt) {
     items: [],
     topics: [],
   };
+}
+
+// ─── Private-message (私信) normalizers — device-verified message_<uid>.db ──
+
+function normalizeDmBuddy(p, raw, ingestedAt) {
+  const row = p.row || {};
+  const uid = row.uid != null ? String(row.uid) : `unknown-${newId()}`;
+  const name = row.remark || row.screen_name || row.nick || "(unnamed)";
+  const occurredAt = raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  const person = {
+    id: `person-weibo-${uid}`,
+    type: ENTITY_TYPES.PERSON,
+    subtype: PERSON_SUBTYPES.CONTACT,
+    names: [String(name)],
+    ingestedAt,
+    source,
+    identifiers: { "weibo-uid": [uid] },
+    extra: {
+      platform: "weibo",
+      via: "dm",
+      gender: row.gender != null ? row.gender : null,
+      verified: row.verified === 1 || row.verified === true || null,
+      follower: typeof row.follower === "number" ? row.follower : null,
+      following: typeof row.following === "number" ? row.following : null,
+    },
+  };
+  return { events: [], persons: [person], places: [], items: [], topics: [] };
+}
+
+function normalizeDmSession(p, raw, ingestedAt) {
+  const row = p.row || {};
+  const sid = row.session_id != null ? String(row.session_id) : `unknown-${newId()}`;
+  const occurredAt = parseTime(row.update_time) || raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  const topic = {
+    id: `topic-weibo-dm-${sid}`,
+    type: ENTITY_TYPES.TOPIC,
+    name: `微博私信会话 ${sid}`,
+    ingestedAt,
+    source,
+    extra: {
+      platform: "weibo",
+      via: "dm",
+      sessionId: sid,
+      sessionType: row.type != null ? row.type : null,
+      unread: typeof row.im_unread_count === "number" ? row.im_unread_count : null,
+      lastUpdate: occurredAt,
+    },
+  };
+  return { events: [], persons: [], places: [], items: [], topics: [topic] };
+}
+
+function normalizeDmMessage(p, raw, ingestedAt) {
+  const row = p.row || {};
+  const occurredAt = parseTime(row.time) || raw.capturedAt || ingestedAt;
+  const outgoing = row.outgoing === 1 || row.outgoing === true;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  // content is plain text for text messages (content_type 0/1/null); other
+  // types carry structured/empty content → emit a typed placeholder. Encoding
+  // is device-verified-schema but best-effort (no rows on reference account).
+  const isText =
+    row.content_type == null || row.content_type === 0 || row.content_type === 1;
+  const rawText =
+    isText && typeof row.content === "string" && row.content.length > 0
+      ? row.content
+      : `[${row.content_type != null ? `type:${row.content_type}` : "non-text"}]`;
+  const text = rawText.length > 2000 ? rawText.slice(0, 2000) + "…" : rawText;
+  const event = {
+    id: `event-weibo-dm-${row.global_id || row.id || newId()}`,
+    type: ENTITY_TYPES.EVENT,
+    subtype: EVENT_SUBTYPES.MESSAGE,
+    occurredAt,
+    ingestedAt,
+    source,
+    actor: outgoing ? "self" : "contact",
+    content: { text },
+    extra: {
+      platform: "weibo",
+      via: "dm",
+      sessionId: row.session_id != null ? String(row.session_id) : null,
+      senderId: row.sender_id != null ? String(row.sender_id) : null,
+      contentType: row.content_type != null ? row.content_type : null,
+      outgoing,
+    },
+  };
+  return { events: [event], persons: [], places: [], items: [], topics: [] };
 }
 
 module.exports = {

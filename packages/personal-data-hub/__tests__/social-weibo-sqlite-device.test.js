@@ -7,6 +7,11 @@ const path = require("node:path");
 const os = require("node:os");
 
 const { WeiboAdapter } = require("../lib/adapters/social-weibo");
+const {
+  validateEvent,
+  validatePerson,
+  validateTopic,
+} = require("../lib/schemas");
 
 // §A8 sqlite mode — device-verified schema regression tests.
 //
@@ -169,6 +174,152 @@ describe("WeiboAdapter sqlite mode — device-verified schema", () => {
     const { a, dbPath, tmp } = newAdapter({});
     dirs.push(tmp);
     const raws = await collect(a, dbPath);
+    expect(raws).toEqual([]);
+  });
+});
+
+// Private-message (私信) mode — device-verified message_<uid>.db schema
+// (t_buddy/t_session/t_message), opt-in via opts.includeDm. Columns confirmed
+// against a real populated device 2026-06-28.
+const BUDDY_ROW = {
+  uid: "888",
+  nick: "昵称B",
+  remark: "备注B",
+  screen_name: "屏幕名B",
+  gender: 1,
+  verified: 1,
+  follower: 100,
+  following: 50,
+};
+const SESSION_ROW = {
+  type: 1,
+  session_id: "1001",
+  last_message_id: "m1",
+  update_time: "1718600000",
+  im_unread_count: 3,
+};
+const MESSAGE_ROW = {
+  id: 1,
+  global_id: "g1",
+  time: "1718600001",
+  outgoing: 1,
+  content_type: 1,
+  content: "你好，在吗？",
+  sender_id: SELF_UID,
+  session_id: "1001",
+};
+
+function newAdapterDm(tables) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "weibo-dm-"));
+  const dbPath = path.join(tmp, "sina_weibo");
+  fs.writeFileSync(dbPath, "x");
+  // The DM reader gates on existsSync of the sibling message_<uid>.db.
+  fs.writeFileSync(path.join(tmp, `message_${SELF_UID}.db`), "x");
+  const a = new WeiboAdapter({
+    account: { uid: SELF_UID },
+    dbPath,
+    dbDriverFactory: makeFakeDriver(tables),
+  });
+  return { a, dbPath, tmp };
+}
+
+async function collectDm(a, dbPath, opts = {}) {
+  const out = [];
+  for await (const raw of a.sync({ dbPath, ...opts })) out.push(raw);
+  return out;
+}
+
+describe("WeiboAdapter sqlite mode — private messages (opt-in)", () => {
+  let dirs = [];
+  afterEach(() => {
+    for (const d of dirs) {
+      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+    }
+    dirs = [];
+  });
+
+  it("does NOT collect DM by default (high-sensitivity opt-in gate)", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({
+      t_buddy: [BUDDY_ROW], t_session: [SESSION_ROW], t_message: [MESSAGE_ROW],
+      home_table: [HOME_ROW],
+    });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath); // no includeDm
+    expect(raws.every((r) => !String(r.payload.kind).startsWith("dm-"))).toBe(true);
+    expect(raws.map((r) => r.payload.kind)).toContain("post"); // non-DM still flows
+  });
+
+  it("collects buddies→PERSON, sessions→TOPIC, messages→EVENT when includeDm:true", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({
+      t_buddy: [BUDDY_ROW], t_session: [SESSION_ROW], t_message: [MESSAGE_ROW],
+    });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    expect(raws.map((r) => r.payload.kind).sort()).toEqual([
+      "dm-buddy", "dm-message", "dm-session",
+    ]);
+  });
+
+  it("dm-buddy → CONTACT person (remark preferred), schema-valid", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({ t_buddy: [BUDDY_ROW] });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    const norm = a.normalize(raws[0]);
+    expect(norm.persons).toHaveLength(1);
+    expect(norm.persons[0].names).toEqual(["备注B"]);
+    expect(norm.persons[0].identifiers["weibo-uid"]).toEqual(["888"]);
+    expect(norm.persons[0].extra.via).toBe("dm");
+    expect(validatePerson(norm.persons[0]).valid).toBe(true);
+  });
+
+  it("dm-session → TOPIC with unread, schema-valid", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({ t_session: [SESSION_ROW] });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    const norm = a.normalize(raws[0]);
+    expect(norm.topics).toHaveLength(1);
+    expect(norm.topics[0].type).toBe("topic");
+    expect(norm.topics[0].extra.sessionId).toBe("1001");
+    expect(norm.topics[0].extra.unread).toBe(3);
+    expect(validateTopic(norm.topics[0]).valid).toBe(true);
+  });
+
+  it("dm-message → MESSAGE event (actor=self for outgoing), schema-valid", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({ t_message: [MESSAGE_ROW] });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    const ev = a.normalize(raws[0]).events[0];
+    expect(ev.subtype).toBe("message");
+    expect(ev.actor).toBe("self");
+    expect(ev.content.text).toBe("你好，在吗？");
+    expect(ev.extra.sessionId).toBe("1001");
+    expect(ev.occurredAt).toBe(1718600001 * 1000);
+    expect(validateEvent(ev).valid).toBe(true);
+  });
+
+  it("non-text content_type → typed placeholder (no raw blob leak)", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({
+      t_message: [{ ...MESSAGE_ROW, content_type: 7, content: "{...blob...}" }],
+    });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    expect(a.normalize(raws[0]).events[0].content.text).toBe("[type:7]");
+  });
+
+  it("incoming message → actor=contact", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({
+      t_message: [{ ...MESSAGE_ROW, outgoing: 0, sender_id: "888" }],
+    });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
+    expect(a.normalize(raws[0]).events[0].actor).toBe("contact");
+  });
+
+  it("no message_<uid>.db file → DM silently skipped even with includeDm", async () => {
+    // newAdapter (not newAdapterDm) writes only sina_weibo, no message db.
+    const { a, dbPath, tmp } = newAdapter({ t_buddy: [BUDDY_ROW] });
+    dirs.push(tmp);
+    const raws = await collectDm(a, dbPath, { includeDm: true });
     expect(raws).toEqual([]);
   });
 });

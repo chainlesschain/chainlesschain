@@ -300,10 +300,12 @@ DB 文件（均明文 `SQLite format 3`，root 读）：`sina_weibo` / `message_
 |---|---|---|---|---|
 | `ArticleDb.long_text_table` | `_own_uid`,`_mid`,`_content` | **本人发的长微博正文** | **EVENT**(`POST`) | `_mid`=微博 id；`_content`=正文（兴趣/观点信号）|
 | `sina_weibo.mblog_pic_table` | `mblogid`,`picid`,`*url` | 微博配图 | ITEM(图片) | 按 `mblogid` 关联到 post |
-| `message_<uid>.db.t_session` | `session_id`,`last_msg_*` | 私信会话列表 | **TOPIC** | 本机为空壳(null)；填充账号有 `t_message`(t_buddy/t_group) |
+| `message_<uid>.db.t_session` | `type`,`session_id`,`last_message_id`,`update_time`,`im_unread_count` | 私信会话列表 | **TOPIC** | device-verified 2026-06-28（chopin 4 行）；未读=`im_unread_count` |
+| `message_<uid>.db.t_buddy` | `uid`,`nick`,`remark`,`screen_name`,`gender`,`verified`,`follower`,`following` | 私信联系人 | **PERSON**(CONTACT) | device-verified（chopin 2 行）；名字优先 `remark`>`screen_name`>`nick` |
+| `message_<uid>.db.t_message` | `id`,`global_id`,`time`,`outgoing`,`content_type`,`content`,`sender_id`,`session_id` | 私信正文 | **EVENT**(MESSAGE) | 列 device-verified（本机 0 行）；`outgoing=1`→self；`content` 文本 best-effort（非文本 `content_type`→typed 占位）|
 | `sina_weibo.home_table`/`like_table`/`follower_table` | (填充账号才有) | 时间线/赞/粉丝 | EVENT/PERSON | 填充账号才有；sqlite 模式已读这三表（`a26bba5dbc` device-verified schema）|
 
-**适配状态**：`social-weibo` 适配器 **snapshot 模式**（`{schemaVersion:1,account:{uid},events:[{kind:"post",text,mid,picCount}]}` → `cc hub sync-adapter social-weibo --input`，已实测入库 + FTS5 可搜）+ **sqlite 模式现读真机 `home_table`/`like_table`/`follower_table`（`a26bba5dbc`）**。私信 `message_<uid>.db`（`t_message`/`t_session`/`t_buddy`/`t_group`）仍未接（本机账号空壳，`t_message` 列未实测 → 不盲写映射；待填充账号验证）。
+**适配状态**：`social-weibo` 适配器 **snapshot 模式**（`{schemaVersion:1,account:{uid},events:[{kind:"post",text,mid,picCount}]}` → `cc hub sync-adapter social-weibo --input`，已实测入库 + FTS5 可搜）+ **sqlite 模式现读真机 `home_table`/`like_table`/`follower_table`（`a26bba5dbc`）**。**私信 `message_<uid>.db` 现已接（v0.8.0，device-verified schema 2026-06-28）：`t_buddy`→PERSON / `t_session`→TOPIC / `t_message`→EVENT(MESSAGE)，opt-in `opts.includeDm:true`（高敏感默认关）。`t_buddy`(2)+`t_session`(4) 真机实测；`t_message` 列实测但本机 0 行，content 编码 best-effort。**
 **AI/决策**：`long_text_table` 正文=公开表达/兴趣；**UI**：个人微博 feed 卡（正文+配图）。
 
 ---
