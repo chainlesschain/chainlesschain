@@ -16,6 +16,25 @@ import { logger } from "../../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Tolerant JSON column parse. A single contract with a corrupt (non-JSON)
+ * guarantees/penalties/rewards string must NOT throw out of the load/list loop
+ * and silently drop EVERY contract. The `x ? JSON.parse(x) : {}` form it
+ * replaces only guarded NULL, not a corrupt non-empty string. null/empty →
+ * fallback; corrupt → fallback + warn.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[SLAManager] Bad JSON column, using fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 const CONTRACT_STATUS = {
   DRAFT: "draft",
   ACTIVE: "active",
@@ -95,9 +114,9 @@ class SLAManager extends EventEmitter {
         for (const c of contracts) {
           this._contracts.set(c.id, {
             ...c,
-            guarantees: c.guarantees ? JSON.parse(c.guarantees) : {},
-            penalties: c.penalties ? JSON.parse(c.penalties) : {},
-            rewards: c.rewards ? JSON.parse(c.rewards) : {},
+            guarantees: safeParse(c.guarantees, {}),
+            penalties: safeParse(c.penalties, {}),
+            rewards: safeParse(c.rewards, {}),
           });
         }
         logger.info(`[SLAManager] Loaded ${contracts.length} contracts`);
@@ -128,9 +147,9 @@ class SLAManager extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          guarantees: r.guarantees ? JSON.parse(r.guarantees) : {},
-          penalties: r.penalties ? JSON.parse(r.penalties) : {},
-          rewards: r.rewards ? JSON.parse(r.rewards) : {},
+          guarantees: safeParse(r.guarantees, {}),
+          penalties: safeParse(r.penalties, {}),
+          rewards: safeParse(r.rewards, {}),
         }));
       } catch (err) {
         logger.error("[SLAManager] Failed to list contracts:", err);
