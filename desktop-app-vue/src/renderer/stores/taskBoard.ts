@@ -6,34 +6,39 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
 /**
  * 视图模式
  */
-export type ViewMode = 'kanban' | 'list' | 'calendar' | 'timeline';
+export type ViewMode = "kanban" | "list" | "calendar" | "timeline";
 
 /**
  * 排序顺序
  */
-export type SortOrder = 'asc' | 'desc';
+export type SortOrder = "asc" | "desc";
 
 /**
  * 任务状态
  */
-export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'blocked' | 'cancelled';
+export type TaskStatus =
+  | "todo"
+  | "in_progress"
+  | "done"
+  | "blocked"
+  | "cancelled";
 
 /**
  * 任务优先级
  */
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 /**
  * Sprint 状态
  */
-export type SprintStatus = 'planning' | 'active' | 'completed' | 'cancelled';
+export type SprintStatus = "planning" | "active" | "completed" | "cancelled";
 
 /**
  * 看板数据
@@ -115,7 +120,7 @@ export interface Label {
 export interface Report {
   id: string;
   orgId: string;
-  type: 'daily' | 'weekly' | 'monthly';
+  type: "daily" | "weekly" | "monthly";
   title: string;
   content?: string;
   aiSummary?: string;
@@ -218,7 +223,7 @@ export interface TaskBoardState {
 
 // ==================== Store ====================
 
-export const useTaskBoardStore = defineStore('taskBoard', {
+export const useTaskBoardStore = defineStore("taskBoard", {
   state: (): TaskBoardState => ({
     // ==========================================
     // 看板管理
@@ -275,7 +280,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     // ==========================================
 
     // 视图模式: 'kanban' | 'list' | 'calendar' | 'timeline'
-    viewMode: 'kanban',
+    viewMode: "kanban",
 
     // 筛选条件
     filters: {
@@ -283,13 +288,13 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       priority: null,
       labels: [],
       status: null,
-      searchQuery: '',
+      searchQuery: "",
       sprintId: null,
     },
 
     // 排序
-    sortBy: 'position',
-    sortOrder: 'asc',
+    sortBy: "position",
+    sortOrder: "asc",
 
     // ==========================================
     // 分析数据
@@ -331,7 +336,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     tasksByColumn(): Record<string, Task[]> {
       const grouped: Record<string, Task[]> = {};
       this.columns.forEach((column) => {
-        grouped[column.id] = this.tasks.filter((task) => task.columnId === column.id);
+        grouped[column.id] = this.tasks.filter(
+          (task) => task.columnId === column.id,
+        );
       });
       return grouped;
     },
@@ -343,16 +350,20 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       let result = [...this.tasks];
 
       if (this.filters.assigneeDid) {
-        result = result.filter((task) => task.assigneeDid === this.filters.assigneeDid);
+        result = result.filter(
+          (task) => task.assigneeDid === this.filters.assigneeDid,
+        );
       }
 
       if (this.filters.priority) {
-        result = result.filter((task) => task.priority === this.filters.priority);
+        result = result.filter(
+          (task) => task.priority === this.filters.priority,
+        );
       }
 
       if (this.filters.labels.length > 0) {
         result = result.filter((task) =>
-          this.filters.labels.some((label) => task.labels?.includes(label))
+          this.filters.labels.some((label) => task.labels?.includes(label)),
         );
       }
 
@@ -361,7 +372,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       }
 
       if (this.filters.sprintId) {
-        result = result.filter((task) => task.sprintId === this.filters.sprintId);
+        result = result.filter(
+          (task) => task.sprintId === this.filters.sprintId,
+        );
       }
 
       if (this.filters.searchQuery) {
@@ -369,7 +382,8 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         result = result.filter(
           (task) =>
             task.title.toLowerCase().includes(query) ||
-            (task.description && task.description.toLowerCase().includes(query))
+            (task.description &&
+              task.description.toLowerCase().includes(query)),
         );
       }
 
@@ -380,21 +394,21 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      * 待办任务数量
      */
     todoCount(): number {
-      return this.tasks.filter((task) => task.status === 'todo').length;
+      return this.tasks.filter((task) => task.status === "todo").length;
     },
 
     /**
      * 进行中任务数量
      */
     inProgressCount(): number {
-      return this.tasks.filter((task) => task.status === 'in_progress').length;
+      return this.tasks.filter((task) => task.status === "in_progress").length;
     },
 
     /**
      * 已完成任务数量
      */
     completedCount(): number {
-      return this.tasks.filter((task) => task.status === 'done').length;
+      return this.tasks.filter((task) => task.status === "done").length;
     },
 
     /**
@@ -403,7 +417,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     overdueCount(): number {
       const now = Date.now();
       return this.tasks.filter(
-        (task) => task.dueDate && task.dueDate < now && task.status !== 'done'
+        (task) => task.dueDate && task.dueDate < now && task.status !== "done",
       ).length;
     },
 
@@ -423,12 +437,17 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 加载看板列表
      */
-    async loadBoards(orgId: string, options: Record<string, any> = {}): Promise<TaskBoardApiResult> {
+    async loadBoards(
+      orgId: string,
+      options: Record<string, any> = {},
+    ): Promise<TaskBoardApiResult> {
       this.loading.boards = true;
       this.error = null;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-boards', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-boards", {
           orgId,
           ...options,
         });
@@ -439,7 +458,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载看板列表失败:', error);
+        console.error("[TaskBoardStore] 加载看板列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -455,15 +474,21 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       this.error = null;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-board', boardData);
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-board", boardData);
 
         if (result.success && result.boardId) {
-          this.boards.unshift({ id: result.boardId, ...boardData, createdAt: Date.now() } as Board);
+          this.boards.unshift({
+            id: result.boardId,
+            ...boardData,
+            createdAt: Date.now(),
+          } as Board);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建看板失败:', error);
+        console.error("[TaskBoardStore] 创建看板失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -480,7 +505,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
       try {
         // 加载看板详情
-        const boardResult: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-board', { boardId });
+        const boardResult: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-board", { boardId });
 
         if (boardResult.success) {
           this.currentBoard = boardResult.board || null;
@@ -495,7 +522,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return boardResult;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载看板失败:', error);
+        console.error("[TaskBoardStore] 加载看板失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -506,9 +533,14 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 更新看板
      */
-    async updateBoard(boardId: string, updates: Partial<Board>): Promise<TaskBoardApiResult> {
+    async updateBoard(
+      boardId: string,
+      updates: Partial<Board>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:update-board', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:update-board", {
           boardId,
           updates,
         });
@@ -519,7 +551,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 更新看板失败:', error);
+        console.error("[TaskBoardStore] 更新看板失败:", error);
         throw error;
       }
     },
@@ -529,7 +561,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async deleteBoard(boardId: string): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:delete-board', { boardId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:delete-board", { boardId });
 
         if (result.success) {
           this.boards = this.boards.filter((b) => b.id !== boardId);
@@ -542,7 +576,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 删除看板失败:', error);
+        console.error("[TaskBoardStore] 删除看板失败:", error);
         throw error;
       }
     },
@@ -554,20 +588,29 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 创建列
      */
-    async createColumn(boardId: string, columnData: Partial<Column>): Promise<TaskBoardApiResult> {
+    async createColumn(
+      boardId: string,
+      columnData: Partial<Column>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-column', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-column", {
           boardId,
           ...columnData,
         });
 
         if (result.success && result.columnId) {
-          this.columns.push({ id: result.columnId, boardId, ...columnData } as Column);
+          this.columns.push({
+            id: result.columnId,
+            boardId,
+            ...columnData,
+          } as Column);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建列失败:', error);
+        console.error("[TaskBoardStore] 创建列失败:", error);
         throw error;
       }
     },
@@ -575,9 +618,14 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 更新列
      */
-    async updateColumn(columnId: string, updates: Partial<Column>): Promise<TaskBoardApiResult> {
+    async updateColumn(
+      columnId: string,
+      updates: Partial<Column>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:update-column', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:update-column", {
           columnId,
           updates,
         });
@@ -591,7 +639,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 更新列失败:', error);
+        console.error("[TaskBoardStore] 更新列失败:", error);
         throw error;
       }
     },
@@ -599,21 +647,31 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 重新排序列
      */
-    async reorderColumns(boardId: string, columnOrder: string[]): Promise<TaskBoardApiResult> {
+    async reorderColumns(
+      boardId: string,
+      columnOrder: string[],
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:reorder-columns', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:reorder-columns", {
           boardId,
           columnOrder,
         });
 
         if (result.success) {
-          // 重新排序本地列
-          this.columns.sort((a, b) => columnOrder.indexOf(a.id) - columnOrder.indexOf(b.id));
+          // 重新排序本地列。columnOrder 未包含的列（indexOf === -1）应留在末尾，
+          // 而不是因 -1 小于任何有效下标而被排到最前面。
+          const orderIndex = (id: string): number => {
+            const i = columnOrder.indexOf(id);
+            return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+          };
+          this.columns.sort((a, b) => orderIndex(a.id) - orderIndex(b.id));
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 重新排序列失败:', error);
+        console.error("[TaskBoardStore] 重新排序列失败:", error);
         throw error;
       }
     },
@@ -625,11 +683,16 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 加载任务
      */
-    async loadTasks(boardId: string, options: Record<string, any> = {}): Promise<TaskBoardApiResult> {
+    async loadTasks(
+      boardId: string,
+      options: Record<string, any> = {},
+    ): Promise<TaskBoardApiResult> {
       this.loading.tasks = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-tasks', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-tasks", {
           boardId,
           ...options,
         });
@@ -640,7 +703,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载任务失败:', error);
+        console.error("[TaskBoardStore] 加载任务失败:", error);
         throw error;
       } finally {
         this.loading.tasks = false;
@@ -654,15 +717,21 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       this.loading.task = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-task', taskData);
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-task", taskData);
 
         if (result.success && result.taskId) {
-          this.tasks.push({ id: result.taskId, ...taskData, createdAt: Date.now() } as Task);
+          this.tasks.push({
+            id: result.taskId,
+            ...taskData,
+            createdAt: Date.now(),
+          } as Task);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建任务失败:', error);
+        console.error("[TaskBoardStore] 创建任务失败:", error);
         throw error;
       } finally {
         this.loading.task = false;
@@ -672,9 +741,14 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 更新任务
      */
-    async updateTask(taskId: string, updates: Partial<Task>): Promise<TaskBoardApiResult> {
+    async updateTask(
+      taskId: string,
+      updates: Partial<Task>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:update-task', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:update-task", {
           taskId,
           updates,
         });
@@ -692,7 +766,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 更新任务失败:', error);
+        console.error("[TaskBoardStore] 更新任务失败:", error);
         throw error;
       }
     },
@@ -700,9 +774,15 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 移动任务（拖拽）
      */
-    async moveTask(taskId: string, targetColumnId: string, position: number): Promise<TaskBoardApiResult> {
+    async moveTask(
+      taskId: string,
+      targetColumnId: string,
+      position: number,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:move-task', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:move-task", {
           taskId,
           targetColumnId,
           position,
@@ -718,7 +798,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 移动任务失败:', error);
+        console.error("[TaskBoardStore] 移动任务失败:", error);
         throw error;
       }
     },
@@ -728,7 +808,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async deleteTask(taskId: string): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:delete-task', { taskId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:delete-task", { taskId });
 
         if (result.success) {
           this.tasks = this.tasks.filter((t) => t.id !== taskId);
@@ -740,7 +822,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 删除任务失败:', error);
+        console.error("[TaskBoardStore] 删除任务失败:", error);
         throw error;
       }
     },
@@ -752,7 +834,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       this.loading.task = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-task', { taskId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-task", { taskId });
 
         if (result.success && result.task) {
           this.currentTask = result.task;
@@ -761,7 +845,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载任务详情失败:', error);
+        console.error("[TaskBoardStore] 加载任务详情失败:", error);
         throw error;
       } finally {
         this.loading.task = false;
@@ -787,16 +871,19 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       this.loading.sprints = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-sprints', { boardId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-sprints", { boardId });
 
         if (result.success) {
           this.sprints = result.sprints || [];
-          this.activeSprint = this.sprints.find((s) => s.status === 'active') || null;
+          this.activeSprint =
+            this.sprints.find((s) => s.status === "active") || null;
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载 Sprint 失败:', error);
+        console.error("[TaskBoardStore] 加载 Sprint 失败:", error);
         throw error;
       } finally {
         this.loading.sprints = false;
@@ -806,20 +893,29 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 创建 Sprint
      */
-    async createSprint(boardId: string, sprintData: Partial<Sprint>): Promise<TaskBoardApiResult> {
+    async createSprint(
+      boardId: string,
+      sprintData: Partial<Sprint>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-sprint', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-sprint", {
           boardId,
           ...sprintData,
         });
 
         if (result.success && result.sprintId) {
-          this.sprints.push({ id: result.sprintId, boardId, ...sprintData } as Sprint);
+          this.sprints.push({
+            id: result.sprintId,
+            boardId,
+            ...sprintData,
+          } as Sprint);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建 Sprint 失败:', error);
+        console.error("[TaskBoardStore] 创建 Sprint 失败:", error);
         throw error;
       }
     },
@@ -829,19 +925,21 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async startSprint(sprintId: string): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:start-sprint', { sprintId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:start-sprint", { sprintId });
 
         if (result.success) {
           const sprint = this.sprints.find((s) => s.id === sprintId);
           if (sprint) {
-            sprint.status = 'active';
+            sprint.status = "active";
             this.activeSprint = sprint;
           }
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 开始 Sprint 失败:', error);
+        console.error("[TaskBoardStore] 开始 Sprint 失败:", error);
         throw error;
       }
     },
@@ -851,12 +949,14 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async completeSprint(sprintId: string): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:complete-sprint', { sprintId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:complete-sprint", { sprintId });
 
         if (result.success) {
           const sprint = this.sprints.find((s) => s.id === sprintId);
           if (sprint) {
-            sprint.status = 'completed';
+            sprint.status = "completed";
           }
           if (this.activeSprint?.id === sprintId) {
             this.activeSprint = null;
@@ -865,7 +965,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 完成 Sprint 失败:', error);
+        console.error("[TaskBoardStore] 完成 Sprint 失败:", error);
         throw error;
       }
     },
@@ -877,17 +977,24 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 创建报告
      */
-    async createReport(reportData: Partial<Report>): Promise<TaskBoardApiResult> {
+    async createReport(
+      reportData: Partial<Report>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-report', reportData);
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-report", reportData);
 
         if (result.success && result.reportId) {
-          this.reports.unshift({ id: result.reportId, ...reportData } as Report);
+          this.reports.unshift({
+            id: result.reportId,
+            ...reportData,
+          } as Report);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建报告失败:', error);
+        console.error("[TaskBoardStore] 创建报告失败:", error);
         throw error;
       }
     },
@@ -895,11 +1002,16 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 加载报告
      */
-    async loadReports(orgId: string, options: Record<string, any> = {}): Promise<TaskBoardApiResult> {
+    async loadReports(
+      orgId: string,
+      options: Record<string, any> = {},
+    ): Promise<TaskBoardApiResult> {
       this.loading.reports = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-reports', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-reports", {
           orgId,
           ...options,
         });
@@ -910,7 +1022,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载报告失败:', error);
+        console.error("[TaskBoardStore] 加载报告失败:", error);
         throw error;
       } finally {
         this.loading.reports = false;
@@ -922,9 +1034,12 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async generateAISummary(reportId: string): Promise<TaskBoardApiResult> {
       try {
-        return await (window as any).electronAPI.invoke('task:generate-ai-summary', { reportId });
+        return await (window as any).electronAPI.invoke(
+          "task:generate-ai-summary",
+          { reportId },
+        );
       } catch (error) {
-        console.error('[TaskBoardStore] 生成 AI 摘要失败:', error);
+        console.error("[TaskBoardStore] 生成 AI 摘要失败:", error);
         throw error;
       }
     },
@@ -936,11 +1051,16 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 加载看板分析数据
      */
-    async loadAnalytics(boardId: string, options: Record<string, any> = {}): Promise<TaskBoardApiResult> {
+    async loadAnalytics(
+      boardId: string,
+      options: Record<string, any> = {},
+    ): Promise<TaskBoardApiResult> {
       this.loading.analytics = true;
 
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-board-analytics', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-board-analytics", {
           boardId,
           ...options,
         });
@@ -951,7 +1071,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载分析数据失败:', error);
+        console.error("[TaskBoardStore] 加载分析数据失败:", error);
         throw error;
       } finally {
         this.loading.analytics = false;
@@ -978,7 +1098,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         priority: null,
         labels: [],
         status: null,
-        searchQuery: '',
+        searchQuery: "",
         sprintId: null,
       };
     },
@@ -999,7 +1119,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
      */
     async loadLabels(orgId: string): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:get-labels', { orgId });
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:get-labels", { orgId });
 
         if (result.success) {
           this.labels = result.labels || [];
@@ -1007,7 +1129,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 加载标签失败:', error);
+        console.error("[TaskBoardStore] 加载标签失败:", error);
         throw error;
       }
     },
@@ -1015,20 +1137,29 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     /**
      * 创建标签
      */
-    async createLabel(orgId: string, labelData: Partial<Label>): Promise<TaskBoardApiResult> {
+    async createLabel(
+      orgId: string,
+      labelData: Partial<Label>,
+    ): Promise<TaskBoardApiResult> {
       try {
-        const result: TaskBoardApiResult = await (window as any).electronAPI.invoke('task:create-label', {
+        const result: TaskBoardApiResult = await (
+          window as any
+        ).electronAPI.invoke("task:create-label", {
           orgId,
           ...labelData,
         });
 
         if (result.success && result.labelId) {
-          this.labels.push({ id: result.labelId, orgId, ...labelData } as Label);
+          this.labels.push({
+            id: result.labelId,
+            orgId,
+            ...labelData,
+          } as Label);
         }
 
         return result;
       } catch (error) {
-        console.error('[TaskBoardStore] 创建标签失败:', error);
+        console.error("[TaskBoardStore] 创建标签失败:", error);
         throw error;
       }
     },

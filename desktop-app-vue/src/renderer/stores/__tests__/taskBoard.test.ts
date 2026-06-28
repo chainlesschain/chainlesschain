@@ -380,4 +380,50 @@ describe("useTaskBoardStore", () => {
       expect(store.loading.boards).toBe(false);
     });
   });
+
+  describe("reorderColumns local sort", () => {
+    function threeColumns() {
+      return [
+        makeColumn({ id: "col-A", position: 0 }),
+        makeColumn({ id: "col-B", position: 1 }),
+        makeColumn({ id: "col-C", position: 2 }),
+      ];
+    }
+
+    it("reorders columns to match the given full order", async () => {
+      const store = useTaskBoardStore();
+      store.columns = threeColumns();
+      await store.reorderColumns("board-1", ["col-C", "col-A", "col-B"]);
+      expect(store.columns.map((c) => c.id)).toEqual([
+        "col-C",
+        "col-A",
+        "col-B",
+      ]);
+    });
+
+    it("keeps columns missing from columnOrder at the END, not the front", async () => {
+      const store = useTaskBoardStore();
+      store.columns = threeColumns();
+      // Partial order omits col-B: indexOf('col-B') === -1 must sort to the end,
+      // not to the front (the bug: -1 < every valid index).
+      await store.reorderColumns("board-1", ["col-C", "col-A"]);
+      expect(store.columns.map((c) => c.id)).toEqual([
+        "col-C",
+        "col-A",
+        "col-B",
+      ]);
+    });
+
+    it("does not reorder when IPC reports failure", async () => {
+      const store = useTaskBoardStore();
+      store.columns = threeColumns();
+      mockInvoke.mockResolvedValueOnce({ success: false });
+      await store.reorderColumns("board-1", ["col-C", "col-B", "col-A"]);
+      expect(store.columns.map((c) => c.id)).toEqual([
+        "col-A",
+        "col-B",
+        "col-C",
+      ]);
+    });
+  });
 });
