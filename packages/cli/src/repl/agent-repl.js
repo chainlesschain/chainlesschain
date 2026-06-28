@@ -1038,6 +1038,7 @@ export async function startAgentRepl(options = {}) {
     // Keep in sync with the rl.on("line") handlers + /help below.
     slashCommands: [
       "/add-dir",
+      "/agents",
       "/auto",
       "/cd",
       "/clear",
@@ -1613,6 +1614,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(`  ${chalk.cyan("/plan reject")}  Reject the plan`);
       logger.log(
+        `  ${chalk.cyan("/agents")}     Manage sub-agent definitions (/agents [show|new] <name>; cc agents)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/sub-agents")}  Show active/completed sub-agents`,
       );
       logger.log(
@@ -1810,6 +1814,70 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (err) {
         logger.error(chalk.red(`/init failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/agents [list|show <name>|new <name> …]` — manage sub-agent DEFINITIONS
+    // (.chainlesschain/agents/*.md / .claude/agents/*.md). Mirrors `cc agents`;
+    // distinct from /sub-agents (running instances). Claude-Code /agents parity.
+    if (trimmed === "/agents" || trimmed.startsWith("/agents ")) {
+      try {
+        const { parseAgentsCommand, formatAgentsList, formatAgentDetail } =
+          await import("./agents-status.js");
+        const { discoverAgents, getAgent, scaffoldAgent } =
+          await import("../lib/agents.js");
+        const { listSubAgentProfiles } =
+          await import("../lib/sub-agent-profiles.js");
+        const cmd = parseAgentsCommand(trimmed);
+        if (cmd.action === "help") {
+          logger.log(
+            "Usage: /agents [list] · /agents show <name> · /agents new <name> [--tools a,b] [--claude|--personal] [--description <text>]",
+          );
+        } else if (cmd.action === "list") {
+          logger.log(
+            "\n" +
+              formatAgentsList(
+                discoverAgents(process.cwd()),
+                listSubAgentProfiles(),
+              ) +
+              "\n",
+          );
+        } else if (cmd.action === "show") {
+          if (!cmd.name) {
+            logger.log(chalk.yellow("Usage: /agents show <name>"));
+          } else {
+            const a = getAgent(cmd.name, process.cwd());
+            if (!a) logger.log(chalk.yellow(`No such agent: ${cmd.name}`));
+            else logger.log("\n" + formatAgentDetail(a) + "\n");
+          }
+        } else if (cmd.action === "new") {
+          if (!cmd.name) {
+            logger.log(
+              chalk.yellow("Usage: /agents new <name> [--description <text>]"),
+            );
+          } else {
+            const res = scaffoldAgent({
+              name: cmd.name,
+              description: cmd.description,
+              tools: cmd.tools,
+              location: cmd.location,
+            });
+            if (!res.ok) {
+              logger.log(chalk.yellow(`/agents new: ${res.reason}`));
+            } else {
+              logger.log(chalk.green(`✓ created ${res.file}`));
+              logger.log(
+                chalk.dim(
+                  `  edit it, then spawn it from the agent or run: cc agents run ${res.name} "<task>"`,
+                ),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        logger.error(chalk.red(`/agents failed: ${err.message}`));
       }
       prompt();
       return;

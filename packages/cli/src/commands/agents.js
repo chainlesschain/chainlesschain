@@ -183,42 +183,29 @@ export function registerAgentsCommand(program) {
     .option("--personal", "Create under ~/.claude/agents instead of project")
     .action(async (name, options) => {
       try {
-        const fs = await import("node:fs");
-        const path = await import("node:path");
-        const { homedir } = await import("node:os");
-        const safe = String(name).replace(/^\//, "").replace(/:/g, "/");
         // New project agents go to the native `.chainlesschain/agents/`; use
         // --claude for the Claude-Code-portable `.claude/agents/`, or --personal
         // for `~/.claude/agents/`. All three are read back by discoverAgents.
-        const root = options.personal
-          ? path.join(homedir(), ".claude", "agents")
+        const { scaffoldAgent } = await import("../lib/agents.js");
+        const location = options.personal
+          ? "personal"
           : options.claude
-            ? path.join(process.cwd(), ".claude", "agents")
-            : path.join(process.cwd(), ".chainlesschain", "agents");
-        const file = path.join(root, `${safe}.md`);
-        if (fs.existsSync(file)) {
-          logger.error(chalk.red(`already exists: ${file}`));
+            ? "claude"
+            : "project";
+        const res = scaffoldAgent({
+          name,
+          description: options.description,
+          tools: options.tools,
+          location,
+        });
+        if (!res.ok) {
+          logger.error(chalk.red(res.reason));
           process.exitCode = 1;
           return;
         }
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        const toolsLine = options.tools
-          ? `tools: ${options.tools}\n`
-          : "# tools: read_file, search_files   # omit to inherit all tools\n";
-        const tpl = `---
-name: ${safe.replace(/\//g, ":")}
-description: ${options.description || name}
-${toolsLine}---
-
-You are a focused subagent. Describe its role, constraints, and output format
-here — this whole body becomes the system prompt for \`cc agents run ${safe.replace(/\//g, ":")}\`.
-`;
-        fs.writeFileSync(file, tpl, "utf-8");
-        logger.log(chalk.green(`✓ created ${file}`));
+        logger.log(chalk.green(`✓ created ${res.file}`));
         logger.log(
-          chalk.gray(
-            `  run it with: cc agents run ${safe.replace(/\//g, ":")} "<task>"`,
-          ),
+          chalk.gray(`  run it with: cc agents run ${res.name} "<task>"`),
         );
       } catch (err) {
         logger.error(chalk.red(`agents new failed: ${err.message}`));

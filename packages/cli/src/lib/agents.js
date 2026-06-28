@@ -155,4 +155,61 @@ export function getAgent(name, cwd = process.cwd(), opts = {}) {
   return discoverAgents(cwd, opts).find((a) => a.name === wanted) || null;
 }
 
+/**
+ * Scaffold a new agent-definition file. Single source of truth for both
+ * `cc agents new` and the REPL `/agents new`. Pure-ish (fs/path/home injectable).
+ *
+ * @param {object} opts
+ *   name         agent name (`review:security` or `review/security`)
+ *   description  frontmatter description
+ *   tools        comma-separated tool allow-list (string) — optional
+ *   location     "project" (.chainlesschain/agents) | "claude" (.claude/agents)
+ *                | "personal" (~/.claude/agents)   (default "project")
+ *   cwd, home, deps
+ * @returns {{ok:boolean, file?:string, name?:string, reason?:string}}
+ */
+export function scaffoldAgent({
+  name,
+  description,
+  tools,
+  location = "project",
+  cwd = process.cwd(),
+  home,
+  deps,
+} = {}) {
+  const fs = deps?.fs || _deps.fs;
+  const path = deps?.path || _deps.path;
+  const h = home || homedir();
+  const safe = String(name || "")
+    .replace(/^\//, "")
+    .replace(/:/g, "/")
+    .trim();
+  if (!safe) return { ok: false, reason: "agent name required" };
+  const colonName = safe.replace(/\//g, ":");
+  const root =
+    location === "personal"
+      ? path.join(h, ".claude", "agents")
+      : location === "claude"
+        ? path.join(cwd, ".claude", "agents")
+        : path.join(cwd, ".chainlesschain", "agents");
+  const file = path.join(root, `${safe}.md`);
+  if (fs.existsSync(file)) {
+    return { ok: false, reason: `already exists: ${file}`, file };
+  }
+  const toolsLine = tools
+    ? `tools: ${tools}\n`
+    : "# tools: read_file, search_files   # omit to inherit all tools\n";
+  const tpl = `---
+name: ${colonName}
+description: ${description || name}
+${toolsLine}---
+
+You are a focused subagent. Describe its role, constraints, and output format
+here — this whole body becomes the system prompt for \`cc agents run ${colonName}\`.
+`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, tpl, "utf-8");
+  return { ok: true, file, name: colonName };
+}
+
 export { _deps };
