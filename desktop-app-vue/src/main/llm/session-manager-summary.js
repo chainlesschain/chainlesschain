@@ -7,6 +7,29 @@
  */
 const { logger } = require("../utils/logger.js");
 
+/**
+ * Tolerant JSON column parse mirroring the prior `typeof x === "string" ?
+ * JSON.parse(x) : x` form, but resilient to a CORRUPT non-empty string (which
+ * `JSON.parse(x || "{}")` still threw on, aborting the whole .map). Already-
+ * parsed values pass through; null/empty/corrupt → fallback.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  if (typeof raw !== "string") {
+    return raw;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[SessionManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
+
 module.exports = {
   _shouldAutoGenerateSummary(session) {
     // 已有摘要且最近更新过，不重新生成
@@ -304,10 +327,7 @@ module.exports = {
         id: row.id,
         conversationId: row.conversation_id,
         title: row.title,
-        metadata:
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata || "{}")
-            : row.metadata || {},
+        metadata: safeParse(row.metadata, {}),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
