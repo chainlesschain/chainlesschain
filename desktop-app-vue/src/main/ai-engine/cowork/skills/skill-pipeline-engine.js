@@ -413,16 +413,23 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeSteps(execution, steps) {
+    // Pause/cancel state lives on the ROOT execution. Nested branches
+    // (condition/loop/parallel) run with a shallow COPY of `execution`, so
+    // reading execution.state here would read a frozen "running" snapshot and
+    // miss a pause/cancel set later on the root; likewise a _pauseResolve set on
+    // the copy would never be resolved by resume/cancel (which act on the root).
+    // Route control reads/writes through the root via the _root back-reference.
+    const ctl = execution._root || execution;
     for (let i = execution.currentStepIndex; i < steps.length; i++) {
       // Check for pause/cancel
-      if (execution.state === PipelineState.CANCELLED) {
+      if (ctl.state === PipelineState.CANCELLED) {
         throw new Error("Pipeline cancelled");
       }
-      if (execution.state === PipelineState.PAUSED) {
+      if (ctl.state === PipelineState.PAUSED) {
         await new Promise((resolve) => {
-          execution._pauseResolve = resolve;
+          ctl._pauseResolve = resolve;
         });
-        if (execution.state === PipelineState.CANCELLED) {
+        if (ctl.state === PipelineState.CANCELLED) {
           throw new Error("Pipeline cancelled");
         }
       }
@@ -566,12 +573,22 @@ class SkillPipelineEngine extends EventEmitter {
 
     if (result && step.trueBranch) {
       await this._executeSteps(
-        { ...execution, currentStepIndex: 0, stepResults: [] },
+        {
+          ...execution,
+          _root: execution._root || execution,
+          currentStepIndex: 0,
+          stepResults: [],
+        },
         step.trueBranch,
       );
     } else if (!result && step.falseBranch) {
       await this._executeSteps(
-        { ...execution, currentStepIndex: 0, stepResults: [] },
+        {
+          ...execution,
+          _root: execution._root || execution,
+          currentStepIndex: 0,
+          stepResults: [],
+        },
         step.falseBranch,
       );
     }
@@ -631,7 +648,12 @@ class SkillPipelineEngine extends EventEmitter {
 
       if (step.body) {
         await this._executeSteps(
-          { ...execution, currentStepIndex: 0, stepResults: [] },
+          {
+            ...execution,
+            _root: execution._root || execution,
+            currentStepIndex: 0,
+            stepResults: [],
+          },
           step.body,
         );
       }

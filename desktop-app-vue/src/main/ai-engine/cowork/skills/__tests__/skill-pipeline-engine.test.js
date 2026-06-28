@@ -1417,6 +1417,83 @@ describe("SkillPipelineEngine", () => {
       expect(engine.executions.get(executionId)._pauseResolve).toBeNull();
     });
 
+    it("cancel DURING a nested loop branch stops it (control propagates via _root)", async () => {
+      // Nested branches run with a shallow COPY of execution; before the _root
+      // fix, cancel set on the root was invisible inside the loop body so all
+      // iterations ran. Now the loop must stop after the cancel.
+      let executionId;
+      engine.on("pipeline:started", (e) => {
+        executionId = e.executionId;
+      });
+      let calls = 0;
+      mockSkillRegistry.executeSkill.mockImplementation(async () => {
+        calls++;
+        if (calls === 1) {
+          engine.cancelPipeline(executionId);
+        }
+        return { output: `r${calls}` };
+      });
+
+      const pipelineId = engine.createPipeline({
+        name: "loop-cancel",
+        steps: [
+          {
+            type: StepType.LOOP,
+            name: "lp",
+            items: "[1,2,3]",
+            itemVariable: "x",
+            body: [{ type: StepType.SKILL, name: "s", skillId: "sk" }],
+          },
+        ],
+      });
+
+      const result = await engine.executePipeline(pipelineId);
+      expect(result.state).toBe(PipelineState.CANCELLED);
+      expect(calls).toBeLessThan(3); // stopped early, didn't run all iterations
+    });
+
+    it("pause DURING a nested loop branch suspends it, resume completes it", async () => {
+      let executionId;
+      engine.on("pipeline:started", (e) => {
+        executionId = e.executionId;
+      });
+      let calls = 0;
+      mockSkillRegistry.executeSkill.mockImplementation(async () => {
+        calls++;
+        if (calls === 1) {
+          engine.pausePipeline(executionId);
+        }
+        return { output: `r${calls}` };
+      });
+
+      const pipelineId = engine.createPipeline({
+        name: "loop-pause",
+        steps: [
+          {
+            type: StepType.LOOP,
+            name: "lp",
+            items: "[1,2,3]",
+            itemVariable: "x",
+            body: [{ type: StepType.SKILL, name: "s", skillId: "sk" }],
+          },
+        ],
+      });
+
+      const execPromise = engine.executePipeline(pipelineId);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      // Must be paused mid-loop (not completed) — the bug let it run to the end.
+      expect(engine.executions.get(executionId).state).toBe(
+        PipelineState.PAUSED,
+      );
+      expect(calls).toBe(1);
+
+      engine.resumePipeline(executionId);
+      const result = await execPromise;
+      expect(result.state).toBe(PipelineState.COMPLETED);
+      expect(calls).toBe(3);
+    });
+
     it("should throw when pausing a non-running execution", () => {
       expect(() => engine.pausePipeline("nonexistent")).toThrow(
         "Cannot pause execution",
