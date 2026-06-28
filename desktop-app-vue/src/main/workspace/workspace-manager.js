@@ -1,6 +1,19 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[WorkspaceManager] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 /**
  * 工作区管理器 - 企业协作工作区核心模块
  * Phase 1 - v0.17.0
@@ -132,7 +145,7 @@ class WorkspaceManager {
 
       return {
         ...workspace,
-        allowed_roles: JSON.parse(workspace.allowed_roles),
+        allowed_roles: safeParse(workspace.allowed_roles, []),
       };
     } catch (error) {
       logger.error("[WorkspaceManager] 创建工作区失败:", error);
@@ -164,7 +177,7 @@ class WorkspaceManager {
         ...ws,
         is_default: Boolean(ws.is_default),
         archived: Boolean(ws.archived),
-        allowed_roles: JSON.parse(ws.allowed_roles || "[]"),
+        allowed_roles: safeParse(ws.allowed_roles, []),
       }));
     } catch (error) {
       logger.error("[WorkspaceManager] 获取工作区列表失败:", error);
@@ -191,7 +204,7 @@ class WorkspaceManager {
         ...workspace,
         is_default: Boolean(workspace.is_default),
         archived: Boolean(workspace.archived),
-        allowed_roles: JSON.parse(workspace.allowed_roles || "[]"),
+        allowed_roles: safeParse(workspace.allowed_roles, []),
       };
     } catch (error) {
       logger.error("[WorkspaceManager] 获取工作区失败:", error);

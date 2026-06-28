@@ -9,6 +9,19 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ConflictResolver] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const { RuleMerger, MERGE_RESULT } = require("./rule-merger");
 const { ASTMerger } = require("./ast-merger");
@@ -357,7 +370,7 @@ class SmartConflictResolver extends EventEmitter {
       for (const pattern of patterns) {
         this._patternCache.set(pattern.id, {
           ...pattern,
-          metadata: JSON.parse(pattern.metadata || "{}"),
+          metadata: safeParse(pattern.metadata, {}),
         });
       }
     } catch (error) {

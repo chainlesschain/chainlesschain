@@ -12,6 +12,21 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[StreamingResponse] Bad JSON column, fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 
 /**
@@ -645,7 +660,7 @@ class StreamingResponse {
       // 解析JSON数据
       return events.map((event) => ({
         ...event,
-        event_data: JSON.parse(event.event_data),
+        event_data: safeParse(event.event_data, null),
       }));
     } catch (error) {
       logger.error("[StreamingResponse] 获取任务历史失败:", error);

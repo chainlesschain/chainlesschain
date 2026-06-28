@@ -4,6 +4,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[ToolManager] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const DocGenerator = require("./doc-generator");
 
@@ -184,7 +197,7 @@ class ToolManager {
         const schema = {
           name: toolRecord.name,
           description: toolRecord.description,
-          parameters: JSON.parse(toolRecord.parameters_schema),
+          parameters: safeParse(toolRecord.parameters_schema, {}),
         };
         this.functionCaller.registerTool(toolRecord.name, handler, schema);
       }

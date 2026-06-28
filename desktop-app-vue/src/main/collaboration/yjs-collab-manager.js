@@ -14,6 +14,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[YjsCollab] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const Y = require("yjs");
 const { encoding, decoding } = require("lib0");
 const EventEmitter = require("events");
@@ -389,7 +402,7 @@ class YjsCollabManager extends EventEmitter {
 
       return snapshots.map((s) => ({
         id: s.id,
-        metadata: JSON.parse(s.metadata),
+        metadata: safeParse(s.metadata, {}),
         createdAt: s.created_at,
       }));
     } catch (error) {

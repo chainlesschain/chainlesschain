@@ -10,6 +10,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[TaskPlanner] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const EventEmitter = require("events");
@@ -1838,8 +1851,8 @@ ${userRequest}
 
       return plans.map((plan) => ({
         ...plan,
-        subtasks: JSON.parse(plan.subtasks),
-        final_output: JSON.parse(plan.final_output || "null"),
+        subtasks: safeParse(plan.subtasks, []),
+        final_output: safeParse(plan.final_output, null),
       }));
     } catch (error) {
       logger.error("[TaskPlannerEnhanced] 获取任务计划历史失败:", error);

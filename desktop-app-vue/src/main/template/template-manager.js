@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[TemplateManager] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
@@ -407,10 +420,10 @@ class ProjectTemplateManager {
   parseTemplateData(template) {
     return {
       ...template,
-      tags: JSON.parse(template.tags || "[]"),
-      variables_schema: JSON.parse(template.variables_schema || "[]"),
-      file_structure: JSON.parse(template.file_structure || "{}"),
-      default_files: JSON.parse(template.default_files || "[]"),
+      tags: safeParse(template.tags, []),
+      variables_schema: safeParse(template.variables_schema, []),
+      file_structure: safeParse(template.file_structure, {}),
+      default_files: safeParse(template.default_files, []),
       is_builtin: template.is_builtin === 1,
     };
   }

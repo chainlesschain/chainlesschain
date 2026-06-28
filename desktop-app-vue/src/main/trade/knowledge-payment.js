@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[KnowledgePayment] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
@@ -468,7 +481,7 @@ class KnowledgePaymentManager extends EventEmitter {
       title: content.title,
       description: content.description,
       content: decryptedContent,
-      metadata: JSON.parse(content.metadata || "{}"),
+      metadata: safeParse(content.metadata, {}),
       creatorDid: content.creator_did,
       createdAt: content.created_at,
     };

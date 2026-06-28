@@ -15,6 +15,19 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[CICDOptimizer] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const path = require("path");
@@ -379,7 +392,7 @@ class CICDOptimizer extends EventEmitter {
       this._cacheHits++;
       this.emit("cache-hit", { fileHash, tests: cached.tests });
       return {
-        tests: JSON.parse(cached.selected_tests || "[]"),
+        tests: safeParse(cached.selected_tests, []),
         cached: true,
         hitRate: this._getCacheHitRate(),
         cacheAge: cached.created_at,

@@ -1,5 +1,18 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[OrgManager] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const crypto = require("crypto");
 const { OrgP2PNetwork, MessageType } = require("./org-p2p-network");
 const { DIDInvitationManager } = require("./did-invitation-manager");
@@ -199,7 +212,7 @@ class OrganizationManager {
 
       return {
         ...organization,
-        settings: JSON.parse(organization.settings_json),
+        settings: safeParse(organization.settings_json, {}),
       };
     } catch (error) {
       logger.error("[OrganizationManager] 创建组织失败:", error);
@@ -311,7 +324,7 @@ class OrganizationManager {
 
     return {
       ...org,
-      settings: JSON.parse(org.settings_json || "{}"),
+      settings: safeParse(org.settings_json, {}),
     };
   }
 

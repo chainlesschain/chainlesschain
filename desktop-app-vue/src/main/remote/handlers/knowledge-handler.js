@@ -4,6 +4,19 @@
 
 const { logger } = require("../../utils/logger");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[KnowledgeHandler] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 class KnowledgeHandler {
   constructor(database, ragManager) {
     this.database = database;
@@ -406,7 +419,7 @@ class KnowledgeHandler {
         text: note.title + "\n\n" + note.content,
         metadata: {
           type: "note",
-          tags: JSON.parse(note.tags || "[]"),
+          tags: safeParse(note.tags, []),
           created_at: note.created_at,
         },
       });

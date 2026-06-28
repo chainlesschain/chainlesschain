@@ -5,6 +5,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[VCTemplate] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 
@@ -496,7 +509,7 @@ class VCTemplateManager extends EventEmitter {
 
       return {
         ...template,
-        fields: JSON.parse(template.fields),
+        fields: safeParse(template.fields, []),
         isBuiltIn: false,
       };
     } catch (error) {

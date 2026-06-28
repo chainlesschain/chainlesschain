@@ -13,6 +13,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[UsageReport] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -1086,9 +1099,9 @@ class UsageReportGenerator extends EventEmitter {
         scope: report.report_scope,
         periodStart: report.period_start,
         periodEnd: report.period_end,
-        summary: JSON.parse(report.summary),
-        details: JSON.parse(report.details || "{}"),
-        recommendations: JSON.parse(report.recommendations || "[]"),
+        summary: safeParse(report.summary, {}),
+        details: safeParse(report.details, {}),
+        recommendations: safeParse(report.recommendations, []),
         filePath: report.file_path,
         format: report.format,
         generationTimeMs: report.generation_time_ms,

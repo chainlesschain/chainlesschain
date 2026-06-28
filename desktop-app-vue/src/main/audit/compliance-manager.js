@@ -16,6 +16,21 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[ComplianceManager] Bad JSON column, fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 const POLICY_TYPES = [
@@ -201,7 +216,7 @@ class ComplianceManager {
 
       return {
         success: true,
-        data: { ...policy, rules: JSON.parse(policy.rules) },
+        data: { ...policy, rules: safeParse(policy.rules, {}) },
       };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to create policy:", error);
@@ -1020,7 +1035,7 @@ class ComplianceManager {
           totalPolicies: latest.total_policies,
           passed: latest.passed,
           failed: latest.failed,
-          details: JSON.parse(latest.details || "{}"),
+          details: safeParse(latest.details, {}),
           recordedAt: latest.recorded_at,
         },
       };
@@ -1232,7 +1247,7 @@ class ComplianceManager {
     }
     return {
       ...row,
-      rules: JSON.parse(row.rules || "{}"),
+      rules: safeParse(row.rules, {}),
       enabled: row.enabled === 1,
     };
   }

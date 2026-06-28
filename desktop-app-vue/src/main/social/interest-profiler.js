@@ -12,6 +12,19 @@ const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[InterestProfiler] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // InterestProfiler
 // ============================================================
@@ -30,7 +43,9 @@ class InterestProfiler extends EventEmitter {
 
   _ensureTables() {
     if (!this.database || !this.database.db) {
-      logger.warn("[InterestProfiler] Database not available, skipping table creation");
+      logger.warn(
+        "[InterestProfiler] Database not available, skipping table creation",
+      );
       return;
     }
 
@@ -51,7 +66,9 @@ class InterestProfiler extends EventEmitter {
     logger.info("[InterestProfiler] Initializing interest profiler...");
     this._ensureTables();
     this.initialized = true;
-    logger.info("[InterestProfiler] Interest profiler initialized successfully");
+    logger.info(
+      "[InterestProfiler] Interest profiler initialized successfully",
+    );
   }
 
   // ----------------------------------------------------------
@@ -69,9 +86,13 @@ class InterestProfiler extends EventEmitter {
         return null;
       }
 
-      const row = this.database.db.prepare(`
+      const row = this.database.db
+        .prepare(
+          `
         SELECT * FROM user_interest_profiles WHERE user_id = ?
-      `).get(userId);
+      `,
+        )
+        .get(userId);
 
       if (!row) {
         return null;
@@ -80,8 +101,8 @@ class InterestProfiler extends EventEmitter {
       const profile = {
         id: row.id,
         userId: row.user_id,
-        topics: JSON.parse(row.topics || "{}"),
-        interactionWeights: JSON.parse(row.interaction_weights || "{}"),
+        topics: safeParse(row.topics, {}),
+        interactionWeights: safeParse(row.interaction_weights, {}),
         lastUpdated: row.last_updated,
         updateCount: row.update_count,
       };
@@ -124,11 +145,13 @@ class InterestProfiler extends EventEmitter {
         mergedWeights = this._mergeTopics(
           existing.interactionWeights,
           this._extractWeights(interactions),
-          0.9
+          0.9,
         );
       } else {
         mergedTopics = this._normalizeWeights(newTopics);
-        mergedWeights = this._normalizeWeights(this._extractWeights(interactions));
+        mergedWeights = this._normalizeWeights(
+          this._extractWeights(interactions),
+        );
       }
 
       const now = Date.now();
@@ -136,18 +159,22 @@ class InterestProfiler extends EventEmitter {
       const updateCount = existing ? existing.updateCount + 1 : 1;
 
       if (this.database && this.database.db) {
-        this.database.db.prepare(`
+        this.database.db
+          .prepare(
+            `
           INSERT OR REPLACE INTO user_interest_profiles
             (id, user_id, topics, interaction_weights, last_updated, update_count)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-          id,
-          userId,
-          JSON.stringify(mergedTopics),
-          JSON.stringify(mergedWeights),
-          now,
-          updateCount
-        );
+        `,
+          )
+          .run(
+            id,
+            userId,
+            JSON.stringify(mergedTopics),
+            JSON.stringify(mergedWeights),
+            now,
+            updateCount,
+          );
       }
 
       const profile = {
@@ -161,7 +188,9 @@ class InterestProfiler extends EventEmitter {
 
       this._profiles.set(userId, profile);
       this.emit("profile-updated", { userId, updateCount });
-      logger.info(`[InterestProfiler] Profile updated for user ${userId} (update #${updateCount})`);
+      logger.info(
+        `[InterestProfiler] Profile updated for user ${userId} (update #${updateCount})`,
+      );
       return profile;
     } catch (error) {
       logger.error("[InterestProfiler] Failed to update profile:", error);
@@ -179,9 +208,10 @@ class InterestProfiler extends EventEmitter {
         for (const analysis of topicAnalyses) {
           const analysisTopics = Array.isArray(analysis.topics)
             ? analysis.topics
-            : JSON.parse(analysis.topics || "[]");
+            : safeParse(analysis.topics, []);
           for (const topic of analysisTopics) {
-            const name = typeof topic === "string" ? topic : topic.name || topic.label;
+            const name =
+              typeof topic === "string" ? topic : topic.name || topic.label;
             if (name) {
               topics[name] = (topics[name] || 0) + 1;
             }
@@ -192,7 +222,8 @@ class InterestProfiler extends EventEmitter {
       // Extract from social interactions
       if (socialInteractions && socialInteractions.length > 0) {
         for (const interaction of socialInteractions) {
-          const type = interaction.interaction_type || interaction.type || "general";
+          const type =
+            interaction.interaction_type || interaction.type || "general";
           weights[type] = (weights[type] || 0) + 1;
         }
       }
@@ -204,17 +235,21 @@ class InterestProfiler extends EventEmitter {
       const id = uuidv4();
 
       if (this.database && this.database.db) {
-        this.database.db.prepare(`
+        this.database.db
+          .prepare(
+            `
           INSERT OR REPLACE INTO user_interest_profiles
             (id, user_id, topics, interaction_weights, last_updated, update_count)
           VALUES (?, ?, ?, ?, ?, 1)
-        `).run(
-          id,
-          userId,
-          JSON.stringify(normalizedTopics),
-          JSON.stringify(normalizedWeights),
-          now
-        );
+        `,
+          )
+          .run(
+            id,
+            userId,
+            JSON.stringify(normalizedTopics),
+            JSON.stringify(normalizedWeights),
+            now,
+          );
       }
 
       const profile = {
@@ -228,10 +263,15 @@ class InterestProfiler extends EventEmitter {
 
       this._profiles.set(userId, profile);
       this.emit("profile-built", { userId });
-      logger.info(`[InterestProfiler] Profile built from history for user ${userId}`);
+      logger.info(
+        `[InterestProfiler] Profile built from history for user ${userId}`,
+      );
       return profile;
     } catch (error) {
-      logger.error("[InterestProfiler] Failed to build profile from history:", error);
+      logger.error(
+        "[InterestProfiler] Failed to build profile from history:",
+        error,
+      );
       return null;
     }
   }
