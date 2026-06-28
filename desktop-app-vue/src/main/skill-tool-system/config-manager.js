@@ -77,8 +77,8 @@ class ConfigManager {
         description: skill.description,
         category: skill.category,
         icon: skill.icon,
-        config: skill.config ? JSON.parse(skill.config) : null,
-        tags: skill.tags ? JSON.parse(skill.tags) : [],
+        config: safeParse(skill.config, null),
+        tags: safeParse(skill.tags, []),
       };
 
       if (includeStats && skill.usage_count > 0) {
@@ -156,15 +156,11 @@ class ConfigManager {
       description: tool.description,
       tool_type: tool.tool_type,
       category: tool.category,
-      parameters_schema: tool.parameters_schema
-        ? JSON.parse(tool.parameters_schema)
-        : null,
-      return_schema: tool.return_schema ? JSON.parse(tool.return_schema) : null,
-      config: tool.config ? JSON.parse(tool.config) : null,
-      examples: tool.examples ? JSON.parse(tool.examples) : [],
-      required_permissions: tool.required_permissions
-        ? JSON.parse(tool.required_permissions)
-        : [],
+      parameters_schema: safeParse(tool.parameters_schema, null),
+      return_schema: safeParse(tool.return_schema, null),
+      config: safeParse(tool.config, null),
+      examples: safeParse(tool.examples, []),
+      required_permissions: safeParse(tool.required_permissions, []),
       risk_level: tool.risk_level,
     };
 
