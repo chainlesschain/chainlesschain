@@ -1061,6 +1061,7 @@ export async function startAgentRepl(options = {}) {
       "/output-style",
       "/permissions",
       "/plan",
+      "/pr-comments",
       "/profile",
       "/provider",
       "/quit",
@@ -1567,6 +1568,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/review")}     Diff-first code review (/review [high] [--security|--simplify] [--fix])`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/pr-comments")} Fetch a GitHub PR's comments and address them (/pr-comments [<n>] [--repo o/r]; needs gh)`,
       );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
@@ -3415,6 +3419,29 @@ export async function startAgentRepl(options = {}) {
         return;
       }
     }
+
+    // `/pr-comments [<n>|<url>] [--repo owner/name]` (Claude-Code parity):
+    // fetch a GitHub PR's reviews + conversation + inline comments via `gh` and
+    // feed them as this turn's input so the agent can address the feedback.
+    if (promptText.startsWith("/pr-comments")) {
+      try {
+        const { expandPrComments } = await import("./pr-comments.js");
+        const res = await expandPrComments(promptText);
+        if (res != null) {
+          promptText = res.text;
+          logger.log(
+            chalk.gray(
+              `[pr] PR #${res.number}: ${res.count} comment(s) fetched`,
+            ),
+          );
+        }
+      } catch (err) {
+        logger.info(chalk.yellow(`[pr-comments] ${err.message}`));
+        prompt();
+        return;
+      }
+    }
+
     try {
       const macro = await resolveSlashMacro(trimmed, { cwd: process.cwd() });
       if (macro.matched) {
