@@ -2,6 +2,53 @@ const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 
 /**
+ * 计算两组行的增删统计（LCS 行差异）。
+ * 旧实现只用行数净差（addedLines = max(0, len2 - len1) 等），当两版本行数
+ * 相同但内容完全不同时会错报 0 处变化（contentChanged=true 却 totalChanges=0）。
+ * 这里用最长公共子序列：added = len2 - lcs，deleted = len1 - lcs，
+ * 与 git 行差语义一致。超大输入退回 O(n+m) 的多重集差异以防 O(n*m) 内存爆掉。
+ * @returns {{addedLines:number, deletedLines:number}}
+ */
+function lineDiffStats(lines1, lines2) {
+  const n = lines1.length;
+  const m = lines2.length;
+
+  if (n * m > 4_000_000) {
+    const freq = new Map();
+    for (const l of lines1) {
+      freq.set(l, (freq.get(l) || 0) + 1);
+    }
+    for (const l of lines2) {
+      freq.set(l, (freq.get(l) || 0) - 1);
+    }
+    let added = 0;
+    let deleted = 0;
+    for (const c of freq.values()) {
+      if (c < 0) {
+        added += -c;
+      } else if (c > 0) {
+        deleted += c;
+      }
+    }
+    return { addedLines: added, deletedLines: deleted };
+  }
+
+  // LCS 长度，滚动一维 DP（O(n*m) 时间 / O(m) 空间）。
+  let prev = new Array(m + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    const cur = new Array(m + 1).fill(0);
+    const a = lines1[i - 1];
+    for (let j = 1; j <= m; j++) {
+      cur[j] =
+        a === lines2[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]);
+    }
+    prev = cur;
+  }
+  const lcs = prev[m];
+  return { addedLines: m - lcs, deletedLines: n - lcs };
+}
+
+/**
  * 知识库版本历史管理器
  * 负责版本创建、查询、对比和恢复
  */
@@ -292,15 +339,15 @@ class KnowledgeVersionManager {
         return { success: false, error: "版本不存在" };
       }
 
-      // 简单的文本差异统计
+      // 文本差异统计（LCS 行差异，正确处理"行数相同但内容不同"的情况）
       const content1 = version1.content || "";
       const content2 = version2.content || "";
 
-      const lines1 = content1.split("\n");
-      const lines2 = content2.split("\n");
+      // 空内容视为 0 行（避免 "".split("\n") 产生一行空串）
+      const lines1 = content1 ? content1.split("\n") : [];
+      const lines2 = content2 ? content2.split("\n") : [];
 
-      const addedLines = Math.max(0, lines2.length - lines1.length);
-      const deletedLines = Math.max(0, lines1.length - lines2.length);
+      const { addedLines, deletedLines } = lineDiffStats(lines1, lines2);
 
       const titleChanged = version1.title !== version2.title;
       const contentChanged = content1 !== content2;
@@ -324,7 +371,7 @@ class KnowledgeVersionManager {
           contentChanged,
           addedLines,
           deletedLines,
-          totalChanges: Math.abs(lines1.length - lines2.length),
+          totalChanges: addedLines + deletedLines,
         },
       };
     } catch (error) {
@@ -453,4 +500,4 @@ class KnowledgeVersionManager {
   }
 }
 
-module.exports = { KnowledgeVersionManager };
+module.exports = { KnowledgeVersionManager, lineDiffStats };
