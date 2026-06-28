@@ -186,7 +186,14 @@ describe("runAgentHeadlessStream — --include-partial-messages", () => {
     };
     const deps = baseDeps({ agentLoop, input: input({ text: "hi" }) });
     await runAgentHeadlessStream(
-      { expandFileRefs: false, includePartialMessages: true },
+      // streamCoalesceMs:0 keeps the legacy per-token emit so we can assert one
+      // stream_event per onToken; the default-on coalescing (which would batch
+      // "Hel"+"lo" into "Hello") is covered by headless-stream-coalesce.test.js.
+      {
+        expandFileRefs: false,
+        includePartialMessages: true,
+        streamCoalesceMs: 0,
+      },
       deps,
     );
     const events = parseLines(deps._lines);

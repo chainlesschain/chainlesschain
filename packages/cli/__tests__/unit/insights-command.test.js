@@ -12,6 +12,10 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   sessionExists: vi.fn(() => true),
   readEvents: vi.fn(() => []),
   getLastSessionId: vi.fn(() => "last-session"),
+  // session-insights → session-usage statically binds `listJsonlSessions` at
+  // module load (into its `_deps`), so the mock must define it or the whole
+  // analysis path throws on load (swallowed into "insights failed").
+  listJsonlSessions: vi.fn(() => []),
 }));
 vi.mock("../../src/lib/config-manager.js", () => ({
   loadConfig: vi.fn(() => ({ llm: {} })),
