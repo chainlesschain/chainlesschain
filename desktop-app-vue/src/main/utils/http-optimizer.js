@@ -376,9 +376,13 @@ class HTTPServerOptimizer extends EventEmitter {
 // 导出单例
 const httpOptimizer = new HTTPServerOptimizer();
 
-// 定期清理空闲连接（每30秒）
-setInterval(() => {
+// 定期清理空闲连接（每30秒）。unref() 让这个模块级清理定时器不会把 Node 事件
+// 循环钉住，避免阻塞进程干净退出。
+const _idleCleanupTimer = setInterval(() => {
   httpOptimizer.cleanupIdleConnections();
 }, 30000);
+if (_idleCleanupTimer.unref) {
+  _idleCleanupTimer.unref();
+}
 
 module.exports = httpOptimizer;

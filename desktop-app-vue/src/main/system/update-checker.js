@@ -17,6 +17,8 @@ class UpdateChecker {
     this.isChecking = false;
     this.lastCheckTime = 0;
     this.checkInterval = 24 * 60 * 60 * 1000; // 24小时
+    this._startupTimer = null;
+    this._autoCheckTimer = null;
   }
 
   /**
@@ -269,13 +271,22 @@ class UpdateChecker {
    * 自动检查更新
    */
   startAutoCheck() {
+    // Idempotent: clear any timers from a prior call so repeated startAutoCheck()
+    // doesn't leak orphan timers. The handles are stored (previously dropped, so
+    // the timers could never be stopped) and unref()'d so a background update
+    // check never keeps the process alive / blocks a clean quit.
+    this.stopAutoCheck();
+
     // 立即检查一次
-    setTimeout(() => {
+    this._startupTimer = setTimeout(() => {
       this.checkForUpdates(false);
     }, 5000); // 启动5秒后检查
+    if (this._startupTimer.unref) {
+      this._startupTimer.unref();
+    }
 
     // 定期检查
-    setInterval(
+    this._autoCheckTimer = setInterval(
       () => {
         const now = Date.now();
         if (now - this.lastCheckTime >= this.checkInterval) {
@@ -284,6 +295,23 @@ class UpdateChecker {
       },
       60 * 60 * 1000,
     ); // 每小时检查一次是否需要更新
+    if (this._autoCheckTimer.unref) {
+      this._autoCheckTimer.unref();
+    }
+  }
+
+  /**
+   * 停止自动检查（清理定时器，避免泄漏 / 阻塞退出）
+   */
+  stopAutoCheck() {
+    if (this._startupTimer) {
+      clearTimeout(this._startupTimer);
+      this._startupTimer = null;
+    }
+    if (this._autoCheckTimer) {
+      clearInterval(this._autoCheckTimer);
+      this._autoCheckTimer = null;
+    }
   }
 
   /**
