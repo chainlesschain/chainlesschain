@@ -11,7 +11,9 @@ const { logger } = require("../../utils/logger");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -99,17 +101,13 @@ class WorkflowStorage {
     const sql = `SELECT * FROM browser_workflows WHERE id = ?`;
 
     try {
+      // better-sqlite3 .get(); the old sql.js bind()/step()/getAsObject() are
+      // stubbed to false/null by the SQLCipher wrapper → this read always
+      // returned null. See [[sqlcipher_wrapper_stubbed_step_getasobject]].
       const stmt = this.db.prepare(sql);
-      stmt.bind([id]);
-
-      if (stmt.step()) {
-        const row = stmt.getAsObject();
-        stmt.free();
-        return this._deserializeWorkflow(row);
-      }
-
+      const row = stmt.get(id);
       stmt.free();
-      return null;
+      return row ? this._deserializeWorkflow(row) : null;
     } catch (error) {
       logger.error("[WorkflowStorage] Failed to get workflow", {
         id,
@@ -177,12 +175,9 @@ class WorkflowStorage {
 
     try {
       const stmt = this.db.prepare(sql);
-      stmt.bind(params);
-
-      const workflows = [];
-      while (stmt.step()) {
-        workflows.push(this._deserializeWorkflow(stmt.getAsObject()));
-      }
+      const workflows = stmt
+        .all(...params)
+        .map((row) => this._deserializeWorkflow(row));
       stmt.free();
 
       return workflows;
@@ -441,16 +436,9 @@ class WorkflowStorage {
 
     try {
       const stmt = this.db.prepare(sql);
-      stmt.bind([id]);
-
-      if (stmt.step()) {
-        const row = stmt.getAsObject();
-        stmt.free();
-        return this._deserializeExecution(row);
-      }
-
+      const row = stmt.get(id);
       stmt.free();
-      return null;
+      return row ? this._deserializeExecution(row) : null;
     } catch (error) {
       logger.error("[WorkflowStorage] Failed to get execution", {
         id,
@@ -486,12 +474,9 @@ class WorkflowStorage {
 
     try {
       const stmt = this.db.prepare(sql);
-      stmt.bind(params);
-
-      const executions = [];
-      while (stmt.step()) {
-        executions.push(this._deserializeExecution(stmt.getAsObject()));
-      }
+      const executions = stmt
+        .all(...params)
+        .map((row) => this._deserializeExecution(row));
       stmt.free();
 
       return executions;
@@ -579,13 +564,14 @@ class WorkflowStorage {
 
     try {
       const stmt = this.db.prepare(recentSql);
-      stmt.bind([workflowId, oneWeekAgo]);
-
-      let recentStats = { total: 0, completed: 0, failed: 0, avgDuration: 0 };
-      if (stmt.step()) {
-        recentStats = stmt.getAsObject();
-      }
+      const row = stmt.get(workflowId, oneWeekAgo);
       stmt.free();
+      const recentStats = row || {
+        total: 0,
+        completed: 0,
+        failed: 0,
+        avgDuration: 0,
+      };
 
       return {
         totalExecutions: workflow.usageCount,
