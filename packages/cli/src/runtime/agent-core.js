@@ -5044,6 +5044,82 @@ export async function* agentLoop(messages, options) {
     // Add assistant message with tool calls
     messages.push(msg);
 
+    // Concurrent READ-ONLY batch (latency optimization). When every call in the
+    // turn is a well-formed read-only built-in (pure fs/DB reads — no mutation,
+    // no process spawn, no shared-state writes) and there is no interactive
+    // confirmer in play, run them concurrently so wall-clock drops from the SUM
+    // of the reads to their MAX — the common "read these N files" case. Crucially,
+    // `tool-executing`/`tool-result` events are still YIELDED, and tool results
+    // still PUSHED, in the ORIGINAL order, so the output stream and tool_call_id
+    // correlation are byte-identical to the sequential path — only timing changes.
+    // Any mutating/unknown/MCP tool in the batch, a single call, an interactive
+    // session (concurrent prompts would race), or `parallelReadOnlyTools: false`
+    // falls through to the strictly sequential loop below.
+    const parallelReads =
+      options.parallelReadOnlyTools !== false &&
+      toolCalls.length > 1 &&
+      !toolContext.permissionConfirm &&
+      toolCalls.every(
+        (c) =>
+          typeof c?.function?.name === "string" &&
+          _CHECKPOINT_READ_ONLY.has(c.function.name),
+      );
+    if (parallelReads) {
+      throwIfAborted(signal);
+      // Kick every read off now; settle into {result,error} so an unawaited
+      // promise can never surface as an unhandled rejection if the loop aborts
+      // before it is consumed.
+      const inflight = toolCalls.map((call) => {
+        let toolArgs;
+        try {
+          toolArgs =
+            typeof call.function.arguments === "string"
+              ? JSON.parse(call.function.arguments)
+              : call.function.arguments;
+        } catch {
+          toolArgs = {};
+        }
+        const promise = executeTool(
+          call.function.name,
+          toolArgs,
+          toolContext,
+        ).then(
+          (result) => ({ result, error: null }),
+          (err) => ({ result: { error: err.message }, error: err.message }),
+        );
+        return { call, toolArgs, promise };
+      });
+      for (const { call, toolArgs, promise } of inflight) {
+        throwIfAborted(signal);
+        yield {
+          type: "tool-executing",
+          tool: call.function.name,
+          args: toolArgs,
+        };
+        const { result: toolResult, error: toolError } = await promise;
+        throwIfAborted(signal);
+        const warningMsg = budget.toWarningMessage();
+        const resultStr = capToolResultString(
+          safeStringifyToolResult(toolResult),
+        );
+        const toolContent = warningMsg
+          ? `${resultStr}\n\n${warningMsg}`
+          : resultStr;
+        yield {
+          type: "tool-result",
+          tool: call.function.name,
+          result: toolResult,
+          error: toolError,
+        };
+        messages.push({
+          role: "tool",
+          content: toolContent,
+          tool_call_id: call.id,
+        });
+      }
+      continue; // all read results in place — back to the LLM call
+    }
+
     for (const call of toolCalls) {
       throwIfAborted(signal);
       const fn = call?.function;

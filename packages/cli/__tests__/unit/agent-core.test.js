@@ -1605,6 +1605,163 @@ describe("agentLoop", () => {
     expect(toolMsg.content).toMatch(/malformed tool call/i);
   });
 
+  describe("parallel read-only tool batch", () => {
+    let tmp;
+    beforeEach(() => {
+      tmp = mkdtempSync(join(tmpdir(), "cc-parallel-reads-"));
+    });
+    afterEach(() => {
+      rmSync(tmp, { recursive: true, force: true });
+    });
+
+    const readCall = (id, name) => ({
+      id,
+      type: "function",
+      function: {
+        name: "read_file",
+        arguments: JSON.stringify({ path: name }),
+      },
+    });
+
+    it("runs a read-only batch concurrently, preserving event + result order", async () => {
+      writeFileSync(join(tmp, "a.txt"), "AAA-content", "utf-8");
+      writeFileSync(join(tmp, "b.txt"), "BBB-content", "utf-8");
+
+      let n = 0;
+      const chatFn = async () => {
+        n++;
+        if (n === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [readCall("r-a", "a.txt"), readCall("r-b", "b.txt")],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "done" } };
+      };
+
+      const messages = [{ role: "user", content: "read both" }];
+      const events = [];
+      for await (const ev of agentLoop(messages, {
+        provider: "ollama",
+        model: "test",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+      })) {
+        events.push(ev);
+      }
+
+      // Event ORDER is byte-identical to the sequential path.
+      const seq = events
+        .filter((e) => e.type === "tool-executing" || e.type === "tool-result")
+        .map((e) => e.type);
+      expect(seq).toEqual([
+        "tool-executing",
+        "tool-result",
+        "tool-executing",
+        "tool-result",
+      ]);
+
+      // Results pushed in order, balanced (right tool_call_ids), right contents.
+      const toolMsgs = messages.filter((m) => m.role === "tool");
+      expect(toolMsgs.map((m) => m.tool_call_id)).toEqual(["r-a", "r-b"]);
+      expect(toolMsgs[0].content).toContain("AAA-content");
+      expect(toolMsgs[1].content).toContain("BBB-content");
+    });
+
+    it("keeps a mixed read+write batch sequential (the write still happens)", async () => {
+      writeFileSync(join(tmp, "a.txt"), "READ-ME", "utf-8");
+
+      let n = 0;
+      const chatFn = async () => {
+        n++;
+        if (n === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                readCall("m-r", "a.txt"),
+                {
+                  id: "m-w",
+                  type: "function",
+                  function: {
+                    name: "write_file",
+                    arguments: JSON.stringify({
+                      path: "out.txt",
+                      content: "WROTE-IT",
+                    }),
+                  },
+                },
+              ],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "done" } };
+      };
+
+      const messages = [{ role: "user", content: "read then write" }];
+      for await (const _ev of agentLoop(messages, {
+        provider: "ollama",
+        model: "test",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+      })) {
+        void _ev;
+      }
+
+      // A mixed batch must never parallelize — the write executes sequentially.
+      expect(readFileSync(join(tmp, "out.txt"), "utf-8")).toBe("WROTE-IT");
+      const toolMsgs = messages.filter((m) => m.role === "tool");
+      expect(toolMsgs.map((m) => m.tool_call_id)).toEqual(["m-r", "m-w"]);
+      expect(toolMsgs[0].content).toContain("READ-ME");
+    });
+
+    it("parallelReadOnlyTools:false forces the sequential path (still correct)", async () => {
+      writeFileSync(join(tmp, "a.txt"), "one", "utf-8");
+      writeFileSync(join(tmp, "b.txt"), "two", "utf-8");
+
+      let n = 0;
+      const chatFn = async () => {
+        n++;
+        if (n === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [readCall("s-a", "a.txt"), readCall("s-b", "b.txt")],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "done" } };
+      };
+
+      const messages = [{ role: "user", content: "read both" }];
+      for await (const _ev of agentLoop(messages, {
+        provider: "ollama",
+        model: "test",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        parallelReadOnlyTools: false,
+      })) {
+        void _ev;
+      }
+
+      const toolMsgs = messages.filter((m) => m.role === "tool");
+      expect(toolMsgs.map((m) => m.tool_call_id)).toEqual(["s-a", "s-b"]);
+      expect(toolMsgs[0].content).toContain("one");
+      expect(toolMsgs[1].content).toContain("two");
+    });
+  });
+
   it("respects MAX_ITERATIONS", async () => {
     // Always return tool calls so it hits the limit
     globalThis.fetch = vi.fn().mockResolvedValue({
