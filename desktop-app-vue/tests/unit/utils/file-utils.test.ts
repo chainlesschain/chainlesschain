@@ -78,6 +78,22 @@ describe("file-utils — getFileTypeInfo", () => {
     const md = getFileTypeInfo("/p/three.md", "three.md");
     expect(md).toMatchObject({ isMarkdown: true, isEditable: true });
   });
+
+  it("treats no-extension files and dotfiles as having no extension", () => {
+    // README / Makefile have no dot → extension "", not "readme"/"makefile".
+    expect(getFileTypeInfo("/p/README", "README").extension).toBe("");
+    expect(getFileTypeInfo("/p/Makefile", "Makefile").extension).toBe("");
+    // A dotfile's leading-dot name is not an extension.
+    expect(getFileTypeInfo("/p/.gitignore", ".gitignore").extension).toBe("");
+    // But a dotfile WITH a real extension still resolves it.
+    expect(
+      getFileTypeInfo("/p/.eslintrc.json", ".eslintrc.json"),
+    ).toMatchObject({ extension: "json", isEditable: true });
+    // Multi-dot names resolve to the last segment.
+    expect(
+      getFileTypeInfo("/p/archive.tar.gz", "archive.tar.gz").extension,
+    ).toBe("gz");
+  });
 });
 
 describe("file-utils — throttle + debounce", () => {
