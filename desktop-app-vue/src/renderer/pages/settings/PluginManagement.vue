@@ -12,10 +12,7 @@
       <!-- 操作栏 -->
       <div class="plugin-actions">
         <a-space>
-          <a-button
-            type="primary"
-            @click="showInstallModal = true"
-          >
+          <a-button type="primary" @click="showInstallModal = true">
             <PlusOutlined />
             安装插件
           </a-button>
@@ -43,15 +40,9 @@
             style="width: 120px"
             @change="loadPlugins"
           >
-            <a-select-option value="all">
-              全部
-            </a-select-option>
-            <a-select-option value="enabled">
-              已启用
-            </a-select-option>
-            <a-select-option value="disabled">
-              已禁用
-            </a-select-option>
+            <a-select-option value="all"> 全部 </a-select-option>
+            <a-select-option value="enabled"> 已启用 </a-select-option>
+            <a-select-option value="disabled"> 已禁用 </a-select-option>
           </a-select>
           <a-select
             v-model:value="filterCategory"
@@ -59,33 +50,18 @@
             style="width: 120px"
             @change="loadPlugins"
           >
-            <a-select-option value="all">
-              全部分类
-            </a-select-option>
-            <a-select-option value="official">
-              官方插件
-            </a-select-option>
-            <a-select-option value="community">
-              社区插件
-            </a-select-option>
-            <a-select-option value="custom">
-              自定义
-            </a-select-option>
+            <a-select-option value="all"> 全部分类 </a-select-option>
+            <a-select-option value="official"> 官方插件 </a-select-option>
+            <a-select-option value="community"> 社区插件 </a-select-option>
+            <a-select-option value="custom"> 自定义 </a-select-option>
           </a-select>
         </a-space>
       </div>
 
       <!-- 插件列表 -->
       <div class="plugin-list">
-        <a-empty
-          v-if="plugins.length === 0"
-          description="暂无插件"
-        />
-        <a-list
-          v-else
-          :data-source="plugins"
-          :grid="{ gutter: 16, column: 2 }"
-        >
+        <a-empty v-if="plugins.length === 0" description="暂无插件" />
+        <a-list v-else :data-source="plugins" :grid="{ gutter: 16, column: 2 }">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-card
@@ -97,10 +73,7 @@
                     <a-space>
                       <a-badge :status="item.enabled ? 'success' : 'default'" />
                       <span>{{ item.name }}</span>
-                      <a-tag
-                        v-if="item.category === 'official'"
-                        color="blue"
-                      >
+                      <a-tag v-if="item.category === 'official'" color="blue">
                         官方
                       </a-tag>
                       <a-tag
@@ -109,12 +82,7 @@
                       >
                         社区
                       </a-tag>
-                      <a-tag
-                        v-else
-                        color="default"
-                      >
-                        自定义
-                      </a-tag>
+                      <a-tag v-else color="default"> 自定义 </a-tag>
                     </a-space>
                   </div>
                 </template>
@@ -132,10 +100,7 @@
                     {{ item.description || "暂无描述" }}
                   </p>
                   <div class="plugin-meta">
-                    <a-space
-                      direction="vertical"
-                      :size="4"
-                    >
+                    <a-space direction="vertical" :size="4">
                       <div><strong>ID:</strong> {{ item.plugin_id }}</div>
                       <div><strong>版本:</strong> {{ item.version }}</div>
                       <div v-if="item.author">
@@ -161,10 +126,7 @@
                     >
                       扩展点：
                     </div>
-                    <a-space
-                      :size="[4, 4]"
-                      wrap
-                    >
+                    <a-space :size="[4, 4]" wrap>
                       <a-tag
                         v-for="ext in item.extensionPoints"
                         :key="ext"
@@ -177,17 +139,11 @@
                 </div>
 
                 <template #actions>
-                  <a-button
-                    size="small"
-                    @click="showPluginDetail(item)"
-                  >
+                  <a-button size="small" @click="showPluginDetail(item)">
                     <InfoCircleOutlined />
                     详情
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="showPluginPermissions(item)"
-                  >
+                  <a-button size="small" @click="showPluginPermissions(item)">
                     <SafetyOutlined />
                     权限
                   </a-button>
@@ -197,10 +153,7 @@
                     cancel-text="取消"
                     @confirm="handleUninstallPlugin(item)"
                   >
-                    <a-button
-                      size="small"
-                      danger
-                    >
+                    <a-button size="small" danger>
                       <DeleteOutlined />
                       卸载
                     </a-button>
@@ -220,68 +173,44 @@
       :confirm-loading="installing"
       @ok="handleInstallPlugin"
     >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="安装方式">
           <a-radio-group v-model:value="installMethod">
-            <a-radio value="local">
-              本地目录
-            </a-radio>
-            <a-radio value="npm">
-              NPM包
-            </a-radio>
-            <a-radio value="zip">
-              ZIP文件
-            </a-radio>
+            <a-radio value="local"> 本地目录 </a-radio>
+            <a-radio value="npm"> NPM包 </a-radio>
+            <a-radio value="zip"> ZIP文件 </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item
-          v-if="installMethod === 'local'"
-          label="插件目录"
-        >
+        <a-form-item v-if="installMethod === 'local'" label="插件目录">
           <a-input
             v-model:value="installSource"
             placeholder="选择插件目录路径"
             readonly
           />
           <template #extra>
-            <a-button
-              size="small"
-              @click="handleSelectPluginFolder"
-            >
+            <a-button size="small" @click="handleSelectPluginFolder">
               <FolderOpenOutlined />
               选择目录
             </a-button>
           </template>
         </a-form-item>
 
-        <a-form-item
-          v-else-if="installMethod === 'npm'"
-          label="NPM包名"
-        >
+        <a-form-item v-else-if="installMethod === 'npm'" label="NPM包名">
           <a-input
             v-model:value="installSource"
             placeholder="例如: @chainlesschain/plugin-example"
           />
         </a-form-item>
 
-        <a-form-item
-          v-else-if="installMethod === 'zip'"
-          label="ZIP文件"
-        >
+        <a-form-item v-else-if="installMethod === 'zip'" label="ZIP文件">
           <a-input
             v-model:value="installSource"
             placeholder="选择ZIP文件路径"
             readonly
           />
           <template #extra>
-            <a-button
-              size="small"
-              @click="handleSelectPluginZip"
-            >
+            <a-button size="small" @click="handleSelectPluginZip">
               <FileZipOutlined />
               选择文件
             </a-button>
@@ -297,11 +226,7 @@
       :footer="null"
       width="800px"
     >
-      <a-descriptions
-        v-if="currentPlugin"
-        bordered
-        :column="1"
-      >
+      <a-descriptions v-if="currentPlugin" bordered :column="1">
         <a-descriptions-item label="插件ID">
           {{ currentPlugin.plugin_id }}
         </a-descriptions-item>
@@ -381,16 +306,14 @@
           </a-list-item>
         </template>
       </a-list>
-      <a-empty
-        v-else
-        description="该插件未请求任何权限"
-      />
+      <a-empty v-else description="该插件未请求任何权限" />
     </a-modal>
   </div>
 </template>
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 
 import { ref, onMounted } from "vue";
 import { message } from "ant-design-vue";
@@ -467,7 +390,7 @@ const loadPlugins = async () => {
     plugins.value = pluginList.map((p) => ({
       ...p,
       switching: false,
-      extensionPoints: p.extension_points ? JSON.parse(p.extension_points) : [],
+      extensionPoints: safeJsonParse(p.extension_points, []),
     }));
   } catch (error) {
     // IPC 未就绪时静默处理

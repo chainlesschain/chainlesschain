@@ -32,7 +32,7 @@ function extractBalancedJsonCandidates(text: string): string[] {
       if (inStr) {
         if (esc) {
           esc = false;
-        } else if (ch === '\\') {
+        } else if (ch === "\\") {
           esc = true;
         } else if (ch === '"') {
           inStr = false;
@@ -41,9 +41,9 @@ function extractBalancedJsonCandidates(text: string): string[] {
       }
       if (ch === '"') {
         inStr = true;
-      } else if (ch === '{' || ch === '[') {
+      } else if (ch === "{" || ch === "[") {
         depth += 1;
-      } else if (ch === '}' || ch === ']') {
+      } else if (ch === "}" || ch === "]") {
         depth -= 1;
         if (depth === 0) {
           end = j;
@@ -61,8 +61,8 @@ function extractBalancedJsonCandidates(text: string): string[] {
 }
 
 export function looseParseJSON(text: unknown): unknown {
-  if (typeof text !== 'string') {
-    throw new TypeError('looseParseJSON: text must be a string');
+  if (typeof text !== "string") {
+    throw new TypeError("looseParseJSON: text must be a string");
   }
   try {
     return JSON.parse(text);
@@ -84,6 +84,27 @@ export function looseParseJSON(text: unknown): unknown {
         /* try the next candidate */
       }
     }
-    throw new SyntaxError('looseParseJSON: no JSON found in text');
+    throw new SyntaxError("looseParseJSON: no JSON found in text");
+  }
+}
+
+/**
+ * Tolerant JSON column/field parse for renderer code that maps DB/IPC rows. A
+ * single corrupt value must not throw out of a `.map`/loop and blank the whole
+ * list (which would break the management UI). Mirrors the desktop-main
+ * `safeParse`: already-parsed values pass through; null/empty/unparseable →
+ * fallback. Unlike looseParseJSON it never throws.
+ */
+export function safeJsonParse<T = unknown>(raw: unknown, fallback: T): T {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  if (typeof raw !== "string") {
+    return raw as T;
+  }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
 }

@@ -2,8 +2,9 @@
  * Tool Store - 工具管理
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -111,7 +112,7 @@ export interface ToolsByCategory {
 /**
  * 状态筛选类型
  */
-export type StatusFilter = 'all' | 'enabled' | 'disabled';
+export type StatusFilter = "all" | "enabled" | "disabled";
 
 /**
  * Tool Store 状态
@@ -128,7 +129,7 @@ export interface ToolState {
 
 // ==================== Store ====================
 
-export const useToolStore = defineStore('tool', {
+export const useToolStore = defineStore("tool", {
   state: (): ToolState => ({
     // 工具列表
     tools: [],
@@ -140,13 +141,13 @@ export const useToolStore = defineStore('tool', {
     loading: false,
 
     // 分类筛选
-    categoryFilter: 'all',
+    categoryFilter: "all",
 
     // 搜索关键词
-    searchKeyword: '',
+    searchKeyword: "",
 
     // 状态筛选
-    statusFilter: 'all',
+    statusFilter: "all",
 
     // 统计数据
     statistics: null,
@@ -174,14 +175,16 @@ export const useToolStore = defineStore('tool', {
       let filtered = this.tools;
 
       // 分类筛选
-      if (this.categoryFilter !== 'all') {
-        filtered = filtered.filter((tool) => tool.category === this.categoryFilter);
+      if (this.categoryFilter !== "all") {
+        filtered = filtered.filter(
+          (tool) => tool.category === this.categoryFilter,
+        );
       }
 
       // 状态筛选
-      if (this.statusFilter === 'enabled') {
+      if (this.statusFilter === "enabled") {
         filtered = filtered.filter((tool) => tool.enabled === 1);
-      } else if (this.statusFilter === 'disabled') {
+      } else if (this.statusFilter === "disabled") {
         filtered = filtered.filter((tool) => tool.enabled === 0);
       }
 
@@ -191,8 +194,10 @@ export const useToolStore = defineStore('tool', {
         filtered = filtered.filter(
           (tool) =>
             tool.name.toLowerCase().includes(keyword) ||
-            (tool.display_name && tool.display_name.toLowerCase().includes(keyword)) ||
-            (tool.description && tool.description.toLowerCase().includes(keyword))
+            (tool.display_name &&
+              tool.display_name.toLowerCase().includes(keyword)) ||
+            (tool.description &&
+              tool.description.toLowerCase().includes(keyword)),
         );
       }
 
@@ -249,9 +254,11 @@ export const useToolStore = defineStore('tool', {
     async fetchAll(options: FetchAllOptions = {}): Promise<void> {
       this.loading = true;
       try {
-        const toolAPI = (window as any).electronAPI?.tool || (window as any).electron?.api?.tool;
+        const toolAPI =
+          (window as any).electronAPI?.tool ||
+          (window as any).electron?.api?.tool;
         if (!toolAPI?.getAll) {
-          logger.error('[ToolStore] tool API 不可用 (缺少 getAll)');
+          logger.error("[ToolStore] tool API 不可用 (缺少 getAll)");
           return;
         }
         const result = await toolAPI.getAll(options);
@@ -261,24 +268,15 @@ export const useToolStore = defineStore('tool', {
             : result.tools || result.content || [];
           this.tools = tools.map((tool) => ({
             ...tool,
-            parameters_schema:
-              typeof tool.parameters_schema === 'string'
-                ? JSON.parse(tool.parameters_schema)
-                : tool.parameters_schema || {},
-            return_schema:
-              typeof tool.return_schema === 'string'
-                ? JSON.parse(tool.return_schema)
-                : tool.return_schema || {},
-            required_permissions:
-              typeof tool.required_permissions === 'string'
-                ? JSON.parse(tool.required_permissions)
-                : tool.required_permissions || [],
+            parameters_schema: safeJsonParse(tool.parameters_schema, {}),
+            return_schema: safeJsonParse(tool.return_schema, {}),
+            required_permissions: safeJsonParse(tool.required_permissions, []),
           }));
         } else {
-          logger.error('获取工具失败:', result.error);
+          logger.error("获取工具失败:", result.error);
         }
       } catch (error) {
-        logger.error('获取工具失败:', error as any);
+        logger.error("获取工具失败:", error as any);
       } finally {
         this.loading = false;
       }
@@ -289,9 +287,11 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchById(toolId: string): Promise<Tool | null> {
       try {
-        const toolAPI = (window as any).electronAPI?.tool || (window as any).electron?.api?.tool;
+        const toolAPI =
+          (window as any).electronAPI?.tool ||
+          (window as any).electron?.api?.tool;
         if (!toolAPI?.getById) {
-          logger.error('[ToolStore] tool API 不可用 (缺少 getById)');
+          logger.error("[ToolStore] tool API 不可用 (缺少 getById)");
           return null;
         }
         const result = await toolAPI.getById(toolId);
@@ -300,27 +300,21 @@ export const useToolStore = defineStore('tool', {
           this.currentTool = data
             ? {
                 ...data,
-                parameters_schema:
-                  typeof data.parameters_schema === 'string'
-                    ? JSON.parse(data.parameters_schema)
-                    : data.parameters_schema || {},
-                return_schema:
-                  typeof data.return_schema === 'string'
-                    ? JSON.parse(data.return_schema)
-                    : data.return_schema || {},
-                required_permissions:
-                  typeof data.required_permissions === 'string'
-                    ? JSON.parse(data.required_permissions)
-                    : data.required_permissions || [],
+                parameters_schema: safeJsonParse(data.parameters_schema, {}),
+                return_schema: safeJsonParse(data.return_schema, {}),
+                required_permissions: safeJsonParse(
+                  data.required_permissions,
+                  [],
+                ),
               }
             : null;
           return this.currentTool;
         } else {
-          logger.error('获取工具失败:', result.error);
+          logger.error("获取工具失败:", result.error);
           return null;
         }
       } catch (error) {
-        logger.error('获取工具失败:', error as any);
+        logger.error("获取工具失败:", error as any);
         return null;
       }
     },
@@ -330,20 +324,22 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchByCategory(category: string): Promise<Tool[]> {
       try {
-        const toolAPI = (window as any).electronAPI?.tool || (window as any).electron?.api?.tool;
+        const toolAPI =
+          (window as any).electronAPI?.tool ||
+          (window as any).electron?.api?.tool;
         if (!toolAPI?.getByCategory) {
-          logger.error('[ToolStore] tool API 不可用 (缺少 getByCategory)');
+          logger.error("[ToolStore] tool API 不可用 (缺少 getByCategory)");
           return [];
         }
         const result = await toolAPI.getByCategory(category);
         if (result.success) {
           return result.content ?? result.data ?? result.tools ?? [];
         } else {
-          logger.error('获取工具失败:', result.error);
+          logger.error("获取工具失败:", result.error);
           return [];
         }
       } catch (error) {
-        logger.error('获取工具失败:', error as any);
+        logger.error("获取工具失败:", error as any);
         return [];
       }
     },
@@ -353,15 +349,17 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchBySkill(skillId: string): Promise<Tool[]> {
       try {
-        const result = await (window as any).electronAPI.tool.getBySkill(skillId);
+        const result = await (window as any).electronAPI.tool.getBySkill(
+          skillId,
+        );
         if (result.success) {
           return result.data;
         } else {
-          logger.error('获取工具失败:', result.error);
+          logger.error("获取工具失败:", result.error);
           return [];
         }
       } catch (error) {
-        logger.error('获取工具失败:', error as any);
+        logger.error("获取工具失败:", error as any);
         return [];
       }
     },
@@ -379,11 +377,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          logger.error('启用工具失败:', result.error);
+          logger.error("启用工具失败:", result.error);
           return false;
         }
       } catch (error) {
-        logger.error('启用工具失败:', error as any);
+        logger.error("启用工具失败:", error as any);
         return false;
       }
     },
@@ -401,11 +399,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          logger.error('禁用工具失败:', result.error);
+          logger.error("禁用工具失败:", result.error);
           return false;
         }
       } catch (error) {
-        logger.error('禁用工具失败:', error as any);
+        logger.error("禁用工具失败:", error as any);
         return false;
       }
     },
@@ -415,7 +413,10 @@ export const useToolStore = defineStore('tool', {
      */
     async updateConfig(toolId: string, config: ToolConfig): Promise<boolean> {
       try {
-        const result = await (window as any).electronAPI.tool.updateConfig(toolId, config);
+        const result = await (window as any).electronAPI.tool.updateConfig(
+          toolId,
+          config,
+        );
         if (result.success) {
           const tool = this.tools.find((t) => t.id === toolId);
           if (tool) {
@@ -423,11 +424,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          logger.error('更新工具配置失败:', result.error);
+          logger.error("更新工具配置失败:", result.error);
           return false;
         }
       } catch (error) {
-        logger.error('更新工具配置失败:', error as any);
+        logger.error("更新工具配置失败:", error as any);
         return false;
       }
     },
@@ -435,9 +436,15 @@ export const useToolStore = defineStore('tool', {
     /**
      * 更新工具Schema
      */
-    async updateSchema(toolId: string, schema: ToolParametersSchema): Promise<boolean> {
+    async updateSchema(
+      toolId: string,
+      schema: ToolParametersSchema,
+    ): Promise<boolean> {
       try {
-        const result = await (window as any).electronAPI.tool.updateSchema(toolId, schema);
+        const result = await (window as any).electronAPI.tool.updateSchema(
+          toolId,
+          schema,
+        );
         if (result.success) {
           const tool = this.tools.find((t) => t.id === toolId);
           if (tool) {
@@ -445,11 +452,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          logger.error('更新工具Schema失败:', result.error);
+          logger.error("更新工具Schema失败:", result.error);
           return false;
         }
       } catch (error) {
-        logger.error('更新工具Schema失败:', error as any);
+        logger.error("更新工具Schema失败:", error as any);
         return false;
       }
     },
@@ -459,7 +466,10 @@ export const useToolStore = defineStore('tool', {
      */
     async update(toolId: string, updates: Partial<Tool>): Promise<boolean> {
       try {
-        const result = await (window as any).electronAPI.tool.update(toolId, updates);
+        const result = await (window as any).electronAPI.tool.update(
+          toolId,
+          updates,
+        );
         if (result.success) {
           const index = this.tools.findIndex((t) => t.id === toolId);
           if (index !== -1) {
@@ -467,11 +477,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          logger.error('更新工具失败:', result.error);
+          logger.error("更新工具失败:", result.error);
           return false;
         }
       } catch (error) {
-        logger.error('更新工具失败:', error as any);
+        logger.error("更新工具失败:", error as any);
         return false;
       }
     },
@@ -479,17 +489,23 @@ export const useToolStore = defineStore('tool', {
     /**
      * 获取工具统计
      */
-    async fetchStats(toolId: string, dateRange: DateRange | null = null): Promise<ToolStats | null> {
+    async fetchStats(
+      toolId: string,
+      dateRange: DateRange | null = null,
+    ): Promise<ToolStats | null> {
       try {
-        const result = await (window as any).electronAPI.tool.getStats(toolId, dateRange);
+        const result = await (window as any).electronAPI.tool.getStats(
+          toolId,
+          dateRange,
+        );
         if (result.success) {
           return result.data;
         } else {
-          logger.error('获取工具统计失败:', result.error);
+          logger.error("获取工具统计失败:", result.error);
           return null;
         }
       } catch (error) {
-        logger.error('获取工具统计失败:', error as any);
+        logger.error("获取工具统计失败:", error as any);
         return null;
       }
     },
@@ -503,11 +519,11 @@ export const useToolStore = defineStore('tool', {
         if (result.success) {
           return result.data;
         } else {
-          logger.error('获取工具文档失败:', result.error);
+          logger.error("获取工具文档失败:", result.error);
           return null;
         }
       } catch (error) {
-        logger.error('获取工具文档失败:', error as any);
+        logger.error("获取工具文档失败:", error as any);
         return null;
       }
     },
@@ -515,17 +531,23 @@ export const useToolStore = defineStore('tool', {
     /**
      * 测试工具
      */
-    async test(toolId: string, params: Record<string, any> = {}): Promise<ToolTestResult | null> {
+    async test(
+      toolId: string,
+      params: Record<string, any> = {},
+    ): Promise<ToolTestResult | null> {
       try {
-        const result = await (window as any).electronAPI.tool.test(toolId, params);
+        const result = await (window as any).electronAPI.tool.test(
+          toolId,
+          params,
+        );
         if (result.success) {
           return result.data;
         } else {
-          logger.error('测试工具失败:', result.error);
+          logger.error("测试工具失败:", result.error);
           return null;
         }
       } catch (error) {
-        logger.error('测试工具失败:', error as any);
+        logger.error("测试工具失败:", error as any);
         return null;
       }
     },
