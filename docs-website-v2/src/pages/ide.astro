@@ -52,6 +52,40 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- cc agent in the terminal -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">集成终端里的 cc agent</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          扩展只是桥，<br/><span class="italic text-ember">真正干活的是 cc agent</span>。
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          在编辑器集成终端里跑 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连上扩展的 MCP server——上面那九件事就是这么发生的。
+          同一个 agent 还带一整套伴生命令：权限网关、检查点回滚、花费统计、循环自动化、结构化输出，在 IDE 里和在裸终端里完全一致。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          ['cc agent', '集成终端内自动连接编辑器 —— 选区注入、诊断回喂、原生 diff 审批全部生效'],
+          ['cc agent -p "…"', '无头单轮执行，进 CI / 任务脚本（text / json / stream-json 输出）'],
+          ['cc ide doctor', '诊断桥接为何连上 / 连不上（无锁 / stale / workspace 不匹配）'],
+          ['cc permissions', '.claude/settings.json 权限规则 allow / ask / deny + 凭据读取保护'],
+          ['cc checkpoint', 'git 仓内默认自动快照，改坏一键 restore 回滚'],
+          ['cc cost / cc loop / cc goal', '花费统计、定时循环、跨会话持久目标'],
+        ].map(([cmd, desc]) => (
+          <div class="p-6 rounded-xl bg-paper border border-line">
+            <code class="font-mono text-sm text-ember">{cmd}</code>
+            <p class="text-sm text-muted mt-2">{desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-10">
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ghost">Agent 模式命令大全 ↗</a>
+      </div>
+    </div>
+  </section>
+
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl">

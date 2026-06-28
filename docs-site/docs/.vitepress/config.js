@@ -600,6 +600,23 @@ export default defineConfig({
           ],
         },
         {
+          text: "🤖 cc Agent 模式（Claude Code 平价）",
+          items: [
+            {
+              text: "Agent 模式命令大全",
+              link: "/chainlesschain/cli-agent-mode",
+            },
+            {
+              text: "代理模式 (agent) — 详细参考",
+              link: "/chainlesschain/cli-agent",
+            },
+            {
+              text: "Agent 网络 (agent-network)",
+              link: "/chainlesschain/cli-agent-network",
+            },
+          ],
+        },
+        {
           text: "v5.0.1 Headless CLI",
           items: [
             {
@@ -625,10 +642,6 @@ export default defineConfig({
             {
               text: "LLM中转站与自定义接入",
               link: "/chainlesschain/cli-llm-proxy",
-            },
-            {
-              text: "代理模式 (agent)",
-              link: "/chainlesschain/cli-agent",
             },
             {
               text: "技能系统 (skill)",

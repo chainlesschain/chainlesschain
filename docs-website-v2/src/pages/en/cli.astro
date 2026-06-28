@@ -480,6 +480,44 @@ const packs = [
     </div>
   </section>
 
+  <!-- cc agent mode -->
+  <section class="py-16 md:py-24 bg-ink text-cream">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6 !bg-cream/10 !text-cream !border-cream/20">Agent mode · cc agent</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          One agent in your terminal,<br/><span class="italic text-ember">plus a whole suite of commands around it</span>.
+        </h2>
+        <p class="mt-6 text-lg text-cream/70">
+          <code class="font-mono text-sm bg-cream/10 border border-cream/20 px-2 py-0.5 rounded">cc agent</code> (interactive REPL) and
+          <code class="font-mono text-sm bg-cream/10 border border-cream/20 px-2 py-0.5 rounded">cc agent -p</code> (headless single-turn, for CI / pipelines) match Claude Code's <code class="font-mono text-sm">claude</code> / <code class="font-mono text-sm">claude -p</code>:
+          read/write files, run commands, search the codebase, call skills, search the web — with a permission gateway, checkpoint rollback, a memory system and bridge auto-discovery built around it.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          ['cc agent -p', 'Headless single turn + text/json/stream-json output + --max-turns / --permission-mode'],
+          ['cc permissions', '.claude/settings.json allow/ask/deny rules + credential-read guard'],
+          ['cc checkpoint', 'Auto-snapshot inside a git repo; one-click restore when an edit goes wrong'],
+          ['cc cost', 'Estimated token $ spend, split by provider/model; /cost in the REPL'],
+          ['cc loop', 'Repeat a prompt or command on a fixed / adaptive interval with stop conditions'],
+          ['cc goal', 'Persistent cross-session goals / OKRs the agent advances each turn'],
+          ['cc mcp / ide / pdh', 'Feed MCP servers, your editor and an Android device into the agent loop'],
+          ['cc output-style', 'Named personas layered onto the system prompt (explanatory / learning)'],
+          ['--json-schema', 'Structured output: the reply is validated against a JSON Schema, retried on failure'],
+        ].map(([cmd, desc]) => (
+          <div class="p-6 rounded-xl bg-cream/5 border border-cream/15">
+            <code class="font-mono text-sm text-ember">{cmd}</code>
+            <p class="text-sm text-cream/70 mt-2">{desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-10">
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ember">The complete Agent-mode command guide ↗</a>
+      </div>
+    </div>
+  </section>
+
   <!-- 9 Skill Packs -->
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">

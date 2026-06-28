@@ -53,6 +53,40 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- cc agent in the terminal -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">cc agent in the integrated terminal</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          The extension is just the bridge —<br/><span class="italic text-ember">cc agent does the work</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          Run <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> in the editor's integrated terminal and it auto-connects to the extension's MCP server — that's how the nine things above happen.
+          The same agent ships a full suite of companion commands: a permission gateway, checkpoint rollback, cost reporting, loop automation and structured output — identical inside the IDE and in a bare terminal.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          ['cc agent', 'Auto-connects to the editor inside the integrated terminal — selection injection, diagnostics feedback, native-diff approval all live'],
+          ['cc agent -p "…"', 'Headless single turn for CI / task scripts (text / json / stream-json output)'],
+          ['cc ide doctor', 'Diagnose why the bridge did / did not connect (no lock / stale / workspace mismatch)'],
+          ['cc permissions', '.claude/settings.json allow / ask / deny rules + credential-read guard'],
+          ['cc checkpoint', 'Auto-snapshot inside a git repo; one-click restore when an edit goes wrong'],
+          ['cc cost / cc loop / cc goal', 'Spend reporting, scheduled loops, persistent cross-session goals'],
+        ].map(([cmd, desc]) => (
+          <div class="p-6 rounded-xl bg-paper border border-line">
+            <code class="font-mono text-sm text-ember">{cmd}</code>
+            <p class="text-sm text-muted mt-2">{desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-10">
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ghost">The complete Agent-mode command guide ↗</a>
+      </div>
+    </div>
+  </section>
+
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl">

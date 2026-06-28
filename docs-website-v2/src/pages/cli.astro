@@ -479,6 +479,44 @@ const packs = [
     </div>
   </section>
 
+  <!-- cc agent mode -->
+  <section class="py-16 md:py-24 bg-ink text-cream">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6 !bg-cream/10 !text-cream !border-cream/20">Agent 模式 · cc agent</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          一个进终端的智能体，<br/><span class="italic text-ember">外加一整套围着它的伴生命令</span>。
+        </h2>
+        <p class="mt-6 text-lg text-cream/70">
+          <code class="font-mono text-sm bg-cream/10 border border-cream/20 px-2 py-0.5 rounded">cc agent</code>（交互 REPL）与
+          <code class="font-mono text-sm bg-cream/10 border border-cream/20 px-2 py-0.5 rounded">cc agent -p</code>（无头单轮，进 CI / 管道）对标 Claude Code 的 <code class="font-mono text-sm">claude</code> / <code class="font-mono text-sm">claude -p</code>：
+          能读写文件、跑命令、搜索代码库、调技能、联网搜索，并配有权限网关、检查点回滚、记忆体系与桥接发现。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          ['cc agent -p', '无头单轮执行 + text/json/stream-json 输出 + --max-turns / --permission-mode'],
+          ['cc permissions', '.claude/settings.json 权限规则 allow/ask/deny + 凭据读取保护'],
+          ['cc checkpoint', 'git 仓内默认自动快照，agent 改动出问题一键 restore 回滚'],
+          ['cc cost', '估算 token $ 花费，按 provider/model 拆分；REPL 内 /cost'],
+          ['cc loop', '定时 / 自适应重复跑 prompt 或命令，停止条件可配'],
+          ['cc goal', '跨 session 持久目标 / OKR，agent 每轮对照推进'],
+          ['cc mcp / ide / pdh', '把 MCP server、编辑器、安卓设备的工具喂进 agent 循环'],
+          ['cc output-style', '命名人格叠加系统提示（explanatory / learning）'],
+          ['--json-schema', '结构化输出：回答经 JSON Schema 校验，失败自动纠错重试'],
+        ].map(([cmd, desc]) => (
+          <div class="p-6 rounded-xl bg-cream/5 border border-cream/15">
+            <code class="font-mono text-sm text-ember">{cmd}</code>
+            <p class="text-sm text-cream/70 mt-2">{desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-10">
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ember">Agent 模式命令大全 ↗</a>
+      </div>
+    </div>
+  </section>
+
   <!-- 9 Skill Packs -->
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">
