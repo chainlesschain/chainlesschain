@@ -9,6 +9,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single corrupt row must not throw out of a
+ * results/.map and drop the whole benchmark list. The `x ? JSON.parse(x) : d`
+ * form it replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[BenchmarkManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 const { getSuite, listSuites } = require("./benchmark-suites.js");
@@ -55,7 +74,9 @@ class BenchmarkManager extends EventEmitter {
     }
 
     if (!this.database) {
-      logger.warn("[BenchmarkManager] No database provided, skipping table creation");
+      logger.warn(
+        "[BenchmarkManager] No database provided, skipping table creation",
+      );
       this.initialized = true;
       return;
     }
@@ -129,7 +150,7 @@ class BenchmarkManager extends EventEmitter {
     if (this.database) {
       const stmt = this.database.prepare(
         `INSERT INTO benchmark_runs (id, suite_id, model_provider, model_name, status, total_prompts, completed_prompts, config, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
       );
       stmt.run(
         runId,
@@ -139,7 +160,7 @@ class BenchmarkManager extends EventEmitter {
         RUN_STATUS.PENDING,
         totalPrompts,
         JSON.stringify(modelConfig),
-        now
+        now,
       );
     }
 
@@ -150,7 +171,7 @@ class BenchmarkManager extends EventEmitter {
       // Update status to running
       if (this.database) {
         const stmt = this.database.prepare(
-          `UPDATE benchmark_runs SET status = ?, started_at = ? WHERE id = ?`
+          `UPDATE benchmark_runs SET status = ?, started_at = ? WHERE id = ?`,
         );
         stmt.run(RUN_STATUS.RUNNING, Date.now(), runId);
       }
@@ -167,12 +188,19 @@ class BenchmarkManager extends EventEmitter {
           if (!runState || runState.cancelled) {
             if (this.database) {
               const stmt = this.database.prepare(
-                `UPDATE benchmark_runs SET status = ?, completed_at = ? WHERE id = ?`
+                `UPDATE benchmark_runs SET status = ?, completed_at = ? WHERE id = ?`,
               );
               stmt.run(RUN_STATUS.CANCELLED, Date.now(), runId);
             }
             this.activeRuns.delete(runId);
-            return this._buildRunSummary(runId, suiteId, modelConfig, RUN_STATUS.CANCELLED, completedCount, totalPrompts);
+            return this._buildRunSummary(
+              runId,
+              suiteId,
+              modelConfig,
+              RUN_STATUS.CANCELLED,
+              completedCount,
+              totalPrompts,
+            );
           }
 
           const prompt = suite.prompts[promptIdx];
@@ -190,7 +218,8 @@ class BenchmarkManager extends EventEmitter {
 
             const latencyMs = Date.now() - startTime;
             const outputText = response.text || response.message?.content || "";
-            const tokensUsed = response.tokens || response.usage?.total_tokens || 0;
+            const tokensUsed =
+              response.tokens || response.usage?.total_tokens || 0;
 
             allLatencies.push(latencyMs);
             totalTokens += tokensUsed;
@@ -206,7 +235,7 @@ class BenchmarkManager extends EventEmitter {
             if (this.database) {
               const stmt = this.database.prepare(
                 `INSERT INTO benchmark_results (id, run_id, prompt_index, input_text, output_text, expected_text, metrics, iteration, latency_ms, tokens_used, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               );
               stmt.run(
                 resultId,
@@ -219,7 +248,7 @@ class BenchmarkManager extends EventEmitter {
                 iteration,
                 latencyMs,
                 tokensUsed,
-                Date.now()
+                Date.now(),
               );
             }
 
@@ -228,7 +257,7 @@ class BenchmarkManager extends EventEmitter {
             // Update progress
             if (this.database) {
               const stmt = this.database.prepare(
-                `UPDATE benchmark_runs SET completed_prompts = ? WHERE id = ?`
+                `UPDATE benchmark_runs SET completed_prompts = ? WHERE id = ?`,
               );
               stmt.run(completedCount, runId);
             }
@@ -244,13 +273,16 @@ class BenchmarkManager extends EventEmitter {
               iteration,
             });
           } catch (promptError) {
-            logger.error(`[BenchmarkManager] Prompt ${promptIdx} iteration ${iteration} failed:`, promptError);
+            logger.error(
+              `[BenchmarkManager] Prompt ${promptIdx} iteration ${iteration} failed:`,
+              promptError,
+            );
 
             // Store failed result
             if (this.database) {
               const stmt = this.database.prepare(
                 `INSERT INTO benchmark_results (id, run_id, prompt_index, input_text, output_text, expected_text, metrics, iteration, latency_ms, tokens_used, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               );
               stmt.run(
                 resultId,
@@ -263,7 +295,7 @@ class BenchmarkManager extends EventEmitter {
                 iteration,
                 0,
                 0,
-                Date.now()
+                Date.now(),
               );
             }
 
@@ -271,7 +303,7 @@ class BenchmarkManager extends EventEmitter {
 
             if (this.database) {
               const stmt = this.database.prepare(
-                `UPDATE benchmark_runs SET completed_prompts = ? WHERE id = ?`
+                `UPDATE benchmark_runs SET completed_prompts = ? WHERE id = ?`,
               );
               stmt.run(completedCount, runId);
             }
@@ -297,29 +329,42 @@ class BenchmarkManager extends EventEmitter {
       // Update run record
       if (this.database) {
         const stmt = this.database.prepare(
-          `UPDATE benchmark_runs SET status = ?, summary = ?, completed_at = ?, completed_prompts = ? WHERE id = ?`
+          `UPDATE benchmark_runs SET status = ?, summary = ?, completed_at = ?, completed_prompts = ? WHERE id = ?`,
         );
         stmt.run(
           RUN_STATUS.COMPLETED,
           JSON.stringify(summary),
           Date.now(),
           completedCount,
-          runId
+          runId,
         );
       }
 
       this.activeRuns.delete(runId);
       logger.info(`[BenchmarkManager] Benchmark run ${runId} completed`);
 
-      return this._buildRunSummary(runId, suiteId, modelConfig, RUN_STATUS.COMPLETED, completedCount, totalPrompts, summary);
+      return this._buildRunSummary(
+        runId,
+        suiteId,
+        modelConfig,
+        RUN_STATUS.COMPLETED,
+        completedCount,
+        totalPrompts,
+        summary,
+      );
     } catch (error) {
       logger.error(`[BenchmarkManager] Benchmark run ${runId} failed:`, error);
 
       if (this.database) {
         const stmt = this.database.prepare(
-          `UPDATE benchmark_runs SET status = ?, completed_at = ?, summary = ? WHERE id = ?`
+          `UPDATE benchmark_runs SET status = ?, completed_at = ?, summary = ? WHERE id = ?`,
         );
-        stmt.run(RUN_STATUS.FAILED, Date.now(), JSON.stringify({ error: error.message }), runId);
+        stmt.run(
+          RUN_STATUS.FAILED,
+          Date.now(),
+          JSON.stringify({ error: error.message }),
+          runId,
+        );
       }
 
       this.activeRuns.delete(runId);
@@ -350,7 +395,10 @@ class BenchmarkManager extends EventEmitter {
         const result = await this.runBenchmark(suiteId, modelConfig);
         results.push(result);
       } catch (error) {
-        logger.error(`[BenchmarkManager] Comparison run failed for ${modelConfig.model}:`, error);
+        logger.error(
+          `[BenchmarkManager] Comparison run failed for ${modelConfig.model}:`,
+          error,
+        );
         results.push({
           runId: null,
           suiteId,
@@ -382,7 +430,7 @@ class BenchmarkManager extends EventEmitter {
     }
 
     const stmt = this.database.prepare(
-      `SELECT id, suite_id, model_provider, model_name, status, total_prompts, completed_prompts, started_at, completed_at, created_at FROM benchmark_runs WHERE id = ?`
+      `SELECT id, suite_id, model_provider, model_name, status, total_prompts, completed_prompts, started_at, completed_at, created_at FROM benchmark_runs WHERE id = ?`,
     );
     const row = stmt.get(runId);
 
@@ -400,7 +448,8 @@ class BenchmarkManager extends EventEmitter {
       status: row.status,
       totalPrompts: row.total_prompts,
       completedPrompts: row.completed_prompts,
-      progress: row.total_prompts > 0 ? row.completed_prompts / row.total_prompts : 0,
+      progress:
+        row.total_prompts > 0 ? row.completed_prompts / row.total_prompts : 0,
       isActive,
       startedAt: row.started_at,
       completedAt: row.completed_at,
@@ -416,7 +465,9 @@ class BenchmarkManager extends EventEmitter {
   cancelRun(runId) {
     const runState = this.activeRuns.get(runId);
     if (!runState) {
-      logger.warn(`[BenchmarkManager] Run ${runId} is not active, cannot cancel`);
+      logger.warn(
+        `[BenchmarkManager] Run ${runId} is not active, cannot cancel`,
+      );
       return false;
     }
 
@@ -437,7 +488,7 @@ class BenchmarkManager extends EventEmitter {
 
     const stmt = this.database.prepare(
       `SELECT id, run_id, prompt_index, input_text, output_text, expected_text, metrics, iteration, latency_ms, tokens_used, created_at
-       FROM benchmark_results WHERE run_id = ? ORDER BY iteration ASC, prompt_index ASC`
+       FROM benchmark_results WHERE run_id = ? ORDER BY iteration ASC, prompt_index ASC`,
     );
     const rows = stmt.all(runId);
 
@@ -448,7 +499,7 @@ class BenchmarkManager extends EventEmitter {
       inputText: row.input_text,
       outputText: row.output_text,
       expectedText: row.expected_text,
-      metrics: row.metrics ? JSON.parse(row.metrics) : {},
+      metrics: safeParse(row.metrics, {}),
       iteration: row.iteration,
       latencyMs: row.latency_ms,
       tokensUsed: row.tokens_used,
@@ -467,7 +518,7 @@ class BenchmarkManager extends EventEmitter {
     }
 
     const runStmt = this.database.prepare(
-      `SELECT * FROM benchmark_runs WHERE id = ?`
+      `SELECT * FROM benchmark_runs WHERE id = ?`,
     );
     const run = runStmt.get(runId);
 
@@ -484,10 +535,14 @@ class BenchmarkManager extends EventEmitter {
       .map((r) => r.latencyMs);
     const latencyMetrics = calculateLatencyMetrics(latencies);
 
-    const totalTokens = results.reduce((sum, r) => sum + (r.tokensUsed || 0), 0);
-    const totalTimeMs = run.completed_at && run.started_at
-      ? run.completed_at - run.started_at
-      : 0;
+    const totalTokens = results.reduce(
+      (sum, r) => sum + (r.tokensUsed || 0),
+      0,
+    );
+    const totalTimeMs =
+      run.completed_at && run.started_at
+        ? run.completed_at - run.started_at
+        : 0;
     const throughput = calculateThroughput(totalTokens, totalTimeMs);
 
     // Quality metrics where expected text exists
@@ -499,12 +554,14 @@ class BenchmarkManager extends EventEmitter {
       .filter((r) => r.metrics && r.metrics.rougeL !== undefined)
       .map((r) => r.metrics.rougeL);
 
-    const avgBleu = bleuScores.length > 0
-      ? bleuScores.reduce((a, b) => a + b, 0) / bleuScores.length
-      : null;
-    const avgRougeL = rougeLScores.length > 0
-      ? rougeLScores.reduce((a, b) => a + b, 0) / rougeLScores.length
-      : null;
+    const avgBleu =
+      bleuScores.length > 0
+        ? bleuScores.reduce((a, b) => a + b, 0) / bleuScores.length
+        : null;
+    const avgRougeL =
+      rougeLScores.length > 0
+        ? rougeLScores.reduce((a, b) => a + b, 0) / rougeLScores.length
+        : null;
 
     const overallScore = calculateOverallScore({
       latency: latencyMetrics,
@@ -581,7 +638,7 @@ class BenchmarkManager extends EventEmitter {
     }
 
     const countStmt = this.database.prepare(
-      `SELECT COUNT(*) as total FROM benchmark_runs WHERE ${whereClause}`
+      `SELECT COUNT(*) as total FROM benchmark_runs WHERE ${whereClause}`,
     );
     const countResult = countStmt.get(...params);
     const total = countResult ? countResult.total : 0;
@@ -589,7 +646,7 @@ class BenchmarkManager extends EventEmitter {
     const listStmt = this.database.prepare(
       `SELECT id, suite_id, model_provider, model_name, status, total_prompts, completed_prompts, summary, started_at, completed_at, created_at
        FROM benchmark_runs WHERE ${whereClause}
-       ORDER BY created_at DESC LIMIT ? OFFSET ?`
+       ORDER BY created_at DESC LIMIT ? OFFSET ?`,
     );
     const rows = listStmt.all(...params, limit, offset);
 
@@ -601,7 +658,7 @@ class BenchmarkManager extends EventEmitter {
       status: row.status,
       totalPrompts: row.total_prompts,
       completedPrompts: row.completed_prompts,
-      summary: row.summary ? JSON.parse(row.summary) : null,
+      summary: safeParse(row.summary, null),
       startedAt: row.started_at,
       completedAt: row.completed_at,
       createdAt: row.created_at,
@@ -622,17 +679,19 @@ class BenchmarkManager extends EventEmitter {
 
     // Do not delete active runs
     if (this.activeRuns.has(runId)) {
-      throw new Error("Cannot delete an active benchmark run. Cancel it first.");
+      throw new Error(
+        "Cannot delete an active benchmark run. Cancel it first.",
+      );
     }
 
     // Delete results first (in case FK constraints are not enforced)
     const deleteResultsStmt = this.database.prepare(
-      `DELETE FROM benchmark_results WHERE run_id = ?`
+      `DELETE FROM benchmark_results WHERE run_id = ?`,
     );
     deleteResultsStmt.run(runId);
 
     const deleteRunStmt = this.database.prepare(
-      `DELETE FROM benchmark_runs WHERE id = ?`
+      `DELETE FROM benchmark_runs WHERE id = ?`,
     );
     const result = deleteRunStmt.run(runId);
 
@@ -648,7 +707,15 @@ class BenchmarkManager extends EventEmitter {
    * Build a run summary object
    * @private
    */
-  _buildRunSummary(runId, suiteId, modelConfig, status, completedPrompts, totalPrompts, summary = null) {
+  _buildRunSummary(
+    runId,
+    suiteId,
+    modelConfig,
+    status,
+    completedPrompts,
+    totalPrompts,
+    summary = null,
+  ) {
     return {
       runId,
       suiteId,

@@ -9,6 +9,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single corrupt row must not throw out of the
+ * history .map and drop the whole list. The `x ? JSON.parse(x) : d` form it
+ * replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[MultimodalRouter] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
@@ -83,7 +102,9 @@ class MultimodalRouter extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS multimodal_sessions (
@@ -129,7 +150,9 @@ class MultimodalRouter extends EventEmitter {
 
   async _saveCapabilities() {
     const db = this.database?.db;
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO multimodal_capabilities (modality, available, provider, last_checked) VALUES (?, ?, ?, ?)",
@@ -142,7 +165,9 @@ class MultimodalRouter extends EventEmitter {
   }
 
   detectInputType(inputPath) {
-    if (!inputPath) {return ModalityTypes.TEXT;}
+    if (!inputPath) {
+      return ModalityTypes.TEXT;
+    }
     const ext = path.extname(inputPath).toLowerCase();
     return EXTENSION_MAP[ext] || ModalityTypes.TEXT;
   }
@@ -284,19 +309,25 @@ class MultimodalRouter extends EventEmitter {
 
   async getSession(sessionId) {
     const db = this.database?.db;
-    if (!db) {return null;}
+    if (!db) {
+      return null;
+    }
 
     const row = db
       .prepare("SELECT * FROM multimodal_sessions WHERE id = ?")
       .get(sessionId);
-    if (!row) {return null;}
+    if (!row) {
+      return null;
+    }
 
     return { ...row, result: row.result ? JSON.parse(row.result) : null };
   }
 
   async listSessions({ limit = 20, offset = 0, type } = {}) {
     const db = this.database?.db;
-    if (!db) {return { sessions: [], total: 0 };}
+    if (!db) {
+      return { sessions: [], total: 0 };
+    }
 
     let query = "SELECT * FROM multimodal_sessions";
     let countQuery = "SELECT COUNT(*) as total FROM multimodal_sessions";
@@ -315,7 +346,7 @@ class MultimodalRouter extends EventEmitter {
     return {
       sessions: rows.map((r) => ({
         ...r,
-        result: r.result ? JSON.parse(r.result) : null,
+        result: safeParse(r.result, null),
       })),
       total,
     };
@@ -323,7 +354,9 @@ class MultimodalRouter extends EventEmitter {
 
   async deleteSession(sessionId) {
     const db = this.database?.db;
-    if (!db) {return false;}
+    if (!db) {
+      return false;
+    }
 
     const result = db
       .prepare("DELETE FROM multimodal_sessions WHERE id = ?")
@@ -333,7 +366,9 @@ class MultimodalRouter extends EventEmitter {
 
   async getStats() {
     const db = this.database?.db;
-    if (!db) {return {};}
+    if (!db) {
+      return {};
+    }
 
     const stats = db
       .prepare(
@@ -368,7 +403,9 @@ class MultimodalRouter extends EventEmitter {
 
   async _saveSession(sessionId, type, inputPath, result, duration) {
     const db = this.database?.db;
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     db.prepare(
       `INSERT INTO multimodal_sessions (id, type, input_path, result, model_used, duration_ms)

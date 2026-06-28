@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single node with a corrupt supported_models
+ * string must not throw out of the load/.map and drop every node. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[InferenceNodeRegistry] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 
@@ -84,9 +103,7 @@ class InferenceNodeRegistry extends EventEmitter {
         for (const n of nodes) {
           this._nodes.set(n.id, {
             ...n,
-            supported_models: n.supported_models
-              ? JSON.parse(n.supported_models)
-              : [],
+            supported_models: safeParse(n.supported_models, []),
           });
         }
         logger.info(`[InferenceNodeRegistry] Loaded ${nodes.length} nodes`);
@@ -172,9 +189,7 @@ class InferenceNodeRegistry extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          supported_models: r.supported_models
-            ? JSON.parse(r.supported_models)
-            : [],
+          supported_models: safeParse(r.supported_models, []),
         }));
       } catch (err) {
         logger.error("[InferenceNodeRegistry] Failed to list nodes:", err);

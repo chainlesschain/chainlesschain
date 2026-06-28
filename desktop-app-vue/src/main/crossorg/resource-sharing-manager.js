@@ -598,7 +598,7 @@ class ResourceSharingManager extends EventEmitter {
           resourceType: r.resource_type,
           resourceId: r.resource_id,
           resourceName: r.resource_name,
-          permissions: r.permissions ? JSON.parse(r.permissions) : [],
+          permissions: safeParse(r.permissions, []),
           sharedAt: r.created_at,
         })),
       };
