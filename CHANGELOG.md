@@ -55,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
 
+## [v5.0.3.132] - 2026-06-28 — PDH 分析层两处日期正确性修复上设备（账单月份溢出 + 时间线月窗口）
+
+### Fixed — 个人数据中台 analysis/adapter 两处真 bug（pdh 0.4.38 上船 cc bundle，经完整 traps #27/#28 链）
+
+> 修复个人数据 IDE 桥接（module 101）服务的分析层两处日期正确性 bug，并经完整发版链把 pdh 0.4.38 上设备。
+
+- **账单月份日期溢出**：`email-imap/templates/bill.js` 从 `dueDate` 推算 `billingMonth` 时用 naive `setMonth(getMonth()-1)`，保留 day-of-month → 还款日在 29-31 号时溢出到错误月份（如 3-31 减一月 → Feb 31 → 滚到 3 月 → 误判 "March" 而非应得的 "February"）。信用卡账单常在月末到期，真实数据可触发，把账单错分到相邻月。改为 `new Date(year, month-1, 1)`（构造器正确处理跨年下溢）。+2 回归测试（月末到期 + 跨年边界）。
+- **时间线月窗口被默认 7 天遮蔽**：`analysis-skills/timeline.js` 把默认 `sinceDays:7` 注入在 `...options` 之前，而 `resolveTimeWindow` 按 `since > sinceDays > sinceMonths` 取值 → 显式 `sinceMonths:N` 被静默压成 7 天窗口。改为仅当未给任何窗口时才套 7 天默认。+1 回归测试。
+- **新增桥接连通集成测试**：`pdh-bridge-connect.test.js`（6 测试）驱动真实 cc 侧 discover → connect → tools/call 链对接协议一致的 MCP server（无设备），自动化此前仅手工的「跨设备验证法」。
+- **发版链**：pdh `0.4.37→0.4.38` + cli `0.162.127→0.162.128`（已发 npm `latest`，published tarball 实测含两修复）+ USR_VERSION `59→60` + cc bundle `v20260628→v20260628b`（携 pdh 0.4.38，full-asset sha256 经 resume-loop 下载校验）。桌面/CLI 用户经 `npm i -g` 即得；Android 真机装本 APK 后 USR 重提取生效。
+
 ## [v5.0.3.131] - 2026-06-28 — MIUI/AOSP 浏览历史采集器（闭合 schema 字典「适配缺口」）
 
 ### Added — `browser-history-aosp` 采集器（device-verified schema，全平台上船）
