@@ -1,11 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  utimesSync,
+  statSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   findProjectRoot,
   loadProjectConfig,
   isInsideProject,
+  _clearProjectConfigCache,
 } from "../../src/lib/project-detector.js";
 
 describe("project-detector", () => {
@@ -90,6 +98,73 @@ describe("project-detector", () => {
       writeFileSync(join(ccDir, "config.json"), "not json{{{", "utf-8");
 
       expect(loadProjectConfig(tempDir)).toBeNull();
+    });
+  });
+
+  // ─── loadProjectConfig caching (mtime-invalidated) ────
+
+  describe("loadProjectConfig caching", () => {
+    let cfgPath;
+
+    beforeEach(() => {
+      _clearProjectConfigCache();
+      const ccDir = join(tempDir, ".chainlesschain");
+      mkdirSync(ccDir, { recursive: true });
+      cfgPath = join(ccDir, "config.json");
+    });
+
+    it("serves an unchanged file from cache (same object reference)", () => {
+      writeFileSync(cfgPath, JSON.stringify({ name: "a", n: 1 }), "utf-8");
+
+      const first = loadProjectConfig(tempDir);
+      const second = loadProjectConfig(tempDir);
+
+      // A cache hit returns the stored object; a fresh JSON.parse would yield a
+      // new object (!==). Reference identity proves the parse was skipped.
+      expect(second).toBe(first);
+      expect(second).toEqual({ name: "a", n: 1 });
+    });
+
+    it("re-reads after the file's mtime changes (edit / persona set)", () => {
+      writeFileSync(cfgPath, JSON.stringify({ name: "a" }), "utf-8");
+      const first = loadProjectConfig(tempDir);
+      expect(first).toEqual({ name: "a" });
+
+      // Rewrite with new content and force a distinctly newer mtime (a same-tick
+      // overwrite could keep the same mtimeMs on coarse-resolution filesystems).
+      writeFileSync(
+        cfgPath,
+        JSON.stringify({ name: "b", extra: true }),
+        "utf-8",
+      );
+      const bumped = new Date(statSync(cfgPath).mtimeMs + 5000);
+      utimesSync(cfgPath, bumped, bumped);
+
+      const second = loadProjectConfig(tempDir);
+      expect(second).not.toBe(first); // invalidated → re-parsed
+      expect(second).toEqual({ name: "b", extra: true });
+    });
+
+    it("re-reads after the file is removed and recreated", () => {
+      writeFileSync(cfgPath, JSON.stringify({ name: "a" }), "utf-8");
+      expect(loadProjectConfig(tempDir)).toEqual({ name: "a" });
+
+      rmSync(cfgPath);
+      expect(loadProjectConfig(tempDir)).toBeNull(); // stale entry dropped
+
+      writeFileSync(cfgPath, JSON.stringify({ name: "c" }), "utf-8");
+      expect(loadProjectConfig(tempDir)).toEqual({ name: "c" });
+    });
+
+    it("caches a null for malformed JSON, then recovers when fixed", () => {
+      writeFileSync(cfgPath, "broken{{{", "utf-8");
+      expect(loadProjectConfig(tempDir)).toBeNull();
+
+      writeFileSync(cfgPath, JSON.stringify({ name: "fixed" }), "utf-8");
+      const bumped = new Date(statSync(cfgPath).mtimeMs + 5000);
+      utimesSync(cfgPath, bumped, bumped);
+
+      expect(loadProjectConfig(tempDir)).toEqual({ name: "fixed" });
     });
   });
 
