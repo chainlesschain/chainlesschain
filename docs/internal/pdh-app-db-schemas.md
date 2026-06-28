@@ -45,8 +45,8 @@
 
 **adapter 适配状态**（`social-douyin` + `social-douyin-adb/im-db-parser.js`）：
 - ✅ `msg` → 已支持（`PRAGMA table_info` 动态选列 `sender`/`created_time`/`content`/`conversation_id`，命中真机 schema）。
-- ⚠️ 联系人：parser 现查 `SIMPLE_USER`（旧版/它版），**真机是 `participant`** → 需补 `participant` 读取（成员 uid → PERSON）。
-- ⚠️ `conversation_list` → TOPIC 尚未映射，可补。
+- ✅ 联系人：parser 查 `SIMPLE_USER`（旧版/它版）**+ `participant`（真机 schema，成员 uid → PERSON，已补 `707ff41cc3`）**，两表去重。
+- ✅ `conversation_list` → TOPIC（每会话一线程，已补 `705aa82154`）。
 - 前提：parser 需**明文 sqlite 文件**；加密原始库要先经 Method B 重组出可查询文件（散页重组）或 Method A 拿 key 离线解密（见 runbook 约束 §4）。
 
 ### 视频/内容库（`inferred`，adapter 现有 sqlite 模式即针对它）
@@ -301,9 +301,9 @@ DB 文件（均明文 `SQLite format 3`，root 读）：`sina_weibo` / `message_
 | `ArticleDb.long_text_table` | `_own_uid`,`_mid`,`_content` | **本人发的长微博正文** | **EVENT**(`POST`) | `_mid`=微博 id；`_content`=正文（兴趣/观点信号）|
 | `sina_weibo.mblog_pic_table` | `mblogid`,`picid`,`*url` | 微博配图 | ITEM(图片) | 按 `mblogid` 关联到 post |
 | `message_<uid>.db.t_session` | `session_id`,`last_msg_*` | 私信会话列表 | **TOPIC** | 本机为空壳(null)；填充账号有 `t_message`(t_buddy/t_group) |
-| `sina_weibo.home_table`/`like_table`/`follower_table` | (填充账号才有) | 时间线/赞/粉丝 | EVENT/PERSON | 本测试账号无这些表→**旧 sqlite 适配器查这些表会静默 0 行**（已知坑）|
+| `sina_weibo.home_table`/`like_table`/`follower_table` | (填充账号才有) | 时间线/赞/粉丝 | EVENT/PERSON | 填充账号才有；sqlite 模式已读这三表（`a26bba5dbc` device-verified schema）|
 
-**适配状态**：`social-weibo` 适配器 **snapshot 模式**（`{schemaVersion:1,account:{uid},events:[{kind:"post",text,mid,picCount}]}` → `cc hub sync-adapter social-weibo --input`，已实测入库 + FTS5 可搜）。sqlite 模式查的表名与真机不符（坑）。
+**适配状态**：`social-weibo` 适配器 **snapshot 模式**（`{schemaVersion:1,account:{uid},events:[{kind:"post",text,mid,picCount}]}` → `cc hub sync-adapter social-weibo --input`，已实测入库 + FTS5 可搜）+ **sqlite 模式现读真机 `home_table`/`like_table`/`follower_table`（`a26bba5dbc`）**。私信 `message_<uid>.db`（`t_message`/`t_session`/`t_buddy`/`t_group`）仍未接（本机账号空壳，`t_message` 列未实测 → 不盲写映射；待填充账号验证）。
 **AI/决策**：`long_text_table` 正文=公开表达/兴趣；**UI**：个人微博 feed 卡（正文+配图）。
 
 ---
