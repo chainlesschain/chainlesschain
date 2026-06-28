@@ -391,8 +391,38 @@ class WorkflowEngine extends EventEmitter {
     return execution;
   }
 
-  async _executeStages(execution, stages, allStages) {
-    for (const stage of stages) {
+  async _executeStages(execution, entryStages, allStages) {
+    // In-degree (Kahn's) topological execution: each stage runs exactly ONCE,
+    // only after ALL of its parents have completed. The previous recursive DFS
+    // followed every `next` edge independently, so a convergence ("diamond")
+    // node ran once per incoming edge — A→[B,C], B→D, C→D ran D twice; N
+    // chained diamonds ran the join node 2^N times, double-firing side effects
+    // and logs. A node only becomes "ready" when its in-degree reaches 0.
+    const stagesById = new Map((allStages || []).map((s) => [s.id, s]));
+    const inDegree = new Map();
+    for (const s of allStages || []) {
+      inDegree.set(s.id, 0);
+    }
+    for (const s of allStages || []) {
+      for (const childId of s.next || []) {
+        if (inDegree.has(childId)) {
+          inDegree.set(childId, inDegree.get(childId) + 1);
+        }
+      }
+    }
+
+    const ready = [];
+    const enqueued = new Set();
+    for (const s of entryStages || []) {
+      if ((inDegree.get(s.id) || 0) === 0 && !enqueued.has(s.id)) {
+        ready.push(s);
+        enqueued.add(s.id);
+      }
+    }
+
+    while (ready.length > 0) {
+      const stage = ready.shift();
+
       // Check for breakpoint
       if (this._breakpoints.has(`${execution.workflowId}:${stage.id}`)) {
         execution.status = "paused";
@@ -439,12 +469,20 @@ class WorkflowEngine extends EventEmitter {
 
       execution.log.push(logEntry);
 
-      // Execute next stages
-      if (stage.next && stage.next.length > 0) {
-        const nextStages = stage.next
-          .map((id) => allStages.find((s) => s.id === id))
-          .filter(Boolean);
-        await this._executeStages(execution, nextStages, allStages);
+      // Mark this stage done: decrement each child's in-degree and enqueue any
+      // whose parents have now ALL completed.
+      for (const childId of stage.next || []) {
+        if (!inDegree.has(childId)) {
+          continue;
+        }
+        inDegree.set(childId, inDegree.get(childId) - 1);
+        if (inDegree.get(childId) === 0 && !enqueued.has(childId)) {
+          const child = stagesById.get(childId);
+          if (child) {
+            ready.push(child);
+            enqueued.add(childId);
+          }
+        }
       }
     }
   }
