@@ -42,6 +42,11 @@ class PluginSandbox extends EventEmitter {
 
     // 状态
     this.state = "created"; // created, loaded, enabled, disabled, error
+
+    // 插件通过沙箱 setTimeout/setInterval 创建的定时器句柄。destroy() 必须全部
+    // 清除，否则插件的定时器回调会在沙箱销毁后继续运行（泄漏内存 + 销毁后仍执行
+    // 插件代码）。
+    this._activeTimers = new Set();
   }
 
   /**
@@ -158,10 +163,11 @@ class PluginSandbox extends EventEmitter {
         error: (...args) => this.pluginAPI.api.utils.error(...args),
       },
 
-      // 定时器（带限制）
+      // 定时器（带限制 + 句柄追踪，destroy() 时统一清理）
       setTimeout: (fn, delay) => {
-        return setTimeout(
+        const id = setTimeout(
           () => {
+            this._activeTimers.delete(id); // one-shot：触发后自动取消追踪
             try {
               fn();
             } catch (error) {
@@ -170,10 +176,12 @@ class PluginSandbox extends EventEmitter {
           },
           Math.min(delay, 60000),
         ); // 最大60秒
+        this._activeTimers.add(id);
+        return id;
       },
 
       setInterval: (fn, delay) => {
-        return setInterval(
+        const id = setInterval(
           () => {
             try {
               fn();
@@ -183,10 +191,18 @@ class PluginSandbox extends EventEmitter {
           },
           Math.max(delay, 100),
         ); // 最小100ms
+        this._activeTimers.add(id);
+        return id;
       },
 
-      clearTimeout: (id) => clearTimeout(id),
-      clearInterval: (id) => clearInterval(id),
+      clearTimeout: (id) => {
+        this._activeTimers.delete(id);
+        clearTimeout(id);
+      },
+      clearInterval: (id) => {
+        this._activeTimers.delete(id);
+        clearInterval(id);
+      },
 
       // Promise支持
       Promise: Promise,
@@ -471,6 +487,13 @@ class PluginSandbox extends EventEmitter {
    * 销毁沙箱
    */
   destroy() {
+    // 清除插件残留的定时器，避免销毁后插件回调继续运行 / 泄漏。
+    for (const id of this._activeTimers) {
+      clearTimeout(id);
+      clearInterval(id); // Node 的 Timeout 句柄可被任一方法清除，双清安全
+    }
+    this._activeTimers.clear();
+
     this.removeAllListeners();
     this.instance = null;
     this.context = null;
