@@ -18,7 +18,9 @@ jobs:
   lint:
     name: Lint Check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 15m was too tight — Android lint over the whole project runs ~15m18s and
+    # hit the timeout → job cancelled → Build APK (needs lint==success) skipped.
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
