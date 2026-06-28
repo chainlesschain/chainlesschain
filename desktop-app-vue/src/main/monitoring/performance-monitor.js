@@ -276,7 +276,7 @@ class PerformanceMonitor {
         return {
           phase: q.phase,
           duration: Math.round(q.duration),
-          metadata: JSON.parse(q.metadata || "{}"),
+          metadata: safeParse(q.metadata, {}),
           timestamp,
           sessionId: q.session_id,
         };

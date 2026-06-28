@@ -505,7 +505,7 @@ class P2PSyncEngine extends EventEmitter {
           action: "update",
           data: data,
           version: resource.local_version,
-          vector_clock: JSON.parse(resource.vector_clock || "{}"),
+          vector_clock: safeParse(resource.vector_clock, {}),
           author_did: currentDID.did,
           timestamp: Date.now(),
         };
