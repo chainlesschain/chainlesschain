@@ -22,6 +22,19 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[PipelineOrch] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 
@@ -973,17 +986,17 @@ class PipelineOrchestrator extends EventEmitter {
 
         const pipeline = {
           ...row,
-          specJson: JSON.parse(row.spec_json || "{}"),
-          config: JSON.parse(row.config || "{}"),
-          metrics: JSON.parse(row.metrics || "{}"),
+          specJson: safeParse(row.spec_json, {}),
+          config: safeParse(row.config, {}),
+          metrics: safeParse(row.metrics, {}),
           stages: stages.map((s) => ({
             id: s.id,
             pipelineId: s.pipeline_id,
             stageName: s.stage_name,
             stageOrder: s.stage_order,
             status: s.status,
-            input: JSON.parse(s.input || "{}"),
-            output: JSON.parse(s.output || "{}"),
+            input: safeParse(s.input, {}),
+            output: safeParse(s.output, {}),
             agentId: s.agent_id,
             gateApprover: s.gate_approver,
             gateComment: s.gate_comment,
@@ -1144,7 +1157,7 @@ class PipelineOrchestrator extends EventEmitter {
           artifactType: row.artifact_type,
           content: row.content,
           filePath: row.file_path,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
           createdAt: row.created_at,
         }));
     } catch (error) {

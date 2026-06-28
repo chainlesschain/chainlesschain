@@ -18,6 +18,21 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[IncidentClassifier] Bad JSON column, fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 
@@ -574,9 +589,9 @@ class IncidentClassifier extends EventEmitter {
           playbookId: row.playbook_id,
           remediationResult: row.remediation_result,
           rollbackExecuted: !!row.rollback_executed,
-          alertChannels: JSON.parse(row.alert_channels || "[]"),
+          alertChannels: safeParse(row.alert_channels, []),
           postmortem: row.postmortem,
-          timeline: JSON.parse(row.timeline || "[]"),
+          timeline: safeParse(row.timeline, []),
           createdAt: row.created_at,
           acknowledgedAt: row.acknowledged_at,
           resolvedAt: row.resolved_at,
@@ -611,9 +626,9 @@ class IncidentClassifier extends EventEmitter {
         playbookId: row.playbook_id,
         remediationResult: row.remediation_result,
         rollbackExecuted: !!row.rollback_executed,
-        alertChannels: JSON.parse(row.alert_channels || "[]"),
+        alertChannels: safeParse(row.alert_channels, []),
         postmortem: row.postmortem,
-        timeline: JSON.parse(row.timeline || "[]"),
+        timeline: safeParse(row.timeline, []),
         createdAt: row.created_at,
         acknowledgedAt: row.acknowledged_at,
         resolvedAt: row.resolved_at,

@@ -2,6 +2,19 @@ const { EventEmitter } = require("events");
 const crypto = require("crypto");
 const { logger } = require("../../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[GraphQLAPI] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 let graphqlLib = null;
 try {
   graphqlLib = require("graphql");
@@ -490,7 +503,7 @@ class GraphQLAPIManager extends EventEmitter {
           id: row.id,
           keyHash: row.key_hash,
           name: row.name,
-          permissions: JSON.parse(row.permissions || '["query"]'),
+          permissions: safeParse(row.permissions, ["query"]),
           rateLimit: row.rate_limit,
           requestsToday: row.requests_today,
           status: row.status,

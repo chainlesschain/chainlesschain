@@ -14,6 +14,19 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[AutoRemediator] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -646,10 +659,10 @@ class AutoRemediator extends EventEmitter {
           id: row.id,
           name: row.name,
           description: row.description,
-          trigger: JSON.parse(row.trigger_config || "{}"),
-          steps: JSON.parse(row.steps || "[]"),
+          trigger: safeParse(row.trigger_config, {}),
+          steps: safeParse(row.steps, []),
           rollbackOnFailure: Boolean(row.rollback_on_failure),
-          notifyChannels: JSON.parse(row.notify_channels || "[]"),
+          notifyChannels: safeParse(row.notify_channels, []),
           // schema column is named `active` (with idx_ops_playbooks_active);
           // expose as `enabled` for in-memory API compatibility.
           enabled: row.active !== 0,

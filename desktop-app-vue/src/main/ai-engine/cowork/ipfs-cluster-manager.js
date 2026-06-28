@@ -13,6 +13,19 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+
+/** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[IPFSCluster] Bad JSON column, fallback: ${err.message}`);
+    return fallback;
+  }
+}
 const { v4: uuidv4 } = require("uuid");
 
 // ============================================================
@@ -174,7 +187,7 @@ class IPFSClusterManager extends EventEmitter {
       for (const row of rows) {
         const node = {
           ...row,
-          metadata: JSON.parse(row.metadata || "{}"),
+          metadata: safeParse(row.metadata, {}),
         };
         this._nodes.set(node.id, node);
       }
@@ -195,8 +208,8 @@ class IPFSClusterManager extends EventEmitter {
       for (const row of rows) {
         const pin = {
           ...row,
-          allocations: JSON.parse(row.allocations || "[]"),
-          metadata: JSON.parse(row.metadata || "{}"),
+          allocations: safeParse(row.allocations, []),
+          metadata: safeParse(row.metadata, {}),
         };
         this._pins.set(pin.id, pin);
       }
