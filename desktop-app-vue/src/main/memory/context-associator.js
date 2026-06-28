@@ -14,6 +14,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const _fs = require("fs").promises;
 const _path = require("path");
 const { EventEmitter } = require("events");
@@ -361,12 +362,12 @@ Respond in JSON format:
 
     try {
       // Try to extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      let data;
+      try {
+        data = looseParseJSON(response);
+      } catch {
         return knowledge;
       }
-
-      const data = JSON.parse(jsonMatch[0]);
 
       // Process topics
       if (data.topics && Array.isArray(data.topics)) {

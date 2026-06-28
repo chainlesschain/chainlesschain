@@ -12,6 +12,7 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+const { looseParseJSON } = require("../response-parser.js");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
@@ -481,9 +482,8 @@ class DebateReview {
     // Try parsing as JSON from string
     if (typeof result === "string") {
       try {
-        const jsonMatch = result.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = looseParseJSON(result);
+        if (parsed) {
           return {
             perspective: parsed.perspective || perspective,
             vote: parsed.vote || "NEEDS_WORK",

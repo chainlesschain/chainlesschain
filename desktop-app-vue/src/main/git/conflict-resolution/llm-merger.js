@@ -9,6 +9,7 @@
 
 const { logger } = require("../../utils/logger.js");
 const { MERGE_RESULT } = require("./rule-merger");
+const { looseParseJSON } = require("../../ai-engine/response-parser.js");
 
 // LLM request timeout
 const LLM_TIMEOUT_MS = 10000;
@@ -319,9 +320,9 @@ Write a brief, friendly explanation for the user.`;
   _parseIntentResponse(response) {
     try {
       // Try to extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      const parsed = looseParseJSON(response);
+      if (parsed) {
+        return parsed;
       }
     } catch (_e) {
       // Fallback
