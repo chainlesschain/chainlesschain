@@ -15,6 +15,31 @@ const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 
 /**
+ * Parse a template's `capabilities` column robustly. A single template with a
+ * corrupt (non-JSON) capabilities string must NOT abort the whole template-
+ * matching loop in selectBestAgent — the outer try/catch would swallow the
+ * throw and silently return no best agent. Treat an unparseable value as "no
+ * capabilities" so that one template just doesn't match, and the rest are still
+ * evaluated. Already-parsed arrays pass through; null/empty → [].
+ */
+function safeParseCapabilities(raw) {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+  if (typeof raw !== "string" || raw === "") {
+    return [];
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[AgentCoordinator] Bad template capabilities JSON, skipping template: ${err.message}`,
+    );
+    return [];
+  }
+}
+
+/**
  * Agent type keyword mappings for task analysis
  * @type {Object<string, string[]>}
  */
@@ -1000,10 +1025,9 @@ class AgentCoordinator extends EventEmitter {
             continue;
           }
 
-          const templateCapabilities =
-            typeof template.capabilities === "string"
-              ? JSON.parse(template.capabilities)
-              : template.capabilities || [];
+          const templateCapabilities = safeParseCapabilities(
+            template.capabilities,
+          );
 
           const score = this._matchCapabilities(
             requiredCapabilities,
@@ -1094,9 +1118,7 @@ class AgentCoordinator extends EventEmitter {
           .all();
 
         for (const row of dbTemplates) {
-          const templateCapabilities = row.capabilities
-            ? JSON.parse(row.capabilities)
-            : [];
+          const templateCapabilities = safeParseCapabilities(row.capabilities);
           const score = this._matchCapabilities(
             requiredCapabilities,
             templateCapabilities,
