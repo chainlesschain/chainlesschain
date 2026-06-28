@@ -5,6 +5,7 @@
  * @module project/project-ai-ipc-intent
  */
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 
 function registerIntentHandlers(ctx) {
   const { ipcMain, llmManager } = ctx;
@@ -78,17 +79,9 @@ function registerIntentHandlers(ctx) {
       let understanding;
       try {
         // 提取JSON部分
-        const jsonMatch =
-          llmResult.content.match(/```json\s*([\s\S]*?)```/) ||
-          llmResult.content.match(/```\s*([\s\S]*?)```/) ||
-          llmResult.content.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) {
-          throw new Error("LLM响应中未找到JSON格式的理解结果");
-        }
-
-        const jsonText = jsonMatch[1] || jsonMatch[0];
-        understanding = JSON.parse(jsonText);
+        // looseParseJSON: 直接→```fenced```→括号配对候选→贪婪兜底；无 JSON 时
+        // 抛 SyntaxError，与原先 `if(!jsonMatch) throw` 同样被外层 catch 接住。
+        understanding = looseParseJSON(llmResult.content);
 
         // 验证必要字段
         if (!understanding.correctedInput) {

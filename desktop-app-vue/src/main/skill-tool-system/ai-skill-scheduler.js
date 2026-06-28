@@ -4,6 +4,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const EventEmitter = require("events");
 
 class AISkillScheduler extends EventEmitter {
@@ -228,13 +229,14 @@ class AISkillScheduler extends EventEmitter {
 
     try {
       // 提取JSON（处理可能的markdown包装）
-      const jsonMatch =
-        response.match(/```json\n([\s\S]*?)\n```/) ||
-        response.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        return JSON.parse(jsonStr);
+      let parsed = null;
+      try {
+        parsed = looseParseJSON(response);
+      } catch {
+        parsed = null;
+      }
+      if (parsed) {
+        return parsed;
       }
 
       // 如果无法解析，返回基础意图
@@ -429,13 +431,14 @@ class AISkillScheduler extends EventEmitter {
     const response = await this.llmService.chat(prompt);
 
     try {
-      const jsonMatch =
-        response.match(/```json\n([\s\S]*?)\n```/) ||
-        response.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        return JSON.parse(jsonStr);
+      let parsed = null;
+      try {
+        parsed = looseParseJSON(response);
+      } catch {
+        parsed = null;
+      }
+      if (parsed) {
+        return parsed;
       }
 
       return {};

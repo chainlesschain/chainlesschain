@@ -7,6 +7,7 @@
  * @module project/project-ai-ipc-chat
  */
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const axios = require("axios");
 const crypto = require("crypto");
 const path = require("path");
@@ -43,18 +44,13 @@ function extractPPTOutline(aiResponse) {
     );
 
     // 提取JSON
-    const jsonMatch =
-      outlineSection.match(/```json\s*([\s\S]*?)```/) ||
-      outlineSection.match(/```\s*([\s\S]*?)```/) ||
-      outlineSection.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
+    let outline;
+    try {
+      outline = looseParseJSON(outlineSection);
+    } catch {
       logger.warn("[PPT Detector] 未找到JSON格式的大纲");
       return null;
     }
-
-    const jsonText = jsonMatch[1] || jsonMatch[0];
-    const outline = JSON.parse(jsonText);
 
     logger.info("[PPT Detector] 成功提取PPT大纲:", outline.title);
     return outline;

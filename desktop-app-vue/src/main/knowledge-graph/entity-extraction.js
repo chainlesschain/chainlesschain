@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const { looseParseJSON } = require("../ai-engine/response-parser.js");
 
 /**
  * 增强的实体提取模块
@@ -234,9 +235,13 @@ ${text}
     const content = response.content || response.message?.content || "";
 
     // 尝试提取 JSON
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
+    let result = null;
+    try {
+      result = looseParseJSON(content);
+    } catch {
+      result = null;
+    }
+    if (result) {
       return result;
     }
 

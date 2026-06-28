@@ -12,30 +12,31 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
-const path = require('path');
+const { EventEmitter } = require("events");
+const path = require("path");
+const { looseParseJSON } = require("../../ai-engine/response-parser.js");
 
 /**
  * 支持的 Vision 模型
  */
 const VisionModel = {
-  CLAUDE_VISION: 'claude-sonnet-4-6', // Claude Sonnet 4.6 (Vision)
-  CLAUDE_OPUS: 'claude-opus-4-8',
-  GPT4_VISION: 'gpt-4o', // gpt-4-vision-preview was retired; gpt-4o is multimodal
-  GPT4O: 'gpt-4o',
-  LLAVA: 'llava:13b' // 本地 Ollama
+  CLAUDE_VISION: "claude-sonnet-4-6", // Claude Sonnet 4.6 (Vision)
+  CLAUDE_OPUS: "claude-opus-4-8",
+  GPT4_VISION: "gpt-4o", // gpt-4-vision-preview was retired; gpt-4o is multimodal
+  GPT4O: "gpt-4o",
+  LLAVA: "llava:13b", // 本地 Ollama
 };
 
 /**
  * 视觉任务类型
  */
 const VisionTaskType = {
-  ANALYZE: 'analyze',           // 分析页面内容
-  LOCATE_ELEMENT: 'locate',     // 定位元素
-  COMPARE: 'compare',           // 对比截图
-  OCR: 'ocr',                   // 文字识别
-  DESCRIBE: 'describe',         // 描述页面
-  FIND_CLICK_TARGET: 'click'    // 找到点击目标
+  ANALYZE: "analyze", // 分析页面内容
+  LOCATE_ELEMENT: "locate", // 定位元素
+  COMPARE: "compare", // 对比截图
+  OCR: "ocr", // 文字识别
+  DESCRIBE: "describe", // 描述页面
+  FIND_CLICK_TARGET: "click", // 找到点击目标
 };
 
 class VisionAction extends EventEmitter {
@@ -50,7 +51,7 @@ class VisionAction extends EventEmitter {
       maxTokens: 4096,
       temperature: 0.1,
       screenshotQuality: 80,
-      maxImageSize: 1024 * 1024 * 4 // 4MB
+      maxImageSize: 1024 * 1024 * 4, // 4MB
     };
 
     // 缓存最近的分析结果
@@ -82,13 +83,13 @@ class VisionAction extends EventEmitter {
     const page = this._getPage(targetId);
 
     const buffer = await page.screenshot({
-      type: 'jpeg',
+      type: "jpeg",
       quality: options.quality || this.config.screenshotQuality,
       fullPage: options.fullPage || false,
-      clip: options.clip
+      clip: options.clip,
     });
 
-    return buffer.toString('base64');
+    return buffer.toString("base64");
   }
 
   /**
@@ -99,51 +100,51 @@ class VisionAction extends EventEmitter {
     const model = options.model || this.config.defaultModel;
 
     // Claude 格式
-    if (model.startsWith('claude')) {
+    if (model.startsWith("claude")) {
       return {
-        role: 'user',
+        role: "user",
         content: [
           {
-            type: 'image',
+            type: "image",
             source: {
-              type: 'base64',
-              media_type: 'image/jpeg',
-              data: imageBase64
-            }
+              type: "base64",
+              media_type: "image/jpeg",
+              data: imageBase64,
+            },
           },
           {
-            type: 'text',
-            text: prompt
-          }
-        ]
+            type: "text",
+            text: prompt,
+          },
+        ],
       };
     }
 
     // OpenAI 格式
-    if (model.startsWith('gpt')) {
+    if (model.startsWith("gpt")) {
       return {
-        role: 'user',
+        role: "user",
         content: [
           {
-            type: 'image_url',
+            type: "image_url",
             image_url: {
               url: `data:image/jpeg;base64,${imageBase64}`,
-              detail: options.detail || 'high'
-            }
+              detail: options.detail || "high",
+            },
           },
           {
-            type: 'text',
-            text: prompt
-          }
-        ]
+            type: "text",
+            text: prompt,
+          },
+        ],
       };
     }
 
     // 默认格式（Ollama/LLaVA）
     return {
-      role: 'user',
+      role: "user",
       content: prompt,
-      images: [imageBase64]
+      images: [imageBase64],
     };
   }
 
@@ -153,7 +154,9 @@ class VisionAction extends EventEmitter {
    */
   async _callVisionLLM(messages, options = {}) {
     if (!this.llmService) {
-      throw new Error('LLM Service not configured. Please set LLM service first.');
+      throw new Error(
+        "LLM Service not configured. Please set LLM service first.",
+      );
     }
 
     const model = options.model || this.config.defaultModel;
@@ -162,10 +165,10 @@ class VisionAction extends EventEmitter {
       const response = await this.llmService.chat(messages, {
         model,
         max_tokens: options.maxTokens || this.config.maxTokens,
-        temperature: options.temperature ?? this.config.temperature
+        temperature: options.temperature ?? this.config.temperature,
       });
 
-      return response.text || response.message?.content || '';
+      return response.text || response.message?.content || "";
     } catch (error) {
       throw new Error(`Vision LLM call failed: ${error.message}`);
     }
@@ -193,24 +196,24 @@ class VisionAction extends EventEmitter {
 Be precise and concise. If asked about element locations, describe them relative to the viewport.
 For UI elements, describe their visual appearance, position, and any text they contain.`;
 
-    const response = await this._callVisionLLM([
-      { role: 'system', content: systemPrompt },
-      message
-    ], options);
+    const response = await this._callVisionLLM(
+      [{ role: "system", content: systemPrompt }, message],
+      options,
+    );
 
     const result = {
       success: true,
       analysis: response,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // 缓存结果
     this.analysisCache.set(cacheKey, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
-    this.emit('analyzed', { targetId, prompt, analysis: response });
+    this.emit("analyzed", { targetId, prompt, analysis: response });
 
     return result;
   }
@@ -250,38 +253,37 @@ Provide coordinates relative to the top-left corner of the viewport.`;
 
     const message = this._buildVisionMessage(prompt, imageBase64, options);
 
-    const response = await this._callVisionLLM([
-      {
-        role: 'system',
-        content: 'You are a precise UI element locator. Always respond with valid JSON only.'
-      },
-      message
-    ], options);
+    const response = await this._callVisionLLM(
+      [
+        {
+          role: "system",
+          content:
+            "You are a precise UI element locator. Always respond with valid JSON only.",
+        },
+        message,
+      ],
+      options,
+    );
 
     // 解析 JSON 响应
     let result;
     try {
       // 提取 JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
+      result = looseParseJSON(response);
     } catch (e) {
       result = {
         found: false,
         confidence: 0,
-        error: 'Failed to parse element location',
-        rawResponse: response
+        error: "Failed to parse element location",
+        rawResponse: response,
       };
     }
 
-    this.emit('elementLocated', { targetId, description, result });
+    this.emit("elementLocated", { targetId, description, result });
 
     return {
       success: result.found,
-      ...result
+      ...result,
     };
   }
 
@@ -300,7 +302,7 @@ Provide coordinates relative to the top-left corner of the viewport.`;
       return {
         success: false,
         error: `Could not locate element: "${description}"`,
-        location
+        location,
       };
     }
 
@@ -314,30 +316,37 @@ Provide coordinates relative to the top-left corner of the viewport.`;
 
     try {
       await page.mouse.click(clickX, clickY, {
-        button: options.button || 'left',
+        button: options.button || "left",
         clickCount: options.clickCount || 1,
-        delay: options.delay || 0
+        delay: options.delay || 0,
       });
 
       // 等待页面响应
       if (options.waitAfterClick) {
-        await page.waitForLoadState('networkidle', { timeout: options.waitAfterClick });
+        await page.waitForLoadState("networkidle", {
+          timeout: options.waitAfterClick,
+        });
       }
 
-      this.emit('visualClicked', { targetId, description, x: clickX, y: clickY });
+      this.emit("visualClicked", {
+        targetId,
+        description,
+        x: clickX,
+        y: clickY,
+      });
 
       return {
         success: true,
-        action: 'visualClick',
+        action: "visualClick",
         description,
         clickedAt: { x: clickX, y: clickY },
-        confidence: location.confidence
+        confidence: location.confidence,
       };
     } catch (error) {
       return {
         success: false,
         error: `Click failed: ${error.message}`,
-        location
+        location,
       };
     }
   }
@@ -349,7 +358,9 @@ Provide coordinates relative to the top-left corner of the viewport.`;
    * @returns {Promise<Object>}
    */
   async describePage(targetId, options = {}) {
-    const prompt = options.prompt || `Describe this webpage in detail:
+    const prompt =
+      options.prompt ||
+      `Describe this webpage in detail:
 1. What is the main purpose of this page?
 2. What are the key UI elements visible?
 3. What actions can a user take on this page?
@@ -395,35 +406,57 @@ Respond in JSON format:
     const model = options.model || this.config.defaultModel;
     let messages;
 
-    if (model.startsWith('claude')) {
+    if (model.startsWith("claude")) {
       messages = [
-        { role: 'system', content: 'You are a visual regression testing assistant. Always respond with valid JSON only.' },
         {
-          role: 'user',
+          role: "system",
+          content:
+            "You are a visual regression testing assistant. Always respond with valid JSON only.",
+        },
+        {
+          role: "user",
           content: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type: 'image/jpeg', data: baselineBase64 }
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: "image/jpeg",
+                data: baselineBase64,
+              },
             },
             {
-              type: 'image',
-              source: { type: 'base64', media_type: 'image/jpeg', data: currentBase64 }
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: "image/jpeg",
+                data: currentBase64,
+              },
             },
-            { type: 'text', text: prompt }
-          ]
-        }
+            { type: "text", text: prompt },
+          ],
+        },
       ];
     } else {
       messages = [
-        { role: 'system', content: 'You are a visual regression testing assistant. Always respond with valid JSON only.' },
         {
-          role: 'user',
+          role: "system",
+          content:
+            "You are a visual regression testing assistant. Always respond with valid JSON only.",
+        },
+        {
+          role: "user",
           content: [
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${baselineBase64}` } },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${currentBase64}` } },
-            { type: 'text', text: prompt }
-          ]
-        }
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${baselineBase64}` },
+            },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${currentBase64}` },
+            },
+            { type: "text", text: prompt },
+          ],
+        },
       ];
     }
 
@@ -431,26 +464,21 @@ Respond in JSON format:
 
     let result;
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found');
-      }
+      result = looseParseJSON(response);
     } catch (e) {
       result = {
         similarity: 0,
         hasChanges: true,
-        error: 'Failed to parse comparison result',
-        rawResponse: response
+        error: "Failed to parse comparison result",
+        rawResponse: response,
       };
     }
 
-    this.emit('compared', { targetId, result });
+    this.emit("compared", { targetId, result });
 
     return {
       success: true,
-      ...result
+      ...result,
     };
   }
 
@@ -469,15 +497,15 @@ Respond in JSON format:
     for (let i = 0; i < maxSteps && !completed; i++) {
       const imageBase64 = await this._captureScreenshot(targetId, options);
 
-      const previousSteps = steps.map((s, idx) =>
-        `Step ${idx + 1}: ${s.action} - ${s.result}`
-      ).join('\n');
+      const previousSteps = steps
+        .map((s, idx) => `Step ${idx + 1}: ${s.action} - ${s.result}`)
+        .join("\n");
 
       const prompt = `You are an AI assistant helping to complete a task on this webpage.
 
 Task: "${task}"
 
-${previousSteps ? `Previous steps:\n${previousSteps}\n` : ''}
+${previousSteps ? `Previous steps:\n${previousSteps}\n` : ""}
 
 Analyze the current screenshot and determine the next action.
 Respond in JSON format:
@@ -491,63 +519,65 @@ Respond in JSON format:
 }`;
 
       const message = this._buildVisionMessage(prompt, imageBase64, options);
-      const response = await this._callVisionLLM([
-        { role: 'system', content: 'You are a visual task automation assistant. Always respond with valid JSON only.' },
-        message
-      ], options);
+      const response = await this._callVisionLLM(
+        [
+          {
+            role: "system",
+            content:
+              "You are a visual task automation assistant. Always respond with valid JSON only.",
+          },
+          message,
+        ],
+        options,
+      );
 
       let stepResult;
       try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          stepResult = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found');
-        }
+        stepResult = looseParseJSON(response);
       } catch (e) {
         stepResult = {
           completed: false,
-          action: 'error',
-          reasoning: 'Failed to parse step',
-          error: response
+          action: "error",
+          reasoning: "Failed to parse step",
+          error: response,
         };
       }
 
       steps.push(stepResult);
 
-      if (stepResult.completed || stepResult.action === 'done') {
+      if (stepResult.completed || stepResult.action === "done") {
         completed = true;
         break;
       }
 
       // 执行动作
-      if (stepResult.action === 'click' && stepResult.target) {
+      if (stepResult.action === "click" && stepResult.target) {
         await this.visualClick(targetId, stepResult.target, options);
-        stepResult.result = 'Clicked';
-      } else if (stepResult.action === 'type' && stepResult.value) {
+        stepResult.result = "Clicked";
+      } else if (stepResult.action === "type" && stepResult.value) {
         const page = this._getPage(targetId);
         await page.keyboard.type(stepResult.value);
-        stepResult.result = 'Typed';
-      } else if (stepResult.action === 'scroll') {
+        stepResult.result = "Typed";
+      } else if (stepResult.action === "scroll") {
         const page = this._getPage(targetId);
         await page.mouse.wheel(0, 300);
-        stepResult.result = 'Scrolled';
-      } else if (stepResult.action === 'wait') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        stepResult.result = 'Waited';
+        stepResult.result = "Scrolled";
+      } else if (stepResult.action === "wait") {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        stepResult.result = "Waited";
       }
 
       // 短暂等待页面响应
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    this.emit('taskCompleted', { targetId, task, steps, completed });
+    this.emit("taskCompleted", { targetId, task, steps, completed });
 
     return {
       success: completed,
       task,
       steps,
-      totalSteps: steps.length
+      totalSteps: steps.length,
     };
   }
 
@@ -584,7 +614,7 @@ Respond in JSON format:
         return this.compareWithBaseline(targetId, options.baseline, options);
 
       default:
-        if (options.task && typeof options.task === 'string') {
+        if (options.task && typeof options.task === "string") {
           return this.executeVisualTask(targetId, options.task, options);
         }
         throw new Error(`Unknown vision task: ${task}`);
@@ -595,5 +625,5 @@ Respond in JSON format:
 module.exports = {
   VisionAction,
   VisionModel,
-  VisionTaskType
+  VisionTaskType,
 };
