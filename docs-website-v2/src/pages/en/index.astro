@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.130 · 2026-06-24',
+    title: 'Qzone one-tap collection + WeChat Moments collection + §8.3 learning-layer backup on device + personal-assistant UX',
+    sub: 'Cumulative v5.0.3.127–130: QQ Zone (Qzone) one-tap collection via an in-app WebView (feed / message board / albums, 404 events on a real device) + WeChat Moments plaintext collection (2824 entries on a real device); §8.3 learning-layer backup commands on device; personal-assistant stuck-watchdog + sticky always-visible trust cards. pdh 0.4.36 + cli 0.162.117 published to npm; Android cc bundle internal-binaries-android-v20260624 (USR_VERSION 58).',
+    desc: 'Qzone has no readable local DB → uses the API: new pdh/lib/forensics/qzone-collect.js (g_tk = bkn hash over the qzone-domain p_skey; feed / message board / albums → EVENT) + cc hub collect-qzone; Android "QQ Zone" one-tap card — in-app WebView opens ptlogin2 login (QR / account+password) → captures the qzone p_skey cookie → in-APK cc hub collect-qzone into the device vault (real-device end-to-end: scan to log in → 404 events, 329 feed + 73 board + 2 album). WeChat Moments SnsMicroMsg.db is plaintext SQLite (no key); new parseSnsEvents (SnsInfo → EVENT, body from the protobuf TimelineObject), 2824 entries on a real device. §8.3 learning-layer backup commands on device: cc memory/instinct/learning export/import (hierarchical memory + learned habits + self-evolution trajectories), combined with the vault commands to cover end-to-end encrypted backup of all assets — keys stay personal, never uploaded. Personal-assistant UX: silent stuck-watchdog (20s reassurance / 120s friendly timeout + retry / auto-restart on process exit) + pending trust cards pinned (sticky) so they are no longer scrolled away by the message stream. Versions: productVersion v5.0.3.126 → v5.0.3.130; pdh 0.4.36 + chainlesschain 0.162.117 published to npm; USR_VERSION 58 / binariesVersion 20260624.',
+  },
+  {
     tag: 'v5.0.3.126 · 2026-06-22',
     title: 'Major PDH on-device collection expansion + §8.3 cross-device encrypted backup + desktop security hardening',
     sub: 'Cumulative v5.0.3.122–126: large PDH on-device collection expansion (QQNT / WeChat / generic plaintext DB + multi-app Magisk staging daemon); §8.3 cross-device encrypted backup engine landed; desktop IPC/permission security hardened to ENFORCE; CLI robustness and IDE config UX improvements. pdh 0.4.31 + cli 0.162.99 published to npm; Android cc bundle internal-binaries-android-v20260622d (USR_VERSION 54).',

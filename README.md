@@ -35,6 +35,18 @@
 
 ---
 
+## 2026-06-24 发布 — **v5.0.3.130：QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（pdh 0.4.36 / cli 0.162.117）**
+
+> 累计 v5.0.3.127–130：QQ空间（Qzone）App 内嵌 WebView 一键采集（说说/留言板/相册）+ 微信朋友圈明文采集；§8.3 学习层备份命令上设备；个人助手卡死看门狗 + 待裁决信任卡固定可见。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **QQ空间一键采集**：Qzone 本地无可读库 → 走 API。新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone`；Android「QQ空间」一键采集卡——内嵌 WebView 打开 `ptlogin2` 登录（QR / 账号密码）→ 抓 cookie → in-APK 采集入设备金库。真机端到端验证：扫码登录 → **采集 404 事件（329 说说 + 73 留言 + 2 相册）**。
+- **微信朋友圈采集**：`SnsMicroMsg.db` 是明文 SQLite（无需密钥）；新增 `parseSnsEvents`（SnsInfo → EVENT，正文取 protobuf TimelineObject）。本机真机采 2824 条。
+- **§8.3 学习层备份上设备**：`cc memory/instinct/learning export/import`（层次化记忆 + 学习习惯 + 自进化轨迹）随新 cc bundle 上设备，与 vault 命令合并覆盖全资产端到端加密备份，密钥归个人不上云。
+- **个人助手 UX**：卡死静默看门狗（20s 安抚 / 120s 友好超时 + 重试 / 进程退出自动重启）+ 待裁决信任卡固定（sticky）可见，不再被消息流滚走。
+- **版本面**：productVersion v5.0.3.126 → v5.0.3.130；pdh 0.4.36 + `chainlesschain` 0.162.117 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
+
+---
+
 ## 2026-06-22 发布 — **v5.0.3.126：个人数据中台 on-device 采集大扩展 + §8.3 跨设备加密备份 + 桌面安全硬化（pdh 0.4.31 / cli 0.162.99）**
 
 > 累计 v5.0.3.122–126：PDH 端侧采集（QQNT / 微信 / 通用明文库 + 多 app Magisk 守护进程）大幅扩展；§8.3 跨设备加密备份引擎落地；桌面 IPC/权限安全硬化转 ENFORCE；CLI 健壮性与 IDE 配置体验完善。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

@@ -45,6 +45,77 @@
 - **杀进程定时器清理**：SIGTERM→SIGKILL 升级定时器 `unref` + 进程退出即清，杀任务后不再占住事件循环、延迟 CLI 退出。
 - **`--verbose` 根因可见**：非法 JSON 选项的友好报错（`parseJsonOption`）链上原始 `SyntaxError` 为 `cause` 并续接其调用栈，`cc … --verbose` 重新显示根 `SyntaxError`（修复 helper 合并引入的回归），非 verbose 仍是单行友好提示。
 
+#### Added — QQ空间一键采集（App 内嵌 WebView 登录 → 说说/留言板/相册）+ 朋友圈采集上设备（v5.0.3.130）
+
+> cc bundle `v20260623b → v20260624`（pdh 0.4.35 → **0.4.36** + cli 0.162.116 → **0.162.117** 已发 npm `latest`）；USR_VERSION 57 → **58**（装机后重解压 bundle）。
+
+- **QQ空间（Qzone）采集**：Qzone 本地无可读库 → 走 API。新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk` = bkn hash over qzone 域 `p_skey`；说说 / 留言板 / 相册 → EVENT）+ `cc hub collect-qzone --cookie/--cookie-file --what shuoshuo,msgb,album`。
+- **Android「QQ空间」一键采集卡**（HubLocal 内容平台）：内嵌 WebView 打开 `ptlogin2` 登录（QR / 账号密码）→ 抓 qzone `p_skey` cookie → in-APK `cc hub collect-qzone` 入设备本地金库。真机端到端验证：扫码登录 → **采集 404 事件（329 说说 + 73 留言 + 2 相册）**。
+- **微信朋友圈采集**：`SnsMicroMsg.db` 是**明文 SQLite**（无需密钥）；新增 `parseSnsEvents`（SnsInfo → EVENT(post)，正文取 protobuf TimelineObject 第 5 字段）。本机真机采 2824 条朋友圈。
+- **Fixed — QQ空间登录页全灰白**：`user.qzone.qq.com`（未登录）跳 `i.qq.com` 把登录塞进渲染不出的 iframe；改为直载 `ptlogin2/xlogin` 表单。
+
+#### Fixed — 个人助手信任卡固定可见（不再被消息流滚走 / 误以为「没反应」）（v5.0.3.129）
+
+> 接 v5.0.3.127 卡死修复的真机验证发现的 UX 缺口。Android-only（`PdhChatScreen`），不触 cc bundle / pdh，无 USR_VERSION / bundle rollover。
+
+- **问题**：确认/信任卡（root 授权 / 采集预览 / 引导卡等）此前渲染在消息流末尾 → 新消息一多就被推下去、要往上翻才看见 → 用户以为「发送没反应」。
+- **修复**：待裁决信任卡从消息流移出，**固定（sticky）在消息列表与输入框之间、始终可见**；顶部加醒目「⏳ 需要你确认才能继续」提示条 + 阴影浮起；卡多时区域内可滚动（最高 360dp）。
+
+#### Added — §8.3 学习层备份命令上设备（新 cc bundle v20260622e）（v5.0.3.128）
+
+> Android cc bundle 刷新 `20260622d → 20260622e`（USR_VERSION 54 → 55），把已发 npm 的 cli `0.162.102` + §8.3 学习层备份命令打进 APK。
+
+- **cc 新命令上设备**：`cc memory export/import`（层次化记忆）、`cc instinct export/import`（学习习惯）、`cc learning export/import`（自进化轨迹，含 synthesized skill）—— module 101 §8.3 学习层资产备份桥。vault 命令已随 v5.0.3.126 上设备，本版补齐学习层。
+- **覆盖范围**：`PdhBackupService.sourcesProvider` 现 = [vault · memory · instinct · trajectories]，§8.3 全资产端到端备份（你的数据 + AI 对你的认知 + 习惯 + 自进化），内容寻址 AES-256-GCM 分块 + 幂等 upsert + 收敛优先合并。密钥归个人、绝不上云。
+
+#### Fixed — 个人助手卡死无反馈修复（看门狗超时友好提示 + 自动重启 + 重试）（v5.0.3.127）
+
+> 用户反馈：个人助手发消息后助手卡住、没有回复、也没有任何提示。Android-only（`PdhChatViewModel`/`PdhChatScreen`），不触 cc bundle / pdh。
+
+- **根因**：`isSending`（思考中）状态此前只由 `Result`/`Error`/`Exit` 事件复位；当 cc agent 静默（LLM 网络挂起 / 回复丢失 / 进程意外退出）时永不复位 → UI 永久转圈、零反馈。
+- **修复 = 静默看门狗**：回合 20s 无输出 → 追加「仍在处理中…」安抚提示；120s（且无待裁决信任卡）仍静默 → 判定卡死，友好告知「响应超时，点重试」+ 复位 + 保留可重试原文；cc 进程意外退出（非主动关闭）→ 自动重启会话恢复可用。进展事件重置计时；信任卡暂停计时。UI 加「↻ 重试上一条」按钮。
+
+#### Fixed — 修复 collect-db 入库 0 条（真机验证抓到）+ 头条明文库真机实证 764 条（v5.0.3.126）
+
+> 真机验证（chopin/HyperOS root）头条 collect-db 时发现：记录正常提取但 `vault.putEvent` 全部被静默抛弃 → **ingested=0**。v5.0.3.124/125 的 collect-db 实际采不进任何数据。pdh 0.4.32→**0.4.33** + cli 0.162.100→**0.162.101** + Android bundle **v20260622d** + USR_VERSION **54**。
+
+- **subtype 非法**：`plaintext-db-collect.js` 用 `subtype:'record'`，但 vault schema enum 无 `record` → 每条 putEvent 抛 `invalid event` 被吞 → 0 入库。修：`subtype→'other'`。
+- **originalId 按表非按行**：`source.originalId='<db>:<table>'` 对一张表所有行相同 → 撞 `UNIQUE` 把整表 collapse 成 1 条。修：`originalId` 加每行 hash。
+- **真机实证**：头条 11 个明文库 → **764 条入 vault**（修前 0），FTS5 可搜。
+
+#### Added — 微信派生 key 采集 + 通用明文库采集 + 守护进程多 app 通用化（v5.0.3.125）
+
+> 参考 QQ 派生 key + Magisk 守护进程模式扩展头条/抖音/微信。cli **0.162.100** / pdh **0.4.32** / Android bundle **v20260622c** / USR_VERSION **53**。
+
+- **`cc hub collect-wechat`**：解密微信 `EnMicroMsg.db`（SQLCipher）用**派生 key** `MD5(IMEI+uin)[:7]`（同 QQ 思路、**无 frida**）+ 解析 message/rcontact/chatroom 入金库。fixture 实测 4989 条消息解析。
+- **`cc hub collect-db`**：**通用明文 SQLite 库采集器**——读任意 app 明文库的可读 TEXT 记录入金库（CJK/≥6 字母过滤噪声、时间归一），`source.adapter=local-<app>`。补齐「头条/抖音 IM=WCDB2 加密难破，但其明文非-IM 库都是重要个人数据」缺口。
+- **Magisk 守护进程通用化**（`pdh-qqd.sh` v1.1）：单一守护进程支持 `qq` / `wechat` / `plaintext <pkg>` 三模式。
+
+#### Added — QQNT 现代 QQ 全自动采集（派生 key 解密无 frida + MIUI Magisk 守护进程）（v5.0.3.124）
+
+> cli **0.162.98** / pdh **0.4.31** / Android bundle **v20260622** / USR_VERSION **51**。设计 + 复现 runbook：`docs/design/modules/101_QQNT_frida采集方案.md`。
+
+- **`cc hub collect-qq`**：解密现代 QQ `nt_msg.db`（WCDB/SQLCipher）用**派生 key**（`MD5(MD5(uid)+rand)`，**无 frida**）+ protobuf 消息解析 + 入金库，纯 Node。
+- **`collect_qq_native` bridge 工具 + Magisk 守护进程**：MIUI/HyperOS 拦 App 进程 su 跨应用读 → 由 init 上下文的 root 守护进程替读 QQ 数据暂存到 app cache，App 再解密入库。**真机验证（chopin/HyperOS）460 条 QQ 消息入设备金库，全程手机端、无 PC/USB**。非 root 机优雅降级。
+
+#### Added — 个人数据助手（PDH 工具上设备）+ node DNS 修复（v5.0.3.122）
+
+> 个人数据 IDE 桥接（module 101）Phase 2 productize：底部「个人助手」单输入框 → 端侧 cc agent → PDH 工具真采集 / 查询 / 分析个人数据入本地 vault，数据主权回归个人。cc bundle `internal-binaries-android-v20260620`，USR_VERSION **50**。
+
+- **个人助手单输入框**：底部 nav 加「个人助手」入口，一句话指挥端侧 AI 采集 / 查询 / 分析你的个人数据，全程本地处理不上云。真机实测：单输入框 → AI → `collect_system_data` 真采 1824 事件（含 513 联系人）入 vault。
+- **node DNS 修复（跨手机）**：Android 上 node `getaddrinfo` 在 cc 子进程恒 ENOTFOUND → PtyEnvironment 预加载 `dns-fix.js`（把 `dns.lookup` 重指向 c-ares）+ 注入设备真实 DNS。一处修好所有 in-APK cc 外部网络。
+- **cc agent LLM 配置**：端侧 cc agent 用 app 配置的 provider/model（火山等云 LLM）而非默认 ollama；权限引导横幅（缺权限时一键授予）。
+
+#### Fixed — 安全/鲁棒性硬化一批 + MTC 联邦创始投票修复 + module 101 Phase 2 UI（v5.0.3.123 · CLI 0.162.96）
+
+> 一批 fix / security / test 收口（v5.0.3.122 以来 163 commits，多 session）。CLI 已发 npm 0.162.96；pdh 0.4.30 不变（无 lib 改动 → 沿用既有 cc bundle）。
+
+- **退役 Claude 模型全面清退**：桌面渲染层 LLM 配置不再默认/提供已退役模型，vision / routing / remote 换用当前 Claude 4 模型，成本追踪器按当前 Claude 4 定价。
+- **安全缺口修复 + 首批测试**：xss-sanitizer URL/JSON 缺口（+27 测试）、file-validator 路径穿越误报（+14 测试）、git ref 校验防 worktree shell 注入；CLI 数值选项 NaN 静默绕过校验。
+- **MTC 联邦治理：创始成员投票被静默丢弃修复**：`cc mtc federation join` 首次创建联邦时写自签名创世 `create` 事件，使创始人进入投票回放名册（此前单创始人联邦永远无法接纳第二名成员）。
+- **PDH 桥接（module 101 §4）**：`query_app_data` 工具扩展至 bilibili/douyin/toutiao/kuaishou/xiaohongshu live API 查询、`collect_app_data_root` root DB 直读免登录；`notebook_edit`（Jupyter .ipynb cell 编辑，Claude Code parity）。
+- **module 101 Phase 2 UI**：设计 §3.5 共 20 子节上线 docs + design 两站；纯 Android 可落核 12 块落地（三类信任卡 / 不可信数据视觉隔离 / 自学习纠正 / 引导续跑 / 隐私分级路由 / 事务风险分级 等），~85 单测全绿。
+
 #### Added — 个人数据中台分析/采集修复 + FAMILY-67 通话/通知体验 + Android 键盘遮挡修复（v5.0.3.121）
 
 > 个人数据中台（PDH）一批分析管线 + 查询解析 + 抖音/头条采集修复（pdh 0.4.29 + cli 0.162.82 已发 npm；Android cc bundle `internal-binaries-android-v20260619`，USR_VERSION 49）；FAMILY-67 通话/消息通知体验完善；Android 全局键盘遮挡修复。release 发 18 个安装包资产。
