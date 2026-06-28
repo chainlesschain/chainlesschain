@@ -12,6 +12,25 @@
  */
 
 import { logger } from "../utils/logger.js";
+
+/**
+ * Tolerant JSON column parse — a single proposal with a corrupt metadata/
+ * impact_analysis string must not throw out of the load/.map and drop every
+ * proposal. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[GovernanceAI] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -177,10 +196,8 @@ class GovernanceAI extends EventEmitter {
         for (const p of proposals) {
           this._proposals.set(p.id, {
             ...p,
-            metadata: p.metadata ? JSON.parse(p.metadata) : {},
-            impact_analysis: p.impact_analysis
-              ? JSON.parse(p.impact_analysis)
-              : null,
+            metadata: safeParse(p.metadata, {}),
+            impact_analysis: safeParse(p.impact_analysis, null),
           });
         }
         logger.info(
@@ -224,10 +241,8 @@ class GovernanceAI extends EventEmitter {
         const rows = this.database.db.prepare(sql).all(...params);
         return rows.map((r) => ({
           ...r,
-          metadata: r.metadata ? JSON.parse(r.metadata) : {},
-          impact_analysis: r.impact_analysis
-            ? JSON.parse(r.impact_analysis)
-            : null,
+          metadata: safeParse(r.metadata, {}),
+          impact_analysis: safeParse(r.impact_analysis, null),
         }));
       } catch (err) {
         logger.error("[GovernanceAI] Failed to list proposals:", err);

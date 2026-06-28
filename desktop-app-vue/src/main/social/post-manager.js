@@ -10,6 +10,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single post with a corrupt images string must
+ * not throw out of the .map and drop the whole post list. The `x ? JSON.parse(x)
+ * : d` form it replaces only guarded NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[PostManager] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -392,7 +411,7 @@ class PostManager extends EventEmitter {
       // 解析图片 JSON
       return posts.map((post) => ({
         ...post,
-        images: post.images ? JSON.parse(post.images) : [],
+        images: safeParse(post.images, []),
         // 添加当前用户是否点赞的标记
         liked: this.hasLiked(post.id, currentDid),
       }));
@@ -417,7 +436,7 @@ class PostManager extends EventEmitter {
 
       return {
         ...post,
-        images: post.images ? JSON.parse(post.images) : [],
+        images: safeParse(post.images, []),
       };
     } catch (error) {
       logger.error("[PostManager] 获取动态失败:", error);

@@ -9,6 +9,26 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single snapshot/milestone with a corrupt
+ * media_urls/related_posts string must not throw out of the .map and drop the
+ * whole timeline. The `x ? JSON.parse(x) : d` form it replaces only guarded
+ * NULL, not a corrupt non-empty string.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[TimeMachine] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -37,7 +57,9 @@ class TimeMachine extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info("[TimeMachine] Timeline time machine initialized successfully");
+      logger.info(
+        "[TimeMachine] Timeline time machine initialized successfully",
+      );
     } catch (error) {
       logger.error("[TimeMachine] Initialization failed:", error);
       throw error;
@@ -116,7 +138,7 @@ class TimeMachine extends EventEmitter {
 
       return snapshots.map((s) => ({
         ...s,
-        media_urls: s.media_urls ? JSON.parse(s.media_urls) : [],
+        media_urls: safeParse(s.media_urls, []),
       }));
     } catch (error) {
       logger.error("[TimeMachine] Failed to get timeline posts:", error);
@@ -149,7 +171,7 @@ class TimeMachine extends EventEmitter {
 
       return snapshots.map((s) => ({
         ...s,
-        media_urls: s.media_urls ? JSON.parse(s.media_urls) : [],
+        media_urls: safeParse(s.media_urls, []),
       }));
     } catch (error) {
       logger.error("[TimeMachine] Failed to get on-this-day posts:", error);
@@ -175,7 +197,7 @@ class TimeMachine extends EventEmitter {
 
       return milestones.map((m) => ({
         ...m,
-        related_posts: m.related_posts ? JSON.parse(m.related_posts) : [],
+        related_posts: safeParse(m.related_posts, []),
       }));
     } catch (error) {
       logger.error("[TimeMachine] Failed to get milestones:", error);
@@ -202,7 +224,7 @@ class TimeMachine extends EventEmitter {
 
       return memories.map((m) => ({
         ...m,
-        related_posts: m.related_posts ? JSON.parse(m.related_posts) : [],
+        related_posts: safeParse(m.related_posts, []),
       }));
     } catch (error) {
       logger.error("[TimeMachine] Failed to get memories:", error);
@@ -306,7 +328,7 @@ class TimeMachine extends EventEmitter {
 
       return snapshots.map((s) => ({
         ...s,
-        media_urls: s.media_urls ? JSON.parse(s.media_urls) : [],
+        media_urls: safeParse(s.media_urls, []),
       }));
     } catch (error) {
       logger.error("[TimeMachine] Failed to get timeline range:", error);
@@ -356,9 +378,13 @@ class TimeMachine extends EventEmitter {
       for (const row of monthlyRows) {
         const m = row.month;
         if (months[m]) {
-          if (row.source_type === "post") {months[m].posts = row.count;}
-          else if (row.source_type === "message") {months[m].messages = row.count;}
-          else if (row.source_type === "event") {months[m].events = row.count;}
+          if (row.source_type === "post") {
+            months[m].posts = row.count;
+          } else if (row.source_type === "message") {
+            months[m].messages = row.count;
+          } else if (row.source_type === "event") {
+            months[m].events = row.count;
+          }
           months[m].total += row.count;
         }
       }
