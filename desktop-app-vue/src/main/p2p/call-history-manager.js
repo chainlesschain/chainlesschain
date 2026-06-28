@@ -5,6 +5,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single call with a corrupt quality_stats string
+ * must not throw out of the .map and drop the whole call-history list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[CallHistory] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const EventEmitter = require("events");
 
 class CallHistoryManager extends EventEmitter {
@@ -252,9 +271,7 @@ class CallHistoryManager extends EventEmitter {
       return calls.map((call) => ({
         ...call,
         isAnswered: Boolean(call.is_answered),
-        qualityStats: call.quality_stats
-          ? JSON.parse(call.quality_stats)
-          : null,
+        qualityStats: safeParse(call.quality_stats, null),
       }));
     } catch (error) {
       logger.error("[CallHistoryManager] 获取通话历史失败:", error);

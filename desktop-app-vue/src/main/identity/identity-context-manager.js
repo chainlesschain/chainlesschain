@@ -12,6 +12,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+/**
+ * Tolerant JSON column parse — a single context with a corrupt settings string
+ * must not throw out of the .map and drop the whole context list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+ */
+function safeParse(raw, fallback) {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.warn(
+      `[IdentityContext] Bad JSON column, using fallback: ${err.message}`,
+    );
+    return fallback;
+  }
+}
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
@@ -314,7 +333,7 @@ class IdentityContextManager extends EventEmitter {
       return contexts.map((ctx) => ({
         ...ctx,
         is_active: Boolean(ctx.is_active),
-        settings: ctx.settings ? JSON.parse(ctx.settings) : {},
+        settings: safeParse(ctx.settings, {}),
       }));
     } catch (error) {
       logger.error("获取身份上下文列表失败:", error);
