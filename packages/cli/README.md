@@ -30,7 +30,7 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
-> **160 top-level commands** are registered (as of CLI v0.162.103). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+> **160 top-level commands** are registered (as of CLI v0.162.131). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
 
 ### `chainlesschain setup`
 
@@ -200,9 +200,18 @@ chainlesschain a --model llama3         # Short alias
 chainlesschain agent --provider openai --api-key sk-...
 ```
 
-Built-in tools (16): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `run_shell`, `git`, `search_files`, `search_sessions`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `todo_write`, `ask_user_question`
+Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
 
-Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration), `/sub-agents` (show active/completed sub-agents)
+**Agent slash commands (49 built-in)** — type `/` for TAB completion, `/help` for the in-session list. Full reference: [cli-agent-mode](https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html).
+
+- **Session:** `/help` `/clear` `/exit` `/session` `/sessions` `/rewind` `/search` `/export` `/copy`
+- **Model:** `/model` `/provider` `/think` `/ultrathink`
+- **Context & memory:** `/context` `/compact` `/microcompact` `/memory` `/init` `/reindex` `/stats` `/task` `/todos` `/profile`
+- **Display:** `/theme` `/vim` `/statusline` `/output-style` `/terminal-setup` `/cd` `/add-dir`
+- **Tools & observability:** `/cost` `/doctor` `/status` `/release-notes` `/config` `/permissions` `/hooks` `/ide` `/mcp` `/review` `/pr-comments` `/reload-skills`
+- **Autonomous & multi-agent:** `/auto` `/plan` `/cowork` `/agents` `/sub-agents` `/tasks`
+
+Plus user macros (`.claude/commands/*.md`) and MCP prompts (`/mcp__<server>__<prompt>`). Prefixes: `!` (run shell), `#` (note to `cc.md`).
 
 **Sub-Agent Isolation v2** (v0.43.0): Complex tasks are automatically decomposed into isolated sub-agents, each with its own namespaced memory, scoped context, and lifecycle tracking. Use `/sub-agents` inside an agent session to inspect active and completed sub-agents, token usage, and average durations.
 
