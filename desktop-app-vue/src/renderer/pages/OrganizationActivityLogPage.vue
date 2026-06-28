@@ -194,7 +194,7 @@
         <a-descriptions-item label="详细信息">
           <pre style="margin: 0; max-height: 300px; overflow: auto">{{
             JSON.stringify(
-              JSON.parse(selectedActivity.metadata || "{}"),
+              safeJsonParse(selectedActivity.metadata, {}),
               null,
               2,
             )
@@ -207,6 +207,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";

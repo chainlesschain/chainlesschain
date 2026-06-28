@@ -3,6 +3,7 @@
  */
 
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
@@ -775,7 +776,7 @@ export const useAppStore = defineStore("app", {
 
         const favoritesData = localStorage.getItem("favoriteMenus");
         if (favoritesData) {
-          const favorites = JSON.parse(favoritesData);
+          const favorites = safeJsonParse(favoritesData, []);
           await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
@@ -787,7 +788,7 @@ export const useAppStore = defineStore("app", {
 
         const recentsData = localStorage.getItem("recentMenus");
         if (recentsData) {
-          const recents = JSON.parse(recentsData);
+          const recents = safeJsonParse(recentsData, []);
           await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
@@ -799,7 +800,7 @@ export const useAppStore = defineStore("app", {
 
         const pinnedData = localStorage.getItem("pinnedMenus");
         if (pinnedData) {
-          const pinned = JSON.parse(pinnedData);
+          const pinned = safeJsonParse(pinnedData, []);
           await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
