@@ -142,7 +142,7 @@ describe("useFirmwareOtaStore", () => {
       expect(store.availableUpdates.map((u) => u.id)).toEqual(["a", "b"]);
     });
 
-    it("startUpdate chains fetchHistory and clears currentUpdate afterwards", async () => {
+    it("startUpdate chains fetchHistory and keeps currentUpdate set", async () => {
       const store = useFirmwareOtaStore();
       mockInvoke
         .mockResolvedValueOnce({ success: true, update: update("u1") }) // start
@@ -156,8 +156,11 @@ describe("useFirmwareOtaStore", () => {
         limit: undefined,
       });
       expect(store.updateHistory).toHaveLength(1);
-      // finally block resets currentUpdate to null
-      expect(store.currentUpdate).toBeNull();
+      // A successful start must KEEP currentUpdate (fix 42f8ae8116) so the
+      // isUpdating getter reflects the in-progress update — clearing it
+      // unconditionally made every successful start look idle.
+      expect(store.currentUpdate?.id).toBe("u1");
+      expect(store.isUpdating).toBe(true);
       expect(store.loading).toBe(false);
     });
 
