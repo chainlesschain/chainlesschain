@@ -14,7 +14,9 @@ const TERMINAL_EXEC_STATES = new Set(["completed", "failed", "rolled_back"]);
 
 /** Tolerant JSON column parse — a corrupt row must not abort the workflow load. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -355,6 +357,17 @@ class WorkflowEngine extends EventEmitter {
 
     // Execute stages in topological order
     try {
+      // Guard the execution boundary against a cyclic DAG. createWorkflow()
+      // validates, but _loadWorkflows() rehydrates straight from the DB without
+      // validation (older/looser builds or direct DB writes can persist a cycle).
+      // Without this, _executeStages' recursion follows `next` forever →
+      // RangeError: Maximum call stack size exceeded. Fail gracefully instead.
+      if (!this._validateDAG(workflow.dag)) {
+        throw new Error(
+          `Workflow '${workflowId}' has a cyclic DAG; refusing to execute`,
+        );
+      }
+
       const stages = workflow.dag.stages || [];
       const entryStages = stages.filter((s) => {
         return !stages.some((other) => other.next && other.next.includes(s.id));
