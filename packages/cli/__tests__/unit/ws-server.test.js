@@ -205,6 +205,18 @@ describe("ChainlessChainWSServer", () => {
       expect(server.timeout).toBe(30000);
       // Bounded well below the ws 100 MiB default (pre-auth memory-DoS guard).
       expect(server.maxPayloadBytes).toBe(32 * 1024 * 1024);
+      // Pre-auth slot-exhaustion guard: token-protected connections must
+      // authenticate within this window (default 15s).
+      expect(server.authTimeoutMs).toBe(15_000);
+    });
+
+    it("honours authTimeoutMs override (and 0 to disable)", () => {
+      expect(
+        new ChainlessChainWSServer({ authTimeoutMs: 5000 }).authTimeoutMs,
+      ).toBe(5000);
+      expect(
+        new ChainlessChainWSServer({ authTimeoutMs: 0 }).authTimeoutMs,
+      ).toBe(0);
     });
 
     it("accepts custom options", () => {
@@ -576,6 +588,85 @@ describe("ChainlessChainWSServer", () => {
         ws.on("close", (code) => resolve(code)),
       );
       expect(closeCode).toBe(4001);
+    });
+  });
+
+  // ---- Auth grace timeout (pre-auth slot-exhaustion guard) ----
+  describe("auth grace timeout", () => {
+    it("drops an unauthenticated connection after the grace window (1008) and frees the slot", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({
+        port,
+        token: "secret",
+        authTimeoutMs: 60, // tiny so the test is fast
+      });
+      await server.start();
+
+      const ws = await connect(port);
+      expect(server.clients.size).toBe(1);
+
+      // Never send an auth message — the grace timer must close us out.
+      const closeCode = await new Promise((resolve) =>
+        ws.on("close", (code) => resolve(code)),
+      );
+      expect(closeCode).toBe(1008);
+      expect(server.clients.size).toBe(0); // slot freed
+    });
+
+    it("keeps the connection when authenticated within the grace window", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({
+        port,
+        token: "secret",
+        authTimeoutMs: 60,
+      });
+      await server.start();
+
+      const ws = await connect(port);
+      const authResp = await rpc(ws, {
+        id: "1",
+        type: "auth",
+        token: "secret",
+      });
+      expect(authResp.success).toBe(true);
+
+      // Wait well past the grace window — an authenticated client must survive.
+      await new Promise((r) => setTimeout(r, 150));
+      expect(server.clients.size).toBe(1);
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+      // The grace timer is cleared on successful auth.
+      const entry = [...server.clients.values()][0];
+      expect(entry.authenticated).toBe(true);
+      expect(entry.authTimer).toBeNull();
+      ws.close();
+    });
+
+    it("arms no auth timer when no token is configured (auto-authenticated)", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port }); // no token
+      await server.start();
+
+      const ws = await connect(port);
+      const entry = [...server.clients.values()][0];
+      expect(entry.authenticated).toBe(true);
+      expect(entry.authTimer).toBeNull();
+      ws.close();
+    });
+
+    it("authTimeoutMs:0 disables the grace timer (slot held until close)", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({
+        port,
+        token: "secret",
+        authTimeoutMs: 0,
+      });
+      await server.start();
+
+      const ws = await connect(port);
+      const entry = [...server.clients.values()][0];
+      expect(entry.authenticated).toBe(false);
+      expect(entry.authTimer).toBeNull(); // disabled → never armed
+      ws.close();
     });
   });
 

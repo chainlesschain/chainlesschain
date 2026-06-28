@@ -121,6 +121,18 @@ export function isCommandBlocked(baseCmd, env = process.env) {
 const HEARTBEAT_INTERVAL = 30_000;
 
 /**
+ * Grace period (ms) for a token-protected connection to authenticate before it
+ * is dropped. Without it an UNAUTHENTICATED client could hold a connection slot
+ * indefinitely (the heartbeat only reaps sockets that stop ponging, which a
+ * silent-but-alive socket does not) — so `maxConnections` unauthenticated
+ * sockets exhaust every slot and lock out legitimate clients: a pre-auth
+ * slot-exhaustion DoS, the time-domain complement to the `maxPayloadBytes`
+ * memory cap. Only armed when a token is configured; 0 disables. Override via
+ * `options.authTimeoutMs`.
+ */
+const AUTH_TIMEOUT_MS = 15_000;
+
+/**
  * Tokenize a command string into an array of arguments.
  * Handles double-quoted and single-quoted strings. Does NOT invoke a shell.
  */
@@ -192,6 +204,10 @@ export class ChainlessChainWSServer extends EventEmitter {
     // and base64 image pastes while bounding abuse; `ws` closes oversize frames
     // with code 1009 without buffering past the limit. Override per server.
     this.maxPayloadBytes = options.maxPayloadBytes || 32 * 1024 * 1024;
+    // Drop a token-protected connection that never authenticates within this
+    // grace window so it can't hold a maxConnections slot forever (see
+    // AUTH_TIMEOUT_MS). `??` so an explicit 0 (disable) is honoured.
+    this.authTimeoutMs = options.authTimeoutMs ?? AUTH_TIMEOUT_MS;
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;
@@ -322,13 +338,37 @@ export class ChainlessChainWSServer extends EventEmitter {
     const clientIp =
       req.socket.remoteAddress || req.headers["x-forwarded-for"] || "unknown";
 
-    this.clients.set(clientId, {
+    const client = {
       ws,
       authenticated: !this.token, // If no token required, auto-authenticated
       connectedAt: Date.now(),
       ip: clientIp,
       alive: true,
-    });
+      authTimer: null,
+    };
+    this.clients.set(clientId, client);
+
+    // Auth grace timer: a token-protected connection that never sends a valid
+    // auth message would otherwise hold a slot forever (the heartbeat only reaps
+    // sockets that stop ponging). Drop it after the grace window, freeing the
+    // slot. Cleared on successful auth (_handleAuth) and on close. unref()'d so
+    // it never keeps the process alive on its own.
+    if (!client.authenticated && this.authTimeoutMs > 0) {
+      client.authTimer = setTimeout(() => {
+        if (this.clients.get(clientId) === client && !client.authenticated) {
+          this.clients.delete(clientId);
+          try {
+            ws.close(1008, "Authentication timeout");
+          } catch (_err) {
+            // socket may already be closing
+          }
+          this.emit("disconnection", { clientId, reason: "auth timeout" });
+        }
+      }, this.authTimeoutMs);
+      if (typeof client.authTimer.unref === "function") {
+        client.authTimer.unref();
+      }
+    }
 
     this.emit("connection", { clientId, ip: clientIp });
 
@@ -346,6 +386,10 @@ export class ChainlessChainWSServer extends EventEmitter {
     });
 
     ws.on("close", () => {
+      if (client.authTimer) {
+        clearTimeout(client.authTimer);
+        client.authTimer = null;
+      }
       this.clients.delete(clientId);
       this.emit("disconnection", { clientId });
     });
@@ -571,6 +615,11 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     if (success && client) {
       client.authenticated = true;
+      // Authenticated in time — cancel the auth grace timer.
+      if (client.authTimer) {
+        clearTimeout(client.authTimer);
+        client.authTimer = null;
+      }
     }
 
     this._send(ws, {
@@ -902,6 +951,10 @@ export class ChainlessChainWSServer extends EventEmitter {
     this._heartbeatTimer = setInterval(() => {
       for (const [clientId, client] of this.clients) {
         if (!client.alive) {
+          if (client.authTimer) {
+            clearTimeout(client.authTimer);
+            client.authTimer = null;
+          }
           client.ws.terminate();
           this.clients.delete(clientId);
           this.emit("disconnection", { clientId, reason: "heartbeat timeout" });
