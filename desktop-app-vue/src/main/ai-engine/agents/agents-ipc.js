@@ -226,7 +226,10 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Template ID is required" };
       }
 
-      const instance = await getAgentRegistry().deploy(templateId, config);
+      const instance = await getAgentRegistry().createAgentInstance(
+        templateId,
+        config,
+      );
       logger.info(
         `[AgentsIPC] Agent deployed: ${instance.id} from template ${templateId}`,
       );
@@ -253,8 +256,8 @@ function registerAgentsIPC(dependencies = {}) {
   safeHandle(
     "agents:list-instances",
     "List instances",
-    async (_event, payload = {}) => {
-      const instances = getAgentRegistry().listInstances(payload.filters || {});
+    async (_event, _payload = {}) => {
+      const instances = getAgentRegistry().getActiveInstances();
       return {
         success: true,
         data: instances,
@@ -271,7 +274,7 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Agent ID is required" };
       }
 
-      const status = getAgentRegistry().getStatus(agentId);
+      const status = getAgentRegistry().getInstance(agentId);
       if (!status) {
         return { success: false, error: `Agent not found: ${agentId}` };
       }
