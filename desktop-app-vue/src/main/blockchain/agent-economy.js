@@ -327,6 +327,19 @@ class AgentEconomy extends EventEmitter {
     }
 
     const cost = listing.price * quantity;
+
+    // Move the money: previously tradeResource computed `cost` but never
+    // debited the buyer / credited the provider, so resource trades were
+    // silently free (the economy ledger diverged from what was actually
+    // "paid"). Mirror pay()'s accounting, balance-checking BEFORE any mutation
+    // so an unaffordable trade leaves the listing untouched.
+    const buyerBalance = this._balances.get(buyer) || { balance: 0, locked: 0 };
+    if (buyerBalance.balance < cost) {
+      throw new Error(
+        `Insufficient balance: ${buyerBalance.balance} < ${cost}`,
+      );
+    }
+
     listing.available -= quantity;
     // Persist the decremented availability (mirrors listResource's INSERT).
     // Without this the in-memory decrement is lost on restart — _loadState
@@ -342,6 +355,26 @@ class AgentEconomy extends EventEmitter {
         error.message,
       );
     }
+
+    buyerBalance.balance -= cost;
+    this._balances.set(buyer, buyerBalance);
+    const providerBalance = this._balances.get(listing.provider) || {
+      balance: 0,
+      locked: 0,
+    };
+    providerBalance.balance += cost;
+    this._balances.set(listing.provider, providerBalance);
+    const txId = `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this._persistTransaction(
+      txId,
+      buyer,
+      listing.provider,
+      cost,
+      "trade",
+      `Resource trade: ${listingId} x${quantity}`,
+    );
+    this._persistBalance(buyer, buyerBalance);
+    this._persistBalance(listing.provider, providerBalance);
 
     this.emit("economy:trade", { listingId, buyer, quantity, cost });
     return { cost, remaining: listing.available };

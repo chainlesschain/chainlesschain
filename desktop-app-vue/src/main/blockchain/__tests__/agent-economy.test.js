@@ -192,17 +192,32 @@ describe("AgentEconomy", () => {
     expect(listing.available).toBe(100);
   });
 
-  it("should trade a resource", async () => {
+  it("should trade a resource and move the money (debit buyer, credit provider)", async () => {
     await economy.initialize(db);
     const listing = economy.listResource("storage", "p1", 1.0, 50);
+    economy._balances.set("buyer-1", { balance: 100, locked: 0 });
     const result = economy.tradeResource(listing.id, "buyer-1", 10);
     expect(result.cost).toBe(10);
     expect(result.remaining).toBe(40);
+    // The ledger must actually move — previously tradeResource was silently free.
+    expect(economy.getBalance("buyer-1").balance).toBe(90);
+    expect(economy.getBalance("p1").balance).toBe(10);
+  });
+
+  it("throws when the buyer can't afford the trade (and leaves the listing untouched)", async () => {
+    await economy.initialize(db);
+    const listing = economy.listResource("storage", "p1", 1.0, 50);
+    economy._balances.set("buyer-1", { balance: 5, locked: 0 });
+    expect(() => economy.tradeResource(listing.id, "buyer-1", 10)).toThrow(
+      "Insufficient balance",
+    );
+    expect(listing.available).toBe(50); // unchanged
   });
 
   it("persists the decremented availability on trade (not memory-only)", async () => {
     await economy.initialize(db);
     const listing = economy.listResource("storage", "p1", 1.0, 50);
+    economy._balances.set("buyer-1", { balance: 100, locked: 0 });
     db.prepare.mockClear();
     db._prep.run.mockClear();
     economy.tradeResource(listing.id, "buyer-1", 10);
