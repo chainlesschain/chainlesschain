@@ -288,6 +288,25 @@ describe("IPFSClusterManager", () => {
       expect(pin.replication_factor).toBe(3);
     });
 
+    it("persists pin_count to each allocated node (not memory-only)", () => {
+      const updateSpy = vi.spyOn(manager, "_updateNode");
+      const pin = manager.pinContent({
+        cid: "QmPersistTest",
+        replicationFactor: 2,
+      });
+      expect(pin.allocations).toHaveLength(2);
+      // The pin_count bump must persist (mirrors heartbeatNode); otherwise
+      // _loadNodes reverts it on restart and _allocateNodes (which filters/sorts
+      // by pin_count) mis-allocates pins to already-full nodes.
+      const pinCountUpdates = updateSpy.mock.calls.filter(
+        (c) => c[1] && typeof c[1].pin_count === "number",
+      );
+      expect(pinCountUpdates.length).toBe(2);
+      for (const nodeId of pin.allocations) {
+        expect(manager._nodes.get(nodeId).pin_count).toBe(1);
+      }
+    });
+
     it("should emit content:pinned event", () => {
       const listener = vi.fn();
       manager.on("content:pinned", listener);

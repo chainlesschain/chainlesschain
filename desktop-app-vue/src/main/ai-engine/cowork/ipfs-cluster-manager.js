@@ -16,7 +16,9 @@ const { logger } = require("../../utils/logger.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -431,6 +433,10 @@ class IPFSClusterManager extends EventEmitter {
       const allocNode = this._nodes.get(allocNodeId);
       if (allocNode) {
         allocNode.pin_count = (allocNode.pin_count || 0) + 1;
+        // Persist (mirrors heartbeatNode): pin_count is reloaded by _loadNodes
+        // and drives _allocateNodes' capacity filter/sort, so a memory-only
+        // bump would revert on restart and mis-allocate pins.
+        this._updateNode(allocNode.id, { pin_count: allocNode.pin_count });
       }
     }
 
@@ -458,6 +464,7 @@ class IPFSClusterManager extends EventEmitter {
       const allocNode = this._nodes.get(allocNodeId);
       if (allocNode && allocNode.pin_count > 0) {
         allocNode.pin_count -= 1;
+        this._updateNode(allocNode.id, { pin_count: allocNode.pin_count });
       }
     }
 
@@ -565,6 +572,8 @@ class IPFSClusterManager extends EventEmitter {
 
           srcNode.pin_count = Math.max(0, (srcNode.pin_count || 0) - 1);
           dstNode.pin_count = (dstNode.pin_count || 0) + 1;
+          this._updateNode(srcNode.id, { pin_count: srcNode.pin_count });
+          this._updateNode(dstNode.id, { pin_count: dstNode.pin_count });
 
           moved++;
         }
@@ -900,6 +909,9 @@ class IPFSClusterManager extends EventEmitter {
           pin.allocations.push(replacement.id);
           pin.current_replicas = pin.allocations.length;
           replacement.pin_count = (replacement.pin_count || 0) + 1;
+          this._updateNode(replacement.id, {
+            pin_count: replacement.pin_count,
+          });
         }
 
         if (pin.current_replicas < pin.replication_min) {
