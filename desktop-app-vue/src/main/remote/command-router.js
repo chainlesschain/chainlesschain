@@ -209,9 +209,11 @@ class CommandRouter {
       } catch (error) {
         logger.error(`[CommandRouter] 执行命令失败: ${method}`, error);
 
-        // 更新统计
+        // 更新统计。total 必须在失败分支也自增，否则 byNamespace[ns].total
+        // 只计成功、与 success+failed 不符，低估该命名空间的真实调用量。
         this.stats.failedCommands++;
         if (this.stats.byNamespace[namespace]) {
+          this.stats.byNamespace[namespace].total++;
           this.stats.byNamespace[namespace].failed++;
         }
 

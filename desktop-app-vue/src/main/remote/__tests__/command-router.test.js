@@ -269,6 +269,21 @@ describe("CommandRouter", () => {
       expect(router.stats.byNamespace.stats.success).toBe(2);
     });
 
+    it("命名空间 total 在失败时也自增 (total === success + failed)", async () => {
+      mockHandler.handle.mockRejectedValue(new Error("fail"));
+
+      await router.route({ id: "1", method: "stats.test", params: {} });
+
+      // 失败分支以前漏增 total → total 低估、与 success+failed 不符。
+      expect(router.stats.byNamespace.stats.failed).toBe(1);
+      expect(router.stats.byNamespace.stats.success).toBe(0);
+      expect(router.stats.byNamespace.stats.total).toBe(1);
+      expect(router.stats.byNamespace.stats.total).toBe(
+        router.stats.byNamespace.stats.success +
+          router.stats.byNamespace.stats.failed,
+      );
+    });
+
     it("getStats 应该返回完整统计信息", async () => {
       await router.route({ id: "1", method: "stats.test", params: {} });
 
