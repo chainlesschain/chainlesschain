@@ -78,10 +78,17 @@ function maskValue(value) {
 }
 
 function resolveEnvPath(filePath, projectRoot) {
-  if (path.isAbsolute(filePath)) {
-    return filePath;
+  // filePath is a skill input. Confine writes/reads to the project root: an
+  // absolute path was returned as-is, and a relative one was path.join'd with no
+  // `..` guard, so the agent could write a .env over an arbitrary file
+  // (~/.bashrc, a sibling project's secrets, etc.) — path traversal. Resolve
+  // against projectRoot and reject anything that escapes it.
+  const root = path.resolve(projectRoot);
+  const resolved = path.resolve(root, filePath);
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+    throw new Error(`Path escapes project root: ${filePath}`);
   }
-  return path.join(projectRoot, filePath);
+  return resolved;
 }
 
 // ── Action handlers ──────────────────────────────────────────────────
@@ -483,6 +490,7 @@ function handleMerge(file1, file2, outputPath, projectRoot) {
 // ── Handler ─────────────────────────────────────────────────────────
 
 module.exports = {
+  resolveEnvPath, // exported for tests
   async init(_skill) {
     logger.info(
       "[env-file-manager] init: " + (_skill?.name || "env-file-manager"),
