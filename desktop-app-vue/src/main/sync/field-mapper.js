@@ -249,7 +249,11 @@ class FieldMapper {
           content: backendRecord.content,
           content_path: backendRecord.contentPath,
           embedding_path: backendRecord.embeddingPath,
-          user_id: backendRecord.userId,
+          // NOTE: knowledge_items has no user_id column (base schema + every
+          // ALTER migration checked). DBSyncManager.insertOrUpdateLocal builds
+          // INSERT from Object.keys(record), so emitting user_id here made the
+          // INSERT throw "no such column: user_id" and silently aborted the
+          // knowledge_items pull. Ownership is tracked via created_by/updated_by.
           git_commit_hash: backendRecord.gitCommitHash,
           device_id: backendRecord.deviceId,
           deleted: backendRecord.deleted || 0,
