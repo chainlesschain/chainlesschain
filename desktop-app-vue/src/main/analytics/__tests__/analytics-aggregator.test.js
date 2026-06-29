@@ -275,11 +275,24 @@ describe("AnalyticsAggregator", () => {
   // ─── _aggregate ─────────────────────────────────────────────────────────────
 
   describe("_aggregate()", () => {
-    it("should call db.prepare() with an INSERT OR REPLACE statement", async () => {
+    it("deletes the prior aggregation for the bucket then inserts (no duplicate rows)", async () => {
       await aggregator._aggregate();
-      expect(mockDb.prepare).toHaveBeenCalledWith(
-        expect.stringMatching(/INSERT OR REPLACE/i),
-      );
+      const sqls = mockDb.prepare.mock.calls.map((c) => c[0]);
+      // Fresh-uuid PK + a NON-unique (granularity, bucket_key) index meant the
+      // old INSERT OR REPLACE never conflicted — every run appended a duplicate
+      // row for the same hour. Each run must now clear the bucket first.
+      expect(
+        sqls.some((s) =>
+          /DELETE FROM analytics_aggregations WHERE granularity = \? AND bucket_key = \?/i.test(
+            s,
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        sqls.some((s) => /INSERT INTO analytics_aggregations/i.test(s)),
+      ).toBe(true);
+      // The never-conflicting upsert must be gone.
+      expect(sqls.some((s) => /INSERT OR REPLACE/i.test(s))).toBe(false);
     });
 
     it("should pass a UUID string as the first parameter to stmt.run()", async () => {

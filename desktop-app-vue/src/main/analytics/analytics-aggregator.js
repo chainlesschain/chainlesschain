@@ -17,7 +17,9 @@ const { v4: uuidv4 } = require("uuid");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load map. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -89,7 +91,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @private
    */
   _ensureTable() {
-    if (!this.database) {return;}
+    if (!this.database) {
+      return;
+    }
 
     try {
       const db = this.database.db || this.database;
@@ -125,7 +129,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @returns {Object|null}
    */
   _getDb() {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
     return this.database.db || this.database;
   }
 
@@ -179,8 +185,17 @@ class AnalyticsAggregator extends EventEmitter {
       const db = this._getDb();
 
       if (db) {
+        // One aggregation row per (granularity, bucket_key). The PK `id` is a
+        // fresh uuid each run and the (granularity, bucket_key) index is NOT
+        // unique, so INSERT OR REPLACE never conflicted — every 5-min run
+        // appended a DUPLICATE row for the same hour, and getTimeSeries (which
+        // SELECTs all rows for the granularity) returned the dups as inflated
+        // history. Replace any prior aggregation for this bucket first.
+        db.prepare(
+          "DELETE FROM analytics_aggregations WHERE granularity = ? AND bucket_key = ?",
+        ).run("hourly", bucketKey);
         const stmt = db.prepare(
-          `INSERT OR REPLACE INTO analytics_aggregations (id, bucket_key, granularity, metrics, created_at)
+          `INSERT INTO analytics_aggregations (id, bucket_key, granularity, metrics, created_at)
            VALUES (?, ?, ?, ?, datetime('now'))`,
         );
         stmt.run(uuidv4(), bucketKey, "hourly", JSON.stringify(metrics));
@@ -198,7 +213,9 @@ class AnalyticsAggregator extends EventEmitter {
    * @private
    */
   async _pushRealtime() {
-    if (!this.mainWindow?.webContents) {return;}
+    if (!this.mainWindow?.webContents) {
+      return;
+    }
     try {
       const snapshot = await this._collectAllMetrics();
       this.mainWindow.webContents.send("analytics:realtime-update", snapshot);
@@ -292,9 +309,10 @@ class AnalyticsAggregator extends EventEmitter {
         metrics.errors.errorRate = errorStats.errorRate || 0;
         metrics.errors.byType =
           errorStats.byType || errorStats.byCategory || {};
-        metrics.errors.recentErrors = (
-          errorStats.recentErrors || []
-        ).slice(0, 10);
+        metrics.errors.recentErrors = (errorStats.recentErrors || []).slice(
+          0,
+          10,
+        );
       } catch (e) {
         logger.debug("[Analytics] ErrorMonitor collection failed:", e.message);
       }
@@ -350,7 +368,9 @@ class AnalyticsAggregator extends EventEmitter {
    */
   async getTimeSeries(metric, { from, to, granularity = "hourly" } = {}) {
     const db = this._getDb();
-    if (!db) {return [];}
+    if (!db) {
+      return [];
+    }
 
     try {
       let query =
@@ -526,7 +546,9 @@ class AnalyticsAggregator extends EventEmitter {
   async cleanupOldData(retentionDays) {
     const days = retentionDays || this.config.retentionDays;
     const db = this._getDb();
-    if (!db) {return { deleted: 0 };}
+    if (!db) {
+      return { deleted: 0 };
+    }
 
     try {
       const cutoff = new Date(Date.now() - days * 86400000).toISOString();
@@ -558,7 +580,9 @@ class AnalyticsAggregator extends EventEmitter {
    */
   async getAggregationHistory({ limit = 50, offset = 0 } = {}) {
     const db = this._getDb();
-    if (!db) {return [];}
+    if (!db) {
+      return [];
+    }
 
     try {
       const stmt = db.prepare(
