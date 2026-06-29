@@ -357,6 +357,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
@@ -485,7 +486,7 @@ const initPPT = async () => {
     // 尝试解析JSON格式的演示文稿数据
     const data =
       typeof sourceContent === "string"
-        ? JSON.parse(sourceContent)
+        ? safeJsonParse(sourceContent, {})
         : sourceContent;
 
     if (data.slides && Array.isArray(data.slides)) {

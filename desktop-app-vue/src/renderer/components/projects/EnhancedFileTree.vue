@@ -213,6 +213,7 @@
 
 <script setup>
 import { logger } from "@/utils/logger";
+import { safeJsonParse } from "@/utils/loose-json";
 
 import { ref, computed, watch, h, nextTick, onMounted, onUpdated } from "vue";
 import { message, Modal, Input } from "ant-design-vue";
@@ -1123,8 +1124,14 @@ const handleDrop = async (event, targetNode) => {
       return;
     }
 
-    // 项目内文件移动
-    const sourceData = JSON.parse(event.dataTransfer.getData("text/plain"));
+    // 项目内文件移动（外部/无效拖拽数据会得到 null，直接忽略而非抛错）
+    const sourceData = safeJsonParse(
+      event.dataTransfer.getData("text/plain"),
+      null,
+    );
+    if (!sourceData || !sourceData.key) {
+      return;
+    }
 
     // 不能拖拽到自己或者拖拽到文件上
     if (sourceData.key === targetNode.key || targetNode.isLeaf) {
