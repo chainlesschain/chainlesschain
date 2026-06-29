@@ -188,6 +188,13 @@ class FileTransferHandler {
     // 最终文件路径
     const finalFilePath = path.join(this.uploadDir, fileName);
 
+    // fileName 来自远端 peer：拒绝任何越出 uploadDir 的值（如 "../../x"）。
+    // 基础文件操作已通过 _resolvePath/isWithinDir 强制此边界，但上传路径此前漏检，
+    // 导致 completeUpload 的 fs.rename 可把接收字节写到沙箱之外（路径穿越→任意写）。
+    if (!isWithinDir(this.uploadDir, finalFilePath)) {
+      throw new Error("Access denied: fileName escapes the upload directory");
+    }
+
     // 创建传输任务
     const transfer = {
       transferId,

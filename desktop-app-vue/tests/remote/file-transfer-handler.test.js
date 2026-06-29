@@ -208,6 +208,20 @@ describe("FileTransferHandler", () => {
         /fileName.*required/,
       );
     });
+
+    it("应该拒绝越出上传目录的文件名（路径穿越）", async () => {
+      const params = {
+        fileName: "../../../escape.exe",
+        fileSize: 1000,
+        checksum: "abc",
+      };
+
+      const context = { did: "did:key:test123" };
+
+      await expect(handler.requestUpload(params, context)).rejects.toThrow(
+        /escapes the upload directory|Access denied/,
+      );
+    });
   });
 
   describe("uploadChunk", () => {
