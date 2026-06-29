@@ -210,6 +210,21 @@ describe("BIEngine", () => {
     expect(bi.exportReport("nonexistent")).toBeNull();
   });
 
+  it("falls back to the DB when the report is not cached (evicted/restart)", async () => {
+    await bi.initialize(db);
+    // A persisted-but-evicted report: absent from the _reports cache, present
+    // in bi_reports. Before the fix, exportReport returned null for it.
+    db._prep.get.mockReturnValue({
+      result: JSON.stringify({ id: "r1", name: "Q4", format: "pdf" }),
+    });
+    const exported = bi.exportReport("r1", "csv");
+    expect(exported).toBeTruthy();
+    expect(exported.id).toBe("r1");
+    expect(exported.name).toBe("Q4");
+    expect(exported.exportFormat).toBe("csv");
+    expect(exported.exportedAt).toBeDefined();
+  });
+
   // ── scheduleReport ───────────────────────────────────────────────────────
   it("should schedule a report", async () => {
     await bi.initialize(db);

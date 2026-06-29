@@ -208,7 +208,14 @@ class BIEngine extends EventEmitter {
   }
 
   exportReport(reportId, format) {
-    const report = this._reports.get(reportId);
+    let report = this._reports.get(reportId);
+    if (!report) {
+      // Cache miss: the _reports cache is capped (MAX_CACHED_REPORTS) and is
+      // never reloaded on restart, but generateReport persists every report to
+      // bi_reports. Fall back to the DB so exporting an evicted/old report
+      // still works instead of returning null for a report that exists.
+      report = this._loadReportFromDb(reportId);
+    }
     if (!report) {
       return null;
     }
@@ -217,6 +224,26 @@ class BIEngine extends EventEmitter {
       exportFormat: format || report.format,
       exportedAt: Date.now(),
     };
+  }
+
+  _loadReportFromDb(reportId) {
+    if (!this.db) {
+      return null;
+    }
+    try {
+      const row = this.db
+        .prepare("SELECT result FROM bi_reports WHERE id = ?")
+        .get(reportId);
+      if (!row || !row.result) {
+        return null;
+      }
+      return JSON.parse(row.result);
+    } catch (error) {
+      logger.warn(
+        `[BIEngine] Failed to load report ${reportId} from DB: ${error.message}`,
+      );
+      return null;
+    }
   }
 
   scheduleReport(reportId, cron, recipients = []) {
