@@ -90,7 +90,10 @@ class GroupChatManager extends EventEmitter {
         this.currentUserDid,
         encrypted ? "encrypted" : "normal",
         500,
-        memberDids.length + 1, // 包括创建者
+        0, // member_count starts at 0; addGroupMember (called below for the
+        // creator AND every initial member) increments it to the correct total.
+        // Pre-seeding memberDids.length+1 here double-counted (e.g. 2 initial
+        // members → 6 instead of 3) since each addGroupMember does +1.
         encryptionKey,
         now,
         now,
