@@ -344,6 +344,30 @@ describe("LocalRecommender", () => {
     });
   });
 
+  // ── generateRecommendations: no duplicate accumulation ───────────────────────
+  describe("generateRecommendations()", () => {
+    it("clears the user's pending recs before inserting (no duplicate accumulation)", async () => {
+      const rec = new LocalRecommender({ db: mockDb });
+      await rec.generateRecommendations({
+        userId: "u1",
+        contentPool: [{ id: "c1", contentType: "post" }],
+      });
+      const sqls = mockDb.prepare.mock.calls.map((c) => c[0]);
+      // content_recommendations has no UNIQUE(user_id, content_id) and a
+      // fresh-uuid PK, so each run must DELETE the user's stale pending recs
+      // first — otherwise getRecommendations returns accumulating duplicates.
+      expect(
+        sqls.some((s) =>
+          /DELETE FROM content_recommendations WHERE user_id = \? AND status = 'pending'/i.test(
+            s,
+          ),
+        ),
+      ).toBe(true);
+      // The delete runs scoped to the user.
+      expect(mockRunStmt.run).toHaveBeenCalledWith("u1");
+    });
+  });
+
   // ── Singleton ───────────────────────────────────────────────────────────────
   describe("Singleton", () => {
     it("getLocalRecommender returns the same instance", () => {

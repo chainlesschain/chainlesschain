@@ -31,7 +31,9 @@ class LocalRecommender extends EventEmitter {
 
   _ensureTables() {
     if (!this.database || !this.database.db) {
-      logger.warn("[LocalRecommender] Database not available, skipping table creation");
+      logger.warn(
+        "[LocalRecommender] Database not available, skipping table creation",
+      );
       return;
     }
 
@@ -57,7 +59,9 @@ class LocalRecommender extends EventEmitter {
     logger.info("[LocalRecommender] Initializing local recommender...");
     this._ensureTables();
     this.initialized = true;
-    logger.info("[LocalRecommender] Local recommender initialized successfully");
+    logger.info(
+      "[LocalRecommender] Local recommender initialized successfully",
+    );
   }
 
   // ----------------------------------------------------------
@@ -73,7 +77,12 @@ class LocalRecommender extends EventEmitter {
   // Recommendations
   // ----------------------------------------------------------
 
-  async getRecommendations({ userId, limit = 20, contentType, minScore = 0.3 }) {
+  async getRecommendations({
+    userId,
+    limit = 20,
+    contentType,
+    minScore = 0.3,
+  }) {
     try {
       if (!this.database || !this.database.db) {
         return [];
@@ -121,7 +130,7 @@ class LocalRecommender extends EventEmitter {
         if (profile && profile.topics && item.topicVector) {
           score = this._cosineSimilarity(
             Object.values(profile.topics),
-            item.topicVector
+            item.topicVector,
           );
           reason = "interest_match";
         } else {
@@ -146,8 +155,18 @@ class LocalRecommender extends EventEmitter {
       const now = Date.now();
 
       if (this.database && this.database.db) {
+        // Regenerating replaces the user's stale (un-acted) suggestions. Without
+        // this, each call appended up to 50 rows: content_recommendations has no
+        // UNIQUE(user_id, content_id) and the PK is a fresh uuid, so INSERT OR
+        // REPLACE never conflicted and getRecommendations returned accumulating
+        // duplicates. Clear pending recs first (preserves viewed/acted history).
+        this.database.db
+          .prepare(
+            "DELETE FROM content_recommendations WHERE user_id = ? AND status = 'pending'",
+          )
+          .run(userId);
         const stmt = this.database.db.prepare(`
-          INSERT OR REPLACE INTO content_recommendations
+          INSERT INTO content_recommendations
             (id, user_id, content_id, content_type, score, reason, source, status, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
         `);
@@ -162,7 +181,7 @@ class LocalRecommender extends EventEmitter {
             item.score,
             item.reason,
             item.source || "local",
-            now
+            now,
           );
           results.push({
             id,
@@ -179,10 +198,15 @@ class LocalRecommender extends EventEmitter {
       }
 
       this.emit("recommendations-generated", { userId, count: results.length });
-      logger.info(`[LocalRecommender] Generated ${results.length} recommendations for user ${userId}`);
+      logger.info(
+        `[LocalRecommender] Generated ${results.length} recommendations for user ${userId}`,
+      );
       return results;
     } catch (error) {
-      logger.error("[LocalRecommender] Failed to generate recommendations:", error);
+      logger.error(
+        "[LocalRecommender] Failed to generate recommendations:",
+        error,
+      );
       return [];
     }
   }
@@ -193,9 +217,13 @@ class LocalRecommender extends EventEmitter {
         return false;
       }
 
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         UPDATE content_recommendations SET viewed_at = ? WHERE id = ?
-      `).run(Date.now(), recommendationId);
+      `,
+        )
+        .run(Date.now(), recommendationId);
 
       this.emit("recommendation-viewed", { recommendationId });
       return true;
@@ -211,12 +239,18 @@ class LocalRecommender extends EventEmitter {
         return false;
       }
 
-      this.database.db.prepare(`
+      this.database.db
+        .prepare(
+          `
         UPDATE content_recommendations SET status = ? WHERE id = ?
-      `).run(feedback, recommendationId);
+      `,
+        )
+        .run(feedback, recommendationId);
 
       this.emit("recommendation-feedback", { recommendationId, feedback });
-      logger.info(`[LocalRecommender] Feedback '${feedback}' recorded for ${recommendationId}`);
+      logger.info(
+        `[LocalRecommender] Feedback '${feedback}' recorded for ${recommendationId}`,
+      );
       return true;
     } catch (error) {
       logger.error("[LocalRecommender] Failed to provide feedback:", error);
@@ -259,32 +293,61 @@ class LocalRecommender extends EventEmitter {
   async getStats(userId) {
     try {
       if (!this.database || !this.database.db) {
-        return { total: 0, pending: 0, liked: 0, dismissed: 0, saved: 0, viewed: 0 };
+        return {
+          total: 0,
+          pending: 0,
+          liked: 0,
+          dismissed: 0,
+          saved: 0,
+          viewed: 0,
+        };
       }
 
-      const rows = this.database.db.prepare(`
+      const rows = this.database.db
+        .prepare(
+          `
         SELECT status, COUNT(*) as count FROM content_recommendations
         WHERE user_id = ?
         GROUP BY status
-      `).all(userId);
+      `,
+        )
+        .all(userId);
 
-      const stats = { total: 0, pending: 0, liked: 0, dismissed: 0, saved: 0, viewed: 0 };
+      const stats = {
+        total: 0,
+        pending: 0,
+        liked: 0,
+        dismissed: 0,
+        saved: 0,
+        viewed: 0,
+      };
       for (const row of rows) {
         stats[row.status] = row.count;
         stats.total += row.count;
       }
 
       // Count viewed (has viewed_at set)
-      const viewedRow = this.database.db.prepare(`
+      const viewedRow = this.database.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM content_recommendations
         WHERE user_id = ? AND viewed_at IS NOT NULL
-      `).get(userId);
+      `,
+        )
+        .get(userId);
       stats.viewed = viewedRow ? viewedRow.count : 0;
 
       return stats;
     } catch (error) {
       logger.error("[LocalRecommender] Failed to get stats:", error);
-      return { total: 0, pending: 0, liked: 0, dismissed: 0, saved: 0, viewed: 0 };
+      return {
+        total: 0,
+        pending: 0,
+        liked: 0,
+        dismissed: 0,
+        saved: 0,
+        viewed: 0,
+      };
     }
   }
 
