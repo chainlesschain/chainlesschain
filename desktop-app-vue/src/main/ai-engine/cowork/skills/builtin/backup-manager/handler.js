@@ -110,11 +110,23 @@ function parseInput(input) {
   return f;
 }
 
+// Reduce a skill-supplied backup name to a single safe filename component
+// (strips any directory parts + shell/path-unsafe chars). Returns null for empty.
+function safeBackupName(name) {
+  if (!name) {
+    return null;
+  }
+  return path.basename(String(name)).replace(/[^A-Za-z0-9._-]/g, "_") || null;
+}
+
 function resolveZip(file, root) {
   if (!file) {
     return null;
   }
-  return path.isAbsolute(file) ? file : path.join(backupsDir(root), file);
+  // `file` is a backup name from the skill input. Confine it to the backups dir
+  // via basename — without this, an absolute path or "../" escape let the agent
+  // read (restore/info) or delete an arbitrary file outside the backups dir.
+  return path.join(backupsDir(root), path.basename(file));
 }
 
 function categorize(entryName) {
@@ -154,7 +166,11 @@ async function createBackup(flags, root) {
   }
 
   const dateStr = new Date().toISOString().slice(0, 10);
-  const base = flags.name ? `${flags.name}-${dateStr}` : `backup-${dateStr}`;
+  // flags.name (skill input) becomes part of the output filename joined to the
+  // backups dir — sanitize to a single safe filename component so "../../x"
+  // can't write the backup outside the backups dir (path traversal).
+  const safeName = safeBackupName(flags.name);
+  const base = safeName ? `${safeName}-${dateStr}` : `backup-${dateStr}`;
   let fileName = `${base}.zip`,
     counter = 1;
   while (fs.existsSync(path.join(dir, fileName))) {
@@ -480,6 +496,8 @@ function scheduleSuggestion(interval) {
 // ── Main Handler ───────────────────────────────────
 
 module.exports = {
+  safeBackupName, // exported for tests
+  resolveZip, // exported for tests
   async init(skill) {
     logger.info(
       `[backup-manager] handler initialized for "${skill?.name || "backup-manager"}"`,
