@@ -619,50 +619,6 @@ it('应该能全选技能', () => {
 
 ### 第五批测试 (会话5)
 
-#### 13. CallHistoryPage.test.js
-
-**文件**: `tests/unit/pages/CallHistoryPage.test.js`
-**测试目标**: `src/renderer/pages/CallHistoryPage.vue`
-**测试用例数**: ~100个
-**代码行数**: ~900行
-
-**测试覆盖范围**:
-- ✅ 组件挂载和通话历史加载
-- ✅ 通话类型筛选 (全部、语音、视频、屏幕共享)
-- ✅ 状态显示和颜色编码 (成功/失败/未接听/已取消)
-- ✅ 刷新和清空全部记录
-- ✅ 删除单条记录
-- ✅ 再次拨打功能 (语音/视频/屏幕共享)
-- ✅ 通话详情抽屉 (质量统计、比特率、丢包率、延迟)
-- ✅ 时间格式化 (相对时间、绝对时间)
-- ✅ 持续时间格式化 (秒、分秒、时分秒)
-- ✅ 流量格式化 (B、KB、MB、GB)
-- ✅ 对端名称显示 (好友名称、DID)
-- ✅ 空状态和边界情况处理
-
-**关键测试示例**:
-```javascript
-it('应该能发起语音通话', async () => {
-  wrapper = createWrapper();
-  const { message } = require('ant-design-vue');
-
-  const audioRecord = { ...mockCallHistory[0], type: 'audio' };
-  await wrapper.vm.handleCallAgain(audioRecord);
-
-  expect(mockUseP2PCall.startAudioCall).toHaveBeenCalledWith(audioRecord.peerId);
-  expect(message.success).toHaveBeenCalledWith('正在发起通话...');
-});
-
-it('应该能格式化流量', () => {
-  wrapper = createWrapper();
-  expect(wrapper.vm.formatBytes(500)).toBe('500 B');
-  expect(wrapper.vm.formatBytes(2048)).toBe('2.00 KB');
-  expect(wrapper.vm.formatBytes(5242880)).toBe('5.00 MB');
-});
-```
-
----
-
 #### 14. ToolManagement.test.js
 
 **文件**: `tests/unit/pages/ToolManagement.test.js`
@@ -2395,7 +2351,6 @@ it('应该能连接MetaMask', async () => {
 | 16. Friends | FriendsPage.test.js | ~120 | ~1,050 | ✅ 完成 |
 | 17. AI Prompts | AIPromptsPage.test.js | ~90 | ~750 | ✅ 完成 |
 | 18. Skill Management | SkillManagement.test.js | ~110 | ~1,100 | ✅ 完成 |
-| 19. Call History | CallHistoryPage.test.js | ~100 | ~900 | ✅ 完成 |
 | 20. Tool Management | ToolManagement.test.js | ~110 | ~1,000 | ✅ 完成 |
 | 21. Workflow Monitor | WorkflowMonitorPage.test.js | ~105 | ~1,000 | ✅ 完成 |
 | 22. Organizations | OrganizationsPage.test.js | ~100 | ~900 | ✅ 完成 |
