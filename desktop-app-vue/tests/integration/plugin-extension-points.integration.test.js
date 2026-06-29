@@ -491,6 +491,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ve.pluginId).toBe("video-editing");
   });
 
+  it("knowledge-list 的 /knowledge slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const kl = slash.find((s) => s.trigger === "/knowledge");
+    expect(kl).toBeDefined();
+    expect(kl.handler).toBe("builtin:openKnowledgeListPanel");
+    expect(kl.pluginId).toBe("knowledge-list");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

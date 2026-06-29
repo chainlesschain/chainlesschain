@@ -1,0 +1,20 @@
+{
+  "id": "knowledge-list",
+  "name": "我的知识",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/knowledge 斜杠命令 — 知识条目浏览、搜索、排序、新建、删除（详情/编辑深链到 V5 知识页）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "knowledge-list",
+        "trigger": "/knowledge",
+        "handler": "builtin:openKnowledgeListPanel",
+        "description": "打开我的知识面板",
+        "icon": "FileTextOutlined"
+      }
+    }
+  ]
+}
