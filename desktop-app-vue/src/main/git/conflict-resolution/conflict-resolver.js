@@ -459,9 +459,11 @@ class SmartConflictResolver extends EventEmitter {
         [signature],
       );
 
+      let patternId;
       if (existingPattern) {
         // Update existing pattern
         const wasSuccessful = choiceType !== "manual" ? 1 : 0;
+        patternId = existingPattern.id;
         this.db.run(
           `UPDATE conflict_patterns
            SET success_count = success_count + ?,
@@ -473,18 +475,38 @@ class SmartConflictResolver extends EventEmitter {
         );
       } else {
         // Create new pattern
+        patternId = uuidv4();
         this.db.run(
           `INSERT INTO conflict_patterns
            (id, pattern_type, file_pattern, conflict_signature, resolution_strategy, success_count, total_count, confidence)
            VALUES (?, ?, ?, ?, ?, 1, 1, 0.5)`,
           [
-            uuidv4(),
+            patternId,
             history.conflict_type,
             history.file_path?.replace(/[^/]+$/, "*"),
             signature,
             choiceType,
           ],
         );
+      }
+
+      // Keep _patternCache (the only source _matchPattern reads) in sync with
+      // the just-learned pattern this session — otherwise it stays invisible to
+      // resolution until the next restart (cache is loaded once at init). Respect
+      // _loadPatterns' confidence>0.5 threshold: a fresh pattern (confidence 0.5)
+      // stays out; an update that crosses above is cached, one that drops to/below
+      // is evicted.
+      const updatedPattern = this.db.get(
+        `SELECT * FROM conflict_patterns WHERE id = ?`,
+        [patternId],
+      );
+      if (updatedPattern && updatedPattern.confidence > 0.5) {
+        this._patternCache.set(updatedPattern.id, {
+          ...updatedPattern,
+          metadata: safeParse(updatedPattern.metadata, {}),
+        });
+      } else if (updatedPattern) {
+        this._patternCache.delete(updatedPattern.id);
       }
     } catch (error) {
       logger.warn("[ConflictResolver] Pattern learning failed:", error.message);
