@@ -161,6 +161,14 @@ class SkillMarketplaceClient extends EventEmitter {
     const installId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
+    // One install record per skill. The PK `id` is a fresh uuid every call, so
+    // INSERT OR REPLACE never conflicts — re-installing a skill accumulated
+    // DUPLICATE rows (listInstalled showed dups, getStats COUNT over-counted).
+    // All reads are by skill_id, so clear any prior install for this skill first.
+    db.prepare("DELETE FROM skill_marketplace_installs WHERE skill_id = ?").run(
+      skillId,
+    );
+
     db.prepare(
       `INSERT OR REPLACE INTO skill_marketplace_installs
        (id, skill_id, name, version, author, category, installed_at, last_updated, auto_update)

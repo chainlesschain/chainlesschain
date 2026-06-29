@@ -137,6 +137,19 @@ describe("PluginEcosystemV2", () => {
     expect(eco._plugins.get("dl-1").downloads).toBe(2);
   });
 
+  it("persists the incremented download count to the DB", async () => {
+    await eco.initialize(db);
+    eco.publish({ name: "Persist DL", id: "pdl-1" });
+    db.prepare.mockClear();
+    await eco.install("pdl-1");
+    // Without this the increment lived only in memory and reset on restart —
+    // _loadPlugins reloads downloads from the DB and search ranking weights by it.
+    const wrote = db.prepare.mock.calls.some((c) =>
+      /UPDATE ecosystem_plugins SET downloads/i.test(c[0]),
+    );
+    expect(wrote).toBe(true);
+  });
+
   it("should emit ecosystem:installed event", async () => {
     await eco.initialize(db);
     eco.publish({ name: "Event Plugin", id: "ev-1" });

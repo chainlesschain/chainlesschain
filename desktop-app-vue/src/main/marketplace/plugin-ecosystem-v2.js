@@ -103,6 +103,21 @@ class PluginEcosystemV2 extends EventEmitter {
       throw new Error("Plugin not found");
     }
     plugin.downloads = (plugin.downloads || 0) + 1;
+    // Persist the incremented count: _loadPlugins reads downloads from the DB on
+    // init and search ranking weights by it, so an in-memory-only increment was
+    // lost on every restart (count reset to the published value).
+    if (this.db) {
+      try {
+        this.db
+          .prepare("UPDATE ecosystem_plugins SET downloads = ? WHERE id = ?")
+          .run(plugin.downloads, pluginId);
+      } catch (error) {
+        logger.error(
+          "[PluginEcosystemV2] Download count persist failed:",
+          error.message,
+        );
+      }
+    }
     this._installHistory.push({ pluginId, timestamp: Date.now() });
     this.emit("ecosystem:installed", { pluginId, name: plugin.name });
     return {

@@ -223,6 +223,18 @@ describe("SkillMarketplaceClient", () => {
       await client.installSkill("skill-3");
       expect(spy).toHaveBeenCalledTimes(1);
     });
+
+    it("clears a prior install for the same skill before inserting (no duplicate rows)", async () => {
+      await client.initialize();
+      mockDb.db.prepare.mockClear();
+      await client.installSkill("skill-dup", { name: "Dup" });
+      // PK `id` is a fresh uuid each call, so without this delete INSERT OR
+      // REPLACE never conflicts and re-installs accumulate duplicate rows.
+      const deleted = mockDb.db.prepare.mock.calls.some((c) =>
+        /DELETE FROM skill_marketplace_installs WHERE skill_id/i.test(c[0]),
+      );
+      expect(deleted).toBe(true);
+    });
   });
 
   // ── uninstallSkill ────────────────────────────────────────────────────────────
