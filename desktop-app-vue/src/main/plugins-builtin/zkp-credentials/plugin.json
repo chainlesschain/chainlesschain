@@ -1,0 +1,20 @@
+{
+  "id": "zkp-credentials",
+  "name": "ZKP 可验证凭证",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/zkp 斜杠命令 — 零知识证明可验证凭证（签发、出示/选择性披露、撤销、统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "zkp-credentials",
+        "trigger": "/zkp",
+        "handler": "builtin:openZKPCredentialsPanel",
+        "description": "打开 ZKP 可验证凭证面板",
+        "icon": "SafetyCertificateOutlined"
+      }
+    }
+  ]
+}

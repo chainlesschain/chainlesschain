@@ -435,6 +435,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(wa.pluginId).toBe("webauthn");
   });
 
+  it("zkp-credentials 的 /zkp slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const zk = slash.find((s) => s.trigger === "/zkp");
+    expect(zk).toBeDefined();
+    expect(zk.handler).toBe("builtin:openZKPCredentialsPanel");
+    expect(zk.pluginId).toBe("zkp-credentials");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
