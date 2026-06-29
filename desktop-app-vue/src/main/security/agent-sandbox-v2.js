@@ -552,10 +552,11 @@ class AgentSandboxV2 extends EventEmitter {
           id: row.id,
           agentId: row.agent_id,
           status: row.status || "idle",
-          permissions: row.permissions ? JSON.parse(row.permissions) : {},
-          quota: row.quota
-            ? JSON.parse(row.quota)
-            : { ...this._config.defaultQuota },
+          // Per-row guard: a single corrupt permissions/quota JSON must not throw
+          // out of the loop (the outer catch would abort restoring every later
+          // sandbox). Fall back like the policy field already does.
+          permissions: safeParse(row.permissions, {}),
+          quota: safeParse(row.quota, { ...this._config.defaultQuota }),
           usage: { cpu: 0, memory: 0, storage: 0, network: 0 },
           createdAt: row.created_at_ms || now,
           lastUsedAt: row.last_used_at_ms || now,

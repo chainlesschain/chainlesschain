@@ -431,8 +431,13 @@ class IPCPermissionManager {
    * 启动定期清理任务
    */
   startCleanupTask() {
+    // Clear any existing timers first so re-init doesn't accumulate intervals,
+    // and store the handles so stopCleanupTask() can release them (otherwise the
+    // closures pin `this` forever and the timers can never be stopped).
+    this.stopCleanupTask();
+
     // 每5分钟清理一次速率限制缓存
-    setInterval(
+    this._rateLimitCleanupTimer = setInterval(
       () => {
         const now = Date.now();
         for (const [key, cache] of this.rateLimitCache.entries()) {
@@ -444,14 +449,34 @@ class IPCPermissionManager {
       },
       5 * 60 * 1000,
     );
+    if (this._rateLimitCleanupTimer.unref) {
+      this._rateLimitCleanupTimer.unref();
+    }
 
     // 每小时保存一次审计日志
-    setInterval(
+    this._auditSaveTimer = setInterval(
       () => {
         this.saveAuditLog();
       },
       60 * 60 * 1000,
     );
+    if (this._auditSaveTimer.unref) {
+      this._auditSaveTimer.unref();
+    }
+  }
+
+  /**
+   * 停止定期清理任务（释放定时器，防止泄漏）
+   */
+  stopCleanupTask() {
+    if (this._rateLimitCleanupTimer) {
+      clearInterval(this._rateLimitCleanupTimer);
+      this._rateLimitCleanupTimer = null;
+    }
+    if (this._auditSaveTimer) {
+      clearInterval(this._auditSaveTimer);
+      this._auditSaveTimer = null;
+    }
   }
 
   /**
