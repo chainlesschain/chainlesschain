@@ -95,6 +95,10 @@
       v-model:open="callHistoryPanelOpen"
       :prefill-text="callHistoryPrefill"
     />
+    <GraphQLExplorerPanel
+      v-model:open="graphqlExplorerPanelOpen"
+      :prefill-text="graphqlExplorerPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -141,6 +145,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
 import CallHistoryPanel from "./CallHistoryPanel.vue";
+import GraphQLExplorerPanel from "./GraphQLExplorerPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -184,6 +189,8 @@ const memoryBankPanelOpen = ref(false);
 const memoryBankPrefill = ref("");
 const callHistoryPanelOpen = ref(false);
 const callHistoryPrefill = ref("");
+const graphqlExplorerPanelOpen = ref(false);
+const graphqlExplorerPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -235,6 +242,7 @@ let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
 let unregisterCallHistoryHandler: (() => void) | null = null;
+let unregisterGraphqlExplorerHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -366,6 +374,13 @@ onMounted(async () => {
       callHistoryPanelOpen.value = true;
     },
   );
+  unregisterGraphqlExplorerHandler = registerSlashHandler(
+    "builtin:openGraphqlExplorerPanel",
+    ({ args }) => {
+      graphqlExplorerPrefill.value = args ?? "";
+      graphqlExplorerPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -431,6 +446,8 @@ onBeforeUnmount(() => {
   unregisterMemoryBankHandler = null;
   unregisterCallHistoryHandler?.();
   unregisterCallHistoryHandler = null;
+  unregisterGraphqlExplorerHandler?.();
+  unregisterGraphqlExplorerHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();

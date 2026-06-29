@@ -403,6 +403,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ch.pluginId).toBe("call-history");
   });
 
+  it("graphql-explorer 的 /graphql slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const gq = slash.find((s) => s.trigger === "/graphql");
+    expect(gq).toBeDefined();
+    expect(gq.handler).toBe("builtin:openGraphqlExplorerPanel");
+    expect(gq.pluginId).toBe("graphql-explorer");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
