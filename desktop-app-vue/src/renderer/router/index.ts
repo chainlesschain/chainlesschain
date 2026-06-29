@@ -1120,15 +1120,6 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "插件详情" },
       },
-      {
-        path: "plugin-marketplace/installed",
-        name: "InstalledPlugins",
-        component: () =>
-          import(
-            /* webpackChunkName: "installed-plugins" */ "../pages/InstalledPluginsPage.vue"
-          ),
-        meta: { title: "已安装插件" },
-      },
       // ===== 智能代理系统 (v0.34.0) =====
       {
         path: "agents",
