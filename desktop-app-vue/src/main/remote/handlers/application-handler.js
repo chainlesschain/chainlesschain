@@ -51,7 +51,42 @@ function validatePath(p) {
   if (p.includes("..") || p.includes("\0")) {
     throw new Error("Invalid path: path traversal detected");
   }
+  // appPath is interpolated into a shell command (`start "" "${appPath}" ...`),
+  // so reject metacharacters that can't appear in a legitimate executable path
+  // but would enable command injection. Spaces and parens stay allowed (e.g.
+  // "C:\\Program Files (x86)\\app.exe").
+  if (/["`$&|;<>\r\n]/.test(p)) {
+    throw new Error("Invalid path: contains disallowed characters");
+  }
   return p;
+}
+
+/**
+ * 验证进程 PID（防止命令注入）。pid 会被插入 taskkill/kill/Get-Process 的 shell
+ * 命令；非数字值如 "1 & calc.exe" 会注入。要求正整数。
+ */
+function validatePid(pid) {
+  const n = Number(pid);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error("Invalid pid");
+  }
+  return n;
+}
+
+/**
+ * 验证启动参数（防止命令注入）。args 会被 join(" ") 进 shell 命令；逐项用白名单
+ * 校验，拒绝 shell 元字符，使远端 arg 无法注入第二条命令。
+ */
+function validateArgs(args) {
+  if (!Array.isArray(args)) {
+    throw new Error("Invalid args: must be an array");
+  }
+  for (const a of args) {
+    if (typeof a !== "string" || !/^[\w\s.\-/:=@,]*$/.test(a)) {
+      throw new Error("Invalid args: contains disallowed characters");
+    }
+  }
+  return args;
 }
 
 /**
@@ -433,16 +468,17 @@ class ApplicationHandler {
 
     const launchName = name ? validateAppName(name) : null;
     const launchPath = appPath ? validatePath(appPath) : null;
+    const launchArgs = validateArgs(args);
 
     logger.info(`[ApplicationHandler] 启动应用: ${launchName || launchPath}`);
 
     try {
       if (isWindows) {
-        await this._launchWindowsApp(launchName, launchPath, args);
+        await this._launchWindowsApp(launchName, launchPath, launchArgs);
       } else if (isMac) {
-        await this._launchMacApp(launchName, launchPath, args);
+        await this._launchMacApp(launchName, launchPath, launchArgs);
       } else if (isLinux) {
-        await this._launchLinuxApp(launchName, launchPath, args);
+        await this._launchLinuxApp(launchName, launchPath, launchArgs);
       } else {
         throw new Error(`Unsupported platform: ${process.platform}`);
       }
@@ -494,16 +530,17 @@ class ApplicationHandler {
     }
 
     const closeName = name ? validateAppName(name) : null;
+    const closePid = pid ? validatePid(pid) : null;
 
-    logger.info(`[ApplicationHandler] 关闭应用: ${closeName || pid}`);
+    logger.info(`[ApplicationHandler] 关闭应用: ${closeName || closePid}`);
 
     try {
       if (isWindows) {
-        await this._closeWindowsApp(closeName, pid, force);
+        await this._closeWindowsApp(closeName, closePid, force);
       } else if (isMac) {
-        await this._closeMacApp(closeName, pid, force);
+        await this._closeMacApp(closeName, closePid, force);
       } else if (isLinux) {
-        await this._closeLinuxApp(closeName, pid, force);
+        await this._closeLinuxApp(closeName, closePid, force);
       } else {
         throw new Error(`Unsupported platform: ${process.platform}`);
       }
@@ -565,16 +602,17 @@ class ApplicationHandler {
     }
 
     const focusName = name ? validateAppName(name) : null;
+    const focusPid = pid ? validatePid(pid) : null;
 
-    logger.info(`[ApplicationHandler] 聚焦应用: ${focusName || pid}`);
+    logger.info(`[ApplicationHandler] 聚焦应用: ${focusName || focusPid}`);
 
     try {
       if (isWindows) {
-        await this._focusWindowsApp(focusName, pid);
+        await this._focusWindowsApp(focusName, focusPid);
       } else if (isMac) {
-        await this._focusMacApp(focusName, pid);
+        await this._focusMacApp(focusName, focusPid);
       } else if (isLinux) {
-        await this._focusLinuxApp(focusName, pid);
+        await this._focusLinuxApp(focusName, focusPid);
       } else {
         throw new Error(`Unsupported platform: ${process.platform}`);
       }
