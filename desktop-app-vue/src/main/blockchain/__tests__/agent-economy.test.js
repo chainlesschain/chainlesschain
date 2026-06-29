@@ -200,6 +200,21 @@ describe("AgentEconomy", () => {
     expect(result.remaining).toBe(40);
   });
 
+  it("persists the decremented availability on trade (not memory-only)", async () => {
+    await economy.initialize(db);
+    const listing = economy.listResource("storage", "p1", 1.0, 50);
+    db.prepare.mockClear();
+    db._prep.run.mockClear();
+    economy.tradeResource(listing.id, "buyer-1", 10);
+    // Without this UPDATE the decrement is memory-only; _loadState reloads the
+    // original quantity on restart, letting the buyer re-acquire it for free.
+    const sqls = db.prepare.mock.calls.map((c) => c[0]);
+    expect(
+      sqls.some((s) => /UPDATE economy_market SET available/i.test(s)),
+    ).toBe(true);
+    expect(db._prep.run).toHaveBeenCalledWith(40, listing.id);
+  });
+
   it("should throw when trading more than available", async () => {
     await economy.initialize(db);
     const listing = economy.listResource("storage", "p1", 1.0, 5);

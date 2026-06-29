@@ -328,6 +328,20 @@ class AgentEconomy extends EventEmitter {
 
     const cost = listing.price * quantity;
     listing.available -= quantity;
+    // Persist the decremented availability (mirrors listResource's INSERT).
+    // Without this the in-memory decrement is lost on restart — _loadState
+    // reloads economy_market with the original quantity, letting a buyer
+    // re-acquire the same resource for free after every restart.
+    try {
+      this.db
+        .prepare("UPDATE economy_market SET available = ? WHERE id = ?")
+        .run(listing.available, listingId);
+    } catch (error) {
+      logger.error(
+        "[AgentEconomy] Market trade persist failed:",
+        error.message,
+      );
+    }
 
     this.emit("economy:trade", { listingId, buyer, quantity, cost });
     return { cost, remaining: listing.available };
