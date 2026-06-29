@@ -254,4 +254,66 @@ describe("TenantManager", () => {
     await tm.initialize(db);
     expect(tm.deleteTenant("unknown")).toBe(false);
   });
+
+  // ── restart restore (load usage/subscriptions on init) ────────────────────
+  describe("restart restore", () => {
+    function restoreDb(rowsByTable) {
+      return {
+        exec: vi.fn(),
+        prepare: vi.fn((sql) => ({
+          all: () => {
+            for (const [tbl, rows] of Object.entries(rowsByTable)) {
+              if (sql.includes(tbl)) {
+                return rows;
+              }
+            }
+            return [];
+          },
+          get: () => null,
+          run: vi.fn(),
+        })),
+      };
+    }
+
+    it("reloads accumulated usage so getUsage is populated after restart", async () => {
+      const tm2 = new TenantManager();
+      await tm2.initialize(
+        restoreDb({
+          saas_usage: [{ tenant_id: "t1", metric: "apiCalls", value: 150 }],
+        }),
+      );
+      expect(tm2.getUsage("t1").apiCalls).toBe(150);
+    });
+
+    it("reloads the subscription so exportData returns it after restart", async () => {
+      const tm2 = new TenantManager();
+      await tm2.initialize(
+        restoreDb({
+          saas_tenants: [
+            {
+              id: "t1",
+              name: "T",
+              config: "{}",
+              status: "active",
+              plan: "pro",
+            },
+          ],
+          saas_subscriptions: [
+            {
+              id: "s1",
+              tenant_id: "t1",
+              plan: "pro",
+              price: 99,
+              billing_cycle: "monthly",
+              status: "active",
+            },
+          ],
+        }),
+      );
+      const data = tm2.exportData("t1");
+      expect(data.subscription).toBeTruthy();
+      expect(data.subscription.plan).toBe("pro");
+      expect(data.subscription.price).toBe(99);
+    });
+  });
 });

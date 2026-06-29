@@ -22,6 +22,8 @@ class TenantManager extends EventEmitter {
     this.db = db;
     this._ensureTables();
     await this._loadTenants();
+    await this._loadUsage();
+    await this._loadSubscriptions();
     this.initialized = true;
     logger.info(
       `[TenantManager] Initialized with ${this._tenants.size} tenants`,
@@ -72,6 +74,55 @@ class TenantManager extends EventEmitter {
       }
     } catch (error) {
       logger.warn("[TenantManager] Failed to load tenants:", error.message);
+    }
+  }
+
+  async _loadUsage() {
+    // recordUsage persists each delta to saas_usage but the _usage cache was
+    // never reloaded on init, so getUsage returned zeros after restart despite
+    // persisted rows. Rebuild the accumulated total per (tenant, metric).
+    try {
+      const rows = this.db
+        .prepare(
+          "SELECT tenant_id, metric, SUM(value) AS value FROM saas_usage GROUP BY tenant_id, metric",
+        )
+        .all();
+      for (const row of rows) {
+        const usage = this._usage.get(row.tenant_id) || {};
+        usage[row.metric] = row.value;
+        this._usage.set(row.tenant_id, usage);
+      }
+    } catch (error) {
+      logger.warn("[TenantManager] Failed to load usage:", error.message);
+    }
+  }
+
+  async _loadSubscriptions() {
+    // manageSubscription persists to saas_subscriptions but the _subscriptions
+    // cache was never reloaded, so exportData returned subscription:undefined
+    // after restart. Load the latest subscription per tenant (ascending order
+    // → later rows overwrite, so the most recent wins).
+    try {
+      const rows = this.db
+        .prepare(
+          "SELECT * FROM saas_subscriptions ORDER BY started_at ASC, rowid ASC",
+        )
+        .all();
+      for (const row of rows) {
+        this._subscriptions.set(row.tenant_id, {
+          id: row.id,
+          tenantId: row.tenant_id,
+          plan: row.plan,
+          price: row.price,
+          billingCycle: row.billing_cycle,
+          status: row.status,
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        "[TenantManager] Failed to load subscriptions:",
+        error.message,
+      );
     }
   }
 
