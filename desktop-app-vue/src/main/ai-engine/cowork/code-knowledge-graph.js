@@ -585,6 +585,29 @@ class CodeKnowledgeGraph {
         if (moduleTarget) {
           rel.targetId = moduleTarget;
           count++;
+          // Persist the now-resolved relationship. It was created with a null
+          // targetId, so _addRelationship's `if (sourceId && targetId)` gate
+          // skipped persisting it — without this it stays memory-only and is
+          // lost on the next _loadFromDB restart (which SELECTs this table).
+          if (this.db) {
+            try {
+              this.db.run(
+                `INSERT OR REPLACE INTO code_kg_relationships (id, source_id, target_id, type, weight, metadata, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  rel.id,
+                  rel.sourceId,
+                  rel.targetId,
+                  rel.type,
+                  rel.weight,
+                  JSON.stringify(rel.metadata),
+                  rel.createdAt,
+                ],
+              );
+            } catch (e) {
+              logger.warn("[CodeKG] Relationship persist error:", e.message);
+            }
+          }
         }
       }
     }

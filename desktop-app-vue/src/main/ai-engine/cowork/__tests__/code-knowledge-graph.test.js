@@ -260,6 +260,46 @@ describe("CodeKnowledgeGraph", () => {
     });
   });
 
+  describe("_resolveCrossFileRelationships() — persists resolved rels", () => {
+    beforeEach(async () => {
+      await ckg.initialize(db);
+    });
+
+    it("persists the relationship after resolving its targetId (survives restart)", () => {
+      const src = ckg._addEntity({
+        name: "consumer",
+        type: ENTITY_TYPES.MODULE,
+        filePath: "consumer.js",
+        language: "javascript",
+      });
+      const mod = ckg._addEntity({
+        name: "mymod",
+        type: ENTITY_TYPES.MODULE,
+        filePath: "mymod.js",
+        language: "javascript",
+      });
+      // Cross-file import created unresolved (null targetId) → _addRelationship
+      // skipped persisting it.
+      const rel = ckg._addRelationship({
+        sourceId: src.id,
+        targetId: null,
+        type: RELATIONSHIP_TYPES.IMPORTS,
+        metadata: { importPath: "mymod" },
+      });
+      db.run.mockClear();
+
+      const count = ckg._resolveCrossFileRelationships();
+
+      expect(count).toBe(1);
+      expect(rel.targetId).toBe(mod.id); // resolved in memory
+      // …and persisted — previously memory-only, lost on the next _loadFromDB.
+      const persisted = db.run.mock.calls.some((c) =>
+        /INSERT OR REPLACE INTO code_kg_relationships/i.test(c[0]),
+      );
+      expect(persisted).toBe(true);
+    });
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // _extractEntities (in-memory parsing, no file I/O)
   // ─────────────────────────────────────────────────────────────────────────
