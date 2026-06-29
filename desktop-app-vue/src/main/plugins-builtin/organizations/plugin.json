@@ -1,0 +1,20 @@
+{
+  "id": "organizations",
+  "name": "我的组织",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/orgs 斜杠命令 — 组织列表与创建（成员管理/活动日志/组织设置深链到详情页）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "organizations",
+        "trigger": "/orgs",
+        "handler": "builtin:openOrganizationsPanel",
+        "description": "打开我的组织面板",
+        "icon": "TeamOutlined"
+      }
+    }
+  ]
+}
