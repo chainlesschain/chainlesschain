@@ -11,6 +11,7 @@ const _deps = { execSync };
 
 module.exports = {
   _deps,
+  isSafeRef, // exported for tests
   async init(_skill) {
     logger.info("[PRReviewer] Initialized");
   },
@@ -49,6 +50,19 @@ function parseInput(input) {
   return { action, target };
 }
 
+// The PR number / branch / ref below is interpolated into execSync (which runs
+// through a shell), so an unsanitized value from the skill input is a command-
+// injection vector (e.g. "main; rm -rf ~"). Allow only git-ref / PR-number
+// characters — no shell metacharacters, spaces, or quotes.
+function isSafeRef(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 200 &&
+    /^[A-Za-z0-9._/#-]+$/.test(value)
+  );
+}
+
 function exec(cmd, cwd) {
   try {
     return _deps
@@ -64,6 +78,9 @@ function exec(cmd, cwd) {
 }
 
 function handleReview(prNumber, context) {
+  if (!isSafeRef(prNumber)) {
+    return { success: false, error: `Invalid PR reference: ${prNumber}` };
+  }
   const cwd = context.cwd || process.cwd();
   let prInfo, diff;
 
@@ -95,6 +112,9 @@ function handleReview(prNumber, context) {
 function handleSummary(branch, context) {
   const cwd = context.cwd || process.cwd();
   const base = branch || "main";
+  if (!isSafeRef(base)) {
+    return { success: false, error: `Invalid base ref: ${base}` };
+  }
 
   const log = exec(`git log ${base}..HEAD --oneline`, cwd);
   const stat = exec(`git diff ${base}...HEAD --stat`, cwd);
@@ -120,6 +140,9 @@ function handleSummary(branch, context) {
 function handleDiffReview(baseBranch, context) {
   const cwd = context.cwd || process.cwd();
   const base = baseBranch || "main";
+  if (!isSafeRef(base)) {
+    return { success: false, error: `Invalid base ref: ${base}` };
+  }
 
   const diff = exec(`git diff ${base}...HEAD`, cwd);
   const analysis = analyzeDiff(diff);
