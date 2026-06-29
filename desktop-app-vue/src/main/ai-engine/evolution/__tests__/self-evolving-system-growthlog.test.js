@@ -46,3 +46,68 @@ describe("SelfEvolvingSystem._logGrowth persistence", () => {
     expect(engine._growthLog).toHaveLength(1);
   });
 });
+
+describe("SelfEvolvingSystem restart restore (load on init)", () => {
+  function restoreDb(rowsByTable) {
+    return {
+      exec: vi.fn(),
+      prepare: (sql) => ({
+        all: () => {
+          for (const [tbl, rows] of Object.entries(rowsByTable)) {
+            if (sql.includes(tbl)) {
+              return rows;
+            }
+          }
+          return [];
+        },
+        get: () => null,
+        run: () => ({ changes: 1 }),
+      }),
+    };
+  }
+
+  it("reloads the growth log so getGrowthLog is populated after restart", async () => {
+    const engine = new SelfEvolvingSystem();
+    // The write side persisted to evolution_growth_log, but init never loaded it
+    // back → getGrowthLog returned empty after restart. Now it rehydrates.
+    await engine.initialize(
+      restoreDb({
+        evolution_growth_log: [
+          {
+            id: "g1",
+            event_type: "training",
+            description: "trained",
+            capability_id: null,
+            delta: 0.01,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+    const log = engine.getGrowthLog();
+    expect(log).toHaveLength(1);
+    expect(log[0].eventType).toBe("training");
+  });
+
+  it("reloads learning models so exportModel works after restart", async () => {
+    const engine = new SelfEvolvingSystem();
+    await engine.initialize(
+      restoreDb({
+        evolution_models: [
+          {
+            id: "model-x",
+            name: "M",
+            type: "classification",
+            accuracy: 0.8,
+            data_points: 100,
+            status: "active",
+          },
+        ],
+      }),
+    );
+    const exported = engine.exportModel("model-x");
+    expect(exported).not.toBeNull();
+    expect(exported.id).toBe("model-x");
+    expect(exported.dataPoints).toBe(100);
+  });
+});

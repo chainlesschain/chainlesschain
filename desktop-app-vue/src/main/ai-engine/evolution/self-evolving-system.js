@@ -48,6 +48,8 @@ class SelfEvolvingSystem extends EventEmitter {
     this.db = db;
     this._ensureTables();
     await this._loadCapabilities();
+    await this._loadLearningModels();
+    await this._loadGrowthLog();
     this.initialized = true;
     logger.info(
       `[SelfEvolvingSystem] Initialized with ${this._capabilities.size} tracked capabilities`,
@@ -99,6 +101,57 @@ class SelfEvolvingSystem extends EventEmitter {
     } catch (error) {
       logger.warn(
         "[SelfEvolvingSystem] Failed to load capabilities:",
+        error.message,
+      );
+    }
+  }
+
+  async _loadLearningModels() {
+    // The write side (trainIncremental) persists to evolution_models, but the
+    // cache was never reloaded on init — so exportModel/getStats returned
+    // null/zero after a restart even though the rows persisted.
+    try {
+      const rows = this.db.prepare("SELECT * FROM evolution_models").all();
+      for (const row of rows) {
+        this._learningModels.set(row.id, {
+          id: row.id,
+          name: row.name,
+          type: row.type,
+          accuracy: row.accuracy,
+          dataPoints: row.data_points,
+          status: row.status,
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        "[SelfEvolvingSystem] Failed to load learning models:",
+        error.message,
+      );
+    }
+  }
+
+  async _loadGrowthLog() {
+    // The write side (_logGrowth) persists to evolution_growth_log, but the
+    // in-memory log was never reloaded on init — so getGrowthLog returned empty
+    // after a restart despite the persisted rows. Load the most recent entries
+    // (chronological, so getGrowthLog's tail-slice still returns the newest).
+    try {
+      const rows = this.db
+        .prepare(
+          "SELECT * FROM evolution_growth_log ORDER BY created_at DESC LIMIT ?",
+        )
+        .all(this._config.maxGrowthLogSize);
+      this._growthLog = rows.reverse().map((row) => ({
+        id: row.id,
+        eventType: row.event_type,
+        description: row.description,
+        capabilityId: row.capability_id,
+        delta: row.delta,
+        timestamp: Date.parse(row.created_at) || Date.now(),
+      }));
+    } catch (error) {
+      logger.warn(
+        "[SelfEvolvingSystem] Failed to load growth log:",
         error.message,
       );
     }
