@@ -127,17 +127,16 @@ describe("ipc-registry video-editing registration", () => {
   });
 });
 
-// ── Router ──────────────────────────────────────────────────
+// ── V6 shell registration (ported from V5 page/route) ───────
 
-describe("router video-editing route", () => {
-  test("router/index.ts includes VideoEditing route", () => {
+describe("video-editing V6 shell panel", () => {
+  test("AppShell registers the VideoEditing panel + slash handler", () => {
     const code = fs.readFileSync(
-      path.resolve(__dirname, "../../../src/renderer/router/index.ts"),
+      path.resolve(__dirname, "../../../src/renderer/shell/AppShell.vue"),
       "utf-8",
     );
-    expect(code).toContain("video-editing");
-    expect(code).toContain("VideoEditing");
-    expect(code).toContain("VideoEditingPage.vue");
+    expect(code).toContain("VideoEditingPanel");
+    expect(code).toContain("builtin:openVideoEditingPanel");
   });
 });
 
@@ -175,14 +174,14 @@ describe("videoEditing store", () => {
   });
 });
 
-// ── Vue Page ────────────────────────────────────────────────
+// ── V6 shell panel (ported from V5 page) ────────────────────
 
-describe("VideoEditingPage.vue", () => {
-  test("page file exists with expected content", () => {
+describe("VideoEditingPanel.vue (V6 shell)", () => {
+  test("panel file exists with expected content", () => {
     const code = fs.readFileSync(
       path.resolve(
         __dirname,
-        "../../../src/renderer/pages/VideoEditingPage.vue",
+        "../../../src/renderer/shell/VideoEditingPanel.vue",
       ),
       "utf-8",
     );

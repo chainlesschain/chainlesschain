@@ -905,12 +905,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../pages/MultimediaDemo.vue"),
         meta: { title: "多媒体处理" },
       },
-      {
-        path: "video-editing",
-        name: "VideoEditing",
-        component: () => import("../pages/VideoEditingPage.vue"),
-        meta: { title: "视频剪辑 Agent" },
-      },
       // ===== 系统监控与维护 =====
       {
         path: "database/performance",
