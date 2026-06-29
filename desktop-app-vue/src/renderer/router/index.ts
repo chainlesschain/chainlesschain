@@ -1692,15 +1692,6 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "IPFS Cluster" },
       },
-      {
-        path: "graphql-explorer",
-        name: "GraphQLExplorer",
-        component: () =>
-          import(
-            /* webpackChunkName: "graphql-explorer" */ "../pages/GraphQLExplorerPage.vue"
-          ),
-        meta: { title: "GraphQL API Explorer" },
-      },
     ],
   },
 ];
