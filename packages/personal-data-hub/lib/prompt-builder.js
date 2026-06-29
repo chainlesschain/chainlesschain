@@ -42,6 +42,7 @@ const NO_FACTS_HINT = "(FACTS is empty — the vault has nothing matching this q
 const TOTALS_HEADER = "TOTALS (authoritative entity counts from vault — use these for count questions, NOT FACTS length):";
 const AMOUNT_SUM_HEADER = "AMOUNT_SUM (authoritative SQL totals over the full vault — for 总消费/花了多少 use byDirection.out (NOT total); income = byDirection.in; total is the gross out+in sum. NOT FACTS sums):";
 const RANK_HEADER = "RANK (authoritative top senders by event count, GROUP BY actor over the full vault — for 谁发最多/谁联系我最多/我最常联系谁 quote these names+counts directly, NOT FACTS length. `total` = all matching events; counts include your own sent messages):";
+const RANK_TOPIC_HEADER = "RANK (authoritative top groups/conversations by message count, GROUP BY topic over the full vault — for 哪个群最活跃/哪个群消息最多 quote these group names+counts directly, NOT FACTS length. `total` = all matching messages; a null name = unresolved group id, cite the id):";
 const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app 活跃度/类型/消费/高频联系人，回答跨 app 与决策类问题时优先参考；为汇总信号，非逐条事实):";
 
 // ─── Fact summarization ─────────────────────────────────────────────────
@@ -196,8 +197,16 @@ function buildPrompt(opts) {
   // RANK block — authoritative top-N senders (GROUP BY actor), BEFORE FACTS like
   // TOTALS/AMOUNT_SUM. Only emitted when there's a real ranking (actors non-empty);
   // _gatherRankSummary returns undefined for empty so we don't show an empty block.
-  if (rankSummary && Array.isArray(rankSummary.actors) && rankSummary.actors.length > 0) {
-    userContent += `\n${RANK_HEADER}\n${JSON.stringify(rankSummary, null, 2)}\n`;
+  const rankEntries =
+    rankSummary &&
+    (Array.isArray(rankSummary.actors)
+      ? rankSummary.actors
+      : Array.isArray(rankSummary.topics)
+        ? rankSummary.topics
+        : null);
+  if (rankEntries && rankEntries.length > 0) {
+    const header = rankSummary.by === "topic" ? RANK_TOPIC_HEADER : RANK_HEADER;
+    userContent += `\n${header}\n${JSON.stringify(rankSummary, null, 2)}\n`;
   }
   // CROSS_APP_OVERVIEW — 跨 app 汇聚画像，置于 FACTS 前（同 TOTALS）。
   if (crossAppOverview) {

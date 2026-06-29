@@ -7,6 +7,7 @@ const {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  parseRankDimension,
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,
@@ -220,8 +221,32 @@ describe("parseIntent", () => {
     expect(parseIntent("谁花钱最多")).not.toBe("rank"); // superlative but no interaction verb (amount)
   });
 
+  it("rank by TOPIC/group — '哪个群最活跃' (group + superlative, no who)", () => {
+    expect(parseIntent("哪个群最活跃")).toBe("rank");
+    expect(parseIntent("哪个群聊得最多")).toBe("rank");
+    expect(parseIntent("我哪个QQ群消息最多")).toBe("rank");
+    expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
+  });
+
   it("list as default", () => {
     expect(parseIntent("妈妈的手机号")).toBe("list");
+  });
+});
+
+describe("parseRankDimension", () => {
+  it("topic for a group-about question (no who)", () => {
+    expect(parseRankDimension("哪个群最活跃")).toBe("topic");
+    expect(parseRankDimension("我哪个会话消息最多")).toBe("topic");
+  });
+  it("actor for who-in-group or person questions", () => {
+    expect(parseRankDimension("群里谁发言最多")).toBe("actor"); // who inside a group → person
+    expect(parseRankDimension("我最常联系谁")).toBe("actor");
+    expect(parseRankDimension("谁给我发QQ最多")).toBe("actor");
+  });
+  it("parseQuery sets rankDimension only for intent=rank", () => {
+    expect(parseQuery("哪个群最活跃").rankDimension).toBe("topic");
+    expect(parseQuery("我最常联系谁").rankDimension).toBe("actor");
+    expect(parseQuery("妈妈的手机号").rankDimension).toBeUndefined(); // not rank
   });
 });
 

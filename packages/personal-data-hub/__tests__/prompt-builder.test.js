@@ -176,7 +176,24 @@ describe("buildPrompt", () => {
     expect(messages[0].content).toMatch(/RANK.*authoritative/i);
   });
 
-  it("omits RANK block when rankSummary missing or has no actors", () => {
+  it("emits a topic RANK block (groups) for a topic-dimension rankSummary", () => {
+    const { messages } = buildPrompt({
+      question: "哪个群最活跃",
+      facts: [],
+      rankSummary: {
+        by: "topic",
+        total: 80,
+        topics: [{ topic: "group-qq-1", count: 50, name: "工作群" }],
+      },
+    });
+    const userMsg = messages[1].content;
+    expect(userMsg).toContain("RANK (");
+    expect(userMsg).toMatch(/top groups\/conversations/i); // topic-specific header
+    expect(userMsg).toContain('"工作群"');
+    expect(userMsg).toContain('"count": 50');
+  });
+
+  it("omits RANK block when rankSummary missing or has no entries (actor or topic)", () => {
     const { messages } = buildPrompt({
       question: "x",
       facts: [],
@@ -185,6 +202,12 @@ describe("buildPrompt", () => {
     expect(messages[1].content).not.toContain("RANK (");
     const { messages: m2 } = buildPrompt({ question: "x", facts: [] });
     expect(m2[1].content).not.toContain("RANK (");
+    const { messages: m3 } = buildPrompt({
+      question: "x",
+      facts: [],
+      rankSummary: { by: "topic", total: 0, topics: [] },
+    });
+    expect(m3[1].content).not.toContain("RANK (");
   });
 
   it("caps facts at maxFacts + reports truncation", () => {

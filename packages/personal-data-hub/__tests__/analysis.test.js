@@ -482,6 +482,35 @@ describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-
     expect(rankCalls[0].excludeSelf).toBe(true);
   });
 
+  it("routes a group question to topTopics (dimension=topic), not topActors", async () => {
+    const topicCalls = [];
+    const actorCalls = [];
+    const fakeVault = baseVault({
+      topTopics: (f) => {
+        topicCalls.push(f);
+        return {
+          by: "topic",
+          total: 80,
+          topics: [{ topic: "group-qq-1", count: 50, name: "工作群" }],
+        };
+      },
+      topActors: (f) => {
+        actorCalls.push(f);
+        return { by: "actor", total: 0, actors: [] };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("哪个群最活跃");
+    expect(topicCalls.length).toBe(1);
+    expect(actorCalls.length).toBe(0); // topic dimension → topTopics, not topActors
+    expect(topicCalls[0].excludeSelf).toBeUndefined(); // self-exclusion is actor-only
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("RANK (");
+    expect(userMsg).toContain('"工作群"');
+    expect(chatCalls[0][0].content).toMatch(/RANK.*authoritative/i);
+  });
+
   it("does NOT call topActors for non-rank intent", async () => {
     const rankCalls = [];
     const fakeVault = baseVault({

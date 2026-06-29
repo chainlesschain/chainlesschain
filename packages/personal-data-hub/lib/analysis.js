@@ -831,11 +831,14 @@ class AnalysisEngine {
   // refusing to rank from the ≤80-fact sample. adapter/timeWindow passed
   // through (no subtype — same fragile-classifier reason as _gatherFacts).
   _gatherRankSummary(parsed) {
-    if (typeof this.vault.topActors !== "function") return undefined;
+    const dimension = parsed.rankDimension === "topic" ? "topic" : "actor";
+    const fn = dimension === "topic" ? this.vault.topTopics : this.vault.topActors;
+    if (typeof fn !== "function") return undefined;
     try {
-      const f = { limit: 10, excludeSelf: true };
-      // App-scope: "谁发QQ最多" → rank within QQ's adapters only. Prefer the
-      // plural filters.adapters (app→adapter list); fall back to single adapter.
+      const f = { limit: 10 };
+      if (dimension === "actor") f.excludeSelf = true; // self-exclusion is actor-only
+      // App-scope: "谁发QQ最多" / "哪个QQ群最活跃" → rank within QQ's adapters only.
+      // Prefer the plural filters.adapters (app→adapter list); fall back to single.
       if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
         f.adapters = parsed.filters.adapters;
       } else if (parsed.filters && parsed.filters.adapter) {
@@ -845,8 +848,9 @@ class AnalysisEngine {
         if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
         if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
       }
-      const r = this.vault.topActors(f);
-      if (!r || !Array.isArray(r.actors) || r.actors.length === 0) return undefined;
+      const r = fn.call(this.vault, f);
+      const entries = r && (dimension === "topic" ? r.topics : r.actors);
+      if (!r || !Array.isArray(entries) || entries.length === 0) return undefined;
       return r;
     } catch (_e) {
       return undefined;

@@ -280,6 +280,15 @@ function parseIntent(text) {
   ) {
     return "rank";
   }
+  // intent=rank by TOPIC/group — "哪个群最活跃 / 哪个群聊得最多 / 我哪个群消息最多".
+  // group(群/群聊/会话) + superlative → vault.topTopics GROUP BY topic (not actor).
+  // Dimension is resolved by parseRankDimension. "群里在聊什么"(无 superlative)→ list.
+  if (
+    /(群|群聊|会话|讨论组|聊天群)/.test(text) &&
+    /(最多|最活跃|最频繁|最常|活跃)/.test(text)
+  ) {
+    return "rank";
+  }
   // "最近/最新" alone ⇒ newest few (intent=latest, 3-row cap). BUT when the
   // question also carries an aggregation ("谁…最多", "排名") or a topic/summary
   // signal ("最近聊什么", "什么话题", "都在讨论啥"), 3 rows can't answer it —
@@ -468,14 +477,32 @@ function extractPersonNameCandidate(text) {
  *   intent: "list"|"count"|"sum-amount"|"latest",
  * }}
  */
+/**
+ * parseRankDimension — for intent=rank, which dimension to GROUP BY.
+ *   "topic"  → group/conversation ("哪个群最活跃")  → vault.topTopics
+ *   "actor"  → person (default; "谁给我发最多")      → vault.topActors
+ * Only meaningful when intent === "rank"; callers ignore it otherwise.
+ */
+function parseRankDimension(text) {
+  if (typeof text !== "string") return "actor";
+  // A group/conversation question — but only when it's about the group ITSELF
+  // ("哪个群…"), not a person within a group ("群里谁发言最多" → actor).
+  if (/(群|群聊|会话|讨论组|聊天群)/.test(text) && !/(谁|哪位|哪个人)/.test(text)) {
+    return "topic";
+  }
+  return "actor";
+}
+
 function parseQuery(question, opts = {}) {
   const raw = typeof question === "string" ? question : "";
   const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+  const intent = parseIntent(raw);
   return {
     raw,
     timeWindow: parseTimeWindow(raw, now),
     filters: parseFilters(raw),
-    intent: parseIntent(raw),
+    intent,
+    rankDimension: intent === "rank" ? parseRankDimension(raw) : undefined,
     entityFocus: parseEntityFocus(raw),
   };
 }
@@ -485,6 +512,7 @@ module.exports = {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  parseRankDimension,
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,

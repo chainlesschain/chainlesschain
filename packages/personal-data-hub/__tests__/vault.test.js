@@ -411,6 +411,55 @@ describe("LocalVault.topActors", () => {
   });
 });
 
+// ─── topTopics (intent=rank dimension=topic GROUP BY json_each) ─────────────
+
+describe("LocalVault.topTopics", () => {
+  const evTopic = (topicId, adapter, n) =>
+    Array.from({ length: n }, () =>
+      eventOk({
+        topics: topicId ? [topicId] : undefined,
+        source: source({ adapter, originalId: newId() }),
+      })
+    );
+
+  it("ranks topics by message count (json_each), resolves names, adapter + limit + total", () => {
+    freshVault();
+    vault.putBatch({
+      events: [
+        ...evTopic("group-A", "qq-pc", 5),
+        ...evTopic("group-B", "qq-pc", 3),
+        ...evTopic("group-C", "wechat", 2),
+        ...evTopic(null, "qq-pc", 4), // no topic → excluded by IS NOT NULL
+      ],
+      topics: [
+        topicOk({ id: "group-A", name: "工作群" }),
+        topicOk({ id: "group-B", name: "家庭群" }),
+        // group-C intentionally has no topics-table entry → name null
+      ],
+    });
+
+    const r = vault.topTopics({ limit: 10 });
+    expect(r.by).toBe("topic");
+    expect(r.topics[0]).toMatchObject({ topic: "group-A", count: 5, name: "工作群" });
+    expect(r.topics[1]).toMatchObject({ topic: "group-B", count: 3, name: "家庭群" });
+    expect(r.topics.find((t) => t.topic === "group-C")).toMatchObject({ count: 2, name: null });
+    expect(r.total).toBe(10); // 5+3+2; the null-topic events drop out
+
+    // adapter scope
+    const qq = vault.topTopics({ adapter: "qq-pc" });
+    expect(qq.topics.map((t) => t.topic)).toEqual(["group-A", "group-B"]);
+    expect(qq.total).toBe(8);
+
+    // limit caps results
+    expect(vault.topTopics({ limit: 1 }).topics.length).toBe(1);
+  });
+
+  it("returns empty topics (not a throw) for an empty vault", () => {
+    freshVault();
+    expect(vault.topTopics({})).toMatchObject({ by: "topic", total: 0, topics: [] });
+  });
+});
+
 // ─── raw_events ──────────────────────────────────────────────────────────
 
 describe("LocalVault.putRawEvent", () => {

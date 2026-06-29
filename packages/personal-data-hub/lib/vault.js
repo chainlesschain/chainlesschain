@@ -1412,6 +1412,67 @@ class LocalVault {
     return { by: "actor", total, actors };
   }
 
+  /**
+   * topTopics — authoritative top-N topics (groups / conversations) by event
+   * count, GROUP BY json_each(topics) over the full vault. Pairs with
+   * intent=rank dimension="topic" to answer "哪个群最活跃 / which group is most
+   * active". Same filter/name-resolution pattern as topActors but grouped on the
+   * `topics` JSON array (events with NULL/empty topics drop out naturally; an
+   * event with multiple topics counts under each). Topic name resolved from the
+   * topics table.
+   *
+   * @param {object} q  adapter/adapters/subtype/since/until/limit (same as topActors)
+   * @returns {{ by:'topic', total:number, topics: Array<{topic:string,count:number,name:(string|null)}> }}
+   */
+  topTopics(q = {}) {
+    const where = ["e.topics IS NOT NULL", "e.topics != '[]'"];
+    const params = {};
+    if (q.subtype) {
+      where.push("e.subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("e.occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("e.occurred_at <= @until");
+      params.until = q.until;
+    }
+    if (Array.isArray(q.adapters) && q.adapters.length > 0) {
+      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_a, i) => `@ad_${i}`);
+        where.push(`e.source_adapter IN (${ph.join(", ")})`);
+        names.forEach((a, i) => {
+          params[`ad_${i}`] = a;
+        });
+      }
+    } else if (q.adapter) {
+      where.push("e.source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const baseFrom = "FROM events e, json_each(e.topics) je WHERE " + where.join(" AND ");
+    const db = this._requireOpen();
+
+    const totalRow = db.prepare("SELECT COUNT(*) AS c " + baseFrom).get(params);
+    const total = totalRow ? Number(totalRow.c) || 0 : 0;
+
+    const sql =
+      "SELECT je.value AS topic, COUNT(*) AS count, " +
+      "(SELECT name FROM topics WHERE id = je.value) AS name " +
+      baseFrom +
+      " GROUP BY je.value ORDER BY count DESC, je.value ASC LIMIT @limit";
+    const rows = db.prepare(sql).all({ ...params, limit });
+    const topics = rows.map((r) => ({
+      topic: r.topic,
+      count: Number(r.count) || 0,
+      name: typeof r.name === "string" && r.name.trim() ? r.name.trim() : null,
+    }));
+    return { by: "topic", total, topics };
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {
