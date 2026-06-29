@@ -1,0 +1,20 @@
+{
+  "id": "federated-learning",
+  "name": "联邦学习",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/fl 斜杠命令 — 联邦学习任务管理（创建、启动训练、参与方、模型聚合策略与统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "federated-learning",
+        "trigger": "/fl",
+        "handler": "builtin:openFederatedLearningPanel",
+        "description": "打开联邦学习面板",
+        "icon": "ClusterOutlined"
+      }
+    }
+  ]
+}

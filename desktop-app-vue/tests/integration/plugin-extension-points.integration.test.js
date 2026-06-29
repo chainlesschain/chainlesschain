@@ -443,6 +443,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(zk.pluginId).toBe("zkp-credentials");
   });
 
+  it("federated-learning 的 /fl slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const fl = slash.find((s) => s.trigger === "/fl");
+    expect(fl).toBeDefined();
+    expect(fl.handler).toBe("builtin:openFederatedLearningPanel");
+    expect(fl.pluginId).toBe("federated-learning");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

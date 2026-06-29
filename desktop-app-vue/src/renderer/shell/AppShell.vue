@@ -115,6 +115,10 @@
       v-model:open="zkpCredentialsPanelOpen"
       :prefill-text="zkpCredentialsPrefill"
     />
+    <FederatedLearningPanel
+      v-model:open="federatedLearningPanelOpen"
+      :prefill-text="federatedLearningPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -166,6 +170,7 @@ import SessionManagerPanel from "./SessionManagerPanel.vue";
 import PermanentMemoryPanel from "./PermanentMemoryPanel.vue";
 import WebAuthnPanel from "./WebAuthnPanel.vue";
 import ZKPCredentialsPanel from "./ZKPCredentialsPanel.vue";
+import FederatedLearningPanel from "./FederatedLearningPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -219,6 +224,8 @@ const webauthnPanelOpen = ref(false);
 const webauthnPrefill = ref("");
 const zkpCredentialsPanelOpen = ref(false);
 const zkpCredentialsPrefill = ref("");
+const federatedLearningPanelOpen = ref(false);
+const federatedLearningPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -275,6 +282,7 @@ let unregisterSessionManagerHandler: (() => void) | null = null;
 let unregisterPermanentMemoryHandler: (() => void) | null = null;
 let unregisterWebAuthnHandler: (() => void) | null = null;
 let unregisterZKPCredentialsHandler: (() => void) | null = null;
+let unregisterFederatedLearningHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -441,6 +449,13 @@ onMounted(async () => {
       zkpCredentialsPanelOpen.value = true;
     },
   );
+  unregisterFederatedLearningHandler = registerSlashHandler(
+    "builtin:openFederatedLearningPanel",
+    ({ args }) => {
+      federatedLearningPrefill.value = args ?? "";
+      federatedLearningPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -516,6 +531,8 @@ onBeforeUnmount(() => {
   unregisterWebAuthnHandler = null;
   unregisterZKPCredentialsHandler?.();
   unregisterZKPCredentialsHandler = null;
+  unregisterFederatedLearningHandler?.();
+  unregisterFederatedLearningHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
