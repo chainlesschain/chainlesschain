@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS file_access_logs (
   id TEXT PRIMARY KEY,
   file_id TEXT NOT NULL,
   user_did TEXT NOT NULL,
-  action TEXT NOT NULL CHECK(action IN ('view', 'download', 'edit', 'delete', 'share', 'lock', 'unlock')),
+  action TEXT NOT NULL CHECK(action IN ('view', 'download', 'edit', 'delete', 'share', 'lock', 'unlock', 'upload')),
   ip_address TEXT,
   user_agent TEXT,
   accessed_at INTEGER NOT NULL

@@ -534,22 +534,33 @@ class FileManager {
   async _logFileAccess(fileId, userDID, action, metadata = {}) {
     const logId = `log_${uuidv4().replace(/-/g, "")}`;
 
-    this.db
-      .prepare(
-        `
+    // Audit logging is best-effort and must never abort the caller's operation.
+    // file_access_logs has a CHECK(action IN (...)) whitelist; on an older DB
+    // whose whitelist predates a new action (e.g. 'upload'), the INSERT throws —
+    // previously that propagated out of uploadFile so every successful upload
+    // returned {success:false} despite the file being saved. Swallow + log.
+    try {
+      this.db
+        .prepare(
+          `
       INSERT INTO file_access_logs (id, file_id, user_did, action, accessed_at, ip_address, user_agent)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
-      )
-      .run(
-        logId,
-        fileId,
-        userDID,
-        action,
-        Date.now(),
-        metadata.ip || null,
-        metadata.userAgent || null,
+        )
+        .run(
+          logId,
+          fileId,
+          userDID,
+          action,
+          Date.now(),
+          metadata.ip || null,
+          metadata.userAgent || null,
+        );
+    } catch (error) {
+      logger.warn(
+        `[FileManager] file access log failed (${action}): ${error.message}`,
       );
+    }
   }
 }
 
