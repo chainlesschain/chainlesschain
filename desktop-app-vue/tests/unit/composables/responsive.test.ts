@@ -27,12 +27,16 @@ function useAt(width: number, height = 800) {
 
 describe("useResponsive — breakpoint", () => {
   it("maps width to the breakpoint name", () => {
-    expect(useAt(400).breakpoint.value).toBe("xs");
-    expect(useAt(500).breakpoint.value).toBe("sm");
-    expect(useAt(700).breakpoint.value).toBe("md");
-    expect(useAt(900).breakpoint.value).toBe("lg");
-    expect(useAt(1100).breakpoint.value).toBe("xl");
-    expect(useAt(1700).breakpoint.value).toBe("xxl");
+    // breakpoint name aligns with the tier the width FALLS INTO (xs = below sm,
+    // sm = [sm,md), …) so it stays consistent with deviceType. Representative
+    // mid-band widths per BREAKPOINTS { xs:480, sm:576, md:768, lg:992, xl:1200,
+    // xxl:1600 }.
+    expect(useAt(400).breakpoint.value).toBe("xs"); // < 576
+    expect(useAt(650).breakpoint.value).toBe("sm"); // 576–767
+    expect(useAt(850).breakpoint.value).toBe("md"); // 768–991
+    expect(useAt(1100).breakpoint.value).toBe("lg"); // 992–1199
+    expect(useAt(1400).breakpoint.value).toBe("xl"); // 1200–1599
+    expect(useAt(1700).breakpoint.value).toBe("xxl"); // >= 1600
   });
 
   it("uses the documented BREAKPOINTS thresholds", () => {
