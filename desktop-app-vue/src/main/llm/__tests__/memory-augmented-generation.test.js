@@ -85,13 +85,17 @@ function createMockDatabase() {
           }
           if (sql.includes("AVG(feedback)")) {
             const withFeedback = store.filter((r) => r.feedback !== 0);
-            if (withFeedback.length === 0) {return { avg_feedback: null };}
+            if (withFeedback.length === 0) {
+              return { avg_feedback: null };
+            }
             const sum = withFeedback.reduce((s, r) => s + r.feedback, 0);
             return { avg_feedback: sum / withFeedback.length };
           }
           if (sql.includes("AVG(tokens_used)")) {
             const withTokens = store.filter((r) => r.tokens_used > 0);
-            if (withTokens.length === 0) {return { avg_tokens: null, avg_latency: null };}
+            if (withTokens.length === 0) {
+              return { avg_tokens: null, avg_latency: null };
+            }
             const sumTokens = withTokens.reduce((s, r) => s + r.tokens_used, 0);
             const sumLatency = withTokens.reduce((s, r) => s + r.latency_ms, 0);
             return {
@@ -102,12 +106,16 @@ function createMockDatabase() {
           return null;
         }),
         all: vi.fn((...params) => {
-          if (sql.includes("SELECT * FROM interaction_history") && sql.includes("LIKE")) {
+          if (
+            sql.includes("SELECT * FROM interaction_history") &&
+            sql.includes("LIKE")
+          ) {
             // Search: filter by keyword matching
             const limit = params[params.length - 1];
             // Find keyword params (they're the %keyword% ones)
             const keywordParams = params.filter(
-              (p) => typeof p === "string" && p.startsWith("%") && p.endsWith("%"),
+              (p) =>
+                typeof p === "string" && p.startsWith("%") && p.endsWith("%"),
             );
             const keywords = keywordParams.map((p) =>
               p.substring(1, p.length - 1).toLowerCase(),
@@ -190,7 +198,9 @@ describe("MemoryAugmentedGeneration", () => {
 
       expect(mockDb.exec).toHaveBeenCalled();
       const execCall = mockDb.exec.mock.calls[0][0];
-      expect(execCall).toContain("CREATE TABLE IF NOT EXISTS interaction_history");
+      expect(execCall).toContain(
+        "CREATE TABLE IF NOT EXISTS interaction_history",
+      );
       expect(execCall).toContain("idx_interaction_history_created_at");
       expect(execCall).toContain("idx_interaction_history_task_type");
       expect(mag.initialized).toBe(true);
@@ -312,10 +322,10 @@ describe("MemoryAugmentedGeneration", () => {
       });
 
       mag.recordFeedback(interaction.id, 5);
-      expect(mockDb.run).toHaveBeenCalledWith(
-        expect.any(String),
-        [1, interaction.id],
-      );
+      expect(mockDb.run).toHaveBeenCalledWith(expect.any(String), [
+        1,
+        interaction.id,
+      ]);
     });
 
     it("should return false if interactionId is missing", () => {
@@ -326,6 +336,14 @@ describe("MemoryAugmentedGeneration", () => {
     it("should return false if database is not available", () => {
       mag.db = null;
       const result = mag.recordFeedback("some-id", 1);
+      expect(result).toBe(false);
+    });
+
+    it("returns false when no row matches (UPDATE changed 0 rows)", () => {
+      // Valid db, but this interaction was never recorded → the UPDATE matches
+      // zero rows. Previously the ternary fell through to `true` here, so
+      // feedback for a non-existent interaction was reported as success.
+      const result = mag.recordFeedback("does-not-exist", 1);
       expect(result).toBe(false);
     });
   });
@@ -364,9 +382,7 @@ describe("MemoryAugmentedGeneration", () => {
 
       expect(results.length).toBeGreaterThan(0);
       expect(
-        results.some((r) =>
-          r.userMessage.toLowerCase().includes("typescript"),
-        ),
+        results.some((r) => r.userMessage.toLowerCase().includes("typescript")),
       ).toBe(true);
     });
 

@@ -201,7 +201,11 @@ class MemoryAugmentedGeneration {
         this.db.saveToFile();
       }
 
-      const changed = result && result.changes ? result.changes > 0 : true;
+      // Report success only when a row actually matched. The old form
+      // `result && result.changes ? result.changes > 0 : true` fell through to
+      // `true` when changes === 0 (`&& result.changes` is falsy at 0), so
+      // feedback for a non-existent interactionId was wrongly reported success.
+      const changed = Boolean(result && result.changes > 0);
       logger.debug(
         `[MemoryAugmentedGeneration] Feedback recorded for ${interactionId}: ${feedbackValue}`,
       );
@@ -283,7 +287,8 @@ class MemoryAugmentedGeneration {
         params.push(options.endTime);
       }
 
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+      const where =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       const rows = this.db
         .prepare(
@@ -300,7 +305,8 @@ class MemoryAugmentedGeneration {
             matchCount++;
           }
         }
-        const relevanceScore = keywords.length > 0 ? matchCount / keywords.length : 0;
+        const relevanceScore =
+          keywords.length > 0 ? matchCount / keywords.length : 0;
 
         return {
           id: row.id,
@@ -382,9 +388,10 @@ class MemoryAugmentedGeneration {
           `SELECT AVG(feedback) as avg_feedback FROM interaction_history WHERE feedback != 0`,
         )
         .get();
-      const averageFeedback = feedbackRow && feedbackRow.avg_feedback !== null
-        ? Math.round(feedbackRow.avg_feedback * 100) / 100
-        : 0;
+      const averageFeedback =
+        feedbackRow && feedbackRow.avg_feedback !== null
+          ? Math.round(feedbackRow.avg_feedback * 100) / 100
+          : 0;
 
       // Active hours analysis (group by hour of day)
       const hourRows = this.db
@@ -430,12 +437,14 @@ class MemoryAugmentedGeneration {
           WHERE tokens_used > 0`,
         )
         .get();
-      const averageTokens = performanceRow && performanceRow.avg_tokens !== null
-        ? Math.round(performanceRow.avg_tokens)
-        : 0;
-      const averageLatency = performanceRow && performanceRow.avg_latency !== null
-        ? Math.round(performanceRow.avg_latency)
-        : 0;
+      const averageTokens =
+        performanceRow && performanceRow.avg_tokens !== null
+          ? Math.round(performanceRow.avg_tokens)
+          : 0;
+      const averageLatency =
+        performanceRow && performanceRow.avg_latency !== null
+          ? Math.round(performanceRow.avg_latency)
+          : 0;
 
       const insights = {
         totalInteractions,
@@ -503,7 +512,8 @@ class MemoryAugmentedGeneration {
         params.push(options.taskType);
       }
 
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+      const where =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       // Get count before deleting
       const countRow = this.db
@@ -511,10 +521,7 @@ class MemoryAugmentedGeneration {
         .get(...params);
       const count = countRow ? countRow.count : 0;
 
-      this.db.run(
-        `DELETE FROM interaction_history ${where}`,
-        params,
-      );
+      this.db.run(`DELETE FROM interaction_history ${where}`, params);
 
       if (this.db.saveToFile) {
         this.db.saveToFile();
@@ -557,7 +564,9 @@ class MemoryAugmentedGeneration {
       if (relevantInteractions.length > 0) {
         parts.push("## Relevant Past Interactions");
         for (const interaction of relevantInteractions) {
-          const date = new Date(interaction.createdAt).toISOString().split("T")[0];
+          const date = new Date(interaction.createdAt)
+            .toISOString()
+            .split("T")[0];
           const feedbackLabel =
             interaction.feedback > 0
               ? " [positive feedback]"
@@ -663,8 +672,12 @@ class MemoryAugmentedGeneration {
    * @private
    */
   _truncate(str, maxLen) {
-    if (!str) {return "";}
-    if (str.length <= maxLen) {return str;}
+    if (!str) {
+      return "";
+    }
+    if (str.length <= maxLen) {
+      return str;
+    }
     return str.substring(0, maxLen - 3) + "...";
   }
 }
