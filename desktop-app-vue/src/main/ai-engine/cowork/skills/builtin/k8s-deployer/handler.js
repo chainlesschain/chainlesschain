@@ -9,7 +9,22 @@ const { execSync } = require("child_process");
 
 const _deps = { execSync };
 
+// target (a k8s deployment/app name from the skill input) is interpolated into
+// execSync (a shell) — `kubectl get deployment ${target}`, `kubectl rollout
+// restart deployment/${target}`, etc. An unsanitized value is a command-
+// injection vector (e.g. "x; rm -rf ~"). Allow only RFC-1123-ish resource-name
+// characters — no shell metacharacters, spaces, or quotes.
+function isSafeK8sName(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 253 &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)
+  );
+}
+
 module.exports = {
+  isSafeK8sName, // exported for tests
   _deps,
   async init(_skill) {
     logger.info("[K8sDeployer] Initialized");
@@ -228,6 +243,9 @@ autoscaling:
 }
 
 function handleStatus(target) {
+  if (target && !isSafeK8sName(target)) {
+    return { success: false, error: `Invalid target name: ${target}` };
+  }
   const results = {};
   try {
     if (target) {
@@ -275,6 +293,9 @@ function handleStatus(target) {
 function handleRollout(subAction, target) {
   if (!target) {
     return { success: false, error: "Specify a deployment name." };
+  }
+  if (!isSafeK8sName(target)) {
+    return { success: false, error: `Invalid deployment name: ${target}` };
   }
 
   const commands = {
