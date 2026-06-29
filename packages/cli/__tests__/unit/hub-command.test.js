@@ -57,6 +57,7 @@ describe("cc hub command surface", () => {
         "recent-audit",
         "rederive", // trap #25 recovery — promote orphan raw_events to canonical
         "register-mock",
+        "repl", // persistent ask loop — amortizes the ~8s per-call CLI cold-start
         "retrieve-context", // S4 cloud RAG bridge — LLM-free fact gathering
         "run-skill",
         "salvage", // Method B 免密钥取证 — salvage decrypted SQLite pages from a /proc/<pid>/mem dump then ingest
@@ -89,6 +90,19 @@ describe("cc hub command surface", () => {
     expect(optNames).toContain("--no-use-rag");
     expect(optNames).toContain("--accept-non-local");
     expect(optNames).toContain("--json");
+  });
+
+  it("repl is a no-arg persistent loop with the ask cloud-egress/budget options", () => {
+    const program = buildProgram();
+    const hub = program.commands.find((c) => c.name() === "hub");
+    const repl = hub.commands.find((c) => c.name() === "repl");
+    expect(repl).toBeDefined();
+    expect(repl.registeredArguments.length).toBe(0); // no question arg — reads from stdin
+    const optNames = repl.options.map((o) => o.long);
+    expect(optNames).toContain("--no-use-rag");
+    expect(optNames).toContain("--accept-non-local");
+    expect(optNames).toContain("--max-facts");
+    expect(optNames).toContain("--max-query-limit");
   });
 
   it("destroy refuses to run without --confirm flag", () => {

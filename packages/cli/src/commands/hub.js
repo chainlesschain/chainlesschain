@@ -132,6 +132,119 @@ async function cmdAsk(question, options) {
   }
 }
 
+// ─── repl (persistent ask loop — amortizes the ~8s CLI cold-start) ──────
+//
+// `cc hub ask` reloads the whole CLI + opens the encrypted vault on EVERY
+// invocation (~8s cold-start; the SQL retrieval itself is <0.5s). `cc hub repl`
+// opens the hub ONCE and loops on questions from stdin, so each follow-up only
+// pays SQL + LLM. Same per-question semantics as `cc hub ask` (intent routing,
+// RANK/TOTALS/AMOUNT_SUM bypasses, cloud-egress gate resolved once up front).
+async function cmdRepl(options = {}) {
+  const readline = await import("node:readline");
+  const boot = ora("Loading hub (one-time)…").start();
+  let hub;
+  try {
+    hub = await (options._getHub || getHub)();
+    if (!hub.engine) throw new Error("Analysis engine unavailable");
+  } catch (err) {
+    fail(boot, err, false);
+    return;
+  }
+  boot.succeed("Hub loaded — vault open, engine warm. Type a question, or .exit to quit.");
+
+  // Resolve cloud-egress consent ONCE (same precedence as cmdAsk).
+  const envAllow =
+    process.env.CC_HUB_ALLOW_NON_LOCAL === "1" || process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
+  let cfgCloudHub = false;
+  try {
+    cfgCloudHub = isCloudHubConfigured(loadConfig());
+  } catch {
+    cfgCloudHub = false; // fail-closed
+  }
+  const acceptNonLocal = !!options.acceptNonLocal || envAllow || cfgCloudHub;
+  const maxFacts = parsePositiveInt(options.maxFacts);
+  const maxQueryLimit = parsePositiveInt(options.maxQueryLimit);
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: chalk.cyan("hub> "),
+  });
+
+  // Serialize via a queue: lines may arrive faster than asks complete (piped
+  // stdin emits all lines + EOF immediately). Process one at a time; only exit
+  // when the queue is drained AND input is closed — so piped runs answer every
+  // question before quitting instead of exiting mid-flight.
+  const queue = [];
+  let processing = false;
+  let inputClosed = false;
+
+  const answerOne = async (question) => {
+    const spinner = ora("Asking…").start();
+    try {
+      const askOptions = { useRag: options.useRag !== false, acceptNonLocal };
+      if (maxFacts !== null) askOptions.maxFacts = maxFacts;
+      if (maxQueryLimit !== null) askOptions.maxQueryLimit = maxQueryLimit;
+      const t0 = Date.now();
+      const result = await hub.engine.ask(question, askOptions);
+      spinner.stop();
+      if (result.error) {
+        logger.error(chalk.red(`✗ ${result.error}`));
+      } else {
+        logger.log(result.answer);
+        if (result.citations && result.citations.length) {
+          logger.log(chalk.gray(`\n依据: ${result.citations.join(", ")}`));
+        }
+        if (result.llmName) {
+          const tag = result.isLocal ? chalk.green("[local]") : chalk.yellow("[remote]");
+          logger.log(chalk.gray(`-- ${result.llmName} ${tag} · ${Date.now() - t0}ms`));
+        }
+      }
+    } catch (err) {
+      spinner.stop();
+      logger.error(chalk.red(`✗ ${err.message || err}`));
+    }
+  };
+
+  const drain = async () => {
+    if (processing) return;
+    processing = true;
+    while (queue.length) {
+      // eslint-disable-next-line no-await-in-loop
+      await answerOne(queue.shift());
+    }
+    processing = false;
+    if (inputClosed) {
+      logger.log(chalk.gray("bye"));
+      process.exit(0);
+    }
+    rl.prompt();
+  };
+
+  rl.prompt();
+  rl.on("line", (line) => {
+    const question = line.trim();
+    if (!question) {
+      if (!processing) rl.prompt();
+      return;
+    }
+    if (["exit", "quit", ".exit", ".quit", "\\q"].includes(question.toLowerCase())) {
+      rl.close();
+      return;
+    }
+    queue.push(question);
+    drain();
+  });
+  rl.on("close", () => {
+    inputClosed = true;
+    if (!processing && queue.length === 0) {
+      logger.log(chalk.gray("bye"));
+      process.exit(0);
+    }
+    // otherwise drain() exits after the queue empties
+  });
+}
+
 // ─── retrieve-context (LLM-free RAG preflight) ─────────────────────────
 //
 // 2026-05-27 — Bridges Android CLOUD_ANDROID route to RAG. AnalysisEngine
@@ -2806,6 +2919,25 @@ export function registerHubCommand(program) {
     .action(cmdAsk);
 
   hub
+    .command("repl")
+    .description(
+      "Persistent ask loop — opens the vault once, then answers follow-up questions fast (amortizes the ~8s per-call CLI cold-start)",
+    )
+    .option("--no-use-rag", "Disable RAG retrieval")
+    .option(
+      "--accept-non-local",
+      "Allow non-local LLM (sends data off device — required when provider is not Ollama/vLLM)",
+    )
+    .option("--max-facts <n>", "Cap facts in prompt (default 80)")
+    .option("--max-query-limit <n>", "Cap vault queryEvents limit (default 200)")
+    .addHelpText(
+      "after",
+      "\nSame per-question semantics + cloud-egress gate as `cc hub ask`, but the\n" +
+        "~8s cold-start is paid ONCE. Type questions at the `hub>` prompt; .exit to quit.",
+    )
+    .action(cmdRepl);
+
+  hub
     .command("retrieve-context <question>")
     .description(
       "RAG preflight — gather facts + build LLM prompt WITHOUT calling LLM (for cloud-LLM callers that need RAG context)",
@@ -3417,6 +3549,7 @@ export function registerHubCommand(program) {
 // real `getHub()` call. The commander wiring above is the runtime path.
 export const _internal = {
   cmdAsk,
+  cmdRepl,
   cmdRetrieveContext,
   cmdStats,
   cmdHealth,
