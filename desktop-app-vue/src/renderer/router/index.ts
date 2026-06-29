@@ -940,12 +940,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../pages/TagManagerPage.vue"),
         meta: { title: "标签管理" },
       },
-      {
-        path: "memory/permanent",
-        name: "PermanentMemory",
-        component: () => import("../pages/PermanentMemoryPage.vue"),
-        meta: { title: "永久记忆" },
-      },
       // ===== Session Core (Managed Agents Phase H) =====
       {
         path: "session-core",
