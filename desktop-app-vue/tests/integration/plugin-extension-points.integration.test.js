@@ -459,6 +459,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ic.pluginId).toBe("ipfs-cluster");
   });
 
+  it("skill-performance 的 /skill-metrics slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const sp = slash.find((s) => s.trigger === "/skill-metrics");
+    expect(sp).toBeDefined();
+    expect(sp.handler).toBe("builtin:openSkillPerformancePanel");
+    expect(sp.pluginId).toBe("skill-performance");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

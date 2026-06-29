@@ -1,0 +1,20 @@
+{
+  "id": "skill-performance",
+  "name": "技能性能仪表板",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/skill-metrics 斜杠命令 — 技能性能仪表板（执行次数/成功率/耗时/Token/成本排行 + 流水线统计，按时间范围）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "skill-performance",
+        "trigger": "/skill-metrics",
+        "handler": "builtin:openSkillPerformancePanel",
+        "description": "打开技能性能仪表板",
+        "icon": "BarChartOutlined"
+      }
+    }
+  ]
+}
