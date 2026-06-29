@@ -8,6 +8,21 @@
 const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
 
+const _deps = { execSync };
+
+// generateChangelog interpolates a caller-supplied range (description, e.g.
+// "v1.1.0..v1.2.0") into `git log --oneline ${description}` which runs through a
+// shell — an unsanitized value ("v1..v2; rm -rf ~") is a command-injection
+// vector. Allow only git-ref/range chars; no shell metacharacters.
+function isSafeRef(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 200 &&
+    /^[A-Za-z0-9._/-]+$/.test(value)
+  );
+}
+
 // ── Mode definitions ─────────────────────────────────────────────
 const MODES = {
   create: "create",
@@ -49,11 +64,13 @@ function parseInput(raw) {
 
 function runGit(cmd, cwd) {
   try {
-    return execSync(`git ${cmd}`, {
-      cwd,
-      encoding: "utf-8",
-      timeout: 10000,
-    }).trim();
+    return _deps
+      .execSync(`git ${cmd}`, {
+        cwd,
+        encoding: "utf-8",
+        timeout: 10000,
+      })
+      .trim();
   } catch {
     return "";
   }
@@ -264,7 +281,7 @@ function generateChangelog(description, context) {
 
   // Parse range like "v1.1.0..v1.2.0"
   let logCmd = "log --oneline -20";
-  if (description && description.includes("..")) {
+  if (description && description.includes("..") && isSafeRef(description)) {
     logCmd = `log --oneline ${description}`;
   }
 
@@ -307,6 +324,8 @@ function generateChangelog(description, context) {
 // ── Handler ──────────────────────────────────────────────────────
 
 module.exports = {
+  _deps,
+  isSafeRef, // exported for tests
   async init(skill) {
     logger.info(
       `[create-pr] handler initialized for "${skill?.name || "create-pr"}"`,

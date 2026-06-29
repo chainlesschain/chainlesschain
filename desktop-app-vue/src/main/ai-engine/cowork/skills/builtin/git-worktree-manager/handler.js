@@ -12,6 +12,8 @@ const _deps = { execSync };
 
 module.exports = {
   _deps,
+  isSafeRef, // exported for tests
+  isSafePath, // exported for tests
   async init(_skill) {
     logger.info("[GitWorktree] Initialized");
   },
@@ -55,6 +57,29 @@ function parseInput(input) {
   return { action, target, customPath: pathMatch ? pathMatch[1] : null };
 }
 
+// branch / worktree path / target below are interpolated into execSync (a shell)
+// via git(`... ${x}`), and come from the skill's task input — so an unsanitized
+// value is a command-injection vector (e.g. "main; rm -rf ~", or a path with
+// $()/backticks which the shell expands even inside double quotes). Validate to
+// git-ref chars and path chars respectively; no shell metacharacters.
+function isSafeRef(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 200 &&
+    /^[A-Za-z0-9._/-]+$/.test(value)
+  );
+}
+
+function isSafePath(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 4096 &&
+    /^[A-Za-z0-9._/:\\-]+$/.test(value)
+  );
+}
+
 function git(cmd, cwd) {
   return _deps
     .execSync(`git ${cmd}`, {
@@ -70,11 +95,17 @@ function handleCreate(parsed, context) {
   if (!branch) {
     return { success: false, error: "No branch name provided." };
   }
+  if (!isSafeRef(branch)) {
+    return { success: false, error: `Invalid branch name: ${branch}` };
+  }
 
   const cwd = context.cwd || process.cwd();
   const worktreePath =
     parsed.customPath ||
     path.join(cwd, "..", `worktree-${branch.replace(/\//g, "-")}`);
+  if (!isSafePath(worktreePath)) {
+    return { success: false, error: `Invalid worktree path: ${worktreePath}` };
+  }
 
   // Check if branch exists
   try {
@@ -132,6 +163,9 @@ function handleList(context) {
 function handleRemove(target, context) {
   if (!target) {
     return { success: false, error: "No worktree path provided." };
+  }
+  if (!isSafePath(target)) {
+    return { success: false, error: `Invalid worktree path: ${target}` };
   }
   const cwd = context.cwd || process.cwd();
   git(`worktree remove "${target}"`, cwd);
