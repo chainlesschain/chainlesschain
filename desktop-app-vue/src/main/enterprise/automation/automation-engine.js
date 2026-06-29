@@ -25,6 +25,7 @@ class AutomationEngine extends EventEmitter {
     this._ensureTables();
     this._loadDefaultConnectors();
     await this._loadFlows();
+    await this._loadExecutionLogs();
     this.initialized = true;
     logger.info(
       `[AutomationEngine] Initialized: ${this._flows.size} flows, ${this._connectors.size} connectors`,
@@ -160,6 +161,44 @@ class AutomationEngine extends EventEmitter {
       }
     } catch (error) {
       logger.warn("[AutomationEngine] Failed to load flows:", error.message);
+    }
+  }
+
+  async _loadExecutionLogs() {
+    // The automation_logs table was created but never written or read, so logs
+    // were memory-only and lost on restart while flows persist+reload. Load the
+    // most recent rows into the in-memory ring buffer (chronological order, so
+    // getExecutionLogs' tail-slice still returns the newest).
+    try {
+      const rows = this.db
+        .prepare(
+          "SELECT * FROM automation_logs ORDER BY created_at DESC LIMIT 1000",
+        )
+        .all();
+      for (const row of rows.reverse()) {
+        // Per-row guard mirrors _loadFlows: one corrupt input/output JSON must
+        // not abort the loop and drop every log after it.
+        try {
+          this._executionLogs.push({
+            id: row.id,
+            flowId: row.flow_id,
+            status: row.status,
+            input: JSON.parse(row.input ?? "null"),
+            output: JSON.parse(row.output ?? "null"),
+            duration: row.duration,
+            timestamp: Date.parse(row.created_at) || Date.now(),
+          });
+        } catch (rowErr) {
+          logger.warn(
+            `[AutomationEngine] Skipping log ${row.id} with bad JSON: ${rowErr.message}`,
+          );
+        }
+      }
+    } catch (error) {
+      logger.warn(
+        "[AutomationEngine] Failed to load execution logs:",
+        error.message,
+      );
     }
   }
 
@@ -315,6 +354,25 @@ class AutomationEngine extends EventEmitter {
       timestamp: Date.now(),
     };
     this._executionLogs.push(entry);
+    // Persist to automation_logs so logs survive restart (loaded by
+    // _loadExecutionLogs), matching how flows persist. Best-effort: a failed
+    // write must not break flow execution.
+    try {
+      this.db
+        .prepare(
+          "INSERT OR REPLACE INTO automation_logs (id, flow_id, status, input, output, duration) VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .run(
+          id,
+          flowId,
+          status,
+          JSON.stringify(input ?? null),
+          JSON.stringify(output ?? null),
+          duration,
+        );
+    } catch (error) {
+      logger.error("[AutomationEngine] Log persist failed:", error.message);
+    }
     if (this._executionLogs.length > 1000) {
       this._executionLogs.shift();
     }

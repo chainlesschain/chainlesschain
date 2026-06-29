@@ -192,6 +192,45 @@ describe("AutomationEngine", () => {
     expect(engine.getExecutionLogs("any")).toHaveLength(0);
   });
 
+  it("persists execution logs to the DB (so they survive restart)", async () => {
+    await engine.initialize(db);
+    const flow = engine.createFlow({ name: "Log Flow", steps: [] });
+    db.prepare.mockClear();
+    await engine.executeFlow(flow.id);
+    // The automation_logs table was created but never written — logs were
+    // memory-only and lost on restart. Execution must now write a row.
+    const wroteLog = db.prepare.mock.calls.some((c) =>
+      /INSERT (OR REPLACE )?INTO automation_logs/i.test(c[0]),
+    );
+    expect(wroteLog).toBe(true);
+  });
+
+  it("loads persisted execution logs from the DB on initialize", async () => {
+    const logRow = {
+      id: "log-1",
+      flow_id: "flow-x",
+      status: "completed",
+      input: JSON.stringify({ a: 1 }),
+      output: JSON.stringify([{ ok: true }]),
+      duration: 5,
+      created_at: new Date().toISOString(),
+    };
+    const restoreDb = {
+      exec: vi.fn(),
+      prepare: vi.fn((sql) => ({
+        all: () => (sql.includes("automation_logs") ? [logRow] : []),
+        get: () => null,
+        run: vi.fn(),
+      })),
+    };
+    const e2 = new AutomationEngine();
+    await e2.initialize(restoreDb);
+    const logs = e2.getExecutionLogs("flow-x");
+    expect(logs).toHaveLength(1);
+    expect(logs[0].id).toBe("log-1");
+    expect(logs[0].input).toEqual({ a: 1 }); // JSON parsed back to object
+  });
+
   // ── importTemplate ───────────────────────────────────────────────────────
   it("should import template as new flow", async () => {
     await engine.initialize(db);
