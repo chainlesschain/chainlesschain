@@ -8,6 +8,27 @@ const BridgeSecurityManager = require("./bridge-security");
 const BridgeRelayer = require("./bridge-relayer");
 const LayerZeroBridge = require("./bridges/layerzero-bridge");
 
+// Columns _updateBridgeRecord may write (id is the WHERE key, never updated).
+// Interpolated as SQL identifiers, so allowlisting them blocks injection via
+// attacker-controlled update keys.
+const ALLOWED_BRIDGE_UPDATE_COLUMNS = new Set([
+  "from_chain_id",
+  "to_chain_id",
+  "from_tx_hash",
+  "to_tx_hash",
+  "asset_id",
+  "asset_address",
+  "amount",
+  "sender_address",
+  "recipient_address",
+  "status",
+  "lock_timestamp",
+  "mint_timestamp",
+  "created_at",
+  "completed_at",
+  "error_message",
+]);
+
 /**
  * 跨链桥管理器 - 生产级实现
  *
@@ -930,10 +951,19 @@ class BridgeManager extends EventEmitter {
    */
   async _updateBridgeRecord(bridgeId, updates) {
     try {
-      const fields = Object.keys(updates)
-        .map((key) => `${key} = ?`)
-        .join(", ");
-      const values = Object.values(updates);
+      // Column names can't be bound `?` params, so interpolating Object.keys
+      // raw would be a SQL injection vector if updates ever carried attacker
+      // keys. Today all callers pass fixed keys, but allowlist the columns
+      // (matching contact-manager / video-storage convention) for defense in
+      // depth. Build values from the SAME filtered keys so they stay aligned.
+      const keys = Object.keys(updates).filter((key) =>
+        ALLOWED_BRIDGE_UPDATE_COLUMNS.has(key),
+      );
+      if (keys.length === 0) {
+        return;
+      }
+      const fields = keys.map((key) => `${key} = ?`).join(", ");
+      const values = keys.map((key) => updates[key]);
 
       this.database.run(`UPDATE bridge_transfers SET ${fields} WHERE id = ?`, [
         ...values,
