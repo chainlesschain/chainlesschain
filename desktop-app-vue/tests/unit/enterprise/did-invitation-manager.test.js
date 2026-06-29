@@ -117,6 +117,16 @@ describe("DIDInvitationManager Unit Tests", () => {
   });
 
   afterEach(() => {
+    // Close the real better-sqlite3 connection before unlinking. Each test opens
+    // a DatabaseManager in beforeEach; without this the native handle leaks every
+    // test (40+ open connections) → worker memory/handle exhaustion → "Worker
+    // exited unexpectedly". Closing also releases the Windows file lock so the
+    // unlink actually succeeds.
+    try {
+      db?.close();
+    } catch {
+      /* already closed / never opened */
+    }
     // 清理测试数据库
     if (fs.existsSync(testDbPath)) {
       fs.unlinkSync(testDbPath);
@@ -1095,7 +1105,7 @@ describe("DIDInvitationManager Unit Tests", () => {
 
       // 获取统计
       await didManager.setDefaultIdentity(inviterIdentity.did);
-      const stats = invitationManager.getInvitationStats(org.org_id);
+      const stats = await invitationManager.getInvitationStats(org.org_id);
 
       expect(stats.sent).toBeGreaterThanOrEqual(2);
       expect(stats.pending).toBeGreaterThanOrEqual(1);

@@ -105,6 +105,12 @@ describe("OrgP2PNetwork Unit Tests", () => {
   });
 
   afterEach(() => {
+    // Close the real DB connection so the native handle doesn't leak per test.
+    try {
+      db?.close();
+    } catch {
+      /* already closed */
+    }
     // 清理测试数据库
     if (fs.existsSync(testDbPath)) {
       fs.unlinkSync(testDbPath);
