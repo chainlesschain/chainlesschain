@@ -4,6 +4,7 @@
 
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
+import { safeJsonParse } from "./safe-json.js";
 
 /**
  * Ensure the notes table exists
@@ -50,7 +51,7 @@ export function fetchNotes(db, { category, tag, limit } = {}) {
   if (tag) {
     notes = notes.filter((n) => {
       try {
-        const tags = JSON.parse(n.tags || "[]");
+        const tags = safeJsonParse(n.tags, []);
         return tags.includes(tag);
       } catch {
         return false;
@@ -173,7 +174,7 @@ export function generateIndexHtml(
 ) {
   const noteLinks = notes
     .map((n) => {
-      const tags = JSON.parse(n.tags || "[]");
+      const tags = safeJsonParse(n.tags, []);
       const tagsHtml = tags
         .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
         .join(" ");

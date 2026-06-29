@@ -8,6 +8,7 @@ import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { likePrefix } from "../lib/sql-like.js";
+import { safeJsonParse } from "../lib/safe-json.js";
 import {
   ensureVersionsTable,
   saveVersion,
@@ -204,7 +205,7 @@ export function registerNoteCommand(program) {
         } else {
           logger.log(chalk.bold(`Notes (${notes.length}):\n`));
           for (const n of notes) {
-            const tags = JSON.parse(n.tags || "[]");
+            const tags = safeJsonParse(n.tags, []);
             const tagStr =
               tags.length > 0 ? chalk.gray(` [${tags.join(", ")}]`) : "";
             logger.log(

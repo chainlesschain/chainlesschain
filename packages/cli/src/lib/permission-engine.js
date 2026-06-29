@@ -308,7 +308,7 @@ export function getUserPermissions(db, userDid) {
       .prepare("SELECT permissions FROM rbac_roles WHERE name = ?")
       .get(grant.role_name);
     if (role) {
-      const perms = JSON.parse(role.permissions || "[]");
+      const perms = safeJsonParse(role.permissions, []);
       for (const p of perms) allPerms.add(p);
     }
   }

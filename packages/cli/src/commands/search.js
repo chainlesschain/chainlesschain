@@ -8,6 +8,7 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { BM25Search } from "../lib/bm25-search.js";
+import { safeJsonParse } from "../lib/safe-json.js";
 
 /**
  * Ensure the notes table exists (same as note.js)
@@ -213,7 +214,7 @@ export function registerSearchCommand(program) {
             ),
           );
           for (const r of results) {
-            const tags = JSON.parse(r.doc.tags || "[]");
+            const tags = safeJsonParse(r.doc.tags, []);
             const tagStr =
               tags.length > 0 ? chalk.gray(` [${tags.join(", ")}]`) : "";
             const snippet = (r.doc.content || "")

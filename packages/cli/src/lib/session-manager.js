@@ -6,6 +6,7 @@
  */
 
 import { createHash } from "crypto";
+import { safeJsonParse } from "./safe-json.js";
 
 function ensureSessionsTable(db) {
   db.exec(`
@@ -153,7 +154,7 @@ export function listSessions(db, options = {}) {
       ...session,
       metadata:
         typeof session.metadata === "string"
-          ? JSON.parse(session.metadata || "{}")
+          ? safeJsonParse(session.metadata, {})
           : session.metadata || {},
     }));
 }
