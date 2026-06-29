@@ -466,6 +466,13 @@ class AndroidFileHandler {
     if (!t || t.direction !== "download") {
       throw new Error(`Download transfer not found: ${transferId}`);
     }
+    // chunkIndex comes from the remote peer; mirror uploadChunk's guard. A
+    // negative/non-integer value otherwise yields a bad `offset` (wrong/garbage
+    // read or ERR_OUT_OF_RANGE), and a too-large value trips isLastChunk below,
+    // prematurely closing the fd + deleting the transfer so later chunks fail.
+    if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
+      throw new Error("chunkIndex must be a non-negative integer");
+    }
     const offset = chunkIndex * t.chunkSize;
     const remaining = Math.max(0, t.fileSize - offset);
     const size = Math.min(t.chunkSize, remaining);
