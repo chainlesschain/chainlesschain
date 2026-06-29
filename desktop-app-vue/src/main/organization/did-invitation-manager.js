@@ -403,7 +403,10 @@ class DIDInvitationManager {
       // 获取组织信息用于通知
       let orgName = "未知组织";
       try {
-        const org = this.orgManager?.getOrganization?.(invitation.orgId);
+        // getOrganization is async — without await, org is a Promise and
+        // org?.name is undefined, so the notification fell back to the raw
+        // orgId instead of the org name (every other call site awaits it).
+        const org = await this.orgManager?.getOrganization?.(invitation.orgId);
         orgName = org?.name || invitation.orgId;
       } catch (e) {
         // 忽略
