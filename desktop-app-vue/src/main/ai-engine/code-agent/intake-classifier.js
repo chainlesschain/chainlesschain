@@ -69,7 +69,7 @@ const CROSS_CUTTING_PHRASES = [
 const TEST_HEAVY_PHRASES = [
   /\b(add|write|expand)\s+(unit|integration|e2e)\s+tests?\b/i,
   /\btest\s+coverage\b/i,
-  /\bverify|verification|regression\b/i,
+  /\b(verify|verification|regression)\b/i,
 ];
 
 const TRIVIAL_PHRASES = [

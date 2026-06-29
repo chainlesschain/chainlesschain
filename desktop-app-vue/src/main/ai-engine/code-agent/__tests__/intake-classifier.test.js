@@ -201,6 +201,23 @@ describe("classifyIntake — scope-based decision", () => {
     );
   });
 
+  it("does not flag a substring match of a test keyword as testHeavy (regex grouping)", () => {
+    // The old /\bverify|verification|regression\b/ lacked grouping, so
+    // 'verification' matched as a bare substring (e.g. inside 'reverification')
+    // → false test-heavy on unrelated requests.
+    const res = classifyIntake({
+      request: "Refactor the user reverification onboarding screen layout",
+    });
+    expect(res.testHeavy).toBe(false);
+  });
+
+  it("flags a whole-word test keyword as testHeavy", () => {
+    const res = classifyIntake({
+      request: "Add a regression suite for the payment flow",
+    });
+    expect(res.testHeavy).toBe(true);
+  });
+
   it("recommendedConcurrency honours the concurrency cap", () => {
     const res = classifyIntake({
       request: "big refactor",
