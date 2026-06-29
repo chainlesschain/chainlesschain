@@ -217,8 +217,8 @@ class MCPPerformanceMonitor extends EventEmitter {
           this.metrics.connections.total,
         ),
         avgTime: this._average(this.metrics.connections.times),
-        minTime: Math.min(...(this.metrics.connections.times || [0])),
-        maxTime: Math.max(...(this.metrics.connections.times || [0])),
+        minTime: this._min(this.metrics.connections.times),
+        maxTime: this._max(this.metrics.connections.times),
         p95Time: this._percentile(this.metrics.connections.times, 95),
       },
 
@@ -347,8 +347,8 @@ class MCPPerformanceMonitor extends EventEmitter {
         name: toolName,
         count: metrics.count,
         avgLatency: this._average(metrics.latencies),
-        minLatency: Math.min(...metrics.latencies),
-        maxLatency: Math.max(...metrics.latencies),
+        minLatency: this._min(metrics.latencies),
+        maxLatency: this._max(metrics.latencies),
         p95Latency: this._percentile(metrics.latencies, 95),
         errors: metrics.errors,
       });
@@ -368,8 +368,8 @@ class MCPPerformanceMonitor extends EventEmitter {
         name: serverName,
         count: metrics.count,
         avgLatency: this._average(metrics.latencies),
-        minLatency: Math.min(...metrics.latencies),
-        maxLatency: Math.max(...metrics.latencies),
+        minLatency: this._min(metrics.latencies),
+        maxLatency: this._max(metrics.latencies),
         p95Latency: this._percentile(metrics.latencies, 95),
         errors: metrics.errors,
       });
@@ -397,6 +397,22 @@ class MCPPerformanceMonitor extends EventEmitter {
       return 0;
     }
     return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+
+  // Guard empty arrays: Math.min(...[]) === Infinity and Math.max(...[]) ===
+  // -Infinity, which leaked into getSummary/per-tool stats as "Infinity ms".
+  _min(arr) {
+    if (!arr || arr.length === 0) {
+      return 0;
+    }
+    return Math.min(...arr);
+  }
+
+  _max(arr) {
+    if (!arr || arr.length === 0) {
+      return 0;
+    }
+    return Math.max(...arr);
   }
 
   _percentile(arr, p) {
