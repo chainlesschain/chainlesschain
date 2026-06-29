@@ -423,6 +423,81 @@ describe("AnalysisEngine emits AMOUNT_SUM preamble (intent=sum-amount Phase 2)",
   });
 });
 
+describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-N senders)", () => {
+  const baseVault = (over) => ({
+    queryEvents: () => [],
+    queryPersons: () => [],
+    queryItems: () => [],
+    stats: () => ({ events: 5, persons: 0, places: 0, items: 0, topics: 0 }),
+    getEvent: () => null,
+    audit: () => {},
+    ...over,
+  });
+  const captureLlm = (calls) => ({
+    isLocal: true,
+    chat: async (msgs) => {
+      calls.push(msgs);
+      return { text: "ok", usage: {} };
+    },
+  });
+
+  it("calls topActors (excludeSelf) for rank intent and puts RANK in prompt", async () => {
+    const rankCalls = [];
+    const fakeVault = baseVault({
+      topActors: (f) => {
+        rankCalls.push(f);
+        return {
+          by: "actor",
+          total: 100,
+          actors: [
+            { actor: "person-qq-1", count: 19, name: "三丰" },
+            { actor: "person-qq-2", count: 16, name: null },
+          ],
+        };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我最常联系谁");
+    expect(rankCalls.length).toBe(1);
+    expect(rankCalls[0].excludeSelf).toBe(true);
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("RANK (");
+    expect(userMsg).toContain('"三丰"');
+    expect(chatCalls[0][0].content).toMatch(/RANK.*authoritative/i);
+  });
+
+  it("does NOT call topActors for non-rank intent", async () => {
+    const rankCalls = [];
+    const fakeVault = baseVault({
+      topActors: (f) => {
+        rankCalls.push(f);
+        return { by: "actor", total: 0, actors: [] };
+      },
+    });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm([]) });
+    await engine.ask("列出我的联系人"); // intent=list
+    expect(rankCalls.length).toBe(0);
+  });
+
+  it("omits RANK block when topActors returns no actors", async () => {
+    const fakeVault = baseVault({ topActors: () => ({ by: "actor", total: 0, actors: [] }) });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("谁给我发消息最多");
+    expect(chatCalls[0][1].content).not.toContain("RANK (");
+  });
+
+  it("legacy vault without topActors falls back gracefully", async () => {
+    const fakeVault = baseVault({}); // no topActors
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    const res = await engine.ask("谁给我发消息最多");
+    expect(res).toBeTruthy();
+    expect(chatCalls[0][1].content).not.toContain("RANK (");
+  });
+});
+
 // ─── Cache bypass — PDH ask must always go to LLM, never cached ───────
 //
 // Bug 2026-05-21: desktop ResponseCache (7-day TTL) served a stale

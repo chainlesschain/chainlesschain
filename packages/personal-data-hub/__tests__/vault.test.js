@@ -349,6 +349,60 @@ describe("LocalVault.putBatch", () => {
   });
 });
 
+// ─── topActors (intent=rank GROUP BY) ──────────────────────────────────────
+
+describe("LocalVault.topActors", () => {
+  const evN = (actor, adapter, n) =>
+    Array.from({ length: n }, () => {
+      const ev = eventOk({ source: source({ adapter, originalId: newId() }) });
+      if (actor != null) ev.actor = actor; // omit key entirely for the no-actor case
+      return ev;
+    });
+
+  it("ranks senders by count, resolves names, excludeSelf + adapter + limit + grand total", () => {
+    freshVault();
+    vault.putBatch({
+      events: [
+        ...evN("person-qq-100", "qq-pc", 5),
+        ...evN("person-qq-200", "qq-pc", 3),
+        ...evN("self", "qq-pc", 9), // self by convention
+        ...evN("person-wechat-self", "wechat", 7), // self by convention
+        ...evN("person-wechat-300", "wechat", 2),
+        ...evN(null, "qq-pc", 4), // no actor → excluded
+      ],
+      persons: [personOk({ id: "person-qq-100", names: ["Alice", "阿里"] })],
+    });
+
+    // excludeSelf drops 'self' + '*-self'; null actor always excluded.
+    const r = vault.topActors({ excludeSelf: true, limit: 10 });
+    const ids = r.actors.map((a) => a.actor);
+    expect(ids).not.toContain("self");
+    expect(ids).not.toContain("person-wechat-self");
+    expect(ids).not.toContain(null);
+    expect(r.actors[0]).toMatchObject({ actor: "person-qq-100", count: 5, name: "Alice" });
+    expect(r.actors[1]).toMatchObject({ actor: "person-qq-200", count: 3, name: null });
+    expect(r.total).toBe(10); // 5 + 3 + 2 non-self non-null
+
+    // adapter filter scopes to one app.
+    const q = vault.topActors({ adapter: "qq-pc", excludeSelf: true });
+    expect(q.actors.map((a) => a.actor)).toEqual(["person-qq-100", "person-qq-200"]);
+    expect(q.total).toBe(8);
+
+    // without excludeSelf, the owner's own outbound tops the list.
+    const all = vault.topActors({ adapter: "qq-pc" });
+    expect(all.actors[0]).toMatchObject({ actor: "self", count: 9 });
+
+    // limit caps results.
+    expect(vault.topActors({ excludeSelf: true, limit: 1 }).actors.length).toBe(1);
+  });
+
+  it("returns empty actors (not a throw) for an empty vault", () => {
+    freshVault();
+    const r = vault.topActors({ excludeSelf: true });
+    expect(r).toMatchObject({ by: "actor", total: 0, actors: [] });
+  });
+});
+
 // ─── raw_events ──────────────────────────────────────────────────────────
 
 describe("LocalVault.putRawEvent", () => {

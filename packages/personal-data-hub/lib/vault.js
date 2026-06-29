@@ -1311,6 +1311,96 @@ class LocalVault {
     };
   }
 
+  /**
+   * topActors — authoritative top-N senders by event count, grouped in SQL over
+   * the FULL vault (not the ≤80-fact prompt sample). Pairs with AnalysisEngine
+   * intent=rank to answer "谁给我发消息最多 / who contacts me most" precisely,
+   * instead of the LLM refusing to rank from a truncated FACTS sample.
+   *
+   * @param {object} q
+   * @param {string}   [q.adapter]       source_adapter exact match
+   * @param {string}   [q.subtype]       single subtype filter (e.g. "message")
+   * @param {number}   [q.since]         occurred_at >= (unix-ms)
+   * @param {number}   [q.until]         occurred_at <= (unix-ms)
+   * @param {string[]} [q.excludeActors] actor ids to drop (e.g. the account owner)
+   * @param {number}   [q.limit=10]      top-N (clamped to 50)
+   * @returns {{ by:'actor', total:number, actors: Array<{actor:string,count:number,name:(string|null)}> }}
+   */
+  topActors(q = {}) {
+    const where = ["actor IS NOT NULL", "actor != ''"];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    if (Array.isArray(q.excludeActors) && q.excludeActors.length > 0) {
+      const names = q.excludeActors.filter((a) => typeof a === "string" && a.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_a, i) => `@ex_${i}`);
+        where.push(`actor NOT IN (${ph.join(", ")})`);
+        names.forEach((a, i) => {
+          params[`ex_${i}`] = a;
+        });
+      }
+    }
+    // excludeSelf — drop the account owner's own outbound by the common id
+    // convention ("self" / "<adapter>-self") so "谁给我发最多 / who contacts me
+    // most" ranks the OTHER party, not the user. Adapters that key self by a raw
+    // account id (e.g. QQ uin) won't match this and slip through — the RANK
+    // prompt rule tells the LLM to skip a clearly-self entry as a backstop.
+    if (q.excludeSelf) {
+      where.push("actor != 'self'");
+      where.push("actor NOT LIKE '%-self'");
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const whereSql = " WHERE " + where.join(" AND ");
+    const db = this._requireOpen();
+
+    // Grand total of matching events (so the LLM knows what fraction top-N covers).
+    const totalRow = db.prepare("SELECT COUNT(*) AS c FROM events" + whereSql).get(params);
+    const total = totalRow ? Number(totalRow.c) || 0 : 0;
+
+    // names is a correlated subquery on the group key (e.actor) — runs once per
+    // returned group row (≤limit), not per source event.
+    const sql =
+      "SELECT e.actor AS actor, COUNT(*) AS count, " +
+      "(SELECT names FROM persons WHERE id = e.actor) AS names " +
+      "FROM events e" +
+      whereSql +
+      " GROUP BY e.actor ORDER BY count DESC, e.actor ASC LIMIT @limit";
+    const rows = db.prepare(sql).all({ ...params, limit });
+
+    const actors = rows.map((r) => {
+      let name = null;
+      if (r.names) {
+        try {
+          const parsed = JSON.parse(r.names);
+          if (Array.isArray(parsed)) {
+            name = parsed.find((n) => typeof n === "string" && n.trim()) || null;
+          } else if (typeof parsed === "string" && parsed.trim()) {
+            name = parsed.trim();
+          }
+        } catch (_e) {
+          /* names column not JSON — leave name null */
+        }
+      }
+      return { actor: r.actor, count: Number(r.count) || 0, name };
+    });
+    return { by: "actor", total, actors };
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {

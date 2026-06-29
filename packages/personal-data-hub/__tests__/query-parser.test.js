@@ -188,15 +188,28 @@ describe("parseIntent", () => {
     expect(parseIntent("最近的订单")).toBe("latest");
   });
 
-  it("latest does NOT steal aggregation/summary questions (3-row cap can't answer them)", () => {
+  it("latest does NOT steal SUMMARY questions (3-row cap can't answer them) — route to list", () => {
     // Regression: "最近" routed these to intent=latest → hard-capped to 3 rows
-    // → LLM said "没有相关记录". They need the broad list path (≤80 + FTS).
-    expect(parseIntent("最近谁给我发QQ消息最多")).toBe("list");
+    // → LLM said "没有相关记录". Summary questions need the broad list path (≤80 + FTS).
     expect(parseIntent("我的QQ群里大家最近在聊什么")).toBe("list");
     expect(parseIntent("我QQ最近聊了啥新话题")).toBe("list");
-    expect(parseIntent("最近谁给我打电话最多")).toBe("list");
     expect(parseIntent("最近都在讨论什么")).toBe("list");
     expect(parseIntent("最近聊天记录里有哪些话题")).toBe("list");
+  });
+
+  it("rank for who + superlative + interaction-verb (谁发最多 / 最常联系谁) — even with 最近", () => {
+    // These need an authoritative GROUP BY actor top-N (vault.topActors), not a
+    // ≤80-fact sample. Take precedence over latest/breadth.
+    expect(parseIntent("谁给我发消息最多")).toBe("rank");
+    expect(parseIntent("最近谁给我发QQ消息最多")).toBe("rank");
+    expect(parseIntent("最近谁给我打电话最多")).toBe("rank");
+    expect(parseIntent("我最常联系谁")).toBe("rank");
+    expect(parseIntent("群里谁发言最多")).toBe("rank");
+  });
+
+  it("rank does NOT over-trigger: summary / amount-superlative are not rank", () => {
+    expect(parseIntent("群里大家在聊什么")).toBe("list"); // no who + superlative
+    expect(parseIntent("谁花钱最多")).not.toBe("rank"); // superlative but no interaction verb (amount)
   });
 
   it("list as default", () => {

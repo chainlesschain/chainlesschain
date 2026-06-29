@@ -245,6 +245,20 @@ function parseIntent(text) {
   if (AMOUNT_HINT.test(text) && HOW_MUCH.test(text)) {
     return "sum-amount";
   }
+  // intent=rank — "谁给我发消息最多 / 我最常联系谁 / 谁打电话最多 / 群里谁发言最多":
+  // a who(谁/哪位) + superlative(最多/最频繁/最常) + interaction-verb question.
+  // Needs an authoritative GROUP BY actor top-N (vault.topActors) over the FULL
+  // vault, NOT an ≤80-fact sample — otherwise the LLM refuses to rank ("样本不足").
+  // Scoped to interaction VOLUME (messages/calls/contact), not amount ("谁花钱最多"
+  // has no interaction verb → falls through). Runs BEFORE the latest/breadth gate
+  // so "最近谁给我发最多" → rank. See pdh_analysis_engine_intent_routing.md.
+  if (
+    /(谁|哪位|哪个人)/.test(text) &&
+    /(最多|最频繁|最常|最少)/.test(text) &&
+    /(发|联系|打电话|来电|电话|聊|消息|私信|互动|来往|沟通|发言)/.test(text)
+  ) {
+    return "rank";
+  }
   // "最近/最新" alone ⇒ newest few (intent=latest, 3-row cap). BUT when the
   // question also carries an aggregation ("谁…最多", "排名") or a topic/summary
   // signal ("最近聊什么", "什么话题", "都在讨论啥"), 3 rows can't answer it —

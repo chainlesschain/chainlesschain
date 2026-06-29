@@ -245,6 +245,7 @@ class AnalysisEngine {
       vaultTotals: this._gatherVaultTotals(),
       amountSummary:
         parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
+      rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
       crossAppOverview,
     });
 
@@ -411,6 +412,7 @@ class AnalysisEngine {
       vaultTotals: this._gatherVaultTotals(),
       amountSummary:
         parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
+      rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -818,6 +820,27 @@ class AnalysisEngine {
       }
       const r = this.vault.sumEventAmount(f);
       if (!r || !r.count) return undefined;
+      return r;
+    } catch (_e) {
+      return undefined;
+    }
+  }
+
+  // Authoritative top-N senders (GROUP BY actor over the full vault) for
+  // intent=rank — answers "谁给我发消息最多" precisely instead of the LLM
+  // refusing to rank from the ≤80-fact sample. adapter/timeWindow passed
+  // through (no subtype — same fragile-classifier reason as _gatherFacts).
+  _gatherRankSummary(parsed) {
+    if (typeof this.vault.topActors !== "function") return undefined;
+    try {
+      const f = { limit: 10, excludeSelf: true };
+      if (parsed.filters && parsed.filters.adapter) f.adapter = parsed.filters.adapter;
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+      }
+      const r = this.vault.topActors(f);
+      if (!r || !Array.isArray(r.actors) || r.actors.length === 0) return undefined;
       return r;
     } catch (_e) {
       return undefined;

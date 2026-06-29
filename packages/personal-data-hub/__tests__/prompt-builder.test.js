@@ -158,6 +158,35 @@ describe("buildPrompt", () => {
     expect(messages[1].content).toContain("FACTS is empty");
   });
 
+  it("emits RANK block before FACTS when rankSummary present + rule in system prompt", () => {
+    const { messages } = buildPrompt({
+      question: "我最常联系谁",
+      facts: [],
+      rankSummary: {
+        by: "actor",
+        total: 100,
+        actors: [{ actor: "person-qq-1", count: 19, name: "三丰" }],
+      },
+    });
+    const userMsg = messages[1].content;
+    expect(userMsg).toContain("RANK (");
+    expect(userMsg).toContain('"三丰"');
+    expect(userMsg).toContain('"count": 19');
+    expect(userMsg.indexOf("RANK (")).toBeLessThan(userMsg.indexOf("FACTS ("));
+    expect(messages[0].content).toMatch(/RANK.*authoritative/i);
+  });
+
+  it("omits RANK block when rankSummary missing or has no actors", () => {
+    const { messages } = buildPrompt({
+      question: "x",
+      facts: [],
+      rankSummary: { by: "actor", total: 0, actors: [] },
+    });
+    expect(messages[1].content).not.toContain("RANK (");
+    const { messages: m2 } = buildPrompt({ question: "x", facts: [] });
+    expect(m2[1].content).not.toContain("RANK (");
+  });
+
   it("caps facts at maxFacts + reports truncation", () => {
     const many = Array.from({ length: 100 }, (_, i) => ({
       id: `evt-${i}`,
