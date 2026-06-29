@@ -413,7 +413,8 @@ class GitManager:
             return {
                 "success": True,
                 "branch_name": branch_name,
-                "from_branch": from_branch or repo.active_branch.name
+                "from_branch": from_branch
+                or (repo.active_branch.name if not repo.head.is_detached else None),
             }
 
         except Exception as e:
@@ -498,7 +499,8 @@ class GitManager:
             return {
                 "success": True,
                 "source_branch": source_branch,
-                "target_branch": target_branch or repo.active_branch.name,
+                "target_branch": target_branch
+                or (repo.active_branch.name if not repo.head.is_detached else None),
                 "result": merge_result
             }
 

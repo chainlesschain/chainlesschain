@@ -232,6 +232,17 @@ class TestGitManager:
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def test_create_branch_on_detached_head_succeeds(self, git_manager, temp_repo):
+        """游离 HEAD 下 create_branch（无 from_branch）应成功，返回 from_branch=None
+        而非在构造返回值时访问 active_branch.name 抛错把成功误报为失败。"""
+        repo = Repo(temp_repo)
+        repo.git.checkout(repo.head.commit.hexsha)  # 进入游离 HEAD
+        assert repo.head.is_detached
+        result = git_manager.create_branch(temp_repo, "feature-x")
+        assert result["success"] is True
+        assert result["branch_name"] == "feature-x"
+        assert result["from_branch"] is None  # 游离 HEAD → 安全回退，非 500
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
