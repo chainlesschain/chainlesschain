@@ -1,0 +1,20 @@
+{
+  "id": "error-monitor",
+  "name": "错误监控",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/errors 斜杠命令 — 错误监控（统计、分类、历史浏览/筛选、重新分析、诊断报告；趋势图表在 V5 完整页）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "error-monitor",
+        "trigger": "/errors",
+        "handler": "builtin:openErrorMonitorPanel",
+        "description": "打开错误监控面板",
+        "icon": "BugOutlined"
+      }
+    }
+  ]
+}

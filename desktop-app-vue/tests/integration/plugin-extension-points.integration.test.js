@@ -523,6 +523,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ip.pluginId).toBe("installed-plugins");
   });
 
+  it("error-monitor 的 /errors slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const em = slash.find((s) => s.trigger === "/errors");
+    expect(em).toBeDefined();
+    expect(em.handler).toBe("builtin:openErrorMonitorPanel");
+    expect(em.pluginId).toBe("error-monitor");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
