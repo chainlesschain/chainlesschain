@@ -1711,7 +1711,15 @@ class SSOManager extends EventEmitter {
         );
       }
 
-      this._sessionCache.set(sessionId, session);
+      // Only cache ACTIVE sessions. A just-expired (or revoked) session would
+      // otherwise linger in _sessionCache forever — the explicit deletes only
+      // fire on logout/refresh — a slow memory leak; and a later cache hit would
+      // hand back the stale terminal session. Evict on the non-active path.
+      if (session.state === SessionState.ACTIVE) {
+        this._sessionCache.set(sessionId, session);
+      } else {
+        this._sessionCache.delete(sessionId);
+      }
       return session;
     } catch (error) {
       logger.error("[SSOManager] Error getting session:", error);
