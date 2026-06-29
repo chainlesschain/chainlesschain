@@ -313,7 +313,13 @@ class RSSIPCHandler {
       query += " ORDER BY pub_date DESC";
 
       if (options.limit) {
-        query += ` LIMIT ${options.limit}`;
+        // options.limit comes from the renderer — bind it as a parameter (not
+        // raw interpolation) so it can't inject SQL. LIMIT accepts a ? in SQLite.
+        const limit = Number.parseInt(options.limit, 10);
+        if (Number.isInteger(limit) && limit > 0) {
+          query += " LIMIT ?";
+          params.push(limit);
+        }
       }
 
       const stmt = this.database.db.prepare(query);
