@@ -931,3 +931,66 @@ describe("LocalVault.sumEventAmount", () => {
     });
   });
 });
+
+// ─── topSpendingByAdapter (intent=amount-rank) ─────────────────────────────
+
+describe("LocalVault.topSpendingByAdapter", () => {
+  const spend = (adapter, value, direction, cur = "CNY") =>
+    eventOk({
+      subtype: "payment",
+      source: source({ adapter, originalId: newId() }),
+      content: { title: "支付", amount: { value, currency: cur, direction } },
+    });
+  // alipay shape (extra.amountFen) — direction may be ABSENT here (the schema
+  // only constrains content.amount.direction), exercising COALESCE(dir,'out').
+  const spendFen = (adapter, amountFen, direction) =>
+    eventOk({
+      subtype: "payment",
+      source: source({ adapter, originalId: newId() }),
+      content: { title: "支付" },
+      extra: direction ? { amountFen, direction } : { amountFen },
+    });
+
+  it("ranks adapters by OUT spend, excludes income/refund-in, primary currency, grand total", () => {
+    freshVault();
+    vault.putBatch({
+      events: [
+        spend("taobao", 100, "out"),
+        spend("taobao", 100, "out"), // taobao 200 / 2
+        spend("alipay-bill", 50, "out"),
+        spend("alipay-bill", 50, "out"),
+        spend("alipay-bill", 50, "out"), // alipay 150 / 3
+        spend("alipay-bill", 1000, "in"), // income → excluded
+        spend("wechat-pay", 30, "out"), // 30 / 1
+        spendFen("jd", 2000), // extra.amountFen, no direction → COALESCE→OUT (20 / 1)
+        spend("paypal", 999, "out", "USD"), // minority currency → not primary
+      ],
+    });
+
+    const r = vault.topSpendingByAdapter({ limit: 10 });
+    expect(r.by).toBe("adapter");
+    expect(r.currency).toBe("CNY"); // most spend events
+    expect(r.adapters.map((a) => a.adapter)).toEqual(["taobao", "alipay-bill", "wechat-pay", "jd"]);
+    expect(r.adapters[0]).toMatchObject({ adapter: "taobao", total: 200, count: 2 });
+    expect(r.adapters[1]).toMatchObject({ adapter: "alipay-bill", total: 150, count: 3 }); // income row excluded
+    expect(r.total).toBe(400); // 200+150+30+20 CNY out; income + USD excluded
+    expect(r.count).toBe(7); // CNY out events only
+  });
+
+  it("limit caps the adapter list but total stays the grand total", () => {
+    freshVault();
+    vault.putBatch({
+      events: [spend("a", 50, "out"), spend("b", 30, "out"), spend("c", 10, "out")],
+    });
+    const r = vault.topSpendingByAdapter({ limit: 1 });
+    expect(r.adapters.length).toBe(1);
+    expect(r.adapters[0].adapter).toBe("a");
+    expect(r.total).toBe(90); // grand total, not just the top-1
+  });
+
+  it("returns empty (not a throw) when there are no amounts", () => {
+    freshVault();
+    vault.putBatch({ events: [eventOk({ content: { text: "hi" } })] });
+    expect(vault.topSpendingByAdapter({})).toMatchObject({ by: "adapter", total: 0, adapters: [] });
+  });
+});

@@ -196,6 +196,35 @@ describe("buildPrompt", () => {
     expect(b.messages[1].content).not.toContain("DISTINCT_COUNT (");
   });
 
+  it("emits SPENDING_RANK block for a spendingRank summary", () => {
+    const { messages } = buildPrompt({
+      question: "我钱主要花在哪",
+      facts: [],
+      spendingRank: {
+        by: "adapter",
+        currency: "CNY",
+        total: 380,
+        count: 6,
+        adapters: [{ adapter: "taobao", total: 200, count: 2 }],
+      },
+    });
+    const userMsg = messages[1].content;
+    expect(userMsg).toContain("SPENDING_RANK (");
+    expect(userMsg).toContain('"taobao"');
+    expect(userMsg).toContain('"total": 200');
+  });
+
+  it("omits SPENDING_RANK when adapters empty or missing", () => {
+    const a = buildPrompt({
+      question: "x",
+      facts: [],
+      spendingRank: { by: "adapter", currency: "CNY", total: 0, count: 0, adapters: [] },
+    });
+    expect(a.messages[1].content).not.toContain("SPENDING_RANK (");
+    const b = buildPrompt({ question: "x", facts: [] });
+    expect(b.messages[1].content).not.toContain("SPENDING_RANK (");
+  });
+
   it("emits a topic RANK block (groups) for a topic-dimension rankSummary", () => {
     const { messages } = buildPrompt({
       question: "哪个群最活跃",

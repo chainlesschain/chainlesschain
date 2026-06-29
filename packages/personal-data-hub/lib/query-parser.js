@@ -253,6 +253,16 @@ const HOW_MUCH = /(多少钱|多少|how\s+much)/i;
 const DISTINCT_PERSON = /多少(个|位)?人/;
 const INTERACTION_FOR_DISTINCT =
   /(聊|联系|来往|往来|沟通|互动|认识|打过?电话|通过?电话|发过?(消息|信息)|打交道|交流)/;
+// amount-rank — "我钱主要花在哪 / 哪个平台花最多 / 哪个app消费最多": a spending
+// BREAKDOWN by platform (GROUP BY adapter SUM out-amount), vs sum-amount which is
+// a single total. Needs a spend verb + a "where/which-platform" breakdown signal,
+// so "在淘宝花了多少"(one platform + 多少 → sum-amount) is NOT caught.
+const SPEND_VERB = /(花|花费|消费|开销|支出|spent|spend)/i;
+// Platform/where-specific breakdown signals ONLY — deliberately NOT a bare
+// "花钱最多" (that's "谁花钱最多", a person-spending rank, a different dimension
+// we don't handle here; the 谁-guard below also blocks it).
+const SPEND_BREAKDOWN =
+  /(哪个|哪些)(平台|app|应用|软件|渠道|商家|店铺?|地方)|花在(哪|什么)|主要花(在|的|钱)?|花得最多在|where.*spen[dt]/i;
 
 function parseIntent(text) {
   if (typeof text !== "string") return "list";
@@ -261,6 +271,12 @@ function parseIntent(text) {
   // a distinct count, not a record total).
   if (DISTINCT_PERSON.test(text) && INTERACTION_FOR_DISTINCT.test(text)) {
     return "distinct-count";
+  }
+  // amount-rank BEFORE sum-amount — a spending breakdown ("哪个平台花最多") is more
+  // specific than the bare spend total. "在淘宝花了多少"(no breakdown signal) stays
+  // sum-amount.
+  if (SPEND_VERB.test(text) && SPEND_BREAKDOWN.test(text) && !/(谁|哪位|哪个人)/.test(text)) {
+    return "amount-rank";
   }
   if (/(总共|共多少|加起来|sum|total|合计)/.test(text)) {
     // Distinguish amount vs count by presence of amount words (incl. income,

@@ -1312,6 +1312,88 @@ class LocalVault {
   }
 
   /**
+   * topSpendingByAdapter — authoritative spending breakdown: SUM of OUTBOUND
+   * amounts GROUP BY source_adapter over the full vault, top-N by total. Pairs
+   * with intent=amount-rank to answer "我钱主要花在哪 / 哪个平台花最多". Reuses
+   * sumEventAmount's amount extraction (content.amount.value | extra.amountFen/100)
+   * and direction model — only OUT (spending) is counted, income/refund-in
+   * excluded (the overview.spending bug taught us to filter direction). Amounts
+   * grouped per currency; the breakdown is in the primary currency (most spend
+   * events) since cross-currency sums are meaningless.
+   *
+   * @param {object} q  subtype/subtypes/since/until/limit
+   * @returns {{ by:'adapter', currency:string, total:number, count:number,
+   *            adapters: Array<{adapter:string,total:number,count:number}> }}
+   */
+  topSpendingByAdapter(q = {}) {
+    const where = [];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Array.isArray(q.subtypes) && q.subtypes.length > 0) {
+      const names = q.subtypes.filter((s) => typeof s === "string" && s.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_s, i) => `@st_${i}`);
+        where.push(`subtype IN (${ph.join(", ")})`);
+        names.forEach((s, i) => {
+          params[`st_${i}`] = s;
+        });
+      }
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    const whereSql = where.length ? " WHERE " + where.join(" AND ") : "";
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const sql =
+      "SELECT adapter, cur, SUM(amt) AS s, COUNT(*) AS c FROM (" +
+      "SELECT source_adapter AS adapter, " +
+      "COALESCE(json_extract(content,'$.amount.direction'), json_extract(extra,'$.direction')) AS dir, " +
+      "COALESCE(json_extract(content,'$.amount.currency'), 'CNY') AS cur, " +
+      "CASE " +
+      "WHEN json_extract(content,'$.amount.value') IS NOT NULL THEN json_extract(content,'$.amount.value') " +
+      "WHEN json_extract(extra,'$.amountFen') IS NOT NULL THEN json_extract(extra,'$.amountFen') / 100.0 " +
+      "ELSE NULL END AS amt " +
+      "FROM events" +
+      whereSql +
+      ") WHERE amt IS NOT NULL AND COALESCE(dir,'out') != 'in' GROUP BY adapter, cur";
+    const rows = this._requireOpen().prepare(sql).all(params);
+
+    // Accumulate per (adapter, currency); pick the primary currency (most spend
+    // events) and rank adapters within it.
+    const perCur = {}; // cur -> { count, adapters: {adapter -> {total,count}} }
+    for (const r of rows) {
+      const cur = r.cur || "CNY";
+      const s = Number(r.s) || 0;
+      const c = Number(r.c) || 0;
+      const e = perCur[cur] || (perCur[cur] = { count: 0, adapters: {} });
+      e.count += c;
+      const a = e.adapters[r.adapter] || (e.adapters[r.adapter] = { total: 0, count: 0 });
+      a.total += s;
+      a.count += c;
+    }
+    const curs = Object.keys(perCur);
+    if (curs.length === 0) return { by: "adapter", currency: "CNY", total: 0, count: 0, adapters: [] };
+    const primary = curs.reduce((a, b) => (perCur[b].count > perCur[a].count ? b : a), curs[0]);
+    const round2 = (n) => Math.round(n * 100) / 100;
+    const e = perCur[primary];
+    const ranked = Object.entries(e.adapters)
+      .map(([adapter, v]) => ({ adapter, total: round2(v.total), count: v.count }))
+      .sort((x, y) => y.total - x.total || x.adapter.localeCompare(y.adapter));
+    // total = grand spending across ALL adapters in the primary currency (so the
+    // LLM knows what fraction the returned top-N covers), not just the top-N sum.
+    const total = round2(ranked.reduce((s, a) => s + a.total, 0));
+    return { by: "adapter", currency: primary, total, count: e.count, adapters: ranked.slice(0, limit) };
+  }
+
+  /**
    * topActors — authoritative top-N senders by event count, grouped in SQL over
    * the FULL vault (not the ≤80-fact prompt sample). Pairs with AnalysisEngine
    * intent=rank to answer "谁给我发消息最多 / who contacts me most" precisely,

@@ -44,6 +44,7 @@ const AMOUNT_SUM_HEADER = "AMOUNT_SUM (authoritative SQL totals over the full va
 const RANK_HEADER = "RANK (authoritative top senders by event count, GROUP BY actor over the full vault — for 谁发最多/谁联系我最多/我最常联系谁 quote these names+counts directly, NOT FACTS length. `total` = all matching events; counts include your own sent messages):";
 const RANK_TOPIC_HEADER = "RANK (authoritative top groups/conversations by message count, GROUP BY topic over the full vault — for 哪个群最活跃/哪个群消息最多 quote these group names+counts directly, NOT FACTS length. `total` = all matching messages; a null name = unresolved group id, cite the id):";
 const DISTINCT_COUNT_HEADER = "DISTINCT_COUNT (authoritative COUNT(DISTINCT actor) over the full vault — for 我跟多少人聊过/认识多少人 quote `distinct` (the number of distinct people you've actually interacted with across `events` events). Do NOT use the persons total in TOTALS here — that counts every ingested contact, including ones never messaged):";
+const SPENDING_RANK_HEADER = "SPENDING_RANK (authoritative spending breakdown — SUM of OUTBOUND amounts GROUP BY platform/app over the full vault, income/refunds excluded. For 我钱主要花在哪/哪个平台花最多 quote these adapter totals directly. `total` = all spending in `currency`; each row's `total` = that platform's spend, `count` = its transactions):";
 const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app 活跃度/类型/消费/高频联系人，回答跨 app 与决策类问题时优先参考；为汇总信号，非逐条事实):";
 
 // ─── Fact summarization ─────────────────────────────────────────────────
@@ -157,6 +158,8 @@ function buildPrompt(opts) {
     opts.rankSummary && typeof opts.rankSummary === "object" ? opts.rankSummary : null;
   const distinctCount =
     opts.distinctCount && typeof opts.distinctCount === "object" ? opts.distinctCount : null;
+  const spendingRank =
+    opts.spendingRank && typeof opts.spendingRank === "object" ? opts.spendingRank : null;
   const crossAppOverview =
     typeof opts.crossAppOverview === "string" && opts.crossAppOverview.length > 0
       ? opts.crossAppOverview
@@ -216,6 +219,12 @@ function buildPrompt(opts) {
   // TOTALS (which counts every ingested contact, incl. never-messaged ones).
   if (distinctCount && Number.isFinite(distinctCount.distinct) && distinctCount.distinct > 0) {
     userContent += `\n${DISTINCT_COUNT_HEADER}\n${JSON.stringify(distinctCount, null, 2)}\n`;
+  }
+  // SPENDING_RANK block — authoritative spending-by-platform breakdown, BEFORE
+  // FACTS. Only when there's a real ranking (_gatherSpendingRank returns undefined
+  // for empty so we never show a misleading ¥0 breakdown).
+  if (spendingRank && Array.isArray(spendingRank.adapters) && spendingRank.adapters.length > 0) {
+    userContent += `\n${SPENDING_RANK_HEADER}\n${JSON.stringify(spendingRank, null, 2)}\n`;
   }
   // CROSS_APP_OVERVIEW — 跨 app 汇聚画像，置于 FACTS 前（同 TOTALS）。
   if (crossAppOverview) {

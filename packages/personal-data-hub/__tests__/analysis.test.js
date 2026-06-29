@@ -529,6 +529,29 @@ describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-
     expect(userMsg).toContain('"distinct": 1234');
   });
 
+  it("routes '钱主要花在哪' to topSpendingByAdapter + emits SPENDING_RANK", async () => {
+    const calls = [];
+    const fakeVault = baseVault({
+      topSpendingByAdapter: (f) => {
+        calls.push(f);
+        return {
+          by: "adapter",
+          currency: "CNY",
+          total: 380,
+          count: 6,
+          adapters: [{ adapter: "taobao", total: 200, count: 2 }],
+        };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我钱主要花在哪");
+    expect(calls.length).toBe(1);
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("SPENDING_RANK (");
+    expect(userMsg).toContain('"taobao"');
+  });
+
   it("does NOT call topActors for non-rank intent", async () => {
     const rankCalls = [];
     const fakeVault = baseVault({

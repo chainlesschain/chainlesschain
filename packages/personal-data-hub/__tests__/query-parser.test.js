@@ -228,6 +228,17 @@ describe("parseIntent", () => {
     expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
   });
 
+  it("amount-rank — spend verb + platform/where breakdown → spending breakdown", () => {
+    expect(parseIntent("我钱主要花在哪")).toBe("amount-rank");
+    expect(parseIntent("哪个平台花最多")).toBe("amount-rank");
+    expect(parseIntent("哪个app消费最多")).toBe("amount-rank");
+    // single-platform total / income → sum-amount, not breakdown
+    expect(parseIntent("在淘宝花了多少")).toBe("sum-amount");
+    expect(parseIntent("这个月花了多少钱")).toBe("sum-amount");
+    // "谁花钱最多" is a person-spend rank (different dimension) → NOT amount-rank
+    expect(parseIntent("谁花钱最多")).not.toBe("amount-rank");
+  });
+
   it("distinct-count — '多少人' + interaction verb → COUNT(DISTINCT actor), not the table total", () => {
     expect(parseIntent("我跟多少人聊过")).toBe("distinct-count");
     expect(parseIntent("认识多少人")).toBe("distinct-count");

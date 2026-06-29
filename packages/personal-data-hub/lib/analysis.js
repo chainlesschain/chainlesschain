@@ -248,6 +248,8 @@ class AnalysisEngine {
       rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
       distinctCount:
         parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
+      spendingRank:
+        parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
       crossAppOverview,
     });
 
@@ -417,6 +419,8 @@ class AnalysisEngine {
       rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
       distinctCount:
         parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
+      spendingRank:
+        parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -855,6 +859,24 @@ class AnalysisEngine {
       const r = fn.call(this.vault, f);
       const entries = r && (dimension === "topic" ? r.topics : r.actors);
       if (!r || !Array.isArray(entries) || entries.length === 0) return undefined;
+      return r;
+    } catch (_e) {
+      return undefined;
+    }
+  }
+
+  _gatherSpendingRank(parsed) {
+    if (typeof this.vault.topSpendingByAdapter !== "function") return undefined;
+    try {
+      const f = { limit: 10 };
+      // time window applies ("这个月钱主要花在哪"); we rank ALL adapters, so no
+      // single-adapter filter here (the dimension we group by).
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+      }
+      const r = this.vault.topSpendingByAdapter(f);
+      if (!r || !Array.isArray(r.adapters) || r.adapters.length === 0) return undefined;
       return r;
     } catch (_e) {
       return undefined;
