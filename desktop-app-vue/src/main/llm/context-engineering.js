@@ -542,8 +542,13 @@ class ContextEngineering {
     result.metadata.dynamicPartLength =
       result.messages.length - result.metadata.staticPartLength;
 
-    // 检查是否命中缓存（静态部分未变化）
-    const currentHash = this._computeStaticHash(cleanedSystemPrompt, tools);
+    // 检查是否命中缓存（静态部分未变化）。必须用 filteredTools（实际进入消息
+    // 的工具集），否则切换 activeMcpServers 时消息内容变了、hash 却不变 →
+    // 误报缓存命中（wasCacheOptimized=true）。
+    const currentHash = this._computeStaticHash(
+      cleanedSystemPrompt,
+      filteredTools,
+    );
     if (this.staticPromptHash === currentHash) {
       this.stats.cacheHits++;
       result.metadata.wasCacheOptimized = true;

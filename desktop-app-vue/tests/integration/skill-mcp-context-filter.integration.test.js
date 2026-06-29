@@ -98,6 +98,12 @@ describe("integration: skill-embedded MCP filter through ContextEngineering", ()
     expect(t1).not.toContain("mcp_github_issues");
     expect(t2).toContain("mcp_github_issues");
     expect(t2).not.toContain("mcp_weather_today");
+
+    // The two calls send DIFFERENT filtered tool sets, so the second must NOT
+    // be reported as a KV-cache hit. The static hash must be computed over the
+    // filtered tools; hashing the (identical) unfiltered list made r2 falsely
+    // claim wasCacheOptimized === true.
+    expect(r2.metadata.wasCacheOptimized).not.toBe(true);
   });
 
   it("null whitelist preserves the legacy full-MCP behavior", () => {
