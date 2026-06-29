@@ -11,6 +11,7 @@
 
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+const { safeToISOString } = require("../../utils/safe-date.js");
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -271,7 +272,7 @@ class ComputerUseBridge extends EventEmitter {
       ([shareId, entry]) => ({
         shareId,
         sharedBy: entry.sharedBy,
-        sharedAt: new Date(entry.sharedAt).toISOString(),
+        sharedAt: safeToISOString(entry.sharedAt),
         replayCount: entry.replayCount,
         stepCount: (entry.recording?.steps || []).length,
       }),

@@ -10,6 +10,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { safeToISOString } = require("../utils/safe-date.js");
 const EventEmitter = require("events");
 const path = require("path");
 const fs = require("fs");
@@ -1189,7 +1190,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           category: file.category,
           mimeType: file.mime_type,
           size: file.size,
-          createdAt: new Date(file.last_modified).toISOString(),
+          createdAt: safeToISOString(file.last_modified),
           updatedAt: new Date().toISOString(),
           type: "external-file",
           ...options.metadata,
