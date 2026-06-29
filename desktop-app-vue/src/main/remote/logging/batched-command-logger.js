@@ -10,6 +10,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const { safeOrderByClause } = require("../../utils/sql-order-by.js");
 
 /**
  * Tolerant JSON column parse — a single log row with a corrupt params/result
@@ -371,10 +372,15 @@ class BatchedCommandLogger extends EventEmitter {
 
       // 查询数据
       const offset = (page - 1) * pageSize;
+      // sortBy/sortOrder come from caller options — validate to prevent SQL
+      // injection (ORDER BY can't be a bound ? param).
+      const sort = safeOrderByClause(sortBy, sortOrder, {
+        fallbackColumn: "timestamp",
+      });
       const dataSql = `
         SELECT * FROM remote_command_logs
         ${whereClause}
-        ORDER BY ${sortBy} ${sortOrder}
+        ORDER BY ${sort.column} ${sort.direction}
         LIMIT ? OFFSET ?
       `;
       const dataStmt = this.database.prepare(dataSql);

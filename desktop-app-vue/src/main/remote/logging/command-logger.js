@@ -11,6 +11,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const { safeOrderByClause } = require("../../utils/sql-order-by.js");
 
 /**
  * Tolerant JSON column parse — a single log row with a corrupt params/result
@@ -286,8 +287,12 @@ class CommandLogger extends EventEmitter {
         params.push(`%${search}%`, `%${search}%`);
       }
 
-      // 排序
-      query += ` ORDER BY ${sortBy} ${sortOrder}`;
+      // 排序：sortBy/sortOrder 来自调用方 options，必须校验防 SQL 注入
+      // （ORDER BY 不能用 ? 绑定）。
+      const sort = safeOrderByClause(sortBy, sortOrder, {
+        fallbackColumn: "timestamp",
+      });
+      query += ` ORDER BY ${sort.column} ${sort.direction}`;
 
       // 分页
       query += " LIMIT ? OFFSET ?";

@@ -1,5 +1,6 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const { safeOrderByClause } = require("../utils/sql-order-by.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -781,7 +782,10 @@ class KnowledgePaymentManager extends EventEmitter {
       params.push(priceRange.min, priceRange.max);
     }
 
-    query += ` ORDER BY ${sortBy} DESC LIMIT 50`;
+    // sortBy comes from caller filters — validate the column to prevent SQL
+    // injection (ORDER BY can't be a bound ? param).
+    const { column: sortColumn } = safeOrderByClause(sortBy, "DESC");
+    query += ` ORDER BY ${sortColumn} DESC LIMIT 50`;
 
     const rows = this.db.prepare(query).all(...params);
 
