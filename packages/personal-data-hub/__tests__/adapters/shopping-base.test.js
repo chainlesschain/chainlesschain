@@ -176,4 +176,17 @@ describe("CookieAuth", () => {
     expect(c.getCookieValue("missing")).toBe(null);
     expect(c.getCookieValue("")).toBe(null);
   });
+
+  it("getCookieValue: bare `%` in value falls back to raw (no URIError)", () => {
+    // Cookie values legitimately contain `%` (e.g. "100%off") — must not throw.
+    const c = new CookieAuth({
+      platform: "taobao",
+      cookies: "promo=100%off; bad=%zz; ok=%E5%BC%A0",
+    });
+    expect(() => c.getCookieValue("promo")).not.toThrow();
+    expect(c.getCookieValue("promo")).toBe("100%off");
+    expect(c.getCookieValue("bad")).toBe("%zz");
+    // well-formed values still decode
+    expect(c.getCookieValue("ok")).toBe("张");
+  });
 });

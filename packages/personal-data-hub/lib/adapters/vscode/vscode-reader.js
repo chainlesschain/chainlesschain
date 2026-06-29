@@ -69,7 +69,14 @@ function defaultVscodeRoot() {
 function decodeFileUri(uri) {
   if (typeof uri !== "string" || !uri.startsWith("file://")) return null;
   // file:///c%3A/code/foo → /c:/code/foo → c:/code/foo on win32
-  let p = decodeURIComponent(uri.slice("file://".length));
+  const raw = uri.slice("file://".length);
+  // A corrupt/malformed percent-sequence must not throw URIError.
+  let p;
+  try {
+    p = decodeURIComponent(raw);
+  } catch {
+    p = raw;
+  }
   if (process.platform === "win32") {
     // Strip leading slash and normalise separators
     if (p.startsWith("/")) p = p.slice(1);

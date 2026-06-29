@@ -296,4 +296,10 @@ describe("decodeFileUri helper", () => {
     expect(decodeFileUri(null)).toBe(null);
     expect(decodeFileUri(undefined)).toBe(null);
   });
+
+  it("falls back to the raw slice on a malformed percent-sequence (no throw)", () => {
+    // A corrupt file:// URI must not throw URIError.
+    expect(() => decodeFileUri("file:///c%/oops")).not.toThrow();
+    expect(typeof decodeFileUri("file:///c%/oops")).toBe("string");
+  });
 });

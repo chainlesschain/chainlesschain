@@ -100,6 +100,16 @@ describe("readToutiaoArticles (injected fake db)", () => {
     expect(_internals.extractCategory({ share_url: "x?a=1&category_new=my_tabs_digg&b=2" })).toBe("my_tabs_digg");
     expect(_internals.extractUrl({ share_info: JSON.stringify({ share_url: "https://h/g/1/?t=1" }) })).toBe("https://h/g/1/");
   });
+
+  it("extractCategory: malformed percent-sequence falls back to raw (no throw)", () => {
+    // A bare/invalid `%` in a stored share_url must not throw URIError.
+    expect(() =>
+      _internals.extractCategory({ share_url: "x?category_new=100%off" }),
+    ).not.toThrow();
+    expect(
+      _internals.extractCategory({ share_url: "x?category_new=100%off" }),
+    ).toBe("100%off");
+  });
 });
 
 describe("articlesToVault — real sqlite + real vault", () => {

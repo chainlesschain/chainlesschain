@@ -68,7 +68,13 @@ function extractUrl(row) {
 function extractCategory(row) {
   const u = row.share_url || "";
   const m = /[?&]category_new=([^&]+)/.exec(u);
-  return m ? decodeURIComponent(m[1]) : null;
+  if (!m) return null;
+  // A malformed percent-sequence in a stored share_url must not throw.
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1];
+  }
 }
 
 /**

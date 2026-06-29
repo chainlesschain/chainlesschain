@@ -193,7 +193,14 @@ class CookieAuth {
     if (!this.cookies || !name) return null;
     const re = new RegExp(`(?:^|;\\s*)${escapeRegex(name)}=([^;]*)`, "i");
     const m = re.exec(this.cookies);
-    return m ? decodeURIComponent(m[1]) : null;
+    if (!m) return null;
+    // Cookie values legitimately contain a bare `%` (e.g. "100%off"), which
+    // makes decodeURIComponent throw URIError — fall back to the raw value.
+    try {
+      return decodeURIComponent(m[1]);
+    } catch {
+      return m[1];
+    }
   }
 }
 
