@@ -1313,6 +1313,21 @@ class RealtimeCollabManager extends EventEmitter {
 
     return colors[Math.abs(hash) % colors.length];
   }
+
+  /**
+   * Release all held resources on teardown. Without this the per-lock
+   * setTimeout handles in lockExpiryTimers keep firing (and their closures pin
+   * `this`) after the manager is discarded.
+   */
+  destroy() {
+    for (const timer of this.lockExpiryTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.lockExpiryTimers.clear();
+    this.activeLocks.clear();
+    this.documentSubscribers.clear();
+    this.removeAllListeners();
+  }
 }
 
 // Singleton instance
