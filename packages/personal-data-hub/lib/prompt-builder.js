@@ -45,6 +45,7 @@ const RANK_HEADER = "RANK (authoritative top senders by event count, GROUP BY ac
 const RANK_TOPIC_HEADER = "RANK (authoritative top groups/conversations by message count, GROUP BY topic over the full vault — for 哪个群最活跃/哪个群消息最多 quote these group names+counts directly, NOT FACTS length. `total` = all matching messages; a null name = unresolved group id, cite the id):";
 const DISTINCT_COUNT_HEADER = "DISTINCT_COUNT (authoritative COUNT(DISTINCT actor) over the full vault — for 我跟多少人聊过/认识多少人 quote `distinct` (the number of distinct people you've actually interacted with across `events` events). Do NOT use the persons total in TOTALS here — that counts every ingested contact, including ones never messaged):";
 const SPENDING_RANK_HEADER = "SPENDING_RANK (authoritative spending breakdown — SUM of OUTBOUND amounts GROUP BY platform/app over the full vault, income/refunds excluded. For 我钱主要花在哪/哪个平台花最多 quote these adapter totals directly. `total` = all spending in `currency`; each row's `total` = that platform's spend, `count` = its transactions):";
+const TIME_HISTOGRAM_HEADER = "TIME_HISTOGRAM (authoritative activity distribution by `by` (hour=0-23点 local / weekday=周日..周六 / month=YYYY-MM) over the full vault, GROUP BY time bucket. For 几点最活跃/星期几最忙/哪个月最多 quote `peak` (the busiest bucket+its label) and describe the shape from `buckets` (count per bucket). `total` = all events counted):";
 const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app 活跃度/类型/消费/高频联系人，回答跨 app 与决策类问题时优先参考；为汇总信号，非逐条事实):";
 
 // ─── Fact summarization ─────────────────────────────────────────────────
@@ -160,6 +161,8 @@ function buildPrompt(opts) {
     opts.distinctCount && typeof opts.distinctCount === "object" ? opts.distinctCount : null;
   const spendingRank =
     opts.spendingRank && typeof opts.spendingRank === "object" ? opts.spendingRank : null;
+  const timeHistogram =
+    opts.timeHistogram && typeof opts.timeHistogram === "object" ? opts.timeHistogram : null;
   const crossAppOverview =
     typeof opts.crossAppOverview === "string" && opts.crossAppOverview.length > 0
       ? opts.crossAppOverview
@@ -229,6 +232,12 @@ function buildPrompt(opts) {
   // for empty so we never show a misleading ¥0 breakdown).
   if (spendingRank && Array.isArray(spendingRank.adapters) && spendingRank.adapters.length > 0) {
     userContent += `\n${SPENDING_RANK_HEADER}\n${JSON.stringify(spendingRank, null, 2)}\n`;
+  }
+  // TIME_HISTOGRAM block — activity distribution by time bucket, BEFORE FACTS.
+  // Only when there's a real peak (_gatherTimeHistogram returns undefined for an
+  // empty/zero distribution).
+  if (timeHistogram && timeHistogram.peak && Array.isArray(timeHistogram.buckets)) {
+    userContent += `\n${TIME_HISTOGRAM_HEADER}\n${JSON.stringify(timeHistogram, null, 2)}\n`;
   }
   // CROSS_APP_OVERVIEW — 跨 app 汇聚画像，置于 FACTS 前（同 TOTALS）。
   if (crossAppOverview) {

@@ -8,6 +8,7 @@ const {
   parseFilters,
   parseIntent,
   parseRankDimension,
+  parseTimeBucket,
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,
@@ -228,6 +229,15 @@ describe("parseIntent", () => {
     expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
   });
 
+  it("time-histogram — bucket signal + activity word → distribution intent", () => {
+    expect(parseIntent("我几点最活跃")).toBe("time-histogram");
+    expect(parseIntent("哪个月聊得最多")).toBe("time-histogram");
+    expect(parseIntent("我星期几最忙")).toBe("time-histogram");
+    expect(parseIntent("我的作息规律")).toBe("time-histogram");
+    // bucket signal but no activity word → a specific event, not a distribution
+    expect(parseIntent("几点睡觉")).toBe("list");
+  });
+
   it("first — 第一次/最早/最初 → earliest event (mirror of latest)", () => {
     expect(parseIntent("我第一次跟谁联系")).toBe("first");
     expect(parseIntent("最早的订单")).toBe("first");
@@ -279,6 +289,22 @@ describe("parseRankDimension", () => {
     expect(parseQuery("哪个群最活跃").rankDimension).toBe("topic");
     expect(parseQuery("我最常联系谁").rankDimension).toBe("actor");
     expect(parseQuery("妈妈的手机号").rankDimension).toBeUndefined(); // not rank
+  });
+});
+
+describe("parseTimeBucket", () => {
+  it("maps the question to hour / weekday / month", () => {
+    expect(parseTimeBucket("我几点最活跃")).toBe("hour");
+    expect(parseTimeBucket("我的作息")).toBe("hour");
+    expect(parseTimeBucket("我星期几最忙")).toBe("weekday");
+    expect(parseTimeBucket("周末还是工作日活跃")).toBe("weekday");
+    expect(parseTimeBucket("哪个月聊得最多")).toBe("month");
+    expect(parseTimeBucket("谁给我发消息最多")).toBeNull(); // no time bucket
+  });
+  it("parseQuery sets timeBucket only for intent=time-histogram", () => {
+    expect(parseQuery("我几点最活跃").timeBucket).toBe("hour");
+    expect(parseQuery("哪个月聊得最多").timeBucket).toBe("month");
+    expect(parseQuery("最近的订单").timeBucket).toBeUndefined(); // not time-histogram
   });
 });
 

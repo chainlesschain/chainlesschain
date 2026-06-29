@@ -552,6 +552,29 @@ describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-
     expect(userMsg).toContain('"taobao"');
   });
 
+  it("routes '我几点最活跃' to eventHistogram + emits TIME_HISTOGRAM", async () => {
+    const calls = [];
+    const fakeVault = baseVault({
+      eventHistogram: (f) => {
+        calls.push(f);
+        return {
+          by: "hour",
+          total: 100,
+          peak: { bucket: "11", label: "11点", count: 40 },
+          buckets: [{ bucket: "11", label: "11点", count: 40 }],
+        };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我几点最活跃");
+    expect(calls.length).toBe(1);
+    expect(calls[0].bucket).toBe("hour");
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("TIME_HISTOGRAM (");
+    expect(userMsg).toContain('"11点"');
+  });
+
   it("does NOT call topActors for non-rank intent", async () => {
     const rankCalls = [];
     const fakeVault = baseVault({

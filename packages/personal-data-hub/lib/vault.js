@@ -1610,6 +1610,85 @@ class LocalVault {
     };
   }
 
+  /**
+   * eventHistogram — authoritative activity distribution over a time bucket
+   * (hour-of-day / weekday / month), GROUP BY strftime over the full vault.
+   * Pairs with intent=time-histogram to answer "我几点最活跃 / 哪个月聊得最多 /
+   * 星期几最忙". occurred_at is unix-ms; bucketed in LOCAL time (the user's tz).
+   * occurred_at < 1 (epoch-0/missing) and inventory snapshots are excluded so
+   * they don't distort the shape. hour/weekday buckets are zero-filled for a
+   * complete distribution; months return only the months present (chronological).
+   *
+   * @param {object} q  bucket('hour'|'weekday'|'month')/subtype/since/until/adapter/adapters
+   * @returns {{ by:string, total:number, peak:({bucket,label,count}|null),
+   *            buckets: Array<{bucket:string,label:string,count:number}> }}
+   */
+  eventHistogram(q = {}) {
+    const bucket = ["hour", "weekday", "month"].includes(q.bucket) ? q.bucket : "hour";
+    const expr = {
+      hour: "strftime('%H', occurred_at/1000.0, 'unixepoch', 'localtime')",
+      weekday: "strftime('%w', occurred_at/1000.0, 'unixepoch', 'localtime')",
+      month: "strftime('%Y-%m', occurred_at/1000.0, 'unixepoch', 'localtime')",
+    }[bucket];
+
+    const where = ["occurred_at >= 1"];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    if (Array.isArray(q.adapters) && q.adapters.length > 0) {
+      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_a, i) => `@ad_${i}`);
+        where.push(`source_adapter IN (${ph.join(", ")})`);
+        names.forEach((a, i) => {
+          params[`ad_${i}`] = a;
+        });
+      }
+    } else if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    // Exclude inventory snapshots (synthetic collection-time stamps).
+    where.push(
+      "(json_extract(extra, '$.kind') IS NULL OR json_extract(extra, '$.kind') NOT IN ('app-snapshot', 'contact-snapshot', 'app-usage-profile'))"
+    );
+
+    const sql =
+      "SELECT " + expr + " AS b, COUNT(*) AS c FROM events WHERE " + where.join(" AND ") + " GROUP BY b";
+    const rows = this._requireOpen().prepare(sql).all(params);
+
+    const counts = {};
+    let total = 0;
+    for (const r of rows) {
+      if (r.b == null) continue;
+      counts[r.b] = (counts[r.b] || 0) + (Number(r.c) || 0);
+      total += Number(r.c) || 0;
+    }
+
+    const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    let keys;
+    if (bucket === "hour") keys = Array.from({ length: 24 }, (_v, i) => String(i).padStart(2, "0"));
+    else if (bucket === "weekday") keys = ["0", "1", "2", "3", "4", "5", "6"];
+    else keys = Object.keys(counts).sort(); // months chronological
+    const label = (k) =>
+      bucket === "hour" ? `${parseInt(k, 10)}点` : bucket === "weekday" ? WEEKDAY_LABELS[parseInt(k, 10)] : k;
+
+    const buckets = keys.map((k) => ({ bucket: k, label: label(k), count: counts[k] || 0 }));
+    let peak = null;
+    for (const b of buckets) if (b.count > 0 && (!peak || b.count > peak.count)) peak = b;
+    return { by: bucket, total, peak, buckets };
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {

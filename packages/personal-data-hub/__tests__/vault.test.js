@@ -1008,3 +1008,56 @@ describe("LocalVault.topSpendingByAdapter", () => {
     expect(vault.topSpendingByAdapter({})).toMatchObject({ by: "adapter", total: 0, adapters: [] });
   });
 });
+
+// ─── eventHistogram (intent=time-histogram) ────────────────────────────────
+
+describe("LocalVault.eventHistogram", () => {
+  it("hour bucket: 24 zero-filled buckets, peak, snapshot excluded (tz-invariant)", () => {
+    freshVault();
+    const t = ts(); // all events share one timestamp → one hour bucket, any tz
+    vault.putBatch({
+      events: [
+        ...Array.from({ length: 5 }, () => eventOk({ occurredAt: t })),
+        eventOk({ occurredAt: t, extra: { kind: "app-snapshot" } }), // excluded
+      ],
+    });
+    const r = vault.eventHistogram({ bucket: "hour" });
+    expect(r.by).toBe("hour");
+    expect(r.buckets.length).toBe(24); // zero-filled
+    expect(r.total).toBe(5); // snapshot excluded
+    expect(r.peak.count).toBe(5);
+    expect(r.buckets.filter((b) => b.count > 0).length).toBe(1); // all 5 in one hour
+    expect(r.buckets[8]).toMatchObject({ bucket: "08", label: "8点" }); // label shape
+  });
+
+  it("weekday bucket: 7 zero-filled buckets with 周X labels", () => {
+    freshVault();
+    vault.putEvent(eventOk({ occurredAt: ts() }));
+    const r = vault.eventHistogram({ bucket: "weekday" });
+    expect(r.buckets.length).toBe(7);
+    expect(r.buckets.map((b) => b.label)).toEqual([
+      "周日", "周一", "周二", "周三", "周四", "周五", "周六",
+    ]);
+    expect(r.total).toBe(1);
+  });
+
+  it("month bucket: present months chronological + peak (mid-month, tz-safe)", () => {
+    freshVault();
+    const jun = Date.UTC(2020, 5, 15, 12, 0, 0); // 2020-06-15 noon UTC
+    const mar = Date.UTC(2021, 2, 15, 12, 0, 0); // 2021-03-15 noon UTC
+    vault.putBatch({
+      events: [eventOk({ occurredAt: jun }), eventOk({ occurredAt: jun }), eventOk({ occurredAt: mar })],
+    });
+    const r = vault.eventHistogram({ bucket: "month" });
+    expect(r.buckets.map((b) => b.bucket)).toEqual(["2020-06", "2021-03"]);
+    expect(r.peak).toMatchObject({ bucket: "2020-06", count: 2 });
+    expect(r.total).toBe(3);
+  });
+
+  it("empty vault → peak null, no throw", () => {
+    freshVault();
+    const r = vault.eventHistogram({ bucket: "hour" });
+    expect(r.peak).toBeNull();
+    expect(r.total).toBe(0);
+  });
+});

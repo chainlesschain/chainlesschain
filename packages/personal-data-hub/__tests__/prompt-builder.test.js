@@ -203,6 +203,35 @@ describe("buildPrompt", () => {
     expect(l.messages[1].content).not.toMatch(/OLDEST-first/i);
   });
 
+  it("emits TIME_HISTOGRAM block (peak + buckets) for a timeHistogram summary", () => {
+    const { messages } = buildPrompt({
+      question: "我几点最活跃",
+      facts: [],
+      timeHistogram: {
+        by: "hour",
+        total: 100,
+        peak: { bucket: "11", label: "11点", count: 40 },
+        buckets: [
+          { bucket: "10", label: "10点", count: 30 },
+          { bucket: "11", label: "11点", count: 40 },
+        ],
+      },
+    });
+    const userMsg = messages[1].content;
+    expect(userMsg).toContain("TIME_HISTOGRAM (");
+    expect(userMsg).toContain('"11点"');
+    expect(userMsg).toContain('"count": 40');
+  });
+
+  it("omits TIME_HISTOGRAM when peak is null", () => {
+    const a = buildPrompt({
+      question: "x",
+      facts: [],
+      timeHistogram: { by: "hour", total: 0, peak: null, buckets: [] },
+    });
+    expect(a.messages[1].content).not.toContain("TIME_HISTOGRAM (");
+  });
+
   it("emits SPENDING_RANK block for a spendingRank summary", () => {
     const { messages } = buildPrompt({
       question: "我钱主要花在哪",

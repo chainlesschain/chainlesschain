@@ -254,6 +254,8 @@ class AnalysisEngine {
         parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
       spendingRank:
         parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
+      timeHistogram:
+        parsed.intent === "time-histogram" ? this._gatherTimeHistogram(parsed) : undefined,
       crossAppOverview,
     });
 
@@ -425,6 +427,8 @@ class AnalysisEngine {
         parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
       spendingRank:
         parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
+      timeHistogram:
+        parsed.intent === "time-histogram" ? this._gatherTimeHistogram(parsed) : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -883,6 +887,28 @@ class AnalysisEngine {
       const r = fn.call(this.vault, f);
       const entries = r && (dimension === "topic" ? r.topics : r.actors);
       if (!r || !Array.isArray(entries) || entries.length === 0) return undefined;
+      return r;
+    } catch (_e) {
+      return undefined;
+    }
+  }
+
+  _gatherTimeHistogram(parsed) {
+    if (typeof this.vault.eventHistogram !== "function") return undefined;
+    try {
+      const f = { bucket: parsed.timeBucket || "hour" };
+      // app-scope ("我微信几点最活跃") + time window apply.
+      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+        f.adapters = parsed.filters.adapters;
+      } else if (parsed.filters && parsed.filters.adapter) {
+        f.adapter = parsed.filters.adapter;
+      }
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+      }
+      const r = this.vault.eventHistogram(f);
+      if (!r || !r.peak || !Array.isArray(r.buckets) || r.total <= 0) return undefined;
       return r;
     } catch (_e) {
       return undefined;

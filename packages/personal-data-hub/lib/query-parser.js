@@ -320,6 +320,14 @@ function parseIntent(text) {
   ) {
     return "rank";
   }
+  // intent=time-histogram — "我几点最活跃 / 哪个月聊得最多 / 我星期几最忙 / 我的
+  // 作息规律": activity distribution over a time bucket (hour/weekday/month),
+  // GROUP BY strftime. Needs a bucket signal (parseTimeBucket) + an activity/
+  // distribution word, so a bare "几点睡" / "什么时候联系" (a specific event, not a
+  // distribution) is NOT caught. Placed before first/latest so 几点/哪个月 win.
+  if (parseTimeBucket(text) && /(活跃|忙|最多|最频繁|最常|分布|规律|作息|集中|高峰)/.test(text)) {
+    return "time-histogram";
+  }
   // intent=first — "我第一次跟谁联系 / 最早的订单 / 最初的聊天记录 / 我最早什么
   // 时候用微信": the EARLIEST matching event (mirror of latest, ORDER BY occurred_at
   // ASC). Placed before the latest gate. "最早" guarded against 最早上/最早晨 (morning).
@@ -530,6 +538,24 @@ function parseRankDimension(text) {
   return "actor";
 }
 
+/**
+ * parseTimeBucket — for intent=time-histogram, which time bucket to GROUP BY.
+ *   "weekday" → 星期几/周几/工作日/周末
+ *   "month"   → 哪个月/哪几个月/每个月/按月
+ *   "hour"    → 几点/什么时候(段)/时段/作息/时间分布 (default time-of-day)
+ * Returns null when no bucket signal is present (so parseIntent's activity-word
+ * guard decides whether it's a time-histogram at all).
+ */
+function parseTimeBucket(text) {
+  if (typeof text !== "string") return null;
+  if (/星期几|周几|礼拜几|工作日|周末|weekday/i.test(text)) return "weekday";
+  if (/(哪个|哪几个|每个|每|按)月|哪月|monthly|每月/i.test(text)) return "month";
+  if (/几点|什么时(候|间)(段|点)?|哪个?时段|哪个时间|作息|时间分布|时间段|时段|hour/i.test(text)) {
+    return "hour";
+  }
+  return null;
+}
+
 function parseQuery(question, opts = {}) {
   const raw = typeof question === "string" ? question : "";
   const now = Number.isFinite(opts.now) ? opts.now : Date.now();
@@ -540,6 +566,7 @@ function parseQuery(question, opts = {}) {
     filters: parseFilters(raw),
     intent,
     rankDimension: intent === "rank" ? parseRankDimension(raw) : undefined,
+    timeBucket: intent === "time-histogram" ? parseTimeBucket(raw) : undefined,
     entityFocus: parseEntityFocus(raw),
   };
 }
@@ -550,6 +577,7 @@ module.exports = {
   parseFilters,
   parseIntent,
   parseRankDimension,
+  parseTimeBucket,
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,
