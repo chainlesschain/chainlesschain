@@ -22,7 +22,9 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(`[AuditLogger] Bad JSON column, using fallback: ${err.message}`);
+    logger.warn(
+      `[AuditLogger] Bad JSON column, using fallback: ${err.message}`,
+    );
     return fallback;
   }
 }
@@ -769,6 +771,81 @@ class EnterpriseAuditLogger extends EventEmitter {
       };
     } catch (error) {
       logger.error("[EnterpriseAuditLogger] Retention failed:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Dry-run of applyRetentionPolicy: count how many records WOULD be deleted by
+   * the same predicates, without deleting anything. Backs the
+   * retention:preview-deletion IPC channel, which previously called this
+   * (non-existent) method and silently failed with {success:false}. Accepts the
+   * same arg shape as applyRetentionPolicy so a preview reflects what an apply
+   * would do.
+   */
+  async previewRetentionDeletion(policy = {}) {
+    const retDays = policy.retentionDays || 90;
+    const maxRec = policy.maxRecords || 100000;
+    const keepHR = policy.keepHighRisk !== false;
+    const hrDays = policy.highRiskRetentionDays || 365;
+    const cutoff = new Date(Date.now() - retDays * 86400000).toISOString();
+
+    try {
+      if (!this.db || !this._tableInitialized) {
+        const wouldDelete = this.memoryBuffer.filter((e) => {
+          if (keepHR && RiskWeight[e.riskLevel] >= 3) {
+            return false;
+          }
+          return e.timestamp < cutoff;
+        }).length;
+        return {
+          success: true,
+          data: { wouldDeleteCount: wouldDelete, source: "memory" },
+        };
+      }
+
+      let byTime = 0;
+      if (keepHR) {
+        const c1 = await this.db.get(
+          "SELECT COUNT(*) as n FROM enterprise_audit_log WHERE timestamp < ? AND risk_level NOT IN ('high','critical')",
+          [cutoff],
+        );
+        byTime += (c1 && c1.n) || 0;
+        const hrCutoff = new Date(Date.now() - hrDays * 86400000).toISOString();
+        const c2 = await this.db.get(
+          "SELECT COUNT(*) as n FROM enterprise_audit_log WHERE timestamp < ? AND risk_level IN ('high','critical')",
+          [hrCutoff],
+        );
+        byTime += (c2 && c2.n) || 0;
+      } else {
+        const c = await this.db.get(
+          "SELECT COUNT(*) as n FROM enterprise_audit_log WHERE timestamp < ?",
+          [cutoff],
+        );
+        byTime += (c && c.n) || 0;
+      }
+
+      // After the time-based deletes the table would hold (total - byTime); the
+      // max-records trim removes whatever still exceeds maxRec.
+      const countRow = await this.db.get(
+        "SELECT COUNT(*) as total FROM enterprise_audit_log",
+      );
+      const total = countRow ? countRow.total : 0;
+      const afterTime = total - byTime;
+      const byMaxRecords = afterTime > maxRec ? afterTime - maxRec : 0;
+
+      return {
+        success: true,
+        data: {
+          wouldDeleteCount: byTime + byMaxRecords,
+          byTime,
+          byMaxRecords,
+          remainingCount: Math.max(0, afterTime - byMaxRecords),
+          source: "database",
+        },
+      };
+    } catch (error) {
+      logger.error("[EnterpriseAuditLogger] Retention preview failed:", error);
       return { success: false, error: error.message };
     }
   }
