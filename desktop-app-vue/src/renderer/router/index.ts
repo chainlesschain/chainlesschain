@@ -930,16 +930,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../pages/TagManagerPage.vue"),
         meta: { title: "标签管理" },
       },
-      // ===== Session Core (Managed Agents Phase H) =====
-      {
-        path: "session-core",
-        name: "SessionCore",
-        component: () =>
-          import(
-            /* webpackChunkName: "session-core" */ "../pages/SessionCorePage.vue"
-          ),
-        meta: { title: "Session Core" },
-      },
       // ===== Cowork 多代理协作路由 =====
       {
         path: "cowork",
