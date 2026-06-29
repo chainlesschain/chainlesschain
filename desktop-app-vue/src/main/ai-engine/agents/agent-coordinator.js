@@ -838,7 +838,7 @@ class AgentCoordinator extends EventEmitter {
    * @param {Object} [options={}] - Planning options
    * @returns {Object} Proposed execution plan
    */
-  getPlan(taskDescription, options = {}) {
+  async getPlan(taskDescription, options = {}) {
     if (!taskDescription) {
       return {
         success: false,
@@ -849,29 +849,32 @@ class AgentCoordinator extends EventEmitter {
     // Decompose the task
     const subtasks = this.decompose(taskDescription);
 
-    // For each subtask, find the best agent
-    const assignments = subtasks.map((subtask) => {
-      const bestAgent = this.selectBestAgent(subtask.agentType);
+    // For each subtask, find the best agent (selectBestAgent is async because it
+    // queries the template manager).
+    const assignments = await Promise.all(
+      subtasks.map(async (subtask) => {
+        const bestAgent = await this.selectBestAgent(subtask.agentType);
 
-      return {
-        subtaskId: subtask.id,
-        subtask: subtask.subtask,
-        agentType: subtask.agentType,
-        priority: subtask.priority,
-        dependencies: subtask.dependencies,
-        matchScore: subtask.matchScore,
-        proposedAgent: bestAgent
-          ? {
-              id: bestAgent.id,
-              name: bestAgent.name,
-              type: bestAgent.type,
-              capabilities: bestAgent.capabilities,
-              score: bestAgent.score,
-            }
-          : null,
-        canExecute: bestAgent !== null,
-      };
-    });
+        return {
+          subtaskId: subtask.id,
+          subtask: subtask.subtask,
+          agentType: subtask.agentType,
+          priority: subtask.priority,
+          dependencies: subtask.dependencies,
+          matchScore: subtask.matchScore,
+          proposedAgent: bestAgent
+            ? {
+                id: bestAgent.id,
+                name: bestAgent.name,
+                type: bestAgent.type,
+                capabilities: bestAgent.capabilities,
+                score: bestAgent.score,
+              }
+            : null,
+          canExecute: bestAgent !== null,
+        };
+      }),
+    );
 
     // Determine execution order based on dependencies
     const executionOrder = this._resolveExecutionOrder(assignments);
@@ -1005,7 +1008,7 @@ class AgentCoordinator extends EventEmitter {
    * @param {string|string[]} capabilities - Required capabilities or agent type
    * @returns {Object|null} Best matching agent info, or null if none found
    */
-  selectBestAgent(capabilities) {
+  async selectBestAgent(capabilities) {
     const requiredCapabilities = Array.isArray(capabilities)
       ? capabilities
       : [capabilities];
@@ -1016,9 +1019,17 @@ class AgentCoordinator extends EventEmitter {
     // Check template manager for available templates
     if (this.templateManager) {
       try {
-        const templates = this.templateManager.listTemplates
-          ? this.templateManager.listTemplates()
+        // listTemplates is async and resolves to { templates, total }. The
+        // previous code called it WITHOUT await and iterated the returned
+        // Promise — which threw "not iterable", was swallowed by the catch
+        // below, and silently disabled all template-based scoring. Await it
+        // and accept either the { templates } object or a bare array.
+        const result = this.templateManager.listTemplates
+          ? await this.templateManager.listTemplates()
           : [];
+        const templates = Array.isArray(result)
+          ? result
+          : result?.templates || [];
 
         for (const template of templates) {
           if (!template.enabled) {

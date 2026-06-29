@@ -351,7 +351,10 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task description is required" };
       }
 
-      const plan = getAgentCoordinator().getPlan(taskDescription, options);
+      const plan = await getAgentCoordinator().getPlan(
+        taskDescription,
+        options,
+      );
       return { success: true, data: plan };
     },
   );
