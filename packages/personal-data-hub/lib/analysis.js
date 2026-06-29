@@ -834,7 +834,13 @@ class AnalysisEngine {
     if (typeof this.vault.topActors !== "function") return undefined;
     try {
       const f = { limit: 10, excludeSelf: true };
-      if (parsed.filters && parsed.filters.adapter) f.adapter = parsed.filters.adapter;
+      // App-scope: "谁发QQ最多" → rank within QQ's adapters only. Prefer the
+      // plural filters.adapters (app→adapter list); fall back to single adapter.
+      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+        f.adapters = parsed.filters.adapters;
+      } else if (parsed.filters && parsed.filters.adapter) {
+        f.adapter = parsed.filters.adapter;
+      }
       if (parsed.timeWindow) {
         if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
         if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;

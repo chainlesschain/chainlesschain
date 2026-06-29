@@ -135,6 +135,14 @@ describe("parseFilters", () => {
     expect(parseFilters("DeepSeek 我之前问过啥").adapter).toBe("ai-chat-history");
   });
 
+  it("app-scope adapters (plural) — maps an app to ALL its message adapters (for rank)", () => {
+    expect(parseFilters("谁给我发QQ消息最多").adapters).toEqual(["qq-pc", "messaging-qq"]);
+    expect(parseFilters("谁给我发微信最多").adapters).toEqual(["wechat-pc", "wechat"]);
+    expect(parseFilters("谁给我发抖音最多").adapters).toEqual(["social-douyin"]);
+    // no app keyword → no plural scope → global rank
+    expect(parseFilters("我最常联系谁").adapters).toBeUndefined();
+  });
+
   it("returns empty object when no clue", () => {
     expect(parseFilters("hello world")).toEqual({});
   });

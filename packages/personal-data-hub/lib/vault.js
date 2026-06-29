@@ -1341,7 +1341,18 @@ class LocalVault {
       where.push("occurred_at <= @until");
       params.until = q.until;
     }
-    if (q.adapter) {
+    if (Array.isArray(q.adapters) && q.adapters.length > 0) {
+      // Multi-adapter scope (e.g. QQ = qq-pc + messaging-qq) so "谁发QQ最多"
+      // ranks across all of an app's adapters. Takes precedence over single.
+      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_a, i) => `@ad_${i}`);
+        where.push(`source_adapter IN (${ph.join(", ")})`);
+        names.forEach((a, i) => {
+          params[`ad_${i}`] = a;
+        });
+      }
+    } else if (q.adapter) {
       where.push("source_adapter = @adapter");
       params.adapter = q.adapter;
     }

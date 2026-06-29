@@ -388,6 +388,14 @@ describe("LocalVault.topActors", () => {
     expect(q.actors.map((a) => a.actor)).toEqual(["person-qq-100", "person-qq-200"]);
     expect(q.total).toBe(8);
 
+    // adapters (plural) scopes across an app's adapter list (IN clause), taking
+    // precedence over single adapter.
+    const multi = vault.topActors({ adapters: ["qq-pc", "wechat"], excludeSelf: true });
+    expect(multi.actors.map((a) => a.actor).sort()).toEqual(
+      ["person-qq-100", "person-qq-200", "person-wechat-300"].sort()
+    );
+    expect(multi.total).toBe(10); // qq-pc 5+3 + wechat 2 (self/null excluded)
+
     // without excludeSelf, the owner's own outbound tops the list.
     const all = vault.topActors({ adapter: "qq-pc" });
     expect(all.actors[0]).toMatchObject({ actor: "self", count: 9 });

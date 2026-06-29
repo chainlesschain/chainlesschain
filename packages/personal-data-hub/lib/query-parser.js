@@ -192,6 +192,21 @@ const ADAPTER_KEYWORDS = [
   { adapter: "ai-chat-history", patterns: [/(deepseek|kimi|通义|智谱|混元|千帆|扣子|chatgpt|claude)/i] },
 ];
 
+// App-scope adapter LISTS — an app name maps to ALL its message-bearing
+// adapters (QQ collects to qq-pc + messaging-qq; 微信 to wechat-pc + wechat).
+// Used by intent=rank to scope "谁发QQ最多" to QQ only. Kept separate from the
+// single out.adapter above (sum-amount exact-match) because that one maps 微信
+// → just "wechat" and would miss wechat-pc (the bulk). QQ excludes qzone (空间
+// posts) and music-qq (music) — a "谁发X最多" question means messages.
+const APP_ADAPTER_SCOPE = [
+  { re: /微信|wechat|weixin/i, adapters: ["wechat-pc", "wechat"] },
+  { re: /(?:qq|扣扣|企鹅)/i, adapters: ["qq-pc", "messaging-qq"] },
+  { re: /抖音|douyin|tiktok/i, adapters: ["social-douyin"] },
+  { re: /微博|weibo/i, adapters: ["social-weibo"] },
+  { re: /头条|toutiao/i, adapters: ["social-toutiao"] },
+  { re: /短信|sms/i, adapters: ["system-data-android"] },
+];
+
 function parseFilters(text) {
   if (typeof text !== "string") return {};
   const out = {};
@@ -204,6 +219,12 @@ function parseFilters(text) {
   for (const row of ADAPTER_KEYWORDS) {
     if (row.patterns.some((re) => re.test(text))) {
       out.adapter = row.adapter;
+      break;
+    }
+  }
+  for (const row of APP_ADAPTER_SCOPE) {
+    if (row.re.test(text)) {
+      out.adapters = row.adapters;
       break;
     }
   }

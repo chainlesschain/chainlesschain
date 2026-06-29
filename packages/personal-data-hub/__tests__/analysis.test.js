@@ -467,6 +467,21 @@ describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-
     expect(chatCalls[0][0].content).toMatch(/RANK.*authoritative/i);
   });
 
+  it("passes app-scope adapters to topActors for an app-qualified rank question", async () => {
+    const rankCalls = [];
+    const fakeVault = baseVault({
+      topActors: (f) => {
+        rankCalls.push(f);
+        return { by: "actor", total: 50, actors: [{ actor: "person-qq-1", count: 9, name: "三丰" }] };
+      },
+    });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm([]) });
+    await engine.ask("谁给我发QQ消息最多");
+    expect(rankCalls.length).toBe(1);
+    expect(rankCalls[0].adapters).toEqual(["qq-pc", "messaging-qq"]);
+    expect(rankCalls[0].excludeSelf).toBe(true);
+  });
+
   it("does NOT call topActors for non-rank intent", async () => {
     const rankCalls = [];
     const fakeVault = baseVault({
