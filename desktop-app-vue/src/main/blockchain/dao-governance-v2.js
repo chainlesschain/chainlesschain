@@ -232,6 +232,20 @@ class DAOGovernanceV2 extends EventEmitter {
     }
     proposal.status = "executed";
     proposal.executedAt = new Date().toISOString();
+    // Persist the executed status (mirroring vote()/delegate()). The in-memory
+    // status guard above is defeated after a restart: _loadProposals reloads from
+    // the DB where status would still be "active" if never written, re-enabling a
+    // double-execute / treasury double-drain. Writing "executed" flips it so the
+    // `status IN ('active','queued')` load filter excludes it on next start.
+    try {
+      this.db
+        .prepare(
+          "UPDATE dao_v2_proposals SET status = ?, executed_at = ? WHERE id = ?",
+        )
+        .run("executed", proposal.executedAt, proposalId);
+    } catch (error) {
+      logger.error("[DAOv2] Execute persist failed:", error.message);
+    }
     this.emit("dao:executed", { proposalId });
     return { proposalId, status: "executed" };
   }
@@ -241,6 +255,13 @@ class DAOGovernanceV2 extends EventEmitter {
   }
 
   allocateFunds(proposalId, amount, description) {
+    // Validate amount before the balance check (mirrors vote()'s isFinite guard):
+    // `balance < NaN` and `balance < -X` are both false, so an unvalidated NaN
+    // would corrupt the balance to NaN and a negative would INFLATE the treasury
+    // (balance -= -X). Reject non-positive / non-finite amounts.
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Invalid amount: must be a positive finite number");
+    }
     if (this._treasury.balance < amount) {
       throw new Error("Insufficient treasury balance");
     }

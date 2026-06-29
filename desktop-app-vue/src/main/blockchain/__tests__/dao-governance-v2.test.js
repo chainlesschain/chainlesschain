@@ -264,6 +264,26 @@ describe("DAOGovernanceV2", () => {
     expect(() => dao.execute(proposal.id)).toThrow("not active");
   });
 
+  it("persists the executed status to the DB (survives restart double-execute)", async () => {
+    await dao.initialize(db);
+    const proposal = dao.createProposal("Test", "Desc", "alice");
+    dao.vote(proposal.id, "bob", "for", 10);
+    db.prepare.mockClear();
+    dao.execute(proposal.id);
+    // Status must be written so _loadProposals' `status IN ('active','queued')`
+    // filter excludes it on next start — otherwise it reloads as "active" and the
+    // in-memory double-execute guard is defeated.
+    const wroteStatus = db.prepare.mock.calls.some((c) =>
+      /UPDATE dao_v2_proposals SET status/i.test(c[0]),
+    );
+    expect(wroteStatus).toBe(true);
+    expect(db._prep.run).toHaveBeenCalledWith(
+      "executed",
+      expect.any(String),
+      proposal.id,
+    );
+  });
+
   it("should reject a NaN vote weight (votesFor poisoning guard)", async () => {
     await dao.initialize(db);
     const proposal = dao.createProposal("Test", "Desc", "alice");
@@ -310,6 +330,25 @@ describe("DAOGovernanceV2", () => {
     expect(() => dao.allocateFunds("prop-1", 500, "Too much")).toThrow(
       "Insufficient",
     );
+  });
+
+  it("should reject a NaN amount without corrupting the balance", async () => {
+    await dao.initialize(db);
+    dao._treasury.balance = 1000;
+    // `balance < NaN` is false, so without the guard `balance -= NaN` → NaN.
+    expect(() => dao.allocateFunds("prop-1", NaN, "bad")).toThrow("Invalid");
+    expect(dao._treasury.balance).toBe(1000);
+    expect(Number.isNaN(dao._treasury.balance)).toBe(false);
+  });
+
+  it("should reject a negative amount (no treasury inflation)", async () => {
+    await dao.initialize(db);
+    dao._treasury.balance = 1000;
+    // `balance < -50` is false, so without the guard `balance -= -50` INFLATES.
+    expect(() => dao.allocateFunds("prop-1", -50, "inflate")).toThrow(
+      "Invalid",
+    );
+    expect(dao._treasury.balance).toBe(1000);
   });
 
   // ── getGovernanceStats ───────────────────────────────────────────────────
