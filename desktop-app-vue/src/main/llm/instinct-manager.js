@@ -13,6 +13,37 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 
+// ORDER BY can't be a bound `?` parameter, so getAll() interpolates it — which
+// makes a caller-supplied filters.orderBy (reachable via instinct-ipc) a SQL
+// injection vector. Validate it against an allowlist of real columns + ASC/DESC;
+// anything else falls back to the safe default. Mirrors the external-device
+// file-manager ORDER BY hardening.
+const INSTINCT_SORT_COLUMNS = new Set([
+  "id",
+  "pattern",
+  "confidence",
+  "category",
+  "source",
+  "use_count",
+  "last_used",
+  "created_at",
+  "updated_at",
+]);
+
+function safeOrderBy(orderBy, fallback) {
+  if (typeof orderBy !== "string" || !orderBy.trim()) {
+    return fallback;
+  }
+  const terms = orderBy.split(",").map((t) => t.trim());
+  for (const term of terms) {
+    const m = /^([a-zA-Z_][a-zA-Z0-9_]*)(\s+(asc|desc))?$/i.exec(term);
+    if (!m || !INSTINCT_SORT_COLUMNS.has(m[1].toLowerCase())) {
+      return fallback; // any invalid/unknown term → reject the whole clause
+    }
+  }
+  return orderBy;
+}
+
 /**
  * Instinct categories
  */
@@ -261,7 +292,10 @@ class InstinctManager {
 
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const orderBy = filters.orderBy || "confidence DESC, use_count DESC";
+    const orderBy = safeOrderBy(
+      filters.orderBy,
+      "confidence DESC, use_count DESC",
+    );
     const limit = filters.limit || 100;
 
     try {
@@ -1198,4 +1232,5 @@ module.exports = {
   InstinctManager,
   getInstinctManager,
   INSTINCT_CATEGORIES,
+  safeOrderBy, // exported for tests
 };
