@@ -499,6 +499,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(kl.pluginId).toBe("knowledge-list");
   });
 
+  it("session-core 的 /session-core slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const sc = slash.find((s) => s.trigger === "/session-core");
+    expect(sc).toBeDefined();
+    expect(sc.handler).toBe("builtin:openSessionCorePanel");
+    expect(sc.pluginId).toBe("session-core");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

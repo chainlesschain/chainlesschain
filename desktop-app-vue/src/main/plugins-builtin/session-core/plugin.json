@@ -1,0 +1,20 @@
+{
+  "id": "session-core",
+  "name": "Session Core",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/session-core 斜杠命令 — Managed Agents 会话核心（会话生命周期、审批策略、作用域记忆、用量、Beta 开关；与 CLI 共享 file-backed singletons）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "session-core",
+        "trigger": "/session-core",
+        "handler": "builtin:openSessionCorePanel",
+        "description": "打开 Session Core 面板",
+        "icon": "RobotOutlined"
+      }
+    }
+  ]
+}

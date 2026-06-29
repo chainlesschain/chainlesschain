@@ -143,6 +143,10 @@
       v-model:open="knowledgeListPanelOpen"
       :prefill-text="knowledgeListPrefill"
     />
+    <SessionCorePanel
+      v-model:open="sessionCorePanelOpen"
+      :prefill-text="sessionCorePrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -201,6 +205,7 @@ import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
 import KnowledgeListPanel from "./KnowledgeListPanel.vue";
+import SessionCorePanel from "./SessionCorePanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -268,6 +273,8 @@ const videoEditingPanelOpen = ref(false);
 const videoEditingPrefill = ref("");
 const knowledgeListPanelOpen = ref(false);
 const knowledgeListPrefill = ref("");
+const sessionCorePanelOpen = ref(false);
+const sessionCorePrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -331,6 +338,7 @@ let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
 let unregisterKnowledgeListHandler: (() => void) | null = null;
+let unregisterSessionCoreHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -546,6 +554,13 @@ onMounted(async () => {
       knowledgeListPanelOpen.value = true;
     },
   );
+  unregisterSessionCoreHandler = registerSlashHandler(
+    "builtin:openSessionCorePanel",
+    ({ args }) => {
+      sessionCorePrefill.value = args ?? "";
+      sessionCorePanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -635,6 +650,8 @@ onBeforeUnmount(() => {
   unregisterVideoEditingHandler = null;
   unregisterKnowledgeListHandler?.();
   unregisterKnowledgeListHandler = null;
+  unregisterSessionCoreHandler?.();
+  unregisterSessionCoreHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
