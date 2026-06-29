@@ -1,0 +1,20 @@
+{
+  "id": "video-editing",
+  "name": "视频剪辑 Agent",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/video 斜杠命令 — CutClaw 音画同步视频剪辑 Agent（配置、流水线进度、镜头计划、实时事件日志）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "video-editing",
+        "trigger": "/video",
+        "handler": "builtin:openVideoEditingPanel",
+        "description": "打开视频剪辑 Agent 面板",
+        "icon": "ScissorOutlined"
+      }
+    }
+  ]
+}

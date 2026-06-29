@@ -483,6 +483,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(nlp.pluginId).toBe("nl-programming");
   });
 
+  it("video-editing 的 /video slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ve = slash.find((s) => s.trigger === "/video");
+    expect(ve).toBeDefined();
+    expect(ve.handler).toBe("builtin:openVideoEditingPanel");
+    expect(ve.pluginId).toBe("video-editing");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
