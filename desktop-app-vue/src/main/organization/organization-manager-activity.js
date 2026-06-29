@@ -47,8 +47,8 @@ module.exports = {
         .prepare(
           `
         SELECT * FROM organization_activities
-        WHERE org_id = ? AND user_did = ?
-        ORDER BY activity_timestamp DESC
+        WHERE org_id = ? AND actor_did = ?
+        ORDER BY timestamp DESC
         LIMIT ?
       `,
         )
