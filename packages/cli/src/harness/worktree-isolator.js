@@ -857,23 +857,30 @@ function _resolveBaseBranchForMerge(repoDir, baseBranch) {
 }
 
 function _applyAutomationResolution(repoDir, candidateId, filePath) {
+  // filePath here is a conflicted filename straight from `git diff --name-only`
+  // — i.e. it reflects whatever names exist in the (possibly untrusted) branch
+  // being merged. The sibling public functions assertSafeGitPath their filePath,
+  // but this internal helper interpolated it raw into a shell command string, so
+  // a file named `x"; rm -rf ~; ".txt` was a command-injection vector. Use the
+  // array-form gitExecArgs (spawnSync, no shell) so the path is a literal arg —
+  // injection-proof and correct for filenames with spaces/special chars too.
   switch (candidateId) {
     case "accept-current":
-      gitExec(`checkout --theirs -- "${filePath}"`, repoDir);
-      gitExec(`add "${filePath}"`, repoDir);
+      gitExecArgs(["checkout", "--theirs", "--", filePath], repoDir);
+      gitExecArgs(["add", "--", filePath], repoDir);
       return;
     case "accept-incoming":
     case "restore-incoming":
-      gitExec(`checkout --ours -- "${filePath}"`, repoDir);
-      gitExec(`add "${filePath}"`, repoDir);
+      gitExecArgs(["checkout", "--ours", "--", filePath], repoDir);
+      gitExecArgs(["add", "--", filePath], repoDir);
       return;
     case "restore-current":
-      gitExec(`checkout --theirs -- "${filePath}"`, repoDir);
-      gitExec(`add "${filePath}"`, repoDir);
+      gitExecArgs(["checkout", "--theirs", "--", filePath], repoDir);
+      gitExecArgs(["add", "--", filePath], repoDir);
       return;
     case "confirm-delete":
     case "accept-delete":
-      gitExec(`rm -- "${filePath}"`, repoDir);
+      gitExecArgs(["rm", "--", filePath], repoDir);
       return;
     default:
       throw new Error(`Unsupported automation resolution: ${candidateId}`);
