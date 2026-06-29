@@ -71,7 +71,7 @@
               <a-button
                 size="small"
                 :disabled="record.status !== 'active'"
-                @click="handlePresent(record)"
+                @click="handlePresent(record as ZKPCredential)"
               >
                 出示
               </a-button>

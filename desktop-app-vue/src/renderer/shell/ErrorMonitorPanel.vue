@@ -131,16 +131,24 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a-button type="link" size="small" @click="showDetail(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="showDetail(record as ErrRow)"
+              >
                 详情
               </a-button>
-              <a-button type="link" size="small" @click="reanalyze(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="reanalyze(record as ErrRow)"
+              >
                 重新分析
               </a-button>
               <a-popconfirm
                 v-if="record.status !== 'fixed'"
                 title="标记为已修复?"
-                @confirm="markFixed(record)"
+                @confirm="markFixed(record as ErrRow)"
               >
                 <a-button type="link" size="small">已修复</a-button>
               </a-popconfirm>

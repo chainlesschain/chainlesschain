@@ -253,7 +253,7 @@ function cancelLinking(): void {
   message.info("已取消身份关联");
 }
 
-async function verifyLink(record: { id: string }): Promise<void> {
+async function verifyLink(record: Record<string, any>): Promise<void> {
   try {
     const res = await ssoStore.verifyLink(record.id);
     if (res.success) {

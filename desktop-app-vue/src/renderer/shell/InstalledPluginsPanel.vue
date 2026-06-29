@@ -63,7 +63,7 @@
           <template v-if="column.key === 'name'">
             <strong>{{ record.name }}</strong>
             <a-tag
-              v-if="hasUpdate(record)"
+              v-if="hasUpdate(record as InstalledPlugin)"
               color="orange"
               style="margin-left: 6px"
             >
@@ -78,23 +78,32 @@
               :checked="record.enabled"
               :loading="togglingId === record.plugin_id"
               size="small"
-              @change="(c) => handleToggleEnabled(record, c)"
+              @change="
+                (c) =>
+                  handleToggleEnabled(record as InstalledPlugin, c as boolean)
+              "
             />
           </template>
           <template v-else-if="column.key === 'auto_update'">
             <a-switch
               :checked="record.auto_update"
               size="small"
-              @change="(c) => handleToggleAutoUpdate(record, c)"
+              @change="
+                (c) =>
+                  handleToggleAutoUpdate(
+                    record as InstalledPlugin,
+                    c as boolean,
+                  )
+              "
             />
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
               <a-button
-                v-if="hasUpdate(record)"
+                v-if="hasUpdate(record as InstalledPlugin)"
                 type="link"
                 size="small"
-                @click="handleShowUpdate(record)"
+                @click="handleShowUpdate(record as InstalledPlugin)"
               >
                 更新
               </a-button>
@@ -102,7 +111,7 @@
                 :title="`确定卸载「${record.name}」?`"
                 ok-text="卸载"
                 cancel-text="取消"
-                @confirm="handleUninstall(record)"
+                @confirm="handleUninstall(record as InstalledPlugin)"
               >
                 <a-button type="link" size="small" danger>卸载</a-button>
               </a-popconfirm>

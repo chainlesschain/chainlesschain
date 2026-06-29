@@ -18,7 +18,7 @@
         :value="store.filterType"
         style="width: 130px"
         size="small"
-        @change="(v) => store.setFilter(v)"
+        @change="(v) => store.setFilter(v as string)"
       >
         <a-select-option value="all">全部</a-select-option>
         <a-select-option value="audio">语音通话</a-select-option>

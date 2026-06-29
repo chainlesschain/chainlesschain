@@ -77,7 +77,11 @@
           </template>
           <template v-if="column.key === 'actions'">
             <a-space>
-              <a-button size="small" type="link" @click="openDetail(record)">
+              <a-button
+                size="small"
+                type="link"
+                @click="openDetail(record as FLTask)"
+              >
                 详情
               </a-button>
               <a-button
@@ -86,7 +90,7 @@
                 "
                 size="small"
                 type="primary"
-                @click="handleStart(record)"
+                @click="handleStart(record as FLTask)"
               >
                 开始
               </a-button>

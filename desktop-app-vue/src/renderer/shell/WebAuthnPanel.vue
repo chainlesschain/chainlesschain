@@ -68,7 +68,7 @@
           </template>
           <template v-if="column.key === 'actions'">
             <a-space>
-              <a-button size="small" @click="openBind(record)">
+              <a-button size="small" @click="openBind(record as Passkey)">
                 绑定 DID
               </a-button>
               <a-popconfirm

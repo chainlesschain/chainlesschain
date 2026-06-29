@@ -127,7 +127,11 @@
             {{ formatTime(record.timestamp) }}
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-button type="link" size="small" @click="viewDetail(record)">
+            <a-button
+              type="link"
+              size="small"
+              @click="viewDetail(record as LogRow)"
+            >
               详情
             </a-button>
           </template>
@@ -287,7 +291,7 @@ const exportModal = reactive<{
   visible: boolean;
   loading: boolean;
   format: string;
-  timeRange: unknown;
+  timeRange: [dayjs.Dayjs, dayjs.Dayjs] | null;
   limit: number;
 }>({
   visible: false,
