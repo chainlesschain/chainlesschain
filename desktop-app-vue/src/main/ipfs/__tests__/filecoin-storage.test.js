@@ -95,3 +95,74 @@ describe("FilecoinStorage.verifyStorageProof (top-level crypto import)", () => {
     expect(second.valid).toBe(true);
   });
 });
+
+describe("FilecoinStorage proof timestamp persistence", () => {
+  const commitmentFor = (cid, proofType, sectorId = "0") =>
+    crypto
+      .createHash("sha256")
+      .update(`${cid}:${proofType}:${sectorId}`)
+      .digest("hex");
+
+  function storeWithDb() {
+    const runCalls = [];
+    const db = {
+      db: {
+        exec: vi.fn(),
+        prepare: vi.fn((sql) => ({
+          run: vi.fn((...args) => {
+            runCalls.push({ sql, args });
+            return { changes: 1 };
+          }),
+          all: vi.fn(() => []),
+          get: vi.fn(() => null),
+        })),
+      },
+    };
+    return { store: new FilecoinStorage(db), runCalls };
+  }
+
+  it("persists last_proof_at in the UPDATE, not just verified", async () => {
+    const { store, runCalls } = storeWithDb();
+    store._deals.set("d1", { id: "d1", cid: "bafyCID" });
+    const r = await store.verifyStorageProof("d1", {
+      proofType: "porep",
+      proofData: commitmentFor("bafyCID", "porep"),
+    });
+    expect(r.valid).toBe(true);
+    expect(r.verifiedAt).toBeTruthy();
+    const upd = runCalls.find((c) => /UPDATE filecoin_deals/i.test(c.sql));
+    expect(upd).toBeTruthy();
+    expect(/last_proof_at/.test(upd.sql)).toBe(true);
+    expect(upd.args[1]).toBe("d1");
+    expect(typeof upd.args[0]).toBe("number");
+    // in-memory deal uses snake_case so it matches a deal reloaded from disk
+    expect(store._deals.get("d1").last_proof_at).toBe(upd.args[0]);
+  });
+
+  it("exposes last_proof_at after a reload from the DB (survives restart)", async () => {
+    const reloaded = new FilecoinStorage({
+      db: {
+        exec: vi.fn(),
+        prepare: vi.fn((sql) => ({
+          all: () =>
+            /SELECT \* FROM filecoin_deals/i.test(sql)
+              ? [
+                  {
+                    id: "d1",
+                    cid: "c",
+                    status: "active",
+                    verified: 1,
+                    last_proof_at: 1234,
+                  },
+                ]
+              : [],
+          run: vi.fn(),
+          get: () => null,
+        })),
+      },
+    });
+    await reloaded.initialize();
+    const deal = await reloaded.getDealStatus("d1");
+    expect(deal.last_proof_at).toBe(1234);
+  });
+});

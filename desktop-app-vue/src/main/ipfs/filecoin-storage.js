@@ -31,6 +31,7 @@ class FilecoinStorage extends EventEmitter {
         duration_epochs INTEGER,
         status TEXT DEFAULT 'proposed',
         verified INTEGER DEFAULT 0,
+        last_proof_at INTEGER,
         renewal_count INTEGER DEFAULT 0,
         expires_at INTEGER,
         created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
@@ -38,6 +39,16 @@ class FilecoinStorage extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_filecoin_deals_status ON filecoin_deals(status);
       CREATE INDEX IF NOT EXISTS idx_filecoin_deals_cid ON filecoin_deals(cid);
     `);
+    // Backfill the column on databases created before last_proof_at existed —
+    // CREATE TABLE IF NOT EXISTS won't add it to an already-existing table, so a
+    // bare "UPDATE ... SET last_proof_at" would throw "no such column" there.
+    try {
+      this.database.db.exec(
+        "ALTER TABLE filecoin_deals ADD COLUMN last_proof_at INTEGER",
+      );
+    } catch (_e) {
+      // Column already exists — expected on up-to-date databases.
+    }
   }
 
   async initialize() {
@@ -121,7 +132,9 @@ class FilecoinStorage extends EventEmitter {
     let totalCostFil = 0;
     for (const d of this._deals.values()) {
       totalDeals++;
-      if (d.status === "active") activeDeals++;
+      if (d.status === "active") {
+        activeDeals++;
+      }
       totalSizeBytes += d.size_bytes || 0;
       totalCostFil += d.price_fil || 0;
     }
@@ -165,12 +178,17 @@ class FilecoinStorage extends EventEmitter {
     const valid = proofData === commitment || proofData.length >= 32;
 
     if (valid) {
+      const now = Date.now();
       deal.verified = 1;
-      deal.lastProofAt = Date.now();
+      // snake_case to match every other deal field (size_bytes, created_at, …)
+      // and the DB column, so a deal reloaded from disk exposes it identically.
+      deal.last_proof_at = now;
       if (this.database && this.database.db) {
         this.database.db
-          .prepare("UPDATE filecoin_deals SET verified = 1 WHERE id = ?")
-          .run(dealId);
+          .prepare(
+            "UPDATE filecoin_deals SET verified = 1, last_proof_at = ? WHERE id = ?",
+          )
+          .run(now, dealId);
       }
     }
 
@@ -179,7 +197,7 @@ class FilecoinStorage extends EventEmitter {
       dealId,
       valid,
       proofType,
-      verifiedAt: valid ? deal.lastProofAt : null,
+      verifiedAt: valid ? deal.last_proof_at : null,
     };
   }
 
