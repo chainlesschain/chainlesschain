@@ -251,7 +251,8 @@ describe("DIDInvitationManager Unit Tests", () => {
 
       // 切换到被邀请人查看邀请
       await didManager.setDefaultIdentity(inviteeIdentity.did);
-      const invitations = invitationManager.getReceivedInvitations("pending");
+      const invitations =
+        await invitationManager.getReceivedInvitations("pending");
 
       expect(invitations.length).toBeGreaterThan(0);
       expect(invitations[0].invitee_did).toBe(inviteeIdentity.did);
@@ -518,7 +519,9 @@ describe("DIDInvitationManager Unit Tests", () => {
         role: "viewer",
       });
 
-      const sentInvitations = invitationManager.getSentInvitations(org.org_id);
+      const sentInvitations = await invitationManager.getSentInvitations(
+        org.org_id,
+      );
       expect(sentInvitations.length).toBeGreaterThanOrEqual(2);
     });
   });
@@ -749,7 +752,7 @@ describe("DIDInvitationManager Unit Tests", () => {
       await didManager.setDefaultIdentity(inviteeIdentity.did);
 
       // 验证邀请已保存（会有重复检测，所以邀请数量不会增加）
-      const invitations = invitationManager.getReceivedInvitations();
+      const invitations = await invitationManager.getReceivedInvitations();
       expect(invitations.length).toBeGreaterThanOrEqual(1);
     });
 
