@@ -133,7 +133,7 @@
 - **后端 Java（project-service）**：`mvn test` 32 失败 → 0（补 `@Mock UserMapper`、宽松 stubbing、对齐过期断言/调用计数、导入测试 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言 + 修 `code_generator` 过期返回键（`refactored_code`）；pytest 15 → 41+ 通过。
 
-## [v5.0.3.133] - 2026-06-28 — 微博私信采集（message_<uid>.db，device-verified schema，高敏感 opt-in）
+## [v5.0.3.133] - 2026-06-28 — 微博私信采集（`message_<uid>.db`，device-verified schema，高敏感 opt-in）
 
 ### Added — `social-weibo` 私信采集（v0.8.0，全平台上船）
 
