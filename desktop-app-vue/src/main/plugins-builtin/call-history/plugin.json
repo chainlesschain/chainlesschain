@@ -1,0 +1,20 @@
+{
+  "id": "call-history",
+  "name": "通话记录",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/call-history 斜杠命令 — P2P 语音 / 视频 / 屏幕共享通话记录浏览、类型筛选、删除、清空",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "call-history",
+        "trigger": "/call-history",
+        "handler": "builtin:openCallHistoryPanel",
+        "description": "打开通话记录面板",
+        "icon": "PhoneOutlined"
+      }
+    }
+  ]
+}

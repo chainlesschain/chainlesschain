@@ -395,6 +395,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(mbWidget.title).toBe("记忆库");
   });
 
+  it("call-history 的 /call-history slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ch = slash.find((s) => s.trigger === "/call-history");
+    expect(ch).toBeDefined();
+    expect(ch.handler).toBe("builtin:openCallHistoryPanel");
+    expect(ch.pluginId).toBe("call-history");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

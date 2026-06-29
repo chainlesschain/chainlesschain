@@ -91,6 +91,10 @@
       v-model:open="memoryBankPanelOpen"
       :prefill-text="memoryBankPrefill"
     />
+    <CallHistoryPanel
+      v-model:open="callHistoryPanelOpen"
+      :prefill-text="callHistoryPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -136,6 +140,7 @@ import AIChatPanel from "./AIChatPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
+import CallHistoryPanel from "./CallHistoryPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -177,6 +182,8 @@ const friendsPanelOpen = ref(false);
 const friendsPrefill = ref("");
 const memoryBankPanelOpen = ref(false);
 const memoryBankPrefill = ref("");
+const callHistoryPanelOpen = ref(false);
+const callHistoryPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -227,6 +234,7 @@ let unregisterAIChatHandler: (() => void) | null = null;
 let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
+let unregisterCallHistoryHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -351,6 +359,13 @@ onMounted(async () => {
       memoryBankPanelOpen.value = true;
     },
   );
+  unregisterCallHistoryHandler = registerSlashHandler(
+    "builtin:openCallHistoryPanel",
+    ({ args }) => {
+      callHistoryPrefill.value = args ?? "";
+      callHistoryPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -414,6 +429,8 @@ onBeforeUnmount(() => {
   unregisterFriendsHandler = null;
   unregisterMemoryBankHandler?.();
   unregisterMemoryBankHandler = null;
+  unregisterCallHistoryHandler?.();
+  unregisterCallHistoryHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
