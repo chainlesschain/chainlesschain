@@ -202,6 +202,31 @@ class BehaviorTracker extends EventEmitter {
           )
           .run();
 
+        // Create time_preferences table. _analyzeTimePreferences writes here,
+        // but this defensive _ensureTables (which redundantly creates the other
+        // 4 behavior tables) omitted it — so on any DB where migration 015 has
+        // not run (e.g. direct/test usage) those writes fail "no such table"
+        // and the hourly analysis is silently dropped. Mirror migration 015.
+        this.db
+          .prepare(
+            `
+          CREATE TABLE IF NOT EXISTS time_preferences (
+            id TEXT PRIMARY KEY,
+            preference_type TEXT NOT NULL,
+            day_of_week INTEGER,
+            hour INTEGER,
+            feature TEXT,
+            event_count INTEGER DEFAULT 0,
+            avg_duration_ms REAL,
+            success_rate REAL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            UNIQUE(preference_type, day_of_week, hour, feature)
+          )
+        `,
+          )
+          .run();
+
         // Create indexes
         this.db
           .prepare(
