@@ -531,6 +531,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(em.pluginId).toBe("error-monitor");
   });
 
+  it("identity-linking 的 /identity slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const il = slash.find((s) => s.trigger === "/identity");
+    expect(il).toBeDefined();
+    expect(il.handler).toBe("builtin:openIdentityLinkingPanel");
+    expect(il.pluginId).toBe("identity-linking");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

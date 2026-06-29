@@ -1,0 +1,20 @@
+{
+  "id": "identity-linking",
+  "name": "身份关联",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/identity 斜杠命令 — DID 身份与 SSO 提供商关联（查看已关联身份、发起 SSO 关联、验证、取消关联）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "identity-linking",
+        "trigger": "/identity",
+        "handler": "builtin:openIdentityLinkingPanel",
+        "description": "打开身份关联面板",
+        "icon": "LinkOutlined"
+      }
+    }
+  ]
+}

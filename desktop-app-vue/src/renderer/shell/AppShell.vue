@@ -159,6 +159,10 @@
       v-model:open="errorMonitorPanelOpen"
       :prefill-text="errorMonitorPrefill"
     />
+    <IdentityLinkingPanel
+      v-model:open="identityLinkingPanelOpen"
+      :prefill-text="identityLinkingPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -221,6 +225,7 @@ import SessionCorePanel from "./SessionCorePanel.vue";
 import CommandLogsPanel from "./CommandLogsPanel.vue";
 import InstalledPluginsPanel from "./InstalledPluginsPanel.vue";
 import ErrorMonitorPanel from "./ErrorMonitorPanel.vue";
+import IdentityLinkingPanel from "./IdentityLinkingPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -296,6 +301,8 @@ const installedPluginsPanelOpen = ref(false);
 const installedPluginsPrefill = ref("");
 const errorMonitorPanelOpen = ref(false);
 const errorMonitorPrefill = ref("");
+const identityLinkingPanelOpen = ref(false);
+const identityLinkingPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -363,6 +370,7 @@ let unregisterSessionCoreHandler: (() => void) | null = null;
 let unregisterCommandLogsHandler: (() => void) | null = null;
 let unregisterInstalledPluginsHandler: (() => void) | null = null;
 let unregisterErrorMonitorHandler: (() => void) | null = null;
+let unregisterIdentityLinkingHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -606,6 +614,13 @@ onMounted(async () => {
       errorMonitorPanelOpen.value = true;
     },
   );
+  unregisterIdentityLinkingHandler = registerSlashHandler(
+    "builtin:openIdentityLinkingPanel",
+    ({ args }) => {
+      identityLinkingPrefill.value = args ?? "";
+      identityLinkingPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -703,6 +718,8 @@ onBeforeUnmount(() => {
   unregisterInstalledPluginsHandler = null;
   unregisterErrorMonitorHandler?.();
   unregisterErrorMonitorHandler = null;
+  unregisterIdentityLinkingHandler?.();
+  unregisterIdentityLinkingHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
