@@ -278,6 +278,10 @@ class FriendManager extends EventEmitter {
         now,
         now,
       );
+      // Flush to disk: harmless no-op on better-sqlite3 (auto-persists), but
+      // required under the sql.js fallback or friend data is lost on restart
+      // (matches community-manager's convention; friend-manager was the outlier).
+      this.database.saveToFile();
 
       // 通过 P2P 发送好友请求
       if (this.p2pManager) {
@@ -348,6 +352,7 @@ class FriendManager extends EventEmitter {
         timestamp,
         now,
       );
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       logger.info("[FriendManager] 收到好友请求:", fromDid);
 
@@ -416,6 +421,7 @@ class FriendManager extends EventEmitter {
         now,
         now,
       );
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       // 通过 P2P 通知对方
       if (this.p2pManager) {
@@ -475,6 +481,7 @@ class FriendManager extends EventEmitter {
       db.prepare(
         "UPDATE friend_requests SET status = ?, updated_at = ? WHERE id = ?",
       ).run(FriendRequestStatus.REJECTED, now, requestId);
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       logger.info("[FriendManager] 已拒绝好友请求:", request.from_did);
 
@@ -582,6 +589,7 @@ class FriendManager extends EventEmitter {
       db.prepare(
         "DELETE FROM friendships WHERE user_did = ? AND friend_did = ?",
       ).run(friendDid, currentDid);
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       logger.info("[FriendManager] 已删除好友:", friendDid);
 
@@ -613,6 +621,7 @@ class FriendManager extends EventEmitter {
       db.prepare(
         "UPDATE friendships SET nickname = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?",
       ).run(nickname, now, currentDid, friendDid);
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       logger.info("[FriendManager] 已更新好友备注:", friendDid);
 
@@ -644,6 +653,7 @@ class FriendManager extends EventEmitter {
       db.prepare(
         "UPDATE friendships SET group_name = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?",
       ).run(groupName, now, currentDid, friendDid);
+      this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
       logger.info("[FriendManager] 已更新好友分组:", friendDid);
 
@@ -681,6 +691,7 @@ class FriendManager extends EventEmitter {
       VALUES (?, ?, ?, ?, ?)
     `,
     ).run(friendDid, status, now, deviceCount, now);
+    this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
     this.emit("friend:status-updated", {
       friendDid,
@@ -810,6 +821,7 @@ class FriendManager extends EventEmitter {
     db.prepare(
       "INSERT INTO trust_interactions (user_did, friend_did, interaction_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
     ).run(currentDid, friendDid, type, weight, now);
+    this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
     // Recalculate and update trust score
     const newScore = await this.calculateTrustScore(friendDid);
@@ -834,6 +846,7 @@ class FriendManager extends EventEmitter {
     db.prepare(
       "UPDATE friendships SET trust_score = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?",
     ).run(clampedScore, now, currentDid, friendDid);
+    this.database.saveToFile(); // persist (sql.js-safe; see sendFriendRequest)
 
     this.emit("friend:trust-updated", { friendDid, trustScore: clampedScore });
   }
