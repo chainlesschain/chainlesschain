@@ -177,6 +177,13 @@ class GitManager:
             repo = Repo(repo_path)
 
             if branch is None:
+                # active_branch raises on a detached HEAD / empty repo; guard like
+                # get_status / get_log / create_branch do instead of 500-ing.
+                if not repo.head.is_valid() or repo.head.is_detached:
+                    return {
+                        "success": False,
+                        "error": "无法确定当前分支（HEAD 游离或仓库为空），请显式指定 branch",
+                    }
                 branch = repo.active_branch.name
 
             # 推送
@@ -212,6 +219,13 @@ class GitManager:
             repo = Repo(repo_path)
 
             if branch is None:
+                # active_branch raises on a detached HEAD / empty repo; guard like
+                # get_status / get_log / create_branch do instead of 500-ing.
+                if not repo.head.is_valid() or repo.head.is_detached:
+                    return {
+                        "success": False,
+                        "error": "无法确定当前分支（HEAD 游离或仓库为空），请显式指定 branch",
+                    }
                 branch = repo.active_branch.name
 
             # 拉取

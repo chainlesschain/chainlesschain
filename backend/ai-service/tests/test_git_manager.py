@@ -210,6 +210,28 @@ class TestGitManager:
         with pytest.raises(Exception):
             git_manager.pull(temp_repo, "origin", "master")
 
+    def test_push_empty_repo_no_branch_returns_error(self, git_manager):
+        """空仓库（无有效HEAD）+ branch=None → 返回错误而非访问 active_branch 抛 500"""
+        temp_dir = tempfile.mkdtemp()
+        Repo.init(temp_dir)  # 无提交 → HEAD 无效
+        try:
+            result = git_manager.push(temp_dir, "origin", None)
+            assert result["success"] is False
+            assert "branch" in result["error"]
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_pull_empty_repo_no_branch_returns_error(self, git_manager):
+        """空仓库（无有效HEAD）+ branch=None → 返回错误而非访问 active_branch 抛 500"""
+        temp_dir = tempfile.mkdtemp()
+        Repo.init(temp_dir)
+        try:
+            result = git_manager.pull(temp_dir, "origin", None)
+            assert result["success"] is False
+            assert "branch" in result["error"]
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
