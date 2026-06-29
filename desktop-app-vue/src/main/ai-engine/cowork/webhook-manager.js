@@ -21,7 +21,9 @@ const crypto = require("crypto");
  * the load loop and silently drop EVERY registered webhook.
  */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -469,6 +471,10 @@ class WebhookManager extends EventEmitter {
       webhook.deliveryCount++;
       webhook.lastDelivery = timestamp;
       this.stats.successfulDeliveries++;
+      // Persist the updated counters (mirrors create/updateWebhook). Without
+      // this they live only in memory and _loadWebhooksFromDB reverts them to
+      // stale DB values on the next restart (listWebhooks reports them).
+      this._persistWebhook(webhook);
 
       this._logDelivery(
         deliveryId,
@@ -513,6 +519,7 @@ class WebhookManager extends EventEmitter {
         // Give up
         webhook.failCount++;
         this.stats.failedDeliveries++;
+        this._persistWebhook(webhook); // persist failCount (see success path)
 
         this._logDelivery(
           deliveryId,
