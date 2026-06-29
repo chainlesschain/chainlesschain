@@ -178,10 +178,6 @@ const socialPages = createRouteGroup("social", {
     import(
       /* webpackChunkName: "social-forums" */ "../components/social/ForumList.vue"
     ),
-  callHistory: () =>
-    import(
-      /* webpackChunkName: "social-call-history" */ "../pages/CallHistoryPage.vue"
-    ),
   // v0.40.0 — 共享相册
   sharedAlbums: () =>
     import(
@@ -466,12 +462,6 @@ const routes: RouteRecordRaw[] = [
         name: "Chat",
         component: socialPages.chat,
         meta: { title: "聊天" },
-      },
-      {
-        path: "call-history",
-        name: "CallHistory",
-        component: socialPages.callHistory,
-        meta: { title: "通话记录" },
       },
       // ===== v0.40.0 — 共享相册 =====
       {
