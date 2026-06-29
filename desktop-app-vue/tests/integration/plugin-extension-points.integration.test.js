@@ -451,6 +451,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(fl.pluginId).toBe("federated-learning");
   });
 
+  it("ipfs-cluster 的 /ipfs slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ic = slash.find((s) => s.trigger === "/ipfs");
+    expect(ic).toBeDefined();
+    expect(ic.handler).toBe("builtin:openIPFSClusterPanel");
+    expect(ic.pluginId).toBe("ipfs-cluster");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

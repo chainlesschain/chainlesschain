@@ -1,0 +1,20 @@
+{
+  "id": "ipfs-cluster",
+  "name": "IPFS Cluster",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/ipfs 斜杠命令 — IPFS 集群分布式 Pin 管理（节点、自动副本、健康监控、重新平衡）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "ipfs-cluster",
+        "trigger": "/ipfs",
+        "handler": "builtin:openIPFSClusterPanel",
+        "description": "打开 IPFS Cluster 面板",
+        "icon": "ClusterOutlined"
+      }
+    }
+  ]
+}

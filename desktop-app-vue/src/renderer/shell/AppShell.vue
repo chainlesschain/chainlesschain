@@ -119,6 +119,10 @@
       v-model:open="federatedLearningPanelOpen"
       :prefill-text="federatedLearningPrefill"
     />
+    <IPFSClusterPanel
+      v-model:open="ipfsClusterPanelOpen"
+      :prefill-text="ipfsClusterPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -171,6 +175,7 @@ import PermanentMemoryPanel from "./PermanentMemoryPanel.vue";
 import WebAuthnPanel from "./WebAuthnPanel.vue";
 import ZKPCredentialsPanel from "./ZKPCredentialsPanel.vue";
 import FederatedLearningPanel from "./FederatedLearningPanel.vue";
+import IPFSClusterPanel from "./IPFSClusterPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -226,6 +231,8 @@ const zkpCredentialsPanelOpen = ref(false);
 const zkpCredentialsPrefill = ref("");
 const federatedLearningPanelOpen = ref(false);
 const federatedLearningPrefill = ref("");
+const ipfsClusterPanelOpen = ref(false);
+const ipfsClusterPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -283,6 +290,7 @@ let unregisterPermanentMemoryHandler: (() => void) | null = null;
 let unregisterWebAuthnHandler: (() => void) | null = null;
 let unregisterZKPCredentialsHandler: (() => void) | null = null;
 let unregisterFederatedLearningHandler: (() => void) | null = null;
+let unregisterIPFSClusterHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -456,6 +464,13 @@ onMounted(async () => {
       federatedLearningPanelOpen.value = true;
     },
   );
+  unregisterIPFSClusterHandler = registerSlashHandler(
+    "builtin:openIPFSClusterPanel",
+    ({ args }) => {
+      ipfsClusterPrefill.value = args ?? "";
+      ipfsClusterPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -533,6 +548,8 @@ onBeforeUnmount(() => {
   unregisterZKPCredentialsHandler = null;
   unregisterFederatedLearningHandler?.();
   unregisterFederatedLearningHandler = null;
+  unregisterIPFSClusterHandler?.();
+  unregisterIPFSClusterHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
