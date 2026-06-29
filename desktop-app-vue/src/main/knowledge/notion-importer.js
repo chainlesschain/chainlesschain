@@ -52,7 +52,7 @@ class NotionImporter {
           const rows = this._parseCSV(csvContent);
           for (const row of rows) {
             if (row.Name || row.Title) {
-              this._saveNote({
+              const noteId = this._saveNote({
                 title: row.Name || row.Title,
                 content: this._csvRowToMarkdown(row),
                 folder: targetFolder + "/Database",
@@ -61,6 +61,10 @@ class NotionImporter {
                 sourceFile: entry.entryName,
               });
               result.imported++;
+              // Track CSV-imported notes in result.files too — the markdown
+              // branch does, and the renderer (knowledge:importNotion) lists
+              // result.files; previously CSV notes were imported but invisible.
+              result.files.push({ name: entry.entryName, noteId });
             }
           }
         } else {
