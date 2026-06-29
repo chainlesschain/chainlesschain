@@ -472,9 +472,16 @@ class UsageReportGenerator extends EventEmitter {
     try {
       const llmStats = await this._getLLMStats(startDate, endDate);
 
-      // Calculate cost projections
+      // Calculate cost projections. The IPC channel report:get-cost-analysis
+      // passes startDate/endDate straight from the renderer with no validation,
+      // so a zero-length (start===end), reversed (start>end), or missing range
+      // made daysInPeriod 0 / negative / NaN → Infinity/NaN/negative cost
+      // projections. Only divide when the period is a positive finite number.
       const daysInPeriod = (endDate - startDate) / (24 * 60 * 60 * 1000);
-      const dailyAverage = llmStats.totalCostUsd / daysInPeriod;
+      const dailyAverage =
+        Number.isFinite(daysInPeriod) && daysInPeriod > 0
+          ? llmStats.totalCostUsd / daysInPeriod
+          : 0;
       const weeklyProjection = dailyAverage * 7;
       const monthlyProjection = dailyAverage * 30;
 
