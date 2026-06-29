@@ -1649,16 +1649,7 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "EvoMap Governance" },
       },
-      // ===== 2027 Q1 Phase 4: FL, IPFS Cluster, GraphQL =====
-      {
-        path: "federated-learning",
-        name: "FederatedLearning",
-        component: () =>
-          import(
-            /* webpackChunkName: "federated-learning" */ "../pages/FederatedLearningPage.vue"
-          ),
-        meta: { title: "Federated Learning" },
-      },
+      // ===== 2027 Q1 Phase 4: IPFS Cluster, GraphQL =====
       {
         path: "ipfs-cluster",
         name: "IPFSCluster",
