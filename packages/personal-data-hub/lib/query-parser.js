@@ -320,6 +320,12 @@ function parseIntent(text) {
   ) {
     return "rank";
   }
+  // intent=first — "我第一次跟谁联系 / 最早的订单 / 最初的聊天记录 / 我最早什么
+  // 时候用微信": the EARLIEST matching event (mirror of latest, ORDER BY occurred_at
+  // ASC). Placed before the latest gate. "最早" guarded against 最早上/最早晨 (morning).
+  if (/(第一次|头一次|头一回|最先|最初|first\s+time|earliest)/i.test(text) || /最早(?![上晨])/.test(text)) {
+    return "first";
+  }
   // "最近/最新" alone ⇒ newest few (intent=latest, 3-row cap). BUT when the
   // question also carries an aggregation ("谁…最多", "排名") or a topic/summary
   // signal ("最近聊什么", "什么话题", "都在讨论啥"), 3 rows can't answer it —

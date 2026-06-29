@@ -41,6 +41,10 @@ const DEFAULT_MAX_QUERY_LIMIT = 200;
 // window ("最近 30 天的消费") we treat it as list-with-window and fall
 // through to the default broader path — see _gatherFacts.
 const LATEST_INTENT_FACT_LIMIT = 3;
+// Inventory-snapshot extra.kind values — synthetic collection-time events that
+// would otherwise distort ASC time ordering (intent=first). Mirrors the
+// timeline skill's exclusion list.
+const SNAPSHOT_KINDS = ["app-snapshot", "contact-snapshot", "app-usage-profile"];
 
 // intent=count illustrative-sample cap. The TOTALS block (vault.stats per-table
 // counts) is the authoritative count and Rule 6 tells the LLM to quote it, NOT
@@ -488,6 +492,26 @@ class AnalysisEngine {
       }
       const latestEvents = this.vault.queryEvents(latestQ);
       if (latestEvents.length > 0) return latestEvents;
+      // 0 results → fall through to default broader path below.
+    }
+
+    // intent=first — the EARLIEST matching events (mirror of latest). ORDER BY
+    // occurred_at ASC, skipping occurred_at < 1 (epoch-0 / missing timestamps
+    // that would pollute the oldest end) and inventory snapshots (synthetic
+    // collection-time stamps). Capped to LATEST_INTENT_FACT_LIMIT — the top row
+    // is the first occurrence. Same 0-results fall-through as latest.
+    if (parsed.intent === "first" && !parsed.timeWindow) {
+      const firstQ = {
+        limit: Math.min(LATEST_INTENT_FACT_LIMIT, effMaxFacts),
+        order: "asc",
+        since: 1,
+        excludeExtraKinds: SNAPSHOT_KINDS,
+      };
+      if (parsed.filters && parsed.filters.adapter) {
+        firstQ.adapter = parsed.filters.adapter;
+      }
+      const firstEvents = this.vault.queryEvents(firstQ);
+      if (firstEvents.length > 0) return firstEvents;
       // 0 results → fall through to default broader path below.
     }
 

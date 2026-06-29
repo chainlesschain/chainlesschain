@@ -228,6 +228,16 @@ describe("parseIntent", () => {
     expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
   });
 
+  it("first — 第一次/最早/最初 → earliest event (mirror of latest)", () => {
+    expect(parseIntent("我第一次跟谁联系")).toBe("first");
+    expect(parseIntent("最早的订单")).toBe("first");
+    expect(parseIntent("最初的聊天记录")).toBe("first");
+    expect(parseIntent("我最早什么时候用微信")).toBe("first");
+    // disambiguation: latest stays latest; 最早上(morning) is not an event-first
+    expect(parseIntent("最近的订单")).toBe("latest");
+    expect(parseIntent("最早上几点起床")).toBe("list");
+  });
+
   it("amount-rank — spend verb + platform/where breakdown → spending breakdown", () => {
     expect(parseIntent("我钱主要花在哪")).toBe("amount-rank");
     expect(parseIntent("哪个平台花最多")).toBe("amount-rank");

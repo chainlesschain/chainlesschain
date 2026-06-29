@@ -183,6 +183,10 @@ function buildPrompt(opts) {
 
   let userContent = "";
   if (opts.intent) userContent += `Intent hint: ${opts.intent}\n`;
+  if (opts.intent === "first") {
+    userContent +=
+      "(FIRST/最早: the FACTS below are ordered OLDEST-first — the TOP fact is the earliest matching event; report its date/time as the 第一次/最早 occurrence.)\n";
+  }
   if (opts.timeWindow && Number.isFinite(opts.timeWindow.since) && Number.isFinite(opts.timeWindow.until)) {
     const sinceISO = new Date(opts.timeWindow.since).toISOString();
     const untilISO = new Date(opts.timeWindow.until).toISOString();

@@ -576,6 +576,20 @@ describe("LocalVault.queryEvents + countEvents", () => {
     expect(page2.length).toBe(2);
     expect(page1[0].occurredAt).toBeGreaterThan(page2[0].occurredAt);
   });
+
+  it("order:'asc' returns OLDEST first (intent=first); default is newest first", () => {
+    freshVault();
+    const t0 = ts() - 1_000_000;
+    for (let i = 0; i < 4; i++) {
+      vault.putEvent(eventOk({ subtype: "message", occurredAt: t0 + i * 1000 }));
+    }
+    const asc = vault.queryEvents({ order: "asc", limit: 3 });
+    expect(asc.length).toBe(3);
+    expect(asc[0].occurredAt).toBe(t0); // earliest
+    expect(asc[0].occurredAt).toBeLessThan(asc[1].occurredAt);
+    // default (no order) is still newest-first
+    expect(vault.queryEvents({ limit: 1 })[0].occurredAt).toBe(t0 + 3000);
+  });
 });
 
 // ─── searchPersons (LIKE name search) ────────────────────────────────────

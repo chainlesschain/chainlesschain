@@ -835,6 +835,34 @@ describe("AnalysisEngine._gatherFacts entityFocus routing", () => {
     expect(fakeVault.queryPersons).toHaveBeenCalledWith({ limit: 19 });
   });
 
+  it("intent=first queries queryEvents with order:asc + since:1 + snapshot exclusion", async () => {
+    const calls = [];
+    const fakeVault = {
+      queryEvents: vi.fn((q) => {
+        calls.push(q);
+        return [
+          {
+            id: "e0", type: "event", subtype: "message",
+            occurredAt: 1198800000000, actor: "self", ingestedAt: Date.now(),
+            source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+          },
+        ];
+      }),
+      queryPersons: () => [], queryItems: () => [], getEvent: () => null, audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("我最早的记录是什么时候");
+    const firstCall = calls.find((q) => q.order === "asc");
+    expect(firstCall).toBeDefined();
+    expect(firstCall.since).toBe(1);
+    expect(firstCall.excludeExtraKinds).toEqual([
+      "app-snapshot",
+      "contact-snapshot",
+      "app-usage-profile",
+    ]);
+  });
+
   it("entityFocus=persons falls through to default path when persons table is empty", async () => {
     const fakeVault = {
       queryEvents: () => Array.from({ length: 5 }, (_, i) => ({

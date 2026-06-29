@@ -829,10 +829,13 @@ class LocalVault {
     params.limit = limit;
     params.offset = offset;
 
+    // order: 'asc' (oldest first — intent=first/最早) else 'desc' (newest first,
+    // the default for latest/timeline). Tie-break on id for a stable order.
+    const dir = q.order === "asc" ? "ASC" : "DESC";
     const sql =
       "SELECT * FROM events" +
       (where.length ? " WHERE " + where.join(" AND ") : "") +
-      " ORDER BY occurred_at DESC LIMIT @limit OFFSET @offset";
+      ` ORDER BY occurred_at ${dir}, id ${dir} LIMIT @limit OFFSET @offset`;
 
     return this._requireOpen()
       .prepare(sql)

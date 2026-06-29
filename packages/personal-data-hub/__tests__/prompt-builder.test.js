@@ -196,6 +196,13 @@ describe("buildPrompt", () => {
     expect(b.messages[1].content).not.toContain("DISTINCT_COUNT (");
   });
 
+  it("emits a FIRST/oldest-first note when intent=first (not for latest)", () => {
+    const f = buildPrompt({ question: "我第一次跟谁联系", facts: [], intent: "first" });
+    expect(f.messages[1].content).toMatch(/FIRST.*OLDEST-first/i);
+    const l = buildPrompt({ question: "最近的订单", facts: [], intent: "latest" });
+    expect(l.messages[1].content).not.toMatch(/OLDEST-first/i);
+  });
+
   it("emits SPENDING_RANK block for a spendingRank summary", () => {
     const { messages } = buildPrompt({
       question: "我钱主要花在哪",
