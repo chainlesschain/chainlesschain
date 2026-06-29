@@ -1649,16 +1649,6 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "EvoMap Governance" },
       },
-      // ===== 2027 Q1 Phase 4: IPFS Cluster, GraphQL =====
-      {
-        path: "ipfs-cluster",
-        name: "IPFSCluster",
-        component: () =>
-          import(
-            /* webpackChunkName: "ipfs-cluster" */ "../pages/IPFSClusterPage.vue"
-          ),
-        meta: { title: "IPFS Cluster" },
-      },
     ],
   },
 ];
