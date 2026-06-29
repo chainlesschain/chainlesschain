@@ -1649,16 +1649,7 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "EvoMap Governance" },
       },
-      // ===== 2027 Q1 Phase 4: WebAuthn, ZKP, FL, IPFS Cluster, GraphQL =====
-      {
-        path: "webauthn",
-        name: "WebAuthn",
-        component: () =>
-          import(
-            /* webpackChunkName: "webauthn" */ "../pages/WebAuthnPage.vue"
-          ),
-        meta: { title: "WebAuthn / Passkey" },
-      },
+      // ===== 2027 Q1 Phase 4: ZKP, FL, IPFS Cluster, GraphQL =====
       {
         path: "zkp-credentials",
         name: "ZKPCredentials",
