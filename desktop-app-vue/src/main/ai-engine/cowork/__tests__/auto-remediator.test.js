@@ -118,6 +118,25 @@ describe("AutoRemediator", () => {
     });
   });
 
+  describe("_updatePlaybookStats() — in-memory cache sync", () => {
+    beforeEach(async () => {
+      await remediator.initialize(db);
+    });
+
+    it("updates the in-memory playbook stats so getPlaybook is not stale", () => {
+      const pb = remediator.createPlaybook({ name: "stat-pb" });
+      remediator._updatePlaybookStats(pb.id, true, 100);
+      remediator._updatePlaybookStats(pb.id, false, 200);
+      const got = remediator.getPlaybook(pb.id);
+      // Previously only the DB row updated → getPlaybook returned stale 0/0/0
+      // until a restart rehydrated from DB.
+      expect(got.successCount).toBe(1);
+      expect(got.failureCount).toBe(1);
+      // avg: (100)/1 = 100, then (100*1 + 200)/2 = 150 (mirrors the SQL formula)
+      expect(got.avgDuration).toBe(150);
+    });
+  });
+
   describe("updatePlaybook()", () => {
     beforeEach(async () => {
       await remediator.initialize(db);

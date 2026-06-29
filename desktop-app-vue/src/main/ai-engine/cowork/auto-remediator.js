@@ -16,7 +16,9 @@ const { logger } = require("../../utils/logger.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -731,6 +733,25 @@ class AutoRemediator extends EventEmitter {
   }
 
   _updatePlaybookStats(playbookId, success, duration) {
+    // Keep the in-memory cache (read by getPlaybooks/getPlaybook) in sync with
+    // the persisted stats. Previously only the DB row was updated, so those
+    // getters returned stale success/failure/avg-duration until the next restart
+    // (when _loadPlaybooks rehydrates). Mirror the SQL formula: with `total` the
+    // post-increment count, (oldAvg*(total-1)+duration)/total equals the SQL's
+    // (oldAvg*oldTotal+duration)/(oldTotal+1).
+    const playbook = this.playbooks.get(playbookId);
+    if (playbook) {
+      if (success) {
+        playbook.successCount = (playbook.successCount || 0) + 1;
+      } else {
+        playbook.failureCount = (playbook.failureCount || 0) + 1;
+      }
+      const total = (playbook.successCount || 0) + (playbook.failureCount || 0);
+      if (total > 0) {
+        playbook.avgDuration =
+          ((playbook.avgDuration || 0) * (total - 1) + duration) / total;
+      }
+    }
     if (!this.db) {
       return;
     }
