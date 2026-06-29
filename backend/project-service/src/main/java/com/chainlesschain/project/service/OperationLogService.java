@@ -68,8 +68,11 @@ public class OperationLogService {
         try {
             operationLogMapper.insert(log);
         } catch (Exception e) {
-            // 日志保存失败不影响主流程
-            e.printStackTrace();
+            // 日志保存失败不影响主流程，但必须可见 —— 之前 e.printStackTrace() 只落
+            // stderr、不进结构化日志，审计日志被丢弃时无从察觉。注意方法参数名 `log`
+            // (OperationLog) 遮蔽了类的 static logger，故显式限定 OperationLogService.log。
+            OperationLogService.log.error("Failed to persist operation log {}: {}",
+                log.getId(), e.getMessage(), e);
         }
 
         // Q-ENG-2 audit MTC double-track bridge — fire-and-forget. Wrapped in
@@ -80,8 +83,10 @@ public class OperationLogService {
                 auditMtcBridge.emitForOperationLog(log);
             } catch (Exception ex) {
                 // shouldn't reach here — bridge already guards internally —
-                // but defensively never throw past saveLog.
-                ex.printStackTrace();
+                // but defensively never throw past saveLog. Log via the (shadowed,
+                // hence qualified) class logger, not stderr.
+                OperationLogService.log.error("audit-mtc bridge emit failed for log {}: {}",
+                    log.getId(), ex.getMessage(), ex);
             }
         }
     }
