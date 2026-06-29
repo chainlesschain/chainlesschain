@@ -244,9 +244,24 @@ const AMOUNT_HINT =
 const COUNT_QUANTIFIER =
   /(多少|几)(次|条|单|个|家|人|张|部|篇|集|本|件|笔|顿|杯)|how\s+many|count\s+of/i;
 const HOW_MUCH = /(多少钱|多少|how\s+much)/i;
+// distinct-count — "我跟多少人聊过 / 认识多少人 / 和多少人有来往 / 多少人给我发过
+// 消息": the DISTINCT number of people the user INTERACTED with — COUNT(DISTINCT
+// actor) over events — NOT the persons-table total (which counts ALL ingested
+// contacts, including ones bulk-imported but never messaged → grossly inflated).
+// Requires an interaction verb so "通讯录里有多少人 / 我有多少个联系人" (where the
+// contacts-table count IS the right answer) stay on intent=count/TOTALS.
+const DISTINCT_PERSON = /多少(个|位)?人/;
+const INTERACTION_FOR_DISTINCT =
+  /(聊|联系|来往|往来|沟通|互动|认识|打过?电话|通过?电话|发过?(消息|信息)|打交道|交流)/;
 
 function parseIntent(text) {
   if (typeof text !== "string") return "list";
+  // distinct-count BEFORE 总共/count — "多少人 + interaction verb" is a more
+  // specific signal than the generic 多少 quantifier ("总共跟多少人聊过" is still
+  // a distinct count, not a record total).
+  if (DISTINCT_PERSON.test(text) && INTERACTION_FOR_DISTINCT.test(text)) {
+    return "distinct-count";
+  }
   if (/(总共|共多少|加起来|sum|total|合计)/.test(text)) {
     // Distinguish amount vs count by presence of amount words (incl. income,
     // so "总共收入多少" is sum-amount, not count).

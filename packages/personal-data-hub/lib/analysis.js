@@ -246,6 +246,8 @@ class AnalysisEngine {
       amountSummary:
         parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
       rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
+      distinctCount:
+        parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
       crossAppOverview,
     });
 
@@ -413,6 +415,8 @@ class AnalysisEngine {
       amountSummary:
         parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
       rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
+      distinctCount:
+        parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -851,6 +855,28 @@ class AnalysisEngine {
       const r = fn.call(this.vault, f);
       const entries = r && (dimension === "topic" ? r.topics : r.actors);
       if (!r || !Array.isArray(entries) || entries.length === 0) return undefined;
+      return r;
+    } catch (_e) {
+      return undefined;
+    }
+  }
+
+  _gatherDistinctCount(parsed) {
+    if (typeof this.vault.distinctActorCount !== "function") return undefined;
+    try {
+      const f = { excludeSelf: true };
+      // app-scope ("我在QQ上跟多少人聊过") + time window, same as rank.
+      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+        f.adapters = parsed.filters.adapters;
+      } else if (parsed.filters && parsed.filters.adapter) {
+        f.adapter = parsed.filters.adapter;
+      }
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+      }
+      const r = this.vault.distinctActorCount(f);
+      if (!r || !Number.isFinite(r.distinct) || r.distinct <= 0) return undefined;
       return r;
     } catch (_e) {
       return undefined;

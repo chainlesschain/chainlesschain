@@ -511,6 +511,24 @@ describe("AnalysisEngine emits RANK preamble (intent=rank — authoritative top-
     expect(chatCalls[0][0].content).toMatch(/RANK.*authoritative/i);
   });
 
+  it("routes '多少人聊过' to distinctActorCount + emits DISTINCT_COUNT (not the persons total)", async () => {
+    const calls = [];
+    const fakeVault = baseVault({
+      distinctActorCount: (f) => {
+        calls.push(f);
+        return { distinct: 1234, events: 9999 };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我跟多少人聊过");
+    expect(calls.length).toBe(1);
+    expect(calls[0].excludeSelf).toBe(true);
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("DISTINCT_COUNT (");
+    expect(userMsg).toContain('"distinct": 1234');
+  });
+
   it("does NOT call topActors for non-rank intent", async () => {
     const rankCalls = [];
     const fakeVault = baseVault({

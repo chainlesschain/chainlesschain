@@ -228,6 +228,17 @@ describe("parseIntent", () => {
     expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
   });
 
+  it("distinct-count — '多少人' + interaction verb → COUNT(DISTINCT actor), not the table total", () => {
+    expect(parseIntent("我跟多少人聊过")).toBe("distinct-count");
+    expect(parseIntent("认识多少人")).toBe("distinct-count");
+    expect(parseIntent("我和多少人有来往")).toBe("distinct-count");
+    expect(parseIntent("多少人给我发过消息")).toBe("distinct-count");
+    expect(parseIntent("总共跟多少人聊过")).toBe("distinct-count"); // 总共 doesn't override
+    // contacts-table count is the RIGHT answer here → stays intent=count
+    expect(parseIntent("我有多少个联系人")).toBe("count");
+    expect(parseIntent("通讯录里有多少人")).toBe("count"); // no interaction verb
+  });
+
   it("list as default", () => {
     expect(parseIntent("妈妈的手机号")).toBe("list");
   });

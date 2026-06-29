@@ -176,6 +176,26 @@ describe("buildPrompt", () => {
     expect(messages[0].content).toMatch(/RANK.*authoritative/i);
   });
 
+  it("emits DISTINCT_COUNT block when distinctCount present (quote distinct, not table total)", () => {
+    const { messages } = buildPrompt({
+      question: "我跟多少人聊过",
+      facts: [],
+      vaultTotals: { persons: 34875 }, // the inflated table total — must NOT be the answer
+      distinctCount: { distinct: 12161, events: 155178 },
+    });
+    const userMsg = messages[1].content;
+    expect(userMsg).toContain("DISTINCT_COUNT (");
+    expect(userMsg).toContain('"distinct": 12161');
+    expect(userMsg).toMatch(/COUNT\(DISTINCT actor\)/);
+  });
+
+  it("omits DISTINCT_COUNT when distinct is 0 or missing", () => {
+    const a = buildPrompt({ question: "x", facts: [], distinctCount: { distinct: 0, events: 0 } });
+    expect(a.messages[1].content).not.toContain("DISTINCT_COUNT (");
+    const b = buildPrompt({ question: "x", facts: [] });
+    expect(b.messages[1].content).not.toContain("DISTINCT_COUNT (");
+  });
+
   it("emits a topic RANK block (groups) for a topic-dimension rankSummary", () => {
     const { messages } = buildPrompt({
       question: "哪个群最活跃",

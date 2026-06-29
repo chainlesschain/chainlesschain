@@ -460,6 +460,48 @@ describe("LocalVault.topTopics", () => {
   });
 });
 
+// ─── distinctActorCount (intent=distinct-count) ────────────────────────────
+
+describe("LocalVault.distinctActorCount", () => {
+  const evN = (actor, adapter, n) =>
+    Array.from({ length: n }, () => {
+      const ev = eventOk({ source: source({ adapter, originalId: newId() }) });
+      if (actor != null) ev.actor = actor;
+      return ev;
+    });
+
+  it("counts DISTINCT actors (not rows), excludeSelf + adapter + grand events", () => {
+    freshVault();
+    vault.putBatch({
+      events: [
+        ...evN("person-a", "qq-pc", 5), // 1 distinct actor, 5 events
+        ...evN("person-b", "qq-pc", 3),
+        ...evN("person-c", "wechat", 2),
+        ...evN("self", "qq-pc", 9), // excluded by excludeSelf
+        ...evN(null, "qq-pc", 4), // no actor → excluded
+      ],
+    });
+
+    const r = vault.distinctActorCount({ excludeSelf: true });
+    expect(r.distinct).toBe(3); // a, b, c — NOT 10 events, NOT self/null
+    expect(r.events).toBe(10); // 5+3+2 matching events
+
+    // adapter scope
+    expect(vault.distinctActorCount({ adapter: "qq-pc", excludeSelf: true })).toMatchObject({
+      distinct: 2, // a, b
+      events: 8,
+    });
+
+    // without excludeSelf, self counts as a distinct actor
+    expect(vault.distinctActorCount({ adapter: "qq-pc" }).distinct).toBe(3); // a, b, self
+  });
+
+  it("returns zeros (not a throw) for an empty vault", () => {
+    freshVault();
+    expect(vault.distinctActorCount({})).toMatchObject({ distinct: 0, events: 0 });
+  });
+});
+
 // ─── raw_events ──────────────────────────────────────────────────────────
 
 describe("LocalVault.putRawEvent", () => {

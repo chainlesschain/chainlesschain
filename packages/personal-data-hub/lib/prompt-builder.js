@@ -43,6 +43,7 @@ const TOTALS_HEADER = "TOTALS (authoritative entity counts from vault — use th
 const AMOUNT_SUM_HEADER = "AMOUNT_SUM (authoritative SQL totals over the full vault — for 总消费/花了多少 use byDirection.out (NOT total); income = byDirection.in; total is the gross out+in sum. NOT FACTS sums):";
 const RANK_HEADER = "RANK (authoritative top senders by event count, GROUP BY actor over the full vault — for 谁发最多/谁联系我最多/我最常联系谁 quote these names+counts directly, NOT FACTS length. `total` = all matching events; counts include your own sent messages):";
 const RANK_TOPIC_HEADER = "RANK (authoritative top groups/conversations by message count, GROUP BY topic over the full vault — for 哪个群最活跃/哪个群消息最多 quote these group names+counts directly, NOT FACTS length. `total` = all matching messages; a null name = unresolved group id, cite the id):";
+const DISTINCT_COUNT_HEADER = "DISTINCT_COUNT (authoritative COUNT(DISTINCT actor) over the full vault — for 我跟多少人聊过/认识多少人 quote `distinct` (the number of distinct people you've actually interacted with across `events` events). Do NOT use the persons total in TOTALS here — that counts every ingested contact, including ones never messaged):";
 const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app 活跃度/类型/消费/高频联系人，回答跨 app 与决策类问题时优先参考；为汇总信号，非逐条事实):";
 
 // ─── Fact summarization ─────────────────────────────────────────────────
@@ -154,6 +155,8 @@ function buildPrompt(opts) {
     opts.amountSummary && typeof opts.amountSummary === "object" ? opts.amountSummary : null;
   const rankSummary =
     opts.rankSummary && typeof opts.rankSummary === "object" ? opts.rankSummary : null;
+  const distinctCount =
+    opts.distinctCount && typeof opts.distinctCount === "object" ? opts.distinctCount : null;
   const crossAppOverview =
     typeof opts.crossAppOverview === "string" && opts.crossAppOverview.length > 0
       ? opts.crossAppOverview
@@ -207,6 +210,12 @@ function buildPrompt(opts) {
   if (rankEntries && rankEntries.length > 0) {
     const header = rankSummary.by === "topic" ? RANK_TOPIC_HEADER : RANK_HEADER;
     userContent += `\n${header}\n${JSON.stringify(rankSummary, null, 2)}\n`;
+  }
+  // DISTINCT_COUNT block — authoritative COUNT(DISTINCT actor), BEFORE FACTS.
+  // For "多少人聊过/认识多少人" quote `distinct`, NOT the persons-table total in
+  // TOTALS (which counts every ingested contact, incl. never-messaged ones).
+  if (distinctCount && Number.isFinite(distinctCount.distinct) && distinctCount.distinct > 0) {
+    userContent += `\n${DISTINCT_COUNT_HEADER}\n${JSON.stringify(distinctCount, null, 2)}\n`;
   }
   // CROSS_APP_OVERVIEW — 跨 app 汇聚画像，置于 FACTS 前（同 TOTALS）。
   if (crossAppOverview) {

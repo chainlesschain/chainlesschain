@@ -1473,6 +1473,58 @@ class LocalVault {
     return { by: "topic", total, topics };
   }
 
+  /**
+   * distinctActorCount — authoritative COUNT(DISTINCT actor) over events. Pairs
+   * with intent=distinct-count to answer "我跟多少人聊过 / 认识多少人" with the
+   * number of DISTINCT people interacted with, instead of the persons-table
+   * total (which counts every ingested contact incl. never-messaged ones).
+   *
+   * @param {object} q  adapter/adapters/subtype/since/until/excludeSelf (same as topActors)
+   * @returns {{ distinct:number, events:number }}  distinct actors + matching event rows
+   */
+  distinctActorCount(q = {}) {
+    const where = ["actor IS NOT NULL", "actor != ''"];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    if (Array.isArray(q.adapters) && q.adapters.length > 0) {
+      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      if (names.length > 0) {
+        const ph = names.map((_a, i) => `@ad_${i}`);
+        where.push(`source_adapter IN (${ph.join(", ")})`);
+        names.forEach((a, i) => {
+          params[`ad_${i}`] = a;
+        });
+      }
+    } else if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    if (q.excludeSelf) {
+      where.push("actor != 'self'");
+      where.push("actor NOT LIKE '%-self'");
+    }
+    const whereSql = " WHERE " + where.join(" AND ");
+    const db = this._requireOpen();
+    const row = db
+      .prepare("SELECT COUNT(DISTINCT actor) AS d, COUNT(*) AS e FROM events" + whereSql)
+      .get(params);
+    return {
+      distinct: row ? Number(row.d) || 0 : 0,
+      events: row ? Number(row.e) || 0 : 0,
+    };
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {
