@@ -113,7 +113,11 @@ module.exports = {
       return false;
     }
 
-    const permissions = JSON.parse(role.permissions || "[]");
+    // Use the same fail-closed guard as getRoles/getRole. checkPermission is
+    // the RBAC enforcement chokepoint (updateMemberRole/removeMember/role CRUD);
+    // a raw JSON.parse on a corrupt permissions value would throw and crash the
+    // privileged operation instead of cleanly denying (treating it as none).
+    const permissions = safeParsePermissions(role.permissions, member.role);
 
     // Owner 拥有所有权限
     if (permissions.includes("*")) {

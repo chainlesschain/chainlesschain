@@ -869,6 +869,22 @@ describe("OrganizationManager Unit Tests", () => {
       expect(canDelete).toBe(false);
     });
 
+    it("fail-closes (no crash) when a role's permissions JSON is corrupt", async () => {
+      // Corrupt the stored admin-role permissions.
+      db.prepare(
+        "UPDATE organization_roles SET permissions = ? WHERE org_id = ? AND name = ?",
+      ).run("{not valid json", org.org_id, "admin");
+
+      // Before the fix, checkPermission's raw JSON.parse threw and crashed the
+      // RBAC check; now it fail-closes (treats corrupt as no permissions).
+      const canInvite = await orgManager.checkPermission(
+        org.org_id,
+        adminDID,
+        "member.invite",
+      );
+      expect(canInvite).toBe(false);
+    });
+
     it("should verify admin-only operations", async () => {
       // Admin 可以管理成员
       const adminCanManageMembers = await orgManager.checkPermission(
