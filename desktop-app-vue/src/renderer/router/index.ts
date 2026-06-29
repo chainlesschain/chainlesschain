@@ -223,10 +223,6 @@ const coworkPages = createRouteGroup("cowork", {
     import(
       /* webpackChunkName: "cowork-workflow" */ "../pages/WorkflowDesignerPage.vue"
     ),
-  skillPerformance: () =>
-    import(
-      /* webpackChunkName: "cowork-performance" */ "../pages/SkillPerformancePage.vue"
-    ),
   gitHooks: () =>
     import(
       /* webpackChunkName: "cowork-git-hooks" */ "../pages/GitHooksPage.vue"
@@ -987,12 +983,6 @@ const routes: RouteRecordRaw[] = [
         name: "WorkflowDesigner",
         component: coworkPages.workflowDesigner,
         meta: { title: "工作流设计器" },
-      },
-      {
-        path: "cowork/performance",
-        name: "SkillPerformance",
-        component: coworkPages.skillPerformance,
-        meta: { title: "技能性能" },
       },
       {
         path: "cowork/git-hooks",
