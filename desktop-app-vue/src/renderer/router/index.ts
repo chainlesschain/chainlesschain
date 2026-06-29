@@ -1158,15 +1158,6 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "企业单点登录" },
       },
-      {
-        path: "sso/identities",
-        name: "IdentityLinking",
-        component: () =>
-          import(
-            /* webpackChunkName: "identity-linking" */ "../pages/IdentityLinkingPage.vue"
-          ),
-        meta: { title: "身份关联管理" },
-      },
       // ===== MCP 社区 (v0.34.0) =====
       {
         path: "mcp/marketplace",
