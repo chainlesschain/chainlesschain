@@ -411,6 +411,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(gq.pluginId).toBe("graphql-explorer");
   });
 
+  it("session-manager 的 /sessions slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const sm = slash.find((s) => s.trigger === "/sessions");
+    expect(sm).toBeDefined();
+    expect(sm.handler).toBe("builtin:openSessionManagerPanel");
+    expect(sm.pluginId).toBe("session-manager");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

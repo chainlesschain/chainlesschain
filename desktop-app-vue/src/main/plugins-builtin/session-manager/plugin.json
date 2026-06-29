@@ -1,0 +1,20 @@
+{
+  "id": "session-manager",
+  "name": "会话管理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/sessions 斜杠命令 — 会话历史浏览、搜索、恢复、重命名、删除与统计（phase 2，模板/标签/批量后续迁入）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "session-manager",
+        "trigger": "/sessions",
+        "handler": "builtin:openSessionManagerPanel",
+        "description": "打开会话管理面板",
+        "icon": "HistoryOutlined"
+      }
+    }
+  ]
+}
