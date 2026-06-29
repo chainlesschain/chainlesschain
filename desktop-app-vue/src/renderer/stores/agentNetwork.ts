@@ -15,6 +15,12 @@ import { defineStore } from "pinia";
 // 合并 + 触发 ipcRenderer MaxListeners 告警）。
 let eventListenersBound = false;
 
+// Test-only: reset the bind-once guard so a fresh electronAPI mock can re-bind
+// in unit tests. Production binds once per app session and never calls this.
+export function resetEventListenersBoundForTest(): void {
+  eventListenersBound = false;
+}
+
 // ==================== 类型定义 ====================
 
 export interface AgentDID {

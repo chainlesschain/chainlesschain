@@ -13,6 +13,12 @@ import { defineStore } from "pinia";
 // 精准 off，故用模块级标志（同 agentNetwork.ts / autonomous-agent.ts）。
 let deploymentEventListenersBound = false;
 
+// Test-only: reset the bind-once guard so a fresh electronAPI mock can re-bind
+// in unit tests. Production binds once per app session and never calls this.
+export function resetDeploymentEventListenersBoundForTest(): void {
+  deploymentEventListenersBound = false;
+}
+
 // ==================== 类型定义 ====================
 
 export interface PipelineStage {
