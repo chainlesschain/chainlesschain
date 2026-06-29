@@ -28,14 +28,16 @@ class ElementLocator {
         try {
           const locator = page.getByRole(element.role, {
             name: element.label,
-            exact: false
+            exact: false,
           });
 
           // 验证元素存在
           await locator.first().waitFor({ timeout: 1000 });
           return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] getByRole failed for ${element.ref}, trying next strategy...`);
+          console.log(
+            `[ElementLocator] getByRole failed for ${element.ref}, trying next strategy...`,
+          );
         }
       }
 
@@ -46,7 +48,9 @@ class ElementLocator {
           await locator.first().waitFor({ timeout: 1000 });
           return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] ARIA label failed for ${element.ref}, trying next strategy...`);
+          console.log(
+            `[ElementLocator] ARIA label failed for ${element.ref}, trying next strategy...`,
+          );
         }
       }
 
@@ -54,21 +58,29 @@ class ElementLocator {
       if (element.attributes.id) {
         try {
           const locator = page.locator(`#${element.attributes.id}`);
-          await locator.waitFor({ timeout: 1000 });
-          return locator;
+          await locator.first().waitFor({ timeout: 1000 });
+          // .first() to match strategies 1/2/4: callers like isVisible() use
+          // locator.isVisible(), which is "any element" on a multi-match
+          // locator but "first element" on .first() — returning a bare locator
+          // here made visibility checks inconsistent with the other strategies.
+          return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] ID failed for ${element.ref}, trying next strategy...`);
+          console.log(
+            `[ElementLocator] ID failed for ${element.ref}, trying next strategy...`,
+          );
         }
       }
 
       // 策略 4: 使用文本内容
-      if (element.label && element.tag === 'a') {
+      if (element.label && element.tag === "a") {
         try {
-          const locator = page.getByRole('link', { name: element.label });
+          const locator = page.getByRole("link", { name: element.label });
           await locator.first().waitFor({ timeout: 1000 });
           return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] Text link failed for ${element.ref}, trying next strategy...`);
+          console.log(
+            `[ElementLocator] Text link failed for ${element.ref}, trying next strategy...`,
+          );
         }
       }
 
@@ -79,7 +91,9 @@ class ElementLocator {
           await locator.first().waitFor({ timeout: 1000 });
           return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] CSS selector failed for ${element.ref}`);
+          console.log(
+            `[ElementLocator] CSS selector failed for ${element.ref}`,
+          );
         }
       }
 
@@ -95,9 +109,13 @@ class ElementLocator {
         }
       }
 
-      throw new Error(`Unable to locate element ${element.ref} after all strategies`);
+      throw new Error(
+        `Unable to locate element ${element.ref} after all strategies`,
+      );
     } catch (error) {
-      throw new Error(`Failed to locate element ${element.ref}: ${error.message}`);
+      throw new Error(
+        `Failed to locate element ${element.ref}: ${error.message}`,
+      );
     }
   }
 
@@ -120,7 +138,9 @@ class ElementLocator {
     }
 
     if (element.attributes.class) {
-      const classes = element.attributes.class.split(' ').filter(c => c.trim());
+      const classes = element.attributes.class
+        .split(" ")
+        .filter((c) => c.trim());
       if (classes.length > 0) {
         filters.push(`contains(@class, "${classes[0]}")`);
       }
@@ -140,10 +160,10 @@ class ElementLocator {
     }
 
     if (filters.length > 0) {
-      parts.push(`[${filters.join(' and ')}]`);
+      parts.push(`[${filters.join(" and ")}]`);
     }
 
-    return parts.join('');
+    return parts.join("");
   }
 
   /**
@@ -180,7 +200,7 @@ class ElementLocator {
       x: box.x,
       y: box.y,
       width: box.width,
-      height: box.height
+      height: box.height,
     };
   }
 
@@ -207,7 +227,7 @@ class ElementLocator {
    * @returns {Promise<Locator>}
    */
   static async waitFor(page, element, options = {}) {
-    const { timeout = 10000, state = 'visible' } = options;
+    const { timeout = 10000, state = "visible" } = options;
 
     const locator = await this.locate(page, element, { timeout: 1000 });
     await locator.waitFor({ state, timeout });
