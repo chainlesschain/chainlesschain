@@ -427,6 +427,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(pmm.pluginId).toBe("permanent-memory");
   });
 
+  it("webauthn 的 /webauthn slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const wa = slash.find((s) => s.trigger === "/webauthn");
+    expect(wa).toBeDefined();
+    expect(wa.handler).toBe("builtin:openWebAuthnPanel");
+    expect(wa.pluginId).toBe("webauthn");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

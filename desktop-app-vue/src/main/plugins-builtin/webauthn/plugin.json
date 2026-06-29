@@ -1,0 +1,20 @@
+{
+  "id": "webauthn",
+  "name": "WebAuthn / Passkey",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/webauthn 斜杠命令 — FIDO2 无密码认证 Passkey 管理（注册、列表、删除、DID 绑定、统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "webauthn",
+        "trigger": "/webauthn",
+        "handler": "builtin:openWebAuthnPanel",
+        "description": "打开 WebAuthn / Passkey 管理面板",
+        "icon": "SafetyOutlined"
+      }
+    }
+  ]
+}

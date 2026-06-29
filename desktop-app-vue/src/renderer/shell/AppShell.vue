@@ -107,6 +107,10 @@
       v-model:open="permanentMemoryPanelOpen"
       :prefill-text="permanentMemoryPrefill"
     />
+    <WebAuthnPanel
+      v-model:open="webauthnPanelOpen"
+      :prefill-text="webauthnPrefill"
+    />
     <TerminalPanel
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
@@ -156,6 +160,7 @@ import CallHistoryPanel from "./CallHistoryPanel.vue";
 import GraphQLExplorerPanel from "./GraphQLExplorerPanel.vue";
 import SessionManagerPanel from "./SessionManagerPanel.vue";
 import PermanentMemoryPanel from "./PermanentMemoryPanel.vue";
+import WebAuthnPanel from "./WebAuthnPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LLMPerformancePanel from "./LLMPerformancePanel.vue";
@@ -205,6 +210,8 @@ const sessionManagerPanelOpen = ref(false);
 const sessionManagerPrefill = ref("");
 const permanentMemoryPanelOpen = ref(false);
 const permanentMemoryPrefill = ref("");
+const webauthnPanelOpen = ref(false);
+const webauthnPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
@@ -259,6 +266,7 @@ let unregisterCallHistoryHandler: (() => void) | null = null;
 let unregisterGraphqlExplorerHandler: (() => void) | null = null;
 let unregisterSessionManagerHandler: (() => void) | null = null;
 let unregisterPermanentMemoryHandler: (() => void) | null = null;
+let unregisterWebAuthnHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
@@ -411,6 +419,13 @@ onMounted(async () => {
       permanentMemoryPanelOpen.value = true;
     },
   );
+  unregisterWebAuthnHandler = registerSlashHandler(
+    "builtin:openWebAuthnPanel",
+    ({ args }) => {
+      webauthnPrefill.value = args ?? "";
+      webauthnPanelOpen.value = true;
+    },
+  );
   unregisterTerminalHandler = registerSlashHandler(
     "builtin:openTerminalPanel",
     ({ args }) => {
@@ -482,6 +497,8 @@ onBeforeUnmount(() => {
   unregisterSessionManagerHandler = null;
   unregisterPermanentMemoryHandler?.();
   unregisterPermanentMemoryHandler = null;
+  unregisterWebAuthnHandler?.();
+  unregisterWebAuthnHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
