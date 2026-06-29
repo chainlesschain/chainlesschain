@@ -14,9 +14,9 @@
  * @module ai-engine/agents/agent-registry
  */
 
-const { logger } = require('../../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const { EventEmitter } = require('events');
+const { logger } = require("../../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const { EventEmitter } = require("events");
 
 // ============================================================
 // AgentRegistry Class
@@ -54,7 +54,7 @@ class AgentRegistry extends EventEmitter {
     // Instance execution counters (in-memory)
     this._instanceStats = new Map();
 
-    logger.info('[AgentRegistry] Instance created');
+    logger.info("[AgentRegistry] Instance created");
   }
 
   // ============================================================
@@ -75,13 +75,13 @@ class AgentRegistry extends EventEmitter {
    * @returns {{ success: boolean, type: string }}
    */
   registerAgentType(type, config = {}) {
-    if (!type || typeof type !== 'string') {
-      throw new Error('Agent type must be a non-empty string');
+    if (!type || typeof type !== "string") {
+      throw new Error("Agent type must be a non-empty string");
     }
 
     if (this._agentTypes.has(type)) {
       logger.warn(
-        `[AgentRegistry] Agent type '${type}' already registered, overwriting`
+        `[AgentRegistry] Agent type '${type}' already registered, overwriting`,
       );
     }
 
@@ -90,7 +90,7 @@ class AgentRegistry extends EventEmitter {
       maxInstances: config.maxInstances || 5,
       defaultTimeout: config.defaultTimeout || 60000,
       maxRetries: config.maxRetries || 3,
-      description: config.description || '',
+      description: config.description || "",
       constraints: config.constraints || {},
       registeredAt: Date.now(),
     };
@@ -98,10 +98,10 @@ class AgentRegistry extends EventEmitter {
     this._agentTypes.set(type, typeConfig);
 
     logger.info(
-      `[AgentRegistry] Registered agent type: ${type} (maxInstances: ${typeConfig.maxInstances})`
+      `[AgentRegistry] Registered agent type: ${type} (maxInstances: ${typeConfig.maxInstances})`,
     );
 
-    this.emit('type-registered', { type, config: typeConfig });
+    this.emit("type-registered", { type, config: typeConfig });
 
     return { success: true, type };
   }
@@ -118,7 +118,7 @@ class AgentRegistry extends EventEmitter {
       // Count active instances of this type
       let activeCount = 0;
       for (const instance of this._activeInstances.values()) {
-        if (instance.type === type && instance.state === 'running') {
+        if (instance.type === type && instance.state === "running") {
           activeCount++;
         }
       }
@@ -156,15 +156,15 @@ class AgentRegistry extends EventEmitter {
    */
   unregisterAgentType(type) {
     if (!this._agentTypes.has(type)) {
-      return { success: false, error: 'TYPE_NOT_FOUND' };
+      return { success: false, error: "TYPE_NOT_FOUND" };
     }
 
     // Check for active instances
     for (const instance of this._activeInstances.values()) {
-      if (instance.type === type && instance.state === 'running') {
+      if (instance.type === type && instance.state === "running") {
         return {
           success: false,
-          error: 'ACTIVE_INSTANCES_EXIST',
+          error: "ACTIVE_INSTANCES_EXIST",
           message: `Cannot unregister type '${type}' with active instances. Terminate them first.`,
         };
       }
@@ -209,7 +209,7 @@ class AgentRegistry extends EventEmitter {
         const activeOfType = this._countActiveByType(template.type);
         if (activeOfType >= typeConfig.maxInstances) {
           throw new Error(
-            `Maximum instances reached for type '${template.type}': ${activeOfType}/${typeConfig.maxInstances}`
+            `Maximum instances reached for type '${template.type}': ${activeOfType}/${typeConfig.maxInstances}`,
           );
         }
       }
@@ -230,7 +230,7 @@ class AgentRegistry extends EventEmitter {
           ...template.config,
           ...config,
         },
-        state: 'running',
+        state: "running",
         taskDescription: config.taskDescription || null,
         context: config.context || {},
         createdAt: now,
@@ -258,7 +258,7 @@ class AgentRegistry extends EventEmitter {
           `INSERT INTO agent_task_history (
             id, agent_id, template_type, task_description,
             started_at, completed_at, success, result, tokens_used
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           instanceId,
           instanceId,
@@ -268,20 +268,20 @@ class AgentRegistry extends EventEmitter {
           null,
           null,
           null,
-          null
+          null,
         );
       } catch (dbError) {
         logger.warn(
-          `[AgentRegistry] Failed to record instance in database: ${dbError.message}`
+          `[AgentRegistry] Failed to record instance in database: ${dbError.message}`,
         );
         // Continue - instance is still valid in memory
       }
 
       logger.info(
-        `[AgentRegistry] Created instance: ${instanceId} (type: ${template.type}, template: ${template.name})`
+        `[AgentRegistry] Created instance: ${instanceId} (type: ${template.type}, template: ${template.name})`,
       );
 
-      this.emit('instance-created', {
+      this.emit("instance-created", {
         instanceId,
         type: template.type,
         templateName: template.name,
@@ -289,7 +289,7 @@ class AgentRegistry extends EventEmitter {
 
       return instance;
     } catch (error) {
-      logger.error('[AgentRegistry] Failed to create agent instance:', error);
+      logger.error("[AgentRegistry] Failed to create agent instance:", error);
       throw error;
     }
   }
@@ -303,7 +303,7 @@ class AgentRegistry extends EventEmitter {
     const instances = [];
 
     for (const [id, instance] of this._activeInstances) {
-      if (instance.state === 'running') {
+      if (instance.state === "running") {
         instances.push({
           id,
           type: instance.type,
@@ -329,7 +329,9 @@ class AgentRegistry extends EventEmitter {
    * @returns {Object|null} Instance details or null if not found
    */
   getInstance(id) {
-    if (!id) {return null;}
+    if (!id) {
+      return null;
+    }
 
     const instance = this._activeInstances.get(id);
     if (!instance) {
@@ -357,18 +359,18 @@ class AgentRegistry extends EventEmitter {
   async terminateInstance(id, options = {}) {
     try {
       if (!id) {
-        return { success: false, error: 'INSTANCE_ID_REQUIRED' };
+        return { success: false, error: "INSTANCE_ID_REQUIRED" };
       }
 
       const instance = this._activeInstances.get(id);
       if (!instance) {
-        return { success: false, error: 'INSTANCE_NOT_FOUND' };
+        return { success: false, error: "INSTANCE_NOT_FOUND" };
       }
 
-      if (instance.state !== 'running') {
+      if (instance.state !== "running") {
         return {
           success: false,
-          error: 'INSTANCE_NOT_RUNNING',
+          error: "INSTANCE_NOT_RUNNING",
           message: `Instance is in state '${instance.state}', not 'running'`,
         };
       }
@@ -378,10 +380,10 @@ class AgentRegistry extends EventEmitter {
       const duration = now - instance.startedAt;
 
       // Update in-memory state
-      instance.state = success ? 'completed' : 'failed';
+      instance.state = success ? "completed" : "failed";
       instance.completedAt = now;
       instance.result = options.result || null;
-      instance.error = success ? null : (options.reason || 'Terminated');
+      instance.error = success ? null : options.reason || "Terminated";
 
       // Update instance stats
       const stats = this._instanceStats.get(id);
@@ -401,25 +403,25 @@ class AgentRegistry extends EventEmitter {
         db.prepare(
           `UPDATE agent_task_history
            SET completed_at = ?, success = ?, result = ?, tokens_used = ?
-           WHERE id = ?`
+           WHERE id = ?`,
         ).run(
           now,
           success ? 1 : 0,
           options.result ? JSON.stringify(options.result) : null,
           options.tokensUsed || 0,
-          id
+          id,
         );
       } catch (dbError) {
         logger.warn(
-          `[AgentRegistry] Failed to update instance in database: ${dbError.message}`
+          `[AgentRegistry] Failed to update instance in database: ${dbError.message}`,
         );
       }
 
       logger.info(
-        `[AgentRegistry] Terminated instance: ${id} (${instance.type}, success: ${success}, duration: ${duration}ms)`
+        `[AgentRegistry] Terminated instance: ${id} (${instance.type}, success: ${success}, duration: ${duration}ms)`,
       );
 
-      this.emit('instance-terminated', {
+      this.emit("instance-terminated", {
         instanceId: id,
         type: instance.type,
         success,
@@ -427,19 +429,33 @@ class AgentRegistry extends EventEmitter {
       });
 
       if (success) {
-        this.emit('task-completed', { instanceId: id, result: options.result });
+        this.emit("task-completed", { instanceId: id, result: options.result });
       } else {
-        this.emit('task-failed', { instanceId: id, reason: options.reason });
+        this.emit("task-failed", { instanceId: id, reason: options.reason });
       }
 
       return { success: true };
     } catch (error) {
       logger.error(
         `[AgentRegistry] Failed to terminate instance ${id}:`,
-        error
+        error,
       );
       throw error;
     }
+  }
+
+  /**
+   * Public termination API used by the agents:terminate-agent IPC handler,
+   * which calls terminate(agentId, reason). Without this the IPC threw
+   * "terminate is not a function" (caught + returned as {success:false}, so the
+   * channel never worked). A user-/system-requested termination of a running
+   * agent is a non-success stop, so record success:false with the reason.
+   * @param {string} agentId - Instance UUID
+   * @param {string} [reason] - Termination reason
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
+  async terminate(agentId, reason = "") {
+    return this.terminateInstance(agentId, { reason, success: false });
   }
 
   /**
@@ -455,7 +471,7 @@ class AgentRegistry extends EventEmitter {
     let cleaned = 0;
 
     for (const [id, instance] of this._activeInstances) {
-      if (instance.state !== 'running') {
+      if (instance.state !== "running") {
         const age = now - (instance.completedAt || instance.createdAt);
         if (age > maxAgeMs) {
           this._activeInstances.delete(id);
@@ -466,9 +482,7 @@ class AgentRegistry extends EventEmitter {
     }
 
     if (cleaned > 0) {
-      logger.info(
-        `[AgentRegistry] Cleaned up ${cleaned} terminated instances`
-      );
+      logger.info(`[AgentRegistry] Cleaned up ${cleaned} terminated instances`);
     }
 
     return { cleaned };
@@ -494,22 +508,21 @@ class AgentRegistry extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Build query conditions
-      const conditions = ['completed_at IS NOT NULL'];
+      const conditions = ["completed_at IS NOT NULL"];
       const params = [];
 
       if (options.since) {
-        conditions.push('started_at >= ?');
+        conditions.push("started_at >= ?");
         params.push(options.since);
       }
 
       if (options.type) {
-        conditions.push('template_type = ?');
+        conditions.push("template_type = ?");
         params.push(options.type);
       }
 
-      const whereClause = conditions.length > 0
-        ? `WHERE ${conditions.join(' AND ')}`
-        : '';
+      const whereClause =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       // Aggregate by template type
       const byType = db
@@ -527,7 +540,7 @@ class AgentRegistry extends EventEmitter {
           FROM agent_task_history
           ${whereClause}
           GROUP BY template_type
-          ORDER BY total DESC`
+          ORDER BY total DESC`,
         )
         .all(...params);
 
@@ -541,7 +554,7 @@ class AgentRegistry extends EventEmitter {
             AVG(completed_at - started_at) as avg_duration_ms,
             SUM(tokens_used) as total_tokens
           FROM agent_task_history
-          ${whereClause}`
+          ${whereClause}`,
         )
         .get(...params);
 
@@ -552,8 +565,8 @@ class AgentRegistry extends EventEmitter {
           failures: overall.failures || 0,
           successRate:
             overall.total > 0
-              ? ((overall.successes / overall.total) * 100).toFixed(2) + '%'
-              : 'N/A',
+              ? ((overall.successes / overall.total) * 100).toFixed(2) + "%"
+              : "N/A",
           avgDurationMs: overall.avg_duration_ms
             ? Math.round(overall.avg_duration_ms)
             : null,
@@ -566,8 +579,8 @@ class AgentRegistry extends EventEmitter {
           failures: row.failures || 0,
           successRate:
             row.total > 0
-              ? ((row.successes / row.total) * 100).toFixed(2) + '%'
-              : 'N/A',
+              ? ((row.successes / row.total) * 100).toFixed(2) + "%"
+              : "N/A",
           avgDurationMs: row.avg_duration_ms
             ? Math.round(row.avg_duration_ms)
             : null,
@@ -584,10 +597,7 @@ class AgentRegistry extends EventEmitter {
         registeredTypes: this._agentTypes.size,
       };
     } catch (error) {
-      logger.error(
-        '[AgentRegistry] Failed to get performance stats:',
-        error
-      );
+      logger.error("[AgentRegistry] Failed to get performance stats:", error);
       throw error;
     }
   }
@@ -609,13 +619,13 @@ class AgentRegistry extends EventEmitter {
 
       for (const instance of this._activeInstances.values()) {
         switch (instance.state) {
-          case 'running':
+          case "running":
             activeInstances.push(instance);
             break;
-          case 'completed':
+          case "completed":
             completedInstances.push(instance);
             break;
-          case 'failed':
+          case "failed":
             failedInstances.push(instance);
             break;
         }
@@ -630,7 +640,7 @@ class AgentRegistry extends EventEmitter {
             SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed,
             SUM(CASE WHEN completed_at IS NULL THEN 1 ELSE 0 END) as pending,
             SUM(tokens_used) as total_tokens
-          FROM agent_task_history`
+          FROM agent_task_history`,
         )
         .get();
 
@@ -640,7 +650,7 @@ class AgentRegistry extends EventEmitter {
           `SELECT template_type, COUNT(*) as count
            FROM agent_task_history
            GROUP BY template_type
-           ORDER BY count DESC`
+           ORDER BY count DESC`,
         )
         .all();
 
@@ -650,7 +660,7 @@ class AgentRegistry extends EventEmitter {
         .prepare(
           `SELECT COUNT(*) as count
            FROM agent_task_history
-           WHERE started_at >= ?`
+           WHERE started_at >= ?`,
         )
         .get(oneDayAgo);
 
@@ -675,8 +685,8 @@ class AgentRegistry extends EventEmitter {
                   (dbStats.successful /
                     (dbStats.total_tasks - (dbStats.pending || 0))) *
                   100
-                ).toFixed(2) + '%'
-              : 'N/A',
+                ).toFixed(2) + "%"
+              : "N/A",
         },
         typeDistribution: typeDistribution.map((r) => ({
           type: r.template_type,
@@ -687,7 +697,7 @@ class AgentRegistry extends EventEmitter {
         },
       };
     } catch (error) {
-      logger.error('[AgentRegistry] Failed to get statistics:', error);
+      logger.error("[AgentRegistry] Failed to get statistics:", error);
       throw error;
     }
   }
@@ -705,7 +715,7 @@ class AgentRegistry extends EventEmitter {
   _countActiveByType(type) {
     let count = 0;
     for (const instance of this._activeInstances.values()) {
-      if (instance.type === type && instance.state === 'running') {
+      if (instance.type === type && instance.state === "running") {
         count++;
       }
     }

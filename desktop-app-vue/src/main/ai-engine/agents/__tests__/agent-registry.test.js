@@ -295,6 +295,19 @@ describe("AgentRegistry", () => {
     });
   });
 
+  describe("terminate (agents:terminate-agent IPC wrapper)", () => {
+    it("exists and terminates a running instance with the reason (non-success stop)", async () => {
+      const inst = await registry.createAgentInstance("tpl-1");
+      // The IPC handler calls registry.terminate(agentId, reason); before the
+      // wrapper existed this threw "terminate is not a function".
+      const result = await registry.terminate(inst.id, "user requested");
+      expect(result.success).toBe(true);
+      const fetched = registry.getInstance(inst.id);
+      expect(fetched.state).toBe("failed");
+      expect(fetched.error).toBe("user requested");
+    });
+  });
+
   describe("cleanupTerminatedInstances", () => {
     it("removes terminated instances older than maxAge", async () => {
       const inst = await registry.createAgentInstance("tpl-1");
