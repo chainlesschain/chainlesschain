@@ -1,0 +1,20 @@
+{
+  "id": "command-logs",
+  "name": "命令日志",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/command-logs 斜杠命令 — 远程命令执行日志（统计、搜索/筛选、详情、导出；图表趋势在 V5 完整页）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "command-logs",
+        "trigger": "/command-logs",
+        "handler": "builtin:openCommandLogsPanel",
+        "description": "打开命令日志面板",
+        "icon": "FileTextOutlined"
+      }
+    }
+  ]
+}

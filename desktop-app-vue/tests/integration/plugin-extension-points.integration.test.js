@@ -507,6 +507,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(sc.pluginId).toBe("session-core");
   });
 
+  it("command-logs 的 /command-logs slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const cl = slash.find((s) => s.trigger === "/command-logs");
+    expect(cl).toBeDefined();
+    expect(cl.handler).toBe("builtin:openCommandLogsPanel");
+    expect(cl.pluginId).toBe("command-logs");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
