@@ -190,6 +190,10 @@ function buildPrompt(opts) {
     userContent +=
       "(FIRST/最早: the FACTS below are ordered OLDEST-first — the TOP fact is the earliest matching event; report its date/time as the 第一次/最早 occurrence.)\n";
   }
+  if (opts.intent === "entity-latest") {
+    userContent +=
+      "(ENTITY_LATEST/上次: the FACTS are the most RECENT events with the specific person asked about (newest first; a leading person record names them). The TOP event is the LAST interaction — report its date/time.)\n";
+  }
   if (opts.timeWindow && Number.isFinite(opts.timeWindow.since) && Number.isFinite(opts.timeWindow.until)) {
     const sinceISO = new Date(opts.timeWindow.since).toISOString();
     const untilISO = new Date(opts.timeWindow.until).toISOString();

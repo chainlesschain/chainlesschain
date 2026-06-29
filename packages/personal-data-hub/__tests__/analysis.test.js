@@ -886,6 +886,50 @@ describe("AnalysisEngine._gatherFacts entityFocus routing", () => {
     ]);
   });
 
+  it("intent=entity-latest resolves the person → [person, ...latestWithPerson events]", async () => {
+    const fakeVault = {
+      searchPersons: vi.fn(({ q }) =>
+        q === "妈妈"
+          ? [{
+              id: "person-mom", type: "person", subtype: "contact", names: ["妈妈"],
+              ingestedAt: Date.now(),
+              source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+            }]
+          : []
+      ),
+      latestWithPerson: vi.fn(() => [
+        {
+          id: "e1", type: "event", subtype: "message", occurredAt: 1750000000000, actor: "person-mom",
+          ingestedAt: Date.now(),
+          source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+        },
+      ]),
+      queryEvents: () => [], queryPersons: () => [], queryItems: () => [], getEvent: () => null, audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我上次跟妈妈聊是什么时候");
+    expect(fakeVault.searchPersons).toHaveBeenCalledWith({ q: "妈妈", limit: 5 });
+    expect(fakeVault.latestWithPerson).toHaveBeenCalledWith({ personIds: ["person-mom"], limit: 3 });
+    expect(r.facts[0].type).toBe("person"); // person record prepended (names them)
+    expect(r.facts.some((f) => f.type === "event")).toBe(true);
+  });
+
+  it("intent=entity-latest falls through when the person can't be resolved", async () => {
+    const fakeVault = {
+      searchPersons: vi.fn(() => []), // unresolved
+      latestWithPerson: vi.fn(() => []),
+      queryEvents: vi.fn(() => []),
+      queryPersons: () => [], queryItems: () => [], getEvent: () => null, audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我上次跟陌生人聊是什么时候");
+    expect(fakeVault.latestWithPerson).not.toHaveBeenCalled(); // 0 person ids → skip
+    expect(fakeVault.queryEvents).toHaveBeenCalled(); // fell through to default path
+    expect(r).toBeTruthy();
+  });
+
   it("entityFocus=persons falls through to default path when persons table is empty", async () => {
     const fakeVault = {
       queryEvents: () => Array.from({ length: 5 }, (_, i) => ({

@@ -1689,6 +1689,49 @@ class LocalVault {
     return { by: bucket, total, peak, buckets };
   }
 
+  /**
+   * latestWithPerson — the most recent events involving a specific person, BOTH
+   * directions: events where the person is the `actor` (their inbound) OR appears
+   * in `participants` (covers the user's own outbound in a 1-1 chat). Pairs with
+   * intent=entity-latest to answer "我上次跟妈妈聊是什么时候". Newest first.
+   *
+   * @param {object} q  personIds(string[])/since/until/limit
+   * @returns {Array<object>} events (newest first), [] when no personIds
+   */
+  latestWithPerson(q = {}) {
+    const ids = (Array.isArray(q.personIds) ? q.personIds : []).filter(
+      (s) => typeof s === "string" && s.length > 0
+    );
+    if (ids.length === 0) return [];
+    const ph = ids.map((_x, i) => `@p${i}`);
+    const params = {};
+    ids.forEach((id, i) => {
+      params[`p${i}`] = id;
+    });
+    const where = [
+      `(actor IN (${ph.join(", ")}) OR EXISTS (SELECT 1 FROM json_each(COALESCE(participants, '[]')) je WHERE je.value IN (${ph.join(", ")})))`,
+      "occurred_at >= 1",
+    ];
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 3;
+    params.limit = limit;
+    const sql =
+      "SELECT * FROM events WHERE " +
+      where.join(" AND ") +
+      " ORDER BY occurred_at DESC, id DESC LIMIT @limit";
+    return this._requireOpen()
+      .prepare(sql)
+      .all(params)
+      .map((r) => this._rowToEvent(r));
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {

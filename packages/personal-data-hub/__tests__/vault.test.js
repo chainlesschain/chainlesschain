@@ -1061,3 +1061,29 @@ describe("LocalVault.eventHistogram", () => {
     expect(r.total).toBe(0);
   });
 });
+
+// ─── latestWithPerson (intent=entity-latest) ───────────────────────────────
+
+describe("LocalVault.latestWithPerson", () => {
+  it("matches BOTH directions (actor OR participant), newest first, excludes others", () => {
+    freshVault();
+    const t = ts();
+    vault.putBatch({
+      events: [
+        eventOk({ occurredAt: t - 3000, actor: "person-mom" }), // mom's inbound
+        eventOk({ occurredAt: t - 1000, actor: "self", participants: ["self", "person-mom"] }), // my outbound to mom
+        eventOk({ occurredAt: t - 2000, actor: "person-dad" }), // unrelated → excluded
+      ],
+    });
+    const r = vault.latestWithPerson({ personIds: ["person-mom"], limit: 10 });
+    expect(r.length).toBe(2); // mom inbound + my outbound, NOT dad
+    expect(r[0].occurredAt).toBe(t - 1000); // newest first (my outbound)
+    expect(r.map((e) => e.actor)).toEqual(["self", "person-mom"]);
+  });
+
+  it("returns [] for empty personIds", () => {
+    freshVault();
+    vault.putEvent(eventOk({ actor: "person-x" }));
+    expect(vault.latestWithPerson({ personIds: [] })).toEqual([]);
+  });
+});

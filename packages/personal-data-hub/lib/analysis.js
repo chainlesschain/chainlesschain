@@ -21,7 +21,12 @@
 
 "use strict";
 
-const { parseQuery, extractEntityTerm, extractPersonNameCandidate } = require("./query-parser");
+const {
+  parseQuery,
+  extractEntityTerm,
+  extractPersonNameCandidate,
+  extractInteractionPerson,
+} = require("./query-parser");
 const { OverviewSkill } = require("./analysis-skills/overview");
 const {
   buildPrompt,
@@ -517,6 +522,39 @@ class AnalysisEngine {
       const firstEvents = this.vault.queryEvents(firstQ);
       if (firstEvents.length > 0) return firstEvents;
       // 0 results → fall through to default broader path below.
+    }
+
+    // intent=entity-latest — "我上次跟妈妈聊是什么时候". Resolve the interaction
+    // person's name → person ids (searchPersons), then the newest events
+    // involving them (actor OR participant, both directions). Top row = the last
+    // interaction. Prepend the matched person so the LLM can name them. 0 hits
+    // (name unresolved / no events) → fall through to the default path.
+    if (
+      parsed.intent === "entity-latest" &&
+      typeof this.vault.searchPersons === "function" &&
+      typeof this.vault.latestWithPerson === "function"
+    ) {
+      const name = extractInteractionPerson(parsed.raw);
+      if (name) {
+        let persons = [];
+        try {
+          persons = this.vault.searchPersons({ q: name, limit: 5 }) || [];
+        } catch (_e) {
+          persons = [];
+        }
+        const ids = persons.map((p) => p && p.id).filter(Boolean);
+        if (ids.length > 0) {
+          const evs = this.vault.latestWithPerson({
+            personIds: ids,
+            limit: Math.min(LATEST_INTENT_FACT_LIMIT, effMaxFacts),
+          });
+          if (evs.length > 0) {
+            // person record first (gives the name), then the recent events.
+            return [persons[0], ...evs].slice(0, effMaxFacts);
+          }
+        }
+      }
+      // unresolved → fall through to default broader path below.
     }
 
     // entityFocus=persons routing — "我有哪些联系人", "妈手机号", "通讯录里

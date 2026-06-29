@@ -12,6 +12,7 @@ const {
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,
+  extractInteractionPerson,
 } = require("../lib/query-parser");
 
 // Pin "now" to 2026-05-19 12:00:00 UTC for deterministic windows
@@ -229,6 +230,15 @@ describe("parseIntent", () => {
     expect(parseIntent("群里在聊什么")).toBe("list"); // no superlative → summary
   });
 
+  it("entity-latest — 上次/最近一次 + interaction person → scoped latest", () => {
+    expect(parseIntent("我上次跟妈妈聊是什么时候")).toBe("entity-latest");
+    expect(parseIntent("最近一次给张三转账")).toBe("entity-latest");
+    expect(parseIntent("上次跟老王联系")).toBe("entity-latest");
+    // no resolvable person → falls to latest/sum-amount/list, not entity-latest
+    expect(parseIntent("最近的订单")).toBe("latest");
+    expect(parseIntent("最近一次消费多少")).toBe("sum-amount");
+  });
+
   it("time-histogram — bucket signal + activity word → distribution intent", () => {
     expect(parseIntent("我几点最活跃")).toBe("time-histogram");
     expect(parseIntent("哪个月聊得最多")).toBe("time-histogram");
@@ -289,6 +299,15 @@ describe("parseRankDimension", () => {
     expect(parseQuery("哪个群最活跃").rankDimension).toBe("topic");
     expect(parseQuery("我最常联系谁").rankDimension).toBe("actor");
     expect(parseQuery("妈妈的手机号").rankDimension).toBeUndefined(); // not rank
+  });
+});
+
+describe("extractInteractionPerson", () => {
+  it("pulls the person between an interaction particle and verb", () => {
+    expect(extractInteractionPerson("我上次跟妈妈聊是什么时候")).toBe("妈妈");
+    expect(extractInteractionPerson("最近一次给张三转账")).toBe("张三");
+    expect(extractInteractionPerson("上次和李廷见面")).toBe("李廷");
+    expect(extractInteractionPerson("最近的订单")).toBeNull(); // no particle+verb
   });
 });
 

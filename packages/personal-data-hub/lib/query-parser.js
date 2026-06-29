@@ -334,6 +334,16 @@ function parseIntent(text) {
   if (/(第一次|头一次|头一回|最先|最初|first\s+time|earliest)/i.test(text) || /最早(?![上晨])/.test(text)) {
     return "first";
   }
+  // intent=entity-latest — "我上次跟妈妈聊是什么时候 / 最近一次给张三转账 / 上次
+  // 跟老王联系": the most recent interaction WITH a specific person. A 上次/最近
+  // 一次 signal + a resolvable interaction-person. Placed before the latest gate
+  // so "最近一次给张三转账" scopes to 张三 instead of newest-overall.
+  if (
+    /(上次|上一次|上一回|最近一次|最后一次|last\s+time)/i.test(text) &&
+    extractInteractionPerson(text)
+  ) {
+    return "entity-latest";
+  }
   // "最近/最新" alone ⇒ newest few (intent=latest, 3-row cap). BUT when the
   // question also carries an aggregation ("谁…最多", "排名") or a topic/summary
   // signal ("最近聊什么", "什么话题", "都在讨论啥"), 3 rows can't answer it —
@@ -507,6 +517,22 @@ function extractPersonNameCandidate(text) {
   return single || null;
 }
 
+/**
+ * extractInteractionPerson — for intent=entity-latest, pull the person name that
+ * sits between an interaction particle (跟/和/给/与/找/同) and an interaction verb
+ * (聊/联系/转账/通话/见面…). Distinct from extractPersonNameCandidate (which is for
+ * "妈手机号"/"张三的电话" and over-captures the verb here, e.g. "妈妈聊").
+ *
+ * "我上次跟妈妈聊是什么时候" → "妈妈"; "最近一次给张三转账" → "张三".
+ */
+function extractInteractionPerson(text) {
+  if (typeof text !== "string") return null;
+  const m = text.match(
+    /(?:跟|和|给|与|同|找)\s*([一-龥A-Za-z0-9·\-_]{1,12}?)\s*(?:聊|联系|说话|发(?:消息|信息)?|转账|汇款|通话|打过?电话|视频|语音|见面|来往|往来|沟通|说)/
+  );
+  return m && m[1] ? m[1].trim() || null : null;
+}
+
 // ─── Full parser ─────────────────────────────────────────────────────────
 
 /**
@@ -581,6 +607,7 @@ module.exports = {
   parseEntityFocus,
   extractEntityTerm,
   extractPersonNameCandidate,
+  extractInteractionPerson,
   // exposed for tests
   SUBTYPE_KEYWORDS,
   ADAPTER_KEYWORDS,

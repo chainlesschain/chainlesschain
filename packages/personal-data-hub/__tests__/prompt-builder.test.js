@@ -203,6 +203,13 @@ describe("buildPrompt", () => {
     expect(l.messages[1].content).not.toMatch(/OLDEST-first/i);
   });
 
+  it("emits an ENTITY_LATEST note when intent=entity-latest", () => {
+    const e = buildPrompt({ question: "我上次跟妈妈聊", facts: [], intent: "entity-latest" });
+    expect(e.messages[1].content).toMatch(/ENTITY_LATEST.*上次/);
+    const l = buildPrompt({ question: "最近的订单", facts: [], intent: "latest" });
+    expect(l.messages[1].content).not.toMatch(/ENTITY_LATEST/);
+  });
+
   it("emits TIME_HISTOGRAM block (peak + buckets) for a timeHistogram summary", () => {
     const { messages } = buildPrompt({
       question: "我几点最活跃",
