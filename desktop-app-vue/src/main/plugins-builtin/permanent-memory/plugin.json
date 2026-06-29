@@ -1,0 +1,20 @@
+{
+  "id": "permanent-memory",
+  "name": "永久记忆",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/permanent-memory 斜杠命令 — 永久记忆（每日笔记时间线、编辑、语义搜索、统计与索引重建）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "permanent-memory",
+        "trigger": "/permanent-memory",
+        "handler": "builtin:openPermanentMemoryPanel",
+        "description": "打开永久记忆面板",
+        "icon": "BookOutlined"
+      }
+    }
+  ]
+}

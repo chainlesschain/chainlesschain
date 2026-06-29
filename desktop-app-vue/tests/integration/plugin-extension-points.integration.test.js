@@ -419,6 +419,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(sm.pluginId).toBe("session-manager");
   });
 
+  it("permanent-memory 的 /permanent-memory slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const pmm = slash.find((s) => s.trigger === "/permanent-memory");
+    expect(pmm).toBeDefined();
+    expect(pmm.handler).toBe("builtin:openPermanentMemoryPanel");
+    expect(pmm.pluginId).toBe("permanent-memory");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
