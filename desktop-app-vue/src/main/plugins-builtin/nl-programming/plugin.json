@@ -1,0 +1,20 @@
+{
+  "id": "nl-programming",
+  "name": "自然语言编程",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/nlp 斜杠命令 — 自然语言编程（NL→结构化 Spec 翻译、优化迭代、项目约定分析、历史；代码生成 Phase B 开发中）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "nl-programming",
+        "trigger": "/nlp",
+        "handler": "builtin:openNLProgrammingPanel",
+        "description": "打开自然语言编程面板",
+        "icon": "CodeOutlined"
+      }
+    }
+  ]
+}

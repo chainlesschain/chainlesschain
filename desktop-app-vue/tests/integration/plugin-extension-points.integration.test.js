@@ -475,6 +475,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(og.pluginId).toBe("organizations");
   });
 
+  it("nl-programming 的 /nlp slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const nlp = slash.find((s) => s.trigger === "/nlp");
+    expect(nlp).toBeDefined();
+    expect(nlp.handler).toBe("builtin:openNLProgrammingPanel");
+    expect(nlp.pluginId).toBe("nl-programming");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();
