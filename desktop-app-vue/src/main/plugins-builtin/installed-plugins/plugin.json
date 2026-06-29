@@ -1,0 +1,20 @@
+{
+  "id": "installed-plugins",
+  "name": "已安装插件",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/plugins 斜杠命令 — 已安装插件管理（启用/禁用、自动更新、检查更新、更新、卸载、导出列表）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "installed-plugins",
+        "trigger": "/plugins",
+        "handler": "builtin:openInstalledPluginsPanel",
+        "description": "打开已安装插件面板",
+        "icon": "AppstoreOutlined"
+      }
+    }
+  ]
+}
