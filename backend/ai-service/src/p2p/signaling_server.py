@@ -48,7 +48,11 @@ class SignalingServer:
             old_ws = self.peers[peer_id]
             try:
                 await old_ws.close()
-            except:
+            except Exception:
+                # Best-effort close of the stale socket. Use `except Exception`,
+                # NOT a bare `except:` — a bare except around an `await` also
+                # swallows asyncio.CancelledError (a BaseException), which would
+                # break task cancellation / graceful server shutdown.
                 pass
 
         self.peers[peer_id] = websocket

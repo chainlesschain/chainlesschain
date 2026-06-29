@@ -23,7 +23,7 @@ from src.utils.text_utils import strip_code_fences
 # 清除matplotlib字体缓存并重新加载
 try:
     fm._load_fontmanager(try_read_cache=False)
-except:
+except Exception:
     pass
 
 
@@ -321,7 +321,7 @@ class DataEngine:
                     try:
                         if len(str(cell.value)) > max_length:
                             max_length = len(str(cell.value))
-                    except:
+                    except Exception:
                         pass
                 adjusted_width = min(max_length + 2, 30)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
