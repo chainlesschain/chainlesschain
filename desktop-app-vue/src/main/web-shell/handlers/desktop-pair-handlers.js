@@ -185,22 +185,52 @@ const PAIRING_TIMEOUT_MS = 5 * 60 * 1000;
  * web-panel 必须打开。spawn `cc p2p pair-from-qr` 子进程做 INSERT。
  * 失败 silent log（前向兼容 — 用户没装全局 cc 时也不该 break 主流程）。
  */
+/**
+ * Build the device-pairing payload from a remote peer's pair-ack, validating it
+ * for shell safety. The payload is later passed to the CLI as a SHELL argument
+ * (spawn shell:true on Windows for npm-bin resolution), so a peer who brute-forced
+ * the 6-digit pairing code could inject shell commands via mobileDid / deviceId /
+ * platform. Reject structured identifiers carrying anything outside a safe charset,
+ * and strip shell metacharacters from the free-form display name.
+ * @returns the sanitized payload, or null if an identifier is unsafe (drop the ack).
+ */
+function sanitizePairAckPayload(ackPayload) {
+  const SAFE_ID = /^[\w:.#@-]{0,256}$/;
+  const did = ackPayload.mobileDid || "";
+  const deviceId = ackPayload.deviceInfo?.deviceId || "";
+  const platform = ackPayload.deviceInfo?.platform || "mobile";
+  if (
+    !SAFE_ID.test(did) ||
+    !SAFE_ID.test(deviceId) ||
+    !SAFE_ID.test(platform)
+  ) {
+    return null;
+  }
+  const name = String(ackPayload.deviceInfo?.name || "(unnamed)")
+    .replace(/[`$;&|<>(){}[\]!^%*?~"'\\\r\n=]/g, "")
+    .slice(0, 128);
+  return {
+    type: "device-pairing",
+    code: ackPayload.pairingCode,
+    did,
+    deviceInfo: { deviceId, name, platform },
+    timestamp: Date.now(),
+  };
+}
+
 function persistPairAck(ackPayload) {
   try {
     const { spawn } = require("child_process");
     const path = require("path");
     const fs = require("fs");
-    const payload = {
-      type: "device-pairing",
-      code: ackPayload.pairingCode,
-      did: ackPayload.mobileDid,
-      deviceInfo: {
-        deviceId: ackPayload.deviceInfo?.deviceId,
-        name: ackPayload.deviceInfo?.name || "(unnamed)",
-        platform: ackPayload.deviceInfo?.platform || "mobile",
-      },
-      timestamp: Date.now(),
-    };
+
+    const payload = sanitizePairAckPayload(ackPayload);
+    if (!payload) {
+      logger.warn(
+        "[desktop.pair WS] pair-ack identifier has unsafe characters — drop (possible injection)",
+      );
+      return;
+    }
     // 找 cc 可执行：优先 workspace bin（dev mode），fallback 系统 PATH。
     // Windows 必须用 .cmd 后缀或 shell:true 才能解析 npm bin symlink。
     let bin = "cc";
@@ -602,6 +632,7 @@ module.exports = {
   // Plan A.1 v5.0.3.53-fix3: auto-refresh iceServers when paired mobile re-online
   maybeRefreshIceForMobile,
   // exposed for testing
+  sanitizePairAckPayload,
   _sessionState: sessionState,
   _resetSession: resetSession,
   _getActiveManualPairAliasHandle: () => activeManualPairAliasHandle,
