@@ -1258,15 +1258,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "流水线监控" },
       },
       {
-        path: "nl-programming",
-        name: "NLProgramming",
-        component: () =>
-          import(
-            /* webpackChunkName: "nl-programming" */ "../pages/NLProgrammingPage.vue"
-          ),
-        meta: { title: "自然语言编程" },
-      },
-      {
         path: "multimodal-collab",
         name: "MultimodalCollab",
         component: () =>
