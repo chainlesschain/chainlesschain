@@ -3,7 +3,8 @@
  * 负责视频相关数据的增删改查操作
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
+const { safeOrderByClause } = require("../utils/sql-order-by.js");
 
 /**
  * 视频存储管理类
@@ -40,24 +41,24 @@ class VideoStorage {
 
     const params = [
       id,
-      videoData.fileName || '',
-      videoData.filePath || '',
+      videoData.fileName || "",
+      videoData.filePath || "",
       videoData.fileSize || 0,
       videoData.duration || 0,
       videoData.width || 0,
       videoData.height || 0,
       videoData.fps || 0,
-      videoData.format || '',
-      videoData.videoCodec || '',
-      videoData.audioCodec || '',
+      videoData.format || "",
+      videoData.videoCodec || "",
+      videoData.audioCodec || "",
       videoData.bitrate || 0,
       videoData.hasAudio !== undefined ? (videoData.hasAudio ? 1 : 0) : 1,
       videoData.thumbnailPath || null,
       videoData.knowledgeId || null,
-      videoData.analysisStatus || 'pending',
+      videoData.analysisStatus || "pending",
       videoData.analysisProgress || 0,
       now,
-      now
+      now,
     ];
 
     await this.db.run(sql, params);
@@ -71,7 +72,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getVideoFile(id) {
-    const sql = 'SELECT * FROM video_files WHERE id = ?';
+    const sql = "SELECT * FROM video_files WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -81,7 +82,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getVideoFileByPath(filePath) {
-    const sql = 'SELECT * FROM video_files WHERE file_path = ?';
+    const sql = "SELECT * FROM video_files WHERE file_path = ?";
     return await this.db.get(sql, [filePath]);
   }
 
@@ -91,7 +92,8 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getVideosByKnowledgeId(knowledgeId) {
-    const sql = 'SELECT * FROM video_files WHERE knowledge_id = ? ORDER BY created_at DESC';
+    const sql =
+      "SELECT * FROM video_files WHERE knowledge_id = ? ORDER BY created_at DESC";
     return await this.db.all(sql, [knowledgeId]);
   }
 
@@ -103,19 +105,38 @@ class VideoStorage {
    */
   async updateVideoFile(id, updates) {
     const allowedFields = [
-      'file_name', 'file_path', 'file_size', 'duration', 'width', 'height',
-      'fps', 'format', 'video_codec', 'audio_codec', 'bitrate', 'has_audio',
-      'thumbnail_path', 'knowledge_id', 'analysis_status', 'analysis_progress'
+      "file_name",
+      "file_path",
+      "file_size",
+      "duration",
+      "width",
+      "height",
+      "fps",
+      "format",
+      "video_codec",
+      "audio_codec",
+      "bitrate",
+      "has_audio",
+      "thumbnail_path",
+      "knowledge_id",
+      "analysis_status",
+      "analysis_progress",
     ];
 
-    const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
+    const fields = Object.keys(updates).filter((key) =>
+      allowedFields.includes(key),
+    );
     if (fields.length === 0) {
-      throw new Error('No valid fields to update');
+      throw new Error("No valid fields to update");
     }
 
-    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
     const sql = `UPDATE video_files SET ${setClause}, updated_at = ? WHERE id = ?`;
-    const params = [...fields.map(field => updates[field]), new Date().toISOString(), id];
+    const params = [
+      ...fields.map((field) => updates[field]),
+      new Date().toISOString(),
+      id,
+    ];
 
     await this.db.run(sql, params);
     return this.getVideoFile(id);
@@ -127,7 +148,7 @@ class VideoStorage {
    * @returns {Promise<void>}
    */
   async deleteVideoFile(id) {
-    const sql = 'DELETE FROM video_files WHERE id = ?';
+    const sql = "DELETE FROM video_files WHERE id = ?";
     await this.db.run(sql, [id]);
   }
 
@@ -137,8 +158,15 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getAllVideos(options = {}) {
-    const { limit = 100, offset = 0, orderBy = 'created_at', order = 'DESC' } = options;
-    const sql = `SELECT * FROM video_files ORDER BY ${orderBy} ${order} LIMIT ? OFFSET ?`;
+    const {
+      limit = 100,
+      offset = 0,
+      orderBy = "created_at",
+      order = "DESC",
+    } = options;
+    // orderBy/order come from IPC options — validate to prevent SQL injection.
+    const sort = safeOrderByClause(orderBy, order);
+    const sql = `SELECT * FROM video_files ORDER BY ${sort.column} ${sort.direction} LIMIT ? OFFSET ?`;
     return await this.db.all(sql, [limit, offset]);
   }
 
@@ -175,8 +203,8 @@ class VideoStorage {
       analysisData.sentiment || null,
       analysisData.ocrText || null,
       analysisData.ocrConfidence || null,
-      analysisData.analysisEngine || 'ffmpeg',
-      now
+      analysisData.analysisEngine || "ffmpeg",
+      now,
     ];
 
     await this.db.run(sql, params);
@@ -189,7 +217,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getVideoAnalysis(id) {
-    const sql = 'SELECT * FROM video_analysis WHERE id = ?';
+    const sql = "SELECT * FROM video_analysis WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -199,7 +227,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getVideoAnalysisByVideoId(videoFileId) {
-    const sql = 'SELECT * FROM video_analysis WHERE video_file_id = ?';
+    const sql = "SELECT * FROM video_analysis WHERE video_file_id = ?";
     return await this.db.get(sql, [videoFileId]);
   }
 
@@ -211,19 +239,28 @@ class VideoStorage {
    */
   async updateVideoAnalysis(id, updates) {
     const allowedFields = [
-      'audio_path', 'transcription_text', 'transcription_confidence',
-      'summary', 'tags', 'key_topics', 'sentiment', 'ocr_text',
-      'ocr_confidence', 'analysis_engine'
+      "audio_path",
+      "transcription_text",
+      "transcription_confidence",
+      "summary",
+      "tags",
+      "key_topics",
+      "sentiment",
+      "ocr_text",
+      "ocr_confidence",
+      "analysis_engine",
     ];
 
-    const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
+    const fields = Object.keys(updates).filter((key) =>
+      allowedFields.includes(key),
+    );
     if (fields.length === 0) {
-      throw new Error('No valid fields to update');
+      throw new Error("No valid fields to update");
     }
 
-    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
     const sql = `UPDATE video_analysis SET ${setClause} WHERE id = ?`;
-    const params = [...fields.map(field => updates[field]), id];
+    const params = [...fields.map((field) => updates[field]), id];
 
     await this.db.run(sql, params);
     return this.getVideoAnalysis(id);
@@ -257,7 +294,7 @@ class VideoStorage {
       keyframeData.sceneChangeScore || null,
       keyframeData.ocrText || null,
       keyframeData.ocrConfidence || null,
-      now
+      now,
     ];
 
     await this.db.run(sql, params);
@@ -270,7 +307,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getKeyframe(id) {
-    const sql = 'SELECT * FROM video_keyframes WHERE id = ?';
+    const sql = "SELECT * FROM video_keyframes WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -280,7 +317,8 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getKeyframesByVideoId(videoFileId) {
-    const sql = 'SELECT * FROM video_keyframes WHERE video_file_id = ? ORDER BY timestamp ASC';
+    const sql =
+      "SELECT * FROM video_keyframes WHERE video_file_id = ? ORDER BY timestamp ASC";
     return await this.db.all(sql, [videoFileId]);
   }
 
@@ -321,15 +359,19 @@ class VideoStorage {
     const params = [
       id,
       subtitleData.videoFileId,
-      subtitleData.subtitleType || 'external',
-      subtitleData.language || 'zh-CN',
-      subtitleData.format || 'srt',
+      subtitleData.subtitleType || "external",
+      subtitleData.language || "zh-CN",
+      subtitleData.format || "srt",
       subtitleData.filePath,
       subtitleData.content || null,
-      subtitleData.source || 'manual',
-      subtitleData.isDefault !== undefined ? (subtitleData.isDefault ? 1 : 0) : 0,
+      subtitleData.source || "manual",
+      subtitleData.isDefault !== undefined
+        ? subtitleData.isDefault
+          ? 1
+          : 0
+        : 0,
       now,
-      now
+      now,
     ];
 
     await this.db.run(sql, params);
@@ -342,7 +384,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getSubtitle(id) {
-    const sql = 'SELECT * FROM video_subtitles WHERE id = ?';
+    const sql = "SELECT * FROM video_subtitles WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -352,7 +394,8 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getSubtitlesByVideoId(videoFileId) {
-    const sql = 'SELECT * FROM video_subtitles WHERE video_file_id = ? ORDER BY created_at ASC';
+    const sql =
+      "SELECT * FROM video_subtitles WHERE video_file_id = ? ORDER BY created_at ASC";
     return await this.db.all(sql, [videoFileId]);
   }
 
@@ -364,18 +407,29 @@ class VideoStorage {
    */
   async updateSubtitle(id, updates) {
     const allowedFields = [
-      'subtitle_type', 'language', 'format', 'file_path',
-      'content', 'source', 'is_default'
+      "subtitle_type",
+      "language",
+      "format",
+      "file_path",
+      "content",
+      "source",
+      "is_default",
     ];
 
-    const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
+    const fields = Object.keys(updates).filter((key) =>
+      allowedFields.includes(key),
+    );
     if (fields.length === 0) {
-      throw new Error('No valid fields to update');
+      throw new Error("No valid fields to update");
     }
 
-    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
     const sql = `UPDATE video_subtitles SET ${setClause}, updated_at = ? WHERE id = ?`;
-    const params = [...fields.map(field => updates[field]), new Date().toISOString(), id];
+    const params = [
+      ...fields.map((field) => updates[field]),
+      new Date().toISOString(),
+      id,
+    ];
 
     await this.db.run(sql, params);
     return this.getSubtitle(id);
@@ -409,12 +463,12 @@ class VideoStorage {
       historyData.outputPath || null,
       historyData.operationType,
       historyData.operationParams || null,
-      historyData.status || 'pending',
+      historyData.status || "pending",
       historyData.progress || 0,
       historyData.duration || null,
       historyData.errorMessage || null,
       now,
-      historyData.completedAt || null
+      historyData.completedAt || null,
     ];
 
     await this.db.run(sql, params);
@@ -427,7 +481,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getEditHistory(id) {
-    const sql = 'SELECT * FROM video_edit_history WHERE id = ?';
+    const sql = "SELECT * FROM video_edit_history WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -437,7 +491,8 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getEditHistoryByVideoId(originalVideoId) {
-    const sql = 'SELECT * FROM video_edit_history WHERE original_video_id = ? ORDER BY created_at DESC';
+    const sql =
+      "SELECT * FROM video_edit_history WHERE original_video_id = ? ORDER BY created_at DESC";
     return await this.db.all(sql, [originalVideoId]);
   }
 
@@ -449,18 +504,25 @@ class VideoStorage {
    */
   async updateEditHistory(id, updates) {
     const allowedFields = [
-      'output_video_id', 'output_path', 'status', 'progress',
-      'duration', 'error_message', 'completed_at'
+      "output_video_id",
+      "output_path",
+      "status",
+      "progress",
+      "duration",
+      "error_message",
+      "completed_at",
     ];
 
-    const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
+    const fields = Object.keys(updates).filter((key) =>
+      allowedFields.includes(key),
+    );
     if (fields.length === 0) {
-      throw new Error('No valid fields to update');
+      throw new Error("No valid fields to update");
     }
 
-    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
     const sql = `UPDATE video_edit_history SET ${setClause} WHERE id = ?`;
-    const params = [...fields.map(field => updates[field]), id];
+    const params = [...fields.map((field) => updates[field]), id];
 
     await this.db.run(sql, params);
     return this.getEditHistory(id);
@@ -492,10 +554,10 @@ class VideoStorage {
       sceneData.sceneIndex,
       sceneData.startTime,
       sceneData.endTime,
-      sceneData.duration || (sceneData.endTime - sceneData.startTime),
+      sceneData.duration || sceneData.endTime - sceneData.startTime,
       sceneData.keyframePath || null,
       sceneData.description || null,
-      now
+      now,
     ];
 
     await this.db.run(sql, params);
@@ -508,7 +570,7 @@ class VideoStorage {
    * @returns {Promise<Object|null>}
    */
   async getScene(id) {
-    const sql = 'SELECT * FROM video_scenes WHERE id = ?';
+    const sql = "SELECT * FROM video_scenes WHERE id = ?";
     return await this.db.get(sql, [id]);
   }
 
@@ -518,7 +580,8 @@ class VideoStorage {
    * @returns {Promise<Array>}
    */
   async getScenesByVideoId(videoFileId) {
-    const sql = 'SELECT * FROM video_scenes WHERE video_file_id = ? ORDER BY scene_index ASC';
+    const sql =
+      "SELECT * FROM video_scenes WHERE video_file_id = ? ORDER BY scene_index ASC";
     return await this.db.all(sql, [videoFileId]);
   }
 
@@ -545,7 +608,7 @@ class VideoStorage {
    * @returns {Promise<number>}
    */
   async getVideoCount() {
-    const sql = 'SELECT COUNT(*) as count FROM video_files';
+    const sql = "SELECT COUNT(*) as count FROM video_files";
     const result = await this.db.get(sql);
     return result.count;
   }
@@ -555,7 +618,7 @@ class VideoStorage {
    * @returns {Promise<number>}
    */
   async getTotalDuration() {
-    const sql = 'SELECT SUM(duration) as total FROM video_files';
+    const sql = "SELECT SUM(duration) as total FROM video_files";
     const result = await this.db.get(sql);
     return result.total || 0;
   }
@@ -565,7 +628,7 @@ class VideoStorage {
    * @returns {Promise<number>}
    */
   async getTotalStorageSize() {
-    const sql = 'SELECT SUM(file_size) as total FROM video_files';
+    const sql = "SELECT SUM(file_size) as total FROM video_files";
     const result = await this.db.get(sql);
     return result.total || 0;
   }
@@ -582,7 +645,7 @@ class VideoStorage {
     `;
     const results = await this.db.all(sql);
     const stats = {};
-    results.forEach(row => {
+    results.forEach((row) => {
       stats[row.analysis_status] = row.count;
     });
     return stats;

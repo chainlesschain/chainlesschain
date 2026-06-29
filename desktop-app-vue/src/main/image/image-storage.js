@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { safeOrderByClause } = require("../utils/sql-order-by.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
@@ -332,7 +333,10 @@ class ImageStorage {
       params.push(knowledgeId);
     }
 
-    sql += ` ORDER BY ${orderBy} ${order} LIMIT ? OFFSET ?`;
+    // orderBy/order come from IPC options — validate to prevent SQL injection
+    // (ORDER BY can't be a bound ? param).
+    const sort = safeOrderByClause(orderBy, order);
+    sql += ` ORDER BY ${sort.column} ${sort.direction} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
     const rows = await this.db.all(sql, params);

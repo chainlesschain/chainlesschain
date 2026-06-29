@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { safeOrderByClause } = require("../utils/sql-order-by.js");
 const path = require("path");
 const fs = require("fs").promises;
 const { v4: uuidv4 } = require("uuid");
@@ -228,10 +229,12 @@ class AudioStorage {
       order = "DESC",
     } = options;
 
+    // orderBy/order come from IPC options — validate to prevent SQL injection.
+    const sort = safeOrderByClause(orderBy, order);
     const sql = `
       SELECT * FROM audio_files
       WHERE user_id = ?
-      ORDER BY ${orderBy} ${order}
+      ORDER BY ${sort.column} ${sort.direction}
       LIMIT ? OFFSET ?
     `;
 
