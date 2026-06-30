@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 import { buildSessionArgs } from "../../../vscode-extension/src/chat/chat-events.js";
 import { ConversationManager } from "../../../vscode-extension/src/chat/conversation-manager.js";
+import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 
 describe("buildSessionArgs — extended thinking", () => {
   it("maps think level to the right flag", () => {
@@ -97,6 +98,29 @@ function makeProvider() {
 }
 
 const lastPost = (posted) => posted[posted.length - 1];
+
+describe("chat HTML — expand/collapse all reasoning (Ctrl+O / /expand)", () => {
+  const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
+
+  it("ships the toggle, the /expand command, and the Ctrl/Cmd+O binding", () => {
+    expect(html).toContain("toggleAllThinking");
+    expect(html).toContain('"/expand"');
+    expect(html).toContain("details.thinking");
+    // the bulk toggle is gated on a (ctrl|cmd) modifier + the 'o' key
+    expect(html).toMatch(/e\.ctrlKey \|\| e\.metaKey/);
+  });
+
+  it("every embedded script still parses (dead-panel regression gate)", () => {
+    const scripts = [
+      ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
+    ];
+    expect(scripts.length).toBeGreaterThanOrEqual(3);
+    for (const [, body] of scripts) {
+      // Throws on a syntax error — proves my keydown/SLASH additions parse.
+      new Function(body);
+    }
+  });
+});
 
 describe("ChatViewProvider — extended thinking", () => {
   it("sets the active conversation's thinking level and acknowledges", () => {

@@ -322,6 +322,16 @@ function buildChatHtml({ cspSource, nonce }) {
     thinkingEl = null;
     thinkingBody = null;
   }
+  // Expand/collapse ALL reasoning blocks at once (Claude-Code Ctrl+O parity,
+  // also the /expand panel command). If anything is collapsed, reveal all;
+  // otherwise tuck them all away. No-op when there are no reasoning blocks.
+  function toggleAllThinking() {
+    const blocks = log.querySelectorAll("details.thinking");
+    if (!blocks.length) return;
+    let anyClosed = false;
+    blocks.forEach((d) => { if (!d.open) anyClosed = true; });
+    blocks.forEach((d) => { d.open = anyClosed; });
+  }
   // Add a Copy button to each fenced code block (Claude-Code panel parity).
   // Runs at the DOM level after mdLite renders, so md-lite stays a pure
   // escape-first string renderer (no button markup in its whitelist). Idempotent
@@ -392,6 +402,11 @@ function buildChatHtml({ cspSource, nonce }) {
         "Don't edit files unless I ask.";
       send();
     },
+    "/expand": () => {
+      // Expand/collapse all reasoning blocks (also Ctrl/Cmd+O).
+      if (log.querySelector("details.thinking")) toggleAllThinking();
+      else add("info", "no reasoning blocks to expand yet");
+    },
   };
   // Pasted screenshots ride the message as data URLs; the host writes them
   // to temp files and the CLI attaches them like --image (vision model
@@ -459,7 +474,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /review · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /review · /expand (Ctrl+O all reasoning) · /help");
         return;
       }
       if (SLASH[cmd]) {
@@ -498,6 +513,16 @@ function buildChatHtml({ cspSource, nonce }) {
     // Esc while composing belongs to the IME (closes the candidate window).
     if (imeComposing || e.isComposing || e.keyCode === 229) return;
     vscode.postMessage({ type: "interrupt" });
+  });
+  // Ctrl/Cmd+O — expand/collapse all reasoning blocks (Claude-Code parity).
+  // Only swallow the key when there is something to toggle, so the IDE's own
+  // Ctrl+O (Open File) still works in an empty transcript.
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+    if (e.key !== "o" && e.key !== "O") return;
+    if (!log.querySelector("details.thinking")) return;
+    e.preventDefault();
+    toggleAllThinking();
   });
   document.getElementById("new").addEventListener("click", () => {
     vscode.postMessage({ type: "new" });
