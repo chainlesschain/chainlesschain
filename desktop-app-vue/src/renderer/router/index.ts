@@ -1069,15 +1069,10 @@ const routes: RouteRecordRaw[] = [
       // ===== 企业审计与合规 (v0.34.0) =====
       // EnterpriseAudit V5 page ported to V6 shell panel (/audit-log slash →
       // shell/EnterpriseAuditPanel.vue); route removed.
-      {
-        path: "enterprise/compliance",
-        name: "ComplianceDashboard",
-        component: () =>
-          import(
-            /* webpackChunkName: "compliance-dashboard" */ "../pages/ComplianceDashboard.vue"
-          ),
-        meta: { title: "合规管理仪表板" },
-      },
+      // ComplianceDashboard V5 page ported to V6 shell panel (/compliance slash
+      // → shell/ComplianceDashboardPanel.vue); route removed. (The distinct
+      // enterprise/ComplianceDashboardPage.vue route — name SCIM/compliance-dashboard
+      // — remains; it uses a different store.)
       // ===== 插件市场 (v0.34.0) =====
       {
         path: "plugin-marketplace",
