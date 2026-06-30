@@ -619,3 +619,58 @@ describe("agent-repl context engineering integration", () => {
     expect(result).toBeTruthy();
   });
 });
+
+describe("agent-repl /btw one-shot aside wiring", () => {
+  const agentReplPath = join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "repl",
+    "agent-repl.js",
+  );
+  const content = readFileSync(agentReplPath, "utf8");
+
+  it("imports the pure /btw helpers", () => {
+    expect(content).toContain('from "./btw-command.js"');
+    expect(content).toContain("parseBtwCommand");
+    expect(content).toContain("buildAsideBlock");
+    expect(content).toContain("applyAside");
+  });
+
+  it("queues the aside on /btw and consumes it on send", () => {
+    expect(content).toContain("let pendingBtw = [];");
+    expect(content).toContain("const btw = parseBtwCommand(trimmed);");
+    expect(content).toContain("pendingBtw.push(btw.text);");
+    // consumed (cleared) when the turn fires
+    expect(content).toContain("pendingBtw = [];");
+  });
+
+  it("injects before agentLoop and restores after, so the aside never persists", () => {
+    // capture the pre-aside content, then apply the block to the user message
+    expect(content).toContain(
+      "_btwRestore = { msg: _userMsg, content: _userMsg.content };",
+    );
+    expect(content).toContain(
+      "_userMsg.content = applyAside(_userMsg.content, block);",
+    );
+    // the injection sits before the agentLoop call; the restore resets content
+    const injectAt = content.indexOf("_userMsg.content = applyAside(");
+    const loopAt = content.indexOf("await agentLoop(messages, {");
+    // lastIndexOf = the success-path restore AFTER the call (the first
+    // occurrence is the submit-start backstop, which sits before agentLoop).
+    const restoreAt = content.lastIndexOf(
+      "_btwRestore.msg.content = _btwRestore.content;",
+    );
+    expect(injectAt).toBeGreaterThan(0);
+    expect(loopAt).toBeGreaterThan(injectAt); // inject BEFORE the model call
+    expect(restoreAt).toBeGreaterThan(loopAt); // restore AFTER it
+  });
+
+  it("keeps the user-message object ref so the aside can be stripped", () => {
+    expect(content).toContain(
+      'const _userMsg = { role: "user", content: _userMessageContent };',
+    );
+    expect(content).toContain("messages.push(_userMsg);");
+  });
+});

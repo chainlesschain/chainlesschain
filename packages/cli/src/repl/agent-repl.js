@@ -98,6 +98,7 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
+import { parseBtwCommand, buildAsideBlock, applyAside } from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
 import { buildPermissionPrompt } from "./permission-prompt.js";
@@ -371,6 +372,12 @@ export async function startAgentRepl(options = {}) {
   // (--thinking-budget) is the companion legacy-model budget_tokens override.
   let thinking = options.thinking || null;
   const thinkingBudget = options.thinkingBudget || null;
+  // `/btw` one-shot asides: queued notes that ride ONLY the next turn (sent to
+  // the model, then stripped so they never persist or carry forward).
+  // `_btwRestore` holds the user message + its pre-aside content so we can undo
+  // the injection after the turn (or as a backstop at the next submit on throw).
+  let pendingBtw = [];
+  let _btwRestore = null;
   // Current ApprovalGate session tier (strict|trusted|autopilot), mirrored here
   // so Shift+Tab can cycle it and `/permissions <tier>` can set it. Kept in sync
   // with _approvalGate.setSessionPolicy below.
@@ -1040,6 +1047,7 @@ export async function startAgentRepl(options = {}) {
       "/add-dir",
       "/agents",
       "/auto",
+      "/btw",
       "/cd",
       "/clear",
       "/compact",
@@ -1517,6 +1525,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/effort")}     Reasoning effort (/effort low|medium|high|xhigh; Anthropic)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/btw")}        Queue a one-off aside for your next message (not saved to history)`,
       );
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(
@@ -2024,6 +2035,27 @@ export async function startAgentRepl(options = {}) {
         logger.info(
           `Reasoning effort: ${chalk.cyan(effort.label)} ` +
             chalk.gray("(Anthropic extended thinking; applies next turn)"),
+        );
+        prompt();
+        return;
+      }
+    }
+
+    // `/btw <note>` — queue a one-shot aside (Claude-Code parity). It rides the
+    // NEXT message to the model, then is stripped so it never bloats history.
+    {
+      const btw = parseBtwCommand(trimmed);
+      if (btw) {
+        if (btw.error) {
+          logger.info(btw.error);
+          prompt();
+          return;
+        }
+        pendingBtw.push(btw.text);
+        logger.info(
+          chalk.gray(
+            `Aside noted (${pendingBtw.length}) — rides your next message only, not saved to history.`,
+          ),
         );
         prompt();
         return;
@@ -3644,6 +3676,14 @@ export async function startAgentRepl(options = {}) {
       logger.verbose(`[hook] prompt rewritten by UserPromptSubmit hook`);
     }
 
+    // Backstop: if the previous turn's agentLoop threw before the success-path
+    // restore ran, undo its /btw aside now so it never leaks into this turn's
+    // history/model call. (Normal turns clear _btwRestore right after agentLoop.)
+    if (_btwRestore) {
+      _btwRestore.msg.content = _btwRestore.content;
+      _btwRestore = null;
+    }
+
     // Expand @path file references into context blocks (Claude-Code parity),
     // so `review @src/x.js` injects the file contents. Typo'd paths are warned
     // about and left as-is.
@@ -3746,8 +3786,10 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
-    // Add user message
-    messages.push({ role: "user", content: _userMessageContent });
+    // Add user message (keep the object ref so a /btw aside can be injected for
+    // this turn's model call and then stripped before persistence).
+    const _userMsg = { role: "user", content: _userMessageContent };
+    messages.push(_userMsg);
 
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
@@ -3856,6 +3898,23 @@ export async function startAgentRepl(options = {}) {
           }
         : {};
       if (_streamLive) process.stdout.write("\n");
+      // Inject any queued /btw asides into THIS turn's user message just before
+      // the model call. We remember the pre-aside content so it's restored right
+      // after agentLoop returns — the aside steers this answer but is never
+      // persisted (saveMessages/JSONL) or carried into later turns. Consumed on
+      // send (cleared now) so a thrown turn doesn't re-inject next time; the
+      // submit-start backstop restores if agentLoop throws before we get back.
+      if (pendingBtw.length > 0) {
+        const block = buildAsideBlock(pendingBtw);
+        if (block) {
+          _btwRestore = { msg: _userMsg, content: _userMsg.content };
+          _userMsg.content = applyAside(_userMsg.content, block);
+          logger.verbose(
+            `[btw] applied ${pendingBtw.length} aside(s) to this turn`,
+          );
+        }
+        pendingBtw = [];
+      }
       // Consume the one-shot resume-degeneracy flag for THIS turn so the role
       // merge fires exactly once (2.1.187 parity; see _sanitizeRolesNextTurn).
       const _mergeRolesThisTurn = _sanitizeRolesNextTurn;
@@ -3935,6 +3994,13 @@ export async function startAgentRepl(options = {}) {
         chatFn: _fallbackChatFn,
       });
       _turnAbort = null;
+
+      // Strip the one-shot /btw aside now the model has seen it — so it is never
+      // persisted (DB saveMessages below) or carried into the next turn.
+      if (_btwRestore) {
+        _btwRestore.msg.content = _btwRestore.content;
+        _btwRestore = null;
+      }
 
       // Running spend for `/cost` (in-memory, works without persistence).
       if (usageEvents?.length) addUsage(_costStore, usageEvents);
