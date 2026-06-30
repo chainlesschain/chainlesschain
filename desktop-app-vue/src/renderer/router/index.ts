@@ -178,11 +178,8 @@ const socialPages = createRouteGroup("social", {
     import(
       /* webpackChunkName: "social-forums" */ "../components/social/ForumList.vue"
     ),
-  // v0.40.0 — 共享相册
-  sharedAlbums: () =>
-    import(
-      /* webpackChunkName: "social-albums" */ "../pages/SharedAlbumsPage.vue"
-    ),
+  // v0.40.0 — 共享相册: ported to V6 shell panel (/albums →
+  // shell/SharedAlbumsPanel.vue); alias + route removed.
   // v0.41.0 — 协作编辑
   collabEditor: () =>
     import(
@@ -452,13 +449,7 @@ const routes: RouteRecordRaw[] = [
         component: socialPages.chat,
         meta: { title: "聊天" },
       },
-      // ===== v0.40.0 — 共享相册 =====
-      {
-        path: "shared-albums",
-        name: "SharedAlbums",
-        component: socialPages.sharedAlbums,
-        meta: { title: "共享相册" },
-      },
+      // ===== v0.40.0 — 共享相册: ported to V6 shell panel (/albums) =====
       // ===== v0.41.0 — 协作编辑 =====
       {
         path: "social-collab/:docId?",
