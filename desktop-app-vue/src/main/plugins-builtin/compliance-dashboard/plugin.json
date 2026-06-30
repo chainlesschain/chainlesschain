@@ -1,0 +1,20 @@
+{
+  "id": "compliance-dashboard",
+  "name": "合规管理仪表板",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/compliance 斜杠命令 — 合规管理仪表板（GDPR/SOC2 评分 + 合规策略 CRUD + 合规检查 + 数据主体请求 DSR + 数据保留）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "compliance-dashboard",
+        "trigger": "/compliance",
+        "handler": "builtin:openComplianceDashboardPanel",
+        "description": "打开合规管理仪表板",
+        "icon": "SafetyCertificateOutlined"
+      }
+    }
+  ]
+}

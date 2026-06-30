@@ -531,6 +531,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(fn.pluginId).toBe("federated-network");
   });
 
+  it("compliance-dashboard 的 /compliance slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const cd = slash.find((s) => s.trigger === "/compliance");
+    expect(cd).toBeDefined();
+    expect(cd.handler).toBe("builtin:openComplianceDashboardPanel");
+    expect(cd.pluginId).toBe("compliance-dashboard");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

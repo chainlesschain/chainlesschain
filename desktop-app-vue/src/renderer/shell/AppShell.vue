@@ -159,6 +159,10 @@
       v-model:open="federatedNetworkPanelOpen"
       :prefill-text="federatedNetworkPrefill"
     />
+    <ComplianceDashboardPanel
+      v-model:open="complianceDashboardPanelOpen"
+      :prefill-text="complianceDashboardPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -257,6 +261,7 @@ import SkillPipelinePanel from "./SkillPipelinePanel.vue";
 import TimeMachinePanel from "./TimeMachinePanel.vue";
 import AutonomousAgentPanel from "./AutonomousAgentPanel.vue";
 import FederatedNetworkPanel from "./FederatedNetworkPanel.vue";
+import ComplianceDashboardPanel from "./ComplianceDashboardPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -341,6 +346,8 @@ const autonomousAgentPanelOpen = ref(false);
 const autonomousAgentPrefill = ref("");
 const federatedNetworkPanelOpen = ref(false);
 const federatedNetworkPrefill = ref("");
+const complianceDashboardPanelOpen = ref(false);
+const complianceDashboardPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -426,6 +433,7 @@ let unregisterSkillPipelineHandler: (() => void) | null = null;
 let unregisterTimeMachineHandler: (() => void) | null = null;
 let unregisterAutonomousAgentHandler: (() => void) | null = null;
 let unregisterFederatedNetworkHandler: (() => void) | null = null;
+let unregisterComplianceDashboardHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -678,6 +686,13 @@ onMounted(async () => {
       federatedNetworkPanelOpen.value = true;
     },
   );
+  unregisterComplianceDashboardHandler = registerSlashHandler(
+    "builtin:openComplianceDashboardPanel",
+    ({ args }) => {
+      complianceDashboardPrefill.value = args ?? "";
+      complianceDashboardPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -838,6 +853,8 @@ onBeforeUnmount(() => {
   unregisterAutonomousAgentHandler = null;
   unregisterFederatedNetworkHandler?.();
   unregisterFederatedNetworkHandler = null;
+  unregisterComplianceDashboardHandler?.();
+  unregisterComplianceDashboardHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();
