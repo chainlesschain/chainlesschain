@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   ensureUtf8,
   getUtf8SpawnOptions,
+  _deps,
 } from "../../../src/lib/ensure-utf8.js";
 
 // process.platform is a non-writable getter; override via defineProperty and
@@ -10,8 +11,29 @@ const ORIG_PLATFORM_DESC = Object.getOwnPropertyDescriptor(process, "platform");
 function setPlatform(value) {
   Object.defineProperty(process, "platform", { value, configurable: true });
 }
+// isTTY is a normal data property on the stream; save/restore so we can simulate
+// piped vs interactive output deterministically.
+const ORIG_OUT_TTY = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+const ORIG_ERR_TTY = Object.getOwnPropertyDescriptor(process.stderr, "isTTY");
+function setTTY(out, err) {
+  Object.defineProperty(process.stdout, "isTTY", {
+    value: out,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
+    value: err,
+    configurable: true,
+  });
+}
+const ORIG_EXECSYNC = _deps.execSync;
 afterEach(() => {
   Object.defineProperty(process, "platform", ORIG_PLATFORM_DESC);
+  if (ORIG_OUT_TTY)
+    Object.defineProperty(process.stdout, "isTTY", ORIG_OUT_TTY);
+  if (ORIG_ERR_TTY)
+    Object.defineProperty(process.stderr, "isTTY", ORIG_ERR_TTY);
+  _deps.execSync = ORIG_EXECSYNC;
+  delete process.env.CC_FORCE_CHCP;
 });
 
 describe("getUtf8SpawnOptions", () => {
@@ -103,5 +125,43 @@ describe("ensureUtf8", () => {
       if (snapshot.lang === undefined) delete process.env.LANG;
       else process.env.LANG = snapshot.lang;
     }
+  });
+
+  it("win32 + interactive console: spawns chcp (TTY attached)", () => {
+    setPlatform("win32");
+    setTTY(true, false);
+    _deps.execSync = vi.fn();
+    ensureUtf8();
+    expect(_deps.execSync).toHaveBeenCalledWith(
+      "chcp 65001",
+      expect.objectContaining({ stdio: "ignore" }),
+    );
+  });
+
+  it("win32 + piped output: SKIPS the ~280ms chcp spawn (no TTY)", () => {
+    setPlatform("win32");
+    setTTY(false, false);
+    _deps.execSync = vi.fn();
+    ensureUtf8();
+    expect(_deps.execSync).not.toHaveBeenCalled();
+    // env vars still set so child processes inherit UTF-8 regardless.
+    expect(process.env.PYTHONIOENCODING).toBe("utf-8");
+  });
+
+  it("win32 + stderr-only TTY: still spawns chcp (console attached via stderr)", () => {
+    setPlatform("win32");
+    setTTY(false, true);
+    _deps.execSync = vi.fn();
+    ensureUtf8();
+    expect(_deps.execSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("win32 + piped + CC_FORCE_CHCP=1: forces the spawn (escape hatch)", () => {
+    setPlatform("win32");
+    setTTY(false, false);
+    process.env.CC_FORCE_CHCP = "1";
+    _deps.execSync = vi.fn();
+    ensureUtf8();
+    expect(_deps.execSync).toHaveBeenCalledTimes(1);
   });
 });

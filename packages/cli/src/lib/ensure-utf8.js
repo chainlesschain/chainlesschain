@@ -9,20 +9,38 @@
 
 import { execSync } from "child_process";
 
+// Injectable so tests can assert whether the (expensive) chcp spawn happened
+// without actually spawning cmd.exe. See cli-dev.md `_deps` pattern.
+export const _deps = { execSync };
+
 /**
  * Call this as early as possible in the process entry point.
  */
 export function ensureUtf8() {
   if (process.platform !== "win32") return;
 
-  // Set Windows console codepage to UTF-8
-  try {
-    execSync("chcp 65001", { stdio: "ignore" });
-  } catch (_err) {
-    // Ignore - may fail in non-interactive environments
+  // Setting the Windows console codepage to UTF-8 requires spawning cmd.exe
+  // (`chcp 65001`), which costs ~280ms per invocation — a Windows process
+  // creation, paid on EVERY `cc` run. But the codepage only affects how an
+  // *interactive console* renders bytes; when stdout/stderr are piped or
+  // redirected (JSON output, headless runs, `cc` spawned as a subprocess by the
+  // desktop app / Android / spawnSync test harnesses), the bytes flow through
+  // the pipe as raw UTF-8 regardless of codepage, so the spawn is pure startup
+  // tax. Only pay it when a console is actually attached — the 乱码 fix is
+  // preserved exactly where it matters. Set CC_FORCE_CHCP=1 to restore the
+  // unconditional old behavior if some console edge case needs it.
+  const consoleAttached =
+    Boolean(process.stdout && process.stdout.isTTY) ||
+    Boolean(process.stderr && process.stderr.isTTY);
+  if (consoleAttached || process.env.CC_FORCE_CHCP === "1") {
+    try {
+      _deps.execSync("chcp 65001", { stdio: "ignore" });
+    } catch (_err) {
+      // Ignore - may fail in non-interactive environments
+    }
   }
 
-  // Ensure stdout/stderr use UTF-8 encoding
+  // Ensure stdout/stderr use UTF-8 encoding (cheap; always)
   if (process.stdout.setDefaultEncoding) {
     process.stdout.setDefaultEncoding("utf8");
   }
@@ -30,7 +48,7 @@ export function ensureUtf8() {
     process.stderr.setDefaultEncoding("utf8");
   }
 
-  // Set environment variable so child processes inherit UTF-8
+  // Set environment variable so child processes inherit UTF-8 (always)
   process.env.PYTHONIOENCODING = "utf-8";
   process.env.LANG = "en_US.UTF-8";
 }
