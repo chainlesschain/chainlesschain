@@ -356,7 +356,13 @@ class ChatViewProvider {
         description: s.store + (s.updatedAt ? " · " + s.updatedAt : ""),
         detail: s.title || undefined,
       })),
-      { placeHolder: "Resume which session in the chat panel?" },
+      {
+        placeHolder: "Resume which session in the chat panel?",
+        // The label is only the session id; let the user also search by title
+        // (detail) and store/date (description), not just the opaque id.
+        matchOnDetail: true,
+        matchOnDescription: true,
+      },
     );
     if (!pick) return;
     const conv = this._activeConv();

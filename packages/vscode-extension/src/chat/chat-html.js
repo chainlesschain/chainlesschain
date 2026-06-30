@@ -414,17 +414,42 @@ function buildChatHtml({ cspSource, nonce }) {
     });
     attach.style.display = "block";
   }
+  // Shared by paste + drag-drop: read an image blob as a data URL and stage it.
+  function addImageBlob(blob) {
+    if (!blob || pendingImages.length >= 4) return;
+    const fr = new FileReader();
+    fr.onload = () => { pendingImages.push({ data: fr.result }); renderAttach(); };
+    fr.readAsDataURL(blob);
+  }
   input.addEventListener("paste", (e) => {
     const items = (e.clipboardData && e.clipboardData.items) || [];
     for (const it of items) {
       if (it.type && it.type.indexOf("image/") === 0 && pendingImages.length < 4) {
         e.preventDefault();
-        const blob = it.getAsFile();
-        if (!blob) continue;
-        const fr = new FileReader();
-        fr.onload = () => { pendingImages.push({ data: fr.result }); renderAttach(); };
-        fr.readAsDataURL(blob);
+        addImageBlob(it.getAsFile());
       }
+    }
+  });
+  // Drag-drop image files into the input (parity with paste). Only intercept
+  // image drags — non-image drops fall through so VS Code can still open files.
+  function dragHasImage(dt) {
+    const items = (dt && dt.items) || [];
+    for (const it of items) {
+      if (it.kind === "file" && it.type && it.type.indexOf("image/") === 0) return true;
+    }
+    return false;
+  }
+  input.addEventListener("dragover", (e) => {
+    if (!dragHasImage(e.dataTransfer)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+  });
+  input.addEventListener("drop", (e) => {
+    if (!dragHasImage(e.dataTransfer)) return;
+    e.preventDefault();
+    const files = (e.dataTransfer && e.dataTransfer.files) || [];
+    for (const f of files) {
+      if (f.type && f.type.indexOf("image/") === 0) addImageBlob(f);
     }
   });
   function send() {
