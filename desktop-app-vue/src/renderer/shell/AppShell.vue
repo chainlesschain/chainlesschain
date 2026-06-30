@@ -175,6 +175,10 @@
       v-model:open="coworkDashboardPanelOpen"
       :prefill-text="coworkDashboardPrefill"
     />
+    <SSOConfigurationPanel
+      v-model:open="ssoConfigurationPanelOpen"
+      :prefill-text="ssoConfigurationPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -277,6 +281,7 @@ import ComplianceDashboardPanel from "./ComplianceDashboardPanel.vue";
 import ToolsExplorerPanel from "./ToolsExplorerPanel.vue";
 import TagManagerPanel from "./TagManagerPanel.vue";
 import CoworkDashboardPanel from "./CoworkDashboardPanel.vue";
+import SSOConfigurationPanel from "./SSOConfigurationPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -369,6 +374,8 @@ const tagManagerPanelOpen = ref(false);
 const tagManagerPrefill = ref("");
 const coworkDashboardPanelOpen = ref(false);
 const coworkDashboardPrefill = ref("");
+const ssoConfigurationPanelOpen = ref(false);
+const ssoConfigurationPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -458,6 +465,7 @@ let unregisterComplianceDashboardHandler: (() => void) | null = null;
 let unregisterToolsExplorerHandler: (() => void) | null = null;
 let unregisterTagManagerHandler: (() => void) | null = null;
 let unregisterCoworkDashboardHandler: (() => void) | null = null;
+let unregisterSSOConfigurationHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -738,6 +746,13 @@ onMounted(async () => {
       coworkDashboardPanelOpen.value = true;
     },
   );
+  unregisterSSOConfigurationHandler = registerSlashHandler(
+    "builtin:openSSOConfigurationPanel",
+    ({ args }) => {
+      ssoConfigurationPrefill.value = args ?? "";
+      ssoConfigurationPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -906,6 +921,8 @@ onBeforeUnmount(() => {
   unregisterTagManagerHandler = null;
   unregisterCoworkDashboardHandler?.();
   unregisterCoworkDashboardHandler = null;
+  unregisterSSOConfigurationHandler?.();
+  unregisterSSOConfigurationHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

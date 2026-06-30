@@ -563,6 +563,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(cw.pluginId).toBe("cowork-dashboard");
   });
 
+  it("sso-configuration 的 /sso slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const sso = slash.find((s) => s.trigger === "/sso");
+    expect(sso).toBeDefined();
+    expect(sso.handler).toBe("builtin:openSSOConfigurationPanel");
+    expect(sso.pluginId).toBe("sso-configuration");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

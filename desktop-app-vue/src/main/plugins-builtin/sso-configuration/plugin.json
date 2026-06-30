@@ -1,0 +1,20 @@
+{
+  "id": "sso-configuration",
+  "name": "SSO 身份认证配置",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/sso 斜杠命令 — SSO 身份认证配置（管理企业单点登录提供商：SAML/OAuth/OIDC 增删改 + 启用切换 + 连接测试）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "sso-configuration",
+        "trigger": "/sso",
+        "handler": "builtin:openSSOConfigurationPanel",
+        "description": "打开 SSO 身份认证配置",
+        "icon": "ApiOutlined"
+      }
+    }
+  ]
+}
