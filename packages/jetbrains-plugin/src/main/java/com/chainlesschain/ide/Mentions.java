@@ -98,7 +98,9 @@ public final class Mentions {
         for (String fRaw : list) {
             String f = String.valueOf(fRaw);
             String lower = f.toLowerCase();
-            String base = lower.substring(lower.lastIndexOf('/') + 1);
+            // A folder item carries a trailing "/"; rank it by its last segment.
+            String stripped = lower.endsWith("/") ? lower.substring(0, lower.length() - 1) : lower;
+            String base = stripped.substring(stripped.lastIndexOf('/') + 1);
             if (base.indexOf(q) == 0) baseHits.add(f);
             else if (lower.indexOf(q) == 0) pathHits.add(f);
             else if (lower.indexOf(q) >= 0) subHits.add(f);
@@ -107,6 +109,31 @@ public final class Mentions {
         out.addAll(baseHits);
         out.addAll(pathHits);
         out.addAll(subHits);
+        return new ArrayList<String>(out.subList(0, Math.min(max, out.size())));
+    }
+
+    /**
+     * Derive unique, sorted ancestor directories (each with a trailing "/") from
+     * a workspace file listing, so the panel can offer {@code @folder/}
+     * completions (the CLI expands a folder ref into a bounded tree).
+     * Backslashes are normalized. Java port of at-mention.js {@code deriveFolders}.
+     */
+    public static List<String> deriveFolders(List<String> files, int limit) {
+        int max = limit > 0 ? limit : 200;
+        java.util.TreeSet<String> set = new java.util.TreeSet<String>();
+        if (files != null) {
+            for (String raw : files) {
+                String f = String.valueOf(raw).replace("\\", "/");
+                int slash = f.lastIndexOf('/');
+                while (slash > 0) {
+                    String dir = f.substring(0, slash + 1); // keep the trailing slash
+                    if (set.contains(dir)) break; // this dir + ancestors already in
+                    set.add(dir);
+                    slash = f.lastIndexOf('/', slash - 1);
+                }
+            }
+        }
+        List<String> out = new ArrayList<String>(set);
         return new ArrayList<String>(out.subList(0, Math.min(max, out.size())));
     }
 

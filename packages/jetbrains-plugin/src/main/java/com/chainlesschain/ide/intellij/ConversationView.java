@@ -1023,7 +1023,11 @@ final class ConversationView {
         candidates.add(Mentions.MentionItem.symbol("selection", "selection"));
         candidates.add(Mentions.MentionItem.symbol("diagnostics", "diagnostics"));
         candidates.addAll(symbolCandidates());
-        for (String f : projectRelativeFiles()) candidates.add(Mentions.MentionItem.path(f));
+        // Offer ancestor folders (as @folder/) ahead of the files — typing
+        // "@src" surfaces the directory too; cc expands it into a bounded tree.
+        List<String> files = projectRelativeFiles();
+        for (String d : Mentions.deriveFolders(files, 2000)) candidates.add(Mentions.MentionItem.path(d));
+        for (String f : files) candidates.add(Mentions.MentionItem.path(f));
         if (candidates.isEmpty()) return;
         JBPopup popup = JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(candidates)

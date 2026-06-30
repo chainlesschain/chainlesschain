@@ -77,6 +77,25 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔌 `@folder/` completion — code-complete, NOT yet runIde-verified
+
+Offer ancestor directories (as `@folder/`) in the `@`-mention popup, ahead of
+files — typing `@src` surfaces the folder too; the CLI expands a folder ref into
+a bounded recursive tree (Claude-Code `@folder/` parity).
+
+- [x] **Pure layer** `Mentions.deriveFolders` (+ `filterFiles` ranks a
+      trailing-slash item by its last segment). Java port of at-mention.js
+      `deriveFolders`. **PureLogicSmokeMain 248 passed** (`javac --release 11`).
+- [x] **Glue wiring** — `ConversationView.openMentionPopup` adds
+      `Mentions.deriveFolders(projectRelativeFiles(), 2000)` items before the
+      files. Compiles against the verified pure API.
+- [ ] **runIde GUI pass (GATE before publish)** — confirm folders appear in the
+      `@` popup, choosing one inserts `@path/`. Per the dead-panel lesson this
+      manual pass is required before bumping the version.
+
+VS Code parity already shipped (at-mention.js `deriveFolders` + chat-view.js
+`_listWorkspaceFiles`; 23 vitest pass incl. the parse gate).
+
 ## 🔌 IDEA built-in MCP auto-connect (server `idea`) — code-complete, NOT published
 
 Auto-connect IntelliJ IDEA's OWN built-in MCP server (IDEA **2025.2+**, Settings |

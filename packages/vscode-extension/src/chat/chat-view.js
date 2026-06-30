@@ -544,7 +544,7 @@ class ChatViewProvider {
    * keystroke in-process; "New" invalidates it so fresh files show up.
    */
   async _listWorkspaceFiles(prefix) {
-    const { filterFiles } = require("./at-mention");
+    const { filterFiles, deriveFolders } = require("./at-mention");
     if (!this._fileCache) {
       this._fileCache = Promise.resolve()
         .then(() =>
@@ -557,11 +557,16 @@ class ChatViewProvider {
         .then((uris) => {
           const folders = this.vscode.workspace.workspaceFolders || [];
           const root = folders[0]?.uri?.fsPath || "";
-          return (uris || []).map((u) => {
+          const files = (uris || []).map((u) => {
             let p = u.fsPath || "";
             if (root && p.startsWith(root)) p = p.slice(root.length + 1);
             return p.replace(/\\/g, "/");
           });
+          // Offer the ancestor folders (as `@folder/`) ahead of the files, so
+          // typing "@src" surfaces the directory too — the CLI expands a folder
+          // ref into a bounded tree. findFiles never returns directories, so we
+          // derive them from the file listing.
+          return deriveFolders(files, 2000).concat(files);
         })
         .catch(() => []);
     }

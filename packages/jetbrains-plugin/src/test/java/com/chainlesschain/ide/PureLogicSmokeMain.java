@@ -244,6 +244,20 @@ public final class PureLogicSmokeMain {
         check(Mentions.filterFiles(files, "SRC/APP", 20).contains("src/app.js"),
                 "case-insensitive path-prefix");
 
+        // deriveFolders: unique, sorted ancestor dirs with a trailing slash.
+        eq(Mentions.deriveFolders(Arrays.asList("a/b/c.js", "a/d.js", "top.md"), 50),
+                Arrays.asList("a/", "a/b/"), "deriveFolders ancestors");
+        eq(Mentions.deriveFolders(Arrays.asList("x\\y\\z.js"), 50),
+                Arrays.asList("x/", "x/y/"), "deriveFolders normalizes backslashes");
+        eq(Mentions.deriveFolders(Arrays.asList("README.md"), 50).size(), 0,
+                "deriveFolders root-only -> none");
+        eq(Mentions.deriveFolders(null, 50).size(), 0, "deriveFolders null -> none");
+        eq(Mentions.deriveFolders(Arrays.asList("a/x.js", "b/x.js", "c/x.js"), 2).size(), 2,
+                "deriveFolders caps at limit");
+        // a trailing-slash folder ranks by its last segment, ahead of a path-only file hit.
+        eq(Mentions.filterFiles(Arrays.asList("src/", "src/app.js"), "src", 10).get(0),
+                "src/", "folder basename ranks first");
+
         // ideMentionMatches
         eq(Mentions.ideMentionMatches("").size(), 2, "empty -> both ide mentions");
         eq(Mentions.ideMentionMatches("s"), Arrays.asList("selection"), "@s -> selection");

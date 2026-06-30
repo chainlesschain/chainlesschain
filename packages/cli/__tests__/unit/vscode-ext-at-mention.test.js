@@ -13,6 +13,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   detectAtToken,
   filterFiles,
+  deriveFolders,
   applyMention,
   ideMentionMatches,
 } from "../../../vscode-extension/src/chat/at-mention.js";
@@ -84,6 +85,42 @@ describe("filterFiles", () => {
   it("caps at the limit", () => {
     expect(filterFiles(FILES, "", 2)).toHaveLength(2);
   });
+
+  it("ranks a trailing-slash folder by its last segment, ahead of files", () => {
+    // "@src" should surface the folder (basename hit) before src/app.js, whose
+    // basename "app.js" does not start with "src" (it's only a path hit).
+    expect(filterFiles(["src/", "src/app.js"], "src", 10)).toEqual([
+      "src/",
+      "src/app.js",
+    ]);
+    // a nested folder ranks by its last segment ("chat")
+    expect(filterFiles(["src/", "src/chat/"], "chat", 10)).toEqual([
+      "src/chat/",
+    ]);
+  });
+});
+
+describe("deriveFolders", () => {
+  it("derives unique sorted ancestor dirs with a trailing slash", () => {
+    expect(deriveFolders(["a/b/c.js", "a/d.js", "top.md"], 50)).toEqual([
+      "a/",
+      "a/b/",
+    ]);
+  });
+
+  it("normalizes backslashes", () => {
+    expect(deriveFolders(["x\\y\\z.js"], 50)).toEqual(["x/", "x/y/"]);
+  });
+
+  it("returns nothing for root-only files or non-arrays", () => {
+    expect(deriveFolders(["README.md"], 50)).toEqual([]);
+    expect(deriveFolders(null, 50)).toEqual([]);
+    expect(deriveFolders(undefined, 50)).toEqual([]);
+  });
+
+  it("caps at the limit", () => {
+    expect(deriveFolders(["a/x.js", "b/x.js", "c/x.js"], 2)).toHaveLength(2);
+  });
 });
 
 describe("applyMention", () => {
@@ -150,6 +187,14 @@ describe("ChatViewProvider._listWorkspaceFiles", () => {
       "src/app.js",
       "src/chat/app-view.js",
     ]);
+  });
+
+  it("offers ancestor folders (as @folder/) ahead of files", async () => {
+    const { provider } = makeProvider();
+    const items = await provider._listWorkspaceFiles("src");
+    expect(items[0]).toBe("src/"); // folder basename-hit ranks first
+    expect(items).toContain("src/chat/");
+    expect(items).toContain("src/app.js");
   });
 
   it("scans once and reuses the cache across keystrokes", async () => {

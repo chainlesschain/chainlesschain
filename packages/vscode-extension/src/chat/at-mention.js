@@ -25,6 +25,9 @@
    * Rank workspace-relative paths against the typed prefix:
    * basename-prefix hits first, then path-prefix, then substring anywhere.
    * Case-insensitive; backslashes in the query are normalized to "/".
+   * A folder item carries a trailing "/" (e.g. "src/chat/"); its basename is
+   * the last SEGMENT (the slash is stripped first) so "@src" baseline-ranks the
+   * "src/" folder, not just files whose name starts with "src".
    */
   function filterFiles(files, prefix, limit) {
     const max = limit > 0 ? limit : 20;
@@ -39,12 +42,39 @@
     for (let i = 0; i < list.length; i++) {
       const f = String(list[i]);
       const lower = f.toLowerCase();
-      const base = lower.slice(lower.lastIndexOf("/") + 1);
+      const stripped = lower.endsWith("/") ? lower.slice(0, -1) : lower;
+      const base = stripped.slice(stripped.lastIndexOf("/") + 1);
       if (base.indexOf(q) === 0) baseHits.push(f);
       else if (lower.indexOf(q) === 0) pathHits.push(f);
       else if (lower.indexOf(q) >= 0) subHits.push(f);
     }
     return baseHits.concat(pathHits, subHits).slice(0, max);
+  }
+
+  /**
+   * Derive the set of ancestor directories from a workspace file listing, each
+   * with a trailing "/" so the panel can offer them as `@folder/` completions
+   * (the CLI expands a folder ref into a bounded tree). Backslashes are
+   * normalized; results are unique and sorted. e.g. ["a/b/c.js","a/d.js"] →
+   * ["a/", "a/b/"].
+   */
+  function deriveFolders(files, limit) {
+    const max = limit > 0 ? limit : 200;
+    const set = new Set();
+    const list = Array.isArray(files) ? files : [];
+    for (let i = 0; i < list.length; i++) {
+      const f = String(list[i]).replace(/\\/g, "/");
+      let slash = f.lastIndexOf("/");
+      while (slash > 0) {
+        const dir = f.slice(0, slash + 1); // keep the trailing slash
+        if (set.has(dir)) break; // this dir + all its ancestors are already in
+        set.add(dir);
+        slash = f.lastIndexOf("/", slash - 1);
+      }
+    }
+    return Array.from(set)
+      .sort()
+      .slice(0, max);
   }
 
   // IDE pseudo-mentions the CLI expands server-side (lib/ide-context.js):
@@ -96,6 +126,7 @@
     module.exports = {
       detectAtToken: detectAtToken,
       filterFiles: filterFiles,
+      deriveFolders: deriveFolders,
       applyMention: applyMention,
       ideMentionMatches: ideMentionMatches,
       mentionLabel: mentionLabel,
@@ -105,6 +136,7 @@
   global.ccAtMention = {
     detectAtToken: detectAtToken,
     filterFiles: filterFiles,
+    deriveFolders: deriveFolders,
     applyMention: applyMention,
     ideMentionMatches: ideMentionMatches,
     mentionLabel: mentionLabel,
