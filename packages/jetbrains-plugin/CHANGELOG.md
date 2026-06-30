@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.41] — feat: offer @folder/ completions in the chat @-mention dropdown
+
+- **The chat `@`-mention dropdown now offers workspace folders, not just files**
+  (parity with the VS Code extension). As you type `@`, matching folders appear
+  alongside files; picking one inserts `@path/` which the `cc` CLI expands to a
+  depth-capped recursive tree, letting you hand the agent a whole subtree in a
+  single reference instead of attaching files one by one. Requires
+  `cc` ≥ 0.162.143 (already published) for the tree expansion.
+
 ## [0.4.40] — feat: auto-connect IntelliJ IDEA's built-in MCP server
 
 - **The agent can now use IntelliJ IDEA's own built-in MCP server (IDEA 2025.2+,
