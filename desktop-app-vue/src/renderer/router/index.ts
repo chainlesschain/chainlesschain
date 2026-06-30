@@ -1214,15 +1214,8 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "AI 自主执行代理" },
       },
       // ===== v1.1.0 新功能 =====
-      {
-        path: "deployment-monitor",
-        name: "DeploymentMonitor",
-        component: () =>
-          import(
-            /* webpackChunkName: "deployment-monitor" */ "../pages/DeploymentMonitorPage.vue"
-          ),
-        meta: { title: "流水线监控" },
-      },
+      // DeploymentMonitor V5 page ported to V6 shell panel (/pipeline slash →
+      // shell/DeploymentMonitorPanel.vue); route removed.
       {
         path: "multimodal-collab",
         name: "MultimodalCollab",
