@@ -571,6 +571,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(sso.pluginId).toBe("sso-configuration");
   });
 
+  it("permission-management 的 /permissions slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const pmSlash = slash.find((s) => s.trigger === "/permissions");
+    expect(pmSlash).toBeDefined();
+    expect(pmSlash.handler).toBe("builtin:openPermissionManagementPanel");
+    expect(pmSlash.pluginId).toBe("permission-management");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

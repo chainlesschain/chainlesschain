@@ -1,0 +1,20 @@
+{
+  "id": "permission-management",
+  "name": "权限管理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/permissions 斜杠命令 — 权限管理（角色/资源权限 + 权限覆盖 + 权限模板 + 权限组 + 统计分析 + 审计日志）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "permission-management",
+        "trigger": "/permissions",
+        "handler": "builtin:openPermissionManagementPanel",
+        "description": "打开权限管理",
+        "icon": "SafetyOutlined"
+      }
+    }
+  ]
+}
