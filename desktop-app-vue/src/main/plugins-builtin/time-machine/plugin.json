@@ -1,0 +1,20 @@
+{
+  "id": "time-machine",
+  "name": "时光机",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/time-machine 斜杠命令 — 时光机（按日期回看时间线 + 回忆/throwback/年度报告 + 活动/情绪/词云/热力图统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "time-machine",
+        "trigger": "/time-machine",
+        "handler": "builtin:openTimeMachinePanel",
+        "description": "打开时光机",
+        "icon": "ClockCircleOutlined"
+      }
+    }
+  ]
+}

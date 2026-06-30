@@ -507,6 +507,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(sp.pluginId).toBe("skill-pipeline");
   });
 
+  it("time-machine 的 /time-machine slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const tm = slash.find((s) => s.trigger === "/time-machine");
+    expect(tm).toBeDefined();
+    expect(tm.handler).toBe("builtin:openTimeMachinePanel");
+    expect(tm.pluginId).toBe("time-machine");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");
