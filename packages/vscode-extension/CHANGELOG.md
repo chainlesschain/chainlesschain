@@ -2,6 +2,28 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.0] — feat: Claude Code chat parity (folder mentions, drag-drop, deep links)
+
+A batch of chat-panel parity features aligning the bridge with the Claude Code
+IDE experience:
+
+- **`@folder/` mentions.** The chat `@`-picker now offers workspace folders
+  (not just files); selecting one inserts `@path/` which the `cc` CLI expands to
+  a depth-capped recursive tree, so you can hand the agent a whole subtree in one
+  reference. (Needs `cc` ≥ 0.162.143, already published.)
+- **Drag-and-drop images.** Drop an image file onto the chat to attach it for a
+  vision turn — no need to type the path.
+- **Session search.** The "Reopen Closed Chat" picker now matches on title and
+  date, so you can find an old conversation by typing instead of scrolling.
+- **Approval-mode status bar.** A status-bar item shows the chat's current
+  approval mode (`approvals` / `auto-accept edits` / `bypass approvals`), with a
+  warning background when approvals are bypassed; click it to switch.
+- **Expand/collapse all reasoning.** `Ctrl/Cmd+O` (or the `/expand` chat command)
+  toggles every reasoning block at once, instead of one at a time.
+- **URI deep links.** `vscode://chainlesschain.chainlesschain-ide/open` focuses
+  the chat; add `?prompt=…` to also seed the input. Lets other tools and docs
+  link straight into a ChainlessChain chat.
+
 ## [0.36.16] — chore: publish to the official VS Code Marketplace
 
 - **No functional changes** — same code as 0.36.15. This version exists to
