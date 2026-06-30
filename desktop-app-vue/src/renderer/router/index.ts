@@ -1193,15 +1193,8 @@ const routes: RouteRecordRaw[] = [
       },
       // AutonomousOps V5 page ported to V6 shell panel (/autops slash →
       // shell/AutonomousOpsPanel.vue); route removed.
-      {
-        path: "federated-network",
-        name: "FederatedNetwork",
-        component: () =>
-          import(
-            /* webpackChunkName: "federated-network" */ "../pages/FederatedNetworkPage.vue"
-          ),
-        meta: { title: "去中心化代理网络" },
-      },
+      // FederatedNetwork V5 page ported to V6 shell panel (/agent-network slash
+      // → shell/FederatedNetworkPanel.vue); route removed.
       // ===== Social AI Insights (v1.1.0 Phase 42) =====
       {
         path: "social-insights",
