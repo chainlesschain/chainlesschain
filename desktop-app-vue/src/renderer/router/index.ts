@@ -1121,15 +1121,8 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "插件详情" },
       },
       // ===== 智能代理系统 (v0.34.0) =====
-      {
-        path: "agents",
-        name: "AgentDashboard",
-        component: () =>
-          import(
-            /* webpackChunkName: "agent-dashboard" */ "../pages/AgentDashboardPage.vue"
-          ),
-        meta: { title: "智能代理中心" },
-      },
+      // AgentDashboard V5 page ported to V6 shell panel (/agents-hub slash →
+      // shell/AgentDashboardPanel.vue); route removed.
       {
         path: "agents/templates/edit/:id?",
         name: "AgentTemplateEditor",
