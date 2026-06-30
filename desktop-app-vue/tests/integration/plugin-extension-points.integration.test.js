@@ -539,6 +539,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(cd.pluginId).toBe("compliance-dashboard");
   });
 
+  it("tools-explorer 的 /tools slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const te = slash.find((s) => s.trigger === "/tools");
+    expect(te).toBeDefined();
+    expect(te.handler).toBe("builtin:openToolsExplorerPanel");
+    expect(te.pluginId).toBe("tools-explorer");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

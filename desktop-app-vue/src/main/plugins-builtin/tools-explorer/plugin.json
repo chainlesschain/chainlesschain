@@ -1,0 +1,20 @@
+{
+  "id": "tools-explorer",
+  "name": "Tools Explorer",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/tools 斜杠命令 — 工具浏览器（按技能分组浏览内置/MCP/技能工具 + Agent Skills 元数据 + 来源/分类筛选 + 搜索）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "tools-explorer",
+        "trigger": "/tools",
+        "handler": "builtin:openToolsExplorerPanel",
+        "description": "打开工具浏览器",
+        "icon": "ToolOutlined"
+      }
+    }
+  ]
+}
