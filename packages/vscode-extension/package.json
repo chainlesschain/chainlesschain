@@ -26,7 +26,8 @@
     "url": "https://github.com/chainlesschain/chainlesschain/issues"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onUri"
   ],
   "main": "./src/extension.js",
   "contributes": {

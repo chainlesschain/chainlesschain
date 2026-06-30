@@ -589,6 +589,23 @@ function activate(context) {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
       runInTerminal(vscode, buildMemoryFilesCommand(), cwd);
     }),
+    // Deep link (Claude-Code parity): vscode://chainlesschain.chainlesschain-ide/open
+    // [?prompt=…] focuses the chat panel and optionally seeds a prompt, so docs,
+    // scripts, or the CLI can hand off into the IDE chat. Parsing lives in the
+    // vscode-free, unit-tested uri-handler.js.
+    vscode.window.registerUriHandler({
+      handleUri: (uri) => {
+        try {
+          const { parseDeepLink } = require("./uri-handler.js");
+          const link = parseDeepLink({ path: uri.path, query: uri.query });
+          if (!link) return;
+          vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+          if (link.prompt) chatProvider.seedInput(link.prompt);
+        } catch (e) {
+          log("uri handler failed: " + (e?.message || e));
+        }
+      },
+    }),
     { dispose: () => stopBridge(context) },
   );
 
