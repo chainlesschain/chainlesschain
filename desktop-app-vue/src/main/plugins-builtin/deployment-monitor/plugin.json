@@ -1,0 +1,20 @@
+{
+  "id": "deployment-monitor",
+  "name": "流水线监控",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/pipeline 斜杠命令 — DevOps 流水线监控（创建/启动/暂停/恢复/取消 + 阶段时间线 + 门控审批 + KPI 指标）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "deployment-monitor",
+        "trigger": "/pipeline",
+        "handler": "builtin:openDeploymentMonitorPanel",
+        "description": "打开流水线监控",
+        "icon": "DeploymentUnitOutlined"
+      }
+    }
+  ]
+}

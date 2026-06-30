@@ -8,8 +8,8 @@
 
 import { defineStore } from "pinia";
 
-// 只绑定一次：DeploymentMonitorPage 在 onMounted 调 initEventListeners() 且无
-// onUnmounted 清理 → 每次进入页面累加监听器（重复 dispatch + 泄漏）。匿名包装无法
+// 只绑定一次：DeploymentMonitorPanel 在每次 open 调 initEventListeners() 且无
+// onUnmounted 清理 → 每次打开都会累加监听器（重复 dispatch + 泄漏）。匿名包装无法
 // 精准 off，故用模块级标志（同 agentNetwork.ts / autonomous-agent.ts）。
 let deploymentEventListenersBound = false;
 

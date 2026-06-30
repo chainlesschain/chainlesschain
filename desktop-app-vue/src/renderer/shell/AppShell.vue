@@ -127,6 +127,10 @@
       v-model:open="skillPerformancePanelOpen"
       :prefill-text="skillPerformancePrefill"
     />
+    <DeploymentMonitorPanel
+      v-model:open="deploymentMonitorPanelOpen"
+      :prefill-text="deploymentMonitorPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -217,6 +221,7 @@ import ZKPCredentialsPanel from "./ZKPCredentialsPanel.vue";
 import FederatedLearningPanel from "./FederatedLearningPanel.vue";
 import IPFSClusterPanel from "./IPFSClusterPanel.vue";
 import SkillPerformancePanel from "./SkillPerformancePanel.vue";
+import DeploymentMonitorPanel from "./DeploymentMonitorPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -285,6 +290,8 @@ const ipfsClusterPanelOpen = ref(false);
 const ipfsClusterPrefill = ref("");
 const skillPerformancePanelOpen = ref(false);
 const skillPerformancePrefill = ref("");
+const deploymentMonitorPanelOpen = ref(false);
+const deploymentMonitorPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -362,6 +369,7 @@ let unregisterZKPCredentialsHandler: (() => void) | null = null;
 let unregisterFederatedLearningHandler: (() => void) | null = null;
 let unregisterIPFSClusterHandler: (() => void) | null = null;
 let unregisterSkillPerformanceHandler: (() => void) | null = null;
+let unregisterDeploymentMonitorHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -558,6 +566,13 @@ onMounted(async () => {
       skillPerformancePanelOpen.value = true;
     },
   );
+  unregisterDeploymentMonitorHandler = registerSlashHandler(
+    "builtin:openDeploymentMonitorPanel",
+    ({ args }) => {
+      deploymentMonitorPrefill.value = args ?? "";
+      deploymentMonitorPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -702,6 +717,8 @@ onBeforeUnmount(() => {
   unregisterIPFSClusterHandler = null;
   unregisterSkillPerformanceHandler?.();
   unregisterSkillPerformanceHandler = null;
+  unregisterDeploymentMonitorHandler?.();
+  unregisterDeploymentMonitorHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

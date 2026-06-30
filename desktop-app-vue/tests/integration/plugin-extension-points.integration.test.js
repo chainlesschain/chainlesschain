@@ -467,6 +467,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(sp.pluginId).toBe("skill-performance");
   });
 
+  it("deployment-monitor 的 /pipeline slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const dm = slash.find((s) => s.trigger === "/pipeline");
+    expect(dm).toBeDefined();
+    expect(dm.handler).toBe("builtin:openDeploymentMonitorPanel");
+    expect(dm.pluginId).toBe("deployment-monitor");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");
