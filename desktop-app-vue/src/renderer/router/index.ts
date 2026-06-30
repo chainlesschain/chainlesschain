@@ -1105,15 +1105,8 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "代理模板编辑" },
       },
       // ===== SSO 企业认证 (v0.34.0) =====
-      {
-        path: "sso/config",
-        name: "SSOConfiguration",
-        component: () =>
-          import(
-            /* webpackChunkName: "sso-config" */ "../pages/SSOConfigurationPage.vue"
-          ),
-        meta: { title: "SSO 身份认证配置" },
-      },
+      // SSOConfiguration V5 page ported to V6 shell panel (/sso slash →
+      // shell/SSOConfigurationPanel.vue); route removed.
       {
         path: "sso/login",
         name: "SSOLogin",
