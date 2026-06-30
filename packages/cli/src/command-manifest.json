@@ -1,0 +1,1126 @@
+{
+  "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
+  "commandCount": 160,
+  "commands": [
+    {
+      "name": "a2a",
+      "aliases": [],
+      "module": "./commands/a2a.js",
+      "register": "registerA2aCommand",
+      "summary": "A2A Protocol — agent-to-agent communication"
+    },
+    {
+      "name": "activitypub",
+      "aliases": ["ap"],
+      "module": "./commands/activitypub.js",
+      "register": "registerActivityPubCommand",
+      "summary": "ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce"
+    },
+    {
+      "name": "agent",
+      "aliases": ["a"],
+      "module": "./commands/agent.js",
+      "register": "registerAgentCommand",
+      "summary": "Start an agentic AI session (reads/writes files, runs commands)"
+    },
+    {
+      "name": "agent-network",
+      "aliases": ["anet"],
+      "module": "./commands/agent-network.js",
+      "register": "registerAgentNetworkCommand",
+      "summary": "Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing"
+    },
+    {
+      "name": "agents",
+      "aliases": [],
+      "module": "./commands/agents.js",
+      "register": "registerAgentsCommand",
+      "summary": "User-defined subagents (.claude/agents/*.md)"
+    },
+    {
+      "name": "android",
+      "aliases": [],
+      "module": "./commands/android.js",
+      "register": "registerAndroidCommand",
+      "summary": "Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)"
+    },
+    {
+      "name": "ask",
+      "aliases": [],
+      "module": "./commands/ask.js",
+      "register": "registerAskCommand",
+      "summary": "Ask a question to the AI (single-shot)"
+    },
+    {
+      "name": "audit",
+      "aliases": [],
+      "module": "./commands/audit.js",
+      "register": "registerAuditCommand",
+      "summary": "Audit log — security event tracking and compliance"
+    },
+    {
+      "name": "auth",
+      "aliases": [],
+      "module": "./commands/auth.js",
+      "register": "registerAuthCommand",
+      "summary": "RBAC permission management"
+    },
+    {
+      "name": "auto",
+      "aliases": [],
+      "module": "./commands/automation.js",
+      "register": "registerAutomationCommand",
+      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+    },
+    {
+      "name": "autoagent",
+      "aliases": [],
+      "module": "./commands/agent.js",
+      "register": "registerAutoAgentV2Command",
+      "summary": "Autonomous agent V2 governance"
+    },
+    {
+      "name": "automation",
+      "aliases": [],
+      "module": "./commands/automation.js",
+      "register": "registerAutomationCommand",
+      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+    },
+    {
+      "name": "bi",
+      "aliases": [],
+      "module": "./commands/bi.js",
+      "register": "registerBiCommand",
+      "summary": "Business intelligence — queries, dashboards, reports, analytics"
+    },
+    {
+      "name": "bm25",
+      "aliases": [],
+      "module": "./commands/bm25.js",
+      "register": "registerBm25Command",
+      "summary": "BM25 Search V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "browse",
+      "aliases": [],
+      "module": "./commands/browse.js",
+      "register": "registerBrowseCommand",
+      "summary": "Headless browser automation and web scraping"
+    },
+    {
+      "name": "ccron",
+      "aliases": [],
+      "module": "./commands/ccron.js",
+      "register": "registerCcronCommand",
+      "summary": "Cowork Cron V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "chat",
+      "aliases": [],
+      "module": "./commands/chat.js",
+      "register": "registerChatCommand",
+      "summary": "Start an interactive AI chat session"
+    },
+    {
+      "name": "checkpoint",
+      "aliases": [],
+      "module": "./commands/checkpoint.js",
+      "register": "registerCheckpointCommand",
+      "summary": "Snapshot / rewind file state (git-plumbing, copy fallback)"
+    },
+    {
+      "name": "cli-anything",
+      "aliases": [],
+      "module": "./commands/cli-anything.js",
+      "register": "registerCliAnythingCommand",
+      "summary": "CLI-Anything — discover and register Agent-native CLI tools as skills"
+    },
+    {
+      "name": "codegen",
+      "aliases": [],
+      "module": "./commands/codegen.js",
+      "register": "registerCodegenCommand",
+      "summary": "Code generation agent (Phase 86)"
+    },
+    {
+      "name": "collab",
+      "aliases": [],
+      "module": "./commands/collab.js",
+      "register": "registerCollabCommand",
+      "summary": "Collaboration governance — decisions, voting, autonomy levels, task assignment"
+    },
+    {
+      "name": "command",
+      "aliases": ["cmd"],
+      "module": "./commands/command.js",
+      "register": "registerCommandCommand",
+      "summary": "User-defined slash-command macros (.claude/commands/*.md)"
+    },
+    {
+      "name": "compact",
+      "aliases": [],
+      "module": "./commands/compact.js",
+      "register": "registerCompactCommand",
+      "summary": "Compact a stored session's history (offline; persists for --resume)"
+    },
+    {
+      "name": "compliance",
+      "aliases": [],
+      "module": "./commands/compliance.js",
+      "register": "registerComplianceCommand",
+      "summary": "Compliance management — evidence, reports, scanning, policies"
+    },
+    {
+      "name": "compt",
+      "aliases": [],
+      "module": "./commands/compt.js",
+      "register": "registerComptCommand",
+      "summary": "Compression Telemetry V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "config",
+      "aliases": [],
+      "module": "./commands/config.js",
+      "register": "registerConfigCommand",
+      "summary": "Manage ChainlessChain configuration"
+    },
+    {
+      "name": "consol",
+      "aliases": [],
+      "module": "./commands/consol.js",
+      "register": "registerConsolCommand",
+      "summary": "Session Consolidator V2 governance (in-memory, CLI v0.134.0)"
+    },
+    {
+      "name": "context",
+      "aliases": [],
+      "module": "./commands/context.js",
+      "register": "registerContextCommand",
+      "summary": "Context-window token breakdown for a session (Claude-Code /context parity)"
+    },
+    {
+      "name": "cost",
+      "aliases": [],
+      "module": "./commands/cost.js",
+      "register": "registerCostCommand",
+      "summary": "Estimated $ cost from recorded token usage (per-session or global)"
+    },
+    {
+      "name": "cowork",
+      "aliases": [],
+      "module": "./commands/cowork.js",
+      "register": "registerCoworkCommand",
+      "summary": "Multi-agent collaboration (debate review, A/B comparison, analysis)"
+    },
+    {
+      "name": "crosschain",
+      "aliases": [],
+      "module": "./commands/crosschain.js",
+      "register": "registerCrossChainCommand",
+      "summary": "Cross-chain interoperability (Phase 89)"
+    },
+    {
+      "name": "dao",
+      "aliases": [],
+      "module": "./commands/dao.js",
+      "register": "registerDaoCommand",
+      "summary": "DAO Governance v2 — proposals, voting, delegation, treasury"
+    },
+    {
+      "name": "db",
+      "aliases": [],
+      "module": "./commands/db.js",
+      "register": "registerDbCommand",
+      "summary": "Database management"
+    },
+    {
+      "name": "dbevo",
+      "aliases": [],
+      "module": "./commands/dbevo.js",
+      "register": "registerDbEvoCommand",
+      "summary": "Database evolution & migration framework (Phase 80)"
+    },
+    {
+      "name": "decrypt",
+      "aliases": [],
+      "module": "./commands/encrypt.js",
+      "register": "registerEncryptCommand",
+      "summary": "Decrypt an encrypted file"
+    },
+    {
+      "name": "dev",
+      "aliases": [],
+      "module": "./commands/dev.js",
+      "register": "registerDevCommand",
+      "summary": "Autonomous developer — dev sessions, ADRs, code review, refactor catalog"
+    },
+    {
+      "name": "did",
+      "aliases": [],
+      "module": "./commands/did.js",
+      "register": "registerDidCommand",
+      "summary": "Decentralized Identity (DID) management"
+    },
+    {
+      "name": "did-v2",
+      "aliases": ["didv2"],
+      "module": "./commands/did-v2.js",
+      "register": "registerDIDv2Command",
+      "summary": "Decentralized Identity 2.0 (Phase 55) — W3C DID v2.0 + VP + social recovery + roaming"
+    },
+    {
+      "name": "dlp",
+      "aliases": [],
+      "module": "./commands/dlp.js",
+      "register": "registerDlpCommand",
+      "summary": "Data Loss Prevention — scanning, incidents, policies"
+    },
+    {
+      "name": "doctor",
+      "aliases": [],
+      "module": "./commands/doctor.js",
+      "register": "registerDoctorCommand",
+      "summary": "Diagnose your ChainlessChain environment"
+    },
+    {
+      "name": "economy",
+      "aliases": [],
+      "module": "./commands/economy.js",
+      "register": "registerEconomyCommand",
+      "summary": "Agent economy — payments, channels, marketplace, NFTs"
+    },
+    {
+      "name": "ecosystem",
+      "aliases": ["eco"],
+      "module": "./commands/plugin-ecosystem.js",
+      "register": "registerPluginEcosystemCommand",
+      "summary": "Plugin Ecosystem 2.0 (Phase 64) — registry + deps + install + AI review + publish + revenue + recommend"
+    },
+    {
+      "name": "encrypt",
+      "aliases": [],
+      "module": "./commands/encrypt.js",
+      "register": "registerEncryptCommand",
+      "summary": "File encryption and database encryption management"
+    },
+    {
+      "name": "evolution",
+      "aliases": [],
+      "module": "./commands/evolution.js",
+      "register": "registerEvolutionCommand",
+      "summary": "Self-evolving AI system — capabilities, learning, diagnosis"
+    },
+    {
+      "name": "evomap",
+      "aliases": [],
+      "module": "./commands/evomap.js",
+      "register": "registerEvoMapCommand",
+      "summary": "EvoMap — gene exchange protocol for agent capabilities"
+    },
+    {
+      "name": "execbe",
+      "aliases": [],
+      "module": "./commands/agent.js",
+      "register": "registerExecBackendV2Command",
+      "summary": "Execution backend V2 governance"
+    },
+    {
+      "name": "export",
+      "aliases": [],
+      "module": "./commands/export.js",
+      "register": "registerExportCommand",
+      "summary": "Export knowledge base to external formats"
+    },
+    {
+      "name": "federation",
+      "aliases": [],
+      "module": "./commands/federation.js",
+      "register": "registerFederationCommand",
+      "summary": "Federation hardening system (Phase 58)"
+    },
+    {
+      "name": "fflag",
+      "aliases": [],
+      "module": "./commands/fflag.js",
+      "register": "registerFflagCommand",
+      "summary": "Feature Flags V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "fusion",
+      "aliases": [],
+      "module": "./commands/fusion.js",
+      "register": "registerFusionCommand",
+      "summary": "Protocol fusion & AI social (Phase 72-73)"
+    },
+    {
+      "name": "git",
+      "aliases": [],
+      "module": "./commands/git.js",
+      "register": "registerGitCommand",
+      "summary": "Git integration for knowledge base versioning"
+    },
+    {
+      "name": "goal",
+      "aliases": [],
+      "module": "./commands/goal.js",
+      "register": "registerGoalCommand",
+      "summary": "Cross-session persistent goals / OKRs"
+    },
+    {
+      "name": "governance",
+      "aliases": [],
+      "module": "./commands/governance.js",
+      "register": "registerGovernanceCommand",
+      "summary": "Community governance — proposals, voting, impact analysis, prediction"
+    },
+    {
+      "name": "hardening",
+      "aliases": [],
+      "module": "./commands/hardening.js",
+      "register": "registerHardeningCommand",
+      "summary": "Security hardening — baselines, audits, regression detection"
+    },
+    {
+      "name": "hmemory",
+      "aliases": [],
+      "module": "./commands/hmemory.js",
+      "register": "registerHmemoryCommand",
+      "summary": "Hierarchical Memory 2.0 — four-layer memory system"
+    },
+    {
+      "name": "hook",
+      "aliases": [],
+      "module": "./commands/hook.js",
+      "register": "registerHookCommand",
+      "summary": "Lifecycle hook management"
+    },
+    {
+      "name": "hub",
+      "aliases": [],
+      "module": "./commands/hub.js",
+      "register": "registerHubCommand",
+      "summary": "Personal Data Hub — local vault + adapters + AnalysisEngine on this machine"
+    },
+    {
+      "name": "ide",
+      "aliases": [],
+      "module": "./commands/ide.js",
+      "register": "registerIdeCommand",
+      "summary": "Inspect IDE bridge discovery (editor MCP server auto-connect)"
+    },
+    {
+      "name": "import",
+      "aliases": [],
+      "module": "./commands/import.js",
+      "register": "registerImportCommand",
+      "summary": "Import knowledge from external sources"
+    },
+    {
+      "name": "incentive",
+      "aliases": [],
+      "module": "./commands/incentive.js",
+      "register": "registerIncentiveCommand",
+      "summary": "Token incentive — ledger accounts, transfers, contributions, leaderboard"
+    },
+    {
+      "name": "inference",
+      "aliases": [],
+      "module": "./commands/inference.js",
+      "register": "registerInferenceCommand",
+      "summary": "Decentralized inference network (Phase 67)"
+    },
+    {
+      "name": "infra",
+      "aliases": [],
+      "module": "./commands/infra.js",
+      "register": "registerInfraCommand",
+      "summary": "Decentralized infrastructure (Phase 74-75)"
+    },
+    {
+      "name": "init",
+      "aliases": [],
+      "module": "./commands/init.js",
+      "register": "registerInitCommand",
+      "summary": "Inventory the current folder into a cc.md project-memory file (default); pass -t/--template to scaffold a .chainlesschain/ project instead"
+    },
+    {
+      "name": "insights",
+      "aliases": [],
+      "module": "./commands/insights.js",
+      "register": "registerInsightsCommand",
+      "summary": "Analyze a session: turns, tools, errors, duration, tokens + cost"
+    },
+    {
+      "name": "instinct",
+      "aliases": [],
+      "module": "./commands/instinct.js",
+      "register": "registerInstinctCommand",
+      "summary": "Instinct learning — learned user preferences"
+    },
+    {
+      "name": "ipfs",
+      "aliases": [],
+      "module": "./commands/ipfs.js",
+      "register": "registerIpfsCommand",
+      "summary": "IPFS decentralized storage (Phase 17)"
+    },
+    {
+      "name": "itbudget",
+      "aliases": [],
+      "module": "./commands/itbudget.js",
+      "register": "registerItBudgetCommand",
+      "summary": "Iteration Budget V2 governance"
+    },
+    {
+      "name": "kg",
+      "aliases": [],
+      "module": "./commands/kg.js",
+      "register": "registerKgCommand",
+      "summary": "Knowledge graph — entities, relations, multi-hop reasoning, stats"
+    },
+    {
+      "name": "learning",
+      "aliases": [],
+      "module": "./commands/learning.js",
+      "register": "registerLearningCommand",
+      "summary": "Autonomous learning loop — trajectories, reflection, skill synthesis"
+    },
+    {
+      "name": "llm",
+      "aliases": [],
+      "module": "./commands/llm.js",
+      "register": "registerLlmCommand",
+      "summary": "LLM provider management"
+    },
+    {
+      "name": "loop",
+      "aliases": [],
+      "module": "./commands/loop.js",
+      "register": "registerLoopCommand",
+      "summary": "Repeatedly run an agent prompt or `-- <command>` on a fixed interval"
+    },
+    {
+      "name": "lowcode",
+      "aliases": [],
+      "module": "./commands/lowcode.js",
+      "register": "registerLowcodeCommand",
+      "summary": "Low-code application platform"
+    },
+    {
+      "name": "marketplace",
+      "aliases": [],
+      "module": "./commands/marketplace.js",
+      "register": "registerMarketplaceCommand",
+      "summary": "Skill marketplace — publish skill services, record invocations, view stats"
+    },
+    {
+      "name": "matrix",
+      "aliases": [],
+      "module": "./commands/matrix.js",
+      "register": "registerMatrixCommand",
+      "summary": "Matrix bridge — rooms, messaging, E2EE"
+    },
+    {
+      "name": "mcp",
+      "aliases": [],
+      "module": "./commands/mcp.js",
+      "register": "registerMcpCommand",
+      "summary": "MCP server management and tool execution"
+    },
+    {
+      "name": "mcpscaf",
+      "aliases": [],
+      "module": "./commands/mcpscaf.js",
+      "register": "registerMcpscafCommand",
+      "summary": "MCP Scaffold V2 governance"
+    },
+    {
+      "name": "meminj",
+      "aliases": [],
+      "module": "./commands/meminj.js",
+      "register": "registerMeminjCommand",
+      "summary": "Memory Injection V2 governance"
+    },
+    {
+      "name": "memory",
+      "aliases": [],
+      "module": "./commands/memory.js",
+      "register": "registerMemoryCommand",
+      "summary": "Persistent memory and daily notes"
+    },
+    {
+      "name": "mtc",
+      "aliases": [],
+      "module": "./commands/mtc.js",
+      "register": "registerMtcCommand",
+      "summary": "Merkle Tree Certificates — batch issuance & verification"
+    },
+    {
+      "name": "multimodal",
+      "aliases": ["mm"],
+      "module": "./commands/multimodal.js",
+      "register": "registerMultimodalCommand",
+      "summary": "Multimodal collaboration (Phase 27)"
+    },
+    {
+      "name": "multisig",
+      "aliases": [],
+      "module": "./commands/multisig.js",
+      "register": "registerMultisigCommand",
+      "summary": "M-of-N multi-signature proposals beyond MTC publisher_signature"
+    },
+    {
+      "name": "nlprog",
+      "aliases": [],
+      "module": "./commands/nlprog.js",
+      "register": "registerNlProgCommand",
+      "summary": "Natural language programming system (Phase 28)"
+    },
+    {
+      "name": "nostr",
+      "aliases": [],
+      "module": "./commands/nostr.js",
+      "register": "registerNostrCommand",
+      "summary": "Nostr bridge — relays, events, keypairs, DID mapping"
+    },
+    {
+      "name": "note",
+      "aliases": [],
+      "module": "./commands/note.js",
+      "register": "registerNoteCommand",
+      "summary": "Note and knowledge base management"
+    },
+    {
+      "name": "notification",
+      "aliases": ["notif"],
+      "module": "./commands/notification.js",
+      "register": "registerNotificationCommand",
+      "summary": "Push notifications to paired mobile devices"
+    },
+    {
+      "name": "ops",
+      "aliases": [],
+      "module": "./commands/ops.js",
+      "register": "registerOpsCommand",
+      "summary": "Autonomous operations / AIOps"
+    },
+    {
+      "name": "orchestrate",
+      "aliases": [],
+      "module": "./commands/orchestrate.js",
+      "register": "registerOrchestrateCommand",
+      "summary": "Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify"
+    },
+    {
+      "name": "orchgov",
+      "aliases": [],
+      "module": "./commands/orchgov.js",
+      "register": "registerOrchGovCommand",
+      "summary": "Orchestrator V2 governance"
+    },
+    {
+      "name": "org",
+      "aliases": [],
+      "module": "./commands/org.js",
+      "register": "registerOrgCommand",
+      "summary": "Organization, team, and approval management"
+    },
+    {
+      "name": "output-style",
+      "aliases": ["output-styles"],
+      "module": "./commands/output-style.js",
+      "register": "registerOutputStyleCommand",
+      "summary": "List / show agent output-style personas"
+    },
+    {
+      "name": "p2p",
+      "aliases": [],
+      "module": "./commands/p2p.js",
+      "register": "registerP2pCommand",
+      "summary": "Peer-to-peer messaging and device management"
+    },
+    {
+      "name": "pack",
+      "aliases": [],
+      "module": "./commands/pack.js",
+      "register": "registerPackCommand",
+      "summary": "Bundle the current project environment into a standalone executable"
+    },
+    {
+      "name": "pair",
+      "aliases": [],
+      "module": "./commands/pair.js",
+      "register": "registerPairCommand",
+      "summary": "LAN pairing utilities (preflight diagnostics + pairing token issuance)"
+    },
+    {
+      "name": "pdfp",
+      "aliases": [],
+      "module": "./commands/pdfp.js",
+      "register": "registerPdfpCommand",
+      "summary": "PDF Parser V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "pdh",
+      "aliases": [],
+      "module": "./commands/pdh.js",
+      "register": "registerPdhCommand",
+      "summary": "Inspect PDH bridge discovery (Android personal-data MCP server auto-connect)"
+    },
+    {
+      "name": "perception",
+      "aliases": [],
+      "module": "./commands/perception.js",
+      "register": "registerPerceptionCommand",
+      "summary": "Multimodal perception engine (Phase 84)"
+    },
+    {
+      "name": "perf",
+      "aliases": [],
+      "module": "./commands/perf.js",
+      "register": "registerPerfCommand",
+      "summary": "Performance monitoring & auto-tuning (Phase 22)"
+    },
+    {
+      "name": "perm",
+      "aliases": [],
+      "module": "./commands/perm.js",
+      "register": "registerPermCommand",
+      "summary": "Permission Engine V2 governance"
+    },
+    {
+      "name": "permissions",
+      "aliases": ["perms"],
+      "module": "./commands/permissions.js",
+      "register": "registerPermissionsCommand",
+      "summary": "Inspect / dry-run / edit .claude/settings.json permission rules"
+    },
+    {
+      "name": "permmem",
+      "aliases": [],
+      "module": "./commands/permmem.js",
+      "register": "registerPermMemCommand",
+      "summary": "Permanent memory V2 — pin maturity + retention jobs"
+    },
+    {
+      "name": "persona",
+      "aliases": [],
+      "module": "./commands/persona.js",
+      "register": "registerPersonaCommand",
+      "summary": "Manage project AI persona configuration"
+    },
+    {
+      "name": "pipeline",
+      "aliases": ["pipe"],
+      "module": "./commands/pipeline.js",
+      "register": "registerPipelineCommand",
+      "summary": "Development Pipeline Orchestration (Phase 26) — 7-stage AI dev pipeline + gates + deploys"
+    },
+    {
+      "name": "planmode",
+      "aliases": [],
+      "module": "./commands/planmode.js",
+      "register": "registerPlanModeCommand",
+      "summary": "Plan Mode V2 governance"
+    },
+    {
+      "name": "plugin",
+      "aliases": [],
+      "module": "./commands/plugin.js",
+      "register": "registerPluginCommand",
+      "summary": "Plugin and marketplace management"
+    },
+    {
+      "name": "pqc",
+      "aliases": [],
+      "module": "./commands/pqc.js",
+      "register": "registerPqcCommand",
+      "summary": "Post-quantum cryptography — key management and migration"
+    },
+    {
+      "name": "privacy",
+      "aliases": [],
+      "module": "./commands/privacy.js",
+      "register": "registerPrivacyCommand",
+      "summary": "Privacy computing (Phase 91)"
+    },
+    {
+      "name": "project",
+      "aliases": [],
+      "module": "./commands/project.js",
+      "register": "registerProjectCommand",
+      "summary": "Manage desktop projects (shared SQLite, syncs to mobile via Phase 3d)"
+    },
+    {
+      "name": "promcomp",
+      "aliases": [],
+      "module": "./commands/promcomp.js",
+      "register": "registerPromcompCommand",
+      "summary": "Prompt Compressor V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "quantize",
+      "aliases": [],
+      "module": "./commands/quantization.js",
+      "register": "registerQuantizationCommand",
+      "summary": "Model quantization system (Phase 20)"
+    },
+    {
+      "name": "rcache",
+      "aliases": [],
+      "module": "./commands/rcache.js",
+      "register": "registerRCacheCommand",
+      "summary": "Response cache V2 — profile maturity + refresh jobs"
+    },
+    {
+      "name": "recommend",
+      "aliases": [],
+      "module": "./commands/recommend.js",
+      "register": "registerRecommendCommand",
+      "summary": "Smart content recommendation (Phase 48)"
+    },
+    {
+      "name": "reputation",
+      "aliases": ["rep"],
+      "module": "./commands/reputation.js",
+      "register": "registerReputationCommand",
+      "summary": "Reputation optimizer — observations, decay, anomaly detection, Bayesian optimization"
+    },
+    {
+      "name": "review",
+      "aliases": [],
+      "module": "./commands/review.js",
+      "register": "registerReviewCommand",
+      "summary": "Diff-first code review of your changes (Claude-Code /code-review parity)"
+    },
+    {
+      "name": "router",
+      "aliases": [],
+      "module": "./commands/orchestrate.js",
+      "register": "registerOrchestrateCommand",
+      "summary": "Agent router V2 governance"
+    },
+    {
+      "name": "runtime",
+      "aliases": [],
+      "module": "./commands/runtime.js",
+      "register": "registerRuntimeCommand",
+      "summary": "Universal application runtime (Phase 63)"
+    },
+    {
+      "name": "sandbox",
+      "aliases": [],
+      "module": "./commands/sandbox.js",
+      "register": "registerSandboxCommand",
+      "summary": "Security sandbox v2 — isolated agent execution environments"
+    },
+    {
+      "name": "scim",
+      "aliases": [],
+      "module": "./commands/scim.js",
+      "register": "registerScimCommand",
+      "summary": "SCIM provisioning — user management, connectors, sync"
+    },
+    {
+      "name": "search",
+      "aliases": [],
+      "module": "./commands/search.js",
+      "register": "registerSearchCommand",
+      "summary": "Search knowledge base (BM25 + vector hybrid)"
+    },
+    {
+      "name": "serve",
+      "aliases": [],
+      "module": "./commands/serve.js",
+      "register": "registerServeCommand",
+      "summary": "Start WebSocket server for remote CLI access"
+    },
+    {
+      "name": "services",
+      "aliases": [],
+      "module": "./commands/services.js",
+      "register": "registerServicesCommand",
+      "summary": "Manage Docker backend services"
+    },
+    {
+      "name": "seshhook",
+      "aliases": [],
+      "module": "./commands/seshhook.js",
+      "register": "registerSeshhookCommand",
+      "summary": "Session Hooks V2 governance"
+    },
+    {
+      "name": "seshsearch",
+      "aliases": [],
+      "module": "./commands/seshsearch.js",
+      "register": "registerSeshsearchCommand",
+      "summary": "Session Search V2 governance"
+    },
+    {
+      "name": "seshtail",
+      "aliases": [],
+      "module": "./commands/seshtail.js",
+      "register": "registerSeshtailCommand",
+      "summary": "Session Tail V2 governance"
+    },
+    {
+      "name": "seshu",
+      "aliases": [],
+      "module": "./commands/seshu.js",
+      "register": "registerSeshuCommand",
+      "summary": "Session Usage V2 governance"
+    },
+    {
+      "name": "session",
+      "aliases": [],
+      "module": "./commands/session.js",
+      "register": "registerSessionCommand",
+      "summary": "Conversation session management"
+    },
+    {
+      "name": "setup",
+      "aliases": [],
+      "module": "./commands/setup.js",
+      "register": "registerSetupCommand",
+      "summary": "Interactive setup wizard for ChainlessChain"
+    },
+    {
+      "name": "sganal",
+      "aliases": [],
+      "module": "./commands/sganal.js",
+      "register": "registerSganalCommand",
+      "summary": "Social Graph Analytics V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "siem",
+      "aliases": [],
+      "module": "./commands/siem.js",
+      "register": "registerSiemCommand",
+      "summary": "SIEM integration — log export to external targets"
+    },
+    {
+      "name": "skill",
+      "aliases": [],
+      "module": "./commands/skill.js",
+      "register": "registerSkillCommand",
+      "summary": "Manage and run AI skills (multi-layer: bundled + global + project)"
+    },
+    {
+      "name": "sla",
+      "aliases": [],
+      "module": "./commands/sla.js",
+      "register": "registerSlaCommand",
+      "summary": "Cross-org SLA management — contracts, metrics, violations, compensation"
+    },
+    {
+      "name": "slotfill",
+      "aliases": [],
+      "module": "./commands/slotfill.js",
+      "register": "registerSlotfillCommand",
+      "summary": "Slot Filler V2 governance"
+    },
+    {
+      "name": "social",
+      "aliases": [],
+      "module": "./commands/social.js",
+      "register": "registerSocialCommand",
+      "summary": "Social platform — contacts, friends, posts, chat"
+    },
+    {
+      "name": "sso",
+      "aliases": [],
+      "module": "./commands/sso.js",
+      "register": "registerSsoCommand",
+      "summary": "SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)"
+    },
+    {
+      "name": "start",
+      "aliases": [],
+      "module": "./commands/start.js",
+      "register": "registerStartCommand",
+      "summary": "Launch ChainlessChain desktop application"
+    },
+    {
+      "name": "status",
+      "aliases": [],
+      "module": "./commands/status.js",
+      "register": "registerStatusCommand",
+      "summary": "Show status of ChainlessChain app and services"
+    },
+    {
+      "name": "statusline",
+      "aliases": ["status-line"],
+      "module": "./commands/statusline.js",
+      "register": "registerStatuslineCommand",
+      "summary": "Preview / show the .claude/settings.json statusLine"
+    },
+    {
+      "name": "stop",
+      "aliases": [],
+      "module": "./commands/stop.js",
+      "register": "registerStopCommand",
+      "summary": "Stop ChainlessChain"
+    },
+    {
+      "name": "stream",
+      "aliases": [],
+      "module": "./commands/stream.js",
+      "register": "registerStreamCommand",
+      "summary": "Stream a single prompt through session-core StreamRouter (NDJSON on stdout)"
+    },
+    {
+      "name": "stress",
+      "aliases": [],
+      "module": "./commands/stress.js",
+      "register": "registerStressCommand",
+      "summary": "Federation stress testing — load simulation, bottleneck & capacity planning"
+    },
+    {
+      "name": "subagent",
+      "aliases": [],
+      "module": "./commands/agent.js",
+      "register": "registerSubAgentV2Command",
+      "summary": "Sub-agent registry V2 governance"
+    },
+    {
+      "name": "svccont",
+      "aliases": [],
+      "module": "./commands/svccont.js",
+      "register": "registerSvcContCommand",
+      "summary": "Service Container V2 governance"
+    },
+    {
+      "name": "sync",
+      "aliases": [],
+      "module": "./commands/sync.js",
+      "register": "registerSyncCommand",
+      "summary": "File and knowledge synchronization"
+    },
+    {
+      "name": "tech",
+      "aliases": [],
+      "module": "./commands/tech.js",
+      "register": "registerTechCommand",
+      "summary": "Tech Learning Engine — stack analysis, anti-pattern detection, practice store"
+    },
+    {
+      "name": "tenant",
+      "aliases": [],
+      "module": "./commands/tenant.js",
+      "register": "registerTenantCommand",
+      "summary": "Multi-tenant SaaS — tenants, usage metering, subscriptions, quotas"
+    },
+    {
+      "name": "terminal-setup",
+      "aliases": [],
+      "module": "./commands/terminal-setup.js",
+      "register": "registerTerminalSetupCommand",
+      "summary": "Bind Shift+Enter to a REPL newline (Claude-Code parity)"
+    },
+    {
+      "name": "terraform",
+      "aliases": [],
+      "module": "./commands/terraform.js",
+      "register": "registerTerraformCommand",
+      "summary": "Terraform IaC — workspace and run management"
+    },
+    {
+      "name": "tms",
+      "aliases": [],
+      "module": "./commands/tms.js",
+      "register": "registerTmsCommand",
+      "summary": "Task Model Selector V2 governance"
+    },
+    {
+      "name": "todo",
+      "aliases": [],
+      "module": "./commands/agent.js",
+      "register": "registerTodoV2Command",
+      "summary": "Todo manager V2 governance"
+    },
+    {
+      "name": "tokens",
+      "aliases": [],
+      "module": "./commands/tokens.js",
+      "register": "registerTokensCommand",
+      "summary": "LLM token usage tracking and response cache"
+    },
+    {
+      "name": "topiccls",
+      "aliases": [],
+      "module": "./commands/topiccls.js",
+      "register": "registerTopicClsCommand",
+      "summary": "Topic Classifier V2 governance"
+    },
+    {
+      "name": "trust",
+      "aliases": [],
+      "module": "./commands/trust.js",
+      "register": "registerTrustCommand",
+      "summary": "Trust & security (Phase 68-71)"
+    },
+    {
+      "name": "ui",
+      "aliases": [],
+      "module": "./commands/ui.js",
+      "register": "registerUiCommand",
+      "summary": "Start a local web management UI (project or global mode)"
+    },
+    {
+      "name": "update",
+      "aliases": [],
+      "module": "./commands/update.js",
+      "register": "registerUpdateCommand",
+      "summary": "Check for and install updates"
+    },
+    {
+      "name": "uprof",
+      "aliases": [],
+      "module": "./commands/uprof.js",
+      "register": "registerUprofCommand",
+      "summary": "User Profile V2 governance"
+    },
+    {
+      "name": "vcheck",
+      "aliases": [],
+      "module": "./commands/vcheck.js",
+      "register": "registerVcheckCommand",
+      "summary": "Version Checker V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "video",
+      "aliases": [],
+      "module": "./commands/video.js",
+      "register": "registerVideoCommand",
+      "summary": "Video editing agent — long footage + music → montage (CutClaw-inspired)"
+    },
+    {
+      "name": "wallet",
+      "aliases": [],
+      "module": "./commands/wallet.js",
+      "register": "registerWalletCommand",
+      "summary": "Digital wallet and asset management"
+    },
+    {
+      "name": "webfetch",
+      "aliases": [],
+      "module": "./commands/webfetch.js",
+      "register": "registerWebfetchCommand",
+      "summary": "Web Fetch V2 governance"
+    },
+    {
+      "name": "workflow",
+      "aliases": [],
+      "module": "./commands/workflow.js",
+      "register": "registerWorkflowCommand",
+      "summary": "Workflow engine — create, run, and manage DAG-based workflows"
+    },
+    {
+      "name": "zkp",
+      "aliases": [],
+      "module": "./commands/zkp.js",
+      "register": "registerZkpCommand",
+      "summary": "Zero-knowledge proof engine — circuits, proofs, identity"
+    }
+  ]
+}

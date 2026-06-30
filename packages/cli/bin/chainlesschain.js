@@ -17,7 +17,10 @@ if (!process.stderr.isTTY && process.stderr._handle?.setBlocking) {
   process.stderr._handle.setBlocking(true);
 }
 
-import { createProgram } from "../src/index.js";
+// Lazy dispatch: import only the ONE command's module instead of eagerly
+// loading all ~154 command modules (the ~2.7s cold-start cost). runCli falls
+// back to the full eager program for --help / no-args / unknown commands.
+import { runCli } from "../src/lazy-dispatch.js";
 import {
   reportFatal,
   installGlobalErrorHandlers,
@@ -28,5 +31,4 @@ import {
 // boundary as the top-level parse, instead of Node's default ugly-stack crash.
 installGlobalErrorHandlers();
 
-const program = createProgram();
-program.parseAsync(process.argv).catch(reportFatal);
+runCli(process.argv).catch(reportFatal);

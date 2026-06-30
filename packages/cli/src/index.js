@@ -1,5 +1,4 @@
-import { Command } from "commander";
-import { VERSION } from "./constants.js";
+import { createBaseProgram } from "./program-base.js";
 import { maybeNotifyUpdate } from "./lib/update-notice.js";
 import { registerSetupCommand } from "./commands/setup.js";
 import { registerStartCommand } from "./commands/start.js";
@@ -391,16 +390,9 @@ import { registerPipoV2Commands } from "./commands/pipeline.js";
  *   opts.allowedCommands takes precedence over the env var.
  */
 export function createProgram(opts = {}) {
-  const program = new Command();
-
-  program
-    .name("chainlesschain")
-    .description(
-      "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
-    )
-    .version(VERSION, "-v, --version")
-    .option("--verbose", "Enable verbose output")
-    .option("--quiet", "Suppress non-essential output");
+  // Base (name/version/global options) is shared with the lazy fast path
+  // (src/lazy-dispatch.js) via program-base.js so they can never drift.
+  const program = createBaseProgram();
 
   // Passive update nudge (Claude-Code parity): one sync cache read + gray
   // stderr line when a newer npm version is known; stale cache refreshes in a

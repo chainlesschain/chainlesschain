@@ -54,16 +54,20 @@ describe("CLI aliases (cc / clc)", () => {
       expect(content).toContain("#!/usr/bin/env node");
     });
 
-    it("entry script imports createProgram", () => {
+    it("entry script imports the lazy CLI dispatcher", () => {
       const entryPath = join(cliRoot, "bin", "chainlesschain.js");
       const content = readFileSync(entryPath, "utf-8");
-      expect(content).toContain("createProgram");
+      // The bin uses runCli (lazy-dispatch) instead of importing index.js
+      // directly, so a `cc <cmd>` invocation only loads that one command's
+      // module rather than eagerly loading all ~154 command modules.
+      expect(content).toContain("runCli");
+      expect(content).toContain("lazy-dispatch");
     });
 
-    it("entry script calls program.parse", () => {
+    it("entry script invokes the CLI runner", () => {
       const entryPath = join(cliRoot, "bin", "chainlesschain.js");
       const content = readFileSync(entryPath, "utf-8");
-      expect(content).toContain("program.parse");
+      expect(content).toContain("runCli(process.argv)");
     });
 
     it("entry script ensures UTF-8 encoding", () => {
