@@ -491,6 +491,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ad.pluginId).toBe("agent-dashboard");
   });
 
+  it("enterprise-audit 的 /audit-log slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ea = slash.find((s) => s.trigger === "/audit-log");
+    expect(ea).toBeDefined();
+    expect(ea.handler).toBe("builtin:openEnterpriseAuditPanel");
+    expect(ea.pluginId).toBe("enterprise-audit");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

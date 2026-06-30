@@ -1,0 +1,20 @@
+{
+  "id": "enterprise-audit",
+  "name": "企业审计日志",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/audit-log 斜杠命令 — 企业审计日志（按事件类型/风险等级/时间/操作者筛选 + 统计卡 + 日志详情 + 导出）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "enterprise-audit",
+        "trigger": "/audit-log",
+        "handler": "builtin:openEnterpriseAuditPanel",
+        "description": "打开企业审计日志",
+        "icon": "FileSearchOutlined"
+      }
+    }
+  ]
+}

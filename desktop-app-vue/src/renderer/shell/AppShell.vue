@@ -139,6 +139,10 @@
       v-model:open="agentDashboardPanelOpen"
       :prefill-text="agentDashboardPrefill"
     />
+    <EnterpriseAuditPanel
+      v-model:open="enterpriseAuditPanelOpen"
+      :prefill-text="enterpriseAuditPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -232,6 +236,7 @@ import SkillPerformancePanel from "./SkillPerformancePanel.vue";
 import DeploymentMonitorPanel from "./DeploymentMonitorPanel.vue";
 import AutonomousOpsPanel from "./AutonomousOpsPanel.vue";
 import AgentDashboardPanel from "./AgentDashboardPanel.vue";
+import EnterpriseAuditPanel from "./EnterpriseAuditPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -306,6 +311,8 @@ const autonomousOpsPanelOpen = ref(false);
 const autonomousOpsPrefill = ref("");
 const agentDashboardPanelOpen = ref(false);
 const agentDashboardPrefill = ref("");
+const enterpriseAuditPanelOpen = ref(false);
+const enterpriseAuditPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -386,6 +393,7 @@ let unregisterSkillPerformanceHandler: (() => void) | null = null;
 let unregisterDeploymentMonitorHandler: (() => void) | null = null;
 let unregisterAutonomousOpsHandler: (() => void) | null = null;
 let unregisterAgentDashboardHandler: (() => void) | null = null;
+let unregisterEnterpriseAuditHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -603,6 +611,13 @@ onMounted(async () => {
       agentDashboardPanelOpen.value = true;
     },
   );
+  unregisterEnterpriseAuditHandler = registerSlashHandler(
+    "builtin:openEnterpriseAuditPanel",
+    ({ args }) => {
+      enterpriseAuditPrefill.value = args ?? "";
+      enterpriseAuditPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -753,6 +768,8 @@ onBeforeUnmount(() => {
   unregisterAutonomousOpsHandler = null;
   unregisterAgentDashboardHandler?.();
   unregisterAgentDashboardHandler = null;
+  unregisterEnterpriseAuditHandler?.();
+  unregisterEnterpriseAuditHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();
