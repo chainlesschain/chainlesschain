@@ -143,6 +143,10 @@
       v-model:open="enterpriseAuditPanelOpen"
       :prefill-text="enterpriseAuditPrefill"
     />
+    <SkillPipelinePanel
+      v-model:open="skillPipelinePanelOpen"
+      :prefill-text="skillPipelinePrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -237,6 +241,7 @@ import DeploymentMonitorPanel from "./DeploymentMonitorPanel.vue";
 import AutonomousOpsPanel from "./AutonomousOpsPanel.vue";
 import AgentDashboardPanel from "./AgentDashboardPanel.vue";
 import EnterpriseAuditPanel from "./EnterpriseAuditPanel.vue";
+import SkillPipelinePanel from "./SkillPipelinePanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -313,6 +318,8 @@ const agentDashboardPanelOpen = ref(false);
 const agentDashboardPrefill = ref("");
 const enterpriseAuditPanelOpen = ref(false);
 const enterpriseAuditPrefill = ref("");
+const skillPipelinePanelOpen = ref(false);
+const skillPipelinePrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -394,6 +401,7 @@ let unregisterDeploymentMonitorHandler: (() => void) | null = null;
 let unregisterAutonomousOpsHandler: (() => void) | null = null;
 let unregisterAgentDashboardHandler: (() => void) | null = null;
 let unregisterEnterpriseAuditHandler: (() => void) | null = null;
+let unregisterSkillPipelineHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -618,6 +626,13 @@ onMounted(async () => {
       enterpriseAuditPanelOpen.value = true;
     },
   );
+  unregisterSkillPipelineHandler = registerSlashHandler(
+    "builtin:openSkillPipelinePanel",
+    ({ args }) => {
+      skillPipelinePrefill.value = args ?? "";
+      skillPipelinePanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -770,6 +785,8 @@ onBeforeUnmount(() => {
   unregisterAgentDashboardHandler = null;
   unregisterEnterpriseAuditHandler?.();
   unregisterEnterpriseAuditHandler = null;
+  unregisterSkillPipelineHandler?.();
+  unregisterSkillPipelineHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

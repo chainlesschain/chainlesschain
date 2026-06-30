@@ -499,6 +499,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ea.pluginId).toBe("enterprise-audit");
   });
 
+  it("skill-pipeline 的 /skill-pipeline slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const sp = slash.find((s) => s.trigger === "/skill-pipeline");
+    expect(sp).toBeDefined();
+    expect(sp.handler).toBe("builtin:openSkillPipelinePanel");
+    expect(sp.pluginId).toBe("skill-pipeline");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

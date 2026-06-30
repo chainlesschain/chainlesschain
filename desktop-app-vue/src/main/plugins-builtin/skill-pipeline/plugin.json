@@ -1,0 +1,20 @@
+{
+  "id": "skill-pipeline",
+  "name": "流水线编排",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/skill-pipeline 斜杠命令 — 技能流水线编排（流水线列表 + 预置模板 + 创建/执行/删除 + 执行状态时间线）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "skill-pipeline",
+        "trigger": "/skill-pipeline",
+        "handler": "builtin:openSkillPipelinePanel",
+        "description": "打开流水线编排",
+        "icon": "PartitionOutlined"
+      }
+    }
+  ]
+}
