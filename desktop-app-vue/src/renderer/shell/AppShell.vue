@@ -131,6 +131,10 @@
       v-model:open="deploymentMonitorPanelOpen"
       :prefill-text="deploymentMonitorPrefill"
     />
+    <AutonomousOpsPanel
+      v-model:open="autonomousOpsPanelOpen"
+      :prefill-text="autonomousOpsPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -222,6 +226,7 @@ import FederatedLearningPanel from "./FederatedLearningPanel.vue";
 import IPFSClusterPanel from "./IPFSClusterPanel.vue";
 import SkillPerformancePanel from "./SkillPerformancePanel.vue";
 import DeploymentMonitorPanel from "./DeploymentMonitorPanel.vue";
+import AutonomousOpsPanel from "./AutonomousOpsPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -292,6 +297,8 @@ const skillPerformancePanelOpen = ref(false);
 const skillPerformancePrefill = ref("");
 const deploymentMonitorPanelOpen = ref(false);
 const deploymentMonitorPrefill = ref("");
+const autonomousOpsPanelOpen = ref(false);
+const autonomousOpsPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -370,6 +377,7 @@ let unregisterFederatedLearningHandler: (() => void) | null = null;
 let unregisterIPFSClusterHandler: (() => void) | null = null;
 let unregisterSkillPerformanceHandler: (() => void) | null = null;
 let unregisterDeploymentMonitorHandler: (() => void) | null = null;
+let unregisterAutonomousOpsHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -573,6 +581,13 @@ onMounted(async () => {
       deploymentMonitorPanelOpen.value = true;
     },
   );
+  unregisterAutonomousOpsHandler = registerSlashHandler(
+    "builtin:openAutonomousOpsPanel",
+    ({ args }) => {
+      autonomousOpsPrefill.value = args ?? "";
+      autonomousOpsPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -719,6 +734,8 @@ onBeforeUnmount(() => {
   unregisterSkillPerformanceHandler = null;
   unregisterDeploymentMonitorHandler?.();
   unregisterDeploymentMonitorHandler = null;
+  unregisterAutonomousOpsHandler?.();
+  unregisterAutonomousOpsHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

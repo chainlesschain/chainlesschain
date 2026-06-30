@@ -1,0 +1,20 @@
+{
+  "id": "autonomous-ops",
+  "name": "自主运维",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/autops 斜杠命令 — 自主运维（事故确认/修复/回滚 + Playbook 管理 + 事故报告 + 告警阈值配置 + MTTR/自动修复率指标）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "autonomous-ops",
+        "trigger": "/autops",
+        "handler": "builtin:openAutonomousOpsPanel",
+        "description": "打开自主运维",
+        "icon": "RobotOutlined"
+      }
+    }
+  ]
+}

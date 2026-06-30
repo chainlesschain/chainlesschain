@@ -475,6 +475,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(dm.pluginId).toBe("deployment-monitor");
   });
 
+  it("autonomous-ops 的 /autops slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ao = slash.find((s) => s.trigger === "/autops");
+    expect(ao).toBeDefined();
+    expect(ao.handler).toBe("builtin:openAutonomousOpsPanel");
+    expect(ao.pluginId).toBe("autonomous-ops");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");
