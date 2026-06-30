@@ -515,6 +515,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(tm.pluginId).toBe("time-machine");
   });
 
+  it("autonomous-agent 的 /autonomous-agent slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const aa = slash.find((s) => s.trigger === "/autonomous-agent");
+    expect(aa).toBeDefined();
+    expect(aa.handler).toBe("builtin:openAutonomousAgentPanel");
+    expect(aa.pluginId).toBe("autonomous-agent");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

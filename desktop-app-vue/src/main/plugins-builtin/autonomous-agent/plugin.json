@@ -1,0 +1,20 @@
+{
+  "id": "autonomous-agent",
+  "name": "自主代理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/autonomous-agent 斜杠命令 — 自主代理（提交目标 + 活跃目标暂停/恢复/取消/介入输入 + 执行时间线 + 目标历史 + 队列/配置 + 统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "autonomous-agent",
+        "trigger": "/autonomous-agent",
+        "handler": "builtin:openAutonomousAgentPanel",
+        "description": "打开自主代理",
+        "icon": "RocketOutlined"
+      }
+    }
+  ]
+}

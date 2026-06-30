@@ -151,6 +151,10 @@
       v-model:open="timeMachinePanelOpen"
       :prefill-text="timeMachinePrefill"
     />
+    <AutonomousAgentPanel
+      v-model:open="autonomousAgentPanelOpen"
+      :prefill-text="autonomousAgentPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -247,6 +251,7 @@ import AgentDashboardPanel from "./AgentDashboardPanel.vue";
 import EnterpriseAuditPanel from "./EnterpriseAuditPanel.vue";
 import SkillPipelinePanel from "./SkillPipelinePanel.vue";
 import TimeMachinePanel from "./TimeMachinePanel.vue";
+import AutonomousAgentPanel from "./AutonomousAgentPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -327,6 +332,8 @@ const skillPipelinePanelOpen = ref(false);
 const skillPipelinePrefill = ref("");
 const timeMachinePanelOpen = ref(false);
 const timeMachinePrefill = ref("");
+const autonomousAgentPanelOpen = ref(false);
+const autonomousAgentPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -410,6 +417,7 @@ let unregisterAgentDashboardHandler: (() => void) | null = null;
 let unregisterEnterpriseAuditHandler: (() => void) | null = null;
 let unregisterSkillPipelineHandler: (() => void) | null = null;
 let unregisterTimeMachineHandler: (() => void) | null = null;
+let unregisterAutonomousAgentHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -648,6 +656,13 @@ onMounted(async () => {
       timeMachinePanelOpen.value = true;
     },
   );
+  unregisterAutonomousAgentHandler = registerSlashHandler(
+    "builtin:openAutonomousAgentPanel",
+    ({ args }) => {
+      autonomousAgentPrefill.value = args ?? "";
+      autonomousAgentPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -804,6 +819,8 @@ onBeforeUnmount(() => {
   unregisterSkillPipelineHandler = null;
   unregisterTimeMachineHandler?.();
   unregisterTimeMachineHandler = null;
+  unregisterAutonomousAgentHandler?.();
+  unregisterAutonomousAgentHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();
