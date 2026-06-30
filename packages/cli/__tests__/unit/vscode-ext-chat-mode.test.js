@@ -12,6 +12,7 @@ import {
   PERMISSION_MODES,
 } from "../../../vscode-extension/src/chat/chat-events.js";
 import { ConversationManager } from "../../../vscode-extension/src/chat/conversation-manager.js";
+import { createModeStatusBar } from "../../../vscode-extension/src/ui/status-bar.js";
 import * as slashMod from "../../../vscode-extension/src/chat/slash-commands.js";
 
 const slash = slashMod.default || slashMod;
@@ -212,6 +213,73 @@ describe("ChatViewProvider — Configure LLM reloads running children", () => {
       text: expect.stringContaining("LLM config updated"),
     });
     expect(lastPost(posted).text).not.toContain("next message");
+  });
+});
+
+describe("createModeStatusBar — render", () => {
+  function makeStatusVscode() {
+    const item = {
+      text: "",
+      tooltip: "",
+      backgroundColor: "UNSET",
+      command: null,
+      show: () => {},
+      dispose: () => {},
+    };
+    const vscode = {
+      StatusBarAlignment: { Right: 2 },
+      ThemeColor: class ThemeColor {
+        constructor(id) {
+          this.id = id;
+        }
+      },
+      window: { createStatusBarItem: () => item },
+    };
+    return { vscode, item };
+  }
+
+  it("highlights bypass with the warning background", () => {
+    const { vscode, item } = makeStatusVscode();
+    createModeStatusBar(vscode).render("bypassPermissions");
+    expect(item.text).toContain("bypass");
+    expect(item.backgroundColor).toBeInstanceOf(vscode.ThemeColor);
+    expect(item.backgroundColor.id).toBe("statusBarItem.warningBackground");
+  });
+
+  it("shows auto-accept and normal without a warning background", () => {
+    const { vscode, item } = makeStatusVscode();
+    const bar = createModeStatusBar(vscode);
+    bar.render("acceptEdits");
+    expect(item.text).toContain("auto-accept");
+    expect(item.backgroundColor).toBeUndefined();
+    bar.render("default");
+    expect(item.text).toContain("approvals");
+    expect(item.backgroundColor).toBeUndefined();
+  });
+});
+
+describe("ChatViewProvider — status-bar mode indicator wiring", () => {
+  it("re-renders the indicator on mode change and tab refresh", () => {
+    const { provider } = makeProvider();
+    const renders = [];
+    provider._modeStatus = {
+      render: (m) => renders.push(m),
+      item: { dispose: () => {} },
+    };
+    // mode change → render with the new mode
+    provider._handleMessage({ type: "mode", mode: "bypassPermissions" });
+    expect(renders).toContain("bypassPermissions");
+    // a tab refresh re-renders the active conversation's current mode
+    renders.length = 0;
+    provider._postTabs();
+    expect(renders).toEqual(["bypassPermissions"]);
+  });
+
+  it("_updateModeStatus is inert when no status item exists (test mock)", () => {
+    const { provider } = makeProvider();
+    expect(provider._modeStatus).toBeUndefined();
+    // must not throw despite window.createStatusBarItem being absent
+    expect(() => provider._updateModeStatus()).not.toThrow();
   });
 });
 

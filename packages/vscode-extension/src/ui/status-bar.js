@@ -39,4 +39,41 @@ function createStatusBar(vscode, commandId) {
   return { item, render, flash };
 }
 
-module.exports = { createStatusBar };
+/**
+ * Status-bar indicator for the chat's per-conversation approval mode — makes
+ * auto-accept / bypass visible (they are otherwise invisible once set via
+ * /auto · /bypass or Shift+Tab). The normal "default" mode shows a quiet shield;
+ * bypass is highlighted with the warning background so the risky state can't be
+ * missed. Sits just left of the bridge item.
+ */
+function createModeStatusBar(vscode, commandId) {
+  const item = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    99,
+  );
+  if (commandId) item.command = commandId;
+  const warnBg = vscode.ThemeColor
+    ? new vscode.ThemeColor("statusBarItem.warningBackground")
+    : undefined;
+
+  function render(mode) {
+    if (mode === "bypassPermissions") {
+      item.text = "$(unlock) bypass approvals";
+      item.tooltip = "ChainlessChain 聊天：跳过所有批准（危险）· /normal 恢复";
+      item.backgroundColor = warnBg;
+    } else if (mode === "acceptEdits") {
+      item.text = "$(check) auto-accept edits";
+      item.tooltip = "ChainlessChain 聊天：自动接受编辑 · /normal 恢复";
+      item.backgroundColor = undefined;
+    } else {
+      item.text = "$(shield) approvals";
+      item.tooltip = "ChainlessChain 聊天：正常批准（每步确认）· /auto · /bypass";
+      item.backgroundColor = undefined;
+    }
+    item.show();
+  }
+
+  return { item, render };
+}
+
+module.exports = { createStatusBar, createModeStatusBar };

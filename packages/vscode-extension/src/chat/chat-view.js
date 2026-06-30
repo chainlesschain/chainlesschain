@@ -151,6 +151,7 @@ class ChatViewProvider {
       tabs: this._convs.list(),
       activeId: this._convs.activeId(),
     });
+    this._updateModeStatus(); // the active tab (hence its mode) may have changed
   }
 
   /** Event handler bound to one conversation: routes to ITS reducer state and
@@ -396,6 +397,7 @@ class ChatViewProvider {
     }
     const conv = this._activeConv();
     this._convs.setMode(conv.id, mode);
+    this._updateModeStatus();
     const restarted = !!conv.session?.running;
     if (restarted) {
       conv.session.stop();
@@ -791,12 +793,28 @@ class ChatViewProvider {
         /* onboarding check is best-effort */
       }
     })();
+    // Approval-mode indicator in the status bar (auto-accept / bypass are
+    // otherwise invisible once set). Guarded: the unit-test vscode mock has no
+    // window.createStatusBarItem, so this stays inert there.
+    if (!this._modeStatus && this.vscode.window?.createStatusBarItem) {
+      const { createModeStatusBar } = require("../ui/status-bar");
+      this._modeStatus = createModeStatusBar(this.vscode);
+    }
+    this._updateModeStatus();
     view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
     view.onDidDispose(() => {
       for (const s of this._convs.allSessions()) s.stop?.();
+      this._modeStatus?.item.dispose();
+      this._modeStatus = null;
       this.view = null;
       this._webviewReady = false;
     });
+  }
+
+  /** Reflect the ACTIVE conversation's approval mode in the status bar. */
+  _updateModeStatus() {
+    if (!this._modeStatus) return;
+    this._modeStatus.render(this._activeConv()?.mode || "default");
   }
 
   /**
@@ -960,6 +978,8 @@ class ChatViewProvider {
 
   dispose() {
     for (const s of this._convs.allSessions()) s.stop?.();
+    this._modeStatus?.item.dispose();
+    this._modeStatus = null;
   }
 }
 
