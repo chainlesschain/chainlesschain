@@ -547,6 +547,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(te.pluginId).toBe("tools-explorer");
   });
 
+  it("tag-manager 的 /tags slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const tm = slash.find((s) => s.trigger === "/tags");
+    expect(tm).toBeDefined();
+    expect(tm.handler).toBe("builtin:openTagManagerPanel");
+    expect(tm.pluginId).toBe("tag-manager");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

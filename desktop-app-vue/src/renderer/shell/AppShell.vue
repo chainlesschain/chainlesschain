@@ -167,6 +167,10 @@
       v-model:open="toolsExplorerPanelOpen"
       :prefill-text="toolsExplorerPrefill"
     />
+    <TagManagerPanel
+      v-model:open="tagManagerPanelOpen"
+      :prefill-text="tagManagerPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -267,6 +271,7 @@ import AutonomousAgentPanel from "./AutonomousAgentPanel.vue";
 import FederatedNetworkPanel from "./FederatedNetworkPanel.vue";
 import ComplianceDashboardPanel from "./ComplianceDashboardPanel.vue";
 import ToolsExplorerPanel from "./ToolsExplorerPanel.vue";
+import TagManagerPanel from "./TagManagerPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -355,6 +360,8 @@ const complianceDashboardPanelOpen = ref(false);
 const complianceDashboardPrefill = ref("");
 const toolsExplorerPanelOpen = ref(false);
 const toolsExplorerPrefill = ref("");
+const tagManagerPanelOpen = ref(false);
+const tagManagerPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -442,6 +449,7 @@ let unregisterAutonomousAgentHandler: (() => void) | null = null;
 let unregisterFederatedNetworkHandler: (() => void) | null = null;
 let unregisterComplianceDashboardHandler: (() => void) | null = null;
 let unregisterToolsExplorerHandler: (() => void) | null = null;
+let unregisterTagManagerHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -708,6 +716,13 @@ onMounted(async () => {
       toolsExplorerPanelOpen.value = true;
     },
   );
+  unregisterTagManagerHandler = registerSlashHandler(
+    "builtin:openTagManagerPanel",
+    ({ args }) => {
+      tagManagerPrefill.value = args ?? "";
+      tagManagerPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -872,6 +887,8 @@ onBeforeUnmount(() => {
   unregisterComplianceDashboardHandler = null;
   unregisterToolsExplorerHandler?.();
   unregisterToolsExplorerHandler = null;
+  unregisterTagManagerHandler?.();
+  unregisterTagManagerHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

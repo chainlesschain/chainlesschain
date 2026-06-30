@@ -1,0 +1,20 @@
+{
+  "id": "tag-manager",
+  "name": "标签管理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/tags 斜杠命令 — 会话标签管理（标签统计 + 搜索/排序 + 重命名 + 合并 + 删除 + 查看关联会话）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "tag-manager",
+        "trigger": "/tags",
+        "handler": "builtin:openTagManagerPanel",
+        "description": "打开标签管理",
+        "icon": "TagsOutlined"
+      }
+    }
+  ]
+}
