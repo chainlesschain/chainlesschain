@@ -188,11 +188,8 @@ const socialPages = createRouteGroup("social", {
     import(
       /* webpackChunkName: "social-collab" */ "../pages/CollabEditorPage.vue"
     ),
-  // v0.43.0 — 时光机
-  timeMachine: () =>
-    import(
-      /* webpackChunkName: "social-time-machine" */ "../pages/TimeMachinePage.vue"
-    ),
+  // v0.43.0 — 时光机: ported to V6 shell panel (/time-machine slash →
+  // shell/TimeMachinePanel.vue); alias removed.
   // v0.44.0 — 直播
   livestream: () =>
     import(
@@ -472,12 +469,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "协作编辑" },
       },
       // ===== v0.43.0 — 时光机 =====
-      {
-        path: "time-machine",
-        name: "TimeMachine",
-        component: socialPages.timeMachine,
-        meta: { title: "时光机" },
-      },
+      // TimeMachine ported to V6 shell panel (/time-machine slash); route removed.
       // ===== v0.44.0 — 直播 =====
       {
         path: "livestream/:streamId?",
