@@ -274,6 +274,72 @@ describe("expandFileRefs — credential/secret file guard", () => {
   });
 });
 
+describe("expandFileRefs — @folder/ recursive tree", () => {
+  it("walks nested directories into an indented tree", () => {
+    const r = run(
+      "what's in @src",
+      { "src/a.js": "1", "src/sub/c.js": "2" },
+      { src: ["a.js", "sub/"], "src/sub": ["c.js"] },
+    );
+    expect(r.refs[0].kind).toBe("dir");
+    expect(r.prompt).toContain('<dir path="src"');
+    // top-level un-indented, child indented by two spaces under sub/
+    expect(r.prompt).toContain("a.js\nsub/\n  c.js");
+    expect(r.refs[0].total).toBe(3); // a.js, sub/, c.js
+  });
+
+  it("treats @src/ (trailing slash) the same as @src", () => {
+    const r = run(
+      "look at @src/",
+      { "src/a.js": "1" },
+      { src: ["a.js", "sub/"], "src/sub": ["c.js"] },
+    );
+    expect(r.refs[0].kind).toBe("dir");
+    expect(r.prompt).toContain('<dir path="src/"');
+    expect(r.prompt).toContain("a.js\nsub/\n  c.js");
+  });
+
+  it("stops descending at maxDirDepth", () => {
+    const r = run(
+      "@src",
+      {},
+      { src: ["a.js", "sub/"], "src/sub": ["c.js"] },
+      { maxDirDepth: 1 },
+    );
+    // depth 1 lists sub/ but never reaches its child c.js
+    expect(r.prompt).toContain("a.js\nsub/");
+    expect(r.prompt).not.toContain("c.js");
+  });
+
+  it("lists but never descends into ignored dirs (node_modules, .git)", () => {
+    const r = run(
+      "@root",
+      { "root/src/a.js": "1", "root/node_modules/lib.js": "x" },
+      {
+        root: ["node_modules/", "src/", ".git/"],
+        "root/node_modules": ["lib.js"],
+        "root/src": ["a.js"],
+        "root/.git": ["HEAD"],
+      },
+    );
+    expect(r.prompt).toContain("node_modules/  (not expanded)");
+    expect(r.prompt).toContain(".git/  (not expanded)");
+    expect(r.prompt).toContain("src/\n  a.js");
+    // contents of ignored dirs are never pulled in
+    expect(r.prompt).not.toContain("lib.js");
+    expect(r.prompt).not.toContain("HEAD");
+  });
+
+  it("caps the node count and marks the listing truncated", () => {
+    const names = Array.from({ length: 10 }, (_, i) => `f${i}.js`);
+    const r = run("@big", {}, { big: names }, { maxDirEntries: 4 });
+    expect(r.refs[0].truncated).toBe(true);
+    expect(r.refs[0].total).toBe(4);
+    expect(r.prompt).toContain('truncated="true"');
+    expect(r.prompt).toContain("listing capped at 4 entries");
+  });
+});
+
 describe("parseLineRange", () => {
   it("parses #L5-10, #5-10, #L5, #5", () => {
     expect(parseLineRange("src/x.js#L5-10")).toEqual({

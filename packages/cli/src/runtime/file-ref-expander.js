@@ -31,6 +31,33 @@ import {
 
 export const DEFAULT_MAX_BYTES = 100 * 1024; // 100 KB per referenced file
 export const DEFAULT_MAX_DIR_ENTRIES = 200;
+// How deep a `@folder/` tree walks (the root's own entries are depth 1).
+export const DEFAULT_MAX_DIR_DEPTH = 3;
+
+// Directory names a `@folder/` tree lists but never DESCENDS into — heavy or
+// noise trees that would burn the whole entry budget (a single `@./` would
+// otherwise spend all 200 entries inside node_modules). They still appear as a
+// node, marked "(not expanded)", so the structure stays honest.
+const TREE_IGNORE_DIRS = new Set([
+  "node_modules",
+  ".git",
+  ".hg",
+  ".svn",
+  "dist",
+  "build",
+  "out",
+  ".next",
+  ".nuxt",
+  ".cache",
+  "coverage",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".idea",
+  ".gradle",
+  ".turbo",
+  "target",
+]);
 
 // `@` preceded by start / whitespace / opening bracket-quote, then a path run.
 // We capture greedily up to the next whitespace or a closing bracket-quote and
@@ -137,11 +164,57 @@ function readBoundedFile(fs, abs, limit) {
 }
 
 /**
+ * Walk a directory into a bounded, indented tree (Claude-Code `@folder/`
+ * parity — the model sees STRUCTURE, not just the top-level names). Depth- and
+ * entry-capped, and never descends into TREE_IGNORE_DIRS. Symlinks report
+ * isDirectory() === false (Dirent reads the link, not its target), so symlink
+ * loops can never recurse here. Returns { lines, total, truncated } where
+ * `total` is the node count actually emitted (`truncated` means more existed).
+ */
+function buildDirTree(absRoot, { fs, path, maxEntries, maxDepth }) {
+  const lines = [];
+  let count = 0;
+  let truncated = false;
+
+  function walk(abs, depth) {
+    if (truncated) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return; // an unreadable subdir is skipped silently (root errors upstream)
+    }
+    const sorted = entries
+      .map((e) => ({ name: e.name, isDir: e.isDirectory() }))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    const indent = "  ".repeat(depth - 1);
+    for (const e of sorted) {
+      if (count >= maxEntries) {
+        truncated = true;
+        return;
+      }
+      count++;
+      const ignored = e.isDir && TREE_IGNORE_DIRS.has(e.name);
+      const label = e.isDir ? `${e.name}/` : e.name;
+      lines.push(indent + label + (ignored ? "  (not expanded)" : ""));
+      if (e.isDir && !ignored && depth < maxDepth) {
+        walk(path.resolve(abs, e.name), depth + 1);
+      }
+    }
+  }
+  walk(absRoot, 1);
+  return { lines, total: count, truncated };
+}
+
+/**
  * Resolve a single raw token to an injectable ref descriptor, or null when it
  * does not resolve to an existing path. Tries the literal path first, then a
  * trailing-punctuation-stripped variant (handles "see @config.json.").
  */
-function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
+function resolveRef(
+  raw,
+  { cwd, fs, path, maxBytes, maxDirEntries, maxDirDepth },
+) {
   const candidates = [raw];
   const trimmed = trimTrailingPunct(raw);
   if (trimmed && trimmed !== raw) candidates.push(trimmed);
@@ -158,10 +231,12 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       continue; // not this candidate
     }
     if (stat.isDirectory()) {
-      // A line range on a directory is meaningless — ignore it and list the dir.
-      let entries;
+      // A line range on a directory is meaningless — ignore it and tree the dir.
+      // Probe the root once so an unreadable directory surfaces as a warning
+      // (buildDirTree silently skips unreadable SUBdirs, but the root the user
+      // explicitly pointed at deserves an error).
       try {
-        entries = fs.readdirSync(abs, { withFileTypes: true });
+        fs.readdirSync(abs, { withFileTypes: true });
       } catch (err) {
         return {
           kind: "error",
@@ -170,18 +245,19 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
           message: `cannot read directory: ${err.message}`,
         };
       }
-      const names = entries
-        .slice(0, maxDirEntries)
-        .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
-        .sort();
-      const truncated = entries.length > maxDirEntries;
+      const tree = buildDirTree(abs, {
+        fs,
+        path,
+        maxEntries: maxDirEntries,
+        maxDepth: maxDirDepth,
+      });
       return {
         kind: "dir",
         raw: cand,
         rel: fsPath,
-        entries: names,
-        total: entries.length,
-        truncated,
+        entries: tree.lines,
+        total: tree.total,
+        truncated: tree.truncated,
       };
     }
     if (stat.isFile()) {
@@ -320,7 +396,7 @@ function renderBlock(refs) {
       parts.push(`<dir ${attrs}>`);
       parts.push(ref.entries.join("\n"));
       if (ref.truncated) {
-        parts.push(`… [truncated — ${ref.total} entries total]`);
+        parts.push(`… [truncated — listing capped at ${ref.total} entries]`);
       }
       parts.push("</dir>");
     } else if (ref.kind === "pdf") {
@@ -385,13 +461,23 @@ function _resolveAllRefs(text, opts) {
   const maxDirEntries = Number.isFinite(opts.maxDirEntries)
     ? opts.maxDirEntries
     : DEFAULT_MAX_DIR_ENTRIES;
+  const maxDirDepth = Number.isFinite(opts.maxDirDepth)
+    ? opts.maxDirDepth
+    : DEFAULT_MAX_DIR_DEPTH;
 
   const tokens = findFileRefTokens(text);
   const refs = [];
   const warnings = [];
 
   for (const { raw } of tokens) {
-    const ref = resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries });
+    const ref = resolveRef(raw, {
+      cwd,
+      fs,
+      path,
+      maxBytes,
+      maxDirEntries,
+      maxDirDepth,
+    });
     if (!ref) {
       // Only warn for path-like tokens; bare @mentions are left alone.
       if (looksPathLike(raw)) {
