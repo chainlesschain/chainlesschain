@@ -1083,15 +1083,8 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "跨组织审计日志" },
       },
       // ===== 企业审计与合规 (v0.34.0) =====
-      {
-        path: "enterprise/audit",
-        name: "EnterpriseAudit",
-        component: () =>
-          import(
-            /* webpackChunkName: "enterprise-audit" */ "../pages/EnterpriseAuditPage.vue"
-          ),
-        meta: { title: "企业审计日志" },
-      },
+      // EnterpriseAudit V5 page ported to V6 shell panel (/audit-log slash →
+      // shell/EnterpriseAuditPanel.vue); route removed.
       {
         path: "enterprise/compliance",
         name: "ComplianceDashboard",
