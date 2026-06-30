@@ -1225,15 +1225,8 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: "多模态协作" },
       },
-      {
-        path: "autonomous-ops",
-        name: "AutonomousOps",
-        component: () =>
-          import(
-            /* webpackChunkName: "autonomous-ops" */ "../pages/AutonomousOpsPage.vue"
-          ),
-        meta: { title: "自主运维" },
-      },
+      // AutonomousOps V5 page ported to V6 shell panel (/autops slash →
+      // shell/AutonomousOpsPanel.vue); route removed.
       {
         path: "federated-network",
         name: "FederatedNetwork",
