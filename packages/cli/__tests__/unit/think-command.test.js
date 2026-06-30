@@ -3,7 +3,10 @@
  * Pure → no readline/agent loop needed.
  */
 import { describe, it, expect } from "vitest";
-import { parseThinkCommand } from "../../src/repl/think-command.js";
+import {
+  parseThinkCommand,
+  parseEffortCommand,
+} from "../../src/repl/think-command.js";
 
 describe("parseThinkCommand", () => {
   it("returns null for non-think input", () => {
@@ -58,5 +61,42 @@ describe("parseThinkCommand", () => {
   it("is case-insensitive on the argument", () => {
     expect(parseThinkCommand("/think OFF").thinking).toBe(null);
     expect(parseThinkCommand("/think Ultra").thinking).toBe("ultra");
+  });
+});
+
+describe("parseEffortCommand", () => {
+  it("returns null for non-effort input", () => {
+    expect(parseEffortCommand("/think high")).toBe(null);
+    expect(parseEffortCommand("/efforts")).toBe(null); // not the real command
+    expect(parseEffortCommand("hello /effort high")).toBe(null); // not at start
+    expect(parseEffortCommand("")).toBe(null);
+    expect(parseEffortCommand(null)).toBe(null);
+  });
+
+  it("maps each tier to a thinking level", () => {
+    expect(parseEffortCommand("/effort low")).toEqual({
+      thinking: "low",
+      label: "effort low",
+      anthropic: true,
+    });
+    expect(parseEffortCommand("/effort medium").thinking).toBe("medium");
+    expect(parseEffortCommand("/effort high").thinking).toBe("high");
+    expect(parseEffortCommand("/effort xhigh").thinking).toBe("xhigh");
+  });
+
+  it("accepts synonyms med→medium and max→xhigh", () => {
+    expect(parseEffortCommand("/effort med").thinking).toBe("medium");
+    expect(parseEffortCommand("/effort max").thinking).toBe("xhigh");
+  });
+
+  it("is case-insensitive and trims", () => {
+    expect(parseEffortCommand("  /effort HIGH  ").thinking).toBe("high");
+  });
+
+  it("errors on a missing or unknown level (does not throw)", () => {
+    expect(parseEffortCommand("/effort")).toEqual({
+      error: "usage: /effort low|medium|high|xhigh",
+    });
+    expect(parseEffortCommand("/effort turbo").error).toMatch(/unknown effort/);
   });
 });

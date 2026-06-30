@@ -97,7 +97,7 @@ import {
 import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
-import { parseThinkCommand } from "./think-command.js";
+import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
 import { buildPermissionPrompt } from "./permission-prompt.js";
@@ -1049,6 +1049,7 @@ export async function startAgentRepl(options = {}) {
       "/cost",
       "/cowork",
       "/doctor",
+      "/effort",
       "/exit",
       "/export",
       "/help",
@@ -1513,6 +1514,9 @@ export async function startAgentRepl(options = {}) {
       logger.log(`  ${chalk.cyan("/provider")}   Show/change provider`);
       logger.log(
         `  ${chalk.cyan("/think")}      Extended thinking on/off (/think [on|off|ultra]; /ultrathink = max; Anthropic)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/effort")}     Reasoning effort (/effort low|medium|high|xhigh; Anthropic)`,
       );
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(
@@ -2001,6 +2005,26 @@ export async function startAgentRepl(options = {}) {
           ? " " + chalk.gray("(Anthropic only; applies next turn)")
           : "";
         logger.info(`Extended thinking: ${chalk.cyan(think.label)}${note}`);
+        prompt();
+        return;
+      }
+    }
+
+    // Reasoning-effort alias (/effort low|medium|high|xhigh) — a discrete,
+    // validated front-end over the /think <level> passthrough (Claude-Code parity).
+    {
+      const effort = parseEffortCommand(trimmed);
+      if (effort) {
+        if (effort.error) {
+          logger.info(effort.error);
+          prompt();
+          return;
+        }
+        thinking = effort.thinking;
+        logger.info(
+          `Reasoning effort: ${chalk.cyan(effort.label)} ` +
+            chalk.gray("(Anthropic extended thinking; applies next turn)"),
+        );
         prompt();
         return;
       }

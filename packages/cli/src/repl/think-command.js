@@ -34,3 +34,34 @@ export function parseThinkCommand(trimmed) {
   // An explicit effort level (low/medium/high/…) — passed through to the engine.
   return { thinking: arg, label: arg, anthropic: true };
 }
+
+/**
+ * Pure parser for the REPL `/effort low|medium|high|xhigh` command — a discrete,
+ * validated alias over `/think <level>` (Claude-Code `/effort` parity). Returns
+ * the same shape parseThinkCommand yields ({ thinking, label, anthropic }) so the
+ * REPL applies it identically, or `{ error }` for a missing/unknown level, or
+ * null when the input is not an effort command (REPL falls through).
+ *
+ *   /effort low|medium|high|xhigh   (synonyms: med→medium, max→xhigh)
+ */
+export function parseEffortCommand(trimmed) {
+  const t = String(trimmed == null ? "" : trimmed).trim();
+  if (t !== "/effort" && !t.startsWith("/effort ")) return null;
+  const arg = t.slice("/effort".length).trim().toLowerCase();
+  if (!arg) {
+    return { error: "usage: /effort low|medium|high|xhigh" };
+  }
+  const LEVELS = {
+    low: "low",
+    medium: "medium",
+    med: "medium",
+    high: "high",
+    xhigh: "xhigh",
+    max: "xhigh",
+  };
+  const level = LEVELS[arg];
+  if (!level) {
+    return { error: `unknown effort "${arg}" — use low|medium|high|xhigh` };
+  }
+  return { thinking: level, label: `effort ${level}`, anthropic: true };
+}
