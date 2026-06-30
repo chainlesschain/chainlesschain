@@ -523,6 +523,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(aa.pluginId).toBe("autonomous-agent");
   });
 
+  it("federated-network 的 /agent-network slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const fn = slash.find((s) => s.trigger === "/agent-network");
+    expect(fn).toBeDefined();
+    expect(fn.handler).toBe("builtin:openFederatedNetworkPanel");
+    expect(fn.pluginId).toBe("federated-network");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

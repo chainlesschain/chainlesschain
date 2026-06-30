@@ -155,6 +155,10 @@
       v-model:open="autonomousAgentPanelOpen"
       :prefill-text="autonomousAgentPrefill"
     />
+    <FederatedNetworkPanel
+      v-model:open="federatedNetworkPanelOpen"
+      :prefill-text="federatedNetworkPrefill"
+    />
     <OrganizationsPanel
       v-model:open="organizationsPanelOpen"
       :prefill-text="organizationsPrefill"
@@ -252,6 +256,7 @@ import EnterpriseAuditPanel from "./EnterpriseAuditPanel.vue";
 import SkillPipelinePanel from "./SkillPipelinePanel.vue";
 import TimeMachinePanel from "./TimeMachinePanel.vue";
 import AutonomousAgentPanel from "./AutonomousAgentPanel.vue";
+import FederatedNetworkPanel from "./FederatedNetworkPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
 import VideoEditingPanel from "./VideoEditingPanel.vue";
@@ -334,6 +339,8 @@ const timeMachinePanelOpen = ref(false);
 const timeMachinePrefill = ref("");
 const autonomousAgentPanelOpen = ref(false);
 const autonomousAgentPrefill = ref("");
+const federatedNetworkPanelOpen = ref(false);
+const federatedNetworkPrefill = ref("");
 const organizationsPanelOpen = ref(false);
 const organizationsPrefill = ref("");
 const nlProgrammingPanelOpen = ref(false);
@@ -418,6 +425,7 @@ let unregisterEnterpriseAuditHandler: (() => void) | null = null;
 let unregisterSkillPipelineHandler: (() => void) | null = null;
 let unregisterTimeMachineHandler: (() => void) | null = null;
 let unregisterAutonomousAgentHandler: (() => void) | null = null;
+let unregisterFederatedNetworkHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
 let unregisterVideoEditingHandler: (() => void) | null = null;
@@ -663,6 +671,13 @@ onMounted(async () => {
       autonomousAgentPanelOpen.value = true;
     },
   );
+  unregisterFederatedNetworkHandler = registerSlashHandler(
+    "builtin:openFederatedNetworkPanel",
+    ({ args }) => {
+      federatedNetworkPrefill.value = args ?? "";
+      federatedNetworkPanelOpen.value = true;
+    },
+  );
   unregisterOrganizationsHandler = registerSlashHandler(
     "builtin:openOrganizationsPanel",
     ({ args }) => {
@@ -821,6 +836,8 @@ onBeforeUnmount(() => {
   unregisterTimeMachineHandler = null;
   unregisterAutonomousAgentHandler?.();
   unregisterAutonomousAgentHandler = null;
+  unregisterFederatedNetworkHandler?.();
+  unregisterFederatedNetworkHandler = null;
   unregisterOrganizationsHandler?.();
   unregisterOrganizationsHandler = null;
   unregisterNLProgrammingHandler?.();

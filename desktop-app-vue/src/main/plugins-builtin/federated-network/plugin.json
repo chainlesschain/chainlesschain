@@ -1,0 +1,20 @@
+{
+  "id": "federated-network",
+  "name": "去中心化代理网络",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/agent-network 斜杠命令 — 去中心化代理网络（DID 创建 + 代理注册/发现 + 跨组织任务委派 + 信誉排行 + 网络统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "federated-network",
+        "trigger": "/agent-network",
+        "handler": "builtin:openFederatedNetworkPanel",
+        "description": "打开去中心化代理网络",
+        "icon": "ApartmentOutlined"
+      }
+    }
+  ]
+}
