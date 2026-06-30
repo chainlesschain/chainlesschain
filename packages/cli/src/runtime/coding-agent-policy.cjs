@@ -149,6 +149,20 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: true,
   },
+  // Expand a user-defined slash command (.claude/commands/*.md) into its prompt
+  // text. Read-only by design: the agent path disables `!`cmd`` bang execution,
+  // so only $ARGUMENTS / @file (read) substitution runs — no un-gated shell.
+  // Plan-mode-safe (returns text the model then acts on via its normal tools).
+  slash_command: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.SKILL,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
   search_sessions: {
     riskLevel: RISK_LEVELS.LOW,
     category: TOOL_CATEGORIES.SEARCH,

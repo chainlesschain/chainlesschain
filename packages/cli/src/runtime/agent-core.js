@@ -44,6 +44,7 @@ import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
 import { buildSearchCommand } from "../lib/search-command.js";
+import { discoverCommands } from "../lib/slash-commands.js";
 import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
@@ -698,6 +699,30 @@ export function buildSystemPrompt(cwd, opts = {}) {
       `Beyond the current working directory, you may read, search, and edit ` +
       `files under these absolute roots. Pass absolute paths to access them:\n` +
       extraDirs.map((d) => `- ${d}`).join("\n");
+  }
+
+  // Advertise user-defined slash commands (.claude/commands/*.md etc.) so the
+  // model knows which prompt macros it can run via the slash_command tool.
+  try {
+    const macros = discoverCommands(dir);
+    if (macros.length > 0) {
+      prompt +=
+        `\n\n## Available slash commands\n` +
+        `These are reusable prompt macros the user has defined. Run one with ` +
+        `the slash_command tool (e.g. {"command":"/${macros[0].name}"}) when it ` +
+        `fits the task; the tool returns the command's expanded instructions ` +
+        `for you to carry out.\n` +
+        macros
+          .map(
+            (m) =>
+              `- /${m.name}` +
+              (m.argumentHint ? ` ${m.argumentHint}` : "") +
+              (m.description ? ` — ${m.description}` : ""),
+          )
+          .join("\n");
+    }
+  } catch {
+    // Non-critical — command discovery failure must not break the prompt.
   }
 
   return prompt;
@@ -2345,6 +2370,59 @@ async function executeToolInner(
         });
       } catch (err) {
         return attachDescriptor({ error: `todo_write failed: ${err.message}` });
+      }
+    }
+
+    case "slash_command": {
+      try {
+        const { getCommand, expandCommand, discoverCommands } =
+          await import("../lib/slash-commands.js");
+        const raw = String(args.command || "").trim();
+        if (!raw) {
+          return attachDescriptor({
+            error: "slash_command requires a non-empty 'command'.",
+          });
+        }
+        // Parse "/name arg1 arg2" exactly like a typed slash command (leading
+        // '/' optional). First token is the command name, the rest are args.
+        const [head, ...rest] = raw.replace(/^\//, "").split(/\s+/);
+        const macro = head ? getCommand(head, cwd) : null;
+        if (!macro) {
+          const available = discoverCommands(cwd).map((c) => ({
+            name: c.name,
+            scope: c.scope,
+            description: c.description || undefined,
+          }));
+          return attachDescriptor({
+            error: `Unknown slash command "${head}".`,
+            availableCommands: available,
+            hint:
+              available.length === 0
+                ? "No user-defined slash commands found in .claude/commands/ or .chainlesschain/commands/."
+                : "Call slash_command with one of availableCommands[].name.",
+          });
+        }
+        // allowBang:false — the agent must not get an un-gated shell side
+        // channel via a command file. $ARGUMENTS / @file (read) still expand;
+        // any !`cmd` is left literal for the model to run via run_shell.
+        const { prompt: expanded, warnings } = expandCommand(
+          macro,
+          rest.filter(Boolean),
+          { cwd, allowBang: false },
+        );
+        return attachDescriptor({
+          command: macro.name,
+          scope: macro.scope,
+          expandedPrompt: expanded,
+          warnings: warnings && warnings.length ? warnings : undefined,
+          instructions:
+            "The expandedPrompt is the command's instructions. Carry them out " +
+            "now using your normal tools.",
+        });
+      } catch (err) {
+        return attachDescriptor({
+          error: `slash_command failed: ${err.message}`,
+        });
       }
     }
 
@@ -5091,7 +5169,11 @@ export async function* agentLoop(messages, options) {
       });
       for (const { call, toolArgs, promise } of inflight) {
         throwIfAborted(signal);
-        yield { type: "tool-executing", tool: call.function.name, args: toolArgs };
+        yield {
+          type: "tool-executing",
+          tool: call.function.name,
+          args: toolArgs,
+        };
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
         const warningMsg = budget.toWarningMessage();

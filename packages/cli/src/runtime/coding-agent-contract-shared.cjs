@@ -654,6 +654,43 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "slash_command",
+    title: "Slash Command",
+    kind: "planning",
+    tier: "extension",
+    description:
+      "Run a user-defined slash command (a reusable prompt macro from " +
+      ".claude/commands/*.md or .chainlesschain/commands/*.md) and get back its " +
+      "expanded prompt text to act on. The 'command' string is the slash " +
+      "command exactly as a user would type it, e.g. '/review' or " +
+      "'/git:commit fix the typo' — the leading slash is optional and trailing " +
+      "words become $ARGUMENTS / $1..$9. @file references are expanded; " +
+      "!`shell` snippets are NOT executed when invoked this way (run them via " +
+      "run_shell if needed). Available commands are listed in the system " +
+      "prompt; calling with an unknown command returns the list.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          description:
+            "The slash command to run, as typed by a user, e.g. '/review' or " +
+            "'/git:commit fix the typo'. Leading '/' optional.",
+        },
+      },
+      required: ["command"],
+    },
+    ...TOOL_POLICY_METADATA.slash_command,
+    permissions: {
+      level: "readonly",
+      scopes: ["session:read"],
+    },
+    telemetry: {
+      category: "planning",
+      tags: ["tool:slash_command", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
     name: "ask_user_question",
     title: "Ask User Question",
     kind: "interaction",

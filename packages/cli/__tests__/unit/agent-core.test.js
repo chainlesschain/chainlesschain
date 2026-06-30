@@ -88,8 +88,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 19 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(19);
+  it("has 20 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(20);
   });
 
   it("is derived from the canonical coding-agent contract", () => {
@@ -1125,7 +1125,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(17); // 19 - 2 disabled
+    expect(capturedBody.tools.length).toBe(18); // 20 - 2 disabled
   });
 
   it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
@@ -1241,7 +1241,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(19);
+    expect(capturedBody.tools.length).toBe(20);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 
@@ -1617,7 +1617,10 @@ describe("agentLoop", () => {
     const readCall = (id, name) => ({
       id,
       type: "function",
-      function: { name: "read_file", arguments: JSON.stringify({ path: name }) },
+      function: {
+        name: "read_file",
+        arguments: JSON.stringify({ path: name }),
+      },
     });
 
     it("runs a read-only batch concurrently, preserving event + result order", async () => {
@@ -1654,9 +1657,7 @@ describe("agentLoop", () => {
 
       // Event ORDER is byte-identical to the sequential path.
       const seq = events
-        .filter(
-          (e) => e.type === "tool-executing" || e.type === "tool-result",
-        )
+        .filter((e) => e.type === "tool-executing" || e.type === "tool-result")
         .map((e) => e.type);
       expect(seq).toEqual([
         "tool-executing",

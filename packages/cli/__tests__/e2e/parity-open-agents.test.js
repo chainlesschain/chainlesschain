@@ -36,7 +36,7 @@ describe("E2E: open-agents parity Phases 2–5", () => {
     expect(runCLI("--version").trim()).toBe(pkg.version);
   });
 
-  it("AGENT_TOOLS includes the 3 new tools and totals 16", async () => {
+  it("AGENT_TOOLS includes the expected tools and totals 20", async () => {
     const { AGENT_TOOLS } = await import("../../src/runtime/agent-core.js");
     const names = AGENT_TOOLS.map((t) => t.function.name);
     expect(names).toContain("web_fetch");
@@ -44,7 +44,8 @@ describe("E2E: open-agents parity Phases 2–5", () => {
     expect(names).toContain("ask_user_question");
     expect(names).toContain("spawn_sub_agent");
     expect(names).toContain("notebook_edit");
-    expect(names).toHaveLength(19);
+    expect(names).toContain("slash_command");
+    expect(names).toHaveLength(20);
   });
 
   it("spawn_sub_agent contract exposes profile enum (Phase 3)", async () => {
