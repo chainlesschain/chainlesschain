@@ -1,0 +1,20 @@
+{
+  "id": "cowork-dashboard",
+  "name": "Cowork 多代理协作",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/cowork 斜杠命令 — 多代理协作仪表板（团队统计 + 团队列表/筛选 + 创建/销毁/暂停/恢复团队 + 团队详情）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "cowork-dashboard",
+        "trigger": "/cowork",
+        "handler": "builtin:openCoworkDashboardPanel",
+        "description": "打开 Cowork 多代理协作",
+        "icon": "TeamOutlined"
+      }
+    }
+  ]
+}

@@ -555,6 +555,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(tm.pluginId).toBe("tag-manager");
   });
 
+  it("cowork-dashboard 的 /cowork slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const cw = slash.find((s) => s.trigger === "/cowork");
+    expect(cw).toBeDefined();
+    expect(cw.handler).toBe("builtin:openCoworkDashboardPanel");
+    expect(cw.pluginId).toBe("cowork-dashboard");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");
