@@ -483,6 +483,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ao.pluginId).toBe("autonomous-ops");
   });
 
+  it("agent-dashboard 的 /agents-hub slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ad = slash.find((s) => s.trigger === "/agents-hub");
+    expect(ad).toBeDefined();
+    expect(ad.handler).toBe("builtin:openAgentDashboardPanel");
+    expect(ad.pluginId).toBe("agent-dashboard");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

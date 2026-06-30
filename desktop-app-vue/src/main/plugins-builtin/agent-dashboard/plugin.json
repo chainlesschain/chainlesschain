@@ -1,0 +1,20 @@
+{
+  "id": "agent-dashboard",
+  "name": "智能代理中心",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/agents-hub 斜杠命令 — 智能代理中心（代理模板部署/启停/删除 + 运行实例查看/终止 + 任务历史 + 性能分析 + 任务编排）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "agent-dashboard",
+        "trigger": "/agents-hub",
+        "handler": "builtin:openAgentDashboardPanel",
+        "description": "打开智能代理中心",
+        "icon": "RobotOutlined"
+      }
+    }
+  ]
+}
