@@ -579,6 +579,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(pmSlash.pluginId).toBe("permission-management");
   });
 
+  it("shared-albums 的 /albums slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const al = slash.find((s) => s.trigger === "/albums");
+    expect(al).toBeDefined();
+    expect(al.handler).toBe("builtin:openSharedAlbumsPanel");
+    expect(al.pluginId).toBe("shared-albums");
+  });
+
   it("organizations 的 /orgs slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const og = slash.find((s) => s.trigger === "/orgs");

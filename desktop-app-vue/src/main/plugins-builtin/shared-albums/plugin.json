@@ -1,0 +1,20 @@
+{
+  "id": "shared-albums",
+  "name": "共享相册",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/albums 斜杠命令 — 共享相册（创建/编辑/删除相册 + 照片上传/浏览 + 成员管理 + P2P 分享 + 可见性控制）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "shared-albums",
+        "trigger": "/albums",
+        "handler": "builtin:openSharedAlbumsPanel",
+        "description": "打开共享相册",
+        "icon": "PictureOutlined"
+      }
+    }
+  ]
+}
