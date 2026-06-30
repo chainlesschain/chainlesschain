@@ -278,10 +278,8 @@ const enterpriseV1Pages = createRouteGroup("enterprise-v1", {
     import(
       /* webpackChunkName: "analytics-dashboard" */ "../pages/AnalyticsDashboardPage.vue"
     ),
-  autonomousAgent: () =>
-    import(
-      /* webpackChunkName: "autonomous-agent" */ "../pages/AutonomousAgentPage.vue"
-    ),
+  // autonomousAgent: ported to V6 shell panel (/autonomous-agent slash →
+  // shell/AutonomousAgentPanel.vue); alias removed.
 });
 
 const routes: RouteRecordRaw[] = [
@@ -1179,12 +1177,8 @@ const routes: RouteRecordRaw[] = [
         component: enterpriseV1Pages.analyticsDashboard,
         meta: { title: "高级分析仪表板" },
       },
-      {
-        path: "agent/autonomous",
-        name: "AutonomousAgent",
-        component: enterpriseV1Pages.autonomousAgent,
-        meta: { title: "AI 自主执行代理" },
-      },
+      // AutonomousAgent ported to V6 shell panel (/autonomous-agent slash →
+      // shell/AutonomousAgentPanel.vue); route removed.
       // ===== v1.1.0 新功能 =====
       // DeploymentMonitor V5 page ported to V6 shell panel (/pipeline slash →
       // shell/DeploymentMonitorPanel.vue); route removed.
