@@ -215,10 +215,8 @@ const coworkPages = createRouteGroup("cowork", {
       /* webpackChunkName: "cowork-analytics" */ "../pages/CoworkAnalytics.vue"
     ),
   // v1.1.0 新增
-  pipelineDesigner: () =>
-    import(
-      /* webpackChunkName: "cowork-pipeline" */ "../pages/SkillPipelinePage.vue"
-    ),
+  // pipelineDesigner: SkillPipeline V5 page ported to V6 shell panel
+  // (/skill-pipeline slash → shell/SkillPipelinePanel.vue); alias removed.
   workflowDesigner: () =>
     import(
       /* webpackChunkName: "cowork-workflow" */ "../pages/WorkflowDesignerPage.vue"
@@ -956,12 +954,8 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "数据分析" },
       },
       // ===== Cowork v1.1.0 新增路由 =====
-      {
-        path: "cowork/pipeline",
-        name: "PipelineDesigner",
-        component: coworkPages.pipelineDesigner,
-        meta: { title: "流水线编排" },
-      },
+      // PipelineDesigner (SkillPipeline) ported to V6 shell panel
+      // (/skill-pipeline slash); route removed.
       {
         path: "cowork/workflow",
         name: "WorkflowDesigner",
