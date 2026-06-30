@@ -106,6 +106,11 @@ class PowerHandler {
   }
 
   async _executeShutdown(delay, force) {
+    // delay reaches a shell string (`shutdown /s /t ${delay}`) on Windows;
+    // coerce to a non-negative integer so a remote value like "0 & calc.exe"
+    // (incl. via the confirm flow, which re-passes the original delay) cannot
+    // inject a second command. mac/Linux already pass it through Math.ceil.
+    delay = Math.max(0, Number.parseInt(delay, 10) || 0);
     let command;
 
     if (isWindows) {
@@ -156,6 +161,10 @@ class PowerHandler {
   }
 
   async _executeRestart(delay, force) {
+    // Coerce delay to a non-negative integer before it reaches the Windows
+    // shell string (`shutdown /r /t ${delay}`) — same injection guard as
+    // _executeShutdown.
+    delay = Math.max(0, Number.parseInt(delay, 10) || 0);
     let command;
 
     if (isWindows) {

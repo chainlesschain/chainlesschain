@@ -395,6 +395,17 @@ class MediaHandler {
   async playSound(params, context) {
     const { sound = "default", file } = params;
 
+    // `file` is interpolated into a shell / PowerShell command below
+    // (SoundPlayer '${file}', afplay "${file}", ...). It comes straight from a
+    // remote peer, so reject quote and command-chaining metacharacters or a
+    // value like "'); calc.exe; ('" injects an arbitrary command. The sibling
+    // `sound` param is safe (allowlist-mapped).
+    if (file !== undefined && file !== null) {
+      if (typeof file !== "string" || /['"`$&|;<>\r\n]/.test(file)) {
+        throw new Error("Invalid sound file path");
+      }
+    }
+
     logger.info(`[MediaHandler] 播放声音: ${file || sound}`);
 
     try {
