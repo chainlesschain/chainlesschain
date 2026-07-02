@@ -83,6 +83,13 @@ function resolveEnvPath(filePath, projectRoot) {
   // `..` guard, so the agent could write a .env over an arbitrary file
   // (~/.bashrc, a sibling project's secrets, etc.) — path traversal. Resolve
   // against projectRoot and reject anything that escapes it.
+  // Reject absolute paths using both platform syntaxes. On POSIX,
+  // path.isAbsolute("C:/...") is false, which previously allowed a Windows
+  // absolute path to be treated as an in-project relative path in CI.
+  if (path.posix.isAbsolute(filePath) || path.win32.isAbsolute(filePath)) {
+    throw new Error(`Path escapes project root: ${filePath}`);
+  }
+
   const root = path.resolve(projectRoot);
   const resolved = path.resolve(root, filePath);
   if (resolved !== root && !resolved.startsWith(root + path.sep)) {
