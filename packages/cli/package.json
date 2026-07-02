@@ -1,13 +1,13 @@
 {
   "name": "chainlesschain",
-  "version": "0.162.146",
+  "version": "0.162.147",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
-    "chainlesschain": "./bin/chainlesschain.js",
-    "cc": "./bin/chainlesschain.js",
-    "clc": "./bin/chainlesschain.js",
-    "clchain": "./bin/chainlesschain.js"
+    "chainlesschain": "bin/chainlesschain.js",
+    "cc": "bin/chainlesschain.js",
+    "clc": "bin/chainlesschain.js",
+    "clchain": "bin/chainlesschain.js"
   },
   "main": "src/index.js",
   "scripts": {
@@ -46,7 +46,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "url": "git+https://github.com/chainlesschain/chainlesschain.git",
     "directory": "packages/cli"
   },
   "homepage": "https://www.chainlesschain.com",
