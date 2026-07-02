@@ -29,6 +29,20 @@ const
 
 ---
 
+## function safeParsePermissions(raw)
+
+```javascript
+function safeParsePermissions(raw)
+```
+
+* Parse a stored permissions blob defensively. `permissions` is free-form TEXT,
+ * so one corrupt/legacy row must not throw out of a list loop/map and make the
+ * whole accessible-resources query silently return [] (or null for summaries).
+ * @param {string} raw
+ * @returns {Object} parsed object, or {} on failure
+
+---
+
 ## async checkPermission(orgId, userDID, resourceType, resourceId, action)
 
 ```javascript

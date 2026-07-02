@@ -1,16 +1,10 @@
 # Component Reference
 
-**Total Components**: 585
+**Total Components**: 561
 
 ---
 
 ## src/renderer/pages
-
-### ZKPCredentialsPage
-
-**File**: `src/renderer/pages/ZKPCredentialsPage.vue`
-
----
 
 ### WorkflowMonitorPage
 
@@ -28,12 +22,6 @@
 
 ---
 
-### WebAuthnPage
-
-**File**: `src/renderer/pages/WebAuthnPage.vue`
-
----
-
 ### Wallet
 
 **File**: `src/renderer/pages/Wallet.vue`
@@ -47,14 +35,6 @@
 **File**: `src/renderer/pages/VoiceInputTestPage.vue`
 
 **Description**: 左侧：语音输入组件
-
----
-
-### VideoEditingPage
-
-**File**: `src/renderer/pages/VideoEditingPage.vue`
-
-**Description**: Left: Config Form
 
 ---
 
@@ -90,14 +70,6 @@
 
 ---
 
-### TimeMachinePage
-
-**File**: `src/renderer/pages/TimeMachinePage.vue`
-
-**Description**: Header with date picker
-
----
-
 ### TaskMonitor
 
 **File**: `src/renderer/pages/TaskMonitor.vue`
@@ -122,22 +94,6 @@
 
 ---
 
-### SkillPipelinePage
-
-**File**: `src/renderer/pages/SkillPipelinePage.vue`
-
-**Description**: Pipeline list
-
----
-
-### SkillPerformancePage
-
-**File**: `src/renderer/pages/SkillPerformancePage.vue`
-
-**Description**: Summary cards
-
----
-
 ### SkillManager
 
 **File**: `src/renderer/pages/SkillManager.vue`
@@ -157,14 +113,6 @@
 ### SimpleTestPage
 
 **File**: `src/renderer/pages/SimpleTestPage.vue`
-
----
-
-### SharedAlbumsPage
-
-**File**: `src/renderer/pages/SharedAlbumsPage.vue`
-
-**Description**: Header
 
 ---
 
@@ -192,27 +140,11 @@
 
 ---
 
-### SessionCorePage
-
-**File**: `src/renderer/pages/SessionCorePage.vue`
-
-**Description**: Sessions
-
----
-
 ### SSOLoginPage
 
 **File**: `src/renderer/pages/SSOLoginPage.vue`
 
 **Description**: Header
-
----
-
-### SSOConfigurationPage
-
-**File**: `src/renderer/pages/SSOConfigurationPage.vue`
-
-**Description**: Add/Edit Provider Modal
 
 ---
 
@@ -330,12 +262,6 @@
 
 ---
 
-### PermanentMemoryPage
-
-**File**: `src/renderer/pages/PermanentMemoryPage.vue`
-
----
-
 ### OrganizationsPage
 
 **File**: `src/renderer/pages/OrganizationsPage.vue`
@@ -381,14 +307,6 @@
 **File**: `src/renderer/pages/OrganizationActivityLogPage.vue`
 
 **Description**: 筛选器
-
----
-
-### NLProgrammingPage
-
-**File**: `src/renderer/pages/NLProgrammingPage.vue`
-
-**Description**: 页面头部
 
 ---
 
@@ -470,35 +388,11 @@
 
 ---
 
-### InstalledPluginsPage
-
-**File**: `src/renderer/pages/InstalledPluginsPage.vue`
-
-**Description**: 页面头部
-
----
-
-### IdentityLinkingPage
-
-**File**: `src/renderer/pages/IdentityLinkingPage.vue`
-
-**Description**: Current DID Display
-
----
-
 ### IPFSStoragePage
 
 **File**: `src/renderer/pages/IPFSStoragePage.vue`
 
 **Description**: Row 1: Statistics Cards
-
----
-
-### IPFSClusterPage
-
-**File**: `src/renderer/pages/IPFSClusterPage.vue`
-
-**Description**: Stats Row
 
 ---
 
@@ -518,33 +412,11 @@
 
 ---
 
-### GraphQLExplorerPage
-
-**File**: `src/renderer/pages/GraphQLExplorerPage.vue`
-
----
-
 ### GitHooksPage
 
 **File**: `src/renderer/pages/GitHooksPage.vue`
 
 **Description**: Config
-
----
-
-### FederatedNetworkPage
-
-**File**: `src/renderer/pages/FederatedNetworkPage.vue`
-
-**Description**: 页面头部
-
----
-
-### FederatedLearningPage
-
-**File**: `src/renderer/pages/FederatedLearningPage.vue`
-
-**Description**: Page Header
 
 ---
 
@@ -569,22 +441,6 @@
 **File**: `src/renderer/pages/EnterpriseDashboard.vue`
 
 **Description**: Overview Cards
-
----
-
-### EnterpriseAuditPage
-
-**File**: `src/renderer/pages/EnterpriseAuditPage.vue`
-
-**Description**: Filter Bar
-
----
-
-### DeploymentMonitorPage
-
-**File**: `src/renderer/pages/DeploymentMonitorPage.vue`
-
-**Description**: 页面头部
 
 ---
 
@@ -620,14 +476,6 @@
 
 ---
 
-### ComplianceDashboard
-
-**File**: `src/renderer/pages/ComplianceDashboard.vue`
-
-**Description**: Compliance Score Overview
-
----
-
 ### CommandLogsPage
 
 **File**: `src/renderer/pages/CommandLogsPage.vue`
@@ -641,14 +489,6 @@
 **File**: `src/renderer/pages/CollabEditorPage.vue`
 
 **Description**: Header Bar
-
----
-
-### CallHistoryPage
-
-**File**: `src/renderer/pages/CallHistoryPage.vue`
-
-**Description**: 通话详情抽屉
 
 ---
 
@@ -673,22 +513,6 @@
 **File**: `src/renderer/pages/BackupDashboard.vue`
 
 **Description**: 备份状态概览
-
----
-
-### AutonomousOpsPage
-
-**File**: `src/renderer/pages/AutonomousOpsPage.vue`
-
-**Description**: 页面头部
-
----
-
-### AutonomousAgentPage
-
-**File**: `src/renderer/pages/AutonomousAgentPage.vue`
-
-**Description**: Page Header
 
 ---
 
@@ -719,14 +543,6 @@
 ### AgentTemplateEditorPage
 
 **File**: `src/renderer/pages/AgentTemplateEditorPage.vue`
-
-**Description**: 页面头部
-
----
-
-### AgentDashboardPage
-
-**File**: `src/renderer/pages/AgentDashboardPage.vue`
 
 **Description**: 页面头部
 

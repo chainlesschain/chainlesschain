@@ -15,6 +15,20 @@ const
 
 ---
 
+## _resolveProjectDir(projectId)
+
+```javascript
+_resolveProjectDir(projectId)
+```
+
+* 解析并校验项目目录，防止路径穿越。
+   * projectId 来自渲染端 IPC（webide:loadProject/deleteProject 等），未校验时
+   * `../..` 可逃出 projectsPath —— deleteProject 还会 fs.rm(recursive,force) 任意目录。
+   * @param {string} projectId
+   * @returns {string} 受限在 projectsPath 内的绝对路径
+
+---
+
 ## async initDirectories()
 
 ```javascript
