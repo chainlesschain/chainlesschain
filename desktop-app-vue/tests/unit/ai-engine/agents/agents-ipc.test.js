@@ -40,34 +40,38 @@ describe("agents-ipc", () => {
     ipcMainMock = createMockIpcMain();
 
     templateManager = {
-      listTemplates: vi.fn().mockResolvedValue({
-        templates: [{ id: "tpl-1", name: "Planner" }],
-        total: 1,
-      }),
+      listTemplates: vi
+        .fn()
+        .mockResolvedValue({
+          templates: [{ id: "tpl-1", name: "Planner" }],
+          total: 1,
+        }),
       getTemplate: vi.fn().mockReturnValue({ id: "tpl-1", name: "Planner" }),
       createTemplate: vi
         .fn()
         .mockImplementation((template) => ({ id: "tpl-2", ...template })),
-      updateTemplate: vi.fn().mockImplementation((templateId, updates) => ({
-        id: templateId,
-        ...updates,
-      })),
+      updateTemplate: vi
+        .fn()
+        .mockImplementation((templateId, updates) => ({
+          id: templateId,
+          ...updates,
+        })),
       deleteTemplate: vi.fn().mockResolvedValue({ success: true }),
     };
 
     agentRegistry = {
-      createAgentInstance: vi.fn().mockResolvedValue({
-        id: "agent-1",
-        templateId: "tpl-1",
-        status: "running",
-      }),
-      terminateAgent: vi
+      deploy: vi
+        .fn()
+        .mockResolvedValue({
+          id: "agent-1",
+          templateId: "tpl-1",
+          status: "running",
+        }),
+      terminate: vi
         .fn()
         .mockResolvedValue({ agentId: "agent-1", terminated: true }),
-      getActiveInstances: vi.fn().mockReturnValue([{ id: "agent-1" }]),
-      getInstance: vi
-        .fn()
-        .mockReturnValue({ id: "agent-1", status: "running" }),
+      listInstances: vi.fn().mockReturnValue([{ id: "agent-1" }]),
+      getStatus: vi.fn().mockReturnValue({ id: "agent-1", status: "running" }),
     };
 
     agentCoordinator = {
@@ -259,9 +263,7 @@ describe("agents-ipc", () => {
         config: { env: "prod" },
       },
     );
-    expect(agentRegistry.createAgentInstance).toHaveBeenCalledWith("tpl-1", {
-      env: "prod",
-    });
+    expect(agentRegistry.deploy).toHaveBeenCalledWith("tpl-1", { env: "prod" });
     expect(deployResult.data.id).toBe("agent-1");
 
     const terminateResult = await ipcMainMock.handlers[
@@ -273,10 +275,7 @@ describe("agents-ipc", () => {
         reason: "done",
       },
     );
-    expect(agentRegistry.terminateAgent).toHaveBeenCalledWith(
-      "agent-1",
-      "done",
-    );
+    expect(agentRegistry.terminate).toHaveBeenCalledWith("agent-1", "done");
     expect(terminateResult.data.terminated).toBe(true);
 
     const instancesResult = await ipcMainMock.handlers["agents:list-instances"](
@@ -285,7 +284,9 @@ describe("agents-ipc", () => {
         filters: { status: "running" },
       },
     );
-    expect(agentRegistry.getActiveInstances).toHaveBeenCalled();
+    expect(agentRegistry.listInstances).toHaveBeenCalledWith({
+      status: "running",
+    });
     expect(instancesResult.total).toBe(1);
 
     const statusResult = await ipcMainMock.handlers["agents:get-status"](
@@ -294,10 +295,10 @@ describe("agents-ipc", () => {
         agentId: "agent-1",
       },
     );
-    expect(agentRegistry.getInstance).toHaveBeenCalledWith("agent-1");
+    expect(agentRegistry.getStatus).toHaveBeenCalledWith("agent-1");
     expect(statusResult.data.status).toBe("running");
 
-    agentRegistry.getInstance.mockReturnValueOnce(null);
+    agentRegistry.getStatus.mockReturnValueOnce(null);
     await expect(
       ipcMainMock.handlers["agents:get-status"]({}, { agentId: "missing" }),
     ).resolves.toEqual({

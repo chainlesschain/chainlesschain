@@ -74,8 +74,8 @@ class StatisticsCollector extends EventEmitter {
    */
   initializeDatabase() {
     try {
-      // 创建统计表 - 使用单条语句db.run()
-      this.database.run(`
+      // 创建统计表
+      this.database.exec(`
         CREATE TABLE IF NOT EXISTS remote_command_stats (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           period_type TEXT NOT NULL,
@@ -122,7 +122,6 @@ class StatisticsCollector extends EventEmitter {
       this.database.run(
         "UPDATE remote_command_stats SET command_action = '' WHERE command_action IS NULL",
       );
-      // 去重删除 - 单独执行
       this.database.run(`
         DELETE FROM remote_command_stats WHERE id NOT IN (
           SELECT MAX(id) FROM remote_command_stats
