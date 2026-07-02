@@ -318,7 +318,29 @@ export function registerAgentCommand(program) {
       "--replay-user-messages",
       "Stream-input mode: echo each accepted stdin user message back as a `user` event (transcript/correlation)",
     )
+    .option(
+      "--allow-dangerous-bypass",
+      "Bypass all permission prompts in headless mode (DANGEROUS: auto-approves all tool calls)",
+      false,
+    )
+    .option("-y, --yolo", "Alias for --allow-dangerous-bypass", false)
+    .option(
+      "--dangerously-skip-permissions",
+      "Alias for --allow-dangerous-bypass",
+      false,
+    )
     .action(async (task, options, command) => {
+      const bypassPermissions = !!(
+        options.allowDangerousBypass ||
+        options.yolo ||
+        options.dangerouslySkipPermissions
+      );
+      if (bypassPermissions) {
+        process.env.CC_BYPASS_PERMISSIONS = "1";
+        process.stderr.write(
+          "⚠️  DANGER MODE: All permissions bypassed, no prompts will be shown.\n",
+        );
+      }
       // --safe-mode flag OR CC_SAFE_MODE / CLAUDE_CODE_SAFE_MODE env (Claude-Code
       // 2.1.169 parity): flip every customization kill-switch BEFORE anything
       // loads. Permission rules stay active.
