@@ -5,6 +5,11 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import {
+  enforcePluginPolicy,
+  loadPluginManagedPolicy,
+  verifyPluginManifest,
+} from "../lib/plugin-security.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   installPlugin,
@@ -90,9 +95,32 @@ export function registerPluginCommand(program) {
     .option("--description <desc>", "Plugin description")
     .option("--author <author>", "Plugin author")
     .option("--manifest <path>", "Plugin manifest file with skill declarations")
+    .option("--source <source>", "Plugin source or marketplace identifier")
+    .option("--sha256 <hex>", "Expected SHA-256 of the manifest")
+    .option("--signature <path>", "Detached Ed25519 signature of the manifest")
+    .option("--public-key <path>", "PEM public key used to verify --signature")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
       try {
+        const managed = loadPluginManagedPolicy();
+        enforcePluginPolicy(
+          { name, source: options.source, action: "install" },
+          managed,
+        );
+        let verifiedManifest = null;
+        let parsedManifest = null;
+        if (options.manifest || managed?.requireSignedPlugins) {
+          verifiedManifest = verifyPluginManifest({
+            manifestFile: options.manifest,
+            expectedSha256: options.sha256,
+            signatureFile: options.signature,
+            publicKeyFile: options.publicKey,
+            requireSignature: managed?.requireSignedPlugins === true,
+            trustedKeySha256: managed?.trustedPluginKeySha256,
+            requireTrustedKey: managed?.requireSignedPlugins === true,
+          });
+          parsedManifest = JSON.parse(verifiedManifest.bytes.toString("utf8"));
+        }
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");
@@ -111,8 +139,9 @@ export function registerPluginCommand(program) {
         if (options.manifest) {
           try {
             const fs = await import("fs");
-            const manifestContent = fs.readFileSync(options.manifest, "utf-8");
-            const manifest = JSON.parse(manifestContent);
+            const manifest =
+              parsedManifest ||
+              JSON.parse(fs.readFileSync(options.manifest, "utf-8"));
             if (manifest.skills && manifest.skills.length > 0) {
               const path = await import("path");
               const pluginPath = path.dirname(path.resolve(options.manifest));
@@ -131,7 +160,17 @@ export function registerPluginCommand(program) {
         if (options.json) {
           console.log(
             JSON.stringify(
-              { ...result, skills: skillResult.installed },
+              {
+                ...result,
+                skills: skillResult.installed,
+                integrity: verifiedManifest
+                  ? {
+                      sha256: verifiedManifest.sha256,
+                      signatureVerified: verifiedManifest.signatureVerified,
+                      publicKeySha256: verifiedManifest.publicKeySha256,
+                    }
+                  : null,
+              },
               null,
               2,
             ),
@@ -205,6 +244,10 @@ export function registerPluginCommand(program) {
     .argument("<name>", "Plugin name")
     .action(async (name) => {
       try {
+        enforcePluginPolicy(
+          { name, action: "enable" },
+          loadPluginManagedPolicy(),
+        );
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");
@@ -262,6 +305,10 @@ export function registerPluginCommand(program) {
     .argument("<version>", "New version")
     .action(async (name, version) => {
       try {
+        enforcePluginPolicy(
+          { name, action: "update" },
+          loadPluginManagedPolicy(),
+        );
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");

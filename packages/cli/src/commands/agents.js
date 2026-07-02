@@ -22,6 +22,74 @@ export function registerAgentsCommand(program) {
     .command("agents")
     .description("User-defined subagents (.claude/agents/*.md)");
 
+  cmd
+    .command("background")
+    .alias("bg")
+    .description("List background agent sessions")
+    .option("--all", "Include completed, failed, stopped and lost sessions")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { listBackgroundAgents } =
+        await import("../lib/background-agent-supervisor.js");
+      const sessions = listBackgroundAgents({ all: options.all === true });
+      if (options.json) {
+        console.log(JSON.stringify(sessions, null, 2));
+        return;
+      }
+      if (sessions.length === 0) {
+        logger.log(chalk.gray("No background agents."));
+        return;
+      }
+      for (const session of sessions) {
+        const elapsed = session.endedAt
+          ? session.endedAt - session.startedAt
+          : Date.now() - session.startedAt;
+        logger.log(
+          `${chalk.cyan(session.id)}  ${session.status.padEnd(9)} ${Math.max(0, Math.round(elapsed / 1000))}s  ${session.title || ""}`,
+        );
+        logger.log(chalk.gray(`  pid ${session.pid}  ${session.cwd}`));
+      }
+    });
+
+  cmd
+    .command("logs <id>")
+    .description("Print recent output from a background agent")
+    .option("-n, --lines <n>", "Number of lines", "100")
+    .action(async (id, options) => {
+      try {
+        const { readBackgroundAgentState, readBackgroundAgentLog } =
+          await import("../lib/background-agent-supervisor.js");
+        if (!readBackgroundAgentState(id)) {
+          throw new Error(`Background agent not found: ${id}`);
+        }
+        process.stdout.write(
+          readBackgroundAgentLog(id, { lines: Number(options.lines) }),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  cmd
+    .command("stop <id>")
+    .description("Stop a running background agent")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const { stopBackgroundAgent } =
+          await import("../lib/background-agent-supervisor.js");
+        const state = stopBackgroundAgent(id);
+        if (options.json) console.log(JSON.stringify(state, null, 2));
+        else if (state.stopped)
+          logger.log(chalk.green(`Stopped background agent ${id}`));
+        else logger.log(chalk.gray(`${id} is already ${state.status}`));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
   // ── list ──────────────────────────────────────────────────────────────
   cmd
     .command("list")

@@ -19,6 +19,7 @@ const j = (...p) => p.join(sep);
 const userFile = j(HOME, ".claude", "settings.json");
 const projFile = j(CWD, ".claude", "settings.json");
 const localFile = j(CWD, ".claude", "settings.local.json");
+const managedFile = j(HOME, "managed-hooks.json");
 
 let files;
 const setFile = (p, obj) => (files[p] = JSON.stringify(obj));
@@ -55,7 +56,9 @@ describe("loadHooks — hierarchy concatenation", () => {
   });
 
   it("dedups the same physical file (explicit --settings aliasing an auto-loaded path)", () => {
-    setFile(projFile, { hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] } });
+    setFile(projFile, {
+      hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] },
+    });
     // --settings points at the very file cwd already auto-loads. Without path
     // dedup this hook group would be read twice and fire twice.
     const { hooks, files: contributed } = loadHooks({
@@ -92,6 +95,65 @@ describe("loadHooks — hierarchy concatenation", () => {
 
   it("returns empty when no settings files exist", () => {
     expect(loadHooks({ cwd: CWD })).toEqual({ hooks: {}, files: [] });
+  });
+});
+
+describe("loadHooks — managed policy", () => {
+  it("appends managed hooks after user and project hooks", () => {
+    setFile(projFile, { hooks: { PreToolUse: [cmdGroup("Bash", "p.sh")] } });
+    setFile(managedFile, {
+      hooks: { PreToolUse: [cmdGroup("Bash", "managed.sh")] },
+    });
+    const result = loadHooks({
+      cwd: CWD,
+      env: { CC_MANAGED_SETTINGS: managedFile },
+    });
+    expect(result.hooks.PreToolUse.map((g) => g.hooks[0].command)).toEqual([
+      "p.sh",
+      "managed.sh",
+    ]);
+    expect(result.managedFile).toBe(managedFile);
+  });
+
+  it("loads only managed hooks when allowManagedHooksOnly is enabled", () => {
+    setFile(userFile, { hooks: { PreToolUse: [cmdGroup("*", "u.sh")] } });
+    setFile(projFile, { hooks: { PreToolUse: [cmdGroup("*", "p.sh")] } });
+    setFile(managedFile, {
+      allowManagedHooksOnly: true,
+      hooks: { PreToolUse: [cmdGroup("*", "managed.sh")] },
+    });
+    const result = loadHooks({
+      cwd: CWD,
+      env: { CC_MANAGED_SETTINGS: managedFile },
+    });
+    expect(result.hooks.PreToolUse.map((g) => g.hooks[0].command)).toEqual([
+      "managed.sh",
+    ]);
+  });
+
+  it("keeps managed hooks active when safe mode disables custom hooks", () => {
+    setFile(managedFile, {
+      hooks: { PreToolUse: [cmdGroup("*", "managed.sh")] },
+    });
+    const result = loadHooks({
+      cwd: CWD,
+      env: {
+        CC_MANAGED_SETTINGS: managedFile,
+        CC_SETTINGS_HOOKS: "0",
+      },
+    });
+    expect(result.hooks.PreToolUse[0].hooks[0].command).toBe("managed.sh");
+  });
+
+  it("fails closed when the managed hooks file is malformed", () => {
+    files[managedFile] = "{ broken";
+    expect(() =>
+      loadHooks({
+        cwd: CWD,
+        env: { CC_MANAGED_SETTINGS: managedFile },
+        onWarn: () => {},
+      }),
+    ).toThrow(/managed settings.*malformed/);
   });
 });
 

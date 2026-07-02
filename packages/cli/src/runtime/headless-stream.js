@@ -529,18 +529,31 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // .claude/settings.json permission rules (deny > ask > allow); see
   // runAgentHeadless for the full semantics. null = no file → unchanged.
   let permissionRules = options.permissionRules || null;
-  if (!permissionRules) {
-    try {
-      const { loadSettings } = await import("../lib/settings-loader.cjs");
-      const loaded = loadSettings({ cwd, settingsFile: options.settingsFile });
+  let managedSettings = null;
+  try {
+    const { loadSettings, applyManagedPermissionPolicy } =
+      await import("../lib/settings-loader.cjs");
+    const loaded = loadSettings({
+      cwd,
+      settingsFile: options.settingsFile,
+      managedSettingsFile: options.managedSettingsFile,
+    });
+    managedSettings = loaded.managed;
+    if (!permissionRules) {
       const total =
         loaded.rules.allow.length +
         loaded.rules.ask.length +
         loaded.rules.deny.length;
       permissionRules = total > 0 ? loaded.rules : null;
-    } catch {
-      permissionRules = null; // fail-open
+    } else if (managedSettings) {
+      permissionRules = applyManagedPermissionPolicy(
+        permissionRules,
+        managedSettings,
+      );
     }
+  } catch (error) {
+    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
+    // Preserve caller-provided rules; absent settings keep legacy behavior.
   }
 
   // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
@@ -617,6 +630,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       return m.getApprovalGate();
     });
 
+  if (managedSettings) {
+    const { assertManagedPermissionMode } =
+      await import("../lib/settings-loader.cjs");
+    assertManagedPermissionMode(options.permissionMode, managedSettings);
+  }
   const perm = resolvePermissionMode(options.permissionMode);
   const enabledToolNames = resolveEnabledTools({
     allowedTools: options.allowedTools,
@@ -910,6 +928,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       mcp = await doResolve(
         {
           mcpConfigPath: options.mcpConfig || null,
+          managedSettingsFile: options.managedSettingsFile,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
           // --strict-mcp-config: only the --mcp-config servers (ignore

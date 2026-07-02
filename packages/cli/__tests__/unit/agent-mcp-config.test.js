@@ -16,6 +16,7 @@ import {
   mcpAuthHint,
   hasHeaderInsensitive,
   setupMcpFromConfig,
+  filterMcpServersByPolicy,
   loadMcpConfig,
   resolvePermissionPromptTool,
   parsePermissionDecision,
@@ -100,6 +101,42 @@ describe("mcpToolName", () => {
 });
 
 describe("setupMcpFromConfig", () => {
+  it("enforces managed MCP allow and deny lists", () => {
+    const errors = [];
+    const filtered = filterMcpServersByPolicy(
+      {
+        approved: { command: "approved" },
+        denied: { command: "denied" },
+        unknown: { command: "unknown" },
+      },
+      {
+        allowManagedMcpServersOnly: true,
+        allowedMcpServers: ["approved", "denied"],
+        deniedMcpServers: ["denied"],
+      },
+      (line) => errors.push(line),
+    );
+    expect(Object.keys(filtered)).toEqual(["approved"]);
+    expect(errors.join("")).toMatch(/blocked server "denied"/);
+    expect(errors.join("")).toMatch(/blocked server "unknown"/);
+  });
+
+  it("filters before connecting so blocked server commands never spawn", async () => {
+    const client = fakeClient({ approved: [], blocked: [] });
+    await setupMcpFromConfig(
+      {
+        approved: { command: "approved" },
+        blocked: { command: "blocked" },
+      },
+      {
+        createClient: () => client,
+        mcpPolicy: { deniedMcpServers: ["blocked"] },
+      },
+    );
+    expect(client.calls.connect).toHaveLength(1);
+    expect(client.calls.connect[0]).toMatchObject({ name: "approved" });
+  });
+
   it("builds tool defs + executor map from connected servers", async () => {
     const client = fakeClient({
       weather: [
@@ -823,6 +860,25 @@ describe("loadRegisteredMcp", () => {
 describe("resolveAgentMcp", () => {
   const fileDeps = (servers) => ({
     readFile: () => JSON.stringify({ mcpServers: servers }),
+  });
+
+  it("threads managed MCP policy into every loader", async () => {
+    const policy = {
+      allowManagedMcpServersOnly: true,
+      allowedMcpServers: ["approved"],
+    };
+    let seenPolicy = null;
+    await resolveAgentMcp(
+      { mcpConfigPath: "x.json", strict: true },
+      {
+        mcpPolicy: policy,
+        loadMcpConfig: async (_file, deps) => {
+          seenPolicy = deps.mcpPolicy;
+          return null;
+        },
+      },
+    );
+    expect(seenPolicy).toBe(policy);
   });
 
   it("merges --mcp-config + registered into ONE client", async () => {

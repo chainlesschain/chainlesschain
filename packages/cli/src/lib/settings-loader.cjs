@@ -88,6 +88,69 @@ function settingsPaths(cwd, explicitFile) {
   return list;
 }
 
+/** Organization-controlled settings file. This layer is always highest. */
+function managedSettingsPath(opts = {}) {
+  if (opts.managedSettingsFile) return path.resolve(opts.managedSettingsFile);
+  const env = opts.env || process.env;
+  if (env.CC_MANAGED_SETTINGS) return path.resolve(env.CC_MANAGED_SETTINGS);
+  if (process.platform === "win32") {
+    const base = env.ProgramData || env.PROGRAMDATA || "C:\\ProgramData";
+    return path.join(base, "ChainlessChain", "managed-settings.json");
+  }
+  return "/etc/chainlesschain/managed-settings.json";
+}
+
+function loadManagedSettings(opts = {}) {
+  const file = managedSettingsPath(opts);
+  if (!_deps.fs.existsSync(file)) return { file, settings: null };
+  const data = readSettingsFile(file, { onWarn: opts.onWarn });
+  if (!data) {
+    const error = new Error(
+      `managed settings are unreadable or malformed: ${file}`,
+    );
+    error.code = "CC_MANAGED_SETTINGS_INVALID";
+    throw error;
+  }
+  return { file, settings: data };
+}
+
+function emptyRules() {
+  return { allow: [], ask: [], deny: [] };
+}
+
+/** Apply the non-bypassable permission portion of managed settings. */
+function applyManagedPermissionPolicy(baseRules, managed, sources = {}) {
+  const policy = managed && typeof managed === "object" ? managed : {};
+  const rules = policy.allowManagedPermissionRulesOnly
+    ? emptyRules()
+    : {
+        allow: [...(baseRules?.allow || [])],
+        ask: [...(baseRules?.ask || [])],
+        deny: [...(baseRules?.deny || [])],
+      };
+  const perms =
+    policy.permissions && typeof policy.permissions === "object"
+      ? policy.permissions
+      : {};
+  for (const kind of KINDS) {
+    accrete(rules[kind], sources, perms[kind], "<managed>", kind);
+  }
+  return rules;
+}
+
+function assertManagedPermissionMode(mode, managed) {
+  if (
+    mode === "bypassPermissions" &&
+    (managed?.disableBypassPermissionsMode === true ||
+      managed?.disableBypassPermissionsMode === "disable")
+  ) {
+    throw new Error(
+      'permission mode "bypassPermissions" is disabled by managed settings',
+    );
+  }
+  return mode;
+}
+
 /** Parse a comma/space separated env override into a string[]. */
 function parseEnvList(value) {
   if (!value) return [];
@@ -116,7 +179,7 @@ function loadSettings(opts = {}) {
   const env = opts.env || process.env;
   const onWarn = opts.onWarn;
 
-  const rules = { allow: [], ask: [], deny: [] };
+  let rules = emptyRules();
   const sources = {};
   const files = [];
 
@@ -150,7 +213,27 @@ function loadSettings(opts = {}) {
   }
   if (envContributed) files.push("<env>");
 
-  return { rules, sources, files };
+  const managedLoaded = loadManagedSettings({
+    env,
+    managedSettingsFile: opts.managedSettingsFile,
+    onWarn,
+  });
+  if (managedLoaded.settings) {
+    rules = applyManagedPermissionPolicy(
+      rules,
+      managedLoaded.settings,
+      sources,
+    );
+    files.push(managedLoaded.file);
+  }
+
+  return {
+    rules,
+    sources,
+    files,
+    managed: managedLoaded.settings,
+    managedFile: managedLoaded.settings ? managedLoaded.file : null,
+  };
 }
 
 /** Look up the source file a matched `{ kind, rule }` came from. */
@@ -236,6 +319,24 @@ function loadSettingsConfig(opts = {}) {
     }
     if (contributed) files.push(file);
   }
+  const managed = loadManagedSettings(opts);
+  if (managed.settings) {
+    const data = managed.settings;
+    let contributed = false;
+    if (typeof data.model === "string" && data.model.trim()) {
+      model = data.model.trim();
+      contributed = true;
+    }
+    if (data.env && typeof data.env === "object" && !Array.isArray(data.env)) {
+      for (const [k, v] of Object.entries(data.env)) {
+        if (typeof v === "string") {
+          env[k] = v;
+          contributed = true;
+        }
+      }
+    }
+    if (contributed) files.push(managed.file);
+  }
   return { model, env, files };
 }
 
@@ -270,6 +371,14 @@ function readBooleanSetting(key, opts = {}) {
       value = node; // last (closest) layer wins
     }
   }
+  const managed = loadManagedSettings(opts);
+  if (managed.settings) {
+    let node = managed.settings;
+    for (const p of parts) {
+      node = node && typeof node === "object" ? node[p] : undefined;
+    }
+    if (typeof node === "boolean") value = node;
+  }
   return value;
 }
 
@@ -279,6 +388,10 @@ module.exports = {
   readSettingsFile,
   readBooleanSetting,
   settingsPaths,
+  managedSettingsPath,
+  loadManagedSettings,
+  applyManagedPermissionPolicy,
+  assertManagedPermissionMode,
   parseEnvList,
   ruleSource,
   addRule,

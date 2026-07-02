@@ -61,6 +61,20 @@ Claude Code `claude -p` 对标:`cc agent` 的**单轮非交互**执行——进 
 脚本。绕过交互 REPL,prompt 来自 `-p` 值 / 位置参数 / stdin 管道,跑完即退出
 (agent 内部仍可多轮工具循环)。
 
+### 后台 Agent 会话
+
+长任务可以脱离当前终端运行：
+
+```bash
+cc agent --bg -p "运行完整测试并修复失败"
+cc agents background          # 仅运行中
+cc agents background --all    # 包含完成/失败/停止
+cc agents logs <bg-id> -n 200
+cc agents stop <bg-id>
+```
+
+后台 worker 与实际 Agent 进程独立，状态和日志保存在 `~/.chainlesschain/background-agents/`。状态文件不保存命令行参数，避免 `--api-key` 等凭据进入会话索引；启动 job 文件使用 `0600` 并由 worker 读取后立即删除。当前 `--bg` 不与 `--worktree` 同时使用，可以先进入目标 worktree 再启动后台 Agent。
+
 ```bash
 chainlesschain agent -p "fix the bug in x.js"             # 单轮执行后退出
 chainlesschain agent -p "review @src/x.js"                # 支持 @path 文件引用
@@ -963,7 +977,7 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 | `Edit`      | `edit_file` / `edit_file_hashed` | 路径               | `Edit(//etc/**)`(`//`=绝对)                |
 | `Write`     | `write_file`                     | 路径               | `Write(./build/**)`                        |
 | `WebFetch`  | `web_fetch`                      | URL host           | `WebFetch(domain:example.com)`             |
-| `WebSearch` | `web_search`                     | —                  | `WebSearch`                                |
+| `WebSearch` | `web_search`                     | —                  | `WebSearch`                               |
 | `Task`/`Agent` | `spawn_sub_agent`             | 子 agent 类型      | `Agent(explorer)`、`Agent(executor,design)` |
 
 - **命令**:`prefix:*` 前缀语义(`Bash(git push:*)` 命中 `git push` 及其后任意参数);
@@ -1023,6 +1037,51 @@ chainlesschain agent -p "大重构" --settings run.json
 
 ### `cc permissions` — 查看 / 干跑 / 编辑
 
+### Managed Settings（组织强制策略）
+
+管理员可以部署不可被 user/project/local、`--settings` 或环境权限规则覆盖的策略文件：
+
+- Windows：`%ProgramData%\ChainlessChain\managed-settings.json`
+- Linux/macOS：`/etc/chainlesschain/managed-settings.json`
+- 测试或定制部署：`CC_MANAGED_SETTINGS=/absolute/path.json`
+
+```json
+{
+  "permissions": {
+    "deny": ["Bash(curl:*)", "Read(./.env*)"]
+  },
+  "allowManagedPermissionRulesOnly": true,
+  "allowManagedHooksOnly": true,
+  "allowManagedMcpServersOnly": true,
+  "allowedMcpServers": ["company-github", "company-jira"],
+  "deniedMcpServers": ["untrusted-local"],
+  "allowedPlugins": ["company-review"],
+  "deniedPlugins": ["untrusted-plugin"],
+  "allowedPluginSources": ["company-marketplace"],
+  "blockedMarketplaces": ["unknown-public-source"],
+  "requireSignedPlugins": true,
+  "trustedPluginKeySha256": ["<sha256-of-public-spki-der>"],
+  "disableBypassPermissionsMode": "disable",
+  "model": "managed-model",
+  "env": { "AUDIT_ENABLED": "1" }
+}
+```
+
+`allowManagedPermissionRulesOnly` 会忽略所有非 managed 的 allow/ask/deny，并禁用 REPL 的 always-allow 持久化；`allowManagedHooksOnly` 禁止 user/project/local/`--settings` hooks，但 managed hooks 在 `--safe-mode` 下仍执行；MCP allow/deny 在连接和启动 stdio server 之前生效，覆盖临时配置、注册配置、项目 `.mcp.json` 和 IDE/PDH bridge。`disableBypassPermissionsMode` 会拒绝 `--permission-mode bypassPermissions`。managed 文件存在但无法读取或 JSON 损坏时 Agent 失败关闭。`cc permissions list --json` 会返回 `managed` 与 `managedFile`，文本模式也会标出强制策略。
+
+插件安装策略在写数据库和安装 skills 之前执行。`requireSignedPlugins` 要求提供 manifest、二进制 Ed25519 detached signature 和 PEM 公钥：
+
+```bash
+cc plugin install company-review \
+  --source company-marketplace \
+  --manifest .claude-plugin/plugin.json \
+  --sha256 <hex> \
+  --signature plugin.sig \
+  --public-key company-plugin-key.pem
+```
+
+`deniedPlugins` 优先于 allowlist；source/marketplace 策略要求安装方显式声明 `--source`。启用强制签名时还必须配置受信公钥的 SPKI DER SHA-256 指纹，不能用任意自签公钥绕过。manifest SHA-256、签名或公钥信任不匹配，以及 manifest JSON 损坏都会失败关闭。
+
 ```bash
 chainlesschain permissions list [--json]                    # 合并后规则集 + 每条来源文件
 chainlesschain permissions test run_shell "git push origin main"   # 干跑:命中哪条规则→什么判定
@@ -1061,6 +1120,18 @@ shell-policy 默认给一组**验证类命令**(`npm test` / `npm run lint` / `n
 - 用户显式的 settings `allow` 规则(`Bash(npm run test:*)`)是**另一层有意预授权**,不受此开关影响。
 - 层级与其它设置一致(`~/.claude` < 项目 < `.local` < `--settings`,最近层胜);未设 = 关。
 - 无 ApprovalGate 时(纯 headless 无 gate)降级为 WARN 仍是 allowed——开关的"牙齿"来自交互档位的确认。
+
+## Agent Shell OS Sandbox
+
+`cc agent --sandbox` 会把 `run_shell` 放入一次性 Docker 容器执行，而不只是检查命令字符串：
+
+```bash
+cc agent --sandbox -p "运行测试并修复失败"
+cc agent --sandbox node:22-alpine -p "检查构建"
+cc agent --sandbox --sandbox-network -p "更新依赖并运行测试"
+```
+
+默认挂载当前工作区为可写 `/workspace`、禁用容器网络，只传 Agent 会话标识环境变量，不传宿主 API key。Docker 缺失或容器启动失败时会失败关闭。首版不支持 sandbox 内后台 shell。
 
 ## Credential 读取保护(Claude-Code 2.1.189 `sandbox.credentials` 平价)
 

@@ -18,6 +18,7 @@ const j = (...p) => p.join(sep);
 const userFile = j(HOME, ".claude", "settings.json");
 const projFile = j(CWD, ".claude", "settings.json");
 const overrideFile = j(CWD, "override.json");
+const managedFile = j(HOME, "managed-settings.json");
 
 let files;
 const setFile = (p, obj) => {
@@ -69,6 +70,22 @@ describe("loadSettingsConfig", () => {
     setFile(projFile, { env: { B: "proj" } });
     const r = loadSettingsConfig({ cwd: CWD });
     expect(r.env).toEqual({ A: "user", B: "proj" });
+  });
+
+  it("managed settings override explicit user-controlled config", () => {
+    setFile(overrideFile, { model: "user-model", env: { REGION: "user" } });
+    setFile(managedFile, {
+      model: "managed-model",
+      env: { REGION: "managed", AUDIT: "1" },
+    });
+    const r = loadSettingsConfig({
+      cwd: CWD,
+      settingsFile: "override.json",
+      managedSettingsFile: managedFile,
+    });
+    expect(r.model).toBe("managed-model");
+    expect(r.env).toEqual({ REGION: "managed", AUDIT: "1" });
+    expect(r.files.at(-1)).toBe(managedFile);
   });
 
   it("ignores non-string model, non-object env, and non-string env values", () => {

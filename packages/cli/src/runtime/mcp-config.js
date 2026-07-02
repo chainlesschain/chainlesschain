@@ -60,6 +60,37 @@ export function parseMcpServers(raw) {
   return out;
 }
 
+function managedServerNames(value) {
+  if (!Array.isArray(value)) return null;
+  return new Set(
+    value
+      .map((entry) =>
+        typeof entry === "string" ? entry : entry?.name || entry?.serverName,
+      )
+      .filter(Boolean),
+  );
+}
+
+/** Apply organization MCP allow/deny policy to every server source. */
+export function filterMcpServersByPolicy(servers, policy, writeErr = () => {}) {
+  if (!policy) return servers;
+  const allowed = managedServerNames(policy.allowedMcpServers);
+  const denied = managedServerNames(policy.deniedMcpServers) || new Set();
+  const requireAllowlist =
+    policy.allowManagedMcpServersOnly === true || allowed !== null;
+  const out = {};
+  for (const [name, config] of Object.entries(servers || {})) {
+    const blocked =
+      denied.has(name) || (requireAllowlist && !allowed?.has(name));
+    if (blocked) {
+      writeErr(`  mcp: blocked server "${name}" by managed settings\n`);
+      continue;
+    }
+    out[name] = config;
+  }
+  return out;
+}
+
 /** Namespaced tool name exposed to the LLM. */
 export function mcpToolName(server, tool) {
   return `mcp__${server}__${tool}`;
@@ -119,6 +150,7 @@ export function mcpAuthHint(url, errMessage) {
 export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
   const createClient = deps.createClient || (() => new MCPClient());
+  servers = filterMcpServersByPolicy(servers, deps.mcpPolicy, writeErr);
 
   // `deps.into` lets a second batch (e.g. registered servers) accumulate into
   // the SAME client + channel objects as a first batch (e.g. --mcp-config), so
@@ -638,8 +670,20 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const doJetbrains = deps.loadJetbrainsMcp || loadJetbrainsMcp;
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
-  const fwd =
-    args.sessionId != null ? { ...deps, sessionId: args.sessionId } : deps;
+  let mcpPolicy = deps.mcpPolicy || null;
+  if (!mcpPolicy) {
+    const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
+    const loaded = loadManagedSettings({
+      env: args.env || process.env,
+      managedSettingsFile: args.managedSettingsFile,
+    });
+    mcpPolicy = loaded.settings;
+  }
+  const fwd = {
+    ...deps,
+    ...(args.sessionId != null ? { sessionId: args.sessionId } : {}),
+    mcpPolicy,
+  };
   let result = null;
   if (args.mcpConfigPath) {
     result = await doFile(args.mcpConfigPath, fwd); // fail-fast on bad file

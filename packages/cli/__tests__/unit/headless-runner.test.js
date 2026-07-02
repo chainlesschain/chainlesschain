@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   runAgentHeadless,
   resolvePermissionMode,
@@ -417,6 +420,30 @@ describe("headless-runner — permission wiring", () => {
       policy: "autopilot",
     });
     expect(gate.calls.confirmer).toBeGreaterThan(0);
+  });
+
+  it("rejects bypassPermissions when managed policy disables it", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-managed-runner-"));
+    const managed = join(dir, "managed.json");
+    writeFileSync(
+      managed,
+      JSON.stringify({ disableBypassPermissionsMode: "disable" }),
+    );
+    try {
+      const { deps } = makeDeps(replyText("must not run"));
+      await expect(
+        runAgentHeadless(
+          {
+            prompt: "hi",
+            permissionMode: "bypassPermissions",
+            managedSettingsFile: managed,
+          },
+          deps,
+        ),
+      ).rejects.toThrow(/disabled by managed settings/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

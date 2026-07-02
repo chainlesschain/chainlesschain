@@ -82,20 +82,66 @@ function readJson(file, onWarn) {
   }
 }
 
+function managedSettingsFile(env = process.env) {
+  if (env.CC_MANAGED_SETTINGS) return path.resolve(env.CC_MANAGED_SETTINGS);
+  if (process.platform === "win32") {
+    const base = env.ProgramData || env.PROGRAMDATA || "C:\\ProgramData";
+    return path.join(base, "ChainlessChain", "managed-settings.json");
+  }
+  return "/etc/chainlesschain/managed-settings.json";
+}
+
+function appendHookBlock(merged, data) {
+  const block =
+    data && data.hooks && typeof data.hooks === "object" ? data.hooks : null;
+  if (!block) return false;
+  let contributed = false;
+  for (const [event, groups] of Object.entries(block)) {
+    if (!Array.isArray(groups)) continue;
+    for (const g of groups) {
+      if (!g || typeof g !== "object" || !Array.isArray(g.hooks)) continue;
+      const cmds = g.hooks.filter(
+        (h) => h && h.type === "command" && h.command,
+      );
+      if (cmds.length === 0) continue;
+      if (!merged[event]) merged[event] = [];
+      merged[event].push({ matcher: g.matcher ?? null, hooks: cmds });
+      contributed = true;
+    }
+  }
+  return contributed;
+}
+
 /**
  * Load + concatenate the `hooks` blocks across the hierarchy.
  * @returns {{ hooks: Record<string, Array<{matcher:string|null, hooks:Array<{type,command,timeout}>}>>, files:string[] }}
  */
-function loadHooks({ cwd = process.cwd(), settingsFile, onWarn } = {}) {
+function loadHooks({
+  cwd = process.cwd(),
+  settingsFile,
+  onWarn,
+  env = process.env,
+} = {}) {
   const merged = {};
   const files = [];
-  // Safe-mode kill switch (`cc agent --safe-mode` sets CC_SETTINGS_HOOKS=0):
-  // run with NO settings hooks so a broken hook can be diagnosed.
-  if (process.env.CC_SETTINGS_HOOKS === "0") {
-    return { hooks: merged, files };
+  const managedFile = managedSettingsFile(env);
+  let managed = null;
+  if (_deps.fs.existsSync(managedFile)) {
+    managed = readJson(managedFile, onWarn);
+    if (!managed) {
+      const error = new Error(
+        `managed settings are unreadable or malformed: ${managedFile}`,
+      );
+      error.code = "CC_MANAGED_SETTINGS_INVALID";
+      throw error;
+    }
   }
+  // Safe-mode kill switch (`cc agent --safe-mode` sets CC_SETTINGS_HOOKS=0):
+  // user/project hooks are disabled, but administrator hooks remain active.
+  const managedOnly = managed?.allowManagedHooksOnly === true;
+  const skipUnmanaged = env.CC_SETTINGS_HOOKS === "0" || managedOnly;
   const seenPaths = new Set();
-  for (const file of settingsFiles(cwd, settingsFile)) {
+  for (const file of skipUnmanaged ? [] : settingsFiles(cwd, settingsFile)) {
     // Dedup by RESOLVED path so the SAME physical file is never read twice — e.g.
     // `--settings .claude/settings.json` from the project root aliases the
     // auto-loaded cwd file, which would otherwise CONCATENATE its hook groups a
@@ -106,26 +152,16 @@ function loadHooks({ cwd = process.cwd(), settingsFile, onWarn } = {}) {
     if (seenPaths.has(resolved)) continue;
     seenPaths.add(resolved);
     const data = readJson(file, onWarn);
-    const block =
-      data && data.hooks && typeof data.hooks === "object" ? data.hooks : null;
-    if (!block) continue;
-    let contributed = false;
-    for (const [event, groups] of Object.entries(block)) {
-      if (!Array.isArray(groups)) continue;
-      for (const g of groups) {
-        if (!g || typeof g !== "object" || !Array.isArray(g.hooks)) continue;
-        const cmds = g.hooks.filter(
-          (h) => h && h.type === "command" && h.command,
-        );
-        if (cmds.length === 0) continue;
-        if (!merged[event]) merged[event] = [];
-        merged[event].push({ matcher: g.matcher ?? null, hooks: cmds });
-        contributed = true;
-      }
-    }
+    const contributed = appendHookBlock(merged, data);
     if (contributed) files.push(file);
   }
-  return { hooks: merged, files };
+  if (managed && appendHookBlock(merged, managed)) files.push(managedFile);
+  const result = { hooks: merged, files };
+  if (managed) {
+    result.managed = managed;
+    result.managedFile = managedFile;
+  }
+  return result;
 }
 
 /**
@@ -184,7 +220,8 @@ function collectHooks(hooksBlock, event, toolName) {
   for (const g of groups) {
     const fn = compileMatcher(g.matcher);
     if (fn(umbrella) || (raw && fn(raw))) {
-      for (const h of g.hooks) out.push({ command: h.command, timeout: h.timeout });
+      for (const h of g.hooks)
+        out.push({ command: h.command, timeout: h.timeout });
     }
   }
   return out;
@@ -265,6 +302,11 @@ function writeHookTrustStore(store) {
 function projectHookTrustNotice({ cwd = process.cwd(), settingsFile } = {}) {
   if (process.env.CC_HOOK_TRUST_NOTICE === "0") return null;
   if (process.env.CC_SETTINGS_HOOKS === "0") return null; // hooks won't run anyway
+  const managedFile = managedSettingsFile(process.env);
+  if (_deps.fs.existsSync(managedFile)) {
+    const managed = readJson(managedFile);
+    if (managed?.allowManagedHooksOnly === true) return null;
+  }
   const home = path.join(_deps.homedir(), ".claude", "settings.json");
   const explicit = settingsFile ? path.resolve(cwd, settingsFile) : null;
   const trusted = new Set([home, explicit].filter(Boolean));
@@ -328,6 +370,7 @@ module.exports = {
   compileMatcher,
   umbrellaFor,
   settingsFiles,
+  managedSettingsFile,
   HOOK_EVENTS,
   _deps,
 };

@@ -16,6 +16,7 @@ import {
 } from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { normalizeAgentSandbox } from "../lib/agent-sandbox.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -170,6 +171,15 @@ export function registerAgentCommand(program) {
     .option(
       "--worktree",
       "Run this session in a fresh git worktree (isolated branch; auto-removed when the session changes nothing)",
+    )
+    .option(
+      "--sandbox [image]",
+      "Run shell commands in an ephemeral Docker sandbox (network disabled by default)",
+    )
+    .option("--sandbox-network", "Allow network access inside --sandbox")
+    .option(
+      "--bg, --background",
+      "Start as a detached background agent and return its id immediately",
     )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
@@ -735,7 +745,62 @@ export function registerAgentCommand(program) {
         if (piped) prompt = piped;
       }
 
+      if (options.bg && !prompt) {
+        process.stderr.write(
+          "--bg requires a task via positional text, -p, or piped stdin.\n",
+        );
+        process.exitCode = 1;
+        return;
+      }
+
       if (prompt) {
+        if (options.bg) {
+          if (options.worktree) {
+            process.stderr.write(
+              "--bg and --worktree cannot be combined yet; create the worktree first and launch the background agent from it.\n",
+            );
+            process.exitCode = 1;
+            return;
+          }
+          const { launchBackgroundAgent } =
+            await import("../lib/background-agent-supervisor.js");
+          const childArgv = process.argv
+            .slice(2)
+            .filter((arg) => arg !== "--bg" && arg !== "--background");
+          const hasSessionArg = childArgv.some(
+            (arg) =>
+              arg === "--session" ||
+              arg === "--resume" ||
+              arg === "--continue" ||
+              arg === "-c",
+          );
+          const sessionId =
+            options.session ||
+            `session-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+          if (!hasSessionArg) childArgv.push("--session", sessionId);
+          const promptWasPiped =
+            positional.length === 0 &&
+            !(typeof options.print === "string" && options.print.trim());
+          if (promptWasPiped) childArgv.push(prompt);
+          const state = launchBackgroundAgent({
+            argv: childArgv,
+            cwd: process.cwd(),
+            sessionId,
+            title: prompt.slice(0, 100),
+          });
+          if (options.outputFormat === "json") {
+            console.log(JSON.stringify(state));
+          } else {
+            console.log(`Background agent started: ${state.id}`);
+            console.log(`  logs: cc agents logs ${state.id}`);
+            console.log(`  stop: cc agents stop ${state.id}`);
+          }
+          return;
+        }
+        const agentSandbox = normalizeAgentSandbox(options.sandbox, {
+          cwd: process.cwd(),
+          network: options.sandboxNetwork === true,
+        });
         // Resume requested onto a session with no headless (JSONL) transcript?
         // Warn instead of silently starting empty 鈥?headless resume rebuilds
         // from the JSONL store only (DB-only sessions are not replayable here).
@@ -775,6 +840,7 @@ export function registerAgentCommand(program) {
           allowedTools: parseToolList(options.allowedTools),
           disallowedTools: parseToolList(options.disallowedTools),
           additionalDirectories,
+          sandbox: agentSandbox,
           autoCheckpoint,
           maxTurns,
           // commander maps --no-file-refs 鈫?options.fileRefs === false
@@ -884,6 +950,10 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
+        sandbox: normalizeAgentSandbox(options.sandbox, {
+          cwd: process.cwd(),
+          network: options.sandboxNetwork === true,
+        }),
         autoCheckpoint,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
         vimMode: options.vim === true,

@@ -280,18 +280,31 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // an `ask` falls closed (no human to confirm in headless). No file → null →
   // every existing risk-tier / shell-policy layer runs unchanged.
   let permissionRules = options.permissionRules || null;
-  if (!permissionRules) {
-    try {
-      const { loadSettings } = await import("../lib/settings-loader.cjs");
-      const loaded = loadSettings({ cwd, settingsFile: options.settingsFile });
+  let managedSettings = null;
+  try {
+    const { loadSettings, applyManagedPermissionPolicy } =
+      await import("../lib/settings-loader.cjs");
+    const loaded = loadSettings({
+      cwd,
+      settingsFile: options.settingsFile,
+      managedSettingsFile: options.managedSettingsFile,
+    });
+    managedSettings = loaded.managed;
+    if (!permissionRules) {
       const total =
         loaded.rules.allow.length +
         loaded.rules.ask.length +
         loaded.rules.deny.length;
       permissionRules = total > 0 ? loaded.rules : null;
-    } catch {
-      permissionRules = null; // fail-open
+    } else if (managedSettings) {
+      permissionRules = applyManagedPermissionPolicy(
+        permissionRules,
+        managedSettings,
+      );
     }
+  } catch (error) {
+    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
+    // Preserve caller-provided rules; absent settings keep legacy behavior.
   }
 
   // .claude/settings.json `hooks` block — decision-capable PreToolUse/
@@ -483,6 +496,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   }
 
   // ── Permission + tool resolution ──────────────────────────────────────
+  if (managedSettings) {
+    const { assertManagedPermissionMode } =
+      await import("../lib/settings-loader.cjs");
+    assertManagedPermissionMode(options.permissionMode, managedSettings);
+  }
   const perm = resolvePermissionMode(options.permissionMode);
   const enabledToolNames = resolveEnabledTools({
     // An explicit --allowed-tools wins; otherwise a matched command's
@@ -705,6 +723,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       mcp = await doResolve(
         {
           mcpConfigPath: options.mcpConfig || null,
+          managedSettingsFile: options.managedSettingsFile,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
           // --strict-mcp-config: use ONLY the --mcp-config servers, ignoring
@@ -803,6 +822,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     apiKey,
     cwd,
     additionalDirectories,
+    sandbox: options.sandbox || null,
     sessionId,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession: options.checkpointSession || sessionId,

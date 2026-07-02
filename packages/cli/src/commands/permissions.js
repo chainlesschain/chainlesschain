@@ -53,26 +53,33 @@ export function registerPermissionsCommand(program) {
   cmd
     .command("list")
     .alias("ls")
-    .description("Show the merged permission ruleset and where each rule came from")
+    .description(
+      "Show the merged permission ruleset and where each rule came from",
+    )
     .option("--json", "Output as JSON")
     .option("--settings <file>", "Also merge an explicit settings file")
     .action(async (options) => {
       try {
         const { loadSettings } = await import("../lib/settings-loader.cjs");
-        const { rules, sources, files } = loadSettings({
+        const { rules, sources, files, managed, managedFile } = loadSettings({
           cwd: process.cwd(),
           settingsFile: options.settings,
         });
         if (options.json) {
-          console.log(JSON.stringify({ rules, sources, files }, null, 2));
+          console.log(
+            JSON.stringify(
+              { rules, sources, files, managed, managedFile },
+              null,
+              2,
+            ),
+          );
           return;
         }
-        const total =
-          rules.allow.length + rules.ask.length + rules.deny.length;
+        const total = rules.allow.length + rules.ask.length + rules.deny.length;
         if (total === 0) {
           logger.log(
             chalk.gray(
-              "No permission rules. Add one: cc permissions add deny \"Bash(rm:*)\"\n" +
+              'No permission rules. Add one: cc permissions add deny "Bash(rm:*)"\n' +
                 "(or create .claude/settings.json with a permissions block)",
             ),
           );
@@ -88,6 +95,40 @@ export function registerPermissionsCommand(program) {
         }
         if (files.length) {
           logger.log(chalk.dim(`\nsources: ${files.join(", ")}`));
+        }
+        if (managedFile) {
+          logger.log(chalk.yellow(`managed policy: ${managedFile}`));
+          if (managed?.allowManagedPermissionRulesOnly) {
+            logger.log(
+              chalk.yellow("  user/project permission rules disabled"),
+            );
+          }
+          if (
+            managed?.disableBypassPermissionsMode === true ||
+            managed?.disableBypassPermissionsMode === "disable"
+          ) {
+            logger.log(chalk.yellow("  bypassPermissions disabled"));
+          }
+          if (managed?.allowManagedHooksOnly) {
+            logger.log(chalk.yellow("  only managed hooks may run"));
+          }
+          if (managed?.allowManagedMcpServersOnly) {
+            logger.log(
+              chalk.yellow("  only managed-allowed MCP servers may connect"),
+            );
+          }
+          if (managed?.requireSignedPlugins) {
+            logger.log(chalk.yellow("  signed plugin manifests required"));
+          }
+          if (
+            Array.isArray(managed?.allowedPlugins) ||
+            Array.isArray(managed?.deniedPlugins) ||
+            Array.isArray(managed?.blockedMarketplaces)
+          ) {
+            logger.log(
+              chalk.yellow("  managed plugin supply-chain policy active"),
+            );
+          }
         }
       } catch (err) {
         logger.error(chalk.red(`permissions list failed: ${err.message}`));
@@ -131,7 +172,13 @@ export function registerPermissionsCommand(program) {
         if (options.json) {
           console.log(
             JSON.stringify(
-              { tool: concrete, args: toolArgs, decision, rule: result.rule, source },
+              {
+                tool: concrete,
+                args: toolArgs,
+                decision,
+                rule: result.rule,
+                source,
+              },
               null,
               2,
             ),
@@ -164,14 +211,19 @@ export function registerPermissionsCommand(program) {
   cmd
     .command("add <decision> <rule>")
     .description("Append a rule (allow|ask|deny) to a settings file")
-    .option("--local", "Write to .claude/settings.local.json (personal, gitignored)")
+    .option(
+      "--local",
+      "Write to .claude/settings.local.json (personal, gitignored)",
+    )
     .option("--user", "Write to ~/.claude/settings.json (all projects)")
     .action(async (decision, rule, options) => {
       try {
         const kind = String(decision || "").toLowerCase();
         if (!["allow", "ask", "deny"].includes(kind)) {
           logger.error(
-            chalk.red(`decision must be allow | ask | deny (got "${decision}")`),
+            chalk.red(
+              `decision must be allow | ask | deny (got "${decision}")`,
+            ),
           );
           process.exitCode = 1;
           return;
@@ -188,7 +240,11 @@ export function registerPermissionsCommand(program) {
           return;
         }
 
-        const scope = options.user ? "user" : options.local ? "local" : "project";
+        const scope = options.user
+          ? "user"
+          : options.local
+            ? "local"
+            : "project";
         const { addRule } = await import("../lib/settings-loader.cjs");
         const { file, added } = addRule({
           cwd: process.cwd(),

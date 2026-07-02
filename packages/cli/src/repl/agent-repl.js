@@ -118,6 +118,7 @@ let _approvalGate = null;
 // confirmer for `ask` matches. Loaded once at REPL startup; null = no file.
 let _permissionRules = null;
 let _permissionConfirm = null;
+let _managedPermissionRulesOnly = false;
 // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
 let _settingsHooks = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
@@ -128,6 +129,7 @@ let _respondToBash;
 // the built-in verification allowlist through the shell-policy classifier (→
 // ApprovalGate confirm) instead of fast-pathing it. false = unset → off.
 let _classifyAllShell = false;
+let _sandbox = null;
 // Bounded log of tool calls the agent was BLOCKED from running this session
 // (shell-policy / ApprovalGate / settings rule / hook). Surfaced by
 // `/permissions denials` (Claude-Code 2.1.193 "recent denials"). In-memory only.
@@ -162,6 +164,12 @@ async function _fireNotification(message) {
  */
 async function _persistAlwaysAllow(tool, args) {
   try {
+    if (_managedPermissionRulesOnly) {
+      process.stderr.write(
+        "  always-allow is disabled by managed settings; ask your administrator to change the policy.\n",
+      );
+      return null;
+    }
     const rulesMod = await import("../lib/permission-rules.cjs");
     const { suggestAllowRule } = rulesMod.default || rulesMod;
     const rule = suggestAllowRule(tool || "run_shell", args || {});
@@ -195,6 +203,7 @@ async function executeTool(name, args) {
     permissionConfirm: _permissionConfirm,
     settingsHooks: _settingsHooks,
     classifyAllShell: _classifyAllShell,
+    sandbox: _sandbox,
   });
 }
 
@@ -409,6 +418,7 @@ export async function startAgentRepl(options = {}) {
   const additionalDirectories = Array.isArray(options.additionalDirectories)
     ? options.additionalDirectories
     : [];
+  _sandbox = options.sandbox || null;
   // Snapshot the work tree before each mutating tool (git engine) so the user
   // can `cc checkpoint restore` to just before any tool call.
   const autoCheckpoint = options.autoCheckpoint === true;
@@ -549,6 +559,8 @@ export async function startAgentRepl(options = {}) {
     const { loadSettings, readBooleanSetting } =
       await import("../lib/settings-loader.cjs");
     const loaded = loadSettings({ cwd: process.cwd() });
+    _managedPermissionRulesOnly =
+      loaded.managed?.allowManagedPermissionRulesOnly === true;
     // Claude-Code 2.1.186 respondToBashCommands (default OFF / opt-in when unset).
     _respondToBash = readBooleanSetting("respondToBashCommands", {
       cwd: process.cwd(),
@@ -585,8 +597,10 @@ export async function startAgentRepl(options = {}) {
       return ans === "y" || ans === "yes";
     };
   } catch (_err) {
+    if (_err?.code === "CC_MANAGED_SETTINGS_INVALID") throw _err;
     _permissionRules = null;
     _permissionConfirm = null;
+    _managedPermissionRulesOnly = false;
   }
 
   // Load .claude/settings.json `hooks` block (decision-capable PreToolUse/
@@ -3972,6 +3986,7 @@ export async function startAgentRepl(options = {}) {
         sessionId,
         cwd: process.cwd(),
         additionalDirectories,
+        sandbox: _sandbox,
         autoCheckpoint,
         checkpointSession: sessionId,
         checkpointMarks: _checkpointMarks,

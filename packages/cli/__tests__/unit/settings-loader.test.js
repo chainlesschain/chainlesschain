@@ -10,7 +10,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import loader from "../../src/lib/settings-loader.cjs";
 
-const { loadSettings, addRule, _deps } = loader;
+const { loadSettings, addRule, assertManagedPermissionMode, _deps } = loader;
 const isWin = process.platform === "win32";
 const HOME = isWin ? "C:\\home\\u" : "/home/u";
 const CWD = isWin ? "C:\\proj" : "/proj";
@@ -20,6 +20,7 @@ const j = (...p) => p.join(sep);
 const userFile = j(HOME, ".claude", "settings.json");
 const projFile = j(CWD, ".claude", "settings.json");
 const localFile = j(CWD, ".claude", "settings.local.json");
+const managedFile = j(HOME, "managed-settings.json");
 
 let files;
 
@@ -107,6 +108,62 @@ describe("loadSettings — env kill-switch", () => {
     expect(rules.deny).toEqual(["Bash(curl:*)", "Bash(wget:*)"]);
     expect(sources["deny:Bash(curl:*)"]).toBe("<env>");
     expect(contributed).toContain("<env>");
+  });
+});
+
+describe("loadSettings — managed policy", () => {
+  it("applies managed rules after every user-controlled source", () => {
+    setFile(localFile, { permissions: { allow: ["Bash"] } });
+    setFile(managedFile, { permissions: { deny: ["Bash(curl:*)"] } });
+    const result = loadSettings({
+      cwd: CWD,
+      env: { CC_PERMISSIONS_ALLOW: "Write" },
+      managedSettingsFile: managedFile,
+    });
+    expect(result.rules.allow).toEqual(["Bash", "Write"]);
+    expect(result.rules.deny).toEqual(["Bash(curl:*)"]);
+    expect(result.sources["deny:Bash(curl:*)"]).toBe("<managed>");
+    expect(result.managedFile).toBe(managedFile);
+  });
+
+  it("can reject all user/project/env permission rules", () => {
+    setFile(userFile, { permissions: { deny: ["Read"] } });
+    setFile(localFile, { permissions: { allow: ["Write"] } });
+    setFile(managedFile, {
+      allowManagedPermissionRulesOnly: true,
+      permissions: { allow: ["Read"] },
+    });
+    const { rules } = loadSettings({
+      cwd: CWD,
+      env: { CC_PERMISSIONS_DENY: "Bash" },
+      managedSettingsFile: managedFile,
+    });
+    expect(rules).toEqual({ allow: ["Read"], ask: [], deny: [] });
+  });
+
+  it("fails closed when a present managed file is malformed", () => {
+    files[managedFile] = "{ broken";
+    expect(() =>
+      loadSettings({
+        cwd: CWD,
+        env: {},
+        managedSettingsFile: managedFile,
+        onWarn: () => {},
+      }),
+    ).toThrow(/managed settings.*malformed/);
+  });
+
+  it("disables bypassPermissions when required by policy", () => {
+    expect(() =>
+      assertManagedPermissionMode("bypassPermissions", {
+        disableBypassPermissionsMode: "disable",
+      }),
+    ).toThrow(/disabled by managed settings/);
+    expect(
+      assertManagedPermissionMode("plan", {
+        disableBypassPermissionsMode: "disable",
+      }),
+    ).toBe("plan");
   });
 });
 

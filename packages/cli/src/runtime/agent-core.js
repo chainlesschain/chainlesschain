@@ -1297,6 +1297,7 @@ export async function executeTool(name, args, context = {}) {
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
       additionalDirectories: context.additionalDirectories || null,
+      sandbox: context.sandbox || null,
       ruleAllowed,
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
@@ -1711,6 +1712,7 @@ async function executeToolInner(
     approvalGate,
     shellConfirm,
     additionalDirectories,
+    sandbox,
     ruleAllowed = false,
     subAgentDepth = 0,
     subAgentBudget = null,
@@ -2018,6 +2020,13 @@ async function executeToolInner(
       // polls output + completion via check_shell. No timeout — that's the whole
       // point of backgrounding (builds, test suites, dev servers).
       if (args.run_in_background === true) {
+        if (sandbox) {
+          return attachDescriptor({
+            error:
+              "[Sandbox] Background shell tasks are not supported in the ephemeral sandbox. Run in the foreground or explicitly disable --sandbox.",
+            policy: { decision: "deny", via: "sandbox" },
+          });
+        }
         // Free memory from idle background tasks before adding another, so a
         // long agent run can't accumulate forgotten dev servers (no-op unless
         // the machine is actually under memory pressure).
@@ -2109,6 +2118,50 @@ async function executeToolInner(
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
           },
+          override || runtimeDescriptor,
+        );
+      }
+
+      if (sandbox) {
+        const { executeSandboxedShell, sandboxSummary } =
+          await import("../lib/agent-sandbox.js");
+        const result = executeSandboxedShell(args.command, sandbox, {
+          cwd: args.cwd || cwd,
+          timeout: _resolveShellTimeout(args.timeout),
+          maxBuffer: 1024 * 1024,
+          env: {
+            CLAUDECODE: "1",
+            ...(sessionId
+              ? {
+                  CC_SESSION_ID: String(sessionId),
+                  CLAUDE_CODE_SESSION_ID: String(sessionId),
+                }
+              : {}),
+          },
+        });
+        const common = {
+          sandbox: sandboxSummary(sandbox),
+          shellCommandPolicy: shellPolicy,
+          approval: approvalOutcome,
+          policyTrace: ["shell-policy", "approval", "sandbox"],
+        };
+        if (result.exitCode !== 0) {
+          return attachDescriptor(
+            {
+              error: (
+                result.stderr ||
+                `Sandbox command exited with code ${result.exitCode}`
+              ).substring(0, 2000),
+              stdout: result.stdout.substring(0, 30000),
+              stderr: result.stderr.substring(0, 2000),
+              exitCode: result.exitCode,
+              ...common,
+            },
+            override || runtimeDescriptor,
+          );
+        }
+        return attachDescriptor(
+          { stdout: result.stdout.substring(0, 30000), ...common },
           override || runtimeDescriptor,
         );
       }
@@ -4711,6 +4764,7 @@ export async function* agentLoop(messages, options) {
     // false so run_code keeps its existing per-permission-mode behavior.
     interactiveApproval: options.interactiveApproval || false,
     additionalDirectories: options.additionalDirectories || null,
+    sandbox: options.sandbox || null,
     permissionRules: options.permissionRules || null,
     permissionConfirm: options.permissionConfirm || null,
     settingsHooks: options.settingsHooks || null,
