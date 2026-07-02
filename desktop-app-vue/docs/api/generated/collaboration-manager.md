@@ -116,6 +116,17 @@ handleDisconnect(connectionId)
 
 ---
 
+## _releaseDocumentIfIdle(documentId, excludeConn)
+
+```javascript
+_releaseDocumentIfIdle(documentId, excludeConn)
+```
+
+* 当某文档不再有任何活跃连接时，取消订阅并从内存映射中移除。
+   * @private
+
+---
+
 ## async joinDocument(userId, userName, documentId)
 
 ```javascript

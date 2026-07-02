@@ -25,6 +25,18 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single behavior row with a corrupt action_data
+ * string must not throw out of the .map and drop the whole behavior list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+
+---
+
 ## class BehaviorTracker extends EventEmitter
 
 ```javascript

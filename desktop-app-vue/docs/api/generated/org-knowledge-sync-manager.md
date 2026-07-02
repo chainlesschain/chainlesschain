@@ -25,6 +25,33 @@ const
 
 ---
 
+## function safeParsePermissions(raw)
+
+```javascript
+function safeParsePermissions(raw)
+```
+
+* Parse a stored permissions blob defensively. The `permissions` column is
+ * free-form TEXT written from P2P-broadcast payloads, so one corrupt/legacy row
+ * must not throw out of a list .map() and silently wipe the whole result.
+ * @param {string} raw
+ * @returns {Object} parsed object, or {} on failure
+
+---
+
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Generic tolerant JSON column parse with a caller-supplied fallback (sibling of
+ * safeParsePermissions, for columns like activity metadata whose miss/corrupt
+ * fallback is not {}). A corrupt row must not throw out of a .map and drop the
+ * whole list. `x ? JSON.parse(x) : d` only guarded NULL, not a corrupt string.
+
+---
+
 ## _initializeMessageHandlers()
 
 ```javascript

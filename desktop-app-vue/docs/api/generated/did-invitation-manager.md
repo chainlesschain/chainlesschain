@@ -178,10 +178,10 @@ async notifyInvitee(invitation, status)
 
 ---
 
-## getReceivedInvitations(status = null)
+## async getReceivedInvitations(status = null)
 
 ```javascript
-getReceivedInvitations(status = null)
+async getReceivedInvitations(status = null)
 ```
 
 * 获取收到的邀请列表
@@ -190,10 +190,10 @@ getReceivedInvitations(status = null)
 
 ---
 
-## getSentInvitations(orgId = null, status = null)
+## async getSentInvitations(orgId = null, status = null)
 
 ```javascript
-getSentInvitations(orgId = null, status = null)
+async getSentInvitations(orgId = null, status = null)
 ```
 
 * 获取发送的邀请列表
@@ -226,10 +226,10 @@ cleanupExpiredInvitations()
 
 ---
 
-## getInvitationStats(orgId = null)
+## async getInvitationStats(orgId = null)
 
 ```javascript
-getInvitationStats(orgId = null)
+async getInvitationStats(orgId = null)
 ```
 
 * 获取邀请统计信息

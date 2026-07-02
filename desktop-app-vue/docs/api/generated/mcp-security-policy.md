@@ -32,10 +32,10 @@ function normalizeSecurityPath(inputPath)
 
 ---
 
-## function pathMatchesPattern(testPath, pattern)
+## function pathMatchesPattern(testPath, pattern, strict = false)
 
 ```javascript
-function pathMatchesPattern(testPath, pattern)
+function pathMatchesPattern(testPath, pattern, strict = false)
 ```
 
 * Check if a path matches a pattern (supports wildcards)

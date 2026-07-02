@@ -25,6 +25,19 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single corrupt row must not throw out of a
+ * .map and drop the whole topics/knowledge list. The `x ? JSON.parse(x) : d`
+ * form it replaces only guarded NULL, not a corrupt non-empty string.
+ * (Distinct from looseParseJSON above, which parses untrusted LLM text.)
+
+---
+
 ## class ContextAssociator extends EventEmitter
 
 ```javascript

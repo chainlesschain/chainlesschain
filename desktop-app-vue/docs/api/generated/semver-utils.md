@@ -40,6 +40,22 @@ function compareVersions(v1, v2)
 
 ---
 
+## function comparePrerelease(a, b)
+
+```javascript
+function comparePrerelease(a, b)
+```
+
+* 比较两个预发布标识符（Semver §11）。
+ * 点分隔标识符逐段比较：纯数字按数值比较且排在字母数字之前，字母数字按
+ * ASCII 顺序；前缀相同时字段更多者更大。localeCompare 会把 "alpha.10" 排在
+ * "alpha.2" 之前（"1" < "2"），与规范相反，故用此实现取代。
+ * @param {string} a
+ * @param {string} b
+ * @returns {number} -1 | 0 | 1
+
+---
+
 ## function parseRange(range)
 
 ```javascript

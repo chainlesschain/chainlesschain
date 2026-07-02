@@ -295,6 +295,25 @@ getCurrentIdentity()
 
 ---
 
+## _didToDhtKey(did)
+
+```javascript
+_didToDhtKey(did)
+```
+
+* 由 DID 派生 DHT key。
+   *
+   * 兼容 3 段 `did:method:id` 与 4 段 `did:method:prefix:id`(如 org DID
+   * `did:chainlesschain:org:xxxxx`)：取 method 之后的【全部】段作为唯一标识。
+   * 旧实现用 `split(":")[2]` 只取第三段——对 4 段 DID 只会拿到前缀("org")，
+   * 导致所有 org DID 互相覆盖在同一个 key 上、且无法被 resolve(其长度校验
+   * 还要求恰好 3 段)。3 段 DID 的 key 与旧实现完全一致(无行为变化)。
+   * @private
+   * @param {string} did
+   * @returns {string} 形如 `/did/<method>/<identifier>`
+
+---
+
 ## async publishToDHT(did)
 
 ```javascript

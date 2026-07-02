@@ -22,6 +22,18 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single log row with a corrupt params/result
+ * string must not throw out of the .map and drop the whole log list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+
+---
+
 ## const LogLevel =
 
 ```javascript

@@ -115,6 +115,16 @@ startCleanupTimer()
 
 ---
 
+## destroy()
+
+```javascript
+destroy()
+```
+
+* 释放资源（停止清理定时器、移除监听器）
+
+---
+
 ## getPendingPairings()
 
 ```javascript

@@ -493,14 +493,18 @@ getCheckpoints(taskId)
 
 ---
 
-## async retryTask(taskId)
+## async retryTask(taskId, options =
 
 ```javascript
-async retryTask(taskId)
+async retryTask(taskId, options =
 ```
 
 * 重试失败的任务
    * @param {string} taskId - 任务ID
+   * @param {object} [options]
+   * @param {boolean} [options.resetRetryCount=true] - 是否重置重试计数。手动重试
+   *   默认重置（全新开始）；自动恢复路径必须传 false 以保留累计计数，否则
+   *   maxRetries 上限永远触发不到，永久失败的任务会无限重试。
    * @returns {Promise<void>}
 
 ---

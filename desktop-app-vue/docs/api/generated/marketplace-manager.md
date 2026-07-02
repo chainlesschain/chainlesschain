@@ -20,6 +20,18 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single order row with a corrupt metadata string
+ * must not throw out of the .map and drop the whole order list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+
+---
+
 ## const OrderType =
 
 ```javascript

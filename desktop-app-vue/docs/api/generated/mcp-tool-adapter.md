@@ -109,6 +109,20 @@ getToolServer(toolId)
 
 ---
 
+## getToolInfo(toolId)
+
+```javascript
+getToolInfo(toolId)
+```
+
+* Get the authoritative { serverName, originalToolName } for a registered MCP
+   * tool id. Avoids re-parsing the "mcp_<server>_<tool>" name with a regex,
+   * which mis-splits when the server name itself contains underscores.
+   * @param {string} toolId - Tool ID (the mcp_<server>_<tool> function name)
+   * @returns {{ serverName: string, originalToolName: string } | null}
+
+---
+
 ## async refreshServerTools(serverName)
 
 ```javascript
