@@ -860,7 +860,22 @@ describe("loadRegisteredMcp", () => {
 describe("resolveAgentMcp", () => {
   const fileDeps = (servers) => ({
     readFile: () => JSON.stringify({ mcpServers: servers }),
+    isInIdeTerminal: () => false,
+    isInPdhTerminal: () => false,
+    isInJetbrainsContext: () => false,
+    loadIdeMcp: () => null,
+    loadPdhMcp: () => null,
+    loadJetbrainsMcp: () => null,
   });
+  // Disable auto IDE/PDH/JetBrains detection in unit tests by default
+  const noAutoDetectDeps = {
+    isInIdeTerminal: () => false,
+    isInPdhTerminal: () => false,
+    isInJetbrainsContext: () => false,
+    loadIdeMcp: async () => null,
+    loadPdhMcp: async () => null,
+    loadJetbrainsMcp: async () => null,
+  };
 
   it("threads managed MCP policy into every loader", async () => {
     const policy = {
@@ -876,6 +891,9 @@ describe("resolveAgentMcp", () => {
           seenPolicy = deps.mcpPolicy;
           return null;
         },
+        isInIdeTerminal: () => false,
+        isInPdhTerminal: () => false,
+        isInJetbrainsContext: () => false,
       },
     );
     expect(seenPolicy).toBe(policy);
@@ -888,6 +906,9 @@ describe("resolveAgentMcp", () => {
       {
         ...fileDeps({ adhoc: { command: "c" } }),
         createClient: () => client,
+        isInIdeTerminal: () => false,
+        isInPdhTerminal: () => false,
+        isInJetbrainsContext: () => false,
         makeServerConfig: () => ({
           getAutoConnect: () => [
             { name: "reg", command: "r", args: [], env: {} },
