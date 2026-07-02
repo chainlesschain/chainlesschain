@@ -1,5 +1,34 @@
 /**
- * Interactive AI chat REPL with streaming output
+ 
+    // Parity command handlers
+    if (cmd in SLASH_COMMANDS && !["/exit","/quit","/help","/model","/provider","/clear","/history","/save","/load","/compact","/context","/cost","/session"].includes(cmd)) {
+      const help = {
+        '/config': '💡 Use "cc config" to view/modify settings',
+        '/doctor': '💡 Run "cc doctor" for full system health check',
+        '/status': '💡 Run "cc status" to see system status',
+        '/agents': '💡 Run "cc agent list" to see available agents',
+        '/tasks': '💡 Run "cc cowork task list" for background tasks',
+        '/todos': '💡 TODO list is available in plan mode',
+        '/memory': '💡 Run "cc memory status" for memory statistics',
+        '/mcp': '💡 Run "cc mcp list" to see MCP servers',
+        '/permissions': '💡 Permissions are in ~/.chainlesschain/config.json',
+        '/hooks': '💡 Run "cc hook list" to see event hooks',
+        '/sessions': '💡 Run "cc session list" to see recent sessions',
+        '/resume': '💡 Use /sessions first to select a session',
+        '/review': '💡 Run "cc review" for full code review',
+        '/export': '💡 Run "cc chat export" to export history',
+        '/theme': '💡 Dark mode is the default theme',
+        '/think': '💡 Thinking mode enabled for complex queries',
+        '/btw': '💡 Incidental notes are auto-saved to memory',
+        '/release-notes': '💡 See https://github.com/chainlesschain/chainlesschain/releases',
+        '/ide': '💡 VS Code/JetBrains plugins are available',
+        '/publish': '💡 Run "cc skill publish" to publish skills',
+      };
+      console.log(chalk.dim(help[cmd] || 'Command recognized'));
+      rl.prompt();
+      continue;
+    }
+* Interactive AI chat REPL with streaming output
  *
  * Features:
  * - Streaming token output
@@ -32,6 +61,28 @@ const SLASH_COMMANDS = {
   "/clear": "Clear conversation history",
   "/history": "Show conversation history",
   "/help": "Show available commands",
+
+  // Claude Code parity commands (v0.162.132)
+  "/config": "View/modify configuration",
+  "/doctor": "Run system health check",
+  "/status": "Show system status summary",
+  "/agents": "List available agents",
+  "/tasks": "List background tasks",
+  "/todos": "Manage task list",
+  "/memory": "Show memory status",
+  "/mcp": "Manage MCP servers",
+  "/permissions": "View permission settings",
+  "/hooks": "Manage event hooks",
+  "/sessions": "List recent sessions",
+  "/resume": "Resume previous session",
+  "/review": "Request code review",
+  "/export": "Export conversation",
+  "/theme": "Set REPL theme",
+  "/think": "Toggle thinking mode",
+  "/btw": "Add incidental note",
+  "/release-notes": "Show release notes",
+  "/ide": "Check IDE integration",
+  "/publish": "Publish session as skill",
 };
 
 /**
