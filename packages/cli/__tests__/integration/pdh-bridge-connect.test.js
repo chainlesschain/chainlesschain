@@ -75,7 +75,10 @@ function pdhTools() {
 }
 
 /** Write a fresh (live pid, recent mtime) PDH lockfile into `homeDir`. */
-function writeLock(homeDir, { port, url, token = TOKEN, pid = process.pid } = {}) {
+function writeLock(
+  homeDir,
+  { port, url, token = TOKEN, pid = process.pid, startedAt = Date.now() } = {},
+) {
   const dir = path.join(homeDir, ".chainlesschain", "pdh-bridge");
   fs.mkdirSync(dir, { recursive: true });
   const fp = path.join(dir, `${port}.json`);
@@ -90,7 +93,7 @@ function writeLock(homeDir, { port, url, token = TOKEN, pid = process.pid } = {}
       port,
       token,
       pid,
-      started_at: Date.now(),
+      started_at: startedAt,
     }),
     "utf-8",
   );
@@ -167,8 +170,13 @@ describe("PDH bridge — discover → connect → call (no device)", () => {
       port: 19999,
       url: "http://127.0.0.1:19999/mcp",
       pid: 0,
+      startedAt: Date.now() - 1_000,
     });
-    writeLock(tmpHome, { port, url: server.url() });
+    writeLock(tmpHome, {
+      port,
+      url: server.url(),
+      startedAt: Date.now(),
+    });
 
     out = await loadPdhMcp({ env: {} }); // no CHAINLESSCHAIN_PDH_PORT
     const pdh = out.connected.find((c) => c.server === "pdh");
