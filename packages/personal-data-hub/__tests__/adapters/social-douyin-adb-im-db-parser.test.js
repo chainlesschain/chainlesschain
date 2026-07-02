@@ -54,15 +54,18 @@ function buildMsgFixture(rows, columnOverrides = {}) {
   const insert = db.prepare(
     `INSERT INTO msg(${senderCol}, ${timeCol}, ${contentCol}, ${convCol}, ${readCol}) VALUES(?, ?, ?, ?, ?)`,
   );
-  for (const r of rows) {
-    insert.run(
-      r.sender || 0,
-      r.time || 0,
-      r.content || "",
-      r.convId || "",
-      r.read || 0,
-    );
-  }
+  const insertRows = db.transaction((items) => {
+    for (const r of items) {
+      insert.run(
+        r.sender || 0,
+        r.time || 0,
+        r.content || "",
+        r.convId || "",
+        r.read || 0,
+      );
+    }
+  });
+  insertRows(rows);
   db.close();
 }
 
@@ -75,15 +78,18 @@ function buildSimpleUserFixture(rows) {
   const insert = db.prepare(
     "INSERT INTO SIMPLE_USER(UID, short_id, name, avatar_url, follow_status) VALUES(?, ?, ?, ?, ?)",
   );
-  for (const r of rows) {
-    insert.run(
-      r.uid || 0,
-      r.shortId || 0,
-      r.name || "",
-      r.avatar || "",
-      r.follow || 0,
-    );
-  }
+  const insertRows = db.transaction((items) => {
+    for (const r of items) {
+      insert.run(
+        r.uid || 0,
+        r.shortId || 0,
+        r.name || "",
+        r.avatar || "",
+        r.follow || 0,
+      );
+    }
+  });
+  insertRows(rows);
   db.close();
 }
 
