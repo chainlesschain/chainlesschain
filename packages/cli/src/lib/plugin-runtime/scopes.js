@@ -24,6 +24,11 @@ import path from "path";
 import semver from "semver";
 import { getElectronUserDataDir } from "../paths.js";
 import { parsePluginManifest } from "./manifest.js";
+import {
+  loadManagedPluginPolicy,
+  filterByManagedPolicy,
+  warnDroppedOnce,
+} from "./policy.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -102,7 +107,13 @@ export function activeVersion(scope, name, opts = {}) {
  * scope precedence (local > project > user) so a name installed at multiple
  * scopes resolves to one parsed manifest.
  *
- * @param {object} [opts] { cwd, scopes? }
+ * Managed org policy (allowedPlugins / deniedPlugins) is enforced fail-closed
+ * here — the single chokepoint every component collector funnels through — so a
+ * denied plugin loads NONE of its six component types. Pass `skipPolicy:true`
+ * for tooling that must see even blocked plugins (e.g. `cc plugin installed`
+ * showing why something is blocked). No managed settings file → no filtering.
+ *
+ * @param {object} [opts] { cwd, scopes?, skipPolicy?, env?, managedSettingsFile? }
  * @returns {Array<{scope, name, version, root, manifest}>}
  */
 export function discoverPlugins(opts = {}) {
@@ -128,7 +139,19 @@ export function discoverPlugins(opts = {}) {
       });
     }
   }
-  return [...byName.values()];
+  const all = [...byName.values()];
+  if (opts.skipPolicy) return all;
+  // Enforce managed org allow/deny at load time (fail-closed). A malformed
+  // managed settings file throws out of loadManagedPluginPolicy — that
+  // propagates so a broken org policy never silently degrades to "no policy".
+  const managed = loadManagedPluginPolicy({
+    env: opts.env,
+    managedSettingsFile: opts.managedSettingsFile,
+  });
+  if (!managed) return all;
+  const { kept, dropped } = filterByManagedPolicy(all, managed);
+  if (dropped.length > 0) warnDroppedOnce(dropped);
+  return kept;
 }
 
 // ── internals ────────────────────────────────────────────────────────────
