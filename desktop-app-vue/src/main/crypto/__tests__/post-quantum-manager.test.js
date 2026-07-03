@@ -28,6 +28,20 @@ const { PostQuantumManager } = require("../post-quantum-manager.js");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Real Ed25519 pair (hex-encoded DER) — the simulated Dilithium/SPHINCS+
+// signatures are now backed by Ed25519, so sign/verify need a matched pair.
+const nodeCrypto = require("crypto");
+function realEd25519Pair() {
+  const { publicKey, privateKey } = nodeCrypto.generateKeyPairSync("ed25519", {
+    publicKeyEncoding: { type: "spki", format: "der" },
+    privateKeyEncoding: { type: "pkcs8", format: "der" },
+  });
+  return {
+    publicKey: publicKey.toString("hex"),
+    privateKey: privateKey.toString("hex"),
+  };
+}
+
 function createMockDatabase() {
   const prepResult = {
     all: vi.fn().mockReturnValue([]),
@@ -283,8 +297,8 @@ describe("PostQuantumManager", () => {
   // ─────────────────────────────────────────────────────────────────────────
   describe("dilithiumSign()", () => {
     it("should return signature string and algorithm", async () => {
-      const fakePrivKey = "ab".repeat(2000);
-      const result = await manager.dilithiumSign("hello world", fakePrivKey);
+      const { privateKey } = realEd25519Pair();
+      const result = await manager.dilithiumSign("hello world", privateKey);
 
       expect(result).toHaveProperty("signature");
       expect(result).toHaveProperty("algorithm", "dilithium");
@@ -304,9 +318,9 @@ describe("PostQuantumManager", () => {
     });
 
     it("should accept Buffer as message", async () => {
-      const fakePrivKey = "ab".repeat(2000);
+      const { privateKey } = realEd25519Pair();
       const msgBuf = Buffer.from("hello world", "utf8");
-      const result = await manager.dilithiumSign(msgBuf, fakePrivKey);
+      const result = await manager.dilithiumSign(msgBuf, privateKey);
 
       expect(result).toHaveProperty("signature");
       expect(result.algorithm).toBe("dilithium");
@@ -317,18 +331,52 @@ describe("PostQuantumManager", () => {
   // dilithiumVerify
   // ─────────────────────────────────────────────────────────────────────────
   describe("dilithiumVerify()", () => {
-    it("should return valid:true", async () => {
-      const fakePrivKey = "ab".repeat(2000);
-      const fakePubKey = "cd".repeat(976);
-      const { signature } = await manager.dilithiumSign("hello", fakePrivKey);
+    it("should return valid:true for a signature made with the matching key", async () => {
+      const { publicKey, privateKey } = realEd25519Pair();
+      const { signature } = await manager.dilithiumSign("hello", privateKey);
       const result = await manager.dilithiumVerify(
         "hello",
         signature,
-        fakePubKey,
+        publicKey,
       );
 
       expect(result.valid).toBe(true);
       expect(result.algorithm).toBe("dilithium");
+    });
+
+    it("should return valid:false for a tampered message", async () => {
+      const { publicKey, privateKey } = realEd25519Pair();
+      const { signature } = await manager.dilithiumSign("hello", privateKey);
+      const result = await manager.dilithiumVerify(
+        "hello-tampered",
+        signature,
+        publicKey,
+      );
+
+      expect(result.valid).toBe(false);
+    });
+
+    it("should return valid:false for a mismatched public key (forgery)", async () => {
+      const { privateKey } = realEd25519Pair();
+      const attacker = realEd25519Pair();
+      const { signature } = await manager.dilithiumSign("hello", privateKey);
+      const result = await manager.dilithiumVerify(
+        "hello",
+        signature,
+        attacker.publicKey,
+      );
+
+      expect(result.valid).toBe(false);
+    });
+
+    it("should return valid:false (not throw) for malformed key/signature", async () => {
+      const result = await manager.dilithiumVerify(
+        "hello",
+        "deadbeef",
+        "cd".repeat(20),
+      );
+
+      expect(result.valid).toBe(false);
     });
 
     it("should throw if message is missing", async () => {
@@ -396,6 +444,49 @@ describe("PostQuantumManager", () => {
       await manager.generateSphincsPlusKeyPair("shake-256f");
 
       expect(spy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // sphincsPlusSign / sphincsPlusVerify
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("sphincsPlusSign() / sphincsPlusVerify()", () => {
+    it("should verify a correctly-signed message", async () => {
+      const { publicKey, privateKey } = realEd25519Pair();
+      const { signature } = await manager.sphincsPlusSign("msg", privateKey);
+      const result = await manager.sphincsPlusVerify(
+        "msg",
+        signature,
+        publicKey,
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.algorithm).toBe("sphincs-plus");
+    });
+
+    it("should reject a mismatched public key (forgery)", async () => {
+      const { privateKey } = realEd25519Pair();
+      const attacker = realEd25519Pair();
+      const { signature } = await manager.sphincsPlusSign("msg", privateKey);
+      const result = await manager.sphincsPlusVerify(
+        "msg",
+        signature,
+        attacker.publicKey,
+      );
+
+      expect(result.valid).toBe(false);
+    });
+
+    it("should reject a tampered message", async () => {
+      const { publicKey, privateKey } = realEd25519Pair();
+      const { signature } = await manager.sphincsPlusSign("msg", privateKey);
+      const result = await manager.sphincsPlusVerify(
+        "msg-tampered",
+        signature,
+        publicKey,
+      );
+
+      expect(result.valid).toBe(false);
     });
   });
 

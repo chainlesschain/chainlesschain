@@ -89,6 +89,29 @@ class MCPFunctionExecutor {
     );
     logger.info(`[MCPFunctionExecutor] 参数:`, JSON.stringify(args, null, 2));
 
+    // Enforce the MCP security policy on the LLM-chat path too. This chokepoint
+    // was previously bypassed: only mcp-tool-adapter validated path access /
+    // consent, so a tool call routed through LLM function-calling reached
+    // callTool() unchecked. Validate symmetrically with the adapter path,
+    // using the same policy instance the adapter carries.
+    const securityPolicy = this.mcpToolAdapter?.securityPolicy;
+    if (
+      securityPolicy &&
+      typeof securityPolicy.validateToolExecution === "function"
+    ) {
+      // Throws SecurityError on violation (denied path / read-only / declined
+      // consent); let it propagate so the tool call is refused, not executed.
+      await securityPolicy.validateToolExecution(
+        info.serverName,
+        info.toolName,
+        args || {},
+      );
+    } else {
+      logger.warn(
+        "[MCPFunctionExecutor] No security policy wired on the tool adapter — MCP tool executing without policy validation",
+      );
+    }
+
     try {
       const result = await this.mcpClientManager.callTool(
         info.serverName,

@@ -19,6 +19,73 @@ const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 const { logger } = require("../utils/logger.js");
 
+/**
+ * Generate a real asymmetric signing key pair (Ed25519, Node core).
+ *
+ * The Dilithium / SPHINCS+ signature primitives are simulated, but signing
+ * MUST be backed by a real asymmetric scheme so that verification can actually
+ * reject forgeries. A symmetric MAC keyed on the private key (the previous
+ * approach) is unverifiable with only the public key, which forced verify() to
+ * fail-open (`valid:true` for any signature). Ed25519 gives a genuine
+ * public/private pair whose signatures verify correctly and reject tampering.
+ *
+ * Keys are returned as hex-encoded DER (SPKI public / PKCS8 private) so they
+ * round-trip through the existing hex-string storage and IPC contract.
+ * @returns {{ publicKey: string, privateKey: string }}
+ */
+function generateEd25519Pair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519", {
+    publicKeyEncoding: { type: "spki", format: "der" },
+    privateKeyEncoding: { type: "pkcs8", format: "der" },
+  });
+  return {
+    publicKey: publicKey.toString("hex"),
+    privateKey: privateKey.toString("hex"),
+  };
+}
+
+/** Sign a message with an Ed25519 PKCS8-DER private key (hex). */
+function ed25519Sign(message, privateKeyHex) {
+  const msgBuf = Buffer.isBuffer(message)
+    ? message
+    : Buffer.from(message, "utf8");
+  const keyObj = crypto.createPrivateKey({
+    key: Buffer.from(privateKeyHex, "hex"),
+    format: "der",
+    type: "pkcs8",
+  });
+  return crypto.sign(null, msgBuf, keyObj).toString("hex");
+}
+
+/**
+ * Verify an Ed25519 signature. Returns false (never throws) for a wrong key,
+ * a tampered message, or malformed key/signature material — so a forged or
+ * corrupt signature is rejected instead of silently accepted.
+ */
+function ed25519Verify(message, signatureHex, publicKeyHex) {
+  const msgBuf = Buffer.isBuffer(message)
+    ? message
+    : Buffer.from(message, "utf8");
+  try {
+    const keyObj = crypto.createPublicKey({
+      key: Buffer.from(publicKeyHex, "hex"),
+      format: "der",
+      type: "spki",
+    });
+    return crypto.verify(
+      null,
+      msgBuf,
+      keyObj,
+      Buffer.from(signatureHex, "hex"),
+    );
+  } catch (err) {
+    logger.warn(
+      `[PostQuantumManager] Signature verification rejected (malformed input): ${err.message}`,
+    );
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -221,8 +288,8 @@ class PostQuantumManager extends EventEmitter {
     }
 
     const id = uuidv4();
-    const publicKey = crypto.randomBytes(params.pkBytes).toString("hex");
-    const privateKey = crypto.randomBytes(params.skBytes).toString("hex");
+    // Real Ed25519 pair so signatures actually verify (see generateEd25519Pair).
+    const { publicKey, privateKey } = generateEd25519Pair();
 
     this._storeKeyPair({
       id,
@@ -261,13 +328,7 @@ class PostQuantumManager extends EventEmitter {
       throw new Error("message and privateKeyHex are required");
     }
 
-    const msgBuf = Buffer.isBuffer(message)
-      ? message
-      : Buffer.from(message, "utf8");
-    const signature = crypto
-      .createHmac("sha256", Buffer.from(privateKeyHex, "hex").subarray(0, 32))
-      .update(msgBuf)
-      .digest("hex");
+    const signature = ed25519Sign(message, privateKeyHex);
 
     logger.info("[PostQuantumManager] Dilithium signature created");
     this.emit("signature:created", { algorithm: "dilithium" });
@@ -287,11 +348,16 @@ class PostQuantumManager extends EventEmitter {
       throw new Error("message, signature, and publicKeyHex are required");
     }
 
-    // Simulated — always returns true for non-empty inputs
-    logger.info("[PostQuantumManager] Dilithium signature verified");
-    this.emit("signature:verified", { algorithm: "dilithium", valid: true });
+    // Real Ed25519 verification — rejects forged/tampered signatures instead
+    // of the previous fail-open (`valid:true` for any input).
+    const valid = ed25519Verify(message, signature, publicKeyHex);
 
-    return { valid: true, algorithm: "dilithium" };
+    logger.info(
+      `[PostQuantumManager] Dilithium signature verified: valid=${valid}`,
+    );
+    this.emit("signature:verified", { algorithm: "dilithium", valid });
+
+    return { valid, algorithm: "dilithium" };
   }
 
   // -----------------------------------------------------------------------
@@ -312,8 +378,8 @@ class PostQuantumManager extends EventEmitter {
     }
 
     const id = uuidv4();
-    const publicKey = crypto.randomBytes(params.pkBytes).toString("hex");
-    const privateKey = crypto.randomBytes(params.skBytes).toString("hex");
+    // Real Ed25519 pair so signatures actually verify (see generateEd25519Pair).
+    const { publicKey, privateKey } = generateEd25519Pair();
 
     this._storeKeyPair({
       id,
@@ -352,13 +418,7 @@ class PostQuantumManager extends EventEmitter {
       throw new Error("message and privateKeyHex are required");
     }
 
-    const msgBuf = Buffer.isBuffer(message)
-      ? message
-      : Buffer.from(message, "utf8");
-    const signature = crypto
-      .createHmac("sha256", Buffer.from(privateKeyHex, "hex").subarray(0, 32))
-      .update(msgBuf)
-      .digest("hex");
+    const signature = ed25519Sign(message, privateKeyHex);
 
     logger.info("[PostQuantumManager] SPHINCS+ signature created");
     this.emit("signature:created", { algorithm: "sphincs-plus" });
@@ -378,10 +438,16 @@ class PostQuantumManager extends EventEmitter {
       throw new Error("message, signature, and publicKeyHex are required");
     }
 
-    logger.info("[PostQuantumManager] SPHINCS+ signature verified");
-    this.emit("signature:verified", { algorithm: "sphincs-plus", valid: true });
+    // Real Ed25519 verification — rejects forged/tampered signatures instead
+    // of the previous fail-open (`valid:true` for any input).
+    const valid = ed25519Verify(message, signature, publicKeyHex);
 
-    return { valid: true, algorithm: "sphincs-plus" };
+    logger.info(
+      `[PostQuantumManager] SPHINCS+ signature verified: valid=${valid}`,
+    );
+    this.emit("signature:verified", { algorithm: "sphincs-plus", valid });
+
+    return { valid, algorithm: "sphincs-plus" };
   }
 
   // -----------------------------------------------------------------------

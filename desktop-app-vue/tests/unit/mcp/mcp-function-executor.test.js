@@ -191,6 +191,43 @@ describe("MCPFunctionExecutor", () => {
     });
   });
 
+  describe("execute — security policy enforcement (chat path)", () => {
+    it("validates against the policy before calling the tool", async () => {
+      const validateToolExecution = vi.fn().mockResolvedValue(undefined);
+      mockMCPToolAdapter.securityPolicy = { validateToolExecution };
+
+      const params = { path: "/test.txt" };
+      await executor.execute("mcp_filesystem_read_file", params);
+
+      expect(validateToolExecution).toHaveBeenCalledWith(
+        "filesystem",
+        "read_file",
+        params,
+      );
+      expect(mockMCPClientManager.callTool).toHaveBeenCalled();
+    });
+
+    it("refuses the tool call when the policy denies it", async () => {
+      const denial = new Error("Access denied: path forbidden");
+      mockMCPToolAdapter.securityPolicy = {
+        validateToolExecution: vi.fn().mockRejectedValue(denial),
+      };
+
+      await expect(
+        executor.execute("mcp_filesystem_read_file", { path: "/etc/passwd" }),
+      ).rejects.toThrow("Access denied");
+
+      // The chokepoint must not be reached once the policy denies the call.
+      expect(mockMCPClientManager.callTool).not.toHaveBeenCalled();
+    });
+
+    it("still executes (with a warning) when no policy is wired", async () => {
+      // mockMCPToolAdapter has no securityPolicy — the fallback path.
+      await executor.execute("mcp_filesystem_read_file", { path: "/ok.txt" });
+      expect(mockMCPClientManager.callTool).toHaveBeenCalled();
+    });
+  });
+
   describe("_parseFunctionName", () => {
     it("should parse valid MCP function name", () => {
       const result = executor._parseFunctionName("mcp_filesystem_read_file");
