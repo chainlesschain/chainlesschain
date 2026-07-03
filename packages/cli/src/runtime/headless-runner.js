@@ -315,9 +315,14 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       const { loadHooks, projectHookTrustNotice } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
+      // Fold in installed plugins' hooks/hooks.json (Phase 3.3c) — plugins ADD
+      // to the user's settings hooks, never replace them.
+      const { mergePluginHooks } =
+        await import("../lib/plugin-runtime/hooks.js");
+      const effectiveHooks = mergePluginHooks(loaded.hooks, { cwd });
       settingsHooks =
-        loaded.hooks && Object.keys(loaded.hooks).length > 0
-          ? loaded.hooks
+        effectiveHooks && Object.keys(effectiveHooks).length > 0
+          ? effectiveHooks
           : null;
       // First-run trust notice for an untrusted/cloned repo's shell-running
       // hooks (Claude-Code 2.1.195 parity). Best-effort, stderr-only.

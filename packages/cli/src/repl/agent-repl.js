@@ -610,9 +610,14 @@ export async function startAgentRepl(options = {}) {
     const { loadHooks, projectHookTrustNotice } =
       await import("../lib/settings-hooks.cjs");
     const loaded = loadHooks({ cwd: process.cwd() });
+    // Fold in installed plugins' hooks/hooks.json (Phase 3.3c).
+    const { mergePluginHooks } = await import("../lib/plugin-runtime/hooks.js");
+    const effectiveHooks = mergePluginHooks(loaded.hooks, {
+      cwd: process.cwd(),
+    });
     _settingsHooks =
-      loaded.hooks && Object.keys(loaded.hooks).length > 0
-        ? loaded.hooks
+      effectiveHooks && Object.keys(effectiveHooks).length > 0
+        ? effectiveHooks
         : null;
     // First-run trust notice for an untrusted/cloned repo's shell-running
     // hooks (Claude-Code 2.1.195 parity). Best-effort, stderr-only.
