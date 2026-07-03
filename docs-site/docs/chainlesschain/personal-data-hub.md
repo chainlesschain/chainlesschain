@@ -674,6 +674,29 @@ bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~
 | `scripts/android/pdh-frida-decrypt.sh` + `pdh-frida-sqlcipher-export.js` | C frida 在线解密               |
 | `cc hub salvage <dump> --app <key>`                                      | 打捞 dump → 按来源归属入 vault |
 
+### 采集器构建技能（`pdh-android-collector`）
+
+上面的四方法框架讲「怎么把数据取出来」；当你要为一个**新的中国 App 从零搭一个采集器**、或排查某个 `cc hub <platform>-adb-sync` 为什么返回 0 行时，Cowork / `cc agent` 内置了一个开发者向技能 **`pdh-android-collector`**（`category: integration`，可 `/pdh-android-collector "<App 或包名>"` 调用），把整套「建采集器」的方法论固化成可执行 runbook。
+
+> **与 `pdh-android-collect` 的区别**：`pdh-android-collect`（`.claude/skills/pdh-android-collect/SKILL.md`，配合本页 [使用示例](#使用示例) 的 `cc hub *-adb-sync` / `pdh-device-collect.mjs`）是**运行采集**——把已有采集器跑起来、把真机数据灌进 vault；`pdh-android-collector` 是**构建/调试采集器**——为尚无适配的 App 写一个新的 reader + adapter 接线。前者面向使用者，后者面向开发者。
+
+它编码的核心原则是 **「本地明文 SQLite 优先于 web API」**：App 的 web 接口（cookie schema、签名盐、endpoint 路径、权限码）持续漂移，而设备上的明文库稳定且免签名——只有当数据确实不在本地时才退回 web fetcher（且签名端点需桌面 SignBridge）。技能把流程切成 6 个阶段:
+
+| 阶段                                     | 目标           | 关键动作                                                                                                                                                          |
+| ---------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0** 映射设备                     | 永远先做       | `adb devices -l` / `su -c id`（release APK 不可调试，需 root）/ `pm list packages -3` → 映射到 `packages/personal-data-hub/lib/adapters/`                         |
+| **Phase 1** 试跑既有采集器读原因码       | 分流问题       | `cc hub <platform>-adb-sync --json`：`*_COOKIES_INCOMPLETE`=未登录 WebView；`*_IM_DB_ENCRYPTED`=SQLCipher 需 frida；`error_code`/404=端点漂移                     |
+| **Phase 2** 审本地库（ROI 最高）         | 找明文库 + uid | `head -c 16` 看 magic（`53514c697465…`=明文）；`base64` 流式拉库（MIUI 安全）；Node 内置 `node:sqlite` 读；**uid 常藏在文件名/表名或 `account_db.login_info`**    |
+| **Phase 3** 建采集器                     | 镜像既有模式   | `pull<Db>ViaSu` + `read<Data>` + `create<X>Extension`；归一化进**既有** adapter 的 snapshot kinds；CLI + Desktop **两处** wiring 都要接线                         |
+| **Phase 4** 数据不在本地才走 web API     | 兜底           | 先从设备取真 cookie；ByteDance 用 `err_no`/`error_code` 而非 `code`，HTTP 200 也可能 `data:[]`；签名端点（X-Bogus/`_signature`/WBI）只能走桌面 SignBridge         |
+| **Phase 5** 真机验证（Electron harness） | 端到端         | `bs3mc` 原生 sqlite 与 SignBridge 只在 Electron 下加载；写一次性 `_harness.cjs` 用 `electron` 跑通 pull→read→normalize，**验完删除 harness + 拉下的库，绝不提交** |
+
+真机来源实证（chopin `5lhyaqu8lbwstc6x` / 小米，2026-06-11）：这套配方拿下了头条（web profile 报 `error_code 16` 时从 `account_db.login_info` 恢复 uid）与抖音（`video_record.db` 的 `record_<uid>` = 900 条明文观看记录，绕开 SQLCipher IM 库）。
+
+> **发版闸**：任何 `packages/personal-data-hub/lib/**` 改动都需 bump pdh version + `npm publish` + Android `USR_VERSION`（否则真机走 fast-path 用旧代码；traps #27/#28）。桌面 dev（`npm run dev`，软链工作区 pdh）则即时生效。
+
+**关键文件**：`desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/pdh-android-collector/SKILL.md`（技能声明即完整 runbook）。
+
 ## 配置参考
 
 ### 数据目录

@@ -136,6 +136,38 @@ Desktop 应用作为 WebSocket 服务器：
 }
 ```
 
+### 用户浏览器控制（`userBrowser` · CDP）
+
+上面的「浏览器命令」走的是**浏览器插件**通道。另有一条独立通道 **`userBrowser`**——由 Android 端 REMOTE 技能 `UserBrowserCommands`（`SeedRegistry` 命名空间 `userBrowser`，`display: 用户浏览器`，`risk: Mutating`，18 个方法）发起，经 `RemoteCommandClient.invoke("userBrowser.*")` 让手机**远程操控你电脑上已装的真实 Chromium 浏览器**（Chrome / Edge / Brave），底层用 **Chrome DevTools Protocol (CDP)** 连接，无需装插件。
+
+| 分组       | 通道                                                        | 说明                                      |
+| ---------- | ----------------------------------------------------------- | ----------------------------------------- |
+| 连接管理   | `userBrowser.findBrowsers`                                  | 发现本机可用浏览器                        |
+|            | `userBrowser.connect`                                       | 连接（`browserType`/`port`/`autoLaunch`） |
+|            | `userBrowser.disconnect`                                    | 断开连接                                  |
+|            | `userBrowser.getStatus`                                     | 查询连接状态                              |
+| 标签页     | `userBrowser.listTabs` / `getActiveTab`                     | 列出全部 / 获取当前活动标签页             |
+|            | `userBrowser.createTab` / `closeTab` / `focusTab`           | 新建 / 关闭 / 聚焦标签页                  |
+| 导航       | `userBrowser.navigate` / `goBack` / `goForward` / `refresh` | 跳转 URL / 后退 / 前进 / 刷新             |
+| 内容与脚本 | `userBrowser.executeScript`                                 | 在页面执行 JS                             |
+|            | `userBrowser.getPageContent`                                | 抓取页面内容                              |
+|            | `userBrowser.screenshot`                                    | 截取页面                                  |
+| 浏览数据   | `userBrowser.getBookmarks` / `getHistory`                   | 读取书签 / 历史                           |
+
+```javascript
+// 从移动端连接并在电脑浏览器打开一个新标签
+await client.invoke("userBrowser.connect", {
+  browserType: "chrome",
+  autoLaunch: true,
+});
+await client.invoke("userBrowser.createTab", {
+  url: "https://example.com",
+  active: true,
+});
+```
+
+> ⚠️ `userBrowser` 属 **Mutating** 风险级（可开关标签、执行脚本、读书签历史）。它连接的是用户日常使用的**真实**浏览器会话，`executeScript` / `getPageContent` / `getHistory` 涉及敏感数据，须经权限系统授权且默认走[敏感操作确认](#敏感操作确认)。
+
 ---
 
 ## 权限系统

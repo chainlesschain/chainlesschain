@@ -9,16 +9,36 @@ export default defineConfig({
   head: [
     ["meta", { charset: "utf-8" }],
     // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
-    ["script", {
-      defer: "",
-      src: "https://www.chainlesschain.com/u/script.js",
-      "data-website-id": "e2103676-c36a-4c78-8094-62bb68be27e3",
-      "data-host-url": "https://www.chainlesschain.com/u",
-    }],
-    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "128x128", href: "/logo-128.png" }],
-    ["link", { rel: "apple-touch-icon", sizes: "128x128", href: "/logo-128.png" }],
+    [
+      "script",
+      {
+        defer: "",
+        src: "https://www.chainlesschain.com/u/script.js",
+        "data-website-id": "e2103676-c36a-4c78-8094-62bb68be27e3",
+        "data-host-url": "https://www.chainlesschain.com/u",
+      },
+    ],
+    [
+      "link",
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" },
+    ],
+    [
+      "link",
+      { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" },
+    ],
+    [
+      "link",
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "128x128",
+        href: "/logo-128.png",
+      },
+    ],
+    [
+      "link",
+      { rel: "apple-touch-icon", sizes: "128x128", href: "/logo-128.png" },
+    ],
     ["meta", { name: "theme-color", content: "#3eaf7c" }],
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
     [
@@ -48,8 +68,14 @@ export default defineConfig({
           { text: "社交协议生态", link: "/guide/social-protocols" },
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
           { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
-          { text: "远程终端 (Android↔桌面 PTY)", link: "/guide/remote-terminal" },
-          { text: "远程文件 (Android↔桌面 浏览/上传/下载)", link: "/guide/remote-file" },
+          {
+            text: "远程终端 (Android↔桌面 PTY)",
+            link: "/guide/remote-terminal",
+          },
+          {
+            text: "远程文件 (Android↔桌面 浏览/上传/下载)",
+            link: "/guide/remote-file",
+          },
         ],
       },
       { text: "API参考", link: "/api/introduction" },
@@ -172,15 +198,24 @@ export default defineConfig({
               link: "/chainlesschain/pdh-bridge",
             },
             { text: "去中心化社交", link: "/chainlesschain/social" },
-            { text: "好友 P2P 加密消息 ⭐NEW", link: "/chainlesschain/friend-p2p-messaging" },
-            { text: "好友 P2P 语音/视频通话 ⭐NEW", link: "/chainlesschain/friend-p2p-calls" },
+            {
+              text: "好友 P2P 加密消息 ⭐NEW",
+              link: "/chainlesschain/friend-p2p-messaging",
+            },
+            {
+              text: "好友 P2P 语音/视频通话 ⭐NEW",
+              link: "/chainlesschain/friend-p2p-calls",
+            },
             { text: "交易辅助", link: "/chainlesschain/trading" },
             { text: "U盾集成", link: "/chainlesschain/ukey" },
             { text: "SIMKey集成", link: "/chainlesschain/simkey" },
             { text: "SIMKey高级安全", link: "/chainlesschain/simkey-advanced" },
             { text: "SIMKey企业版", link: "/chainlesschain/simkey-enterprise" },
             { text: "移动端同步", link: "/chainlesschain/mobile-sync" },
-            { text: "移动端定位与三层架构", link: "/chainlesschain/mobile-positioning" },
+            {
+              text: "移动端定位与三层架构",
+              link: "/chainlesschain/mobile-positioning",
+            },
             {
               text: "Android 本地终端（内置 cc CLI）⭐NEW",
               link: "/chainlesschain/android-local-terminal",
@@ -207,11 +242,30 @@ export default defineConfig({
         {
           text: "自动化功能",
           items: [
-            { text: "联网搜索 (web_search) ⭐NEW", link: "/chainlesschain/web-search" },
-            { text: "后台 Shell (run_shell/check_shell) ⭐NEW", link: "/chainlesschain/run-shell-background" },
-            { text: "Agent 弹性提示 (流式停顿 + 弃用模型) ⭐NEW", link: "/chainlesschain/cli-resilience" },
-            { text: "远程 MCP 授权 (cc mcp OAuth) ⭐NEW", link: "/chainlesschain/mcp-oauth" },
-            { text: "IDE 桥接 (VS Code / JetBrains) ⭐NEW", link: "/chainlesschain/ide-bridge" },
+            {
+              text: "联网搜索 (web_search) ⭐NEW",
+              link: "/chainlesschain/web-search",
+            },
+            {
+              text: "多引擎搜索 (multi-search-engine) ⭐NEW",
+              link: "/chainlesschain/multi-search-engine",
+            },
+            {
+              text: "后台 Shell (run_shell/check_shell) ⭐NEW",
+              link: "/chainlesschain/run-shell-background",
+            },
+            {
+              text: "Agent 弹性提示 (流式停顿 + 弃用模型) ⭐NEW",
+              link: "/chainlesschain/cli-resilience",
+            },
+            {
+              text: "远程 MCP 授权 (cc mcp OAuth) ⭐NEW",
+              link: "/chainlesschain/mcp-oauth",
+            },
+            {
+              text: "IDE 桥接 (VS Code / JetBrains) ⭐NEW",
+              link: "/chainlesschain/ide-bridge",
+            },
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
             { text: "计算机操控", link: "/chainlesschain/computer-use" },
             {
@@ -226,17 +280,32 @@ export default defineConfig({
           text: "企业版功能",
           items: [
             { text: "多智能体协作", link: "/chainlesschain/cowork" },
-            { text: "动态工作流引擎 ⭐NEW", link: "/chainlesschain/cowork-workflow" },
+            {
+              text: "动态工作流引擎 ⭐NEW",
+              link: "/chainlesschain/cowork-workflow",
+            },
             { text: "日常任务协作", link: "/chainlesschain/web-cowork" },
             { text: "会话管理器", link: "/chainlesschain/session-manager" },
             { text: "钩子系统", link: "/chainlesschain/hooks" },
             { text: "权限系统", link: "/chainlesschain/permissions" },
             { text: "计划模式", link: "/chainlesschain/plan-mode" },
-            { text: "目标 / OKR (cc goal) ⭐NEW", link: "/chainlesschain/goal" },
-            { text: "自定义斜杠命令 (cc command) ⭐NEW", link: "/chainlesschain/slash-commands" },
-            { text: "检查点 / 回滚 (cc checkpoint) ⭐NEW", link: "/chainlesschain/checkpoint" },
+            {
+              text: "目标 / OKR (cc goal) ⭐NEW",
+              link: "/chainlesschain/goal",
+            },
+            {
+              text: "自定义斜杠命令 (cc command) ⭐NEW",
+              link: "/chainlesschain/slash-commands",
+            },
+            {
+              text: "检查点 / 回滚 (cc checkpoint) ⭐NEW",
+              link: "/chainlesschain/checkpoint",
+            },
             { text: "输出风格", link: "/chainlesschain/output-styles" },
-            { text: "状态栏 (cc statusline) ⭐NEW", link: "/chainlesschain/status-line" },
+            {
+              text: "状态栏 (cc statusline) ⭐NEW",
+              link: "/chainlesschain/status-line",
+            },
             { text: "成本估算 (cc cost) ⭐NEW", link: "/chainlesschain/cost" },
             { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
@@ -663,14 +732,20 @@ export default defineConfig({
               link: "/chainlesschain/cli-permissions",
             },
             { text: "权限治理 V2 (perm)", link: "/chainlesschain/cli-perm" },
-            { text: "M-of-N 多签 (multisig)", link: "/chainlesschain/cli-multisig" },
+            {
+              text: "M-of-N 多签 (multisig)",
+              link: "/chainlesschain/cli-multisig",
+            },
             { text: "信任与安全 (trust)", link: "/chainlesschain/cli-trust" },
             { text: "协议融合 (fusion)", link: "/chainlesschain/cli-fusion" },
             {
               text: "去中心化推理 (inference)",
               link: "/chainlesschain/cli-inference",
             },
-            { text: "去中心化基础设施 (infra)", link: "/chainlesschain/cli-infra" },
+            {
+              text: "去中心化基础设施 (infra)",
+              link: "/chainlesschain/cli-infra",
+            },
             {
               text: "社交图谱分析治理 (sganal)",
               link: "/chainlesschain/cli-sganal",
@@ -1357,8 +1432,14 @@ export default defineConfig({
           items: [
             { text: "落地方案", link: "/design/mtc-landing-plan" },
             { text: "数据格式 v1", link: "/design/mtc-data-format-v1" },
-            { text: "联邦治理 v1 ⭐NEW", link: "/design/mtc-federation-governance-v1" },
-            { text: "跨链桥设计 v1 ⭐NEW", link: "/design/mtc-cross-chain-bridge-v1" },
+            {
+              text: "联邦治理 v1 ⭐NEW",
+              link: "/design/mtc-federation-governance-v1",
+            },
+            {
+              text: "跨链桥设计 v1 ⭐NEW",
+              link: "/design/mtc-cross-chain-bridge-v1",
+            },
             { text: "v0.2 评审清单", link: "/design/mtc-review-checklist" },
           ],
         },
@@ -1366,18 +1447,39 @@ export default defineConfig({
           text: "核心模块 (Phase 1-16)",
           collapsed: false,
           items: [
-            { text: "01 知识库管理", link: "/design/modules/01-knowledge-base" },
-            { text: "02 去中心化社交", link: "/design/modules/02-decentralized-social" },
+            {
+              text: "01 知识库管理",
+              link: "/design/modules/01-knowledge-base",
+            },
+            {
+              text: "02 去中心化社交",
+              link: "/design/modules/02-decentralized-social",
+            },
             { text: "03 交易辅助", link: "/design/modules/03-trading" },
-            { text: "04 项目管理", link: "/design/modules/04-project-management" },
-            { text: "05 企业版组织", link: "/design/modules/05-enterprise-org" },
-            { text: "06 AI优化系统", link: "/design/modules/06-ai-optimization" },
+            {
+              text: "04 项目管理",
+              link: "/design/modules/04-project-management",
+            },
+            {
+              text: "05 企业版组织",
+              link: "/design/modules/05-enterprise-org",
+            },
+            {
+              text: "06 AI优化系统",
+              link: "/design/modules/06-ai-optimization",
+            },
             { text: "07 性能优化", link: "/design/modules/07-performance" },
             { text: "08 MCP与配置", link: "/design/modules/08-mcp-config" },
-            { text: "09 浏览器自动化", link: "/design/modules/09-browser-automation" },
+            {
+              text: "09 浏览器自动化",
+              link: "/design/modules/09-browser-automation",
+            },
             { text: "10 远程控制", link: "/design/modules/10-remote-control" },
             { text: "11 企业审计", link: "/design/modules/11-audit" },
-            { text: "12 插件市场", link: "/design/modules/12-plugin-marketplace" },
+            {
+              text: "12 插件市场",
+              link: "/design/modules/12-plugin-marketplace",
+            },
             { text: "13 多代理系统", link: "/design/modules/13-multi-agent" },
             { text: "14 SSO企业认证", link: "/design/modules/14-sso" },
             { text: "15 MCP SDK", link: "/design/modules/15-mcp-sdk" },
@@ -1401,8 +1503,14 @@ export default defineConfig({
             { text: "22 性能自动调优", link: "/design/modules/22-auto-tuning" },
             { text: "22 内容推荐", link: "/design/modules/22b-content-rec" },
             { text: "23 Nostr桥接", link: "/design/modules/23-nostr" },
-            { text: "23 企业组织管理", link: "/design/modules/23b-org-management" },
-            { text: "24 去中心化Agent", link: "/design/modules/24-agent-network" },
+            {
+              text: "23 企业组织管理",
+              link: "/design/modules/23b-org-management",
+            },
+            {
+              text: "24 去中心化Agent",
+              link: "/design/modules/24-agent-network",
+            },
             { text: "24 数据防泄漏", link: "/design/modules/24b-dlp" },
             { text: "25 SIEM", link: "/design/modules/25-siem" },
             { text: "25 自治运维", link: "/design/modules/25b-autonomous-ops" },
@@ -1410,28 +1518,61 @@ export default defineConfig({
             { text: "26 社区治理", link: "/design/modules/26b-governance" },
             { text: "27 Matrix集成", link: "/design/modules/27-matrix" },
             { text: "27 多模态协作", link: "/design/modules/27b-multimodal" },
-            { text: "28 基础设施编排", link: "/design/modules/28-infrastructure" },
-            { text: "28 自然语言编程", link: "/design/modules/28b-nl-programming" },
+            {
+              text: "28 基础设施编排",
+              link: "/design/modules/28-infrastructure",
+            },
+            {
+              text: "28 自然语言编程",
+              link: "/design/modules/28b-nl-programming",
+            },
           ],
         },
         {
           text: "生产加固 (Phase 29-42)",
           collapsed: true,
           items: [
-            { text: "29 生产强化", link: "/design/modules/29-production-hardening" },
-            { text: "30 联邦强化", link: "/design/modules/30-federation-hardening" },
+            {
+              text: "29 生产强化",
+              link: "/design/modules/29-production-hardening",
+            },
+            {
+              text: "30 联邦强化",
+              link: "/design/modules/30-federation-hardening",
+            },
             { text: "31 压力测试", link: "/design/modules/31-stress-test" },
             { text: "32 信誉优化", link: "/design/modules/32-reputation" },
             { text: "33 跨组织SLA", link: "/design/modules/33-sla" },
-            { text: "34 技术学习引擎", link: "/design/modules/34-tech-learning" },
-            { text: "35 自主开发者", link: "/design/modules/35-autonomous-dev" },
-            { text: "36 协作治理", link: "/design/modules/36-collab-governance" },
-            { text: "37 技能市场", link: "/design/modules/37-skill-marketplace" },
-            { text: "38 推理网络", link: "/design/modules/38-inference-network" },
+            {
+              text: "34 技术学习引擎",
+              link: "/design/modules/34-tech-learning",
+            },
+            {
+              text: "35 自主开发者",
+              link: "/design/modules/35-autonomous-dev",
+            },
+            {
+              text: "36 协作治理",
+              link: "/design/modules/36-collab-governance",
+            },
+            {
+              text: "37 技能市场",
+              link: "/design/modules/37-skill-marketplace",
+            },
+            {
+              text: "38 推理网络",
+              link: "/design/modules/38-inference-network",
+            },
             { text: "39 信任安全", link: "/design/modules/39-trust-security" },
             { text: "40 协议融合", link: "/design/modules/40-protocol-fusion" },
-            { text: "41 去中心化基础设施", link: "/design/modules/41-decentralized-infra" },
-            { text: "42 EvoMap高级联邦", link: "/design/modules/42-evomap-federation" },
+            {
+              text: "41 去中心化基础设施",
+              link: "/design/modules/41-decentralized-infra",
+            },
+            {
+              text: "42 EvoMap高级联邦",
+              link: "/design/modules/42-evomap-federation",
+            },
           ],
         },
         {
@@ -1443,16 +1584,28 @@ export default defineConfig({
             { text: "45 数据库演进", link: "/design/modules/45-db-migration" },
             { text: "46 A2A协议", link: "/design/modules/46-a2a-protocol" },
             { text: "47 工作流编排", link: "/design/modules/47-workflow" },
-            { text: "48 层次化记忆2.0", link: "/design/modules/48-hierarchical-memory" },
-            { text: "49 多模态感知", link: "/design/modules/49-multimodal-perception" },
+            {
+              text: "48 层次化记忆2.0",
+              link: "/design/modules/48-hierarchical-memory",
+            },
+            {
+              text: "49 多模态感知",
+              link: "/design/modules/49-multimodal-perception",
+            },
             { text: "50 Agent经济", link: "/design/modules/50-agent-economy" },
             { text: "51 代码生成Agent", link: "/design/modules/51-code-agent" },
             { text: "52 安全沙箱2.0", link: "/design/modules/52-sandbox" },
             { text: "53 零知识证明", link: "/design/modules/53-zkp" },
             { text: "54 跨链互操作", link: "/design/modules/54-cross-chain" },
             { text: "55 DID 2.0", link: "/design/modules/55-did-v2" },
-            { text: "56 隐私计算", link: "/design/modules/56-privacy-computing" },
-            { text: "57 DAO治理2.0", link: "/design/modules/57-dao-governance" },
+            {
+              text: "56 隐私计算",
+              link: "/design/modules/56-privacy-computing",
+            },
+            {
+              text: "57 DAO治理2.0",
+              link: "/design/modules/57-dao-governance",
+            },
           ],
         },
         {
@@ -1460,59 +1613,188 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: "58 低代码平台", link: "/design/modules/58-low-code" },
-            { text: "59 企业知识图谱", link: "/design/modules/59-knowledge-graph" },
+            {
+              text: "59 企业知识图谱",
+              link: "/design/modules/59-knowledge-graph",
+            },
             { text: "60 BI智能分析", link: "/design/modules/60-bi-engine" },
-            { text: "61 工作流自动化", link: "/design/modules/61-workflow-automation" },
+            {
+              text: "61 工作流自动化",
+              link: "/design/modules/61-workflow-automation",
+            },
             { text: "62 多租户SaaS", link: "/design/modules/62-saas" },
-            { text: "63 统一运行时", link: "/design/modules/63-unified-runtime" },
-            { text: "64 插件生态2.0", link: "/design/modules/64-plugin-ecosystem" },
-            { text: "65 自进化AI", link: "/design/modules/65-self-evolving-ai" },
+            {
+              text: "63 统一运行时",
+              link: "/design/modules/63-unified-runtime",
+            },
+            {
+              text: "64 插件生态2.0",
+              link: "/design/modules/64-plugin-ecosystem",
+            },
+            {
+              text: "65 自进化AI",
+              link: "/design/modules/65-self-evolving-ai",
+            },
           ],
         },
         {
           text: "CLI系统与扩展 (Phase 66-71) ⭐",
           collapsed: false,
           items: [
-            { text: "66 CLI分发系统", link: "/design/modules/66-cli-distribution" },
+            {
+              text: "66 CLI分发系统",
+              link: "/design/modules/66-cli-distribution",
+            },
             { text: "67 CLI高级功能", link: "/design/modules/67-cli-advanced" },
-            { text: "68 CLI-Anything集成", link: "/design/modules/68-cli-anything" },
-            { text: "69 WebSocket服务器", link: "/design/modules/69-websocket-server" },
-            { text: "70 Agent智能增强", link: "/design/modules/70-agent-intelligence" },
-            { text: "71 子代理隔离", link: "/design/modules/71-sub-agent-isolation" },
-            { text: "71b AI音视频创作模板 ⭐", link: "/design/modules/71b-ai-media-creator" },
-            { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
+            {
+              text: "68 CLI-Anything集成",
+              link: "/design/modules/68-cli-anything",
+            },
+            {
+              text: "69 WebSocket服务器",
+              link: "/design/modules/69-websocket-server",
+            },
+            {
+              text: "70 Agent智能增强",
+              link: "/design/modules/70-agent-intelligence",
+            },
+            {
+              text: "71 子代理隔离",
+              link: "/design/modules/71-sub-agent-isolation",
+            },
+            {
+              text: "71b AI音视频创作模板 ⭐",
+              link: "/design/modules/71b-ai-media-creator",
+            },
+            {
+              text: "72 AI文档创作模板 ⭐",
+              link: "/design/modules/72-ai-doc-creator",
+            },
             { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
-            { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
-            { text: "75 Vue3 Web管理面板 10模块+4主题 ⭐", link: "/design/modules/75-web-panel" },
-            { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
-            { text: "77 Agent架构优化 ⭐", link: "/design/modules/77-agent-optimization" },
-            { text: "78 CLI Agent Runtime重构计划 ⭐", link: "/design/modules/78-cli-agent-runtime" },
-            { text: "79 Coding Agent系统 ⭐", link: "/design/modules/79-coding-agent" },
-            { text: "80 规范工作流系统 ⭐", link: "/design/modules/80-canonical-workflow" },
-            { text: "81 轻量多Agent编排 ⭐NEW", link: "/design/modules/81-sub-runtime-pool" },
-            { text: "82 CLI Runtime收口路线图 ⭐NEW", link: "/design/modules/82-cli-runtime-convergence" },
-            { text: "83 工具描述规范统一 ⭐NEW", link: "/design/modules/83-tool-descriptor-unification" },
-            { text: "84 自主学习闭环系统 ⭐NEW", link: "/design/modules/84-autonomous-learning-loop" },
-            { text: "85 Hermes Agent对标 ⭐NEW", link: "/design/modules/85-hermes-agent-parity" },
-            { text: "85b 文档代码差距补全 ⭐NEW", link: "/design/modules/85b-doc-code-gap-fill" },
-            { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
-            { text: "87 Cowork Evolution N1–N7 ⭐NEW", link: "/design/modules/87-cowork-evolution" },
-            { text: "88 Open-Agents 对标 ⭐NEW", link: "/design/modules/88-open-agents-parity" },
-            { text: "89 v5.0.2.9 六项优化 ⭐NEW", link: "/design/modules/89-runtime-six-enhancements" },
-            { text: "90 AI视频生成 Seedance ⭐NEW", link: "/design/modules/90-ai-video-generation-seedance" },
-            { text: "91 Managed Agents 对标 ⭐NEW", link: "/design/modules/91-managed-agents-parity" },
-            { text: "92 Deep Agents Deploy ⭐NEW", link: "/design/modules/92-deep-agents-deploy" },
-            { text: "93 CutClaw 视频剪辑 Agent ⭐NEW", link: "/design/modules/93-cutclaw-video-editing-agent" },
-            { text: "94 QualityGate 通用质量门控 ⭐NEW", link: "/design/modules/94-quality-gate" },
-            { text: "95 社交协议生态补齐 ⭐NEW", link: "/design/modules/95-social-protocols-landing" },
-            { text: "96 V2 规范层 Governance ⭐NEW", link: "/design/modules/96-v2-governance" },
-            { text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW", link: "/design/modules/97-claude-desktop-refactor" },
-            { text: "98 IDE 桥接对标方案 ⭐NEW", link: "/design/modules/98-ide-bridge" },
-            { text: "99 项目记忆与 init 对标方案 ⭐NEW", link: "/design/modules/99-project-memory-init" },
-            { text: "100 自定义斜杠命令与宏系统 ⭐NEW", link: "/design/modules/100-slash-commands-macros" },
-            { text: "101 个人数据 IDE 桥接方案 ⭐NEW", link: "/design/modules/101-personal-data-ide-bridge" },
-            { text: "101b QQNT Frida 采集方案 ⭐NEW", link: "/design/modules/101b-qqnt-frida-collection" },
-            { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
+            {
+              text: "74 AI编排层系统 ⭐",
+              link: "/design/modules/74-orchestration-layer",
+            },
+            {
+              text: "75 Vue3 Web管理面板 10模块+4主题 ⭐",
+              link: "/design/modules/75-web-panel",
+            },
+            {
+              text: "76 Skill Creator系统 ⭐",
+              link: "/design/modules/76-skill-creator",
+            },
+            {
+              text: "77 Agent架构优化 ⭐",
+              link: "/design/modules/77-agent-optimization",
+            },
+            {
+              text: "78 CLI Agent Runtime重构计划 ⭐",
+              link: "/design/modules/78-cli-agent-runtime",
+            },
+            {
+              text: "79 Coding Agent系统 ⭐",
+              link: "/design/modules/79-coding-agent",
+            },
+            {
+              text: "80 规范工作流系统 ⭐",
+              link: "/design/modules/80-canonical-workflow",
+            },
+            {
+              text: "81 轻量多Agent编排 ⭐NEW",
+              link: "/design/modules/81-sub-runtime-pool",
+            },
+            {
+              text: "82 CLI Runtime收口路线图 ⭐NEW",
+              link: "/design/modules/82-cli-runtime-convergence",
+            },
+            {
+              text: "83 工具描述规范统一 ⭐NEW",
+              link: "/design/modules/83-tool-descriptor-unification",
+            },
+            {
+              text: "84 自主学习闭环系统 ⭐NEW",
+              link: "/design/modules/84-autonomous-learning-loop",
+            },
+            {
+              text: "85 Hermes Agent对标 ⭐NEW",
+              link: "/design/modules/85-hermes-agent-parity",
+            },
+            {
+              text: "85b 文档代码差距补全 ⭐NEW",
+              link: "/design/modules/85b-doc-code-gap-fill",
+            },
+            {
+              text: "86 Web Cowork协作 ⭐NEW",
+              link: "/design/modules/86-web-cowork",
+            },
+            {
+              text: "87 Cowork Evolution N1–N7 ⭐NEW",
+              link: "/design/modules/87-cowork-evolution",
+            },
+            {
+              text: "88 Open-Agents 对标 ⭐NEW",
+              link: "/design/modules/88-open-agents-parity",
+            },
+            {
+              text: "89 v5.0.2.9 六项优化 ⭐NEW",
+              link: "/design/modules/89-runtime-six-enhancements",
+            },
+            {
+              text: "90 AI视频生成 Seedance ⭐NEW",
+              link: "/design/modules/90-ai-video-generation-seedance",
+            },
+            {
+              text: "91 Managed Agents 对标 ⭐NEW",
+              link: "/design/modules/91-managed-agents-parity",
+            },
+            {
+              text: "92 Deep Agents Deploy ⭐NEW",
+              link: "/design/modules/92-deep-agents-deploy",
+            },
+            {
+              text: "93 CutClaw 视频剪辑 Agent ⭐NEW",
+              link: "/design/modules/93-cutclaw-video-editing-agent",
+            },
+            {
+              text: "94 QualityGate 通用质量门控 ⭐NEW",
+              link: "/design/modules/94-quality-gate",
+            },
+            {
+              text: "95 社交协议生态补齐 ⭐NEW",
+              link: "/design/modules/95-social-protocols-landing",
+            },
+            {
+              text: "96 V2 规范层 Governance ⭐NEW",
+              link: "/design/modules/96-v2-governance",
+            },
+            {
+              text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW",
+              link: "/design/modules/97-claude-desktop-refactor",
+            },
+            {
+              text: "98 IDE 桥接对标方案 ⭐NEW",
+              link: "/design/modules/98-ide-bridge",
+            },
+            {
+              text: "99 项目记忆与 init 对标方案 ⭐NEW",
+              link: "/design/modules/99-project-memory-init",
+            },
+            {
+              text: "100 自定义斜杠命令与宏系统 ⭐NEW",
+              link: "/design/modules/100-slash-commands-macros",
+            },
+            {
+              text: "101 个人数据 IDE 桥接方案 ⭐NEW",
+              link: "/design/modules/101-personal-data-ide-bridge",
+            },
+            {
+              text: "101b QQNT Frida 采集方案 ⭐NEW",
+              link: "/design/modules/101b-qqnt-frida-collection",
+            },
+            {
+              text: "60b CLI指令技能包 ⭐",
+              link: "/design/modules/60b-cli-skill-packs",
+            },
           ],
         },
         {
@@ -1841,4 +2123,3 @@ export default defineConfig({
     darkModeSwitchTitle: "切换到深色模式",
   },
 });
-
