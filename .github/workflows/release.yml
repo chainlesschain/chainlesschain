@@ -1241,7 +1241,13 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          PREV_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+          # Only compare against previous PRODUCT release tags (v*), not ide-* /
+          # internal-binaries-* tags which would otherwise be picked as the base.
+          PREV_TAG=$(git describe --tags --abbrev=0 --match "v*" ${VERSION}^ 2>/dev/null || echo "")
+
+          # Desktop assets are named with the electron-builder version X.Y.Z-alpha.N
+          # (derived from productVersion vX.Y.Z.N), NOT the plain tag X.Y.Z.N.
+          ELECTRON_VER=$(echo "${VERSION#v}" | sed -E 's/\.([0-9]+)$/-alpha.\1/')
 
           if [ -z "$PREV_TAG" ]; then
             RANGE="${VERSION}"
@@ -1263,24 +1269,26 @@ jobs:
           Download the appropriate file for your platform:
 
           #### Windows
-          - \`ChainlessChain-win32-x64-${VERSION#v}.zip\` - Portable version (extract and run)
+          - \`ChainlessChain-Setup-${ELECTRON_VER}.exe\` - Installer (recommended)
+          - \`ChainlessChain-Portable-${ELECTRON_VER}.exe\` - Portable version (run directly, no install)
 
           #### macOS
-          - \`ChainlessChain-darwin-x64-${VERSION#v}.zip\` - Intel Mac (unzip and move to /Applications)
-          - \`ChainlessChain-darwin-arm64-${VERSION#v}.zip\` - Apple Silicon (unzip and move to /Applications)
+          - \`ChainlessChain-${ELECTRON_VER}.dmg\` - Intel Mac (open and drag to /Applications)
+          - \`ChainlessChain-${ELECTRON_VER}-arm64.dmg\` - Apple Silicon (open and drag to /Applications)
 
           #### Linux
-          - \`ChainlessChain-${VERSION#v}.AppImage\` - Universal Linux package
-          - \`chainlesschain_${VERSION#v}_amd64.deb\` - Debian/Ubuntu package
-          - \`chainlesschain-${VERSION#v}.x86_64.rpm\` - Fedora/RHEL package
+          - \`ChainlessChain-${ELECTRON_VER}.AppImage\` - Universal Linux package
+          - \`chainlesschain-desktop-vue_${ELECTRON_VER}_amd64.deb\` - Debian/Ubuntu package
+          - \`chainlesschain-desktop-vue-${ELECTRON_VER}.x86_64.rpm\` - Fedora/RHEL package
 
           #### Android
-          - \`app-release.apk\` - Android APK (direct install)
+          - \`app-arm64-v8a-release.apk\` - Modern 64-bit devices (recommended)
+          - \`app-armeabi-v7a-release.apk\` - Older 32-bit devices
+          - \`app-universal-release.apk\` - All architectures (larger, direct install)
           - \`app-release.aab\` - Android App Bundle (Google Play Store)
 
           #### iOS
           - \`ChainlessChain.ipa\` - iOS App (Ad-hoc distribution, signed builds only)
-          - \`ChainlessChain-ios-simulator.zip\` - iOS Simulator build (unsigned, for testing)
 
           ### System Requirements
 
@@ -1300,7 +1308,7 @@ jobs:
 
           All binaries are built via GitHub Actions and can be verified against the workflow runs.
 
-          **Full Changelog**: https://github.com/\${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
           EOF
 
           cat release-notes.md
