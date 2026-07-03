@@ -33,6 +33,7 @@ import {
   jetbrainsServerToMcpConfig,
   isInJetbrainsContext,
 } from "../lib/jetbrains-bridge.js";
+import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -645,6 +646,39 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
 }
 
 /**
+ * Load MCP servers declared by installed plugins' `.mcp.json` (Phase 3.3g —
+ * plugin MCP component reaches the agent's tool surface).
+ *
+ * Unlike a project `.mcp.json` (opt-in via --project-mcp because ANY cloned repo
+ * can carry one), plugin MCP servers load by default: installing AND trusting a
+ * plugin IS the explicit user action. `collectPluginMcpServers` already trust-
+ * gates — only user/local-scope plugins and `cc plugin trust`-ed project plugins
+ * contribute — so a server never spawns from an untrusted cloned-repo plugin.
+ *
+ * Chains onto `deps.into` after the registered + project servers, so those win
+ * on a name clash (the plugin ADDS servers without overriding the user's own).
+ *
+ * @param {object} opts { cwd, scopes }
+ * @param {object} [deps] { collect, writeErr, into, ... setupMcpFromConfig deps }
+ */
+export async function loadPluginMcp(opts = {}, deps = {}) {
+  const collect = deps.collect || collectPluginMcpServers;
+  const writeErr = deps.writeErr || (() => {});
+  let servers = {};
+  try {
+    ({ servers } = collect({ cwd: opts.cwd, scopes: opts.scopes }));
+  } catch {
+    return deps.into || null;
+  }
+  const names = Object.keys(servers || {});
+  if (names.length === 0) return deps.into || null;
+  writeErr(
+    `  mcp: ${names.length} server(s) from trusted plugin(s): ${names.join(", ")}\n`,
+  );
+  return setupMcpFromConfig(servers, deps);
+}
+
+/**
  * Resolve the full MCP tool surface for one agent run: the ad-hoc
  * `--mcp-config` file (if any) PLUS registered auto-connect servers (unless
  * disabled) PLUS a project-scoped `.mcp.json` (opt-in, `--project-mcp`) PLUS an
@@ -665,6 +699,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
   const doProject = deps.loadProjectMcp || loadProjectMcp;
+  const doPlugin = deps.loadPluginMcp || loadPluginMcp;
   const doIde = deps.loadIdeMcp || loadIdeMcp;
   const doPdh = deps.loadPdhMcp || loadPdhMcp;
   const doJetbrains = deps.loadJetbrainsMcp || loadJetbrainsMcp;
@@ -709,6 +744,17 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   if (args.projectMcp !== false) {
     result = await doProject(
       { cwd: args.cwd, env: args.env || process.env },
+      { ...fwd, into: result || undefined },
+    );
+  }
+  // Installed-plugin `.mcp.json` servers (Claude-Code parity). Loads by default
+  // (no opt-in flag): unlike a project `.mcp.json`, a plugin only contributes
+  // when it is installed AND trusted (trust-gated inside collectPluginMcpServers)
+  // — that install+trust IS the explicit consent. Registered + project servers
+  // above win on a name clash. `pluginMcp:false` hard-skips it.
+  if (args.pluginMcp !== false) {
+    result = await doPlugin(
+      { cwd: args.cwd, scopes: args.pluginScopes },
       { ...fwd, into: result || undefined },
     );
   }
