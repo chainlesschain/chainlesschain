@@ -1133,6 +1133,29 @@ cc agent --sandbox --sandbox-network -p "更新依赖并运行测试"
 
 默认挂载当前工作区为可写 `/workspace`、禁用容器网络，只传 Agent 会话标识环境变量，不传宿主 API key。Docker 缺失或容器启动失败时会失败关闭。首版不支持 sandbox 内后台 shell。
 
+也可通过分层 `.claude/settings.json` 启用并配置沙箱。数组策略跨 user/project/local/managed 层累加，标量由更高优先级覆盖：
+
+```json
+{
+  "sandbox": {
+    "enabled": true,
+    "engine": "bubblewrap",
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowWrite": ["/tmp/build"],
+      "denyRead": ["~/.ssh", ".env"]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"]
+    },
+    "excludedCommands": ["docker"]
+  }
+}
+```
+
+`bubblewrap` 后端在 Linux/WSL2 使用只读宿主根、可写工作区、独立 PID/IPC/UTS/user namespace，默认不共享网络。Docker 后端目前只保证工作区挂载与全局断网；若配置细粒度文件策略会失败关闭并提示改用 `bubblewrap`。域名级网络策略需要独立代理，代理尚未配置时也会拒绝开启不受限网络，避免产生“策略已生效”的假象。
+
 ## Credential 读取保护(Claude-Code 2.1.189 `sandbox.credentials` 平价)
 
 cc 不做 OS 沙箱,但同样的意图在**工具层**落地:Agent 不应把用户的密钥静默吸进模型上下文

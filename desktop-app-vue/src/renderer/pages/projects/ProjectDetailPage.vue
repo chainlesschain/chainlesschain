@@ -514,6 +514,13 @@ import { message, Modal } from "ant-design-vue";
 import { useProjectStore } from "@/stores/project";
 import { useActiveContextStore } from "@/stores/activeContext";
 import {
+  getProjectTypeColor,
+  getProjectTypeText,
+  getStatusColor,
+  getStatusText,
+  formatDate,
+} from "./projectDetailPageUtils";
+import {
   FolderOpenOutlined,
   FolderOutlined,
   FileTextOutlined,
@@ -2090,59 +2097,6 @@ watch(
 );
 
 // 辅助函数
-const getProjectTypeColor = (type) => {
-  const colors = {
-    web: "blue",
-    document: "green",
-    data: "purple",
-    app: "orange",
-  };
-  return colors[type] || "default";
-};
-
-const getProjectTypeText = (type) => {
-  const texts = {
-    web: "Web应用",
-    document: "文档项目",
-    data: "数据分析",
-    app: "应用程序",
-  };
-  return texts[type] || type;
-};
-
-const getStatusColor = (status) => {
-  const colors = {
-    draft: "default",
-    active: "success",
-    completed: "blue",
-    archived: "warning",
-  };
-  return colors[status] || "default";
-};
-
-const getStatusText = (status) => {
-  const texts = {
-    draft: "草稿",
-    active: "进行中",
-    completed: "已完成",
-    archived: "已归档",
-  };
-  return texts[status] || status;
-};
-
-const formatDate = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 </script>
 
 <style scoped>
