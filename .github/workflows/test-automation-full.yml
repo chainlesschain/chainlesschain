@@ -113,7 +113,7 @@ jobs:
     if: failure()
 
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v8
         with:
           script: |
             const date = new Date().toISOString().split('T')[0];

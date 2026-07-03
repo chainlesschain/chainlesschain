@@ -78,7 +78,7 @@ jobs:
 
       - name: Open issue if Node 23 install AND native load both succeed
         if: steps.install.outcome == 'success' && steps.require_check.outcome == 'success' && steps.already_resolved.outputs.resolved != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = 'Node 23 native-dep install succeeded — expand engines.node range';

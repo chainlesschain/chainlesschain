@@ -266,7 +266,7 @@ jobs:
 
       - name: Comment Coverage on PR
         if: github.event_name == 'pull_request' && matrix.api-level == 30
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: android-app/app/build/reports/jacoco/jacocoE2ETestReport/jacocoE2ETestReport.xml
           flags: e2e-tests
@@ -276,7 +276,7 @@ jobs:
       - name: Publish Test Report
         # Same fix as Upload Test Results — glob ALL modules.
         if: always()
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: 'android-app/**/build/outputs/androidTest-results/connected/*.xml'
           check_name: E2E Test Results (API ${{ matrix.api-level }})

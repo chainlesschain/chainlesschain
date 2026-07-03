@@ -47,7 +47,7 @@ jobs:
         run: npx vitest run tests/unit/ai/ai-engine-workflow.test.js tests/unit/ai/ai-skill-scheduler.test.js
 
       - name: Comment PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: always()
         with:
           script: |
