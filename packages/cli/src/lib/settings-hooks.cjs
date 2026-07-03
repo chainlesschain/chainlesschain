@@ -210,7 +210,12 @@ function umbrellaFor(tool) {
  * matcher is tested against BOTH the CC umbrella (`Bash`) and the raw tool
  * name (`run_shell`), so settings written either way fire.
  *
- * @returns {Array<{command:string, timeout?:number}>}
+ * `async`/`asyncRewake` are carried through (default false) so the caller can
+ * split fire-and-forget hooks off the blocking path (see async-hook-supervisor).
+ * `event` is stamped on each hook so a supervisor can key runs by (event+cmd).
+ *
+ * @returns {Array<{command:string, timeout?:number, event:string,
+ *                  async:boolean, asyncRewake:boolean}>}
  */
 function collectHooks(hooksBlock, event, toolName) {
   const groups = (hooksBlock && hooksBlock[event]) || [];
@@ -221,7 +226,13 @@ function collectHooks(hooksBlock, event, toolName) {
     const fn = compileMatcher(g.matcher);
     if (fn(umbrella) || (raw && fn(raw))) {
       for (const h of g.hooks)
-        out.push({ command: h.command, timeout: h.timeout });
+        out.push({
+          command: h.command,
+          timeout: h.timeout,
+          event,
+          async: h.async === true,
+          asyncRewake: h.asyncRewake === true,
+        });
     }
   }
   return out;
