@@ -223,7 +223,9 @@ plugin/
 >
 > **4.2 已落地（`cc team` 接真实执行）**：`lib/agent-team/team-runner.js` `TeamRunner` 驱动 N 个 teammate 并发 claim→acquire(独占)→run→complete/fail 循环（registry 的 lease+DAG 保证一任务至多一 teammate 跑、deps 完成才起；CANCELLED 任务的 dependent 永不跑）。`runTask` 注入（离线可测）；事件流（run:start/task:claimed/completed/failed/run:end）。`commands/team.js` `cc team plan`（拓扑波次预览）+ `cc team run`（默认 dry-run 校验+排程无副作用；`--exec` 真跑各 task shell `command`；`--agent` 把 `prompt` 交无头 `cc agent -p`；`--teammates N`/`--ttl`/`--json`；未全完 exit 1）。**真机端到端**（`--exec` 真 shell，3 teammate 跑菱形图）：build →（test-a ‖ test-b 并发 peak 2）→ deploy，每任务恰一次，exit 0。20 单测（13 registry + 7 runner）。新增顶层 `cc team` 命令（计数 162→163）。
 >
-> **待完成**：teammate lifecycle 状态（idle/failed/lost/shutdown）落到 group member；接 `SubAgentContext.run()` 的 per-teammate worktree（隔离执行 + `previewWorktreeMerge` 冲突预览合并，isolator 已就绪）；agent 间定向消息；lease registry 的持久化落盘（当前 in-memory + snapshot API，未接 `cc team` 的会话恢复）；预算（token/费用，复用 cost-budget.js）。
+> **4.3 已落地（会话恢复 + per-teammate worktree 隔离）**：`cc team run --state <file> --resume` —— 每任务 settle 后写 snapshot（崩溃可恢复），`--resume` 从 state 恢复图 + `reclaimExpired()` 释放崩溃残留 lease（COMPLETED 保持，未完重跑）。真机验证：跑完写 4 completed → resume「4/4 already done」0 执行、副作用不重现。`lib/agent-team/team-worktree.js` `TeamWorktreeCoordinator` —— 每 teammate 在**自己的 git worktree** 跑 task `command`（并行不争工作区），`integrate({merge})` **顺序** 逐 branch preview→合并干净者→冲突**报告不强合**（后一 branch 与已合并者冲突时被检出，满足「并行 Worktree 修改可预览冲突并安全合并」）。git 面注入可单测。`cc team run --worktree [--merge]`（需 git 仓）。真机验证：6 单测（注入 git）+ 2 **真 git** 集成（temp 仓：两独立任务隔离双 clean 合并；两任务改同文件→先合并者成、后者 CONFLICT 不合、base 保留 A 版）+ `--worktree --merge` e2e（2 并发 worktree→双合并→worktree 清理）。
+>
+> **待完成**：teammate lifecycle 状态（idle/failed/lost/shutdown）落 group member；`--worktree` 接 `--agent`（当前仅 `--exec` 命令进 worktree）；agent 间定向消息；预算（token/费用，复用 cost-budget.js）。
 
 #### 目标
 
@@ -391,7 +393,7 @@ plugin/
 | LSP 代码智能                 | ✅      | ✅           | ✅       | 部分     | 部分   | ✅         | ✅   |
 | 插件运行时（8 组件）         | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | Marketplace 安装生命周期     | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
-| Agent Team（lease 图）       | ✅      | ✅           | 部分     | ✅       | ✅     | ✅         | ✅   |
+| Agent Team（lease 图）       | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | Remote Control               | ✅      | ✅           | 部分     | 部分     | 部分   | 部分       | 部分 |
 | 异步 Hooks                   | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 后台 Monitors                | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
@@ -399,7 +401,7 @@ plugin/
 | 模型 fallback（跨 provider） | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 可靠性评测（任务成功率）     | ✅      | ✅           | n/a      | ✅       | ✅     | ✅         | ✅   |
 
-> 判读：Sandbox 的「真实运行语义/跨平台」仍为部分（原生 Windows 隔离、网络域控、macOS Seatbelt E2E 未全落）；Agent Team lease+DAG 核心 + `cc team` 真执行已具自动化证据（安全列「部分」——lease 独占已保证不重复处理，但 per-teammate worktree 隔离/凭据边界待接）；Remote Control 为「产品化」既有能力，安全/恢复/跨平台的**可验证证据**（断线序列幂等、设备撤销 E2E）待补。异步 Hooks / Monitors / 评测 / 编辑并发 / 模型 fallback 均已具备自动化证据。**Remote Control 现为唯一未全绿的 P1 大项**，且属设备阻塞（需真机三端 + 断线注入）。
+> 判读：Sandbox 的「真实运行语义/跨平台」仍为部分（原生 Windows 隔离、网络域控、macOS Seatbelt E2E 未全落）；Agent Team 已全绿（lease 独占防重复 + 会话恢复 + per-teammate worktree 隔离 + 冲突预览安全合并，均有真机/真-git 自动化证据）；Remote Control 为「产品化」既有能力，安全/恢复/跨平台的**可验证证据**（断线序列幂等、设备撤销 E2E）待补。异步 Hooks / Monitors / 评测 / 编辑并发 / 模型 fallback 均已具备自动化证据。**当前未全绿仅剩两项且均为环境阻塞**：Sandbox（原生 OS 隔离需 Linux/macOS，Windows 侧不可验证）、Remote Control（需真机三端 + 断线注入）。
 
 ## 7. 近期首批任务建议
 
