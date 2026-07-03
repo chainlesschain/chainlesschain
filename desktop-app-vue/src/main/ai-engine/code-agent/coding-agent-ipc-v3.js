@@ -181,6 +181,15 @@ function registerCodingAgentIPCV3(options = {}) {
     },
   );
 
+  ipc.handle("coding-agent:remote-session-policy", async () => {
+    try {
+      return await service.getRemoteSessionPolicy();
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] remote-session-policy failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipc.handle(
     "coding-agent:close-remote-session",
     async (_event, remoteSessionId) => {
