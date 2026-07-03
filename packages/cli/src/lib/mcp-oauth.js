@@ -35,6 +35,7 @@ export const _deps = {
   sha256: (s) => crypto.createHash("sha256").update(s).digest(),
   createServer: (h) => http.createServer(h),
   openBrowser: defaultOpenBrowser,
+  spawn: (...a) => spawn(...a),
   now: () => Date.now(),
   // Backoff sleep seam (tests override with a no-op so the retry doesn't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -648,13 +649,29 @@ export async function ensureValidToken(
 
 // ── interactive orchestrator ──────────────────────────────────────────────
 
-function defaultOpenBrowser(url) {
-  const platform = process.platform;
-  const cmd =
-    platform === "win32" ? "cmd" : platform === "darwin" ? "open" : "xdg-open";
-  const args = platform === "win32" ? ["/c", "start", "", url] : [url];
+export function defaultOpenBrowser(url, platform = process.platform) {
+  // The authorize URL derives from REMOTE OAuth server metadata, so treat it
+  // as untrusted: only http(s) may reach the OS opener (no file:/ms-settings:/
+  // custom-scheme handlers), and it must never pass through cmd.exe's line
+  // parser — `cmd /c start "" <url>` truncates at the first unquoted `&` and
+  // EXECUTES the remainder as commands (query strings always contain `&`).
+  let parsed;
   try {
-    const child = spawn(cmd, args, { stdio: "ignore", detached: true });
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  // win32: rundll32 is a plain executable — the URL arrives as a verbatim
+  // argv entry with no shell metacharacter interpretation.
+  const [cmd, args] =
+    platform === "win32"
+      ? ["rundll32", ["url.dll,FileProtocolHandler", parsed.href]]
+      : platform === "darwin"
+        ? ["open", [parsed.href]]
+        : ["xdg-open", [parsed.href]];
+  try {
+    const child = _deps.spawn(cmd, args, { stdio: "ignore", detached: true });
     child.unref?.();
     return true;
   } catch {

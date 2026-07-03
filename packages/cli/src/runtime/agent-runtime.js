@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { execSync } from "child_process";
+import { defaultOpenBrowser } from "../lib/mcp-oauth.js";
 import path from "path";
 import {
   RuntimeEventEmitter,
@@ -41,19 +41,10 @@ const BUILTIN_CODING_AGENT_MCP_REGISTRY = Object.freeze({
   ],
 });
 
+// Shared safe opener: validates http(s) and never routes the URL through a
+// shell (execSync `start "" "${url}"` let `"`/`$()` in a URL reach cmd.exe/sh).
 function openBrowser(url) {
-  try {
-    const platform = process.platform;
-    if (platform === "win32") {
-      execSync(`start "" "${url}"`, { stdio: "ignore" });
-    } else if (platform === "darwin") {
-      execSync(`open "${url}"`, { stdio: "ignore" });
-    } else {
-      execSync(`xdg-open "${url}"`, { stdio: "ignore" });
-    }
-  } catch (_err) {
-    // Non-critical.
-  }
+  defaultOpenBrowser(url);
 }
 
 export class AgentRuntime {

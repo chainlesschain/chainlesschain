@@ -1014,3 +1014,51 @@ describe("token store cross-process lock", () => {
     expect(rec.access_token).toBe("AT");
   });
 });
+
+describe("defaultOpenBrowser", () => {
+  let spawned;
+  beforeEach(() => {
+    spawned = [];
+    _deps.spawn = vi.fn((cmd, args, opts) => {
+      spawned.push({ cmd, args, opts });
+      return { unref: vi.fn() };
+    });
+  });
+
+  it("win32: never routes the URL through cmd.exe — rundll32 gets it as ONE verbatim argv entry (cmd /c start truncated at the first & and RAN the remainder as commands)", () => {
+    const url =
+      "https://auth.example.com/authorize?client_id=x&state=y&scope=mcp";
+    const ok = oauth.defaultOpenBrowser(url, "win32");
+    expect(ok).toBe(true);
+    expect(spawned).toHaveLength(1);
+    expect(spawned[0].cmd).toBe("rundll32");
+    expect(spawned[0].cmd).not.toBe("cmd");
+    expect(spawned[0].args).toEqual(["url.dll,FileProtocolHandler", url]);
+  });
+
+  it("rejects non-http(s) schemes from remote metadata (file:, custom handlers) without spawning", () => {
+    expect(
+      oauth.defaultOpenBrowser("file:///C:/Windows/evil.bat", "win32"),
+    ).toBe(false);
+    expect(
+      oauth.defaultOpenBrowser("ms-settings:network?x=1&calc", "win32"),
+    ).toBe(false);
+    expect(oauth.defaultOpenBrowser("not a url at all", "linux")).toBe(false);
+    expect(_deps.spawn).not.toHaveBeenCalled();
+  });
+
+  it("darwin/linux: passes the URL as a single argv entry to open/xdg-open", () => {
+    const url = "https://a.example/cb?a=1&b=2";
+    expect(oauth.defaultOpenBrowser(url, "darwin")).toBe(true);
+    expect(oauth.defaultOpenBrowser(url, "linux")).toBe(true);
+    expect(spawned[0]).toMatchObject({ cmd: "open", args: [url] });
+    expect(spawned[1]).toMatchObject({ cmd: "xdg-open", args: [url] });
+  });
+
+  it("returns false when spawn throws (no browser available)", () => {
+    _deps.spawn = vi.fn(() => {
+      throw new Error("ENOENT");
+    });
+    expect(oauth.defaultOpenBrowser("https://a.example/", "linux")).toBe(false);
+  });
+});
