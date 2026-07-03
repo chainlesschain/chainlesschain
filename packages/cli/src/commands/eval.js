@@ -18,6 +18,28 @@ import {
   TelemetryRecorder,
   formatTelemetry,
 } from "../lib/telemetry/span-recorder.js";
+import { computeTrend, formatTrend } from "../lib/eval/trend.js";
+
+/** Append a run summary as one JSONL line to the history file. */
+function appendHistory(file, record) {
+  fs.appendFileSync(file, JSON.stringify(record) + "\n", "utf8");
+}
+
+/** Read a JSONL eval-history file into an array of run records (skips bad lines). */
+function readHistory(file) {
+  if (!fs.existsSync(file)) return [];
+  const out = [];
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t) continue;
+    try {
+      out.push(JSON.parse(t));
+    } catch {
+      /* skip a corrupt history line rather than abort the report */
+    }
+  }
+  return out;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This file is src/commands/eval.js → the CLI entry is bin/chainlesschain.js.
@@ -102,7 +124,43 @@ export function registerEvalCommand(program, { logger } = {}) {
       "--dry-run",
       "Use a no-op agent (exercise the harness/report without a model)",
     )
+    .option(
+      "--history <file>",
+      "Append this run's summary (JSONL) for trend tracking",
+    )
+    .option(
+      "--label <label>",
+      "Tag this run in the history (e.g. a version/commit)",
+    )
+    .option(
+      "--trend",
+      "Report the pass-rate trend from --history instead of running (CI gate)",
+    )
+    .option(
+      "--regression-threshold <pct>",
+      "With --trend: pass-rate drop (in points) that fails the gate on its own",
+      "0",
+    )
     .action(async (options) => {
+      // Trend mode: don't run the suite — read the recorded history and report
+      // the pass-rate trend + per-task regressions. This is the release-pipeline
+      // consumer (the runs themselves need a real model; the report is pure).
+      if (options.trend) {
+        if (!options.history) {
+          (log.error || console.error)("--trend requires --history <file>");
+          process.exitCode = 1;
+          return;
+        }
+        const runs = readHistory(options.history);
+        const threshold =
+          Math.max(0, Number(options.regressionThreshold) || 0) / 100;
+        const trend = computeTrend(runs, { regressionThreshold: threshold });
+        if (options.json) console.log(JSON.stringify(trend, null, 2));
+        else (log.log || console.log)(formatTrend(trend));
+        if (trend.regressed) process.exitCode = 1;
+        return;
+      }
+
       let tasks;
       try {
         tasks = getSuite(options.suite);
@@ -147,6 +205,26 @@ export function registerEvalCommand(program, { logger } = {}) {
           );
         } catch (e) {
           (log.error || console.error)(`  otlp write failed: ${e.message}`);
+        }
+      }
+
+      // Append to the trend history (a compact record — pass counts + per-task
+      // pass/fail + a timestamp/label — so `cc eval --trend` can chart it).
+      if (options.history) {
+        try {
+          appendHistory(options.history, {
+            ranAt: new Date().toISOString(),
+            label: options.label || null,
+            passed: summary.passed,
+            total: summary.total,
+            passRate: summary.passRate,
+            results: (summary.results || []).map((r) => ({
+              id: r.id,
+              pass: r.pass,
+            })),
+          });
+        } catch (e) {
+          (log.error || console.error)(`  history write failed: ${e.message}`);
         }
       }
 
