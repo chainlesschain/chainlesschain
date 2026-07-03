@@ -9,6 +9,8 @@
 
 > `chainlesschain` **0.162.148** 已发 npm `latest`，本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`）一起送达真机用户。
 
+> **发版资产（GitHub Release `v5.0.3.134`，18 个，全 `uploaded`）**：Android — arm64-v8a APK 276MB / armeabi-v7a APK 236MB / universal APK 304MB / AAB 236MB（均含 cc-cli.tgz 20260703 bundle）；Windows — Setup .exe 471MB / Portable .exe 470MB；macOS — arm64 .dmg 488MB / intel .dmg 493MB；Linux — AppImage 695MB / rpm 360MB / deb 358MB；iOS — ChainlessChain.ipa 8MB；electron-updater 元数据 latest{,-mac,-linux}.yml。
+
 - **CLI OAuth openBrowser cmd.exe 命令注入（HIGH，远程可影响）**：`mcp-oauth.js` 用 `spawn("cmd",["/c","start","",url])` 打开授权页，URL 里的 `&`（OAuth query 必有）直达 cmd.exe → 在第一个 `&` 处截断、其余当命令执行；授权 URL 来自远程 MCP metadata，恶意服务器可执行任意 Windows 命令。改为 http(s)-only + `rundll32`（无 shell）。+4 测试。
 - **MCP 服务器列表坏行加固**：`_rowToConfig` 裸 `JSON.parse(row.args||"[]")`（只挡 NULL 不挡损坏值），一坏行让 `cc mcp servers`/自动连接整体失败 → 改走 `safeJsonParse` 降级。+1 测试。
 - **桌面 workflow-engine resume 修复**：`resumeExecution` 此前只翻状态不重驱动 → 断点/审批工作流永卡却报 success；审批 `"waiting"` 完全不可恢复；`executeWorkflow` 覆写暂停状态为完成。改为从 log+dag 推导前沿重驱动、单次跳过触发暂停的断点、恢复审批即视为批准。+9 测试。

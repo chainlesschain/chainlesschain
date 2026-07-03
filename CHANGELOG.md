@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
 
+> **发版资产（GitHub Release `v5.0.3.134`，18 个，全 `uploaded`）**：Android — arm64-v8a APK 276MB / armeabi-v7a APK 236MB / universal APK 304MB / AAB 236MB（均含 cc-cli.tgz 20260703 bundle，build-android 硬 gate 校验）；Windows — Setup .exe 471MB / Portable .exe 470MB（+ blockmap）；macOS — arm64 .dmg 488MB / intel .dmg 493MB（+ blockmap）；Linux — AppImage 695MB / rpm 360MB / deb 358MB；iOS — ChainlessChain.ipa 8MB（ad-hoc 签名）；electron-updater 元数据 — latest.yml / latest-mac.yml / latest-linux.yml。
+
 ### Fixed — CLI 安全：OAuth 授权 URL 不再经 cmd.exe（命令注入）+ MCP 列表坏行加固
 
 > `chainlesschain` **0.162.148** 已发 npm `latest`；本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`，携 cc-cli.tgz 0.162.148）一起送达真机用户。本地三层测试全绿（unit/integration 22,332 + e2e 617）；本机 `npm i -g` 实测 `cc --version`=0.162.148、`cc mcp servers` exit 0（走修过的列表路径）。
