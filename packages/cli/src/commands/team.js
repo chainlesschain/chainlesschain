@@ -186,17 +186,57 @@ export function registerTeamCommand(program, { logger } = {}) {
       "Hand each task's `prompt` to a headless cc agent (real)",
     )
     .option("--model <model>", "Model for --agent runs")
+    .option(
+      "--state <file>",
+      "Persist team progress to a file (for --resume after a crash)",
+    )
+    .option(
+      "--resume",
+      "Restore progress from --state (completed tasks stay done; stale leases freed)",
+    )
     .option("--json", "Emit the event stream as JSON lines")
     .action(async (options) => {
       const ttlMs = Math.max(1, Number(options.ttl) || 60) * 1000;
       let reg;
       try {
-        reg = loadRegistry(options.tasks, { ttlMs });
+        // Resume from a prior (possibly crashed) run's state: completed tasks
+        // stay COMPLETED, and any lease left dangling by a crash is reclaimed so
+        // its task is re-run — the team-session-recovery acceptance path.
+        if (options.resume && options.state && fs.existsSync(options.state)) {
+          const snap = JSON.parse(fs.readFileSync(options.state, "utf8"));
+          reg = TaskLeaseRegistry.restore(snap);
+          const freed = reg.reclaimExpired();
+          const s = reg.stats();
+          (log.info || console.log)(
+            `Resumed: ${s.completed}/${s.total} already done` +
+              (freed.length
+                ? `, ${freed.length} stale lease(s) reclaimed`
+                : ""),
+          );
+        } else {
+          reg = loadRegistry(options.tasks, { ttlMs });
+        }
       } catch (err) {
         (log.error || console.error)(err.message);
         process.exitCode = 1;
         return;
       }
+
+      // Persist a snapshot after each task settles so a crash mid-run is
+      // resumable (persist-after-run alone would lose everything on a crash).
+      const persist = () => {
+        if (!options.state) return;
+        try {
+          fs.writeFileSync(
+            options.state,
+            JSON.stringify(reg.snapshot(), null, 2),
+            "utf8",
+          );
+        } catch (e) {
+          (log.error || console.error)(`  state write failed: ${e.message}`);
+        }
+      };
+
       // Pick the executor. Default is a dry-run (validate + schedule, no side
       // effects) so `cc team run` is safe to explore, mirroring `cc eval --dry-run`.
       let runTask;
@@ -210,21 +250,23 @@ export function registerTeamCommand(program, { logger } = {}) {
         teammates,
         ttlMs,
         runTask,
-        onEvent: options.json
-          ? (e) => console.log(JSON.stringify(e))
-          : (e) => {
-              if (e.type === "task:claimed")
-                (log.info || console.log)(`  → ${e.key} [${e.holder}]`);
-              else if (e.type === "task:completed")
-                (log.info || console.log)(`  ✔ ${e.key}`);
-              else if (e.type === "task:failed")
-                (log.info || console.log)(
-                  `  ✗ ${e.key}${e.retry ? " (will retry)" : " (gave up)"}: ${e.error}`,
-                );
-            },
+        onEvent: (e) => {
+          if (options.json) console.log(JSON.stringify(e));
+          else if (e.type === "task:claimed")
+            (log.info || console.log)(`  → ${e.key} [${e.holder}]`);
+          else if (e.type === "task:completed")
+            (log.info || console.log)(`  ✔ ${e.key}`);
+          else if (e.type === "task:failed")
+            (log.info || console.log)(
+              `  ✗ ${e.key}${e.retry ? " (will retry)" : " (gave up)"}: ${e.error}`,
+            );
+          if (e.type === "task:completed" || e.type === "task:failed")
+            persist();
+        },
       });
 
       const summary = await runner.run();
+      persist();
       if (!options.json) {
         const s = summary.stats;
         (log.log || console.log)(

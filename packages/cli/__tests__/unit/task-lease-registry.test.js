@@ -212,6 +212,30 @@ describe("TaskLeaseRegistry snapshot / restore", () => {
   });
 });
 
+describe("TaskLeaseRegistry crash resume (session recovery)", () => {
+  it("keeps completed tasks done and reclaims a lease left dangling by a crash", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 1000 });
+    reg.addTask({ key: "a", title: "A" });
+    reg.addTask({ key: "b", title: "B" });
+    reg.acquire("a", { holder: "x" });
+    reg.complete("a", { holder: "x" });
+    reg.acquire("b", { holder: "y" }); // in-flight when the process "crashes"
+
+    const snap = JSON.parse(JSON.stringify(reg.snapshot()));
+    // Restart LATER — b's lease has since expired (nobody renewed it).
+    const clock2 = makeClock(clock.now() + 2000);
+    const restored = TaskLeaseRegistry.restore(snap, { now: clock2.now });
+    expect(restored.getTask("a").status).toBe("completed"); // work not redone
+    // The dangling lease is reclaimed → b is runnable again.
+    const freed = restored.reclaimExpired();
+    expect(freed).toEqual(["b"]);
+    expect(restored.getTask("b").status).toBe("pending");
+    expect(restored.claimable()).toEqual(["b"]);
+    expect(restored.acquire("b", { holder: "z" }).ok).toBe(true);
+  });
+});
+
 describe("TaskLeaseRegistry stats / allDone", () => {
   it("reports counts and completion", () => {
     const clock = makeClock();
