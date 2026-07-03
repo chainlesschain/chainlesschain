@@ -2339,11 +2339,14 @@ class DatabaseService {
         );
     }
 
+    // 转义 LIKE 元字符 (% _ \) 并配合 ESCAPE '\'，否则含通配符的 userDid 会匹配
+    // 到其他用户的会话（可见性/信息泄露）。
+    const safeUserDid = String(userDid).replace(/[\\%_]/g, "\\$&");
     const sql = `SELECT * FROM conversations
-      WHERE participants LIKE ?
+      WHERE participants LIKE ? ESCAPE '\\'
       ORDER BY last_message_at DESC`;
 
-    return this.selectSql(sql, [`%${userDid}%`]);
+    return this.selectSql(sql, [`%${safeUserDid}%`]);
   }
 
   /**

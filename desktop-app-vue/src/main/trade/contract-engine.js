@@ -1144,8 +1144,11 @@ class SmartContractEngine extends EventEmitter {
       }
 
       if (filters.partyDid) {
-        query += " AND parties LIKE ?";
-        params.push(`%${filters.partyDid}%`);
+        // Escape LIKE metachars (% _ \) + ESCAPE '\' so a partyDid containing
+        // them can't widen the filter to OTHER parties' contracts (disclosure).
+        const safeParty = String(filters.partyDid).replace(/[\\%_]/g, "\\$&");
+        query += " AND parties LIKE ? ESCAPE '\\'";
+        params.push(`%${safeParty}%`);
       }
 
       query += " ORDER BY created_at DESC";

@@ -837,8 +837,11 @@ class ContractEngine {
     }
 
     if (partyDid) {
-      query += ' AND parties LIKE ?'
-      params.push(`%${partyDid}%`)
+      // 转义 LIKE 元字符 (% _ \) 并配合 ESCAPE '\'，否则含通配符的 partyDid
+      // 会把过滤范围扩大到其他人的合约（信息泄露）。
+      const safeParty = String(partyDid).replace(/[\\%_]/g, '\\$&')
+      query += " AND parties LIKE ? ESCAPE '\\'"
+      params.push(`%${safeParty}%`)
     }
 
     query += ' ORDER BY created_at DESC LIMIT ?'
