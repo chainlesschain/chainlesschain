@@ -8,6 +8,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import crypto from "crypto";
+import { schnorr } from "@noble/curves/secp256k1";
 
 vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: {
@@ -253,10 +254,12 @@ describe("NostrBridge NIP-09 (Event Deletion)", () => {
 describe("NostrBridge NIP-25 (Reactions)", () => {
   it("publishes a kind=7 like (+) with e and p tags", async () => {
     const bridge = new NostrBridge(makeDb());
+    const priv = Buffer.from(schnorr.utils.randomPrivateKey()).toString("hex");
+    const expectedPub = Buffer.from(schnorr.getPublicKey(priv)).toString("hex");
     const { event } = await bridge.publishReaction({
       targetEventId: "targetEvt",
       targetPubkey: "targetAuthor",
-      pubkey: "reactorPubkey",
+      privkey: priv,
     });
 
     expect(event.kind).toBe(EVENT_KINDS.REACTION);
@@ -265,7 +268,9 @@ describe("NostrBridge NIP-25 (Reactions)", () => {
       ["e", "targetEvt"],
       ["p", "targetAuthor"],
     ]);
-    expect(event.pubkey).toBe("reactorPubkey");
+    // pubkey is DERIVED from the reactor's key; the event must verify.
+    expect(event.pubkey).toBe(expectedPub);
+    expect(bridge._verifyEvent(event).ok).toBe(true);
   });
 
   it("accepts custom emoji / shortcode content", async () => {
@@ -306,5 +311,58 @@ describe("NostrBridge NIP-25 (Reactions)", () => {
     await expect(
       bridge.publishReaction({ targetEventId: "e1", pubkey: "me" }),
     ).rejects.toThrow(/required/);
+  });
+});
+
+describe("NostrBridge _verifyEvent (NIP-01 authenticity gate)", () => {
+  async function signedEvent(bridge, fields = {}) {
+    const priv = Buffer.from(schnorr.utils.randomPrivateKey()).toString("hex");
+    const { event } = await bridge.publishEvent({
+      kind: 1,
+      content: "authentic",
+      ...fields,
+      privkey: priv,
+    });
+    return event;
+  }
+
+  it("accepts a correctly-signed event", async () => {
+    const bridge = new NostrBridge(makeDb());
+    expect(bridge._verifyEvent(await signedEvent(bridge)).ok).toBe(true);
+  });
+
+  it("rejects a tampered event (content changed after signing)", async () => {
+    const bridge = new NostrBridge(makeDb());
+    const event = await signedEvent(bridge);
+    const verdict = bridge._verifyEvent({ ...event, content: "EVIL" });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toMatch(/id does not match/);
+  });
+
+  it("rejects impersonation (pubkey swapped to a victim)", async () => {
+    const bridge = new NostrBridge(makeDb());
+    const event = await signedEvent(bridge);
+    const victimPub = Buffer.from(
+      schnorr.getPublicKey(schnorr.utils.randomPrivateKey()),
+    ).toString("hex");
+    // pubkey is part of the serialization → recomputed id no longer matches.
+    expect(bridge._verifyEvent({ ...event, pubkey: victimPub }).ok).toBe(false);
+  });
+
+  it("rejects a valid-id event with a forged signature", async () => {
+    const bridge = new NostrBridge(makeDb());
+    const event = await signedEvent(bridge);
+    const forgedSig = Buffer.from(
+      schnorr.sign(event.id, schnorr.utils.randomPrivateKey()),
+    ).toString("hex");
+    const verdict = bridge._verifyEvent({ ...event, sig: forgedSig });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toMatch(/signature invalid/);
+  });
+
+  it("rejects an event missing id/pubkey/sig", () => {
+    const bridge = new NostrBridge(makeDb());
+    expect(bridge._verifyEvent({ id: "x", pubkey: "y" }).ok).toBe(false);
+    expect(bridge._verifyEvent(null).ok).toBe(false);
   });
 });

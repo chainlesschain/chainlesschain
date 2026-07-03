@@ -249,19 +249,16 @@ describe("NostrBridge WebSocket", () => {
 
   // ── _handleRelayMessage ──────────────────────────────────────────────────
   describe("_handleRelayMessage()", () => {
-    it("should emit event:received for EVENT messages", () => {
+    it("should emit event:received for a validly-signed EVENT", async () => {
       const handler = vi.fn();
       bridge.on("event:received", handler);
 
-      const event = {
-        id: "evt-1",
-        pubkey: "pk1",
+      // Produce a real schnorr-signed event via the bridge, then feed it back
+      // in as an incoming relay EVENT (survives JSON round-trip, verifies).
+      const { event } = await bridge.publishEvent({
         kind: 1,
         content: "hello",
-        tags: [],
-        sig: "sig1",
-        created_at: 100,
-      };
+      });
       bridge._handleRelayMessage(
         "wss://relay.example.com",
         JSON.stringify(["EVENT", "sub-1", event]),
@@ -272,6 +269,38 @@ describe("NostrBridge WebSocket", () => {
         subscriptionId: "sub-1",
         relayUrl: "wss://relay.example.com",
       });
+    });
+
+    it("drops and rejects a forged/unsigned EVENT", () => {
+      const received = vi.fn();
+      const rejected = vi.fn();
+      bridge.on("event:received", received);
+      bridge.on("event:rejected", rejected);
+
+      bridge._handleRelayMessage(
+        "wss://relay.example.com",
+        JSON.stringify([
+          "EVENT",
+          "sub-1",
+          {
+            id: "evt-1",
+            pubkey: "pk1",
+            kind: 1,
+            content: "hello",
+            tags: [],
+            sig: "sig1",
+            created_at: 100,
+          },
+        ]),
+      );
+
+      expect(received).not.toHaveBeenCalled();
+      expect(rejected).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: "evt-1",
+          relayUrl: "wss://relay.example.com",
+        }),
+      );
     });
 
     it("should emit subscription:eose for EOSE messages", () => {

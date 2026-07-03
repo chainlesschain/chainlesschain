@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { schnorr } from "@noble/curves/secp256k1";
 
 // ─── Mock logger ──────────────────────────────────────────────────────────────
 vi.mock("../../../src/main/utils/logger.js", () => ({
@@ -272,25 +273,33 @@ describe("NostrBridge", () => {
       );
     });
 
-    it("should create event with all required fields", async () => {
+    it("should create a valid schnorr-signed event", async () => {
       const bridge = new NostrBridge({ db: mockDb });
+      const priv = Buffer.from(schnorr.utils.randomPrivateKey()).toString(
+        "hex",
+      );
+      const expectedPub = Buffer.from(schnorr.getPublicKey(priv)).toString(
+        "hex",
+      );
       const result = await bridge.publishEvent({
         kind: 1,
         content: "Hello Nostr",
         tags: [["p", "abc"]],
-        pubkey: "deadbeef",
+        privkey: priv,
       });
 
       expect(result.success).toBe(true);
       const event = result.event;
       expect(event).toHaveProperty("id");
-      expect(event.pubkey).toBe("deadbeef");
+      // pubkey is DERIVED from the signing key, not echoed from input.
+      expect(event.pubkey).toBe(expectedPub);
       expect(event.kind).toBe(1);
       expect(event.content).toBe("Hello Nostr");
       expect(event.tags).toEqual([["p", "abc"]]);
       expect(event).toHaveProperty("sig");
-      expect(event).toHaveProperty("created_at");
       expect(typeof event.created_at).toBe("number");
+      // The event must verify under its own key (real NIP-01 signature).
+      expect(bridge._verifyEvent(event).ok).toBe(true);
     });
 
     it("should store event in DB", async () => {

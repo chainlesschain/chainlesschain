@@ -35,6 +35,7 @@ import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import WebSocket from "ws";
+import { schnorr } from "@noble/curves/secp256k1";
 
 // ============================================================
 // Constants
@@ -332,6 +333,22 @@ class NostrBridge extends EventEmitter {
           // ["EVENT", <subscription_id>, <event JSON>]
           const [, subscriptionId, event] = message;
           if (event && event.id) {
+            // NIP-01 authenticity gate: a relay can push any JSON, so verify
+            // the event id binds its content AND the schnorr signature is valid
+            // under the claimed pubkey before storing/emitting. Previously any
+            // event with an id was trusted (impersonation / forged reactions).
+            const verdict = this._verifyEvent(event);
+            if (!verdict.ok) {
+              logger.warn(
+                `[NostrBridge] Dropping unverified EVENT ${event.id} from ${url}: ${verdict.reason}`,
+              );
+              this.emit("event:rejected", {
+                eventId: event.id,
+                relayUrl: url,
+                reason: verdict.reason,
+              });
+              break;
+            }
             this._storeIncomingEvent(event, url);
             this.emit("event:received", {
               event,
@@ -511,12 +528,25 @@ class NostrBridge extends EventEmitter {
    * @param {string} [params.pubkey] - Author public key hex
    * @returns {Object} Published event
    */
-  async publishEvent({ kind, content, tags = [], pubkey }) {
+  async publishEvent({ kind, content, tags = [], pubkey, privkey }) {
     if (kind === undefined || kind === null) {
       throw new Error("Event kind is required");
     }
 
-    const authorPubkey = pubkey || crypto.randomBytes(32).toString("hex");
+    // NIP-01 requires a real BIP340 schnorr signature. Sign with the caller's
+    // secret key when supplied; otherwise mint an ephemeral key so the event is
+    // still cryptographically valid — NEVER a fabricated random signature
+    // (relays reject those and it pollutes the network). The x-only pubkey is
+    // DERIVED from the secret key, so it can never disagree with the signature.
+    const secretKey = privkey || schnorr.utils.randomPrivateKey();
+    const authorPubkey = Buffer.from(schnorr.getPublicKey(secretKey)).toString(
+      "hex",
+    );
+    if (pubkey && pubkey !== authorPubkey) {
+      logger.warn(
+        `[NostrBridge] publishEvent: provided pubkey ${pubkey} does not match the signing key; using derived ${authorPubkey}`,
+      );
+    }
     const createdAt = Math.floor(Date.now() / 1000);
 
     // NIP-01 event structure
@@ -536,8 +566,10 @@ class NostrBridge extends EventEmitter {
       .digest("hex");
 
     event.id = id;
-    // Signature placeholder - real implementation would use secp256k1
-    event.sig = crypto.randomBytes(64).toString("hex");
+    // Real BIP340 schnorr signature over the event id. Pass id/keys as hex
+    // strings — @noble/curves' isBytes() rejects Node Buffer (constructor name
+    // "Buffer"), so a Buffer.from(...) message would throw.
+    event.sig = Buffer.from(schnorr.sign(id, secretKey)).toString("hex");
 
     // Send to write-enabled relays
     let sentCount = 0;
@@ -705,6 +737,36 @@ class NostrBridge extends EventEmitter {
     ];
   }
 
+  /**
+   * Verify a received Nostr event per NIP-01: (1) the id equals sha256 of the
+   * canonical serialization (binds content/pubkey/kind/tags/created_at) and
+   * (2) the BIP340 schnorr signature verifies against the x-only pubkey.
+   * Returns { ok, reason }; never throws (malformed hex → ok:false).
+   * @param {Object} event
+   * @returns {{ ok: boolean, reason?: string }}
+   */
+  _verifyEvent(event) {
+    if (!event || !event.id || !event.pubkey || !event.sig) {
+      return { ok: false, reason: "missing id/pubkey/sig" };
+    }
+    try {
+      const serialized = this._serializeEvent(event);
+      const computedId = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(serialized))
+        .digest("hex");
+      if (computedId !== event.id) {
+        return { ok: false, reason: "event id does not match content" };
+      }
+      if (!schnorr.verify(event.sig, event.id, event.pubkey)) {
+        return { ok: false, reason: "schnorr signature invalid" };
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, reason: `verify error: ${err.message}` };
+    }
+  }
+
   // ============================================================
   // NIP-04: Encrypted Direct Messages
   // https://github.com/nostr-protocol/nips/blob/master/04.md
@@ -772,6 +834,7 @@ class NostrBridge extends EventEmitter {
       content,
       tags: [["p", recipientPubkey]],
       pubkey: senderPubkey,
+      privkey: senderPrivkey,
     });
   }
 
@@ -830,7 +893,7 @@ class NostrBridge extends EventEmitter {
    * @param {string} [params.pubkey] - Author pubkey (must match the target events' author)
    * @returns {Object} { success, event, sentCount }
    */
-  async publishDeletion({ eventIds, reason = "", pubkey }) {
+  async publishDeletion({ eventIds, reason = "", pubkey, privkey }) {
     if (!Array.isArray(eventIds) || eventIds.length === 0) {
       throw new Error("eventIds must be a non-empty array");
     }
@@ -840,6 +903,7 @@ class NostrBridge extends EventEmitter {
       content: reason,
       tags,
       pubkey,
+      privkey,
     });
   }
 
@@ -863,6 +927,7 @@ class NostrBridge extends EventEmitter {
     targetPubkey,
     content = "+",
     pubkey,
+    privkey,
   }) {
     if (!targetEventId || !targetPubkey) {
       throw new Error("targetEventId and targetPubkey are required");
@@ -875,6 +940,7 @@ class NostrBridge extends EventEmitter {
         ["p", targetPubkey],
       ],
       pubkey,
+      privkey,
     });
   }
 }
