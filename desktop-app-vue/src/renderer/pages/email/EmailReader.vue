@@ -417,9 +417,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import DOMPurify from "dompurify";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/zh-cn";
+import { formatTime, formatFullTime, formatSize } from "./emailReaderUtils";
 import {
   InboxOutlined,
   SendOutlined,
@@ -443,9 +441,6 @@ import {
   FormOutlined,
 } from "@ant-design/icons-vue";
 import EmailComposer from "./EmailComposer.vue";
-
-dayjs.extend(relativeTime);
-dayjs.locale("zh-cn");
 
 const route = useRoute();
 
@@ -906,24 +901,6 @@ const onEmailSent = async () => {
 const onDraftSaved = async () => {
   // 刷新草稿列表
   await loadDrafts();
-};
-
-const formatTime = (timestamp) => {
-  return dayjs(timestamp).fromNow();
-};
-
-const formatFullTime = (timestamp) => {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-};
-
-const formatSize = (bytes) => {
-  if (bytes < 1024) {
-    return bytes + " B";
-  }
-  if (bytes < 1024 * 1024) {
-    return (bytes / 1024).toFixed(2) + " KB";
-  }
-  return (bytes / 1024 / 1024).toFixed(2) + " MB";
 };
 
 // 监听路由变化
