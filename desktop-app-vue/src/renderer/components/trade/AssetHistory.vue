@@ -8,11 +8,7 @@
   >
     <div class="asset-history">
       <!-- 资产信息卡片 -->
-      <a-card
-        v-if="asset"
-        size="small"
-        style="margin-bottom: 24px"
-      >
+      <a-card v-if="asset" size="small" style="margin-bottom: 24px">
         <a-space>
           <a-avatar
             :size="48"
@@ -26,10 +22,7 @@
             <div class="asset-name">
               {{ asset.name }}
             </div>
-            <a-tag
-              v-if="asset.symbol"
-              color="blue"
-            >
+            <a-tag v-if="asset.symbol" color="blue">
               {{ asset.symbol }}
             </a-tag>
             <a-tag :color="getTypeColor(asset.asset_type)">
@@ -40,10 +33,7 @@
       </a-card>
 
       <!-- 筛选器 -->
-      <a-card
-        size="small"
-        style="margin-bottom: 16px"
-      >
+      <a-card size="small" style="margin-bottom: 16px">
         <a-space>
           <span>类型:</span>
           <a-radio-group
@@ -52,28 +42,14 @@
             size="small"
             @change="applyFilter"
           >
-            <a-radio-button value="">
-              全部
-            </a-radio-button>
-            <a-radio-button value="transfer">
-              转账
-            </a-radio-button>
-            <a-radio-button value="mint">
-              铸造
-            </a-radio-button>
-            <a-radio-button value="burn">
-              销毁
-            </a-radio-button>
-            <a-radio-button value="trade">
-              交易
-            </a-radio-button>
+            <a-radio-button value=""> 全部 </a-radio-button>
+            <a-radio-button value="transfer"> 转账 </a-radio-button>
+            <a-radio-button value="mint"> 铸造 </a-radio-button>
+            <a-radio-button value="burn"> 销毁 </a-radio-button>
+            <a-radio-button value="trade"> 交易 </a-radio-button>
           </a-radio-group>
 
-          <a-button
-            type="link"
-            size="small"
-            @click="loadHistory"
-          >
+          <a-button type="link" size="small" @click="loadHistory">
             <reload-outlined /> 刷新
           </a-button>
         </a-space>
@@ -81,10 +57,7 @@
 
       <!-- 历史记录时间线 -->
       <a-spin :spinning="loading">
-        <a-timeline
-          v-if="filteredHistory.length > 0"
-          mode="left"
-        >
+        <a-timeline v-if="filteredHistory.length > 0" mode="left">
           <a-timeline-item
             v-for="(item, index) in filteredHistory"
             :key="index"
@@ -106,11 +79,7 @@
               </div>
             </template>
 
-            <a-card
-              size="small"
-              hoverable
-              class="history-card"
-            >
+            <a-card size="small" hoverable class="history-card">
               <div class="history-header">
                 <a-tag :color="getTransactionTypeColor(item.transaction_type)">
                   {{ getTransactionTypeName(item.transaction_type) }}
@@ -121,11 +90,7 @@
                 </span>
               </div>
 
-              <a-descriptions
-                :column="1"
-                size="small"
-                style="margin-top: 12px"
-              >
+              <a-descriptions :column="1" size="small" style="margin-top: 12px">
                 <a-descriptions-item label="发送者">
                   <a-typography-text copyable>
                     {{ formatDid(item.from_did) }}
@@ -154,10 +119,7 @@
                   </a-tag>
                 </a-descriptions-item>
 
-                <a-descriptions-item
-                  v-if="item.memo"
-                  label="备注"
-                >
+                <a-descriptions-item v-if="item.memo" label="备注">
                   <div class="memo-text">
                     {{ item.memo }}
                   </div>
@@ -178,24 +140,13 @@
 
               <!-- 交易方向指示 -->
               <div class="transaction-direction">
-                <a-tag
-                  v-if="isIncoming(item)"
-                  color="success"
-                >
+                <a-tag v-if="isIncoming(item)" color="success">
                   <arrow-down-outlined /> 收入
                 </a-tag>
-                <a-tag
-                  v-else-if="isOutgoing(item)"
-                  color="error"
-                >
+                <a-tag v-else-if="isOutgoing(item)" color="error">
                   <arrow-up-outlined /> 支出
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="default"
-                >
-                  <swap-outlined /> 其他
-                </a-tag>
+                <a-tag v-else color="default"> <swap-outlined /> 其他 </a-tag>
               </div>
             </a-card>
           </a-timeline-item>
@@ -206,26 +157,14 @@
           v-else
           :description="filterType ? '没有找到匹配的历史记录' : '暂无历史记录'"
         >
-          <a-button
-            v-if="filterType"
-            size="small"
-            @click="filterType = ''"
-          >
+          <a-button v-if="filterType" size="small" @click="filterType = ''">
             清除筛选
           </a-button>
         </a-empty>
 
         <!-- 加载更多 -->
-        <div
-          v-if="hasMore && filteredHistory.length > 0"
-          class="load-more"
-        >
-          <a-button
-            block
-            @click="loadMore"
-          >
-            加载更多
-          </a-button>
+        <div v-if="hasMore && filteredHistory.length > 0" class="load-more">
+          <a-button block @click="loadMore"> 加载更多 </a-button>
         </div>
       </a-spin>
     </div>
@@ -250,6 +189,19 @@ import {
   ShoppingOutlined,
   ReloadOutlined,
 } from "@ant-design/icons-vue";
+import {
+  getAssetColor,
+  getTypeLabel,
+  getTypeColor,
+  getTransactionTypeColor,
+  getTransactionTypeName,
+  getTimelineColor,
+  getIconColor,
+  formatAmount,
+  formatDid,
+  formatHash,
+  formatTime,
+} from "./assetHistoryUtils";
 
 // Props
 const props = defineProps({
@@ -300,39 +252,6 @@ const getAssetIcon = (type) => {
   return iconMap[type] || WalletOutlined;
 };
 
-// 资产类型颜色
-const getAssetColor = (type) => {
-  const colorMap = {
-    token: "#1890ff",
-    nft: "#52c41a",
-    knowledge: "#faad14",
-    service: "#722ed1",
-  };
-  return colorMap[type] || "#999";
-};
-
-// 资产类型标签
-const getTypeLabel = (type) => {
-  const labelMap = {
-    token: "Token",
-    nft: "NFT",
-    knowledge: "知识产品",
-    service: "服务凭证",
-  };
-  return labelMap[type] || type;
-};
-
-// 资产类型颜色
-const getTypeColor = (type) => {
-  const colorMap = {
-    token: "blue",
-    nft: "purple",
-    knowledge: "green",
-    service: "orange",
-  };
-  return colorMap[type] || "default";
-};
-
 // 交易类型图标
 const getTransactionIcon = (type) => {
   const iconMap = {
@@ -342,130 +261,6 @@ const getTransactionIcon = (type) => {
     trade: ShoppingOutlined,
   };
   return iconMap[type] || SwapOutlined;
-};
-
-// 交易类型颜色
-const getTransactionTypeColor = (type) => {
-  const colorMap = {
-    transfer: "blue",
-    mint: "green",
-    burn: "red",
-    trade: "orange",
-  };
-  return colorMap[type] || "default";
-};
-
-// 交易类型名称
-const getTransactionTypeName = (type) => {
-  const nameMap = {
-    transfer: "转账",
-    mint: "铸造",
-    burn: "销毁",
-    trade: "交易",
-  };
-  return nameMap[type] || type;
-};
-
-// 时间线颜色
-const getTimelineColor = (type) => {
-  const colorMap = {
-    transfer: "blue",
-    mint: "green",
-    burn: "red",
-    trade: "orange",
-  };
-  return colorMap[type] || "gray";
-};
-
-// 图标颜色
-const getIconColor = (type) => {
-  const colorMap = {
-    transfer: "#1890ff",
-    mint: "#52c41a",
-    burn: "#ff4d4f",
-    trade: "#faad14",
-  };
-  return colorMap[type] || "#999";
-};
-
-// 格式化金额
-const formatAmount = (amount, decimals = 0) => {
-  if (!amount && amount !== 0) {
-    return "0";
-  }
-
-  const num = parseFloat(amount);
-  if (isNaN(num)) {
-    return "0";
-  }
-
-  if (decimals > 0) {
-    const divisor = Math.pow(10, decimals);
-    return (num / divisor).toLocaleString("en-US", {
-      maximumFractionDigits: decimals,
-    });
-  }
-
-  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
-};
-
-// 格式化 DID
-const formatDid = (did) => {
-  if (!did) {
-    return "-";
-  }
-  if (did === "SYSTEM") {
-    return "SYSTEM（系统）";
-  }
-  if (did === "BURNED") {
-    return "BURNED（已销毁）";
-  }
-  return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
-};
-
-// 格式化哈希
-const formatHash = (hash) => {
-  if (!hash) {
-    return "-";
-  }
-  return hash.length > 20 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 1小时内显示分钟
-  if (diff < 60 * 60 * 1000) {
-    const minutes = Math.floor(diff / (60 * 1000));
-    return minutes > 0 ? `${minutes}分钟前` : "刚刚";
-  }
-
-  // 24小时内显示小时
-  if (diff < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    return `${hours}小时前`;
-  }
-
-  // 7天内显示天数
-  if (diff < 7 * 24 * 60 * 60 * 1000) {
-    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-    return `${days}天前`;
-  }
-
-  // 超过7天显示完整日期
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 // 判断是否为当前用户
