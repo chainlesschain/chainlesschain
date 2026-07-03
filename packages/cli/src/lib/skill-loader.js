@@ -28,6 +28,7 @@ import { getElectronUserDataDir } from "./paths.js";
 import { findProjectRoot } from "./project-detector.js";
 import { findProjectRoot as findGitRoot } from "./project-instructions.js";
 import { parseSkillMcpServers } from "./skill-mcp.js";
+import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,7 @@ export const LAYER_NAMES = [
   "bundled",
   "cli-bundled",
   "marketplace",
+  "plugin",
   "managed",
   "claude-user",
   "claude-project",
@@ -311,6 +313,22 @@ export class CLISkillLoader {
       path: marketplacePath,
       exists: fs.existsSync(marketplacePath),
     });
+
+    // Layer 1b: plugin — each installed plugin's skills/ dir (Phase 3). Sits
+    // just above marketplace so a user's managed/workspace/project skills still
+    // override a plugin's on a name collision. One entry per plugin.
+    try {
+      for (const p of discoverPluginSkillLayers({ cwd: process.cwd() })) {
+        layers.push({
+          layer: "plugin",
+          path: p.path,
+          exists: fs.existsSync(p.path),
+          plugin: p.name,
+        });
+      }
+    } catch {
+      /* plugin skill discovery is best-effort — never break skill loading */
+    }
 
     // Layer 2: managed — <userData>/skills/
     const managedPath = path.join(userData, "skills");

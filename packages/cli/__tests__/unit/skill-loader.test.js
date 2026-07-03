@@ -187,11 +187,12 @@ tags:
   // ─── LAYER_NAMES ──────────────────────────────────────
 
   describe("LAYER_NAMES", () => {
-    it("has 7 layers in correct priority order (cli-bundled after bundled; claude-* portability between managed and workspace)", () => {
+    it("has 8 layers in correct priority order (plugin above marketplace; claude-* portability between managed and workspace)", () => {
       expect(LAYER_NAMES).toEqual([
         "bundled",
         "cli-bundled",
         "marketplace",
+        "plugin",
         "managed",
         "claude-user",
         "claude-project",
