@@ -117,10 +117,29 @@ describe("createRemoteSessionPushSender provider dispatch", () => {
     ).toBe("function");
   });
 
+  it("routes provider=oppo (and the heytap alias) to the OPPO sender", () => {
+    const env = {
+      CHAINLESSCHAIN_REMOTE_SESSION_OPPO_APP_KEY: "app-1",
+      CHAINLESSCHAIN_REMOTE_SESSION_OPPO_MASTER_SECRET: "secret",
+    };
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "oppo",
+      }),
+    ).toBe("function");
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "heytap",
+      }),
+    ).toBe("function");
+  });
+
   it("returns null for an unimplemented provider", () => {
     expect(
       createRemoteSessionPushSender({
-        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "oppo",
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "vivo",
       }),
     ).toBeNull();
   });

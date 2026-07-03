@@ -11,6 +11,7 @@ import { createApnsPushSender } from "./remote-session-push-apns.js";
 import { createWebPushSender } from "./remote-session-push-web.js";
 import { createXiaomiPushSender } from "./remote-session-push-xiaomi.js";
 import { createHuaweiPushSender } from "./remote-session-push-huawei.js";
+import { createOppoPushSender } from "./remote-session-push-oppo.js";
 
 export function createRemoteSessionPushSender(env = {}, options = {}) {
   const provider = (
@@ -29,6 +30,9 @@ export function createRemoteSessionPushSender(env = {}, options = {}) {
     case "huawei":
     case "hms":
       return createHuaweiPushSender(env, options);
+    case "oppo":
+    case "heytap":
+      return createOppoPushSender(env, options);
     default:
       return null;
   }
