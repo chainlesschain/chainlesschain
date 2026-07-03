@@ -71,3 +71,71 @@ describe("microCompact", () => {
     expect(r.stats.trimmed).toBe(0);
   });
 });
+
+/**
+ * Fact-retention / task-continuity (Phase 7 acceptance "Compaction 前后任务
+ * 关键约束保留率"). Micro-compaction must never drop a stated task constraint or
+ * orphan a tool_call→tool_result pair — it only shortens old tool OUTPUTS.
+ */
+describe("microCompact fact retention", () => {
+  function constrainedConvo() {
+    return [
+      // The task constraint the agent must keep honoring — an OLD user message.
+      {
+        role: "user",
+        content:
+          "IMPORTANT constraint: the API key must NEVER be logged and all money amounts use integer cents.",
+      },
+      {
+        role: "assistant",
+        content: "Understood — no key logging, integer cents.",
+        tool_calls: [{ id: "c1", function: { name: "read_file" } }],
+      },
+      { role: "tool", tool_call_id: "c1", content: big(5000) }, // old, large → trimmed
+      { role: "assistant", content: "reasoning about the code" },
+      { role: "user", content: "now add the transfer function" },
+      { role: "assistant", content: "here is the plan" },
+    ];
+  }
+
+  it("preserves every non-tool message (task constraints) verbatim", () => {
+    const messages = constrainedConvo();
+    const { messages: out } = microCompact(messages, {
+      keepRecent: 2,
+      maxToolChars: 400,
+    });
+    // The constraint (message 0) and all user/assistant text survive verbatim —
+    // 100% constraint retention. Only the old tool result (index 2) shrank.
+    expect(out[0]).toBe(messages[0]); // same object → untouched
+    expect(out[0].content).toMatch(/API key must NEVER be logged/);
+    expect(out[0].content).toMatch(/integer cents/);
+    expect(out[1]).toBe(messages[1]); // assistant + its tool_calls intact
+    expect(out[3]).toBe(messages[3]);
+    // Retention rate over non-tool messages = 100%.
+    const nonTool = messages.filter((m) => m.role !== "tool");
+    const retained = nonTool.filter((m, i) => {
+      const outNonTool = out.filter((x) => x.role !== "tool");
+      return outNonTool[i].content === m.content;
+    });
+    expect(retained.length).toBe(nonTool.length);
+  });
+
+  it("never orphans a tool_call → tool_result pair", () => {
+    const messages = constrainedConvo();
+    const { messages: out } = microCompact(messages, {
+      keepRecent: 1,
+      maxToolChars: 100,
+    });
+    // Every tool_call id still has a matching tool result (the tool message is
+    // shortened, never removed).
+    const callIds = out.flatMap((m) => m.tool_calls || []).map((c) => c.id);
+    const resultIds = out
+      .filter((m) => m.role === "tool")
+      .map((m) => m.tool_call_id);
+    for (const id of callIds) expect(resultIds).toContain(id);
+    // The trimmed tool result is still present, just shorter, and flagged.
+    const trimmed = out.find((m) => m.tool_call_id === "c1");
+    expect(trimmed._microCompacted).toBe(true);
+    expect(trimmed.content).toMatch(/tool result trimmed/);
+  });
+});
