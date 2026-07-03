@@ -683,6 +683,14 @@ export default defineConfig({
               text: "Agent 网络 (agent-network)",
               link: "/chainlesschain/cli-agent-network",
             },
+            {
+              text: "Agent Team — 任务图团队编排 (team)",
+              link: "/chainlesschain/cli-team",
+            },
+            {
+              text: "可靠性评测 + 趋势门 (eval)",
+              link: "/chainlesschain/cli-eval",
+            },
           ],
         },
         {
