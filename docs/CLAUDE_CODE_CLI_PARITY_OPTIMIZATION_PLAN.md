@@ -155,7 +155,9 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 >
 > **3.3d 已落地（安装生命周期，让系统可用）**：`lib/plugin-runtime/install.js` + `cc plugin add/installed/uninstall/use`。从本地目录校验+拷进不可变 `<scope>/<name>/<version>/` 版本目录、标 active，支持整插件/单版本卸载、`.active` rollback；拷贝跳 symlink、绝不写出目标外；重装需 `--force`。git/GitHub source 识别但 defer。真机端到端：`cc plugin add <dir>` → `installed` → bundled skill 现于 `cc skill list [plugin]` + `.lsp.json` server 现于 `cc code-intel status`（安装到 agent 全链路），uninstall 往返 skill 消失。
 >
-> **待完成**：git/GitHub/remote-manifest source 拉取；mcp/agents/monitors 组件接入（mcp 装配零散需先 trace mcp-registry+bootstrap；agents→subagent 类型；monitors→Phase 6）；插件组件 trust-gating + 加载时验签；私有仓认证+离线 seed cache；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`。
+> **3.3e 已落地（git/GitHub source 拉取）**：`cc plugin add` 现支持 git URL（https/git@/`.git`/`file://`）+ GitHub `owner/repo` + `#ref`。shallow clone→安装→清理；git 经无-shell spawn（url/ref 是 argv，无注入）；commit-SHA ref 退回 full clone+checkout。真机端到端：`cc plugin add file://<repo>` 克隆装 from-git → skill 现于 `cc skill list [plugin]`。
+>
+> **待完成**：remote-manifest source + 私有仓认证 + 离线 seed cache；mcp/agents/monitors 组件接入（mcp 装配零散需先 trace mcp-registry+bootstrap；agents→subagent 类型；monitors→Phase 6）；插件组件 trust-gating + 加载时验签；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`。
 
 #### 目标
 
