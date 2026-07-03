@@ -35,7 +35,7 @@ Hermes Agent 是 Nous Research 于 2026 年 2 月发布的自改进型个人 AI 
 
 - **学习闭环**: 轨迹记录 → 结果反馈 → 技能合成 → 技能改进 → 周期反思（完整 P0-P3，224 tests）
 - **4 层记忆**: working → short-term → long-term → core，Ebbinghaus 遗忘曲线
-- **技能体系**: 141 内置技能，4 层优先级加载，SKILL.md + Agent Skills 标准
+- **技能体系**: 146 内置技能，4 层优先级加载，SKILL.md + Agent Skills 标准
 - **多代理**: sub-agent 隔离、worktree 隔离、自主 agent 目标分解
 - **30+ 生命周期钩子**: PreToolUse/PostToolUse/SessionStart 等完整事件体系
 
@@ -570,7 +570,7 @@ export default { name: "my-plugin", tools: [...] };
 - [84. 自主学习闭环系统](./84_自主学习闭环系统.md) — 技能自动生成（已有优势）
 - [78. CLI Agent Runtime 重构](./78_CLI_Agent_Runtime重构实施计划.md) — agent-core 架构基础
 - [82. CLI Runtime 收口路线图](./82_CLI_Runtime收口路线图.md) — envelope 协议统一
-- [16. AI 技能系统](./16_AI技能系统.md) — 141 技能 + 4 层加载
+- [16. AI 技能系统](./16_AI技能系统.md) — 146 技能 + 4 层加载
 - [docs/claude/CLAUDE-patterns.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/claude/CLAUDE-patterns.md) — Hooks 三件套、Skill-Embedded MCP 等模式
 - [docs-site 英文版](https://docs.chainlesschain.com/design/modules/85-hermes-agent-parity) — 用户文档
 
