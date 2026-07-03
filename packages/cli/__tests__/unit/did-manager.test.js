@@ -216,13 +216,27 @@ describe("DID Manager", () => {
       const { default: Database } = await import("better-sqlite3");
       const rdb = new Database(":memory:");
       try {
-        const a = createIdentity(rdb, "Alice");
-        createIdentity(rdb, "Bob");
+        ensureDIDTables(rdb);
+        // Use FIXED DIDs rather than createIdentity's random base64url ids: a
+        // generated DID whose body starts with "_" (base64url includes "_")
+        // would legitimately match the literal-"_" prefix below and make this
+        // regression flaky (~1/64 of runs). Alice/Bob here start with "A"/"B".
+        const insert = rdb.prepare(
+          `INSERT INTO did_identities (did, display_name, public_key, secret_key, did_document, is_default)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        );
+        const aliceDid = "did:chainless:AliceFixedDid0000000000000000";
+        const bobDid = "did:chainless:BobFixedDid00000000000000000000";
+        insert.run(aliceDid, "Alice", "pubA", "secA", "{}", 1);
+        insert.run(bobDid, "Bob", "pubB", "secB", "{}", 0);
         // A legit full DID still resolves exactly.
-        expect(getIdentity(rdb, a.did)?.did).toBe(a.did);
+        expect(getIdentity(rdb, aliceDid)?.did).toBe(aliceDid);
         // A bare `%` must NOT resolve to "the first identity".
         expect(getIdentity(rdb, "%")).toBeFalsy();
-        // `_` must be literal, not "any single char".
+        // `_` must be literal, not "any single char": with "_" where the real
+        // DID has ":", a wildcard "_" would wrongly match "did:chainless:…".
+        expect(getIdentity(rdb, "did:chainless_")).toBeFalsy();
+        // A literal "_" prefix must not match a DID that doesn't start with "_".
         expect(getIdentity(rdb, "did:chainless:_")).toBeFalsy();
         // Empty / null resolve to not-found, never match-all.
         expect(getIdentity(rdb, "")).toBeFalsy();

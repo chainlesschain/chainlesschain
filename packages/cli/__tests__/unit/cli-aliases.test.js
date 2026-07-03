@@ -7,6 +7,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
 const pkg = JSON.parse(readFileSync(join(cliRoot, "package.json"), "utf-8"));
 
+// npm normalizes bin paths on install (it strips a leading "./"), so the
+// on-disk package.json reads as "./bin/…" as committed but "bin/…" after CI's
+// `npm install` rewrites it. Compare against the normalized form either way so
+// the assertion doesn't depend on whether install has run.
+const stripDot = (p) => (typeof p === "string" ? p.replace(/^\.\//, "") : p);
+
 /**
  * Unit tests for CLI binary aliases (chainlesschain, cc, clc).
  *
@@ -17,19 +23,19 @@ describe("CLI aliases (cc / clc)", () => {
   describe("package.json bin configuration", () => {
     it("defines chainlesschain as primary bin entry", () => {
       expect(pkg.bin).toBeDefined();
-      expect(pkg.bin.chainlesschain).toBe("./bin/chainlesschain.js");
+      expect(stripDot(pkg.bin.chainlesschain)).toBe("bin/chainlesschain.js");
     });
 
     it("defines cc as short alias", () => {
-      expect(pkg.bin.cc).toBe("./bin/chainlesschain.js");
+      expect(stripDot(pkg.bin.cc)).toBe("bin/chainlesschain.js");
     });
 
     it("defines clc as alternative alias", () => {
-      expect(pkg.bin.clc).toBe("./bin/chainlesschain.js");
+      expect(stripDot(pkg.bin.clc)).toBe("bin/chainlesschain.js");
     });
 
     it("defines clchain as alternative alias", () => {
-      expect(pkg.bin.clchain).toBe("./bin/chainlesschain.js");
+      expect(stripDot(pkg.bin.clchain)).toBe("bin/chainlesschain.js");
     });
 
     it("all aliases point to the same entry file", () => {

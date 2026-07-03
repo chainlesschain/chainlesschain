@@ -34,9 +34,12 @@ describe("E2E: CLI aliases", () => {
     });
 
     it("all aliases reference the same executable script", () => {
-      const scripts = new Set(Object.values(pkg.bin));
+      // npm strips a leading "./" from bin paths on install, so normalize
+      // before asserting (committed "./bin/…" vs post-install "bin/…").
+      const stripDot = (p) => p.replace(/^\.\//, "");
+      const scripts = new Set(Object.values(pkg.bin).map(stripDot));
       expect(scripts.size).toBe(1);
-      expect(scripts.has("./bin/chainlesschain.js")).toBe(true);
+      expect(scripts.has("bin/chainlesschain.js")).toBe(true);
     });
   });
 
