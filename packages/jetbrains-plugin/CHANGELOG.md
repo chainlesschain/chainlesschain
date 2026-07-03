@@ -8,6 +8,10 @@
   depth-capped recursive tree, letting you hand the agent a whole subtree in a
   single reference instead of attaching files one by one. Requires
   `cc` ≥ 0.162.143 (already published) for the tree expansion.
+- _Maintenance:_ synced the in-tree `META-INF/plugin.xml` `<version>` to
+  `0.4.41` (it had lagged at `0.4.30`). No behavior change — the gradle
+  IntelliJ plugin already patched the version at build time, so shipped
+  artifacts were always correct; this only aligns the source of truth.
 
 ## [0.4.40] — feat: auto-connect IntelliJ IDEA's built-in MCP server
 
