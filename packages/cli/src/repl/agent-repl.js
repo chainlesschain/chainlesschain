@@ -2668,6 +2668,33 @@ export async function startAgentRepl(options = {}) {
           /* hooks re-merge is best-effort */
         }
 
+        // settings.json ConfigChange hooks (Claude-Code parity): the live
+        // hooks / permissions / trusted-plugin set just changed, so fire
+        // ConfigChange with the FRESH hook set — a policy hook can observe or
+        // react (e.g. re-audit the newly-trusted config). Best-effort.
+        if (_settingsHooks) {
+          try {
+            const { runObserveHooks, dispatchAsyncHooks } =
+              await import("../lib/settings-hook-events.cjs");
+            const payload = {
+              session_id: sessionId || null,
+              source: "reload-plugins",
+            };
+            runObserveHooks(_settingsHooks, "ConfigChange", payload, { cwd });
+            if (!_asyncHookSupervisor) {
+              const { AsyncHookSupervisor } =
+                await import("../lib/async-hook-supervisor.cjs");
+              _asyncHookSupervisor = new AsyncHookSupervisor();
+            }
+            dispatchAsyncHooks(_settingsHooks, "ConfigChange", payload, {
+              cwd,
+              supervisor: _asyncHookSupervisor,
+            });
+          } catch {
+            /* ConfigChange hooks are best-effort */
+          }
+        }
+
         // Restart background monitors with the fresh, trust-gated set.
         try {
           const { collectPluginMonitors } =

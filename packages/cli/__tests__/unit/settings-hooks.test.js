@@ -244,6 +244,20 @@ describe("collectHooks — matcher resolution", () => {
   });
 });
 
+describe("lifecycle event registry", () => {
+  it("recognises SubagentStart (mirror of SubagentStop) and ConfigChange", () => {
+    expect(HOOK_EVENTS).toContain("SubagentStart");
+    expect(HOOK_EVENTS).toContain("SubagentStop");
+    expect(HOOK_EVENTS).toContain("ConfigChange");
+  });
+  it("collectHooks fires a ConfigChange hook (matcher null/*)", () => {
+    const b = { ConfigChange: [cmdGroup(null, "audit.sh")] };
+    expect(collectHooks(b, "ConfigChange", "").map((h) => h.command)).toEqual([
+      "audit.sh",
+    ]);
+  });
+});
+
 describe("Notification event", () => {
   it("is a recognised hook event", () => {
     expect(HOOK_EVENTS).toContain("Notification");

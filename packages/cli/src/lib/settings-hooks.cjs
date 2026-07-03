@@ -39,9 +39,11 @@ const HOOK_EVENTS = Object.freeze([
   "PostToolUse",
   "UserPromptSubmit",
   "Stop",
+  "SubagentStart",
   "SubagentStop",
   "SessionStart",
   "SessionEnd",
+  "ConfigChange",
   "PreCompact",
   "Notification",
 ]);
