@@ -15,6 +15,39 @@ const
 
 ---
 
+## const BLOCKED_CHILD_ENV_KEYS = new Set([
+
+```javascript
+const BLOCKED_CHILD_ENV_KEYS = new Set([
+```
+
+* Environment variables that change HOW the OS resolves the executable or HOW
+ * the interpreter loads code. A caller/renderer-supplied env must never be
+ * allowed to override these: doing so lets an untrusted caller point the bare
+ * `python`/`node`/`bash` command at a planted binary (PATH/PATHEXT), inject a
+ * shared library into the child (LD_PRELOAD / DYLD_*), or force the interpreter
+ * to run attacker code at startup (NODE_OPTIONS, PYTHONSTARTUP, BASH_ENV, ...).
+ * spawn(shell:false) already blocks SHELL injection; this closes the parallel
+ * ENV-hijack vector. Compared case-insensitively (Windows env names are).
+
+---
+
+## function sanitizeChildEnv(env)
+
+```javascript
+function sanitizeChildEnv(env)
+```
+
+* Filter a caller/renderer-supplied env map, dropping any key that could hijack
+ * executable resolution or dynamic-library / interpreter startup loading. The
+ * spawned child still INHERITS the trusted process env (including the real
+ * PATH) — this only governs what an untrusted caller may ADD or override.
+ * Returns a new object; never mutates the input.
+ * @param {Object} env - caller-supplied environment overrides
+ * @returns {{ safe: Object, dropped: string[] }}
+
+---
+
 ## async initialize()
 
 ```javascript
