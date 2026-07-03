@@ -596,4 +596,177 @@ describe("P2PSyncEngine", () => {
       await syncEngine.handleSyncChange(message);
     });
   });
+
+  // ─── DID message signing & verification (anti-forgery) ──────────────────
+  describe("message signing & verification", () => {
+    const nacl = require("tweetnacl");
+    const naclUtil = require("tweetnacl-util");
+    const {
+      computeDIDFromPublicKey,
+    } = require("../../../src/main/did/did-signer.js");
+
+    function makeIdentity() {
+      const kp = nacl.sign.keyPair();
+      return {
+        did: computeDIDFromPublicKey(kp.publicKey),
+        public_key_sign: naclUtil.encodeBase64(kp.publicKey),
+        private_key_ref: JSON.stringify({
+          sign: naclUtil.encodeBase64(kp.secretKey),
+        }),
+      };
+    }
+
+    // Engine whose didManager can sign with a real Ed25519 identity.
+    function makeSigningEngine(identity) {
+      const didMgr = {
+        getCurrentIdentity: () => identity,
+        getDefaultIdentity: async () => ({ did: identity.did }),
+      };
+      return new P2PSyncEngine(db, didMgr, new MockP2PManager());
+    }
+
+    function baseChange(orgId = "org1") {
+      return {
+        type: "sync:change",
+        org_id: orgId,
+        resource_type: "knowledge",
+        resource_id: "kb_x",
+        action: "update",
+        data: { id: "kb_x", title: "T", content: "C" },
+        version: 2,
+        vector_clock: { "did:test:x": 2 },
+        timestamp: 1700000000000,
+      };
+    }
+
+    test("signs and verifies a sync message round-trip", async () => {
+      const alice = makeIdentity();
+      const engine = makeSigningEngine(alice);
+      const msg = baseChange();
+      const sig = await engine.signMessage(msg);
+      expect(typeof sig).toBe("string");
+      expect(sig.length).toBeGreaterThan(0);
+      msg.signature = sig;
+      expect(msg.sender_pubkey).toBe(alice.public_key_sign);
+      expect(msg.sender_did).toBe(alice.did);
+      expect(await engine.verifyMessage(msg)).toBe(true);
+    });
+
+    test("rejects a body tampered after signing", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const msg = baseChange();
+      msg.signature = await engine.signMessage(msg);
+      msg.data.content = "EVIL";
+      expect(await engine.verifyMessage(msg)).toBe(false);
+    });
+
+    test("rejects impersonation (sender_did swapped)", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const victim = makeIdentity();
+      const msg = baseChange();
+      msg.signature = await engine.signMessage(msg);
+      msg.sender_did = victim.did;
+      expect(await engine.verifyMessage(msg)).toBe(false);
+    });
+
+    test("rejects a malformed envelope (signature without pubkey)", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const msg = baseChange();
+      msg.signature = await engine.signMessage(msg);
+      delete msg.sender_pubkey;
+      expect(await engine.verifyMessage(msg)).toBe(false);
+    });
+
+    test("rejects an unsigned message by default (fail-closed)", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const msg = baseChange();
+      msg.sender_did = "did:test:someone";
+      expect(await engine.verifyMessage(msg)).toBe(false);
+    });
+
+    test("accepts an unsigned message only under the kill-switch", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const msg = baseChange();
+      const prev = process.env.CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED;
+      process.env.CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED = "1";
+      try {
+        expect(await engine.verifyMessage(msg)).toBe(true);
+      } finally {
+        if (prev === undefined) {
+          delete process.env.CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED;
+        } else {
+          process.env.CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED = prev;
+        }
+      }
+    });
+
+    test("signMessage returns null (no forgeable hash) when identity lacks keys", async () => {
+      const didMgr = { getCurrentIdentity: () => ({ did: "did:test:x" }) };
+      const engine = new P2PSyncEngine(db, didMgr, new MockP2PManager());
+      const msg = baseChange();
+      const sig = await engine.signMessage(msg);
+      expect(sig).toBeNull();
+      expect(msg.sender_pubkey).toBeUndefined();
+    });
+
+    test("handleSyncChange applies a correctly-signed change", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const spy = vi.spyOn(engine, "applyChange").mockResolvedValue({});
+      const msg = baseChange();
+      msg.signature = await engine.signMessage(msg);
+      await engine.handleSyncChange(msg);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    test("handleSyncChange drops a forged change (applyChange not called)", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const spy = vi.spyOn(engine, "applyChange").mockResolvedValue({});
+      const msg = baseChange();
+      msg.signature = await engine.signMessage(msg);
+      msg.data.content = "FORGED";
+      await engine.handleSyncChange(msg);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test("handleSyncResponse drops an unsigned response (no data applied)", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const spy = vi.spyOn(engine, "applyRemoteChanges").mockResolvedValue(0);
+      await engine.handleSyncResponse({
+        type: "sync:response",
+        org_id: "org1",
+        changes: [
+          {
+            resource_type: "knowledge",
+            resource_id: "k",
+            action: "update",
+            data: {},
+          },
+        ],
+        sender_did: "did:test:x",
+        timestamp: 1,
+      });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test("handleSyncResponse applies a correctly-signed response", async () => {
+      const engine = makeSigningEngine(makeIdentity());
+      const spy = vi.spyOn(engine, "applyRemoteChanges").mockResolvedValue(1);
+      const resp = {
+        type: "sync:response",
+        org_id: "org1",
+        changes: [
+          {
+            resource_type: "knowledge",
+            resource_id: "k",
+            action: "update",
+            data: { id: "k" },
+          },
+        ],
+        timestamp: 1,
+      };
+      resp.signature = await engine.signMessage(resp);
+      await engine.handleSyncResponse(resp);
+      expect(spy).toHaveBeenCalled();
+    });
+  });
 });

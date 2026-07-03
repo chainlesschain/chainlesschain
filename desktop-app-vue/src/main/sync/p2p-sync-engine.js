@@ -15,6 +15,33 @@ function safeParse(raw, fallback) {
 }
 const crypto = require("crypto");
 const { EventEmitter } = require("events");
+const {
+  signPayloadWithIdentity,
+  verifyPayloadAgainstDid,
+} = require("../did/did-signer.js");
+
+/**
+ * Stable SHA-256 digest of a sync message's AUTHENTICATED body — every field
+ * except the envelope auth fields (signature, sender_pubkey), which are added
+ * only after signing. sender_did stays in the body so it is bound by the
+ * signature. The digest is what actually gets Ed25519-signed: canonicalize()
+ * (did-signer) rejects nested objects/arrays, and sync messages carry nested
+ * `data` / `changes`, so we sign a flat { digest } wrapper instead.
+ *
+ * Sender and receiver serialize the same object with the same key order
+ * (JSON.parse preserves the source text order, JSON.stringify emits own-key
+ * order), so both compute the same digest. signMessage stamps sender_did
+ * BEFORE calling this, so its position is identical on both ends.
+ *
+ * @param {Object} message
+ * @returns {string} hex sha256
+ */
+function syncMessageDigest(message) {
+  const body = { ...message };
+  delete body.signature;
+  delete body.sender_pubkey;
+  return crypto.createHash("sha256").update(JSON.stringify(body)).digest("hex");
+}
 
 /**
  * P2P 数据同步引擎
@@ -900,61 +927,89 @@ class P2PSyncEngine extends EventEmitter {
    * @returns {Promise<string>} 签名
    */
   async signMessage(message) {
-    const content = JSON.stringify(message);
-
-    // 尝试使用 DID 私钥进行签名
-    if (this.didManager && typeof this.didManager.signData === "function") {
-      try {
-        const signature = await this.didManager.signData(content);
-        return signature;
-      } catch (error) {
-        logger.warn(
-          "[P2PSyncEngine] DID 签名失败，使用哈希签名:",
-          error.message,
-        );
-      }
+    const identity = this.didManager?.getCurrentIdentity?.();
+    if (!(identity && identity.public_key_sign && identity.private_key_ref)) {
+      // 无签名密钥：发送未签名消息。收端 fail-closed 会拒绝（除非 kill-switch），
+      // 故不再回退到可伪造的 keyless 哈希"签名"。
+      logger.warn(
+        "[P2PSyncEngine] 无签名身份，发送未签名同步消息 (收端将 fail-closed 拒绝)",
+      );
+      return null;
     }
-
-    // 后备：使用 SHA-256 哈希作为简化签名
-    return crypto.createHash("sha256").update(content).digest("hex");
+    try {
+      // 签名者即发送者：用签名身份的真实 DID 覆盖 sender_did，保证收端
+      // pubkey→sender_did 的绑定校验成立。必须在算 digest 之前 stamp。
+      message.sender_did = identity.did;
+      const digest = syncMessageDigest(message);
+      const signed = signPayloadWithIdentity({ digest }, identity);
+      message.sender_pubkey = signed.sender_pubkey;
+      return signed.signature;
+    } catch (error) {
+      logger.error(
+        "[P2PSyncEngine] 同步消息签名失败，发送未签名:",
+        error.message,
+      );
+      return null;
+    }
   }
 
   /**
-   * 验证消息签名
+   * 验证消息签名。真实性门（对齐 channel-manager / post-manager B4a 三模式）：
+   *   sender_pubkey + signature 都在 → 严格验签：digest 重算 + pubkey 必 hash 成
+   *     sender_did 且 Ed25519 验签通过，任一不满足即拒。
+   *   两者都缺 → 旧版未签名消息，**默认 fail-closed 拒绝**（此前回退到 keyless
+   *     sha256 哈希，任何 peer 都能为伪造内容算出，是数据覆盖攻击入口）。迁移期可
+   *     用 CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED=1 放行。
+   *   只有其一 → 信封损坏，拒绝。
    * @param {Object} message - 消息对象
    * @returns {Promise<boolean>} 是否有效
    */
   async verifyMessage(message) {
-    const { signature, sender_did, ...content } = message;
+    const senderDid = message.sender_did;
+    const senderPubkey = message.sender_pubkey;
+    const signature = message.signature;
 
-    if (!signature || !sender_did) {
-      logger.warn("[P2PSyncEngine] 消息缺少签名或发送者DID");
+    const hasPubkey = !!senderPubkey;
+    const hasSig = !!signature;
+
+    if (hasPubkey && hasSig) {
+      if (!senderDid) {
+        logger.warn("[P2PSyncEngine] 拒绝同步消息: 有签名但缺 sender_did");
+        return false;
+      }
+      const digest = syncMessageDigest(message);
+      const verdict = verifyPayloadAgainstDid(
+        { digest },
+        senderDid,
+        senderPubkey,
+        signature,
+      );
+      if (!verdict.ok) {
+        logger.warn(
+          `[P2PSyncEngine] 拒绝同步消息 (来自 ${senderDid}): ${verdict.reason}`,
+        );
+        return false;
+      }
+      return true;
+    }
+
+    if (!hasPubkey && !hasSig) {
+      if (process.env.CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED === "1") {
+        logger.warn(
+          "[P2PSyncEngine] 接受未签名同步消息 (kill-switch CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED=1)",
+        );
+        return true;
+      }
+      logger.warn(
+        "[P2PSyncEngine] 拒绝未签名同步消息 (fail-closed；迁移期设 CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED=1 放行)",
+      );
       return false;
     }
 
-    // 尝试使用 DID 公钥验证签名
-    if (
-      this.didManager &&
-      typeof this.didManager.verifySignature === "function"
-    ) {
-      try {
-        const isValid = await this.didManager.verifySignature(
-          JSON.stringify(content),
-          signature,
-          sender_did,
-        );
-        return isValid;
-      } catch (error) {
-        logger.warn("[P2PSyncEngine] DID 签名验证失败:", error.message);
-      }
-    }
-
-    // 后备：验证哈希签名
-    const expectedHash = crypto
-      .createHash("sha256")
-      .update(JSON.stringify(content))
-      .digest("hex");
-    return signature === expectedHash;
+    logger.warn(
+      "[P2PSyncEngine] 拒绝同步消息: 签名信封不完整 (sender_pubkey/signature 缺一)",
+    );
+    return false;
   }
 
   // ========== P2P 消息处理器 ==========
@@ -1012,6 +1067,14 @@ class P2PSyncEngine extends EventEmitter {
    */
   async handleSyncResponse(message) {
     logger.info("[P2PSyncEngine] 收到同步响应:", message);
+
+    // 验签：sync:response 也携带 changes 并落地（collector 及"兼容旧版本"直连路径），
+    // 未验签会让伪造响应注入数据，与 handleSyncChange 同一攻击面，故同样 fail-closed。
+    const isValid = await this.verifyMessage(message);
+    if (!isValid) {
+      logger.error("[P2PSyncEngine] 同步响应签名验证失败，丢弃");
+      return;
+    }
 
     const { request_id, org_id, changes, sender_did } = message;
 
