@@ -125,6 +125,9 @@ let _settingsHooks = null;
 // long-running/interval watcher processes a trusted plugin declared; reaped in
 // the SessionEnd cleanup so nothing outlives the REPL.
 let _pluginMonitors = null;
+// Installed-plugin `bin` PATH injection (Phase 3.3n) — restore() puts PATH back
+// at SessionEnd so plugin executables are only resolvable during the session.
+let _pluginBinRestore = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
 // `!command` auto-triggers an assistant response to its output. undefined =
 // unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
@@ -656,6 +659,21 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     _pluginMonitors = null;
+  }
+
+  // Put trusted plugins' bin/ executables on PATH for the session (Phase 3.3n),
+  // restored at SessionEnd. Trust-gated inside collectPluginBinDirs.
+  try {
+    const { applyPluginBinPath } = await import("../lib/plugin-runtime/bin.js");
+    const res = applyPluginBinPath({ cwd: process.cwd() });
+    _pluginBinRestore = res.restore;
+    if (res.added.length > 0) {
+      process.stderr.write(
+        `  bin: added ${res.added.length} plugin bin dir(s) to PATH\n`,
+      );
+    }
+  } catch (_err) {
+    _pluginBinRestore = null;
   }
 
   // Resume existing session or create new one
@@ -2644,6 +2662,17 @@ export async function startAgentRepl(options = {}) {
           /* monitor restart is best-effort */
         }
 
+        // Re-apply plugin bin PATH (a newly-trusted plugin's executables).
+        try {
+          const { applyPluginBinPath } =
+            await import("../lib/plugin-runtime/bin.js");
+          if (_pluginBinRestore) _pluginBinRestore();
+          const res = applyPluginBinPath({ cwd });
+          _pluginBinRestore = res.restore;
+        } catch {
+          /* bin re-apply is best-effort */
+        }
+
         logger.log(
           chalk.green(
             `✔ plugins reloaded — ${sum.plugins} plugin(s): ` +
@@ -4438,6 +4467,16 @@ export async function startAgentRepl(options = {}) {
         // Non-critical
       }
       _pluginMonitors = null;
+    }
+
+    // Restore PATH — drop the plugin bin dirs added at startup (Phase 3.3n).
+    if (_pluginBinRestore) {
+      try {
+        _pluginBinRestore();
+      } catch (_e) {
+        // Non-critical
+      }
+      _pluginBinRestore = null;
     }
 
     // Shutdown runtime

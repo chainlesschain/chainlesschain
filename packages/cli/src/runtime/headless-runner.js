@@ -340,6 +340,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // Put trusted plugins' bin/ executables on PATH for this headless run (Phase
+  // 3.3n) so run_shell can invoke them by name. Trust-gated. The process exits
+  // at the end of the run, so no explicit restore is needed.
+  try {
+    const { applyPluginBinPath } = await import("../lib/plugin-runtime/bin.js");
+    applyPluginBinPath({ cwd });
+  } catch {
+    /* best-effort — plugin bin PATH never blocks a headless run */
+  }
+
   // autoMode.classifyAllShell (Claude-Code 2.1.193): route the built-in
   // verification allowlist through the shell-policy classifier instead of
   // fast-pathing it. Explicit option wins; otherwise read settings.json.
