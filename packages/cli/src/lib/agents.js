@@ -22,6 +22,7 @@ import pathDefault from "node:path";
 import { homedir } from "node:os";
 import yaml from "js-yaml";
 import { projectRootBase } from "./project-root.cjs";
+import { discoverPluginAgentLayers } from "./plugin-runtime/agents.js";
 
 const _deps = { fs: fsDefault, path: pathDefault };
 
@@ -76,6 +77,23 @@ export function agentDirs(cwd = process.cwd(), opts = {}) {
     dirs.push({ dir: path.join(root, ".claude", "agents"), scope: "project" });
   }
   dirs.push({ dir: path.join(home, ".claude", "agents"), scope: "personal" });
+  // Installed-plugin agents (Phase 3.3h) — LOWEST precedence: appended last so
+  // that after discoverAgents' reverse() they are scanned FIRST and a user's own
+  // project/personal agent of the same name shadows them. Declarative (system
+  // prompt only), so not trust-gated. Best-effort: a discovery failure just
+  // contributes no plugin dirs.
+  if (opts.includePlugins !== false) {
+    try {
+      for (const layer of discoverPluginAgentLayers({
+        cwd,
+        scopes: opts.scopes,
+      })) {
+        dirs.push({ dir: layer.dir, scope: "plugin" });
+      }
+    } catch {
+      /* best-effort — plugin discovery never breaks core agent loading */
+    }
+  }
   return dirs;
 }
 
