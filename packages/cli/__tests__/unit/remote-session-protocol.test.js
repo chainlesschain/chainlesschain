@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RemoteSessionRegistry } from "../../src/harness/remote-session-registry.js";
+import { RemoteSessionAuditLog } from "../../src/harness/remote-session-audit.js";
 import {
+  handleRemoteSessionAudit,
   handleRemoteSessionCreate,
   handleRemoteSessionDevices,
   handleRemoteSessionJoin,
@@ -41,6 +43,7 @@ describe("remote session WebSocket protocol", () => {
       remoteSessionPeerId: null,
       remoteSessionCrypto: new Map(),
       remoteSessionPairingSecrets: new Map(),
+      remoteSessionAudit: new RemoteSessionAuditLog(),
     };
   });
 
@@ -247,6 +250,76 @@ describe("remote session WebSocket protocol", () => {
     expect(phone.sent.at(-1)).toMatchObject({
       type: "error",
       message: expect.stringMatching(/host/),
+    });
+  });
+
+  it("audits lifecycle and control events without recording prompt content", async () => {
+    const remoteSessionId = createAndJoin(["observe", "prompt"]);
+    server.sessionHandlers.set("agent-1", {
+      handleMessage: vi.fn(async () => {}),
+    });
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "prompt-audit",
+      remoteSessionId,
+      event: { type: "prompt", content: "secret plan details" },
+    });
+
+    const actions = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId })
+      .map((e) => e.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        "session.created",
+        "device.joined",
+        "control.prompt",
+      ]),
+    );
+    const prompt = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId, action: "control.prompt" })
+      .at(0);
+    expect(prompt.actor).toBe("phone");
+    expect(prompt.detail).toEqual({ chars: "secret plan details".length });
+    // The prompt content itself must never appear in the audit trail.
+    expect(JSON.stringify(prompt)).not.toContain("secret plan details");
+  });
+
+  it("returns the audit trail to the host and refuses non-host callers", () => {
+    const remoteSessionId = createAndJoin();
+    handleRemoteSessionRevoke(server, "host", host, {
+      id: "rev",
+      remoteSessionId,
+      clientId: "phone",
+    });
+
+    handleRemoteSessionAudit(server, "host", host, {
+      id: "audit-1",
+      remoteSessionId,
+    });
+    expect(host.sent.at(-1)).toMatchObject({
+      type: "remote-session-audit",
+      remoteSessionId,
+      stats: { byAction: expect.objectContaining({ "device.revoked": 1 }) },
+    });
+    expect(host.sent.at(-1).entries[0]).toMatchObject({
+      action: "device.revoked",
+      actor: "host",
+    });
+
+    // A different member must not be able to read the host's audit trail.
+    server.remoteSessions.join({
+      sessionId: remoteSessionId,
+      clientId: "tablet",
+      token: server.remoteSessions.issuePairingToken(remoteSessionId).token,
+    });
+    const tabletWs = socket("tablet");
+    server.clients.set("tablet", { ws: tabletWs });
+    handleRemoteSessionAudit(server, "tablet", tabletWs, {
+      id: "audit-2",
+      remoteSessionId,
+    });
+    expect(tabletWs.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "REMOTE_SESSION_AUDIT_ERROR",
     });
   });
 });

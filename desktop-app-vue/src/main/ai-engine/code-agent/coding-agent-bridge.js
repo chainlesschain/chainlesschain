@@ -418,6 +418,12 @@ class CodingAgentBridge extends EventEmitter {
     );
   }
 
+  async getRemoteSessionAudit(remoteSessionId, limit) {
+    return this.request("remote-session-audit", { remoteSessionId, limit }, [
+      "remote-session-audit",
+    ]);
+  }
+
   async closeRemoteSession(remoteSessionId) {
     return this.request("remote-session-close", { remoteSessionId }, [
       "remote-session-closed",

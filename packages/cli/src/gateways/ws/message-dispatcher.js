@@ -8,6 +8,7 @@ import {
   PERSONAL_DATA_HUB_STREAMING_HANDLERS,
 } from "./personal-data-hub-protocol.js";
 import {
+  handleRemoteSessionAudit,
   handleRemoteSessionCreate,
   handleRemoteSessionClose,
   handleRemoteSessionDevices,
@@ -73,6 +74,8 @@ export function createWsMessageDispatcher(server) {
           handleRemoteSessionJoin(server, clientId, ws, message),
         "remote-session-devices": () =>
           handleRemoteSessionDevices(server, clientId, ws, message),
+        "remote-session-audit": () =>
+          handleRemoteSessionAudit(server, clientId, ws, message),
         "remote-session-revoke": () =>
           handleRemoteSessionRevoke(server, clientId, ws, message),
         "remote-session-publish": () =>

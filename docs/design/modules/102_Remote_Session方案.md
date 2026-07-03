@@ -105,8 +105,16 @@
 - `RemoteSession.vue`：状态标签、事件流、审批「批准/拒绝」、提示输入、中断/断开；复用 `QrScannerModal` 摄像头扫码。路由 `remote-session` + 侧栏菜单项已接通。
 - 验证：`remote-session-crypto` 5 单测（与真实 Node host 模块加解密互通 + URI 解析 + 重放拒绝）+ `remote-session-store` 4 单测（假 relay 跑真加密：配对→连接→事件镜像→受限控制→自动重连恢复→撤销）全通过；`vite build` 干净（RemoteSession chunk 47KB）。
 
+#### Phase 4：审计日志（已完成）
+
+- `packages/cli/src/harness/remote-session-audit.js`：有界（默认 1000 条环形缓冲）内存审计日志 `RemoteSessionAuditLog`，与远程会话「内存态 + 12h TTL」的短生命周期一致。`record/list/stats/clear` + 可插拔 `sink` 缝（供日后接 JSONL/SQLite 持久化，不改调用点）。
+- 记录九类动作：`session.created` / `pairing-token.issued` / `device.joined`（direct + relay 两路）/ `device.revoked` / `device.disconnected` / `session.closed` / `control.prompt` / `control.approval` / `control.interrupt`。**隐私优先**：prompt 只记 `{chars}` 长度不记内容；approval 记 `{requestId, approved}`；符合「数据主权」不过度采集原则。
+- WS `remote-session-audit` 查询（host-only：authorize 证明成员身份 + hostClientId 证明所有权）返回 `{entries, stats}`。ws-server 构造 `this.remoteSessionAudit`，并在断开清理（removeClient）与 relay 配对成功处补记。
+- Desktop：bridge/service/IPC/preload 打通 `getRemoteSessionAudit`；Remote 面板新增「审计日志」时间线（动作彩色标签 + 操作者 + 时间 + 明细，创建/撤销时自动刷新）。
+- 验证：`remote-session-audit` 6 单测（seq/时钟/detail 深拷贝/过滤/stats/环形缓冲上限/sink 容错）+ `remote-session-protocol` 扩测（生命周期与控制事件入账 + 断言 prompt 内容不入账 + host-only 查询）；registry/protocol/audit 三件 26 单测 + mirroring/ws-server/pair-token 集成 18 全通过。
+
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4：审计日志、组织策略和推送通知（vendor push）。
+2. Phase 4 余项：组织策略（org policy）和推送通知（vendor push）；审计日志的持久化 sink（JSONL/SQLite）实装。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。

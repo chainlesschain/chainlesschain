@@ -167,6 +167,21 @@ function registerCodingAgentIPCV3(options = {}) {
   );
 
   ipc.handle(
+    "coding-agent:remote-session-audit",
+    async (_event, payload = {}) => {
+      try {
+        return await service.getRemoteSessionAudit(
+          payload.remoteSessionId,
+          payload.limit,
+        );
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] remote-session-audit failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle(
     "coding-agent:close-remote-session",
     async (_event, remoteSessionId) => {
       try {

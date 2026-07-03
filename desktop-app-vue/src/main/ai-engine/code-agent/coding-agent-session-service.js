@@ -378,6 +378,14 @@ class CodingAgentSessionService extends EventEmitter {
     return { success: true, ...response };
   }
 
+  async getRemoteSessionAudit(remoteSessionId, limit) {
+    const response = await this.bridge.getRemoteSessionAudit(
+      remoteSessionId,
+      limit,
+    );
+    return { success: true, ...response };
+  }
+
   async closeRemoteSession(remoteSessionId) {
     const response = await this.bridge.closeRemoteSession(remoteSessionId);
     return { success: true, ...response };

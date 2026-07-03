@@ -18,6 +18,10 @@ function reply(server, ws, id, type, payload = {}) {
   server._send(ws, { id, type, ...payload });
 }
 
+function audit(server, entry) {
+  server.remoteSessionAudit?.record(entry);
+}
+
 function attachPairingUri(server, result) {
   const relayUrl = server.remoteSessionRelayUrl;
   const hostPeerId = server.remoteSessionPeerId;
@@ -59,6 +63,12 @@ export function handleRemoteSessionCreate(server, clientId, ws, message) {
       name: message.name,
       scopes: message.scopes,
     });
+    audit(server, {
+      sessionId: result.session.sessionId,
+      actor: clientId,
+      action: "session.created",
+      detail: { agentSessionId: message.sessionId, name: message.name || null },
+    });
     reply(
       server,
       ws,
@@ -94,6 +104,12 @@ export function handleRemoteSessionPairingToken(server, clientId, ws, message) {
       },
       pairing,
     });
+    audit(server, {
+      sessionId: message.remoteSessionId,
+      actor: clientId,
+      action: "pairing-token.issued",
+      detail: { scopes: message.scopes || null, expiresAt: pairing.expiresAt },
+    });
     reply(server, ws, message.id, "remote-session-pairing-token", {
       pairing: result.pairing,
     });
@@ -111,6 +127,12 @@ export function handleRemoteSessionJoin(server, clientId, ws, message) {
       sessionId: message.remoteSessionId,
       clientId,
       token: message.token,
+    });
+    audit(server, {
+      sessionId: message.remoteSessionId,
+      actor: clientId,
+      action: "device.joined",
+      detail: { scopes: result.member.scopes, via: "direct" },
     });
     reply(server, ws, message.id, "remote-session-joined", result);
   } catch (error) {
@@ -131,6 +153,40 @@ export function handleRemoteSessionDevices(server, clientId, ws, message) {
   } catch (error) {
     reply(server, ws, message.id, "error", {
       code: "REMOTE_SESSION_DEVICES_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionAudit(server, clientId, ws, message) {
+  try {
+    // Host-only: authorize proves membership, the host check proves ownership.
+    const { session } = server.remoteSessions.authorize(
+      message.remoteSessionId,
+      clientId,
+      "observe",
+    );
+    if (session.hostClientId !== clientId) {
+      throw new Error("Only the host can read the audit log");
+    }
+    const auditLog = server.remoteSessionAudit;
+    const entries = auditLog
+      ? auditLog.list({
+          sessionId: message.remoteSessionId,
+          limit: message.limit || 200,
+        })
+      : [];
+    const stats = auditLog
+      ? auditLog.stats(message.remoteSessionId)
+      : { total: 0, byAction: {} };
+    reply(server, ws, message.id, "remote-session-audit", {
+      remoteSessionId: message.remoteSessionId,
+      entries,
+      stats,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_AUDIT_ERROR",
       message: error.message,
     });
   }
@@ -184,6 +240,12 @@ export function handleRemoteSessionRevoke(server, clientId, ws, message) {
       session.agentSessionId,
       member.clientId,
     );
+    audit(server, {
+      sessionId: message.remoteSessionId,
+      actor: clientId,
+      action: "device.revoked",
+      detail: { revoked: member.clientId },
+    });
     reply(server, ws, message.id, "remote-session-revoked", {
       session,
       revoked: member.clientId,
@@ -208,6 +270,12 @@ export function handleRemoteSessionClose(server, clientId, ws, message) {
     );
     server.remoteSessionCrypto.delete(message.remoteSessionId);
     server.remoteSessionPairingSecrets.delete(message.remoteSessionId);
+    audit(server, {
+      sessionId: message.remoteSessionId,
+      actor: clientId,
+      action: "session.closed",
+      detail: { reason: "host-closed" },
+    });
     reply(server, ws, message.id, "remote-session-closed", { session });
   } catch (error) {
     reply(server, ws, message.id, "error", {
@@ -251,17 +319,40 @@ export async function handleRemoteSessionPublish(
         ) {
           throw new Error("prompt content is required");
         }
+        // Record the shape, not the content — the audit trail must stay useful
+        // without hoarding potentially sensitive session prompts.
+        audit(server, {
+          sessionId: message.remoteSessionId,
+          actor: clientId,
+          action: "control.prompt",
+          detail: { chars: message.event.content.length },
+        });
         handleSessionMessage(server, message.id, ws, {
           ...controlMessage,
           content: message.event.content,
         });
       } else if (message.event.type === "approval.resolve") {
+        audit(server, {
+          sessionId: message.remoteSessionId,
+          actor: clientId,
+          action: "control.approval",
+          detail: {
+            requestId: message.event.requestId || message.event.approvalId,
+            approved: message.event.answer ?? message.event.approved,
+          },
+        });
         await handleSessionAnswer(server, message.id, ws, {
           ...controlMessage,
           requestId: message.event.requestId || message.event.approvalId,
           answer: message.event.answer ?? message.event.approved,
         });
       } else if (message.event.type === "interrupt") {
+        audit(server, {
+          sessionId: message.remoteSessionId,
+          actor: clientId,
+          action: "control.interrupt",
+          detail: null,
+        });
         await handleSessionInterrupt(server, message.id, ws, controlMessage);
       }
       return;

@@ -28,6 +28,7 @@ import {
 } from "../../runtime/runtime-events.js";
 import { createWsMessageDispatcher } from "./message-dispatcher.js";
 import { RemoteSessionRegistry } from "../../harness/remote-session-registry.js";
+import { RemoteSessionAuditLog } from "../../harness/remote-session-audit.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
@@ -232,6 +233,9 @@ export class ChainlessChainWSServer extends EventEmitter {
     /** Local authorization state for multi-device Remote Sessions. */
     this.remoteSessions =
       options.remoteSessionRegistry || new RemoteSessionRegistry();
+    /** Bounded in-memory audit trail for Remote Session lifecycle + control. */
+    this.remoteSessionAudit =
+      options.remoteSessionAudit || new RemoteSessionAuditLog();
     this.remoteSessionRelayUrl = options.remoteSessionRelayUrl || null;
     this.remoteSessionPeerId = options.remoteSessionPeerId || null;
     this.remoteSessionCrypto = new Map();
@@ -424,6 +428,12 @@ export class ChainlessChainWSServer extends EventEmitter {
           this.remoteSessionCrypto.delete(affected.sessionId);
         if (affected.closed)
           this.remoteSessionPairingSecrets.delete(affected.sessionId);
+        this.remoteSessionAudit?.record({
+          sessionId: affected.sessionId,
+          actor: clientId,
+          action: affected.closed ? "session.closed" : "device.disconnected",
+          detail: { reason: "disconnect" },
+        });
       }
       this.emit("disconnection", { clientId });
     });
@@ -1106,6 +1116,12 @@ export class ChainlessChainWSServer extends EventEmitter {
       sessionId,
       clientId: payload.mobilePeerId,
       token: join.token,
+    });
+    this.remoteSessionAudit?.record({
+      sessionId,
+      actor: payload.mobilePeerId,
+      action: "device.joined",
+      detail: { via: "relay" },
     });
     this.remoteSessionPairingSecrets.delete(sessionId);
     this.remoteSessionRelay.sendEncrypted(

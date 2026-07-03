@@ -285,6 +285,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ),
     revokeRemoteSessionDevice: (payload) =>
       ipcRenderer.invoke("coding-agent:revoke-remote-session-device", payload),
+    getRemoteSessionAudit: (payload) =>
+      ipcRenderer.invoke("coding-agent:remote-session-audit", payload),
     closeRemoteSession: (remoteSessionId) =>
       ipcRenderer.invoke("coding-agent:close-remote-session", remoteSessionId),
     sendMessage: (payload) =>
