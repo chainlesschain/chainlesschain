@@ -27,7 +27,10 @@ import {
   createRuntimeEvent,
 } from "../../runtime/runtime-events.js";
 import { createWsMessageDispatcher } from "./message-dispatcher.js";
-import { RemoteSessionRegistry } from "../../harness/remote-session-registry.js";
+import {
+  RemoteSessionRegistry,
+  RemoteSessionPolicy,
+} from "../../harness/remote-session-registry.js";
 import { RemoteSessionAuditLog } from "../../harness/remote-session-audit.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
@@ -230,9 +233,13 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */
     this.sessionHandlers = new Map();
+    /** Org-policy constraints for Remote Sessions (scopes, device cap, TTL). */
+    this.remoteSessionPolicy =
+      options.remoteSessionPolicy || RemoteSessionPolicy.fromEnv(process.env);
     /** Local authorization state for multi-device Remote Sessions. */
     this.remoteSessions =
-      options.remoteSessionRegistry || new RemoteSessionRegistry();
+      options.remoteSessionRegistry ||
+      new RemoteSessionRegistry({ policy: this.remoteSessionPolicy });
     /** Bounded in-memory audit trail for Remote Session lifecycle + control. */
     this.remoteSessionAudit =
       options.remoteSessionAudit || new RemoteSessionAuditLog();
@@ -1116,6 +1123,7 @@ export class ChainlessChainWSServer extends EventEmitter {
       sessionId,
       clientId: payload.mobilePeerId,
       token: join.token,
+      via: "relay",
     });
     this.remoteSessionAudit?.record({
       sessionId,

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   REMOTE_SESSION_PROTOCOL_VERSION,
+  RemoteSessionPolicy,
   RemoteSessionRegistry,
 } from "../../src/harness/remote-session-registry.js";
 
@@ -178,5 +179,97 @@ describe("RemoteSessionRegistry", () => {
     expect(() => registry.revokeMember(sessionId, "host", "unknown")).toThrow(
       /not paired/,
     );
+  });
+
+  it("narrows pairing-token scopes to the org policy at issue time", () => {
+    const registry = new RemoteSessionRegistry({
+      policy: new RemoteSessionPolicy({ allowedScopes: ["observe", "prompt"] }),
+    });
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+      scopes: ["observe", "prompt", "approve", "interrupt"],
+    });
+    expect(created.pairing.scopes).toEqual(["observe", "prompt"]);
+    expect(created.pairing.policyNarrowed).toBe(true);
+    // The host keeps full control of its own session; only the device is capped.
+    const joined = registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+    });
+    expect(joined.member.scopes).toEqual(["observe", "prompt"]);
+    expect(() =>
+      registry.authorize(created.session.sessionId, "phone", "approve"),
+    ).toThrow(/scope required/);
+  });
+
+  it("caps session and token TTLs to the org policy", () => {
+    const clock = vi.fn(() => 10_000);
+    const registry = new RemoteSessionRegistry({
+      now: clock,
+      sessionTtlMs: 12 * 60 * 60 * 1000,
+      tokenTtlMs: 5 * 60 * 1000,
+      policy: new RemoteSessionPolicy({
+        maxSessionTtlMs: 60_000,
+        maxTokenTtlMs: 30_000,
+      }),
+    });
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    expect(created.session.expiresAt).toBe(10_000 + 60_000);
+    expect(created.pairing.expiresAt).toBe(10_000 + 30_000);
+  });
+
+  it("enforces the org device limit on join", () => {
+    const registry = new RemoteSessionRegistry({
+      policy: new RemoteSessionPolicy({ maxDevices: 1 }),
+    });
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+    });
+    const second = registry.issuePairingToken(created.session.sessionId);
+    expect(() =>
+      registry.join({
+        sessionId: created.session.sessionId,
+        clientId: "tablet",
+        token: second.token,
+      }),
+    ).toThrow(/device limit reached/);
+  });
+
+  it("blocks relay pairing when disabled by org policy", () => {
+    const registry = new RemoteSessionRegistry({
+      policy: new RemoteSessionPolicy({ allowRelayPairing: false }),
+    });
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    expect(() =>
+      registry.join({
+        sessionId: created.session.sessionId,
+        clientId: "phone",
+        token: created.pairing.token,
+        via: "relay",
+      }),
+    ).toThrow(/Relay pairing is disabled/);
+    // The same device may still pair directly.
+    expect(() =>
+      registry.join({
+        sessionId: created.session.sessionId,
+        clientId: "phone",
+        token: created.pairing.token,
+        via: "direct",
+      }),
+    ).not.toThrow();
   });
 });

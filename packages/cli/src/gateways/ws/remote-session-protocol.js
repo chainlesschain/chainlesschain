@@ -158,6 +158,22 @@ export function handleRemoteSessionDevices(server, clientId, ws, message) {
   }
 }
 
+export function handleRemoteSessionPolicy(server, clientId, ws, message) {
+  try {
+    // The active org policy is not sensitive — any authenticated client may
+    // read it (e.g. to pre-check allowed scopes before requesting a session).
+    const policy = server.remoteSessions?.policy;
+    reply(server, ws, message.id, "remote-session-policy", {
+      policy: policy ? policy.describe() : null,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_POLICY_ERROR",
+      message: error.message,
+    });
+  }
+}
+
 export function handleRemoteSessionAudit(server, clientId, ws, message) {
   try {
     // Host-only: authorize proves membership, the host check proves ownership.

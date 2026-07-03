@@ -6,6 +6,7 @@ import {
   handleRemoteSessionCreate,
   handleRemoteSessionDevices,
   handleRemoteSessionJoin,
+  handleRemoteSessionPolicy,
   handleRemoteSessionPublish,
   handleRemoteSessionRevoke,
 } from "../../src/gateways/ws/remote-session-protocol.js";
@@ -320,6 +321,18 @@ describe("remote session WebSocket protocol", () => {
     expect(tabletWs.sent.at(-1)).toMatchObject({
       type: "error",
       code: "REMOTE_SESSION_AUDIT_ERROR",
+    });
+  });
+
+  it("reports the active org policy to any authenticated client", () => {
+    handleRemoteSessionPolicy(server, "phone", phone, { id: "policy-1" });
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "remote-session-policy",
+      policy: {
+        allowedScopes: null,
+        maxDevices: null,
+        allowRelayPairing: true,
+      },
     });
   });
 });

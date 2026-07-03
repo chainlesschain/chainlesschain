@@ -14,6 +14,7 @@ import {
   handleRemoteSessionDevices,
   handleRemoteSessionJoin,
   handleRemoteSessionPairingToken,
+  handleRemoteSessionPolicy,
   handleRemoteSessionPublish,
   handleRemoteSessionRevoke,
 } from "./remote-session-protocol.js";
@@ -76,6 +77,8 @@ export function createWsMessageDispatcher(server) {
           handleRemoteSessionDevices(server, clientId, ws, message),
         "remote-session-audit": () =>
           handleRemoteSessionAudit(server, clientId, ws, message),
+        "remote-session-policy": () =>
+          handleRemoteSessionPolicy(server, clientId, ws, message),
         "remote-session-revoke": () =>
           handleRemoteSessionRevoke(server, clientId, ws, message),
         "remote-session-publish": () =>
