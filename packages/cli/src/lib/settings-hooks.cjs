@@ -221,10 +221,21 @@ function collectHooks(hooksBlock, event, toolName) {
   const groups = (hooksBlock && hooksBlock[event]) || [];
   const umbrella = umbrellaFor(toolName);
   const raw = String(toolName || "");
+  // Claude-Code MCP parity: a bare server-prefix matcher (`mcp__github`) fires
+  // for EVERY tool from that server (`mcp__github__create_issue`, …). Our
+  // matcher is anchored (`^…$`), so the server prefix alone would never match a
+  // full `mcp__server__tool` name without also testing the prefix explicitly.
+  // (Users can still target one tool with the full name, or all of a server's
+  // tools with a `mcp__server*` wildcard / `/mcp__server__/` regex.)
+  let mcpServer = null;
+  if (raw.startsWith("mcp__")) {
+    const parts = raw.split("__");
+    if (parts.length >= 3) mcpServer = `${parts[0]}__${parts[1]}`;
+  }
   const out = [];
   for (const g of groups) {
     const fn = compileMatcher(g.matcher);
-    if (fn(umbrella) || (raw && fn(raw))) {
+    if (fn(umbrella) || (raw && fn(raw)) || (mcpServer && fn(mcpServer))) {
       for (const h of g.hooks)
         out.push({
           command: h.command,

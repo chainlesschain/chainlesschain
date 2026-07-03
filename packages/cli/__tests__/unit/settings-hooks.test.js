@@ -213,6 +213,35 @@ describe("collectHooks — matcher resolution", () => {
   it("returns [] for an event with no groups", () => {
     expect(collectHooks(block, "PostToolUse", "run_shell")).toEqual([]);
   });
+
+  it("bare MCP server-prefix matcher fires for every tool of that server", () => {
+    const b = { PreToolUse: [cmdGroup("mcp__github", "gh.sh")] };
+    // A server prefix must match a full mcp__server__tool name (CC parity) …
+    expect(
+      collectHooks(b, "PreToolUse", "mcp__github__create_issue")[0].command,
+    ).toBe("gh.sh");
+    expect(
+      collectHooks(b, "PreToolUse", "mcp__github__list_prs")[0].command,
+    ).toBe("gh.sh");
+    // … but not a DIFFERENT server, and not a lookalike non-MCP tool.
+    expect(collectHooks(b, "PreToolUse", "mcp__gitlab__x")).toEqual([]);
+    expect(collectHooks(b, "PreToolUse", "run_shell")).toEqual([]);
+  });
+
+  it("full MCP tool name and mcp__server* wildcard both still target one tool/server", () => {
+    const exact = {
+      PreToolUse: [cmdGroup("mcp__github__create_issue", "x.sh")],
+    };
+    expect(
+      collectHooks(exact, "PreToolUse", "mcp__github__create_issue")[0].command,
+    ).toBe("x.sh");
+    expect(collectHooks(exact, "PreToolUse", "mcp__github__other")).toEqual([]);
+
+    const wild = { PreToolUse: [cmdGroup("mcp__github*", "w.sh")] };
+    expect(
+      collectHooks(wild, "PreToolUse", "mcp__github__anything")[0].command,
+    ).toBe("w.sh");
+  });
 });
 
 describe("Notification event", () => {
