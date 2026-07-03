@@ -5067,6 +5067,54 @@ async function _getAutoCompactor(options) {
   return compressor;
 }
 
+/**
+ * Run `fn` inside an OpenTelemetry span when `options.recorder` is attached,
+ * else run it bare (zero overhead on the un-instrumented path). `onResult`
+ * gets (span, result) to stamp result-derived attributes (token usage, tool
+ * status). An exception is recorded on the span (category `errCategory`) and
+ * re-thrown so the loop's own error handling is unchanged. Kept dependency-free
+ * — the recorder is the OTel-shaped TelemetryRecorder passed in by the caller
+ * (eval / a future `--otlp` agent flag); the real agent loop now EMITS
+ * model/tool/retry spans, not just eval.
+ */
+async function _withSpan(recorder, name, attrs, fn, onResult, errCategory) {
+  if (!recorder || typeof recorder.startSpan !== "function") return fn();
+  const span = recorder.startSpan(name, attrs);
+  try {
+    const r = await fn();
+    if (onResult) {
+      try {
+        onResult(span, r);
+      } catch {
+        /* attribute stamping is best-effort */
+      }
+    }
+    span.end();
+    return r;
+  } catch (err) {
+    try {
+      span.recordException(err, errCategory || "error");
+      span.end();
+    } catch {
+      /* span teardown is best-effort */
+    }
+    throw err;
+  }
+}
+
+/** Normalize the varied provider usage shapes into input/output/cache tokens. */
+function _usageTokens(usage) {
+  if (!usage || typeof usage !== "object") return null;
+  const input = usage.prompt_tokens ?? usage.input_tokens ?? null;
+  const output = usage.completion_tokens ?? usage.output_tokens ?? null;
+  const cacheRead =
+    usage.cache_read_input_tokens ??
+    usage.prompt_tokens_details?.cached_tokens ??
+    null;
+  const cacheWrite = usage.cache_creation_input_tokens ?? null;
+  return { input, output, cacheRead, cacheWrite };
+}
+
 export async function* agentLoop(messages, options) {
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
@@ -5075,6 +5123,9 @@ export async function* agentLoop(messages, options) {
     await import("../lib/iteration-budget.js");
   const budget = options.iterationBudget || new IterationBudget();
   const signal = options.signal || null;
+  // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
+  // emits model/tool/retry spans + a per-run counter; when absent, zero cost.
+  const recorder = options.recorder || null;
   const toolContext = {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
@@ -5196,6 +5247,9 @@ export async function* agentLoop(messages, options) {
       await import("../lib/runnable-provider.js");
     llmCall = makeRunnableProviderFallback(llmCall, {
       onFallback: ({ from, to, reason, fromModel, toModel }) => {
+        // Telemetry: a provider/model fallback is a reliability signal — count
+        // it (keyed by reason) so a run's OTLP export shows retry/fallback rate.
+        if (recorder) recorder.counter("agent.model.fallback", 1, { reason });
         // Switching VENDORS (or relabelling via baseUrl) must NEVER be silent —
         // a user who configured volcengine deserves to know it ran on another
         // provider/model. Build a human message and hand it to the driver's
@@ -5411,7 +5465,38 @@ export async function* agentLoop(messages, options) {
       }
     }
 
-    const result = await llmCall(callMessages, options);
+    const result = await _withSpan(
+      recorder,
+      "agent.model",
+      {
+        "gen_ai.system": options.provider || "ollama",
+        "gen_ai.request.model": options.model || "unknown",
+        "agent.iteration": budget.consumed,
+      },
+      () => llmCall(callMessages, options),
+      (span, r) => {
+        const t = _usageTokens(r?.usage);
+        if (t) {
+          if (t.input != null)
+            span.setAttribute("gen_ai.usage.input_tokens", t.input);
+          if (t.output != null)
+            span.setAttribute("gen_ai.usage.output_tokens", t.output);
+          // Cache read/write tokens — the prompt-caching hit rate the plan's
+          // reliability telemetry cares about.
+          if (t.cacheRead != null)
+            span.setAttribute("gen_ai.usage.cache_read_tokens", t.cacheRead);
+          if (t.cacheWrite != null)
+            span.setAttribute("gen_ai.usage.cache_write_tokens", t.cacheWrite);
+        }
+        span.setAttribute(
+          "agent.has_tool_calls",
+          Array.isArray(r?.message?.tool_calls) &&
+            r.message.tool_calls.length > 0,
+        );
+      },
+      "model_error",
+    );
+    if (recorder) recorder.counter("agent.model.calls", 1);
     throwIfAborted(signal);
     const msg = result?.message;
 
@@ -5650,11 +5735,24 @@ export async function* agentLoop(messages, options) {
       let toolResult;
       let toolError = null;
       try {
-        toolResult = await executeTool(toolName, toolArgs, toolContext);
+        toolResult = await _withSpan(
+          recorder,
+          "agent.tool",
+          { "tool.name": toolName },
+          () => executeTool(toolName, toolArgs, toolContext),
+          (span, r) => {
+            span.setAttribute(
+              "tool.is_error",
+              !!(r && typeof r === "object" && r.error),
+            );
+          },
+          "tool_error",
+        );
       } catch (err) {
         toolResult = { error: err.message };
         toolError = err.message;
       }
+      if (recorder) recorder.counter("agent.tool.calls", 1);
 
       throwIfAborted(signal);
 
