@@ -1,14 +1,8 @@
 <template>
   <div class="bridge-history">
-    <a-card
-      title="跨链转移历史"
-      :bordered="false"
-    >
+    <a-card title="跨链转移历史" :bordered="false">
       <!-- 过滤器 -->
-      <div
-        v-if="showFilters"
-        class="filters"
-      >
+      <div v-if="showFilters" class="filters">
         <a-space :size="12">
           <a-select
             v-model:value="filters.status"
@@ -17,21 +11,11 @@
             allow-clear
             @change="handleFilterChange"
           >
-            <a-select-option value="">
-              全部状态
-            </a-select-option>
-            <a-select-option value="pending">
-              待处理
-            </a-select-option>
-            <a-select-option value="locked">
-              已锁定
-            </a-select-option>
-            <a-select-option value="completed">
-              已完成
-            </a-select-option>
-            <a-select-option value="failed">
-              失败
-            </a-select-option>
+            <a-select-option value=""> 全部状态 </a-select-option>
+            <a-select-option value="pending"> 待处理 </a-select-option>
+            <a-select-option value="locked"> 已锁定 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="failed"> 失败 </a-select-option>
           </a-select>
 
           <chain-selector
@@ -48,10 +32,7 @@
             @switched="handleFilterChange"
           />
 
-          <a-button
-            :loading="loading"
-            @click="handleRefresh"
-          >
+          <a-button :loading="loading" @click="handleRefresh">
             <template #icon>
               <reload-outlined />
             </template>
@@ -88,10 +69,7 @@
                     <arrow-right-outlined class="arrow-icon" />
                     {{ getNetworkName(item.to_chain_id) }}
                   </span>
-                  <a-tag
-                    :color="getStatusTagColor(item.status)"
-                    size="small"
-                  >
+                  <a-tag :color="getStatusTagColor(item.status)" size="small">
                     {{ getStatusText(item.status) }}
                   </a-tag>
                   <span class="bridge-time">{{
@@ -107,10 +85,7 @@
                   <div class="bridge-info-row">
                     <span class="label">资产:</span>
                     <span class="value">{{ item.asset_id }}</span>
-                    <span
-                      class="label"
-                      style="margin-left: 16px"
-                    >数量:</span>
+                    <span class="label" style="margin-left: 16px">数量:</span>
                     <span class="value amount">{{ item.amount }}</span>
                   </div>
 
@@ -120,20 +95,14 @@
                     <span class="value">{{
                       formatAddress(item.sender_address)
                     }}</span>
-                    <span
-                      class="label"
-                      style="margin-left: 16px"
-                    >到:</span>
+                    <span class="label" style="margin-left: 16px">到:</span>
                     <span class="value">{{
                       formatAddress(item.recipient_address)
                     }}</span>
                   </div>
 
                   <!-- 交易哈希 -->
-                  <div
-                    v-if="item.from_tx_hash"
-                    class="bridge-info-row"
-                  >
+                  <div v-if="item.from_tx_hash" class="bridge-info-row">
                     <span class="label">锁定交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.from_tx_hash) }}
@@ -144,10 +113,7 @@
                     </span>
                   </div>
 
-                  <div
-                    v-if="item.to_tx_hash"
-                    class="bridge-info-row"
-                  >
+                  <div v-if="item.to_tx_hash" class="bridge-info-row">
                     <span class="label">铸造交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.to_tx_hash) }}
@@ -159,10 +125,7 @@
                   </div>
 
                   <!-- 错误信息 -->
-                  <div
-                    v-if="item.error_message"
-                    class="bridge-info-row error"
-                  >
+                  <div v-if="item.error_message" class="bridge-info-row error">
                     <span class="label">错误:</span>
                     <span class="value">{{ item.error_message }}</span>
                   </div>
@@ -204,6 +167,13 @@ import {
 } from "@ant-design/icons-vue";
 import { useBlockchainStore } from "@/stores/blockchain";
 import ChainSelector from "./ChainSelector.vue";
+import {
+  getStatusText,
+  getStatusTagColor,
+  getStatusColor,
+  formatAddress,
+  formatTime,
+} from "./bridgeHistoryUtils";
 
 const props = defineProps({
   showFilters: {
@@ -271,32 +241,6 @@ const pagination = computed(() => ({
 }));
 
 /**
- * 获取状态文本
- */
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: "待处理",
-    locked: "已锁定",
-    completed: "已完成",
-    failed: "失败",
-  };
-  return statusMap[status] || status;
-};
-
-/**
- * 获取状态标签颜色
- */
-const getStatusTagColor = (status) => {
-  const colorMap = {
-    pending: "processing",
-    locked: "warning",
-    completed: "success",
-    failed: "error",
-  };
-  return colorMap[status] || "default";
-};
-
-/**
  * 获取状态图标
  */
 const getStatusIcon = (status) => {
@@ -310,75 +254,11 @@ const getStatusIcon = (status) => {
 };
 
 /**
- * 获取状态颜色
- */
-const getStatusColor = (status) => {
-  const colorMap = {
-    pending: "#faad14",
-    locked: "#1890ff",
-    completed: "#52c41a",
-    failed: "#ff4d4f",
-  };
-  return colorMap[status] || "#8c8c8c";
-};
-
-/**
  * 获取网络名称
  */
 const getNetworkName = (chainId) => {
   const network = blockchainStore.networks.find((n) => n.chainId === chainId);
   return network?.name || `Chain ${chainId}`;
-};
-
-/**
- * 格式化地址
- */
-const formatAddress = (address) => {
-  if (!address) {
-    return "";
-  }
-  if (address.length <= 20) {
-    return address;
-  }
-  return `${address.slice(0, 10)}...${address.slice(-8)}`;
-};
-
-/**
- * 格式化时间
- */
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 小于1分钟
-  if (diff < 60000) {
-    return "刚刚";
-  }
-
-  // 小于1小时
-  if (diff < 3600000) {
-    const minutes = Math.floor(diff / 60000);
-    return `${minutes} 分钟前`;
-  }
-
-  // 小于24小时
-  if (diff < 86400000) {
-    const hours = Math.floor(diff / 3600000);
-    return `${hours} 小时前`;
-  }
-
-  // 超过24小时，显示具体日期
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 /**

@@ -1,10 +1,7 @@
 <template>
   <div class="transaction-list">
     <!-- 过滤器 -->
-    <div
-      v-if="showFilters"
-      class="list-header"
-    >
+    <div v-if="showFilters" class="list-header">
       <a-space :size="12">
         <a-select
           v-model:value="filters.status"
@@ -13,18 +10,10 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部状态
-          </a-select-option>
-          <a-select-option value="pending">
-            待确认
-          </a-select-option>
-          <a-select-option value="confirmed">
-            已确认
-          </a-select-option>
-          <a-select-option value="failed">
-            失败
-          </a-select-option>
+          <a-select-option value=""> 全部状态 </a-select-option>
+          <a-select-option value="pending"> 待确认 </a-select-option>
+          <a-select-option value="confirmed"> 已确认 </a-select-option>
+          <a-select-option value="failed"> 失败 </a-select-option>
         </a-select>
 
         <a-select
@@ -34,24 +23,13 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="transfer">
-            转账
-          </a-select-option>
-          <a-select-option value="mint">
-            铸造
-          </a-select-option>
-          <a-select-option value="contract_call">
-            合约调用
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="transfer"> 转账 </a-select-option>
+          <a-select-option value="mint"> 铸造 </a-select-option>
+          <a-select-option value="contract_call"> 合约调用 </a-select-option>
         </a-select>
 
-        <a-button
-          :loading="loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" @click="handleRefresh">
           <template #icon>
             <reload-outlined />
           </template>
@@ -83,10 +61,7 @@
             <template #title>
               <div class="tx-title">
                 <span class="tx-type">{{ getTxTypeText(item.tx_type) }}</span>
-                <a-tag
-                  :color="getStatusColor(item.status)"
-                  size="small"
-                >
+                <a-tag :color="getStatusColor(item.status)" size="small">
                   {{ getStatusText(item.status) }}
                 </a-tag>
                 <span class="tx-time">{{ formatTime(item.created_at) }}</span>
@@ -127,26 +102,17 @@
 
                 <!-- 金额和 Gas -->
                 <div class="tx-details">
-                  <span
-                    v-if="item.value"
-                    class="detail-item"
-                  >
+                  <span v-if="item.value" class="detail-item">
                     <span class="label">金额:</span>
                     <span class="value amount">{{
                       formatValue(item.value)
                     }}</span>
                   </span>
-                  <span
-                    v-if="item.gas_used"
-                    class="detail-item"
-                  >
+                  <span v-if="item.gas_used" class="detail-item">
                     <span class="label">Gas:</span>
                     <span class="value">{{ item.gas_used }}</span>
                   </span>
-                  <span
-                    v-if="item.block_number"
-                    class="detail-item"
-                  >
+                  <span v-if="item.block_number" class="detail-item">
                     <span class="label">区块:</span>
                     <span class="value">{{ item.block_number }}</span>
                   </span>
@@ -157,11 +123,7 @@
 
           <!-- 操作按钮 -->
           <template #actions>
-            <a-button
-              type="link"
-              size="small"
-              @click="handleViewDetails(item)"
-            >
+            <a-button type="link" size="small" @click="handleViewDetails(item)">
               详情
             </a-button>
           </template>
@@ -186,6 +148,15 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons-vue";
 import { useBlockchainStore } from "@/stores/blockchain";
+import {
+  getTxTypeText,
+  getTxTypeColor,
+  getStatusText,
+  getStatusColor,
+  formatHash,
+  formatAddress,
+  formatTime,
+} from "./transactionListUtils";
 
 const props = defineProps({
   // 地址过滤（只显示该地址相关的交易）
@@ -281,18 +252,6 @@ const pagination = computed(() => ({
 }));
 
 /**
- * 获取交易类型文本
- */
-const getTxTypeText = (type) => {
-  const typeMap = {
-    transfer: "转账",
-    mint: "铸造",
-    contract_call: "合约调用",
-  };
-  return typeMap[type] || "未知";
-};
-
-/**
  * 获取交易类型图标
  */
 const getTxTypeIcon = (type) => {
@@ -302,68 +261,6 @@ const getTxTypeIcon = (type) => {
     contract_call: FileTextOutlined,
   };
   return iconMap[type] || FileTextOutlined;
-};
-
-/**
- * 获取交易类型颜色
- */
-const getTxTypeColor = (type) => {
-  const colorMap = {
-    transfer: "#1890ff",
-    mint: "#52c41a",
-    contract_call: "#fa8c16",
-  };
-  return colorMap[type] || "#8c8c8c";
-};
-
-/**
- * 获取状态文本
- */
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: "待确认",
-    confirmed: "已确认",
-    failed: "失败",
-  };
-  return statusMap[status] || "未知";
-};
-
-/**
- * 获取状态颜色
- */
-const getStatusColor = (status) => {
-  const colorMap = {
-    pending: "processing",
-    confirmed: "success",
-    failed: "error",
-  };
-  return colorMap[status] || "default";
-};
-
-/**
- * 格式化哈希
- */
-const formatHash = (hash) => {
-  if (!hash) {
-    return "";
-  }
-  if (hash.length <= 20) {
-    return hash;
-  }
-  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
-};
-
-/**
- * 格式化地址
- */
-const formatAddress = (address) => {
-  if (!address) {
-    return "";
-  }
-  if (address.length <= 20) {
-    return address;
-  }
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 /**
@@ -379,44 +276,6 @@ const formatValue = (value) => {
   const symbol = currentNetwork.value?.symbol || "ETH";
 
   return `${etherValue} ${symbol}`;
-};
-
-/**
- * 格式化时间
- */
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 小于1分钟
-  if (diff < 60000) {
-    return "刚刚";
-  }
-
-  // 小于1小时
-  if (diff < 3600000) {
-    const minutes = Math.floor(diff / 60000);
-    return `${minutes} 分钟前`;
-  }
-
-  // 小于24小时
-  if (diff < 86400000) {
-    const hours = Math.floor(diff / 3600000);
-    return `${hours} 小时前`;
-  }
-
-  // 超过24小时，显示具体日期
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 /**
