@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@noble/ciphers": "^2.2.0",
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
     "@tanstack/virtual-core": "^3.14.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

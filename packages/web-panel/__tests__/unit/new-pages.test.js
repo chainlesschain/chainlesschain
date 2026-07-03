@@ -41,8 +41,9 @@ describe('Router registration', () => {
     //  added 2026-05-19 (`98c593dcb`) for Hub Phase 4 cross-shell UI;
     //  PdhVaultBrowser added 2026-05-24 for Hub Phase 16 数据可视化 entry;
     //  MobileProjects added 2026-05-17 (`d1fad8159`) for Android project
-    //  management → remote-terminal entry PC placeholder.)
-    expect(rootRoute.children.length).toBe(65)
+    //  management → remote-terminal entry PC placeholder;
+    //  RemoteSession added 2026-07-03 for Remote Session Phase 3 第三片 web client.)
+    expect(rootRoute.children.length).toBe(66)
   })
 
   it('contains all expected route names', async () => {

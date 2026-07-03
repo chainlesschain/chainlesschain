@@ -97,8 +97,16 @@
 - Android 新增自包含 `RemoteSessionNotifier`：审批事件到达时发系统高优先级通知（`remote_session_approvals` 渠道），点按打开 App；批准/拒绝后撤销通知。
 - 验证：CLI `remote-session-registry` / `remote-session-protocol` 定向单测 18 通过（含 relay 撤销加密通知路径）+ ws-server/pair-token 集成 16 通过；Android 新增 `RemoteSessionClientReconnectTest`（退避 1s/2s/4s、显式断开不重连、重连次数上界）。
 
+#### Phase 3 第三片：Web Remote Session 客户端（已完成）
+
+- `packages/web-panel` 新增「远程会话」页：粘贴/扫码桌面端配对链接后，直接连信令 relay（不走本地 CLI WS），端到端加密接管会话。
+- `src/utils/remote-session-crypto.js`：纯 JS `@noble`（X25519 + HKDF-SHA256 + AES-256-GCM）移植，与 Node host / Android 逐字节互通——刻意避开浏览器 WebCrypto 的 X25519 兼容性问题，同一份代码在 Vite bundle 与 Node 单测中运行。接受 host 的 SPKI 公钥与移动端 raw 32B 公钥两种编码。
+- `src/stores/remoteSession.js`：relay 客户端 Pinia store，镜像 Android `RemoteSessionClient` 状态机——注册、加密配对、事件镜像、Scope 受限控制（prompt/approve/interrupt），指数退避自动重连（瞬断在同一 store 生命周期内复用已派生密钥不重配对），收到 host `session.revoked` 即停连并置 `revoked`。
+- `RemoteSession.vue`：状态标签、事件流、审批「批准/拒绝」、提示输入、中断/断开；复用 `QrScannerModal` 摄像头扫码。路由 `remote-session` + 侧栏菜单项已接通。
+- 验证：`remote-session-crypto` 5 单测（与真实 Node host 模块加解密互通 + URI 解析 + 重放拒绝）+ `remote-session-store` 4 单测（假 relay 跑真加密：配对→连接→事件镜像→受限控制→自动重连恢复→撤销）全通过；`vite build` 干净（RemoteSession chunk 47KB）。
+
 #### 仍待完成
 
-1. Phase 3 第三片：Web Remote Session 客户端和跨端断线恢复 E2E。
+1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
 2. Phase 4：审计日志、组织策略和推送通知（vendor push）。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。
