@@ -693,6 +693,31 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // settings.json SessionResume hooks: fire when a persisted session's prior
+  // history is actually being replayed (--resume / --continue with real
+  // history), distinct from SessionStart (which also fires on a fresh startup).
+  // A SessionResume hook can react to "we're picking an existing conversation
+  // back up" — e.g. re-run a workspace sanity check. Observe-only, best-effort.
+  if (settingsHooks && resumeId && history.length > 0) {
+    try {
+      const { runObserveHooks } =
+        await import("../lib/settings-hook-events.cjs");
+      runObserveHooks(
+        settingsHooks,
+        "SessionResume",
+        {
+          session_id: sessionId,
+          resumed_from: resumeId,
+          history_messages: history.length,
+          cwd,
+        },
+        { cwd },
+      );
+    } catch (_err) {
+      // observe-only
+    }
+  }
+
   // --image <path>: attach vision input to the user turn. buildUserContent
   // returns the plain string when there are no images, so text-only runs are
   // byte-for-byte unchanged; with images it builds an OpenAI-style multimodal

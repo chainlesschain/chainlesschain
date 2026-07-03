@@ -1055,6 +1055,27 @@ export async function startAgentRepl(options = {}) {
     } catch (_err) {
       // Non-critical
     }
+    // settings.json SessionResume hooks: a persisted transcript was just
+    // replayed into this interactive session (distinct from SessionStart).
+    // Observe-only, best-effort — never blocks entering the REPL.
+    if (_settingsHooks && messages.some((m) => m.role !== "system")) {
+      try {
+        const { runObserveHooks } =
+          await import("../lib/settings-hook-events.cjs");
+        runObserveHooks(
+          _settingsHooks,
+          "SessionResume",
+          {
+            session_id: sessionId,
+            resumed_from: sessionId,
+            cwd: process.cwd(),
+          },
+          { cwd: process.cwd() },
+        );
+      } catch {
+        /* observe-only */
+      }
+    }
     // Resume recap (offline, extractive — no LLM): a quick "where were we"
     // so the user doesn't have to scroll the old transcript.
     try {
@@ -1293,6 +1314,25 @@ export async function startAgentRepl(options = {}) {
           /* already aborted */
         }
         _turnAbort = null;
+        // settings.json SessionPause hooks: the user interrupted the in-flight
+        // turn — the session stays open, the current work is suspended. The
+        // keypress handler can't await, so fire observe-only fire-and-forget.
+        if (_settingsHooks) {
+          import("../lib/settings-hook-events.cjs")
+            .then(({ runObserveHooks }) =>
+              runObserveHooks(
+                _settingsHooks,
+                "SessionPause",
+                {
+                  session_id: sessionId,
+                  reason: "user-interrupt",
+                  cwd: process.cwd(),
+                },
+                { cwd: process.cwd() },
+              ),
+            )
+            .catch(() => {});
+        }
         return;
       }
 

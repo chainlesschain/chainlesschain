@@ -42,6 +42,8 @@ const HOOK_EVENTS = Object.freeze([
   "SubagentStart",
   "SubagentStop",
   "SessionStart",
+  "SessionResume",
+  "SessionPause",
   "SessionEnd",
   "ConfigChange",
   "PreCompact",
