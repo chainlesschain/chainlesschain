@@ -1,4 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import crypto from "crypto";
+
+// The proof commitment verifyStorageProof checks: sha256(cid:proofType:sectorId).
+const commitmentFor = (cid, proofType, sectorId = "0") =>
+  crypto
+    .createHash("sha256")
+    .update(`${cid}:${proofType}:${sectorId}`)
+    .digest("hex");
 
 vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -161,23 +169,31 @@ describe("FilecoinStorage", () => {
       ).rejects.toThrow("Unknown proof type");
     });
 
-    it("should verify valid proof data (length >= 32)", async () => {
+    it("should verify a proof matching the CID commitment", async () => {
       const deal = await storage.storeToFilecoin({ cid: "QmProof3" });
-      const longProof = "a".repeat(32);
       const result = await storage.verifyStorageProof(deal.id, {
         proofType: "porep",
-        proofData: longProof,
+        proofData: commitmentFor("QmProof3", "porep"),
       });
       expect(result.valid).toBe(true);
       expect(result.proofType).toBe("porep");
       expect(result.verifiedAt).toBeTruthy();
     });
 
+    it("should reject a long proof that is not the commitment (no fail-open)", async () => {
+      const deal = await storage.storeToFilecoin({ cid: "QmProof3b" });
+      const result = await storage.verifyStorageProof(deal.id, {
+        proofType: "porep",
+        proofData: "a".repeat(64),
+      });
+      expect(result.valid).toBe(false);
+    });
+
     it("should update deal verified status in DB", async () => {
       const deal = await storage.storeToFilecoin({ cid: "QmProof4" });
       await storage.verifyStorageProof(deal.id, {
         proofType: "post",
-        proofData: "x".repeat(64),
+        proofData: commitmentFor("QmProof4", "post"),
       });
       expect(mockRunStmt.run).toHaveBeenCalled();
     });
@@ -188,7 +204,7 @@ describe("FilecoinStorage", () => {
       const deal = await storage.storeToFilecoin({ cid: "QmProof5" });
       await storage.verifyStorageProof(deal.id, {
         proofType: "porep",
-        proofData: "x".repeat(32),
+        proofData: commitmentFor("QmProof5", "porep"),
       });
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({ valid: true }),

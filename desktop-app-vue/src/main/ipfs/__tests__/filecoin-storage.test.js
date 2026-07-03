@@ -57,6 +57,30 @@ describe("FilecoinStorage.verifyStorageProof (top-level crypto import)", () => {
     expect(store._deals.get("d1").verified).toBe(1);
   });
 
+  it("rejects a long proof that is NOT the CID commitment (no fail-open)", async () => {
+    const store = newStore();
+    store._deals.set("d1", { id: "d1", cid: "bafyCID" });
+    // 64-char string (>= the old fail-open threshold of 32) that is not the
+    // commitment — must be rejected now that the length fallback is gone.
+    const r = await store.verifyStorageProof("d1", {
+      proofType: "porep",
+      proofData: "a".repeat(64),
+    });
+    expect(r.valid).toBe(false);
+    expect(store._deals.get("d1").verified).not.toBe(1);
+  });
+
+  it("rejects a proof whose commitment is for a different sectorId", async () => {
+    const store = newStore();
+    store._deals.set("d1", { id: "d1", cid: "bafyCID" });
+    // Correct commitment but for sectorId "9"; verify defaults sectorId to "0".
+    const r = await store.verifyStorageProof("d1", {
+      proofType: "porep",
+      proofData: commitmentFor("bafyCID", "porep", "9"),
+    });
+    expect(r.valid).toBe(false);
+  });
+
   it("rejects empty proof data", async () => {
     const store = newStore();
     store._deals.set("d1", { id: "d1", cid: "bafyCID" });

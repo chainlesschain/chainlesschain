@@ -175,7 +175,12 @@ class FilecoinStorage extends EventEmitter {
       .update(`${deal.cid}:${proofType}:${proof.sectorId || "0"}`)
       .digest("hex");
 
-    const valid = proofData === commitment || proofData.length >= 32;
+    // Require the proof to match the CID commitment exactly. The previous
+    // `|| proofData.length >= 32` fallback was fail-open — ANY string of 32+
+    // chars passed verification. No prover (production or test) emits anything
+    // other than this exact commitment, so an exact match closes the fail-open
+    // without rejecting a single legitimate proof.
+    const valid = proofData === commitment;
 
     if (valid) {
       const now = Date.now();
