@@ -43,6 +43,22 @@ dependencyResolutionManagement {
             }
             filter { includeGroup("io.github.novacrypto") }
         }
+
+        // OPPO (HeyTap) Push SDK repo — only added when -PoppoPush=true so the
+        // default build (CI included) is byte-identical. Scoped to the heytap
+        // group so it never intercepts other resolution. Adjust the URL per the
+        // current OPPO console if it moves (docs/guides/Vendor_Push_Setup.md §3.3).
+        if ((providers.gradleProperty("oppoPush").orNull ?: "").toBoolean()) {
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "heytapPush"
+                        url = uri("https://repo.heytapmobi.com/repository/maven-public/")
+                    }
+                }
+                filter { includeGroup("com.heytap.msp") }
+            }
+        }
     }
 }
 

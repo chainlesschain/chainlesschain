@@ -205,20 +205,23 @@
    ```
 6. **新建 HuaweiPushReceiver extends HmsMessageService**
 
-### 3.3 OPPO HeytapPush (含 OnePlus/Realme)
+### 3.3 OPPO HeytapPush（含 OnePlus/Realme）（代码骨架已落地，缺 SDK 链接 + 凭证）
 
 **前置**：[OPPO 推送平台](https://push.oppo.com/) 注册 → 创建应用 → 取 APP_KEY + APP_SECRET
 
-**步骤**：
+**已内建（无需再写代码）**：
 
-1. 下载 [HeytapPushAPI_3.x.x.aar](https://open.oppomobile.com/wiki/doc#id=10708) → `app/libs/`
-2. build.gradle.kts: `implementation(files("libs/HeytapPushAPI_3.x.x.aar"))`
-3. AndroidManifest.xml: 加 OPush 服务 (类似小米)
-4. OppoPushService.kt initialize:
-   ```kotlin
-   HeytapPushManager.init(context, true)
-   HeytapPushManager.register(context, APP_KEY, APP_SECRET, callback)
-   ```
+- **构建门控**（`app/build.gradle.kts` + `settings.gradle.kts`）：`-PoppoPush=true` 一开即 (a) `settings.gradle.kts` 加 HeyTap Maven repo（`exclusiveContent` 限定 `com.heytap.msp` group，绝不干扰其它解析）、(b) `implementation("com.heytap.msp:push:3.5.3")`。**默认（不传 flag）构建 CI 全 byte-identical**——异于 vivo 的 AAR 探测，因 OPPO 是 Maven 依赖，故用显式 opt-in flag。**无 conditional 源集**（OPPO 无 manifest receiver；regId 走回调，见下）。
+- **`OppoPushService`（反射式真集成）**：脱 stub 改反射——`initialize()` 反射 `HeytapPushManager.init(ctx, DEBUG)` + `register(ctx, appKey, appSecret, 动态代理 ICallBackResultService)`；回调 `onRegister(code, regId[, …])`（跨 SDK 版本 arg 数不定，取首个非空 String 作 regId）→ `RemoteSessionPushBridge.onNewToken(regId, "oppo")`（直接把 regId 路由进活跃 Remote Session——OPPO 无 vivo 那种 manifest 广播 receiver）。`currentToken()` 反射 `getRegisterID()`；`isIntegrated()` 探 `Class.forName`——**全 runCatching**，无 SDK/凭证即返 false/null 不崩。
+- **凭证**：`appKey`/`appSecret` 走 `BuildConfig.OPPO_PUSH_APP_KEY`/`_APP_SECRET`（`-PoppoPushAppKey=… -PoppoPushAppSecret=…`；异于 vivo 走 manifest meta-data，因 OPPO register() 以参数收）。空则 `initialize()` 跳过。
+- **启动触发**：`AppInitializer` 异步块按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——OPPO/OnePlus/realme 设备启动即 register 铸 regId。
+- **权限/服务**：HeyTap SDK 自带 manifest（合并时带入所需权限/service），故**无需手改 AndroidManifest**（除非要收 through/data 静默消息，则另加 `CompatibleDataMessageCallbackService`——本期只支持通知消息，够唤醒审批，data 消息 defer）。
+
+**接入者只需 3 步（真机）**：
+
+1. 传 flag + 凭证：`-PoppoPush=true -PoppoPushAppKey=<key> -PoppoPushAppSecret=<secret>`（按 OPPO 控制台核对当前 SDK 版本号与 repo URL，如迁移则改 `build.gradle.kts`/`settings.gradle.kts` 里的版本/URL）。
+2. 真机装 app（需先上架 OPPO 软件商店，debug 包可试用 1 个月）→ 启动即 register。
+3. `Settings → 国内推送厂商` 应 auto-detect OPPO → 桌面配 OPPO sender（`CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER=oppo`）端到端验证。
 
 ### 3.4 vivo Push（代码骨架已落地，缺 AAR + 凭证）
 

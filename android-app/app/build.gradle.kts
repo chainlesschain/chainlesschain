@@ -56,6 +56,20 @@ if (hasVivoPush) {
     )
 }
 
+// OPPO (HeyTap) Push is an OPPO-Maven artifact (com.heytap.msp:push), NOT a
+// manual AAR — so it is gated on an explicit opt-in property (-PoppoPush=true)
+// rather than file presence. OppoPushService reaches the SDK purely via
+// reflection, so no conditional source set is needed; the property only pulls in
+// the runtime dependency (+ the repo in settings.gradle.kts). Without it the app
+// builds/runs fine and OppoTokenProvider degrades via reflection. See
+// docs/guides/Vendor_Push_Setup.md §3.3.
+val hasOppoPush = (project.findProperty("oppoPush") as String?)?.toBoolean() == true
+if (hasOppoPush) {
+    logger.lifecycle("✓ OPPO Push enabled (-PoppoPush=true; com.heytap.msp:push linked)")
+} else {
+    logger.lifecycle("ⓘ OPPO Push disabled (pass -PoppoPush=true to link the HeyTap SDK)")
+}
+
 android {
     namespace = "com.chainlesschain.android"
     compileSdk = 35
@@ -112,6 +126,21 @@ android {
             (project.findProperty("vivoPushAppId") as String?) ?: ""
         manifestPlaceholders["vivoPushApiKey"] =
             (project.findProperty("vivoPushApiKey") as String?) ?: ""
+
+        // OPPO push credentials → BuildConfig (HeytapPushManager.register takes
+        // appKey+appSecret as args, unlike vivo's manifest meta-data). Empty
+        // defaults keep default builds working; OppoPushService skips init when
+        // blank. Override: -PoppoPushAppKey=... -PoppoPushAppSecret=...
+        buildConfigField(
+            "String",
+            "OPPO_PUSH_APP_KEY",
+            "\"${(project.findProperty("oppoPushAppKey") as String?) ?: ""}\"",
+        )
+        buildConfigField(
+            "String",
+            "OPPO_PUSH_APP_SECRET",
+            "\"${(project.findProperty("oppoPushAppSecret") as String?) ?: ""}\"",
+        )
 
         // NDK support
         ndk {
@@ -526,6 +555,16 @@ dependencies {
     // VivoTokenProvider.kt / docs/guides/Vendor_Push_Setup.md §3.4).
     if (hasVivoPush) {
         implementation(vivoPushAars)
+    }
+
+    // ===== OPPO (HeyTap) Push (OPPO-Maven) =====
+    // Only linked with -PoppoPush=true (the repo is added in settings.gradle.kts
+    // under the same flag). OppoPushService uses reflection, so this dep only
+    // ships the SDK at runtime; without the flag the app builds/runs and
+    // OppoTokenProvider degrades via reflection. Pin/adjust the version per the
+    // current OPPO console (docs/guides/Vendor_Push_Setup.md §3.3).
+    if (hasOppoPush) {
+        implementation("com.heytap.msp:push:3.5.3")
     }
 
     // Testing

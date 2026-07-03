@@ -1,6 +1,9 @@
 package com.chainlesschain.android.push.vendor
 
 import android.content.Context
+import com.chainlesschain.android.BuildConfig
+import com.chainlesschain.android.remote.session.OppoTokenProvider
+import com.chainlesschain.android.remote.session.RemoteSessionPushBridge
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.lang.reflect.Proxy
@@ -46,6 +49,17 @@ class HuaweiPushService @Inject constructor(
     override fun isIntegrated(): Boolean = false
 }
 
+/**
+ * OPPO (HeyTap) Push, wired via **reflection** so the app compiles and runs
+ * WITHOUT the OPPO Push SDK (`com.heytap.msp:push`, linked only with
+ * -PoppoPush=true). Unlike vivo (a manifest receiver), OPPO delivers the regId
+ * through the `ICallBackResultService` callback passed to
+ * `HeytapPushManager.register(context, appKey, appSecret, callback)` — so this
+ * service both turns push on AND routes the fresh regId to the live Remote
+ * Session via [RemoteSessionPushBridge]. appKey/appSecret come from BuildConfig
+ * (empty → skip). Every call is guarded: SDK absent / creds missing → no-op
+ * (false / null), no crash. See docs/guides/Vendor_Push_Setup.md §3.3.
+ */
 @Singleton
 class OppoPushService @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -55,20 +69,65 @@ class OppoPushService @Inject constructor(
     @Volatile private var initialized = false
 
     override fun initialize(): Boolean {
-        if (initialized) return false
-        // TODO v1.2: HeytapPushManager.init(context, true)
-        //   HeytapPushManager.register(context, APP_KEY, APP_SECRET, callback)
-        Timber.w("OppoPushService.initialize: stub. 详 docs/guides/Vendor_Push_Setup.md §3.3")
+        if (initialized) return isIntegrated()
         initialized = true
-        return false
+        val appKey = BuildConfig.OPPO_PUSH_APP_KEY
+        val appSecret = BuildConfig.OPPO_PUSH_APP_SECRET
+        if (appKey.isBlank() || appSecret.isBlank()) {
+            Timber.w("OppoPushService.initialize: no OPPO_PUSH_APP_KEY/SECRET — skipping (-PoppoPushAppKey/Secret)")
+            return false
+        }
+        return runCatching {
+            val mgr = Class.forName("com.heytap.msp.push.HeytapPushManager")
+            mgr.getMethod("init", Context::class.java, Boolean::class.javaPrimitiveType)
+                .invoke(null, context, BuildConfig.DEBUG)
+            val callbackClass =
+                Class.forName("com.heytap.msp.push.callback.ICallBackResultService")
+            val callback = Proxy.newProxyInstance(
+                callbackClass.classLoader,
+                arrayOf(callbackClass),
+            ) { _, method, args ->
+                // onRegister(code, regId[, pkg, miniPkg]) — arg count varies across
+                // SDK versions; the regId is the first non-blank String argument.
+                if (method.name == "onRegister") {
+                    val regId = args?.firstOrNull { it is String && it.isNotBlank() } as? String
+                    if (!regId.isNullOrBlank()) {
+                        RemoteSessionPushBridge.onNewToken(regId, OppoTokenProvider.PROVIDER)
+                    }
+                }
+                null // every ICallBackResultService method returns void
+            }
+            mgr.getMethod(
+                "register",
+                Context::class.java,
+                String::class.java,
+                String::class.java,
+                callbackClass,
+            ).invoke(null, context, appKey, appSecret, callback)
+            Timber.i("OppoPushService: register requested")
+            true
+        }.getOrElse {
+            Timber.w(it, "OppoPushService.initialize: OPPO SDK unavailable — stub fallback")
+            false
+        }
     }
 
-    override fun currentToken(): String? = null
+    override fun currentToken(): String? = runCatching {
+        val mgr = Class.forName("com.heytap.msp.push.HeytapPushManager")
+        (mgr.getMethod("getRegisterID").invoke(null) as? String)?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
     override fun shutdown() {
-        // TODO v1.2: HeytapPushManager.unRegister()
+        runCatching {
+            val mgr = Class.forName("com.heytap.msp.push.HeytapPushManager")
+            mgr.getMethod("unRegister").invoke(null)
+        }
         initialized = false
     }
-    override fun isIntegrated(): Boolean = false
+
+    override fun isIntegrated(): Boolean = runCatching {
+        Class.forName("com.heytap.msp.push.HeytapPushManager"); true
+    }.getOrDefault(false)
 }
 
 /**

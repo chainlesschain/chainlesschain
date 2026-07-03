@@ -208,8 +208,17 @@
 - **`RemoteSessionVivoReceiver`**（`src/vivo/java`，**条件源集**，vivo 的 `RemoteSessionFirebaseService` 对位）：继承 `com.vivo.push.sdk.OpenClientPushMessageReceiver`；`onReceiveRegId` → `RemoteSessionPushBridge.onNewToken(regId, VivoTokenProvider.PROVIDER)`（首注册/轮换即推给活跃会话）；`onNotificationMessageClicked` → 本地弹审批通知（`params` 只带路由 id）。
 - **AndroidManifest**：`<receiver ... RemoteSessionVivoReceiver android:exported="true">` + `com.vivo.pushclient.action.RECEIVE` intent-filter + `com.vivo.push.app_id`/`api_key` meta-data（值走 `manifestPlaceholders`，空默认保证无凭证也 merge；`-PvivoPushAppId=… -PvivoPushApiKey=…` 注入）。`tools:ignore="MissingClass"`（无 AAR 构建下类不存在但永不实例化）。
 - **`VivoPushService` 反射真集成**（`push/vendor/OtherVendorStubs.kt`，脱 stub）：`initialize()` 反射 `PushClient.getInstance(ctx).initialize()` + `turnOnPush(动态代理 IPushActionListener)`；`currentToken()` 反射 `getRegId()`；`isIntegrated()` 探 `Class.forName`——**全 runCatching 兜底**，无 SDK 即返 false/null 不崩，无编译期硬依赖。
-- **启动触发**（`AppInitializer` 异步块 #10）：按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——vivo 设备启动即 turnOn 铸 regId 供唤醒（FCM 设备 route 到 no-op；小米/华为/OPPO 仍 stub 返 false）。
+- **启动触发**（`AppInitializer` 异步块 #10）：按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——vivo 设备启动即 turnOn 铸 regId 供唤醒（FCM 设备 route 到 no-op；小米/华为 仍 stub 返 false；OPPO 见下）。
 - 验证：`VivoPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）+ `AppInitializerTest` 2（新增 `pushVendorRegistry` 依赖后不回归）；`gradlew :app:kspDebugKotlin`（主 Hilt DI 图含新依赖编译通过）+ `:app:processDebugMainManifest`（vivo receiver + meta-data 成功 merge 进 `merged_manifest`）+ `:app:testDebugUnitTest` 过。**门控日志确认无 AAR 时 vivo 源集排除**。剩真机项（Win 不可跑）：接入者放 AAR + 传凭证（`docs/guides/Vendor_Push_Setup.md` §3.4 三步）+ 真机上架 vivo 市场端到端验证。
+
+#### Phase 4：Android OPPO push 真机集成（Maven 门控 + 回调 register，已完成骨架）
+
+- **架构差异**：OPPO（HeyTap）push 与 vivo 形态不同——(1) SDK 是 **OPPO-Maven 依赖**（`com.heytap.msp:push`）非手动 AAR；(2) regId **不走 manifest 广播 receiver**，而是 `HeytapPushManager.register(ctx, appKey, appSecret, ICallBackResultService)` 的回调 `onRegister` 递送。故 OPPO 真机集成**无 conditional 源集、无 manifest receiver**，纯反射即可。
+- **构建门控**（`app/build.gradle.kts` + `settings.gradle.kts`）：`-PoppoPush=true` 一开即 (a) settings 加 HeyTap Maven repo（`exclusiveContent` 限定 `com.heytap.msp` group）、(b) `implementation("com.heytap.msp:push:3.5.3")`。默认（无 flag）构建 **CI byte-identical**（门控日志实测 "OPPO Push disabled"）。因 Maven 依赖无本地文件可探，故用显式 opt-in flag 而非 vivo 的 AAR 探测。
+- **`OppoPushService` 反射真集成**（`push/vendor/OtherVendorStubs.kt`，脱 stub）：`initialize()` 反射 `HeytapPushManager.init(ctx, DEBUG)` + `register(…, 动态代理 ICallBackResultService)`；回调 `onRegister`（跨版本 arg 数不定，取首个非空 String 作 regId）→ `RemoteSessionPushBridge.onNewToken(regId, "oppo")` 直接路由进活跃会话。`currentToken()` 反射 `getRegisterID()`；`isIntegrated()` 探 `Class.forName`——全 runCatching 兜底。
+- **凭证**：`appKey`/`appSecret` 走 `BuildConfig.OPPO_PUSH_APP_KEY`/`_APP_SECRET`（`-PoppoPushAppKey/Secret`，空则 `initialize()` 跳过）——异于 vivo 走 manifest meta-data，因 OPPO register() 以参数收。
+- 启动触发同 vivo（`AppInitializer` 按 manufacturer 自动 `initialize()`；OPPO/OnePlus/realme 命中）。
+- 验证：`OppoPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / 无凭证+SDK initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）；`gradlew :app:kspDebugKotlin`（主 Hilt DI + `BuildConfig.OPPO_PUSH_*` 字段 + vendor→remote.session import 编译通过）+ `:app:testDebugUnitTest` 过；门控日志确认默认无 OPPO 依赖。剩真机项（Win 不可跑）：接入者传 `-PoppoPush=true` + 凭证（`docs/guides/Vendor_Push_Setup.md` §3.3 三步）+ 真机上架 OPPO 商店端到端验证；through/data 静默消息（`CompatibleDataMessageCallbackService`）defer（本期通知消息够唤醒审批）。
 
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
