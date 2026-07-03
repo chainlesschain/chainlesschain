@@ -265,6 +265,18 @@ _percentile(arr, p)
 
 ---
 
+## _recordLatency(toolName, latency)
+
+```javascript
+_recordLatency(toolName, latency)
+```
+
+* Record a tool-call latency sample, keeping only a bounded rolling window
+   * per tool so the latency arrays can't grow without limit.
+   * @private
+
+---
+
 ## _setupHttpSseHandlers(transport, serverName)
 
 ```javascript

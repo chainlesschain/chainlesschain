@@ -4,10 +4,10 @@
 
 ---
 
-## const path = require('path');
+## const path = require("path");
 
 ```javascript
-const path = require('path');
+const path = require("path");
 ```
 
 * Additional Tools V3 Handler
@@ -339,7 +339,7 @@ async tool_vendor_manager(params)
 return `/**\n * $
 ```
 
-\n * ${spec.description || 'Generated function'}\n
+\n * ${spec.description || "Generated function"}\n
 
 ---
 
@@ -349,7 +349,7 @@ return `/**\n * $
 return `// Generated $
 ```
 
-\n * ${spec.description || 'Generated class'}\n
+\n * ${spec.description || "Generated class"}\n
 
 ---
 
@@ -359,7 +359,7 @@ return `// Generated $
 return `// Generated $
 ```
 
-\n * ${spec.description || 'Generated class'}\n
+\n * ${spec.description || "Generated class"}\n
 
 ---
 
@@ -369,7 +369,7 @@ return `// Generated $
 return `// Generated $
 ```
 
-\n * ${spec.description || 'Generated smart contract'}\n
+\n * ${spec.description || "Generated smart contract"}\n
 
 ---
 

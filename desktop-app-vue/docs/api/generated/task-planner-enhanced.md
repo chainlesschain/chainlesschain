@@ -21,6 +21,16 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
+
+---
+
 ## class QualityGateChecker
 
 ```javascript

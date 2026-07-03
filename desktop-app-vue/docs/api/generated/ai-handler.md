@@ -23,6 +23,19 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single conversation/agent/template row with a
+ * corrupt metadata/config/variables string must not throw out of the .map and
+ * drop the whole list. The `x ? JSON.parse(x) : d` form it replaces only guarded
+ * NULL, not a corrupt non-empty string.
+
+---
+
 ## class AICommandHandler
 
 ```javascript

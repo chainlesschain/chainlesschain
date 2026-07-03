@@ -165,6 +165,16 @@ watchSettingsFile()
 
 ---
 
+## close()
+
+```javascript
+close()
+```
+
+* 关闭文件监听并清理资源（应用退出或销毁实例时调用，避免 FSWatcher 泄漏）
+
+---
+
 ## export(outputPath)
 
 ```javascript
@@ -202,6 +212,16 @@ getSummary()
 ```
 
 * 获取设置摘要
+
+---
+
+## function destroySettingsManager()
+
+```javascript
+function destroySettingsManager()
+```
+
+* 关闭并释放全局实例（关闭文件监听），用于应用退出或测试清理
 
 ---
 

@@ -138,6 +138,18 @@ escapeDOT(str)
 
 ---
 
+## escapeCSV(value)
+
+```javascript
+escapeCSV(value)
+```
+
+* 辅助方法：转义 CSV 字段内容（RFC 4180）
+   * 调用方负责加外层引号；此处把内嵌引号按 RFC 4180 双写（" -> ""），
+   * 避免含引号/逗号/换行的标签破坏列结构。
+
+---
+
 ## getNodeColor(type)
 
 ```javascript

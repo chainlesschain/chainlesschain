@@ -21,6 +21,68 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single post with a corrupt images string must
+ * not throw out of the .map and drop the whole post list. The `x ? JSON.parse(x)
+ * : d` form it replaces only guarded NULL, not a corrupt non-empty string.
+
+---
+
+## function buildPostSignedSubset(post)
+
+```javascript
+function buildPostSignedSubset(post)
+```
+
+* Build the canonical, IMMUTABLE subset of a post that is Ed25519-signed by its
+ * author and verified on receipt. Only fields fixed at creation are included —
+ * NEVER like_count / comment_count / share_count / updated_at, which mutate as
+ * the post propagates and would otherwise break every relayed signature.
+ *
+ * canonicalize() (did-signer) rejects nested objects/arrays, so `images` (an
+ * array) is flattened to its JSON string. Both sender and receiver call THIS
+ * function, so the canonical bytes match exactly.
+ * @param {Object} post
+ * @returns {Object} flat subset suitable for did-signer canonicalize()
+
+---
+
+## function buildLikeSignedSubset(
+
+```javascript
+function buildLikeSignedSubset(
+```
+
+* Canonical immutable subset of a LIKE, signed by the liker (user_did) so a
+ * peer cannot forge "X liked this" on X's behalf. Timestamp is deliberately
+ * excluded: a like is idempotent (dedup on post_id+user_did), the receiver
+ * stamps its own created_at, and omitting it means only pubkey+signature need
+ * to be threaded through the P2P notification.
+ * @param {{ postId: string, userDid: string }} like
+ * @returns {Object} flat subset for did-signer canonicalize()
+
+---
+
+## function buildCommentSignedSubset(comment)
+
+```javascript
+function buildCommentSignedSubset(comment)
+```
+
+* Canonical immutable subset of a COMMENT, signed by its author (author_did).
+ * parent_id is normalized to null (not undefined) so sender and receiver
+ * canonicalize identically — canonicalize() serializes null but SKIPS
+ * undefined, so the two must not diverge.
+ * @param {Object} comment
+ * @returns {Object} flat subset for did-signer canonicalize()
+
+---
+
 ## const PostVisibility =
 
 ```javascript
@@ -85,6 +147,57 @@ async createPost(
    * @param {string} options.linkTitle - 链接标题
    * @param {string} options.linkDescription - 链接描述
    * @param {string} options.visibility - 可见性
+
+---
+
+## _signPost(post)
+
+```javascript
+_signPost(post)
+```
+
+* 用当前身份的 Ed25519 DID 私钥对动态签名。
+   * 无签名密钥的旧身份返回 {null,null}（收端按 legacy 未签名兼容处理）；
+   * 签名抛错时降级为未签名（记 error 日志，动态本身已本地保存）。
+   * @param {Object} post - 动态对象
+   * @returns {{ author_pubkey: string|null, signature: string|null }}
+   * @private
+
+---
+
+## _signSubset(subset, ctx)
+
+```javascript
+_signSubset(subset, ctx)
+```
+
+* 用当前身份的 Ed25519 DID 私钥对给定 canonical 子集签名（动态/点赞/评论共用）。
+   * 无签名密钥的旧身份返回 {null,null}（收端按 legacy 未签名兼容处理）；
+   * 签名抛错时降级为未签名（记 error 日志，本地记录已保存）。
+   * @param {Object} subset - 已构造的可签名扁平子集
+   * @param {string} ctx - 日志上下文标签
+   * @returns {{ author_pubkey: string|null, signature: string|null }}
+   * @private
+
+---
+
+## _verifyInbound(subset, signerDid, pubkey, signature, label)
+
+```javascript
+_verifyInbound(subset, signerDid, pubkey, signature, label)
+```
+
+* 接收路径通用真实性门（对齐 handlePostReceived 三模式，B4a）：
+   *   pubkey+signature 都在 → 严格验签（pubkey 必 hash 成 signerDid 且验签通过），失败即拒；
+   *   两者都缺 → legacy 未签名，接受 + 警告（迁移窗口）；
+   *   只有其一 → 信封损坏，拒绝。
+   * @param {Object} subset - 收端用同一 builder 重建的 canonical 子集
+   * @param {string} signerDid - 声称的签名者 DID（点赞=user_did / 评论=author_did）
+   * @param {string|null} pubkey - author_pubkey
+   * @param {string|null} signature
+   * @param {string} label - 日志用（如 "点赞"/"评论"）
+   * @returns {{ ok: boolean, legacy?: boolean, reason?: string }}
+   * @private
 
 ---
 
@@ -180,10 +293,10 @@ hasLiked(postId, userDid)
 
 ---
 
-## async handleLikeReceived(postId, userDid)
+## async handleLikeReceived(postId, userDid, authorPubkey, signature)
 
 ```javascript
-async handleLikeReceived(postId, userDid)
+async handleLikeReceived(postId, userDid, authorPubkey, signature)
 ```
 
 * 处理收到的点赞

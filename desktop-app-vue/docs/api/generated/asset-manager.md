@@ -21,6 +21,18 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single holding/asset row with a corrupt
+ * metadata string must not throw out of the .map and drop the whole holdings/
+ * asset list. The `x ? JSON.parse(x) : d` form it replaces only guarded NULL.
+
+---
+
 ## const AssetType =
 
 ```javascript
@@ -106,10 +118,10 @@ async mintAsset(assetId, toDid, amount)
 
 ---
 
-## async transferAsset(assetId, toDid, amount, memo = "", onChainOptions =
+## async transferAsset(
 
 ```javascript
-async transferAsset(assetId, toDid, amount, memo = "", onChainOptions =
+async transferAsset(
 ```
 
 * 转账资产
