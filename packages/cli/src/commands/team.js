@@ -104,39 +104,44 @@ function makeShellRunTask(logger) {
   };
 }
 
-/** Real executor: hand a task's `prompt` to a headless `cc agent -p`. */
+/** Spawn a headless `cc agent -p` for one prompt in `cwd`; resolve on exit 0. */
+function spawnAgent(prompt, cwd, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      BIN,
+      "agent",
+      "-p",
+      prompt,
+      "--permission-mode",
+      opts.permissionMode || "acceptEdits",
+      "--output-format",
+      "text",
+    ];
+    if (opts.model) args.push("--model", opts.model);
+    const child = spawn(process.execPath, args, {
+      cwd,
+      env: { ...process.env, CLAUDECODE: "1" },
+      windowsHide: true,
+    });
+    let err = "";
+    child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    child.on("error", (e) => reject(new Error(e.message)));
+    child.on("close", (code) =>
+      code === 0
+        ? resolve({ code })
+        : reject(new Error(err.trim() || `agent exited ${code}`)),
+    );
+  });
+}
+
+/** Real executor: hand a task's `prompt` to a headless `cc agent -p` in cwd. */
 function makeAgentRunTask(opts = {}) {
   return function runTask({ task }) {
     const prompt = task.metadata?.prompt || task?.prompt;
     if (!prompt) {
       throw new Error(`task "${task.key}" has no \`prompt\` to --agent`);
     }
-    return new Promise((resolve, reject) => {
-      const args = [
-        BIN,
-        "agent",
-        "-p",
-        prompt,
-        "--permission-mode",
-        opts.permissionMode || "acceptEdits",
-        "--output-format",
-        "text",
-      ];
-      if (opts.model) args.push("--model", opts.model);
-      const child = spawn(process.execPath, args, {
-        cwd: process.cwd(),
-        env: { ...process.env, CLAUDECODE: "1" },
-        windowsHide: true,
-      });
-      let err = "";
-      child.stderr?.on("data", (d) => (err += d.toString("utf8")));
-      child.on("error", (e) => reject(new Error(e.message)));
-      child.on("close", (code) =>
-        code === 0
-          ? resolve({ code })
-          : reject(new Error(err.trim() || `agent exited ${code}`)),
-      );
-    });
+    return spawnAgent(prompt, process.cwd(), opts);
   };
 }
 
@@ -324,7 +329,22 @@ export function registerTeamCommand(program, { logger } = {}) {
           process.exitCode = 1;
           return;
         }
-        runTask = coord.makeRunTask();
+        if (options.agent) {
+          // --agent --worktree: each teammate drives an agent turn (its `prompt`)
+          // inside its OWN git worktree, so parallel edits never fight over the
+          // working tree, then integrate/merge the branches like --exec --worktree.
+          runTask = coord.makeRunTask({
+            runInWorktree: async ({ key, task, cwd }) => {
+              const prompt = task.metadata?.prompt || task?.prompt;
+              if (!prompt) {
+                throw new Error(`task "${key}" has no \`prompt\` to --agent`);
+              }
+              await spawnAgent(prompt, cwd, { model: options.model });
+            },
+          });
+        } else {
+          runTask = coord.makeRunTask();
+        }
       } else if (options.exec) runTask = makeShellRunTask(log);
       else if (options.agent)
         runTask = makeAgentRunTask({ model: options.model });

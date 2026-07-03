@@ -86,22 +86,29 @@ export class TeamWorktreeCoordinator {
   }
 
   /**
-   * A TeamRunner `runTask` that runs the task's shell `command` inside a fresh
-   * per-task worktree and commits the result. Throws (→ task failure) on a
-   * non-zero command so retry/cancel still work.
+   * A TeamRunner `runTask` that runs a task inside a fresh per-task worktree and
+   * commits the result. By default it runs the task's shell `command`; pass
+   * `runInWorktree({ key, task, holder, cwd })` to instead drive an agent turn
+   * (its `prompt`) with cwd set to the worktree, so `--agent --worktree` gets the
+   * same parallel isolation as `--exec --worktree`. Throws (→ task failure) on a
+   * non-zero command / agent exit so retry/cancel still work.
    */
-  makeRunTask() {
-    return async ({ key, task }) => {
-      const command = task.metadata?.command || task?.command;
-      if (!command) {
-        throw new Error(
-          `task "${key}" has no \`command\` to run in a worktree`,
-        );
-      }
+  makeRunTask({ runInWorktree = null } = {}) {
+    return async ({ key, task, holder }) => {
       const branch = this.branchFor(key);
       const { path: worktreePath } = _deps.createWorktree(this.repoDir, branch);
       this._created.set(key, { branch, path: worktreePath, committed: false });
-      await _deps.runShell(command, worktreePath);
+      if (typeof runInWorktree === "function") {
+        await runInWorktree({ key, task, holder, cwd: worktreePath });
+      } else {
+        const command = task.metadata?.command || task?.command;
+        if (!command) {
+          throw new Error(
+            `task "${key}" has no \`command\` to run in a worktree`,
+          );
+        }
+        await _deps.runShell(command, worktreePath);
+      }
       const committed = _deps.commit(worktreePath, `team task ${key}`);
       this._created.get(key).committed = committed;
       return { branch, committed };

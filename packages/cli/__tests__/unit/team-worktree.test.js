@@ -44,6 +44,43 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       coord.makeRunTask()({ key: "x", task: { metadata: {} } }),
     ).rejects.toThrow(/no `command`/);
   });
+
+  it("runs an injected executor (agent prompt) in the worktree instead of a shell command", async () => {
+    // --agent --worktree: the coordinator drives an agent turn in the worktree
+    // cwd rather than a shell command, then still commits + integrates.
+    _deps.createWorktree = (repo, branch) => ({
+      path: `/wt/${branch.replace(/\//g, "-")}`,
+    });
+    _deps.commit = () => true;
+    const calls = [];
+    const coord = new TeamWorktreeCoordinator("/repo");
+    const runTask = coord.makeRunTask({
+      runInWorktree: async ({ key, task, cwd }) => {
+        calls.push({ key, prompt: task.metadata.prompt, cwd });
+      },
+    });
+    const out = await runTask({
+      key: "fix",
+      task: { metadata: { prompt: "fix the bug" } },
+    });
+    expect(out).toEqual({ branch: "team/fix", committed: true });
+    // The agent ran in the per-task worktree cwd, not process.cwd().
+    expect(calls).toEqual([
+      { key: "fix", prompt: "fix the bug", cwd: "/wt/team-fix" },
+    ]);
+  });
+
+  it("propagates an injected executor failure as a task failure", async () => {
+    _deps.createWorktree = () => ({ path: "/wt/x" });
+    const coord = new TeamWorktreeCoordinator("/repo");
+    await expect(
+      coord.makeRunTask({
+        runInWorktree: async () => {
+          throw new Error("agent exited 1");
+        },
+      })({ key: "x", task: { metadata: { prompt: "p" } } }),
+    ).rejects.toThrow(/agent exited 1/);
+  });
 });
 
 describe("TeamWorktreeCoordinator.integrate", () => {
