@@ -30,6 +30,7 @@ const { validate } = require("./schemas");
 const { applyMigrations, getSchemaVersion, getFtsMode } = require("./migrations");
 const { isValidKeyHex } = require("./key-providers");
 const { getCategory, PREFIX_RULES } = require("./categories");
+const { likeContains } = require("./sql-like");
 
 // FTS5 trigram tokenizer requires queries of >= 3 chars to produce any
 // trigrams at all (single 2-char input gives zero index keys → empty result).
@@ -910,10 +911,9 @@ class LocalVault {
     }
     const where = [];
     const params = {};
-    // LIKE-escape % and _ in the user input so a name with literal % won't
-    // wildcard. SQLite LIKE ESCAPE clause handles this.
-    const escaped = term.replace(/([\\%_])/g, "\\$1");
-    params.qPat = "%" + escaped + "%";
+    // LIKE-escape % _ \ in the user input so a name with literal metachars
+    // won't wildcard. Pair with the ESCAPE '\' clauses below.
+    params.qPat = likeContains(term);
     where.push(
       "(" +
         "names LIKE @qPat ESCAPE '\\' OR " +
@@ -1041,9 +1041,9 @@ class LocalVault {
           shortQuery = true;
         }
       } else {
-        params.qLike = "%" + rawQ + "%";
+        params.qLike = likeContains(rawQ);
         where.push(
-          "(subtype LIKE @qLike OR content LIKE @qLike OR actor LIKE @qLike OR place LIKE @qLike OR extra LIKE @qLike)"
+          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')"
         );
       }
     }
@@ -1125,9 +1125,9 @@ class LocalVault {
           shortQuery = true;
         }
       } else {
-        params.qLike = "%" + rawQ + "%";
+        params.qLike = likeContains(rawQ);
         where.push(
-          "(subtype LIKE @qLike OR content LIKE @qLike OR actor LIKE @qLike OR place LIKE @qLike OR extra LIKE @qLike)"
+          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')"
         );
       }
     }

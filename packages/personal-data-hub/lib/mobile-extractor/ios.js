@@ -34,6 +34,7 @@ const {
   decryptCBC,
 } = require("./ios-backup-crypto");
 const { parseBplist, unwrapNSKeyedArchiver } = require("./bplist");
+const { likeContains } = require("../sql-like");
 
 class iOSBackupReader {
   constructor(opts = {}) {
@@ -163,12 +164,12 @@ class iOSBackupReader {
       params.push(opts.domain);
     }
     if (opts.domainLike) {
-      where.push("domain LIKE ?");
-      params.push(`%${opts.domainLike}%`);
+      where.push("domain LIKE ? ESCAPE '\\'");
+      params.push(likeContains(opts.domainLike));
     }
     if (opts.relativePathLike) {
-      where.push("relativePath LIKE ?");
-      params.push(`%${opts.relativePathLike}%`);
+      where.push("relativePath LIKE ? ESCAPE '\\'");
+      params.push(likeContains(opts.relativePathLike));
     }
     if (opts.flags !== undefined) {
       where.push("flags = ?");
