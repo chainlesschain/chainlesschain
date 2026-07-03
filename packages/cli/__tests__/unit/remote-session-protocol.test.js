@@ -8,6 +8,7 @@ import {
   handleRemoteSessionJoin,
   handleRemoteSessionPolicy,
   handleRemoteSessionPublish,
+  handleRemoteSessionPushRegister,
   handleRemoteSessionRevoke,
 } from "../../src/gateways/ws/remote-session-protocol.js";
 import { parseRemotePairingUri } from "../../src/harness/remote-session-crypto.js";
@@ -321,6 +322,74 @@ describe("remote session WebSocket protocol", () => {
     expect(tabletWs.sent.at(-1)).toMatchObject({
       type: "error",
       code: "REMOTE_SESSION_AUDIT_ERROR",
+    });
+  });
+
+  it("stores a push token carried in the join message", () => {
+    handleRemoteSessionCreate(server, "host", host, {
+      id: "create-push",
+      sessionId: "agent-1",
+      scopes: ["observe"],
+    });
+    const created = host.sent.at(-1);
+    handleRemoteSessionJoin(server, "phone", phone, {
+      id: "join-push",
+      remoteSessionId: created.session.sessionId,
+      token: created.pairing.token,
+      pushToken: "fcm-token",
+      pushProvider: "fcm",
+    });
+    const devices = server.remoteSessions.listDevices(
+      created.session.sessionId,
+      "host",
+    ).devices;
+    expect(devices.find((d) => d.clientId === "phone")).toMatchObject({
+      hasPush: true,
+      pushProvider: "fcm",
+    });
+    const joined = server.remoteSessionAudit
+      .list({ sessionId: created.session.sessionId, action: "device.joined" })
+      .at(0);
+    expect(joined.detail).toMatchObject({ via: "direct", hasPush: true });
+  });
+
+  it("registers a device's own push token after pairing", () => {
+    const remoteSessionId = createAndJoin(["observe"]);
+    handleRemoteSessionPushRegister(server, "phone", phone, {
+      id: "push-reg",
+      remoteSessionId,
+      pushToken: "fcm-late",
+      pushProvider: "fcm",
+    });
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "remote-session-push-registered",
+      clientId: "phone",
+      hasPush: true,
+      provider: "fcm",
+    });
+    expect(server.remoteSessions.pushTargets(remoteSessionId)).toEqual([
+      { clientId: "phone", pushToken: "fcm-late", pushProvider: "fcm" },
+    ]);
+    const audited = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId, action: "push.registered" })
+      .at(0);
+    expect(audited).toMatchObject({
+      actor: "phone",
+      detail: { hasPush: true, provider: "fcm" },
+    });
+  });
+
+  it("rejects a push registration from a non-member", () => {
+    const remoteSessionId = createAndJoin(["observe"]);
+    const ghostWs = socket("ghost");
+    handleRemoteSessionPushRegister(server, "ghost", ghostWs, {
+      id: "push-ghost",
+      remoteSessionId,
+      pushToken: "x",
+    });
+    expect(ghostWs.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "REMOTE_SESSION_PUSH_REGISTER_ERROR",
     });
   });
 

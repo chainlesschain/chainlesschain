@@ -69,6 +69,20 @@ class RemoteSessionClient(
     val currentPairing: RemoteSessionPairing? get() = pairing
     val localPeerId: String? get() = peerId
 
+    // Optional vendor-push credentials. When set before pairing, they ride along
+    // in the encrypted pair.join so the host can wake this device for approval
+    // requests while the app is backgrounded. Sourcing the actual FCM/HMS token
+    // (FirebaseMessaging.getInstance().token) is left to the app layer; this
+    // client just forwards whatever it is handed.
+    private var pushToken: String? = null
+    private var pushProvider: String? = null
+
+    /** Provide (or clear, with null) the vendor push token used for wake-ups. */
+    fun setPushCredentials(token: String?, provider: String? = null) {
+        pushToken = token?.takeIf { it.isNotBlank() }
+        pushProvider = if (pushToken != null) provider else null
+    }
+
     // Reconnect state. The pairing token is single-use, so a reconnect within
     // the same process lifetime re-registers with the relay and resumes on the
     // already-derived shared secret instead of re-pairing.
@@ -143,12 +157,13 @@ class RemoteSessionClient(
     private fun sendPairRequest(webSocket: WebSocket) {
         val activePairing = requireNotNull(pairing)
         val activeCrypto = requireNotNull(crypto)
-        val envelope = activeCrypto.encrypt(
-            JSONObject()
-                .put("type", "pair.join")
-                .put("remoteSessionId", activePairing.remoteSessionId)
-                .put("token", activePairing.pairingToken),
-        )
+        val joinPayload = JSONObject()
+            .put("type", "pair.join")
+            .put("remoteSessionId", activePairing.remoteSessionId)
+            .put("token", activePairing.pairingToken)
+        pushToken?.let { joinPayload.put("pushToken", it) }
+        pushProvider?.let { joinPayload.put("pushProvider", it) }
+        val envelope = activeCrypto.encrypt(joinPayload)
         webSocket.send(
             JSONObject()
                 .put("type", "message")

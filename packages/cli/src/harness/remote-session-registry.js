@@ -149,10 +149,9 @@ export class RemoteSessionPolicy {
       );
     }
     if (env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOW_RELAY != null) {
-      options.allowRelayPairing =
-        !/^(0|false|no|off)$/i.test(
-          String(env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOW_RELAY).trim(),
-        );
+      options.allowRelayPairing = !/^(0|false|no|off)$/i.test(
+        String(env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOW_RELAY).trim(),
+      );
     }
     return new RemoteSessionPolicy(options);
   }
@@ -234,7 +233,14 @@ export class RemoteSessionRegistry {
     };
   }
 
-  join({ sessionId, clientId, token, via = "direct" } = {}) {
+  join({
+    sessionId,
+    clientId,
+    token,
+    via = "direct",
+    pushToken = null,
+    pushProvider = null,
+  } = {}) {
     if (!clientId) throw new Error("clientId is required");
     const session = this.requireSession(sessionId);
     const pairing = this.tokens.get(sessionId);
@@ -255,9 +261,52 @@ export class RemoteSessionRegistry {
     // Pairing credentials are deliberately one-time. The host must explicitly
     // issue another token for each additional device.
     this.tokens.delete(sessionId);
-    const member = { clientId, scopes: pairing.scopes, joinedAt: this.now() };
+    const member = {
+      clientId,
+      scopes: pairing.scopes,
+      joinedAt: this.now(),
+      pushToken: pushToken || null,
+      pushProvider: pushToken ? pushProvider || null : null,
+    };
     session.members.set(clientId, member);
     return { session: publicSession(session), member: { ...member } };
+  }
+
+  /**
+   * A device registers (or refreshes / clears) its own vendor push token after
+   * pairing — e.g. once FCM assigns one. Only an existing member may set its own
+   * token. A null token clears push for that device.
+   */
+  registerPush(sessionId, clientId, { token = null, provider = null } = {}) {
+    const session = this.requireSession(sessionId);
+    const member = session.members.get(clientId);
+    if (!member) {
+      throw new Error("Device is not paired with this remote session");
+    }
+    member.pushToken = token || null;
+    member.pushProvider = token ? provider || null : null;
+    return {
+      clientId,
+      hasPush: Boolean(member.pushToken),
+      provider: member.pushProvider,
+    };
+  }
+
+  /** Non-host members that carry a push token, for wake-up dispatch. */
+  pushTargets(sessionId, { excludeClientId } = {}) {
+    const session = this.requireSession(sessionId);
+    const targets = [];
+    for (const member of session.members.values()) {
+      if (member.clientId === session.hostClientId) continue;
+      if (member.clientId === excludeClientId) continue;
+      if (!member.pushToken) continue;
+      targets.push({
+        clientId: member.clientId,
+        pushToken: member.pushToken,
+        pushProvider: member.pushProvider,
+      });
+    }
+    return targets;
   }
 
   authorize(sessionId, clientId, scope) {
@@ -292,6 +341,8 @@ export class RemoteSessionRegistry {
         scopes: [...member.scopes],
         joinedAt: member.joinedAt,
         isHost: member.clientId === session.hostClientId,
+        hasPush: Boolean(member.pushToken),
+        pushProvider: member.pushProvider || null,
       })),
     };
   }

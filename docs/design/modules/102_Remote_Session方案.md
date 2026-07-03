@@ -121,8 +121,17 @@
 - Desktop：bridge/service/IPC/preload `getRemoteSessionPolicy`；Remote 面板顶部展示生效策略摘要（收窄的 Scope / 设备上限 / 会话时长 / relay 是否禁用）。
 - 验证：`remote-session-policy` 9 单测（applyScopes 收窄/不相交抛错/未知 Scope 拒绝、TTL 封顶、设备上限、relay 开关、fromEnv 解析）+ registry 扩测 4（issue 收窄 + host 不受限、TTL 封顶、设备上限、relay 禁用 direct 仍可）+ protocol 查询 1。远程会话全量 50 单测（8 文件）通过。
 
+#### Phase 4：推送通知（vendor push，已完成）
+
+- `packages/cli/src/harness/remote-session-push.js`：`RemoteSessionPushDispatcher` 在 relay WebSocket 被系统挂起（后台应用）时唤醒已配对设备处理**审批请求**——前台本地通知覆盖不到的场景。实际投递（FCM / APNs / 小米 / 华为 / OPPO）是宿主注入的可插拔 `sender`，本层**零凭据**且完全可单测；无 sender 时降级为记录型 no-op。载荷**不含任何会话内容**，只带路由唤醒所需的形状（与审计日志的隐私优先一致）。30s 去重窗口按 `clientId:dedupeKey` 抑制重复唤醒；`isApprovalRequestEvent` 只匹配 approval/permission 请求，排除其 `resolved` 对应事件。
+- Registry：`join` 接受 `pushToken`/`pushProvider` 并存于成员（无 token 则忽略 provider）；配对后设备可用 `registerPush` 自行注册/刷新/清空自己的 token（null 清空即退出唤醒目标）；`pushTargets` 列出携带 token 的非 host 成员；`listDevices` 暴露 `hasPush`/`pushProvider`。
+- WS：`ws-server` 构造 `this.remoteSessionPush`（`fromEnv` + 注入 `remoteSessionPushSender`）；`_mirrorRemoteSessionEvent` 在镜像 approval 事件时，对**每个**带 push token 的观察成员 fire-and-forget 唤醒（独立于本地/relay 可达性——后台应用可能报「socket 活着」但进程已挂起，永远读不到镜像事件直到用户点推送），并记 `push.sent`/`push.failed`/`push.skipped` 审计。relay 配对握手的 `pair.join` 也透传 `pushToken`/`pushProvider`。新增 WS `remote-session-push-register`（设备只能注册自己的 token）。
+- Desktop：Remote 面板设备列表对带推送的远端设备显示绿色「Push · <provider>」标签（悬浮说明后台可被唤醒）。
+- Android：`RemoteSessionClient.setPushCredentials(token, provider)` 缝——设置后随加密 `pair.join` 上送；真实 FCM/HMS token 取值（`FirebaseMessaging.getInstance().token`）留给 app 层。
+- 验证：`remote-session-push` 9 单测（isApprovalRequestEvent 匹配/无 sender 跳过/无 token 跳过/投递 sent/provider 覆盖/去重窗口 + 跨 client 不去重 + 过窗重发/sender 抛错不 throw 记 failed/fromEnv）+ registry 扩测 5（join 存 token、无 token 忽略 provider、register 注册刷新清空、非成员拒绝、pushTargets 排除 host 与指定 client）+ protocol 扩测 3（join 带 token + 审计、注册 + 审计、非成员拒绝）+ mirroring 扩测 2（approval 唤醒且记 push.sent、无 sender 不唤醒不记）。
+
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：推送通知（vendor push）；审计日志的持久化 sink（JSONL/SQLite）实装；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：真实 vendor push `sender` 实装（FCM/APNs 服务端凭据 + Android FirebaseMessaging 集成 + google-services.json；Web push 需 service worker）；审计日志的持久化 sink（JSONL/SQLite）实装；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。

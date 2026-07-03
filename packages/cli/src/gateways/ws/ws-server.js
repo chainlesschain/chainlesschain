@@ -32,6 +32,10 @@ import {
   RemoteSessionPolicy,
 } from "../../harness/remote-session-registry.js";
 import { RemoteSessionAuditLog } from "../../harness/remote-session-audit.js";
+import {
+  RemoteSessionPushDispatcher,
+  isApprovalRequestEvent,
+} from "../../harness/remote-session-push.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
@@ -243,6 +247,16 @@ export class ChainlessChainWSServer extends EventEmitter {
     /** Bounded in-memory audit trail for Remote Session lifecycle + control. */
     this.remoteSessionAudit =
       options.remoteSessionAudit || new RemoteSessionAuditLog();
+    /**
+     * Vendor-push dispatcher — wakes backgrounded paired devices for approval
+     * requests. Credential-free by default (a no-op until a `sender` is
+     * injected); FCM/APNs delivery is host-supplied.
+     */
+    this.remoteSessionPush =
+      options.remoteSessionPush ||
+      RemoteSessionPushDispatcher.fromEnv(process.env, {
+        sender: options.remoteSessionPushSender || null,
+      });
     this.remoteSessionRelayUrl = options.remoteSessionRelayUrl || null;
     this.remoteSessionPeerId = options.remoteSessionPeerId || null;
     this.remoteSessionCrypto = new Map();
@@ -1063,6 +1077,13 @@ export class ChainlessChainWSServer extends EventEmitter {
         ) {
           continue;
         }
+        // Wake a backgrounded device via vendor push for approval requests.
+        // Independent of the WS mirror below — a relay-paired mobile app may
+        // report a live socket while its process is suspended and will never
+        // read the mirrored event until the user taps the push.
+        if (member.pushToken && isApprovalRequestEvent(data.type)) {
+          this._dispatchApprovalPush(remoteSession, member, data);
+        }
         const target = this.clients.get(member.clientId);
         if (!target && this.remoteSessionRelay) {
           const crypto = this.remoteSessionCrypto.get(remoteSession.sessionId);
@@ -1083,6 +1104,51 @@ export class ChainlessChainWSServer extends EventEmitter {
         });
       }
     }
+  }
+
+  /**
+   * Fire-and-forget a vendor push to one member for an approval request, then
+   * record the outcome in the audit trail. Never throws (the dispatcher is
+   * best-effort); the WS mirror + in-app notification remain primary.
+   */
+  _dispatchApprovalPush(remoteSession, member, data) {
+    const dispatcher = this.remoteSessionPush;
+    if (!dispatcher || !dispatcher.enabled) return;
+    const requestId =
+      data.requestId || data.approvalId || data.id || `approval:${data.type}`;
+    dispatcher
+      .dispatch({
+        token: member.pushToken,
+        provider: member.pushProvider,
+        sessionId: remoteSession.sessionId,
+        clientId: member.clientId,
+        dedupeKey: requestId,
+        notification: {
+          title: "Approval requested",
+          body: "A coding session needs your approval",
+        },
+      })
+      .then((outcome) => {
+        this.remoteSessionAudit?.record({
+          sessionId: remoteSession.sessionId,
+          actor: member.clientId,
+          action:
+            outcome.status === "sent"
+              ? "push.sent"
+              : outcome.status === "failed"
+                ? "push.failed"
+                : "push.skipped",
+          detail: {
+            provider: member.pushProvider || null,
+            reason: outcome.reason || null,
+            error: outcome.error || null,
+          },
+        });
+      })
+      .catch(() => {
+        // Dispatcher never rejects, but guard anyway — a failed courtesy push
+        // must not surface as an unhandled rejection.
+      });
   }
 
   _attachRemoteSessionRelay() {
@@ -1119,17 +1185,22 @@ export class ChainlessChainWSServer extends EventEmitter {
     if (join.type !== "pair.join" || join.token !== token) {
       throw new Error("Invalid encrypted Remote Session pairing request");
     }
-    this.remoteSessions.join({
+    const relayMember = this.remoteSessions.join({
       sessionId,
       clientId: payload.mobilePeerId,
       token: join.token,
       via: "relay",
+      pushToken: join.pushToken,
+      pushProvider: join.pushProvider,
     });
     this.remoteSessionAudit?.record({
       sessionId,
       actor: payload.mobilePeerId,
       action: "device.joined",
-      detail: { via: "relay" },
+      detail: {
+        via: "relay",
+        hasPush: relayMember?.member?.pushToken ? true : false,
+      },
     });
     this.remoteSessionPairingSecrets.delete(sessionId);
     this.remoteSessionRelay.sendEncrypted(

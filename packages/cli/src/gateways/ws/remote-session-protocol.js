@@ -127,17 +127,47 @@ export function handleRemoteSessionJoin(server, clientId, ws, message) {
       sessionId: message.remoteSessionId,
       clientId,
       token: message.token,
+      pushToken: message.pushToken,
+      pushProvider: message.pushProvider,
     });
     audit(server, {
       sessionId: message.remoteSessionId,
       actor: clientId,
       action: "device.joined",
-      detail: { scopes: result.member.scopes, via: "direct" },
+      detail: {
+        scopes: result.member.scopes,
+        via: "direct",
+        hasPush: result.member.pushToken ? true : false,
+      },
     });
     reply(server, ws, message.id, "remote-session-joined", result);
   } catch (error) {
     reply(server, ws, message.id, "error", {
       code: "REMOTE_SESSION_JOIN_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionPushRegister(server, clientId, ws, message) {
+  try {
+    // A device may only register its OWN token (clientId is the authenticated
+    // caller). Storing no push value clears it.
+    const result = server.remoteSessions.registerPush(
+      message.remoteSessionId,
+      clientId,
+      { token: message.pushToken, provider: message.pushProvider },
+    );
+    audit(server, {
+      sessionId: message.remoteSessionId,
+      actor: clientId,
+      action: "push.registered",
+      detail: { hasPush: result.hasPush, provider: result.provider },
+    });
+    reply(server, ws, message.id, "remote-session-push-registered", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_PUSH_REGISTER_ERROR",
       message: error.message,
     });
   }

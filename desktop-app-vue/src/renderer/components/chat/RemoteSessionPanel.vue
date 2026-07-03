@@ -82,6 +82,16 @@
                     >
                       Host
                     </a-tag>
+                    <a-tag
+                      v-if="!item.isHost && item.hasPush"
+                      color="green"
+                      style="margin-left: 6px"
+                      :title="pushTagTitle(item)"
+                    >
+                      Push{{
+                        item.pushProvider ? ` · ${item.pushProvider}` : ""
+                      }}
+                    </a-tag>
                   </template>
                 </a-list-item-meta>
                 <template #actions>
@@ -225,6 +235,11 @@ function shortDeviceId(clientId) {
   return clientId.length > 20
     ? `${clientId.slice(0, 12)}…${clientId.slice(-4)}`
     : clientId;
+}
+
+function pushTagTitle(item) {
+  const provider = item?.pushProvider || "vendor push";
+  return `This device can be woken for approval requests via ${provider} even when its app is backgrounded.`;
 }
 
 async function loadDevices() {

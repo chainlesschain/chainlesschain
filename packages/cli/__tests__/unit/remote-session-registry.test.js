@@ -246,6 +246,92 @@ describe("RemoteSessionRegistry", () => {
     ).toThrow(/device limit reached/);
   });
 
+  it("stores a push token supplied at join time", () => {
+    const registry = new RemoteSessionRegistry();
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    const joined = registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+      pushToken: "fcm-abc",
+      pushProvider: "fcm",
+    });
+    expect(joined.member.pushToken).toBe("fcm-abc");
+    expect(joined.member.pushProvider).toBe("fcm");
+    const phone = registry
+      .listDevices(created.session.sessionId, "host")
+      .devices.find((d) => d.clientId === "phone");
+    expect(phone.hasPush).toBe(true);
+    expect(phone.pushProvider).toBe("fcm");
+  });
+
+  it("ignores a push provider when no token is given at join", () => {
+    const registry = new RemoteSessionRegistry();
+    const sessionId = seedPairedSession(registry);
+    const phone = registry
+      .listDevices(sessionId, "host")
+      .devices.find((d) => d.clientId === "phone");
+    expect(phone.hasPush).toBe(false);
+    expect(phone.pushProvider).toBe(null);
+  });
+
+  it("registers, refreshes, and clears a device's own push token after pairing", () => {
+    const registry = new RemoteSessionRegistry();
+    const sessionId = seedPairedSession(registry);
+    const set = registry.registerPush(sessionId, "phone", {
+      token: "fcm-1",
+      provider: "fcm",
+    });
+    expect(set).toEqual({ clientId: "phone", hasPush: true, provider: "fcm" });
+    expect(registry.pushTargets(sessionId)).toEqual([
+      { clientId: "phone", pushToken: "fcm-1", pushProvider: "fcm" },
+    ]);
+    // Clearing the token (null) removes the device from wake-up targets.
+    const cleared = registry.registerPush(sessionId, "phone", { token: null });
+    expect(cleared.hasPush).toBe(false);
+    expect(registry.pushTargets(sessionId)).toEqual([]);
+  });
+
+  it("refuses to register a push token for a non-member", () => {
+    const registry = new RemoteSessionRegistry();
+    const sessionId = seedPairedSession(registry);
+    expect(() =>
+      registry.registerPush(sessionId, "ghost", { token: "x" }),
+    ).toThrow(/not paired/);
+  });
+
+  it("excludes the host and a named client from push targets", () => {
+    const registry = new RemoteSessionRegistry();
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+      pushToken: "fcm-1",
+      pushProvider: "fcm",
+    });
+    const second = registry.issuePairingToken(created.session.sessionId);
+    registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "tablet",
+      token: second.token,
+      pushToken: "fcm-2",
+      pushProvider: "fcm",
+    });
+    const targets = registry.pushTargets(created.session.sessionId, {
+      excludeClientId: "phone",
+    });
+    expect(targets).toEqual([
+      { clientId: "tablet", pushToken: "fcm-2", pushProvider: "fcm" },
+    ]);
+  });
+
   it("blocks relay pairing when disabled by org policy", () => {
     const registry = new RemoteSessionRegistry({
       policy: new RemoteSessionPolicy({ allowRelayPairing: false }),
