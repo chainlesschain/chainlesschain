@@ -239,7 +239,17 @@
 - **AndroidManifest**：`<service RemoteSessionHmsService>` + `com.huawei.push.action.MESSAGING_EVENT` intent-filter + `tools:ignore="MissingClass"`（镜像 FCM service；实测 `RemoteSessionHmsService`/`MESSAGING_EVENT` 进 `merged_manifest`）。
 - **`HuaweiPushService` 反射真集成**（脱 stub）：`initialize()` 反射 `HmsMessaging.getInstance(ctx).turnOnPush()`（token 经 service `onNewToken` 异步递送）；`shutdown()` 反射 `turnOffPush`；`isIntegrated()` 探 `Class.forName`；`currentToken()` 返 null（阻塞取 token 由 `HuaweiTokenProvider` offload 到 IO）。全 runCatching 兜底。启动触发同其它（`AppInitializer` 按 manufacturer 自动 `initialize()`）。
 - 验证：`HuaweiPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）；`gradlew :app:kspDebugKotlin` + `:app:processDebugMainManifest`（HMS service 成功 merge）+ `:app:testDebugUnitTest` 过；门控日志确认默认无 json 时 HMS 源集排除、settings/root gradle 改动不破默认构建。剩真机项（Win 不可跑）：接入者放 `agconnect-services.json` + 按华为控制台核对插件/SDK/repo 版本 + release keystore SHA256 绑定 + 真机上架华为应用市场端到端验证（`docs/guides/Vendor_Push_Setup.md` §3.2）。
-- **至此 push 全家收口**：桌面 sender 7 家（FCM/APNs/Web/小米/华为/OPPO/vivo）+ Android 取 token resolver 5 家（FCM/vivo/OPPO/Xiaomi/Huawei）+ Android 真机集成 4 家国内（vivo/OPPO/Xiaomi/Huawei）全落骨架，FCM 真机早已就绪。
+- **至此 Android/桌面 push 全家收口**：桌面 sender 7 家（FCM/APNs/Web/小米/华为/OPPO/vivo）+ Android 取 token resolver 5 家（FCM/vivo/OPPO/Xiaomi/Huawei）+ Android 真机集成 4 家国内（vivo/OPPO/Xiaomi/Huawei）全落骨架，FCM 真机早已就绪。
+
+#### Phase 4：iOS 多 provider push token resolver（CoreP2P，已完成）
+
+- **形态**：iOS 原生 push 只有 **APNs** 一条通道（无国内厂商 SDK），故「多 provider」= APNs 为唯一真 provider，但 resolver **保持 provider 无关**，为将来通道（VoIP/PushKit、web-push relay 兜底）留口——与 Android 多 provider 设计同构。provider 标签 `apns` 对齐桌面 APNs sender（`CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER=apns`）。
+- `ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionPushToken.swift`（纯 Swift，可测，CoreP2P 模块）：
+  - `RemoteSessionPushTokenProvider` 协议（`var provider` 标签 + `func token() async -> String?`）——Android 同名接口的 iOS 镜像。**非抛错设计**：provider 失败返 nil 而非 throw，故 resolver 无需 try/catch（Swift 惯用法对应 Android「抛错则跳过」）。
+  - `APNsPushTokenProvider`：读设备 APNs token。CoreP2P 不能引用 app-target 的 `PushNotificationManager`，故经注入的 `@Sendable () async -> String?` source 闭包取值（app 侧接 `PushNotificationManager.shared.deviceToken` / `UserDefaults "device_push_token"`）；空白/nil → nil。
+  - `RemoteSessionPushTokenResolver`：按有序 provider 列表解析首个非空 token（`Resolved{token,provider}`）；某 provider 返 nil/空白即跳过，全不可用才 nil——Android `RemoteSessionPushTokenResolver` 的逐行镜像。
+- 验证：`RemoteSessionPushTokenResolverTests` 9（resolver：首个命中 / 前者不可用则下沉 / 空白视为不可用 / 全不可用 → nil / 空列表 → nil；APNs provider：标签+读 source / 空白与 nil → nil / 经 resolver 端到端）。Swift 无 Windows 工具链，随 iOS CI 真编译（同既往 iOS 分片）。
+- **待接入点**：iOS 尚无 Android 那种 relay `pair.join` 客户端（iOS 配对走 WebRTC/signaling，iOS Phase 6 真机 E2E defer）；本片是**已单测的取 token 基座**，待 iOS RemoteSession relay 客户端落地后接入配对（同 Android 先建 provider 再接全流程的顺序）。
 
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
