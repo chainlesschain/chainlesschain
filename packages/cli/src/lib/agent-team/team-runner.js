@@ -33,9 +33,16 @@ export class TeamRunner {
     this.onEvent = typeof opts.onEvent === "function" ? opts.onEvent : () => {};
     this.maxTasks = opts.maxTasks > 0 ? opts.maxTasks : 1000;
     this._now = opts.now || registry._now || (() => Date.now());
+    // Team-wide token/USD/time/task budget (null → unbounded). Consulted before
+    // every claim; folded after every settled task.
+    this.budget = opts.budget || null;
+    // Directed/broadcast messaging between teammates (null → disabled).
+    this.mailbox = opts.mailbox || null;
     this._executions = 0;
     this._inFlight = 0;
     this._maxInFlight = 0;
+    this._members = new Map(); // holder → lifecycle record
+    this._budgetStopped = false;
   }
 
   _emit(type, extra) {
@@ -43,6 +50,44 @@ export class TeamRunner {
       this.onEvent({ type, ts: this._now(), ...extra });
     } catch {
       /* event sink is best-effort */
+    }
+  }
+
+  /**
+   * Track a teammate's lifecycle state (idle / running / failed / shutdown) and
+   * emit a `teammate:state` event on every transition. `lost` is set on resume
+   * by the caller for a teammate whose lease was reclaimed after a crash.
+   */
+  _setState(holder, state, extra = {}) {
+    let m = this._members.get(holder);
+    if (!m) {
+      m = { holder, state: null, completed: 0, failed: 0, lastError: null };
+      this._members.set(holder, m);
+    }
+    if (state === "completed-task") {
+      m.completed += 1;
+      return m;
+    }
+    if (state === "failed-task") {
+      m.failed += 1;
+      m.lastError = extra.error || null;
+      return m;
+    }
+    if (m.state === state) return m; // no transition
+    m.state = state;
+    this._emit("teammate:state", { holder, state, ...extra });
+    return m;
+  }
+
+  /** Snapshot of every teammate's lifecycle (for a status panel / resume). */
+  members() {
+    return Array.from(this._members.values()).map((m) => ({ ...m }));
+  }
+
+  /** Restore prior-run member records (e.g. before a --resume run). */
+  seedMembers(records = []) {
+    for (const r of records) {
+      if (r && r.holder) this._members.set(r.holder, { ...r });
     }
   }
 
@@ -58,9 +103,12 @@ export class TeamRunner {
       teammates: this.teammates,
       tasks: this.registry.list().length,
     });
+    if (this.budget) this.budget.start();
     const workers = [];
     for (let i = 0; i < this.teammates; i++) {
-      workers.push(this._worker(`teammate-${i + 1}`));
+      const holder = `teammate-${i + 1}`;
+      this._setState(holder, "idle");
+      workers.push(this._worker(holder));
     }
     await Promise.all(workers);
     const stats = this.registry.stats();
@@ -68,6 +116,10 @@ export class TeamRunner {
       done: this.registry.allDone(),
       executions: this._executions,
       maxConcurrent: this._maxInFlight,
+      budgetStopped: this._budgetStopped,
+      budgetReason: this.budget ? this.budget.reason() : null,
+      members: this.members(),
+      messages: this.mailbox ? this.mailbox.size() : 0,
       stats,
     };
     this._emit("run:end", summary);
@@ -82,6 +134,18 @@ export class TeamRunner {
     for (;;) {
       if (this._executions >= this.maxTasks) {
         this._emit("run:budget-exhausted", { maxTasks: this.maxTasks });
+        this._setState(holder, "shutdown", { reason: "max-tasks" });
+        return;
+      }
+      // Team budget (token/USD/time/task) — stop CLAIMING once any cap is hit so
+      // the team overshoots by at most the tasks already in flight.
+      if (this.budget && this.budget.shouldStop()) {
+        const reason = this.budget.reason();
+        if (!this._budgetStopped) {
+          this._budgetStopped = true;
+          this._emit("run:budget-exhausted", { reason });
+        }
+        this._setState(holder, "shutdown", { reason });
         return;
       }
       const key = this._nextFor(holder);
@@ -89,14 +153,17 @@ export class TeamRunner {
         // Nothing to claim right now. If peers are still working, wait and
         // retry (their completions may unblock a dependent). Otherwise we're done.
         if (this._inFlight > 0) {
+          this._setState(holder, "idle");
           await this._tick();
           continue;
         }
+        this._setState(holder, "shutdown", { reason: "no-more-work" });
         return; // no claimable + nothing in flight → this worker is finished
       }
       const acq = this.registry.acquire(key, { holder, ttlMs: this.ttlMs });
       if (!acq.ok) {
         // Lost the race to a peer (or it just got blocked) — try another.
+        this._setState(holder, "idle");
         await this._tick();
         continue;
       }
@@ -128,15 +195,56 @@ export class TeamRunner {
     this._executions++;
     this._inFlight++;
     this._maxInFlight = Math.max(this._maxInFlight, this._inFlight);
+    this._setState(holder, "running", { key });
     this._emit("task:claimed", { key, holder, attempts: task.attempts });
     const renew = () => this.registry.renew(key, { holder, ttlMs: this.ttlMs });
+    // A teammate-scoped messaging handle: post to a peer / broadcast, and read
+    // its own inbox (direct messages + unseen broadcasts).
+    const inbox = this.mailbox ? this.mailbox.drain(holder) : [];
+    const sendMessage = (to, body, subject = null) =>
+      this.mailbox
+        ? this.mailbox.send({ from: holder, to, subject, body })
+        : null;
+    const startedAt = this._now();
     try {
-      const result = await this.runTask({ key, task, holder, renew });
+      const result = await this.runTask({
+        key,
+        task,
+        holder,
+        renew,
+        inbox,
+        sendMessage,
+        mailbox: this.mailbox,
+        budget: this.budget,
+      });
       this.registry.complete(key, { holder, result });
-      this._emit("task:completed", { key, holder });
+      // Fold usage/cost into the team budget. `--exec` shell tasks carry no
+      // usage → only the task-count / wall-clock dimensions move.
+      if (this.budget) {
+        this.budget.record(
+          {
+            usage: result?.usage || null,
+            provider: result?.provider,
+            model: result?.model,
+          },
+          this._now(),
+        );
+      }
+      this._setState(holder, "completed-task");
+      this._emit("task:completed", {
+        key,
+        holder,
+        ms: this._now() - startedAt,
+      });
     } catch (err) {
+      // A failed task still consumed a task-count slot (and any wall-clock) — fold
+      // it so a doomed retry loop can't dodge the budget.
+      if (this.budget) this.budget.record({ usage: null }, this._now());
       const outcome = this.registry.fail(key, {
         holder,
+        error: err?.message || String(err),
+      });
+      this._setState(holder, "failed-task", {
         error: err?.message || String(err),
       });
       this._emit("task:failed", {

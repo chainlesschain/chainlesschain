@@ -22,6 +22,8 @@ import { spawn } from "child_process";
 import { TaskLeaseRegistry } from "../lib/agent-team/task-lease.js";
 import { TeamRunner } from "../lib/agent-team/team-runner.js";
 import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
+import { TeamBudget } from "../lib/agent-team/team-budget.js";
+import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
@@ -195,6 +197,16 @@ export function registerTeamCommand(program, { logger } = {}) {
       "--merge",
       "With --worktree: merge each clean branch back to base (conflicts reported, not forced)",
     )
+    .option("--max-tasks <n>", "Budget: total task executions across the team")
+    .option("--max-tokens <n>", "Budget: total LLM tokens across the team")
+    .option(
+      "--max-usd <n>",
+      "Budget: total estimated USD spend across the team",
+    )
+    .option(
+      "--max-wall <seconds>",
+      "Budget: wall-clock seconds for the whole run",
+    )
     .option(
       "--state <file>",
       "Persist team progress to a file (for --resume after a crash)",
@@ -207,14 +219,54 @@ export function registerTeamCommand(program, { logger } = {}) {
     .action(async (options) => {
       const ttlMs = Math.max(1, Number(options.ttl) || 60) * 1000;
       let reg;
+      let mailbox = new TeamMailbox();
+      let budget = new TeamBudget({
+        maxTasks: options.maxTasks,
+        maxTokens: options.maxTokens,
+        maxUsd: options.maxUsd,
+        maxWallMs: options.maxWall
+          ? Math.max(1, Number(options.maxWall)) * 1000
+          : null,
+      });
+      let priorMembers = [];
       try {
         // Resume from a prior (possibly crashed) run's state: completed tasks
         // stay COMPLETED, and any lease left dangling by a crash is reclaimed so
-        // its task is re-run — the team-session-recovery acceptance path.
+        // its task is re-run — the team-session-recovery acceptance path. The
+        // mailbox + budget are restored too so messages/spend stay consistent.
         if (options.resume && options.state && fs.existsSync(options.state)) {
           const snap = JSON.parse(fs.readFileSync(options.state, "utf8"));
-          reg = TaskLeaseRegistry.restore(snap);
+          const isV2 = snap && snap.version >= 2 && snap.registry;
+          reg = TaskLeaseRegistry.restore(isV2 ? snap.registry : snap);
+          if (isV2) {
+            if (snap.mailbox) mailbox = TeamMailbox.restore(snap.mailbox);
+            if (snap.budget)
+              budget = TeamBudget.restore(snap.budget, {
+                // CLI flags on the resume invocation override the prior caps;
+                // omitted flags keep them (never silently drop a safety cap).
+                overrides: {
+                  maxTasks: options.maxTasks,
+                  maxTokens: options.maxTokens,
+                  maxUsd: options.maxUsd,
+                  maxWallMs: options.maxWall
+                    ? Math.max(1, Number(options.maxWall)) * 1000
+                    : undefined,
+                },
+              });
+            priorMembers = Array.isArray(snap.members) ? snap.members : [];
+          }
+          // A teammate whose lease is still dangling here crashed last run — its
+          // task is about to be reclaimed, so report it LOST before the sweep.
+          const lostHolders = new Set();
+          for (const t of reg.list()) {
+            if (t.lease && t.lease.holder) lostHolders.add(t.lease.holder);
+          }
           const freed = reg.reclaimExpired();
+          for (const h of lostHolders) {
+            if (options.json)
+              console.log(JSON.stringify({ type: "teammate:lost", holder: h }));
+            else (log.info || console.log)(`  ⚠ teammate ${h} lost (crashed)`);
+          }
           const s = reg.stats();
           (log.info || console.log)(
             `Resumed: ${s.completed}/${s.total} already done` +
@@ -233,12 +285,25 @@ export function registerTeamCommand(program, { logger } = {}) {
 
       // Persist a snapshot after each task settles so a crash mid-run is
       // resumable (persist-after-run alone would lose everything on a crash).
+      // v2 bundles registry + mailbox + budget + member lifecycle so a resume
+      // keeps the whole team state consistent, not just the task graph.
+      let runnerRef = null;
       const persist = () => {
         if (!options.state) return;
         try {
           fs.writeFileSync(
             options.state,
-            JSON.stringify(reg.snapshot(), null, 2),
+            JSON.stringify(
+              {
+                version: 2,
+                registry: reg.snapshot(),
+                mailbox: mailbox.snapshot(),
+                budget: budget.snapshot(),
+                members: runnerRef ? runnerRef.members() : priorMembers,
+              },
+              null,
+              2,
+            ),
             "utf8",
           );
         } catch (e) {
@@ -270,6 +335,8 @@ export function registerTeamCommand(program, { logger } = {}) {
         teammates,
         ttlMs,
         runTask,
+        budget,
+        mailbox,
         onEvent: (e) => {
           if (options.json) console.log(JSON.stringify(e));
           else if (e.type === "task:claimed")
@@ -280,10 +347,16 @@ export function registerTeamCommand(program, { logger } = {}) {
             (log.info || console.log)(
               `  ✗ ${e.key}${e.retry ? " (will retry)" : " (gave up)"}: ${e.error}`,
             );
+          else if (e.type === "run:budget-exhausted")
+            (log.info || console.log)(
+              `  ⛔ budget reached (${e.reason || `max-tasks ${e.maxTasks}`}) — no new tasks claimed`,
+            );
           if (e.type === "task:completed" || e.type === "task:failed")
             persist();
         },
       });
+      runner.seedMembers(priorMembers);
+      runnerRef = runner;
 
       const summary = await runner.run();
       persist();
@@ -324,6 +397,35 @@ export function registerTeamCommand(program, { logger } = {}) {
           `\nTeam run: ${s.completed}/${s.total} completed` +
             (s.cancelled ? `, ${s.cancelled} cancelled` : "") +
             ` (${teammates} teammates, ${summary.executions} executions, peak ${summary.maxConcurrent} concurrent)`,
+        );
+        if (budget.enabled()) {
+          const b = budget.status();
+          const parts = [`${b.tasks} task(s)`, `${b.tokens} token(s)`];
+          if (b.maxUsd != null) parts.push(`$${b.spentUsd.toFixed(4)}`);
+          (log.log || console.log)(
+            `Budget: ${parts.join(", ")}` +
+              (summary.budgetStopped
+                ? ` — stopped early (${summary.budgetReason})`
+                : ""),
+          );
+        }
+        if (mailbox.size() > 0)
+          (log.log || console.log)(
+            `Messages: ${mailbox.size()} exchanged between teammates`,
+          );
+      } else {
+        console.log(
+          JSON.stringify({
+            summary: {
+              done: summary.done,
+              executions: summary.executions,
+              budgetStopped: summary.budgetStopped,
+              budgetReason: summary.budgetReason,
+              budget: budget.status(),
+              members: summary.members,
+              messages: mailbox.size(),
+            },
+          }),
         );
       }
       // Non-zero exit when the graph didn't fully complete — usable as a gate.
