@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
+
+### Fixed — CLI 安全：OAuth 授权 URL 不再经 cmd.exe（命令注入）+ MCP 列表坏行加固
+
+> `chainlesschain` **0.162.148** 已发 npm `latest`；本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`，携 cc-cli.tgz 0.162.148）一起送达真机用户。本地三层测试全绿（unit/integration 22,332 + e2e 617）；本机 `npm i -g` 实测 `cc --version`=0.162.148、`cc mcp servers` exit 0（走修过的列表路径）。
+
+- **OAuth openBrowser cmd.exe 命令注入（HIGH，远程可影响，commit `3f8626bc33`）**：`mcp-oauth.js defaultOpenBrowser` 用 `spawn("cmd",["/c","start","",url])` 打开授权页——Node 只对含空格/引号的参数加引号，故 URL 里的 `&`（OAuth query 必有）直达 cmd.exe 解析器：URL 在第一个 `&` 处截断、其余片段被当命令执行（实证 `a&state=y` → `'state' is not recognized...`）。授权 URL 来自**远程 MCP 服务器 metadata**，恶意服务器即可在 Windows 上执行任意命令。改为 `new URL()` 仅放行 http(s) + `rundll32 url.dll,FileProtocolHandler`（普通 exe，参数原样传递，无 shell）；`agent-runtime.js` 的 `execSync("start \"\" \"${url}\"")` 同步收编。+4 回归测试。
+- **MCP 服务器列表坏行炸整列表（commit `3b362110ac`）**：`MCPServerConfig._rowToConfig` 用 `JSON.parse(row.args||"[]")`（`||` 只挡 NULL 不挡损坏值），`list()`/`getAutoConnect()` 逐行 map → 一条损坏行让 `cc mcp servers` 整体失败、自动连接全部跳过。改走 `safeJsonParse`（args→[]、env→{}）降级。+1 回归测试。
+
+### Fixed — 桌面 workflow-engine：resumeExecution 真正重驱动执行（断点/审批不再永卡）
+
+> 桌面 main 进程；含 9 例新回归测试（`workflow-engine-resume.test.js`）+ 既有套件更新；workflow 目录 40/40 全绿（commit `a69b125803`）。
+
+- `resumeExecution` 此前只把状态翻成 `"running"` 就返回、从不重入 `_executeStages` → 断点/审批暂停的工作流永卡却 IPC 报 success；审批门置 `"waiting"` 又被 `!== "paused"` 拒 → 审批工作流完全不可恢复；且 `executeWorkflow` 在暂停提前返回后无条件覆写 `"completed"` 并误发 `workflow:completed`。改为从 `execution.log` + `workflow.dag` **推导执行前沿**（已完成 stage 回放进 Kahn 入度、绝不重跑），恢复时重驱动剩余 stage、单次跳过触发暂停的断点、恢复 `"waiting"` 即视为批准；只在跑完后仍 `"running"` 才定为完成。`resumeExecution` 改 async，`workflow:resume` IPC 补 `await`。
+
 ### Fixed — Security：三处 P0 fail-open 收口（真·PQC 验签 + MCP chat 路径策略强制 + 社交 P2P 帖子 DID 验签）
 
 > 桌面主进程两处「验证恒真」的失效开放漏洞已修（commit `f75720f973`），均带回归测试；全量复跑 crypto/mcp 单测 710 全绿，无功能回退。第三处 P0（社交联邦入站验签）的 P2P 帖子部分随后也已收口（commit `f8dffef03f`，见下），仅 Nostr schnorr / ActivityPub HTTP-Sig 两条入站路径因需新增 `@noble/curves` 依赖留待依赖决策。

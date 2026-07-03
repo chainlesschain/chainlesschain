@@ -35,6 +35,10 @@
 
 ---
 
+## 2026-07-03 发布 — **v5.0.3.134：CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动（cli 0.162.148 / Android cc bundle 20260703 · USR 74）**
+
+> CLI 安全 patch 上船真机：`mcp-oauth` 授权 URL 曾经 cmd.exe 被 `&` 注入任意命令（远程 MCP metadata 可影响），改 http(s)-only + rundll32 无 shell；MCP 服务器列表一条坏行不再炸整列表；桌面 workflow-engine 断点/审批恢复真正重驱动执行。`chainlesschain` 0.162.148 已发 npm，随本版打入 Android in-app cc bundle。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 2026-06-28 发布 — **v5.0.3.131–133：个人数据中台采集/分析三连（MIUI 浏览历史 + 账单月份/时间线修复 + 微博私信）（pdh 0.4.39 / cli 0.162.129）**
 
 > 累计 v5.0.3.131–133：MIUI/AOSP 默认浏览器历史采集器；PDH 分析层两处日期正确性修复上设备；微博私信采集（device-verified schema，高敏感 opt-in）。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

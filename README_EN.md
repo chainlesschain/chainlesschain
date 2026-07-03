@@ -45,6 +45,10 @@
 
 ---
 
+## 2026-07-03 Release — **v5.0.3.134: CLI OAuth command-injection fix + MCP list hardening + workflow resume re-drive (cli 0.162.148 / Android cc bundle 20260703 · USR 74)**
+
+> CLI security patch reaches on-device users: `mcp-oauth` authorize URLs used to be injectable through cmd.exe via the `&` in the OAuth query (remote MCP metadata could run arbitrary Windows commands) — now http(s)-only + `rundll32` with no shell; one corrupt MCP-server row no longer takes down the whole list; desktop workflow-engine now truly re-drives execution when resuming from a breakpoint/approval. `chainlesschain` 0.162.148 published to npm and bundled into the Android in-app cc with this release. Per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
 ## 2026-06-28 Release — **v5.0.3.131–133: PDH collection/analysis trio (MIUI browser history + bill-month/timeline fixes + Weibo DMs) (pdh 0.4.39 / cli 0.162.129)**
 
 > Cumulative v5.0.3.131–133: MIUI/AOSP default-browser history collector; two PDH analysis-layer date-correctness fixes shipped on device; Weibo direct-message collection (device-verified schema, high-sensitivity opt-in). Per-version detail in [CHANGELOG.md](CHANGELOG.md).

@@ -3,7 +3,17 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [Unreleased] — 测试套件普查修复 + project-service 导出 UTF-8 bug
+## [Unreleased]
+
+## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
+
+> `chainlesschain` **0.162.148** 已发 npm `latest`，本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`）一起送达真机用户。
+
+- **CLI OAuth openBrowser cmd.exe 命令注入（HIGH，远程可影响）**：`mcp-oauth.js` 用 `spawn("cmd",["/c","start","",url])` 打开授权页，URL 里的 `&`（OAuth query 必有）直达 cmd.exe → 在第一个 `&` 处截断、其余当命令执行；授权 URL 来自远程 MCP metadata，恶意服务器可执行任意 Windows 命令。改为 http(s)-only + `rundll32`（无 shell）。+4 测试。
+- **MCP 服务器列表坏行加固**：`_rowToConfig` 裸 `JSON.parse(row.args||"[]")`（只挡 NULL 不挡损坏值），一坏行让 `cc mcp servers`/自动连接整体失败 → 改走 `safeJsonParse` 降级。+1 测试。
+- **桌面 workflow-engine resume 修复**：`resumeExecution` 此前只翻状态不重驱动 → 断点/审批工作流永卡却报 success；审批 `"waiting"` 完全不可恢复；`executeWorkflow` 覆写暂停状态为完成。改为从 log+dag 推导前沿重驱动、单次跳过触发暂停的断点、恢复审批即视为批准。+9 测试。
+
+### 其它随本版发布（测试套件普查修复 + project-service 导出 UTF-8 bug 等累积项）
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
