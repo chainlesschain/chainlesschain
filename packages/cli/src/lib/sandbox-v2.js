@@ -5,6 +5,7 @@
 
 import crypto from "crypto";
 import { safeJsonParse } from "./safe-json.js";
+import { evaluateNetworkAccess } from "./sandbox-network-policy.js";
 import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
@@ -158,11 +159,16 @@ function checkFilePermission(permissions, filePath, mode) {
 }
 
 function checkNetworkPermission(permissions, host) {
+  // Delegate to the shared domain policy: wildcard subdomains, deny-precedence,
+  // default-deny under an allowlist, URL/host normalization, and the SSRF /
+  // loopback / metadata guard (incl. the IPv6-bracket gotcha). The old check was
+  // exact-string only and let e.g. a URL or `[::1]` slip past.
   const net = permissions.network || {};
-  const denied = net.denied || [];
-  if (denied.includes(host)) return false;
-  const allowed = net.allowed || [];
-  return allowed.includes(host) || allowed.includes("*");
+  return evaluateNetworkAccess(host, {
+    allowedDomains: net.allowed || [],
+    deniedDomains: net.denied || [],
+    allowPrivate: net.allowPrivate === true,
+  }).allowed;
 }
 
 function checkSystemCallPermission(permissions, call) {
