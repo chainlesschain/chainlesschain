@@ -699,6 +699,61 @@ export function registerPluginCommand(program) {
       }
     });
 
+  // plugin monitors — list (and optionally run) trusted plugins' background
+  // monitors. `--run --seconds N` actually starts the supervisor for N seconds,
+  // prints captured output, then reaps everything (verifies no leaked process).
+  plugin
+    .command("monitors")
+    .description("List installed plugins' background monitors (trusted only)")
+    .option("--json", "Output as JSON")
+    .option("--run", "Actually run the monitors for a few seconds, then reap")
+    .option("--seconds <n>", "With --run: how long to run", "3")
+    .action(async (options) => {
+      const { collectPluginMonitors } =
+        await import("../lib/plugin-runtime/monitors.js");
+      const monitors = collectPluginMonitors({ cwd: process.cwd() });
+      if (options.json && !options.run) {
+        console.log(JSON.stringify(monitors, null, 2));
+        return;
+      }
+      if (monitors.length === 0) {
+        logger.info(
+          "No monitors from trusted plugins. (Untrusted project plugins are skipped — `cc plugin trust <name>`.)",
+        );
+        return;
+      }
+      logger.log(chalk.bold(`Plugin monitors (${monitors.length}):`));
+      for (const m of monitors) {
+        const cadence =
+          m.mode === "interval"
+            ? `every ${m.intervalMs || 60000}ms`
+            : "long-running";
+        logger.log(
+          `  ${chalk.cyan(m.id)} ${chalk.gray(`[${m.scope}]`)} ${m.command} ${m.args.join(" ")} ${chalk.gray(`(${cadence})`)}`,
+        );
+      }
+      if (!options.run) return;
+
+      const { PluginMonitorSupervisor } =
+        await import("../lib/plugin-monitor-supervisor.js");
+      const secs = Math.max(1, parseInt(options.seconds, 10) || 3);
+      const sup = new PluginMonitorSupervisor();
+      const started = sup.start(monitors);
+      logger.log(
+        chalk.gray(`\nRunning ${started.length} monitor(s) for ${secs}s…`),
+      );
+      await new Promise((r) => setTimeout(r, secs * 1000));
+      const out = sup.drainOutputs();
+      sup.stopAll();
+      logger.log(chalk.bold(`Captured ${out.length} output line(s):`));
+      for (const rec of out.slice(0, 50)) {
+        logger.log(
+          `  ${chalk.gray(`[${rec.monitor}/${rec.stream}]`)} ${rec.line}`,
+        );
+      }
+      logger.success("Monitors reaped — no process left running.");
+    });
+
   // plugin uninstall <name> — remove a plugin (or one version) from a scope
   plugin
     .command("uninstall <name>")

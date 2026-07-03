@@ -121,6 +121,10 @@ let _permissionConfirm = null;
 let _managedPermissionRulesOnly = false;
 // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
 let _settingsHooks = null;
+// Installed-plugin background monitors (Phase 3.3i) — a supervisor owning any
+// long-running/interval watcher processes a trusted plugin declared; reaped in
+// the SessionEnd cleanup so nothing outlives the REPL.
+let _pluginMonitors = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
 // `!command` auto-triggers an assistant response to its output. undefined =
 // unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
@@ -629,6 +633,29 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     _settingsHooks = null;
+  }
+
+  // Start installed plugins' background monitors (Phase 3.3i). Trust-gated
+  // inside collectPluginMonitors — only user/local-scope and explicitly-trusted
+  // project plugins get a process spawned. Reaped in the SessionEnd cleanup +
+  // a process-exit backstop, so no monitor outlives the session.
+  try {
+    const { collectPluginMonitors } =
+      await import("../lib/plugin-runtime/monitors.js");
+    const monitors = collectPluginMonitors({ cwd: process.cwd() });
+    if (monitors.length > 0) {
+      const { PluginMonitorSupervisor } =
+        await import("../lib/plugin-monitor-supervisor.js");
+      _pluginMonitors = new PluginMonitorSupervisor();
+      const started = _pluginMonitors.start(monitors);
+      if (started.length > 0) {
+        process.stderr.write(
+          `  monitors: started ${started.length} from trusted plugin(s): ${started.join(", ")}\n`,
+        );
+      }
+    }
+  } catch (_err) {
+    _pluginMonitors = null;
   }
 
   // Resume existing session or create new one
@@ -4334,6 +4361,17 @@ export async function startAgentRepl(options = {}) {
       killAllBackgroundShellTasks();
     } catch (_e) {
       // Non-critical
+    }
+
+    // Reap plugin background monitors (Phase 3.3i) — clear interval timers and
+    // SIGTERM every watcher child so no monitor process outlives the session.
+    if (_pluginMonitors) {
+      try {
+        _pluginMonitors.stopAll();
+      } catch (_e) {
+        // Non-critical
+      }
+      _pluginMonitors = null;
     }
 
     // Shutdown runtime
