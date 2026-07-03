@@ -18,6 +18,7 @@ import { registerLlmCommand } from "./commands/llm.js";
 import { registerHubCommand } from "./commands/hub.js";
 import { registerAndroidCommand } from "./commands/android.js";
 import { registerEvalCommand } from "./commands/eval.js";
+import { registerTeamCommand } from "./commands/team.js";
 import {
   registerAgentCommand,
   registerSubAgentV2Command,
@@ -431,6 +432,7 @@ export function createProgram(opts = {}) {
   registerAndroidCommand(program);
   registerAgentCommand(program);
   registerEvalCommand(program);
+  registerTeamCommand(program);
   registerSubAgentV2Command(program);
   registerExecBackendV2Command(program);
   registerTodoV2Command(program);

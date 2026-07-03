@@ -110,6 +110,10 @@ export class TaskLeaseRegistry {
       lease: lease ? { ...lease } : null,
       assignee: t.assignee,
       rev: t.rev,
+      // Full metadata is exposed so executors can read user payload
+      // (e.g. a task's shell `command` or agent `prompt`) — it carries the
+      // internal lease/dependsOn/key too, which callers simply ignore.
+      metadata: { ...t.metadata },
     };
   }
 
