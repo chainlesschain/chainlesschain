@@ -251,8 +251,25 @@ export class PromptCompressor {
       };
     }
 
+    // Pinned facts — a DETERMINISTIC fact-retention guarantee. A message marked
+    // `pinned:true` (or matched by an `options.isPinned` predicate) MUST survive
+    // compaction verbatim regardless of any strategy or the non-deterministic LLM
+    // summary. Every other retention here is positional (system / recent-N / last
+    // user) or summary-dependent, so an important fact that scrolls out of the
+    // recent window would otherwise survive only if the summary happens to keep
+    // it. We pull pins out BEFORE any strategy runs (so nothing can drop them),
+    // then re-insert them as a sticky block right after the system messages.
+    const isPinned =
+      typeof options.isPinned === "function"
+        ? options.isPinned
+        : (m) => m && (m.pinned === true || m._pin === true);
+    const pinned = messages.filter((m) => isPinned(m));
+    const working = pinned.length
+      ? messages.filter((m) => !isPinned(m))
+      : messages;
+
     const originalTokens = estimateMessagesTokens(messages);
-    let result = [...messages];
+    let result = [...working];
     const applied = [];
 
     if (feature("CONTEXT_SNIP")) {
@@ -286,6 +303,15 @@ export class PromptCompressor {
       } catch (_err) {
         // Summarization failed — continue with what we have
       }
+    }
+
+    // Re-insert pinned facts verbatim (order preserved) right after the leading
+    // system messages, so they end up as a sticky facts block at the top.
+    if (pinned.length) {
+      const sys = result.filter((m) => m.role === "system");
+      const nonSys = result.filter((m) => m.role !== "system");
+      result = [...sys, ...pinned, ...nonSys];
+      applied.push("pinned");
     }
 
     // Tool-pair repair (opt-in) — callers compacting tool-laden histories

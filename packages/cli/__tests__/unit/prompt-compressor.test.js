@@ -185,6 +185,63 @@ describe("PromptCompressor", () => {
     });
   });
 
+  // ── Deterministic fact retention (pinned) ───────────────────────────
+  // A pinned fact must survive compaction VERBATIM regardless of strategy or
+  // the (non-deterministic) LLM summary — a hard guarantee, not a summary hope.
+
+  describe("pinned fact retention (deterministic)", () => {
+    const FACT = "CRITICAL: deploy key is rotated at 00:00 UTC daily";
+
+    it("keeps a pinned fact through truncation even when it is the oldest turn", async () => {
+      const msgs = makeMessages(20);
+      // Put the fact in the OLDEST region — the first to be truncated away
+      // without a pin.
+      msgs.splice(1, 0, { role: "user", content: FACT, pinned: true });
+      compressor.maxMessages = 5;
+      const { messages, stats } = await compressor.compress(msgs);
+      expect(stats.strategy).toContain("truncate");
+      expect(stats.strategy).toContain("pinned");
+      expect(messages.some((m) => m.content === FACT)).toBe(true);
+      // Sticky block: system first, then the pinned fact.
+      expect(messages[0].role).toBe("system");
+      expect(messages[1].content).toBe(FACT);
+    });
+
+    it("keeps a pinned fact even when the LLM summary omits it", async () => {
+      // A summarizer that discards detail — returns a generic blurb. Without a
+      // pin, the fact would be lost to this non-deterministic step.
+      compressor.llmQuery = vi
+        .fn()
+        .mockResolvedValue("The user did some work.");
+      compressor.maxTokens = 5; // force the summarize path (short test messages)
+      compressor.maxMessages = 6;
+      const msgs = makeMessages(15);
+      msgs.splice(1, 0, { role: "user", content: FACT, pinned: true });
+      const { messages, stats } = await compressor.compress(msgs);
+      expect(stats.strategy).toContain("summarize");
+      expect(messages.some((m) => m.content === FACT)).toBe(true);
+    });
+
+    it("supports an options.isPinned predicate (match by content, no flag)", async () => {
+      const msgs = makeMessages(15);
+      msgs.splice(1, 0, { role: "user", content: FACT }); // no `pinned` flag
+      compressor.maxMessages = 4;
+      const { messages } = await compressor.compress(msgs, {
+        isPinned: (m) =>
+          typeof m.content === "string" && m.content.startsWith("CRITICAL:"),
+      });
+      expect(messages.some((m) => m.content === FACT)).toBe(true);
+    });
+
+    it("is a no-op when there are no pins (behavior unchanged)", async () => {
+      const msgs = makeMessages(15);
+      compressor.maxMessages = 5;
+      const { messages, stats } = await compressor.compress(msgs);
+      expect(stats.strategy).not.toContain("pinned");
+      expect(messages[0].role).toBe("system");
+    });
+  });
+
   // ── Strategy 3: Summarization ───────────────────────────────────────
 
   describe("summarization", () => {
