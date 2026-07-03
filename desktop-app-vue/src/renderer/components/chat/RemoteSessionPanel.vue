@@ -24,6 +24,14 @@
           alt="Remote Session pairing QR code"
         />
         <a-tag color="green">End-to-end encrypted</a-tag>
+        <a-alert
+          v-if="policySummary"
+          type="info"
+          show-icon
+          banner
+          :message="`Org policy: ${policySummary}`"
+          style="width: 100%; text-align: left"
+        />
         <p>
           Scan with the ChainlessChain mobile app. This code is single-use and
           expires at {{ expiresAt }}.
@@ -161,6 +169,7 @@ const devicesLoading = ref(false);
 const auditEntries = ref([]);
 const auditStats = ref({ total: 0, byAction: {} });
 const auditLoading = ref(false);
+const policy = ref(null);
 const expiresAt = computed(() =>
   pairing.value?.expiresAt
     ? new Date(pairing.value.expiresAt).toLocaleTimeString()
@@ -199,6 +208,7 @@ async function openPanel() {
     }
     remoteSessionId.value = response.session?.sessionId;
     await renderPairing(response.pairing);
+    await loadPolicy();
     await loadDevices();
     await loadAudit();
   } catch (cause) {
@@ -315,6 +325,38 @@ async function loadAudit() {
   }
 }
 
+async function loadPolicy() {
+  try {
+    const response =
+      await window.electronAPI.codingAgent.getRemoteSessionPolicy();
+    policy.value = response?.success ? response.policy : null;
+  } catch {
+    // Policy is advisory info in the UI; a failure here must not block pairing.
+    policy.value = null;
+  }
+}
+
+const policySummary = computed(() => {
+  const p = policy.value;
+  if (!p) {
+    return null;
+  }
+  const parts = [];
+  if (p.allowedScopes) {
+    parts.push(`scopes: ${p.allowedScopes.join(", ")}`);
+  }
+  if (p.maxDevices != null) {
+    parts.push(`max devices: ${p.maxDevices}`);
+  }
+  if (p.maxSessionTtlMs != null) {
+    parts.push(`session ≤ ${Math.round(p.maxSessionTtlMs / 60000)}m`);
+  }
+  if (!p.allowRelayPairing) {
+    parts.push("relay pairing disabled");
+  }
+  return parts.length ? parts.join(" · ") : null;
+});
+
 async function refreshPairing() {
   if (!remoteSessionId.value) {
     return openPanel();
@@ -362,6 +404,7 @@ async function closeRemoteSession() {
     devices.value = [];
     auditEntries.value = [];
     auditStats.value = { total: 0, byAction: {} };
+    policy.value = null;
     visible.value = false;
     message.success("Remote Session closed");
   } catch (cause) {
