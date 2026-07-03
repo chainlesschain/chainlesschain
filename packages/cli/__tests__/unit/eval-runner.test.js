@@ -22,6 +22,25 @@ async function perfectAgent({ prompt, cwd }) {
       "export function mul(a, b) {\n  return a * b;\n}\nexport function add(a, b) {\n  return a + b;\n}\n",
       "utf8",
     );
+  } else if (/calc\.js/.test(prompt)) {
+    // fix-failing-test: repair the module so the test harness passes.
+    fs.writeFileSync(
+      path.join(cwd, "calc.js"),
+      "export function sum(a, b) {\n  return a + b;\n}\n",
+      "utf8",
+    );
+  } else if (/oldTotal/.test(prompt)) {
+    // refactor-rename: rename across BOTH files, preserve behavior.
+    fs.writeFileSync(
+      path.join(cwd, "util.js"),
+      "export function computeTotal(nums) {\n  return nums.reduce((a, b) => a + b, 0);\n}\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(cwd, "main.js"),
+      "import { computeTotal } from './util.js';\nconsole.log(computeTotal([1, 2, 3]));\n",
+      "utf8",
+    );
   }
   return { ok: true, output: "done" };
 }
@@ -63,8 +82,8 @@ describe("runEvalSuite", () => {
     };
     const summary = await runEvalSuite(BUILTIN_TASKS, { runAgent: partial });
     expect(summary.passed).toBe(1);
-    expect(summary.total).toBe(3);
-    expect(summary.passRate).toBeCloseTo(1 / 3, 5);
+    expect(summary.total).toBe(BUILTIN_TASKS.length);
+    expect(summary.passRate).toBeCloseTo(1 / BUILTIN_TASKS.length, 5);
   });
 
   it("records an agent crash as a task failure without aborting the suite", async () => {
@@ -81,7 +100,7 @@ describe("runEvalSuite", () => {
     // First task failed (agent threw); the suite kept going.
     expect(summary.results[0].pass).toBe(false);
     expect(summary.results[0].error).toMatch(/agent error: boom/);
-    expect(summary.total).toBe(3);
+    expect(summary.total).toBe(BUILTIN_TASKS.length);
   });
 
   it("throws when runAgent is missing", async () => {
@@ -105,7 +124,8 @@ describe("formatEvalReport", () => {
       runAgent: perfectAgent,
     });
     const report = formatEvalReport(summary);
-    expect(report).toMatch(/Eval: 3\/3 passed \(100\.0%\)/);
+    const n = BUILTIN_TASKS.length;
+    expect(report).toMatch(new RegExp(`Eval: ${n}/${n} passed \\(100\\.0%\\)`));
     expect(report).toMatch(/✔ create-file/);
   });
 });

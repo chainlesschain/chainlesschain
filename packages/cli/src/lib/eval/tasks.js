@@ -103,6 +103,127 @@ export const BUILTIN_TASKS = [
       }
     },
   },
+  {
+    id: "fix-failing-test",
+    description:
+      "Fix a bug so an existing test suite passes (bug-fix category)",
+    prompt:
+      "calc.js has a bug — `sum` subtracts instead of adds. Fix calc.js so that " +
+      "running `node run-checks.mjs` passes (it exits 0 and prints ALL OK). Do " +
+      "not edit run-checks.mjs.",
+    setup: (dir) => {
+      // A buggy module + a real check harness that exercises it. The agent must
+      // repair the MODULE, not the checks — verified by actually running them.
+      fs.writeFileSync(
+        path.join(dir, "calc.js"),
+        "export function sum(a, b) {\n  return a - b;\n}\n",
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "run-checks.mjs"),
+        [
+          "import { sum } from './calc.js';",
+          "const cases = [[1,2,3],[10,5,15],[0,0,0]];",
+          "for (const [a,b,want] of cases) {",
+          "  if (sum(a,b) !== want) {",
+          "    console.error(`FAIL sum(${a},${b})=${sum(a,b)} want ${want}`);",
+          "    process.exit(1);",
+          "  }",
+          "}",
+          "console.log('ALL OK');",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      // Objective: the test harness must actually pass. Guard against the agent
+      // "fixing" it by neutering run-checks.mjs — require the assertions to
+      // still be present.
+      const checks = read(dir, "run-checks.mjs");
+      if (checks == null)
+        return { pass: false, detail: "run-checks.mjs missing" };
+      if (!/sum\(a,\s*b\)\s*!==\s*want/.test(checks)) {
+        return {
+          pass: false,
+          detail: "run-checks.mjs assertions were altered",
+        };
+      }
+      try {
+        const out = execFileSync(process.execPath, ["run-checks.mjs"], {
+          cwd: dir,
+          encoding: "utf8",
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return out.includes("ALL OK")
+          ? { pass: true, detail: "test suite passes" }
+          : {
+              pass: false,
+              detail: `unexpected output ${JSON.stringify(out.trim())}`,
+            };
+      } catch (err) {
+        const first = String(err.message || "").split("\n")[0];
+        return { pass: false, detail: `checks still failing: ${first}` };
+      }
+    },
+  },
+  {
+    id: "refactor-rename",
+    description:
+      "Rename a symbol across two files, keeping behavior (refactor)",
+    prompt:
+      "Rename the exported function `oldTotal` to `computeTotal` EVERYWHERE it " +
+      "appears (both util.js which defines it and main.js which imports and " +
+      "calls it). Behavior must be unchanged: `node main.js` must still print 6.",
+    setup: (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "util.js"),
+        "export function oldTotal(nums) {\n  return nums.reduce((a, b) => a + b, 0);\n}\n",
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "main.js"),
+        "import { oldTotal } from './util.js';\nconsole.log(oldTotal([1, 2, 3]));\n",
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      const util = read(dir, "util.js");
+      const main = read(dir, "main.js");
+      if (util == null || main == null) {
+        return { pass: false, detail: "util.js or main.js missing" };
+      }
+      // The old name must be gone from BOTH files (a real rename, not an alias).
+      if (/\boldTotal\b/.test(util) || /\boldTotal\b/.test(main)) {
+        return {
+          pass: false,
+          detail: "oldTotal still present (incomplete rename)",
+        };
+      }
+      if (!/\bcomputeTotal\b/.test(util) || !/\bcomputeTotal\b/.test(main)) {
+        return { pass: false, detail: "computeTotal not used in both files" };
+      }
+      // Behavior must be preserved: run main.js and check the output.
+      try {
+        const out = execFileSync(process.execPath, ["main.js"], {
+          cwd: dir,
+          encoding: "utf8",
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return out.trim() === "6"
+          ? { pass: true, detail: "renamed + behavior preserved" }
+          : {
+              pass: false,
+              detail: `main.js printed ${JSON.stringify(out.trim())}`,
+            };
+      } catch (err) {
+        const first = String(err.message || "").split("\n")[0];
+        return { pass: false, detail: `main.js broken after rename: ${first}` };
+      }
+    },
+  },
 ];
 
 /** Look up a suite by name (only "builtin" for now). */
