@@ -630,6 +630,11 @@ ${content.substring(0, 2000)}
       if (PathSecurity.containsDangerousChars(externalPath)) {
         throw new Error("外部文件路径包含非法字符");
       }
+      // 位置级加固：拒绝从系统/凭据目录导入（否则 ~/.ssh/id_rsa 等敏感文件
+      // 会被读入项目内容落库 → 外泄）。charset 黑名单漏这些展开后的绝对路径。
+      if (PathSecurity.isSensitiveSystemPath(externalPath)) {
+        throw new Error("外部文件路径指向受保护的系统或凭据目录");
+      }
 
       // 验证外部文件是否存在且可读
       try {
@@ -740,6 +745,13 @@ ${content.substring(0, 2000)}
       );
       logger.info(`[Main] 验证后的源路径: ${safeSourcePath}`);
       logger.info(`[Main] 目标路径: ${targetPath}`);
+
+      // 2b. 位置级加固：导出目标路径此前无任何校验（copyFile/writeFile 直写
+      // renderer 传入的绝对路径）→ 可覆盖 ~/.ssh/authorized_keys、~/.bashrc、
+      // /etc/* 等。拒绝写入受保护的系统/凭据目录。
+      if (!targetPath || PathSecurity.isSensitiveSystemPath(targetPath)) {
+        throw new Error("导出目标路径指向受保护的系统或凭据目录");
+      }
 
       // 3. 检查源文件/文件夹是否存在（优先从文件系统，其次从数据库）
       let fileExists = false;
