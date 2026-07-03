@@ -157,7 +157,9 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 >
 > **3.3e 已落地（git/GitHub source 拉取）**：`cc plugin add` 现支持 git URL（https/git@/`.git`/`file://`）+ GitHub `owner/repo` + `#ref`。shallow clone→安装→清理；git 经无-shell spawn（url/ref 是 argv，无注入）；commit-SHA ref 退回 full clone+checkout。真机端到端：`cc plugin add file://<repo>` 克隆装 from-git → skill 现于 `cc skill list [plugin]`。
 >
-> **待完成**：remote-manifest source + 私有仓认证 + 离线 seed cache；mcp/agents/monitors 组件接入（mcp 装配零散需先 trace mcp-registry+bootstrap；agents→subagent 类型；monitors→Phase 6）；插件组件 trust-gating + 加载时验签；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`。
+> **3.3f 已落地（安全：trust-gate 代码组件）**：插件 hook（跑 shell）/ LSP（spawn 二进制）不再因在盘上就执行。user/local scope 信任（本机装的）、project scope 不信任直到 `cc plugin trust <name>`（按版本 pin）。`lib/plugin-runtime/trust.js` + gate `ensurePluginLspServers`/`collectPluginHooks`；声明式组件（skill/mcp/settings）不受影响。真机 e2e：project 插件 `.lsp.json` [untrusted] 时 server 不现于 `cc code-intel status`，`trust` 后现。
+>
+> **待完成**：mcp/agents/monitors 组件接入（mcp 装配零散需先 trace mcp-registry+bootstrap；agents→subagent 类型；monitors→Phase 6）；remote-manifest source + 私有仓认证 + 离线 seed cache；加载时签名强制（`requireSignedPlugins`）；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`。
 
 #### 目标
 
