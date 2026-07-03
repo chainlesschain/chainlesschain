@@ -131,6 +131,10 @@ let _pluginBinRestore = null;
 // Installed-plugin `settings` default env (Phase 3.3o) — restore() removes the
 // plugin-provided env-var defaults at SessionEnd (session-scoped).
 let _pluginSettingsRestore = null;
+// Async settings-hook supervisor (Phase 6) — owns fire-and-forget `async:true`
+// hook processes; their results/rewakes drain into the next turn's context.
+// Lazily created when the first async hook is dispatched; reaped at SessionEnd.
+let _asyncHookSupervisor = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
 // `!command` auto-triggers an assistant response to its output. undefined =
 // unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
@@ -3902,6 +3906,23 @@ export async function startAgentRepl(options = {}) {
         if (ups.additionalContext) {
           userContent += `\n\n[hook context]\n${ups.additionalContext}`;
         }
+        // Fire-and-forget the `async:true` UserPromptSubmit hooks (Phase 6): a
+        // long-running check (background tests, CI status) runs ALONGSIDE this
+        // turn without blocking it; its result/rewake surfaces on a later turn
+        // via the async-hook drain below. Lazily create the supervisor.
+        const { dispatchAsyncHooks } =
+          await import("../lib/settings-hook-events.cjs");
+        if (!_asyncHookSupervisor) {
+          const { AsyncHookSupervisor } =
+            await import("../lib/async-hook-supervisor.cjs");
+          _asyncHookSupervisor = new AsyncHookSupervisor();
+        }
+        dispatchAsyncHooks(
+          _settingsHooks,
+          "UserPromptSubmit",
+          { prompt: userContent },
+          { cwd: process.cwd(), supervisor: _asyncHookSupervisor },
+        );
       } catch (_err) {
         // settings hook dispatch is best-effort
       }
@@ -3928,6 +3949,49 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (_err) {
         // monitor drain is best-effort — never blocks a turn
+      }
+    }
+
+    // Async settings-hook output (Phase 6): fold in any `async:true` hook that
+    // FINISHED since the last turn. Failed `asyncRewake` hooks are surfaced
+    // first + prominently (the "rewake" — a background test failure re-engages
+    // the agent with the structured error) followed by the plain results.
+    // Drained (cleared) so each is shown once.
+    if (_asyncHookSupervisor) {
+      try {
+        const rewakes = _asyncHookSupervisor.drainRewakes();
+        const results = _asyncHookSupervisor.drainResults();
+        if (rewakes.length > 0) {
+          const lines = rewakes
+            .map(
+              (r) =>
+                `  ✗ ${r.command}${r.event ? ` (${r.event})` : ""}: ${
+                  r.error || "failed"
+                }`,
+            )
+            .join("\n");
+          userContent += `\n\n[async hook — REWAKE: a background hook failed, address it]\n${lines}`;
+        }
+        // Non-rewake informational results (successful context / non-opted
+        // failures). Rewake records already shown above are excluded to avoid
+        // duplication.
+        const info = results.filter((r) => !(r.asyncRewake === true && !r.ok));
+        const ctxLines = info
+          .map((r) => {
+            if (r.skipped) return `  … ${r.command}: ${r.error}`;
+            if (r.ok && r.additionalContext)
+              return `  ✔ ${r.command}: ${r.additionalContext}`;
+            if (!r.ok) return `  ✗ ${r.command}: ${r.error || "failed"}`;
+            return null;
+          })
+          .filter(Boolean);
+        if (ctxLines.length > 0) {
+          userContent += `\n\n[async hooks — finished since last turn]\n${ctxLines
+            .slice(-20)
+            .join("\n")}`;
+        }
+      } catch (_err) {
+        // async-hook drain is best-effort — never blocks a turn
       }
     }
 
@@ -4523,6 +4587,17 @@ export async function startAgentRepl(options = {}) {
         // Non-critical
       }
       _pluginMonitors = null;
+    }
+
+    // Reap async settings-hook processes (Phase 6) — SIGTERM any fire-and-forget
+    // `async:true` hook still running so none outlives the session.
+    if (_asyncHookSupervisor) {
+      try {
+        _asyncHookSupervisor.stopAll();
+      } catch (_e) {
+        // Non-critical
+      }
+      _asyncHookSupervisor = null;
     }
 
     // Restore PATH — drop the plugin bin dirs added at startup (Phase 3.3n).

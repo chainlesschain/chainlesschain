@@ -236,6 +236,7 @@ class AsyncHookSupervisor {
       error: fields.error || null,
       additionalContext: fields.additionalContext || null,
       blocked: !!fields.blocked,
+      asyncRewake: hook.asyncRewake === true,
       ts: now,
       ms: fields.started != null ? now - fields.started : 0,
     };

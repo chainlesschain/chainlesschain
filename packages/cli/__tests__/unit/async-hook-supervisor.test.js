@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { EventEmitter } from "node:events";
 import { AsyncHookSupervisor } from "../../src/lib/async-hook-supervisor.cjs";
-import { partitionAsyncHooks } from "../../src/lib/settings-hook-events.cjs";
+import {
+  partitionAsyncHooks,
+  dispatchAsyncHooks,
+  runUserPromptSubmitHooks,
+} from "../../src/lib/settings-hook-events.cjs";
 import { collectHooks } from "../../src/lib/settings-hooks.cjs";
 
 /**
@@ -242,6 +246,94 @@ describe("partitionAsyncHooks", () => {
   it("handles empty / nullish input", () => {
     expect(partitionAsyncHooks(null)).toEqual({ sync: [], async: [] });
     expect(partitionAsyncHooks([])).toEqual({ sync: [], async: [] });
+  });
+});
+
+describe("dispatchAsyncHooks", () => {
+  const block = {
+    UserPromptSubmit: [
+      {
+        matcher: "*",
+        hooks: [
+          { type: "command", command: "sync-guard" },
+          { type: "command", command: "bg-check", async: true },
+        ],
+      },
+    ],
+  };
+
+  it("dispatches only the async hooks onto the supervisor", () => {
+    const dispatched = [];
+    const fakeSup = {
+      dispatch: (hooks) => {
+        dispatched.push(...hooks.map((h) => h.command));
+        return hooks.map((h) => ({ command: h.command, dispatched: true }));
+      },
+    };
+    const disp = dispatchAsyncHooks(
+      block,
+      "UserPromptSubmit",
+      { prompt: "hi" },
+      { cwd: "/x", supervisor: fakeSup },
+    );
+    expect(dispatched).toEqual(["bg-check"]); // sync-guard NOT dispatched here
+    expect(disp).toHaveLength(1);
+  });
+
+  it("is a no-op without a supervisor or without async hooks", () => {
+    expect(dispatchAsyncHooks(block, "UserPromptSubmit", {}, {})).toEqual([]);
+    const syncOnly = {
+      UserPromptSubmit: [
+        { matcher: "*", hooks: [{ type: "command", command: "only-sync" }] },
+      ],
+    };
+    const sup = { dispatch: () => [{ dispatched: true }] };
+    expect(
+      dispatchAsyncHooks(syncOnly, "UserPromptSubmit", {}, { supervisor: sup }),
+    ).toEqual([]);
+  });
+});
+
+describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", () => {
+  // An async hook that would exit 2 (block) must NOT gate the turn — a
+  // fire-and-forget hook can't decide a turn it no longer blocks. We prove the
+  // exclusion two ways that don't depend on cross-module spawnSync identity
+  // (vitest inlines CJS into a separate copy, so process-spying is unreliable):
+  //   (1) an async-ONLY UserPromptSubmit set produces no blocking run at all;
+  //   (2) the partition runUserPromptSubmitHooks feeds to the sync runner keeps
+  //       only the sync hooks (block-guard), never the async one.
+  it("returns a no-op result for an async-only UserPromptSubmit set", () => {
+    const asyncOnly = {
+      UserPromptSubmit: [
+        {
+          matcher: "*",
+          hooks: [{ type: "command", command: "bg", async: true }],
+        },
+      ],
+    };
+    const res = runUserPromptSubmitHooks(asyncOnly, { prompt: "hi" });
+    // No sync hooks → nothing can block, nothing to inject.
+    expect(res).toEqual({ blocked: false, additionalContext: null });
+  });
+
+  it("partitions a mixed set so only sync hooks reach the blocking runner", () => {
+    const mixed = {
+      UserPromptSubmit: [
+        {
+          matcher: "*",
+          hooks: [
+            { type: "command", command: "block-guard" },
+            { type: "command", command: "bg", async: true },
+          ],
+        },
+      ],
+    };
+    const matched = collectHooks(mixed, "UserPromptSubmit", "");
+    const { sync, async } = partitionAsyncHooks(matched);
+    // runUserPromptSubmitHooks runs exactly `sync` via runHooks; `async` is
+    // handed to the supervisor instead — so a blocking async hook never gates.
+    expect(sync.map((h) => h.command)).toEqual(["block-guard"]);
+    expect(async.map((h) => h.command)).toEqual(["bg"]);
   });
 });
 

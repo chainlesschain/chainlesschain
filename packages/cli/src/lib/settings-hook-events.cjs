@@ -54,6 +54,11 @@ function aggregateContext(results) {
 /**
  * UserPromptSubmit settings hooks. A `block`/`ask` decision aborts the turn;
  * otherwise any emitted context is returned for the caller to inject.
+ *
+ * `async: true` hooks are EXCLUDED from this blocking run — they can't gate a
+ * turn they no longer block, so a fire-and-forget hook is dispatched separately
+ * (see dispatchAsyncHooks). This keeps the sync/decision path unchanged while a
+ * long-running check runs alongside the turn.
  * @returns {{ blocked:boolean, reason?:string, hook?:string, additionalContext:string|null }}
  */
 function runUserPromptSubmitHooks(
@@ -63,13 +68,15 @@ function runUserPromptSubmitHooks(
   if (!settingsHooks) return { blocked: false, additionalContext: null };
   const matched = collectHooks(settingsHooks, "UserPromptSubmit", "");
   if (matched.length === 0) return { blocked: false, additionalContext: null };
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { blocked: false, additionalContext: null };
   const payload = {
     hook_event_name: "UserPromptSubmit",
     prompt: String(prompt || ""),
     cwd,
     session_id: sessionId || null,
   };
-  const outcome = runHooks(matched, payload, {
+  const outcome = runHooks(sync, payload, {
     cwd,
     event: "UserPromptSubmit",
   });
@@ -85,6 +92,32 @@ function runUserPromptSubmitHooks(
     blocked: false,
     additionalContext: aggregateContext(outcome.results),
   };
+}
+
+/**
+ * Dispatch the `async: true` hooks for an event fire-and-forget onto the given
+ * supervisor (see async-hook-supervisor). Sync hooks are ignored here — they run
+ * on the blocking path. No-op (returns []) without a supervisor or async hooks,
+ * so callers can wire it unconditionally.
+ *
+ * @param {object} settingsHooks   merged hooks block
+ * @param {string} event           UserPromptSubmit / PostToolUse / Stop / …
+ * @param {object} payload         extra fields merged into the hook stdin JSON
+ * @param {object} opts            { cwd, matchTarget, supervisor }
+ * @returns {Array<{command:string, dispatched:boolean, reason?:string}>}
+ */
+function dispatchAsyncHooks(settingsHooks, event, payload = {}, opts = {}) {
+  const supervisor = opts.supervisor;
+  if (!settingsHooks || !supervisor) return [];
+  const matched = collectHooks(settingsHooks, event, opts.matchTarget || "");
+  if (matched.length === 0) return [];
+  const { async: asyncHooks } = partitionAsyncHooks(matched);
+  if (asyncHooks.length === 0) return [];
+  return supervisor.dispatch(
+    asyncHooks,
+    { hook_event_name: event, cwd: opts.cwd, ...payload },
+    { cwd: opts.cwd },
+  );
 }
 
 /**
@@ -132,4 +165,5 @@ module.exports = {
   runObserveHooks,
   aggregateContext,
   partitionAsyncHooks,
+  dispatchAsyncHooks,
 };
