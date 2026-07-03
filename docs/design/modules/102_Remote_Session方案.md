@@ -130,6 +130,14 @@
 - Android：`RemoteSessionClient.setPushCredentials(token, provider)` 缝——设置后随加密 `pair.join` 上送；真实 FCM/HMS token 取值（`FirebaseMessaging.getInstance().token`）留给 app 层。
 - 验证：`remote-session-push` 9 单测（isApprovalRequestEvent 匹配/无 sender 跳过/无 token 跳过/投递 sent/provider 覆盖/去重窗口 + 跨 client 不去重 + 过窗重发/sender 抛错不 throw 记 failed/fromEnv）+ registry 扩测 5（join 存 token、无 token 忽略 provider、register 注册刷新清空、非成员拒绝、pushTargets 排除 host 与指定 client）+ protocol 扩测 3（join 带 token + 审计、注册 + 审计、非成员拒绝）+ mirroring 扩测 2（approval 唤醒且记 push.sent、无 sender 不唤醒不记）。
 
+#### Phase 4：真实 vendor push sender — FCM HTTP v1（已完成）
+
+- `packages/cli/src/harness/remote-session-push-fcm.js`：`sender` 契约的**真实实现**，走 FCM **HTTP v1** API（legacy server-key API 已停用）。鉴权用 Google 服务账号：`GoogleServiceAccountTokenProvider` 用私钥 **RS256 签一个 JWT** 断言、到 `oauth2.googleapis.com/token` 换取短时 OAuth2 access token（本地缓存至到期前 60s skew），磁盘上不落长期 server key。`FcmV1PushSender.send` POST `messages:send`，body 为高优先级 `{notification, data, android.priority=high, apns-priority=10}`——`data` 只带路由字段（`type/sessionId/clientId`），**无会话内容**。
+- 全链路**可注入**（`fetch`/时钟/签名器/`fs`），用生成的密钥对 + 假 transport 即可单测，无需真凭据或联网。`createRemoteSessionPushSender(env)` 工厂按 `CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER`（默认 fcm）分派：读 `..._FCM_SERVICE_ACCOUNT`（JSON 路径）或 `..._FCM_SERVICE_ACCOUNT_JSON`（内联）+ 可选 `..._FCM_PROJECT_ID`；未配置/畸形/未实现的 provider 一律返回 null（dispatcher 保持 no-op）。
+- **死 token 剪除闭环**：FCM 对已卸载/轮换的 token 返回 404 或 `UNREGISTERED/NOT_FOUND` → sender 抛 `PushTokenUnregisteredError`（`code=PUSH_TOKEN_UNREGISTERED`）；dispatcher 把 `code` 透传到 outcome；`ws-server._dispatchApprovalPush` 收到即 `registerPush(...,{token:null})` 清掉该设备 token 并记 `push.unregistered` 审计——避免对死 token 无限重试。
+- WS 接线：`RemoteSessionPushDispatcher.fromEnv` 的 sender 优先取注入的 `remoteSessionPushSender`（测试/自定义 transport），否则 `createRemoteSessionPushSender(process.env)` 按 env 造真 FCM sender；两者皆无则 null。
+- 验证：`remote-session-push-fcm` 14 单测（token provider：缺字段抛错 / JWT 真 RS256 签名 + claims 校验 + 换 token / 缓存 + 过期刷新 / 端点失败或缺 token 抛错；FCM sender：选项校验 / 成功 POST 带 bearer + body 形状 + 返回 id / 缺 token / 404 + UNREGISTERED body → PushTokenUnregisteredError / 5xx 通用错；工厂：未配置或未实现 provider → null / 畸形服务账号 → null / 内联 JSON 造 sender 端到端发送 / 文件路径经注入 fs 读 / project id 覆盖）+ dispatcher 扩测 1（code 透传）+ mirroring 扩测 1（unregistered 剪除 token + 记 push.unregistered）。远程会话全量 87 单测（8 文件）通过。
+
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
 - `packages/cli/src/harness/remote-session-audit-sink.js`：`RemoteSessionAuditFileSink` 接到审计日志的 `sink` 缝，把（已隐私脱敏的）审计流持久化为**换行分隔 JSON（JSONL）**文件，让取证记录跨宿主重启存活。每条一行；文件按大小上限**滚动**（`audit.jsonl` → `audit.jsonl.1` → …，`backups` 可配，默认保 1 份；`backups=0` 即到顶截断），永不无界增长。读取容忍**撕裂的末行**（崩溃时半截 append）——解析失败的行直接跳过。零依赖（仅 node:fs）且可注入 `fs`，日后换 SQLite 后端只需实现同样的 `{ handler, readAll }` 形状，不动审计日志与调用点。
@@ -141,5 +149,5 @@
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：真实 vendor push `sender` 实装（FCM/APNs 服务端凭据 + Android FirebaseMessaging 集成 + google-services.json；Web push 需 service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：**FCM sender 服务端已完成**；仍缺 **Android 侧 FirebaseMessaging 集成 + google-services.json**（app 层取 FCM token 并经 `setPushCredentials` 上送，真机验证）；其它 provider（APNs / 小米 / 华为 / OPPO）sender 实装；Web push（service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。

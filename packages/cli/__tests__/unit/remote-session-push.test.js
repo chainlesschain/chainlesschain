@@ -128,8 +128,30 @@ describe("RemoteSessionPushDispatcher", () => {
       token: "t",
       clientId: "phone",
     });
-    expect(outcome).toEqual({ status: "failed", error: "FCM 503" });
+    expect(outcome).toEqual({
+      status: "failed",
+      error: "FCM 503",
+      code: null,
+    });
     expect(dispatcher.stats.failed).toBe(1);
+  });
+
+  it("propagates a typed error code so the caller can prune dead tokens", async () => {
+    const sender = vi.fn(async () => {
+      const error = new Error("token gone");
+      error.code = "PUSH_TOKEN_UNREGISTERED";
+      throw error;
+    });
+    const dispatcher = new RemoteSessionPushDispatcher({ sender });
+    const outcome = await dispatcher.dispatch({
+      token: "t",
+      clientId: "phone",
+    });
+    expect(outcome).toEqual({
+      status: "failed",
+      error: "token gone",
+      code: "PUSH_TOKEN_UNREGISTERED",
+    });
   });
 
   it("builds from env with a default provider and injected sender", async () => {

@@ -134,6 +134,49 @@ describe("Remote Session automatic Agent event mirroring", () => {
     expect(actions).toContain("push.sent");
   });
 
+  it("prunes a device token the vendor reports as unregistered", async () => {
+    const sender = vi.fn(async () => {
+      const error = new Error("token gone");
+      error.code = "PUSH_TOKEN_UNREGISTERED";
+      throw error;
+    });
+    const server = new ChainlessChainWSServer({
+      remoteSessionPushSender: sender,
+    });
+    const host = socket();
+    server.clients.set("host", { ws: host, authenticated: true });
+    const created = server.remoteSessions.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+      scopes: ["observe", "approve"],
+    });
+    server.remoteSessions.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+      pushToken: "stale-token",
+      pushProvider: "fcm",
+    });
+
+    server._send(host, {
+      type: "approval_request",
+      sessionId: "agent-1",
+      requestId: "req-1",
+    });
+    await flush();
+
+    expect(sender).toHaveBeenCalledTimes(1);
+    // The dead token is pruned, so the device drops out of push targets.
+    expect(
+      server.remoteSessions.pushTargets(created.session.sessionId),
+    ).toEqual([]);
+    const actions = server.remoteSessionAudit
+      .list({ sessionId: created.session.sessionId })
+      .map((e) => e.action);
+    expect(actions).toContain("push.unregistered");
+    expect(actions).not.toContain("push.failed");
+  });
+
   it("does not attempt push when no sender is configured", async () => {
     const server = new ChainlessChainWSServer();
     const host = socket();

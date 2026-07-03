@@ -63,7 +63,13 @@ export class RemoteSessionPushDispatcher {
       return { status: "sent", provider: provider || this.provider, result };
     } catch (error) {
       this.stats.failed += 1;
-      return { status: "failed", error: error.message };
+      // Propagate a typed code (e.g. PUSH_TOKEN_UNREGISTERED) so the caller can
+      // prune a dead device token instead of retrying it forever.
+      return {
+        status: "failed",
+        error: error.message,
+        code: error.code || null,
+      };
     }
   }
 

@@ -37,6 +37,7 @@ import {
   RemoteSessionPushDispatcher,
   isApprovalRequestEvent,
 } from "../../harness/remote-session-push.js";
+import { createRemoteSessionPushSender } from "../../harness/remote-session-push-fcm.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
@@ -275,7 +276,12 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.remoteSessionPush =
       options.remoteSessionPush ||
       RemoteSessionPushDispatcher.fromEnv(process.env, {
-        sender: options.remoteSessionPushSender || null,
+        // Prefer an explicitly injected sender (tests / custom transport); else
+        // build a real FCM sender from env when service-account creds are
+        // configured. Stays a no-op (null) when neither is present.
+        sender:
+          options.remoteSessionPushSender ||
+          createRemoteSessionPushSender(process.env),
       });
     this.remoteSessionRelayUrl = options.remoteSessionRelayUrl || null;
     this.remoteSessionPeerId = options.remoteSessionPeerId || null;
@@ -1149,6 +1155,26 @@ export class ChainlessChainWSServer extends EventEmitter {
         },
       })
       .then((outcome) => {
+        // A vendor that reports the token as retired means the app was
+        // uninstalled / the token rotated — prune it so it is never retried.
+        if (outcome.code === "PUSH_TOKEN_UNREGISTERED") {
+          try {
+            this.remoteSessions.registerPush(
+              remoteSession.sessionId,
+              member.clientId,
+              { token: null },
+            );
+          } catch {
+            // Member may have been revoked meanwhile — nothing to prune.
+          }
+          this.remoteSessionAudit?.record({
+            sessionId: remoteSession.sessionId,
+            actor: member.clientId,
+            action: "push.unregistered",
+            detail: { provider: member.pushProvider || null },
+          });
+          return;
+        }
         this.remoteSessionAudit?.record({
           sessionId: remoteSession.sessionId,
           actor: member.clientId,

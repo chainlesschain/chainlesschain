@@ -24,6 +24,7 @@ export const REMOTE_SESSION_AUDIT_ACTIONS = Object.freeze([
   "push.sent",
   "push.failed",
   "push.skipped",
+  "push.unregistered",
 ]);
 
 export class RemoteSessionAuditLog {
