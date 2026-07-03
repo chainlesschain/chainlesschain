@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.134 · 2026-07-03',
+    title: 'CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动（安全 patch 上船真机）',
+    sub: 'chainlesschain 0.162.148 已发 npm，随本版打入 Android in-app cc bundle（binariesVersion 20260703 / USR_VERSION 74）。桌面 + CLI 用户经 npm 覆盖，Android 真机用户经本次 APK 发版拿到。',
+    desc: 'CLI OAuth openBrowser cmd.exe 命令注入（HIGH，远程可影响）：mcp-oauth 用 spawn("cmd",["/c","start","",url]) 打开授权页，URL 里的 &（OAuth query 必有）直达 cmd.exe → 在第一个 & 处截断、其余当命令执行；授权 URL 来自远程 MCP 服务器 metadata，恶意服务器可执行任意 Windows 命令。改为 new URL() 仅放行 http(s) + rundll32 url.dll,FileProtocolHandler（普通 exe，参数原样传递，无 shell）；+4 回归测试。MCP 服务器列表坏行加固：_rowToConfig 裸 JSON.parse(row.args||"[]") 只挡 NULL 不挡损坏值，一坏行让 cc mcp servers / 自动连接整体失败 → 改走 safeJsonParse 降级；+1 测试。桌面 workflow-engine resume：resumeExecution 此前只翻状态不重驱动 → 断点/审批工作流永卡却报 success，审批 waiting 完全不可恢复，executeWorkflow 覆写暂停状态为完成 → 改为从 execution.log + dag 推导前沿重驱动、单次跳过触发暂停的断点、恢复审批即视为批准；+9 测试。版本面：productVersion v5.0.3.133 → v5.0.3.134；chainlesschain 0.162.148 已发 npm；USR_VERSION 74 / binariesVersion 20260703。',
+  },
+  {
     tag: 'v5.0.3.133 · 2026-06-28',
     title: '个人数据中台采集/分析三连：MIUI 浏览历史 + 账单月份/时间线修复 + 微博私信',
     sub: '累计 v5.0.3.131–133：MIUI/AOSP 默认浏览器历史采集器；PDH 分析层两处日期正确性修复上设备；微博私信采集（device-verified schema，高敏感 opt-in）。pdh 0.4.36 → 0.4.39 + cli 0.162.117 → 0.162.129 已发 npm；Android cc bundle internal-binaries-android-v20260628c（USR_VERSION 61）。',

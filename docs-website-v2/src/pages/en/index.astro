@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.134 · 2026-07-03',
+    title: 'CLI OAuth command-injection fix + MCP list hardening + workflow resume re-drive (security patch reaches on-device)',
+    sub: 'chainlesschain 0.162.148 published to npm and bundled into the Android in-app cc (binariesVersion 20260703 / USR_VERSION 74). Desktop + CLI users covered via npm; Android on-device users via this APK release.',
+    desc: 'CLI OAuth openBrowser cmd.exe command injection (HIGH, remote-influenced): mcp-oauth opened the authorize page with spawn("cmd",["/c","start","",url]) — the & in the OAuth query string reached cmd.exe, truncating the URL at the first & and executing the remainder as commands; the authorize URL derives from remote MCP server metadata, so a malicious server could run arbitrary Windows commands. Now http(s)-only via new URL() + rundll32 url.dll,FileProtocolHandler (plain exe, verbatim argv, no shell); +4 regression tests. MCP server-list corrupt-row hardening: _rowToConfig used bare JSON.parse(row.args||"[]") (guards NULL, not a corrupt value), so one bad row took down the whole cc mcp servers / auto-connect — now routed through safeJsonParse; +1 test. Desktop workflow-engine resume: resumeExecution previously only flipped status without re-driving → breakpoint/approval workflows stuck forever while the IPC reported success, approval "waiting" wholly unresumable, executeWorkflow overwrote the paused status with completed → now derives the frontier from execution.log + dag, re-drives remaining stages, steps over the paused breakpoint once, treats an approval resume as granted; +9 tests. Versions: productVersion v5.0.3.133 → v5.0.3.134; chainlesschain 0.162.148 published to npm; USR_VERSION 74 / binariesVersion 20260703.',
+  },
+  {
     tag: 'v5.0.3.133 · 2026-06-28',
     title: 'PDH collection/analysis trio: MIUI browser history + bill-month/timeline fixes + Weibo DMs',
     sub: 'Cumulative v5.0.3.131–133: MIUI/AOSP default-browser history collector; two PDH analysis-layer date-correctness fixes shipped on device; Weibo direct-message collection (device-verified schema, high-sensitivity opt-in). pdh 0.4.36 → 0.4.39 + cli 0.162.117 → 0.162.129 published to npm; Android cc bundle internal-binaries-android-v20260628c (USR_VERSION 61).',
