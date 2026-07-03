@@ -127,7 +127,7 @@
 - Registry：`join` 接受 `pushToken`/`pushProvider` 并存于成员（无 token 则忽略 provider）；配对后设备可用 `registerPush` 自行注册/刷新/清空自己的 token（null 清空即退出唤醒目标）；`pushTargets` 列出携带 token 的非 host 成员；`listDevices` 暴露 `hasPush`/`pushProvider`。
 - WS：`ws-server` 构造 `this.remoteSessionPush`（`fromEnv` + 注入 `remoteSessionPushSender`）；`_mirrorRemoteSessionEvent` 在镜像 approval 事件时，对**每个**带 push token 的观察成员 fire-and-forget 唤醒（独立于本地/relay 可达性——后台应用可能报「socket 活着」但进程已挂起，永远读不到镜像事件直到用户点推送），并记 `push.sent`/`push.failed`/`push.skipped` 审计。relay 配对握手的 `pair.join` 也透传 `pushToken`/`pushProvider`。新增 WS `remote-session-push-register`（设备只能注册自己的 token）。
 - Desktop：Remote 面板设备列表对带推送的远端设备显示绿色「Push · <provider>」标签（悬浮说明后台可被唤醒）。
-- Android：`RemoteSessionClient.setPushCredentials(token, provider)` 缝——设置后随加密 `pair.join` 上送；真实 token 取值走**多 provider 有序解析**（FCM→vivo），见下方「Android FirebaseMessaging 集成」与「Android vivo push 集成」节（`FcmTokenProvider`/`VivoTokenProvider` 反射取值 + `RemoteSessionPushTokenResolver`）。
+- Android：`RemoteSessionClient.setPushCredentials(token, provider)` 缝——设置后随加密 `pair.join` 上送；真实 token 取值走**多 provider 有序解析**（FCM→vivo→OPPO），见下方「Android FirebaseMessaging 集成」与「Android vivo push 集成」节（`FcmTokenProvider`/`VivoTokenProvider`/`OppoTokenProvider` 反射取值 + `RemoteSessionPushTokenResolver`）。
 - 验证：`remote-session-push` 9 单测（isApprovalRequestEvent 匹配/无 sender 跳过/无 token 跳过/投递 sent/provider 覆盖/去重窗口 + 跨 client 不去重 + 过窗重发/sender 抛错不 throw 记 failed/fromEnv）+ registry 扩测 5（join 存 token、无 token 忽略 provider、register 注册刷新清空、非成员拒绝、pushTargets 排除 host 与指定 client）+ protocol 扩测 3（join 带 token + 审计、注册 + 审计、非成员拒绝）+ mirroring 扩测 2（approval 唤醒且记 push.sent、无 sender 不唤醒不记）。
 
 #### Phase 4：真实 vendor push sender — FCM HTTP v1（已完成）
@@ -196,10 +196,11 @@
 
 - **provider 抽象**：新 `RemoteSessionPushTokenProvider` 接口（`val provider` 标签 + `suspend fun getToken()`）——`FcmTokenProvider` 与新 `VivoTokenProvider` 均实现之。配对不再写死 FCM，而是走**有序解析**。
 - `android-app/.../remote/session/VivoTokenProvider.kt`：**反射式**取设备 vivo regId，与 `FcmTokenProvider` 同范式——`Class.forName("com.vivo.push.PushClient")` + `getInstance(context).getRegId()`。vivo Push SDK 是**手动 AAR（不在 Maven）**，不在 classpath / push 未 turnOn（`getRegId()` 返 ""）时**返回 null 不崩**；宿主回退 relay + 本地通知。异于 FCM 静态单例，vivo `PushClient` 需 `Context`，故构造带 context。可注入 `fetcher` 供测试。
-- `RemoteSessionPushTokenResolver`：按**有序** provider 列表解析首个可用 token（FCM 先——海外/Pixel/三星国际；vivo 后——国内 ROM）；某 provider 抛错/返 null/空白即跳过，**一个缺 SDK 不阻塞其余**；全不可用才返 null。纯 Kotlin 无 Android 类型，全可测。
-- `RemoteSessionViewModel.pair(uri)`：`fcmTokenProvider.getToken()` 换为 `pushTokenResolver.resolve()`（列表 `[FcmTokenProvider(), VivoTokenProvider(application)]`，仍 `withTimeoutOrNull(3s)` 封顶），命中即 `client.setPushCredentials(resolved.token, resolved.provider)`。
+- `android-app/.../remote/session/OppoTokenProvider.kt`：**反射式**取设备 OPPO（HeyTap）regId——`Class.forName("com.heytap.msp.push.HeytapPushManager")` + 静态 `getRegisterID()`。OPPO Push SDK 是 **OPPO-Maven 依赖**（`com.heytap.msp:push`）；不在 classpath / 未注册（返 ""）时**返回 null 不崩**。异于 vivo，OPPO 的 `getRegisterID()` 是**静态**方法，故 provider **无需 Context**（与 FCM 同）。可注入 `fetcher` 供测试。
+- `RemoteSessionPushTokenResolver`：按**有序** provider 列表解析首个可用 token（FCM 先——海外/Pixel/三星国际；vivo、OPPO 后——国内 ROM）；某 provider 抛错/返 null/空白即跳过，**一个缺 SDK 不阻塞其余**；全不可用才返 null。纯 Kotlin 无 Android 类型，全可测。
+- `RemoteSessionViewModel.pair(uri)`：`fcmTokenProvider.getToken()` 换为 `pushTokenResolver.resolve()`（列表 `[FcmTokenProvider(), VivoTokenProvider(application), OppoTokenProvider()]`，仍 `withTimeoutOrNull(3s)` 封顶），命中即 `client.setPushCredentials(resolved.token, resolved.provider)`。
 - **桥泛化**：`RemoteSessionPushBridge.onNewToken(token, provider = FcmTokenProvider.PROVIDER)`——加 provider 参数（默认 fcm 保持 `RemoteSessionFirebaseService` 调用不变），vivo 接收器可传 `VivoTokenProvider.PROVIDER` 把刷新的 regId 路由进活跃客户端。
-- 验证：`VivoTokenProviderTest` 5（注入 fetcher 取值 / provider 标签 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 SDK → null）+ `RemoteSessionPushTokenResolverTest` 6（首个命中 / 前者不可用则下沉 / 抛错跳过 / 空白视为不可用 / 全不可用 → null / 空列表 → null）+ `RemoteSessionPushBridgeTest` 扩测 1（onNewToken 带非默认 provider 标签经解密 `pair.join` 得 vivo）+ `FcmTokenProviderTest` 4（实现接口后不回归）。Android remote-session 四类 JVM 测试全绿（5+6+4+4=19，`gradlew :app:testDebugUnitTest`）。
+- 验证：`VivoTokenProviderTest` 5 + `OppoTokenProviderTest` 5（注入 fetcher 取值 / provider 标签 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 SDK → null）+ `RemoteSessionPushTokenResolverTest` 6（首个命中 / 前者不可用则下沉 / 抛错跳过 / 空白视为不可用 / 全不可用 → null / 空列表 → null）+ `RemoteSessionPushBridgeTest` 扩测 1（onNewToken 带非默认 provider 标签经解密 `pair.join` 得 vivo）+ `FcmTokenProviderTest` 4（实现接口后不回归）。Android remote-session 五类 JVM 测试全绿（5+5+6+4+4=24，`gradlew :app:testDebugUnitTest`）。
 
 #### Phase 4：Android vivo push 真机集成（AAR 门控 + 接收器 + 反射 turnOn，已完成骨架）
 
