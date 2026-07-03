@@ -10,18 +10,18 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 > **基线校准（2026-07-03 逐项 grep 坐实，`packages/cli@0.162.148`）** —— 各 Phase 的真实起点不同，规划必须区分「从零建」「扩既有」「产品化」：
 >
-> | 领域 | 现状判定 | 关键实现 | 本计划性质 |
-> | --- | --- | --- | --- |
-> | 沙箱 | **EXISTS**（仅 Docker 后端，无后端抽象，无 bwrap/seatbelt） | `lib/agent-sandbox.js`（`docker run --network none`）、`lib/sandbox-v2.js`（策略/配额监控，非 OS 隔离） | 扩既有：抽 `SandboxBackend` + 原生后端 |
-> | **LSP / 代码智能** | **ABSENT**（纯文本搜索 `search_files`，无任何 LSP） | `runtime/agent-core.js` | **从零建（本次起点）** |
-> | 插件 / Marketplace | **PARTIAL**（manifest 只加载 `skills`，无 agents/hooks/mcp 组合，无 user/project/local scope） | `harness/plugin-manager.js`、`lib/plugin-ecosystem.js` | 扩既有：统一多组件 manifest + scope |
-> | Agent Team | **PARTIAL**（master-worker + worktree + cowork，无 lease / teammate 任务图） | `commands/agents.js`、`harness/worktree-isolator.js`、`lib/cowork/agent-group-runner.js` | 扩既有：加 lease 共享任务图 |
-> | Remote Control | **EXISTS（健全）** | `harness/remote-session-*`、`gateways/remote-session-relay.js`、`cc serve --allow-remote` | **产品化，非新建**：补三端 UX + 断线序列校验 |
-> | 异步 Hooks | **PARTIAL**（`HookType.ASYNC` 存在但仍 inline await，无 `async:true` fire-and-forget、无 `asyncRewake`） | `lib/hook-manager.js`、`lib/settings-hook-events.cjs` | 扩既有：真异步 + 失败唤醒 |
-> | 后台 Monitors | **ABSENT**（有 background-task-manager，无 monitor 子系统） | `harness/background-task-manager.js` | 从零建 |
-> | 可靠性评测 / OTel | **ABSENT**（有 vitest + golden-transcript 测试基建，无任务成功率基准，无 OTel 依赖） | `harness/golden-transcript.js` | 从零建 |
-> | 编辑并发保护 | **PARTIAL**（unique-match + `edit_file_hashed` 锚定，**无 mtime/read-freshness 守卫**） | `runtime/agent-core.js` `edit_file` | 补 mtime/hash 新鲜度守卫 |
-> | 模型 fallback | **EXISTS（仅同 provider，≤3 跳）** | `runtime/fallback-model.js` | 扩既有：跨 provider |
+> | 领域               | 现状判定                                                                                                                                                                 | 关键实现                                                                                                   | 本计划性质                                   |
+> | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+> | 沙箱               | **EXISTS**（仅 Docker 后端，无后端抽象，无 bwrap/seatbelt）                                                                                                              | `lib/agent-sandbox.js`（`docker run --network none`）、`lib/sandbox-v2.js`（策略/配额监控，非 OS 隔离）    | 扩既有：抽 `SandboxBackend` + 原生后端       |
+> | **LSP / 代码智能** | **ABSENT**（纯文本搜索 `search_files`，无任何 LSP）                                                                                                                      | `runtime/agent-core.js`                                                                                    | **从零建（本次起点）**                       |
+> | 插件 / Marketplace | **PARTIAL**（manifest 只加载 `skills`，无 agents/hooks/mcp 组合，无 user/project/local scope）                                                                           | `harness/plugin-manager.js`、`lib/plugin-ecosystem.js`                                                     | 扩既有：统一多组件 manifest + scope          |
+> | Agent Team         | **PARTIAL**（master-worker + worktree + cowork，无 lease / teammate 任务图）                                                                                             | `commands/agents.js`、`harness/worktree-isolator.js`、`lib/cowork/agent-group-runner.js`                   | 扩既有：加 lease 共享任务图                  |
+> | Remote Control     | **EXISTS（健全）**                                                                                                                                                       | `harness/remote-session-*`、`gateways/remote-session-relay.js`、`cc serve --allow-remote`                  | **产品化，非新建**：补三端 UX + 断线序列校验 |
+> | 异步 Hooks         | **PARTIAL**（`HookType.ASYNC` 存在但仍 inline await，无 `async:true` fire-and-forget、无 `asyncRewake`）                                                                 | `lib/hook-manager.js`、`lib/settings-hook-events.cjs`                                                      | 扩既有：真异步 + 失败唤醒                    |
+> | 后台 Monitors      | **PARTIAL → 首付已落地**（Phase 3.3i：`PluginMonitorSupervisor` interval/longRunning + 去重/并发上限/超时/回收；剩 REPL 每轮 additionalContext 注入 + 事件驱动 monitor） | `lib/plugin-monitor-supervisor.js`、`lib/plugin-runtime/monitors.js`、`harness/background-task-manager.js` | 扩既有                                       |
+> | 可靠性评测 / OTel  | **ABSENT**（有 vitest + golden-transcript 测试基建，无任务成功率基准，无 OTel 依赖）                                                                                     | `harness/golden-transcript.js`                                                                             | 从零建                                       |
+> | 编辑并发保护       | **PARTIAL**（unique-match + `edit_file_hashed` 锚定，**无 mtime/read-freshness 守卫**）                                                                                  | `runtime/agent-core.js` `edit_file`                                                                        | 补 mtime/hash 新鲜度守卫                     |
+> | 模型 fallback      | **EXISTS（仅同 provider，≤3 跳）**                                                                                                                                       | `runtime/fallback-model.js`                                                                                | 扩既有：跨 provider                          |
 >
 > 校准结论：**Phase 5 (Remote Control) 是「产品化」而非「新建」**，工作量应下调、验收聚焦断线重连幂等与设备撤销；**Phase 2 (LSP) 是唯一完全空白且跨平台可在主力 Windows 机验证的项**，作为实施起点。
 
@@ -120,14 +120,14 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 模块落在 `packages/cli/src/lib/lsp/`（ESM，遵循 `_deps` 注入以便单测），命令 `cc code-intel`，Agent 工具 `code_intelligence` 二期接入 `runtime/agent-core.js`。
 
-| 文件 | 职责 | 可单测 |
-| --- | --- | --- |
-| `lsp/jsonrpc-stream.js` | LSP 传输层：`Content-Length` 分帧编解码器（增量喂字节 → 完整消息），纯函数无 IO | ✅ 纯 |
-| `lsp/lsp-client.js` | 单个 language server：`spawn` stdio、initialize 握手、request/notify 关联（id→Promise）、通知分发、超时、`shutdown`/`exit`、进程 `error`/`exit` 事件 | ✅ mock child |
-| `lsp/lsp-server-registry.js` | 语言 ↔ server 命令映射 + 可用性探测（TS/JS→`typescript-language-server --stdio`；Python→`pyright-langserver`/`pylsp`；Go→`gopls`；Rust→`rust-analyzer`），插件 `.lsp.json` 注册额外 server | ✅ 纯（探测注入） |
-| `lsp/lsp-manager.js` | 生命周期池：按 `(projectRoot, languageId)` 懒启动 + 复用 server、`didOpen`/`didChange` 文档同步、0-based LSP ↔ 1-based 用户位置换算、崩溃自动重启一次、全部关闭 | ✅ mock client |
-| `lsp/code-intelligence.js` | 高层服务 API：`definition` / `references` / `hover` / `documentSymbols` / `workspaceSymbols` / `diagnostics` / `rename`（预览）；结果归一化为 `{file,line,col,snippet}`；无 server 时明确降级信号 | ✅ mock manager |
-| `commands/codeintel.js` | `cc code-intel <sub> …`，端到端验证（不触 agent-core） | ✅ |
+| 文件                         | 职责                                                                                                                                                                                              | 可单测            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `lsp/jsonrpc-stream.js`      | LSP 传输层：`Content-Length` 分帧编解码器（增量喂字节 → 完整消息），纯函数无 IO                                                                                                                   | ✅ 纯             |
+| `lsp/lsp-client.js`          | 单个 language server：`spawn` stdio、initialize 握手、request/notify 关联（id→Promise）、通知分发、超时、`shutdown`/`exit`、进程 `error`/`exit` 事件                                              | ✅ mock child     |
+| `lsp/lsp-server-registry.js` | 语言 ↔ server 命令映射 + 可用性探测（TS/JS→`typescript-language-server --stdio`；Python→`pyright-langserver`/`pylsp`；Go→`gopls`；Rust→`rust-analyzer`），插件 `.lsp.json` 注册额外 server        | ✅ 纯（探测注入） |
+| `lsp/lsp-manager.js`         | 生命周期池：按 `(projectRoot, languageId)` 懒启动 + 复用 server、`didOpen`/`didChange` 文档同步、0-based LSP ↔ 1-based 用户位置换算、崩溃自动重启一次、全部关闭                                   | ✅ mock client    |
+| `lsp/code-intelligence.js`   | 高层服务 API：`definition` / `references` / `hover` / `documentSymbols` / `workspaceSymbols` / `diagnostics` / `rename`（预览）；结果归一化为 `{file,line,col,snippet}`；无 server 时明确降级信号 | ✅ mock manager   |
+| `commands/codeintel.js`      | `cc code-intel <sub> …`，端到端验证（不触 agent-core）                                                                                                                                            | ✅                |
 
 关键约束：
 
@@ -151,7 +151,7 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 >
 > **3.3c 已落地（Hooks 组件接入 agent 生命周期）**：`lib/plugin-runtime/hooks.js` `mergePluginHooks()` 把各插件 `hooks/hooks.json` 叠加进有效 settings-hook map（只加不替换，仅 manifest 校验通过者），接在 `headless-runner` + `agent-repl` 两处 hook 加载点。LLM-free e2e：插件 SessionStart hook 经真 hook-runner spawn，stdout 注入 additionalContext。**安全 follow-up**：插件 hook 跑 shell 尚未在加载时强制验签 / trust-gate（属后续安全硬化）。
 >
-> **验收标准进度**：一个插件同时注册 6 组件类型中已打通 **3/6**（✅ LSP / ✅ Skill / ✅ Hook；剩 Agent / MCP / Monitor）。
+> **验收标准进度**：一个插件同时注册 6 组件类型已全部打通 **6/6**（✅ LSP / ✅ Skill / ✅ Hook / ✅ MCP / ✅ Agent / ✅ Monitor）—— 每个都经真实 CLI 端到端验证接入真实 agent 链。
 >
 > **3.3d 已落地（安装生命周期，让系统可用）**：`lib/plugin-runtime/install.js` + `cc plugin add/installed/uninstall/use`。从本地目录校验+拷进不可变 `<scope>/<name>/<version>/` 版本目录、标 active，支持整插件/单版本卸载、`.active` rollback；拷贝跳 symlink、绝不写出目标外；重装需 `--force`。git/GitHub source 识别但 defer。真机端到端：`cc plugin add <dir>` → `installed` → bundled skill 现于 `cc skill list [plugin]` + `.lsp.json` server 现于 `cc code-intel status`（安装到 agent 全链路），uninstall 往返 skill 消失。
 >
@@ -159,7 +159,13 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 >
 > **3.3f 已落地（安全：trust-gate 代码组件）**：插件 hook（跑 shell）/ LSP（spawn 二进制）不再因在盘上就执行。user/local scope 信任（本机装的）、project scope 不信任直到 `cc plugin trust <name>`（按版本 pin）。`lib/plugin-runtime/trust.js` + gate `ensurePluginLspServers`/`collectPluginHooks`；声明式组件（skill/mcp/settings）不受影响。真机 e2e：project 插件 `.lsp.json` [untrusted] 时 server 不现于 `cc code-intel status`，`trust` 后现。
 >
-> **待完成**：mcp/agents/monitors 组件接入（mcp 装配零散需先 trace mcp-registry+bootstrap；agents→subagent 类型；monitors→Phase 6）；remote-manifest source + 私有仓认证 + 离线 seed cache；加载时签名强制（`requireSignedPlugins`）；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`。
+> **3.3g 已落地（MCP 组件接入 agent 链）**：`lib/plugin-runtime/mcp.js` `collectPluginMcpServers()` 收集受信插件 `.mcp.json` 的 `mcpServers`，`runtime/mcp-config.js` `loadPluginMcp()` 连接、`resolveAgentMcp()` 默认调用（在 registered+project 之后，二者 name 冲突时胜出；`pluginMcp:false`/`--strict-mcp-config` 跳过）。**安全**：MCP stdio server spawn 命令 → 与 hooks/LSP 同样 trust-gate（不同于 opt-in 的 project `.mcp.json`，插件 MCP 默认加载，因 install+trust 即显式同意）。真机端到端（真 spawn stdio MCP server）：untrusted project 插件被 skip 无连接，`cc plugin trust` 后 server spawn、JSON-RPC 握手完成、其 `echo` tool 进入 agent 工具面。22 单测。
+>
+> **3.3h 已落地（Agent 子代理接入发现）**：`lib/plugin-runtime/agents.js` `discoverPluginAgentLayers()` 把各受信插件 `agents/` dir 以**最低优先级**并入 `lib/agents.js` `agentDirs()`（用户自有 project/personal 同名 agent 覆盖之，不重复）；`includePlugins:false` 可关。**不 trust-gate**：agent 定义是声明式（system prompt + 工具 allow-list 只缩不扩），仅用户按名 `cc agents run` 调用、绝不启动即执行（同 skill；code-bearing 组件 hooks/LSP/MCP 仍 gate）。真机端到端：local 插件 `agents/haiku-reviewer.md` 现于 `cc agents list [plugin]` 带 tools+model，`cc agents show` 从不可变版本目录解析完整 system prompt。23 测试。
+>
+> **3.3i 已落地（Monitor 后台监控 —— 第 6 组件 + Phase 6 首付）**：`lib/plugin-runtime/monitors.js` `collectPluginMonitors()` + `lib/plugin-monitor-supervisor.js` `PluginMonitorSupervisor`。两模式：`interval`（按 cadence 重跑命令、逐次捕获）/ `longRunning`（spawn 一次保活流式输出）。结构化输出 `drainOutputs()` 供下一轮注入 additionalContext（Phase 6）。护栏：id 去重、`maxConcurrent` 并发上限、per-run 超时 kill、`stopAll()`+`process.once('exit')` 回收（会话结束无遗留进程）。接在 agent-repl 启动 start / SessionEnd cleanup 回收。新 `cc plugin monitors [--run --seconds N]` 列出+运行+回收验证。**安全**：monitor spawn 命令 → trust-gate（同 hooks/LSP/MCP）；shell:false argv 无注入。真机端到端：local 插件 interval monitor 3× 重跑（不同 PID）+ longRunning 流式（10 行捕获）后干净回收；untrusted project 副本被 skip，`trust` 后现。29 单测（14 新）。
+>
+> **待完成**：remote-manifest source + 私有仓认证 + 离线 seed cache；加载时签名强制（`requireSignedPlugins`）；组织级 allowlist/denylist；`/reload-plugins` 热加载；`cc plugin update`；Monitor 输出接入 REPL 每轮 additionalContext 注入（supervisor `drainOutputs` 已就绪，待接 turn loop）。
 
 #### 目标
 
@@ -329,14 +335,14 @@ plugin/
 
 ## 5. 推荐里程碑
 
-| 里程碑 | 内容 | 建议周期 | 发布条件 |
-| --- | --- | --- | --- |
-| M1 | OS 沙箱设计、Linux/WSL2 原型、策略模型 | 2–3 周 | 越权读写和网络访问测试通过 |
-| M2 | LSP 核心、TS/Python 支持、编辑后诊断 | 3–4 周 | 跨文件重构 E2E 通过 |
-| M3 | 插件运行时、三种 scope、Marketplace MVP | 3–4 周 | 组合插件安装/更新/回滚通过 |
-| M4 | Agent Team、任务 lease、Worktree 合并 | 4–5 周 | 崩溃恢复和冲突合并通过 |
-| M5 | Remote Control、多端同步和安全配对 | 4–6 周 | 断线恢复与设备撤销通过 |
-| M6 | Async Hooks、Monitors、可靠性基准 | 3–4 周 | 后台唤醒和基准报告进入 CI |
+| 里程碑 | 内容                                    | 建议周期 | 发布条件                   |
+| ------ | --------------------------------------- | -------- | -------------------------- |
+| M1     | OS 沙箱设计、Linux/WSL2 原型、策略模型  | 2–3 周   | 越权读写和网络访问测试通过 |
+| M2     | LSP 核心、TS/Python 支持、编辑后诊断    | 3–4 周   | 跨文件重构 E2E 通过        |
+| M3     | 插件运行时、三种 scope、Marketplace MVP | 3–4 周   | 组合插件安装/更新/回滚通过 |
+| M4     | Agent Team、任务 lease、Worktree 合并   | 4–5 周   | 崩溃恢复和冲突合并通过     |
+| M5     | Remote Control、多端同步和安全配对      | 4–6 周   | 断线恢复与设备撤销通过     |
+| M6     | Async Hooks、Monitors、可靠性基准       | 3–4 周   | 后台唤醒和基准报告进入 CI  |
 
 周期可并行，但建议严格保持技术依赖顺序：沙箱和 LSP 先于大规模 Agent Team 与远程无人值守执行。
 
@@ -344,9 +350,9 @@ plugin/
 
 每项对标能力都应按以下维度验收：
 
-| 能力 | CLI/API | 真实运行语义 | 安全边界 | 异常恢复 | 跨平台 | 自动化测试 | 文档 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 示例：Sandbox | ✅ | 部分 | 部分 | ❌ | 部分 | 部分 | ✅ |
+| 能力          | CLI/API | 真实运行语义 | 安全边界 | 异常恢复 | 跨平台 | 自动化测试 | 文档 |
+| ------------- | ------- | ------------ | -------- | -------- | ------ | ---------- | ---- |
+| 示例：Sandbox | ✅      | 部分         | 部分     | ❌       | 部分   | 部分       | ✅   |
 
 状态定义：
 
