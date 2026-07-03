@@ -3905,6 +3905,30 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
+    // Plugin background-monitor output (Phase 3.3i/Phase 6): surface anything a
+    // trusted plugin's monitor captured SINCE the last turn as additionalContext,
+    // so the agent sees e.g. a background test failure or a tailed log on its
+    // next turn. Drained (cleared) so each line is shown once; bounded so a noisy
+    // monitor can't blow up the prompt.
+    if (_pluginMonitors) {
+      try {
+        const recs = _pluginMonitors.drainOutputs();
+        if (recs.length > 0) {
+          const shown = recs.slice(-40);
+          const lines = shown
+            .map((r) => `  [${r.monitor}/${r.stream}] ${r.line}`)
+            .join("\n");
+          const omitted =
+            recs.length > shown.length
+              ? `\n  … (${recs.length - shown.length} earlier line(s) omitted)`
+              : "";
+          userContent += `\n\n[plugin monitors — new output since last turn]\n${lines}${omitted}`;
+        }
+      } catch (_err) {
+        // monitor drain is best-effort — never blocks a turn
+      }
+    }
+
     // IDE live context (Claude-Code parity): re-shared on every prompt while
     // an IDE bridge is connected — the user's selection moves between turns.
     // Ephemeral: persistence stores effectivePrompt, not this snapshot.
