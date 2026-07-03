@@ -587,10 +587,12 @@ export function registerPluginCommand(program) {
 
   const SCOPES = "user|project|local";
 
-  // plugin add <source> — install from a local directory into a scope
+  // plugin add <source> — install from a local dir, git URL, or owner/repo
   plugin
     .command("add <source>")
-    .description(`Install a plugin from a local directory (scope: ${SCOPES})`)
+    .description(
+      `Install a plugin from a local dir, git URL, or owner/repo[#ref] (scope: ${SCOPES})`,
+    )
     .option("--scope <scope>", "Install scope (user|project|local)", "user")
     .option("--force", "Reinstall over an existing immutable version")
     .option("--json", "Output as JSON")

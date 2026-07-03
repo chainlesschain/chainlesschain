@@ -17,7 +17,9 @@
  */
 
 import fs from "fs";
+import os from "os";
 import path from "path";
+import { spawnSync } from "child_process";
 import { parsePluginManifest, isWithin } from "./manifest.js";
 import {
   pluginNameDir,
@@ -35,6 +37,8 @@ export const _deps = {
   copyFileSync: fs.copyFileSync,
   lstatSync: fs.lstatSync,
   writeFileSync: fs.writeFileSync,
+  mkdtempSync: fs.mkdtempSync,
+  spawnSync,
 };
 
 /**
@@ -79,21 +83,99 @@ export function installFromDirectory(srcDir, opts = {}) {
 }
 
 /**
- * Install from a source string. Local existing directories are supported now;
- * git/GitHub sources are recognized but require a follow-up increment.
+ * Install from a source string:
+ *   - a local directory                         → copied in directly
+ *   - a git URL (https://…, git@…, ….git, file://…) → shallow-cloned then installed
+ *   - GitHub shorthand `owner/repo`             → https://github.com/owner/repo.git
+ * An optional `#ref` (branch / tag / commit) pins the checkout.
  */
 export function installFromSource(source, opts = {}) {
-  const asDir = path.resolve(String(source || ""));
+  const raw = String(source || "");
+  const asDir = path.resolve(raw);
   if (_deps.existsSync(asDir) && _deps.lstatSync(asDir).isDirectory()) {
     return installFromDirectory(asDir, opts);
   }
-  if (/^https?:\/\/|\.git$|^git@|^[\w.-]+\/[\w.-]+$/.test(String(source))) {
-    throw new Error(
-      `remote source "${source}" is not supported yet — clone it locally and ` +
-        `install from the directory (git/GitHub fetch is a follow-up increment).`,
-    );
+  const git = parseGitSource(raw);
+  if (git) {
+    const cloned = fetchGitRepo(git.url, git.ref);
+    try {
+      const res = installFromDirectory(cloned, opts);
+      return { ...res, source: git.url, ref: git.ref || null };
+    } finally {
+      try {
+        _deps.rmSync(path.dirname(cloned), { recursive: true, force: true });
+      } catch {
+        /* temp cleanup is best-effort */
+      }
+    }
   }
-  throw new Error(`source not found as a local directory: ${source}`);
+  throw new Error(
+    `source not found as a local directory or git URL: ${source}`,
+  );
+}
+
+/**
+ * Classify a source string into a git URL (+ optional ref), or null when it is
+ * not remote-looking. `owner/repo` expands to a GitHub HTTPS URL.
+ */
+export function parseGitSource(raw) {
+  const [loc, ref] = String(raw || "").split("#");
+  if (!loc) return null;
+  if (
+    /^(https?|git|ssh|file):\/\//.test(loc) ||
+    loc.endsWith(".git") ||
+    /^git@/.test(loc)
+  ) {
+    return { url: loc, ref: ref || null };
+  }
+  if (/^[\w.-]+\/[\w.-]+$/.test(loc)) {
+    return { url: `https://github.com/${loc}.git`, ref: ref || null };
+  }
+  return null;
+}
+
+/**
+ * Shallow-clone `url` (optionally at `ref`) into a fresh temp dir and return the
+ * checkout path. Uses `git` via spawn WITHOUT a shell (url/ref are argv, not a
+ * command line — no injection). Caller removes the temp dir's parent.
+ */
+export function fetchGitRepo(url, ref) {
+  const base = _deps.mkdtempSync(path.join(os.tmpdir(), "cc-plugin-git-"));
+  const dir = path.join(base, "repo");
+  const run = (args) =>
+    _deps.spawnSync("git", args, {
+      encoding: "utf8",
+      timeout: 120000,
+      windowsHide: true,
+      shell: false,
+    });
+
+  const cloneArgs = ["clone", "--depth", "1"];
+  if (ref) cloneArgs.push("--branch", ref);
+  cloneArgs.push(url, dir);
+  let res = run(cloneArgs);
+  if (res.error && res.error.code === "ENOENT") {
+    throw new Error("git is not installed (needed to fetch a remote plugin)");
+  }
+  if (res.status !== 0) {
+    // A commit SHA can't be used with --branch/--depth; retry with a full clone
+    // then checkout the ref explicitly.
+    if (ref) {
+      try {
+        _deps.rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+      const full = run(["clone", url, dir]);
+      if (!full.error && full.status === 0) {
+        const co = run(["-C", dir, "checkout", ref]);
+        if (co.status === 0) return dir;
+      }
+    }
+    const reason = (res.stderr || "").trim() || `git exited ${res.status}`;
+    throw new Error(`git clone failed for ${url}: ${reason}`);
+  }
+  return dir;
 }
 
 /** List installed plugins (active version per name) across scopes. */

@@ -9,7 +9,10 @@ import {
   uninstall,
   setActiveVersion,
   getActiveVersion,
+  parseGitSource,
+  _deps as installDeps,
 } from "../../src/lib/plugin-runtime/install.js";
+import { execSync } from "node:child_process";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 let cwd; // acts as the project root for project/local scopes
@@ -103,22 +106,11 @@ describe("installFromSource", () => {
     expect(res.name).toBe("greeter");
   });
 
-  it("rejects a remote source as not-yet-supported", () => {
+  it("errors on a plain non-remote, non-existent source", () => {
+    // A bare word is neither a directory nor a git URL.
     expect(() =>
-      installFromSource("owner/repo", { scope: "project", cwd }),
-    ).toThrow(/not supported yet/);
-    expect(() =>
-      installFromSource("https://example.com/p.git", { scope: "project", cwd }),
-    ).toThrow(/not supported yet/);
-  });
-
-  it("errors on a nonexistent local source", () => {
-    expect(() =>
-      installFromSource(path.join(srcRoot, "does-not-exist"), {
-        scope: "project",
-        cwd,
-      }),
-    ).toThrow(/not found as a local directory/);
+      installFromSource("this-is-not-a-path-or-url", { scope: "project", cwd }),
+    ).toThrow(/not found as a local directory or git URL/);
   });
 });
 
@@ -195,3 +187,121 @@ describe("uninstall + rollback", () => {
     ).toThrow(/not installed/);
   });
 });
+
+describe("parseGitSource", () => {
+  it("expands GitHub shorthand owner/repo", () => {
+    expect(parseGitSource("acme/widgets")).toEqual({
+      url: "https://github.com/acme/widgets.git",
+      ref: null,
+    });
+  });
+
+  it("passes through git URLs and keeps the #ref", () => {
+    expect(parseGitSource("https://example.com/p.git#v2")).toEqual({
+      url: "https://example.com/p.git",
+      ref: "v2",
+    });
+    expect(parseGitSource("git@github.com:acme/w.git")).toMatchObject({
+      url: "git@github.com:acme/w.git",
+    });
+    expect(parseGitSource("file:///tmp/repo#main")).toEqual({
+      url: "file:///tmp/repo",
+      ref: "main",
+    });
+  });
+
+  it("returns null for non-remote strings", () => {
+    expect(parseGitSource("./local/dir")).toBeNull();
+    expect(parseGitSource("just-a-word")).toBeNull();
+  });
+});
+
+describe("installFromSource — git (mocked clone)", () => {
+  let savedSpawn;
+  beforeEach(() => {
+    savedSpawn = installDeps.spawnSync;
+  });
+  afterEach(() => {
+    installDeps.spawnSync = savedSpawn;
+  });
+
+  it("clones a remote source and installs it", () => {
+    // Emulate `git clone … <dir>` by materializing a plugin at the target dir.
+    installDeps.spawnSync = (cmd, args) => {
+      const dir = args[args.length - 1];
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({ name: "remote-plugin", version: "3.1.0" }),
+        "utf8",
+      );
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const res = installFromSource("acme/widgets", { scope: "project", cwd });
+    expect(res).toMatchObject({
+      name: "remote-plugin",
+      version: "3.1.0",
+      source: "https://github.com/acme/widgets.git",
+    });
+    expect(listInstalled({ cwd, scopes: ["project"] })).toHaveLength(1);
+  });
+
+  it("reports a clear error when git is not installed", () => {
+    installDeps.spawnSync = () => ({ error: { code: "ENOENT" }, status: null });
+    expect(() =>
+      installFromSource("acme/widgets", { scope: "project", cwd }),
+    ).toThrow(/git is not installed/);
+  });
+});
+
+// Real end-to-end against a LOCAL git repo (offline) — only when git exists.
+let gitAvailable = false;
+try {
+  execSync("git --version", { stdio: "ignore" });
+  gitAvailable = true;
+} catch {
+  gitAvailable = false;
+}
+
+describe.skipIf(!gitAvailable)(
+  "installFromSource — git (real, local repo)",
+  () => {
+    it("clones a file:// repo and installs the plugin", () => {
+      const repo = fs.mkdtempSync(path.join(os.tmpdir(), "cc-gitrepo-"));
+      fs.writeFileSync(
+        path.join(repo, "plugin.json"),
+        JSON.stringify({ name: "git-plugin", version: "1.0.0" }),
+        "utf8",
+      );
+      const skillDir = path.join(repo, "skills", "gskill");
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(skillDir, "SKILL.md"),
+        "---\nname: gskill\n---\nx",
+        "utf8",
+      );
+      const git = (args) =>
+        execSync(`git ${args}`, { cwd: repo, stdio: "ignore" });
+      git("init -q");
+      git("-c user.email=t@t -c user.name=t add -A");
+      execSync("git -c user.email=t@t -c user.name=t commit -q -m init", {
+        cwd: repo,
+        stdio: "ignore",
+      });
+
+      const url = "file://" + repo.replace(/\\/g, "/");
+      try {
+        const res = installFromSource(url, { scope: "project", cwd });
+        expect(res.name).toBe("git-plugin");
+        const rows = listInstalled({ cwd, scopes: ["project"] });
+        expect(rows.map((r) => r.name)).toContain("git-plugin");
+      } finally {
+        try {
+          fs.rmSync(repo, { recursive: true, force: true });
+        } catch {
+          /* best-effort */
+        }
+      }
+    });
+  },
+);
