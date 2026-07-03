@@ -1484,6 +1484,58 @@ export function writeFileVerified(filePath, content, fsImpl = fs) {
   return { size: actual };
 }
 
+// ── Edit-concurrency (read-freshness) guard ──────────────────────────────
+//
+// Per-session map: resolved file path → the mtimeMs the agent last OBSERVED for
+// it (via read_file, or the write/edit it just made). If a file's on-disk mtime
+// is NEWER than that when the agent tries to edit it, an external process wrote
+// the file between the agent's read and its edit — so the edit is refused and
+// the agent is told to re-read, instead of clobbering the concurrent change on
+// top of a stale understanding. A file the agent never observed is NOT blocked
+// (first-touch / create stays frictionless). Disable with CC_EDIT_FRESHNESS=0.
+const _fileObservedMtimes = new Map();
+
+/** Record the current mtime of a file the agent just read or wrote. */
+function _recordFileObservation(filePath, fsImpl = fs) {
+  try {
+    _fileObservedMtimes.set(filePath, fsImpl.statSync(filePath).mtimeMs);
+  } catch {
+    /* best-effort — a stat failure just means no freshness baseline */
+  }
+}
+
+/**
+ * Return an error string when `filePath` changed on disk since the agent last
+ * observed it (external concurrent edit), else null (fresh, un-observed, or
+ * disabled).
+ */
+function _checkFileFreshness(filePath, fsImpl = fs) {
+  if (process.env.CC_EDIT_FRESHNESS === "0") return null;
+  const known = _fileObservedMtimes.get(filePath);
+  if (known === undefined) return null; // never observed → don't block
+  let current;
+  try {
+    current = fsImpl.statSync(filePath).mtimeMs;
+  } catch {
+    return null;
+  }
+  if (current > known) {
+    return (
+      `File changed on disk since you last read it: ${filePath}. Another ` +
+      `process modified it after your last read — re-read the file before ` +
+      `editing so your change is based on its current content (this guard ` +
+      `prevents silently clobbering a concurrent edit; set CC_EDIT_FRESHNESS=0 ` +
+      `to disable).`
+    );
+  }
+  return null;
+}
+
+/** Clear the read-freshness map (new session / tests). */
+export function _resetFileFreshness() {
+  _fileObservedMtimes.clear();
+}
+
 // Short, stable-ish id for a freshly inserted notebook cell (nbformat 4.5+).
 function _newNotebookCellId() {
   return Math.random().toString(36).slice(2, 10);
@@ -1891,6 +1943,9 @@ async function executeToolInner(
         });
       }
       const content = fs.readFileSync(filePath, "utf8");
+      // Record the mtime so a later edit can detect an external change that
+      // happened between this read and the edit (read-freshness guard).
+      _recordFileObservation(filePath);
       // Jupyter notebooks: render a compact cell listing (index/id/type/source,
       // outputs summarized) so the model can find cells for notebook_edit
       // without ingesting raw JSON / base64 output blobs. `raw:true` returns the
@@ -1954,11 +2009,18 @@ async function executeToolInner(
     case "write_file": {
       const filePath = path.resolve(cwd, args.path);
       const dir = path.dirname(filePath);
+      // Overwriting an existing file: refuse if it changed on disk since the
+      // agent last observed it (external concurrent edit).
+      if (fs.existsSync(filePath)) {
+        const stale = _checkFileFreshness(filePath);
+        if (stale) return attachDescriptor({ error: stale });
+      }
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
       const wrote = writeFileVerified(filePath, args.content);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
+      _recordFileObservation(filePath);
       return attachDescriptor(
         await _withPostEditDiagnostics(
           { success: true, path: filePath, size: wrote.size },
@@ -2000,6 +2062,8 @@ async function executeToolInner(
       if (typeof args.new_string !== "string") {
         return attachDescriptor({ error: "new_string must be a string" });
       }
+      const staleEdit = _checkFileFreshness(filePath);
+      if (staleEdit) return attachDescriptor({ error: staleEdit });
       const content = fs.readFileSync(filePath, "utf8");
       const replaceAll = args.replace_all === true;
       const { count, newContent } = applyLiteralEdit(
@@ -2021,6 +2085,7 @@ async function executeToolInner(
       }
       const wrote = writeFileVerified(filePath, newContent);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
+      _recordFileObservation(filePath);
       return attachDescriptor(
         await _withPostEditDiagnostics(
           {
@@ -2052,6 +2117,8 @@ async function executeToolInner(
       if (typeof args.new_line !== "string") {
         return attachDescriptor({ error: "new_line must be a string" });
       }
+      const staleHashed = _checkFileFreshness(filePath);
+      if (staleHashed) return attachDescriptor({ error: staleHashed });
       const original = fs.readFileSync(filePath, "utf8");
       const result = replaceByHash(original, {
         anchorHash: args.anchor_hash,
@@ -2076,6 +2143,7 @@ async function executeToolInner(
       }
       const wrote = writeFileVerified(filePath, result.content);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
+      _recordFileObservation(filePath);
       return attachDescriptor(
         await _withPostEditDiagnostics(
           {
