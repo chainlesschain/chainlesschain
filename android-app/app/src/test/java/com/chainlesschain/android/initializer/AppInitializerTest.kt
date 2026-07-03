@@ -49,6 +49,8 @@ class AppInitializerTest {
         callManager = mockk<Lazy<com.chainlesschain.android.call.CallManager>>(relaxed = true),
         callMediaController = mockk<Lazy<com.chainlesschain.android.call.WebRtcCallMediaController>>(relaxed = true),
         callServiceLauncher = mockk<Lazy<com.chainlesschain.android.call.AndroidCallServiceLauncher>>(relaxed = true),
+        pushVendorRegistry =
+            mockk<Lazy<com.chainlesschain.android.push.vendor.PushVendorRegistry>>(relaxed = true),
     )
 
     @Test

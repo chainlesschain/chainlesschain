@@ -292,6 +292,31 @@
             </intent-filter>
         </service>
 
+        <!--
+          Remote Session vivo push receiver. The class lives in the `vivo`
+          source set and is compiled only when the vivo Push AAR is in app/libs/
+          (see app/build.gradle.kts). tools:ignore="MissingClass" keeps lint
+          quiet on builds without the AAR, where this receiver is never triggered
+          (vivo push is not initialized without the SDK). Exported so the vivo
+          push system app can deliver regId / message broadcasts.
+        -->
+        <receiver
+            android:name=".remote.session.RemoteSessionVivoReceiver"
+            android:exported="true"
+            tools:ignore="MissingClass">
+            <intent-filter>
+                <action android:name="com.vivo.pushclient.action.RECEIVE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- vivo push credentials (empty unless -PvivoPushAppId / -PvivoPushApiKey). -->
+        <meta-data
+            android:name="com.vivo.push.app_id"
+            android:value="${vivoPushAppId}" />
+        <meta-data
+            android:name="com.vivo.push.api_key"
+            android:value="${vivoPushApiKey}" />
+
     </application>
 
 </manifest>

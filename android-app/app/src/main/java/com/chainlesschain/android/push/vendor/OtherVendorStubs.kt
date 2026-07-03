@@ -3,6 +3,7 @@ package com.chainlesschain.android.push.vendor
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
+import java.lang.reflect.Proxy
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,6 +71,16 @@ class OppoPushService @Inject constructor(
     override fun isIntegrated(): Boolean = false
 }
 
+/**
+ * vivo Push, wired via **reflection** so the app compiles and runs WITHOUT the
+ * vivo Push SDK (a manual AAR, not on Maven). When the AAR is in app/libs/ the
+ * reflection resolves `com.vivo.push.PushClient` and really turns push on; when
+ * absent every call degrades to a guarded no-op (false / null) — no crash, no
+ * hard dependency. The regId itself arrives asynchronously via
+ * [com.chainlesschain.android.remote.session.RemoteSessionVivoReceiver]
+ * (compiled from the `vivo` source set) and is readable here via [currentToken].
+ * See docs/guides/Vendor_Push_Setup.md §3.4.
+ */
 @Singleton
 class VivoPushService @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -79,20 +90,60 @@ class VivoPushService @Inject constructor(
     @Volatile private var initialized = false
 
     override fun initialize(): Boolean {
-        if (initialized) return false
-        // TODO v1.2: PushClient.getInstance(context).initialize()
-        //   PushClient.getInstance(context).turnOnPush(callback)
-        Timber.w("VivoPushService.initialize: stub. 详 docs/guides/Vendor_Push_Setup.md §3.4")
+        if (initialized) return isIntegrated()
         initialized = true
-        return false
+        return runCatching {
+            val pushClient = pushClientInstance()
+            pushClient.javaClass.getMethod("initialize").invoke(pushClient)
+            val listenerClass = Class.forName("com.vivo.push.IPushActionListener")
+            val listener = Proxy.newProxyInstance(
+                listenerClass.classLoader,
+                arrayOf(listenerClass),
+            ) { _, method, args ->
+                if (method.name == "onStateChanged") {
+                    Timber.d("VivoPushService.turnOnPush state=${args?.getOrNull(0)}")
+                }
+                null
+            }
+            pushClient.javaClass.getMethod("turnOnPush", listenerClass)
+                .invoke(pushClient, listener)
+            Timber.i("VivoPushService: vivo push turned on")
+            true
+        }.getOrElse {
+            Timber.w(it, "VivoPushService.initialize: vivo SDK unavailable — stub fallback")
+            false
+        }
     }
 
-    override fun currentToken(): String? = null
+    override fun currentToken(): String? = runCatching {
+        val pushClient = pushClientInstance()
+        (pushClient.javaClass.getMethod("getRegId").invoke(pushClient) as? String)
+            ?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
     override fun shutdown() {
-        // TODO v1.2: PushClient.getInstance(context).turnOffPush(callback)
+        runCatching {
+            val pushClient = pushClientInstance()
+            val listenerClass = Class.forName("com.vivo.push.IPushActionListener")
+            val listener = Proxy.newProxyInstance(
+                listenerClass.classLoader,
+                arrayOf(listenerClass),
+            ) { _, _, _ -> null }
+            pushClient.javaClass.getMethod("turnOffPush", listenerClass)
+                .invoke(pushClient, listener)
+        }
         initialized = false
     }
-    override fun isIntegrated(): Boolean = false
+
+    override fun isIntegrated(): Boolean =
+        runCatching { Class.forName("com.vivo.push.PushClient"); true }.getOrDefault(false)
+
+    /** Reflect `PushClient.getInstance(context)`; throws when the SDK is absent. */
+    private fun pushClientInstance(): Any {
+        val clazz = Class.forName("com.vivo.push.PushClient")
+        return clazz.getMethod("getInstance", Context::class.java).invoke(null, context)
+            ?: error("PushClient.getInstance returned null")
+    }
 }
 
 /**

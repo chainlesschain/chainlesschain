@@ -220,19 +220,23 @@
    HeytapPushManager.register(context, APP_KEY, APP_SECRET, callback)
    ```
 
-### 3.4 vivo Push
+### 3.4 vivo Push（代码骨架已落地，缺 AAR + 凭证）
 
 **前置**：[vivo 推送平台](https://dev.vivo.com.cn/documentCenter/doc/156) 注册 → 创建应用
 
-**步骤**：
+**已内建（无需再写代码）**：
 
-1. 下载 [VivoPush_SDK_3.x.x.aar](https://dev.vivo.com.cn/documentCenter/doc/156) → `app/libs/`
-2. build.gradle.kts dep + AndroidManifest 配 receiver
-3. VivoPushService.kt initialize:
-   ```kotlin
-   PushClient.getInstance(context).initialize()
-   PushClient.getInstance(context).turnOnPush(callback)
-   ```
+- **build.gradle.kts 门控**：`hasVivoPush = !fileTree("libs"){include("vivo*push*.aar"…)}.isEmpty`——AAR 一旦落进 `app/libs/`，自动 (a) 把 `src/vivo/java` 加进 `main` 源集、(b) `implementation(vivoPushAars)`。无 AAR 时该源集**排除**，app 照常编译运行（`RemoteSessionVivoReceiver` 不进 APK）——同 Firebase `google-services.json` 门控范式。
+- **`RemoteSessionVivoReceiver`**（`src/vivo/java`，条件编译）：`onReceiveRegId` → `RemoteSessionPushBridge.onNewToken(regId, "vivo")`（regId 首注册/轮换即推给活跃 Remote Session）；`onNotificationMessageClicked` → 本地弹审批通知（params 只带路由 id）。
+- **AndroidManifest**：`<receiver ... RemoteSessionVivoReceiver>` + `com.vivo.pushclient.action.RECEIVE` intent-filter + `com.vivo.push.app_id`/`api_key` meta-data（值走 manifestPlaceholder，空默认保证无凭证也能 merge）。`tools:ignore="MissingClass"`（无 AAR 构建下类不存在但永不实例化）。
+- **`VivoPushService`（反射式真集成）**：`initialize()` 反射 `PushClient.getInstance(ctx).initialize()` + `turnOnPush(动态代理 IPushActionListener)`；`currentToken()` 反射 `getRegId()`；`isIntegrated()` 探 `Class.forName("com.vivo.push.PushClient")`——**全 runCatching 兜底**，无 SDK 即返 false/null 不崩，无编译期硬依赖。
+- **启动触发**：`AppInitializer` 异步块按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——vivo 设备启动即 turnOn 铸 regId 供唤醒。
+
+**接入者只需 3 步（真机）**：
+
+1. 下载 [VivoPush_SDK_3.x.x.aar](https://dev.vivo.com.cn/documentCenter/doc/156) → `app/libs/`（文件名含 `vivo`+`push`，门控即自动生效）。
+2. 传凭证：`-PvivoPushAppId=<appId> -PvivoPushApiKey=<apiKey>`（或改 manifestPlaceholder 默认）。
+3. 真机装 app（需先上架 vivo 应用市场，debug 包可试用 1 个月）→ 启动即注册 → `Settings → 国内推送厂商` 应 auto-detect vivo → 桌面配 vivo sender（`CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER=vivo`）端到端验证。
 
 ---
 

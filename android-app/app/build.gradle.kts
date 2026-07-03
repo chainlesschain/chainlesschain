@@ -39,6 +39,23 @@ if (hasGoogleServices) {
     logger.warn("  To enable Firebase: Add google-services.json to app/")
 }
 
+// Check if the vivo Push SDK AAR has been dropped into app/libs/ (manual AAR,
+// not on Maven — see docs/guides/Vendor_Push_Setup.md §3.4). Mirrors the
+// google-services.json gate for Firebase: without the AAR the vivo receiver
+// source set is excluded and the app builds/runs fine (VivoTokenProvider reads
+// the regId via reflection, degrading to null when the SDK is absent).
+val vivoPushAars = fileTree("libs") {
+    include("vivo*push*.aar", "VivoPush*.aar", "vivo_pushsdk*.aar")
+}
+val hasVivoPush = !vivoPushAars.isEmpty
+if (hasVivoPush) {
+    logger.lifecycle("✓ vivo Push enabled (AAR found in app/libs)")
+} else {
+    logger.lifecycle(
+        "ⓘ vivo Push disabled (no vivo AAR in app/libs; RemoteSessionVivoReceiver source set excluded)",
+    )
+}
+
 android {
     namespace = "com.chainlesschain.android"
     compileSdk = 35
@@ -49,6 +66,14 @@ android {
     // RemoteSessionFirebaseService.kt.
     if (hasGoogleServices) {
         sourceSets.getByName("main").java.srcDir("src/firebase/java")
+    }
+
+    // The Remote Session vivo push receiver (onReceiveRegId → push bridge)
+    // subclasses a vivo-push AAR type, so it is compiled ONLY when the AAR is
+    // present — otherwise the app builds and runs without it. See
+    // RemoteSessionVivoReceiver.kt.
+    if (hasVivoPush) {
+        sourceSets.getByName("main").java.srcDir("src/vivo/java")
     }
 
     defaultConfig {
@@ -78,6 +103,15 @@ android {
         // AGP resourceConfigurations 按精确 qualifier 匹配："zh" 只保留 values-zh/，
         // 把 values-zh-rCN/ 等带地区的都过滤掉。必须用 "-r" 前缀显式列出地区。
         resourceConfigurations.addAll(listOf("en", "zh-rCN", "zh-rTW", "zh-rHK"))
+
+        // vivo Push credentials → manifest meta-data (com.vivo.push.app_id /
+        // .api_key). Real values come from the vivo developer console; empty
+        // defaults keep the manifest merging on builds without vivo push.
+        // Override at build time: -PvivoPushAppId=... -PvivoPushApiKey=...
+        manifestPlaceholders["vivoPushAppId"] =
+            (project.findProperty("vivoPushAppId") as String?) ?: ""
+        manifestPlaceholders["vivoPushApiKey"] =
+            (project.findProperty("vivoPushApiKey") as String?) ?: ""
 
         // NDK support
         ndk {
@@ -483,6 +517,15 @@ dependencies {
         implementation("com.google.firebase:firebase-crashlytics-ktx")
         implementation("com.google.firebase:firebase-analytics-ktx")
         implementation("com.google.firebase:firebase-messaging-ktx")
+    }
+
+    // ===== vivo Push (manual AAR) =====
+    // Only linked when the vivo SDK AAR sits in app/libs/. The remote-session
+    // receiver in src/vivo/java compiles against it; without the AAR that source
+    // set is excluded and VivoTokenProvider degrades via reflection (see
+    // VivoTokenProvider.kt / docs/guides/Vendor_Push_Setup.md §3.4).
+    if (hasVivoPush) {
+        implementation(vivoPushAars)
     }
 
     // Testing

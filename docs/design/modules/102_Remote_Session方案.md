@@ -199,7 +199,16 @@
 - `RemoteSessionPushTokenResolver`：按**有序** provider 列表解析首个可用 token（FCM 先——海外/Pixel/三星国际；vivo 后——国内 ROM）；某 provider 抛错/返 null/空白即跳过，**一个缺 SDK 不阻塞其余**；全不可用才返 null。纯 Kotlin 无 Android 类型，全可测。
 - `RemoteSessionViewModel.pair(uri)`：`fcmTokenProvider.getToken()` 换为 `pushTokenResolver.resolve()`（列表 `[FcmTokenProvider(), VivoTokenProvider(application)]`，仍 `withTimeoutOrNull(3s)` 封顶），命中即 `client.setPushCredentials(resolved.token, resolved.provider)`。
 - **桥泛化**：`RemoteSessionPushBridge.onNewToken(token, provider = FcmTokenProvider.PROVIDER)`——加 provider 参数（默认 fcm 保持 `RemoteSessionFirebaseService` 调用不变），vivo 接收器可传 `VivoTokenProvider.PROVIDER` 把刷新的 regId 路由进活跃客户端。
-- 验证：`VivoTokenProviderTest` 5（注入 fetcher 取值 / provider 标签 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 SDK → null）+ `RemoteSessionPushTokenResolverTest` 6（首个命中 / 前者不可用则下沉 / 抛错跳过 / 空白视为不可用 / 全不可用 → null / 空列表 → null）+ `RemoteSessionPushBridgeTest` 扩测 1（onNewToken 带非默认 provider 标签经解密 `pair.join` 得 vivo）+ `FcmTokenProviderTest` 4（实现接口后不回归）。Android remote-session 四类 JVM 测试全绿（5+6+4+4=19，`gradlew :app:testDebugUnitTest`）。真 vivo SDK 接收器（AAR + manifest receiver）随真机接入，Win 不可跑。
+- 验证：`VivoTokenProviderTest` 5（注入 fetcher 取值 / provider 标签 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 SDK → null）+ `RemoteSessionPushTokenResolverTest` 6（首个命中 / 前者不可用则下沉 / 抛错跳过 / 空白视为不可用 / 全不可用 → null / 空列表 → null）+ `RemoteSessionPushBridgeTest` 扩测 1（onNewToken 带非默认 provider 标签经解密 `pair.join` 得 vivo）+ `FcmTokenProviderTest` 4（实现接口后不回归）。Android remote-session 四类 JVM 测试全绿（5+6+4+4=19，`gradlew :app:testDebugUnitTest`）。
+
+#### Phase 4：Android vivo push 真机集成（AAR 门控 + 接收器 + 反射 turnOn，已完成骨架）
+
+- **构建门控**（`app/build.gradle.kts`，镜像 Firebase `google-services.json` 范式）：`hasVivoPush = !fileTree("libs"){include("vivo*push*.aar"…)}.isEmpty`——AAR 一落进 `app/libs/` 就自动 (a) `src/vivo/java` 加进 `main` 源集、(b) `implementation(vivoPushAars)`。**无 AAR 时源集排除，默认构建行为不变**（`RemoteSessionVivoReceiver` 不编译不进 APK；`VivoTokenProvider` 仍反射降级）。
+- **`RemoteSessionVivoReceiver`**（`src/vivo/java`，**条件源集**，vivo 的 `RemoteSessionFirebaseService` 对位）：继承 `com.vivo.push.sdk.OpenClientPushMessageReceiver`；`onReceiveRegId` → `RemoteSessionPushBridge.onNewToken(regId, VivoTokenProvider.PROVIDER)`（首注册/轮换即推给活跃会话）；`onNotificationMessageClicked` → 本地弹审批通知（`params` 只带路由 id）。
+- **AndroidManifest**：`<receiver ... RemoteSessionVivoReceiver android:exported="true">` + `com.vivo.pushclient.action.RECEIVE` intent-filter + `com.vivo.push.app_id`/`api_key` meta-data（值走 `manifestPlaceholders`，空默认保证无凭证也 merge；`-PvivoPushAppId=… -PvivoPushApiKey=…` 注入）。`tools:ignore="MissingClass"`（无 AAR 构建下类不存在但永不实例化）。
+- **`VivoPushService` 反射真集成**（`push/vendor/OtherVendorStubs.kt`，脱 stub）：`initialize()` 反射 `PushClient.getInstance(ctx).initialize()` + `turnOnPush(动态代理 IPushActionListener)`；`currentToken()` 反射 `getRegId()`；`isIntegrated()` 探 `Class.forName`——**全 runCatching 兜底**，无 SDK 即返 false/null 不崩，无编译期硬依赖。
+- **启动触发**（`AppInitializer` 异步块 #10）：按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——vivo 设备启动即 turnOn 铸 regId 供唤醒（FCM 设备 route 到 no-op；小米/华为/OPPO 仍 stub 返 false）。
+- 验证：`VivoPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）+ `AppInitializerTest` 2（新增 `pushVendorRegistry` 依赖后不回归）；`gradlew :app:kspDebugKotlin`（主 Hilt DI 图含新依赖编译通过）+ `:app:processDebugMainManifest`（vivo receiver + meta-data 成功 merge 进 `merged_manifest`）+ `:app:testDebugUnitTest` 过。**门控日志确认无 AAR 时 vivo 源集排除**。剩真机项（Win 不可跑）：接入者放 AAR + 传凭证（`docs/guides/Vendor_Push_Setup.md` §3.4 三步）+ 真机上架 vivo 市场端到端验证。
 
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 

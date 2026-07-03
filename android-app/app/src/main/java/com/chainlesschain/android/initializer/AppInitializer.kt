@@ -70,6 +70,12 @@ class AppInitializer @Inject constructor(
     // v1.2 #20 P0.2 Wear Phase 1: AutoPushBus → wear node forwarder
     private val wearPushForwarder: Lazy<com.chainlesschain.android.wear.WearPushForwarder>,
 
+    // Vendor push: turn on the auto-detected channel at boot so a domestic ROM
+    // (vivo real-integrated; xiaomi/huawei/oppo stubs) mints a regId for Remote
+    // Session wake-ups. FCM devices route to a no-op (Firebase auto-inits).
+    private val pushVendorRegistry:
+        Lazy<com.chainlesschain.android.push.vendor.PushVendorRegistry>,
+
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
     // private val analyticsService: Lazy<AnalyticsService>,
@@ -219,6 +225,19 @@ class AppInitializer @Inject constructor(
                         wearPushForwarder.get().start()
                     } catch (e: Exception) {
                         Timber.w(e, "WearPushForwarder.start failed (non-fatal)")
+                    }
+                }
+
+                // 10. Vendor push: 按 manufacturer 自动选 channel 并 turnOn，让国内
+                //     ROM（vivo 已真集成；小米/华为/OPPO 仍 stub 返 false）在启动时铸出
+                //     regId 供 Remote Session 唤醒。FCM 设备 route 到 no-op。
+                launch {
+                    try {
+                        val vendor = pushVendorRegistry.get().selectVendor()
+                        val ok = vendor.initialize()
+                        Timber.d("Vendor push init: ${vendor.vendor} → integrated=$ok")
+                    } catch (e: Exception) {
+                        Timber.w(e, "Vendor push init failed (non-fatal)")
                     }
                 }
 
