@@ -1006,126 +1006,224 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     goal_id: boundGoalId,
   });
 
+  // --auto-rewake: after a turn finishes, run the async Stop hooks and, if an
+  // `asyncRewake` check FAILED, append its report as a new user turn and re-run
+  // the agent to fix it — bounded by `maxRewakes` (default 1). OPT-IN: when off
+  // (the default), rewakeBudget is 0 and the loop below runs exactly once, so
+  // one-shot `cc agent -p` behavior is byte-for-byte unchanged and no script is
+  // surprised by a silent re-run. `_asyncStopHandled` tells the finally the
+  // async Stop hooks already fired here so they aren't fired twice.
+  const autoRewake = options.autoRewake === true;
+  let rewakeBudget = autoRewake
+    ? Number.isFinite(options.maxRewakes)
+      ? options.maxRewakes
+      : 1
+    : 0;
+  let _asyncStopHandled = false;
+  const _settleAsyncStop = async () => {
+    if (!settingsHooks || !_hookSupervisor) return { rewakes: [], results: [] };
+    const { dispatchAsyncHooks } =
+      await import("../lib/settings-hook-events.cjs");
+    dispatchAsyncHooks(
+      settingsHooks,
+      "Stop",
+      { reason: endReason, cwd, session_id: sessionId },
+      { cwd, supervisor: _hookSupervisor },
+    );
+    const waitMs = Number.isFinite(options.asyncHookWaitMs)
+      ? options.asyncHookWaitMs
+      : 5000;
+    const started = Date.now();
+    while (
+      _hookSupervisor.runningCount() > 0 &&
+      Date.now() - started < waitMs
+    ) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return {
+      rewakes: _hookSupervisor.drainRewakes(),
+      results: _hookSupervisor.drainResults(),
+    };
+  };
+
   try {
-    for await (const event of runLoop(messages, loopOptions)) {
-      switch (event.type) {
-        case "checkpoint": {
-          if (isText)
-            writeErr(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`);
-          emitStream({ type: "checkpoint", id: event.id, tool: event.tool });
-          break;
-        }
-        case "tool-executing": {
-          const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
-          if (isText) writeErr(line + "\n");
-          emitStream({
-            type: "tool_use",
-            tool: event.tool,
-            args: event.args,
-          });
-          toolCalls.push({ tool: event.tool, args: event.args });
-          break;
-        }
-        case "tool-result": {
-          const err = event.error || event.result?.error || null;
-          if (isText && err) writeErr(`  Error: ${err}\n`);
-          emitStream({
-            type: "tool_result",
-            tool: event.tool,
-            is_error: Boolean(err),
-            error: err,
-            result: event.result,
-          });
-          if (toolCalls.length > 0) {
-            toolCalls[toolCalls.length - 1].is_error = Boolean(err);
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      for await (const event of runLoop(messages, loopOptions)) {
+        switch (event.type) {
+          case "checkpoint": {
+            if (isText)
+              writeErr(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`);
+            emitStream({ type: "checkpoint", id: event.id, tool: event.tool });
+            break;
           }
-          // Track policy denials (not plain tool failures) for the end-of-run
-          // summary. The preceding tool-executing pushed the args.
-          if (err) {
-            const last = toolCalls[toolCalls.length - 1];
-            const denial = classifyDenial({
+          case "tool-executing": {
+            const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
+            if (isText) writeErr(line + "\n");
+            emitStream({
+              type: "tool_use",
               tool: event.tool,
+              args: event.args,
+            });
+            toolCalls.push({ tool: event.tool, args: event.args });
+            break;
+          }
+          case "tool-result": {
+            const err = event.error || event.result?.error || null;
+            if (isText && err) writeErr(`  Error: ${err}\n`);
+            emitStream({
+              type: "tool_result",
+              tool: event.tool,
+              is_error: Boolean(err),
+              error: err,
               result: event.result,
-              error: event.error,
-              argsSummary:
-                last && last.tool === event.tool
-                  ? formatToolArgs(event.tool, last.args)
-                  : "",
             });
-            if (denial) {
-              recordDenial(denials, {
-                ...denial,
-                at: deps.now ? deps.now() : Date.now(),
-              });
+            if (toolCalls.length > 0) {
+              toolCalls[toolCalls.length - 1].is_error = Boolean(err);
             }
+            // Track policy denials (not plain tool failures) for the end-of-run
+            // summary. The preceding tool-executing pushed the args.
+            if (err) {
+              const last = toolCalls[toolCalls.length - 1];
+              const denial = classifyDenial({
+                tool: event.tool,
+                result: event.result,
+                error: event.error,
+                argsSummary:
+                  last && last.tool === event.tool
+                    ? formatToolArgs(event.tool, last.args)
+                    : "",
+              });
+              if (denial) {
+                recordDenial(denials, {
+                  ...denial,
+                  at: deps.now ? deps.now() : Date.now(),
+                });
+              }
+            }
+            break;
           }
-          break;
-        }
-        case "token-usage": {
-          usage.input_tokens += event.usage?.input_tokens || 0;
-          usage.output_tokens += event.usage?.output_tokens || 0;
-          // Carry prompt-cache tokens into accumulated usage (cost accuracy).
-          usage.cache_read_input_tokens +=
-            event.usage?.cache_read_input_tokens || 0;
-          usage.cache_creation_input_tokens +=
-            event.usage?.cache_creation_input_tokens || 0;
-          emitStream({ type: "token_usage", usage: event.usage });
-          if (costBudget) {
-            costBudget.add({
-              provider: event.provider,
-              model: event.model,
-              usage: event.usage,
+          case "token-usage": {
+            usage.input_tokens += event.usage?.input_tokens || 0;
+            usage.output_tokens += event.usage?.output_tokens || 0;
+            // Carry prompt-cache tokens into accumulated usage (cost accuracy).
+            usage.cache_read_input_tokens +=
+              event.usage?.cache_read_input_tokens || 0;
+            usage.cache_creation_input_tokens +=
+              event.usage?.cache_creation_input_tokens || 0;
+            emitStream({ type: "token_usage", usage: event.usage });
+            if (costBudget) {
+              costBudget.add({
+                provider: event.provider,
+                model: event.model,
+                usage: event.usage,
+              });
+              if (costBudget.shouldWarnInactive()) {
+                const m = `cost cap $${options.maxCostUsd} set but model "${event.model}" is unpriced/free — cap inactive`;
+                if (isText) writeErr(`  ${m}\n`);
+                emitStream({ type: "cost_warning", message: m });
+              }
+              if (costBudget.exceeded()) {
+                endReason = "cost-budget-exhausted";
+                stopForCost = true;
+                if (isText)
+                  writeErr(
+                    `  ⛔ cost budget $${options.maxCostUsd} reached (spent ≈$${costBudget.spentUsd}) — stopping\n`,
+                  );
+                emitStream({
+                  type: "cost_budget_exhausted",
+                  limit_usd: options.maxCostUsd,
+                  spent_usd: costBudget.spentUsd,
+                });
+              }
+            }
+            break;
+          }
+          case "iteration-warning": {
+            if (isText) writeErr(`  ${event.message}\n`);
+            emitStream({ type: "iteration_warning", message: event.message });
+            break;
+          }
+          case "iteration-budget-exhausted": {
+            endReason = "max_turns";
+            emitStream({
+              type: "iteration_budget_exhausted",
+              budget: event.budget,
             });
-            if (costBudget.shouldWarnInactive()) {
-              const m = `cost cap $${options.maxCostUsd} set but model "${event.model}" is unpriced/free — cap inactive`;
-              if (isText) writeErr(`  ${m}\n`);
-              emitStream({ type: "cost_warning", message: m });
-            }
-            if (costBudget.exceeded()) {
-              endReason = "cost-budget-exhausted";
-              stopForCost = true;
-              if (isText)
-                writeErr(
-                  `  ⛔ cost budget $${options.maxCostUsd} reached (spent ≈$${costBudget.spentUsd}) — stopping\n`,
-                );
-              emitStream({
-                type: "cost_budget_exhausted",
-                limit_usd: options.maxCostUsd,
-                spent_usd: costBudget.spentUsd,
-              });
-            }
+            break;
           }
-          break;
+          case "response-complete": {
+            finalText = event.content || "";
+            break;
+          }
+          case "run-ended": {
+            if (event.reason) endReason = event.reason;
+            break;
+          }
+          default:
+            // slot-filling, run-started, etc. — surfaced only in stream mode.
+            if (isStream && event.type) emitStream(event);
+            break;
         }
-        case "iteration-warning": {
-          if (isText) writeErr(`  ${event.message}\n`);
-          emitStream({ type: "iteration_warning", message: event.message });
-          break;
-        }
-        case "iteration-budget-exhausted": {
-          endReason = "max_turns";
-          emitStream({
-            type: "iteration_budget_exhausted",
-            budget: event.budget,
-          });
-          break;
-        }
-        case "response-complete": {
-          finalText = event.content || "";
-          break;
-        }
-        case "run-ended": {
-          if (event.reason) endReason = event.reason;
-          break;
-        }
-        default:
-          // slot-filling, run-started, etc. — surfaced only in stream mode.
-          if (isStream && event.type) emitStream(event);
-          break;
+        // Hard cost cap reached: stop consuming the loop so no further paid LLM
+        // call is made (break out of the for-await, not just the switch).
+        if (stopForCost) break;
       }
-      // Hard cost cap reached: stop consuming the loop so no further paid LLM
-      // call is made (break out of the for-await, not just the switch).
-      if (stopForCost) break;
+      // ── auto-rewake re-drive (opt-in via --auto-rewake) ─────────────────
+      // Under auto-rewake, settle the async Stop hooks after EVERY turn (so the
+      // final turn's background check still runs). If an asyncRewake check
+      // failed and re-drive budget remains, append its report as a new user
+      // turn and loop; if a rewake failed but budget is spent, surface it and
+      // stop. When auto-rewake is off, this whole block is skipped and the
+      // `finally` handles Stop exactly as before (default behavior unchanged).
+      if (
+        autoRewake &&
+        _hookSupervisor &&
+        !stopForCost &&
+        endReason !== "max_turns" &&
+        endReason !== "cost-budget-exhausted"
+      ) {
+        const { rewakes, results } = await _settleAsyncStop();
+        _asyncStopHandled = true;
+        for (const rs of results) {
+          if (rs.additionalContext)
+            writeErr(`[async-hook] ${rs.command}: ${rs.additionalContext}\n`);
+        }
+        if (rewakes.length > 0 && rewakeBudget > 0) {
+          rewakeBudget--;
+          const detail = rewakes
+            .map(
+              (rw) =>
+                `- ${rw.command} failed` +
+                `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
+                `${rw.error ? `: ${rw.error}` : ""}`,
+            )
+            .join("\n");
+          messages.push({
+            role: "user",
+            content:
+              `A background check flagged a problem after your last turn:\n${detail}\n` +
+              `Investigate and fix it, then confirm it passes.`,
+          });
+          if (isText)
+            writeErr(
+              `  ↻ async-hook rewake — re-engaging agent (${rewakeBudget} re-drive(s) left)\n`,
+            );
+          emitStream({ type: "rewake", remaining: rewakeBudget });
+          finalText = "";
+          endReason = "complete";
+          continue; // re-drive: run another agent turn
+        }
+        // A rewake fired but no budget remains — surface it (couldn't auto-fix).
+        for (const rw of rewakes) {
+          writeErr(
+            `[async-hook REWAKE] ${rw.command} failed` +
+              `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
+              `${rw.error ? `: ${rw.error}` : ""}\n`,
+          );
+        }
+      }
+      break;
     }
   } catch (err) {
     const message = err?.message || String(err);
@@ -1184,7 +1282,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           await import("../lib/settings-hook-events.cjs");
         const stopPayload = { reason: endReason, cwd, session_id: sessionId };
         runObserveHooks(settingsHooks, "Stop", stopPayload, { cwd });
-        if (_hookSupervisor) {
+        // Skip the async Stop dispatch/settle here if the auto-rewake re-drive
+        // loop already fired + drained it this run (avoids double-execution).
+        if (_hookSupervisor && !_asyncStopHandled) {
           dispatchAsyncHooks(settingsHooks, "Stop", stopPayload, {
             cwd,
             supervisor: _hookSupervisor,
@@ -1218,8 +1318,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               writeErr(`[async-hook] ${rs.command}: ${rs.additionalContext}\n`);
             }
           }
-          _hookSupervisor.stopAll();
         }
+        // Always reap the supervisor (kills any straggler child + detaches the
+        // exit reaper), whether the async Stop was handled here or in re-drive.
+        if (_hookSupervisor) _hookSupervisor.stopAll();
         runObserveHooks(
           settingsHooks,
           "SessionEnd",

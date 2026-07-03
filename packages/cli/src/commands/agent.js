@@ -182,6 +182,15 @@ export function registerAgentCommand(program) {
       "Write the agent run's OpenTelemetry spans (model/tool/retry) as OTLP/JSON to <file>",
     )
     .option(
+      "--auto-rewake",
+      "When an async `asyncRewake` hook (e.g. a background test) fails at turn end, re-engage the agent to fix it (bounded by --max-rewakes)",
+    )
+    .option(
+      "--max-rewakes <n>",
+      "Max auto-rewake re-drives per run (default 1); implies --auto-rewake",
+      (v) => parseInt(v, 10),
+    )
+    .option(
       "--bg, --background",
       "Start as a detached background agent and return its id immediately",
     )
@@ -885,6 +894,14 @@ export function registerAgentCommand(program) {
           autoCheckpoint,
           // --otlp <file>: capture + export the run's OTel spans as OTLP/JSON.
           otlp: options.otlp || null,
+          // --auto-rewake / --max-rewakes: bounded re-drive on async-hook failure.
+          // --max-rewakes implies --auto-rewake (a positive budget turns it on).
+          autoRewake:
+            options.autoRewake === true ||
+            (Number.isFinite(options.maxRewakes) && options.maxRewakes > 0),
+          maxRewakes: Number.isFinite(options.maxRewakes)
+            ? options.maxRewakes
+            : undefined,
           maxTurns,
           // commander maps --no-file-refs 鈫?options.fileRefs === false
           expandFileRefs: options.fileRefs !== false,
