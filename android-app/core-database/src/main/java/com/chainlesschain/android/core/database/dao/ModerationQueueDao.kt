@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.database.dao
 
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.*
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -267,11 +268,15 @@ interface ModerationQueueDao {
      */
     @Query("""
         SELECT * FROM moderation_queue
-        WHERE content_text LIKE '%' || :query || '%'
-           OR author_name LIKE '%' || :query || '%'
+        WHERE content_text LIKE '%' || :query || '%' ESCAPE '\'
+           OR author_name LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY created_at DESC
     """)
-    fun searchFlow(query: String): Flow<List<ModerationQueueEntity>>
+    fun searchFlowRaw(query: String): Flow<List<ModerationQueueEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFlow(query: String): Flow<List<ModerationQueueEntity>> =
+        searchFlowRaw(SqlLike.escapeLike(query))
 
     /**
      * 查询高优先级项目（待审核且等待超过24小时）

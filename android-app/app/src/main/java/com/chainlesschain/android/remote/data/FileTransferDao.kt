@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.data
 
 import androidx.paging.PagingSource
 import androidx.room.*
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -105,11 +106,15 @@ interface FileTransferDao {
      */
     @Query("""
         SELECT * FROM file_transfers
-        WHERE fileName LIKE '%' || :query || '%'
-        OR error LIKE '%' || :query || '%'
+        WHERE fileName LIKE '%' || :query || '%' ESCAPE '\'
+        OR error LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY createdAt DESC
     """)
-    fun searchPaged(query: String): PagingSource<Int, FileTransferEntity>
+    fun searchPagedRaw(query: String): PagingSource<Int, FileTransferEntity>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchPaged(query: String): PagingSource<Int, FileTransferEntity> =
+        searchPagedRaw(SqlLike.escapeLike(query))
 
     /**
      * 获取传输统计

@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.database.dao
 import androidx.paging.PagingSource
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -93,10 +94,14 @@ interface P2PMessageDao {
     @Query("""
         SELECT * FROM p2p_messages
         WHERE peerId = :peerId
-          AND content LIKE '%' || :query || '%'
+          AND content LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY timestamp DESC
     """)
-    suspend fun searchMessages(peerId: String, query: String): List<P2PMessageEntity>
+    suspend fun searchMessagesRaw(peerId: String, query: String): List<P2PMessageEntity>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    suspend fun searchMessages(peerId: String, query: String): List<P2PMessageEntity> =
+        searchMessagesRaw(peerId, SqlLike.escapeLike(query))
 
     /**
      * Phase 3d v1.1: walker cursor (timestamp, id) lex 序。

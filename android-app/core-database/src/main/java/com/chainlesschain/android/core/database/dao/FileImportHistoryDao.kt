@@ -4,6 +4,7 @@ import androidx.room.*
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
 import com.chainlesschain.android.core.database.entity.ImportSource
 import com.chainlesschain.android.core.database.entity.ImportType
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -127,12 +128,16 @@ interface FileImportHistoryDao {
 
     @Query("""
         SELECT * FROM file_import_history
-        WHERE sourceFileName LIKE '%' || :query || '%'
-           OR note LIKE '%' || :query || '%'
+        WHERE sourceFileName LIKE '%' || :query || '%' ESCAPE '\'
+           OR note LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY importedAt DESC
         LIMIT :limit
     """)
-    fun searchImports(query: String, limit: Int = 50): Flow<List<FileImportHistoryEntity>>
+    fun searchImportsRaw(query: String, limit: Int = 50): Flow<List<FileImportHistoryEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchImports(query: String, limit: Int = 50): Flow<List<FileImportHistoryEntity>> =
+        searchImportsRaw(SqlLike.escapeLike(query), limit)
 
     // ===== 批量删除 =====
 

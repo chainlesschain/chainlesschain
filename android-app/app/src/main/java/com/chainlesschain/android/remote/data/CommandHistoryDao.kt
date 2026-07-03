@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.data
 
 import androidx.paging.PagingSource
 import androidx.room.*
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -75,12 +76,16 @@ interface CommandHistoryDao {
      */
     @Query("""
         SELECT * FROM command_history
-        WHERE action LIKE '%' || :query || '%'
-        OR namespace LIKE '%' || :query || '%'
-        OR error LIKE '%' || :query || '%'
+        WHERE action LIKE '%' || :query || '%' ESCAPE '\'
+        OR namespace LIKE '%' || :query || '%' ESCAPE '\'
+        OR error LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY timestamp DESC
     """)
-    fun searchPaged(query: String): PagingSource<Int, CommandHistoryEntity>
+    fun searchPagedRaw(query: String): PagingSource<Int, CommandHistoryEntity>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchPaged(query: String): PagingSource<Int, CommandHistoryEntity> =
+        searchPagedRaw(SqlLike.escapeLike(query))
 
     /**
      * 获取命令统计

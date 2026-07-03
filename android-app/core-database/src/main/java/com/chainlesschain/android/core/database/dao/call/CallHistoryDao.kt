@@ -4,6 +4,7 @@ import androidx.room.*
 import com.chainlesschain.android.core.database.entity.call.CallHistoryEntity
 import com.chainlesschain.android.core.database.entity.call.CallType
 import com.chainlesschain.android.core.database.entity.call.MediaType
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -172,8 +173,12 @@ interface CallHistoryDao {
      * @param query 搜索关键词
      * @return 通话记录列表Flow
      */
-    @Query("SELECT * FROM call_history WHERE peer_name LIKE '%' || :query || '%' OR peer_did LIKE '%' || :query || '%' ORDER BY start_time DESC")
-    fun search(query: String): Flow<List<CallHistoryEntity>>
+    @Query("SELECT * FROM call_history WHERE peer_name LIKE '%' || :query || '%' ESCAPE '\\' OR peer_did LIKE '%' || :query || '%' ESCAPE '\\' ORDER BY start_time DESC")
+    fun searchRaw(query: String): Flow<List<CallHistoryEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun search(query: String): Flow<List<CallHistoryEntity>> =
+        searchRaw(SqlLike.escapeLike(query))
 
     /**
      * 删除指定天数之前的通话记录

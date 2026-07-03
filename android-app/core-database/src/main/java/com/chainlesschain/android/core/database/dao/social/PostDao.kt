@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.database.dao.social
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostVisibility
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -57,18 +58,28 @@ interface PostDao {
      */
     @Query("""
         SELECT * FROM posts
-        WHERE (content LIKE '%' || :query || '%' OR :tag IN (tags))
+        WHERE (content LIKE '%' || :query || '%' ESCAPE '\' OR :tag IN (tags))
           AND (visibility = 'PUBLIC' OR authorDid = :myDid OR (visibility = 'FRIENDS_ONLY' AND authorDid IN (:friendDids)))
         ORDER BY createdAt DESC
         LIMIT :limit
     """)
-    fun searchPosts(
+    fun searchPostsRaw(
         query: String,
         tag: String?,
         myDid: String,
         friendDids: List<String>,
         limit: Int = 50
     ): Flow<List<PostEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchPosts(
+        query: String,
+        tag: String?,
+        myDid: String,
+        friendDids: List<String>,
+        limit: Int = 50
+    ): Flow<List<PostEntity>> =
+        searchPostsRaw(SqlLike.escapeLike(query), tag, myDid, friendDids, limit)
 
     /**
      * 获取包含特定标签的动态

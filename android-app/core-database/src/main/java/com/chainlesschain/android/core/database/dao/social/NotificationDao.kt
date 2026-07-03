@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.database.dao.social
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationType
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -120,11 +121,15 @@ interface NotificationDao {
      */
     @Query("""
         SELECT * FROM notifications
-        WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'
+        WHERE title LIKE '%' || :query || '%' ESCAPE '\' OR content LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY createdAt DESC
         LIMIT :limit
     """)
-    fun searchNotifications(query: String, limit: Int = 50): Flow<List<NotificationEntity>>
+    fun searchNotificationsRaw(query: String, limit: Int = 50): Flow<List<NotificationEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchNotifications(query: String, limit: Int = 50): Flow<List<NotificationEntity>> =
+        searchNotificationsRaw(SqlLike.escapeLike(query), limit)
 
     // ===== 插入方法 =====
 

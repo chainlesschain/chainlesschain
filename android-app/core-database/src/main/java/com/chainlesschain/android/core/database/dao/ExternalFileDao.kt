@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.database.dao
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -52,34 +53,46 @@ interface ExternalFileDao {
 
     @Query("""
         SELECT * FROM external_files
-        WHERE displayName LIKE '%' || :query || '%'
-           OR displayPath LIKE '%' || :query || '%'
-           OR parentFolder LIKE '%' || :query || '%'
+        WHERE displayName LIKE '%' || :query || '%' ESCAPE '\'
+           OR displayPath LIKE '%' || :query || '%' ESCAPE '\'
+           OR parentFolder LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY lastModified DESC
         LIMIT :limit
     """)
-    fun searchFiles(query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+    fun searchFilesRaw(query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFiles(query: String, limit: Int = 50): Flow<List<ExternalFileEntity>> =
+        searchFilesRaw(SqlLike.escapeLike(query), limit)
 
     @Query("""
         SELECT * FROM external_files
         WHERE category = :category
-          AND (displayName LIKE '%' || :query || '%'
-               OR displayPath LIKE '%' || :query || '%'
-               OR parentFolder LIKE '%' || :query || '%')
+          AND (displayName LIKE '%' || :query || '%' ESCAPE '\'
+               OR displayPath LIKE '%' || :query || '%' ESCAPE '\'
+               OR parentFolder LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY lastModified DESC
         LIMIT :limit
     """)
-    fun searchFilesByCategory(category: FileCategory, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+    fun searchFilesByCategoryRaw(category: FileCategory, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFilesByCategory(category: FileCategory, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>> =
+        searchFilesByCategoryRaw(category, SqlLike.escapeLike(query), limit)
 
     @Query("""
         SELECT * FROM external_files
         WHERE category IN (:categories)
-          AND (displayName LIKE '%' || :query || '%'
-               OR displayPath LIKE '%' || :query || '%')
+          AND (displayName LIKE '%' || :query || '%' ESCAPE '\'
+               OR displayPath LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY lastModified DESC
         LIMIT :limit
     """)
-    fun searchFilesByCategories(categories: List<FileCategory>, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+    fun searchFilesByCategoriesRaw(categories: List<FileCategory>, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFilesByCategories(categories: List<FileCategory>, query: String, limit: Int = 50): Flow<List<ExternalFileEntity>> =
+        searchFilesByCategoriesRaw(categories, SqlLike.escapeLike(query), limit)
 
     // ===== 排序和过滤 =====
 

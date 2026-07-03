@@ -4,6 +4,7 @@ import androidx.room.*
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -51,15 +52,19 @@ interface FriendDao {
         SELECT * FROM friends
         WHERE status = 'ACCEPTED'
           AND isBlocked = 0
-          AND (nickname LIKE '%' || :query || '%' OR remarkName LIKE '%' || :query || '%')
+          AND (nickname LIKE '%' || :query || '%' ESCAPE '\' OR remarkName LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY
           CASE
-            WHEN nickname LIKE :query || '%' OR remarkName LIKE :query || '%' THEN 0
+            WHEN nickname LIKE :query || '%' ESCAPE '\' OR remarkName LIKE :query || '%' ESCAPE '\' THEN 0
             ELSE 1
           END,
           addedAt DESC
     """)
-    fun searchFriends(query: String): Flow<List<FriendEntity>>
+    fun searchFriendsRaw(query: String): Flow<List<FriendEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFriends(query: String): Flow<List<FriendEntity>> =
+        searchFriendsRaw(SqlLike.escapeLike(query))
 
     /**
      * 获取被屏蔽的好友

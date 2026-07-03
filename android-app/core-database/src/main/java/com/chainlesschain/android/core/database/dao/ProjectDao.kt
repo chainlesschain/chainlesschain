@@ -4,6 +4,7 @@ import androidx.room.*
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -42,10 +43,14 @@ interface ProjectDao {
         SELECT * FROM projects
         WHERE userId = :userId
           AND status != 'deleted'
-          AND (name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%')
+          AND (name LIKE '%' || :query || '%' ESCAPE '\' OR description LIKE '%' || :query || '%' ESCAPE '\' OR tags LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY updatedAt DESC
     """)
-    fun searchProjects(userId: String, query: String): Flow<List<ProjectEntity>>
+    fun searchProjectsRaw(userId: String, query: String): Flow<List<ProjectEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchProjects(userId: String, query: String): Flow<List<ProjectEntity>> =
+        searchProjectsRaw(userId, SqlLike.escapeLike(query))
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProject(project: ProjectEntity): Long
@@ -135,10 +140,14 @@ interface ProjectDao {
     @Query("""
         SELECT * FROM project_files
         WHERE projectId = :projectId
-          AND (name LIKE '%' || :query || '%' OR path LIKE '%' || :query || '%')
+          AND (name LIKE '%' || :query || '%' ESCAPE '\' OR path LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY type DESC, name ASC
     """)
-    fun searchFiles(projectId: String, query: String): Flow<List<ProjectFileEntity>>
+    fun searchFilesRaw(projectId: String, query: String): Flow<List<ProjectFileEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchFiles(projectId: String, query: String): Flow<List<ProjectFileEntity>> =
+        searchFilesRaw(projectId, SqlLike.escapeLike(query))
 
     @Query("SELECT * FROM project_files WHERE projectId = :projectId AND isOpen = 1")
     fun getOpenFiles(projectId: String): Flow<List<ProjectFileEntity>>

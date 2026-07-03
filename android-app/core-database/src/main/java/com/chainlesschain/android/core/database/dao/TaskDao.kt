@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.database.dao
 
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.TaskEntity
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -88,10 +89,14 @@ interface TaskDao {
     @Query("""
         SELECT * FROM tasks
         WHERE userId = :userId
-            AND (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%')
+            AND (title LIKE '%' || :query || '%' ESCAPE '\' OR description LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY createdAt DESC
     """)
-    fun searchTasks(userId: String, query: String): Flow<List<TaskEntity>>
+    fun searchTasksRaw(userId: String, query: String): Flow<List<TaskEntity>>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchTasks(userId: String, query: String): Flow<List<TaskEntity>> =
+        searchTasksRaw(userId, SqlLike.escapeLike(query))
 
     /**
      * 按标签搜索任务
@@ -99,10 +104,14 @@ interface TaskDao {
     @Query("""
         SELECT * FROM tasks
         WHERE userId = :userId
-            AND labels LIKE '%' || :label || '%'
+            AND labels LIKE '%' || :label || '%' ESCAPE '\'
         ORDER BY createdAt DESC
     """)
-    fun getTasksByLabel(userId: String, label: String): Flow<List<TaskEntity>>
+    fun getTasksByLabelRaw(userId: String, label: String): Flow<List<TaskEntity>>
+
+    /** Escapes LIKE metachars so [label] matches literally (see SqlLike). */
+    fun getTasksByLabel(userId: String, label: String): Flow<List<TaskEntity>> =
+        getTasksByLabelRaw(userId, SqlLike.escapeLike(label))
 
     // ===== 单条查询（挂起函数） =====
 

@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.database.dao
 import androidx.paging.PagingSource
 import androidx.room.*
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -75,10 +76,14 @@ interface KnowledgeItemDao {
     @Query("""
         SELECT * FROM knowledge_items
         WHERE isDeleted = 0
-        AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%')
+        AND (title LIKE '%' || :query || '%' ESCAPE '\' OR content LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY updatedAt DESC
     """)
-    fun searchItemsSimple(query: String): PagingSource<Int, KnowledgeItemEntity>
+    fun searchItemsSimpleRaw(query: String): PagingSource<Int, KnowledgeItemEntity>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    fun searchItemsSimple(query: String): PagingSource<Int, KnowledgeItemEntity> =
+        searchItemsSimpleRaw(SqlLike.escapeLike(query))
 
     /**
      * 插入条目

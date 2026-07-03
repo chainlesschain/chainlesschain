@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
+import com.chainlesschain.android.core.database.util.SqlLike
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -114,10 +115,14 @@ interface ProjectChatMessageDao {
     @Query("""
         SELECT * FROM project_chat_messages
         WHERE projectId = :projectId
-        AND referencedFileIds LIKE '%' || :fileId || '%'
+        AND referencedFileIds LIKE '%' || :fileId || '%' ESCAPE '\'
         ORDER BY createdAt ASC
     """)
-    fun getMessagesReferencingFile(projectId: String, fileId: String): Flow<List<ProjectChatMessageEntity>>
+    fun getMessagesReferencingFileRaw(projectId: String, fileId: String): Flow<List<ProjectChatMessageEntity>>
+
+    /** Escapes LIKE metachars so [fileId] matches literally (see SqlLike). */
+    fun getMessagesReferencingFile(projectId: String, fileId: String): Flow<List<ProjectChatMessageEntity>> =
+        getMessagesReferencingFileRaw(projectId, SqlLike.escapeLike(fileId))
 
     /**
      * Get quick action messages for a project
@@ -136,8 +141,12 @@ interface ProjectChatMessageDao {
     @Query("""
         SELECT * FROM project_chat_messages
         WHERE projectId = :projectId
-        AND content LIKE '%' || :query || '%'
+        AND content LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY createdAt DESC
     """)
-    suspend fun searchMessages(projectId: String, query: String): List<ProjectChatMessageEntity>
+    suspend fun searchMessagesRaw(projectId: String, query: String): List<ProjectChatMessageEntity>
+
+    /** Escapes LIKE metachars so [query] matches literally (see SqlLike). */
+    suspend fun searchMessages(projectId: String, query: String): List<ProjectChatMessageEntity> =
+        searchMessagesRaw(projectId, SqlLike.escapeLike(query))
 }
