@@ -4,10 +4,10 @@
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
-    "chainlesschain": "bin/chainlesschain.js",
-    "cc": "bin/chainlesschain.js",
-    "clc": "bin/chainlesschain.js",
-    "clchain": "bin/chainlesschain.js"
+    "chainlesschain": "./bin/chainlesschain.js",
+    "cc": "./bin/chainlesschain.js",
+    "clc": "./bin/chainlesschain.js",
+    "clchain": "./bin/chainlesschain.js"
   },
   "main": "src/index.js",
   "scripts": {
