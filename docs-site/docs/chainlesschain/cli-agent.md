@@ -972,7 +972,7 @@ Resumed session session-17... (8 messages)
 ## 相关文档
 
 - [LLM 中转站与自定义接入](./cli-llm-proxy) — 中转站、代理、自建网关完整指南
-- [技能系统](./cli-skill) — 141 个内置技能
+- [技能系统](./cli-skill) — 146 个内置技能
 - [Plan Mode](./plan-mode) — 桌面端 Plan Mode 详情
 - [AI 对话](./cli-chat) — 基础对话功能
 - [会话管理](./cli-session) — 代理会话持久化

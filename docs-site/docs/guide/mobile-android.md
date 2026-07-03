@@ -14,7 +14,7 @@
 
 ## 概述
 
-ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、Cowork 多智能体、RAG / 向量检索、MCP、Marketplace、联邦治理、Workflow、ZKP，典型久坐工作站形态。手机端**不重复实现桌面**，只补桌面在手机场景下做不到的事，对齐 Claude Desktop / Mobile 的二端分工：**桌面 = AI 工作站，手机 = 它的延伸**。
+ChainlessChain 桌面端是"重资产个人 AI 主机"——146 内置 skills、Cowork 多智能体、RAG / 向量检索、MCP、Marketplace、联邦治理、Workflow、ZKP，典型久坐工作站形态。手机端**不重复实现桌面**，只补桌面在手机场景下做不到的事，对齐 Claude Desktop / Mobile 的二端分工：**桌面 = AI 工作站，手机 = 它的延伸**。
 
 具体落到三层：
 

@@ -1114,7 +1114,7 @@ chainlesschain ask "解释量子计算的基本原理"
 # 交互式对话（支持流式输出）
 chainlesschain chat
 
-# Agent 模式（141 技能 + Plan Mode）
+# Agent 模式（146 技能 + Plan Mode）
 chainlesschain agent
 ```
 

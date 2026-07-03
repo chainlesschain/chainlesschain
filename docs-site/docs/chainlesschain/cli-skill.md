@@ -218,7 +218,7 @@ chainlesschain skill run cli-infra-pack "status"           # 查看系统状态
 
 | 层          | 优先级   | 路径                                    | 用途               |
 | ----------- | -------- | --------------------------------------- | ------------------ |
-| bundled     | 0 (最低) | `desktop-app-vue/.../skills/builtin/`   | 141 内置技能       |
+| bundled     | 0 (最低) | `desktop-app-vue/.../skills/builtin/`   | 146 内置技能       |
 | marketplace | 1        | `<userData>/marketplace/skills/`        | 插件安装的技能     |
 | managed     | 2        | `<userData>/skills/`                    | 用户全局自定义技能 |
 | workspace   | 3 (最高) | `<projectRoot>/.chainlesschain/skills/` | 项目级自定义技能   |
@@ -278,7 +278,7 @@ ai, analysis, automation, code-review, data, database, debugging, design, develo
 - `packages/cli/src/commands/skill.js` — 命令实现（含 add/remove/sources）
 - `packages/cli/src/lib/skill-loader.js` — 多层技能加载器（CLISkillLoader）
 - `packages/cli/src/repl/agent-repl.js` — 技能运行引擎（使用 CLISkillLoader）
-- `desktop-app-vue/src/main/ai-engine/cowork/skills/` — 141 个内置技能定义文件
+- `desktop-app-vue/src/main/ai-engine/cowork/skills/` — 146 个内置技能定义文件
 
 ## 安全考虑
 

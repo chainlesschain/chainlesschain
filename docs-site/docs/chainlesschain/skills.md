@@ -2,7 +2,7 @@
 
 > **版本: v5.0.1 | 138内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 141 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 141/141 (100%)。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 141/141 (100%)。
 
 ## 概述
 
@@ -10,7 +10,7 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
 
 ## 核心特性
 
-- 🛠️ **141 内置技能**: 覆盖开发、测试、自动化、知识、安全、DevOps 等 18 个类别，100% Handler 覆盖
+- 🛠️ **146 内置技能**: 覆盖开发、测试、自动化、知识、安全、DevOps 等 18 个类别，100% Handler 覆盖
 - 📄 **Markdown 技能定义**: 使用 SKILL.md 格式声明提示词、工具集、参数和门控检查
 - 📦 **四层加载机制**: workspace > managed > marketplace > bundled 优先级覆盖
 - 🔌 **统一工具注册表**: 聚合 FunctionCaller (60+)、MCP (8 servers)、Skills (50) 三大工具系统
@@ -451,7 +451,7 @@ author: ChainlessChain Team
 
 ## 内置技能 CLI 执行参考
 
-所有 141 个内置技能均可通过命令行执行，无需启动桌面应用（Headless 模式）。少数依赖桌面功能的技能会优雅降级并返回提示信息。
+所有 146 个内置技能均可通过命令行执行，无需启动桌面应用（Headless 模式）。少数依赖桌面功能的技能会优雅降级并返回提示信息。
 
 ### 执行方式
 

@@ -6,7 +6,7 @@ ChainlessChain CLI Agent 对标 [Hermes Agent](https://github.com/NousResearch/h
 
 ## 概述
 
-Hermes Agent 是 Nous Research 的自进化个人 AI Agent 框架，核心设计理念为 "Agent That Grows With You"。ChainlessChain 已具备成熟的 Agent 体系（141 技能、4 层记忆、学习闭环、技能合成），但在对标分析中发现 6 项具体差距限制了复杂任务完成能力和用户体验。
+Hermes Agent 是 Nous Research 的自进化个人 AI Agent 框架，核心设计理念为 "Agent That Grows With You"。ChainlessChain 已具备成熟的 Agent 体系（146 技能、4 层记忆、学习闭环、技能合成），但在对标分析中发现 6 项具体差距限制了复杂任务完成能力和用户体验。
 
 **差距分析总表**:
 

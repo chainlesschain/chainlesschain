@@ -353,5 +353,5 @@ const techLearningConfig = {
 
 - [自主开发者](/chainlesschain/autonomous-developer) - 自主开发 AI 代理
 - [协作治理](/chainlesschain/collaboration-governance) - 协作治理框架
-- [Skills 系统](/chainlesschain/skills) - 141 内置技能系统
+- [Skills 系统](/chainlesschain/skills) - 146 内置技能系统
 - [EvoMap GEP 协议](/chainlesschain/evomap) - 进化图谱基因协议
