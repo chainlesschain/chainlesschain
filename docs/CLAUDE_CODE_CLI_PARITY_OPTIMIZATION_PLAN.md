@@ -35,6 +35,22 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 6. 异步 Hooks、后台 Monitors 和失败唤醒。
 7. 以任务成功率为核心的可靠性评测体系。
 
+## 1.5 实施进度总览（2026-07-04 更新）
+
+> 每格状态基于真实落地代码 + 测试（非「已有同名命令」），Windows 主力机上凡可建、可测者皆已建。剩余项均为**物理/环境阻塞**（内核 OS 隔离、跨平台 toolchain、真机三端、活模型非确定性、Docker 沙箱），已逐项诚实标注阻塞原因。
+
+| Phase | 主题            | 状态                     | Windows 已落地（可测）                                                                                          | 剩余（环境阻塞原因）                                                                      |
+| ----- | --------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1     | OS 沙箱 + 网络  | **核心落地，硬隔离阻塞** | 网络域策略判定 + SSRF 守卫 + **出口过滤代理**（把策略从判定变强制，跨平台免 root）                              | 内核级出口硬隔离（Seatbelt/bwrap netns/AppContainer）、沙箱内后台 Shell、跨平台隔离 E2E   |
+| 2     | LSP 代码智能    | **四期全落地**           | LSP client/manager + `cc code-intel` + 接入 agent 链 + 编辑后增量诊断 + **崩溃自动重启有界守卫**                | Python/Go/Rust 真机验证、大仓启动/内存基准（需各语言 toolchain + 大仓）                   |
+| 3     | 插件运行时      | **核心完备**             | 8/8 manifest 组件接真实 agent 链 + 安装生命周期 + 双 fail-closed gate + trust + 热加载 + monitor 每轮注入       | remote-manifest source + 私有仓认证 + 离线 seed cache（网络/凭据耦合，niche defer）       |
+| 4     | Agent Team      | **✅ 全闭合**            | lease+DAG + `cc team` 真执行 + 会话恢复 + worktree 隔离 + **预算 + 定向消息 + 生命周期 + `--agent --worktree`** | —                                                                                         |
+| 5     | Remote Control  | **服务端落地，设备阻塞** | RemoteCommandLedger（幂等/全序/撤销）+ **接进 `cc serve` 活 WS 路径**（客户端带 commandId 即生效）              | 三端客户端**发送** commandId 协议采纳 + 三端真 UX/同步 E2E + worktree 远程会话真机        |
+| 6     | 异步 Hooks      | **✅ 全闭合**            | async hooks + auto-rewake + Stop/SubagentStart/ConfigChange/**SessionPause/Resume** + MCP 前缀钩子 + 无头支持   | —                                                                                         |
+| 7     | 可靠性评测/OTel | **核心落地**             | eval 框架 + **8** 客观任务类别（含安全修复 exploit-probe）+ TelemetryRecorder + agent-core 真埋点 + `--otlp`    | Compaction 事实保留（LLM 摘要非确定性）、发布趋势报告（需活模型端点，离线 dry-run 恒 0%） |
+
+**结论**：Phase 4、6 完全闭合；1、2、3、5、7 的**全部 Windows-doable 部分**已落地并测试，剩余项 100% 为不可在单台 Windows 机上完成的物理阻塞（其它 OS 内核 / 各语言 toolchain / 真机三端 / 活模型 / Docker）。
+
 ## 2. 实施原则
 
 - 优先提升真实编码任务成功率，而不是增加外围命令。
