@@ -354,6 +354,74 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "code_intelligence",
+    title: "Code Intelligence",
+    kind: "analysis",
+    tier: "extension",
+    description:
+      "Semantic code navigation via a Language Server (LSP): resolve a symbol's " +
+      "definition, find its references, get type/hover info, list document or " +
+      "workspace symbols, read diagnostics, or preview a rename — WITHOUT text " +
+      "guessing. Prefer this over search_files when you need exact symbol " +
+      "semantics. Positions are 1-based (line/col). Degrades gracefully to a " +
+      "'not available' result when no language server is installed for the file.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: [
+            "definition",
+            "references",
+            "hover",
+            "document_symbols",
+            "workspace_symbols",
+            "diagnostics",
+            "rename_preview",
+          ],
+          description: "Which semantic query to run",
+        },
+        file: {
+          type: "string",
+          description:
+            "File path (relative to cwd). Required for every action except workspace_symbols.",
+        },
+        line: {
+          type: "integer",
+          description:
+            "1-based line number of the symbol (definition/references/hover/rename_preview).",
+        },
+        col: {
+          type: "integer",
+          description:
+            "1-based column of the symbol (definition/references/hover/rename_preview).",
+        },
+        query: {
+          type: "string",
+          description: "Symbol name to search for (workspace_symbols).",
+        },
+        new_name: {
+          type: "string",
+          description: "Proposed new identifier (rename_preview).",
+        },
+      },
+      required: ["action"],
+    },
+    ...TOOL_POLICY_METADATA.code_intelligence,
+    permissions: {
+      level: "readonly",
+      scopes: ["filesystem:read", "process:spawn"],
+    },
+    telemetry: {
+      category: "analysis",
+      tags: [
+        "tool:code_intelligence",
+        "contract:coding-agent",
+        "tier:extension",
+      ],
+    },
+  },
+  {
     name: "list_dir",
     title: "List Directory",
     kind: "filesystem",
@@ -422,7 +490,8 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       properties: {
         category: {
           type: "string",
-          description: "Filter by category (e.g. development, automation, data)",
+          description:
+            "Filter by category (e.g. development, automation, data)",
         },
         query: {
           type: "string",
@@ -491,7 +560,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         agent: {
           type: "string",
           description:
-            'Optional name of a pre-defined subagent from .chainlesschain/agents/ or .claude/agents/ (e.g. "review:security"). Loads that file\'s system prompt + tool allow-list. Run `cc agents list` to see them. Explicit `role`/`tools` override the agent\'s values.',
+            "Optional name of a pre-defined subagent from .chainlesschain/agents/ or .claude/agents/ (e.g. \"review:security\"). Loads that file's system prompt + tool allow-list. Run `cc agents list` to see them. Explicit `role`/`tools` override the agent's values.",
         },
         role: {
           type: "string",
@@ -588,7 +657,16 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         },
         provider: {
           type: "string",
-          enum: ["auto", "tavily", "brave", "bocha", "qianfan", "duckduckgo", "searxng", "baidu"],
+          enum: [
+            "auto",
+            "tavily",
+            "brave",
+            "bocha",
+            "qianfan",
+            "duckduckgo",
+            "searxng",
+            "baidu",
+          ],
           description:
             "Override the configured search backend for this call (default: from config / auto)",
         },
@@ -763,11 +841,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
     telemetry: {
       category: "search",
-      tags: [
-        "tool:search_sessions",
-        "contract:coding-agent",
-        "tier:extension",
-      ],
+      tags: ["tool:search_sessions", "contract:coding-agent", "tier:extension"],
     },
   },
 ]);

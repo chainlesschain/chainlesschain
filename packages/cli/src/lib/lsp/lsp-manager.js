@@ -1,0 +1,273 @@
+/**
+ * LSPManager — pools language servers by (projectRoot, languageId), syncs open
+ * documents, translates positions, and recovers from server crashes.
+ *
+ * One `LSPClient` is expensive (spawns a process + indexes the project), so we
+ * lazily start and reuse one per (root, language) family. The manager owns:
+ *   - server lifecycle (start / reuse / restart-once-on-crash / disposeAll)
+ *   - textDocument/didOpen + didChange (servers only answer about open docs)
+ *   - diagnostics collection (servers push them via publishDiagnostics)
+ *   - 1-based (user) ⇄ 0-based (LSP) position conversion, done HERE only
+ *
+ * The high-level `code-intelligence.js` calls into this; nothing above the
+ * manager should touch raw LSP positions/URIs.
+ */
+
+import fs from "fs";
+import path from "path";
+import { LSPClient, pathToFileUri, normalizeUri } from "./lsp-client.js";
+import { languageIdForFile, resolveServer } from "./lsp-server-registry.js";
+
+export const _deps = {
+  readFileSync: fs.readFileSync,
+  existsSync: fs.existsSync,
+  createClient: (opts) => new LSPClient(opts),
+};
+
+export class LSPManager {
+  /**
+   * @param {object} [opts]
+   * @param {string} [opts.projectRoot] default root; per-file root inferred otherwise
+   */
+  constructor(opts = {}) {
+    this.projectRoot = opts.projectRoot || process.cwd();
+    /** key `${root}::${serverId}` → { client, languageId, root, restarts } */
+    this._servers = new Map();
+    /** open document uri → { version, languageId } */
+    this._openDocs = new Map();
+    /** uri → latest diagnostics array */
+    this._diagnostics = new Map();
+    /** uri → { count, at } publish bookkeeping (for settle/readiness) */
+    this._diagMeta = new Map();
+    this._disposed = false;
+  }
+
+  /**
+   * Ensure a server is running for `filePath` and the file is open. Returns
+   * `{ client, uri, languageId }`, or `{ unavailable: true, reason }` when no
+   * server is installed (caller degrades to text search).
+   */
+  async ensureFor(
+    filePath,
+    { root, waitReady = false, readyTimeoutMs = 8000 } = {},
+  ) {
+    if (this._disposed) throw new Error("LSPManager disposed");
+    const abs = path.resolve(filePath);
+    const languageId = languageIdForFile(abs);
+    if (!languageId) {
+      return {
+        unavailable: true,
+        reason: `no language mapping for ${path.extname(abs) || "file"}`,
+      };
+    }
+    const projectRoot = root || this._inferRoot(abs);
+    const resolved = resolveServer(languageId, projectRoot);
+    if (!resolved) {
+      return {
+        unavailable: true,
+        reason: `no language server installed for ${languageId} (install one, e.g. typescript-language-server)`,
+      };
+    }
+
+    const key = `${projectRoot}::${resolved.id}`;
+    let entry = this._servers.get(key);
+    if (!entry || !entry.client.running) {
+      entry = await this._startServer(key, resolved, projectRoot);
+    }
+
+    const uri = pathToFileUri(abs);
+    this._ensureOpen(entry.client, uri, abs, languageId);
+
+    // One-shot callers (the `cc code-intel` CLI) spawn a cold server per run;
+    // the server publishes an empty diagnostics set BEFORE it finishes loading
+    // the tsconfig project, so an immediate definition/references/diagnostics
+    // query sees a partial project. Waiting for the first publish for THIS doc
+    // is a reliable "project loaded far enough" signal. Long-lived callers (the
+    // agent session) keep the server warm and pass waitReady:false.
+    if (waitReady) {
+      await this._waitForFirstPublish(uri, readyTimeoutMs);
+    }
+    return { client: entry.client, uri, languageId, root: projectRoot };
+  }
+
+  /** Resolve once the server has published diagnostics for `uri` at least once, or timeout. */
+  _waitForFirstPublish(rawUri, timeoutMs) {
+    const uri = normalizeUri(rawUri);
+    if ((this._diagMeta.get(uri)?.count || 0) > 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        if (
+          (this._diagMeta.get(uri)?.count || 0) > 0 ||
+          Date.now() - started >= timeoutMs
+        ) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 40);
+      if (typeof timer.unref === "function") timer.unref();
+    });
+  }
+
+  async _startServer(key, resolved, projectRoot) {
+    const client = _deps.createClient({
+      command: resolved.command,
+      args: resolved.args,
+      rootPath: projectRoot,
+    });
+    // Collect pushed diagnostics keyed by document, tracking publish count/time
+    // so callers can wait for the project to load (first publish) and settle
+    // (last publish) rather than racing the initial empty set tsserver emits.
+    client.on("notify:textDocument/publishDiagnostics", (params) => {
+      if (params && params.uri) {
+        const key = normalizeUri(params.uri);
+        this._diagnostics.set(key, params.diagnostics || []);
+        const prev = this._diagMeta.get(key) || { count: 0 };
+        this._diagMeta.set(key, { count: prev.count + 1, at: Date.now() });
+      }
+    });
+    const entry = {
+      client,
+      serverId: resolved.id,
+      root: projectRoot,
+      restarts: 0,
+    };
+    // Auto-restart once on crash; open docs are re-synced on next ensureFor.
+    client.on("exit", () => {
+      for (const [uri, meta] of this._openDocs) {
+        if (meta.root === projectRoot) this._openDocs.delete(uri);
+      }
+    });
+    await client.start();
+    this._servers.set(key, entry);
+    return entry;
+  }
+
+  _ensureOpen(client, uri, abs, languageId) {
+    const existing = this._openDocs.get(uri);
+    let text = "";
+    try {
+      text = _deps.readFileSync(abs, "utf8");
+    } catch {
+      text = "";
+    }
+    if (!existing) {
+      client.notify("textDocument/didOpen", {
+        textDocument: { uri, languageId, version: 1, text },
+      });
+      this._openDocs.set(uri, {
+        version: 1,
+        languageId,
+        root: client.rootPath,
+      });
+    } else {
+      // File may have changed on disk since first open — push the latest text so
+      // definitions/diagnostics reflect current state (edit-freshness).
+      const version = existing.version + 1;
+      client.notify("textDocument/didChange", {
+        textDocument: { uri, version },
+        contentChanges: [{ text }],
+      });
+      this._openDocs.set(uri, { ...existing, version });
+    }
+  }
+
+  /** Notify the server that a document changed on disk (after an edit). */
+  async didChangeFile(filePath, { root } = {}) {
+    const abs = path.resolve(filePath);
+    const uri = pathToFileUri(abs);
+    if (!this._openDocs.has(uri)) {
+      // Not open yet — opening it (via ensureFor) will read fresh text anyway.
+      return this.ensureFor(abs, { root });
+    }
+    const ready = await this.ensureFor(abs, { root });
+    return ready;
+  }
+
+  /** Latest diagnostics for a file (may be empty). Server pushes asynchronously. */
+  getDiagnostics(filePath) {
+    const uri = normalizeUri(pathToFileUri(path.resolve(filePath)));
+    return this._diagnostics.get(uri) || [];
+  }
+
+  /**
+   * Wait for diagnostics for `filePath` to publish AND settle, then return the
+   * latest set. tsserver publishes an initial (often empty) set the moment a doc
+   * opens, then republishes once the project is loaded — resolving on the first
+   * publish would return stale/empty results. So we wait for at least one
+   * publish, then a `settleMs` quiet window with no further publishes (bounded
+   * by `timeoutMs`), and return whatever was published last.
+   */
+  async waitForDiagnostics(
+    filePath,
+    { timeoutMs = 3000, settleMs = 600 } = {},
+  ) {
+    const uri = normalizeUri(pathToFileUri(path.resolve(filePath)));
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        const meta = this._diagMeta.get(uri);
+        const elapsed = Date.now() - started;
+        const settled =
+          meta && meta.count > 0 && Date.now() - meta.at >= settleMs;
+        if (settled || elapsed >= timeoutMs) {
+          clearInterval(timer);
+          resolve(this._diagnostics.get(uri) || []);
+        }
+      }, 50);
+      if (typeof timer.unref === "function") timer.unref();
+    });
+  }
+
+  /** Infer the project root for a file: nearest ancestor with package.json / .git / go.mod / Cargo.toml. */
+  _inferRoot(abs) {
+    let dir = path.dirname(abs);
+    const markers = [
+      "package.json",
+      ".git",
+      "go.mod",
+      "Cargo.toml",
+      "tsconfig.json",
+      "pyproject.toml",
+    ];
+    for (let i = 0; i < 12; i++) {
+      for (const m of markers) {
+        if (_deps.existsSync(path.join(dir, m))) return dir;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return this.projectRoot;
+  }
+
+  /** Shut down every server and clear state. Idempotent. */
+  async disposeAll() {
+    this._disposed = true;
+    const clients = [...this._servers.values()].map((e) => e.client);
+    this._servers.clear();
+    this._openDocs.clear();
+    this._diagnostics.clear();
+    this._diagMeta.clear();
+    await Promise.all(clients.map((c) => c.stop().catch(() => {})));
+  }
+
+  get activeServerCount() {
+    return this._servers.size;
+  }
+}
+
+// ---- position helpers (the ONLY place that converts between coordinate spaces) ----
+
+/** 1-based user position → 0-based LSP position. */
+export function toLspPosition({ line, col }) {
+  return {
+    line: Math.max(0, (line || 1) - 1),
+    character: Math.max(0, (col || 1) - 1),
+  };
+}
+
+/** 0-based LSP position → 1-based user position. */
+export function fromLspPosition(pos) {
+  return { line: (pos?.line || 0) + 1, col: (pos?.character || 0) + 1 };
+}

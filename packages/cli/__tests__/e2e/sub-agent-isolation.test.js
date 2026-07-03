@@ -51,7 +51,7 @@ describe("E2E: Sub-Agent Isolation", () => {
     const toolNames = agentCore.AGENT_TOOLS.map((t) => t.function.name);
     expect(toolNames).toContain("spawn_sub_agent");
     expect(toolNames).toContain("run_code");
-    expect(toolNames).toHaveLength(20);
+    expect(toolNames).toHaveLength(21);
   });
 
   it("sub-agent-context module is importable", async () => {

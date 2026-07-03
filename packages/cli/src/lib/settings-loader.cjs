@@ -300,6 +300,7 @@ function loadSettingsConfig(opts = {}) {
   const cwd = opts.cwd || process.cwd();
   let model = null;
   const env = {};
+  let sandbox = null;
   const files = [];
   for (const file of settingsPaths(cwd, opts.settingsFile)) {
     const data = readSettingsFile(file, { onWarn: opts.onWarn });
@@ -316,6 +317,14 @@ function loadSettingsConfig(opts = {}) {
           contributed = true;
         }
       }
+    }
+    if (
+      data.sandbox &&
+      typeof data.sandbox === "object" &&
+      !Array.isArray(data.sandbox)
+    ) {
+      sandbox = mergeSandboxSettings(sandbox, data.sandbox);
+      contributed = true;
     }
     if (contributed) files.push(file);
   }
@@ -335,9 +344,33 @@ function loadSettingsConfig(opts = {}) {
         }
       }
     }
+    if (
+      data.sandbox &&
+      typeof data.sandbox === "object" &&
+      !Array.isArray(data.sandbox)
+    ) {
+      sandbox = mergeSandboxSettings(sandbox, data.sandbox);
+      contributed = true;
+    }
     if (contributed) files.push(managed.file);
   }
-  return { model, env, files };
+  return { model, env, sandbox, files };
+}
+
+function mergeSandboxSettings(base, overlay) {
+  const out =
+    base && typeof base === "object" ? JSON.parse(JSON.stringify(base)) : {};
+  for (const [key, value] of Object.entries(overlay || {})) {
+    if (Array.isArray(value)) {
+      const previous = Array.isArray(out[key]) ? out[key] : [];
+      out[key] = [...new Set([...previous, ...value].map(String))];
+    } else if (value && typeof value === "object") {
+      out[key] = mergeSandboxSettings(out[key], value);
+    } else if (["string", "boolean", "number"].includes(typeof value)) {
+      out[key] = value;
+    }
+  }
+  return out;
 }
 
 /**
@@ -393,6 +426,7 @@ module.exports = {
   applyManagedPermissionPolicy,
   assertManagedPermissionMode,
   parseEnvList,
+  mergeSandboxSettings,
   ruleSource,
   addRule,
   scopeFile,

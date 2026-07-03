@@ -509,6 +509,7 @@ export function registerAgentCommand(program) {
       // over a settings model. Applied once here so every branch (headless +
       // interactive, which all read options.model) picks it up; env vars are
       // set on the process so the agent loop + child tools inherit them.
+      let settingsSandbox = null;
       try {
         const { loadSettingsConfig } =
           await import("../lib/settings-loader.cjs");
@@ -520,6 +521,7 @@ export function registerAgentCommand(program) {
           process.env[k] = v;
         }
         if (!options.model && sc.model) options.model = sc.model;
+        settingsSandbox = sc.sandbox || null;
       } catch {
         // settings overrides are best-effort 鈥?never block the run
       }
@@ -822,6 +824,7 @@ export function registerAgentCommand(program) {
         const agentSandbox = normalizeAgentSandbox(options.sandbox, {
           cwd: process.cwd(),
           network: options.sandboxNetwork === true,
+          settings: settingsSandbox,
         });
         // Resume requested onto a session with no headless (JSONL) transcript?
         // Warn instead of silently starting empty 鈥?headless resume rebuilds
@@ -975,6 +978,7 @@ export function registerAgentCommand(program) {
         sandbox: normalizeAgentSandbox(options.sandbox, {
           cwd: process.cwd(),
           network: options.sandboxNetwork === true,
+          settings: settingsSandbox,
         }),
         autoCheckpoint,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).

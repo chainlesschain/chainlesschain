@@ -514,6 +514,7 @@ Key behaviors:
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use read_file and search_files to find information
+- Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search; after an edit, use code_intelligence (action: diagnostics) to catch new type/syntax errors in the same turn. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
 - You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
 - Always explain what you're doing and show results
 - Be concise but thorough
@@ -1693,6 +1694,62 @@ export function _ingestSearchOutput(output, ctx) {
 /**
  * Inner tool execution — no hooks, no plan-mode checks.
  */
+// ─── Shared code-intelligence (LSP) pool ──────────────────────────────────
+//
+// A language server is expensive to start (spawns a process + indexes the
+// project), so the `code_intelligence` tool reuses ONE warm CodeIntelligence
+// per project root across tool calls within a run. To avoid the resource-leak
+// trap (orphaned server processes / dangling timers), each root auto-disposes
+// after an idle window, and a process-exit hook is registered once as a
+// backstop. `coldStart:true` makes the first query per file wait for the
+// project to load; warmed queries return immediately.
+const _codeIntelPool = new Map(); // root -> { ci, idleTimer }
+const CODE_INTEL_IDLE_MS = 60_000;
+let _codeIntelExitHooked = false;
+
+async function _getSharedCodeIntel(cwd) {
+  const root = path.resolve(cwd || process.cwd());
+  let entry = _codeIntelPool.get(root);
+  if (!entry) {
+    const { CodeIntelligence } =
+      await import("../lib/lsp/code-intelligence.js");
+    entry = {
+      ci: new CodeIntelligence({ projectRoot: root, coldStart: true }),
+      idleTimer: null,
+    };
+    _codeIntelPool.set(root, entry);
+    if (!_codeIntelExitHooked) {
+      _codeIntelExitHooked = true;
+      process.once("exit", () => {
+        for (const e of _codeIntelPool.values()) {
+          try {
+            e.ci.dispose();
+          } catch {
+            /* best-effort teardown on exit */
+          }
+        }
+      });
+    }
+  }
+  if (entry.idleTimer) clearTimeout(entry.idleTimer);
+  entry.idleTimer = setTimeout(() => {
+    _codeIntelPool.delete(root);
+    entry.ci.dispose().catch(() => {});
+  }, CODE_INTEL_IDLE_MS);
+  if (typeof entry.idleTimer.unref === "function") entry.idleTimer.unref();
+  return entry.ci;
+}
+
+/** Dispose every pooled language server now (used by tests + explicit shutdown). */
+export async function disposeSharedCodeIntel() {
+  const entries = [..._codeIntelPool.values()];
+  _codeIntelPool.clear();
+  for (const e of entries) {
+    if (e.idleTimer) clearTimeout(e.idleTimer);
+  }
+  await Promise.all(entries.map((e) => e.ci.dispose().catch(() => {})));
+}
+
 async function executeToolInner(
   name,
   args,
@@ -2613,6 +2670,95 @@ async function executeToolInner(
         return attachDescriptor({ files: [], message: "No matches found" });
       }
       return attachDescriptor(isContent ? { matches: hits } : { files: hits });
+    }
+
+    case "code_intelligence": {
+      const action = String(args.action || "").trim();
+      const positionActions = new Set([
+        "definition",
+        "references",
+        "hover",
+        "rename_preview",
+      ]);
+      // Validate up front so the model gets a precise correction instead of a
+      // cryptic crash deep in the LSP layer.
+      if (action !== "workspace_symbols" && !args.file) {
+        return attachDescriptor({
+          error: `code_intelligence action "${action}" requires "file".`,
+        });
+      }
+      if (
+        positionActions.has(action) &&
+        (args.line == null || args.col == null)
+      ) {
+        return attachDescriptor({
+          error: `code_intelligence action "${action}" requires 1-based "line" and "col".`,
+        });
+      }
+      if (action === "workspace_symbols" && !args.query) {
+        return attachDescriptor({
+          error: `code_intelligence action "workspace_symbols" requires "query".`,
+        });
+      }
+      if (action === "rename_preview" && !args.new_name) {
+        return attachDescriptor({
+          error: `code_intelligence action "rename_preview" requires "new_name".`,
+        });
+      }
+      const ci = await _getSharedCodeIntel(cwd);
+      const file = args.file ? path.resolve(cwd, args.file) : null;
+      let res;
+      try {
+        switch (action) {
+          case "definition":
+            res = await ci.definition(file, args.line, args.col);
+            break;
+          case "references":
+            res = await ci.references(file, args.line, args.col);
+            break;
+          case "hover":
+            res = await ci.hover(file, args.line, args.col);
+            break;
+          case "document_symbols":
+            res = await ci.documentSymbols(file);
+            break;
+          case "workspace_symbols":
+            res = await ci.workspaceSymbols(String(args.query));
+            break;
+          case "diagnostics":
+            res = await ci.diagnostics(file);
+            break;
+          case "rename_preview":
+            res = await ci.renamePreview(
+              file,
+              args.line,
+              args.col,
+              args.new_name,
+            );
+            break;
+          default:
+            return attachDescriptor({
+              error:
+                `Unknown code_intelligence action "${action}". Valid: definition, ` +
+                `references, hover, document_symbols, workspace_symbols, ` +
+                `diagnostics, rename_preview.`,
+            });
+        }
+      } catch (err) {
+        return attachDescriptor({
+          error: `code_intelligence failed: ${err.message}`,
+        });
+      }
+      // No language server installed for this file — tell the agent to fall back
+      // rather than looping on an empty result.
+      if (res && res.available === false) {
+        return attachDescriptor({
+          unavailable: true,
+          reason: res.reason,
+          hint: "No language server available — use search_files / read_file instead.",
+        });
+      }
+      return attachDescriptor(res);
     }
 
     case "list_dir": {
@@ -4629,6 +4775,7 @@ export function _normalizeAnthropicResponse(data) {
 const _CHECKPOINT_READ_ONLY = new Set([
   "read_file",
   "search_files",
+  "code_intelligence",
   "list_dir",
   "list_skills",
   "search_sessions",
@@ -5371,6 +5518,10 @@ export function formatToolArgs(name, args) {
       return args.command;
     case "search_files":
       return args.pattern;
+    case "code_intelligence":
+      return args.action === "workspace_symbols"
+        ? `${args.action} ${args.query || ""}`.trim()
+        : `${args.action} ${args.file || ""}${args.line != null ? `:${args.line}:${args.col}` : ""}`.trim();
     case "list_dir":
       return args.path || ".";
     case "run_skill":

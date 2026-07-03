@@ -10,7 +10,13 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import loader from "../../src/lib/settings-loader.cjs";
 
-const { loadSettings, addRule, assertManagedPermissionMode, _deps } = loader;
+const {
+  loadSettings,
+  loadSettingsConfig,
+  addRule,
+  assertManagedPermissionMode,
+  _deps,
+} = loader;
 const isWin = process.platform === "win32";
 const HOME = isWin ? "C:\\home\\u" : "/home/u";
 const CWD = isWin ? "C:\\proj" : "/proj";
@@ -42,6 +48,33 @@ beforeEach(() => {
     },
     mkdirSync: () => {},
   };
+});
+
+describe("loadSettingsConfig sandbox", () => {
+  it("merges nested policy arrays and lets closer scalar settings win", () => {
+    setFile(userFile, {
+      sandbox: {
+        enabled: true,
+        filesystem: { denyRead: ["~/.ssh"] },
+        network: { deniedDomains: ["example.test"] },
+      },
+    });
+    setFile(localFile, {
+      sandbox: {
+        failIfUnavailable: true,
+        filesystem: { denyRead: [".env"] },
+        network: { deniedDomains: ["example.test", "invalid.test"] },
+      },
+    });
+    const result = loadSettingsConfig({ cwd: CWD, env: {} });
+    expect(result.sandbox.enabled).toBe(true);
+    expect(result.sandbox.failIfUnavailable).toBe(true);
+    expect(result.sandbox.filesystem.denyRead).toEqual(["~/.ssh", ".env"]);
+    expect(result.sandbox.network.deniedDomains).toEqual([
+      "example.test",
+      "invalid.test",
+    ]);
+  });
 });
 
 describe("loadSettings — precedence & union", () => {

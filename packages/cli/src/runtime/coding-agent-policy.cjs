@@ -23,7 +23,11 @@ const TOOL_DECISIONS = Object.freeze({
   REQUIRE_CONFIRMATION: "require_confirmation",
 });
 
-const PLAN_APPROVED_STATES = Object.freeze(["approved", "executing", "completed"]);
+const PLAN_APPROVED_STATES = Object.freeze([
+  "approved",
+  "executing",
+  "completed",
+]);
 
 const READ_ONLY_GIT_SUBCOMMANDS = Object.freeze([
   "status",
@@ -57,6 +61,20 @@ const TOOL_POLICY_METADATA = Object.freeze({
   search_files: {
     riskLevel: RISK_LEVELS.LOW,
     category: TOOL_CATEGORIES.SEARCH,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
+  code_intelligence: {
+    // Read-only semantic navigation via LSP (definition/references/hover/
+    // symbols/diagnostics/rename-preview). It never mutates the workspace — a
+    // rename returns a preview, not an applied edit — so it is auto-approved and
+    // available in plan mode, like search_files.
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.ANALYZE,
     availableInPlanMode: true,
     planModeBehavior: "allow",
     requiresPlanApproval: false,
@@ -295,7 +313,9 @@ function isDangerousGitCommand(command) {
     case "checkout":
       // Discard working-tree changes: `checkout -- <path>`, `checkout .`,
       // or `-f`/`--force` (a plain branch checkout is not flagged).
-      return lower.includes("--") || lower.includes(".") || has("-f", "--force");
+      return (
+        lower.includes("--") || lower.includes(".") || has("-f", "--force")
+      );
     case "restore":
       // Worktree restore discards changes; a pure `--staged` restore only
       // unstages and is recoverable.
@@ -321,9 +341,9 @@ function isDangerousGitCommand(command) {
       // or an explicit `--delete --force`.
       return rest.includes("-D") || (has("--delete") && has("-f", "--force"));
     case "stash":
-      return ["drop", "clear"].includes((lower[0] || ""));
+      return ["drop", "clear"].includes(lower[0] || "");
     case "reflog":
-      return ["expire", "delete"].includes((lower[0] || ""));
+      return ["expire", "delete"].includes(lower[0] || "");
     case "update-ref":
       return has("-d", "--delete");
     case "filter-branch":
@@ -333,9 +353,14 @@ function isDangerousGitCommand(command) {
       return lower.some((t) => t.startsWith("--prune"));
     case "rebase":
       // History rewrite; control sub-actions (--abort/--continue/etc.) are safe.
-      return !["--abort", "--continue", "--skip", "--quit", "--edit-todo", "--show-current-patch"].includes(
-        lower[0] || "",
-      );
+      return ![
+        "--abort",
+        "--continue",
+        "--skip",
+        "--quit",
+        "--edit-todo",
+        "--show-current-patch",
+      ].includes(lower[0] || "");
     default:
       return false;
   }
