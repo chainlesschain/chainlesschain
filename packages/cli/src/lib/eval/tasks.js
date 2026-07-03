@@ -359,6 +359,94 @@ export const BUILTIN_TASKS = [
       }
     },
   },
+  {
+    id: "secure-path",
+    description:
+      "Fix a path-traversal vulnerability, verified by an exploit probe (security-fix category)",
+    prompt:
+      "notes.mjs's `readNote` is vulnerable to path traversal — a name like " +
+      "'../secret.txt' escapes the notes directory. Fix `readNote` so it can ONLY " +
+      "read files inside the notes directory (reject or neutralize both '../' and " +
+      "absolute paths), while `readNote('hello.txt')` still returns 'hi'. Keep the " +
+      "export name and signature.",
+    setup: (dir) => {
+      fs.mkdirSync(path.join(dir, "notes"), { recursive: true });
+      fs.writeFileSync(path.join(dir, "notes", "hello.txt"), "hi", "utf8");
+      // The secret lives OUTSIDE notes/ — a fixed readNote must never reach it.
+      fs.writeFileSync(path.join(dir, "secret.txt"), "TOP_SECRET", "utf8");
+      // BASE is anchored to the module's own dir (not process.cwd()) so the
+      // check can import it from anywhere.
+      fs.writeFileSync(
+        path.join(dir, "notes.mjs"),
+        "import fs from 'node:fs';\n" +
+          "import path from 'node:path';\n" +
+          "import { fileURLToPath } from 'node:url';\n" +
+          "const BASE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'notes');\n" +
+          "// VULNERABLE: `name` can contain ../ (or be absolute) and escape BASE.\n" +
+          "export function readNote(name) {\n" +
+          "  return fs.readFileSync(path.join(BASE, name), 'utf8');\n" +
+          "}\n",
+        "utf8",
+      );
+    },
+    check: async (dir) => {
+      const src = read(dir, "notes.mjs");
+      if (src == null) return { pass: false, detail: "notes.mjs missing" };
+      if (!/export\s+function\s+readNote/.test(src)) {
+        return { pass: false, detail: "readNote export was removed/renamed" };
+      }
+      let mod;
+      try {
+        const url = "file://" + path.join(dir, "notes.mjs").replace(/\\/g, "/");
+        mod = await import(url);
+      } catch (err) {
+        return { pass: false, detail: `import failed: ${err.message}` };
+      }
+      // 1) Behavior: a legitimate read still works.
+      let hi;
+      try {
+        hi = mod.readNote("hello.txt");
+      } catch (err) {
+        return {
+          pass: false,
+          detail: `readNote('hello.txt') threw: ${err.message}`,
+        };
+      }
+      if (String(hi).trim() !== "hi") {
+        return {
+          pass: false,
+          detail: `readNote('hello.txt') = ${JSON.stringify(hi)}`,
+        };
+      }
+      // 2) Exploit probe — relative traversal must NOT leak the secret.
+      let leaked = null;
+      try {
+        leaked = mod.readNote("../secret.txt");
+      } catch {
+        leaked = null; // throwing is a valid way to reject
+      }
+      if (leaked != null && String(leaked).includes("TOP_SECRET")) {
+        return {
+          pass: false,
+          detail: "relative traversal still reads files outside notes/",
+        };
+      }
+      // 3) Exploit probe — an absolute path must NOT escape either.
+      let leaked2 = null;
+      try {
+        leaked2 = mod.readNote(path.join(dir, "secret.txt"));
+      } catch {
+        leaked2 = null;
+      }
+      if (leaked2 != null && String(leaked2).includes("TOP_SECRET")) {
+        return { pass: false, detail: "absolute path escapes notes/" };
+      }
+      return {
+        pass: true,
+        detail: "traversal neutralized, legitimate read preserved",
+      };
+    },
+  },
 ];
 
 /** Look up a suite by name (only "builtin" for now). */

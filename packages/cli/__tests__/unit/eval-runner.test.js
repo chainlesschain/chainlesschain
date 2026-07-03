@@ -74,6 +74,23 @@ async function perfectAgent({ prompt, cwd }) {
         "console.log(greet({ name: 'Bob', excited: true }));\n",
       "utf8",
     );
+  } else if (/readNote/.test(prompt)) {
+    // secure-path: confine reads to BASE (reject ../ and absolute escapes).
+    fs.writeFileSync(
+      path.join(cwd, "notes.mjs"),
+      "import fs from 'node:fs';\n" +
+        "import path from 'node:path';\n" +
+        "import { fileURLToPath } from 'node:url';\n" +
+        "const BASE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'notes');\n" +
+        "export function readNote(name) {\n" +
+        "  const resolved = path.resolve(BASE, name);\n" +
+        "  if (resolved !== BASE && !resolved.startsWith(BASE + path.sep)) {\n" +
+        "    throw new Error('refusing to read outside notes/');\n" +
+        "  }\n" +
+        "  return fs.readFileSync(resolved, 'utf8');\n" +
+        "}\n",
+      "utf8",
+    );
   }
   return { ok: true, output: "done" };
 }
@@ -226,6 +243,33 @@ describe("migrate-signature task rigor", () => {
       return { ok: true };
     };
     const summary = await runEvalSuite([task], { runAgent: halfAgent });
+    expect(summary.passed).toBe(0);
+  });
+});
+
+describe("secure-path task rigor", () => {
+  it("rejects an insufficient fix that resolves paths but omits the containment check", async () => {
+    const task = BUILTIN_TASKS.find((t) => t.id === "secure-path");
+    expect(task).toBeTruthy();
+    // A realistic insufficient fix: switches to path.resolve (which fully
+    // honors `../`) but forgets to verify the result stays inside BASE — so the
+    // relative-traversal probe still leaks the secret.
+    const naiveAgent = async ({ cwd }) => {
+      fs.writeFileSync(
+        path.join(cwd, "notes.mjs"),
+        "import fs from 'node:fs';\n" +
+          "import path from 'node:path';\n" +
+          "import { fileURLToPath } from 'node:url';\n" +
+          "const BASE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'notes');\n" +
+          "export function readNote(name) {\n" +
+          "  const resolved = path.resolve(BASE, name);\n" + // resolves .. but no guard
+          "  return fs.readFileSync(resolved, 'utf8');\n" +
+          "}\n",
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: naiveAgent });
     expect(summary.passed).toBe(0);
   });
 });
