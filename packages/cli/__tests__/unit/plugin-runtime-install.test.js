@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   installFromDirectory,
   installFromSource,
+  updatePlugin,
   listInstalled,
   uninstall,
   setActiveVersion,
@@ -125,6 +126,63 @@ describe("listInstalled", () => {
     const names = rows.map((r) => r.name).sort();
     expect(names).toEqual(["alpha", "beta"]);
     expect(rows.every((r) => r.ok)).toBe(true);
+  });
+});
+
+describe("updatePlugin (upgrade from source)", () => {
+  it("installs a NEW version, repoints .active, keeps the old on disk for rollback", () => {
+    installFromDirectory(makeSource("widget", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    const res = updatePlugin(makeSource("widget", "2.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    expect(res.updated).toBe(true);
+    expect(res.previousVersion).toBe("1.0.0");
+    expect(res.version).toBe("2.0.0");
+    expect(getActiveVersion("widget", { scope: "project", cwd })).toBe("2.0.0");
+    // old version dir preserved (rollback via `cc plugin use widget 1.0.0`)
+    expect(
+      fs.existsSync(pluginVersionDir("project", "widget", "1.0.0", { cwd })),
+    ).toBe(true);
+  });
+
+  it("is a no-op when already at the source version (no --force)", () => {
+    const src = makeSource("widget", "1.0.0");
+    installFromDirectory(src, { scope: "project", cwd });
+    const res = updatePlugin(makeSource("widget", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    expect(res.updated).toBe(false);
+    expect(res.reinstalled).toBe(false);
+    expect(res.version).toBe("1.0.0");
+  });
+
+  it("--force reinstalls the same version", () => {
+    installFromDirectory(makeSource("widget", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    const res = updatePlugin(makeSource("widget", "1.0.0"), {
+      scope: "project",
+      cwd,
+      force: true,
+    });
+    expect(res.reinstalled).toBe(true);
+    expect(res.version).toBe("1.0.0");
+  });
+
+  it("installs a plugin that was not yet present", () => {
+    const res = updatePlugin(makeSource("fresh", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    expect(res.updated).toBe(true);
+    expect(res.previousVersion).toBe(null);
+    expect(getActiveVersion("fresh", { scope: "project", cwd })).toBe("1.0.0");
   });
 });
 

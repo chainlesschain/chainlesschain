@@ -90,17 +90,28 @@ export function installFromDirectory(srcDir, opts = {}) {
  * An optional `#ref` (branch / tag / commit) pins the checkout.
  */
 export function installFromSource(source, opts = {}) {
+  return _withMaterializedSource(source, (dir, info) => {
+    const res = installFromDirectory(dir, opts);
+    return info ? { ...res, source: info.url, ref: info.ref || null } : res;
+  });
+}
+
+/**
+ * Materialize a source string into a local directory (cloning a git source into
+ * a temp dir), invoke `fn(dir, gitInfo|null)`, then clean up any temp checkout.
+ * Single fetch shared by installFromSource + updatePlugin.
+ */
+function _withMaterializedSource(source, fn) {
   const raw = String(source || "");
   const asDir = path.resolve(raw);
   if (_deps.existsSync(asDir) && _deps.lstatSync(asDir).isDirectory()) {
-    return installFromDirectory(asDir, opts);
+    return fn(asDir, null);
   }
   const git = parseGitSource(raw);
   if (git) {
     const cloned = fetchGitRepo(git.url, git.ref);
     try {
-      const res = installFromDirectory(cloned, opts);
-      return { ...res, source: git.url, ref: git.ref || null };
+      return fn(cloned, git);
     } finally {
       try {
         _deps.rmSync(path.dirname(cloned), { recursive: true, force: true });
@@ -112,6 +123,56 @@ export function installFromSource(source, opts = {}) {
   throw new Error(
     `source not found as a local directory or git URL: ${source}`,
   );
+}
+
+/**
+ * Update an installed plugin from a source (local dir or git). Fetches the
+ * source ONCE, reads its name+version, and:
+ *   - a NEW version    → installs the new immutable version dir + repoints
+ *     `.active` (the old version stays on disk for rollback via `cc plugin use`);
+ *   - the SAME version → no-op unless `--force` reinstalls it.
+ * Returns { name, version, previousVersion, updated, reinstalled }.
+ */
+export function updatePlugin(source, opts = {}) {
+  const scope = opts.scope || "user";
+  return _withMaterializedSource(source, (dir, info) => {
+    const manifest = parsePluginManifest(dir);
+    if (!manifest.ok) {
+      throw new Error(
+        `plugin manifest is invalid:\n  - ${manifest.errors.join("\n  - ")}`,
+      );
+    }
+    const { name, version } = manifest.metadata;
+    const previousVersion = getActiveVersion(name, { scope, cwd: opts.cwd });
+    const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
+    const sameVersionExists = _deps.existsSync(dest);
+
+    if (sameVersionExists && !opts.force) {
+      // Already at this version — make sure it's the active one, but don't
+      // reinstall an immutable dir.
+      if (previousVersion !== version) {
+        setActiveVersion(name, version, { scope, cwd: opts.cwd });
+      }
+      return {
+        name,
+        version,
+        previousVersion,
+        updated: previousVersion !== version,
+        reinstalled: false,
+        source: info ? info.url : null,
+      };
+    }
+
+    const res = installFromDirectory(dir, { ...opts, scope, force: true });
+    return {
+      ...res,
+      previousVersion,
+      updated: previousVersion !== version,
+      reinstalled: sameVersionExists,
+      source: info ? info.url : null,
+      ref: info ? info.ref || null : null,
+    };
+  });
 }
 
 /**
@@ -178,9 +239,18 @@ export function fetchGitRepo(url, ref) {
   return dir;
 }
 
-/** List installed plugins (active version per name) across scopes. */
+/**
+ * List installed plugins (active version per name) across scopes. Uses
+ * `skipPolicy` so the ADMIN view shows every plugin on disk — including one an
+ * org managed policy blocks from LOADING — otherwise a denied plugin would be
+ * invisible and impossible to inspect / uninstall / un-deny.
+ */
 export function listInstalled(opts = {}) {
-  return discoverPlugins({ cwd: opts.cwd, scopes: opts.scopes }).map((p) => ({
+  return discoverPlugins({
+    cwd: opts.cwd,
+    scopes: opts.scopes,
+    skipPolicy: true,
+  }).map((p) => ({
     name: p.name,
     version: p.version,
     scope: p.scope,

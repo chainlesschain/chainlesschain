@@ -777,6 +777,41 @@ export function registerPluginCommand(program) {
       }
     });
 
+  // plugin upgrade <source> — re-fetch a source and install its newer version
+  plugin
+    .command("upgrade <source>")
+    .description(
+      "Update a runtime plugin from its source (local dir or git); repoints .active",
+    )
+    .option("--scope <scope>", `Scope to update in (${SCOPES})`, "user")
+    .option("--force", "Reinstall even if the version is unchanged")
+    .action(async (source, options) => {
+      const { updatePlugin } = await import("../lib/plugin-runtime/install.js");
+      try {
+        const res = updatePlugin(source, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          force: options.force,
+        });
+        if (res.updated) {
+          logger.success(
+            `Updated ${res.name}: ${res.previousVersion ? `v${res.previousVersion} → ` : ""}v${res.version} (${options.scope} scope)`,
+          );
+        } else if (res.reinstalled) {
+          logger.success(
+            `Reinstalled ${res.name} v${res.version} (${options.scope} scope)`,
+          );
+        } else {
+          logger.info(
+            `${res.name} is already up to date at v${res.version} (use --force to reinstall)`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Upgrade failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   // plugin use <name> <version> — pin the active version (rollback / switch)
   plugin
     .command("use <name> <version>")
