@@ -2,7 +2,7 @@
  * CommandHistoryHandler 单元测试
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 const CommandHistoryHandler = require("../../../src/main/remote/handlers/command-history-handler");
 
 describe("CommandHistoryHandler", () => {
@@ -204,7 +204,7 @@ describe("CommandHistoryHandler", () => {
       expect(result.results).toHaveLength(1);
       expect(mockDatabase.all).toHaveBeenCalledWith(
         expect.stringContaining(
-          "WHERE method LIKE ? OR params LIKE ? OR device_did LIKE ?",
+          "WHERE method LIKE ? ESCAPE '\\' OR params LIKE ? ESCAPE '\\' OR device_did LIKE ? ESCAPE '\\'",
         ),
         ["%ai.chat%", "%ai.chat%", "%ai.chat%", 50],
       );
