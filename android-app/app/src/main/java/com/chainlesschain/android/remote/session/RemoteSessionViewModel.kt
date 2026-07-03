@@ -22,14 +22,15 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     private val store = RemoteSessionStore(application)
     private val notifier = RemoteSessionNotifier(application)
     // Try FCM first (overseas / Pixel / Samsung), then domestic ROMs (vivo,
-    // OPPO, Xiaomi); the first channel that yields a token rides in the encrypted
-    // pair.join.
+    // OPPO, Xiaomi, Huawei); the first channel that yields a token rides in the
+    // encrypted pair.join. Huawei's blocking getToken is last (offloaded to IO).
     private val pushTokenResolver = RemoteSessionPushTokenResolver(
         listOf(
             FcmTokenProvider(),
             VivoTokenProvider(application),
             OppoTokenProvider(),
             XiaomiTokenProvider(application),
+            HuaweiTokenProvider(application),
         ),
     )
     private val _uiState = MutableStateFlow(RemoteSessionUiState())
