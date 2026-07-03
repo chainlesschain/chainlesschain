@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.149：Claude Code 平价优化计划 Phase 1–7 大批落地
+
+> CLI-only 发版（`chainlesschain` 0.162.148 → **0.162.149**，经 `npm-publish.yml` 发 npm `latest`）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。`docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md` 的 Windows-可做项全部收口，全部带单元 / 集成 / e2e 测试。新增三篇用户文档：[Agent Team](/chainlesschain/cli-team)、[可靠性评测](/chainlesschain/cli-eval)、[语义代码智能](/chainlesschain/cli-code-intel)。
+
+- **Phase 4 Agent Team 全闭合**：`cc team` 声明式任务图编排——独占 lease + 依赖 DAG（`TaskLeaseRegistry`）+ 四维团队预算（tasks/tokens/USD/wall，`TeamBudget`）+ teammate 间定向/广播消息（`TeamMailbox`）+ idle/running/failed/shutdown 生命周期 + 会话恢复 + 每 teammate 独立 git worktree（`--agent --worktree`）。50 测试。
+- **Phase 6 异步 Hooks 全闭合**：settings.json hooks 补齐 SubagentStart / SessionResume / SessionPause / ConfigChange / Stop 事件 + MCP 服务器前缀匹配（`mcp__github` 命中该服务器全部工具）；`async:true` 火后不理 + `asyncRewake:true` 失败唤醒 + 无头 `cc agent --auto-rewake` 全自动重驱动。
+- **Phase 7 可靠性评测 + OTel**：`cc eval` 8 客观任务类别（含 exploit-probe 验证的安全修复类）+ 发布趋势报告/回归门（`cc eval --history/--trend`，回归 exit 1）+ agent-core 真 OTel 埋点（`cc agent --otlp`）+ compaction 确定性 pin 事实保留。
+- **Phase 2 LSP 崩溃自动重启守卫**：语言服务器崩溃循环用滑动窗封顶（默认 30s 内 3 次即隔离降级），防 thrash 重索引；修此前 `restarts` 死字段。
+- **Phase 1 沙箱出口过滤代理**：把网络域名策略从「判定」变「强制」——本地转发代理对每个 HTTP/HTTPS CONNECT 调 `evaluateNetworkAccess`，拒绝 host 403（含 SSRF/私网/metadata 拦截），沙箱进程 `HTTP(S)_PROXY` 指向它；无代理 fail-closed。
+- **Phase 5 远控幂等**：`RemoteCommandLedger` 接进 `cc serve` 活 WS 路径——断线重投按 commandId at-most-once、全序、撤销设备拒绝执行。
+
 ## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
 
 > `chainlesschain` **0.162.148** 已发 npm `latest`，本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`）一起送达真机用户。

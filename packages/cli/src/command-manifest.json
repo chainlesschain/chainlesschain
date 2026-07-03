@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 160,
+  "commandCount": 163,
   "commands": [
     {
       "name": "a2a",
@@ -134,6 +134,13 @@
       "module": "./commands/cli-anything.js",
       "register": "registerCliAnythingCommand",
       "summary": "CLI-Anything — discover and register Agent-native CLI tools as skills"
+    },
+    {
+      "name": "code-intel",
+      "aliases": ["ci"],
+      "module": "./commands/codeintel.js",
+      "register": "registerCodeIntelCommand",
+      "summary": "Semantic code navigation via LSP (definition/references/symbols/diagnostics)"
     },
     {
       "name": "codegen",
@@ -302,6 +309,13 @@
       "module": "./commands/encrypt.js",
       "register": "registerEncryptCommand",
       "summary": "File encryption and database encryption management"
+    },
+    {
+      "name": "eval",
+      "aliases": [],
+      "module": "./commands/eval.js",
+      "register": "registerEvalCommand",
+      "summary": "Run the reliability eval suite (self-checking coding tasks) and report the task-success rate"
     },
     {
       "name": "evolution",
@@ -995,6 +1009,13 @@
       "module": "./commands/sync.js",
       "register": "registerSyncCommand",
       "summary": "File and knowledge synchronization"
+    },
+    {
+      "name": "team",
+      "aliases": [],
+      "module": "./commands/team.js",
+      "register": "registerTeamCommand",
+      "summary": "Run a declared task graph across N teammates (exclusive leases + dependency DAG)"
     },
     {
       "name": "tech",

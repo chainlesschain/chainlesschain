@@ -42,6 +42,7 @@ describe("loadSettingsConfig", () => {
     expect(loadSettingsConfig({ cwd: CWD })).toEqual({
       model: null,
       env: {},
+      sandbox: null,
       files: [],
     });
   });
