@@ -141,6 +141,14 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 ### Phase 3：统一插件运行时和 Marketplace（P0）
 
+> 状态：进行中。**基线**（survey 坐实）：仓内三套互不相通的「plugin」子系统 —— A `harness/plugin-manager.js`（真实、DB 支撑、**仅 skills**，经 `<userData>/marketplace/skills/`→skill-loader 到 agent）、B `plugin-autodiscovery.js`（有 tools/hooks/commands 提取但**完全未接线**）、C `plugin-ecosystem.js`/`skill-marketplace.js`（记账态机+桩）。真实安全在 `plugin-security.js`（SHA-256+Ed25519+managed allow/deny+`_isWithin`），复用不重写。
+>
+> **3.1 已落地（统一 manifest 骨架）**：`lib/plugin-runtime/manifest.js` 解析归一化统一布局（skills/agents/hooks/.mcp.json/.lsp.json/monitors/bin/settings，显式字段或约定发现，显式优先），逐路径 `isWithin` 防穿越（`../`/绝对路径拒绝），永不抛、收集 errors/warnings；`lib/plugin-runtime/scopes.js` user/project/local 三 scope（local>project>user）+ 不可变 `<name>/<version>/` 版本目录 + `.active` pin + `discoverPlugins()`；`cc plugin validate <dir>` 真检视命令（列组件+防穿越+可选签名校验，非法 exit 1）。25 单测。
+>
+> **3.2 已落地（首个组件接入真实 agent 链）**：`lib/plugin-runtime/lsp.js` `ensurePluginLspServers()` 把插件 `.lsp.json` 经 Phase 2 `registerLanguageServer` 注册进 LSP registry，`code_intelligence` 工具与 `cc code-intel` 透明获得该语言的定义/引用/诊断 —— 新语言零核心改动。接在 `CodeIntelligence` 构造 + `cc code-intel status` 两处，按 root memoize、坏 manifest 不抛。真机验证：project-scope 插件声明 `toml`/taplo → `cc code-intel status` 列出、`.toml` 成识别扩展。12 单测。
+>
+> **待完成**：hooks/mcp/agents/monitors/bin 组件接入 agent 链（复用 skills 那条 `marketplace/skills/`→loader 通道 + `agent-core.js:3683-3690` extraTools 注入点）；source 拉取（github/git/local dir/remote manifest）；install/update/remove/rollback 走不可变版本目录；私有仓认证+离线 seed cache；组织级 allowlist/denylist；`/reload-plugins` 热加载。
+
 #### 目标
 
 将插件升级为能够组合 Skills、Agents、Hooks、MCP、LSP、Monitors、可执行文件和默认配置的完整扩展单元。
