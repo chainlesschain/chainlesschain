@@ -17,6 +17,7 @@ import { registerAskCommand } from "./commands/ask.js";
 import { registerLlmCommand } from "./commands/llm.js";
 import { registerHubCommand } from "./commands/hub.js";
 import { registerAndroidCommand } from "./commands/android.js";
+import { registerEvalCommand } from "./commands/eval.js";
 import {
   registerAgentCommand,
   registerSubAgentV2Command,
@@ -429,6 +430,7 @@ export function createProgram(opts = {}) {
   registerHubCommand(program);
   registerAndroidCommand(program);
   registerAgentCommand(program);
+  registerEvalCommand(program);
   registerSubAgentV2Command(program);
   registerExecBackendV2Command(program);
   registerTodoV2Command(program);
