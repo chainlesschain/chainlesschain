@@ -19,10 +19,12 @@ const SKIP_INTEGRATION =
 // Import modules (will be mocked if not available)
 let MCPClientManager;
 let MCPSecurityPolicy;
+let MCPFunctionExecutor;
 
 try {
   ({ MCPClientManager } = require("../../src/main/mcp/mcp-client-manager"));
   ({ MCPSecurityPolicy } = require("../../src/main/mcp/mcp-security-policy"));
+  MCPFunctionExecutor = require("../../src/main/mcp/mcp-function-executor");
 } catch (error) {
   console.warn("MCP modules not available, skipping integration tests");
 }
@@ -266,6 +268,60 @@ describe.skipIf(SKIP_INTEGRATION)("MCP Integration Tests", () => {
           path: "../../../etc/passwd",
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  // Regression guard for the LLM-chat path fail-open (commit f75720f973):
+  // the function-calling executor must enforce the SAME real policy before it
+  // ever reaches callTool(). A mock-policy unit test alone would keep passing
+  // even if the real wiring regressed, so wire the real MCPSecurityPolicy into
+  // the real MCPFunctionExecutor here.
+  describe("MCPFunctionExecutor enforces the real security policy (chat path)", () => {
+    let securityPolicy;
+    let callTool;
+    let executor;
+
+    beforeAll(() => {
+      securityPolicy = new MCPSecurityPolicy({});
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: ["notes/", "imports/", "exports/"],
+        forbiddenPaths: ["chainlesschain.db", "ukey/", "did/private-keys/"],
+        readOnly: false,
+      });
+
+      callTool = vi.fn().mockResolvedValue({
+        content: [{ type: "text", text: "ok" }],
+        isError: false,
+      });
+
+      // Minimal but real wiring: adapter carries the real policy (as production
+      // does), clientManager exposes callTool (the chokepoint the fix guards).
+      const adapter = { securityPolicy };
+      const clientManager = { callTool };
+      executor = new MCPFunctionExecutor(clientManager, adapter);
+    });
+
+    it("refuses a forbidden path before reaching callTool", async () => {
+      await expect(
+        executor.execute("mcp_filesystem_read_file", {
+          path: "chainlesschain.db",
+        }),
+      ).rejects.toThrow(/forbidden/i);
+
+      // The fail-open bug was that callTool ran despite the policy — assert it
+      // never got there.
+      expect(callTool).not.toHaveBeenCalled();
+    });
+
+    it("allows a permitted path through to callTool", async () => {
+      const result = await executor.execute("mcp_filesystem_read_file", {
+        path: "notes/sample.md",
+      });
+
+      expect(callTool).toHaveBeenCalledWith("filesystem", "read_file", {
+        path: "notes/sample.md",
+      });
+      expect(result).toBeTruthy();
     });
   });
 

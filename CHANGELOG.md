@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Security：三处 P0 fail-open 收口（真·PQC 验签 + MCP chat 路径策略强制 + 社交 P2P 帖子 DID 验签）
+
+> 桌面主进程两处「验证恒真」的失效开放漏洞已修（commit `f75720f973`），均带回归测试；全量复跑 crypto/mcp 单测 710 全绿，无功能回退。第三处 P0（社交联邦入站验签）的 P2P 帖子部分随后也已收口（commit `f8dffef03f`，见下），仅 Nostr schnorr / ActivityPub HTTP-Sig 两条入站路径因需新增 `@noble/curves` 依赖留待依赖决策。
+
+- **PQC 验签 fail-open（`crypto/post-quantum-manager.js`）**：`dilithiumVerify` / `sphincsPlusVerify` 此前只要签名非空即返 `valid:true`——模拟实现用私钥做对称 HMAC，公钥根本无法验证，被迫恒真接受任意（含伪造/篡改）签名，且经 IPC（`pq:dilithium-verify` / `pq:sphincs-verify`）暴露。改为用 Node 核心 **Ed25519** 真实非对称签名兜底模拟原语：配对密钥签/验，对伪造签名、被篡改消息、畸形密钥/签名材料一律返回 `false`（永不抛错）。测试重写为配对签名 + 伪造/篡改负例（旧测试字面断言了 fail-open）。
+- **MCP chat 路径绕过安全策略（`mcp/mcp-function-executor.js`）**：LLM function-calling 走的 `execute()` 直接调 `callTool()`，绕过只在 `mcp-tool-adapter` 生效的 `validateToolExecution`（路径访问 / 只读 / consent）。在此 chokepoint 对称强制同一策略实例——策略拒绝时在到达 `callTool` 前拒绝调用。新增单测（拒绝即拦、放行即过、无策略降级告警）+ 集成测试（真 `MCPSecurityPolicy` 经真 `MCPFunctionExecutor`：禁止路径在 `callTool` 之前被拦，避免仅用 mock 策略的单测在真实接线回退时仍假绿）。
+- **社交联邦 P2P 帖子冒名（`social/post-manager.js`，commit `f8dffef03f`）**：`handlePostReceived` 对 PUBLIC 帖子逐字采信 `post.author_did`——对端可冒任意 DID 伪造帖子/背书。改为 `syncPost` 用作者 Ed25519 DID 密钥对不可变子集签名（复用 `did-signer`），接收端沿用 channel-manager 的三态门（pubkey+sig 齐备 → 严格 `verifyPayloadAgainstDid` 校验否则丢弃并 `post:rejected`；均缺 → 迁移窗口内接受未签名并告警；只present其一 → 判畸形拒绝）。7 新测试覆盖签/验/篡改/冒名/畸形/legacy。
+
 ### Tests — 修复 3 个并行改动遗留的陈旧单元测试（全测试金字塔转绿，无源码行为变更）
 
 > 全量复跑 CLI（unit 20,682 / integration 922 / e2e 617）+ web-panel 2,429 + PDH 2,945 + 桌面 renderer store 1,677，唯一失败为 3 个**陈旧测试**——均是并行 session 的产品修复/重构未同步对应测试导致的确定性失败（非线上 bug）。逐个根因定位后修测试断言，不改源码。
