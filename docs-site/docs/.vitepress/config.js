@@ -691,6 +691,10 @@ export default defineConfig({
               text: "可靠性评测 + 趋势门 (eval)",
               link: "/chainlesschain/cli-eval",
             },
+            {
+              text: "语义代码智能 — LSP (code-intel)",
+              link: "/chainlesschain/cli-code-intel",
+            },
           ],
         },
         {

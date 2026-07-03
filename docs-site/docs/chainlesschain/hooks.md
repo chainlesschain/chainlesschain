@@ -41,22 +41,29 @@ Hooks 系统提供 21 个钩子事件和 4 种钩子类型（同步/异步/Shell
 
 ### 钩子事件
 
-| 事件              | 触发时机                       | 用途                                                             |
-| ----------------- | ------------------------------ | ---------------------------------------------------------------- |
-| `PreToolUse`      | 工具执行前                     | 权限检查、参数验证                                               |
-| `PostToolUse`     | 工具执行后                     | 结果处理、日志记录                                               |
-| `SessionStart`    | 会话开始                       | 初始化、加载配置                                                 |
-| `SessionEnd`      | 会话结束                       | 清理、保存状态                                                   |
-| `PreCompact`      | 上下文压缩前                   | 保存重要信息                                                     |
-| `PostCompact`     | 上下文压缩后                   | 验证压缩结果                                                     |
-| `SubagentStop`    | `spawn_sub_agent` 子代理结束后 | 子任务结果审计/通知（settings.json hooks，observe，best-effort） |
-| `FileModified`    | 文件修改后                     | 自动格式化、触发构建                                             |
-| `FileCreated`     | 文件创建后                     | 初始化模板                                                       |
-| `FileDeleted`     | 文件删除后                     | 清理相关资源                                                     |
-| `MessageSent`     | 消息发送后                     | 消息记录                                                         |
-| `MessageReceived` | 消息接收后                     | 消息处理                                                         |
-| `ErrorOccurred`   | 错误发生时                     | 错误处理、通知                                                   |
-| ...               | ...                            | ...                                                              |
+| 事件               | 触发时机                                      | 用途                                                                                                    |
+| ------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `PreToolUse`       | 工具执行前                                    | 权限检查、参数验证                                                                                      |
+| `PostToolUse`      | 工具执行后                                    | 结果处理、日志记录                                                                                      |
+| `SessionStart`     | 会话开始                                      | 初始化、加载配置                                                                                        |
+| `SessionEnd`       | 会话结束                                      | 清理、保存状态                                                                                          |
+| `PreCompact`       | 上下文压缩前                                  | 保存重要信息                                                                                            |
+| `PostCompact`      | 上下文压缩后                                  | 验证压缩结果                                                                                            |
+| `SubagentStart`    | `spawn_sub_agent` 子代理**启动前**            | 策略 hook 可 `block` **否决 spawn**，或注入 `additionalContext` 前置到子代理继承上下文（settings.json） |
+| `SubagentStop`     | `spawn_sub_agent` 子代理结束后                | 子任务结果审计/通知（settings.json hooks，observe，best-effort）                                        |
+| `SessionResume`    | **重放**持久会话历史时（`cc agent --resume`） | 区别于 fresh startup 只 fire SessionStart；有真实非-system 历史才触发（settings.json）                  |
+| `SessionPause`     | REPL Esc 打断当前回合时                       | 回合中止但会话存活；observe-only fire-and-forget（settings.json）                                       |
+| `ConfigChange`     | `/reload-plugins` 重新合并配置后              | 以**新鲜**钩子集触发，policy hook 可观察/重审新配置（settings.json）                                    |
+| `Stop`             | 每回合结束（响应 + 情景记忆后）               | 异步 hook 的规范触发点「回合结束跑测试套件」（settings.json）                                           |
+| `UserPromptSubmit` | 用户提交 prompt 时                            | 注入上下文 / 决策拦截（settings.json）                                                                  |
+| `Notification`     | agent 发出通知时                              | 转发到外部通知渠道（settings.json）                                                                     |
+| `FileModified`     | 文件修改后                                    | 自动格式化、触发构建                                                                                    |
+| `FileCreated`      | 文件创建后                                    | 初始化模板                                                                                              |
+| `FileDeleted`      | 文件删除后                                    | 清理相关资源                                                                                            |
+| `MessageSent`      | 消息发送后                                    | 消息记录                                                                                                |
+| `MessageReceived`  | 消息接收后                                    | 消息处理                                                                                                |
+| `ErrorOccurred`    | 错误发生时                                    | 错误处理、通知                                                                                          |
+| ...                | ...                                           | ...                                                                                                     |
 
 ### 钩子类型
 
@@ -295,6 +302,49 @@ await sendNotification(context);
 ```
 
 ---
+
+## 异步 Hooks 与失败自动唤醒（settings.json，Phase 6）
+
+CLI 侧 `cc agent` 的 settings.json hooks 支持真正的**火后不理（fire-and-forget）**异步执行 + **失败主动唤醒**，让「每次编辑后跑后台 lint/测试」这类慢 hook 不阻塞工具循环。
+
+### `async: true` — 火后不理
+
+标了 `async: true` 的 hook 经 `spawn`（非 `spawnSync`）后台执行，**不阻塞**工具链；结果后台收集，**下一轮**作为 `additionalContext` 注入 agent。适合后台 lint / 测试 / 构建。
+
+```jsonc
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm test",
+            "async": true,
+            "asyncRewake": true,
+          },
+        ],
+      },
+    ],
+  },
+}
+```
+
+### `asyncRewake: true` — 失败主动唤醒
+
+当一个 `asyncRewake:true` 的异步 hook **失败**（非零退出 / `decision:block` / 超时），其**结构化失败报告**会在下一轮以 `[async hook — REWAKE]` 抢先注入，让 agent 带着错误被重新唤起去修。配合无头 `cc agent --auto-rewake` 可**全自动重驱动**（见 [Agent 模式 → 失败自动重驱动](./cli-agent.md)）。
+
+### 护栏（防高频写造成无限并发）
+
+- **去重**: per-(event+command) 在跑不叠。
+- **并发上限**: `maxConcurrent` 超额丢弃为**可见** skip（非静默）。
+- **超时回收**: per-hook 超时 kill。
+- **进程回收**: 会话结束 `stopAll()` + `process.once('exit')` 兜底，不留孤儿进程。
+
+### 无头支持
+
+无头 `cc agent -p` 也能派发异步 hook：运行结束 fire 异步 `Stop` hook → **有界 settle** → 把 rewake / 结果经 **stderr 带外呈现**（stdout envelope 与退出码不变）→ 回收。
 
 ## 中间件集成
 
