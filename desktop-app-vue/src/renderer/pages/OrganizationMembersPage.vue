@@ -3,28 +3,16 @@
     <!-- 组织导航 -->
     <div class="org-nav">
       <a-space size="large">
-        <router-link
-          :to="`/org/${orgId}/members`"
-          class="nav-link active"
-        >
+        <router-link :to="`/org/${orgId}/members`" class="nav-link active">
           <TeamOutlined /> 成员管理
         </router-link>
-        <router-link
-          :to="`/org/${orgId}/roles`"
-          class="nav-link"
-        >
+        <router-link :to="`/org/${orgId}/roles`" class="nav-link">
           <SafetyCertificateOutlined /> 角色管理
         </router-link>
-        <router-link
-          :to="`/org/${orgId}/activities`"
-          class="nav-link"
-        >
+        <router-link :to="`/org/${orgId}/activities`" class="nav-link">
           <HistoryOutlined /> 活动日志
         </router-link>
-        <router-link
-          :to="`/org/${orgId}/settings`"
-          class="nav-link"
-        >
+        <router-link :to="`/org/${orgId}/settings`" class="nav-link">
           <SettingOutlined /> 组织设置
         </router-link>
       </a-space>
@@ -53,10 +41,7 @@
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <a-card class="stat-card">
-        <a-statistic
-          title="总成员数"
-          :value="members.length"
-        >
+        <a-statistic title="总成员数" :value="members.length">
           <template #suffix>
             <TeamOutlined />
           </template>
@@ -74,10 +59,7 @@
         </a-statistic>
       </a-card>
       <a-card class="stat-card">
-        <a-statistic
-          title="管理员"
-          :value="adminCount"
-        >
+        <a-statistic title="管理员" :value="adminCount">
           <template #suffix>
             <CrownOutlined />
           </template>
@@ -104,21 +86,11 @@
         style="width: 150px; margin-left: 12px"
         @change="handleFilter"
       >
-        <a-select-option value="">
-          全部角色
-        </a-select-option>
-        <a-select-option value="owner">
-          所有者
-        </a-select-option>
-        <a-select-option value="admin">
-          管理员
-        </a-select-option>
-        <a-select-option value="member">
-          成员
-        </a-select-option>
-        <a-select-option value="viewer">
-          访客
-        </a-select-option>
+        <a-select-option value=""> 全部角色 </a-select-option>
+        <a-select-option value="owner"> 所有者 </a-select-option>
+        <a-select-option value="admin"> 管理员 </a-select-option>
+        <a-select-option value="member"> 成员 </a-select-option>
+        <a-select-option value="viewer"> 访客 </a-select-option>
       </a-select>
     </div>
 
@@ -136,14 +108,8 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'member'">
           <div class="member-cell">
-            <a-avatar
-              :src="record.avatar"
-              :size="40"
-            >
-              <template
-                v-if="!record.avatar"
-                #icon
-              >
+            <a-avatar :src="record.avatar" :size="40">
+              <template v-if="!record.avatar" #icon>
                 <UserOutlined />
               </template>
             </a-avatar>
@@ -184,9 +150,7 @@
                   {{ perm }}
                 </div>
               </div>
-              <div v-else>
-                使用角色默认权限
-              </div>
+              <div v-else>使用角色默认权限</div>
             </template>
             <a-tag color="default">
               {{ getPermissionCount(record) }} 项权限
@@ -222,10 +186,7 @@
             </a-button>
 
             <!-- 查看详情 -->
-            <a-button
-              size="small"
-              @click="showMemberDetail(record)"
-            >
+            <a-button size="small" @click="showMemberDetail(record)">
               <EyeOutlined />
               详情
             </a-button>
@@ -238,11 +199,7 @@
               title="确定要移除该成员吗？"
               @confirm="handleRemoveMember(record)"
             >
-              <a-button
-                v-permission="'member.remove'"
-                size="small"
-                danger
-              >
+              <a-button v-permission="'member.remove'" size="small" danger>
                 <DeleteOutlined />
                 移除
               </a-button>
@@ -259,39 +216,19 @@
       :confirm-loading="inviteLoading"
       @ok="handleCreateInvitation"
     >
-      <a-form
-        :model="inviteForm"
-        layout="vertical"
-      >
+      <a-form :model="inviteForm" layout="vertical">
         <a-form-item label="邀请方式">
           <a-radio-group v-model:value="inviteForm.method">
-            <a-radio value="code">
-              邀请码
-            </a-radio>
-            <a-radio
-              value="did"
-              disabled
-            >
-              DID直接邀请（开发中）
-            </a-radio>
+            <a-radio value="code"> 邀请码 </a-radio>
+            <a-radio value="did" disabled> DID直接邀请（开发中） </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item
-          label="默认角色"
-          required
-        >
+        <a-form-item label="默认角色" required>
           <a-select v-model:value="inviteForm.role">
-            <a-select-option value="member">
-              成员
-            </a-select-option>
-            <a-select-option value="viewer">
-              访客
-            </a-select-option>
-            <a-select-option
-              v-if="currentUserRole === 'owner'"
-              value="admin"
-            >
+            <a-select-option value="member"> 成员 </a-select-option>
+            <a-select-option value="viewer"> 访客 </a-select-option>
+            <a-select-option v-if="currentUserRole === 'owner'" value="admin">
               管理员
             </a-select-option>
           </a-select>
@@ -308,18 +245,10 @@
 
         <a-form-item label="过期时间">
           <a-radio-group v-model:value="inviteForm.expireOption">
-            <a-radio value="never">
-              永不过期
-            </a-radio>
-            <a-radio value="1day">
-              1天
-            </a-radio>
-            <a-radio value="7days">
-              7天
-            </a-radio>
-            <a-radio value="30days">
-              30天
-            </a-radio>
+            <a-radio value="never"> 永不过期 </a-radio>
+            <a-radio value="1day"> 1天 </a-radio>
+            <a-radio value="7days"> 7天 </a-radio>
+            <a-radio value="30days"> 30天 </a-radio>
           </a-radio-group>
         </a-form-item>
 
@@ -333,10 +262,7 @@
           style="margin-top: 16px"
         >
           <template #action>
-            <a-button
-              size="small"
-              @click="copyInviteCode"
-            >
+            <a-button size="small" @click="copyInviteCode">
               <CopyOutlined />
               复制
             </a-button>
@@ -352,19 +278,10 @@
       :confirm-loading="roleLoading"
       @ok="handleUpdateRole"
     >
-      <div
-        v-if="selectedMember"
-        style="margin-bottom: 16px"
-      >
+      <div v-if="selectedMember" style="margin-bottom: 16px">
         <div class="member-cell">
-          <a-avatar
-            :src="selectedMember.avatar"
-            :size="48"
-          >
-            <template
-              v-if="!selectedMember.avatar"
-              #icon
-            >
+          <a-avatar :src="selectedMember.avatar" :size="48">
+            <template v-if="!selectedMember.avatar" #icon>
               <UserOutlined />
             </template>
           </a-avatar>
@@ -380,24 +297,15 @@
       </div>
 
       <a-form layout="vertical">
-        <a-form-item
-          label="选择新角色"
-          required
-        >
-          <a-select
-            v-model:value="newRole"
-            style="width: 100%"
-          >
+        <a-form-item label="选择新角色" required>
+          <a-select v-model:value="newRole" style="width: 100%">
             <a-select-option value="viewer">
               <SafetyOutlined /> 访客 - 只能查看
             </a-select-option>
             <a-select-option value="member">
               <UserOutlined /> 成员 - 可以创建和编辑
             </a-select-option>
-            <a-select-option
-              v-if="currentUserRole === 'owner'"
-              value="admin"
-            >
+            <a-select-option v-if="currentUserRole === 'owner'" value="admin">
               <CrownOutlined /> 管理员 - 可以管理成员
             </a-select-option>
           </a-select>
@@ -418,19 +326,10 @@
       :footer="null"
       width="600px"
     >
-      <div
-        v-if="selectedMember"
-        class="member-detail"
-      >
+      <div v-if="selectedMember" class="member-detail">
         <div class="detail-header">
-          <a-avatar
-            :src="selectedMember.avatar"
-            :size="80"
-          >
-            <template
-              v-if="!selectedMember.avatar"
-              #icon
-            >
+          <a-avatar :src="selectedMember.avatar" :size="80">
+            <template v-if="!selectedMember.avatar" #icon>
               <UserOutlined />
             </template>
           </a-avatar>
@@ -442,11 +341,7 @@
           </div>
         </div>
 
-        <a-descriptions
-          :column="1"
-          bordered
-          style="margin-top: 24px"
-        >
+        <a-descriptions :column="1" bordered style="margin-top: 24px">
           <a-descriptions-item label="DID">
             {{ selectedMember.member_did }}
           </a-descriptions-item>
@@ -514,6 +409,14 @@ import {
   SettingOutlined,
 } from "@ant-design/icons-vue";
 import { useIdentityStore } from "@/stores/identity";
+import {
+  formatDID,
+  formatDate,
+  getRoleLabel,
+  getRoleColor,
+  parsePermissions,
+  getPermissionCount,
+} from "./organizationMembersPageUtils";
 
 const route = useRoute();
 const orgId = computed(() => route.params.orgId);
@@ -794,67 +697,6 @@ const handleFilter = () => {
 };
 
 // 工具函数
-const formatDID = (did) => {
-  if (!did) {
-    return "";
-  }
-  if (did.length > 30) {
-    return did.substring(0, 15) + "..." + did.substring(did.length - 10);
-  }
-  return did;
-};
-
-const formatDate = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN");
-};
-
-const getRoleLabel = (role) => {
-  const labels = {
-    owner: "所有者",
-    admin: "管理员",
-    member: "成员",
-    viewer: "访客",
-  };
-  return labels[role] || role;
-};
-
-const getRoleColor = (role) => {
-  const colors = {
-    owner: "red",
-    admin: "orange",
-    member: "blue",
-    viewer: "default",
-  };
-  return colors[role] || "default";
-};
-
-const parsePermissions = (permissionsJson) => {
-  try {
-    const perms = JSON.parse(permissionsJson);
-    return Array.isArray(perms) ? perms : [];
-  } catch {
-    return [];
-  }
-};
-
-const getPermissionCount = (member) => {
-  if (member.permissions_json) {
-    return parsePermissions(member.permissions_json).length;
-  }
-  // 返回默认权限数量
-  const defaultCounts = {
-    owner: "全部",
-    admin: 15,
-    member: 8,
-    viewer: 3,
-  };
-  return defaultCounts[member.role] || 0;
-};
-
 // 生命周期
 onMounted(async () => {
   await loadMembers();

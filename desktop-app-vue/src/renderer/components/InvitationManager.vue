@@ -471,7 +471,16 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
 import { useIdentityStore } from "@/stores/identity";
-import dayjs from "dayjs";
+import {
+  isExpired,
+  isInvitationActive,
+  getStatusBadge,
+  getUsagePercent,
+  formatDID,
+  formatDate,
+  getRoleLabel,
+  getRoleColor,
+} from "./invitationManagerUtils";
 
 const identityStore = useIdentityStore();
 
@@ -809,85 +818,6 @@ const showInvitationDetail = (invitation) => {
 };
 
 // 工具函数
-const isExpired = (invitation) => {
-  if (!invitation.expire_at) {
-    return false;
-  }
-  return Date.now() > invitation.expire_at;
-};
-
-const isInvitationActive = (invitation) => {
-  if (!invitation.is_active) {
-    return false;
-  }
-  if (invitation.used_count >= invitation.max_uses) {
-    return false;
-  }
-  if (isExpired(invitation)) {
-    return false;
-  }
-  return true;
-};
-
-const getStatusBadge = (invitation) => {
-  if (!invitation.is_active) {
-    return { status: "default", text: "已禁用" };
-  }
-  if (invitation.used_count >= invitation.max_uses) {
-    return { status: "error", text: "已用完" };
-  }
-  if (isExpired(invitation)) {
-    return { status: "error", text: "已过期" };
-  }
-  return { status: "success", text: "有效" };
-};
-
-const getUsagePercent = (invitation) => {
-  // max_uses === 0 (unlimited / unset) would divide by zero → NaN% / Infinity%.
-  // Mirror InvitationLinkManager.getUsagePercent and report 0%.
-  if (!invitation.max_uses) {
-    return 0;
-  }
-  return Math.round((invitation.used_count / invitation.max_uses) * 100);
-};
-
-const formatDID = (did) => {
-  if (!did) {
-    return "";
-  }
-  if (did.length > 30) {
-    return did.substring(0, 15) + "..." + did.substring(did.length - 10);
-  }
-  return did;
-};
-
-const formatDate = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-};
-
-const getRoleLabel = (role) => {
-  const labels = {
-    owner: "所有者",
-    admin: "管理员",
-    member: "成员",
-    viewer: "访客",
-  };
-  return labels[role] || role;
-};
-
-const getRoleColor = (role) => {
-  const colors = {
-    owner: "red",
-    admin: "orange",
-    member: "blue",
-    viewer: "default",
-  };
-  return colors[role] || "default";
-};
-
 const handleFilter = () => {
   // 过滤由computed自动处理
 };
