@@ -1,16 +1,8 @@
 <template>
-  <a-card
-    class="order-card"
-    hoverable
-    :bordered="true"
-  >
+  <a-card class="order-card" hoverable :bordered="true">
     <!-- 订单状态角标 -->
     <div class="order-status-badge">
-      <status-badge
-        :status="order.status"
-        type="order"
-        show-icon
-      />
+      <status-badge :status="order.status" type="order" show-icon />
     </div>
 
     <!-- 卡片内容 -->
@@ -23,12 +15,7 @@
         >
           {{ getOrderTypeLabel(order.order_type) }}
         </a-tag>
-        <a-tag
-          v-if="isMyOrder"
-          color="blue"
-        >
-          我的订单
-        </a-tag>
+        <a-tag v-if="isMyOrder" color="blue"> 我的订单 </a-tag>
       </div>
 
       <!-- 资产信息 -->
@@ -46,11 +33,7 @@
           <div class="asset-name">
             {{ order.asset_name }}
           </div>
-          <a-tag
-            v-if="order.asset_symbol"
-            color="blue"
-            size="small"
-          >
+          <a-tag v-if="order.asset_symbol" color="blue" size="small">
             {{ order.asset_symbol }}
           </a-tag>
         </div>
@@ -84,10 +67,7 @@
       </div>
 
       <!-- 订单描述 -->
-      <div
-        v-if="order.description"
-        class="order-description"
-      >
+      <div v-if="order.description" class="order-description">
         {{ order.description }}
       </div>
 
@@ -98,10 +78,7 @@
           <span class="label">{{
             order.order_type === "buy" ? "买家:" : "卖家:"
           }}</span>
-          <a-typography-text
-            copyable
-            :ellipsis="{ tooltip: creatorDid }"
-          >
+          <a-typography-text copyable :ellipsis="{ tooltip: creatorDid }">
             {{ formatDid(creatorDid) }}
           </a-typography-text>
         </a-space>
@@ -120,17 +97,11 @@
         <eye-outlined @click="handleView" />
       </a-tooltip>
 
-      <a-tooltip
-        v-if="canPurchase"
-        title="购买"
-      >
+      <a-tooltip v-if="canPurchase" title="购买">
         <shopping-cart-outlined @click="handlePurchase" />
       </a-tooltip>
 
-      <a-tooltip
-        v-if="canCancel"
-        title="取消订单"
-      >
+      <a-tooltip v-if="canCancel" title="取消订单">
         <close-circle-outlined @click="handleCancel" />
       </a-tooltip>
 
@@ -139,17 +110,10 @@
           <ellipsis-outlined />
           <template #overlay>
             <a-menu>
-              <a-menu-item
-                v-if="canEdit"
-                key="edit"
-                @click="handleEdit"
-              >
+              <a-menu-item v-if="canEdit" key="edit" @click="handleEdit">
                 <edit-outlined /> 编辑
               </a-menu-item>
-              <a-menu-item
-                key="share"
-                @click="handleShare"
-              >
+              <a-menu-item key="share" @click="handleShare">
                 <share-alt-outlined /> 分享
               </a-menu-item>
               <a-menu-divider v-if="canCancel" />
@@ -186,6 +150,14 @@ import {
   FileProtectOutlined,
 } from "@ant-design/icons-vue";
 import StatusBadge from "./StatusBadge.vue";
+import {
+  getOrderTypeColor,
+  getOrderTypeLabel,
+  getAssetColor,
+  formatAmount,
+  formatDid,
+  formatTime,
+} from "./orderCardUtils";
 
 // Props
 const props = defineProps({
@@ -237,27 +209,6 @@ const canEdit = computed(() => {
 // 工具函数
 
 // 订单类型颜色
-const getOrderTypeColor = (type) => {
-  const colorMap = {
-    sell: "green",
-    buy: "blue",
-    auction: "purple",
-    exchange: "orange",
-  };
-  return colorMap[type] || "default";
-};
-
-// 订单类型标签
-const getOrderTypeLabel = (type) => {
-  const labelMap = {
-    sell: "出售",
-    buy: "求购",
-    auction: "拍卖",
-    exchange: "交换",
-  };
-  return labelMap[type] || type;
-};
-
 // 资产类型图标
 const getAssetIcon = (type) => {
   const iconMap = {
@@ -267,71 +218,6 @@ const getAssetIcon = (type) => {
     service: FileProtectOutlined,
   };
   return iconMap[type] || WalletOutlined;
-};
-
-// 资产类型颜色
-const getAssetColor = (type) => {
-  const colorMap = {
-    token: "#1890ff",
-    nft: "#52c41a",
-    knowledge: "#faad14",
-    service: "#722ed1",
-  };
-  return colorMap[type] || "#999";
-};
-
-// 格式化金额
-const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return "0";}
-  const num = parseFloat(amount);
-  if (isNaN(num)) {return "0";}
-
-  // 大数字使用科学计数法
-  if (num >= 1e9) {
-    return (num / 1e9).toFixed(2) + "B";
-  } else if (num >= 1e6) {
-    return (num / 1e6).toFixed(2) + "M";
-  } else if (num >= 1e3) {
-    return (num / 1e3).toFixed(2) + "K";
-  }
-
-  // 小数点后最多8位
-  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
-};
-
-// 格式化 DID
-const formatDid = (did) => {
-  if (!did) {return "-";}
-  return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) {return "-";}
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 24小时内显示相对时间
-  if (diff < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-
-    if (hours > 0) {
-      return `${hours}小时前`;
-    } else if (minutes > 0) {
-      return `${minutes}分钟前`;
-    } else {
-      return "刚刚";
-    }
-  }
-
-  // 超过24小时显示日期
-  return date.toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 };
 
 // 事件处理
