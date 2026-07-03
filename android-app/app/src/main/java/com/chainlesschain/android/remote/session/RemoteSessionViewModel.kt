@@ -21,7 +21,14 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     private val client = RemoteSessionClient(OkHttpClient.Builder().build())
     private val store = RemoteSessionStore(application)
     private val notifier = RemoteSessionNotifier(application)
-    private val fcmTokenProvider = FcmTokenProvider()
+    // Try FCM first (overseas / Pixel / Samsung), then vivo (domestic ROM);
+    // the first channel that yields a token rides in the encrypted pair.join.
+    private val pushTokenResolver = RemoteSessionPushTokenResolver(
+        listOf(
+            FcmTokenProvider(),
+            VivoTokenProvider(application),
+        ),
+    )
     private val _uiState = MutableStateFlow(RemoteSessionUiState())
     val uiState: StateFlow<RemoteSessionUiState> = _uiState
 
@@ -56,15 +63,15 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch {
             runCatching {
                 store.savePendingPairing(uri)
-                // Best-effort: attach an FCM token BEFORE connecting so it rides
-                // in the encrypted pair.join and the host can wake this device
-                // for approvals while backgrounded. Times out fast; a null token
-                // (Firebase absent / slow) degrades to relay + local notice.
-                val token = withTimeoutOrNull(TOKEN_TIMEOUT_MS) {
-                    fcmTokenProvider.getToken()
+                // Best-effort: attach a vendor push token BEFORE connecting so it
+                // rides in the encrypted pair.join and the host can wake this
+                // device for approvals while backgrounded. Times out fast; no
+                // token (all SDKs absent / slow) degrades to relay + local notice.
+                val resolved = withTimeoutOrNull(TOKEN_TIMEOUT_MS) {
+                    pushTokenResolver.resolve()
                 }
-                if (!token.isNullOrBlank()) {
-                    client.setPushCredentials(token, FcmTokenProvider.PROVIDER)
+                if (resolved != null) {
+                    client.setPushCredentials(resolved.token, resolved.provider)
                 }
                 client.connect(uri)
             }.onFailure { cause ->
@@ -102,8 +109,8 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     private companion object {
-        // FCM token fetch is normally cached + instant; cap it so pairing is
-        // never blocked on a slow network.
+        // Vendor push token resolution is normally cached + instant; cap it so
+        // pairing is never blocked on a slow network.
         const val TOKEN_TIMEOUT_MS = 3_000L
     }
 }

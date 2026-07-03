@@ -14,9 +14,12 @@ import kotlinx.coroutines.tasks.await
  */
 class FcmTokenProvider(
     private val fetcher: (suspend () -> String?)? = null,
-) {
+) : RemoteSessionPushTokenProvider {
+
+    override val provider: String get() = PROVIDER
+
     /** Best-effort token fetch; any failure (Firebase absent, network) → null. */
-    suspend fun getToken(): String? =
+    override suspend fun getToken(): String? =
         runCatching { (fetcher ?: ::fetchViaReflection)() }
             .getOrNull()
             ?.takeIf { it.isNotBlank() }

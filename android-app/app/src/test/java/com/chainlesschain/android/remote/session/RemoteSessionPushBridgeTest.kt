@@ -81,4 +81,28 @@ class RemoteSessionPushBridgeTest {
         assertEquals("fcm-bridged", join.getString("pushToken"))
         assertEquals("fcm", join.getString("pushProvider"))
     }
+
+    @Test
+    fun `onNewToken carries a non-default provider tag`() {
+        val host = RemoteSessionCrypto("session-1", "host-peer")
+        val fake = FakeWebSocket()
+        var listener: WebSocketListener? = null
+        val client = RemoteSessionClient(webSocketFactory = { _, l -> listener = l; fake })
+        RemoteSessionPushBridge.activeClient = client
+
+        // A vivo receiver hands us a regId, tagged with the vivo provider.
+        RemoteSessionPushBridge.onNewToken("vivo-regid", VivoTokenProvider.PROVIDER)
+
+        client.connect(pairingUri(host))
+        listener!!.onMessage(fake, JSONObject().put("type", "registered").toString())
+        val payload = fake.sent.map { JSONObject(it) }
+            .first { it.optJSONObject("payload")?.optString("type") == "remote-session.pair" }
+            .getJSONObject("payload")
+        host.pair(payload.getString("mobilePublicKey"), "token-abc")
+        val join = host.decrypt(
+            RemoteEncryptedEnvelope.fromJson(payload.getJSONObject("envelope")),
+        )
+        assertEquals("vivo-regid", join.getString("pushToken"))
+        assertEquals("vivo", join.getString("pushProvider"))
+    }
 }
