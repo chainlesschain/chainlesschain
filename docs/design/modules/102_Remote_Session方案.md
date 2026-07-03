@@ -222,6 +222,15 @@
 - 启动触发同 vivo（`AppInitializer` 按 manufacturer 自动 `initialize()`；OPPO/OnePlus/realme 命中）。
 - 验证：`OppoPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / 无凭证+SDK initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）；`gradlew :app:kspDebugKotlin`（主 Hilt DI + `BuildConfig.OPPO_PUSH_*` 字段 + vendor→remote.session import 编译通过）+ `:app:testDebugUnitTest` 过；门控日志确认默认无 OPPO 依赖。剩真机项（Win 不可跑）：接入者传 `-PoppoPush=true` + 凭证（`docs/guides/Vendor_Push_Setup.md` §3.3 三步）+ 真机上架 OPPO 商店端到端验证；through/data 静默消息（`CompatibleDataMessageCallbackService`）defer（本期通知消息够唤醒审批）。
 
+#### Phase 4：Android Xiaomi push 真机集成（AAR 门控 + 接收器 + 反射 registerPush，已完成骨架）
+
+- **形态**：小米 MiPush 是**手动 AAR**（同 vivo），且 regId 经 manifest 声明的 `PushMessageReceiver` 子类递送（同 vivo 的广播 receiver 模型）——故走 vivo 式**条件源集 + manifest receiver**；凭证走 BuildConfig（同 OPPO）。是 vivo + OPPO 两种模式的合体。
+- **构建门控**（`app/build.gradle.kts`）：`hasXiaomiPush = !fileTree("libs"){include("MiPush*.aar"…)}.isEmpty`——AAR 落进 `app/libs/` 即自动加 `src/xiaomi/java` 源集 + `implementation(xiaomiPushAars)`；BuildConfig 注 `XIAOMI_PUSH_APP_ID`/`_APP_KEY`（`-PxiaomiAppId/Key`）。默认无 AAR → 源集排除，构建 byte-identical（门控日志实测 "Xiaomi Push disabled"）。
+- **`RemoteSessionXiaomiReceiver`**（`src/xiaomi/java`，条件源集，继承 `com.xiaomi.mipush.sdk.PushMessageReceiver`）：`onCommandResult`（`MiPushClient.COMMAND_REGISTER` + `resultCode==0L`）取 `commandArguments[0]` 作 regId → `RemoteSessionPushBridge.onNewToken(regId, XiaomiTokenProvider.PROVIDER)`；`onNotificationMessageClicked` → 本地弹审批通知（`extra` 只带路由 id）。
+- **AndroidManifest**：`${applicationId}.permission.MIPUSH_RECEIVE` 自定义权限 + MiPush 全套 service/receiver（XMJobService/XMPushService/PushMessageHandler/MessageHandleService/NetworkStatusReceiver/PingReceiver）+ `RemoteSessionXiaomiReceiver`（RECEIVE_MESSAGE/MESSAGE_ARRIVED/ERROR 三 intent-filter）。全 `tools:ignore="MissingClass"`——无 AAR 构建下 SDK 类不存在但 manifest 照常 merge（`processDebugMainManifest` 实测 `MIPUSH_RECEIVE`/`RemoteSessionXiaomiReceiver`/`XMPushService` 进 `merged_manifest`）。
+- **`XiaomiPushService` 反射真集成**（脱 stub）：`initialize()` 反射 `MiPushClient.registerPush(ctx, appId, appKey)`；`currentToken()` 反射 `getRegId(ctx)`；`shutdown()` 反射 `unregisterPush`；`isIntegrated()` 探 `Class.forName`——全 runCatching，无 SDK/凭证即 false/null 不崩。启动触发同 vivo（`AppInitializer` 按 manufacturer 自动 `initialize()`；小米/红米命中）。
+- 验证：`XiaomiPushServiceTest` 5（vendor 标签 / 无 SDK isIntegrated=false / 无凭证+SDK initialize 降级 false 且幂等 / currentToken=null / shutdown 安全 no-op）；`gradlew :app:kspDebugKotlin`（主 Hilt DI + `BuildConfig.XIAOMI_PUSH_*` 字段编译通过）+ `:app:processDebugMainManifest`（MiPush 全套 + receiver 成功 merge）+ `:app:testDebugUnitTest` 过；门控日志确认默认无 AAR 时 Xiaomi 源集排除。剩真机项（Win 不可跑）：接入者放 AAR + 传凭证（`docs/guides/Vendor_Push_Setup.md` §3.1 三步）+ 真机上架小米商店端到端验证。
+
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
 - `packages/cli/src/harness/remote-session-audit-sink.js`：`RemoteSessionAuditFileSink` 接到审计日志的 `sink` 缝，把（已隐私脱敏的）审计流持久化为**换行分隔 JSON（JSONL）**文件，让取证记录跨宿主重启存活。每条一行；文件按大小上限**滚动**（`audit.jsonl` → `audit.jsonl.1` → …，`backups` 可配，默认保 1 份；`backups=0` 即到顶截断），永不无界增长。读取容忍**撕裂的末行**（崩溃时半截 append）——解析失败的行直接跳过。零依赖（仅 node:fs）且可注入 `fs`，日后换 SQLite 后端只需实现同样的 `{ handler, readAll }` 形状，不动审计日志与调用点。

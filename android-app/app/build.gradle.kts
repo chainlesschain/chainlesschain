@@ -70,6 +70,23 @@ if (hasOppoPush) {
     logger.lifecycle("ⓘ OPPO Push disabled (pass -PoppoPush=true to link the HeyTap SDK)")
 }
 
+// Xiaomi MiPush is a manual AAR (like vivo), gated on its presence in app/libs/.
+// The MiPush PushMessageReceiver subclass (RemoteSessionXiaomiReceiver) needs the
+// SDK types, so it is compiled from src/xiaomi/java ONLY when the AAR is present;
+// otherwise the app builds/runs fine (XiaomiTokenProvider reads the regId via
+// reflection). See docs/guides/Vendor_Push_Setup.md §3.1.
+val xiaomiPushAars = fileTree("libs") {
+    include("MiPush*.aar", "mipush*.aar", "xiaomi*push*.aar")
+}
+val hasXiaomiPush = !xiaomiPushAars.isEmpty
+if (hasXiaomiPush) {
+    logger.lifecycle("✓ Xiaomi Push enabled (AAR found in app/libs)")
+} else {
+    logger.lifecycle(
+        "ⓘ Xiaomi Push disabled (no MiPush AAR in app/libs; RemoteSessionXiaomiReceiver source set excluded)",
+    )
+}
+
 android {
     namespace = "com.chainlesschain.android"
     compileSdk = 35
@@ -88,6 +105,13 @@ android {
     // RemoteSessionVivoReceiver.kt.
     if (hasVivoPush) {
         sourceSets.getByName("main").java.srcDir("src/vivo/java")
+    }
+
+    // The Remote Session MiPush receiver (onCommandResult → push bridge)
+    // subclasses a MiPush AAR type, compiled ONLY when the AAR is present. See
+    // RemoteSessionXiaomiReceiver.kt.
+    if (hasXiaomiPush) {
+        sourceSets.getByName("main").java.srcDir("src/xiaomi/java")
     }
 
     defaultConfig {
@@ -140,6 +164,20 @@ android {
             "String",
             "OPPO_PUSH_APP_SECRET",
             "\"${(project.findProperty("oppoPushAppSecret") as String?) ?: ""}\"",
+        )
+
+        // Xiaomi MiPush credentials → BuildConfig (registerPush takes appId+appKey
+        // as args). Empty defaults keep default builds working; XiaomiPushService
+        // skips init when blank. Override: -PxiaomiAppId=... -PxiaomiAppKey=...
+        buildConfigField(
+            "String",
+            "XIAOMI_PUSH_APP_ID",
+            "\"${(project.findProperty("xiaomiAppId") as String?) ?: ""}\"",
+        )
+        buildConfigField(
+            "String",
+            "XIAOMI_PUSH_APP_KEY",
+            "\"${(project.findProperty("xiaomiAppKey") as String?) ?: ""}\"",
         )
 
         // NDK support
@@ -555,6 +593,15 @@ dependencies {
     // VivoTokenProvider.kt / docs/guides/Vendor_Push_Setup.md §3.4).
     if (hasVivoPush) {
         implementation(vivoPushAars)
+    }
+
+    // ===== Xiaomi MiPush (manual AAR) =====
+    // Only linked when the MiPush AAR sits in app/libs/. The remote-session
+    // receiver in src/xiaomi/java compiles against it; without the AAR that
+    // source set is excluded and XiaomiTokenProvider degrades via reflection
+    // (see XiaomiTokenProvider.kt / docs/guides/Vendor_Push_Setup.md §3.1).
+    if (hasXiaomiPush) {
+        implementation(xiaomiPushAars)
     }
 
     // ===== OPPO (HeyTap) Push (OPPO-Maven) =====

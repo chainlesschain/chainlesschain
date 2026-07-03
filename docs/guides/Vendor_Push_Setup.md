@@ -38,13 +38,25 @@
 
 ## 3. 各厂商接入步骤
 
-### 3.1 Xiaomi 小米推送
+### 3.1 Xiaomi 小米推送（代码骨架已落地，缺 AAR + 凭证）
 
 **前置**：[小米开放平台](https://dev.mi.com/console/) 注册开发者账号 → 创建应用 → 申请 Push 服务
 
 **取**：APP_ID / APP_KEY / APP_SECRET (3 个)
 
-**步骤**：
+**已内建（无需再写代码，同 vivo 门控范式）**：
+
+- **构建门控**（`app/build.gradle.kts`）：`hasXiaomiPush = !fileTree("libs"){include("MiPush*.aar"…)}.isEmpty`——AAR 一落进 `app/libs/` 就自动 (a) `src/xiaomi/java` 加进 `main` 源集、(b) `implementation(xiaomiPushAars)`；无 AAR 时源集排除，默认构建行为不变（`XiaomiTokenProvider` 仍反射降级）。BuildConfig 注 `XIAOMI_PUSH_APP_ID`/`_APP_KEY`（`-PxiaomiAppId=… -PxiaomiAppKey=…`）。
+- **`RemoteSessionXiaomiReceiver`**（`src/xiaomi/java`，条件源集，继承 `PushMessageReceiver`）：`onCommandResult`（`COMMAND_REGISTER` + resultCode==0）取 `commandArguments[0]` 作 regId → `RemoteSessionPushBridge.onNewToken(regId, "xiaomi")`；`onNotificationMessageClicked` → 本地弹审批通知（extra 只带路由 id）。
+- **AndroidManifest**：`MIPUSH_RECEIVE` 自定义权限 + MiPush 全套 service/receiver（`XMJobService`/`XMPushService`/`PushMessageHandler`/`MessageHandleService`/`NetworkStatusReceiver`/`PingReceiver`）+ `RemoteSessionXiaomiReceiver`（3 intent-filter）。全 `tools:ignore="MissingClass"`（无 AAR 构建下类不存在但永不实例化，manifest 照常 merge——已实测）。
+- **`XiaomiPushService` 反射真集成**（脱 stub）：`initialize()` 反射 `MiPushClient.registerPush(ctx, appId, appKey)`；`currentToken()` 反射 `getRegId(ctx)`；`shutdown()` 反射 `unregisterPush`；`isIntegrated()` 探 `Class.forName`——全 runCatching 兜底，无 SDK/凭证即 false/null 不崩。
+- **启动触发**：`AppInitializer` 按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——小米/红米设备启动即 registerPush 铸 regId。
+
+**接入者只需 3 步（真机）**：放 AAR 进 `app/libs/`（文件名含 `MiPush`/`mipush`）+ 传 `-PxiaomiAppId/Key` 凭证 + 真机上架小米商店端到端验证（`Settings → 国内推送厂商` 应 auto-detect 小米 → 桌面 `CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER=xiaomi`）。
+
+---
+
+**内建实现细节参考（以下步骤已在代码中落地，供核对）**：
 
 1. **下载 SDK** — [MiPush_SDK_5.x.x.aar](https://admin.xmpush.xiaomi.com/zh_CN/mipush/downpage)
 2. **放入 libs**：
