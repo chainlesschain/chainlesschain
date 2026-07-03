@@ -1123,6 +1123,7 @@ export async function startAgentRepl(options = {}) {
       "/quit",
       "/reindex",
       "/release-notes",
+      "/reload-plugins",
       "/reload-skills",
       "/review",
       "/rewind",
@@ -1635,6 +1636,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/reload-skills")} Re-scan skill layers without restarting`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/reload-plugins")} Re-scan installed plugins after add/trust/upgrade`,
       );
       logger.log(
         `  ${chalk.cyan("/review")}     Diff-first code review (/review [high] [--security|--simplify] [--fix])`,
@@ -2591,6 +2595,68 @@ export async function startAgentRepl(options = {}) {
         );
       } catch (err) {
         logger.error(`/reload-skills failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
+    // `/reload-plugins` (Phase 3.3m): re-scan installed plugins after an
+    // install / trust / upgrade WITHOUT restarting — resets memoized LSP
+    // registration + managed-policy/trust caches, re-merges the effective hook
+    // map, and restarts the monitor supervisor with the fresh set. Already-
+    // connected MCP servers stay for this session (new ones load next session).
+    if (trimmed === "/reload-plugins") {
+      try {
+        const cwd = process.cwd();
+        const { reloadPluginRuntime } =
+          await import("../lib/plugin-runtime/reload.js");
+        const sum = reloadPluginRuntime({ cwd });
+
+        // Re-merge plugin hooks onto the user's settings hooks (live session).
+        try {
+          const { loadHooks } = await import("../lib/settings-hooks.cjs");
+          const { mergePluginHooks } =
+            await import("../lib/plugin-runtime/hooks.js");
+          const base = loadHooks({ cwd }).hooks;
+          const merged = mergePluginHooks(base, { cwd });
+          _settingsHooks =
+            merged && Object.keys(merged).length > 0 ? merged : null;
+        } catch {
+          /* hooks re-merge is best-effort */
+        }
+
+        // Restart background monitors with the fresh, trust-gated set.
+        try {
+          const { collectPluginMonitors } =
+            await import("../lib/plugin-runtime/monitors.js");
+          if (_pluginMonitors) {
+            _pluginMonitors.stopAll();
+            _pluginMonitors = null;
+          }
+          const monitors = collectPluginMonitors({ cwd });
+          if (monitors.length > 0) {
+            const { PluginMonitorSupervisor } =
+              await import("../lib/plugin-monitor-supervisor.js");
+            _pluginMonitors = new PluginMonitorSupervisor();
+            _pluginMonitors.start(monitors);
+          }
+        } catch {
+          /* monitor restart is best-effort */
+        }
+
+        logger.log(
+          chalk.green(
+            `✔ plugins reloaded — ${sum.plugins} plugin(s): ` +
+              `${sum.skills} skill layer(s), ${sum.agents} agent dir(s), ` +
+              `${sum.lspRegistered} LSP server(s), ${sum.hooks} hook event(s), ` +
+              `${sum.mcp} MCP server(s), ${sum.monitors} monitor(s)`,
+          ),
+        );
+        logger.log(
+          chalk.gray("  (newly-added MCP servers connect on the next session)"),
+        );
+      } catch (err) {
+        logger.error(`/reload-plugins failed: ${err.message}`);
       }
       prompt();
       return;
