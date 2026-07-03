@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`agent-include-partial-messages.test.js`**：流式 delta 合并（CC 2.1.191，默认 50ms）现在把 "Hel"+"lo" 批成 "Hello"；该测试早于合并特性，仍断言逐 token。传 `streamCoalesceMs:0` 保留 legacy 逐 token 断言（默认合并路径已由 `headless-stream-coalesce.test.js` 覆盖）。
 - **`firmwareOta.test.ts`**：`42f8ae8116` 改 `startUpdate` 成功后**保留** `currentUpdate`（使 `isUpdating` getter 反映进行中的更新），但 store 测试仍断言旧的 "finally 清空 currentUpdate"。改断言为 currentUpdate 已设置 + isUpdating=true。
 
+### Tests — 修复两个「本地绿 / CI 红」的 CLI 测试，解除 npm-publish test 门禁（已发 chainlesschain 0.162.147）
+
+> `npm-publish.yml` 的 test job 被两个仅在 CI 失败的 CLI 测试反复挡住，CLI 连续几轮发不出去（npm `latest` 卡在 0.162.143）。两者均为**测试 bug、非产品 bug**；修复后 test 门禁转绿，成功发版 `chainlesschain` **0.162.147**（commit `7da6d97093`；test + publish 两 job 全绿；干净 temp 目录 `npm i` 实测 4 别名 shim + `cc --version` → 0.162.147）。
+
+- **`did-manager.test.js` LIKE 转义回归（flaky ~1/64）**：该回归用 `createIdentity` 生成的随机 base64url DID；base64url 字母表含 `_`，约 1/64 概率 DID 本体首字符为 `_`，此时 `getIdentity("did:chainless:_")`（`_` 已被 `LIKE ... ESCAPE '\'` **正确转义为字面**）会**正当前缀匹配** `did:chainless:_gBB...` → `toBeFalsy()` 挂。`getIdentity` 代码本身正确。改为直接 INSERT 固定 DID（A/B 开头，永不撞 `_`/`%`）去随机性，并加 `getIdentity("did:chainless_")` 用例证明 `_` 被当字面而非通配（通配 `_` 会误匹配真 DID 的 `:` 分隔符）。
+- **`cli-aliases.test.js`（unit + e2e）bin 路径断言**：`npm install` 会把工作区 `package.json` 的 bin 路径正规化、剥掉前导 `./`，故 CI 装完依赖后读到 `bin/chainlesschain.js`（committed 为 `./bin/…`），断言 `=== "./bin/chainlesschain.js"` 本地过、CI 挂。改为比较前 `stripDot`（去前导 `./`）归一，committed 与 post-install 两种形式都过。
+
 ### Added — cc CLI 0.162.123：凭据读取保护 + Claude Code 2.1.191 平价五则（已发 npm）
 
 > CLI-only 发版（`chainlesschain` 0.162.122 → **0.162.123**，已发 npm `latest`，弃用区间 `<0.162.123 || >0.162.123`，212 版仅 0.162.123 live）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。全部带回归单测。
