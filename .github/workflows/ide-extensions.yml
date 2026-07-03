@@ -45,7 +45,7 @@ jobs:
         run: npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
 
       - name: Upload .vsix artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: chainlesschain-ide-vscode
           path: packages/vscode-extension/chainlesschain-ide.vsix
@@ -101,7 +101,7 @@ jobs:
         run: ./gradlew buildPlugin --no-daemon --stacktrace
 
       - name: Upload plugin artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: chainlesschain-ide-jetbrains
           path: packages/jetbrains-plugin/build/distributions/*.zip
