@@ -159,6 +159,74 @@ describe("ensureFor", () => {
   });
 });
 
+describe("crash-loop restart guard", () => {
+  // Simulate a language server process dying: the client marks itself not
+  // running and emits `exit`, exactly as the real LSPClient does on child exit.
+  function crash(client) {
+    client.running = false;
+    client.emit("exit", 1, null);
+  }
+
+  it("re-spawns a crashed server on the next request (auto-restart)", async () => {
+    const mgr = new LSPManager();
+    await mgr.ensureFor("/proj/src/a.ts");
+    const first = lastClient;
+    crash(first);
+    const ready = await mgr.ensureFor("/proj/src/a.ts");
+    expect(ready.unavailable).toBeUndefined();
+    expect(lastClient).not.toBe(first); // a FRESH client was spawned
+    expect(lastClient.started).toBe(true);
+    expect(ready.client).toBe(lastClient);
+    await mgr.disposeAll();
+  });
+
+  it("quarantines a server that crash-loops past maxRestarts within the window", async () => {
+    let t = 1000;
+    const mgr = new LSPManager({
+      maxRestarts: 3,
+      restartWindowMs: 30000,
+      now: () => t,
+    });
+    for (let i = 0; i < 3; i++) {
+      await mgr.ensureFor("/proj/src/a.ts");
+      t += 100;
+      crash(lastClient);
+    }
+    // 3 crashes are now inside the window → the next request quarantines the
+    // server (degrade to text search) rather than thrash-respawning it.
+    const before = lastClient;
+    const ready = await mgr.ensureFor("/proj/src/a.ts");
+    expect(ready.unavailable).toBe(true);
+    expect(ready.quarantined).toBe(true);
+    expect(ready.reason).toMatch(/crash-looped/);
+    expect(lastClient).toBe(before); // did NOT spawn yet another
+    await mgr.disposeAll();
+  });
+
+  it("recovers and re-spawns once the crash window clears", async () => {
+    let t = 1000;
+    const mgr = new LSPManager({
+      maxRestarts: 3,
+      restartWindowMs: 30000,
+      now: () => t,
+    });
+    for (let i = 0; i < 3; i++) {
+      await mgr.ensureFor("/proj/src/a.ts");
+      t += 100;
+      crash(lastClient);
+    }
+    expect((await mgr.ensureFor("/proj/src/a.ts")).quarantined).toBe(true);
+    // Stay healthy past the window → crash history prunes → a fresh start is
+    // allowed again (a server isn't quarantined forever).
+    t += 30001;
+    const quarantined = lastClient;
+    const ready = await mgr.ensureFor("/proj/src/a.ts");
+    expect(ready.unavailable).toBeUndefined();
+    expect(lastClient).not.toBe(quarantined);
+    await mgr.disposeAll();
+  });
+});
+
 describe("diagnostics", () => {
   it("collects pushed diagnostics keyed by file", async () => {
     const mgr = new LSPManager();

@@ -4,7 +4,7 @@
  *
  * One `LSPClient` is expensive (spawns a process + indexes the project), so we
  * lazily start and reuse one per (root, language) family. The manager owns:
- *   - server lifecycle (start / reuse / restart-once-on-crash / disposeAll)
+ *   - server lifecycle (start / reuse / bounded crash-loop restart / disposeAll)
  *   - textDocument/didOpen + didChange (servers only answer about open docs)
  *   - diagnostics collection (servers push them via publishDiagnostics)
  *   - 1-based (user) ⇄ 0-based (LSP) position conversion, done HERE only
@@ -28,6 +28,12 @@ export class LSPManager {
   /**
    * @param {object} [opts]
    * @param {string} [opts.projectRoot] default root; per-file root inferred otherwise
+   * @param {number} [opts.maxRestarts] crashes within the window before a server
+   *   is quarantined (degrade to text search) instead of re-spawned. Default 3.
+   * @param {number} [opts.restartWindowMs] sliding window for the crash count.
+   *   A server that stays healthy for this long has its crash history pruned and
+   *   can restart fresh. Default 30000.
+   * @param {() => number} [opts.now] injected clock (deterministic crash-loop tests)
    */
   constructor(opts = {}) {
     this.projectRoot = opts.projectRoot || process.cwd();
@@ -39,7 +45,29 @@ export class LSPManager {
     this._diagnostics = new Map();
     /** uri → { count, at } publish bookkeeping (for settle/readiness) */
     this._diagMeta = new Map();
+    // Crash-loop guard: a language server that dies is lazily re-spawned on the
+    // next request (ensureFor), but a server that crashes on startup would then
+    // thrash — re-spawned on EVERY request forever. Bound it: at most
+    // `maxRestarts` crashes inside a sliding `restartWindowMs`, after which the
+    // server is quarantined (callers degrade to text search) until the window
+    // clears. `restarts` was previously a dead field; this makes it real.
+    this.maxRestarts = Number.isFinite(opts.maxRestarts) ? opts.maxRestarts : 3;
+    this.restartWindowMs = Number.isFinite(opts.restartWindowMs)
+      ? opts.restartWindowMs
+      : 30000;
+    this._now = typeof opts.now === "function" ? opts.now : () => Date.now();
+    /** key → array of recent crash timestamps (survives entry re-spawn) */
+    this._crashLog = new Map();
     this._disposed = false;
+  }
+
+  /** Recent crash timestamps for `key`, pruned to the sliding window. */
+  _recentCrashes(key) {
+    const cutoff = this._now() - this.restartWindowMs;
+    const pruned = (this._crashLog.get(key) || []).filter((t) => t >= cutoff);
+    if (pruned.length) this._crashLog.set(key, pruned);
+    else this._crashLog.delete(key);
+    return pruned;
   }
 
   /**
@@ -72,6 +100,21 @@ export class LSPManager {
     const key = `${projectRoot}::${resolved.id}`;
     let entry = this._servers.get(key);
     if (!entry || !entry.client.running) {
+      // A dead/absent server is (re)started — but if it has crash-looped past
+      // the cap inside the window, quarantine it so we don't re-spawn on every
+      // request. The caller degrades to text search until the window clears.
+      const crashes = this._recentCrashes(key);
+      if (crashes.length >= this.maxRestarts) {
+        const retryInMs = this.restartWindowMs - (this._now() - crashes[0]);
+        return {
+          unavailable: true,
+          reason:
+            `${resolved.id} crash-looped (${crashes.length} crashes in ` +
+            `${Math.round(this.restartWindowMs / 1000)}s) — quarantined, ` +
+            `retrying in ~${Math.max(0, Math.round(retryInMs / 1000))}s`,
+          quarantined: true,
+        };
+      }
       entry = await this._startServer(key, resolved, projectRoot);
     }
 
@@ -130,10 +173,17 @@ export class LSPManager {
       client,
       serverId: resolved.id,
       root: projectRoot,
-      restarts: 0,
+      // How many times THIS key has already been (re)started — crash history
+      // survives entry replacement via _crashLog, so this reflects it.
+      restarts: (this._crashLog.get(key) || []).length,
     };
-    // Auto-restart once on crash; open docs are re-synced on next ensureFor.
+    // On crash: record the crash timestamp (bounds the re-spawn loop via the
+    // crash-loop guard in ensureFor) and drop this project's open docs so they
+    // re-sync against the fresh server on the next ensureFor.
     client.on("exit", () => {
+      const log = this._crashLog.get(key) || [];
+      log.push(this._now());
+      this._crashLog.set(key, log);
       for (const [uri, meta] of this._openDocs) {
         if (meta.root === projectRoot) this._openDocs.delete(uri);
       }
