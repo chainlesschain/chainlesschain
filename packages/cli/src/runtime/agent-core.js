@@ -83,7 +83,7 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
 const { runHooks: runCommandHooks } = sharedHookRunner;
-const { runObserveHooks } = sharedHookEvents;
+const { runObserveHooks, aggregateContext } = sharedHookEvents;
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
@@ -1304,6 +1304,7 @@ export async function executeTool(name, args, context = {}) {
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
       interactiveApproval: context.interactiveApproval || false,
+      settingsHooks: context.settingsHooks || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -1891,6 +1892,7 @@ async function executeToolInner(
     subAgentDepth = 0,
     subAgentBudget = null,
     interactiveApproval = false,
+    settingsHooks = null,
   },
 ) {
   const localToolDescriptor =
@@ -2555,6 +2557,7 @@ async function executeToolInner(
           llmOptions,
           subAgentDepth,
           subAgentBudget,
+          settingsHooks,
         }),
       );
     }
@@ -3588,6 +3591,39 @@ async function _executeSpawnSubAgent(args, ctx) {
   // session-close cascade cleanup can find it.
   const parentSessionId = ctx.sessionId || null;
   const interaction = ctx.interaction || null;
+
+  // settings.json SubagentStart hooks (Claude-Code parity): fire BEFORE the
+  // sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT
+  // extra context that gets prepended to the child's inherited context. This is
+  // the mirror of the existing SubagentStop fire (which runs after the summary
+  // returns). Best-effort — a hook error never blocks the spawn.
+  if (ctx.settingsHooks) {
+    try {
+      const startOutcome = runObserveHooks(
+        ctx.settingsHooks,
+        "SubagentStart",
+        {
+          session_id: parentSessionId,
+          role: role || args.agent || null,
+          subagent_task: String(task || "").substring(0, 2000),
+        },
+        { cwd: ctx.cwd },
+      );
+      if (startOutcome.decision === "block" && startOutcome.reason) {
+        return {
+          error: `spawn_sub_agent blocked by SubagentStart hook: ${startOutcome.reason}`,
+        };
+      }
+      const injected = aggregateContext(startOutcome.results);
+      if (injected) {
+        resolvedContext = resolvedContext
+          ? `${resolvedContext}\n---\n${injected}`
+          : injected;
+      }
+    } catch (_err) {
+      // SubagentStart hooks are best-effort — never break the spawn.
+    }
+  }
 
   // Inherit the parent's provider / base-url / key; a named subagent's `model:`
   // frontmatter (mdModel) overrides just the model, else keep the parent's.

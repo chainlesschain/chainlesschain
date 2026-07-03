@@ -259,6 +259,56 @@ describe("SubagentStop hook (spawn_sub_agent completion)", () => {
   });
 });
 
+describe("SubagentStart hook (spawn_sub_agent start)", () => {
+  // The veto path is fully deterministic: a blocking SubagentStart hook returns
+  // BEFORE the sub-agent context is created or any LLM runs.
+  it("vetoes the spawn when the hook blocks (before any LLM runs)", async () => {
+    const hookFile = path.join(tmp, "substart.js");
+    fs.writeFileSync(
+      hookFile,
+      "console.log(JSON.stringify({decision:'block',reason:'not allowed to delegate'}))",
+    );
+    const res = await executeTool(
+      "spawn_sub_agent",
+      { task: "do a thing", role: "helper" },
+      {
+        cwd: tmp,
+        settingsHooks: {
+          SubagentStart: [
+            {
+              matcher: null,
+              hooks: [{ type: "command", command: `node "${hookFile}"` }],
+            },
+          ],
+        },
+      },
+    );
+    expect(res.error).toMatch(/blocked by SubagentStart hook/);
+    expect(res.error).toMatch(/not allowed to delegate/);
+  });
+
+  // SubagentStart fires only for a VALID spawn — an args-validation failure
+  // returns before the fire point, so the hook must not run.
+  it("does NOT fire on the validation-error path (invalid args return first)", async () => {
+    const sentinel = path.join(tmp, "SUBSTART_RAN");
+    const cmd = `node -e "require('fs').writeFileSync('${sentinel.replace(/\\/g, "\\\\")}','x')"`;
+    const res = await executeTool(
+      "spawn_sub_agent",
+      {}, // no task/role → validation error before SubagentStart fires
+      {
+        cwd: tmp,
+        settingsHooks: {
+          SubagentStart: [
+            { matcher: null, hooks: [{ type: "command", command: cmd }] },
+          ],
+        },
+      },
+    );
+    expect(res.error).toMatch(/requires 'task'/);
+    expect(fs.existsSync(sentinel)).toBe(false);
+  });
+});
+
 describe("PreCompact hook block", () => {
   it("skips the auto-compaction when a PreCompact hook blocks", async () => {
     const hookFile = path.join(tmp, "precompact.js");
