@@ -21,6 +21,7 @@ import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 import { TaskLeaseRegistry } from "../lib/agent-team/task-lease.js";
 import { TeamRunner } from "../lib/agent-team/team-runner.js";
+import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
@@ -187,6 +188,14 @@ export function registerTeamCommand(program, { logger } = {}) {
     )
     .option("--model <model>", "Model for --agent runs")
     .option(
+      "--worktree",
+      "Run each task's `command` in its own git worktree (parallel isolation)",
+    )
+    .option(
+      "--merge",
+      "With --worktree: merge each clean branch back to base (conflicts reported, not forced)",
+    )
+    .option(
       "--state <file>",
       "Persist team progress to a file (for --resume after a crash)",
     )
@@ -240,7 +249,18 @@ export function registerTeamCommand(program, { logger } = {}) {
       // Pick the executor. Default is a dry-run (validate + schedule, no side
       // effects) so `cc team run` is safe to explore, mirroring `cc eval --dry-run`.
       let runTask;
-      if (options.exec) runTask = makeShellRunTask(log);
+      let coord = null;
+      if (options.worktree) {
+        coord = new TeamWorktreeCoordinator(process.cwd());
+        if (!coord.isGitRepo()) {
+          (log.error || console.error)(
+            "--worktree requires a git repository (run inside one)",
+          );
+          process.exitCode = 1;
+          return;
+        }
+        runTask = coord.makeRunTask();
+      } else if (options.exec) runTask = makeShellRunTask(log);
       else if (options.agent)
         runTask = makeAgentRunTask({ model: options.model });
       else runTask = async () => ({ dryRun: true });
@@ -267,6 +287,37 @@ export function registerTeamCommand(program, { logger } = {}) {
 
       const summary = await runner.run();
       persist();
+
+      // Worktree integration: sequentially preview (and optionally merge) each
+      // committed branch back to base, then remove the worktrees. Conflicts are
+      // reported, never force-merged.
+      let integration = null;
+      if (coord) {
+        integration = coord.integrate({ merge: options.merge === true });
+        coord.cleanupAll();
+        if (!options.json) {
+          (log.log || console.log)("\nWorktree integration:");
+          for (const r of integration) {
+            if (!r.committed)
+              (log.info || console.log)(`  · ${r.key}: no changes`);
+            else if (r.error)
+              (log.info || console.log)(
+                `  ✗ ${r.key} [${r.branch}]: ${r.error}`,
+              );
+            else if (!r.clean)
+              (log.info || console.log)(
+                `  ⚠ ${r.key} [${r.branch}]: conflicts in ${r.conflicts.length} file(s) — not merged`,
+              );
+            else
+              (log.info || console.log)(
+                `  ${r.merged ? "✔ merged" : "✔ clean"} ${r.key} [${r.branch}]`,
+              );
+          }
+        }
+      }
+
+      if (options.json && integration)
+        console.log(JSON.stringify({ integration }));
       if (!options.json) {
         const s = summary.stats;
         (log.log || console.log)(
