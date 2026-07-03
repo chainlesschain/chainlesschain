@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.1] — chore: maintenance republish
+
+- No functional changes since `0.37.0`. Version bumped to re-run the
+  marketplace publish pipeline (Open VSX primary, VS Code Marketplace if
+  configured) via the `ide-vscode-v0.37.1` release tag.
+
 ## [0.37.0] — feat: Claude Code chat parity (folder mentions, drag-drop, deep links)
 
 A batch of chat-panel parity features aligning the bridge with the Claude Code
