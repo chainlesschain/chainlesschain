@@ -375,9 +375,15 @@ class WorkflowEngine extends EventEmitter {
 
       await this._executeStages(execution, entryStages, workflow.dag.stages);
 
-      execution.status = "completed";
-      execution.output = { stages: execution.log };
-      this.emit("workflow:completed", { executionId: execId });
+      // _executeStages returns early on a breakpoint ("paused") or approval
+      // gate ("waiting") — those runs are NOT complete. Only a run that made
+      // it through the whole DAG (status still "running") may be finalized;
+      // paused/waiting executions finish later via resumeExecution().
+      if (execution.status === "running") {
+        execution.status = "completed";
+        execution.output = { stages: execution.log };
+        this.emit("workflow:completed", { executionId: execId });
+      }
     } catch (error) {
       execution.status = "failed";
       execution.output = { error: error.message };
@@ -391,13 +397,19 @@ class WorkflowEngine extends EventEmitter {
     return execution;
   }
 
-  async _executeStages(execution, entryStages, allStages) {
+  async _executeStages(execution, entryStages, allStages, opts = {}) {
     // In-degree (Kahn's) topological execution: each stage runs exactly ONCE,
     // only after ALL of its parents have completed. The previous recursive DFS
     // followed every `next` edge independently, so a convergence ("diamond")
     // node ran once per incoming edge — A→[B,C], B→D, C→D ran D twice; N
     // chained diamonds ran the join node 2^N times, double-firing side effects
     // and logs. A node only becomes "ready" when its in-degree reaches 0.
+    //
+    // opts.resume: rebuild the frontier from execution.log — stages already
+    // completed in the prior run are replayed into the in-degree state (never
+    // re-executed), so execution picks up exactly where the pause left off.
+    // opts.skipBreakpointFor: stage id whose breakpoint is stepped over ONCE
+    // (resuming from a breakpoint would otherwise immediately re-pause on it).
     const stagesById = new Map((allStages || []).map((s) => [s.id, s]));
     const inDegree = new Map();
     for (const s of allStages || []) {
@@ -411,20 +423,44 @@ class WorkflowEngine extends EventEmitter {
       }
     }
 
+    const done = new Set();
+    if (opts.resume) {
+      for (const entry of execution.log) {
+        if (entry.status === "completed" && stagesById.has(entry.stageId)) {
+          done.add(entry.stageId);
+        }
+      }
+      for (const id of done) {
+        for (const childId of stagesById.get(id).next || []) {
+          if (inDegree.has(childId)) {
+            inDegree.set(childId, inDegree.get(childId) - 1);
+          }
+        }
+      }
+    }
+
     const ready = [];
-    const enqueued = new Set();
-    for (const s of entryStages || []) {
+    const enqueued = new Set(done);
+    // A fresh run seeds from the DAG's entry stages; a resume must consider
+    // EVERY not-yet-done stage whose parents have all completed (the paused
+    // stage and any siblings that were ready but unexecuted at pause time).
+    const seeds = opts.resume ? allStages : entryStages;
+    for (const s of seeds || []) {
       if ((inDegree.get(s.id) || 0) === 0 && !enqueued.has(s.id)) {
         ready.push(s);
         enqueued.add(s.id);
       }
     }
 
+    let skipBreakpointOnce = opts.skipBreakpointFor || null;
     while (ready.length > 0) {
       const stage = ready.shift();
 
-      // Check for breakpoint
-      if (this._breakpoints.has(`${execution.workflowId}:${stage.id}`)) {
+      // Check for breakpoint (stepped over exactly once when resuming from it)
+      if (
+        this._breakpoints.has(`${execution.workflowId}:${stage.id}`) &&
+        stage.id !== skipBreakpointOnce
+      ) {
         execution.status = "paused";
         execution.currentStage = stage.id;
         this.emit("workflow:paused", {
@@ -433,6 +469,9 @@ class WorkflowEngine extends EventEmitter {
           reason: "breakpoint",
         });
         return;
+      }
+      if (stage.id === skipBreakpointOnce) {
+        skipBreakpointOnce = null;
       }
 
       execution.currentStage = stage.id;
@@ -497,13 +536,60 @@ class WorkflowEngine extends EventEmitter {
     return execution;
   }
 
-  resumeExecution(executionId) {
+  async resumeExecution(executionId) {
     const execution = this._executions.get(executionId);
-    if (!execution || execution.status !== "paused") {
+    // "paused" = breakpoint / manual pause; "waiting" = approval gate.
+    // (Approval pauses set "waiting", so the old `!== "paused"` check made
+    // approval workflows wholly unresumable.)
+    if (
+      !execution ||
+      (execution.status !== "paused" && execution.status !== "waiting")
+    ) {
       return null;
     }
+    const workflow = this._workflows.get(execution.workflowId);
+    if (!workflow) {
+      return null; // DAG gone (workflow deleted) — nothing to re-drive
+    }
+
+    // Resuming a "waiting" execution IS the approval: complete the gate entry
+    // so the frontier rebuild treats its children as unblocked.
+    if (execution.status === "waiting") {
+      const gate = execution.log.find((e) => e.status === "awaiting_approval");
+      if (gate) {
+        gate.status = "completed";
+        gate.approved = true;
+        gate.completedAt = Date.now();
+        gate.duration = gate.completedAt - gate.startedAt;
+      }
+    }
+
+    const resumedFromStage = execution.currentStage;
     execution.status = "running";
     this.emit("workflow:resumed", { executionId });
+
+    // Re-drive the remaining stages (the old implementation only flipped the
+    // status and returned — the workflow stayed stuck forever while the IPC
+    // reported success).
+    try {
+      await this._executeStages(
+        execution,
+        workflow.dag.stages,
+        workflow.dag.stages,
+        { resume: true, skipBreakpointFor: resumedFromStage },
+      );
+      if (execution.status === "running") {
+        execution.status = "completed";
+        execution.output = { stages: execution.log };
+        this.emit("workflow:completed", { executionId });
+      }
+    } catch (error) {
+      execution.status = "failed";
+      execution.output = { error: error.message };
+      this.emit("workflow:failed", { executionId, error: error.message });
+    }
+
+    this._persistExecution(execution);
     return execution;
   }
 

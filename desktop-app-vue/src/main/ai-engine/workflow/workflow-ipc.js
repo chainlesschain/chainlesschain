@@ -52,7 +52,7 @@ function registerWorkflowIPC(deps) {
       if (!workflowEngine) {
         return { success: false, error: "WorkflowEngine not available" };
       }
-      const result = workflowEngine.resumeExecution(executionId);
+      const result = await workflowEngine.resumeExecution(executionId);
       return { success: result !== null, data: result };
     } catch (error) {
       logger.error("[WorkflowIPC] resume error:", error.message);
