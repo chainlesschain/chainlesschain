@@ -251,6 +251,14 @@
 - 验证：`RemoteSessionPushTokenResolverTests` 9（resolver：首个命中 / 前者不可用则下沉 / 空白视为不可用 / 全不可用 → nil / 空列表 → nil；APNs provider：标签+读 source / 空白与 nil → nil / 经 resolver 端到端）。Swift 无 Windows 工具链，随 iOS CI 真编译（同既往 iOS 分片）。
 - **待接入点**：iOS 尚无 Android 那种 relay `pair.join` 客户端（iOS 配对走 WebRTC/signaling，iOS Phase 6 真机 E2E defer）；本片是**已单测的取 token 基座**，待 iOS RemoteSession relay 客户端落地后接入配对（同 Android 先建 provider 再接全流程的顺序）。
 
+#### Phase 4：iOS RemoteSession relay 客户端 — E2EE 基座（配对解析 + 加密信封，已完成）
+
+- **定位**：iOS 版 `RemoteSessionClient`（对标 Android `RemoteSessionClient.kt`）的**第一片**——纯加密/解析基座，无网络，全单测。后续片：WebSocket relay 连接 + 配对握手 + 重连 + events/status 流。分片顺序同 Android（crypto/parser 先，networked client 后）。
+- `ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionCrypto.swift`（CryptoKit，逐字节兼容桌面 host + Android mobile）：
+  - `RemoteSessionPairingParser.parse`：解析 `chainlesschain://remote-session/pair#<base64url(JSON)>`——校验 `v==1`、relay scheme ∈ {ws,wss}、必填字段、`expiresAt` 过期；错误经 `RemoteSessionCryptoError` 强类型枚举返回。
+  - `RemoteSessionCrypto`：**X25519 ECDH → HKDF-SHA256 → AES-256-GCM**。`pair()` 用 `Curve25519.KeyAgreement` 算 shared secret，salt=`SHA256(pairingToken)`、info=`<protocol>:<sessionId>` 派生 32B key（与 Android/桌面 HKDF 参数**逐一对齐**）；`encrypt/decrypt` 12B nonce + 128-bit tag，AAD=`<protocol>\n<sessionId>\n<senderId>\n<sequence>`；send sequence 自增、receive 严格递增防重放/乱序。`RemoteEncryptedEnvelope` JSON 形状 `{v,sessionId,senderId,sequence,nonce,ciphertext,tag}`，binary 字段全 **base64url 无 pad**（`RemoteSessionBase64` 对齐 `Base64.getUrlEncoder().withoutPadding()`）。
+- 验证：`RemoteSessionCryptoTests` 15（parser 8：合法/错前缀/坏 payload/错版本/过期/未过期/缺字段/非 ws relay；crypto 7：**双实例派生同 key 双向往返** / 重放乱序拒绝 / 未配对 encrypt 抛 notPaired / **错 token 派生异 key 解密失败**（token 绑定）/ 公钥 32B + base64 往返 / 信封 JSON 往返）。Swift 无 Windows 工具链，随 iOS CI 真编译。**协议改动必与 `RemoteSessionCrypto.kt` + 桌面 harness 同步。**
+
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
 - `packages/cli/src/harness/remote-session-audit-sink.js`：`RemoteSessionAuditFileSink` 接到审计日志的 `sink` 缝，把（已隐私脱敏的）审计流持久化为**换行分隔 JSON（JSONL）**文件，让取证记录跨宿主重启存活。每条一行；文件按大小上限**滚动**（`audit.jsonl` → `audit.jsonl.1` → …，`backups` 可配，默认保 1 份；`backups=0` 即到顶截断），永不无界增长。读取容忍**撕裂的末行**（崩溃时半截 append）——解析失败的行直接跳过。零依赖（仅 node:fs）且可注入 `fs`，日后换 SQLite 后端只需实现同样的 `{ handler, readAll }` 形状，不动审计日志与调用点。
