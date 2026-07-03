@@ -25,6 +25,16 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
+
+---
+
 ## _initializeProtocolHandlers()
 
 ```javascript
@@ -42,6 +52,19 @@ getDocument(docId)
 ```
 
 * Get or create a Yjs document for the given ID
+
+---
+
+## _attachUpdateListener(docId, ydoc)
+
+```javascript
+_attachUpdateListener(docId, ydoc)
+```
+
+* Attach the local-update listener that broadcasts + persists edits. Must be
+   * re-attached whenever the underlying Y.Doc is replaced (e.g. restoreSnapshot
+   * swaps in a fresh doc), otherwise local edits to the new doc fire `update`
+   * with no listener and are silently lost (not broadcast, not saved).
 
 ---
 

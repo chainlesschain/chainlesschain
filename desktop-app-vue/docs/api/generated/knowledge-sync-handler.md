@@ -21,6 +21,17 @@ const
 
 ---
 
+## function safeParseTags(raw)
+
+```javascript
+function safeParseTags(raw)
+```
+
+* 安全解析 note.tags（TEXT 列）。一条坏 tags 不应在 .map 里抛出而让整个
+ * 列表/搜索响应失败（getTagCloud 在 line ~358 已用 per-row try/catch，此处对齐）。
+
+---
+
 ## async handleMessage(mobilePeerId, message)
 
 ```javascript

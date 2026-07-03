@@ -18,6 +18,23 @@ const
 
 ---
 
+## const PROTECTED_CONFIG_NAMESPACES = ["database"];
+
+```javascript
+const PROTECTED_CONFIG_NAMESPACES = ["database"];
+```
+
+* config 写保护命名空间（IPC 安全发现 #4）。
+ * 渲染层只合法写入少数 UI/项目配置项（如 project.rootPath / ui.useWebShellExperimental），
+ * 从不写入数据库敏感配置。`database`（含 `database.sqlcipherKey` —— SQLCipher 主密钥）
+ * 必须由主进程/keychain 管理，绝不接受渲染层经 config:set / config:update 写入/篡改
+ * （防止被恶意或被攻陷的渲染帧改写加密密钥造成数据库不可解/篡改）。
+ *
+ * 同时匹配「整命名空间」(`config:update` 传 key="database" + 整对象) 和「点分子键」
+ * (`config:set` 传 "database.sqlcipherKey")。
+
+---
+
 ## function registerConfigIPC(
 
 ```javascript
@@ -27,6 +44,7 @@ function registerConfigIPC(
 * 注册所有配置 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.appConfig - 应用配置管理器实例
+ * @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
 
 ---
 

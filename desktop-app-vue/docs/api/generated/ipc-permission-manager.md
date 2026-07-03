@@ -211,6 +211,16 @@ startCleanupTask()
 
 ---
 
+## stopCleanupTask()
+
+```javascript
+stopCleanupTask()
+```
+
+* 停止定期清理任务（释放定时器，防止泄漏）
+
+---
+
 ## getStatistics()
 
 ```javascript

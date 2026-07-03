@@ -4,6 +4,39 @@
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
+
+---
+
+## function syncMessageDigest(message)
+
+```javascript
+function syncMessageDigest(message)
+```
+
+* Stable SHA-256 digest of a sync message's AUTHENTICATED body — every field
+ * except the envelope auth fields (signature, sender_pubkey), which are added
+ * only after signing. sender_did stays in the body so it is bound by the
+ * signature. The digest is what actually gets Ed25519-signed: canonicalize()
+ * (did-signer) rejects nested objects/arrays, and sync messages carry nested
+ * `data` / `changes`, so we sign a flat { digest } wrapper instead.
+ *
+ * Sender and receiver serialize the same object with the same key order
+ * (JSON.parse preserves the source text order, JSON.stringify emits own-key
+ * order), so both compute the same digest. signMessage stamps sender_did
+ * BEFORE calling this, so its position is identical on both ends.
+ *
+ * @param {Object} message
+ * @returns {string} hex sha256
+
+---
+
 ## class P2PSyncEngine extends EventEmitter
 
 ```javascript
@@ -310,7 +343,13 @@ async signMessage(message)
 async verifyMessage(message)
 ```
 
-* 验证消息签名
+* 验证消息签名。真实性门（对齐 channel-manager / post-manager B4a 三模式）：
+   *   sender_pubkey + signature 都在 → 严格验签：digest 重算 + pubkey 必 hash 成
+   *     sender_did 且 Ed25519 验签通过，任一不满足即拒。
+   *   两者都缺 → 旧版未签名消息，**默认 fail-closed 拒绝**（此前回退到 keyless
+   *     sha256 哈希，任何 peer 都能为伪造内容算出，是数据覆盖攻击入口）。迁移期可
+   *     用 CHAINLESSCHAIN_SYNC_ALLOW_UNSIGNED=1 放行。
+   *   只有其一 → 信封损坏，拒绝。
    * @param {Object} message - 消息对象
    * @returns {Promise<boolean>} 是否有效
 

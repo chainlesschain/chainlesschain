@@ -85,6 +85,16 @@ startAutoCheck()
 
 ---
 
+## stopAutoCheck()
+
+```javascript
+stopAutoCheck()
+```
+
+* 停止自动检查（清理定时器，避免泄漏 / 阻塞退出）
+
+---
+
 ## getUpdateInfo()
 
 ```javascript

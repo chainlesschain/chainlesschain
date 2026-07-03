@@ -16,6 +16,18 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single template with a corrupt variables string
+ * must not throw out of the .map and drop the whole template list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+
+---
+
 ## class PromptTemplateManager
 
 ```javascript

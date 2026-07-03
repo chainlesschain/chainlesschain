@@ -36,6 +36,22 @@ function registerFileIPC(
 
 ---
 
+## const assertWithinRoot = (rootPath, resolvedPath, label = "path") =>
+
+```javascript
+const assertWithinRoot = (rootPath, resolvedPath, label = "path") =>
+```
+
+* 防 `..` 逃逸出项目根（IPC 安全发现 #2）：所有项目级文件操作（copy/move/rename/
+   * delete/create/reveal）都把渲染层传入的相对路径 `path.join(rootPath, x)` 后直接落盘，
+   * 此前无任何 `..` 守卫 → 渲染层可用 `../../` 读写/删除项目根之外的任意文件。合法调用方
+   * （文件树节点）只传项目内相对路径，故强制解析结果落在 root 内，越界即拒绝。
+   * @param {string} rootPath 项目根绝对路径
+   * @param {string} resolvedPath path.join 后的解析路径
+   * @param {string} [label] 操作名（用于错误信息）
+
+---
+
 ## const handleReadContentLegacy = async (_event, filePath) =>
 
 ```javascript

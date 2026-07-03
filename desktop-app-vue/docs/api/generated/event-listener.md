@@ -21,6 +21,17 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+* Tolerant JSON column parse — a single corrupt event_data row must not throw
+ * out of the getProcessedEvents map and fail the whole event list.
+
+---
+
 ## async initialize()
 
 ```javascript

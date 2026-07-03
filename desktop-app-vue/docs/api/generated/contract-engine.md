@@ -21,6 +21,16 @@ const
 
 ---
 
+## function safeParse(raw, fallback)
+
+```javascript
+function safeParse(raw, fallback)
+```
+
+Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
+
+---
+
 ## const ContractType =
 
 ```javascript
@@ -171,10 +181,10 @@ async executeContractLogic(contract)
 
 ---
 
-## async cancelContract(contractId, reason)
+## async cancelContract(contractId, reason, options =
 
 ```javascript
-async cancelContract(contractId, reason)
+async cancelContract(contractId, reason, options =
 ```
 
 * 取消合约
