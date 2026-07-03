@@ -8,6 +8,7 @@
 
 import { createFcmPushSender } from "./remote-session-push-fcm.js";
 import { createApnsPushSender } from "./remote-session-push-apns.js";
+import { createWebPushSender } from "./remote-session-push-web.js";
 
 export function createRemoteSessionPushSender(env = {}, options = {}) {
   const provider = (
@@ -18,6 +19,8 @@ export function createRemoteSessionPushSender(env = {}, options = {}) {
       return createFcmPushSender(env, options);
     case "apns":
       return createApnsPushSender(env, options);
+    case "web":
+      return createWebPushSender(env, options);
     default:
       return null;
   }

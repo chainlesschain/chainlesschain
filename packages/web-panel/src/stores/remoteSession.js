@@ -37,6 +37,9 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
   let closedExplicitly = false
   let reconnectAttempts = 0
   let reconnectTimer = null
+  // Optional vendor push (Web Push subscription) carried in pair.join so the
+  // host can wake this browser for approvals when the tab is backgrounded.
+  let pushCredentials = null
 
   function clearReconnect() {
     if (reconnectTimer) {
@@ -142,15 +145,19 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
   }
 
   function sendPairRequest() {
-    const envelope = crypto.encrypt({
+    const join = {
       type: 'pair.join',
       remoteSessionId: pairing.remoteSessionId,
       token: pairing.pairingToken,
-    })
+    }
+    if (pushCredentials?.token) {
+      join.pushToken = pushCredentials.token
+      join.pushProvider = pushCredentials.provider || 'web'
+    }
     relaySend('remote-session.pair', {
       mobilePeerId: peerId,
       mobilePublicKey: crypto.publicKeyBase64(),
-      envelope,
+      envelope: crypto.encrypt(join),
     })
   }
 
@@ -159,10 +166,11 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
     return relaySend('remote-session.encrypted', { envelope: crypto.encrypt(event) })
   }
 
-  function connect(uri) {
+  function connect(uri, options = {}) {
     disconnect()
     try {
       const parsed = parseRemotePairingUri(uri)
+      pushCredentials = options.pushCredentials || null
       peerId = newPeerId()
       crypto = new RemoteSessionCrypto(parsed.remoteSessionId, peerId)
       crypto.pair(parsed.hostPublicKey, parsed.pairingToken)
@@ -199,6 +207,20 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
     sendControl({ type: 'interrupt' })
   }
 
+  // Update the Web Push subscription after pairing (e.g. the browser re-subscribed
+  // with a new endpoint). Records it for the next pair.join and, when already
+  // paired, forwards it to the host now via a push.register control event.
+  function updatePushCredentials(token, provider = 'web') {
+    pushCredentials = token ? { token, provider } : null
+    if (!paired) return
+    const event = { type: 'push.register' }
+    if (pushCredentials?.token) {
+      event.pushToken = pushCredentials.token
+      event.pushProvider = pushCredentials.provider
+    }
+    sendControl(event)
+  }
+
   function disconnect() {
     closedExplicitly = true
     paired = false
@@ -223,6 +245,7 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
     sendPrompt,
     approve,
     interrupt,
+    updatePushCredentials,
     disconnect,
   }
 })

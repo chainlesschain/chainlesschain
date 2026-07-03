@@ -64,6 +64,7 @@ class FakeRelay {
       FakeRelay.host.pair(payload.mobilePeerId, payload.mobilePublicKey, TOKEN)
       const join = FakeRelay.host.decrypt(payload.envelope)
       if (join.type !== 'pair.join') throw new Error('bad pair.join')
+      FakeRelay.lastJoin = join
       this.pushEvent({ type: 'pair.accepted', remoteSessionId: SESSION_ID })
     } else if (payload.type === 'remote-session.encrypted') {
       this.controls.push(FakeRelay.host.decrypt(payload.envelope))
@@ -92,8 +93,8 @@ function pairingUri() {
   })
 }
 
-function connectAndOpen(store) {
-  store.connect(pairingUri())
+function connectAndOpen(store, options) {
+  store.connect(pairingUri(), options)
   const active = FakeRelay.instances[FakeRelay.instances.length - 1]
   active.open() // register → registered → pair → pair.accepted (all synchronous)
   return active
@@ -165,5 +166,36 @@ describe('remoteSession store', () => {
     expect(store.connect('not-a-pairing-uri')).toBe(false)
     expect(store.status).toBe('error')
     expect(store.error).toMatch(/Invalid Remote Session pairing URI/)
+  })
+
+  it('carries a Web Push subscription in pair.join', () => {
+    const store = useRemoteSessionStore()
+    connectAndOpen(store, {
+      pushCredentials: { token: '{"endpoint":"https://p.test"}', provider: 'web' },
+    })
+    expect(store.status).toBe('connected')
+    expect(FakeRelay.lastJoin).toMatchObject({
+      type: 'pair.join',
+      pushToken: '{"endpoint":"https://p.test"}',
+      pushProvider: 'web',
+    })
+  })
+
+  it('omits push fields from pair.join when no subscription is set', () => {
+    const store = useRemoteSessionStore()
+    connectAndOpen(store)
+    expect(FakeRelay.lastJoin.pushToken).toBeUndefined()
+    expect(FakeRelay.lastJoin.pushProvider).toBeUndefined()
+  })
+
+  it('forwards updatePushCredentials to the host as a push.register control', () => {
+    const store = useRemoteSessionStore()
+    const active = connectAndOpen(store)
+    store.updatePushCredentials('{"endpoint":"https://p2.test"}', 'web')
+    expect(active.controls.at(-1)).toEqual({
+      type: 'push.register',
+      pushToken: '{"endpoint":"https://p2.test"}',
+      pushProvider: 'web',
+    })
   })
 })

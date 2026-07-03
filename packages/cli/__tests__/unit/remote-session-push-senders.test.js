@@ -55,6 +55,30 @@ describe("createRemoteSessionPushSender provider dispatch", () => {
     ).toBeNull();
   });
 
+  it("routes provider=web to the Web Push sender", () => {
+    const kp = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const raw = kp.publicKey.export({ type: "spki", format: "der" });
+    // Derive the raw 65-byte public key + 32-byte private for VAPID.
+    const jwk = kp.privateKey.export({ format: "jwk" });
+    const pub = Buffer.concat([
+      Buffer.from([0x04]),
+      Buffer.from(jwk.x, "base64url"),
+      Buffer.from(jwk.y, "base64url"),
+    ]);
+    const sender = createRemoteSessionPushSender(
+      {
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "web",
+        CHAINLESSCHAIN_REMOTE_SESSION_VAPID_PUBLIC_KEY:
+          pub.toString("base64url"),
+        CHAINLESSCHAIN_REMOTE_SESSION_VAPID_PRIVATE_KEY: jwk.d,
+        CHAINLESSCHAIN_REMOTE_SESSION_VAPID_SUBJECT: "mailto:a@b",
+      },
+      { fetch: vi.fn() },
+    );
+    expect(raw.length).toBeGreaterThan(0);
+    expect(typeof sender).toBe("function");
+  });
+
   it("returns null for an unimplemented provider", () => {
     expect(
       createRemoteSessionPushSender({
