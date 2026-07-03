@@ -580,6 +580,116 @@ export function registerPluginCommand(program) {
       }
     });
 
+  // ── unified plugin runtime install lifecycle (Phase 3) ──
+  // These operate on the scope version dirs (user/project/local), independent
+  // of the legacy DB-backed `install/list/remove` above. A plugin installed
+  // here has its skills/hooks/lsp components picked up by the agent.
+
+  const SCOPES = "user|project|local";
+
+  // plugin add <source> — install from a local directory into a scope
+  plugin
+    .command("add <source>")
+    .description(`Install a plugin from a local directory (scope: ${SCOPES})`)
+    .option("--scope <scope>", "Install scope (user|project|local)", "user")
+    .option("--force", "Reinstall over an existing immutable version")
+    .option("--json", "Output as JSON")
+    .action(async (source, options) => {
+      const { installFromSource } =
+        await import("../lib/plugin-runtime/install.js");
+      try {
+        const res = installFromSource(source, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          force: options.force === true,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(res, null, 2));
+        } else {
+          logger.success(
+            `Installed ${res.name} v${res.version} (${res.scope} scope)`,
+          );
+          logger.log(chalk.gray(`  → ${res.dir}`));
+          for (const w of res.warnings || [])
+            logger.log(chalk.yellow(`  ⚠ ${w}`));
+        }
+      } catch (err) {
+        logger.error(`Install failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // plugin installed — list runtime-installed plugins across scopes
+  plugin
+    .command("installed")
+    .description("List plugins installed in the unified runtime (scope dirs)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { listInstalled } =
+        await import("../lib/plugin-runtime/install.js");
+      const rows = listInstalled({ cwd: process.cwd() });
+      if (options.json) {
+        console.log(JSON.stringify(rows, null, 2));
+        return;
+      }
+      if (rows.length === 0) {
+        logger.info("No plugins installed. Add one with: cc plugin add <dir>");
+        return;
+      }
+      logger.log(chalk.bold(`Installed plugins (${rows.length}):`));
+      for (const r of rows) {
+        const ok = r.ok ? chalk.green("✔") : chalk.red("✖");
+        logger.log(
+          `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)}`,
+        );
+      }
+    });
+
+  // plugin uninstall <name> — remove a plugin (or one version) from a scope
+  plugin
+    .command("uninstall <name>")
+    .description(`Uninstall a runtime plugin from a scope (${SCOPES})`)
+    .option("--scope <scope>", "Scope to remove from", "user")
+    .option("--version <version>", "Remove only this version (default: all)")
+    .action(async (name, options) => {
+      const { uninstall } = await import("../lib/plugin-runtime/install.js");
+      try {
+        const res = uninstall(name, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          version: options.version,
+        });
+        logger.success(
+          `Uninstalled ${name} (${res.removed.join(", ") || "nothing"}) from ${options.scope} scope`,
+        );
+      } catch (err) {
+        logger.error(`Uninstall failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // plugin use <name> <version> — pin the active version (rollback / switch)
+  plugin
+    .command("use <name> <version>")
+    .description("Pin a plugin's active version (rollback or switch)")
+    .option("--scope <scope>", "Scope", "user")
+    .action(async (name, version, options) => {
+      const { setActiveVersion } =
+        await import("../lib/plugin-runtime/install.js");
+      try {
+        setActiveVersion(name, version, {
+          scope: options.scope,
+          cwd: process.cwd(),
+        });
+        logger.success(
+          `${name} active version → v${version} (${options.scope} scope)`,
+        );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   return plugin;
 }
 
