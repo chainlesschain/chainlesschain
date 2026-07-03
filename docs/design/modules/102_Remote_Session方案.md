@@ -113,8 +113,16 @@
 - Desktop：bridge/service/IPC/preload 打通 `getRemoteSessionAudit`；Remote 面板新增「审计日志」时间线（动作彩色标签 + 操作者 + 时间 + 明细，创建/撤销时自动刷新）。
 - 验证：`remote-session-audit` 6 单测（seq/时钟/detail 深拷贝/过滤/stats/环形缓冲上限/sink 容错）+ `remote-session-protocol` 扩测（生命周期与控制事件入账 + 断言 prompt 内容不入账 + host-only 查询）；registry/protocol/audit 三件 26 单测 + mirroring/ws-server/pair-token 集成 18 全通过。
 
+#### Phase 4：组织策略（已完成）
+
+- `RemoteSessionPolicy`（与 registry 同文件，规避循环依赖）：管理员可约束远程会话——`allowedScopes`（收窄 Scope 白名单）/ `maxDevices`（非 host 设备上限）/ `maxSessionTtlMs` + `maxTokenTtlMs`（会话/令牌时长上限）/ `allowRelayPairing`（是否允许 relay 配对）。默认全空 = 无约束 no-op。
+- 单一执行点在 **registry**：`create` 封顶会话时长；`issuePairingToken` 按策略收窄 Scope（返回 `scopes` + `policyNarrowed`）并封顶令牌时长；`join` 校验设备上限 + relay 开关（direct/relay 两路都过同一检查，令牌验签**通过后**才判策略，避免向未授权探测泄露拒因）。host 本身始终保留全 Scope，只约束远端设备。
+- `RemoteSessionPolicy.fromEnv`：从 `CHAINLESSCHAIN_REMOTE_SESSION_{ALLOWED_SCOPES,MAX_DEVICES,MAX_SESSION_TTL_MS,MAX_TOKEN_TTL_MS,ALLOW_RELAY}` 装配；ws-server 用它构造 registry。WS `remote-session-policy` 查询（任意已认证客户端可读，非敏感——便于配对前预检）。
+- Desktop：bridge/service/IPC/preload `getRemoteSessionPolicy`；Remote 面板顶部展示生效策略摘要（收窄的 Scope / 设备上限 / 会话时长 / relay 是否禁用）。
+- 验证：`remote-session-policy` 9 单测（applyScopes 收窄/不相交抛错/未知 Scope 拒绝、TTL 封顶、设备上限、relay 开关、fromEnv 解析）+ registry 扩测 4（issue 收窄 + host 不受限、TTL 封顶、设备上限、relay 禁用 direct 仍可）+ protocol 查询 1。远程会话全量 50 单测（8 文件）通过。
+
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：组织策略（org policy）和推送通知（vendor push）；审计日志的持久化 sink（JSONL/SQLite）实装。
+2. Phase 4 余项：推送通知（vendor push）；审计日志的持久化 sink（JSONL/SQLite）实装；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。
