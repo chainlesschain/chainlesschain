@@ -2344,20 +2344,65 @@ async function executeToolInner(
       if (sandbox) {
         const { executeSandboxedShell, sandboxSummary } =
           await import("../lib/agent-sandbox.js");
-        const result = executeSandboxedShell(args.command, sandbox, {
-          cwd: args.cwd || cwd,
-          timeout: _resolveShellTimeout(args.timeout),
-          maxBuffer: 1024 * 1024,
-          env: {
-            CLAUDECODE: "1",
-            ...(sessionId
-              ? {
-                  CC_SESSION_ID: String(sessionId),
-                  CLAUDE_CODE_SESSION_ID: String(sessionId),
-                }
-              : {}),
-          },
-        });
+        // Domain-restricted networking is ENFORCED by routing the sandboxed
+        // process's egress through a local filtering proxy (see
+        // sandbox-egress-proxy.js). Start it only when the policy actually
+        // restricts domains and network is on; tear it down after the command.
+        const sboxPolicy = sandbox.policy || {};
+        const needsEgress =
+          sandbox.network === true &&
+          (sboxPolicy.allowedDomains?.length || 0) +
+            (sboxPolicy.deniedDomains?.length || 0) >
+            0;
+        let egressProxy = null;
+        let proxyHandle = null;
+        if (needsEgress) {
+          try {
+            const { createEgressProxy } =
+              await import("../lib/sandbox-egress-proxy.js");
+            proxyHandle = createEgressProxy(
+              {
+                allowedDomains: sboxPolicy.allowedDomains || [],
+                deniedDomains: sboxPolicy.deniedDomains || [],
+                allowPrivate: sboxPolicy.allowPrivate === true,
+              },
+              { bindHost: "0.0.0.0" }, // reachable from the container/netns
+            );
+            const listened = await proxyHandle.listen();
+            egressProxy = { port: listened.port };
+          } catch {
+            // If the proxy can't start, leave egressProxy null so the sandbox
+            // fails closed (refuses) rather than running without enforcement.
+            proxyHandle = null;
+            egressProxy = null;
+          }
+        }
+        let result;
+        try {
+          result = executeSandboxedShell(args.command, sandbox, {
+            cwd: args.cwd || cwd,
+            timeout: _resolveShellTimeout(args.timeout),
+            maxBuffer: 1024 * 1024,
+            egressProxy,
+            env: {
+              CLAUDECODE: "1",
+              ...(sessionId
+                ? {
+                    CC_SESSION_ID: String(sessionId),
+                    CLAUDE_CODE_SESSION_ID: String(sessionId),
+                  }
+                : {}),
+            },
+          });
+        } finally {
+          if (proxyHandle) {
+            try {
+              await proxyHandle.close();
+            } catch {
+              /* best-effort teardown */
+            }
+          }
+        }
         const common = {
           sandbox: sandboxSummary(sandbox),
           shellCommandPolicy: shellPolicy,

@@ -117,6 +117,48 @@ describe("agent sandbox", () => {
     expect(result.stderr).toMatch(/requires a configured sandbox proxy/i);
   });
 
+  it("ENFORCES the domain policy through an egress proxy instead of refusing (docker)", () => {
+    _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
+    const sandbox = normalizeAgentSandbox(true, {
+      network: true,
+      settings: { network: { allowedDomains: ["registry.npmjs.org"] } },
+    });
+    const result = executeSandboxedShell("npm view chalk version", sandbox, {
+      egressProxy: { port: 54321 },
+    });
+    // No longer refuses — it ran, with proxy egress wired in.
+    expect(result.failedToStart).toBeUndefined();
+    expect(result.exitCode).toBe(0);
+    const [, args] = _deps.spawnSync.mock.calls[0];
+    const joined = args.join(" ");
+    // Container reaches the host proxy via host.docker.internal.
+    expect(joined).toContain("--add-host host.docker.internal:host-gateway");
+    expect(joined).toContain("HTTP_PROXY=http://host.docker.internal:54321");
+    expect(joined).toContain("HTTPS_PROXY=http://host.docker.internal:54321");
+    // network is NOT "none" here (egress is filtered, not cut).
+    expect(args).not.toContain("none");
+  });
+
+  it("wires the egress proxy env into a bubblewrap run (127.0.0.1 shared net)", () => {
+    _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
+    const sandbox = normalizeAgentSandbox(true, {
+      cwd: process.cwd(),
+      network: true,
+      settings: {
+        engine: "bubblewrap",
+        network: { allowedDomains: ["registry.npmjs.org"] },
+      },
+    });
+    const result = executeSandboxedShell("npm test", sandbox, {
+      egressProxy: { port: 45678 },
+    });
+    expect(result.failedToStart).toBeUndefined();
+    const [, args, opts] = _deps.spawnSync.mock.calls[0];
+    expect(args).toContain("--share-net");
+    expect(opts.env.HTTP_PROXY).toBe("http://127.0.0.1:45678");
+    expect(opts.env.HTTPS_PROXY).toBe("http://127.0.0.1:45678");
+  });
+
   it("builds a bubblewrap invocation with a read-only host and writable workspace", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
     const sandbox = normalizeAgentSandbox(true, {
