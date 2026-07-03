@@ -7,6 +7,13 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Tests — 修复两个「本地绿 / CI 红」的 CLI 测试，解除 npm-publish test 门禁（已发 chainlesschain 0.162.147）
+
+> `npm-publish.yml` 的 test job 被两个仅在 CI 失败的 CLI 测试反复挡住，CLI 连续几轮发不出去（npm `latest` 卡在 0.162.143）。两者均为**测试 bug、非产品 bug**；修复后 test 门禁转绿，成功发版 `chainlesschain` **0.162.147**（commit `7da6d97093`；test + publish 两 job 全绿；干净 temp 目录 `npm i` 实测 4 别名 shim + `cc --version` → 0.162.147）。
+
+- **`did-manager.test.js` LIKE 转义回归（flaky ~1/64）**：该回归用 `createIdentity` 生成的随机 base64url DID；base64url 字母表含 `_`，约 1/64 概率 DID 本体首字符为 `_`，此时 `getIdentity("did:chainless:_")`（`_` 已被 `LIKE ... ESCAPE '\'` **正确转义为字面**）会**正当前缀匹配** `did:chainless:_gBB…` → `toBeFalsy()` 挂。`getIdentity` 代码本身正确。改为直接 INSERT 固定 DID（A/B 开头，永不撞 `_`/`%`）去随机性，并加 `getIdentity("did:chainless_")` 用例证明 `_` 被当字面而非通配（通配 `_` 会误匹配真 DID 的 `:` 分隔符）。
+- **`cli-aliases.test.js`（unit + e2e）bin 路径断言**：`npm install` 会把工作区 `package.json` 的 bin 路径正规化、剥掉前导 `./`，故 CI 装完依赖后读到 `bin/chainlesschain.js`（committed 为 `./bin/…`），断言 `=== "./bin/chainlesschain.js"` 本地过、CI 挂。改为比较前 `stripDot`（去前导 `./`）归一，committed 与 post-install 两种形式都过。
+
 #### Added — cc CLI 0.162.124：Claude Code 2.1.193 平价两则 + 自 0.162.123 起累积安全/稳健性修复（已发 npm）
 
 > CLI-only 发版（`chainlesschain` 0.162.123 → **0.162.124**，已发 npm `latest`）。纯 `packages/cli/src` / `src/runtime`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。本版除下列两则 2.1.193 平价新功能外，还一并发布自 0.162.123 以来累积的安全/稳健性修复（凭据守卫覆盖 FIDO SSH/kubeconfig/htpasswd/GCP SA、`web_fetch` 阻断 DNS-based SSRF、envelope HTTP server 防畸形百分号编码 DoS、git agent 走 argv 关命令注入、mcp serve 常量时间 Bearer + 符号链接越界拦截、WS 会话上限防内存膨胀、worktree 命令注入收口等）。全部带回归单测。
