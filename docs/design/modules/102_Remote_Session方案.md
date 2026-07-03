@@ -130,8 +130,16 @@
 - Android：`RemoteSessionClient.setPushCredentials(token, provider)` 缝——设置后随加密 `pair.join` 上送；真实 FCM/HMS token 取值（`FirebaseMessaging.getInstance().token`）留给 app 层。
 - 验证：`remote-session-push` 9 单测（isApprovalRequestEvent 匹配/无 sender 跳过/无 token 跳过/投递 sent/provider 覆盖/去重窗口 + 跨 client 不去重 + 过窗重发/sender 抛错不 throw 记 failed/fromEnv）+ registry 扩测 5（join 存 token、无 token 忽略 provider、register 注册刷新清空、非成员拒绝、pushTargets 排除 host 与指定 client）+ protocol 扩测 3（join 带 token + 审计、注册 + 审计、非成员拒绝）+ mirroring 扩测 2（approval 唤醒且记 push.sent、无 sender 不唤醒不记）。
 
+#### Phase 4：审计日志持久化 sink（JSONL，已完成）
+
+- `packages/cli/src/harness/remote-session-audit-sink.js`：`RemoteSessionAuditFileSink` 接到审计日志的 `sink` 缝，把（已隐私脱敏的）审计流持久化为**换行分隔 JSON（JSONL）**文件，让取证记录跨宿主重启存活。每条一行；文件按大小上限**滚动**（`audit.jsonl` → `audit.jsonl.1` → …，`backups` 可配，默认保 1 份；`backups=0` 即到顶截断），永不无界增长。读取容忍**撕裂的末行**（崩溃时半截 append）——解析失败的行直接跳过。零依赖（仅 node:fs）且可注入 `fs`，日后换 SQLite 后端只需实现同样的 `{ handler, readAll }` 形状，不动审计日志与调用点。
+- 审计日志 hydration：`RemoteSessionAuditLog` 新增 `initialEntries` 构造项——从持久化 sink 预填内存环并**沿用 seq 高水位**（新条目严格单调递增），且**不把已持久化条目回写 sink**（它们已在文件里）。重启后 `list`/`stats` 查询即含历史。
+- WS：`ws-server` 用 `RemoteSessionAuditFileSink.fromEnv`（`CHAINLESSCHAIN_REMOTE_SESSION_AUDIT_FILE` 启用 + `CHAINLESSCHAIN_REMOTE_SESSION_AUDIT_MAX_BYTES` 调滚动上限）构造 sink，注入审计日志并用 `readAll({limit:1000})` hydrate。未配置文件时 sink 为 null，审计日志保持纯内存（现有行为不变）。
+- `REMOTE_SESSION_AUDIT_ACTIONS` 补齐 push 四类动作（`push.registered/sent/failed/skipped`）。
+- 验证：`remote-session-audit-sink` 8 单测（缺 path 抛错、JSONL 追加 + 懒建父目录、撕裂行跳过、readAll limit、滚动跨 backup 读回、backups=0 截断、fromEnv、经审计日志 persist→hydrate 往返）+ `remote-session-audit` 扩测 2（hydration 沿用 seq 不回写 sink + malformed 行跳过、hydration 封顶 maxEntries 留最新）+ ws-server 集成 2（注入 sink 持久化 + 新 server hydrate、无 sink 保持纯内存）。远程会话全量 71 单测（7 文件）通过。
+
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：真实 vendor push `sender` 实装（FCM/APNs 服务端凭据 + Android FirebaseMessaging 集成 + google-services.json；Web push 需 service worker）；审计日志的持久化 sink（JSONL/SQLite）实装；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：真实 vendor push `sender` 实装（FCM/APNs 服务端凭据 + Android FirebaseMessaging 集成 + google-services.json；Web push 需 service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。

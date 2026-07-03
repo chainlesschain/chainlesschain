@@ -32,6 +32,7 @@ import {
   RemoteSessionPolicy,
 } from "../../harness/remote-session-registry.js";
 import { RemoteSessionAuditLog } from "../../harness/remote-session-audit.js";
+import { RemoteSessionAuditFileSink } from "../../harness/remote-session-audit-sink.js";
 import {
   RemoteSessionPushDispatcher,
   isApprovalRequestEvent,
@@ -244,9 +245,28 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.remoteSessions =
       options.remoteSessionRegistry ||
       new RemoteSessionRegistry({ policy: this.remoteSessionPolicy });
+    /**
+     * Optional durable sink (JSONL) for the audit trail. Enabled only when a
+     * sink is injected or CHAINLESSCHAIN_REMOTE_SESSION_AUDIT_FILE is set; the
+     * in-memory ring stays the primary store and query surface.
+     */
+    this.remoteSessionAuditSink =
+      options.remoteSessionAuditSink ||
+      RemoteSessionAuditFileSink.fromEnv(process.env);
     /** Bounded in-memory audit trail for Remote Session lifecycle + control. */
     this.remoteSessionAudit =
-      options.remoteSessionAudit || new RemoteSessionAuditLog();
+      options.remoteSessionAudit ||
+      new RemoteSessionAuditLog(
+        this.remoteSessionAuditSink
+          ? {
+              sink: this.remoteSessionAuditSink.handler,
+              // Hydrate so audit queries survive a restart; cap to the ring size.
+              initialEntries: this.remoteSessionAuditSink.readAll({
+                limit: 1000,
+              }),
+            }
+          : {},
+      );
     /**
      * Vendor-push dispatcher — wakes backgrounded paired devices for approval
      * requests. Credential-free by default (a no-op until a `sender` is

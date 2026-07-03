@@ -84,6 +84,44 @@ describe("RemoteSessionAuditLog", () => {
     expect(log.entries.map((e) => e.detail.i)).toEqual([2, 3, 4]);
   });
 
+  it("hydrates from persisted entries, carrying the seq high-water forward", () => {
+    const persisted = [
+      { seq: 7, timestamp: 100, sessionId: "s1", action: "session.created" },
+      { seq: 8, timestamp: 200, sessionId: "s1", action: "device.joined" },
+      { seq: null, action: null }, // malformed persisted line — skipped
+    ];
+    const sink = vi.fn();
+    const log = new RemoteSessionAuditLog({
+      initialEntries: persisted,
+      sink,
+    });
+    // Hydration must not re-write persisted entries back to the sink.
+    expect(sink).not.toHaveBeenCalled();
+    expect(log.entries).toHaveLength(2);
+    expect(log.list({ sessionId: "s1" }).map((e) => e.action)).toEqual([
+      "device.joined",
+      "session.created",
+    ]);
+    // New records continue strictly above the persisted high-water seq.
+    const next = log.record({ sessionId: "s1", action: "control.interrupt" });
+    expect(next.seq).toBe(9);
+    expect(sink).toHaveBeenCalledTimes(1);
+  });
+
+  it("caps hydration to maxEntries, keeping the newest", () => {
+    const persisted = Array.from({ length: 5 }, (_, i) => ({
+      seq: i + 1,
+      action: "control.prompt",
+      detail: { i },
+    }));
+    const log = new RemoteSessionAuditLog({
+      maxEntries: 2,
+      initialEntries: persisted,
+    });
+    expect(log.entries.map((e) => e.detail.i)).toEqual([3, 4]);
+    expect(log.seq).toBe(5);
+  });
+
   it("feeds a durable sink and survives a throwing one", () => {
     const seen = [];
     const good = new RemoteSessionAuditLog({

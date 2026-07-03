@@ -20,6 +20,10 @@ export const REMOTE_SESSION_AUDIT_ACTIONS = Object.freeze([
   "control.prompt",
   "control.approval",
   "control.interrupt",
+  "push.registered",
+  "push.sent",
+  "push.failed",
+  "push.skipped",
 ]);
 
 export class RemoteSessionAuditLog {
@@ -29,6 +33,24 @@ export class RemoteSessionAuditLog {
     this.sink = typeof options.sink === "function" ? options.sink : null;
     this.entries = [];
     this.seq = 0;
+    // Hydrate from a durable sink so audit queries survive a host restart. The
+    // persisted entries are NOT re-written to the sink (they are already
+    // there); we only pre-fill the in-memory ring and carry the seq high-water
+    // forward so new entries stay strictly monotonic.
+    if (Array.isArray(options.initialEntries)) {
+      this._hydrate(options.initialEntries);
+    }
+  }
+
+  _hydrate(entries) {
+    const recent = entries.slice(-this.maxEntries);
+    for (const entry of recent) {
+      if (!entry || !entry.action) continue;
+      this.entries.push({ ...entry });
+      if (typeof entry.seq === "number" && entry.seq > this.seq) {
+        this.seq = entry.seq;
+      }
+    }
   }
 
   /**
