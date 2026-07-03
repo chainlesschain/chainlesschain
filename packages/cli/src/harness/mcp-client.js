@@ -10,6 +10,7 @@
 
 import { spawn } from "child_process";
 import { EventEmitter } from "events";
+import { safeJsonParse } from "../lib/safe-json.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -1156,8 +1157,11 @@ export class MCPServerConfig {
     return {
       name: row.name,
       command: row.command || null,
-      args: JSON.parse(row.args || "[]"),
-      env: JSON.parse(row.env || "{}"),
+      // safeJsonParse, not bare JSON.parse: list()/getAutoConnect() map every
+      // row through here, so one corrupt cell must not take down the whole
+      // MCP server list (`|| "[]"` only guards NULL, not a corrupt non-empty string).
+      args: safeJsonParse(row.args, []),
+      env: safeJsonParse(row.env, {}),
       autoConnect: row.auto_connect === 1,
       url: row.url || null,
       transport:

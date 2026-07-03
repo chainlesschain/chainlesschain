@@ -289,6 +289,28 @@ describe("MCP Client", () => {
       expect(autoServers[0].name).toBe("auto1");
     });
 
+    it("survives a corrupt args/env cell — one bad row must not take down list()/getAutoConnect()", () => {
+      config.add("good", {
+        command: "cmd1",
+        args: ["--ok"],
+        autoConnect: true,
+      });
+      config.add("bad", { command: "cmd2", autoConnect: true });
+      // Simulate on-disk corruption (truncated write / legacy row): a corrupt
+      // non-empty string used to throw out of _rowToConfig inside .map() and
+      // fail the WHOLE server list.
+      const bad = db.data.get("mcp_servers").find((r) => r.name === "bad");
+      bad.args = "[truncated";
+      bad.env = "{oops";
+
+      const servers = config.list();
+      expect(servers).toHaveLength(2);
+      expect(servers.find((s) => s.name === "bad").args).toEqual([]);
+      expect(servers.find((s) => s.name === "bad").env).toEqual({});
+      expect(servers.find((s) => s.name === "good").args).toEqual(["--ok"]);
+      expect(config.getAutoConnect()).toHaveLength(2);
+    });
+
     it("should update existing server config", () => {
       config.add("test", { command: "old-cmd" });
       config.add("test", { command: "new-cmd", args: ["--new"] });
