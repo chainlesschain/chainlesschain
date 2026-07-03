@@ -550,6 +550,179 @@ describe("PostManager", () => {
     });
   });
 
+  // ─── P2P like/comment DID signature ────────────────────────────────────
+  describe("P2P like/comment DID signature", () => {
+    const nacl = require("tweetnacl");
+    const naclUtil = require("tweetnacl-util");
+    const { computeDIDFromPublicKey } = require("../../did/did-signer.js");
+
+    function makeIdentity() {
+      const kp = nacl.sign.keyPair();
+      return {
+        did: computeDIDFromPublicKey(kp.publicKey),
+        public_key_sign: naclUtil.encodeBase64(kp.publicKey),
+        private_key_ref: JSON.stringify({
+          sign: naclUtil.encodeBase64(kp.secretKey),
+        }),
+      };
+    }
+
+    // Run prod's OWN likePost with a signing identity + a post authored by
+    // someone else, and capture the P2P like notification it emits.
+    async function captureSignedLike(identity, postId = "p1") {
+      const db = createMockDatabase();
+      db.db._prep.get
+        .mockReturnValueOnce(null) // existing-like check → not yet liked
+        .mockReturnValueOnce({ id: postId, author_did: "did:test:author" }); // getPost
+      const did = { getCurrentIdentity: () => identity };
+      const p2p = createMockP2PManager();
+      const local = new PostManager(db, did, p2p, createMockFriendManager());
+      await local.likePost(postId);
+      return JSON.parse(p2p.sendEncryptedMessage.mock.calls[0][1]);
+    }
+
+    async function captureSignedComment(identity, postId = "p1") {
+      const db = createMockDatabase();
+      db.db._prep.get.mockReturnValueOnce({
+        id: postId,
+        author_did: "did:test:author",
+      }); // getPost
+      const did = { getCurrentIdentity: () => identity };
+      const p2p = createMockP2PManager();
+      const local = new PostManager(db, did, p2p, createMockFriendManager());
+      await local.addComment(postId, "nice post");
+      return JSON.parse(p2p.sendEncryptedMessage.mock.calls[0][1]).comment;
+    }
+
+    // ── likes ──
+    it("attaches authorPubkey + signature to an outgoing like", async () => {
+      const wire = await captureSignedLike(makeIdentity());
+      expect(typeof wire.authorPubkey).toBe("string");
+      expect(wire.authorPubkey.length).toBeGreaterThan(0);
+      expect(typeof wire.signature).toBe("string");
+      expect(wire.signature.length).toBeGreaterThan(0);
+    });
+
+    it("sends an unsigned like when identity lacks signing keys", async () => {
+      const db = createMockDatabase();
+      db.db._prep.get
+        .mockReturnValueOnce(null)
+        .mockReturnValueOnce({ id: "p1", author_did: "did:test:author" });
+      const p2p = createMockP2PManager();
+      // default mock identity (did:test:alice) has no signing keys
+      const local = new PostManager(
+        db,
+        createMockDIDManager(),
+        p2p,
+        createMockFriendManager(),
+      );
+      await local.likePost("p1");
+      const wire = JSON.parse(p2p.sendEncryptedMessage.mock.calls[0][1]);
+      expect(wire.authorPubkey == null).toBe(true);
+      expect(wire.signature == null).toBe(true);
+    });
+
+    it("stores a correctly-signed received like", async () => {
+      const wire = await captureSignedLike(makeIdentity());
+      mockDb.db._prep.get
+        .mockReturnValueOnce({ id: wire.postId, author_did: "did:test:author" }) // post exists
+        .mockReturnValueOnce(null); // not already liked
+      await pm.handleLikeReceived(
+        wire.postId,
+        wire.userDid,
+        wire.authorPubkey,
+        wire.signature,
+      );
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+
+    it("rejects a like whose signer DID was swapped (impersonation)", async () => {
+      const wire = await captureSignedLike(makeIdentity());
+      const victim = makeIdentity();
+      const rejected = vi.fn();
+      pm.on("post-like:rejected", rejected);
+      await pm.handleLikeReceived(
+        wire.postId,
+        victim.did,
+        wire.authorPubkey,
+        wire.signature,
+      );
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+      expect(rejected).toHaveBeenCalled();
+    });
+
+    it("rejects a like with a malformed envelope (signature missing)", async () => {
+      const wire = await captureSignedLike(makeIdentity());
+      await pm.handleLikeReceived(
+        wire.postId,
+        wire.userDid,
+        wire.authorPubkey,
+        null,
+      );
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+    });
+
+    it("accepts a legacy unsigned like (both fields absent)", async () => {
+      mockDb.db._prep.get
+        .mockReturnValueOnce({ id: "p1", author_did: "did:test:author" })
+        .mockReturnValueOnce(null);
+      await pm.handleLikeReceived("p1", "did:test:someone", null, null);
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+
+    // ── comments ──
+    it("attaches author_pubkey + signature to an outgoing comment", async () => {
+      const wire = await captureSignedComment(makeIdentity());
+      expect(typeof wire.author_pubkey).toBe("string");
+      expect(wire.author_pubkey.length).toBeGreaterThan(0);
+      expect(typeof wire.signature).toBe("string");
+      expect(wire.signature.length).toBeGreaterThan(0);
+    });
+
+    it("stores a correctly-signed received comment", async () => {
+      const wire = await captureSignedComment(makeIdentity());
+      await pm.handleCommentReceived(wire);
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+
+    it("rejects a comment whose content was tampered after signing", async () => {
+      const wire = await captureSignedComment(makeIdentity());
+      const rejected = vi.fn();
+      pm.on("comment:rejected", rejected);
+      await pm.handleCommentReceived({
+        ...wire,
+        content: wire.content + " EVIL",
+      });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+      expect(rejected).toHaveBeenCalled();
+    });
+
+    it("rejects a comment with author_did swapped (impersonation)", async () => {
+      const wire = await captureSignedComment(makeIdentity());
+      const victim = makeIdentity();
+      await pm.handleCommentReceived({ ...wire, author_did: victim.did });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+    });
+
+    it("rejects a comment with a malformed envelope (signature missing)", async () => {
+      const wire = await captureSignedComment(makeIdentity());
+      await pm.handleCommentReceived({ ...wire, signature: null });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+    });
+
+    it("accepts a legacy unsigned comment (both fields absent)", async () => {
+      await pm.handleCommentReceived({
+        id: "c1",
+        post_id: "p1",
+        author_did: "did:test:someone",
+        content: "hi",
+        parent_id: null,
+        created_at: 123,
+      });
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+  });
+
   // ─── close ────────────────────────────────────────────────────────────
   describe("close", () => {
     it("should reset initialized flag", async () => {

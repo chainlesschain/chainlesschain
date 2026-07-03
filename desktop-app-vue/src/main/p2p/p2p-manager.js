@@ -1988,6 +1988,8 @@ class P2PManager extends EventEmitter {
             this.emit("post-like:received", {
               postId: message.postId,
               userDid: message.userDid,
+              authorPubkey: message.authorPubkey,
+              signature: message.signature,
             });
           }
 

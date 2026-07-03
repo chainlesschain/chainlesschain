@@ -63,6 +63,41 @@ function buildPostSignedSubset(post) {
 }
 
 /**
+ * Canonical immutable subset of a LIKE, signed by the liker (user_did) so a
+ * peer cannot forge "X liked this" on X's behalf. Timestamp is deliberately
+ * excluded: a like is idempotent (dedup on post_id+user_did), the receiver
+ * stamps its own created_at, and omitting it means only pubkey+signature need
+ * to be threaded through the P2P notification.
+ * @param {{ postId: string, userDid: string }} like
+ * @returns {Object} flat subset for did-signer canonicalize()
+ */
+function buildLikeSignedSubset({ postId, userDid }) {
+  return {
+    post_id: postId,
+    user_did: userDid,
+  };
+}
+
+/**
+ * Canonical immutable subset of a COMMENT, signed by its author (author_did).
+ * parent_id is normalized to null (not undefined) so sender and receiver
+ * canonicalize identically — canonicalize() serializes null but SKIPS
+ * undefined, so the two must not diverge.
+ * @param {Object} comment
+ * @returns {Object} flat subset for did-signer canonicalize()
+ */
+function buildCommentSignedSubset(comment) {
+  return {
+    id: comment.id,
+    post_id: comment.post_id,
+    author_did: comment.author_did,
+    content: comment.content,
+    parent_id: comment.parent_id ?? null,
+    created_at: comment.created_at,
+  };
+}
+
+/**
  * 动态可见性
  */
 const PostVisibility = {
@@ -187,9 +222,12 @@ class PostManager extends EventEmitter {
     });
 
     // 监听点赞同步
-    this.p2pManager.on("post-like:received", async ({ postId, userDid }) => {
-      await this.handleLikeReceived(postId, userDid);
-    });
+    this.p2pManager.on(
+      "post-like:received",
+      async ({ postId, userDid, authorPubkey, signature }) => {
+        await this.handleLikeReceived(postId, userDid, authorPubkey, signature);
+      },
+    );
 
     // 监听评论同步
     this.p2pManager.on("post-comment:received", async ({ comment }) => {
@@ -298,27 +336,73 @@ class PostManager extends EventEmitter {
    * @private
    */
   _signPost(post) {
+    return this._signSubset(buildPostSignedSubset(post), "syncPost");
+  }
+
+  /**
+   * 用当前身份的 Ed25519 DID 私钥对给定 canonical 子集签名（动态/点赞/评论共用）。
+   * 无签名密钥的旧身份返回 {null,null}（收端按 legacy 未签名兼容处理）；
+   * 签名抛错时降级为未签名（记 error 日志，本地记录已保存）。
+   * @param {Object} subset - 已构造的可签名扁平子集
+   * @param {string} ctx - 日志上下文标签
+   * @returns {{ author_pubkey: string|null, signature: string|null }}
+   * @private
+   */
+  _signSubset(subset, ctx) {
     const identity = this.didManager?.getCurrentIdentity?.();
     if (!(identity && identity.public_key_sign && identity.private_key_ref)) {
       logger.warn(
-        "[PostManager] syncPost: 身份缺少签名密钥，发送未签名动态 (legacy compat)",
+        `[PostManager] ${ctx}: 身份缺少签名密钥，发送未签名 (legacy compat)`,
       );
       return { author_pubkey: null, signature: null };
     }
     try {
-      const subset = buildPostSignedSubset(post);
       const signed = signPayloadWithIdentity(subset, identity);
       return {
         author_pubkey: signed.sender_pubkey,
         signature: signed.signature,
       };
     } catch (err) {
-      logger.error(
-        "[PostManager] syncPost: 签名失败，发送未签名动态:",
-        err.message,
-      );
+      logger.error(`[PostManager] ${ctx}: 签名失败，发送未签名:`, err.message);
       return { author_pubkey: null, signature: null };
     }
+  }
+
+  /**
+   * 接收路径通用真实性门（对齐 handlePostReceived 三模式，B4a）：
+   *   pubkey+signature 都在 → 严格验签（pubkey 必 hash 成 signerDid 且验签通过），失败即拒；
+   *   两者都缺 → legacy 未签名，接受 + 警告（迁移窗口）；
+   *   只有其一 → 信封损坏，拒绝。
+   * @param {Object} subset - 收端用同一 builder 重建的 canonical 子集
+   * @param {string} signerDid - 声称的签名者 DID（点赞=user_did / 评论=author_did）
+   * @param {string|null} pubkey - author_pubkey
+   * @param {string|null} signature
+   * @param {string} label - 日志用（如 "点赞"/"评论"）
+   * @returns {{ ok: boolean, legacy?: boolean, reason?: string }}
+   * @private
+   */
+  _verifyInbound(subset, signerDid, pubkey, signature, label) {
+    const hasPubkey = !!pubkey;
+    const hasSig = !!signature;
+    if (hasPubkey !== hasSig) {
+      return {
+        ok: false,
+        reason: `${label}签名信封不完整 (pubkey/signature 缺一)`,
+      };
+    }
+    if (!hasPubkey && !hasSig) {
+      return { ok: true, legacy: true };
+    }
+    const verdict = verifyPayloadAgainstDid(
+      subset,
+      signerDid,
+      pubkey,
+      signature,
+    );
+    if (!verdict.ok) {
+      return { ok: false, reason: verdict.reason };
+    }
+    return { ok: true };
   }
 
   /**
@@ -627,10 +711,14 @@ class PostManager extends EventEmitter {
 
       logger.info("[PostManager] 已点赞:", postId);
 
-      // 通知作者
+      // 通知作者。用点赞者 DID 私钥签 {post_id,user_did}，收端验真、防冒名点赞。
       const post = await this.getPost(postId);
       if (post && post.author_did !== currentDid && this.p2pManager) {
         try {
+          const { author_pubkey, signature } = this._signSubset(
+            buildLikeSignedSubset({ postId, userDid: currentDid }),
+            "likePost",
+          );
           await this.p2pManager.sendEncryptedMessage(
             post.author_did,
             JSON.stringify({
@@ -638,6 +726,8 @@ class PostManager extends EventEmitter {
               postId,
               userDid: currentDid,
               timestamp: now,
+              authorPubkey: author_pubkey,
+              signature,
             }),
           );
         } catch (error) {
@@ -716,9 +806,34 @@ class PostManager extends EventEmitter {
    * @param {string} postId - 动态 ID
    * @param {string} userDid - 用户 DID
    */
-  async handleLikeReceived(postId, userDid) {
+  async handleLikeReceived(postId, userDid, authorPubkey, signature) {
     try {
       const db = this.database.db;
+
+      // 真实性门：验证点赞确由 userDid 签名，防冒名点赞刷量。
+      const verdict = this._verifyInbound(
+        buildLikeSignedSubset({ postId, userDid }),
+        userDid,
+        authorPubkey,
+        signature,
+        "点赞",
+      );
+      if (!verdict.ok) {
+        logger.warn(
+          `[PostManager] 拒绝点赞 ${postId} (来自 ${userDid}): ${verdict.reason}`,
+        );
+        this.emit("post-like:rejected", {
+          postId,
+          userDid,
+          reason: verdict.reason,
+        });
+        return;
+      }
+      if (verdict.legacy) {
+        logger.warn(
+          `[PostManager] 接受未签名点赞 ${postId} (来自 ${userDid}) (legacy compat)`,
+        );
+      }
 
       // 检查动态是否存在
       const post = db.prepare("SELECT * FROM posts WHERE id = ?").get(postId);
@@ -826,15 +941,19 @@ class PostManager extends EventEmitter {
 
       logger.info("[PostManager] 已添加评论:", commentId);
 
-      // 通知作者
+      // 通知作者。用评论者 DID 私钥签评论不可变子集，签名随 comment 对象透传给收端。
       const post = await this.getPost(postId);
       if (post && post.author_did !== currentDid && this.p2pManager) {
         try {
+          const { author_pubkey, signature } = this._signSubset(
+            buildCommentSignedSubset(comment),
+            "addComment",
+          );
           await this.p2pManager.sendEncryptedMessage(
             post.author_did,
             JSON.stringify({
               type: "post-comment",
-              comment,
+              comment: { ...comment, author_pubkey, signature },
             }),
           );
         } catch (error) {
@@ -858,6 +977,31 @@ class PostManager extends EventEmitter {
   async handleCommentReceived(comment) {
     try {
       const db = this.database.db;
+
+      // 真实性门：验证评论确由 comment.author_did 签名，防冒名评论/注入。
+      const verdict = this._verifyInbound(
+        buildCommentSignedSubset(comment),
+        comment.author_did,
+        comment.author_pubkey,
+        comment.signature,
+        "评论",
+      );
+      if (!verdict.ok) {
+        logger.warn(
+          `[PostManager] 拒绝评论 ${comment.id} (来自 ${comment.author_did}): ${verdict.reason}`,
+        );
+        this.emit("comment:rejected", {
+          commentId: comment.id,
+          author_did: comment.author_did,
+          reason: verdict.reason,
+        });
+        return;
+      }
+      if (verdict.legacy) {
+        logger.warn(
+          `[PostManager] 接受未签名评论 ${comment.id} (来自 ${comment.author_did}) (legacy compat)`,
+        );
+      }
 
       // 检查是否已存在
       const existing = db
