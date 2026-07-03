@@ -173,7 +173,9 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 > **3.3n 已落地（bin 可执行文件接入 PATH）**：`lib/plugin-runtime/bin.js` `collectPluginBinDirs()`（trust-gate——PATH 上可执行=跑代码，同 hooks/LSP/MCP/monitors）+ `applyPluginBinPath()` 把受信插件 `bin/` dir 前插 `env.PATH` 返回 `restore()`（会话作用域：已在 PATH 不重加，不覆盖系统命令）。接 agent-repl 启动 apply / SessionEnd restore / `/reload-plugins` 重应用 + headless-runner（run 后进程退出无需 restore）。真机集成：装 `bin/ccbintest.cmd` 后 `where` apply 前 not-found→apply 后解析到不可变版本目录→按名 **RUN**（`CCBINTEST_RAN`，子进程继承 env）→restore 后 not-found。6 单测。
 > **3.3o 已落地（settings 默认配置，安全收窄 + trust-gate）**：`lib/plugin-runtime/settings.js` `collectPluginSettings()` 只读**安全子集** `env`+`model`——permissions/hooks/mcp/其余**一律忽略**，插件绝不能经 settings 扩权限包络。`applyPluginSettingsEnv()` 仅对用户/系统**未设**的 env key 设默认（用户永胜）+ 会话作用域 restore。trust-gate（env 可影响工具行为）。接 agent-repl（启动 apply/SessionEnd restore/reload 重应用）+ headless-runner。真机集成：`{env,model,permissions:{allow:[run_shell]}}` 只收 env+model（permissions **不**采集）、env 默认到达子进程（`hello-from-plugin`）、restore 清除、用户已设 key 不覆盖。5 单测。**→ 8/8 manifest 组件（skills/agents/hooks/mcp/lsp/monitors/bin/settings）全接入真实 agent 链。**
 >
-> **待完成**：remote-manifest source + 私有仓认证 + 离线 seed cache；Monitor 输出接入 REPL 每轮 additionalContext 注入（supervisor `drainOutputs` 已就绪，待接 turn loop）。**Phase 3 核心功能完备**（8/8 组件 + 完整安装生命周期 add/upgrade/uninstall/rollback + 两道 fail-closed 加载 gate org-policy/requireSignedPlugins + trust 模型 + 热加载）。
+> **3.3p 已落地（Monitor 输出接入 REPL 每轮注入 —— Phase 6 闭合）**：`agent-repl.js` 每轮构建 userContent 时 `_pluginMonitors.drainOutputs()`（UserPromptSubmit hook 之后），把受信插件 monitor 自上轮以来的新输出作为 `[plugin monitors — new output since last turn]` 附入（末 40 行 + 省略计数），agent 同轮即见后台状态变化。SessionEnd `stopAll()` + `process.once('exit')` 回收，会话结束无遗留 monitor 进程。
+>
+> **待完成**：remote-manifest source + 私有仓认证 + 离线 seed cache（niche，defer）。**Phase 3 核心功能完备**（8/8 组件 + 完整安装生命周期 add/upgrade/uninstall/rollback + 两道 fail-closed 加载 gate org-policy/requireSignedPlugins + trust 模型 + 热加载 + monitor 每轮注入）。
 
 #### 目标
 
@@ -269,6 +271,8 @@ plugin/
 
 ### Phase 6：异步 Hooks 和后台 Monitors（P1）
 
+> 状态：进行中。**后台 Monitors 已闭合**（Phase 3.3i supervisor + 3.3p REPL 每轮注入 + SessionEnd 回收，见 Phase 3）。**6.1 异步 Hooks 已落地（2026-07-04）**：`lib/async-hook-supervisor.cjs` `AsyncHookSupervisor` —— `async:true` 的 settings hook 经 `spawn`（非 `spawnSync`）**fire-and-forget**，不阻塞工具链；结果后台收集，下一轮 `drainResults()` 注入 `additionalContext`。`asyncRewake:true` 且**失败**（非零/`decision:block`/超时）的 hook 进 `drainRewakes()` —— REPL 下一轮以 `[async hook — REWAKE]` 抢先醒目注入，后台测试失败即带**结构化错误**重新唤起 agent。护栏（对应验收「高频文件写入不会造成无限 Hook 并发」）：per-(event+command) 去重（在跑不叠）、`maxConcurrent` 上限（超额丢弃为**可见** skip 非静默）、per-hook 超时 kill、`stopAll()`+`process.once('exit')` 回收（会话不留孤儿）。`settings-hooks.cjs` `collectHooks` 透传 `event/async/asyncRewake`；`settings-hook-events.cjs` `runUserPromptSubmitHooks` 把 `async` hook 从阻塞/决策路径**排除**（fire-and-forget 不能决定它已不阻塞的轮次）+ 新 `dispatchAsyncHooks`。接进 agent-repl turn loop（dispatch after sync UPS / drain before userContent / SessionEnd 回收）。18 单测（fake spawn）+ 4 集成（**真** `child_process.spawn`：fire-and-forget stdout→context / JSON additionalContext 经真管道往返 / 真非零退出 rewake / 真超时 SIGTERM 回收）。**待完成**：`asyncRewake` 在无头/agentic loop 的真·重驱动（当前 REPL 为下一轮注入形态）；PostToolUse/Stop 等更多事件的 async dispatch（UserPromptSubmit 已通，seam 可复用）；补充事件（SubagentStart/Stop、ConfigChange、SessionPause/Resume）；MCP tool hooks。
+
 #### 目标
 
 让测试、日志监控和外部状态检查在后台运行，并能在异常时主动唤醒 Agent。
@@ -296,6 +300,8 @@ plugin/
 - 高频文件写入不会造成无限 Hook 并发。
 
 ### Phase 7：可靠性评测与工程质量（P1）
+
+> 状态：进行中。**编辑并发保护 DONE**（read-freshness 守卫，见基线表）；**模型 fallback 跨 provider DONE**（见基线表）。**7.1 可靠性评测框架已落地（2026-07-04）**：`lib/eval/runner.js` `runEvalSuite(tasks,{runAgent})` —— 每任务开临时工作区 → `setup()` 铺起始文件 → 注入的 `runAgent` 尝试 → `check()` 用**客观断言**（真跑脚本 / 真 import 校验，非 LLM 模糊评分）判 pass/fail，产出可验证的任务成功率 `{passed,total,passRate,ms}`。agent 崩溃记为任务失败（非中断整套），坏任务定义记 failed（非抛）。`runAgent` 注入 → 框架可离线测（perfect-solver mock 得 100%、no-op 得 0% 证明 check 既接受正解又拒绝非解）。`lib/eval/tasks.js` 3 个确定性内置任务（精确内容建档 / 修语法错真跑校验 / 加函数真 import 校验）+ `getSuite`。`commands/eval.js` `cc eval` 把 runAgent 接到无头 `cc agent -p`（acceptEdits）子进程；`--dry-run`/`--json`/`--suite`/`--model`/`--provider`/`--keep`；未全过 exit 1（CI gate）。真机 `cc eval --dry-run` 端到端跑通套件+报告 exit 1。9 单测。**待完成**：扩充任务集到计划的 6 类（bug 修复 / 跨文件重构 / 测试补全 / 构建失败修复 / 依赖升级 / 安全修复）；OTel 埋点（模型/工具/缓存/重试/失败分类）；Compaction 事实保留测试；发布流水线接入固定套件生成趋势报告。
 
 #### 目标
 
@@ -368,6 +374,24 @@ plugin/
 - `部分`：仅支持部分平台、场景或降级路径。
 - `❌`：未实现。
 - 不以存在同名命令或内存状态机作为 `✅` 的依据。
+
+#### 当前实测矩阵（2026-07-04，随实现推进更新）
+
+| 能力                         | CLI/API | 真实运行语义 | 安全边界 | 异常恢复 | 跨平台 | 自动化测试 | 文档 |
+| ---------------------------- | ------- | ------------ | -------- | -------- | ------ | ---------- | ---- |
+| Sandbox（OS 隔离）           | ✅      | 部分         | 部分     | 部分     | 部分   | 部分       | ✅   |
+| LSP 代码智能                 | ✅      | ✅           | ✅       | 部分     | 部分   | ✅         | ✅   |
+| 插件运行时（8 组件）         | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| Marketplace 安装生命周期     | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| Agent Team（lease 图）       | ❌      | ❌           | ❌       | ❌       | ❌     | ❌         | 部分 |
+| Remote Control               | ✅      | ✅           | 部分     | 部分     | 部分   | 部分       | 部分 |
+| 异步 Hooks                   | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| 后台 Monitors                | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| 编辑并发保护                 | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| 模型 fallback（跨 provider） | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
+| 可靠性评测（任务成功率）     | ✅      | ✅           | n/a      | ✅       | ✅     | ✅         | ✅   |
+
+> 判读：Sandbox 的「真实运行语义/跨平台」仍为部分（原生 Windows 隔离、网络域控、macOS Seatbelt E2E 未全落）；Agent Team 是唯一整列 `❌`（Phase 4 未起）；Remote Control 为「产品化」既有能力，安全/恢复/跨平台的**可验证证据**（断线序列幂等、设备撤销 E2E）待补。异步 Hooks / Monitors / 评测 / 编辑并发 / 模型 fallback 均已具备自动化证据。
 
 ## 7. 近期首批任务建议
 
