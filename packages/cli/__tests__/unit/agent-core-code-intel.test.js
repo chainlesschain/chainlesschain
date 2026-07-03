@@ -115,11 +115,119 @@ describe("code_intelligence tool — display formatting", () => {
   });
 });
 
+// Post-edit diagnostics are best-effort and only fire when a language server is
+// installed. On a machine WITHOUT one (CI default), the edit result must be
+// unchanged — no newDiagnostics field, no crash, no hang.
+describe("post-edit diagnostics — zero cost without a language server", () => {
+  let tmpDir;
+
+  beforeAll(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-edit-"));
+  });
+
+  afterAll(async () => {
+    await disposeSharedCodeIntel();
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+  });
+
+  it("write_file to an unsupported file type never attaches newDiagnostics", async () => {
+    const file = path.join(tmpDir, "notes.txt");
+    const res = await executeTool(
+      "write_file",
+      { path: file, content: "hello\n" },
+      { cwd: tmpDir },
+    );
+    expect(res.success).toBe(true);
+    expect(res.newDiagnostics).toBeUndefined();
+  });
+
+  it("edit_file returns quickly and unchanged when no server is available", async () => {
+    const file = path.join(tmpDir, "sample.ts");
+    fs.writeFileSync(file, "const x = 1;\n", "utf8");
+    const started = Date.now();
+    const res = await executeTool(
+      "edit_file",
+      { path: file, old_string: "const x = 1;", new_string: "const x = 2;" },
+      { cwd: tmpDir },
+    );
+    expect(res.success).toBe(true);
+    expect(res.replaced).toBe(1);
+    // No server installed → helper short-circuits without cold-starting anything.
+    expect(res.newDiagnostics).toBeUndefined();
+    expect(Date.now() - started).toBeLessThan(4000);
+  });
+
+  it("respects CC_EDIT_DIAGNOSTICS=0", async () => {
+    const prev = process.env.CC_EDIT_DIAGNOSTICS;
+    process.env.CC_EDIT_DIAGNOSTICS = "0";
+    try {
+      const file = path.join(tmpDir, "disabled.ts");
+      fs.writeFileSync(file, "const y = 1;\n", "utf8");
+      const res = await executeTool(
+        "edit_file",
+        { path: file, old_string: "const y = 1;", new_string: "const y = 3;" },
+        { cwd: tmpDir },
+      );
+      expect(res.success).toBe(true);
+      expect(res.newDiagnostics).toBeUndefined();
+    } finally {
+      if (prev === undefined) delete process.env.CC_EDIT_DIAGNOSTICS;
+      else process.env.CC_EDIT_DIAGNOSTICS = prev;
+    }
+  });
+});
+
 // Live path — only when a TS server is actually installed. Skipped otherwise so
 // the suite never fails for a missing external toolchain (undeclared-deps gate).
 const tsAvailable = probeServers(process.cwd()).some(
   (s) => s.id === "typescript-language-server" && s.available,
 );
+
+describe.skipIf(!tsAvailable)("post-edit diagnostics — live TS server", () => {
+  let tmpDir;
+
+  beforeAll(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-edit-live-"));
+    fs.writeFileSync(
+      path.join(tmpDir, "tsconfig.json"),
+      JSON.stringify({ compilerOptions: { strict: true } }),
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, "m.ts"),
+      "export function add(a: number, b: number): number {\n  return a + b;\n}\n",
+      "utf8",
+    );
+  });
+
+  afterAll(async () => {
+    await disposeSharedCodeIntel();
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+  });
+
+  it("attaches newDiagnostics when an edit introduces a type error", async () => {
+    const res = await executeTool(
+      "edit_file",
+      {
+        path: path.join(tmpDir, "m.ts"),
+        old_string: "return a + b;",
+        new_string: "return a + b + c;",
+      },
+      { cwd: tmpDir },
+    );
+    expect(res.success).toBe(true);
+    expect(Array.isArray(res.newDiagnostics)).toBe(true);
+    expect(res.newDiagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+});
 
 describe.skipIf(!tsAvailable)("code_intelligence tool — live TS server", () => {
   afterAll(async () => {

@@ -514,7 +514,8 @@ Key behaviors:
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use read_file and search_files to find information
-- Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search; after an edit, use code_intelligence (action: diagnostics) to catch new type/syntax errors in the same turn. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
+- Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
+- After an edit, if the tool result includes a "newDiagnostics" array, you just introduced (or exposed) those errors/warnings — read them and fix before moving on. You can also run code_intelligence (action: diagnostics) on any file to check it on demand.
 - You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
 - Always explain what you're doing and show results
 - Be concise but thorough
@@ -1750,6 +1751,70 @@ export async function disposeSharedCodeIntel() {
   await Promise.all(entries.map((e) => e.ci.dispose().catch(() => {})));
 }
 
+// Hard wall-clock cap so post-edit diagnostics never stall the agent: a cold
+// language server can take seconds to load a project on the FIRST edit; after
+// that the server is warm and answers in well under a second.
+const EDIT_DIAGNOSTICS_WALL_MS = 6000;
+
+/**
+ * Best-effort "did this edit introduce a new error?" check. Run after a
+ * successful workspace edit so the model sees fresh type/syntax errors in the
+ * SAME turn instead of discovering them on the next build (the plan's
+ * "编辑后执行增量诊断并将相关错误回喂 Agent"). Returns a compact array of
+ * error/warning diagnostics, or null.
+ *
+ * Zero cost when no language server is installed for the file (probes first,
+ * never cold-starts a server that isn't there) and fully bounded in time.
+ * Disable entirely with CC_EDIT_DIAGNOSTICS=0.
+ */
+async function _postEditDiagnostics(filePath, cwd) {
+  if (process.env.CC_EDIT_DIAGNOSTICS === "0") return null;
+  let hasServer = false;
+  try {
+    const { languageIdForFile, resolveServer } =
+      await import("../lib/lsp/lsp-server-registry.js");
+    const languageId = languageIdForFile(filePath);
+    if (!languageId) return null; // unsupported file type — no LSP, no cost
+    hasServer = Boolean(
+      resolveServer(languageId, path.resolve(cwd || process.cwd())),
+    );
+  } catch {
+    return null;
+  }
+  if (!hasServer) return null;
+
+  const query = (async () => {
+    try {
+      const ci = await _getSharedCodeIntel(cwd);
+      const res = await ci.refreshFile(filePath, { timeoutMs: 3000 });
+      if (!res || res.available === false) return null;
+      const diags = (res.diagnostics || []).filter(
+        (d) => d.severity === "error" || d.severity === "warning",
+      );
+      return diags.length ? diags.slice(0, 20) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  let capTimer;
+  const cap = new Promise((resolve) => {
+    capTimer = setTimeout(() => resolve(null), EDIT_DIAGNOSTICS_WALL_MS);
+    if (typeof capTimer.unref === "function") capTimer.unref();
+  });
+  try {
+    return await Promise.race([query, cap]);
+  } finally {
+    clearTimeout(capTimer);
+  }
+}
+
+/** Merge post-edit diagnostics into a successful edit result (no-op if none). */
+async function _withPostEditDiagnostics(result, filePath, cwd) {
+  const newDiagnostics = await _postEditDiagnostics(filePath, cwd);
+  return newDiagnostics ? { ...result, newDiagnostics } : result;
+}
+
 async function executeToolInner(
   name,
   args,
@@ -1894,11 +1959,13 @@ async function executeToolInner(
       }
       const wrote = writeFileVerified(filePath, args.content);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
-      return attachDescriptor({
-        success: true,
-        path: filePath,
-        size: wrote.size,
-      });
+      return attachDescriptor(
+        await _withPostEditDiagnostics(
+          { success: true, path: filePath, size: wrote.size },
+          filePath,
+          cwd,
+        ),
+      );
     }
 
     case "notebook_edit": {
@@ -1954,12 +2021,18 @@ async function executeToolInner(
       }
       const wrote = writeFileVerified(filePath, newContent);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
-      return attachDescriptor({
-        success: true,
-        path: filePath,
-        size: wrote.size,
-        replaced: replaceAll ? count : 1,
-      });
+      return attachDescriptor(
+        await _withPostEditDiagnostics(
+          {
+            success: true,
+            path: filePath,
+            size: wrote.size,
+            replaced: replaceAll ? count : 1,
+          },
+          filePath,
+          cwd,
+        ),
+      );
     }
 
     case "edit_file_hashed": {
@@ -2003,13 +2076,19 @@ async function executeToolInner(
       }
       const wrote = writeFileVerified(filePath, result.content);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
-      return attachDescriptor({
-        success: true,
-        path: filePath,
-        size: wrote.size,
-        lineNumber: result.lineNumber,
-        previousContent: result.previousContent,
-      });
+      return attachDescriptor(
+        await _withPostEditDiagnostics(
+          {
+            success: true,
+            path: filePath,
+            size: wrote.size,
+            lineNumber: result.lineNumber,
+            previousContent: result.previousContent,
+          },
+          filePath,
+          cwd,
+        ),
+      );
     }
 
     case "run_shell": {
