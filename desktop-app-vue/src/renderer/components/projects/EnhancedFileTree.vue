@@ -214,6 +214,11 @@
 <script setup>
 import { logger } from "@/utils/logger";
 import { safeJsonParse } from "@/utils/loose-json";
+import {
+  getDirectoryName,
+  getStatusColor,
+  getStatusLabel,
+} from "./enhancedFileTreeUtils";
 
 import { ref, computed, watch, h, nextTick, onMounted, onUpdated } from "vue";
 import { message, Modal, Input } from "ant-design-vue";
@@ -294,15 +299,6 @@ const importing = ref(false); // 导入状态
 const exporting = ref(false); // 导出状态
 
 // Helper function to get directory name from path (browser-compatible)
-const getDirectoryName = (filePath) => {
-  if (!filePath) {
-    return "";
-  }
-  const normalized = filePath.replace(/\\/g, "/"); // Normalize Windows paths
-  const lastSlash = normalized.lastIndexOf("/");
-  return lastSlash >= 0 ? normalized.substring(0, lastSlash) : "";
-};
-
 // 文件图标映射
 const fileIconMap = {
   js: CodeOutlined,
@@ -1201,30 +1197,6 @@ const handleExternalFileDrop = async (files, targetNode) => {
 const getCurrentProjectId = () => {
   // 从父组件 props 获取项目ID（required prop）
   return props.projectId;
-};
-
-// Git状态颜色
-const getStatusColor = (status) => {
-  const colorMap = {
-    modified: "orange",
-    added: "green",
-    deleted: "red",
-    untracked: "blue",
-    renamed: "purple",
-  };
-  return colorMap[status] || "default";
-};
-
-// Git状态标签
-const getStatusLabel = (status) => {
-  const labelMap = {
-    modified: "M",
-    added: "A",
-    deleted: "D",
-    untracked: "U",
-    renamed: "R",
-  };
-  return labelMap[status] || "?";
 };
 
 // 导入文件

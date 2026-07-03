@@ -414,6 +414,12 @@ import {
   chartToPngDataURL,
   downloadDataURL,
 } from "./additionalToolsStatsExport";
+import {
+  getCategoryColor,
+  getCategoryName,
+  getSuccessRateColor,
+  getToolSuccessRate,
+} from "./additionalToolsStatsUtils";
 
 // 加载状态
 const loading = ref(true);
@@ -1244,57 +1250,6 @@ const initTrendChart = () => {
 };
 
 // 辅助函数
-const getCategoryColor = (category) => {
-  const colorMap = {
-    blockchain: "blue",
-    finance: "green",
-    crm: "orange",
-    project: "purple",
-    code: "cyan",
-    simulation: "magenta",
-    analysis: "geekblue",
-    management: "lime",
-    general: "default",
-  };
-  return colorMap[category] || "default";
-};
-
-const getCategoryName = (category) => {
-  const nameMap = {
-    blockchain: "区块链",
-    finance: "财务",
-    crm: "CRM",
-    project: "项目管理",
-    code: "代码生成",
-    simulation: "模拟仿真",
-    analysis: "分析",
-    management: "管理",
-    general: "通用",
-  };
-  return nameMap[category] || category;
-};
-
-const getSuccessRateColor = (rateStr) => {
-  const rate = parseFloat(rateStr);
-  if (rate >= 90) {
-    return "#52c41a";
-  }
-  if (rate >= 70) {
-    return "#1890ff";
-  }
-  if (rate >= 50) {
-    return "#faad14";
-  }
-  return "#f5222d";
-};
-
-const getToolSuccessRate = (tool) => {
-  if (!tool.usage_count || tool.usage_count === 0) {
-    return 0;
-  }
-  return ((tool.success_count / tool.usage_count) * 100).toFixed(1);
-};
-
 // 手动刷新
 const handleRefresh = async () => {
   await loadDashboardData();
