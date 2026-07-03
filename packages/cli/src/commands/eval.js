@@ -8,11 +8,16 @@
  * so the harness + report can be exercised without a model.
  */
 
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
+import {
+  TelemetryRecorder,
+  formatTelemetry,
+} from "../lib/telemetry/span-recorder.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This file is src/commands/eval.js → the CLI entry is bin/chainlesschain.js.
@@ -90,6 +95,10 @@ export function registerEvalCommand(program, { logger } = {}) {
     .option("--json", "Output the summary as JSON")
     .option("--keep", "Keep the per-task temp workspaces (debug)")
     .option(
+      "--otlp <file>",
+      "Write OpenTelemetry (OTLP/JSON) spans for the run to a file",
+    )
+    .option(
       "--dry-run",
       "Use a no-op agent (exercise the harness/report without a model)",
     )
@@ -109,8 +118,12 @@ export function registerEvalCommand(program, { logger } = {}) {
             provider: options.provider,
           });
 
+      // OTel-shaped telemetry for the run (per-task span + failure class).
+      const recorder = new TelemetryRecorder({ serviceName: "cc-eval" });
+
       const summary = await runEvalSuite(tasks, {
         runAgent,
+        recorder,
         keepWorkspaces: options.keep === true,
         onResult: options.json
           ? undefined
@@ -125,14 +138,30 @@ export function registerEvalCommand(program, { logger } = {}) {
               ),
       });
 
+      if (options.otlp) {
+        try {
+          fs.writeFileSync(
+            options.otlp,
+            JSON.stringify(recorder.toOtlp(), null, 2),
+            "utf8",
+          );
+        } catch (e) {
+          (log.error || console.error)(`  otlp write failed: ${e.message}`);
+        }
+      }
+
       if (options.json) {
         console.log(JSON.stringify(summary, null, 2));
       } else {
-        // Per-task lines already streamed via onResult; print just the summary.
+        // Per-task lines already streamed via onResult; print the summary +
+        // the telemetry metrics (durations / failure classification).
         const pct = (summary.passRate * 100).toFixed(1);
         (log.log || console.log)(
           `\nEval: ${summary.passed}/${summary.total} passed (${pct}%) in ${summary.ms}ms`,
         );
+        if (summary.telemetry) {
+          (log.log || console.log)("\n" + formatTelemetry(summary.telemetry));
+        }
       }
       // Non-zero exit when not every task passed — usable as a CI gate.
       if (summary.passed < summary.total) process.exitCode = 1;

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { runEvalSuite, formatEvalReport } from "../../src/lib/eval/runner.js";
 import { BUILTIN_TASKS, getSuite } from "../../src/lib/eval/tasks.js";
+import { TelemetryRecorder } from "../../src/lib/telemetry/span-recorder.js";
 
 // A "perfect agent" that actually performs each built-in task in its workspace,
 // so the objective checks pass — this validates BOTH the harness scoring AND
@@ -127,6 +128,34 @@ describe("formatEvalReport", () => {
     const n = BUILTIN_TASKS.length;
     expect(report).toMatch(new RegExp(`Eval: ${n}/${n} passed \\(100\\.0%\\)`));
     expect(report).toMatch(/✔ create-file/);
+  });
+});
+
+describe("runEvalSuite telemetry", () => {
+  it("records a span per task and classifies failures when a recorder is passed", async () => {
+    const recorder = new TelemetryRecorder();
+    // Solve none → every task is a check_failed span.
+    const summary = await runEvalSuite(BUILTIN_TASKS, {
+      runAgent: noopAgent,
+      recorder,
+    });
+    expect(summary.telemetry).toBeTruthy();
+    expect(summary.telemetry.durations["eval.task"].count).toBe(
+      BUILTIN_TASKS.length,
+    );
+    expect(summary.telemetry.durations["eval.task"].errors).toBe(
+      BUILTIN_TASKS.length,
+    );
+    expect(summary.telemetry.failures.check_failed).toBe(BUILTIN_TASKS.length);
+    // OTLP export carries one span per task.
+    expect(recorder.toOtlp().resourceSpans[0].scopeSpans[0].spans).toHaveLength(
+      BUILTIN_TASKS.length,
+    );
+  });
+
+  it("omits telemetry when no recorder is passed (back-compat)", async () => {
+    const summary = await runEvalSuite(BUILTIN_TASKS, { runAgent: noopAgent });
+    expect(summary.telemetry).toBeUndefined();
   });
 });
 

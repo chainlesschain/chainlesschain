@@ -46,6 +46,7 @@ export async function runEvalSuite(tasks, opts = {}) {
   const results = [];
   const suiteStart = _deps.now();
 
+  const recorder = opts.recorder || null;
   for (const task of tasks) {
     const started = _deps.now();
     let dir = null;
@@ -57,6 +58,11 @@ export async function runEvalSuite(tasks, opts = {}) {
       detail: "",
       error: null,
     };
+    // One telemetry span per task (duration + pass/fail + failure category),
+    // feeding the OTel-shaped recorder when the caller supplies one.
+    const span = recorder
+      ? recorder.startSpan("eval.task", { "task.id": rec.id })
+      : null;
     try {
       if (!task || typeof task.id !== "string") {
         throw new Error("task.id is required");
@@ -93,6 +99,23 @@ export async function runEvalSuite(tasks, opts = {}) {
       rec.pass = false;
     } finally {
       rec.ms = _deps.now() - started;
+      if (span) {
+        span.setAttribute("pass", rec.pass);
+        if (!rec.pass) {
+          // Classify the failure: an agent crash vs a wrong-answer (check
+          // failed) — the plan's "失败分类".
+          const category = rec.error
+            ? rec.error.startsWith("agent error")
+              ? "agent_error"
+              : "harness_error"
+            : "check_failed";
+          span.recordException(
+            new Error(rec.error || rec.detail || "task failed"),
+            category,
+          );
+        }
+        span.end();
+      }
       if (dir && !opts.keepWorkspaces) {
         try {
           _deps.rmSync(dir, { recursive: true, force: true });
@@ -120,6 +143,7 @@ export async function runEvalSuite(tasks, opts = {}) {
     total,
     passRate: total > 0 ? passed / total : 0,
     ms: _deps.now() - suiteStart,
+    ...(recorder ? { telemetry: recorder.summary() } : {}),
   };
 }
 
