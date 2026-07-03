@@ -567,6 +567,14 @@ import { logger } from "@/utils/logger";
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { message, Modal } from "ant-design-vue";
 import {
+  getTypeName,
+  getStatusLabel,
+  getStatusColor,
+  shortenDID,
+  formatDate,
+  formatJSON,
+} from "./vcManagementUtils";
+import {
   PlusOutlined,
   FolderOpenOutlined,
   ImportOutlined,
@@ -889,70 +897,6 @@ async function handleExportCredential(id) {
 }
 
 // 获取类型名称
-function getTypeName(type) {
-  const names = {
-    SelfDeclaration: "自我声明",
-    SkillCertificate: "技能证书",
-    TrustEndorsement: "信任背书",
-    EducationCredential: "教育凭证",
-    WorkExperience: "工作经历",
-  };
-  return names[type] || type;
-}
-
-// 获取状态标签
-function getStatusLabel(status) {
-  const labels = {
-    active: "有效",
-    revoked: "已撤销",
-    expired: "已过期",
-  };
-  return labels[status] || status;
-}
-
-// 获取状态颜色
-function getStatusColor(status) {
-  const colors = {
-    active: "success",
-    revoked: "error",
-    expired: "default",
-  };
-  return colors[status] || "default";
-}
-
-// 缩短 DID
-function shortenDID(did) {
-  if (!did) {
-    return "";
-  }
-  const parts = did.split(":");
-  if (parts.length === 3) {
-    const identifier = parts[2];
-    return `did:${parts[1]}:${identifier.substring(0, 8)}...${identifier.substring(
-      identifier.length - 6,
-    )}`;
-  }
-  return did;
-}
-
-// 格式化日期
-function formatDate(timestamp) {
-  if (!timestamp) {
-    return "未知";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN");
-}
-
-// 格式化 JSON
-function formatJSON(jsonString) {
-  try {
-    return JSON.stringify(JSON.parse(jsonString), null, 2);
-  } catch (_error) {
-    return jsonString;
-  }
-}
-
 // 模板选择变化
 function onTemplateSelectionChange(selectedKeys) {
   selectedTemplateIds.value = selectedKeys;
