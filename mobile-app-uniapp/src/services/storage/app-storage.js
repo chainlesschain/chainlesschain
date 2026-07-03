@@ -175,17 +175,22 @@ export class AppStorage extends StorageInterface {
       sql += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
-    // Add ORDER BY
+    // Add ORDER BY — ORDER BY cannot be parameterized, so validate the
+    // caller-supplied field/direction to prevent SQL injection.
     if (options.orderBy) {
       const [field, direction] = options.orderBy.split(' ');
-      sql += ` ORDER BY ${field} ${direction || 'ASC'}`;
+      const safeField = /^[A-Za-z_][A-Za-z0-9_]*$/.test(field) ? field : 'created_at';
+      const safeDirection = String(direction).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+      sql += ` ORDER BY ${safeField} ${safeDirection}`;
     }
 
-    // Add LIMIT and OFFSET
+    // Add LIMIT and OFFSET — coerce to integers so string input can't inject.
     if (options.limit) {
-      sql += ` LIMIT ${options.limit}`;
+      const safeLimit = Math.max(0, parseInt(options.limit, 10) || 0);
+      sql += ` LIMIT ${safeLimit}`;
       if (options.offset) {
-        sql += ` OFFSET ${options.offset}`;
+        const safeOffset = Math.max(0, parseInt(options.offset, 10) || 0);
+        sql += ` OFFSET ${safeOffset}`;
       }
     }
 

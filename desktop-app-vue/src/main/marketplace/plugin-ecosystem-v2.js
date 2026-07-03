@@ -55,16 +55,26 @@ class PluginEcosystemV2 extends EventEmitter {
   }
 
   async _loadPlugins() {
+    let rows;
     try {
-      const rows = this.db.prepare("SELECT * FROM ecosystem_plugins").all();
-      for (const row of rows) {
-        this._plugins.set(row.id, {
-          ...row,
-          dependencies: JSON.parse(row.dependencies || "[]"),
-        });
-      }
+      rows = this.db.prepare("SELECT * FROM ecosystem_plugins").all();
     } catch (error) {
       logger.warn("[PluginEcosystemV2] Failed to load plugins:", error.message);
+      return;
+    }
+    // Per-row guard: one corrupt `dependencies` value must not discard the
+    // entire plugin list — skip the bad row and keep loading the rest.
+    for (const row of rows) {
+      let dependencies = [];
+      try {
+        dependencies = JSON.parse(row.dependencies || "[]");
+      } catch (error) {
+        logger.warn(
+          `[PluginEcosystemV2] Skipping bad dependencies JSON for plugin ${row.id}:`,
+          error.message,
+        );
+      }
+      this._plugins.set(row.id, { ...row, dependencies });
     }
   }
 

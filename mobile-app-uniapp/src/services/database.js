@@ -4588,7 +4588,21 @@ class DatabaseService {
       params.push(type);
     }
 
-    sql += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+    // Whitelist sort column + direction — ORDER BY cannot be parameterized (?),
+    // so unvalidated sortBy/sortOrder from callers would be SQL injection.
+    const allowedSortFields = new Set([
+      "id",
+      "name",
+      "type",
+      "status",
+      "owner_did",
+      "created_at",
+      "updated_at",
+    ]);
+    const safeSortBy = allowedSortFields.has(sortBy) ? sortBy : "updated_at";
+    const safeSortOrder = String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    sql += ` ORDER BY ${safeSortBy} ${safeSortOrder} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
     return this.selectSql(sql, params);
