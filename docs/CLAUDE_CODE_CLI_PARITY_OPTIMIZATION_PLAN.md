@@ -147,7 +147,9 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 >
 > **3.2 已落地（首个组件接入真实 agent 链）**：`lib/plugin-runtime/lsp.js` `ensurePluginLspServers()` 把插件 `.lsp.json` 经 Phase 2 `registerLanguageServer` 注册进 LSP registry，`code_intelligence` 工具与 `cc code-intel` 透明获得该语言的定义/引用/诊断 —— 新语言零核心改动。接在 `CodeIntelligence` 构造 + `cc code-intel status` 两处，按 root memoize、坏 manifest 不抛。真机验证：project-scope 插件声明 `toml`/taplo → `cc code-intel status` 列出、`.toml` 成识别扩展。12 单测。
 >
-> **待完成**：hooks/mcp/agents/monitors/bin 组件接入 agent 链（复用 skills 那条 `marketplace/skills/`→loader 通道 + `agent-core.js:3683-3690` extraTools 注入点）；source 拉取（github/git/local dir/remote manifest）；install/update/remove/rollback 走不可变版本目录；私有仓认证+离线 seed cache；组织级 allowlist/denylist；`/reload-plugins` 热加载。
+> **3.3b 已落地（Skills 组件接入 agent 链）**：`lib/plugin-runtime/skills.js` `discoverPluginSkillLayers()` 把各安装插件的 `skills/` dir（仅 manifest 校验通过者）作为 skill-loader 的 `"plugin"` 层（介于 marketplace 与 managed，用户 managed/workspace/project 技能仍覆盖），一插件一层，best-effort 不破坏加载。真机验证：project-scope 插件的 `skills/hello-plugin/SKILL.md` → `cc skill list` 带 `[plugin]` 标显示，直接从不可变版本目录加载不拷贝。
+>
+> **待完成**：mcp/hooks/agents/monitors/bin 组件接入 agent 链（mcp 装配零散需先 trace mcp-registry+bootstrap；hooks 走 hook-manager/settings-hook-events；tools 注入点 `agent-core.js:3683-3690` extraTools）；source 拉取（github/git/local dir/remote manifest）；install/update/remove/rollback 走不可变版本目录；私有仓认证+离线 seed cache；组织级 allowlist/denylist；`/reload-plugins` 热加载。
 
 #### 目标
 
