@@ -48,7 +48,7 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 ### Phase 1：OS 级 Agent 沙箱（P0）
 
-> 状态：进行中。已完成分层 settings 策略合并、Agent 接入、bubblewrap 初版后端、Docker 能力失败关闭和针对性单测；待完成网络代理、macOS Seatbelt、后台 Shell、Native Windows 方案与跨平台安全 E2E。
+> 状态：进行中。已完成分层 settings 策略合并、Agent 接入、bubblewrap 初版后端、Docker 能力失败关闭和针对性单测。**1.x 已落地（网络域名访问策略 + SSRF 守卫，2026-07-04）**：`lib/sandbox-network-policy.js` —— OS 级出口封禁属平台相关（proxy/seatbelt/bwrap），但**策略判定**是纯共享逻辑，独立可测：`extractHost`（URL / host:port / **IPv6 方括号归一** —— 修 `new URL()` `[::1]` 漏括号 SSRF 坑）+ `matchesDomain`（`*` / `*.example.com` 含 apex / 精确，防后缀欺骗）+ `isPrivateHost`（loopback/10/172.16-31/192.168/169.254/::1/fc00::/fe80::/云 metadata/IPv4-mapped）+ `evaluateNetworkAccess`（deny > 具体 allow > 私网守卫 > `*` allow > 默认拒 > 无表放行；裸 `*` 放行公网但**不含**内网/metadata；具体列白名单可覆盖私网守卫供 dev）。接进 `sandbox-v2.js` `checkNetworkPermission`（原仅精确串匹配，URL/`[::1]` 会漏）。14 策略单测 + 148 sandbox 测试全绿。满足验收「未授权域名无法通过 curl/npm/pip 访问」+ SSRF/DNS-rebinding 安全测试的**策略层**（连接时 IP 重解析防 rebinding 属 OS/proxy 层）。**待完成**：OS 级出口强制（macOS Seatbelt / Linux bwrap egress / Native Windows AppContainer——平台相关，Windows 机不可验证）、后台 Shell、跨平台真隔离 E2E。
 
 #### 目标
 
@@ -253,6 +253,8 @@ plugin/
 
 ### Phase 5：Remote Control 产品化（P1）
 
+> 状态：进行中。底座已 **EXISTS（健全）**：`harness/remote-session-*`、`gateways/remote-session-relay.js`、`cc serve --allow-remote`（仅出站中继 + E2EE + 二维码配对 + registry.revokeMember）。**5.x 断线幂等/全序/撤销核心已落地（2026-07-04）**：`harness/remote-command-ledger.js` `RemoteCommandLedger` —— 纯逻辑、独立可测，直击三条验收里**与设备/硬件无关**的部分：①**断网恢复不重复执行工具调用**——`apply(command, execute)` 按 `commandId` **at-most-once**，重投（reconnect 重发同 commandId）返回缓存 `replayed` 不再执行；**失败的执行不缓存**（重试可再跑），杜绝"半截失败被当成已完成"。②**三端交替顺序一致**——`applyIndex` 单调全序，`appliedSince(cursor)` 让重连端只补尾部；per-device `seq` 倒退（新 commandId 却低 seq = 协议违规）拒绝。③**被撤销设备无法继续控制**——`revokeDevice`/`isRevoked`/构造期 `revokedDevices`，撤销后该设备全部命令拒绝且不执行。`snapshot`/`restore` 往返保幂等+撤销态（注入时钟确定性）。9 单测（幂等重放 / 失败不缓存 / 全序 + 游标追赶 / stale-seq 拒 / 撤销拒 / 快照往返）。**待完成（设备/集成阻塞，Win 单机不可验）**：接进 `cc serve --allow-remote` WebSocket host executor 的真调用路径；三端（Terminal/Web/Mobile）真 UX + 实时同步 E2E；Worktree 模式并发远程会话隔离的真机验证。
+
 #### 目标
 
 允许用户从终端、浏览器和移动端安全接管本地 Agent 会话，同时保留本地文件、MCP、工具和项目配置。
@@ -389,19 +391,19 @@ plugin/
 
 | 能力                         | CLI/API | 真实运行语义 | 安全边界 | 异常恢复 | 跨平台 | 自动化测试 | 文档 |
 | ---------------------------- | ------- | ------------ | -------- | -------- | ------ | ---------- | ---- |
-| Sandbox（OS 隔离）           | ✅      | 部分         | 部分     | 部分     | 部分   | 部分       | ✅   |
+| Sandbox（OS 隔离）           | ✅      | 部分         | 部分＋   | 部分     | 部分   | 部分＋     | ✅   |
 | LSP 代码智能                 | ✅      | ✅           | ✅       | 部分     | 部分   | ✅         | ✅   |
 | 插件运行时（8 组件）         | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | Marketplace 安装生命周期     | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | Agent Team（lease 图）       | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
-| Remote Control               | ✅      | ✅           | 部分     | 部分     | 部分   | 部分       | 部分 |
+| Remote Control               | ✅      | ✅           | 部分＋   | 部分＋   | 部分   | 部分＋     | 部分 |
 | 异步 Hooks                   | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 后台 Monitors                | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 编辑并发保护                 | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 模型 fallback（跨 provider） | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 可靠性评测（任务成功率）     | ✅      | ✅           | n/a      | ✅       | ✅     | ✅         | ✅   |
 
-> 判读：Sandbox 的「真实运行语义/跨平台」仍为部分（原生 Windows 隔离、网络域控、macOS Seatbelt E2E 未全落）；Agent Team 已全绿（lease 独占防重复 + 会话恢复 + per-teammate worktree 隔离 + 冲突预览安全合并，均有真机/真-git 自动化证据）；Remote Control 为「产品化」既有能力，安全/恢复/跨平台的**可验证证据**（断线序列幂等、设备撤销 E2E）待补。异步 Hooks / Monitors / 评测 / 编辑并发 / 模型 fallback 均已具备自动化证据。**当前未全绿仅剩两项且均为环境阻塞**：Sandbox（原生 OS 隔离需 Linux/macOS，Windows 侧不可验证）、Remote Control（需真机三端 + 断线注入）。
+> 判读：Sandbox 的「安全边界/自动化测试」由**部分**升为**部分＋**——**网络域名访问策略 + SSRF 守卫已落地**（`lib/sandbox-network-policy.js`，wildcard/apex/deny-precedence/default-deny + 私网/loopback/云 metadata/IPv6 方括号 SSRF 拦截，14 策略单测 + 148 sandbox 测试，已接进 `sandbox-v2.js` `checkNetworkPermission`）；剩「真实运行语义/跨平台」仍为部分（**OS 级出口强制** —— 原生 Windows AppContainer / macOS Seatbelt / Linux bwrap egress E2E 未全落，属平台相关）。Agent Team 已全绿（lease 独占防重复 + 会话恢复 + per-teammate worktree 隔离 + 冲突预览安全合并，均有真机/真-git 自动化证据）。Remote Control 由**部分**升为**部分＋**——**断线幂等/全序/设备撤销核心已落地**（`harness/remote-command-ledger.js`：commandId at-most-once 重放、失败不缓存、applyIndex 全序 + 游标追赶、per-device stale-seq 拒、revokeDevice、snapshot/restore，9 单测）；剩三端真 UX + 断线注入 E2E + host executor 真接线（需真机）。异步 Hooks / Monitors / 评测 / 编辑并发 / 模型 fallback 均已具备自动化证据。**当前未全绿仅剩两项且均为环境阻塞**：Sandbox（**策略层已可测全绿**，仅剩原生 OS 出口隔离需 Linux/macOS，Windows 侧不可验证）、Remote Control（**幂等/撤销核心已可测全绿**，仅剩真机三端 + 断线注入 E2E）。
 
 ## 7. 近期首批任务建议
 
