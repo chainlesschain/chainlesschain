@@ -93,6 +93,18 @@ class CodingAgentBridge extends EventEmitter {
         "--project",
         this.projectRoot,
       ];
+      if (process.env.CHAINLESSCHAIN_REMOTE_SESSION_RELAY_URL) {
+        args.push(
+          "--remote-session-relay-url",
+          process.env.CHAINLESSCHAIN_REMOTE_SESSION_RELAY_URL,
+        );
+      }
+      if (process.env.CHAINLESSCHAIN_REMOTE_SESSION_PEER_ID) {
+        args.push(
+          "--remote-session-peer-id",
+          process.env.CHAINLESSCHAIN_REMOTE_SESSION_PEER_ID,
+        );
+      }
 
       this.serverProcess = _deps.spawn(process.execPath, args, {
         cwd: this.cwd,
@@ -369,6 +381,46 @@ class CodingAgentBridge extends EventEmitter {
     return this.request("session-interrupt", { sessionId }, [
       "session.interrupted",
       "session-interrupted",
+    ]);
+  }
+
+  async createRemoteSession(sessionId, options = {}) {
+    return this.request(
+      "remote-session-create",
+      {
+        sessionId,
+        name: options.name || null,
+        scopes: options.scopes,
+      },
+      ["remote-session-created"],
+    );
+  }
+
+  async refreshRemoteSessionPairing(remoteSessionId, scopes) {
+    return this.request(
+      "remote-session-pairing-token",
+      { remoteSessionId, scopes },
+      ["remote-session-pairing-token"],
+    );
+  }
+
+  async listRemoteSessionDevices(remoteSessionId) {
+    return this.request("remote-session-devices", { remoteSessionId }, [
+      "remote-session-devices",
+    ]);
+  }
+
+  async revokeRemoteSessionDevice(remoteSessionId, clientId) {
+    return this.request(
+      "remote-session-revoke",
+      { remoteSessionId, clientId },
+      ["remote-session-revoked"],
+    );
+  }
+
+  async closeRemoteSession(remoteSessionId) {
+    return this.request("remote-session-close", { remoteSessionId }, [
+      "remote-session-closed",
     ]);
   }
 

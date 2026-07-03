@@ -86,6 +86,7 @@ import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
 import com.chainlesschain.android.remote.ui.clipboard.ClipboardSyncScreen
 import com.chainlesschain.android.remote.ui.notification.RemoteNotificationScreen
+import com.chainlesschain.android.remote.session.RemoteSessionScreen
 import com.chainlesschain.android.remote.ui.personalDataHub.PersonalDataHubScreen
 import com.chainlesschain.android.remote.ui.workflow.WorkflowScreen
 import com.chainlesschain.android.remote.ui.connection.ConnectionStatusScreen
@@ -886,6 +887,7 @@ fun NavGraph(
                 onNavigateToAIChat = { navController.navigate(Screen.RemoteAIChat.route) },
                 onNavigateToRAGSearch = { navController.navigate(Screen.RemoteRAGSearch.route) },
                 onNavigateToAgentControl = { navController.navigate(Screen.RemoteAgentControl.route) },
+                onNavigateToRemoteSession = { navController.navigate(Screen.RemoteSession.route) },
                 onNavigateToScreenshot = { navController.navigate(Screen.RemoteScreenshot.route) },
                 onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
                 onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
@@ -923,6 +925,7 @@ fun NavGraph(
                 onNavigateToAIChat = { navController.navigate(Screen.RemoteAIChat.route) },
                 onNavigateToRAGSearch = { navController.navigate(Screen.RemoteRAGSearch.route) },
                 onNavigateToAgentControl = { navController.navigate(Screen.RemoteAgentControl.route) },
+                onNavigateToRemoteSession = { navController.navigate(Screen.RemoteSession.route) },
                 onNavigateToScreenshot = { navController.navigate(Screen.RemoteScreenshot.route) },
                 onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
                 onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
@@ -947,6 +950,9 @@ fun NavGraph(
         }
         composable(Screen.RemoteAIChat.route) {
             RemoteAIChatScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteSession.route) {
+            RemoteSessionScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.RemoteRAGSearch.route) {
             RemoteRAGSearchScreen(onNavigateBack = { navController.popBackStack() })
@@ -1277,6 +1283,7 @@ sealed class Screen(val route: String) {
     data object RemoteAIChat : Screen("remote_ai_chat")
     data object RemoteRAGSearch : Screen("remote_rag_search")
     data object RemoteAgentControl : Screen("remote_agent_control")
+    data object RemoteSession : Screen("remote_session")
     data object RemoteScreenshot : Screen("remote_screenshot")
     data object RemoteSystemMonitor : Screen("remote_system_monitor")
     data object RemoteCommandHistory : Screen("remote_command_history")

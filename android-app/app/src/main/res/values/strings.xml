@@ -1207,4 +1207,6 @@
     <string name="ro_error_label">Error</string>
     <string name="ro_response_label">Response</string>
     <string name="ro_unpair">Unpair</string>
+    <string name="remote_coding_session">Remote Coding Session</string>
+    <string name="remote_coding_session_desc">Scan a desktop session and continue securely</string>
 </resources>

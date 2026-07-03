@@ -245,6 +245,10 @@
             >
               {{ planActionLabel }}
             </a-button>
+            <RemoteSessionPanel
+              v-if="agentMode"
+              :session-id="codingAgentStore.currentSessionId"
+            />
           </div>
           <a-alert
             v-if="currentWorktreeAlert"
@@ -1183,6 +1187,7 @@ import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
 import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
+import RemoteSessionPanel from "@/components/chat/RemoteSessionPanel.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
 import {

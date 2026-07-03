@@ -271,6 +271,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resumeSession: (sessionId) =>
       ipcRenderer.invoke("coding-agent:resume-session", sessionId),
     listSessions: () => ipcRenderer.invoke("coding-agent:list-sessions"),
+    createRemoteSession: (payload) =>
+      ipcRenderer.invoke("coding-agent:create-remote-session", payload),
+    refreshRemoteSessionPairing: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:refresh-remote-session-pairing",
+        payload,
+      ),
+    listRemoteSessionDevices: (remoteSessionId) =>
+      ipcRenderer.invoke(
+        "coding-agent:list-remote-session-devices",
+        remoteSessionId,
+      ),
+    revokeRemoteSessionDevice: (payload) =>
+      ipcRenderer.invoke("coding-agent:revoke-remote-session-device", payload),
+    closeRemoteSession: (remoteSessionId) =>
+      ipcRenderer.invoke("coding-agent:close-remote-session", remoteSessionId),
     sendMessage: (payload) =>
       ipcRenderer.invoke("coding-agent:send-message", payload),
     enterPlanMode: (sessionId) =>

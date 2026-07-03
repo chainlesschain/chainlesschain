@@ -27,6 +27,9 @@ import {
   createRuntimeEvent,
 } from "../../runtime/runtime-events.js";
 import { createWsMessageDispatcher } from "./message-dispatcher.js";
+import { RemoteSessionRegistry } from "../../harness/remote-session-registry.js";
+import { RemoteSessionRelay } from "../remote-session-relay.js";
+import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
 import {
   handleSessionCreate,
@@ -226,6 +229,22 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */
     this.sessionHandlers = new Map();
+    /** Local authorization state for multi-device Remote Sessions. */
+    this.remoteSessions =
+      options.remoteSessionRegistry || new RemoteSessionRegistry();
+    this.remoteSessionRelayUrl = options.remoteSessionRelayUrl || null;
+    this.remoteSessionPeerId = options.remoteSessionPeerId || null;
+    this.remoteSessionCrypto = new Map();
+    this.remoteSessionPairingSecrets = new Map();
+    this.remoteSessionRelay =
+      options.remoteSessionRelay ||
+      (this.remoteSessionRelayUrl && this.remoteSessionPeerId
+        ? new RemoteSessionRelay({
+            relayUrl: this.remoteSessionRelayUrl,
+            peerId: this.remoteSessionPeerId,
+          })
+        : null);
+    this._attachRemoteSessionRelay();
     this._dispatcher = createWsMessageDispatcher(this);
 
     this._heartbeatTimer = null;
@@ -251,6 +270,12 @@ export class ChainlessChainWSServer extends EventEmitter {
           this.port = addr.port;
         }
         this._startHeartbeat();
+        this.remoteSessionRelay?.connect().catch((error) => {
+          this.emit("client-error", {
+            clientId: "remote-session-relay",
+            error: error.message,
+          });
+        });
         this.emit("listening", { port: this.port, host: this.host });
         resolve();
       });
@@ -285,6 +310,9 @@ export class ChainlessChainWSServer extends EventEmitter {
       }
     }
     this.sessionHandlers.clear();
+    this.remoteSessionCrypto.clear();
+    this.remoteSessionPairingSecrets.clear();
+    this.remoteSessionRelay?.close();
 
     // Kill all running child processes
     for (const [id, child] of this.processes) {
@@ -391,6 +419,12 @@ export class ChainlessChainWSServer extends EventEmitter {
         client.authTimer = null;
       }
       this.clients.delete(clientId);
+      for (const affected of this.remoteSessions.removeClient(clientId)) {
+        if (affected.closed)
+          this.remoteSessionCrypto.delete(affected.sessionId);
+        if (affected.closed)
+          this.remoteSessionPairingSecrets.delete(affected.sessionId);
+      }
       this.emit("disconnection", { clientId });
     });
 
@@ -975,10 +1009,134 @@ export class ChainlessChainWSServer extends EventEmitter {
     if (ws.readyState === ws.OPEN) {
       try {
         ws.send(JSON.stringify(data));
+        this._mirrorRemoteSessionEvent(ws, data);
       } catch (_err) {
         // Connection may have just closed
       }
     }
+  }
+
+  /** Mirror canonical Agent Session output to paired Remote Session clients. */
+  _mirrorRemoteSessionEvent(hostWs, data) {
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !data.sessionId ||
+      String(data.type || "").startsWith("remote-session-")
+    ) {
+      return;
+    }
+    let hostClientId = null;
+    for (const [clientId, client] of this.clients) {
+      if (client.ws === hostWs) {
+        hostClientId = clientId;
+        break;
+      }
+    }
+    if (!hostClientId) return;
+
+    for (const remoteSession of this.remoteSessions.findHosted(
+      data.sessionId,
+      hostClientId,
+    )) {
+      for (const member of remoteSession.members.values()) {
+        if (
+          member.clientId === hostClientId ||
+          !member.scopes.includes("observe")
+        ) {
+          continue;
+        }
+        const target = this.clients.get(member.clientId);
+        if (!target && this.remoteSessionRelay) {
+          const crypto = this.remoteSessionCrypto.get(remoteSession.sessionId);
+          if (crypto) {
+            this.remoteSessionRelay.sendEncrypted(
+              member.clientId,
+              crypto.encrypt(member.clientId, data),
+            );
+          }
+          continue;
+        }
+        if (!target) continue;
+        this._send(target.ws, {
+          type: "remote-session-event",
+          remoteSessionId: remoteSession.sessionId,
+          agentSessionId: remoteSession.agentSessionId,
+          event: data,
+        });
+      }
+    }
+  }
+
+  _attachRemoteSessionRelay() {
+    if (!this.remoteSessionRelay) return;
+    this.remoteSessionRelay.on("relay-message", (message) => {
+      this._handleRemoteRelayMessage(message).catch((error) => {
+        this.emit("client-error", {
+          clientId: "remote-session-relay",
+          error: error.message,
+        });
+      });
+    });
+    this.remoteSessionRelay.on("encrypted-message", ({ from, envelope }) => {
+      this._handleRemoteEncryptedControl(from, envelope).catch((error) => {
+        this.emit("client-error", { clientId: from, error: error.message });
+      });
+    });
+  }
+
+  async _handleRemoteRelayMessage(message) {
+    if (
+      message?.type !== "message" ||
+      message.payload?.type !== "remote-session.pair"
+    )
+      return;
+    const payload = message.payload;
+    const sessionId = payload.envelope?.sessionId;
+    const crypto = this.remoteSessionCrypto.get(sessionId);
+    const token = this.remoteSessionPairingSecrets.get(sessionId);
+    if (!crypto || !token)
+      throw new Error("Remote Session pairing is unavailable or expired");
+    crypto.pair(payload.mobilePeerId, payload.mobilePublicKey, token);
+    const join = crypto.decrypt(payload.envelope);
+    if (join.type !== "pair.join" || join.token !== token) {
+      throw new Error("Invalid encrypted Remote Session pairing request");
+    }
+    this.remoteSessions.join({
+      sessionId,
+      clientId: payload.mobilePeerId,
+      token: join.token,
+    });
+    this.remoteSessionPairingSecrets.delete(sessionId);
+    this.remoteSessionRelay.sendEncrypted(
+      payload.mobilePeerId,
+      crypto.encrypt(payload.mobilePeerId, {
+        type: "pair.accepted",
+        remoteSessionId: sessionId,
+      }),
+    );
+  }
+
+  async _handleRemoteEncryptedControl(from, envelope) {
+    const crypto = this.remoteSessionCrypto.get(envelope?.sessionId);
+    if (!crypto) throw new Error("Remote Session crypto context not found");
+    const event = crypto.decrypt(envelope);
+    const virtualWs = {
+      OPEN: 1,
+      readyState: 1,
+      send: (raw) => {
+        const response = JSON.parse(raw);
+        this.remoteSessionRelay.sendEncrypted(
+          from,
+          crypto.encrypt(from, response),
+        );
+      },
+    };
+    await handleRemoteSessionPublish(this, from, virtualWs, {
+      id: `remote-${Date.now()}`,
+      remoteSessionId: envelope.sessionId,
+      event,
+    });
   }
 
   /** @private — broadcast a message to all connected, authenticated clients */

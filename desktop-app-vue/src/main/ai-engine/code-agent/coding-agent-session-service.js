@@ -350,6 +350,39 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
+  async createRemoteSession(sessionId, options = {}) {
+    this._requireSession(sessionId);
+    const response = await this.bridge.createRemoteSession(sessionId, options);
+    return { success: true, ...response };
+  }
+
+  async refreshRemoteSessionPairing(remoteSessionId, scopes) {
+    const response = await this.bridge.refreshRemoteSessionPairing(
+      remoteSessionId,
+      scopes,
+    );
+    return { success: true, ...response };
+  }
+
+  async listRemoteSessionDevices(remoteSessionId) {
+    const response =
+      await this.bridge.listRemoteSessionDevices(remoteSessionId);
+    return { success: true, ...response };
+  }
+
+  async revokeRemoteSessionDevice(remoteSessionId, clientId) {
+    const response = await this.bridge.revokeRemoteSessionDevice(
+      remoteSessionId,
+      clientId,
+    );
+    return { success: true, ...response };
+  }
+
+  async closeRemoteSession(remoteSessionId) {
+    const response = await this.bridge.closeRemoteSession(remoteSessionId);
+    return { success: true, ...response };
+  }
+
   async closeSession(sessionId, options = {}) {
     const response = await this.bridge.closeSession(sessionId);
 

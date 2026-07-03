@@ -7,6 +7,15 @@ import {
   PERSONAL_DATA_HUB_HANDLERS,
   PERSONAL_DATA_HUB_STREAMING_HANDLERS,
 } from "./personal-data-hub-protocol.js";
+import {
+  handleRemoteSessionCreate,
+  handleRemoteSessionClose,
+  handleRemoteSessionDevices,
+  handleRemoteSessionJoin,
+  handleRemoteSessionPairingToken,
+  handleRemoteSessionPublish,
+  handleRemoteSessionRevoke,
+} from "./remote-session-protocol.js";
 
 export function createWsMessageDispatcher(server) {
   return {
@@ -54,6 +63,20 @@ export function createWsMessageDispatcher(server) {
           server._handleSessionInterrupt(id, ws, message),
         "slash-command": () => server._handleSlashCommand(id, ws, message),
         "session-answer": () => server._handleSessionAnswer(id, ws, message),
+        "remote-session-create": () =>
+          handleRemoteSessionCreate(server, clientId, ws, message),
+        "remote-session-close": () =>
+          handleRemoteSessionClose(server, clientId, ws, message),
+        "remote-session-pairing-token": () =>
+          handleRemoteSessionPairingToken(server, clientId, ws, message),
+        "remote-session-join": () =>
+          handleRemoteSessionJoin(server, clientId, ws, message),
+        "remote-session-devices": () =>
+          handleRemoteSessionDevices(server, clientId, ws, message),
+        "remote-session-revoke": () =>
+          handleRemoteSessionRevoke(server, clientId, ws, message),
+        "remote-session-publish": () =>
+          handleRemoteSessionPublish(server, clientId, ws, message),
         "host-tool-result": () => server._handleHostToolResult(id, ws, message),
         orchestrate: () => server._handleOrchestrate(id, ws, message),
         "cowork-task": () => server._handleCoworkTask(id, ws, message),

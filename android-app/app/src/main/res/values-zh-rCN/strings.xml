@@ -1207,4 +1207,6 @@
     <string name="ro_error_label">错误</string>
     <string name="ro_response_label">响应</string>
     <string name="ro_unpair">解除配对</string>
+    <string name="remote_coding_session">远程编码会话</string>
+    <string name="remote_coding_session_desc">扫描桌面会话并安全地继续操作</string>
 </resources>

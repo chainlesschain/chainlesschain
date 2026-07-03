@@ -211,6 +211,8 @@ export class AgentRuntime {
       allowRemote,
       project,
       httpPort,
+      remoteSessionRelayUrl,
+      remoteSessionPeerId,
     } = this.policy;
     let { host } = this.policy;
 
@@ -325,6 +327,8 @@ export class AgentRuntime {
       maxConnections,
       timeout,
       sessionManager,
+      remoteSessionRelayUrl,
+      remoteSessionPeerId,
       envelopeBus,
     });
 

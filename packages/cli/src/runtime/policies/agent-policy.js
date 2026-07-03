@@ -26,6 +26,8 @@ export function resolveAgentPolicy({
     noStream: overrides.noStream === true,
     parkOnExit: overrides.parkOnExit === false ? false : true,
     bundlePath: overrides.bundlePath || null,
+    remoteSessionRelayUrl: overrides.remoteSessionRelayUrl || null,
+    remoteSessionPeerId: overrides.remoteSessionPeerId || null,
     additionalDirectories: Array.isArray(overrides.additionalDirectories)
       ? overrides.additionalDirectories
       : [],

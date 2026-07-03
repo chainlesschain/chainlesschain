@@ -28,6 +28,14 @@ export function registerServeCommand(program) {
     )
     .option("--project <path>", "Default project root for sessions")
     .option(
+      "--remote-session-relay-url <url>",
+      "Signaling relay URL for Remote Session pairing",
+    )
+    .option(
+      "--remote-session-peer-id <id>",
+      "Stable relay peer ID for this local runtime",
+    )
+    .option(
       "--http-port <port>",
       "Hosted HTTP port for Phase 5 envelope SSE (disabled if unset)",
     )
@@ -47,6 +55,8 @@ export function registerServeCommand(program) {
           project: opts.project,
           httpPort: opts.httpPort ? parseInt(opts.httpPort, 10) : null,
           bundlePath: opts.bundle || null,
+          remoteSessionRelayUrl: opts.remoteSessionRelayUrl || null,
+          remoteSessionPeerId: opts.remoteSessionPeerId || null,
         });
         await runtime.startServer();
       } catch (err) {

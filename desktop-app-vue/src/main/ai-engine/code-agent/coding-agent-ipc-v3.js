@@ -10,6 +10,9 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:start-session",
   "coding-agent:resume-session",
   "coding-agent:list-sessions",
+  "coding-agent:create-remote-session",
+  "coding-agent:refresh-remote-session-pairing",
+  "coding-agent:close-remote-session",
   "coding-agent:send-message",
   "coding-agent:enter-plan-mode",
   "coding-agent:show-plan",
@@ -98,6 +101,82 @@ function registerCodingAgentIPCV3(options = {}) {
       return { success: false, error: error.message };
     }
   });
+
+  ipc.handle(
+    "coding-agent:create-remote-session",
+    async (_event, payload = {}) => {
+      try {
+        await service.ensureReady();
+        return await service.createRemoteSession(payload.sessionId, payload);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] create-remote-session failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle(
+    "coding-agent:refresh-remote-session-pairing",
+    async (_event, payload = {}) => {
+      try {
+        return await service.refreshRemoteSessionPairing(
+          payload.remoteSessionId,
+          payload.scopes,
+        );
+      } catch (error) {
+        logger.error(
+          "[CodingAgentIPCV3] refresh-remote-session-pairing failed:",
+          error,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle(
+    "coding-agent:list-remote-session-devices",
+    async (_event, remoteSessionId) => {
+      try {
+        return await service.listRemoteSessionDevices(remoteSessionId);
+      } catch (error) {
+        logger.error(
+          "[CodingAgentIPCV3] list-remote-session-devices failed:",
+          error,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle(
+    "coding-agent:revoke-remote-session-device",
+    async (_event, payload = {}) => {
+      try {
+        return await service.revokeRemoteSessionDevice(
+          payload.remoteSessionId,
+          payload.clientId,
+        );
+      } catch (error) {
+        logger.error(
+          "[CodingAgentIPCV3] revoke-remote-session-device failed:",
+          error,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle(
+    "coding-agent:close-remote-session",
+    async (_event, remoteSessionId) => {
+      try {
+        return await service.closeRemoteSession(remoteSessionId);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] close-remote-session failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   ipc.handle("coding-agent:send-message", async (_event, payload = {}) => {
     try {

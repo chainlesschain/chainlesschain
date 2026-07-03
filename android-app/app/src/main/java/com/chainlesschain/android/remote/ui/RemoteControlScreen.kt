@@ -43,6 +43,7 @@ fun RemoteControlScreen(
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToRAGSearch: () -> Unit = {},
     onNavigateToAgentControl: () -> Unit = {},
+    onNavigateToRemoteSession: () -> Unit = {},
     onNavigateToScreenshot: () -> Unit = {},
     onNavigateToSystemMonitor: () -> Unit = {},
     onNavigateToCommandHistory: () -> Unit = {},
@@ -162,6 +163,22 @@ fun RemoteControlScreen(
             }
 
             // 3. AI 命令快捷入口
+            item {
+                CommandShortcutsSection(
+                    title = stringResource(R.string.remote_coding_session),
+                    icon = Icons.Default.QrCodeScanner,
+                    enabled = true,
+                    commands = listOf(
+                        CommandShortcut(
+                            title = stringResource(R.string.remote_coding_session),
+                            subtitle = stringResource(R.string.remote_coding_session_desc),
+                            icon = Icons.Default.QrCodeScanner,
+                            onClick = onNavigateToRemoteSession,
+                        ),
+                    ),
+                )
+            }
+
             item {
                 CommandShortcutsSection(
                     title = stringResource(R.string.remote_section_ai_commands),
