@@ -98,10 +98,29 @@ describe("createRemoteSessionPushSender provider dispatch", () => {
     ).toBe("function");
   });
 
+  it("routes provider=huawei (and the hms alias) to the Huawei sender", () => {
+    const env = {
+      CHAINLESSCHAIN_REMOTE_SESSION_HUAWEI_APP_ID: "app-1",
+      CHAINLESSCHAIN_REMOTE_SESSION_HUAWEI_APP_SECRET: "secret",
+    };
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "huawei",
+      }),
+    ).toBe("function");
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "hms",
+      }),
+    ).toBe("function");
+  });
+
   it("returns null for an unimplemented provider", () => {
     expect(
       createRemoteSessionPushSender({
-        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "hms",
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "oppo",
       }),
     ).toBeNull();
   });

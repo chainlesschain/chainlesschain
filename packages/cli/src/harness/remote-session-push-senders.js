@@ -10,6 +10,7 @@ import { createFcmPushSender } from "./remote-session-push-fcm.js";
 import { createApnsPushSender } from "./remote-session-push-apns.js";
 import { createWebPushSender } from "./remote-session-push-web.js";
 import { createXiaomiPushSender } from "./remote-session-push-xiaomi.js";
+import { createHuaweiPushSender } from "./remote-session-push-huawei.js";
 
 export function createRemoteSessionPushSender(env = {}, options = {}) {
   const provider = (
@@ -25,6 +26,9 @@ export function createRemoteSessionPushSender(env = {}, options = {}) {
     case "xiaomi":
     case "mi":
       return createXiaomiPushSender(env, options);
+    case "huawei":
+    case "hms":
+      return createHuaweiPushSender(env, options);
     default:
       return null;
   }
