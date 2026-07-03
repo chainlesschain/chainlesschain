@@ -9,6 +9,7 @@ const { ipcMain } = require("electron");
 const { VolcengineToolsClient } = require("./volcengine-tools");
 const { getLLMConfig } = require("./llm-config");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
+const SqlSecurity = require("../database/sql-security.js");
 
 let toolsClient = null;
 
@@ -545,10 +546,14 @@ function getFunctionExecutor(executorType) {
           const notes = await db.all(
             `SELECT id, title, content, created_at, updated_at
              FROM notes
-             WHERE title LIKE ? OR content LIKE ?
+             WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\'
              ORDER BY updated_at DESC
              LIMIT ?`,
-            [`%${query}%`, `%${query}%`, limit],
+            [
+              SqlSecurity.likeContains(query),
+              SqlSecurity.likeContains(query),
+              limit,
+            ],
           );
 
           return { notes, total: notes.length };

@@ -16,6 +16,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single preference row with a corrupt metadata
@@ -689,13 +690,13 @@ class PreferenceManager extends EventEmitter {
       const stmt = this.db.prepare(`
         SELECT query, COUNT(*) as count
         FROM search_history
-        WHERE query LIKE ?
+        WHERE query LIKE ? ESCAPE '\\'
         GROUP BY query
         ORDER BY count DESC, MAX(created_at) DESC
         LIMIT ?
       `);
 
-      const rows = stmt.all(`${prefix}%`, limit);
+      const rows = stmt.all(SqlSecurity.likePrefix(prefix), limit);
       return rows.map((row) => ({
         query: row.query,
         count: row.count,

@@ -15,6 +15,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
@@ -408,12 +409,12 @@ class LearnedPatternManager extends EventEmitter {
     try {
       const stmt = this.db.prepare(`
         SELECT * FROM prompt_patterns
-        WHERE template LIKE ? OR category LIKE ?
+        WHERE template LIKE ? ESCAPE '\\' OR category LIKE ? ESCAPE '\\'
         ORDER BY use_count DESC
         LIMIT ?
       `);
 
-      const searchTerm = `%${query}%`;
+      const searchTerm = SqlSecurity.likeContains(query);
       const rows = stmt.all(searchTerm, searchTerm, limit);
 
       return rows.map((row) => ({

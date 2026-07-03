@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const EventEmitter = require("events");
 
 /**
@@ -349,10 +350,14 @@ class ContactManager extends EventEmitter {
       const result = this.db
         .prepare(
           `SELECT * FROM contacts
-         WHERE nickname LIKE ? OR did LIKE ? OR notes LIKE ?
+         WHERE nickname LIKE ? ESCAPE '\\' OR did LIKE ? ESCAPE '\\' OR notes LIKE ? ESCAPE '\\'
          ORDER BY trust_score DESC, added_at DESC`,
         )
-        .all(`%${query}%`, `%${query}%`, `%${query}%`);
+        .all(
+          SqlSecurity.likeContains(query),
+          SqlSecurity.likeContains(query),
+          SqlSecurity.likeContains(query),
+        );
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];

@@ -1,6 +1,7 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { safeOrderByClause } = require("../utils/sql-order-by.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -768,9 +769,12 @@ class KnowledgePaymentManager extends EventEmitter {
     let query = `
       SELECT * FROM paid_contents
       WHERE status = 'active'
-      AND (title LIKE ? OR description LIKE ?)
+      AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
     `;
-    const params = [`%${keyword}%`, `%${keyword}%`];
+    const params = [
+      SqlSecurity.likeContains(keyword),
+      SqlSecurity.likeContains(keyword),
+    ];
 
     if (contentType) {
       query += ` AND content_type = ?`;

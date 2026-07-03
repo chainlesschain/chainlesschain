@@ -12,6 +12,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * History Memory Optimization Class
@@ -109,11 +110,11 @@ class HistoryMemoryOptimization {
           SELECT content, importance, metadata
           FROM long_term_memories
           WHERE type = 'task'
-          AND content LIKE ?
+          AND content LIKE ? ESCAPE '\\'
           ORDER BY importance DESC, accessed_at DESC
           LIMIT 5
         `,
-          [`%${taskType}%`],
+          [SqlSecurity.likeContains(taskType)],
         );
 
         if (rows && rows.length > 0) {

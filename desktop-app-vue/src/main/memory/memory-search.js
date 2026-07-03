@@ -12,10 +12,13 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -384,8 +387,8 @@ class MemorySearchEngine {
 
       // Add keyword search if query provided
       if (query) {
-        sql += " AND content LIKE ?";
-        params.push(`%${query}%`);
+        sql += " AND content LIKE ? ESCAPE '\\'";
+        params.push(SqlSecurity.likeContains(query));
       }
 
       sql += " ORDER BY created_at DESC LIMIT ?";

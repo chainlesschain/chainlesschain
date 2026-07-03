@@ -10,6 +10,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const { safeToISOString } = require("../utils/safe-date.js");
 const EventEmitter = require("events");
 const path = require("path");
@@ -619,8 +620,8 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       // 搜索
       if (options.search) {
-        query += ` AND display_name LIKE ?`;
-        params.push(`%${options.search}%`);
+        query += ` AND display_name LIKE ? ESCAPE '\\'`;
+        params.push(SqlSecurity.likeContains(options.search));
       }
 
       // 排序：orderBy/orderDir 来自渲染端 IPC filters，必须白名单化，否则
@@ -1833,9 +1834,9 @@ class ExternalDeviceFileManager extends EventEmitter {
     try {
       let sql = `
         SELECT * FROM external_device_files
-        WHERE display_name LIKE ?
+        WHERE display_name LIKE ? ESCAPE '\\'
       `;
-      const params = [`%${query}%`];
+      const params = [SqlSecurity.likeContains(query)];
 
       // 设备过滤
       if (options.deviceId) {

@@ -1,4 +1,5 @@
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
@@ -653,9 +654,13 @@ class ProjectTemplateManager {
     let query = `
       SELECT * FROM project_templates
       WHERE deleted = 0
-      AND (display_name LIKE ? OR description LIKE ? OR tags LIKE ?)
+      AND (display_name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')
     `;
-    const params = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+    const params = [
+      SqlSecurity.likeContains(keyword),
+      SqlSecurity.likeContains(keyword),
+      SqlSecurity.likeContains(keyword),
+    ];
 
     if (filters.category) {
       query += " AND category = ?";

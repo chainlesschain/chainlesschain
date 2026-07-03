@@ -6,6 +6,7 @@
  * @module llm/session-manager-queryStats
  */
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse mirroring the prior `typeof x === "string" ?
@@ -136,7 +137,7 @@ module.exports = {
         return this.listSessions({ limit, offset });
       }
 
-      const searchTerm = `%${query.trim()}%`;
+      const searchTerm = SqlSecurity.likeContains(query.trim());
       const results = [];
 
       // 搜索标题
@@ -144,7 +145,7 @@ module.exports = {
         const titleStmt = this.db.prepare(`
           SELECT id, conversation_id, title, metadata, created_at, updated_at
           FROM llm_sessions
-          WHERE title LIKE ?
+          WHERE title LIKE ? ESCAPE '\\'
           ORDER BY updated_at DESC
           LIMIT ? OFFSET ?
         `);
@@ -162,7 +163,7 @@ module.exports = {
         const contentStmt = this.db.prepare(`
           SELECT id, conversation_id, title, messages, metadata, created_at, updated_at
           FROM llm_sessions
-          WHERE messages LIKE ?
+          WHERE messages LIKE ? ESCAPE '\\'
           ORDER BY updated_at DESC
           LIMIT ? OFFSET ?
         `);

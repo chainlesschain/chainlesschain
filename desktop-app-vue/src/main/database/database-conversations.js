@@ -333,9 +333,9 @@ function searchMessages(dbManager, logger, options = {}) {
     return { messages: [], total: 0, hasMore: false };
   }
 
-  const searchPattern = `%${query.trim()}%`;
+  const searchPattern = SqlSecurity.likeContains(query.trim());
   const params = [searchPattern];
-  const whereConditions = ["content LIKE ?"];
+  const whereConditions = ["content LIKE ? ESCAPE '\\'"];
 
   // 添加对话ID过滤
   if (conversationId) {

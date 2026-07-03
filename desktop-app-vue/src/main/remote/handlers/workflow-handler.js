@@ -15,10 +15,13 @@
  */
 
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -407,8 +410,8 @@ class WorkflowHandler {
         const queryParams = [];
 
         if (tag) {
-          query += " AND tags LIKE ?";
-          queryParams.push(`%"${tag}"%`);
+          query += " AND tags LIKE ? ESCAPE '\\'";
+          queryParams.push(`%"${SqlSecurity.escapeLike(tag)}"%`);
         }
 
         if (enabled !== undefined) {

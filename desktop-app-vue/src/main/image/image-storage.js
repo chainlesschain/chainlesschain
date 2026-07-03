@@ -6,6 +6,7 @@
 
 const { logger } = require("../utils/logger.js");
 const { safeOrderByClause } = require("../utils/sql-order-by.js");
+const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
@@ -351,11 +352,11 @@ class ImageStorage {
   async searchImages(query) {
     const sql = `
       SELECT * FROM images
-      WHERE ocr_text LIKE ?
+      WHERE ocr_text LIKE ? ESCAPE '\\'
       ORDER BY created_at DESC
     `;
 
-    const rows = await this.db.all(sql, [`%${query}%`]);
+    const rows = await this.db.all(sql, [SqlSecurity.likeContains(query)]);
     return rows || [];
   }
 

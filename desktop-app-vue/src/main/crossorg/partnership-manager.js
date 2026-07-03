@@ -8,6 +8,7 @@
 
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const SqlSecurity = require("../database/sql-security.js");
 
 // One corrupt row's stored JSON column must not throw out of a list .map and
 // fail the whole query (returning nothing instead of the other valid rows).
@@ -474,8 +475,11 @@ class PartnershipManager extends EventEmitter {
       }
 
       if (searchParams.keyword) {
-        query += ` AND (name LIKE ? OR description LIKE ?)`;
-        params.push(`%${searchParams.keyword}%`, `%${searchParams.keyword}%`);
+        query += ` AND (name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')`;
+        params.push(
+          SqlSecurity.likeContains(searchParams.keyword),
+          SqlSecurity.likeContains(searchParams.keyword),
+        );
       }
 
       query += ` ORDER BY name ASC`;

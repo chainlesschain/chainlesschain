@@ -14,6 +14,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const _fs = require("fs").promises;
 const _path = require("path");
@@ -1026,10 +1027,10 @@ Respond in JSON format:
     try {
       let sql = `
         SELECT * FROM session_knowledge
-        WHERE content LIKE ?
+        WHERE content LIKE ? ESCAPE '\\'
           AND importance >= ?
       `;
-      const params = [`%${query}%`, minImportance];
+      const params = [SqlSecurity.likeContains(query), minImportance];
 
       if (type) {
         sql += ` AND knowledge_type = ?`;

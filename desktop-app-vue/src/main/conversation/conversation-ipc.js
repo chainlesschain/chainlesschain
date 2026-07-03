@@ -9,6 +9,7 @@
 const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 const { getStreamControllerManager } = require("./stream-controller-manager");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * 🔥 检测任务类型（用于 Multi-Agent 路由）
@@ -789,9 +790,9 @@ function registerConversationIPC({
           order = "DESC",
         } = searchOptions;
 
-        const searchPattern = `%${query.trim()}%`;
+        const searchPattern = SqlSecurity.likeContains(query.trim());
         const params = [searchPattern];
-        const whereConditions = ["content LIKE ?"];
+        const whereConditions = ["content LIKE ? ESCAPE '\\'"];
 
         if (conversationId) {
           whereConditions.push("conversation_id = ?");

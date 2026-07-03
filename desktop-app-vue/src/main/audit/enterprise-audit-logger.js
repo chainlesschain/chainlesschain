@@ -9,6 +9,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — one corrupt audit row must not throw out of
@@ -433,8 +434,8 @@ class EnterpriseAuditLogger extends EventEmitter {
       params.push(filters.eventType);
     }
     if (filters.operation) {
-      conditions.push("operation LIKE ?");
-      params.push(`%${filters.operation}%`);
+      conditions.push("operation LIKE ? ESCAPE '\\'");
+      params.push(SqlSecurity.likeContains(filters.operation));
     }
     if (filters.actor) {
       conditions.push("actor = ?");

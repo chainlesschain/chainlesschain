@@ -11,6 +11,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -259,11 +260,14 @@ class MemoryAugmentedGeneration {
 
       // Keyword matching on user_message and assistant_response
       const keywordConditions = keywords.map(() => {
-        return "(LOWER(user_message) LIKE ? OR LOWER(COALESCE(assistant_response, '')) LIKE ?)";
+        return "(LOWER(user_message) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(assistant_response, '')) LIKE ? ESCAPE '\\')";
       });
       conditions.push(`(${keywordConditions.join(" OR ")})`);
       for (const keyword of keywords) {
-        params.push(`%${keyword}%`, `%${keyword}%`);
+        params.push(
+          SqlSecurity.likeContains(keyword),
+          SqlSecurity.likeContains(keyword),
+        );
       }
 
       // Optional filters

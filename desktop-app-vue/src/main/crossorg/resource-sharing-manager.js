@@ -9,6 +9,7 @@
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
+const SqlSecurity = require("../database/sql-security.js");
 
 // One corrupt row's stored JSON column must not throw out of a list .map and
 // fail the whole query (returning nothing instead of the other valid rows).
@@ -567,8 +568,8 @@ class ResourceSharingManager extends EventEmitter {
       const params = [orgId];
 
       if (searchParams.keyword) {
-        query += ` AND resource_name LIKE ?`;
-        params.push(`%${searchParams.keyword}%`);
+        query += ` AND resource_name LIKE ? ESCAPE '\\'`;
+        params.push(SqlSecurity.likeContains(searchParams.keyword));
       }
 
       if (searchParams.resourceType) {

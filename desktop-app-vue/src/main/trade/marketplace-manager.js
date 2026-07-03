@@ -9,6 +9,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single order row with a corrupt metadata string
@@ -451,9 +452,11 @@ class MarketplaceManager extends EventEmitter {
           countParams.push(ftsQuery);
         } else {
           // 降级到 LIKE 搜索
-          baseQuery += " AND (title LIKE ? OR description LIKE ?)";
-          countQuery += " AND (title LIKE ? OR description LIKE ?)";
-          const likePattern = `%${searchTerm}%`;
+          baseQuery +=
+            " AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')";
+          countQuery +=
+            " AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')";
+          const likePattern = SqlSecurity.likeContains(searchTerm);
           params.push(likePattern, likePattern);
           countParams.push(likePattern, likePattern);
         }
@@ -592,7 +595,7 @@ class MarketplaceManager extends EventEmitter {
       }
 
       const db = this.database.db;
-      const likePattern = `${prefix}%`;
+      const likePattern = SqlSecurity.likePrefix(prefix);
 
       // 从标题中获取建议
       const titleSuggestions = db
@@ -600,7 +603,7 @@ class MarketplaceManager extends EventEmitter {
           `
         SELECT DISTINCT title as suggestion, 'title' as source
         FROM orders
-        WHERE title LIKE ? AND status = 'open'
+        WHERE title LIKE ? ESCAPE '\\' AND status = 'open'
         LIMIT ?
       `,
         )

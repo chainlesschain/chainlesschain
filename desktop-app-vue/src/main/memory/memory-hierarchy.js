@@ -12,10 +12,13 @@
 
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -516,11 +519,11 @@ class ArchivalMemory extends EventEmitter {
     if (results.length < limit && this.db) {
       try {
         const whereClause = type
-          ? "WHERE content LIKE ? AND type = ? AND importance >= ?"
-          : "WHERE content LIKE ? AND importance >= ?";
+          ? "WHERE content LIKE ? ESCAPE '\\' AND type = ? AND importance >= ?"
+          : "WHERE content LIKE ? ESCAPE '\\' AND importance >= ?";
         const params = type
-          ? [`%${query}%`, type, minImportance]
-          : [`%${query}%`, minImportance];
+          ? [SqlSecurity.likeContains(query), type, minImportance]
+          : [SqlSecurity.likeContains(query), minImportance];
 
         const rows = await this.db.all(
           `

@@ -6,6 +6,7 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const DatabaseManager = require("../database");
+const SqlSecurity = require("../database/sql-security.js");
 
 class ToolStatsDashboard {
   constructor(database) {
@@ -316,9 +317,9 @@ class ToolStatsDashboard {
       // 搜索关键词
       if (searchKeyword && searchKeyword.trim()) {
         whereConditions.push(
-          `(name LIKE ? OR display_name LIKE ? OR description LIKE ?)`,
+          `(name LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')`,
         );
-        const keyword = `%${searchKeyword.trim()}%`;
+        const keyword = SqlSecurity.likeContains(searchKeyword.trim());
         params.push(keyword, keyword, keyword);
       }
 
@@ -633,10 +634,10 @@ class ToolStatsDashboard {
 
       // 搜索关键词筛选
       if (searchKeyword && searchKeyword.trim()) {
-        const keyword = `%${searchKeyword.trim()}%`;
+        const keyword = SqlSecurity.likeContains(searchKeyword.trim());
         sql += ` AND tool_name IN (
           SELECT name FROM tools
-          WHERE (name LIKE ? OR display_name LIKE ? OR description LIKE ?)
+          WHERE (name LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
             AND handler_path LIKE '%additional-tools-v3-handler%'
         )`;
         params.push(keyword, keyword, keyword);

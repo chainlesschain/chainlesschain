@@ -8,6 +8,7 @@
 
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -123,8 +124,12 @@ class RecordingStorage {
     const params = [];
 
     if (search) {
-      sql += ` AND (name LIKE ? OR description LIKE ? OR url LIKE ?)`;
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      sql += ` AND (name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\')`;
+      params.push(
+        SqlSecurity.likeContains(search),
+        SqlSecurity.likeContains(search),
+        SqlSecurity.likeContains(search),
+      );
     }
 
     if (tags && tags.length > 0) {

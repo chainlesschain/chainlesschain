@@ -12,6 +12,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single conversation/agent/template row with a
@@ -481,8 +482,8 @@ class AICommandHandler {
 
       // 关键词搜索
       if (keyword) {
-        query += " AND title LIKE ?";
-        queryParams.push(`%${keyword}%`);
+        query += " AND title LIKE ? ESCAPE '\\'";
+        queryParams.push(SqlSecurity.likeContains(keyword));
       }
 
       query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?";
@@ -1290,12 +1291,17 @@ class AICommandHandler {
         FROM ai_conversations c
         LEFT JOIN ai_messages m ON m.conversation_id = c.id
         WHERE c.archived = ?
-          AND (c.title LIKE ? OR m.content LIKE ?)
+          AND (c.title LIKE ? ESCAPE '\\' OR m.content LIKE ? ESCAPE '\\')
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ?
       `,
       )
-      .all(archivedFlag, `%${query}%`, `%${query}%`, Math.max(1, limit | 0));
+      .all(
+        archivedFlag,
+        SqlSecurity.likeContains(query),
+        SqlSecurity.likeContains(query),
+        Math.max(1, limit | 0),
+      );
     return {
       success: true,
       query,

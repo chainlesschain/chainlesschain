@@ -11,6 +11,7 @@
 
 const { logger } = require("../../utils/logger");
 const { safeOrderByClause } = require("../../utils/sql-order-by.js");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single log row with a corrupt params/result
@@ -347,9 +348,13 @@ class BatchedCommandLogger extends EventEmitter {
 
       if (search) {
         conditions.push(
-          "(command_action LIKE ? OR device_did LIKE ? OR error LIKE ?)",
+          "(command_action LIKE ? ESCAPE '\\' OR device_did LIKE ? ESCAPE '\\' OR error LIKE ? ESCAPE '\\')",
         );
-        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        params.push(
+          SqlSecurity.likeContains(search),
+          SqlSecurity.likeContains(search),
+          SqlSecurity.likeContains(search),
+        );
       }
 
       if (startTime) {

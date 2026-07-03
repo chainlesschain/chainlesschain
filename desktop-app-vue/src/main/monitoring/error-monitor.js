@@ -12,6 +12,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { app } = require("electron");
@@ -2617,8 +2618,8 @@ ${error?.stack || "无堆栈信息"}
       }
 
       if (options.search) {
-        query += ` AND (error_message LIKE ? OR ai_root_cause LIKE ?)`;
-        const searchPattern = `%${options.search}%`;
+        query += ` AND (error_message LIKE ? ESCAPE '\\' OR ai_root_cause LIKE ? ESCAPE '\\')`;
+        const searchPattern = SqlSecurity.likeContains(options.search);
         params.push(searchPattern, searchPattern);
       }
 

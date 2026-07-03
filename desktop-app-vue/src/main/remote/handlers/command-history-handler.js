@@ -11,6 +11,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /**
  * Parse a JSON column tolerantly: a truncated/corrupted row must not throw out
@@ -256,9 +257,14 @@ class CommandHistoryHandler {
 
     const rows = await this.database.all(
       `SELECT * FROM command_history
-       WHERE method LIKE ? OR params LIKE ? OR device_did LIKE ?
+       WHERE method LIKE ? ESCAPE '\\' OR params LIKE ? ESCAPE '\\' OR device_did LIKE ? ESCAPE '\\'
        ORDER BY created_at DESC LIMIT ?`,
-      ["%" + query + "%", "%" + query + "%", "%" + query + "%", limit],
+      [
+        SqlSecurity.likeContains(query),
+        SqlSecurity.likeContains(query),
+        SqlSecurity.likeContains(query),
+        limit,
+      ],
     );
 
     const results = rows.map((row) => ({

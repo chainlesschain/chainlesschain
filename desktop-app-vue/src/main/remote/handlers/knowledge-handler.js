@@ -3,6 +3,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -239,8 +240,8 @@ class KnowledgeHandler {
     logger.info("[KnowledgeHandler] 搜索笔记: " + query);
 
     const rows = await this.database.all(
-      "SELECT id, title, content, tags FROM notes WHERE title LIKE ? OR content LIKE ? LIMIT ?",
-      ["%" + query + "%", "%" + query + "%", limit],
+      "SELECT id, title, content, tags FROM notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' LIMIT ?",
+      [SqlSecurity.likeContains(query), SqlSecurity.likeContains(query), limit],
     );
 
     return { results: rows, total: rows.length };
@@ -378,8 +379,8 @@ class KnowledgeHandler {
     logger.info("[KnowledgeHandler] 按标签搜索笔记: " + tag);
 
     const rows = await this.database.all(
-      "SELECT id, title, content, tags, created_at FROM notes WHERE tags LIKE ? LIMIT ?",
-      ['%"' + tag + '"%', limit],
+      "SELECT id, title, content, tags, created_at FROM notes WHERE tags LIKE ? ESCAPE '\\' LIMIT ?",
+      ['%"' + SqlSecurity.escapeLike(tag) + '"%', limit],
     );
 
     return { results: rows, total: rows.length, tag };
@@ -1105,8 +1106,8 @@ class KnowledgeHandler {
     }
     // 找所有含 source tag 的 notes
     const notes = await this.database.all(
-      "SELECT id, tags FROM notes WHERE tags LIKE ?",
-      ['%"' + srcName + '"%'],
+      "SELECT id, tags FROM notes WHERE tags LIKE ? ESCAPE '\\'",
+      ['%"' + SqlSecurity.escapeLike(srcName) + '"%'],
     );
     let updatedCount = 0;
     for (const n of notes) {

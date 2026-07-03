@@ -9,6 +9,7 @@
  */
 
 const { v4: uuidv4 } = require("uuid");
+const SqlSecurity = require("./sql-security.js");
 
 function getKnowledgeItems(dbManager, logger, limit = 100, offset = 0) {
   // 数据库未初始化检查
@@ -211,11 +212,11 @@ function searchKnowledge(dbManager, logger, query) {
   }
 
   // 使用 LIKE 搜索（sql.js 不支持 FTS5）
-  const pattern = `%${query}%`;
+  const pattern = SqlSecurity.likeContains(query);
   return dbManager.all(
     `
     SELECT * FROM knowledge_items
-    WHERE title LIKE ? OR content LIKE ?
+    WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\'
     ORDER BY updated_at DESC
     LIMIT 50
   `,

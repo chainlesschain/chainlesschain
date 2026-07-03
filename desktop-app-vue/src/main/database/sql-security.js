@@ -163,22 +163,40 @@ class SqlSecurity {
 
   /**
    * 构建安全的LIKE模式
+   *
+   * ⚠️ 返回的模式转义了 % _ \，必须与 SQL 中的 `ESCAPE '\'` 配对使用，否则
+   * SQLite 默认无转义字符，`\%` 会被当作字面反斜杠而非转义的百分号。
    * @param {string} searchTerm - 搜索词
-   * @returns {string} 安全的LIKE模式
+   * @returns {string} 安全的LIKE模式（配 ESCAPE '\' 使用）
    */
   static buildLikePattern(searchTerm) {
     if (!searchTerm || typeof searchTerm !== "string") {
       return "%";
     }
 
-    // 转义LIKE特殊字符
-    const escaped = searchTerm
-      .replace(/\\/g, "\\\\") // 反斜杠
-      .replace(/%/g, "\\%") // 百分号
-      .replace(/_/g, "\\_") // 下划线
-      .substring(0, 100); // 限制长度
+    return `%${this.escapeLike(searchTerm).substring(0, 100)}%`;
+  }
 
-    return `%${escaped}%`;
+  /**
+   * 转义 LIKE 元字符 (% _ \)，使值被字面匹配。
+   * 必须与 SQL 中的 `ESCAPE '\'` 配对；否则转义无效。
+   * 与 packages/cli/src/lib/sql-like.js、personal-data-hub/lib/sql-like.js、
+   * android-app .../util/SqlLike.kt 保持一致。
+   * @param {string} value - 用户输入
+   * @returns {string} 转义后的字符串
+   */
+  static escapeLike(value) {
+    return String(value ?? "").replace(/[\\%_]/g, "\\$&");
+  }
+
+  /** `<escaped>%` 字面前缀 LIKE 模式（配 ESCAPE '\' 使用）。 */
+  static likePrefix(value) {
+    return this.escapeLike(value) + "%";
+  }
+
+  /** `%<escaped>%` 字面子串 LIKE 模式（配 ESCAPE '\' 使用）。 */
+  static likeContains(value) {
+    return "%" + this.escapeLike(value) + "%";
   }
 
   /**

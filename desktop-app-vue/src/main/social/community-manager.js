@@ -10,6 +10,7 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Community status constants
@@ -61,7 +62,9 @@ class CommunityManager extends EventEmitter {
       this.setupP2PListeners();
 
       this.initialized = true;
-      logger.info("[CommunityManager] Community manager initialized successfully");
+      logger.info(
+        "[CommunityManager] Community manager initialized successfully",
+      );
     } catch (error) {
       logger.error("[CommunityManager] Initialization failed:", error);
       throw error;
@@ -126,19 +129,28 @@ class CommunityManager extends EventEmitter {
       return;
     }
 
-    this.p2pManager.on("community:join-request", async ({ communityId, memberDid }) => {
-      try {
-        await this.joinCommunity(communityId, memberDid);
-      } catch (error) {
-        logger.warn("[CommunityManager] P2P join request failed:", error.message);
-      }
-    });
+    this.p2pManager.on(
+      "community:join-request",
+      async ({ communityId, memberDid }) => {
+        try {
+          await this.joinCommunity(communityId, memberDid);
+        } catch (error) {
+          logger.warn(
+            "[CommunityManager] P2P join request failed:",
+            error.message,
+          );
+        }
+      },
+    );
 
     this.p2pManager.on("community:sync", async ({ community }) => {
       try {
         await this.handleCommunitySync(community);
       } catch (error) {
-        logger.warn("[CommunityManager] P2P community sync failed:", error.message);
+        logger.warn(
+          "[CommunityManager] P2P community sync failed:",
+          error.message,
+        );
       }
     });
 
@@ -161,7 +173,13 @@ class CommunityManager extends EventEmitter {
    * @param {string} options.rulesMd - Community rules in Markdown
    * @param {number} options.memberLimit - Maximum number of members
    */
-  async createCommunity({ name, description = "", iconUrl = "", rulesMd = "", memberLimit = 1000 }) {
+  async createCommunity({
+    name,
+    description = "",
+    iconUrl = "",
+    rulesMd = "",
+    memberLimit = 1000,
+  }) {
     const currentDid = this.getCurrentDid();
     if (!currentDid) {
       throw new Error("User not logged in");
@@ -263,7 +281,9 @@ class CommunityManager extends EventEmitter {
       const db = this.database.db;
 
       // Check ownership
-      const community = db.prepare("SELECT * FROM communities WHERE id = ?").get(communityId);
+      const community = db
+        .prepare("SELECT * FROM communities WHERE id = ?")
+        .get(communityId);
       if (!community) {
         throw new Error("Community not found");
       }
@@ -273,7 +293,9 @@ class CommunityManager extends EventEmitter {
       }
 
       // Delete members first
-      db.prepare("DELETE FROM community_members WHERE community_id = ?").run(communityId);
+      db.prepare("DELETE FROM community_members WHERE community_id = ?").run(
+        communityId,
+      );
 
       // Delete community
       db.prepare("DELETE FROM communities WHERE id = ?").run(communityId);
@@ -305,15 +327,21 @@ class CommunityManager extends EventEmitter {
       const db = this.database.db;
 
       // Check admin/owner role
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
-      if (!member || (member.role !== MemberRole.OWNER && member.role !== MemberRole.ADMIN)) {
+      if (
+        !member ||
+        (member.role !== MemberRole.OWNER && member.role !== MemberRole.ADMIN)
+      ) {
         throw new Error("Insufficient permissions to update community");
       }
 
-      const { name, description, iconUrl, rulesMd, memberLimit, status } = updates;
+      const { name, description, iconUrl, rulesMd, memberLimit, status } =
+        updates;
       const fields = [];
       const values = [];
 
@@ -350,7 +378,9 @@ class CommunityManager extends EventEmitter {
       values.push(Date.now());
       values.push(communityId);
 
-      db.prepare(`UPDATE communities SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+      db.prepare(
+        `UPDATE communities SET ${fields.join(", ")} WHERE id = ?`,
+      ).run(...values);
 
       this.database.saveToFile();
 
@@ -403,7 +433,9 @@ class CommunityManager extends EventEmitter {
   async getCommunityById(communityId) {
     try {
       const db = this.database.db;
-      const community = db.prepare("SELECT * FROM communities WHERE id = ?").get(communityId);
+      const community = db
+        .prepare("SELECT * FROM communities WHERE id = ?")
+        .get(communityId);
 
       if (!community) {
         return null;
@@ -412,9 +444,11 @@ class CommunityManager extends EventEmitter {
       // Get current user's role in this community
       const currentDid = this.getCurrentDid();
       if (currentDid) {
-        const member = db.prepare(
-          "SELECT role FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-        ).get(communityId, currentDid);
+        const member = db
+          .prepare(
+            "SELECT role FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+          )
+          .get(communityId, currentDid);
         community.my_role = member ? member.role : null;
       }
 
@@ -439,7 +473,9 @@ class CommunityManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const community = db.prepare("SELECT * FROM communities WHERE id = ?").get(communityId);
+      const community = db
+        .prepare("SELECT * FROM communities WHERE id = ?")
+        .get(communityId);
       if (!community) {
         throw new Error("Community not found");
       }
@@ -453,9 +489,11 @@ class CommunityManager extends EventEmitter {
       }
 
       // Check if already a member
-      const existing = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ?",
-      ).get(communityId, did);
+      const existing = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ?",
+        )
+        .get(communityId, did);
 
       if (existing) {
         if (existing.status === MemberStatus.ACTIVE) {
@@ -471,12 +509,14 @@ class CommunityManager extends EventEmitter {
         ).run(MemberStatus.ACTIVE, MemberRole.MEMBER, now, now, existing.id);
       } else {
         const now = Date.now();
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO community_members (
             id, community_id, member_did, role, nickname, status, joined_at, updated_at
           )
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `,
+        ).run(
           uuidv4(),
           communityId,
           did,
@@ -495,7 +535,11 @@ class CommunityManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info("[CommunityManager] Member joined community:", did, communityId);
+      logger.info(
+        "[CommunityManager] Member joined community:",
+        did,
+        communityId,
+      );
       this.emit("community:member-joined", { communityId, memberDid: did });
 
       return { success: true };
@@ -518,16 +562,20 @@ class CommunityManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
       if (!member) {
         throw new Error("You are not a member of this community");
       }
 
       if (member.role === MemberRole.OWNER) {
-        throw new Error("Owner cannot leave the community. Transfer ownership or delete the community.");
+        throw new Error(
+          "Owner cannot leave the community. Transfer ownership or delete the community.",
+        );
       }
 
       const now = Date.now();
@@ -541,8 +589,15 @@ class CommunityManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info("[CommunityManager] Member left community:", currentDid, communityId);
-      this.emit("community:member-left", { communityId, memberDid: currentDid });
+      logger.info(
+        "[CommunityManager] Member left community:",
+        currentDid,
+        communityId,
+      );
+      this.emit("community:member-left", {
+        communityId,
+        memberDid: currentDid,
+      });
 
       return { success: true };
     } catch (error) {
@@ -600,11 +655,17 @@ class CommunityManager extends EventEmitter {
       const db = this.database.db;
 
       // Check requester permissions
-      const requester = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const requester = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
-      if (!requester || (requester.role !== MemberRole.OWNER && requester.role !== MemberRole.ADMIN)) {
+      if (
+        !requester ||
+        (requester.role !== MemberRole.OWNER &&
+          requester.role !== MemberRole.ADMIN)
+      ) {
         throw new Error("Insufficient permissions to promote members");
       }
 
@@ -613,9 +674,11 @@ class CommunityManager extends EventEmitter {
         throw new Error("Only the owner can promote to admin");
       }
 
-      const target = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, memberDid);
+      const target = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, memberDid);
 
       if (!target) {
         throw new Error("Target member not found");
@@ -633,8 +696,17 @@ class CommunityManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info("[CommunityManager] Member promoted:", memberDid, "to", newRole);
-      this.emit("community:member-promoted", { communityId, memberDid, newRole });
+      logger.info(
+        "[CommunityManager] Member promoted:",
+        memberDid,
+        "to",
+        newRole,
+      );
+      this.emit("community:member-promoted", {
+        communityId,
+        memberDid,
+        newRole,
+      });
 
       return { success: true };
     } catch (error) {
@@ -657,17 +729,21 @@ class CommunityManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const requester = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const requester = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
       if (!requester || requester.role !== MemberRole.OWNER) {
         throw new Error("Only the owner can demote members");
       }
 
-      const target = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, memberDid);
+      const target = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, memberDid);
 
       if (!target) {
         throw new Error("Target member not found");
@@ -708,20 +784,26 @@ class CommunityManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const requester = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const requester = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
-      if (!requester ||
+      if (
+        !requester ||
         (requester.role !== MemberRole.OWNER &&
           requester.role !== MemberRole.ADMIN &&
-          requester.role !== MemberRole.MODERATOR)) {
+          requester.role !== MemberRole.MODERATOR)
+      ) {
         throw new Error("Insufficient permissions to ban members");
       }
 
-      const target = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, memberDid);
+      const target = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, memberDid);
 
       if (!target) {
         throw new Error("Target member not found");
@@ -744,7 +826,12 @@ class CommunityManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info("[CommunityManager] Member banned:", memberDid, "from", communityId);
+      logger.info(
+        "[CommunityManager] Member banned:",
+        memberDid,
+        "from",
+        communityId,
+      );
       this.emit("community:member-banned", { communityId, memberDid });
 
       return { success: true };
@@ -768,20 +855,26 @@ class CommunityManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const requester = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const requester = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
-      if (!requester ||
+      if (
+        !requester ||
         (requester.role !== MemberRole.OWNER &&
           requester.role !== MemberRole.ADMIN &&
-          requester.role !== MemberRole.MODERATOR)) {
+          requester.role !== MemberRole.MODERATOR)
+      ) {
         throw new Error("Insufficient permissions to unban members");
       }
 
-      const target = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'banned'",
-      ).get(communityId, memberDid);
+      const target = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'banned'",
+        )
+        .get(communityId, memberDid);
 
       if (!target) {
         throw new Error("Banned member not found");
@@ -798,7 +891,12 @@ class CommunityManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info("[CommunityManager] Member unbanned:", memberDid, "from", communityId);
+      logger.info(
+        "[CommunityManager] Member unbanned:",
+        memberDid,
+        "from",
+        communityId,
+      );
       this.emit("community:member-unbanned", { communityId, memberDid });
 
       return { success: true };
@@ -828,12 +926,12 @@ class CommunityManager extends EventEmitter {
         return stmt.all(limit, offset) || [];
       }
 
-      const searchPattern = `%${query.trim()}%`;
+      const searchPattern = SqlSecurity.likeContains(query.trim());
 
       const stmt = db.prepare(`
         SELECT * FROM communities
         WHERE status = 'active'
-          AND (name LIKE ? OR description LIKE ?)
+          AND (name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
         ORDER BY member_count DESC, created_at DESC
         LIMIT ? OFFSET ?
       `);
@@ -853,20 +951,27 @@ class CommunityManager extends EventEmitter {
   async handleCommunitySync(community) {
     try {
       const db = this.database.db;
-      const existing = db.prepare("SELECT id FROM communities WHERE id = ?").get(community.id);
+      const existing = db
+        .prepare("SELECT id FROM communities WHERE id = ?")
+        .get(community.id);
 
       if (existing) {
-        logger.info("[CommunityManager] Community already exists, skipping sync:", community.id);
+        logger.info(
+          "[CommunityManager] Community already exists, skipping sync:",
+          community.id,
+        );
         return;
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT OR IGNORE INTO communities (
           id, name, description, icon_url, rules_md, creator_did,
           member_limit, member_count, status, created_at, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         community.id,
         community.name,
         community.description || "",

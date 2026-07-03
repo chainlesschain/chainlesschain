@@ -12,6 +12,7 @@
 
 const { logger } = require("../../utils/logger");
 const { safeOrderByClause } = require("../../utils/sql-order-by.js");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single log row with a corrupt params/result
@@ -283,8 +284,12 @@ class CommandLogger extends EventEmitter {
 
       // 搜索过滤（搜索命令 action 或设备名称）
       if (search) {
-        query += " AND (command_action LIKE ? OR device_name LIKE ?)";
-        params.push(`%${search}%`, `%${search}%`);
+        query +=
+          " AND (command_action LIKE ? ESCAPE '\\' OR device_name LIKE ? ESCAPE '\\')";
+        params.push(
+          SqlSecurity.likeContains(search),
+          SqlSecurity.likeContains(search),
+        );
       }
 
       // 排序：sortBy/sortOrder 来自调用方 options，必须校验防 SQL 注入
@@ -338,8 +343,12 @@ class CommandLogger extends EventEmitter {
         countParams.push(endTime);
       }
       if (search) {
-        countQuery += " AND (command_action LIKE ? OR device_name LIKE ?)";
-        countParams.push(`%${search}%`, `%${search}%`);
+        countQuery +=
+          " AND (command_action LIKE ? ESCAPE '\\' OR device_name LIKE ? ESCAPE '\\')";
+        countParams.push(
+          SqlSecurity.likeContains(search),
+          SqlSecurity.likeContains(search),
+        );
       }
 
       const { total } = this.database.prepare(countQuery).get(...countParams);

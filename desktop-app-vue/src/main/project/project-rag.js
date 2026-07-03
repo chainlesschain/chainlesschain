@@ -6,6 +6,7 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs").promises;
+const SqlSecurity = require("../database/sql-security.js");
 let chokidar;
 try {
   chokidar = require("chokidar");
@@ -363,12 +364,12 @@ class ProjectRAGManager extends EventEmitter {
           created_at
         FROM project_conversations
         WHERE project_id = ?
-        AND content LIKE ?
+        AND content LIKE ? ESCAPE '\\'
         ORDER BY created_at DESC
         LIMIT ?
       `,
         )
-        .all(projectId, `%${query}%`, limit);
+        .all(projectId, SqlSecurity.likeContains(query), limit);
 
       return conversations.map((conv) => ({
         id: `conversation_${conv.id}`,

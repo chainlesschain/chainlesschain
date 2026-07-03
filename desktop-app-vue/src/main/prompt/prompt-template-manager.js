@@ -5,6 +5,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single template with a corrupt variables string
@@ -3050,9 +3051,13 @@ H2: [假设内容]
   async searchTemplates(query) {
     const templates = await this.db.all(
       `SELECT * FROM prompt_templates
-       WHERE name LIKE ? OR description LIKE ? OR template LIKE ?
+       WHERE name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR template LIKE ? ESCAPE '\\'
        ORDER BY usage_count DESC, created_at DESC`,
-      [`%${query}%`, `%${query}%`, `%${query}%`],
+      [
+        SqlSecurity.likeContains(query),
+        SqlSecurity.likeContains(query),
+        SqlSecurity.likeContains(query),
+      ],
     );
 
     return templates.map((template) => ({

@@ -6,6 +6,7 @@
 
 const { logger } = require("../utils/logger.js");
 const { safeOrderByClause } = require("../utils/sql-order-by.js");
+const SqlSecurity = require("../database/sql-security.js");
 const path = require("path");
 const fs = require("fs").promises;
 const { v4: uuidv4 } = require("uuid");
@@ -260,14 +261,14 @@ class AudioStorage {
       SELECT * FROM audio_files
       WHERE user_id = ?
         AND (
-          transcription_text LIKE ?
-          OR file_name LIKE ?
+          transcription_text LIKE ? ESCAPE '\\'
+          OR file_name LIKE ? ESCAPE '\\'
         )
       ORDER BY created_at DESC
       LIMIT ?
     `;
 
-    const searchPattern = `%${query}%`;
+    const searchPattern = SqlSecurity.likeContains(query);
 
     try {
       const records = await this.db.all(sql, [
@@ -418,14 +419,14 @@ class AudioStorage {
   async searchTranscriptionHistory(query, options = {}) {
     const { limit = 100, offset = 0 } = options;
 
-    const searchTerm = `%${query}%`;
+    const searchTerm = SqlSecurity.likeContains(query);
 
     const sql = `
       SELECT h.*, a.file_name
       FROM transcription_history h
       LEFT JOIN audio_files a ON h.audio_file_id = a.id
-      WHERE h.text LIKE ?
-         OR a.file_name LIKE ?
+      WHERE h.text LIKE ? ESCAPE '\\'
+         OR a.file_name LIKE ? ESCAPE '\\'
       ORDER BY h.created_at DESC
       LIMIT ? OFFSET ?
     `;

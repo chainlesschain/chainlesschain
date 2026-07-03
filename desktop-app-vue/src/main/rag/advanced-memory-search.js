@@ -13,6 +13,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 
 /**
  * 记忆层级定义
@@ -527,12 +528,12 @@ class AdvancedMemorySearch {
         .prepare(
           `
         SELECT * FROM daily_notes_metadata
-        WHERE title LIKE ? OR date LIKE ?
+        WHERE title LIKE ? ESCAPE '\\' OR date LIKE ? ESCAPE '\\'
         ORDER BY date DESC
         LIMIT 100
       `,
         )
-        .all(`%${query}%`, `%${query}%`);
+        .all(SqlSecurity.likeContains(query), SqlSecurity.likeContains(query));
 
       for (const note of dailyNotes) {
         results.push({
@@ -553,12 +554,12 @@ class AdvancedMemorySearch {
         .prepare(
           `
         SELECT * FROM memory_sections
-        WHERE content LIKE ? OR category LIKE ?
+        WHERE content LIKE ? ESCAPE '\\' OR category LIKE ? ESCAPE '\\'
         ORDER BY importance DESC, updated_at DESC
         LIMIT 100
       `,
         )
-        .all(`%${query}%`, `%${query}%`);
+        .all(SqlSecurity.likeContains(query), SqlSecurity.likeContains(query));
 
       for (const section of sections) {
         results.push({

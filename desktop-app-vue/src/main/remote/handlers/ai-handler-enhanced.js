@@ -14,6 +14,7 @@
  */
 
 const { logger } = require("../../utils/logger");
+const SqlSecurity = require("../../database/sql-security.js");
 
 /**
  * Tolerant JSON column parse — a single conversation with a corrupt metadata
@@ -352,9 +353,9 @@ class AICommandHandlerEnhanced extends EventEmitter {
       try {
         const countResult = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM conversations WHERE title LIKE ?",
+            "SELECT COUNT(*) as count FROM conversations WHERE title LIKE ? ESCAPE '\\'",
           )
-          .get(`%${search}%`);
+          .get(SqlSecurity.likeContains(search));
         total = countResult.count;
       } catch (error) {
         logger.warn("[AIHandlerEnhanced] 获取对话总数失败:", error);

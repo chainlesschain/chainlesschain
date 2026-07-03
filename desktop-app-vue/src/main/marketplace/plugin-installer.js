@@ -13,6 +13,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs").promises;
@@ -780,8 +781,8 @@ class PluginInstaller {
       }
 
       if (filters.search) {
-        sql += " AND (name LIKE ? OR plugin_id LIKE ?)";
-        const searchTerm = `%${filters.search}%`;
+        sql += " AND (name LIKE ? ESCAPE '\\' OR plugin_id LIKE ? ESCAPE '\\')";
+        const searchTerm = SqlSecurity.likeContains(filters.search);
         params.push(searchTerm, searchTerm);
       }
 
