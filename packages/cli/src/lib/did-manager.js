@@ -163,10 +163,12 @@ export function setDefaultIdentity(db, did) {
   const identity = getIdentity(db, did);
   if (!identity) return false;
 
-  db.prepare("UPDATE did_identities SET is_default = ? WHERE did LIKE ?").run(
-    0,
-    "%",
-  );
+  // Clear the current default(s). Match on is_default rather than `did LIKE '%'`
+  // so there's no wildcard pattern here that a reader/scanner could mistake for
+  // LIKE-injection — the target below is set via exact `did = ?` regardless.
+  db.prepare(
+    "UPDATE did_identities SET is_default = 0 WHERE is_default = 1",
+  ).run();
   db.prepare("UPDATE did_identities SET is_default = ? WHERE did = ?").run(
     1,
     identity.did,

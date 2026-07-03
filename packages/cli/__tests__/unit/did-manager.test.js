@@ -275,6 +275,8 @@ describe("DID Manager", () => {
 
       const updated = getIdentity(db, second.did);
       expect(updated.is_default).toBe(1);
+      // Switching default must clear the previous default (single-default invariant).
+      expect(getIdentity(db, first.did).is_default).toBe(0);
     });
 
     it("should return false for non-existent DID", () => {
