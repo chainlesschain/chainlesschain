@@ -595,21 +595,35 @@ export function registerPluginCommand(program) {
     )
     .option("--scope <scope>", "Install scope (user|project|local)", "user")
     .option("--force", "Reinstall over an existing immutable version")
+    .option("--sha256 <hex>", "Expected SHA-256 of the manifest file")
+    .option("--signature <path>", "Detached Ed25519 signature of the manifest")
+    .option("--public-key <path>", "Public key for signature verification")
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
       const { installFromSource } =
         await import("../lib/plugin-runtime/install.js");
+      const signature =
+        options.sha256 || options.signature || options.publicKey
+          ? {
+              sha256: options.sha256,
+              signatureFile: options.signature,
+              publicKeyFile: options.publicKey,
+              requireSignature: Boolean(options.signature),
+            }
+          : null;
       try {
         const res = installFromSource(source, {
           scope: options.scope,
           cwd: process.cwd(),
           force: options.force === true,
+          signature,
         });
         if (options.json) {
           console.log(JSON.stringify(res, null, 2));
         } else {
           logger.success(
-            `Installed ${res.name} v${res.version} (${res.scope} scope)`,
+            `Installed ${res.name} v${res.version} (${res.scope} scope)` +
+              (res.signatureVerified ? chalk.green(" ✔ signed") : ""),
           );
           logger.log(chalk.gray(`  → ${res.dir}`));
           for (const w of res.warnings || [])

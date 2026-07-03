@@ -24,6 +24,7 @@
 
 import { enforcePluginPolicy } from "../plugin-security.js";
 import { loadManagedSettings } from "../settings-loader.cjs";
+import { verifyInstalledSignature } from "./signature.js";
 
 // Managed settings are org-admin controlled and effectively static for a
 // session, and discoverPlugins is called by every collector — memoize the load
@@ -77,6 +78,22 @@ export function _resetPolicyCache() {
  */
 export function filterByManagedPolicy(plugins, managed) {
   if (!managed) return { kept: plugins, dropped: [] };
+  // requireSignedPlugins (fail-closed): every plugin must carry a valid recorded
+  // signature whose locked manifest hash still matches on disk. Optionally the
+  // signing key must be among managed.trustedPluginKeySha256.
+  const requireSigned =
+    managed.requireSignedPlugins === true ||
+    managed.requireSignedPlugins === "require";
+  const trustedKeys = requireSigned
+    ? new Set(
+        (Array.isArray(managed.trustedPluginKeySha256)
+          ? managed.trustedPluginKeySha256
+          : []
+        )
+          .map((k) => String(k || "").trim())
+          .filter(Boolean),
+      )
+    : null;
   const kept = [];
   const dropped = [];
   for (const p of plugins) {
@@ -85,10 +102,21 @@ export function filterByManagedPolicy(plugins, managed) {
         { name: p.name, source: null, action: "load" },
         managed,
       );
-      kept.push(p);
     } catch (err) {
       dropped.push({ name: p.name, reason: err.message });
+      continue;
     }
+    if (requireSigned) {
+      const v = verifyInstalledSignature(p, { trustedKeys });
+      if (!v.signed) {
+        dropped.push({
+          name: p.name,
+          reason: `requireSignedPlugins: ${v.reason}`,
+        });
+        continue;
+      }
+    }
+    kept.push(p);
   }
   return { kept, dropped };
 }

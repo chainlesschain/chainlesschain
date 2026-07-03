@@ -28,6 +28,8 @@ import {
   activeVersion,
   discoverPlugins,
 } from "./scopes.js";
+import { verifyPluginManifest } from "../plugin-security.js";
+import { writePluginLock } from "./signature.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -62,6 +64,25 @@ export function installFromDirectory(srcDir, opts = {}) {
   }
   const { name, version } = manifest.metadata;
 
+  // Optional signature/integrity verification of the manifest at install time
+  // (Phase 3.3l). verifyPluginManifest THROWS on any mismatch/failure — a signed
+  // install that fails verification must not land on disk (fail-closed). On
+  // success we record a `.plugin-lock.json` so load-time requireSignedPlugins
+  // can re-check it without the original signature/key files.
+  let verification = null;
+  const sig = opts.signature;
+  if (sig && (sig.sha256 || sig.signatureFile || sig.requireSignature)) {
+    verification = verifyPluginManifest({
+      manifestFile: manifest.manifestPath,
+      expectedSha256: sig.sha256,
+      signatureFile: sig.signatureFile,
+      publicKeyFile: sig.publicKeyFile,
+      requireSignature: sig.requireSignature === true,
+      trustedKeySha256: sig.trustedKeySha256 || null,
+      requireTrustedKey: sig.requireTrustedKey === true,
+    });
+  }
+
   const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
   if (_deps.existsSync(dest)) {
     if (!opts.force) {
@@ -76,10 +97,33 @@ export function installFromDirectory(srcDir, opts = {}) {
   _deps.mkdirSync(dest, { recursive: true });
   copyDirGuarded(src, dest, dest);
 
+  // Record the verified signature into the installed (immutable) version dir so
+  // load-time enforcement can re-check it. The manifest was copied verbatim, so
+  // its bytes/sha in `dest` match what we verified in `src`.
+  if (verification) {
+    const destManifest = path.join(
+      dest,
+      path.relative(src, manifest.manifestPath),
+    );
+    writePluginLock(dest, {
+      manifestFile: destManifest,
+      sha256: verification.sha256,
+      publicKeySha256: verification.publicKeySha256,
+      signatureVerified: verification.signatureVerified === true,
+    });
+  }
+
   // Make the freshly-installed version active.
   setActiveVersion(name, version, { scope, cwd: opts.cwd });
 
-  return { name, version, scope, dir: dest, warnings: manifest.warnings };
+  return {
+    name,
+    version,
+    scope,
+    dir: dest,
+    warnings: manifest.warnings,
+    signatureVerified: verification?.signatureVerified === true,
+  };
 }
 
 /**
