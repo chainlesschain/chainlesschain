@@ -495,6 +495,92 @@ export function registerPluginCommand(program) {
         process.exit(1);
       }
     });
+
+  // plugin validate — parse a plugin's unified manifest and report every
+  // component it contributes (skills/agents/hooks/mcp/lsp/monitors/bin/settings),
+  // plus path-traversal / schema problems. Optional signature/hash verification
+  // reuses the real crypto in plugin-security. No DB, no install — pure inspection.
+  plugin
+    .command("validate <dir>")
+    .description("Validate a plugin manifest and list its components")
+    .option("--sha256 <hex>", "Expected SHA-256 of the manifest file")
+    .option("--signature <path>", "Detached Ed25519 signature of the manifest")
+    .option("--public-key <path>", "Public key for signature verification")
+    .option("--json", "Output as JSON")
+    .action(async (dir, options) => {
+      const { parsePluginManifest, summarizeComponents } =
+        await import("../lib/plugin-runtime/manifest.js");
+      const manifest = parsePluginManifest(dir);
+
+      // Optional integrity/signature check on the manifest file itself.
+      // verifyPluginManifest THROWS on any mismatch/failure and returns a
+      // details object on success — so a caught error means verification failed.
+      let verification = null;
+      if (manifest.manifestPath && (options.sha256 || options.signature)) {
+        try {
+          const v = verifyPluginManifest({
+            manifestFile: manifest.manifestPath,
+            expectedSha256: options.sha256,
+            signatureFile: options.signature,
+            publicKeyFile: options.publicKey,
+          });
+          verification = {
+            ok: true,
+            sha256: v?.sha256 || null,
+            signatureVerified: v?.signatureVerified === true,
+          };
+        } catch (err) {
+          verification = { ok: false, reason: err.message };
+          manifest.ok = false;
+          manifest.errors.push(`manifest verification failed: ${err.message}`);
+        }
+      }
+
+      const counts = summarizeComponents(manifest);
+
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            { ...manifest, componentCounts: counts, verification },
+            null,
+            2,
+          ),
+        );
+        if (!manifest.ok) process.exitCode = 1;
+        return;
+      }
+
+      const m = manifest.metadata || {};
+      logger.log(
+        chalk.bold(`Plugin: `) +
+          `${chalk.cyan(m.name || "(no name)")} ${chalk.gray("v" + (m.version || "?"))}`,
+      );
+      if (m.description) logger.log(chalk.gray("  " + m.description));
+      logger.log(
+        chalk.gray(`  manifest: ${manifest.manifestPath || "(none)"}`),
+      );
+      logger.log(chalk.bold("\nComponents:"));
+      for (const [kind, n] of Object.entries(counts)) {
+        const mark = n > 0 ? chalk.green(String(n)) : chalk.gray("0");
+        logger.log(`  ${kind.padEnd(10)} ${mark}`);
+      }
+      if (verification) {
+        logger.log(
+          chalk.bold("\nVerification: ") +
+            (verification.ok ? chalk.green("passed") : chalk.red("FAILED")),
+        );
+      }
+      for (const w of manifest.warnings) logger.log(chalk.yellow(`  ⚠ ${w}`));
+      for (const e of manifest.errors) logger.log(chalk.red(`  ✖ ${e}`));
+      if (manifest.ok) {
+        logger.success("\nManifest is valid.");
+      } else {
+        logger.error("\nManifest is INVALID.");
+        process.exitCode = 1;
+      }
+    });
+
+  return plugin;
 }
 
 // === Iter26 V2 governance overlay ===
