@@ -638,12 +638,64 @@ export function registerPluginCommand(program) {
         logger.info("No plugins installed. Add one with: cc plugin add <dir>");
         return;
       }
+      const { isPluginTrusted } =
+        await import("../lib/plugin-runtime/trust.js");
       logger.log(chalk.bold(`Installed plugins (${rows.length}):`));
       for (const r of rows) {
         const ok = r.ok ? chalk.green("✔") : chalk.red("✖");
+        const trust = isPluginTrusted(r)
+          ? chalk.green("trusted")
+          : chalk.yellow("untrusted");
         logger.log(
-          `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)}`,
+          `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${trust}`,
         );
+      }
+    });
+
+  // plugin trust <name> — allow a plugin's code-bearing components to run
+  plugin
+    .command("trust <name>")
+    .description("Trust a plugin so its hooks / LSP servers may run")
+    .option("--scope <scope>", "Scope of the plugin", "project")
+    .option("--list", "List all trusted plugins instead")
+    .action(async (name, options) => {
+      const { trustPlugin, listTrust } =
+        await import("../lib/plugin-runtime/trust.js");
+      const { getActiveVersion } =
+        await import("../lib/plugin-runtime/install.js");
+      if (options.list) {
+        for (const t of listTrust()) {
+          logger.log(`  ${chalk.cyan(t.name)} v${t.version} [${t.scope}]`);
+        }
+        return;
+      }
+      const version = getActiveVersion(name, {
+        scope: options.scope,
+        cwd: process.cwd(),
+      });
+      if (!version) {
+        logger.error(`${name} is not installed at ${options.scope} scope`);
+        process.exitCode = 1;
+        return;
+      }
+      trustPlugin(name, { scope: options.scope, version });
+      logger.success(`Trusted ${name} v${version} (${options.scope} scope)`);
+    });
+
+  // plugin untrust <name> — revoke trust
+  plugin
+    .command("untrust <name>")
+    .description(
+      "Revoke trust for a plugin (its hooks / LSP servers stop running)",
+    )
+    .option("--scope <scope>", "Scope of the plugin", "project")
+    .action(async (name, options) => {
+      const { untrustPlugin } = await import("../lib/plugin-runtime/trust.js");
+      const res = untrustPlugin(name, { scope: options.scope });
+      if (res.removed) {
+        logger.success(`Revoked trust for ${name} (${options.scope} scope)`);
+      } else {
+        logger.info(`${name} was not trusted at ${options.scope} scope`);
       }
     });
 

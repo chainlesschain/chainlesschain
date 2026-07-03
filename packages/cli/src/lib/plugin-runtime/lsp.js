@@ -15,6 +15,7 @@
 import path from "path";
 import { discoverPlugins } from "./scopes.js";
 import { registerLanguageServer } from "../lsp/lsp-server-registry.js";
+import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 
 const _loadedRoots = new Set();
 
@@ -38,7 +39,17 @@ export function ensurePluginLspServers(opts = {}) {
     return { registered };
   }
 
-  for (const p of plugins) {
+  // An LSP server spawns a binary — gate it behind trust. Untrusted project
+  // plugins (e.g. from a cloned repo) don't get to launch processes silently.
+  const { trusted, skipped } = partitionByTrust(plugins);
+  warnUntrustedOnce(
+    skipped
+      .filter((p) => (p.manifest?.components?.lsp || []).length > 0)
+      .map((p) => p.name),
+    "language servers",
+  );
+
+  for (const p of trusted) {
     const servers = p.manifest?.components?.lsp || [];
     for (const s of servers) {
       try {

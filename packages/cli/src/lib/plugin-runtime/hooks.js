@@ -16,6 +16,7 @@
 
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
+import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -48,8 +49,15 @@ export function collectPluginHooks(opts = {}) {
   } catch {
     return {};
   }
+  // A hook runs a shell command — gate it behind trust so a cloned repo's
+  // project plugin can't run commands the moment the agent starts.
+  const { trusted, skipped } = partitionByTrust(plugins);
+  warnUntrustedOnce(
+    skipped.filter((p) => p.manifest?.components?.hooks).map((p) => p.name),
+    "hooks",
+  );
   const merged = {};
-  for (const p of plugins) {
+  for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const h = p.manifest.components?.hooks;
     if (!h || !h.absPath) continue;

@@ -39,27 +39,27 @@ afterEach(() => {
 
 describe("collectPluginHooks", () => {
   it("collects wrapped { hooks: { Event: [...] } } form", () => {
-    installHookPlugin("project", "p", {
+    installHookPlugin("local", "p", {
       hooks: {
         SessionStart: [{ hooks: [{ type: "command", command: "echo hi" }] }],
       },
     });
-    const map = collectPluginHooks({ cwd, scopes: ["project"] });
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
     expect(map.SessionStart).toHaveLength(1);
   });
 
   it("collects unwrapped { Event: [...] } form", () => {
-    installHookPlugin("project", "p", {
+    installHookPlugin("local", "p", {
       PreToolUse: [
         { matcher: "Bash", hooks: [{ type: "command", command: "echo x" }] },
       ],
     });
-    const map = collectPluginHooks({ cwd, scopes: ["project"] });
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
     expect(map.PreToolUse).toHaveLength(1);
   });
 
   it("concatenates hooks from multiple plugins for the same event", () => {
-    installHookPlugin("project", "a", {
+    installHookPlugin("local", "a", {
       hooks: {
         SessionStart: [{ hooks: [{ type: "command", command: "echo a" }] }],
       },
@@ -69,13 +69,13 @@ describe("collectPluginHooks", () => {
         SessionStart: [{ hooks: [{ type: "command", command: "echo b" }] }],
       },
     });
-    const map = collectPluginHooks({ cwd, scopes: ["project", "local"] });
+    const map = collectPluginHooks({ cwd, scopes: ["local", "local"] });
     expect(map.SessionStart).toHaveLength(2);
   });
 
   it("skips a plugin whose manifest failed validation", () => {
     installHookPlugin(
-      "project",
+      "local",
       "evil",
       {
         hooks: {
@@ -84,20 +84,20 @@ describe("collectPluginHooks", () => {
       },
       { manifest: { skills: [{ name: "esc", path: "../../../etc" }] } },
     );
-    expect(collectPluginHooks({ cwd, scopes: ["project"] })).toEqual({});
+    expect(collectPluginHooks({ cwd, scopes: ["local"] })).toEqual({});
   });
 });
 
 describe("mergePluginHooks", () => {
   it("returns the input unchanged when no plugins contribute hooks", () => {
     const existing = { PreToolUse: [{ hooks: [] }] };
-    expect(mergePluginHooks(existing, { cwd, scopes: ["project"] })).toBe(
+    expect(mergePluginHooks(existing, { cwd, scopes: ["local"] })).toBe(
       existing,
     );
   });
 
   it("ADDS plugin hooks onto the user's existing event array (does not replace)", () => {
-    installHookPlugin("project", "p", {
+    installHookPlugin("local", "p", {
       hooks: {
         PreToolUse: [{ hooks: [{ type: "command", command: "echo plugin" }] }],
       },
@@ -105,19 +105,19 @@ describe("mergePluginHooks", () => {
     const existing = {
       PreToolUse: [{ hooks: [{ type: "command", command: "echo user" }] }],
     };
-    const merged = mergePluginHooks(existing, { cwd, scopes: ["project"] });
+    const merged = mergePluginHooks(existing, { cwd, scopes: ["local"] });
     expect(merged.PreToolUse).toHaveLength(2);
     // user's entry preserved as-is
     expect(merged.PreToolUse[0].hooks[0].command).toBe("echo user");
   });
 
   it("builds a fresh map when the user had no hooks", () => {
-    installHookPlugin("project", "p", {
+    installHookPlugin("local", "p", {
       hooks: {
         SessionStart: [{ hooks: [{ type: "command", command: "echo x" }] }],
       },
     });
-    const merged = mergePluginHooks(null, { cwd, scopes: ["project"] });
+    const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
     expect(Object.keys(merged)).toEqual(["SessionStart"]);
   });
 });
@@ -125,14 +125,14 @@ describe("mergePluginHooks", () => {
 // End-to-end through the REAL hook-runner (spawns the hook command) — no LLM.
 describe("plugin hooks fire through the settings-hook lifecycle", () => {
   it("a plugin SessionStart hook runs and injects its stdout as context", async () => {
-    installHookPlugin("project", "greeter", {
+    installHookPlugin("local", "greeter", {
       hooks: {
         SessionStart: [
           { hooks: [{ type: "command", command: "echo PLUGIN_HOOK_OK" }] },
         ],
       },
     });
-    const merged = mergePluginHooks(null, { cwd, scopes: ["project"] });
+    const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
     const { runSessionStartHooks } =
       await import("../../src/lib/settings-hook-events.cjs");
     const res = runSessionStartHooks(merged, { source: "startup", cwd });

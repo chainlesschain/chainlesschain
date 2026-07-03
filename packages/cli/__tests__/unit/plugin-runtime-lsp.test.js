@@ -12,6 +12,11 @@ import {
   _resetPluginServers,
 } from "../../src/lib/lsp/lsp-server-registry.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
+import {
+  trustPlugin,
+  _deps as trustDeps,
+  _resetTrustWarnings,
+} from "../../src/lib/plugin-runtime/trust.js";
 
 let cwd;
 
@@ -44,7 +49,7 @@ afterEach(() => {
 
 describe("ensurePluginLspServers", () => {
   it("registers a plugin-declared language server into the LSP registry", () => {
-    installLspPlugin("project", "toml-tools", {
+    installLspPlugin("local", "toml-tools", {
       servers: [
         {
           languageId: "toml",
@@ -55,7 +60,7 @@ describe("ensurePluginLspServers", () => {
       ],
     });
 
-    const res = ensurePluginLspServers({ cwd, scopes: ["project"] });
+    const res = ensurePluginLspServers({ cwd, scopes: ["local"] });
     expect(res.registered).toEqual([
       { plugin: "toml-tools", languageId: "toml", id: "taplo" },
     ]);
@@ -69,41 +74,78 @@ describe("ensurePluginLspServers", () => {
   });
 
   it("is memoized per root — a second call is a no-op unless forced", () => {
-    installLspPlugin("project", "toml-tools", {
+    installLspPlugin("local", "toml-tools", {
       servers: [
         { languageId: "toml", command: "taplo", extensions: [".toml"] },
       ],
     });
     expect(
-      ensurePluginLspServers({ cwd, scopes: ["project"] }).registered,
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
     ).toHaveLength(1);
     // Second call: already loaded for this root.
     expect(
-      ensurePluginLspServers({ cwd, scopes: ["project"] }).registered,
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
     ).toHaveLength(0);
     // force re-scans.
     expect(
-      ensurePluginLspServers({ cwd, scopes: ["project"], force: true })
+      ensurePluginLspServers({ cwd, scopes: ["local"], force: true })
         .registered,
     ).toHaveLength(1);
   });
 
   it("never throws on a broken plugin manifest", () => {
-    const dir = pluginVersionDir("project", "broken", "1.0.0", { cwd });
+    const dir = pluginVersionDir("local", "broken", "1.0.0", { cwd });
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "plugin.json"), "{ not json", "utf8");
     expect(() =>
-      ensurePluginLspServers({ cwd, scopes: ["project"] }),
+      ensurePluginLspServers({ cwd, scopes: ["local"] }),
     ).not.toThrow();
   });
 
   it("skips lsp entries missing languageId/command", () => {
-    installLspPlugin("project", "partial", {
+    installLspPlugin("local", "partial", {
       servers: [{ extensions: [".x"] }, { languageId: "ok", command: "okls" }],
     });
-    const res = ensurePluginLspServers({ cwd, scopes: ["project"] });
+    const res = ensurePluginLspServers({ cwd, scopes: ["local"] });
     expect(res.registered).toEqual([
       { plugin: "partial", languageId: "ok", id: "okls" },
     ]);
+  });
+});
+
+describe("ensurePluginLspServers — trust gating", () => {
+  let storeFile;
+  let savedStorePath;
+
+  beforeEach(() => {
+    // Isolate the trust store so we never touch the real user-data dir.
+    storeFile = path.join(cwd, "trust.json");
+    savedStorePath = trustDeps.storePath;
+    trustDeps.storePath = () => storeFile;
+    _resetTrustWarnings();
+  });
+  afterEach(() => {
+    trustDeps.storePath = savedStorePath;
+  });
+
+  it("does NOT register an UNTRUSTED project plugin's server, but does after trust", () => {
+    installLspPlugin("project", "toml-tools", {
+      servers: [
+        { languageId: "toml", command: "taplo", extensions: [".toml"] },
+      ],
+    });
+
+    // Untrusted project scope → gated out.
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["project"] }).registered,
+    ).toHaveLength(0);
+
+    // Trust it → now its server registers.
+    trustPlugin("toml-tools", { scope: "project", version: "1.0.0" });
+    _resetPluginServers();
+    _resetPluginLspLoadState();
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["project"] }).registered,
+    ).toHaveLength(1);
   });
 });
