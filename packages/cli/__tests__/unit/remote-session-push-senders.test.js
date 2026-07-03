@@ -136,10 +136,20 @@ describe("createRemoteSessionPushSender provider dispatch", () => {
     ).toBe("function");
   });
 
+  it("routes provider=vivo to the vivo sender", () => {
+    const sender = createRemoteSessionPushSender({
+      CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "vivo",
+      CHAINLESSCHAIN_REMOTE_SESSION_VIVO_APP_ID: "app-1",
+      CHAINLESSCHAIN_REMOTE_SESSION_VIVO_APP_KEY: "key-1",
+      CHAINLESSCHAIN_REMOTE_SESSION_VIVO_APP_SECRET: "secret",
+    });
+    expect(typeof sender).toBe("function");
+  });
+
   it("returns null for an unimplemented provider", () => {
     expect(
       createRemoteSessionPushSender({
-        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "vivo",
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "meizu",
       }),
     ).toBeNull();
   });

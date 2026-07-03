@@ -12,6 +12,7 @@ import { createWebPushSender } from "./remote-session-push-web.js";
 import { createXiaomiPushSender } from "./remote-session-push-xiaomi.js";
 import { createHuaweiPushSender } from "./remote-session-push-huawei.js";
 import { createOppoPushSender } from "./remote-session-push-oppo.js";
+import { createVivoPushSender } from "./remote-session-push-vivo.js";
 
 export function createRemoteSessionPushSender(env = {}, options = {}) {
   const provider = (
@@ -33,6 +34,8 @@ export function createRemoteSessionPushSender(env = {}, options = {}) {
     case "oppo":
     case "heytap":
       return createOppoPushSender(env, options);
+    case "vivo":
+      return createVivoPushSender(env, options);
     default:
       return null;
   }
