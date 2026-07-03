@@ -143,7 +143,15 @@
 - `android-app/.../remote/session/FcmTokenProvider.kt`：**反射式**取设备 FCM 注册 token——沿用 `AppInitializer` 对 Crashlytics 的「google-services.json 可选」范式：`Class.forName("com.google.firebase.messaging.FirebaseMessaging")` + `getInstance().getToken()`（`kotlinx-coroutines-play-services` 的 `Task.await()`）。Firebase 不在 classpath / 无 google-services.json 时**返回 null 不崩**，宿主自动回退 relay + 本地通知；无硬依赖、无需 google-services.json 也能编译运行。可注入 `fetcher` 供测试。
 - `RemoteSessionViewModel.pair(uri)`：改为协程，配对前**先** best-effort 取 token（`withTimeoutOrNull(3s)` 封顶，避免慢网阻塞配对）→ `client.setPushCredentials(token, "fcm")` → `connect(uri)`，使 token 随加密 `pair.join` 上送到宿主（relay 侧唯一注册路径）。
 - `app/build.gradle.kts`：`hasGoogleServices` 守卫块内追加 `firebase-messaging-ktx`（仅当 google-services.json 存在才引入；CI 当前无该文件，构建不受影响）。
-- 验证：`FcmTokenProviderTest` 4（注入 fetcher 取值 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 Firebase → null）+ `RemoteSessionClientPushTest` 3（配对前设 token → 宿主解密 `pair.join` 得 pushToken+pushProvider / 无 token 则不带这两字段 / 清 token 后丢弃字段）——纯 JVM 框架无关，用真 X25519+AES-GCM 往返解密验证。
+- 验证：`FcmTokenProviderTest` 4（注入 fetcher 取值 / 空白与 null 归一化 / 抛错降级 null / 默认反射路径无 Firebase → null）+ `RemoteSessionClientPushTest`（配对前设 token → 宿主解密 `pair.join` 得 pushToken+pushProvider / 无 token 则不带这两字段 / 清 token 后丢弃字段）——纯 JVM 框架无关，用真 X25519+AES-GCM 往返解密验证。
+
+#### Phase 4：FirebaseMessagingService onNewToken + 配对后 token 刷新（已完成）
+
+- **配对后刷新路径（宿主，纯逻辑可测）**：`handleRemoteSessionPublish` 新增 `push.register` 事件——已配对设备（含仅 relay 的手机）可自助刷新自己的 vendor token：`authorize` 证成员身份 + `registerPush` 以认证 `clientId` 为键（设备只能改自己的 token；不带 token 即清空），记 `push.registered`（`via:"relay"`）审计。这补上了配对后（一次性 `pair.join` 之外）唯一缺失的 token 更新通道。
+- **Android 客户端**：`RemoteSessionClient.updatePushCredentials(token, provider)`——更新字段供下次 `pair.join`，且**已配对时**立即经加密 `push.register` 控制事件转发给宿主，使在途会话即刻改用新 token。
+- **进程级桥**：`RemoteSessionPushBridge`（`@Volatile activeClient`，纯 Kotlin 无 Android/Firebase 类型）——让 `FirebaseMessagingService`（在 ViewModel 之外）把刷新 token 交给活跃客户端；无活跃会话则 no-op（下次配对反射取新 token）。`RemoteSessionViewModel` 在 init 注册 / onCleared 注销 `activeClient`。
+- **`RemoteSessionFirebaseService`**（`app/src/firebase/java/`，**条件源集**）：`onNewToken` → `RemoteSessionPushBridge.onNewToken`；`onMessageReceived` → 前台/纯 data 的审批推送本地弹通知（data 只带路由字段）。因子类继承 firebase-messaging 类型，`build.gradle.kts` 仅在 `hasGoogleServices` 时把该源集加入 `main`——无 google-services.json 时整类不编译不进 APK；manifest 中 `<service>` 用 `tools:ignore="MissingClass"`（Firebase-less 构建下永不实例化）。
+- 验证：`RemoteSessionClientPushTest` 扩测 2（配对前 update 只随下次 `pair.join` / 配对后 update 经解密 `push.register` 到宿主）+ `RemoteSessionPushBridgeTest` 3（无活跃客户端 no-op / 空白 token 忽略 / onNewToken 经桥入客户端并随 `pair.join` 上送）+ CLI `remote-session-protocol` 扩测 3（relay `push.register` 注册 + 审计 / 省略 token 即清空 / 非成员拒绝）。CLI 远程会话全量 90 单测通过；Android push 三类 JVM 测试全绿。`RemoteSessionFirebaseService` 因需 google-services.json 才编译，随真机接入验证（Win 不可跑）。
 
 #### Phase 4：审计日志持久化 sink（JSONL，已完成）
 
@@ -156,5 +164,5 @@
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：**FCM sender 服务端 + Android 侧取 token 均已完成**；仍缺：真实 `google-services.json` 接入 + 真机端到端验证（Win 不可跑）；`FirebaseMessagingService` 子类（`onNewToken` token 轮换 + 前台/纯 data 消息处理——需 firebase-messaging 进 unconditional classpath，故随 google-services.json 落地）+ 配对后经 relay 转发的 push-register 刷新路径；其它 provider（APNs / 小米 / 华为 / OPPO）sender 实装；Web push（service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：**FCM sender 服务端 + Android 取 token + `FirebaseMessagingService` onNewToken + 配对后 relay `push.register` 刷新路径均已完成**；仍缺：真实 `google-services.json` 接入 + 真机端到端验证（`RemoteSessionFirebaseService` 条件源集需该文件才编译，Win 不可跑）；其它 provider（APNs / 小米 / 华为 / OPPO）sender 实装；Web push（service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。

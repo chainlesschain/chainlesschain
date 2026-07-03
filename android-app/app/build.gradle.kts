@@ -43,6 +43,14 @@ android {
     namespace = "com.chainlesschain.android"
     compileSdk = 35
 
+    // The Remote Session FirebaseMessagingService (onNewToken / foreground push)
+    // subclasses a firebase-messaging type, so it is compiled ONLY when Firebase
+    // is configured — otherwise the app builds and runs without the SDK. See
+    // RemoteSessionFirebaseService.kt.
+    if (hasGoogleServices) {
+        sourceSets.getByName("main").java.srcDir("src/firebase/java")
+    }
+
     defaultConfig {
         applicationId = "com.chainlesschain.android"
         // Bumped 26 → 28 (Android 9 Pie) on 2026-05-18 to align with

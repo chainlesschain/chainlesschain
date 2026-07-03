@@ -83,6 +83,21 @@ class RemoteSessionClient(
         pushProvider = if (pushToken != null) provider else null
     }
 
+    /**
+     * Update the vendor push token AFTER pairing (e.g. FCM onNewToken). Records
+     * it for the next pair.join and, when already paired, forwards the change to
+     * the host now via an encrypted push.register control event so an in-flight
+     * session starts using the fresh token immediately. A null token clears it.
+     */
+    fun updatePushCredentials(token: String?, provider: String? = null) {
+        setPushCredentials(token, provider)
+        if (!paired) return
+        val event = JSONObject().put("type", "push.register")
+        pushToken?.let { event.put("pushToken", it) }
+        pushProvider?.let { event.put("pushProvider", it) }
+        sendControl(event)
+    }
+
     // Reconnect state. The pairing token is single-use, so a reconnect within
     // the same process lifetime re-registers with the relay and resumes on the
     // already-derived shared secret instead of re-pairing.

@@ -393,6 +393,66 @@ describe("remote session WebSocket protocol", () => {
     });
   });
 
+  it("registers a refreshed push token via a published push.register event", async () => {
+    const remoteSessionId = createAndJoin(["observe"]);
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "push-reg-relay",
+      remoteSessionId,
+      event: {
+        type: "push.register",
+        pushToken: "fcm-new",
+        pushProvider: "fcm",
+      },
+    });
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "remote-session-push-registered",
+      hasPush: true,
+      provider: "fcm",
+    });
+    expect(server.remoteSessions.pushTargets(remoteSessionId)).toEqual([
+      { clientId: "phone", pushToken: "fcm-new", pushProvider: "fcm" },
+    ]);
+    const audited = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId, action: "push.registered" })
+      .at(0);
+    expect(audited).toMatchObject({
+      actor: "phone",
+      detail: { hasPush: true, provider: "fcm", via: "relay" },
+    });
+  });
+
+  it("clears the push token when push.register omits it", async () => {
+    const remoteSessionId = createAndJoin(["observe"]);
+    server.remoteSessions.registerPush(remoteSessionId, "phone", {
+      token: "old",
+      provider: "fcm",
+    });
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "push-clear",
+      remoteSessionId,
+      event: { type: "push.register" },
+    });
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "remote-session-push-registered",
+      hasPush: false,
+    });
+    expect(server.remoteSessions.pushTargets(remoteSessionId)).toEqual([]);
+  });
+
+  it("rejects a push.register from a non-member", async () => {
+    const remoteSessionId = createAndJoin(["observe"]);
+    const ghostWs = socket("ghost");
+    await handleRemoteSessionPublish(server, "ghost", ghostWs, {
+      id: "push-ghost-relay",
+      remoteSessionId,
+      event: { type: "push.register", pushToken: "x" },
+    });
+    expect(ghostWs.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "REMOTE_SESSION_PUBLISH_ERROR",
+    });
+  });
+
   it("reports the active org policy to any authenticated client", () => {
     handleRemoteSessionPolicy(server, "phone", phone, { id: "policy-1" });
     expect(phone.sent.at(-1)).toMatchObject({

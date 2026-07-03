@@ -276,6 +276,22 @@
                 android:resource="@xml/file_provider_paths" />
         </provider>
 
+        <!--
+          Remote Session FCM push service. The class lives in the `firebase`
+          source set and is compiled only when google-services.json is present
+          (see app/build.gradle.kts). tools:ignore="MissingClass" keeps lint
+          quiet on Firebase-less builds, where this service is never
+          instantiated (FCM is not initialized without google-services.json).
+        -->
+        <service
+            android:name=".remote.session.RemoteSessionFirebaseService"
+            android:exported="false"
+            tools:ignore="MissingClass">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

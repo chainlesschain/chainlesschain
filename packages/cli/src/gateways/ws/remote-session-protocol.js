@@ -341,6 +341,43 @@ export async function handleRemoteSessionPublish(
     if (!message.event || typeof message.event.type !== "string") {
       throw new Error("event.type is required");
     }
+    // A paired device (incl. relay-only mobiles) refreshing its own vendor push
+    // token — e.g. after FCM onNewToken. Self-scoped: authorize proves
+    // membership and registerPush keys off the authenticated clientId, so a
+    // device can only ever set its OWN token. Omitting the token clears it.
+    if (message.event.type === "push.register") {
+      server.remoteSessions.authorize(
+        message.remoteSessionId,
+        clientId,
+        "observe",
+      );
+      const registered = server.remoteSessions.registerPush(
+        message.remoteSessionId,
+        clientId,
+        {
+          token: message.event.pushToken,
+          provider: message.event.pushProvider,
+        },
+      );
+      audit(server, {
+        sessionId: message.remoteSessionId,
+        actor: clientId,
+        action: "push.registered",
+        detail: {
+          hasPush: registered.hasPush,
+          provider: registered.provider,
+          via: "relay",
+        },
+      });
+      reply(
+        server,
+        ws,
+        message.id,
+        "remote-session-push-registered",
+        registered,
+      );
+      return;
+    }
     const requiredScope = CLIENT_EVENT_SCOPES[message.event.type];
     const { session } = server.remoteSessions.authorize(
       message.remoteSessionId,

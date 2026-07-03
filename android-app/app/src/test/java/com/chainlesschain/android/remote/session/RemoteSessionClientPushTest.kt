@@ -90,4 +90,51 @@ class RemoteSessionClientPushTest {
         assertFalse(join.has("pushToken"))
         assertFalse(join.has("pushProvider"))
     }
+
+    @Test
+    fun `updatePushCredentials before pairing only rides the next pair join`() {
+        // Not yet paired → nothing is sent inline; the token rides pair.join.
+        val join = capturePairJoin { it.updatePushCredentials("fcm-early", "fcm") }
+        assertEquals("fcm-early", join.getString("pushToken"))
+        assertEquals("fcm", join.getString("pushProvider"))
+    }
+
+    @Test
+    fun `updatePushCredentials after pairing forwards an encrypted push register`() {
+        val host = RemoteSessionCrypto("session-1", "host-peer")
+        val fake = FakeWebSocket()
+        var listener: WebSocketListener? = null
+        val client = RemoteSessionClient(webSocketFactory = { _, l -> listener = l; fake })
+        client.connect(pairingUri(host))
+        listener!!.onMessage(fake, JSONObject().put("type", "registered").toString())
+
+        // Host finishes pairing (decrypt join, derive key) and confirms.
+        val pairPayload = fake.sent.map { JSONObject(it) }
+            .first { it.optJSONObject("payload")?.optString("type") == "remote-session.pair" }
+            .getJSONObject("payload")
+        host.pair(pairPayload.getString("mobilePublicKey"), "token-abc")
+        host.decrypt(RemoteEncryptedEnvelope.fromJson(pairPayload.getJSONObject("envelope")))
+        val accepted = JSONObject()
+            .put("type", "message")
+            .put(
+                "payload",
+                JSONObject()
+                    .put("type", "remote-session.encrypted")
+                    .put("envelope", host.encrypt(JSONObject().put("type", "pair.accepted")).toJson()),
+            )
+        listener!!.onMessage(fake, accepted.toString())
+        assertEquals(RemoteSessionStatus.CONNECTED, client.status.value)
+
+        // A token rotation now reaches the host as an encrypted push.register.
+        val before = fake.sent.size
+        client.updatePushCredentials("fcm-rotated", "fcm")
+        val control = fake.sent.drop(before).map { JSONObject(it) }
+            .first { it.optJSONObject("payload")?.optString("type") == "remote-session.encrypted" }
+        val event = host.decrypt(
+            RemoteEncryptedEnvelope.fromJson(control.getJSONObject("payload").getJSONObject("envelope")),
+        )
+        assertEquals("push.register", event.getString("type"))
+        assertEquals("fcm-rotated", event.getString("pushToken"))
+        assertEquals("fcm", event.getString("pushProvider"))
+    }
 }

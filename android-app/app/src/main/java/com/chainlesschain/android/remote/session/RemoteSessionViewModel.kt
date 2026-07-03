@@ -26,6 +26,8 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     val uiState: StateFlow<RemoteSessionUiState> = _uiState
 
     init {
+        // Let a FirebaseMessagingService onNewToken reach this live client.
+        RemoteSessionPushBridge.activeClient = client
         viewModelScope.launch {
             client.status.collect { status ->
                 if (status == RemoteSessionStatus.CONNECTED) {
@@ -92,6 +94,9 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onCleared() {
+        if (RemoteSessionPushBridge.activeClient === client) {
+            RemoteSessionPushBridge.activeClient = null
+        }
         client.disconnect()
         super.onCleared()
     }
