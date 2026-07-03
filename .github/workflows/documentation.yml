@@ -44,11 +44,27 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # Mint a short-lived GitHub App installation token (preferred actor for
+      # opening the auto-docs PR — see the TOKEN note on the create-pull-request
+      # step below). continue-on-error keeps this soft: if DOCS_APP_ID /
+      # DOCS_APP_PRIVATE_KEY are unset (App not installed yet) the step fails
+      # but the run proceeds, and steps.app-token.outputs.token is empty, so the
+      # `|| secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN` chain below takes over.
+      # Precedence: App token → PAT → GITHUB_TOKEN.
+      - name: Mint GitHub App installation token
+        id: app-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DOCS_APP_ID }}
+          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          # defaults to an installation token scoped to this repo
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history for changelog
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -138,18 +154,24 @@ jobs:
       # otherwise the action errors with "GitHub Actions is not permitted to
       # create or approve pull requests".
       #
-      # TOKEN: uses secrets.DOCS_PR_TOKEN (a fine-grained PAT / GitHub App token
-      # with contents:write + pull-requests:write) instead of the default
-      # GITHUB_TOKEN. This is REQUIRED for the required status checks to run on
-      # the PR: GitHub deliberately does NOT trigger new workflow runs from
-      # events (e.g. pull_request) raised by GITHUB_TOKEN, to prevent recursive
-      # runs. With GITHUB_TOKEN the auto-docs PR gets zero checks and sits
-      # permanently BLOCKED under branch protection (had to be admin-merged —
-      # PR #46 and earlier). A PAT is a distinct actor, so the pull_request
-      # event fires normally and CI Tests / PDH / Quality Gate / Lint report.
-      # See peter-evans/create-pull-request docs "Triggering further workflow
-      # runs". Falls back to GITHUB_TOKEN if the secret is unset (preserves the
-      # old always-BLOCKED-but-functional behavior rather than failing the run).
+      # TOKEN: must be a NON-GITHUB_TOKEN actor for the required status checks to
+      # run on the PR. GitHub deliberately does NOT trigger new workflow runs
+      # from events (e.g. pull_request) raised by GITHUB_TOKEN, to prevent
+      # recursive runs. With GITHUB_TOKEN the auto-docs PR gets zero checks and
+      # sits permanently BLOCKED under branch protection (had to be admin-merged
+      # — PR #46 and earlier). See peter-evans/create-pull-request docs
+      # "Triggering further workflow runs".
+      #
+      # Precedence (first non-empty wins):
+      #   1. steps.app-token.outputs.token — GitHub App installation token
+      #      (preferred: dedicated bot identity, App never expires, ephemeral
+      #      per-run token, minimal scope). Requires secrets DOCS_APP_ID +
+      #      DOCS_APP_PRIVATE_KEY and the App installed on this repo.
+      #   2. secrets.DOCS_PR_TOKEN — fine-grained PAT (contents:write +
+      #      pull-requests:write). Simpler to set up but expires.
+      #   3. secrets.GITHUB_TOKEN — always present, but leaves the PR BLOCKED
+      #      (no checks). Last-resort so the run still opens the PR rather than
+      #      failing; then admin-merge as before.
       - name: Open PR with documentation updates (main branch only)
         if: |
           steps.check-changes.outputs.has_changes == 'true' &&
@@ -157,7 +179,7 @@ jobs:
           github.ref == 'refs/heads/main'
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token || secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN }}
           base: main
           branch: chore/auto-docs
           delete-branch: true
