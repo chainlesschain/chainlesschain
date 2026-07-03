@@ -79,6 +79,25 @@ describe("createRemoteSessionPushSender provider dispatch", () => {
     expect(typeof sender).toBe("function");
   });
 
+  it("routes provider=xiaomi (and the mi alias) to the Xiaomi sender", () => {
+    const env = {
+      CHAINLESSCHAIN_REMOTE_SESSION_XIAOMI_APP_SECRET: "secret",
+      CHAINLESSCHAIN_REMOTE_SESSION_XIAOMI_PACKAGE_NAME: "com.demo.app",
+    };
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "xiaomi",
+      }),
+    ).toBe("function");
+    expect(
+      typeof createRemoteSessionPushSender({
+        ...env,
+        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "mi",
+      }),
+    ).toBe("function");
+  });
+
   it("returns null for an unimplemented provider", () => {
     expect(
       createRemoteSessionPushSender({

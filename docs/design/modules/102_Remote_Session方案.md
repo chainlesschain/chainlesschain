@@ -143,7 +143,7 @@
 - `packages/cli/src/harness/remote-session-push-apns.js`：`sender` 契约的 iOS/macOS 实现，走 APNs **HTTP/2** provider API + **token 鉴权**：`ApnsTokenProvider` 用 `.p8` 授权密钥 **ES256（原始 R‖S）签 JWT**（header `{alg:ES256,kid}`、claims `{iss:teamId,iat}`），本地缓存 ~50min。`ApnsPushSender.send` POST `/3/device/{token}`，headers 带 `authorization: bearer <jwt>` + `apns-topic`（bundle id）+ `apns-push-type:alert` + `apns-priority:10`，body `{aps:{alert,sound}, "remote-session":{type,sessionId,clientId}}`——只带路由 id，**无会话内容**。
 - APNs 强制 HTTP/2（`fetch`/undici 不支持），故网络 transport 是**可注入** `request`（默认 `node:http2`）；连同时钟/签名器/`fs` 全可注入，用生成的 EC P-256 密钥 + 假 transport 单测，无需真凭据或联网。`createApnsPushSender(env)` 从 `..._APNS_KEY`（.p8 路径）或 `..._APNS_KEY_P8`（内联）+ `..._APNS_KEY_ID` + `..._APNS_TEAM_ID` + `..._APNS_TOPIC` + `..._APNS_PRODUCTION`（true→生产 host，否则 sandbox）装配；缺任一必需项 → null。
 - **死 token 剪除**复用同一 `PushTokenUnregisteredError`（提到共享 `remote-session-push-errors.js`）：APNs 410 `Unregistered` 或 400 `BadDeviceToken` → 抛该错 → dispatcher 透传 code → ws-server 清 token + 记 `push.unregistered`（与 FCM 同一闭环）。
-- **Provider 分派**：新 `remote-session-push-senders.js` 的 `createRemoteSessionPushSender(env)` 按 `..._PUSH_PROVIDER`（默认 fcm）switch 到 `createFcmPushSender` / `createApnsPushSender` / `createWebPushSender`；未知/未配置 → null。ws-server 改从此 dispatcher 取 sender（fcm 行为不变）。加新 provider（HMS/小米/…）= 一 import + 一 case。
+- **Provider 分派**：新 `remote-session-push-senders.js` 的 `createRemoteSessionPushSender(env)` 按 `..._PUSH_PROVIDER`（默认 fcm）switch 到 `createFcmPushSender` / `createApnsPushSender` / `createWebPushSender` / `createXiaomiPushSender`（`xiaomi`|`mi`）；未知/未配置 → null。ws-server 改从此 dispatcher 取 sender（fcm 行为不变）。加新 provider（HMS/OPPO/…）= 一 import + 一 case。
 - 验证：`remote-session-push-apns` 14 单测（token provider：缺字段抛错 / ES256 JWT header+claims+真签名验证 / 缓存 + TTL 刷新；APNs sender：选项校验 / HTTP/2 POST 带 bearer+APNs headers+body 形状+apns-id / 生产 host / 缺 token / 410+BadDeviceToken → PushTokenUnregisteredError / 5xx 通用错；`createApnsPushSender`：缺必需项 → null / 内联凭据端到端发送 / 生产 host / .p8 文件经注入 fs 读）+ `remote-session-push-senders`（默认 fcm / apns / web 路由 / 不跨 provider / 未知 provider → null / 空配置 → null）。
 
 #### Phase 4：Web push（service worker，已完成）
@@ -152,6 +152,12 @@
 - **浏览器 service worker**（`packages/web-panel/public/remote-session-sw.js`）：`push` 事件解密后的 JSON → `showNotification`（按 sessionId tag、requireInteraction）；`notificationclick` → 聚焦/打开面板。
 - **web 客户端订阅**（`packages/web-panel/src/utils/webPush.js`）：`subscribeWebPush({vapidPublicKey})` 注册 SW + `pushManager.subscribe` + 序列化订阅为 pushToken；`serializeSubscription`/`urlBase64ToUint8Array` 为纯函数（可测）；不支持/拒权时返 null，配对照常无推送降级。`stores/remoteSession.js`：`connect(uri,{pushCredentials})` 把订阅带进加密 `pair.join`；`updatePushCredentials(token)` 配对后经 `push.register` 控制事件转发（与 Android 对齐）。
 - 验证：`remote-session-push-web` 12 单测（RFC 8291 加密往返 + 每次新 ephemeral 密文不同；VAPID：缺字段抛错 / ES256 JWT 真签名验证 + aud/sub / 按 origin 缓存；sender：缺订阅 / POST 加密 body 订阅方可解密 + VAPID+aes128gcm headers / 410 → unregistered / 5xx 通用错；工厂：缺 VAPID → null / env 造 sender 端到端）+ `remote-session-push-senders` web 路由 1 + web-panel `web-push` 5（序列化 + base64url 解码 + 支持性）+ `remote-session-store` 扩测 3（pair.join 带订阅 / 无订阅省略 / `updatePushCredentials` → push.register）。CLI 远程会话全量 129 单测（14 文件）通过；web-panel 远程会话 12 单测通过。
+
+#### Phase 4：小米 push sender（MIUI，已完成）
+
+- `packages/cli/src/harness/remote-session-push-xiaomi.js`：`sender` 契约的 MIUI 实现，走小米推送服务端 API。与 FCM/APNs 不同**无 JWT**——鉴权是静态 AppSecret 放 `Authorization: key=<AppSecret>` header，故就是一次 form-encoded POST（普通 HTTPS，可注入 `fetch`）。`XiaomiPushSender.send` POST `/v3/message/regid`，form 带 `registration_id`（token）+ `restricted_package_name` + `pass_through=0`（弹通知）+ `title/description` + `payload`（只带路由 id JSON，**无会话内容**）。响应 `result==="ok" && code===0` → 成功（`data.id`）。
+- `createXiaomiPushSender(env)` 从 `..._XIAOMI_APP_SECRET` + `..._XIAOMI_PACKAGE_NAME`（+ 可选 `..._XIAOMI_HOST` 切海外 host）装配；缺任一 → null。**死 token 剪除**复用同一 `PushTokenUnregisteredError`：小米无单一「未注册」码，故按 reason/description 文本匹配（invalid/not valid/unregist/不存在…）判失效 → 抛该错 → ws-server 清 token + 记 `push.unregistered`。dispatcher 加 `xiaomi`|`mi` 两 case。
+- 验证：`remote-session-push-xiaomi` 8 单测（选项校验 / form POST 带 key= 头 + registration_id + package + payload 形状 / 自定义 host / 缺 token / 无效 regid → PushTokenUnregisteredError / 其它 error → 通用错 / 工厂缺配置 → null / env 造 sender 端到端）+ `remote-session-push-senders` xiaomi+mi 路由 1。CLI 远程会话全量 138 单测（15 文件）通过。
 
 #### Phase 4：Android FirebaseMessaging 集成（app 侧取 token，已完成）
 
@@ -179,5 +185,5 @@
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：**FCM + APNs + Web push 三 sender 服务端、Android 取 token、`FirebaseMessagingService` onNewToken、web SW + 订阅、配对后 relay `push.register` 刷新路径均已完成**；仍缺：真实 `google-services.json`/APNs `.p8`/VAPID 密钥接入 + 真机·真浏览器端到端验证（`RemoteSessionFirebaseService` 条件源集需 google-services.json 才编译，Win 不可跑）；国内 provider（小米 / 华为 / OPPO / vivo）sender 实装；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：**FCM + APNs + Web push 三 sender 服务端、Android 取 token、`FirebaseMessagingService` onNewToken、web SW + 订阅、配对后 relay `push.register` 刷新路径均已完成**；仍缺：真实 `google-services.json`/APNs `.p8`/VAPID 密钥接入 + 真机·真浏览器端到端验证（`RemoteSessionFirebaseService` 条件源集需 google-services.json 才编译，Win 不可跑）；国内 provider 余项（华为 HMS / OPPO / vivo）sender 实装（小米已完成）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。
