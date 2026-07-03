@@ -292,6 +292,16 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
+  getFileHint,
+  formatDuration,
+  formatTime,
+  getStatusColor,
+  getStatusText,
+  getProgressStatus,
+  getBadgeStatus,
+  getToolLabel,
+} from "./taskExecutionMonitorUtils";
+import {
   ToolOutlined,
   CaretDownOutlined,
   CaretRightOutlined,
@@ -368,18 +378,6 @@ const suggestedQuestions = computed(() => {
 });
 
 // 获取文件提示文本
-const getFileHint = (fileName) => {
-  const ext = fileName.split(".").pop().toLowerCase();
-  const hints = {
-    pptx: "可编辑PPT制作指南(修改版1)",
-    docx: "可编辑文档",
-    xlsx: "可编辑表格",
-    pdf: "PDF文档",
-    html: "网页文件",
-  };
-  return hints[ext] || "";
-};
-
 // 切换所有步骤展开状态
 const toggleAllSteps = () => {
   allStepsExpanded.value = !allStepsExpanded.value;
@@ -407,93 +405,6 @@ const duration = computed(() => {
   const ms = endTime - props.taskPlan.started_at;
   return formatDuration(ms);
 });
-
-// 格式化持续时间
-const formatDuration = (ms) => {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    return `${hours}小时${minutes % 60}分钟`;
-  } else if (minutes > 0) {
-    return `${minutes}分钟${seconds % 60}秒`;
-  } else {
-    return `${seconds}秒`;
-  }
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
-// 获取状态颜色
-const getStatusColor = (status) => {
-  const colors = {
-    pending: "default",
-    in_progress: "processing",
-    completed: "success",
-    failed: "error",
-    cancelled: "warning",
-  };
-  return colors[status] || "default";
-};
-
-// 获取状态文本
-const getStatusText = (status) => {
-  const texts = {
-    pending: "等待中",
-    in_progress: "执行中",
-    completed: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
-  };
-  return texts[status] || status;
-};
-
-// 获取进度条状态
-const getProgressStatus = (status) => {
-  if (status === "completed") {
-    return "success";
-  }
-  if (status === "failed") {
-    return "exception";
-  }
-  if (status === "in_progress") {
-    return "active";
-  }
-  return "normal";
-};
-
-// 获取Badge状态
-const getBadgeStatus = (status) => {
-  const statusMap = {
-    pending: "default",
-    in_progress: "processing",
-    completed: "success",
-    failed: "error",
-  };
-  return statusMap[status] || "default";
-};
-
-// 获取工具标签
-const getToolLabel = (tool) => {
-  const labels = {
-    "web-engine": "网页",
-    "document-engine": "文档",
-    "data-engine": "数据",
-    "ppt-engine": "PPT",
-    "code-engine": "代码",
-    "image-engine": "图像",
-  };
-  return labels[tool] || tool;
-};
 
 // 切换子任务展开状态
 const toggleSubtask = (subtaskId) => {
