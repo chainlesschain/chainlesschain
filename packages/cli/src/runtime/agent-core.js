@@ -83,7 +83,8 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
 const { runHooks: runCommandHooks } = sharedHookRunner;
-const { runObserveHooks, aggregateContext } = sharedHookEvents;
+const { runObserveHooks, aggregateContext, partitionAsyncHooks } =
+  sharedHookEvents;
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
@@ -1357,24 +1358,36 @@ export async function executeTool(name, args, context = {}) {
     try {
       const matched = collectHooks(context.settingsHooks, "PostToolUse", name);
       if (matched && matched.length > 0) {
-        const outcome = runCommandHooks(
-          matched,
-          {
-            hook_event_name: "PostToolUse",
-            tool_name: umbrellaFor(name),
-            raw_tool_name: name,
-            tool_input: args,
-            tool_response:
-              typeof toolResult === "object"
-                ? JSON.stringify(toolResult).substring(0, 2000)
-                : String(toolResult).substring(0, 2000),
+        // `async:true` PostToolUse hooks must NOT block the tool loop — split
+        // them off the synchronous decision path. Without this an async hook
+        // ran synchronously here, defeating fire-and-forget (a background lint /
+        // test after each edit would stall the turn).
+        const { sync, async: asyncHooks } = partitionAsyncHooks(matched);
+        const payload = {
+          hook_event_name: "PostToolUse",
+          tool_name: umbrellaFor(name),
+          raw_tool_name: name,
+          tool_input: args,
+          tool_response:
+            typeof toolResult === "object"
+              ? JSON.stringify(toolResult).substring(0, 2000)
+              : String(toolResult).substring(0, 2000),
+          cwd,
+          session_id: context.sessionId || null,
+        };
+        if (sync.length > 0) {
+          const outcome = runCommandHooks(sync, payload, {
             cwd,
-            session_id: context.sessionId || null,
-          },
-          { cwd, event: "PostToolUse" },
-        );
-        if (outcome.decision === "block" && outcome.reason) {
-          toolResult.hookFeedback = outcome.reason;
+            event: "PostToolUse",
+          });
+          if (outcome.decision === "block" && outcome.reason) {
+            toolResult.hookFeedback = outcome.reason;
+          }
+        }
+        // Fire-and-forget the async hooks onto the REPL-owned supervisor when
+        // one is wired; results/rewakes drain into the next turn's context.
+        if (asyncHooks.length > 0 && context.hookSupervisor) {
+          context.hookSupervisor.dispatch(asyncHooks, payload, { cwd });
         }
       }
     } catch (_err) {
@@ -5098,6 +5111,10 @@ export async function* agentLoop(messages, options) {
     permissionRules: options.permissionRules || null,
     permissionConfirm: options.permissionConfirm || null,
     settingsHooks: options.settingsHooks || null,
+    // Async-hook supervisor (REPL-owned): lets PostToolUse `async:true` hooks
+    // run fire-and-forget instead of blocking the tool loop. Optional — when
+    // absent, async PostToolUse hooks are simply skipped (never run sync).
+    hookSupervisor: options.hookSupervisor || null,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",

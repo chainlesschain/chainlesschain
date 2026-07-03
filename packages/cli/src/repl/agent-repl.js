@@ -4207,6 +4207,14 @@ export async function startAgentRepl(options = {}) {
       // merge fires exactly once (2.1.187 parity; see _sanitizeRolesNextTurn).
       const _mergeRolesThisTurn = _sanitizeRolesNextTurn;
       _sanitizeRolesNextTurn = false;
+      // Ensure the async-hook supervisor exists so `async:true` PostToolUse
+      // hooks (fired inside the loop, per tool call) can be dispatched
+      // fire-and-forget; their results/rewakes drain into the next turn above.
+      if (_settingsHooks && !_asyncHookSupervisor) {
+        const { AsyncHookSupervisor } =
+          await import("../lib/async-hook-supervisor.cjs");
+        _asyncHookSupervisor = new AsyncHookSupervisor();
+      }
       const {
         content: response,
         usageEvents,
@@ -4270,6 +4278,7 @@ export async function startAgentRepl(options = {}) {
         permissionRules: _permissionRules,
         permissionConfirm: _permissionConfirm,
         settingsHooks: _settingsHooks,
+        hookSupervisor: _asyncHookSupervisor,
         classifyAllShell: _classifyAllShell,
         // Interactive session: gate run_code through the ApprovalGate (like
         // run_shell) so a strict tier prompts before arbitrary code runs.

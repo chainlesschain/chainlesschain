@@ -112,6 +112,103 @@ describe("PostToolUse feedback", () => {
   });
 });
 
+describe("PostToolUse async:true hooks (fire-and-forget)", () => {
+  // An async hook must NOT run on the synchronous decision path — it goes to
+  // the supervisor. A sentinel command proves it never executes inline.
+  const sentinelCmd = (p) =>
+    `node -e "require('fs').writeFileSync('${p.replace(/\\/g, "\\\\")}','x')"`;
+
+  it("dispatches an async PostToolUse hook to the supervisor instead of running it sync", async () => {
+    const dispatched = [];
+    const supervisor = { dispatch: (hooks) => dispatched.push(...hooks) };
+    const sentinel = path.join(tmp, "ASYNC_PTU_RAN");
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        hookSupervisor: supervisor,
+        settingsHooks: {
+          PostToolUse: [
+            {
+              matcher: "*",
+              hooks: [
+                {
+                  type: "command",
+                  command: sentinelCmd(sentinel),
+                  async: true,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    );
+    expect(res.error).toBeUndefined();
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].async).toBe(true);
+    expect(fs.existsSync(sentinel)).toBe(false); // never ran synchronously
+  });
+
+  it("skips an async PostToolUse hook when no supervisor is wired (never runs it sync)", async () => {
+    const sentinel = path.join(tmp, "ASYNC_NOSUP");
+    await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: {
+          PostToolUse: [
+            {
+              matcher: "*",
+              hooks: [
+                {
+                  type: "command",
+                  command: sentinelCmd(sentinel),
+                  async: true,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    );
+    expect(fs.existsSync(sentinel)).toBe(false);
+  });
+
+  it("still runs SYNC PostToolUse hooks (feedback) alongside an async one", async () => {
+    const hookFile = path.join(tmp, "ptu-sync.js");
+    fs.writeFileSync(
+      hookFile,
+      "console.log(JSON.stringify({decision:'block',reason:'sync ran'}))",
+    );
+    const dispatched = [];
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        hookSupervisor: { dispatch: (h) => dispatched.push(...h) },
+        settingsHooks: {
+          PostToolUse: [
+            {
+              matcher: "*",
+              hooks: [{ type: "command", command: `node "${hookFile}"` }],
+            },
+            {
+              matcher: "*",
+              hooks: [{ type: "command", command: 'node -e ""', async: true }],
+            },
+          ],
+        },
+      },
+    );
+    expect(res.hookFeedback).toBe("sync ran");
+    expect(dispatched).toHaveLength(1); // only the async one was dispatched
+    expect(dispatched[0].async).toBe(true);
+  });
+});
+
 describe("precedence: permission deny short-circuits before hooks spawn", () => {
   it("a settings deny blocks with [Permission] and the hook never runs", async () => {
     const sentinel = path.join(tmp, "RAN");
