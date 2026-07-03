@@ -4,7 +4,7 @@ import {
   FcmV1PushSender,
   GoogleServiceAccountTokenProvider,
   PushTokenUnregisteredError,
-  createRemoteSessionPushSender,
+  createFcmPushSender,
 } from "../../src/harness/remote-session-push-fcm.js";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -223,26 +223,19 @@ describe("FcmV1PushSender", () => {
   });
 });
 
-describe("createRemoteSessionPushSender", () => {
-  it("returns null when unconfigured or for an unimplemented provider", () => {
-    expect(createRemoteSessionPushSender({})).toBeNull();
-    expect(
-      createRemoteSessionPushSender({
-        CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER: "apns",
-        CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON:
-          JSON.stringify(serviceAccount()),
-      }),
-    ).toBeNull();
+describe("createFcmPushSender", () => {
+  it("returns null when FCM is unconfigured", () => {
+    expect(createFcmPushSender({})).toBeNull();
   });
 
   it("returns null for a malformed service account", () => {
     expect(
-      createRemoteSessionPushSender({
+      createFcmPushSender({
         CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON: "{not json",
       }),
     ).toBeNull();
     expect(
-      createRemoteSessionPushSender({
+      createFcmPushSender({
         CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON: JSON.stringify({
           project_id: "p",
         }),
@@ -257,7 +250,7 @@ describe("createRemoteSessionPushSender", () => {
       }
       return jsonResponse(200, { name: "projects/demo-project/messages/1" });
     });
-    const sender = createRemoteSessionPushSender(
+    const sender = createFcmPushSender(
       {
         CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON:
           JSON.stringify(serviceAccount()),
@@ -275,7 +268,7 @@ describe("createRemoteSessionPushSender", () => {
     const fsMock = {
       readFileSync: vi.fn(() => JSON.stringify(serviceAccount())),
     };
-    const sender = createRemoteSessionPushSender(
+    const sender = createFcmPushSender(
       {
         CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT: "/creds/sa.json",
       },
@@ -294,7 +287,7 @@ describe("createRemoteSessionPushSender", () => {
       }
       return jsonResponse(200, { name: "n" });
     });
-    const sender = createRemoteSessionPushSender(
+    const sender = createFcmPushSender(
       {
         CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON: JSON.stringify(
           serviceAccount({ project_id: "ignored" }),

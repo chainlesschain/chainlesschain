@@ -14,6 +14,11 @@
 
 import { createSign } from "node:crypto";
 import fs from "node:fs";
+import { PushTokenUnregisteredError } from "./remote-session-push-errors.js";
+
+// Re-exported for existing importers; canonical definition lives in the shared
+// errors module so every provider raises the same type.
+export { PushTokenUnregisteredError };
 
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
@@ -43,18 +48,6 @@ function dropUndefined(obj) {
     if (value !== undefined) out[key] = value;
   }
   return out;
-}
-
-/**
- * A device token the vendor reports as no longer valid (uninstalled app, token
- * rotated). The caller should prune it so it is never retried.
- */
-export class PushTokenUnregisteredError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "PushTokenUnregisteredError";
-    this.code = "PUSH_TOKEN_UNREGISTERED";
-  }
 }
 
 /** Mints + caches OAuth2 access tokens from a Google service account. */
@@ -215,26 +208,17 @@ function loadServiceAccount(env, options) {
 }
 
 /**
- * Build a concrete push `sender` from env, or null when unconfigured / for a
- * provider that is not yet implemented. Returns the bound sender function the
- * RemoteSessionPushDispatcher expects.
+ * Build a bound FCM `sender` from env, or null when FCM is not configured. The
+ * provider dispatch (fcm vs apns vs …) is the caller's job — see
+ * remote-session-push-senders.js.
  *
  * FCM env:
- *   CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER      = "fcm" (default)
  *   CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT      (path to JSON), or
  *   CHAINLESSCHAIN_REMOTE_SESSION_FCM_SERVICE_ACCOUNT_JSON (inline JSON)
  *   CHAINLESSCHAIN_REMOTE_SESSION_FCM_PROJECT_ID     (optional; else service
  *                                                     account project_id)
  */
-export function createRemoteSessionPushSender(env = {}, options = {}) {
-  const provider = (
-    env.CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER || "fcm"
-  ).toLowerCase();
-  if (provider !== "fcm") {
-    // APNs / HMS / Xiaomi / OPPO senders are not implemented yet; the injection
-    // seam means they can be added without touching the dispatcher.
-    return null;
-  }
+export function createFcmPushSender(env = {}, options = {}) {
   const serviceAccount = loadServiceAccount(env, options);
   if (!serviceAccount) return null;
   const projectId =

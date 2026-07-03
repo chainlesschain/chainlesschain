@@ -37,7 +37,7 @@ import {
   RemoteSessionPushDispatcher,
   isApprovalRequestEvent,
 } from "../../harness/remote-session-push.js";
-import { createRemoteSessionPushSender } from "../../harness/remote-session-push-fcm.js";
+import { createRemoteSessionPushSender } from "../../harness/remote-session-push-senders.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";

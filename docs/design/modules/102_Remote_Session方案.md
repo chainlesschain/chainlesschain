@@ -133,10 +133,18 @@
 #### Phase 4：真实 vendor push sender — FCM HTTP v1（已完成）
 
 - `packages/cli/src/harness/remote-session-push-fcm.js`：`sender` 契约的**真实实现**，走 FCM **HTTP v1** API（legacy server-key API 已停用）。鉴权用 Google 服务账号：`GoogleServiceAccountTokenProvider` 用私钥 **RS256 签一个 JWT** 断言、到 `oauth2.googleapis.com/token` 换取短时 OAuth2 access token（本地缓存至到期前 60s skew），磁盘上不落长期 server key。`FcmV1PushSender.send` POST `messages:send`，body 为高优先级 `{notification, data, android.priority=high, apns-priority=10}`——`data` 只带路由字段（`type/sessionId/clientId`），**无会话内容**。
-- 全链路**可注入**（`fetch`/时钟/签名器/`fs`），用生成的密钥对 + 假 transport 即可单测，无需真凭据或联网。`createRemoteSessionPushSender(env)` 工厂按 `CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER`（默认 fcm）分派：读 `..._FCM_SERVICE_ACCOUNT`（JSON 路径）或 `..._FCM_SERVICE_ACCOUNT_JSON`（内联）+ 可选 `..._FCM_PROJECT_ID`；未配置/畸形/未实现的 provider 一律返回 null（dispatcher 保持 no-op）。
+- 全链路**可注入**（`fetch`/时钟/签名器/`fs`），用生成的密钥对 + 假 transport 即可单测，无需真凭据或联网。`createFcmPushSender(env)` 从 `..._FCM_SERVICE_ACCOUNT`（JSON 路径）或 `..._FCM_SERVICE_ACCOUNT_JSON`（内联）+ 可选 `..._FCM_PROJECT_ID` 造 FCM sender；provider 分派由下方 senders dispatcher 负责。
 - **死 token 剪除闭环**：FCM 对已卸载/轮换的 token 返回 404 或 `UNREGISTERED/NOT_FOUND` → sender 抛 `PushTokenUnregisteredError`（`code=PUSH_TOKEN_UNREGISTERED`）；dispatcher 把 `code` 透传到 outcome；`ws-server._dispatchApprovalPush` 收到即 `registerPush(...,{token:null})` 清掉该设备 token 并记 `push.unregistered` 审计——避免对死 token 无限重试。
 - WS 接线：`RemoteSessionPushDispatcher.fromEnv` 的 sender 优先取注入的 `remoteSessionPushSender`（测试/自定义 transport），否则 `createRemoteSessionPushSender(process.env)` 按 env 造真 FCM sender；两者皆无则 null。
-- 验证：`remote-session-push-fcm` 14 单测（token provider：缺字段抛错 / JWT 真 RS256 签名 + claims 校验 + 换 token / 缓存 + 过期刷新 / 端点失败或缺 token 抛错；FCM sender：选项校验 / 成功 POST 带 bearer + body 形状 + 返回 id / 缺 token / 404 + UNREGISTERED body → PushTokenUnregisteredError / 5xx 通用错；工厂：未配置或未实现 provider → null / 畸形服务账号 → null / 内联 JSON 造 sender 端到端发送 / 文件路径经注入 fs 读 / project id 覆盖）+ dispatcher 扩测 1（code 透传）+ mirroring 扩测 1（unregistered 剪除 token + 记 push.unregistered）。远程会话全量 87 单测（8 文件）通过。
+- 验证：`remote-session-push-fcm` 13 单测（token provider：缺字段抛错 / JWT 真 RS256 签名 + claims 校验 + 换 token / 缓存 + 过期刷新 / 端点失败或缺 token 抛错；FCM sender：选项校验 / 成功 POST 带 bearer + body 形状 + 返回 id / 缺 token / 404 + UNREGISTERED body → PushTokenUnregisteredError / 5xx 通用错；`createFcmPushSender`：未配置 → null / 畸形服务账号 → null / 内联 JSON 造 sender 端到端发送 / 文件路径经注入 fs 读 / project id 覆盖）+ dispatcher 扩测 1（code 透传）+ mirroring 扩测 1（unregistered 剪除 token + 记 push.unregistered）。
+
+#### Phase 4：APNs sender（Apple 推送，已完成）
+
+- `packages/cli/src/harness/remote-session-push-apns.js`：`sender` 契约的 iOS/macOS 实现，走 APNs **HTTP/2** provider API + **token 鉴权**：`ApnsTokenProvider` 用 `.p8` 授权密钥 **ES256（原始 R‖S）签 JWT**（header `{alg:ES256,kid}`、claims `{iss:teamId,iat}`），本地缓存 ~50min。`ApnsPushSender.send` POST `/3/device/{token}`，headers 带 `authorization: bearer <jwt>` + `apns-topic`（bundle id）+ `apns-push-type:alert` + `apns-priority:10`，body `{aps:{alert,sound}, "remote-session":{type,sessionId,clientId}}`——只带路由 id，**无会话内容**。
+- APNs 强制 HTTP/2（`fetch`/undici 不支持），故网络 transport 是**可注入** `request`（默认 `node:http2`）；连同时钟/签名器/`fs` 全可注入，用生成的 EC P-256 密钥 + 假 transport 单测，无需真凭据或联网。`createApnsPushSender(env)` 从 `..._APNS_KEY`（.p8 路径）或 `..._APNS_KEY_P8`（内联）+ `..._APNS_KEY_ID` + `..._APNS_TEAM_ID` + `..._APNS_TOPIC` + `..._APNS_PRODUCTION`（true→生产 host，否则 sandbox）装配；缺任一必需项 → null。
+- **死 token 剪除**复用同一 `PushTokenUnregisteredError`（提到共享 `remote-session-push-errors.js`）：APNs 410 `Unregistered` 或 400 `BadDeviceToken` → 抛该错 → dispatcher 透传 code → ws-server 清 token + 记 `push.unregistered`（与 FCM 同一闭环）。
+- **Provider 分派**：新 `remote-session-push-senders.js` 的 `createRemoteSessionPushSender(env)` 按 `..._PUSH_PROVIDER`（默认 fcm）switch 到 `createFcmPushSender` / `createApnsPushSender`；未知/未配置 → null。ws-server 改从此 dispatcher 取 sender（fcm 行为不变）。加新 provider（HMS/小米/…）= 一 import + 一 case。
+- 验证：`remote-session-push-apns` 14 单测（token provider：缺字段抛错 / ES256 JWT header+claims+真签名验证 / 缓存 + TTL 刷新；APNs sender：选项校验 / HTTP/2 POST 带 bearer+APNs headers+body 形状+apns-id / 生产 host / 缺 token / 410+BadDeviceToken → PushTokenUnregisteredError / 5xx 通用错；`createApnsPushSender`：缺必需项 → null / 内联凭据端到端发送 / 生产 host / .p8 文件经注入 fs 读）+ `remote-session-push-senders` 5（默认 fcm / apns 路由 / 不跨 provider / 未知 provider → null / 空配置 → null）。远程会话全量 108 单测（10 文件）通过。
 
 #### Phase 4：Android FirebaseMessaging 集成（app 侧取 token，已完成）
 
@@ -164,5 +172,5 @@
 #### 仍待完成
 
 1. Phase 3 第三片余项：跨端断线恢复真机/真 relay E2E（需 relay + host + 浏览器三方联调，Win 单机不可跑）。
-2. Phase 4 余项：**FCM sender 服务端 + Android 取 token + `FirebaseMessagingService` onNewToken + 配对后 relay `push.register` 刷新路径均已完成**；仍缺：真实 `google-services.json` 接入 + 真机端到端验证（`RemoteSessionFirebaseService` 条件源集需该文件才编译，Win 不可跑）；其它 provider（APNs / 小米 / 华为 / OPPO）sender 实装；Web push（service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
+2. Phase 4 余项：**FCM + APNs sender 服务端、Android 取 token、`FirebaseMessagingService` onNewToken、配对后 relay `push.register` 刷新路径均已完成**；仍缺：真实 `google-services.json`/APNs `.p8` 接入 + 真机端到端验证（`RemoteSessionFirebaseService` 条件源集需 google-services.json 才编译，Win 不可跑）；国内 provider（小米 / 华为 / OPPO / vivo）sender 实装；Web push（service worker）；SQLite 审计后端（当前 JSONL 已足够，按需再上）；策略的运行时热更新与来源（config.json vs env）合并。
 3. 进程冷启动后的重新配对（当前自动重连仅覆盖同进程内瞬断；进程被杀后内存态密钥丢失需重新扫码）。
