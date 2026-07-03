@@ -13,11 +13,20 @@
  * 3 models) and 2.1.152 switches to the configured fallback when the primary
  * model is "not found".
  *
- * Same-provider only: each hop swaps `options.model`, keeping the configured
- * provider / baseUrl / apiKey. Cross-provider fallback is a larger feature.
+ * Cross-provider fallback (v2): a fallback entry may name a DIFFERENT provider
+ * as `provider:model` (e.g. `openai:gpt-4o`, `ollama:qwen2.5:7b`). A cross-
+ * provider hop swaps provider + baseUrl + apiKey too, resolving the target
+ * provider's connection from BUILT_IN_PROVIDERS + its `apiKeyEnv`. SECURITY: a
+ * cross-provider hop is used ONLY when the user EXPLICITLY named that provider in
+ * the fallback chain AND the target provider's API key is present in the env —
+ * we never reuse the primary provider's key against a different vendor (that
+ * would be the silent auth-substitution this project forbids). A cross-provider
+ * entry whose key is missing is SKIPPED with a clear reason, not attempted with
+ * the wrong credential.
  */
 
 import { chatWithTools } from "./agent-core.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 
 // Claude Code caps the fallback chain at 3 backups; mirror that here so a
 // mis-configured comma list can't fan out into an unbounded retry storm.
@@ -143,6 +152,85 @@ export function normalizeFallbackModels(input) {
 }
 
 /**
+ * Parse a fallback entry into `{ provider, model }`. A `provider:model` prefix
+ * is recognized ONLY when the prefix is a KNOWN provider name — so an
+ * ollama-style model id that itself contains a colon (`qwen2.5:7b`) is NOT
+ * mis-split, while `ollama:qwen2.5:7b` correctly yields provider `ollama` +
+ * model `qwen2.5:7b`. A plain `model` (no known-provider prefix) means
+ * "same provider" (provider: null).
+ *
+ * @param {string} entry
+ * @param {Set<string>} [knownProviders]  provider names to recognize as prefixes
+ * @returns {{ provider: string|null, model: string }}
+ */
+export function parseFallbackEntry(entry, knownProviders) {
+  const known =
+    knownProviders || new Set(Object.keys(BUILT_IN_PROVIDERS || {}));
+  const s = String(entry || "").trim();
+  const idx = s.indexOf(":");
+  if (idx > 0) {
+    const head = s.slice(0, idx);
+    const rest = s.slice(idx + 1);
+    if (rest && known.has(head)) {
+      return { provider: head, model: rest };
+    }
+  }
+  return { provider: null, model: s };
+}
+
+/**
+ * Resolve a fallback entry into a concrete call target. For a SAME-provider hop
+ * (no known provider prefix), only the model changes. For a CROSS-provider hop,
+ * resolve the target provider's baseUrl + apiKey (from its `apiKeyEnv` in the
+ * environment); if the target needs a key and none is set, the hop is
+ * `unavailable` (skipped) — we never fall back onto a different vendor with the
+ * wrong/absent credential.
+ *
+ * @param {string} entry
+ * @param {object} [opts] { env, providers, knownProviders }
+ * @returns {{ model, provider?, baseUrl?, apiKey?, crossProvider:boolean } | { unavailable:true, reason:string, model:string, provider:string }}
+ */
+export function resolveFallbackTarget(entry, opts = {}) {
+  const env = opts.env || process.env;
+  const providers = opts.providers || BUILT_IN_PROVIDERS || {};
+  const { provider, model } = parseFallbackEntry(
+    entry,
+    opts.knownProviders || new Set(Object.keys(providers)),
+  );
+  if (!provider) {
+    return { model, crossProvider: false };
+  }
+  const def = providers[provider];
+  if (!def) {
+    return {
+      unavailable: true,
+      reason: `unknown provider "${provider}"`,
+      provider,
+      model,
+    };
+  }
+  let apiKey = null;
+  if (def.apiKeyEnv) {
+    apiKey = env[def.apiKeyEnv] || null;
+    if (!apiKey) {
+      return {
+        unavailable: true,
+        reason: `${provider} fallback skipped: ${def.apiKeyEnv} not set`,
+        provider,
+        model,
+      };
+    }
+  }
+  return {
+    model,
+    provider,
+    baseUrl: def.baseUrl || null,
+    apiKey,
+    crossProvider: true,
+  };
+}
+
+/**
  * Build a chatFn that walks an ordered fallback chain when the primary fails.
  *
  * On a retryable error (or a model-not-found error) the call is re-issued
@@ -168,6 +256,9 @@ export function makeFallbackChatFn(opts = {}) {
   const isModelNotFound = opts.isModelNotFound || isModelNotFoundError;
   const onFallback = opts.onFallback;
 
+  const env = opts.env || process.env;
+  const providers = opts.providers || BUILT_IN_PROVIDERS || {};
+
   return async function chatWithFallback(messages, options = {}) {
     try {
       return await baseChatFn(messages, options);
@@ -175,8 +266,30 @@ export function makeFallbackChatFn(opts = {}) {
       let err = firstErr;
       let lastTried = options.model;
       for (const candidate of models) {
-        // Skip a no-op hop (fallback identical to the model just attempted).
-        if (!candidate || candidate === lastTried) continue;
+        const target = resolveFallbackTarget(candidate, { env, providers });
+        // A cross-provider hop whose key is absent (or an unknown provider) is
+        // skipped — never attempted with the wrong credential. Surface why.
+        if (target.unavailable) {
+          if (typeof onFallback === "function") {
+            try {
+              onFallback({
+                from: lastTried,
+                to: candidate,
+                skipped: true,
+                reason: target.reason,
+                error: err?.message || String(err),
+              });
+            } catch {
+              /* best-effort */
+            }
+          }
+          continue;
+        }
+        // Skip a no-op hop (same provider + same model just attempted).
+        const sameModel = target.model === lastTried;
+        const sameProvider =
+          !target.crossProvider || target.provider === options.provider;
+        if (!target.model || (sameModel && sameProvider)) continue;
         // Only advance the chain for transient failures or a missing primary;
         // a real bad-request / auth error is surfaced immediately.
         if (!isRetryable(err) && !isModelNotFound(err)) throw err;
@@ -184,16 +297,30 @@ export function makeFallbackChatFn(opts = {}) {
           try {
             onFallback({
               from: lastTried,
-              to: candidate,
+              to: target.crossProvider
+                ? `${target.provider}:${target.model}`
+                : target.model,
+              crossProvider: target.crossProvider,
               error: err?.message || String(err),
             });
           } catch {
             // Notification is best-effort — never mask the retry.
           }
         }
-        lastTried = candidate;
+        lastTried = target.model;
+        // Build the per-hop options: same-provider swaps only the model; a
+        // cross-provider hop also swaps provider/baseUrl/apiKey.
+        const hopOptions = target.crossProvider
+          ? {
+              ...options,
+              model: target.model,
+              provider: target.provider,
+              baseUrl: target.baseUrl,
+              apiKey: target.apiKey,
+            }
+          : { ...options, model: target.model };
         try {
-          return await baseChatFn(messages, { ...options, model: candidate });
+          return await baseChatFn(messages, hopOptions);
         } catch (nextErr) {
           err = nextErr;
         }

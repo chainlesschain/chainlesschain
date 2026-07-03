@@ -9,6 +9,8 @@ import {
   isModelNotFoundError,
   normalizeFallbackModels,
   makeFallbackChatFn,
+  parseFallbackEntry,
+  resolveFallbackTarget,
 } from "../../src/runtime/fallback-model.js";
 import { resolveFallbackModels } from "../../src/commands/agent.js";
 
@@ -78,6 +80,7 @@ describe("makeFallbackChatFn", () => {
     expect(onFallback).toHaveBeenCalledWith({
       from: "primary",
       to: "backup",
+      crossProvider: false,
       error: "overloaded",
     });
   });
@@ -135,11 +138,13 @@ describe("makeFallbackChatFn", () => {
     expect(onFallback).toHaveBeenNthCalledWith(1, {
       from: "primary",
       to: "backup-1",
+      crossProvider: false,
       error: "overloaded",
     });
     expect(onFallback).toHaveBeenNthCalledWith(2, {
       from: "backup-1",
       to: "backup-2",
+      crossProvider: false,
       error: "503",
     });
   });
@@ -183,6 +188,169 @@ describe("makeFallbackChatFn", () => {
     // primary (fail) → skip "primary" dup → "backup" (ok) = 2 calls, not 3
     expect(baseChatFn).toHaveBeenCalledTimes(2);
     expect(baseChatFn.mock.calls[1][1]).toMatchObject({ model: "backup" });
+  });
+});
+
+describe("parseFallbackEntry", () => {
+  const known = new Set(["openai", "anthropic", "ollama"]);
+  it("recognizes a known provider prefix", () => {
+    expect(parseFallbackEntry("openai:gpt-4o", known)).toEqual({
+      provider: "openai",
+      model: "gpt-4o",
+    });
+  });
+  it("keeps a colon-bearing model id intact under a known provider", () => {
+    expect(parseFallbackEntry("ollama:qwen2.5:7b", known)).toEqual({
+      provider: "ollama",
+      model: "qwen2.5:7b",
+    });
+  });
+  it("does NOT split a plain model whose prefix is not a known provider", () => {
+    // `qwen2.5` is not a provider, so the whole thing is a same-provider model.
+    expect(parseFallbackEntry("qwen2.5:7b", known)).toEqual({
+      provider: null,
+      model: "qwen2.5:7b",
+    });
+  });
+  it("treats a bare model as same-provider", () => {
+    expect(parseFallbackEntry("claude-haiku-4-5", known)).toEqual({
+      provider: null,
+      model: "claude-haiku-4-5",
+    });
+  });
+});
+
+describe("resolveFallbackTarget (cross-provider)", () => {
+  const providers = {
+    ollama: {
+      name: "ollama",
+      baseUrl: "http://localhost:11434",
+      apiKeyEnv: null,
+    },
+    openai: {
+      name: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKeyEnv: "OPENAI_API_KEY",
+    },
+  };
+
+  it("same-provider entry only carries the model", () => {
+    const t = resolveFallbackTarget("backup", { providers, env: {} });
+    expect(t).toEqual({ model: "backup", crossProvider: false });
+  });
+
+  it("cross-provider entry resolves baseUrl + apiKey from the env", () => {
+    const t = resolveFallbackTarget("openai:gpt-4o", {
+      providers,
+      env: { OPENAI_API_KEY: "sk-test" },
+    });
+    expect(t).toMatchObject({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "sk-test",
+      crossProvider: true,
+    });
+  });
+
+  it("marks a cross-provider hop UNAVAILABLE when its key is absent (never reuse the wrong key)", () => {
+    const t = resolveFallbackTarget("openai:gpt-4o", { providers, env: {} });
+    expect(t.unavailable).toBe(true);
+    expect(t.reason).toMatch(/OPENAI_API_KEY not set/);
+  });
+
+  it("a keyless provider (ollama) resolves without a key", () => {
+    const t = resolveFallbackTarget("ollama:qwen2.5:7b", {
+      providers,
+      env: {},
+    });
+    expect(t).toMatchObject({
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      crossProvider: true,
+    });
+  });
+
+  it("an unrecognized prefix is treated as a same-provider literal model (not split)", () => {
+    // `bogus` is not a known provider, so `bogus:m` is a same-provider model id.
+    const t = resolveFallbackTarget("bogus:m", { providers, env: {} });
+    expect(t).toEqual({ model: "bogus:m", crossProvider: false });
+  });
+
+  it("flags a known-but-unconfigured provider as unavailable (defensive guard)", () => {
+    // knownProviders lists `azure` as a prefix, but `providers` has no def → unavailable.
+    const t = resolveFallbackTarget("azure:gpt-4o", {
+      providers,
+      env: {},
+      knownProviders: new Set(["openai", "ollama", "azure"]),
+    });
+    expect(t.unavailable).toBe(true);
+    expect(t.reason).toMatch(/unknown provider/);
+  });
+});
+
+describe("makeFallbackChatFn — cross-provider hops", () => {
+  const providers = {
+    ollama: {
+      name: "ollama",
+      baseUrl: "http://localhost:11434",
+      apiKeyEnv: null,
+    },
+    openai: {
+      name: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKeyEnv: "OPENAI_API_KEY",
+    },
+  };
+
+  it("switches provider + baseUrl + apiKey when a cross-provider fallback is used", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("overloaded"))
+      .mockResolvedValueOnce({ message: { content: "from-openai" } });
+    const onFallback = vi.fn();
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["openai:gpt-4o"],
+      baseChatFn,
+      onFallback,
+      providers,
+      env: { OPENAI_API_KEY: "sk-test" },
+    });
+    const r = await fn([], {
+      model: "qwen2.5:7b",
+      provider: "ollama",
+      baseUrl: "http://localhost:11434",
+    });
+    expect(r.message.content).toBe("from-openai");
+    expect(baseChatFn.mock.calls[1][1]).toMatchObject({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "sk-test",
+    });
+    expect(onFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "openai:gpt-4o", crossProvider: true }),
+    );
+  });
+
+  it("SKIPS a cross-provider hop whose key is missing (no wrong-credential call)", async () => {
+    const baseChatFn = vi.fn().mockRejectedValue(new Error("overloaded"));
+    const onFallback = vi.fn();
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["openai:gpt-4o"], // no OPENAI_API_KEY in env
+      baseChatFn,
+      onFallback,
+      providers,
+      env: {},
+    });
+    await expect(
+      fn([], { model: "qwen2.5:7b", provider: "ollama" }),
+    ).rejects.toThrow("overloaded");
+    // Only the primary was attempted; the keyless cross-provider hop was skipped.
+    expect(baseChatFn).toHaveBeenCalledTimes(1);
+    expect(onFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ skipped: true }),
+    );
   });
 });
 

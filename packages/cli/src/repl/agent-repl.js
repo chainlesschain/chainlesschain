@@ -446,10 +446,12 @@ export async function startAgentRepl(options = {}) {
   const _fallbackChatFn = _fallbackModels.length
     ? makeFallbackChatFn({
         fallbackModels: _fallbackModels,
-        onFallback: ({ from, to, error }) =>
+        onFallback: ({ from, to, error, skipped, reason, crossProvider }) =>
           logger.info(
             chalk.yellow(
-              `[fallback] model "${from}" failed (${error}); retrying with "${to}"`,
+              skipped
+                ? `[fallback] "${to}" skipped (${reason})`
+                : `[fallback] model "${from}" failed (${error}); retrying with ${crossProvider ? "cross-provider " : ""}"${to}"`,
             ),
           ),
       })

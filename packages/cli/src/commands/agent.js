@@ -252,7 +252,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--fallback-model <model>",
-      "Backup model(s) to try in order when the primary fails (transient error or model-not-found). Repeatable or comma-separated; up to 3. Defaults to config llm.fallbackModels. claude-code parity.",
+      "Backup model(s) to try in order when the primary fails (transient error or model-not-found). Repeatable or comma-separated; up to 3. A `provider:model` entry (e.g. openai:gpt-4o) falls back cross-provider, using that provider's API key from its env var (skipped if unset — never reuses the primary key). Defaults to config llm.fallbackModels.",
       (val, prev) => (prev || []).concat([val]),
     )
     .option(
@@ -653,10 +653,22 @@ export function registerAgentCommand(program) {
       const fallbackChatFn = fallbackModels.length
         ? makeFallbackChatFn({
             fallbackModels,
-            onFallback: ({ from, to, error }) =>
-              process.stderr.write(
-                `Note: model "${from}" failed (${error}); retrying with fallback model "${to}".\n`,
-              ),
+            onFallback: ({
+              from,
+              to,
+              error,
+              skipped,
+              reason,
+              crossProvider,
+            }) =>
+              skipped
+                ? process.stderr.write(
+                    `Note: fallback "${to}" skipped (${reason}).\n`,
+                  )
+                : process.stderr.write(
+                    `Note: model "${from}" failed (${error}); retrying with ` +
+                      `${crossProvider ? "cross-provider " : ""}fallback "${to}".\n`,
+                  ),
           })
         : undefined;
 
