@@ -42,6 +42,38 @@ async function perfectAgent({ prompt, cwd }) {
       "import { computeTotal } from './util.js';\nconsole.log(computeTotal([1, 2, 3]));\n",
       "utf8",
     );
+  } else if (/verify\.mjs/.test(prompt)) {
+    // write-test: a genuine verifier that exercises slugify's behavior.
+    fs.writeFileSync(
+      path.join(cwd, "verify.mjs"),
+      "import { slugify } from './slug.mjs';\n" +
+        "const cases = [['Hello World', 'hello-world'], ['  A_B ', 'a-b']];\n" +
+        "for (const [inp, want] of cases) {\n" +
+        "  const got = slugify(inp);\n" +
+        "  if (got !== want) {\n" +
+        "    console.error(`slugify(${JSON.stringify(inp)}) = ${JSON.stringify(got)}, want ${want}`);\n" +
+        "    process.exit(1);\n" +
+        "  }\n" +
+        "}\n" +
+        "process.exit(0);\n",
+      "utf8",
+    );
+  } else if (/greet\.mjs/.test(prompt)) {
+    // migrate-signature: options-object API + updated callers.
+    fs.writeFileSync(
+      path.join(cwd, "greet.mjs"),
+      "export function greet({ name, excited }) {\n" +
+        "  return `Hello, ${name}!` + (excited ? '!!' : '');\n" +
+        "}\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(cwd, "app.mjs"),
+      "import { greet } from './greet.mjs';\n" +
+        "console.log(greet({ name: 'Ada', excited: false }));\n" +
+        "console.log(greet({ name: 'Bob', excited: true }));\n",
+      "utf8",
+    );
   }
   return { ok: true, output: "done" };
 }
@@ -156,6 +188,45 @@ describe("runEvalSuite telemetry", () => {
   it("omits telemetry when no recorder is passed (back-compat)", async () => {
     const summary = await runEvalSuite(BUILTIN_TASKS, { runAgent: noopAgent });
     expect(summary.telemetry).toBeUndefined();
+  });
+});
+
+describe("write-test task rigor", () => {
+  it("rejects a rubber-stamp verifier that ignores the implementation", async () => {
+    const task = BUILTIN_TASKS.find((t) => t.id === "write-test");
+    expect(task).toBeTruthy();
+    // A verifier that always exits 0 — passes the correct impl but does not
+    // actually test anything, so the check's mutation step must catch it.
+    const weakAgent = async ({ cwd }) => {
+      fs.writeFileSync(
+        path.join(cwd, "verify.mjs"),
+        "process.exit(0);\n",
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: weakAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/not meaningful/);
+  });
+});
+
+describe("migrate-signature task rigor", () => {
+  it("rejects leaving a caller on the old positional signature", async () => {
+    const task = BUILTIN_TASKS.find((t) => t.id === "migrate-signature");
+    // Migrates greet.mjs but forgets to update app.mjs → old positional call
+    // remains, so the check must fail it.
+    const halfAgent = async ({ cwd }) => {
+      fs.writeFileSync(
+        path.join(cwd, "greet.mjs"),
+        "export function greet({ name, excited }) {\n  return `Hello, ${name}!` + (excited ? '!!' : '');\n}\n",
+        "utf8",
+      );
+      // app.mjs left untouched (still positional).
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: halfAgent });
+    expect(summary.passed).toBe(0);
   });
 });
 

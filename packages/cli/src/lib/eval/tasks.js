@@ -224,6 +224,141 @@ export const BUILTIN_TASKS = [
       }
     },
   },
+  {
+    id: "write-test",
+    description:
+      "Write a meaningful verifier for a module (test-completion category)",
+    prompt:
+      "Write a Node script `verify.mjs` that imports `slugify` from `./slug.mjs` " +
+      "and checks it: exit 0 if slugify('Hello World') === 'hello-world' AND " +
+      "slugify('  A_B ') === 'a-b' (lowercase; runs of spaces/underscores become a " +
+      "single hyphen; trimmed), otherwise print what failed and exit 1. Do not " +
+      "modify slug.mjs.",
+    setup: (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "slug.mjs"),
+        "export function slugify(s) {\n" +
+          "  return String(s).trim().toLowerCase().replace(/[\\s_]+/g, '-');\n" +
+          "}\n",
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      const slug = read(dir, "slug.mjs");
+      if (slug == null) return { pass: false, detail: "slug.mjs missing" };
+      if (!/export\s+function\s+slugify/.test(slug)) {
+        return { pass: false, detail: "slug.mjs export was changed" };
+      }
+      if (read(dir, "verify.mjs") == null) {
+        return { pass: false, detail: "verify.mjs not created" };
+      }
+      const run = () =>
+        execFileSync(process.execPath, ["verify.mjs"], {
+          cwd: dir,
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      // 1) The verifier must PASS against the correct implementation.
+      try {
+        run();
+      } catch {
+        return {
+          pass: false,
+          detail: "verify.mjs failed against the correct implementation",
+        };
+      }
+      // 2) It must FAIL against a broken slugify — otherwise it's a no-op test
+      // that would rubber-stamp any implementation.
+      const good = slug;
+      try {
+        fs.writeFileSync(
+          path.join(dir, "slug.mjs"),
+          "export function slugify(s) {\n  return String(s);\n}\n", // identity = wrong
+          "utf8",
+        );
+        let caughtFailure = false;
+        try {
+          run();
+        } catch {
+          caughtFailure = true;
+        }
+        if (!caughtFailure) {
+          return {
+            pass: false,
+            detail:
+              "verify.mjs passed even a broken slugify — the test is not meaningful",
+          };
+        }
+      } finally {
+        fs.writeFileSync(path.join(dir, "slug.mjs"), good, "utf8"); // restore
+      }
+      return {
+        pass: true,
+        detail: "verifier passes on the correct impl and catches a broken one",
+      };
+    },
+  },
+  {
+    id: "migrate-signature",
+    description:
+      "Migrate a function's call convention and update all callers (api-upgrade category)",
+    prompt:
+      "In greet.mjs, change the exported `greet` to take a single options object " +
+      "`greet({ name, excited })`, returning `Hello, <name>!` normally or " +
+      "`Hello, <name>!!!` when `excited` is true. Update ALL callers in app.mjs to " +
+      "the new signature. Running `node app.mjs` must print exactly two lines:\n" +
+      "Hello, Ada!\nHello, Bob!!!",
+    setup: (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "greet.mjs"),
+        "export function greet(name, excited) {\n" +
+          "  return `Hello, ${name}!` + (excited ? '!!' : '');\n" +
+          "}\n",
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "app.mjs"),
+        "import { greet } from './greet.mjs';\n" +
+          "console.log(greet('Ada', false));\n" +
+          "console.log(greet('Bob', true));\n",
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      const g = read(dir, "greet.mjs");
+      const a = read(dir, "app.mjs");
+      if (g == null || a == null)
+        return { pass: false, detail: "greet.mjs / app.mjs missing" };
+      // New signature: greet must destructure an object parameter.
+      if (!/greet\s*\(\s*\{/.test(g)) {
+        return {
+          pass: false,
+          detail: "greet was not migrated to an options object",
+        };
+      }
+      // No caller may still pass the old positional (string-first) arguments.
+      if (/greet\(\s*['"`]/.test(a)) {
+        return {
+          pass: false,
+          detail: "a caller still uses the old positional signature",
+        };
+      }
+      try {
+        const out = execFileSync(process.execPath, ["app.mjs"], {
+          cwd: dir,
+          encoding: "utf8",
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        }).trim();
+        return out === "Hello, Ada!\nHello, Bob!!!"
+          ? { pass: true, detail: "signature migrated + callers updated" }
+          : { pass: false, detail: `app.mjs printed ${JSON.stringify(out)}` };
+      } catch (err) {
+        const first = String(err.message || "").split("\n")[0];
+        return { pass: false, detail: `app.mjs failed: ${first}` };
+      }
+    },
+  },
 ];
 
 /** Look up a suite by name (only "builtin" for now). */
