@@ -1586,9 +1586,11 @@ class DatabaseService {
     // 标题格式：FRIEND:{friendDid}:{nickname}
     const titlePrefix = `FRIEND:${friendDid}`;
 
-    // 查找是否已存在
-    const sql = `SELECT * FROM conversations WHERE title LIKE ?`;
-    const existing = await this.selectSql(sql, [`${titlePrefix}%`]);
+    // 查找是否已存在。friendDid 来自 P2P 好友请求，需转义 LIKE 元字符 (% _ \)
+    // 并配合 ESCAPE '\'，否则含通配符的 DID 会匹配到并改写错误的好友对话。
+    const escapedPrefix = titlePrefix.replace(/[\\%_]/g, "\\$&");
+    const sql = `SELECT * FROM conversations WHERE title LIKE ? ESCAPE '\\'`;
+    const existing = await this.selectSql(sql, [`${escapedPrefix}%`]);
 
     if (existing && existing.length > 0) {
       // 更新昵称（如果改变了）

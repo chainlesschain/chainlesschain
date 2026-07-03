@@ -110,8 +110,12 @@ class FileCacheManager {
         params.push("%/%", "");
       } else {
         // 子目录：返回直接子项
-        const escapedPath = parentPath.replace(/[%_]/g, "\\$&");
-        query += " AND file_path LIKE ? AND file_path NOT LIKE ?";
+        // Escape LIKE metachars (% _ \) and pair with ESCAPE '\' — without the
+        // ESCAPE clause the escaping is inert and `_` in a folder name still
+        // wildcard-matches sibling directories.
+        const escapedPath = parentPath.replace(/[\\%_]/g, "\\$&");
+        query +=
+          " AND file_path LIKE ? ESCAPE '\\' AND file_path NOT LIKE ? ESCAPE '\\'";
         params.push(`${escapedPath}/%`, `${escapedPath}/%/%`);
       }
     }
@@ -528,14 +532,17 @@ class FileCacheManager {
     try {
       const relativePath = path.relative(rootPath, dirPath).replace(/\\/g, "/");
 
-      // 标记目录及其所有子文件为删除
+      // 标记目录及其所有子文件为删除。relativePath 含目录名，普通的下划线也会
+      // 被 LIKE 当作通配符，需转义 (% _ \) 并配合 ESCAPE '\'，否则会误删同级目录
+      // (如 foo_bar/ 会匹配到 fooXbar/) 下的文件。file_path = ? 为精确匹配不需转义。
+      const escapedPath = relativePath.replace(/[\\%_]/g, "\\$&");
       const stmt = this.database.db.prepare(`
         UPDATE project_files
         SET deleted = 1, updated_at = ?, sync_status = 'pending'
-        WHERE project_id = ? AND (file_path = ? OR file_path LIKE ?)
+        WHERE project_id = ? AND (file_path = ? OR file_path LIKE ? ESCAPE '\\')
       `);
 
-      stmt.run(Date.now(), projectId, relativePath, `${relativePath}/%`);
+      stmt.run(Date.now(), projectId, relativePath, `${escapedPath}/%`);
 
       logger.info("[FileCacheManager] 目录及子文件已标记删除:", relativePath);
     } catch (error) {

@@ -506,11 +506,18 @@ class ZeroKnowledgeManager extends EventEmitter {
       throw new Error("Database not available for verification");
     }
 
+    if (!batchId) {
+      throw new Error("batchId is required for rollup verification");
+    }
+
+    // batchId 来自 IPC 调用方，需转义 LIKE 元字符 (% _ \) 并配合 ESCAPE '\'，
+    // 否则含通配符的 batchId 会解析到并"验证"错误的 proof 记录。
+    const safeBatch = String(batchId).replace(/[\\%_]/g, "\\$&");
     const row = raw
       .prepare(
-        "SELECT * FROM zk_proofs WHERE proof_type = ? AND metadata LIKE ?",
+        "SELECT * FROM zk_proofs WHERE proof_type = ? AND metadata LIKE ? ESCAPE '\\'",
       )
-      .get(PROOF_TYPES.ROLLUP, `%${batchId}%`);
+      .get(PROOF_TYPES.ROLLUP, `%${safeBatch}%`);
 
     if (!row) {
       throw new Error(`Rollup batch not found: ${batchId}`);

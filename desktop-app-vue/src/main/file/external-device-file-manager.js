@@ -1011,18 +1011,20 @@ class ExternalDeviceFileManager extends EventEmitter {
   handleTransferProgress(data) {
     const { transferId, progress, bytesTransferred, totalBytes } = data;
 
-    // 更新数据库中的传输任务
+    // 更新数据库中的传输任务。transferId 来自远端 P2P 消息，需转义 LIKE 元字符
+    // (% _ \) 并配合 ESCAPE '\'，否则含通配符的 id 会更新到错误的传输任务。
     try {
+      const safeId = String(transferId).replace(/[\\%_]/g, "\\$&");
       this.db
         .prepare(
           `
         UPDATE file_transfer_tasks
         SET progress = ?, bytes_transferred = ?
-        WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ?)
+        WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ? ESCAPE '\\')
         LIMIT 1
       `,
         )
-        .run(progress, bytesTransferred, `%${transferId}%`);
+        .run(progress, bytesTransferred, `%${safeId}%`);
     } catch (error) {
       logger.warn("[ExternalDeviceFileManager] 更新传输进度失败:", error);
     }
@@ -1049,18 +1051,20 @@ class ExternalDeviceFileManager extends EventEmitter {
   handleTransferError(data) {
     logger.error("[ExternalDeviceFileManager] 文件传输错误:", data);
 
-    // 更新数据库中的传输任务
+    // 更新数据库中的传输任务。transferId 来自远端 P2P 消息，需转义 LIKE 元字符
+    // (% _ \) 并配合 ESCAPE '\'，否则含通配符的 id 会更新到错误的传输任务。
     try {
+      const safeId = String(data.transferId).replace(/[\\%_]/g, "\\$&");
       this.db
         .prepare(
           `
         UPDATE file_transfer_tasks
         SET status = 'failed', error_message = ?
-        WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ?)
+        WHERE id = (SELECT id FROM file_transfer_tasks WHERE id LIKE ? ESCAPE '\\')
         LIMIT 1
       `,
         )
-        .run(data.error, `%${data.transferId}%`);
+        .run(data.error, `%${safeId}%`);
     } catch (error) {
       logger.warn("[ExternalDeviceFileManager] 更新传输状态失败:", error);
     }

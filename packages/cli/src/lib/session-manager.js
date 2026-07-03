@@ -7,6 +7,7 @@
 
 import { createHash } from "crypto";
 import { safeJsonParse } from "./safe-json.js";
+import { likePrefix } from "./sql-like.js";
 
 function ensureSessionsTable(db) {
   db.exec(`
@@ -115,10 +116,13 @@ export function getSession(db, sessionId) {
     .prepare("SELECT * FROM llm_sessions WHERE id = ?")
     .get(sessionId);
 
-  if (!session) {
+  if (!session && sessionId) {
+    // Prefix match as a fallback. Escape LIKE metachars (% _ \) in the id and
+    // pair with ESCAPE '\' so a value containing them can't wildcard-match the
+    // WRONG session — getSession resolves the id that resume writes back to.
     session = db
-      .prepare("SELECT * FROM llm_sessions WHERE id LIKE ? LIMIT 1")
-      .get(`${sessionId}%`);
+      .prepare("SELECT * FROM llm_sessions WHERE id LIKE ? ESCAPE '\\' LIMIT 1")
+      .get(likePrefix(sessionId));
   }
 
   if (!session) return null;
