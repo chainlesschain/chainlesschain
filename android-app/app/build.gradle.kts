@@ -466,12 +466,15 @@ dependencies {
     // Paging Compose
     implementation("androidx.paging:paging-compose:3.2.1")
 
-    // ===== Firebase Crashlytics =====
-    // Only include if google-services.json exists
+    // ===== Firebase Crashlytics + Messaging =====
+    // Only include if google-services.json exists. Messaging enables Remote
+    // Session push wake-ups (FcmTokenProvider resolves the token via reflection,
+    // so the app still builds/runs without this — see FcmTokenProvider.kt).
     if (hasGoogleServices) {
         implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
         implementation("com.google.firebase:firebase-crashlytics-ktx")
         implementation("com.google.firebase:firebase-analytics-ktx")
+        implementation("com.google.firebase:firebase-messaging-ktx")
     }
 
     // Testing

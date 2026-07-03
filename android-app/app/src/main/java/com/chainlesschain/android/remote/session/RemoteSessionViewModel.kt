@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 
@@ -20,6 +21,7 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     private val client = RemoteSessionClient(OkHttpClient.Builder().build())
     private val store = RemoteSessionStore(application)
     private val notifier = RemoteSessionNotifier(application)
+    private val fcmTokenProvider = FcmTokenProvider()
     private val _uiState = MutableStateFlow(RemoteSessionUiState())
     val uiState: StateFlow<RemoteSessionUiState> = _uiState
 
@@ -49,10 +51,24 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun pair(uri: String) {
-        runCatching {
-            store.savePendingPairing(uri)
-            client.connect(uri)
-        }.onFailure { _uiState.update { state -> state.copy(error = it.message) } }
+        viewModelScope.launch {
+            runCatching {
+                store.savePendingPairing(uri)
+                // Best-effort: attach an FCM token BEFORE connecting so it rides
+                // in the encrypted pair.join and the host can wake this device
+                // for approvals while backgrounded. Times out fast; a null token
+                // (Firebase absent / slow) degrades to relay + local notice.
+                val token = withTimeoutOrNull(TOKEN_TIMEOUT_MS) {
+                    fcmTokenProvider.getToken()
+                }
+                if (!token.isNullOrBlank()) {
+                    client.setPushCredentials(token, FcmTokenProvider.PROVIDER)
+                }
+                client.connect(uri)
+            }.onFailure { cause ->
+                _uiState.update { state -> state.copy(error = cause.message) }
+            }
+        }
     }
 
     fun sendPrompt(content: String) {
@@ -78,5 +94,11 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     override fun onCleared() {
         client.disconnect()
         super.onCleared()
+    }
+
+    private companion object {
+        // FCM token fetch is normally cached + instant; cap it so pairing is
+        // never blocked on a slow network.
+        const val TOKEN_TIMEOUT_MS = 3_000L
     }
 }
