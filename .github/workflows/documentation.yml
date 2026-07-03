@@ -173,6 +173,7 @@ jobs:
       #      (no checks). Last-resort so the run still opens the PR rather than
       #      failing; then admin-merge as before.
       - name: Open PR with documentation updates (main branch only)
+        id: cpr
         if: |
           steps.check-changes.outputs.has_changes == 'true' &&
           github.event_name == 'push' &&
@@ -212,10 +213,32 @@ jobs:
             - Architecture docs
             - Changelog
 
-            _Auto-generated — review and merge (or enable auto-merge on this PR)._
+            _Auto-generated — squash auto-merge is enabled; it merges once the
+            required checks pass (needs a non-GITHUB_TOKEN actor — see workflow)._
           labels: |
             documentation
             automated
+
+      # Turn on squash auto-merge so the PR merges itself once the required
+      # status checks pass — no manual admin-merge. This only actually completes
+      # when the PR was opened by a non-GITHUB_TOKEN actor (App token or
+      # DOCS_PR_TOKEN PAT) so the checks run; with the GITHUB_TOKEN fallback the
+      # auto-merge is enabled but simply waits (harmless) until a real token is
+      # configured. Requires repo setting "Allow auto-merge" (enabled via API).
+      # continue-on-error keeps a transient GraphQL hiccup from failing the run.
+      - name: Enable auto-merge on the docs PR
+        if: |
+          steps.check-changes.outputs.has_changes == 'true' &&
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          steps.cpr.outputs.pull-request-number
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          pr='${{ steps.cpr.outputs.pull-request-number }}'
+          echo "Enabling squash auto-merge on PR #$pr"
+          gh pr merge "$pr" --repo "${{ github.repository }}" --auto --squash --delete-branch
 
       - name: Upload documentation artifacts
         if: steps.check-changes.outputs.has_changes == 'true'
