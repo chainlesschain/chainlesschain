@@ -6,28 +6,28 @@
 
 ## 文档信息
 
-| 项 | 内容 |
-|---|---|
-| 文档类型 | 设计文档（Design Document） |
-| 模块 | desktop-app-vue（Electron + Vue 3） |
-| 适用版本 | v5.0.2.x → v6.0 |
-| 状态 | P0–P9c + Phase 3.3c / 3.4（**Hard-Flip Complete**） + MainLayout / DIDManagement 拆分 + 启动流程 Critical/Deferred + Shell 真 LLM 接入 + top-10 V5 routes 全部 V6 widget probe（10/10 parity） |
-| 最近更新 | 2026-04-26 |
-| 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md` |
+| 项       | 内容                                                                                                                                                                                           |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文档类型 | 设计文档（Design Document）                                                                                                                                                                    |
+| 模块     | desktop-app-vue（Electron + Vue 3）                                                                                                                                                            |
+| 适用版本 | v5.0.2.x → v6.0                                                                                                                                                                                |
+| 状态     | P0–P9c + Phase 3.3c / 3.4（**Hard-Flip Complete**） + MainLayout / DIDManagement 拆分 + 启动流程 Critical/Deferred + Shell 真 LLM 接入 + top-10 V5 routes 全部 V6 widget probe（10/10 parity） |
+| 最近更新 | 2026-04-26                                                                                                                                                                                     |
+| 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md`                                                                                                                       |
 
 ### 修订历史
 
-| 版本 | 日期 | 作者 | 变更摘要 |
-|---|---|---|---|
-| v0.1 | 2026-04-20 | ChainlessChain 团队 | 初稿：三区对话壳 + 插件化平台 + 企业 Profile |
-| v0.2 | 2026-04-20 | ChainlessChain 团队 | P0–P5 实现完成：7 UI + 2 Brand + 5 能力扩展点全部落地，Profile/MDM 端到端联调通过 |
-| v0.3 | 2026-04-20 | ChainlessChain 团队 | P6：Slash 命令分发器 + 状态栏 Widget 注册表 + 内置 AdminShortcut；插件声明的 `handler`/`component` 现在会真正生效 |
-| v0.4 | 2026-04-20 | ChainlessChain 团队 | P7–P9b：`/v6-preview` 预览壳 + 4 主题 + 4 颗去中心化入口 + 会话 localStorage 持久化 + `llm-preview-bridge` 桥接 `window.electronAPI.llm.chat` |
-| v0.5 | 2026-04-20 | ChainlessChain 团队 | 发布前测试回归闭环：92 单测 + 5 集成测 + `vue-tsc --noEmit` + `vite build` 全绿；E2E 跟随既有 `describe.skip` 约定；本轮回归无 bug 溢出 |
-| v0.6 | 2026-04-21 | ChainlessChain 团队 | Phase 3.3c 补齐 5 个 thin store 单测（rag / wallet / git-hooks / workflow-designer / analytics-dashboard，83 例）+ Phase 3.4 路由守卫 9 例 + 600 store 回归 + 13 plugin 扩展点集成全绿；修复两个 drift（`logger.ts` IPC `.catch()` 防御、`electron.d.ts` 补齐 `ConfigAPI` 类型） |
-| v0.7 | 2026-04-21（下午） | ChainlessChain 团队 | SystemSettings.vue 六级 Pane 拆分（P2P / Speech / LLM / Database / Project / Performance）+ ChatPanel.vue 两级外提（`chatPanelUtils.js` 7 个纯工具 + `useMemoryLeakGuard` composable）。SystemSettings 3444 → 1070 行（−69%），ChatPanel 4057 → 3788 行；`defineModel('config')` + `v-model:config` 模式保持子组件可直接操作嵌套 config；600/600 store 单测 + vite build 全绿 |
-| v0.8 | 2026-04-22 | ChainlessChain 团队 | MainLayout.vue 六级拆分（FavoriteManagerModal / HeaderBreadcrumbs / SyncStatusButton / VoiceCommandHandler / SidebarContextMenu / AppHeader），3203 → 1943 行（−39%）；DIDManagement.vue 三级拆分（AutoRepublishSettingsPane / MnemonicModals / IdentityDetailsModal），1390 → 543 行（−61%）；Shell 接入真实 LLM（ShellComposer `handleSend` 流式优先 / 非流式回退 + ConversationStream typing indicator）；主进程启动 Critical/Deferred 两段化（`bootstrapCritical` 阶段 0-5 阻塞 splash / `bootstrapDeferred` 阶段 6+ + `registerCriticalIPC` / `registerDeferredIPC`，回退开关 `CHAINLESSCHAIN_LEGACY_BOOT=1`）；重型渲染器组件（Monaco / Milkdown / Fabric）改 `defineAsyncComponent` 懒加载，monaco 独立 chunk 3.7MB / gzip 938KB；后端服务 4 路并行轮询，startServices 不阻塞；2000+ 定向单元 + 98/104 集成 + smoke build + lint 全绿 |
-| v0.9 | 2026-04-26 | ChainlessChain 团队 | **V6 hard-flip 完成 (v5.0.3.1)**：补齐最后 6 颗 V5→V6 widget probe（did-management `35f4e278b` / projects `a097596f5` / p2p-messaging `3883a72ec` / community `5b5e6fe1d` / ai-chat `396d6e7b1` / settings `ccbc312fd`），凑齐 top-10 V5 routes 全部 V6 widget（settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise）。随即 hard-flip（commit `caaddf530`）：`router/v6-shell-default.ts` 初始 `useV6ShellByDefault` `false → true`；`main.ts` `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — 配置未设值默认 V6，仅显式 `false` 才回 V5；`SystemSettings.vue` 表单 initializer + 描述文字同步翻；opt-out 通道与纯函数 `resolveHomeRedirect()` 都没动，符合 migration template "no other code needs to move" 承诺。附带 fix `72b826bdf`：`SystemSettings` "立即试用" link 从 `/v2` 统一到 `/v6-preview`（与 router redirect 目标一致）。productVersion v5.0.2.55 → v5.0.3.1（V6 hard-flip = minor bump，v5.0.3.0 因 aliyun maven 镜像 502 致 build-android 失败回滚，hotfix `android-app/buildSrc/build.gradle.kts` 把 google/mavenCentral 提到 aliyun 之前并 bump 到 v5.0.3.1）。19/19 plugin-extension-points integration + 8/8 slash-dispatch + 9/9 v6-shell-default 全绿；同日 web-panel Phase A 三件 (`/did` + `/knowledge` + `/project-settings`) 同步上线（commits `f37aa44d0` / `d1f22ce2d` / `c0e96c9e0`），621/621 web-panel unit 全绿。预约 remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` 在 2026-05-10 09:00 Asia/Shanghai 自动巡检部署后 14 天的 git/issue/test/notes 状态 |
+| 版本 | 日期               | 作者                | 变更摘要                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---- | ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.1 | 2026-04-20         | ChainlessChain 团队 | 初稿：三区对话壳 + 插件化平台 + 企业 Profile                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| v0.2 | 2026-04-20         | ChainlessChain 团队 | P0–P5 实现完成：7 UI + 2 Brand + 5 能力扩展点全部落地，Profile/MDM 端到端联调通过                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| v0.3 | 2026-04-20         | ChainlessChain 团队 | P6：Slash 命令分发器 + 状态栏 Widget 注册表 + 内置 AdminShortcut；插件声明的 `handler`/`component` 现在会真正生效                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| v0.4 | 2026-04-20         | ChainlessChain 团队 | P7–P9b：`/v6-preview` 预览壳 + 4 主题 + 4 颗去中心化入口 + 会话 localStorage 持久化 + `llm-preview-bridge` 桥接 `window.electronAPI.llm.chat`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| v0.5 | 2026-04-20         | ChainlessChain 团队 | 发布前测试回归闭环：92 单测 + 5 集成测 + `vue-tsc --noEmit` + `vite build` 全绿；E2E 跟随既有 `describe.skip` 约定；本轮回归无 bug 溢出                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| v0.6 | 2026-04-21         | ChainlessChain 团队 | Phase 3.3c 补齐 5 个 thin store 单测（rag / wallet / git-hooks / workflow-designer / analytics-dashboard，83 例）+ Phase 3.4 路由守卫 9 例 + 600 store 回归 + 13 plugin 扩展点集成全绿；修复两个 drift（`logger.ts` IPC `.catch()` 防御、`electron.d.ts` 补齐 `ConfigAPI` 类型）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| v0.7 | 2026-04-21（下午） | ChainlessChain 团队 | SystemSettings.vue 六级 Pane 拆分（P2P / Speech / LLM / Database / Project / Performance）+ ChatPanel.vue 两级外提（`chatPanelUtils.js` 7 个纯工具 + `useMemoryLeakGuard` composable）。SystemSettings 3444 → 1070 行（−69%），ChatPanel 4057 → 3788 行；`defineModel('config')` + `v-model:config` 模式保持子组件可直接操作嵌套 config；600/600 store 单测 + vite build 全绿                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| v0.8 | 2026-04-22         | ChainlessChain 团队 | MainLayout.vue 六级拆分（FavoriteManagerModal / HeaderBreadcrumbs / SyncStatusButton / VoiceCommandHandler / SidebarContextMenu / AppHeader），3203 → 1943 行（−39%）；DIDManagement.vue 三级拆分（AutoRepublishSettingsPane / MnemonicModals / IdentityDetailsModal），1390 → 543 行（−61%）；Shell 接入真实 LLM（ShellComposer `handleSend` 流式优先 / 非流式回退 + ConversationStream typing indicator）；主进程启动 Critical/Deferred 两段化（`bootstrapCritical` 阶段 0-5 阻塞 splash / `bootstrapDeferred` 阶段 6+ + `registerCriticalIPC` / `registerDeferredIPC`，回退开关 `CHAINLESSCHAIN_LEGACY_BOOT=1`）；重型渲染器组件（Monaco / Milkdown / Fabric）改 `defineAsyncComponent` 懒加载，monaco 独立 chunk 3.7MB / gzip 938KB；后端服务 4 路并行轮询，startServices 不阻塞；2000+ 定向单元 + 98/104 集成 + smoke build + lint 全绿                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| v0.9 | 2026-04-26         | ChainlessChain 团队 | **V6 hard-flip 完成 (v5.0.3.1)**：补齐最后 6 颗 V5→V6 widget probe（did-management `35f4e278b` / projects `a097596f5` / p2p-messaging `3883a72ec` / community `5b5e6fe1d` / ai-chat `396d6e7b1` / settings `ccbc312fd`），凑齐 top-10 V5 routes 全部 V6 widget（settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise）。随即 hard-flip（commit `caaddf530`）：`router/v6-shell-default.ts` 初始 `useV6ShellByDefault` `false → true`；`main.ts` `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — 配置未设值默认 V6，仅显式 `false` 才回 V5；`SystemSettings.vue` 表单 initializer + 描述文字同步翻；opt-out 通道与纯函数 `resolveHomeRedirect()` 都没动，符合 migration template "no other code needs to move" 承诺。附带 fix `72b826bdf`：`SystemSettings` "立即试用" link 从 `/v2` 统一到 `/v6-preview`（与 router redirect 目标一致）。productVersion v5.0.2.55 → v5.0.3.1（V6 hard-flip = minor bump，v5.0.3.0 因 aliyun maven 镜像 502 致 build-android 失败回滚，hotfix `android-app/buildSrc/build.gradle.kts` 把 google/mavenCentral 提到 aliyun 之前并 bump 到 v5.0.3.1）。19/19 plugin-extension-points integration + 8/8 slash-dispatch + 9/9 v6-shell-default 全绿；同日 web-panel Phase A 三件 (`/did` + `/knowledge` + `/project-settings`) 同步上线（commits `f37aa44d0` / `d1f22ce2d` / `c0e96c9e0`），621/621 web-panel unit 全绿。预约 remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` 在 2026-05-10 09:00 Asia/Shanghai 自动巡检部署后 14 天的 git/issue/test/notes 状态 |
 
 ---
 
@@ -67,15 +67,15 @@
 
 ### 1.4 术语
 
-| 术语 | 含义 |
-|---|---|
-| Space | 个人空间，一组独立 RAG 知识库 + 提示词 + 联系人圈 + 权限策略（类比 Claude Projects） |
-| Artifact | 对话中产生的可签名、可路由、可加密的去中心化对象（文档、签名、交易、P2P 线程、ZKP 凭证等） |
-| Slash | 输入框 `/` 触发的动作面板（skills + CLI 命令的子集） |
-| Mention | 输入框 `@` 触发的对象引用面板（联系人、笔记、交易、合约） |
-| Profile | 企业可分发的定制包：品牌 + 插件清单 + 策略 + 预置 Space |
-| Ambient Security | "环境级安全"——U-Key/DID/加密状态常驻界面，不作为独立页面 |
-| First-party Plugin | 由 ChainlessChain 官方内置、与第三方插件同契约的核心模块 |
+| 术语               | 含义                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| Space              | 个人空间，一组独立 RAG 知识库 + 提示词 + 联系人圈 + 权限策略（类比 Claude Projects）       |
+| Artifact           | 对话中产生的可签名、可路由、可加密的去中心化对象（文档、签名、交易、P2P 线程、ZKP 凭证等） |
+| Slash              | 输入框 `/` 触发的动作面板（skills + CLI 命令的子集）                                       |
+| Mention            | 输入框 `@` 触发的对象引用面板（联系人、笔记、交易、合约）                                  |
+| Profile            | 企业可分发的定制包：品牌 + 插件清单 + 策略 + 预置 Space                                    |
+| Ambient Security   | "环境级安全"——U-Key/DID/加密状态常驻界面，不作为独立页面                                   |
+| First-party Plugin | 由 ChainlessChain 官方内置、与第三方插件同契约的核心模块                                   |
 
 ---
 
@@ -83,36 +83,36 @@
 
 ### 2.1 三端 UI 现状对照
 
-| 维度 | CLI (`cc`) | Web 面板 | 桌面版（当前） |
-|---|---|---|---|
-| 入口规模 | 160 命令 | 26 视图 | 97 页 / 113 Store |
-| 定位 | 脚本 / 自动化 | 轻量远程驾驶舱 | 功能最全，但臃肿 |
-| 交互模型 | REPL + slash | 后台模块堆叠 | 侧栏驱动的多页应用 |
-| 差异化能力 | headless | 即开即用 | 硬件调用、离线 RAG、系统集成 |
+| 维度       | CLI (`cc`)    | Web 面板       | 桌面版（当前）               |
+| ---------- | ------------- | -------------- | ---------------------------- |
+| 入口规模   | 162 命令      | 26 视图        | 97 页 / 113 Store            |
+| 定位       | 脚本 / 自动化 | 轻量远程驾驶舱 | 功能最全，但臃肿             |
+| 交互模型   | REPL + slash  | 后台模块堆叠   | 侧栏驱动的多页应用           |
+| 差异化能力 | headless      | 即开即用       | 硬件调用、离线 RAG、系统集成 |
 
 ### 2.2 已有插件基建
 
-| 层 | 文件 | 能力 |
-|---|---|---|
-| CLI 插件 | `packages/cli/src/lib/plugin-autodiscovery.js`、`plugin-ecosystem.js`、`commands/plugin.js` | 从 `~/.chainlesschain/plugins/` 自动扫描加载；契约：`{ name, tools, hooks, commands }` |
-| 桌面插件 | `desktop-app-vue/src/main/plugins/plugin-manager.js`（1100+ LOC）、`plugin-api.js`（650+ LOC）、`plugin-loader.js`（430+ LOC）、`plugin-registry.js`、`plugin-ipc.js`、`plugin-sandbox.js` | DB 表 `plugins` 存储；8 个扩展点（已落地 `ui.page`/`ui.menu`/`ui.component`/`ai.function-tool`；4 个 stub） |
-| Skill 加载器 | `src/main/ai-engine/cowork/skills/skill-loader.js` | 四层优先级：`bundled < marketplace < managed < workspace` |
-| Marketplace UI | `PluginMarketplace.vue`、`PluginMarketplacePage.vue`、`PluginDetailPage.vue`、`InstalledPluginsPage.vue` | 分类、搜索、分页、安装管理 |
-| DB Migration | `src/main/database/migrations/001_plugin_system.sql` | 7 表：plugins / permissions / dependencies / extensions / settings / event_logs / api_stats |
+| 层             | 文件                                                                                                                                                                                       | 能力                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| CLI 插件       | `packages/cli/src/lib/plugin-autodiscovery.js`、`plugin-ecosystem.js`、`commands/plugin.js`                                                                                                | 从 `~/.chainlesschain/plugins/` 自动扫描加载；契约：`{ name, tools, hooks, commands }`                      |
+| 桌面插件       | `desktop-app-vue/src/main/plugins/plugin-manager.js`（1100+ LOC）、`plugin-api.js`（650+ LOC）、`plugin-loader.js`（430+ LOC）、`plugin-registry.js`、`plugin-ipc.js`、`plugin-sandbox.js` | DB 表 `plugins` 存储；8 个扩展点（已落地 `ui.page`/`ui.menu`/`ui.component`/`ai.function-tool`；4 个 stub） |
+| Skill 加载器   | `src/main/ai-engine/cowork/skills/skill-loader.js`                                                                                                                                         | 四层优先级：`bundled < marketplace < managed < workspace`                                                   |
+| Marketplace UI | `PluginMarketplace.vue`、`PluginMarketplacePage.vue`、`PluginDetailPage.vue`、`InstalledPluginsPage.vue`                                                                                   | 分类、搜索、分页、安装管理                                                                                  |
+| DB Migration   | `src/main/database/migrations/001_plugin_system.sql`                                                                                                                                       | 7 表：plugins / permissions / dependencies / extensions / settings / event_logs / api_stats                 |
 
 ### 2.3 企业定制缺口
 
-| 维度 | 缺失内容 |
-|---|---|
-| 品牌 | 无 logo / favicon / 应用名 / 登录页 / Design Token 覆盖机制 |
-| 导航 | 插件页被关到 `/plugin/{id}/*`，无一级导航权 |
-| Artifact | 硬编码渲染，不可扩展 |
-| Slash / @ | 无统一入口，无扩展接口 |
-| 认证 | 无插件化 `auth.provider`（LDAP / Azure AD / 企业 SSO） |
-| 存储 / 加密 | 无 `data.storage` / `data.crypto` 扩展点以接企业 KMS / 对象存储 |
-| 合规 | 无 `compliance.audit-sink`（SIEM）、`compliance.policy`（DLP / 分级 / 保留） |
-| 多租户 | 无 `tenant.scope` 数据分区 |
-| 分发 | 仅本地安装；无私有 Registry、无签名校验、无 Profile 打包 |
+| 维度        | 缺失内容                                                                     |
+| ----------- | ---------------------------------------------------------------------------- |
+| 品牌        | 无 logo / favicon / 应用名 / 登录页 / Design Token 覆盖机制                  |
+| 导航        | 插件页被关到 `/plugin/{id}/*`，无一级导航权                                  |
+| Artifact    | 硬编码渲染，不可扩展                                                         |
+| Slash / @   | 无统一入口，无扩展接口                                                       |
+| 认证        | 无插件化 `auth.provider`（LDAP / Azure AD / 企业 SSO）                       |
+| 存储 / 加密 | 无 `data.storage` / `data.crypto` 扩展点以接企业 KMS / 对象存储              |
+| 合规        | 无 `compliance.audit-sink`（SIEM）、`compliance.policy`（DLP / 分级 / 保留） |
+| 多租户      | 无 `tenant.scope` 数据分区                                                   |
+| 分发        | 仅本地安装；无私有 Registry、无签名校验、无 Profile 打包                     |
 
 ---
 
@@ -172,17 +172,18 @@ Shell
 
 **Artifacts**：对话中产生的对象。与 Claude Desktop 的代码 / 文档 Artifact 不同，ChainlessChain 的 Artifact 是**可签名、可路由、可加密**的去中心化对象：
 
-| Artifact 类型 | 触发 | 可执行动作 |
-|---|---|---|
-| Note / Doc | AI 生成文档 | 存本地 / 发 IPFS / 共享给 DID |
-| Signed Message | 起草声明 | U-Key 签名 / 发布到社区 |
-| Transaction | "给 Alice 转 100" | 预览 → U-Key 签 → 广播 |
-| P2P Thread | "联系 Bob" | 展开聊天线程 |
-| Credential (VC / ZKP) | "证明我 >18 岁" | 生成 ZKP → 发给验证方 |
-| Knowledge Graph | "梳理这些笔记" | 可视化 / 回填 Space RAG |
+| Artifact 类型         | 触发              | 可执行动作                    |
+| --------------------- | ----------------- | ----------------------------- |
+| Note / Doc            | AI 生成文档       | 存本地 / 发 IPFS / 共享给 DID |
+| Signed Message        | 起草声明          | U-Key 签名 / 发布到社区       |
+| Transaction           | "给 Alice 转 100" | 预览 → U-Key 签 → 广播        |
+| P2P Thread            | "联系 Bob"        | 展开聊天线程                  |
+| Credential (VC / ZKP) | "证明我 >18 岁"   | 生成 ZKP → 发给验证方         |
+| Knowledge Graph       | "梳理这些笔记"    | 可视化 / 回填 Space RAG       |
 
 **Slash / Mention**：统一交互入口，取消深菜单查找。
-- `/` = 动作（141 skills + 160 CLI 命令子集）
+
+- `/` = 动作（141 skills + 162 CLI 命令子集）
 - `@` = 对象引用（联系人、笔记、交易、合约）
 
 ---
@@ -191,15 +192,15 @@ Shell
 
 ### 4.1 Shell 组件结构
 
-| 组件 | 职责 | 扩展点 |
-|---|---|---|
-| `AppShell.vue` | 三区布局、快捷键、Command Palette 触发 | — |
-| `Sidebar.vue` | 会话列表、Spaces、联系人、今日入口 | `ui.home-widget`、`ui.space` |
-| `ConversationStream.vue` | 消息列表、DID Chip、流式渲染 | `ui.component`（消息内嵌） |
-| `Composer.vue` | 输入框、附件、Slash、Mention、Composer Slot | `ui.slash`、`ui.mention`、`ui.composer-slot` |
-| `ArtifactPanel.vue` | 右栏 Artifact 渲染 + 动作栏 | `ui.artifact` |
-| `StatusBar.vue` | 底部状态栏（U-Key / DID / P2P / LLM / Cost） | `ui.status-bar` |
-| `CommandPalette.vue` | `Ctrl+K` 全局面板 | 汇总 `ui.slash` + 系统命令 |
+| 组件                     | 职责                                         | 扩展点                                       |
+| ------------------------ | -------------------------------------------- | -------------------------------------------- |
+| `AppShell.vue`           | 三区布局、快捷键、Command Palette 触发       | —                                            |
+| `Sidebar.vue`            | 会话列表、Spaces、联系人、今日入口           | `ui.home-widget`、`ui.space`                 |
+| `ConversationStream.vue` | 消息列表、DID Chip、流式渲染                 | `ui.component`（消息内嵌）                   |
+| `Composer.vue`           | 输入框、附件、Slash、Mention、Composer Slot  | `ui.slash`、`ui.mention`、`ui.composer-slot` |
+| `ArtifactPanel.vue`      | 右栏 Artifact 渲染 + 动作栏                  | `ui.artifact`                                |
+| `StatusBar.vue`          | 底部状态栏（U-Key / DID / P2P / LLM / Cost） | `ui.status-bar`                              |
+| `CommandPalette.vue`     | `Ctrl+K` 全局面板                            | 汇总 `ui.slash` + 系统命令                   |
 
 ### 4.2 扩展点清单
 
@@ -207,43 +208,43 @@ Shell
 
 #### 4.2.1 UI 层
 
-| 扩展点 | 状态 | 说明 |
-|---|---|---|
-| `ui.page` | ✅ 已有（升级） | 允许进入一级导航，新增 `nav: "primary" \| "plugin"` 字段 |
-| `ui.menu` | ✅ 已有 | 保持不变 |
-| `ui.component` | ✅ 已有 | Slot 注入，保持不变 |
-| `ui.space` | ★ 新增 | 注册 Space 模板（RAG 预设 + 提示词 + 联系人圈 + 权限） |
-| `ui.artifact` | ★ 新增 | Artifact 类型 + 渲染器 + 动作按钮 |
-| `ui.slash` | ★ 新增 | `/` 命令注册 |
-| `ui.mention` | ★ 新增 | `@` 自动补全源注册 |
-| `ui.status-bar` | ★ 新增 | 状态栏小组件（U-Key 指示灯本身使用该扩展） |
-| `ui.home-widget` | ★ 新增 | 今日页卡片 |
-| `ui.composer-slot` | ★ 新增 | 输入框行内槽（签名 UI、成本估算） |
+| 扩展点             | 状态            | 说明                                                     |
+| ------------------ | --------------- | -------------------------------------------------------- |
+| `ui.page`          | ✅ 已有（升级） | 允许进入一级导航，新增 `nav: "primary" \| "plugin"` 字段 |
+| `ui.menu`          | ✅ 已有         | 保持不变                                                 |
+| `ui.component`     | ✅ 已有         | Slot 注入，保持不变                                      |
+| `ui.space`         | ★ 新增          | 注册 Space 模板（RAG 预设 + 提示词 + 联系人圈 + 权限）   |
+| `ui.artifact`      | ★ 新增          | Artifact 类型 + 渲染器 + 动作按钮                        |
+| `ui.slash`         | ★ 新增          | `/` 命令注册                                             |
+| `ui.mention`       | ★ 新增          | `@` 自动补全源注册                                       |
+| `ui.status-bar`    | ★ 新增          | 状态栏小组件（U-Key 指示灯本身使用该扩展）               |
+| `ui.home-widget`   | ★ 新增          | 今日页卡片                                               |
+| `ui.composer-slot` | ★ 新增          | 输入框行内槽（签名 UI、成本估算）                        |
 
 #### 4.2.2 能力层
 
-| 扩展点 | 状态 | 说明 |
-|---|---|---|
-| `ai.function-tool` | ✅ 已有 | 保持不变 |
-| `ai.llm-provider` | ⚠ stub → 落地 | 接入第三方 LLM |
-| `ai.skill-pack` | ★ 新增 | 打包一组 Skill 作为插件（桥接 SkillLoader） |
-| `data.importer` | ⚠ stub → 落地 | 数据导入 |
-| `data.exporter` | ⚠ stub → 落地 | 数据导出 |
-| `data.storage` | ★ 新增 | 本地 / IPFS / S3 / 企业对象存储 |
-| `data.crypto` | ★ 新增 | 软件 / U-Key / 企业 KMS / HSM |
-| `auth.provider` | ★ 新增 | LDAP / Azure AD / 企业 SSO |
-| `net.transport` | ★ 新增 | P2P / 企业内网 / 代理 |
-| `lifecycle.hook` | ⚠ stub → 落地 | 启动 / 关闭钩子 |
+| 扩展点             | 状态          | 说明                                        |
+| ------------------ | ------------- | ------------------------------------------- |
+| `ai.function-tool` | ✅ 已有       | 保持不变                                    |
+| `ai.llm-provider`  | ⚠ stub → 落地 | 接入第三方 LLM                              |
+| `ai.skill-pack`    | ★ 新增        | 打包一组 Skill 作为插件（桥接 SkillLoader） |
+| `data.importer`    | ⚠ stub → 落地 | 数据导入                                    |
+| `data.exporter`    | ⚠ stub → 落地 | 数据导出                                    |
+| `data.storage`     | ★ 新增        | 本地 / IPFS / S3 / 企业对象存储             |
+| `data.crypto`      | ★ 新增        | 软件 / U-Key / 企业 KMS / HSM               |
+| `auth.provider`    | ★ 新增        | LDAP / Azure AD / 企业 SSO                  |
+| `net.transport`    | ★ 新增        | P2P / 企业内网 / 代理                       |
+| `lifecycle.hook`   | ⚠ stub → 落地 | 启动 / 关闭钩子                             |
 
 #### 4.2.3 企业 / 品牌层
 
-| 扩展点 | 状态 | 说明 |
-|---|---|---|
-| `brand.theme` | ★ 新增 | Design Token + 配色 + 字体覆盖 |
-| `brand.identity` | ★ 新增 | logo / favicon / 应用名 / 登录页 |
-| `compliance.audit-sink` | ★ 新增 | 审计事件外发（SIEM / Splunk） |
-| `compliance.policy` | ★ 新增 | DLP / 分级 / 保留策略 |
-| `tenant.scope` | ★ 新增 | 组织 / 团队 / 部门维度数据分区 |
+| 扩展点                  | 状态   | 说明                             |
+| ----------------------- | ------ | -------------------------------- |
+| `brand.theme`           | ★ 新增 | Design Token + 配色 + 字体覆盖   |
+| `brand.identity`        | ★ 新增 | logo / favicon / 应用名 / 登录页 |
+| `compliance.audit-sink` | ★ 新增 | 审计事件外发（SIEM / Splunk）    |
+| `compliance.policy`     | ★ 新增 | DLP / 分级 / 保留策略            |
+| `tenant.scope`          | ★ 新增 | 组织 / 团队 / 部门维度数据分区   |
 
 ### 4.3 插件契约
 
@@ -255,25 +256,25 @@ Shell
   "vendor": "string",
   "requires": {
     "cc": ">=5.0.2",
-    "ukey": "optional | required | none"
+    "ukey": "optional | required | none",
   },
   "permissions": ["llm:query", "storage:write", "network:p2p", "crypto:sign"],
   "contributes": {
-    "spaces":      [{ "id": "string", "template": "object" }],
-    "artifacts":   [{ "type": "string", "renderer": "ref", "actions": "array" }],
-    "slash":       [{ "trigger": "string", "handler": "ref" }],
-    "mentions":    [{ "prefix": "string", "source": "ref" }],
-    "pages":       [{ "route": "string", "nav": "primary|plugin" }],
-    "tools":       ["..."],
-    "skills":      ["..."],
-    "theme":       { "tokens": "object", "logo": "path", "loginPage": "ref" },
-    "auth":        { "providerId": "string", "strategy": "ref" },
-    "storage":     { "id": "string", "adapter": "ref" },
-    "crypto":      { "id": "string", "adapter": "ref" },
-    "statusBar":   ["..."],
-    "homeWidget":  ["..."],
-    "composerSlot":["..."]
-  }
+    "spaces": [{ "id": "string", "template": "object" }],
+    "artifacts": [{ "type": "string", "renderer": "ref", "actions": "array" }],
+    "slash": [{ "trigger": "string", "handler": "ref" }],
+    "mentions": [{ "prefix": "string", "source": "ref" }],
+    "pages": [{ "route": "string", "nav": "primary|plugin" }],
+    "tools": ["..."],
+    "skills": ["..."],
+    "theme": { "tokens": "object", "logo": "path", "loginPage": "ref" },
+    "auth": { "providerId": "string", "strategy": "ref" },
+    "storage": { "id": "string", "adapter": "ref" },
+    "crypto": { "id": "string", "adapter": "ref" },
+    "statusBar": ["..."],
+    "homeWidget": ["..."],
+    "composerSlot": ["..."],
+  },
 }
 ```
 
@@ -283,23 +284,23 @@ Shell
 
 当前 97 页按职责归并为以下内置插件（每个插件独立 semver、可独立启用 / 禁用）：
 
-| 插件 ID | 覆盖的旧页 |
-|---|---|
-| `chat-core` | AIChatPage / SessionManagerPage |
-| `spaces-personal` | HomePage / ProjectsPage（合并） |
-| `notes` | KnowledgeListPage / KnowledgeDetailPage |
-| `rag-local` | KnowledgeGraphPage（数据层） |
+| 插件 ID           | 覆盖的旧页                                |
+| ----------------- | ----------------------------------------- |
+| `chat-core`       | AIChatPage / SessionManagerPage           |
+| `spaces-personal` | HomePage / ProjectsPage（合并）           |
+| `notes`           | KnowledgeListPage / KnowledgeDetailPage   |
+| `rag-local`       | KnowledgeGraphPage（数据层）              |
 | `memory-instinct` | MemoryDashboardPage / PermanentMemoryPage |
-| `cowork-runner` | CoworkDashboard / CoworkAnalytics |
-| `did-identity` | DIDManagement / IdentityLinkingPage |
-| `p2p-messaging` | P2PMessaging / FriendsPage / ChannelPage |
-| `wallet` | Wallet / TradingHub / HardwareWalletPage |
-| `ukey-crypto` | — （状态栏 + Composer Slot） |
-| `ipfs-storage` | （作为 `data.storage` 插件实现） |
-| `audit-local` | EnterpriseAuditPage |
-| `skills-manager` | SkillManager |
-| `mcp-manager` | MCPSettings / MCPServerMarketplace |
-| `plugin-manager` | PluginMarketplace 等 |
+| `cowork-runner`   | CoworkDashboard / CoworkAnalytics         |
+| `did-identity`    | DIDManagement / IdentityLinkingPage       |
+| `p2p-messaging`   | P2PMessaging / FriendsPage / ChannelPage  |
+| `wallet`          | Wallet / TradingHub / HardwareWalletPage  |
+| `ukey-crypto`     | — （状态栏 + Composer Slot）              |
+| `ipfs-storage`    | （作为 `data.storage` 插件实现）          |
+| `audit-local`     | EnterpriseAuditPage                       |
+| `skills-manager`  | SkillManager                              |
+| `mcp-manager`     | MCPSettings / MCPServerMarketplace        |
+| `plugin-manager`  | PluginMarketplace 等                      |
 
 剩余低频页在 P4 阶段评估下线或归并。
 
@@ -324,24 +325,25 @@ my-enterprise.ccprofile
 
 ### 5.2 分发路径
 
-| 场景 | 方式 |
-|---|---|
-| 个人用户 | 公有 Marketplace，纯插件，不用 Profile |
-| 小企业试用 | 从 URL 导入 Profile，签名校验通过后启用 |
-| 大企业 | 私有 Registry（管理员配置），MDM 下发 `.ccprofile`，启动强制加载 |
-| 开发联调 | `cc plugin link ./my-plugin` 或 `--profile ./dev.ccprofile` 热重载 |
+| 场景       | 方式                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| 个人用户   | 公有 Marketplace，纯插件，不用 Profile                             |
+| 小企业试用 | 从 URL 导入 Profile，签名校验通过后启用                            |
+| 大企业     | 私有 Registry（管理员配置），MDM 下发 `.ccprofile`，启动强制加载   |
+| 开发联调   | `cc plugin link ./my-plugin` 或 `--profile ./dev.ccprofile` 热重载 |
 
 ### 5.3 Profile 强制度
 
-| 模式 | 行为 |
-|---|---|
-| `overlay`（默认） | 覆盖默认值，用户可另行启用公有插件 |
-| `exclusive` | 仅允许 Profile 内的插件；禁用公有 Marketplace |
-| `locked` | 用户无权切 Space、禁用插件、修改主题 |
+| 模式              | 行为                                          |
+| ----------------- | --------------------------------------------- |
+| `overlay`（默认） | 覆盖默认值，用户可另行启用公有插件            |
+| `exclusive`       | 仅允许 Profile 内的插件；禁用公有 Marketplace |
+| `locked`          | 用户无权切 Space、禁用插件、修改主题          |
 
 ### 5.4 管理员控制台
 
 作为系统插件 `admin-console` 交付：
+
 - 租户 / 组织 / 团队管理
 - 插件白 / 黑名单
 - 策略编辑器（DLP / 分级 / 保留）
@@ -352,24 +354,24 @@ my-enterprise.ccprofile
 
 ## 6. 安全设计
 
-| 风险 | 措施 |
-|---|---|
-| 恶意插件访问 U-Key | 默认禁用 `crypto:sign`；首次调用需**硬件确认**（非对话框） |
-| 数据外泄 | `data.storage` / `net.transport` 插件需显式声明出境域名；`compliance.policy` 可拦截 |
-| 供应链攻击 | 企业 Profile 强制签名；公有 Marketplace 沿用既有 `plugin-ecosystem v2` 启发式审查，未来接入 LLM 审查 |
-| 权限滥用 | 细粒度 RBAC + 首次调用确认 + 审计日志；组织级可禁用特定权限 |
-| 插件升级破坏 | 每插件独立 semver；Profile pin 版本；灰度回滚 |
-| 沙箱逃逸 | 复用 `PluginSandbox`；UI 插件强制 iframe / Shadow DOM 隔离（新增） |
+| 风险               | 措施                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| 恶意插件访问 U-Key | 默认禁用 `crypto:sign`；首次调用需**硬件确认**（非对话框）                                           |
+| 数据外泄           | `data.storage` / `net.transport` 插件需显式声明出境域名；`compliance.policy` 可拦截                  |
+| 供应链攻击         | 企业 Profile 强制签名；公有 Marketplace 沿用既有 `plugin-ecosystem v2` 启发式审查，未来接入 LLM 审查 |
+| 权限滥用           | 细粒度 RBAC + 首次调用确认 + 审计日志；组织级可禁用特定权限                                          |
+| 插件升级破坏       | 每插件独立 semver；Profile pin 版本；灰度回滚                                                        |
+| 沙箱逃逸           | 复用 `PluginSandbox`；UI 插件强制 iframe / Shadow DOM 隔离（新增）                                   |
 
 ---
 
 ## 7. 与其他端的关系
 
-| 维度 | CLI | Web 面板 | 桌面版 |
-|---|---|---|---|
-| 插件内核 | 已有 file-drop | 继承桌面插件子集（无 UI.composer-slot 等） | 完整新内核 |
-| 共享扩展点 | `ai.*`、`data.*`、`net.*`、`auth.*`、`compliance.*` | 同左 | 同左 |
-| 专属扩展点 | REPL 命令 | 轻量 UI 槽 | 全量 UI 槽 + 硬件 |
+| 维度       | CLI                                                 | Web 面板                                   | 桌面版            |
+| ---------- | --------------------------------------------------- | ------------------------------------------ | ----------------- |
+| 插件内核   | 已有 file-drop                                      | 继承桌面插件子集（无 UI.composer-slot 等） | 完整新内核        |
+| 共享扩展点 | `ai.*`、`data.*`、`net.*`、`auth.*`、`compliance.*` | 同左                                       | 同左              |
+| 专属扩展点 | REPL 命令                                           | 轻量 UI 槽                                 | 全量 UI 槽 + 硬件 |
 
 **一次编写能力类插件，三端可用**；UI 类插件仅在支持的端生效。
 
@@ -377,31 +379,31 @@ my-enterprise.ccprofile
 
 ## 8. 迁移方案
 
-| 阶段 | 交付内容 | 风险 | 依赖 |
-|---|---|---|---|
-| **P0** | `AppShell`（三区） + 新扩展点注册表（`ui.status-bar` / `ui.home-widget` / `ui.artifact` / `ui.slash` / `ui.mention` / `ui.space` / `ui.composer-slot`） + Command Palette；旧页面挂成懒路由保留 | 低 | — |
-| **P1** | Chat / Notes / Spaces / Cowork-Runner 改写为 first-party 插件，验证契约 | 中 | P0 |
-| **P2** | Artifact 框架 + 5 种核心 Artifact（Note / Sign / TX / P2P / VC），签名内联化 | 中 | P1 |
-| **P3** | `brand.theme` / `brand.identity` + Profile 打包器 + 私有 Registry 客户端 | 中 | P2 |
-| **P4** | `auth.provider` / `data.storage` / `data.crypto` / `compliance.*` 插件化；落地 `ai.llm-provider` stub | 高 | P3，需硬件 / KMS 回归 |
-| **P5** | `admin-console` 插件 + 企业 MDM 集成 + 下线重复旧页 + Design Token 统一 | 中 | P4 |
-| **P6** | Slash 命令分发器 + 状态栏 Widget 组件注册表 + `builtin:AdminShortcut`；插件声明的 `handler` / `component` 字符串现在能被真正执行 | 低 | P5 |
-| **P7** | Claude Desktop 风格外观重塑：左栏改为 Space 分组的"会话历史列表"+ 固化 4 颗"去中心化"入口（P2P / Trade / Social / U-Key），中区留白气泡对话，右区改为 Artifact 抽屉式（从右滑入），移植 Web Panel 4 主题（dark/light/blue/green）。新路由 `/v6-preview` 与 `/v2` 并存，不替换任何现网入口 | 低 | P6 |
+| 阶段   | 交付内容                                                                                                                                                                                                                                                                                  | 风险 | 依赖                  |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------- |
+| **P0** | `AppShell`（三区） + 新扩展点注册表（`ui.status-bar` / `ui.home-widget` / `ui.artifact` / `ui.slash` / `ui.mention` / `ui.space` / `ui.composer-slot`） + Command Palette；旧页面挂成懒路由保留                                                                                           | 低   | —                     |
+| **P1** | Chat / Notes / Spaces / Cowork-Runner 改写为 first-party 插件，验证契约                                                                                                                                                                                                                   | 中   | P0                    |
+| **P2** | Artifact 框架 + 5 种核心 Artifact（Note / Sign / TX / P2P / VC），签名内联化                                                                                                                                                                                                              | 中   | P1                    |
+| **P3** | `brand.theme` / `brand.identity` + Profile 打包器 + 私有 Registry 客户端                                                                                                                                                                                                                  | 中   | P2                    |
+| **P4** | `auth.provider` / `data.storage` / `data.crypto` / `compliance.*` 插件化；落地 `ai.llm-provider` stub                                                                                                                                                                                     | 高   | P3，需硬件 / KMS 回归 |
+| **P5** | `admin-console` 插件 + 企业 MDM 集成 + 下线重复旧页 + Design Token 统一                                                                                                                                                                                                                   | 中   | P4                    |
+| **P6** | Slash 命令分发器 + 状态栏 Widget 组件注册表 + `builtin:AdminShortcut`；插件声明的 `handler` / `component` 字符串现在能被真正执行                                                                                                                                                          | 低   | P5                    |
+| **P7** | Claude Desktop 风格外观重塑：左栏改为 Space 分组的"会话历史列表"+ 固化 4 颗"去中心化"入口（P2P / Trade / Social / U-Key），中区留白气泡对话，右区改为 Artifact 抽屉式（从右滑入），移植 Web Panel 4 主题（dark/light/blue/green）。新路由 `/v6-preview` 与 `/v2` 并存，不替换任何现网入口 | 低   | P6                    |
 
 P0 完成后可得到"类 Claude Desktop"观感；P3 完成后具备企业定制交付能力；P6 完成后插件贡献的动作点击/快捷键即可真正触发行为；**P7 完成后桌面版与 Claude Desktop 的外观对齐，并在左栏底部永远固化去中心化四大差异化能力入口**。每阶段独立可发版，不阻塞 CLI / Web 面板迭代。
 
 ### 8.1 实现落点一览（P0–P6）
 
-| 阶段 | 关键文件 / 目录 | 备注 |
-|---|---|---|
-| P0 | `src/renderer/shell/` (AppShell / Sidebar / Composer / StatusBar / ArtifactPanel / ConversationStream) + `src/main/plugins/plugin-manager.js`（7 个 v6 扩展点） | 路由 `/v2` 预览 |
-| P1 | `src/main/plugins-builtin/{chat-core,notes,spaces-personal,cowork-runner}/plugin.json` | 通过 `loadFirstPartyPlugins()` 加载 |
-| P2 | `src/renderer/types/artifact.ts` + `src/renderer/stores/artifacts.ts` + `src/renderer/shell/artifacts/*.vue` | 7 种渲染器 + U-Key 签名占位 |
-| P3 | `src/main/enterprise/profile-packager.js` + `src/main/enterprise/registry-client.js` + `src/renderer/shell/theme-applier.ts` | ed25519 + sha256 + 私有 Registry |
-| P4 | `src/main/plugins-builtin/{ai-ollama-default,auth-local,data-sqlite-default,crypto-ukey-default,compliance-default}/plugin.json` | 5 个能力默认 stub |
-| P5 | `src/main/plugins-builtin/admin-console/` + `src/renderer/shell/AdminConsole.vue` + `src/main/enterprise/mdm-manager.js` + `src/renderer/shell/design-tokens.css` | Ctrl+Shift+A 打开 |
-| P6 | `src/renderer/shell/slash-dispatch.ts` + `src/renderer/shell/widget-registry.ts` + `src/renderer/shell/widgets/{AdminShortcut.vue,index.ts}` | 13 first-party 插件共用同一分发与注册机制 |
-| P7 ✅ | `src/renderer/shell-preview/{AppShellPreview,ConversationList,DecentralEntries,ArtifactDrawer}.vue` + `themes.css` + `src/renderer/stores/theme-preview.ts` + 路由 `/v6-preview` | 已落地，详见 [`docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md`](./modules/97_桌面版UI_ClaudeDesktop重构计划.md)；单测：`stores/__tests__/theme-preview.test.ts`（11 例）+ `shell/__tests__/slash-dispatch.test.ts`（8 例）|
+| 阶段  | 关键文件 / 目录                                                                                                                                                                  | 备注                                                                                                                                                                                                                                 |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P0    | `src/renderer/shell/` (AppShell / Sidebar / Composer / StatusBar / ArtifactPanel / ConversationStream) + `src/main/plugins/plugin-manager.js`（7 个 v6 扩展点）                  | 路由 `/v2` 预览                                                                                                                                                                                                                      |
+| P1    | `src/main/plugins-builtin/{chat-core,notes,spaces-personal,cowork-runner}/plugin.json`                                                                                           | 通过 `loadFirstPartyPlugins()` 加载                                                                                                                                                                                                  |
+| P2    | `src/renderer/types/artifact.ts` + `src/renderer/stores/artifacts.ts` + `src/renderer/shell/artifacts/*.vue`                                                                     | 7 种渲染器 + U-Key 签名占位                                                                                                                                                                                                          |
+| P3    | `src/main/enterprise/profile-packager.js` + `src/main/enterprise/registry-client.js` + `src/renderer/shell/theme-applier.ts`                                                     | ed25519 + sha256 + 私有 Registry                                                                                                                                                                                                     |
+| P4    | `src/main/plugins-builtin/{ai-ollama-default,auth-local,data-sqlite-default,crypto-ukey-default,compliance-default}/plugin.json`                                                 | 5 个能力默认 stub                                                                                                                                                                                                                    |
+| P5    | `src/main/plugins-builtin/admin-console/` + `src/renderer/shell/AdminConsole.vue` + `src/main/enterprise/mdm-manager.js` + `src/renderer/shell/design-tokens.css`                | Ctrl+Shift+A 打开                                                                                                                                                                                                                    |
+| P6    | `src/renderer/shell/slash-dispatch.ts` + `src/renderer/shell/widget-registry.ts` + `src/renderer/shell/widgets/{AdminShortcut.vue,index.ts}`                                     | 13 first-party 插件共用同一分发与注册机制                                                                                                                                                                                            |
+| P7 ✅ | `src/renderer/shell-preview/{AppShellPreview,ConversationList,DecentralEntries,ArtifactDrawer}.vue` + `themes.css` + `src/renderer/stores/theme-preview.ts` + 路由 `/v6-preview` | 已落地，详见 [`docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md`](./modules/97_桌面版UI_ClaudeDesktop重构计划.md)；单测：`stores/__tests__/theme-preview.test.ts`（11 例）+ `shell/__tests__/slash-dispatch.test.ts`（8 例） |
 
 ### 8.2 验证
 
@@ -414,25 +416,25 @@ P0 完成后可得到"类 Claude Desktop"观感；P3 完成后具备企业定制
 
 ## 9. 风险与对策
 
-| 风险 | 影响 | 对策 |
-|---|---|---|
-| 97 页同时重构成本高 | 阻塞日常迭代 | P0 不动旧页，以挂载方式渐进替换 |
-| 插件契约迭代不兼容 | 社区 / 企业插件失效 | 契约 semver 化；`plugin-manager v2` 与 v1 并存一个大版本 |
-| 企业 Profile 签名信任链未建立 | 供应链风险 | 与现有 `plugin-ecosystem v2` 的 ecogov-v2 治理集成 |
-| U-Key 硬件回归测试成本 | P4 进度风险 | 尽早与 `ukey-crypto` 插件联调，准备模拟器 |
-| 多租户数据库改造 | DB 迁移复杂 | P4 之前租户字段默认 `default`；不强制多租户 |
+| 风险                          | 影响                | 对策                                                     |
+| ----------------------------- | ------------------- | -------------------------------------------------------- |
+| 97 页同时重构成本高           | 阻塞日常迭代        | P0 不动旧页，以挂载方式渐进替换                          |
+| 插件契约迭代不兼容            | 社区 / 企业插件失效 | 契约 semver 化；`plugin-manager v2` 与 v1 并存一个大版本 |
+| 企业 Profile 签名信任链未建立 | 供应链风险          | 与现有 `plugin-ecosystem v2` 的 ecogov-v2 治理集成       |
+| U-Key 硬件回归测试成本        | P4 进度风险         | 尽早与 `ukey-crypto` 插件联调，准备模拟器                |
+| 多租户数据库改造              | DB 迁移复杂         | P4 之前租户字段默认 `default`；不强制多租户              |
 
 ---
 
 ## 10. 待决事项
 
-| # | 待决问题 | 需输入方 |
-|---|---|---|
-| 1 | 品牌覆盖深度：仅换 logo / 配色，还是允许换整套布局？ | 产品 |
-| 2 | Profile 强制度默认值：`overlay` / `exclusive` / `locked`？ | 产品 + 企业客户 |
-| 3 | 多租户：单机多租户 vs 每设备单一租户？ | 架构 |
-| 4 | 公有 Marketplace 默认开启策略？企业版是否强制私有 Registry？ | 安全 |
-| 5 | `plugin-manager` 升级：增量扩展（兼容旧）vs 立 v2 契约（干净但需迁移）？ | 工程 |
+| #   | 待决问题                                                                 | 需输入方        |
+| --- | ------------------------------------------------------------------------ | --------------- |
+| 1   | 品牌覆盖深度：仅换 logo / 配色，还是允许换整套布局？                     | 产品            |
+| 2   | Profile 强制度默认值：`overlay` / `exclusive` / `locked`？               | 产品 + 企业客户 |
+| 3   | 多租户：单机多租户 vs 每设备单一租户？                                   | 架构            |
+| 4   | 公有 Marketplace 默认开启策略？企业版是否强制私有 Registry？             | 安全            |
+| 5   | `plugin-manager` 升级：增量扩展（兼容旧）vs 立 v2 契约（干净但需迁移）？ | 工程            |
 
 ---
 
@@ -470,14 +472,14 @@ desktop-app-vue/
 
 从主布局抽出 6 个独立 SFC，归入 `src/renderer/components/layout/`：
 
-| 子组件 | 行数 | 职责 | 通信方式 |
-|---|---:|---|---|
-| `FavoriteManagerModal.vue` | 151 | 「管理快捷访问」弹窗（Favorites / Recents Tab） | `defineModel('open')` + `@quick-access-click(item)` + 父传 `iconResolver` prop |
-| `HeaderBreadcrumbs.vue` | 170 | 7 路由前缀面包屑 + `handleBreadcrumbClick` | 内部 `useRoute()/useRouter()`，父传 `iconResolver` |
-| `SyncStatusButton.vue` | 97 | 全局同步状态按钮 | 完全自包含（自管 3 refs + 3 监听器） |
-| `VoiceCommandHandler.vue` | 584 | `VoiceFeedbackWidget` + 75 条语音命令 + 7 handler | 内部 `useRouter/useAppStore/useSocialStore`；`@show-command-palette` 回传父 |
-| `SidebarContextMenu.vue` | 97 | 侧栏右键菜单（`a-dropdown` + 14 调用点） | `defineExpose({show(event,item)})` 命令式；父留 `showContextMenu(event,key)` 薄包装做 `menuConfig` lookup |
-| `AppHeader.vue` | 210 | `<a-layout-header>` 整块（sidebar 切换 / 面包屑 / Ctrl+K / Sync / AI / 语言 / 通知 / 用户菜单） | 自行 `useRoute/useAppStore`；`@show-command-palette` 上传；`iconResolver` 透传 HeaderBreadcrumbs |
+| 子组件                     | 行数 | 职责                                                                                            | 通信方式                                                                                                  |
+| -------------------------- | ---: | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `FavoriteManagerModal.vue` |  151 | 「管理快捷访问」弹窗（Favorites / Recents Tab）                                                 | `defineModel('open')` + `@quick-access-click(item)` + 父传 `iconResolver` prop                            |
+| `HeaderBreadcrumbs.vue`    |  170 | 7 路由前缀面包屑 + `handleBreadcrumbClick`                                                      | 内部 `useRoute()/useRouter()`，父传 `iconResolver`                                                        |
+| `SyncStatusButton.vue`     |   97 | 全局同步状态按钮                                                                                | 完全自包含（自管 3 refs + 3 监听器）                                                                      |
+| `VoiceCommandHandler.vue`  |  584 | `VoiceFeedbackWidget` + 75 条语音命令 + 7 handler                                               | 内部 `useRouter/useAppStore/useSocialStore`；`@show-command-palette` 回传父                               |
+| `SidebarContextMenu.vue`   |   97 | 侧栏右键菜单（`a-dropdown` + 14 调用点）                                                        | `defineExpose({show(event,item)})` 命令式；父留 `showContextMenu(event,key)` 薄包装做 `menuConfig` lookup |
+| `AppHeader.vue`            |  210 | `<a-layout-header>` 整块（sidebar 切换 / 面包屑 / Ctrl+K / Sync / AI / 语言 / 通知 / 用户菜单） | 自行 `useRoute/useAppStore`；`@show-command-palette` 上传；`iconResolver` 透传 HeaderBreadcrumbs          |
 
 **模式约束**：
 
@@ -511,11 +513,11 @@ desktop-app-vue/
 
 核心动机：缩短 splash 显示时间 + 避免 IPC 二次注册与 `ipc-guard.resetAll()` 竞态（症状：`llm:chat` 二次注册后"无法发送消息"）。
 
-| 阶段 | Bootstrap 函数 | IPC 注册 | Splash 进度 |
-|---|---|---|---|
-| **Critical**（0-5） | `bootstrapCritical()`：Hooks / 核心 / 文件 / LLM / 会话 / RAG+Git | `registerCriticalIPC()`：volcengine / secureStorage / session / taskTracker / manus | 5% → 55% |
-| **Deferred**（6+） | `bootstrapDeferred()`：技能 / 工具 / 高级 | `registerDeferredIPC()`：skillTool / multiAgent / workflow / recording | 55% → 90% |
-| 主窗口 | — | `createWindow()` 里的 `setupIPC()` 只调一次 | 95% |
+| 阶段                | Bootstrap 函数                                                    | IPC 注册                                                                            | Splash 进度 |
+| ------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------- |
+| **Critical**（0-5） | `bootstrapCritical()`：Hooks / 核心 / 文件 / LLM / 会话 / RAG+Git | `registerCriticalIPC()`：volcengine / secureStorage / session / taskTracker / manus | 5% → 55%    |
+| **Deferred**（6+）  | `bootstrapDeferred()`：技能 / 工具 / 高级                         | `registerDeferredIPC()`：skillTool / multiAgent / workflow / recording              | 55% → 90%   |
+| 主窗口              | —                                                                 | `createWindow()` 里的 `setupIPC()` 只调一次                                         | 95%         |
 
 关键实现点：
 
@@ -528,12 +530,12 @@ desktop-app-vue/
 
 5 处 `import` 改 `defineAsyncComponent(() => import(...))`：
 
-| 页面 / 组件 | 懒加载目标 | 估算体积 |
-|---|---|---:|
-| `FileEditor.vue` | `MonacoEditor.vue` | ~5MB |
-| `KnowledgeDetailPage.vue` | `MarkdownEditor.vue`（Milkdown） | ~1.5MB |
-| `DesignEditorPage.vue` | `DesignCanvas.vue`（Fabric.js） | ~1MB |
-| `ProjectDetailPage.vue` | `CodeEditor.vue` / `MarkdownEditor.vue` / `WebDevEditor.vue`（均基于 Monaco） | 共 ~5MB |
+| 页面 / 组件               | 懒加载目标                                                                    | 估算体积 |
+| ------------------------- | ----------------------------------------------------------------------------- | -------: |
+| `FileEditor.vue`          | `MonacoEditor.vue`                                                            |     ~5MB |
+| `KnowledgeDetailPage.vue` | `MarkdownEditor.vue`（Milkdown）                                              |   ~1.5MB |
+| `DesignEditorPage.vue`    | `DesignCanvas.vue`（Fabric.js）                                               |     ~1MB |
+| `ProjectDetailPage.vue`   | `CodeEditor.vue` / `MarkdownEditor.vue` / `WebDevEditor.vue`（均基于 Monaco） |  共 ~5MB |
 
 实测 `vite build` 产出：`monaco-D050Xe0j.js` 独立 chunk **3.7MB / gzip 938KB**，首屏无需强拉。
 
@@ -547,18 +549,19 @@ desktop-app-vue/
 
 ### C.7 回归覆盖
 
-| 维度 | 结果 |
-|---|---|
-| Store 单元（23 文件） | **600/600** |
-| Shell + router + bootstrap（5 文件） | **76/76** |
-| Skill-handlers + ipc-guard + bootstrap（3 文件） | **285/285** |
-| Vue 组件单元 | **124/125**（1 skip） |
-| AI + core + multi-agent 单元 | **411/413**（2 skip） |
-| Database + enterprise + did + knowledge 单元 | **1456/1464**（8 skip · 3 stderr 错误为预存问题） |
-| shell-preview 组件/服务/widgets | **51/51** |
-| 集成测试（9 文件） | **98/104**（6 skip） |
-| Smoke | `vite build` + `build:main` 成功；`eslint` 0 error / 237 style warn |
-| E2E | Playwright 枚举 1017 / 163 文件；环境健康 80% |
+| 维度                                             | 结果                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| Store 单元（23 文件）                            | **600/600**                                                         |
+| Shell + router + bootstrap（5 文件）             | **76/76**                                                           |
+| Skill-handlers + ipc-guard + bootstrap（3 文件） | **285/285**                                                         |
+| Vue 组件单元                                     | **124/125**（1 skip）                                               |
+| AI + core + multi-agent 单元                     | **411/413**（2 skip）                                               |
+| Database + enterprise + did + knowledge 单元     | **1456/1464**（8 skip · 3 stderr 错误为预存问题）                   |
+| shell-preview 组件/服务/widgets                  | **51/51**                                                           |
+| 集成测试（9 文件）                               | **98/104**（6 skip）                                                |
+| Smoke                                            | `vite build` + `build:main` 成功；`eslint` 0 error / 237 style warn |
+| E2E                                              | Playwright 枚举 1017 / 163 文件；环境健康 80%                       |
+
 - 既有插件实现：`desktop-app-vue/src/main/plugins/`
 
 ## 附录：规范章节补全（v5.0.3.108）
@@ -566,52 +569,69 @@ desktop-app-vue/
 > 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
 
 ### 1. 概述
+
 见正文头部。桌面版 UI 重构设计：V6 对话优先 Shell 重构。
 
 ### 2. 核心特性
+
 对话优先 / 三区壳 / Artifact / 插件平台。
 
 ### 3. 系统架构
+
 见正文架构 / 设计章节。
 
 ### 4. 系统定位
+
 ChainlessChain 的「桌面版 UI 重构」。
 
 ### 5. 核心功能
+
 见正文功能 / 设计章节。
 
 ### 6. 技术架构
+
 见正文实现 / 技术章节。
 
 ### 7. 系统特点
+
 见正文（状态 / 版本 / 特性）。
 
 ### 8. 应用场景
+
 见正文应用场景 / 背景。
 
 ### 9. 竞品对比
+
 见正文对比 / 借鉴（如有）。
 
 ### 10. 配置参考
+
 见正文配置 / 参数章节。
 
 ### 11. 性能指标
+
 见正文性能 / 指标章节。
 
 ### 12. 测试覆盖
+
 见正文测试 / E2E 章节。
 
 ### 13. 安全考虑
+
 见正文安全 / 权限章节。
 
 ### 14. 故障排除
+
 见正文故障 / trap / 已知限制章节。
 
 ### 15. 关键文件
+
 见正文实现位置 / 关键文件章节。
 
 ### 16. 使用示例
+
 见正文使用 / 命令 / API 示例。
 
 ### 17. 相关文档
+
 [系统设计主文档](./系统设计_主文档.md)、相关设计文档。

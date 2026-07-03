@@ -10,9 +10,10 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: see `package.json.productVersion` (Evolution Edition — 144 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 160 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
+**Current Version**: see `package.json.productVersion` (Evolution Edition — 144 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 162 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
 **Version hierarchy** (values live in their respective files, do not duplicate here):
+
 - Product line: `package.json.productVersion` (marketing / release notes / docs — single source of truth, format `vX.Y.Z.N`)
 - CLI npm: `packages/cli/package.json` `version` field (alpha prerelease track, independent)
 - Desktop app: `desktop-app-vue/package.json` `version` field — **must follow productVersion** as `X.Y.Z-alpha.N` (semver-compatible derivation; required so electron-updater can compare versions; before v5.0.3.37 this was static `1.1.2-alpha` and auto-updater never offered any update across 6 productVersion bumps)
@@ -25,11 +26,13 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 ### Unified Configuration Directory (`.chainlesschain/`)
 
 **Location:**
+
 - Windows: `%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/`
 - macOS: `~/Library/Application Support/chainlesschain-desktop-vue/.chainlesschain/`
 - Linux: `~/.config/chainlesschain-desktop-vue/.chainlesschain/`
 
 **Key Files:**
+
 - **`.chainlesschain/config.json`**: Main configuration file (git-ignored)
 - **`.chainlesschain/rules.md`**: Project coding rules - **READ THIS FIRST!** (priority > CLAUDE.md)
 - **`desktop-app-vue/src/main/config/unified-config-manager.js`**: Configuration manager
@@ -64,6 +67,7 @@ Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `
 **See [`docs/CLI_COMMANDS_REFERENCE.md`](docs/CLI_COMMANDS_REFERENCE.md)** for the full 160-command reference (thin index → 6 sub-files in `docs/cli/`). Read on demand, not auto-loaded.
 
 Key CLI entry points:
+
 - `cc setup/start/stop/status/doctor` — system management
 - `cc chat/ask/agent/skill` — AI headless commands
 - `cc note/search/memory/session` — knowledge & sessions
@@ -75,6 +79,7 @@ Key CLI entry points:
 **See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (144 desktop skills, 25 Android REMOTE skills).
 
 Key highlights:
+
 - **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (141 built-in)
 - **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management
 - **Integration**: MCP, Browser Automation, Computer Use, IPFS
@@ -85,14 +90,14 @@ Key highlights:
 
 ### Key Modules
 
-| Layer | Path | Description |
-|-------|------|-------------|
-| Desktop Main | `desktop-app-vue/src/main/` | Electron main process (AI, IPC, Security, Enterprise) |
-| Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (113 Pinia stores) |
-| CLI | `packages/cli/` | npm CLI (~2MB, 160 commands, Commander) |
-| Java Backend | `backend/project-service/` | Spring Boot 3.1.11 + Java 17 + PostgreSQL |
-| Python AI | `backend/ai-service/` | FastAPI + Ollama + Qdrant |
-| Android | `android-app/` | 25 REMOTE skills (SeedRegistry, post-v1.0 GA reposition) |
+| Layer            | Path                            | Description                                              |
+| ---------------- | ------------------------------- | -------------------------------------------------------- |
+| Desktop Main     | `desktop-app-vue/src/main/`     | Electron main process (AI, IPC, Security, Enterprise)    |
+| Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (113 Pinia stores)                     |
+| CLI              | `packages/cli/`                 | npm CLI (~2MB, 162 commands, Commander)                  |
+| Java Backend     | `backend/project-service/`      | Spring Boot 3.1.11 + Java 17 + PostgreSQL                |
+| Python AI        | `backend/ai-service/`           | FastAPI + Ollama + Qdrant                                |
+| Android          | `android-app/`                  | 25 REMOTE skills (SeedRegistry, post-v1.0 GA reposition) |
 
 ### Technology Stack
 
@@ -104,6 +109,7 @@ Key highlights:
 ## Environment Variables
 
 Key variables (see `desktop-app-vue/.env.example` or `config/.env.example`):
+
 ```bash
 OLLAMA_HOST=http://localhost:11434
 QDRANT_HOST=http://localhost:6333
@@ -130,10 +136,10 @@ REDIS_HOST=localhost:6379
 
 `docs-site/` 与 `docs-site-design/` 的 `docs/design/**/*.md` 都是**自动同步生成**的副本，**不是 git tracked 的源文件**。直接编辑这些副本会被下一次同步脚本覆盖（且 git status 看不到，定位极隐蔽）。
 
-| 副本（不要改） | 同步脚本 | **真正的源文件（改这里）** |
-|---|---|---|
-| `docs-site/docs/design/**/*.md` | `docs-site/scripts/sync-design-docs.js` | `docs/design/**/*.md`（项目根，git tracked，常带中文文件名）|
-| `docs-site-design/docs/**/*.md`（不含 `index.md`） | `docs-site-design/scripts/sync-docs.js` | 同上 — `docs/design/**/*.md`（项目根）|
+| 副本（不要改）                                     | 同步脚本                                | **真正的源文件（改这里）**                                   |
+| -------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------ |
+| `docs-site/docs/design/**/*.md`                    | `docs-site/scripts/sync-design-docs.js` | `docs/design/**/*.md`（项目根，git tracked，常带中文文件名） |
+| `docs-site-design/docs/**/*.md`（不含 `index.md`） | `docs-site-design/scripts/sync-docs.js` | 同上 — `docs/design/**/*.md`（项目根）                       |
 
 要改设计文档：(1) `git ls-files --error-unmatch <path>` 确认是否 tracked；(2) 若不是，找对应的 `sync-*.js` 看 `sourceDir` 找源；(3) 改源 + 跑 `node <sync-script>` 让两份副本刷新。`docs-site/docs/guide/**` 是 git tracked 的源文件，可以直接改。
 
@@ -147,11 +153,11 @@ REDIS_HOST=localhost:6379
 
 Detailed rules are in `.claude/rules/` and only load when working in matching paths:
 
-| Rule File | Scope |
-|-----------|-------|
-| `desktop-dev.md` | `desktop-app-vue/**` |
-| `cli-dev.md` | `packages/cli/**`, `packages/core-*/**` |
-| `testing.md` | `**/*.test.*`, `**/tests/**` |
-| `encoding.md` | `**/*.js`, `**/*.ts`, `**/*.vue` |
-| `eslint-style.md` | `**/*.ts`, `**/*.vue`, `**/*.js` |
-| `backend.md` | `backend/**` |
+| Rule File         | Scope                                   |
+| ----------------- | --------------------------------------- |
+| `desktop-dev.md`  | `desktop-app-vue/**`                    |
+| `cli-dev.md`      | `packages/cli/**`, `packages/core-*/**` |
+| `testing.md`      | `**/*.test.*`, `**/tests/**`            |
+| `encoding.md`     | `**/*.js`, `**/*.ts`, `**/*.vue`        |
+| `eslint-style.md` | `**/*.ts`, `**/*.vue`, `**/*.js`        |
+| `backend.md`      | `backend/**`                            |

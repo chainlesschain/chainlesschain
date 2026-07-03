@@ -291,7 +291,7 @@
   - Travel & maps: Amap/Ctrip cookie-scrape WebView (`0fe572f2`) / Baidu Maps/Tencent Maps (`3d1cf9481`)
   - AI assistants: 9-route WebView cookie scrape + cc sync wire (`1e7725552`); 8 cards enable (`20e0318b4`)
   - Email: QQ/Gmail/163/Outlook 4 providers IMAP real-connect via Jakarta Mail (`7777f5bec`)
-- **WeChat in-app collector Phase 12.10 (all 4 sub-phases landed)**: 12.10.1+12.10.2 scaffold (`8c52d5963`) → 12.10.3 SQLCipher real decrypt (`8081f8a0d`) sjqz MD5(IMEI+UIN)[:7] 7.x + frida 64-hex 8.x dual paths + 3 PRAGMA profile fallback + WAL+SHM cohort → 12.10.4 frida-inject (`37a4e465d`) spawn /data/local/tmp/cc-* + 5-symbol hook → 12.10.6 prereq vendor frida 16.5.9 arm64+armeabi-v7a APK ship (`cdfe1048e`). Phase 12.10.5 cc syncAdapter wechat --input wire was already in. Remaining 12.10.6 real-device E2E requires a root device + Magisk.
+- **WeChat in-app collector Phase 12.10 (all 4 sub-phases landed)**: 12.10.1+12.10.2 scaffold (`8c52d5963`) → 12.10.3 SQLCipher real decrypt (`8081f8a0d`) sjqz MD5(IMEI+UIN)[:7] 7.x + frida 64-hex 8.x dual paths + 3 PRAGMA profile fallback + WAL+SHM cohort → 12.10.4 frida-inject (`37a4e465d`) spawn /data/local/tmp/cc-\* + 5-symbol hook → 12.10.6 prereq vendor frida 16.5.9 arm64+armeabi-v7a APK ship (`cdfe1048e`). Phase 12.10.5 cc syncAdapter wechat --input wire was already in. Remaining 12.10.6 real-device E2E requires a root device + Magisk.
 - **QQ Phase 13.5 v0.2 (`a07731b46`)**: XOR-IMEI algorithm byte-identical to sjqz `qq.py`. **The QQ path is fundamentally different from WeChat** — QQ Android uses plain SQLite + per-row IMEI XOR-cycle encryption on msgData, so no sqlcipher-android, no frida, just root + IMEI input. 4 Kotlin files (QQXorDecryptor / QQCredentialsStore / QQDbExtractor / QQLocalCollector) + 27 Kotlin unit tests + JS 13 snapshot + 6 longtail all green.
 - **A3 Android on-device LLM full-chain skeleton (724 LOC)**: Ktor LLM server :11434 + ModelManager + cc spawn embedded OllamaClient (`f41f06441`) + KotlinLlamaCppEngine skeleton (`8f023052a`). Architecture HTTP-Hybrid (Kotlin Ktor ↔ in-APK cc OllamaClient). Remaining Maven deps + JNI + real device ~5-7d (needs Mac/Linux + Android NDK).
 - **Three locks UI + real wiring**: reject cloud / destroy / export — `cc hub export` wired through; D11 SAF picker upgraded to user-chosen location (`7e4fa844f`).
@@ -383,7 +383,7 @@ See [`docs/design/Adapter_WeChat_SQLCipher.md`](docs/design/Adapter_WeChat_SQLCi
 - **Phase 5.6 LLM tool-use protocol wiring**: OpenAI (`tool_calls` + `type:function` envelope), Doubao Volcengine Ark (wire-compat, direct delegate), and Anthropic/Claude (`tool_use` content blocks + `tool_result` carried as `role=user` per Anthropic spec) all wired through natively. Models without tool-use (Qwen / Ernie / Spark / etc.) take a "no-hallucination fallback" path that explicitly tells the user to switch model rather than fabricating notes.
 - **Phase 5.7 cc Chat screen**: 5-state progress strip (thinking / preparing tool / executing cc / processing result / finalizing) + tool card (command + exitCode + duration + collapsible stdout + cancel button). Eight read-only subcommands whitelisted (`note list/show/view` / `search` / `memory list/show` / `skill list` / `status` / `session list` / `mcp list` / `did show`); write/delete/install operations the LLM might invent get blocked at the allowlist (exitCode=126). `ProcessBuilder` bypasses the shell — zero injection surface.
 - **Phase 5.8 device E2E SOP**: 9-scenario E1-E9 reproducer + automated preflight script `android-app/scripts/e2e/phase_5_8_preflight.ps1` (device / bundle / APK / residual-process checks). Awaiting Xiaomi 24115RA8EC real-device pass.
-- **Audit + bug fixes** — static audit of the 8 new Cc* files found 3 Blocker/High issues: (1) `CcExecService.executeArgv` JVM pipe-buffer deadlock fixed (dual async drain — `cc search` large output no longer hangs to timeout); (2) `CcChatOrchestrator.runFallback` no longer silently swallows `StreamChunk.error` (HTTP 401 / network errors now surface as Failed events); (3) `CcAllowlist.check` now explicitly rejects "has `allowedSubcommands` but user didn't supply one" cases instead of letting cc CLI surface a usage error.
+- **Audit + bug fixes** — static audit of the 8 new Cc\* files found 3 Blocker/High issues: (1) `CcExecService.executeArgv` JVM pipe-buffer deadlock fixed (dual async drain — `cc search` large output no longer hangs to timeout); (2) `CcChatOrchestrator.runFallback` no longer silently swallows `StreamChunk.error` (HTTP 401 / network errors now surface as Failed events); (3) `CcAllowlist.check` now explicitly rejects "has `allowedSubcommands` but user didn't supply one" cases instead of letting cc CLI surface a usage error.
 - **Test coverage**: 127 new tests, all green — `feature-ai` 89 unit (CcAllowlistTest 38 + CcExecServiceTest 19 + CcToolCallDispatcherTest 17 + CcChatOrchestratorTest 14) + `:app` 28 (CcChatViewModelTest 19 + CcChatIntegrationTest 9 end-to-end through the real graph: VM → real Orchestrator → real Dispatcher → real Allowlist → mocked CcExecService — covers E1 happy / E5 deny / E6 fallback / E7 cancel / E9 dedup).
 - **Design docs**: [Phase 5.8 E2E SOP](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md) + [Phase 5.8 printable Checklist](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist.md). docs-site / docs-site-design refreshed via `sync-*.js`.
 
@@ -425,7 +425,7 @@ See [`docs/design/Adapter_WeChat_SQLCipher.md`](docs/design/Adapter_WeChat_SQLCi
 
 > Three capabilities landed in one batch on top of the desktop pairing: browse any PC directory (no sandbox); upload local Android file to PC `~/Downloads/`; download PC file to **public Download/** on the phone via `MediaStore.Downloads` (visible to native Files / Gallery / PDF readers). Snackbar "Open" button fires `Intent.ACTION_VIEW(content://...)` → system viewer, no jumping out of the app.
 
-- **Fixed 6 interlocking bugs** ([design doc §4–§5](docs/design/Android_Remote_File_Skill.md)): (1) `P2PClient.kt:538-542` chainlesschain:* skip guard was too wide and swallowed P2PClient's own responses → narrowed to only skip incoming `request`. (2) Plan C never calls `P2PClient.connect()`, so `sendCommand` fails with `"Not connected"` → `RemoteCommandClient` delegates to `SignalingRpcClient` instead. (3) Desktop `handleFileCommand` was an old stub with `dialog.showOpenDialog` popping a folder picker and missing `listDirectory` case → new `android-file-handler.js` covers 11 actions. (4) The web-shell `FileTransferHandler` is sandboxed inside userData and uses incompatible field names → not reused. (5) checksum `"sha256-prefix:"` mismatched Repository's `"md5:"` parser → return `null` to skip validation. (6) `getExternalFilesDir` lands files where users can't find them → `MediaStore.Downloads` writes to public Download/ instead.
+- **Fixed 6 interlocking bugs** ([design doc §4–§5](docs/design/Android_Remote_File_Skill.md)): (1) `P2PClient.kt:538-542` chainlesschain:\* skip guard was too wide and swallowed P2PClient's own responses → narrowed to only skip incoming `request`. (2) Plan C never calls `P2PClient.connect()`, so `sendCommand` fails with `"Not connected"` → `RemoteCommandClient` delegates to `SignalingRpcClient` instead. (3) Desktop `handleFileCommand` was an old stub with `dialog.showOpenDialog` popping a folder picker and missing `listDirectory` case → new `android-file-handler.js` covers 11 actions. (4) The web-shell `FileTransferHandler` is sandboxed inside userData and uses incompatible field names → not reused. (5) checksum `"sha256-prefix:"` mismatched Repository's `"md5:"` parser → return `null` to skip validation. (6) `getExternalFilesDir` lands files where users can't find them → `MediaStore.Downloads` writes to public Download/ instead.
 - **5 UI entries**: 📁 browse remote dirs + ☁️↑ upload + ☁️↓ download panel + 📱 in-app local Download folder list + 🧹 cleanup history.
 - **Tests**: PC unit tests `android-file-handler.test.js` 30 cases all green; Android `RemoteCommandClientTest.kt` 4 cases lock down the SignalingRpc delegate path + assert `p2pClient.sendCommand` is never called; real-device E2E 8 scenarios verified (Xiaomi 24115RA8EC × Windows desktop).
 - **Design doc**: [`docs/design/Android_Remote_File_Skill.md`](docs/design/Android_Remote_File_Skill.md) — protocol (11 actions) + Android↔PC field mapping + 4 interlocking bugs + 2 UX traps + real-device E2E 8 scenarios.
@@ -436,7 +436,7 @@ See [`docs/design/Adapter_WeChat_SQLCipher.md`](docs/design/Adapter_WeChat_SQLCi
 > Following Android v1.0 GA (`v5.0.3.53`), issue #21's 5 P1 main items landed in a single day. ~270 unit tests green; final sweep fixed 2 missing `@Config(sdk=[33])` Robolectric annotations. P2 candidates (B.3 / B.4 / C.2 / C.3) wait on GA Play Store + real-user feedback.
 
 - **A.1 Desktop Linux native pairing** (57 tests) — `cc pair preflight` LAN diagnostic (5 checks: platform / interfaces / multicast / port 5353 holders / firewall hint, exit 0/1/2 CI-friendly) + `cc pair token generate/list/show/revoke` subcommand group (one-active-DID invariant + atomic file write, for SSH dev box pre-issuance) + [`dist-tools/systemd/chainlesschain.service`](dist-tools/systemd/chainlesschain.service) full-hardening template + [`docs/linux/PAIRING.md`](docs/linux/PAIRING.md) 9-section user guide (3 scenarios / 5 blocker fixes / debug bundle). **Audit reframe**: design doc claim "Linux needs mDNS systemd unit" is incorrect — `@libp2p/mdns` + `bonjour-service` are pure JS, no avahi-daemon dependency.
-- **A.2 Tri-surface UI consistency design doc** v0.1 baseline — 4 *must-match* rules (semantic colors / high-risk red hex / DID short-display format 6+4 chars / m-of-n progress display) + 4 *must-differ* rules (watch large buttons ≥48dp / desktop sidebar / car voice-only / phone thumb zone).
+- **A.2 Tri-surface UI consistency design doc** v0.1 baseline — 4 _must-match_ rules (semantic colors / high-risk red hex / DID short-display format 6+4 chars / m-of-n progress display) + 4 _must-differ_ rules (watch large buttons ≥48dp / desktop sidebar / car voice-only / phone thumb zone).
 - **B.1 web-shell private-key signing UI** (113 tests) — `MultisigSigner` ukeyManager adapter (4 driver-return-shape normalisation) + `multisig.sign` in-process WS topic (bypasses cc subprocess 6-10s cold start) + `signWithExternal` async API + `SignProposalModal.vue` (Pinia store + member dropdown + dev-only hex source) + `unified-key-manager` DID-based signer routing.
 - **B.5 Crosschain bridge outbound × m-of-n multisig** (Layer 1+2, 8 PRs) — Layer 1: CLI `bridge --require-multisig` + `bridge-consume` + web-shell `crosschain.bridge.consume` in-process topic + Multisig.vue execute button. Layer 2: `cc_bridges` m-of-n provenance columns + crosschain-mtc `attachMultisigProvenance` / `stripMultisigSigsForCanonical` helpers + `buildMultiHopBridgeEnvelope` 3rd arg + `verifyMultiHopBridgeEnvelope` auto-runs provenance check + `bridge-consume --mtc` carries multisig provenance into MTC staging. Layer 3 external-blocked Q-COMP-3 (real testnet anchoring + contract audit + KYC) is out of scope.
 - **C.1 watch face → VoiceMode shortcut** (33 tests) — phone-side `VoiceLaunchActions` + `VoiceTriggerSource` 4-enum + NavGraph route + `CcPhoneVoiceListener` Data Layer service (`/cc/voice/start` MessageClient path) + wear `VoiceSender` + `VoiceShortcutTileService` standalone tile + `VoiceComplicationService` + `VoiceForwardActivity` (intent + 50ms vibration + 3s timeout). **Security constraint**: `trigger_source` is informational only on the wear side; the phone side locks it to `WEAR_FORWARD` — prevents wear-side forgery from escalating to `AUTO_BUTTON`/`PHONE_SHORTCUT`.
@@ -452,7 +452,7 @@ Details: [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21)
 Perf targets → end-to-end RTT p50 200-500ms → **30-80ms LAN / 50-200ms TURN**; p99 1.5-30s with timeouts → **200-800ms**; sustained-connection stability 20s-2min outages → **hours-long** (depends on ICE keepalive).
 
 - **Phase 1 — Trap 1 fix + DC routing helper** (commits `d22b7ac8a` + `bb759bc78`) — `SignalClient.forwardedMessages` migrated to **multi-subscribe SharedFlow** (replacing the single-listener `setOnForwardedMessageReceived`). Original bug: the ice:config interceptor installed by `WebRTCClient.initialize` was silently overwritten when the user entered `TerminalListScreen` and `TerminalRpcClient.start()` set its own listener → ice:config pushes dropped → iceServers expired in 24h → cross-NAT became unreachable. Added `WebRTCClient.dataChannelReady: StateFlow<Boolean>` derived flag (READY truly means DC `OPEN`, avoiding ICE-connected-but-DC-not-open false positives).
-- **Phase 2 — DC fast path + dual-listener pending pool** (commit `a01eeac47`) — `SignalingRpcClient.invoke` now embeds a transport selector: `connectionState==READY && preferDataChannel` → `webRTCClient.sendMessage` (DC), throws or not-ready → fallback signaling. Two listeners simultaneously consume `signalClient.forwardedMessages` + `webRTCClient.messages`, same `requestId` → same `CompletableDeferred` (second complete is a no-op; dual delivery is safe without explicit dedup). All RPC clients (TerminalRpc + system.*/ai.*) share one chokepoint.
+- **Phase 2 — DC fast path + dual-listener pending pool** (commit `a01eeac47`) — `SignalingRpcClient.invoke` now embeds a transport selector: `connectionState==READY && preferDataChannel` → `webRTCClient.sendMessage` (DC), throws or not-ready → fallback signaling. Two listeners simultaneously consume `signalClient.forwardedMessages` + `webRTCClient.messages`, same `requestId` → same `CompletableDeferred` (second complete is a no-op; dual delivery is safe without explicit dedup). All RPC clients (TerminalRpc + system._/ai._) share one chokepoint.
 - **Phase 3 — Android handshake trigger + UI path indicator** (commit `91e77e489`) — `TerminalListViewModel.init` detects DC not-ready and async-triggers `RemoteConnectionManager.connect`; UI chip shows "P2P direct" (green) vs "Relay path" (yellow) so the path state is user-visible.
 - **Phase 4 — Bidirectional LRU dedup** (commit `dd9b1227e` Android + `fc3752360` desktop) — Android `TerminalRpcClient` subscribes BOTH signaling + DC SharedFlow, dedups stdout by `(sessionId|seq)` with a 256-entry LRU / exit by `sessionId` with 64-entry. Desktop `mobile-bridge.bridgeToLibp2p` gains 128-entry / 30s-TTL LRU keyed by `payload.id` for mobile→desktop command requests (guards against double-stdin in `terminal.stdin` / duplicate PtyManager side effects).
 - **Phase 5 — Falls out of existing wiring** (no new code) — DC failure fallback = Phase 2 `trySendViaDataChannel` catches `IllegalStateException` and falls through to signaling automatically; auto-reconnect = `P2PClient.scheduleReconnect` exponential backoff 1s→60s / maxAttempts 10 (already there); recovery auto-switch back = `isDcReady()` re-evaluates on every `invoke()` entry; UI live mapping = Phase 3 `dataChannelReady` chip.
@@ -504,15 +504,15 @@ v1.2 GA feedback 5+3 items integrated (#2/#3/#4/#5/#7/#8). North star: "phone-si
 - **#4 Android→Desktop reverse sync P2** (`2646bbb4e`) — patched the reverse-sync gap. Added `ProjectSyncWalker` + `CompositeSyncRepositoryWalker` (`:app` aggregate) + Hilt binding. Full CREATE/UPDATE/DELETE op mapping. Composite 7/7 + walker 12 tests.
 - **#5/#8 web-shell Projects + in-process WS P3 Part A** (`bfdde637d`) — 6 in-process WS topics wrapping the P1 handler (DRY: same handler serves web-shell + mobile L3). New `Projects.vue` project management list + old init/setup content moved to `ProjectInit.vue`. project-handlers 7/7 tests.
 
-**Tests**: Phase 1 (P0) all pass + Phase 2 (project workflow): Android `:app` 80/80 + Desktop combined 51/51. **P3 Part B pending**: Android `ProjectCommands.kt` (so mobile can call project.* via REMOTE on desktop projects) — wait for user verification of P1+P2+P3A first.
+**Tests**: Phase 1 (P0) all pass + Phase 2 (project workflow): Android `:app` 80/80 + Desktop combined 51/51. **P3 Part B pending**: Android `ProjectCommands.kt` (so mobile can call project.\* via REMOTE on desktop projects) — wait for user verification of P1+P2+P3A first.
 
 ## 2026-05-13 Earlier — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 prerequisites GA-independent + AI-3 forward-compat + 2 bug fixes**
 
 P0 prerequisite batch before v1.2 GA (**no version bump**; will release alongside P1 main scope after v1.2 GA feedback):
 
-- **A.3 ADR Review v2.0** (`348896382`) — full audit of 8 ADRs: **5 keep / 2 amend / 1 revise**. New [Android_ADR_重评估_v2.0.md](docs/design/Android_ADR_重评估_v2.0.md). ADR-2 (M2 DID wallet still uses software Ed25519, blocks B.3 DID rotate) waits for v1.2 GA Play Console API-level data to pick option A/B/C; ADR-7/ADR-8 text amends align with reality (cc-mobile.json was never created — actually uses user_settings + `mobile.*` scope; registry is disk-first + push-based, not pull). Same commit adds §10 v1.3+ scope triage (12 sub-items P0/P1/P2 + 5 dependency chains).
+- **A.3 ADR Review v2.0** (`348896382`) — full audit of 8 ADRs: **5 keep / 2 amend / 1 revise**. New [Android*ADR*重评估\_v2.0.md](docs/design/Android_ADR_重评估_v2.0.md). ADR-2 (M2 DID wallet still uses software Ed25519, blocks B.3 DID rotate) waits for v1.2 GA Play Console API-level data to pick option A/B/C; ADR-7/ADR-8 text amends align with reality (cc-mobile.json was never created — actually uses user_settings + `mobile.*` scope; registry is disk-first + push-based, not pull). Same commit adds §10 v1.3+ scope triage (12 sub-items P0/P1/P2 + 5 dependency chains).
 - **B.6 PQC strict mode verifier gate** (`e24386d00`) — `LandmarkCache.strictPqMode` opt-in flag rejects any partial sig or publisher_signature with `alg === "Ed25519"`. Compatible with existing heterogeneous federation data format (0 schema changes); 0 producer-side changes.
-- **B.2 in-process multisig.* + marketplace.consume topics** (`b1c7cfd95`) — 7 in-process WS topics mirror the CLI `--json` output shape; desktop web-shell `Multisig.vue` dispatches via `useShellMode().isEmbedded`. **Perf: asar:true subprocess cold-start 6-10s → in-process ~20ms (SQLite open) + query, 60-100× speedup**. 0 UX changes.
+- **B.2 in-process multisig.\* + marketplace.consume topics** (`b1c7cfd95`) — 7 in-process WS topics mirror the CLI `--json` output shape; desktop web-shell `Multisig.vue` dispatches via `useShellMode().isEmbedded`. **Perf: asar:true subprocess cold-start 6-10s → in-process ~20ms (SQLite open) + query, 60-100× speedup**. 0 UX changes.
 - **A.3 AI-3 SkillMetadata.signature forward-compat** (`45a88270e`) — Android `ManifestSignatureVerifier` interface + `NoOpManifestVerifier` always-accept stub + `RemoteSkillRegistry.setManifestVerifier()` swap seam, wired for marketplace M0 (#21 AI-5).
 - **Fix wear test imports** (`c0d061328`) — `CcPhoneDecisionListenerTest` was missing `kotlinx.coroutines.{launch,delay,GlobalScope,DelicateCoroutinesApi}` imports since v1.2 P0.2, blocking all `:app:compileDebugUnitTestKotlin`. Added 4 imports.
 - **Fix B.6 strict mode disk-load gate** (discovered during this QA sweep) — `LandmarkCache.loadFromDisk()` bypassed the strict-mode gate. Moved per-snapshot strict check into `_validateAndStoreSnapshot()` so both ingest + disk-load paths go through the gate. +2 disk-load integration tests lock the regression.
@@ -536,7 +536,7 @@ productVersion **v5.0.3.50 → v5.0.3.51**. Plan C (v5.0.3.50) wired signaling-f
 
 ## 2026-05-13 Release — **v5.0.3.50 Android Remote Operate Plan C signaling-forward RPC (mobile remote really wired to desktop)**
 
-productVersion **v5.0.3.49 → v5.0.3.50**. After pairing landed in v5.0.3.49 (W3.7 Flow B QR), the next step is letting the mobile actually *operate* the desktop — tap Ping / System Status / System Info, the desktop runs it, the response comes back. Plan A (WebRTC P2P) + Plan B (STUN/TURN) are big engineering; Plan C reuses the signaling-forward pipe already proven by pair-ack, ships single-shot low-frequency commands first, leaves A+B for follow-up. Design doc: [Android Remote Operate Plan C](docs/design/Android_Remote_Operate_Plan_C.md).
+productVersion **v5.0.3.49 → v5.0.3.50**. After pairing landed in v5.0.3.49 (W3.7 Flow B QR), the next step is letting the mobile actually _operate_ the desktop — tap Ping / System Status / System Info, the desktop runs it, the response comes back. Plan A (WebRTC P2P) + Plan B (STUN/TURN) are big engineering; Plan C reuses the signaling-forward pipe already proven by pair-ack, ships single-shot low-frequency commands first, leaves A+B for follow-up. Design doc: [Android Remote Operate Plan C](docs/design/Android_Remote_Operate_Plan_C.md).
 
 - **`SignalingRpcClient` lands** — mobile-side RPC entry: builds `{type:"chainlesschain:command:request", payload:{id, method, params, auth, timestamp}}` → `PairingSignalingGate.sendAck`; one-shot installs `setOnForwardedMessageReceived` listener and matches `requestId` to `CompletableDeferred` to resolve responses; 30s `withTimeout` safety net; **automatically resets the gate, switches to the public relay URL, re-registers, and retries once when the LAN sendAck fails** — same pattern as `ScanDesktopPairingViewModel`'s pairing fallback.
 - **`RemoteOperateScreen` + ViewModel** — minimal UI: three chip buttons (Ping / System Status / System Info) + response JSON display + unpair. Home screen "connected desktop" card taps into NavGraph route `remote_operate/{peerId}`.
@@ -631,7 +631,7 @@ productVersion **v5.0.3.47 → v5.0.3.48**. Android v1.0 RFC M3 + M4 closing bat
 
 ## 2026-05-10 Release — **v5.0.3.46 Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix**
 
-productVersion **v5.0.3.45 → v5.0.3.46**. Android **0.36.0 → 0.37.0** (versionCode 36 → 37). Three themes shipped together: (1) **Phase 3d Mobile-Bridge-Sync — full desktop ↔ Android two-way social-data sync** (M2 → v1.2 across 12 commits · 5 ResourceType walkers + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1–4 all Ed25519 strict-verify); (2) **Android 0.37.0 lands 7 user-visible features in one commit** (Volcengine SeedASR voice + APK auto-update issue #21 + splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen); (3) **e2e CI silent-regression fix** (drop the e2e-tests workflow JOB-level `continue-on-error: true` that masked 3/3 OS failures as success — "No team IPC interface found" had been buried for weeks — plus Playwright browser cache for speedup).
+productVersion **v5.0.3.45 → v5.0.3.46**. Android **0.36.0 → 0.37.0** (versionCode 36 → 37). Three themes shipped together: (1) **Phase 3d Mobile-Bridge-Sync — full desktop ↔ Android two-way social-data sync** (M2 → v1.2 across 12 commits · 5 ResourceType walkers + tombstones + Room cursor + sync.\* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1–4 all Ed25519 strict-verify); (2) **Android 0.37.0 lands 7 user-visible features in one commit** (Volcengine SeedASR voice + APK auto-update issue #21 + splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen); (3) **e2e CI silent-regression fix** (drop the e2e-tests workflow JOB-level `continue-on-error: true` that masked 3/3 OS failures as success — "No team IPC interface found" had been buried for weeks — plus Playwright browser cache for speedup).
 
 **Added — Phase 3d desktop ↔ Android two-way sync**:
 
@@ -713,9 +713,9 @@ productVersion **v5.0.3.43 → v5.0.3.44**. One user-visible feature (screenshot
 
 **Regression test status**:
 
-| Suite | Pass |
-|---|---|
-| desktop unit | 1477 / 1477 |
+| Suite         | Pass            |
+| ------------- | --------------- |
+| desktop unit  | 1477 / 1477     |
 | CLI full unit | 17,455 / 17,455 |
 
 **Distribution**: CLI npm `chainlesschain@0.161.5` ships in sync; desktop binary rebuilt; auto-updater compares `5.0.3-alpha.44 > 5.0.3-alpha.43`, so all v5.0.3.43 desktop users will see a real "new version" prompt on restart.
@@ -751,19 +751,19 @@ productVersion **v5.0.3.41 → v5.0.3.43** (.42 was a CLI atomic bump with no fu
 
 **Regression test status**:
 
-| Suite | Pass |
-|---|---|
-| desktop unit (incl. nostr-bridge-ipc fix) | 1454 / 1454 |
-| core-mtc unit | 258 / 258 |
-| CLI mtc-federation integration | 41 / 41 |
-| CLI full unit | 17,432 / 17,432 |
+| Suite                                     | Pass            |
+| ----------------------------------------- | --------------- |
+| desktop unit (incl. nostr-bridge-ipc fix) | 1454 / 1454     |
+| core-mtc unit                             | 258 / 258       |
+| CLI mtc-federation integration            | 41 / 41         |
+| CLI full unit                             | 17,432 / 17,432 |
 
 **Bonus bug fixes (this conversation, two-pack)** — same root: `551ef28b3` "fix(ipc): correct ipcGuard API" switched the API to `markModuleRegistered` but the sweep was incomplete, leaving two complementary bug classes:
 
-| Commit | Bug | Why CI missed it |
-|---|---|---|
-| **`af92e0162` fix(test): align nostr-bridge-ipc stub** | Source calls `ipcGuard.markModuleRegistered(name)` directly (real guard exports it), but the test stub still mocked the non-existent `registerModule(name, channels)` (wrong arity) → `TypeError: ipcGuard.markModuleRegistered is not a function`, 23 / 389 social cases failing | CI "Unit Tests" stable-fallback excludes `**/*-ipc.test.js`; "Full Test Suite" uses `continue-on-error: true` |
-| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 IPC modules (autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference) inverted: source has `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` — real guard has no `registerModule` → `if` always falsy → guard's `registeredModules` Set silently misses these 8. Handlers still register via `ipcMain.handle`, so business functionality works | Test stubs themselves mocked `registerModule` → tests passed falsely |
+| Commit                                                  | Bug                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Why CI missed it                                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **`af92e0162` fix(test): align nostr-bridge-ipc stub**  | Source calls `ipcGuard.markModuleRegistered(name)` directly (real guard exports it), but the test stub still mocked the non-existent `registerModule(name, channels)` (wrong arity) → `TypeError: ipcGuard.markModuleRegistered is not a function`, 23 / 389 social cases failing                                                                                                                                                                                | CI "Unit Tests" stable-fallback excludes `**/*-ipc.test.js`; "Full Test Suite" uses `continue-on-error: true` |
+| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 IPC modules (autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference) inverted: source has `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` — real guard has no `registerModule` → `if` always falsy → guard's `registeredModules` Set silently misses these 8. Handlers still register via `ipcMain.handle`, so business functionality works | Test stubs themselves mocked `registerModule` → tests passed falsely                                          |
 
 Fix: stub `registerModule` → `markModuleRegistered` + drop channels arg from assertion (test side); `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` → `ipcGuard.markModuleRegistered(name)`, plus drop the equally pointless `if (ipcGuard.unregisterModule)` wrap (source side). Regression: collaboration-governance-ipc 21/21 + tech-learning-ipc 21/21 + ipc-guard core 12/12 + 29 adjacent files 577/577 ✅.
 
@@ -782,12 +782,12 @@ productVersion **v5.0.3.40 → v5.0.3.41**. This release formally ships every ro
 
 **Regression suite all green**:
 
-| Suite | Pass |
-|---|---|
+| Suite                                                               | Pass                    |
+| ------------------------------------------------------------------- | ----------------------- |
 | desktop MTC + DID + social + web-shell + p2p + bootstrap + renderer | 1454 / 1454 (4 skipped) |
-| CLI chat-intent + mtc-federation core/trust/sync integration | 69 / 69 |
-| web-panel unit | 1853 / 1853 |
-| web-panel e2e | 63 / 63 |
+| CLI chat-intent + mtc-federation core/trust/sync integration        | 69 / 69                 |
+| web-panel unit                                                      | 1853 / 1853             |
+| web-panel e2e                                                       | 63 / 63                 |
 
 **One bug fix**:
 
@@ -801,32 +801,32 @@ productVersion **v5.0.3.40 → v5.0.3.41**. This release formally ships every ro
 
 XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 desktop `shell/AIChatPanel.vue` was deliberately deferred. This section closes that gap. V6 reuses the existing desktop V5 trio (`VirtualMessageList.vue` / `IntentConfirmationMessage.vue` / `messageTypes.ts`) instead of duplicating, and the intent flow rides on the **already-shipped** desktop IPC handlers `project:understandIntent` + `followup-intent:classify` (preload-exposed at `index.js:1259`/`2441`), so Phase E is a pure UI integration with zero backend work.
 
-| Area | Change | Notes |
-|---|---|---|
-| **A. Virtual list** | Replace the v-for in `shell/AIChatPanel.vue` with `<VirtualMessageList>` (slot rebuilt) | Imported from V5 `components/projects/VirtualMessageList.vue` (one component, both shells). Slot prop is `unknown`; added an `asMsg(value: unknown): ConversationMessage` helper plus a `v-for-with-singleton` (`v-for="msg in [asMsg(message)]"`) so the rest of the slot template sees a typed `msg` without modifying the JS list component |
-| **B. Context mode** | Header gains an a-radio-group + localStorage `cc.desktop.aichat.contextMode` (separate key from the web-shell's so each surface persists independently) | `file` permanently disabled (V6 has no currentFile concept) |
-| **C. Intent recognition** | New `submitUserInput(text)` / `tryUnderstandIntent(text)` / `handleIntentConfirm/Correct`; transient `pendingIntentCard` ref kept **out of conversationStore** so it never persists; `onSend` routes through submitUserInput; `<IntentConfirmationMessage>` renders between messages list and streaming bubble; clearContext / newConversation / selectConversation all reset pendingIntentCard | Wire: `window.electronAPI.project.understandIntent({ userInput, projectId, contextMode })` → V5 IPC; returns success=false or no useful understanding → falls through to direct dispatch |
-| **D. autoSendMessage** | New `autoSend?: boolean` prop (legacy `prefillText` preserved); watch `open` + `[prefillText, autoSend]` triggers `maybeAutoSend()`; token dedup `${prefill}::${autoSend}::${contextMode}` blocks duplicate fires; if canSend is false, degrades to prefilling the composer for manual send | Modal panel — no vue-router context, so single-channel (vs the web-shell's URL+Pinia dual surface) |
+| Area                      | Change                                                                                                                                                                                                                                                                                                                                                                                          | Notes                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Virtual list**       | Replace the v-for in `shell/AIChatPanel.vue` with `<VirtualMessageList>` (slot rebuilt)                                                                                                                                                                                                                                                                                                         | Imported from V5 `components/projects/VirtualMessageList.vue` (one component, both shells). Slot prop is `unknown`; added an `asMsg(value: unknown): ConversationMessage` helper plus a `v-for-with-singleton` (`v-for="msg in [asMsg(message)]"`) so the rest of the slot template sees a typed `msg` without modifying the JS list component |
+| **B. Context mode**       | Header gains an a-radio-group + localStorage `cc.desktop.aichat.contextMode` (separate key from the web-shell's so each surface persists independently)                                                                                                                                                                                                                                         | `file` permanently disabled (V6 has no currentFile concept)                                                                                                                                                                                                                                                                                    |
+| **C. Intent recognition** | New `submitUserInput(text)` / `tryUnderstandIntent(text)` / `handleIntentConfirm/Correct`; transient `pendingIntentCard` ref kept **out of conversationStore** so it never persists; `onSend` routes through submitUserInput; `<IntentConfirmationMessage>` renders between messages list and streaming bubble; clearContext / newConversation / selectConversation all reset pendingIntentCard | Wire: `window.electronAPI.project.understandIntent({ userInput, projectId, contextMode })` → V5 IPC; returns success=false or no useful understanding → falls through to direct dispatch                                                                                                                                                       |
+| **D. autoSendMessage**    | New `autoSend?: boolean` prop (legacy `prefillText` preserved); watch `open` + `[prefillText, autoSend]` triggers `maybeAutoSend()`; token dedup `${prefill}::${autoSend}::${contextMode}` blocks duplicate fires; if canSend is false, degrades to prefilling the composer for manual send                                                                                                     | Modal panel — no vue-router context, so single-channel (vs the web-shell's URL+Pinia dual surface)                                                                                                                                                                                                                                             |
 
 **Cross-shell parity**
 
-| | web-shell (XVI) | V6 desktop (XIX) |
-|---|---|---|
-| Protocol | WS topics `chat.intent.understand[-stream]` / `chat.intent.classify-followup` | electronAPI IPC `project.understandIntent` / `followupIntent.classify` |
-| Streaming intent | ✅ (v1.1, async generator + chunk frames) | ❌ (V5 IPC is non-streaming; deferred until a streaming IPC is added) |
-| Multi-turn history | ✅ payload.history forwarded automatically | ❌ (V5 IPC doesn't accept history yet) |
-| Persisted intent decisions | ✅ localStorage (LRU 200) | ❌ (pendingIntentCard is transient; refresh in the modal naturally starts a fresh state) |
-| Custom quickPrompts | ✅ (modal editor + 12×120 cap) | ❌ (V6 keeps the existing 4 hardcoded prompts) |
-| autoSendMessage channel | URL query + Pinia dual surface | Prop single channel |
+|                            | web-shell (XVI)                                                               | V6 desktop (XIX)                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Protocol                   | WS topics `chat.intent.understand[-stream]` / `chat.intent.classify-followup` | electronAPI IPC `project.understandIntent` / `followupIntent.classify`                   |
+| Streaming intent           | ✅ (v1.1, async generator + chunk frames)                                     | ❌ (V5 IPC is non-streaming; deferred until a streaming IPC is added)                    |
+| Multi-turn history         | ✅ payload.history forwarded automatically                                    | ❌ (V5 IPC doesn't accept history yet)                                                   |
+| Persisted intent decisions | ✅ localStorage (LRU 200)                                                     | ❌ (pendingIntentCard is transient; refresh in the modal naturally starts a fresh state) |
+| Custom quickPrompts        | ✅ (modal editor + 12×120 cap)                                                | ❌ (V6 keeps the existing 4 hardcoded prompts)                                           |
+| autoSendMessage channel    | URL query + Pinia dual surface                                                | Prop single channel                                                                      |
 
 **Test matrix**
 
-| Layer | Result |
-|---|---|
-| `vue-tsc --noEmit` | ✅ 0 errors |
-| `npm run build:main` | ✅ |
+| Layer                                                         | Result                      |
+| ------------------------------------------------------------- | --------------------------- |
+| `vue-tsc --noEmit`                                            | ✅ 0 errors                 |
+| `npm run build:main`                                          | ✅                          |
 | desktop store / shell / shell-preview / AIChatPage regression | **150 / 150** ✅ (131 + 19) |
-| Cumulative web-shell + CLI + e2e | 1844 + 89 + 63 still green |
+| Cumulative web-shell + CLI + e2e                              | 1844 + 89 + 63 still green  |
 
 **Caveat — no AIChatPanel mount tests added**: (1) the V6 panel has no existing mount-test fixture and stubbing all of ant-design-vue + llmStore + conversationStore + electronAPI follows the 1000+-line `AIChatPage.test.js` pattern that's expensive to maintain; (2) the four reused components are all already covered by web-shell unit tests; (3) the underlying desktop IPC handlers (`project:understandIntent` / `followupIntent.classify`) have been in production for a year. Manual smoke recommended: `npm run dev` → click the V6 shell AI Chat entry → switch contextMode → type a typo → see the intent card → confirm/correct loop.
 
@@ -834,16 +834,17 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 
 §2.2.21 (XIV) wired Archive Tab but archival remained manual — the user had to actively click "推送". XVII fixed credential persistence so each push no longer prompted for the password; this update lets the cron run itself — main process `setInterval` periodically fires `ChannelEnvelopeArchiver.push`, the config is persisted to `app-config.json` `mtc.autoArchive` namespace, restart-safe.
 
-| Aspect | Change |
-|---|---|
-| Trigger | XVII manual push → main-process setInterval cron (default 24h, min 5min) |
-| Persistence | `app-config.json` `mtc.autoArchive`: enabled / intervalMs / providerSpec / communityIds + lastRunAt/Status/Error/Summary |
-| Failure handling | Single-community failure only marks lastRunStatus='partial', doesn't block remaining communities |
-| Reuses cred chain | providerSpec same as XVII — `useStoredCredentials:true` reuses secure-config.enc directly |
-| Reentrancy | runOnce has built-in `_running` guard; concurrent invocations return `{skipped:true}` |
-| UI entry | MtcAudit.vue 5th tab "Auto Archive 定时归档" — switch / interval / provider / community whitelist / run-now / lastRun status card |
+| Aspect            | Change                                                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger           | XVII manual push → main-process setInterval cron (default 24h, min 5min)                                                          |
+| Persistence       | `app-config.json` `mtc.autoArchive`: enabled / intervalMs / providerSpec / communityIds + lastRunAt/Status/Error/Summary          |
+| Failure handling  | Single-community failure only marks lastRunStatus='partial', doesn't block remaining communities                                  |
+| Reuses cred chain | providerSpec same as XVII — `useStoredCredentials:true` reuses secure-config.enc directly                                         |
+| Reentrancy        | runOnce has built-in `_running` guard; concurrent invocations return `{skipped:true}`                                             |
+| UI entry          | MtcAudit.vue 5th tab "Auto Archive 定时归档" — switch / interval / provider / community whitelist / run-now / lastRun status card |
 
 **Changes (8 files / 27 tests)**:
+
 - `auto-archive-scheduler.js` **new** (+250) — pure-Node scheduler; constructor / getConfig / setConfig / start / stop / runOnce
 - `auto-archive-scheduler.test.js` **new** (+325) — 19 tests: constructor validation / default merging / clamp / setConfig validation / start/stop / runOnce 7 scenarios
 - `social-initializer.js` registers autoArchiveScheduler factory entry (+50) — dependsOn archiver/factory/communityManager; auto-resumes enabled=true configs on boot
@@ -856,19 +857,22 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 - `MtcAudit.vue` +5th tab + script 100 lines + onMounted auto-load — UI shows lastRun status card + run-now summary card
 
 **Tests (27 new)**:
+
 - desktop scheduler 19 + handlers +5 = **24**
 - web-panel composable **9**
 
 **Regression**: desktop web-shell + mtc all 32 files 538/542 (4 skipped, 0 fail); web-panel useAutoArchive + useMtcArchive subset 22/22 green.
 
 **Safety / robustness invariants**:
+
 - intervalMs min 5 minutes — prevents misconfigured millisecond DoS-of-self;
 - enabled=true requires providerSpec — saving without provider explicitly rejected;
-- runOnce has built-in _running guard — multiple fires never re-enter;
+- runOnce has built-in \_running guard — multiple fires never re-enter;
 - providerSpec.useStoredCredentials uses §2.2.23 vault path — cron config never persists plaintext passwords;
 - per-community try/catch — single-point failure never blocks subsequent ones; recorded as lastRunSummary.perCommunity[id] = {ok, error?}.
 
 **Design choices**:
+
 1. **No third-party cron library** (node-cron / agenda etc.) — `setInterval` suffices (no cron expressions needed);
 2. **Reuses app-config.json, no new store** — sits at the same level as ui.useV6ShellByDefault etc.;
 3. **Pure-Node scheduler with no Electron API** — unit-testable with injected timers;
@@ -880,14 +884,15 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 
 §2.2.21 (XIV) shipped MtcAudit but the archive Tab forced users to re-type baseUrl/username/password into the WS payload on every push — violating the principle that credentials shouldn't traverse the wire repeatedly. Worse: anyone actually trying WebDAV archive would hit "url required" immediately — WebDAVClient's constructor reads `url`/`remotePath`, but the archive factory has been passing `baseUrl`/`remoteRoot` since §2.2.16, so the field names never matched. The B4-archive WebDAV path has been **completely broken since landing**, but nobody noticed because XIV was the first UI driver and most CLI runs used filesystem.
 
-| Aspect | v1 - XIV (broken) | v2 - XVII (this update) |
-|---|---|---|
-| WebDAV field names | spec.baseUrl / remoteRoot (wrong) | spec.url / remotePath (correct) |
-| Credential source | manual entry every push, traverses wire | reuses Phase 3c sync-credentials secure-config.enc (safeStorage / AES-256-GCM) |
-| Renderer holds password? | yes (input v-model) | no (toggle ON hides input fields entirely) |
-| Wire carries password? | yes | no (main resolves from vault internally) |
+| Aspect                   | v1 - XIV (broken)                       | v2 - XVII (this update)                                                        |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------ |
+| WebDAV field names       | spec.baseUrl / remoteRoot (wrong)       | spec.url / remotePath (correct)                                                |
+| Credential source        | manual entry every push, traverses wire | reuses Phase 3c sync-credentials secure-config.enc (safeStorage / AES-256-GCM) |
+| Renderer holds password? | yes (input v-model)                     | no (toggle ON hides input fields entirely)                                     |
+| Wire carries password?   | yes                                     | no (main resolves from vault internally)                                       |
 
 **Changes (5 files / 8+ tests)**:
+
 - `archive-provider-factory.js` **new** (+90) — extracted from social-initializer; adds `useStoredCredentials:true` mode; field-name fix
 - `social-initializer.js` factory init now one-liner (-58 / +5)
 - `community-ipc.js` new IPC `channel-archive:has-stored-webdav-credentials` (boolean only)
@@ -897,6 +902,7 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 - `MtcAudit.vue` Archive Tab redone: switch toggle (default ON) + field-name fix; alert-driven help when vault empty
 
 **Tests (8 new)**:
+
 - `archive-provider-factory.test.js` **new** 12 tests — filesystem / webdav explicit / useStoredCredentials 4 sub-cases / field-name lock (asserts NO baseUrl/remoteRoot) / null spec / unknown kind
 - `community-mtc-handlers.test.js` +4 — has-stored true/false / missing dep / safety invariant (response keys = exactly `{success, hasCredentials}`)
 - `useMtcArchive.test.js` +4 — flag true/false / soft-false on handler error / null on transport error
@@ -904,11 +910,13 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 **Regression**: desktop social/mtc/web-shell 1244/1244 (+10 tests) + web-panel 1976/1978 (the 2 phase-b CLI failures are pre-existing flakes — verified by re-running on stash-clean main).
 
 **Critical security invariants**:
+
 - Factory: `useStoredCredentials=true` makes inline url/username/password **completely ignored** (vault wins) — prevents spec-injection attacks.
 - IPC + WS: `hasCredentials` response carries exactly `{success, hasCredentials}` — locked by unit test `expect(Object.keys(r).sort()).toEqual(['hasCredentials','success'])`.
 - UI: toggle defaults ON; when vault empty, toggle is disabled and an a-alert directs the user to Settings → 同步 → WebDAV.
 
 **Design choices**:
+
 1. Did NOT spin up a new credential-vault subsystem — reused Phase 3c sync-credentials (`secure-config.enc` + safeStorage / AES-256-GCM fallback), single source of truth.
 2. Did NOT expose any `credentials.encrypt/decrypt` IPC — all decryption stays inside main's archiveProviderFactory closure.
 3. Extracted factory from social-initializer to standalone module — DI wiring shrunk -58/+5, factory now independently testable, future OSS/S3 additions plug in cleanly.
@@ -919,31 +927,32 @@ XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 deskt
 
 V5 desktop `components/projects/ChatPanel.vue` (3788 lines) was long flagged as "a different much larger port" — the intent recognition / autoSend / virtual list / context-mode quartet plus its 5 IPC + 6 channel coupling kept it out of the web-shell. This update lands the full port (with a real LLM backend, not a stub).
 
-| Area | Change | Notes |
-|---|---|---|
-| **A. Virtual list** | `packages/web-panel/src/components/VirtualMessageList.vue` (+185) + `Chat.vue` swap from v-for | `@tanstack/virtual-core ^3.13.13` matches V5; covers happy-dom fallback path; folds in V6 `AIChatPanel.vue`'s clean UI: 32px avatars / role + time / 4 quick-prompt empty state |
-| **B. Context mode** | chatStore gains `contextMode` + localStorage persistence (`cc.web-panel.chat.contextMode`); Chat.vue header a-radio-group (project/file/global) | `file` permanently disabled in web-shell (no currentFile concept), `project` disabled when not started in project mode; mismatched persisted values auto-degrade to global |
+| Area                                            | Change                                                                                                                                                                                                                                                                                                                                                                               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Virtual list**                             | `packages/web-panel/src/components/VirtualMessageList.vue` (+185) + `Chat.vue` swap from v-for                                                                                                                                                                                                                                                                                       | `@tanstack/virtual-core ^3.13.13` matches V5; covers happy-dom fallback path; folds in V6 `AIChatPanel.vue`'s clean UI: 32px avatars / role + time / 4 quick-prompt empty state                                                                                                                                                                                                                                              |
+| **B. Context mode**                             | chatStore gains `contextMode` + localStorage persistence (`cc.web-panel.chat.contextMode`); Chat.vue header a-radio-group (project/file/global)                                                                                                                                                                                                                                      | `file` permanently disabled in web-shell (no currentFile concept), `project` disabled when not started in project mode; mismatched persisted values auto-degrade to global                                                                                                                                                                                                                                                   |
 | **C. Intent recognition (full port, real LLM)** | Backend: `packages/cli/src/lib/chat-intent-service.js` (+340) + `gateways/ws/chat-intent-protocol.js` (+95) + ws-server / dispatcher wiring (2 new WS topics). Frontend: `utils/messageTypes.js` (+90) + `components/IntentConfirmationMessage.vue` (+185) + chatStore actions `submitUserInput`/`confirmIntent`/`correctIntent`/`classifyFollowupIntent`/`pushFollowupIntentBanner` | `chat.intent.understand` runs the V5 prompt verbatim (temp 0.3 / 500 max tokens / strict JSON contract), pulls LLM creds from the active session, falls back to pass-through when LLM unavailable. `chat.intent.classify-followup` is rule-first (4 categories: CONTINUE_EXECUTION / MODIFY_REQUIREMENT / CLARIFICATION / CANCEL_TASK with keyword + regex scoring); confidence > 0.8 short-circuits without calling the LLM |
-| **D. autoSendMessage protocol** | Chat.vue parses `route.query` (`?prompt=xxx&autoSend=true&session=<id>`) + chatStore.scheduleAutoSend / clearAutoSend + token-based dedup | URL-driven + Pinia programmatic dual surface; URL is stripped via router.replace after consumption to prevent refresh-replay; URL > Pinia priority |
-| **i18n parity** | `packages/locales/seed/{zh-CN,en}.json` | New keys: `chat.role.me`, `chat.contextMode.{project,file,global}`, `chat.empty.startTitle`, `chat.empty.hint.{project,file,global}`, `chat.quickPrompts.{summarize,brainstorm,explain,codeReview}`, `chat.intent.{confirmed,corrected,label.*,action.*,status.*}` — 22 paired keys total, zh/en parity test passes |
+| **D. autoSendMessage protocol**                 | Chat.vue parses `route.query` (`?prompt=xxx&autoSend=true&session=<id>`) + chatStore.scheduleAutoSend / clearAutoSend + token-based dedup                                                                                                                                                                                                                                            | URL-driven + Pinia programmatic dual surface; URL is stripped via router.replace after consumption to prevent refresh-replay; URL > Pinia priority                                                                                                                                                                                                                                                                           |
+| **i18n parity**                                 | `packages/locales/seed/{zh-CN,en}.json`                                                                                                                                                                                                                                                                                                                                              | New keys: `chat.role.me`, `chat.contextMode.{project,file,global}`, `chat.empty.startTitle`, `chat.empty.hint.{project,file,global}`, `chat.quickPrompts.{summarize,brainstorm,explain,codeReview}`, `chat.intent.{confirmed,corrected,label.*,action.*,status.*}` — 22 paired keys total, zh/en parity test passes                                                                                                          |
 
 **Test matrix (chat-panel-v5 adds 69 tests, cumulative web-panel 1829 + CLI 89 all green, no regressions)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit (CLI) | `packages/cli/__tests__/unit/lib/chat-intent-service.test.js` | 22 — extractJson 4 branches / buildUnderstandPrompts 3 / ruleBasedClassify across 5 categories / understandIntent 5 branches (empty / no-llm / parse success / parse fail / network error) / classifyFollowupIntent 5 paths (rule-only / no-llm / llm-success / rule_fallback / CLARIFICATION default) |
-| Unit (CLI) | `packages/cli/__tests__/unit/gateways/ws/chat-intent-protocol.test.js` | 6 — bad-request / no-session-creds degrade / session present forwards LLM creds / unexpected error → INTENT_UNDERSTAND_FAILED / classify-followup rule path / classify-followup LLM path |
-| Unit (web-panel) | `__tests__/unit/messageTypes.test.js` | 11 — 3 enum shapes / createSystemMessage / createIntentConfirmationMessage 3 / createIntentSystemMessage 4 intent presets |
-| Unit (web-panel) | `__tests__/unit/chat-intent-flow.test.js` | 19 — contextMode 4 (default / persist / reject unknown / file persisted degrade) / submitUserInput 7 (global direct / project useful understanding pushes card / no-LLM degrade / identical input skip card / confirmIntent / correctIntent / WS error degrade) / scheduleAutoSend 3 / classifyFollowupIntent 3 |
-| Unit (web-panel) | `__tests__/unit/VirtualMessageList.test.js` | 5 — fallback full render / `:key` uses message.id / scrollToBottom exposed / scroll boundary emits / messages length grows |
-| Unit (web-panel) | `__tests__/unit/IntentConfirmationMessage.test.js` | 7 — show/hide branches / pending vs confirmed state / confirm emit payload / correction flow (open / reject empty / submit text) |
-| Full web-panel 62-file regression | — | **1829 / 1829** ✅ |
-| CLI ws-server / dispatcher regression | — | **61 / 61** ✅ |
-| **Cumulative new** | — | **69 tests** (CLI 28 + web-panel 41) all green |
+| Layer                                 | File                                                                   | Tests                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (CLI)                            | `packages/cli/__tests__/unit/lib/chat-intent-service.test.js`          | 22 — extractJson 4 branches / buildUnderstandPrompts 3 / ruleBasedClassify across 5 categories / understandIntent 5 branches (empty / no-llm / parse success / parse fail / network error) / classifyFollowupIntent 5 paths (rule-only / no-llm / llm-success / rule_fallback / CLARIFICATION default)          |
+| Unit (CLI)                            | `packages/cli/__tests__/unit/gateways/ws/chat-intent-protocol.test.js` | 6 — bad-request / no-session-creds degrade / session present forwards LLM creds / unexpected error → INTENT_UNDERSTAND_FAILED / classify-followup rule path / classify-followup LLM path                                                                                                                        |
+| Unit (web-panel)                      | `__tests__/unit/messageTypes.test.js`                                  | 11 — 3 enum shapes / createSystemMessage / createIntentConfirmationMessage 3 / createIntentSystemMessage 4 intent presets                                                                                                                                                                                       |
+| Unit (web-panel)                      | `__tests__/unit/chat-intent-flow.test.js`                              | 19 — contextMode 4 (default / persist / reject unknown / file persisted degrade) / submitUserInput 7 (global direct / project useful understanding pushes card / no-LLM degrade / identical input skip card / confirmIntent / correctIntent / WS error degrade) / scheduleAutoSend 3 / classifyFollowupIntent 3 |
+| Unit (web-panel)                      | `__tests__/unit/VirtualMessageList.test.js`                            | 5 — fallback full render / `:key` uses message.id / scrollToBottom exposed / scroll boundary emits / messages length grows                                                                                                                                                                                      |
+| Unit (web-panel)                      | `__tests__/unit/IntentConfirmationMessage.test.js`                     | 7 — show/hide branches / pending vs confirmed state / confirm emit payload / correction flow (open / reject empty / submit text)                                                                                                                                                                                |
+| Full web-panel 62-file regression     | —                                                                      | **1829 / 1829** ✅                                                                                                                                                                                                                                                                                              |
+| CLI ws-server / dispatcher regression | —                                                                      | **61 / 61** ✅                                                                                                                                                                                                                                                                                                  |
+| **Cumulative new**                    | —                                                                      | **69 tests** (CLI 28 + web-panel 41) all green                                                                                                                                                                                                                                                                  |
 
 **End-to-end total**: desktop-app-vue 1106 + web-panel 1829 + CLI (chat-intent + ws) 89 = **3024 tests all green**.
 
 **Known caveats**:
+
 - End-to-end browser smoke (start `cc serve --mode project --ui full`, drive a real LLM through the intent card → confirm → agent reply) still pending. Recommend a manual run before shipping.
 - The V6 desktop `shell/AIChatPanel.vue` does not yet inherit these 4 features (V6 panel's V5 source was the 857-line global ChatPanel that has since been deleted). Tracked as a follow-up phase (`Phase E: align V6 AIChatPanel`).
 
@@ -953,31 +962,31 @@ XIV shipped the web-panel UI, but governance-mofn's v1 signature collection dema
 
 While in there, also fixed a latent bug: `registerAllIPC`'s dependency bag never included `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator` (or any of the B4 suite). Desktop V5/V6 community IPC has been silently receiving null since Phase A landed — handlers returned `[]` / threw "not initialized" without anyone noticing because the V6 hard-flip (caaddf530) makes web-shell the default and that path uses WS, not IPC.
 
-| Topic | File | Description |
-|---|---|---|
-| **New IPC `governance-mofn:sign-as-self`** | `community-ipc.js` (+58) | Renderer sends only `(communityId, proposalId)`. Main calls `didManager.getCurrentIdentity()` for `{did, public_key_sign, private_key_ref}`, parses the JSON ref to extract the `sign` base64 → Buffer secretKey → calls `governanceMultiSig.addSignature(...)`. Returns `{ok:true, status, signerDID}` |
-| **New WS topic `mtc.governance-mofn.sign-as-self`** | `web-shell/handlers/community-mtc-handlers.js` (+78) | Same semantics for the web-panel path; didManager + governanceMultiSig injected via opts |
-| **web-shell-bootstrap + index.js wiring** | `web-shell-bootstrap.js` + `index.js` (+5) | `didManager` added to createCommunityMtcHandlers opts |
-| **useGovernanceMofn.signAsSelf action** | `web-panel/composables/useGovernanceMofn.js` (+33) | Critical invariant: no `signerKeys` field on the wire (asserted in tests) |
-| **MtcAudit.vue Tab 3 "Sign for me" button** | `MtcAudit.vue` (+25 / -8) | Per-proposal button enabled when `!finalized && isEmbedded`; alert copy rewritten as a v2 security explanation |
-| **🐛 latent bug fix — registerAllIPC bag completion** | `index.js` (+25 / +12 hoist) | Hoists `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator + mtcFederationManager / channelEventBatcher / channelEnvelopeDistribution / channelEnvelopeArchiver / archiveProviderFactory / governanceMultiSig / crossFedTrust` from `instances` to `this.*` and adds them to the `registerAllIPC({...})` bag. **Desktop V5/V6 community IPC has been silently broken since Phase A** — fixed in passing |
+| Topic                                                 | File                                                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New IPC `governance-mofn:sign-as-self`**            | `community-ipc.js` (+58)                             | Renderer sends only `(communityId, proposalId)`. Main calls `didManager.getCurrentIdentity()` for `{did, public_key_sign, private_key_ref}`, parses the JSON ref to extract the `sign` base64 → Buffer secretKey → calls `governanceMultiSig.addSignature(...)`. Returns `{ok:true, status, signerDID}`                                                                                                                                       |
+| **New WS topic `mtc.governance-mofn.sign-as-self`**   | `web-shell/handlers/community-mtc-handlers.js` (+78) | Same semantics for the web-panel path; didManager + governanceMultiSig injected via opts                                                                                                                                                                                                                                                                                                                                                      |
+| **web-shell-bootstrap + index.js wiring**             | `web-shell-bootstrap.js` + `index.js` (+5)           | `didManager` added to createCommunityMtcHandlers opts                                                                                                                                                                                                                                                                                                                                                                                         |
+| **useGovernanceMofn.signAsSelf action**               | `web-panel/composables/useGovernanceMofn.js` (+33)   | Critical invariant: no `signerKeys` field on the wire (asserted in tests)                                                                                                                                                                                                                                                                                                                                                                     |
+| **MtcAudit.vue Tab 3 "Sign for me" button**           | `MtcAudit.vue` (+25 / -8)                            | Per-proposal button enabled when `!finalized && isEmbedded`; alert copy rewritten as a v2 security explanation                                                                                                                                                                                                                                                                                                                                |
+| **🐛 latent bug fix — registerAllIPC bag completion** | `index.js` (+25 / +12 hoist)                         | Hoists `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator + mtcFederationManager / channelEventBatcher / channelEnvelopeDistribution / channelEnvelopeArchiver / archiveProviderFactory / governanceMultiSig / crossFedTrust` from `instances` to `this.*` and adds them to the `registerAllIPC({...})` bag. **Desktop V5/V6 community IPC has been silently broken since Phase A** — fixed in passing |
 
 **Test matrix (B4-mofn-sign v2 adds 10, total desktop 1112 / 1112 across 33 files + web-panel 1833 / 1833 across 62 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit (extended) | `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` (+6 → 25) | sign-as-self: full happy path with key-shape asserts / missing didManager / not-logged-in / missing signing keys / malformed private_key_ref JSON / missing private_key_ref.sign field |
-| Unit (extended) | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` (+4 → 13) | signAsSelf: wire payload contains no key material (tested explicitly) / rejects empty args / captures handler error envelope / updates currentStatus on success |
-| Full desktop + web-panel regression | — | **1112 + 1833 = 2945** ✅ |
+| Layer                               | File                                                                                    | Tests                                                                                                                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (extended)                     | `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` (+6 → 25) | sign-as-self: full happy path with key-shape asserts / missing didManager / not-logged-in / missing signing keys / malformed private_key_ref JSON / missing private_key_ref.sign field |
+| Unit (extended)                     | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` (+4 → 13)                 | signAsSelf: wire payload contains no key material (tested explicitly) / rejects empty args / captures handler error envelope / updates currentStatus on success                        |
+| Full desktop + web-panel regression | —                                                                                       | **1112 + 1833 = 2945** ✅                                                                                                                                                              |
 
 **Security model shift**
 
-| | v1 (XI) | v2 (this patch) |
-|---|---|---|
-| Renderer holds private key? | Yes (renderer base64-encodes secretKey before WS) | **No** |
-| Private key on wire? | Yes | **No** |
-| Main's path to the key | Not needed (renderer ships it) | DIDManager.getCurrentIdentity() → private_key_ref.sign |
-| Suitable for | CLI proposals / tests / advanced users who hold their own keys | All web-panel UI users (default) |
+|                             | v1 (XI)                                                        | v2 (this patch)                                        |
+| --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| Renderer holds private key? | Yes (renderer base64-encodes secretKey before WS)              | **No**                                                 |
+| Private key on wire?        | Yes                                                            | **No**                                                 |
+| Main's path to the key      | Not needed (renderer ships it)                                 | DIDManager.getCurrentIdentity() → private_key_ref.sign |
+| Suitable for                | CLI proposals / tests / advanced users who hold their own keys | All web-panel UI users (default)                       |
 
 The v1 `governance-mofn:sign` IPC stays for backward compatibility (CLI + tests). UI is now exclusively v2.
 
@@ -985,21 +994,21 @@ The v1 `governance-mofn:sign` IPC stays for backward compatibility (CLI + tests)
 
 XIII bridged IPC → WS, but web-panel had no UI entry point — users still couldn't reach any of it. This patch adds 4 composables + a 4-tab `MtcAudit` page, hooking envelope / archive / governance-mofn / cross-fed-trust into the default-shell sidebar.
 
-| Topic | File | Description |
-|---|---|---|
-| **4 composables** | `packages/web-panel/src/composables/{useMtcEnvelope, useMtcArchive, useGovernanceMofn, useCrossFedTrust}.js` (+460) | All wrap `ws.sendRaw({type:'mtc.*', ...})` + `useShellMode().isEmbedded` for dual-path branching. Pure-browser mode auto-disables + shows banner. useGovernanceMofn includes a base64 serialization helper (renderer doesn't ship Buffers; base64 strings cross the wire) |
-| **`MtcAudit.vue` 4-tab page** | `packages/web-panel/src/views/MtcAudit.vue` (+450) | Tab 1 Envelope query + raw JSON collapse + copy; Tab 2 Archive (filesystem / WebDAV provider toggle + push/restore/list); Tab 3 Governance M-of-N (proposal create + list + finalize; signature collection in v1 deferred to cc CLI / desktop DID tooling via in-page alert); Tab 4 Cross-Fed Trust (establish/revoke/list/merged-DID query) |
-| **Router + sidebar** | `packages/web-panel/src/router/index.js` + `components/AppLayout.vue` (+3 lines total) | `/mtc-audit` route; sidebar advanced group adds mtc-audit item right after mtc; collapsed mode also gets the icon; `onMenuClick` auto router.push |
+| Topic                         | File                                                                                                                | Description                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **4 composables**             | `packages/web-panel/src/composables/{useMtcEnvelope, useMtcArchive, useGovernanceMofn, useCrossFedTrust}.js` (+460) | All wrap `ws.sendRaw({type:'mtc.*', ...})` + `useShellMode().isEmbedded` for dual-path branching. Pure-browser mode auto-disables + shows banner. useGovernanceMofn includes a base64 serialization helper (renderer doesn't ship Buffers; base64 strings cross the wire)                                                                    |
+| **`MtcAudit.vue` 4-tab page** | `packages/web-panel/src/views/MtcAudit.vue` (+450)                                                                  | Tab 1 Envelope query + raw JSON collapse + copy; Tab 2 Archive (filesystem / WebDAV provider toggle + push/restore/list); Tab 3 Governance M-of-N (proposal create + list + finalize; signature collection in v1 deferred to cc CLI / desktop DID tooling via in-page alert); Tab 4 Cross-Fed Trust (establish/revoke/list/merged-DID query) |
+| **Router + sidebar**          | `packages/web-panel/src/router/index.js` + `components/AppLayout.vue` (+3 lines total)                              | `/mtc-audit` route; sidebar advanced group adds mtc-audit item right after mtc; collapsed mode also gets the icon; `onMenuClick` auto router.push                                                                                                                                                                                            |
 
 **Test matrix (B4-webpanel adds 33 composable unit + 1 route-count bump, total web-panel 1829 / 1829 across 62 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `packages/web-panel/__tests__/unit/useMtcEnvelope.test.js` | 8 — initial idle / empty args / pure-browser disable / found result / not-found / ws throw / reply.ok=false / reset |
-| Unit | `packages/web-panel/__tests__/unit/useMtcArchive.test.js` | 11 — listArchives caches + rejects empty + handler error / pushArchive happy + sinceBatchId pass-through + handler error / restoreArchive happy + rejects missing archiveName / isEmbedded reflects |
-| Unit | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` | 9 — list cache + reject empty / create pass-through / sign Uint8Array→base64 serialization + reject missing + already-base64 no double-encode / finalize / status cache / handler error |
-| Unit | `packages/web-panel/__tests__/unit/useCrossFedTrust.test.js` | 6 — list cache + reject empty / establish full pass-through + strip empty optional fields / revoke returns boolean / getTrustedDids cache / handler error |
-| Full web-panel 62-file regression | — | **1829 / 1829** ✅ |
+| Layer                             | File                                                          | Tests                                                                                                                                                                                               |
+| --------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                              | `packages/web-panel/__tests__/unit/useMtcEnvelope.test.js`    | 8 — initial idle / empty args / pure-browser disable / found result / not-found / ws throw / reply.ok=false / reset                                                                                 |
+| Unit                              | `packages/web-panel/__tests__/unit/useMtcArchive.test.js`     | 11 — listArchives caches + rejects empty + handler error / pushArchive happy + sinceBatchId pass-through + handler error / restoreArchive happy + rejects missing archiveName / isEmbedded reflects |
+| Unit                              | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` | 9 — list cache + reject empty / create pass-through / sign Uint8Array→base64 serialization + reject missing + already-base64 no double-encode / finalize / status cache / handler error             |
+| Unit                              | `packages/web-panel/__tests__/unit/useCrossFedTrust.test.js`  | 6 — list cache + reject empty / establish full pass-through + strip empty optional fields / revoke returns boolean / getTrustedDids cache / handler error                                           |
+| Full web-panel 62-file regression | —                                                             | **1829 / 1829** ✅                                                                                                                                                                                  |
 
 **End-to-end totals**: desktop-app-vue 1106 + web-panel 1829 = **2935 tests all green**.
 
@@ -1017,63 +1026,63 @@ Desktop (V5/V6) goes via IPC; web-shell default goes via WS topic + Vue UI. Full
 
 User follow-up: after the Phase 1.6 hard-flip (`caaddf530`), the default shell is web-shell, but the B4 suite (envelope viewer / archive / governance-mofn / cross-fed-trust) only registered on `ipcMain.handle` — web-panel users couldn't see it. This patch adds 13 WS topics + dependency wiring so the default shell gets the full feature surface.
 
-| Topic | File | Description |
-|---|---|---|
-| **WS topic handler factory** | `src/main/web-shell/handlers/community-mtc-handlers.js` (+330) | 13 dotted topics: `mtc.envelope.get`, `mtc.archive.{push, restore, list}`, `mtc.governance-mofn.{create, sign, status, finalize, list}`, `mtc.cross-fed-trust.{establish, revoke, list, get-trusted-dids}`. Each handler returns `{success, ...}` shape; null manager yields `{success:false, error:"... not initialized"}` so the dispatcher doesn't crash |
-| **web-shell-bootstrap registration** | `src/main/web-shell/web-shell-bootstrap.js` (+22) | `createCommunityMtcHandlers({...managers})` spreads into `wsHandlers` map; lazy peer-pull uses `p2pManager.getConnectedPeers` |
-| **index.js dependency wiring** | `src/main/index.js` (+22) | Pulls 6 managers from DI container instances, attaches to `this.*`, passes them all into `startWebShell({...})` |
-| **Wire-shape consistency with IPC** | same | sign still uses base64-serialized keys (renderer doesn't ship Buffers); providerSpec stays `{kind, ...opts}`; error envelope `{success:false, error}` matches existing mtc.audit-status / sync.status / notification.* topics |
+| Topic                                | File                                                           | Description                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WS topic handler factory**         | `src/main/web-shell/handlers/community-mtc-handlers.js` (+330) | 13 dotted topics: `mtc.envelope.get`, `mtc.archive.{push, restore, list}`, `mtc.governance-mofn.{create, sign, status, finalize, list}`, `mtc.cross-fed-trust.{establish, revoke, list, get-trusted-dids}`. Each handler returns `{success, ...}` shape; null manager yields `{success:false, error:"... not initialized"}` so the dispatcher doesn't crash |
+| **web-shell-bootstrap registration** | `src/main/web-shell/web-shell-bootstrap.js` (+22)              | `createCommunityMtcHandlers({...managers})` spreads into `wsHandlers` map; lazy peer-pull uses `p2pManager.getConnectedPeers`                                                                                                                                                                                                                               |
+| **index.js dependency wiring**       | `src/main/index.js` (+22)                                      | Pulls 6 managers from DI container instances, attaches to `this.*`, passes them all into `startWebShell({...})`                                                                                                                                                                                                                                             |
+| **Wire-shape consistency with IPC**  | same                                                           | sign still uses base64-serialized keys (renderer doesn't ship Buffers); providerSpec stays `{kind, ...opts}`; error envelope `{success:false, error}` matches existing mtc.audit-status / sync.status / notification.\* topics                                                                                                                              |
 
 **Test matrix (B4-webshell adds 19, total 1106 / 1106 across 33 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `web-shell/__tests__/community-mtc-handlers.test.js` | 19 — 13-topic registration check + envelope.get 4 (local hit / remote peer-pull fallback / missing batcher / missing args) + archive.* 5 (push / restore / list / missing factory / missing spec) + governance-mofn.* 5 (create / sign with base64→Buffer revive / sign missing args / status+finalize+list / missing manager) + cross-fed-trust.* 4 (establish strips localCommunityId / revoke+list+get-trusted-dids / missing manager) + sync-throw caught into envelope |
-| Full 33-file regression | — | **1106 / 1106** ✅ |
+| Layer                   | File                                                 | Tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                    | `web-shell/__tests__/community-mtc-handlers.test.js` | 19 — 13-topic registration check + envelope.get 4 (local hit / remote peer-pull fallback / missing batcher / missing args) + archive._ 5 (push / restore / list / missing factory / missing spec) + governance-mofn._ 5 (create / sign with base64→Buffer revive / sign missing args / status+finalize+list / missing manager) + cross-fed-trust.\* 4 (establish strips localCommunityId / revoke+list+get-trusted-dids / missing manager) + sync-throw caught into envelope |
+| Full 33-file regression | —                                                    | **1106 / 1106** ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ## ✅ All B4 deferred + web-shell parity now complete
 
-| Phase | Commit | Tests added |
-|---|---|---|
-| Phase A + Phase B v1 | `50b8ddb05` | +58 |
-| B4 (DID + auto-bridge) | `3741a8e7e` | +47 |
-| B4-merkle v1 | `435ba7dde` | +31 |
-| B4-cross v1 | `8b03e3b54` | +34 |
-| B4-cross-trust v1 | `c50353ca8` | +8 |
-| B4-ui v1 | `173efc52e` | +10 |
-| B4-archive v1 | `527e36eba` | +26 |
-| B4-mofn v1 | `b1b016dd8` | +24 |
-| B4-crossfed v1 | `ad12fc515` | +16 |
-| **B4-webshell v1** | **this** | **+19** |
-| **Total** | **10 commits** | **+273 (149 → 1106)** |
+| Phase                  | Commit         | Tests added           |
+| ---------------------- | -------------- | --------------------- |
+| Phase A + Phase B v1   | `50b8ddb05`    | +58                   |
+| B4 (DID + auto-bridge) | `3741a8e7e`    | +47                   |
+| B4-merkle v1           | `435ba7dde`    | +31                   |
+| B4-cross v1            | `8b03e3b54`    | +34                   |
+| B4-cross-trust v1      | `c50353ca8`    | +8                    |
+| B4-ui v1               | `173efc52e`    | +10                   |
+| B4-archive v1          | `527e36eba`    | +26                   |
+| B4-mofn v1             | `b1b016dd8`    | +24                   |
+| B4-crossfed v1         | `ad12fc515`    | +16                   |
+| **B4-webshell v1**     | **this**       | **+19**               |
+| **Total**              | **10 commits** | **+273 (149 → 1106)** |
 
 ## 2026-05-07 Update XII — **B4-crossfed v1 — cross-federation trust anchors**
 
 Fifth and final B4 deferred item. B4-cross-trust v1 locked the inbound landmark filter to "issuer must be a current community member". This patch lets a user record "I also trust this other federation's anchors", so landmarks signed by their members pass too — no need to formally join their community.
 
-| Topic | File | Description |
-|---|---|---|
-| **CrossFedTrust** | `src/main/mtc/cross-fed-trust.js` (+185) | `establishTrust(localCommunityId, {remoteCommunityId, remoteMembers, expiresAt?, note?})` / `revokeTrust(localCommunityId, remoteCommunityId)` / `listTrusted(localCommunityId)` / `getTrustedDIDs(localCommunityId, {now?})` returns union of unexpired records' DIDs. Storage at `<userData>/cross-fed-trust/<localCommunityId>/<remoteCommunityId>.json`. expiresAt accepts ISO timestamps; expired records auto-excluded from getTrustedDIDs (clock injectable for tests) |
-| **Distribution trust filter extension** | `social-initializer.js` (+25 / -10) | `getCommunityMembers` adapter now unions: communityManager local members ∪ crossFedTrust cross-fed trusted DIDs. Either source throwing is swallowed, doesn't block |
-| **4 IPC handlers** | `community-ipc.js` (+45) | `cross-fed-trust:establish / revoke / list / get-trusted-dids`. Once configured by the renderer, all cross-fed landmarks pass the trust filter |
-| **Initializer** | `social-initializer.js` (+22) | `crossFedTrust` initializer required:false |
+| Topic                                   | File                                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CrossFedTrust**                       | `src/main/mtc/cross-fed-trust.js` (+185) | `establishTrust(localCommunityId, {remoteCommunityId, remoteMembers, expiresAt?, note?})` / `revokeTrust(localCommunityId, remoteCommunityId)` / `listTrusted(localCommunityId)` / `getTrustedDIDs(localCommunityId, {now?})` returns union of unexpired records' DIDs. Storage at `<userData>/cross-fed-trust/<localCommunityId>/<remoteCommunityId>.json`. expiresAt accepts ISO timestamps; expired records auto-excluded from getTrustedDIDs (clock injectable for tests) |
+| **Distribution trust filter extension** | `social-initializer.js` (+25 / -10)      | `getCommunityMembers` adapter now unions: communityManager local members ∪ crossFedTrust cross-fed trusted DIDs. Either source throwing is swallowed, doesn't block                                                                                                                                                                                                                                                                                                           |
+| **4 IPC handlers**                      | `community-ipc.js` (+45)                 | `cross-fed-trust:establish / revoke / list / get-trusted-dids`. Once configured by the renderer, all cross-fed landmarks pass the trust filter                                                                                                                                                                                                                                                                                                                                |
+| **Initializer**                         | `social-initializer.js` (+22)            | `crossFedTrust` initializer required:false                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 **Test matrix (B4-crossfed adds 16, total 1087 / 1087 across 32 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `mtc/__tests__/cross-fed-trust.test.js` | 16 — constructor / establishTrust 6 cases (writes record / unsafe ids / empty/dup/malformed members / idempotent update) / revokeTrust 2 / listTrusted 2 / getTrustedDIDs 5 (union / excludes expired / includes future expiresAt / clock injection / empty community) |
-| Full 32-file regression | — | **1087 / 1087** ✅ |
+| Layer                   | File                                    | Tests                                                                                                                                                                                                                                                                  |
+| ----------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                    | `mtc/__tests__/cross-fed-trust.test.js` | 16 — constructor / establishTrust 6 cases (writes record / unsafe ids / empty/dup/malformed members / idempotent update) / revokeTrust 2 / listTrusted 2 / getTrustedDIDs 5 (union / excludes expired / includes future expiresAt / clock injection / empty community) |
+| Full 32-file regression | —                                       | **1087 / 1087** ✅                                                                                                                                                                                                                                                     |
 
 ## All B4 deferred items now complete ✅
 
-| Sub-phase | Commit | New tests |
-|---|---|---|
-| ~~Inbound landmark trust filtering~~ | `c50353ca8` (VIII) | +8 |
-| ~~UI envelope viewer~~ | `173efc52e` (IX) | +10 |
-| ~~Periodic envelope archival~~ | `527e36eba` (X) | +26 |
-| ~~M-of-N for governance-critical events~~ | `b1b016dd8` (XI) | +24 |
-| ~~Cross-federation trust anchors~~ | this patch (XII) | +16 |
+| Sub-phase                                 | Commit             | New tests |
+| ----------------------------------------- | ------------------ | --------- |
+| ~~Inbound landmark trust filtering~~      | `c50353ca8` (VIII) | +8        |
+| ~~UI envelope viewer~~                    | `173efc52e` (IX)   | +10       |
+| ~~Periodic envelope archival~~            | `527e36eba` (X)    | +26       |
+| ~~M-of-N for governance-critical events~~ | `b1b016dd8` (XI)   | +24       |
+| ~~Cross-federation trust anchors~~        | this patch (XII)   | +16       |
 
 **One remaining**: user follow-up "需要在 web-shell 版本可以看到这些功能" — the full B4 IPC suite registers on ipcMain, but web-shell (the Phase 1.6 default) needs corresponding WS topic handlers before web-panel UI can use them. Next commit addresses this.
 
@@ -1081,25 +1090,27 @@ Fifth and final B4 deferred item. B4-cross-trust v1 locked the inbound landmark 
 
 Fourth deferred item. Phase 54 `cc governance` is single-DID voting with no multi-sig / threshold finalize semantics. This patch wires core-mtc's `assembleBatchFederated`: proposal created → members add signatures one by one → once M signatures collected, finalize writes a multi-sig landmark with N trust_anchors.
 
-| Topic | File | Description |
-|---|---|---|
+| Topic                  | File                                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **GovernanceMultiSig** | `src/main/mtc/governance-multisig.js` (+440) | `createProposal({communityId, proposalId, payload, members[], threshold})` / `addSignature(communityId, proposalId, signerKeys)` / `getStatus` / `finalize` / `listProposals`. Storage at `<userData>/governance-mofn/<communityId>/<proposalId>/{proposal.json, signatures/<did>.json, landmark.json}`. **Anti-impersonation**: addSignature validates `pubkey → sha256 → DID` matches the claimed DID. **Idempotent**: same DID adding twice is no-op; second finalize returns the same treeHeadId. **Local federated assembler**: `_assembleBatchFederatedLocal` uses core-mtc primitives + tweetnacl signer to dodge the @noble/curves hoisting trap (same approach as channel-event-batch) |
-| **5 IPC handlers** | `community-ipc.js` (+85) | `governance-mofn:create / sign / status / finalize / list`. sign accepts base64 `{did, secretKey, publicKey}` serialized form (renderer doesn't ship Buffers directly) |
-| **Initializer** | `social-initializer.js` (+22) | `governanceMultiSig` initializer required:false; failure non-fatal |
+| **5 IPC handlers**     | `community-ipc.js` (+85)                     | `governance-mofn:create / sign / status / finalize / list`. sign accepts base64 `{did, secretKey, publicKey}` serialized form (renderer doesn't ship Buffers directly)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Initializer**        | `social-initializer.js` (+22)                | `governanceMultiSig` initializer required:false; failure non-fatal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 **v1 trust / scope limits**:
+
 - Single-machine sig collection — caller (renderer) ships member secret keys directly, no network. **v2 will move sig collection to federation gossipsub**, with the coordinator gathering partial sigs while remote members sign offline and ship back (typical Frost/MuSig pattern)
 - "More than threshold contributions" → use the first M (deterministic by file order), ignore the rest
 - No expiry / revocation / reopen — once finalized, immutable
 
 **Test matrix (B4-mofn adds 24, total 1071 / 1071 across 31 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `mtc/__tests__/governance-multisig.test.js` | 24 — constructor / createProposal threshold/empty/dup/malformed-DID/unsafe-id/exists 7 cases + addSignature member-only/idempotent/non-member/DID-pubkey-mismatch/wrong-key-shape/threshold 6 cases + getStatus 2 + finalize insufficient/3-of-5 happy/over-threshold deterministic/idempotent/post-finalize-rejects-sign 5 + listProposals 2 |
-| Full 31-file regression | — | **1071 / 1071** ✅ |
+| Layer                   | File                                        | Tests                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                    | `mtc/__tests__/governance-multisig.test.js` | 24 — constructor / createProposal threshold/empty/dup/malformed-DID/unsafe-id/exists 7 cases + addSignature member-only/idempotent/non-member/DID-pubkey-mismatch/wrong-key-shape/threshold 6 cases + getStatus 2 + finalize insufficient/3-of-5 happy/over-threshold deterministic/idempotent/post-finalize-rejects-sign 5 + listProposals 2 |
+| Full 31-file regression | —                                           | **1071 / 1071** ✅                                                                                                                                                                                                                                                                                                                            |
 
 **Remaining deferred sub-phases progress**
+
 - ✅ ~~Inbound landmark trust filtering~~ — done in VIII
 - ✅ ~~UI envelope viewer~~ — done in IX
 - ✅ ~~Periodic envelope archival~~ — done in X
@@ -1111,26 +1122,27 @@ Fourth deferred item. Phase 54 `cc governance` is single-DID voting with no mult
 
 Third deferred item. B4-merkle / B4-cross keep the envelope evidence trail on local disk; device wipe / uninstall / disk corruption = total loss. This patch adds packaging + push to external providers so audit history can survive beyond a single machine's lifecycle.
 
-| Topic | File | Description |
-|---|---|---|
-| **ChannelEnvelopeArchiver** | `src/main/mtc/channel-envelope-archiver.js` (+360) | `pack(communityId, {sinceBatchId, includeRemote})` zips batches/<id>/* + remote-landmarks/* + remote-envelopes/* into a Buffer with a MANIFEST.json. `push(provider, communityId)` calls provider.putFile to upload. `restore(provider, communityId, archiveName)` does the reverse: unzips back to local dir (idempotent — existing files are skipped, not overwritten). `list(provider, communityId)` filters by ARCHIVE_NAME_PREFIX |
-| **filesystemProvider** | same (+50) | Mirrors archives to a local directory tree (suitable for Syncthing-class external sync, USB backups, CI artifacts). Full path-traversal defense |
-| **webdavProvider** | same (+50) | Wraps the existing `src/main/sync/webdav-client.js` (shipped in Phase 3c.5). Adapts put/get/list to webdav-client's `{ok, etag}` return shape |
-| **3 IPC handlers** | `community-ipc.js` (+85) | `channel-archive:push` / `channel-archive:restore` / `channel-archive:list`. Accepts renderer-supplied `{kind, ...opts}` provider spec → archiveProviderFactory instantiates → archiver operates. Credentials (webdav password) come from the spec per-call, not cached in main |
-| **archiveProviderFactory + initializer** | `social-initializer.js` (+78) | Registers `channelEnvelopeArchiver` initializer and `archiveProviderFactory`. Factory currently supports `{kind:'filesystem', rootDir}` and `{kind:'webdav', baseUrl, username, password, remoteRoot}` |
+| Topic                                    | File                                               | Description                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ChannelEnvelopeArchiver**              | `src/main/mtc/channel-envelope-archiver.js` (+360) | `pack(communityId, {sinceBatchId, includeRemote})` zips batches/<id>/_ + remote-landmarks/_ + remote-envelopes/\* into a Buffer with a MANIFEST.json. `push(provider, communityId)` calls provider.putFile to upload. `restore(provider, communityId, archiveName)` does the reverse: unzips back to local dir (idempotent — existing files are skipped, not overwritten). `list(provider, communityId)` filters by ARCHIVE_NAME_PREFIX |
+| **filesystemProvider**                   | same (+50)                                         | Mirrors archives to a local directory tree (suitable for Syncthing-class external sync, USB backups, CI artifacts). Full path-traversal defense                                                                                                                                                                                                                                                                                         |
+| **webdavProvider**                       | same (+50)                                         | Wraps the existing `src/main/sync/webdav-client.js` (shipped in Phase 3c.5). Adapts put/get/list to webdav-client's `{ok, etag}` return shape                                                                                                                                                                                                                                                                                           |
+| **3 IPC handlers**                       | `community-ipc.js` (+85)                           | `channel-archive:push` / `channel-archive:restore` / `channel-archive:list`. Accepts renderer-supplied `{kind, ...opts}` provider spec → archiveProviderFactory instantiates → archiver operates. Credentials (webdav password) come from the spec per-call, not cached in main                                                                                                                                                         |
+| **archiveProviderFactory + initializer** | `social-initializer.js` (+78)                      | Registers `channelEnvelopeArchiver` initializer and `archiveProviderFactory`. Factory currently supports `{kind:'filesystem', rootDir}` and `{kind:'webdav', baseUrl, username, password, remoteRoot}`                                                                                                                                                                                                                                  |
 
 **Archive name convention**: `channel-mtc-<communityId>-<isoTimestamp>-<sinceBatchId>-to-<latestBatchId>.zip`, stored under `<remoteRoot>/<communityId>/`. Incremental push (specifying `sinceBatchId`) only ships new batches, saving bandwidth.
 
 **Test matrix (B4-archive adds 26, total 1047 / 1047 across 30 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit (new) | `mtc/__tests__/channel-envelope-archiver.test.js` | 26 — constructor required-args / pack all-vs-no-remote / sinceBatchId incremental / unsafe communityId reject / empty repo throws / no-new-batches throws + filesystemProvider required-args+round-trip+path-traversal+missing+empty-dir + push full result shape + restore round-trip with batcher.findEnvelope hit + idempotent second restore=0 + incremental sinceBatchId / list filtering + sort / provider failure throws + webdavProvider required-args+round-trip+failure+getFile two shapes+listFiles mapping+missing-listFiles fallback+path-traversal documented (adm-zip API limit explained) |
-| Full 30-file regression | — | **1047 / 1047** ✅ |
+| Layer                   | File                                              | Tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (new)              | `mtc/__tests__/channel-envelope-archiver.test.js` | 26 — constructor required-args / pack all-vs-no-remote / sinceBatchId incremental / unsafe communityId reject / empty repo throws / no-new-batches throws + filesystemProvider required-args+round-trip+path-traversal+missing+empty-dir + push full result shape + restore round-trip with batcher.findEnvelope hit + idempotent second restore=0 + incremental sinceBatchId / list filtering + sort / provider failure throws + webdavProvider required-args+round-trip+failure+getFile two shapes+listFiles mapping+missing-listFiles fallback+path-traversal documented (adm-zip API limit explained) |
+| Full 30-file regression | —                                                 | **1047 / 1047** ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Test gotcha**: archiver tests pin `// @vitest-environment node` because adm-zip's Buffer round-trip (`toBuffer → new AdmZip(buf)`) returns 0 entries under jsdom (Buffer / typed-array realm mismatch — same root cause as the libp2p e2e tests). One more case where jsdom's main-process-library compatibility is genuinely flaky.
 
 **Remaining deferred sub-phases progress**
+
 - ✅ ~~Inbound landmark trust filtering~~ — done in VIII
 - ✅ ~~UI envelope viewer~~ — done in IX
 - ✅ ~~Periodic envelope archival to OSS / WebDAV / IPFS~~ — done in this patch (FS + WebDAV; OSS / IPFS providers as follow-up)
@@ -1141,23 +1153,25 @@ Third deferred item. B4-merkle / B4-cross keep the envelope evidence trail on lo
 
 Second deferred item: B4-merkle / B4-cross had backend-only — no renderer surface. This patch wires the UI: every signed channel message gains a "🔐 验证" button that opens a modal showing origin (local-batched vs peer-pulled), tree-head / batch / leaf index, signature-verified status, plus an expandable raw envelope + landmark JSON view with copy buttons (so users can paste into `cc mtc verify` for offline cross-check).
 
-| Topic | File | Description |
-|---|---|---|
-| **`useMessageEnvelope` composable** | `src/renderer/composables/useMessageEnvelope.ts` (+155) | 5-phase reactive state (idle / loading / found / not-found / error) + `fetch(communityId, messageId)` + `reset()`. Uses generic `electronAPI.invoke('channel:get-message-envelope', ...)` (no preload changes needed). Falls back to error phase with friendly message when preload missing |
-| **`MessageEnvelopeViewer.vue`** | `src/renderer/shell/community/MessageEnvelopeViewer.vue` (+170) | 720px Ant Design Modal with message preview + 5-phase UI (Spin / Alert / Descriptions) + origin Tag (local green / remote blue) + tree-head / batch / namespace / leafIndex + signature ✅ + orange tag when landmark cache missing + collapsible raw envelope/landmark JSON with copy buttons (`navigator.clipboard.writeText`). Button only renders when message has `signature && sender_pubkey` |
-| **CommunityDetailsDrawer integration** | `src/renderer/shell/community/CommunityDetailsDrawer.vue` (+30) | Channel message rows gain a "🔐 验证" button (signed messages only) + Tooltip; Modal v-model:open two-way binding; passes `community.id` as the viewer's communityId prop |
+| Topic                                  | File                                                            | Description                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`useMessageEnvelope` composable**    | `src/renderer/composables/useMessageEnvelope.ts` (+155)         | 5-phase reactive state (idle / loading / found / not-found / error) + `fetch(communityId, messageId)` + `reset()`. Uses generic `electronAPI.invoke('channel:get-message-envelope', ...)` (no preload changes needed). Falls back to error phase with friendly message when preload missing                                                                                                         |
+| **`MessageEnvelopeViewer.vue`**        | `src/renderer/shell/community/MessageEnvelopeViewer.vue` (+170) | 720px Ant Design Modal with message preview + 5-phase UI (Spin / Alert / Descriptions) + origin Tag (local green / remote blue) + tree-head / batch / namespace / leafIndex + signature ✅ + orange tag when landmark cache missing + collapsible raw envelope/landmark JSON with copy buttons (`navigator.clipboard.writeText`). Button only renders when message has `signature && sender_pubkey` |
+| **CommunityDetailsDrawer integration** | `src/renderer/shell/community/CommunityDetailsDrawer.vue` (+30) | Channel message rows gain a "🔐 验证" button (signed messages only) + Tooltip; Modal v-model:open two-way binding; passes `community.id` as the viewer's communityId prop                                                                                                                                                                                                                           |
 
 **Test matrix (B4-ui adds 10, total 1021 / 1021 across 29 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `composables/__tests__/useMessageEnvelope.test.ts` | 10 — full 5-phase coverage (idle initial / empty-args reject / preload-missing error / found normalized result / origin default / not-found with reason / IPC throw → error / null IPC response → not-found / loading transition observable / reset()) |
-| Full 29-file regression | — | **1021 / 1021** ✅ |
+| Layer                   | File                                               | Tests                                                                                                                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit                    | `composables/__tests__/useMessageEnvelope.test.ts` | 10 — full 5-phase coverage (idle initial / empty-args reject / preload-missing error / found normalized result / origin default / not-found with reason / IPC throw → error / null IPC response → not-found / loading transition observable / reset()) |
+| Full 29-file regression | —                                                  | **1021 / 1021** ✅                                                                                                                                                                                                                                     |
 
 **Known coverage gap (deliberate)**:
+
 - No unit test for `MessageEnvelopeViewer.vue` itself. Reasoning: the component is mostly Ant Design Modal/Spin/Tag/Descriptions plumbing with no business-logic branching. Mount + Teleport modals are fragile under vitest jsdom; the composable + IPC wiring tests already cover the data flow. Integration test can land with the next e2e Playwright batch.
 
 **Remaining deferred sub-phases progress**
+
 - ✅ ~~Inbound landmark trust filtering~~ — done in VIII
 - ✅ ~~UI envelope viewer~~ — done in this patch
 - 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
@@ -1168,12 +1182,13 @@ Second deferred item: B4-merkle / B4-cross had backend-only — no renderer surf
 
 First item off the B4-cross v1 deferred list: B4-cross v1 had no inbound trust model (cached every landmark received). This patch adds community-membership filtering: a landmark's issuer DID must be in the current community's member list before it's cached, otherwise it's rejected and `landmark:rejected` is emitted. When the membership callback is omitted, falls back to v1 trust-none behavior with a one-time startup warn.
 
-| Topic | File | Description |
-|---|---|---|
+| Topic                                   | File                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **distribution accepts trust callback** | `src/main/mtc/channel-envelope-distribution.js` (+105) | New constructor opt `getCommunityMembers: (communityId) => Promise<DID[]>`. `_handleIncomingLandmark` becomes async: (1) extract issuer DID via new static `extractIssuerDID(landmark)` method (default strips `did-bound:` prefix, tolerates bare DIDs); (2) call getCommunityMembers; (3) issuer not in list → emit `landmark:rejected` with reason and don't cache. No callback → init-time warn "trust filter OFF" |
-| **social-initializer wiring** | `src/main/bootstrap/social-initializer.js` (+25) | distribution initializer adds `communityManager` to its deps; provides `getCommunityMembers` implementation as `communityManager.getMembers(id, {limit:10000}).then(rows => rows.map(r => r.member_did))`. Failure swallowed → empty list |
+| **social-initializer wiring**           | `src/main/bootstrap/social-initializer.js` (+25)       | distribution initializer adds `communityManager` to its deps; provides `getCommunityMembers` implementation as `communityManager.getMembers(id, {limit:10000}).then(rows => rows.map(r => r.member_did))`. Failure swallowed → empty list                                                                                                                                                                              |
 
 **rejected event reason enum**:
+
 - `"issuer DID not extractable"` — landmark.snapshots[0].signature missing issuer field
 - `"membership lookup failed: <err>"` — getCommunityMembers threw (DB unavailable etc)
 - `"issuer not a community member"` — DID present but not on membership list
@@ -1182,12 +1197,13 @@ First item off the B4-cross v1 deferred list: B4-cross v1 had no inbound trust m
 
 **Test matrix (B4-cross-trust adds 8, total 1011 / 1011 across 28 files)**
 
-| Layer | Tests |
-|---|---|
+| Layer                                                  | Tests                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Unit +8 → 29 (`channel-envelope-distribution.test.js`) | trust filter ON: cache when member / reject when not member (incl. reject event payload) / reject when issuer not extractable / reject when getCommunityMembers throws / trust filter OFF: v1 behavior preserved / `extractIssuerDID` three cases (with prefix / no prefix / malformed) |
-| Full 28-file regression | **1011 / 1011** ✅ |
+| Full 28-file regression                                | **1011 / 1011** ✅                                                                                                                                                                                                                                                                      |
 
 **Remaining deferred sub-phases progress**
+
 - ✅ ~~Inbound landmark trust filtering~~ — done in this patch
 - 🚧 UI envelope viewer
 - 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
@@ -1198,26 +1214,27 @@ First item off the B4-cross v1 deferred list: B4-cross v1 had no inbound trust m
 
 B4-merkle v1 produced envelopes but they were only useful to the sender (peers had no batch dir to verify against). This patch closes the most critical gap: landmarks auto-broadcast over federation gossipsub + envelopes are pulled on-demand from peers. The audit-grade promise is now redeemed — any third party can verify any known messageId's inclusion proof.
 
-| Topic | File | Description |
-|---|---|---|
-| **Batcher remote cache + callback API** | `src/main/mtc/channel-event-batch.js` (+196 / -27) | New methods: `onBatchClosed(handler)` (fires after closeBatch + multi-handler isolation), `storeRemoteLandmark / findRemoteLandmark` (indexed by treeHeadId, sha256: colon → filesystem-safe `_`), `storeRemoteEnvelope` (messageId-indexed). `findEnvelope` now returns an `origin: "local" \| "remote"` field; `loadEnvelopeAndLandmark` auto-routes landmark lookup by origin (local sits next to envelope, remote in remote-landmarks/) |
-| **ChannelEnvelopeDistribution** | `src/main/mtc/channel-envelope-distribution.js` (+330) | Wraps mtcFedMgr (gossipsub on a separate `cc.community.<id>.envelopes-track` topic to keep envelope flow off the message channel) + p2pManager (typed `mtc:envelope-request` / `mtc:envelope-response`). API: `subscribeCommunity` (cache remote landmarks) / auto `publishLandmark` (hooks batcher.onBatchClosed) / `requestEnvelope(peerId, communityId, messageId)` Promise + 8s default timeout. Internal in-flight tracker + close rejects all pending |
-| **typed message dispatch** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+24) | Adds `mtc:envelope-request` (→ `'mtc:envelope-request'` event w/ requestId/communityId/messageId/fromPeerId) + `mtc:envelope-response` (→ event w/ found/envelope/batchId). Distribution module listens on these events directly |
-| **social-initializer registration** | `src/main/bootstrap/social-initializer.js` (+38) | `channelEnvelopeDistribution` initializer (depends mtcFedMgr + p2pManager + channelEventBatcher); failure-tolerant |
-| **community-ipc integration** | `src/main/social/community-ipc.js` (+62) | `community:join` also calls `channelEnvelopeDistribution.subscribeCommunity` to start landmark caching; `channel:get-message-envelope` adds a fallback chain — when not local, enumerates connected peers in order and `requestEnvelope` until first hit (requestEnvelope internally `storeRemoteEnvelope`-caches); phase-3-4-social wires through `channelEnvelopeDistribution` + `p2pManager` |
+| Topic                                   | File                                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Batcher remote cache + callback API** | `src/main/mtc/channel-event-batch.js` (+196 / -27)         | New methods: `onBatchClosed(handler)` (fires after closeBatch + multi-handler isolation), `storeRemoteLandmark / findRemoteLandmark` (indexed by treeHeadId, sha256: colon → filesystem-safe `_`), `storeRemoteEnvelope` (messageId-indexed). `findEnvelope` now returns an `origin: "local" \| "remote"` field; `loadEnvelopeAndLandmark` auto-routes landmark lookup by origin (local sits next to envelope, remote in remote-landmarks/)                 |
+| **ChannelEnvelopeDistribution**         | `src/main/mtc/channel-envelope-distribution.js` (+330)     | Wraps mtcFedMgr (gossipsub on a separate `cc.community.<id>.envelopes-track` topic to keep envelope flow off the message channel) + p2pManager (typed `mtc:envelope-request` / `mtc:envelope-response`). API: `subscribeCommunity` (cache remote landmarks) / auto `publishLandmark` (hooks batcher.onBatchClosed) / `requestEnvelope(peerId, communityId, messageId)` Promise + 8s default timeout. Internal in-flight tracker + close rejects all pending |
+| **typed message dispatch**              | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+24) | Adds `mtc:envelope-request` (→ `'mtc:envelope-request'` event w/ requestId/communityId/messageId/fromPeerId) + `mtc:envelope-response` (→ event w/ found/envelope/batchId). Distribution module listens on these events directly                                                                                                                                                                                                                            |
+| **social-initializer registration**     | `src/main/bootstrap/social-initializer.js` (+38)           | `channelEnvelopeDistribution` initializer (depends mtcFedMgr + p2pManager + channelEventBatcher); failure-tolerant                                                                                                                                                                                                                                                                                                                                          |
+| **community-ipc integration**           | `src/main/social/community-ipc.js` (+62)                   | `community:join` also calls `channelEnvelopeDistribution.subscribeCommunity` to start landmark caching; `channel:get-message-envelope` adds a fallback chain — when not local, enumerates connected peers in order and `requestEnvelope` until first hit (requestEnvelope internally `storeRemoteEnvelope`-caches); phase-3-4-social wires through `channelEnvelopeDistribution` + `p2pManager`                                                             |
 
 **Trust model (v1)**: none — caches every landmark/envelope received without trust_anchors validation. Reasoning: (a) Noise transport prevents MITM, (b) the user ultimately verifies the envelope's inclusion proof against the landmark's tree-head signature (`cc mtc verify` etc), so a fake landmark can't pass the final gate. v2 can add inbound landmark filtering by federation membership.
 
 **Test matrix (B4-cross adds 34, total 1003 / 1003 across 28 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit (extended) | `mtc/__tests__/channel-event-batch.test.js` (+11 →34) | 11 cross-machine cases: onBatchClosed full flow / handler exception isolation / storeRemoteLandmark+findRemoteLandmark round-trip / `:` filesystem escape / storeRemoteEnvelope+findEnvelope `origin:remote` / unsafe messageId reject / loadEnvelopeAndLandmark remote bundle / orphan envelope no landmark fallback / origin tag preserved |
-| Unit (new) | `mtc/__tests__/channel-envelope-distribution.test.js` | 21 — constructor required-deps validation / lifecycle idempotency / close tear-down listeners / auto-publish on closeBatch (non-blocking) / `landmark:published` event / subscribeCommunity uses synthetic `<id>.envelopes-track` topic / inbound landmark cache / non-landmark payload ignored / unsubscribeCommunity idempotent / `requestEnvelope` full flow (req → resp cached → resolve) / found:false / 8s timeout → null / unknown requestId silently ignored / close rejects in-flight / inbound envelope-request finds local envelope and responds / not-found → found:false / malformed request (missing requestId / missing fromPeerId) ignored |
-| Unit (extended) | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2 →22) | 2 new dispatch cases: `mtc:envelope-request` / `mtc:envelope-response` field passthrough |
-| Full 28-file regression | — | **1003 / 1003** ✅ |
+| Layer                   | File                                                  | Tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (extended)         | `mtc/__tests__/channel-event-batch.test.js` (+11 →34) | 11 cross-machine cases: onBatchClosed full flow / handler exception isolation / storeRemoteLandmark+findRemoteLandmark round-trip / `:` filesystem escape / storeRemoteEnvelope+findEnvelope `origin:remote` / unsafe messageId reject / loadEnvelopeAndLandmark remote bundle / orphan envelope no landmark fallback / origin tag preserved                                                                                                                                                                                                                                                                                                               |
+| Unit (new)              | `mtc/__tests__/channel-envelope-distribution.test.js` | 21 — constructor required-deps validation / lifecycle idempotency / close tear-down listeners / auto-publish on closeBatch (non-blocking) / `landmark:published` event / subscribeCommunity uses synthetic `<id>.envelopes-track` topic / inbound landmark cache / non-landmark payload ignored / unsubscribeCommunity idempotent / `requestEnvelope` full flow (req → resp cached → resolve) / found:false / 8s timeout → null / unknown requestId silently ignored / close rejects in-flight / inbound envelope-request finds local envelope and responds / not-found → found:false / malformed request (missing requestId / missing fromPeerId) ignored |
+| Unit (extended)         | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2 →22) | 2 new dispatch cases: `mtc:envelope-request` / `mtc:envelope-response` field passthrough                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Full 28-file regression | —                                                     | **1003 / 1003** ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 **End-to-end value redeemed**:
+
 1. Alice sends a message in community-X channel → local channelManager INSERT + B4a sign + Phase A gossip + Phase B MTC + B4-merkle batch enqueue
 2. After 100 messages or 1h triggers closeBatch → assembleBatch + writes batches/000001/ → onBatchClosed callback → ChannelEnvelopeDistribution publishes the landmark to `cc.community.community-X.envelopes-track` topic
 3. Bob has joined community-X (community:join auto-subscribes that topic) → receives landmark → batcher.storeRemoteLandmark persists to `<userData>/channel-mtc/community-X/remote-landmarks/sha256_xxx.json`
@@ -1225,6 +1242,7 @@ B4-merkle v1 produced envelopes but they were only useful to the sender (peers h
 5. Renderer (or `cc mtc verify`) checks Merkle inclusion_proof against landmark's tree-head signature → ✅ third-party cryptographic evidence stands
 
 **Deferred (B4-cross follow-up sub-phases)**
+
 - Inbound landmark trust filtering (validate against expected federation membership)
 - Periodic envelope archival to OSS / WebDAV / IPFS (survive device wipe)
 - UI envelope viewer button ("show this message's cryptographic proof")
@@ -1234,26 +1252,28 @@ B4-merkle v1 produced envelopes but they were only useful to the sender (peers h
 
 The P2P social path graduates from "messages are trusted + auto-mesh" to also producing offline-verifiable Merkle batch envelopes for every locally-sent channel message. Composes with B4a's Ed25519 per-message signatures: you now have third-party-verifiable evidence "I sent message Z to channel Y at time X."
 
-| Topic | File | Description |
-|---|---|---|
-| **ChannelEventBatcher** | `src/main/mtc/channel-event-batch.js` (+390) | Accumulates `staging/<message-id>.json` → triggers `closeBatch` on threshold (default 100) or timer (default 1h) → writes `batches/<batch-id>/{manifest,landmark,envelope-*}.json`. Layout mirrors audit-mtc's `~/.chainlesschain/audit-mtc/`. Atomic rename + crash rollback. Path: `<userData>/channel-mtc/<communityId>/`. tweetnacl-based MTC signer (sidesteps `@noble/curves@2.2.0` removing the `/ed25519` subpath + workspace hoisting trap). `_assembleBatchLocal` uses core-mtc's `/hash` `/jcs` `/merkle` `/constants` subpath primitives directly (does NOT require core-mtc's index, which would transitively load the broken ed25519 signer) |
-| social-initializer registration | `src/main/bootstrap/social-initializer.js` (+45) | `channelEventBatcher` initializer (depends on `didManager`), `autoTimer:true` starts the 1h closer. Failure-tolerant |
-| community-ipc enqueue after dual-publish | `src/main/social/community-ipc.js` (+28) | `channel:send-message` IPC, after channelManager.sendMessage + gossip + MTC, enqueues the signed message into the batcher (B4a's sender_pubkey + signature anchor the leaf). Failure swallowed. New `channel:get-message-envelope` IPC takes `(communityId, messageId)` → returns `{found, envelope, landmark, treeHeadId, batchId, leafIndex}` |
-| Wire compat | — | Output landmark + envelopes are wire-compatible with core-mtc's verifier — peers can use `cc mtc verify` against inclusion proofs without our desktop binaries |
+| Topic                                    | File                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ChannelEventBatcher**                  | `src/main/mtc/channel-event-batch.js` (+390)     | Accumulates `staging/<message-id>.json` → triggers `closeBatch` on threshold (default 100) or timer (default 1h) → writes `batches/<batch-id>/{manifest,landmark,envelope-*}.json`. Layout mirrors audit-mtc's `~/.chainlesschain/audit-mtc/`. Atomic rename + crash rollback. Path: `<userData>/channel-mtc/<communityId>/`. tweetnacl-based MTC signer (sidesteps `@noble/curves@2.2.0` removing the `/ed25519` subpath + workspace hoisting trap). `_assembleBatchLocal` uses core-mtc's `/hash` `/jcs` `/merkle` `/constants` subpath primitives directly (does NOT require core-mtc's index, which would transitively load the broken ed25519 signer) |
+| social-initializer registration          | `src/main/bootstrap/social-initializer.js` (+45) | `channelEventBatcher` initializer (depends on `didManager`), `autoTimer:true` starts the 1h closer. Failure-tolerant                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| community-ipc enqueue after dual-publish | `src/main/social/community-ipc.js` (+28)         | `channel:send-message` IPC, after channelManager.sendMessage + gossip + MTC, enqueues the signed message into the batcher (B4a's sender_pubkey + signature anchor the leaf). Failure swallowed. New `channel:get-message-envelope` IPC takes `(communityId, messageId)` → returns `{found, envelope, landmark, treeHeadId, batchId, leafIndex}`                                                                                                                                                                                                                                                                                                            |
+| Wire compat                              | —                                                | Output landmark + envelopes are wire-compatible with core-mtc's verifier — peers can use `cc mtc verify` against inclusion proofs without our desktop binaries                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 **Sub-phase scope (v1 vs B4-merkle follow-up)**
+
 - v1: local-only batching + local envelope queries. Wire-compatible but **does not** auto-broadcast envelopes via federation (peers without your batch dir cannot query)
 - Follow-up: cross-machine envelope distribution (publish landmark via federation channel + on-demand pull); cron-based archival to OSS / WebDAV / IPFS; UI envelope viewer ("show this message's cryptographic proof")
 
 **Test matrix (B4-merkle adds 31, total 969 / 969 across 27 files)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `mtc/__tests__/channel-event-batch.test.js` | 23 — real fs (tmp dir) + real core-mtc primitives × constructor / enqueueEvent / filesystem path-traversal guards / threshold auto-close / closeBatch full lifecycle / sequential batch ids / no-identity → throw / findEnvelope three states / loadEnvelopeAndLandmark / closeAllPending |
-| Integration | `social/__tests__/community-ipc-merkle-enqueue.integration.test.js` | 8 — `channel:send-message` IPC enqueues / unsigned skipped / batcher throw doesn't block / null batcher fallback + `channel:get-message-envelope` IPC delegates / null batcher / missing args / batcher throws |
-| Full 27-file regression (p2p + social + mtc + did + bootstrap) | — | **969 / 969** ✅ |
+| Layer                                                          | File                                                                | Tests                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                                                           | `mtc/__tests__/channel-event-batch.test.js`                         | 23 — real fs (tmp dir) + real core-mtc primitives × constructor / enqueueEvent / filesystem path-traversal guards / threshold auto-close / closeBatch full lifecycle / sequential batch ids / no-identity → throw / findEnvelope three states / loadEnvelopeAndLandmark / closeAllPending |
+| Integration                                                    | `social/__tests__/community-ipc-merkle-enqueue.integration.test.js` | 8 — `channel:send-message` IPC enqueues / unsigned skipped / batcher throw doesn't block / null batcher fallback + `channel:get-message-envelope` IPC delegates / null batcher / missing args / batcher throws                                                                            |
+| Full 27-file regression (p2p + social + mtc + did + bootstrap) | —                                                                   | **969 / 969** ✅                                                                                                                                                                                                                                                                          |
 
 **Real-world bugs / lessons**
+
 - `@noble/curves` cross-version subpath removal: core-mtc deps `^1.9.7` (has `./ed25519` subpath), desktop-app-vue's standalone node_modules has `@2.2.0` (subpath removed). `require("@chainlesschain/core-mtc")` index file top-level requires the ed25519 signer module, which fails to load → entire core-mtc module unusable. Fix: **don't require core-mtc index**, only require the specific subpath primitives we use (`/hash` `/jcs` `/merkle` `/constants` — none touch @noble/curves), implement the MTC signer interface ourselves with tweetnacl, and run a local `_assembleBatchLocal` that bypasses `@noble/curves` entirely
 - Another manifestation of the hoisting trap warned about in memory `desktop_release_npm_workspace_hoisting.md` — this time it's different npm versions locked into standalone node_modules
 
@@ -1263,60 +1283,64 @@ The P2P social path graduates from "messages are trusted + auto-mesh" to also pr
 
 P2P social path graduates from "works" to "anti-impersonation + auto-mesh". Two features bundled because they share wire-protocol surface:
 
-| Topic | File | Description |
-|---|---|---|
-| **B4a — DID-signed channel messages** | `src/main/did/did-signer.js` (+205) | Pure crypto helper, decoupled from DIDManager. `signPayloadWithIdentity / verifyPayloadAgainstDid` use a minimal deterministic JSON (avoids the canonicalize cross-workspace hoisting trap), signing the immutable subset `{id,channel_id,sender_did,content,message_type,reply_to,created_at}` (is_pinned/reactions/updated_at deliberately excluded — they mutate) |
-| Public key distribution | — | **Embed in message**: each msg carries `sender_pubkey` (base64 32B Ed25519). No DID resolver dependency; verifies offline. Cost ~44B/msg (negligible at human chat rates) |
-| Triple verification (receiver) | `channel-manager.handleMessageReceived` | (1) `sha256(sender_pubkey).slice(0,20).toString('hex')` must match `sender_did` suffix (anti-pubkey/DID mismatch); (2) Ed25519 detached verify; (3) signature length/shape valid |
-| Three-state backward-compat | same | (a) both sig+pubkey present → strict verify, fail emits `channel:message-rejected` event + drops; (b) both absent → log warn + accept (migration window for old clients); (c) only one → reject as malformed |
-| Schema migration | `channel-manager.initializeTables` | CREATE adds new columns + PRAGMA `table_info` probe + conditional ALTER (sidesteps the project's fragmented numbered-SQL migration runner) |
-| **auto peer bridging** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+15) + `src/main/bootstrap/social-initializer.js` `wireMtcAutoBridge` (+95 export) | New typed message `mtc:advertise` rides `/chainlesschain/message/1.0.0`; dispatch routes to `mtc:peer-advertise` event. social-initializer registers `mtcAutoBridge` initializer: on `peer:connected` it pushes our MTC card to the new peer; on `mtc:peer-advertise` it sequentially dials the advertised multiaddrs. Bidirectional, libp2p dedupes |
-| Failure tolerance | same | Either side `mtcFedMgr.isInitialized() === false` → no-op (Phase A direct gossip keeps working). `connectPeer` failures are swallowed (NAT / IPv6 unreachable / dup connect are normal) |
+| Topic                                 | File                                                                                                                                     | Description                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B4a — DID-signed channel messages** | `src/main/did/did-signer.js` (+205)                                                                                                      | Pure crypto helper, decoupled from DIDManager. `signPayloadWithIdentity / verifyPayloadAgainstDid` use a minimal deterministic JSON (avoids the canonicalize cross-workspace hoisting trap), signing the immutable subset `{id,channel_id,sender_did,content,message_type,reply_to,created_at}` (is_pinned/reactions/updated_at deliberately excluded — they mutate) |
+| Public key distribution               | —                                                                                                                                        | **Embed in message**: each msg carries `sender_pubkey` (base64 32B Ed25519). No DID resolver dependency; verifies offline. Cost ~44B/msg (negligible at human chat rates)                                                                                                                                                                                            |
+| Triple verification (receiver)        | `channel-manager.handleMessageReceived`                                                                                                  | (1) `sha256(sender_pubkey).slice(0,20).toString('hex')` must match `sender_did` suffix (anti-pubkey/DID mismatch); (2) Ed25519 detached verify; (3) signature length/shape valid                                                                                                                                                                                     |
+| Three-state backward-compat           | same                                                                                                                                     | (a) both sig+pubkey present → strict verify, fail emits `channel:message-rejected` event + drops; (b) both absent → log warn + accept (migration window for old clients); (c) only one → reject as malformed                                                                                                                                                         |
+| Schema migration                      | `channel-manager.initializeTables`                                                                                                       | CREATE adds new columns + PRAGMA `table_info` probe + conditional ALTER (sidesteps the project's fragmented numbered-SQL migration runner)                                                                                                                                                                                                                           |
+| **auto peer bridging**                | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+15) + `src/main/bootstrap/social-initializer.js` `wireMtcAutoBridge` (+95 export) | New typed message `mtc:advertise` rides `/chainlesschain/message/1.0.0`; dispatch routes to `mtc:peer-advertise` event. social-initializer registers `mtcAutoBridge` initializer: on `peer:connected` it pushes our MTC card to the new peer; on `mtc:peer-advertise` it sequentially dials the advertised multiaddrs. Bidirectional, libp2p dedupes                 |
+| Failure tolerance                     | same                                                                                                                                     | Either side `mtcFedMgr.isInitialized() === false` → no-op (Phase A direct gossip keeps working). `connectPeer` failures are swallowed (NAT / IPv6 unreachable / dup connect are normal)                                                                                                                                                                              |
 
 **Test matrix (B4 adds 47, total 938 / 938 green)**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `did/__tests__/did-signer.test.js` | 22 — canonicalize 7 + computeDID 3 + sign/verify 5 + end-to-end 7 |
-| Unit | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2) | 20 (was 18) — added `mtc:advertise` dispatch + missing-multiaddrs fallback |
-| Integration | `social/__tests__/channel-manager-signing.integration.test.js` | 8 — real Ed25519 keypair × real ChannelManager × mock SQL, validates sign + verify + three attack rejects (impersonation/tamper/malformed) + legacy accept + idempotency + no-key fallback |
-| Integration | `bootstrap/__tests__/mtc-auto-bridge.integration.test.js` | 15 — `wireMtcAutoBridge` outbound/inbound × various error paths + bidirectional mesh seed |
-| Full 25-file regression (p2p + social + mtc + did + bootstrap) | — | **938 / 938** ✅ |
+| Layer                                                          | File                                                           | Tests                                                                                                                                                                                      |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit                                                           | `did/__tests__/did-signer.test.js`                             | 22 — canonicalize 7 + computeDID 3 + sign/verify 5 + end-to-end 7                                                                                                                          |
+| Unit                                                           | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2)              | 20 (was 18) — added `mtc:advertise` dispatch + missing-multiaddrs fallback                                                                                                                 |
+| Integration                                                    | `social/__tests__/channel-manager-signing.integration.test.js` | 8 — real Ed25519 keypair × real ChannelManager × mock SQL, validates sign + verify + three attack rejects (impersonation/tamper/malformed) + legacy accept + idempotency + no-key fallback |
+| Integration                                                    | `bootstrap/__tests__/mtc-auto-bridge.integration.test.js`      | 15 — `wireMtcAutoBridge` outbound/inbound × various error paths + bidirectional mesh seed                                                                                                  |
+| Full 25-file regression (p2p + social + mtc + did + bootstrap) | —                                                              | **938 / 938** ✅                                                                                                                                                                           |
 
 **Real-world bug callouts**
+
 - `src/main/did/__tests__/foo.test.js` calling `vi.mock("../../../utils/logger.js", ...)` is the **wrong path** (resolves to `src/utils/logger.js`, outside `src/main/`); vitest 4's strict mock loader doesn't error but **silently pollutes the fork's mock registry across files**: 20+ unrelated tests in batch fail with `wireMtcAutoBridge is not a function`, all green when run individually. Fix: `../../utils/logger.js` (2 levels not 3). Captured in memory `vitest_testing.md` under "vi.mock path correctness"
 - The `canonicalize` npm package is a transitive dep of `core-mtc`; desktop-app-vue (no longer a workspace) sees no hoisted resolution from its standalone node_modules. Rather than add another direct dep, did-signer.js ships its own 15-LoC minimal deterministic JSON (sufficient for the flat immutable subset, rejects nested objects to surface misuse)
 
 **Deferred (B4 follow-up sub-phases)**
+
 - Merkle batch envelope finality (`assembleBatch` persistence + verify path)
 - M-of-N for governance-critical events (proposals/votes via `assembleBatchFederated`)
 - Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` desktop integration)
 
 ## 2026-05-07 Update IV — **Phase B v1 — MTC federation dual-track sync landed**
 
-On top of Phase A's direct gossip, *dual-track* MTC federation gossipsub channel. Both paths coexist; receivers idempotently `INSERT OR IGNORE` by `message.id`.
+On top of Phase A's direct gossip, _dual-track_ MTC federation gossipsub channel. Both paths coexist; receivers idempotently `INSERT OR IGNORE` by `message.id`.
 
-| New | File | Description |
-|---|---|---|
-| MtcFederationManager | `src/main/mtc/mtc-federation-manager.js` (+233) | Wraps `@chainlesschain/core-mtc/transports/libp2p` Libp2pTransport (gossipsub mode). Topic: `cc.community.<id>.events`. API: `subscribeCommunity` / `publishCommunityEvent` / `unsubscribeCommunity` / `connectPeer`. Failure-tolerant — community keeps working via Phase A direct gossip if MTC fed init fails |
-| social-initializer registration | `src/main/bootstrap/social-initializer.js` (+34) | `mtcFederationManager` initializer, required:false |
-| community-ipc dual-publish + DI refactor | `src/main/social/community-ipc.js` (+62 / −10) | `community:join` / `community:leave` / `channel:send-message` IPC handlers run gossip + MTC concurrently. `registerCommunityIPC` now accepts `ipcMain` as a DI dep (matches social-ipc pattern; sidesteps vitest electron-alias named-export quirks) |
-| phase-3-4-social wiring | `src/main/ipc/phases/phase-3-4-social.js` (+2) | Passes `mtcFederationManager` through to `registerCommunityIPC` |
+| New                                      | File                                             | Description                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MtcFederationManager                     | `src/main/mtc/mtc-federation-manager.js` (+233)  | Wraps `@chainlesschain/core-mtc/transports/libp2p` Libp2pTransport (gossipsub mode). Topic: `cc.community.<id>.events`. API: `subscribeCommunity` / `publishCommunityEvent` / `unsubscribeCommunity` / `connectPeer`. Failure-tolerant — community keeps working via Phase A direct gossip if MTC fed init fails |
+| social-initializer registration          | `src/main/bootstrap/social-initializer.js` (+34) | `mtcFederationManager` initializer, required:false                                                                                                                                                                                                                                                               |
+| community-ipc dual-publish + DI refactor | `src/main/social/community-ipc.js` (+62 / −10)   | `community:join` / `community:leave` / `channel:send-message` IPC handlers run gossip + MTC concurrently. `registerCommunityIPC` now accepts `ipcMain` as a DI dep (matches social-ipc pattern; sidesteps vitest electron-alias named-export quirks)                                                             |
+| phase-3-4-social wiring                  | `src/main/ipc/phases/phase-3-4-social.js` (+2)   | Passes `mtcFederationManager` through to `registerCommunityIPC`                                                                                                                                                                                                                                                  |
 
 **Sub-phase scope (v1 vs deferred)**
+
 - v1: transport layer (subscribe/publish/dispatch + dual-track idempotency)
 - B4 deferred: DID signing / Merkle batch envelope finality / M-of-N multi-sig / cross-federation trust anchors / automatic peer bridging
 
 **Tests**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit | `src/main/mtc/__tests__/mtc-federation-manager.test.js` | 17 — topicForCommunity / lifecycle / publish / subscribe / unsubscribe / connectPeer with mock transport |
-| Integration | `src/main/social/__tests__/community-ipc-dual-track.integration.test.js` | 12 — community:join dual-subscribe / community:leave dual-unsubscribe / channel:send-message dual-publish / either transport failure does not block the other / single-track fallback (gossip-only / MTC-only) |
-| E2E | `src/main/mtc/__tests__/mtc-federation-roundtrip.test.js` | 4 — two real libp2p gossipsub-mode nodes + call path doesn't throw + conditional delivery assertion (assert if mesh forms, no-op if not — same policy as core-mtc's own federation-discovery test) + dual-track idempotency (same message via two paths inserts once) |
-| Full 22-file regression (p2p + social + mtc) | — | **891 / 891** ✅ |
+| Layer                                        | File                                                                     | Tests                                                                                                                                                                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                                         | `src/main/mtc/__tests__/mtc-federation-manager.test.js`                  | 17 — topicForCommunity / lifecycle / publish / subscribe / unsubscribe / connectPeer with mock transport                                                                                                                                                              |
+| Integration                                  | `src/main/social/__tests__/community-ipc-dual-track.integration.test.js` | 12 — community:join dual-subscribe / community:leave dual-unsubscribe / channel:send-message dual-publish / either transport failure does not block the other / single-track fallback (gossip-only / MTC-only)                                                        |
+| E2E                                          | `src/main/mtc/__tests__/mtc-federation-roundtrip.test.js`                | 4 — two real libp2p gossipsub-mode nodes + call path doesn't throw + conditional delivery assertion (assert if mesh forms, no-op if not — same policy as core-mtc's own federation-discovery test) + dual-track idempotency (same message via two paths inserts once) |
+| Full 22-file regression (p2p + social + mtc) | —                                                                        | **891 / 891** ✅                                                                                                                                                                                                                                                      |
 
 **Architectural notes**
+
 - MtcFederationManager runs a **standalone libp2p node** (not reused from P2PManager) — sharing would require invasive P2PManager createLibp2p config changes to add `pubsub: gossipsub()` service + a new dynamic import; deferred as follow-up
 - v1 has no auto peer discovery: `connectPeer(multiaddr)` is manual; cross-machine effect in production requires bootstrapping the peer's multiaddr externally (Phase A direct gossip remains the instant default channel)
 - 2-node gossipsub mesh formation is genuinely flaky in test environments (per core-mtc historical experience), so e2e delivery is asserted conditionally; production federations with 3+ peers + `floodPublish=true` deliver reliably
@@ -1326,31 +1350,32 @@ On top of Phase A's direct gossip, *dual-track* MTC federation gossipsub channel
 
 The community/channel "decentralized social" path was, **prior to this fix, single-machine only** — in any 2-user verification, A's messages never reached B's local DB. Phase A systematically fixed 7 independent bugs to wire send/receive together on the wire:
 
-| # | Location | Root cause | Fix |
-|---|---|---|---|
-| 1 | `p2p-manager.js:sendMessage` | `stream.write(data)` is libp2p 0.x/1.x legacy API; 3.x uses `stream.send(bytes)` | Switched to `stream.send(payload)` + drain backpressure |
-| 2 | `p2p-manager.js:sendMessage` | Passed JS object to `stream.write()`, but libp2p streams require `Uint8Array` | New `encodeWireMessage()`: Buffer/Uint8Array passthrough, object/string → JSON-line UTF-8 |
-| 3 | `p2p-manager.js:registerMessageHandler` | `for await of stream.source` is 0.x/1.x it-pipe semantics; in 3.x `.source` is undefined | Changed to `for await of stream` (3.x MessageStream is itself AsyncIterable) |
-| 4 | `p2p-manager.js:registerMessageHandler` | Handler signature `({stream, connection}) =>` was old shape | Changed to `(stream, connection) =>` |
-| 5 | `p2p-manager.js:registerMessageHandler` | Received bytes only emitted `message:received`, no per-`type` dispatch → gossip-protocol's `gossip:message` listener never fired | Added `decodeWireMessage` + `dispatchTypedMessage` to route by type to `gossip:message` / `gossip:subscribe` / `gossip:unsubscribe` / `message:call-*` / `message:typed`, with `message:received` retained as fallback |
-| 6 | `p2p-manager.js:initialize` | `registerMessageHandler()` was **never called** in init flow → the `/chainlesschain/message/1.0.0` protocol was never registered | Added the call before `registerEncryptedMessageHandlers()` |
-| 7 | `social-initializer.js` (new `gossipReceiver`) | `gossipProtocol.emit('message:received', ...)` had no subscriber → remote messages dead-ended at the gossip layer, never reached `channel_messages` table | New `gossipReceiver` initializer subscribes to the event and calls existing `channelManager.handleMessageReceived()` (INSERT OR IGNORE dedup) |
+| #   | Location                                       | Root cause                                                                                                                                                | Fix                                                                                                                                                                                                                    |
+| --- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `p2p-manager.js:sendMessage`                   | `stream.write(data)` is libp2p 0.x/1.x legacy API; 3.x uses `stream.send(bytes)`                                                                          | Switched to `stream.send(payload)` + drain backpressure                                                                                                                                                                |
+| 2   | `p2p-manager.js:sendMessage`                   | Passed JS object to `stream.write()`, but libp2p streams require `Uint8Array`                                                                             | New `encodeWireMessage()`: Buffer/Uint8Array passthrough, object/string → JSON-line UTF-8                                                                                                                              |
+| 3   | `p2p-manager.js:registerMessageHandler`        | `for await of stream.source` is 0.x/1.x it-pipe semantics; in 3.x `.source` is undefined                                                                  | Changed to `for await of stream` (3.x MessageStream is itself AsyncIterable)                                                                                                                                           |
+| 4   | `p2p-manager.js:registerMessageHandler`        | Handler signature `({stream, connection}) =>` was old shape                                                                                               | Changed to `(stream, connection) =>`                                                                                                                                                                                   |
+| 5   | `p2p-manager.js:registerMessageHandler`        | Received bytes only emitted `message:received`, no per-`type` dispatch → gossip-protocol's `gossip:message` listener never fired                          | Added `decodeWireMessage` + `dispatchTypedMessage` to route by type to `gossip:message` / `gossip:subscribe` / `gossip:unsubscribe` / `message:call-*` / `message:typed`, with `message:received` retained as fallback |
+| 6   | `p2p-manager.js:initialize`                    | `registerMessageHandler()` was **never called** in init flow → the `/chainlesschain/message/1.0.0` protocol was never registered                          | Added the call before `registerEncryptedMessageHandlers()`                                                                                                                                                             |
+| 7   | `social-initializer.js` (new `gossipReceiver`) | `gossipProtocol.emit('message:received', ...)` had no subscriber → remote messages dead-ended at the gossip layer, never reached `channel_messages` table | New `gossipReceiver` initializer subscribes to the event and calls existing `channelManager.handleMessageReceived()` (INSERT OR IGNORE dedup)                                                                          |
 
 **Test pyramid**
 
-| Layer | File | Tests |
-|---|---|---|
-| Unit (helpers) | `src/main/p2p/__tests__/p2p-manager-dispatch.test.js` | 18 — encode/decode/dispatch helpers × Buffer/Uint8Array/string/object/null payloads × 6 type categories |
-| Integration (wiring) | `src/main/social/__tests__/gossip-channel-receiver.integration.test.js` | 4 — real GossipProtocol + real ChannelManager + mock libp2p, validates channel_message insertion / idempotent duplicate / non-channel_message ignore / unsubscribed-community ignore |
-| E2E (real wire) | `src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js` | 3 — two real libp2p nodes (TCP + noise + yamux + identify), end-to-end through `mgrA.sendMessage` + `gossipA.broadcast` to receiver event emit |
-| Regression | `community-manager.test.js` (60) + `channel-manager.test.js` (64) + `call-signaling.test.js` + `call-manager.test.js` | 124 + entire p2p folder green |
-| **Total** | **5 files** | **149 / 149** |
+| Layer                | File                                                                                                                  | Tests                                                                                                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit (helpers)       | `src/main/p2p/__tests__/p2p-manager-dispatch.test.js`                                                                 | 18 — encode/decode/dispatch helpers × Buffer/Uint8Array/string/object/null payloads × 6 type categories                                                                              |
+| Integration (wiring) | `src/main/social/__tests__/gossip-channel-receiver.integration.test.js`                                               | 4 — real GossipProtocol + real ChannelManager + mock libp2p, validates channel_message insertion / idempotent duplicate / non-channel_message ignore / unsubscribed-community ignore |
+| E2E (real wire)      | `src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js`                                                                 | 3 — two real libp2p nodes (TCP + noise + yamux + identify), end-to-end through `mgrA.sendMessage` + `gossipA.broadcast` to receiver event emit                                       |
+| Regression           | `community-manager.test.js` (60) + `channel-manager.test.js` (64) + `call-signaling.test.js` + `call-manager.test.js` | 124 + entire p2p folder green                                                                                                                                                        |
+| **Total**            | **5 files**                                                                                                           | **149 / 149**                                                                                                                                                                        |
 
 **Test gotcha**: e2e test pins `// @vitest-environment node` because the project's default jsdom env breaks libp2p's TCP receive path (`Uint8Array instanceof` fails across realms).
 
 **Real-world impact**: After Phase A, two real desktop installs on the same LAN (mDNS discovery) or remote (DHT + bootstrap) can connect, join the same community, and A's channel message reaches B's `/community` view. **This was a latent prerequisite bug behind every v0.42.0 / v5.0.3.x community/channel user experience claim.**
 
 **Pre-existing bugs left for follow-up**:
+
 - 9 other `node.handle(...)` call sites likely have the same stream.write/source legacy API issue (yjs-collab-manager / model-parameter-sync / voice-video-manager / collab-sync) — out of Phase A scope, will surface when those features are exercised cross-machine
 - gossip-protocol now wires only `channel_message` payloads; governance proposals / moderation reports don't go through gossip and remain single-machine
 
@@ -1360,48 +1385,50 @@ The community/channel "decentralized social" path was, **prior to this fix, sing
 
 Four unrelated fixes bundled in one release:
 
-| Category | File | Root cause | Fix |
-|---|---|---|---|
+| Category                     | File                                                                                                                | Root cause                                                                                                                                                                                                                                                                                                                                                                                          | Fix                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **MTC view timeout cascade** | `packages/web-panel/src/views/Mtc.vue` + `desktop-app-vue/src/main/web-shell/handlers/mtc-status-handlers.js` (new) | After v5.0.3.39 flipped to `asar:true`, `cc` subprocess cold-start jumped from ~2.5s in dev to 6-10s when packaged (asar header walks + an extra virtual-fs layer in module resolution). `Mtc.vue`'s `onMounted` fires `loadStatus` + `loadBridgeStatus` + `loadBridgeSla` in parallel — they now reliably blow the 8s/6s ceilings → "状态加载失败: Request timeout" + "加载桥 MTC 状态失败" toasts | Added 3 in-process WS topics (`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`) that hit `audit-mtc` / `cross-chain-mtc` libs directly (pure file reads, no spawn, zero asar overhead). `Mtc.vue` branches on `useShellMode().isEmbedded`: embedded uses the new topics, browser / `cc serve` keeps the old `ws.execute` path. Bumped fallback timeouts 8000/6000 → 30000 ms (matching `executeJson` default). 7 + 1 new unit tests |
-| macOS unit fallback | `desktop-app-vue/scripts/build-win-with-deref.js` | `isSymlink` compared via `realpathSync`, but macOS `os.tmpdir()` resolves through `/var → /private/var` (implicit prefix-symlink) — every plain tmp dir false-positived as a symlink → 7 tests fail | Platform split: Windows still uses realpath (junctions need it); POSIX uses `lstat.isSymbolicLink()` (no junction concept) |
-| Rules-validator FP | `desktop-app-vue/scripts/rules-validator.js` | `sync-external-store.test.js:32` is a `TestDbManager.exec(sql)` passthrough for sql.js fixtures — flagged as SQL_INJECTION | `getAllFiles` now skips `__tests__/` / `__mocks__/` dirs + `.test.js`/`.spec.js`/`.d.ts` files |
-| Win cold-start ETIMEDOUT | `packages/cli/__tests__/unit/{skill,agent-repl}.test.js` | `node bin/chainlesschain.js …` ESM module-graph cold-start exceeds 10/15s `execSync` timeout on busy Windows hosts → 5 tests fail | Bumped all CLI-subprocess execSync timeouts to 60s (matches project-wide testTimeout); passes still finish in 1.7–2.5s |
+| macOS unit fallback          | `desktop-app-vue/scripts/build-win-with-deref.js`                                                                   | `isSymlink` compared via `realpathSync`, but macOS `os.tmpdir()` resolves through `/var → /private/var` (implicit prefix-symlink) — every plain tmp dir false-positived as a symlink → 7 tests fail                                                                                                                                                                                                 | Platform split: Windows still uses realpath (junctions need it); POSIX uses `lstat.isSymbolicLink()` (no junction concept)                                                                                                                                                                                                                                                                                                                     |
+| Rules-validator FP           | `desktop-app-vue/scripts/rules-validator.js`                                                                        | `sync-external-store.test.js:32` is a `TestDbManager.exec(sql)` passthrough for sql.js fixtures — flagged as SQL_INJECTION                                                                                                                                                                                                                                                                          | `getAllFiles` now skips `__tests__/` / `__mocks__/` dirs + `.test.js`/`.spec.js`/`.d.ts` files                                                                                                                                                                                                                                                                                                                                                 |
+| Win cold-start ETIMEDOUT     | `packages/cli/__tests__/unit/{skill,agent-repl}.test.js`                                                            | `node bin/chainlesschain.js …` ESM module-graph cold-start exceeds 10/15s `execSync` timeout on busy Windows hosts → 5 tests fail                                                                                                                                                                                                                                                                   | Bumped all CLI-subprocess execSync timeouts to 60s (matches project-wide testTimeout); passes still finish in 1.7–2.5s                                                                                                                                                                                                                                                                                                                         |
 
 **Test matrix**
 
-| Suite | Passed | Files | Duration |
-|---|---|---|---|
-| Desktop unit + stores | 10482 / 10482 (689 skipped) | 320 | 1022s |
-| MTC handler in-process (new) | 7 / 7 | 1 | 3.4s |
-| web-panel mtc-parser (new) | 14 / 14 | 1 | 1.1s |
-| CLI unit | 17392 / 17392 (7 skipped) | 412 | 458s |
-| CLI integration | 821 / 821 | 56 | 198s |
-| **Total** | **28716** | **790** | **~28 min** |
+| Suite                        | Passed                      | Files   | Duration    |
+| ---------------------------- | --------------------------- | ------- | ----------- |
+| Desktop unit + stores        | 10482 / 10482 (689 skipped) | 320     | 1022s       |
+| MTC handler in-process (new) | 7 / 7                       | 1       | 3.4s        |
+| web-panel mtc-parser (new)   | 14 / 14                     | 1       | 1.1s        |
+| CLI unit                     | 17392 / 17392 (7 skipped)   | 412     | 458s        |
+| CLI integration              | 821 / 821                   | 56      | 198s        |
+| **Total**                    | **28716**                   | **790** | **~28 min** |
 
 Desktop now **does** ship runtime changes (web-shell registers 3 new in-process handlers + the SPA bundle is rebuilt). The auto-updater compares `5.0.3-alpha.40 > 5.0.3-alpha.39`, so every v5.0.3.39 desktop user gets a real "new version available" prompt on restart and picks up both the MTC speedup and the CI fixes.
 
-## 2026-05-06 Update — **Phase 3b/3c multi-target sync** — 5 tray placeholders wired + SyncProvider abstraction + WebDAV/Git/sync.* WS topics across both shells
+## 2026-05-06 Update — **Phase 3b/3c multi-target sync** — 5 tray placeholders wired + SyncProvider abstraction + WebDAV/Git/sync.\* WS topics across both shells
 
 5 tray-menu placeholders (NotificationCenter listener / clipboard import / screenshot OCR / sync now / auto sync) graduated from "coming soon" toasts to real flows. Sync grew from a single backend hook into a multi-provider abstraction (Backend HTTP / Git / P2P / Mobile / WebDAV / OSS) usable from both V5/V6 and web-shell renderers.
 
-| Topic | Commit | Notes |
-|---|---|---|
-| Step 0 — NotificationCenter listener | `c990cda2a` | App.vue's `cc:show-notifications` window event had no listener; added onMounted/onBeforeUnmount that toggles panelVisible drawer. Tray "unread notifications" item now actually opens the panel. |
-| Step 1 — Clipboard import quick-action | `c2a2d8844` | New `ClipboardImportDialog.vue`: navigator.clipboard.readText → title/tag edit → `electronAPI.database.addKnowledgeItem`. Falls back to manual paste with a-alert when clipboard permission is denied. 4 unit tests. |
-| Step 2 — Screenshot OCR quick-action | `19fc2a50e` | Main-process `screenshot-ipc.js` (capture / ocr / cleanup, tmpdir sandbox rejecting non `cc-screenshot-` prefix) + `ScreenshotImportDialog.vue` preview + Tesseract OCR (eng+chi_sim) + recapture / re-OCR. 10 IPC tests + 4 component tests. |
-| Step 3 — SyncProvider abstraction + V5/V6 SyncSettings | `f89fb0ea0` + `1e39e2b58` | 6 providers (backend / git / p2p real + mobile / webdav / oss placeholder) + aggregate scheduler (per-provider enabled flag + autoSync interval persisted to localStorage) + `/settings/sync` page + tray "Sync Settings…" link + autoSync checkbox default `false` fix. 20 unit tests. vue-tsc fix for ant-design-vue 4.x `CheckedType`. |
-| Phase 3c — WebDAV desktop + web-shell parity | `1a9c51882` | Main-process webdav-engine (drain tombstones + push deltas + cursor persistence) + encrypted credentials + markdown-pack export + 5 `sync.webdav.*` IPC channels + V5/V6 SyncWebDAV.vue config page. WebDAV provider promoted from placeholder to real, calling `electronAPI.sync.webdav.run()`. |
-| Phase 3c.5 — Git repo web-shell parity | `5216c7665` + `e63016de9` | 3 `git.config-*` WS topics (get/set/clear) + Git config section in web-panel SyncSettings (remote URL / username / Token / auto-sync toggle + plaintext-credentials warning). Phase 1.6 web-shell users no longer have to drop back to V5/V6 to configure Git. |
-| Phase 3b adapted to web-shell — sync.* WS topics | `eb8697598` | web-panel SyncSettings.vue switched from `ws.execute('sync …')` to `ws.sendRaw({type:'sync.status'})`. **Root cause**: spawning the cc CLI as a child process opened a second better-sqlite3 connection on the same chainlesschain.db, which fails with "database disk image is malformed" under Windows + WAL. The in-process WS handler shares the main process's db handle, eliminating the conflict. 5 new handlers (status / push / pull / conflicts / resolve). |
-| sync.status hardened against schema collision | `32b78ce7d` + `283708640` | CLI v1's `sync_state / sync_conflicts / sync_log` collided with desktop's same-named P2P sync tables. The CLI tables were renamed wholesale to `cli_*` (one-shot ALTER on first launch); handler's `_safeCountQuery` swallows "no such table" and returns 0. |
+| Topic                                                  | Commit                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step 0 — NotificationCenter listener                   | `c990cda2a`               | App.vue's `cc:show-notifications` window event had no listener; added onMounted/onBeforeUnmount that toggles panelVisible drawer. Tray "unread notifications" item now actually opens the panel.                                                                                                                                                                                                                                                                      |
+| Step 1 — Clipboard import quick-action                 | `c2a2d8844`               | New `ClipboardImportDialog.vue`: navigator.clipboard.readText → title/tag edit → `electronAPI.database.addKnowledgeItem`. Falls back to manual paste with a-alert when clipboard permission is denied. 4 unit tests.                                                                                                                                                                                                                                                  |
+| Step 2 — Screenshot OCR quick-action                   | `19fc2a50e`               | Main-process `screenshot-ipc.js` (capture / ocr / cleanup, tmpdir sandbox rejecting non `cc-screenshot-` prefix) + `ScreenshotImportDialog.vue` preview + Tesseract OCR (eng+chi_sim) + recapture / re-OCR. 10 IPC tests + 4 component tests.                                                                                                                                                                                                                         |
+| Step 3 — SyncProvider abstraction + V5/V6 SyncSettings | `f89fb0ea0` + `1e39e2b58` | 6 providers (backend / git / p2p real + mobile / webdav / oss placeholder) + aggregate scheduler (per-provider enabled flag + autoSync interval persisted to localStorage) + `/settings/sync` page + tray "Sync Settings…" link + autoSync checkbox default `false` fix. 20 unit tests. vue-tsc fix for ant-design-vue 4.x `CheckedType`.                                                                                                                             |
+| Phase 3c — WebDAV desktop + web-shell parity           | `1a9c51882`               | Main-process webdav-engine (drain tombstones + push deltas + cursor persistence) + encrypted credentials + markdown-pack export + 5 `sync.webdav.*` IPC channels + V5/V6 SyncWebDAV.vue config page. WebDAV provider promoted from placeholder to real, calling `electronAPI.sync.webdav.run()`.                                                                                                                                                                      |
+| Phase 3c.5 — Git repo web-shell parity                 | `5216c7665` + `e63016de9` | 3 `git.config-*` WS topics (get/set/clear) + Git config section in web-panel SyncSettings (remote URL / username / Token / auto-sync toggle + plaintext-credentials warning). Phase 1.6 web-shell users no longer have to drop back to V5/V6 to configure Git.                                                                                                                                                                                                        |
+| Phase 3b adapted to web-shell — sync.\* WS topics      | `eb8697598`               | web-panel SyncSettings.vue switched from `ws.execute('sync …')` to `ws.sendRaw({type:'sync.status'})`. **Root cause**: spawning the cc CLI as a child process opened a second better-sqlite3 connection on the same chainlesschain.db, which fails with "database disk image is malformed" under Windows + WAL. The in-process WS handler shares the main process's db handle, eliminating the conflict. 5 new handlers (status / push / pull / conflicts / resolve). |
+| sync.status hardened against schema collision          | `32b78ce7d` + `283708640` | CLI v1's `sync_state / sync_conflicts / sync_log` collided with desktop's same-named P2P sync tables. The CLI tables were renamed wholesale to `cli_*` (one-shot ALTER on first launch); handler's `_safeCountQuery` swallows "no such table" and returns 0.                                                                                                                                                                                                          |
 
 **Test matrix**
+
 - desktop unit + web-shell + system + screenshot: 12914 / 12914 passing (802 skipped — native binding unavailable in test env)
 - web-panel unit: 1754 / 1754 passing
 - New: `sync-status-handlers.test.js` 16 tests (4 native-db skip) + `web-panel/sync-settings.test.js` 4 tests (envelope-shape regression)
 - `new-pages.test.js` route count 54 → 55 (new `/sync-settings`)
 
 **Battle-scar bugs worth remembering**
+
 - ws.sendRaw envelope is `{ok, result, error}`, with the handler's `{success, ...}` payload nested under `result`. First pass read `data?.totalResources` as if the handler return value sat at the top, producing all-zero statistics and a misleading "uninitialized" error.
 - vitest 4 strict mock factories must enumerate every named export the SUT imports. A `Proxy({}, get: () => stub)` does not satisfy ESM named-export resolution — list each icon explicitly.
 - `console.log` from the Electron main process does not reach stdout (it's intercepted by the bundled logger). Use `logger.info` for diagnostics that need to land in the dev log.
@@ -1410,17 +1437,18 @@ Desktop now **does** ship runtime changes (web-shell registers 3 new in-process 
 
 The web management panel switches from hardcoded Chinese to bilingual (zh-CN / en) — sidebar follows the header toggle. `@chainlesschain/locales` is the single source of truth so desktop-app-vue / docs / website can all reuse the same catalog.
 
-| Theme | Commit | Notes |
-|---|---|---|
-| Shared locales package (M1) | `b66dd9fe7` | New `packages/locales/` workspace; zero runtime weight; vite/vitest aliases thread it in. `messages` / `SUPPORTED` / `FALLBACK` defined once. |
-| Extraction + drift tooling (M2) | `f6c163c79` | `npm run extract` (vue-i18n-extract; CI exit 1 on missing keys) + `scan-untranslated.js` (CJK drift scanner) + `no-stray-locales.test.js` (block per-project locale forks). |
-| vue-i18n wiring + ant-d-v locale sync | `932f5ba38` | `<a-config-provider :locale>` watches zhCN/enUS bundle, pagination / date pickers / Popconfirm follow the toggle. Language switch lives next to the theme switcher. |
+| Theme                                   | Commit                    | Notes                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared locales package (M1)             | `b66dd9fe7`               | New `packages/locales/` workspace; zero runtime weight; vite/vitest aliases thread it in. `messages` / `SUPPORTED` / `FALLBACK` defined once.                                                                                                                                                                                                             |
+| Extraction + drift tooling (M2)         | `f6c163c79`               | `npm run extract` (vue-i18n-extract; CI exit 1 on missing keys) + `scan-untranslated.js` (CJK drift scanner) + `no-stray-locales.test.js` (block per-project locale forks).                                                                                                                                                                               |
+| vue-i18n wiring + ant-d-v locale sync   | `932f5ba38`               | `<a-config-provider :locale>` watches zhCN/enUS bundle, pagination / date pickers / Popconfirm follow the toggle. Language switch lives next to the theme switcher.                                                                                                                                                                                       |
 | 18 views, ~1240 strings translated (M3) | `dd878633a` → `82b63b50a` | QuickAsk · Compliance · Pipeline · DID · KnowledgeGraph · Dashboard · Chat · WorkflowEditor · Marketplace · Trust · Governance · Privacy · Sla · Codegen · Tenant · NLProgramming · Crosschain · AppLayout (sidebar 137 items + 9 groups + header). Enum label mappers use `t(key) === key ? fallback : t(key)` so unknown values pass through unchanged. |
-| Test hardening | `d0fa56f64` | i18n-key-parity (zh/en JSONs MUST mirror, leaves non-empty, ≥18 namespaces) + mount-sweep across 17 views (mount + translated title visible in DOM). Unit 1660 → 1691 (+31), E2E 75/75. |
+| Test hardening                          | `d0fa56f64`               | i18n-key-parity (zh/en JSONs MUST mirror, leaves non-empty, ≥18 namespaces) + mount-sweep across 17 views (mount + translated title visible in DOM). Unit 1660 → 1691 (+31), E2E 75/75.                                                                                                                                                                   |
 
 **Audit deltas** (`packages/locales/scripts/scan-untranslated.js`)
+
 - Before: 54 files / 2906 CJK occurrences
-- After:  39 files / 1583 (-15 files, **-1323 strings, ~46% of the catalog**)
+- After: 39 files / 1583 (-15 files, **-1323 strings, ~46% of the catalog**)
 - ~25 views still have residual CJK; pattern is mechanical, can ship incrementally.
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
@@ -1429,16 +1457,17 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 Legal sign-off received 2026-05-03 unblocks Q-COMP-3 (domestic consortium chain path). Lands v0.3 #2 on-chain governance anchoring + a cross-doc cleanup pass:
 
-| Module | Notes |
-|---|---|
-| Lib (core-mtc) | `SCHEMA_GOVERNANCE_ANCHOR` schema + `computeGovernanceSnapshotHash` (deterministic, order-independent) + pluggable `IChainAnchorClient` + `InMemoryChainAnchorClient` / `FilesystemChainAnchorClient` mock impls + `verifyGovernanceAnchor` with HASH_MISMATCH drift report |
-| CLI | `cc mtc federation governance-anchor <fed> --actor --chain-store [--chain-name]` (publish snapshot hash) + `governance-verify-anchor` (fetch latest chain record + compare local replay). Production deploy swaps in a real chain client — schema/CLI unchanged |
+| Module             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lib (core-mtc)     | `SCHEMA_GOVERNANCE_ANCHOR` schema + `computeGovernanceSnapshotHash` (deterministic, order-independent) + pluggable `IChainAnchorClient` + `InMemoryChainAnchorClient` / `FilesystemChainAnchorClient` mock impls + `verifyGovernanceAnchor` with HASH_MISMATCH drift report                                                                                                                                                                                                                                                                                                                                                                                       |
+| CLI                | `cc mtc federation governance-anchor <fed> --actor --chain-store [--chain-name]` (publish snapshot hash) + `governance-verify-anchor` (fetch latest chain record + compare local replay). Production deploy swaps in a real chain client — schema/CLI unchanged                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Design doc cleanup | (a) `MTC_联邦治理_v1.md` §11: #1 cross-fed trust + #2 chain anchoring + #4 third-party audit all marked ✅ with commit hashes; new §11.5 test-infrastructure limits (paxos/libp2p e2e). (b) `MTC_跨链桥_v1.md` §11: #3 multi-hop + #4 gas-aware + #5 monitoring + #6 SLA all marked ✅; #1/#2 explicit external blockers + expected unlock condition. (c) `默克尔树证书_MTC_落地方案.md` §14.2 Q-COMP-3 status flipped from "conservative decision" to "unlocked 2026-05-03". (d) **New §14.5 Deferred Items Registry — single source of truth** with cross-subdoc index of remaining 4 deferred items + 3 permanent constraints + v0.6→v0.12 full commit history |
-| Tests | +16 lib unit (snapshot hash determinism / order independence / fed isolation / dual mock clients / verifyAnchor HASH_MISMATCH+drift) + 5 CLI integration (publish / verify pass / verify mismatch / NO_ANCHOR_ON_CHAIN / repeated anchor increments block_height) = 21 new tests |
+| Tests              | +16 lib unit (snapshot hash determinism / order independence / fed isolation / dual mock clients / verifyAnchor HASH_MISMATCH+drift) + 5 CLI integration (publish / verify pass / verify mismatch / NO_ANCHOR_ON_CHAIN / repeated anchor increments block_height) = 21 new tests                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Totals**: core-mtc 248 (+16 v0.12 anchor) + CLI integration 71 (+5 v0.12) + lib unit 70 (unchanged) = **389 green**.
 
 **Still NOT done (only 4 items left, all with explicit external blockers)** — see `默克尔树证书_MTC_落地方案.md` §14.5 Deferred Items Registry:
+
 - D1 Real RPC chain adapters — desktop major work
 - D2 Cross-chain DID resolution (production path) — blocked same as D1
 - D3 Full paxos cross-member real-time quorum — current alternative is production-ready
@@ -1450,18 +1479,19 @@ Legal sign-off received 2026-05-03 unblocks Q-COMP-3 (domestic consortium chain 
 
 Closes every doable item from cross-chain bridge §11 + federation governance v0.2 §11 (chain anchoring blocked by Q-COMP-3, real RPC adapters need major desktop work — both kept):
 
-| Wave | Module | Notes |
-|---|---|---|
-| **A1** Cross-federation trust (v0.3 #1) | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate` |
-| **A2** Independent third-party auditor (v0.3 #3) | same lib | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary | --json]` |
-| **B1** Multi-hop bridge (bridge §11 #3) | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch (bridge §11 #4) | same | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
-| **B3** SLA Manager integration (bridge §11 #6) | same | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla` |
-| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana |
+| Wave                                                 | Module                                  | Notes                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **A1** Cross-federation trust (v0.3 #1)              | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate`                                                                   |
+| **A2** Independent third-party auditor (v0.3 #3)     | same lib                                | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary                         | --json]` |
+| **B1** Multi-hop bridge (bridge §11 #3)              | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch (bridge §11 #4)               | same                                    | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                                   |
+| **B3** SLA Manager integration (bridge §11 #6)       | same                                    | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla`                                                                                                     |
+| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab                    | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana                                                                          |
 
 **Test totals**: core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 green**.
 
 **Still NOT done (explicit external blockers / major dependencies)**:
+
 - Chain anchoring of governance log (v0.3 #2) — waiting on Q-COMP-3 legal sign-off for domestic consortium chain path
 - Real RPC chain adapters (bridge §11 #1) — needs desktop ethers/web3 integration + chain endpoints + extensive integration tests
 - Cross-chain DID resolution (bridge §11 #2) — merged design with cross-fed trust; schema ready, waiting on real-chain path
@@ -1474,12 +1504,12 @@ Closes every doable item from cross-chain bridge §11 + federation governance v0
 
 Closes the last small v0.10 item — wires the sync daemon stats files into the desktop V6 governance widget so users see real-time publish/pull/wire counters on the desktop:
 
-| Module | Notes |
-|---|---|
-| Main process IPC | New `mtc:get-federation-sync-stats` channel + `readFederationSyncStatsFromDisk(dir)` helper, scans `<gov-dir>/*.sync-stats.json` returning `{federations: [{fed_id, mode, last_tick_at, publish, pull, libp2p}]}` |
-| Preload bridge | `electronAPI.mtc.getFederationSyncStats()` |
+| Module                | Notes                                                                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main process IPC      | New `mtc:get-federation-sync-stats` channel + `readFederationSyncStatsFromDisk(dir)` helper, scans `<gov-dir>/*.sync-stats.json` returning `{federations: [{fed_id, mode, last_tick_at, publish, pull, libp2p}]}`                                                               |
+| Preload bridge        | `electronAPI.mtc.getFederationSyncStats()`                                                                                                                                                                                                                                      |
 | V6 widget enhancement | `FederationGovernanceWidget.vue` appends a sync sub-panel per federation card — shows mode (filesystem/libp2p) + last_tick relative time + Publish (last/total) + Pull (last/total + invalid/unknown) + libp2p wire (recv/appended). Sub-panel hidden when no daemon is running |
-| Tests | +5 IPC unit (empty dir / parsing / ignores non-stats files / malformed JSON / channel registration) + +3 widget unit (filesystem mode / libp2p mode / hides when no stats). 41/41 desktop MTC tests green |
+| Tests                 | +5 IPC unit (empty dir / parsing / ignores non-stats files / malformed JSON / channel registration) + +3 widget unit (filesystem mode / libp2p mode / hides when no stats). 41/41 desktop MTC tests green                                                                       |
 
 Closes the "desktop V6 widget surfaces sync-stats" item from v0.10. The remaining 3 v0.10 candidates (full paxos cross-member quorum / WebSocket streaming sync-stats / libp2p cross-node wire e2e) are optimization paths waiting on real deployment feedback before prioritization.
 
@@ -1489,12 +1519,12 @@ Closes the "desktop V6 widget surfaces sync-stats" item from v0.10. The remainin
 
 Closes the four v0.9 TODOs:
 
-| Module | Notes |
-|---|---|
-| Multi-proposal CRDT | `replayGovernanceLog` now retains ALL open propose-threshold / propose-revoke events (was overwriting same-target by latest write); new return fields `pending_thresholds[]` / `pending_revokes_all[]`, with old `pending_threshold` / `pending_revokes` kept as backward-compat (most recent only). `confirm-threshold --proposal-event-id <id>` CRDT-style explicit selection of one open proposal; default still confirms most recent |
-| Live sync stats | Both sync daemons persist `<dir>/<fed>.sync-stats.json` (atomic write) per tick; new `cc mtc federation governance-sync-stats <fed> [--json]` reads it. Web GUI / monitoring can poll the file |
-| Libp2p smoke tests | `packages/core-mtc/__tests__/federation-governance-libp2p.test.js` 4 tests cover publishRaw call path, synthetic dispatch fan-out, receiver-side dedupe, topic format. Does **not** assert cross-node wire delivery (matches existing libp2p-federation-discovery policy — gossipsub mesh formation is genuinely flaky in 2-node test environments) |
-| Systemd hardening checklist | `packages/cli/scripts/service/HARDENING.md` documents existing protections (`User=` / `NoNewPrivileges` / `ProtectSystem` / `ReadWritePaths` etc.) + 7-item pre-deploy verify list (account / mount / network / optional capability drop / SELinux) + known limitations + smoke-test steps |
+| Module                      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Multi-proposal CRDT         | `replayGovernanceLog` now retains ALL open propose-threshold / propose-revoke events (was overwriting same-target by latest write); new return fields `pending_thresholds[]` / `pending_revokes_all[]`, with old `pending_threshold` / `pending_revokes` kept as backward-compat (most recent only). `confirm-threshold --proposal-event-id <id>` CRDT-style explicit selection of one open proposal; default still confirms most recent |
+| Live sync stats             | Both sync daemons persist `<dir>/<fed>.sync-stats.json` (atomic write) per tick; new `cc mtc federation governance-sync-stats <fed> [--json]` reads it. Web GUI / monitoring can poll the file                                                                                                                                                                                                                                           |
+| Libp2p smoke tests          | `packages/core-mtc/__tests__/federation-governance-libp2p.test.js` 4 tests cover publishRaw call path, synthetic dispatch fan-out, receiver-side dedupe, topic format. Does **not** assert cross-node wire delivery (matches existing libp2p-federation-discovery policy — gossipsub mesh formation is genuinely flaky in 2-node test environments)                                                                                      |
+| Systemd hardening checklist | `packages/cli/scripts/service/HARDENING.md` documents existing protections (`User=` / `NoNewPrivileges` / `ProtectSystem` / `ReadWritePaths` etc.) + 7-item pre-deploy verify list (account / mount / network / optional capability drop / SELinux) + known limitations + smoke-test steps                                                                                                                                               |
 
 **Test totals**: core-mtc 220 (+6 conflict resolution + 4 libp2p smoke) + CLI integration 30 (+3 stats + 1 conflict CLI) = **250 green**.
 
@@ -1506,13 +1536,13 @@ Design tradeoffs: CRDT keeps all concurrent open proposals; confirm defaults to 
 
 Closes the four v0.8 TODOs:
 
-| Module | Notes |
-|---|---|
-| Auto sync daemon | `cc mtc federation governance-sync-serve <fed> --drop-zone <dir> [--interval] [--verify] [--once]` periodically publishes + pulls; SIGINT/SIGTERM graceful; helpers `runGovernancePublish` / `runGovernancePull` extracted for reuse |
-| libp2p sync transport | `cc mtc federation governance-sync-libp2p <fed> --listen <maddr> [--connect] [--verify] [--once]`: gossipsub topic `mtc-federation-governance/v1/<fed>`; `<dir>/<fed>.libp2p-pos.json` high-water mark of already-published event_ids; receiver dedupes + verifies + appends; reuses existing `Libp2pTransport` |
-| Quorum gating | `cc mtc federation confirm-revoke` / `confirm-threshold` add pre-flight check for matching `propose-revoke` / `propose-threshold`; `--no-quorum-check` opts out. Also adds the previously-missing `cc mtc federation confirm-threshold <fed> --actor <m>` CLI |
-| Web-panel operational GUI | `Mtc.vue` federation governance tab gains 5 sub-tabs (invite/vote/change threshold/revoke/cross-member sync), all calling local CLI via `ws.execute('mtc federation ...')` — **signing keys never enter the web renderer process**. Security alert embedded |
-| Service template | New `cc-fed-governance-sync.service` (systemd) template |
+| Module                    | Notes                                                                                                                                                                                                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auto sync daemon          | `cc mtc federation governance-sync-serve <fed> --drop-zone <dir> [--interval] [--verify] [--once]` periodically publishes + pulls; SIGINT/SIGTERM graceful; helpers `runGovernancePublish` / `runGovernancePull` extracted for reuse                                                                            |
+| libp2p sync transport     | `cc mtc federation governance-sync-libp2p <fed> --listen <maddr> [--connect] [--verify] [--once]`: gossipsub topic `mtc-federation-governance/v1/<fed>`; `<dir>/<fed>.libp2p-pos.json` high-water mark of already-published event_ids; receiver dedupes + verifies + appends; reuses existing `Libp2pTransport` |
+| Quorum gating             | `cc mtc federation confirm-revoke` / `confirm-threshold` add pre-flight check for matching `propose-revoke` / `propose-threshold`; `--no-quorum-check` opts out. Also adds the previously-missing `cc mtc federation confirm-threshold <fed> --actor <m>` CLI                                                   |
+| Web-panel operational GUI | `Mtc.vue` federation governance tab gains 5 sub-tabs (invite/vote/change threshold/revoke/cross-member sync), all calling local CLI via `ws.execute('mtc federation ...')` — **signing keys never enter the web renderer process**. Security alert embedded                                                     |
+| Service template          | New `cc-fed-governance-sync.service` (systemd) template                                                                                                                                                                                                                                                         |
 
 **Test totals**: CLI integration 27 (+6 new: confirm-threshold + quorum + sync-serve --once + sync-libp2p --help) + web-panel parser 13 (no regression) = **40 green**.
 
@@ -1524,13 +1554,13 @@ Design tradeoffs: libp2p sync uses a simple "high-water-mark republish" strategy
 
 Closes the two v0.7 limitations: governance.log only existing on local boxes, and governance state being CLI-only:
 
-| Module | Notes |
-|---|---|
-| core-mtc sync helpers | `dedupeEventsByEventId` / `sortEventsChronologically` / `verifyGovernanceLog` (returns valid/invalid/unknown); +8 unit tests |
-| 2 new CLI subcommands | `cc mtc federation governance-publish <fed> --drop-zone <dir>` (atomic per-event file, idempotent) + `cc mtc federation governance-pull <fed> --drop-zone <dir> [--verify]` (dedupe by event_id + optional signature verification); +5 integration tests covering alice→bob cross-home sync + dedupe + --verify |
-| Service supervisor templates | `packages/cli/scripts/service/`: systemd unit (Linux) + launchd plist (macOS) + NSSM config (Windows) + Task Scheduler XML; explicit operator install, NOT auto-wired into npm postinstall |
-| Desktop V6 governance widget | `FederationGovernanceWidget.vue` + `mtc:get-federation-governance` IPC + `electronAPI.mtc.getFederationGovernance`; lists all federations with status / threshold / members (active+candidate) / pending invites / pending revokes / archived/compromised keys; +7 widget unit + 4 IPC tests |
-| Web-panel/Web-shell governance + bridge tabs | `Mtc.vue` adds "跨链桥 MTC" tab (config + trust-anchor table) + "联邦治理" tab (load governance-log by fed-id, renders status cards + member table + pending invites + event timeline). Web-shell embeds the same web-panel in Electron, zero extra work |
+| Module                                       | Notes                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| core-mtc sync helpers                        | `dedupeEventsByEventId` / `sortEventsChronologically` / `verifyGovernanceLog` (returns valid/invalid/unknown); +8 unit tests                                                                                                                                                                                    |
+| 2 new CLI subcommands                        | `cc mtc federation governance-publish <fed> --drop-zone <dir>` (atomic per-event file, idempotent) + `cc mtc federation governance-pull <fed> --drop-zone <dir> [--verify]` (dedupe by event_id + optional signature verification); +5 integration tests covering alice→bob cross-home sync + dedupe + --verify |
+| Service supervisor templates                 | `packages/cli/scripts/service/`: systemd unit (Linux) + launchd plist (macOS) + NSSM config (Windows) + Task Scheduler XML; explicit operator install, NOT auto-wired into npm postinstall                                                                                                                      |
+| Desktop V6 governance widget                 | `FederationGovernanceWidget.vue` + `mtc:get-federation-governance` IPC + `electronAPI.mtc.getFederationGovernance`; lists all federations with status / threshold / members (active+candidate) / pending invites / pending revokes / archived/compromised keys; +7 widget unit + 4 IPC tests                    |
+| Web-panel/Web-shell governance + bridge tabs | `Mtc.vue` adds "跨链桥 MTC" tab (config + trust-anchor table) + "联邦治理" tab (load governance-log by fed-id, renders status cards + member table + pending invites + event timeline). Web-shell embeds the same web-panel in Electron, zero extra work                                                        |
 
 **Test totals**: core-mtc governance lib 28 unit + CLI governance integration 19 + desktop 26 IPC + 18 widget = **91 governance/sync-related tests** green.
 
@@ -1543,13 +1573,13 @@ Implementation stays opt-in: cross-member sync is manual `governance-publish/pul
 Builds on v0.6 cross-chain MTC integration to make the governance design
 doc executable rather than aspirational:
 
-| Module | Notes |
-|---|---|
+| Module                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | core-mtc governance lib | `packages/core-mtc/lib/federation-governance.js`: 13 event types (create/invite/vote/leave/propose-revoke/confirm-revoke/rotate-key/propose-threshold/confirm-threshold/fork/merge/dispute/wind-down), `createGovernanceEvent` (multi-alg Ed25519/SLH-DSA), `verifyGovernanceEvent`, `replayGovernanceLog` — pure function deriving effective state (members + threshold + 0.5-weight candidate period + auto-promote after 30 days) |
-| 8 new governance CLI | `cc mtc federation invite/vote/propose-revoke/confirm-revoke/rotate-key/propose-threshold/fork/merge` all sign + append to `~/.chainlesschain/federation/governance/<fed>.jsonl`; `cc mtc federation governance-log <fed>` shows events + replay state |
-| Bridge MTCA daemon | `cc crosschain mtc-serve [--interval <s>] [--once]`: periodic closeBatch; `--once` mode suits cron/tests; SIGINT/SIGTERM graceful shutdown |
-| Desktop V6 widget | `BridgeMtcStatusWidget.vue` + `mtc:get-bridge-status` IPC channel (preload `electronAPI.mtc.getBridgeStatus`); shows enabled/mode/alg/batch interval/trust anchors/pending-staging/latest batch; registered as `PREVIEW_WIDGETS["bridge-mtc"]` |
-| Bug fix | governance lib's `pickSigner` accepts both canonical (`Ed25519`) and CLI-lowercase (`ed25519`) — otherwise verify returned `BAD_ALG` |
+| 8 new governance CLI    | `cc mtc federation invite/vote/propose-revoke/confirm-revoke/rotate-key/propose-threshold/fork/merge` all sign + append to `~/.chainlesschain/federation/governance/<fed>.jsonl`; `cc mtc federation governance-log <fed>` shows events + replay state                                                                                                                                                                               |
+| Bridge MTCA daemon      | `cc crosschain mtc-serve [--interval <s>] [--once]`: periodic closeBatch; `--once` mode suits cron/tests; SIGINT/SIGTERM graceful shutdown                                                                                                                                                                                                                                                                                           |
+| Desktop V6 widget       | `BridgeMtcStatusWidget.vue` + `mtc:get-bridge-status` IPC channel (preload `electronAPI.mtc.getBridgeStatus`); shows enabled/mode/alg/batch interval/trust anchors/pending-staging/latest batch; registered as `PREVIEW_WIDGETS["bridge-mtc"]`                                                                                                                                                                                       |
+| Bug fix                 | governance lib's `pickSigner` accepts both canonical (`Ed25519`) and CLI-lowercase (`ed25519`) — otherwise verify returned `BAD_ALG`                                                                                                                                                                                                                                                                                                 |
 
 **Test totals**: core governance lib 20 unit + CLI 14 integration + desktop 11 (5 widget + 6 IPC bridge) = **50 new tests green**; total MTC-related = core-mtc 202 + CLI 86 + desktop 32 = **320 tests**.
 
@@ -1561,15 +1591,15 @@ Implementation stays opt-in: `cc mtc federation` governance events only write to
 
 Two new design documents (closing §12 known-limit items #2 / #6) plus a new `cc crosschain mtc-*` subcommand surface that lets existing bridge / swap / send paths opt-in to MTC envelope writes:
 
-| Module | Notes |
-|---|---|
-| Design — Federation governance v1 | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
-| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship) |
-| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`) |
-| 4 new subcommands | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
-| `--mtc` opt-in flag | `cc crosschain bridge|swap|send --mtc` writes one staging op on success; `cc crosschain mtc-batch` closes staging into per-chain-pair batches (landmark + envelopes persisted to `batches/<pair>-<seq>/`) |
-| Bug fix | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB |
-| core-mtc | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit) |
+| Module                             | Notes                                                                                                                                                                                                                                                          |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design — Federation governance v1  | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
+| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship)                     |
+| CLI lib                            | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`)                                        |
+| 4 new subcommands                  | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                                                                |
+| `--mtc` opt-in flag                | `cc crosschain bridge                                                                                                                                                                                                                                          | swap | send --mtc`writes one staging op on success;`cc crosschain mtc-batch`closes staging into per-chain-pair batches (landmark + envelopes persisted to`batches/<pair>-<seq>/`) |
+| Bug fix                            | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB                                                                                 |
+| core-mtc                           | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit)                                                                                                                                                                         |
 
 **Test totals**: lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + existing cross-chain 83 = **342 tests green** across unit / integration / e2e plus cross-process independent verification.
 
@@ -1585,14 +1615,14 @@ service discovery via shared filesystem (NFS/Syncthing/USB) + real P2P
 libp2p gossipsub, heterogeneous Ed25519 + SLH-DSA member federations,
 OpLog per-row "待批次关闭" badge wired through backend → web-panel.
 
-| Phase | Commit | Notes |
-|---|---|---|
-| 3.1 Multi-sig + federation CLI | `95b861914` | `assembleBatchFederated` + LandmarkCache ≥M-of-N + `cc mtc federation join/leave/status` (atomic write, wx race-safe) |
-| 3.2 Marketplace federation trust anchor | `15c29e9fe` | `cc mtc batch* / publish-skills --federation <id> --threshold <M>` |
-| 3.3 Filesystem service discovery | `aa13e07a9` | `cc mtc federation discover --transport filesystem --drop-zone <dir>` + signed announce schema + TTL-evicting cache |
-| 3.4 libp2p service discovery | `70996de89` | `--transport libp2p` + gossipsub topic `mtc-federation/v1/<id>` + `Libp2pTransport.publishRaw/subscribeRaw` generic pubsub API |
-| OpLog per-row badge | `70d2cda59` | backend `AuditMtcBridgeService` parses emit JSON → writes `audit_mtc_event_id` column (V013 migration); web-panel Audit.vue 4-state MTC column |
-| v0.5 bug audit (4 fixes) | _this round_ | drawer migrated to real `electronAPI.file.readContent`; libp2p node init cleanup; scan re-entrancy guard; federation join `wx` exclusive create |
+| Phase                                   | Commit       | Notes                                                                                                                                           |
+| --------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.1 Multi-sig + federation CLI          | `95b861914`  | `assembleBatchFederated` + LandmarkCache ≥M-of-N + `cc mtc federation join/leave/status` (atomic write, wx race-safe)                           |
+| 3.2 Marketplace federation trust anchor | `15c29e9fe`  | `cc mtc batch* / publish-skills --federation <id> --threshold <M>`                                                                              |
+| 3.3 Filesystem service discovery        | `aa13e07a9`  | `cc mtc federation discover --transport filesystem --drop-zone <dir>` + signed announce schema + TTL-evicting cache                             |
+| 3.4 libp2p service discovery            | `70996de89`  | `--transport libp2p` + gossipsub topic `mtc-federation/v1/<id>` + `Libp2pTransport.publishRaw/subscribeRaw` generic pubsub API                  |
+| OpLog per-row badge                     | `70d2cda59`  | backend `AuditMtcBridgeService` parses emit JSON → writes `audit_mtc_event_id` column (V013 migration); web-panel Audit.vue 4-state MTC column  |
+| v0.5 bug audit (4 fixes)                | _this round_ | drawer migrated to real `electronAPI.file.readContent`; libp2p node init cleanup; scan re-entrancy guard; federation join `wx` exclusive create |
 
 **Test totals**: core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19 = **476 tests green** across unit / integration / e2e / desktop-renderer / web-renderer / backend.
 
@@ -1602,13 +1632,13 @@ OpLog per-row "待批次关闭" badge wired through backend → web-panel.
 
 Two Phase-2 MTC paths landed that don't depend on legal sign-off, plus four bug fixes from a focused audit pass.
 
-| Topic | Commit | Notes |
-|---|---|---|
-| `assembleBatch` lifted to core-mtc | `c69900c7d` | Pulled the canonical batch-assembly logic out of `cc mtc` into `packages/core-mtc/lib/batch.js` so all batch paths (CLI mtc, audit, future producers) share one verified codepath. New `./batch` subpath export. +3 core-mtc tests. |
-| `cc mtc publish-skills` daemon | `c69900c7d` | Marketplace publisher: scans `CLISkillLoader.loadAll()`, computes a JCS-canonicalize → SHA-256 fingerprint over (id, version, category, activation, description) tuples, compares against a state file, and only mints a new batch when the fingerprint changes. Auto seq increment. State file uses atomic write (temp + rename) — survives mid-write crash without resetting `last_seq` to 0. `--once` for cron / CI; default `setInterval` daemon mode. +9 tests. |
-| `cc audit mtc *` 8 subcommands | `c69900c7d` | Audit double-track scaffolding (off-by-default): `enable / disable / config / set-interval / emit / reconcile / reconcile-check / status`. Track 1 = realtime Ed25519 over content_hash on `emit`; Track 2 = Merkle batch on `reconcile` with idempotent atomic-rename close + crash-recovery (.tmp cleanup) + staging-only-deleted-after-rename invariant. Supports both 60s strict and 3600s lenient batch intervals so production-enable is a single flag-flip after Q-COMP-1 / Q-COMP-2 legal sign-off. +23 tests. |
-| Bug audit: 4 fixes | (same commit) | (1) state file write made atomic in publish-skills; (2) staging schema + filename validation in audit-mtc rejects bogus dropped files; (3) `getStatus.oldest_queued_at` finds first valid record when alphabetically-leading entry is malformed; (4) `loadOrCreateIssuerKey` uses `wx` exclusive create — concurrent first-emit no longer generates conflicting keys. +6 regression tests. |
-| Three-layer test coverage | (same commit) | Unit (30) + integration (8) + e2e (6) for the new surfaces. The e2e spawns distinct CLI processes for every step and verifies envelopes independently with core-mtc (no CLI involved in the verify step), plus negative-path tampering + atomic state file recovery + cross-codepath equivalence (`cc mtc batch` ≡ `cc audit mtc reconcile` under the same protocol). |
+| Topic                              | Commit        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assembleBatch` lifted to core-mtc | `c69900c7d`   | Pulled the canonical batch-assembly logic out of `cc mtc` into `packages/core-mtc/lib/batch.js` so all batch paths (CLI mtc, audit, future producers) share one verified codepath. New `./batch` subpath export. +3 core-mtc tests.                                                                                                                                                                                                                                                                                    |
+| `cc mtc publish-skills` daemon     | `c69900c7d`   | Marketplace publisher: scans `CLISkillLoader.loadAll()`, computes a JCS-canonicalize → SHA-256 fingerprint over (id, version, category, activation, description) tuples, compares against a state file, and only mints a new batch when the fingerprint changes. Auto seq increment. State file uses atomic write (temp + rename) — survives mid-write crash without resetting `last_seq` to 0. `--once` for cron / CI; default `setInterval` daemon mode. +9 tests.                                                   |
+| `cc audit mtc *` 8 subcommands     | `c69900c7d`   | Audit double-track scaffolding (off-by-default): `enable / disable / config / set-interval / emit / reconcile / reconcile-check / status`. Track 1 = realtime Ed25519 over content_hash on `emit`; Track 2 = Merkle batch on `reconcile` with idempotent atomic-rename close + crash-recovery (.tmp cleanup) + staging-only-deleted-after-rename invariant. Supports both 60s strict and 3600s lenient batch intervals so production-enable is a single flag-flip after Q-COMP-1 / Q-COMP-2 legal sign-off. +23 tests. |
+| Bug audit: 4 fixes                 | (same commit) | (1) state file write made atomic in publish-skills; (2) staging schema + filename validation in audit-mtc rejects bogus dropped files; (3) `getStatus.oldest_queued_at` finds first valid record when alphabetically-leading entry is malformed; (4) `loadOrCreateIssuerKey` uses `wx` exclusive create — concurrent first-emit no longer generates conflicting keys. +6 regression tests.                                                                                                                             |
+| Three-layer test coverage          | (same commit) | Unit (30) + integration (8) + e2e (6) for the new surfaces. The e2e spawns distinct CLI processes for every step and verifies envelopes independently with core-mtc (no CLI involved in the verify step), plus negative-path tampering + atomic state file recovery + cross-codepath equivalence (`cc mtc batch` ≡ `cc audit mtc reconcile` under the same protocol).                                                                                                                                                  |
 
 **Status**: 222 MTC tests green across 4 layers (core-mtc 147 incl. SLH-DSA 7 + CLI unit 30 + integration 28 + e2e 6 + desktop V6 widget 11). Phase 1.6 (SLH-DSA real signing via `@noble/post-quantum@0.6.1`) and Phase 4 partial (V6 MTC status widget) landed in follow-up commits — `cc mtc * --alg slh-dsa-128f` is now opt-in for FIPS 205 post-quantum signing, and `cc mtc verify` auto-dispatches Ed25519 vs SLH-DSA based on landmark trust anchors.
 
@@ -1624,13 +1654,13 @@ See [`docs/design/默克尔树证书_MTC_落地方案.md`](docs/design/默克尔
 
 A single rollup that closes five threads on the desktop web-shell: cancel half of `llm.chat`, the Phase 1.4 vendor target correction, the SystemSettings persistence whitelist hole, the Speech leg of the SystemSettings → web-panel migration, and a CLI session-list contract bug discovered along the way.
 
-| Topic | Commit | Notes |
-|---|---|---|
-| `llm.chat` real cancellation | `b6b5174cb` + `4951c95d5` | ws-cli-loader gains `inFlightStreams<id, gen>`. Both `ws.on("close")` (lazy WeakSet hook because CLI ws-server's `connection` event omits the ws ref) and `<topic>.cancel` frames drive `gen.return()`. The llm-handlers generator's finally block calls `AbortController.abort()`; the signal threads through to ollama / anthropic / openai client `fetch` (gemini's axios call has a different param order — left for a separate refactor). `useLlmChat.cancel()` actually stops the underlying HTTP. |
-| AppConfigManager `ui.*` persistence | `436e349f1` | DEFAULT_CONFIG gains a `ui` block + load/loadAsync merge whitelist gains a `ui` line; `_readSettingsSync` now layers `app-config.json`'s `ui` on top of `settings.json` so the SystemSettings V6 / Web Shell toggles actually take effect on the next launch. The original silent-drop bug (V6 toggle had it too) is closed. |
-| Phase 1.4 vendor target | `cecb94980` | `forge.config.js`'s `vendorWebShellInto(buildPath)` corrected to `path.join(buildPath, "..")` to match the path-math test fixture; packaged loaders' 4-up REL now actually lands at `Resources/packages/`. The dead `packages/**` glob in `asar.unpack` is dropped. |
-| Speech sub-page → web-panel | `2d45ae278` | New `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + `/speech-settings` route. Engine selector + Web Speech / Whisper API / Whisper Local core config; the V5 advanced storage / audio / knowledge-integration / performance sub-sections stay (Memory Bank-style deliberate scope cut). LLM and Project already had Providers + ProjectSettings on the web-panel side; the V5 SystemSettings tabs gain an a-alert pointing to the web-panel equivalents. |
-| `session-close` actually removes (drive-by) | (pending commit) | CLI `ws-session-gateway.js`: `_serializeSessionMetadata` now writes `status`; `listSessions` DB path skips rows where `metadata.status === "closed"`. After `session-close`, `session-list` no longer returns the closed session. |
+| Topic                                       | Commit                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `llm.chat` real cancellation                | `b6b5174cb` + `4951c95d5` | ws-cli-loader gains `inFlightStreams<id, gen>`. Both `ws.on("close")` (lazy WeakSet hook because CLI ws-server's `connection` event omits the ws ref) and `<topic>.cancel` frames drive `gen.return()`. The llm-handlers generator's finally block calls `AbortController.abort()`; the signal threads through to ollama / anthropic / openai client `fetch` (gemini's axios call has a different param order — left for a separate refactor). `useLlmChat.cancel()` actually stops the underlying HTTP. |
+| AppConfigManager `ui.*` persistence         | `436e349f1`               | DEFAULT_CONFIG gains a `ui` block + load/loadAsync merge whitelist gains a `ui` line; `_readSettingsSync` now layers `app-config.json`'s `ui` on top of `settings.json` so the SystemSettings V6 / Web Shell toggles actually take effect on the next launch. The original silent-drop bug (V6 toggle had it too) is closed.                                                                                                                                                                             |
+| Phase 1.4 vendor target                     | `cecb94980`               | `forge.config.js`'s `vendorWebShellInto(buildPath)` corrected to `path.join(buildPath, "..")` to match the path-math test fixture; packaged loaders' 4-up REL now actually lands at `Resources/packages/`. The dead `packages/**` glob in `asar.unpack` is dropped.                                                                                                                                                                                                                                      |
+| Speech sub-page → web-panel                 | `2d45ae278`               | New `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + `/speech-settings` route. Engine selector + Web Speech / Whisper API / Whisper Local core config; the V5 advanced storage / audio / knowledge-integration / performance sub-sections stay (Memory Bank-style deliberate scope cut). LLM and Project already had Providers + ProjectSettings on the web-panel side; the V5 SystemSettings tabs gain an a-alert pointing to the web-panel equivalents.                                |
+| `session-close` actually removes (drive-by) | (pending commit)          | CLI `ws-session-gateway.js`: `_serializeSessionMetadata` now writes `status`; `listSessions` DB path skips rows where `metadata.status === "closed"`. After `session-close`, `session-list` no longer returns the closed session.                                                                                                                                                                                                                                                                        |
 
 **Test matrix**: desktop unit 248 + config 26 + scripts 14 + integration 514 + web-shell e2e 14 + Playwright 4. Web-panel unit 1616 + integration 58 + e2e 75 (including the now-fixed session-close case). CLI session-gateway 58. ~2480 tests green (excluding skipped + one local-env failure caused by a corrupted local `chainlesschain.db`).
 
@@ -1644,13 +1674,13 @@ See [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌
 
 Desktop direction locked: **Desktop = web edition's superset** — Electron embeds the `web-panel` SPA in-process; desktop-only capabilities (U-Key / FS / MCP / Ollama) layer on as new WS topics + a minimal preload, expressing the "leverage existing strengths" axis. See [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md) (synced to `docs-site/docs/design/desktop-web-shell-architecture.md`).
 
-| Phase | Status | Key artefacts |
-|---|---|---|
-| 0 spike | ✅ | `web-ui-loader.js` in-process HTTP embed + `ws-bridge.js` minimal topic + `phase0-smoke.cjs` end-to-end |
-| 1.1 protocol merge | ✅ | `ws-cli-loader.js` wraps CLI `ChainlessChainWSServer` and monkey-patches `_dispatcher.dispatch` so custom topics share the same WS as web-panel's CLI protocol (auth / ping / session-*) |
-| 1.2 desktop-only topics, batch 1 | ✅ | `skill.list` (in-process CLISkillLoader, bypasses SPAWN_ERROR) + `fs.openDialog` / `fs.saveDialog` (dialog-based, security-first, 10 MiB read cap) |
-| 1.3 entry UX | ✅ | `shouldRunWebShell(argv, env, settings)` three-way; SystemSettings adds `ui.useWebShellExperimental` toggle, mirrors the V6 hard-flip (`caaddf530`) playbook |
-| 1.4 packaging prep | ✅ | `scripts/prepare-web-shell-vendor.js` + **Decision A**: vendor target = `path.join(buildPath, "..")` so the loaders' 4-up REL resolves in both dev and packaged. `forge.config.js#packageAfterCopy` wired |
+| Phase                            | Status | Key artefacts                                                                                                                                                                                             |
+| -------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 spike                          | ✅     | `web-ui-loader.js` in-process HTTP embed + `ws-bridge.js` minimal topic + `phase0-smoke.cjs` end-to-end                                                                                                   |
+| 1.1 protocol merge               | ✅     | `ws-cli-loader.js` wraps CLI `ChainlessChainWSServer` and monkey-patches `_dispatcher.dispatch` so custom topics share the same WS as web-panel's CLI protocol (auth / ping / session-\*)                 |
+| 1.2 desktop-only topics, batch 1 | ✅     | `skill.list` (in-process CLISkillLoader, bypasses SPAWN_ERROR) + `fs.openDialog` / `fs.saveDialog` (dialog-based, security-first, 10 MiB read cap)                                                        |
+| 1.3 entry UX                     | ✅     | `shouldRunWebShell(argv, env, settings)` three-way; SystemSettings adds `ui.useWebShellExperimental` toggle, mirrors the V6 hard-flip (`caaddf530`) playbook                                              |
+| 1.4 packaging prep               | ✅     | `scripts/prepare-web-shell-vendor.js` + **Decision A**: vendor target = `path.join(buildPath, "..")` so the loaders' 4-up REL resolves in both dev and packaged. `forge.config.js#packageAfterCopy` wired |
 
 **Test matrix**: 117+ tests covering web-shell hot paths — unit 79 + integration 14 + scripts 14 + config 6 + Playwright e2e 4 + one-shot `phase0-smoke.cjs`.
 
@@ -1666,13 +1696,13 @@ Desktop direction locked: **Desktop = web edition's superset** — Electron embe
 
 Cleared the residual demo footprint from the `/v6-preview` shell so it can be shown to outsiders as-is.
 
-| Change | Detail |
-|---|---|
-| `conversation-preview.ts` schema | bumped `version: 2 → 3`; removed `seedConversations()` / `createDemoFiles()` / the legacy demo file tree; first launch (or schema/JSON corruption) now lands on `conversations: []` + `activeId: null` and the UI tells the user to hit "+ 新会话"; `agentLabel` default `"Claude Code" → "ChainlessChain"` |
-| Brand chrome (`AppShellPreview.vue`) | top-left wordmark "ClaudeBox" replaced by `import brandLogo from "../assets/logo.png"` + text "ChainlessChain"; composer caption drops the trailing "运行中..." (running) suffix |
-| Platform-aware traffic dots | macOS red/yellow/green dots gated by `v-if="isMacPlatform"`; on mount `await window.electronAPI.system.getPlatform() === "darwin"`; hidden on Win/Linux |
-| Settings entry | the 5 runtime chips at the composer footer (progress / model / skill / tool / terminal) collapse into a single button-chip showing `runtimeStatus.modelLabel \|\| "未配置模型"`; a new gear `SettingOutlined` button sits beside the theme buttons; both `router.push({ path: "/settings/system", query: { tab: "llm" } })` |
-| Tests | `conversation-preview.test.ts` rewritten around blank-start semantics, expanded to 23 cases; preview-shell suites (theme 10 + widget-registry 5 + v6-shell-default 9 + conversation-preview 23) total 47 tests, all green (17.1s); `vue-tsc --noEmit` 0 errors |
+| Change                               | Detail                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conversation-preview.ts` schema     | bumped `version: 2 → 3`; removed `seedConversations()` / `createDemoFiles()` / the legacy demo file tree; first launch (or schema/JSON corruption) now lands on `conversations: []` + `activeId: null` and the UI tells the user to hit "+ 新会话"; `agentLabel` default `"Claude Code" → "ChainlessChain"`                 |
+| Brand chrome (`AppShellPreview.vue`) | top-left wordmark "ClaudeBox" replaced by `import brandLogo from "../assets/logo.png"` + text "ChainlessChain"; composer caption drops the trailing "运行中..." (running) suffix                                                                                                                                            |
+| Platform-aware traffic dots          | macOS red/yellow/green dots gated by `v-if="isMacPlatform"`; on mount `await window.electronAPI.system.getPlatform() === "darwin"`; hidden on Win/Linux                                                                                                                                                                     |
+| Settings entry                       | the 5 runtime chips at the composer footer (progress / model / skill / tool / terminal) collapse into a single button-chip showing `runtimeStatus.modelLabel \|\| "未配置模型"`; a new gear `SettingOutlined` button sits beside the theme buttons; both `router.push({ path: "/settings/system", query: { tab: "llm" } })` |
+| Tests                                | `conversation-preview.test.ts` rewritten around blank-start semantics, expanded to 23 cases; preview-shell suites (theme 10 + widget-registry 5 + v6-shell-default 9 + conversation-preview 23) total 47 tests, all green (17.1s); `vue-tsc --noEmit` 0 errors                                                              |
 
 This pass touches only the renderer + persisted schema — main-process IPC and route table unchanged. See `docs/design/modules/97-claude-desktop-refactor.md` §交付状态 P9d.
 
@@ -1684,41 +1714,41 @@ After the V6 hard-flip closed, web-panel entered Phase B: ports 5 high-traffic d
 
 ### Phase B — 5 ports (commit order)
 
-| Commit | Route | Sidebar group | CLI source | Cards / Tabs / Modals |
-|---|---|---|---|---|
-| `260787c99` | `/community` | 社 交 (new) | `cc social ...` | 5 / 3 (Posts+Friends+Contacts) / 2 (Publish+AddContact) |
-| `792b211e1` | `/marketplace` | 数 据 | `cc marketplace ...` | 5 / 2 (Services+Invocations) / 2 (Publish+RecordInvocation) + status-transition dropdown |
-| `8f7d87ede` | `/crosschain` | 高 级 | `cc crosschain ...` | 5 / 3 (Bridges+Swaps+Messages) / 4 (Bridge+Swap+Send+FeeEstimate) + chain catalogue |
-| `30cf3b6ab` | `/aiops` | 概 览 | `cc ops ...` | 5 / 3 (Incidents+Playbooks+Baselines) / 4 (CreateIncident+Playbook+Baseline+DetectAnomaly) + severity breakdown |
-| `04c57237d` | `/compliance` | 高 级 | `cc compliance threat-intel/ueba` | 5 / 2 (ThreatIntel+UEBA) / 3 (Match+BuildBaseline+RunAnalyze) + IoC type breakdown |
+| Commit      | Route          | Sidebar group | CLI source                        | Cards / Tabs / Modals                                                                                           |
+| ----------- | -------------- | ------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `260787c99` | `/community`   | 社 交 (new)   | `cc social ...`                   | 5 / 3 (Posts+Friends+Contacts) / 2 (Publish+AddContact)                                                         |
+| `792b211e1` | `/marketplace` | 数 据         | `cc marketplace ...`              | 5 / 2 (Services+Invocations) / 2 (Publish+RecordInvocation) + status-transition dropdown                        |
+| `8f7d87ede` | `/crosschain`  | 高 级         | `cc crosschain ...`               | 5 / 3 (Bridges+Swaps+Messages) / 4 (Bridge+Swap+Send+FeeEstimate) + chain catalogue                             |
+| `30cf3b6ab` | `/aiops`       | 概 览         | `cc ops ...`                      | 5 / 3 (Incidents+Playbooks+Baselines) / 4 (CreateIncident+Playbook+Baseline+DetectAnomaly) + severity breakdown |
+| `04c57237d` | `/compliance`  | 高 级         | `cc compliance threat-intel/ueba` | 5 / 2 (ThreatIntel+UEBA) / 3 (Match+BuildBaseline+RunAnalyze) + IoC type breakdown                              |
 
 ### Sidebar refactor — commit `7ee1985c5`
 
 After 5 new entries pushed the sidebar past viewport on shorter screens. Root cause: `.app-root` used `min-height:100vh` (allows growth), so `.side-menu`'s `overflow-y:auto` never triggered.
 
-| Change | Effect |
-|---|---|
-| `.app-root` `min-height` → `height: 100vh; overflow: hidden` | Lock viewport height |
-| `.main-area` `display: flex; flex-direction: column; height: 100vh` | Header + content split via flex |
-| `.page-content` `flex: 1; min-height: 0` | Flex child triggers independent scroll |
-| 8 `<a-menu-item-group>` → `<a-sub-menu>` | Second-level menus collapse on click |
+| Change                                                              | Effect                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------ |
+| `.app-root` `min-height` → `height: 100vh; overflow: hidden`        | Lock viewport height                                   |
+| `.main-area` `display: flex; flex-direction: column; height: 100vh` | Header + content split via flex                        |
+| `.page-content` `flex: 1; min-height: 0`                            | Flex child triggers independent scroll                 |
+| 8 `<a-menu-item-group>` → `<a-sub-menu>`                            | Second-level menus collapse on click                   |
 | `v-model:openKeys` + localStorage (`cc.web-panel.sidebar.openKeys`) | Open state survives reload, 9 tests cover the contract |
 
 ### Test reinforcement — commit `d43e43a93`
 
-| Change | Detail |
-|---|---|
+| Change                                                                    | Detail                                                                                                                                                                   |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **NEW integration**: `__tests__/integration/phase-b-cli-commands.test.js` | 19 tests. Spawns real `cc serve` on 19410 and runs every CLI command the 5 views consume; pipes output through the matching parser and asserts no throw + expected shape |
-| **FIX e2e**: `__tests__/e2e/panel.test.js SPA_ROUTES` | 23 → 34 (11 routes were missing from SPA fallback coverage, including Phase A's did/project-settings/knowledge) |
-| **NEW unit**: `__tests__/unit/sidebar-openkeys.test.js` | 9 tests locking the localStorage contract: defaults, partial state, all-collapsed, corrupt-JSON tolerance, unknown-key filtering |
+| **FIX e2e**: `__tests__/e2e/panel.test.js SPA_ROUTES`                     | 23 → 34 (11 routes were missing from SPA fallback coverage, including Phase A's did/project-settings/knowledge)                                                          |
+| **NEW unit**: `__tests__/unit/sidebar-openkeys.test.js`                   | 9 tests locking the localStorage contract: defaults, partial state, all-collapsed, corrupt-JSON tolerance, unknown-key filtering                                         |
 
 ### Test matrix
 
-| Suite | Result |
-|---|---|
-| web-panel `__tests__/unit/` | **809/809** (599 baseline + 5 × ~35 parser + 9 sidebar + new-pages assertions) |
-| web-panel `__tests__/integration/phase-b-cli-commands.test.js` | **19/19** (~40s end-to-end, every command runs against the live CLI) |
-| vite build | clean — KnowledgeGraph chunk is the only >500kB warning (pre-existing Phase A, echarts size) |
+| Suite                                                          | Result                                                                                       |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| web-panel `__tests__/unit/`                                    | **809/809** (599 baseline + 5 × ~35 parser + 9 sidebar + new-pages assertions)               |
+| web-panel `__tests__/integration/phase-b-cli-commands.test.js` | **19/19** (~40s end-to-end, every command runs against the live CLI)                         |
+| vite build                                                     | clean — KnowledgeGraph chunk is the only >500kB warning (pre-existing Phase A, echarts size) |
 
 ### Route count
 
@@ -1738,24 +1768,24 @@ The V6 desktop shell graduates from soft-opt-in (2026-04-21) to **default**: com
 
 Each probe follows the standard 5-7 file template: `plugin.json` + `<Name>Widget.vue` + `<Name>Panel.vue` + optional thin Pinia store + `widgets/index.ts` + `AppShell.vue` panel mount + integration test.
 
-| Commit | Probe | Slash | Thin store | Panel data source |
-|---|---|---|---|---|
-| `35f4e278b` | did-management | `/did` | `useDIDManagementStore` | `did:get-all-identities` / `did:get-current-identity` / `did:set-default-identity` |
-| `a097596f5` | projects | `/projects` | `useProjectsQuickStore` | `project:get-all` (recent-5) |
-| `3883a72ec` | p2p-messaging | `/p2p` | `useP2PMessagingStore` | `p2p:get-node-info` / `p2p:get-peers` / `p2p:get-nat-info` (graceful null/[]) |
-| `5b5e6fe1d` | community | `/community` | `useCommunityQuickStore` | `community:get-list` (graceful []) |
-| `396d6e7b1` | ai-chat | `/chat` | `useAIChatStore` | `llm:check-status` + `llm:get-config` |
-| `ccbc312fd` | settings | `/settings` | — (pure-info) | static list of 7 SystemSettings sub-panes |
+| Commit      | Probe          | Slash        | Thin store               | Panel data source                                                                  |
+| ----------- | -------------- | ------------ | ------------------------ | ---------------------------------------------------------------------------------- |
+| `35f4e278b` | did-management | `/did`       | `useDIDManagementStore`  | `did:get-all-identities` / `did:get-current-identity` / `did:set-default-identity` |
+| `a097596f5` | projects       | `/projects`  | `useProjectsQuickStore`  | `project:get-all` (recent-5)                                                       |
+| `3883a72ec` | p2p-messaging  | `/p2p`       | `useP2PMessagingStore`   | `p2p:get-node-info` / `p2p:get-peers` / `p2p:get-nat-info` (graceful null/[])      |
+| `5b5e6fe1d` | community      | `/community` | `useCommunityQuickStore` | `community:get-list` (graceful [])                                                 |
+| `396d6e7b1` | ai-chat        | `/chat`      | `useAIChatStore`         | `llm:check-status` + `llm:get-config`                                              |
+| `ccbc312fd` | settings       | `/settings`  | — (pure-info)            | static list of 7 SystemSettings sub-panes                                          |
 
 ai-chat is the gating route for the hard-flip — once settings landed, all top-10 routes (settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise) had V6 widgets.
 
 ### V6 hard-flip — commit `caaddf530`
 
-| File | Change |
-|---|---|
-| `router/v6-shell-default.ts` | Initial `useV6ShellByDefault = false → true` (covers pre-config-load window + bootstrap try/catch failure path) |
-| `main.ts` | `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — unset config defaults to V6, only explicit `false` opts back to V5 |
-| `pages/settings/SystemSettings.vue` | Form initializer + description text flipped accordingly |
+| File                                | Change                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `router/v6-shell-default.ts`        | Initial `useV6ShellByDefault = false → true` (covers pre-config-load window + bootstrap try/catch failure path)                           |
+| `main.ts`                           | `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — unset config defaults to V6, only explicit `false` opts back to V5 |
+| `pages/settings/SystemSettings.vue` | Form initializer + description text flipped accordingly                                                                                   |
 
 The opt-out toggle and pure helper `resolveHomeRedirect()` stay untouched, honoring the migration template's "no other code needs to move" guarantee. **Existing users see V6 shell on next launch**; opt back to V5 by switching off "启用 V6 桌面壳" in SystemSettings.
 
@@ -1763,23 +1793,23 @@ Companion fix `72b826bdf` aligns the "立即试用" link drift: SystemSettings w
 
 ### web-panel Phase A: DID / Knowledge Graph / Project Settings
 
-| Commit | Scope | Routes |
-|---|---|---|
-| `f37aa44d0` | KG full + DID scaffold + echarts/vue-echarts deps | `/knowledge` end-to-end |
-| `d1f22ce2d` | ProjectSettings scaffold | (scaffold) |
-| `c0e96c9e0` | DID + ProjectSettings wiring | `/did` + `/project-settings` |
+| Commit      | Scope                                             | Routes                       |
+| ----------- | ------------------------------------------------- | ---------------------------- |
+| `f37aa44d0` | KG full + DID scaffold + echarts/vue-echarts deps | `/knowledge` end-to-end      |
+| `d1f22ce2d` | ProjectSettings scaffold                          | (scaffold)                   |
+| `c0e96c9e0` | DID + ProjectSettings wiring                      | `/did` + `/project-settings` |
 
 KG ships 4 tabs: force-directed graph (ECharts) / entity table / relation table / type distribution; CRUD + multi-hop BFS reasoning all via `cc kg list/relations/stats/reason --json`. DID reuses `cc did *`; mnemonic / DHT buttons displayed disabled with tooltip "桌面专属". ProjectSettings covers 4 fields (rootPath/maxSizeMB/autoSync/syncIntervalSeconds) via `cc config get/set project.*`, with `diffProjectConfig` issuing `set` only for changed fields.
 
 ### Test matrix (657 today-related green + 36/36 V6 surface on hard-flip day)
 
-| Suite | Result |
-|---|---|
-| `plugin-extension-points.integration.test.js` | **19/19** (one new it block per probe) |
-| `slash-dispatch.test.ts` | **8/8** |
-| `v6-shell-default.test.ts` | **9/9** (4 assertions flipped accordingly) |
-| web-panel `__tests__/unit/` | **621/621** (incl. 24 did-parser + 27 kg-parser + 20 project-settings-parser) |
-| desktop `tests/integration` | 509/512 (3 fail in `coding-agent-bridge-real-cli.test.js` — pre-existing ECONNREFUSED on real CLI server, not introduced today) |
+| Suite                                         | Result                                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin-extension-points.integration.test.js` | **19/19** (one new it block per probe)                                                                                          |
+| `slash-dispatch.test.ts`                      | **8/8**                                                                                                                         |
+| `v6-shell-default.test.ts`                    | **9/9** (4 assertions flipped accordingly)                                                                                      |
+| web-panel `__tests__/unit/`                   | **621/621** (incl. 24 did-parser + 27 kg-parser + 20 project-settings-parser)                                                   |
+| desktop `tests/integration`                   | 509/512 (3 fail in `coding-agent-bridge-real-cli.test.js` — pre-existing ECONNREFUSED on real CLI server, not introduced today) |
 
 ### Post-deployment watch
 
@@ -1810,22 +1840,22 @@ At startup: base mode opens the generic Web UI; project mode first materializes 
 
 ### Phase 2 packing bugs fixed (base mode)
 
-| Symptom | Root cause | Fix |
-|---|---|---|
-| Double-clicking flashes a black window that closes instantly | Synthesized entry had no subcommand → commander prints help and exits | Entry now injects `argv.push('ui')` when no subcommand is present; `--version`/`--help` short-circuit untouched |
-| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` on first launch | pkg's snapshot bootstrap doesn't register a dynamic-import callback | Entry rewritten to **static ESM imports** of `ensureUtf8` + `createProgram` — no `import(...)` |
-| `NODE_MODULE_VERSION 127 … requires 115` then DB init fails | Host built the native `.node` against Node 22; pkg packaged Node 20 | `loadSQLiteDriver` now probes each native candidate via `new Database(':memory:').close()`; ABI mismatch → automatic sql.js fallback |
-| sql.js fallback selected but `prepare(...).all is not a function` | Legacy fallback only swapped the driver, never adapted the API surface | New `createSqlJsCompat(raw, dbPath)` wraps sql.js into the better-sqlite3 shape callers assume: `prepare().all/get/run`, `transaction` BEGIN/COMMIT/ROLLBACK, `pragma` no-op, `close` auto-persist |
-| `Auth: disabled` even with `--token auto` | Entry never baked the token field | Entry now embeds a frozen `BAKED` constant; `--token auto` (default) generates a fresh `crypto.randomBytes(16)` token on every launch and prints it; `CC_PACK_TOKEN` / `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` / `CC_PACK_HOST` env vars override at runtime |
+| Symptom                                                           | Root cause                                                             | Fix                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Double-clicking flashes a black window that closes instantly      | Synthesized entry had no subcommand → commander prints help and exits  | Entry now injects `argv.push('ui')` when no subcommand is present; `--version`/`--help` short-circuit untouched                                                                                                                                            |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` on first launch          | pkg's snapshot bootstrap doesn't register a dynamic-import callback    | Entry rewritten to **static ESM imports** of `ensureUtf8` + `createProgram` — no `import(...)`                                                                                                                                                             |
+| `NODE_MODULE_VERSION 127 … requires 115` then DB init fails       | Host built the native `.node` against Node 22; pkg packaged Node 20    | `loadSQLiteDriver` now probes each native candidate via `new Database(':memory:').close()`; ABI mismatch → automatic sql.js fallback                                                                                                                       |
+| sql.js fallback selected but `prepare(...).all is not a function` | Legacy fallback only swapped the driver, never adapted the API surface | New `createSqlJsCompat(raw, dbPath)` wraps sql.js into the better-sqlite3 shape callers assume: `prepare().all/get/run`, `transaction` BEGIN/COMMIT/ROLLBACK, `pragma` no-op, `close` auto-persist                                                         |
+| `Auth: disabled` even with `--token auto`                         | Entry never baked the token field                                      | Entry now embeds a frozen `BAKED` constant; `--token auto` (default) generates a fresh `crypto.randomBytes(16)` token on every launch and prints it; `CC_PACK_TOKEN` / `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` / `CC_PACK_HOST` env vars override at runtime |
 
 ### Project mode Phase 2a / 2b / 3a / 3b (new in v0.4)
 
-| Phase | Commit | Key outputs |
-|---|---|---|
+| Phase  | Commit      | Key outputs                                                                                                                                                                                                                            |
+| ------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **2a** | `522d7c8c9` | BAKED fields (projectMode/Name/Sha/Entry/AutoPersona/AllowedSubcommands/BundledDir) + entry `copyRecursiveMerge` (new files appended, existing files preserved + warn) + `sanitizeProjectName()` (Windows reserved names, 64-char cap) |
-| **2b** | `69a91c450` | `web-ui-server.js` adds `GET /api/skills`: returns `{schema:1, skills:[{name, source, category, ...}]}` driven by `CLISkillLoader.loadAll()`; smoke-runner upgrades from pre-wired to a real assertion |
-| **3a** | `dce8e5d66` | `createProgram(opts)` supports `allowedCommands` whitelist / `CC_PROJECT_ALLOWED_SUBCOMMANDS` env-var filtering — unlisted subcommands never register with commander |
-| **3b** | `7633ad483` | `CC_PACK_AUTO_PERSONA` env var export + `pack-manifest.json.bundledSkills` field (recipient audit) + Phase 8 smoke cross-checks the returned set |
+| **2b** | `69a91c450` | `web-ui-server.js` adds `GET /api/skills`: returns `{schema:1, skills:[{name, source, category, ...}]}` driven by `CLISkillLoader.loadAll()`; smoke-runner upgrades from pre-wired to a real assertion                                 |
+| **3a** | `dce8e5d66` | `createProgram(opts)` supports `allowedCommands` whitelist / `CC_PROJECT_ALLOWED_SUBCOMMANDS` env-var filtering — unlisted subcommands never register with commander                                                                   |
+| **3b** | `7633ad483` | `CC_PACK_AUTO_PERSONA` env var export + `pack-manifest.json.bundledSkills` field (recipient audit) + Phase 8 smoke cross-checks the returned set                                                                                       |
 
 ### Test matrix (total **108 project-mode + 96 base-mode = 204, all green**)
 
@@ -1839,7 +1869,7 @@ At startup: base mode opens the generic Web UI; project mode first materializes 
 
 - Base command reference: [docs-site/docs/chainlesschain/cli-pack.md](./docs-site/docs/chainlesschain/cli-pack.md)
 - **Project-mode user doc**: [docs-site/docs/chainlesschain/cli-pack-project.md](./docs-site/docs/chainlesschain/cli-pack-project.md) (v0.4)
-- Full design spec (v0.4): [docs/design/CC_PACK_打包指令设计文档.md](./docs/design/CC_PACK_打包指令设计文档.md)
+- Full design spec (v0.4): [docs/design/CC*PACK*打包指令设计文档.md](./docs/design/CC_PACK_打包指令设计文档.md)
 - CLI index: [docs/CLI_COMMANDS_REFERENCE.md](./docs/CLI_COMMANDS_REFERENCE.md) → System Management
 
 ---
@@ -1850,10 +1880,10 @@ Continuing the SystemSettings / ChatPanel SFC split from 2026-04-21, this cut fi
 
 ### Split results
 
-| Large SFC | Before | After | New children | Path |
-|---|---:|---:|---|---|
-| MainLayout.vue | 3203 | **1943 (−39%)** | FavoriteManagerModal · HeaderBreadcrumbs · SyncStatusButton · VoiceCommandHandler · SidebarContextMenu · AppHeader | `src/renderer/components/layout/` |
-| DIDManagement.vue | 1390 | **543 (−61%)** | AutoRepublishSettingsPane · MnemonicModals · IdentityDetailsModal | `src/renderer/components/did/` |
+| Large SFC         | Before |           After | New children                                                                                                       | Path                              |
+| ----------------- | -----: | --------------: | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| MainLayout.vue    |   3203 | **1943 (−39%)** | FavoriteManagerModal · HeaderBreadcrumbs · SyncStatusButton · VoiceCommandHandler · SidebarContextMenu · AppHeader | `src/renderer/components/layout/` |
+| DIDManagement.vue |   1390 |  **543 (−61%)** | AutoRepublishSettingsPane · MnemonicModals · IdentityDetailsModal                                                  | `src/renderer/components/did/`    |
 
 ### Shell wired to real LLM (V6 preview shell)
 
@@ -1878,19 +1908,19 @@ Five imports switched to `defineAsyncComponent`: FileEditor → MonacoEditor (~5
 
 ### Regression coverage
 
-| Scope | Command | Result |
-|---|---|---|
-| Full store regression | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600** (23 files · 35s) |
-| Shell + router + bootstrap | `npx vitest run src/renderer/shell src/renderer/shell-preview src/renderer/router/__tests__ tests/unit/bootstrap` | **76 / 76** (5 files) |
-| Skill-handlers + ipc-guard + bootstrap | `npx vitest run tests/unit/ai-engine/skill-handlers.test.js tests/unit/core/ipc-guard.test.js tests/unit/bootstrap/initializer-factory.test.js` | **285 / 285** |
-| Vue components | `npx vitest run tests/unit/components tests/unit/core/core-components.test.ts` | **124 / 125** (1 skip) |
-| AI + core + multi-agent | `npx vitest run tests/unit/ai/skill-tool-ipc.test.js tests/unit/core tests/unit/ai-engine/multi-agent` | **411 / 413** (2 skip) |
-| Database + enterprise + did + knowledge | `npx vitest run tests/unit/database tests/unit/enterprise tests/unit/did tests/unit/knowledge` | **1456 / 1464** (8 skip · 3 stderr errors are pre-existing test-scaffolding issues) |
-| shell-preview (components / services / widgets) | `npx vitest run src/renderer/shell-preview` | **51 / 51** |
-| Integration (mcp / canonical / coding-agent / planning-ipc / code-execution / file-ops · 9 files) | `npx vitest run tests/integration/...` | **98 / 104** (6 skip) |
-| Smoke build | `npm run build:renderer && npm run build:main` | ✅ Both green (renderer 6m28s) |
-| Lint (changed files) | `npx eslint src/renderer/components/layout src/renderer/shell ...` | **0 errors** (237 style warnings, all `vue/max-attributes-per-line`) |
-| E2E enumeration | `npx playwright test --list` | Playwright lists **1017 tests / 163 files**; health check 80% |
+| Scope                                                                                             | Command                                                                                                                                         | Result                                                                              |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Full store regression                                                                             | `npx vitest run src/renderer/stores/__tests__/`                                                                                                 | **600 / 600** (23 files · 35s)                                                      |
+| Shell + router + bootstrap                                                                        | `npx vitest run src/renderer/shell src/renderer/shell-preview src/renderer/router/__tests__ tests/unit/bootstrap`                               | **76 / 76** (5 files)                                                               |
+| Skill-handlers + ipc-guard + bootstrap                                                            | `npx vitest run tests/unit/ai-engine/skill-handlers.test.js tests/unit/core/ipc-guard.test.js tests/unit/bootstrap/initializer-factory.test.js` | **285 / 285**                                                                       |
+| Vue components                                                                                    | `npx vitest run tests/unit/components tests/unit/core/core-components.test.ts`                                                                  | **124 / 125** (1 skip)                                                              |
+| AI + core + multi-agent                                                                           | `npx vitest run tests/unit/ai/skill-tool-ipc.test.js tests/unit/core tests/unit/ai-engine/multi-agent`                                          | **411 / 413** (2 skip)                                                              |
+| Database + enterprise + did + knowledge                                                           | `npx vitest run tests/unit/database tests/unit/enterprise tests/unit/did tests/unit/knowledge`                                                  | **1456 / 1464** (8 skip · 3 stderr errors are pre-existing test-scaffolding issues) |
+| shell-preview (components / services / widgets)                                                   | `npx vitest run src/renderer/shell-preview`                                                                                                     | **51 / 51**                                                                         |
+| Integration (mcp / canonical / coding-agent / planning-ipc / code-execution / file-ops · 9 files) | `npx vitest run tests/integration/...`                                                                                                          | **98 / 104** (6 skip)                                                               |
+| Smoke build                                                                                       | `npm run build:renderer && npm run build:main`                                                                                                  | ✅ Both green (renderer 6m28s)                                                      |
+| Lint (changed files)                                                                              | `npx eslint src/renderer/components/layout src/renderer/shell ...`                                                                              | **0 errors** (237 style warnings, all `vue/max-attributes-per-line`)                |
+| E2E enumeration                                                                                   | `npx playwright test --list`                                                                                                                    | Playwright lists **1017 tests / 163 files**; health check 80%                       |
 
 🟢 No regression bugs leaked; see [docs-site changelog](./docs-site/docs/changelog.md) and [design doc Appendix C](./docs/design/桌面版UI重构_设计文档.md#附录-cv08-拆分与启动优化2026-04-22).
 
@@ -1900,29 +1930,30 @@ Five imports switched to `defineAsyncComponent`: FileEditor → MonacoEditor (~5
 
 Following the V6 preview shell P9c and 8 V5→V6 probes landed 2026-04-20, this cut **fills in unit tests for the 5 Phase 3.3c thin stores**, merges the **Phase 3.4 soft switch** (`/` → `/v2` opt-in), and fixes two pre-existing type/runtime drifts surfaced by the expanded regression.
 
-| Stage | Command | Result |
-|---|---|---|
-| **New store unit tests** (rag / wallet / git-hooks / workflow-designer / analytics-dashboard) | `npx vitest run src/renderer/stores/__tests__/{rag,wallet,git-hooks,workflow-designer,analytics-dashboard}.test.ts` | **83 / 83 green** (rag 12 · wallet 13 · git-hooks 14 · analytics 20 · workflow 24) |
-| **Full store regression** | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600 green** · 23 files · ~42s |
-| **Plugin extension-points integration** | `npx vitest run tests/integration/plugin-extension-points.integration.test.js` | **13 / 13 green** (5 legacy MDM override + 8 Phase 3.2 probes) |
-| **Phase 3.4 router-guard unit test** | `npx vitest run src/renderer/router/__tests__/v6-shell-default.test.ts` | **9 / 9 green** |
-| **Type check** | `npx vue-tsc --noEmit` | **0 errors** (fixed one pre-existing `electronAPI.config` type drift) |
-| **E2E structural health check** | `npm run test:e2e:check` | **66 / 66 structurally valid** · 10 module groups |
-| **E2E Playwright full run** | — | Not in this cut (needs a live Electron process; out of scope for a non-UI regression) |
+| Stage                                                                                         | Command                                                                                                             | Result                                                                                |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **New store unit tests** (rag / wallet / git-hooks / workflow-designer / analytics-dashboard) | `npx vitest run src/renderer/stores/__tests__/{rag,wallet,git-hooks,workflow-designer,analytics-dashboard}.test.ts` | **83 / 83 green** (rag 12 · wallet 13 · git-hooks 14 · analytics 20 · workflow 24)    |
+| **Full store regression**                                                                     | `npx vitest run src/renderer/stores/__tests__/`                                                                     | **600 / 600 green** · 23 files · ~42s                                                 |
+| **Plugin extension-points integration**                                                       | `npx vitest run tests/integration/plugin-extension-points.integration.test.js`                                      | **13 / 13 green** (5 legacy MDM override + 8 Phase 3.2 probes)                        |
+| **Phase 3.4 router-guard unit test**                                                          | `npx vitest run src/renderer/router/__tests__/v6-shell-default.test.ts`                                             | **9 / 9 green**                                                                       |
+| **Type check**                                                                                | `npx vue-tsc --noEmit`                                                                                              | **0 errors** (fixed one pre-existing `electronAPI.config` type drift)                 |
+| **E2E structural health check**                                                               | `npm run test:e2e:check`                                                                                            | **66 / 66 structurally valid** · 10 module groups                                     |
+| **E2E Playwright full run**                                                                   | —                                                                                                                   | Not in this cut (needs a live Electron process; out of scope for a non-UI regression) |
 
 **Bug fixes in this cut**:
+
 1. `src/renderer/utils/logger.ts:121` — wrapped IPC return with `Promise.resolve(result).catch(...)` to defend against `invoke()` returning `undefined`, which was throwing `Cannot read properties of undefined (reading 'catch')`.
 2. `src/renderer/types/electron.d.ts` — added the missing `ConfigAPI` interface to match `preload/index.js:367` (already exposing `config.{get,set,update,...}`), resolving the `main.ts:69` TS2339 drift.
 
 **New Phase 3.3c store index** (landed in commits `11b69d / 461d42 / c86bf4 / 4cf49ef / 8aec26`):
 
-| Store | Backing Panel | Triggered IPC prefix |
-|---|---|---|
-| `stores/rag.ts` | `shell/KnowledgeGraphPanel.vue` | `rag:get-stats` · `rag:rebuild-index` |
-| `stores/wallet.ts` | `shell/WalletPanel.vue` | `wallet:get-all` · `wallet:set-default` |
-| `stores/git-hooks.ts` | `shell/GitHooksPanel.vue` | `git-hooks:run-pre-commit` · `run-impact` · `run-auto-fix` · `get-config` · `set-config` · `get-history` · `get-stats` |
-| `stores/workflow-designer.ts` | `shell/WorkflowDesignerPanel.vue` | `workflow:list` · `workflow:create` · `workflow:get` · `workflow:save` · `workflow:execute` · `workflow:step:*` event stream |
-| `stores/analytics-dashboard.ts` | `shell/AnalyticsDashboardPanel.vue` | `analytics:get-dashboard-summary` · `get-time-series` · `get-top-n` · `export-{csv,json}` · `realtime-update` event stream |
+| Store                           | Backing Panel                       | Triggered IPC prefix                                                                                                         |
+| ------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `stores/rag.ts`                 | `shell/KnowledgeGraphPanel.vue`     | `rag:get-stats` · `rag:rebuild-index`                                                                                        |
+| `stores/wallet.ts`              | `shell/WalletPanel.vue`             | `wallet:get-all` · `wallet:set-default`                                                                                      |
+| `stores/git-hooks.ts`           | `shell/GitHooksPanel.vue`           | `git-hooks:run-pre-commit` · `run-impact` · `run-auto-fix` · `get-config` · `set-config` · `get-history` · `get-stats`       |
+| `stores/workflow-designer.ts`   | `shell/WorkflowDesignerPanel.vue`   | `workflow:list` · `workflow:create` · `workflow:get` · `workflow:save` · `workflow:execute` · `workflow:step:*` event stream |
+| `stores/analytics-dashboard.ts` | `shell/AnalyticsDashboardPanel.vue` | `analytics:get-dashboard-summary` · `get-time-series` · `get-top-n` · `export-{csv,json}` · `realtime-update` event stream   |
 
 🟢 Unit / integration / type-check — three gates, zero bug overflow; two pre-existing drifts fixed; full E2E deferred to the UI walkthrough stage. See [user guide §18.8](./docs-site/docs/guide/desktop-v6-shell.md#188-v50243-测试回归2026-04-21) and [design v0.6](./docs/design/桌面版UI重构_设计文档.md).
 
@@ -1963,26 +1994,26 @@ The Electron desktop `/v2` route ships a **chat-first + pluggable platform** she
 
 On top of the 64 surfaces from iter16-iter21, seven more iterations (iter22 → iter28) ported **72 additional lib-level governance surfaces** and bumped the CLI to `0.156.0`. iter22-iter26 add 8 surfaces each; iter27 and iter28 add 16 each. All surfaces follow the same 4-state profile maturity × 5-state record lifecycle skeleton (auto-stale/suspend/pause/degrade/mute-idle + auto-fail-stuck), **zero coupling with legacy paths**, and coexist with prior `*-v2` prefixes via a shared `preAction` hook that blocks `-v2` subcommand nesting.
 
-| Iter | Libraries covered | New V2 tests | Command prefixes |
-| ---- | ----------------- | ------------ | ---------------- |
-| iter22 | automation-engine / cowork-share / did-v2-manager / knowledge-exporter / knowledge-importer / llm-providers / pqc-manager / social-manager | 8×44=**352** | `cc automation augov-*-v2` `cc cowork shgov-*-v2` `cc did-v2 dv2gov-*-v2` `cc export kexpgov-*-v2` `cc import kimpgov-*-v2` `cc llm llmgov-*-v2` `cc pqc pqcgov-*-v2` `cc social smgov-*-v2` |
-| iter23 | response-cache / tech-learning-engine / universal-runtime / note-versioning / permanent-memory / protocol-fusion / dbevo / decentral-infra | 8×44=**352** | `cc rcache rcgov-*-v2` `cc tech techgov-*-v2` `cc runtime rtgov-*-v2` `cc note ntgov-*-v2` `cc permmem pmgov-*-v2` `cc fusion pfgov-*-v2` `cc dbevo dbevogov-*-v2` `cc infra digov-*-v2` |
-| iter24 | content-recommendation / mcp-registry / plugin-ecosystem / skill-loader / token-tracker / autonomous-developer / threat-intel / ueba | 8×44=**352** | `cc recommend rcmdgov-*-v2` `cc mcp mcpgov-*-v2` `cc ecosystem ecogov-*-v2` `cc skill sklgov-*-v2` `cc tokens toktgov-*-v2` `cc dev devgov-*-v2` `cc compliance tigov-*-v2` `cc compliance uebgov-*-v2` |
-| iter25 | cowork-task-templates / cowork-template-marketplace / cli-anything-bridge / agent-router / sub-agent-registry / todo-manager / execution-backend / evomap-federation | 8×44=**352** | `cc cowork cttgov-*-v2` `cc cowork ctmgov-*-v2` `cc cli-anything clibgov-*-v2` `cc orchestrate argov-*-v2` `cc agent saregov-*-v2` `cc agent todogov-*-v2` `cc agent ebgov-*-v2` `cc evomap evfedgov-*-v2` |
-| iter26 | interactive-planner / cli-context-engineering / sub-agent-context / interaction-adapter / workflow-expr / plugin-autodiscovery / hashline / web-ui-server | 8×44=**352** | `cc planmode plannergov-*-v2` `cc cli-anything ctxenggov-*-v2` `cc agent sactxgov-*-v2` `cc chat iagov-*-v2` `cc workflow wfexgov-*-v2` `cc plugin padgov-*-v2` `cc memory hlgov-*-v2` `cc ui webuigov-*-v2` |
-| iter27 | downloader / skill-mcp / cowork-mcp-tools / stix-parser / sub-agent-profiles / cowork-observe / process-manager / ws-chat-handler / evomap-client / provider-options / session-core-singletons / service-manager / cowork-evomap-adapter / provider-stream / cowork-observe-html / cowork-adapter | 16×44=**704** | `cc setup dlgov-*-v2` `cc skill smcpgov-*-v2` `cc cowork cmcpgov-*-v2` `cc compliance stixgov-*-v2` `cc agent sapgov-*-v2` `cc cowork cobsgov-*-v2` `cc start pmgrgov-*-v2` `cc chat wscgov-*-v2` `cc evomap evcligov-*-v2` `cc llm poptgov-*-v2` `cc config scsgov-*-v2` `cc services smgrgov-*-v2` `cc cowork ceadgov-*-v2` `cc stream pstrmgov-*-v2` `cc cowork cohtgov-*-v2` `cc cowork cadpgov-*-v2` |
-| iter28 | a2a-protocol / agent-coordinator / agent-economy / autonomous-agent / chat-core / compliance-manager / cross-chain / crypto-manager / dao-governance / evolution-system / evomap-manager / hierarchical-memory / inference-network / knowledge-graph / pipeline-orchestrator / plan-mode | 16×44=**704** | `cc a2a a2apgov-*-v2` `cc orchestrate acrdgov-*-v2` `cc economy aecogov-*-v2` `cc agent autagov-*-v2` `cc chat ccoregov-*-v2` `cc compliance cmpmgov-*-v2` `cc crosschain crchgov-*-v2` `cc encrypt crygov-*-v2` `cc dao daomgov-*-v2` `cc evolution esysgov-*-v2` `cc evomap emgrgov-*-v2` `cc hmemory hmemgov-*-v2` `cc inference infnetgov-*-v2` `cc kg kggov-*-v2` `cc pipeline pipogov-*-v2` `cc planmode pmodegov-*-v2` |
+| Iter   | Libraries covered                                                                                                                                                                                                                                                                                 | New V2 tests  | Command prefixes                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iter22 | automation-engine / cowork-share / did-v2-manager / knowledge-exporter / knowledge-importer / llm-providers / pqc-manager / social-manager                                                                                                                                                        | 8×44=**352**  | `cc automation augov-*-v2` `cc cowork shgov-*-v2` `cc did-v2 dv2gov-*-v2` `cc export kexpgov-*-v2` `cc import kimpgov-*-v2` `cc llm llmgov-*-v2` `cc pqc pqcgov-*-v2` `cc social smgov-*-v2`                                                                                                                                                                                                                                  |
+| iter23 | response-cache / tech-learning-engine / universal-runtime / note-versioning / permanent-memory / protocol-fusion / dbevo / decentral-infra                                                                                                                                                        | 8×44=**352**  | `cc rcache rcgov-*-v2` `cc tech techgov-*-v2` `cc runtime rtgov-*-v2` `cc note ntgov-*-v2` `cc permmem pmgov-*-v2` `cc fusion pfgov-*-v2` `cc dbevo dbevogov-*-v2` `cc infra digov-*-v2`                                                                                                                                                                                                                                      |
+| iter24 | content-recommendation / mcp-registry / plugin-ecosystem / skill-loader / token-tracker / autonomous-developer / threat-intel / ueba                                                                                                                                                              | 8×44=**352**  | `cc recommend rcmdgov-*-v2` `cc mcp mcpgov-*-v2` `cc ecosystem ecogov-*-v2` `cc skill sklgov-*-v2` `cc tokens toktgov-*-v2` `cc dev devgov-*-v2` `cc compliance tigov-*-v2` `cc compliance uebgov-*-v2`                                                                                                                                                                                                                       |
+| iter25 | cowork-task-templates / cowork-template-marketplace / cli-anything-bridge / agent-router / sub-agent-registry / todo-manager / execution-backend / evomap-federation                                                                                                                              | 8×44=**352**  | `cc cowork cttgov-*-v2` `cc cowork ctmgov-*-v2` `cc cli-anything clibgov-*-v2` `cc orchestrate argov-*-v2` `cc agent saregov-*-v2` `cc agent todogov-*-v2` `cc agent ebgov-*-v2` `cc evomap evfedgov-*-v2`                                                                                                                                                                                                                    |
+| iter26 | interactive-planner / cli-context-engineering / sub-agent-context / interaction-adapter / workflow-expr / plugin-autodiscovery / hashline / web-ui-server                                                                                                                                         | 8×44=**352**  | `cc planmode plannergov-*-v2` `cc cli-anything ctxenggov-*-v2` `cc agent sactxgov-*-v2` `cc chat iagov-*-v2` `cc workflow wfexgov-*-v2` `cc plugin padgov-*-v2` `cc memory hlgov-*-v2` `cc ui webuigov-*-v2`                                                                                                                                                                                                                  |
+| iter27 | downloader / skill-mcp / cowork-mcp-tools / stix-parser / sub-agent-profiles / cowork-observe / process-manager / ws-chat-handler / evomap-client / provider-options / session-core-singletons / service-manager / cowork-evomap-adapter / provider-stream / cowork-observe-html / cowork-adapter | 16×44=**704** | `cc setup dlgov-*-v2` `cc skill smcpgov-*-v2` `cc cowork cmcpgov-*-v2` `cc compliance stixgov-*-v2` `cc agent sapgov-*-v2` `cc cowork cobsgov-*-v2` `cc start pmgrgov-*-v2` `cc chat wscgov-*-v2` `cc evomap evcligov-*-v2` `cc llm poptgov-*-v2` `cc config scsgov-*-v2` `cc services smgrgov-*-v2` `cc cowork ceadgov-*-v2` `cc stream pstrmgov-*-v2` `cc cowork cohtgov-*-v2` `cc cowork cadpgov-*-v2`                     |
+| iter28 | a2a-protocol / agent-coordinator / agent-economy / autonomous-agent / chat-core / compliance-manager / cross-chain / crypto-manager / dao-governance / evolution-system / evomap-manager / hierarchical-memory / inference-network / knowledge-graph / pipeline-orchestrator / plan-mode          | 16×44=**704** | `cc a2a a2apgov-*-v2` `cc orchestrate acrdgov-*-v2` `cc economy aecogov-*-v2` `cc agent autagov-*-v2` `cc chat ccoregov-*-v2` `cc compliance cmpmgov-*-v2` `cc crosschain crchgov-*-v2` `cc encrypt crygov-*-v2` `cc dao daomgov-*-v2` `cc evolution esysgov-*-v2` `cc evomap emgrgov-*-v2` `cc hmemory hmemgov-*-v2` `cc inference infnetgov-*-v2` `cc kg kggov-*-v2` `cc pipeline pipogov-*-v2` `cc planmode pmodegov-*-v2` |
 
 **iter22-iter28 cumulative**: 5 × 8 + 2 × 16 = **72 lib-level governance surfaces**, 72 × 44 = **3,168 new V2 unit tests**. Combined with iter16-iter21, the V2 governance layer now totals **136 surfaces / ~5,984 V2 unit tests**, and full-stack V2 governance surfaces grow from 156+ → **228+**.
 
 ### Regression tests (2026-04-19, post iter28)
 
-| Layer | Files | Tests | Notes |
-| --- | --- | --- | --- |
-| CLI unit (iter28 new) | 16 | **704 / 704** | a2a-protocol / agent-coordinator + 14 other new V2 surfaces |
-| CLI integration | 40 | **696 / 696** | unchanged from 0.151.0 |
-| CLI e2e | 38 | **565 / 565** | unchanged from 0.151.0 |
-| **Total (new + regression)** | **94** | **1,965 / 1,965** | **zero regressions** |
+| Layer                        | Files  | Tests             | Notes                                                       |
+| ---------------------------- | ------ | ----------------- | ----------------------------------------------------------- |
+| CLI unit (iter28 new)        | 16     | **704 / 704**     | a2a-protocol / agent-coordinator + 14 other new V2 surfaces |
+| CLI integration              | 40     | **696 / 696**     | unchanged from 0.151.0                                      |
+| CLI e2e                      | 38     | **565 / 565**     | unchanged from 0.151.0                                      |
+| **Total (new + regression)** | **94** | **1,965 / 1,965** | **zero regressions**                                        |
 
 **npm**: `npm i -g chainlesschain@0.156.0` (aliases `cc` / `clc` / `clchain`)
 
@@ -1994,25 +2025,25 @@ See [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96
 
 After 0.142.0 (batches 9 + 10), the V2 canonical surface continued through six more iterations (iter16-iter21), pushing **64 additional lib-level governance surfaces** and bumping the CLI to `0.151.0` (tag `v5.0.2.34`). Every surface follows the same 4-state profile maturity × 5-state record lifecycle skeleton, with per-owner active caps, per-entity pending caps, auto-suspend-idle, and auto-fail-stuck — **zero coupling with legacy paths**.
 
-| Iteration | Subsystems (lib) | New V2 tests | Command prefix |
-| --------- | ---------------- | ------------ | -------------- |
-| iter16 | audit-logger / knowledge-graph / sandbox-v2 / sla-manager / stress-tester / terraform-manager / reputation-optimizer / skill-marketplace | 8×44=**352** | `cc audit aud-gov-*-v2` `cc kg kgov-*-v2` `cc sandbox sbox-gov-*-v2` `cc sla slagov-*-v2` `cc stress strgov-*-v2` `cc terraform tfgov-*-v2` `cc reputation repgov-*-v2` `cc marketplace mktgov-*-v2` |
-| iter17 | chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager | 8×44=**352** | `cc chat chatgov-*-v2` `cc orchestrate ccbgov-*-v2` `cc compliance cmgr-*-v2` `cc cowork learn-*-v2` `cc cowork cwwf-*-v2` `cc privacy pcgov-*-v2` `cc incentive incgov-*-v2` `cc hardening hardgov-*-v2` |
-| iter18 | aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception | 8×44=**352** | `cc ops aiopsgov-*-v2` `cc multimodal mmgov-*-v2` `cc instinct instgov-*-v2` `cc tenant tnsgov-*-v2` `cc quantize qntgov-*-v2` `cc trust trustgov-*-v2` `cc nlprog nlpgov-*-v2` `cc perception percgov-*-v2` |
-| iter19 | code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager | 8×44=**352** | `cc codegen cdagov-*-v2` `cc collab cogov-*-v2` `cc governance commgov-*-v2` `cc did didgov-*-v2` `cc sso ssogov-*-v2` `cc org orggov-*-v2` `cc scim scimgov-*-v2` `cc sync syncgov-*-v2` |
-| iter20 | agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager | 8×44=**352** | `cc agent-network anetgov-*-v2` `cc browse bagov-*-v2` `cc dlp dlpgov-*-v2` `cc evomap evgov-*-v2` `cc federation fedgov-*-v2` `cc ipfs ipfsgov-*-v2` `cc p2p p2pgov-*-v2` `cc wallet walgov-*-v2` |
-| iter21 | activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine | 8×44=**352** | `cc activitypub apgov-*-v2` `cc matrix matgov-*-v2` `cc nostr nosgov-*-v2` `cc bi bigov-*-v2` `cc memory memgov-*-v2` `cc session sesgov-*-v2` `cc hook hookgov-*-v2` `cc workflow wfgov-*-v2` |
+| Iteration | Subsystems (lib)                                                                                                                                  | New V2 tests | Command prefix                                                                                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| iter16    | audit-logger / knowledge-graph / sandbox-v2 / sla-manager / stress-tester / terraform-manager / reputation-optimizer / skill-marketplace          | 8×44=**352** | `cc audit aud-gov-*-v2` `cc kg kgov-*-v2` `cc sandbox sbox-gov-*-v2` `cc sla slagov-*-v2` `cc stress strgov-*-v2` `cc terraform tfgov-*-v2` `cc reputation repgov-*-v2` `cc marketplace mktgov-*-v2`         |
+| iter17    | chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager | 8×44=**352** | `cc chat chatgov-*-v2` `cc orchestrate ccbgov-*-v2` `cc compliance cmgr-*-v2` `cc cowork learn-*-v2` `cc cowork cwwf-*-v2` `cc privacy pcgov-*-v2` `cc incentive incgov-*-v2` `cc hardening hardgov-*-v2`    |
+| iter18    | aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception                                 | 8×44=**352** | `cc ops aiopsgov-*-v2` `cc multimodal mmgov-*-v2` `cc instinct instgov-*-v2` `cc tenant tnsgov-*-v2` `cc quantize qntgov-*-v2` `cc trust trustgov-*-v2` `cc nlprog nlpgov-*-v2` `cc perception percgov-*-v2` |
+| iter19    | code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager              | 8×44=**352** | `cc codegen cdagov-*-v2` `cc collab cogov-*-v2` `cc governance commgov-*-v2` `cc did didgov-*-v2` `cc sso ssogov-*-v2` `cc org orggov-*-v2` `cc scim scimgov-*-v2` `cc sync syncgov-*-v2`                    |
+| iter20    | agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager          | 8×44=**352** | `cc agent-network anetgov-*-v2` `cc browse bagov-*-v2` `cc dlp dlpgov-*-v2` `cc evomap evgov-*-v2` `cc federation fedgov-*-v2` `cc ipfs ipfsgov-*-v2` `cc p2p p2pgov-*-v2` `cc wallet walgov-*-v2`           |
+| iter21    | activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine                 | 8×44=**352** | `cc activitypub apgov-*-v2` `cc matrix matgov-*-v2` `cc nostr nosgov-*-v2` `cc bi bigov-*-v2` `cc memory memgov-*-v2` `cc session sesgov-*-v2` `cc hook hookgov-*-v2` `cc workflow wfgov-*-v2`               |
 
 **iter16-iter21 cumulative**: 6 iterations × 8 libs × 44 V2 tests = **2,112 new V2 unit tests** (actual 2,816+ counting iter17-21 batches). Total V2 governance surfaces grow from 92+ → **156+**.
 
 ### Regression tests (2026-04-19, post iter21)
 
-| Tier | Files | Tests | Notes |
-| --- | --- | --- | --- |
-| CLI Unit | 332 | **14,255 / 14,255** | Includes 92 `*-v2.test.js` files (iter16-iter21 add 32 files × 44 = 1,408) |
-| CLI Integration | 40 | **696 / 696** | Same as 0.142.0 |
-| CLI E2E | 38 | **565 / 565** | Same as 0.142.0 |
-| **Total** | **410** | **15,516 / 15,516** | **zero regressions** |
+| Tier            | Files   | Tests               | Notes                                                                      |
+| --------------- | ------- | ------------------- | -------------------------------------------------------------------------- |
+| CLI Unit        | 332     | **14,255 / 14,255** | Includes 92 `*-v2.test.js` files (iter16-iter21 add 32 files × 44 = 1,408) |
+| CLI Integration | 40      | **696 / 696**       | Same as 0.142.0                                                            |
+| CLI E2E         | 38      | **565 / 565**       | Same as 0.142.0                                                            |
+| **Total**       | **410** | **15,516 / 15,516** | **zero regressions**                                                       |
 
 **npm**: `npm i -g chainlesschain@0.151.0` (aliases `cc` / `clc` / `clchain`)
 
@@ -2026,21 +2057,21 @@ Two more V2 canonical-surface batches landed on top of batch 8: **batch 9** cove
 
 **30 V2 canonical surfaces** — batch 9 takes 14 brand-new top-levels (to avoid collision with existing commands), batch 10 takes 16 (most top-level, a few appended to existing commands via prefixes):
 
-| Batch | Subsystems (lib) | New V2 tests | Representative commands |
-| ----- | ----------------- | ------------- | ----------------------- |
-| Batch 9 | slot-filler / web-fetch / memory-injection / session-search / session-tail / session-usage / session-hooks / mcp-scaffold / plan-mode / permission-engine / user-profile / social-graph / service-container / task-model-selector | **521** (10×37 + 39 + 38 + 2×37) | `cc slotfill` `cc webfetch` `cc meminj` `cc seshsearch` `cc seshtail` `cc seshu` `cc seshhook` `cc mcpscaf` `cc planmode` `cc perm` `cc uprof` `cc social sg-*-v2` `cc svccont` `cc tms` |
-| Batch 10 | orchestrator / perf-tuning / topic-classifier / iteration-budget / git-integration / cowork-task-runner / inference-network / content-recommender / app-builder / siem-exporter / autonomous-agent / compliance-framework-reporter / agent-economy / pipeline-orchestrator / evolution-system / hierarchical-memory | **704** (12×45 + 4×41) | `cc orchgov` `cc perf *-v2` `cc topiccls` `cc itbudget` `cc git` `cc cowork runner-*-v2` `cc inference` `cc recommend cr-*-v2` `cc lowcode` `cc siem` `cc autoagent` `cc compliance fwrep-*-v2` `cc economy` `cc pipeline` `cc evolution` `cc hmemory` |
+| Batch    | Subsystems (lib)                                                                                                                                                                                                                                                                                                    | New V2 tests                     | Representative commands                                                                                                                                                                                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Batch 9  | slot-filler / web-fetch / memory-injection / session-search / session-tail / session-usage / session-hooks / mcp-scaffold / plan-mode / permission-engine / user-profile / social-graph / service-container / task-model-selector                                                                                   | **521** (10×37 + 39 + 38 + 2×37) | `cc slotfill` `cc webfetch` `cc meminj` `cc seshsearch` `cc seshtail` `cc seshu` `cc seshhook` `cc mcpscaf` `cc planmode` `cc perm` `cc uprof` `cc social sg-*-v2` `cc svccont` `cc tms`                                                               |
+| Batch 10 | orchestrator / perf-tuning / topic-classifier / iteration-budget / git-integration / cowork-task-runner / inference-network / content-recommender / app-builder / siem-exporter / autonomous-agent / compliance-framework-reporter / agent-economy / pipeline-orchestrator / evolution-system / hierarchical-memory | **704** (12×45 + 4×41)           | `cc orchgov` `cc perf *-v2` `cc topiccls` `cc itbudget` `cc git` `cc cowork runner-*-v2` `cc inference` `cc recommend cr-*-v2` `cc lowcode` `cc siem` `cc autoagent` `cc compliance fwrep-*-v2` `cc economy` `cc pipeline` `cc evolution` `cc hmemory` |
 
 Every surface shares the V2 skeleton: dual state machines + per-owner active cap (enforced only on `pending→active`) + per-entity pending cap (enforced at record creation) + stamp-once `activatedAt` / `startedAt` + `auto*V2` batchers + `_resetState*V2` for test isolation. All V2 actions are dispatched via `-v2` suffix; preAction hook bypasses legacy bootstrap via `actionCommand.name().endsWith("-v2")`. Multiple top-levels avoid collisions via prefixes (`cc seshhook` vs `cc hook`, `cc mcpscaf` vs `cc mcp`, `cc autoagent` vs `cc agent`, `runner-*-v2` vs Agent Coordinator, `cr-*-v2` vs content-recommendation, `sg-*-v2` vs social-manager, `fwrep-*-v2` vs compliance V2).
 
 ### Regression tests (2026-04-19)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 274 | **11718 / 11718** | 125s |
-| CLI Integration | 40 | **696 / 696** | 40s |
-| CLI E2E | 38 | **565 / 565** | 360s |
-| **Total** | **352** | **12979 / 12979** | **zero regressions** |
+| Tier            | Files   | Tests             | Duration             |
+| --------------- | ------- | ----------------- | -------------------- |
+| CLI Unit        | 274     | **11718 / 11718** | 125s                 |
+| CLI Integration | 40      | **696 / 696**     | 40s                  |
+| CLI E2E         | 38      | **565 / 565**     | 360s                 |
+| **Total**       | **352** | **12979 / 12979** | **zero regressions** |
 
 Batches 9 + 10 add **1225 new V2 unit tests** over 0.136.0 (521 + 704), bringing total V2 governance surfaces from 62+ → **92+**.
 
@@ -2056,31 +2087,31 @@ Batch 8 pushes the V2 canonical surface down into **12 lib modules** (a2a-protoc
 
 **12 V2 canonical surfaces** (strictly additive, pure in-memory governance, zero coupling with protocol layer):
 
-| lib module | Maturity / record enums | per-owner cap | per-entity cap | Auto batchers | V2 tests |
-| --- | --- | --- | --- | --- | --- |
-| `a2a-protocol` | `A2A_AGENT_MATURITY_V2` + `A2A_MESSAGE_LIFECYCLE_V2` | agent | pending message | autoRetireIdle + autoFailStuck | 40 |
-| `activitypub-bridge` | `AP_ACTOR_MATURITY_V2` + `AP_ACTIVITY_LIFECYCLE_V2` | actor | pending activity | autoRetireIdle + autoFailStuck | 39 |
-| `bi-engine` | `BI_DATASET_MATURITY_V2` + `BI_QUERY_LIFECYCLE_V2` | dataset | pending query | autoArchiveIdle + autoFailStuck | 39 |
-| `browser-automation` | `BROWSE_SESSION_MATURITY_V2` + `BROWSE_STEP_LIFECYCLE_V2` | session | pending step | autoArchiveIdle + autoFailStuck | 37 |
-| `cross-chain` | `CC_BRIDGE_MATURITY_V2` + `CC_TRANSFER_LIFECYCLE_V2` | bridge | pending transfer | autoDegradeIdle + autoFailStuck | 40 |
-| `dao-governance` | `DAO_REALM_MATURITY_V2` + `DAO_PROPOSAL_LIFECYCLE_V2` | realm | open proposal | autoArchiveIdle + autoFailStuck | 41 |
-| `dlp-engine` | `DLP_POLICY_MATURITY_V2` + `DLP_INCIDENT_LIFECYCLE_V2` | policy | open incident | autoDeprecateIdle + autoCloseStale | 40 |
-| `evomap-manager` | `EVOMAP_HUB_MATURITY_V2` + `EVOMAP_SUBMISSION_LIFECYCLE_V2` | hub | pending submission | autoArchiveIdle + autoFailStuck | 39 |
-| `matrix-bridge` | `MX_ROOM_MATURITY_V2` + `MX_EVENT_LIFECYCLE_V2` | room | pending event | autoArchiveIdle + autoFailStuck | 37 |
-| `nostr-bridge` | `NOSTR_RELAY_MATURITY_V2` + `NOSTR_EVENT_LIFECYCLE_V2` | relay | pending event | autoDegradeIdle + autoFailStuck | 39 |
-| `session-consolidator` | `CONSOL_PROFILE_MATURITY_V2` + `CONSOL_JOB_LIFECYCLE_V2` | profile | pending job | autoArchiveIdle + autoFailStuck | 38 |
-| `zkp-engine` | `ZKP_CIRCUIT_MATURITY_V2` + `ZKP_PROOF_LIFECYCLE_V2` | circuit | pending proof | autoArchiveIdle + autoFailStuck | 41 |
+| lib module             | Maturity / record enums                                     | per-owner cap | per-entity cap     | Auto batchers                      | V2 tests |
+| ---------------------- | ----------------------------------------------------------- | ------------- | ------------------ | ---------------------------------- | -------- |
+| `a2a-protocol`         | `A2A_AGENT_MATURITY_V2` + `A2A_MESSAGE_LIFECYCLE_V2`        | agent         | pending message    | autoRetireIdle + autoFailStuck     | 40       |
+| `activitypub-bridge`   | `AP_ACTOR_MATURITY_V2` + `AP_ACTIVITY_LIFECYCLE_V2`         | actor         | pending activity   | autoRetireIdle + autoFailStuck     | 39       |
+| `bi-engine`            | `BI_DATASET_MATURITY_V2` + `BI_QUERY_LIFECYCLE_V2`          | dataset       | pending query      | autoArchiveIdle + autoFailStuck    | 39       |
+| `browser-automation`   | `BROWSE_SESSION_MATURITY_V2` + `BROWSE_STEP_LIFECYCLE_V2`   | session       | pending step       | autoArchiveIdle + autoFailStuck    | 37       |
+| `cross-chain`          | `CC_BRIDGE_MATURITY_V2` + `CC_TRANSFER_LIFECYCLE_V2`        | bridge        | pending transfer   | autoDegradeIdle + autoFailStuck    | 40       |
+| `dao-governance`       | `DAO_REALM_MATURITY_V2` + `DAO_PROPOSAL_LIFECYCLE_V2`       | realm         | open proposal      | autoArchiveIdle + autoFailStuck    | 41       |
+| `dlp-engine`           | `DLP_POLICY_MATURITY_V2` + `DLP_INCIDENT_LIFECYCLE_V2`      | policy        | open incident      | autoDeprecateIdle + autoCloseStale | 40       |
+| `evomap-manager`       | `EVOMAP_HUB_MATURITY_V2` + `EVOMAP_SUBMISSION_LIFECYCLE_V2` | hub           | pending submission | autoArchiveIdle + autoFailStuck    | 39       |
+| `matrix-bridge`        | `MX_ROOM_MATURITY_V2` + `MX_EVENT_LIFECYCLE_V2`             | room          | pending event      | autoArchiveIdle + autoFailStuck    | 37       |
+| `nostr-bridge`         | `NOSTR_RELAY_MATURITY_V2` + `NOSTR_EVENT_LIFECYCLE_V2`      | relay         | pending event      | autoDegradeIdle + autoFailStuck    | 39       |
+| `session-consolidator` | `CONSOL_PROFILE_MATURITY_V2` + `CONSOL_JOB_LIFECYCLE_V2`    | profile       | pending job        | autoArchiveIdle + autoFailStuck    | 38       |
+| `zkp-engine`           | `ZKP_CIRCUIT_MATURITY_V2` + `ZKP_PROOF_LIFECYCLE_V2`        | circuit       | pending proof      | autoArchiveIdle + autoFailStuck    | 41       |
 
 Every surface shares the V2 skeleton: dual state machines + per-owner active cap (enforced only on `pending→active`) + per-entity pending cap (enforced at record creation) + stamp-once `activatedAt` / `startedAt` + `auto*V2` batchers + `_resetState*V2` for test isolation. All V2 actions are dispatched via `-v2` suffix; preAction hook bypasses legacy DB bootstrap via `actionCommand.name().endsWith("-v2")`.
 
 ### Regression tests (2026-04-18 evening)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 244 | **10493 / 10493** | 124s |
-| CLI Integration | 40 | **696 / 696** | 40s |
-| CLI E2E | 38 | **565 / 565** | 352s |
-| **Total** | **322** | **11754 / 11754** | **zero regressions** |
+| Tier            | Files   | Tests             | Duration             |
+| --------------- | ------- | ----------------- | -------------------- |
+| CLI Unit        | 244     | **10493 / 10493** | 124s                 |
+| CLI Integration | 40      | **696 / 696**     | 40s                  |
+| CLI E2E         | 38      | **565 / 565**     | 352s                 |
+| **Total**       | **322** | **11754 / 11754** | **zero regressions** |
 
 This batch adds **470 new V2 unit tests** over 0.130.0 (sum across the 12 lib modules).
 
@@ -2102,34 +2133,34 @@ Later the same day that 0.106.0 (V2 batch 5) shipped, we pushed one more round: 
 
 **13 V2 canonical surfaces** (strictly additive, backwards-compatible — in-memory governance layer, independent of legacy SQLite / file state):
 
-| Module | Maturity / work-unit enums | Active cap | Pending cap | Auto batchers |
-| --- | --- | --- | --- | --- |
-| `cc automation` V2 | `AUTOMATION_MATURITY_V2` + `EXECUTION_LIFECYCLE_V2` | per-owner 20 | per-flow 30 | autoPause + autoCancel |
-| `cc instinct` V2 | `PROFILE_MATURITY_V2` + `OBSERVATION_LIFECYCLE_V2` | per-user 5 | per-profile 100 | autoDormant + autoDiscard |
-| `cc memory` V2 | `ENTRY_MATURITY_V2` + `CONSOLIDATION_LIFECYCLE_V2` | per-owner 200 | per-owner 20 | autoStale + autoSupersede |
-| `cc note` V2 | `NOTE_MATURITY_V2` + `REVISION_LIFECYCLE_V2` | per-author 100 | per-note 50 | autoStale + autoDiscard |
-| `cc org` V2 | `ORG_MATURITY_V2` + `MEMBER_LIFECYCLE_V2` | per-owner 10 | per-org 500 | autoSuspend + autoExpire |
-| `cc permmem` V2 (new group) | `PIN_MATURITY_V2` + `RETENTION_JOB_LIFECYCLE_V2` | per-owner 100 | per-pin 10 | autoDormant + autoCancel |
-| `cc rcache` V2 (new group) | `PROFILE_MATURITY_V2` + `REFRESH_JOB_LIFECYCLE_V2` | per-owner 25 | per-profile 4 | autoSuspend + autoFail |
-| `cc scim` V2 | `IDENTITY_LIFECYCLE_V2` + `SYNC_JOB_V2` | per-tenant 5000 | per-idp 50 | autoSuspend + autoFail |
-| `cc session` V2 | `CONVERSATION_MATURITY_V2` + `TURN_LIFECYCLE_V2` | per-user 20 | per-session 100 | autoIdle + autoFail |
-| `cc social` V2 | `RELATIONSHIP_MATURITY_V2` + `THREAD_LIFECYCLE_V2` | per-user 1000 | per-user 500 | autoMute + autoArchive |
-| `cc sync` V2 | `RESOURCE_MATURITY_V2` + `SYNC_RUN_V2` | per-owner 50 | per-resource 20 | autoPause + autoFail |
-| `cc tokens` V2 | `BUDGET_MATURITY_V2` + `USAGE_RECORD_LIFECYCLE_V2` | per-owner 10 | per-budget 10000 | autoExhaust + autoCommit |
-| `cc wallet` V2 | `WALLET_MATURITY_V2` + `TX_LIFECYCLE_V2` | per-user 10 | per-wallet 100 | autoFreeze + autoCancel |
+| Module                      | Maturity / work-unit enums                          | Active cap      | Pending cap      | Auto batchers             |
+| --------------------------- | --------------------------------------------------- | --------------- | ---------------- | ------------------------- |
+| `cc automation` V2          | `AUTOMATION_MATURITY_V2` + `EXECUTION_LIFECYCLE_V2` | per-owner 20    | per-flow 30      | autoPause + autoCancel    |
+| `cc instinct` V2            | `PROFILE_MATURITY_V2` + `OBSERVATION_LIFECYCLE_V2`  | per-user 5      | per-profile 100  | autoDormant + autoDiscard |
+| `cc memory` V2              | `ENTRY_MATURITY_V2` + `CONSOLIDATION_LIFECYCLE_V2`  | per-owner 200   | per-owner 20     | autoStale + autoSupersede |
+| `cc note` V2                | `NOTE_MATURITY_V2` + `REVISION_LIFECYCLE_V2`        | per-author 100  | per-note 50      | autoStale + autoDiscard   |
+| `cc org` V2                 | `ORG_MATURITY_V2` + `MEMBER_LIFECYCLE_V2`           | per-owner 10    | per-org 500      | autoSuspend + autoExpire  |
+| `cc permmem` V2 (new group) | `PIN_MATURITY_V2` + `RETENTION_JOB_LIFECYCLE_V2`    | per-owner 100   | per-pin 10       | autoDormant + autoCancel  |
+| `cc rcache` V2 (new group)  | `PROFILE_MATURITY_V2` + `REFRESH_JOB_LIFECYCLE_V2`  | per-owner 25    | per-profile 4    | autoSuspend + autoFail    |
+| `cc scim` V2                | `IDENTITY_LIFECYCLE_V2` + `SYNC_JOB_V2`             | per-tenant 5000 | per-idp 50       | autoSuspend + autoFail    |
+| `cc session` V2             | `CONVERSATION_MATURITY_V2` + `TURN_LIFECYCLE_V2`    | per-user 20     | per-session 100  | autoIdle + autoFail       |
+| `cc social` V2              | `RELATIONSHIP_MATURITY_V2` + `THREAD_LIFECYCLE_V2`  | per-user 1000   | per-user 500     | autoMute + autoArchive    |
+| `cc sync` V2                | `RESOURCE_MATURITY_V2` + `SYNC_RUN_V2`              | per-owner 50    | per-resource 20  | autoPause + autoFail      |
+| `cc tokens` V2              | `BUDGET_MATURITY_V2` + `USAGE_RECORD_LIFECYCLE_V2`  | per-owner 10    | per-budget 10000 | autoExhaust + autoCommit  |
+| `cc wallet` V2              | `WALLET_MATURITY_V2` + `TX_LIFECYCLE_V2`            | per-user 10     | per-wallet 100   | autoFreeze + autoCancel   |
 
 Every module follows the same skeleton: `register*V2` / `get*V2` / `list*V2` / `set*StatusV2` + status shortcuts, per-owner active cap + per-container pending cap, stamp-once `activatedAt` / lifecycle timestamps, `auto*` batch methods, `get*StatsV2` and `_resetState*V2` (for test isolation). `cc rcache` coexists with the legacy LRU `cc tokens cache` without conflict.
 
 ### Regression tests (2026-04-18 evening)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 232 | **9219/9229** (10 skipped) | ~130s |
-| CLI Integration | 40 | **696/696** | 38s |
-| CLI E2E | 38 | **565/565** | 427s |
-| Desktop Unit (core+database) | 15 | **836/846** (10 skipped) | 141s |
-| Desktop Unit (renderer stores) | 16 | **486/486** | 25s |
-| Desktop Unit (ai-engine sample) | 3 | **265/346** (81 skipped) | 28s |
+| Tier                            | Files | Tests                      | Duration |
+| ------------------------------- | ----- | -------------------------- | -------- |
+| CLI Unit                        | 232   | **9219/9229** (10 skipped) | ~130s    |
+| CLI Integration                 | 40    | **696/696**                | 38s      |
+| CLI E2E                         | 38    | **565/565**                | 427s     |
+| Desktop Unit (core+database)    | 15    | **836/846** (10 skipped)   | 141s     |
+| Desktop Unit (renderer stores)  | 16    | **486/486**                | 25s      |
+| Desktop Unit (ai-engine sample) | 3     | **265/346** (81 skipped)   | 28s      |
 
 This batch adds **560 new V2 unit tests** (automation 46 + instinct 48 + memory 47 + note 49 + org 43 + permanent-memory 46 + response-cache 46 + scim 39 + session 33 + social 34 + sync 39 + token-tracker 49 + wallet 41) over 0.106.0, zero regressions.
 
@@ -2161,11 +2192,11 @@ Later the same day, a parallel session landed **7 brand-new CLI command groups**
 
 ### Regression tests (2026-04-17 evening)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 232 | **7618/7618** | 129s |
-| CLI Integration | 40 | **696/696** | 46s |
-| CLI E2E | 38 | **565/565** | 427s |
+| Tier            | Files | Tests         | Duration |
+| --------------- | ----- | ------------- | -------- |
+| CLI Unit        | 232   | **7618/7618** | 129s     |
+| CLI Integration | 40    | **696/696**   | 46s      |
+| CLI E2E         | 38    | **565/565**   | 427s     |
 
 This batch adds **536 new unit tests** over 0.51.0, all passing; integration / E2E zero regression.
 
@@ -2187,11 +2218,11 @@ Continuing the same day's CLI port batch, five additional Phases were consolidat
 
 ### Regression tests (2026-04-17 batch)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 232 | **7082/7082** | 210s |
-| CLI Integration | 40 | **696/696** | 76s |
-| CLI E2E | 38 | **565/565** | 459s |
+| Tier            | Files | Tests         | Duration |
+| --------------- | ----- | ------------- | -------- |
+| CLI Unit        | 232   | **7082/7082** | 210s     |
+| CLI Integration | 40    | **696/696**   | 76s      |
+| CLI E2E         | 38    | **565/565**   | 459s     |
 
 User docs: [cli-ipfs](./docs-site/docs/chainlesschain/cli-ipfs.md) · [cli-quantize](./docs-site/docs/chainlesschain/cli-quantize.md) · [cli-mm](./docs-site/docs/chainlesschain/cli-mm.md) · [cli-nlprog](./docs-site/docs/chainlesschain/cli-nlprog.md) · [cli-runtime](./docs-site/docs/chainlesschain/cli-runtime.md)
 Design docs: [17 IPFS Decentralized Storage](./docs/design/modules/17_IPFS去中心化存储.md) · [27 Multimodal Collaboration](./docs/design/modules/27_多模态协作.md) · [63 Universal Runtime](./docs/design/modules/63_统一应用运行时.md)
@@ -2212,11 +2243,11 @@ This update closes out five CLI-side Phase ports, regression-tests them, and res
 
 ### Regression test results (2026-04-17)
 
-| Tier | Files | Tests | Duration |
-| --- | --- | --- | --- |
-| CLI Unit | 219 | **6010/6010** | 114s |
-| CLI Integration | 40 | **696/696** | 36s |
-| CLI E2E | 38 | **565/565** | 495s |
+| Tier            | Files | Tests         | Duration |
+| --------------- | ----- | ------------- | -------- |
+| CLI Unit        | 219   | **6010/6010** | 114s     |
+| CLI Integration | 40    | **696/696**   | 36s      |
+| CLI E2E         | 38    | **565/565**   | 495s     |
 
 > During the E2E run vitest-worker surfaced a single `Timeout calling "onTaskUpdate"` RPC warning (known vitest issue for long-running suites); no test outcome was affected.
 
@@ -2234,17 +2265,18 @@ Local-first runtime parity with Anthropic Claude Managed Agents and Deep Agents 
 - **Desktop IPC**: 21 IPC channels (session lifecycle + memory + beta + usage + subscribe), Pinia store + SessionCorePage Usage tab
 - **Desktop/CLI symmetric persistence**: shared `parked-sessions.json / memory-store.json / beta-flags.json / approval-policies.json`
 
-| Tier | Scope | Pass |
-| --- | --- | --- |
-| Shared | `@chainlesschain/session-core` (20 files) | `413/413` |
-| CLI Unit | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-* (22) + singletons (10) + agent-repl (40) | `202/202` |
-| CLI Integration | managed-agents + parity + shims + doc-creator | `696/696` |
-| CLI E2E | managed-agents + full e2e suite | `562/562` |
-| Desktop | session-core-ipc (23) + coding-agent (28) + sandbox (45) | `96/96` |
+| Tier            | Scope                                                                                                               | Pass      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- | --------- |
+| Shared          | `@chainlesschain/session-core` (20 files)                                                                           | `413/413` |
+| CLI Unit        | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-\* (22) + singletons (10) + agent-repl (40) | `202/202` |
+| CLI Integration | managed-agents + parity + shims + doc-creator                                                                       | `696/696` |
+| CLI E2E         | managed-agents + full e2e suite                                                                                     | `562/562` |
+| Desktop         | session-core-ipc (23) + coding-agent (28) + sandbox (45)                                                            | `96/96`   |
 
 Design docs: [91_Managed_Agents](./docs/design/modules/91_Managed_Agents对标计划.md) | [92_Deep_Agents_Deploy](./docs/design/modules/92_Deep_Agents_Deploy借鉴落地方案.md)
 
 ---
+
 ## 2026-04-12 Update — Documentation-Code Gap Fill (All 7 Items Complete + 166 Tests)
 
 Comprehensive comparison of 84 design documents against the codebase, closing 7 documentation-code gaps. All features upgraded from mock/placeholder to real implementations:
@@ -2257,16 +2289,16 @@ Comprehensive comparison of 84 design documents against the codebase, closing 7 
 - **Filecoin Storage Proofs**: PoRep/PoSt proof verification + SHA-256 commitment checks + deal renewal + filtered queries.
 - **TTS Model Auto-Download**: HTTPS download with redirect following + progress events + breakpoint detection.
 
-| Tier | Scope | Pass |
-| --- | --- | --- |
-| Unit | zkp-engine / privacy-computing / filecoin-storage / nostr-bridge-ws / local-tts-client / app-builder / collab-engine | `139/139` |
-| Integration | crypto-privacy / filecoin-nostr / lowcode-deploy | `17/17` |
-| E2E | gap-fill-commands (CLI end-to-end) | `10/10` |
-| **Total** | **10 files** | **`166/166`** |
+| Tier        | Scope                                                                                                                | Pass          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Unit        | zkp-engine / privacy-computing / filecoin-storage / nostr-bridge-ws / local-tts-client / app-builder / collab-engine | `139/139`     |
+| Integration | crypto-privacy / filecoin-nostr / lowcode-deploy                                                                     | `17/17`       |
+| E2E         | gap-fill-commands (CLI end-to-end)                                                                                   | `10/10`       |
+| **Total**   | **10 files**                                                                                                         | **`166/166`** |
 
 9 source files modified, 10 test files added. User docs (docs-site) and design docs synced.
 
-Design doc: [docs/design/modules/85_文档代码差距补全.md](./docs/design/modules/85_文档代码差距补全.md)
+Design doc: [docs/design/modules/85\_文档代码差距补全.md](./docs/design/modules/85_文档代码差距补全.md)
 
 ## 2026-04-12 Update — Hermes Agent Parity (All 6 Phases Complete)
 
@@ -2281,12 +2313,12 @@ Systematic gap closure against Nous Research's Hermes Agent framework. Six backw
 
 Test matrix:
 
-| Tier | Scope | Pass |
-| --- | --- | --- |
-| Unit | iteration-budget / session-search / user-profile / plugin-autodiscovery / execution-backend / gateway-base | `206/206` |
-| Integration | hermes-parity-workflow (6-phase cross-module collaboration) | `25/25` |
-| E2E | hermes-parity-commands (CLI end-to-end full chain) | `22/22` |
-| **Total** | **8 files** | **`253/253`** |
+| Tier        | Scope                                                                                                      | Pass          |
+| ----------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
+| Unit        | iteration-budget / session-search / user-profile / plugin-autodiscovery / execution-backend / gateway-base | `206/206`     |
+| Integration | hermes-parity-workflow (6-phase cross-module collaboration)                                                | `25/25`       |
+| E2E         | hermes-parity-commands (CLI end-to-end full chain)                                                         | `22/22`       |
+| **Total**   | **8 files**                                                                                                | **`253/253`** |
 
 8 new source files (~1,400 lines), 9 modified files. New REPL commands: `/search`, `/profile`.
 
@@ -2311,7 +2343,7 @@ canonical coding workflow (Phase A–E all shipped):
 - **Pure-function intake classifier** (`desktop-app-vue/src/main/ai-engine/code-agent/intake-classifier.js`):
   takes `{ request, scopePaths, fileHints, sessionId }` and returns
   `{ decision: "ralph" | "team", confidence, complexity, scopeCount, boundaries, testHeavy,
-  signals, reason, recommendedConcurrency, suggestedRoles }`. Monorepo boundary detection
+signals, reason, recommendedConcurrency, suggestedRoles }`. Monorepo boundary detection
   across `desktop-app-vue/src/main`, `src/renderer`, `packages/cli`, `backend/*` etc. Multi-scope →
   `$team`; single-scope → `$ralph`. **Non-gating** — surfaced only as `routingHint`.
 - **Persistence on `mode.json`**: new `SessionStateManager.setRoutingHint()` merge-writes via
@@ -2327,18 +2359,18 @@ canonical coding workflow (Phase A–E all shipped):
 
 Regression this round:
 
-| Layer                              | Suites                                                      | Passing       |
-| ---------------------------------- | ----------------------------------------------------------- | ------------- |
-| Main unit (classifier)             | `intake-classifier.test.js`                                 | `20/20`       |
-| Main unit (IPC)                    | `workflow-session-ipc.test.js` (+classify-intake)           | `18/18`       |
-| Main unit (handler)                | `workflow-skills.test.js` (+routingHint persist/fallback)   | `55/55`       |
-| Renderer store unit                | `workflow-session.test.ts` (+classifyIntake × 3)            | `13/13`       |
-| Main integration                   | `coding-workflow.integration.test.js` Phase E describe      | `10/10`       |
-| E2E integration (handler → store)  | `canonical-workflow-phase-e.integration.test.js`            | `7/7`         |
-| **Total**                          | **6 suites**                                                | **`123/123`** |
+| Layer                             | Suites                                                    | Passing       |
+| --------------------------------- | --------------------------------------------------------- | ------------- |
+| Main unit (classifier)            | `intake-classifier.test.js`                               | `20/20`       |
+| Main unit (IPC)                   | `workflow-session-ipc.test.js` (+classify-intake)         | `18/18`       |
+| Main unit (handler)               | `workflow-skills.test.js` (+routingHint persist/fallback) | `55/55`       |
+| Renderer store unit               | `workflow-session.test.ts` (+classifyIntake × 3)          | `13/13`       |
+| Main integration                  | `coding-workflow.integration.test.js` Phase E describe    | `10/10`       |
+| E2E integration (handler → store) | `canonical-workflow-phase-e.integration.test.js`          | `7/7`         |
+| **Total**                         | **6 suites**                                              | **`123/123`** |
 
-Design details: [docs/design/modules/80_规范工作流系统.md](./docs/design/modules/80_规范工作流系统.md),
-[81_轻量多Agent编排系统.md §10 Phase E](./docs/design/modules/81_轻量多Agent编排系统.md),
+Design details: [docs/design/modules/80\_规范工作流系统.md](./docs/design/modules/80_规范工作流系统.md),
+[81\_轻量多Agent编排系统.md §10 Phase E](./docs/design/modules/81_轻量多Agent编排系统.md),
 [docs-site mirror](./docs-site/docs/chainlesschain/coding-workflow.md), ADR:
 [LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md](./docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md).
 
@@ -2352,16 +2384,16 @@ The Coding Agent now ships with a **persistent task DAG and orchestrator** wired
 
 Regression for this round (per layer):
 
-| Layer | Scope | Pass |
-| --- | --- | --- |
-| CLI unit | `agent-core` / `ws-agent-handler` | `109/109` |
-| CLI integration | `ws-session-workflow` | `52/52` |
-| CLI E2E | `coding-agent-envelope-roundtrip` (incl. full task-graph round-trip) | `10/10` |
-| Desktop main unit | `coding-agent-bridge` / `coding-agent-ipc-v3` / `coding-agent-session-service` | `96/96` |
-| Desktop integration | `coding-agent-lifecycle` | `24/24` |
-| Desktop E2E | `coding-agent-bridge-real-cli` (real `chainlesschain serve` subprocess) | `3/3` |
-| Renderer unit | `coding-agent` store / `AIChatPage` | `91/91` |
-| **Total** | **7 suites** | **`385/385`** |
+| Layer               | Scope                                                                          | Pass          |
+| ------------------- | ------------------------------------------------------------------------------ | ------------- |
+| CLI unit            | `agent-core` / `ws-agent-handler`                                              | `109/109`     |
+| CLI integration     | `ws-session-workflow`                                                          | `52/52`       |
+| CLI E2E             | `coding-agent-envelope-roundtrip` (incl. full task-graph round-trip)           | `10/10`       |
+| Desktop main unit   | `coding-agent-bridge` / `coding-agent-ipc-v3` / `coding-agent-session-service` | `96/96`       |
+| Desktop integration | `coding-agent-lifecycle`                                                       | `24/24`       |
+| Desktop E2E         | `coding-agent-bridge-real-cli` (real `chainlesschain serve` subprocess)        | `3/3`         |
+| Renderer unit       | `coding-agent` store / `AIChatPage`                                            | `91/91`       |
+| **Total**           | **7 suites**                                                                   | **`385/385`** |
 
 Bug fix: `tests/integration/coding-agent-bridge-real-cli.test.js` had three stale type assertions (`session-created` / `session-list-result` / `result`) left over from before the v1.0 envelope migration — corrected to `session.started` / `session.list` / `command.response`.
 
@@ -2376,7 +2408,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-160-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-162-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
@@ -2396,7 +2428,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 >
 > The banner and "Latest Update" entries below are reverse-chronological release notes (each describes the specific content of that version), not current state.
 
-Historical archive — v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 Desktop Skills + 28 Android Skills · 14,987+ Tests · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 closing + M7 GA flip** (VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier all five landed · RemoteSkillRegistry method-level metadata · ApprovalUI 4-category · ProgressViewer long-task panel · §8.3 alias compat window · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** via commit ffe722162 · 187 new tests / Android total 196+ → 383+ · v1.0 GA still owes 4 user-side items: M3 device E2E / M4 D2 device / FCM creds / M6 perf) · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install dramatically faster (dev-box 190.9s measured, NVMe + Defender OFF; HDD parity not measured) · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
+Historical archive — v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 Desktop Skills + 28 Android Skills · 14,987+ Tests · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 closing + M7 GA flip** (VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier all five landed · RemoteSkillRegistry method-level metadata · ApprovalUI 4-category · ProgressViewer long-task panel · §8.3 alias compat window · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** via commit ffe722162 · 187 new tests / Android total 196+ → 383+ · v1.0 GA still owes 4 user-side items: M3 device E2E / M4 D2 device / FCM creds / M6 perf) · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.\* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install dramatically faster (dev-box 190.9s measured, NVMe + Defender OFF; HDD parity not measured) · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
 
 ### Latest Update - cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix (v5.0.3.45, 2026-05-09)
 
@@ -2474,19 +2506,22 @@ chainlesschain config beta list|enable|disable <feature>-<YYYY-MM-DD>
 v5.0.2.9 implements 5 core optimization modules + 4 enhancement integrations inspired by Claude Code's 12-layer progressive harness architecture:
 
 **5 New Modules**:
+
 - **Feature Flags** (`feature-flags.js`) — 6 registered flags, env > config > default priority, percentage-based A/B rollout
 - **Prompt Compressor** (`prompt-compressor.js`) — 5-strategy compression pipeline (dedup/truncate/summarize/snipCompact/contextCollapse), CJK-aware token estimation
 - **JSONL Session Store** (`jsonl-session-store.js`) — Append-only session persistence, crash recovery, session forking, compact snapshot rebuild
 - **Background Task Manager** (`background-task-manager.js`) — Child process fork + IPC heartbeat monitoring, concurrency limits, task persistence
-- **Worktree Isolator** (`worktree-isolator.js`) — Git worktree isolation for parallel agent tasks, agent/* branch management, crash cleanup
+- **Worktree Isolator** (`worktree-isolator.js`) — Git worktree isolation for parallel agent tasks, agent/\* branch management, crash cleanup
 
 **4 Enhancement Integrations (v5.0.2.9)**:
+
 - **JSONL_SESSION Full Replacement** — `agent-repl.js` and `session.js` fully integrated with JSONL mode for create/save/resume/list
 - **Background Tasks UI** — Web Panel new "Background Tasks" monitoring page (Pinia store + Vue3 component + WS protocol)
 - **Worktree + Sub-Agent** — `SubAgentContext` integrated with `isolateTask()`, sub-agents auto-run in isolated worktrees
 - **Adaptive Context Compression** — 30+ model context window registry + `adaptiveThresholds()` + `adaptToModel()` dynamic switching
 
 **New CLI Commands**:
+
 ```bash
 chainlesschain config features list              # List 6 feature flag states
 chainlesschain config features enable CONTEXT_SNIP  # Enable feature
@@ -2503,17 +2538,17 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 Splitting the giant 9470-line `DatabaseManager` class in `desktop-app-vue/src/main/database.js` into per-responsibility modules under `src/main/database/`.
 
-| File                                  | Lines | Coverage                                                   |
-| ------------------------------------- | ----: | ---------------------------------------------------------- |
-| `database/database-schema.js`         |  4026 | Pure function `createTables` — all CREATE TABLE DDL (v0.45.31) |
-| `database/database-migrations.js`     |  1389 | 8 migration / rebuild methods (v0.45.32)                   |
-| `database/database-settings.js`       |   531 | 7 settings-table CRUD methods (v0.45.32)                   |
-| `database/database-knowledge.js`      |   330 | 15 knowledge_items + tags + statistics methods (v0.45.33)  |
-| `database/database-soft-delete.js`    |   212 | 7 soft-delete + periodic cleanup methods (v0.45.33)        |
-| `database/database-graph.js`          |   465 | 9 knowledge-graph relation methods (v0.45.33)              |
-| `database/database-projects.js`       |   591 | 10 projects + project_files methods (v0.45.33)             |
-| `database/database-conversations.js`  |   416 | 12 conversations + messages methods (v0.45.33)             |
-| **Total (8 sub-modules)**              |  7960 | **69 methods extracted**                                   |
+| File                                 | Lines | Coverage                                                       |
+| ------------------------------------ | ----: | -------------------------------------------------------------- |
+| `database/database-schema.js`        |  4026 | Pure function `createTables` — all CREATE TABLE DDL (v0.45.31) |
+| `database/database-migrations.js`    |  1389 | 8 migration / rebuild methods (v0.45.32)                       |
+| `database/database-settings.js`      |   531 | 7 settings-table CRUD methods (v0.45.32)                       |
+| `database/database-knowledge.js`     |   330 | 15 knowledge_items + tags + statistics methods (v0.45.33)      |
+| `database/database-soft-delete.js`   |   212 | 7 soft-delete + periodic cleanup methods (v0.45.33)            |
+| `database/database-graph.js`         |   465 | 9 knowledge-graph relation methods (v0.45.33)                  |
+| `database/database-projects.js`      |   591 | 10 projects + project_files methods (v0.45.33)                 |
+| `database/database-conversations.js` |   416 | 12 conversations + messages methods (v0.45.33)                 |
+| **Total (8 sub-modules)**            |  7960 | **69 methods extracted**                                       |
 
 **Approach**: each extracted method is a pure function `fn(dbManager, logger, ...args)` that accesses `dbManager.db` for SQL and calls `dbManager.X()` for cross-method callbacks. `DatabaseManager` keeps thin delegate methods (`return _fn(this, logger, ...)`) so the public API is byte-identical.
 
@@ -2525,24 +2560,24 @@ See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/mod
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
 
-| File                                | Lines | Phases | Coverage                                                                |
-| ----------------------------------- | ----: | -----: | ----------------------------------------------------------------------- |
-| `phases/phase-1-ai.js`              |   393 |      1 | LLM, PermanentMemory, Hooks, Plan/Skills, Context Eng, Token/Stream, Team Task, Permission, RAG, Browser (22 regs) |
-| `phases/phase-2-core.js`            |   135 |      1 | U-Key, Database, Git + critical early IPC (MCP basic config, System early, Notification early) — 6 regs |
-| `phases/phase-6-7-content.js`       |   197 |      2 | File, Office, Template, Knowledge, Prompt Template, Image (Phase 6) + Speech, Video, PDF, Document (Phase 7) |
-| `phases/phase-8-9-extras.js`        |   357 |      2 | Blockchain (lazy), Code/Review, Collaboration/Automation, KG/Credit, Plugin (lazy), Import, Sync/Pref/Conv, FileSync, Config, Category, Workflow |
-| `phases/phase-3-4-social.js`        |   306 |      2 | DID, P2P, Social (8 sub-modules), VC, Identity Context, Org, Dashboard  |
-| `phases/phase-5-project.js`         |   170 |      1 | Project Core/AI/Export/RAG/Git (5 sub-modules, 91 handlers)             |
-| `phases/phase-9-15-core.js`         |   259 |      7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
-| `phases/phase-16-20-skill-evo.js`   |   494 |      5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution |
-| `phases/phase-21-30-enterprise.js`  |   295 |     10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto |
-| `phases/phase-31-ai-models.js`      |   261 |      7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn        |
-| `phases/phase-33-40-collab-ops.js`  |   553 |      8 | Git P2P, Yjs Collab, Pipeline, Anomaly, NL Spec, Multimodal, Wire-up, Decentralized Network |
-| `phases/phase-41-evomap-gep.js`     |   102 |      1 | EvoMap GEP Protocol                                                     |
-| `phases/phase-42-50-v1-1.js`        |   450 |      9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, BLE, Nostr, DLP               |
-| `phases/phase-51-57-v1-1.js`        |   268 |      7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening      |
-| `phases/phase-58-77-v2-v3.js`       |   757 |     20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
-| `phases/phase-q1-2027.js`           |    89 |      5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
+| File                               | Lines | Phases | Coverage                                                                                                                                         |
+| ---------------------------------- | ----: | -----: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `phases/phase-1-ai.js`             |   393 |      1 | LLM, PermanentMemory, Hooks, Plan/Skills, Context Eng, Token/Stream, Team Task, Permission, RAG, Browser (22 regs)                               |
+| `phases/phase-2-core.js`           |   135 |      1 | U-Key, Database, Git + critical early IPC (MCP basic config, System early, Notification early) — 6 regs                                          |
+| `phases/phase-6-7-content.js`      |   197 |      2 | File, Office, Template, Knowledge, Prompt Template, Image (Phase 6) + Speech, Video, PDF, Document (Phase 7)                                     |
+| `phases/phase-8-9-extras.js`       |   357 |      2 | Blockchain (lazy), Code/Review, Collaboration/Automation, KG/Credit, Plugin (lazy), Import, Sync/Pref/Conv, FileSync, Config, Category, Workflow |
+| `phases/phase-3-4-social.js`       |   306 |      2 | DID, P2P, Social (8 sub-modules), VC, Identity Context, Org, Dashboard                                                                           |
+| `phases/phase-5-project.js`        |   170 |      1 | Project Core/AI/Export/RAG/Git (5 sub-modules, 91 handlers)                                                                                      |
+| `phases/phase-9-15-core.js`        |   259 |      7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools                                                                    |
+| `phases/phase-16-20-skill-evo.js`  |   494 |      5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution                                                 |
+| `phases/phase-21-30-enterprise.js` |   295 |     10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto                                     |
+| `phases/phase-31-ai-models.js`     |   261 |      7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn                                                                                 |
+| `phases/phase-33-40-collab-ops.js` |   553 |      8 | Git P2P, Yjs Collab, Pipeline, Anomaly, NL Spec, Multimodal, Wire-up, Decentralized Network                                                      |
+| `phases/phase-41-evomap-gep.js`    |   102 |      1 | EvoMap GEP Protocol                                                                                                                              |
+| `phases/phase-42-50-v1-1.js`       |   450 |      9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, BLE, Nostr, DLP                                                                                        |
+| `phases/phase-51-57-v1-1.js`       |   268 |      7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening                                                                                |
+| `phases/phase-58-77-v2-v3.js`      |   757 |     20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap                                                                                   |
+| `phases/phase-q1-2027.js`          |    89 |      5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                                                                                         |
 
 **Result**: `ipc-registry.js` shrank from 4925 → 493 lines (**−4432, −90.0%**) across 16 extracted phase modules covering 88 phases. `phase-modules.test.js` now has 48 contract tests, all passing.
 
@@ -2553,12 +2588,14 @@ See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/mod
 v5.0.2.12 expands Web Panel from 15 to **23 modules** with enterprise and extension features:
 
 **Batch 1 (Enterprise)**:
+
 - 💰 **Wallet** — Wallet list, asset management, transfer history
 - 🏢 **Organization** — Org management, members, teams, approvals
 - 📊 **Analytics** — Token usage, cost breakdown, cache status
 - 📋 **Templates** — 9 project templates, BI templates, prompt templates
 
 **Batch 2 (Extensions)**:
+
 - 🔐 **Permissions** — RBAC roles, permission checks, audit logs
 - 📰 **RssFeed** — Feed management, article reading, statistics
 - 💾 **Backup** — Backup management, data sync, IPFS storage
@@ -2573,11 +2610,13 @@ v5.0.2.12 expands Web Panel from 15 to **23 modules** with enterprise and extens
 v5.0.2.11 expands Web Panel from 10 to **15 modules**, fixes v1.0 Coding Agent Envelope protocol compatibility, and adds 4 advanced management pages migrated from Desktop:
 
 **v1.0 Envelope Protocol Fix**:
+
 - `ws.js`: `requestId` priority correlation + `flattenEnvelope()` + dot-case `normalizeRuntimeEvent()`
 - `chat.js`: `DOT_TO_LEGACY_TYPE` mapping (`assistant.delta` → `response-token`, etc.)
 - `agent-runtime.js`: `startServer()` loads config for sessionManager
 
 **5 New Pages**:
+
 - 🔒 **Security** — DID identity management, file encryption/decryption, audit logs
 - 📡 **P2P** — Device list, pairing, messaging, sync status
 - 🔀 **Git** — Repository status, auto-commit, import/export
@@ -2593,6 +2632,7 @@ v5.0.2.11 expands Web Panel from 10 to **15 modules**, fixes v1.0 Coding Agent E
 v5.0.2.8 expands the Vue3 Web Management Panel with 6 new pages and a 4-theme color system:
 
 **6 New Pages** (sidebar now has 10 total):
+
 - 🐳 **Services** — Docker service control, port health monitoring
 - 📋 **Logs** — Color-coded log viewer with keyword filtering
 - 📝 **Notes** — Note list, search, create, delete
@@ -2602,11 +2642,12 @@ v5.0.2.8 expands the Vue3 Web Management Panel with 6 new pages and a 4-theme co
 
 **4 Color Themes** (top-right switcher, persisted to `localStorage`):
 
-| 🌑 Dark (default) | ☀️ Light | 🌊 Blue | 🌿 Green |
-|---|---|---|---|
-| Dark gray | White | Deep blue | Deep green |
+| 🌑 Dark (default) | ☀️ Light | 🌊 Blue   | 🌿 Green   |
+| ----------------- | -------- | --------- | ---------- |
+| Dark gray         | White    | Deep blue | Deep green |
 
 **Key Bug Fixes**:
+
 - Skills always showing 0: WS server sends `stdout`, client read `output` (undefined) — fixed
 - Provider list missing Chinese models: rewritten to match CLI's actual 10 provider keys
 - 5 Chinese character U+FFFD corruption instances — all fixed

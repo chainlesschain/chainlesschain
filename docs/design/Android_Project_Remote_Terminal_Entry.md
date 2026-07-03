@@ -20,9 +20,10 @@
 `feature-project/` 78 个 Kotlin 文件 ~30,680 行主代码，但其中 `FileEditorScreen` (671) / `GitStatusDialog` (570) / `GitHistoryScreen` (459) / `EnhancedCodeEditor` + `SyntaxHighlightedEditor` + `CodeCompletionEngine` 共 ~3,000 行 "手机 IDE 子集"，在 V2 对话式 UX (`ProjectDetailScreenV2.kt` 836) 下进不到。App 实际 wire 的是 `app/.../presentation/screens/` 下另起一套（详见现状分析）。
 
 **观察 2：Android 端缺 CLI 是结构性的**
-桌面有 `cc` CLI（160 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
+桌面有 `cc` CLI（162 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
 
 **观察 3：基础设施全齐**
+
 - `ProjectEntity.rootPath` 字段已存在（sync 协议字段 `root_path` 镜像）
 - Phase 3d sync v1.1 双向同步 PC ↔ Android 项目元数据（含 rootPath）
 - `TerminalRpcClient.create(cwd: String?)` 本来就接受 cwd 参数（`terminal/TerminalRpcClient.kt:202,210`）
@@ -39,11 +40,11 @@
    → 文件改变（生成 / 修改 / 删除）
    → 手机端 ProjectDetailScreenV2 显示 "可拉新文件" 提示
    → 用户 tap → 自动 incremental sync 拉回手机 → 本地可浏览/备份
-   
+
 2. 手机端编辑了某个文件（笔记、配置）
    → 用户 tap "推送到 PC" → 增量 upload
    → PC 端项目目录看到改动
-   
+
 3. 项目目录恰好是 git 仓库 → chip 显 "main · 3 changed" 让用户知道有未提交改动
    不是 git 仓库 → chip 不显 → 完全不影响 1 和 2 的流转
 ```
@@ -52,12 +53,12 @@
 
 ### 1.3 这个设计把项目管理升级成 "工作集中枢"
 
-| 当前 | 期望 |
-|---|---|
-| 项目 = 手机本地 Room DB 孤岛 | 项目 = 跨 PC + 手机的工作集锚点 |
-| 浏览本地 cache → 不能做事 | 浏览本地 cache + 一键跳 PC 终端去做 |
-| AI chat 不知道项目是哪台 PC 的 | AI chat 可感知 PC peerId，可建议跳终端 |
-| Editor/Git/CodeCompletion 暗码 ~3k 行 | 这套可以 deprecate，去 PC 上做 |
+| 当前                                  | 期望                                   |
+| ------------------------------------- | -------------------------------------- |
+| 项目 = 手机本地 Room DB 孤岛          | 项目 = 跨 PC + 手机的工作集锚点        |
+| 浏览本地 cache → 不能做事             | 浏览本地 cache + 一键跳 PC 终端去做    |
+| AI chat 不知道项目是哪台 PC 的        | AI chat 可感知 PC peerId，可建议跳终端 |
+| Editor/Git/CodeCompletion 暗码 ~3k 行 | 这套可以 deprecate，去 PC 上做         |
 
 ---
 
@@ -65,24 +66,24 @@
 
 ### 2.1 目标 (in scope)
 
-| # | 项 | 验收 |
-|---|---|---|
-| G1 | `ProjectEntity` 增加 `sourcePeerId` + `pcRootPath` 字段 | Room AutoMigration 升级版本号；既有项目 nullable 兼容；DAO 查询通过 |
-| G2 | Sync 协议双向 carry `source_peer_id` + `pc_root_path` | `ProjectSyncWalker` 写 / `ProjectSyncApplierImpl` 读 roundtrip 单测过；桌面端 walker 对称改 |
-| G3 | `ProjectDetailScreenV2` 顶栏增加 "终端" 按钮（三态显隐） | LOCAL 隐藏 / FROM_PC + online 高亮 / FROM_PC + offline 置灰 |
-| G4 | 点击 "终端" 跳 `RemoteDesktopScreen` 携带 cwd + peerId | xterm.js 启动后 `pwd` 输出 = `project.pcRootPath` |
-| G5 | `RemoteDesktopScreen` 支持 cwd 初始参数 | 启动时调 `terminal.create(cwd=...)` 而非 default home |
-| G6 | 离线态有清晰反馈 | 按钮置灰 + 文案 "PC 不在线"；点击不崩 |
-| G7 | 单测 ≥ 15 (entity migration / sync roundtrip / VM button-state / navigation) | 已有测试套件 green |
-| G8 | 真机 E2E：桌面建项目 → sync 到 Android → 点终端 → pwd 验证 cwd | reproducer 见 §8.3 |
-| G9 | **项目 detail 增加 "上传文件" 入口** —— 手机本地 → 当前项目 PC 目录 | tap 入口 → SAF picker → 进度条 → PC 上看到该文件 |
-| G10 | **项目 detail 增加 "下载文件" 入口** —— PC 项目目录 → 手机 Downloads | tap 入口 → 项目内文件列表 → 选文件 → MediaStore.Downloads 收到 |
-| G11 | **项目 detail 显示 "上次同步" 状态 chip** —— sync 元数据时间 | chip 显示 "PC 同步: 2 分钟前"；点击触发 incremental pull |
-| G12 | **Git 感知（仅显示，不写入，可选不堵塞）** —— 项目根为 git 仓库时 detail 显 `git status` 摘要 chip | chip 显 "main · 3 changed"；点击展开列表；按钮 "在终端打开" 跳终端预填 `git status`；**非 git 项目不影响任何其它功能** |
+| #   | 项                                                                                                                                                                                                              | 验收                                                                                                                                                                                         |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | `ProjectEntity` 增加 `sourcePeerId` + `pcRootPath` 字段                                                                                                                                                         | Room AutoMigration 升级版本号；既有项目 nullable 兼容；DAO 查询通过                                                                                                                          |
+| G2  | Sync 协议双向 carry `source_peer_id` + `pc_root_path`                                                                                                                                                           | `ProjectSyncWalker` 写 / `ProjectSyncApplierImpl` 读 roundtrip 单测过；桌面端 walker 对称改                                                                                                  |
+| G3  | `ProjectDetailScreenV2` 顶栏增加 "终端" 按钮（三态显隐）                                                                                                                                                        | LOCAL 隐藏 / FROM_PC + online 高亮 / FROM_PC + offline 置灰                                                                                                                                  |
+| G4  | 点击 "终端" 跳 `RemoteDesktopScreen` 携带 cwd + peerId                                                                                                                                                          | xterm.js 启动后 `pwd` 输出 = `project.pcRootPath`                                                                                                                                            |
+| G5  | `RemoteDesktopScreen` 支持 cwd 初始参数                                                                                                                                                                         | 启动时调 `terminal.create(cwd=...)` 而非 default home                                                                                                                                        |
+| G6  | 离线态有清晰反馈                                                                                                                                                                                                | 按钮置灰 + 文案 "PC 不在线"；点击不崩                                                                                                                                                        |
+| G7  | 单测 ≥ 15 (entity migration / sync roundtrip / VM button-state / navigation)                                                                                                                                    | 已有测试套件 green                                                                                                                                                                           |
+| G8  | 真机 E2E：桌面建项目 → sync 到 Android → 点终端 → pwd 验证 cwd                                                                                                                                                  | reproducer 见 §8.3                                                                                                                                                                           |
+| G9  | **项目 detail 增加 "上传文件" 入口** —— 手机本地 → 当前项目 PC 目录                                                                                                                                             | tap 入口 → SAF picker → 进度条 → PC 上看到该文件                                                                                                                                             |
+| G10 | **项目 detail 增加 "下载文件" 入口** —— PC 项目目录 → 手机 Downloads                                                                                                                                            | tap 入口 → 项目内文件列表 → 选文件 → MediaStore.Downloads 收到                                                                                                                               |
+| G11 | **项目 detail 显示 "上次同步" 状态 chip** —— sync 元数据时间                                                                                                                                                    | chip 显示 "PC 同步: 2 分钟前"；点击触发 incremental pull                                                                                                                                     |
+| G12 | **Git 感知（仅显示，不写入，可选不堵塞）** —— 项目根为 git 仓库时 detail 显 `git status` 摘要 chip                                                                                                              | chip 显 "main · 3 changed"；点击展开列表；按钮 "在终端打开" 跳终端预填 `git status`；**非 git 项目不影响任何其它功能**                                                                       |
 | G13 | **PC 端文件改动自动 detect** —— **桌面 file watcher debounce 5s 周期 emit**（与 terminal session lifecycle 解耦），long-running build 期间 Android 也能实时看到改动；非 build 场景 session 结束自然不再有新事件 | 桌面 file watcher → debounce 5s → emit `project.filesChanged` event 含 path 列表 → Android detail 页显 banner 含 "立即同步" / "稍后" 按钮；session 结束**不**额外触发（避免与 watcher 重复） |
-| G14 | **手机端 → PC 推送** —— 用户在手机编辑/导入文件后 tap "推送到 PC" → 增量上传至项目根 | 上传完成 PC 项目目录可见；冲突时（同 path 桌面更新）走 last-write-wins + 显冲突提示 |
-| G15 | **RemoteProjectBrowser — Android 主动从 PC 选择性拉项目** (Sub-phase 10) | Android `ProjectScreen` 入口 → 列 PC 项目 → tap 拉取 → 元数据 + 文件落本地 |
-| G16 | **PC web-shell placeholder 入口** (Sub-phase 10 — v0.1 仅占位) | web-panel "远程项目" 菜单标 "(v0.2)"，v0.2 落 PC→Android 反向真功能 |
+| G14 | **手机端 → PC 推送** —— 用户在手机编辑/导入文件后 tap "推送到 PC" → 增量上传至项目根                                                                                                                            | 上传完成 PC 项目目录可见；冲突时（同 path 桌面更新）走 last-write-wins + 显冲突提示                                                                                                          |
+| G15 | **RemoteProjectBrowser — Android 主动从 PC 选择性拉项目** (Sub-phase 10)                                                                                                                                        | Android `ProjectScreen` 入口 → 列 PC 项目 → tap 拉取 → 元数据 + 文件落本地                                                                                                                   |
+| G16 | **PC web-shell placeholder 入口** (Sub-phase 10 — v0.1 仅占位)                                                                                                                                                  | web-panel "远程项目" 菜单标 "(v0.2)"，v0.2 落 PC→Android 反向真功能                                                                                                                          |
 
 ### 2.2 非目标 (defer)
 
@@ -187,7 +188,7 @@ data class ProjectEntity(
     val userId: String,
     val rootPath: String? = null,             // 既有：SAF tree URI (本地) 或 legacy 字段
     // ... 既有字段
-    
+
     // NEW (Phase v0.1)
     val pcRootPath: String? = null,           // PC 文件系统路径，FROM_PC 项目才有
     val sourcePeerId: String? = null,         // 同步来源 PC peerId
@@ -196,6 +197,7 @@ data class ProjectEntity(
 ```
 
 **衍生：**
+
 ```kotlin
 enum class ProjectSource { LOCAL, FROM_PC }
 
@@ -208,6 +210,7 @@ val ProjectEntity.source: ProjectSource
 ### 4.2 Sync 协议 diff
 
 **桌面 `ProjectSyncWalker` 写入**（参考 `ProjectSyncWalker.kt:110` 既有 root_path）：
+
 ```js
 {
   id, name, ..., root_path,
@@ -217,6 +220,7 @@ val ProjectEntity.source: ProjectSource
 ```
 
 **Android `ProjectSyncApplierImpl` 读入**（参考 `ProjectSyncApplierImpl.kt:117`）：
+
 ```kotlin
 val sourcePeerId = obj.stringOrNull("source_peer_id") ?: existing?.sourcePeerId
 val pcRootPath = obj.stringOrNull("pc_root_path") ?: obj.stringOrNull("root_path") ?: existing?.pcRootPath
@@ -353,6 +357,7 @@ ProjectDetailScreenV2 顶部
 #### 4.6.1 数据来源（只读）
 
 **好消息**：`ProjectEntity` 既有字段已含 git 元数据：
+
 ```kotlin
 val gitEnabled: Boolean = false,
 val gitRemoteUrl: String? = null,
@@ -360,6 +365,7 @@ val gitBranch: String? = null,
 val lastCommitHash: String? = null,
 val uncommittedChanges: Int = 0,
 ```
+
 这 5 个字段当前是暗码（GitManager 没 wire），但 schema 已就位，Sub-phase 8 直接**复用**——桌面端 sync walker 把 simple-git status 结果写进这几个字段，Android 端 chip 从 ProjectEntity 读，无需引入新字段。
 
 桌面端 `mobile-bridge` 添加 method **`git.status(repoPath)`**（独立 cheap RPC，不走 PTY 子进程）：
@@ -461,22 +467,26 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 **目的**：阻止"新字段把老桌面 applier 整个 payload 拒掉"事故。新增 `source_peer_id` + `pc_root_path` 字段对**老桌面 v5.0.3.58 及更早**必须是 silently-ignored，不能让 Android → 桌面方向的同步因为新字段就报 schema 错误整体 reject。
 
 **Scope**：
+
 - 读 `desktop-app-vue/src/main/sync/ProjectSyncApplier.{js,ts}` —— 验证它处理 unknown JSON fields 时是 `{...known, ...ignored}` 模式还是 strict-schema 模式
 - 读对称的 `feature-project/data/sync/ProjectSyncApplierImpl.kt` —— 已知 117 行用 `obj.stringOrNull("...")` 是 forward-compat（key 不存在返 null），不报错；Android applier 已 safe
 - **若桌面 applier 是 strict-schema** → 先发 v5.0.3.58.1 hotfix 把 applier 改 lenient（仅 prep release，无功能改动），AllUsers 升级后再发 v5.0.3.59 真功能
 - **若桌面 applier 已 lenient** → 跳过 hotfix，直接进 Sub-phase 1
 
 **验收**：
+
 - 跑既有 `ProjectSyncIntegrationTest`（如有），或新加一个 "unknown field tolerance" 测试：构造一份含未来字段的 payload 喂桌面 applier，验证不抛异常 + 已知字段正确写入
 - 跑既有 Phase 3d sync E2E 不回归
 
 **单测 target**：≥ 2
+
 - 桌面 applier: 含 unknown field "future_dummy_v99" 的 payload → 不抛 + 已知字段写入
 - Android applier: 含 unknown field 的 payload → 同上
 
 **预估时间**：1h（如果桌面 applier 已 lenient）/ 4h（如果需要 hotfix release）
 
 **实际预检结果（2026-05-17 完成）**：
+
 - ✅ Android `ProjectSyncApplierImpl.kt:48` 显式 `Json { ignoreUnknownKeys = true }` —— 完全 lenient
 - ✅ 桌面 `mobile-bridge-sync.js:_applyProject` 用 `JSON.parse + 显式按 key 取` —— 未知字段 silently 忽略，**不需要 hotfix release**
 - ⚠️ **新发现**：桌面 `projects` 表 schema 缺 `source_peer_id` / `pc_root_path` 列（Sub-phase 2 加 schema migration）
@@ -485,12 +495,14 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.1 Sub-phase 1 — Entity + Migration (~2h)
 
 **Scope**：
+
 - `ProjectEntity.kt` 增加 3 个 nullable 字段
-- `ProjectDao.kt` 既有查询不动（select * 自动 carry 新字段）；增加 `getProjectsBySourcePeer(peerId: String): Flow<List<ProjectEntity>>` 备 v0.2 多 PC 视图用
+- `ProjectDao.kt` 既有查询不动（select \* 自动 carry 新字段）；增加 `getProjectsBySourcePeer(peerId: String): Flow<List<ProjectEntity>>` 备 v0.2 多 PC 视图用
 - Room version bump + `@AutoMigration` spec
 - 单测：DAO smoke (insert + read 新字段 roundtrip) + migration test (老 DB schema → 新 schema, 老项目字段全 null)
 
 **单测 target**：≥ 3
+
 - ProjectDaoTest: insert with pcRootPath → read 回 same value
 - ProjectDaoTest: insert without pcRootPath → read 回 null
 - MigrationTest: v(N) → v(N+1) AutoMigration 不丢数据
@@ -498,6 +510,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.2 Sub-phase 2 — Sync Protocol (~3h)
 
 **Scope**：
+
 - 桌面 `ProjectSyncWalker.js` 写 `source_peer_id` + `pc_root_path`
 - Android `ProjectSyncApplierImpl.kt` 读 `source_peer_id` + `pc_root_path`，写入 entity
 - Android `ProjectSyncWalker.kt` 文档化：不写新字段（Android 没值）
@@ -506,6 +519,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 - 集成测试：双向 sync roundtrip（桌面建项目 → Android 收到含 source_peer_id；Android 改项目名 → 桌面收到 source_peer_id 仍存自己原值；桌面删项目 → Android 标 orphan 不删）
 
 **单测 target**：≥ 5
+
 - ProjectSyncApplierTest: parse source_peer_id ✓
 - ProjectSyncApplierTest: parse pc_root_path (fallback to root_path) ✓
 - ProjectSyncApplierTest: missing source_peer_id 保留 existing 值
@@ -515,6 +529,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.3 Sub-phase 3 — ProjectViewModel + State (~3h)
 
 **Scope**：
+
 - `ProjectViewModel.kt` 增加 `terminalButtonState: StateFlow<TerminalButtonState>`
   ```kotlin
   sealed class TerminalButtonState {
@@ -530,6 +545,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 - **同模式应用**：uploadButtonState / downloadButtonState / gitChipState 全部走相同四态，复用一个 `projectActionsState: ProjectActionsState` sealed wrapper（详见审查 #7，§6.3 末尾合并）
 
 **单测 target**：≥ 6 (用 MockK + Turbine)
+
 - 冷启动 hasEnumeratedPeers=false → Loading
 - 枚举完成 hasEnumeratedPeers=true + LOCAL 项目 → Hidden
 - FROM_PC + peer offline → Disabled
@@ -540,6 +556,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.4 Sub-phase 4 — ProjectDetailScreenV2 UI (~3h)
 
 **Scope**：
+
 - `ProjectDetailTopBar` 加 terminal IconButton（Icons.Default.Terminal 或自定义 vector）
 - 三态绑定 `terminalButtonState`：
   - Hidden → not rendered (条件 composable)
@@ -549,6 +566,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 - 同步 res/values-zh-rCN
 
 **单测 target**：≥ 3 (UI test with Compose testing)
+
 - Hidden 态 button not in semantics tree
 - Disabled 态 button visible but onClick disabled
 - Enabled 态 click → navController.navigate called with correct route
@@ -556,12 +574,14 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.5 Sub-phase 5 — RemoteDesktopScreen cwd hand-off (~2h)
 
 **Scope**：
+
 - `RemoteDesktopScreen` 加 `initialCwd: String? = null` 参数
 - `RemoteDesktopViewModel` 启动时若 initialCwd != null → 调 `terminalRpcClient.create(pcPeerId, cwd = initialCwd)`（既有 method 已支持）
 - xterm.js 容器载入后 attach 该 session
 - 状态条显示 "PC: <peerName> · cwd: <短显示>"（cwd 太长尾部省略）
 
 **单测 target**：≥ 3
+
 - ViewModel openTerminalWithCwd → TerminalRpcClient.create 调用参数 cwd 正确
 - initialCwd = null → 调用默认 create (没 cwd)
 - create 失败 → state.error 显示
@@ -569,6 +589,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.6 Sub-phase 6 — NavGraph + 终端 E2E + memory + commit (~2h)
 
 **Scope**：
+
 - `NavGraph.kt` 加 RemoteDesktopWithCwd composable
 - `Screen.kt` 加 RemoteDesktopWithCwd route
 - 真机 E2E §8.3 场景 1-6（终端核心路径）
@@ -578,6 +599,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.7 Sub-phase 7 — 文件上传/下载 deep-link (~4h)
 
 **Scope**：
+
 - `FileTransferScreen.kt` 加可选参数 `mode: FileTransferMode? = null` + `initialRemotePath: String? = null` + `initialSourceUri: String? = null`
 - `FileTransferMode` enum：`UPLOAD` / `BROWSE` / `BROWSE_DEFAULT`（保留既有 UX 入口）
 - 启动时若 mode != null → 进入指定模式，UI lock 在 initialRemotePath
@@ -589,6 +611,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 - 上传完成时项目内 lastSyncedAt 不动（这是 PC → Android sync 字段，不被上传影响）；可选 emit `FileUploaded` event 提示 UI 刷新文件 cache
 
 **单测 target**：≥ 4
+
 - FileTransferViewModel: UPLOAD mode + initialSourceUri → requestUpload 调用正确
 - FileTransferViewModel: BROWSE mode + initialRemotePath → listDirectory 锁定路径
 - ProjectDetailScreenV2 UI test: 上传按钮三态 (Hidden/Disabled/Enabled)
@@ -597,6 +620,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.8 Sub-phase 8 — Git 感知 chip (~3h)
 
 **Scope**：
+
 - 桌面端新建 `mobile-bridge/handlers/git-handler.js` —— `git.status({repoPath})` method 用 `simple-git` (既有 dep)
 - 桌面端 mobile-bridge router 注册 git.status method
 - Android 端 `GitCommands.kt` (`app/remote/commands/`) — 1 method status，~80 LOC
@@ -609,6 +633,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 - Android 单测：method not found → 不显 chip；返 isGitRepo=false → 不显；返 true → @Published 更新
 
 **单测 target**：≥ 6
+
 - 桌面端 git-handler.test.js × 3 (正常 repo / 非 git 目录 / 损坏 .git)
 - Android GitCommandsTest × 1 (parse response)
 - ProjectViewModel × 2 (method-not-found silently → gitStatus null / 正常返回 → @Published)
@@ -616,6 +641,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ### 6.9 Sub-phase 9 — 完整 E2E + 收口 + 三站文档 + commit (~3h)
 
 **Scope**：
+
 - 真机 E2E §8.3 全部 12 场景跑通
 - memory 文件加 4-5 个实施 traps（forward-looking §7 部分实战收口）
 - CLAUDE.local.md Recently Completed 加 entry
@@ -629,6 +655,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 **目的**：补 Phase 3d 全量 auto-sync 之外的"选择性拉单个项目"入口，解决用户两个真痛点：(a) PC 有 50 个项目我只想要 3 个；(b) Phase 3d cursor 推进前的历史项目永远拉不到。
 
 **Scope (v0.1 选项 C — 单向)**：
+
 - ✅ Android 端：从 PC 端浏览 + 拉取选定项目（**v0.1 重点**）
 - ⏸ PC 端：反向拉 Android 项目（v0.2 follow-up；v0.1 仅 placeholder UI）
 
@@ -703,6 +730,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 ```
 
 **错误码**：
+
 - `PROJECT_NOT_FOUND` — 项目 ID 不存在或已 deleted
 - `PERMISSION_DENIED` — userId 不匹配
 - `RATE_LIMITED` — list 调用 > 10/min（防扫库）
@@ -710,11 +738,13 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 #### 6.10.2 桌面端实现
 
 `mobile-bridge` 注册两个新 handler：
+
 - `desktop-app-vue/src/main/sync/mobile-bridge-sync.js` 或 `mobile-bridge.js` 加 `handleProjectList` + `handleProjectPullSingle`
 - 复用既有 dbManager 走 SQL；用 v1.3 walker 同款 SELECT，加 limit/offset
 - 文件清单走 `project_files` 表（既存）
 
 **双 WS gateway 注册**（关键：memory `feedback_cross_shell_feature_pattern.md`）：
+
 - `desktop-app-vue/src/main/web-server/ws-handlers.js` 注册 `project.list` / `project.pullSingle` 走 desktop 内嵌 WS
 - `packages/cli/src/web/ws-handler.js` 同步注册 `cc ui` WS gateway
 - 同份 web-panel SPA 在 desktop 和 cc ui 下都能调通
@@ -722,6 +752,7 @@ desktop-app-vue/src/main/mobile-bridge/handlers/
 #### 6.10.3 Android 端实现
 
 **新文件**：
+
 ```
 android-app/app/src/main/java/com/chainlesschain/android/remote/commands/
 └── ProjectCommands.kt                  # NEW: list + pullSingle wrapper (~100 LOC)
@@ -736,6 +767,7 @@ android-app/feature-project/src/main/java/com/chainlesschain/android/feature/pro
 ```
 
 **UX 流**：
+
 1. `ProjectScreen` 列表 TopBar 加 icon button "浏览 PC 项目"（仅当有 paired PC 在线时显）
 2. → tap → `RemoteProjectBrowserScreen`（NavGraph 新 route，可选 `?peerId=` 多 PC 时弹设备选择 sheet）
 3. ViewModel 启动调 `commandClient.invoke("project.list", {userId, limit=100})`
@@ -750,17 +782,20 @@ android-app/feature-project/src/main/java/com/chainlesschain/android/feature/pro
 #### 6.10.4 PC web-shell 端实现（placeholder for v0.1，对称 UI 留位）
 
 **v0.1**：PC web-panel 加 placeholder 入口，**不实际拉项目**（反向拉 v0.2 才做）。理由：
+
 - v0.1 重点是 PC→Android（用户最痛场景）
 - PC 端 UI 入口先就位 = 用户看到"未来对称"信号，避免功能不发现
 - 实际 `project.list` 接口在 v0.1 已就位，PC 端 web-panel 调对端 Android 时同样能 list — 只是 Android 端 walker 不暴露大量项目（mobile rarely is project source）
 
 **新增/改文件**（web-panel）：
+
 ```
 web-panel/src/pages/
 └── RemoteProjects.vue          # 或 RemoteProjects.html 视既有 SPA 风格 (~150 LOC)
 ```
 
 **入口接通**：
+
 - web-panel sidebar/menu "远程项目"
 - v0.1 只支持反向（手机端拉 PC 项目）→ web-panel 显文案 "请在手机端浏览 PC 项目"（教学性 placeholder）
 - v0.2 落 PC→Android 反向后，此页变成"浏览手机项目"实际列表
@@ -781,22 +816,22 @@ web-panel/src/pages/
 
 #### 6.10.6 单测 target ≥ 8
 
-| 模块 | 测试 | 目标 |
-|---|---|---|
-| 桌面 mobile-bridge-sync | handleProjectList: limit/offset/total | ≥ 2 |
-| 桌面 mobile-bridge-sync | handleProjectPullSingle: file list / not found / permission denied | ≥ 3 |
-| Android ProjectCommands | parse list response / parse pullSingle response | ≥ 2 |
-| Android RemoteProjectBrowserViewModel | client-side dedup logic | ≥ 1 |
+| 模块                                  | 测试                                                               | 目标 |
+| ------------------------------------- | ------------------------------------------------------------------ | ---- |
+| 桌面 mobile-bridge-sync               | handleProjectList: limit/offset/total                              | ≥ 2  |
+| 桌面 mobile-bridge-sync               | handleProjectPullSingle: file list / not found / permission denied | ≥ 3  |
+| Android ProjectCommands               | parse list response / parse pullSingle response                    | ≥ 2  |
+| Android RemoteProjectBrowserViewModel | client-side dedup logic                                            | ≥ 1  |
 
 #### 6.10.7 真机 E2E ≥ 5 场景（追加到 §8.3）
 
-| # | 场景 | 验收 |
-|---|---|---|
-| 20 | Android 进 RemoteProjectBrowserScreen → 显桌面 ≥ 1 项目 | list 调用 < 500ms |
-| 21 | 已 Phase 3d 同步过的项目显 "已在本地" 灰色 | client-side dedup 工作 |
-| 22 | 未拉项目 tap "拉取" → 元数据落本地 → 项目列表可见 | 跳回项目列表，新项目排在最上 |
-| 23 | 拉取过程网络断 → 重连后续传 | FileTransferRepository checkpoint 复用 |
-| 24 | userId 不匹配 → list 返 PERMISSION_DENIED | UI 显错误 banner |
+| #   | 场景                                                    | 验收                                   |
+| --- | ------------------------------------------------------- | -------------------------------------- |
+| 20  | Android 进 RemoteProjectBrowserScreen → 显桌面 ≥ 1 项目 | list 调用 < 500ms                      |
+| 21  | 已 Phase 3d 同步过的项目显 "已在本地" 灰色              | client-side dedup 工作                 |
+| 22  | 未拉项目 tap "拉取" → 元数据落本地 → 项目列表可见       | 跳回项目列表，新项目排在最上           |
+| 23  | 拉取过程网络断 → 重连后续传                             | FileTransferRepository checkpoint 复用 |
+| 24  | userId 不匹配 → list 返 PERMISSION_DENIED               | UI 显错误 banner                       |
 
 #### 6.10.8 关联 Sub-phase 4 / 7
 
@@ -889,6 +924,7 @@ web-panel/src/pages/
 **Risk**：高 —— 真实使用场景频繁出现，特别是文档/笔记类项目。
 
 **Fix**：v0.1 走 **last-write-wins + 冲突备份**：
+
 - Android applier 检测 remote mtime > local mtime 且 local hash != cached_remote_hash → 判定冲突
 - 把 local 版本备份成 `<file>.local-conflict-<timestamp>` 同目录保留
 - 用本地最新版本覆盖（用户最近改的）
@@ -903,6 +939,7 @@ web-panel/src/pages/
 **Risk**：中 —— event 列表大小爆炸或 push 过频导致 DC 拥塞 / UI 频繁 banner 闪 / 重复同步 / 用户困惑 "我什么都没干怎么又弹了"。
 
 **Fix**：**触发源单一化 = file watcher 周期 debounce 5s** —— 这是唯一来源：
+
 - 桌面端用 `chokidar` (or 同类 watcher，既有 dep)，watch `project.rootPath` 递归，debounce 5s 聚合 → emit 一个事件
 - 单 event payload 仅含 path 列表前 100 项 + `truncated: true` + `total: N`（UI 显示 "PC 有 N 个文件改动，含 path1 / path2 / ..."）
 - node_modules / .git / build / dist / target / .next 等目录默认 ignore（用户可改 `.chainlesschain/sync-ignore`，参考 .gitignore 语法）
@@ -917,6 +954,7 @@ web-panel/src/pages/
 **Risk**：低-中 —— 大多数项目 < 5000 文件 100ms 内返回；monorepo 用户少数但存在。
 
 **Fix**：
+
 - `git.status` 调用 timeout 1500ms，超时返 `{ isGitRepo: true, slow: true }` —— UI 显 chip "git 仓库（status 超时）"，tap 展开 sheet 给 "在终端跑 git status 看完整结果" 按钮
 - 桌面端 git.status 后台 5min cache 同 repo path 结果，连续调用走 cache（user 离开 detail 又回来不重复跑）
 - v0.2 评估 `git status --porcelain --no-optional-locks` 是否更快
@@ -936,6 +974,7 @@ web-panel/src/pages/
 **Risk**：高 —— 触发场景常见（桌面端常规清理）。若联级删，用户在手机上的编辑全丢；若什么都不做，用户对着一个永远连不上的 orphan 项目困惑。
 
 **Fix**：Android applier 收 status=DELETED 的 FROM_PC 项目：
+
 - 本地 `ProjectEntity.status` **不改**（不变 ARCHIVED 也不变 DELETED）
 - 本地 `ProjectEntity.metadata` JSON 加 `{ "orphan": true, "orphanedAt": <timestamp> }`
 - ProjectDetailScreenV2 渲染检测 `metadata.orphan==true` → 显黄色 banner "PC 已删除此项目；本地仍可访问"
@@ -966,6 +1005,7 @@ web-panel/src/pages/
 **Risk**：中 —— Browser 拉项目期间用户切走 / 切回，UX 不清晰。
 
 **Fix**：
+
 - `project.pullSingle` 返 `{ filesCount: 5234, filesPreview: [...top 50] }`（不是全清单）
 - Browser 显 "项目含 5234 文件 (~1.2GB)，预计拉取 8 分钟，确认？" → 用户主动确认才进队列
 - 拉取过程在通知栏显持久 progress notification（用户切走也能看进度）
@@ -1010,6 +1050,7 @@ web-panel/src/pages/
 **Risk**：中 —— 半成品项目状态。
 
 **Fix**：ProjectEntity 加 metadata.pullState："metadata_only" / "partial" / "complete"。
+
 - 元数据落地后 = "metadata_only"
 - 文件 download 中 = "partial"
 - 全部完成 = "complete"
@@ -1023,6 +1064,7 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 **Risk**：高 —— 跨包 release 节奏不一致是历史频繁雷（memory `desktop_web_shell_strategy.md`、`feedback_cross_shell_feature_pattern.md`）。
 
 **Fix**：
+
 - 桌面端 release 必须先于 CLI bump (cc ui)
 - web-panel SPA 调 list 时检测 method-not-found error → 显 "桌面端版本过低，请升级桌面应用" 提示而不是技术错误
 - desktop-app-vue 和 packages/cli 的 method registry 用版本号 marker：response header 加 `x-mobile-bridge-version: v1.3` 让 web-panel 检测能力
@@ -1033,20 +1075,20 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 
 ### 8.1 单测 ≥ 28 across modules
 
-| 模块 | 测试文件 | 目标数 |
-|---|---|---|
-| core-database | `ProjectDaoTest.kt` (new fields roundtrip + DAO query) | ≥ 3 |
-| core-database | `MigrationTest.kt` (v(N) → v(N+1)) | ≥ 1 |
-| feature-project | `ProjectSyncApplierTest.kt` (source_peer_id + pc_root_path parse) | ≥ 4 |
-| feature-project | `ProjectSyncWalkerTest.kt` (Desktop walker writes new fields) | ≥ 2 |
-| feature-project | `ProjectViewModelTest.kt` (terminalButtonState 三态 + state changes) | ≥ 5 |
-| app | `ProjectDetailScreenV2Test.kt` (UI test 三态) | ≥ 3 |
-| app | `RemoteDesktopViewModelTest.kt` (initialCwd + prefillCommand 参数路径) | ≥ 3 |
-| app | `FileTransferViewModelTest.kt` (mode + initialRemotePath + initialSourceUri) | ≥ 4 |
-| app | `ProjectDetailScreenV2Test.kt` (上传/下载按钮三态 + Git chip 三态) | ≥ 4 (扩展) |
-| app | `GitCommandsTest.kt` (status parse / method-not-found / isGitRepo=false) | ≥ 3 |
-| desktop | `git-handler.test.js` (simple-git status × git repo / 非 git / 损坏 .git / 大 repo timeout) | ≥ 4 |
-| feature-project | `ProjectSyncConflictTest.kt` (last-write-wins + 冲突备份命名) | ≥ 3 |
+| 模块            | 测试文件                                                                                    | 目标数     |
+| --------------- | ------------------------------------------------------------------------------------------- | ---------- |
+| core-database   | `ProjectDaoTest.kt` (new fields roundtrip + DAO query)                                      | ≥ 3        |
+| core-database   | `MigrationTest.kt` (v(N) → v(N+1))                                                          | ≥ 1        |
+| feature-project | `ProjectSyncApplierTest.kt` (source_peer_id + pc_root_path parse)                           | ≥ 4        |
+| feature-project | `ProjectSyncWalkerTest.kt` (Desktop walker writes new fields)                               | ≥ 2        |
+| feature-project | `ProjectViewModelTest.kt` (terminalButtonState 三态 + state changes)                        | ≥ 5        |
+| app             | `ProjectDetailScreenV2Test.kt` (UI test 三态)                                               | ≥ 3        |
+| app             | `RemoteDesktopViewModelTest.kt` (initialCwd + prefillCommand 参数路径)                      | ≥ 3        |
+| app             | `FileTransferViewModelTest.kt` (mode + initialRemotePath + initialSourceUri)                | ≥ 4        |
+| app             | `ProjectDetailScreenV2Test.kt` (上传/下载按钮三态 + Git chip 三态)                          | ≥ 4 (扩展) |
+| app             | `GitCommandsTest.kt` (status parse / method-not-found / isGitRepo=false)                    | ≥ 3        |
+| desktop         | `git-handler.test.js` (simple-git status × git repo / 非 git / 损坏 .git / 大 repo timeout) | ≥ 4        |
+| feature-project | `ProjectSyncConflictTest.kt` (last-write-wins + 冲突备份命名)                               | ≥ 3        |
 
 ### 8.2 集成测试 ≥ 2
 
@@ -1057,27 +1099,27 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 
 **前置**：v5.0.3.58 desktop + Android Phase A.1 远程终端已通；设备已配对；signaling/TURN 已部署。
 
-| # | 场景 | 验收 |
-|---|---|---|
-| 1 | 桌面建项目 `~/projects/test-prj`，sync 到 Android | Android 项目列表显示该项目 |
-| 2 | 进 Android 项目 detail → 看到 "终端" 按钮（高亮） | TopBar terminal icon 可见 + enabled |
-| 3 | 点 "终端" → xterm.js 载入 → `pwd` 输出 | `pwd` = `/Users/x/projects/test-prj`（或 Windows 等价） |
-| 4 | 在终端跑 `git status` → 看到桌面项目真实 git 输出 | stdout 流式显示正确 |
-| 5 | 桌面端 kill PC 进程（模拟离线） | Android 项目 detail 终端按钮 ≤ 3s 内变灰 |
-| 6 | 桌面恢复 → 按钮重新高亮 | ≤ 3s 内 enabled |
-| 7 | 桌面建项目 `D:\我的项目\测试 项目`（中文+空格） → sync → Android 点终端 | xterm `pwd` 正确显示该路径 |
-| 8 | 桌面删除项目目录 → Android 点终端 | banner 显 "原目录不存在，已切到 home" + xterm `pwd` 显 home |
-| 9 | Android 端建 LOCAL 项目（SAF picker） | 项目 detail TopBar 无终端按钮 |
-| 10 | 跑了几条命令后 Android 按返回键 | 桌面端 PTY 进程退出（用 `ps` 验证） |
-| 11 | Android tap 上传 → SAF picker 选手机本地文件 → 上传 | 文件出现在 PC 项目根目录；进度条 100% 完成 |
-| 12 | Android tap 下载 → 浏览项目文件列表 → 选文件 → 下载 | 文件出现在 Android `Downloads/`（MediaStore.Downloads 验证） |
-| 13 | PC 终端跑 `echo hi > new.txt` → 桌面端 watcher debounce 5s 后 emit | Android detail 页 ≤ 10s 显示 banner "PC 有 1 个文件改动，立即同步？" |
-| 14 | 该 banner tap "立即同步" | new.txt 入项目本地 cache，ProjectFilesScreen 可见 |
-| 15 | PC 项目根含 `.git/` → detail 显 git chip | chip 文案如 "main · 3 changed"；tap 展开 sheet |
-| 16 | git chip sheet tap "在终端打开" | 跳 RemoteDesktopScreen + xterm 预填 `git status` 命令（敲 enter 即跑） |
-| 17 | PC 项目根**不**是 git 仓库 | detail 无 git chip；不影响其它按钮 |
-| 18 | 同时双端改同一文件 → sync | 本地版本备份成 `<file>.local-conflict-<timestamp>`；banner 提示 |
-| 19 | 桌面端老版本 (v5.0.3.58) 不含 git.status method | Android 不显 git chip（silently 无报错） |
+| #   | 场景                                                                    | 验收                                                                   |
+| --- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | 桌面建项目 `~/projects/test-prj`，sync 到 Android                       | Android 项目列表显示该项目                                             |
+| 2   | 进 Android 项目 detail → 看到 "终端" 按钮（高亮）                       | TopBar terminal icon 可见 + enabled                                    |
+| 3   | 点 "终端" → xterm.js 载入 → `pwd` 输出                                  | `pwd` = `/Users/x/projects/test-prj`（或 Windows 等价）                |
+| 4   | 在终端跑 `git status` → 看到桌面项目真实 git 输出                       | stdout 流式显示正确                                                    |
+| 5   | 桌面端 kill PC 进程（模拟离线）                                         | Android 项目 detail 终端按钮 ≤ 3s 内变灰                               |
+| 6   | 桌面恢复 → 按钮重新高亮                                                 | ≤ 3s 内 enabled                                                        |
+| 7   | 桌面建项目 `D:\我的项目\测试 项目`（中文+空格） → sync → Android 点终端 | xterm `pwd` 正确显示该路径                                             |
+| 8   | 桌面删除项目目录 → Android 点终端                                       | banner 显 "原目录不存在，已切到 home" + xterm `pwd` 显 home            |
+| 9   | Android 端建 LOCAL 项目（SAF picker）                                   | 项目 detail TopBar 无终端按钮                                          |
+| 10  | 跑了几条命令后 Android 按返回键                                         | 桌面端 PTY 进程退出（用 `ps` 验证）                                    |
+| 11  | Android tap 上传 → SAF picker 选手机本地文件 → 上传                     | 文件出现在 PC 项目根目录；进度条 100% 完成                             |
+| 12  | Android tap 下载 → 浏览项目文件列表 → 选文件 → 下载                     | 文件出现在 Android `Downloads/`（MediaStore.Downloads 验证）           |
+| 13  | PC 终端跑 `echo hi > new.txt` → 桌面端 watcher debounce 5s 后 emit      | Android detail 页 ≤ 10s 显示 banner "PC 有 1 个文件改动，立即同步？"   |
+| 14  | 该 banner tap "立即同步"                                                | new.txt 入项目本地 cache，ProjectFilesScreen 可见                      |
+| 15  | PC 项目根含 `.git/` → detail 显 git chip                                | chip 文案如 "main · 3 changed"；tap 展开 sheet                         |
+| 16  | git chip sheet tap "在终端打开"                                         | 跳 RemoteDesktopScreen + xterm 预填 `git status` 命令（敲 enter 即跑） |
+| 17  | PC 项目根**不**是 git 仓库                                              | detail 无 git chip；不影响其它按钮                                     |
+| 18  | 同时双端改同一文件 → sync                                               | 本地版本备份成 `<file>.local-conflict-<timestamp>`；banner 提示        |
+| 19  | 桌面端老版本 (v5.0.3.58) 不含 git.status method                         | Android 不显 git chip（silently 无报错）                               |
 
 **reproducer**：iOS Phase 2.7 / Android W3.7 同等规格，需 Mac+iPhone+真桌面 在场。Win dev box 单设备不可验。
 
@@ -1113,13 +1155,13 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 
 ## 10. 收益预期（与现状对比）
 
-| 指标 | 现状 | 目标 |
-|---|---|---|
-| 项目管理模块用户路径完整性 | 仅本地浏览，无法做事 | 浏览 + 一键跳 PC 做事 |
-| `feature-project/` 暗码可清理量 | 0 (Editor/Git/Completion 占着不删) | ~3,000 行可 deprecate（v0.2 跟进） |
-| 用户场景覆盖：移动端 CLI 任务 | 必须打开 RemoteDesktop tab → 手输 cd | detail 一键直达，cwd 就位 |
-| Android 端"为什么没 CLI"FAQ | 高频疑问 | 不再是问题（借 PC 即可） |
-| ProjectViewModel god-class 拆分动力 | 低（功能少不需要拆） | 中（terminalButtonState 加入催 P1 拆分） |
+| 指标                                | 现状                                 | 目标                                     |
+| ----------------------------------- | ------------------------------------ | ---------------------------------------- |
+| 项目管理模块用户路径完整性          | 仅本地浏览，无法做事                 | 浏览 + 一键跳 PC 做事                    |
+| `feature-project/` 暗码可清理量     | 0 (Editor/Git/Completion 占着不删)   | ~3,000 行可 deprecate（v0.2 跟进）       |
+| 用户场景覆盖：移动端 CLI 任务       | 必须打开 RemoteDesktop tab → 手输 cd | detail 一键直达，cwd 就位                |
+| Android 端"为什么没 CLI"FAQ         | 高频疑问                             | 不再是问题（借 PC 即可）                 |
+| ProjectViewModel god-class 拆分动力 | 低（功能少不需要拆）                 | 中（terminalButtonState 加入催 P1 拆分） |
 
 ---
 
@@ -1166,6 +1208,7 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 ```
 
 **触点**：
+
 - `RemoteContextViewModel.kt:34-71` 新 `listPcProjects(pcPeerId): List<PcProjectChoice>` 调 project.list 过滤掉无路径 dead row
 - `ProjectDetailScreenV2.kt:106-348` AlertDialog 全重写（picker + 自定义路径折叠区 + 同名高亮）
 
@@ -1180,6 +1223,7 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 ### 12.2 Sub-phase 10 v2 — 全量项目内容拉取（pullSingle + getFile 循环）
 
 **旧路径**（v1，`504bd6dde` Sub-phase 7）：
+
 - `pullSingle` 拉项目 metadata + 文件清单（不含内容）
 - 文件内容 "由 caller 跳 FileTransferScreen 拉" — 实际从未接通
 - 用户痛点：拉取 "完成" 后离线打开项目 → 文件列表显示 0 文件，看不到任何内容
@@ -1206,12 +1250,14 @@ _pullProgress.value = null
 ```
 
 **关键决策**：
+
 - **单文件失败 continue**：getFile 抛/返 null 时 log warn 不阻塞后续（用户已有 2/3 内容好过 0/3）
 - **>1MB content skip 写占位 row**：写 size + hash 但 content=null，让 ProjectDetailScreenV2 至少看到文件名 + 能后续单独拉
 - **parentId=null v0.1**：不重建 folder 树，all files 走 path 字符串显示。ProjectViewModel.buildFileTree 用 path 做 prefix tree 渲染，flat 列表也能用
 - **PullProgress StateFlow**：currentIdx + total + 当前文件名 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"
 
 **触点**：
+
 - `RemoteProjectBrowserViewModel.kt:96-160,170-207` pullProject 加 files 循环 + remoteFileToEntity 转换
 - `RemoteProjectBrowserScreen.kt:91-135,180-200` row 下方加进度条 + 当前文件名行
 - 桌面侧 `project.getFile` (已 `504bd6dde` 落地) 无改动 — 直接复用既有 RPC
@@ -1220,27 +1266,27 @@ _pullProgress.value = null
 
 新增 3 场景验证 v2 + 5 场景验回归：
 
-| # | 场景 | 期望表现 |
-|---|---|---|
-| 1 | **LOCAL 项目 tap 终端，picker 显示 PC 项目列表** | 列表加载 ≤2s；项目按 updated_at desc 排序；同名项目顶部 + "同名" 标 |
-| 2 | **picker tap row → 跳终端** | 跳转 ≤300ms；自动开 pwsh session 落选中项目的 pcRootPath；Terminal 首行 prompt 显示该目录 |
-| 3 | **桌面项目全部 root_path=null → picker 显错误** | "桌面没有可用项目（缺 rootPath）" + 自动展开自定义路径输入 |
-| 4 | **自定义路径输入 fallback 仍可用** | 折叠区展开 → 输 `C:\code\test` → tap "使用此路径" → 同 v1 行为：保存 + push 桌面 + 跳终端 |
-| 5 | **FROM_PC 项目 tap 终端（有 pcRootPath）→ 不弹 dialog 直跳** | 跳过 picker dialog；直接跳 TerminalList(initialCwd=pcRootPath)；自动开 session |
-| 6 | **拉取 PC 项目（10 文件，每个 < 50KB）** | 进度条逐文件刷新；progress text "下载文件 N/10"；完成后 row 显 "已在本地" badge |
-| 7 | **拉取含 >1MB 文件** | 大文件 row 写入 Room 但 content=null；列表仍可见文件名 + size；其他文件正常 |
-| 8 | **拉取过程中单文件 getFile 失败** | log warn；继续后续文件；最终 ok 文件数 = total - 失败数；row 仍 marked 已在本地 |
+| #   | 场景                                                         | 期望表现                                                                                  |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| 1   | **LOCAL 项目 tap 终端，picker 显示 PC 项目列表**             | 列表加载 ≤2s；项目按 updated_at desc 排序；同名项目顶部 + "同名" 标                       |
+| 2   | **picker tap row → 跳终端**                                  | 跳转 ≤300ms；自动开 pwsh session 落选中项目的 pcRootPath；Terminal 首行 prompt 显示该目录 |
+| 3   | **桌面项目全部 root_path=null → picker 显错误**              | "桌面没有可用项目（缺 rootPath）" + 自动展开自定义路径输入                                |
+| 4   | **自定义路径输入 fallback 仍可用**                           | 折叠区展开 → 输 `C:\code\test` → tap "使用此路径" → 同 v1 行为：保存 + push 桌面 + 跳终端 |
+| 5   | **FROM_PC 项目 tap 终端（有 pcRootPath）→ 不弹 dialog 直跳** | 跳过 picker dialog；直接跳 TerminalList(initialCwd=pcRootPath)；自动开 session            |
+| 6   | **拉取 PC 项目（10 文件，每个 < 50KB）**                     | 进度条逐文件刷新；progress text "下载文件 N/10"；完成后 row 显 "已在本地" badge           |
+| 7   | **拉取含 >1MB 文件**                                         | 大文件 row 写入 Room 但 content=null；列表仍可见文件名 + size；其他文件正常               |
+| 8   | **拉取过程中单文件 getFile 失败**                            | log warn；继续后续文件；最终 ok 文件数 = total - 失败数；row 仍 marked 已在本地           |
 
 ### 12.4 测试覆盖（单元 + 集成）
 
-| 文件 | 测试数 | 覆盖 |
-|---|---|---|
-| `RemoteContextViewModelTest.kt` | 16 | listPcProjects 解析/过滤/异常；findPcProjectPathByName 命中/落空；pushPcRootPathToDesktop ok=true/false/exception |
-| `RemoteProjectBrowserViewModelTest.kt` | 7 | pullProject happy path（3 文件 inserts）/ 单文件 failure continue / exception continue / >1MB skip / 空 files 不调 getFile / pullingId lifecycle / 并发调用 ignore |
-| `mobile-bridge-sync.test.js` (project handlers) | 15 (+6 新) | handleProjectList 用 userId 忽略 + sourcePeerId/pcRootPath derived + 分页 + deleted excluded + rate-limit；handleProjectPullSingle 4 场景；**handleProjectUpdatePath 6 场景**（MISSING_PROJECT_ID/UPDATE OK/COALESCE root_path/PROJECT_NOT_FOUND/空串归 null/rate-limit） |
-| `project-management-handler.test.js` (file CRUD) | 33 (+9 新) | createFile/createFolder/writeFile/deleteFile 全覆盖；getFile 多一条 "Android Room insert 契约" |
-| `project-handlers.test.js` (web-shell) | 7 | 10 topic dispatch（之前 stale 6）+ pre-bootstrap + userId fallback |
-| **合计** | **78 新通过** | 单元 + 集成全绿 |
+| 文件                                             | 测试数        | 覆盖                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RemoteContextViewModelTest.kt`                  | 16            | listPcProjects 解析/过滤/异常；findPcProjectPathByName 命中/落空；pushPcRootPathToDesktop ok=true/false/exception                                                                                                                                                         |
+| `RemoteProjectBrowserViewModelTest.kt`           | 7             | pullProject happy path（3 文件 inserts）/ 单文件 failure continue / exception continue / >1MB skip / 空 files 不调 getFile / pullingId lifecycle / 并发调用 ignore                                                                                                        |
+| `mobile-bridge-sync.test.js` (project handlers)  | 15 (+6 新)    | handleProjectList 用 userId 忽略 + sourcePeerId/pcRootPath derived + 分页 + deleted excluded + rate-limit；handleProjectPullSingle 4 场景；**handleProjectUpdatePath 6 场景**（MISSING_PROJECT_ID/UPDATE OK/COALESCE root_path/PROJECT_NOT_FOUND/空串归 null/rate-limit） |
+| `project-management-handler.test.js` (file CRUD) | 33 (+9 新)    | createFile/createFolder/writeFile/deleteFile 全覆盖；getFile 多一条 "Android Room insert 契约"                                                                                                                                                                            |
+| `project-handlers.test.js` (web-shell)           | 7             | 10 topic dispatch（之前 stale 6）+ pre-bootstrap + userId fallback                                                                                                                                                                                                        |
+| **合计**                                         | **78 新通过** | 单元 + 集成全绿                                                                                                                                                                                                                                                           |
 
 ### 12.5 还剩什么
 
