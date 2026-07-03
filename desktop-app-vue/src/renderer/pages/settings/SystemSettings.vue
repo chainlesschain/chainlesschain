@@ -716,6 +716,7 @@ import {
   ThunderboltOutlined,
   SoundOutlined,
 } from "@ant-design/icons-vue";
+import { deepMerge } from "./systemSettingsUtils";
 import P2PNetworkPane from "./panes/P2PNetworkPane.vue";
 import SpeechRecognitionPane from "./panes/SpeechRecognitionPane.vue";
 import LLMPane from "./panes/LLMPane.vue";
@@ -970,25 +971,6 @@ const config = ref({
     },
   },
 });
-
-// 深度合并配置对象
-const deepMerge = (target, source) => {
-  const result = { ...target };
-  for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) {
-      if (
-        source[key] &&
-        typeof source[key] === "object" &&
-        !Array.isArray(source[key])
-      ) {
-        result[key] = deepMerge(target[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
-      }
-    }
-  }
-  return result;
-};
 
 // 加载配置
 const loadConfig = async () => {

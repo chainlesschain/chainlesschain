@@ -752,6 +752,16 @@ import {
   type CommunityMember,
 } from "../../stores/communityQuick";
 import MessageEnvelopeViewer from "./MessageEnvelopeViewer.vue";
+import {
+  roleColor,
+  roleLabel,
+  statusColor,
+  statusLabel,
+  channelTypeLabel,
+  channelTypeColor,
+  shortDid,
+  formatTime,
+} from "./communityDetailsDrawerUtils";
 
 const store = useCommunityQuickStore();
 type DetailsTabKey = "members" | "channels" | "governance" | "moderation";
@@ -851,101 +861,6 @@ const memberColumns = [
   { title: "加入时间", key: "joined_at", width: 160 },
   { title: "操作", key: "actions", width: 200 },
 ];
-
-const ROLE_COLORS: Record<string, string> = {
-  owner: "gold",
-  admin: "geekblue",
-  moderator: "blue",
-  member: "green",
-};
-const ROLE_LABELS: Record<string, string> = {
-  owner: "所有者",
-  admin: "管理员",
-  moderator: "版主",
-  member: "成员",
-};
-function roleColor(role?: string): string {
-  if (!role) {
-    return "default";
-  }
-  return ROLE_COLORS[role] || "default";
-}
-function roleLabel(role?: string): string {
-  if (!role) {
-    return "";
-  }
-  return ROLE_LABELS[role] || role;
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "green",
-  archived: "orange",
-  banned: "red",
-};
-function statusColor(status?: string): string {
-  if (!status) {
-    return "default";
-  }
-  return STATUS_COLORS[status] || "default";
-}
-function statusLabel(status?: string): string {
-  if (status === "active") {
-    return "活跃";
-  }
-  if (status === "archived") {
-    return "已归档";
-  }
-  if (status === "banned") {
-    return "已封禁";
-  }
-  return status ?? "—";
-}
-
-const CHANNEL_TYPE_LABELS: Record<string, string> = {
-  announcement: "公告",
-  discussion: "讨论",
-  readonly: "只读",
-  subscription: "订阅",
-};
-const CHANNEL_TYPE_COLORS: Record<string, string> = {
-  announcement: "red",
-  discussion: "blue",
-  readonly: "default",
-  subscription: "purple",
-};
-function channelTypeLabel(type?: string): string {
-  if (!type) {
-    return "—";
-  }
-  return CHANNEL_TYPE_LABELS[type] || type;
-}
-function channelTypeColor(type?: string): string {
-  if (!type) {
-    return "default";
-  }
-  return CHANNEL_TYPE_COLORS[type] || "default";
-}
-
-function shortDid(did?: string): string {
-  if (!did) {
-    return "—";
-  }
-  if (did.length <= 24) {
-    return did;
-  }
-  return `${did.slice(0, 16)}…${did.slice(-6)}`;
-}
-
-function formatTime(value: unknown): string {
-  if (value === undefined || value === null) {
-    return "—";
-  }
-  const d = new Date(value as string | number);
-  if (Number.isNaN(d.getTime())) {
-    return String(value);
-  }
-  return d.toLocaleString("zh-CN");
-}
 
 async function onPromote(member: CommunityMember, role: string): Promise<void> {
   if (!store.viewingCommunityId) {
