@@ -350,6 +350,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     /* best-effort — plugin bin PATH never blocks a headless run */
   }
 
+  // Apply trusted plugins' default env vars for this run (Phase 3.3o) — only for
+  // keys not already set; the process exits at the end so no restore is needed.
+  try {
+    const { applyPluginSettingsEnv } =
+      await import("../lib/plugin-runtime/settings.js");
+    applyPluginSettingsEnv({ cwd });
+  } catch {
+    /* best-effort — plugin settings never block a headless run */
+  }
+
   // autoMode.classifyAllShell (Claude-Code 2.1.193): route the built-in
   // verification allowlist through the shell-policy classifier instead of
   // fast-pathing it. Explicit option wins; otherwise read settings.json.

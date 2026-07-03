@@ -128,6 +128,9 @@ let _pluginMonitors = null;
 // Installed-plugin `bin` PATH injection (Phase 3.3n) — restore() puts PATH back
 // at SessionEnd so plugin executables are only resolvable during the session.
 let _pluginBinRestore = null;
+// Installed-plugin `settings` default env (Phase 3.3o) — restore() removes the
+// plugin-provided env-var defaults at SessionEnd (session-scoped).
+let _pluginSettingsRestore = null;
 // .claude/settings.json `respondToBashCommands` (Claude-Code 2.1.186): whether a
 // `!command` auto-triggers an assistant response to its output. undefined =
 // unset → defaults OFF (opt-in) in shouldRespondToBashCommands.
@@ -674,6 +677,22 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     _pluginBinRestore = null;
+  }
+
+  // Apply trusted plugins' default env vars (Phase 3.3o) — only for env keys the
+  // user/system didn't already set; restored at SessionEnd.
+  try {
+    const { applyPluginSettingsEnv } =
+      await import("../lib/plugin-runtime/settings.js");
+    const res = applyPluginSettingsEnv({ cwd: process.cwd() });
+    _pluginSettingsRestore = res.restore;
+    if (res.added.length > 0) {
+      process.stderr.write(
+        `  settings: applied ${res.added.length} plugin env default(s)\n`,
+      );
+    }
+  } catch (_err) {
+    _pluginSettingsRestore = null;
   }
 
   // Resume existing session or create new one
@@ -2673,6 +2692,17 @@ export async function startAgentRepl(options = {}) {
           /* bin re-apply is best-effort */
         }
 
+        // Re-apply plugin default env vars (a newly-trusted plugin's settings).
+        try {
+          const { applyPluginSettingsEnv } =
+            await import("../lib/plugin-runtime/settings.js");
+          if (_pluginSettingsRestore) _pluginSettingsRestore();
+          const res = applyPluginSettingsEnv({ cwd });
+          _pluginSettingsRestore = res.restore;
+        } catch {
+          /* settings re-apply is best-effort */
+        }
+
         logger.log(
           chalk.green(
             `✔ plugins reloaded — ${sum.plugins} plugin(s): ` +
@@ -4477,6 +4507,16 @@ export async function startAgentRepl(options = {}) {
         // Non-critical
       }
       _pluginBinRestore = null;
+    }
+
+    // Drop plugin-provided default env vars added at startup (Phase 3.3o).
+    if (_pluginSettingsRestore) {
+      try {
+        _pluginSettingsRestore();
+      } catch (_e) {
+        // Non-critical
+      }
+      _pluginSettingsRestore = null;
     }
 
     // Shutdown runtime
