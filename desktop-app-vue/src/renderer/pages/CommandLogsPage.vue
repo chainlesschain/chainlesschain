@@ -318,6 +318,15 @@ import {
 } from "@ant-design/icons-vue";
 import * as echarts from "echarts";
 import dayjs from "dayjs";
+import {
+  getStatusColor,
+  getStatusText,
+  getLevelColor,
+  getDurationColor,
+  truncate,
+  formatTimestamp,
+  formatJSON,
+} from "./commandLogsPageUtils";
 
 // Refs
 const loading = reactive({
@@ -791,72 +800,6 @@ async function handleExport() {
 }
 
 // 工具函数
-function getStatusColor(status) {
-  const colors = {
-    success: "success",
-    failure: "error",
-    warning: "warning",
-  };
-  return colors[status] || "default";
-}
-
-function getStatusText(status) {
-  const texts = {
-    success: "成功",
-    failure: "失败",
-    warning: "警告",
-  };
-  return texts[status] || status;
-}
-
-function getLevelColor(level) {
-  const colors = {
-    debug: "default",
-    info: "processing",
-    warn: "warning",
-    error: "error",
-  };
-  return colors[level] || "default";
-}
-
-function getDurationColor(duration) {
-  if (duration < 500) {
-    return "success";
-  }
-  if (duration < 2000) {
-    return "warning";
-  }
-  return "error";
-}
-
-function truncate(str, maxLen) {
-  if (!str) {
-    return "";
-  }
-  if (str.length <= maxLen) {
-    return str;
-  }
-  return str.substring(0, maxLen) + "...";
-}
-
-function formatTimestamp(timestamp) {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-}
-
-function formatJSON(data) {
-  if (!data) {
-    return "";
-  }
-  if (typeof data === "string") {
-    try {
-      return JSON.stringify(JSON.parse(data), null, 2);
-    } catch {
-      return data;
-    }
-  }
-  return JSON.stringify(data, null, 2);
-}
-
 // 生命周期
 // Named handler so removeEventListener can match it (an anonymous arrow can't).
 const handleResize = () => {
