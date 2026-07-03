@@ -1,0 +1,106 @@
+/**
+ * Integration: `cc agent -p` (runAgentHeadless) now runs `async:true` hooks.
+ * Before this, async hooks were silently skipped in headless (no supervisor);
+ * now the runner builds one, fires async Stop hooks at run end, settles them
+ * (bounded), and surfaces results/rewakes on stderr. Real `child_process.spawn`
+ * via `node -e` so the whole fire-and-forget path is exercised.
+ */
+import { describe, it, expect } from "vitest";
+import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+
+const NODE = process.execPath.replace(/\\/g, "/");
+
+function makeDeps() {
+  const out = [];
+  const err = [];
+  async function* fakeLoop() {
+    yield { type: "response-complete", content: "done" };
+    yield { type: "run-ended", runId: "r", reason: "complete" };
+  }
+  return {
+    deps: {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      resolveAgentMcp: async () => null,
+      writeOut: (s) => out.push(s),
+      writeErr: (s) => err.push(s),
+      agentLoop: fakeLoop,
+    },
+    out,
+    err,
+  };
+}
+
+const stopHook = (command, extra = {}) => ({
+  Stop: [
+    {
+      matcher: null,
+      hooks: [{ type: "command", command, async: true, ...extra }],
+    },
+  ],
+});
+
+describe("runAgentHeadless async hooks", () => {
+  it("surfaces a failed asyncRewake Stop hook on stderr", async () => {
+    const { deps, err } = makeDeps();
+    const res = await runAgentHeadless(
+      {
+        prompt: "do work",
+        outputFormat: "json",
+        expandFileRefs: false,
+        asyncHookWaitMs: 8000,
+        settingsHooks: stopHook(`"${NODE}" -e "process.exit(1)"`, {
+          asyncRewake: true,
+        }),
+      },
+      deps,
+    );
+    // The run itself still succeeds — the async hook is out-of-band.
+    expect(res.isError).toBe(false);
+    const stderr = err.join("");
+    expect(stderr).toMatch(/\[async-hook REWAKE\]/);
+    expect(stderr).toMatch(/exit 1/);
+  });
+
+  it("surfaces a passing async hook's additionalContext on stderr", async () => {
+    const { deps, err } = makeDeps();
+    const script =
+      "let d='';process.stdin.on('data',c=>d+=c);" +
+      "process.stdin.on('end',()=>{" +
+      "console.log(JSON.stringify({additionalContext:'bg-check-passed'}))})";
+    await runAgentHeadless(
+      {
+        prompt: "do work",
+        outputFormat: "json",
+        expandFileRefs: false,
+        asyncHookWaitMs: 8000,
+        settingsHooks: stopHook(`"${NODE}" -e "${script}"`),
+      },
+      deps,
+    );
+    expect(err.join("")).toMatch(/\[async-hook\].*bg-check-passed/);
+  });
+
+  it("does nothing extra when there are no async hooks (clean run)", async () => {
+    const { deps, err } = makeDeps();
+    const res = await runAgentHeadless(
+      {
+        prompt: "do work",
+        outputFormat: "json",
+        expandFileRefs: false,
+        settingsHooks: {
+          // a SYNC Stop hook — must not be treated as async / surfaced
+          Stop: [
+            {
+              matcher: null,
+              hooks: [{ type: "command", command: `"${NODE}" -e ""` }],
+            },
+          ],
+        },
+      },
+      deps,
+    );
+    expect(res.isError).toBe(false);
+    expect(err.join("")).not.toMatch(/\[async-hook/);
+  });
+});

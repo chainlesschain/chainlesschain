@@ -849,10 +849,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // Async-hook supervisor for headless: without one, `async:true` hooks
+  // (PostToolUse / Stop) were silently skipped in `cc agent -p` (they only ran
+  // in the REPL). Create one when settings hooks are present so background
+  // checks run + get reaped here too. Fire-and-forget; drained after the loop.
+  let _hookSupervisor = null;
+  if (settingsHooks) {
+    try {
+      const { AsyncHookSupervisor } =
+        await import("../lib/async-hook-supervisor.cjs");
+      _hookSupervisor = new AsyncHookSupervisor();
+    } catch {
+      _hookSupervisor = null; // async hooks are best-effort
+    }
+  }
+
   const loopOptions = {
     model,
     provider,
     recorder: _otlpRecorder,
+    hookSupervisor: _hookSupervisor,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink). null/off
     // → chatWithTools sends no thinking field. thinkingBudget (--thinking-budget)
     // is the legacy-model budget_tokens override; ignored when thinking is off.
@@ -1158,11 +1174,52 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } catch {
       // best-effort — never mask the run's own outcome
     }
-    // settings.json SessionEnd hooks (observe-only) when the run finishes.
+    // settings.json Stop + SessionEnd hooks when the run finishes. Stop is the
+    // canonical async-hook trigger ("run the test suite at turn end"); fire its
+    // async hooks fire-and-forget, then settle so a fast background check can
+    // report back within this one-shot run.
     if (settingsHooks) {
       try {
-        const { runObserveHooks } =
+        const { runObserveHooks, dispatchAsyncHooks } =
           await import("../lib/settings-hook-events.cjs");
+        const stopPayload = { reason: endReason, cwd, session_id: sessionId };
+        runObserveHooks(settingsHooks, "Stop", stopPayload, { cwd });
+        if (_hookSupervisor) {
+          dispatchAsyncHooks(settingsHooks, "Stop", stopPayload, {
+            cwd,
+            supervisor: _hookSupervisor,
+          });
+          // Bounded settle: wait for in-flight async hooks (Stop + any
+          // PostToolUse dispatched during the loop) to finish, capped so a
+          // slow/hung check can never stall the run. Default 5s; tunable.
+          const waitMs = Number.isFinite(options.asyncHookWaitMs)
+            ? options.asyncHookWaitMs
+            : 5000;
+          const started = Date.now();
+          while (
+            _hookSupervisor.runningCount() > 0 &&
+            Date.now() - started < waitMs
+          ) {
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          // Surface any results/rewakes out-of-band on stderr (never touches the
+          // stdout envelope). A rewake means a background check FAILED and would
+          // re-engage the agent in an interactive session — flag it clearly so a
+          // headless caller/CI can react.
+          for (const rw of _hookSupervisor.drainRewakes()) {
+            writeErr(
+              `[async-hook REWAKE] ${rw.command} failed` +
+                `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
+                `${rw.error ? `: ${rw.error}` : ""}\n`,
+            );
+          }
+          for (const rs of _hookSupervisor.drainResults()) {
+            if (rs.additionalContext) {
+              writeErr(`[async-hook] ${rs.command}: ${rs.additionalContext}\n`);
+            }
+          }
+          _hookSupervisor.stopAll();
+        }
         runObserveHooks(
           settingsHooks,
           "SessionEnd",
@@ -1170,7 +1227,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           { cwd },
         );
       } catch {
-        // observe-only
+        // observe-only + best-effort async surfacing
       }
     }
   }
