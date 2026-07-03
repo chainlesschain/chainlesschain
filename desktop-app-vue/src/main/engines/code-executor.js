@@ -9,6 +9,70 @@ const fs = require("fs").promises;
 const path = require("path");
 const os = require("os");
 
+/**
+ * Environment variables that change HOW the OS resolves the executable or HOW
+ * the interpreter loads code. A caller/renderer-supplied env must never be
+ * allowed to override these: doing so lets an untrusted caller point the bare
+ * `python`/`node`/`bash` command at a planted binary (PATH/PATHEXT), inject a
+ * shared library into the child (LD_PRELOAD / DYLD_*), or force the interpreter
+ * to run attacker code at startup (NODE_OPTIONS, PYTHONSTARTUP, BASH_ENV, ...).
+ * spawn(shell:false) already blocks SHELL injection; this closes the parallel
+ * ENV-hijack vector. Compared case-insensitively (Windows env names are).
+ */
+const BLOCKED_CHILD_ENV_KEYS = new Set([
+  // Executable resolution
+  "PATH",
+  "PATHEXT",
+  // Dynamic linker / loader injection
+  "LD_PRELOAD",
+  "LD_LIBRARY_PATH",
+  "LD_AUDIT",
+  "DYLD_INSERT_LIBRARIES",
+  "DYLD_LIBRARY_PATH",
+  "DYLD_FRAMEWORK_PATH",
+  "DYLD_FALLBACK_LIBRARY_PATH",
+  "DYLD_FALLBACK_FRAMEWORK_PATH",
+  // Node startup / module resolution
+  "NODE_OPTIONS",
+  "NODE_PATH",
+  "ELECTRON_RUN_AS_NODE",
+  // Python startup / module resolution
+  "PYTHONPATH",
+  "PYTHONSTARTUP",
+  "PYTHONHOME",
+  "PYTHONEXECUTABLE",
+  "PYTHONINSPECT",
+  // POSIX shell startup / word-splitting
+  "BASH_ENV",
+  "ENV",
+  "IFS",
+]);
+
+/**
+ * Filter a caller/renderer-supplied env map, dropping any key that could hijack
+ * executable resolution or dynamic-library / interpreter startup loading. The
+ * spawned child still INHERITS the trusted process env (including the real
+ * PATH) — this only governs what an untrusted caller may ADD or override.
+ * Returns a new object; never mutates the input.
+ * @param {Object} env - caller-supplied environment overrides
+ * @returns {{ safe: Object, dropped: string[] }}
+ */
+function sanitizeChildEnv(env) {
+  const safe = {};
+  const dropped = [];
+  if (!env || typeof env !== "object") {
+    return { safe, dropped };
+  }
+  for (const [key, value] of Object.entries(env)) {
+    if (BLOCKED_CHILD_ENV_KEYS.has(String(key).toUpperCase())) {
+      dropped.push(key);
+      continue;
+    }
+    safe[key] = value;
+  }
+  return { safe, dropped };
+}
+
 class CodeExecutor {
   constructor() {
     this.initialized = false;
@@ -247,10 +311,20 @@ class CodeExecutor {
       let stderr = "";
       let killed = false;
 
-      // 合并环境变量
+      // 合并环境变量。调用方(经 IPC 可达 renderer)传入的 env 先过滤掉可劫持
+      // 可执行文件解析 / 动态库 / 解释器启动加载的敏感变量(PATH、LD_PRELOAD、
+      // NODE_OPTIONS、PYTHONSTARTUP 等)——否则即使 shell:false 也能把裸命令
+      // python/node/bash 指向植入的二进制或向子进程注入代码。子进程仍继承可信
+      // 的 process.env(含真实 PATH)。
+      const { safe: safeEnv, dropped } = sanitizeChildEnv(env);
+      if (dropped.length > 0) {
+        logger.warn(
+          `[CodeExecutor] 已忽略调用方 env 中的敏感变量 (防 PATH/loader 劫持): ${dropped.join(", ")}`,
+        );
+      }
       const processEnv = {
         ...process.env,
-        ...env,
+        ...safeEnv,
       };
 
       const proc = spawn(command, args, {
@@ -399,4 +473,6 @@ function getCodeExecutor() {
 module.exports = {
   CodeExecutor,
   getCodeExecutor,
+  sanitizeChildEnv,
+  BLOCKED_CHILD_ENV_KEYS,
 };

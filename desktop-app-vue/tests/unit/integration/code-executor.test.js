@@ -12,6 +12,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const {
   CodeExecutor,
   getCodeExecutor,
+  sanitizeChildEnv,
+  BLOCKED_CHILD_ENV_KEYS,
 } = require("../../../src/main/engines/code-executor.js");
 
 describe("CodeExecutor", () => {
@@ -207,5 +209,92 @@ eval("1+1")
         );
       });
     });
+  });
+
+  // ─── env-PATH hijack hardening ───────────────────────────────────────────
+  describe("sanitizeChildEnv", () => {
+    it("drops PATH / PATHEXT so a caller can't redirect the interpreter", () => {
+      const { safe, dropped } = sanitizeChildEnv({
+        PATH: "/tmp/evil",
+        PATHEXT: ".EVIL",
+      });
+      expect(safe.PATH).toBeUndefined();
+      expect(safe.PATHEXT).toBeUndefined();
+      expect(dropped).toContain("PATH");
+      expect(dropped).toContain("PATHEXT");
+    });
+
+    it("drops loader / interpreter-startup injection vars", () => {
+      const injected = {
+        LD_PRELOAD: "/tmp/evil.so",
+        DYLD_INSERT_LIBRARIES: "/tmp/evil.dylib",
+        NODE_OPTIONS: "--require /tmp/evil.js",
+        NODE_PATH: "/tmp/evil",
+        PYTHONSTARTUP: "/tmp/evil.py",
+        PYTHONPATH: "/tmp/evil",
+        BASH_ENV: "/tmp/evil.sh",
+        ELECTRON_RUN_AS_NODE: "1",
+      };
+      const { safe, dropped } = sanitizeChildEnv(injected);
+      for (const key of Object.keys(injected)) {
+        expect(safe[key]).toBeUndefined();
+        expect(dropped).toContain(key);
+      }
+    });
+
+    it("blocks case-insensitively (Windows env names)", () => {
+      const { safe, dropped } = sanitizeChildEnv({
+        Path: "/tmp/evil",
+        path: "/tmp/evil2",
+        Node_Options: "--require /evil",
+      });
+      expect(safe.Path).toBeUndefined();
+      expect(safe.path).toBeUndefined();
+      expect(safe.Node_Options).toBeUndefined();
+      expect(dropped).toEqual(
+        expect.arrayContaining(["Path", "path", "Node_Options"]),
+      );
+    });
+
+    it("keeps ordinary custom env vars", () => {
+      const { safe, dropped } = sanitizeChildEnv({
+        MY_APP_TOKEN: "abc",
+        CUSTOM_FLAG: "1",
+      });
+      expect(safe.MY_APP_TOKEN).toBe("abc");
+      expect(safe.CUSTOM_FLAG).toBe("1");
+      expect(dropped).toEqual([]);
+    });
+
+    it("handles null / undefined / non-object input and never mutates input", () => {
+      expect(sanitizeChildEnv(null)).toEqual({ safe: {}, dropped: [] });
+      expect(sanitizeChildEnv(undefined)).toEqual({ safe: {}, dropped: [] });
+      const input = { PATH: "/tmp/evil", KEEP: "1" };
+      sanitizeChildEnv(input);
+      expect(input).toEqual({ PATH: "/tmp/evil", KEEP: "1" });
+    });
+
+    it("BLOCKED_CHILD_ENV_KEYS covers PATH and the loader vars", () => {
+      expect(BLOCKED_CHILD_ENV_KEYS.has("PATH")).toBe(true);
+      expect(BLOCKED_CHILD_ENV_KEYS.has("LD_PRELOAD")).toBe(true);
+      expect(BLOCKED_CHILD_ENV_KEYS.has("NODE_OPTIONS")).toBe(true);
+    });
+  });
+
+  describe("runCommand env hardening (end-to-end via node child)", () => {
+    it("a caller-injected LD_PRELOAD does not reach the child, but a safe var does", async () => {
+      const script =
+        "process.stdout.write(JSON.stringify({" +
+        "pre: process.env.LD_PRELOAD || null, safe: process.env.CC_TEST_SAFE || null}))";
+      const result = await codeExecutor.runCommand("node", ["-e", script], {
+        env: { LD_PRELOAD: "/tmp/evil.so", CC_TEST_SAFE: "kept" },
+        timeout: 10000,
+      });
+      const parsed = JSON.parse(result.stdout);
+      // The injected loader var was stripped (never equals the attacker value).
+      expect(parsed.pre).not.toBe("/tmp/evil.so");
+      // A non-sensitive custom var still passes through.
+      expect(parsed.safe).toBe("kept");
+    }, 15000);
   });
 });
