@@ -23,12 +23,44 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(`[PostManager] Bad JSON column, using fallback: ${err.message}`);
+    logger.warn(
+      `[PostManager] Bad JSON column, using fallback: ${err.message}`,
+    );
     return fallback;
   }
 }
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const {
+  signPayloadWithIdentity,
+  verifyPayloadAgainstDid,
+} = require("../did/did-signer.js");
+
+/**
+ * Build the canonical, IMMUTABLE subset of a post that is Ed25519-signed by its
+ * author and verified on receipt. Only fields fixed at creation are included —
+ * NEVER like_count / comment_count / share_count / updated_at, which mutate as
+ * the post propagates and would otherwise break every relayed signature.
+ *
+ * canonicalize() (did-signer) rejects nested objects/arrays, so `images` (an
+ * array) is flattened to its JSON string. Both sender and receiver call THIS
+ * function, so the canonical bytes match exactly.
+ * @param {Object} post
+ * @returns {Object} flat subset suitable for did-signer canonicalize()
+ */
+function buildPostSignedSubset(post) {
+  return {
+    id: post.id,
+    author_did: post.author_did,
+    content: post.content,
+    images: post.images ? JSON.stringify(post.images) : "",
+    link_url: post.link_url || "",
+    link_title: post.link_title || "",
+    link_description: post.link_description || "",
+    visibility: post.visibility,
+    created_at: post.created_at,
+  };
+}
 
 /**
  * 动态可见性
@@ -258,6 +290,38 @@ class PostManager extends EventEmitter {
   }
 
   /**
+   * 用当前身份的 Ed25519 DID 私钥对动态签名。
+   * 无签名密钥的旧身份返回 {null,null}（收端按 legacy 未签名兼容处理）；
+   * 签名抛错时降级为未签名（记 error 日志，动态本身已本地保存）。
+   * @param {Object} post - 动态对象
+   * @returns {{ author_pubkey: string|null, signature: string|null }}
+   * @private
+   */
+  _signPost(post) {
+    const identity = this.didManager?.getCurrentIdentity?.();
+    if (!(identity && identity.public_key_sign && identity.private_key_ref)) {
+      logger.warn(
+        "[PostManager] syncPost: 身份缺少签名密钥，发送未签名动态 (legacy compat)",
+      );
+      return { author_pubkey: null, signature: null };
+    }
+    try {
+      const subset = buildPostSignedSubset(post);
+      const signed = signPayloadWithIdentity(subset, identity);
+      return {
+        author_pubkey: signed.sender_pubkey,
+        signature: signed.signature,
+      };
+    } catch (err) {
+      logger.error(
+        "[PostManager] syncPost: 签名失败，发送未签名动态:",
+        err.message,
+      );
+      return { author_pubkey: null, signature: null };
+    }
+  }
+
+  /**
    * 同步动态到 P2P 网络
    * @param {Object} post - 动态对象
    */
@@ -285,6 +349,9 @@ class PostManager extends EventEmitter {
         targetDids = connectedPeers.map((peer) => peer.id);
       }
 
+      // 用作者 DID 私钥对动态签名，收端可验真、防冒名。签一次，广播给所有目标。
+      const outgoing = { ...post, ...this._signPost(post) };
+
       // 发送动态到目标节点
       for (const targetDid of targetDids) {
         try {
@@ -292,7 +359,7 @@ class PostManager extends EventEmitter {
             targetDid,
             JSON.stringify({
               type: "post-sync",
-              post,
+              post: outgoing,
             }),
           );
         } catch (error) {
@@ -321,6 +388,44 @@ class PostManager extends EventEmitter {
       if (existing) {
         logger.info("[PostManager] 动态已存在，忽略:", post.id);
         return;
+      }
+
+      // 真实性门：验证动态确由其声称的 author_did 签名，防冒名/伪造。
+      // 三种模式（对齐 channel-manager B4a）：
+      //   pubkey+signature 都在 → 严格验签，失败即丢弃
+      //   两者都缺 → legacy 未签名，接受 + 警告（迁移窗口，收端先于发端升级时）
+      //   只有其一 → 信封损坏，拒绝
+      const hasPubkey = !!post.author_pubkey;
+      const hasSig = !!post.signature;
+      if (hasPubkey !== hasSig) {
+        logger.warn(
+          `[PostManager] 拒绝动态 ${post.id}: 签名信封不完整 (pubkey/signature 缺一)`,
+        );
+        return;
+      }
+      if (hasPubkey && hasSig) {
+        const subset = buildPostSignedSubset(post);
+        const verdict = verifyPayloadAgainstDid(
+          subset,
+          post.author_did,
+          post.author_pubkey,
+          post.signature,
+        );
+        if (!verdict.ok) {
+          logger.warn(
+            `[PostManager] 拒绝动态 ${post.id} (来自 ${post.author_did}): ${verdict.reason}`,
+          );
+          this.emit("post:rejected", {
+            postId: post.id,
+            author_did: post.author_did,
+            reason: verdict.reason,
+          });
+          return;
+        }
+      } else {
+        logger.warn(
+          `[PostManager] 接受未签名动态 ${post.id} (来自 ${post.author_did}) (legacy compat)`,
+        );
       }
 
       // 验证作者是否是好友（如果可见性是 friends）

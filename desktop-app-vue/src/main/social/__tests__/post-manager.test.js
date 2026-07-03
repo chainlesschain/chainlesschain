@@ -459,6 +459,97 @@ describe("PostManager", () => {
     });
   });
 
+  // ─── P2P DID signature (syncPost signs / handlePostReceived verifies) ───
+  describe("P2P DID signature", () => {
+    const nacl = require("tweetnacl");
+    const naclUtil = require("tweetnacl-util");
+    const { computeDIDFromPublicKey } = require("../../did/did-signer.js");
+
+    function makeIdentity() {
+      const kp = nacl.sign.keyPair();
+      return {
+        did: computeDIDFromPublicKey(kp.publicKey),
+        public_key_sign: naclUtil.encodeBase64(kp.publicKey),
+        private_key_ref: JSON.stringify({
+          sign: naclUtil.encodeBase64(kp.secretKey),
+        }),
+      };
+    }
+
+    // Run a real createPost with a signing identity + a connected peer and
+    // capture the broadcast post. Uses prod's OWN signer, so the canonical
+    // subset can never drift from the verify side.
+    async function captureSignedPost(identity, opts = {}) {
+      const db = createMockDatabase();
+      const did = { getCurrentIdentity: () => identity };
+      const p2p = createMockP2PManager();
+      p2p.getConnectedPeers.mockReturnValue([{ id: "did:test:peer" }]);
+      const local = new PostManager(db, did, p2p, createMockFriendManager());
+      await local.createPost({
+        content: opts.content || "signed hello",
+        images: opts.images || [],
+      });
+      return JSON.parse(p2p.sendEncryptedMessage.mock.calls[0][1]).post;
+    }
+
+    it("attaches author_pubkey + signature when identity has keys", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      expect(typeof signed.author_pubkey).toBe("string");
+      expect(signed.author_pubkey.length).toBeGreaterThan(0);
+      expect(typeof signed.signature).toBe("string");
+      expect(signed.signature.length).toBeGreaterThan(0);
+    });
+
+    it("sends unsigned (null fields) when identity lacks signing keys", async () => {
+      mockP2P.getConnectedPeers.mockReturnValue([{ id: "did:test:peer" }]);
+      await pm.createPost({ content: "keyless" }); // default mockDID has no keys
+      const wire = JSON.parse(mockP2P.sendEncryptedMessage.mock.calls[0][1]);
+      expect(wire.post.author_pubkey == null).toBe(true);
+      expect(wire.post.signature == null).toBe(true);
+    });
+
+    it("stores a correctly-signed received post", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      await pm.handlePostReceived(signed);
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+
+    it("rejects a post whose content was tampered after signing", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      const rejected = vi.fn();
+      pm.on("post:rejected", rejected);
+      await pm.handlePostReceived({
+        ...signed,
+        content: signed.content + " EVIL",
+      });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+      expect(rejected).toHaveBeenCalled();
+    });
+
+    it("rejects impersonation (author_did swapped so pubkey no longer hashes to it)", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      const victim = makeIdentity();
+      await pm.handlePostReceived({ ...signed, author_did: victim.did });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+    });
+
+    it("rejects a malformed envelope (pubkey present, signature missing)", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      await pm.handlePostReceived({ ...signed, signature: null });
+      expect(mockDb.db._prep.run).not.toHaveBeenCalled();
+    });
+
+    it("accepts a legacy unsigned post (both fields absent)", async () => {
+      const signed = await captureSignedPost(makeIdentity());
+      await pm.handlePostReceived({
+        ...signed,
+        author_pubkey: null,
+        signature: null,
+      });
+      expect(mockDb.db._prep.run).toHaveBeenCalled();
+    });
+  });
+
   // ─── close ────────────────────────────────────────────────────────────
   describe("close", () => {
     it("should reset initialized flag", async () => {
