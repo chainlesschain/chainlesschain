@@ -631,29 +631,125 @@ class AgentAuthenticator extends EventEmitter {
       throw new Error("No public key available for verification");
     }
 
-    // Attempt verification
+    // Attempt verification — ASYMMETRIC ONLY. The former HMAC-SHA256(resolvedKey)
+    // fallback was fail-open: resolvedKey is the remote agent's PUBLIC key, so
+    // any party knowing it (it is public) could compute the same MAC and forge a
+    // challenge response, impersonating any DID. All paths below use a real
+    // public-key signature check and fail closed on any error.
     try {
-      // If key looks like PEM, use crypto.verify
+      // RSA/ECDSA PEM → classic createVerify.
       if (resolvedKey.includes("BEGIN") || resolvedKey.includes("PUBLIC KEY")) {
-        const verifier = crypto.createVerify("SHA256");
-        verifier.update(challenge);
-        verifier.end();
-        return verifier.verify(resolvedKey, signature, "hex");
+        try {
+          const verifier = crypto.createVerify("SHA256");
+          verifier.update(challenge);
+          verifier.end();
+          return verifier.verify(resolvedKey, signature, "hex");
+        } catch (_pemErr) {
+          // Ed25519 PEM cannot use createVerify — fall through to crypto.verify.
+          const keyObj = crypto.createPublicKey(resolvedKey);
+          const sig = this._decodeSignature(signature);
+          return sig
+            ? crypto.verify(null, Buffer.from(challenge), keyObj, sig)
+            : false;
+        }
       }
 
-      // If hex key, use HMAC-based verification as fallback
-      const expectedSig = crypto
-        .createHmac("sha256", resolvedKey)
-        .update(challenge)
-        .digest("hex");
-
-      return crypto.timingSafeEqual(
-        Buffer.from(signature, "hex"),
-        Buffer.from(expectedSig, "hex"),
-      );
+      // Non-PEM key → treat as an Ed25519 public key (base64/hex SPKI DER, or a
+      // raw 32-byte key). Fail closed if the key or signature can't be parsed.
+      return this._verifyEd25519(challenge, signature, resolvedKey);
     } catch (e) {
       logger.error("[AgentAuth] Signature verification error:", e.message);
       throw new Error(`Signature verification failed: ${e.message}`);
+    }
+  }
+
+  /**
+   * Decode a signature string (hex or base64) to a Buffer, or null if invalid.
+   * @param {string} signature
+   * @returns {Buffer|null}
+   */
+  _decodeSignature(signature) {
+    if (typeof signature !== "string" || signature.length === 0) {
+      return null;
+    }
+    if (/^[0-9a-fA-F]+$/.test(signature) && signature.length % 2 === 0) {
+      return Buffer.from(signature, "hex");
+    }
+    try {
+      return Buffer.from(signature, "base64");
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Coerce an Ed25519 public key string to a Node KeyObject. Accepts a base64
+   * or hex SPKI DER blob (the AgentDID format), or a raw 32-byte key (which is
+   * wrapped in the fixed Ed25519 SPKI prefix). Returns null if unparseable.
+   * @param {string} keyStr
+   * @returns {import("crypto").KeyObject|null}
+   */
+  _toEd25519PublicKey(keyStr) {
+    if (typeof keyStr !== "string" || keyStr.length === 0) {
+      return null;
+    }
+    let raw;
+    if (/^[0-9a-fA-F]+$/.test(keyStr) && keyStr.length % 2 === 0) {
+      raw = Buffer.from(keyStr, "hex");
+    } else {
+      try {
+        raw = Buffer.from(keyStr, "base64");
+      } catch {
+        return null;
+      }
+    }
+    // SPKI DER (44 bytes for Ed25519) — the AgentDID key format.
+    try {
+      return crypto.createPublicKey({ key: raw, format: "der", type: "spki" });
+    } catch {
+      /* not DER — try raw 32-byte key below */
+    }
+    if (raw.length === 32) {
+      // Ed25519 SPKI prefix + raw key.
+      const spki = Buffer.concat([
+        Buffer.from("302a300506032b6570032100", "hex"),
+        raw,
+      ]);
+      try {
+        return crypto.createPublicKey({
+          key: spki,
+          format: "der",
+          type: "spki",
+        });
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Verify an Ed25519 challenge signature. Fail-closed: returns false on any
+   * key/signature parse failure or verification mismatch (never throws).
+   * @param {string} challenge
+   * @param {string} signature
+   * @param {string} keyStr - Ed25519 public key (base64/hex SPKI DER or raw)
+   * @returns {boolean}
+   */
+  _verifyEd25519(challenge, signature, keyStr) {
+    try {
+      const keyObj = this._toEd25519PublicKey(keyStr);
+      if (!keyObj) {
+        return false;
+      }
+      const sig = this._decodeSignature(signature);
+      if (!sig) {
+        return false;
+      }
+      return crypto.verify(null, Buffer.from(challenge), keyObj, sig);
+    } catch (e) {
+      logger.warn("[AgentAuth] Ed25519 verification failed:", e.message);
+      return false;
     }
   }
 

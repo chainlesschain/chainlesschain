@@ -207,6 +207,25 @@ describe("AgentDID", () => {
       );
       expect(verified.valid).toBe(false);
     });
+
+    it("should produce an Ed25519 (not HMAC) signature", () => {
+      const record = agentDID.createDID({});
+      const sig = agentDID.signChallenge(record.did, "c");
+      expect(sig.algorithm).toBe("ed25519");
+    });
+
+    it("should reject an HMAC-forged signature (asymmetric verify)", () => {
+      const crypto = require("crypto");
+      const record = agentDID.createDID({});
+      const challenge = "forge-me";
+      // The old symmetric scheme accepted HMAC(key, challenge); it must not now.
+      const forged = crypto
+        .createHmac("sha256", record.publicKey)
+        .update(challenge)
+        .digest("hex");
+      const verified = agentDID.verifySignature(record.did, challenge, forged);
+      expect(verified.valid).toBe(false);
+    });
   });
 
   describe("getStats()", () => {

@@ -184,6 +184,139 @@ describe("AgentAuthenticator", () => {
   });
 
   // ============================================================
+  // _verifySignature() — asymmetric only, HMAC forgery closed
+  // ============================================================
+
+  describe("_verifySignature() (Ed25519, anti-forgery)", () => {
+    const crypto = require("crypto");
+
+    // A real Ed25519 pair in the AgentDID wire format: base64 SPKI/PKCS8 DER.
+    function makeEd25519() {
+      const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519", {
+        publicKeyEncoding: { type: "spki", format: "der" },
+        privateKeyEncoding: { type: "pkcs8", format: "der" },
+      });
+      return {
+        publicKeyB64: publicKey.toString("base64"),
+        publicKeyHex: publicKey.toString("hex"),
+        sign(msg) {
+          const pk = crypto.createPrivateKey({
+            key: privateKey,
+            format: "der",
+            type: "pkcs8",
+          });
+          return crypto.sign(null, Buffer.from(msg), pk).toString("hex");
+        },
+      };
+    }
+
+    it("accepts a genuine Ed25519 signature (base64 SPKI key)", async () => {
+      const kp = makeEd25519();
+      const challenge = "challenge-abc-123";
+      const sig = kp.sign(challenge);
+      expect(
+        await auth._verifySignature(challenge, sig, kp.publicKeyB64, "did:x"),
+      ).toBe(true);
+    });
+
+    it("accepts a genuine Ed25519 signature (hex SPKI key)", async () => {
+      const kp = makeEd25519();
+      const challenge = "challenge-abc-123";
+      const sig = kp.sign(challenge);
+      expect(
+        await auth._verifySignature(challenge, sig, kp.publicKeyHex, "did:x"),
+      ).toBe(true);
+    });
+
+    it("REJECTS the old HMAC(publicKey) forgery (the fail-open bug)", async () => {
+      const kp = makeEd25519();
+      const challenge = "challenge-abc-123";
+      // Exactly the attack the removed fallback enabled: anyone who knows the
+      // PUBLIC key computes this MAC and would have passed challenge-response.
+      const forged = crypto
+        .createHmac("sha256", kp.publicKeyB64)
+        .update(challenge)
+        .digest("hex");
+      expect(
+        await auth._verifySignature(
+          challenge,
+          forged,
+          kp.publicKeyB64,
+          "did:x",
+        ),
+      ).toBe(false);
+    });
+
+    it("rejects a signature over a different challenge", async () => {
+      const kp = makeEd25519();
+      const sig = kp.sign("challenge-A");
+      expect(
+        await auth._verifySignature(
+          "challenge-B",
+          sig,
+          kp.publicKeyB64,
+          "did:x",
+        ),
+      ).toBe(false);
+    });
+
+    it("rejects a signature made with a different key", async () => {
+      const signer = makeEd25519();
+      const other = makeEd25519();
+      const challenge = "challenge-abc-123";
+      const sig = signer.sign(challenge);
+      expect(
+        await auth._verifySignature(
+          challenge,
+          sig,
+          other.publicKeyB64,
+          "did:x",
+        ),
+      ).toBe(false);
+    });
+
+    it("rejects a malformed signature", async () => {
+      const kp = makeEd25519();
+      expect(
+        await auth._verifySignature(
+          "abc",
+          "not-a-real-sig",
+          kp.publicKeyB64,
+          "d",
+        ),
+      ).toBe(false);
+    });
+
+    it("authenticates a genuinely-signed challenge end-to-end", async () => {
+      await auth.initialize(db);
+      const kp = makeEd25519();
+      const { challengeId, challenge } = auth.createChallenge("did:remote:e2e");
+      const result = await auth.respondToChallenge(challengeId, {
+        signature: kp.sign(challenge),
+        publicKey: kp.publicKeyB64,
+      });
+      expect(result.verified).toBe(true);
+    });
+
+    it("rejects an HMAC-forged challenge response end-to-end", async () => {
+      await auth.initialize(db);
+      const kp = makeEd25519();
+      const { challengeId, challenge } =
+        auth.createChallenge("did:remote:e2e2");
+      const forged = crypto
+        .createHmac("sha256", kp.publicKeyB64)
+        .update(challenge)
+        .digest("hex");
+      const result = await auth.respondToChallenge(challengeId, {
+        signature: forged,
+        publicKey: kp.publicKeyB64,
+      });
+      expect(result.verified).toBe(false);
+      expect(result.status).toBe(AUTH_STATUS.FAILED);
+    });
+  });
+
+  // ============================================================
   // verifyAuthentication()
   // ============================================================
 

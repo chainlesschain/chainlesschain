@@ -689,11 +689,24 @@ class AgentDID extends EventEmitter {
     const challengeId = uuidv4();
     const privateKey = this._decryptPrivateKey(record.privateKeyEncrypted);
 
-    // Sign the challenge using HMAC-SHA256 (Ed25519 simulation)
-    const signature = crypto
-      .createHmac("sha256", privateKey)
-      .update(challenge)
-      .digest("hex");
+    // Sign the challenge with the Ed25519 PRIVATE key — a real asymmetric
+    // signature that anyone holding the public key can verify. Replaces the old
+    // HMAC-SHA256(privateKey) "simulation", which (a) required the private key
+    // to verify and (b) let sibling code (agent-authenticator) treat the PUBLIC
+    // key as a symmetric HMAC secret → trivial impersonation.
+    let signature;
+    try {
+      const privKeyObj = crypto.createPrivateKey({
+        key: Buffer.from(privateKey, "base64"),
+        format: "der",
+        type: "pkcs8",
+      });
+      signature = crypto
+        .sign(null, Buffer.from(challenge), privKeyObj)
+        .toString("hex");
+    } catch (e) {
+      throw new Error(`Failed to sign challenge: ${e.message}`);
+    }
 
     // Store pending challenge for verification
     this._pendingChallenges.set(challengeId, {
@@ -709,7 +722,7 @@ class AgentDID extends EventEmitter {
     return {
       challengeId,
       signature,
-      algorithm: "hmac-sha256",
+      algorithm: "ed25519",
       did,
     };
   }
@@ -730,14 +743,26 @@ class AgentDID extends EventEmitter {
       return { valid: false, did, reason: `DID is ${record.status}` };
     }
 
-    // Reconstruct expected signature using the stored private key
-    const privateKey = this._decryptPrivateKey(record.privateKeyEncrypted);
-    const expectedSignature = crypto
-      .createHmac("sha256", privateKey)
-      .update(challenge)
-      .digest("hex");
-
-    const valid = expectedSignature === signature;
+    // Verify with the Ed25519 PUBLIC key — a genuine asymmetric check. The old
+    // code re-derived HMAC(privateKey) and compared, which needed the secret
+    // key just to verify and mirrored the impersonation-prone symmetric scheme.
+    let valid = false;
+    try {
+      const pubKeyObj = crypto.createPublicKey({
+        key: Buffer.from(record.publicKey, "base64"),
+        format: "der",
+        type: "spki",
+      });
+      valid = crypto.verify(
+        null,
+        Buffer.from(challenge),
+        pubKeyObj,
+        Buffer.from(String(signature), "hex"),
+      );
+    } catch (e) {
+      logger.warn("[AgentDID] Signature verification error:", e.message);
+      valid = false;
+    }
 
     if (valid) {
       this.stats.challengesVerified++;
