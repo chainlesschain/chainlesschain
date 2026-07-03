@@ -9,6 +9,12 @@ pluginManagement {
         maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+
+        // Huawei AGConnect 插件仓库 —— 仅当 app/agconnect-services.json 存在才加，
+        // 保证默认 / CI 构建 byte-identical（agcp classpath 也在同一门控下）。
+        if (java.io.File(rootDir, "app/agconnect-services.json").exists()) {
+            maven { url = uri("https://developer.huawei.com/repo/") }
+        }
     }
 }
 
@@ -57,6 +63,24 @@ dependencyResolutionManagement {
                     }
                 }
                 filter { includeGroup("com.heytap.msp") }
+            }
+        }
+
+        // Huawei HMS Push repo — only added when app/agconnect-services.json is
+        // present so the default build (CI included) is byte-identical. Scoped to
+        // the huawei groups so it never intercepts other resolution. Adjust the
+        // URL per the current Huawei console if it moves (§3.2).
+        if (java.io.File(rootDir, "app/agconnect-services.json").exists()) {
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "huaweiPush"
+                        url = uri("https://developer.huawei.com/repo/")
+                    }
+                }
+                filter {
+                    includeGroupByRegex("com\\.huawei\\..*")
+                }
             }
         }
     }

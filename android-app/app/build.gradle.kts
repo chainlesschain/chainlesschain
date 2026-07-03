@@ -39,6 +39,23 @@ if (hasGoogleServices) {
     logger.warn("  To enable Firebase: Add google-services.json to app/")
 }
 
+// Huawei HMS Push mirrors Firebase: gated on agconnect-services.json (the HMS
+// analog of google-services.json). Present → apply the AGConnect plugin (which
+// processes the json so AGConnectServicesConfig / getToken resolve at runtime).
+// The classpath + Huawei Maven repo are added, ALSO gated on the same file, in
+// the root build.gradle.kts + settings.gradle.kts. Absent → nothing activates
+// and the app builds/runs fine (HuaweiTokenProvider reads the token via
+// reflection). See docs/guides/Vendor_Push_Setup.md §3.2.
+val hasAgconnect = file("agconnect-services.json").exists()
+if (hasAgconnect) {
+    apply(plugin = "com.huawei.agconnect")
+    logger.lifecycle("✓ Huawei HMS enabled (agconnect-services.json found)")
+} else {
+    logger.lifecycle(
+        "ⓘ Huawei HMS disabled (no agconnect-services.json; RemoteSessionHmsService source set excluded)",
+    )
+}
+
 // Check if the vivo Push SDK AAR has been dropped into app/libs/ (manual AAR,
 // not on Maven — see docs/guides/Vendor_Push_Setup.md §3.4). Mirrors the
 // google-services.json gate for Firebase: without the AAR the vivo receiver
@@ -112,6 +129,13 @@ android {
     // RemoteSessionXiaomiReceiver.kt.
     if (hasXiaomiPush) {
         sourceSets.getByName("main").java.srcDir("src/xiaomi/java")
+    }
+
+    // The Remote Session HMS service (onNewToken → push bridge) subclasses an
+    // HMS-push type, compiled ONLY when agconnect-services.json is present. See
+    // RemoteSessionHmsService.kt.
+    if (hasAgconnect) {
+        sourceSets.getByName("main").java.srcDir("src/hms/java")
     }
 
     defaultConfig {
@@ -602,6 +626,16 @@ dependencies {
     // (see XiaomiTokenProvider.kt / docs/guides/Vendor_Push_Setup.md §3.1).
     if (hasXiaomiPush) {
         implementation(xiaomiPushAars)
+    }
+
+    // ===== Huawei HMS Push (Huawei Maven, gated on agconnect-services.json) =====
+    // The Huawei repo + agcp plugin classpath are added in settings.gradle.kts /
+    // root build.gradle.kts under the same gate. The src/hms receiver compiles
+    // against this; without the json the source set is excluded and
+    // HuaweiTokenProvider degrades via reflection. Pin the version per the
+    // current Huawei console (docs/guides/Vendor_Push_Setup.md §3.2).
+    if (hasAgconnect) {
+        implementation("com.huawei.hms:push:6.11.0.300")
     }
 
     // ===== OPPO (HeyTap) Push (OPPO-Maven) =====

@@ -24,6 +24,19 @@ import javax.inject.Singleton
  *  - §3.4 vivo Push（VivoPush AAR + manifest 配 receiver）
  */
 
+/**
+ * Huawei HMS Push, wired via **reflection** so the app compiles and runs WITHOUT
+ * the HMS SDK (`com.huawei.hms:push` + the `com.huawei.agconnect` gradle plugin,
+ * linked only when app/agconnect-services.json is present). When configured,
+ * reflection resolves `com.huawei.hms.push.HmsMessaging` and really turns push
+ * on; the token itself arrives asynchronously via
+ * [com.chainlesschain.android.remote.session.RemoteSessionHmsService]
+ * (compiled from the `hms` source set) — mirroring FCM. Without the SDK every
+ * call degrades to a guarded no-op (false / null); [currentToken] returns null
+ * here (the blocking token fetch is done off-thread by
+ * [com.chainlesschain.android.remote.session.HuaweiTokenProvider]). See
+ * docs/guides/Vendor_Push_Setup.md §3.2.
+ */
 @Singleton
 class HuaweiPushService @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -33,20 +46,43 @@ class HuaweiPushService @Inject constructor(
     @Volatile private var initialized = false
 
     override fun initialize(): Boolean {
-        if (initialized) return false
-        // TODO v1.2: HmsInstanceId.getInstance(context).getToken(APP_ID, "HCM")
-        // 配 agconnect-services.json + apply plugin "com.huawei.agconnect"
-        Timber.w("HuaweiPushService.initialize: stub. 详 docs/guides/Vendor_Push_Setup.md §3.2")
+        if (initialized) return isIntegrated()
         initialized = true
-        return false
+        return runCatching {
+            val messaging = hmsMessagingInstance()
+            // turnOnPush() returns a Task; the token is delivered via
+            // RemoteSessionHmsService.onNewToken, so we don't await it.
+            messaging.javaClass.getMethod("turnOnPush").invoke(messaging)
+            Timber.i("HuaweiPushService: turnOnPush requested")
+            true
+        }.getOrElse {
+            Timber.w(it, "HuaweiPushService.initialize: HMS SDK unavailable — stub fallback")
+            false
+        }
     }
 
+    // Delivered async via RemoteSessionHmsService.onNewToken; the blocking
+    // getToken lives in HuaweiTokenProvider (offloaded to Dispatchers.IO).
     override fun currentToken(): String? = null
+
     override fun shutdown() {
-        // TODO v1.2: HmsInstanceId.getInstance(context).deleteToken(APP_ID, "HCM")
+        runCatching {
+            val messaging = hmsMessagingInstance()
+            messaging.javaClass.getMethod("turnOffPush").invoke(messaging)
+        }
         initialized = false
     }
-    override fun isIntegrated(): Boolean = false
+
+    override fun isIntegrated(): Boolean = runCatching {
+        Class.forName("com.huawei.hms.push.HmsMessaging"); true
+    }.getOrDefault(false)
+
+    /** Reflect `HmsMessaging.getInstance(context)`; throws when the SDK is absent. */
+    private fun hmsMessagingInstance(): Any {
+        val clazz = Class.forName("com.huawei.hms.push.HmsMessaging")
+        return clazz.getMethod("getInstance", Context::class.java).invoke(null, context)
+            ?: error("HmsMessaging.getInstance returned null")
+    }
 }
 
 /**

@@ -15,6 +15,14 @@ buildscript {
         classpath("com.google.dagger:hilt-android-gradle-plugin:2.50")
         classpath("com.google.gms:google-services:4.4.0")
         classpath("com.google.firebase:firebase-crashlytics-gradle:2.9.9")
+        // Huawei AGConnect gradle plugin — added ONLY when app/agconnect-services
+        // .json is present, so the Huawei Maven repo (added under the same gate in
+        // settings.gradle.kts) is never required for default / CI builds. app/
+        // build.gradle.kts applies it under the same condition. See
+        // docs/guides/Vendor_Push_Setup.md §3.2.
+        if (file("app/agconnect-services.json").exists()) {
+            classpath("com.huawei.agconnect:agcp:1.9.1.301")
+        }
     }
 }
 

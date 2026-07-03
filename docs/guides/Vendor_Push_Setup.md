@@ -165,11 +165,27 @@
    }
    ```
 
-### 3.2 Huawei HMS Push
+### 3.2 Huawei HMS Push（代码骨架已落地，缺 agconnect-services.json）
 
 **前置**：[华为开发者联盟](https://developer.huawei.com/consumer/cn/) 注册 → 创建应用 → 启用 Push Kit → 下载 `agconnect-services.json`
 
-**步骤**：
+**已内建（无需再写代码，完全镜像 Firebase 的 google-services.json 门控）**：
+
+- **构建门控**：`hasAgconnect = file("agconnect-services.json").exists()`（华为版 `google-services.json`）——文件落进 `app/` 即自动 (a) `app/build.gradle.kts` `apply(plugin="com.huawei.agconnect")`（处理 json 成资源，让 `AGConnectServicesConfig`/`getToken` 运行时可用）、(b) 加 `src/hms/java` 源集、(c) `implementation("com.huawei.hms:push:6.11.0.300")`。**同一门控**下 `settings.gradle.kts` 加华为 Maven repo（`exclusiveContent` 限 `com.huawei.*` group）+ `build.gradle.kts`(root) buildscript 加 `agcp` 插件 classpath。**无 json 时全不激活，默认 / CI 构建 byte-identical**（门控日志实测 "Huawei HMS disabled"）。
+- **`RemoteSessionHmsService`**（`src/hms/java`，条件源集，华为版 `RemoteSessionFirebaseService`）：继承 `com.huawei.hms.push.HmsMessageService`——`onNewToken` → `RemoteSessionPushBridge.onNewToken(token, "huawei")`；`onMessageReceived` → 前台/纯 data 本地弹审批通知（`dataOfMap` 只带路由 id）。
+- **AndroidManifest**：`<service RemoteSessionHmsService>` + `com.huawei.push.action.MESSAGING_EVENT` intent-filter + `tools:ignore="MissingClass"`（镜像 FCM service；无 SDK 构建下不实例化，manifest 照常 merge——实测进 `merged_manifest`）。
+- **`HuaweiPushService` 反射真集成**（脱 stub）：`initialize()` 反射 `HmsMessaging.getInstance(ctx).turnOnPush()`（token 经上面的 service `onNewToken` 异步递送）；`shutdown()` 反射 `turnOffPush`；`isIntegrated()` 探 `Class.forName`。`currentToken()` 返 null（阻塞取 token 由 `HuaweiTokenProvider` offload 到 `Dispatchers.IO`）。全 runCatching 兜底。
+- **启动触发**：`AppInitializer` 按 `Build.MANUFACTURER` 自动选 vendor 并 `initialize()`——华为/荣耀设备启动即 turnOnPush。
+
+**接入者只需 3 步（真机）**：
+
+1. `cp agconnect-services.json android-app/app/`（门控即自动生效；按华为控制台核对 `agcp` 插件版本、`com.huawei.hms:push` 版本、repo URL，如迁移则改 `settings.gradle.kts`/root `build.gradle.kts`/`app/build.gradle.kts` 的版本/URL）。
+2. release 包需 SHA256 指纹绑 agconnect 控制台（debug/release keystore 分别配）。
+3. 真机装 app → 启动即 turnOnPush → `Settings → 国内推送厂商` 应 auto-detect 华为 → 桌面 `CHAINLESSCHAIN_REMOTE_SESSION_PUSH_PROVIDER=huawei` 端到端验证。
+
+---
+
+**内建实现细节参考（以下步骤已在代码中落地，供核对）**：
 
 1. **放凭证**：`cp agconnect-services.json android-app/app/`
 2. **build.gradle.kts** root 加 maven repo：
