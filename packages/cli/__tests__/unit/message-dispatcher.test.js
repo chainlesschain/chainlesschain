@@ -147,6 +147,66 @@ describe("ws message dispatcher", () => {
     );
   });
 
+  // ─── reconnect-safe command idempotency (Phase 5) ───────────────────
+  it("runs a command without a commandId directly every time (back-compat)", async () => {
+    const server = createServerStub();
+    server._executeCommand = vi.fn();
+    const dispatcher = createWsMessageDispatcher(server);
+    const msg = { id: "1", type: "execute", command: { cmd: "x" } };
+    await dispatcher.dispatch("client-1", {}, msg);
+    await dispatcher.dispatch("client-1", {}, msg);
+    expect(server._executeCommand).toHaveBeenCalledTimes(2);
+    // No ledger is created when nothing carries a commandId.
+    expect(server._commandLedger).toBeUndefined();
+  });
+
+  it("executes a commandId-carrying command once and REPLAYS a re-delivery", async () => {
+    const server = createServerStub();
+    server._executeCommand = vi.fn(async () => "ran");
+    const dispatcher = createWsMessageDispatcher(server);
+    const msg = {
+      id: "1",
+      type: "execute",
+      command: { cmd: "x" },
+      commandId: "c1",
+      deviceId: "web",
+    };
+    await dispatcher.dispatch("client-1", {}, msg);
+    await dispatcher.dispatch("client-1", {}, msg); // client re-sends after a lost ACK
+    expect(server._executeCommand).toHaveBeenCalledTimes(1);
+    expect(server._send).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ type: "replayed", commandId: "c1" }),
+    );
+  });
+
+  it("rejects a command from a revoked device without executing it", async () => {
+    const { RemoteCommandLedger } =
+      await import("../../src/harness/remote-command-ledger.js");
+    const server = createServerStub();
+    server._executeCommand = vi.fn();
+    server._commandLedger = new RemoteCommandLedger({
+      revokedDevices: ["stolen"],
+    });
+    const dispatcher = createWsMessageDispatcher(server);
+    await dispatcher.dispatch(
+      "client-1",
+      {},
+      {
+        id: "9",
+        type: "execute",
+        command: {},
+        commandId: "c9",
+        deviceId: "stolen",
+      },
+    );
+    expect(server._executeCommand).not.toHaveBeenCalled();
+    expect(server._send).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ code: "COMMAND_REJECTED" }),
+    );
+  });
+
   // ─── dynamic feature-map routing (post-refactor regression) ─────────
   // After dropping the per-message route-table rebuild, each feature handler
   // map must still be reached on demand. The bare stub lacks the real handler

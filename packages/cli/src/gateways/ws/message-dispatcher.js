@@ -20,6 +20,49 @@ import {
   handleRemoteSessionRevoke,
 } from "./remote-session-protocol.js";
 
+/**
+ * Reconnect-safe command execution. When a message carries a stable
+ * `commandId`, route it through the server's RemoteCommandLedger so the side
+ * effect runs AT MOST ONCE: a client that re-sends the same command after a
+ * dropped ACK / reconnect gets a `replayed` ack instead of a second execution
+ * (Phase 5 acceptance "断网恢复后不会重复执行工具调用"). Messages WITHOUT a
+ * commandId are unchanged — they call `_executeCommand` directly, so existing
+ * clients behave exactly as before. A revoked device / stale-seq command is
+ * rejected without executing.
+ */
+async function executeWithIdempotency(server, id, ws, message, stream) {
+  const commandId = message.commandId;
+  if (!commandId) {
+    return server._executeCommand(id, ws, message.command, stream);
+  }
+  if (!server._commandLedger) {
+    const { RemoteCommandLedger } =
+      await import("../../harness/remote-command-ledger.js");
+    server._commandLedger = new RemoteCommandLedger();
+  }
+  const outcome = await server._commandLedger.apply(
+    { commandId, deviceId: message.deviceId ?? null, seq: message.seq },
+    () => server._executeCommand(id, ws, message.command, stream),
+  );
+  if (outcome.status === "replayed") {
+    server._send(ws, {
+      id,
+      type: "replayed",
+      commandId,
+      applyIndex: outcome.applyIndex,
+    });
+  } else if (outcome.status === "rejected") {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "COMMAND_REJECTED",
+      commandId,
+      message: outcome.reason,
+    });
+  }
+  return outcome;
+}
+
 export function createWsMessageDispatcher(server) {
   return {
     async dispatch(clientId, ws, message) {
@@ -52,8 +95,8 @@ export function createWsMessageDispatcher(server) {
         auth: () => server._handleAuth(clientId, ws, message),
         ping: () =>
           server._send(ws, { id, type: "pong", serverTime: Date.now() }),
-        execute: () => server._executeCommand(id, ws, message.command, false),
-        stream: () => server._executeCommand(id, ws, message.command, true),
+        execute: () => executeWithIdempotency(server, id, ws, message, false),
+        stream: () => executeWithIdempotency(server, id, ws, message, true),
         cancel: () => server._cancelRequest(id, ws),
         "session-create": () => server._handleSessionCreate(id, ws, message),
         "session-resume": () => server._handleSessionResume(id, ws, message),
