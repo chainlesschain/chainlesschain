@@ -5,6 +5,7 @@ import {
   partitionAsyncHooks,
   dispatchAsyncHooks,
   runUserPromptSubmitHooks,
+  runObserveHooks,
 } from "../../src/lib/settings-hook-events.cjs";
 import { collectHooks } from "../../src/lib/settings-hooks.cjs";
 
@@ -334,6 +335,23 @@ describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", 
     // handed to the supervisor instead — so a blocking async hook never gates.
     expect(sync.map((h) => h.command)).toEqual(["block-guard"]);
     expect(async.map((h) => h.command)).toEqual(["bg"]);
+  });
+});
+
+describe("runObserveHooks excludes async hooks from the sync run", () => {
+  it("returns no results for an async-only Stop set (they fire-and-forget instead)", () => {
+    const asyncOnlyStop = {
+      Stop: [
+        {
+          matcher: "*",
+          hooks: [{ type: "command", command: "bg-tests", async: true }],
+        },
+      ],
+    };
+    const outcome = runObserveHooks(asyncOnlyStop, "Stop", {}, { cwd: "/x" });
+    // No sync Stop hooks → nothing ran synchronously (the async one is dispatched
+    // separately by dispatchAsyncHooks; running it here too would double-execute).
+    expect(outcome).toEqual({ decision: "continue", results: [] });
   });
 });
 

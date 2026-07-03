@@ -142,6 +142,10 @@ function runSessionStartHooks(settingsHooks, { source, cwd, sessionId } = {}) {
 /**
  * Generic observe-only fire (SessionEnd / Stop / PreCompact). Returns the raw
  * runHooks outcome so callers can read a block reason; never gates flow here.
+ *
+ * `async: true` hooks are EXCLUDED from this synchronous run — they are always
+ * fire-and-forget and are dispatched separately (dispatchAsyncHooks), so running
+ * them here too would double-execute them.
  */
 function runObserveHooks(
   settingsHooks,
@@ -151,9 +155,10 @@ function runObserveHooks(
 ) {
   if (!settingsHooks) return { decision: "continue", results: [] };
   const matched = collectHooks(settingsHooks, event, matchTarget || "");
-  if (matched.length === 0) return { decision: "continue", results: [] };
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { decision: "continue", results: [] };
   return runHooks(
-    matched,
+    sync,
     { hook_event_name: event, cwd, ...payload },
     { cwd, event },
   );

@@ -4418,6 +4418,37 @@ export async function startAgentRepl(options = {}) {
           // Non-critical
         }
       }
+
+      // settings.json Stop hooks (Claude-Code parity): the agent just finished a
+      // turn. Sync Stop hooks observe; `async:true` Stop hooks fire-and-forget
+      // (the canonical "run the test suite after the turn" trigger) with their
+      // results/rewakes drained into the NEXT turn's context (see the async-hook
+      // drain above). Best-effort — never break turn completion.
+      if (_settingsHooks) {
+        try {
+          const { runObserveHooks, dispatchAsyncHooks } =
+            await import("../lib/settings-hook-events.cjs");
+          runObserveHooks(
+            _settingsHooks,
+            "Stop",
+            { session_id: sessionId || null },
+            { cwd: process.cwd() },
+          );
+          if (!_asyncHookSupervisor) {
+            const { AsyncHookSupervisor } =
+              await import("../lib/async-hook-supervisor.cjs");
+            _asyncHookSupervisor = new AsyncHookSupervisor();
+          }
+          dispatchAsyncHooks(
+            _settingsHooks,
+            "Stop",
+            {},
+            { cwd: process.cwd(), supervisor: _asyncHookSupervisor },
+          );
+        } catch (_e) {
+          // Stop-hook dispatch is best-effort
+        }
+      }
     } catch (err) {
       _turnAbort = null;
       // Esc interrupt: an aborted turn is normal flow, not an error — the
