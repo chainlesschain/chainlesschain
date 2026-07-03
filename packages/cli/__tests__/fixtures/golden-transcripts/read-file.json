@@ -1,0 +1,22 @@
+[
+  {
+    "args": {
+      "path": "<WORKSPACE>/note.txt"
+    },
+    "tool": "read_file",
+    "type": "tool-executing"
+  },
+  {
+    "error": null,
+    "result": {
+      "content": "golden transcript content",
+      "hashed": false
+    },
+    "tool": "read_file",
+    "type": "tool-result"
+  },
+  {
+    "content": "Read complete.",
+    "type": "response-complete"
+  }
+]

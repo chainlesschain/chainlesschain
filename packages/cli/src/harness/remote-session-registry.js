@@ -36,6 +36,128 @@ function normalizeScopes(scopes) {
   return unique;
 }
 
+/**
+ * Org-level constraints an administrator can impose on Remote Sessions. Lives
+ * next to the registry (its single enforcement point) so both the direct WS
+ * join and the relay pairing path go through the same checks. Permissive by
+ * default — an unconfigured policy is a no-op.
+ */
+export class RemoteSessionPolicy {
+  constructor({
+    allowedScopes = null,
+    maxDevices = null,
+    maxSessionTtlMs = null,
+    maxTokenTtlMs = null,
+    allowRelayPairing = true,
+  } = {}) {
+    this.allowedScopes = allowedScopes ? [...new Set(allowedScopes)] : null;
+    if (this.allowedScopes) {
+      if (this.allowedScopes.length === 0) {
+        throw new Error("allowedScopes cannot be empty");
+      }
+      for (const scope of this.allowedScopes) {
+        if (!REMOTE_SESSION_SCOPES.includes(scope)) {
+          throw new Error(`Unknown scope in org policy: ${scope}`);
+        }
+      }
+    }
+    this.maxDevices =
+      maxDevices == null ? null : Math.max(0, Math.floor(maxDevices));
+    this.maxSessionTtlMs =
+      maxSessionTtlMs == null ? null : Math.max(1, Math.floor(maxSessionTtlMs));
+    this.maxTokenTtlMs =
+      maxTokenTtlMs == null ? null : Math.max(1, Math.floor(maxTokenTtlMs));
+    this.allowRelayPairing = allowRelayPairing !== false;
+  }
+
+  /**
+   * Narrow requested scopes to the org-allowed set. Throws only when the request
+   * and the allow-list are wholly disjoint (i.e. nothing could be granted).
+   */
+  applyScopes(requestedScopes) {
+    if (!this.allowedScopes) {
+      return { scopes: requestedScopes || null, narrowed: false };
+    }
+    const requested =
+      requestedScopes && requestedScopes.length
+        ? [...new Set(requestedScopes)]
+        : [...REMOTE_SESSION_SCOPES];
+    const granted = requested.filter((scope) =>
+      this.allowedScopes.includes(scope),
+    );
+    if (granted.length === 0) {
+      throw new Error("Remote session scopes are not permitted by org policy");
+    }
+    return { scopes: granted, narrowed: granted.length !== requested.length };
+  }
+
+  capSessionTtl(ttlMs) {
+    return this.maxSessionTtlMs == null
+      ? ttlMs
+      : Math.min(ttlMs, this.maxSessionTtlMs);
+  }
+
+  capTokenTtl(ttlMs) {
+    return this.maxTokenTtlMs == null
+      ? ttlMs
+      : Math.min(ttlMs, this.maxTokenTtlMs);
+  }
+
+  enforceJoin({ deviceCount, via } = {}) {
+    if (via === "relay" && !this.allowRelayPairing) {
+      throw new Error("Relay pairing is disabled by org policy");
+    }
+    if (this.maxDevices != null && deviceCount >= this.maxDevices) {
+      throw new Error("Org policy device limit reached");
+    }
+  }
+
+  describe() {
+    return {
+      allowedScopes: this.allowedScopes,
+      maxDevices: this.maxDevices,
+      maxSessionTtlMs: this.maxSessionTtlMs,
+      maxTokenTtlMs: this.maxTokenTtlMs,
+      allowRelayPairing: this.allowRelayPairing,
+    };
+  }
+
+  static fromEnv(env = {}) {
+    const options = {};
+    const scopes = env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOWED_SCOPES;
+    if (scopes) {
+      options.allowedScopes = scopes
+        .split(",")
+        .map((scope) => scope.trim())
+        .filter(Boolean);
+    }
+    const num = (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+    if (env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_DEVICES != null) {
+      options.maxDevices = num(env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_DEVICES);
+    }
+    if (env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_SESSION_TTL_MS != null) {
+      options.maxSessionTtlMs = num(
+        env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_SESSION_TTL_MS,
+      );
+    }
+    if (env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_TOKEN_TTL_MS != null) {
+      options.maxTokenTtlMs = num(
+        env.CHAINLESSCHAIN_REMOTE_SESSION_MAX_TOKEN_TTL_MS,
+      );
+    }
+    if (env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOW_RELAY != null) {
+      options.allowRelayPairing =
+        !/^(0|false|no|off)$/i.test(
+          String(env.CHAINLESSCHAIN_REMOTE_SESSION_ALLOW_RELAY).trim(),
+        );
+    }
+    return new RemoteSessionPolicy(options);
+  }
+}
+
 function publicSession(session) {
   return {
     protocolVersion: REMOTE_SESSION_PROTOCOL_VERSION,
@@ -55,6 +177,7 @@ export class RemoteSessionRegistry {
     this.now = options.now || Date.now;
     this.tokenTtlMs = options.tokenTtlMs || DEFAULT_TOKEN_TTL_MS;
     this.sessionTtlMs = options.sessionTtlMs || DEFAULT_SESSION_TTL_MS;
+    this.policy = options.policy || new RemoteSessionPolicy();
     this.sessions = new Map();
     this.tokens = new Map();
   }
@@ -69,7 +192,7 @@ export class RemoteSessionRegistry {
       name: name || agentSessionId,
       hostClientId,
       createdAt: now,
-      expiresAt: now + this.sessionTtlMs,
+      expiresAt: now + this.policy.capSessionTtl(this.sessionTtlMs),
       members: new Map([
         [
           hostClientId,
@@ -92,16 +215,26 @@ export class RemoteSessionRegistry {
     const session = this.requireSession(sessionId);
     const token = randomBytes(32).toString("base64url");
     const now = this.now();
+    const { scopes: applied, narrowed } = this.policy.applyScopes(scopes);
+    const grantedScopes = normalizeScopes(applied);
     this.tokens.set(sessionId, {
       digest: hashToken(token),
-      scopes: normalizeScopes(scopes),
+      scopes: grantedScopes,
       createdAt: now,
-      expiresAt: Math.min(now + this.tokenTtlMs, session.expiresAt),
+      expiresAt: Math.min(
+        now + this.policy.capTokenTtl(this.tokenTtlMs),
+        session.expiresAt,
+      ),
     });
-    return { token, expiresAt: this.tokens.get(sessionId).expiresAt };
+    return {
+      token,
+      expiresAt: this.tokens.get(sessionId).expiresAt,
+      scopes: grantedScopes,
+      policyNarrowed: narrowed,
+    };
   }
 
-  join({ sessionId, clientId, token } = {}) {
+  join({ sessionId, clientId, token, via = "direct" } = {}) {
     if (!clientId) throw new Error("clientId is required");
     const session = this.requireSession(sessionId);
     const pairing = this.tokens.get(sessionId);
@@ -112,6 +245,13 @@ export class RemoteSessionRegistry {
     if (!tokensMatch(token, pairing.digest)) {
       throw new Error("Invalid pairing token");
     }
+    // Org policy is enforced only after the token proves the caller is invited,
+    // so a device-limit / relay-disabled message never leaks to unauthenticated
+    // probes. Existing (non-host) devices count against the limit.
+    const deviceCount = [...session.members.values()].filter(
+      (member) => member.clientId !== session.hostClientId,
+    ).length;
+    this.policy.enforceJoin({ deviceCount, via });
     // Pairing credentials are deliberately one-time. The host must explicitly
     // issue another token for each additional device.
     this.tokens.delete(sessionId);
