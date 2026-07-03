@@ -835,9 +835,24 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --otlp <file>: attach an OpenTelemetry recorder so the real agent loop's
+  // model/tool/retry spans are captured and exported as OTLP/JSON on exit.
+  // Off by default (zero cost) — only built when a path is requested.
+  let _otlpRecorder = null;
+  if (options.otlp) {
+    try {
+      const { TelemetryRecorder } =
+        await import("../lib/telemetry/span-recorder.js");
+      _otlpRecorder = new TelemetryRecorder({ serviceName: "cc-agent" });
+    } catch {
+      _otlpRecorder = null; // telemetry is best-effort, never blocks the run
+    }
+  }
+
   const loopOptions = {
     model,
     provider,
+    recorder: _otlpRecorder,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink). null/off
     // → chatWithTools sends no thinking field. thinkingBudget (--thinking-budget)
     // is the legacy-model budget_tokens override; ignored when thinking is off.
@@ -1282,6 +1297,27 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   } else {
     // text: just the final answer on stdout.
     writeOut(finalText + (finalText.endsWith("\n") ? "" : "\n"));
+  }
+
+  // --otlp: write the captured spans/counters as OTLP/JSON. Best-effort — a
+  // write failure logs to stderr but never changes the run's exit code.
+  if (_otlpRecorder && options.otlp) {
+    try {
+      const fsp = await import("node:fs");
+      fsp.writeFileSync(
+        options.otlp,
+        JSON.stringify(_otlpRecorder.toOtlp(), null, 2),
+        "utf-8",
+      );
+      if (!isStream) {
+        const sum = _otlpRecorder.summary();
+        process.stderr.write(
+          `[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`,
+        );
+      }
+    } catch (err) {
+      process.stderr.write(`[otlp] export failed: ${err.message}\n`);
+    }
   }
 
   return { exitCode: isError ? 1 : 0, result: finalText, isError };

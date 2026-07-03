@@ -178,6 +178,10 @@ export function registerAgentCommand(program) {
     )
     .option("--sandbox-network", "Allow network access inside --sandbox")
     .option(
+      "--otlp <file>",
+      "Write the agent run's OpenTelemetry spans (model/tool/retry) as OTLP/JSON to <file>",
+    )
+    .option(
       "--bg, --background",
       "Start as a detached background agent and return its id immediately",
     )
@@ -879,6 +883,8 @@ export function registerAgentCommand(program) {
           additionalDirectories,
           sandbox: agentSandbox,
           autoCheckpoint,
+          // --otlp <file>: capture + export the run's OTel spans as OTLP/JSON.
+          otlp: options.otlp || null,
           maxTurns,
           // commander maps --no-file-refs 鈫?options.fileRefs === false
           expandFileRefs: options.fileRefs !== false,
