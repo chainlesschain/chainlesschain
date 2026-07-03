@@ -54,6 +54,23 @@ class ActivityPubBridge extends EventEmitter {
     this.initialized = false;
     this._localDomain = null;
     this._actorCache = new Map();
+    // Optional async resolver (keyId → PEM) used to authenticate inbound HTTP
+    // Signatures from remote actors whose key we don't already hold locally.
+    // Left null by default: without a resolver, only keys already in the actor
+    // store verify — a genuinely-remote signer with no injected resolver is
+    // rejected (fail-closed). A resolver that fetches keyId over the network
+    // MUST guard against SSRF before it is wired.
+    this.keyResolver = null;
+    this._remoteKeyCache = new Map();
+  }
+
+  /**
+   * Inject an async resolver mapping an HTTP-Signature keyId to the signer's
+   * RSA public key PEM (used to authenticate inbound federation).
+   * @param {(keyId: string) => Promise<string|null>} fn
+   */
+  setKeyResolver(fn) {
+    this.keyResolver = typeof fn === "function" ? fn : null;
   }
 
   async initialize(options = {}) {
@@ -300,10 +317,30 @@ class ActivityPubBridge extends EventEmitter {
    * @param {Object} activity - Incoming ActivityPub activity
    * @returns {Object} Processing result
    */
-  async processInboxActivity(activity) {
+  async processInboxActivity(activity, options = {}) {
     try {
       if (!activity || !activity.type) {
         throw new Error("Invalid activity");
+      }
+
+      // Authenticate the sender BEFORE storing/dispatching. Untrusted, unsigned
+      // (or badly-signed) inbound activities are rejected fail-closed so a
+      // remote peer cannot forge Follow/Create/Like to impersonate an actor,
+      // inflate follower counts, or inject items into the local feed.
+      const auth = await this._authorizeInbound(activity, options);
+      if (!auth.ok) {
+        logger.warn(
+          `[ActivityPubBridge] Rejected inbound ${activity.type}: ${auth.reason}`,
+        );
+        this.emit("inbox:rejected", {
+          type: activity.type,
+          actor:
+            typeof activity.actor === "string"
+              ? activity.actor
+              : activity.actor?.id || null,
+          reason: auth.reason,
+        });
+        return { accepted: false, reason: auth.reason };
       }
 
       const now = Date.now();
@@ -476,6 +513,194 @@ class ActivityPubBridge extends EventEmitter {
       logger.error("[ActivityPubBridge] Failed to sign request:", error);
       throw error;
     }
+  }
+
+  /**
+   * Parse an HTTP Signature header (draft-cavage) into its components.
+   * Format: keyId="...",algorithm="...",headers="(request-target) host date digest",signature="..."
+   * @param {string} sigHeader
+   * @returns {{ keyId: string, headers: string[], signature: string }|null}
+   * @private
+   */
+  _parseSignatureHeader(sigHeader) {
+    if (!sigHeader || typeof sigHeader !== "string") {
+      return null;
+    }
+    const params = {};
+    // Split on commas that separate key="value" pairs (values are quoted, so
+    // internal commas — e.g. in a header list — don't appear unquoted here).
+    for (const part of sigHeader.split(/,(?=[a-zA-Z]+=")/)) {
+      const m = part.match(/^\s*([a-zA-Z]+)="(.*)"\s*$/);
+      if (m) {
+        params[m[1]] = m[2];
+      }
+    }
+    if (!params.keyId || !params.signature || !params.headers) {
+      return null;
+    }
+    return {
+      keyId: params.keyId,
+      headers: params.headers.split(/\s+/).filter(Boolean),
+      signature: params.signature,
+    };
+  }
+
+  /**
+   * Resolve the RSA public key PEM for a signature keyId. Tries the local actor
+   * store first (keyId minus the #fragment is the actor id), then the in-memory
+   * cache, then the injected keyResolver. Returns null if unresolvable — the
+   * caller then fails closed rather than trusting an unauthenticated activity.
+   * @param {string} keyId
+   * @returns {Promise<string|null>}
+   * @private
+   */
+  async _resolveSignatureKey(keyId) {
+    const actorId = String(keyId).split("#")[0];
+    if (this.database && this.database.db) {
+      try {
+        const row = this.database.db
+          .prepare("SELECT public_key_pem FROM activitypub_actors WHERE id = ?")
+          .get(actorId);
+        if (row && row.public_key_pem) {
+          return row.public_key_pem;
+        }
+      } catch (err) {
+        logger.warn(
+          "[ActivityPubBridge] actor key lookup failed:",
+          err.message,
+        );
+      }
+    }
+    if (this._remoteKeyCache.has(keyId)) {
+      return this._remoteKeyCache.get(keyId);
+    }
+    if (this.keyResolver) {
+      try {
+        const pem = await this.keyResolver(keyId);
+        if (pem) {
+          this._remoteKeyCache.set(keyId, pem);
+          return pem;
+        }
+      } catch (err) {
+        logger.warn(
+          "[ActivityPubBridge] keyResolver failed for",
+          keyId,
+          err.message,
+        );
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Verify an inbound request's HTTP Signature (draft-cavage), the symmetric
+   * counterpart of signRequest(): rebuild the signing string from the signed
+   * header list, verify the rsa-sha256 signature against the signer's public
+   * key, and — when `digest` is covered — confirm the body Digest matches.
+   * @param {Object} req
+   * @param {string} [req.method="post"]
+   * @param {string} req.path - request path (must equal the signed (request-target))
+   * @param {Object} req.headers - inbound headers (case-insensitive lookup)
+   * @param {string} [req.rawBody] - exact request body bytes (for digest check)
+   * @returns {Promise<{ ok: boolean, reason?: string, keyId?: string }>}
+   */
+  async verifyInboxSignature({ method = "post", path, headers, rawBody } = {}) {
+    try {
+      if (!headers || typeof headers !== "object") {
+        return { ok: false, reason: "no headers" };
+      }
+      // Case-insensitive header access.
+      const lower = {};
+      for (const [k, v] of Object.entries(headers)) {
+        lower[k.toLowerCase()] = v;
+      }
+      const parsed = this._parseSignatureHeader(lower.signature);
+      if (!parsed) {
+        return { ok: false, reason: "missing or malformed Signature header" };
+      }
+
+      // Rebuild the signing string from the covered header list.
+      const lines = [];
+      for (const name of parsed.headers) {
+        if (name === "(request-target)") {
+          lines.push(
+            `(request-target): ${String(method).toLowerCase()} ${path}`,
+          );
+        } else {
+          const val = lower[name];
+          if (val === undefined) {
+            return { ok: false, reason: `signed header "${name}" absent` };
+          }
+          lines.push(`${name}: ${val}`);
+        }
+      }
+      const signingString = lines.join("\n");
+
+      const pem = await this._resolveSignatureKey(parsed.keyId);
+      if (!pem) {
+        return {
+          ok: false,
+          reason: `unresolved signing key: ${parsed.keyId}`,
+        };
+      }
+
+      const verifier = crypto.createVerify("sha256");
+      verifier.update(signingString, "utf8");
+      const valid = verifier.verify(pem, parsed.signature, "base64");
+      if (!valid) {
+        return { ok: false, reason: "signature verification failed" };
+      }
+
+      // If the signature covers the body digest, it must match the actual body.
+      if (parsed.headers.includes("digest") && rawBody !== undefined) {
+        const expected =
+          "SHA-256=" +
+          crypto.createHash("sha256").update(rawBody).digest("base64");
+        if (lower.digest !== expected) {
+          return { ok: false, reason: "digest does not match body" };
+        }
+      }
+
+      return { ok: true, keyId: parsed.keyId };
+    } catch (err) {
+      return { ok: false, reason: `verify error: ${err.message}` };
+    }
+  }
+
+  /**
+   * Decide whether an inbound activity is authentic enough to process.
+   *   - options.trusted → internal replay / local origin, accepted.
+   *   - HTTP Signature present → verify it (reject on failure).
+   *   - otherwise unsigned+untrusted → rejected (fail-closed), unless the
+   *     CHAINLESSCHAIN_AP_ALLOW_UNSIGNED_INBOX=1 kill-switch restores the old
+   *     accept-all behavior for operators without federation signing wired.
+   * @private
+   */
+  async _authorizeInbound(activity, options = {}) {
+    if (options.trusted === true) {
+      return { ok: true };
+    }
+    const hasSignature =
+      options.headers &&
+      (options.headers.signature || options.headers.Signature);
+    if (hasSignature) {
+      return this.verifyInboxSignature({
+        method: options.method,
+        path: options.path,
+        headers: options.headers,
+        rawBody: options.rawBody,
+      });
+    }
+    if (process.env.CHAINLESSCHAIN_AP_ALLOW_UNSIGNED_INBOX === "1") {
+      logger.warn(
+        `[ActivityPubBridge] Accepting UNSIGNED inbound ${activity.type} (kill-switch CHAINLESSCHAIN_AP_ALLOW_UNSIGNED_INBOX=1)`,
+      );
+      return { ok: true };
+    }
+    return {
+      ok: false,
+      reason: "unsigned inbound activity (no HTTP Signature)",
+    };
   }
 
   /**

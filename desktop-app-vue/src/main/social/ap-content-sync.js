@@ -254,7 +254,11 @@ class APContentSync extends EventEmitter {
       for (const activity of pending) {
         try {
           const parsed = JSON.parse(activity.raw_json);
-          await this.apBridge.processInboxActivity(parsed);
+          // Replay of activities already stored in the local DB — they were
+          // authenticated (or accepted under a kill-switch) when first received
+          // and the raw_json no longer carries the original HTTP Signature
+          // headers to re-verify, so this internal replay is trusted.
+          await this.apBridge.processInboxActivity(parsed, { trusted: true });
           synced++;
         } catch (err) {
           logger.warn(
