@@ -61,18 +61,18 @@ jobs:
           # defaults to an installation token scoped to this repo
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Full history for changelog
           token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22.x"
 
       - name: Cache node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             desktop-app-vue/node_modules
@@ -242,7 +242,7 @@ jobs:
 
       - name: Upload documentation artifacts
         if: steps.check-changes.outputs.has_changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: generated-docs
           path: |
@@ -292,13 +292,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download generated documentation
         # Artifact only exists when generate-docs found changes. Continue on
         # absence — checkout already provides the committed docs to validate.
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: generated-docs
           path: desktop-app-vue/

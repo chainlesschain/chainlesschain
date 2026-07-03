@@ -16,10 +16,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: '18'
           cache: 'npm'
@@ -63,10 +63,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: '18'
           cache: 'npm'
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.batch.name }}
           path: desktop-app-vue/test-results/
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: screenshots-${{ matrix.batch.name }}
           path: desktop-app-vue/test-results/**/*.png
@@ -116,15 +116,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: '18'
 
       - name: Download all test results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v7
         with:
           path: test-results/
 
@@ -134,7 +134,7 @@ jobs:
           node tests/e2e/generate-report.js
 
       - name: Upload HTML report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: html-report
           path: desktop-app-vue/tests/e2e/reports/*.html
@@ -158,10 +158,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: '18'
           cache: 'npm'
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload validation results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: quick-validation-results
           path: desktop-app-vue/test-results/

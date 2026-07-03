@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: false
 
@@ -309,7 +309,7 @@ jobs:
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: node-runtime-${{ matrix.abi }}
           path: /tmp/staged/*.so
@@ -344,7 +344,7 @@ jobs:
 
       - name: Setup Node.js for CLI pack
         if: matrix.abi == 'aarch64'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
 
@@ -588,7 +588,7 @@ jobs:
       # internal-binaries release, and bump binaries-manifest.txt's sha256.
       - name: Upload cc-cli.tgz artifact
         if: matrix.abi == 'aarch64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cc-cli-tgz
           path: android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz

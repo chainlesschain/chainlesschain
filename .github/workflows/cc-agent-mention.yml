@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout (PR head when the comment is on a PR)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Switch to the PR branch
         if: github.event.issue.pull_request
@@ -44,7 +44,7 @@ jobs:
         run: gh pr checkout "${{ github.event.issue.number }}"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 

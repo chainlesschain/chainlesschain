@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
           # Cache ~/.npm so subsequent installs hit the local registry mirror
@@ -62,7 +62,7 @@ jobs:
       # split into two install branches.
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/ms-playwright
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-${{ matrix.os }}
           path: test-results/
@@ -108,7 +108,7 @@ jobs:
 
       - name: Upload HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-html-report-${{ matrix.os }}
           path: playwright-report/
@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Download all test results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: all-test-results
 

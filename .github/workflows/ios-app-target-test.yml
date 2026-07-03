@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
 
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload xcodebuild log (diagnostics, always)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ios-app-target-test-xcodebuild-log
           path: ios-app/build/xcodebuild-build-unsigned.log
@@ -92,7 +92,7 @@ jobs:
           ls -la ../../../../output/
 
       - name: Upload simulator zip (test artifact)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ios-simulator-test-build
           path: ios-app/build/output/*.zip

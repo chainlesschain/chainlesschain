@@ -48,14 +48,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # No submodules — feature-local-terminal vendors mksh + toybox
           # source directly under third_party/ (not via submodules).
           submodules: false
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
@@ -175,7 +175,7 @@ jobs:
           done
 
       - name: Upload native bundle artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: local-terminal-native-bundle
           path: |

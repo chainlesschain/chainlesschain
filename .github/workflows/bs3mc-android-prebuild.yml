@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: false
 
@@ -70,7 +70,7 @@ jobs:
           python3 --version
 
       - name: Setup Node.js for node-gyp
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'  # Host Node — used to invoke node-gyp; does NOT
                               # affect ABI of cross-compiled output (that's
@@ -218,7 +218,7 @@ jobs:
           fi
 
       - name: Upload .node artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bs3mc-android-arm64-node${{ inputs.node_target_version }}-bs3mc${{ inputs.bs3mc_version }}
           path: /tmp/bs3mc-build/node_modules/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node
@@ -227,7 +227,7 @@ jobs:
 
       - name: Upload diagnostic logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bs3mc-build-logs
           path: |

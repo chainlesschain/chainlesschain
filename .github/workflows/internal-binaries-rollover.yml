@@ -51,7 +51,7 @@ jobs:
       NEW_TAG: internal-binaries-android-v${{ inputs.new_version }}
     steps:
       - name: Checkout (manifest for sha verification)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Guard — new tag must not exist yet
         run: |
