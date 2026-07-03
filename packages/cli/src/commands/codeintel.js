@@ -76,6 +76,10 @@ export function registerCodeIntelCommand(program) {
     .action(async (options) => {
       const { probeServers, supportedExtensions } =
         await import("../lib/lsp/lsp-server-registry.js");
+      // Surface plugin-contributed servers too (Phase 3: .lsp.json).
+      const { ensurePluginLspServers } =
+        await import("../lib/plugin-runtime/lsp.js");
+      ensurePluginLspServers({ cwd: process.cwd() });
       const servers = probeServers(process.cwd());
       if (options.json) {
         console.log(

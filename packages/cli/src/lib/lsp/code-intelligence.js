@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import { LSPManager, toLspPosition, fromLspPosition } from "./lsp-manager.js";
 import { fileUriToPath } from "./lsp-client.js";
+import { ensurePluginLspServers } from "../plugin-runtime/lsp.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -54,6 +55,14 @@ const DIAGNOSTIC_SEVERITY = {
 
 export class CodeIntelligence {
   constructor(opts = {}) {
+    // Register any plugin-contributed language servers (.lsp.json) for this
+    // project before the first query — once per root, best-effort. This is how
+    // a plugin extends code_intelligence to a new language with no core change.
+    try {
+      ensurePluginLspServers({ cwd: opts.projectRoot || process.cwd() });
+    } catch {
+      /* plugin LSP contributions are best-effort */
+    }
     this.manager =
       opts.manager || new LSPManager({ projectRoot: opts.projectRoot });
     this._ownsManager = !opts.manager;
