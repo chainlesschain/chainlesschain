@@ -165,6 +165,19 @@ import { logger } from "@/utils/logger";
 import { ref } from "vue";
 import { message } from "ant-design-vue";
 import { LinkOutlined, ReloadOutlined } from "@ant-design/icons-vue";
+import {
+  getBlockExplorerUrl,
+  getNetworkName,
+  getStatusIcon,
+  getStatusTitle,
+  getStatusColor,
+  getStatusText,
+  getTypeColor,
+  getTypeText,
+  formatDateTime,
+  formatGas,
+  formatJSON,
+} from "./transactionDetailModalUtils";
 
 const props = defineProps({
   open: {
@@ -228,197 +241,6 @@ const handleViewOnExplorer = () => {
  */
 const handleClose = () => {
   emit("update:open", false);
-};
-
-/**
- * 获取区块链浏览器URL
- */
-const getBlockExplorerUrl = (chainId, type, value) => {
-  const explorers = {
-    1: "https://etherscan.io",
-    11155111: "https://sepolia.etherscan.io",
-    137: "https://polygonscan.com",
-    80001: "https://mumbai.polygonscan.com",
-    56: "https://bscscan.com",
-    97: "https://testnet.bscscan.com",
-    42161: "https://arbiscan.io",
-    421613: "https://goerli.arbiscan.io",
-    10: "https://optimistic.etherscan.io",
-    420: "https://goerli-optimism.etherscan.io",
-    43114: "https://snowtrace.io",
-    43113: "https://testnet.snowtrace.io",
-    250: "https://ftmscan.com",
-    4002: "https://testnet.ftmscan.com",
-    100: "https://gnosisscan.io",
-    31337: null,
-  };
-
-  const baseUrl = explorers[chainId];
-  if (!baseUrl) {
-    return null;
-  }
-
-  const paths = {
-    address: "address",
-    tx: "tx",
-    block: "block",
-  };
-
-  return `${baseUrl}/${paths[type]}/${value}`;
-};
-
-/**
- * 获取网络名称
- */
-const getNetworkName = (chainId) => {
-  const networks = {
-    1: "以太坊主网",
-    11155111: "Sepolia测试网",
-    137: "Polygon主网",
-    80001: "Mumbai测试网",
-    56: "BSC主网",
-    97: "BSC测试网",
-    42161: "Arbitrum One",
-    421613: "Arbitrum Goerli",
-    10: "Optimism",
-    420: "Optimism Goerli",
-    43114: "Avalanche C-Chain",
-    43113: "Avalanche Fuji",
-    250: "Fantom Opera",
-    4002: "Fantom Testnet",
-    100: "Gnosis Chain",
-    31337: "Hardhat本地网络",
-  };
-  return networks[chainId] || `Chain ${chainId}`;
-};
-
-/**
- * 获取状态图标
- */
-const getStatusIcon = (status) => {
-  const icons = {
-    pending: "info",
-    confirmed: "success",
-    success: "success",
-    failed: "error",
-    error: "error",
-  };
-  return icons[status] || "info";
-};
-
-/**
- * 获取状态标题
- */
-const getStatusTitle = (status) => {
-  const titles = {
-    pending: "交易待确认",
-    confirmed: "交易已确认",
-    success: "交易成功",
-    failed: "交易失败",
-    error: "交易错误",
-  };
-  return titles[status] || "未知状态";
-};
-
-/**
- * 获取状态颜色
- */
-const getStatusColor = (status) => {
-  const colors = {
-    pending: "processing",
-    confirmed: "success",
-    success: "success",
-    failed: "error",
-    error: "error",
-  };
-  return colors[status] || "default";
-};
-
-/**
- * 获取状态文本
- */
-const getStatusText = (status) => {
-  const texts = {
-    pending: "待确认",
-    confirmed: "已确认",
-    success: "成功",
-    failed: "失败",
-    error: "错误",
-  };
-  return texts[status] || status;
-};
-
-/**
- * 获取类型颜色
- */
-const getTypeColor = (type) => {
-  const colors = {
-    transfer: "blue",
-    deploy: "purple",
-    mint: "green",
-    burn: "orange",
-    approve: "cyan",
-    swap: "magenta",
-  };
-  return colors[type] || "default";
-};
-
-/**
- * 获取类型文本
- */
-const getTypeText = (type) => {
-  const texts = {
-    transfer: "转账",
-    deploy: "部署合约",
-    mint: "铸造",
-    burn: "销毁",
-    approve: "授权",
-    swap: "交换",
-  };
-  return texts[type] || type;
-};
-
-/**
- * 格式化日期时间
- */
-const formatDateTime = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
-/**
- * 格式化Gas费用
- */
-const formatGas = (gasUsed, gasPrice) => {
-  if (!gasUsed || !gasPrice) {
-    return "-";
-  }
-  const gasCost = (gasUsed * gasPrice) / 1e18;
-  return `${gasCost.toFixed(6)} ETH`;
-};
-
-/**
- * 格式化JSON
- */
-const formatJSON = (data) => {
-  try {
-    if (typeof data === "string") {
-      return JSON.stringify(JSON.parse(data), null, 2);
-    }
-    return JSON.stringify(data, null, 2);
-  } catch (_error) {
-    return data;
-  }
 };
 </script>
 
