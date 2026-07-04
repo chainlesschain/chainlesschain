@@ -6,6 +6,7 @@ import {
   executeTool,
   disposeSharedCodeIntel,
   formatToolArgs,
+  _getSharedCodeIntel,
 } from "../../src/runtime/agent-core.js";
 import { probeServers } from "../../src/lib/lsp/lsp-server-registry.js";
 
@@ -90,6 +91,32 @@ describe("code_intelligence tool — graceful degradation", () => {
     expect(res.unavailable).toBe(true);
     expect(typeof res.reason).toBe("string");
     expect(res.hint).toMatch(/search_files/);
+  });
+});
+
+// The shared LSP pool must be race-safe: the parallel read-only batch fires
+// several `code_intelligence` calls concurrently, and each resolves through
+// _getSharedCodeIntel. A check-then-act across the `await import` would let two
+// concurrent callers each construct a CodeIntelligence (double-spawning a
+// language server + leaking one) — the exact trap the pool exists to prevent.
+describe("shared code-intelligence pool — concurrency", () => {
+  afterAll(async () => {
+    await disposeSharedCodeIntel();
+  });
+
+  it("concurrent callers share ONE pooled instance (no double-spawn race)", async () => {
+    await disposeSharedCodeIntel(); // start from an empty pool
+    const cwd = process.cwd();
+    // Both calls observe the empty pool before either sets it, so they exercise
+    // the post-await window. With the fix they must resolve to the SAME instance.
+    const [a, b, c] = await Promise.all([
+      _getSharedCodeIntel(cwd),
+      _getSharedCodeIntel(cwd),
+      _getSharedCodeIntel(cwd),
+    ]);
+    expect(a).toBe(b);
+    expect(b).toBe(c);
+    await disposeSharedCodeIntel();
   });
 });
 

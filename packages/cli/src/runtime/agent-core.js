@@ -1774,28 +1774,41 @@ const _codeIntelPool = new Map(); // root -> { ci, idleTimer }
 const CODE_INTEL_IDLE_MS = 60_000;
 let _codeIntelExitHooked = false;
 
-async function _getSharedCodeIntel(cwd) {
+export async function _getSharedCodeIntel(cwd) {
   const root = path.resolve(cwd || process.cwd());
   let entry = _codeIntelPool.get(root);
   if (!entry) {
     const { CodeIntelligence } =
       await import("../lib/lsp/code-intelligence.js");
-    entry = {
-      ci: new CodeIntelligence({ projectRoot: root, coldStart: true }),
-      idleTimer: null,
-    };
-    _codeIntelPool.set(root, entry);
-    if (!_codeIntelExitHooked) {
-      _codeIntelExitHooked = true;
-      process.once("exit", () => {
-        for (const e of _codeIntelPool.values()) {
-          try {
-            e.ci.dispose();
-          } catch {
-            /* best-effort teardown on exit */
+    // Re-check AFTER the await: two concurrent callers (the parallel read-only
+    // batch runs several `code_intelligence` calls at once) both observed an
+    // empty pool before this `await import`, so without this guard both would
+    // construct a CodeIntelligence — each spawning its own language server — and
+    // the second `set` would orphan the first (leaked server process) while its
+    // stale idle-timer, still bound to `root`, later evicts the wrong (warm,
+    // in-use) entry. This is exactly the orphaned-server/dangling-timer trap the
+    // pool exists to prevent. Construction below has NO further await, so once
+    // one continuation wins the re-check the other reuses its entry — the window
+    // is fully closed.
+    entry = _codeIntelPool.get(root);
+    if (!entry) {
+      entry = {
+        ci: new CodeIntelligence({ projectRoot: root, coldStart: true }),
+        idleTimer: null,
+      };
+      _codeIntelPool.set(root, entry);
+      if (!_codeIntelExitHooked) {
+        _codeIntelExitHooked = true;
+        process.once("exit", () => {
+          for (const e of _codeIntelPool.values()) {
+            try {
+              e.ci.dispose();
+            } catch {
+              /* best-effort teardown on exit */
+            }
           }
-        }
-      });
+        });
+      }
     }
   }
   if (entry.idleTimer) clearTimeout(entry.idleTimer);
