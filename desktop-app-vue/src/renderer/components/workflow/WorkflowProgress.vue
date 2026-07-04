@@ -145,6 +145,12 @@ import {
 import StageDetail from "./StageDetail.vue";
 import QualityGateCard from "./QualityGateCard.vue";
 import StepTimeline from "./StepTimeline.vue";
+import {
+  getStageKey,
+  getStageDescription,
+  getStepIconClass,
+  formatDuration,
+} from "./workflowProgressUtils";
 
 const props = defineProps({
   workflowId: {
@@ -293,57 +299,6 @@ const executionSteps = computed(() => {
 });
 
 // 方法
-const getStageKey = (index) => {
-  const keys = [
-    "analysis",
-    "design",
-    "generation",
-    "validation",
-    "integration",
-    "delivery",
-  ];
-  return keys[index] || "unknown";
-};
-
-const getStageDescription = (stage, index) => {
-  if (stage.status === "completed") {
-    return `完成 (${formatDuration(stage.duration)})`;
-  }
-  if (stage.status === "running") {
-    return `${stage.progress || 0}%`;
-  }
-  if (stage.status === "failed") {
-    return "失败";
-  }
-  return "";
-};
-
-const getStepIconClass = (stage, index) => {
-  return {
-    completed: stage.status === "completed",
-    running: stage.status === "running",
-    failed: stage.status === "failed",
-    pending: stage.status === "pending",
-  };
-};
-
-const formatDuration = (ms) => {
-  if (!ms || ms === 0) {
-    return "0秒";
-  }
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) {
-    return `${seconds}秒`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes < 60) {
-    return `${minutes}分${remainingSeconds}秒`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}时${remainingMinutes}分`;
-};
 
 const toggleGatesExpand = () => {
   gatesExpanded.value = !gatesExpanded.value;
