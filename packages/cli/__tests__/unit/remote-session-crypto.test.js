@@ -40,9 +40,17 @@ describe("Remote Session end-to-end encryption", () => {
       type: "assistant.delta",
       content: "ok",
     });
+    // Tamper the decoded ciphertext bytes rather than the base64url string.
+    // For a 2-mod-3-length ciphertext the final base64url char carries 2
+    // padding bits, so flipping the last character (e.g. "A"->"B") can change
+    // only those discarded bits and leave the decoded bytes identical, which
+    // made the previous string-based tamper a ~6% no-op. Flipping a real byte
+    // always alters the ciphertext and is deterministic.
+    const rawCiphertext = Buffer.from(envelope.ciphertext, "base64url");
+    rawCiphertext[0] ^= 0xff;
     const tampered = {
       ...envelope,
-      ciphertext: `${envelope.ciphertext.slice(0, -1)}A`,
+      ciphertext: rawCiphertext.toString("base64url"),
     };
     expect(() => phone.decrypt(tampered)).toThrow(/authentication failed/);
     expect(phone.decrypt(envelope)).toEqual({
