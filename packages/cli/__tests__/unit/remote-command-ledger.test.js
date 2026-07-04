@@ -42,6 +42,35 @@ describe("RemoteCommandLedger idempotency (reconnect safety)", () => {
     expect(good).toMatchObject({ status: "applied", result: "ok" });
     expect(n).toBe(2);
   });
+
+  it("executes once under CONCURRENT same-commandId delivery (in-flight race)", async () => {
+    const ledger = new RemoteCommandLedger();
+    let runs = 0;
+    const cmd = { commandId: "cmd-race", deviceId: "phone", seq: 1 };
+    // A slow side effect widens the window: two deliveries arrive while the
+    // first execute() is still pending (reconnect double-send / two endpoints
+    // forwarding the same queued command).
+    const exec = async () => {
+      runs += 1;
+      await new Promise((r) => setTimeout(r, 20));
+      return `ran-${runs}`;
+    };
+
+    const [a, b] = await Promise.all([
+      ledger.apply(cmd, exec),
+      ledger.apply(cmd, exec),
+    ]);
+
+    expect(runs).toBe(1); // side effect ran AT MOST ONCE despite the race
+    expect(ledger.appliedCount()).toBe(1); // recorded once in the total order
+    // Exactly one applied; the concurrent duplicate is replayed with the same result.
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual(["applied", "replayed"]);
+    expect(a.result).toBe("ran-1");
+    expect(b.result).toBe("ran-1");
+    expect(a.applyIndex).toBe(0);
+    expect(b.applyIndex).toBe(0);
+  });
 });
 
 describe("RemoteCommandLedger total ordering (3-endpoint consistency)", () => {
