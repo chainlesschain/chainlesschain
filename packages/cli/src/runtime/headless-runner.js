@@ -905,6 +905,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,
+    // Auto-pin (OPT-IN, off by default): pin the original task through
+    // compaction. Enable via --auto-pin or CC_AUTO_PIN=1. Falsy → agent-core
+    // passes no pin predicate and compaction is byte-identical.
+    autoPin:
+      options.autoPin === true || process.env.CC_AUTO_PIN === "1" || undefined,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession: options.checkpointSession || sessionId,
     hookDb: db,

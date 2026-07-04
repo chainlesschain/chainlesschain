@@ -64,6 +64,7 @@ import {
   PromptCompressor,
   getContextWindow,
 } from "../harness/prompt-compressor.js";
+import { buildAutoPinPredicate } from "../runtime/auto-pin.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
 import {
@@ -416,10 +417,15 @@ export async function startAgentRepl(options = {}) {
   // Unset → agent-core's 180s default (matches cc chat/ask). Set to 0 to
   // disable. Left undefined here means "use the default".
   let _streamStallTimeoutMs;
+  // Auto-pin (OPT-IN, off by default): when set, compaction pins the original
+  // task. Resolved from config `context.autoPin` or CC_AUTO_PIN=1; falsy → the
+  // compress calls below pass no pin predicate (byte-identical default).
+  let _autoPinOpt;
   try {
     const { loadConfig } = await import("../lib/config-manager.js");
     const _cfg = loadConfig();
     _visionModel = _cfg?.llm?.visionModel || undefined;
+    _autoPinOpt = _cfg?.context?.autoPin;
     const raw = _cfg?.llm?.streamStallTimeoutMs;
     const t = Number(raw);
     // Accept 0 (explicit disable) — only ignore absent/invalid values.
@@ -477,6 +483,15 @@ export async function startAgentRepl(options = {}) {
   if (feature("PROMPT_COMPRESSOR")) {
     _compressor = new PromptCompressor({ model, provider });
   }
+  if (process.env.CC_AUTO_PIN === "1") _autoPinOpt = _autoPinOpt || true;
+  // Compaction options shared by /compact + auto-compact. Adds the opt-in
+  // pin predicate only when auto-pin is enabled; otherwise byte-identical.
+  const _compactOpts = (msgs) => {
+    const base = { preserveToolPairs: true };
+    if (!_autoPinOpt) return base;
+    const isPinned = buildAutoPinPredicate(msgs, _autoPinOpt);
+    return isPinned ? { ...base, isPinned } : base;
+  };
 
   // Initialize permanent memory
   let permanentMemory = null;
@@ -2533,7 +2548,7 @@ export async function startAgentRepl(options = {}) {
       if (_compressor && messages.length > 3) {
         const { messages: compacted, stats } = await _compressor.compress(
           messages,
-          { preserveToolPairs: true },
+          _compactOpts(messages),
         );
         messages.length = 0;
         messages.push(...compacted);
@@ -4460,7 +4475,7 @@ export async function startAgentRepl(options = {}) {
         try {
           const { messages: compacted, stats } = await _compressor.compress(
             messages,
-            { preserveToolPairs: true },
+            _compactOpts(messages),
           );
           messages.length = 0;
           messages.push(...compacted);

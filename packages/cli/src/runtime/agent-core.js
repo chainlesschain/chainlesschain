@@ -5461,10 +5461,22 @@ export async function* agentLoop(messages, options) {
               reason: preCompactReason,
             };
           }
+          // Auto-pin (OPT-IN): when enabled, the original task (first user turn)
+          // is pinned so compaction can't drop it. Off by default → no predicate
+          // is passed and compaction is byte-identical to before.
+          let pinOpts = {};
+          if (options.autoPin) {
+            const { buildAutoPinPredicate } = await import("./auto-pin.js");
+            const isPinned = buildAutoPinPredicate(messages, options.autoPin);
+            if (isPinned) pinOpts = { isPinned };
+          }
           const { messages: compacted, stats } =
             !needFull || preCompactBlocked
               ? { messages, stats: { saved: 0 } }
-              : await compactor.compress(messages, { preserveToolPairs: true });
+              : await compactor.compress(messages, {
+                  preserveToolPairs: true,
+                  ...pinOpts,
+                });
           if (stats.saved > 0 && compacted.length < messages.length) {
             messages.splice(0, messages.length, ...compacted);
             // Persist the compaction so a later --resume rebuilds from the

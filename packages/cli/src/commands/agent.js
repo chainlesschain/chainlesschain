@@ -186,6 +186,10 @@ export function registerAgentCommand(program) {
       "When an async `asyncRewake` hook (e.g. a background test) fails at turn end, re-engage the agent to fix it (bounded by --max-rewakes)",
     )
     .option(
+      "--auto-pin",
+      "During auto-compaction, pin the original task (first user turn) so it always survives compaction (off by default)",
+    )
+    .option(
       "--max-rewakes <n>",
       "Max auto-rewake re-drives per run (default 1); implies --auto-rewake",
       (v) => parseInt(v, 10),
