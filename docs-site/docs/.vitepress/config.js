@@ -170,6 +170,23 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
+          text: "⭐ 最新功能（Claude Code 平价）",
+          items: [
+            {
+              text: "Agent Team — 任务图团队编排 (team) ⭐NEW",
+              link: "/chainlesschain/cli-team",
+            },
+            {
+              text: "可靠性评测 + 趋势门 (eval) ⭐NEW",
+              link: "/chainlesschain/cli-eval",
+            },
+            {
+              text: "语义代码智能 — LSP (code-intel) ⭐NEW",
+              link: "/chainlesschain/cli-code-intel",
+            },
+          ],
+        },
+        {
           text: "ChainlessChain系统",
           items: [{ text: "系统概述", link: "/chainlesschain/overview" }],
         },
@@ -682,18 +699,6 @@ export default defineConfig({
             {
               text: "Agent 网络 (agent-network)",
               link: "/chainlesschain/cli-agent-network",
-            },
-            {
-              text: "Agent Team — 任务图团队编排 (team)",
-              link: "/chainlesschain/cli-team",
-            },
-            {
-              text: "可靠性评测 + 趋势门 (eval)",
-              link: "/chainlesschain/cli-eval",
-            },
-            {
-              text: "语义代码智能 — LSP (code-intel)",
-              link: "/chainlesschain/cli-code-intel",
             },
           ],
         },
