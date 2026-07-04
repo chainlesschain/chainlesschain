@@ -78,7 +78,10 @@ export function sanitizeFilename(name) {
  * Convert a note to markdown with YAML frontmatter.
  */
 export function noteToMarkdown(note) {
-  const tags = JSON.parse(note.tags || "[]");
+  // safeJsonParse (not bare JSON.parse): exportToMarkdown loops over every note,
+  // so one corrupt/hand-edited `tags` cell would otherwise throw and abort the
+  // ENTIRE export mid-way. Matches generateIndexHtml, which already guards.
+  const tags = safeJsonParse(note.tags, []);
   const lines = [
     "---",
     `title: "${note.title.replace(/"/g, '\\"')}"`,
@@ -136,7 +139,10 @@ export function exportToMarkdown(db, outputDir, options = {}) {
  * Generate a minimal HTML page for a note.
  */
 export function noteToHtml(note) {
-  const tags = JSON.parse(note.tags || "[]");
+  // safeJsonParse (not bare JSON.parse): exportToSite loops over every note, so
+  // one corrupt `tags` cell would otherwise throw and abort the whole site
+  // export — after index.html was already written, leaving dangling links.
+  const tags = safeJsonParse(note.tags, []);
   const tagsHtml = tags
     .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
     .join(" ");

@@ -163,6 +163,20 @@ describe("Knowledge Exporter", () => {
       const exported = exportToMarkdown(db, "/output");
       expect(exported).toHaveLength(0);
     });
+
+    it("exports every note even when one has a corrupt tags cell", () => {
+      // Regression: noteToMarkdown used bare JSON.parse(note.tags), so a single
+      // note with a non-JSON `tags` cell (hand-edited / migration artifact) threw
+      // and aborted the ENTIRE export mid-loop. It must degrade to no-tags for
+      // that note and still export all of them.
+      seedNote({ title: "Good A" });
+      seedNote({ title: "Corrupt", tags: "not-valid-json{" });
+      seedNote({ title: "Good B" });
+
+      const exported = exportToMarkdown(db, "/output");
+      expect(exported).toHaveLength(3);
+      expect(writeFileSync).toHaveBeenCalledTimes(3);
+    });
   });
 
   // ─── noteToHtml ──────────────────────────────────────────────
@@ -197,6 +211,21 @@ describe("Knowledge Exporter", () => {
 
       expect(html).not.toContain("<script>");
       expect(html).toContain("&lt;script&gt;");
+    });
+
+    it("does not throw on a corrupt tags cell (degrades to no tags)", () => {
+      // Regression: bare JSON.parse(note.tags) threw on a non-JSON tags cell,
+      // crashing exportToSite mid-loop after index.html was already written.
+      expect(() =>
+        noteToHtml({
+          id: "id",
+          title: "Corrupt",
+          content: "body",
+          tags: "not-valid-json{",
+          category: "general",
+          created_at: "",
+        }),
+      ).not.toThrow();
     });
   });
 
