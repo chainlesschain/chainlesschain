@@ -587,32 +587,83 @@ export function registerPluginCommand(program) {
 
   const SCOPES = "user|project|local";
 
-  // plugin add <source> — install from a local dir, git URL, or owner/repo
+  // plugin add <source> — install from a local dir, git URL, owner/repo, or a
+  // remote registry/manifest URL (with --name to pick from a multi-plugin index)
   plugin
     .command("add <source>")
     .description(
-      `Install a plugin from a local dir, git URL, or owner/repo[#ref] (scope: ${SCOPES})`,
+      `Install a plugin from a local dir, git URL, owner/repo[#ref], or registry URL (scope: ${SCOPES})`,
     )
     .option("--scope <scope>", "Install scope (user|project|local)", "user")
     .option("--force", "Reinstall over an existing immutable version")
     .option("--sha256 <hex>", "Expected SHA-256 of the manifest file")
     .option("--signature <path>", "Detached Ed25519 signature of the manifest")
     .option("--public-key <path>", "Public key for signature verification")
+    .option(
+      "--registry <url>",
+      "Resolve <source> as a plugin NAME in this registry URL",
+    )
+    .option(
+      "--name <plugin>",
+      "Plugin name to select from a multi-plugin registry",
+    )
+    .option("--token <token>", "Bearer token for a private registry")
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
       const { installFromSource } =
         await import("../lib/plugin-runtime/install.js");
+
+      // Remote resolution: a registry/manifest URL (or --registry <url> with a
+      // plugin name) resolves to a git source the installer already handles.
+      let installSource = source;
+      let integritySha = null;
+      const { isRemoteSource, resolveRemoteSource } =
+        await import("../lib/plugin-runtime/remote-source.js");
+      if (options.registry || isRemoteSource(source)) {
+        const url = options.registry || source;
+        // With --registry the positional arg is the plugin NAME; otherwise the
+        // URL is positional and --name selects.
+        const name = options.registry ? source : options.name;
+        let config = null;
+        try {
+          ({ loadConfig: config } = await import("../lib/config-manager.js"));
+          config = config();
+        } catch {
+          config = null; // config is optional — token can come from --token/env
+        }
+        try {
+          const resolved = await resolveRemoteSource(url, {
+            name,
+            token: options.token,
+            config,
+          });
+          installSource = resolved.source;
+          integritySha = resolved.sha256;
+          if (resolved.fromCache) {
+            logger.warn(
+              chalk.yellow(
+                "  ⚠ registry unreachable — using cached copy (offline)",
+              ),
+            );
+          }
+        } catch (err) {
+          logger.error(`Registry resolution failed: ${err.message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
+
       const signature =
-        options.sha256 || options.signature || options.publicKey
+        options.sha256 || options.signature || options.publicKey || integritySha
           ? {
-              sha256: options.sha256,
+              sha256: options.sha256 || integritySha,
               signatureFile: options.signature,
               publicKeyFile: options.publicKey,
               requireSignature: Boolean(options.signature),
             }
           : null;
       try {
-        const res = installFromSource(source, {
+        const res = installFromSource(installSource, {
           scope: options.scope,
           cwd: process.cwd(),
           force: options.force === true,
@@ -631,6 +682,75 @@ export function registerPluginCommand(program) {
         }
       } catch (err) {
         logger.error(`Install failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // plugin browse — browse the plugins offered by a remote registry (discovery)
+  plugin
+    .command("browse [query]")
+    .description(
+      "List plugins in a remote registry (--registry <url>); filter by [query]",
+    )
+    .requiredOption("--registry <url>", "Registry/manifest URL to browse")
+    .option("--token <token>", "Bearer token for a private registry")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      const { fetchRegistry, listRegistryPlugins, resolveRegistryToken } =
+        await import("../lib/plugin-runtime/remote-source.js");
+      let config = null;
+      try {
+        const cm = await import("../lib/config-manager.js");
+        config = cm.loadConfig();
+      } catch {
+        config = null;
+      }
+      try {
+        const token = resolveRegistryToken(options.registry, {
+          token: options.token,
+          config,
+        });
+        const { registry, fromCache } = await fetchRegistry(options.registry, {
+          token,
+        });
+        let rows = listRegistryPlugins(registry);
+        if (query) {
+          const q = query.toLowerCase();
+          rows = rows.filter(
+            (r) =>
+              r.name.toLowerCase().includes(q) ||
+              (r.description || "").toLowerCase().includes(q),
+          );
+        }
+        if (options.json) {
+          console.log(JSON.stringify({ fromCache, plugins: rows }, null, 2));
+          return;
+        }
+        if (fromCache) {
+          logger.warn(
+            chalk.yellow(
+              "  ⚠ registry unreachable — showing cached copy (offline)",
+            ),
+          );
+        }
+        if (rows.length === 0) {
+          logger.info("No matching plugins in this registry.");
+          return;
+        }
+        logger.log(chalk.bold(`Plugins (${rows.length}):`));
+        for (const r of rows) {
+          const ver = r.version ? chalk.gray(` v${r.version}`) : "";
+          logger.log(
+            `  ${chalk.cyan(r.name)}${ver}  ${chalk.gray(r.description || r.source)}`,
+          );
+        }
+        logger.log(
+          chalk.gray(
+            `\nInstall with: cc plugin add <name> --registry ${options.registry}`,
+          ),
+        );
+      } catch (err) {
+        logger.error(`Registry search failed: ${err.message}`);
         process.exitCode = 1;
       }
     });
