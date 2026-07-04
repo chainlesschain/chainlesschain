@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.43</version>
+    <version>0.4.44</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -285,6 +285,18 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt K"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt K"/>
+        </action>
+        <action id="chainlesschain.memory.init"
+                class="com.chainlesschain.ide.intellij.GenerateProjectMemoryAction"
+                text="ChainlessChain: Generate Project Memory (生成项目记忆 cc.md)"
+                description="Inventory the project into a cc.md that cc agent auto-loads (chainlesschain init)">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.memory.files"
+                class="com.chainlesschain.ide.intellij.ShowMemoryFilesAction"
+                text="ChainlessChain: Show Project Memory Files (查看项目记忆文件)"
+                description="List the effective memory-file chain (chainlesschain memory files)">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.preview.start"
                 class="com.chainlesschain.ide.intellij.StartPreviewAction"

@@ -77,6 +77,23 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔌 Drag-drop images + project-memory actions (0.4.44) — code-complete, NOT yet runIde-verified
+
+- [x] **Pure layer** `ImageAttachments` (extension filter + 4-image cap shared
+      with paste), `ProjectMemory` (init/memory-files args + mode rows).
+      **PureLogicSmokeMain 322 passed** (`javac --release 17`).
+- [x] **Glue wiring** — `installImageDropTarget(input/transcript)` via
+      `java.awt.dnd.DropTarget` (NOT a TransferHandler swap — default paste/text
+      behaviors survive; plain-text drops re-inserted at the caret);
+      `GenerateProjectMemoryAction` (mode popup → `Task.Backgroundable`
+      runCapture, 600s budget for `--ai`) + `ShowMemoryFilesAction`; both in
+      the Tools menu. `gradlew compileJava` clean.
+- [ ] **runIde GUI pass (GATE before publish)** — drop a png onto the composer
+      (📷 counter increments, 5th file ignored), drop a .txt (ignored), drop
+      selected text (lands at caret), send with image reaches the vision model;
+      Tools → Generate Project Memory offline mode writes cc.md and shows the
+      census tail; Show Project Memory Files lists the chain.
+
 ## 🔌 /rewind + /sessions + hunk-level accept (0.4.43) — code-complete, NOT yet runIde-verified
 
 VS Code panel parity trio: checkpoint restore, session picker, and partial diff

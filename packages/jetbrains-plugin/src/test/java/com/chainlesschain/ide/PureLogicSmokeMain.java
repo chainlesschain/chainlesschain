@@ -58,6 +58,8 @@ public final class PureLogicSmokeMain {
         diffHunks();
         rewindCommands();
         sessionList();
+        imageAttachments();
+        projectMemory();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -761,6 +763,36 @@ public final class PureLogicSmokeMain {
         check(SessionList.itemLabel(items.get(1)).startsWith("s-chat  ·  chat"), "label id+store");
         check(SessionList.parseSessionList("nope").isEmpty(), "bad json -> empty");
         check(SessionList.parseSessionList("{}").isEmpty(), "non-array -> empty");
+    }
+
+    private static void imageAttachments() {
+        System.out.println("ImageAttachments (drag-drop filter + cap)");
+
+        check(ImageAttachments.isImagePath("a/shot.PNG"), "png case-insensitive");
+        check(ImageAttachments.isImagePath("b.webp"), "webp accepted");
+        check(!ImageAttachments.isImagePath("notes.txt"), "txt rejected");
+        check(!ImageAttachments.isImagePath(null), "null rejected");
+
+        List<String> dropped = Arrays.asList("a.png", "doc.pdf", "b.jpg", "c.gif", "d.bmp", "e.png");
+        eq(ImageAttachments.acceptDropped(dropped, 0).size(), 4, "cap at 4 from empty");
+        eq(ImageAttachments.acceptDropped(dropped, 0).get(0), "a.png", "order preserved");
+        eq(ImageAttachments.acceptDropped(dropped, 3).size(), 1, "3 attached -> room for 1");
+        check(ImageAttachments.acceptDropped(dropped, 4).isEmpty(), "cap reached -> none");
+        check(ImageAttachments.acceptDropped(null, 0).isEmpty(), "null list -> none");
+        check(ImageAttachments.acceptDropped(Arrays.asList("x.txt"), 0).isEmpty(),
+                "non-images filtered out");
+    }
+
+    private static void projectMemory() {
+        System.out.println("ProjectMemory (init / memory files args)");
+
+        eq(String.join(" ", ProjectMemory.buildInitArgs(false, false)), "init", "plain init");
+        eq(String.join(" ", ProjectMemory.buildInitArgs(true, false)), "init --ai", "init --ai");
+        eq(String.join(" ", ProjectMemory.buildInitArgs(true, true)),
+                "init --ai --force", "init --ai --force");
+        eq(String.join(" ", ProjectMemory.buildMemoryFilesArgs()), "memory files", "memory files");
+        eq(ProjectMemory.initModes().size(), 2, "two init modes");
+        check(ProjectMemory.initModes().get(1)[0].contains("--ai"), "second mode is --ai");
     }
 
     private static void statusBarText() {

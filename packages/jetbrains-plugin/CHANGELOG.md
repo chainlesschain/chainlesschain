@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.44] — feat: drag-drop images + project-memory actions
+
+- **Drag-drop images into the chat** (VS Code 0.37.0 parity): drop image files
+  (png/jpg/jpeg/gif/webp/bmp) — or a raw image from another app — onto the
+  composer or transcript to attach them to the next message (vision), same
+  4-image cap as paste; non-image files are ignored and plain-text drops still
+  land at the caret.
+- **Two new Tools-menu actions** (VS Code palette parity):
+  *Generate Project Memory (cc.md)* — mode chooser (offline census, or
+  `--ai` refine via a bounded headless agent), runs `chainlesschain init` as a
+  background task and shows the summary; *Show Project Memory Files* — the
+  effective memory-file chain from `chainlesschain memory files`.
+
 ## [0.4.43] — feat: /rewind, /sessions, and hunk-level partial diff accept
 
 - **`/rewind`** — roll the work tree back to an agent auto-checkpoint (the agent

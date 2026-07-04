@@ -5,6 +5,7 @@ import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
+import com.chainlesschain.ide.ImageAttachments;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.LlmConfig;
 import com.chainlesschain.ide.MarkdownLite;
@@ -211,6 +212,12 @@ final class ConversationView {
                 }
             }
         });
+
+        // Drag-drop images onto the composer or transcript (VS Code 0.37.0
+        // parity). A DropTarget — not a TransferHandler swap — so the text
+        // area's default paste and text handling stay intact.
+        installImageDropTarget(input);
+        installImageDropTarget(transcript);
 
         // First-run nudge (VS Code parity): if no LLM provider is configured yet,
         // dim-hint toward the ⚙ LLM button instead of leaving the panel blank
@@ -419,16 +426,74 @@ final class ConversationView {
             }
             Object data = cb.getData(java.awt.datatransfer.DataFlavor.imageFlavor);
             if (!(data instanceof java.awt.Image)) return false;
-            if (pendingImages.size() >= 4) return true; // cap at 4, still consume the paste
-            java.io.File tmp = java.io.File.createTempFile("cc-paste-", ".png");
-            tmp.deleteOnExit();
-            javax.imageio.ImageIO.write(toBuffered((java.awt.Image) data), "png", tmp);
-            pendingImages.add(tmp.getAbsolutePath());
-            updateImageIndicator();
+            // Cap reached: still consume the paste (don't dump binary as text).
+            if (pendingImages.size() >= ImageAttachments.MAX) return true;
+            attachRawImage((java.awt.Image) data, "cc-paste-");
             return true;
         } catch (Exception ex) {
             return false; // any failure → fall back to normal text paste
         }
+    }
+
+    /** Write a raw AWT image to a temp png and attach it to the composer. */
+    private void attachRawImage(java.awt.Image img, String prefix) throws java.io.IOException {
+        java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
+        tmp.deleteOnExit();
+        javax.imageio.ImageIO.write(toBuffered(img), "png", tmp);
+        pendingImages.add(tmp.getAbsolutePath());
+        updateImageIndicator();
+    }
+
+    /** Accept image drops on {@code target} without replacing its TransferHandler. */
+    private void installImageDropTarget(java.awt.Component target) {
+        new java.awt.dnd.DropTarget(target, java.awt.dnd.DnDConstants.ACTION_COPY,
+                new java.awt.dnd.DropTargetAdapter() {
+                    @Override
+                    public void drop(java.awt.dnd.DropTargetDropEvent e) {
+                        try {
+                            e.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
+                            e.dropComplete(importDropped(e.getTransferable()));
+                        } catch (Exception ex) {
+                            e.dropComplete(false);
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Dropped payload → image attachments (a file list filtered to images, or a
+     * raw image). Plain text still lands at the caret (the DropTarget replaces
+     * the text area's built-in drop handling, so re-implement that bit).
+     */
+    private boolean importDropped(java.awt.datatransfer.Transferable t) throws Exception {
+        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
+            @SuppressWarnings("unchecked")
+            java.util.List<java.io.File> files = (java.util.List<java.io.File>)
+                    t.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+            java.util.List<String> paths = new java.util.ArrayList<>();
+            for (java.io.File f : files) paths.add(f.getAbsolutePath());
+            java.util.List<String> accepted =
+                    ImageAttachments.acceptDropped(paths, pendingImages.size());
+            if (accepted.isEmpty()) return false;
+            pendingImages.addAll(accepted);
+            updateImageIndicator();
+            return true;
+        }
+        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.imageFlavor)) {
+            Object data = t.getTransferData(java.awt.datatransfer.DataFlavor.imageFlavor);
+            if (!(data instanceof java.awt.Image)) return false;
+            if (pendingImages.size() >= ImageAttachments.MAX) return true;
+            attachRawImage((java.awt.Image) data, "cc-drop-");
+            return true;
+        }
+        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.stringFlavor)) {
+            Object s = t.getTransferData(java.awt.datatransfer.DataFlavor.stringFlavor);
+            if (s instanceof String) {
+                input.replaceSelection((String) s);
+                return true;
+            }
+        }
+        return false;
     }
 
     private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) {
