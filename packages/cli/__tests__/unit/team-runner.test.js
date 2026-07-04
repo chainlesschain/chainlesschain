@@ -129,6 +129,37 @@ describe("TeamRunner events + guards", () => {
     expect(events).toContain("run:end");
   });
 
+  it("does not report a phantom completion when the lease expired mid-run", async () => {
+    // A task that outruns its lease TTL without renewing: complete() is rejected
+    // by the registry, so the runner must NOT emit task:completed or bump the
+    // teammate's completed counter — that would be a phantom success for work the
+    // registry has no record of (it will be reclaimed + re-run).
+    let t = 1000;
+    const reg = new TaskLeaseRegistry({ now: () => t, defaultTtlMs: 100 });
+    reg.addTask({ key: "slow", title: "slow" });
+    const events = [];
+    let runs = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      ttlMs: 100,
+      maxTasks: 1, // one execution — we only assert on the first (rejected) complete
+      onEvent: (e) => events.push(e.type),
+      runTask: async () => {
+        runs++;
+        t += 5000; // blow past the 100ms lease before completing
+        return "done";
+      },
+    });
+    const summary = await runner.run();
+    expect(runs).toBe(1);
+    // Premise: the registry rejected the completion (lease gone).
+    expect(reg.getTask("slow").status).not.toBe("completed");
+    // The runner must be honest about it.
+    expect(events).not.toContain("task:completed");
+    expect(events).toContain("task:completion-discarded");
+    expect(summary.members[0].completed).toBe(0);
+  });
+
   it("requires runTask", async () => {
     const reg = freshRegistry();
     reg.addTask({ key: "x", title: "x" });

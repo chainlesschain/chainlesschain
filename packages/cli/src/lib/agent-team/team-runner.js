@@ -217,9 +217,10 @@ export class TeamRunner {
         mailbox: this.mailbox,
         budget: this.budget,
       });
-      this.registry.complete(key, { holder, result });
-      // Fold usage/cost into the team budget. `--exec` shell tasks carry no
-      // usage → only the task-count / wall-clock dimensions move.
+      const done = this.registry.complete(key, { holder, result });
+      // Fold usage/cost into the team budget regardless — the task DID execute
+      // and consumed resources. `--exec` shell tasks carry no usage → only the
+      // task-count / wall-clock dimensions move.
       if (this.budget) {
         this.budget.record(
           {
@@ -230,12 +231,27 @@ export class TeamRunner {
           this._now(),
         );
       }
-      this._setState(holder, "completed-task");
-      this._emit("task:completed", {
-        key,
-        holder,
-        ms: this._now() - startedAt,
-      });
+      if (done.ok) {
+        this._setState(holder, "completed-task");
+        this._emit("task:completed", {
+          key,
+          holder,
+          ms: this._now() - startedAt,
+        });
+      } else {
+        // The registry REJECTED the completion — the lease expired mid-run (the
+        // task outran its TTL without renewing), so a peer may already own it.
+        // Reporting `task:completed` + bumping the completed counter here would
+        // be a phantom success (the registry has no record of it, and the task
+        // will be reclaimed and re-run). Surface the discard honestly instead so
+        // the event stream and per-teammate stats stay truthful.
+        this._emit("task:completion-discarded", {
+          key,
+          holder,
+          reason: done.reason,
+          ms: this._now() - startedAt,
+        });
+      }
     } catch (err) {
       // A failed task still consumed a task-count slot (and any wall-clock) — fold
       // it so a doomed retry loop can't dodge the budget.
