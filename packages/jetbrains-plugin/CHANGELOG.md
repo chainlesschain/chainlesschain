@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.42] — feat: status-bar widget shows bridge state + approval mode
+
+- **A status-bar widget now shows the IDE bridge at a glance** (VS Code
+  status-bar parity): `CC :<port>` while the MCP bridge is running, `CC off`
+  when it's down — hover for the endpoint, click for the status dialog.
+- **The chat's approval mode is finally visible outside the panel:** the widget
+  appends `✓auto` (accept edits) or `⚠bypass` (skip all approvals) so an
+  elevated mode set via `/auto` · `/bypass` can't go unnoticed; the normal mode
+  stays quiet. It updates live on mode changes and when switching conversation
+  tabs (tabs can differ in mode).
+
 ## [0.4.41] — feat: offer @folder/ completions in the chat @-mention dropdown
 
 - **The chat `@`-mention dropdown now offers workspace folders, not just files**

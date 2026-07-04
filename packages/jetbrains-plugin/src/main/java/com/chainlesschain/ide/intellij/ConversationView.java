@@ -480,16 +480,19 @@ final class ConversationView {
             case "/auto":
                 conv.mode = "acceptEdits";
                 restartForModeChange();
+                BridgeStatusBarWidgetFactory.refresh(project);
                 append("ℹ approval mode → auto (accept edits) — next message applies\n");
                 return;
             case "/bypass":
                 conv.mode = "bypassPermissions";
                 restartForModeChange();
+                BridgeStatusBarWidgetFactory.refresh(project);
                 append("ℹ approval mode → bypass (skip all approvals) — next message applies\n");
                 return;
             case "/normal":
                 conv.mode = "default";
                 restartForModeChange();
+                BridgeStatusBarWidgetFactory.refresh(project);
                 append("ℹ approval mode → normal — next message applies\n");
                 return;
             case "/think":

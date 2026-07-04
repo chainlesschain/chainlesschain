@@ -63,6 +63,7 @@ public final class IdeBridgeService implements Disposable {
             // off the EDT, so the first chat spawn can inject its endpoint as
             // server `idea`. No-op when unsupported / disabled.
             com.chainlesschain.ide.JetbrainsMcpLocator.refreshAsync();
+            BridgeStatusBarWidgetFactory.refresh(project);
         } catch (Exception e) {
             LOG.warn("ChainlessChain IDE bridge failed to start: " + e.getMessage(), e);
             stop();
@@ -78,6 +79,7 @@ public final class IdeBridgeService implements Disposable {
             server.stop();
             server = null;
         }
+        BridgeStatusBarWidgetFactory.refresh(project);
     }
 
     public synchronized void restart() {

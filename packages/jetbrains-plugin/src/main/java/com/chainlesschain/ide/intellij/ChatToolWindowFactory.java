@@ -61,6 +61,17 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
     /** Per-project live panel, so IDE actions (new / reopen) can reach it. */
     private static final Map<Project, ChatPanel> REGISTRY = new WeakHashMap<Project, ChatPanel>();
 
+    /**
+     * The active conversation's approval mode — feeds the status-bar widget.
+     * "default" when the panel hasn't been opened yet (no elevated mode can be
+     * set without it).
+     */
+    static String activeModeFor(Project project) {
+        ChatPanel panel = REGISTRY.get(project);
+        ConversationManager.Conversation c = panel != null ? panel.conversations.active() : null;
+        return c != null ? c.mode : "default";
+    }
+
     /** Reveal the chat tool window and run {@code body} on its panel (creates it if needed). */
     static void onPanel(Project project, java.util.function.Consumer<ChatPanel> body) {
         ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
@@ -107,6 +118,8 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 if (i < 0 || i >= tabIds.size()) return;
                 String id = tabIds.get(i);
                 conversations.switchTo(id);
+                // Tabs can differ in approval mode — repaint the widget.
+                BridgeStatusBarWidgetFactory.refresh(project);
                 ConversationView v = views.get(id);
                 if (v != null) v.focusInput();
             });
@@ -167,6 +180,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             }
             if (select) {
                 conversations.switchTo(conv.id);
+                BridgeStatusBarWidgetFactory.refresh(project);
                 view.focusInput();
             }
         }
@@ -199,6 +213,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 tabs.setSelectedIndex(sel);
                 conversations.switchTo(activeId);
             }
+            BridgeStatusBarWidgetFactory.refresh(project);
             persistSessionIds();
         }
 

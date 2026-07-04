@@ -77,6 +77,27 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔌 Status-bar widget (0.4.42) — code-complete, NOT yet runIde-verified
+
+Always-visible status-bar widget: `CC :<port>` / `CC off` bridge state, plus the
+active conversation's approval mode (`✓auto` / `⚠bypass`; normal stays quiet) so
+an elevated mode can't go unnoticed (VS Code ui/status-bar.js parity — the
+`createStatusBar` + `createModeStatusBar` pair collapsed into one widget).
+
+- [x] **Pure layer** `StatusBarText` (label / modeSuffix / tooltip / modeLine).
+      **PureLogicSmokeMain 263 passed** (`javac --release 17`).
+- [x] **Glue wiring** — `BridgeStatusBarWidgetFactory` (`statusBarWidgetFactory`
+      EP, pull-model `TextPresentation`, click = status dialog); refresh hooks in
+      `IdeBridgeService.start/stop`, `ConversationView` `/auto·/bypass·/normal`,
+      and `ChatToolWindowFactory` tab create/switch/close
+      (`activeModeFor(project)` reads the active tab's mode). `gradlew
+      compileJava` clean against 2024.2.
+- [ ] **runIde GUI pass (GATE before publish)** — confirm the widget renders in
+      the status bar, shows the port after startup, flips to `⚠bypass` on
+      `/bypass`, reverts on `/normal`, follows tab switches, and the click
+      dialog opens. Per the dead-panel lesson this manual pass is required
+      before publishing 0.4.42.
+
 ## 🔌 `@folder/` completion — code-complete, NOT yet runIde-verified
 
 Offer ancestor directories (as `@folder/`) in the `@`-mention popup, ahead of

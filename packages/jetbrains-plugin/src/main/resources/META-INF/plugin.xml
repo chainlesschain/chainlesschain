@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.41</version>
+    <version>0.4.42</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -222,6 +222,8 @@
         <toolWindow id="ChainlessChain Preview" anchor="bottom" secondary="true"
                     icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.PreviewToolWindowFactory"/>
+        <statusBarWidgetFactory id="chainlesschain.ide.statusBar"
+                                implementation="com.chainlesschain.ide.intellij.BridgeStatusBarWidgetFactory"/>
         <intentionAction>
             <className>com.chainlesschain.ide.intellij.FixWithCcIntention</className>
             <category>ChainlessChain</category>

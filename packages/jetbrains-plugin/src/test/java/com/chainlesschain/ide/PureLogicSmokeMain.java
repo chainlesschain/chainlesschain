@@ -54,6 +54,7 @@ public final class PureLogicSmokeMain {
         transcriptCap();
         lockfilePrune();
         jetbrainsMcpProbe();
+        statusBarText();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -661,6 +662,34 @@ public final class PureLogicSmokeMain {
         check(TranscriptCap.DEFAULT_MAX_CHARS > 0, "default cap > 0");
         check(TranscriptCap.removeCount(TranscriptCap.DEFAULT_MAX_CHARS, -1, false,
                 TranscriptCap.DEFAULT_MAX_CHARS) == 0, "exactly default cap → 0");
+    }
+
+    private static void statusBarText() {
+        System.out.println("StatusBarText (status-bar widget label/tooltip)");
+
+        // Label: running + the three approval modes; stopped state.
+        eq(StatusBarText.label(63412, "default"), "CC :63412", "running default label");
+        eq(StatusBarText.label(63412, "acceptEdits"), "CC :63412 ✓auto", "auto label");
+        eq(StatusBarText.label(63412, "bypassPermissions"), "CC :63412 ⚠bypass", "bypass label");
+        eq(StatusBarText.label(-1, "default"), "CC off", "stopped label");
+        eq(StatusBarText.label(0, "default"), "CC off", "port 0 = stopped");
+        // A bridge-down widget still surfaces an elevated mode.
+        eq(StatusBarText.label(-1, "bypassPermissions"), "CC off ⚠bypass", "stopped + bypass label");
+
+        // Mode suffix: quiet for default AND for unknown/null (forward-compat).
+        eq(StatusBarText.modeSuffix("default"), "", "default = quiet");
+        eq(StatusBarText.modeSuffix(null), "", "null mode = quiet");
+        eq(StatusBarText.modeSuffix("plan"), "", "unknown mode = quiet");
+
+        // Tooltip: endpoint + mode line + click hint, in that order.
+        String tip = StatusBarText.tooltip(63412, "bypassPermissions");
+        check(tip.contains("127.0.0.1:63412"), "tooltip has endpoint");
+        check(tip.contains("BYPASSED"), "tooltip flags bypass loudly");
+        check(tip.contains("/normal"), "tooltip says how to restore");
+        check(tip.endsWith("Click for bridge status"), "tooltip click hint last");
+        String tipOff = StatusBarText.tooltip(-1, "default");
+        check(tipOff.contains("stopped"), "stopped tooltip says stopped");
+        check(tipOff.contains("每步确认"), "default tooltip describes normal mode");
     }
 
     private static void jetbrainsMcpProbe() {
