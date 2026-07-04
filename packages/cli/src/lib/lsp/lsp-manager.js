@@ -184,8 +184,21 @@ export class LSPManager {
       const log = this._crashLog.get(key) || [];
       log.push(this._now());
       this._crashLog.set(key, log);
+      // Drop this project's open docs AND their published-diagnostics
+      // bookkeeping. Leaving stale _diagMeta/_diagnostics behind makes the
+      // readiness waiters resolve on the PRE-CRASH publish — _waitForFirstPublish
+      // sees count>0 and returns immediately; waitForDiagnostics sees an old
+      // `at` and settles at once — so a query after a crash+restart returns
+      // stale results and races the fresh server's initial empty set, the very
+      // thing the publish-count machinery exists to prevent. (_openDocs keys are
+      // the raw file URI; _diagMeta/_diagnostics use the normalized key.)
       for (const [uri, meta] of this._openDocs) {
-        if (meta.root === projectRoot) this._openDocs.delete(uri);
+        if (meta.root === projectRoot) {
+          this._openDocs.delete(uri);
+          const nuri = normalizeUri(uri);
+          this._diagnostics.delete(nuri);
+          this._diagMeta.delete(nuri);
+        }
       }
     });
     await client.start();

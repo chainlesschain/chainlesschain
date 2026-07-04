@@ -251,6 +251,43 @@ describe("diagnostics", () => {
     expect(diags[0].message).toBe("boom");
     await mgr.disposeAll();
   });
+
+  it("clears stale diagnostics + readiness state when the server crashes", async () => {
+    const { pathToFileUri } = await import("../lsp-client.js");
+    const mgr = new LSPManager();
+    await mgr.ensureFor("/proj/src/a.ts");
+    lastClient.emit("notify:textDocument/publishDiagnostics", {
+      uri: pathToFileUri(path.resolve("/proj/src/a.ts")),
+      diagnostics: [
+        {
+          message: "boom",
+          severity: 1,
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 1 },
+          },
+        },
+      ],
+    });
+    expect(mgr.getDiagnostics("/proj/src/a.ts")).toHaveLength(1);
+
+    // Server crashes. Its diagnostics + publish bookkeeping must NOT survive —
+    // otherwise the readiness waiters resolve on the pre-crash publish and a
+    // post-restart query returns these stale results.
+    lastClient.running = false;
+    lastClient.emit("exit", 1, null);
+    expect(mgr.getDiagnostics("/proj/src/a.ts")).toEqual([]);
+
+    // A fresh query re-spawns the server; before it publishes, waitForDiagnostics
+    // must not hand back the stale set (returns empty within the timeout budget).
+    await mgr.ensureFor("/proj/src/a.ts");
+    const afterRestart = await mgr.waitForDiagnostics("/proj/src/a.ts", {
+      timeoutMs: 60,
+      settleMs: 20,
+    });
+    expect(afterRestart).toEqual([]);
+    await mgr.disposeAll();
+  });
 });
 
 describe("disposeAll", () => {
