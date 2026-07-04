@@ -2479,8 +2479,11 @@ async function executeToolInner(
             // Surface stdout too: a failing command (test runner / linter /
             // build) usually prints WHAT failed to stdout and only the summary
             // to stderr, so dropping it on non-zero exit blinds the agent to the
-            // actual failure. Mirrors the success + sandbox-error paths.
-            stdout: (err.stdout || "").substring(0, 30000),
+            // actual failure. Only attach it when there IS output (a timeout with
+            // no output keeps the field absent), mirroring the success path.
+            ...(err.stdout
+              ? { stdout: String(err.stdout).substring(0, 30000) }
+              : {}),
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
             shellCommandPolicy: shellPolicy,
