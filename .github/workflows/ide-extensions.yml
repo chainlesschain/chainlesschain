@@ -23,6 +23,15 @@ on:
       - "packages/jetbrains-plugin/**"
       - ".github/workflows/ide-extensions.yml"
   workflow_dispatch:
+    inputs:
+      publish_vscode_marketplace:
+        description: >-
+          Publish the packaged .vsix to the official VS Code Marketplace
+          (needs VSCE_PAT). Use to backfill a version already tagged +
+          published to Open VSX without retagging — the Open VSX step stays
+          tag-gated so it won't re-publish (a duplicate version would fail).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -66,18 +75,28 @@ jobs:
           npx --yes ovsx@latest create-namespace chainlesschain || true
           npx --yes ovsx@latest publish chainlesschain-ide.vsix
 
-      # Official VS Code Marketplace — optional; only if a VSCE_PAT secret exists
-      # (requires an Azure DevOps org, which needs an Azure subscription). Skips
-      # gracefully when the secret is absent so the tag-publish still succeeds.
+      # Official VS Code Marketplace — optional; needs a VSCE_PAT secret (an
+      # Azure DevOps PAT, org "All accessible organizations", scope
+      # Marketplace→Manage; the org itself is free) + the `chainlesschain`
+      # publisher on marketplace.visualstudio.com/manage. On a release tag a
+      # missing secret skips gracefully so the Open VSX publish still counts;
+      # an explicit workflow_dispatch backfill fails loudly instead.
       - name: Publish to VS Code Marketplace (optional)
-        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') ||
+          (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -z "$VSCE_PAT" ]; then
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::VSCE_PAT secret is not set — cannot publish to the official Marketplace."
+              exit 1
+            fi
             echo "::notice::VSCE_PAT not set — skipping official Marketplace (Open VSX already published)."
             exit 0
           fi
+          npx --yes @vscode/vsce@latest verify-pat chainlesschain -p "$VSCE_PAT"
           npx --yes @vscode/vsce@latest publish --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
 
   jetbrains:
