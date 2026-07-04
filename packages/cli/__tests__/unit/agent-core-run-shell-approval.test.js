@@ -72,4 +72,20 @@ describe("agent-core run_shell + ApprovalGate", () => {
     expect(res.approval).toBeFalsy();
     expect(typeof res.stdout).toBe("string");
   });
+
+  it("failed command surfaces stdout so the agent sees the failure output", async () => {
+    // Test runners / linters / build tools print WHAT failed to stdout and only
+    // a one-line summary to stderr, then exit non-zero. If the foreground error
+    // path drops err.stdout the agent is blind to its primary failure signal.
+    const res = await executeTool(
+      "run_shell",
+      {
+        command: `node -e "console.log('OUT-MARKER'); process.exit(3)"`,
+      },
+      {},
+    );
+    expect(res.exitCode).toBe(3);
+    expect(typeof res.stdout).toBe("string");
+    expect(res.stdout).toContain("OUT-MARKER");
+  });
 });

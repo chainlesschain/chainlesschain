@@ -2463,6 +2463,11 @@ async function executeToolInner(
         return attachDescriptor(
           {
             error: err.message.substring(0, 2000),
+            // Surface stdout too: a failing command (test runner / linter /
+            // build) usually prints WHAT failed to stdout and only the summary
+            // to stderr, so dropping it on non-zero exit blinds the agent to the
+            // actual failure. Mirrors the success + sandbox-error paths.
+            stdout: (err.stdout || "").substring(0, 30000),
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
             shellCommandPolicy: shellPolicy,
