@@ -29,10 +29,7 @@
         title="进行中的传输"
         class="active-transfers-card"
       >
-        <a-list
-          :data-source="activeTransfers"
-          :loading="loading"
-        >
+        <a-list :data-source="activeTransfers" :loading="loading">
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -77,24 +74,23 @@
                   <div class="transfer-info">
                     <span>{{ formatFileSize(item.fileSize) }}</span>
                     <a-divider type="vertical" />
-                    <span>{{
-                      item.direction === "outgoing" ? "发送至" : "接收自"
-                    }}: {{ item.peerName }}</span>
+                    <span
+                      >{{
+                        item.direction === "outgoing" ? "发送至" : "接收自"
+                      }}: {{ item.peerName }}</span
+                    >
                     <a-divider type="vertical" />
                     <span>{{ formatRelativeTime(item.timestamp) }}</span>
                   </div>
                   <a-progress
                     v-if="
                       item.status === 'uploading' ||
-                        item.status === 'downloading'
+                      item.status === 'downloading'
                     "
                     :percent="item.progress"
                     :status="item.status === 'error' ? 'exception' : 'active'"
                   />
-                  <div
-                    v-if="item.speed"
-                    class="transfer-speed"
-                  >
+                  <div v-if="item.speed" class="transfer-speed">
                     速度: {{ formatSpeed(item.speed) }}
                   </div>
                 </template>
@@ -105,10 +101,7 @@
       </a-card>
 
       <!-- Transfer History -->
-      <a-card
-        title="传输历史"
-        class="history-card"
-      >
+      <a-card title="传输历史" class="history-card">
         <template #extra>
           <a-space>
             <a-select
@@ -116,20 +109,11 @@
               style="width: 120px"
               @change="handleFilterChange"
             >
-              <a-select-option value="all">
-                全部
-              </a-select-option>
-              <a-select-option value="outgoing">
-                发送的
-              </a-select-option>
-              <a-select-option value="incoming">
-                接收的
-              </a-select-option>
+              <a-select-option value="all"> 全部 </a-select-option>
+              <a-select-option value="outgoing"> 发送的 </a-select-option>
+              <a-select-option value="incoming"> 接收的 </a-select-option>
             </a-select>
-            <a-button
-              size="small"
-              @click="handleClearHistory"
-            >
+            <a-button size="small" @click="handleClearHistory">
               <DeleteOutlined />
               清空历史
             </a-button>
@@ -178,7 +162,7 @@
                 <a-button
                   v-if="
                     record.status === 'completed' &&
-                      record.direction === 'incoming'
+                    record.direction === 'incoming'
                   "
                   size="small"
                   @click="handleOpenFile(record)"
@@ -194,11 +178,7 @@
                   <RedoOutlined />
                   重新发送
                 </a-button>
-                <a-button
-                  size="small"
-                  danger
-                  @click="handleDelete(record)"
-                >
+                <a-button size="small" danger @click="handleDelete(record)">
                   <DeleteOutlined />
                   删除
                 </a-button>
@@ -224,6 +204,14 @@ import {
   DeleteOutlined,
   RedoOutlined,
 } from "@ant-design/icons-vue";
+import {
+  getStatusColor,
+  getStatusText,
+  formatFileSize,
+  formatSpeed,
+  formatRelativeTime,
+  formatDateTime,
+} from "./fileTransferPageUtils";
 
 export default {
   name: "FileTransferPage",
@@ -472,63 +460,6 @@ export default {
 
     const handleFilterChange = () => {
       // Filter is handled by computed property
-    };
-
-    const getStatusColor = (status) => {
-      const colorMap = {
-        pending: "default",
-        uploading: "blue",
-        downloading: "blue",
-        completed: "success",
-        error: "error",
-        cancelled: "warning",
-      };
-      return colorMap[status] || "default";
-    };
-
-    const getStatusText = (status) => {
-      const textMap = {
-        pending: "等待中",
-        uploading: "发送中",
-        downloading: "接收中",
-        completed: "已完成",
-        error: "失败",
-        cancelled: "已取消",
-      };
-      return textMap[status] || status;
-    };
-
-    const formatFileSize = (bytes) => {
-      if (bytes === 0) {
-        return "0 B";
-      }
-      const k = 1024;
-      const sizes = ["B", "KB", "MB", "GB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-    };
-
-    const formatSpeed = (bytesPerSecond) => {
-      return formatFileSize(bytesPerSecond) + "/s";
-    };
-
-    const formatRelativeTime = (timestamp) => {
-      const now = Date.now();
-      const diff = now - timestamp;
-      const seconds = Math.floor(diff / 1000);
-      const minutes = Math.floor(seconds / 60);
-
-      if (seconds < 60) {
-        return "刚刚";
-      }
-      if (minutes < 60) {
-        return `${minutes}分钟前`;
-      }
-      return formatDateTime(timestamp);
-    };
-
-    const formatDateTime = (timestamp) => {
-      return new Date(timestamp).toLocaleString("zh-CN");
     };
 
     const loadTransfers = async () => {

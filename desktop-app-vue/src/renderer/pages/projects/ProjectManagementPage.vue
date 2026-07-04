@@ -312,6 +312,14 @@ import {
   ExportOutlined,
   EyeOutlined,
 } from "@ant-design/icons-vue";
+import {
+  getProjectTypeLabel,
+  getProjectTypeColor,
+  getStatusLabel,
+  getStatusColor,
+  formatFileSize,
+  formatDateTime,
+} from "./projectManagementPageUtils";
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -435,74 +443,6 @@ const rowSelection = computed(() => ({
 }));
 
 // 辅助函数
-const getProjectTypeLabel = (type) => {
-  const map = {
-    web: "网页",
-    document: "文档",
-    data: "数据",
-    app: "应用",
-    presentation: "演示",
-    spreadsheet: "表格",
-  };
-  return map[type] || type;
-};
-
-const getProjectTypeColor = (type) => {
-  const map = {
-    web: "blue",
-    document: "green",
-    data: "orange",
-    app: "purple",
-    presentation: "cyan",
-    spreadsheet: "magenta",
-  };
-  return map[type] || "default";
-};
-
-const getStatusLabel = (status) => {
-  const map = {
-    draft: "草稿",
-    active: "活跃",
-    completed: "已完成",
-    archived: "已归档",
-  };
-  return map[status] || status;
-};
-
-const getStatusColor = (status) => {
-  const map = {
-    draft: "default",
-    active: "success",
-    completed: "processing",
-    archived: "warning",
-  };
-  return map[status] || "default";
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) {
-    return "0 B";
-  }
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
-const formatDateTime = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 // 事件处理
 const handleSearch = () => {
   projectStore.setFilter("searchKeyword", searchKeyword.value);
