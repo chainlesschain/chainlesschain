@@ -1,7 +1,9 @@
 /**
- * Panel event mapping: `ask_user_question` degrades gracefully in the chat panel
- * (no interactive Q&A round-trip yet) — the CLI returns {error:"user_not_reachable"}
- * and the model proceeds. That benign degradation must NOT render as a red
+ * Panel event mapping: `ask_user_question` normally round-trips through the
+ * in-panel question card, but degrades gracefully when that path is unavailable
+ * (old `cc` ignoring CC_INTERACTIVE_QUESTIONS, or the user never answers) — the
+ * CLI returns {error:"user_not_reachable"} / {error:"user_timeout"} and the
+ * model proceeds. That benign degradation must NOT render as a red
  * "✗ … failed"; it should be a quiet note. Regression guard for the user-reported
  * scary "ask_user_question failed" line.
  */

@@ -163,6 +163,9 @@ function buildChatHtml({ cspSource, nonce }) {
   let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
   let thinkingBody = null; // the body inside it where deltas are appended
   let lastSentText = ""; // last user prompt, for /retry (regenerate)
+  let turnTokens = null; // live per-turn token tally from token_usage events
+  const tokfmt = (n) =>
+    n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n);
   // Cap the live transcript so a long session can't grow #log (and each tab's
   // detached buffer) without bound. The webview is purely a view — conversation
   // state for resume lives in the CLI — so dropping the oldest rendered nodes
@@ -495,6 +498,7 @@ function buildChatHtml({ cspSource, nonce }) {
       images.length ? { type: "send", text, images } : { type: "send", text },
     );
     input.value = "";
+    turnTokens = null; // fresh tally for the new turn
     status.textContent = "thinking…";
   }
   document.getElementById("send").addEventListener("click", send);
@@ -785,9 +789,25 @@ function buildChatHtml({ cspSource, nonce }) {
         streamEl = null;
         closeThinking(); // tuck the reasoning away now that the answer is in
         status.textContent = m.usage
-          ? "ready · " + (m.usage.input_tokens||0) + "→" + (m.usage.output_tokens||0) + " tokens"
+          ? "ready · " + tokfmt(m.usage.input_tokens||0) + "→" + tokfmt(m.usage.output_tokens||0) + " tokens"
           : "ready";
+        turnTokens = null;
         break;
+      case "usage": {
+        // Live per-turn token tally: token_usage fires once per LLM call while
+        // the agent works; accumulate and show on the status line. turn_end
+        // overwrites this with the authoritative turn total.
+        const u = m.usage || {};
+        if (!turnTokens) turnTokens = { inp: 0, out: 0, cached: 0 };
+        turnTokens.inp += u.input_tokens || 0;
+        turnTokens.out += u.output_tokens || 0;
+        turnTokens.cached += u.cache_read_input_tokens || 0;
+        status.textContent =
+          "thinking… · " + tokfmt(turnTokens.inp) + "→" + tokfmt(turnTokens.out) +
+          " tokens" +
+          (turnTokens.cached ? " (" + tokfmt(turnTokens.cached) + " cached)" : "");
+        break;
+      }
       case "ctxStatus": {
         // Persistent context-window indicator (Claude-Code parity); refreshed
         // after each turn from cc context --json (authoritative window math).

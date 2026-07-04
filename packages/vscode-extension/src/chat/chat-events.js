@@ -75,10 +75,13 @@ function mapAgentEvent(evt, state) {
         summary: summarizeToolArgs(evt.args),
       };
     case "tool_result": {
-      // `ask_user_question` has no interactive round-trip in the panel yet, so it
-      // degrades gracefully: the handler returns {error:"user_not_reachable"} (or
-      // "user_timeout") and the model proceeds autonomously. That is NOT a tool
-      // failure — don't paint a scary red "✗ … failed"; surface a quiet note.
+      // `ask_user_question` normally round-trips through the in-panel question
+      // card (question_request below; the panel always opts in via
+      // CC_INTERACTIVE_QUESTIONS=1). An old `cc` that ignores the env var — or a
+      // question the user never answers — degrades gracefully instead: the
+      // handler returns {error:"user_not_reachable"} (or "user_timeout") and the
+      // model proceeds autonomously. That is NOT a tool failure — don't paint a
+      // scary red "✗ … failed"; surface a quiet note.
       const errText =
         typeof evt.error === "string"
           ? evt.error
@@ -107,7 +110,12 @@ function mapAgentEvent(evt, state) {
       const sawDelta = state.sawDelta;
       state.sawDelta = false; // reset for the next turn
       if (evt.subtype === "interrupted" || evt.interrupted === true) {
-        return { kind: "turn_end", isError: false, text: "⏹ interrupted", usage: null };
+        return {
+          kind: "turn_end",
+          isError: false,
+          text: "⏹ interrupted",
+          usage: null,
+        };
       }
       return {
         kind: "turn_end",
@@ -168,10 +176,22 @@ function mapAgentEvent(evt, state) {
       };
     case "session_error":
       return { kind: "error", text: evt.error || "agent session error" };
+    case "token_usage":
+      // Per-LLM-call usage mid-turn — the webview accumulates these into a live
+      // token counter on the status line (turn_end still carries the
+      // authoritative turn total from the result envelope).
+      return evt.usage && typeof evt.usage === "object"
+        ? { kind: "usage", usage: evt.usage }
+        : null;
+    case "iteration_warning":
+      return {
+        kind: "info",
+        text: "⚠ " + (evt.message || "approaching the iteration limit"),
+      };
     case "raw":
       return { kind: "info", text: evt.text };
     default:
-      return null; // token_usage, iteration_warning, … — UI-silent for now
+      return null; // iteration_budget_exhausted, … — UI-silent for now
   }
 }
 
@@ -222,7 +242,10 @@ function readCcLlmConfig() {
  * volcengine. Pinning the config value makes the panel deterministically match
  * `cc config`. `readConfig` is injectable for tests.
  */
-function resolveChatLlm({ provider, model } = {}, readConfig = readCcLlmConfig) {
+function resolveChatLlm(
+  { provider, model } = {},
+  readConfig = readCcLlmConfig,
+) {
   const llm = readConfig() || {};
   let p = typeof provider === "string" ? provider.trim() : "";
   let m = typeof model === "string" ? model.trim() : "";

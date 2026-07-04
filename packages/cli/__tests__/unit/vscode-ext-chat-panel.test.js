@@ -103,7 +103,14 @@ describe("mapAgentEvent", () => {
     expect(
       mapAgentEvent({ type: "session_error", error: "no cc" }, st),
     ).toEqual({ kind: "error", text: "no cc" });
-    expect(mapAgentEvent({ type: "token_usage", usage: {} }, st)).toBe(null);
+    // token_usage now feeds the live status-line tally (was UI-silent).
+    expect(mapAgentEvent({ type: "token_usage", usage: {} }, st)).toEqual({
+      kind: "usage",
+      usage: {},
+    });
+    expect(
+      mapAgentEvent({ type: "iteration_budget_exhausted", budget: 25 }, st),
+    ).toBe(null);
     expect(mapAgentEvent(null, st)).toBe(null);
   });
 
