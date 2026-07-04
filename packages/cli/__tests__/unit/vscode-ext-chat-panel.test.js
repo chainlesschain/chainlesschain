@@ -278,19 +278,26 @@ describe("AgentChatSession (real child process)", () => {
       deps: { spawn: () => realSpawn(process.execPath, ["-e", SCRIPT]) },
     }).start();
 
-    await vi.waitFor(() =>
-      expect(events.some((e) => e.subtype === "init")).toBe(true),
+    // waitFor's default 1s timeout expires before a node child can even boot
+    // when the box is loaded (trap #31: readiness budgets vs cold start under
+    // load — seen live at 100% CPU from parallel test runs). Budget each wait
+    // from the test's own 20s ceiling instead.
+    const WAIT = { timeout: 15000 };
+    await vi.waitFor(
+      () => expect(events.some((e) => e.subtype === "init")).toBe(true),
+      WAIT,
     );
     expect(s.send("ping")).toBe(true);
-    await vi.waitFor(() =>
-      expect(events.some((e) => e.type === "result")).toBe(true),
+    await vi.waitFor(
+      () => expect(events.some((e) => e.type === "result")).toBe(true),
+      WAIT,
     );
     const result = events.find((e) => e.type === "result");
     expect(result.result).toBe("echo:ping");
     s.end(); // graceful: close stdin → child exits 0
-    await vi.waitFor(() => expect(exited).not.toBe(null));
+    await vi.waitFor(() => expect(exited).not.toBe(null), WAIT);
     expect(exited.code).toBe(0);
-  }, 20000);
+  }, 60000);
 });
 
 // ─── webview html smoke ──────────────────────────────────────────────────────

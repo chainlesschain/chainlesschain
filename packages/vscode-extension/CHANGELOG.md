@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.2] — feat: live token tally + iteration warnings in the chat panel
+
+- **Live token counter while the agent works.** Each LLM call's usage now
+  accumulates into the status line — `thinking… · 12.3k→456 tokens (900
+  cached)` — instead of being invisible until the turn ends; the final
+  `ready · in→out tokens` line uses the same compact formatting.
+- **Iteration-budget warnings are visible.** When a turn approaches its
+  iteration limit the CLI's warning now renders as a `⚠` line in the
+  transcript instead of being silently dropped.
+
 ## [0.37.1] — chore: maintenance republish
 
 - No functional changes since `0.37.0`. Version bumped to re-run the
