@@ -16,6 +16,12 @@
 - **Phase 1 沙箱出口过滤代理**：把网络域名策略从「判定」变「强制」——本地转发代理对每个 HTTP/HTTPS CONNECT 调 `evaluateNetworkAccess`，拒绝 host 403（含 SSRF/私网/metadata 拦截），沙箱进程 `HTTP(S)_PROXY` 指向它；无代理 fail-closed。
 - **Phase 5 远控幂等**：`RemoteCommandLedger` 接进 `cc serve` 活 WS 路径——断线重投按 commandId at-most-once、全序、撤销设备拒绝执行。
 
+#### Tests — 修复 remote-session-crypto 篡改测试的不确定性（CLI CI flaky，非产品 bug）
+
+> 纯测试改动，未触 `packages/cli/src`：无版本 bump / 无 npm 发版。`packages/cli` 三层测试本机全绿（unit 21,357 / integration 954 / e2e 617）。
+
+- **`remote-session-crypto.test.js` 「rejects ciphertext tampering」flaky（~6%/run）**：测试篡改密文的 base64url 串（`ciphertext.slice(0,-1)+"A"`）。密文 41 字节（≡2 mod 3）时 base64url 末字符只承载 4 有效 bit + 2 padding bit，末字符恰解码为 nibble 0 时替换成 `"A"` 是 no-op（1/16≈6.25%）→ 密文未变 → AES-GCM 验签仍通过 → `toThrow` 不成立（实测备选修法 `A→B` 同样 6.19% no-op，只翻 padding bit）。改为篡改解码后的字节（`raw[0]^=0xff`），确定性（10 万次随机密文 0% no-op）；crypto 实现无问题，未改源码。
+
 ## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
 
 > `chainlesschain` **0.162.148** 已发 npm `latest`，本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`）一起送达真机用户。

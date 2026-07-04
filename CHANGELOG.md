@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests — 修复 remote-session-crypto 篡改测试的不确定性（CLI CI flaky，非产品 bug）
+
+> 纯测试改动，未触 `packages/cli/src` → 无版本 bump / 无 npm 发版 / 无 doc 版本指针变化；`packages/cli` 三层测试本机全绿（unit 21,357 / integration 954 / e2e 617）。commit `383435582c`。
+
+- **`remote-session-crypto.test.js` 「rejects ciphertext tampering」flaky（~6%/run）**：该测试篡改密文的 base64url 串（`ciphertext.slice(0,-1)+"A"`）。密文为 41 字节（≡2 mod 3），base64url 末字符只承载 4 个有效 bit + 2 个 padding bit，故末字符必 ∈ `{A,E,I,M,Q,U,Y,c,g,k,o,s,w,0,4,8}`（低 2 bit 恒 0）；当末字符恰解码为 nibble 0 时替换成 `"A"` 是 no-op（1/16≈6.25%）→ 密文未变 → AES-GCM 验签仍通过 → `toThrow` 不成立。**实测此前备选修法 `last==="A"?"B":"A"` 同样有 6.19% no-op（`A→B` 只翻被丢弃的 padding bit）**。改为篡改解码后的字节（`Buffer.from(ct,"base64url")` → `raw[0]^=0xff` → 重编码），确定性（10 万次随机密文实测 0% no-op）；crypto 实现本身无问题，未改源码。
+
 ## [v5.0.3.134] - 2026-07-03 — CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）
 
 > **发版资产（GitHub Release `v5.0.3.134`，18 个，全 `uploaded`）**：Android — arm64-v8a APK 276MB / armeabi-v7a APK 236MB / universal APK 304MB / AAB 236MB（均含 cc-cli.tgz 20260703 bundle，build-android 硬 gate 校验）；Windows — Setup .exe 471MB / Portable .exe 470MB（+ blockmap）；macOS — arm64 .dmg 488MB / intel .dmg 493MB（+ blockmap）；Linux — AppImage 695MB / rpm 360MB / deb 358MB；iOS — ChainlessChain.ipa 8MB（ad-hoc 签名）；electron-updater 元数据 — latest.yml / latest-mac.yml / latest-linux.yml。
@@ -87,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - HTTP+SSE 与 stdio 两个 MCP 传输用 `!message.id && message.method` 分配请求 id，falsy 检查把合法的 JSON-RPC `id=0`（及空串 id）当作缺失并重新分配 → 服务端按原 `id=0` 回包永远匹配不到被改写的 pending id，响应被孤立直至超时。抽出共享 `needsRequestId()`（用 `message.id == null`，仅 null/undefined 视为缺失）供两传输复用。当前潜在（传输自分配 id 从 1 起、无调用方传 id=0），但传输契约是承载任意 JSON-RPC。
 
-## [v5.0.3.133] - 2026-06-28 — 微博私信采集（message_<uid>.db，device-verified schema，高敏感 opt-in）
+## [v5.0.3.133] - 2026-06-28 — 微博私信采集（message\_<uid>.db，device-verified schema，高敏感 opt-in）
 
 ### Added — `social-weibo` 私信采集（v0.8.0，全平台上船）
 
