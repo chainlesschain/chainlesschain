@@ -20,10 +20,7 @@
       </template>
 
       <!-- 筛选器 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -43,24 +40,12 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value="">
-                全部
-              </a-radio-button>
-              <a-radio-button value="pending">
-                待处理
-              </a-radio-button>
-              <a-radio-button value="escrowed">
-                托管中
-              </a-radio-button>
-              <a-radio-button value="completed">
-                已完成
-              </a-radio-button>
-              <a-radio-button value="cancelled">
-                已取消
-              </a-radio-button>
-              <a-radio-button value="disputed">
-                有争议
-              </a-radio-button>
+              <a-radio-button value=""> 全部 </a-radio-button>
+              <a-radio-button value="pending"> 待处理 </a-radio-button>
+              <a-radio-button value="escrowed"> 托管中 </a-radio-button>
+              <a-radio-button value="completed"> 已完成 </a-radio-button>
+              <a-radio-button value="cancelled"> 已取消 </a-radio-button>
+              <a-radio-button value="disputed"> 有争议 </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -78,10 +63,7 @@
           <!-- 交易ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text
-                copyable
-                :ellipsis="{ tooltip: record.id }"
-              >
+              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -100,10 +82,7 @@
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text copyable>
                   {{ formatDid(record.buyer_did) }}
                 </a-typography-text>
@@ -119,10 +98,7 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text copyable>
                   {{ formatDid(record.seller_did) }}
                 </a-typography-text>
@@ -142,9 +118,7 @@
                 <div class="amount">
                   {{ formatAmount(record.payment_amount) }}
                 </div>
-                <div class="quantity">
-                  x {{ record.quantity }}
-                </div>
+                <div class="quantity">x {{ record.quantity }}</div>
               </div>
             </template>
 
@@ -223,6 +197,14 @@ import {
 } from "@ant-design/icons-vue";
 import { useTradeStore } from "../../stores/trade";
 import StatusBadge from "./common/StatusBadge.vue";
+import {
+  formatId,
+  formatDid,
+  formatAmount,
+  formatTime,
+  formatFullTime,
+  getStatusText,
+} from "./transactionListUtils";
 
 // Store
 const tradeStore = useTradeStore();
@@ -325,81 +307,6 @@ const columns = [
 
 // 工具函数
 
-// 格式化 ID
-const formatId = (id) => {
-  if (!id) {
-    return "-";
-  }
-  return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
-};
-
-// 格式化 DID
-const formatDid = (did) => {
-  if (!did) {
-    return "-";
-  }
-  return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
-};
-
-// 格式化金额
-const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {
-    return "0";
-  }
-  const num = parseFloat(amount);
-  if (isNaN(num)) {
-    return "0";
-  }
-  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 24小时内显示相对时间
-  if (diff < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-
-    if (hours > 0) {
-      return `${hours}小时前`;
-    } else if (minutes > 0) {
-      return `${minutes}分钟前`;
-    } else {
-      return "刚刚";
-    }
-  }
-
-  // 超过24小时显示日期
-  return date.toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
-
-// 格式化完整时间
-const formatFullTime = (timestamp) => {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
 // 判断是否为当前用户
 const isCurrentUser = (did) => {
   return currentUserDid.value && did === currentUserDid.value;
@@ -488,19 +395,6 @@ const handleViewDetail = (transaction) => {
     ]),
     okText: "关闭",
   });
-};
-
-// 获取状态文本
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: "待处理",
-    escrowed: "托管中",
-    completed: "已完成",
-    refunded: "已退款",
-    cancelled: "已取消",
-    disputed: "争议中",
-  };
-  return statusMap[status] || status;
 };
 
 // 确认收货

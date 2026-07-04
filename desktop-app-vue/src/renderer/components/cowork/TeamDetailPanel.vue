@@ -264,10 +264,17 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
-import { format } from "date-fns";
 import { useCoworkStore } from "../../stores/cowork";
 import { h } from "vue";
 import { createLogger } from "@/utils/logger";
+import {
+  getStatusColor,
+  getStatusText,
+  getRoleText,
+  getTaskStatusColor,
+  getTaskStatusText,
+  formatDateTime,
+} from "./teamDetailPanelUtils";
 
 const teamLogger = createLogger("team-detail");
 const store = useCoworkStore();
@@ -480,75 +487,6 @@ function handleDestroyTeam() {
       }
     },
   });
-}
-
-// ==========================================
-// 辅助函数
-// ==========================================
-
-function getStatusColor(status) {
-  const colors = {
-    active: "green",
-    paused: "orange",
-    completed: "blue",
-    failed: "red",
-    destroyed: "default",
-  };
-  return colors[status] || "default";
-}
-
-function getStatusText(status) {
-  const texts = {
-    active: "活跃",
-    paused: "暂停",
-    completed: "已完成",
-    failed: "失败",
-    destroyed: "已销毁",
-  };
-  return texts[status] || status;
-}
-
-function getRoleText(role) {
-  const texts = {
-    leader: "领导者",
-    member: "成员",
-  };
-  return texts[role] || role;
-}
-
-function getTaskStatusColor(status) {
-  const colors = {
-    pending: "default",
-    running: "processing",
-    completed: "success",
-    failed: "error",
-    cancelled: "default",
-  };
-  return colors[status] || "default";
-}
-
-function getTaskStatusText(status) {
-  const texts = {
-    pending: "待处理",
-    running: "运行中",
-    paused: "已暂停",
-    completed: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
-  };
-  return texts[status] || status;
-}
-
-function formatDateTime(timestamp) {
-  if (!timestamp) {
-    return "-";
-  }
-
-  try {
-    return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");
-  } catch (_error) {
-    return "-";
-  }
 }
 </script>
 
