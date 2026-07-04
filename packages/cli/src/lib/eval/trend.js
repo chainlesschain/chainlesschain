@@ -16,9 +16,24 @@
 /** Normalize one `cc eval` summary into a compact trend record. */
 export function summarizeRun(record, { ranAt = null, label = null } = {}) {
   const results = Array.isArray(record?.results) ? record.results : [];
-  const perTask = {};
+  let perTask = {};
   for (const r of results) {
     if (r && r.id != null) perTask[r.id] = r.pass === true;
+  }
+  // Idempotency: an already-summarized record carries `perTask` but NO
+  // `results` (that's exactly this function's own output shape). computeTrend
+  // documents "already-summarized" records as valid input and re-runs every
+  // record through summarizeRun — so if we always rebuilt perTask from
+  // `results` alone, a summarized record would come back with an EMPTY perTask,
+  // silently erasing every per-task regression/fix/drop and making the release
+  // gate report "no regression" when there was one. Preserve the record's own
+  // perTask when it has no results to derive from.
+  if (
+    results.length === 0 &&
+    record?.perTask &&
+    typeof record.perTask === "object"
+  ) {
+    perTask = { ...record.perTask };
   }
   const total = Number.isFinite(record?.total) ? record.total : results.length;
   const passed = Number.isFinite(record?.passed)

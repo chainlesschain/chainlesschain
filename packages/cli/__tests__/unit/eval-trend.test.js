@@ -29,6 +29,25 @@ describe("summarizeRun", () => {
     expect(s.total).toBe(2);
     expect(s.passRate).toBe(0.5);
   });
+
+  it("is idempotent: re-summarizing a summarized record keeps perTask", () => {
+    // computeTrend documents "already-summarized" records as valid input, and
+    // its own output carries `perTask` but no `results`. Re-summarizing must
+    // NOT drop the per-task map (else the release gate silently sees zero
+    // regressions).
+    const once = summarizeRun(
+      run("2026-07-01", [
+        ["a", true],
+        ["b", false],
+      ]),
+    );
+    expect(once.results).toBeUndefined(); // summarized shape has no results
+    const twice = summarizeRun(once);
+    expect(twice.perTask).toEqual({ a: true, b: false });
+    expect(twice.passed).toBe(1);
+    expect(twice.total).toBe(2);
+    expect(twice.passRate).toBe(0.5);
+  });
 });
 
 describe("computeTrend", () => {
@@ -155,6 +174,28 @@ describe("computeTrend", () => {
     expect(t.runs).toBe(0);
     expect(t.regressed).toBe(false);
     expect(t.direction).toBe("n/a");
+  });
+
+  it("detects a regression from ALREADY-SUMMARIZED records (gate not false-negative)", () => {
+    // Pre-summarize the runs (the documented "already-summarized" input path)
+    // and feed those to computeTrend. Before the summarizeRun idempotency fix,
+    // re-summarizing dropped perTask → no regression detected → gate wrongly
+    // passed. 'a' passed then failed, so the gate MUST trip.
+    const prev = summarizeRun(
+      run("2026-07-01", [
+        ["a", true],
+        ["b", true],
+      ]),
+    );
+    const latest = summarizeRun(
+      run("2026-07-02", [
+        ["a", false],
+        ["b", true],
+      ]),
+    );
+    const t = computeTrend([prev, latest]);
+    expect(t.regressions).toEqual(["a"]);
+    expect(t.regressed).toBe(true);
   });
 });
 
