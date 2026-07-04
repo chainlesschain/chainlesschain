@@ -1,0 +1,32 @@
+# ChainlessChain — 文档站部署配置模板
+#
+# 用法：
+#   cp deploy/docs-deploy.config.sh.example deploy/docs-deploy.config.sh
+#   然后填入下面的真实值。真实文件 deploy/docs-deploy.config.sh 已被 .gitignore 忽略，
+#   不会入库（含服务器地址/路径）。密钥优先用 SSH key，不要把密码写进这里。
+
+# ==================== SSH 连接（全站共用，除非下方按站覆盖）====================
+DEPLOY_SSH_USER="root"
+DEPLOY_SSH_HOST="your.server.ip.or.host"   # 例如 1.2.3.4 或 deploy.example.com
+DEPLOY_SSH_PORT="22"
+DEPLOY_SSH_KEY=""                          # 可选，SSH 私钥路径，如 ~/.ssh/id_ed25519（留空则用 ssh 默认）
+
+# ==================== 各站 web root（nginx document root）====================
+# 下面是宝塔（BT panel）默认站点目录写法，按你的实际路径改。
+DEPLOY_WEBROOT_docs="/www/wwwroot/docs.chainlesschain.com"
+DEPLOY_WEBROOT_design="/www/wwwroot/design.chainlesschain.com"
+DEPLOY_WEBROOT_www="/www/wwwroot/www.chainlesschain.com"
+
+# ==================== 可选：按站覆盖服务器（若三站不在同一台机）====================
+# DEPLOY_SSH_HOST_www="another.server.ip"
+# DEPLOY_SSH_HOST_design="another.server.ip"
+
+# ==================== 服务器端保留的时间戳备份份数（更旧的自动清理）====================
+DEPLOY_KEEP_BACKUPS="5"
+
+# ==================== 截断渲染守卫：最小有效 HTML 页数 ====================
+# 构建后若渲染出的 HTML 页数低于此值，判为截断渲染并拒绝发布。
+# 默认已内置（docs=400 / design=40 / www=3），如需调整取消注释：
+# MIN_HTML_docs="400"
+# MIN_HTML_design="40"
+# MIN_HTML_www="3"

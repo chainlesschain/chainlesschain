@@ -27,6 +27,9 @@ docs-site/artifacts/
 docs-site-design/artifacts/
 docs-website-v2/artifacts/
 
+# Docs deploy config — holds server host/webroot; use docs-deploy.config.sh.example as template
+deploy/docs-deploy.config.sh
+
 # electron-builder NSIS source includes live under desktop-app-vue/build/
 # and are SOURCE (custom installer hooks), not generated output — un-ignore
 # the dir so installer.nsh and friends are tracked.
