@@ -96,6 +96,12 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Pure-core regression gate: 300+ assertions over the vscode-parity pure
+      # layers (PureLogicSmokeMain exits 1 on any failure). Runs before the
+      # full build so a logic regression fails fast.
+      - name: Pure-logic smoke (smokeTest)
+        run: ./gradlew smokeTest --no-daemon --stacktrace
+
       # Downloads the IntelliJ Platform SDK + builds the signed-able plugin zip.
       - name: Build plugin
         run: ./gradlew buildPlugin --no-daemon --stacktrace

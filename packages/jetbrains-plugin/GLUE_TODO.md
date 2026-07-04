@@ -18,6 +18,12 @@ implemented and build-verified** (0.4.0).
 > alone does not prove the panels render. That manual GUI pass is the remaining
 > gate (a headless agent can build but cannot click through the sandbox).
 
+> ✅ **Pure-core CI gate (2026-07-05):** `./gradlew smokeTest` runs
+> PureLogicSmokeMain (300+ assertions, exit 1 on failure) and the
+> `ide-extensions.yml` jetbrains job runs it on every push touching the plugin —
+> the pure layers are no longer a manual-javac-only check. The runIde GUI gate
+> above still applies to the SDK glue.
+
 ---
 
 ## ✅ Landed glue (build-verified, 0.4.0)

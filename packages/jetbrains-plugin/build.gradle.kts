@@ -151,3 +151,18 @@ tasks {
         enabled = false
     }
 }
+
+// The pure-core regression gate: run the src/test PureLogicSmokeMain harness
+// (300+ assertions over the vscode-parity pure layers; exits 1 on any failure)
+// without the JUnit/testFramework machinery the disabled `test` task would
+// drag in. CI runs this on every push touching the plugin; locally:
+//   ./gradlew smokeTest
+tasks.register<JavaExec>("smokeTest") {
+    group = "verification"
+    description = "Run the pure-logic smoke harness (PureLogicSmokeMain)"
+    dependsOn(tasks.named("compileTestJava"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.chainlesschain.ide.PureLogicSmokeMain")
+    // Non-ASCII assertions (✓ ⚠ 行 …) — keep the JVM off the GBK codepage.
+    jvmArgs("-Dfile.encoding=UTF-8")
+}
