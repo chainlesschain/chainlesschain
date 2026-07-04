@@ -456,6 +456,35 @@ describe("jsonl-session-store", () => {
       expect(rebuildMessages("legacy-session")).toHaveLength(2);
     });
 
+    it("migrates a legacy session that contains system + tool messages", () => {
+      // Regression: post-migration validation compared user/assistant messageCount
+      // to the TOTAL legacy message count, so any session with a system prompt or
+      // a tool message (which become system / tool_result events, not counted as
+      // "messages") failed validation and was reported as a failed migration.
+      const legacyPath = join(sessionsDir, "legacy-rich.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id: "legacy-rich",
+          messages: [
+            { role: "system", content: "you are helpful" },
+            { role: "user", content: "hello" },
+            { role: "assistant", content: "hi" },
+            { role: "tool", tool: "search", content: "result" },
+          ],
+        }),
+        "utf-8",
+      );
+
+      const result = migrateLegacySessionFile(legacyPath);
+      expect(result.migrated).toBe(true);
+      expect(result.failed).toBeFalsy();
+      // All four messages persisted (system_start + 4 message events).
+      const validation = validateJsonlSession("legacy-rich");
+      expect(validation.eventCount).toBe(5);
+      expect(validation.malformedLines).toBe(0);
+    });
+
     it("fails-fast on a legacy file whose own id is a traversal id (no escape)", () => {
       // The legacy payload names a traversal target; the file's basename is safe.
       const legacyPath = join(sessionsDir, "evil.json");

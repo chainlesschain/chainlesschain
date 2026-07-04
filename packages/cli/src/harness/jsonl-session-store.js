@@ -438,12 +438,19 @@ function performLegacySessionMigration(sourcePath, options) {
     }
 
     const validation = validateJsonlSession(sessionId);
-    if (
-      !validation.valid ||
-      validation.messageCount !== legacy.messages.length
-    ) {
+    // Verify EVERY legacy message persisted, by event count — NOT by
+    // `messageCount`, which counts only user_message/assistant_message events.
+    // A legacy `system` message becomes a `system` event and a `tool` message a
+    // `tool_result` event (see appendLegacyMessage); neither is a "message" by
+    // that count, so comparing messageCount to legacy.messages.length wrongly
+    // FAILED migration for any session with a system prompt or tool call.
+    // appendLegacyMessage writes exactly one event per message, plus the leading
+    // session_start and an optional trailing summary event.
+    const expectedEvents =
+      1 + legacy.messages.length + (legacy.summary ? 1 : 0);
+    if (!validation.valid || validation.eventCount !== expectedEvents) {
       throw new Error(
-        `post-migration validation failed for ${sessionId} (${validation.messageCount}/${legacy.messages.length} messages)`,
+        `post-migration validation failed for ${sessionId} (${validation.eventCount}/${expectedEvents} events)`,
       );
     }
 
