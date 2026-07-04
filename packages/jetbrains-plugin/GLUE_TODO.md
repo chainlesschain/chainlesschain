@@ -83,7 +83,7 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
-## 🔌 Drag-drop images + project-memory actions (0.4.44) — code-complete, NOT yet runIde-verified
+## ✅ Drag-drop images + project-memory actions (0.4.44) — runIde-verified + published 2026-07-05
 
 - [x] **Pure layer** `ImageAttachments` (extension filter + 4-image cap shared
       with paste), `ProjectMemory` (init/memory-files args + mode rows).
@@ -94,13 +94,13 @@ Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing p
       `GenerateProjectMemoryAction` (mode popup → `Task.Backgroundable`
       runCapture, 600s budget for `--ai`) + `ShowMemoryFilesAction`; both in
       the Tools menu. `gradlew compileJava` clean.
-- [ ] **runIde GUI pass (GATE before publish)** — drop a png onto the composer
+- [x] **runIde GUI pass (user-verified 2026-07-05)** — drop a png onto the composer
       (📷 counter increments, 5th file ignored), drop a .txt (ignored), drop
       selected text (lands at caret), send with image reaches the vision model;
       Tools → Generate Project Memory offline mode writes cc.md and shows the
       census tail; Show Project Memory Files lists the chain.
 
-## 🔌 /rewind + /sessions + hunk-level accept (0.4.43) — code-complete, NOT yet runIde-verified
+## ✅ /rewind + /sessions + hunk-level accept (0.4.43) — runIde-verified + published in 0.4.44 (2026-07-05)
 
 VS Code panel parity trio: checkpoint restore, session picker, and partial diff
 accept.
@@ -116,13 +116,13 @@ accept.
       4-option dialog (Accept / Pick hunks… / Request changes… / Reject) with a
       pre-checked hunk checkbox DialogWrapper; SlashCommands catalog + /help
       updated. `gradlew compileJava` clean, zero deprecation warnings.
-- [ ] **runIde GUI pass (GATE before publish)** — `/rewind` popup lists
+- [x] **runIde GUI pass (user-verified 2026-07-05)** — `/rewind` popup lists
       checkpoints and restore reports file count; `/sessions` popup resumes the
       picked id on the next message; openDiff "Pick hunks…" applies only the
       checked blocks (uncheck one, verify the original lines survive); Esc at
       each stage writes nothing.
 
-## 🔌 Status-bar widget (0.4.42) — code-complete, NOT yet runIde-verified
+## ✅ Status-bar widget (0.4.42) — runIde-verified + published in 0.4.44 (2026-07-05)
 
 Always-visible status-bar widget: `CC :<port>` / `CC off` bridge state, plus the
 active conversation's approval mode (`✓auto` / `⚠bypass`; normal stays quiet) so
@@ -137,13 +137,13 @@ an elevated mode can't go unnoticed (VS Code ui/status-bar.js parity — the
       and `ChatToolWindowFactory` tab create/switch/close
       (`activeModeFor(project)` reads the active tab's mode). `gradlew
       compileJava` clean against 2024.2.
-- [ ] **runIde GUI pass (GATE before publish)** — confirm the widget renders in
+- [x] **runIde GUI pass (user-verified 2026-07-05)** — confirm the widget renders in
       the status bar, shows the port after startup, flips to `⚠bypass` on
       `/bypass`, reverts on `/normal`, follows tab switches, and the click
       dialog opens. Per the dead-panel lesson this manual pass is required
       before publishing 0.4.42.
 
-## 🔌 `@folder/` completion — code-complete, NOT yet runIde-verified
+## ✅ `@folder/` completion — shipped in 0.4.41
 
 Offer ancestor directories (as `@folder/`) in the `@`-mention popup, ahead of
 files — typing `@src` surfaces the folder too; the CLI expands a folder ref into
@@ -162,7 +162,7 @@ a bounded recursive tree (Claude-Code `@folder/` parity).
 VS Code parity already shipped (at-mention.js `deriveFolders` + chat-view.js
 `_listWorkspaceFiles`; 23 vitest pass incl. the parse gate).
 
-## 🔌 IDEA built-in MCP auto-connect (server `idea`) — code-complete, NOT published
+## ✅ IDEA built-in MCP auto-connect (server `idea`) — shipped in 0.4.40
 
 Auto-connect IntelliJ IDEA's OWN built-in MCP server (IDEA **2025.2+**, Settings |
 Tools | MCP Server) so the spawned `cc agent` gets the IDE's indexed ops (find
