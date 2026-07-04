@@ -33,6 +33,13 @@ export function extractHost(target) {
   }
   // Strip IPv6 brackets ("[::1]" → "::1") — the documented SSRF gotcha.
   if (s.startsWith("[") && s.endsWith("]")) s = s.slice(1, -1);
+  // Strip the trailing DNS root dot. "localhost." / "example.com." resolve to
+  // the exact same host as the dot-less form, but the extra dot defeats BOTH
+  // the deny/allow matcher (host !== "example.com") AND the loopback/private
+  // guard ("localhost." !== "localhost") — a one-character SSRF / deny-list
+  // bypass. (Node's URL already normalizes a trailing dot away for IPv4 literals
+  // but NOT for named hosts, so we must do it here.)
+  s = s.replace(/\.+$/, "");
   return s.toLowerCase() || null;
 }
 

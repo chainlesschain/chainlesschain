@@ -21,6 +21,14 @@ describe("extractHost", () => {
     expect(extractHost("[fe80::1]")).toBe("fe80::1");
   });
 
+  it("strips the trailing DNS root dot (bypass gotcha)", () => {
+    // "localhost." / "example.com." resolve to the same host but the extra dot
+    // slips past the deny/allow matcher and the loopback guard.
+    expect(extractHost("http://example.com./path")).toBe("example.com");
+    expect(extractHost("localhost.")).toBe("localhost");
+    expect(extractHost("http://SUB.Example.COM.")).toBe("sub.example.com");
+  });
+
   it("returns null for empty/garbage", () => {
     expect(extractHost("")).toBe(null);
     expect(extractHost(null)).toBe(null);
@@ -107,6 +115,18 @@ describe("evaluateNetworkAccess", () => {
     );
     expect(
       evaluateNetworkAccess("http://127.0.0.1:5432/", policy).allowed,
+    ).toBe(false);
+  });
+
+  it("a trailing-dot host cannot bypass the loopback or deny guard", () => {
+    // SSRF guard: "localhost." must still be blocked (permissive policy).
+    expect(evaluateNetworkAccess("http://localhost./", {}).allowed).toBe(false);
+    expect(evaluateNetworkAccess("http://127.0.0.1./", {}).allowed).toBe(false);
+    // Deny-list: appending a dot must not slip past a deniedDomains entry.
+    expect(
+      evaluateNetworkAccess("https://ads.example.com./x", {
+        deniedDomains: ["ads.example.com"],
+      }).allowed,
     ).toBe(false);
   });
 
