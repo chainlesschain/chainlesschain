@@ -1,16 +1,8 @@
 <template>
-  <a-card
-    class="contract-card"
-    hoverable
-    :bordered="true"
-  >
+  <a-card class="contract-card" hoverable :bordered="true">
     <!-- 合约状态角标 -->
     <div class="contract-status-badge">
-      <status-badge
-        :status="contract.status"
-        type="contract"
-        show-icon
-      />
+      <status-badge :status="contract.status" type="contract" show-icon />
     </div>
 
     <!-- 卡片内容 -->
@@ -23,24 +15,16 @@
         >
           {{ getContractTypeName(contract.contract_type) }}
         </a-tag>
-        <a-tag
-          v-if="isMyContract"
-          color="blue"
-        >
-          我的合约
-        </a-tag>
+        <a-tag v-if="isMyContract" color="blue"> 我的合约 </a-tag>
       </div>
 
       <!-- 合约标题 -->
       <div class="contract-title">
-        {{ contract.name || contract.title || '未命名合约' }}
+        {{ contract.name || contract.title || "未命名合约" }}
       </div>
 
       <!-- 合约描述 -->
-      <div
-        v-if="contract.description"
-        class="contract-description"
-      >
+      <div v-if="contract.description" class="contract-description">
         {{ contract.description }}
       </div>
 
@@ -87,14 +71,11 @@
       </div>
 
       <!-- 合约金额（如果有） -->
-      <div
-        v-if="contract.amount !== undefined"
-        class="contract-amount"
-      >
+      <div v-if="contract.amount !== undefined" class="contract-amount">
         <span class="amount-label">合约金额:</span>
         <span class="amount-value">
           {{ formatAmount(contract.amount) }}
-          <span class="amount-symbol">{{ contract.asset_symbol || 'CC' }}</span>
+          <span class="amount-symbol">{{ contract.asset_symbol || "CC" }}</span>
         </span>
       </div>
 
@@ -129,17 +110,11 @@
         <eye-outlined @click="handleView" />
       </a-tooltip>
 
-      <a-tooltip
-        v-if="canSign"
-        title="签名"
-      >
+      <a-tooltip v-if="canSign" title="签名">
         <edit-outlined @click="handleSign" />
       </a-tooltip>
 
-      <a-tooltip
-        v-if="canExecute"
-        title="执行合约"
-      >
+      <a-tooltip v-if="canExecute" title="执行合约">
         <thunderbolt-outlined @click="handleExecute" />
       </a-tooltip>
 
@@ -148,17 +123,10 @@
           <ellipsis-outlined />
           <template #overlay>
             <a-menu>
-              <a-menu-item
-                v-if="canEdit"
-                key="edit"
-                @click="handleEdit"
-              >
+              <a-menu-item v-if="canEdit" key="edit" @click="handleEdit">
                 <edit-outlined /> 编辑
               </a-menu-item>
-              <a-menu-item
-                key="share"
-                @click="handleShare"
-              >
+              <a-menu-item key="share" @click="handleShare">
                 <share-alt-outlined /> 分享
               </a-menu-item>
               <a-menu-divider v-if="canCancel" />
@@ -179,7 +147,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   UserOutlined,
   TeamOutlined,
@@ -190,8 +158,15 @@ import {
   EllipsisOutlined,
   ShareAltOutlined,
   CloseCircleOutlined,
-} from '@ant-design/icons-vue';
-import StatusBadge from './StatusBadge.vue';
+} from "@ant-design/icons-vue";
+import StatusBadge from "./StatusBadge.vue";
+import {
+  getContractTypeColor,
+  getContractTypeName,
+  formatDid,
+  formatAmount,
+  formatTime,
+} from "./contractCardUtils";
 
 // Props
 const props = defineProps({
@@ -201,12 +176,19 @@ const props = defineProps({
   },
   currentUserDid: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
 // Emits
-const emit = defineEmits(['view', 'sign', 'execute', 'edit', 'share', 'cancel']);
+const emit = defineEmits([
+  "view",
+  "sign",
+  "execute",
+  "edit",
+  "share",
+  "cancel",
+]);
 
 // 计算属性
 
@@ -221,8 +203,12 @@ const isMyContract = computed(() => {
 
 // 是否可以签名
 const canSign = computed(() => {
-  if (!isMyContract.value) {return false;}
-  if (props.contract.status !== 'draft' && props.contract.status !== 'active') {return false;}
+  if (!isMyContract.value) {
+    return false;
+  }
+  if (props.contract.status !== "draft" && props.contract.status !== "active") {
+    return false;
+  }
 
   // 当前用户是甲方且未签名
   if (
@@ -247,7 +233,7 @@ const canSign = computed(() => {
 const canExecute = computed(() => {
   return (
     isMyContract.value &&
-    props.contract.status === 'active' &&
+    props.contract.status === "active" &&
     props.contract.party_a_signed &&
     props.contract.party_b_signed
   );
@@ -257,7 +243,7 @@ const canExecute = computed(() => {
 const canEdit = computed(() => {
   return (
     isMyContract.value &&
-    props.contract.status === 'draft' &&
+    props.contract.status === "draft" &&
     props.contract.party_a_did === props.currentUserDid
   );
 });
@@ -266,7 +252,7 @@ const canEdit = computed(() => {
 const canCancel = computed(() => {
   return (
     isMyContract.value &&
-    (props.contract.status === 'draft' || props.contract.status === 'active') &&
+    (props.contract.status === "draft" || props.contract.status === "active") &&
     props.contract.party_a_did === props.currentUserDid
   );
 });
@@ -278,80 +264,13 @@ const isCurrentUser = (did) => {
   return props.currentUserDid && did === props.currentUserDid;
 };
 
-// 合约类型颜色
-const getContractTypeColor = (type) => {
-  const colorMap = {
-    trade: 'green',
-    service: 'blue',
-    escrow: 'orange',
-    subscription: 'purple',
-    exchange: 'cyan',
-  };
-  return colorMap[type] || 'default';
-};
-
-// 合约类型名称
-const getContractTypeName = (type) => {
-  const nameMap = {
-    trade: '交易合约',
-    service: '服务合约',
-    escrow: '托管合约',
-    subscription: '订阅合约',
-    exchange: '交换合约',
-  };
-  return nameMap[type] || type;
-};
-
-// 格式化 DID
-const formatDid = (did) => {
-  if (!did) {return '-';}
-  return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
-};
-
-// 格式化金额
-const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
-  const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) {return '-';}
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 24小时内显示相对时间
-  if (diff < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-
-    if (hours > 0) {
-      return `${hours}小时前`;
-    } else if (minutes > 0) {
-      return `${minutes}分钟前`;
-    } else {
-      return '刚刚';
-    }
-  }
-
-  // 超过24小时显示日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-};
-
 // 事件处理
-const handleView = () => emit('view', props.contract);
-const handleSign = () => emit('sign', props.contract);
-const handleExecute = () => emit('execute', props.contract);
-const handleEdit = () => emit('edit', props.contract);
-const handleShare = () => emit('share', props.contract);
-const handleCancel = () => emit('cancel', props.contract);
+const handleView = () => emit("view", props.contract);
+const handleSign = () => emit("sign", props.contract);
+const handleExecute = () => emit("execute", props.contract);
+const handleEdit = () => emit("edit", props.contract);
+const handleShare = () => emit("share", props.contract);
+const handleCancel = () => emit("cancel", props.contract);
 </script>
 
 <style scoped>
