@@ -217,6 +217,23 @@ describe("uninstall + rollback", () => {
     );
   });
 
+  it("removing a NON-active version leaves the pinned active version untouched", () => {
+    for (const v of ["1.0.0", "2.0.0", "3.0.0"]) {
+      installFromDirectory(makeSource("greeter", v), { scope: "project", cwd });
+    }
+    // Roll back: pin the OLD version as active.
+    setActiveVersion("greeter", "1.0.0", { scope: "project", cwd });
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "1.0.0",
+    );
+    // Uninstall an unrelated (non-active) version — the pin must NOT move to the
+    // newest remaining (previously it silently jumped 1.0.0 → 2.0.0).
+    uninstall("greeter", { scope: "project", cwd, version: "3.0.0" });
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "1.0.0",
+    );
+  });
+
   it("setActiveVersion pins an older version (rollback)", () => {
     installFromDirectory(makeSource("greeter", "1.0.0"), {
       scope: "project",

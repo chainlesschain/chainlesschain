@@ -320,6 +320,14 @@ export function uninstall(name, opts = {}) {
         `${name}@${opts.version} is not installed at ${scope} scope`,
       );
     }
+    // Capture the active version BEFORE removing, so we only repoint `.active`
+    // when the version we removed WAS the active one. Removing a NON-active
+    // version (e.g. cleaning up a newer version after rolling back to an older
+    // pinned one) must not silently change which version is active — the old
+    // code always rewrote `.active` to the newest remaining, so uninstalling an
+    // unrelated version could bump the user's pinned choice.
+    const removedWasActive =
+      getActiveVersion(name, { scope, cwd }) === opts.version;
     _deps.rmSync(dir, { recursive: true, force: true });
     removed.push(opts.version);
     // Repoint .active to the newest remaining version, or clear it.
@@ -333,7 +341,7 @@ export function uninstall(name, opts = {}) {
         recursive: true,
         force: true,
       });
-    } else if (_deps.existsSync(activeFile)) {
+    } else if (removedWasActive && _deps.existsSync(activeFile)) {
       _deps.writeFileSync(activeFile, remaining[0], "utf8");
     }
     return { removed };
