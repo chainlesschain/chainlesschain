@@ -81,6 +81,43 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       })({ key: "x", task: { metadata: { prompt: "p" } } }),
     ).rejects.toThrow(/agent exited 1/);
   });
+
+  it("recovers on retry: tears down the failed attempt's worktree so re-run isn't blocked", async () => {
+    // Model real-git semantics: the worktree path is deterministic per branch,
+    // and createWorktree throws if that path is still live (as the real one does).
+    const live = new Set();
+    const removed = [];
+    _deps.createWorktree = (repo, branch) => {
+      const p = `/wt/${branch.replace(/\//g, "-")}`;
+      if (live.has(p)) throw new Error(`Worktree already exists: ${p}`);
+      live.add(p);
+      return { path: p };
+    };
+    _deps.removeWorktree = (repo, p) => {
+      live.delete(p);
+      removed.push(p);
+    };
+    let attempts = 0;
+    _deps.runShell = async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("transient failure");
+    };
+    _deps.commit = () => true;
+
+    const coord = new TeamWorktreeCoordinator("/repo");
+    const rt = coord.makeRunTask();
+    const cmd = { key: "flaky", task: { metadata: { command: "make" } } };
+
+    // First attempt fails inside the worktree (task failure → TaskLeaseRegistry
+    // re-queues it). The worktree it created is left behind.
+    await expect(rt(cmd)).rejects.toThrow(/transient failure/);
+
+    // Retry: must succeed — the stale worktree is removed first, not collided on.
+    const out = await rt(cmd);
+    expect(out).toEqual({ branch: "team/flaky", committed: true });
+    expect(removed).toEqual(["/wt/team-flaky"]); // prior attempt torn down
+    expect(coord.branches()).toEqual(["team/flaky"]); // single live entry
+  });
 });
 
 describe("TeamWorktreeCoordinator.integrate", () => {

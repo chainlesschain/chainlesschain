@@ -96,6 +96,24 @@ export class TeamWorktreeCoordinator {
   makeRunTask({ runInWorktree = null } = {}) {
     return async ({ key, task, holder }) => {
       const branch = this.branchFor(key);
+      // A retry (the prior attempt failed and TaskLeaseRegistry re-queued the
+      // task) would collide with its own leftover worktree: createWorktree
+      // derives a DETERMINISTIC path from the branch and throws "Worktree
+      // already exists" (and `worktree add -b` rejects the existing branch), so
+      // the retry can never recover — it just re-fails on the collision instead
+      // of the real task. Tear down the prior attempt's worktree + branch first
+      // so a retry starts clean.
+      const prior = this._created.get(key);
+      if (prior) {
+        try {
+          _deps.removeWorktree(this.repoDir, prior.path, {
+            deleteBranch: true,
+          });
+        } catch {
+          /* best-effort — a real problem will resurface in createWorktree */
+        }
+        this._created.delete(key);
+      }
       const { path: worktreePath } = _deps.createWorktree(this.repoDir, branch);
       this._created.set(key, { branch, path: worktreePath, committed: false });
       if (typeof runInWorktree === "function") {
