@@ -185,10 +185,10 @@ describe("Runtime Convergence: deprecated shim parity", () => {
         ).toEqual([]);
       });
 
-      it("shim is a thin re-export (≤ 46 lines)", () => {
+      it("shim is a thin re-export (≤ 48 lines)", () => {
         const content = readFileSync(join(cliRoot, entry.shim), "utf8");
         const lines = content.split("\n").length;
-        expect(lines).toBeLessThanOrEqual(46);
+        expect(lines).toBeLessThanOrEqual(48);
       });
     });
   }
