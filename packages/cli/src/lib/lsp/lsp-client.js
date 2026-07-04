@@ -100,15 +100,31 @@ export class LSPClient extends EventEmitter {
       this.emit("stderr", chunk.toString("utf8"));
     });
 
-    const initResult = await this.request(
-      "initialize",
-      this._initializeParams(),
-      { timeoutMs: initTimeoutMs },
-    );
-    this.serverCapabilities = initResult?.capabilities || {};
-    this.notify("initialized", {});
-    this._initialized = true;
-    return this.serverCapabilities;
+    try {
+      const initResult = await this.request(
+        "initialize",
+        this._initializeParams(),
+        { timeoutMs: initTimeoutMs },
+      );
+      this.serverCapabilities = initResult?.capabilities || {};
+      this.notify("initialized", {});
+      this._initialized = true;
+      return this.serverCapabilities;
+    } catch (err) {
+      // The process spawned but the initialize handshake failed or timed out (a
+      // hung/slow/broken server). Don't leave it orphaned: an init HANG never
+      // fires 'exit', and the manager's crash-loop guard only counts exits, so
+      // the process would linger forever holding a port/file locks. Tear it down
+      // before rethrowing so the caller's failure path doesn't leak a server.
+      this._closed = true;
+      this._failAll(err);
+      try {
+        this._child.kill();
+      } catch {
+        /* already dead */
+      }
+      throw err;
+    }
   }
 
   _initializeParams() {

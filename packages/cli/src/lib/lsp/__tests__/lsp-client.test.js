@@ -90,6 +90,17 @@ describe("LSPClient handshake", () => {
       expect.objectContaining({ shell: false }),
     );
   });
+
+  it("kills the spawned server when the initialize handshake times out (no orphan)", async () => {
+    const child = new FakeChild({ autoInit: false }); // never answers initialize
+    const client = makeClient(child);
+    await expect(client.start({ initTimeoutMs: 20 })).rejects.toThrow(
+      /timed out/,
+    );
+    // The spawned process must be torn down, not left running forever.
+    expect(child.killed).toBe(true);
+    expect(client.running).toBe(false);
+  });
 });
 
 describe("LSPClient request/response", () => {
