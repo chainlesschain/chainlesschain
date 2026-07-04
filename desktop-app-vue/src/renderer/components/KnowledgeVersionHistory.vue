@@ -7,12 +7,7 @@
         版本历史
       </h3>
       <a-space>
-        <a-button
-          size="small"
-          @click="emit('close')"
-        >
-          关闭
-        </a-button>
+        <a-button size="small" @click="emit('close')"> 关闭 </a-button>
         <a-button
           type="primary"
           size="small"
@@ -41,10 +36,7 @@
               />
             </template>
 
-            <a-card
-              size="small"
-              class="version-card"
-            >
+            <a-card size="small" class="version-card">
               <!-- 版本头部 -->
               <div class="version-header">
                 <div class="version-info">
@@ -96,17 +88,11 @@
                   <UserOutlined />
                   <span>更新者：{{ getUserName(version.updated_by) }}</span>
                 </div>
-                <div
-                  v-if="version.git_commit_hash"
-                  class="detail-item"
-                >
+                <div v-if="version.git_commit_hash" class="detail-item">
                   <BranchesOutlined />
                   <span>提交：{{ shortenHash(version.git_commit_hash) }}</span>
                 </div>
-                <div
-                  v-if="version.cid"
-                  class="detail-item"
-                >
+                <div v-if="version.cid" class="detail-item">
                   <LinkOutlined />
                   <span>CID：{{ shortenCID(version.cid) }}</span>
                   <a-tooltip title="复制CID">
@@ -156,10 +142,7 @@
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty
-          v-else
-          description="暂无版本历史"
-        />
+        <a-empty v-else description="暂无版本历史" />
       </a-spin>
     </div>
 
@@ -184,14 +167,8 @@
       width="800px"
       :footer="null"
     >
-      <div
-        v-if="viewVersion"
-        class="version-view"
-      >
-        <a-descriptions
-          :column="1"
-          bordered
-        >
+      <div v-if="viewVersion" class="version-view">
+        <a-descriptions :column="1" bordered>
           <a-descriptions-item label="版本号">
             v{{ viewVersion.version }}
           </a-descriptions-item>
@@ -207,10 +184,7 @@
           >
             {{ viewVersion.git_commit_hash }}
           </a-descriptions-item>
-          <a-descriptions-item
-            v-if="viewVersion.cid"
-            label="CID"
-          >
+          <a-descriptions-item v-if="viewVersion.cid" label="CID">
             {{ viewVersion.cid }}
           </a-descriptions-item>
         </a-descriptions>
@@ -247,6 +221,13 @@ import {
   RollbackOutlined,
 } from "@ant-design/icons-vue";
 import VersionDiff from "./VersionDiff.vue";
+import {
+  getUserName,
+  shortenHash,
+  shortenCID,
+  getContentPreview,
+  formatDate,
+} from "./knowledgeVersionHistoryUtils";
 
 // ==================== Props & Emits ====================
 const props = defineProps({
@@ -396,74 +377,11 @@ function getVersionIcon(version, index) {
 }
 
 /**
- * 获取用户名
- */
-function getUserName(did) {
-  if (!did) {
-    return "未知";
-  }
-  // 缩短DID显示
-  if (did.length > 20) {
-    return `${did.slice(0, 10)}...${did.slice(-6)}`;
-  }
-  return did;
-}
-
-/**
- * 缩短哈希值
- */
-function shortenHash(hash) {
-  if (!hash) {
-    return "";
-  }
-  return hash.length > 12 ? `${hash.slice(0, 12)}...` : hash;
-}
-
-/**
- * 缩短CID
- */
-function shortenCID(cid) {
-  if (!cid) {
-    return "";
-  }
-  return cid.length > 20 ? `${cid.slice(0, 10)}...${cid.slice(-10)}` : cid;
-}
-
-/**
- * 获取内容预览
- */
-function getContentPreview(content) {
-  if (!content) {
-    return "暂无内容";
-  }
-  const text = content.replace(/<[^>]*>/g, "").trim();
-  return text.length > 200 ? text.substring(0, 200) + "..." : text;
-}
-
-/**
  * 复制到剪贴板
  */
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
   message.success("已复制到剪贴板");
-}
-
-/**
- * 格式化日期
- */
-function formatDate(timestamp) {
-  if (!timestamp) {
-    return "-";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 }
 
 // ==================== Lifecycle ====================

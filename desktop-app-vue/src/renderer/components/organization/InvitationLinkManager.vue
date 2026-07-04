@@ -5,12 +5,7 @@
       <div class="header-left">
         <LinkOutlined class="page-icon" />
         <h2>邀请链接管理</h2>
-        <a-tag
-          color="blue"
-          style="margin-left: 12px"
-        >
-          企业版
-        </a-tag>
+        <a-tag color="blue" style="margin-left: 12px"> 企业版 </a-tag>
       </div>
       <div class="header-right">
         <a-space>
@@ -35,10 +30,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <a-row
-      :gutter="16"
-      class="stats-section"
-    >
+    <a-row :gutter="16" class="stats-section">
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -103,18 +95,10 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部状态
-          </a-select-option>
-          <a-select-option value="active">
-            活跃
-          </a-select-option>
-          <a-select-option value="expired">
-            已过期
-          </a-select-option>
-          <a-select-option value="revoked">
-            已撤销
-          </a-select-option>
+          <a-select-option value=""> 全部状态 </a-select-option>
+          <a-select-option value="active"> 活跃 </a-select-option>
+          <a-select-option value="expired"> 已过期 </a-select-option>
+          <a-select-option value="revoked"> 已撤销 </a-select-option>
         </a-select>
         <a-input-search
           v-model:value="searchText"
@@ -181,10 +165,7 @@
               :status="getUsageStatus(record)"
               :format="() => `${record.used_count}/${record.max_uses}`"
             />
-            <a-typography-text
-              type="secondary"
-              style="font-size: 12px"
-            >
+            <a-typography-text type="secondary" style="font-size: 12px">
               剩余 {{ record.remainingUses }} 次
             </a-typography-text>
           </div>
@@ -202,17 +183,11 @@
         <template v-else-if="column.key === 'expires_at'">
           <div v-if="record.expires_at">
             <div>{{ formatDate(record.expires_at) }}</div>
-            <a-typography-text
-              type="secondary"
-              style="font-size: 12px"
-            >
+            <a-typography-text type="secondary" style="font-size: 12px">
               {{ getTimeRemaining(record.expires_at) }}
             </a-typography-text>
           </div>
-          <a-typography-text
-            v-else
-            type="secondary"
-          >
+          <a-typography-text v-else type="secondary">
             永不过期
           </a-typography-text>
         </template>
@@ -220,10 +195,7 @@
         <!-- 操作列 -->
         <template v-else-if="column.key === 'actions'">
           <a-space>
-            <a-button
-              size="small"
-              @click="showLinkDetail(record)"
-            >
+            <a-button size="small" @click="showLinkDetail(record)">
               详情
             </a-button>
             <a-dropdown>
@@ -247,10 +219,7 @@
                   >
                     <StopOutlined /> 撤销链接
                   </a-menu-item>
-                  <a-menu-item
-                    key="delete"
-                    danger
-                  >
+                  <a-menu-item key="delete" danger>
                     <DeleteOutlined /> 删除链接
                   </a-menu-item>
                 </a-menu>
@@ -305,12 +274,15 @@ import {
 import CreateInvitationLinkDialog from "./CreateInvitationLinkDialog.vue";
 import InvitationLinkDetailDialog from "./InvitationLinkDetailDialog.vue";
 import QRCodeDialog from "./QRCodeDialog.vue";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/zh-cn";
-
-dayjs.extend(relativeTime);
-dayjs.locale("zh-cn");
+import {
+  getRoleColor,
+  getRoleLabel,
+  getUsagePercent,
+  getUsageStatus,
+  getStatusBadge,
+  formatDate,
+  getTimeRemaining,
+} from "./invitationLinkManagerUtils";
 
 // Props
 const props = defineProps({
@@ -587,73 +559,6 @@ const deleteLink = async (record) => {
 
 const handleLinkCreated = () => {
   loadInvitationLinks();
-};
-
-// Helper functions
-const getRoleColor = (role) => {
-  const colors = {
-    owner: "red",
-    admin: "orange",
-    member: "blue",
-    viewer: "green",
-  };
-  return colors[role] || "default";
-};
-
-const getRoleLabel = (role) => {
-  const labels = {
-    owner: "所有者",
-    admin: "管理员",
-    member: "成员",
-    viewer: "访客",
-  };
-  return labels[role] || role;
-};
-
-const getUsagePercent = (record) => {
-  if (record.max_uses === 0) {
-    return 0;
-  }
-  return Math.round((record.used_count / record.max_uses) * 100);
-};
-
-const getUsageStatus = (record) => {
-  const percent = getUsagePercent(record);
-  if (percent >= 100) {
-    return "exception";
-  }
-  if (percent >= 80) {
-    return "active";
-  }
-  return "normal";
-};
-
-const getStatusBadge = (record) => {
-  if (record.isExpired) {
-    return { status: "default", text: "已过期" };
-  }
-  if (record.isExhausted) {
-    return { status: "default", text: "已用尽" };
-  }
-  if (record.status === "revoked") {
-    return { status: "error", text: "已撤销" };
-  }
-  if (record.status === "active") {
-    return { status: "success", text: "活跃" };
-  }
-  return { status: "default", text: record.status };
-};
-
-const formatDate = (timestamp) => {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm");
-};
-
-const getTimeRemaining = (expiresAt) => {
-  const now = Date.now();
-  if (expiresAt < now) {
-    return "已过期";
-  }
-  return dayjs(expiresAt).fromNow();
 };
 
 // Lifecycle
