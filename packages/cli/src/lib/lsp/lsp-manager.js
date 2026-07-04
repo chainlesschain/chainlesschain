@@ -318,6 +318,19 @@ export class LSPManager {
   get activeServerCount() {
     return this._servers.size;
   }
+
+  /** Snapshot of running servers: `[{ serverId, root, pid }]` (for bench / doctor). */
+  listServers() {
+    const out = [];
+    for (const entry of this._servers.values()) {
+      out.push({
+        serverId: entry.serverId,
+        root: entry.root,
+        pid: entry.client.pid,
+      });
+    }
+    return out;
+  }
 }
 
 // ---- position helpers (the ONLY place that converts between coordinate spaces) ----

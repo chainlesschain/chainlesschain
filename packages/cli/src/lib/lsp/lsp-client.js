@@ -57,6 +57,11 @@ export class LSPClient extends EventEmitter {
     return Boolean(this._child) && !this._closed;
   }
 
+  /** OS pid of the language-server process, or null before start / after exit. */
+  get pid() {
+    return this._child ? (this._child.pid ?? null) : null;
+  }
+
   /** Spawn the process and run the initialize handshake. Resolves when ready. */
   async start({ initTimeoutMs = DEFAULT_INIT_TIMEOUT_MS } = {}) {
     if (this._child) throw new Error("LSPClient already started");

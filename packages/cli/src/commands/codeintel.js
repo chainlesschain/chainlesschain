@@ -62,6 +62,11 @@ function fmtLoc(l) {
   return l.snippet ? `${pos}  ${chalk.gray(l.snippet)}` : pos;
 }
 
+/** Right-align a millisecond number in a 6-char column for the bench table. */
+function fmtMs(v) {
+  return String(v == null ? "-" : v).padStart(6);
+}
+
 export function registerCodeIntelCommand(program) {
   const ci = program
     .command("code-intel")
@@ -246,6 +251,69 @@ export function registerCodeIntelCommand(program) {
           "\n(preview only — apply with your editor or agent edit tools)",
         ),
       );
+    });
+
+  ci.command("bench <file>")
+    .description(
+      "Benchmark startup + per-query latency (and server RSS) against a real file",
+    )
+    .option("--runs <n>", "Timed iterations per operation", "20")
+    .option("--warmup <n>", "Untimed warmup iterations per operation", "2")
+    .option("--json", "Output as JSON")
+    .action(async (file, options) => {
+      const { runLatencyBenchmark } = await import("../lib/lsp/benchmark.js");
+      const runs = num(options.runs, "runs");
+      const warmup = Number.parseInt(options.warmup, 10);
+      const report = await runLatencyBenchmark({
+        projectRoot: process.cwd(),
+        file,
+        runs,
+        warmup: Number.isFinite(warmup) && warmup >= 0 ? warmup : 2,
+        onProgress: options.json
+          ? () => {}
+          : (m) => process.stderr.write(chalk.gray(`  … ${m}\n`)),
+      });
+      if (!report.available) {
+        return reportUnavailable(report);
+      }
+      if (options.json) {
+        console.log(JSON.stringify(report, null, 2));
+        return;
+      }
+      logger.log(chalk.bold(`\nLSP latency — ${chalk.cyan(file)}`));
+      logger.log(
+        `  cold start (spawn + index + first query): ${chalk.yellow(report.coldStartMs + " ms")}`,
+      );
+      if (report.server) {
+        const rss =
+          report.server.rssMb != null ? `${report.server.rssMb} MB` : "n/a";
+        logger.log(
+          `  server: ${report.server.serverId} (pid ${report.server.pid ?? "?"}), RSS ${chalk.yellow(rss)}`,
+        );
+      }
+      if (report.probe) {
+        logger.log(
+          chalk.gray(
+            `  probe symbol: ${report.probe.name} (${report.probe.kind}) @ ${report.probe.line}:${report.probe.col}`,
+          ),
+        );
+      }
+      logger.log(
+        chalk.bold(
+          `\n  operation          n     min   median    p95     max   (warm, ms)`,
+        ),
+      );
+      for (const [name, s] of Object.entries(report.ops)) {
+        if (s.skipped) {
+          logger.log(
+            `  ${name.padEnd(18)} ${chalk.gray("skipped: " + s.skipped)}`,
+          );
+          continue;
+        }
+        logger.log(
+          `  ${name.padEnd(18)} ${String(s.n).padStart(3)}  ${fmtMs(s.min)} ${fmtMs(s.median)} ${fmtMs(s.p95)} ${fmtMs(s.max)}`,
+        );
+      }
     });
 
   return ci;
