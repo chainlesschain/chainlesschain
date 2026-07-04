@@ -77,6 +77,28 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔌 /rewind + /sessions + hunk-level accept (0.4.43) — code-complete, NOT yet runIde-verified
+
+VS Code panel parity trio: checkpoint restore, session picker, and partial diff
+accept.
+
+- [x] **Pure layer** `RewindCommands` (list/restore args + tolerant parsers +
+      `restoreOk`), `SessionList` (list args + `_store` mapping parser),
+      `DiffHunks` (LCS hunk computation + selective apply; invariants
+      all==modified / none==original; 4M-cell guard degrades to one hunk).
+      **PureLogicSmokeMain 304 passed** (`javac --release 17`).
+- [x] **Glue wiring** — ConversationView `/rewind` + `/sessions` (off-EDT
+      `runCapture`, `JBPopupFactory.createPopupChooserBuilder` chooser — NOT the
+      deprecated `Messages.showChooseDialog`); `IntellijEditorFacade.openDiff`
+      4-option dialog (Accept / Pick hunks… / Request changes… / Reject) with a
+      pre-checked hunk checkbox DialogWrapper; SlashCommands catalog + /help
+      updated. `gradlew compileJava` clean, zero deprecation warnings.
+- [ ] **runIde GUI pass (GATE before publish)** — `/rewind` popup lists
+      checkpoints and restore reports file count; `/sessions` popup resumes the
+      picked id on the next message; openDiff "Pick hunks…" applies only the
+      checked blocks (uncheck one, verify the original lines survive); Esc at
+      each stage writes nothing.
+
 ## 🔌 Status-bar widget (0.4.42) — code-complete, NOT yet runIde-verified
 
 Always-visible status-bar widget: `CC :<port>` / `CC off` bridge state, plus the

@@ -10,7 +10,9 @@ import com.chainlesschain.ide.LlmConfig;
 import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.TranscriptCap;
 import com.chainlesschain.ide.Mentions;
+import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
+import com.chainlesschain.ide.SessionList;
 import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -517,6 +519,12 @@ final class ConversationView {
             case "/cost":
                 runIntrospect("cost");
                 return;
+            case "/rewind":
+                runRewind();
+                return;
+            case "/sessions":
+                runSessions();
+                return;
             case "/review":
                 // Seed a review turn: the agent inspects the working-tree diff
                 // using its tools + this window's IDE context (selection /
@@ -543,7 +551,7 @@ final class ConversationView {
             case "/help":
                 append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
                         + "/ultrathink /think-off /plan /approve /reject /context /cost "
-                        + "/review\n");
+                        + "/review /rewind /sessions\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
@@ -566,6 +574,94 @@ final class ConversationView {
                     : "ℹ " + kind + ": " + out.trim().replace('\n', ' ') + "\n";
             SwingUtilities.invokeLater(() -> append(line));
         }, "cc-" + kind + "-" + conv.id).start();
+    }
+
+    /**
+     * {@code /rewind} — list this session's auto-checkpoints (the agent snapshots
+     * the work tree before each mutating tool, cc >= 0.162.70), let the user pick
+     * one, and {@code cc checkpoint restore} it (current state is auto-snapshotted
+     * first). Scoped to this conversation's session id, mirroring the VS Code
+     * panel's _rewind. CLI captures run off the EDT; choosers/appends on it.
+     */
+    private void runRewind() {
+        final String sid = conv.sessionId;
+        if (sid == null || sid.isEmpty()) {
+            append("ℹ /rewind: send a message first — no session yet.\n");
+            return;
+        }
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        new Thread(() -> {
+            String out = AgentChatSession.runCapture(RewindCommands.buildListArgs(sid), cwd, 30000);
+            final List<RewindCommands.Checkpoint> list = RewindCommands.parseCheckpointList(out);
+            SwingUtilities.invokeLater(() -> {
+                if (list.isEmpty()) {
+                    append("ℹ /rewind: no checkpoints for this session yet — they're "
+                            + "created automatically before file edits (needs cc >= 0.162.70).\n");
+                    return;
+                }
+                java.util.List<String> labels = new java.util.ArrayList<>();
+                for (RewindCommands.Checkpoint c : list) labels.add(RewindCommands.itemLabel(c));
+                JBPopupFactory.getInstance()
+                        .createPopupChooserBuilder(labels)
+                        .setTitle("Rewind to which checkpoint? (current state is snapshotted first)")
+                        .setItemChosenCallback(label -> {
+                            int idx = labels.indexOf(label);
+                            if (idx < 0) return;
+                            final RewindCommands.Checkpoint chosen = list.get(idx);
+                            new Thread(() -> {
+                                String restored = AgentChatSession.runCapture(
+                                        RewindCommands.buildRestoreArgs(sid, chosen.id), cwd, 60000);
+                                final boolean ok = RewindCommands.restoreOk(restored);
+                                final Integer n = RewindCommands.restoredCount(restored);
+                                final String raw = restored == null ? "" : restored.trim();
+                                SwingUtilities.invokeLater(() -> append(ok
+                                        ? "↩ rewound to " + chosen.id
+                                          + (n != null ? " — " + n + " file(s) restored" : "") + "\n"
+                                        : "✗ /rewind failed: "
+                                          + (raw.isEmpty() ? "no output" : raw) + "\n"));
+                            }, "cc-rewind-restore-" + conv.id).start();
+                        })
+                        .createPopup()
+                        .showCenteredInCurrentWindow(project);
+            });
+        }, "cc-rewind-list-" + conv.id).start();
+    }
+
+    /**
+     * {@code /sessions} — pick a saved session ({@code cc session list --json})
+     * and resume it in THIS tab: the live child is stopped and the next message
+     * respawns with {@code --resume <picked>} (mirrors the VS Code panel's
+     * _pickSession; the transcript above the note is the OLD conversation).
+     */
+    private void runSessions() {
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        new Thread(() -> {
+            String out = AgentChatSession.runCapture(SessionList.buildListArgs(30), cwd, 30000);
+            final List<SessionList.SessionItem> list = SessionList.parseSessionList(out);
+            SwingUtilities.invokeLater(() -> {
+                if (list.isEmpty()) {
+                    append("ℹ no saved sessions found\n");
+                    return;
+                }
+                java.util.List<String> labels = new java.util.ArrayList<>();
+                for (SessionList.SessionItem s : list) labels.add(SessionList.itemLabel(s));
+                JBPopupFactory.getInstance()
+                        .createPopupChooserBuilder(labels)
+                        .setTitle("Resume which session in this conversation tab?")
+                        .setItemChosenCallback(label -> {
+                            int idx = labels.indexOf(label);
+                            if (idx < 0) return;
+                            SessionList.SessionItem chosen = list.get(idx);
+                            restartForModeChange(); // stop the live child; next message respawns
+                            conv.sessionId = chosen.id;
+                            if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, chosen.id);
+                            append("ℹ will resume " + chosen.id
+                                    + " — send a message to continue it\n");
+                        })
+                        .createPopup()
+                        .showCenteredInCurrentWindow(project);
+            });
+        }, "cc-sessions-" + conv.id).start();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
 import com.chainlesschain.ide.MultiDiff;
 import com.intellij.diff.DiffContentFactory;
@@ -141,20 +142,39 @@ public final class IntellijEditorFacade implements EditorFacade {
                     leftContent, rightContent, "Current", "Proposed");
             DiffManager.getInstance().showDiff(project, request);
 
-            // §3: three-way review — Accept / Request changes… / Reject. The
-            // "changes-requested" shape matches VS Code so the CLI's
-            // requestIdeDiffApproval handles it unchanged.
-            int choice = Messages.showYesNoCancelDialog(
-                    project, "Review proposed changes to " + path + ":",
-                    "ChainlessChain Review", "Accept", "Request changes…", "Reject", null);
+            // §3+§7: four-way review — Accept / Pick hunks… / Request changes… /
+            // Reject. The "changes-requested" / hunk-accept shapes match VS Code
+            // so the CLI's requestIdeDiffApproval handles them unchanged.
+            int choice = Messages.showDialog(project,
+                    "Review proposed changes to " + path + ":",
+                    "ChainlessChain Review",
+                    new String[] { "Accept", "Pick hunks…", "Request changes…", "Reject" },
+                    0, null);
 
             Map<String, Object> r = new LinkedHashMap<>();
-            if (choice == Messages.YES) {
+            if (choice == 0) { // Accept
                 applyToFile(vf, modifiedText);
                 r.put("outcome", "accepted");
                 r.put("path", path);
                 r.put("finalText", modifiedText);
-            } else if (choice == Messages.NO) {
+            } else if (choice == 1) { // Pick hunks… — partial accept; unpicked keep original
+                String baseline = left == null ? "" : left;
+                List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(baseline, modifiedText);
+                Set<Integer> picked = hunks.isEmpty() ? new LinkedHashSet<>() : pickHunks(hunks);
+                if (picked.isEmpty()) {
+                    // Esc / nothing picked → fail-safe: nothing is written.
+                    r.put("outcome", "rejected");
+                    r.put("path", path);
+                } else {
+                    String finalText = DiffHunks.applyHunks(baseline, hunks, picked);
+                    applyToFile(vf, finalText);
+                    r.put("outcome", "accepted");
+                    r.put("path", path);
+                    r.put("finalText", finalText);
+                    r.put("appliedHunks", picked.size());
+                    r.put("totalHunks", hunks.size());
+                }
+            } else if (choice == 2) { // Request changes…
                 List<Map<String, Object>> comments = collectReviewComments();
                 if (comments.isEmpty()) {
                     // No notes entered → treat as a plain rejection.
@@ -166,7 +186,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("comments", comments);
                     r.put("reviewedText", modifiedText);
                 }
-            } else {
+            } else { // Reject or Esc
                 r.put("outcome", "rejected");
                 r.put("path", path);
             }
@@ -260,6 +280,41 @@ public final class IntellijEditorFacade implements EditorFacade {
             result.set(r);
         });
         return result.get();
+    }
+
+    /**
+     * §7: hunk checkbox picker (all pre-checked) → chosen hunk indices, or empty
+     * if cancelled. Unpicked hunks keep the original lines (fail-safe: cancel
+     * writes nothing).
+     */
+    private Set<Integer> pickHunks(List<DiffHunks.Hunk> hunks) {
+        final Map<JCheckBox, Integer> boxes = new LinkedHashMap<>();
+        final JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        for (DiffHunks.Hunk h : hunks) {
+            String label = "Hunk " + (h.index + 1) + "/" + hunks.size() + " · " + h.header
+                    + (h.preview.isEmpty() ? "" : "  —  " + h.preview);
+            JCheckBox cb = new JCheckBox(label, true);
+            boxes.put(cb, h.index);
+            panel.add(cb);
+        }
+        DialogWrapper dlg = new DialogWrapper(project, true) {
+            {
+                setTitle("勾选要应用的改动块（未勾选的保留原文）");
+                init();
+            }
+            @Override
+            protected JComponent createCenterPanel() {
+                return new JScrollPane(panel);
+            }
+        };
+        Set<Integer> picked = new LinkedHashSet<>();
+        if (dlg.showAndGet()) {
+            for (Map.Entry<JCheckBox, Integer> e : boxes.entrySet()) {
+                if (e.getKey().isSelected()) picked.add(e.getValue());
+            }
+        }
+        return picked;
     }
 
     /** §4: checkbox picker (all pre-checked) → chosen paths, or empty if cancelled. */

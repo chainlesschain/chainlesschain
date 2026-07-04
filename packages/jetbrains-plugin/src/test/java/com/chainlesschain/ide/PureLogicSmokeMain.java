@@ -55,6 +55,9 @@ public final class PureLogicSmokeMain {
         lockfilePrune();
         jetbrainsMcpProbe();
         statusBarText();
+        diffHunks();
+        rewindCommands();
+        sessionList();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -455,6 +458,11 @@ public final class PureLogicSmokeMain {
         check(SlashCommands.filter("zzz").isEmpty(), "no match -> empty");
         List<String[]> rev = SlashCommands.filter("rev");
         check(rev.size() == 1 && rev.get(0)[0].equals("/review"), "rev -> only /review");
+        List<String[]> re = SlashCommands.filter("re");
+        check(re.size() == 3 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
+                && re.get(2)[0].equals("/rewind"), "re -> /reject /review /rewind (menu order)");
+        List<String[]> sess = SlashCommands.filter("sess");
+        check(sess.size() == 1 && sess.get(0)[0].equals("/sessions"), "sess -> only /sessions");
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");
@@ -662,6 +670,97 @@ public final class PureLogicSmokeMain {
         check(TranscriptCap.DEFAULT_MAX_CHARS > 0, "default cap > 0");
         check(TranscriptCap.removeCount(TranscriptCap.DEFAULT_MAX_CHARS, -1, false,
                 TranscriptCap.DEFAULT_MAX_CHARS) == 0, "exactly default cap → 0");
+    }
+
+    private static void diffHunks() {
+        System.out.println("DiffHunks (hunk-level partial accept)");
+
+        String original = "a\nb\nc\nd\ne\nf";
+        String modified = "a\nB\nc\nd\nE1\nE2\nf"; // change b→B; change e→E1+E2
+        List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(original, modified);
+        eq(hunks.size(), 2, "two separated changes -> two hunks");
+        // Core invariants: all selected == modified; none selected == original.
+        java.util.Set<Integer> all = new java.util.HashSet<>(Arrays.asList(0, 1));
+        eq(DiffHunks.applyHunks(original, hunks, all), modified, "apply all == modified");
+        eq(DiffHunks.applyHunks(original, hunks, new java.util.HashSet<>()),
+                original, "apply none == original");
+        // Partial: only the first hunk applied keeps e→f intact.
+        eq(DiffHunks.applyHunks(original, hunks, new java.util.HashSet<>(Arrays.asList(0))),
+                "a\nB\nc\nd\ne\nf", "apply hunk 0 only");
+        eq(DiffHunks.applyHunks(original, hunks, new java.util.HashSet<>(Arrays.asList(1))),
+                "a\nb\nc\nd\nE1\nE2\nf", "apply hunk 1 only");
+        // Header shape matches the VS Code hunk header ("行 <a>-<b> (-x +y)").
+        check(hunks.get(0).header.startsWith("行 2-2 (-1 +1)"), "hunk 0 header");
+        check(hunks.get(1).header.startsWith("行 5-5 (-1 +2)"), "hunk 1 header");
+        check(!hunks.get(0).preview.isEmpty(), "hunk preview non-empty");
+
+        // Pure insertion (no old lines) — header uses the "<line>+" form.
+        List<DiffHunks.Hunk> ins = DiffHunks.computeHunks("a\nb", "a\nX\nb");
+        eq(ins.size(), 1, "pure insertion -> one hunk");
+        check(ins.get(0).header.contains("1+"), "insertion header <line>+");
+        eq(DiffHunks.applyHunks("a\nb", ins, new java.util.HashSet<>(Arrays.asList(0))),
+                "a\nX\nb", "insertion applies");
+
+        // Pure deletion — preview falls back to the removed line.
+        List<DiffHunks.Hunk> del = DiffHunks.computeHunks("a\nb\nc", "a\nc");
+        eq(del.size(), 1, "pure deletion -> one hunk");
+        check(del.get(0).preview.startsWith("-"), "deletion preview shows removed line");
+        eq(DiffHunks.applyHunks("a\nb\nc", del, new java.util.HashSet<>()),
+                "a\nb\nc", "deletion unselected -> original");
+
+        // Identical inputs and null tolerance.
+        check(DiffHunks.computeHunks("same", "same").isEmpty(), "identical -> no hunks");
+        check(DiffHunks.computeHunks(null, null).isEmpty(), "null/null -> no hunks");
+        eq(DiffHunks.applyHunks("x", new ArrayList<>(), new java.util.HashSet<>()),
+                "x", "no hunks -> original");
+    }
+
+    private static void rewindCommands() {
+        System.out.println("RewindCommands (/rewind checkpoint args + parsers)");
+
+        eq(String.join(" ", RewindCommands.buildListArgs("s1")),
+                "checkpoint list -s s1 --json", "list args");
+        eq(String.join(" ", RewindCommands.buildListArgs(null)),
+                "checkpoint list -s default --json", "list args default session");
+        eq(String.join(" ", RewindCommands.buildRestoreArgs("s1", "cp-3")),
+                "checkpoint restore cp-3 -s s1 --force --json", "restore args");
+
+        List<RewindCommands.Checkpoint> cps = RewindCommands.parseCheckpointList(
+                "[{\"id\":\"cp-2\",\"createdAt\":\"2026-07-05\",\"label\":\"before edit\",\"fileCount\":3},"
+                + "{\"id\":\"cp-1\"},{\"label\":\"no id -> dropped\"}]");
+        eq(cps.size(), 2, "rows without id dropped");
+        eq(cps.get(0).id, "cp-2", "first checkpoint id");
+        check(RewindCommands.itemLabel(cps.get(0)).contains("3 file(s)"), "label has file count");
+        check(RewindCommands.itemLabel(cps.get(1)).equals("cp-1"), "bare label = id only");
+        check(RewindCommands.parseCheckpointList("not json").isEmpty(), "bad json -> empty");
+        check(RewindCommands.parseCheckpointList("{\"a\":1}").isEmpty(), "non-array -> empty");
+
+        check(RewindCommands.restoreOk("{\"restoredCount\":2}"), "restore ok on json object");
+        check(!RewindCommands.restoreOk("boom"), "restore not ok on garbage");
+        eq(RewindCommands.restoredCount("{\"restoredCount\":2}"), 2, "restoredCount field");
+        eq(RewindCommands.restoredCount("{\"restored\":5}"), 5, "restored fallback field");
+        check(RewindCommands.restoredCount("{\"ok\":true}") == null, "missing count -> null");
+    }
+
+    private static void sessionList() {
+        System.out.println("SessionList (/sessions args + parser)");
+
+        eq(String.join(" ", SessionList.buildListArgs(30)),
+                "session list --json -n 30", "list args");
+
+        List<SessionList.SessionItem> items = SessionList.parseSessionList(
+                "[{\"id\":\"s-agent\",\"title\":\"fix bug\",\"updated_at\":\"2026-07-05\",\"_store\":\"jsonl\"},"
+                + "{\"id\":\"s-chat\",\"updatedAt\":\"2026-07-04\"},"
+                + "{\"title\":\"no id -> dropped\"},{\"id\":\"\"}]");
+        eq(items.size(), 2, "rows without id dropped");
+        eq(items.get(0).store, "agent", "_store jsonl -> agent");
+        eq(items.get(1).store, "chat", "no _store -> chat");
+        eq(items.get(0).updatedAt, "2026-07-05", "updated_at snake_case");
+        eq(items.get(1).updatedAt, "2026-07-04", "updatedAt camelCase fallback");
+        check(SessionList.itemLabel(items.get(0)).contains("fix bug"), "label has title");
+        check(SessionList.itemLabel(items.get(1)).startsWith("s-chat  ·  chat"), "label id+store");
+        check(SessionList.parseSessionList("nope").isEmpty(), "bad json -> empty");
+        check(SessionList.parseSessionList("{}").isEmpty(), "non-array -> empty");
     }
 
     private static void statusBarText() {

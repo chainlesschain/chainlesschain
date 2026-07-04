@@ -1,5 +1,23 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.43] — feat: /rewind, /sessions, and hunk-level partial diff accept
+
+- **`/rewind`** — roll the work tree back to an agent auto-checkpoint (the agent
+  snapshots before each file edit, cc ≥ 0.162.70): pick a checkpoint from a
+  popup chooser; the current state is snapshotted first, then
+  `cc checkpoint restore` runs scoped to this tab's session (VS Code panel
+  parity).
+- **`/sessions`** — resume any saved session in the current tab: pick from
+  `cc session list` (id · store · date · title); the live child stops and the
+  next message respawns with `--resume <picked>`.
+- **Hunk-level partial accept in diff review** — the openDiff decision gains a
+  **Pick hunks…** option: change blocks appear as pre-checked checkboxes
+  (`行 12-14 (-3 +5) — preview`); unchecked blocks keep the original lines, and
+  cancelling writes nothing (fail-safe). Mirrors the VS Code extension's
+  hunk picker; the accepted-result shape (`appliedHunks`/`totalHunks`) matches,
+  so the CLI handles it unchanged.
+- Both new commands appear in the `/` autocomplete and `/help`.
+
 ## [0.4.42] — feat: status-bar widget shows bridge state + approval mode
 
 - **A status-bar widget now shows the IDE bridge at a glance** (VS Code
