@@ -43,5 +43,6 @@ export {
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,
   _resetFileFreshness,
+  _getSharedCodeIntel,
   disposeSharedCodeIntel,
 } from "../runtime/agent-core.js";
