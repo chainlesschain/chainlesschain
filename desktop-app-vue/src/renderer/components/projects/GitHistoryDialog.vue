@@ -238,8 +238,13 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
-import { formatDistanceToNow, format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import {
+  getCommitColor,
+  getFileStatusColor,
+  formatSha,
+  formatRelativeTime,
+  formatFullDate,
+} from "./gitHistoryDialogUtils";
 
 const props = defineProps({
   open: {
@@ -295,16 +300,6 @@ const filteredCommits = computed(() => {
 });
 
 // 获取提交颜色
-const getCommitColor = (commit) => {
-  if (commit.isHead) {
-    return "blue";
-  }
-  if (commit.isMerge) {
-    return "purple";
-  }
-  return "green";
-};
-
 // 获取提交图标
 const getCommitIcon = (commit) => {
   if (commit.isHead) {
@@ -324,50 +319,6 @@ const getFileStatusIcon = (status) => {
     deleted: DeleteOutlined,
   };
   return iconMap[status] || EditOutlined;
-};
-
-// 获取文件状态颜色
-const getFileStatusColor = (status) => {
-  const colorMap = {
-    added: "green",
-    modified: "orange",
-    deleted: "red",
-  };
-  return colorMap[status] || "default";
-};
-
-// 格式化SHA
-const formatSha = (sha) => {
-  return sha ? sha.substring(0, 7) : "";
-};
-
-// 格式化相对时间
-const formatRelativeTime = (timestamp) => {
-  try {
-    const date =
-      typeof timestamp === "number"
-        ? new Date(timestamp * 1000)
-        : new Date(timestamp);
-    return formatDistanceToNow(date, {
-      addSuffix: true,
-      locale: zhCN,
-    });
-  } catch {
-    return "未知时间";
-  }
-};
-
-// 格式化完整日期
-const formatFullDate = (timestamp) => {
-  try {
-    const date =
-      typeof timestamp === "number"
-        ? new Date(timestamp * 1000)
-        : new Date(timestamp);
-    return format(date, "yyyy-MM-dd HH:mm:ss", { locale: zhCN });
-  } catch {
-    return "未知时间";
-  }
 };
 
 // 加载提交历史

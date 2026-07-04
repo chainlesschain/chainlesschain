@@ -231,7 +231,17 @@ import {
   FileSearchOutlined,
 } from "@ant-design/icons-vue";
 import { useAuditStore } from "../stores/audit";
-import dayjs from "dayjs";
+import {
+  formatTime,
+  truncateDid,
+  formatDetails,
+  getEventTypeColor,
+  getEventTypeLabel,
+  getRiskLevelColor,
+  getRiskLevelLabel,
+  getOutcomeColor,
+  getOutcomeLabel,
+} from "./enterpriseAuditPanelUtils";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 defineEmits<{ (e: "update:open", value: boolean): void }>();
@@ -357,102 +367,6 @@ async function handleExport() {
 function showDetail(record: any) {
   selectedLog.value = record;
   detailVisible.value = true;
-}
-
-function formatTime(timestamp: string | number) {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-}
-
-function truncateDid(did: string) {
-  if (!did) {
-    return "-";
-  }
-  if (did.length <= 20) {
-    return did;
-  }
-  return did.substring(0, 10) + "..." + did.substring(did.length - 8);
-}
-
-function formatDetails(details: any) {
-  if (!details) {
-    return "-";
-  }
-  if (typeof details === "string") {
-    try {
-      return JSON.stringify(JSON.parse(details), null, 2);
-    } catch {
-      return details;
-    }
-  }
-  return JSON.stringify(details, null, 2);
-}
-
-function getEventTypeColor(type: string) {
-  const colors: Record<string, string> = {
-    login: "blue",
-    permission_change: "purple",
-    data_access: "cyan",
-    data_modify: "orange",
-    data_delete: "red",
-    config_change: "gold",
-    export: "geekblue",
-    system: "default",
-  };
-  return colors[type] || "default";
-}
-
-function getEventTypeLabel(type: string) {
-  const labels: Record<string, string> = {
-    login: "登录",
-    permission_change: "权限变更",
-    data_access: "数据访问",
-    data_modify: "数据修改",
-    data_delete: "数据删除",
-    config_change: "配置变更",
-    export: "数据导出",
-    system: "系统事件",
-  };
-  return labels[type] || type;
-}
-
-function getRiskLevelColor(level: string) {
-  const colors: Record<string, string> = {
-    low: "green",
-    medium: "orange",
-    high: "red",
-    critical: "#cf1322",
-  };
-  return colors[level] || "default";
-}
-
-function getRiskLevelLabel(level: string) {
-  const labels: Record<string, string> = {
-    low: "低",
-    medium: "中",
-    high: "高",
-    critical: "严重",
-  };
-  return labels[level] || level;
-}
-
-function getOutcomeColor(outcome: string) {
-  const colors: Record<string, string> = {
-    success: "green",
-    failure: "red",
-    blocked: "volcano",
-    pending: "gold",
-  };
-  return colors[outcome] || "default";
-}
-
-function getOutcomeLabel(outcome: string) {
-  const labels: Record<string, string> = {
-    success: "成功",
-    failure: "失败",
-    blocked: "已拦截",
-    pending: "待处理",
-  };
-  return labels[outcome] || outcome;
 }
 
 // Load logs + statistics on open.

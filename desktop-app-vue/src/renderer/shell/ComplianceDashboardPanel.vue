@@ -457,6 +457,14 @@ import {
 } from "@ant-design/icons-vue";
 import { useAuditStore } from "../stores/audit";
 import type { CompliancePolicy, DataSubjectRequest } from "../stores/audit";
+import {
+  getScoreColor,
+  formatRulesSummary,
+  getDSRStatusColor,
+  getDSRStatusLabel,
+  getDSRTypeLabel,
+  formatDate,
+} from "./complianceDashboardPanelUtils";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 defineEmits<{ (e: "update:open", value: boolean): void }>();
@@ -571,16 +579,6 @@ async function loadComplianceScores() {
   }
 }
 
-function getScoreColor(score: number): string {
-  if (score > 80) {
-    return "#52c41a";
-  }
-  if (score > 60) {
-    return "#faad14";
-  }
-  return "#ff4d4f";
-}
-
 function openPolicyModal(policy?: CompliancePolicy) {
   if (policy) {
     editingPolicy.value = policy;
@@ -658,22 +656,6 @@ async function handleDeletePolicy(policyId: string) {
   }
 }
 
-function formatRulesSummary(rules: string): string {
-  if (!rules) {
-    return "-";
-  }
-  try {
-    const parsed = JSON.parse(rules);
-    const keys = Object.keys(parsed);
-    if (keys.length === 0) {
-      return "-";
-    }
-    return keys.slice(0, 3).join(", ") + (keys.length > 3 ? "..." : "");
-  } catch {
-    return rules.length > 50 ? rules.substring(0, 50) + "..." : rules;
-  }
-}
-
 function handleFrameworkChange(framework: string) {
   selectedFramework.value = framework;
   runComplianceCheck();
@@ -702,43 +684,6 @@ async function handleGenerateReport() {
   } catch {
     message.error("生成合规报告失败");
   }
-}
-
-function getDSRStatusColor(status: string): string {
-  const map: Record<string, string> = {
-    pending: "blue",
-    in_progress: "orange",
-    completed: "green",
-    rejected: "red",
-  };
-  return map[status] || "default";
-}
-
-function getDSRStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    pending: "待处理",
-    in_progress: "处理中",
-    completed: "已完成",
-    rejected: "已拒绝",
-  };
-  return map[status] || status;
-}
-
-function getDSRTypeLabel(type?: string): string {
-  const map: Record<string, string> = {
-    access: "数据访问",
-    deletion: "数据删除",
-    rectification: "数据更正",
-    portability: "数据迁移",
-  };
-  return map[type || ""] || type || "-";
-}
-
-function formatDate(timestamp: number): string {
-  if (!timestamp) {
-    return "-";
-  }
-  return new Date(timestamp).toLocaleString("zh-CN");
 }
 
 function openDSRModal() {
