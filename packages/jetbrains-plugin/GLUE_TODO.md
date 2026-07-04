@@ -83,6 +83,19 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔧 ConversationView split (post-0.4.44, unreleased) — mechanical refactor
+
+ConversationView 1405 → ~1030 lines by extracting three cohesive glue classes
+(zero behavior change intended; published 0.4.44 zip is unaffected):
+`ChatTranscript` (JTextPane + styles + markdown snap + TranscriptCap),
+`ChatComposerImages` (paste/drag-drop/📷 indicator; policy stays in pure
+ImageAttachments), `ChatMentionPopups` (`/` + `@` popups + lazy PSI/file
+caches). ConversationView keeps one-line append*() delegates so call sites
+didn't churn. Verified: compileJava clean (zero warnings) + smokeTest 322/0 +
+buildPlugin. **The next publish's runIde pass must re-exercise these three
+areas** (transcript styling/cap, image paste+drop, `/`+`@` popups) since the
+glue moved after 0.4.44's GUI verification.
+
 ## ✅ Drag-drop images + project-memory actions (0.4.44) — runIde-verified + published 2026-07-05
 
 - [x] **Pure layer** `ImageAttachments` (extension filter + 4-image cap shared

@@ -5,28 +5,15 @@ import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
-import com.chainlesschain.ide.ImageAttachments;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.LlmConfig;
-import com.chainlesschain.ide.MarkdownLite;
-import com.chainlesschain.ide.TranscriptCap;
-import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionList;
-import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectFileIndex;
-import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiMethod;
-import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.search.PsiShortNamesCache;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -35,17 +22,11 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextPane;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -81,45 +62,29 @@ final class ConversationView {
     private ContainerActions containerActions;
 
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
-    private final JTextPane transcript = new JTextPane();
-    // Markdown styling for the transcript: plain (default), inline/fenced code
-    // (amber, readable on light + dark themes), and **bold**.
-    private final SimpleAttributeSet stylePlain = new SimpleAttributeSet();
-    private final SimpleAttributeSet styleCode = new SimpleAttributeSet();
-    private final SimpleAttributeSet styleBold = new SimpleAttributeSet();
-    private final SimpleAttributeSet styleDim = new SimpleAttributeSet(); // extended-thinking
-    // The current streamed assistant text run: appended plain, then re-styled
-    // with markdown when it ends (a tool call, the turn end, or any other line).
-    private int assistantRunStart = -1;
-    private boolean inAssistantRun = false;
+    // Transcript rendering (styles + markdown snap + memory cap) — see ChatTranscript.
+    private final ChatTranscript transcript = new ChatTranscript();
     private final JTextArea input = new JTextArea(3, 0); // multi-line composer
-    // Pasted screenshots (Ctrl/Cmd+V) → temp PNG paths, attached to the next turn.
-    private final java.util.List<String> pendingImages = new java.util.ArrayList<>();
-    private final JLabel imageLabel = new JLabel();
+    // Attached images (paste + drag-drop + 📷 indicator) — see ChatComposerImages.
+    private final ChatComposerImages images = new ChatComposerImages(input);
+    // `/` and `@` completion popups — see ChatMentionPopups (needs `project`; ctor-assigned).
+    private final ChatMentionPopups popups;
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
     private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
     private JComponent planCard;
-    private List<String> cachedFiles;                     // §5 @-mention file index (lazy, bounded)
-    private List<Mentions.MentionItem> cachedSymbols;     // §5 @-mention PSI symbols (lazy, bounded)
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
         this.project = project;
         this.conv = conv;
         this.sessionIdSink = sessionIdSink;
+        this.popups = new ChatMentionPopups(project, input);
         if (conv.turnState == null) conv.turnState = new ChatEvents.TurnState();
 
-        transcript.setEditable(false);
-        // JTextPane wraps by default (no setLineWrap). Keep the monospace look.
-        transcript.setFont(new Font(Font.MONOSPACED, Font.PLAIN, transcript.getFont().getSize()));
-        StyleConstants.setForeground(styleCode, new Color(0xCC, 0x78, 0x32)); // amber code
-        StyleConstants.setBold(styleBold, true);
-        StyleConstants.setForeground(styleDim, new Color(0x80, 0x80, 0x80)); // gray thinking
-        StyleConstants.setItalic(styleDim, true);
-        root.add(new JScrollPane(transcript), BorderLayout.CENTER);
+        root.add(new JScrollPane(transcript.pane()), BorderLayout.CENTER);
 
         // Multi-line composer: Enter sends, Shift+Enter inserts a newline.
         input.setLineWrap(true);
@@ -156,10 +121,8 @@ final class ConversationView {
         buttons.add(llmBtn);
         buttons.add(sendBtn);
         buttons.add(stopBtn);
-        imageLabel.setEnabled(false);
-        imageLabel.setVisible(false);
         JPanel buttonRow = new JPanel(new BorderLayout());
-        buttonRow.add(imageLabel, BorderLayout.WEST);   // 📷 attached-image indicator
+        buttonRow.add(images.indicatorLabel(), BorderLayout.WEST); // 📷 attached-image indicator
         buttonRow.add(buttons, BorderLayout.EAST);
         JPanel south = new JPanel(new BorderLayout(0, 2));
         south.add(new JScrollPane(input), BorderLayout.NORTH);
@@ -189,8 +152,8 @@ final class ConversationView {
         input.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyTyped(java.awt.event.KeyEvent e) {
-                if (e.getKeyChar() == '@') SwingUtilities.invokeLater(() -> maybeOpenMention());
-                else if (e.getKeyChar() == '/') SwingUtilities.invokeLater(() -> maybeOpenSlash());
+                if (e.getKeyChar() == '@') SwingUtilities.invokeLater(popups::maybeOpenMention);
+                else if (e.getKeyChar() == '/') SwingUtilities.invokeLater(popups::maybeOpenSlash);
             }
 
             @Override
@@ -207,7 +170,7 @@ final class ConversationView {
                 // otherwise fall through to normal text paste.
                 if (e.getKeyCode() == java.awt.event.KeyEvent.VK_V
                         && (e.isControlDown() || e.isMetaDown())
-                        && tryPasteImage()) {
+                        && images.tryPaste()) {
                     e.consume();
                 }
             }
@@ -216,8 +179,8 @@ final class ConversationView {
         // Drag-drop images onto the composer or transcript (VS Code 0.37.0
         // parity). A DropTarget — not a TransferHandler swap — so the text
         // area's default paste and text handling stay intact.
-        installImageDropTarget(input);
-        installImageDropTarget(transcript);
+        images.installDropTarget(input);
+        images.installDropTarget(transcript.pane());
 
         // First-run nudge (VS Code parity): if no LLM provider is configured yet,
         // dim-hint toward the ⚙ LLM button instead of leaving the panel blank
@@ -387,10 +350,10 @@ final class ConversationView {
 
     private void sendCurrentInput() {
         final String text = input.getText().trim();
-        if (text.isEmpty() && pendingImages.isEmpty()) return;
+        if (text.isEmpty() && images.isEmpty()) return;
         // §5 panel slash + §6 mode/thinking commands are handled locally, never
         // sent (only when it's a pure text command, no attached images).
-        if (pendingImages.isEmpty() && text.startsWith("/")) {
+        if (images.isEmpty() && text.startsWith("/")) {
             input.setText("");
             handleSlash(text);
             return;
@@ -403,117 +366,16 @@ final class ConversationView {
             return;
         }
         AgentChatSession s = liveSession();
-        java.util.List<String> imgs = new java.util.ArrayList<>(pendingImages);
+        java.util.List<String> imgs = images.snapshot();
         if (s != null && s.send(text, imgs)) {
             String tag = imgs.isEmpty() ? ""
                     : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
             append("\nyou> " + text + tag + "\n");
             input.setText("");
-            pendingImages.clear();
-            updateImageIndicator();
+            images.clearAll();
         } else {
             append("⚠ agent session is not running — press New to restart\n");
         }
-    }
-
-    /** Attach a clipboard image (Ctrl/Cmd+V). Returns true if one was taken. */
-    private boolean tryPasteImage() {
-        try {
-            java.awt.datatransfer.Clipboard cb =
-                    java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
-            if (!cb.isDataFlavorAvailable(java.awt.datatransfer.DataFlavor.imageFlavor)) {
-                return false;
-            }
-            Object data = cb.getData(java.awt.datatransfer.DataFlavor.imageFlavor);
-            if (!(data instanceof java.awt.Image)) return false;
-            // Cap reached: still consume the paste (don't dump binary as text).
-            if (pendingImages.size() >= ImageAttachments.MAX) return true;
-            attachRawImage((java.awt.Image) data, "cc-paste-");
-            return true;
-        } catch (Exception ex) {
-            return false; // any failure → fall back to normal text paste
-        }
-    }
-
-    /** Write a raw AWT image to a temp png and attach it to the composer. */
-    private void attachRawImage(java.awt.Image img, String prefix) throws java.io.IOException {
-        java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
-        tmp.deleteOnExit();
-        javax.imageio.ImageIO.write(toBuffered(img), "png", tmp);
-        pendingImages.add(tmp.getAbsolutePath());
-        updateImageIndicator();
-    }
-
-    /** Accept image drops on {@code target} without replacing its TransferHandler. */
-    private void installImageDropTarget(java.awt.Component target) {
-        new java.awt.dnd.DropTarget(target, java.awt.dnd.DnDConstants.ACTION_COPY,
-                new java.awt.dnd.DropTargetAdapter() {
-                    @Override
-                    public void drop(java.awt.dnd.DropTargetDropEvent e) {
-                        try {
-                            e.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
-                            e.dropComplete(importDropped(e.getTransferable()));
-                        } catch (Exception ex) {
-                            e.dropComplete(false);
-                        }
-                    }
-                });
-    }
-
-    /**
-     * Dropped payload → image attachments (a file list filtered to images, or a
-     * raw image). Plain text still lands at the caret (the DropTarget replaces
-     * the text area's built-in drop handling, so re-implement that bit).
-     */
-    private boolean importDropped(java.awt.datatransfer.Transferable t) throws Exception {
-        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
-            @SuppressWarnings("unchecked")
-            java.util.List<java.io.File> files = (java.util.List<java.io.File>)
-                    t.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
-            java.util.List<String> paths = new java.util.ArrayList<>();
-            for (java.io.File f : files) paths.add(f.getAbsolutePath());
-            java.util.List<String> accepted =
-                    ImageAttachments.acceptDropped(paths, pendingImages.size());
-            if (accepted.isEmpty()) return false;
-            pendingImages.addAll(accepted);
-            updateImageIndicator();
-            return true;
-        }
-        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.imageFlavor)) {
-            Object data = t.getTransferData(java.awt.datatransfer.DataFlavor.imageFlavor);
-            if (!(data instanceof java.awt.Image)) return false;
-            if (pendingImages.size() >= ImageAttachments.MAX) return true;
-            attachRawImage((java.awt.Image) data, "cc-drop-");
-            return true;
-        }
-        if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.stringFlavor)) {
-            Object s = t.getTransferData(java.awt.datatransfer.DataFlavor.stringFlavor);
-            if (s instanceof String) {
-                input.replaceSelection((String) s);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) {
-        if (img instanceof java.awt.image.BufferedImage) {
-            return (java.awt.image.BufferedImage) img;
-        }
-        int w = Math.max(1, img.getWidth(null));
-        int h = Math.max(1, img.getHeight(null));
-        java.awt.image.BufferedImage bi =
-                new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-        java.awt.Graphics2D g = bi.createGraphics();
-        g.drawImage(img, 0, 0, null);
-        g.dispose();
-        return bi;
-    }
-
-    private void updateImageIndicator() {
-        int n = pendingImages.size();
-        imageLabel.setText(n == 0 ? "" : "📷 " + n + " image" + (n == 1 ? "" : "s"));
-        imageLabel.setVisible(n > 0);
     }
 
     /**
@@ -848,7 +710,7 @@ final class ConversationView {
             // it through the same markdown path. (When deltas streamed, text is
             // null and we just finalize the streamed run.)
             if (text != null) appendAssistantDelta(String.valueOf(text));
-            finalizeAssistantRun();
+            transcript.finalizeAssistantRun();
             append("\n");
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
@@ -1131,181 +993,6 @@ final class ConversationView {
         }, "cc-context-" + conv.id).start();
     }
 
-    // ---- slash-command completion popup --------------------------------
-
-    /** Open the chooser only when the whole input so far is a leading slash token. */
-    private void maybeOpenSlash() {
-        String text = input.getText();
-        int caret = Math.min(input.getCaretPosition(), text.length());
-        String prefix = SlashCommands.detectSlashToken(text.substring(0, caret));
-        if (prefix != null) openSlashPopup(prefix);
-    }
-
-    private void openSlashPopup(String prefix) {
-        final List<String[]> candidates = SlashCommands.filter(prefix);
-        if (candidates.isEmpty()) return;
-        JBPopup popup = JBPopupFactory.getInstance()
-                .createPopupChooserBuilder(candidates)
-                .setTitle("Slash commands")
-                .setRenderer(new javax.swing.DefaultListCellRenderer() {
-                    @Override
-                    public java.awt.Component getListCellRendererComponent(
-                            javax.swing.JList<?> list, Object value, int index,
-                            boolean selected, boolean hasFocus) {
-                        java.awt.Component c = super.getListCellRendererComponent(
-                                list, value, index, selected, hasFocus);
-                        if (value instanceof String[]) {
-                            setText(SlashCommands.label((String[]) value));
-                        }
-                        return c;
-                    }
-                })
-                .setItemChosenCallback(item -> {
-                    // Replace the input with the chosen command (ready to Enter).
-                    input.setText(((String[]) item)[0] + " ");
-                    input.requestFocusInWindow();
-                })
-                .createPopup();
-        popup.showUnderneathOf(input);
-    }
-
-    // ---- §5 @-mention completion popup ---------------------------------
-
-    /** Open the chooser only when the caret sits on a real {@code @}-token. */
-    private void maybeOpenMention() {
-        String text = input.getText();
-        int caret = Math.min(input.getCaretPosition(), text.length());
-        if (Mentions.detectAtToken(text.substring(0, caret)) != null) openMentionPopup();
-    }
-
-    private void openMentionPopup() {
-        // Candidates carry a display label + the value spliced on choose. Files
-        // and PSI symbols both resolve to a file path (cc expands it); a symbol
-        // entry just adds a name-based way to find that file (e.g. type a class
-        // name). IDE pseudo-mentions splice @selection / @diagnostics.
-        List<Mentions.MentionItem> candidates = new java.util.ArrayList<>();
-        candidates.add(Mentions.MentionItem.symbol("selection", "selection"));
-        candidates.add(Mentions.MentionItem.symbol("diagnostics", "diagnostics"));
-        candidates.addAll(symbolCandidates());
-        // Offer ancestor folders (as @folder/) ahead of the files — typing
-        // "@src" surfaces the directory too; cc expands it into a bounded tree.
-        List<String> files = projectRelativeFiles();
-        for (String d : Mentions.deriveFolders(files, 2000)) candidates.add(Mentions.MentionItem.path(d));
-        for (String f : files) candidates.add(Mentions.MentionItem.path(f));
-        if (candidates.isEmpty()) return;
-        JBPopup popup = JBPopupFactory.getInstance()
-                .createPopupChooserBuilder(candidates)
-                .setTitle("Insert @mention")
-                .setRenderer(new javax.swing.DefaultListCellRenderer() {
-                    @Override
-                    public java.awt.Component getListCellRendererComponent(
-                            javax.swing.JList<?> list, Object value, int index,
-                            boolean selected, boolean hasFocus) {
-                        java.awt.Component c = super.getListCellRendererComponent(
-                                list, value, index, selected, hasFocus);
-                        if (value instanceof Mentions.MentionItem) {
-                            setText(Mentions.mentionLabel((Mentions.MentionItem) value));
-                        }
-                        return c;
-                    }
-                })
-                .setItemChosenCallback(item -> insertMention(Mentions.mentionValue(item)))
-                .createPopup();
-        popup.showUnderneathOf(input);
-    }
-
-    /**
-     * Project class symbols for @-mention (lazy, bounded). Each resolves to its
-     * file via {@link PsiShortNamesCache}; {@link Mentions#formatSymbolItems}
-     * builds "class Foo · src/foo.kt" labels with the file relpath as the value.
-     * JVM-language-centric best-effort; non-JVM projects just get files +
-     * IDE-mentions (the cache returns no class names there).
-     */
-    private List<Mentions.MentionItem> symbolCandidates() {
-        if (cachedSymbols != null) return cachedSymbols;
-        final List<Mentions.Symbol> syms = new java.util.ArrayList<>();
-        try {
-            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
-                PsiShortNamesCache cache = PsiShortNamesCache.getInstance(project);
-                GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
-                // Classes (kind 4).
-                String[] classNames = cache.getAllClassNames();
-                int classCap = Math.min(classNames.length, 800); // bound for big projects
-                for (int i = 0; i < classCap; i++) {
-                    for (PsiClass c : cache.getClassesByName(classNames[i], scope)) {
-                        VirtualFile vf = vfileOf(c.getContainingFile());
-                        if (vf != null) {
-                            syms.add(new Mentions.Symbol(classNames[i], 4, vf.getPath()));
-                            break; // first declaration is enough
-                        }
-                    }
-                }
-                // Methods / functions (kind 5).
-                String[] methodNames = cache.getAllMethodNames();
-                int methodCap = Math.min(methodNames.length, 800);
-                for (int i = 0; i < methodCap; i++) {
-                    for (PsiMethod m : cache.getMethodsByName(methodNames[i], scope)) {
-                        VirtualFile vf = vfileOf(m.getContainingFile());
-                        if (vf != null) {
-                            syms.add(new Mentions.Symbol(methodNames[i], 5, vf.getPath()));
-                            break;
-                        }
-                    }
-                }
-            });
-        } catch (Throwable ignored) {
-            // no PSI symbol cache (non-JVM / indexing) → files + IDE-mentions still work
-        }
-        cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 1600);
-        return cachedSymbols;
-    }
-
-    private static VirtualFile vfileOf(PsiFile f) {
-        return f == null ? null : f.getVirtualFile();
-    }
-
-    /** Splice the chosen value into the input, replacing the current {@code @}-token. */
-    private void insertMention(String value) {
-        String text = input.getText();
-        int caret = Math.min(input.getCaretPosition(), text.length());
-        Mentions.AtToken at = Mentions.detectAtToken(text.substring(0, caret));
-        if (at != null) {
-            Mentions.ApplyResult r = Mentions.applyMention(text, at, value, caret);
-            input.setText(r.text);
-            input.setCaretPosition(Math.min(r.caret, r.text.length()));
-        } else {
-            String ins = "@" + value + " ";
-            input.setText(text.substring(0, caret) + ins + text.substring(caret));
-            input.setCaretPosition(caret + ins.length());
-        }
-        input.requestFocusInWindow();
-    }
-
-    /** Project-relative content file paths (lazy, capped) for @-file ranking. */
-    private List<String> projectRelativeFiles() {
-        if (cachedFiles != null) return cachedFiles;
-        final List<String> out = new java.util.ArrayList<>();
-        final String base = project.getBasePath();
-        final String b = base == null ? null
-                : (base.replace('\\', '/').endsWith("/") ? base.replace('\\', '/')
-                        : base.replace('\\', '/') + "/");
-        try {
-            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
-                ProjectFileIndex.getInstance(project).iterateContent(vf -> {
-                    if (vf.isDirectory()) return true;
-                    String p = vf.getPath().replace('\\', '/');
-                    if (b != null && p.startsWith(b)) p = p.substring(b.length());
-                    out.add(p);
-                    return out.size() < 3000; // bound the index for big projects
-                });
-            });
-        } catch (Throwable ignored) {
-            // partial / empty index → @-completion still offers the pseudo-mentions
-        }
-        cachedFiles = out;
-        return out;
-    }
-
     /** Compact token count: 12345 → "12.3k", 1500000 → "1.5M". */
     private static String human(long n) {
         if (n < 1000) return String.valueOf(n);
@@ -1313,74 +1000,17 @@ final class ConversationView {
         return String.format("%.1fM", n / 1_000_000.0);
     }
 
-    private void insertStyled(String s, javax.swing.text.AttributeSet style) {
-        try {
-            StyledDocument d = transcript.getStyledDocument();
-            d.insertString(d.getLength(), s, style);
-            // Bound long-session memory: drop the oldest text once the document
-            // exceeds the cap, never trimming into the active assistant run (whose
-            // absolute offset is shifted by whatever is removed). Mirrors the VS
-            // Code panel's transcript node cap (chainlesschain-ide 0.36.5).
-            int removeLen = TranscriptCap.removeCount(
-                    d.getLength(), assistantRunStart, inAssistantRun,
-                    TranscriptCap.DEFAULT_MAX_CHARS);
-            if (removeLen > 0) {
-                d.remove(0, removeLen);
-                if (assistantRunStart >= 0) assistantRunStart -= removeLen;
-            }
-            transcript.setCaretPosition(d.getLength());
-        } catch (BadLocationException ignored) {
-            /* document offsets are append-only here — should not happen */
-        }
-    }
-
-    /** A plain transcript line (header / tool / info / error). Ends any pending
-     *  assistant markdown run first so it gets re-styled before this line. */
+    // Transcript delegates — rendering/styling/markdown-snap live in ChatTranscript.
     private void append(String s) {
-        finalizeAssistantRun();
-        insertStyled(s, stylePlain);
+        transcript.append(s);
     }
 
-    /** Streaming assistant text — appended plain; re-styled with markdown when
-     *  the run finalizes (so streaming stays responsive, then snaps to styled). */
     private void appendAssistantDelta(String s) {
-        if (!inAssistantRun) {
-            assistantRunStart = transcript.getStyledDocument().getLength();
-            inAssistantRun = true;
-        }
-        insertStyled(s, stylePlain);
+        transcript.appendAssistantDelta(s);
     }
 
-    /** Re-render the just-streamed assistant run as markdown (code → monospace
-     *  amber, **bold** → bold). No-op when not in a run. */
-    private void finalizeAssistantRun() {
-        if (!inAssistantRun) return;
-        inAssistantRun = false;
-        StyledDocument d = transcript.getStyledDocument();
-        int end = d.getLength();
-        int start = assistantRunStart;
-        assistantRunStart = -1;
-        if (start < 0 || end <= start) return;
-        try {
-            String text = d.getText(start, end - start);
-            d.remove(start, end - start);
-            for (MarkdownLite.Span span : MarkdownLite.parse(text)) {
-                javax.swing.text.AttributeSet st =
-                        span.kind == MarkdownLite.Kind.CODE ? styleCode
-                        : span.kind == MarkdownLite.Kind.BOLD ? styleBold
-                        : stylePlain;
-                d.insertString(d.getLength(), span.text, st);
-            }
-            transcript.setCaretPosition(d.getLength());
-        } catch (BadLocationException ignored) {
-            /* best-effort — leave the plain text in place on any hiccup */
-        }
-    }
-
-    /** Extended-thinking reasoning — streamed dim/italic, not markdown-rendered. */
     private void appendThinking(String s) {
-        finalizeAssistantRun();
-        insertStyled(s, styleDim);
+        transcript.appendThinking(s);
     }
 
     void appendInfo(String s) {
@@ -1388,11 +1018,8 @@ final class ConversationView {
     }
 
     void clearTranscript() {
-        inAssistantRun = false;
-        assistantRunStart = -1;
-        pendingImages.clear();
-        updateImageIndicator();
-        transcript.setText("");
+        transcript.clear();
+        images.clearAll();
     }
 
     void dispose() {
