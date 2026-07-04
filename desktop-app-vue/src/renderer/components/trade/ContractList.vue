@@ -9,10 +9,7 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -28,37 +25,20 @@
       </template>
 
       <!-- 筛选器 -->
-      <a-space
-        style="margin-bottom: 16px"
-        wrap
-      >
+      <a-space style="margin-bottom: 16px" wrap>
         <span>合约状态:</span>
         <a-radio-group
           v-model:value="filterStatus"
           button-style="solid"
           @change="handleFilterChange"
         >
-          <a-radio-button value="">
-            全部
-          </a-radio-button>
-          <a-radio-button value="draft">
-            草稿
-          </a-radio-button>
-          <a-radio-button value="active">
-            激活
-          </a-radio-button>
-          <a-radio-button value="executing">
-            执行中
-          </a-radio-button>
-          <a-radio-button value="completed">
-            已完成
-          </a-radio-button>
-          <a-radio-button value="cancelled">
-            已取消
-          </a-radio-button>
-          <a-radio-button value="disputed">
-            有争议
-          </a-radio-button>
+          <a-radio-button value=""> 全部 </a-radio-button>
+          <a-radio-button value="draft"> 草稿 </a-radio-button>
+          <a-radio-button value="active"> 激活 </a-radio-button>
+          <a-radio-button value="executing"> 执行中 </a-radio-button>
+          <a-radio-button value="completed"> 已完成 </a-radio-button>
+          <a-radio-button value="cancelled"> 已取消 </a-radio-button>
+          <a-radio-button value="disputed"> 有争议 </a-radio-button>
         </a-radio-group>
 
         <span style="margin-left: 16px">合约类型:</span>
@@ -67,24 +47,12 @@
           style="width: 180px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="simple_trade">
-            简单买卖
-          </a-select-option>
-          <a-select-option value="subscription">
-            订阅付费
-          </a-select-option>
-          <a-select-option value="bounty">
-            任务悬赏
-          </a-select-option>
-          <a-select-option value="skill_exchange">
-            技能交换
-          </a-select-option>
-          <a-select-option value="custom">
-            自定义
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="simple_trade"> 简单买卖 </a-select-option>
+          <a-select-option value="subscription"> 订阅付费 </a-select-option>
+          <a-select-option value="bounty"> 任务悬赏 </a-select-option>
+          <a-select-option value="skill_exchange"> 技能交换 </a-select-option>
+          <a-select-option value="custom"> 自定义 </a-select-option>
         </a-select>
       </a-space>
 
@@ -116,10 +84,7 @@
           v-if="!loading && filteredContracts.length === 0"
           description="暂无合约"
         >
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             创建第一个合约
           </a-button>
         </a-empty>
@@ -219,79 +184,6 @@ const filteredContracts = computed(() => {
 });
 
 // 工具函数
-const getStatusColor = (status) => {
-  const colors = {
-    draft: "default",
-    active: "green",
-    executing: "blue",
-    completed: "cyan",
-    cancelled: "red",
-    disputed: "volcano",
-    arbitrated: "purple",
-  };
-  return colors[status] || "default";
-};
-
-const getStatusName = (status) => {
-  const names = {
-    draft: "草稿",
-    active: "激活",
-    executing: "执行中",
-    completed: "已完成",
-    cancelled: "已取消",
-    disputed: "有争议",
-    arbitrated: "已仲裁",
-  };
-  return names[status] || status;
-};
-
-const getTypeColor = (type) => {
-  const colors = {
-    simple_trade: "blue",
-    subscription: "purple",
-    bounty: "orange",
-    skill_exchange: "green",
-    custom: "default",
-  };
-  return colors[type] || "default";
-};
-
-const getTypeName = (type) => {
-  const names = {
-    simple_trade: "简单买卖",
-    subscription: "订阅付费",
-    bounty: "任务悬赏",
-    skill_exchange: "技能交换",
-    custom: "自定义",
-  };
-  return names[type] || type;
-};
-
-const getEscrowTypeColor = (type) => {
-  const colors = {
-    simple: "cyan",
-    multisig: "geekblue",
-    timelock: "gold",
-    conditional: "lime",
-  };
-  return colors[type] || "default";
-};
-
-const getEscrowTypeName = (type) => {
-  const names = {
-    simple: "简单托管",
-    multisig: "多重签名",
-    timelock: "时间锁",
-    conditional: "条件托管",
-  };
-  return names[type] || type;
-};
-
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN");
-};
-
 const isParty = (contract) => {
   return contract.parties.includes(currentDid.value);
 };

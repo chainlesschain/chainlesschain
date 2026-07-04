@@ -1,8 +1,5 @@
 <template>
-  <a-card
-    class="member-list-card"
-    :loading="loading"
-  >
+  <a-card class="member-list-card" :loading="loading">
     <template #title>
       <div class="card-header">
         <span> <TeamOutlined /> Members ({{ members.length }}) </span>
@@ -13,25 +10,15 @@
             style="width: 200px"
             @search="handleSearch"
           />
-          <a-button
-            v-if="canInvite"
-            type="primary"
-            @click="$emit('invite')"
-          >
+          <a-button v-if="canInvite" type="primary" @click="$emit('invite')">
             <UserAddOutlined /> Invite
           </a-button>
         </a-space>
       </div>
     </template>
 
-    <a-tabs
-      v-model:active-key="activeTab"
-      @change="handleTabChange"
-    >
-      <a-tab-pane
-        key="all"
-        tab="All Members"
-      >
+    <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
+      <a-tab-pane key="all" tab="All Members">
         <a-list
           :data-source="filteredMembers"
           :pagination="pagination"
@@ -56,10 +43,7 @@
                 <template #title>
                   <div class="member-title">
                     <span class="member-name">{{ item.name }}</span>
-                    <a-tag
-                      :color="getRoleColor(item.role)"
-                      size="small"
-                    >
+                    <a-tag :color="getRoleColor(item.role)" size="small">
                       {{ getRoleLabel(item.role) }}
                     </a-tag>
                     <a-tag
@@ -82,10 +66,7 @@
                       <ClockCircleOutlined />
                       <span>Joined {{ formatDate(item.joined_at) }}</span>
                     </div>
-                    <div
-                      v-if="item.last_active"
-                      class="info-item"
-                    >
+                    <div v-if="item.last_active" class="info-item">
                       <FieldTimeOutlined />
                       <span>Active {{ formatTime(item.last_active) }}</span>
                     </div>
@@ -94,14 +75,8 @@
               </a-list-item-meta>
 
               <template #actions>
-                <a-dropdown
-                  v-if="canManageMember(item)"
-                  :trigger="['click']"
-                >
-                  <a-button
-                    type="text"
-                    size="small"
-                  >
+                <a-dropdown v-if="canManageMember(item)" :trigger="['click']">
+                  <a-button type="text" size="small">
                     <MoreOutlined />
                   </a-button>
                   <template #overlay>
@@ -118,24 +93,13 @@
                         key="role"
                         title="Change Role"
                       >
-                        <a-menu-item
-                          key="role-owner"
-                          :disabled="!isOwner"
-                        >
+                        <a-menu-item key="role-owner" :disabled="!isOwner">
                           Owner
                         </a-menu-item>
-                        <a-menu-item key="role-admin">
-                          Admin
-                        </a-menu-item>
-                        <a-menu-item key="role-editor">
-                          Editor
-                        </a-menu-item>
-                        <a-menu-item key="role-member">
-                          Member
-                        </a-menu-item>
-                        <a-menu-item key="role-viewer">
-                          Viewer
-                        </a-menu-item>
+                        <a-menu-item key="role-admin"> Admin </a-menu-item>
+                        <a-menu-item key="role-editor"> Editor </a-menu-item>
+                        <a-menu-item key="role-member"> Member </a-menu-item>
+                        <a-menu-item key="role-viewer"> Viewer </a-menu-item>
                       </a-sub-menu>
                       <a-menu-divider v-if="canRemoveMember(item)" />
                       <a-menu-item
@@ -154,10 +118,7 @@
         </a-list>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="online"
-        :tab="`Online (${onlineMembers.length})`"
-      >
+      <a-tab-pane key="online" :tab="`Online (${onlineMembers.length})`">
         <a-list
           :data-source="onlineMembers"
           :pagination="pagination"
@@ -168,10 +129,7 @@
             <a-list-item>
               <a-list-item-meta>
                 <template #avatar>
-                  <a-badge
-                    status="success"
-                    :offset="[-5, 35]"
-                  >
+                  <a-badge status="success" :offset="[-5, 35]">
                     <a-avatar
                       :style="{ backgroundColor: getAvatarColor(item.name) }"
                     >
@@ -182,10 +140,7 @@
                 <template #title>
                   <div class="member-title">
                     <span class="member-name">{{ item.name }}</span>
-                    <a-tag
-                      :color="getRoleColor(item.role)"
-                      size="small"
-                    >
+                    <a-tag :color="getRoleColor(item.role)" size="small">
                       {{ getRoleLabel(item.role) }}
                     </a-tag>
                   </div>
@@ -204,14 +159,8 @@
         </a-list>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="roles"
-        tab="By Role"
-      >
-        <a-collapse
-          v-model:active-key="activeRoles"
-          accordion
-        >
+      <a-tab-pane key="roles" tab="By Role">
+        <a-collapse v-model:active-key="activeRoles" accordion>
           <a-collapse-panel
             v-for="role in roles"
             :key="role.key"
@@ -263,6 +212,15 @@ import {
   MessageOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
+import {
+  getOnlineStatus,
+  getAvatarColor,
+  getRoleColor,
+  getRoleLabel,
+  formatDID,
+  formatDate,
+  formatTime,
+} from "./memberListUtils";
 
 const props = defineProps({
   organizationId: {
@@ -485,75 +443,6 @@ async function removeMember(member) {
 
 function getMembersByRole(role) {
   return members.value.filter((m) => m.role === role);
-}
-
-function getOnlineStatus(online) {
-  return online ? "success" : "default";
-}
-
-function getAvatarColor(name) {
-  const colors = ["#f56a00", "#7265e6", "#ffbf00", "#00a2ae", "#87d068"];
-  const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
-}
-
-function getRoleColor(role) {
-  const colors = {
-    owner: "red",
-    admin: "orange",
-    editor: "blue",
-    member: "green",
-    viewer: "default",
-  };
-  return colors[role] || "default";
-}
-
-function getRoleLabel(role) {
-  const labels = {
-    owner: "Owner",
-    admin: "Admin",
-    editor: "Editor",
-    member: "Member",
-    viewer: "Viewer",
-  };
-  return labels[role] || "Member";
-}
-
-function formatDID(did) {
-  if (!did) {
-    return "";
-  }
-  if (did.length <= 20) {
-    return did;
-  }
-  return `${did.substring(0, 10)}...${did.substring(did.length - 10)}`;
-}
-
-function formatDate(timestamp) {
-  if (!timestamp) {
-    return "Unknown";
-  }
-  const date = new Date(timestamp);
-  return date.toLocaleDateString();
-}
-
-function formatTime(timestamp) {
-  if (!timestamp) {
-    return "Unknown";
-  }
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  if (diff < 60000) {
-    return "just now";
-  }
-  if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}m ago`;
-  }
-  if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}h ago`;
-  }
-  return `${Math.floor(diff / 86400000)}d ago`;
 }
 </script>
 
