@@ -6,6 +6,7 @@
 import crypto from "crypto";
 import { safeJsonParse } from "./safe-json.js";
 import { evaluateNetworkAccess } from "./sandbox-network-policy.js";
+import { evaluatePathAccess } from "./sandbox-fs-policy.js";
 import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
@@ -142,20 +143,19 @@ export function ensureSandboxTables(db) {
 // ─── Permission checking ──────────────────────────────────────
 
 function checkFilePermission(permissions, filePath, mode) {
-  const fs = permissions.fileSystem || {};
-  const denied = fs.denied || [];
-  for (const d of denied) {
-    if (filePath.startsWith(d)) return false;
-  }
-  if (mode === "read") {
-    const allowed = fs.read || [];
-    return allowed.some((p) => filePath.startsWith(p));
-  }
-  if (mode === "write") {
-    const allowed = fs.write || [];
-    return allowed.some((p) => filePath.startsWith(p));
-  }
-  return false;
+  // Delegate to the shared path policy: `path.resolve` collapses `..` (traversal),
+  // a `path.relative` boundary rejects `/tmpfoo` matching `/tmp`, and symlinks are
+  // resolved so a link inside an allowed dir can't escape. The old check was
+  // `filePath.startsWith(root)` and let all three through.
+  const fsPol = permissions.fileSystem || {};
+  return evaluatePathAccess(filePath, {
+    mode,
+    policy: {
+      read: fsPol.read || [],
+      write: fsPol.write || [],
+      denied: fsPol.denied || [],
+    },
+  }).allowed;
 }
 
 function checkNetworkPermission(permissions, host) {

@@ -699,6 +699,23 @@ describe("sandbox-v2", () => {
       expect(r.allowed).toBe(false);
     });
 
+    it("blocks a path-traversal escape from an allowed root (hardened check)", () => {
+      // `/tmp/../etc/passwd` used to pass the old `startsWith('/tmp')` check;
+      // the shared path policy resolves `..` first, so it is now denied.
+      const { id } = createSandbox(db, "agent-trav", {
+        permissions: {
+          ...DEFAULT_PERMISSIONS,
+          fileSystem: { read: ["/tmp"], write: [], denied: [] },
+        },
+      });
+      const r = enforcePermission(getSandbox(db, id), {
+        type: PERMISSION_TYPE.FILESYSTEM,
+        target: "/tmp/../etc/passwd",
+        mode: "read",
+      });
+      expect(r.allowed).toBe(false);
+    });
+
     it("throws on denied when throwOnDeny=true", () => {
       const { id } = createSandbox(db, "agent-e3", {
         permissions: {
