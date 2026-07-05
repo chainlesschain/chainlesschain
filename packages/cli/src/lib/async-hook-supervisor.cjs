@@ -239,6 +239,13 @@ class AsyncHookSupervisor {
     this._running.set(key, rec);
 
     try {
+      // `.end(data)` flushes ASYNCHRONOUSLY: if the hook exited before consuming
+      // stdin (a fast command), the write fails with an async EPIPE emitted as an
+      // 'error' event on the stream — NOT a sync throw this catch can see. With no
+      // listener that becomes an uncaught exception that crashes the process (seen
+      // on Linux CI). Attach a no-op error handler first so a closed-stdin write
+      // is swallowed as the non-fatal condition it is.
+      child.stdin?.on("error", () => {});
       child.stdin?.end(JSON.stringify(payload));
     } catch {
       /* stdin may already be closed — non-fatal */
