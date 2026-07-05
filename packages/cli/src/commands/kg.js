@@ -11,6 +11,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureKnowledgeGraphTables,
+  loadFromDb as loadKgFromDb,
   listEntityTypes,
   addEntity,
   getEntity,
@@ -65,6 +66,9 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureKnowledgeGraphTables(db);
+  // The CLI is one-shot: hydrate the in-memory graph from the DB so persisted
+  // entities/relations are visible (and mutations resolve) this invocation.
+  loadKgFromDb(db);
   return db;
 }
 

@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureKnowledgeGraphTables,
+  loadFromDb,
   listEntityTypes,
   addEntity,
   getEntity,
@@ -71,6 +72,63 @@ describe("knowledge-graph", () => {
     _resetState();
     db = new MockDatabase();
     ensureKnowledgeGraphTables(db);
+  });
+
+  /* ── Cross-process hydration ───────────────────────────────── */
+  // The CLI is one-shot: _entities/_relations/_outEdges/_inEdges start empty
+  // every process. Writes dual-write (Map + INSERT) but reads are Map-only and
+  // nothing SELECTed the tables back, so persisted graph data was invisible on
+  // the next invocation. loadFromDb rehydrates all four Maps + the edge index.
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes persisted entities/relations visible after a Map reset", () => {
+      const alice = addEntity(db, { name: "Alice", type: "person" });
+      const bob = addEntity(db, { name: "Bob", type: "person" });
+      addRelation(db, {
+        sourceId: alice.id,
+        targetId: bob.id,
+        relationType: "knows",
+      });
+
+      // Simulate a fresh CLI process: DB persists, Maps wiped.
+      _resetState();
+      expect(listEntities()).toEqual([]); // the bug
+      expect(getStats().entityCount).toBe(0);
+
+      const n = loadFromDb(db);
+      expect(n).toBe(3); // 2 entities + 1 relation
+
+      const ents = listEntities();
+      expect(ents.map((e) => e.name).sort()).toEqual(["Alice", "Bob"]);
+      expect(getStats()).toMatchObject({ entityCount: 2, relationCount: 1 });
+
+      const rels = listRelations();
+      expect(rels.length).toBe(1);
+      expect(rels[0].relationType).toBe("knows");
+
+      // reason() traverses the _outEdges index rebuilt by loadFromDb.
+      const reachable = reason(alice.id, { maxDepth: 2 });
+      expect(reachable.some((r) => r.entity.id === bob.id)).toBe(true);
+    });
+
+    it("lets add-relation resolve entities persisted in a prior process", () => {
+      const a = addEntity(db, { name: "A", type: "thing" });
+      const b = addEntity(db, { name: "B", type: "thing" });
+
+      _resetState();
+      loadFromDb(db);
+      // Without hydration this throws "Source entity not found".
+      expect(() =>
+        addRelation(db, {
+          sourceId: a.id,
+          targetId: b.id,
+          relationType: "rel",
+        }),
+      ).not.toThrow();
+    });
+
+    it("returns 0 on a null db", () => {
+      expect(loadFromDb(null)).toBe(0);
+    });
   });
 
   /* ── Schema / catalogs ─────────────────────────────────────── */

@@ -95,6 +95,85 @@ export function ensureKnowledgeGraphTables(db) {
   );
 }
 
+/**
+ * Hydrate the in-memory graph from the DB. The CLI is one-shot: _entities/
+ * _relations/_outEdges/_inEdges start empty every process. Writes dual-write
+ * (Map + INSERT), but every read is Map-only and nothing ever SELECTed the
+ * tables back — so persisted entities/relations were invisible on the next
+ * invocation (list/show/stats/export empty; add-relation threw "Source entity
+ * not found"; remove returned false and left the row). Call after
+ * ensureKnowledgeGraphTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureKnowledgeGraphTables(db);
+  _entities.clear();
+  _relations.clear();
+  _outEdges.clear();
+  _inEdges.clear();
+
+  const entityRows = db
+    .prepare(
+      `SELECT id, name, type, properties, tags, created_at, updated_at
+         FROM kg_entities ORDER BY created_at ASC`,
+    )
+    .all();
+  for (const r of entityRows) {
+    // A single corrupt properties/tags cell must not crash the whole load.
+    let properties = null;
+    let tags = null;
+    try {
+      properties = r.properties ? JSON.parse(r.properties) : null;
+    } catch {
+      properties = null;
+    }
+    try {
+      tags = r.tags ? JSON.parse(r.tags) : null;
+    } catch {
+      tags = null;
+    }
+    _entities.set(r.id, {
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      properties,
+      tags,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      _seq: ++_seq,
+    });
+  }
+
+  const relationRows = db
+    .prepare(
+      `SELECT id, source_id, target_id, relation_type, weight, properties, created_at
+         FROM kg_relationships ORDER BY created_at ASC`,
+    )
+    .all();
+  for (const r of relationRows) {
+    let properties = null;
+    try {
+      properties = r.properties ? JSON.parse(r.properties) : null;
+    } catch {
+      properties = null;
+    }
+    const relation = {
+      id: r.id,
+      sourceId: r.source_id,
+      targetId: r.target_id,
+      relationType: r.relation_type,
+      weight: Number(r.weight),
+      properties,
+      createdAt: Number(r.created_at),
+      _seq: ++_seq,
+    };
+    _relations.set(r.id, relation);
+    _indexRelation(relation);
+  }
+
+  return _entities.size + _relations.size;
+}
+
 /* ── Catalogs ──────────────────────────────────────────────── */
 
 export function listEntityTypes() {
