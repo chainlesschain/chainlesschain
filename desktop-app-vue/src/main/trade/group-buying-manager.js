@@ -189,14 +189,24 @@ class GroupBuyingManager extends EventEmitter {
     const memberId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
-    db.prepare(
-      `INSERT INTO group_buy_members (id, group_id, user_id, quantity, joined_at, status)
+    // 入库成员行 + current_members 自增必须原子：否则计数漂移，而 current_members
+    // 决定 "是否满员" 与 finalize 目标判定 → 可能提前/永不结算。纯同步块，包进事务；
+    // MockDatabase 无 .transaction 时顺序执行。
+    const applyJoin = () => {
+      db.prepare(
+        `INSERT INTO group_buy_members (id, group_id, user_id, quantity, joined_at, status)
        VALUES (?, ?, ?, ?, ?, 'active')`,
-    ).run(memberId, groupId, userId, quantity, now);
+      ).run(memberId, groupId, userId, quantity, now);
 
-    db.prepare(
-      "UPDATE group_buys SET current_members = current_members + 1, updated_at = ? WHERE id = ?",
-    ).run(now, groupId);
+      db.prepare(
+        "UPDATE group_buys SET current_members = current_members + 1, updated_at = ? WHERE id = ?",
+      ).run(now, groupId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyJoin)();
+    } else {
+      applyJoin();
+    }
 
     this.emit("member-joined", { groupId, userId, memberId });
 
@@ -223,16 +233,29 @@ class GroupBuyingManager extends EventEmitter {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const result = db
-      .prepare(
-        "UPDATE group_buy_members SET status = 'left' WHERE group_id = ? AND user_id = ? AND status = 'active'",
-      )
-      .run(groupId, userId);
+    // 标记成员 'left' + current_members 自减必须原子：否则计数与真实活跃成员数
+    // 不一致，影响满员/结算判定。纯同步块，包进事务；MockDatabase 顺序执行。
+    // emit 是副作用，放在事务外。
+    const applyLeave = () => {
+      const result = db
+        .prepare(
+          "UPDATE group_buy_members SET status = 'left' WHERE group_id = ? AND user_id = ? AND status = 'active'",
+        )
+        .run(groupId, userId);
+
+      if (result.changes > 0) {
+        db.prepare(
+          "UPDATE group_buys SET current_members = MAX(0, current_members - 1), updated_at = ? WHERE id = ?",
+        ).run(now, groupId);
+      }
+      return result;
+    };
+    const result =
+      typeof db.transaction === "function"
+        ? db.transaction(applyLeave)()
+        : applyLeave();
 
     if (result.changes > 0) {
-      db.prepare(
-        "UPDATE group_buys SET current_members = MAX(0, current_members - 1), updated_at = ? WHERE id = ?",
-      ).run(now, groupId);
       this.emit("member-left", { groupId, userId });
     }
 
