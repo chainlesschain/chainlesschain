@@ -7,6 +7,7 @@ import {
   RemoteSessionCryptoContext,
   createRemotePairingUri,
 } from "../../harness/remote-session-crypto.js";
+import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
   prompt: "prompt",
@@ -20,6 +21,55 @@ function reply(server, ws, id, type, payload = {}) {
 
 function audit(server, entry) {
   server.remoteSessionAudit?.record(entry);
+}
+
+/**
+ * Apply a remote-client control event (prompt / approval.resolve / interrupt)
+ * idempotently when it carries a stable `commandId`. This is the ACTUAL takeover
+ * path — a paired mobile/web device driving the host agent — and it does NOT
+ * flow through message-dispatcher's execute/stream ledger, so without this a
+ * prompt re-sent after a dropped connection would run the agent turn a SECOND
+ * time (Phase 5 acceptance "断网恢复后不会重复执行工具调用"). The side effect
+ * (audit + dispatch into the host session) runs AT MOST ONCE per commandId; a
+ * re-delivery gets a `replayed` ack instead. Byte-identical when the event
+ * carries no `commandId` (existing clients unchanged). deviceId is the
+ * AUTHENTICATED clientId, so a device can never spoof another's idempotency /
+ * ordering stream. A revoked device / stale seq is rejected without forwarding.
+ * Uses a ledger SEPARATE from the execute/stream one (`_commandLedger`) so the
+ * two paths keep independent per-device sequence spaces.
+ */
+async function applyControlIdempotent(server, clientId, ws, message, forward) {
+  const commandId = message.commandId;
+  if (!commandId) return forward();
+  // Create the ledger SYNCHRONOUSLY (no await between the check and the assign)
+  // so two concurrent re-deliveries of the same commandId share ONE ledger and
+  // coalesce — a lazy `await import()` here would let each build its own ledger
+  // and both would execute, defeating the whole guarantee.
+  if (!server._remoteControlLedger) {
+    server._remoteControlLedger = new RemoteCommandLedger();
+  }
+  const outcome = await server._remoteControlLedger.apply(
+    { commandId, deviceId: clientId, seq: message.seq },
+    async () => {
+      await forward();
+      return true;
+    },
+  );
+  if (outcome.status === "replayed") {
+    reply(server, ws, message.id, "remote-session-published", {
+      delivered: 0,
+      replayed: true,
+      commandId,
+      applyIndex: outcome.applyIndex,
+    });
+  } else if (outcome.status === "rejected") {
+    reply(server, ws, message.id, "error", {
+      code: "COMMAND_REJECTED",
+      commandId,
+      message: outcome.reason,
+    });
+  }
+  return outcome;
 }
 
 function attachPairingUri(server, result) {
@@ -395,49 +445,60 @@ export async function handleRemoteSessionPublish(
         id: message.id,
         sessionId: session.agentSessionId,
       };
-      if (message.event.type === "prompt") {
-        if (
-          typeof message.event.content !== "string" ||
-          !message.event.content.trim()
-        ) {
-          throw new Error("prompt content is required");
-        }
-        // Record the shape, not the content — the audit trail must stay useful
-        // without hoarding potentially sensitive session prompts.
-        audit(server, {
-          sessionId: message.remoteSessionId,
-          actor: clientId,
-          action: "control.prompt",
-          detail: { chars: message.event.content.length },
-        });
-        handleSessionMessage(server, message.id, ws, {
-          ...controlMessage,
-          content: message.event.content,
-        });
-      } else if (message.event.type === "approval.resolve") {
-        audit(server, {
-          sessionId: message.remoteSessionId,
-          actor: clientId,
-          action: "control.approval",
-          detail: {
-            requestId: message.event.requestId || message.event.approvalId,
-            approved: message.event.answer ?? message.event.approved,
-          },
-        });
-        await handleSessionAnswer(server, message.id, ws, {
-          ...controlMessage,
-          requestId: message.event.requestId || message.event.approvalId,
-          answer: message.event.answer ?? message.event.approved,
-        });
-      } else if (message.event.type === "interrupt") {
-        audit(server, {
-          sessionId: message.remoteSessionId,
-          actor: clientId,
-          action: "control.interrupt",
-          detail: null,
-        });
-        await handleSessionInterrupt(server, message.id, ws, controlMessage);
+      // Validate up-front so a malformed control event errors identically
+      // whether or not it carries a commandId — idempotency must never change
+      // validation semantics (a bad prompt must not consume a commandId slot).
+      if (
+        message.event.type === "prompt" &&
+        (typeof message.event.content !== "string" ||
+          !message.event.content.trim())
+      ) {
+        throw new Error("prompt content is required");
       }
+      // Idempotent forward: a control event with a stable commandId runs its
+      // side effect (audit + dispatch into the host agent) AT MOST ONCE, so a
+      // reconnecting device re-sending the same prompt/approval/interrupt gets a
+      // `replayed` ack instead of a second agent turn. No commandId → forwarded
+      // directly, byte-identical to before.
+      await applyControlIdempotent(server, clientId, ws, message, async () => {
+        if (message.event.type === "prompt") {
+          // Record the shape, not the content — the audit trail must stay
+          // useful without hoarding potentially sensitive session prompts.
+          audit(server, {
+            sessionId: message.remoteSessionId,
+            actor: clientId,
+            action: "control.prompt",
+            detail: { chars: message.event.content.length },
+          });
+          handleSessionMessage(server, message.id, ws, {
+            ...controlMessage,
+            content: message.event.content,
+          });
+        } else if (message.event.type === "approval.resolve") {
+          audit(server, {
+            sessionId: message.remoteSessionId,
+            actor: clientId,
+            action: "control.approval",
+            detail: {
+              requestId: message.event.requestId || message.event.approvalId,
+              approved: message.event.answer ?? message.event.approved,
+            },
+          });
+          await handleSessionAnswer(server, message.id, ws, {
+            ...controlMessage,
+            requestId: message.event.requestId || message.event.approvalId,
+            answer: message.event.answer ?? message.event.approved,
+          });
+        } else if (message.event.type === "interrupt") {
+          audit(server, {
+            sessionId: message.remoteSessionId,
+            actor: clientId,
+            action: "control.interrupt",
+            detail: null,
+          });
+          await handleSessionInterrupt(server, message.id, ws, controlMessage);
+        }
+      });
       return;
     }
 

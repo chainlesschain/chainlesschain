@@ -19,6 +19,7 @@ import {
   handleRemoteSessionPushRegister,
   handleRemoteSessionRevoke,
 } from "./remote-session-protocol.js";
+import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
 
 /**
  * Reconnect-safe command execution. When a message carries a stable
@@ -35,9 +36,11 @@ async function executeWithIdempotency(server, id, ws, message, stream) {
   if (!commandId) {
     return server._executeCommand(id, ws, message.command, stream);
   }
+  // Create the ledger SYNCHRONOUSLY (no await between the check and the assign)
+  // so two concurrent re-deliveries of the same commandId share ONE ledger and
+  // coalesce; a lazy `await import()` here would let each build its own ledger
+  // and both would execute — the exact double-exec this guards against.
   if (!server._commandLedger) {
-    const { RemoteCommandLedger } =
-      await import("../../harness/remote-command-ledger.js");
     server._commandLedger = new RemoteCommandLedger();
   }
   const outcome = await server._commandLedger.apply(

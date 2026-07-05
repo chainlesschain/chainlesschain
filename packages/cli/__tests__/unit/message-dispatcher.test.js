@@ -180,6 +180,35 @@ describe("ws message dispatcher", () => {
     );
   });
 
+  it("coalesces CONCURRENT re-deliveries of the same commandId to one execution", async () => {
+    const server = createServerStub();
+    let release;
+    const gate = new Promise((r) => (release = r));
+    let calls = 0;
+    server._executeCommand = vi.fn(async () => {
+      calls += 1;
+      await gate; // hold both deliveries in-flight together
+      return "ran";
+    });
+    const dispatcher = createWsMessageDispatcher(server);
+    const msg = {
+      id: "1",
+      type: "execute",
+      command: { cmd: "x" },
+      commandId: "c-race",
+      deviceId: "web",
+    };
+    // Fire both on the same tick — the second must not build its own ledger and
+    // run a second time (regression guard for the lazy-import race).
+    const both = Promise.all([
+      dispatcher.dispatch("client-1", {}, msg),
+      dispatcher.dispatch("client-1", {}, msg),
+    ]);
+    release();
+    await both;
+    expect(calls).toBe(1);
+  });
+
   it("rejects a command from a revoked device without executing it", async () => {
     const { RemoteCommandLedger } =
       await import("../../src/harness/remote-command-ledger.js");

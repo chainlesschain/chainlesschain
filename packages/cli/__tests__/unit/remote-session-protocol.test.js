@@ -464,4 +464,158 @@ describe("remote session WebSocket protocol", () => {
       },
     });
   });
+
+  // Phase 5: control-event idempotency. The takeover path (a paired device
+  // driving the host agent via prompt/approval/interrupt) must run its side
+  // effect AT MOST ONCE when the event carries a stable commandId, so a device
+  // that re-sends after a dropped connection does not run the agent turn twice.
+  describe("commandId idempotency on the control path", () => {
+    it("forwards a prompt once and returns `replayed` on a re-send (no second agent turn)", async () => {
+      const remoteSessionId = createAndJoin(["observe", "prompt"]);
+      const handleMessage = vi.fn(async () => {});
+      server.sessionHandlers.set("agent-1", { handleMessage });
+
+      const send = () =>
+        handleRemoteSessionPublish(server, "phone", phone, {
+          id: "prompt-1",
+          commandId: "cmd-abc",
+          remoteSessionId,
+          event: { type: "prompt", content: "deploy to staging" },
+        });
+
+      await send(); // fresh delivery
+      await send(); // reconnect re-send of the SAME commandId
+
+      // The agent turn was dispatched exactly once…
+      expect(handleMessage).toHaveBeenCalledTimes(1);
+      // …and the re-send got a replayed ack rather than a second execution.
+      expect(phone.sent.at(-1)).toMatchObject({
+        type: "remote-session-published",
+        replayed: true,
+        commandId: "cmd-abc",
+      });
+    });
+
+    it("forwards a DIFFERENT commandId as a new command", async () => {
+      const remoteSessionId = createAndJoin(["observe", "prompt"]);
+      const handleMessage = vi.fn(async () => {});
+      server.sessionHandlers.set("agent-1", { handleMessage });
+
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "prompt-1",
+        commandId: "cmd-1",
+        remoteSessionId,
+        event: { type: "prompt", content: "first" },
+      });
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "prompt-2",
+        commandId: "cmd-2",
+        remoteSessionId,
+        event: { type: "prompt", content: "second" },
+      });
+
+      expect(handleMessage).toHaveBeenCalledTimes(2);
+    });
+
+    it("does NOT dedup when no commandId is present (opt-in, byte-identical)", async () => {
+      const remoteSessionId = createAndJoin(["observe", "prompt"]);
+      const handleMessage = vi.fn(async () => {});
+      server.sessionHandlers.set("agent-1", { handleMessage });
+
+      const send = () =>
+        handleRemoteSessionPublish(server, "phone", phone, {
+          id: "prompt-x",
+          remoteSessionId,
+          event: { type: "prompt", content: "no id" },
+        });
+      await send();
+      await send();
+
+      // Without a commandId the ledger is never consulted → each send forwards.
+      expect(handleMessage).toHaveBeenCalledTimes(2);
+      expect(server._remoteControlLedger).toBeUndefined();
+    });
+
+    it("resolves an approval once across a re-send with the same commandId", async () => {
+      const remoteSessionId = createAndJoin(["observe", "approve"]);
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "approve-1",
+        commandId: "appr-1",
+        remoteSessionId,
+        event: { type: "approval.resolve", approvalId: "a-1", approved: true },
+      });
+      const resolveAnswer =
+        server.sessionManager.getSession.mock.results.at(-1).value.interaction
+          .resolveAnswer;
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "approve-1",
+        commandId: "appr-1", // reconnect re-send
+        remoteSessionId,
+        event: { type: "approval.resolve", approvalId: "a-1", approved: true },
+      });
+      expect(resolveAnswer).toHaveBeenCalledTimes(1);
+      expect(phone.sent.at(-1)).toMatchObject({
+        type: "remote-session-published",
+        replayed: true,
+        commandId: "appr-1",
+      });
+    });
+
+    it("coalesces CONCURRENT re-deliveries of the same commandId to a single forward", async () => {
+      const remoteSessionId = createAndJoin(["observe", "approve"]);
+      // A slow, controllable resolve so both deliveries overlap in-flight.
+      let release;
+      const gate = new Promise((r) => (release = r));
+      let calls = 0;
+      server.sessionManager.getSession = vi.fn(() => ({
+        interaction: {
+          resolveAnswer: vi.fn(async () => {
+            calls += 1;
+            await gate;
+          }),
+        },
+      }));
+      const pub = (id) =>
+        handleRemoteSessionPublish(server, "phone", phone, {
+          id,
+          commandId: "race-1",
+          remoteSessionId,
+          event: {
+            type: "approval.resolve",
+            approvalId: "a-1",
+            approved: true,
+          },
+        });
+      const both = Promise.all([pub("r-a"), pub("r-b")]); // fired same tick
+      release();
+      await both;
+      // The side effect ran once despite two overlapping deliveries.
+      expect(calls).toBe(1);
+    });
+
+    it("keeps prompt validation identical whether or not a commandId is present", async () => {
+      const remoteSessionId = createAndJoin(["observe", "prompt"]);
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "prompt-bad",
+        commandId: "cmd-bad",
+        remoteSessionId,
+        event: { type: "prompt", content: "   " }, // blank → invalid
+      });
+      expect(phone.sent.at(-1)).toMatchObject({
+        type: "error",
+        code: "REMOTE_SESSION_PUBLISH_ERROR",
+      });
+      // A rejected-before-dispatch prompt must not have consumed the commandId:
+      // a corrected re-send with the same id still executes.
+      const handleMessage = vi.fn(async () => {});
+      server.sessionHandlers.set("agent-1", { handleMessage });
+      await handleRemoteSessionPublish(server, "phone", phone, {
+        id: "prompt-bad",
+        commandId: "cmd-bad",
+        remoteSessionId,
+        event: { type: "prompt", content: "now valid" },
+      });
+      expect(handleMessage).toHaveBeenCalledTimes(1);
+    });
+  });
 });
