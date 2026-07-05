@@ -165,8 +165,12 @@ export function parseSkillMd(content) {
         continue;
       }
 
-      // Handle booleans and numbers
-      if (value === "true") value = true;
+      // Handle booleans and numbers. `name` is an identity field and must stay
+      // a string — a bare numeric name ("2024") or boolean coerced to Number/
+      // Boolean makes the derived skill.id non-string, and skill.id.includes()
+      // in `cc skill run/info` then throws TypeError, aborting the lookup.
+      if (camelKey === "name") value = value.replace(/^['"]|['"]$/g, "");
+      else if (value === "true") value = true;
       else if (value === "false") value = false;
       else if (value === "null") value = null;
       else if (/^\d+(\.\d+)?$/.test(value)) value = parseFloat(value);

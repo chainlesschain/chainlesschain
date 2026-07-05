@@ -88,6 +88,16 @@ version: 2.5
       expect(data.version).toBe(2.5);
     });
 
+    it("keeps a numeric or boolean name as a string", () => {
+      // Regression: a bare numeric/boolean `name` was coerced to Number/Boolean,
+      // so the derived skill.id was non-string and `skill.id.includes(name)` in
+      // `cc skill run/info` (skill.js:243) threw TypeError, aborting the whole
+      // lookup. name is an identity field and must always stay a string.
+      expect(parseSkillMd("---\nname: 2024\n---\nbody").data.name).toBe("2024");
+      expect(parseSkillMd("---\nname: true\n---\nbody").data.name).toBe("true");
+      // Other scalar fields still coerce (e.g. version stays numeric above).
+    });
+
     it("handles null values", () => {
       const content = `---
 name: test
