@@ -63,6 +63,79 @@ export function ensureEvolutionTables(db) {
   `);
 }
 
+/**
+ * Rehydrate the capabilities/models/growthLog stores from the persisted
+ * evolution_* tables. The `cc` CLI runs every command in a fresh process, so
+ * without this the Maps/array start empty and a capability/model/growth event
+ * recorded in a prior invocation is invisible (`cc evolution stats`/`growth`
+ * report nothing; `cc evolution export <id>` throws "not found"; `diagnose`
+ * always reports healthy/idle). It also lets assessCapability find an existing
+ * capability by name across processes instead of minting a fresh id each time
+ * (which would leave duplicate persisted rows). Call after
+ * ensureEvolutionTables(db). (diagnoses is write-only — no reader — so it is
+ * not rehydrated.)
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  capabilities.clear();
+  models.clear();
+  growthLog.length = 0;
+
+  const capRows = db.prepare(`SELECT * FROM evolution_capabilities`).all();
+  for (const row of capRows) {
+    let history = [];
+    try {
+      history = row.history ? JSON.parse(row.history) : [];
+    } catch {
+      history = [];
+    }
+    // keyed by name (matches assessCapability)
+    capabilities.set(row.name, {
+      id: row.id,
+      name: row.name,
+      score: row.score ?? 0,
+      category: row.category,
+      trend: row.trend,
+      history,
+    });
+  }
+
+  const modelRows = db.prepare(`SELECT * FROM evolution_models`).all();
+  for (const row of modelRows) {
+    let parameters = {};
+    try {
+      parameters = row.parameters ? JSON.parse(row.parameters) : {};
+    } catch {
+      parameters = {};
+    }
+    // keyed by id (matches trainIncremental modelId)
+    models.set(row.id, {
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      accuracy: row.accuracy ?? 0.5,
+      dataPoints: row.data_points ?? 0,
+      parameters,
+      createdAt: row.created_at ?? null,
+      updatedAt: row.updated_at ?? null,
+    });
+  }
+
+  const logRows = db.prepare(`SELECT * FROM evolution_growth_log`).all();
+  for (const row of logRows) {
+    growthLog.push({
+      id: row.id,
+      eventType: row.event_type,
+      description: row.description,
+      capabilityId: row.capability_id ?? null,
+      delta: row.delta ?? 0,
+      timestamp: row.timestamp,
+    });
+  }
+
+  return capabilities.size + models.size + growthLog.length;
+}
+
 // ─── Core functions ───────────────────────────────────────────
 
 /**
@@ -70,6 +143,7 @@ export function ensureEvolutionTables(db) {
  */
 export function assessCapability(db, name, score, category = "general") {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   let cap = capabilities.get(name);
   if (!cap) {
@@ -151,6 +225,7 @@ export function assessCapability(db, name, score, category = "general") {
  */
 export function trainIncremental(db, modelId, newData, options = {}) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   let model = models.get(modelId);
   if (!model) {
@@ -217,6 +292,7 @@ export function trainIncremental(db, modelId, newData, options = {}) {
  */
 export function selfDiagnose(db) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   const components = [];
   const issues = [];
@@ -327,6 +403,7 @@ export function selfDiagnose(db) {
  */
 export function selfRepair(db, issue) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   const actions = [];
   const timestamp = new Date().toISOString();
@@ -349,6 +426,10 @@ export function selfRepair(db, issue) {
         cap.history = cap.history.filter(
           (h) => new Date(h.timestamp).getTime() > cutoff,
         );
+        // Persist the prune, else the repair is lost when the process exits.
+        db.prepare(
+          `UPDATE evolution_capabilities SET history = ?, updated_at = datetime('now') WHERE id = ?`,
+        ).run(JSON.stringify(cap.history), cap.id);
       }
       actions.push("Pruned stale capability history entries");
       break;
@@ -359,6 +440,12 @@ export function selfRepair(db, issue) {
         if (model.accuracy < 0.6) {
           model.accuracy = 0.5;
           model.dataPoints = 0;
+          model.updatedAt = new Date().toISOString();
+          // Persist the reset, else the repair is lost when the process exits
+          // (the DB row keeps the degraded accuracy across invocations).
+          db.prepare(
+            `UPDATE evolution_models SET accuracy = ?, data_points = ?, updated_at = datetime('now') WHERE id = ?`,
+          ).run(model.accuracy, model.dataPoints, model.id);
           actions.push(`Reset model ${model.id} for retraining`);
         }
       }
@@ -400,6 +487,7 @@ export function selfRepair(db, issue) {
  */
 export function predictBehavior(db, userId, options = {}) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   // Build predictions from capability patterns and growth log
   const recentEvents = growthLog.slice(-50);
@@ -431,6 +519,7 @@ export function predictBehavior(db, userId, options = {}) {
  */
 export function getGrowthLog(db, options = {}) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   let entries = [...growthLog];
 
@@ -449,6 +538,7 @@ export function getGrowthLog(db, options = {}) {
  */
 export function getCapabilities(db) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   return [...capabilities.values()].map((c) => ({
     id: c.id,
@@ -465,6 +555,7 @@ export function getCapabilities(db) {
  */
 export function getModels(db) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   return [...models.values()].map((m) => ({
     id: m.id,
@@ -480,6 +571,7 @@ export function getModels(db) {
  */
 export function exportModel(db, modelId) {
   ensureEvolutionTables(db);
+  loadFromDb(db);
 
   const model = models.get(modelId);
   if (!model) {

@@ -785,4 +785,55 @@ describe("evolution-system", () => {
       expect(getEvolutionConfig().knowledgeRetentionThreshold).toBe(0.85);
     });
   });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes capabilities, models and growth log visible after a fresh process", () => {
+      assessCapability(db, "coding", 0.7, "engineering");
+      trainIncremental(db, "intent-classifier", [1, 2, 3], { name: "IC" });
+
+      // Fresh `cc` process: in-memory stores wiped, DB persists.
+      _resetState();
+
+      // The read functions ensure+hydrate internally, so persisted state
+      // reappears without an explicit loadFromDb call.
+      const caps = getCapabilities(db);
+      expect(caps.length).toBe(1);
+      expect(caps[0].name).toBe("coding");
+      expect(caps[0].historyLength).toBe(1); // history JSON rehydrated
+
+      const mdls = getModels(db);
+      expect(mdls.length).toBe(1);
+      expect(mdls[0].id).toBe("intent-classifier");
+      expect(mdls[0].dataPoints).toBe(3);
+
+      const log = getGrowthLog(db);
+      expect(log.length).toBe(2); // one assessment + one training event
+
+      // export no longer throws for a persisted model
+      expect(() => exportModel(db, "intent-classifier")).not.toThrow();
+    });
+
+    it("reuses the persisted capability id across processes (no duplicate row)", () => {
+      const first = assessCapability(db, "coding", 0.5);
+      _resetState();
+      const second = assessCapability(db, "coding", 0.9);
+      // same id → INSERT OR REPLACE updates one row, history accumulates
+      expect(second.id).toBe(first.id);
+      expect(second.history.length).toBe(2);
+      const rows = db.data.get("evolution_capabilities") || [];
+      expect(rows.length).toBe(1);
+    });
+
+    it("survives a corrupt history cell (per-row JSON guard)", () => {
+      assessCapability(db, "coding", 0.7);
+      const rows = db.data.get("evolution_capabilities") || [];
+      rows[0].history = "{bad json";
+
+      _resetState();
+      expect(() => getCapabilities(db)).not.toThrow();
+      const caps = getCapabilities(db);
+      expect(caps.length).toBe(1);
+      expect(caps[0].historyLength).toBe(0); // guarded fallback []
+    });
+  });
 });
