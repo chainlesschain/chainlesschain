@@ -182,6 +182,7 @@ export function openChannel(db, partyA, partyB, depositA) {
     );
   }
 
+  const balSnap = { balance: balA.balance, locked: balA.locked };
   if (deposit > 0) {
     balA.balance -= deposit;
     balA.locked += deposit;
@@ -198,12 +199,35 @@ export function openChannel(db, partyA, partyB, depositA) {
     status: "open",
     createdAt: now,
   };
-  _channels.set(id, channel);
 
-  db.prepare(
-    `INSERT INTO economy_channels (id, party_a, party_b, balance_a, balance_b, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, partyA, partyB, deposit, 0, "open", now);
+  // Persist the channel row AND the deposit debit together. Persisting only the
+  // channel (as before) left the locked deposit still fully available in
+  // economy_balances after the next process re-hydrates — double-counted, so a
+  // party could lock a deposit and still spend the same funds via pay().
+  const applyWrites = () => {
+    db.prepare(
+      `INSERT INTO economy_channels (id, party_a, party_b, balance_a, balance_b, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(id, partyA, partyB, deposit, 0, "open", now);
+    if (deposit > 0) {
+      db.prepare(
+        `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+         VALUES (?, ?, ?, ?)`,
+      ).run(partyA, balA.balance, balA.locked, now);
+    }
+  };
+
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
+    _channels.set(id, channel);
+  } catch (err) {
+    Object.assign(balA, balSnap);
+    throw err;
+  }
 
   return channel;
 }
@@ -213,18 +237,49 @@ export function closeChannel(db, channelId) {
   if (!channel) throw new Error(`Channel not found: ${channelId}`);
   if (channel.status === "closed") throw new Error("Channel already closed");
 
-  channel.status = "closed";
-
-  // Settle: return balances to parties
   const balA = _getBalance(channel.partyA);
   const balB = _getBalance(channel.partyB);
+  const aSnap = { balance: balA.balance, locked: balA.locked };
+  const bSnap = { balance: balB.balance, locked: balB.locked };
+  const prevStatus = channel.status;
+
+  channel.status = "closed";
+  // Settle: return balances to parties.
   balA.balance += channel.balanceA;
   balA.locked = Math.max(0, balA.locked - channel.balanceA);
   balB.balance += channel.balanceB;
 
-  db.prepare(`UPDATE economy_channels SET status = 'closed' WHERE id = ?`).run(
-    channelId,
-  );
+  const now = new Date().toISOString();
+  // Persist the settled balances alongside the status flip. Previously only the
+  // channel status was written, so the returned deposit was lost on re-hydrate.
+  const persistBal = (agentId, bal) =>
+    db
+      .prepare(
+        `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(agentId, bal.balance, bal.locked, now);
+
+  const applyWrites = () => {
+    db.prepare(
+      `UPDATE economy_channels SET status = 'closed' WHERE id = ?`,
+    ).run(channelId);
+    persistBal(channel.partyA, balA);
+    if (channel.partyB !== channel.partyA) persistBal(channel.partyB, balB);
+  };
+
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
+  } catch (err) {
+    Object.assign(balA, aSnap);
+    Object.assign(balB, bSnap);
+    channel.status = prevStatus;
+    throw err;
+  }
 
   return { ...channel };
 }
