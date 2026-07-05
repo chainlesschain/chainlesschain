@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureNostrTables,
+  loadFromDb,
   listRelays,
   addRelay,
   publishEvent,
@@ -445,6 +446,50 @@ describe("nostr-bridge", () => {
       );
       expect(verifyEventSignature(signed.event)).toBe(true);
       expect(signed.event.pubkey).toBe(alice.publicKey);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes relays + events added in a prior process visible after a fresh start", () => {
+      addRelay(db, "wss://relay.one.example");
+      publishEvent(db, 1, "hello from a prior process", "anonymous", [
+        ["t", "greeting"],
+      ]);
+
+      // Simulate a fresh `cc` process: module Maps wiped, DB persists.
+      _resetState();
+      expect(listRelays()).toEqual([]);
+      expect(getEvents()).toEqual([]);
+
+      // The command layer calls ensureNostrTables(db) + loadFromDb(db).
+      loadFromDb(db);
+
+      const relays = listRelays();
+      expect(relays.length).toBe(1);
+      expect(relays[0].url).toBe("wss://relay.one.example");
+      // boolean columns rehydrated as real booleans, not 0/1
+      expect(relays[0].readEnabled).toBe(true);
+      expect(relays[0].writeEnabled).toBe(true);
+
+      const events = getEvents();
+      expect(events.length).toBe(1);
+      expect(events[0].content).toBe("hello from a prior process");
+      expect(events[0].tags).toEqual([["t", "greeting"]]);
+    });
+
+    it("survives a corrupt tags cell (per-row JSON guard)", () => {
+      addRelay(db, "wss://relay.two.example");
+      publishEvent(db, 1, "good event", "anonymous", []);
+      // Corrupt the persisted tags JSON of the stored event row.
+      const rows = db.data.get("nostr_events") || [];
+      expect(rows.length).toBe(1);
+      rows[0].tags = "{not valid json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const events = getEvents();
+      expect(events.length).toBe(1);
+      expect(events[0].tags).toEqual([]); // guarded fallback
     });
   });
 });

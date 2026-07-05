@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureNostrTables,
+  loadFromDb,
   listRelays,
   addRelay,
   publishEvent,
@@ -39,6 +40,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const relays = listRelays();
         if (options.json) {
@@ -73,6 +75,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const relay = addRelay(db, url);
         logger.success(`Relay added: ${chalk.cyan(relay.url)}`);
@@ -101,10 +104,15 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const result = publishEvent(
           db,
-          numericOption(options.kind, { name: "--kind", integer: true, min: 0 }),
+          numericOption(options.kind, {
+            name: "--kind",
+            integer: true,
+            min: 0,
+          }),
           content,
           options.pubkey,
           [],
@@ -140,9 +148,24 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
-        const filter = { limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }) };
-        if (options.kind) filter.kinds = [numericOption(options.kind, { name: "--kind", integer: true, min: 0 })];
+        const filter = {
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
+        };
+        if (options.kind)
+          filter.kinds = [
+            numericOption(options.kind, {
+              name: "--kind",
+              integer: true,
+              min: 0,
+            }),
+          ];
         const events = getEvents(filter);
         if (options.json) {
           console.log(JSON.stringify(events, null, 2));
@@ -218,6 +241,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const result = publishDirectMessage(db, {
           senderPrivkey: options.senderPriv,
@@ -259,6 +283,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const events = getEvents({ kinds: [4], limit: 1000 });
         const event = events.find((e) => e.id === eventId);
@@ -305,6 +330,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const result = publishDeletion(db, {
           eventIds,
@@ -349,6 +375,7 @@ export function registerNostrCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureNostrTables(db);
+        loadFromDb(db);
 
         const result = publishReaction(db, {
           targetEventId,

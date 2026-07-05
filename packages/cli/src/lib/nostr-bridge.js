@@ -59,6 +59,59 @@ export function ensureNostrTables(db) {
   `);
 }
 
+/**
+ * Rehydrate the module-level _relays/_events Maps from the persisted
+ * nostr_relays/nostr_events tables. The `cc` CLI runs every command in a
+ * fresh process, so without this the Maps are empty on read and a relay/event
+ * added in a prior invocation is invisible (`cc nostr relays`/`events` show
+ * nothing; `dm-decrypt` can't find the DM). Call after ensureNostrTables(db).
+ * (_keypairs/_didMappings are intentionally ephemeral — no DB table.)
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _relays.clear();
+  _events.clear();
+
+  const relayRows = db.prepare(`SELECT * FROM nostr_relays`).all();
+  for (const row of relayRows) {
+    _relays.set(row.id, {
+      id: row.id,
+      url: row.url,
+      status: row.status,
+      lastConnected: row.last_connected ?? null,
+      eventCount: row.event_count ?? 0,
+      readEnabled: !!row.read_enabled,
+      writeEnabled: !!row.write_enabled,
+    });
+  }
+
+  const eventRows = db.prepare(`SELECT * FROM nostr_events`).all();
+  for (const row of eventRows) {
+    let tags = [];
+    try {
+      tags = row.tags ? JSON.parse(row.tags) : [];
+    } catch {
+      tags = [];
+    }
+    _events.set(row.id, {
+      id: row.id,
+      pubkey: row.pubkey,
+      kind: row.kind,
+      content: row.content,
+      tags,
+      sig: row.sig ?? "",
+      // write side stores createdAt as unix seconds; the column is an ISO
+      // string — convert back so the two process paths agree.
+      createdAt: row.created_at
+        ? Math.floor(new Date(row.created_at).getTime() / 1000)
+        : null,
+      relayUrl: row.relay_url ?? null,
+    });
+  }
+
+  return _relays.size + _events.size;
+}
+
 /* ── Relay Management ─────────────────────────────────────── */
 
 export function listRelays() {
