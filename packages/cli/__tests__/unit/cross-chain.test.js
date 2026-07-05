@@ -481,6 +481,17 @@ describe("cross-chain", () => {
       expect(r.fee).toBeNull();
     });
 
+    it("returns null fee (not $NaN) for a NaN amount", () => {
+      // parseFloat("abc") = NaN → percentageFee/totalFee NaN → prints "$NaN".
+      const r = estimateFee({
+        fromChain: "ethereum",
+        toChain: "polygon",
+        amount: NaN,
+      });
+      expect(r.fee).toBeNull();
+      expect(r.reason).toBe("invalid_amount");
+    });
+
     it("fee scales with amount", () => {
       const r1 = estimateFee({
         fromChain: "polygon",

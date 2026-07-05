@@ -651,6 +651,11 @@ const BASE_FEE = {
 export function estimateFee({ fromChain, toChain, amount }) {
   if (!_validateChain(fromChain) || !_validateChain(toChain))
     return { fee: null, reason: "unsupported_chain" };
+  // `cc crosschain estimate-fee` passes parseFloat(amount); a non-numeric arg
+  // yields NaN. Without this guard percentageFee/totalFee become NaN, the
+  // command's `fee === null` check misses it, and it prints "$NaN USD".
+  if (!Number.isFinite(amount) || amount <= 0)
+    return { fee: null, reason: "invalid_amount" };
 
   const baseFee = (BASE_FEE[fromChain] || 1.0) + (BASE_FEE[toChain] || 1.0);
   const percentageFee = amount * (DEFAULT_CONFIG.feePercentage / 100);
