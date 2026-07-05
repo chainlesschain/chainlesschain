@@ -141,6 +141,38 @@ describe("ensureFor", () => {
     await mgr.disposeAll();
   });
 
+  it("spawns only ONE server when two concurrent calls race the same key", async () => {
+    // Regression: ensureFor did Map.get(miss)→await start→Map.set with no
+    // in-flight dedupe, so two concurrent calls (the read-only agent batch fires
+    // several code_intelligence calls at once) both spawned a server; the second
+    // set() orphaned the first process. Gate start() so both calls interleave
+    // inside the await window, then assert a single spawn.
+    let created = 0;
+    let releaseStart;
+    const gate = new Promise((r) => {
+      releaseStart = r;
+    });
+    _deps.createClient = (opts) => {
+      created += 1;
+      lastClient = new FakeClient(opts);
+      const origStart = lastClient.start.bind(lastClient);
+      lastClient.start = async () => {
+        await gate; // hold both starts open until released
+        return origStart();
+      };
+      return lastClient;
+    };
+    const mgr = new LSPManager();
+    const p1 = mgr.ensureFor("/proj/src/a.ts");
+    const p2 = mgr.ensureFor("/proj/src/b.ts");
+    releaseStart();
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(created).toBe(1); // NOT two — the race is deduped
+    expect(mgr.activeServerCount).toBe(1);
+    expect(r1.client).toBe(r2.client);
+    await mgr.disposeAll();
+  });
+
   it("returns unavailable for an unsupported extension", async () => {
     const mgr = new LSPManager();
     const ready = await mgr.ensureFor("/proj/readme.txt");

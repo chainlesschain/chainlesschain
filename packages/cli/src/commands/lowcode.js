@@ -684,8 +684,18 @@ export function registerLowcodeCommand(program) {
       let ctx;
       try {
         ctx = await bootstrap();
-        ensureLowcodeTables(ctx.db);
-        const result = deployApp(ctx.db, appId, {
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exitCode = 1;
+          return;
+        }
+        // Every sibling unwraps the raw better-sqlite3 handle before use;
+        // ensureLowcodeTables/deployApp call db.exec()/db.prepare(), which the
+        // ctx.db WRAPPER doesn't expose — passing the wrapper threw "db.exec is
+        // not a function" and made `lowcode deploy` fail 100% of the time.
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+        const result = deployApp(db, appId, {
           outputDir: options.output || undefined,
         });
         spinner.succeed(
@@ -696,6 +706,9 @@ export function registerLowcodeCommand(program) {
         logger.log(`  Deployed:  ${result.deployedAt}`);
       } catch (err) {
         spinner.fail(chalk.red(`Deploy failed: ${err.message}`));
+        // Signal failure to the shell (siblings exit(1)); exitCode (not exit())
+        // so the finally teardown below still runs.
+        process.exitCode = 1;
       } finally {
         if (ctx) await shutdown(ctx);
       }

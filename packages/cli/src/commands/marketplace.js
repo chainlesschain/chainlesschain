@@ -155,7 +155,7 @@ export function registerMarketplaceCommand(program) {
     )
     .option("-o, --owner <did>", "Filter by owner DID")
     .option("-n, --name <substring>", "Name substring filter")
-    .option("--limit <n>", "Maximum entries", parseInt, 50)
+    .option("--limit <n>", "Maximum entries", (v) => parseInt(v, 10), 50)
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -286,7 +286,7 @@ export function registerMarketplaceCommand(program) {
     .option("-s, --service <id>", "Filter by service")
     .option("-c, --caller <did>", "Filter by caller")
     .option("-S, --status <s>", "Filter by status")
-    .option("--limit <n>", "Maximum entries", parseInt, 50)
+    .option("--limit <n>", "Maximum entries", (v) => parseInt(v, 10), 50)
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -467,7 +467,11 @@ export function registerMarketplaceCommand(program) {
   mp.command("complete-invocation <invocation-id>")
     .description("Complete a V2 invocation (RUNNING → SUCCESS)")
     .option("-o, --output <json>", "JSON-encoded output")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
+    .option(
+      "-d, --duration-ms <n>",
+      "Duration in milliseconds",
+      intArg("--duration-ms"),
+    )
     .option("--json", "Output as JSON")
     .action(async (invocationId, options) => {
       try {
@@ -497,7 +501,11 @@ export function registerMarketplaceCommand(program) {
   mp.command("fail-invocation <invocation-id>")
     .description("Fail a V2 invocation")
     .option("-m, --message <msg>", "Error message")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
+    .option(
+      "-d, --duration-ms <n>",
+      "Duration in milliseconds",
+      intArg("--duration-ms"),
+    )
     .action(async (invocationId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -516,7 +524,11 @@ export function registerMarketplaceCommand(program) {
 
   mp.command("timeout-invocation <invocation-id>")
     .description("Timeout a V2 invocation")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
+    .option(
+      "-d, --duration-ms <n>",
+      "Duration in milliseconds",
+      intArg("--duration-ms"),
+    )
     .action(async (invocationId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });

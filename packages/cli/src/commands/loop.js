@@ -379,7 +379,12 @@ export function registerLoopCommand(program) {
               res.durationMs = Date.now() - t0;
               // --dynamic: read the iteration's [[loop:next]] / [[loop:stop]]
               // directive and surface it to runLoop as done / nextDelayMs.
-              if (options.dynamic) {
+              // Use the RESOLVED `dynamic` (not raw options.dynamic): on
+              // `cc loop --resume`, dynamic is rehydrated from saved config while
+              // options.dynamic is false — gating on the raw flag would skip
+              // directive parsing and the model's [[loop:stop]] would be ignored,
+              // running the loop forever.
+              if (dynamic) {
                 const d = parseLoopDirectives(res.output);
                 res.done = d.done;
                 if (d.nextDelayMs != null) res.nextDelayMs = d.nextDelayMs;

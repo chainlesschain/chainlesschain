@@ -37,6 +37,12 @@ const { tryParseDecision } = require("./hook-runner.cjs");
 const DEFAULT_TIMEOUT_MS = 60000;
 const MAX_TIMEOUT_MS = 600000;
 const DEFAULT_MAX_CONCURRENT = 4;
+// Ring cap on undrained records (parity with PluginMonitorSupervisor's
+// OUTPUT_RING): drainResults()/drainRewakes() normally clear each turn, but a
+// stalled/absent drain over a high-frequency hook would otherwise grow these
+// arrays without bound. Keep only the most recent RESULT_RING; older records
+// are dropped oldest-first.
+const RESULT_RING = 500;
 
 class AsyncHookSupervisor {
   constructor(opts = {}) {
@@ -52,12 +58,30 @@ class AsyncHookSupervisor {
     this._results = []; // completed records awaiting drainResults()
     this._rewakes = []; // failed asyncRewake records awaiting drainRewakes()
     this._stopped = false;
+    // The exit reaper is installed LAZILY (on first spawn), not in the ctor:
+    // a supervisor that never dispatches a hook (or the many built in tests)
+    // must not leave a permanent `process.once('exit')` listener behind —
+    // that accumulates across sessions/instances into a MaxListenersExceeded
+    // leak. Mirrors PluginMonitorSupervisor._installExitHook.
     this._exitHook = () => this.stopAll();
-    process.once("exit", this._exitHook);
+    this._exitHookInstalled = false;
   }
 
   _key(hook) {
     return `${hook.event || ""}::${hook.command}`;
+  }
+
+  /** Install the process-exit reaper exactly once, only when a child exists. */
+  _installExitHook() {
+    if (this._exitHookInstalled) return;
+    this._exitHookInstalled = true;
+    process.once("exit", this._exitHook);
+  }
+
+  /** Append a result record, bounded to the most recent RESULT_RING. */
+  _pushResult(rec) {
+    this._results.push(rec);
+    if (this._results.length > RESULT_RING) this._results.shift();
   }
 
   /**
@@ -100,7 +124,7 @@ class AsyncHookSupervisor {
         });
         // Record the skip so the caller/agent can SEE that a hook was dropped
         // (silent truncation would read as "the hook ran and said nothing").
-        this._results.push({
+        this._pushResult({
           command: hook.command,
           event: hook.event || null,
           ok: false,
@@ -121,6 +145,9 @@ class AsyncHookSupervisor {
   }
 
   _spawnOne(hook, payload, opts) {
+    // A live child now exists — arm the exit reaper so a session never leaves
+    // an orphan hook process (installed once, only from here).
+    this._installExitHook();
     const key = this._key(hook);
     const started = this._deps.now();
     const rawTimeout = Number(
@@ -240,11 +267,12 @@ class AsyncHookSupervisor {
       ts: now,
       ms: fields.started != null ? now - fields.started : 0,
     };
-    this._results.push(rec);
+    this._pushResult(rec);
     // A rewake fires only for a hook that OPTED IN and finished in a failure
     // state — a passing async check should not re-engage the agent.
     if (hook.asyncRewake && !rec.ok) {
       this._rewakes.push(rec);
+      if (this._rewakes.length > RESULT_RING) this._rewakes.shift();
     }
   }
 
@@ -295,6 +323,7 @@ class AsyncHookSupervisor {
     } catch {
       /* ignore */
     }
+    this._exitHookInstalled = false;
   }
 }
 

@@ -48,6 +48,13 @@ describe("cc mtc federation governance — trust + on-chain anchor + help", () =
       expect(anchor.trusted_federation_id).toBe("trusted-fed");
       expect(anchor.member_roster_snapshot).toHaveLength(2);
       expect(anchor.threshold).toBe(1);
+      // Regression: pubkey_id is itself colon-delimited (`sha256:<digest>`) —
+      // the roster must keep the WHOLE thing, not just "sha256". A split(":",2)
+      // that dropped the digest wrote a corrupt anchor that never matches a
+      // member at verification.
+      expect(anchor.member_roster_snapshot[0].member_id).toBe("alice");
+      expect(anchor.member_roster_snapshot[0].pubkey_id).toBe("sha256:a-pk");
+      expect(anchor.member_roster_snapshot[1].pubkey_id).toBe("sha256:b-pk");
     });
 
     it("cross-trust-create rejects same host + trusted federation id", () => {

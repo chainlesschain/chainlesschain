@@ -39,6 +39,17 @@ describe("reportFatal", () => {
     }
   });
 
+  it("treats an inquirer ExitPromptError (Ctrl-C) as a clean cancel, exit 130", () => {
+    const stderr = fakeStderr();
+    const exit = vi.fn();
+    const err = new Error("User force closed the prompt with 0 null");
+    err.name = "ExitPromptError";
+    reportFatal(err, { stderr, exit, argv: [], env: {} });
+    expect(stderr.out.join("")).toBe("\nCancelled.\n");
+    expect(stderr.out.join("")).not.toMatch(/error:/);
+    expect(exit).toHaveBeenCalledWith(130);
+  });
+
   it("stringifies a non-Error rejection reason", () => {
     const stderr = fakeStderr();
     const exit = vi.fn();

@@ -450,8 +450,10 @@ export function registerAuditCommand(program) {
     .option("-r, --risk-level <rl>", "Risk level")
     .option("-i, --ip-address <ip>", "IP address")
     .option("-u, --user-agent <ua>", "User agent")
-    .action((logId, opts) => {
-      const db = bootstrap();
+    .action(async (logId, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const details = parseJsonOption(opts.details, "--details");
         const entry = logEventV2(db, {
@@ -467,7 +469,7 @@ export function registerAuditCommand(program) {
         });
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -487,15 +489,17 @@ export function registerAuditCommand(program) {
     .command("set-log-status-v2 <log-id> <status>")
     .description("V2: transition log status (active|archived|purged)")
     .option("-r, --reason <reason>", "Reason")
-    .action((logId, status, opts) => {
-      const db = bootstrap();
+    .action(async (logId, status, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const entry = setLogStatusV2(db, logId, status, {
           reason: opts.reason,
         });
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -510,26 +514,30 @@ export function registerAuditCommand(program) {
   audit
     .command("auto-archive-logs")
     .description("V2: bulk-flip stale ACTIVE logs → ARCHIVED")
-    .action(() => {
-      const db = bootstrap();
+    .action(async () => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const archived = autoArchiveLogs(db);
         logger.log(`Archived ${archived.length} log(s)`);
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
   audit
     .command("auto-purge-logs")
     .description("V2: bulk-flip stale ARCHIVED logs → PURGED")
-    .action(() => {
-      const db = bootstrap();
+    .action(async () => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const purged = autoPurgeLogs(db);
         logger.log(`Purged ${purged.length} log(s)`);
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -552,8 +560,10 @@ export function registerAuditCommand(program) {
     )
     .option("-r, --reason <reason>", "Reason")
     .option("-m, --metadata <meta>", "Metadata (JSON)")
-    .action((alertId, status, opts) => {
-      const db = bootstrap();
+    .action(async (alertId, status, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = setAlertStatusV2(db, alertId, status, {
@@ -562,7 +572,7 @@ export function registerAuditCommand(program) {
         });
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -570,13 +580,15 @@ export function registerAuditCommand(program) {
     .command("acknowledge-alert <alert-id>")
     .description("V2: shortcut → acknowledged")
     .option("-r, --reason <reason>", "Reason")
-    .action((alertId, opts) => {
-      const db = bootstrap();
+    .action(async (alertId, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const entry = acknowledgeAlert(db, alertId, opts.reason);
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -584,13 +596,15 @@ export function registerAuditCommand(program) {
     .command("resolve-alert <alert-id>")
     .description("V2: shortcut → resolved")
     .option("-r, --reason <reason>", "Reason")
-    .action((alertId, opts) => {
-      const db = bootstrap();
+    .action(async (alertId, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const entry = resolveAlert(db, alertId, opts.reason);
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 
@@ -598,13 +612,15 @@ export function registerAuditCommand(program) {
     .command("dismiss-alert <alert-id>")
     .description("V2: shortcut → dismissed")
     .option("-r, --reason <reason>", "Reason")
-    .action((alertId, opts) => {
-      const db = bootstrap();
+    .action(async (alertId, opts) => {
+      // await bootstrap() (it's async): the prior sync `bootstrap()` left an
+      // unawaited Promise and raced teardown against an unresolved init.
+      const db = (await bootstrap({ verbose: program.opts().verbose })).db;
       try {
         const entry = dismissAlert(db, alertId, opts.reason);
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
-        shutdown();
+        await shutdown();
       }
     });
 

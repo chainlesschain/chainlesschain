@@ -24,7 +24,10 @@ export function success(message, ...args) {
 }
 
 export function warn(message, ...args) {
-  console.log(chalk.yellow("⚠"), message, ...args);
+  // stderr, not stdout: a warning must never interleave with a command's
+  // machine-readable stdout (e.g. `--json` payloads), which `| jq` and other
+  // consumers parse. Like error(), warn is never gated by quiet mode.
+  console.error(chalk.yellow("⚠"), message, ...args);
 }
 
 export function error(message, ...args) {

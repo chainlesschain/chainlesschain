@@ -2355,7 +2355,13 @@ function registerFederationGovernanceCommands(fed) {
     .action((hostFed, trustedFed, options) => {
       try {
         const roster = (options.member || []).map((entry) => {
-          const [member_id, pubkey_id] = entry.split(":", 2);
+          // Split on the FIRST colon only: a pubkey_id is itself colon-delimited
+          // (`sha256:<base64url>`), so `split(":", 2)` would silently DROP the
+          // digest tail (pubkey_id becomes just "sha256") and write a corrupt
+          // trust anchor that can never match a real member at verification.
+          const idx = entry.indexOf(":");
+          const member_id = idx >= 0 ? entry.slice(0, idx) : "";
+          const pubkey_id = idx >= 0 ? entry.slice(idx + 1) : "";
           if (!member_id || !pubkey_id) {
             throw new Error(
               `bad --member entry "${entry}", expected id:pubkey_id`,

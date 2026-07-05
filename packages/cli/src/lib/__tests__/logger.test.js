@@ -70,9 +70,12 @@ describe("quiet mode", () => {
     expect(logSpy).not.toHaveBeenCalled();
   });
 
-  it("does NOT suppress warn (still console.log)", () => {
+  it("does NOT suppress warn (writes to console.error/stderr)", () => {
     warn("careful");
-    expect(logSpy).toHaveBeenCalledTimes(1);
+    // warn goes to stderr (not stdout) so it never pollutes machine-readable
+    // stdout like `--json`; still never suppressed by quiet mode.
+    expect(errSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).not.toHaveBeenCalled();
   });
 
   it("does NOT suppress error", () => {

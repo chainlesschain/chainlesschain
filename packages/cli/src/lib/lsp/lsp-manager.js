@@ -39,6 +39,16 @@ export class LSPManager {
     this.projectRoot = opts.projectRoot || process.cwd();
     /** key `${root}::${serverId}` → { client, languageId, root, restarts } */
     this._servers = new Map();
+    /**
+     * key → in-flight `_startServer` promise. A server start awaits a real
+     * process spawn + `initialize` handshake, and the read-only agent batch
+     * fires several `code_intelligence` calls at once (see agent-core.js), so a
+     * bare Map.get(miss)→await→Map.set pool double-spawns when two callers race
+     * the same key: the second `_servers.set` orphans the first process (leaked
+     * OS process + a still-attached diagnostics listener writing stale state).
+     * Sharing one in-flight promise per key collapses the race to a single spawn.
+     */
+    this._starting = new Map();
     /** open document uri → { version, languageId } */
     this._openDocs = new Map();
     /** uri → latest diagnostics array */
@@ -115,7 +125,7 @@ export class LSPManager {
           quarantined: true,
         };
       }
-      entry = await this._startServer(key, resolved, projectRoot);
+      entry = await this._getOrStartServer(key, resolved, projectRoot);
     }
 
     const uri = pathToFileUri(abs);
@@ -150,6 +160,22 @@ export class LSPManager {
       }, 40);
       if (typeof timer.unref === "function") timer.unref();
     });
+  }
+
+  /**
+   * Dedupe concurrent starts for `key`: return the in-flight start promise if
+   * one exists, otherwise begin one and register it so racing callers share it.
+   * The promise self-evicts on settle (resolve OR reject), so a failed start
+   * doesn't wedge the key — the next request retries cleanly.
+   */
+  _getOrStartServer(key, resolved, projectRoot) {
+    const inflight = this._starting.get(key);
+    if (inflight) return inflight;
+    const p = this._startServer(key, resolved, projectRoot).finally(() => {
+      this._starting.delete(key);
+    });
+    this._starting.set(key, p);
+    return p;
   }
 
   async _startServer(key, resolved, projectRoot) {

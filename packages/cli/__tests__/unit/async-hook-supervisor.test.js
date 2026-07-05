@@ -219,6 +219,32 @@ describe("AsyncHookSupervisor guardrails", () => {
     expect(disp[0].reason).toMatch(/stopped/);
   });
 
+  it("does NOT register a process 'exit' listener until a hook is dispatched", () => {
+    // Leak guard: constructing a supervisor that never spawns (or the many built
+    // in tests) must not leave a permanent exit listener behind.
+    const before = process.listenerCount("exit");
+    const sup = new AsyncHookSupervisor({
+      spawn: makeSpawn([makeFakeChild()]),
+    });
+    expect(process.listenerCount("exit")).toBe(before); // ctor added nothing
+    sup.dispatch([{ command: "x", event: "E" }], {});
+    expect(process.listenerCount("exit")).toBe(before + 1); // armed on first spawn
+    sup.stopAll();
+    expect(process.listenerCount("exit")).toBe(before); // detached on stop
+  });
+
+  it("caps undrained results at the ring size (no unbounded growth)", () => {
+    const sup = new AsyncHookSupervisor({ maxConcurrent: 1 });
+    // Overflow the maxConcurrent skip-record path far past the ring cap without
+    // ever draining. Hold one hook in-flight so every subsequent hook is skipped.
+    sup.dispatch([{ command: "holder", event: "E" }], {});
+    for (let i = 0; i < 1200; i++) {
+      sup.dispatch([{ command: `spam-${i}`, event: "E" }], {});
+    }
+    expect(sup.peekResults().length).toBeLessThanOrEqual(500);
+    sup.stopAll();
+  });
+
   it("records a spawn failure as a non-blocking result", () => {
     const spawn = () => {
       throw new Error("ENOENT");

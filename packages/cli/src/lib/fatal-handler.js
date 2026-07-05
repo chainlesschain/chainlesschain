@@ -21,6 +21,19 @@ export function reportFatal(
     env = process.env,
   } = {},
 ) {
+  // Ctrl-C / Esc on an interactive @inquirer prompt throws ExitPromptError.
+  // That's a normal user cancel, not a failure — printing `error: User force
+  // closed the prompt...` + a non-descript exit is confusing. Treat it as a
+  // clean cancel: a brief note to stderr and the conventional SIGINT exit code
+  // (130 = 128 + SIGINT), so scripts can tell "cancelled" from "succeeded".
+  if (
+    err &&
+    (err.name === "ExitPromptError" || err.code === "ERR_USE_AFTER_CLOSE")
+  ) {
+    stderr.write("\nCancelled.\n");
+    exit(130);
+    return;
+  }
   const verbose =
     argv.includes("--verbose") || Boolean(env.CC_DEBUG) || Boolean(env.DEBUG);
   if (verbose && err && err.stack) {
@@ -38,7 +51,10 @@ export function reportFatal(
  * this only swaps the ugly default stack for the friendly boundary — it is not
  * a behavior change (still exits non-zero).
  */
-export function installGlobalErrorHandlers(proc = process, report = reportFatal) {
+export function installGlobalErrorHandlers(
+  proc = process,
+  report = reportFatal,
+) {
   proc.on("unhandledRejection", (reason) =>
     report(reason instanceof Error ? reason : new Error(String(reason))),
   );

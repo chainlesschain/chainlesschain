@@ -439,9 +439,13 @@ describe("ClaudeCodePool", () => {
     pool.on("agent:output", outputFn);
 
     await pool.dispatch([{ id: "t1", description: "task" }], { cwd: "/tmp" });
-    // output event fires when stdout data arrives; may or may not have data chunk
-    // Just verify pool wired up without throwing
-    expect(true).toBe(true);
+    // The pool re-emits each agent's `output` chunk as `agent:output`
+    // (claude-code-bridge.js:349). The fake child emits one stdout chunk, so the
+    // listener must have fired with that chunk carrying an agentId.
+    expect(outputFn).toHaveBeenCalled();
+    const ev = outputFn.mock.calls[0][0];
+    expect(ev).toHaveProperty("agentId");
+    expect(ev.chunk).toContain("result");
   });
 
   it("includes taskId in each result", async () => {
