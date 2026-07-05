@@ -8,6 +8,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSIEMTables,
+  loadFromDb as loadSiemFromDb,
   listTargets,
   addTarget,
   exportLogs,
@@ -46,6 +47,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         const targets = listTargets();
         if (options.json) {
@@ -83,6 +85,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         const target = addTarget(db, type, url, options.format);
         logger.success("SIEM target added");
@@ -111,6 +114,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         // Export with simulated log batch
         const result = exportLogs(db, targetId, [
@@ -146,6 +150,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         const stats = getSIEMStats();
         if (options.json) {
@@ -251,6 +256,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         let config = {};
         try {
@@ -286,6 +292,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         console.log(JSON.stringify(removeTarget(db, targetId), null, 2));
 
@@ -308,6 +315,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         console.log(
           JSON.stringify(setTargetStatus(db, targetId, status), null, 2),
@@ -334,6 +342,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         let logs = [];
         try {
@@ -368,6 +377,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         console.log(JSON.stringify(getSIEMStatsV2(), null, 2));
 
@@ -390,6 +400,7 @@ export function registerSiemCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSIEMTables(db);
+        loadSiemFromDb(db);
 
         console.log(JSON.stringify(listTargetsByStatus(status), null, 2));
 

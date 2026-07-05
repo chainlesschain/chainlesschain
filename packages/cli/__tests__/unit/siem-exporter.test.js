@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureSIEMTables,
+  loadFromDb,
   listTargets,
   addTarget,
   exportLogs,
@@ -572,6 +573,65 @@ describe("siem-exporter", () => {
 
     it("throws on invalid status", () => {
       expect(() => listTargetsByStatus("nope")).toThrow("Invalid status");
+    });
+  });
+
+  describe("loadFromDb — rehydrates _targets from siem_exports", () => {
+    it("makes a target visible / exportable after a fresh process", () => {
+      const t = addTarget(
+        db,
+        "splunk_hec",
+        "https://splunk.example/hec",
+        "cef",
+      );
+
+      // Simulate the next one-shot CLI invocation: Map wiped, DB persists.
+      _resetState();
+      expect(listTargets()).toHaveLength(0);
+      expect(() => exportLogs(db, t.id, [{ id: "l1" }])).toThrow(
+        /Target not found/,
+      );
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(1);
+
+      const back = listTargets();
+      expect(back).toHaveLength(1);
+      expect(back[0].id).toBe(t.id);
+      expect(back[0].type).toBe("splunk_hec");
+      expect(back[0].format).toBe("cef");
+
+      // `siem export <id>` no longer hard-crashes for a persisted target.
+      const res = exportLogs(db, t.id, [{ id: "log-1" }]);
+      expect(res.exported).toBe(1);
+    });
+
+    it("survives a corrupt config cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO siem_exports (id, target_type, target_url, format, last_exported_log_id, exported_count, last_export_at, status, config, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "tg-bad",
+        "elasticsearch",
+        "https://es.example",
+        "json",
+        null,
+        0,
+        null,
+        "active",
+        "{not json",
+        "2020-01-01T00:00:00.000Z",
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const t = listTargets().find((x) => x.id === "tg-bad");
+      expect(t).toBeTruthy();
+      expect(t.config).toEqual({});
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

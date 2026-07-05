@@ -136,6 +136,51 @@ export function _resetState() {
   _exports.length = 0;
 }
 
+/**
+ * Rehydrate the in-memory _targets Map from the persisted siem_exports table.
+ * The CLI runs each `cc siem` subcommand in a fresh node process, so _targets
+ * starts empty every invocation. addTarget dual-writes (Map + INSERT INTO
+ * siem_exports) but every read (listTargets/exportLogs/getSIEMStats/
+ * removeTarget/setTargetStatus/listTargetsByStatus) is Map-only and nothing
+ * SELECTed the table back — so a target added in one invocation was invisible in
+ * the next (`No SIEM targets configured.`) and `siem export <id>` hard-crashed
+ * with `Target not found` for a target that genuinely exists on disk. Call after
+ * ensureSIEMTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureSIEMTables(db);
+  _targets.clear();
+  for (const r of db
+    .prepare(
+      `SELECT id, target_type, target_url, format, last_exported_log_id,
+              exported_count, last_export_at, status, config, created_at
+         FROM siem_exports ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt config cell must not sink the whole target load.
+    let config = {};
+    try {
+      config = r.config ? JSON.parse(r.config) : {};
+    } catch {
+      config = {};
+    }
+    _targets.set(r.id, {
+      id: r.id,
+      type: r.target_type,
+      url: r.target_url,
+      format: r.format,
+      exportedCount: Number(r.exported_count) || 0,
+      lastExportAt: r.last_export_at ?? null,
+      lastExportedLogId: r.last_exported_log_id ?? null,
+      status: r.status,
+      config,
+      createdAt: r.created_at,
+    });
+  }
+  return _targets.size;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // V2 Canonical Surface (Phase 51)
 // ═══════════════════════════════════════════════════════════════
