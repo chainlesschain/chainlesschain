@@ -117,27 +117,50 @@ export function pay(db, fromAgent, toAgent, amount, description) {
     throw new Error(`Insufficient balance: ${fromBal.balance} < ${amount}`);
   }
 
-  fromBal.balance -= amount;
   const toBal = _getBalance(toAgent);
+
+  // The ledger row, the debit and the credit must all land or none of them.
+  // Without a transaction a mid-way failure would debit the sender without
+  // crediting the receiver (tokens vanish); the CLI re-hydrates from these
+  // tables, so the loss would persist.
+  const fromSnap = { balance: fromBal.balance, locked: fromBal.locked };
+  const toSnap = { balance: toBal.balance, locked: toBal.locked };
+
+  fromBal.balance -= amount;
   toBal.balance += amount;
 
   const txId = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  db.prepare(
-    `INSERT INTO economy_transactions (id, from_agent, to_agent, amount, type, description, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(txId, fromAgent, toAgent, amount, "transfer", description || "", now);
+  const applyWrites = () => {
+    db.prepare(
+      `INSERT INTO economy_transactions (id, from_agent, to_agent, amount, type, description, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(txId, fromAgent, toAgent, amount, "transfer", description || "", now);
 
-  db.prepare(
-    `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
-     VALUES (?, ?, ?, ?)`,
-  ).run(fromAgent, fromBal.balance, fromBal.locked, now);
+    db.prepare(
+      `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+       VALUES (?, ?, ?, ?)`,
+    ).run(fromAgent, fromBal.balance, fromBal.locked, now);
 
-  db.prepare(
-    `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
-     VALUES (?, ?, ?, ?)`,
-  ).run(toAgent, toBal.balance, toBal.locked, now);
+    db.prepare(
+      `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+       VALUES (?, ?, ?, ?)`,
+    ).run(toAgent, toBal.balance, toBal.locked, now);
+  };
+
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
+  } catch (err) {
+    // Roll the in-memory balances back to match the rolled-back DB.
+    Object.assign(fromBal, fromSnap);
+    Object.assign(toBal, toSnap);
+    throw err;
+  }
 
   return {
     txId,
