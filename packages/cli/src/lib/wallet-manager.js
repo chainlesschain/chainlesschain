@@ -278,6 +278,13 @@ export function transferAsset(db, assetId, toAddress, amount) {
   const asset = getAsset(db, assetId);
   if (!asset) throw new Error(`Asset not found: ${assetId}`);
 
+  // The destination must be a real local wallet — createAsset enforces the same
+  // invariant on the way in. Without this, a transfer to a bogus address moves
+  // the asset out of the sender's wallet to an address no wallet owns, so it
+  // disappears from every getAssets/getWalletSummary view (permanently orphaned).
+  const dest = getWallet(db, toAddress);
+  if (!dest) throw new Error(`Destination wallet not found: ${toAddress}`);
+
   const txId = `tx-${crypto.randomBytes(8).toString("hex")}`;
   const fromAddress = asset.wallet_address;
   const txAmount = amount || asset.amount;

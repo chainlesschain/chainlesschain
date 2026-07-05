@@ -235,6 +235,24 @@ describe("Wallet Manager", () => {
         "Asset not found",
       );
     });
+
+    it("should reject a transfer to an unknown destination wallet (no orphaning)", () => {
+      // createAsset already requires the wallet to exist; transferAsset must
+      // mirror that — a transfer to a non-existent address would move the asset
+      // out of the sender's wallet to an address no wallet owns, so it vanishes
+      // from every summary/getAssets view (permanently orphaned).
+      const w1 = createWallet(db, "W1");
+      const asset = createAsset(db, w1.address, "token", "T1");
+
+      expect(() =>
+        transferAsset(db, asset.id, "0xdeadbeef-not-a-wallet"),
+      ).toThrow(/Destination wallet not found/);
+
+      // The asset must remain with the original owner, untouched.
+      const remaining = getAssets(db, w1.address);
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].id).toBe(asset.id);
+    });
   });
 
   // ─── getTransactions ──────────────────────────────────
