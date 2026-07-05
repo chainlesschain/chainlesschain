@@ -175,20 +175,34 @@ export class TeamWorktreeCoordinator {
       const conflicts = preview?.conflicts || [];
       let merged = false;
       if (clean && merge) {
+        // mergeWorktree does NOT throw on a failed merge — it catches internally
+        // and RETURNS {success:false, conflicts?, message} (a conflict the clean
+        // preview didn't predict, or any non-conflict git failure). The old
+        // try/catch was dead for that path and set merged:true unconditionally,
+        // reporting a real merge failure as success with empty conflicts. Inspect
+        // the return value. (The try still catches assertSafeGitRef, the only
+        // throw path — a malformed branch ref.)
+        let mergeResult;
         try {
-          _deps.mergeWorktree(this.repoDir, info.branch, {
+          mergeResult = _deps.mergeWorktree(this.repoDir, info.branch, {
             message: `Merge team task ${key}`,
           });
-          merged = true;
         } catch (err) {
+          mergeResult = { success: false, message: err.message };
+        }
+        if (mergeResult?.success === true) {
+          merged = true;
+        } else {
           results.push({
             key,
             branch: info.branch,
             committed: true,
             clean: false,
             merged: false,
-            conflicts,
-            error: `merge failed: ${err.message}`,
+            conflicts: mergeResult?.conflicts?.length
+              ? mergeResult.conflicts
+              : conflicts,
+            error: `merge failed: ${mergeResult?.message || "unknown error"}`,
           });
           continue;
         }

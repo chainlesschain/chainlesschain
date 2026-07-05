@@ -149,7 +149,12 @@ describe("TeamWorktreeCoordinator.integrate", () => {
       { key: "b", committed: true, previewSuccess: true },
     ]);
     const merged = [];
-    _deps.mergeWorktree = (repo, branch) => merged.push(branch);
+    // Real mergeWorktree returns {success:true} — the mock must honor that
+    // contract (the code now checks .success rather than assuming success).
+    _deps.mergeWorktree = (repo, branch) => {
+      merged.push(branch);
+      return { success: true };
+    };
     const coord = new TeamWorktreeCoordinator("/repo");
     const rt = coord.makeRunTask();
     await rt({ key: "a", task: { metadata: { command: "c" } } });
@@ -171,7 +176,12 @@ describe("TeamWorktreeCoordinator.integrate", () => {
       },
     ]);
     const merged = [];
-    _deps.mergeWorktree = (repo, branch) => merged.push(branch);
+    // Real mergeWorktree returns {success:true} — the mock must honor that
+    // contract (the code now checks .success rather than assuming success).
+    _deps.mergeWorktree = (repo, branch) => {
+      merged.push(branch);
+      return { success: true };
+    };
     const coord = new TeamWorktreeCoordinator("/repo");
     const rt = coord.makeRunTask();
     await rt({ key: "a", task: { metadata: { command: "c" } } });
@@ -185,6 +195,29 @@ describe("TeamWorktreeCoordinator.integrate", () => {
     expect(b.merged).toBe(false);
     expect(b.conflicts).toHaveLength(1);
     expect(merged).toEqual(["team/a"]); // only the clean one merged
+  });
+
+  it("reports a merge failure when mergeWorktree returns success:false (not merged)", async () => {
+    // Regression: mergeWorktree never throws — a merge that fails despite a
+    // clean preview (a conflict the preview didn't predict, or a non-conflict
+    // git failure) RETURNS {success:false}. The old code ignored the return and
+    // reported merged:true. Assert the failure is surfaced instead.
+    coordWith([{ key: "a", committed: true, previewSuccess: true }]);
+    _deps.mergeWorktree = () => ({
+      success: false,
+      message: "unrelated histories",
+      conflicts: [{ file: "late.txt" }],
+    });
+    const coord = new TeamWorktreeCoordinator("/repo");
+    await coord.makeRunTask()({
+      key: "a",
+      task: { metadata: { command: "c" } },
+    });
+    const res = coord.integrate({ merge: true });
+    expect(res[0].merged).toBe(false);
+    expect(res[0].clean).toBe(false);
+    expect(res[0].error).toMatch(/merge failed: unrelated histories/);
+    expect(res[0].conflicts).toEqual([{ file: "late.txt" }]);
   });
 
   it("skips a task that produced no commit", async () => {
