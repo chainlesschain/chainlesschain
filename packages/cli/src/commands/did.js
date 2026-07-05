@@ -9,6 +9,7 @@ import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createIdentity,
   getIdentity,
+  getDefaultIdentity,
   getAllIdentities,
   setDefaultIdentity,
   deleteIdentity,
@@ -247,7 +248,12 @@ export function registerDidCommand(program) {
         const didStr =
           options.did ||
           (() => {
-            const def = getIdentity(db, "did:chainless:");
+            // Must be the is_default identity. getIdentity(prefix) does an
+            // unordered LIKE 'did:chainless:%' and returns the first row the
+            // planner yields (lexicographically-smallest DID), IGNORING the
+            // is_default flag — so `did sign` without --did silently signed with
+            // the WRONG key. getDefaultIdentity filters WHERE is_default = 1.
+            const def = getDefaultIdentity(db);
             if (!def) throw new Error("No identities found. Create one first.");
             return def.did;
           })();
