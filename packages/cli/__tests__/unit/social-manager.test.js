@@ -18,6 +18,7 @@ import {
   getChatMessages,
   getChatThreads,
   getSocialStats,
+  loadFromDb,
   _resetState,
 } from "../../src/lib/social-manager.js";
 
@@ -677,6 +678,75 @@ describe("Social Manager V2", () => {
         SOCIAL_DEFAULT_MAX_CONNECTED_PER_USER,
       );
       expect(getRelationshipV2("r1")).toBeNull();
+    });
+  });
+
+  // ─── Cross-process hydration ────────────────────────────────
+  // The CLI is one-shot: each command runs in a fresh process with empty
+  // module-level Maps. Write paths dual-write (Map + DB); read paths read the
+  // Maps only. Without loadFromDb, a user's persisted social data is invisible
+  // on the next invocation. loadFromDb rehydrates the Maps from the DB.
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    beforeEach(() => {
+      db = new MockDatabase();
+      _resetState();
+      ensureSocialTables(db);
+    });
+
+    it("makes persisted contacts/friends/posts/messages visible after a Map reset", () => {
+      const c = addContact(db, "Alice", "did:x:alice", "a@x.com", "note");
+      addFriend(db, c.id);
+      publishPost(db, "hello world", "alice");
+      sendChatMessage(db, "bob", "hi bob", "alice");
+
+      // Simulate a fresh CLI process: DB persists, in-memory Maps are wiped.
+      _resetState();
+      expect(listContacts()).toEqual([]); // the bug: data invisible without hydration
+      expect(getSocialStats().contacts).toBe(0);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(4); // 1 contact + 1 friend + 1 post + 1 message
+
+      const contacts = listContacts();
+      expect(contacts.length).toBe(1);
+      expect(contacts[0].name).toBe("Alice");
+      expect(contacts[0].did).toBe("did:x:alice");
+
+      const friends = listFriends();
+      expect(friends.length).toBe(1);
+      expect(friends[0].contactId).toBe(c.id);
+
+      const posts = listPosts();
+      expect(posts.length).toBe(1);
+      expect(posts[0].content).toBe("hello world");
+
+      const threadId = ["alice", "bob"].sort().join(":");
+      const msgs = getChatMessages(threadId);
+      expect(msgs.length).toBe(1);
+      expect(msgs[0].content).toBe("hi bob");
+      expect(msgs[0].read).toBe(false);
+
+      const stats = getSocialStats();
+      expect(stats).toMatchObject({
+        contacts: 1,
+        friends: 1,
+        posts: 1,
+        messages: 1,
+      });
+    });
+
+    it("keyed by contact_id so addFriend/removeFriend resolve after hydration", () => {
+      const c = addContact(db, "Carol");
+      addFriend(db, c.id);
+      _resetState();
+      loadFromDb(db);
+      // removeFriend reads _friends.has(contactId) — empty Map would throw.
+      expect(() => removeFriend(db, c.id)).not.toThrow();
+    });
+
+    it("returns 0 and no-throws on a null db", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

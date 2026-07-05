@@ -54,6 +54,80 @@ export function ensureSocialTables(db) {
   `);
 }
 
+/**
+ * Hydrate the in-memory stores from the DB. The CLI is one-shot: every command
+ * runs in a fresh process, so the module-level Maps start empty. Write paths
+ * dual-write (Map + DB), but the read paths (listContacts/listFriends/listPosts/
+ * getChatMessages/getChatThreads/getSocialStats) read the Maps ONLY — so without
+ * this, a user's persisted contacts/friends/posts/messages are invisible on the
+ * next invocation. Mirrors social-graph.loadFromDb (the asymmetry tell: graph
+ * commands hydrate, social commands didn't). Call after ensureSocialTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _contacts.clear();
+  _friends.clear();
+  _posts.clear();
+  _messages.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, did, email, notes, created_at FROM social_contacts`,
+    )
+    .all()) {
+    _contacts.set(r.id, {
+      id: r.id,
+      name: r.name,
+      did: r.did || null,
+      email: r.email || null,
+      notes: r.notes || "",
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(`SELECT id, contact_id, status, created_at FROM social_friends`)
+    .all()) {
+    // Keyed by contact_id to match addFriend's _friends.set(contactId, ...).
+    _friends.set(r.contact_id, {
+      id: r.id,
+      contactId: r.contact_id,
+      status: r.status,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(`SELECT id, author, content, likes, created_at FROM social_posts`)
+    .all()) {
+    _posts.set(r.id, {
+      id: r.id,
+      author: r.author,
+      content: r.content,
+      likes: r.likes,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, thread_id, sender, recipient, content, read, created_at FROM social_messages`,
+    )
+    .all()) {
+    _messages.set(r.id, {
+      id: r.id,
+      threadId: r.thread_id,
+      sender: r.sender,
+      recipient: r.recipient,
+      content: r.content,
+      read: !!r.read,
+      createdAt: r.created_at,
+    });
+  }
+
+  return _contacts.size + _friends.size + _posts.size + _messages.size;
+}
+
 /* ── Contacts ──────────────────────────────────────────────── */
 
 export function addContact(db, name, did, email, notes) {

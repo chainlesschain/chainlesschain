@@ -10,6 +10,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSocialTables,
+  loadFromDb as loadSocialFromDb,
   addContact,
   listContacts,
   deleteContact,
@@ -131,6 +132,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const c = addContact(
           db,
@@ -161,6 +163,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const contacts = listContacts();
         if (options.json) {
@@ -193,6 +196,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         deleteContact(db, contactId);
         logger.success(`Contact deleted`);
@@ -216,6 +220,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const c = showContact(contactId);
         if (options.json) {
@@ -250,6 +255,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const f = addFriend(db, contactId);
         logger.success(`Friend request sent (${f.status})`);
@@ -273,6 +279,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const friends = listFriends();
         if (options.json) {
@@ -305,6 +312,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         removeFriend(db, contactId);
         logger.success("Friend removed");
@@ -328,6 +336,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const pending = pendingRequests();
         if (options.json) {
@@ -365,6 +374,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const p = publishPost(db, content, options.author);
         logger.success("Post published");
@@ -390,6 +400,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const posts = listPosts({ author: options.author });
         if (options.json) {
@@ -422,6 +433,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const p = likePost(db, postId);
         logger.success(`Post liked (${p.likes} total)`);
@@ -449,6 +461,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const msg = sendChatMessage(db, recipient, message, options.sender);
         logger.success(`Message sent to ${chalk.cyan(recipient)}`);
@@ -474,9 +487,15 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const messages = getChatMessages(threadId, {
-          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
         });
         if (options.json) {
           console.log(JSON.stringify(messages, null, 2));
@@ -507,6 +526,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const threads = getChatThreads();
         if (options.json) {
@@ -542,6 +562,7 @@ export function registerSocialCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
+        loadSocialFromDb(db);
 
         const stats = getSocialStats();
         if (options.json) {
@@ -967,10 +988,22 @@ export function registerSocialCommand(program) {
           directed: !!options.directed,
           edgeTypes: _splitEdgeTypes(options.edgeTypes),
           weights: {
-            degree: numericOption(options.wDegree, { name: "--w-degree", fallback: 0.25 }),
-            closeness: numericOption(options.wCloseness, { name: "--w-closeness", fallback: 0.25 }),
-            betweenness: numericOption(options.wBetweenness, { name: "--w-betweenness", fallback: 0.25 }),
-            eigenvector: numericOption(options.wEigenvector, { name: "--w-eigenvector", fallback: 0.25 }),
+            degree: numericOption(options.wDegree, {
+              name: "--w-degree",
+              fallback: 0.25,
+            }),
+            closeness: numericOption(options.wCloseness, {
+              name: "--w-closeness",
+              fallback: 0.25,
+            }),
+            betweenness: numericOption(options.wBetweenness, {
+              name: "--w-betweenness",
+              fallback: 0.25,
+            }),
+            eigenvector: numericOption(options.wEigenvector, {
+              name: "--w-eigenvector",
+              fallback: 0.25,
+            }),
           },
         });
         if (options.json) console.log(JSON.stringify(scores, null, 2));
