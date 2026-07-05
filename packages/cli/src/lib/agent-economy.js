@@ -109,7 +109,8 @@ export function getBalance(agentId) {
 }
 
 export function pay(db, fromAgent, toAgent, amount, description) {
-  if (amount <= 0) throw new Error("Amount must be positive");
+  if (!Number.isFinite(amount) || amount <= 0)
+    throw new Error("Amount must be positive");
 
   const fromBal = _getBalance(fromAgent);
   if (fromBal.balance < amount) {
@@ -260,6 +261,8 @@ export function getMarketListings(filter) {
 export function tradeResource(listingId, buyer, quantity) {
   const listing = _market.get(listingId);
   if (!listing) throw new Error(`Listing not found: ${listingId}`);
+  if (!Number.isFinite(quantity) || quantity <= 0)
+    throw new Error("Quantity must be positive");
   if (listing.available < quantity) {
     throw new Error(
       `Insufficient availability: ${listing.available} < ${quantity}`,
@@ -332,7 +335,8 @@ export function getContributions(agentId) {
 export function distributeRevenue(db, pool, agentIds) {
   if (!agentIds || agentIds.length === 0)
     throw new Error("No agents specified");
-  if (pool <= 0) throw new Error("Pool must be positive");
+  if (!Number.isFinite(pool) || pool <= 0)
+    throw new Error("Pool must be positive");
 
   const share = pool / agentIds.length;
   const results = [];

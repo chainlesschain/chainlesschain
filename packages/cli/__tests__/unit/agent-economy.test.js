@@ -120,6 +120,17 @@ describe("agent-economy", () => {
       );
     });
 
+    it("rejects a NaN amount instead of persisting garbage", () => {
+      // Regression: parseFloat of a non-numeric CLI arg yields NaN, and the
+      // guard `amount <= 0` is NaN-blind (NaN <= 0 === false), so NaN slipped
+      // through, falsely reported "Payment complete / Amount: NaN", and
+      // persisted NaN (→ NULL) to the DB. payV2 already uses Number.isFinite.
+      _setBalance("alice", 100);
+      expect(() => pay(db, "alice", "bob", NaN, "garbage")).toThrow(
+        "Amount must be positive",
+      );
+    });
+
     it("returns a transaction ID", () => {
       _setBalance("alice", 100);
       const result = pay(db, "alice", "bob", 10, "");
@@ -265,6 +276,18 @@ describe("agent-economy", () => {
         "Listing not found",
       );
     });
+
+    it("rejects a NaN quantity instead of transferring NaN cost", () => {
+      // Regression: `cc economy trade` passes parseFloat(quantity); a
+      // non-numeric arg yields NaN. With no quantity guard, `available < NaN`
+      // and `balance < NaN` are both false, so the trade "succeeded" with a
+      // NaN cost/remaining, corrupting both balances and the listing.
+      const listing = listResource(db, "compute", "seller", 10, 50, "hour");
+      _setBalance("buyer", 200);
+      expect(() => tradeResource(listing.id, "buyer", NaN)).toThrow(
+        "Quantity must be positive",
+      );
+    });
   });
 
   // ─── NFTs ─────────────────────────────────────────────────
@@ -333,6 +356,15 @@ describe("agent-economy", () => {
 
     it("throws on non-positive pool", () => {
       expect(() => distributeRevenue(db, 0, ["a"])).toThrow(
+        "Pool must be positive",
+      );
+    });
+
+    it("rejects a NaN pool instead of distributing NaN shares", () => {
+      // Regression: `cc economy distribute` passes parseFloat(pool); a
+      // non-numeric arg yields NaN. `pool <= 0` is NaN-blind, so every agent's
+      // balance would be credited NaN (→ NULL), silently corrupting balances.
+      expect(() => distributeRevenue(db, NaN, ["a", "b"])).toThrow(
         "Pool must be positive",
       );
     });
