@@ -13,6 +13,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTenantTables,
+  loadFromDb as loadTenantsFromDb,
   listPlans,
   listMetrics,
   createTenant,
@@ -73,6 +74,10 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureTenantTables(db);
+  // Rehydrate the in-memory Maps from the persisted saas_* tables — without this
+  // every read is Map-only-empty in the fresh CLI process and a tenant created
+  // in a prior invocation is invisible (No tenants. / Tenant not found).
+  loadTenantsFromDb(db);
   return db;
 }
 
@@ -382,7 +387,11 @@ export function registerTenantCommand(program) {
     .description("Start a new subscription (cancels any prior active one)")
     .requiredOption("-p, --plan <plan>", "Plan id")
     .option("-a, --amount <n>", "Override amount", floatArg("--amount"))
-    .option("-d, --duration-ms <ms>", "Duration in ms (default 30d)", intArg("--duration-ms"))
+    .option(
+      "-d, --duration-ms <ms>",
+      "Duration in ms (default 30d)",
+      intArg("--duration-ms"),
+    )
     .option("--json", "Output as JSON")
     .action(async (tenantId, options) => {
       try {

@@ -830,6 +830,113 @@ export function _resetState() {
   _seq = 0;
 }
 
+/**
+ * Rehydrate the in-memory Maps from the persisted saas_* tables. The CLI runs
+ * every subcommand in a fresh node process, so these module-level Maps start
+ * empty each invocation. Every write dual-writes (Map + INSERT OR REPLACE) but
+ * every read (getTenant/listTenants/getUsage/getActiveSubscription/
+ * listSubscriptions/getSaasStats) is Map-only, and nothing SELECTed the tables
+ * back — so a tenant created in one invocation was invisible in the next
+ * (`No tenants.` / `Tenant not found`), and every follow-up subscribe/record/
+ * check-quota/configure/delete threw "Tenant not found". Call after
+ * ensureTenantTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureTenantTables(db);
+  _tenants.clear();
+  _subscriptions.clear();
+  _usage.clear();
+  _slugIndex.clear();
+  _tenantSubs.clear();
+  _tenantUsage.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, slug, config, status, plan, db_path, owner_id,
+              created_at, updated_at, deleted_at
+         FROM saas_tenants ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt config cell must not sink the whole tenant list.
+    let config = null;
+    try {
+      config = r.config ? JSON.parse(r.config) : null;
+    } catch {
+      config = null;
+    }
+    _tenants.set(r.id, {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      config,
+      status: r.status,
+      plan: r.plan,
+      dbPath: r.db_path || null,
+      ownerId: r.owner_id || null,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      deletedAt: r.deleted_at == null ? null : Number(r.deleted_at),
+      _seq: ++_seq,
+    });
+    if (r.slug) _slugIndex.set(r.slug, r.id);
+    _tenantSubs.set(r.id, new Set());
+    _tenantUsage.set(r.id, new Set());
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, tenant_id, metric, value, period, recorded_at
+         FROM saas_usage ORDER BY recorded_at ASC`,
+    )
+    .all()) {
+    _usage.set(r.id, {
+      id: r.id,
+      tenantId: r.tenant_id,
+      metric: r.metric,
+      value: Number(r.value),
+      period: r.period,
+      recordedAt: Number(r.recorded_at),
+      _seq: ++_seq,
+    });
+    if (!_tenantUsage.has(r.tenant_id))
+      _tenantUsage.set(r.tenant_id, new Set());
+    _tenantUsage.get(r.tenant_id).add(r.id);
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, tenant_id, plan, status, started_at, expires_at, cancelled_at,
+              payment_method, amount, created_at
+         FROM saas_subscriptions ORDER BY created_at ASC`,
+    )
+    .all()) {
+    let paymentMethod = null;
+    try {
+      paymentMethod = r.payment_method ? JSON.parse(r.payment_method) : null;
+    } catch {
+      paymentMethod = null;
+    }
+    _subscriptions.set(r.id, {
+      id: r.id,
+      tenantId: r.tenant_id,
+      plan: r.plan,
+      status: r.status,
+      startedAt: Number(r.started_at),
+      expiresAt: r.expires_at == null ? null : Number(r.expires_at),
+      cancelledAt: r.cancelled_at == null ? null : Number(r.cancelled_at),
+      paymentMethod,
+      amount: r.amount == null ? null : Number(r.amount),
+      createdAt: Number(r.created_at),
+      _seq: ++_seq,
+    });
+    if (!_tenantSubs.has(r.tenant_id)) _tenantSubs.set(r.tenant_id, new Set());
+    _tenantSubs.get(r.tenant_id).add(r.id);
+  }
+
+  return _tenants.size + _usage.size + _subscriptions.size;
+}
+
 /* ═══════════════════════════════════════════════════════════════
  * Phase 97 V2 — Tenant Maturity + Subscription Lifecycle
  * Strictly additive. Legacy surface above is preserved.

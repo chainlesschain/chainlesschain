@@ -71,6 +71,7 @@ import {
   TENANT_STATUS,
   SUBSCRIPTION_STATUS,
   _resetState,
+  loadFromDb,
 } from "../../src/lib/tenant-saas.js";
 
 describe("tenant-saas", () => {
@@ -743,6 +744,85 @@ describe("tenant-saas", () => {
 
     it("rejects exporting unknown tenant", () => {
       expect(() => exportTenant("nope")).toThrow(/not found/);
+    });
+  });
+
+  /* ── Cross-process hydration (loadFromDb) ──────────────────── */
+
+  describe("loadFromDb — rehydrates Maps from persisted saas_* tables", () => {
+    it("makes a tenant + usage + subscription visible after a fresh process", () => {
+      const t = createTenant(db, {
+        name: "Acme",
+        slug: "acme",
+        config: { region: "eu" },
+        ownerId: "did:alice",
+      });
+      subscribe(db, t.id, "pro", { amount: 4900 });
+      recordUsage(db, t.id, "api_calls", 5);
+
+      // Simulate the next one-shot CLI invocation: module Maps start empty, but
+      // the DB rows persist (MockDatabase keeps them).
+      _resetState();
+      expect(listTenants()).toHaveLength(0);
+      expect(getTenant(t.id)).toBeNull();
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(3); // 1 tenant + 1 usage + 1 subscription
+
+      // Tenant + slug index restored.
+      const back = getTenant(t.id);
+      expect(back).not.toBeNull();
+      expect(back.name).toBe("Acme");
+      expect(back.config).toEqual({ region: "eu" });
+      expect(back.ownerId).toBe("did:alice");
+      expect(getTenantBySlug("acme").id).toBe(t.id);
+
+      // Subscription restored + linked to the tenant.
+      const sub = getActiveSubscription(t.id);
+      expect(sub).not.toBeNull();
+      expect(sub.plan).toBe("pro");
+      expect(sub.amount).toBe(4900);
+
+      // Usage restored + linked (byMetric aggregation works off the rehydrated
+      // _tenantUsage index).
+      const usage = getUsage(t.id, { metric: "api_calls" });
+      expect(usage.byMetric.api_calls).toBe(5);
+      expect(usage.recordCount).toBe(1);
+
+      // And follow-up mutations no longer throw "Tenant not found".
+      expect(() => recordUsage(db, t.id, "api_calls", 2)).not.toThrow();
+    });
+
+    it("survives a corrupt config cell (per-row JSON guard, no crash)", () => {
+      createTenant(db, { name: "Good", slug: "good", config: { ok: true } });
+      // Hand-write a tenant row with malformed config JSON.
+      db.prepare(
+        `INSERT OR REPLACE INTO saas_tenants
+         (id, name, slug, config, status, plan, db_path, owner_id,
+          created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "t-bad",
+        "Bad",
+        "bad",
+        "{not json",
+        "active",
+        "free",
+        null,
+        null,
+        1000,
+        1000,
+        null,
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      expect(listTenants()).toHaveLength(2);
+      expect(getTenant("t-bad").config).toBeNull();
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });
