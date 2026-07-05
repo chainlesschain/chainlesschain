@@ -5,6 +5,7 @@
 
 import crypto from "crypto";
 import { safeJsonParse } from "./safe-json.js";
+import { escapeLike } from "./sql-like.js";
 
 /**
  * Event types for audit logging.
@@ -183,13 +184,13 @@ export function queryLogs(db, filters = {}) {
   }
 
   if (filters.operation) {
-    sql += " AND operation LIKE ?";
-    params.push(`%${filters.operation}%`);
+    sql += " AND operation LIKE ? ESCAPE '\\'";
+    params.push(`%${escapeLike(filters.operation)}%`);
   }
 
   if (filters.actor) {
-    sql += " AND actor LIKE ?";
-    params.push(`%${filters.actor}%`);
+    sql += " AND actor LIKE ? ESCAPE '\\'";
+    params.push(`%${escapeLike(filters.actor)}%`);
   }
 
   if (filters.riskLevel) {
@@ -214,8 +215,8 @@ export function queryLogs(db, filters = {}) {
 
   if (filters.search) {
     // Search in operation field (primary search field for CLI)
-    sql += " AND operation LIKE ?";
-    params.push(`%${filters.search}%`);
+    sql += " AND operation LIKE ? ESCAPE '\\'";
+    params.push(`%${escapeLike(filters.search)}%`);
   }
 
   sql += " ORDER BY created_at DESC";

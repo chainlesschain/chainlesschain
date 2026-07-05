@@ -5,6 +5,8 @@
  * with Ebbinghaus forgetting curve and spacing effect reinforcement.
  */
 
+import { escapeLike } from "./sql-like.js";
+
 // ─── Configuration ───────────────────────────────────────────────
 export const MEMORY_CONFIG = {
   workingCapacity: 50,
@@ -292,8 +294,10 @@ export function recallMemory(db, query, options = {}) {
   // Search long-term memory (DB)
   ensureMemoryTables(db);
   const ltRows = db
-    .prepare(`SELECT * FROM memory_long_term WHERE content LIKE ? LIMIT ?`)
-    .all(`%${query}%`, limit);
+    .prepare(
+      `SELECT * FROM memory_long_term WHERE content LIKE ? ESCAPE '\\' LIMIT ?`,
+    )
+    .all(`%${escapeLike(query)}%`, limit);
   for (const row of ltRows) {
     const retention = calcRetention(row.last_accessed);
     if (retention >= MEMORY_CONFIG.recallThreshold) {
@@ -316,8 +320,10 @@ export function recallMemory(db, query, options = {}) {
 
   // Search core memory (DB) — core memories don't decay
   const coreRows = db
-    .prepare(`SELECT * FROM memory_core WHERE content LIKE ? LIMIT ?`)
-    .all(`%${query}%`, limit);
+    .prepare(
+      `SELECT * FROM memory_core WHERE content LIKE ? ESCAPE '\\' LIMIT ?`,
+    )
+    .all(`%${escapeLike(query)}%`, limit);
   for (const row of coreRows) {
     db.prepare(
       `UPDATE memory_core SET access_count = access_count + 1, last_accessed = ? WHERE id = ?`,
@@ -444,9 +450,9 @@ function _searchByType(db, query, type, options = {}) {
   ensureMemoryTables(db);
   const ltRows = db
     .prepare(
-      `SELECT * FROM memory_long_term WHERE type = ? AND content LIKE ? LIMIT ?`,
+      `SELECT * FROM memory_long_term WHERE type = ? AND content LIKE ? ESCAPE '\\' LIMIT ?`,
     )
-    .all(type, `%${query}%`, limit);
+    .all(type, `%${escapeLike(query)}%`, limit);
   for (const row of ltRows) {
     results.push({
       id: row.id,
@@ -462,9 +468,9 @@ function _searchByType(db, query, type, options = {}) {
 
   const coreRows = db
     .prepare(
-      `SELECT * FROM memory_core WHERE type = ? AND content LIKE ? LIMIT ?`,
+      `SELECT * FROM memory_core WHERE type = ? AND content LIKE ? ESCAPE '\\' LIMIT ?`,
     )
-    .all(type, `%${query}%`, limit);
+    .all(type, `%${escapeLike(query)}%`, limit);
   for (const row of coreRows) {
     results.push({
       id: row.id,

@@ -92,3 +92,75 @@ describe("deleteMemory — LIKE-wildcard safety (real db)", () => {
     }
   });
 });
+
+describe("recallMemory — LIKE-wildcard safety (real db)", () => {
+  it("matches the DB layer literally, consistent with the in-memory .includes()", async () => {
+    const { default: Database } = await import("better-sqlite3");
+    const { ensureMemoryTables, recallMemory } =
+      await import("../../src/lib/hierarchical-memory.js");
+    const db = new Database(":memory:");
+    try {
+      ensureMemoryTables(db);
+      // Seed memory_core (no retention gate → always returned when it matches).
+      const ins = db.prepare(
+        "INSERT INTO memory_core(id,content,importance) VALUES (?,?,?)",
+      );
+      ins.run("core-1", "save 50% today", 1.0);
+      ins.run("core-2", "we have 5000 units", 1.0);
+      ins.run("core-3", "plain body", 1.0);
+
+      // The in-memory layers use `.includes()` (literal); the DB LIKE must match
+      // the same way. Searching "50%" must NOT wildcard-match "5000".
+      const r1 = recallMemory(db, "50%")
+        .map((m) => m.content)
+        .sort();
+      expect(r1).toEqual(["save 50% today"]);
+
+      // "%" is literal — only the entry that actually contains a '%'.
+      const r2 = recallMemory(db, "%")
+        .map((m) => m.content)
+        .sort();
+      expect(r2).toEqual(["save 50% today"]);
+
+      // A plain word still recalls the expected entry.
+      const r3 = recallMemory(db, "body")
+        .map((m) => m.content)
+        .sort();
+      expect(r3).toEqual(["plain body"]);
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe("queryLogs — LIKE-wildcard safety (real db)", () => {
+  it("search filter matches the operation literally, not as a wildcard", async () => {
+    const { default: Database } = await import("better-sqlite3");
+    const { ensureAuditTables, queryLogs } =
+      await import("../../src/lib/audit-logger.js");
+    const db = new Database(":memory:");
+    try {
+      ensureAuditTables(db);
+      const ins = db.prepare(
+        "INSERT INTO audit_log(id,event_type,operation) VALUES (?,?,?)",
+      );
+      ins.run("a1", "op", "discount-50%-applied");
+      ins.run("a2", "op", "restock-5000-units");
+      ins.run("a3", "op", "login-success");
+
+      // `cc audit search "50%"` must not also match "5000".
+      const s1 = queryLogs(db, { search: "50%" }).map((r) => r.operation);
+      expect(s1).toEqual(["discount-50%-applied"]);
+
+      // `cc audit search "%"` (a bare wildcard) must not match every row.
+      const s2 = queryLogs(db, { search: "%" }).map((r) => r.operation);
+      expect(s2).toEqual(["discount-50%-applied"]);
+
+      // A plain substring still filters correctly.
+      const s3 = queryLogs(db, { search: "login" }).map((r) => r.operation);
+      expect(s3).toEqual(["login-success"]);
+    } finally {
+      db.close();
+    }
+  });
+});
