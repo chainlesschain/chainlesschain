@@ -8,6 +8,7 @@ import {
   PRACTICE_LEVELS,
   ANTI_PATTERNS,
   ensureTechLearningTables,
+  loadFromDb,
   analyzeTechStack,
   getProfile,
   detectAntiPatterns,
@@ -1033,6 +1034,73 @@ describe("tech-learning-engine V2", () => {
       expect(getTechLearningStatsV2().totalProfilesV2).toBe(0);
       expect(getTechLearningStatsV2().totalRunsV2).toBe(0);
       expect(getMaxActiveProfilesPerOwnerV2()).toBe(10);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    let tmpDir;
+    beforeEach(() => {
+      db = new MockDatabase();
+      _resetState();
+      ensureTechLearningTables(db);
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tle-hyd-"));
+    });
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("makes profiles + practices visible after a fresh process", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "package.json"),
+        JSON.stringify({ name: "demo", dependencies: { react: "^19.0.0" } }),
+      );
+      const profile = analyzeTechStack(db, tmpDir);
+      recordPractice(db, {
+        techType: "framework",
+        techName: "react",
+        patternName: "hooks",
+        level: "intermediate",
+        score: 0.8,
+      });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(getProfile(tmpDir)).toBeNull();
+      expect(listPractices()).toEqual([]);
+
+      loadFromDb(db);
+
+      const rehydrated = getProfile(tmpDir);
+      expect(rehydrated).not.toBeNull();
+      expect(rehydrated.profileId).toBe(profile.profileId);
+      // frameworks reconstructed from the classified tech_stack
+      expect(rehydrated.frameworks).toContain("react");
+
+      const practices = listPractices();
+      expect(practices.length).toBe(1);
+      expect(practices[0].techName).toBe("react");
+      expect(practices[0].patternName).toBe("hooks");
+
+      // recommend can infer the latest stack again
+      const rec = getRecommendations({});
+      expect(rec.stackNames.length).toBeGreaterThan(0);
+    });
+
+    it("survives a corrupt tech_stack cell (per-row JSON guard)", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "package.json"),
+        JSON.stringify({ name: "demo", dependencies: { react: "^19.0.0" } }),
+      );
+      analyzeTechStack(db, tmpDir);
+      const rows = db.data.get("tech_stack_profiles") || [];
+      rows[0].tech_stack = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const rehydrated = getProfile(tmpDir);
+      expect(rehydrated).not.toBeNull();
+      expect(rehydrated.frameworks).toEqual([]); // guarded fallback
     });
   });
 });

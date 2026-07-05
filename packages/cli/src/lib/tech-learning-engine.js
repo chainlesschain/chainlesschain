@@ -169,6 +169,81 @@ export function ensureTechLearningTables(db) {
   );
 }
 
+/**
+ * Rehydrate _profiles/_practices from the persisted tech_stack_profiles/
+ * learned_practices tables. The `cc` CLI runs every command in a fresh process,
+ * so without this the Maps start empty and a profile/practice recorded in a
+ * prior invocation is invisible (`cc tech profile` returns null, `cc tech
+ * practices` shows nothing, `cc tech recommend` can't infer the latest stack).
+ * Call after ensureTechLearningTables(db). The profile's frameworks/databases/
+ * tools/libraries are not stored as columns — they are reconstructed from the
+ * classified tech_stack exactly as analyzeTechStack derives them.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _profiles.clear();
+  _practices.clear();
+
+  const profileRows = db.prepare(`SELECT * FROM tech_stack_profiles`).all();
+  for (const row of profileRows) {
+    let classified = [];
+    let deps = [];
+    let languages = [];
+    try {
+      classified = row.tech_stack ? JSON.parse(row.tech_stack) : [];
+    } catch {
+      classified = [];
+    }
+    try {
+      deps = row.dependencies ? JSON.parse(row.dependencies) : [];
+    } catch {
+      deps = [];
+    }
+    try {
+      languages = row.languages ? JSON.parse(row.languages) : [];
+    } catch {
+      languages = [];
+    }
+    const byType = (t) =>
+      classified.filter((d) => d.type === t).map((d) => d.name);
+    _profiles.set(row.project_path, {
+      profileId: row.profile_id,
+      projectPath: row.project_path,
+      languages,
+      frameworks: byType(TECH_TYPES.FRAMEWORK),
+      databases: byType(TECH_TYPES.DATABASE),
+      tools: byType(TECH_TYPES.TOOL),
+      libraries: byType(TECH_TYPES.LIBRARY),
+      totalDependencies: deps.length,
+      analysisTimestamp: row.analysis_timestamp,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      _seq: ++_seq,
+    });
+  }
+
+  const practiceRows = db.prepare(`SELECT * FROM learned_practices`).all();
+  for (const row of practiceRows) {
+    _practices.set(row.practice_id, {
+      practiceId: row.practice_id,
+      techType: row.tech_type,
+      techName: row.tech_name,
+      patternName: row.pattern_name,
+      level: row.level,
+      description: row.description ?? "",
+      codeExample: row.code_example ?? "",
+      usageCount: row.usage_count ?? 0,
+      score: row.score ?? 0,
+      source: row.source,
+      learnedAt: row.learned_at,
+      updatedAt: row.updated_at,
+      _seq: ++_seq,
+    });
+  }
+
+  return _profiles.size + _practices.size;
+}
+
 /* ── Parsers for dependency manifests ──────────────────────── */
 
 function _readIfExists(filePath) {

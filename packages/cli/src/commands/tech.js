@@ -8,6 +8,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTechLearningTables,
+  loadFromDb,
   analyzeTechStack,
   getProfile,
   detectAntiPatterns,
@@ -57,6 +58,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureTechLearningTables(db);
+  loadFromDb(db);
   return db;
 }
 
