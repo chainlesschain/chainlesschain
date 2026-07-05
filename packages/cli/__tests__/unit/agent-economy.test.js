@@ -249,7 +249,7 @@ describe("agent-economy", () => {
     it("trades a resource successfully", () => {
       const listing = listResource(db, "compute", "seller", 10, 50, "hour");
       _setBalance("buyer", 200);
-      const result = tradeResource(listing.id, "buyer", 5);
+      const result = tradeResource(db, listing.id, "buyer", 5);
       expect(result.cost).toBe(50);
       expect(result.remaining).toBe(45);
       expect(getBalance("buyer").balance).toBe(150);
@@ -259,7 +259,7 @@ describe("agent-economy", () => {
     it("throws on insufficient availability", () => {
       const listing = listResource(db, "compute", "seller", 10, 2, "hour");
       _setBalance("buyer", 1000);
-      expect(() => tradeResource(listing.id, "buyer", 5)).toThrow(
+      expect(() => tradeResource(db, listing.id, "buyer", 5)).toThrow(
         "Insufficient availability",
       );
     });
@@ -267,13 +267,13 @@ describe("agent-economy", () => {
     it("throws on insufficient buyer balance", () => {
       const listing = listResource(db, "compute", "seller", 100, 50, "hour");
       _setBalance("buyer", 10);
-      expect(() => tradeResource(listing.id, "buyer", 5)).toThrow(
+      expect(() => tradeResource(db, listing.id, "buyer", 5)).toThrow(
         "Insufficient balance",
       );
     });
 
     it("throws on unknown listing", () => {
-      expect(() => tradeResource("no-such-id", "buyer", 1)).toThrow(
+      expect(() => tradeResource(db, "no-such-id", "buyer", 1)).toThrow(
         "Listing not found",
       );
     });
@@ -285,7 +285,7 @@ describe("agent-economy", () => {
       // NaN cost/remaining, corrupting both balances and the listing.
       const listing = listResource(db, "compute", "seller", 10, 50, "hour");
       _setBalance("buyer", 200);
-      expect(() => tradeResource(listing.id, "buyer", NaN)).toThrow(
+      expect(() => tradeResource(db, listing.id, "buyer", NaN)).toThrow(
         "Quantity must be positive",
       );
     });

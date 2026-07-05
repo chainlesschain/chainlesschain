@@ -311,7 +311,12 @@ export function registerEconomyCommand(program) {
         ensureEconomyTables(db);
         loadEconomyFromDb(db);
 
-        const result = tradeResource(listingId, buyer, parseFloat(quantity));
+        const result = tradeResource(
+          db,
+          listingId,
+          buyer,
+          parseFloat(quantity),
+        );
         logger.success("Trade complete");
         logger.log(`  ${chalk.bold("Cost:")}      ${result.cost}`);
         logger.log(`  ${chalk.bold("Quantity:")}  ${result.quantity}`);

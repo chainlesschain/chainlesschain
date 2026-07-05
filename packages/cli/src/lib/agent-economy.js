@@ -336,7 +336,7 @@ export function getMarketListings(filter) {
   return listings;
 }
 
-export function tradeResource(listingId, buyer, quantity) {
+export function tradeResource(db, listingId, buyer, quantity) {
   const listing = _market.get(listingId);
   if (!listing) throw new Error(`Listing not found: ${listingId}`);
   if (!Number.isFinite(quantity) || quantity <= 0)
@@ -353,12 +353,51 @@ export function tradeResource(listingId, buyer, quantity) {
     throw new Error(`Insufficient balance: ${buyerBal.balance} < ${cost}`);
   }
 
-  buyerBal.balance -= cost;
   const sellerBal = _getBalance(listing.provider);
+  const buyerSnap = { balance: buyerBal.balance, locked: buyerBal.locked };
+  const sellerSnap = { balance: sellerBal.balance, locked: sellerBal.locked };
+  const listingSnap = { available: listing.available, status: listing.status };
+
+  buyerBal.balance -= cost;
   sellerBal.balance += cost;
   listing.available -= quantity;
-
   if (listing.available <= 0) listing.status = "sold_out";
+
+  const now = new Date().toISOString();
+  // Persist the money movement and the listing depletion. Previously this
+  // mutated only the in-memory Maps (the fn took no db at all), so a trade
+  // reported success but never survived the next process re-hydrate — the
+  // buyer was never charged, the seller never paid, and the listing never
+  // depleted (unlimited free re-purchases). Sibling listResource/pay persist.
+  const persistBal = (agentId, bal) =>
+    db
+      .prepare(
+        `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(agentId, bal.balance, bal.locked, now);
+
+  const applyWrites = () => {
+    persistBal(buyer, buyerBal);
+    if (listing.provider !== buyer) persistBal(listing.provider, sellerBal);
+    db.prepare(
+      `UPDATE economy_market SET available = ?, status = ? WHERE id = ?`,
+    ).run(listing.available, listing.status, listingId);
+  };
+
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else if (db) {
+      applyWrites();
+    }
+  } catch (err) {
+    // Roll the in-memory Maps back to match the rolled-back DB.
+    Object.assign(buyerBal, buyerSnap);
+    Object.assign(sellerBal, sellerSnap);
+    Object.assign(listing, listingSnap);
+    throw err;
+  }
 
   return { listingId, buyer, quantity, cost, remaining: listing.available };
 }
