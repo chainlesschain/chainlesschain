@@ -128,4 +128,116 @@ describe("sandbox egress proxy", () => {
     expect(env.HTTPS_PROXY).toBe("http://host.docker.internal:8123");
     expect(env.NO_PROXY).toBe("");
   });
+
+  // ── DNS-rebinding guard: a public-looking NAME that RESOLVES to a private IP
+  //    must be blocked even though the name-based policy allowed it. Resolver is
+  //    injected so the tests are deterministic (no real DNS / network).
+  describe("DNS-rebinding guard", () => {
+    it("blocks a wildcard-allowed name that resolves to loopback (CONNECT)", async () => {
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"] },
+        { lookup: async () => [{ address: "127.0.0.1", family: 4 }] },
+      );
+      const { port } = await proxy.listen();
+      const statusLine = await connectVia(port, "rebind.evil.test:443");
+      expect(statusLine).toMatch(/403/);
+      expect(proxy.blocked).toBe(1); // name-based allow was overturned
+      expect(proxy.allowed).toBe(0);
+    });
+
+    it("blocks a wildcard-allowed name that resolves to the metadata IP (HTTP)", async () => {
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"] },
+        { lookup: async () => [{ address: "169.254.169.254", family: 4 }] },
+      );
+      const { port } = await proxy.listen();
+      const res = await getVia(port, "http://rebind.evil.test/x");
+      expect(res.status).toBe(403);
+      expect(res.body).toMatch(/dns-rebinding/);
+    });
+
+    it("blocks when ANY resolved address is private (multi-record)", async () => {
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"] },
+        {
+          lookup: async () => [
+            { address: "93.184.216.34", family: 4 }, // public
+            { address: "10.0.0.5", family: 4 }, // private — poisons the set
+          ],
+        },
+      );
+      const { port } = await proxy.listen();
+      const statusLine = await connectVia(port, "mixed.test:443");
+      expect(statusLine).toMatch(/403/);
+    });
+
+    it("fails CLOSED when the host cannot be resolved", async () => {
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"] },
+        {
+          lookup: async () => {
+            const e = new Error("not found");
+            e.code = "ENOTFOUND";
+            throw e;
+          },
+        },
+      );
+      const { port } = await proxy.listen();
+      const statusLine = await connectVia(port, "nxdomain.test:443");
+      expect(statusLine).toMatch(/403/);
+    });
+
+    it("does NOT re-resolve a SPECIFICALLY-allowed name (user-vetted → exempt)", async () => {
+      let lookups = 0;
+      proxy = createEgressProxy(
+        { allowedDomains: ["internal.corp"] }, // exact name = specific allow
+        {
+          lookup: async () => {
+            lookups += 1;
+            return [{ address: "10.0.0.5", family: 4 }];
+          },
+        },
+      );
+      const { port } = await proxy.listen();
+      await connectVia(port, "internal.corp:443").catch(() => {});
+      expect(lookups).toBe(0); // specific allow bypasses the rebinding re-check
+    });
+
+    it("resolves + PINS a wildcard-allowed name and forwards to the validated address", async () => {
+      upstream = http.createServer((_req, res) => {
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end("UPSTREAM_OK");
+      });
+      const upPort = await new Promise((r) =>
+        upstream.listen(0, "127.0.0.1", () => r(upstream.address().port)),
+      );
+      // Name resolves to loopback; allowPrivate lets the guard accept it, and
+      // the proxy connects to the RESOLVED ip (127.0.0.1), proving the pin path.
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"], allowPrivate: true },
+        { lookup: async () => [{ address: "127.0.0.1", family: 4 }] },
+      );
+      const { port } = await proxy.listen();
+      const res = await getVia(port, `http://myhost.test:${upPort}/`);
+      expect(res.status).toBe(200);
+      expect(res.body).toBe("UPSTREAM_OK");
+    });
+
+    it("can be disabled with checkDnsRebinding:false (no re-resolution)", async () => {
+      let lookups = 0;
+      proxy = createEgressProxy(
+        { allowedDomains: ["*"] },
+        {
+          checkDnsRebinding: false,
+          lookup: async () => {
+            lookups += 1;
+            return [{ address: "127.0.0.1", family: 4 }];
+          },
+        },
+      );
+      const { port } = await proxy.listen();
+      await connectVia(port, "whatever.test:443").catch(() => {});
+      expect(lookups).toBe(0); // guard off → never re-resolves
+    });
+  });
 });

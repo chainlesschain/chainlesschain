@@ -161,4 +161,25 @@ describe("evaluateNetworkAccess", () => {
   it("rejects an unparseable target", () => {
     expect(evaluateNetworkAccess("", {}).allowed).toBe(false);
   });
+
+  it("flags a SPECIFIC (non-`*`) allow so the egress proxy can exempt it from the rebinding re-check", () => {
+    // Exact + subdomain allows are user-vetted names → `specific: true`.
+    expect(
+      evaluateNetworkAccess("https://api.internal/x", {
+        allowedDomains: ["api.internal"],
+      }).specific,
+    ).toBe(true);
+    expect(
+      evaluateNetworkAccess("https://a.example.com/x", {
+        allowedDomains: ["*.example.com"],
+      }).specific,
+    ).toBe(true);
+    // A bare `*` or permissive allow is NOT specific → proxy still re-checks the
+    // resolved IP for rebinding.
+    expect(
+      evaluateNetworkAccess("https://x.com/", { allowedDomains: ["*"] })
+        .specific,
+    ).toBeFalsy();
+    expect(evaluateNetworkAccess("https://x.com/", {}).specific).toBeFalsy();
+  });
 });

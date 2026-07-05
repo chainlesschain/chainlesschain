@@ -114,7 +114,17 @@ export function evaluateNetworkAccess(target, policy = {}) {
     allowed.filter((p) => String(p).trim() !== "*"),
   );
   if (explicitNonStar) {
-    return { allowed: true, host, reason: "matched allowedDomains" };
+    // `specific: true` marks a host the user vetted by exact/subdomain name (not
+    // a bare `*`). The egress proxy trusts these even when they resolve to a
+    // private IP (intentional internal/dev allowlisting) and so SKIPS the
+    // DNS-rebinding re-check for them — whereas `*`/permissive allows still get
+    // their resolved IP checked.
+    return {
+      allowed: true,
+      host,
+      reason: "matched allowedDomains",
+      specific: true,
+    };
   }
   // 3) Private / loopback / metadata targets are blocked unless allowed above.
   if (isPrivateHost(host) && !policy.allowPrivate) {

@@ -17,7 +17,60 @@
 
 import http from "node:http";
 import net from "node:net";
-import { evaluateNetworkAccess } from "./sandbox-network-policy.js";
+import dns from "node:dns";
+import {
+  evaluateNetworkAccess,
+  isPrivateHost,
+} from "./sandbox-network-policy.js";
+
+/** Promisified `dns.lookup` returning ALL resolved addresses. */
+function defaultLookup(host) {
+  return new Promise((resolve, reject) => {
+    dns.lookup(host, { all: true }, (err, addrs) =>
+      err ? reject(err) : resolve(addrs),
+    );
+  });
+}
+
+/**
+ * DNS-rebinding / SSRF-by-resolution guard. The domain policy is decided by
+ * NAME, but a public-looking name can RESOLVE to a private / metadata IP
+ * (`rebind.evil.com → 127.0.0.1` / `169.254.169.254`) and the name check would
+ * never see it — a classic rebinding bypass (Phase 1 acceptance "DNS 重绑定有
+ * 安全测试"). After a wildcard/permissive allow, resolve the host and reject if
+ * ANY address is private (unless `allowPrivate`). Fail CLOSED on an unresolvable
+ * host. On success, pin the connection to the exact validated address so a
+ * second resolution at connect time can't rebind to a different (private) IP.
+ * A `specific` allow (exact/subdomain name the user vetted) is exempt — the
+ * caller skips this — so intentional internal-name allowlisting still works.
+ * @returns {Promise<{ok:boolean, ip?:string, reason?:string}>}
+ */
+async function guardResolvedTarget(host, policy, lookup) {
+  let addrs;
+  try {
+    addrs = await lookup(host);
+  } catch (e) {
+    return {
+      ok: false,
+      reason: `unresolvable host (fail-closed): ${e.code || e.message}`,
+    };
+  }
+  const list = Array.isArray(addrs) ? addrs : addrs ? [addrs] : [];
+  if (list.length === 0) {
+    return { ok: false, reason: "host resolved to no addresses (fail-closed)" };
+  }
+  for (const a of list) {
+    const ip = typeof a === "string" ? a : a && a.address;
+    if (ip && isPrivateHost(ip) && !policy.allowPrivate) {
+      return {
+        ok: false,
+        reason: `dns-rebinding: ${host} resolves to private ${ip}`,
+      };
+    }
+  }
+  const first = list[0];
+  return { ok: true, ip: typeof first === "string" ? first : first.address };
+}
 
 /**
  * Build the proxy env vars a child process needs to route through the proxy.
@@ -64,77 +117,124 @@ export function createEgressProxy(policy = {}, opts = {}) {
     return verdict;
   };
 
-  const server = http.createServer((req, res) => {
-    // A forward-proxy request carries the absolute URL in the request line.
-    const verdict = decide(req.url, "http");
-    if (!verdict.allowed) {
-      res.writeHead(403, { "content-type": "text/plain" });
-      res.end(`egress blocked: ${verdict.host} — ${verdict.reason}\n`);
-      return;
+  const lookup = opts.lookup || defaultLookup;
+  const rebindGuard = opts.checkDnsRebinding !== false; // on by default
+
+  // Second gate: after a NAME-based allow, re-check the RESOLVED address for
+  // DNS rebinding (unless the allow was `specific` — a name the user vetted —
+  // or the guard is disabled). Returns the verdict to ACT on plus `ip`, the
+  // exact address to pin the connection to (null → connect by the original
+  // name). When the resolved IP is private the name-based allow is overturned:
+  // fix the counters and re-notify observers with the block reason.
+  const guard = async (verdict, kind) => {
+    if (!verdict.allowed || verdict.specific || !rebindGuard) {
+      return { verdict, ip: null };
     }
-    let u;
+    const res = await guardResolvedTarget(verdict.host, policy, lookup);
+    if (res.ok) return { verdict, ip: res.ip };
+    state.allowed -= 1;
+    state.blocked += 1;
+    const blocked = { allowed: false, host: verdict.host, reason: res.reason };
+    if (typeof opts.onDecision === "function") {
+      try {
+        opts.onDecision({ kind, target: verdict.host, ...blocked });
+      } catch {
+        /* observation is best-effort */
+      }
+    }
+    return { verdict: blocked, ip: null };
+  };
+
+  const server = http.createServer(async (req, res) => {
     try {
-      u = new URL(req.url);
+      // A forward-proxy request carries the absolute URL in the request line.
+      const { verdict, ip } = await guard(decide(req.url, "http"), "http");
+      if (!verdict.allowed) {
+        res.writeHead(403, { "content-type": "text/plain" });
+        res.end(`egress blocked: ${verdict.host} — ${verdict.reason}\n`);
+        return;
+      }
+      let u;
+      try {
+        u = new URL(req.url);
+      } catch {
+        res.writeHead(400, { "content-type": "text/plain" });
+        res.end("bad request target\n");
+        return;
+      }
+      const upstream = http.request(
+        {
+          hostname: ip || u.hostname, // pin to the validated IP when re-checked
+          port: u.port || 80,
+          path: `${u.pathname}${u.search}`,
+          method: req.method,
+          headers: req.headers, // preserves the original Host header
+        },
+        (upRes) => {
+          res.writeHead(upRes.statusCode || 502, upRes.headers);
+          upRes.pipe(res);
+        },
+      );
+      upstream.on("error", () => {
+        if (!res.headersSent)
+          res.writeHead(502, { "content-type": "text/plain" });
+        res.end("upstream error\n");
+      });
+      req.pipe(upstream);
     } catch {
-      res.writeHead(400, { "content-type": "text/plain" });
-      res.end("bad request target\n");
-      return;
-    }
-    const upstream = http.request(
-      {
-        hostname: u.hostname,
-        port: u.port || 80,
-        path: `${u.pathname}${u.search}`,
-        method: req.method,
-        headers: req.headers,
-      },
-      (upRes) => {
-        res.writeHead(upRes.statusCode || 502, upRes.headers);
-        upRes.pipe(res);
-      },
-    );
-    upstream.on("error", () => {
       if (!res.headersSent)
         res.writeHead(502, { "content-type": "text/plain" });
-      res.end("upstream error\n");
-    });
-    req.pipe(upstream);
+      res.end("proxy error\n");
+    }
   });
 
   // HTTPS (and any TLS) goes through CONNECT — tunnel only allowed hosts.
-  server.on("connect", (req, clientSocket, head) => {
-    const verdict = decide(req.url, "connect"); // req.url = "host:port"
-    if (!verdict.allowed) {
-      clientSocket.write(
-        "HTTP/1.1 403 Forbidden\r\n" +
-          "Content-Type: text/plain\r\n\r\n" +
-          `egress blocked: ${verdict.host} — ${verdict.reason}\n`,
-      );
-      clientSocket.end();
-      return;
-    }
-    const [host, portStr] = req.url.split(":");
-    const port = parseInt(portStr, 10) || 443;
-    const upstream = net.connect(port, host, () => {
-      clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
-      if (head && head.length) upstream.write(head);
-      upstream.pipe(clientSocket);
-      clientSocket.pipe(upstream);
-    });
-    upstream.on("error", () => {
+  server.on("connect", async (req, clientSocket, head) => {
+    try {
+      const { verdict, ip } = await guard(
+        decide(req.url, "connect"),
+        "connect",
+      ); // req.url = "host:port"
+      if (!verdict.allowed) {
+        clientSocket.write(
+          "HTTP/1.1 403 Forbidden\r\n" +
+            "Content-Type: text/plain\r\n\r\n" +
+            `egress blocked: ${verdict.host} — ${verdict.reason}\n`,
+        );
+        clientSocket.end();
+        return;
+      }
+      const [host, portStr] = req.url.split(":");
+      const port = parseInt(portStr, 10) || 443;
+      // Connect to the pinned validated IP so a rebind at connect time can't
+      // swap in a private address between our check and the socket.
+      const upstream = net.connect(port, ip || host, () => {
+        clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+        if (head && head.length) upstream.write(head);
+        upstream.pipe(clientSocket);
+        clientSocket.pipe(upstream);
+      });
+      upstream.on("error", () => {
+        try {
+          clientSocket.end();
+        } catch {
+          /* already closed */
+        }
+      });
+      clientSocket.on("error", () => {
+        try {
+          upstream.destroy();
+        } catch {
+          /* already gone */
+        }
+      });
+    } catch {
       try {
         clientSocket.end();
       } catch {
         /* already closed */
       }
-    });
-    clientSocket.on("error", () => {
-      try {
-        upstream.destroy();
-      } catch {
-        /* already gone */
-      }
-    });
+    }
   });
 
   return {
