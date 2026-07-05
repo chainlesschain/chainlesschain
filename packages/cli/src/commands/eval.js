@@ -218,6 +218,7 @@ export function registerEvalCommand(program, { logger } = {}) {
             passed: summary.passed,
             total: summary.total,
             passRate: summary.passRate,
+            unrelatedChangeRate: summary.unrelatedChangeRate,
             results: (summary.results || []).map((r) => ({
               id: r.id,
               pass: r.pass,
@@ -237,6 +238,12 @@ export function registerEvalCommand(program, { logger } = {}) {
         (log.log || console.log)(
           `\nEval: ${summary.passed}/${summary.total} passed (${pct}%) in ${summary.ms}ms`,
         );
+        if (typeof summary.unrelatedChangeRate === "number") {
+          const upct = (summary.unrelatedChangeRate * 100).toFixed(1);
+          (log.log || console.log)(
+            `Unrelated-change rate: ${upct}% (${summary.tasksWithUnrelatedChanges} task(s) edited files outside their expected surface)`,
+          );
+        }
         if (summary.telemetry) {
           (log.log || console.log)("\n" + formatTelemetry(summary.telemetry));
         }
