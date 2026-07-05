@@ -11,6 +11,7 @@ import { numericOption } from "../lib/cli-numeric.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureComplianceTables,
+  loadFromDb as loadComplianceFromDb,
   collectEvidence,
   generateReport,
   classifyData,
@@ -200,6 +201,7 @@ export function registerComplianceCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureComplianceTables(db);
+        loadComplianceFromDb(db);
 
         const result = collectEvidence(
           db,
@@ -247,6 +249,7 @@ export function registerComplianceCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureComplianceTables(db);
+        loadComplianceFromDb(db);
 
         const fmt = options.json ? "json" : options.format;
         const useDetailed =
@@ -376,6 +379,7 @@ export function registerComplianceCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureComplianceTables(db);
+        loadComplianceFromDb(db);
 
         const result = scanCompliance(db, framework);
         if (options.json) {
@@ -413,6 +417,7 @@ export function registerComplianceCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureComplianceTables(db);
+        loadComplianceFromDb(db);
 
         const policies = listPolicies(db, { framework: options.framework });
         if (options.json) {

@@ -3,6 +3,7 @@ import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureComplianceTables,
   collectEvidence,
+  loadFromDb,
   generateReport,
   classifyData,
   scanCompliance,
@@ -665,6 +666,61 @@ describe("compliance-manager", () => {
       expect(s.policyBySeverity.high).toBe(1);
       expect(s.reportByStatus.pending).toBe(1);
       expect(s.activePolicies).toBe(1);
+    });
+  });
+
+  describe("loadFromDb — rehydrates evidence/policies across processes", () => {
+    it("makes the summary report + scan + policies see persisted evidence after a fresh process", () => {
+      collectEvidence(db, "gdpr", "retention", "encryption at rest verified");
+      addPolicy(db, "Encrypt Data", "encryption", "gdpr", {}, "high");
+
+      const first = generateReport(db, "gdpr");
+      expect(first.content.evidence).toBe(1);
+      expect(first.content.policies).toBe(1);
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      // THE BUG: the summary report reads the empty _evidence/_policies Maps.
+      const blind = generateReport(db, "gdpr");
+      expect(blind.content.evidence).toBe(0);
+      expect(blind.content.policies).toBe(0);
+      expect(listPolicies(db, { framework: "gdpr" })).toHaveLength(0);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(2); // 1 evidence + 1 policy
+
+      const after = generateReport(db, "gdpr");
+      expect(after.content.evidence).toBe(1);
+      expect(after.content.policies).toBe(1);
+      expect(listPolicies(db, { framework: "gdpr" })).toHaveLength(1);
+    });
+
+    it("survives a corrupt rules cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO compliance_policies (id, name, type, framework, rules, enabled, severity, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "pol-bad",
+        "bad",
+        "encryption",
+        "gdpr",
+        "{not json",
+        1,
+        "low",
+        "2020-01-01T00:00:00.000Z",
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const p = listPolicies(db, { framework: "gdpr" }).find(
+        (x) => x.id === "pol-bad",
+      );
+      expect(p).toBeTruthy();
+      expect(p.rules).toEqual({});
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

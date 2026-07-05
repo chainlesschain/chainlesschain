@@ -723,6 +723,69 @@ export function _resetState() {
   _reportRetentionMs = COMPLIANCE_DEFAULT_REPORT_RETENTION_MS;
 }
 
+/**
+ * Rehydrate the in-memory _evidence/_policies Maps from the persisted
+ * compliance_* tables. The CLI runs each `cc compliance` subcommand in a fresh
+ * node process, so both Maps start empty every invocation. collectEvidence/
+ * addPolicy dual-write (Map + INSERT into compliance_evidence/compliance_policies)
+ * but generateReport (summary path), scanCompliance and listPolicies read the
+ * Maps only — so a `report`/`scan` after `evidence` in a separate process saw 0
+ * evidence items and scored 0. (The `report --detailed` path already SELECTed via
+ * the command-layer _loadEvidenceFromDb/_loadPoliciesFromDb; this makes the
+ * summary/scan/policies paths consistent.) `_reports` is write-only (no read
+ * path) and is not rehydrated. Call after ensureComplianceTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureComplianceTables(db);
+  _evidence.clear();
+  _policies.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, framework, type, description, source, status, collected_at
+         FROM compliance_evidence ORDER BY collected_at ASC`,
+    )
+    .all()) {
+    _evidence.set(r.id, {
+      id: r.id,
+      framework: r.framework,
+      type: r.type,
+      description: r.description || "",
+      source: r.source,
+      status: r.status,
+      collectedAt: r.collected_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, type, framework, rules, enabled, severity, created_at
+         FROM compliance_policies ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt rules cell must not sink the whole policy load.
+    let rules = {};
+    try {
+      rules = r.rules ? JSON.parse(r.rules) : {};
+    } catch {
+      rules = {};
+    }
+    _policies.set(r.id, {
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      framework: r.framework,
+      rules,
+      enabled: !!r.enabled,
+      severity: r.severity,
+      createdAt: r.created_at,
+    });
+  }
+
+  return _evidence.size + _policies.size;
+}
+
 // =====================================================================
 // compliance-manager V2 governance overlay (iter17)
 // =====================================================================
