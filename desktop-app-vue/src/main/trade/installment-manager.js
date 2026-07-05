@@ -117,30 +117,40 @@ class InstallmentManager extends EventEmitter {
       interestRate,
     );
 
-    db.prepare(
-      `INSERT INTO installment_plans (id, order_id, buyer_id, seller_id, total_amount,
+    // 计划行 + 整个还款计划表（N 期）必须原子创建：否则计划已入库但 schedule
+    // 中途某期 INSERT 失败 → 计划的 installments 字段与实际 payment 行数不符，
+    // makePayment/完成判定全部错乱。纯同步块，包进事务；MockDatabase 顺序执行。
+    const applyCreate = () => {
+      db.prepare(
+        `INSERT INTO installment_plans (id, order_id, buyer_id, seller_id, total_amount,
        installments, interest_rate, next_due_date, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    ).run(
-      id,
-      orderId,
-      buyerId,
-      sellerId,
-      totalAmount,
-      installments,
-      interestRate,
-      schedule[0].dueDate,
-      now,
-      now,
-    );
+      ).run(
+        id,
+        orderId,
+        buyerId,
+        sellerId,
+        totalAmount,
+        installments,
+        interestRate,
+        schedule[0].dueDate,
+        now,
+        now,
+      );
 
-    const stmt = db.prepare(
-      `INSERT INTO installment_payments (id, plan_id, installment_number, amount, due_date, status)
+      const stmt = db.prepare(
+        `INSERT INTO installment_payments (id, plan_id, installment_number, amount, due_date, status)
        VALUES (?, ?, ?, ?, ?, 'pending')`,
-    );
+      );
 
-    for (const payment of schedule) {
-      stmt.run(uuidv4(), id, payment.number, payment.amount, payment.dueDate);
+      for (const payment of schedule) {
+        stmt.run(uuidv4(), id, payment.number, payment.amount, payment.dueDate);
+      }
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyCreate)();
+    } else {
+      applyCreate();
     }
 
     this.emit("plan-created", {
@@ -225,31 +235,42 @@ class InstallmentManager extends EventEmitter {
     const now = Math.floor(Date.now() / 1000);
     const payAmount = amount || nextPayment.amount;
 
-    db.prepare(
-      "UPDATE installment_payments SET paid_date = ?, status = 'paid' WHERE id = ?",
-    ).run(now, nextPayment.id);
-
     const newPaidCount = plan.paid_count + 1;
     const newPaidAmount = plan.paid_amount + payAmount;
     const isComplete = newPaidCount >= plan.installments;
 
-    const nextDue = db
-      .prepare(
-        "SELECT due_date FROM installment_payments WHERE plan_id = ? AND status = 'pending' ORDER BY installment_number ASC LIMIT 1",
-      )
-      .get(planId);
+    // 标记本期已付 + 更新计划累计（paid_count/paid_amount/状态）必须原子：否则
+    // 本期被标 'paid' 但计划累计没更新 → 下次还款跳到下一期、paid_count 永久少算，
+    // 借款人已付清却显示未清（status 卡在 active，paid_amount 少计）。中间的
+    // SELECT 是同步读，可安全一并包进事务；MockDatabase 无 .transaction 时顺序执行。
+    const applyPayment = () => {
+      db.prepare(
+        "UPDATE installment_payments SET paid_date = ?, status = 'paid' WHERE id = ?",
+      ).run(now, nextPayment.id);
 
-    db.prepare(
-      `UPDATE installment_plans SET paid_count = ?, paid_amount = ?,
+      const nextDue = db
+        .prepare(
+          "SELECT due_date FROM installment_payments WHERE plan_id = ? AND status = 'pending' ORDER BY installment_number ASC LIMIT 1",
+        )
+        .get(planId);
+
+      db.prepare(
+        `UPDATE installment_plans SET paid_count = ?, paid_amount = ?,
        next_due_date = ?, status = ?, updated_at = ? WHERE id = ?`,
-    ).run(
-      newPaidCount,
-      newPaidAmount,
-      nextDue?.due_date || null,
-      isComplete ? InstallmentStatus.COMPLETED : plan.status,
-      now,
-      planId,
-    );
+      ).run(
+        newPaidCount,
+        newPaidAmount,
+        nextDue?.due_date || null,
+        isComplete ? InstallmentStatus.COMPLETED : plan.status,
+        now,
+        planId,
+      );
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyPayment)();
+    } else {
+      applyPayment();
+    }
 
     this.emit("payment-made", {
       planId,
