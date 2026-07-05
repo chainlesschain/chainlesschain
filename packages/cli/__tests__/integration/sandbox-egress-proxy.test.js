@@ -10,6 +10,7 @@ import net from "node:net";
 import {
   createEgressProxy,
   proxyEnv,
+  parseConnectTarget,
 } from "../../src/lib/sandbox-egress-proxy.js";
 
 let proxy;
@@ -238,6 +239,45 @@ describe("sandbox egress proxy", () => {
       const { port } = await proxy.listen();
       await connectVia(port, "whatever.test:443").catch(() => {});
       expect(lookups).toBe(0); // guard off → never re-resolves
+    });
+  });
+
+  // The CONNECT handler must parse host:port correctly. A naive split(":")
+  // mangles IPv6 literals — wrong host AND (worse) a NaN port silently
+  // defaulting to 443, so even an IP-pinned tunnel hits the wrong port.
+  describe("parseConnectTarget (CONNECT host:port parsing)", () => {
+    it("parses a plain name with a port", () => {
+      expect(parseConnectTarget("example.com:8443")).toEqual({
+        host: "example.com",
+        port: 8443,
+      });
+    });
+    it("defaults a portless name to 443", () => {
+      expect(parseConnectTarget("example.com")).toEqual({
+        host: "example.com",
+        port: 443,
+      });
+    });
+    it("parses a bracketed IPv6 literal WITH a port (the bug)", () => {
+      // split(':') → host '[2001', port NaN→443. Correct parse keeps both.
+      expect(parseConnectTarget("[2001:db8::1]:8443")).toEqual({
+        host: "2001:db8::1",
+        port: 8443,
+      });
+    });
+    it("parses a bracketed IPv6 literal without a port (→443)", () => {
+      expect(parseConnectTarget("[::1]")).toEqual({ host: "::1", port: 443 });
+    });
+    it("parses a bare (unbracketed) IPv6 literal as host with no port", () => {
+      expect(parseConnectTarget("2001:db8::1")).toEqual({
+        host: "2001:db8::1",
+        port: 443,
+      });
+    });
+    it("defaults an out-of-range / non-numeric port to 443", () => {
+      expect(parseConnectTarget("h:99999").port).toBe(443);
+      expect(parseConnectTarget("h:abc").port).toBe(443);
+      expect(parseConnectTarget("").host).toBe("");
     });
   });
 });

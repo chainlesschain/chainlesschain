@@ -73,6 +73,42 @@ async function guardResolvedTarget(host, policy, lookup) {
 }
 
 /**
+ * Parse a CONNECT request target ("host:port") into `{ host, port }`. A naive
+ * `split(":")` mangles IPv6 literals — `[2001:db8::1]:8443` would yield host
+ * `"[2001"` and a NaN port that silently defaults to 443, so even an IP-pinned
+ * tunnel connects to the WRONG port (and, when unpinned, the wrong host). Handle
+ * the bracketed-IPv6, bare-IPv6, and `name[:port]` forms explicitly. Port
+ * defaults to 443 (the CONNECT/HTTPS default).
+ */
+export function parseConnectTarget(target) {
+  const s = String(target == null ? "" : target).trim();
+  const toPort = (v) => {
+    const n = parseInt(v, 10);
+    return Number.isInteger(n) && n > 0 && n <= 65535 ? n : 443;
+  };
+  // Bracketed IPv6: "[::1]" or "[::1]:8443"
+  if (s.startsWith("[")) {
+    const end = s.indexOf("]");
+    if (end > 0) {
+      const host = s.slice(1, end);
+      const rest = s.slice(end + 1); // "" or ":8443"
+      return { host, port: rest.startsWith(":") ? toPort(rest.slice(1)) : 443 };
+    }
+    // malformed bracket — fall through to the generic handling
+  }
+  // Bare IPv6 literal (2+ colons, no brackets) → no port component to split off.
+  if ((s.match(/:/g) || []).length > 1) {
+    return { host: s, port: 443 };
+  }
+  // "name:port" (rsplit on the single colon) or bare "name".
+  const idx = s.lastIndexOf(":");
+  if (idx > 0) {
+    return { host: s.slice(0, idx), port: toPort(s.slice(idx + 1)) };
+  }
+  return { host: s, port: 443 };
+}
+
+/**
  * Build the proxy env vars a child process needs to route through the proxy.
  * `NO_PROXY` is intentionally empty so nothing bypasses the filter.
  * @param {number} port
@@ -204,8 +240,8 @@ export function createEgressProxy(policy = {}, opts = {}) {
         clientSocket.end();
         return;
       }
-      const [host, portStr] = req.url.split(":");
-      const port = parseInt(portStr, 10) || 443;
+      // Parse host:port properly (IPv6 literals break a naive split).
+      const { host, port } = parseConnectTarget(req.url);
       // Connect to the pinned validated IP so a rebind at connect time can't
       // swap in a private address between our check and the socket.
       const upstream = net.connect(port, ip || host, () => {
