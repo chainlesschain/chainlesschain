@@ -284,43 +284,53 @@ class SmartContractEngine extends EventEmitter {
 
       const db = this.database.db;
 
-      // 插入合约记录
-      db.prepare(
-        `
+      // 合约行 + 全部条件必须原子创建：否则合约已入库但某条件 INSERT 失败 →
+      // 合约的条件集不完整，checkConditions/executeContract 依据残缺条件执行。
+      // 纯同步块，包进事务；MockDatabase 无 .transaction 时顺序执行。
+      const applyCreate = () => {
+        // 插入合约记录
+        db.prepare(
+          `
         INSERT INTO contracts
         (id, contract_type, escrow_type, title, description, creator_did, parties, terms, status, created_at, expires_at, metadata)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      ).run(
-        contractId,
-        contractType,
-        escrowType,
-        title.trim(),
-        description || null,
-        currentDid,
-        JSON.stringify(parties),
-        JSON.stringify(terms),
-        ContractStatus.DRAFT,
-        now,
-        expiresAt,
-        JSON.stringify(metadata),
-      );
+        ).run(
+          contractId,
+          contractType,
+          escrowType,
+          title.trim(),
+          description || null,
+          currentDid,
+          JSON.stringify(parties),
+          JSON.stringify(terms),
+          ContractStatus.DRAFT,
+          now,
+          expiresAt,
+          JSON.stringify(metadata),
+        );
 
-      // 插入条件
-      for (const condition of conditions) {
-        db.prepare(
-          `
+        // 插入条件
+        for (const condition of conditions) {
+          db.prepare(
+            `
           INSERT INTO contract_conditions
           (contract_id, condition_type, condition_data, is_required, created_at)
           VALUES (?, ?, ?, ?, ?)
         `,
-        ).run(
-          contractId,
-          condition.type,
-          JSON.stringify(condition.data),
-          condition.required !== false ? 1 : 0,
-          now,
-        );
+          ).run(
+            contractId,
+            condition.type,
+            JSON.stringify(condition.data),
+            condition.required !== false ? 1 : 0,
+            now,
+          );
+        }
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyCreate)();
+      } else {
+        applyCreate();
       }
 
       // 记录事件
@@ -958,28 +968,37 @@ class SmartContractEngine extends EventEmitter {
       const arbitrationId = uuidv4();
       const now = Date.now();
 
-      // 插入仲裁记录
-      db.prepare(
-        `
+      // 仲裁记录 + 合约标 DISPUTED 必须原子：否则仲裁已挂起但合约仍非争议态，
+      // 合约可能在仲裁未决时被执行。纯同步块，包进事务；MockDatabase 顺序执行。
+      const applyInitiate = () => {
+        // 插入仲裁记录
+        db.prepare(
+          `
         INSERT INTO arbitrations
         (id, contract_id, initiator_did, reason, evidence, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      ).run(
-        arbitrationId,
-        contractId,
-        currentDid,
-        reason,
-        evidence || null,
-        "pending",
-        now,
-      );
+        ).run(
+          arbitrationId,
+          contractId,
+          currentDid,
+          reason,
+          evidence || null,
+          "pending",
+          now,
+        );
 
-      // 更新合约状态
-      db.prepare("UPDATE contracts SET status = ? WHERE id = ?").run(
-        ContractStatus.DISPUTED,
-        contractId,
-      );
+        // 更新合约状态
+        db.prepare("UPDATE contracts SET status = ? WHERE id = ?").run(
+          ContractStatus.DISPUTED,
+          contractId,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyInitiate)();
+      } else {
+        applyInitiate();
+      }
 
       // 如果有托管，标记为争议
       if (contract.escrow_id) {
@@ -1038,16 +1057,26 @@ class SmartContractEngine extends EventEmitter {
 
       const now = Date.now();
 
-      // 更新仲裁记录
-      db.prepare(
-        "UPDATE arbitrations SET status = ?, resolution = ?, arbitrator_did = ?, resolved_at = ? WHERE id = ?",
-      ).run("resolved", resolution, currentDid, now, arbitrationId);
+      // 仲裁结案 + 合约标 ARBITRATED 必须原子：否则仲裁已 'resolved'（守卫禁止
+      // 再次处理）但合约未更新状态 → 合约永久卡在 DISPUTED。纯同步块，包进事务；
+      // MockDatabase 顺序执行。
+      const applyResolve = () => {
+        // 更新仲裁记录
+        db.prepare(
+          "UPDATE arbitrations SET status = ?, resolution = ?, arbitrator_did = ?, resolved_at = ? WHERE id = ?",
+        ).run("resolved", resolution, currentDid, now, arbitrationId);
 
-      // 更新合约状态
-      db.prepare("UPDATE contracts SET status = ? WHERE id = ?").run(
-        ContractStatus.ARBITRATED,
-        arbitration.contract_id,
-      );
+        // 更新合约状态
+        db.prepare("UPDATE contracts SET status = ? WHERE id = ?").run(
+          ContractStatus.ARBITRATED,
+          arbitration.contract_id,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyResolve)();
+      } else {
+        applyResolve();
+      }
 
       // 根据解决方案执行相应操作
       const contract = db
