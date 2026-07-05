@@ -292,20 +292,29 @@ export class LLMProviderRegistry {
     if (!this.providers.has(name)) {
       throw new Error(`Provider "${name}" not found`);
     }
-    // Reset all
-    this.db.prepare("UPDATE llm_providers SET is_active = 0 WHERE 1=1").run();
-    // Set active
-    this.db
-      .prepare(
-        "INSERT OR REPLACE INTO llm_providers (name, display_name, base_url, api_key_env, models, is_active) VALUES (?, ?, ?, ?, ?, 1)",
-      )
-      .run(
-        name,
-        this.providers.get(name).displayName,
-        this.providers.get(name).baseUrl,
-        this.providers.get(name).apiKeyEnv,
-        JSON.stringify(this.providers.get(name).models),
-      );
+    // Clear every active flag then mark the new provider active atomically.
+    // Without a transaction, a failure on the second statement leaves NO
+    // provider active — which getActive() silently masks as the "ollama"
+    // fallback, so a failed switch would quietly lose the current provider.
+    const applyWrites = () => {
+      this.db.prepare("UPDATE llm_providers SET is_active = 0 WHERE 1=1").run();
+      this.db
+        .prepare(
+          "INSERT OR REPLACE INTO llm_providers (name, display_name, base_url, api_key_env, models, is_active) VALUES (?, ?, ?, ?, ?, 1)",
+        )
+        .run(
+          name,
+          this.providers.get(name).displayName,
+          this.providers.get(name).baseUrl,
+          this.providers.get(name).apiKeyEnv,
+          JSON.stringify(this.providers.get(name).models),
+        );
+    };
+    if (this.db && typeof this.db.transaction === "function") {
+      this.db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
     return this.providers.get(name);
   }
 
