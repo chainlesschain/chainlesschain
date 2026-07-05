@@ -176,14 +176,21 @@ class InsurancePoolManager extends EventEmitter {
     const now = Math.floor(Date.now() / 1000);
     const lockUntil = now + 30 * 86400;
 
-    db.prepare(
-      `INSERT INTO insurance_stakes (id, pool_id, user_id, amount, lock_until, joined_at, status)
+    const applyStake = () => {
+      db.prepare(
+        `INSERT INTO insurance_stakes (id, pool_id, user_id, amount, lock_until, joined_at, status)
        VALUES (?, ?, ?, ?, ?, ?, 'active')`,
-    ).run(stakeId, poolId, userId, contribution, lockUntil, now);
+      ).run(stakeId, poolId, userId, contribution, lockUntil, now);
 
-    db.prepare(
-      "UPDATE insurance_pools SET total_staked = total_staked + ?, participant_count = participant_count + 1, updated_at = ? WHERE id = ?",
-    ).run(contribution, now, poolId);
+      db.prepare(
+        "UPDATE insurance_pools SET total_staked = total_staked + ?, participant_count = participant_count + 1, updated_at = ? WHERE id = ?",
+      ).run(contribution, now, poolId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyStake)();
+    } else {
+      applyStake();
+    }
 
     this.emit("stake-added", {
       poolId,
@@ -215,13 +222,20 @@ class InsurancePoolManager extends EventEmitter {
       throw new Error("Stake is still locked");
     }
 
-    db.prepare(
-      "UPDATE insurance_stakes SET status = 'withdrawn' WHERE id = ?",
-    ).run(stake.id);
+    const applyWithdrawal = () => {
+      db.prepare(
+        "UPDATE insurance_stakes SET status = 'withdrawn' WHERE id = ?",
+      ).run(stake.id);
 
-    db.prepare(
-      "UPDATE insurance_pools SET total_staked = MAX(0, total_staked - ?), participant_count = MAX(0, participant_count - 1), updated_at = ? WHERE id = ?",
-    ).run(stake.amount, now, poolId);
+      db.prepare(
+        "UPDATE insurance_pools SET total_staked = MAX(0, total_staked - ?), participant_count = MAX(0, participant_count - 1), updated_at = ? WHERE id = ?",
+      ).run(stake.amount, now, poolId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyWithdrawal)();
+    } else {
+      applyWithdrawal();
+    }
 
     this.emit("stake-withdrawn", { poolId, userId, amount: stake.amount });
     return { poolId, userId, amount: stake.amount, status: "withdrawn" };
@@ -313,15 +327,22 @@ class InsurancePoolManager extends EventEmitter {
     const voteId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
-    db.prepare(
-      `INSERT INTO insurance_votes (id, claim_id, voter_id, approve, voted_at)
-       VALUES (?, ?, ?, ?, ?)`,
-    ).run(voteId, claimId, voterId, approve ? 1 : 0, now);
-
     const field = approve ? "votes_for" : "votes_against";
-    db.prepare(
-      `UPDATE insurance_claims SET ${field} = ${field} + 1 WHERE id = ?`,
-    ).run(claimId);
+    const applyVote = () => {
+      db.prepare(
+        `INSERT INTO insurance_votes (id, claim_id, voter_id, approve, voted_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      ).run(voteId, claimId, voterId, approve ? 1 : 0, now);
+
+      db.prepare(
+        `UPDATE insurance_claims SET ${field} = ${field} + 1 WHERE id = ?`,
+      ).run(claimId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyVote)();
+    } else {
+      applyVote();
+    }
 
     this.emit("claim-voted", { claimId, voterId, approve });
     return { claimId, voterId, approve, voteId };
@@ -347,18 +368,25 @@ class InsurancePoolManager extends EventEmitter {
     const approved = claim.votes_for > claim.votes_against;
     const newStatus = approved ? ClaimStatus.APPROVED : ClaimStatus.REJECTED;
 
-    db.prepare(
-      "UPDATE insurance_claims SET status = ?, resolved_at = ? WHERE id = ?",
-    ).run(newStatus, now, claimId);
-
-    if (approved) {
+    const applyResolution = () => {
       db.prepare(
-        "UPDATE insurance_pools SET total_staked = MAX(0, total_staked - ?), claims_paid = claims_paid + ?, updated_at = ? WHERE id = ?",
-      ).run(claim.amount, claim.amount, now, claim.pool_id);
+        "UPDATE insurance_claims SET status = ?, resolved_at = ? WHERE id = ?",
+      ).run(newStatus, now, claimId);
 
-      db.prepare(
-        "UPDATE insurance_claims SET status = 'paid' WHERE id = ?",
-      ).run(claimId);
+      if (approved) {
+        db.prepare(
+          "UPDATE insurance_pools SET total_staked = MAX(0, total_staked - ?), claims_paid = claims_paid + ?, updated_at = ? WHERE id = ?",
+        ).run(claim.amount, claim.amount, now, claim.pool_id);
+
+        db.prepare(
+          "UPDATE insurance_claims SET status = 'paid' WHERE id = ?",
+        ).run(claimId);
+      }
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyResolution)();
+    } else {
+      applyResolution();
     }
 
     this.emit("claim-resolved", {
