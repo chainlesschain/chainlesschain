@@ -28,6 +28,7 @@ export {
   listBackgroundShellTasks,
   killBackgroundShellTask,
   killAllBackgroundShellTasks,
+  killAllBackgroundShellTasksSync,
   reapIdleBackgroundShellTasks,
   _ingestSearchOutput,
   writeFileVerified,
