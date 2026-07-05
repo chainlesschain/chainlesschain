@@ -966,7 +966,13 @@ export function updateReputation(
     throw new Error(
       `Invalid dimension: ${dimension}. Expected one of ${REPUTATION_DIMENSIONS.join(",")}`,
     );
-  const s = Math.max(MIN_REPUTATION, Math.min(MAX_REPUTATION, Number(score)));
+  // Reject non-finite scores: Math.max/min pass NaN straight through, so a
+  // non-numeric CLI arg (Number("abc") → NaN) would persist NaN (→ NULL) and
+  // corrupt every getReputation average + routeTask agent scoring.
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore))
+    throw new Error("score must be a finite number");
+  const s = Math.max(MIN_REPUTATION, Math.min(MAX_REPUTATION, numericScore));
   const id = `rep:${_uuid()}`;
   const now = _now();
   db.prepare(

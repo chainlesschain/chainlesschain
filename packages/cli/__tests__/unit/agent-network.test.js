@@ -505,6 +505,20 @@ describe("agent-network", () => {
       ).toThrow(/Invalid dimension/);
     });
 
+    it("rejects a NaN score instead of persisting NaN", () => {
+      // `cc anet rep-update <did> <dim> abc` → Number("abc") = NaN. The clamp
+      // Math.max/min passes NaN through, so it would persist NaN (→ NULL) and
+      // poison getReputation averages + routeTask scoring.
+      const { did } = createAgentDID(db);
+      expect(() =>
+        updateReputation(db, {
+          agentDid: did,
+          dimension: "quality",
+          score: NaN,
+        }),
+      ).toThrow("score must be a finite number");
+    });
+
     it("clamps score to [0, 5]", () => {
       const { did } = createAgentDID(db);
       const r1 = updateReputation(db, {
