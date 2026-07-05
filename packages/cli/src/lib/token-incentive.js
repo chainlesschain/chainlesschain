@@ -224,14 +224,15 @@ function _recordTransaction(db, config) {
     createdAt: now,
     _seq: ++_seq,
   };
-  _transactions.set(id, tx);
-
   if (db) {
     db.prepare(
       `INSERT INTO token_transactions (id, from_account, to_account, amount, reason, type, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(id, tx.fromAccount, tx.toAccount, tx.amount, tx.reason, tx.type, now);
   }
+  // Register in the in-memory ledger only after the row is persisted, so a
+  // failed INSERT (e.g. inside a rolled-back transaction) leaves no phantom.
+  _transactions.set(id, tx);
   return tx;
 }
 
@@ -255,6 +256,21 @@ export function transfer(db, config = {}) {
     throw new Error(`Insufficient balance: ${fromAccount.balance} < ${amount}`);
   }
 
+  // The debit, the credit and the ledger row must all land or none of them.
+  // Without an enclosing transaction a mid-way failure would persist the debit
+  // but not the credit (tokens vanish) or move the balances yet never record
+  // the ledger — and the CLI re-hydrates from these tables, so it survives.
+  const fromSnap = {
+    balance: fromAccount.balance,
+    totalSpent: fromAccount.totalSpent,
+    updatedAt: fromAccount.updatedAt,
+  };
+  const toSnap = {
+    balance: toAccount.balance,
+    totalEarned: toAccount.totalEarned,
+    updatedAt: toAccount.updatedAt,
+  };
+
   fromAccount.balance -= amount;
   fromAccount.totalSpent += amount;
   fromAccount.updatedAt = now;
@@ -262,17 +278,33 @@ export function transfer(db, config = {}) {
   toAccount.totalEarned += amount;
   toAccount.updatedAt = now;
 
-  _persistAccount(db, fromAccount);
-  _persistAccount(db, toAccount);
+  let tx;
+  const applyWrites = () => {
+    _persistAccount(db, fromAccount);
+    _persistAccount(db, toAccount);
+    tx = _recordTransaction(db, {
+      from,
+      to,
+      amount,
+      reason: config.reason,
+      type: TX_TYPES.TRANSFER,
+      now,
+    });
+  };
 
-  const tx = _recordTransaction(db, {
-    from,
-    to,
-    amount,
-    reason: config.reason,
-    type: TX_TYPES.TRANSFER,
-    now,
-  });
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
+  } catch (err) {
+    // Roll the in-memory Maps back so they match the rolled-back DB.
+    Object.assign(fromAccount, fromSnap);
+    Object.assign(toAccount, toSnap);
+    throw err;
+  }
+
   return _strip(tx);
 }
 
