@@ -27,6 +27,11 @@ function extractTemplatesFromSource() {
   // Replace ESM imports (we don't need them for the templates) with stubs.
   const stripped = initSrc
     .replace(/^import\s.+?;$/gm, "") // remove import lines
+    // Neutralize `export const X = ...` (e.g. `export const _SKILL_TEMPLATES`)
+    // into a plain `const` — the export-function strip below only removes from
+    // the FIRST `export function` to EOF, so an `export const` declared BEFORE
+    // it would otherwise survive and throw "Unexpected token 'export'" in the VM.
+    .replace(/^export\s+const\s/gm, "const ")
     .replace(/^export\s+function.+$/ms, "") // remove export function
     .replace(/registerInitCommand[\s\S]*$/m, "") // stop at the export fn
     .trim();

@@ -24,6 +24,11 @@ const initSrc = readFileSync(
 function extractFromSource() {
   const stripped = initSrc
     .replace(/^import\s.+?;$/gm, "")
+    // Neutralize `export const X = ...` (e.g. `export const _SKILL_TEMPLATES`)
+    // into a plain `const` — the export-function strip below only removes from
+    // the FIRST `export function` to EOF, so an `export const` declared BEFORE
+    // it would otherwise survive and throw "Unexpected token 'export'" in the VM.
+    .replace(/^export\s+const\s/gm, "const ")
     .replace(/^export\s+function.+$/ms, "")
     .replace(/registerInitCommand[\s\S]*$/m, "")
     .trim();
