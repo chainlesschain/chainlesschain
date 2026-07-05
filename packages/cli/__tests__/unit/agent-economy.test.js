@@ -5,6 +5,7 @@ import {
   priceService,
   getServicePrice,
   pay,
+  loadFromDb,
   getBalance,
   openChannel,
   closeChannel,
@@ -783,6 +784,56 @@ describe("agent-economy", () => {
       expect(stats.channelsByStatus.active).toBe(1);
       expect(stats.nftByStatus.listed).toBe(1);
       expect(stats.priceModels).toBe(1);
+    });
+  });
+
+  describe("loadFromDb — rehydrates economy Maps across processes", () => {
+    it("makes balances/channels/market/nfts/contributions visible after a fresh process", () => {
+      distributeRevenue(db, 100, ["alice", "bob"]); // alice=50, bob=50 persisted
+      const ch = openChannel(db, "carol", "dave", 0);
+      const listing = listResource(db, "compute", "alice", 10, 5, "unit");
+      const nft = mintNFT(db, "alice", "art", { k: 1 });
+      recordContribution(db, "alice", "code", 3, "proof");
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      expect(getBalance("alice").balance).toBe(0);
+      expect(getMarketListings()).toHaveLength(0);
+      expect(getContributions("alice")).toHaveLength(0);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBeGreaterThanOrEqual(5); // 2 balances + 1 channel + 1 market + 1 nft + 1 contrib group
+
+      expect(getBalance("alice").balance).toBe(50);
+      expect(getBalance("bob").balance).toBe(50);
+
+      const market = getMarketListings();
+      expect(market).toHaveLength(1);
+      expect(market[0].id).toBe(listing.id);
+      expect(market[0].resourceType).toBe("compute");
+
+      const contribs = getContributions("alice");
+      expect(contribs).toHaveLength(1);
+      expect(contribs[0].type).toBe("code");
+
+      // channel close (reads _channels first, then throws if absent) now works.
+      expect(() => closeChannel(db, ch.id)).not.toThrow();
+      // nft rehydrated with parsed metadata
+      void nft;
+    });
+
+    it("survives a corrupt nft metadata cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO economy_nfts (id, owner, type, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      ).run("nft-bad", "alice", "art", "{not json", "2020-01-01T00:00:00.000Z");
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

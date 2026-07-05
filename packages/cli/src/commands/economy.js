@@ -11,6 +11,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureEconomyTables,
+  loadFromDb as loadEconomyFromDb,
   priceService,
   getServicePrice,
   pay,
@@ -69,6 +70,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const result = priceService(db, serviceId, parseFloat(price), {});
         logger.success(
@@ -96,6 +98,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const result = pay(
           db,
@@ -132,6 +135,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const bal = getBalance(agentId);
         if (options.json) {
@@ -167,8 +171,14 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
-        const ch = openChannel(db, partyA, partyB, numericOption(options.deposit, { name: "--deposit", min: 0 }));
+        const ch = openChannel(
+          db,
+          partyA,
+          partyB,
+          numericOption(options.deposit, { name: "--deposit", min: 0 }),
+        );
         logger.success("Channel opened");
         logger.log(`  ${chalk.bold("ID:")}      ${chalk.cyan(ch.id)}`);
         logger.log(`  ${chalk.bold("Party A:")} ${ch.partyA} (${ch.balanceA})`);
@@ -193,6 +203,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const ch = closeChannel(db, channelId);
         logger.success("Channel closed and settled");
@@ -221,6 +232,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const listing = listResource(
           db,
@@ -258,6 +270,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const filter = options.type ? { type: options.type } : undefined;
         const listings = getMarketListings(filter);
@@ -296,6 +309,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const result = tradeResource(listingId, buyer, parseFloat(quantity));
         logger.success("Trade complete");
@@ -326,6 +340,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const metadata = parseJsonOption(options.metadata, "--metadata", {});
         const nftObj = mintNFT(db, owner, type, metadata);
@@ -354,6 +369,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const ids = agentIds.split(",").map((s) => s.trim());
         const results = distributeRevenue(db, parseFloat(pool), ids);
@@ -386,6 +402,7 @@ export function registerEconomyCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
+        loadEconomyFromDb(db);
 
         const c = recordContribution(db, agentId, type, parseFloat(value), "");
         logger.success("Contribution recorded");
@@ -504,7 +521,11 @@ export function registerEconomyCommand(program) {
     .argument("<to>", "To agent ID")
     .argument("<service-id>", "Service ID")
     .option("--tokens <n>", "Token count (for per_token)", intArg("--tokens"))
-    .option("--minutes <n>", "Minute count (for per_minute)", floatArg("--minutes"))
+    .option(
+      "--minutes <n>",
+      "Minute count (for per_minute)",
+      floatArg("--minutes"),
+    )
     .option("--calls <n>", "Call count (for per_call)", intArg("--calls"))
     .option("--json", "Output as JSON")
     .action(async (from, to, serviceId, options) => {

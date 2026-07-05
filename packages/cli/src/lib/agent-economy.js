@@ -368,6 +368,118 @@ export function _resetState() {
   _priceList.clear();
 }
 
+/**
+ * Rehydrate the DB-backed in-memory Maps from the economy_* tables. The CLI runs
+ * each `cc economy` subcommand in a fresh node process, so these module-level
+ * Maps start empty every invocation. Every write dual-writes (Map + INSERT into
+ * economy_balances/channels/market/nfts/contributions) but every read
+ * (getBalance/getMarketListings/closeChannel/tradeResource/getContributions) is
+ * Map-only and nothing SELECTed the tables back — so `balance` read back 0, and
+ * `channel close`/`trade` threw "not found" for rows that genuinely exist on
+ * disk. Call after ensureEconomyTables(db).
+ *
+ * `_priceList` has no table and stays in-memory (out of scope).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureEconomyTables(db);
+  _balances.clear();
+  _channels.clear();
+  _market.clear();
+  _nfts.clear();
+  _contributions.clear();
+
+  for (const r of db
+    .prepare(`SELECT agent_id, balance, locked FROM economy_balances`)
+    .all()) {
+    _balances.set(r.agent_id, {
+      balance: Number(r.balance) || 0,
+      locked: Number(r.locked) || 0,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, party_a, party_b, balance_a, balance_b, status, created_at
+         FROM economy_channels ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _channels.set(r.id, {
+      id: r.id,
+      partyA: r.party_a,
+      partyB: r.party_b,
+      balanceA: Number(r.balance_a) || 0,
+      balanceB: Number(r.balance_b) || 0,
+      status: r.status,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, resource_type, provider, price, available, unit, status, created_at
+         FROM economy_market ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _market.set(r.id, {
+      id: r.id,
+      resourceType: r.resource_type,
+      provider: r.provider,
+      price: Number(r.price),
+      available: Number(r.available) || 0,
+      unit: r.unit || "unit",
+      status: r.status,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, owner, type, metadata, created_at FROM economy_nfts ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt metadata cell must not sink the whole NFT load.
+    let metadata = {};
+    try {
+      metadata = r.metadata ? JSON.parse(r.metadata) : {};
+    } catch {
+      metadata = {};
+    }
+    _nfts.set(r.id, {
+      id: r.id,
+      owner: r.owner,
+      type: r.type,
+      metadata,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, agent_id, type, value, proof, created_at
+         FROM economy_contributions ORDER BY created_at ASC`,
+    )
+    .all()) {
+    if (!_contributions.has(r.agent_id)) _contributions.set(r.agent_id, []);
+    _contributions.get(r.agent_id).push({
+      id: r.id,
+      agentId: r.agent_id,
+      type: r.type,
+      value: Number(r.value) || 0,
+      proof: r.proof || "",
+      createdAt: r.created_at,
+    });
+  }
+
+  return (
+    _balances.size +
+    _channels.size +
+    _market.size +
+    _nfts.size +
+    _contributions.size
+  );
+}
+
 export function _setBalance(agentId, balance, locked) {
   _balances.set(agentId, { balance, locked: locked || 0 });
 }
