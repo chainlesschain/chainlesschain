@@ -18,12 +18,62 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import crypto from "crypto";
 
 export const _deps = {
   mkdtempSync: fs.mkdtempSync,
   rmSync: fs.rmSync,
   now: () => Date.now(),
 };
+
+/**
+ * Content-hash every file under `dir` → Map<relPath (forward-slash), sha1>. Used
+ * to measure edit locality: snapshot after setup (the baseline the agent starts
+ * from) vs after the agent runs, so we can see EXACTLY which files it touched.
+ */
+function snapshotWorkspace(dir) {
+  const out = new Map();
+  const walk = (cur) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(cur, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(cur, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (e.isFile()) {
+        const rel = path.relative(dir, full).split(path.sep).join("/");
+        let hash;
+        try {
+          hash = crypto
+            .createHash("sha1")
+            .update(fs.readFileSync(full))
+            .digest("hex");
+        } catch {
+          hash = "?"; // unreadable → treat as its own value (still "changed" if it flips)
+        }
+        out.set(rel, hash);
+      }
+    }
+  };
+  walk(dir);
+  return out;
+}
+
+/** Relative paths that were created, modified, or deleted between two snapshots. */
+function diffSnapshots(before, after) {
+  const changed = new Set();
+  for (const [p, h] of after) {
+    if (!before.has(p) || before.get(p) !== h) changed.add(p); // created / modified
+  }
+  for (const p of before.keys()) {
+    if (!after.has(p)) changed.add(p); // deleted
+  }
+  return [...changed].sort();
+}
 
 /**
  * Run a suite of eval tasks and score them.
@@ -77,6 +127,9 @@ export async function runEvalSuite(tasks, opts = {}) {
       if (typeof task.setup === "function") {
         await task.setup(dir);
       }
+      // Baseline AFTER setup, BEFORE the agent — so the diff is exactly the
+      // agent's edits (not the task's starting files).
+      const before = snapshotWorkspace(dir);
       let agentResult;
       try {
         agentResult = await runAgent({
@@ -90,6 +143,20 @@ export async function runEvalSuite(tasks, opts = {}) {
         rec.error = `agent error: ${agentErr.message}`;
       }
       rec.agentOk = agentResult ? agentResult.ok !== false : false;
+      // Edit locality — snapshot NOW, before check() (some checks write to the
+      // workspace themselves). `unrelatedChanges` = files touched outside the
+      // task's declared legitimate surface; null when the task doesn't declare
+      // `expectedFiles` (→ excluded from the suite's 无关改动率).
+      const changed = diffSnapshots(before, snapshotWorkspace(dir));
+      rec.changedFiles = changed;
+      if (Array.isArray(task.expectedFiles)) {
+        const expected = new Set(
+          task.expectedFiles.map((p) => String(p).split(path.sep).join("/")),
+        );
+        rec.unrelatedChanges = changed.filter((p) => !expected.has(p));
+      } else {
+        rec.unrelatedChanges = null; // not measured
+      }
       const verdict = await task.check(dir, agentResult);
       rec.pass = verdict?.pass === true;
       rec.detail = verdict?.detail || "";
@@ -136,12 +203,23 @@ export async function runEvalSuite(tasks, opts = {}) {
 
   const passed = results.filter((r) => r.pass).length;
   const total = results.length;
+  // 无关改动率: over tasks that declared expectedFiles, the fraction that
+  // touched at least one file outside their legitimate surface. An agent that
+  // solves a task but also scribbles on unrelated files scores lower quality.
+  const measured = results.filter((r) => Array.isArray(r.unrelatedChanges));
+  const tasksWithUnrelatedChanges = measured.filter(
+    (r) => r.unrelatedChanges.length > 0,
+  ).length;
   return {
     results,
     passed,
     failed: total - passed,
     total,
     passRate: total > 0 ? passed / total : 0,
+    tasksWithUnrelatedChanges,
+    unrelatedChangeRate: measured.length
+      ? tasksWithUnrelatedChanges / measured.length
+      : 0,
     ms: _deps.now() - suiteStart,
     ...(recorder ? { telemetry: recorder.summary() } : {}),
   };
@@ -154,10 +232,20 @@ export function formatEvalReport(summary) {
   lines.push(
     `Eval: ${summary.passed}/${summary.total} passed (${pct}%) in ${summary.ms}ms`,
   );
+  if (typeof summary.unrelatedChangeRate === "number") {
+    const upct = (summary.unrelatedChangeRate * 100).toFixed(1);
+    lines.push(
+      `Unrelated-change rate: ${upct}% (${summary.tasksWithUnrelatedChanges} task(s) edited files outside their expected surface)`,
+    );
+  }
   for (const r of summary.results) {
     const mark = r.pass ? "✔" : "✗";
     const detail = r.error ? ` — ${r.error}` : r.detail ? ` — ${r.detail}` : "";
-    lines.push(`  ${mark} ${r.id} (${r.ms}ms)${detail}`);
+    const stray =
+      Array.isArray(r.unrelatedChanges) && r.unrelatedChanges.length
+        ? ` [+${r.unrelatedChanges.length} unrelated: ${r.unrelatedChanges.join(", ")}]`
+        : "";
+    lines.push(`  ${mark} ${r.id} (${r.ms}ms)${detail}${stray}`);
   }
   return lines.join("\n");
 }
