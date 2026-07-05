@@ -384,27 +384,45 @@ export function registerAgentCommand(program) {
       // tree (and parallel sessions) stay untouched. chdir BEFORE everything
       // else so project memory / checkpoint / completion all follow.
       let _worktree = null;
+      let _worktreeFinished = false;
+      let _finishAgentWorktreeFn = null;
       if (options.worktree) {
         try {
-          const { setupAgentWorktree } =
+          const { setupAgentWorktree, finishAgentWorktree } =
             await import("../lib/agent-worktree.js");
+          _finishAgentWorktreeFn = finishAgentWorktree;
           _worktree = setupAgentWorktree({ cwd: process.cwd() });
           process.chdir(_worktree.path);
           process.stderr.write(
             `worktree: ${_worktree.path} (branch ${_worktree.branch})\n`,
           );
+          // The worktree is created BEFORE flag validation, and several
+          // `process.exit(1)` guards below (plus any future ones) would skip the
+          // normal cleanup and orphan an empty worktree + branch on disk. A sync
+          // exit handler guarantees the auto-removable worktree is cleaned up on
+          // EVERY exit path (finishAgentWorktree is synchronous). Deduped with
+          // the normal async _finishWorktree() via _worktreeFinished.
+          process.on("exit", () => {
+            if (!_worktree || _worktreeFinished) return;
+            _worktreeFinished = true;
+            try {
+              process.chdir(_worktree.repoRoot);
+              _finishAgentWorktreeFn(_worktree);
+            } catch {
+              /* never block exit */
+            }
+          });
         } catch (err) {
           process.stderr.write(`--worktree failed: ${err.message}\n`);
           process.exit(1);
         }
       }
       const _finishWorktree = async () => {
-        if (!_worktree) return;
+        if (!_worktree || _worktreeFinished) return;
+        _worktreeFinished = true;
         try {
-          const { finishAgentWorktree } =
-            await import("../lib/agent-worktree.js");
           process.chdir(_worktree.repoRoot); // release the dir before removal
-          const fin = finishAgentWorktree(_worktree);
+          const fin = _finishAgentWorktreeFn(_worktree);
           process.stderr.write(
             fin.removed
               ? `worktree removed (${fin.reason}).\n`
