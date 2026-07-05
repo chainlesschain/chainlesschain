@@ -10,6 +10,7 @@ import {
   listServiceStatus,
   listInvocationStatus,
   publishService,
+  loadFromDb,
   getService,
   listServices,
   updateServiceStatus,
@@ -739,6 +740,92 @@ describe("skill-marketplace V2 (Phase 65)", () => {
       expect(stats.invocationsByStatus.failed).toBe(1);
       expect(stats.avgDurationMs).toBe(100);
       expect(stats.successRate).toBe(0.5);
+    });
+  });
+
+  /* ── Cross-process hydration (loadFromDb) ──────────────────── */
+
+  describe("loadFromDb — rehydrates Maps from persisted rows", () => {
+    let db;
+    beforeEach(() => {
+      _resetState();
+      db = new MockDatabase();
+      ensureMarketplaceTables(db);
+    });
+
+    it("makes a previously-published service + its invocations visible after a fresh process (empty Map)", () => {
+      const svc = publishService(db, {
+        name: "translate",
+        pricing: { model: "free" },
+        owner: "did:alice",
+      });
+      recordInvocation(db, {
+        serviceId: svc.id,
+        callerId: "did:bob",
+        input: { text: "hi" },
+        output: { text: "你好" },
+        durationMs: 42,
+      });
+
+      // Simulate the next one-shot CLI invocation: module-level Maps start empty.
+      _resetState();
+      expect(getService(svc.id)).toBeNull();
+      expect(listServices()).toHaveLength(0);
+      expect(listInvocations()).toHaveLength(0);
+
+      // The DB still holds the rows; loadFromDb must rebuild the Maps.
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(2); // 1 service + 1 invocation
+
+      const back = getService(svc.id);
+      expect(back).not.toBeNull();
+      expect(back.name).toBe("translate");
+      expect(back.pricing).toEqual({ model: "free" });
+      expect(back.owner).toBe("did:alice");
+      expect(back.invocationCount).toBe(1);
+
+      const invs = listInvocations({ serviceId: svc.id });
+      expect(invs).toHaveLength(1);
+      expect(invs[0].input).toEqual({ text: "hi" });
+      expect(invs[0].output).toEqual({ text: "你好" });
+      expect(invs[0].durationMs).toBe(42);
+
+      // And record/status paths (which go through _mustGetService) no longer
+      // throw "Service not found" for the rehydrated service.
+      expect(() =>
+        recordInvocation(db, { serviceId: svc.id, callerId: "did:carol" }),
+      ).not.toThrow();
+    });
+
+    it("survives a corrupt pricing/output cell (per-row JSON guard, no crash)", () => {
+      publishService(db, { name: "ok", pricing: { model: "free" } });
+      // Hand-write a service row with malformed pricing JSON.
+      db.prepare(
+        `INSERT INTO skill_services (id, name, version, description, endpoint, pricing, status, owner, invocation_count, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "svc-bad",
+        "bad",
+        "1.0.0",
+        "",
+        null,
+        "{not json",
+        "published",
+        null,
+        0,
+        1000,
+        1000,
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      // Both services load; the corrupt one just gets pricing=null.
+      expect(listServices()).toHaveLength(2);
+      expect(getService("svc-bad").pricing).toBeNull();
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

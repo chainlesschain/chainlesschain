@@ -11,6 +11,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureMarketplaceTables,
+  loadFromDb as loadMarketplaceFromDb,
   listServiceStatus,
   listInvocationStatus,
   publishService,
@@ -55,6 +56,11 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureMarketplaceTables(db);
+  // Rehydrate the in-memory _services/_invocations Maps from the DB — the CLI is
+  // one-shot, so without this every read is Map-only-empty and a service
+  // published in a prior invocation is invisible (record/show/status throw
+  // "Service not found").
+  loadMarketplaceFromDb(db);
   return db;
 }
 

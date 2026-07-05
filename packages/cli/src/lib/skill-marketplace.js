@@ -109,6 +109,89 @@ export function ensureMarketplaceTables(db) {
   );
 }
 
+/**
+ * Hydrate the in-memory _services/_invocations Maps from the DB. The CLI is
+ * one-shot: both start empty each process. Writes dual-write (Map + INSERT) but
+ * every read (getService/listServices/listInvocations/getInvocationStats/
+ * getMarketplaceStatsV2) and _mustGetService (record/status/invoke) is Map-only
+ * and nothing SELECTed the tables back — so a published service was invisible on
+ * the next invocation, and record/show/status threw "Service not found". Call
+ * after ensureMarketplaceTables(db).
+ *
+ * V2 timing fields (startedAt/completedAt) are not persisted → default null.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureMarketplaceTables(db);
+  _services.clear();
+  _invocations.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, version, description, endpoint, pricing, status, owner, invocation_count, created_at, updated_at
+         FROM skill_services ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt pricing cell must not crash the whole service load.
+    let pricing = null;
+    try {
+      pricing = r.pricing ? JSON.parse(r.pricing) : null;
+    } catch {
+      pricing = null;
+    }
+    _services.set(r.id, {
+      id: r.id,
+      name: r.name,
+      version: r.version,
+      description: r.description || "",
+      endpoint: r.endpoint,
+      pricing,
+      status: r.status,
+      owner: r.owner,
+      invocationCount: Number(r.invocation_count) || 0,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      _seq: ++_seq,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, service_id, caller_id, input, output, status, duration_ms, error, created_at
+         FROM skill_invocations ORDER BY created_at ASC`,
+    )
+    .all()) {
+    let input = null;
+    let output = null;
+    try {
+      input = r.input == null ? null : JSON.parse(r.input);
+    } catch {
+      input = r.input;
+    }
+    try {
+      output = r.output == null ? null : JSON.parse(r.output);
+    } catch {
+      output = r.output;
+    }
+    _invocations.set(r.id, {
+      id: r.id,
+      serviceId: r.service_id,
+      callerId: r.caller_id,
+      input,
+      output,
+      status: r.status,
+      durationMs: r.duration_ms == null ? null : Number(r.duration_ms),
+      error: r.error,
+      createdAt: Number(r.created_at),
+      startedAt: null,
+      completedAt: null,
+      _seq: ++_seq,
+    });
+  }
+
+  return _services.size + _invocations.size;
+}
+
 /* ── Catalogs ──────────────────────────────────────────────── */
 
 export function listServiceStatus() {
