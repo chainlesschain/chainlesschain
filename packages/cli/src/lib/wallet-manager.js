@@ -171,21 +171,36 @@ export function setDefaultWallet(db, address) {
  */
 export function deleteWallet(db, address) {
   ensureWalletTables(db);
-  const result = db
-    .prepare("DELETE FROM wallets WHERE address = ?")
-    .run(address);
-  if (result.changes > 0) {
-    // Promote next wallet to default
-    const next = db
-      .prepare("SELECT address FROM wallets ORDER BY created_at ASC LIMIT 1")
-      .get();
-    if (next) {
-      db.prepare("UPDATE wallets SET is_default = 1 WHERE address = ?").run(
-        next.address,
-      );
+  const wallet = getWallet(db, address);
+  if (!wallet) return false;
+  const wasDefault = Number(wallet.is_default) === 1;
+
+  const doDelete = () => {
+    const result = db
+      .prepare("DELETE FROM wallets WHERE address = ?")
+      .run(address);
+    // Only promote a new default when the DELETED wallet was the default —
+    // otherwise the existing default is untouched and promoting the oldest
+    // remaining wallet would leave two defaults. Promote the oldest remaining
+    // so exactly one default survives.
+    if (result.changes > 0 && wasDefault) {
+      const next = db
+        .prepare("SELECT address FROM wallets ORDER BY created_at ASC LIMIT 1")
+        .get();
+      if (next) {
+        db.prepare("UPDATE wallets SET is_default = 1 WHERE address = ?").run(
+          next.address,
+        );
+      }
     }
-  }
-  return result.changes > 0;
+    return result.changes;
+  };
+
+  const changes =
+    db && typeof db.transaction === "function"
+      ? db.transaction(doDelete)()
+      : doDelete();
+  return changes > 0;
 }
 
 /**
