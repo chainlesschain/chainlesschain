@@ -159,10 +159,23 @@ export function setDefaultWallet(db, address) {
   const wallet = getWallet(db, address);
   if (!wallet) return false;
 
-  db.prepare("UPDATE wallets SET is_default = 0 WHERE address LIKE ?").run("%");
-  db.prepare("UPDATE wallets SET is_default = 1 WHERE address = ?").run(
-    address,
-  );
+  // Clear the current default(s) then set the new one atomically. Without a
+  // transaction, a failure on the second UPDATE leaves every wallet non-default
+  // (the default signing/sending wallet silently disappears until re-set),
+  // breaking the exactly-one-default invariant.
+  const applyWrites = () => {
+    db.prepare("UPDATE wallets SET is_default = 0 WHERE address LIKE ?").run(
+      "%",
+    );
+    db.prepare("UPDATE wallets SET is_default = 1 WHERE address = ?").run(
+      address,
+    );
+  };
+  if (db && typeof db.transaction === "function") {
+    db.transaction(applyWrites)();
+  } else {
+    applyWrites();
+  }
   return true;
 }
 
