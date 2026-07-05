@@ -133,9 +133,13 @@ class RecordingStorage {
     }
 
     if (tags && tags.length > 0) {
-      const tagConditions = tags.map(() => `tags LIKE ?`).join(" OR ");
+      // Escape LIKE metacharacters so a `_`/`%` in a tag (e.g. "a_b") is matched
+      // literally rather than acting as a wildcard and over-matching.
+      const tagConditions = tags
+        .map(() => `tags LIKE ? ESCAPE '\\'`)
+        .join(" OR ");
       sql += ` AND (${tagConditions})`;
-      tags.forEach((tag) => params.push(`%"${tag}"%`));
+      tags.forEach((tag) => params.push(`%"${SqlSecurity.escapeLike(tag)}"%`));
     }
 
     sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;

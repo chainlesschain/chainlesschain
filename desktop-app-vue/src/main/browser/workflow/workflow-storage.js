@@ -157,10 +157,14 @@ class WorkflowStorage {
     }
 
     if (tags && tags.length > 0) {
-      // Match any tag
-      const tagConditions = tags.map(() => `tags LIKE ?`).join(" OR ");
+      // Match any tag. Escape LIKE metacharacters in the tag so a `_`/`%` in a
+      // tag (e.g. "machine_learning") is matched literally rather than acting
+      // as a wildcard and over-matching unrelated tags.
+      const tagConditions = tags
+        .map(() => `tags LIKE ? ESCAPE '\\'`)
+        .join(" OR ");
       sql += ` AND (${tagConditions})`;
-      tags.forEach((tag) => params.push(`%"${tag}"%`));
+      tags.forEach((tag) => params.push(`%"${SqlSecurity.escapeLike(tag)}"%`));
     }
 
     // Validate orderBy to prevent SQL injection
