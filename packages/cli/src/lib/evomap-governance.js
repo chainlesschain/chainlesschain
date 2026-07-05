@@ -51,6 +51,100 @@ export function ensureEvoMapGovernanceTables(db) {
   `);
 }
 
+/**
+ * Hydrate the in-memory _ownerships/_proposals Maps from the DB. The CLI is
+ * one-shot: both start empty each process. Writes dual-write (Map + INSERT) but
+ * every read (traceOwnership/getGovernanceDashboard/listProposalsV2/
+ * getGovernanceStatsV2) is Map-only and voteOnGovernanceProposal/castVoteV2/
+ * setProposalStatus look up _proposals — so persisted ownerships/proposals were
+ * invisible and voting threw "Proposal not found". Call after
+ * ensureEvoMapGovernanceTables(db).
+ *
+ * Note: the proposals table stores only the legacy columns; V2-only fields
+ * (abstain/weight tallies, custom quorum/threshold) are not persisted, so they
+ * default here (0 / quorum 3 / threshold 0.5) to keep V2 reads and votes
+ * non-crashing. votesFor/votesAgainst/status ARE faithfully restored.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureEvoMapGovernanceTables(db);
+  _ownerships.clear();
+  _proposals.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, gene_id, owner_did, originality_proof, derivation_chain, revenue_split, verified, plagiarism_score, created_at
+         FROM gene_ownership`,
+    )
+    .all()) {
+    // One corrupt JSON cell must not crash the whole load.
+    let originalityProof = null;
+    let derivationChain = [];
+    let revenueSplit = {};
+    try {
+      originalityProof = r.originality_proof
+        ? JSON.parse(r.originality_proof)
+        : null;
+    } catch {
+      originalityProof = null;
+    }
+    try {
+      derivationChain = r.derivation_chain
+        ? JSON.parse(r.derivation_chain)
+        : [];
+    } catch {
+      derivationChain = [];
+    }
+    try {
+      revenueSplit = r.revenue_split ? JSON.parse(r.revenue_split) : {};
+    } catch {
+      revenueSplit = {};
+    }
+    _ownerships.set(r.id, {
+      id: r.id,
+      geneId: r.gene_id,
+      ownerDid: r.owner_did,
+      originalityProof,
+      derivationChain,
+      revenueSplit,
+      verified: r.verified,
+      plagiarismScore: Number(r.plagiarism_score) || 0,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, title, description, proposer_did, type, status, votes_for, votes_against, quorum_reached, voting_deadline, executed_at, created_at
+         FROM evomap_governance_proposals`,
+    )
+    .all()) {
+    _proposals.set(r.id, {
+      id: r.id,
+      title: r.title,
+      description: r.description || "",
+      proposerDid: r.proposer_did,
+      type: r.type,
+      status: r.status,
+      votesFor: Number(r.votes_for) || 0,
+      votesAgainst: Number(r.votes_against) || 0,
+      quorumReached: !!r.quorum_reached,
+      votingDeadline: r.voting_deadline,
+      executedAt: r.executed_at,
+      createdAt: r.created_at,
+      // Non-persisted V2 fields — default to stay NaN-safe (see fn doc).
+      votesAbstain: 0,
+      weightFor: 0,
+      weightAgainst: 0,
+      weightAbstain: 0,
+      quorum: 3,
+      threshold: 0.5,
+    });
+  }
+
+  return _ownerships.size + _proposals.size;
+}
+
 /* ── Ownership Registration ───────────────────────────────── */
 
 export function registerOwnership(db, geneId, ownerDid, opts = {}) {

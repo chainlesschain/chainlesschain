@@ -47,6 +47,61 @@ export function ensureEvoMapFederationTables(db) {
   `);
 }
 
+/**
+ * Hydrate the in-memory _hubs/_lineage Maps from the DB. The CLI is one-shot:
+ * both start empty each process. Writes dual-write (Map + INSERT) but every read
+ * (listFederatedHubs/getPressureReport/getLineage/listHubsV2/buildFederationContext/
+ * getFederationStatsV2) is Map-only, and syncGenes/setHubStatus look up _hubs —
+ * so persisted hubs/lineage were invisible and sync/status-change threw
+ * "Hub not found". Call after ensureEvoMapFederationTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureEvoMapFederationTables(db);
+  _hubs.clear();
+  _lineage.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, hub_url, hub_name, status, region, gene_count, last_sync, trust_score, created_at
+         FROM evomap_hub_federation`,
+    )
+    .all()) {
+    _hubs.set(r.id, {
+      id: r.id,
+      hubUrl: r.hub_url,
+      hubName: r.hub_name,
+      status: r.status,
+      region: r.region,
+      geneCount: Number(r.gene_count) || 0,
+      lastSync: r.last_sync,
+      trustScore: Number(r.trust_score) || 0,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, gene_id, parent_gene_id, hub_id, generation, fitness_score, mutation_type, recombination_source, created_at
+         FROM gene_lineage`,
+    )
+    .all()) {
+    _lineage.set(r.id, {
+      id: r.id,
+      geneId: r.gene_id,
+      parentGeneId: r.parent_gene_id,
+      hubId: r.hub_id,
+      generation: Number(r.generation) || 0,
+      fitnessScore: Number(r.fitness_score) || 0,
+      mutationType: r.mutation_type,
+      recombinationSource: r.recombination_source,
+      createdAt: r.created_at,
+    });
+  }
+
+  return _hubs.size + _lineage.size;
+}
+
 /* ── Hub Management ────────────────────────────────────────── */
 
 export function listFederatedHubs(db, filter = {}) {

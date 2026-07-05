@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureEvoMapFederationTables,
+  loadFromDb,
   listFederatedHubs,
   addFederatedHub,
   syncGenes,
@@ -28,6 +29,43 @@ describe("evomap-federation", () => {
     db = new MockDatabase();
     _resetState();
     ensureEvoMapFederationTables(db);
+  });
+
+  // ─── Cross-process hydration ────────────────────────────────
+  // Writes dual-write (Map + INSERT) but reads are Map-only. The CLI is
+  // one-shot, so persisted hubs/lineage were invisible next process and
+  // syncGenes/setHubStatus threw "Hub not found". loadFromDb rehydrates.
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes persisted hubs/lineage visible after a Map reset", () => {
+      const hub = addFederatedHub(db, "http://h1", "Hub1", "us");
+      addLineageEntry(db, "gene-1", null, {
+        generation: 1,
+        fitnessScore: 0.8,
+        mutationType: "mutation",
+      });
+
+      // Simulate a fresh CLI process.
+      _resetState();
+      expect(listFederatedHubs(db)).toEqual([]); // the bug
+      expect(getPressureReport().totalGenes).toBe(0);
+
+      const n = loadFromDb(db);
+      expect(n).toBe(2); // 1 hub + 1 lineage
+
+      const hubs = listFederatedHubs(db);
+      expect(hubs.length).toBe(1);
+      expect(hubs[0].hubUrl).toBe("http://h1");
+
+      // syncGenes previously threw "Hub not found" in a fresh process.
+      expect(() => syncGenes(db, hub.id, ["g1", "g2"])).not.toThrow();
+
+      expect(getPressureReport().totalGenes).toBe(1);
+      expect(getLineage("gene-1").length).toBe(1);
+    });
+
+    it("returns 0 on a null db", () => {
+      expect(loadFromDb(null)).toBe(0);
+    });
   });
 
   // ─── ensureEvoMapFederationTables ───────────────────────────

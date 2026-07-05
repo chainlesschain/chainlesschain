@@ -11,6 +11,7 @@ import { EvoMapClient } from "../lib/evomap-client.js";
 import { EvoMapManager } from "../lib/evomap-manager.js";
 import {
   ensureEvoMapFederationTables,
+  loadFromDb as loadFedFromDb,
   listFederatedHubs,
   addFederatedHub,
   syncGenes,
@@ -28,6 +29,7 @@ import {
 } from "../lib/evomap-federation.js";
 import {
   ensureEvoMapGovernanceTables,
+  loadFromDb as loadGovFromDb,
   registerOwnership,
   traceOwnership,
   createGovernanceProposal,
@@ -221,6 +223,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const hubs = listFederatedHubs(db, {
           status: options.status,
@@ -261,6 +264,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const hub = addFederatedHub(db, url, options.name, options.region);
         logger.success("Hub added");
@@ -288,6 +292,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const geneIds = options.geneIds
           ? options.geneIds.split(",").map((s) => s.trim())
@@ -317,6 +322,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const report = getPressureReport();
         if (options.json) {
@@ -354,6 +360,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const entry = recombineGenes(db, geneId1, geneId2);
         logger.success("Genes recombined");
@@ -389,6 +396,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
 
         const entries = getLineage(geneId);
         if (options.json) {
@@ -428,6 +436,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
 
         const result = registerOwnership(db, geneId, ownerDid);
         logger.success("Ownership registered");
@@ -455,6 +464,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
 
         const result = traceOwnership(geneId);
         if (options.json) {
@@ -490,6 +500,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
 
         const result = createGovernanceProposal(
           db,
@@ -522,6 +533,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
 
         const result = voteOnGovernanceProposal(
           db,
@@ -555,6 +567,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
 
         const result = getGovernanceDashboard();
         if (options.json) {
@@ -626,6 +639,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
         console.log(JSON.stringify(setHubStatus(db, hubId, status), null, 2));
         await shutdown();
       } catch (err) {
@@ -650,6 +664,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
         const hubs = listHubsV2(db, {
           status: options.status,
           region: options.region,
@@ -676,6 +691,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
         console.log(JSON.stringify(buildFederationContext(), null, 2));
         await shutdown();
       } catch (err) {
@@ -696,6 +712,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapFederationTables(db);
+        loadFedFromDb(db);
         console.log(JSON.stringify(getFederationStatsV2(), null, 2));
         await shutdown();
       } catch (err) {
@@ -748,6 +765,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         const p = createGovernanceProposalV2(db, {
           title: options.title,
           description: options.description,
@@ -781,6 +799,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         const r = castVoteV2(db, {
           proposalId,
           voterDid: options.voter,
@@ -807,6 +826,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(
           JSON.stringify(setProposalStatus(db, proposalId, status), null, 2),
         );
@@ -829,6 +849,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(JSON.stringify(executeProposal(db, proposalId), null, 2));
         await shutdown();
       } catch (err) {
@@ -849,6 +870,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(JSON.stringify(cancelProposal(db, proposalId), null, 2));
         await shutdown();
       } catch (err) {
@@ -869,6 +891,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(JSON.stringify(expireProposalsV2(db), null, 2));
         await shutdown();
       } catch (err) {
@@ -892,6 +915,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(
           JSON.stringify(
             listProposalsV2(db, {
@@ -922,6 +946,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(JSON.stringify(traceContributions(geneId), null, 2));
         await shutdown();
       } catch (err) {
@@ -942,6 +967,7 @@ export function registerEvoMapCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureEvoMapGovernanceTables(db);
+        loadGovFromDb(db);
         console.log(JSON.stringify(getGovernanceStatsV2(), null, 2));
         await shutdown();
       } catch (err) {

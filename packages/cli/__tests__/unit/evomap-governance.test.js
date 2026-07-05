@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureEvoMapGovernanceTables,
+  loadFromDb,
   registerOwnership,
   traceOwnership,
   createGovernanceProposal,
@@ -30,6 +31,40 @@ describe("evomap-governance", () => {
     db = new MockDatabase();
     _resetState();
     ensureEvoMapGovernanceTables(db);
+  });
+
+  // ─── Cross-process hydration ────────────────────────────────
+  // Writes dual-write (Map + INSERT) but reads are Map-only. The CLI is
+  // one-shot, so persisted ownerships/proposals were invisible next process
+  // and voting threw "Proposal not found". loadFromDb rehydrates.
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes persisted ownerships/proposals visible after a Map reset", () => {
+      registerOwnership(db, "gene-1", "did:alice");
+      const prop = createGovernanceProposal(db, "T", "desc", "did:proposer");
+
+      _resetState();
+      expect(getGovernanceDashboard().totalProposals).toBe(0); // the bug
+      expect(traceOwnership("gene-1").owner).toBe(null);
+
+      const n = loadFromDb(db);
+      expect(n).toBe(2); // 1 ownership + 1 proposal
+
+      expect(traceOwnership("gene-1").owner).toBe("did:alice");
+      expect(getGovernanceDashboard()).toMatchObject({
+        totalProposals: 1,
+        active: 1,
+      });
+
+      // voteOnGovernanceProposal previously threw "Proposal not found".
+      expect(() =>
+        voteOnGovernanceProposal(db, prop.id, "did:v1", "for"),
+      ).not.toThrow();
+      expect(getGovernanceDashboard().totalProposals).toBe(1);
+    });
+
+    it("returns 0 on a null db", () => {
+      expect(loadFromDb(null)).toBe(0);
+    });
   });
 
   // ─── ensureEvoMapGovernanceTables ───────────────────────────
