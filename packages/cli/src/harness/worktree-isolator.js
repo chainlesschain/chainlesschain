@@ -629,19 +629,29 @@ function _conflictStatusCode(repoDir, filePath) {
 }
 
 function _mapConflictType(statusCode) {
+  // NOTE: the porcelain XY code is reported relative to the ACTUAL merge, which
+  // previewWorktreeMerge/applyWorktreeAutomationCandidate run as `git merge
+  // <base>` INSIDE the agent worktree — i.e. ours=agent, theirs=base, the
+  // REVERSE of the "current merges in the agent branch" direction the candidate
+  // labels/suggestions describe. For symmetric codes (UU/AA) direction is
+  // irrelevant. For the asymmetric delete/add codes the U/D (us/them) halves
+  // must be swapped back to the label direction, otherwise the "keep the file"
+  // candidate checks out the side that DELETED it (`git checkout --ours/--theirs`
+  // → "path does not have our/their version") and throws — leaving no automated
+  // way to preserve the surviving file.
   switch (statusCode) {
     case "UU":
       return "both_modified";
     case "AA":
       return "both_added";
-    case "DU":
-      return "deleted_by_us";
-    case "UD":
+    case "DU": // ours(agent) deleted, theirs(base) modified
       return "deleted_by_them";
-    case "AU":
-      return "added_by_us";
-    case "UA":
+    case "UD": // ours(agent) modified, theirs(base) deleted
+      return "deleted_by_us";
+    case "AU": // added by ours(agent)
       return "added_by_them";
+    case "UA": // added by theirs(base)
+      return "added_by_us";
     default:
       return "unmerged";
   }

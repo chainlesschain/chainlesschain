@@ -305,6 +305,98 @@ describe("worktree-isolator", () => {
         }),
       ).toContain("# main change");
     });
+
+    // Regression: previewWorktreeMerge merges the base branch INTO the agent
+    // worktree, so ours=agent and theirs=base — the REVERSE of the normal merge
+    // direction the conflict-type labels were written for. For a delete/modify
+    // conflict the surviving file lives on whichever side did NOT delete it, so
+    // the "keep the file" candidate must checkout that side. Before the fix the
+    // conflict type was mis-derived, so the keep-file candidate ran `git checkout`
+    // against the side that DELETED the file ("path does not have their/our
+    // version") and threw — leaving no automated way to preserve the file.
+    it("keeps the agent's modified file when the base branch deleted it (UD)", () => {
+      const worktree = createWorktree(repoDir, "agent/mod-vs-del");
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# agent modified\n",
+        "utf-8",
+      );
+      execSync("git add README.md", { cwd: worktree.path });
+      execSync('git commit -m "agent modifies"', { cwd: worktree.path });
+      execSync("git rm README.md", { cwd: repoDir });
+      execSync('git commit -m "base deletes"', { cwd: repoDir });
+
+      const preview = previewWorktreeMerge(repoDir, "agent/mod-vs-del", {
+        baseBranch: "HEAD",
+      });
+      const conflict = preview.conflicts.find((c) => c.path === "README.md");
+      expect(conflict).toBeTruthy();
+      const keepFile = conflict.automationCandidates.find(
+        (c) =>
+          c.executable === true &&
+          c.id !== "confirm-delete" &&
+          c.id !== "accept-delete",
+      );
+      expect(keepFile).toBeTruthy();
+
+      const result = applyWorktreeAutomationCandidate(
+        repoDir,
+        "agent/mod-vs-del",
+        {
+          baseBranch: "HEAD",
+          filePath: "README.md",
+          candidateId: keepFile.id,
+          conflictType: conflict.type,
+        },
+      );
+      expect(result.success).toBe(true);
+      expect(
+        execSync("git show HEAD:README.md", {
+          cwd: worktree.path,
+          encoding: "utf-8",
+        }),
+      ).toContain("# agent modified");
+    });
+
+    it("keeps the base's modified file when the agent branch deleted it (DU)", () => {
+      const worktree = createWorktree(repoDir, "agent/del-vs-mod");
+      execSync("git rm README.md", { cwd: worktree.path });
+      execSync('git commit -m "agent deletes"', { cwd: worktree.path });
+      writeFileSync(join(repoDir, "README.md"), "# base modified\n", "utf-8");
+      execSync("git add README.md", { cwd: repoDir });
+      execSync('git commit -m "base modifies"', { cwd: repoDir });
+
+      const preview = previewWorktreeMerge(repoDir, "agent/del-vs-mod", {
+        baseBranch: "HEAD",
+      });
+      const conflict = preview.conflicts.find((c) => c.path === "README.md");
+      expect(conflict).toBeTruthy();
+      const keepFile = conflict.automationCandidates.find(
+        (c) =>
+          c.executable === true &&
+          c.id !== "confirm-delete" &&
+          c.id !== "accept-delete",
+      );
+      expect(keepFile).toBeTruthy();
+
+      const result = applyWorktreeAutomationCandidate(
+        repoDir,
+        "agent/del-vs-mod",
+        {
+          baseBranch: "HEAD",
+          filePath: "README.md",
+          candidateId: keepFile.id,
+          conflictType: conflict.type,
+        },
+      );
+      expect(result.success).toBe(true);
+      expect(
+        execSync("git show HEAD:README.md", {
+          cwd: worktree.path,
+          encoding: "utf-8",
+        }),
+      ).toContain("# base modified");
+    });
   });
 
   describe("diffWorktree", () => {
