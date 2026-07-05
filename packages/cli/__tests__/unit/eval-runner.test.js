@@ -336,6 +336,83 @@ describe("upgrade-dependency task rigor", () => {
   });
 });
 
+describe("edit locality (无关改动率)", () => {
+  const localityTask = {
+    id: "locality",
+    prompt: "edit a.txt",
+    expectedFiles: ["a.txt"],
+    setup: (dir) => fs.writeFileSync(path.join(dir, "a.txt"), "1", "utf8"),
+    check: () => ({ pass: true }),
+  };
+
+  it("reports zero unrelated changes when only expected files are touched", async () => {
+    const agent = async ({ cwd }) => {
+      fs.writeFileSync(path.join(cwd, "a.txt"), "2", "utf8");
+      return { ok: true };
+    };
+    const s = await runEvalSuite([localityTask], { runAgent: agent });
+    expect(s.results[0].changedFiles).toContain("a.txt");
+    expect(s.results[0].unrelatedChanges).toEqual([]);
+    expect(s.unrelatedChangeRate).toBe(0);
+  });
+
+  it("flags a file changed OUTSIDE the expected surface", async () => {
+    const agent = async ({ cwd }) => {
+      fs.writeFileSync(path.join(cwd, "a.txt"), "2", "utf8");
+      fs.mkdirSync(path.join(cwd, "sub"));
+      fs.writeFileSync(path.join(cwd, "sub", "stray.txt"), "x", "utf8");
+      return { ok: true };
+    };
+    const s = await runEvalSuite([localityTask], { runAgent: agent });
+    expect(s.results[0].unrelatedChanges).toEqual(["sub/stray.txt"]);
+    expect(s.tasksWithUnrelatedChanges).toBe(1);
+    expect(s.unrelatedChangeRate).toBe(1);
+  });
+
+  it("counts a deleted expected file as changed but not unrelated", async () => {
+    const agent = async ({ cwd }) => {
+      fs.rmSync(path.join(cwd, "a.txt"));
+      return { ok: true };
+    };
+    const s = await runEvalSuite([localityTask], { runAgent: agent });
+    expect(s.results[0].changedFiles).toContain("a.txt");
+    expect(s.results[0].unrelatedChanges).toEqual([]);
+  });
+
+  it("does not measure a task that declares no expectedFiles", async () => {
+    const task = { ...localityTask, expectedFiles: undefined };
+    const agent = async ({ cwd }) => {
+      fs.writeFileSync(path.join(cwd, "whatever.txt"), "x", "utf8");
+      return { ok: true };
+    };
+    const s = await runEvalSuite([task], { runAgent: agent });
+    expect(s.results[0].unrelatedChanges).toBeNull();
+    expect(s.unrelatedChangeRate).toBe(0); // no measured tasks
+  });
+
+  it("the perfect solver makes NO unrelated changes across the builtin suite", async () => {
+    // Validates that every builtin task's declared expectedFiles matches what a
+    // correct solution actually touches — a drift guard on the declarations.
+    const s = await runEvalSuite(BUILTIN_TASKS, { runAgent: perfectAgent });
+    expect(s.unrelatedChangeRate).toBe(0);
+    expect(
+      s.results.every((r) => (r.unrelatedChanges || []).length === 0),
+    ).toBe(true);
+  });
+
+  it("surfaces the unrelated-change rate in the formatted report", async () => {
+    const agent = async ({ cwd }) => {
+      fs.writeFileSync(path.join(cwd, "a.txt"), "2", "utf8");
+      fs.writeFileSync(path.join(cwd, "stray.txt"), "x", "utf8");
+      return { ok: true };
+    };
+    const s = await runEvalSuite([localityTask], { runAgent: agent });
+    const report = formatEvalReport(s);
+    expect(report).toMatch(/Unrelated-change rate: 100\.0%/);
+    expect(report).toMatch(/\[\+1 unrelated: stray\.txt\]/);
+  });
+});
+
 describe("getSuite", () => {
   it("returns the builtin suite by default", () => {
     expect(getSuite()).toBe(BUILTIN_TASKS);

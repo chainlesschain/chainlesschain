@@ -33,6 +33,7 @@ const STRINGUTIL_V2 =
 export const BUILTIN_TASKS = [
   {
     id: "create-file",
+    expectedFiles: ["greeting.txt"],
     description: "Create a new file with exact content",
     prompt:
       'Create a file named greeting.txt containing exactly the text "Hello, ChainlessChain!" (no trailing newline).',
@@ -49,6 +50,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "fix-syntax-error",
+    expectedFiles: ["bug.js"],
     description: "Fix a syntax error so the script runs",
     prompt:
       "The file bug.js has a syntax error. Fix it so that running `node bug.js` prints exactly OK.",
@@ -80,6 +82,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "add-function",
+    expectedFiles: ["math.js"],
     description: "Add a function to an existing module",
     prompt:
       "In math.js, add a named export `add(a, b)` that returns a + b. Keep the existing `mul` export.",
@@ -114,6 +117,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "fix-failing-test",
+    expectedFiles: ["calc.js"],
     description:
       "Fix a bug so an existing test suite passes (bug-fix category)",
     prompt:
@@ -179,6 +183,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "refactor-rename",
+    expectedFiles: ["util.js", "main.js"],
     description:
       "Rename a symbol across two files, keeping behavior (refactor)",
     prompt:
@@ -235,6 +240,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "write-test",
+    expectedFiles: ["verify.mjs"],
     description:
       "Write a meaningful verifier for a module (test-completion category)",
     prompt:
@@ -309,6 +315,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "migrate-signature",
+    expectedFiles: ["greet.mjs", "app.mjs"],
     description:
       "Migrate a function's call convention and update all callers (api-upgrade category)",
     prompt:
@@ -370,6 +377,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "secure-path",
+    expectedFiles: ["notes.mjs"],
     description:
       "Fix a path-traversal vulnerability, verified by an exploit probe (security-fix category)",
     prompt:
@@ -458,6 +466,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "fix-build",
+    expectedFiles: ["config.mjs", "app.mjs"],
     description:
       "Fix a cross-module build/link failure so the build passes (build-failure category)",
     prompt:
@@ -517,6 +526,7 @@ export const BUILTIN_TASKS = [
   },
   {
     id: "upgrade-dependency",
+    expectedFiles: ["package.json", "app.mjs"],
     description:
       "Adapt code to a dependency's breaking upgrade + bump the manifest (dependency-upgrade category)",
     prompt:
