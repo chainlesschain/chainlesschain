@@ -1169,11 +1169,15 @@ class MultiFileRetriever {
             `
           SELECT * FROM project_files
           WHERE project_id = ?
-          AND (file_name LIKE ? OR file_path LIKE ?)
+          AND (file_name LIKE ? ESCAPE '\\' OR file_path LIKE ? ESCAPE '\\')
           LIMIT 5
         `,
           )
-          .all(projectId, `${baseName}%`, `%${importPath}%`);
+          .all(
+            projectId,
+            SqlSecurity.likePrefix(baseName),
+            SqlSecurity.likeContains(importPath),
+          );
 
         for (const candidate of candidates) {
           if (!processedIds.has(candidate.id)) {
