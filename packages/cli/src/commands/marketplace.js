@@ -628,7 +628,23 @@ export function registerMarketplaceCommand(program) {
     .option("--json", "Output JSON")
     .action(async (itemId, options) => {
       try {
-        const threshold = options.thresholdFen ?? LARGE_PURCHASE_THRESHOLD_FEN;
+        // A malformed --threshold-fen becomes NaN (parseInt("abc")), and
+        // `NaN ?? default` keeps NaN (nullish coalescing only catches
+        // null/undefined) — so `amountFen >= NaN` is always false and a large
+        // order that must route through M-of-N multisig would silently take the
+        // direct path. Reject a non-finite explicit override (mirrors the
+        // --amount-fen guard below); fall back to the default only when omitted.
+        let threshold = LARGE_PURCHASE_THRESHOLD_FEN;
+        if (options.thresholdFen !== undefined) {
+          if (
+            !Number.isFinite(options.thresholdFen) ||
+            options.thresholdFen < 0
+          ) {
+            logger.error("--threshold-fen must be a non-negative integer");
+            process.exit(2);
+          }
+          threshold = options.thresholdFen;
+        }
         const amountFen = options.amountFen;
         if (!Number.isFinite(amountFen) || amountFen <= 0) {
           logger.error("--amount-fen must be positive integer");
