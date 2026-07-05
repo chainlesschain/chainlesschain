@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureGovernanceTables,
+  loadFromDb,
   listProposalTypes,
   listProposalStatuses,
   listImpactLevels,
@@ -1337,6 +1338,59 @@ describe("community-governance V2", () => {
         scope: "z",
       });
       expect(expireDelegation(null, "d3").status).toBe("expired");
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    beforeEach(() => {
+      _resetState();
+      db = new MockDatabase();
+      ensureGovernanceTables(db);
+    });
+
+    it("makes proposals, votes and the vote index visible after a fresh process", () => {
+      const p = createProposal(db, { title: "Add dark mode", id: "p1" });
+      activateProposal(db, p.id);
+      castVote(db, p.id, "did:voter:alice", "yes", { weight: 2 });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listProposals()).toEqual([]);
+      expect(getProposal(p.id)).toBeNull();
+
+      loadFromDb(db);
+
+      const proposals = listProposals();
+      expect(proposals.length).toBe(1);
+      const got = getProposal(p.id);
+      expect(got).not.toBeNull();
+      expect(got.status).toBe("active");
+      expect(got.voteYes).toBe(2); // persisted tally rehydrated
+
+      // _proposalVotes index rebuilt from the votes
+      const votes = listVotes(p.id);
+      expect(votes.length).toBe(1);
+      expect(votes[0].voterDid).toBe("did:voter:alice");
+
+      // castVote against a persisted+active proposal no longer throws "not found"
+      expect(() => castVote(db, p.id, "did:voter:bob", "no")).not.toThrow();
+    });
+
+    it("survives a corrupt metadata cell (per-row JSON guard)", () => {
+      createProposal(db, {
+        title: "T",
+        id: "p2",
+        metadata: { k: "v" },
+      });
+      const rows = db.data.get("governance_proposals") || [];
+      rows[0].metadata = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const got = getProposal("p2");
+      expect(got).not.toBeNull();
+      expect(got.metadata).toBeNull(); // guarded fallback
     });
   });
 });

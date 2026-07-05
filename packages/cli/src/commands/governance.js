@@ -12,6 +12,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureGovernanceTables,
+  loadFromDb,
   listProposalTypes,
   listProposalStatuses,
   listImpactLevels,
@@ -68,6 +69,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureGovernanceTables(db);
+  loadFromDb(db);
   return db;
 }
 
@@ -292,7 +294,11 @@ export function registerGovernanceCommand(program) {
     .command("close <proposal-id>")
     .description("Close voting — auto-resolves to passed/rejected")
     .option("-q, --quorum <n>", "Quorum threshold (0-1)", floatArg("--quorum"))
-    .option("-t, --threshold <n>", "Pass threshold (0-1)", floatArg("--threshold"))
+    .option(
+      "-t, --threshold <n>",
+      "Pass threshold (0-1)",
+      floatArg("--threshold"),
+    )
     .option(
       "-n, --total-voters <n>",
       "Total eligible voters (for quorum)",
@@ -404,8 +410,16 @@ export function registerGovernanceCommand(program) {
     .command("tally <proposal-id>")
     .description("Show vote tally with quorum/threshold check")
     .option("-q, --quorum <n>", "Quorum threshold (0-1)", floatArg("--quorum"))
-    .option("-t, --threshold <n>", "Pass threshold (0-1)", floatArg("--threshold"))
-    .option("-n, --total-voters <n>", "Total eligible voters", intArg("--total-voters"))
+    .option(
+      "-t, --threshold <n>",
+      "Pass threshold (0-1)",
+      floatArg("--threshold"),
+    )
+    .option(
+      "-n, --total-voters <n>",
+      "Total eligible voters",
+      intArg("--total-voters"),
+    )
     .option("--json", "Output as JSON")
     .action(async (proposalId, options) => {
       try {

@@ -129,6 +129,74 @@ export function ensureGovernanceTables(db) {
   );
 }
 
+/**
+ * Rehydrate _proposals/_votes/_proposalVotes from the persisted
+ * governance_proposals/governance_votes tables. The `cc` CLI runs every command
+ * in a fresh process, so without this the Maps start empty and a proposal/vote
+ * created in a prior invocation is invisible (`cc governance list`/`show`/
+ * `votes`/`tally`/`stats` show nothing) and activate/close/castVote throw
+ * "Proposal not found". Rebuilds the _proposalVotes proposalId→Set<voteId>
+ * index from the votes too. Call after ensureGovernanceTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _proposals.clear();
+  _votes.clear();
+  _proposalVotes.clear();
+
+  const parse = (v, fallback) => {
+    if (v == null) return fallback;
+    try {
+      return JSON.parse(v);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const proposalRows = db.prepare(`SELECT * FROM governance_proposals`).all();
+  for (const row of proposalRows) {
+    _proposals.set(row.id, {
+      id: row.id,
+      title: row.title,
+      description: row.description ?? null,
+      type: row.type,
+      proposerDid: row.proposer_did ?? null,
+      status: row.status,
+      impactLevel: row.impact_level ?? null,
+      impactAnalysis: parse(row.impact_analysis, null),
+      voteYes: row.vote_yes ?? 0,
+      voteNo: row.vote_no ?? 0,
+      voteAbstain: row.vote_abstain ?? 0,
+      votingStartsAt: row.voting_starts_at ?? null,
+      votingEndsAt: row.voting_ends_at ?? null,
+      metadata: parse(row.metadata, null),
+      createdAt: row.created_at,
+      _seq: ++_seq,
+    });
+    _proposalVotes.set(row.id, new Set());
+  }
+
+  const voteRows = db.prepare(`SELECT * FROM governance_votes`).all();
+  for (const row of voteRows) {
+    _votes.set(row.id, {
+      id: row.id,
+      proposalId: row.proposal_id,
+      voterDid: row.voter_did,
+      vote: row.vote,
+      reason: row.reason ?? null,
+      weight: row.weight ?? 1.0,
+      createdAt: row.created_at,
+      _seq: ++_seq,
+    });
+    if (!_proposalVotes.has(row.proposal_id)) {
+      _proposalVotes.set(row.proposal_id, new Set());
+    }
+    _proposalVotes.get(row.proposal_id).add(row.id);
+  }
+
+  return _proposals.size + _votes.size;
+}
+
 /* ── Catalogs ──────────────────────────────────────────────── */
 
 export function listProposalTypes() {
