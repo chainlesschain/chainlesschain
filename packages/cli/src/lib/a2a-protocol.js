@@ -5,7 +5,6 @@
  * capability negotiation, and peer discovery.
  */
 
-
 // Safe JSON-array parse for values read back from the DB (capabilities / skills /
 // history / artifacts are stored as JSON strings). Written via JSON.stringify so
 // normally valid, but a corrupted or externally-edited DB must not crash agent
@@ -521,6 +520,31 @@ export function setCardStatus(db, cardId, status) {
  */
 export function getCardStatusV2(cardId) {
   return _v2Cards.get(cardId)?.status || "active";
+}
+
+/**
+ * Hydrate the in-memory _v2Cards Map from the DB. The CLI is one-shot: _v2Cards
+ * starts empty every process, so getCardStatusV2 always fell back to "active"
+ * and setCardStatus validated transitions against a phantom "active" prev-state
+ * — even though setCardStatus dual-writes the real status to a2a_agent_cards
+ * (which `peers`/`discover` read correctly). Call after ensureA2ATables(db)
+ * before reading or transitioning a persisted card's status.
+ */
+export function loadCardsFromDb(db) {
+  if (!db) return 0;
+  ensureA2ATables(db);
+  _v2Cards.clear();
+  const rows = db
+    .prepare(`SELECT id, status, updated_at FROM a2a_agent_cards`)
+    .all();
+  for (const r of rows) {
+    _v2Cards.set(r.id, {
+      cardId: r.id,
+      status: r.status || "active",
+      updatedAt: r.updated_at,
+    });
+  }
+  return _v2Cards.size;
 }
 
 // ─── Task lifecycle V2 ───────────────────────────────────────────

@@ -26,6 +26,7 @@ import {
   validateAgentCard,
   setCardStatus,
   getCardStatusV2,
+  loadCardsFromDb,
   sendTaskV2,
   startWorking,
   requestInput,
@@ -487,6 +488,9 @@ export function registerA2aCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db?.getDatabase?.() || null;
+        // Hydrate _v2Cards so the transition guard sees the persisted prev-state
+        // (fresh CLI process starts with an empty Map).
+        if (db) loadCardsFromDb(db);
         const result = setCardStatus(db, cardId, status);
         if (options.json) console.log(JSON.stringify(result, null, 2));
         else logger.success(`Card ${cardId} → ${status}`);
@@ -503,10 +507,21 @@ export function registerA2aCommand(program) {
     .description("Show a card's V2 status")
     .argument("<cardId>", "Card ID")
     .option("--json", "Output as JSON")
-    .action((cardId, options) => {
-      const status = getCardStatusV2(cardId);
-      if (options.json) console.log(JSON.stringify({ cardId, status }));
-      else logger.log(`${cardId}: ${status}`);
+    .action(async (cardId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db?.getDatabase?.() || null;
+        // Fresh CLI process: _v2Cards is empty, so hydrate from the DB (where
+        // set-card-status persisted the real status) before reading it.
+        if (db) loadCardsFromDb(db);
+        const status = getCardStatusV2(cardId);
+        if (options.json) console.log(JSON.stringify({ cardId, status }));
+        else logger.log(`${cardId}: ${status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // send-task-v2 <agentId> <input> [--timeout-ms N]

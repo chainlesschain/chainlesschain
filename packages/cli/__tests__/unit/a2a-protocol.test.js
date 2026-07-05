@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureA2ATables,
   registerCard,
@@ -21,6 +22,7 @@ import {
   validateAgentCard,
   setCardStatus,
   getCardStatusV2,
+  loadCardsFromDb,
   sendTaskV2,
   startWorking,
   requestInput,
@@ -818,6 +820,48 @@ describe("a2a-protocol", () => {
       expect(_v2Tasks.size).toBe(0);
       expect(getA2AStatsV2().cards.tracked).toBe(0);
       expect(getA2AStatsV2().subscriptions.typed).toBe(0);
+    });
+  });
+
+  // ─── Cross-process card-status hydration ────────────────────
+  // setCardStatus dual-writes (Map + a2a_agent_cards), but getCardStatusV2 and
+  // the transition guard read the Map only. The CLI is one-shot, so _v2Cards is
+  // empty each process → card-status always reported "active" and the guard
+  // validated against a phantom "active" prev-state. loadCardsFromDb rehydrates.
+  describe("loadCardsFromDb (cross-process card-status hydration)", () => {
+    let realDb;
+    beforeEach(() => {
+      realDb = new MockDatabase();
+      _resetV2State();
+      ensureA2ATables(realDb);
+    });
+
+    it("makes a persisted non-active status visible after a Map reset", () => {
+      const { id } = registerCard(realDb, { name: "myagent" });
+      setCardStatus(realDb, id, "expired"); // dual-writes DB + Map
+
+      // Simulate a fresh CLI process: DB persists, _v2Cards wiped.
+      _resetV2State();
+      expect(getCardStatusV2(id)).toBe("active"); // the bug
+
+      const n = loadCardsFromDb(realDb);
+      expect(n).toBeGreaterThanOrEqual(1);
+      expect(getCardStatusV2(id)).toBe("expired");
+    });
+
+    it("validates transitions against the persisted prev-state after hydration", () => {
+      const { id } = registerCard(realDb, { name: "a2" });
+      setCardStatus(realDb, id, "expired");
+      _resetV2State();
+      loadCardsFromDb(realDb);
+      // expired only allows expired→active; expired→inactive must be rejected.
+      expect(() => setCardStatus(realDb, id, "inactive")).toThrow(
+        "Invalid card transition",
+      );
+    });
+
+    it("returns 0 on a null db", () => {
+      expect(loadCardsFromDb(null)).toBe(0);
     });
   });
 });
