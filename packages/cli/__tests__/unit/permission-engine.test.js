@@ -260,6 +260,45 @@ describe("Permission Engine", () => {
       expect(perms.isAdmin).toBe(true);
     });
 
+    it("excludes a role whose expiry is in the past", () => {
+      ensurePermissionTables(db);
+      grantRole(
+        db,
+        "did:chainless:dave",
+        "viewer",
+        null,
+        "2020-01-01T00:00:00Z",
+      );
+      expect(getUserPermissions(db, "did:chainless:dave").roles).not.toContain(
+        "viewer",
+      );
+    });
+
+    it("keeps a role whose expiry is in the future", () => {
+      ensurePermissionTables(db);
+      grantRole(
+        db,
+        "did:chainless:dave",
+        "viewer",
+        null,
+        "2099-01-01T00:00:00Z",
+      );
+      expect(getUserPermissions(db, "did:chainless:dave").roles).toContain(
+        "viewer",
+      );
+    });
+
+    it("treats a malformed expiry as expired (fail-closed, not permanent)", () => {
+      // Regression: `expires_at > now` compared ISO STRINGS, so "next year"
+      // (sorts after any ISO now: 'n' > '2') made an already-invalid,
+      // time-limited grant a PERMANENT one. It must be treated as expired.
+      ensurePermissionTables(db);
+      grantRole(db, "did:chainless:dave", "viewer", null, "next year");
+      expect(getUserPermissions(db, "did:chainless:dave").roles).not.toContain(
+        "viewer",
+      );
+    });
+
     it("should include direct permissions", () => {
       ensurePermissionTables(db);
       grantPermission(db, "did:chainless:bob", "config:write");

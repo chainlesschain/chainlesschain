@@ -276,6 +276,24 @@ export function revokePermission(db, userDid, permission) {
 }
 
 /**
+ * Is a grant still active given its stored `expires_at`?
+ *
+ * The previous check compared `expires_at > now` as ISO STRINGS. That is
+ * fail-open on unvalidated input: an unpadded date ("2026-7-5") or any
+ * non-numeric-leading garbage ("next year") sorts lexicographically AFTER a
+ * canonical `now` ('7'/'n' > '0'/'2'), so an already-expired or malformed
+ * time-limited grant silently became a PERMANENT grant. Compare numerically and
+ * treat an unparseable expiry as expired (fail closed) so a typo can never widen
+ * access. A null/empty `expires_at` means no expiry.
+ */
+function _grantActive(expiresAt, nowMs) {
+  if (!expiresAt) return true;
+  const t = Date.parse(expiresAt);
+  if (Number.isNaN(t)) return false;
+  return t > nowMs;
+}
+
+/**
  * Get all roles and direct permissions for a user.
  */
 export function getUserPermissions(db, userDid) {
@@ -287,15 +305,15 @@ export function getUserPermissions(db, userDid) {
     .all(userDid);
 
   // Filter out expired grants
-  const now = new Date().toISOString();
-  const grants = allGrants.filter((g) => !g.expires_at || g.expires_at > now);
+  const nowMs = Date.now();
+  const grants = allGrants.filter((g) => _grantActive(g.expires_at, nowMs));
 
   // Get direct permissions (not expired)
   const allDirectPerms = db
     .prepare("SELECT * FROM rbac_direct_permissions WHERE user_did = ?")
     .all(userDid);
-  const directPerms = allDirectPerms.filter(
-    (d) => !d.expires_at || d.expires_at > now,
+  const directPerms = allDirectPerms.filter((d) =>
+    _grantActive(d.expires_at, nowMs),
   );
 
   // Collect all permissions by looking up each role
