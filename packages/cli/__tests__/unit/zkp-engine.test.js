@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureZKPTables,
+  loadFromDb,
   compileCircuit,
   generateProof,
   verifyProof,
@@ -937,6 +938,70 @@ describe("zkp-engine", () => {
       expect(stats.proofsByStatus.pending).toBe(1);
       expect(stats.credentialsByDid["did:alice"]).toBe(2);
       expect(stats.credentialsByDid._anonymous).toBe(1);
+    });
+  });
+
+  describe("loadFromDb — rehydrates circuits/proofs/credentials across processes", () => {
+    it("makes a circuit + proof + credential visible / usable after a fresh process", () => {
+      const circuit = compileCircuit(db, "age-check", {
+        constraints: [1, 2],
+        inputs: ["x"],
+      });
+      const proof = generateProof(db, circuit.id, { x: 1 }, [10]);
+      const cred = registerCredential(db, {
+        did: "did:alice",
+        claims: { age: 30 },
+      });
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      expect(listCircuits()).toHaveLength(0);
+      expect(listProofs()).toHaveLength(0);
+      expect(listCredentials()).toHaveLength(0);
+      expect(() => generateProof(db, circuit.id, {}, [])).toThrow(
+        /Circuit not found/,
+      );
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(3); // 1 circuit + 1 proof + 1 credential
+
+      const circuits = listCircuits();
+      expect(circuits).toHaveLength(1);
+      expect(circuits[0].id).toBe(circuit.id);
+      expect(circuits[0].name).toBe("age-check");
+
+      expect(listProofs()).toHaveLength(1);
+      expect(listCredentials()).toHaveLength(1);
+      expect(listCredentials()[0].id).toBe(cred.id);
+
+      // `prove` and `verify` no longer throw "not found" for persisted rows.
+      expect(() => generateProof(db, circuit.id, { x: 2 }, [11])).not.toThrow();
+      expect(() => verifyProof(db, proof.id)).not.toThrow();
+    });
+
+    it("survives a corrupt definition cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO zkp_circuits (id, name, definition, compiled, verification_key, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "cir-bad",
+        "bad",
+        "{not json",
+        "{}",
+        "vk",
+        "compiled",
+        "2020-01-01T00:00:00.000Z",
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const c = listCircuits().find((x) => x.id === "cir-bad");
+      expect(c).toBeTruthy();
+      expect(c.definition).toEqual({});
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

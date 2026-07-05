@@ -9,6 +9,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureZKPTables,
+  loadFromDb as loadZkpFromDb,
   compileCircuit,
   generateProof,
   verifyProof,
@@ -64,6 +65,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const def = options.definition || "{}";
         const circuit = compileCircuit(db, name, def);
@@ -100,6 +102,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const privateInputs = parseJsonOption(options.private, "--private", {});
         const publicInputs = parseJsonOption(options.public, "--public", []);
@@ -142,6 +145,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const result = verifyProof(db, proofId);
         if (options.json) {
@@ -212,6 +216,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const stats = getZKPStats();
         if (options.json) {
@@ -266,6 +271,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const circuits = listCircuits(db);
         if (options.json) {
@@ -304,6 +310,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const proofs = listProofs(db, { circuitId: options.circuit });
         if (options.json) {
@@ -373,6 +380,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const result = setCircuitStatus(db, circuitId, status);
         logger.success(
@@ -402,6 +410,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const claims = parseJsonOption(options.claims, "--claims", {});
         const cred = registerCredential(db, {
@@ -444,6 +453,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const disclosed = fields
           .split(",")
@@ -497,6 +507,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
 
         const creds = listCredentials(db, { did: options.did });
         if (options.json) {
@@ -621,6 +632,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const def = parseJsonOption(options.definition, "--definition", {});
         const circuit = compileCircuitV2(db, {
           name,
@@ -648,6 +660,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const patch = {};
         if (options.errorMessage !== undefined) {
           patch.errorMessage = options.errorMessage;
@@ -672,6 +685,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const proof = generateProofV2(db, {
           circuitId,
           privateInputs: parseJsonOption(options.private, "--private"),
@@ -699,6 +713,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const result = verifyProofV2(db, proofId);
         if (result.valid) {
           logger.success(`Proof ${proofId} VERIFIED`);
@@ -723,6 +738,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         failProof(db, proofId, { reason: options.reason });
         logger.success(`Proof ${proofId} → invalid`);
         await shutdown();
@@ -741,6 +757,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const patch = {};
         if (options.errorMessage !== undefined) {
           patch.errorMessage = options.errorMessage;
@@ -762,6 +779,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const expired = autoExpireProofs(db);
         logger.success(`Expired ${expired.length} proofs`);
         await shutdown();
@@ -792,6 +810,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const disclosedFields = options.disclosed
           ? options.disclosed
               .split(",")
@@ -826,6 +845,7 @@ export function registerZkpCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
+        loadZkpFromDb(db);
         const stats = getZKPStatsV2();
         console.log(JSON.stringify(stats, null, 2));
         await shutdown();

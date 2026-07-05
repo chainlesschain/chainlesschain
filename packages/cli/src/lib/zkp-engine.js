@@ -471,6 +471,93 @@ export function _resetState() {
   _proofExpiryMs = ZKP_DEFAULT_PROOF_EXPIRY_MS;
 }
 
+/**
+ * Rehydrate the in-memory Maps from the persisted zkp_* tables. The CLI runs
+ * each `cc zkp` subcommand in a fresh node process, so _circuits/_proofs/
+ * _verificationKeys/_credentials start empty every invocation. Every write
+ * dual-writes (Map + INSERT into zkp_circuits/zkp_proofs/zkp_credentials) but
+ * every read (listCircuits/listProofs/listCredentials/getZKPStats + the
+ * generateProof/verifyProof/selectiveDisclose lookups) is Map-only and nothing
+ * SELECTed the tables back — so `zkp circuits`/`proofs`/`credentials` were always
+ * empty, and `prove`/`verify`/`disclose` threw "not found" for a circuit/proof/
+ * credential that genuinely exists on disk. Call after ensureZKPTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureZKPTables(db);
+  _circuits.clear();
+  _proofs.clear();
+  _verificationKeys.clear();
+  _credentials.clear();
+
+  const parse = (v, fallback) => {
+    try {
+      return v ? JSON.parse(v) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, definition, compiled, verification_key, status, created_at
+         FROM zkp_circuits ORDER BY created_at ASC`,
+    )
+    .all()) {
+    const definition = parse(r.definition, {});
+    const constraints = Array.isArray(definition.constraints)
+      ? definition.constraints
+      : [];
+    _circuits.set(r.id, {
+      id: r.id,
+      name: r.name,
+      definition,
+      compiled: parse(r.compiled, {}),
+      constraints: constraints.length || 1,
+      inputs: definition.inputs || [],
+      outputs: definition.outputs || [],
+      verificationKey: r.verification_key,
+      status: r.status,
+      createdAt: r.created_at,
+    });
+    if (r.verification_key) _verificationKeys.set(r.id, r.verification_key);
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, circuit_id, proof, public_inputs, verified, scheme, created_at
+         FROM zkp_proofs ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _proofs.set(r.id, {
+      id: r.id,
+      circuitId: r.circuit_id,
+      scheme: r.scheme,
+      proof: parse(r.proof, {}),
+      publicInputs: parse(r.public_inputs, []),
+      verified: !!r.verified,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, did, claims, merkle_root, created_at
+         FROM zkp_credentials ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _credentials.set(r.id, {
+      id: r.id,
+      did: r.did ?? null,
+      claims: parse(r.claims, {}),
+      merkleRoot: r.merkle_root,
+      createdAt: r.created_at,
+    });
+  }
+
+  return _circuits.size + _proofs.size + _credentials.size;
+}
+
 /* ──────────────────────────────────────────────────────────
  *  V2 — Phase 88 surface (strictly additive)
  * ────────────────────────────────────────────────────────── */
