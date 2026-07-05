@@ -1635,6 +1635,40 @@ function callLLM(prompt) {
   return null;
 }
 
+// ── Extract first balanced JSON block (inlined from lib/json-schema-output) ──
+// Must live INSIDE this handler: the module-scope import in init.js is NOT
+// emitted into the generated CJS handler, so referencing it here would throw
+// ReferenceError (swallowed by the surrounding try/catch → xlsx/pptx edits
+// would always report "格式不正确" even on valid LLM output).
+function firstBalancedJson(text, only) {
+  const s = String(text || "");
+  for (let i = 0; i < s.length; i++) {
+    const open = s[i];
+    if (open !== "{" && open !== "[") continue;
+    if (only && open !== only) continue;
+    const close = open === "{" ? "}" : "]";
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let j = i; j < s.length; j++) {
+      const c = s[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === "\\\\") esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') inStr = true;
+      else if (c === open) depth++;
+      else if (c === close) {
+        depth--;
+        if (depth === 0) return s.slice(i, j + 1);
+      }
+    }
+  }
+  return null;
+}
+
 // ── Output path helper ────────────────────────────────────────────────────────
 function buildOutputPath(inputFile, outputDir) {
   const ext = path.extname(inputFile);
@@ -2395,6 +2429,11 @@ The AI assistant will follow these guidelines when working in this project.
     skills: [],
   },
 };
+
+// Test-only: expose the skill handler templates so a regression test can load
+// the emitted CJS handler and verify its free identifiers resolve (e.g. that
+// firstBalancedJson is inlined, not left dangling from a module-scope import).
+export const _SKILL_TEMPLATES = SKILL_TEMPLATES;
 
 export function registerInitCommand(program) {
   program
