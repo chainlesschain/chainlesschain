@@ -525,45 +525,55 @@ class AssetManager extends EventEmitter {
         }
       }
 
-      // 执行本地转账（记录）
-      // 扣除发送者余额
-      db.prepare(
-        `
+      // 执行本地转账（记录）。三笔写入（扣款 / 入账 / 流水）必须原子：任一失败
+      // 若不回滚，发送者被扣款但接收者未入账 = 价值凭空消失（余额直接读自
+      // asset_holdings，跨进程仍错）。链上转账已在上方 await 完成，此处为纯同步块，
+      // 可安全包进 better-sqlite3 事务；MockDatabase 无 .transaction 时退化为顺序执行。
+      const applyLocalTransfer = () => {
+        // 扣除发送者余额
+        db.prepare(
+          `
         UPDATE asset_holdings
         SET amount = amount - ?, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
       `,
-      ).run(amount, now, assetId, senderDid);
+        ).run(amount, now, assetId, senderDid);
 
-      // 增加接收者余额
-      db.prepare(
-        `
+        // 增加接收者余额
+        db.prepare(
+          `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = amount + ?,
           updated_at = ?
       `,
-      ).run(assetId, toDid, amount, now, now, amount, now);
+        ).run(assetId, toDid, amount, now, now, amount, now);
 
-      // 记录转账（包含链上交易哈希）
-      db.prepare(
-        `
+        // 记录转账（包含链上交易哈希）
+        db.prepare(
+          `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      ).run(
-        transferId,
-        assetId,
-        senderDid,
-        toDid,
-        amount,
-        TransactionType.TRANSFER,
-        blockchainTxHash,
-        memo,
-        now,
-      );
+        ).run(
+          transferId,
+          assetId,
+          senderDid,
+          toDid,
+          amount,
+          TransactionType.TRANSFER,
+          blockchainTxHash,
+          memo,
+          now,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyLocalTransfer)();
+      } else {
+        applyLocalTransfer();
+      }
 
       logger.info(
         "[AssetManager] 已转账资产:",
