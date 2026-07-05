@@ -256,13 +256,23 @@ class LendingManager extends EventEmitter {
 
     const now = Math.floor(Date.now() / 1000);
 
-    db.prepare(
-      "UPDATE lending_pools SET available_amount = available_amount - ?, active_loans = active_loans + 1, updated_at = ? WHERE id = ?",
-    ).run(loan.amount, now, loan.pool_id);
+    // Debit pool liquidity and activate the loan atomically. Without a
+    // transaction a failure between the two writes would strand pool liquidity
+    // on a loan that never went active (or vice versa).
+    const applyApproval = () => {
+      db.prepare(
+        "UPDATE lending_pools SET available_amount = available_amount - ?, active_loans = active_loans + 1, updated_at = ? WHERE id = ?",
+      ).run(loan.amount, now, loan.pool_id);
 
-    db.prepare(
-      "UPDATE loans SET status = 'active', updated_at = ? WHERE id = ?",
-    ).run(now, loanId);
+      db.prepare(
+        "UPDATE loans SET status = 'active', updated_at = ? WHERE id = ?",
+      ).run(now, loanId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyApproval)();
+    } else {
+      applyApproval();
+    }
 
     this.emit("loan-approved", {
       loanId,
@@ -322,28 +332,46 @@ class LendingManager extends EventEmitter {
     const paymentId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
-    db.prepare(
-      `INSERT INTO loan_payments (id, loan_id, amount, principal, interest, payment_date)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(paymentId, loanId, payAmount, principalPortion, interestPortion, now);
-
     const newRepaid = loan.repaid_amount + payAmount;
     const isFullyRepaid =
       newRepaid >= loan.amount * (1 + loan.interest_rate) - 0.01;
 
-    db.prepare(
-      "UPDATE loans SET repaid_amount = ?, status = ?, updated_at = ? WHERE id = ?",
-    ).run(
-      newRepaid,
-      isFullyRepaid ? LoanStatus.REPAID : loan.status,
-      now,
-      loanId,
-    );
-
-    if (isFullyRepaid) {
+    // Record the payment, update the loan, and (on full repayment) return the
+    // principal to the pool atomically. Without a transaction a mid-way failure
+    // could record a payment without crediting the pool, or mark the loan
+    // repaid while the pool never got its liquidity back.
+    const applyRepayment = () => {
       db.prepare(
-        "UPDATE lending_pools SET available_amount = available_amount + ?, active_loans = MAX(0, active_loans - 1), updated_at = ? WHERE id = ?",
-      ).run(loan.amount, now, loan.pool_id);
+        `INSERT INTO loan_payments (id, loan_id, amount, principal, interest, payment_date)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(
+        paymentId,
+        loanId,
+        payAmount,
+        principalPortion,
+        interestPortion,
+        now,
+      );
+
+      db.prepare(
+        "UPDATE loans SET repaid_amount = ?, status = ?, updated_at = ? WHERE id = ?",
+      ).run(
+        newRepaid,
+        isFullyRepaid ? LoanStatus.REPAID : loan.status,
+        now,
+        loanId,
+      );
+
+      if (isFullyRepaid) {
+        db.prepare(
+          "UPDATE lending_pools SET available_amount = available_amount + ?, active_loans = MAX(0, active_loans - 1), updated_at = ? WHERE id = ?",
+        ).run(loan.amount, now, loan.pool_id);
+      }
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyRepayment)();
+    } else {
+      applyRepayment();
     }
 
     this.emit("loan-repaid", {
@@ -369,13 +397,21 @@ class LendingManager extends EventEmitter {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    db.prepare(
-      "UPDATE loans SET status = 'liquidated', updated_at = ? WHERE id = ?",
-    ).run(now, loanId);
+    // Mark liquidated and return recovered collateral to the pool atomically.
+    const applyLiquidation = () => {
+      db.prepare(
+        "UPDATE loans SET status = 'liquidated', updated_at = ? WHERE id = ?",
+      ).run(now, loanId);
 
-    db.prepare(
-      "UPDATE lending_pools SET available_amount = available_amount + ?, active_loans = MAX(0, active_loans - 1), updated_at = ? WHERE id = ?",
-    ).run(Math.min(loan.collateral_amount, loan.amount), now, loan.pool_id);
+      db.prepare(
+        "UPDATE lending_pools SET available_amount = available_amount + ?, active_loans = MAX(0, active_loans - 1), updated_at = ? WHERE id = ?",
+      ).run(Math.min(loan.collateral_amount, loan.amount), now, loan.pool_id);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyLiquidation)();
+    } else {
+      applyLiquidation();
+    }
 
     this.emit("loan-liquidated", {
       loanId,
