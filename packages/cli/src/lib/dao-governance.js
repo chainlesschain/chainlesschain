@@ -112,6 +112,153 @@ export function ensureDAOv2Tables(db) {
   `);
 }
 
+/**
+ * Hydrate the in-memory stores from the DB. The CLI is one-shot: _proposals/
+ * _votes/_delegations/_treasury/_delegationsV2/_treasuryTxs all start empty each
+ * process. Every write dual-writes (Map/obj + INSERT) but every read/mutate is
+ * Map-only and nothing SELECTed the tables back — so the ENTIRE dao feature was
+ * broken across invocations: vote/execute/allocate threw "not found", stats
+ * reported 0, and the treasury deposit was invisible (allocate always
+ * "Insufficient"). Call after ensureDAOv2Tables(db).
+ *
+ * Faithful: proposals' votesFor/votesAgainst/status, votes, legacy delegations,
+ * and the treasury balance (DERIVED = Σdeposit − Σallocation, replayed in
+ * chronological order so each tx's balanceAfter is reconstructed too).
+ *
+ * Lossy (defaulted to stay correct/safe — these columns don't exist in the
+ * schema): V2 proposal abstain/quadratic-weight tallies → 0; proposal.queueEnd →
+ * a far-future sentinel so executeProposalV2 FAILS CLOSED (a null/undefined
+ * would make its timelock check `now < NaN` and BYPASS the timelock); V2
+ * delegation status/expiresAt → ACTIVE/none (revocation is not persisted).
+ */
+const _REHYDRATE_QUEUE_END_SENTINEL = "9999-12-31T23:59:59.999Z";
+
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureDAOv2Tables(db);
+  _proposals.clear();
+  _votes.clear();
+  _delegations.clear();
+  _delegationsV2.clear();
+  _treasuryTxs.length = 0;
+  _treasury.balance = 0;
+  _treasury.allocations = [];
+
+  for (const r of db
+    .prepare(
+      `SELECT id, title, description, proposer, status, votes_for, votes_against, voting_type, created_at, ends_at, executed_at
+         FROM dao_v2_proposals`,
+    )
+    .all()) {
+    _proposals.set(r.id, {
+      id: r.id,
+      title: r.title,
+      description: r.description || "",
+      proposer: r.proposer,
+      proposerDid: r.proposer, // V2 field mirrors legacy proposer
+      type: "standard",
+      status: r.status,
+      votesFor: Number(r.votes_for) || 0,
+      votesAgainst: Number(r.votes_against) || 0,
+      votingType: r.voting_type,
+      createdAt: r.created_at,
+      updatedAt: r.created_at,
+      endsAt: r.ends_at,
+      executedAt: r.executed_at,
+      // Non-persisted V2 fields — default to stay NaN-safe (see fn doc).
+      votesAbstain: 0,
+      quadraticWeightFor: 0,
+      quadraticWeightAgainst: 0,
+      quorumReached: false,
+      votingStart: null,
+      votingEnd: null,
+      cancelledAt: null,
+      // Fail-closed: a rehydrated QUEUED proposal cannot be executed until it is
+      // re-queued (real queueEnd is not persisted). Never bypass the timelock.
+      queueEnd: _REHYDRATE_QUEUE_END_SENTINEL,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, proposal_id, voter, weight, direction, delegated_from, created_at
+         FROM dao_v2_votes`,
+    )
+    .all()) {
+    _votes.set(r.id, {
+      id: r.id,
+      proposalId: r.proposal_id,
+      voter: r.voter,
+      voterDid: r.voter, // both read paths (stats uses voter, anti-sybil voterDid)
+      weight: Number(r.weight) || 0,
+      voteCount: Number(r.weight) || 0,
+      direction: r.direction,
+      voteType: r.direction,
+      delegatedFrom: r.delegated_from,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT delegator, delegate, weight, created_at FROM dao_v2_delegations`,
+    )
+    .all()) {
+    _delegations.set(r.delegator, {
+      delegator: r.delegator,
+      delegate: r.delegate,
+      weight: Number(r.weight) || 0,
+    });
+    // Synthesize a V2 record (status/expiresAt are not persisted → default).
+    _delegationsV2.set(`deleg:${r.delegator}`, {
+      id: `deleg:${r.delegator}`,
+      fromDid: r.delegator,
+      toDid: r.delegate,
+      weight: Number(r.weight) || 0,
+      status: DELEGATION_STATUS.ACTIVE,
+      expiresAt: null,
+      revokedAt: null,
+      createdAt: r.created_at,
+    });
+  }
+
+  // Treasury: no balance column — derive it by replaying the tx log in
+  // chronological order (deposit +, allocation −), reconstructing balanceAfter.
+  const treasuryRows = db
+    .prepare(
+      `SELECT id, type, amount, description, proposal_id, created_at
+         FROM dao_v2_treasury ORDER BY created_at ASC`,
+    )
+    .all();
+  for (const r of treasuryRows) {
+    const amt = Number(r.amount) || 0;
+    if (r.type === TREASURY_TX_TYPE.DEPOSIT) _treasury.balance += amt;
+    else if (r.type === TREASURY_TX_TYPE.ALLOCATION) _treasury.balance -= amt;
+    _treasuryTxs.push({
+      id: r.id,
+      txType: r.type,
+      proposalId: r.proposal_id,
+      amount: amt,
+      memo: r.description || "",
+      balanceAfter: _treasury.balance,
+      createdAt: r.created_at,
+    });
+    if (r.type === TREASURY_TX_TYPE.ALLOCATION) {
+      _treasury.allocations.push({
+        id: r.id,
+        proposalId: r.proposal_id,
+        amount: amt,
+        description: r.description || "",
+        date: r.created_at,
+      });
+    }
+  }
+
+  return (
+    _proposals.size + _votes.size + _delegations.size + _treasuryTxs.length
+  );
+}
+
 /* ── Proposals ─────────────────────────────────────────────── */
 
 export function propose(db, title, description, proposer, options = {}) {

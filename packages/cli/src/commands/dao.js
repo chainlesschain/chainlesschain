@@ -11,6 +11,7 @@ import { parseNumberOption } from "../lib/parse-number-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureDAOv2Tables,
+  loadFromDb as loadDaoFromDb,
   propose,
   vote,
   delegate,
@@ -67,6 +68,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = propose(
           db,
@@ -106,6 +108,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = vote(
           db,
@@ -142,6 +145,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = delegate(
           db,
@@ -174,6 +178,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = execute(db, proposalId);
         logger.success(`Proposal ${chalk.cyan(result.proposalId)} executed`);
@@ -199,6 +204,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = getTreasury();
         if (options.json) {
@@ -236,6 +242,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = allocate(
           db,
@@ -269,6 +276,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const result = getStats();
         if (options.json) {
@@ -308,13 +316,26 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const cfg = {};
         if (options.votingPeriod)
-          cfg.votingPeriod = numericOption(options.votingPeriod, { name: "--voting-period", integer: true, min: 1 });
-        if (options.quorum) cfg.quorum = numericOption(options.quorum, { name: "--quorum", min: 0 });
+          cfg.votingPeriod = numericOption(options.votingPeriod, {
+            name: "--voting-period",
+            integer: true,
+            min: 1,
+          });
+        if (options.quorum)
+          cfg.quorum = numericOption(options.quorum, {
+            name: "--quorum",
+            min: 0,
+          });
         if (options.executionDelay)
-          cfg.executionDelay = numericOption(options.executionDelay, { name: "--execution-delay", integer: true, min: 0 });
+          cfg.executionDelay = numericOption(options.executionDelay, {
+            name: "--execution-delay",
+            integer: true,
+            min: 0,
+          });
 
         const result = configure(cfg);
         logger.success("Configuration updated");
@@ -380,6 +401,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const proposal = createProposalV2(db, {
           title,
@@ -388,7 +410,11 @@ export function registerDaoCommand(program) {
           type: options.type,
           actions: parseJsonOption(options.actions, "--actions"),
           votingDurationMs: options.votingDuration
-            ? numericOption(options.votingDuration, { name: "--voting-duration", integer: true, min: 0 })
+            ? numericOption(options.votingDuration, {
+                name: "--voting-duration",
+                integer: true,
+                min: 0,
+              })
             : undefined,
         });
 
@@ -421,6 +447,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const p = activateProposal(db, proposalId);
         logger.success(`Proposal ${chalk.cyan(proposalId)} → ACTIVE`);
@@ -452,13 +479,20 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const record = castVote(db, {
           proposalId,
           voterDid: options.voter,
           voteType: options.type,
-          voteCount: numericOption(options.count, { name: "--count", integer: true, min: 1 }),
-          balance: options.balance ? numericOption(options.balance, { name: "--balance", min: 0 }) : undefined,
+          voteCount: numericOption(options.count, {
+            name: "--count",
+            integer: true,
+            min: 1,
+          }),
+          balance: options.balance
+            ? numericOption(options.balance, { name: "--balance", min: 0 })
+            : undefined,
         });
 
         logger.success("Vote cast");
@@ -488,6 +522,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const d = delegateVotingPower(db, {
           fromDid,
@@ -522,6 +557,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const r = revokeDelegation(db, fromDid);
         logger.success(`Delegation revoked: ${chalk.cyan(r.id)}`);
@@ -547,6 +583,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const list = getActiveDelegations();
         if (options.json) {
@@ -581,6 +618,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const p = queueProposal(db, proposalId);
         logger.success(`Proposal → QUEUE`);
@@ -606,6 +644,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const p = executeProposalV2(db, proposalId);
         logger.success(`Proposal ${chalk.cyan(proposalId)} → EXECUTE`);
@@ -631,6 +670,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const p = cancelProposal(db, proposalId);
         logger.success(`Proposal → ${p.status}`);
@@ -662,6 +702,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const tx = allocateFundsV2(db, {
           proposalId,
@@ -706,6 +747,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const tx = depositToTreasuryV2(db, {
           amount: parseNumberOption(options.amount, "--amount"),
@@ -737,6 +779,7 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
         const s = getTreasuryState();
         if (options.json) {
@@ -778,8 +821,16 @@ export function registerDaoCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDAOv2Tables(db);
+        loadDaoFromDb(db);
 
-        const s = getGovernanceStatsV2(numericOption(options.members, { name: "--members", integer: true, min: 0, fallback: 0 }));
+        const s = getGovernanceStatsV2(
+          numericOption(options.members, {
+            name: "--members",
+            integer: true,
+            min: 0,
+            fallback: 0,
+          }),
+        );
         if (options.json) {
           console.log(JSON.stringify(s, null, 2));
         } else {
@@ -833,19 +884,40 @@ export function registerDaoCommand(program) {
       try {
         const updates = {};
         if (options.votingDuration)
-          updates.votingDurationMs = numericOption(options.votingDuration, { name: "--voting-duration", integer: true, min: 0 });
+          updates.votingDurationMs = numericOption(options.votingDuration, {
+            name: "--voting-duration",
+            integer: true,
+            min: 0,
+          });
         if (options.quorumPercentage)
-          updates.quorumPercentage = numericOption(options.quorumPercentage, { name: "--quorum-percentage", min: 0, max: 100 });
+          updates.quorumPercentage = numericOption(options.quorumPercentage, {
+            name: "--quorum-percentage",
+            min: 0,
+            max: 100,
+          });
         if (options.timelockMs)
-          updates.timelockMs = numericOption(options.timelockMs, { name: "--timelock-ms", integer: true, min: 0 });
+          updates.timelockMs = numericOption(options.timelockMs, {
+            name: "--timelock-ms",
+            integer: true,
+            min: 0,
+          });
         if (options.quadraticEnabled !== undefined)
           updates.quadraticEnabled = options.quadraticEnabled === "true";
         if (options.maxDelegationDepth)
-          updates.maxDelegationDepth = numericOption(options.maxDelegationDepth, { name: "--max-delegation-depth", integer: true, min: 0 });
+          updates.maxDelegationDepth = numericOption(
+            options.maxDelegationDepth,
+            { name: "--max-delegation-depth", integer: true, min: 0 },
+          );
         if (options.proposalThreshold)
-          updates.proposalThreshold = numericOption(options.proposalThreshold, { name: "--proposal-threshold", min: 0 });
+          updates.proposalThreshold = numericOption(options.proposalThreshold, {
+            name: "--proposal-threshold",
+            min: 0,
+          });
         if (options.maxSingleAllocation)
-          updates.maxSingleAllocation = numericOption(options.maxSingleAllocation, { name: "--max-single-allocation", min: 0 });
+          updates.maxSingleAllocation = numericOption(
+            options.maxSingleAllocation,
+            { name: "--max-single-allocation", min: 0 },
+          );
 
         const cfg = configureV2(updates);
         if (options.json) {

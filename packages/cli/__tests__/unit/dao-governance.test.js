@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureDAOv2Tables,
+  loadFromDb,
   propose,
   vote,
   delegate,
@@ -41,6 +42,71 @@ describe("dao-governance", () => {
     db = new MockDatabase();
     _resetState();
     ensureDAOv2Tables(db);
+  });
+
+  // ─── Cross-process hydration ────────────────────────────────
+  // The CLI is one-shot: all six stores start empty each process. Writes
+  // dual-write (Map/obj + INSERT) but reads/mutates are Map-only and nothing
+  // SELECTed the tables back, so the whole dao feature was broken across
+  // invocations. loadFromDb rehydrates (treasury balance is DERIVED from the
+  // deposit/allocation tx rows since there is no balance column).
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("restores proposals/votes/treasury/delegations after a Map reset", () => {
+      const p = propose(db, "Title", "desc", "alice");
+      vote(db, p.id, "voterA", "for", 2);
+      depositToTreasury(db, 1000, "seed");
+      allocate(db, p.id, 300, "grant");
+      delegate(db, "carol", "dave", 1);
+
+      // Simulate a fresh CLI process.
+      _resetState();
+      expect(getStats().totalProposals).toBe(0); // the bug
+      expect(getTreasury().balance).toBe(0);
+
+      const n = loadFromDb(db);
+      // 1 proposal + 1 vote + 1 delegation + 2 treasury txs
+      expect(n).toBe(5);
+
+      const stats = getStats();
+      expect(stats.totalProposals).toBe(1);
+      expect(stats.delegations).toBe(1);
+
+      // Treasury balance is derived: 1000 deposit − 300 allocation = 700.
+      expect(getTreasury().balance).toBe(700);
+      expect(getTreasury().allocations.length).toBe(1);
+
+      // execute previously threw "Proposal not found"; the vote tally (2 for,
+      // 0 against) is restored so it now passes.
+      expect(() => execute(db, p.id)).not.toThrow();
+
+      // Legacy delegate's persisted row is resurfaced as an active V2 record.
+      expect(getActiveDelegations().length).toBe(1);
+    });
+
+    it("fails closed on executeProposalV2 for a rehydrated QUEUED proposal", () => {
+      // queueEnd is not persisted; a null/undefined would let the timelock
+      // check `now < NaN` pass and BYPASS the timelock. The sentinel blocks it.
+      const p = createProposalV2(db, {
+        title: "T",
+        proposerDid: "did:alice",
+      });
+      activateProposal(db, p.id);
+      castVote(db, {
+        proposalId: p.id,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 3,
+      });
+      queueProposal(db, p.id); // persists status = 'queue'
+
+      _resetState();
+      loadFromDb(db);
+      expect(() => executeProposalV2(db, p.id)).toThrow(/Timelock not elapsed/);
+    });
+
+    it("returns 0 on a null db", () => {
+      expect(loadFromDb(null)).toBe(0);
+    });
   });
 
   // ─── ensureDAOv2Tables ──────────────────────────────────────
