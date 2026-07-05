@@ -83,18 +83,21 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
-## 🔧 ConversationView split (post-0.4.44, unreleased) — mechanical refactor
+## ✅ ConversationView split (post-0.4.44, unreleased) — GUI-verified 2026-07-05
 
 ConversationView 1405 → ~1030 lines by extracting three cohesive glue classes
-(zero behavior change intended; published 0.4.44 zip is unaffected):
+(zero behavior change; published 0.4.44 zip was unaffected):
 `ChatTranscript` (JTextPane + styles + markdown snap + TranscriptCap),
 `ChatComposerImages` (paste/drag-drop/📷 indicator; policy stays in pure
 ImageAttachments), `ChatMentionPopups` (`/` + `@` popups + lazy PSI/file
 caches). ConversationView keeps one-line append*() delegates so call sites
 didn't churn. Verified: compileJava clean (zero warnings) + smokeTest 322/0 +
-buildPlugin. **The next publish's runIde pass must re-exercise these three
-areas** (transcript styling/cap, image paste+drop, `/`+`@` popups) since the
-glue moved after 0.4.44's GUI verification.
+buildPlugin, and a **user GUI pass on a real IDEA 2025.3 install (build
+IU-253.28294.334, plugin built from `e3ef95702e`)** covering the three moved
+areas (transcript styling, image paste+drop, `/`+`@` popups) plus the full
+0.4.42–0.4.44 feature sweep — all green, and no 2025.3 compatibility errors
+surfaced (a build newer than the Plugin Verifier's local 2025.2 ceiling).
+**The next publish needs no extra re-verification for the split.**
 
 ## ✅ Drag-drop images + project-memory actions (0.4.44) — runIde-verified + published 2026-07-05
 
