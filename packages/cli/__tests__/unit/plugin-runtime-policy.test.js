@@ -81,6 +81,26 @@ describe("loadManagedPluginPolicy — memoized + fail-closed", () => {
       loadManagedPluginPolicy({ managedSettingsFile: "bad.json" }),
     ).toThrow(/malformed/);
   });
+
+  it("re-throws on repeat calls instead of caching a fail-open sentinel", () => {
+    saved = policyDeps.loadManagedSettings;
+    policyDeps.loadManagedSettings = () => {
+      const e = new Error("malformed");
+      e.code = "CC_MANAGED_SETTINGS_INVALID";
+      throw e;
+    };
+    // First call fails closed (throws)…
+    expect(() =>
+      loadManagedPluginPolicy({ managedSettingsFile: "bad.json" }),
+    ).toThrow(/malformed/);
+    // …and so must the SECOND. Before the fix the failure was cached as a
+    // truthy {__invalid} sentinel and returned without throwing → downstream
+    // treated it as an empty policy and silently bypassed the org's
+    // deny/allow/requireSignedPlugins enforcement (fail-open).
+    expect(() =>
+      loadManagedPluginPolicy({ managedSettingsFile: "bad.json" }),
+    ).toThrow(/malformed/);
+  });
 });
 
 describe("discoverPlugins — managed policy enforced at load", () => {

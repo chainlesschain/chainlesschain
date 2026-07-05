@@ -43,7 +43,15 @@ export function loadManagedPluginPolicy(opts = {}) {
   const key = String(
     opts.managedSettingsFile || env.CC_MANAGED_SETTINGS || "<default>",
   );
-  if (_cache.has(key)) return _cache.get(key);
+  if (_cache.has(key)) {
+    const cached = _cache.get(key);
+    // A cached failure sentinel must re-throw on EVERY call — otherwise the
+    // first call fails closed but later callers get the truthy {__invalid}
+    // object, treat it as an empty policy, and silently bypass the org's
+    // deny/allow/requireSignedPlugins enforcement (fail-open).
+    if (cached && cached.__invalid) throw cached.__invalid;
+    return cached;
+  }
   let settings = null;
   try {
     const loaded = _deps.loadManagedSettings({
