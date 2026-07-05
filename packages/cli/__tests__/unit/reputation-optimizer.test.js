@@ -6,6 +6,7 @@ import {
   DECAY_MODELS,
   ensureReputationTables,
   addObservation,
+  loadFromDb,
   computeScore,
   listScores,
   detectAnomalies,
@@ -427,6 +428,63 @@ describe("reputation-optimizer", () => {
 
     it("throws on unknown runId", () => {
       expect(() => applyOptimizedParams("unknown")).toThrow(/not found/);
+    });
+  });
+
+  describe("loadFromDb — rehydrates observations/runs/analytics", () => {
+    it("makes scores + runs + analytics visible after a fresh process", () => {
+      addObservation(db, "did:key:alice", 0.8);
+      addObservation(db, "did:key:alice", 0.6);
+      addObservation(db, "did:key:bob", 0.4);
+      const run = startOptimization(db, { objective: "accuracy" });
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      expect(computeScore("did:key:alice").observations).toBe(0);
+      expect(listScores()).toHaveLength(0);
+      expect(() => getOptimizationStatus(run.runId)).toThrow(/not found/);
+
+      const loaded = loadFromDb(db);
+      // 2 dids + 1 run + 1 analytics
+      expect(loaded).toBe(4);
+
+      const score = computeScore("did:key:alice");
+      expect(score.observations).toBe(2);
+      expect(score.score).toBeGreaterThan(0);
+      expect(listScores().length).toBe(2);
+
+      const status = getOptimizationStatus(run.runId);
+      expect(status.objective).toBe("accuracy");
+      expect(status.status).toBe("complete");
+      expect(getAnalytics(run.runId)).toBeTruthy();
+      expect(listOptimizationRuns().map((r) => r.runId)).toContain(run.runId);
+    });
+
+    it("survives a corrupt param_space cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO reputation_optimization_runs (run_id, objective, iterations, param_space, best_params, best_score, status, created_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "run-bad",
+        "accuracy",
+        10,
+        "{not json",
+        null,
+        null,
+        "running",
+        1000,
+        null,
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const s = getOptimizationStatus("run-bad");
+      expect(s.paramSpace).toEqual({});
+      expect(s.status).toBe("running");
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

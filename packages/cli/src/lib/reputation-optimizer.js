@@ -509,6 +509,107 @@ export function _resetState() {
   _maxConcurrentOptimizations = DEFAULT_MAX_CONCURRENT_OPTIMIZATIONS;
 }
 
+/**
+ * Rehydrate the in-memory Maps from the persisted reputation_* tables. The CLI
+ * runs each `cc reputation` subcommand in a fresh node process, so
+ * _observations/_runs/_analytics start empty every invocation. Every write
+ * dual-writes (Map + INSERT into reputation_observations/
+ * reputation_optimization_runs/reputation_analytics) but every read
+ * (computeScore/listScores/detectAnomalies/getOptimizationStatus/getAnalytics/
+ * listOptimizationRuns/applyOptimizedParams + the V2 drivers) is Map-only and
+ * nothing SELECTed the tables back — so observed scores read back as 0, `list`/
+ * `runs`/`anomalies` were always empty, and `status`/`complete`/`apply <runId>`
+ * threw "Optimization run not found" for a run that genuinely exists on disk.
+ * Call after ensureReputationTables(db).
+ *
+ * Non-persisted fields default safely: run.history=[] (V1), errorMessage=null.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureReputationTables(db);
+  _observations.clear();
+  _runs.clear();
+  _analytics.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT observation_id, did, score, kind, weight, recorded_at
+         FROM reputation_observations ORDER BY recorded_at ASC`,
+    )
+    .all()) {
+    if (!_observations.has(r.did)) _observations.set(r.did, []);
+    _observations.get(r.did).push({
+      observationId: r.observation_id,
+      did: r.did,
+      score: Number(r.score),
+      kind: r.kind,
+      weight: Number(r.weight),
+      recordedAt: Number(r.recorded_at),
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT run_id, objective, iterations, param_space, best_params, best_score,
+              status, created_at, completed_at
+         FROM reputation_optimization_runs ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt param/params cell must not sink the whole run list.
+    let paramSpace = {};
+    let bestParams = null;
+    try {
+      paramSpace = r.param_space ? JSON.parse(r.param_space) : {};
+    } catch {
+      paramSpace = {};
+    }
+    try {
+      bestParams = r.best_params ? JSON.parse(r.best_params) : null;
+    } catch {
+      bestParams = null;
+    }
+    _runs.set(r.run_id, {
+      runId: r.run_id,
+      objective: r.objective,
+      iterations: Number(r.iterations),
+      paramSpace,
+      bestParams,
+      bestScore: r.best_score == null ? null : Number(r.best_score),
+      errorMessage: null,
+      status: r.status,
+      createdAt: Number(r.created_at),
+      completedAt: r.completed_at == null ? null : Number(r.completed_at),
+      history: [],
+      _seq: ++_seq,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT analytics_id, run_id, reputation_distribution, anomalies, recommendations, created_at
+         FROM reputation_analytics ORDER BY created_at ASC`,
+    )
+    .all()) {
+    const parse = (v, fallback) => {
+      try {
+        return v ? JSON.parse(v) : fallback;
+      } catch {
+        return fallback;
+      }
+    };
+    _analytics.set(r.run_id, {
+      analyticsId: r.analytics_id,
+      runId: r.run_id,
+      reputationDistribution: parse(r.reputation_distribution, {}),
+      anomalies: parse(r.anomalies, []),
+      recommendations: parse(r.recommendations, []),
+      createdAt: Number(r.created_at),
+    });
+  }
+
+  return _observations.size + _runs.size + _analytics.size;
+}
+
 /* ═══════════════════════════════════════════════════════════════
  * V2 (Phase 60) — Frozen enums + async optimization lifecycle +
  * concurrency limiter + patch-merged setRunStatus + stats-v2.

@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureReputationTables,
+  loadFromDb as loadReputationFromDb,
   addObservation,
   computeScore,
   listScores,
@@ -44,6 +45,10 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureReputationTables(db);
+  // Rehydrate the observation/run/analytics Maps from the reputation_* tables —
+  // without this every read is Map-only-empty in the fresh CLI process (scores
+  // read back 0, `status <runId>` throws "Optimization run not found").
+  loadReputationFromDb(db);
   return db;
 }
 
@@ -165,7 +170,11 @@ export function registerReputationCommand(program) {
       "Detection method (z_score|iqr)",
       "z_score",
     )
-    .option("-t, --threshold <n>", "Detection threshold", floatArg("--threshold"))
+    .option(
+      "-t, --threshold <n>",
+      "Detection threshold",
+      floatArg("--threshold"),
+    )
     .option(
       "-d, --decay <model>",
       "Decay model applied before detection",
