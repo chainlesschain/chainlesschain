@@ -72,8 +72,16 @@ import {
 } from "../lib/sso-manager.js";
 
 function _dbFromCtx(cmd) {
-  const root = cmd?.parent?.parent ?? cmd?.parent;
-  return root?._db;
+  // The preAction hook stores the opened db on the `sso` command node, which is
+  // an action subcommand's direct parent. The previous `cmd.parent.parent`
+  // resolved to the ROOT program node (never assigned _db) because that fallback
+  // `?? cmd.parent` never fires for a 3-level tree — so the handle was always
+  // undefined and every db.prepare() crashed. Walk up to the first node carrying
+  // _db instead.
+  for (let node = cmd; node; node = node.parent) {
+    if (node._db) return node._db;
+  }
+  return undefined;
 }
 
 async function _prepare(cmd) {
