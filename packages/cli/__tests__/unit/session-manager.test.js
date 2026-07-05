@@ -250,6 +250,28 @@ describe("session-manager", () => {
       });
     });
 
+    it("survives a corrupt messages/metadata column without throwing", () => {
+      // Regression: getSession bare-parsed session.messages and the string
+      // branch of session.metadata, so a single corrupt (non-JSON, non-empty)
+      // column threw and made the session unloadable — blocking resume of the
+      // user's own session. The sibling listSessions already used safeJsonParse
+      // (asymmetry tell); getSession must fall back the same way.
+      createSession(db, { id: "s1", title: "Corrupt" });
+      const row = (db.data.get("llm_sessions") || []).find(
+        (r) => r.id === "s1",
+      );
+      row.messages = "{not valid json";
+      row.metadata = "also not json";
+
+      let session;
+      expect(() => {
+        session = getSession(db, "s1");
+      }).not.toThrow();
+      expect(session.title).toBe("Corrupt");
+      expect(session.messages).toEqual([]);
+      expect(session.metadata).toEqual({});
+    });
+
     it("finds session by prefix match", () => {
       createSession(db, { id: "session-12345-abcdef", title: "Prefixed" });
       const session = getSession(db, "session-12345");

@@ -259,7 +259,7 @@ export function registerNoteCommand(program) {
               `Category: ${note.category}  Created: ${note.created_at}`,
             ),
           );
-          const tags = JSON.parse(note.tags || "[]");
+          const tags = safeJsonParse(note.tags, []);
           if (tags.length > 0) {
             logger.log(chalk.gray(`Tags: ${tags.join(", ")}`));
           }

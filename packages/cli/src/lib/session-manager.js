@@ -129,10 +129,13 @@ export function getSession(db, sessionId) {
 
   return {
     ...session,
-    messages: JSON.parse(session.messages || "[]"),
+    // A single corrupt (non-JSON, non-empty) column must not make the whole
+    // session unloadable — that would block resume of the user's own data.
+    // Matches the safeJsonParse fallback listSessions already uses.
+    messages: safeJsonParse(session.messages, []),
     metadata:
       typeof session.metadata === "string"
-        ? JSON.parse(session.metadata || "{}")
+        ? safeJsonParse(session.metadata, {})
         : session.metadata || {},
   };
 }
