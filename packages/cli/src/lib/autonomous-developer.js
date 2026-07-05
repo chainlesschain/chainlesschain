@@ -151,6 +151,66 @@ export function ensureAutonomousDevTables(db) {
   );
 }
 
+/**
+ * Rehydrate _sessions/_adrs from the persisted dev_sessions/
+ * architecture_decisions tables. The `cc` CLI runs every command in a fresh
+ * process, so without this the Maps start empty and a session/ADR created in a
+ * prior invocation is invisible (`cc dev list`/`show`/`adrs` show nothing) and
+ * every mutation — recordADR, advancePhase, etc. — throws "Session not found"
+ * against the empty Map. Call after ensureAutonomousDevTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _sessions.clear();
+  _adrs.clear();
+
+  const parse = (v, fallback) => {
+    if (v == null) return fallback;
+    try {
+      return JSON.parse(v);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const sessionRows = db.prepare(`SELECT * FROM dev_sessions`).all();
+  for (const row of sessionRows) {
+    _sessions.set(row.session_id, {
+      sessionId: row.session_id,
+      requirement: row.requirement,
+      currentPhase: row.current_phase,
+      status: row.status,
+      autonomyLevel: row.autonomy_level ?? 2,
+      codeChanges: parse(row.code_changes, []),
+      testResults: parse(row.test_results, null),
+      reviewFeedback: parse(row.review_feedback, null),
+      startedAt: row.started_at,
+      completedAt: row.completed_at ?? null,
+      createdBy: row.created_by ?? null,
+      updatedAt: row.updated_at,
+      _seq: ++_seq,
+    });
+  }
+
+  const adrRows = db.prepare(`SELECT * FROM architecture_decisions`).all();
+  for (const row of adrRows) {
+    _adrs.set(row.adr_id, {
+      adrId: row.adr_id,
+      sessionId: row.session_id,
+      title: row.title,
+      context: row.context,
+      decision: row.decision,
+      consequences: row.consequences ?? "",
+      alternatives: parse(row.alternatives, []),
+      status: row.status,
+      createdAt: row.created_at,
+      _seq: ++_seq,
+    });
+  }
+
+  return _sessions.size + _adrs.size;
+}
+
 /* ── Catalogs ──────────────────────────────────────────────── */
 
 export function listAutonomyLevels() {

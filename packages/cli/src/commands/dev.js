@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureAutonomousDevTables,
+  loadFromDb,
   listAutonomyLevels,
   listPhases,
   listRefactoringTypes,
@@ -73,6 +74,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureAutonomousDevTables(db);
+  loadFromDb(db);
   return db;
 }
 

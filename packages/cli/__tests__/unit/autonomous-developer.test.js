@@ -10,6 +10,7 @@ import path from "path";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureAutonomousDevTables,
+  loadFromDb,
   listAutonomyLevels,
   listPhases,
   listRefactoringTypes,
@@ -901,6 +902,69 @@ describe("autonomous-developer V2", () => {
       expect(s.totalAdrsV2).toBe(1);
       expect(s.adrsByStatus.draft).toBe(1);
       expect(s.sessionsByStatus.running).toBe(1);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    beforeEach(() => {
+      _resetState();
+      db = new MockDatabase();
+      ensureAutonomousDevTables(db);
+    });
+
+    it("makes sessions + ADRs visible after a fresh process", () => {
+      const s = startDevSession(db, {
+        requirement: "Build a login page",
+        autonomyLevel: 3,
+      });
+      recordADR(db, {
+        sessionId: s.sessionId,
+        title: "Use JWT",
+        context: "need stateless auth",
+        decision: "adopt JWT",
+        alternatives: ["sessions", "oauth"],
+      });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listSessions()).toEqual([]);
+      expect(getSession(s.sessionId)).toBeNull();
+
+      loadFromDb(db);
+
+      const sessions = listSessions();
+      expect(sessions.length).toBe(1);
+      expect(sessions[0].sessionId).toBe(s.sessionId);
+      expect(sessions[0].autonomyLevel).toBe(3);
+      expect(sessions[0].codeChanges).toEqual([]); // JSON rehydrated
+
+      const adrs = listADRs({ sessionId: s.sessionId });
+      expect(adrs.length).toBe(1);
+      expect(adrs[0].title).toBe("Use JWT");
+      expect(adrs[0].alternatives).toEqual(["sessions", "oauth"]);
+
+      // recordADR against a persisted session no longer throws "not found"
+      expect(() =>
+        recordADR(db, {
+          sessionId: s.sessionId,
+          title: "T2",
+          context: "c",
+          decision: "d",
+        }),
+      ).not.toThrow();
+    });
+
+    it("survives a corrupt code_changes cell (per-row JSON guard)", () => {
+      const s = startDevSession(db, { requirement: "R" });
+      const rows = db.data.get("dev_sessions") || [];
+      rows[0].code_changes = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const got = getSession(s.sessionId);
+      expect(got).not.toBeNull();
+      expect(got.codeChanges).toEqual([]); // guarded fallback
     });
   });
 });
