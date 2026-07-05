@@ -61,6 +61,36 @@ import {
   readWorkflowSession,
 } from "../lib/workflow-state-reader.js";
 
+// DB sessions store `updated_at` as SQLite datetime('now') → "YYYY-MM-DD
+// HH:MM:SS" (UTC, space at index 10); JSONL sessions store toISOString() →
+// "YYYY-MM-DDTHH:MM:SS.sssZ" (UTC, 'T' at index 10). Both are UTC, so normalize
+// the space form to ISO-UTC and compare as epochs — a raw string compare
+// resolves at index 10 ('T' 0x54 > ' ' 0x20) and would rank every JSONL session
+// as newer than any same-date DB session regardless of the actual time.
+function _sessionEpoch(ts) {
+  if (typeof ts !== "string" || !ts) return 0;
+  const iso =
+    ts.includes(" ") && !ts.includes("T") ? ts.replace(" ", "T") + "Z" : ts;
+  const n = Date.parse(iso);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function rankSessions(sessions, limit) {
+  // Dedup by id, preferring the JSONL copy when a session exists in both stores
+  // (the original "JSONL takes precedence" intent, previously achieved only as
+  // a side effect of the buggy lexicographic sort). Then rank by real time.
+  const byId = new Map();
+  for (const s of sessions) {
+    const prev = byId.get(s.id);
+    if (!prev || (s._store === "jsonl" && prev._store !== "jsonl")) {
+      byId.set(s.id, s);
+    }
+  }
+  return [...byId.values()]
+    .sort((a, b) => _sessionEpoch(b.updated_at) - _sessionEpoch(a.updated_at))
+    .slice(0, limit);
+}
+
 export function registerSessionCommand(program) {
   const session = program
     .command("session")
@@ -98,16 +128,8 @@ export function registerSessionCommand(program) {
           );
         }
 
-        // Deduplicate by id (JSONL takes precedence), sort by updated_at
-        const seen = new Set();
-        sessions = sessions
-          .sort((a, b) => (b.updated_at > a.updated_at ? 1 : -1))
-          .filter((s) => {
-            if (seen.has(s.id)) return false;
-            seen.add(s.id);
-            return true;
-          })
-          .slice(0, limit);
+        // Deduplicate by id (JSONL takes precedence) and rank by real time.
+        sessions = rankSessions(sessions, limit);
 
         if (options.json) {
           console.log(JSON.stringify(sessions, null, 2));
