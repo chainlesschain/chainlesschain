@@ -163,16 +163,29 @@ export function setDefaultIdentity(db, did) {
   const identity = getIdentity(db, did);
   if (!identity) return false;
 
-  // Clear the current default(s). Match on is_default rather than `did LIKE '%'`
-  // so there's no wildcard pattern here that a reader/scanner could mistake for
-  // LIKE-injection — the target below is set via exact `did = ?` regardless.
-  db.prepare(
-    "UPDATE did_identities SET is_default = 0 WHERE is_default = 1",
-  ).run();
-  db.prepare("UPDATE did_identities SET is_default = ? WHERE did = ?").run(
-    1,
-    identity.did,
-  );
+  // Clear the current default(s) then set the new one atomically. Match on
+  // is_default rather than `did LIKE '%'` so there's no wildcard pattern here
+  // that a reader/scanner could mistake for LIKE-injection — the target below
+  // is set via exact `did = ?` regardless.
+  //
+  // The two UPDATEs must both land: without a transaction, a failure on the
+  // second leaves EVERY identity non-default (the default DID silently
+  // disappears until manually re-set), breaking the exactly-one-default
+  // invariant.
+  const applyWrites = () => {
+    db.prepare(
+      "UPDATE did_identities SET is_default = 0 WHERE is_default = 1",
+    ).run();
+    db.prepare("UPDATE did_identities SET is_default = ? WHERE did = ?").run(
+      1,
+      identity.did,
+    );
+  };
+  if (db && typeof db.transaction === "function") {
+    db.transaction(applyWrites)();
+  } else {
+    applyWrites();
+  }
   return true;
 }
 
