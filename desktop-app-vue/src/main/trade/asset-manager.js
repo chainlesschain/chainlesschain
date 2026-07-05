@@ -342,38 +342,48 @@ class AssetManager extends EventEmitter {
       const now = Date.now();
       const transferId = uuidv4();
 
-      // 更新总供应量
-      db.prepare(
-        "UPDATE assets SET total_supply = total_supply + ? WHERE id = ?",
-      ).run(amount, assetId);
+      // 增发的三笔写入（总供应量 / 持有记录 / 流水）必须原子：否则 total_supply
+      // 已增但持有未入账 = 供应量与持有总和不守恒（凭空多出无人持有的量）。
+      // 纯同步块，包进事务；MockDatabase 无 .transaction 时顺序执行。
+      const applyMint = () => {
+        // 更新总供应量
+        db.prepare(
+          "UPDATE assets SET total_supply = total_supply + ? WHERE id = ?",
+        ).run(amount, assetId);
 
-      // 更新持有记录
-      db.prepare(
-        `
+        // 更新持有记录
+        db.prepare(
+          `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = amount + ?,
           updated_at = ?
       `,
-      ).run(assetId, toDid, amount, now, now, amount, now);
+        ).run(assetId, toDid, amount, now, now, amount, now);
 
-      // 记录转账
-      db.prepare(
-        `
+        // 记录转账
+        db.prepare(
+          `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      ).run(
-        transferId,
-        assetId,
-        "SYSTEM",
-        toDid,
-        amount,
-        TransactionType.MINT,
-        now,
-      );
+        ).run(
+          transferId,
+          assetId,
+          "SYSTEM",
+          toDid,
+          amount,
+          TransactionType.MINT,
+          now,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyMint)();
+      } else {
+        applyMint();
+      }
 
       logger.info("[AssetManager] 已铸造资产:", assetId, amount);
 
@@ -662,36 +672,46 @@ class AssetManager extends EventEmitter {
       const now = Date.now();
       const transferId = uuidv4();
 
-      // 扣除余额
-      db.prepare(
-        `
+      // 销毁的三笔写入（扣持有 / 减总供应量 / 流水）必须原子：否则持有已扣但
+      // 供应量未减 = 持有者损失代币而供应量虚高，两账不守恒。纯同步块，包进事务；
+      // MockDatabase 无 .transaction 时顺序执行。
+      const applyBurn = () => {
+        // 扣除余额
+        db.prepare(
+          `
         UPDATE asset_holdings
         SET amount = amount - ?, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
       `,
-      ).run(amount, now, assetId, currentDid);
+        ).run(amount, now, assetId, currentDid);
 
-      // 更新总供应量
-      db.prepare(
-        "UPDATE assets SET total_supply = total_supply - ? WHERE id = ?",
-      ).run(amount, assetId);
+        // 更新总供应量
+        db.prepare(
+          "UPDATE assets SET total_supply = total_supply - ? WHERE id = ?",
+        ).run(amount, assetId);
 
-      // 记录转账
-      db.prepare(
-        `
+        // 记录转账
+        db.prepare(
+          `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      ).run(
-        transferId,
-        assetId,
-        currentDid,
-        "BURNED",
-        amount,
-        TransactionType.BURN,
-        now,
-      );
+        ).run(
+          transferId,
+          assetId,
+          currentDid,
+          "BURNED",
+          amount,
+          TransactionType.BURN,
+          now,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyBurn)();
+      } else {
+        applyBurn();
+      }
 
       logger.info("[AssetManager] 已销毁资产:", assetId, amount);
 
@@ -826,43 +846,53 @@ class AssetManager extends EventEmitter {
       const now = Date.now();
       const transferId = uuidv4();
 
-      // 扣除发送者余额
-      db.prepare(
-        `
+      // 链上转账已在上方 await 完成，以下三笔本地写入（清零发送者 / 置接收者为 1 /
+      // 流水）必须原子：否则发送者已清零但接收者未入账 = NFT 本地记录凭空消失。
+      // 纯同步块，包进事务；MockDatabase 无 .transaction 时顺序执行。
+      const applyNftTransfer = () => {
+        // 扣除发送者余额
+        db.prepare(
+          `
         UPDATE asset_holdings
         SET amount = 0, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
       `,
-      ).run(now, assetId, currentDid);
+        ).run(now, assetId, currentDid);
 
-      // 增加接收者余额
-      db.prepare(
-        `
+        // 增加接收者余额
+        db.prepare(
+          `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, 1, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = 1,
           updated_at = ?
       `,
-      ).run(assetId, toDid, now, now, now);
+        ).run(assetId, toDid, now, now, now);
 
-      // 记录转账（包含链上交易哈希）
-      db.prepare(
-        `
+        // 记录转账（包含链上交易哈希）
+        db.prepare(
+          `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
       `,
-      ).run(
-        transferId,
-        assetId,
-        currentDid,
-        toDid,
-        TransactionType.TRANSFER,
-        blockchainTxHash,
-        memo,
-        now,
-      );
+        ).run(
+          transferId,
+          assetId,
+          currentDid,
+          toDid,
+          TransactionType.TRANSFER,
+          blockchainTxHash,
+          memo,
+          now,
+        );
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applyNftTransfer)();
+      } else {
+        applyNftTransfer();
+      }
 
       logger.info("[AssetManager] NFT 本地记录已更新");
 
