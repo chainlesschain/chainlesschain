@@ -9,6 +9,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSCIMTables,
+  loadFromDb as loadScimFromDb,
   listUsers,
   createUser,
   getUser,
@@ -73,6 +74,7 @@ export function registerScimCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
+        loadScimFromDb(db);
 
         const result = listUsers();
         if (options.json) {
@@ -108,6 +110,7 @@ export function registerScimCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
+        loadScimFromDb(db);
 
         const user = createUser(db, username, options.name, options.email);
         logger.success("User created");
@@ -134,6 +137,7 @@ export function registerScimCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
+        loadScimFromDb(db);
 
         const user = getUser(userId);
         if (!user) {
@@ -168,6 +172,7 @@ export function registerScimCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
+        loadScimFromDb(db);
 
         deleteUser(db, userId);
         logger.success(`User ${chalk.cyan(userId.slice(0, 8))} deleted`);
@@ -216,6 +221,7 @@ export function registerScimCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
+        loadScimFromDb(db);
 
         const result = syncProvision(db, connectorId);
         logger.success(`Sync completed via ${chalk.cyan(result.connector)}`);

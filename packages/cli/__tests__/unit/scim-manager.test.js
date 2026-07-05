@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureSCIMTables,
+  loadFromDb,
   listUsers,
   createUser,
   getUser,
@@ -176,6 +177,45 @@ describe("scim-manager", () => {
       expect(s.connectors).toBe(1);
       expect(s.syncOperations).toBe(1);
       expect(s.lastSync).toBeDefined();
+    });
+  });
+
+  describe("loadFromDb — rehydrates _users from scim_resources", () => {
+    it("makes a provisioned user visible / deletable after a fresh process", () => {
+      const u = createUser(db, "alice", "Alice Smith", "alice@example.com");
+
+      // Simulate the next one-shot CLI invocation: Map wiped, DB persists.
+      _resetState();
+      expect(listUsers().totalResults).toBe(0);
+      expect(getUser(u.id)).toBeNull();
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBe(1);
+
+      const back = getUser(u.id);
+      expect(back).not.toBeNull();
+      expect(back.userName).toBe("alice");
+      expect(back.displayName).toBe("Alice Smith");
+      expect(back.email).toBe("alice@example.com");
+      expect(back.active).toBe(true); // INTEGER 1 → boolean
+
+      // deleteUser (which reads the Map first, then throws before its DELETE)
+      // now finds the rehydrated user and actually removes the row.
+      expect(() => deleteUser(db, u.id)).not.toThrow();
+      expect(
+        db.prepare("SELECT * FROM scim_resources WHERE id = ?").get(u.id),
+      ).toBeFalsy();
+    });
+
+    it("rehydrated state makes the duplicate-userName guard effective", () => {
+      createUser(db, "bob");
+      _resetState();
+      loadFromDb(db);
+      expect(() => createUser(db, "bob")).toThrow("User already exists");
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

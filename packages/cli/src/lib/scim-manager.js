@@ -211,6 +211,42 @@ export function _resetState() {
   _syncLog.length = 0;
 }
 
+/**
+ * Rehydrate the in-memory _users Map from the persisted scim_resources table.
+ * The CLI runs each `cc scim` subcommand in a fresh node process, so _users
+ * starts empty every invocation. createUser dual-writes (Map + INSERT INTO
+ * scim_resources) but listUsers/getUser/deleteUser/getStatus are Map-only and
+ * nothing SELECTed the table back — so a provisioned user was invisible next
+ * invocation (`No SCIM users.` / `User not found`), and deleteUser threw before
+ * its DELETE ran, orphaning rows with no CLI path to remove them. The duplicate
+ * check in createUser was also blind, allowing duplicate userNames on disk.
+ * Call after ensureSCIMTables(db).
+ *
+ * Mirrors the write-side shape exactly (active INTEGER→boolean).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureSCIMTables(db);
+  _users.clear();
+  for (const r of db
+    .prepare(
+      `SELECT id, display_name, user_name, email, active, created_at, updated_at
+         FROM scim_resources WHERE resource_type = 'User' ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _users.set(r.id, {
+      id: r.id,
+      userName: r.user_name,
+      displayName: r.display_name || r.user_name,
+      email: r.email || null,
+      active: !!r.active,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    });
+  }
+  return _users.size;
+}
+
 /* ═══════════════════════════════════════════════════════════════
  * V2 Surface — SCIM provisioning lifecycle layer.
  * Tracks identities and sync-job lifecycle independent of legacy
