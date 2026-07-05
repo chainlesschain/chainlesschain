@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import Database from "better-sqlite3";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensurePluginTables,
@@ -294,5 +295,52 @@ describe("Plugin Manager", () => {
       expect(summary.installed).toBe(0);
       expect(summary.enabled).toBe(0);
     });
+  });
+});
+
+// The MockDatabase's LIKE handling converts % → .* unconditionally and ignores
+// ESCAPE, so it cannot demonstrate literal-metacharacter matching. Use a real
+// in-memory SQLite for the LIKE-escape regression, matching the production path.
+describe("searchRegistry — literal LIKE metacharacter escaping (real SQLite)", () => {
+  let db;
+
+  beforeEach(() => {
+    db = new Database(":memory:");
+    ensurePluginTables(db);
+    registerInMarketplace(db, {
+      name: "ai-assistant",
+      latestVersion: "1.0.0",
+      description: "helper",
+    });
+    registerInMarketplace(db, {
+      name: "theme-dark",
+      latestVersion: "1.0.0",
+      description: "a dark theme",
+    });
+  });
+
+  afterEach(() => {
+    try {
+      db?.close();
+    } catch {
+      /* best-effort */
+    }
+  });
+
+  it("treats a literal '%' as text, not a wildcard (no match-all)", () => {
+    // No plugin name/description contains a literal '%', so this must match none.
+    // With an unescaped LIKE the pattern becomes '%%%' and matches EVERY row.
+    expect(searchRegistry(db, "%")).toHaveLength(0);
+  });
+
+  it("treats a literal '_' as text, not a single-char wildcard", () => {
+    // '_' matches any single char in LIKE; unescaped, "the_e" would match
+    // "theme". Neither seeded name contains a literal underscore → 0 matches.
+    expect(searchRegistry(db, "the_e")).toHaveLength(0);
+  });
+
+  it("still matches ordinary substrings", () => {
+    expect(searchRegistry(db, "ai").length).toBeGreaterThanOrEqual(1);
+    expect(searchRegistry(db, "dark").length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -11,6 +11,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { getElectronUserDataDir } from "../lib/paths.js";
+import { escapeLike } from "../lib/sql-like.js";
 
 /**
  * Ensure plugin tables exist.
@@ -288,11 +289,15 @@ export function registerInMarketplace(db, pluginInfo) {
  */
 export function searchRegistry(db, query) {
   ensurePluginTables(db);
+  // Escape LIKE metacharacters so a query containing % or _ is matched
+  // literally — otherwise `cc plugin search "%"` (or any term with _) is treated
+  // as a wildcard and matches EVERY registry row instead of the intended text.
+  const pattern = `%${escapeLike(query)}%`;
   return db
     .prepare(
-      "SELECT * FROM plugin_registry WHERE name LIKE ? OR description LIKE ? ORDER BY downloads DESC",
+      "SELECT * FROM plugin_registry WHERE name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' ORDER BY downloads DESC",
     )
-    .all(`%${query}%`, `%${query}%`);
+    .all(pattern, pattern);
 }
 
 /**
@@ -352,7 +357,11 @@ export function installPluginSkills(db, pluginName, pluginPath, skills) {
   const installed = [];
 
   for (const skill of skills) {
-    if (!skill || typeof skill.name !== "string" || typeof skill.path !== "string") {
+    if (
+      !skill ||
+      typeof skill.name !== "string" ||
+      typeof skill.path !== "string"
+    ) {
       continue;
     }
     const srcDir = path.resolve(pluginPath, skill.path);
@@ -363,7 +372,10 @@ export function installPluginSkills(db, pluginName, pluginPath, skills) {
     if (!fs.existsSync(srcDir)) continue;
 
     const destDir = path.join(marketplaceDir, skill.name);
-    if (!_isWithin(marketplaceDir, destDir) || path.resolve(destDir) === path.resolve(marketplaceDir)) {
+    if (
+      !_isWithin(marketplaceDir, destDir) ||
+      path.resolve(destDir) === path.resolve(marketplaceDir)
+    ) {
       continue;
     }
     fs.mkdirSync(destDir, { recursive: true });
