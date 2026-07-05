@@ -10,6 +10,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTokenTables,
+  loadFromDb as loadIncentiveFromDb,
   listContributionTypes,
   listTxTypes,
   getBalance,
@@ -57,6 +58,10 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureTokenTables(db);
+  // Rehydrate the ledger Maps from the token_* tables — without this every read
+  // is Map-only-empty in the fresh CLI process, and worse, _ensureAccount would
+  // clobber the persisted balance back to 0 via INSERT OR REPLACE.
+  loadIncentiveFromDb(db);
   return db;
 }
 

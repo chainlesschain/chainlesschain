@@ -512,6 +512,94 @@ export function _resetState() {
   _seq = 0;
 }
 
+/**
+ * Rehydrate the in-memory ledger Maps from the persisted token_* tables. The CLI
+ * runs each `cc incentive` subcommand in a fresh node process, so these
+ * module-level Maps start empty every invocation. Every write dual-writes (Map +
+ * INSERT into token_accounts/token_transactions/contributions) but every read
+ * (getBalance/listAccounts/getTransactionHistory/getContributions/
+ * getLeaderboard) is Map-only and nothing SELECTed the tables back.
+ *
+ * This is worse than mere invisibility: `_ensureAccount` does `_accounts.get`
+ * (miss on a cold Map) → creates balance 0 → `_persistAccount` INSERT OR REPLACE,
+ * so a second process minting/rewarding an existing account CLOBBERS the
+ * persisted balance to 0 before applying its delta — balances never accumulate
+ * and transfers fail with "Insufficient balance: 0". Call after
+ * ensureTokenTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureTokenTables(db);
+  _accounts.clear();
+  _transactions.clear();
+  _contributions.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT id, account_id, balance, total_earned, total_spent, created_at, updated_at
+         FROM token_accounts ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _accounts.set(r.account_id, {
+      id: r.id,
+      accountId: r.account_id,
+      balance: Number(r.balance) || 0,
+      totalEarned: Number(r.total_earned) || 0,
+      totalSpent: Number(r.total_spent) || 0,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      _seq: ++_seq,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, from_account, to_account, amount, reason, type, created_at
+         FROM token_transactions ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _transactions.set(r.id, {
+      id: r.id,
+      fromAccount: r.from_account ?? null,
+      toAccount: r.to_account ?? null,
+      amount: Number(r.amount),
+      reason: r.reason ?? null,
+      type: r.type,
+      createdAt: Number(r.created_at),
+      _seq: ++_seq,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, user_id, type, value, metadata, rewarded, reward_amount, tx_id, created_at
+         FROM contributions ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt metadata cell must not sink the whole ledger load.
+    let metadata = null;
+    try {
+      metadata = r.metadata ? JSON.parse(r.metadata) : null;
+    } catch {
+      metadata = null;
+    }
+    _contributions.set(r.id, {
+      id: r.id,
+      userId: r.user_id,
+      type: r.type,
+      value: Number(r.value) || 0,
+      metadata,
+      rewarded: !!r.rewarded,
+      rewardAmount: Number(r.reward_amount) || 0,
+      txId: r.tx_id ?? null,
+      createdAt: Number(r.created_at),
+      _seq: ++_seq,
+    });
+  }
+
+  return _accounts.size + _transactions.size + _contributions.size;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Phase 66 V2 — Account + Claim lifecycle, per-user claim cap
 // ═══════════════════════════════════════════════════════════════

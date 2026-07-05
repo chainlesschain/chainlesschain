@@ -16,6 +16,7 @@ import {
   getTransactionHistory,
   calculateReward,
   recordContribution,
+  loadFromDb,
   rewardContribution,
   getContributions,
   getLeaderboard,
@@ -601,6 +602,78 @@ describe("token-incentive", () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].totalReward).toBe(0);
       expect(rows[0].contributions).toBe(1);
+    });
+  });
+
+  /* ── Cross-process hydration (loadFromDb) ──────────────────── */
+
+  describe("loadFromDb — rehydrates ledger Maps from token_* tables", () => {
+    it("makes balances + transactions + contributions visible after a fresh process", () => {
+      mint(db, { to: "alice", amount: 100, reason: "grant" });
+      recordContribution(db, {
+        userId: "alice",
+        type: "code_contribution",
+        value: 2,
+        metadata: { repo: "x" },
+        autoReward: true,
+      });
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      expect(getBalance("alice")).toBeNull();
+      expect(listAccounts()).toHaveLength(0);
+      expect(getTransactionHistory()).toHaveLength(0);
+      expect(getContributions()).toHaveLength(0);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBeGreaterThanOrEqual(3); // account + mint tx + contribution (+ reward tx)
+
+      const acct = getBalance("alice");
+      expect(acct).not.toBeNull();
+      expect(acct.balance).toBeGreaterThanOrEqual(100);
+      const contribs = getContributions({ userId: "alice" });
+      expect(contribs).toHaveLength(1);
+      expect(contribs[0].metadata).toEqual({ repo: "x" });
+      expect(contribs[0].rewarded).toBe(true);
+    });
+
+    it("does not clobber a persisted balance on the next mint (no INSERT-OR-REPLACE reset to 0)", () => {
+      mint(db, { to: "alice", amount: 100 });
+
+      // Fresh process: without rehydration, _ensureAccount would recreate alice
+      // at balance 0 and INSERT OR REPLACE it, losing the persisted 100.
+      _resetState();
+      loadFromDb(db);
+      mint(db, { to: "alice", amount: 50 });
+
+      expect(getBalance("alice").balance).toBe(150); // accumulates, not 50
+    });
+
+    it("survives a corrupt metadata cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO contributions (id, user_id, type, value, metadata, rewarded, reward_amount, tx_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "c-bad",
+        "bob",
+        "code_contribution",
+        1,
+        "{not json",
+        0,
+        0,
+        null,
+        1000,
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const c = getContributions({ userId: "bob" });
+      expect(c).toHaveLength(1);
+      expect(c[0].metadata).toBeNull();
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });
