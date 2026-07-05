@@ -324,16 +324,12 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
         ideResult: ide.result,
       };
     }
-    const confirm = context.permissionConfirm || context.shellConfirm || null;
-    const ok =
-      typeof confirm === "function"
-        ? await confirm({
-            tool: name,
-            args,
-            rule: `hook:${outcome.hook}`,
-            reason: outcome.reason || "a PreToolUse hook requests confirmation",
-          })
-        : false;
+    const ok = await requestInteractivePermission(name, args, context, cwd, {
+      tool: name,
+      args,
+      rule: `hook:${outcome.hook}`,
+      reason: outcome.reason || "a PreToolUse hook requests confirmation",
+    });
     return ok
       ? { blocked: false }
       : {
@@ -343,6 +339,87 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
         };
   }
   return { blocked: false };
+}
+
+/**
+ * Run settings.json `PermissionRequest` hooks (Claude-Code parity). Fires at the
+ * exact moment a tool call would prompt the user for approval — BEFORE the
+ * prompt — so a policy hook can auto-approve (`allow`/`approve`), auto-reject
+ * (`deny`/`block`), or defer (`ask` / no decision) to the normal prompt.
+ * Returns `{ decision: "allow" | "deny" | null }`. No matching hook (or no
+ * `settingsHooks`) → `{ decision: null }` and the caller prompts exactly as
+ * before (default behaviour is byte-for-byte unchanged).
+ * @returns {{decision:("allow"|"deny"|null), reason?:string, hook?:string}}
+ */
+function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
+  const matched = collectHooks(
+    context.settingsHooks,
+    "PermissionRequest",
+    name,
+  );
+  if (!matched || matched.length === 0) return { decision: null };
+  const payload = {
+    hook_event_name: "PermissionRequest",
+    tool_name: umbrellaFor(name),
+    raw_tool_name: name,
+    tool_input: args,
+    permission_reason: reason || null,
+    cwd,
+    session_id: context.sessionId || null,
+  };
+  const outcome = runCommandHooks(matched, payload, {
+    cwd,
+    event: "PermissionRequest",
+  });
+  // Precedence: deny > ask > allow > defer. The runner normalizes deny/block →
+  // "block" and short-circuits block/ask, but it COLLAPSES an "allow" into the
+  // aggregate "continue" (it only short-circuits block/ask) — so an explicit
+  // auto-approve must be recovered from the per-hook `results`. A deny or ask
+  // by any hook still wins over an allow (safety: never let an allow override a
+  // gate that another hook wanted to block or prompt for).
+  if (outcome.decision === "block") {
+    return { decision: "deny", reason: outcome.reason, hook: outcome.hook };
+  }
+  if (outcome.decision === "ask") {
+    return { decision: null }; // a hook asked → defer to the confirmer
+  }
+  const allowHook =
+    outcome.decision === "allow"
+      ? { command: outcome.hook }
+      : (outcome.results || []).find((r) => r && r.decision === "allow");
+  if (allowHook) {
+    return { decision: "allow", hook: allowHook.command || null };
+  }
+  return { decision: null }; // no actionable decision → defer to the confirmer
+}
+
+/**
+ * Resolve an interactive permission gate. Gives `PermissionRequest` hooks first
+ * say (auto-allow → true without prompting, auto-deny → false without
+ * prompting), then falls back to the injected confirmer with the identical
+ * arguments the call site would have passed. When no `PermissionRequest` hook
+ * matches this is byte-for-byte the previous `confirm(confirmArgs)` call, so
+ * every existing permission gate keeps its exact behaviour absent a hook.
+ * @returns {Promise<boolean>}
+ */
+async function requestInteractivePermission(
+  name,
+  args,
+  context,
+  cwd,
+  confirmArgs,
+) {
+  const verdict = runSettingsPermissionRequestHooks(
+    name,
+    args,
+    context,
+    cwd,
+    confirmArgs?.reason,
+  );
+  if (verdict.decision === "allow") return true;
+  if (verdict.decision === "deny") return false;
+  const confirm = context.permissionConfirm || context.shellConfirm || null;
+  return typeof confirm === "function" ? await confirm(confirmArgs) : false;
 }
 
 // ─── Tool definitions ────────────────────────────────────────────────────
@@ -1082,16 +1159,12 @@ export async function executeTool(name, args, context = {}) {
       source: "settings rule",
     });
     if (ide) return ide.result;
-    const confirm = context.permissionConfirm || context.shellConfirm || null;
-    const ok =
-      typeof confirm === "function"
-        ? await confirm({
-            tool: name,
-            args,
-            rule: settingsVerdict.rule,
-            reason: `settings rule ${settingsVerdict.rule} requires confirmation`,
-          })
-        : false;
+    const ok = await requestInteractivePermission(name, args, context, cwd, {
+      tool: name,
+      args,
+      rule: settingsVerdict.rule,
+      reason: `settings rule ${settingsVerdict.rule} requires confirmation`,
+    });
     if (!ok) {
       return {
         error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${settingsVerdict.rule}) but this run is non-interactive — denied. Do not retry; tell the user this action needs their approval.`,
@@ -1123,16 +1196,12 @@ export async function executeTool(name, args, context = {}) {
       await import("../lib/sensitive-file-guard.js");
     const sensReason = sensitiveFileReason(args.path);
     if (sensReason) {
-      const confirm = context.permissionConfirm || context.shellConfirm || null;
-      const ok =
-        typeof confirm === "function"
-          ? await confirm({
-              tool: name,
-              args,
-              rule: null,
-              reason: `sensitive file: ${sensReason}`,
-            })
-          : false;
+      const ok = await requestInteractivePermission(name, args, context, cwd, {
+        tool: name,
+        args,
+        rule: null,
+        reason: `sensitive file: ${sensReason}`,
+      });
       if (!ok) {
         return {
           error: `[Sensitive File] Writing "${args.path}" requires confirmation (${sensReason}) — denied. Add a settings allow rule to pre-authorize.`,
@@ -1155,16 +1224,12 @@ export async function executeTool(name, args, context = {}) {
     !planManager.isActive() &&
     isDangerousGitCommand(args?.command)
   ) {
-    const confirm = context.permissionConfirm || context.shellConfirm || null;
-    const ok =
-      typeof confirm === "function"
-        ? await confirm({
-            tool: name,
-            args,
-            rule: null,
-            reason: `destructive git command: git ${normalizeGitCommand(args.command)}`,
-          })
-        : false;
+    const ok = await requestInteractivePermission(name, args, context, cwd, {
+      tool: name,
+      args,
+      rule: null,
+      reason: `destructive git command: git ${normalizeGitCommand(args.command)}`,
+    });
     if (!ok) {
       return {
         error: `[Destructive Git] "git ${normalizeGitCommand(args.command)}" discards work irrecoverably and requires confirmation — denied. Add a settings allow rule to pre-authorize.`,
@@ -1199,17 +1264,18 @@ export async function executeTool(name, args, context = {}) {
         credReason = hit ? hit.reason : null;
       }
       if (credReason) {
-        const confirm =
-          context.permissionConfirm || context.shellConfirm || null;
-        const ok =
-          typeof confirm === "function"
-            ? await confirm({
-                tool: name,
-                args,
-                rule: null,
-                reason: `credential access: ${credReason}`,
-              })
-            : false;
+        const ok = await requestInteractivePermission(
+          name,
+          args,
+          context,
+          cwd,
+          {
+            tool: name,
+            args,
+            rule: null,
+            reason: `credential access: ${credReason}`,
+          },
+        );
         if (!ok) {
           const what =
             name === "read_file" ? `Reading "${args.path}"` : "This command";

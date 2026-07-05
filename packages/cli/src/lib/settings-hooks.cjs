@@ -48,6 +48,7 @@ const HOOK_EVENTS = Object.freeze([
   "ConfigChange",
   "PreCompact",
   "Notification",
+  "PermissionRequest",
 ]);
 
 /**
