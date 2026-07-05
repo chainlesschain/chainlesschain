@@ -457,28 +457,59 @@ export function rewardContribution(db, contributionId, opts = {}) {
 
   const now = Number(opts.now ?? Date.now());
   const account = _ensureAccount(db, contribution.userId, now);
+
+  // Credit the account, record the ledger row and mark the contribution
+  // rewarded atomically. A partial failure would otherwise credit the balance
+  // without flipping `rewarded`, letting the same contribution be rewarded
+  // again after the next re-hydrate (double-reward).
+  const acctSnap = {
+    balance: account.balance,
+    totalEarned: account.totalEarned,
+    updatedAt: account.updatedAt,
+  };
+  const contribSnap = {
+    rewarded: contribution.rewarded,
+    rewardAmount: contribution.rewardAmount,
+    txId: contribution.txId,
+  };
+
   account.balance += amount;
   account.totalEarned += amount;
   account.updatedAt = now;
-  _persistAccount(db, account);
 
-  const tx = _recordTransaction(db, {
-    from: null,
-    to: contribution.userId,
-    amount,
-    reason: `contribution:${contribution.type}:${contributionId.slice(0, 8)}`,
-    type: TX_TYPES.REWARD,
-    now,
-  });
+  let tx;
+  const applyWrites = () => {
+    _persistAccount(db, account);
+    tx = _recordTransaction(db, {
+      from: null,
+      to: contribution.userId,
+      amount,
+      reason: `contribution:${contribution.type}:${contributionId.slice(0, 8)}`,
+      type: TX_TYPES.REWARD,
+      now,
+    });
+    contribution.rewarded = true;
+    contribution.rewardAmount = amount;
+    contribution.txId = tx.id;
+    if (db) {
+      db.prepare(
+        `UPDATE contributions SET rewarded = ?, reward_amount = ?, tx_id = ? WHERE id = ?`,
+      ).run(1, amount, tx.id, contributionId);
+    }
+  };
 
-  contribution.rewarded = true;
-  contribution.rewardAmount = amount;
-  contribution.txId = tx.id;
-
-  if (db) {
-    db.prepare(
-      `UPDATE contributions SET rewarded = ?, reward_amount = ?, tx_id = ? WHERE id = ?`,
-    ).run(1, amount, tx.id, contributionId);
+  try {
+    if (db && typeof db.transaction === "function") {
+      db.transaction(applyWrites)();
+    } else {
+      applyWrites();
+    }
+  } catch (err) {
+    // Roll the in-memory Maps back to match the rolled-back DB.
+    Object.assign(account, acctSnap);
+    Object.assign(contribution, contribSnap);
+    if (tx) _transactions.delete(tx.id);
+    throw err;
   }
 
   return { contribution: _strip(contribution), tx: _strip(tx) };

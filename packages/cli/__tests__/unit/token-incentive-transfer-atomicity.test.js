@@ -86,3 +86,65 @@ describe("transfer — DB atomicity (real better-sqlite3)", () => {
     }
   });
 });
+
+describe("rewardContribution — DB atomicity (real better-sqlite3)", () => {
+  it("rolls back the credit when marking the contribution rewarded fails (no double-reward)", async () => {
+    const { default: Database } = await import("better-sqlite3");
+    const mod = await import("../../src/lib/token-incentive.js");
+    mod._resetState();
+    const db = new Database(":memory:");
+    try {
+      mod.ensureTokenTables(db);
+      // bug_report baseReward=2, value=1 → a single reward credits 2.
+      mod.recordContribution(db, {
+        id: "c1",
+        userId: "alice",
+        type: "bug_report",
+        value: 1,
+      });
+
+      // Fail ONLY the final "mark rewarded (with tx_id)" UPDATE — after the
+      // account credit and the ledger insert would have run.
+      const realPrepare = db.prepare.bind(db);
+      db.prepare = (sql) => {
+        if (
+          /UPDATE contributions SET rewarded = \?, reward_amount = \?, tx_id/.test(
+            sql,
+          )
+        ) {
+          throw new Error("simulated mark-rewarded failure");
+        }
+        return realPrepare(sql);
+      };
+
+      expect(() => mod.rewardContribution(db, "c1")).toThrow(/mark-rewarded/);
+      db.prepare = realPrepare;
+
+      // Atomic: the credit + ledger must have rolled back with the failed mark.
+      const acct = db
+        .prepare("SELECT balance FROM token_accounts WHERE account_id=?")
+        .get("alice");
+      expect(acct ? acct.balance : 0).toBe(0);
+      expect(
+        db.prepare("SELECT COUNT(*) c FROM token_transactions").get().c,
+      ).toBe(0);
+      expect(
+        db.prepare("SELECT rewarded FROM contributions WHERE id=?").get("c1")
+          .rewarded,
+      ).toBe(0);
+
+      // Re-hydrate (fresh process) and reward again: it must credit exactly
+      // once. Under the bug the first attempt already credited without marking
+      // rewarded, so this second call would double-credit to 4.
+      mod.loadFromDb(db);
+      mod.rewardContribution(db, "c1");
+      expect(
+        db
+          .prepare("SELECT balance FROM token_accounts WHERE account_id=?")
+          .get("alice").balance,
+      ).toBe(2);
+    } finally {
+      db.close();
+    }
+  });
+});
