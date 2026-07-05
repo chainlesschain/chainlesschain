@@ -134,6 +134,11 @@ export async function streamOllama(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullResponse = "";
+  // Buffer incomplete lines across reads: an NDJSON line can be split across two
+  // stream chunks (TCP doesn't align to '\n'), so parsing each chunk in
+  // isolation would drop the split line entirely (both halves fail JSON.parse).
+  // Keep the trailing partial for the next read — same pattern as streamAnthropic.
+  let buf = "";
 
   try {
     while (true) {
@@ -141,10 +146,12 @@ export async function streamOllama(
       if (done) break;
       guard.bump();
 
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split("\n").filter(Boolean);
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
 
       for (const line of lines) {
+        if (!line) continue;
         try {
           const json = JSON.parse(line);
           if (json.message?.content) {
@@ -225,6 +232,11 @@ export async function streamOpenAI(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullResponse = "";
+  // Buffer incomplete lines across reads: an SSE `data:` line can be split
+  // across two stream chunks, so parsing each chunk in isolation would drop the
+  // split line (both halves fail JSON.parse) — losing content and usage. Keep
+  // the trailing partial for the next read — same pattern as streamAnthropic.
+  let buf = "";
 
   try {
     while (true) {
@@ -232,8 +244,9 @@ export async function streamOpenAI(
       if (done) break;
       guard.bump();
 
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split("\n").filter(Boolean);
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
 
       for (const line of lines) {
         if (line.startsWith("data: ")) {
