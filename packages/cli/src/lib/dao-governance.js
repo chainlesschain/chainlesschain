@@ -259,7 +259,8 @@ export function getTreasury() {
 
 export function allocate(db, proposalId, amount, description) {
   if (!proposalId) throw new Error("Proposal ID is required");
-  if (amount <= 0) throw new Error("Amount must be positive");
+  if (!Number.isFinite(amount) || amount <= 0)
+    throw new Error("Amount must be positive");
   if (_treasury.balance < amount) {
     throw new Error("Insufficient treasury balance");
   }
@@ -287,7 +288,8 @@ export function allocate(db, proposalId, amount, description) {
 }
 
 export function depositToTreasury(db, amount, description) {
-  if (amount <= 0) throw new Error("Amount must be positive");
+  if (!Number.isFinite(amount) || amount <= 0)
+    throw new Error("Amount must be positive");
 
   const id = `dep-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const now = new Date().toISOString();

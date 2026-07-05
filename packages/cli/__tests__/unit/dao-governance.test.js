@@ -240,6 +240,23 @@ describe("dao-governance", () => {
         "Amount must be positive",
       );
     });
+
+    it("rejects a NaN deposit instead of persisting NaN", () => {
+      // `cc dao deposit <amt>` → parseFloat of a bad arg = NaN. `amount <= 0`
+      // is NaN-blind, so NaN would be added to the balance (→ NaN) and INSERTed.
+      expect(() => depositToTreasury(db, NaN, "")).toThrow(
+        "Amount must be positive",
+      );
+    });
+
+    it("rejects a NaN allocation instead of persisting NaN", () => {
+      depositToTreasury(db, 1000, "seed");
+      // NaN passes both `amount <= 0` and `balance < amount` (0<NaN / 1000<NaN
+      // are false), so the treasury balance would be corrupted to NaN.
+      expect(() => allocate(db, "prop-1", NaN, "")).toThrow(
+        "Amount must be positive",
+      );
+    });
   });
 
   // ─── getStats ───────────────────────────────────────────────
