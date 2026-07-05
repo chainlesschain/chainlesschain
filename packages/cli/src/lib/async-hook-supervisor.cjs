@@ -23,9 +23,10 @@
  *     flight — a rapid PostToolUse hook can't stack N copies of itself;
  *   - a maxConcurrent cap — overflow is DROPPED with a recorded skip, never
  *     queued unbounded;
- *   - a per-hook timeout that kills the child;
- *   - reaping of every child on stopAll() / process 'exit', so a session never
- *     leaves an orphan hook process.
+ *   - a per-hook timeout that TREE-kills the child (shell + the real command it
+ *     spawned — a bare child.kill would orphan the grandchild);
+ *   - tree-reaping of every child on stopAll() / process 'exit', so a session
+ *     never leaves an orphan hook process.
  *
  * `_deps.spawn` / `_deps.now` are injected so the whole supervisor is unit-
  * testable with fake child processes (no real shell).
@@ -52,6 +53,7 @@ class AsyncHookSupervisor {
         : DEFAULT_MAX_CONCURRENT;
     this._deps = {
       spawn: opts.spawn || cpDefault.spawn,
+      spawnSync: opts.spawnSync || cpDefault.spawnSync,
       now: opts.now || (() => Date.now()),
     };
     this._running = new Map(); // key -> { child, timer }
@@ -69,6 +71,54 @@ class AsyncHookSupervisor {
 
   _key(hook) {
     return `${hook.event || ""}::${hook.command}`;
+  }
+
+  /**
+   * Kill a hook child's WHOLE process tree. Hooks run with `shell: true`, so the
+   * real command is a grandchild of the shell — a plain `child.kill()` only
+   * signals the shell (POSIX: reparents + keeps the command running; Windows:
+   * killing cmd.exe never touches its children), orphaning the actual hook
+   * process. POSIX: the child is spawned detached (its own group), so a negative
+   * pid signals the whole group. Windows: `taskkill /T` walks the tree. Both are
+   * SYNCHRONOUS (spawnSync / process.kill) so this is safe inside stopAll() and
+   * the process 'exit' reaper, where async work would be cut off. A child with no
+   * real pid (the unit-test fakes) falls back to its own `.kill()`.
+   */
+  _killChildTree(child, signal = "SIGTERM") {
+    if (!child) return;
+    const pid = child.pid;
+    if (typeof pid !== "number" || pid <= 0) {
+      try {
+        child.kill(signal);
+      } catch {
+        /* already gone / fake with no kill */
+      }
+      return;
+    }
+    try {
+      if (process.platform === "win32") {
+        const r = this._deps.spawnSync(
+          "taskkill",
+          ["/pid", String(pid), "/T", "/F"],
+          { windowsHide: true },
+        );
+        // If taskkill couldn't launch, fall back to a direct kill.
+        if (r && r.error) child.kill(signal);
+      } else {
+        // Negative pid → the whole process group (requires the detached spawn).
+        try {
+          process.kill(-pid, signal);
+        } catch {
+          child.kill(signal);
+        }
+      }
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        /* already gone */
+      }
+    }
   }
 
   /** Install the process-exit reaper exactly once, only when a child exists. */
@@ -163,6 +213,10 @@ class AsyncHookSupervisor {
       child = this._deps.spawn(hook.command, {
         cwd: opts.cwd || process.cwd(),
         shell: true,
+        // POSIX: own process group so a timeout / stopAll can signal the whole
+        // tree (shell + the real hook command), not just the shell wrapper.
+        // No-op on Windows, where the tree is reaped via `taskkill /T` instead.
+        detached: process.platform !== "win32",
         env: {
           ...process.env,
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
@@ -198,11 +252,9 @@ class AsyncHookSupervisor {
 
     const timer = setTimeout(() => {
       killedByTimeout = true;
-      try {
-        child.kill("SIGTERM");
-      } catch {
-        /* already gone */
-      }
+      // Tree-kill: a hook that spawned a subprocess (e.g. `npm test`) must not
+      // leave that subprocess orphaned when it exceeds its timeout.
+      this._killChildTree(child, "SIGTERM");
     }, timeout);
     if (typeof timer.unref === "function") timer.unref();
     rec.timer = timer;
@@ -311,11 +363,9 @@ class AsyncHookSupervisor {
       } catch {
         /* ignore */
       }
-      try {
-        rec.child.kill("SIGTERM");
-      } catch {
-        /* already gone */
-      }
+      // Tree-kill (not a bare child.kill) so a session end / process exit never
+      // leaves an orphaned hook subprocess — the guarantee this class documents.
+      this._killChildTree(rec.child, "SIGTERM");
       this._running.delete(key);
     }
     try {
