@@ -7,7 +7,7 @@ import chalk from "chalk";
 import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
-import { likePrefix } from "../lib/sql-like.js";
+import { likePrefix, escapeLike } from "../lib/sql-like.js";
 import { safeJsonParse } from "../lib/safe-json.js";
 import {
   ensureVersionsTable,
@@ -291,10 +291,13 @@ export function registerNoteCommand(program) {
         const rawDb = ctx.db.getDatabase();
         ensureNotesTable(rawDb);
 
-        const pattern = `%${query}%`;
+        // Escape LIKE metacharacters so a `%`/`_` in the user's query matches
+        // literally instead of acting as a wildcard (`search "%"` would
+        // otherwise match every note). Mirrors the `id LIKE ? ESCAPE '\'` sites.
+        const pattern = `%${escapeLike(query)}%`;
         const notes = rawDb
           .prepare(
-            "SELECT id, title, category, created_at FROM notes WHERE deleted_at IS NULL AND (title LIKE ? OR content LIKE ?) ORDER BY created_at DESC LIMIT 50",
+            "SELECT id, title, category, created_at FROM notes WHERE deleted_at IS NULL AND (title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\') ORDER BY created_at DESC LIMIT 50",
           )
           .all(pattern, pattern);
 
