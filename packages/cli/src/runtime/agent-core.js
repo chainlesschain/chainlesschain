@@ -221,6 +221,77 @@ export function killAllBackgroundShellTasks() {
   return killed;
 }
 
+// SYNCHRONOUS whole-tree kill for use inside a process 'exit' / signal handler,
+// where only synchronous work runs to completion (the async `spawn`/`taskkill`
+// in _killTask would be cut off the instant the process terminates, leaving the
+// grandchild orphaned). POSIX signals the process group with SIGKILL; Windows
+// uses spawnSync taskkill /T so the shell's children die too.
+function _killTaskSync(task) {
+  const child = task?.child;
+  if (!child || child.killed || task?.status !== "running") return false;
+  try {
+    if (process.platform === "win32") {
+      if (child.pid) {
+        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+          windowsHide: true,
+        });
+      } else {
+        child.kill();
+      }
+    } else if (child.pid) {
+      // Negative pid → whole process group (requires the detached spawn above).
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch (_err) {
+        child.kill("SIGKILL");
+      }
+    } else {
+      child.kill("SIGKILL");
+    }
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
+/**
+ * Synchronously kill every still-running background shell task. Safe to call
+ * from a process 'exit' or signal handler (uses spawnSync/process.kill, not the
+ * async spawn path which a terminating process would cut off). This is the
+ * orphan-reclaim net for the paths the normal `finally` reaper can't cover: a
+ * Ctrl-C / SIGTERM unwinds no `finally`, so without it a backgrounded dev server
+ * outlives a killed `cc agent -p`.
+ * @returns {number} count of tasks signalled
+ */
+export function killAllBackgroundShellTasksSync() {
+  let killed = 0;
+  for (const task of _backgroundShellTasks.values()) {
+    if (_killTaskSync(task)) {
+      killed += 1;
+    }
+  }
+  return killed;
+}
+
+// Install a one-time process 'exit' net that synchronously reaps background
+// shell tasks. `finally` blocks (headless/REPL) already reap on normal
+// completion, but an explicit process.exit() elsewhere (serve shutdown, the
+// headless signal handler that converts Ctrl-C → exit) would otherwise leave a
+// backgrounded command orphaned. Installed lazily on the first background task,
+// so a process that never backgrounds anything pays nothing.
+let _bgExitReaperHooked = false;
+function _ensureBgExitReaper() {
+  if (_bgExitReaperHooked) return;
+  _bgExitReaperHooked = true;
+  process.once("exit", () => {
+    try {
+      killAllBackgroundShellTasksSync();
+    } catch {
+      /* best-effort teardown on exit */
+    }
+  });
+}
+
 // Idle-reap tuning (Claude-Code 2.1.193 "automatic memory-pressure reaping for
 // idle background shell commands"). A running task is a reap candidate when it
 // has produced no output for BG_IDLE_REAP_MS AND the system is under memory
@@ -2406,6 +2477,9 @@ async function executeToolInner(
           task.endedAt = new Date().toISOString();
         }
         _backgroundShellTasks.set(id, task);
+        // Arm the process-exit net so a Ctrl-C / hard exit can't orphan this
+        // task (the normal `finally` reaper is bypassed by signals).
+        _ensureBgExitReaper();
         return attachDescriptor(
           {
             background: true,

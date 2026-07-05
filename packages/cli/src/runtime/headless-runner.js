@@ -26,6 +26,7 @@ import {
   agentLoop as coreAgentLoop,
   formatToolArgs,
   killAllBackgroundShellTasks,
+  killAllBackgroundShellTasksSync,
 } from "./agent-core.js";
 import {
   resolveAgentMcp,
@@ -1076,6 +1077,30 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     };
   };
 
+  // A Ctrl-C (SIGINT) / SIGTERM terminates Node WITHOUT unwinding the `finally`
+  // below, so its background-task reaper is bypassed — a backgrounded run_shell
+  // task (e.g. a dev server) this run spawned would be orphaned. Install a
+  // scoped handler that reaps it synchronously + stops the async-hook
+  // supervisor, then exits with the conventional 128+signal code. Headless has
+  // no other SIGINT owner (no raw-mode keypress like the REPL), so this can't
+  // race a competing handler. Removed in `finally` so a normal return leaves no
+  // listener behind (runAgentHeadless can be called repeatedly in one process).
+  const _onHardSignal = (sig) => {
+    try {
+      killAllBackgroundShellTasksSync();
+    } catch {
+      /* best-effort — never let cleanup throw during shutdown */
+    }
+    try {
+      if (_hookSupervisor) _hookSupervisor.stopAll();
+    } catch {
+      /* best-effort */
+    }
+    process.exit(sig === "SIGTERM" ? 143 : 130);
+  };
+  process.once("SIGINT", _onHardSignal);
+  process.once("SIGTERM", _onHardSignal);
+
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -1285,6 +1310,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
     return { exitCode: 1, result: message, isError: true };
   } finally {
+    // Drop the signal handlers first — a normal return must not leave a
+    // process-wide SIGINT/SIGTERM listener behind (a later Ctrl-C would wrongly
+    // exit with 130, and repeated in-process runs would leak listeners).
+    process.removeListener("SIGINT", _onHardSignal);
+    process.removeListener("SIGTERM", _onHardSignal);
     // Tear down ad-hoc MCP servers (--mcp-config) before returning, whether the
     // loop completed or threw. Best-effort: a failed disconnect never masks the
     // run's own outcome.

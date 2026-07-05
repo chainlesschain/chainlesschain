@@ -3,6 +3,7 @@ import {
   executeTool,
   listBackgroundShellTasks,
   killAllBackgroundShellTasks,
+  killAllBackgroundShellTasksSync,
   reapIdleBackgroundShellTasks,
 } from "../../src/runtime/agent-core.js";
 
@@ -246,6 +247,72 @@ describe("agent-core killAllBackgroundShellTasks (REPL/headless teardown seam)",
     );
     await drainAllTasks();
     expect(killAllBackgroundShellTasks()).toBe(0);
+  });
+});
+
+// killAllBackgroundShellTasksSync is the SIGNAL/exit-safe disposer: a Ctrl-C or
+// SIGTERM terminates Node without unwinding the `finally` reaper, so orphan
+// reclaim on those paths must be synchronous (no async spawn/taskkill that a
+// dying process would cut off). The headless signal handler + the lazily-armed
+// process 'exit' net both call it. This is its contract.
+describe("agent-core killAllBackgroundShellTasksSync (signal/exit-safe teardown)", () => {
+  afterEach(async () => {
+    await drainAllTasks();
+  });
+
+  it("synchronously kills a running task's whole tree", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},60000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    expect(start.status).toBe("running");
+    // Synchronous call — returns without awaiting the process's 'close'.
+    const killed = killAllBackgroundShellTasksSync();
+    expect(killed).toBeGreaterThanOrEqual(1);
+    // The process really dies: its 'close' event flips status off "running".
+    for (let i = 0; i < 200; i++) {
+      const t = listBackgroundShellTasks().find((x) => x.id === start.task_id);
+      if (t && t.status !== "running") {
+        expect(t.status).not.toBe("running");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    throw new Error("task survived a synchronous kill");
+  });
+
+  it("returns 0 when nothing is running", async () => {
+    await drainAllTasks();
+    expect(killAllBackgroundShellTasksSync()).toBe(0);
+  });
+
+  it("arms the process 'exit' reaper exactly once across background tasks", async () => {
+    // Creating a background task lazily installs a single process 'exit' net so
+    // an explicit process.exit() (serve shutdown, headless signal handler) can't
+    // orphan it. It must be idempotent — no per-task listener leak.
+    await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},60000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const afterFirst = process.listenerCount("exit");
+    expect(afterFirst).toBeGreaterThanOrEqual(1);
+    await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},60000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    expect(process.listenerCount("exit")).toBe(afterFirst);
   });
 });
 
