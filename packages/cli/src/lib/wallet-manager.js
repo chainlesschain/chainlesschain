@@ -317,24 +317,35 @@ export function transferAsset(db, assetId, toAddress, amount) {
   const fromAddress = asset.wallet_address;
   const txAmount = amount || asset.amount;
 
-  db.prepare(
-    `INSERT INTO transactions (id, from_address, to_address, asset_id, amount, tx_type, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    txId,
-    fromAddress,
-    toAddress,
-    assetId,
-    txAmount,
-    "transfer",
-    "confirmed",
-  );
+  // Record the ledger row and move ownership atomically. Without a transaction,
+  // a failure on the ownership UPDATE would leave a "confirmed" transactions row
+  // for a transfer that never happened (the asset stays with the sender).
+  const applyWrites = () => {
+    db.prepare(
+      `INSERT INTO transactions (id, from_address, to_address, asset_id, amount, tx_type, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      txId,
+      fromAddress,
+      toAddress,
+      assetId,
+      txAmount,
+      "transfer",
+      "confirmed",
+    );
 
-  // Update asset ownership
-  db.prepare("UPDATE digital_assets SET wallet_address = ? WHERE id = ?").run(
-    toAddress,
-    assetId,
-  );
+    // Update asset ownership
+    db.prepare("UPDATE digital_assets SET wallet_address = ? WHERE id = ?").run(
+      toAddress,
+      assetId,
+    );
+  };
+
+  if (db && typeof db.transaction === "function") {
+    db.transaction(applyWrites)();
+  } else {
+    applyWrites();
+  }
 
   return {
     txId,
