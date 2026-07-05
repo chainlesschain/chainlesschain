@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSlaTables,
+  loadFromDb as loadSlaFromDb,
   listTiers,
   createSLA,
   listSLAs,
@@ -50,6 +51,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureSlaTables(db);
+  loadSlaFromDb(db);
   return db;
 }
 
@@ -81,7 +83,11 @@ export function registerSlaCommand(program) {
     .command("create <org-id>")
     .description("Create a new SLA contract")
     .option("-t, --tier <tier>", "SLA tier (gold|silver|bronze)", "silver")
-    .option("-d, --duration <ms>", "Contract duration in ms", intArg("--duration"))
+    .option(
+      "-d, --duration <ms>",
+      "Contract duration in ms",
+      intArg("--duration"),
+    )
     .option("-f, --fee <amount>", "Monthly fee", parseFloat, 0)
     .option("--json", "Output as JSON")
     .action(async (orgId, options) => {
@@ -337,7 +343,11 @@ export function registerSlaCommand(program) {
   sla
     .command("report <sla-id>")
     .description("Generate an SLA compliance report")
-    .option("--start <ms>", "Start of window (ms since epoch)", intArg("--start"))
+    .option(
+      "--start <ms>",
+      "Start of window (ms since epoch)",
+      intArg("--start"),
+    )
     .option("--end <ms>", "End of window (ms since epoch)", intArg("--end"))
     .option("--json", "Output as JSON")
     .action(async (slaId, options) => {
@@ -380,6 +390,7 @@ export function registerSlaCommand(program) {
     try {
       const db = ctx.db.getDatabase();
       ensureSlaTables(db);
+      loadSlaFromDb(db);
       return await fn(db);
     } finally {
       await shutdown();
@@ -461,7 +472,11 @@ export function registerSlaCommand(program) {
     .command("create-v2 <org-id>")
     .description("Create a V2 SLA contract (enforces per-org active cap)")
     .option("-t, --tier <tier>", "gold|silver|bronze", "silver")
-    .option("-d, --duration <ms>", "Contract duration in ms", intArg("--duration"))
+    .option(
+      "-d, --duration <ms>",
+      "Contract duration in ms",
+      intArg("--duration"),
+    )
     .option("-f, --fee <amount>", "Monthly fee", floatArg("--fee"))
     .option("--json", "Output as JSON")
     .action(async (orgId, options) => {

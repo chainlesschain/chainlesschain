@@ -9,6 +9,7 @@ import {
   listTiers,
   ensureSlaTables,
   createSLA,
+  loadFromDb,
   listSLAs,
   getSLA,
   terminateSLA,
@@ -458,6 +459,60 @@ describe("sla-manager", () => {
         "minor",
         "moderate",
       ]);
+    });
+  });
+
+  describe("loadFromDb — rehydrates contracts/metrics/violations", () => {
+    it("makes a contract + its metrics visible after a fresh process", () => {
+      const c = createSLA(db, { orgId: "org:acme", tier: "gold" });
+      recordMetric(db, c.slaId, "availability", 0.98);
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      expect(listSLAs()).toHaveLength(0);
+      expect(() => getSLA(c.slaId)).toThrow(/SLA not found/);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBeGreaterThanOrEqual(2); // 1 contract + 1 metric group
+
+      const back = getSLA(c.slaId);
+      expect(back.orgId).toBe("org:acme");
+      expect(back.tier).toBe("gold");
+      expect(back.terms).toBeTruthy();
+
+      const m = getSLAMetrics(c.slaId);
+      expect(m.totalSamples).toBe(1);
+
+      // recordMetric (which guards on _contracts.has) now works.
+      expect(() =>
+        recordMetric(db, c.slaId, "availability", 0.99),
+      ).not.toThrow();
+    });
+
+    it("survives a corrupt terms cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO sla_contracts (sla_id, org_id, tier, terms, monthly_fee, start_date, end_date, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "sla-bad",
+        "org:x",
+        "silver",
+        "{not json",
+        0,
+        1000,
+        2000,
+        "active",
+        1000,
+        1000,
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      expect(getSLA("sla-bad").terms).toEqual({});
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });

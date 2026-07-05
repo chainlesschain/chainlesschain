@@ -484,6 +484,94 @@ export function _resetState() {
   _maxActiveSlasPerOrg = DEFAULT_MAX_ACTIVE_SLAS_PER_ORG;
 }
 
+/**
+ * Rehydrate the in-memory Maps from the persisted sla_* tables. The CLI runs
+ * each `cc sla` subcommand in a fresh node process, so _contracts/_metrics/
+ * _violations start empty every invocation. Every write dual-writes (Map +
+ * INSERT into sla_contracts/sla_metrics/sla_violations) but every read (listSLAs/
+ * getSLA/getSLAMetrics/checkViolations/listViolations/calculateCompensation/
+ * generateReport) is Map-only and nothing SELECTed the tables back — so `sla
+ * list` reported none, and `show`/`record`/`metrics`/`report` threw "SLA not
+ * found" for a contract that genuinely exists on disk. Call after
+ * ensureSlaTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureSlaTables(db);
+  _contracts.clear();
+  _metrics.clear();
+  _violations.clear();
+
+  for (const r of db
+    .prepare(
+      `SELECT sla_id, org_id, tier, terms, monthly_fee, start_date, end_date, status, created_at, updated_at
+         FROM sla_contracts ORDER BY created_at ASC`,
+    )
+    .all()) {
+    // One corrupt terms cell must not sink the whole contract list.
+    let terms = {};
+    try {
+      terms = r.terms ? JSON.parse(r.terms) : {};
+    } catch {
+      terms = {};
+    }
+    _contracts.set(r.sla_id, {
+      slaId: r.sla_id,
+      orgId: r.org_id,
+      tier: r.tier,
+      terms,
+      monthlyFee: Number(r.monthly_fee) || 0,
+      startDate: Number(r.start_date),
+      endDate: Number(r.end_date),
+      status: r.status,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      _seq: ++_seq,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT metric_id, sla_id, term, value, recorded_at
+         FROM sla_metrics ORDER BY recorded_at ASC`,
+    )
+    .all()) {
+    if (!_metrics.has(r.sla_id)) _metrics.set(r.sla_id, []);
+    _metrics.get(r.sla_id).push({
+      metricId: r.metric_id,
+      slaId: r.sla_id,
+      term: r.term,
+      value: Number(r.value),
+      recordedAt: Number(r.recorded_at),
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT violation_id, sla_id, term, severity, expected_value, actual_value,
+              deviation_percent, compensation_amount, occurred_at, resolved_at
+         FROM sla_violations ORDER BY occurred_at ASC`,
+    )
+    .all()) {
+    _violations.set(r.violation_id, {
+      violationId: r.violation_id,
+      slaId: r.sla_id,
+      term: r.term,
+      severity: r.severity,
+      expectedValue: Number(r.expected_value),
+      actualValue: Number(r.actual_value),
+      deviationPercent:
+        r.deviation_percent == null ? null : Number(r.deviation_percent),
+      compensationAmount:
+        r.compensation_amount == null ? null : Number(r.compensation_amount),
+      occurredAt: Number(r.occurred_at),
+      resolvedAt: r.resolved_at == null ? null : Number(r.resolved_at),
+    });
+  }
+
+  return _contracts.size + _metrics.size + _violations.size;
+}
+
 /* ═══════════════════════════════════════════════════════════════
  * V2 (Phase 61) — Frozen enums + contract/violation state
  * machines + active-per-org cap + auto-expire + stats-v2.
