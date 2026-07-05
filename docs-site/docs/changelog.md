@@ -5,7 +5,15 @@
 
 ## [Unreleased]
 
-#### Added — cc CLI 0.162.149：Claude Code 平价优化计划 Phase 1–7 大批落地
+#### Fixed — cc CLI 0.162.150：正确性 + 健壮性大扫（89 提交批量发版）
+
+> CLI-only 发版（`chainlesschain` 0.162.149 → **0.162.150**，经 `npm-publish.yml` 发 npm `latest`）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动（安卓 in-app cc 有意留 0.162.148）。发版前本机三层测试全绿（unit 21,372+ / integration 954+ / e2e 617），Linux CI 门跑通。
+
+- **命令层正确性（用户可见）**：`mtc federation cross-trust-create --member` 用 `split(":",2)` 截断 `sha256:<digest>` 冒号分隔的公钥摘要 → 写出永不验签匹配的损坏信任锚（改按首冒号切分）；`cc loop --resume` 用了原始 `options.dynamic` 而非解析后的 `dynamic` → `[[loop:stop]]` 被忽略、循环永不终止；`cc lowcode deploy` 把 DB wrapper 当句柄传给 `db.exec` → 命令 100% 失败 + 漏退出码；`cc marketplace list --limit` 裸 `parseInt` 当 Commander coercer（进制被默认值污染）→ `--limit` 被静默忽略；`cc audit` 8 个 V2 子命令未 await 异步 `bootstrap()`。
+- **资源 / 生命周期**：LSPManager 惰性 server 池并发重复 spawn 语言服务器（孤儿进程 + 残留 diagnostics 监听器）→ 共享 in-flight promise；`AsyncHookSupervisor` 构造函数无条件注册 `process 'exit'` 监听器（多实例泄漏）→ 惰性安装 + 结果数组环形封顶；`_spawnOne` 向已退出 hook 的 stdin 写入触发异步 EPIPE 未处理 → 崩进程（Linux 上确定性复现），补 stdin `'error'` 处理。
+- **错误处理 / UX**：`logger.warn` 从 stdout 改 stderr（不再污染 `--json`）；交互式 prompt 按 Ctrl-C（`ExitPromptError`）从 `error: User force closed...` 改为干净取消（exit 130）；`cc team --exec` 执行不可信 plan 前警示；`init` 生成的 TTS 技能 shell 注入 sink 改 `spawnSync` 无 shell；`config`/`memory` 编辑器路径转义；`collab` 用户文件读取/解析降级为带路径的清晰报错。
+- **团队编排**：`cc team` worktree 合并失败此前被当成功上报（`mergeWorktree` 从不 throw，死 catch）→ 检查返回值 `.success` 真实上报冲突/失败。
+- **同批并行 session 硬化**：账本/钱包/身份写入原子化、~25 个管理器跨进程状态水合、SQL LIKE 通配转义、marketplace/state-channel 持久化。
 
 > CLI-only 发版（`chainlesschain` 0.162.148 → **0.162.149**，经 `npm-publish.yml` 发 npm `latest`）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。`docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md` 的 Windows-可做项全部收口，全部带单元 / 集成 / e2e 测试。新增三篇用户文档：[Agent Team](/chainlesschain/cli-team)、[可靠性评测](/chainlesschain/cli-eval)、[语义代码智能](/chainlesschain/cli-code-intel)。
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.150：正确性 + 健壮性大扫（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.149 → **0.162.150** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（未触 `pdh/lib`）→ 无 Android cc bundle rollover / 无 USR_VERSION 改动（安卓 in-app cc 有意留 0.162.148）。发版前本机 unit+integration 全绿（22,933+ passed / 0 fail），Linux CI 测试门跑通。逐条明细见 docs-site changelog。
+
+- **命令层正确性**：`mtc cross-trust-create --member` 冒号分隔公钥摘要被 `split(":",2)` 截断（损坏信任锚）；`cc loop --resume` 忽略 `[[loop:stop]]` 致循环永不终止；`cc lowcode deploy` DB 句柄错误致 100% 失败 + 漏退出码；`cc marketplace list --limit` 的 `parseInt` coercer 进制 bug 致 `--limit` 静默失效；`cc audit` 8 个 V2 子命令未 await 异步 `bootstrap()`。
+- **资源 / 生命周期**：LSPManager 惰性池并发重复 spawn 语言服务器；`AsyncHookSupervisor` 构造函数无条件注册 exit 监听器 + 未处理的异步 stdin EPIPE（Linux 上确定性崩进程）+ 结果数组无界。
+- **错误处理 / UX**：`logger.warn` 改 stderr（不污染 `--json`）；Ctrl-C `ExitPromptError` 干净取消（exit 130）；`cc team --exec` 不可信 plan 警示；`init` TTS shell 注入 sink 改无 shell；`cc team` worktree 合并失败真实上报（此前死 catch 当成功）。
+- **同批并行 session 硬化**：账本/钱包/身份写入原子化、~25 管理器跨进程状态水合、SQL LIKE 转义、marketplace/state-channel 持久化。
+
 ### Tests — 修复 remote-session-crypto 篡改测试的不确定性（CLI CI flaky，非产品 bug）
 
 > 纯测试改动，未触 `packages/cli/src` → 无版本 bump / 无 npm 发版 / 无 doc 版本指针变化；`packages/cli` 三层测试本机全绿（unit 21,357 / integration 954 / e2e 617）。commit `383435582c`。
