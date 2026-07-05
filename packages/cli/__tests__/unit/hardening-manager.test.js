@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureHardeningTables,
+  loadFromDb,
   collectBaseline,
   compareBaseline,
   listBaselines,
@@ -922,6 +923,44 @@ describe("hardening-manager", () => {
       expect(s.activeBaselines).toBe(1);
       expect(s.baselinesByStatus.draft).toBe(1);
       expect(s.baselinesByStatus.active).toBe(1);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes baselines + audits visible after a fresh process", () => {
+      const b = collectBaseline(db, "prod-baseline", "1.0.0");
+      const a = runAudit(db, "nightly-audit");
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listBaselines()).toEqual([]);
+      expect(getAuditReports()).toEqual([]);
+
+      loadFromDb(db);
+
+      const baselines = listBaselines();
+      expect(baselines.length).toBe(1);
+      expect(baselines[0].id).toBe(b.id);
+      expect(baselines[0].metrics).toBeTypeOf("object"); // JSON parsed, not string
+      expect(baselines[0].metrics.ipc).toBeDefined();
+
+      const audits = getAuditReports();
+      expect(audits.length).toBe(1);
+      expect(audits[0].id).toBe(a.id);
+      expect(Array.isArray(audits[0].checks)).toBe(true);
+      expect(typeof audits[0].score).toBe("number");
+    });
+
+    it("survives a corrupt metrics cell (per-row JSON guard)", () => {
+      collectBaseline(db, "b1", "1.0.0");
+      const rows = db.data.get("performance_baselines") || [];
+      rows[0].metrics = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const baselines = listBaselines();
+      expect(baselines.length).toBe(1);
+      expect(baselines[0].metrics).toEqual({}); // guarded fallback
     });
   });
 });

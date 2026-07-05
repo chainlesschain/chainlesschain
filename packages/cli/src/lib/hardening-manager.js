@@ -67,6 +67,79 @@ export function ensureHardeningTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _baselines/_audits from the persisted performance_baselines/
+ * hardening_audits tables. The `cc` CLI runs every command in a fresh process,
+ * so without this the Maps start empty and a baseline/audit collected in a
+ * prior invocation is invisible (`cc hardening baseline list`/`audit reports`
+ * show nothing; `baseline compare`/`audit report <id>` throw "not found"; and —
+ * most damagingly — `cc hardening deploy-check` reports "No baseline / No audit"
+ * and yields a silently-wrong go/no-go verdict even when the rows exist). Call
+ * after ensureHardeningTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _baselines.clear();
+  _audits.clear();
+
+  const baselineRows = db.prepare(`SELECT * FROM performance_baselines`).all();
+  for (const row of baselineRows) {
+    let metrics = {};
+    let environment = {};
+    try {
+      metrics = row.metrics ? JSON.parse(row.metrics) : {};
+    } catch {
+      metrics = {};
+    }
+    try {
+      environment = row.environment ? JSON.parse(row.environment) : {};
+    } catch {
+      environment = {};
+    }
+    _baselines.set(row.id, {
+      id: row.id,
+      name: row.name,
+      version: row.version,
+      status: row.status,
+      metrics,
+      environment,
+      sampleCount: row.sample_count ?? 0,
+      createdAt: row.created_at ?? null,
+      completedAt: row.completed_at ?? null,
+    });
+  }
+
+  const auditRows = db.prepare(`SELECT * FROM hardening_audits`).all();
+  for (const row of auditRows) {
+    let checks = [];
+    let recommendations = [];
+    try {
+      checks = row.checks ? JSON.parse(row.checks) : [];
+    } catch {
+      checks = [];
+    }
+    try {
+      recommendations = row.recommendations
+        ? JSON.parse(row.recommendations)
+        : [];
+    } catch {
+      recommendations = [];
+    }
+    _audits.set(row.id, {
+      id: row.id,
+      name: row.name,
+      checks,
+      passed: row.passed ?? 0,
+      failed: row.failed ?? 0,
+      score: row.score ?? 0,
+      recommendations,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  return _baselines.size + _audits.size;
+}
+
 /* ── Baseline Collection ──────────────────────────────────── */
 
 export function collectBaseline(db, name, version) {

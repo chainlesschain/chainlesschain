@@ -10,6 +10,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureHardeningTables,
+  loadFromDb,
   collectBaseline,
   compareBaseline,
   listBaselines,
@@ -71,6 +72,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const result = collectBaseline(db, name, options.version);
         logger.success("Baseline collected");
@@ -99,6 +101,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const result = compareBaseline(baselineId, options.current);
         if (options.json) {
@@ -134,6 +137,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const baselines = listBaselines();
         if (options.json) {
@@ -171,6 +175,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const result = runAudit(db, name);
         logger.success(`Audit complete: score ${result.score}%`);
@@ -204,6 +209,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const reports = getAuditReports();
         if (options.json) {
@@ -247,6 +253,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const requiredKeys = options.required
           ? options.required
@@ -305,6 +312,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const result = deployCheck();
         if (options.json) {
@@ -345,6 +353,7 @@ export function registerHardeningCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureHardeningTables(db);
+        loadFromDb(db);
 
         const report = getAuditReport(auditId);
         if (options.json) {
@@ -520,6 +529,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = registerAuditV2(db, {
           name,
@@ -544,6 +554,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const r = startAudit(db, auditId);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`${auditId} → ${r.status}`);
@@ -565,6 +576,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const warningThreshold = opts.warningThreshold
           ? Number(opts.warningThreshold)
           : undefined;
@@ -592,6 +604,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const patch = {};
         if (opts.errorMessage !== undefined)
           patch.errorMessage = opts.errorMessage;
@@ -626,6 +639,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const r = autoTimeoutAudits(db);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`Timed out ${r.length} audit(s)`);
@@ -646,6 +660,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = createBaselineV2(db, {
           name,
@@ -669,6 +684,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const r = activateBaseline(db, baselineId);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`${baselineId} → ${r.status}`);
@@ -689,6 +705,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const patch = {};
         if (opts.reason !== undefined) patch.reason = opts.reason;
         if (opts.metadata !== undefined)
@@ -722,6 +739,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
+        loadFromDb(db);
         const r = autoArchiveStaleBaselines(db);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`Archived ${r.length} baseline(s)`);
