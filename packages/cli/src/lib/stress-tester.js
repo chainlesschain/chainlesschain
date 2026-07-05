@@ -95,6 +95,71 @@ export function ensureStressTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _runs/_results from the persisted stress_test_runs/
+ * stress_test_results tables. The `cc` CLI runs every command in a fresh
+ * process, so without this the Maps start empty and a run recorded in a prior
+ * invocation is invisible (`cc stress list` shows "No stress tests recorded.";
+ * `cc stress show <id>` throws "Stress test not found"). Call after
+ * ensureStressTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _runs.clear();
+  _results.clear();
+
+  const resultRows = db.prepare(`SELECT * FROM stress_test_results`).all();
+  for (const row of resultRows) {
+    let bottlenecks = [];
+    let capacityRecommendations = [];
+    try {
+      bottlenecks = row.bottlenecks ? JSON.parse(row.bottlenecks) : [];
+    } catch {
+      bottlenecks = [];
+    }
+    try {
+      capacityRecommendations = row.capacity_recommendations
+        ? JSON.parse(row.capacity_recommendations)
+        : [];
+    } catch {
+      capacityRecommendations = [];
+    }
+    _results.set(row.test_id, {
+      resultId: row.result_id,
+      testId: row.test_id,
+      tps: row.tps,
+      avgResponseTime: row.avg_response_time,
+      p50ResponseTime: row.p50_response_time,
+      p95ResponseTime: row.p95_response_time,
+      p99ResponseTime: row.p99_response_time,
+      errorRate: row.error_rate,
+      bottlenecks,
+      capacityRecommendations,
+      createdAt: row.created_at,
+    });
+  }
+
+  const runRows = db.prepare(`SELECT * FROM stress_test_runs`).all();
+  for (const row of runRows) {
+    _runs.set(row.test_id, {
+      testId: row.test_id,
+      loadLevel: row.load_level,
+      concurrency: row.concurrency,
+      requestsPerSecond: row.requests_per_second,
+      duration: row.duration,
+      status: row.status,
+      startedAt: row.started_at,
+      completedAt: row.completed_at ?? null,
+      // _seq is a per-process monotonic tiebreaker; started_at is the primary
+      // sort key. Reassign in load order — ties (same ms) are the only case it
+      // affects and are cosmetic for history ordering.
+      _seq: ++_seq,
+    });
+  }
+
+  return _runs.size + _results.size;
+}
+
 /* ── Synthetic metrics ─────────────────────────────────────── */
 
 // Deterministic quasi-random: stable across runs for the same inputs. Tests

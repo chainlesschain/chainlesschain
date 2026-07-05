@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureStressTables,
+  loadFromDb,
   startStressTest,
   stopStressTest,
   getTestResults,
@@ -41,6 +42,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureStressTables(db);
+  loadFromDb(db);
   return db;
 }
 
@@ -59,9 +61,17 @@ export function registerStressCommand(program) {
       "Load level (light|medium|heavy|extreme)",
       "medium",
     )
-    .option("-c, --concurrency <n>", "Override concurrency", intArg("--concurrency"))
+    .option(
+      "-c, --concurrency <n>",
+      "Override concurrency",
+      intArg("--concurrency"),
+    )
     .option("-r, --rps <n>", "Override requests per second", intArg("--rps"))
-    .option("-d, --duration <ms>", "Override duration in ms", intArg("--duration"))
+    .option(
+      "-d, --duration <ms>",
+      "Override duration in ms",
+      intArg("--duration"),
+    )
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -277,6 +287,7 @@ export function registerStressCommand(program) {
     try {
       const db = ctx.db.getDatabase();
       ensureStressTables(db);
+      loadFromDb(db);
       return await fn(db);
     } finally {
       await shutdown();
@@ -355,9 +366,17 @@ export function registerStressCommand(program) {
       "Load level (light|medium|heavy|extreme)",
       "medium",
     )
-    .option("-c, --concurrency <n>", "Override concurrency", intArg("--concurrency"))
+    .option(
+      "-c, --concurrency <n>",
+      "Override concurrency",
+      intArg("--concurrency"),
+    )
     .option("-r, --rps <n>", "Override requests per second", intArg("--rps"))
-    .option("-d, --duration <ms>", "Override duration in ms", intArg("--duration"))
+    .option(
+      "-d, --duration <ms>",
+      "Override duration in ms",
+      intArg("--duration"),
+    )
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {

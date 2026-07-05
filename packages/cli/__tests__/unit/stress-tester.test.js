@@ -5,6 +5,7 @@ import {
   listLoadLevels,
   resolveLevel,
   ensureStressTables,
+  loadFromDb,
   startStressTest,
   stopStressTest,
   getTestResults,
@@ -554,6 +555,41 @@ describe("stress-tester V2 (Phase 59)", () => {
       expect(stats.byLevel.light).toBe(1);
       expect(stats.aggregateMetrics.samples).toBe(1);
       expect(typeof stats.aggregateMetrics.avgTps).toBe("number");
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes a recorded run + result visible after a fresh process", () => {
+      const run = startStressTest(db, { level: "heavy" });
+      const testId = run.testId;
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listTestHistory()).toEqual([]);
+      expect(() => getTestResults(testId)).toThrow("Stress test not found");
+
+      loadFromDb(db);
+
+      const history = listTestHistory();
+      expect(history.length).toBe(1);
+      expect(history[0].testId).toBe(testId);
+      expect(history[0].loadLevel).toBe("heavy");
+
+      const res = getTestResults(testId);
+      expect(res.result).not.toBeNull();
+      expect(typeof res.result.tps).toBe("number");
+      expect(Array.isArray(res.result.bottlenecks)).toBe(true);
+    });
+
+    it("survives a corrupt bottlenecks cell (per-row JSON guard)", () => {
+      const run = startStressTest(db, { level: "light" });
+      const rows = db.data.get("stress_test_results") || [];
+      rows[0].bottlenecks = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const res = getTestResults(run.testId);
+      expect(res.result.bottlenecks).toEqual([]); // guarded fallback
     });
   });
 });
