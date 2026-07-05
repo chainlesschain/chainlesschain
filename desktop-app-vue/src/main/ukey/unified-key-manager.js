@@ -292,17 +292,26 @@ class UnifiedKeyManager extends EventEmitter {
         throw new Error("Key not found");
       }
 
-      // Unset current primary
-      this.database.db
-        .prepare("UPDATE unified_keys SET is_primary = 0 WHERE purpose = ?")
-        .run(key.purpose);
+      // 清旧 primary + 置新 primary 必须原子：否则置新失败会让该 purpose 下无任何
+      // is_primary=1 的 key，getPrimaryKey(purpose)（WHERE is_primary=1）返回 null，
+      // 主密钥静默丢失。纯同步块，包进事务；无 .transaction 的 db 退化为顺序执行。
+      const db = this.database.db;
+      const applySetPrimary = () => {
+        // Unset current primary
+        db.prepare(
+          "UPDATE unified_keys SET is_primary = 0 WHERE purpose = ?",
+        ).run(key.purpose);
 
-      // Set new primary
-      this.database.db
-        .prepare(
+        // Set new primary
+        db.prepare(
           "UPDATE unified_keys SET is_primary = 1, updated_at = ? WHERE id = ?",
-        )
-        .run(Date.now(), keyId);
+        ).run(Date.now(), keyId);
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applySetPrimary)();
+      } else {
+        applySetPrimary();
+      }
 
       this.database.saveToFile();
       return { success: true, keyId, purpose: key.purpose };
