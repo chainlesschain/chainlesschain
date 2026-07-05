@@ -7,7 +7,7 @@
 
 import fs from "fs";
 import path from "path";
-import { likePrefix } from "./sql-like.js";
+import { likePrefix, escapeLike } from "./sql-like.js";
 
 /**
  * Atomically write a UTF-8 file: a crash mid-write must not truncate MEMORY.md
@@ -98,12 +98,14 @@ export function searchMemory(db, query, options = {}) {
   if (!query || !query.trim()) return [];
 
   const limit = Math.max(1, parseInt(options.limit) || 20);
-  const pattern = `%${query}%`;
+  // Escape LIKE wildcards so a query containing % / _ is matched literally
+  // rather than as a wildcard (`search "%"` would otherwise match every entry).
+  const pattern = `%${escapeLike(query)}%`;
 
   return db
     .prepare(
       `SELECT * FROM memory_entries
-       WHERE content LIKE ?
+       WHERE content LIKE ? ESCAPE '\\'
        ORDER BY importance DESC, created_at DESC
        LIMIT ?`,
     )
