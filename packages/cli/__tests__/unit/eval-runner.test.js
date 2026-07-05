@@ -74,6 +74,30 @@ async function perfectAgent({ prompt, cwd }) {
         "console.log(greet({ name: 'Bob', excited: true }));\n",
       "utf8",
     );
+  } else if (/build\.mjs/.test(prompt)) {
+    // fix-build: reconcile the export name so app.mjs's import links.
+    fs.writeFileSync(
+      path.join(cwd, "config.mjs"),
+      'export const VERSION = "1.0.0";\n',
+      "utf8",
+    );
+  } else if (/stringutil/.test(prompt)) {
+    // upgrade-dependency: bump the manifest + adapt the caller, leave the dep.
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify(
+        { name: "app", type: "module", dependencies: { stringutil: "^2.0.0" } },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(cwd, "app.mjs"),
+      'import { toTitle } from "./stringutil.mjs";\n' +
+        "export function label(s) {\n  return toTitle(s);\n}\n",
+      "utf8",
+    );
   } else if (/readNote/.test(prompt)) {
     // secure-path: confine reads to BASE (reject ../ and absolute escapes).
     fs.writeFileSync(
@@ -271,6 +295,44 @@ describe("secure-path task rigor", () => {
     };
     const summary = await runEvalSuite([task], { runAgent: naiveAgent });
     expect(summary.passed).toBe(0);
+  });
+});
+
+describe("fix-build task rigor", () => {
+  it("rejects neutering the build harness instead of fixing the modules", async () => {
+    const task = BUILTIN_TASKS.find((t) => t.id === "fix-build");
+    expect(task).toBeTruthy();
+    // Bypass the real fix by making build.mjs succeed unconditionally.
+    const cheatAgent = async ({ cwd }) => {
+      fs.writeFileSync(
+        path.join(cwd, "build.mjs"),
+        'console.log("BUILD OK");\n',
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: cheatAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/altered/);
+  });
+});
+
+describe("upgrade-dependency task rigor", () => {
+  it("rejects editing the vendored dependency to dodge the upgrade", async () => {
+    const task = BUILTIN_TASKS.find((t) => t.id === "upgrade-dependency");
+    expect(task).toBeTruthy();
+    // Instead of adapting the caller, re-add the old export to the dependency.
+    const cheatAgent = async ({ cwd }) => {
+      fs.appendFileSync(
+        path.join(cwd, "stringutil.mjs"),
+        "export const capitalize = toTitle;\n",
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: cheatAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/dependency was edited/);
   });
 });
 

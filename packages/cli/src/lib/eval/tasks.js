@@ -21,6 +21,15 @@ function read(dir, rel) {
   }
 }
 
+// The `stringutil` "dependency" at v2, used by BOTH the upgrade-dependency
+// setup and its check so the task can verify the vendored dependency file was
+// not edited (the agent must adapt the caller, not touch the dependency).
+const STRINGUTIL_V2 =
+  "export function toTitle(s) {\n" +
+  "  const str = String(s);\n" +
+  "  return str.charAt(0).toUpperCase() + str.slice(1);\n" +
+  "}\n";
+
 export const BUILTIN_TASKS = [
   {
     id: "create-file",
@@ -445,6 +454,157 @@ export const BUILTIN_TASKS = [
         pass: true,
         detail: "traversal neutralized, legitimate read preserved",
       };
+    },
+  },
+  {
+    id: "fix-build",
+    description:
+      "Fix a cross-module build/link failure so the build passes (build-failure category)",
+    prompt:
+      "The build is broken: `node build.mjs` fails to LINK because of an " +
+      "export/import name mismatch between app.mjs and config.mjs. Reconcile " +
+      "them so `node build.mjs` prints BUILD OK. Do not edit build.mjs.",
+    setup: (dir) => {
+      // config exports `version` (lowercase) but app imports `VERSION` — an ESM
+      // link error at build time, distinct from a single-file syntax typo.
+      fs.writeFileSync(
+        path.join(dir, "config.mjs"),
+        'export const version = "1.0.0";\n',
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "app.mjs"),
+        'import { VERSION } from "./config.mjs";\n' +
+          'export function banner() {\n  return "v" + VERSION;\n}\n',
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "build.mjs"),
+        'import { banner } from "./app.mjs";\n' +
+          'if (banner() !== "v1.0.0") {\n' +
+          '  console.error("BUILD FAIL: " + banner());\n' +
+          "  process.exit(1);\n" +
+          "}\n" +
+          'console.log("BUILD OK");\n',
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      const build = read(dir, "build.mjs");
+      if (build == null) return { pass: false, detail: "build.mjs missing" };
+      // Guard: fix the modules, don't neuter the build harness.
+      if (!/banner\(\)\s*!==\s*"v1\.0\.0"/.test(build)) {
+        return { pass: false, detail: "build.mjs assertion was altered" };
+      }
+      try {
+        const out = execFileSync(process.execPath, ["build.mjs"], {
+          cwd: dir,
+          encoding: "utf8",
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return out.includes("BUILD OK")
+          ? { pass: true, detail: "build links + passes" }
+          : {
+              pass: false,
+              detail: `unexpected output ${JSON.stringify(out.trim())}`,
+            };
+      } catch (err) {
+        const first = String(err.message || "").split("\n")[0];
+        return { pass: false, detail: `build still failing: ${first}` };
+      }
+    },
+  },
+  {
+    id: "upgrade-dependency",
+    description:
+      "Adapt code to a dependency's breaking upgrade + bump the manifest (dependency-upgrade category)",
+    prompt:
+      "The `stringutil` dependency was upgraded to 2.0.0. Breaking change: its " +
+      "`capitalize` export was renamed to `toTitle` (same behavior). Do all of: " +
+      "(1) bump stringutil to ^2.0.0 in package.json; (2) update app.mjs to " +
+      "import and use `toTitle` instead of `capitalize`; (3) do NOT edit " +
+      "stringutil.mjs. Afterwards `node run.mjs` must print OK.",
+    setup: (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "package.json"),
+        JSON.stringify(
+          {
+            name: "app",
+            type: "module",
+            dependencies: { stringutil: "1.0.0" },
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      );
+      // The upgraded (v2) dependency — vendored, must not be edited.
+      fs.writeFileSync(path.join(dir, "stringutil.mjs"), STRINGUTIL_V2, "utf8");
+      // The caller still uses the removed v1 `capitalize` export (link error).
+      fs.writeFileSync(
+        path.join(dir, "app.mjs"),
+        'import { capitalize } from "./stringutil.mjs";\n' +
+          "export function label(s) {\n  return capitalize(s);\n}\n",
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(dir, "run.mjs"),
+        'import { label } from "./app.mjs";\n' +
+          'if (label("hello") !== "Hello") {\n' +
+          '  console.error("FAIL: " + label("hello"));\n' +
+          "  process.exit(1);\n" +
+          "}\n" +
+          'console.log("OK");\n',
+        "utf8",
+      );
+    },
+    check: (dir) => {
+      // The dependency is vendored — the agent must adapt the caller, NOT edit
+      // the dependency to re-add the old export and dodge the upgrade.
+      const dep = read(dir, "stringutil.mjs");
+      if (dep == null) return { pass: false, detail: "stringutil.mjs missing" };
+      if (dep !== STRINGUTIL_V2) {
+        return {
+          pass: false,
+          detail: "the stringutil dependency was edited (adapt the caller)",
+        };
+      }
+      const pkg = read(dir, "package.json");
+      if (pkg == null || !/"stringutil"\s*:\s*"[\^~]?2\./.test(pkg)) {
+        return {
+          pass: false,
+          detail: "package.json not bumped to stringutil 2.x",
+        };
+      }
+      const app = read(dir, "app.mjs");
+      if (app == null) return { pass: false, detail: "app.mjs missing" };
+      if (/\bcapitalize\b/.test(app)) {
+        return {
+          pass: false,
+          detail: "app.mjs still references the removed capitalize export",
+        };
+      }
+      if (!/\btoTitle\b/.test(app)) {
+        return { pass: false, detail: "app.mjs does not use the new toTitle" };
+      }
+      try {
+        const out = execFileSync(process.execPath, ["run.mjs"], {
+          cwd: dir,
+          encoding: "utf8",
+          timeout: 10000,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return out.trim() === "OK"
+          ? { pass: true, detail: "adapted to new API + manifest bumped" }
+          : {
+              pass: false,
+              detail: `run.mjs printed ${JSON.stringify(out.trim())}`,
+            };
+      } catch (err) {
+        const first = String(err.message || "").split("\n")[0];
+        return { pass: false, detail: `run.mjs failed: ${first}` };
+      }
     },
   },
 ];
