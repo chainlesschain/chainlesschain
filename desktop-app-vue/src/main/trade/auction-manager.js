@@ -166,22 +166,34 @@ class AuctionManager extends EventEmitter {
     const now = Math.floor(Date.now() / 1000);
     const bidId = uuidv4();
 
-    // Mark previous bids as outbid
-    if (auction.current_bidder) {
+    // 出价的三笔写入（旧最高价标 outbid / 新出价入库 / 更新拍卖当前价与出价人）
+    // 必须原子：否则某笔失败会让 auction_bids 与 auctions 不一致——例如新出价已
+    // 'active' 但 auctions.current_bidder 仍指向已被标 outbid 的旧出价人，
+    // finalizeAuction 会结算给错误赢家。纯同步块，安全包进事务；无 .transaction
+    // 的 MockDatabase 退化为顺序执行。
+    const applyBid = () => {
+      // Mark previous bids as outbid
+      if (auction.current_bidder) {
+        db.prepare(
+          "UPDATE auction_bids SET status = 'outbid' WHERE auction_id = ? AND bidder_id = ? AND status = 'active'",
+        ).run(auctionId, auction.current_bidder);
+      }
+
       db.prepare(
-        "UPDATE auction_bids SET status = 'outbid' WHERE auction_id = ? AND bidder_id = ? AND status = 'active'",
-      ).run(auctionId, auction.current_bidder);
-    }
-
-    db.prepare(
-      `INSERT INTO auction_bids (id, auction_id, bidder_id, amount, bid_time, status)
+        `INSERT INTO auction_bids (id, auction_id, bidder_id, amount, bid_time, status)
        VALUES (?, ?, ?, ?, ?, 'active')`,
-    ).run(bidId, auctionId, bidderId, amount, now);
+      ).run(bidId, auctionId, bidderId, amount, now);
 
-    db.prepare(
-      `UPDATE auctions SET current_price = ?, current_bidder = ?,
+      db.prepare(
+        `UPDATE auctions SET current_price = ?, current_bidder = ?,
        bid_count = bid_count + 1, updated_at = ? WHERE id = ?`,
-    ).run(amount, bidderId, now, auctionId);
+      ).run(amount, bidderId, now, auctionId);
+    };
+    if (typeof db.transaction === "function") {
+      db.transaction(applyBid)();
+    } else {
+      applyBid();
+    }
 
     this.emit("bid-placed", { bidId, auctionId, bidderId, amount });
     logger.info(`[AuctionManager] 出价成功: ${bidId}`);
