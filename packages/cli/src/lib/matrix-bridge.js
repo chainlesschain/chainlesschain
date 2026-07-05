@@ -57,6 +57,90 @@ export function ensureMatrixTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _rooms/_messages/_spaceChildren from the persisted matrix_rooms/
+ * matrix_events tables. The `cc` CLI runs every command in a fresh process, so
+ * without this the Maps start empty and a room joined / message sent / space
+ * child added in a prior invocation is invisible (`cc matrix rooms`/`messages`/
+ * `space children` show nothing; sending to a persisted room can't find it).
+ * Call after ensureMatrixTables(db).
+ *
+ * Caveats reflecting the write side: room `type` is not a persisted column, so
+ * spaces are re-identified by their `!space_` roomId prefix (matching
+ * createSpace). removeSpaceChild is not persisted (no tombstone event), so a
+ * removed child re-appears after rehydration — a separate pre-existing gap,
+ * out of scope here.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _rooms.clear();
+  _messages.clear();
+  _spaceChildren.clear();
+
+  const roomRows = db.prepare(`SELECT * FROM matrix_rooms`).all();
+  for (const row of roomRows) {
+    const isSpace =
+      typeof row.room_id === "string" && row.room_id.startsWith("!space_");
+    const room = {
+      id: row.id,
+      roomId: row.room_id,
+      name: row.name,
+      topic: row.topic ?? null,
+      isEncrypted: !!row.is_encrypted,
+      memberCount: row.member_count ?? 0,
+      lastEventAt: row.last_event_at ?? null,
+      joinedAt: row.joined_at ?? null,
+      status: row.status,
+      createdAt: row.created_at ?? null,
+    };
+    if (isSpace) {
+      room.type = "m.space";
+      if (!_spaceChildren.has(row.room_id))
+        _spaceChildren.set(row.room_id, new Map());
+    }
+    _rooms.set(row.id, room);
+  }
+
+  const eventRows = db.prepare(`SELECT * FROM matrix_events`).all();
+  for (const row of eventRows) {
+    let content = {};
+    try {
+      content = row.content ? JSON.parse(row.content) : {};
+    } catch {
+      content = {};
+    }
+
+    if (row.event_type === "m.space.child") {
+      // Space child state event: content is { state_key, content: { via } }.
+      const childRoomId = content.state_key;
+      const via =
+        content.content && Array.isArray(content.content.via)
+          ? content.content.via
+          : ["matrix.org"];
+      if (childRoomId) {
+        if (!_spaceChildren.has(row.room_id))
+          _spaceChildren.set(row.room_id, new Map());
+        _spaceChildren.get(row.room_id).set(childRoomId, { via });
+      }
+      continue; // space-child events are not messages
+    }
+
+    _messages.set(row.id, {
+      id: row.id,
+      eventId: row.event_id,
+      roomId: row.room_id,
+      sender: row.sender,
+      eventType: row.event_type,
+      content,
+      originServerTs: row.origin_server_ts ?? null,
+      isEncrypted: !!row.is_encrypted,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  return _rooms.size + _messages.size + _spaceChildren.size;
+}
+
 /* ── Login ─────────────────────────────────────────────────── */
 
 export function login(db, homeserver, userId, password) {

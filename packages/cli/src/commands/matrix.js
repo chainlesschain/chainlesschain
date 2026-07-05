@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureMatrixTables,
+  loadFromDb,
   login,
   listRooms,
   sendMessage,
@@ -45,6 +46,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = login(
           db,
@@ -75,6 +77,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const rooms = listRooms();
         if (options.json) {
@@ -108,6 +111,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = sendMessage(db, roomId, message, options.type);
         logger.success(`Message sent to ${chalk.cyan(roomId)}`);
@@ -133,9 +137,15 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const messages = getMessages(roomId, {
-          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
         });
         if (options.json) {
           console.log(JSON.stringify(messages, null, 2));
@@ -165,6 +175,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = joinRoom(db, roomId);
         logger.success(`Joined room ${chalk.cyan(result.room.roomId)}`);
@@ -203,6 +214,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = sendThreadReply(db, {
           roomId,
@@ -239,6 +251,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const messages = getThreadMessages(roomId, rootEventId);
         if (options.json) {
@@ -270,6 +283,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const roots = getThreadRoots(roomId);
         if (options.json) {
@@ -310,6 +324,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = createSpace(db, { name, topic: options.topic });
         if (options.json) {
@@ -339,6 +354,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = addSpaceChild(db, {
           spaceId,
@@ -372,6 +388,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const result = removeSpaceChild(db, { spaceId, childRoomId });
         if (result.removed) {
@@ -401,6 +418,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const children = listSpaceChildren(spaceId);
         if (options.json) {
@@ -432,6 +450,7 @@ export function registerMatrixCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
+        loadFromDb(db);
 
         const spaces = listSpaces();
         if (options.json) {

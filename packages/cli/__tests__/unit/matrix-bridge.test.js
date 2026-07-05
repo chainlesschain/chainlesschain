@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureMatrixTables,
+  loadFromDb,
   login,
   listRooms,
   sendMessage,
@@ -461,6 +462,58 @@ describe("matrix-bridge", () => {
     it("returns empty when no spaces exist", () => {
       joinRoom(db, "!regular:mx.org");
       expect(listSpaces()).toEqual([]);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes rooms, messages, spaces and space children visible after a fresh process", () => {
+      joinRoom(db, "!room:mx.org");
+      sendMessage(db, "!room:mx.org", "hi there", "m.text");
+      const { space } = createSpace(db, { name: "My Space", topic: "t" });
+      addSpaceChild(db, {
+        spaceId: space.roomId,
+        childRoomId: "!child:mx.org",
+        via: ["mx.org"],
+      });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listRooms()).toEqual([]);
+      expect(getMessages("!room:mx.org")).toEqual([]);
+      expect(listSpaces()).toEqual([]);
+
+      loadFromDb(db);
+
+      // listRooms includes the space too (both status "joined").
+      const room = listRooms().find((r) => r.roomId === "!room:mx.org");
+      expect(room).toBeDefined();
+      expect(room.isEncrypted).toBe(true); // INTEGER→boolean
+
+      const msgs = getMessages("!room:mx.org");
+      expect(msgs.length).toBe(1);
+      expect(msgs[0].content.body).toBe("hi there"); // content JSON parsed
+
+      const spaces = listSpaces();
+      expect(spaces.length).toBe(1);
+      expect(spaces[0].type).toBe("m.space"); // re-derived from !space_ prefix
+
+      const children = listSpaceChildren(space.roomId);
+      expect(children.length).toBe(1);
+      expect(children[0].childRoomId).toBe("!child:mx.org");
+      expect(children[0].via).toEqual(["mx.org"]);
+    });
+
+    it("survives a corrupt event content cell (per-row JSON guard)", () => {
+      joinRoom(db, "!room:mx.org");
+      sendMessage(db, "!room:mx.org", "good", "m.text");
+      const rows = db.data.get("matrix_events") || [];
+      rows[0].content = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const msgs = getMessages("!room:mx.org");
+      expect(msgs.length).toBe(1);
+      expect(msgs[0].content).toEqual({}); // guarded fallback
     });
   });
 });
