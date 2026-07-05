@@ -115,13 +115,17 @@ describe("E2E: CLI aliases", () => {
     });
 
     it("doctor runs environment checks", () => {
+      // doctor may exit non-zero if some checks fail — that's OK; either way it
+      // must actually RUN the checks (header + a Node.js version check), not
+      // just return a defined-but-empty string (the old no-op assertion).
+      let output;
       try {
-        const result = runCli("doctor");
-        expect(result).toBeDefined();
+        output = runCli("doctor");
       } catch (err) {
-        // doctor may exit with non-zero if some checks fail — that's OK
-        expect(err.stdout || err.stderr).toBeDefined();
+        output = (err.stdout || "") + (err.stderr || "");
       }
+      expect(output).toContain("Doctor");
+      expect(output).toMatch(/Node\.js/);
     });
   });
 

@@ -111,9 +111,11 @@ describe("config features enable/disable", () => {
 
   it("enable unknown flag still succeeds (permissive)", () => {
     const result = tryRun("config features enable UNKNOWN_FLAG_XYZ");
-    // May succeed or fail depending on implementation
-    // Just verify it doesn't crash with an unhandled exception
-    expect(result.stdout + result.stderr).toBeDefined();
+    // Permissive: an unknown flag is accepted (exit 0) and echoed back, not
+    // rejected — and it must not crash with an unhandled exception.
+    // (Was an always-true `stdout + stderr` no-op assertion.)
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("UNKNOWN_FLAG_XYZ");
   });
 });
 
@@ -266,7 +268,11 @@ describe("version and status", () => {
 
   it("status command does not crash", () => {
     const result = tryRun("status");
-    // Status may return non-zero if services not running, but shouldn't crash
-    expect(result.stdout + result.stderr).toBeDefined();
+    // Status may return non-zero if services aren't running, but must not crash
+    // with an unhandled exception (raw JS stack trace) and must produce output.
+    // (Was an always-true `stdout + stderr` no-op assertion.)
+    expect(typeof result.exitCode).toBe("number");
+    expect(result.stderr).not.toMatch(/\n\s+at .+:\d+:\d+/);
+    expect(result.stdout.length).toBeGreaterThan(0);
   });
 });

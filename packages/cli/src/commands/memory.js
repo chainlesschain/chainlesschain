@@ -603,7 +603,10 @@ export function registerMemoryCommand(program) {
             (process.platform === "win32" ? "notepad" : "nano");
           const filePath = `${memoryDir}/MEMORY.md`;
           try {
-            execSync(`${editor} "${filePath}"`, { stdio: "inherit" });
+            // Escape any `"` in the path so it can't break out of the quoted
+            // arg (editor stays unquoted so `$EDITOR` values with args work).
+            const safePath = filePath.replace(/"/g, '\\"');
+            execSync(`${editor} "${safePath}"`, { stdio: "inherit" });
             logger.success("Memory file updated");
           } catch {
             logger.error(

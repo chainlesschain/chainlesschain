@@ -345,8 +345,15 @@ export function registerTeamCommand(program, { logger } = {}) {
         } else {
           runTask = coord.makeRunTask();
         }
-      } else if (options.exec) runTask = makeShellRunTask(log);
-      else if (options.agent)
+      } else if (options.exec) {
+        // --exec runs each task's `command` verbatim through a shell. A shared
+        // or downloaded plan file is untrusted input — surface that before we
+        // start executing it, so it's not silently treated as safe.
+        log.warn(
+          "⚠ --exec executes each task's shell `command` from the plan file. Only run plans you trust.",
+        );
+        runTask = makeShellRunTask(log);
+      } else if (options.agent)
         runTask = makeAgentRunTask({ model: options.model });
       else runTask = async () => ({ dryRun: true });
 

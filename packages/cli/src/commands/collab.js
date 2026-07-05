@@ -73,8 +73,19 @@ function _dbFromCtx(ctx) {
 }
 
 function _readJsonFile(filePath) {
-  const raw = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(raw);
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "utf-8");
+  } catch (err) {
+    // A user-supplied path — surface which file and why instead of the bare
+    // global "error: ENOENT ..." with no context.
+    throw new Error(`could not read ${filePath}: ${err.message}`);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`${filePath} is not valid JSON: ${err.message}`);
+  }
 }
 
 function _printDecision(d) {

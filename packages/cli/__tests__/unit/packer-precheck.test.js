@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import { precheck } from "../../src/lib/packer/precheck.js";
 import { PackError } from "../../src/lib/packer/errors.js";
 
@@ -68,26 +69,29 @@ describe("precheck", () => {
     }
   });
 
-  it("throws when working tree is dirty and !allowDirty", () => {
-    // Skip this test if the current tree happens to be clean — we can't
-    // forcibly dirty it without leaving turds. Best-effort: detect first
-    // and only assert if dirty.
-    const probe = precheck({
-      projectRoot: process.cwd(),
+  it("throws when the projectRoot git tree is dirty and !allowDirty", () => {
+    // Deterministic (was best-effort: skipped whenever the CLI repo happened to
+    // be clean, i.e. always in CI). Init a REAL git repo in tmpDir with one
+    // commit (so rev-parse HEAD succeeds — an unborn HEAD would throw and leave
+    // dirty=false), then dirty it with an untracked file and point precheck at
+    // it. -c user.* avoids a dependency on global git identity.
+    execSync("git init -q", { cwd: tmpDir });
+    execSync(
+      "git -c user.email=t@example.com -c user.name=t commit --allow-empty -q -m init",
+      { cwd: tmpDir },
+    );
+    fs.writeFileSync(path.join(tmpDir, "dirty.txt"), "uncommitted");
+
+    expect(() =>
+      precheck({ projectRoot: tmpDir, allowDirty: false, projectMode: false }),
+    ).toThrow(/dirty/i);
+
+    // The same dirty tree is tolerated with allowDirty:true (and reported).
+    const r = precheck({
+      projectRoot: tmpDir,
       allowDirty: true,
       projectMode: false,
     });
-    if (!probe.dirty) {
-      // Tree is clean, nothing to assert. Mark passing.
-      expect(true).toBe(true);
-      return;
-    }
-    expect(() =>
-      precheck({
-        projectRoot: process.cwd(),
-        allowDirty: false,
-        projectMode: false,
-      }),
-    ).toThrow(/dirty/);
+    expect(r.dirty).toBe(true);
   });
 });

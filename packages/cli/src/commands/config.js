@@ -111,7 +111,10 @@ export function registerConfigCommand(program) {
         (process.platform === "win32" ? "notepad" : "vi");
       const { execSync } = await import("node:child_process");
       try {
-        execSync(`${editor} "${configPath}"`, { stdio: "inherit" });
+        // Escape any `"` in the path so it can't break out of the quoted arg
+        // (editor stays unquoted so `$EDITOR` values with args still work).
+        const safePath = configPath.replace(/"/g, '\\"');
+        execSync(`${editor} "${safePath}"`, { stdio: "inherit" });
       } catch (err) {
         logger.error(`Failed to open editor: ${err.message}`);
         logger.info(`Config file is at: ${configPath}`);

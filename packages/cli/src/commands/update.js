@@ -155,7 +155,7 @@ export function registerUpdateCommand(program) {
         }
 
         await downloadRelease(result.latestVersion, { force: options.force });
-        logger.success("Application already installed");
+        logger.success(`Downloaded v${result.latestVersion}`);
 
         // Self-update the CLI npm package
         const cliUpdated = await selfUpdateCli(result.latestVersion);

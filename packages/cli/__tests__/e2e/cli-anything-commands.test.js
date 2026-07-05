@@ -158,11 +158,14 @@ describe("E2E: CLI-Anything Commands", () => {
   // ─── register/remove subcommands ──────────────────────────
 
   describe("register/remove subcommands", () => {
-    it("register nonexistent tool fails gracefully", () => {
+    it("register nonexistent tool exits cleanly (no crash)", () => {
       const { exitCode } = tryRun("cli-anything register nonexistent-tool-xyz");
-      // Should fail because cli-anything-nonexistent-tool-xyz doesn't exist
-      // but should NOT crash with unhandled exception
-      expect(exitCode).not.toBeNull();
+      // Registering a wrapper for a not-yet-installed tool is BY DESIGN (it may
+      // be installed later): a fresh name exits 0, an already-registered one
+      // exits 1. Either way it must exit via a normal numeric code, not die by
+      // signal (which execSync reports as a null status). `not.toBeNull()` let
+      // an undefined/crash status through — assert a real numeric exit instead.
+      expect(typeof exitCode).toBe("number");
     });
 
     it("remove nonexistent tool fails gracefully", () => {
@@ -172,7 +175,10 @@ describe("E2E: CLI-Anything Commands", () => {
       // (no unhandled exception crash) — mirrors the 'register nonexistent'
       // test above.
       const { exitCode } = tryRun("cli-anything remove nope");
-      expect(exitCode).not.toBeNull();
+      // Removing a tool that was never registered fails cleanly with exit 1
+      // (a graceful error, not a signal crash) — stronger than `not.toBeNull()`,
+      // which also passed for an undefined/crash status.
+      expect(exitCode).toBe(1);
     });
   });
 

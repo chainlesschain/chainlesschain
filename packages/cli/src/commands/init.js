@@ -608,7 +608,7 @@ chainlesschain cli-anything register <tool-name>
  * Auto-detects which backend is available and uses the best one.
  */
 
-const { execSync, spawn } = require("child_process");
+const { execSync, spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
@@ -734,9 +734,14 @@ async function audioGenHandler(params) {
   // 2. piper-tts (offline, free)
   if (commandExists("piper")) {
     try {
-      execSync(\`echo "\${text.replace(/"/g, '\\\\"')}" | piper --output_file "\${outputPath}"\`, {
+      // Pass the text via stdin with NO shell — an echo-pipe only escaped
+      // double-quotes, so backticks / \$(...) in \`text\` would still execute.
+      const r = spawnSync("piper", ["--output_file", outputPath], {
+        input: text,
         encoding: "utf-8",
       });
+      if (r.error) throw r.error;
+      if (r.status !== 0) throw new Error(r.stderr || "piper exited " + r.status);
       return {
         success: true,
         backend: "piper-tts",

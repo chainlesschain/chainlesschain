@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { freePort } from "./_helpers/cli-e2e.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,18 @@ const cliRoot = path.join(__dirname, "..", "..");
 const bin = path.join(cliRoot, "bin", "chainlesschain.js");
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Two DISTINCT OS-assigned free ports (http + ws). Replaces hardcoded ports so
+ * a leftover process / TIME_WAIT from a prior run can't wedge a fixed port —
+ * see the freePort header in _helpers/cli-e2e.js.
+ */
+async function twoFreePorts() {
+  const a = await freePort();
+  let b = await freePort();
+  while (b === a) b = await freePort();
+  return [a, b];
+}
 
 function startUiServer({ httpPort, wsPort, cwd, extraArgs = [] } = {}) {
   return new Promise((resolve, reject) => {
@@ -167,12 +180,13 @@ afterAll(() => {
 // ── Suite 1: Global mode with web-panel dist ──────────────────────────────────
 
 describe("chainlesschain ui --web-panel-dir (global mode)", () => {
-  const HTTP_PORT = 19920;
-  const WS_PORT = 19921;
+  let HTTP_PORT;
+  let WS_PORT;
   let proc;
   let startOutput;
 
   beforeAll(async () => {
+    [HTTP_PORT, WS_PORT] = await twoFreePorts();
     // Run from tmpBase (no .chainlesschain → global mode)
     const result = await startUiServer({
       httpPort: HTTP_PORT,
@@ -237,12 +251,13 @@ describe("chainlesschain ui --web-panel-dir (global mode)", () => {
 // ── Suite 2: Project mode with web-panel dist ─────────────────────────────────
 
 describe("chainlesschain ui --web-panel-dir (project mode)", () => {
-  const HTTP_PORT = 19930;
-  const WS_PORT = 19931;
+  let HTTP_PORT;
+  let WS_PORT;
   let proc;
   let projectDir;
 
   beforeAll(async () => {
+    [HTTP_PORT, WS_PORT] = await twoFreePorts();
     // Create a fake project directory with .chainlesschain marker
     projectDir = path.join(tmpBase, "test-project");
     fs.mkdirSync(path.join(projectDir, ".chainlesschain"), { recursive: true });
@@ -298,11 +313,12 @@ describe("chainlesschain ui --web-panel-dir (project mode)", () => {
 // ── Suite 3: Static assets served end-to-end ─────────────────────────────────
 
 describe("chainlesschain ui --web-panel-dir – asset serving E2E", () => {
-  const HTTP_PORT = 19940;
-  const WS_PORT = 19941;
+  let HTTP_PORT;
+  let WS_PORT;
   let proc;
 
   beforeAll(async () => {
+    [HTTP_PORT, WS_PORT] = await twoFreePorts();
     const result = await startUiServer({
       httpPort: HTTP_PORT,
       wsPort: WS_PORT,
@@ -345,11 +361,12 @@ describe("chainlesschain ui --web-panel-dir – asset serving E2E", () => {
 // ── Suite 4: SPA routing E2E ──────────────────────────────────────────────────
 
 describe("chainlesschain ui --web-panel-dir – SPA routing E2E", () => {
-  const HTTP_PORT = 19950;
-  const WS_PORT = 19951;
+  let HTTP_PORT;
+  let WS_PORT;
   let proc;
 
   beforeAll(async () => {
+    [HTTP_PORT, WS_PORT] = await twoFreePorts();
     const result = await startUiServer({
       httpPort: HTTP_PORT,
       wsPort: WS_PORT,
@@ -375,12 +392,13 @@ describe("chainlesschain ui --web-panel-dir – SPA routing E2E", () => {
 // ── Suite 5: Auto-detection of dist/ (no --web-panel-dir flag) ────────────────
 
 describe("chainlesschain ui – auto-detect web-panel dist/", () => {
-  const HTTP_PORT = 19960;
-  const WS_PORT = 19961;
+  let HTTP_PORT;
+  let WS_PORT;
   let proc;
   let startOutput;
 
   beforeAll(async () => {
+    [HTTP_PORT, WS_PORT] = await twoFreePorts();
     // Run WITHOUT --web-panel-dir to test auto-detection.
     // The built dist/ at packages/web-panel/dist/ will be auto-detected.
     // If it doesn't exist, server falls back to classic HTML (also valid).
