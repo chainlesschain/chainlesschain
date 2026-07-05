@@ -84,6 +84,17 @@ export const LAYER_NAMES = [
  *  `<group>/<skill>/SKILL.md` layouts (infinite-recursion / deep-tree guard). */
 export const MAX_SKILL_NEST_DEPTH = 5;
 
+// Frontmatter keys (camelCased) that are semantically strings and are consumed
+// with string methods; they must never be number/boolean-coerced. `version` is
+// deliberately excluded — it is only string-interpolated and existing behavior
+// coerces it to a number.
+const STRING_SCALAR_FIELDS = new Set([
+  "name",
+  "displayName",
+  "description",
+  "category",
+]);
+
 /**
  * Simple YAML frontmatter parser (no dependencies)
  * Shared utility extracted from skill.js
@@ -165,11 +176,14 @@ export function parseSkillMd(content) {
         continue;
       }
 
-      // Handle booleans and numbers. `name` is an identity field and must stay
-      // a string — a bare numeric name ("2024") or boolean coerced to Number/
-      // Boolean makes the derived skill.id non-string, and skill.id.includes()
-      // in `cc skill run/info` then throws TypeError, aborting the lookup.
-      if (camelKey === "name") value = value.replace(/^['"]|['"]$/g, "");
+      // Handle booleans and numbers. These fields are string-semantic and get
+      // used with string methods downstream (skill.id.includes(),
+      // description.substring(), category/displayName.toLowerCase()); coercing a
+      // bare numeric ("2024") or boolean value to Number/Boolean makes those
+      // throw and aborts the whole `cc skill list/search/run` command on a
+      // single such skill — so never coerce them. (version stays coercible.)
+      if (STRING_SCALAR_FIELDS.has(camelKey))
+        value = value.replace(/^['"]|['"]$/g, "");
       else if (value === "true") value = true;
       else if (value === "false") value = false;
       else if (value === "null") value = null;

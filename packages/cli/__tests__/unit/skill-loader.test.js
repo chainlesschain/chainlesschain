@@ -98,6 +98,28 @@ version: 2.5
       // Other scalar fields still coerce (e.g. version stays numeric above).
     });
 
+    it("keeps displayName/description/category as strings (not scalar-coerced)", () => {
+      // Regression: these are string-semantic display fields that skill.js uses
+      // with .substring()/.toLowerCase(), so coercing a bare numeric/boolean
+      // value to Number/Boolean crashed `cc skill list`/`search` wholesale on a
+      // single such skill (one bad skill → nothing lists).
+      expect(
+        parseSkillMd("---\nname: s\ndisplay-name: 2024\n---\nb").data
+          .displayName,
+      ).toBe("2024");
+      expect(
+        parseSkillMd("---\nname: s\ndescription: 2024\n---\nb").data
+          .description,
+      ).toBe("2024");
+      expect(
+        parseSkillMd("---\nname: s\ncategory: 2024\n---\nb").data.category,
+      ).toBe("2024");
+      expect(
+        parseSkillMd("---\nname: s\ndescription: true\n---\nb").data
+          .description,
+      ).toBe("true");
+    });
+
     it("handles null values", () => {
       const content = `---
 name: test
