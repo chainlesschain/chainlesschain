@@ -325,6 +325,76 @@ export function _resetState() {
   _v2IncidentMeta.clear();
 }
 
+/**
+ * Rehydrate the in-memory _policies/_incidents Maps from the persisted dlp_*
+ * tables. The CLI runs each `cc dlp` subcommand in a fresh node process, so both
+ * Maps start empty every invocation. createPolicy/scanContent dual-write (Map +
+ * INSERT into dlp_policies/dlp_incidents) but every read (listDLPPolicies/
+ * listIncidents/getDLPStats + the scanContent enforcement loop over _policies)
+ * is Map-only and nothing SELECTed the tables back.
+ *
+ * SECURITY IMPACT: `cc dlp scan` iterates an empty _policies → matches nothing →
+ * returns allowed:true, so a BLOCK policy created in a prior invocation silently
+ * never enforces. Persisted policies were also un-listable and un-deletable
+ * (`policy delete`/`resolve` threw "not found"). Call after ensureDLPTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  ensureDLPTables(db);
+  _policies.clear();
+  _incidents.clear();
+
+  const parse = (v, fallback) => {
+    try {
+      return v ? JSON.parse(v) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  for (const r of db
+    .prepare(
+      `SELECT id, name, patterns, keywords, action, severity, enabled, created_at
+         FROM dlp_policies ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _policies.set(r.id, {
+      id: r.id,
+      name: r.name,
+      patterns: parse(r.patterns, []),
+      keywords: parse(r.keywords, []),
+      action: r.action,
+      severity: r.severity,
+      enabled: !!r.enabled,
+      createdAt: r.created_at,
+    });
+  }
+
+  for (const r of db
+    .prepare(
+      `SELECT id, policy_id, channel, action_taken, content_hash, matched_patterns,
+              severity, user_id, created_at, resolved_at, resolution
+         FROM dlp_incidents ORDER BY created_at ASC`,
+    )
+    .all()) {
+    _incidents.set(r.id, {
+      id: r.id,
+      policyId: r.policy_id,
+      channel: r.channel,
+      actionTaken: r.action_taken,
+      contentHash: r.content_hash,
+      matchedPatterns: parse(r.matched_patterns, []),
+      severity: r.severity,
+      userId: r.user_id,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at ?? null,
+      resolution: r.resolution ?? null,
+    });
+  }
+
+  return _policies.size + _incidents.size;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // V2 Canonical Surface (Phase 50)
 // ═══════════════════════════════════════════════════════════════

@@ -9,6 +9,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureDLPTables,
+  loadFromDb as loadDlpFromDb,
   scanContent,
   listIncidents,
   resolveIncident,
@@ -54,6 +55,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const result = scanContent(db, content, options.channel, options.user);
         if (options.json) {
@@ -94,6 +96,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const incidents = listIncidents({
           channel: options.channel,
@@ -135,6 +138,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const result = resolveIncident(db, incidentId, options.resolution);
         logger.success(
@@ -162,6 +166,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const stats = getDLPStats();
         if (options.json) {
@@ -206,6 +211,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const patterns = options.patterns
           ? options.patterns.split(",").map((s) => s.trim())
@@ -247,6 +253,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const policies = listDLPPolicies();
         if (options.json) {
@@ -280,6 +287,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         deletePolicy(db, policyId);
         logger.success(`Policy ${chalk.cyan(policyId.slice(0, 8))} deleted`);
@@ -346,6 +354,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const result = createPolicyV2(db, {
           name,
@@ -392,6 +401,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         console.log(JSON.stringify(getPolicyV2(policyId), null, 2));
 
@@ -414,6 +424,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         console.log(
           JSON.stringify(listActivePoliciesForChannel(channel), null, 2),
@@ -450,6 +461,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const installed = installBuiltinPolicies(
           db,
@@ -481,6 +493,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         let metadata = {};
         try {
@@ -528,6 +541,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         const filter = {};
         if (options.channel) filter.channel = options.channel;
@@ -538,7 +552,12 @@ export function registerDlpCommand(program) {
         if (options.policy) filter.policyId = options.policy;
         if (options.from) filter.fromDate = options.from;
         if (options.to) filter.toDate = options.to;
-        filter.limit = numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 });
+        filter.limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 1,
+          fallback: 50,
+        });
         console.log(JSON.stringify(listIncidentsV2(filter), null, 2));
 
         await shutdown();
@@ -560,6 +579,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         console.log(JSON.stringify(getIncidentV2(incidentId), null, 2));
 
@@ -584,6 +604,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         console.log(JSON.stringify(getDLPStatsV2(), null, 2));
 
@@ -606,6 +627,7 @@ export function registerDlpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureDLPTables(db);
+        loadDlpFromDb(db);
 
         console.log(
           JSON.stringify({ highestSeverity: getHighestUnresolvedSeverity() }),

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureDLPTables,
+  loadFromDb,
   scanContent,
   listIncidents,
   resolveIncident,
@@ -849,6 +850,61 @@ describe("dlp-engine", () => {
       _resetState();
       expect(_v2PolicyMeta.size).toBe(0);
       expect(_v2IncidentMeta.size).toBe(0);
+    });
+  });
+
+  describe("loadFromDb — rehydrates policies/incidents across processes", () => {
+    it("restores BLOCK enforcement (scan matches persisted policy) after a fresh process", () => {
+      createPolicy(db, "block-secrets", ["SECRET"], [], "block", "high");
+      const first = scanContent(db, "this is SECRET", "cli", "u");
+      expect(first.allowed).toBe(false);
+      expect(first.action).toBe("block");
+
+      // Simulate the next one-shot CLI invocation: Maps wiped, DB persists.
+      _resetState();
+      // THE BUG: empty _policies → scan matches nothing → silently allowed.
+      const blind = scanContent(db, "this is SECRET", "cli", "u");
+      expect(blind.allowed).toBe(true);
+      expect(blind.matchedPolicies).toBe(0);
+      expect(listDLPPolicies()).toHaveLength(0);
+
+      const loaded = loadFromDb(db);
+      expect(loaded).toBeGreaterThanOrEqual(1);
+
+      // Enforcement restored: the persisted BLOCK policy matches again.
+      expect(listDLPPolicies()).toHaveLength(1);
+      const after = scanContent(db, "this is SECRET", "cli", "u");
+      expect(after.allowed).toBe(false);
+      expect(after.action).toBe("block");
+      // The incident from the first scan is now visible too.
+      expect(listIncidents().length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("survives a corrupt patterns cell (per-row JSON guard)", () => {
+      db.prepare(
+        `INSERT INTO dlp_policies (id, name, patterns, keywords, action, severity, enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        "pol-bad",
+        "bad",
+        "{not json",
+        "[]",
+        "alert",
+        "low",
+        1,
+        "2020-01-01T00:00:00.000Z",
+        "2020-01-01T00:00:00.000Z",
+      );
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const p = listDLPPolicies().find((x) => x.id === "pol-bad");
+      expect(p).toBeTruthy();
+      expect(p.patterns).toEqual([]);
+    });
+
+    it("no-ops when db is null", () => {
+      expect(loadFromDb(null)).toBe(0);
     });
   });
 });
