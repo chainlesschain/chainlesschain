@@ -12,6 +12,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureGovernanceTables,
+  loadFromDb,
   listDecisionTypes,
   listConflictStrategies,
   listQualityMetrics,
@@ -69,6 +70,7 @@ function _dbFromCtx(ctx) {
   }
   const db = ctx.db.getDatabase();
   ensureGovernanceTables(db);
+  loadFromDb(db);
   return db;
 }
 

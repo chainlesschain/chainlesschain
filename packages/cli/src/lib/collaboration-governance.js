@@ -129,6 +129,62 @@ export function ensureGovernanceTables(db) {
   );
 }
 
+/**
+ * Rehydrate _decisions/_agentLevels from the persisted governance_decisions/
+ * autonomy_levels tables. The `cc` CLI runs every command in a fresh process, so
+ * without this the Maps start empty and a decision/level set in a prior
+ * invocation is invisible (`cc collab decisions`/`show`/`agents` show nothing),
+ * decision voting throws "not found", and setAutonomyLevel on a cold Map takes
+ * the INSERT branch on an already-persisted agent_id → PRIMARY KEY conflict.
+ * Call after ensureGovernanceTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _decisions.clear();
+  _agentLevels.clear();
+
+  const parse = (v, fallback) => {
+    if (v == null) return fallback;
+    try {
+      return JSON.parse(v);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const decisionRows = db.prepare(`SELECT * FROM governance_decisions`).all();
+  for (const row of decisionRows) {
+    _decisions.set(row.decision_id, {
+      decisionId: row.decision_id,
+      type: row.type,
+      proposal: row.proposal,
+      status: row.status,
+      votes: parse(row.votes, {}),
+      resolution: row.resolution ?? null,
+      executedAt: row.executed_at ?? null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      _seq: ++_seq,
+    });
+  }
+
+  const levelRows = db.prepare(`SELECT * FROM autonomy_levels`).all();
+  for (const row of levelRows) {
+    _agentLevels.set(row.agent_id, {
+      agentId: row.agent_id,
+      currentLevel: row.current_level,
+      permissions: parse(row.permissions, []),
+      adjustmentHistory: parse(row.adjustment_history, []),
+      lastReviewAt: row.last_review_at ?? null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      _seq: ++_seq,
+    });
+  }
+
+  return _decisions.size + _agentLevels.size;
+}
+
 /* ── Catalogs ──────────────────────────────────────────────── */
 
 export function listDecisionTypes() {

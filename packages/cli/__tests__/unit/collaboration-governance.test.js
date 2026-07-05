@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureGovernanceTables,
+  loadFromDb,
   listDecisionTypes,
   listConflictStrategies,
   listQualityMetrics,
@@ -968,6 +969,60 @@ describe("collaboration-governance V2", () => {
       _resetStateCgV2();
       expect(getCollaborationGovernanceStatsV2().totalAgentsCgV2).toBe(0);
       expect(getMaxActiveAgentsPerRealmCgV2()).toBe(10);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    beforeEach(() => {
+      _resetState();
+      db = new MockDatabase();
+      ensureGovernanceTables(db);
+    });
+
+    it("makes decisions + autonomy levels visible after a fresh process", () => {
+      const d = createDecision(db, {
+        type: DECISION_TYPES.TASK_ASSIGNMENT,
+        proposal: "Assign P1 to agent-42",
+      });
+      setAutonomyLevel(db, "agent-42", 3, { reason: "trusted" });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listDecisions()).toEqual([]);
+      expect(getAutonomyLevel("agent-42")).toBeNull();
+
+      loadFromDb(db);
+
+      const decisions = listDecisions();
+      expect(decisions.length).toBe(1);
+      expect(decisions[0].decisionId).toBe(d.decisionId);
+      expect(decisions[0].votes).toEqual({}); // JSON rehydrated
+
+      const lvl = getAutonomyLevel("agent-42");
+      expect(lvl).not.toBeNull();
+      expect(lvl.currentLevel).toBe(3);
+      expect(Array.isArray(lvl.permissions)).toBe(true);
+
+      // setAutonomyLevel on a persisted agent now UPDATEs (no PK conflict)
+      expect(() =>
+        setAutonomyLevel(db, "agent-42", 4, { reason: "promo" }),
+      ).not.toThrow();
+    });
+
+    it("survives a corrupt votes cell (per-row JSON guard)", () => {
+      createDecision(db, {
+        type: DECISION_TYPES.TASK_ASSIGNMENT,
+        proposal: "P",
+      });
+      const rows = db.data.get("governance_decisions") || [];
+      rows[0].votes = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const decisions = listDecisions();
+      expect(decisions.length).toBe(1);
+      expect(decisions[0].votes).toEqual({}); // guarded fallback
     });
   });
 });
