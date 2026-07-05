@@ -232,25 +232,36 @@ class TeamManager {
       const db = this.database.getDatabase();
       const now = Date.now();
 
-      // Update team lead
-      db.prepare(
-        `
+      // 三笔写入（改 team.lead_did / 旧 lead 降级 / 新 lead 升级）必须原子：否则
+      // 升级失败会让旧 lead 已降级但无人是 lead（零 lead），且 lead_did 指向一个
+      // 仍是 'member' 的成员——自相矛盾的 lead 状态（角色直接读自这两张表，跨进程仍错）。
+      // 纯同步块，包进事务；无 .transaction 的 wrapper 退化为顺序执行。
+      const applySetLead = () => {
+        // Update team lead
+        db.prepare(
+          `
         UPDATE org_teams SET lead_did = ?, lead_name = ?, updated_at = ? WHERE id = ?
       `,
-      ).run(leadDid, leadName, now, teamId);
+        ).run(leadDid, leadName, now, teamId);
 
-      // Update member role
-      db.prepare(
-        `
+        // Update member role
+        db.prepare(
+          `
         UPDATE org_team_members SET team_role = 'member' WHERE team_id = ? AND team_role = 'lead'
       `,
-      ).run(teamId);
+        ).run(teamId);
 
-      db.prepare(
-        `
+        db.prepare(
+          `
         UPDATE org_team_members SET team_role = 'lead' WHERE team_id = ? AND member_did = ?
       `,
-      ).run(teamId, leadDid);
+        ).run(teamId, leadDid);
+      };
+      if (typeof db.transaction === "function") {
+        db.transaction(applySetLead)();
+      } else {
+        applySetLead();
+      }
 
       logger.info(`[Team] Set lead ${leadDid} for team ${teamId}`);
 
