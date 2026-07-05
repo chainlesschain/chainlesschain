@@ -8,6 +8,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTerraformTables,
+  loadFromDb,
   listWorkspaces,
   createWorkspace,
   planRun,
@@ -49,6 +50,7 @@ export function registerTerraformCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
+        loadFromDb(db);
 
         const workspaces = listWorkspaces({ status: options.status });
         if (options.json) {
@@ -84,6 +86,7 @@ export function registerTerraformCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
+        loadFromDb(db);
 
         const ws = createWorkspace(db, name, {
           description: options.description,
@@ -114,6 +117,7 @@ export function registerTerraformCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
+        loadFromDb(db);
 
         const run = planRun(db, workspaceId, { runType: options.type });
         logger.success(`Run completed: ${run.planOutput}`);
@@ -142,6 +146,7 @@ export function registerTerraformCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
+        loadFromDb(db);
 
         const runs = listRuns({ workspaceId: options.workspace });
         if (options.json) {
@@ -173,6 +178,7 @@ export function registerTerraformCommand(program) {
     try {
       const db = ctx.db.getDatabase();
       ensureTerraformTables(db);
+      loadFromDb(db);
       return await fn(db);
     } finally {
       await shutdown();

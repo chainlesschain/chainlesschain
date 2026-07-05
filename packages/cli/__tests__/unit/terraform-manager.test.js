@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureTerraformTables,
+  loadFromDb,
   listWorkspaces,
   createWorkspace,
   planRun,
@@ -599,6 +600,50 @@ describe("terraform-manager V2 (Phase 56)", () => {
       expect(stats.runsByType.destroy).toBe(1);
       expect(stats.totalResources.added).toBe(4);
       expect(stats.totalResources.changed).toBe(2);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes workspaces + runs visible after a fresh process", () => {
+      const ws = createWorkspace(db, "prod", {
+        description: "production",
+        autoApply: true,
+        variables: { region: "us-east-1" },
+        providers: ["hashicorp/aws"],
+      });
+      planRun(db, ws.id, { runType: "plan" });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listWorkspaces()).toEqual([]);
+      expect(listRuns()).toEqual([]);
+
+      loadFromDb(db);
+
+      const workspaces = listWorkspaces();
+      expect(workspaces.length).toBe(1);
+      expect(workspaces[0].name).toBe("prod");
+      expect(workspaces[0].autoApply).toBe(true); // INTEGER→boolean
+      expect(workspaces[0].variables).toEqual({ region: "us-east-1" }); // JSON parsed
+
+      const runs = listRuns({ workspaceId: ws.id });
+      expect(runs.length).toBe(1);
+      expect(runs[0].workspaceId).toBe(ws.id);
+
+      // planRun on a persisted workspace no longer throws "Workspace not found"
+      expect(() => planRun(db, ws.id, { runType: "plan" })).not.toThrow();
+    });
+
+    it("survives a corrupt variables cell (per-row JSON guard)", () => {
+      createWorkspace(db, "dev");
+      const rows = db.data.get("terraform_workspaces") || [];
+      rows[0].variables = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const workspaces = listWorkspaces();
+      expect(workspaces.length).toBe(1);
+      expect(workspaces[0].variables).toEqual({}); // guarded fallback
     });
   });
 });

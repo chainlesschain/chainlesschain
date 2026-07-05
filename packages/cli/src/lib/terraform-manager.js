@@ -65,6 +65,73 @@ export function ensureTerraformTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _workspaces/_runs from the persisted terraform_workspaces/
+ * terraform_runs tables. The `cc` CLI runs every command in a fresh process, so
+ * without this the Maps start empty and a workspace/run created in a prior
+ * invocation is invisible (`cc terraform workspaces`/`runs` show nothing;
+ * `cc terraform plan <id>` throws "Workspace not found" for a persisted
+ * workspace). Call after ensureTerraformTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _workspaces.clear();
+  _runs.clear();
+
+  const wsRows = db.prepare(`SELECT * FROM terraform_workspaces`).all();
+  for (const row of wsRows) {
+    let variables = {};
+    let providers = [];
+    try {
+      variables = row.variables ? JSON.parse(row.variables) : {};
+    } catch {
+      variables = {};
+    }
+    try {
+      providers = row.providers ? JSON.parse(row.providers) : [];
+    } catch {
+      providers = [];
+    }
+    _workspaces.set(row.id, {
+      id: row.id,
+      name: row.name,
+      description: row.description ?? "",
+      terraformVersion: row.terraform_version,
+      workingDirectory: row.working_directory,
+      autoApply: !!row.auto_apply,
+      status: row.status,
+      lastRunId: row.last_run_id ?? null,
+      lastRunAt: row.last_run_at ?? null,
+      stateVersion: row.state_version ?? 0,
+      variables,
+      providers,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  const runRows = db.prepare(`SELECT * FROM terraform_runs`).all();
+  for (const row of runRows) {
+    _runs.set(row.id, {
+      id: row.id,
+      workspaceId: row.workspace_id,
+      runType: row.run_type,
+      status: row.status,
+      planOutput: row.plan_output ?? null,
+      applyOutput: row.apply_output ?? null,
+      resourcesAdded: row.resources_added ?? 0,
+      resourcesChanged: row.resources_changed ?? 0,
+      resourcesDestroyed: row.resources_destroyed ?? 0,
+      triggeredBy: row.triggered_by ?? null,
+      startedAt: row.started_at ?? null,
+      completedAt: row.completed_at ?? null,
+      errorMessage: row.error_message ?? null,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  return _workspaces.size + _runs.size;
+}
+
 /* ── Workspace Management ─────────────────────────────────── */
 
 export function listWorkspaces(filter = {}) {
