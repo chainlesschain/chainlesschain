@@ -8,6 +8,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensurePQCTables,
+  loadFromDb,
   listKeys,
   generateKey,
   getMigrationStatus,
@@ -64,6 +65,7 @@ export function registerPqcCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensurePQCTables(db);
+        loadFromDb(db);
 
         const keys = listKeys({ algorithm: options.algorithm });
         if (options.json) {
@@ -103,6 +105,7 @@ export function registerPqcCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensurePQCTables(db);
+        loadFromDb(db);
 
         const key = generateKey(db, algorithm, options.purpose);
         logger.success("PQC key generated");
@@ -136,6 +139,7 @@ export function registerPqcCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensurePQCTables(db);
+        loadFromDb(db);
 
         const plans = getMigrationStatus();
         if (options.json) {
@@ -204,6 +208,7 @@ export function registerPqcCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensurePQCTables(db);
+        loadFromDb(db);
 
         const plan = migrate(db, planName, options.source, targetAlgorithm);
         logger.success("Migration completed");

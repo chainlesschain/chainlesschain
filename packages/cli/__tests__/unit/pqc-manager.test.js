@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensurePQCTables,
+  loadFromDb,
   listKeys,
   generateKey,
   getMigrationStatus,
@@ -721,6 +722,61 @@ describe("PQC Manager V2", () => {
       expect(getMaxActiveKeysPerOwnerV2()).toBe(
         PQC_DEFAULT_MAX_ACTIVE_KEYS_PER_OWNER,
       );
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    let db;
+    beforeEach(() => {
+      db = new MockDatabase();
+      _resetState();
+      ensurePQCTables(db);
+    });
+
+    it("makes keys + migrations visible after a fresh process", () => {
+      const k = generateKey(db, "HYBRID-X25519-ML-KEM", "key_exchange");
+      migrate(db, "plan-a", "ML-KEM-768", "ML-KEM-1024");
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listKeys()).toEqual([]);
+      expect(getMigrationStatus()).toEqual([]);
+
+      loadFromDb(db);
+
+      const keys = listKeys();
+      expect(keys.length).toBe(1);
+      expect(keys[0].id).toBe(k.id);
+      expect(keys[0].hybridMode).toBe(true); // INTEGER→boolean
+      expect(keys[0].family).toBe(k.family); // derived spec field reconstructed
+
+      const migrations = getMigrationStatus();
+      expect(migrations.length).toBe(1);
+      expect(migrations[0].planName).toBe("plan-a");
+    });
+
+    it("counts source keys correctly after hydration (migrate not 0/0)", () => {
+      generateKey(db, "ML-KEM-768", "encryption");
+      generateKey(db, "ML-KEM-768", "encryption");
+
+      // Fresh process, then migrate: without hydration sourceKeys would be 0.
+      _resetState();
+      loadFromDb(db);
+      const plan = migrate(db, "bulk", "ML-KEM-768", "ML-KEM-1024");
+      expect(plan.totalKeys).toBe(2);
+      expect(plan.migratedKeys).toBe(2);
+    });
+
+    it("survives a corrupt metadata cell (per-row JSON guard)", () => {
+      generateKey(db, "ML-KEM-768", "encryption");
+      const rows = db.data.get("pqc_keys") || [];
+      rows[0].metadata = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      const keys = listKeys();
+      expect(keys.length).toBe(1);
+      expect(keys[0].metadata).toEqual({}); // guarded fallback
     });
   });
 });

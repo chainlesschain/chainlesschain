@@ -178,6 +178,70 @@ export function ensurePQCTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _keys/_migrations from the persisted pqc_keys/pqc_migration_status
+ * tables. The `cc` CLI runs every command in a fresh process, so without this
+ * the Maps start empty and a key generated / migration run in a prior
+ * invocation is invisible (`cc pqc keys` reports "No PQC keys" and `cc pqc
+ * migration-status` is empty even when the rows exist; `cc pqc migrate` counts
+ * sourceKeys off the empty Map and reports "Migrated 0/0" while real keys sit
+ * unmigrated). Call after ensurePQCTables(db). NOTE: this module holds only
+ * public-key inventory metadata — there is no private key or sign/verify path
+ * here — so the impact is inventory visibility + migration accounting, not
+ * crypto verification.
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _keys.clear();
+  _migrations.clear();
+
+  const keyRows = db.prepare(`SELECT * FROM pqc_keys`).all();
+  for (const row of keyRows) {
+    let metadata = {};
+    try {
+      metadata = row.metadata ? JSON.parse(row.metadata) : {};
+    } catch {
+      metadata = {};
+    }
+    // Derived fields (family/publicKeyBytes/signatureBytes) come from the
+    // algorithm spec, not the DB — reconstruct them exactly as generateKey does.
+    const spec = ALGORITHM_SPECS[row.algorithm] || {};
+    _keys.set(row.id, {
+      id: row.id,
+      algorithm: row.algorithm,
+      family: spec.family ?? null,
+      purpose: row.purpose,
+      publicKey: row.public_key,
+      keySize: row.key_size ?? spec.keySize ?? 0,
+      publicKeyBytes: spec.publicKeyBytes ?? null,
+      signatureBytes: spec.signatureBytes ?? null,
+      hybridMode: !!row.hybrid_mode,
+      classicalAlgorithm: row.classical_algorithm ?? null,
+      status: row.status,
+      metadata,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  const migRows = db.prepare(`SELECT * FROM pqc_migration_status`).all();
+  for (const row of migRows) {
+    _migrations.set(row.id, {
+      id: row.id,
+      planName: row.plan_name,
+      sourceAlgorithm: row.source_algorithm,
+      targetAlgorithm: row.target_algorithm,
+      totalKeys: row.total_keys ?? 0,
+      migratedKeys: row.migrated_keys ?? 0,
+      status: row.status,
+      startedAt: row.started_at ?? null,
+      completedAt: row.completed_at ?? null,
+      errorMessage: row.error_message ?? null,
+    });
+  }
+
+  return _keys.size + _migrations.size;
+}
+
 /* ── Key Management ───────────────────────────────────────── */
 
 export function listKeys(filter = {}) {
