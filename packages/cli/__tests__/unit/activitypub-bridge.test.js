@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureActivityPubTables,
+  loadFromDb,
   createActor,
   listActors,
   getActor,
@@ -628,6 +629,51 @@ describe("activitypub-bridge", () => {
       });
       expect(listFollowers("bob", { state: "accepted" }).length).toBe(1);
       expect(listFollowers("bob", { state: "pending" }).length).toBe(1);
+    });
+  });
+
+  describe("loadFromDb (cross-process hydration)", () => {
+    it("makes actors, activities and follows visible after a fresh process", () => {
+      createActor(db, { username: "alice", name: "Alice" });
+      createActor(db, { username: "bob" });
+      publishNote(db, { actor: "alice", content: "hello fediverse" });
+      follow(db, { actor: "alice", target: "bob" });
+
+      // Fresh `cc` process: Maps wiped, DB persists.
+      _resetState();
+      expect(listActors()).toEqual([]);
+
+      loadFromDb(db);
+
+      const actors = listActors();
+      expect(actors.length).toBe(2);
+      const alice = getActor("alice");
+      expect(alice).not.toBeNull();
+      expect(alice.type).toBe("Person"); // derived field reconstructed
+      expect(alice.isLocal).toBe(true); // INTEGER→boolean
+
+      // outbox activity (the note) is visible again
+      const outbox = getOutbox("alice");
+      expect(outbox.length).toBeGreaterThanOrEqual(1);
+
+      // follow edge restored
+      const followers = listFollowers("bob");
+      expect(followers.length).toBe(1);
+      expect(followers[0].id).toBe(alice.id);
+      expect(followers[0].state).toBe("pending");
+    });
+
+    it("survives a corrupt object_json cell (per-row JSON guard)", () => {
+      createActor(db, { username: "alice" });
+      publishNote(db, { actor: "alice", content: "good note" });
+      const rows = db.data.get("ap_activities") || [];
+      expect(rows.length).toBeGreaterThanOrEqual(1);
+      rows[0].object_json = "{bad json";
+
+      _resetState();
+      expect(() => loadFromDb(db)).not.toThrow();
+      // actor still hydrates; the unparseable activity is skipped, not fatal
+      expect(getActor("alice")).not.toBeNull();
     });
   });
 });

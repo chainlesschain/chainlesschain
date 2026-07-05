@@ -14,6 +14,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureActivityPubTables,
+  loadFromDb,
   createActor,
   listActors,
   getActor,
@@ -40,6 +41,7 @@ async function bootstrapDb(program) {
   }
   const db = ctx.db.getDatabase();
   ensureActivityPubTables(db);
+  loadFromDb(db);
   return db;
 }
 
@@ -321,7 +323,12 @@ export function registerActivityPubCommand(program) {
       try {
         await bootstrapDb(program);
         const items = getOutbox(username, {
-          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
           types: options.type,
         });
         if (options.json) {
@@ -355,7 +362,12 @@ export function registerActivityPubCommand(program) {
       try {
         await bootstrapDb(program);
         const items = getInbox(username, {
-          limit: numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 50 }),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
           types: options.type,
         });
         if (options.json) {
@@ -453,7 +465,12 @@ export function registerActivityPubCommand(program) {
     .action(async (query, options) => {
       try {
         await bootstrapDb(program);
-        const limit = numericOption(options.limit, { name: "--limit", integer: true, min: 1, fallback: 20 });
+        const limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 1,
+          fallback: 20,
+        });
         const target = options.target;
         const result = {};
         if (target === "actors" || target === "all") {

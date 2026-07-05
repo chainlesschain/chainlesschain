@@ -62,6 +62,67 @@ export function ensureActivityPubTables(db) {
   `);
 }
 
+/**
+ * Rehydrate _actors/_activities/_follows from the persisted ap_actors/
+ * ap_activities/ap_follows tables. The `cc` CLI runs every command in a fresh
+ * process, so without this the Maps start empty and an actor created / note
+ * published / follow made in a prior invocation is invisible (`cc ap actor
+ * list`/`outbox`/`followers`/`search` return nothing, and read paths first hit
+ * _requireActor against the empty _actors → "Actor not found"). Call after
+ * ensureActivityPubTables(db).
+ */
+export function loadFromDb(db) {
+  if (!db) return 0;
+  _actors.clear();
+  _activities.clear();
+  _follows.clear();
+
+  const actorRows = db.prepare(`SELECT * FROM ap_actors`).all();
+  for (const row of actorRows) {
+    const id = row.id;
+    // Derived fields (type/preferredUsername/inbox/outbox/followers/following)
+    // are not persisted — reconstruct them from id exactly as createActor does.
+    _actors.set(id, {
+      id,
+      type: "Person",
+      username: row.username ?? null,
+      preferredUsername: row.username ?? null,
+      name: row.name ?? null,
+      summary: row.summary ?? null,
+      inbox: row.inbox_url ?? `${id}/inbox`,
+      outbox: row.outbox_url ?? `${id}/outbox`,
+      followers: `${id}/followers`,
+      following: `${id}/following`,
+      isLocal: !!row.is_local,
+      createdAt: row.created_at ?? null,
+    });
+  }
+
+  const activityRows = db.prepare(`SELECT * FROM ap_activities`).all();
+  for (const row of activityRows) {
+    let activity;
+    try {
+      activity = row.object_json ? JSON.parse(row.object_json) : null;
+    } catch {
+      activity = null;
+    }
+    if (!activity || !activity.id) continue; // can't reconstruct without it
+    _activities.set(activity.id, {
+      direction: row.direction,
+      ownerId: row.owner_id,
+      activity,
+    });
+  }
+
+  const followRows = db.prepare(`SELECT * FROM ap_follows`).all();
+  for (const row of followRows) {
+    const key = `${row.follower_id}|${row.followee_id}`;
+    _follows.set(key, { state: row.state, createdAt: row.created_at ?? null });
+  }
+
+  return _actors.size + _activities.size + _follows.size;
+}
+
 /* ── Helpers ───────────────────────────────────────────────── */
 
 function _now() {
