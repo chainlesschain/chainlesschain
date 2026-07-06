@@ -22,8 +22,8 @@
               trace, and multiple conversations as tabs (each its own
               <code>cc agent</code> process; switch instantly, close, reopen). Tabs
               and their sessions resume across IDE restarts. New chat
-              (<code>Ctrl/Cmd+Alt+N</code>), reopen last closed
-              (<code>Ctrl/Cmd+Shift+T</code>).</li>
+              (<code>Ctrl/Cmd+Alt+Shift+D</code>), reopen last closed
+              (<code>Ctrl/Cmd+Alt+Shift+R</code>).</li>
           <li><b>Editor-aware out of the box</b> — your selection and open tabs ride
               along with every prompt; after the agent edits a file, the IDE's fresh
               errors/warnings flow back into the same run so it fixes what it broke.
@@ -43,7 +43,7 @@
               prompts render as cards with Approve / Deny (Approve / Reject) buttons,
               right in the chat.</li>
           <li><b>Selection actions &amp; @-mentions</b> — right-click code →
-              <em>Explain</em> or <em>Refactor</em>; <code>Ctrl/Cmd+Alt+K</code>
+              <em>Explain</em> or <em>Refactor</em>; <code>Ctrl/Cmd+Alt+Shift+K</code>
               inserts an <code>@file#L5-10</code> reference for the selection; type
               <code>@</code> for a completion popup of
               <code>@selection</code>/<code>@diagnostics</code> + project files +
@@ -254,17 +254,21 @@
                 text="ChainlessChain: New Chat (新建对话)"
                 description="Open a new ChainlessChain chat conversation tab">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <!-- Avoid Ctrl+Shift+Esc (OS-reserved on Windows); mirror VS Code Ctrl/Cmd+Alt+N. -->
-            <keyboard-shortcut keymap="$default" first-keystroke="control alt N"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt N"/>
+            <!-- Ctrl+Alt+N is IDEA's Refactor→Inline and Ctrl+Shift+Esc is OS-reserved
+                 on Windows — use an unclaimed Ctrl+Alt+Shift chord instead (D = dialog);
+                 rebindable in Settings → Keymap. -->
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt shift D"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift D"/>
         </action>
         <action id="chainlesschain.chat.reopenClosedConversation"
                 class="com.chainlesschain.ide.intellij.ReopenClosedConversationAction"
                 text="ChainlessChain: Reopen Closed Chat (重开已关对话)"
                 description="Reopen the most recently closed ChainlessChain conversation, resuming it">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="control shift T"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift T"/>
+            <!-- Ctrl+Shift+T is IDEA's Navigate→Go to Test — use an unclaimed
+                 Ctrl+Alt+Shift chord (R = reopen); rebindable in Settings → Keymap. -->
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt shift R"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift R"/>
         </action>
         <action id="chainlesschain.chat.explainSelection"
                 class="com.chainlesschain.ide.intellij.ExplainSelectionAction"
@@ -283,8 +287,11 @@
                 text="ChainlessChain: Insert File Reference (@文件引用)"
                 description="Insert an @file reference (with selected line range) into the ChainlessChain chat input">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="control alt K"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt K"/>
+            <!-- Ctrl+Alt+K is IDEA's Git Commit and Push — use an unclaimed
+                 Ctrl+Alt+Shift chord (K kept for muscle memory); rebindable in
+                 Settings → Keymap. -->
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt shift K"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift K"/>
         </action>
         <action id="chainlesschain.memory.init"
                 class="com.chainlesschain.ide.intellij.GenerateProjectMemoryAction"

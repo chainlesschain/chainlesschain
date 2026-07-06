@@ -32,9 +32,16 @@ public final class MiniJson {
         return (Map<String, Object>) o;
     }
 
+    /** Nesting cap: hostile/corrupt input must fail as a catchable
+     *  IllegalArgumentException, not a StackOverflowError (an Error would kill
+     *  the chat pump thread silently). 512 is far beyond any real bridge/agent
+     *  payload yet well inside default JVM stack limits. */
+    private static final int MAX_DEPTH = 512;
+
     private static final class Parser {
         final String s;
         int i;
+        int depth;
 
         Parser(String s) { this.s = s; }
 
@@ -63,10 +70,12 @@ public final class MiniJson {
         }
 
         Map<String, Object> object() {
+            if (++depth > MAX_DEPTH) throw new IllegalArgumentException(
+                    "JSON nesting deeper than " + MAX_DEPTH + " at " + i);
             Map<String, Object> m = new LinkedHashMap<>();
             i++; // {
             skipWs();
-            if (peek() == '}') { i++; return m; }
+            if (peek() == '}') { i++; depth--; return m; }
             while (true) {
                 skipWs();
                 String key = string();
@@ -79,14 +88,17 @@ public final class MiniJson {
                 if (c == '}') break;
                 if (c != ',') throw new IllegalArgumentException("Expected , or } at " + i);
             }
+            depth--;
             return m;
         }
 
         List<Object> array() {
+            if (++depth > MAX_DEPTH) throw new IllegalArgumentException(
+                    "JSON nesting deeper than " + MAX_DEPTH + " at " + i);
             List<Object> a = new ArrayList<>();
             i++; // [
             skipWs();
-            if (peek() == ']') { i++; return a; }
+            if (peek() == ']') { i++; depth--; return a; }
             while (true) {
                 a.add(value());
                 skipWs();
@@ -94,6 +106,7 @@ public final class MiniJson {
                 if (c == ']') break;
                 if (c != ',') throw new IllegalArgumentException("Expected , or ] at " + i);
             }
+            depth--;
             return a;
         }
 

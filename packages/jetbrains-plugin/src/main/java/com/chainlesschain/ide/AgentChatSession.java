@@ -124,16 +124,26 @@ public final class AgentChatSession {
     public static String resolveBinary() {
         String r = resolvedBinary;
         if (r != null) return r;
-        for (String cand : new String[] { "cc", "chainlesschain", "clc", "clchain" }) {
-            String out = runCaptureWith(
-                    cand, java.util.Collections.singletonList("--version"), null, 12000);
-            if (looksLikeCcVersion(out)) {
-                resolvedBinary = cand;
-                return cand;
-            }
+        String picked = chooseBinary(cand -> runCaptureWith(
+                cand, java.util.Collections.singletonList("--version"), null, 12000));
+        if (picked != null) {
+            resolvedBinary = picked;
+            return picked;
         }
-        resolvedBinary = "cc";
-        return resolvedBinary;
+        // All candidates failed (CLI not installed yet). Do NOT cache the
+        // fallback: the user may install the CLI mid-session, and a cached miss
+        // would keep this IDE session broken until restart.
+        return "cc";
+    }
+
+    /** Pure candidate selection: first binary whose {@code --version} output
+     *  looks like the chainlesschain CLI, or null when none do. Exposed for
+     *  tests (the probe is injected). */
+    static String chooseBinary(java.util.function.Function<String, String> versionOf) {
+        for (String cand : new String[] { "cc", "chainlesschain", "clc", "clchain" }) {
+            if (looksLikeCcVersion(versionOf.apply(cand))) return cand;
+        }
+        return null;
     }
 
     /** True when {@code --version} output's first non-blank line is a bare semver
@@ -176,6 +186,21 @@ public final class AgentChatSession {
             }, "cc-capture-pump");
             pump.setDaemon(true);
             pump.start();
+            // Drain stderr too: the CLI logs warnings there (0.162.150+), and a
+            // child blocked writing to a full, unread stderr pipe never exits —
+            // every capture would then eat its full timeout and return "".
+            Thread errDrain = new Thread(() -> {
+                try (InputStream err = p.getErrorStream()) {
+                    byte[] buf = new byte[8192];
+                    while (err.read(buf) != -1) {
+                        // discard — we only need the pipe kept empty
+                    }
+                } catch (IOException ignored) {
+                    // child closed / killed
+                }
+            }, "cc-capture-stderr-drain");
+            errDrain.setDaemon(true);
+            errDrain.start();
             boolean done = p.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
             if (!done) {
                 p.destroyForcibly();
@@ -354,11 +379,29 @@ public final class AgentChatSession {
         }
     }
 
-    /** Hard stop. */
+    /**
+     * Hard stop — kills the child AND its descendants. On Windows the spawn is
+     * {@code cmd.exe /c cc …} (npm .cmd shim), so {@code destroy()} alone only
+     * ends cmd.exe and orphans the real node agent mid-turn (it keeps running
+     * the current tool, burning tokens and holding its SQLite lock) — the same
+     * grandchild-orphan trap PreviewService.stop() fixed. Close stdin first so
+     * a healthy child gets a graceful EOF, then reap the whole tree.
+     */
     public synchronized void stop() {
         Process p = child;
         child = null;
+        try {
+            if (stdin != null) stdin.close();
+        } catch (IOException ignored) {
+            // already closing
+        }
+        stdin = null;
         if (p != null) {
+            try {
+                p.descendants().forEach(ProcessHandle::destroy);
+            } catch (Throwable ignored) {
+                // best-effort — fall through to destroy()
+            }
             try {
                 p.destroy();
             } catch (Throwable ignored) {

@@ -2,7 +2,6 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SlashCommands;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -28,8 +27,16 @@ final class ChatMentionPopups {
 
     private final Project project;
     private final JTextArea input;
-    private List<String> cachedFiles;                 // §5 @-mention file index (lazy, bounded)
-    private List<Mentions.MentionItem> cachedSymbols; // §5 @-mention PSI symbols (lazy, bounded)
+    // §5 @-mention caches, warmed OFF the EDT (a full PSI/content scan on a big
+    // project takes seconds — it used to freeze typing on the first `@`). Only
+    // successful smart-mode scans are cached: a dumb-mode/failed scan must NOT
+    // pin an empty result for the rest of the tab's life.
+    private volatile List<String> cachedFiles;
+    private volatile List<Mentions.MentionItem> cachedSymbols;
+    private final java.util.concurrent.atomic.AtomicBoolean symbolScanRunning =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean fileScanRunning =
+            new java.util.concurrent.atomic.AtomicBoolean();
 
     ChatMentionPopups(Project project, JTextArea input) {
         this.project = project;
@@ -127,42 +134,60 @@ final class ChatMentionPopups {
      * IDE-mentions (the cache returns no class names there).
      */
     private List<Mentions.MentionItem> symbolCandidates() {
-        if (cachedSymbols != null) return cachedSymbols;
+        List<Mentions.MentionItem> cached = cachedSymbols;
+        if (cached != null) return cached;
+        warmSymbolsAsync();
+        // First `@` on a big project: files + IDE-mentions show immediately;
+        // symbols join on the next popup once the background scan lands.
+        return java.util.Collections.emptyList();
+    }
+
+    /** Bounded PSI symbol scan in a background non-blocking read action, gated
+     *  on smart mode (during indexing the caches answer empty/throw — caching
+     *  that would hide symbols forever). Failure leaves the cache null → retry. */
+    private void warmSymbolsAsync() {
+        if (!symbolScanRunning.compareAndSet(false, true)) return;
+        com.intellij.openapi.application.ReadAction
+                .nonBlocking(this::scanSymbols)
+                .inSmartMode(project)
+                .submit(com.intellij.util.concurrency.AppExecutorUtil.getAppExecutorService())
+                .onSuccess(syms -> {
+                    cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 1600);
+                    symbolScanRunning.set(false);
+                })
+                .onError(t -> symbolScanRunning.set(false)); // not cached — next @ retries
+    }
+
+    /** Runs inside the non-blocking read action (read lock held, smart mode). */
+    private List<Mentions.Symbol> scanSymbols() {
         final List<Mentions.Symbol> syms = new java.util.ArrayList<>();
-        try {
-            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
-                PsiShortNamesCache cache = PsiShortNamesCache.getInstance(project);
-                GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
-                // Classes (kind 4).
-                String[] classNames = cache.getAllClassNames();
-                int classCap = Math.min(classNames.length, 800); // bound for big projects
-                for (int i = 0; i < classCap; i++) {
-                    for (PsiClass c : cache.getClassesByName(classNames[i], scope)) {
-                        VirtualFile vf = vfileOf(c.getContainingFile());
-                        if (vf != null) {
-                            syms.add(new Mentions.Symbol(classNames[i], 4, vf.getPath()));
-                            break; // first declaration is enough
-                        }
-                    }
+        PsiShortNamesCache cache = PsiShortNamesCache.getInstance(project);
+        GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
+        // Classes (kind 4).
+        String[] classNames = cache.getAllClassNames();
+        int classCap = Math.min(classNames.length, 800); // bound for big projects
+        for (int i = 0; i < classCap; i++) {
+            for (PsiClass c : cache.getClassesByName(classNames[i], scope)) {
+                VirtualFile vf = vfileOf(c.getContainingFile());
+                if (vf != null) {
+                    syms.add(new Mentions.Symbol(classNames[i], 4, vf.getPath()));
+                    break; // first declaration is enough
                 }
-                // Methods / functions (kind 5).
-                String[] methodNames = cache.getAllMethodNames();
-                int methodCap = Math.min(methodNames.length, 800);
-                for (int i = 0; i < methodCap; i++) {
-                    for (PsiMethod m : cache.getMethodsByName(methodNames[i], scope)) {
-                        VirtualFile vf = vfileOf(m.getContainingFile());
-                        if (vf != null) {
-                            syms.add(new Mentions.Symbol(methodNames[i], 5, vf.getPath()));
-                            break;
-                        }
-                    }
-                }
-            });
-        } catch (Throwable ignored) {
-            // no PSI symbol cache (non-JVM / indexing) → files + IDE-mentions still work
+            }
         }
-        cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 1600);
-        return cachedSymbols;
+        // Methods / functions (kind 5).
+        String[] methodNames = cache.getAllMethodNames();
+        int methodCap = Math.min(methodNames.length, 800);
+        for (int i = 0; i < methodCap; i++) {
+            for (PsiMethod m : cache.getMethodsByName(methodNames[i], scope)) {
+                VirtualFile vf = vfileOf(m.getContainingFile());
+                if (vf != null) {
+                    syms.add(new Mentions.Symbol(methodNames[i], 5, vf.getPath()));
+                    break;
+                }
+            }
+        }
+        return syms;
     }
 
     private static VirtualFile vfileOf(PsiFile f) {
@@ -186,28 +211,43 @@ final class ChatMentionPopups {
         input.requestFocusInWindow();
     }
 
-    /** Project-relative content file paths (lazy, capped) for @-file ranking. */
+    /** Project-relative content file paths (lazy, capped) for @-file ranking.
+     *  Same off-EDT warm pattern as the symbols: the first `@` kicks a background
+     *  scan and returns what's cached (possibly nothing yet). */
     private List<String> projectRelativeFiles() {
-        if (cachedFiles != null) return cachedFiles;
+        List<String> cached = cachedFiles;
+        if (cached != null) return cached;
+        warmFilesAsync();
+        return java.util.Collections.emptyList();
+    }
+
+    private void warmFilesAsync() {
+        if (!fileScanRunning.compareAndSet(false, true)) return;
+        com.intellij.openapi.application.ReadAction
+                .nonBlocking(this::scanFiles)
+                .inSmartMode(project)
+                .submit(com.intellij.util.concurrency.AppExecutorUtil.getAppExecutorService())
+                .onSuccess(files -> {
+                    cachedFiles = files;
+                    fileScanRunning.set(false);
+                })
+                .onError(t -> fileScanRunning.set(false)); // not cached — next @ retries
+    }
+
+    /** Runs inside the non-blocking read action (read lock held, smart mode). */
+    private List<String> scanFiles() {
         final List<String> out = new java.util.ArrayList<>();
         final String base = project.getBasePath();
         final String b = base == null ? null
                 : (base.replace('\\', '/').endsWith("/") ? base.replace('\\', '/')
                         : base.replace('\\', '/') + "/");
-        try {
-            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
-                ProjectFileIndex.getInstance(project).iterateContent(vf -> {
-                    if (vf.isDirectory()) return true;
-                    String p = vf.getPath().replace('\\', '/');
-                    if (b != null && p.startsWith(b)) p = p.substring(b.length());
-                    out.add(p);
-                    return out.size() < 3000; // bound the index for big projects
-                });
-            });
-        } catch (Throwable ignored) {
-            // partial / empty index → @-completion still offers the pseudo-mentions
-        }
-        cachedFiles = out;
+        ProjectFileIndex.getInstance(project).iterateContent(vf -> {
+            if (vf.isDirectory()) return true;
+            String p = vf.getPath().replace('\\', '/');
+            if (b != null && p.startsWith(b)) p = p.substring(b.length());
+            out.add(p);
+            return out.size() < 3000; // bound the index for big projects
+        });
         return out;
     }
 }

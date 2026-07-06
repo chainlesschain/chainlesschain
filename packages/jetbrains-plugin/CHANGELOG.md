@@ -1,5 +1,37 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased] — fix: process-lifecycle, EDT and keymap bug sweep (B1–B9)
+
+- **No more orphaned `cc agent` processes** (Windows): stopping a tab's child —
+  mode/thinking switches (`/auto` `/bypass` `/think*`), LLM reconfigure,
+  `/sessions` resume, closing a tab/project — now kills the whole process tree
+  (the old `destroy()` only ended the `cmd.exe` shim, leaving the real agent
+  running mid-turn, burning tokens and holding its DB lock).
+- **`/rewind` / `/sessions` / context indicator no longer stall**: one-shot
+  `cc` captures drain stderr, so a chatty CLI can't block on a full pipe and
+  eat the whole timeout (they showed "unavailable" after a long hang).
+- **First message no longer freezes the UI**: session spawn (config read +
+  binary probe + process start) runs on a background worker, with double-Enter
+  protection; the composer clears only once the send is confirmed.
+- **`@`-mention completion**: the project symbol/file scan runs in the
+  background (first `@` in a big project used to freeze typing for seconds),
+  and an empty scan during indexing is no longer cached forever — symbols now
+  appear once indexing finishes.
+- **Diagnostics for a specific file work on Windows**: the path filter now
+  tolerates backslashes and drive-letter case (it silently returned an empty
+  list before).
+- **Resume ids no longer silently drop**: session-id persistence hops to the
+  UI thread instead of racing tab close from the reader thread.
+- **Installing the CLI mid-session recovers**: a failed binary probe is no
+  longer cached until IDE restart.
+- **⌨ Default shortcuts changed** (the old ones collided with IDEA built-ins —
+  Inline, Go to Test, Commit and Push): new chat `Ctrl+Alt+Shift+D`, reopen
+  closed chat `Ctrl+Alt+Shift+R`, insert `@file` reference `Ctrl+Alt+Shift+K`
+  (macOS: same with ⌘). Rebindable in Settings → Keymap.
+- **Robustness**: the embedded JSON parser caps nesting depth (a hostile or
+  corrupt payload could previously kill the chat reader thread with a
+  StackOverflowError, leaving the panel permanently unresponsive).
+
 ## [0.4.44] — feat: drag-drop images + project-memory actions
 
 - **Drag-drop images into the chat** (VS Code 0.37.0 parity): drop image files

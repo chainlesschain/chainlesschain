@@ -48,6 +48,7 @@ public final class PureLogicSmokeMain {
         slashCommands();
         cliVersionCheck();
         binaryResolution();
+        miniJsonDepth();
         cliLauncher();
         fixWithCc();
         markdownLite();
@@ -481,6 +482,55 @@ public final class PureLogicSmokeMain {
         check(!AgentChatSession.looksLikeCcVersion(""), "empty → reject");
         check(!AgentChatSession.looksLikeCcVersion(null), "null → reject");
         check(!AgentChatSession.looksLikeCcVersion("not a version"), "junk → reject");
+
+        // chooseBinary: pure candidate selection with an injected probe. A `cc`
+        // shadowed by the C compiler must fall through to `chainlesschain`; all
+        // candidates failing must yield null (resolveBinary then does NOT cache,
+        // so installing the CLI mid-session recovers without an IDE restart).
+        eq(AgentChatSession.chooseBinary(c -> "0.162.150"), "cc", "chooseBinary: healthy cc wins");
+        eq(AgentChatSession.chooseBinary(
+                        c -> c.equals("cc") ? "cc (GCC) 12.2.0"
+                                : c.equals("chainlesschain") ? "0.162.150" : ""),
+                "chainlesschain", "chooseBinary: shadowed cc → chainlesschain");
+        eq(AgentChatSession.chooseBinary(c -> ""), null, "chooseBinary: all fail → null (uncached)");
+        eq(AgentChatSession.chooseBinary(c -> null), null, "chooseBinary: null probe → null");
+    }
+
+    private static void miniJsonDepth() {
+        System.out.println("MiniJson depth cap (SOE → catchable IAE):");
+        // Well-formed nesting parses to the cap…
+        StringBuilder ok = new StringBuilder();
+        for (int i = 0; i < 512; i++) ok.append('[');
+        for (int i = 0; i < 512; i++) ok.append(']');
+        boolean parsed;
+        try { MiniJson.parse(ok.toString()); parsed = true; }
+        catch (RuntimeException e) { parsed = false; }
+        check(parsed, "512-deep array parses");
+        // …but one past the cap throws IllegalArgumentException, NOT StackOverflowError
+        // (an Error would sail past parseEventLine's catch and kill the pump thread).
+        StringBuilder deep = new StringBuilder();
+        for (int i = 0; i < 513; i++) deep.append('[');
+        for (int i = 0; i < 513; i++) deep.append(']');
+        boolean threwIae = false;
+        try { MiniJson.parse(deep.toString()); }
+        catch (IllegalArgumentException e) { threwIae = true; }
+        check(threwIae, "513-deep array → IllegalArgumentException");
+        StringBuilder deepObj = new StringBuilder();
+        for (int i = 0; i < 600; i++) deepObj.append("{\"a\":");
+        deepObj.append("1");
+        for (int i = 0; i < 600; i++) deepObj.append('}');
+        boolean threwIaeObj = false;
+        try { MiniJson.parse(deepObj.toString()); }
+        catch (IllegalArgumentException e) { threwIaeObj = true; }
+        check(threwIaeObj, "600-deep object → IllegalArgumentException");
+        // Depth is nesting depth, not cumulative: wide-but-flat stays parseable.
+        StringBuilder wide = new StringBuilder("[");
+        for (int i = 0; i < 700; i++) wide.append(i > 0 ? ",{}" : "{}");
+        wide.append("]");
+        boolean wideOk;
+        try { MiniJson.parse(wide.toString()); wideOk = true; }
+        catch (RuntimeException e) { wideOk = false; }
+        check(wideOk, "700 flat sibling objects parse (depth resets)");
     }
 
     private static void cliLauncher() {

@@ -83,6 +83,47 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔧 Bug-sweep batch B1–B9 (post-0.4.44, unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
+
+Nine fixes from the 2026-07-06 audit. Verified: `compileJava` clean +
+`smokeTest` **330/0** (322 baseline + 8 new: `chooseBinary` ×4, MiniJson
+depth-cap ×4) + `buildPlugin` zip contains the updated plugin.xml keymaps.
+
+Pure-layer (smoke-covered, no GUI gate):
+- [x] **B1** `AgentChatSession.stop()` kills the descendant tree (Windows
+  `cmd.exe /c cc` left the real node agent orphaned mid-turn — same
+  grandchild-orphan trap `PreviewService.stop()` fixed) + closes stdin first.
+- [x] **B2** `runCaptureWith` drains stderr (a full unread stderr pipe blocked
+  the child forever → `/rewind`//`sessions`//`context` ate their full timeout).
+- [x] **B7** `resolveBinary()` no longer caches the all-candidates-failed
+  fallback — installing the CLI mid-session now recovers without an IDE restart
+  (`chooseBinary` extracted as the pure testable seam).
+- [x] **B9** `MiniJson` nesting cap 512 → hostile/corrupt payloads throw a
+  catchable `IllegalArgumentException` instead of `StackOverflowError` (an
+  Error would kill the chat pump / MCP handler thread silently).
+
+SDK glue (needs the usual runIde GUI pass before the next publish):
+- [ ] **B3** first-message send chain (`ensureSession` + `send`) moved off the
+  EDT onto a serial per-tab worker (`sendInFlight` guards double-Enter; composer
+  clears only on confirmed send — same failure semantics as before).
+  GUI check: cold-start first message doesn't freeze the UI; echo renders; a
+  missing CLI still shows the "failed to start cc" hint.
+- [ ] **B4** `@`-mention PSI/file scans now warm via
+  `ReadAction.nonBlocking(...).inSmartMode()` in the background; dumb-mode/failed
+  scans are NOT cached (previously indexing pinned an empty symbol list for the
+  tab's life). GUI check: first `@` during indexing → files/symbols appear on a
+  later `@` once indexed.
+- [ ] **B5** `getDiagnostics` path filter normalizes separators + ignores case
+  on Windows (raw equals never matched `C:\…` against the VFS forward-slash
+  path → always-empty diagnostics for a targeted file).
+- [ ] **B6** session-id persistence hops to the EDT (was mutating Swing-owned
+  tab state from the stdout pump thread; a CME there silently dropped resume ids).
+- [ ] **B8** default keymaps de-conflicted (all three collided with IDEA
+  built-ins): new chat `Ctrl+Alt+N`→`Ctrl+Alt+Shift+D`, reopen closed
+  `Ctrl+Shift+T`→`Ctrl+Alt+Shift+R`, insert file ref `Ctrl+Alt+K`→`Ctrl+Alt+Shift+K`
+  (plugin.xml `<keyboard-shortcut>` only; Mac mirrors with ⌘).
+  GUI check: no "shortcut conflict" balloon on first install; chords fire.
+
 ## ✅ ConversationView split (post-0.4.44, unreleased) — GUI-verified 2026-07-05
 
 ConversationView 1405 → ~1030 lines by extracting three cohesive glue classes

@@ -54,6 +54,17 @@ public final class IntellijEditorFacade implements EditorFacade {
         this.project = project;
     }
 
+    /** VirtualFile.getPath() is always forward-slashed; the agent sends OS-native
+     *  paths (backslashes, arbitrary drive-letter case on Windows). A raw
+     *  String.equals therefore never matches on Windows and getDiagnostics would
+     *  silently return an empty list for a targeted file. */
+    private static boolean samePath(String a, String b) {
+        if (a == null || b == null) return false;
+        String na = a.replace('\\', '/');
+        String nb = b.replace('\\', '/');
+        return java.io.File.separatorChar == '\\' ? na.equalsIgnoreCase(nb) : na.equals(nb);
+    }
+
     @Override
     public Map<String, Object> getSelection() {
         return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<Map<String, Object>>) () -> {
@@ -79,7 +90,7 @@ public final class IntellijEditorFacade implements EditorFacade {
             List<Map<String, Object>> out = new ArrayList<>();
             FileEditorManager fem = FileEditorManager.getInstance(project);
             for (VirtualFile vf : fem.getOpenFiles()) {
-                if (path != null && !path.equals(vf.getPath())) continue;
+                if (path != null && !samePath(path, vf.getPath())) continue;
                 Document doc = FileDocumentManager.getInstance().getDocument(vf);
                 if (doc == null) continue;
                 for (RangeHighlighter h : DocumentMarkupModel.forDocument(doc, project, true).getAllHighlighters()) {

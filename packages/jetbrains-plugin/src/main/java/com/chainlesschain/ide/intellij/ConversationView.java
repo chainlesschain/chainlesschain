@@ -75,6 +75,15 @@ final class ConversationView {
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
     private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
     private JComponent planCard;
+    // Serial per-tab worker for spawn + send: ensureSession() reads config files,
+    // probes the cc binary (worst case seconds on a cold machine) and starts a
+    // process — never on the EDT. Bound 1 keeps this tab's sends ordered.
+    private final java.util.concurrent.ExecutorService sendExecutor =
+            com.intellij.util.concurrency.AppExecutorUtil.createBoundedApplicationPoolExecutor(
+                    "ChainlessChain chat send", 1);
+    // True while a send is being spawned/delivered off-EDT; further Enter presses
+    // are ignored instead of double-sending the same composer text.
+    private volatile boolean sendInFlight = false;
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -349,6 +358,7 @@ final class ConversationView {
     }
 
     private void sendCurrentInput() {
+        if (sendInFlight) return;
         final String text = input.getText().trim();
         if (text.isEmpty() && images.isEmpty()) return;
         // §5 panel slash + §6 mode/thinking commands are handled locally, never
@@ -358,24 +368,37 @@ final class ConversationView {
             handleSlash(text);
             return;
         }
-        try {
-            ensureSession();
-        } catch (IOException ex) {
-            append("⚠ failed to start `cc` (is the ChainlessChain CLI installed and on "
-                    + "PATH?): " + ex.getMessage() + "\n");
-            return;
-        }
-        AgentChatSession s = liveSession();
-        java.util.List<String> imgs = images.snapshot();
-        if (s != null && s.send(text, imgs)) {
-            String tag = imgs.isEmpty() ? ""
-                    : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
-            append("\nyou> " + text + tag + "\n");
-            input.setText("");
-            images.clearAll();
-        } else {
-            append("⚠ agent session is not running — press New to restart\n");
-        }
+        final java.util.List<String> imgs = images.snapshot();
+        sendInFlight = true;
+        sendExecutor.execute(() -> {
+            boolean sent = false;
+            String spawnError = null;
+            try {
+                ensureSession();
+                AgentChatSession s = liveSession();
+                sent = s != null && s.send(text, imgs);
+            } catch (IOException ex) {
+                spawnError = ex.getMessage();
+            } finally {
+                final boolean ok = sent;
+                final String err = spawnError;
+                SwingUtilities.invokeLater(() -> {
+                    sendInFlight = false;
+                    if (err != null) {
+                        append("⚠ failed to start `cc` (is the ChainlessChain CLI installed and on "
+                                + "PATH?): " + err + "\n");
+                    } else if (ok) {
+                        String tag = imgs.isEmpty() ? ""
+                                : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
+                        append("\nyou> " + text + tag + "\n");
+                        input.setText("");
+                        images.clearAll();
+                    } else {
+                        append("⚠ agent session is not running — press New to restart\n");
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -616,7 +639,9 @@ final class ConversationView {
         conv.turnState = new ChatEvents.TurnState();
     }
 
-    /** Lazy spawn: first message starts the child; mode/thinking changes restart it. */
+    /** Lazy spawn: first message starts the child; mode/thinking changes restart it.
+     *  Blocking (config reads + binary probe + process start) — call it from the
+     *  {@link #sendExecutor} worker, never the EDT. */
     private void ensureSession() throws IOException {
         AgentChatSession existing = liveSession();
         if (existing != null && existing.isRunning()) return;
@@ -664,7 +689,15 @@ final class ConversationView {
                 Object sid = event.get("session_id");
                 if (sid != null && !String.valueOf(sid).isEmpty()) {
                     conv.sessionId = String.valueOf(sid);
-                    if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, conv.sessionId);
+                    if (sessionIdSink != null) {
+                        // This callback runs on the stdout pump thread; the sink
+                        // (persistSessionIds) walks Swing-owned tab state — hop to
+                        // the EDT or a concurrent tab close CMEs and the resume id
+                        // is silently dropped.
+                        final String cid = conv.id;
+                        final String sessId = conv.sessionId;
+                        SwingUtilities.invokeLater(() -> sessionIdSink.onSessionId(cid, sessId));
+                    }
                 }
                 Object resumed = event.get("resumed_messages");
                 if (resumed instanceof Number && ((Number) resumed).intValue() > 0) {
@@ -929,24 +962,29 @@ final class ConversationView {
         append("📋 plan " + action + "d\n");
     }
 
-    /** Send a plan control ({type:plan,action}); entering plan may need to spawn the child. */
+    /** Send a plan control ({type:plan,action}); entering plan may need to spawn
+     *  the child, so the whole thing runs on the send worker, never the EDT. */
     private void sendPlanAction(String action) {
-        AgentChatSession s = liveSession();
-        if (s == null || !s.isRunning()) {
-            try {
-                ensureSession();
-            } catch (IOException ex) {
-                append("⚠ could not start agent for plan control: " + ex.getMessage() + "\n");
-                return;
+        sendExecutor.execute(() -> {
+            AgentChatSession s = liveSession();
+            if (s == null || !s.isRunning()) {
+                try {
+                    ensureSession();
+                } catch (IOException ex) {
+                    final String msg = ex.getMessage();
+                    SwingUtilities.invokeLater(() ->
+                            append("⚠ could not start agent for plan control: " + msg + "\n"));
+                    return;
+                }
+                s = liveSession();
             }
-            s = liveSession();
-        }
-        if (s != null) {
-            Map<String, Object> ev = new LinkedHashMap<>();
-            ev.put("type", "plan");
-            ev.put("action", action);
-            s.sendEvent(ev);
-        }
+            if (s != null) {
+                Map<String, Object> ev = new LinkedHashMap<>();
+                ev.put("type", "plan");
+                ev.put("action", action);
+                s.sendEvent(ev);
+            }
+        });
     }
 
     private void removePlanCard() {
@@ -1023,6 +1061,7 @@ final class ConversationView {
     }
 
     void dispose() {
+        sendExecutor.shutdown(); // pending sends may still finish; no new ones
         AgentChatSession s = liveSession();
         if (s != null) {
             s.stop();
