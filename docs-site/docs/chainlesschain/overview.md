@@ -80,7 +80,7 @@
 
 ## 概述
 
-ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、163 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
+ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、164 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
 
 **v5.0.2.x新增**: CLI进化版 — Hashline哈希锚定行编辑（内容哈希替代行号，抗格式化漂移）、Hooks三件套（SessionStart/UserPromptSubmit/SessionEnd会话级钩子触发）、Skill-Embedded MCP（技能内联MCP服务器按需mount/unmount）、Category Routing类别路由（5类别quick/deep/reasoning/vision/creative自动匹配provider）、Canonical Tool Descriptor工具描述规范统一（inputSchema为真源，parameters只读镜像）、Coding Agent Envelope Protocol（统一WS信封协议，dot-case类型，requestId关联）、Sub-Runtime Pool子运行时池（Electron主进程子进程spawn，sessionId分片）、Web UI管理面板（HTTP 18810端口，项目/全局双模式）、AI Orchestration编排层（Claude Code/Codex/多Agent路由，5种策略）、AI Doc Creator模板（doc-generate/libre-convert/doc-edit三技能）、CLI Skill Packs（9个领域技能包，sync-cli命令自动生成）。**v0.46.0–v0.47.0（2026-04-15）增量**: Cowork Evolution F1–F9 全部落地（共享学习 / 决策回放 / 11 类任务模板 / Cron 调度 / DAG 工作流 / 历史学习 / 签名 P2P 共享）+ Open-Agents 对标 Phase 1–5（AGENT_TOOLS 13→16，新增 web_fetch / todo_write / ask_user_question；Skill `$ARGUMENTS` 占位符；Sub-Agent Profiles explorer/executor/design；prepareCall 转瞬即逝的 turn-context 注入；provider-options 三层深合并）。
 
