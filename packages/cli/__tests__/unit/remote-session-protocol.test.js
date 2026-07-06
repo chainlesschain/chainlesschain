@@ -496,6 +496,40 @@ describe("remote session WebSocket protocol", () => {
       });
     });
 
+    it("dedups a RELAY-shaped message whose commandId is nested in `event` (mobile takeover path)", async () => {
+      // `_handleRemoteEncryptedControl` decrypts the mobile's whole control
+      // payload into `message.event`, so its commandId arrives at
+      // `event.commandId`, NOT the message top level. Before the fix the ledger
+      // was never consulted for this (primary) path and a reconnect re-ran the
+      // agent turn.
+      const remoteSessionId = createAndJoin(["observe", "prompt"]);
+      const handleMessage = vi.fn(async () => {});
+      server.sessionHandlers.set("agent-1", { handleMessage });
+
+      const send = () =>
+        handleRemoteSessionPublish(server, "phone", phone, {
+          id: "remote-1",
+          remoteSessionId,
+          // No top-level commandId — exactly the relay wrapper's shape.
+          event: {
+            type: "prompt",
+            content: "deploy to staging",
+            commandId: "cmd-relay",
+            seq: 1,
+          },
+        });
+
+      await send(); // fresh delivery over relay
+      await send(); // reconnect re-send of the SAME nested commandId
+
+      expect(handleMessage).toHaveBeenCalledTimes(1);
+      expect(phone.sent.at(-1)).toMatchObject({
+        type: "remote-session-published",
+        replayed: true,
+        commandId: "cmd-relay",
+      });
+    });
+
     it("forwards a DIFFERENT commandId as a new command", async () => {
       const remoteSessionId = createAndJoin(["observe", "prompt"]);
       const handleMessage = vi.fn(async () => {});

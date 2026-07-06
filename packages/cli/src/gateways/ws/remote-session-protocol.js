@@ -39,7 +39,14 @@ function audit(server, entry) {
  * two paths keep independent per-device sequence spaces.
  */
 async function applyControlIdempotent(server, clientId, ws, message, forward) {
-  const commandId = message.commandId;
+  // A direct-WS client puts the idempotency key at the message top level, but
+  // the RELAY path (`_handleRemoteEncryptedControl`) decrypts the whole mobile
+  // control payload into `message.event`, so a relay-paired mobile's commandId
+  // lands at `event.commandId`. Read either — otherwise the primary takeover
+  // path (relay-paired mobile) never consults the ledger and a reconnect
+  // re-runs the agent turn, defeating the entire Phase 5 guarantee.
+  const commandId = message.commandId ?? message.event?.commandId;
+  const seq = message.seq ?? message.event?.seq;
   if (!commandId) return forward();
   // Create the ledger SYNCHRONOUSLY (no await between the check and the assign)
   // so two concurrent re-deliveries of the same commandId share ONE ledger and
@@ -49,7 +56,7 @@ async function applyControlIdempotent(server, clientId, ws, message, forward) {
     server._remoteControlLedger = new RemoteCommandLedger();
   }
   const outcome = await server._remoteControlLedger.apply(
-    { commandId, deviceId: clientId, seq: message.seq },
+    { commandId, deviceId: clientId, seq },
     async () => {
       await forward();
       return true;
