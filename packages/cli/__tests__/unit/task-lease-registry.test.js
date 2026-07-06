@@ -234,6 +234,28 @@ describe("TaskLeaseRegistry crash resume (session recovery)", () => {
     expect(restored.claimable()).toEqual(["b"]);
     expect(restored.acquire("b", { holder: "z" }).ok).toBe(true);
   });
+
+  it("reclaimAll reclaims a still-in-TTL lease on resume (crash seconds after acquire)", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 60000 });
+    reg.addTask({ key: "a", title: "A" });
+    reg.acquire("a", { holder: "x", ttlMs: 60000 }); // expires far in the future
+    const snap = JSON.parse(JSON.stringify(reg.snapshot()));
+
+    // Restart only 1s later — a's lease is STILL VALID (until +60s), so the
+    // prior process crashed within the TTL window. reclaimExpired can't help.
+    const clock2 = makeClock(clock.now() + 1000);
+    const restored = TaskLeaseRegistry.restore(snap, { now: clock2.now });
+    expect(restored.reclaimExpired()).toEqual([]); // expired-only sweep skips it…
+    expect(restored.claimable()).toEqual([]); // …and the valid lease blocks it → stuck
+
+    // reclaimAll frees every dangling lease regardless of expiry.
+    expect(restored.reclaimAll()).toEqual(["a"]);
+    expect(restored.getTask("a").status).toBe("pending");
+    expect(restored.getTask("a").lease).toBe(null);
+    expect(restored.claimable()).toEqual(["a"]);
+    expect(restored.acquire("a", { holder: "rescuer" }).ok).toBe(true);
+  });
 });
 
 describe("TaskLeaseRegistry stats / allDone", () => {

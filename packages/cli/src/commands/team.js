@@ -266,7 +266,12 @@ export function registerTeamCommand(program, { logger } = {}) {
           for (const t of reg.list()) {
             if (t.lease && t.lease.holder) lostHolders.add(t.lease.holder);
           }
-          const freed = reg.reclaimExpired();
+          // Reclaim ALL dangling leases, not just expired ones: every holder in
+          // the persisted snapshot is from the now-dead prior process, so a lease
+          // still inside its TTL (a crash seconds after acquiring) must be
+          // reclaimed too — reclaimExpired() would skip it and strand the task,
+          // yet we already reported its holder LOST above.
+          const freed = reg.reclaimAll();
           for (const h of lostHolders) {
             if (options.json)
               console.log(JSON.stringify({ type: "teammate:lost", holder: h }));

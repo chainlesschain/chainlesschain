@@ -324,6 +324,34 @@ export class TaskLeaseRegistry {
     return reclaimed;
   }
 
+  /**
+   * Reclaim EVERY task that currently holds a lease back to PENDING, regardless
+   * of expiry. Used on RESUME: a persisted snapshot comes from a prior process,
+   * so every lease holder is by definition dead. `reclaimExpired` alone would
+   * SKIP a lease still inside its TTL window (a crash seconds after acquiring) —
+   * that task is then neither claimable (the "valid" lease blocks it) nor
+   * reclaimed, so it strands forever and the run can never reach `allDone`.
+   * Returns the reclaimed keys.
+   */
+  reclaimAll() {
+    const reclaimed = [];
+    for (const t of this._tasks.list()) {
+      const lease = t.metadata?.lease || null;
+      if (!lease) continue;
+      const fresh = this._tasks.get(t.id); // re-read for current rev
+      if (
+        this._write(fresh, {
+          status: TASK_STATUS.PENDING,
+          assignee: null,
+          metadata: { ...fresh.metadata, lease: null },
+        })
+      ) {
+        reclaimed.push(fresh.metadata?.key);
+      }
+    }
+    return reclaimed;
+  }
+
   stats({ now = this._now() } = {}) {
     const base = this._tasks.stats();
     let leased = 0;
