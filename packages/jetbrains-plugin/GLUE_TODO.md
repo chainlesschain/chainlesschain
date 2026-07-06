@@ -367,3 +367,19 @@ Glue-layer (needs the next pre-release runIde pass):
       `── agent exited ──` after). A REAL crash still shows the banner.
 - [ ] **MCP 413** — POST a >4MB body to the bridge; expect an HTTP 413 JSON
       error, not a dropped connection.
+
+## ⚡ Performance batch (unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
+
+Three optimizations from the audit. `compileJava` clean + `smokeTest` **348/0**
+(all glue-layer behavior — no new pure assertions).
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **Scroll-back while streaming** — during a long streamed reply, scroll UP;
+      new deltas must NOT yank the viewport back to the bottom. When parked at
+      the bottom, it still auto-follows.
+- [ ] **Config read once** — `readConfiguredLlmBlock` now reads/parses
+      `config.json` once for all 4 fields; first-message spawn should feel
+      quicker. Sanity: the panel still uses the configured provider/model.
+- [ ] **@-mention cache TTL** — create a new file, wait ~30s, type `@`; the new
+      file should now appear (was unmentionable until the tab was recreated).

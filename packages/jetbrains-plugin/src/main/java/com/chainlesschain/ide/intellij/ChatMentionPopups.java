@@ -33,10 +33,21 @@ final class ChatMentionPopups {
     // pin an empty result for the rest of the tab's life.
     private volatile List<String> cachedFiles;
     private volatile List<Mentions.MentionItem> cachedSymbols;
+    // When each cache was warmed. Past the TTL a background re-scan is kicked off
+    // (the stale cache is still served meanwhile, so filtering stays instant),
+    // so files/symbols created mid-session appear on a later `@` instead of being
+    // unmentionable until the tab is recreated.
+    private volatile long cachedFilesAt;
+    private volatile long cachedSymbolsAt;
+    private static final long MENTION_CACHE_TTL_MS = 30_000;
     private final java.util.concurrent.atomic.AtomicBoolean symbolScanRunning =
             new java.util.concurrent.atomic.AtomicBoolean();
     private final java.util.concurrent.atomic.AtomicBoolean fileScanRunning =
             new java.util.concurrent.atomic.AtomicBoolean();
+
+    private boolean isStale(long at) {
+        return System.currentTimeMillis() - at > MENTION_CACHE_TTL_MS;
+    }
 
     ChatMentionPopups(Project project, JTextArea input) {
         this.project = project;
@@ -135,7 +146,10 @@ final class ChatMentionPopups {
      */
     private List<Mentions.MentionItem> symbolCandidates() {
         List<Mentions.MentionItem> cached = cachedSymbols;
-        if (cached != null) return cached;
+        if (cached != null) {
+            if (isStale(cachedSymbolsAt)) warmSymbolsAsync(); // refresh for next popup
+            return cached;
+        }
         warmSymbolsAsync();
         // First `@` on a big project: files + IDE-mentions show immediately;
         // symbols join on the next popup once the background scan lands.
@@ -153,6 +167,7 @@ final class ChatMentionPopups {
                 .submit(com.intellij.util.concurrency.AppExecutorUtil.getAppExecutorService())
                 .onSuccess(syms -> {
                     cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 1600);
+                    cachedSymbolsAt = System.currentTimeMillis();
                     symbolScanRunning.set(false);
                 })
                 .onError(t -> symbolScanRunning.set(false)); // not cached — next @ retries
@@ -216,7 +231,10 @@ final class ChatMentionPopups {
      *  scan and returns what's cached (possibly nothing yet). */
     private List<String> projectRelativeFiles() {
         List<String> cached = cachedFiles;
-        if (cached != null) return cached;
+        if (cached != null) {
+            if (isStale(cachedFilesAt)) warmFilesAsync(); // refresh for next popup
+            return cached;
+        }
         warmFilesAsync();
         return java.util.Collections.emptyList();
     }
@@ -229,6 +247,7 @@ final class ChatMentionPopups {
                 .submit(com.intellij.util.concurrency.AppExecutorUtil.getAppExecutorService())
                 .onSuccess(files -> {
                     cachedFiles = files;
+                    cachedFilesAt = System.currentTimeMillis();
                     fileScanRunning.set(false);
                 })
                 .onError(t -> fileScanRunning.set(false)); // not cached — next @ retries

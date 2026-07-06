@@ -47,6 +47,19 @@
   also removes orphaned `*.json.tmp-<pid>` atomic-write temps whose owning
   process is gone (they used to accumulate forever).
 
+### Performance
+
+- **You can scroll back through the transcript while a reply streams.** New
+  output only sticks to the bottom when you're already there — scrolling up to
+  read no longer yanks you back down on every delta.
+- **Faster first message.** The chat spawn reads `~/.chainlesschain/config.json`
+  once for all four LLM fields instead of four times (and, when a field was
+  absent, up to four sequential `cc config get` calls) — noticeably quicker
+  before the first turn.
+- **`@`-mention completion picks up new files.** The file/symbol caches refresh
+  in the background after 30s instead of living for the whole tab, so files
+  created mid-conversation become mentionable without reopening the tab.
+
 ## [0.4.45] — feat: live token tally + iteration warnings (VS Code parity) + bug sweep (B1–B9) + polish
 
 - **Live token counter while the agent works.** Each LLM call's `token_usage`

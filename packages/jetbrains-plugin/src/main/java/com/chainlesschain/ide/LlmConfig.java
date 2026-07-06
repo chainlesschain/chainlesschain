@@ -301,6 +301,32 @@ public final class LlmConfig {
      * be null (then omitted as a flag, and the CLI resolves it itself).
      */
     public static String[] readConfiguredLlmBlock() {
+        // Read + parse config.json ONCE for all four fields. The old code called
+        // readLlmField 4× — 4 file reads + 4 MiniJson parses per spawn, and (when
+        // a field was absent) up to 4 sequential 60s `cc config get` fallbacks on
+        // the per-tab send worker before the first message. When the llm block is
+        // present (the common case) the file is authoritative for every field.
+        try {
+            java.nio.file.Path f = Paths.get(System.getProperty("user.home", ""),
+                    ".chainlesschain", "config.json");
+            if (Files.isRegularFile(f)) {
+                String raw = new String(Files.readAllBytes(f), StandardCharsets.UTF_8);
+                Map<String, Object> cfg = MiniJson.parseObject(raw);
+                Object llm = cfg == null ? null : cfg.get("llm");
+                if (llm instanceof Map) {
+                    Map<?, ?> m = (Map<?, ?>) llm;
+                    return new String[] {
+                        cleanConfigValue(m.get("provider")),
+                        cleanConfigValue(m.get("model")),
+                        cleanConfigValue(m.get("baseUrl")),
+                        cleanConfigValue(m.get("apiKey")),
+                    };
+                }
+            }
+        } catch (Exception ignore) {
+            // fall through to the per-field path (CLI fallback for pre-llm configs)
+        }
+        // No file / no llm block → per-field read (each falls back to the CLI).
         return new String[] {
             readLlmField("provider"),
             readLlmField("model"),

@@ -49,6 +49,22 @@ final class ChatTranscript {
         return pane;
     }
 
+    /** True when the viewport is at (or within a line of) the bottom — i.e. the
+     *  user is following the live output. When they've scrolled up to read, this
+     *  is false and we must NOT yank them back down on the next insert. Defaults
+     *  to true before layout / without an enclosing viewport (tests). */
+    private boolean isFollowingBottom() {
+        java.awt.Container p = pane.getParent();
+        if (!(p instanceof javax.swing.JViewport)) return true;
+        java.awt.Rectangle view = ((javax.swing.JViewport) p).getViewRect();
+        int slop = Math.max(24, pane.getFont().getSize() * 2); // ~one line
+        return view.y + view.height >= pane.getHeight() - slop;
+    }
+
+    private void stickToBottomIfFollowing(boolean wasFollowing) {
+        if (wasFollowing) pane.setCaretPosition(pane.getStyledDocument().getLength());
+    }
+
     /** A plain transcript line (header / tool / info / error). Ends any pending
      *  assistant markdown run first so it gets re-styled before this line. */
     void append(String s) {
@@ -82,6 +98,7 @@ final class ChatTranscript {
         int start = assistantRunStart;
         assistantRunStart = -1;
         if (start < 0 || end <= start) return;
+        final boolean following = isFollowingBottom();
         try {
             String text = d.getText(start, end - start);
             d.remove(start, end - start);
@@ -92,7 +109,7 @@ final class ChatTranscript {
                         : stylePlain;
                 d.insertString(d.getLength(), span.text, st);
             }
-            pane.setCaretPosition(d.getLength());
+            stickToBottomIfFollowing(following);
         } catch (BadLocationException ignored) {
             /* best-effort — leave the plain text in place on any hiccup */
         }
@@ -107,6 +124,7 @@ final class ChatTranscript {
 
     private void insertStyled(String s, javax.swing.text.AttributeSet style) {
         try {
+            final boolean following = isFollowingBottom();
             StyledDocument d = pane.getStyledDocument();
             d.insertString(d.getLength(), s, style);
             // Bound long-session memory: drop the oldest text once the document
@@ -120,7 +138,7 @@ final class ChatTranscript {
                 d.remove(0, removeLen);
                 if (assistantRunStart >= 0) assistantRunStart -= removeLen;
             }
-            pane.setCaretPosition(d.getLength());
+            stickToBottomIfFollowing(following);
         } catch (BadLocationException ignored) {
             /* document offsets are append-only here — should not happen */
         }
