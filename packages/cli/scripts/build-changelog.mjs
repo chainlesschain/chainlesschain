@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { format } from "prettier";
 import { parseChangelog } from "../src/lib/changelog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,20 +27,16 @@ if (!fs.existsSync(srcPath)) {
 const md = fs.readFileSync(srcPath, "utf-8");
 const releases = parseChangelog(md);
 
+// Deterministic output: no timestamp (would churn the committed file on every
+// regen), and formatted THROUGH Prettier so the bytes match exactly what the
+// pre-commit hook would produce — regenerating only changes the file when
+// CHANGELOG's CLI content actually changed (cf. the web-panel content-hash
+// artifact). This keeps a committed build artifact from drifting the index.
+const pretty = await format(JSON.stringify({ source: "CHANGELOG.md", releases }), {
+  parser: "json",
+});
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(
-  outPath,
-  JSON.stringify(
-    {
-      generatedAt: new Date().toISOString(),
-      source: "CHANGELOG.md",
-      releases,
-    },
-    null,
-    0,
-  ),
-  "utf-8",
-);
+fs.writeFileSync(outPath, pretty, "utf-8");
 
 console.log(
   `[build-changelog] wrote ${releases.length} CLI releases → ${path.relative(repoRoot, outPath)}`,

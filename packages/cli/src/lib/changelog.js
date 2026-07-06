@@ -215,33 +215,38 @@ function extractCliSections(bodyLines, header) {
 }
 
 /**
- * Resolve and load the bundled CLI changelog data.
- * Order: prebuilt src/data/changelog.json → parse a raw CHANGELOG.md (dev).
+ * Resolve and load the CLI changelog data.
  *
- * @returns {{ generatedAt: string|null, releases: Array }}
+ * Order is CHANGELOG-FIRST so the data can never go stale: when the repo-root
+ * CHANGELOG.md is reachable (source checkout / dev / this monorepo) it is parsed
+ * live, always reflecting the latest edits. The bundled `src/data/changelog.json`
+ * (a build artifact, refreshed at `prepublishOnly`) is only the fallback for an
+ * installed npm package, where CHANGELOG.md is not shipped.
+ *
+ * @returns {{ source: string, releases: Array }}
  */
 export function loadChangelog() {
+  const changelogCandidates = [
+    path.join(__dirname, "..", "..", "CHANGELOG.md"), // packages/cli/CHANGELOG.md
+    path.join(__dirname, "..", "..", "..", "..", "CHANGELOG.md"), // repo root
+  ];
+  for (const p of changelogCandidates) {
+    if (fs.existsSync(p)) {
+      return {
+        source: "CHANGELOG.md",
+        releases: parseChangelog(fs.readFileSync(p, "utf-8")),
+      };
+    }
+  }
+  // Installed npm package: CHANGELOG.md isn't shipped, use the bundled artifact.
   const jsonPath = path.join(__dirname, "..", "data", "changelog.json");
   if (fs.existsSync(jsonPath)) {
     try {
-      const raw = fs.readFileSync(jsonPath, "utf-8");
-      const data = JSON.parse(raw);
+      const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
       if (Array.isArray(data.releases)) return data;
     } catch {
-      // fall through to raw parse
+      /* fall through to empty */
     }
   }
-  // Dev fallback: parse a CHANGELOG.md from repo root or bundled copy.
-  const candidates = [
-    path.join(__dirname, "..", "data", "CHANGELOG.md"),
-    path.join(__dirname, "..", "..", "CHANGELOG.md"),
-    path.join(__dirname, "..", "..", "..", "..", "CHANGELOG.md"),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      const md = fs.readFileSync(p, "utf-8");
-      return { generatedAt: null, releases: parseChangelog(md) };
-    }
-  }
-  return { generatedAt: null, releases: [] };
+  return { source: null, releases: [] };
 }
