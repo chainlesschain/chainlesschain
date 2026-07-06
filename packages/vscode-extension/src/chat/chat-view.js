@@ -37,8 +37,9 @@ class ChatViewProvider {
     this._convs = new ConversationManager({ createTurnState });
     // Injectable for tests: returns a STARTED session for the given config.
     this._createSession =
-      opts.deps?.createSession ||
-      ((cfg) => new AgentChatSession(cfg).start());
+      opts.deps?.createSession || ((cfg) => new AgentChatSession(cfg).start());
+    // Injectable for tests (the default reads ~/.chainlesschain/config.json).
+    this._resolveChatLlm = opts.deps?.resolveChatLlm || resolveChatLlm;
     // "Insert File Reference" (Cmd/Ctrl+Alt+K): text queued here until the
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
@@ -213,9 +214,14 @@ class ChatViewProvider {
         // {type:"answer"} message (handled below).
       }
       if (evt?.type === "result") {
+        // The turn is done — the CLI inlined any pasted images at turn start,
+        // so their temp files are consumed and can be deleted now (they would
+        // otherwise pile up in os.tmpdir() forever).
+        this._cleanupImageTemps(convId);
         // Refresh the persistent context-window indicator for the active tab
         // (best-effort; reuses the CLI's authoritative window math).
-        if (this._convs.activeId() === convId) this._refreshContextStatus(convId);
+        if (this._convs.activeId() === convId)
+          this._refreshContextStatus(convId);
         // Background-tab completion signal: a turn just finished in a tab you are
         // NOT looking at (its stream was gated out of the visible transcript).
         // Flag it so the tab bar shows a dot, and offer a jump-to toast.
@@ -240,9 +246,12 @@ class ChatViewProvider {
     try {
       const p = show.call(win, `ChainlessChain · "${title}" finished`, "Show");
       if (p && typeof p.then === "function") {
-        p.then((pick) => {
-          if (pick === "Show") this._revealConversation(conv && conv.id);
-        }, () => {});
+        p.then(
+          (pick) => {
+            if (pick === "Show") this._revealConversation(conv && conv.id);
+          },
+          () => {},
+        );
       }
     } catch {
       /* notification is best-effort — never break the agent loop over a toast */
@@ -262,9 +271,12 @@ class ChatViewProvider {
         "Show",
       );
       if (p && typeof p.then === "function") {
-        p.then((pick) => {
-          if (pick === "Show") this._revealConversation(conv && conv.id);
-        }, () => {});
+        p.then(
+          (pick) => {
+            if (pick === "Show") this._revealConversation(conv && conv.id);
+          },
+          () => {},
+        );
       }
     } catch {
       /* best-effort — never break the agent loop over a toast */
@@ -299,17 +311,18 @@ class ChatViewProvider {
     const chatCfg = this.vscode.workspace.getConfiguration(
       "chainlesschain.chat",
     );
+    // Pin the effective provider/model (panel override, else the user's
+    // cc config) so the panel deterministically uses the SAME LLM as the
+    // terminal `cc` — never drifts to a stale ambient default.
+    const llm = this._resolveChatLlm({
+      provider: chatCfg.get("provider"),
+      model: chatCfg.get("model"),
+    });
     const session = this._createSession({
       command: this._cliCommand(),
       args: [
         ...buildSessionArgs({
-          // Pin the effective provider/model (panel override, else the user's
-          // cc config) so the panel deterministically uses the SAME LLM as the
-          // terminal `cc` — never drifts to a stale ambient default.
-          ...resolveChatLlm({
-            provider: chatCfg.get("provider"),
-            model: chatCfg.get("model"),
-          }),
+          ...llm,
           // Continue THIS tab's conversation across child restarts; a new tab
           // (or "New") starts with no resume id for a fresh session.
           resume: conv.sessionId,
@@ -327,9 +340,19 @@ class ChatViewProvider {
       cwd,
       // CC_INTERACTIVE_QUESTIONS opts the child into the ask_user_question
       // round-trip (QuickPick); an old `cc` simply ignores the env var.
-      env: { ...process.env, ...bridgeEnv, CC_INTERACTIVE_QUESTIONS: "1" },
+      // CC_API_KEY carries the key OFF the command line (argv is readable by
+      // every same-user process); buildSessionArgs still passes --api-key for
+      // CLIs predating the env fallback — drop that once MIN_CLI_VERSION
+      // reaches the first cc release that reads CC_API_KEY.
+      env: {
+        ...process.env,
+        ...bridgeEnv,
+        CC_INTERACTIVE_QUESTIONS: "1",
+        ...(llm.apiKey ? { CC_API_KEY: String(llm.apiKey) } : {}),
+      },
       onEvent: this._makeOnEvent(conv.id),
-      onStderr: (line) => this._postFrom(conv.id, { kind: "stderr", text: line }),
+      onStderr: (line) =>
+        this._postFrom(conv.id, { kind: "stderr", text: line }),
       onExit: ({ code }) => this._postFrom(conv.id, { kind: "exited", code }),
     });
     this._convs.setSession(conv.id, session);
@@ -527,14 +550,15 @@ class ChatViewProvider {
     const path = require("path");
     const out = [];
     for (const img of (images || []).slice(0, 4)) {
-      const m = /^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$/.exec(
-        String((img && img.data) || ""),
-      );
+      const m =
+        /^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$/.exec(
+          String((img && img.data) || ""),
+        );
       if (!m) continue;
       const ext = m[1] === "jpeg" ? "jpg" : m[1];
       const file = path.join(
         os.tmpdir(),
-        `cc-chat-img-${Date.now()}-${this._imgSeq = (this._imgSeq || 0) + 1}.${ext}`,
+        `cc-chat-img-${Date.now()}-${(this._imgSeq = (this._imgSeq || 0) + 1)}.${ext}`,
       );
       try {
         fs.writeFileSync(file, Buffer.from(m[2], "base64"));
@@ -544,6 +568,28 @@ class ChatViewProvider {
       }
     }
     return out;
+  }
+
+  /**
+   * Delete the temp image files recorded for a conversation (or all of them
+   * when convId is omitted, e.g. on dispose). Best-effort — a file the CLI
+   * still holds open on Windows just stays until the next cleanup.
+   */
+  _cleanupImageTemps(convId) {
+    const map = this._imgTemps;
+    if (!map || map.size === 0) return;
+    const fs = require("fs");
+    const keys = convId != null ? [convId] : [...map.keys()];
+    for (const k of keys) {
+      for (const file of map.get(k) || []) {
+        try {
+          fs.unlinkSync(file);
+        } catch {
+          /* already gone / still locked — best-effort */
+        }
+      }
+      map.delete(k);
+    }
   }
 
   /**
@@ -634,7 +680,7 @@ class ChatViewProvider {
     const args = introspect.buildIntrospectArgs(
       kind,
       id,
-      resolveChatLlm({
+      this._resolveChatLlm({
         model: chatCfg.get("model"),
         provider: chatCfg.get("provider"),
       }),
@@ -685,12 +731,15 @@ class ChatViewProvider {
         env: { ...process.env, ...bridgeEnv },
         timeoutMs: 10000,
       }),
-    ).then((text) => {
-      const status = introspect.parseContextStatus(text);
-      if (status && this._convs.activeId() === convId) {
-        this._post({ kind: "ctxStatus", ...status });
-      }
-    }, () => {});
+    ).then(
+      (text) => {
+        const status = introspect.parseContextStatus(text);
+        if (status && this._convs.activeId() === convId) {
+          this._post({ kind: "ctxStatus", ...status });
+        }
+      },
+      () => {},
+    );
   }
 
   /**
@@ -825,159 +874,166 @@ class ChatViewProvider {
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
     if (m.type === "send") {
-        const images = Array.isArray(m.images)
-          ? this._writeImageTemps(m.images)
-          : [];
-        const session = this._ensureSession();
-        const ok = images.length
-          ? session.sendEvent({
-              type: "user",
-              text: String(m.text || ""),
-              images,
-            })
-          : session.send(m.text);
-        if (!ok) {
+      const images = Array.isArray(m.images)
+        ? this._writeImageTemps(m.images)
+        : [];
+      const session = this._ensureSession(); // bootstraps the conversation
+      if (images.length) {
+        // Track for cleanup once this conversation's turn completes.
+        if (!this._imgTemps) this._imgTemps = new Map();
+        const id = this._convs.activeId();
+        this._imgTemps.set(id, (this._imgTemps.get(id) || []).concat(images));
+      }
+      const ok = images.length
+        ? session.sendEvent({
+            type: "user",
+            text: String(m.text || ""),
+            images,
+          })
+        : session.send(m.text);
+      if (!ok) {
+        this._post({
+          kind: "error",
+          text:
+            "could not reach the agent process — is the `cc` CLI " +
+            "installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, " +
+            "or set chainlesschain.cli.path)",
+        });
+      }
+    } else if (m.type === "plan") {
+      // Plan controls ride the same stdin protocol; entering plan mode may
+      // need to spawn the child first (e.g. Plan clicked before any turn).
+      const action = String(m.action || "");
+      if (action === "enter") {
+        this._ensureSession().sendEvent({ type: "plan", action });
+      } else {
+        this.session?.sendEvent({ type: "plan", action });
+      }
+    } else if (m.type === "files") {
+      // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
+      // first, then ranked workspace-relative paths, then workspace symbols
+      // (find a file by a function/class name). Deduped by inserted value so
+      // a symbol whose file already matched by path doesn't show twice.
+      const prefix = String(m.prefix || "");
+      const { ideMentionMatches } = require("./at-mention");
+      const { dedupeMentionItems } = require("./symbol-mentions");
+      Promise.all([
+        this._listWorkspaceFiles(prefix),
+        this._listWorkspaceSymbols(prefix),
+      ]).then(
+        ([files, symbols]) =>
           this._post({
-            kind: "error",
-            text:
-              "could not reach the agent process — is the `cc` CLI " +
-              "installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, " +
-              "or set chainlesschain.cli.path)",
-          });
-        }
-      } else if (m.type === "plan") {
-        // Plan controls ride the same stdin protocol; entering plan mode may
-        // need to spawn the child first (e.g. Plan clicked before any turn).
-        const action = String(m.action || "");
-        if (action === "enter") {
-          this._ensureSession().sendEvent({ type: "plan", action });
-        } else {
-          this.session?.sendEvent({ type: "plan", action });
-        }
-      } else if (m.type === "files") {
-        // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
-        // first, then ranked workspace-relative paths, then workspace symbols
-        // (find a file by a function/class name). Deduped by inserted value so
-        // a symbol whose file already matched by path doesn't show twice.
-        const prefix = String(m.prefix || "");
-        const { ideMentionMatches } = require("./at-mention");
-        const { dedupeMentionItems } = require("./symbol-mentions");
-        Promise.all([
-          this._listWorkspaceFiles(prefix),
-          this._listWorkspaceSymbols(prefix),
-        ]).then(
-          ([files, symbols]) =>
-            this._post({
-              kind: "files",
-              prefix,
-              items: dedupeMentionItems(
-                ideMentionMatches(prefix).concat(files, symbols),
-              ),
-            }),
-          () => {},
-        );
-      } else if (m.type === "pickSession") {
-        this._pickSession().catch(() => {});
-      } else if (m.type === "cost" || m.type === "context") {
-        this._runIntrospect(m.type).catch(() => {});
-      } else if (m.type === "rewind") {
-        this._rewind().catch(() => {});
-      } else if (m.type === "mode") {
-        this._setMode(String(m.mode || "default"));
-      } else if (m.type === "think") {
-        this._setThinking(String(m.level || "off"));
-      } else if (m.type === "configureLlm") {
-        // After the wizard writes config (cc config set), every ALREADY-RUNNING
-        // child still holds the OLD provider/model/key — so a child spawned with
-        // bad/empty LLM config keeps erroring until it respawns. Restart running
-        // children once the wizard closes so the next message picks up the new
-        // config (without the user having to open a fresh conversation).
-        Promise.resolve(
-          this.vscode.commands.executeCommand("chainlesschain.llm.configure"),
-        ).then(
-          () => this._reloadLlmConfig(),
-          () => this._reloadLlmConfig(),
-        );
-      } else if (m.type === "approval") {
-        this.session?.sendEvent({
-          type: "approval",
-          id: String(m.id || ""),
-          approve: m.approve === true,
-        });
-      } else if (m.type === "answer") {
-        // The in-panel question card's answer (option / text / multi-select, or
-        // null when skipped) → unblock the agent's ask_user_question.
-        this.session?.sendEvent({
-          type: "answer",
-          id: String(m.id || ""),
-          answer: m.answer === undefined ? null : m.answer,
-        });
-      } else if (m.type === "interrupt") {
-        // Abort the in-flight turn only — the conversation/child stays alive.
-        this.session?.sendEvent({ type: "interrupt" });
-      } else if (m.type === "compact") {
-        // Manual /compact (Claude-Code IDE parity): ask the child to trim its
-        // live history between turns. The CLI answers with a `compaction`
-        // event rendered like any other status line.
-        this.session?.sendEvent({ type: "compact" });
-      } else if (m.type === "stop") {
-        this.session?.stop();
-      } else if (m.type === "ready") {
-        this._onWebviewReady();
-        // Show the tab bar from the first paint (bootstraps one conversation
-        // record — no child spawn until the first message).
-        this._activeConv();
+            kind: "files",
+            prefix,
+            items: dedupeMentionItems(
+              ideMentionMatches(prefix).concat(files, symbols),
+            ),
+          }),
+        () => {},
+      );
+    } else if (m.type === "pickSession") {
+      this._pickSession().catch(() => {});
+    } else if (m.type === "cost" || m.type === "context") {
+      this._runIntrospect(m.type).catch(() => {});
+    } else if (m.type === "rewind") {
+      this._rewind().catch(() => {});
+    } else if (m.type === "mode") {
+      this._setMode(String(m.mode || "default"));
+    } else if (m.type === "think") {
+      this._setThinking(String(m.level || "off"));
+    } else if (m.type === "configureLlm") {
+      // After the wizard writes config (cc config set), every ALREADY-RUNNING
+      // child still holds the OLD provider/model/key — so a child spawned with
+      // bad/empty LLM config keeps erroring until it respawns. Restart running
+      // children once the wizard closes so the next message picks up the new
+      // config (without the user having to open a fresh conversation).
+      Promise.resolve(
+        this.vscode.commands.executeCommand("chainlesschain.llm.configure"),
+      ).then(
+        () => this._reloadLlmConfig(),
+        () => this._reloadLlmConfig(),
+      );
+    } else if (m.type === "approval") {
+      this.session?.sendEvent({
+        type: "approval",
+        id: String(m.id || ""),
+        approve: m.approve === true,
+      });
+    } else if (m.type === "answer") {
+      // The in-panel question card's answer (option / text / multi-select, or
+      // null when skipped) → unblock the agent's ask_user_question.
+      this.session?.sendEvent({
+        type: "answer",
+        id: String(m.id || ""),
+        answer: m.answer === undefined ? null : m.answer,
+      });
+    } else if (m.type === "interrupt") {
+      // Abort the in-flight turn only — the conversation/child stays alive.
+      this.session?.sendEvent({ type: "interrupt" });
+    } else if (m.type === "compact") {
+      // Manual /compact (Claude-Code IDE parity): ask the child to trim its
+      // live history between turns. The CLI answers with a `compaction`
+      // event rendered like any other status line.
+      this.session?.sendEvent({ type: "compact" });
+    } else if (m.type === "stop") {
+      this.session?.stop();
+    } else if (m.type === "ready") {
+      this._onWebviewReady();
+      // Show the tab bar from the first paint (bootstraps one conversation
+      // record — no child spawn until the first message).
+      this._activeConv();
+      this._postTabs();
+    } else if (m.type === "new") {
+      // New chat: reset the ACTIVE conversation — drop its child AND resume
+      // id so the next message spawns fresh. Webview clears on "reset".
+      const conv = this._activeConv();
+      conv.session?.stop();
+      this._convs.setSession(conv.id, null);
+      this._convs.setSessionId(conv.id, null);
+      this._rememberSessionId(null);
+      this._fileCache = null; // pick up files created since the last scan
+      this._post({ kind: "reset" });
+    } else if (m.type === "newTab") {
+      // Open a fresh conversation tab (becomes active). Its child spawns on
+      // the first message. `tabs` tells the webview to swap to the new
+      // (empty) tab — no `reset`, so the previous tab's transcript is kept
+      // buffered for when the user switches back.
+      this._openNewTab();
+    } else if (m.type === "switchTab") {
+      // Switch the visible conversation; the webview restores that tab's
+      // buffered transcript on the `tabs` message (no reset).
+      const conv = this._convs.switchTo(String(m.id || ""));
+      if (conv) {
+        this._rememberSessionId(conv.sessionId);
         this._postTabs();
-      } else if (m.type === "new") {
-        // New chat: reset the ACTIVE conversation — drop its child AND resume
-        // id so the next message spawns fresh. Webview clears on "reset".
-        const conv = this._activeConv();
-        conv.session?.stop();
-        this._convs.setSession(conv.id, null);
-        this._convs.setSessionId(conv.id, null);
-        this._rememberSessionId(null);
-        this._fileCache = null; // pick up files created since the last scan
-        this._post({ kind: "reset" });
-      } else if (m.type === "newTab") {
-        // Open a fresh conversation tab (becomes active). Its child spawns on
-        // the first message. `tabs` tells the webview to swap to the new
-        // (empty) tab — no `reset`, so the previous tab's transcript is kept
-        // buffered for when the user switches back.
-        this._openNewTab();
-      } else if (m.type === "switchTab") {
-        // Switch the visible conversation; the webview restores that tab's
-        // buffered transcript on the `tabs` message (no reset).
-        const conv = this._convs.switchTo(String(m.id || ""));
-        if (conv) {
-          this._rememberSessionId(conv.sessionId);
-          this._postTabs();
-          // A pending approval was gated out while this tab was backgrounded —
-          // re-post the card now (once; it then lives in the tab's buffer).
-          if (conv.pendingApproval) {
-            this._post(conv.pendingApproval);
-            this._convs.setPendingApproval(conv.id, null);
-          }
-        }
-      } else if (m.type === "closeTab") {
-        const res = this._convs.close(String(m.id || ""));
-        if (res.closed) {
-          // Remember it so Cmd/Ctrl+Shift+T can reopen+resume the last close.
-          if (res.conv) {
-            this._lastClosed = {
-              sessionId: res.conv.sessionId || null,
-              title: res.conv.title,
-            };
-          }
-          res.conv?.session?.stop?.();
-          if (this._convs.count() === 0) this._convs.create({}); // never empty
-          this._rememberSessionId(this._convs.active()?.sessionId || null);
-          this._postTabs();
+        // A pending approval was gated out while this tab was backgrounded —
+        // re-post the card now (once; it then lives in the tab's buffer).
+        if (conv.pendingApproval) {
+          this._post(conv.pendingApproval);
+          this._convs.setPendingApproval(conv.id, null);
         }
       }
+    } else if (m.type === "closeTab") {
+      const res = this._convs.close(String(m.id || ""));
+      if (res.closed) {
+        // Remember it so Cmd/Ctrl+Shift+T can reopen+resume the last close.
+        if (res.conv) {
+          this._lastClosed = {
+            sessionId: res.conv.sessionId || null,
+            title: res.conv.title,
+          };
+        }
+        res.conv?.session?.stop?.();
+        if (this._convs.count() === 0) this._convs.create({}); // never empty
+        this._rememberSessionId(this._convs.active()?.sessionId || null);
+        this._postTabs();
+      }
+    }
   }
 
   dispose() {
     for (const s of this._convs.allSessions()) s.stop?.();
+    this._cleanupImageTemps();
     this._modeStatus?.item.dispose();
     this._modeStatus = null;
   }

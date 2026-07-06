@@ -55,7 +55,10 @@ class PreviewController {
     const pkg = this._readPkg(cwd);
     const dev = pickDevScript(pkg);
     if (!dev) {
-      this._onStatus({ state: "error", message: "no dev script in package.json" });
+      this._onStatus({
+        state: "error",
+        message: "no dev script in package.json",
+      });
       return { error: "no-dev-script" };
     }
     this.script = dev.script;
@@ -67,21 +70,30 @@ class PreviewController {
     this.child = child;
     this.running = true;
 
-    const onData = (buf) => {
-      if (this.url) return; // already opened
-      const text = String(buf);
-      for (const line of text.split(/\r?\n/)) {
-        const url = detectServerUrl(line);
-        if (url) {
-          this.url = url;
-          this._onStatus({ state: "ready", url, script: dev.script });
-          this._openUrl(url);
-          return;
+    // Line-frame with a per-stream carry buffer: the URL can straddle a chunk
+    // boundary (long banners / 64KB pipe chunks), and two half-lines never
+    // match. stdout and stderr each get their own buffer — a shared one would
+    // let interleaved chunks from the two streams corrupt each other's lines.
+    const makeOnData = () => {
+      let carry = "";
+      return (buf) => {
+        if (this.url) return; // already opened
+        carry += String(buf);
+        const lines = carry.split(/\r?\n/);
+        carry = lines.pop(); // trailing partial line waits for the next chunk
+        for (const line of lines) {
+          const url = detectServerUrl(line);
+          if (url) {
+            this.url = url;
+            this._onStatus({ state: "ready", url, script: dev.script });
+            this._openUrl(url);
+            return;
+          }
         }
-      }
+      };
     };
-    child?.stdout?.on?.("data", onData);
-    child?.stderr?.on?.("data", onData); // some servers print the URL on stderr
+    child?.stdout?.on?.("data", makeOnData());
+    child?.stderr?.on?.("data", makeOnData()); // some servers print the URL on stderr
     child?.on?.("exit", (code) => {
       const intentional = this._stopping;
       this.running = false;
@@ -200,11 +212,14 @@ function createPreviewController(vscode, { log } = {}) {
           `App preview (npm run ${s.script || "dev"}) exited` +
           (s.code != null ? ` (code ${s.code})` : "") +
           ".";
-        vscode.window.showWarningMessage(msg, "Restart").then((pick) => {
-          if (pick === "Restart" && controller._cwd) {
-            controller.start(controller._cwd);
-          }
-        }, () => {});
+        vscode.window.showWarningMessage(msg, "Restart").then(
+          (pick) => {
+            if (pick === "Restart" && controller._cwd) {
+              controller.start(controller._cwd);
+            }
+          },
+          () => {},
+        );
       }
     },
   });

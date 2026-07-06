@@ -60,11 +60,32 @@ function createVscodeEditorFacade(vscode) {
     );
   }
 
-  // The diff review currently blocking openDiff, so a keybinding-driven command
-  // (Accept / Reject) can settle it without reaching for a notification button.
-  // Set/cleared as a review opens/settles; guards a `chainlesschainDiffActive`
-  // context key the keybindings are scoped to.
-  let activeReview = null;
+  // The diff reviews currently blocking openDiff/openMultiDiff, so a
+  // keybinding-driven command (Accept / Reject) can settle one without
+  // reaching for a notification button. A stack, not a single slot: two chat
+  // tabs can each block on a review at once — the keys prefer the review whose
+  // diff tab is focused, falling back to the most recent, and the
+  // `chainlesschainDiffActive` context key stays on while ANY review is open.
+  const activeReviews = [];
+  const removeReview = (review) => {
+    const i = activeReviews.indexOf(review);
+    if (i >= 0) activeReviews.splice(i, 1);
+    setDiffContext(activeReviews.length > 0);
+  };
+  const pickReview = () => {
+    if (activeReviews.length === 0) return null;
+    try {
+      const tab = vscode.window.tabGroups?.activeTabGroup?.activeTab;
+      if (tab) {
+        for (let i = activeReviews.length - 1; i >= 0; i--) {
+          if (activeReviews[i].matchesTab?.(tab)) return activeReviews[i];
+        }
+      }
+    } catch {
+      /* fall back to most recent */
+    }
+    return activeReviews[activeReviews.length - 1];
+  };
   const setDiffContext = (on) => {
     try {
       vscode.commands.executeCommand(
@@ -193,8 +214,7 @@ function createVscodeEditorFacade(vscode) {
         const settle = (v) => {
           if (settled) return;
           settled = true;
-          activeReview = null; // a keybinding can no longer resolve this review
-          setDiffContext(false);
+          removeReview(review); // a keybinding can no longer resolve this review
           try {
             sub?.dispose();
           } catch {
@@ -202,10 +222,16 @@ function createVscodeEditorFacade(vscode) {
           }
           resolve(v);
         };
-        // Expose this review to the Accept/Reject keybinding commands.
-        activeReview = { settle, accept: "Accept", reject: "Reject" };
-        setDiffContext(true);
         const rightKey = rightDoc.uri.toString();
+        // Expose this review to the Accept/Reject keybinding commands.
+        const review = {
+          settle,
+          accept: "Accept",
+          reject: "Reject",
+          matchesTab: (tab) => tab?.input?.modified?.toString() === rightKey,
+        };
+        activeReviews.push(review);
+        setDiffContext(true);
         // tabGroups landed in VS Code 1.67 — older hosts just keep the
         // button-only behavior (undefined → reject stays the fail-safe).
         if (vscode.window.tabGroups?.onDidChangeTabs) {
@@ -338,13 +364,15 @@ function createVscodeEditorFacade(vscode) {
     // both scoped to the `chainlesschainDiffActive` context). No-op when no
     // review is open. Returns whether a review was actually settled.
     acceptActiveDiff() {
-      if (!activeReview) return false;
-      activeReview.settle(activeReview.accept);
+      const review = pickReview();
+      if (!review) return false;
+      review.settle(review.accept);
       return true;
     },
     rejectActiveDiff() {
-      if (!activeReview) return false;
-      activeReview.settle(activeReview.reject);
+      const review = pickReview();
+      if (!review) return false;
+      review.settle(review.reject);
       return true;
     },
 
@@ -397,7 +425,8 @@ function createVscodeEditorFacade(vscode) {
       // The multi-diff editor that just opened, captured by reference so closing
       // it can mean "reject" (parity with openDiff). Reference equality avoids
       // parsing the less-standard multi-diff tab input type.
-      const multiTab = vscode.window.tabGroups?.activeTabGroup?.activeTab || null;
+      const multiTab =
+        vscode.window.tabGroups?.activeTabGroup?.activeTab || null;
       const summary = changesetSummary(changed);
       // Block on the decision, also resolvable by the Accept/Reject keybindings
       // (same chainlesschainDiffActive handle as openDiff — keyboard Accept maps
@@ -409,8 +438,7 @@ function createVscodeEditorFacade(vscode) {
         const settle = (v) => {
           if (settled) return;
           settled = true;
-          activeReview = null;
-          setDiffContext(false);
+          removeReview(review);
           try {
             sub?.dispose();
           } catch {
@@ -418,7 +446,13 @@ function createVscodeEditorFacade(vscode) {
           }
           resolve(v);
         };
-        activeReview = { settle, accept: "Accept all", reject: "Reject" };
+        const review = {
+          settle,
+          accept: "Accept all",
+          reject: "Reject",
+          matchesTab: (tab) => multiTab != null && tab === multiTab,
+        };
+        activeReviews.push(review);
         setDiffContext(true);
         // Closing the multi-diff tab is a reject — unblock the agent immediately
         // instead of waiting for the notification to also be dismissed.
@@ -464,8 +498,7 @@ function createVscodeEditorFacade(vscode) {
           {
             canPickMany: true,
             ignoreFocusOut: true,
-            placeHolder:
-              "勾选要应用的文件(未勾选保留原样);Esc 取消 = 不应用",
+            placeHolder: "勾选要应用的文件(未勾选保留原样);Esc 取消 = 不应用",
           },
         );
         if (!picks || picks.length === 0) {
@@ -647,7 +680,11 @@ async function applyTextToFile(vscode, fileUri, text) {
       doc.positionAt(doc.getText().length),
     );
     edit.replace(fileUri, fullRange, text);
-    await vscode.workspace.applyEdit(edit);
+    // applyEdit resolves false (no throw) when the edit is rejected — e.g. a
+    // read-only document. Saving then would report "accepted" upstream while
+    // the disk never changed, so force the fs fallback instead.
+    const applied = await vscode.workspace.applyEdit(edit);
+    if (!applied) throw new Error("applyEdit rejected");
     await doc.save();
   } catch {
     fs.writeFileSync(fileUri.fsPath, text, "utf8");

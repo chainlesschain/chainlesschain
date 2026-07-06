@@ -347,6 +347,13 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      // CC_API_KEY env fallback for --api-key: lets callers (IDE plugins,
+      // scripts) pass the key via the environment instead of argv, where it
+      // is visible to every local process (/proc/<pid>/cmdline, Win32_Process).
+      // An explicit --api-key still wins.
+      if (!options.apiKey && process.env.CC_API_KEY) {
+        options.apiKey = process.env.CC_API_KEY;
+      }
       const bypassPermissions = !!(
         options.allowDangerousBypass ||
         options.yolo ||

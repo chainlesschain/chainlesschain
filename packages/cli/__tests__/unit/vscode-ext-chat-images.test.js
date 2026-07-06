@@ -83,9 +83,157 @@ describe("chat HTML ships the paste/attach UI (parse gate)", () => {
     const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
     expect(html).toContain('id="attach"');
     expect(html).toContain('addEventListener("paste"');
-    const scripts = [...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g)];
+    const scripts = [
+      ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
+    ];
     for (const [, body] of scripts) {
       new Function(body); // throws on syntax error — dead-panel gate
     }
+  });
+});
+
+describe("image temp-file cleanup (no tmpdir pile-up)", () => {
+  function makeSendableProvider() {
+    const spawns = [];
+    const provider = new ChatViewProvider(
+      {
+        commands: { executeCommand: () => Promise.resolve() },
+        window: {},
+        workspace: {
+          workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+          getConfiguration: () => ({ get: () => undefined }),
+        },
+      },
+      {
+        deps: {
+          createSession: (cfg) => {
+            const s = {
+              cfg,
+              running: true,
+              send: () => true,
+              sendEvent: () => true,
+              stop() {
+                this.running = false;
+              },
+            };
+            spawns.push(s);
+            return s;
+          },
+          resolveChatLlm: () => ({
+            provider: "",
+            model: "",
+            baseUrl: "",
+            apiKey: "",
+          }),
+        },
+      },
+    );
+    provider.view = { webview: { postMessage: () => Promise.resolve() } };
+    return { provider, spawns };
+  }
+
+  it("deletes a conversation's temp images once its turn results", () => {
+    const { provider } = makeSendableProvider();
+    provider._handleMessage({
+      type: "send",
+      text: "look",
+      images: [{ data: PNG_URL }],
+    });
+    const convId = provider._convs.activeId();
+    const tracked = provider._imgTemps.get(convId);
+    expect(tracked).toHaveLength(1);
+    expect(fs.existsSync(tracked[0])).toBe(true);
+
+    // The turn finishing is the cleanup point (CLI consumed the file at turn start).
+    provider._makeOnEvent(convId)({ type: "result", result: "done" });
+    expect(fs.existsSync(tracked[0])).toBe(false);
+    expect(provider._imgTemps.has(convId)).toBe(false);
+  });
+
+  it("dispose() sweeps every conversation's leftovers", () => {
+    const { provider } = makeSendableProvider();
+    provider._handleMessage({
+      type: "send",
+      text: "look",
+      images: [{ data: PNG_URL }],
+    });
+    const files = [...provider._imgTemps.values()].flat();
+    expect(files.length).toBeGreaterThan(0);
+    provider.dispose();
+    for (const f of files) expect(fs.existsSync(f)).toBe(false);
+  });
+});
+
+describe("API key rides the child env, not just argv", () => {
+  it("sets CC_API_KEY on the spawned session when the config has a key", () => {
+    const spawns = [];
+    const provider = new ChatViewProvider(
+      {
+        commands: { executeCommand: () => Promise.resolve() },
+        window: {},
+        workspace: {
+          workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+          getConfiguration: () => ({ get: () => undefined }),
+        },
+      },
+      {
+        deps: {
+          createSession: (cfg) => {
+            const s = {
+              cfg,
+              running: true,
+              send: () => true,
+              sendEvent: () => true,
+              stop() {},
+            };
+            spawns.push(s);
+            return s;
+          },
+          resolveChatLlm: () => ({
+            provider: "volcengine",
+            model: "doubao",
+            baseUrl: "https://ark.example",
+            apiKey: "sk-secret",
+          }),
+        },
+      },
+    );
+    provider.view = { webview: { postMessage: () => Promise.resolve() } };
+    provider._handleMessage({ type: "send", text: "hi" });
+    expect(spawns).toHaveLength(1);
+    expect(spawns[0].cfg.env.CC_API_KEY).toBe("sk-secret");
+    // Compat: --api-key stays until MIN_CLI_VERSION covers the env fallback.
+    expect(spawns[0].cfg.args).toContain("--api-key");
+  });
+
+  it("omits CC_API_KEY when no key is configured", () => {
+    const spawns = [];
+    const provider = new ChatViewProvider(
+      {
+        commands: { executeCommand: () => Promise.resolve() },
+        window: {},
+        workspace: {
+          workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+          getConfiguration: () => ({ get: () => undefined }),
+        },
+      },
+      {
+        deps: {
+          createSession: (cfg) => (
+            spawns.push({ cfg }),
+            { cfg, running: true, send: () => true }
+          ),
+          resolveChatLlm: () => ({
+            provider: "",
+            model: "",
+            baseUrl: "",
+            apiKey: "",
+          }),
+        },
+      },
+    );
+    provider.view = { webview: { postMessage: () => Promise.resolve() } };
+    provider._handleMessage({ type: "send", text: "hi" });
+    expect("CC_API_KEY" in spawns[0].cfg.env).toBe(false);
   });
 });

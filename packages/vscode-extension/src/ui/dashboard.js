@@ -55,10 +55,9 @@ function refreshDashboard(getState, activityLog) {
 }
 
 function nonce() {
-  let s = "";
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 24; i++) s += chars[(i * 7 + 13) % chars.length];
-  return s;
+  // Must be unpredictable per render — a constant nonce makes the CSP
+  // script-src gate decorative (same scheme as the chat panel's).
+  return require("crypto").randomBytes(16).toString("hex");
 }
 
 function renderHtml(webview) {

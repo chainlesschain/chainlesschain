@@ -95,6 +95,28 @@ class AgentChatSession {
       }
     });
     this.child.on("close", (code, signal) => {
+      // Flush a final unterminated line — error output often lacks the
+      // trailing \n and would otherwise be dropped silently.
+      const rest = this._stdoutBuf.trim();
+      this._stdoutBuf = "";
+      if (rest) {
+        let evt;
+        try {
+          evt = JSON.parse(rest);
+        } catch {
+          evt = { type: "raw", text: rest };
+        }
+        this._emit(evt);
+      }
+      const errRest = this._stderrBuf.trimEnd();
+      this._stderrBuf = "";
+      if (errRest && typeof this.opts.onStderr === "function") {
+        try {
+          this.opts.onStderr(errRest);
+        } catch {
+          /* listener errors must not kill the pump */
+        }
+      }
       const child = this.child;
       this.child = null;
       if (typeof this.opts.onExit === "function") {
@@ -148,16 +170,32 @@ class AgentChatSession {
     }
   }
 
-  /** Hard stop. */
+  /**
+   * Hard stop — kills the whole process tree. On Windows the child is a
+   * cmd.exe wrapper (shell:true for the .cmd shim), so a plain kill() orphans
+   * the real cc/node grandchild, which keeps burning tokens and holds the
+   * better_sqlite3 lock; taskkill /T reaps it (same pattern as preview.js).
+   * On POSIX cc is spawned directly and reaps its own children on SIGTERM.
+   */
   stop() {
     const child = this.child;
     this.child = null;
-    if (child) {
+    if (!child) return;
+    const pid = child.pid;
+    if (pid && process.platform === "win32") {
       try {
-        child.kill();
+        this._deps.spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
+          windowsHide: true,
+        });
+        return;
       } catch {
-        /* ignore */
+        /* fall through to child.kill */
       }
+    }
+    try {
+      child.kill();
+    } catch {
+      /* ignore */
     }
   }
 }

@@ -37,6 +37,10 @@ let _activityLog = null;
 let _statusBar = null;
 let _treeProvider = null;
 let _preview = null;
+// Module-level so command callbacks registered in activate() (e.g. the
+// diff.accept/reject keybindings) can reach the facade created per-bridge in
+// startBridge(); reassigned on every restart, nulled on stop.
+let _facade = null;
 
 function log(msg) {
   try {
@@ -80,6 +84,15 @@ async function stopBridge(context) {
   } catch {
     /* ignore */
   }
+  // Dispose the per-bridge facade here (not via context.subscriptions) so a
+  // restart doesn't stack a second set of terminal shell-integration
+  // subscriptions on top of the old one.
+  try {
+    _facade?.disposeTerminalCapture?.();
+  } catch {
+    /* ignore */
+  }
+  _facade = null;
   refreshUi();
 }
 
@@ -127,10 +140,7 @@ async function startBridge(context) {
     if (res === "none") await checkLatestCliAndNotify(vscode, context);
   })().catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
-  // Clean up the terminal shell-integration subscriptions on deactivate.
-  context.subscriptions.push({
-    dispose: () => facade.disposeTerminalCapture?.(),
-  });
+  _facade = facade;
   const tools = buildIdeTools(facade);
   _server = new IdeMcpServer({
     tools,
@@ -275,10 +285,10 @@ function activate(context) {
     // notification buttons. Scoped to `chainlesschainDiffActive` so the keys are
     // inert when no review is open; a no-op if the review already settled.
     vscode.commands.registerCommand("chainlesschain.diff.accept", () =>
-      facade.acceptActiveDiff?.(),
+      _facade?.acceptActiveDiff?.(),
     ),
     vscode.commands.registerCommand("chainlesschain.diff.reject", () =>
-      facade.rejectActiveDiff?.(),
+      _facade?.rejectActiveDiff?.(),
     ),
     // App Preview (Claude-Code preview-pane parity): spawn the project's dev
     // server and open the served URL in Simple Browser; the dev server's own
@@ -307,7 +317,10 @@ function activate(context) {
     }),
     vscode.commands.registerCommand("chainlesschain.preview.stop", () => {
       _preview?.stop();
-      vscode.window.setStatusBarMessage("$(primitive-square) App preview stopped", 3000);
+      vscode.window.setStatusBarMessage(
+        "$(primitive-square) App preview stopped",
+        3000,
+      );
     }),
     // On-demand: upgrade the `cc` CLI to the latest npm — works any time, not
     // just when the version-sync floor check nags. Runs npm i -g in a terminal.
@@ -353,9 +366,8 @@ function activate(context) {
           hasConfiguredApiKey,
         } = require("./llm-config.js");
         const cliCmd =
-          vscode.workspace
-            .getConfiguration("chainlesschain.cli")
-            .get("path") || "cc";
+          vscode.workspace.getConfiguration("chainlesschain.cli").get("path") ||
+          "cc";
         // Pre-read existing config so re-running the wizard PRE-FILLS instead of
         // forcing a full re-type. Fixes "更新后又要重新配置模型和key": the model/
         // baseUrl/vision default to the current values and the API key can be
@@ -377,7 +389,11 @@ function activate(context) {
         }));
         // Surface the current provider first so re-running defaults to "keep".
         items.sort((a, b) =>
-          a.preset.id === curProvider ? -1 : b.preset.id === curProvider ? 1 : 0,
+          a.preset.id === curProvider
+            ? -1
+            : b.preset.id === curProvider
+              ? 1
+              : 0,
         );
         const pick = await vscode.window.showQuickPick(items, {
           placeHolder:
@@ -437,8 +453,10 @@ function activate(context) {
           answers: { provider: preset.id, model, apiKey, baseUrl, visionModel },
         });
         if (!applied.ok) {
-          const { looksLikeMissingCli, installGuidance } =
-            require("./version-check");
+          const {
+            looksLikeMissingCli,
+            installGuidance,
+          } = require("./version-check");
           // A "cc not found" failure needs install guidance (with the Node
           // floor), not the raw shell error — same fix as the JetBrains plugin.
           const msg = looksLikeMissingCli(applied.error)
@@ -539,9 +557,7 @@ function activate(context) {
     vscode.commands.registerCommand(
       "chainlesschain.chat.fixDiagnostics",
       (payload) => {
-        const {
-          collectActiveDiagnostics,
-        } = require("./code-actions.js");
+        const { collectActiveDiagnostics } = require("./code-actions.js");
         const { formatFixPrompt } = require("./chat/fix-with-cc.js");
         let uri = payload && payload.uri;
         let diagnostics =
@@ -560,15 +576,14 @@ function activate(context) {
           diagnostics = active.diagnostics;
         }
         if (!diagnostics.length) return;
-        const rel = uri
-          ? vscode.workspace.asRelativePath(uri, false)
-          : "";
+        const rel = uri ? vscode.workspace.asRelativePath(uri, false) : "";
         const prompt = formatFixPrompt({ relPath: rel, diagnostics });
         if (prompt) chatProvider.seedInput(prompt);
       },
     ),
-    vscode.commands.registerCommand("chainlesschain.chat.explainSelection", () =>
-      seedSelectionAction("explain"),
+    vscode.commands.registerCommand(
+      "chainlesschain.chat.explainSelection",
+      () => seedSelectionAction("explain"),
     ),
     vscode.commands.registerCommand(
       "chainlesschain.chat.refactorSelection",
@@ -663,8 +678,7 @@ function runCliVersion(cliPath) {
 /** Version-sync: nudge to upgrade `cc` if it's older than the extension needs. */
 function checkCliVersionAndNotify(vscode, context) {
   const { runCliVersionSync } = require("./version-check");
-  const cliPath =
-    require("./cli-binary").getResolvedCli();
+  const cliPath = require("./cli-binary").getResolvedCli();
   return runCliVersionSync({
     getVersion: () => runCliVersion(cliPath),
     isDismissed: (k) => !!context.globalState.get(k),
@@ -781,15 +795,15 @@ async function notifyIfCliMissing(vscode, context) {
  */
 function checkLatestCliAndNotify(vscode, context) {
   const { runLatestVersionCheck } = require("./version-check");
-  const cliPath =
-    require("./cli-binary").getResolvedCli();
+  const cliPath = require("./cli-binary").getResolvedCli();
   const OFF = "cliLatestNudge:off";
   return runLatestVersionCheck({
     getVersion: () => runCliVersion(cliPath),
     getLatest: () => fetchLatestCliVersion(),
     isSuppressed: () => !!context.globalState.get(OFF),
     wasShownFor: (v) => !!context.globalState.get("cliLatestNudge:" + v),
-    markShownFor: (v) => context.globalState.update("cliLatestNudge:" + v, true),
+    markShownFor: (v) =>
+      context.globalState.update("cliLatestNudge:" + v, true),
     setSuppressed: () => context.globalState.update(OFF, true),
     prompt: async (message) => {
       const pick = await vscode.window.showInformationMessage(
@@ -818,18 +832,19 @@ async function checkCliUpdateManually(vscode) {
     latestUpdateNotice,
     MIN_NODE_VERSION,
   } = require("./version-check");
-  const cliPath =
-    require("./cli-binary").getResolvedCli();
+  const cliPath = require("./cli-binary").getResolvedCli();
   const installed = parseCliVersion(
     String((await runCliVersion(cliPath).catch(() => null)) || ""),
   );
   if (!installed) {
-    vscode.window.showWarningMessage(
-      `ChainlessChain: couldn't read the installed cc version. Is the CLI on PATH? Install with \`npm i -g chainlesschain\` (requires Node.js >= ${MIN_NODE_VERSION}).`,
-      "Install cc",
-    ).then((p) => {
-      if (p === "Install cc") upgradeCliInTerminal(vscode);
-    });
+    vscode.window
+      .showWarningMessage(
+        `ChainlessChain: couldn't read the installed cc version. Is the CLI on PATH? Install with \`npm i -g chainlesschain\` (requires Node.js >= ${MIN_NODE_VERSION}).`,
+        "Install cc",
+      )
+      .then((p) => {
+        if (p === "Install cc") upgradeCliInTerminal(vscode);
+      });
     return;
   }
   const latest = parseCliVersion(
@@ -853,7 +868,8 @@ async function checkCliUpdateManually(vscode) {
     "Upgrade cc",
     "Later",
   );
-  if (pick === "Upgrade cc") upgradeCliInTerminal(vscode, notice.upgradeCommand);
+  if (pick === "Upgrade cc")
+    upgradeCliInTerminal(vscode, notice.upgradeCommand);
 }
 
 module.exports = { activate, deactivate };

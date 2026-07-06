@@ -2,11 +2,42 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased] — fix: bug-sweep batch (keyboard diff review, process cleanup, silent-failure hardening)
+
+- **Diff Accept/Reject keybindings actually work.** The command callbacks
+  referenced a variable scoped inside `startBridge()` — every keypress threw a
+  `ReferenceError` (buttons were unaffected). Now wired through module state,
+  with a new activation smoke test that invokes every registered command so
+  this whole bug class fails in CI.
+- **Stopping the chat agent kills the whole process tree on Windows.** The
+  child is a `cmd.exe` shim; a plain `kill()` orphaned the real `cc` process,
+  which kept running its turn (burning tokens, holding the SQLite lock). Now
+  `taskkill /T /F`, same as the preview pane.
+- **"Accepted" always means "on disk".** `applyEdit` rejections (e.g.
+  read-only docs) resolve `false` without throwing; that used to be reported
+  as `accepted` with no write — now it forces the direct file-write fallback.
+- **App-preview URL detection survives chunk splits.** Dev-server output is
+  now line-framed with per-stream carry buffers, so a URL straddling a stdout
+  chunk boundary no longer leaves the preview stuck on "starting".
+- **Concurrent diff reviews (multi-tab chat) no longer clobber each other.**
+  Reviews stack; the Accept/Reject keys prefer the review whose diff tab is
+  focused, and the keybinding context stays active while any review is open.
+- **Pasted-image temp files are cleaned up** when the turn completes (and on
+  panel dispose) instead of accumulating in the OS temp dir forever.
+- **API key now also rides the child environment (`CC_API_KEY`)** instead of
+  only argv (visible to every same-user process). `--api-key` is still passed
+  for older CLIs; it will be dropped once the minimum CLI version includes the
+  env fallback.
+- **Dashboard CSP nonce is now actually random** (was a deterministic
+  constant), and a bridge restart no longer stacks duplicate terminal-capture
+  listeners. A truncated final output line from the agent (no trailing
+  newline) is flushed instead of dropped.
+
 ## [0.37.2] — feat: live token tally + iteration warnings in the chat panel
 
 - **Live token counter while the agent works.** Each LLM call's usage now
   accumulates into the status line — `thinking… · 12.3k→456 tokens (900
-  cached)` — instead of being invisible until the turn ends; the final
+cached)` — instead of being invisible until the turn ends; the final
   `ready · in→out tokens` line uses the same compact formatting.
 - **Iteration-budget warnings are visible.** When a turn approaches its
   iteration limit the CLI's warning now renders as a `⚠` line in the
@@ -74,7 +105,7 @@ IDE experience:
 - **A server error after the bridge is listening no longer risks taking down the
   extension.** The start path removes its one-shot error listener once `listen()`
   succeeds, which left the HTTP server with no `error` handler — and Node throws
-  an `'error'` event with no listener as an *uncaught* exception. A persistent
+  an `'error'` event with no listener as an _uncaught_ exception. A persistent
   guard now absorbs any later server error (and surfaces it through the new
   `onError` hook, logged to the bridge output channel). Defensive hardening; the
   localhost ephemeral-port server rarely errors post-listen, but it must not be
@@ -95,7 +126,7 @@ IDE experience:
 - **Closing the multi-file review tab now unblocks the agent as rejected**,
   matching single-file `openDiff`. Previously `openMultiDiff` only resolved via
   the notification buttons (or the new keybindings), so closing the multi-diff
-  editor left the agent waiting until you *also* dismissed the notification. The
+  editor left the agent waiting until you _also_ dismissed the notification. The
   tab is captured by reference when it opens, so closing it settles the review as
   rejected. Degrades to the previous button-only behavior on hosts without the
   `tabGroups` API.
@@ -297,8 +328,8 @@ IDE experience:
   broke — the panel has no interactive question round-trip yet, so the CLI
   degrades gracefully (`user_not_reachable`) and the model just proceeds on its
   own. That benign degradation (and `user_timeout`) is no longer rendered as a
-  tool failure; instead you get a quiet note: *"couldn't ask interactively in the
-  panel — proceeding autonomously"*. Real tool errors still show as failures.
+  tool failure; instead you get a quiet note: _"couldn't ask interactively in the
+  panel — proceeding autonomously"_. Real tool errors still show as failures.
 
 ## [0.33.5] — 2026-06-20 — check-version button + "cc not installed" warning
 
@@ -333,7 +364,7 @@ IDE experience:
 - **Fix.** After you reconfigured the LLM (⚙ provider / model / API key), the
   chat tab you were already in kept using the **old** config — a `cc` child is
   spawned with the LLM settings pinned at start, so it would keep erroring (e.g.
-  `401`) until you opened a *new* conversation. Now, once the Configure-LLM
+  `401`) until you opened a _new_ conversation. Now, once the Configure-LLM
   wizard closes, the panel stops every running child so the next message in each
   tab respawns with the fresh config. No more "I configured it but it still
   errors / only a new chat works."
@@ -490,7 +521,7 @@ IDE experience:
   this conversation's checkpoints. Uses the git shadow-commit engine (zero
   working-tree pollution; a no-op outside a git repo).
   - CLI side (cc 0.162.70): the streaming runner (`--input/output-format
-    stream-json`, which the panel drives) now threads `autoCheckpoint` through —
+stream-json`, which the panel drives) now threads `autoCheckpoint` through —
     previously only the one-shot `-p` and REPL paths checkpointed, so panel
     sessions never had restore points.
 
@@ -601,7 +632,7 @@ IDE experience:
 - **`/cost` and `/context` panel commands (REPL parity)**: type `/cost` for this
   conversation's estimated token spend + cost, or `/context` for its
   context-window usage. Both defer to the CLI (`cc cost <id>` / `cc context
-  <id>`) for this panel's session — the same source of truth the REPL uses —
+<id>`) for this panel's session — the same source of truth the REPL uses —
   and render in a monospaced block. `/help` now lists them.
 
 ## [0.19.0] — 2026-06-14
@@ -724,8 +755,8 @@ IDE experience:
 ## [0.10.1] — 2026-06-11
 
 - **Hotfix: the chat panel was dead in 0.9.0/0.10.0** (Send did nothing,
-  no message rendered). A 
- inside the page template became a real
+  no message rendered). A
+  inside the page template became a real
   newline in the generated webview script — a load-time SyntaxError, so no
   event listener ever attached. Fixed; now guarded by a regression test
   that PARSES the generated script (substring smoke tests cannot catch
@@ -859,7 +890,7 @@ Visualization — the bridge now has a UI instead of being terminal-only:
   count; briefly flashes the active tool on each call. Click → dashboard.
 - **Sidebar tree view** (Activity Bar → ChainlessChain IDE): status, workspace
   folders, the 4 tools, and a live recent-tool-call log.
-- **Webview dashboard** (*Open Dashboard*): status cards (port / tool calls /
+- **Webview dashboard** (_Open Dashboard_): status cards (port / tool calls /
   connections / errors) + a live tool-call stream + a Restart action.
 - Driven by a shared in-memory activity log fed by a new `onActivity` hook on
   the MCP server (emits on connect + every tool call). The token is never shown.
@@ -875,5 +906,5 @@ Initial release. Bridges the ChainlessChain `cc` agent CLI to VS Code.
   `getDiagnostics`, `getOpenEditors`, `openDiff`.
 - `openDiff` opens a native diff with an editable proposal pane and blocks until
   the user accepts (applies the change) or rejects.
-- Commands: *Show Bridge Status*, *Restart Bridge*; setting
+- Commands: _Show Bridge Status_, _Restart Bridge_; setting
   `chainlesschain.ide.enabled`.

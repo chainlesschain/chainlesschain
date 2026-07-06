@@ -166,3 +166,29 @@ describe("PreviewController stop uses the injected kill (process-tree kill seam)
     expect(child.killed).toBe(true);
   });
 });
+
+describe("PreviewController line framing (carry buffer)", () => {
+  it("detects a URL split across two stdout chunks", () => {
+    const { ctrl, opened, child } = makeController({
+      scripts: { dev: "vite" },
+    });
+    ctrl.start("/ws");
+    // The URL straddles a chunk boundary — each half alone never matches, so
+    // per-chunk splitting (the old behavior) would miss it forever.
+    child._emitStdout("  ➜  Local:   http://localh");
+    expect(opened).toEqual([]); // partial line must NOT be probed yet
+    child._emitStdout("ost:5173/\n");
+    expect(opened).toEqual(["http://localhost:5173/"]);
+  });
+
+  it("keeps stdout and stderr carry buffers separate (no cross-stream corruption)", () => {
+    const { ctrl, opened, child } = makeController({
+      scripts: { dev: "vite" },
+    });
+    ctrl.start("/ws");
+    child._emitStdout("  ➜  Local:   http://localh"); // partial on stdout…
+    child._emitStderr("some warning\n"); // …stderr traffic in between
+    child._emitStdout("ost:5173/\n"); // stdout completes its own line
+    expect(opened).toEqual(["http://localhost:5173/"]);
+  });
+});
