@@ -86,6 +86,31 @@ describe("collectPluginHooks", () => {
     );
     expect(collectPluginHooks({ cwd, scopes: ["local"] })).toEqual({});
   });
+
+  it("collects hooks declared INLINE in plugin.json (no separate hooks.json)", () => {
+    // Inline hooks: the manifest carries the whole hooks map, with NO
+    // hooks/hooks.json file. The normalized component has no absPath, so the
+    // collector must re-read the manifest (mirroring the MCP collector) or the
+    // hooks silently never fire.
+    const dir = pluginVersionDir("local", "inlinehooks", "1.0.0", { cwd });
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "inlinehooks",
+        version: "1.0.0",
+        hooks: {
+          SessionStart: [
+            { hooks: [{ type: "command", command: "echo inline" }] },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+    expect(map.SessionStart).toHaveLength(1);
+    expect(map.SessionStart[0].hooks[0].command).toBe("echo inline");
+  });
 });
 
 describe("mergePluginHooks", () => {

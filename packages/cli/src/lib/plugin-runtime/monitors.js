@@ -79,11 +79,27 @@ export function collectPluginMonitors(opts = {}) {
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const m = p.manifest.components?.monitors;
-    if (!m || !m.absPath) continue;
+    if (!m) continue;
     let parsed;
-    try {
-      parsed = JSON.parse(_deps.readFileSync(m.absPath, "utf8"));
-    } catch {
+    if (m.absPath) {
+      try {
+        parsed = JSON.parse(_deps.readFileSync(m.absPath, "utf8"));
+      } catch {
+        continue;
+      }
+    } else if (m.inline) {
+      // Monitors declared inline in plugin.json — the normalized component keeps
+      // only counts, so re-read the raw manifest for the actual entries (same
+      // approach as the MCP collector). Without this, inline monitors never spawn.
+      try {
+        const raw = JSON.parse(
+          _deps.readFileSync(p.manifest.manifestPath, "utf8"),
+        );
+        parsed = raw && typeof raw === "object" ? raw.monitors : null;
+      } catch {
+        continue;
+      }
+    } else {
       continue;
     }
     const list = Array.isArray(parsed?.monitors)

@@ -60,11 +60,27 @@ export function collectPluginHooks(opts = {}) {
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const h = p.manifest.components?.hooks;
-    if (!h || !h.absPath) continue;
+    if (!h) continue;
     let parsed;
-    try {
-      parsed = JSON.parse(_deps.readFileSync(h.absPath, "utf8"));
-    } catch {
+    if (h.absPath) {
+      try {
+        parsed = JSON.parse(_deps.readFileSync(h.absPath, "utf8"));
+      } catch {
+        continue;
+      }
+    } else if (h.inline) {
+      // Hooks declared inline in plugin.json — the normalized component keeps
+      // only counts, so re-read the raw manifest for the actual entries (same
+      // approach as the MCP collector). Without this, inline hooks never fire.
+      try {
+        const raw = JSON.parse(
+          _deps.readFileSync(p.manifest.manifestPath, "utf8"),
+        );
+        parsed = raw && typeof raw === "object" ? raw.hooks : null;
+      } catch {
+        continue;
+      }
+    } else {
       continue;
     }
     const map = normalizeHookMap(parsed);

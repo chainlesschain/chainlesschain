@@ -83,6 +83,31 @@ describe("collectPluginMonitors", () => {
     expect(logs.mode).toBe("longRunning");
   });
 
+  it("collects monitors declared INLINE in plugin.json (no monitors.json)", () => {
+    // Inline monitors: whole declaration in the manifest, no separate file →
+    // the normalized component has no absPath, so the collector must re-read the
+    // manifest or the monitors silently never spawn.
+    installMonitorPlugin("local", "inlinemon", undefined, {
+      manifest: {
+        monitors: {
+          monitors: [
+            {
+              name: "watch",
+              command: "tail",
+              args: ["-f", "x"],
+              mode: "longRunning",
+            },
+          ],
+        },
+      },
+    });
+    const mons = collectPluginMonitors({ cwd, scopes: ["local"] });
+    expect(mons).toHaveLength(1);
+    expect(mons[0].id).toBe("inlinemon:watch");
+    expect(mons[0].command).toBe("tail");
+    expect(mons[0].mode).toBe("longRunning");
+  });
+
   it("defaults mode to interval and drops an entry missing name/command", () => {
     installMonitorPlugin("local", "p", {
       monitors: [
