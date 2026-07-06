@@ -104,6 +104,41 @@ describe("verifyInstalledSignature", () => {
     expect(verifyInstalledSignature(p).signed).toBe(false);
   });
 
+  it("signed:false when the lock's manifest path escapes the plugin root (traversal)", () => {
+    // Plant a secret OUTSIDE the plugin root and a lock that points at it with a
+    // matching sha256. Without the boundary check, re-hashing the out-of-tree
+    // file would match and forge signed:true.
+    const secret = path.join(dir, "outside-secret.json");
+    fs.writeFileSync(secret, '{"trusted":"looking"}', "utf8");
+    const p = makePlugin('{"x":1}', {
+      manifest: "../outside-secret.json",
+      sha256: sha256(fs.readFileSync(secret)),
+    });
+    const res = verifyInstalledSignature(p);
+    expect(res.signed).toBe(false);
+    expect(res.reason).toMatch(/escapes the plugin root/);
+  });
+
+  it("still accepts a legitimate manifest in a subdirectory of the root", () => {
+    // The boundary check must not over-reject a manifest nested inside the root.
+    const root = path.join(dir, "nested");
+    fs.mkdirSync(path.join(root, "sub"), { recursive: true });
+    const content = '{"name":"n","version":"1.0.0"}';
+    fs.writeFileSync(path.join(root, "sub", "plugin.json"), content, "utf8");
+    fs.writeFileSync(
+      path.join(root, ".plugin-lock.json"),
+      JSON.stringify({
+        lockVersion: 1,
+        manifest: "sub/plugin.json",
+        sha256: sha256(Buffer.from(content)),
+        publicKeySha256: "keyfp",
+        signatureVerified: true,
+      }),
+      "utf8",
+    );
+    expect(verifyInstalledSignature({ root }).signed).toBe(true);
+  });
+
   it("enforces a trusted-keys allowlist when provided", () => {
     const p = makePlugin('{"x":1}', { publicKeySha256: "untrustedfp" });
     const res = verifyInstalledSignature(p, {

@@ -77,6 +77,22 @@ export function verifyInstalledSignature(plugin, opts = {}) {
     return { signed: false, reason: "lock is not signature-verified" };
   }
   const manifestFile = path.join(plugin.root, lock.manifest || "plugin.json");
+  // `lock.manifest` is untrusted — it lives in the (writable) plugin dir. A lock
+  // pointing OUTSIDE the plugin root (`manifest: "../../secret"`) would make us
+  // re-hash an arbitrary file and, with a matching locked sha256, forge
+  // signed:true — which gates load-time requireSignedPlugins. A plugin's manifest
+  // is ALWAYS inside its own root, so reject any path that escapes it (boundary
+  // via path.relative, not startsWith — the sandbox-fs-policy pattern).
+  const rel = path.relative(
+    path.resolve(plugin.root),
+    path.resolve(manifestFile),
+  );
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    return {
+      signed: false,
+      reason: "lock manifest path escapes the plugin root",
+    };
+  }
   if (!_deps.existsSync(manifestFile)) {
     return { signed: false, reason: "locked manifest file is missing" };
   }
