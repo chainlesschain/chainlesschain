@@ -55,6 +55,17 @@ All notable changes to this extension are documented here.
 - **A terminal killed mid-capture no longer leaks its buffered output** — the
   in-flight capture entry is dropped when the terminal closes.
 
+### Performance
+
+- **Faster activation.** `cc --version` is probed once per binary and shared
+  across the startup checks (binary resolution + the missing/outdated/latest
+  notices + the What's-New nudge), instead of up to ~5 cold ~12s-capped spawns.
+- **Batch diff reviews no longer pile up editor tabs** — `openMultiDiff` closes
+  its review tab after a decision, like the single-file `openDiff`.
+- **The bridge dashboard coalesces updates.** A busy agent turn (a full snapshot
+  per tool call) now rebuilds the activity table once per animation frame rather
+  than on every event.
+
 ## [0.37.3] — feat: reload-surviving tabs, auto-named tabs, What's New panel + bug-sweep batch
 
 - **Conversation tabs survive window reloads.** All tabs — title, resume id,

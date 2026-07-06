@@ -694,8 +694,34 @@ function deactivate() {
   return stopBridge();
 }
 
-/** Run `<cliPath> --version`, returning stdout (or null on failure/timeout). */
+// Process-level memo of `cc --version` per binary. Activation probes the
+// version ~5× (binary resolution + the missing/outdated/latest notices + the
+// What's-New nudge), each a cold ~12s-capped Windows `.cmd`-shim spawn — memoize
+// so it runs ONCE. A null result (missing / timeout) is NOT cached, so a not-
+// yet-installed CLI keeps being re-checked; a real version is stable under a
+// running window (a manual upgrade clears the cache — see checkCliUpdateManually).
+const _versionProbeCache = new Map(); // cliPath -> Promise<string|null>
+
+/** Drop the memoized `cc --version` results (call after a manual update check —
+ *  the user may have just upgraded in a terminal). */
+function clearCliVersionCache() {
+  _versionProbeCache.clear();
+}
+
+/** Run `<cliPath> --version` (memoized), returning stdout (or null on failure). */
 function runCliVersion(cliPath) {
+  const cached = _versionProbeCache.get(cliPath);
+  if (cached) return cached;
+  const p = _spawnCliVersion(cliPath).then((out) => {
+    if (out == null) _versionProbeCache.delete(cliPath); // keep re-checkable
+    return out;
+  });
+  _versionProbeCache.set(cliPath, p);
+  return p;
+}
+
+/** The uncached spawn behind runCliVersion. */
+function _spawnCliVersion(cliPath) {
   const cp = require("child_process");
   const { hardenedEnv } = require("./hardened-env");
   return new Promise((resolve) => {
@@ -893,6 +919,8 @@ async function checkCliUpdateManually(vscode) {
     MIN_NODE_VERSION,
   } = require("./version-check");
   const cliPath = require("./cli-binary").getResolvedCli();
+  // The user may have just upgraded in a terminal — re-probe fresh.
+  clearCliVersionCache();
   const installed = parseCliVersion(
     String((await runCliVersion(cliPath).catch(() => null)) || ""),
   );

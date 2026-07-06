@@ -120,8 +120,7 @@ function renderHtml(webview) {
   document.getElementById('restart').addEventListener('click', () => vscode.postMessage({ command: 'restart' }));
   function t(ts){ if(!ts) return ''; const d=new Date(ts); const p=x=>String(x).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-  window.addEventListener('message', (ev) => {
-    const m = ev.data; if (!m || m.type !== 'update') return;
+  function apply(m){
     const s = m.state || {}, c = m.counts || {};
     const up = s.port > 0;
     document.getElementById('badge').innerHTML = '<span class="dot '+(up?'up':'down')+'"></span>'+(up?'运行中':'已停止');
@@ -138,6 +137,14 @@ function renderHtml(webview) {
       return '<tr><td class="t">'+t(e.ts)+'</td><td class="'+(failed?'err':'ok')+'">'+esc(name)+(failed?' ✗':'')+'</td><td>'+esc(detail)+'</td></tr>';
     });
     document.getElementById('log').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" class="muted">暂无调用</td></tr>';
+  }
+  // Coalesce a burst of activity events into one DOM rebuild per frame — a busy
+  // agent turn posts a full snapshot per tool call, and only the latest matters.
+  let pending = null, raf = 0;
+  window.addEventListener('message', (ev) => {
+    const m = ev.data; if (!m || m.type !== 'update') return;
+    pending = m;
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; const x = pending; pending = null; if (x) apply(x); });
   });
 </script>
 </body>

@@ -485,6 +485,17 @@ function createVscodeEditorFacade(vscode) {
           .then(settle, () => settle(undefined));
       });
 
+      // Close the multi-diff editor after a button decision (parity with
+      // openDiff's closeDiffTab) so a multi-edit session doesn't pile up review
+      // tabs. CLOSED means the user already closed it.
+      if (choice !== CLOSED && multiTab && vscode.window.tabGroups?.close) {
+        try {
+          await vscode.window.tabGroups.close(multiTab);
+        } catch {
+          /* best-effort — never block the decision on tab cleanup */
+        }
+      }
+
       if (choice === CLOSED) {
         return { outcome: "rejected", closedDiff: true };
       }

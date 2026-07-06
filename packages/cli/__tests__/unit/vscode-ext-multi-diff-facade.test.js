@@ -222,6 +222,39 @@ describe("openMultiDiff: keybinding-driven accept / reject", () => {
   });
 });
 
+describe("openMultiDiff closes its review tab after a button decision", () => {
+  const CS = [{ path: "/ws/a.js", originalText: "1", modifiedText: "2" }];
+
+  function fakeWithTabs(choice) {
+    const closed = [];
+    const activeTab = { id: "multi-diff-tab" };
+    const base = fakeVscode({ choice });
+    base.vscode.window.tabGroups = {
+      activeTabGroup: { activeTab },
+      close: async (tab) => {
+        closed.push(tab);
+      },
+      // present but never fires → the CLOSED-by-user path isn't taken
+      onDidChangeTabs: () => ({ dispose() {} }),
+    };
+    return { vscode: base.vscode, closed, activeTab };
+  }
+
+  it("closes the multi-diff tab on Accept all", async () => {
+    const fx = fakeWithTabs("Accept all");
+    const facade = createVscodeEditorFacade(fx.vscode);
+    await facade.openMultiDiff({ files: CS });
+    expect(fx.closed).toEqual([fx.activeTab]);
+  });
+
+  it("closes the multi-diff tab on Reject", async () => {
+    const fx = fakeWithTabs("Reject");
+    const facade = createVscodeEditorFacade(fx.vscode);
+    await facade.openMultiDiff({ files: CS });
+    expect(fx.closed).toEqual([fx.activeTab]);
+  });
+});
+
 describe("buildIdeTools exposes openMultiDiff conditionally", () => {
   it("present when the facade supports it; absent otherwise", () => {
     const withIt = buildIdeTools({
