@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased] — feat: tabs that survive reloads, auto-named tabs, What's New panel
+## [0.37.3] — feat: reload-surviving tabs, auto-named tabs, What's New panel + bug-sweep batch
 
 - **Conversation tabs survive window reloads.** All tabs — title, resume id,
   approval mode, thinking level, and which one was active — are persisted per
@@ -18,7 +18,8 @@ All notable changes to this extension are documented here.
   refreshes after 30s instead of living for the whole session, so files
   created mid-conversation appear without hitting "New".
 
-## [Unreleased] — fix: bug-sweep batch (keyboard diff review, process cleanup, silent-failure hardening)
+Also in this release — bug-sweep batch (keyboard diff review, process
+cleanup, silent-failure hardening):
 
 - **Diff Accept/Reject keybindings actually work.** The command callbacks
   referenced a variable scoped inside `startBridge()` — every keypress threw a
