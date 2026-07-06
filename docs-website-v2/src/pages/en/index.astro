@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'IDE plugins · 2026-07-06',
+    title: 'IDE dual-extension audit round: VS Code 0.37.4 + JetBrains 0.4.46 (22 P0/P1/P2 fixes + 6 optimizations)',
+    sub: 'Independent release track (not tied to the product version): VS Code 0.37.3 → 0.37.4 (Open VSX) + JetBrains 0.4.45 → 0.4.46 (JetBrains Marketplace). Produced by a 3-agent audit fan-out (VS Code bug / JetBrains bug / feature-gap); both ends verified via clean-room CI builds — vscode-ext 51 files / 456 tests green + vsce package OK; JetBrains compileJava + smokeTest gate + buildPlugin OK, jar carries plugin.xml 0.4.46.',
+    desc: 'P0 security (both ends): cmd.exe current-directory-first precedence let a repo-local cc.bat pre-empt the real CLI — VS Code adds NoDefaultCurrentDirectoryInExePath to every spawn (hardened-env.js), JetBrains closes it in CliLauncher.augmentPath; VS Code workspace settings chat.model / chat.provider allowed shell injection → _safeLlmSetting reuses hasUnsafeShellChars. P1 (VS Code): multibyte UTF-8 MCP body truncation / background-tab prompt loss / non-persistent /sessions / configuring the LLM only stopped the active tab. P1 (JetBrains): Stop froze the IDE (pipe I/O moved off the EDT) / image-deletion boundary / version probe mistook gcc for cc / conversation-session race. P2: cross-tab thinking-stream leak, /retry cross-tab, New reused the old title, spurious downgrade, stdin EPIPE crash, terminal Map leak; JetBrains misleading "agent exited" banner, StringBuffer torn read, MiniJson NaN→null, MCP >4MB 413, lockfile .tmp cleanup. Optimizations: VS Code activation-probe memoize / multiDiff tab close / Dashboard rAF coalesce; JetBrains transcript stick-to-bottom / single config.json read / @-mention 30s cache TTL. Tags ide-vscode-v0.37.4 / ide-jetbrains-v0.4.46, published to Open VSX + JetBrains Marketplace.',
+  },
+  {
     tag: 'v5.0.3.134 · 2026-07-03',
     title: 'CLI OAuth command-injection fix + MCP list hardening + workflow resume re-drive (security patch reaches on-device)',
     sub: 'chainlesschain 0.162.148 published to npm and bundled into the Android in-app cc (binariesVersion 20260703 / USR_VERSION 74). Desktop + CLI users covered via npm; Android on-device users via this APK release.',

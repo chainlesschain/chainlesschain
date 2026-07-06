@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'IDE 插件 · 2026-07-06',
+    title: 'IDE 双扩展审计闭环：VS Code 0.37.4 + JetBrains 0.4.46（22 P0/P1/P2 修复 + 6 优化）',
+    sub: '独立发版轨（不随产品版本号）：VS Code 0.37.3 → 0.37.4（Open VSX）+ JetBrains 0.4.45 → 0.4.46（JetBrains Marketplace）。3-agent 审计 fan-out（VS Code bug / JetBrains bug / 功能差距）产出，两端 CI 清洁室构建验证：vscode-ext 51 文件 / 456 测试绿 + vsce 打包；JetBrains compileJava + smokeTest 门 + buildPlugin 绿，jar 内 plugin.xml = 0.4.46。',
+    desc: 'P0 安全（两端共有）：cmd.exe「当前目录优先」致仓库内 cc.bat 被抢先执行——VS Code 全部 spawn 加 NoDefaultCurrentDirectoryInExePath（hardened-env.js）、JetBrains 收口 CliLauncher.augmentPath；VS Code workspace settings 的 chat.model / chat.provider 走 shell 注入 → _safeLlmSetting 复用 hasUnsafeShellChars 拦截。P1（VS Code）：MCP body 多字节 UTF-8 截断 / 后台 tab 提问丢失 / /sessions 不持久 / 配置 LLM 只停活动 tab。P1（JetBrains）：Stop 冻结 IDE（pipe I/O 移出 EDT）/ 图片删错边界（改 FIFO 批次）/ 版本探测把 gcc 误当 cc（looksLikeCcVersion）/ conversation session 竞态（volatile + 串行 restart）。P2：思考流跨 tab 泄漏 / /retry 跨 tab / New 会话沿用旧标题 / 降级误报 / stdin EPIPE 崩溃 / 终端 Map 泄漏；JetBrains「agent exited」误导横幅 / StringBuffer torn read / MiniJson NaN→null / MCP >4MB 413 / lockfile 清理。优化：VS Code 激活探测 memoize / multiDiff 关 tab / Dashboard rAF 合并；JetBrains 转录 stick-to-bottom / config.json 单次读 / @-mention 缓存 30s TTL。tag ide-vscode-v0.37.4 / ide-jetbrains-v0.4.46，已发 Open VSX + JetBrains Marketplace。',
+  },
+  {
     tag: 'v5.0.3.134 · 2026-07-03',
     title: 'CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动（安全 patch 上船真机）',
     sub: 'chainlesschain 0.162.148 已发 npm，随本版打入 Android in-app cc bundle（binariesVersion 20260703 / USR_VERSION 74）。桌面 + CLI 用户经 npm 覆盖，Android 真机用户经本次 APK 发版拿到。',

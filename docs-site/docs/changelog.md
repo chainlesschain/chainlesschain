@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+#### Added — IDE 扩展 VS Code 0.37.4 + JetBrains 0.4.46：一整轮插件审计闭环（22 P0/P1/P2 修复 + 6 优化，已发 Open VSX + JetBrains Marketplace）
+
+> 独立发版轨（不随产品版本号）：VS Code `0.37.3 → 0.37.4`（Open VSX）+ JetBrains `0.4.45 → 0.4.46`（JetBrains Marketplace），tag `ide-vscode-v0.37.4` / `ide-jetbrains-v0.4.46`。由 3-agent 审计 fan-out（VS Code bug / JetBrains bug / 功能差距）产出，两端各自 CI 清洁室构建验证：vscode-ext 51 文件 / 456 测试绿 + vsce 打包 OK；JetBrains compileJava + smokeTest 门 + buildPlugin OK，构建产物 jar 内 plugin.xml = 0.4.46。
+
+- **P0 安全（两端共有）**：cmd.exe「当前目录优先」致仓库内 `cc.bat` 被抢先执行——VS Code 全部 spawn 加 `NoDefaultCurrentDirectoryInExePath`（`hardened-env.js`）、JetBrains 收口 `CliLauncher.augmentPath`；VS Code workspace settings 的 `chat.model` / `chat.provider` 走 shell 注入 → `_safeLlmSetting` 复用 `hasUnsafeShellChars` 拦截。
+- **P1（VS Code）**：MCP body 多字节 UTF-8 截断（`req.setEncoding`）/ 后台 tab 提问丢失 / `/sessions` 不持久 / 配置 LLM 只停活动 tab。
+- **P1（JetBrains）**：Stop 冻结 IDE（pipe I/O 移出 EDT）/ 图片删错边界（改 FIFO 批次）/ 版本探测把 gcc 误当 cc（`looksLikeCcVersion`）/ conversation session 竞态（volatile + 串行 restart）。
+- **P2**：VS Code 思考流跨 tab 泄漏 / `/retry` 跨 tab / New 会话沿用旧标题 / 降级误报 / stdin EPIPE 崩溃 / 终端 Map 泄漏；JetBrains「agent exited」误导横幅（stopped flag）/ StringBuffer torn read / MiniJson NaN→null / MCP >4MB 413 / lockfile `.tmp` 清理。
+- **优化**：VS Code 激活探测 memoize / multiDiff 关 tab / Dashboard rAF 合并；JetBrains 转录 stick-to-bottom / config.json 单次读 / @-mention 缓存 30s TTL。
+
 #### Added — cc CLI 0.162.151：`cc changelog` 命令（别名 `cc whatsnew`）— npm 包每版更新说明离线可查
 
 > CLI-only 发版（`chainlesschain` 0.162.150 → **0.162.151**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数 163 → **164**（新增顶层命令 `changelog`）。发版前 dry-run 于 Linux CI 跑通全测试门（unit 21,357+ / integration 954 + core 包），正式发布走 `skip_tests`（同一 SHA 已验）。
