@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased] — feat: live token tally + iteration warnings (VS Code 0.37.2 parity) + polish batch
+## [0.4.45] — feat: live token tally + iteration warnings (VS Code parity) + bug sweep (B1–B9) + polish
 
 - **Live token counter while the agent works.** Each LLM call's `token_usage`
   now accumulates into the status line above the composer —
@@ -25,7 +25,9 @@
   longer re-spawn them; the manual "检查 cc 更新" action refreshes the cache);
   panel worker threads ride the IDE thread pool instead of bare `new Thread`.
 
-## [Unreleased] — fix: process-lifecycle, EDT and keymap bug sweep (B1–B9)
+Also in this release — process-lifecycle, EDT and keymap bug sweep (B1–B9).
+⌨ **Note: three default shortcuts changed** (see below — the old ones collided
+with IDEA built-ins):
 
 - **No more orphaned `cc agent` processes** (Windows): stopping a tab's child —
   mode/thinking switches (`/auto` `/bypass` `/think*`), LLM reconfigure,
