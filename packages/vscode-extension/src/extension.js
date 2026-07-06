@@ -697,6 +697,7 @@ function deactivate() {
 /** Run `<cliPath> --version`, returning stdout (or null on failure/timeout). */
 function runCliVersion(cliPath) {
   const cp = require("child_process");
+  const { hardenedEnv } = require("./hardened-env");
   return new Promise((resolve) => {
     let done = false;
     const finish = (v) => {
@@ -709,6 +710,8 @@ function runCliVersion(cliPath) {
       const child = cp.spawn(cliPath, ["--version"], {
         shell: true,
         windowsHide: true,
+        // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+        env: hardenedEnv(process.env),
       });
       let out = "";
       child.stdout?.on("data", (d) => {

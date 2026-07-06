@@ -127,9 +127,15 @@ class IdeMcpServer {
     }
     let body = "";
     let aborted = false;
+    // Decode as UTF-8 via a StringDecoder so a multi-byte character (中文) split
+    // across socket-chunk boundaries is reassembled correctly. Without this,
+    // `body += chunk` stringifies each Buffer independently and a straddling
+    // character decodes to U+FFFD in both halves — a >64KB openDiff modifiedText
+    // with CJK content would then be written to disk corrupted on Accept.
+    req.setEncoding("utf8");
     req.on("data", (chunk) => {
       body += chunk;
-      if (body.length > MAX_BODY_BYTES) {
+      if (Buffer.byteLength(body, "utf8") > MAX_BODY_BYTES) {
         aborted = true;
         this._send(res, 413, { error: "payload too large" });
         req.destroy();

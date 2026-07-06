@@ -22,7 +22,10 @@ const {
   deriveTabTitle,
   isDefaultTitle,
 } = require("./conversation-manager");
-const { looksLikeLlmConfigError } = require("../llm-config.js");
+const {
+  looksLikeLlmConfigError,
+  hasUnsafeShellChars,
+} = require("../llm-config.js");
 
 class ChatViewProvider {
   /**
@@ -268,8 +271,20 @@ class ChatViewProvider {
         // question renders as an IN-PANEL card (chat-html) with clickable options
         // / a text input — reliable + visible, unlike a native QuickPick which
         // can fail to surface when the webview has focus. The card was already
-        // posted to the webview by _postFrom above; the answer returns as a
-        // {type:"answer"} message (handled below).
+        // posted to the webview by _postFrom above IF this is the active tab; the
+        // answer returns as a {type:"answer"} message (handled below).
+        //
+        // If the question landed in a BACKGROUND tab, _postFrom dropped it — so
+        // route it through the same pending-approval machinery (dot + toast +
+        // re-surface on switch) instead of letting the agent hang until its
+        // user_timeout with no visible prompt anywhere.
+        if (this._convs.activeId() !== convId) {
+          this._convs.setPendingApproval(convId, ui);
+          if (this._convs.markNeedsApproval(convId)) {
+            this._postTabs();
+            this._notifyApprovalPending(conv);
+          }
+        }
       }
       if (evt?.type === "result") {
         // The turn is done — the CLI inlined any pasted images at turn start,
@@ -354,6 +369,39 @@ class ChatViewProvider {
     this._postTabs();
   }
 
+  /**
+   * A `chainlesschain.chat.model` / `.provider` setting, sanitized before it is
+   * interpolated into a Windows shell argv (the .cmd shims force `shell:true`,
+   * where metacharacters can't be quoted). These settings are `window`-scoped,
+   * so a workspace `.vscode/settings.json` — shared or from a cloned repo — can
+   * set them; a value like `x & calc` would otherwise run `calc`, and the
+   * context-status refresh fires after every turn. Legitimate model/provider ids
+   * never contain shell metacharacters, so an unsafe value is dropped (the CLI
+   * then falls back to the configured default) and the user is warned once.
+   */
+  _safeLlmSetting(kind, value) {
+    const v = value == null ? "" : String(value);
+    if (!v) return v;
+    if (hasUnsafeShellChars(v)) {
+      if (!this._warnedUnsafeLlm) {
+        this._warnedUnsafeLlm = new Set();
+      }
+      if (!this._warnedUnsafeLlm.has(kind)) {
+        this._warnedUnsafeLlm.add(kind);
+        try {
+          this.vscode.window?.showWarningMessage?.(
+            `ChainlessChain: ignoring unsafe chainlesschain.chat.${kind} setting ` +
+              `("${v}") — it contains shell metacharacters. Using the cc config default.`,
+          );
+        } catch {
+          /* best-effort */
+        }
+      }
+      return "";
+    }
+    return v;
+  }
+
   /** Ensure the ACTIVE conversation has a running agent child; spawn one
    * (resuming its own session id) if not. Returns the live session. */
   _ensureSession() {
@@ -373,8 +421,8 @@ class ChatViewProvider {
     // cc config) so the panel deterministically uses the SAME LLM as the
     // terminal `cc` — never drifts to a stale ambient default.
     const llm = this._resolveChatLlm({
-      provider: chatCfg.get("provider"),
-      model: chatCfg.get("model"),
+      provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
+      model: this._safeLlmSetting("model", chatCfg.get("model")),
     });
     const session = this._createSession({
       command: this._cliCommand(),
@@ -452,6 +500,11 @@ class ChatViewProvider {
     this._convs.setSession(conv.id, null);
     this._convs.setSessionId(conv.id, pick.label);
     this._rememberSessionId(pick.label);
+    // Persist the picked resume id: the tabs blob (written on every mutation) is
+    // preferred over the legacy single-session key on restore, so without this a
+    // window reload before the next message would restore the tab's OLD id and
+    // the pick would silently vanish.
+    this._persistTabs();
     this._post({ kind: "reset" });
     this._post({
       kind: "info",
@@ -750,8 +803,8 @@ class ChatViewProvider {
       kind,
       id,
       this._resolveChatLlm({
-        model: chatCfg.get("model"),
-        provider: chatCfg.get("provider"),
+        model: this._safeLlmSetting("model", chatCfg.get("model")),
+        provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
       }),
     );
     const text = await runText({
@@ -788,8 +841,8 @@ class ChatViewProvider {
         ? this.opts.getBridgeEnv()
         : {};
     const args = introspect.buildIntrospectArgs("context", id, {
-      model: chatCfg.get("model"),
-      provider: chatCfg.get("provider"),
+      model: this._safeLlmSetting("model", chatCfg.get("model")),
+      provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
       json: true,
     });
     Promise.resolve(
@@ -881,14 +934,15 @@ class ChatViewProvider {
     }
   }
 
-  /** Called after the Configure-LLM wizard: fresh child picks up the config. */
+  /**
+   * Called after the Configure-LLM wizard. The LLM config is GLOBAL, so EVERY
+   * tab's running child holds the stale provider/model/key — delegate to
+   * _reloadLlmConfig, which stops ALL of them (not just the active tab, whose
+   * child was the only one the old code restarted, leaving background tabs
+   * erroring on the old config).
+   */
   onLlmConfigured() {
-    this.session?.stop();
-    this.session = null;
-    this._post({
-      kind: "info",
-      text: "LLM 配置已更新 — 下一条消息用新配置启动",
-    });
+    this._reloadLlmConfig();
   }
 
   resolveWebviewView(view) {

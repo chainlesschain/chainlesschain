@@ -7,6 +7,7 @@
  * `deps.execFile` is injectable. chat-view.js drives the QuickPick around it.
  */
 const { execFile } = require("child_process");
+const { hardenedEnv } = require("../hardened-env");
 
 /** `cc checkpoint list -s <session> --json` — newest-first snapshots. */
 function buildListArgs(sessionId) {
@@ -49,7 +50,8 @@ function runCliJson({
       args,
       {
         cwd,
-        env: env || process.env,
+        // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+        env: hardenedEnv(env),
         timeout: timeoutMs,
         windowsHide: true,
         maxBuffer: 4 * 1024 * 1024,

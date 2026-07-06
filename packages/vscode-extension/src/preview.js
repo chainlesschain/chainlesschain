@@ -133,13 +133,15 @@ function createPreviewController(vscode, { log } = {}) {
   const cp = require("child_process");
   const fs = require("fs");
   const path = require("path");
+  const { hardenedEnv } = require("./hardened-env");
   let controller;
   controller = new PreviewController({
     spawn: (script, cwd) =>
       cp.spawn("npm", ["run", script], {
         cwd,
         shell: true,
-        env: process.env,
+        // Hardened so cmd.exe doesn't resolve a repo-local `npm.cmd` before PATH.
+        env: hardenedEnv(process.env),
         windowsHide: true,
         // POSIX: give the dev server its own process group so kill() below can
         // signal the whole tree. (On Windows, detached opens a console window —

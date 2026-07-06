@@ -7,6 +7,7 @@
  * Pure Node (no `vscode`); `deps.execFile` injectable for tests.
  */
 const { execFile } = require("child_process");
+const { hardenedEnv } = require("./hardened-env");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -123,6 +124,8 @@ function runCli(command, args, deps) {
       {
         timeout: 60000,
         windowsHide: true,
+        // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+        env: hardenedEnv(process.env),
         shell: process.platform === "win32",
       },
       (err, stdout, stderr) => {

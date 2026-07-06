@@ -2,6 +2,35 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased] — fix: security + correctness audit batch (P0/P1)
+
+- **A repo can no longer run its own `cc.bat` when you open the chat panel
+  (Windows).** Every `cc`/`npm` child is spawned through a shell, and cmd.exe
+  resolves a bare command name from the current directory (the open workspace
+  root) before PATH — so a cloned/untrusted repo shipping `cc.bat`/`cc.cmd` at
+  its root was executed just by opening the panel or a version probe. All spawn
+  sites now set `NoDefaultCurrentDirectoryInExePath`, so only PATH is searched.
+- **Malicious workspace settings can't inject shell commands.** The
+  window-scoped `chainlesschain.chat.model` / `.provider` settings (overridable
+  in a workspace `.vscode/settings.json`) flowed unsanitized into a `shell:true`
+  argv that runs after every turn — a value like `x & calc` would execute
+  `calc`. Values with shell metacharacters are now dropped (the CLI default is
+  used) with a one-time warning.
+- **Chinese (multi-byte) content in large MCP payloads is no longer corrupted.**
+  The MCP request body is decoded as UTF-8 across socket chunks, so a CJK
+  character split at a 64KB boundary in an `openDiff` body is reassembled
+  instead of being written to disk as `�` on Accept.
+- **A question in a background chat tab no longer hangs the agent.** An
+  `ask_user_question` that arrives while you're viewing another tab now flags
+  that tab (dot + toast) and re-surfaces the card when you switch to it, instead
+  of being silently dropped until the agent's answer-timeout.
+- **A `/sessions` resume survives a window reload.** The picked session id is
+  persisted immediately, so reloading before the next message no longer restores
+  the tab's old session.
+- **Configure-LLM now applies to every tab.** Running the wizard restarts every
+  tab's child (they all shared the stale global config), not just the active
+  tab's.
+
 ## [0.37.3] — feat: reload-surviving tabs, auto-named tabs, What's New panel + bug-sweep batch
 
 - **Conversation tabs survive window reloads.** All tabs — title, resume id,

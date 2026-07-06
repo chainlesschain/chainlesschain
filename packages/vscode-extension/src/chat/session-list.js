@@ -5,6 +5,7 @@
  * Pure Node; `deps.execFile` is injectable for tests.
  */
 const { execFile } = require("child_process");
+const { hardenedEnv } = require("../hardened-env");
 
 /** Tolerant parse of `cc session list --json` output. */
 function parseSessionList(stdout) {
@@ -37,7 +38,8 @@ function listSessions({ command = "cc", limit = 30, cwd, env, deps } = {}) {
       ["session", "list", "--json", "-n", String(limit)],
       {
         cwd,
-        env: env || process.env,
+        // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+        env: hardenedEnv(env),
         timeout: 30000,
         windowsHide: true,
         // npm global shims on Windows are .cmd files — they need a shell.

@@ -6,6 +6,7 @@
  * defers to `cc session list`. Pure Node; `deps.execFile` is injectable.
  */
 const { execFile } = require("child_process");
+const { hardenedEnv } = require("../hardened-env");
 
 /**
  * Build CLI args for an introspection command scoped to a session.
@@ -67,7 +68,8 @@ function runCliText({
       args,
       {
         cwd,
-        env: env || process.env,
+        // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+        env: hardenedEnv(env),
         timeout: timeoutMs,
         windowsHide: true,
         maxBuffer: 1024 * 1024,

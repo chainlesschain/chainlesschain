@@ -17,6 +17,7 @@
  * a fake child process.
  */
 const { spawn } = require("child_process");
+const { hardenedEnv } = require("../hardened-env");
 
 class AgentChatSession {
   /**
@@ -56,7 +57,8 @@ class AgentChatSession {
     ];
     this.child = this._deps.spawn(command, args, {
       cwd: this.opts.cwd || process.cwd(),
-      env: this.opts.env || process.env,
+      // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
+      env: hardenedEnv(this.opts.env),
       stdio: ["pipe", "pipe", "pipe"],
       // npm global shims on Windows are .cmd files — they need a shell.
       shell: process.platform === "win32",

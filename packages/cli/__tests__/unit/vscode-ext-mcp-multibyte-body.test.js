@@ -1,0 +1,102 @@
+/**
+ * Regression: the IDE MCP server must reassemble a UTF-8 multi-byte character
+ * (中文) that is split across two socket 'data' chunks. Before req.setEncoding,
+ * `body += chunk` stringified each Buffer independently, so a straddling char
+ * decoded to U+FFFD in both halves — an openDiff modifiedText with CJK content
+ * >64KB was then written to disk corrupted on Accept.
+ *
+ * Drives _onRequest directly with a stream.PassThrough (which honors
+ * setEncoding via a StringDecoder, exactly like a real socket) so the split is
+ * deterministic.
+ */
+import { describe, it, expect } from "vitest";
+import { PassThrough } from "stream";
+import { IdeMcpServer } from "../../../vscode-extension/src/mcp-http-server.js";
+
+function fakeRes() {
+  let statusCode = null;
+  let bodyStr = "";
+  return {
+    writeHead(code) {
+      statusCode = code;
+    },
+    end(s) {
+      bodyStr = s || "";
+      this._done = true;
+    },
+    get status() {
+      return statusCode;
+    },
+    get json() {
+      try {
+        return JSON.parse(bodyStr);
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+/** POST one JSON-RPC body, split into Buffer halves at `splitAt` bytes. */
+async function postSplit(server, obj, splitAt) {
+  const buf = Buffer.from(JSON.stringify(obj), "utf8");
+  const req = new PassThrough();
+  req.method = "POST";
+  req.headers = {};
+  const res = fakeRes();
+  const done = new Promise((resolve) => {
+    const orig = res.end.bind(res);
+    res.end = (s) => {
+      orig(s);
+      resolve();
+    };
+  });
+  server._onRequest(req, res);
+  req.write(buf.subarray(0, splitAt));
+  req.write(buf.subarray(splitAt));
+  req.end();
+  await done;
+  return res;
+}
+
+describe("IdeMcpServer — multi-byte body reassembly", () => {
+  it("reassembles a CJK character split across chunk boundaries", async () => {
+    // Echo tool returns its `text` argument verbatim.
+    const server = new IdeMcpServer({
+      tools: [
+        {
+          name: "echo",
+          description: "echo",
+          inputSchema: { type: "object" },
+          handler: async (args) => String(args.text),
+        },
+      ],
+    });
+
+    const text = "你好世界".repeat(4); // all 3-byte CJK chars
+    const body = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "echo", arguments: { text } },
+    };
+    const full = Buffer.from(JSON.stringify(body), "utf8");
+
+    // Split at a byte index guaranteed to fall INSIDE a multi-byte character:
+    // find the first CJK byte run and cut one byte into it.
+    let cut = -1;
+    for (let i = 0; i < full.length - 1; i++) {
+      if (full[i] >= 0x80) {
+        cut = i + 1; // mid-character
+        break;
+      }
+    }
+    expect(cut).toBeGreaterThan(0);
+
+    const res = await postSplit(server, body, cut);
+    expect(res.status).toBe(200);
+    const echoed = res.json?.result?.content?.[0]?.text;
+    expect(echoed).toBe(text);
+    expect(echoed).not.toContain("�"); // no replacement chars
+  });
+});
