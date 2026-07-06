@@ -114,6 +114,33 @@ describe("TelemetryRecorder OTLP export", () => {
     expect(attrMap.tokens).toEqual({ doubleValue: 128 });
     expect(attrMap.cached).toEqual({ boolValue: true });
   });
+
+  it("exports a VALID (non-zero) traceId, shared by all spans of one recorder", () => {
+    const clock = makeClock(1000);
+    const rec = new TelemetryRecorder({ now: clock.now });
+    const a = rec.startSpan("model_call");
+    clock.advance(2);
+    a.end();
+    const b = rec.startSpan("tool_call");
+    clock.advance(3);
+    b.end();
+    const spans = rec.toOtlp().resourceSpans[0].scopeSpans[0].spans;
+    expect(spans).toHaveLength(2);
+    for (const s of spans) {
+      // 32 hex chars and NOT all-zero (an all-zero traceId is invalid OTLP and a
+      // strict collector drops the span).
+      expect(s.traceId).toMatch(/^[0-9a-f]{32}$/);
+      expect(s.traceId).not.toBe("0".repeat(32));
+    }
+    // All spans of one run belong to one trace (proper trace correlation).
+    expect(spans[0].traceId).toBe(spans[1].traceId);
+  });
+
+  it("gives two recorders distinct traceIds", () => {
+    const r1 = new TelemetryRecorder();
+    const r2 = new TelemetryRecorder();
+    expect(r1.traceId).not.toBe(r2.traceId);
+  });
 });
 
 describe("formatTelemetry", () => {

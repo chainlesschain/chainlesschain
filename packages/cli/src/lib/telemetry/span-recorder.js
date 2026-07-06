@@ -20,6 +20,16 @@ function spanId() {
   return _seq.toString(16).padStart(16, "0");
 }
 
+// One trace per recorder (a "run"). The OTLP/OTel spec treats an ALL-ZERO
+// traceId as INVALID, so a strict collector would drop every span exported with
+// `"0".repeat(32)` — defeating toOtlp()'s purpose. Derive a non-zero, monotonic
+// (RNG-free, snapshot-replayable) 32-hex traceId per recorder instead.
+let _traceSeq = 0;
+function newTraceId() {
+  _traceSeq = (_traceSeq + 1) % Number.MAX_SAFE_INTEGER;
+  return _traceSeq.toString(16).padStart(32, "0"); // never all-zero (starts at 1)
+}
+
 export class TelemetryRecorder {
   constructor({
     now = () => Date.now(),
@@ -27,6 +37,7 @@ export class TelemetryRecorder {
   } = {}) {
     this._now = typeof now === "function" ? now : () => now;
     this.serviceName = serviceName;
+    this.traceId = newTraceId(); // one trace per recorder (valid non-zero id)
     this._spans = []; // completed spans
     this._counters = new Map(); // name → { total, byAttr }
     this._failures = new Map(); // category → count
@@ -171,7 +182,7 @@ export class TelemetryRecorder {
             {
               scope: { name: "chainlesschain.cli" },
               spans: this._spans.map((s) => ({
-                traceId: "0".repeat(32),
+                traceId: this.traceId,
                 spanId: s.id,
                 parentSpanId: s.parentId || "",
                 name: s.name,
