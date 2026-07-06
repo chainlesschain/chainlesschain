@@ -111,3 +111,19 @@ describe("AgentChatSession close-time buffer flush", () => {
     expect(events).toContainEqual({ type: "raw", text: "Error: cc exploded" });
   });
 });
+
+describe("AgentChatSession stdin error safety", () => {
+  it("an async stdin 'error' (EPIPE) is handled, not thrown uncaught", () => {
+    const child = fakeChild();
+    const s = new AgentChatSession({ deps: { spawn: () => child } });
+    s.start();
+    // Without a stdin 'error' listener, EventEmitter re-throws on emit('error')
+    // — which in the real host is an uncaught exception that kills it.
+    expect(() =>
+      child.stdin.emit(
+        "error",
+        Object.assign(new Error("write EPIPE"), { code: "EPIPE" }),
+      ),
+    ).not.toThrow();
+  });
+});

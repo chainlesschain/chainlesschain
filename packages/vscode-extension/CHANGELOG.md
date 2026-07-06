@@ -2,7 +2,9 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased] — fix: security + correctness audit batch (P0/P1)
+## [Unreleased] — fix: security + correctness audit batch (P0/P1/P2)
+
+### P0/P1
 
 - **A repo can no longer run its own `cc.bat` when you open the chat panel
   (Windows).** Every `cc`/`npm` child is spawned through a shell, and cmd.exe
@@ -30,6 +32,28 @@ All notable changes to this extension are documented here.
 - **Configure-LLM now applies to every tab.** Running the wizard restarts every
   tab's child (they all shared the stale global config), not just the active
   tab's.
+
+### P2
+
+- **Reasoning no longer bleeds between tabs.** Switching tabs while one is
+  mid-"thinking" stream used to append the incoming tab's reasoning into the
+  outgoing tab's (now detached) block; the reasoning-block pointers are reset on
+  switch.
+- **`/retry` regenerates THIS tab's last prompt**, not whichever prompt was last
+  typed in any tab (the last-prompt memory is now per-tab).
+- **"New" lets the fresh chat re-name itself.** A new conversation started with
+  "New" no longer keeps the previous conversation's auto-title — the title resets
+  to a default so it re-derives from the new first message.
+- **The "What's New" toast no longer fires on a downgrade.** Installing an older
+  `cc` no longer shows "cc CLI updated → <older>" (and offers notes the older CLI
+  can't produce); the nudge fires only on an actual version increase.
+- **More conversation tabs survive a reload** (the restore bound was raised well
+  above realistic tab counts, so tabs are no longer silently dropped).
+- **A stdin write to a just-crashed agent can't take down the extension host.**
+  An async `EPIPE` on the child's stdin is now handled instead of thrown
+  uncaught.
+- **A terminal killed mid-capture no longer leaks its buffered output** — the
+  in-flight capture entry is dropped when the terminal closes.
 
 ## [0.37.3] — feat: reload-surviving tabs, auto-named tabs, What's New panel + bug-sweep batch
 

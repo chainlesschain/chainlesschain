@@ -58,6 +58,19 @@ function createVscodeEditorFacade(vscode) {
         }
       }),
     );
+    if (vscode.window.onDidCloseTerminal) {
+      _terminalDisposables.push(
+        vscode.window.onDidCloseTerminal((term) => {
+          // A terminal killed WITHOUT an end event would otherwise leave its
+          // in-flight reading entry (up to MAX_READ of buffered output) in the
+          // Map for the extension's lifetime. Drop any entries for it.
+          const name = term?.name || "";
+          for (const [exec, entry] of reading) {
+            if (entry.terminal === name) reading.delete(exec);
+          }
+        }),
+      );
+    }
   }
 
   // The diff reviews currently blocking openDiff/openMultiDiff, so a

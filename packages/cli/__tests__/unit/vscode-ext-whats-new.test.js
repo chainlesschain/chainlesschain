@@ -75,4 +75,11 @@ describe("upgradeNudge", () => {
     expect(upgradeNudge("0.162.151", "0.162.151")).toBeNull(); // unchanged
     expect(upgradeNudge("0.162.150", null)).toBeNull(); // cc missing now
   });
+
+  it("does NOT fire on a downgrade (installing an older cc)", () => {
+    // "updated 0.162.151 → 0.162.148" would be wrong, and the notes button
+    // needs cc >= 0.162.151 anyway (the older CLI just errors).
+    expect(upgradeNudge("0.162.151", "0.162.148")).toBeNull();
+    expect(upgradeNudge("0.163.0", "0.162.151")).toBeNull();
+  });
 });

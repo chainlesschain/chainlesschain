@@ -133,6 +133,11 @@ class AgentChatSession {
       // spawn failure (cc not installed / not on PATH) — surface as an event
       this._emit({ type: "session_error", error: err.message });
     });
+    // stdin can emit an ASYNC 'error' (EPIPE) when we write just as the child
+    // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
+    // uncaught in the extension host. The sync try/catch in sendEvent can't
+    // catch it; swallow it here (the "close" handler drives recovery).
+    if (this.child.stdin) this.child.stdin.on("error", () => {});
     return this;
   }
 

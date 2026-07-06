@@ -162,7 +162,8 @@ function buildChatHtml({ cspSource, nonce }) {
   let streamFrame = null; // pending requestAnimationFrame id for a deferred render
   let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
   let thinkingBody = null; // the body inside it where deltas are appended
-  let lastSentText = ""; // last user prompt, for /retry (regenerate)
+  const lastSentByTab = {}; // per-tab last user prompt, for /retry (regenerate)
+  const tabKey = () => activeTabId || "_"; // stable key before the first tab bar
   let turnTokens = null; // live per-turn token tally from token_usage events
   const tokfmt = (n) =>
     n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n);
@@ -391,8 +392,10 @@ function buildChatHtml({ cspSource, nonce }) {
     "/context": () => vscode.postMessage({ type: "context" }),
     "/rewind": () => vscode.postMessage({ type: "rewind" }),
     "/retry": () => {
-      // Regenerate: re-send the last user prompt as a fresh turn.
-      if (lastSentText) { input.value = lastSentText; send(); }
+      // Regenerate: re-send THIS tab's last user prompt as a fresh turn (a
+      // single global would replay another tab's prompt after a switch).
+      const lt = lastSentByTab[tabKey()];
+      if (lt) { input.value = lt; send(); }
       else { add("info", "nothing to retry yet — send a message first"); }
     },
     "/review": () => {
@@ -491,7 +494,7 @@ function buildChatHtml({ cspSource, nonce }) {
     const images = pendingImages;
     pendingImages = [];
     renderAttach();
-    lastSentText = text; // remember for /retry (regenerate the same prompt)
+    lastSentByTab[tabKey()] = text; // remember for /retry (per this tab)
     add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
     streamEl = null;
     vscode.postMessage(
@@ -962,6 +965,11 @@ function buildChatHtml({ cspSource, nonce }) {
           cancelStreamFrame(); // drop the outgoing tab's pending render
           streamEl = null;
           streamRaw = "";
+          // Also drop the reasoning block pointers — otherwise a mid-thinking
+          // stream in the outgoing tab leaves thinkingBody pointing at its
+          // detached node, and the incoming tab's reasoning appends into it.
+          thinkingEl = null;
+          thinkingBody = null;
           planBox.style.display = "none";
           log.scrollTop = log.scrollHeight;
         }
@@ -969,6 +977,9 @@ function buildChatHtml({ cspSource, nonce }) {
         const live = new Set((m.tabs || []).map((t) => t.id));
         for (const k of Object.keys(tabNodes)) {
           if (!live.has(k)) delete tabNodes[k];
+        }
+        for (const k of Object.keys(lastSentByTab)) {
+          if (k !== "_" && !live.has(k)) delete lastSentByTab[k];
         }
         break;
       }

@@ -74,8 +74,14 @@ class ChatViewProvider {
    */
   _restoreTabs() {
     const saved = this.opts.state?.get?.("chainlesschain.chat.tabs");
+    // Sanity bound only — persist saves every tab, and a restored tab is just a
+    // cheap record (its child spawns lazily on the first message), so this is
+    // high enough that realistic tab counts are never silently dropped.
+    const RESTORE_CAP = 24;
     const tabs = Array.isArray(saved?.tabs)
-      ? saved.tabs.filter((t) => t && (t.sessionId || t.title)).slice(0, 12)
+      ? saved.tabs
+          .filter((t) => t && (t.sessionId || t.title))
+          .slice(0, RESTORE_CAP)
       : [];
     if (tabs.length === 0) {
       this._convs.create({ sessionId: this._storedSessionId() });
@@ -1124,8 +1130,14 @@ class ChatViewProvider {
       conv.session?.stop();
       this._convs.setSession(conv.id, null);
       this._convs.setSessionId(conv.id, null);
+      // Reset the title back to its default ("Chat N") so the fresh
+      // conversation re-derives its name from its OWN first message — otherwise
+      // it keeps the previous conversation's auto-title forever (isDefaultTitle
+      // is false, so auto-rename never fires again). The id is `conv-N`, whose
+      // N is exactly the default title's number.
+      this._convs.setTitle(conv.id, conv.id.replace(/^conv-/, "Chat "));
       this._rememberSessionId(null);
-      this._persistTabs();
+      this._postTabs(); // refresh the tab bar with the reset title (also persists)
       this._fileCache = null; // pick up files created since the last scan
       this._post({ kind: "reset" });
     } else if (m.type === "newTab") {

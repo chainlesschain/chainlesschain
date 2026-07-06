@@ -58,6 +58,11 @@ function changelogToMarkdown(releases, { installed } = {}) {
 function upgradeNudge(prev, current) {
   if (!current) return null; // cc missing/unparsable — nothing to remember
   if (!prev || prev === current) return null;
+  // Only nudge on an actual UPGRADE. A downgrade (npm i -g chainlesschain@older)
+  // shouldn't say "updated" and offer notes the installed CLI may not even have
+  // (cc changelog needs >= 0.162.151, so the button would then just error).
+  const { compareVersions } = require("./version-check");
+  if (compareVersions(current, prev) <= 0) return null;
   return {
     message: `cc CLI updated: ${prev} → ${current}`,
     button: "What's New",
