@@ -196,7 +196,7 @@ an elevated mode can't go unnoticed (VS Code ui/status-bar.js parity — the
       `IdeBridgeService.start/stop`, `ConversationView` `/auto·/bypass·/normal`,
       and `ChatToolWindowFactory` tab create/switch/close
       (`activeModeFor(project)` reads the active tab's mode). `gradlew
-  compileJava` clean against 2024.2.
+compileJava` clean against 2024.2.
 - [x] **runIde GUI pass (user-verified 2026-07-05)** — confirm the widget renders in
       the status bar, shows the port after startup, flips to `⚠bypass` on
       `/bypass`, reverts on `/normal`, follows tab switches, and the click
@@ -347,3 +347,23 @@ Glue-layer (needs the next pre-release runIde pass):
       survive turn 1's end and be gone only after turn 2).
 - [ ] **cc.bat guard** — with a dummy `cc.bat` at a project root, opening the
       panel must NOT execute it (onboarding still finds the real cc on PATH).
+
+## 🩹 P2 correctness batch (unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
+
+Five lower-severity items from the same audit. `compileJava` clean + `smokeTest`
+**348/0** (345 + 3 new MiniJson non-finite assertions).
+
+Pure/structural (smoke- or compile-covered):
+
+- [x] `MiniJson.stringify` emits `null` for `NaN`/`Infinity` (valid JSON).
+- [x] `runCaptureWith` uses a thread-safe `StringBuffer` (no torn read on a
+      chatty child that outlives the join timeout).
+- [x] `LockfileWriter.pruneStale` also sweeps orphaned `*.json.tmp-<pid>` temps.
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **No stray "agent exited" banner** — `/auto`, `/sessions` resume, LLM
+      reconfigure, force-stop each show ONLY their own status line (no
+      `── agent exited ──` after). A REAL crash still shows the banner.
+- [ ] **MCP 413** — POST a >4MB body to the bridge; expect an HTTP 413 JSON
+      error, not a dropped connection.
