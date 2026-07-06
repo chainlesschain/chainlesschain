@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased] — fix: security + correctness audit batch (P0/P1/P2)
+## [0.4.46] — fix: security + correctness audit batch (P0/P1/P2) + performance
 
 ### P0/P1
 

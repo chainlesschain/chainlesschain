@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased] — fix: security + correctness audit batch (P0/P1/P2)
+## [0.37.4] — fix: security + correctness audit batch (P0/P1/P2) + performance
 
 ### P0/P1
 
