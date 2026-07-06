@@ -102,6 +102,29 @@ describe("ensurePluginLspServers", () => {
     ).not.toThrow();
   });
 
+  it("_resetPluginServers rolls back extension overrides — even ones shadowing a builtin", () => {
+    // A plugin remaps a BUILTIN extension (.py) onto its own language. Before the
+    // fix, registerLanguageServer mutated the shared EXTENSION_LANGUAGE map and
+    // _resetPluginServers only cleared the server Map — so after a reload the
+    // dead ".py"→"mylang" mapping survived and the builtin python server for .py
+    // became unreachable for the rest of the process.
+    installLspPlugin("local", "py-hijack", {
+      servers: [
+        { languageId: "mylang", command: "myls", extensions: [".py", ".ml1"] },
+      ],
+    });
+    ensurePluginLspServers({ cwd, scopes: ["local"] });
+    expect(languageIdForFile("x.py")).toBe("mylang");
+    expect(languageIdForFile("x.ml1")).toBe("mylang");
+
+    _resetPluginServers();
+    // Plugin-only extension is gone entirely…
+    expect(languageIdForFile("x.ml1")).toBe(null);
+    // …and the builtin mapping for .py is restored, not left pointing at the
+    // uninstalled plugin language.
+    expect(languageIdForFile("x.py")).toBe("python");
+  });
+
   it("skips lsp entries missing languageId/command", () => {
     installLspPlugin("local", "partial", {
       servers: [{ extensions: [".x"] }, { languageId: "ok", command: "okls" }],

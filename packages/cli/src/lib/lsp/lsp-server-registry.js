@@ -70,6 +70,13 @@ function tsServer() {
 // Registry of plugin-contributed servers, keyed by languageId. Wins over
 // builtins if a plugin explicitly overrides.
 const pluginServers = new Map();
+// Plugin-contributed extension→languageId overrides, kept SEPARATE from the
+// builtin EXTENSION_LANGUAGE map so `_resetPluginServers` (used by
+// `/reload-plugins`) can fully roll them back. Mutating the builtin map
+// directly meant an uninstalled/untrusted plugin's `.py`→"mylang" remap
+// survived a reload — languageIdForFile kept returning the dead languageId and
+// the builtin server for that extension became unreachable until process exit.
+const pluginExtensions = new Map();
 
 /**
  * Register an extra language server (from a plugin `.lsp.json`).
@@ -87,21 +94,25 @@ export function registerLanguageServer(def) {
   });
   if (Array.isArray(def.extensions)) {
     for (const ext of def.extensions) {
-      EXTENSION_LANGUAGE[ext.startsWith(".") ? ext : "." + ext] =
-        def.languageId;
+      pluginExtensions.set(
+        ext.startsWith(".") ? ext : "." + ext,
+        def.languageId,
+      );
     }
   }
 }
 
-/** Test/reset hook — clears plugin registrations. */
+/** Test/reset hook — clears plugin registrations (servers AND extension maps). */
 export function _resetPluginServers() {
   pluginServers.clear();
+  pluginExtensions.clear();
 }
 
 /** Map a file path to its LSP languageId, or null if unsupported. */
 export function languageIdForFile(filePath) {
   const ext = path.extname(String(filePath || "")).toLowerCase();
-  return EXTENSION_LANGUAGE[ext] || null;
+  // Plugin overrides win over builtins (same precedence as pluginServers).
+  return pluginExtensions.get(ext) || EXTENSION_LANGUAGE[ext] || null;
 }
 
 /**
