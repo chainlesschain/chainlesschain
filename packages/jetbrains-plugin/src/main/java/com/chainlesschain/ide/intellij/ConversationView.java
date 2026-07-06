@@ -90,9 +90,13 @@ final class ConversationView {
     // click on the SAME still-running child hard-kills it (interrupt can't reach
     // a hung child). EDT-only.
     private AgentChatSession interruptRequested;
-    // Self-created temp images of the in-flight/last turn — deleted once the
-    // turn results (the CLI inlines them at turn start) or on dispose. EDT-only.
-    private final java.util.List<String> sentImageTemps = new java.util.ArrayList<>();
+    // Self-created temp images, one batch PER SENT MESSAGE (FIFO). The CLI
+    // resolves a turn's images when that turn STARTS, and queued sends run in
+    // order, so each turn_end deletes the OLDEST batch — not all of them. (The
+    // old single flat list deleted every pending temp at the first turn_end,
+    // destroying a second message's image before its turn had started.) EDT-only.
+    private final java.util.Deque<java.util.List<String>> sentImageBatches =
+            new java.util.ArrayDeque<>();
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -165,17 +169,22 @@ final class ConversationView {
         stopBtn.addActionListener(e -> {
             AgentChatSession s = liveSession();
             if (s == null) return;
-            // Second click on the same still-live child → escalate to a hard
-            // stop: interrupt rides stdin, which a hung child never reads.
+            // Both interrupt() and stop() do blocking pipe I/O (stdin write/flush)
+            // under the session monitor — if the child's stdin buffer is full
+            // (a hung child that stopped reading), doing them on the EDT freezes
+            // the whole IDE, and the second-click force-kill can never dispatch.
+            // Decide on the EDT, run the blocking part off it.
             if (s == interruptRequested) {
+                // Second click on the same still-live child → escalate to a hard
+                // stop (interrupt rides stdin, which a hung child never reads).
                 interruptRequested = null;
                 conv.session = null;
-                s.stop();
                 append("⏹ force-stopped the agent process — next message restarts it\n");
+                ApplicationManager.getApplication().executeOnPooledThread(s::stop);
                 return;
             }
             interruptRequested = s;
-            s.interrupt();
+            ApplicationManager.getApplication().executeOnPooledThread(s::interrupt);
         });
         // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
         // Slash-command completion: typing '/' at the line start pops a chooser too.
@@ -229,8 +238,11 @@ final class ConversationView {
     // construction used to re-spawn it twice (onboarding + update nudge). The
     // installed CLI can't change under a running IDE except via a manual
     // upgrade — the explicit "检查 cc 更新" action re-probes and refreshes this.
-    // Only SUCCESSFUL probes are cached, so "cc not installed yet" keeps being
-    // re-checked and recovers as soon as the user installs it.
+    // Only probes that look like the REAL chainlesschain CLI are cached (strict
+    // bare-semver first line — not a `cc` that is actually the C compiler, whose
+    // "cc (GCC) 12.2.0" banner parseVersion would wrongly accept and then pin
+    // process-wide). "cc not installed yet" (or a gcc shadow) keeps being
+    // re-checked and recovers as soon as the real CLI is installed / on PATH.
     private static volatile String cachedVersionOut;
 
     private static String probeVersionCached(File cwd) {
@@ -238,7 +250,7 @@ final class ConversationView {
         if (v != null) return v;
         String out = AgentChatSession.runCapture(
                 java.util.Collections.singletonList("--version"), cwd, 12000);
-        if (CliVersionCheck.parseVersion(out) != null) cachedVersionOut = out;
+        if (AgentChatSession.looksLikeCcVersion(out)) cachedVersionOut = out;
         return out;
     }
 
@@ -328,7 +340,9 @@ final class ConversationView {
             // the process-level probe cache.
             String freshOut = AgentChatSession.runCapture(
                     java.util.Collections.singletonList("--version"), cwd, 12000);
-            if (CliVersionCheck.parseVersion(freshOut) != null) cachedVersionOut = freshOut;
+            // Only cache a probe that is really the chainlesschain CLI (not a gcc
+            // `cc` shadow), matching probeVersionCached's gate.
+            if (AgentChatSession.looksLikeCcVersion(freshOut)) cachedVersionOut = freshOut;
             String installed = CliVersionCheck.parseVersion(freshOut);
             String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
             SwingUtilities.invokeLater(() -> {
@@ -434,8 +448,12 @@ final class ConversationView {
                         input.setText("");
                         // Take ownership of the composer's self-created temp pngs
                         // BEFORE clearAll (which deletes still-pending own temps)
-                        // — these were just sent, so they're cleaned at turn end.
-                        sentImageTemps.addAll(images.takeOwnedTemps(imgs));
+                        // — these were just sent, so they're cleaned at THIS
+                        // message's turn end. One batch per send keeps the FIFO
+                        // aligned with turn_end events (empty batch for a
+                        // text-only / dropped-real-file send).
+                        sentImageBatches.addLast(
+                                new java.util.ArrayList<>(images.takeOwnedTemps(imgs)));
                         images.clearAll();
                     } else {
                         append("⚠ agent session is not running — press New to restart\n");
@@ -673,14 +691,28 @@ final class ConversationView {
                 : "ℹ LLM 配置已更新\n");
     }
 
-    /** Restart the child so the next message respawns with current mode/thinking (§6). */
+    /**
+     * Restart the child so the next message respawns with the current
+     * mode/thinking (§6). The teardown runs on the single-threaded
+     * {@link #sendExecutor}, NOT inline on the EDT: that serializes it with
+     * ensureSession, so a mode change fired while a send is spawning can't be
+     * lost (the spawn completes, then this stops it → the next message respawns
+     * with the new mode). The caller has already updated conv.mode/thinking on
+     * the EDT before invoking this, so the next spawn reads the new values.
+     */
     void restartForModeChange() {
-        AgentChatSession s = liveSession();
-        if (s != null) {
-            s.stop();
-            conv.session = null;
-        }
         conv.turnState = new ChatEvents.TurnState();
+        try {
+            sendExecutor.execute(() -> {
+                AgentChatSession s = liveSession();
+                if (s != null) {
+                    s.stop();
+                    conv.session = null;
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            // executor already shut down (dispose in progress) — nothing to stop
+        }
     }
 
     /** Lazy spawn: first message starts the child; mode/thinking changes restart it.
@@ -806,7 +838,7 @@ final class ConversationView {
                 contextLabel.setText(" " + ChatEvents.readyLine(usage));
                 contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
             }
-            deleteSentImageTemps(); // CLI consumed them at turn start
+            deleteOldestSentImageBatch(); // THIS turn's images — CLI consumed them at its start
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
             showPlanCard(ui); // §5 interactive plan card (items + Approve/Reject)
@@ -1065,17 +1097,32 @@ final class ConversationView {
         return v instanceof Map ? (Map<String, Object>) v : null;
     }
 
-    /** Delete the self-created temp images handed over by the composer at send
-     *  time (user-dropped real files are never in this list). Best-effort. */
-    private void deleteSentImageTemps() {
-        for (String p : sentImageTemps) {
+    /** Delete one FIFO batch of temp paths (self-created images; user-dropped
+     *  real files are never in these lists). Best-effort. */
+    private static void deleteImageBatch(java.util.List<String> batch) {
+        if (batch == null) return;
+        for (String p : batch) {
             try {
                 java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(p));
             } catch (Exception ignored) {
                 // still open on Windows → deleteOnExit backstop gets it
             }
         }
-        sentImageTemps.clear();
+    }
+
+    /** Delete the OLDEST sent-image batch (the just-completed turn's images —
+     *  the CLI inlined them at that turn's start). Leaves later, not-yet-started
+     *  messages' images intact. */
+    private void deleteOldestSentImageBatch() {
+        deleteImageBatch(sentImageBatches.pollFirst());
+    }
+
+    /** Delete every remaining sent-image batch (on dispose). */
+    private void deleteAllSentImageTemps() {
+        java.util.List<String> batch;
+        while ((batch = sentImageBatches.pollFirst()) != null) {
+            deleteImageBatch(batch);
+        }
     }
 
     private static JLabel htmlLabel(String text) {
@@ -1151,6 +1198,7 @@ final class ConversationView {
             s.stop();
             conv.session = null;
         }
-        deleteSentImageTemps();
+        deleteAllSentImageTemps();
+        images.clearAll(); // also delete pending-but-unsent own temp pngs
     }
 }

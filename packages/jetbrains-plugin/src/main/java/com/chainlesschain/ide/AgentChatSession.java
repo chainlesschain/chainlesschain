@@ -149,7 +149,7 @@ public final class AgentChatSession {
     /** True when {@code --version} output's first non-blank line is a bare semver
      *  (chainlesschain prints "0.162.95"), distinguishing it from a {@code cc}
      *  that is really a C compiler ("cc (GCC) 12.2.0", "Apple clang …"). */
-    static boolean looksLikeCcVersion(String out) {
+    public static boolean looksLikeCcVersion(String out) {
         if (out == null) return false;
         for (String line : out.split("\n")) {
             String t = line.trim();

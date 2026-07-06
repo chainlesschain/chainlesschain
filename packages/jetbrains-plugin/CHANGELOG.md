@@ -1,5 +1,31 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased] — fix: security + correctness audit batch (P0/P1)
+
+- **A repo can no longer run its own `cc.bat` when you open the chat panel
+  (Windows).** Our spawns run `cmd.exe /c cc …` with the working directory set to
+  the open project root, and cmd.exe resolves a bare command name from the
+  current directory before PATH — so a cloned/untrusted repo shipping
+  `cc.bat`/`cc.cmd` at its root was executed just from opening the panel or a
+  version probe. Every spawn now sets `NoDefaultCurrentDirectoryInExePath`.
+- **Stop no longer freezes the whole IDE on a hung agent.** The Stop button's
+  interrupt/force-kill did blocking stdin I/O on the EDT under the session lock;
+  a child whose stdin buffer was full (exactly the hung case the two-click
+  escalation targets) froze the UI and the second click could never dispatch.
+  The blocking work now runs off the EDT.
+- **A second message's pasted image is no longer deleted before it's sent.**
+  Sent-image temp files are tracked per-message (FIFO) and each turn deletes
+  only its own batch, instead of the first turn deleting every pending temp —
+  which destroyed a queued message's image before its turn started.
+- **A gcc `cc` on PATH is no longer mistaken for the CLI.** The version-probe
+  cache now requires a strict bare-semver first line (like binary resolution),
+  so a C-compiler `cc (GCC) 12.2.0` banner is not cached and reported as an
+  installed, up-to-date CLI.
+- **A mode change (`/auto` etc.) fired mid-spawn is no longer lost.** The
+  child-restart is serialized on the tab's send worker, and the shared session
+  fields are `volatile`, so a mode change racing a spawn reliably applies on the
+  next message instead of silently reusing the old-mode child.
+
 ## [0.4.45] — feat: live token tally + iteration warnings (VS Code parity) + bug sweep (B1–B9) + polish
 
 - **Live token counter while the agent works.** Each LLM call's `token_usage`

@@ -117,6 +117,13 @@ public final class CliLauncher {
                 }
             }
             env.put(pathKey, augmentedPath(env.get(pathKey), dirs, File.pathSeparatorChar));
+            // Security: our spawns run `cmd.exe /c cc …` with cwd = the open
+            // project root, and cmd.exe resolves a BARE command name from the
+            // current directory BEFORE PATH — so a cloned/untrusted repo shipping
+            // a `cc.bat`/`cc.cmd` at its root would be executed merely by opening
+            // the chat panel or a version probe. This tells cmd.exe (and
+            // CreateProcess) to skip the current-directory lookup.
+            if (windows) env.put("NoDefaultCurrentDirectoryInExePath", "1");
         } catch (Throwable ignored) {
             // best-effort — a locked-down SecurityManager must not break spawns
         }

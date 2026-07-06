@@ -25,11 +25,16 @@ public final class ConversationManager {
     public static final class Conversation {
         public final String id;
         public String title;
-        public String sessionId;   // resume id (nullable)
-        public Object session;     // opaque AgentChatSession handle (nullable)
-        public Object turnState;
-        public String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
-        public String thinking = "off"; // extended thinking (off|on|ultra)
+        // session / sessionId / turnState are read+written from BOTH the EDT
+        // (mode changes, Stop, tab lifecycle) and the per-tab send worker
+        // (ensureSession spawn + stdout pump) — volatile for cross-thread
+        // visibility. Ordering between a spawn and a mode-change restart is
+        // serialized on the single-threaded send executor by ConversationView.
+        public volatile String sessionId;   // resume id (nullable)
+        public volatile Object session;      // opaque AgentChatSession handle (nullable)
+        public volatile Object turnState;
+        public volatile String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
+        public volatile String thinking = "off"; // extended thinking (off|on|ultra)
 
         Conversation(String id, String title, String sessionId, Object turnState) {
             this.id = id;

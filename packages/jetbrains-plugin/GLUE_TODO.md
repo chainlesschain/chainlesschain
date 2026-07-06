@@ -196,7 +196,7 @@ an elevated mode can't go unnoticed (VS Code ui/status-bar.js parity — the
       `IdeBridgeService.start/stop`, `ConversationView` `/auto·/bypass·/normal`,
       and `ChatToolWindowFactory` tab create/switch/close
       (`activeModeFor(project)` reads the active tab's mode). `gradlew
-    compileJava` clean against 2024.2.
+  compileJava` clean against 2024.2.
 - [x] **runIde GUI pass (user-verified 2026-07-05)** — confirm the widget renders in
       the status bar, shows the port after startup, flips to `⚠bypass` on
       `/bypass`, reverts on `/normal`, follows tab switches, and the click
@@ -317,3 +317,33 @@ Glue-layer (needs the next pre-release runIde pass):
       amber / context red-gray all stay readable, no repaint artifacts.
 - [ ] **Version-probe cache** — open 3 tabs: only the first probes
       `cc --version` (others reuse); ⚙ LLM → 检查 cc 更新 still re-probes fresh.
+
+## 🔒 Security + correctness audit batch (P0/P1, unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
+
+Fan-out audit of the plugin surfaced 5 P0/P1 items; fixed + `compileJava` clean +
+`smokeTest` **345/0** (adds a `CliLauncher.augmentPath` hardening assertion).
+
+Pure/structural (smoke- or compile-covered):
+
+- [x] `CliLauncher.augmentPath` sets `NoDefaultCurrentDirectoryInExePath=1` on
+      Windows (cmd.exe won't run a repo-local `cc.bat` before PATH). Single
+      chokepoint — both `AgentChatSession` ProcessBuilder sites inherit it.
+- [x] version-probe cache gated on `AgentChatSession.looksLikeCcVersion` (strict
+      bare-semver) instead of `parseVersion`, so a gcc `cc` banner isn't cached.
+- [x] `Conversation.session/sessionId/turnState/mode/thinking` → `volatile`;
+      `restartForModeChange` teardown serialized on `sendExecutor`.
+- [x] sent-image temps tracked per-message FIFO (`Deque<List<String>>`); each
+      turn deletes only its own batch; dispose drains all + `images.clearAll()`.
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **Stop doesn't freeze the IDE** — send a big prompt to a hung/looping
+      agent, click Stop; the UI must stay responsive and a second click must
+      force-kill (`⏹ force-stopped`). No EDT freeze.
+- [ ] **Mode change mid-spawn** — press Enter then immediately `/auto`; the next
+      message must actually run in accept-edits mode (not silently stay normal).
+- [ ] **Queued-message image** — send msg1, then send msg2 with a pasted image
+      while turn 1 streams; msg2's image must attach (its `cc-paste-*.png` must
+      survive turn 1's end and be gone only after turn 2).
+- [ ] **cc.bat guard** — with a dummy `cc.bat` at a project root, opening the
+      panel must NOT execute it (onboarding still finds the real cc on PATH).

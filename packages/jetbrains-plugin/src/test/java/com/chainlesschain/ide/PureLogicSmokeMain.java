@@ -627,6 +627,18 @@ public final class PureLogicSmokeMain {
         check(!CliLauncher.looksLikeMissingCli(null), "null → not missing");
         check(CliLauncher.missingCliMessage().contains("npm i -g chainlesschain"), "guidance names the install command");
         check(CliLauncher.missingCliMessage().contains("22.12.0"), "guidance names the Node.js floor");
+        // Security: augmentPath hardens the child env against cwd-first cmd.exe
+        // resolution (a repo-local cc.bat would otherwise run). The flag is
+        // Windows-only; on POSIX there's no cmd.exe current-dir lookup to disable.
+        ProcessBuilder pb = new ProcessBuilder("cc", "--version");
+        CliLauncher.augmentPath(pb);
+        if (java.io.File.separatorChar == '\\') {
+            eq(pb.environment().get("NoDefaultCurrentDirectoryInExePath"), "1",
+                    "win: augmentPath sets NoDefaultCurrentDirectoryInExePath");
+        } else {
+            check(pb.environment().get("NoDefaultCurrentDirectoryInExePath") == null,
+                    "posix: no cwd-first hardening flag needed");
+        }
     }
 
     private static void cliVersionCheck() {
