@@ -7,6 +7,7 @@ import { registerStatusCommand } from "./commands/status.js";
 import { registerServicesCommand } from "./commands/services.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerUpdateCommand } from "./commands/update.js";
+import { registerChangelogCommand } from "./commands/changelog.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerPairCommand } from "./commands/pair.js";
 import { registerNotificationCommand } from "./commands/notification.js";
@@ -418,6 +419,7 @@ export function createProgram(opts = {}) {
   registerServicesCommand(program);
   registerConfigCommand(program);
   registerUpdateCommand(program);
+  registerChangelogCommand(program);
   registerDoctorCommand(program);
   registerPairCommand(program);
   registerNotificationCommand(program);

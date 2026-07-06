@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI `cc changelog`（别名 `cc whatsnew`）命令：npm 包每版更新说明离线可查
+
+> 纯 `packages/cli/src` 增量（新增 `commands/changelog.js` + `lib/changelog.js` 解析器 + `scripts/build-changelog.mjs` 构建器 + 生成的 `src/data/changelog.json`），未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动；随下次 CLI 发版一起发 npm。命令数 163 → **164**（清单已重生）。新增解析器 + 命令共 39 项单测本机全绿。
+
+- **命令**：`cc changelog` 显示当前版本 + 最近 5 条 CLI 更新（`← installed` 标出装机版）；`--all` 全部历史、`<version>` 指定版本（吃 CLI 版本 `0.162.150` 或产品版本 `v5.0.3.134` / 裸 `134`）、`-n/--limit` 控制条数、`--json` 机器可读。数据**离线随包**，无网络依赖、永远和装机版本对齐。
+- **数据源与「只显示 CLI 相关条目」**：唯一权威更新记录是根 `CHANGELOG.md`（按**产品版本** `v5.0.3.x` 组织），解析器把它蒸馏成 **CLI 专属**子集。难点是区分「真·CLI 发版」与「只捎带 bump 了 cli 版本号的 PDH/安卓采集器发版」，三道闸：① CLI npm 在 `0.x` alpha 轨、产品在 `5.x` → 版本 token 只取 `0.x`，天然滤掉 `v5.0.3.x` 误抓；② 大小写敏感的 `CLI` → 真 CLI 标题写大写「CLI/cc CLI」，捎带的 bundle note 写小写「cli 0.162.x」；③ 无 `###` 子标题的块只看 `##` 标题（每块都有 `Version surfaces: CLI 0.x` 样板行，信正文会全放行）。从 112 个产品版本块精准抽出 11 个真 CLI 发版（拼多多采集 / 浏览历史等 PDH 发版正确排除）。
+- **打包**：`build:changelog` 脚本在发版时（挂进 `prepublishOnly`）把 CHANGELOG 解析成 `src/data/changelog.json`（~30KB，CLI 子集），随 `src/` 一起发 npm；in-repo dev 无 JSON 时 `loadChangelog()` 回退直接解析根 CHANGELOG。
+
 ### Fixed — cc CLI 0.162.150：正确性 + 健壮性大扫（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.149 → **0.162.150** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（未触 `pdh/lib`）→ 无 Android cc bundle rollover / 无 USR_VERSION 改动（安卓 in-app cc 有意留 0.162.148）。发版前本机 unit+integration 全绿（22,933+ passed / 0 fail），Linux CI 测试门跑通。逐条明细见 docs-site changelog。

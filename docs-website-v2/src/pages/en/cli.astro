@@ -1,8 +1,20 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import cliPkg from '../../../../packages/cli/package.json';
+import { parseChangelog } from '../../../../packages/cli/src/lib/changelog.js';
+import { readFileSync } from 'node:fs';
 
 const CLI_VERSION = cliPkg.version;
+
+// Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
+// the same parser that powers `cc changelog` — no committed snapshot to go
+// stale. The changelog itself is authored in Chinese, so this page lists the
+// versions + dates and links to the full changelog for the detailed notes.
+const CLI_UPDATES = parseChangelog(
+  readFileSync(new URL('../../../../CHANGELOG.md', import.meta.url), 'utf-8'),
+)
+  .slice(0, 6)
+  .map((r) => ({ version: r.cliVersion, date: r.date }));
 
 const categories = [
   {
@@ -578,6 +590,32 @@ const packs = [
           cc's network / IO client layer is continuously hardened against Claude Code CLI: <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> verify the on-disk byte count (a silent truncation on a network / cloud-synced drive no longer reads as success); the MCP client surfaces <code class="font-mono text-sm">tools/list</code> failures, fails fast on a dead stdio server (no 30s hang) and times out HTTP requests; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> bounds request body + timeout + errors; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> verifies Content-Length + a stall timeout. Every guard ships with tests.
         </p>
       </div>
+    </div>
+  </section>
+
+  <!-- Recent CLI updates (npm) — derived from CHANGELOG.md at build time -->
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Recent updates · npm chainlesschain</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          Every release is on the record —<br/><span class="italic text-ember">read it with <code class="font-mono">cc changelog</code>.</span>
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          The CLI ships on its own npm alpha track (<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>). The most recent releases are below;
+          once installed, <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> shows the full per-version notes offline
+          (<code class="font-mono text-sm">--all</code>, <code class="font-mono text-sm">&lt;version&gt;</code>, <code class="font-mono text-sm">--json</code>).
+        </p>
+      </div>
+      <ol class="flex flex-wrap gap-3 max-w-3xl">
+        {CLI_UPDATES.map((r) => (
+          <li class="border border-line rounded px-3 py-2 bg-paper">
+            <span class="font-mono text-ember font-semibold">v{r.version}</span>
+            {r.date && <span class="ml-2 text-sm text-muted">{r.date}</span>}
+          </li>
+        ))}
+      </ol>
+      <a href="https://docs.chainlesschain.com/changelog.html" rel="noopener" class="inline-block mt-8 btn-ember">Full changelog ↗</a>
     </div>
   </section>
 

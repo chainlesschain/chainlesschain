@@ -26,6 +26,7 @@ describe("command registration", () => {
     expect(commandNames).toContain("services");
     expect(commandNames).toContain("config");
     expect(commandNames).toContain("update");
+    expect(commandNames).toContain("changelog");
     expect(commandNames).toContain("doctor");
 
     // Headless commands

@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-07-06T00:53:34.745Z",
+  "source": "CHANGELOG.md",
+  "releases": [
+    {
+      "productVersion": "Unreleased",
+      "cliVersion": "0.162.150",
+      "cliVersions": ["0.162.150"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI `cc changelog`（别名 `cc whatsnew`）命令：npm 包每版更新说明离线可查",
+          "body": "> 纯 `packages/cli/src` 增量（新增 `commands/changelog.js` + `lib/changelog.js` 解析器 + `scripts/build-changelog.mjs` 构建器 + 生成的 `src/data/changelog.json`），未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动；随下次 CLI 发版一起发 npm。命令数 163 → **164**（清单已重生）。新增解析器 + 命令共 39 项单测本机全绿。\n\n- **命令**：`cc changelog` 显示当前版本 + 最近 5 条 CLI 更新（`← installed` 标出装机版）；`--all` 全部历史、`<version>` 指定版本（吃 CLI 版本 `0.162.150` 或产品版本 `v5.0.3.134` / 裸 `134`）、`-n/--limit` 控制条数、`--json` 机器可读。数据**离线随包**，无网络依赖、永远和装机版本对齐。\n- **数据源与「只显示 CLI 相关条目」**：唯一权威更新记录是根 `CHANGELOG.md`（按**产品版本** `v5.0.3.x` 组织），解析器把它蒸馏成 **CLI 专属**子集。难点是区分「真·CLI 发版」与「只捎带 bump 了 cli 版本号的 PDH/安卓采集器发版」，三道闸：① CLI npm 在 `0.x` alpha 轨、产品在 `5.x` → 版本 token 只取 `0.x`，天然滤掉 `v5.0.3.x` 误抓；② 大小写敏感的 `CLI` → 真 CLI 标题写大写「CLI/cc CLI」，捎带的 bundle note 写小写「cli 0.162.x」；③ 无 `###` 子标题的块只看 `##` 标题（每块都有 `Version surfaces: CLI 0.x` 样板行，信正文会全放行）。从 112 个产品版本块精准抽出 11 个真 CLI 发版（拼多多采集 / 浏览历史等 PDH 发版正确排除）。\n- **打包**：`build:changelog` 脚本在发版时（挂进 `prepublishOnly`）把 CHANGELOG 解析成 `src/data/changelog.json`（~30KB，CLI 子集），随 `src/` 一起发 npm；in-repo dev 无 JSON 时 `loadChangelog()` 回退直接解析根 CHANGELOG。"
+        },
+        {
+          "heading": "Fixed — cc CLI 0.162.150：正确性 + 健壮性大扫（CLI-only npm 发版）",
+          "body": "> `chainlesschain` 0.162.149 → **0.162.150** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（未触 `pdh/lib`）→ 无 Android cc bundle rollover / 无 USR_VERSION 改动（安卓 in-app cc 有意留 0.162.148）。发版前本机 unit+integration 全绿（22,933+ passed / 0 fail），Linux CI 测试门跑通。逐条明细见 docs-site changelog。\n\n- **命令层正确性**：`mtc cross-trust-create --member` 冒号分隔公钥摘要被 `split(\":\",2)` 截断（损坏信任锚）；`cc loop --resume` 忽略 `[[loop:stop]]` 致循环永不终止；`cc lowcode deploy` DB 句柄错误致 100% 失败 + 漏退出码；`cc marketplace list --limit` 的 `parseInt` coercer 进制 bug 致 `--limit` 静默失效；`cc audit` 8 个 V2 子命令未 await 异步 `bootstrap()`。\n- **资源 / 生命周期**：LSPManager 惰性池并发重复 spawn 语言服务器；`AsyncHookSupervisor` 构造函数无条件注册 exit 监听器 + 未处理的异步 stdin EPIPE（Linux 上确定性崩进程）+ 结果数组无界。\n- **错误处理 / UX**：`logger.warn` 改 stderr（不污染 `--json`）；Ctrl-C `ExitPromptError` 干净取消（exit 130）；`cc team --exec` 不可信 plan 警示；`init` TTS shell 注入 sink 改无 shell；`cc team` worktree 合并失败真实上报（此前死 catch 当成功）。\n- **同批并行 session 硬化**：账本/钱包/身份写入原子化、~25 管理器跨进程状态水合、SQL LIKE 转义、marketplace/state-channel 持久化。"
+        },
+        {
+          "heading": "Tests — 修复 remote-session-crypto 篡改测试的不确定性（CLI CI flaky，非产品 bug）",
+          "body": "> 纯测试改动，未触 `packages/cli/src` → 无版本 bump / 无 npm 发版 / 无 doc 版本指针变化；`packages/cli` 三层测试本机全绿（unit 21,357 / integration 954 / e2e 617）。commit `383435582c`。\n\n- **`remote-session-crypto.test.js` 「rejects ciphertext tampering」flaky（~6%/run）**：该测试篡改密文的 base64url 串（`ciphertext.slice(0,-1)+\"A\"`）。密文为 41 字节（≡2 mod 3），base64url 末字符只承载 4 个有效 bit + 2 个 padding bit，故末字符必 ∈ `{A,E,I,M,Q,U,Y,c,g,k,o,s,w,0,4,8}`（低 2 bit 恒 0）；当末字符恰解码为 nibble 0 时替换成 `\"A\"` 是 no-op（1/16≈6.25%）→ 密文未变 → AES-GCM 验签仍通过 → `toThrow` 不成立。**实测此前备选修法 `last===\"A\"?\"B\":\"A\"` 同样有 6.19% no-op（`A→B` 只翻被丢弃的 padding bit）**。改为篡改解码后的字节（`Buffer.from(ct,\"base64url\")` → `raw[0]^=0xff` → 重编码），确定性（10 万次随机密文实测 0% no-op）；crypto 实现本身无问题，未改源码。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.134",
+      "cliVersion": "0.162.148",
+      "cliVersions": ["0.162.97", "0.162.123", "0.162.147", "0.162.148"],
+      "date": "2026-07-03",
+      "title": "CLI OAuth 命令注入修复 + MCP 列表加固 + workflow resume 重驱动 + Android cc bundle 20260703（USR 74）",
+      "sections": [
+        {
+          "heading": "Fixed — CLI 安全：OAuth 授权 URL 不再经 cmd.exe（命令注入）+ MCP 列表坏行加固",
+          "body": "> `chainlesschain` **0.162.148** 已发 npm `latest`；本产品发版把它连同 Android in-app cc bundle（binariesVersion `20260703` / USR `74`，携 cc-cli.tgz 0.162.148）一起送达真机用户。本地三层测试全绿（unit/integration 22,332 + e2e 617）；本机 `npm i -g` 实测 `cc --version`=0.162.148、`cc mcp servers` exit 0（走修过的列表路径）。\n\n- **OAuth openBrowser cmd.exe 命令注入（HIGH，远程可影响，commit `3f8626bc33`）**：`mcp-oauth.js defaultOpenBrowser` 用 `spawn(\"cmd\",[\"/c\",\"start\",\"\",url])` 打开授权页——Node 只对含空格/引号的参数加引号，故 URL 里的 `&`（OAuth query 必有）直达 cmd.exe 解析器：URL 在第一个 `&` 处截断、其余片段被当命令执行（实证 `a&state=y` → `'state' is not recognized...`）。授权 URL 来自**远程 MCP 服务器 metadata**，恶意服务器即可在 Windows 上执行任意命令。改为 `new URL()` 仅放行 http(s) + `rundll32 url.dll,FileProtocolHandler`（普通 exe，参数原样传递，无 shell）；`agent-runtime.js` 的 `execSync(\"start \\\"\\\" \\\"${url}\\\"\")` 同步收编。+4 回归测试。\n- **MCP 服务器列表坏行炸整列表（commit `3b362110ac`）**：`MCPServerConfig._rowToConfig` 用 `JSON.parse(row.args||\"[]\")`（`||` 只挡 NULL 不挡损坏值），`list()`/`getAutoConnect()` 逐行 map → 一条损坏行让 `cc mcp servers` 整体失败、自动连接全部跳过。改走 `safeJsonParse`（args→[]、env→{}）降级。+1 回归测试。"
+        },
+        {
+          "heading": "Tests — 修复两个「本地绿 / CI 红」的 CLI 测试，解除 npm-publish test 门禁（已发 chainlesschain 0.162.147）",
+          "body": "> `npm-publish.yml` 的 test job 被两个仅在 CI 失败的 CLI 测试反复挡住，CLI 连续几轮发不出去（npm `latest` 卡在 0.162.143）。两者均为**测试 bug、非产品 bug**；修复后 test 门禁转绿，成功发版 `chainlesschain` **0.162.147**（commit `7da6d97093`；test + publish 两 job 全绿；干净 temp 目录 `npm i` 实测 4 别名 shim + `cc --version` → 0.162.147）。\n\n- **`did-manager.test.js` LIKE 转义回归（flaky ~1/64）**：该回归用 `createIdentity` 生成的随机 base64url DID；base64url 字母表含 `_`，约 1/64 概率 DID 本体首字符为 `_`，此时 `getIdentity(\"did:chainless:_\")`（`_` 已被 `LIKE ... ESCAPE '\\'` **正确转义为字面**）会**正当前缀匹配** `did:chainless:_gBB...` → `toBeFalsy()` 挂。`getIdentity` 代码本身正确。改为直接 INSERT 固定 DID（A/B 开头，永不撞 `_`/`%`）去随机性，并加 `getIdentity(\"did:chainless_\")` 用例证明 `_` 被当字面而非通配（通配 `_` 会误匹配真 DID 的 `:` 分隔符）。\n- **`cli-aliases.test.js`（unit + e2e）bin 路径断言**：`npm install` 会把工作区 `package.json` 的 bin 路径正规化、剥掉前导 `./`，故 CI 装完依赖后读到 `bin/chainlesschain.js`（committed 为 `./bin/…`），断言 `=== \"./bin/chainlesschain.js\"` 本地过、CI 挂。改为比较前 `stripDot`（去前导 `./`）归一，committed 与 post-install 两种形式都过。"
+        },
+        {
+          "heading": "Added — cc CLI 0.162.123：凭据读取保护 + Claude Code 2.1.191 平价五则（已发 npm）",
+          "body": "> CLI-only 发版（`chainlesschain` 0.162.122 → **0.162.123**，已发 npm `latest`，弃用区间 `<0.162.123 || >0.162.123`，212 版仅 0.162.123 live）。纯 `packages/cli/src`，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。全部带回归单测。\n\n- **凭据读取保护（安全，对照 2.1.189 `sandbox.credentials`）**：cc 无 OS 沙箱，故在工具层堵截——Agent 读凭据文件（`.env` 及真实变体、`~/.aws/credentials`、`~/.kube/config`、私钥证书 `*.pem/.key/.pfx/...`、`secrets.{json,yaml}` 等；`.env.example`/`*.pub`/`*.crt` 等不拦）或打印密钥型环境变量（`echo $ANTHROPIC_API_KEY` / `printenv` / 全量 `env` dump）经 `read_file` / `run_shell` 时**确认优先、headless fail-closed**；复合命令逐段查；仅消费不回显的 `--token $X` 不拦。`content_search`（Windows `findstr /n` 会回带匹配行）命中凭据文件时把整条 redact 成存在性标记，密钥行不入上下文。settings `allow` 旁路，`CC_CREDENTIAL_GUARD=0` 关；有意保留于 `--safe-mode`（安全面非自定义）。\n- **hook matcher 逗号分隔（对照 2.1.191）**：`.claude/settings.json` hooks 的 matcher 此前只认 `|`（管道），`\"Bash,PowerShell\"` 编成字面串 `^Bash,PowerShell$` → **逗号 matcher 静默永不触发**。改为 `|` 与 `,` 都认，并丢弃空段（顺带修旧 trailing-`|`/`,` 塌成 match-all 的隐患）。\n- **MCP 瞬态错误重试 + 清晰 404（对照 2.1.191）**：能力发现（`initialize` + `tools/list`）对瞬态网络错误（连接级失败 + 5xx）短 backoff 重试（250/500ms，最多 3 次），4xx/超时/死进程不重试；MCP OAuth 发现/取 token 在 `fetchJson` 单一收口处瞬态错误重试一次（4xx 不重试，保 discovery 故意探 404 的快速 fall-through）；HTTP 404 错误带上服务器 URL 并指向 MCP 配置（替代裸 `HTTP 404`）。\n- **`/rewind clear` 恢复被 `/clear` 清空的对话（对照 2.1.191）**：`/clear` 此前不可逆，现先 stash pre-clear 对话 + checkpoint marks → `/rewind clear`（别名 `/rewind undo-clear`）原地 swap 恢复（restore 自身可撤销）；no-arg picker 与 `/help` 在有 stash 时提示；`/session resume` 清 stash 防跨会话误恢复。\n- **vim NORMAL `/` 提示 slash 命令（对照 2.1.191）**：cc vim NORMAL 无历史搜索（readline 在 INSERT 管历史），`/`/`?` 此前只响 bell，现提示「press i, then type /command（历史 = ↑ / Ctrl-R）」。"
+        },
+        {
+          "heading": "Added — cc CLI 0.162.97：流式停顿提示显示重试/超时倒计时（对照 Claude Code 2.1.185）",
+          "body": "> CLI-only 发版（`chainlesschain` 0.162.96 → 0.162.97，已发 npm `latest`，仅 0.162.97 live）。pdh 0.4.30 不变 → 无 Android cc bundle rollover / 无 USR_VERSION 改动（未触 `pdh/lib`）。\n\n- **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。\n- 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。"
+        },
+        {
+          "heading": "Fixed — cc CLI 正确性修复五则（待随下次 CLI 发版交付）",
+          "body": "> CLI-only，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。均含回归单测。\n\n- **MTC 多签溯源校验（安全）**：`verifyMultisigProvenance` 是 M-of-N 结构校验器，存在两处完整性缺口——① 从不限制 `signers.length ≤ member_count_n`，故声明 N 成员却列更多签名者的溯源在无 `policy.members` 名册时会通过；② 排序检查允许**重复签名者**（`[\"a\",\"a\",\"a\"]` 也算「已排序」），单个成员可通过重复自身达成 M-of-N 阈值。补 `TOO_MANY_SIGNERS` 与 `DUPLICATE_SIGNER` 两项拒绝。\n- **`cc dlp incidents` resolved 过滤**：`listIncidents` 处理了 `filter.resolved === false`（仅未解决）却漏了 `=== true` 分支 → `{resolved:true}` 静默返回全部事件而非仅已解决的（`listIncidentsV2` 本就两分支都处理）。补齐 `=== true`（按 `resolvedAt` 过滤）。当前 V1 命令只传 channel/severity，故为潜在契约缺口而非线上回归。\n- **`cc note list --tag` 与 `--limit` 组合**：此前先在 SQL 取最近 N 条再在内存按标签过滤 → `--tag X --limit N` 返回的是「最近 N 条里恰好带 X 标签的」（常远少于 N，甚至为 0），而非「最多 N 条带 X 标签的笔记」。改为带标签过滤时不下推 SQL `LIMIT`、先过滤再截断到 N（`--category` 是真实列、本就 SQL 过滤在 LIMIT 之前，标签现与其行为一致）。\n- **`cc loop` 时长解析**：`parseDuration(30)`（数字入参）此前按毫秒返回 `30`，与函数文档契约「裸数字按秒」及字符串路径（`parseDuration(\"30\") === 30000`）自相矛盾。改为数字入参也按秒（`parseDuration(30) === parseDuration(\"30\")`）。当前生产调用方均传字符串，故为潜在不一致而非线上回归。\n- **`cc cost` 价格覆盖**：`mergePricing` 此前把用户 `llm.pricing` 覆盖项写在配置原始大小写的 provider 键下，而 `lookupRate` 始终按小写查表、内置表键也是小写 → 形如 `{\"Anthropic\": [...]}` 的混合大小写覆盖落到不可达键被静默忽略。改为归一化 provider 键为小写，使覆盖正确合并并替换内置费率。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.123",
+      "cliVersion": "0.162.96",
+      "cliVersions": [
+        "0.27.0",
+        "0.162.66",
+        "0.162.76",
+        "0.162.77",
+        "0.162.78",
+        "0.162.81",
+        "0.162.82",
+        "0.162.96"
+      ],
+      "date": "2026-06-21",
+      "title": "安全/鲁棒性硬化一批（退役模型清退 / NaN 校验 / XSS·路径穿越 / notebook 工具 / PDH query_app_data）+ MTC 联邦创始投票修复 + module 101 Phase 2 UI（CLI 0.162.96）",
+      "sections": [
+        {
+          "heading": "Added — FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（v5.0.3.120）",
+          "body": "> 好友语音/视频通话历史落库 + 通话记录可查看，来电铃声/振动/去电回铃音，CLI 各处 fetch 加超时防挂死。cli 0.162.81 已发 npm。\n\n- **通话历史落库**：`CallManager` 终态经 `CallHistoryRecorder` seam（默认 NOOP 保单测纯净）落库 `call_history`；`MainActivity` 注入 `RoomCallHistoryRecorder`（Room 实现）；记录来/去电、未接、音视频类型与挂断原因。\n- **好友资料页查看通话记录**：好友资料页「查看通话记录」接通 `call_history/{peerDid}` 路由 → `CallHistoryScreen`/`CallHistoryViewModel`（按 peerDid 过滤/全部，Flow 读取）。\n- **来电铃声/振动 + 去电回铃音**：来电播放系统铃声 + 振动，去电播放回铃音（修「来电无声音」）。\n- **CLI 网络鲁棒性**：webhook notifiers、`cc update`/`vcheck` 的 update-check fetch、provider 连通性探针均加超时（dead endpoint 不再永久挂起）。\n- **CLI 数值守卫**：reputation / 插件收益分账拒绝 NaN 的 score/amount，避免污染余额。"
+        },
+        {
+          "heading": "Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）",
+          "body": "> 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑 ~3.3s 即打印 URL，姊妹测试全过）。已合并 `26a811874`，验证 89/89。详见内部手册 trap #31。\n\n- **ui-command / web-panel**：`startUiServer` readiness fallback 8s/10s → **25s**（旧逻辑到期后静默 `resolve` 出空 output，把\"启动慢\"翻译成 `expected '' to contain URL` 的误导性断言，并级联砸了同块 13 个测试）。后续补齐同文件 `--token` / `--web-panel-dir` 两个 describe 块自带的内联就绪等待（同样 8s，重负载下 ECONNREFUSED 级联 7 个测试）→ 也提到 **25s**（`a793e013e`），全文件 3 处就绪 fallback 现一致。\n- **coding-agent-envelope-roundtrip / serve-command**：`waitForReady` 默认 10s → **25s**（均远小于 30s `hookTimeout`，又足够扛冷启动；serve-command `98b09cab1`）。serve-command 另把 `collectMessages` 默认 10s → **25s**（流式 WS `stream-data`/`stream-end` 在冷命令执行后才到，旧时 `dataMsg` 取到 undefined；`b15fb408c`）。\n- **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连串行子进程冷启动）**120s**；\"both code paths\" 等价性测试（4 连冷启动，`cbfbc08f9`）**90s**（旧时均撞 60s 全局默认超时）。\n- **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s < 内部子命令自身 30s 超时，vitest 在子命令超时处理跑之前就杀了测试；提到 **40s**。\n- **integration 重活测试**（`ab81feca4` + `92571e92c` + `055e01d2a`，同 trap #31 模式延伸到集成层）：`crosschain-multisig-e2e` happy-path 2-of-2（policy→propose→sign→consume→bridge）+ `mtc-federation-governance-sync-cli` alice publish→bob pull + `marketplace-multisig-e2e` ¥1500 order（policy→purchase→sign→consume）+ `multisig-cli` policy→propose→sign×2→finalize，各多次串行 CLI 冷启动，重负载下反复撞 60s 全局默认（隔离全绿）→ 各给显式 **90s**。\n- **系统性收口（`2a6cdc293`）**：与其逐个 flake 加 per-test 预算，把 base vitest config 的 `testTimeout` **60s → 90s**——unit + integration 本地与 CI shard 都跑在这个 base config 上，一处覆盖整个重活集成族（per-test 90s/120s 覆写保留作最重流程的显式文档）；unit 共享但很快，唯一代价=真卡死的 unit 测试在 90s（而非 60s）才失败。e2e 仍用自有 config（`vitest.e2e.config.js`）。\n- **install-and-run execSync 子进程超时**（`f23aaeb80`）：`--version` / `--help` / `config list` 三处 `execSync` 用 10s，重负载冷启动 `spawnSync cmd.exe ETIMEDOUT`（漏网于 README 2026-06-14 的 15s→30s 族）→ 提到 **30s**。\n- 注：与 README `2026-06-14` 的\"24 个 e2e 文件**子进程** timeout 15s→30s\"正交——那条调 `execSync` 子命令超时，本次调的是 **server-readiness 等待器 + per-test 预算**。"
+        },
+        {
+          "heading": "Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）",
+          "body": "> 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。\n\n- **`cc review` — diff-first 代码审查（`/code-review` 平价）**：默认审工作区 vs HEAD，可 `--staged` / `--base <ref>`（PR 式 `base...HEAD`）/ `--range A..B` / `--paths`，并内联未跟踪新文件；`low|medium|high` 力度档；`--security`（/security-review）+ `--simplify`（/simplify，只清理不抓 bug）两视角。只读走 plan 权限出 Markdown 报告；`--fix` 走 acceptEdits + 自动 checkpoint 直接落地（每次编辑可 `cc checkpoint restore` 回滚）；`--comment` 解析机读 JSON findings → 经 `gh` 在当前分支 PR 发行内评论（`--dry-run` 预览 + 交互确认）。\n- **headless 无人值守硬化**：`--max-budget-usd <amount>`（按 cc cost 价格表累计成本，到顶前停，免跑飞）；`--strict-mcp-config`（只用 `--mcp-config` 服务器，忽略已注册 + IDE 桥，工具面可复现）；`--replay-user-messages`（stream 输入回显用户消息便于转录/对账）。\n- **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用 + 错误率 / 时长 / token + 估算 $ 成本，纯 JSONL 复盘；从 `session_start` 回填模型给 headless 会话定价（强于 `cc cost`）。\n- **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.107",
+      "cliVersion": "0.162.46",
+      "cliVersions": ["0.4.5", "0.162.40", "0.162.41", "0.162.45", "0.162.46"],
+      "date": "2026-06-12",
+      "title": "feat: 个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612（cli 0.162.46 / pdh 0.4.5）",
+      "sections": [
+        {
+          "heading": "cc CLI 0.162.41 — Claude-Code 平价终章：项目记忆（cc.md）+ REPL steering + 结构化输出（2026-06-11，已单独发 npm，随本版产物一并发布）",
+          "body": "> 对照 Claude Code 的 CLI 平价 backlog（P0×3 + P1×7 + Phase 2 配套）一日清空并发版；发布产物经全局安装实测（init 盘点 / 记忆链 / json-schema / mcp serve 全通）。文档四面（docs/cli、docs-site、官网 zh+en、README zh+en）+ 设计文档 module 99 已同步，docs+www 已部署上线。\n\n#### Feat — 项目记忆体系（claude CLAUDE.md 平价，自有主名 cc.md）\n\n- `cc agent` 自动加载 `cc.md` > `CLAUDE.md` > `AGENTS.md` 层级（用户级/项目链/local 伴随，`@path` 递归 import，48K/192K 预算 fail-open，`CC_PROJECT_MEMORY=0` 关）（`0718e3ab6`）\n- `cc init` 默认改为项目盘点生成 cc.md（`/init` 平价，模板退 `-t/--bare`，web-panel 零破坏）+ 最小 `.chainlesschain/`（config + skills/ 工作区）（`137e0f519` · `052e4ec1d`）\n- 防遮蔽：已有 CLAUDE.md/AGENTS.md 自动 `@import` 进生成的 cc.md；`.chainlesschain/rules.md` 入加载链（`052e4ec1d`）\n- 路径作用域规则：`.claude/rules/*.md` frontmatter `paths:` 按 cwd 前缀重叠过滤入链 + `cc memory files` 加载链可观测 + `cc session search` 转录全文搜索（`5dedc7718`）\n- `cc init --ai`：盘点后有界 headless agent 精炼 Conventions（自指防护 `CC_PROJECT_MEMORY=0`，throw-safe）（`5d3724449`）\n\n#### Feat — REPL steering 三件套 + 快捷键\n\n- 排队输入：回合中输入 FIFO 排队自动续跑，顺带修掉并发回合 race（`27d318e99`）；Esc 即时中断（复用 agentLoop AbortSignal seam，零改 agent-core）（`bf62aeca8`）；`/rewind` + 空闲双 Esc 会话回退（原文回填改完重发）（`f718e1003`）\n- `! <cmd>` bash 直通（输出回灌上下文）+ `# <note>` 快捷记忆入 cc.md（`6d1f8b5a5`）；`/context` 实时窗口占用（`94d685737`）；`/` 命令 TAB 补全（`127da0aab`）；`--resume` 离线恢复摘要（`1066396d1`）\n\n#### Feat — 结构化输出与生态出口\n\n- `cc agent -p --json-schema <file>`：回答经 JSON Schema 子集校验 + 纠错重试 3 次，stdout 只出合规 JSON；经 runner `deps.writeOut` 捕获 seam 实现，零碰并行占用文件（`fe9d61dd0`）\n- `cc mcp serve`：本机文件工具反向暴露为 Streamable-HTTP MCP server（root 限域 + Bearer，`--read-only`/`--no-auth`）（`b291381e0`）\n- `cc session export <id|last>`：agent JSONL 会话转录导出 Markdown 回退源（`6d2421610`）；启动被动版本提醒（缓存 + detached 后台刷新，`CC_UPDATE_NOTICE=0` 关）（`dc639c546`）\n\n#### Release\n\n- `chainlesschain` CLI 0.162.40 → 0.162.41 已发 npm（`dba66708b`，workflow run 27329836460，~120 新增单测随包）"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.105",
+      "cliVersion": "0.162.38",
+      "cliVersions": ["0.162.38"],
+      "date": "2026-06-10",
+      "title": "feat: cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新（终结 .101 stale 缺口）",
+      "sections": [
+        {
+          "heading": "Feat —— cc CLI 0.162.38（Claude-Code 平价三连）",
+          "body": "- MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL（`3481e2595`）\n- `SubagentStop` settings.json hook（`9c349cb9a`）\n- `cc agent --fork-session`：复制既有会话为新分支继续（`d97003d3c`）"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.104",
+      "cliVersion": "0.162.37",
+      "cliVersions": ["0.162.37"],
+      "date": "2026-06-10",
+      "title": "chore: CLI 0.162.37（IDE 桥接收官）+ 全平台版本对齐 + docs/品牌清扫（补记）",
+      "sections": [
+        {
+          "heading": "",
+          "body": "> （补记条目 —— 发版当时未写 changelog）本版主体：①CLI 0.162.37 发 npm（IDE 桥接全 Phase 收官后的聚合版）；②iOS/Android/desktop 版本对齐 v5.0.3.104；③VS Code 扩展 Open VSX 自动发布 CI（`6fd4ffc2f`）+ 图标重绘三连；④JetBrains buildPlugin 修复（关 instrumentation，`3c2516ca0`）；⑤docs-site 新增 8 个 CLI 用户文档页（cc goal/cost/checkpoint/command/statusline/mcp OAuth/web_search/run_shell 后台）+ Family Guard 用户页 + V2 治理命令开发者参考；⑥发布文档脱敏（个人签名者信息清扫，`b83c80049`）；⑦桌面端 vitest-4 stub bug + 12 个 stale 测试修复。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.102",
+      "cliVersion": "0.162.36",
+      "cliVersions": ["0.162.36"],
+      "date": "2026-06-10",
+      "title": "feat: IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行 Claude-Code 平价收官 + cc agent 多模态视觉输入",
+      "sections": [
+        {
+          "heading": "",
+          "body": "> 本版把 cc 命令行向 Claude Code 的平价能力收官，并新增 IDE 桥接与多模态视觉输入：①IDE 桥接 —— 新增 `cc ide` 命令 + VS Code 扩展，自动发现并连接编辑器内置的 MCP server，支持 `openDiff` 接受/拒绝往返（CLI 命令数 149 → 150）；②cc 命令行 Claude-Code 平价收官 —— MCP OAuth 远程授权、自定义及内置上下文用量状态栏、输出风格、`web_search` 可插拔搜索、扩展思考、`settings.json` 全事件 hooks 及 block 语义、headless `agent -p`、`/compact` 自动压缩、`cc checkpoint` 双引擎、权限规则；③`cc agent --image` 多模态视觉输入（自动使用配置的视觉模型）。CLI 0.162.36 已发 npm。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.101",
+      "cliVersion": "0.162.33",
+      "cliVersions": ["0.4.3", "0.162.31", "0.162.32", "0.162.33"],
+      "date": "2026-06-09",
+      "title": "feat: CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件 + U-Key 托管层（gated）",
+      "sections": [
+        {
+          "heading": "Feat #1 —— CLI Claude-Code 平价收尾（headless agent + cost + checkpoint）",
+          "body": "- headless `agent -p` 全家桶：`--output-format` / `--max-turns` / `--allowed-tools` / `--disallowed-tools` / `--permission-mode` / stdin、`--input-format stream-json`（多轮）、`--system-prompt` / `--append-system-prompt`、`--add-dir` 多根工作区、`--fallback-model`（`8bc327c16` · `7ababb358` · `2d8140cfe` · `c0e1293d2` · `1eebafe18` · `8fb623f43`）\n- `@file` 引用在 `ask` + `chat` 非 agent 入口平价（`7599d02e7` · `888454ff8`）\n- `cc cost` token 计费 + 配置化价格覆盖 `llm.pricing`（`7f294ab5d`）\n- 文件态 `cc checkpoint` / rewind（git plumbing 影子提交，零触工作区/真索引，`eb187d122`）\n- 共享交互式 session picker，`cc session resume` 复用（`6f3451eba` · `d9f116284`）\n- **跟进（CLI 0.162.33，单独 npm 发布）**：headless 上下文自动压缩 + 手动 `cc compact`（Claude-Code `/compact` 对标）——`agent -p` / `--resume` 长会话超阈值时本轮自动压缩（默认开，按模型 context window 自适应；`preserveToolPairs`/`sanitizeToolPairs` 保证截断/snip 不留孤儿 tool 结果或无应答 tool_calls），并写 `compact` 事件供 `--resume` 从短历史重建（self-persist gated `sessionExists`，一次性 `-p` 不写）；`cc compact <id>` 离线压缩存档会话；`stream-json` 出 `compaction` 事件（`95fac914d` · `0f50f7b6f` · `9671c7581` · `68f2dc3cc`）\n- 修：headless stdout 不再混入 bootstrap 日志（`26c95e0ee`）；`--disallowed-tools` 此前静默无效（`chatWithTools` 丢 caller deny-list，现合并 persona + caller 两个 deny-list + 回归测试）"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.100",
+      "cliVersion": "0.162.30",
+      "cliVersions": ["0.4.1", "0.162.29", "0.162.30"],
+      "date": "2026-06-08",
+      "title": "chore(release): 版本对齐发布（CLI npm 发布通道修复 + PDH 0.4.1）",
+      "sections": [
+        {
+          "heading": "Fix —— CLI npm 发布通道修复（web-panel prepublishOnly 构建）",
+          "body": "- `chainlesschain` 的 `prepublishOnly → npm run build:web-panel` 在 `npm publish` 下长期失败：`vite ERR_MODULE_NOT_FOUND @vitejs/plugin-vue`。\n- 真因：构建脚本跑在父 `npm publish` 内，父 npm 泄漏 `npm_config_local_prefix` / `npm_config_*` 指向真实仓库根，子 `npm install` 因此把依赖装到真实根而非构建目录 → vite 解析不到工具链（standalone 运行正常，故只在 CI / publish 下复现）。\n- 修复：`build-web-panel.mjs` 改为**隔离 temp 目录构建** + **scrub `npm_config_*` / `npm_package_*` / `INIT_CWD` 环境变量**，子 npm 把 temp 目录当成自己的工程根。CLI 从此可正常发版（npm-publish dry-run 绿，CLI tarball 3.4 MB / 720 files）。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.84",
+      "cliVersion": "0.162.17",
+      "cliVersions": ["0.162.17"],
+      "date": "2026-05-23",
+      "title": "hotfix4: CLI + desktop 接通 PDH 11 个 no-arg adapter (+ 修 2 个静默吞错)",
+      "sections": [
+        {
+          "heading": "",
+          "body": "> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 `AdapterRegistry.syncAdapter: no adapter <X>`：CLI 的 `personal-data-hub-wiring.js` 只 `new BilibiliAdapter()` 一个，desktop 的 `wiring.js` 也只有 Bilibili。PDH 0.2.3+ ship 了 9 个 social/messaging + 5 个 map/shopping snapshot-mode adapter。第一轮补 8 个 (94b0ecf25c) 时把 Telegram/WhatsApp 也塞 for-loop 但它们 ctor 需要 account 参数 → 被 try/catch silent 吞，实际从未 register。第二轮 audit 修正后 land 11 个真正 no-arg + 注明 6 个需 per-account credential 的 defer。\n\n- **`packages/cli/src/lib/personal-data-hub-wiring.js`** (`94b0ecf25c` + 跟随)：boot 时 for-loop 11 个 adapter (`Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou / QQ / BaiduMap / TencentMap / Jd / Meituan / Pinduoduo`)，每个 try/catch 独立。镜像既有 Bilibili wire 模式。\n- **`desktop-app-vue/src/main/personal-data-hub/wiring.js`**：同款 11 个 adapter wire，per `feedback_cross_shell_feature_pattern` 保证 desktop IPC 与 CLI/web-shell 看到同一份 registry。\n- **Defer**：6 个需 per-account credential 的 adapter 需 `<vendor>-accounts.json` loader infra（镜像 email/alipay/wechat 模式）后续 phase 接：`Train12306` (username) / `Ctrip` (email) / `Amap` (deviceId) / `Taobao` (userId) / `Telegram` (userId) / `WhatsApp` (phone)。\n- **`chainlesschain` (CLI) 0.162.16 → 0.162.17**：bundle 本修。PDH 不动（仍 0.2.4）。"
+        }
+      ]
+    },
+    {
+      "productVersion": "v5.0.3.68",
+      "cliVersion": "0.162.3",
+      "cliVersions": ["0.162.2", "0.162.3"],
+      "date": "2026-05-20",
+      "title": "CLI npm 0.162.3 catch-up (Phase 5.1-5.6 hub + cc ui fixes)",
+      "sections": [
+        {
+          "heading": "",
+          "body": "v5.0.3.67 desktop release succeeded (all 11 jobs green) but `publish-cli` saw `chainlesschain@0.162.2` already on npm registry and skipped. Net effect: users running `npm i -g chainlesschain` still got 0.162.2, missing all Phase 5.1-5.6 hub work and 3 cc ui fixes. **v5.0.3.68 is a CLI catch-up release that explicitly bumps the npm package to 0.162.3.**\n\n**CLI bump content (0.162.2 → 0.162.3)**: Phase 5.1 EmailAdapter IMAP / 5.2 body+attachment / 5.3 Layer 1+2 classifier / 5.4 6 template extractors / 5.5 PDF decryption + transactions / 5.6 config wizard + sync status; Phase 4 cross-shell PersonalDataHub view; `cc ui` LAN urls+token banner / force-exit timer must not unref / SIGINT 2s graceful timeout.\n\n**Pipeline**: 26/26 jobs green (5 builds + 16 cli-test shards + create-release + publish-cli + changelog + finalize). Release published with 18 assets at 2026-05-19T15:50:55Z.\n\n**Version surfaces**: CLI 0.162.2→0.162.3 / productVersion v5.0.3.67→v5.0.3.68 / desktop-app-vue 5.0.3-alpha.67→.68 / iOS CFBundleVersion 67→68 / Android versionCode 503067→503068, versionName 5.0.3.67→5.0.3.68."
+        }
+      ]
+    }
+  ]
+}

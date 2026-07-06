@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 163,
+  "commandCount": 164,
   "commands": [
     {
       "name": "a2a",
@@ -113,6 +113,13 @@
       "module": "./commands/ccron.js",
       "register": "registerCcronCommand",
       "summary": "Cowork Cron V2 governance (in-memory, CLI v0.143.0)"
+    },
+    {
+      "name": "changelog",
+      "aliases": ["whatsnew"],
+      "module": "./commands/changelog.js",
+      "register": "registerChangelogCommand",
+      "summary": "Show cc CLI version update notes (npm package changelog)"
     },
     {
       "name": "chat",

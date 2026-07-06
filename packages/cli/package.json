@@ -23,7 +23,8 @@
     "postinstall": "node scripts/postinstall.mjs",
     "build:web-panel": "node scripts/build-web-panel.mjs",
     "build:web-panel:force": "node scripts/build-web-panel.mjs --force",
-    "prepublishOnly": "npm run build:web-panel"
+    "build:changelog": "node scripts/build-changelog.mjs",
+    "prepublishOnly": "npm run build:web-panel && npm run build:changelog"
   },
   "engines": {
     "node": ">=22.12.0"

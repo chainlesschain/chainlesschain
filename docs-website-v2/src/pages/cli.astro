@@ -1,8 +1,28 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import cliPkg from '../../../packages/cli/package.json';
+import { parseChangelog } from '../../../packages/cli/src/lib/changelog.js';
+import { readFileSync } from 'node:fs';
 
 const CLI_VERSION = cliPkg.version;
+
+// Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
+// the same parser that powers `cc changelog`. No committed snapshot to go stale:
+// every site rebuild re-reads the source of truth, so a redeploy after any
+// release reflects the latest npm versions automatically.
+const CLI_UPDATES = parseChangelog(
+  readFileSync(new URL('../../../CHANGELOG.md', import.meta.url), 'utf-8'),
+)
+  .slice(0, 6)
+  .map((r) => ({
+    version: r.cliVersion,
+    date: r.date,
+    productVersion: r.productVersion,
+    summary: (r.sections[0]?.heading || r.title || '')
+      .replace(/^(chore|feat|fix|docs|refactor|perf|style|test)(\([^)]*\))?:\s*/i, '')
+      .replace(/^\W*(Fixed|Added|Changed|Tests|Security|Feat|Fix|chore|Removed|Deprecated)\b[^—]*—+\s*/i, '')
+      .trim(),
+  }));
 
 const categories = [
   {
@@ -576,6 +596,35 @@ const packs = [
           对照 Claude Code CLI 持续硬化 cc 的网络 / IO 客户端层：<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> 落盘后校验字节数（网络盘 / 云同步盘静默截断不再假成功）；MCP 客户端 <code class="font-mono text-sm">tools/list</code> 失败显式可见、stdio 进程猝死立即失败（不挂 30s）、HTTP 请求补超时；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> 请求体上限 + 超时 + 错误处理；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> 下载校验 Content-Length + 停滞超时。每项都带专项测试。
         </p>
       </div>
+    </div>
+  </section>
+
+  <!-- Recent CLI updates (npm) — derived from CHANGELOG.md at build time -->
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">最近更新 · npm chainlesschain</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          每次发版都有据可查，<br/><span class="italic text-ember">装了就能 <code class="font-mono">cc changelog</code> 翻。</span>
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          CLI 走 npm alpha 轨（<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>）独立发版。以下是最近几次 CLI 更新；
+          装了以后终端里 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> 可离线查看完整版本说明
+          （<code class="font-mono text-sm">--all</code> 全部历史、<code class="font-mono text-sm">&lt;version&gt;</code> 指定版本、<code class="font-mono text-sm">--json</code> 机器可读）。
+        </p>
+      </div>
+      <ol class="space-y-4 max-w-3xl">
+        {CLI_UPDATES.map((r) => (
+          <li class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 border-b border-line pb-4">
+            <div class="shrink-0 sm:w-48">
+              <span class="font-mono text-ember font-semibold">v{r.version}</span>
+              {r.date && <span class="ml-2 text-sm text-muted">{r.date}</span>}
+            </div>
+            <p class="text-muted leading-snug">{r.summary}</p>
+          </li>
+        ))}
+      </ol>
+      <a href="https://docs.chainlesschain.com/changelog.html" rel="noopener" class="inline-block mt-8 btn-ember">查看完整更新日志 ↗</a>
     </div>
   </section>
 
