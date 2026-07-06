@@ -238,3 +238,44 @@ describe("chat HTML embeds the completion (parse gate)", () => {
     }
   });
 });
+
+// ─── @-mention file cache TTL (new files appear mid-session) ────────────────
+
+describe("chat-view file cache TTL", () => {
+  it("re-scans after the TTL so files created mid-session show up", async () => {
+    const { ChatViewProvider } =
+      await import("../../../vscode-extension/src/chat/chat-view.js");
+    let scans = 0;
+    const provider = new ChatViewProvider(
+      {
+        commands: { executeCommand() {} },
+        workspace: {
+          workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+          getConfiguration: () => ({ get: () => undefined }),
+          findFiles: async () => {
+            scans += 1;
+            return scans === 1
+              ? [{ fsPath: "/ws/old.js" }]
+              : [{ fsPath: "/ws/old.js" }, { fsPath: "/ws/brand-new.js" }];
+          },
+        },
+      },
+      {},
+    );
+    const first = await provider._listWorkspaceFiles("");
+    expect(scans).toBe(1);
+    expect(first.some((f) => f.value === "old.js" || f === "old.js")).toBe(
+      true,
+    );
+
+    // Within the TTL: cached, no rescan.
+    await provider._listWorkspaceFiles("brand");
+    expect(scans).toBe(1);
+
+    // Age the cache past the TTL — next popup rescans and sees the new file.
+    provider._fileCacheAt = Date.now() - 31_000;
+    const later = await provider._listWorkspaceFiles("brand");
+    expect(scans).toBe(2);
+    expect(JSON.stringify(later)).toContain("brand-new.js");
+  });
+});

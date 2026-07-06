@@ -218,4 +218,20 @@ class ConversationManager {
   }
 }
 
-module.exports = { ConversationManager };
+/** True for titles the user never customized ("Chat 3" defaults). */
+function isDefaultTitle(title) {
+  return /^Chat \d+$/.test(String(title || ""));
+}
+
+/**
+ * Derive a tab title from the first user message: whitespace collapsed,
+ * capped at 30 chars (an ellipsis marks truncation). Returns "" for
+ * blank/non-string input (caller keeps the default title then).
+ */
+function deriveTabTitle(text, max = 30) {
+  const t = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : "";
+  if (!t) return "";
+  return t.length <= max ? t : t.slice(0, max - 1).trimEnd() + "…";
+}
+
+module.exports = { ConversationManager, deriveTabTitle, isDefaultTitle };

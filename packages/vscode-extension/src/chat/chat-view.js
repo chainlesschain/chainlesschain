@@ -17,7 +17,11 @@ const {
   resolveChatLlm,
 } = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
-const { ConversationManager } = require("./conversation-manager");
+const {
+  ConversationManager,
+  deriveTabTitle,
+  isDefaultTitle,
+} = require("./conversation-manager");
 const { looksLikeLlmConfigError } = require("../llm-config.js");
 
 class ChatViewProvider {
@@ -54,10 +58,62 @@ class ChatViewProvider {
 
   /** The active conversation, creating the first one (lazily) if none exist. */
   _activeConv() {
-    if (this._convs.count() === 0) {
-      this._convs.create({ sessionId: this._storedSessionId() });
-    }
+    if (this._convs.count() === 0) this._restoreTabs();
     return this._convs.active();
+  }
+
+  /**
+   * Rebuild the tab set saved by _persistTabs, so a window reload restores
+   * ALL conversations (title / resume id / mode / thinking) instead of
+   * collapsing N tabs into one. Children spawn lazily per tab on its first
+   * message, resuming that tab's own session — same as the single-tab path.
+   * Falls back to the legacy single-session key when nothing was saved.
+   */
+  _restoreTabs() {
+    const saved = this.opts.state?.get?.("chainlesschain.chat.tabs");
+    const tabs = Array.isArray(saved?.tabs)
+      ? saved.tabs.filter((t) => t && (t.sessionId || t.title)).slice(0, 12)
+      : [];
+    if (tabs.length === 0) {
+      this._convs.create({ sessionId: this._storedSessionId() });
+      return;
+    }
+    const created = tabs.map((t) => {
+      const conv = this._convs.create({
+        title: typeof t.title === "string" ? t.title : "",
+        sessionId: typeof t.sessionId === "string" ? t.sessionId : null,
+        activate: false,
+      });
+      if (t.mode) this._convs.setMode(conv.id, String(t.mode));
+      if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
+      return conv;
+    });
+    const idx =
+      Number.isInteger(saved.activeIndex) && created[saved.activeIndex]
+        ? saved.activeIndex
+        : 0;
+    this._convs.switchTo(created[idx].id);
+  }
+
+  /** Snapshot every tab's restore-relevant state into workspaceState. Called
+   * on any tab mutation (create/close/switch/rename/mode/session-id). */
+  _persistTabs() {
+    if (!this.opts.state?.update) return;
+    const list = this._convs.list();
+    const tabs = list.map((t) => {
+      const c = this._convs.get(t.id);
+      return {
+        sessionId: c.sessionId || null,
+        title: c.title,
+        mode: c.mode || "default",
+        thinking: c.thinking || "off",
+      };
+    });
+    const activeIndex = Math.max(
+      0,
+      list.findIndex((t) => t.active),
+    );
+    this.opts.state.update("chainlesschain.chat.tabs", { tabs, activeIndex });
   }
 
   /** Back-compat accessor: the active conversation's live session (or null). */
@@ -153,6 +209,7 @@ class ChatViewProvider {
       activeId: this._convs.activeId(),
     });
     this._updateModeStatus(); // the active tab (hence its mode) may have changed
+    this._persistTabs(); // every tab mutation flows through here
   }
 
   /** Event handler bound to one conversation: routes to ITS reducer state and
@@ -167,6 +224,7 @@ class ChatViewProvider {
           if (this._convs.activeId() === convId) {
             this._rememberSessionId(evt.session_id);
           }
+          this._persistTabs(); // resume id changed without a tab-bar repost
         }
         if (evt.resumed_messages > 0) {
           this._postFrom(convId, {
@@ -432,6 +490,7 @@ class ChatViewProvider {
         `approval mode → ${LABELS[mode]}` +
         (restarted ? " (applies on your next message)" : ""),
     });
+    this._persistTabs();
   }
 
   /**
@@ -463,6 +522,7 @@ class ChatViewProvider {
         `extended thinking → ${LABELS[level]}` +
         (restarted ? " (applies on your next message)" : ""),
     });
+    this._persistTabs();
   }
 
   /**
@@ -599,7 +659,16 @@ class ChatViewProvider {
    */
   async _listWorkspaceFiles(prefix) {
     const { filterFiles, deriveFolders } = require("./at-mention");
+    // TTL refresh: long sessions used to keep the very first scan forever, so
+    // files created mid-conversation never showed up in @-completion unless
+    // the user hit "New". 30s keeps per-keystroke filtering instant while new
+    // files appear on the next popup soon after they exist.
+    const TTL_MS = 30_000;
+    if (this._fileCache && Date.now() - (this._fileCacheAt || 0) > TTL_MS) {
+      this._fileCache = null;
+    }
     if (!this._fileCache) {
+      this._fileCacheAt = Date.now();
       this._fileCache = Promise.resolve()
         .then(() =>
           this.vscode.workspace.findFiles(
@@ -878,6 +947,17 @@ class ChatViewProvider {
         ? this._writeImageTemps(m.images)
         : [];
       const session = this._ensureSession(); // bootstraps the conversation
+      {
+        // Auto-name the tab from its first message ("Chat N" tells you
+        // nothing once three tabs are open). Only ever replaces the untouched
+        // default, so a deliberate rename sticks.
+        const conv = this._activeConv();
+        const auto = deriveTabTitle(m.text);
+        if (auto && isDefaultTitle(conv.title)) {
+          this._convs.setTitle(conv.id, auto);
+          this._postTabs();
+        }
+      }
       if (images.length) {
         // Track for cleanup once this conversation's turn completes.
         if (!this._imgTemps) this._imgTemps = new Map();
@@ -991,6 +1071,7 @@ class ChatViewProvider {
       this._convs.setSession(conv.id, null);
       this._convs.setSessionId(conv.id, null);
       this._rememberSessionId(null);
+      this._persistTabs();
       this._fileCache = null; // pick up files created since the last scan
       this._post({ kind: "reset" });
     } else if (m.type === "newTab") {

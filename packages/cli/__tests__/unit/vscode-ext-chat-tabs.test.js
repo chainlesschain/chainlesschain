@@ -321,3 +321,132 @@ describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
     for (const [, body] of scripts) new Function(body);
   });
 });
+
+// ─── multi-tab persistence across window reloads ────────────────────────────
+
+describe("chat tabs — persistence across reload", () => {
+  it("restores N tabs (title/session/mode/thinking/active) into a fresh provider", () => {
+    const memento = makeMemento();
+    const factory = makeSessionFactory();
+    const vscode = {
+      commands: { executeCommand() {} },
+      workspace: {
+        workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+        getConfiguration: () => ({ get: () => undefined }),
+      },
+    };
+    const p1 = new ChatViewProvider(vscode, {
+      deps: { createSession: factory },
+      state: memento,
+    });
+    p1.view = { webview: { postMessage: () => Promise.resolve() } };
+
+    // Tab 1 gets a session id + a first message (auto-title).
+    p1._handleMessage({ type: "send", text: "fix the login bug in auth.js" });
+    factory.sessions[0].emit({
+      type: "system",
+      subtype: "init",
+      session_id: "sess-1",
+    });
+    // Tab 2: new tab, bypass mode, its own session.
+    p1._handleMessage({ type: "newTab" });
+    p1._handleMessage({ type: "mode", mode: "bypassPermissions" });
+    p1._handleMessage({ type: "send", text: "write docs for the new API" });
+    factory.sessions.at(-1).emit({
+      type: "system",
+      subtype: "init",
+      session_id: "sess-2",
+    });
+
+    // Reload: a brand-new provider over the SAME workspaceState.
+    const p2 = new ChatViewProvider(vscode, {
+      deps: { createSession: makeSessionFactory() },
+      state: memento,
+    });
+    p2._activeConv(); // what the webview "ready" handler triggers
+    const tabs = p2._convs.list();
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0].title).toBe("fix the login bug in auth.js");
+    expect(tabs[0].sessionId).toBe("sess-1");
+    expect(tabs[1].sessionId).toBe("sess-2");
+    expect(tabs[1].active).toBe(true); // tab 2 was active at "reload"
+    expect(p2._convs.get(tabs[1].id).mode).toBe("bypassPermissions");
+    expect(p2._convs.get(tabs[0].id).mode).toBe("default");
+  });
+
+  it("falls back to the legacy single-session key when no tab set was saved", () => {
+    const memento = makeMemento();
+    memento.update("chainlesschain.chat.sessionId", "legacy-sess");
+    const p = new ChatViewProvider(
+      {
+        commands: { executeCommand() {} },
+        workspace: {
+          workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+          getConfiguration: () => ({ get: () => undefined }),
+        },
+      },
+      { deps: { createSession: makeSessionFactory() }, state: memento },
+    );
+    const conv = p._activeConv();
+    expect(p._convs.count()).toBe(1);
+    expect(conv.sessionId).toBe("legacy-sess");
+  });
+
+  it("closing a tab persists immediately (a reload right after must not resurrect it)", () => {
+    const memento = makeMemento();
+    const { provider } = (() => {
+      const factory = makeSessionFactory();
+      const provider = new ChatViewProvider(
+        {
+          commands: { executeCommand() {} },
+          workspace: {
+            workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+            getConfiguration: () => ({ get: () => undefined }),
+          },
+        },
+        { deps: { createSession: factory }, state: memento },
+      );
+      provider.view = { webview: { postMessage: () => Promise.resolve() } };
+      return { provider };
+    })();
+    provider._handleMessage({ type: "newTab" });
+    provider._handleMessage({ type: "newTab" });
+    const ids = provider._convs.list().map((t) => t.id);
+    provider._handleMessage({ type: "closeTab", id: ids[1] });
+    const saved = memento.get("chainlesschain.chat.tabs");
+    expect(saved.tabs).toHaveLength(2);
+  });
+});
+
+// ─── tab auto-naming from the first message ─────────────────────────────────
+
+describe("chat tabs — auto-title from first message", () => {
+  it("replaces the default title once, and never a later or custom one", () => {
+    const { provider, posted } = makeProvider();
+    provider._handleMessage({
+      type: "send",
+      text: "  refactor   the payment   module to use the new gateway API  ",
+    });
+    const conv = provider._activeConv();
+    expect(conv.title).toBe("refactor the payment module t…");
+    expect(conv.title.length).toBeLessThanOrEqual(30);
+    // Tab bar was refreshed with the new title.
+    const tabsMsg = posted.filter((m) => m.kind === "tabs").at(-1);
+    expect(tabsMsg.tabs[0].title).toBe(conv.title);
+
+    // Second message must not rename.
+    provider._handleMessage({ type: "send", text: "also add tests" });
+    expect(provider._activeConv().title).toBe("refactor the payment module t…");
+
+    // A custom title is never overwritten by sends.
+    provider._convs.setTitle(conv.id, "My tab");
+    provider._handleMessage({ type: "send", text: "another message" });
+    expect(provider._activeConv().title).toBe("My tab");
+  });
+
+  it("keeps the default title for image-only messages (blank text)", () => {
+    const { provider } = makeProvider();
+    provider._handleMessage({ type: "send", text: "   " });
+    expect(provider._activeConv().title).toMatch(/^Chat \d+$/);
+  });
+});

@@ -77,6 +77,7 @@ const SPAWNING = [
   "chainlesschain.ide.restart", // bridge disabled → cheap, but still async
   "chainlesschain.cli.upgrade", // terminal npm i -g
   "chainlesschain.cli.checkUpdate", // npm registry fetch
+  "chainlesschain.cli.whatsNew", // spawns cc changelog
   "chainlesschain.memory.init", // quickpick → cancelled, safe but async-heavy
   "chainlesschain.llm.configure", // spawns cc config get probes
   "chainlesschain.llm.configureVision", // spawns cc config get probes

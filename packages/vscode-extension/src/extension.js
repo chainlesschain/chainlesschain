@@ -138,6 +138,29 @@ async function startBridge(context) {
     if (missing) return; // no usable cc → version checks are moot
     const res = await checkCliVersionAndNotify(vscode, context);
     if (res === "none") await checkLatestCliAndNotify(vscode, context);
+    // One-shot "What's New" toast when cc changed since the last activation
+    // (first run stores silently — no toast for a fresh install).
+    try {
+      const { parseCliVersion } = require("./version-check");
+      const { upgradeNudge } = require("./whats-new.js");
+      const cur = parseCliVersion((await runCliVersion(bin)) || "");
+      const KEY = "chainlesschain.lastSeenCcVersion";
+      const prev = context.globalState?.get?.(KEY) || null;
+      const nudge = upgradeNudge(prev, cur);
+      if (cur && cur !== prev) await context.globalState?.update?.(KEY, cur);
+      if (nudge) {
+        vscode.window.showInformationMessage(nudge.message, nudge.button).then(
+          (pick) => {
+            if (pick === nudge.button) {
+              vscode.commands.executeCommand("chainlesschain.cli.whatsNew");
+            }
+          },
+          () => {},
+        );
+      }
+    } catch {
+      /* best-effort */
+    }
   })().catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
   _facade = facade;
@@ -332,6 +355,40 @@ function activate(context) {
     // ignores the once-per-version throttle / "don't show again".
     vscode.commands.registerCommand("chainlesschain.cli.checkUpdate", () => {
       checkCliUpdateManually(vscode).catch(() => {});
+    }),
+    // What's New: render `cc changelog --json` (ships offline with the CLI
+    // since 0.162.151) as a markdown preview. Also the target of the one-shot
+    // "cc updated" toast fired from the activation version check.
+    vscode.commands.registerCommand("chainlesschain.cli.whatsNew", async () => {
+      const {
+        buildChangelogArgs,
+        parseChangelogJson,
+        changelogToMarkdown,
+        MIN_CHANGELOG_CLI,
+      } = require("./whats-new.js");
+      const { runCliText } = require("./chat/introspect-commands.js");
+      const { getResolvedCli } = require("./cli-binary");
+      const text = await runCliText({
+        command: getResolvedCli(),
+        args: buildChangelogArgs({}),
+        timeoutMs: 15000,
+      });
+      const releases = parseChangelogJson(text);
+      if (!releases || releases.length === 0) {
+        vscode.window.showInformationMessage(
+          `ChainlessChain: 读取不到 cc 更新说明 — 需要 cc ≥ ${MIN_CHANGELOG_CLI}(npm i -g chainlesschain 升级后重试)。`,
+        );
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument({
+        content: changelogToMarkdown(releases),
+        language: "markdown",
+      });
+      try {
+        await vscode.commands.executeCommand("markdown.showPreview", doc.uri);
+      } catch {
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
     }),
     // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
     // files` in the shared terminal — cc.md is then auto-loaded by cc agent.

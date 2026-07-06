@@ -2,6 +2,22 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased] — feat: tabs that survive reloads, auto-named tabs, What's New panel
+
+- **Conversation tabs survive window reloads.** All tabs — title, resume id,
+  approval mode, thinking level, and which one was active — are persisted per
+  workspace and rebuilt on the next open (they used to collapse into a single
+  tab). Each restored tab resumes its own session on its first message.
+- **Tabs name themselves.** A tab's title becomes the first message you send
+  in it (30-char cap) instead of staying "Chat N"; deliberate titles are never
+  overwritten.
+- **"What's New in cc CLI" panel.** `ChainlessChain: What's New` renders the
+  CLI's own offline release notes (`cc changelog --json`, cc ≥ 0.162.151) as a
+  markdown preview, and after a cc upgrade a one-shot toast offers it.
+- **`@`-mention completion picks up new files.** The workspace file cache now
+  refreshes after 30s instead of living for the whole session, so files
+  created mid-conversation appear without hitting "New".
+
 ## [Unreleased] — fix: bug-sweep batch (keyboard diff review, process cleanup, silent-failure hardening)
 
 - **Diff Accept/Reject keybindings actually work.** The command callbacks

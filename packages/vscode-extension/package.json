@@ -114,6 +114,11 @@
         "command": "chainlesschain.cli.checkUpdate",
         "title": "ChainlessChain: Check for CLI Updates (cc version)",
         "icon": "$(sync)"
+      },
+      {
+        "command": "chainlesschain.cli.whatsNew",
+        "title": "ChainlessChain: What's New in cc CLI (更新说明)",
+        "icon": "$(sparkle)"
       }
     ],
     "keybindings": [
