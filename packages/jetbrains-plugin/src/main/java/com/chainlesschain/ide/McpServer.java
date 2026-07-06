@@ -112,7 +112,18 @@ public final class McpServer {
                     return;
                 }
             }
-            String body = readBody(ex);
+            String body;
+            try {
+                body = readBody(ex);
+            } catch (PayloadTooLargeException tooLarge) {
+                // Answer with a real HTTP 413 + JSON-RPC error instead of letting
+                // the IOException abort the exchange (a dropped connection is
+                // indistinguishable from a dead bridge to the CLI client).
+                writeJson(ex, 413,
+                        "{\"jsonrpc\":\"2.0\",\"id\":null,"
+                                + "\"error\":{\"code\":-32600,\"message\":\"Payload too large\"}}");
+                return;
+            }
             Map<String, Object> msg;
             try {
                 msg = MiniJson.parseObject(body.isEmpty() ? "{}" : body);
@@ -262,10 +273,17 @@ public final class McpServer {
         try (InputStream in = ex.getRequestBody()) {
             while ((n = in.read(chunk)) != -1) {
                 buf.write(chunk, 0, n);
-                if (buf.size() > MAX_BODY_BYTES) throw new IOException("payload too large");
+                if (buf.size() > MAX_BODY_BYTES) throw new PayloadTooLargeException();
             }
         }
         return new String(buf.toByteArray(), StandardCharsets.UTF_8);
+    }
+
+    /** Body exceeded MAX_BODY_BYTES — handle() turns this into an HTTP 413. */
+    private static final class PayloadTooLargeException extends IOException {
+        PayloadTooLargeException() {
+            super("payload too large");
+        }
     }
 
     private static String randomHex() {

@@ -193,7 +193,10 @@ public final class MiniJson {
         }
         if (v instanceof Double || v instanceof Float) {
             double d = ((Number) v).doubleValue();
-            if (d == Math.floor(d) && !Double.isInfinite(d)) sb.append(Long.toString((long) d));
+            // JSON has no NaN/Infinity — emit null (one poisoned numeric field
+            // would otherwise make the whole response body unparseable).
+            if (Double.isNaN(d) || Double.isInfinite(d)) sb.append("null");
+            else if (d == Math.floor(d)) sb.append(Long.toString((long) d));
             else sb.append(Double.toString(d));
             return;
         }

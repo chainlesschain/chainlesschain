@@ -1,6 +1,8 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased] — fix: security + correctness audit batch (P0/P1)
+## [Unreleased] — fix: security + correctness audit batch (P0/P1/P2)
+
+### P0/P1
 
 - **A repo can no longer run its own `cc.bat` when you open the chat panel
   (Windows).** Our spawns run `cmd.exe /c cc …` with the working directory set to
@@ -25,6 +27,25 @@
   child-restart is serialized on the tab's send worker, and the shared session
   fields are `volatile`, so a mode change racing a spawn reliably applies on the
   next message instead of silently reusing the old-mode child.
+
+### P2
+
+- **No spurious "agent exited" banner after a deliberate action.** Stopping,
+  a mode/thinking change, `/sessions` resume, and LLM reconfigure no longer
+  print a misleading `── agent exited ──` line right after their own status
+  message — the exit banner now shows only for an exit you didn't trigger.
+- **One-shot `cc` captures (`/sessions`, `/rewind`, context) can't return torn
+  text.** The capture buffer is thread-safe, so a chatty child still writing
+  when the read timeout elapses no longer yields truncated output silently
+  parsed as "no saved sessions".
+- **A `NaN`/`Infinity` in a tool result can't break the whole response.** The
+  JSON writer emits `null` for non-finite numbers (they have no JSON form)
+  instead of an unparseable bare `NaN`.
+- **An over-size MCP request gets a real HTTP 413**, not a dropped connection
+  the CLI can't tell apart from a dead bridge.
+- **Crash-left lockfile temp files are cleaned up.** The stale-lock sweep now
+  also removes orphaned `*.json.tmp-<pid>` atomic-write temps whose owning
+  process is gone (they used to accumulate forever).
 
 ## [0.4.45] — feat: live token tally + iteration warnings (VS Code parity) + bug sweep (B1–B9) + polish
 

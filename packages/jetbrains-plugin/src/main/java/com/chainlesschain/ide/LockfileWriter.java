@@ -133,14 +133,19 @@ public final class LockfileWriter {
         if (!Files.isDirectory(dir)) return 0;
         List<Path> files;
         try (java.util.stream.Stream<Path> s = Files.list(dir)) {
-            files = s.filter(p -> p.getFileName().toString().endsWith(".json"))
-                    .collect(java.util.stream.Collectors.toList());
+            files = s.filter(p -> {
+                String n = p.getFileName().toString();
+                // Also sweep atomic-write temps (`<port>.json.tmp-<pid>`) — a
+                // crash between write and move leaves them, and they never end
+                // with ".json" so the old filter never cleaned them up.
+                return n.endsWith(".json") || n.contains(".json.tmp-");
+            }).collect(java.util.stream.Collectors.toList());
         } catch (IOException e) {
             return 0;
         }
         int removed = 0;
         for (Path file : files) {
-            Long pid = readPid(file);
+            Long pid = pidFor(file);
             if (pid != null && processAlive.test(pid)) continue; // owner alive → keep
             try {
                 if (Files.deleteIfExists(file)) removed++;
@@ -149,6 +154,21 @@ public final class LockfileWriter {
             }
         }
         return removed;
+    }
+
+    /** The owning pid — from the JSON for a lockfile, or the trailing pid in a
+     *  `.json.tmp-<pid>` temp name. null (→ stale) when missing/unparseable. */
+    private static Long pidFor(Path file) {
+        String name = file.getFileName().toString();
+        int tmp = name.indexOf(".json.tmp-");
+        if (tmp >= 0) {
+            try {
+                return Long.parseLong(name.substring(tmp + ".json.tmp-".length()));
+            } catch (NumberFormatException e) {
+                return null; // odd temp name → treat as stale
+            }
+        }
+        return readPid(file);
     }
 
     /** The pid from a lockfile, or null if missing / unparseable (→ stale). */

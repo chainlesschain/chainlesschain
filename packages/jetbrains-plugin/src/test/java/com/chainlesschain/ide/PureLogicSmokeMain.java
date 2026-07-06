@@ -532,6 +532,18 @@ public final class PureLogicSmokeMain {
         try { MiniJson.parse(wide.toString()); wideOk = true; }
         catch (RuntimeException e) { wideOk = false; }
         check(wideOk, "700 flat sibling objects parse (depth resets)");
+        // NaN / Infinity have no JSON form — stringify emits null so ONE poisoned
+        // numeric field can't make the whole JSON-RPC body unparseable.
+        java.util.Map<String, Object> nan = MiniJson.obj();
+        nan.put("v", Double.NaN);
+        eq(MiniJson.stringify(nan), "{\"v\":null}", "NaN → null (valid JSON)");
+        java.util.Map<String, Object> inf = MiniJson.obj();
+        inf.put("v", Double.POSITIVE_INFINITY);
+        eq(MiniJson.stringify(inf), "{\"v\":null}", "Infinity → null (valid JSON)");
+        java.util.Map<String, Object> fin = MiniJson.obj();
+        fin.put("i", 3.0);
+        fin.put("f", 2.5);
+        eq(MiniJson.stringify(fin), "{\"i\":3,\"f\":2.5}", "finite doubles still render");
     }
 
     private static void tokenTally() {

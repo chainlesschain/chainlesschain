@@ -70,6 +70,11 @@ public final class AgentChatSession {
     private final Options opts;
     private Process child;
     private BufferedWriter stdin;
+    // Set when WE tear the child down (stop / end / restart). The waiter then
+    // suppresses the "agent exited" banner — a deliberate stop already prints
+    // its own status line ("force-stopped …" / "next message applies"), so the
+    // extra banner reads like an error after a normal action.
+    private volatile boolean stopped;
 
     public AgentChatSession(Options opts) {
         this.opts = opts == null ? new Options() : opts;
@@ -174,7 +179,11 @@ public final class AgentChatSession {
             CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
             pb.redirectErrorStream(false);
             Process p = pb.start();
-            StringBuilder out = new StringBuilder();
+            // StringBuffer (not StringBuilder): the pump thread appends while the
+            // caller thread may read out.toString() after pump.join(500) times out
+            // on a chatty child — StringBuilder is not thread-safe and would tear
+            // (truncated/garbled text silently parsed as "no sessions").
+            StringBuffer out = new StringBuffer();
             Thread pump = new Thread(() -> {
                 try (BufferedReader r = new BufferedReader(
                         new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
@@ -216,6 +225,7 @@ public final class AgentChatSession {
     /** Spawn the child and start the stdout/stderr pumps. Idempotent. */
     public synchronized void start() throws IOException {
         if (isRunning()) return;
+        stopped = false; // fresh spawn — a natural exit should surface again
         ProcessBuilder pb = new ProcessBuilder(buildCommandLine());
         if (opts.cwd != null) pb.directory(opts.cwd);
         CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
@@ -250,7 +260,9 @@ public final class AgentChatSession {
                     synchronized (AgentChatSession.this) {
                         if (child == proc) child = null;
                     }
-                    if (opts.onExit != null) opts.onExit.onExit(code);
+                    // Only surface an exit the user didn't trigger — a deliberate
+                    // stop/end/restart already printed its own status line.
+                    if (opts.onExit != null && !stopped) opts.onExit.onExit(code);
                 } catch (Throwable ignored) {
                     // never let the waiter crash the host
                 }
@@ -372,6 +384,7 @@ public final class AgentChatSession {
 
     /** End the conversation gracefully (close stdin → CLI exits cleanly). */
     public synchronized void end() {
+        stopped = true; // deliberate — waiter suppresses the exit banner
         try {
             if (stdin != null) stdin.close();
         } catch (IOException ignored) {
@@ -388,6 +401,7 @@ public final class AgentChatSession {
      * a healthy child gets a graceful EOF, then reap the whole tree.
      */
     public synchronized void stop() {
+        stopped = true; // deliberate — waiter suppresses the exit banner
         Process p = child;
         child = null;
         try {
