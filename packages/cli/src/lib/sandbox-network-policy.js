@@ -60,6 +60,24 @@ function anyMatch(host, patterns) {
   return (patterns || []).some((p) => matchesDomain(host, p));
 }
 
+/**
+ * If `h` is an IPv4-mapped IPv6 address, return the embedded IPv4 in dotted
+ * form; else null. Handles both the dotted tail ("::ffff:127.0.0.1", how a user
+ * might type it) and the compressed-hex tail ("::ffff:7f00:1", how Node's URL
+ * parser serializes it). The hex tail is two 16-bit groups = the 32-bit IPv4.
+ */
+function mappedIpv4Tail(h) {
+  const dotted = h.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (dotted) return dotted[1];
+  const hex = h.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hex) {
+    const high = parseInt(hex[1], 16);
+    const low = parseInt(hex[2], 16);
+    return `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+  }
+  return null;
+}
+
 /** Private / loopback / link-local / cloud-metadata target? (SSRF guard) */
 export function isPrivateHost(host) {
   if (!host) return false;
@@ -70,10 +88,14 @@ export function isPrivateHost(host) {
   // IPv6 loopback / unique-local / link-local.
   if (h === "::1" || h === "::") return true;
   if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true; // fc00::/7 unique-local
-  if (/^fe80:/i.test(h)) return true; // link-local
-  // IPv4-mapped IPv6 (::ffff:127.0.0.1) — check the tail.
-  const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  const ipv4 = mapped ? mapped[1] : h;
+  if (/^fe[89ab][0-9a-f]:/i.test(h)) return true; // fe80::/10 link-local (fe80–febf)
+  // IPv4-mapped IPv6 — check the embedded IPv4 tail. Node's WHATWG URL parser
+  // serializes "[::ffff:127.0.0.1]" as COMPRESSED HEX ("::ffff:7f00:1"), never
+  // dotted-decimal, so we must decode BOTH forms or the guard is dead code for
+  // any URL/bracketed input (loopback, private ranges, AND 169.254.169.254 all
+  // sail through — confirmed SSRF bypass). Bare non-URL hosts may still arrive
+  // dotted, so keep that form too.
+  const ipv4 = mappedIpv4Tail(h) || h;
   const m = ipv4.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (m) {
     const [a, b] = [Number(m[1]), Number(m[2])];

@@ -74,6 +74,31 @@ describe("isPrivateHost", () => {
       expect(isPrivateHost(h), h).toBe(false);
     }
   });
+
+  it("flags IPv4-mapped IPv6 in COMPRESSED-HEX form (Node URL serialization)", () => {
+    // "[::ffff:127.0.0.1]" parsed through a URL serializes to "::ffff:7f00:1",
+    // never dotted — the dotted-only guard was dead code for URL/bracketed input,
+    // an SSRF bypass reaching loopback, private ranges, AND cloud metadata.
+    for (const h of [
+      "::ffff:7f00:1", // 127.0.0.1
+      "::ffff:a9fe:a9fe", // 169.254.169.254 (metadata)
+      "::ffff:c0a8:101", // 192.168.1.1
+      "::ffff:a00:5", // 10.0.0.5
+      "::ffff:ac10:1", // 172.16.0.1
+    ]) {
+      expect(isPrivateHost(h), h).toBe(true);
+    }
+    // A public mapped address is still NOT private.
+    expect(isPrivateHost("::ffff:808:808")).toBe(false); // 8.8.8.8
+  });
+
+  it("flags the FULL fe80::/10 link-local range, not just fe80:", () => {
+    for (const h of ["fe80::1", "fe90::1", "fea0::1", "febf::1"]) {
+      expect(isPrivateHost(h), h).toBe(true);
+    }
+    // fec0::/10 is deprecated site-local, not link-local — must stay false.
+    expect(isPrivateHost("fec0::1")).toBe(false);
+  });
 });
 
 describe("evaluateNetworkAccess", () => {
@@ -115,6 +140,15 @@ describe("evaluateNetworkAccess", () => {
     );
     expect(
       evaluateNetworkAccess("http://127.0.0.1:5432/", policy).allowed,
+    ).toBe(false);
+    // IPv4-mapped IPv6 bracketed URLs must NOT slip past — the metadata endpoint
+    // and loopback via "[::ffff:...]" were both reachable before the fix.
+    expect(
+      evaluateNetworkAccess("http://[::ffff:169.254.169.254]/latest", policy)
+        .allowed,
+    ).toBe(false);
+    expect(
+      evaluateNetworkAccess("http://[::ffff:127.0.0.1]:5432/", policy).allowed,
     ).toBe(false);
   });
 
