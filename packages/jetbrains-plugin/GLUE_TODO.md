@@ -76,10 +76,11 @@ implemented and build-verified** (0.4.0).
 - [x] **Latest 0.4.7 — Plugin Verifier CLEAN on 2024.2 → 2026.x** (user-confirmed:
       no internal / scheduled-for-removal / deprecated). See "Compatibility" below.
 - [~] Screenshots — **intentionally skipped** (decided 2026-06-16). Capture +
-      dashboard upload are human-only (GUI staging + authed account); the listing is
-      complete without them. Capture guide kept in `SCREENSHOTS.md` if ever wanted.
+  dashboard upload are human-only (GUI staging + authed account); the listing is
+  complete without them. Capture guide kept in `SCREENSHOTS.md` if ever wanted.
 
 ## ✅ COMPLETE
+
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
@@ -90,39 +91,41 @@ Nine fixes from the 2026-07-06 audit. Verified: `compileJava` clean +
 depth-cap ×4) + `buildPlugin` zip contains the updated plugin.xml keymaps.
 
 Pure-layer (smoke-covered, no GUI gate):
+
 - [x] **B1** `AgentChatSession.stop()` kills the descendant tree (Windows
-  `cmd.exe /c cc` left the real node agent orphaned mid-turn — same
-  grandchild-orphan trap `PreviewService.stop()` fixed) + closes stdin first.
+      `cmd.exe /c cc` left the real node agent orphaned mid-turn — same
+      grandchild-orphan trap `PreviewService.stop()` fixed) + closes stdin first.
 - [x] **B2** `runCaptureWith` drains stderr (a full unread stderr pipe blocked
-  the child forever → `/rewind`//`sessions`//`context` ate their full timeout).
+      the child forever → `/rewind`//`sessions`//`context` ate their full timeout).
 - [x] **B7** `resolveBinary()` no longer caches the all-candidates-failed
-  fallback — installing the CLI mid-session now recovers without an IDE restart
-  (`chooseBinary` extracted as the pure testable seam).
+      fallback — installing the CLI mid-session now recovers without an IDE restart
+      (`chooseBinary` extracted as the pure testable seam).
 - [x] **B9** `MiniJson` nesting cap 512 → hostile/corrupt payloads throw a
-  catchable `IllegalArgumentException` instead of `StackOverflowError` (an
-  Error would kill the chat pump / MCP handler thread silently).
+      catchable `IllegalArgumentException` instead of `StackOverflowError` (an
+      Error would kill the chat pump / MCP handler thread silently).
 
 SDK glue (needs the usual runIde GUI pass before the next publish):
+
 - [ ] **B3** first-message send chain (`ensureSession` + `send`) moved off the
-  EDT onto a serial per-tab worker (`sendInFlight` guards double-Enter; composer
-  clears only on confirmed send — same failure semantics as before).
-  GUI check: cold-start first message doesn't freeze the UI; echo renders; a
-  missing CLI still shows the "failed to start cc" hint.
+      EDT onto a serial per-tab worker (`sendInFlight` guards double-Enter; composer
+      clears only on confirmed send — same failure semantics as before).
+      GUI check: cold-start first message doesn't freeze the UI; echo renders; a
+      missing CLI still shows the "failed to start cc" hint.
 - [ ] **B4** `@`-mention PSI/file scans now warm via
-  `ReadAction.nonBlocking(...).inSmartMode()` in the background; dumb-mode/failed
-  scans are NOT cached (previously indexing pinned an empty symbol list for the
-  tab's life). GUI check: first `@` during indexing → files/symbols appear on a
-  later `@` once indexed.
+      `ReadAction.nonBlocking(...).inSmartMode()` in the background; dumb-mode/failed
+      scans are NOT cached (previously indexing pinned an empty symbol list for the
+      tab's life). GUI check: first `@` during indexing → files/symbols appear on a
+      later `@` once indexed.
 - [ ] **B5** `getDiagnostics` path filter normalizes separators + ignores case
-  on Windows (raw equals never matched `C:\…` against the VFS forward-slash
-  path → always-empty diagnostics for a targeted file).
+      on Windows (raw equals never matched `C:\…` against the VFS forward-slash
+      path → always-empty diagnostics for a targeted file).
 - [ ] **B6** session-id persistence hops to the EDT (was mutating Swing-owned
-  tab state from the stdout pump thread; a CME there silently dropped resume ids).
+      tab state from the stdout pump thread; a CME there silently dropped resume ids).
 - [ ] **B8** default keymaps de-conflicted (all three collided with IDEA
-  built-ins): new chat `Ctrl+Alt+N`→`Ctrl+Alt+Shift+D`, reopen closed
-  `Ctrl+Shift+T`→`Ctrl+Alt+Shift+R`, insert file ref `Ctrl+Alt+K`→`Ctrl+Alt+Shift+K`
-  (plugin.xml `<keyboard-shortcut>` only; Mac mirrors with ⌘).
-  GUI check: no "shortcut conflict" balloon on first install; chords fire.
+      built-ins): new chat `Ctrl+Alt+N`→`Ctrl+Alt+Shift+D`, reopen closed
+      `Ctrl+Shift+T`→`Ctrl+Alt+Shift+R`, insert file ref `Ctrl+Alt+K`→`Ctrl+Alt+Shift+K`
+      (plugin.xml `<keyboard-shortcut>` only; Mac mirrors with ⌘).
+      GUI check: no "shortcut conflict" balloon on first install; chords fire.
 
 ## ✅ ConversationView split (post-0.4.44, unreleased) — GUI-verified 2026-07-05
 
@@ -131,7 +134,7 @@ ConversationView 1405 → ~1030 lines by extracting three cohesive glue classes
 `ChatTranscript` (JTextPane + styles + markdown snap + TranscriptCap),
 `ChatComposerImages` (paste/drag-drop/📷 indicator; policy stays in pure
 ImageAttachments), `ChatMentionPopups` (`/` + `@` popups + lazy PSI/file
-caches). ConversationView keeps one-line append*() delegates so call sites
+caches). ConversationView keeps one-line append\*() delegates so call sites
 didn't churn. Verified: compileJava clean (zero warnings) + smokeTest 322/0 +
 buildPlugin, and a **user GUI pass on a real IDEA 2025.3 install (build
 IU-253.28294.334, plugin built from `e3ef95702e`)** covering the three moved
@@ -193,7 +196,7 @@ an elevated mode can't go unnoticed (VS Code ui/status-bar.js parity — the
       `IdeBridgeService.start/stop`, `ConversationView` `/auto·/bypass·/normal`,
       and `ChatToolWindowFactory` tab create/switch/close
       (`activeModeFor(project)` reads the active tab's mode). `gradlew
-      compileJava` clean against 2024.2.
+    compileJava` clean against 2024.2.
 - [x] **runIde GUI pass (user-verified 2026-07-05)** — confirm the widget renders in
       the status bar, shows the port after startup, flips to `⚠bypass` on
       `/bypass`, reverts on `/normal`, follows tab switches, and the click
@@ -251,9 +254,10 @@ tools). Reserved cc server name `idea`.
       unpublished — ship cc npm + plugin together). See memory
       `cli_jetbrains_idea_mcp_bridge`.
 - Note: discovery is a port **probe** (IDEA writes no lockfile, doesn't publish
-      its port). If a future IntelliJ API exposes the MCP port directly, prefer it.
+  its port). If a future IntelliJ API exposes the MCP port directly, prefer it.
 
 ## Compatibility (verifier history)
+
 0.4.4 getTerminalOutput broke on 2024.3+ (terminal API) → reverted 0.4.5 → 0.4.6
 cleared 2025.2 deprecated → 0.4.7 cleared 2026.x scheduled-for-removal + deprecated
 (SimpleListCellRenderer→DefaultListCellRenderer, removed LocalTerminalCustomizer).
@@ -261,6 +265,7 @@ cleared 2025.2 deprecated → 0.4.7 cleared 2026.x scheduled-for-removal + depre
 Marketplace verifier post-publish.
 
 ## ⚠️ Reverted
+
 - [x] ~~**getTerminalOutput** tool (0.4.4)~~ — **REVERTED in 0.4.5.** The terminal API
       (`TerminalToolWindowManager.getWidgets()` → `JBTerminalWidget.getTerminalTextBuffer()`
       / jediterm) compiled fine against 2024.2 and worked in that sandbox, but is **not
@@ -277,3 +282,38 @@ Marketplace verifier post-publish.
 _Glue landed 2026-06-16 (§1–§6). Pure layers: `1ef021c52` + `84a562149` +
 `formatInsertReference`. VS Code reference: extension 0.22–0.30 (`packages/
 vscode-extension/src/`)._
+
+## 🔧 Token-parity + polish batch (post-B1–B9, unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
+
+Live token tally / iteration warnings (VS Code 0.37.2 parity) + 8 audit polish
+items. Verified: `compileJava` clean (no new deprecations) + `smokeTest`
+**344/0** (330 baseline + 14 new `TokenTally` assertions: formatTokens ×5,
+accumulate/statusLine/readyLine ×5, token_usage / iteration_warning event
+mapping ×4) + `buildPlugin` OK.
+
+Pure-layer (smoke-covered, no GUI gate):
+
+- [x] `ChatEvents` maps `token_usage` → `{kind:usage}` and `iteration_warning`
+      → `⚠ info`; new pure `TokenTally` (accumulate + `statusLine()`) and
+      `formatTokens`/`readyLine` (VS Code `tokfmt` twins, `12k`/`2.3k` semantics).
+- [x] `LockfileWriter.write` publishes atomically (temp + `ATOMIC_MOVE`,
+      fallback to plain write); `.tmp-*` siblings never match the prune filter.
+- [x] `McpServer`: `stop()` shuts the HTTP executor down; Bearer comparison is
+      `MessageDigest.isEqual` (constant-time).
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **Token tally on the status line** — send a multi-tool-call turn; expect
+      `thinking… · X→Y tokens (Z cached)` climbing per LLM call, then
+      `ready · in→out tokens`, then the `⊟ context` line replacing it.
+- [ ] **Iteration warning** — hard to trigger live; accept smoke coverage, but
+      eyeball that ordinary turns show NO stray `⚠` lines.
+- [ ] **Stop escalation** — click Stop once (interrupt note as before), click
+      again on a live child → `⏹ force-stopped` + next message respawns.
+- [ ] **Image temp cleanup** — paste a screenshot, send; after the turn the
+      `cc-paste-*.png` under `%TEMP%` should be gone (and a paste discarded via
+      tab reset should delete immediately). Drag-dropped REAL files must survive.
+- [ ] **JBColor** — flip Darcula ↔ light: code amber / thinking gray / WARN
+      amber / context red-gray all stay readable, no repaint artifacts.
+- [ ] **Version-probe cache** — open 3 tabs: only the first probes
+      `cc --version` (others reuse); ⚙ LLM → 检查 cc 更新 still re-probes fresh.

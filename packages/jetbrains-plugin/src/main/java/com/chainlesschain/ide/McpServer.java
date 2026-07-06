@@ -76,8 +76,15 @@ public final class McpServer {
 
     public void stop() {
         if (server != null) {
+            // Shut the executor down too: HttpServer.stop() does NOT stop a
+            // user-supplied executor, and cachedThreadPool's non-daemon workers
+            // idle for 60s (and pin the plugin classloader on dynamic unload).
+            java.util.concurrent.Executor ex = server.getExecutor();
             server.stop(0);
             server = null;
+            if (ex instanceof java.util.concurrent.ExecutorService) {
+                ((java.util.concurrent.ExecutorService) ex).shutdownNow();
+            }
         }
     }
 
@@ -96,7 +103,11 @@ public final class McpServer {
             }
             if (token != null) {
                 String auth = ex.getRequestHeaders().getFirst("Authorization");
-                if (!("Bearer " + token).equals(auth)) {
+                // Constant-time comparison — String.equals short-circuits on the
+                // first differing byte, a (loopback-only, so low-risk) timing oracle.
+                byte[] expect = ("Bearer " + token).getBytes(StandardCharsets.UTF_8);
+                byte[] got = auth == null ? new byte[0] : auth.getBytes(StandardCharsets.UTF_8);
+                if (!java.security.MessageDigest.isEqual(expect, got)) {
                     writeJson(ex, 401, "{\"error\":\"unauthorized\"}");
                     return;
                 }

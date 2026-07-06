@@ -86,7 +86,26 @@ public final class LockfileWriter {
         lock.put("started_at", startedAt);
 
         Path file = dir.resolve(port + ".json");
-        Files.write(file, MiniJson.stringify(lock).getBytes(StandardCharsets.UTF_8));
+        byte[] body = MiniJson.stringify(lock).getBytes(StandardCharsets.UTF_8);
+        // Atomic publish: write a temp sibling then move into place, so the
+        // CLI's discovery reader can never observe a half-written JSON file.
+        Path tmp = dir.resolve(port + ".json.tmp-" + ProcessHandle.current().pid());
+        try {
+            Files.write(tmp, body);
+            tryChmod(tmp, EnumSet.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE));
+            try {
+                Files.move(tmp, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException moveFailed) {
+            // Fall back to the plain write rather than losing discovery entirely.
+            Files.deleteIfExists(tmp);
+            Files.write(file, body);
+        }
         tryChmod(file, EnumSet.of(
                 PosixFilePermission.OWNER_READ,
                 PosixFilePermission.OWNER_WRITE));

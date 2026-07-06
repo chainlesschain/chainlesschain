@@ -1,5 +1,30 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased] — feat: live token tally + iteration warnings (VS Code 0.37.2 parity) + polish batch
+
+- **Live token counter while the agent works.** Each LLM call's `token_usage`
+  now accumulates into the status line above the composer —
+  `thinking… · 12k→456 tokens (900 cached)` — instead of being invisible until
+  the turn ends; the turn's final total shows as `ready · in→out tokens` until
+  the context indicator refreshes. Same contract as the VS Code panel.
+- **Iteration-budget warnings are visible**: the CLI's `iteration_warning` now
+  renders as a `⚠` line in the transcript instead of being silently dropped.
+- **Stop can force-kill a hung agent**: the Stop button still interrupts
+  first; clicking it again while the same child is running hard-stops the
+  whole process tree (interrupt rides stdin, which a hung child never reads).
+- **Pasted/dropped image temp files are cleaned up eagerly** — discarded
+  attachments on clear, sent ones once their turn completes — instead of
+  accumulating in the OS temp dir for the IDE's (long) lifetime.
+- **Theme-aware colors**: transcript code/thinking styles, the warning amber
+  and the context indicator's red/gray now use `JBColor` pairs, so they stay
+  readable under Darcula.
+- **Polish**: the IDE-bridge lockfile is published atomically (temp +
+  `ATOMIC_MOVE`, so the CLI can never read a half-written JSON); the bridge's
+  HTTP executor shuts down with the server; Bearer-token comparison is
+  constant-time; `cc --version` probes are cached process-wide (new tabs no
+  longer re-spawn them; the manual "检查 cc 更新" action refreshes the cache);
+  panel worker threads ride the IDE thread pool instead of bare `new Thread`.
+
 ## [Unreleased] — fix: process-lifecycle, EDT and keymap bug sweep (B1–B9)
 
 - **No more orphaned `cc agent` processes** (Windows): stopping a tab's child —
@@ -40,9 +65,9 @@
   4-image cap as paste; non-image files are ignored and plain-text drops still
   land at the caret.
 - **Two new Tools-menu actions** (VS Code palette parity):
-  *Generate Project Memory (cc.md)* — mode chooser (offline census, or
+  _Generate Project Memory (cc.md)_ — mode chooser (offline census, or
   `--ai` refine via a bounded headless agent), runs `chainlesschain init` as a
-  background task and shows the summary; *Show Project Memory Files* — the
+  background task and shows the summary; _Show Project Memory Files_ — the
   effective memory-file chain from `chainlesschain memory files`.
 
 ## [0.4.43] — feat: /rewind, /sessions, and hunk-level partial diff accept
@@ -187,7 +212,7 @@
 ## [0.4.31] — fix: Configure LLM / chat find `cc` even when the IDE PATH lacks it
 
 - **Fix: "Configure LLM" no longer fails with `'cc' is not recognized as an
-  internal or external command`.** When IntelliJ is launched from a Start-menu /
+internal or external command`.** When IntelliJ is launched from a Start-menu /
   desktop shortcut — or was already running when `npm i -g chainlesschain`
   updated PATH — the GUI process never inherits npm's global bin directory
   (`%APPDATA%\npm`), so a plain `cmd /c cc …` can't find the shim. The plugin now
@@ -197,7 +222,7 @@
   restart. Applies to **both the LLM-config wizard and the chat panel**.
 - When `cc` genuinely can't be located, the error now gives actionable install
   guidance — including the **Node.js >= 22.12.0** requirement (`npm i -g
-  chainlesschain` aborts on older Node with an unexplained `EBADENGINE` error).
+chainlesschain` aborts on older Node with an unexplained `EBADENGINE` error).
 - New pure-JDK `CliLauncher` (PATH merge + missing-CLI detection), covered by the
   smoke suite; `LlmConfig.runCli` now also resolves `cc` / `chainlesschain` so a
   `cc` shadowed by the C compiler doesn't break the wizard.
@@ -297,7 +322,7 @@
 - **Fix.** After you reconfigured the LLM (⚙ LLM → provider / model / API key, or
   the vision model), the chat tab you were in kept using the **old** config — the
   provider/model are pinned when the `cc` child starts, so it would keep erroring
-  (e.g. `401`) until you opened a *new* conversation. Now the panel restarts the
+  (e.g. `401`) until you opened a _new_ conversation. Now the panel restarts the
   tab's child once the wizard closes, so your next message respawns with the
   fresh config. No more "配置完还没用 / 新开一个对话才行."
 
@@ -324,13 +349,13 @@
 - **You can now set the image-recognition (vision) model on its own.** It used
   to only appear as the last step of the full Configure-LLM wizard, so changing
   it meant re-walking provider → model → API key → base URL. Now:
-  - the **⚙ LLM** button in the chat panel opens a small menu — *Configure LLM*
-    (the full wizard) **or** *Vision model…* (just `llm.visionModel`);
+  - the **⚙ LLM** button in the chat panel opens a small menu — _Configure LLM_
+    (the full wizard) **or** _Vision model…_ (just `llm.visionModel`);
   - **Tools → ChainlessChain: Configure Vision Model** does the same from the
     menu bar.
-  The dialog prefills the current value (or the configured provider's
-  suggestion); leaving it blank clears it (revert to the text model / CLI
-  default). No API-key re-entry.
+    The dialog prefills the current value (or the configured provider's
+    suggestion); leaving it blank clears it (revert to the text model / CLI
+    default). No API-key re-entry.
 
 ## [0.4.17] — 2026-06-19 — first-run LLM-setup nudge
 
@@ -377,7 +402,7 @@
 ## [0.4.13] — 2026-06-18 — Markdown rendering in the chat transcript
 
 - **Markdown in assistant replies.** The chat transcript now renders fenced
-  ```code``` / inline `code` (monospace amber) and **bold** instead of showing
+  `code` / inline `code` (monospace amber) and **bold** instead of showing
   raw markers — VS Code parity. Streaming stays responsive (plain text as it
   arrives, then the completed reply snaps to styled). The transcript moved from
   `JTextArea` to `JTextPane`; all other lines (headers, tool trace, info) are
@@ -387,7 +412,7 @@
 ## [0.4.12] — 2026-06-18 — "Fix with ChainlessChain" intention (VS Code parity)
 
 - **Fix-with-cc quick-fix.** On a line carrying an error or warning, the
-  lightbulb (Alt+Enter) now offers *"Fix with ChainlessChain"* — it reveals the
+  lightbulb (Alt+Enter) now offers _"Fix with ChainlessChain"_ — it reveals the
   chat tool window and seeds it with a fix request scoped to this file (as an
   `@file` reference the agent expands) plus the problems on that line. Mirrors
   the VS Code 0.19 Fix-with-cc QuickFix. Pure prompt construction in `FixWithCc`.
@@ -408,7 +433,7 @@
   `openMultiDiff` read the on-disk file's text on the EDT to build the "Current"
   side of the diff. Since IntelliJ 2026.2 the EDT no longer grants implicit read
   access to the document model, so an unwrapped `Document.getText()` there threw
-  *"Read access is allowed from inside read-action only"* (flagged by the
+  _"Read access is allowed from inside read-action only"_ (flagged by the
   Marketplace Plugin Verifier). Both reads now go through a `runReadAction`
   helper. No behavior change on 2025.x; fixes the crash when reviewing a
   proposed file edit on 2026.2+.
@@ -435,6 +460,7 @@
 ## [0.4.7] — 2026-06-16 — clear 2026.x verifier flags (scheduled-for-removal + deprecated)
 
 The Marketplace Plugin Verifier flagged more on 2026.x builds than on 2025.2:
+
 - **Scheduled-for-removal**: `SimpleListCellRenderer.create(String, Function)` (the
   @-mention popup renderer) → replaced with a plain Swing `DefaultListCellRenderer`
   (core Swing, never deprecated — bulletproof across IDE versions).
@@ -466,7 +492,7 @@ The Marketplace Plugin Verifier flagged more on 2026.x builds than on 2025.2:
 
 - **Reverted the 0.4.4 `getTerminalOutput` tool.** The JetBrains terminal API it
   relied on (`TerminalToolWindowManager.getWidgets()` → `JBTerminalWidget.
-  getTerminalTextBuffer()` / jediterm) is **not stable across IDE versions** (the
+getTerminalTextBuffer()` / jediterm) is **not stable across IDE versions** (the
   2024.3+ "reworked terminal" changed it), which caused errors on some builds.
   0.4.5 is functionally identical to 0.4.3 (5 IDE tools: getSelection /
   getDiagnostics / getOpenEditors / openDiff / openMultiDiff). A robust
@@ -538,6 +564,7 @@ are smoke-tested (`PureLogicSmokeMain`, 116 assertions).
   reference into the input.
 
 Verified in a `runIde` sandbox; fixes found during that GUI pass:
+
 - Chat replies are no longer silently dropped (the multi-conversation refactor
   could leave a conversation's turn-state as the wrong type, throwing on the first
   stream event and killing the reply reader).

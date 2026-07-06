@@ -84,6 +84,15 @@ final class ConversationView {
     // True while a send is being spawned/delivered off-EDT; further Enter presses
     // are ignored instead of double-sending the same composer text.
     private volatile boolean sendInFlight = false;
+    // Live per-turn token tally (token_usage events); reset at turn end. EDT-only.
+    private ChatEvents.TokenTally turnTokens;
+    // Stop escalation: the session interrupt was already sent to — a second Stop
+    // click on the SAME still-running child hard-kills it (interrupt can't reach
+    // a hung child). EDT-only.
+    private AgentChatSession interruptRequested;
+    // Self-created temp images of the in-flight/last turn — deleted once the
+    // turn results (the CLI inlines them at turn start) or on dispose. EDT-only.
+    private final java.util.List<String> sentImageTemps = new java.util.ArrayList<>();
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -152,9 +161,21 @@ final class ConversationView {
         root.add(southWrap, BorderLayout.SOUTH);
 
         sendBtn.addActionListener(e -> sendCurrentInput());
+        stopBtn.setToolTipText("中断当前回合;child 卡死时再点一次强制结束进程");
         stopBtn.addActionListener(e -> {
             AgentChatSession s = liveSession();
-            if (s != null) s.interrupt();
+            if (s == null) return;
+            // Second click on the same still-live child → escalate to a hard
+            // stop: interrupt rides stdin, which a hung child never reads.
+            if (s == interruptRequested) {
+                interruptRequested = null;
+                conv.session = null;
+                s.stop();
+                append("⏹ force-stopped the agent process — next message restarts it\n");
+                return;
+            }
+            interruptRequested = s;
+            s.interrupt();
         });
         // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
         // Slash-command completion: typing '/' at the line start pops a chooser too.
@@ -204,14 +225,30 @@ final class ConversationView {
     /** One-time first-run nudge: when `cc config get llm.provider` is empty,
      *  guide the user to the ⚙ LLM button. The CLI probe runs off the EDT so
      *  it never blocks the panel; failures are swallowed (best-effort). */
+    // Process-level cache of the `cc --version` probe output: every new tab
+    // construction used to re-spawn it twice (onboarding + update nudge). The
+    // installed CLI can't change under a running IDE except via a manual
+    // upgrade — the explicit "检查 cc 更新" action re-probes and refreshes this.
+    // Only SUCCESSFUL probes are cached, so "cc not installed yet" keeps being
+    // re-checked and recovers as soon as the user installs it.
+    private static volatile String cachedVersionOut;
+
+    private static String probeVersionCached(File cwd) {
+        String v = cachedVersionOut;
+        if (v != null) return v;
+        String out = AgentChatSession.runCapture(
+                java.util.Collections.singletonList("--version"), cwd, 12000);
+        if (CliVersionCheck.parseVersion(out) != null) cachedVersionOut = out;
+        return out;
+    }
+
     private void maybeShowOnboarding() {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             // The whole panel needs `cc` on PATH. If it's missing, say so first —
             // otherwise the provider probe below fails and shows the misleading
             // "未配置 LLM" hint when the real problem is "cc not installed".
-            String ver = AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 12000);
+            String ver = probeVersionCached(cwd);
             if (CliVersionCheck.parseVersion(ver) == null) {
                 SwingUtilities.invokeLater(() -> appendThinking(
                         "面板需要 cc CLI 才能工作。" + CliLauncher.missingCliMessage() + "\n"));
@@ -239,8 +276,7 @@ final class ConversationView {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                String installed = AgentChatSession.runCapture(
-                        java.util.Collections.singletonList("--version"), cwd, 12000);
+                String installed = probeVersionCached(cwd);
                 String latestJson = fetchNpmLatest();
                 String latest = CliVersionCheck.parseNpmLatest(latestJson);
                 String notice = CliVersionCheck.updateNotice(installed, latest);
@@ -288,8 +324,12 @@ final class ConversationView {
     private void checkCliUpdateManually() {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            String installed = CliVersionCheck.parseVersion(AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 12000));
+            // Manual check: the user may have JUST upgraded — bypass and refresh
+            // the process-level probe cache.
+            String freshOut = AgentChatSession.runCapture(
+                    java.util.Collections.singletonList("--version"), cwd, 12000);
+            if (CliVersionCheck.parseVersion(freshOut) != null) cachedVersionOut = freshOut;
+            String installed = CliVersionCheck.parseVersion(freshOut);
             String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
             SwingUtilities.invokeLater(() -> {
                 if (installed == null) {
@@ -392,6 +432,10 @@ final class ConversationView {
                                 : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
                         append("\nyou> " + text + tag + "\n");
                         input.setText("");
+                        // Take ownership of the composer's self-created temp pngs
+                        // BEFORE clearAll (which deletes still-pending own temps)
+                        // — these were just sent, so they're cleaned at turn end.
+                        sentImageTemps.addAll(images.takeOwnedTemps(imgs));
                         images.clearAll();
                     } else {
                         append("⚠ agent session is not running — press New to restart\n");
@@ -516,14 +560,14 @@ final class ConversationView {
             return;
         }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
-        new Thread(() -> {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
             List<String> args = IntrospectArgs.build(kind, sid, null, null, true);
             String out = AgentChatSession.runCapture(args, cwd, 8000);
             final String line = (out == null || out.trim().isEmpty())
                     ? "ℹ /" + kind + " unavailable\n"
                     : "ℹ " + kind + ": " + out.trim().replace('\n', ' ') + "\n";
             SwingUtilities.invokeLater(() -> append(line));
-        }, "cc-" + kind + "-" + conv.id).start();
+        });
     }
 
     /**
@@ -540,7 +584,7 @@ final class ConversationView {
             return;
         }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
-        new Thread(() -> {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
             String out = AgentChatSession.runCapture(RewindCommands.buildListArgs(sid), cwd, 30000);
             final List<RewindCommands.Checkpoint> list = RewindCommands.parseCheckpointList(out);
             SwingUtilities.invokeLater(() -> {
@@ -558,7 +602,7 @@ final class ConversationView {
                             int idx = labels.indexOf(label);
                             if (idx < 0) return;
                             final RewindCommands.Checkpoint chosen = list.get(idx);
-                            new Thread(() -> {
+                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
                                 String restored = AgentChatSession.runCapture(
                                         RewindCommands.buildRestoreArgs(sid, chosen.id), cwd, 60000);
                                 final boolean ok = RewindCommands.restoreOk(restored);
@@ -569,12 +613,12 @@ final class ConversationView {
                                           + (n != null ? " — " + n + " file(s) restored" : "") + "\n"
                                         : "✗ /rewind failed: "
                                           + (raw.isEmpty() ? "no output" : raw) + "\n"));
-                            }, "cc-rewind-restore-" + conv.id).start();
+                            });
                         })
                         .createPopup()
                         .showCenteredInCurrentWindow(project);
             });
-        }, "cc-rewind-list-" + conv.id).start();
+        });
     }
 
     /**
@@ -585,7 +629,7 @@ final class ConversationView {
      */
     private void runSessions() {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
-        new Thread(() -> {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
             String out = AgentChatSession.runCapture(SessionList.buildListArgs(30), cwd, 30000);
             final List<SessionList.SessionItem> list = SessionList.parseSessionList(out);
             SwingUtilities.invokeLater(() -> {
@@ -611,7 +655,7 @@ final class ConversationView {
                         .createPopup()
                         .showCenteredInCurrentWindow(project);
             });
-        }, "cc-sessions-" + conv.id).start();
+        });
     }
 
     /**
@@ -737,6 +781,14 @@ final class ConversationView {
             if (note instanceof String && !((String) note).isEmpty()) {
                 appendThinking("ℹ " + ui.get("tool") + ":" + note + "\n");
             }
+        } else if ("usage".equals(kind)) {
+            // Live per-turn token tally (VS Code 0.37.2 parity): token_usage
+            // fires once per LLM call; accumulate onto the status line. The
+            // turn_end below overwrites with the authoritative total.
+            if (turnTokens == null) turnTokens = new ChatEvents.TokenTally();
+            turnTokens.add(asMapOrNull(ui.get("usage")));
+            contextLabel.setText(" " + turnTokens.statusLine());
+            contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
             Object text = ui.get("text");
             // The final result text only arrives here when nothing streamed; run
@@ -745,6 +797,16 @@ final class ConversationView {
             if (text != null) appendAssistantDelta(String.valueOf(text));
             transcript.finalizeAssistantRun();
             append("\n");
+            // Authoritative turn total replaces the live tally until the async
+            // context probe repaints the ⊟ indicator.
+            turnTokens = null;
+            interruptRequested = null; // turn is over — next Stop starts fresh
+            Map<String, Object> usage = asMapOrNull(ui.get("usage"));
+            if (usage != null) {
+                contextLabel.setText(" " + ChatEvents.readyLine(usage));
+                contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
+            }
+            deleteSentImageTemps(); // CLI consumed them at turn start
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
             showPlanCard(ui); // §5 interactive plan card (items + Approve/Reject)
@@ -769,7 +831,9 @@ final class ConversationView {
 
     // ---- §5 interactive cards ------------------------------------------
 
-    private static final Color WARN = new Color(0xCC, 0x88, 0x00);
+    // Theme-aware amber: darker for light UIs, brighter for Darcula.
+    private static final Color WARN = new com.intellij.ui.JBColor(
+            new Color(0xCC, 0x88, 0x00), new Color(0xE0, 0xA5, 0x2E));
 
     /** ask_user_question round-trip: the agent is BLOCKED on the user. Pop a
      *  dialog (single-choice / multi-choice / free-text) and reply
@@ -996,6 +1060,24 @@ final class ConversationView {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMapOrNull(Object v) {
+        return v instanceof Map ? (Map<String, Object>) v : null;
+    }
+
+    /** Delete the self-created temp images handed over by the composer at send
+     *  time (user-dropped real files are never in this list). Best-effort. */
+    private void deleteSentImageTemps() {
+        for (String p : sentImageTemps) {
+            try {
+                java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(p));
+            } catch (Exception ignored) {
+                // still open on Windows → deleteOnExit backstop gets it
+            }
+        }
+        sentImageTemps.clear();
+    }
+
     private static JLabel htmlLabel(String text) {
         return new JLabel("<html>" + text.replace("\n", "<br>") + "</html>");
     }
@@ -1013,7 +1095,7 @@ final class ConversationView {
         final String sid = conv.sessionId;
         if (sid == null || sid.isEmpty()) return;
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
-        new Thread(() -> {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 List<String> args = IntrospectArgs.build("context", sid, null, null, true);
                 String json = AgentChatSession.runCapture(args, cwd, 8000);
@@ -1022,13 +1104,15 @@ final class ConversationView {
                 SwingUtilities.invokeLater(() -> {
                     contextLabel.setText(" ⊟ context " + human(st.total) + " / "
                             + human(st.window) + " (" + st.pct + "%)");
+                    // JBColor: theme-aware red/gray so the dimmed status line
+                    // stays readable under Darcula (plain AWT RED is glaring).
                     contextLabel.setForeground(st.overflow
-                            ? java.awt.Color.RED : java.awt.Color.GRAY);
+                            ? com.intellij.ui.JBColor.RED : com.intellij.ui.JBColor.GRAY);
                 });
             } catch (Throwable ignored) {
                 // best-effort — context line is non-essential
             }
-        }, "cc-context-" + conv.id).start();
+        });
     }
 
     /** Compact token count: 12345 → "12.3k", 1500000 → "1.5M". */
@@ -1067,5 +1151,6 @@ final class ConversationView {
             s.stop();
             conv.session = null;
         }
+        deleteSentImageTemps();
     }
 }

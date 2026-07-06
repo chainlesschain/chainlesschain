@@ -17,6 +17,11 @@ import java.util.List;
 final class ChatComposerImages {
 
     private final List<String> pendingImages = new ArrayList<>();
+    // Temp pngs THIS composer wrote (cc-paste-*/cc-drop-*) — the only files we
+    // may delete. User-dropped real files are never in here. deleteOnExit stays
+    // as a backstop, but that list only grows for the IDE's long lifetime, so
+    // eager cleanup (discard → here, sent → after the turn) is the primary path.
+    private final java.util.Set<String> ownTemps = new java.util.HashSet<>();
     private final JLabel label = new JLabel();
     private final JTextArea input; // caret target for plain-text drops
 
@@ -40,8 +45,32 @@ final class ChatComposerImages {
         return new ArrayList<>(pendingImages);
     }
 
-    /** Drop all pending attachments and hide the indicator (after send / reset). */
+    /**
+     * Transfer ownership of the self-created temp files among {@code paths} to
+     * the caller (who deletes them once the CLI has consumed the turn). Call
+     * BEFORE {@link #clearAll()} on the send path — clearAll deletes whatever
+     * own temps are still pending, treating them as discarded.
+     */
+    List<String> takeOwnedTemps(java.util.Collection<String> paths) {
+        List<String> owned = new ArrayList<>();
+        for (String p : paths) {
+            if (ownTemps.remove(p)) owned.add(p);
+        }
+        return owned;
+    }
+
+    /** Drop all pending attachments and hide the indicator (after send / reset).
+     *  Self-created temp pngs still pending here were never sent — delete them. */
     void clearAll() {
+        for (String p : pendingImages) {
+            if (ownTemps.remove(p)) {
+                try {
+                    java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(p));
+                } catch (Exception ignored) {
+                    // locked/odd path → deleteOnExit backstop
+                }
+            }
+        }
         pendingImages.clear();
         updateIndicator();
     }
@@ -120,9 +149,10 @@ final class ChatComposerImages {
     /** Write a raw AWT image to a temp png and attach it to the composer. */
     private void attachRawImage(java.awt.Image img, String prefix) throws java.io.IOException {
         java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
-        tmp.deleteOnExit();
+        tmp.deleteOnExit(); // backstop only — eager cleanup owns the normal path
         javax.imageio.ImageIO.write(toBuffered(img), "png", tmp);
         pendingImages.add(tmp.getAbsolutePath());
+        ownTemps.add(tmp.getAbsolutePath());
         updateIndicator();
     }
 

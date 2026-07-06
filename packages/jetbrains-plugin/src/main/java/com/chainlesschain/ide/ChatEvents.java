@@ -21,6 +21,56 @@ public final class ChatEvents {
         public boolean sawDelta;
     }
 
+    /**
+     * Live per-turn token tally: {@code token_usage} fires once per LLM call
+     * while the agent works; the panel accumulates them into a status line
+     * ("thinking… · 12.3k→456 tokens (900 cached)"). The turn's {@code result}
+     * envelope still carries the authoritative total ({@link #readyLine}).
+     * Pure JDK — mirrors the VS Code webview's turnTokens accumulator.
+     */
+    public static final class TokenTally {
+        public long input;
+        public long output;
+        public long cached;
+
+        /** Fold one token_usage payload in (missing/non-numeric fields = 0). */
+        public void add(Map<String, Object> usage) {
+            if (usage == null) return;
+            input += num(usage.get("input_tokens"));
+            output += num(usage.get("output_tokens"));
+            cached += num(usage.get("cache_read_input_tokens"));
+        }
+
+        /** The mid-turn status line, e.g. "thinking… · 12.3k→456 tokens (900 cached)". */
+        public String statusLine() {
+            return "thinking… · " + formatTokens(input) + "→" + formatTokens(output)
+                    + " tokens"
+                    + (cached > 0 ? " (" + formatTokens(cached) + " cached)" : "");
+        }
+    }
+
+    /** Compact token count, VS Code tokfmt twin: 456 → "456", 12345 → "12.3k",
+     *  123456 → "123k" (≥10k drops the decimal). */
+    public static String formatTokens(long n) {
+        if (n < 1000) return String.valueOf(n);
+        double k = n / 1000.0;
+        return (n >= 10_000
+                ? String.valueOf(Math.round(k))
+                : String.format(java.util.Locale.ROOT, "%.1f", k)) + "k";
+    }
+
+    /** The end-of-turn status line from the result envelope's usage, e.g.
+     *  "ready · 12.3k→456 tokens" — or plain "ready" without usage. */
+    public static String readyLine(Map<String, Object> usage) {
+        if (usage == null) return "ready";
+        return "ready · " + formatTokens(num(usage.get("input_tokens")))
+                + "→" + formatTokens(num(usage.get("output_tokens"))) + " tokens";
+    }
+
+    private static long num(Object v) {
+        return v instanceof Number ? ((Number) v).longValue() : 0L;
+    }
+
     /** One-line argument summary for the tool trace (mirrors the CLI). */
     public static String summarizeToolArgs(Object args) {
         if (!(args instanceof Map)) return "";
@@ -61,7 +111,7 @@ public final class ChatEvents {
 
     /**
      * @return a UI message map (key {@code kind}), or null when the event is
-     *         UI-silent (token_usage, iteration_warning, …).
+     *         UI-silent (iteration_budget_exhausted, …).
      */
     public static Map<String, Object> mapAgentEvent(
             Map<String, Object> evt, TurnState state) {
@@ -204,6 +254,23 @@ public final class ChatEvents {
             m.put("items", evt.get("items") instanceof List ? evt.get("items") : new ArrayList<>());
             m.put("risk", evt.get("risk"));
             m.put("note", evt.get("note"));
+            return m;
+        }
+        if ("token_usage".equals(type)) {
+            // Per-LLM-call usage mid-turn — the panel accumulates these into a
+            // live token counter on the status line (turn_end still carries the
+            // authoritative turn total). Same contract as the VS Code panel.
+            Map<String, Object> usage = asMap(evt.get("usage"));
+            if (usage == null) return null;
+            Map<String, Object> m = ui("usage");
+            m.put("usage", usage);
+            return m;
+        }
+        if ("iteration_warning".equals(type)) {
+            Map<String, Object> m = ui("info");
+            Object msg = evt.get("message");
+            m.put("text", "⚠ " + (msg instanceof String && !((String) msg).isEmpty()
+                    ? msg : "approaching the iteration limit"));
             return m;
         }
         if ("session_error".equals(type)) {

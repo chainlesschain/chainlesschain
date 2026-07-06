@@ -34,9 +34,13 @@ final class ChatTranscript {
         pane.setEditable(false);
         // JTextPane wraps by default (no setLineWrap). Keep the monospace look.
         pane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, pane.getFont().getSize()));
-        StyleConstants.setForeground(styleCode, new Color(0xCC, 0x78, 0x32)); // amber code
+        // JBColor(light, dark): theme-aware so code/thinking text stays readable
+        // when the IDE switches to Darcula (JBColor resolves at paint time).
+        StyleConstants.setForeground(styleCode, new com.intellij.ui.JBColor(
+                new Color(0xCC, 0x78, 0x32), new Color(0xE8, 0x9A, 0x50))); // amber code
         StyleConstants.setBold(styleBold, true);
-        StyleConstants.setForeground(styleDim, new Color(0x80, 0x80, 0x80)); // gray thinking
+        StyleConstants.setForeground(styleDim, new com.intellij.ui.JBColor(
+                new Color(0x80, 0x80, 0x80), new Color(0x9A, 0x9A, 0x9A))); // gray thinking
         StyleConstants.setItalic(styleDim, true);
     }
 

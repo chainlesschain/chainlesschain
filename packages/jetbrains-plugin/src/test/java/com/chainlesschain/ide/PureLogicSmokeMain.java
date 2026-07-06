@@ -49,6 +49,7 @@ public final class PureLogicSmokeMain {
         cliVersionCheck();
         binaryResolution();
         miniJsonDepth();
+        tokenTally();
         cliLauncher();
         fixWithCc();
         markdownLite();
@@ -531,6 +532,62 @@ public final class PureLogicSmokeMain {
         try { MiniJson.parse(wide.toString()); wideOk = true; }
         catch (RuntimeException e) { wideOk = false; }
         check(wideOk, "700 flat sibling objects parse (depth resets)");
+    }
+
+    private static void tokenTally() {
+        System.out.println("TokenTally (live token counter + iteration warning, VS Code 0.37.2 parity):");
+        // Compact formatting — the VS Code tokfmt twin.
+        eq(ChatEvents.formatTokens(456), "456", "formatTokens <1k verbatim");
+        eq(ChatEvents.formatTokens(2345), "2.3k", "formatTokens 1 decimal under 10k");
+        eq(ChatEvents.formatTokens(12345), "12k", "formatTokens ≥10k drops the decimal");
+        eq(ChatEvents.formatTokens(123456), "123k", "formatTokens large stays integer-k");
+        eq(ChatEvents.formatTokens(1000), "1.0k", "formatTokens exactly 1k");
+        // Accumulation across per-LLM-call usage payloads.
+        ChatEvents.TokenTally t = new ChatEvents.TokenTally();
+        java.util.Map<String, Object> u1 = new java.util.LinkedHashMap<>();
+        u1.put("input_tokens", 12000L);
+        u1.put("output_tokens", 300L);
+        u1.put("cache_read_input_tokens", 900L);
+        java.util.Map<String, Object> u2 = new java.util.LinkedHashMap<>();
+        u2.put("input_tokens", 345L);
+        u2.put("output_tokens", 156L);
+        t.add(u1);
+        t.add(u2);
+        eq(t.statusLine(), "thinking… · 12k→456 tokens (900 cached)",
+                "statusLine accumulates + shows cached");
+        ChatEvents.TokenTally noCache = new ChatEvents.TokenTally();
+        noCache.add(u2);
+        eq(noCache.statusLine(), "thinking… · 345→156 tokens",
+                "statusLine omits (0 cached)");
+        t.add(null); // defensive: null payload is a no-op
+        eq(t.statusLine(), "thinking… · 12k→456 tokens (900 cached)",
+                "null usage payload ignored");
+        // End-of-turn authoritative line from the result envelope.
+        eq(ChatEvents.readyLine(u1), "ready · 12k→300 tokens", "readyLine from usage");
+        eq(ChatEvents.readyLine(null), "ready", "readyLine without usage");
+        // Event mapping: token_usage → kind usage; iteration_warning → ⚠ info.
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        java.util.Map<String, Object> evU = new java.util.LinkedHashMap<>();
+        evU.put("type", "token_usage");
+        evU.put("usage", u1);
+        java.util.Map<String, Object> mapped = ChatEvents.mapAgentEvent(evU, st);
+        check(mapped != null && "usage".equals(mapped.get("kind"))
+                && mapped.get("usage") == u1, "token_usage → {kind:usage, usage}");
+        java.util.Map<String, Object> evUBad = new java.util.LinkedHashMap<>();
+        evUBad.put("type", "token_usage"); // no usage map → stays UI-silent
+        check(ChatEvents.mapAgentEvent(evUBad, st) == null, "token_usage without usage → null");
+        java.util.Map<String, Object> evW = new java.util.LinkedHashMap<>();
+        evW.put("type", "iteration_warning");
+        evW.put("message", "iteration 20/25");
+        java.util.Map<String, Object> warn = ChatEvents.mapAgentEvent(evW, st);
+        check(warn != null && "info".equals(warn.get("kind"))
+                && "⚠ iteration 20/25".equals(warn.get("text")),
+                "iteration_warning → ⚠ info line");
+        java.util.Map<String, Object> evW2 = new java.util.LinkedHashMap<>();
+        evW2.put("type", "iteration_warning"); // no message → default text
+        java.util.Map<String, Object> warn2 = ChatEvents.mapAgentEvent(evW2, st);
+        check(warn2 != null && String.valueOf(warn2.get("text")).startsWith("⚠ approaching"),
+                "iteration_warning default message");
     }
 
     private static void cliLauncher() {
