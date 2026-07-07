@@ -29,7 +29,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
 
 /** Load + validate a task-graph file into a registry (throws on bad input). */
-function loadRegistry(file, { ttlMs } = {}) {
+export function loadRegistry(file, { ttlMs } = {}) {
   const abs = path.resolve(process.cwd(), file);
   let doc;
   try {
@@ -40,6 +40,19 @@ function loadRegistry(file, { ttlMs } = {}) {
   const tasks = Array.isArray(doc) ? doc : doc.tasks;
   if (!Array.isArray(tasks) || tasks.length === 0) {
     throw new Error("task file must have a non-empty `tasks` array");
+  }
+  // Reject unknown dependency keys up front: a typo'd dependsOn ("biuld") makes
+  // a task permanently unclaimable — the run silently exits 1 and `plan` drops
+  // it from the waves with no diagnosis.
+  const keys = new Set(tasks.map((t) => t.key));
+  for (const t of tasks) {
+    for (const d of t.dependsOn || t.deps || []) {
+      if (!keys.has(d)) {
+        throw new Error(
+          `task "${t.key}" depends on unknown task "${d}" (typo in dependsOn?)`,
+        );
+      }
+    }
   }
   const reg = new TaskLeaseRegistry({ defaultTtlMs: ttlMs });
   for (const t of tasks) {
@@ -301,8 +314,12 @@ export function registerTeamCommand(program, { logger } = {}) {
       const persist = () => {
         if (!options.state) return;
         try {
+          // Atomic write (tmp + rename): a crash mid-write must not truncate
+          // the ONLY resume file — a torn snapshot makes --resume throw and
+          // loses all progress.
+          const tmp = `${options.state}.tmp`;
           fs.writeFileSync(
-            options.state,
+            tmp,
             JSON.stringify(
               {
                 version: 2,
@@ -316,6 +333,7 @@ export function registerTeamCommand(program, { logger } = {}) {
             ),
             "utf8",
           );
+          fs.renameSync(tmp, options.state);
         } catch (e) {
           (log.error || console.error)(`  state write failed: ${e.message}`);
         }
