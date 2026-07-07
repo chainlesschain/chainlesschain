@@ -7,233 +7,267 @@
 // re-spending the one-time pairing token; stops on explicit disconnect or a
 // host-issued `session.revoked`.
 
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { RemoteSessionCrypto, parseRemotePairingUri } from '../utils/remote-session-crypto.js'
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import {
+  RemoteSessionCrypto,
+  parseRemotePairingUri,
+} from "../utils/remote-session-crypto.js";
 
-const RECONNECT_BASE_MS = 1_000
-const RECONNECT_MAX_MS = 30_000
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
 
-let seq = 0
-function newPeerId() {
-  const rand = globalThis.crypto?.randomUUID
+let seq = 0;
+function newUuid() {
+  return globalThis.crypto?.randomUUID
     ? globalThis.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
-  return `web-${rand}`
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+function newPeerId() {
+  return `web-${newUuid()}`;
 }
 
-export const useRemoteSessionStore = defineStore('remoteSession', () => {
-  const status = ref('idle') // idle|connecting|pairing|connected|reconnecting|disconnected|revoked|error
-  const events = ref([])
-  const error = ref('')
-  const remoteSessionId = ref(null)
+export const useRemoteSessionStore = defineStore("remoteSession", () => {
+  const status = ref("idle"); // idle|connecting|pairing|connected|reconnecting|disconnected|revoked|error
+  const events = ref([]);
+  const error = ref("");
+  const remoteSessionId = ref(null);
 
   // Non-reactive connection internals (persist for the singleton store).
-  let socket = null
-  let crypto = null
-  let pairing = null
-  let peerId = null
-  let paired = false
-  let closedExplicitly = false
-  let reconnectAttempts = 0
-  let reconnectTimer = null
+  let socket = null;
+  let crypto = null;
+  let pairing = null;
+  let peerId = null;
+  let paired = false;
+  let closedExplicitly = false;
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
   // Optional vendor push (Web Push subscription) carried in pair.join so the
   // host can wake this browser for approvals when the tab is backgrounded.
-  let pushCredentials = null
+  let pushCredentials = null;
+  // Idempotency (Phase 5): every control event carries a commandId + a
+  // per-pairing monotonic seq INSIDE the encrypted plaintext (the host reads
+  // message.event.commandId after decryption). The relay is at-least-once —
+  // it stores and REDELIVERS `offline-message`s — so without the id a
+  // redelivered prompt would run a second agent turn. deviceId is NOT sent:
+  // the host derives it from the authenticated peer (spoof-proof).
+  let controlSeq = 0;
 
   function clearReconnect() {
     if (reconnectTimer) {
-      clearTimeout(reconnectTimer)
-      reconnectTimer = null
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
     }
   }
 
   function openSocket() {
-    if (!pairing) return
-    const ws = new WebSocket(pairing.relayUrl)
-    socket = ws
-    ws.addEventListener('open', () => {
-      if (ws !== socket) return
+    if (!pairing) return;
+    const ws = new WebSocket(pairing.relayUrl);
+    socket = ws;
+    ws.addEventListener("open", () => {
+      if (ws !== socket) return;
       ws.send(
         JSON.stringify({
-          type: 'register',
+          type: "register",
           peerId,
-          deviceType: 'web',
-          deviceInfo: { protocol: 'remote-session.e2ee.v1' },
+          deviceType: "web",
+          deviceInfo: { protocol: "remote-session.e2ee.v1" },
         }),
-      )
-    })
-    ws.addEventListener('message', (event) => {
-      if (ws !== socket) return
-      handleMessage(event.data)
-    })
-    ws.addEventListener('close', () => {
-      if (ws !== socket) return
-      socket = null
+      );
+    });
+    ws.addEventListener("message", (event) => {
+      if (ws !== socket) return;
+      handleMessage(event.data);
+    });
+    ws.addEventListener("close", () => {
+      if (ws !== socket) return;
+      socket = null;
       if (closedExplicitly) {
-        status.value = 'disconnected'
+        status.value = "disconnected";
       } else {
-        scheduleReconnect()
+        scheduleReconnect();
       }
-    })
-    ws.addEventListener('error', () => {
-      if (ws !== socket) return
-      error.value = 'Remote Session relay connection error'
-    })
+    });
+    ws.addEventListener("error", () => {
+      if (ws !== socket) return;
+      error.value = "Remote Session relay connection error";
+    });
   }
 
   function scheduleReconnect() {
-    if (closedExplicitly || reconnectTimer) return
-    const delay = Math.min(RECONNECT_BASE_MS * 2 ** reconnectAttempts, RECONNECT_MAX_MS)
-    reconnectAttempts += 1
-    status.value = 'reconnecting'
+    if (closedExplicitly || reconnectTimer) return;
+    const delay = Math.min(
+      RECONNECT_BASE_MS * 2 ** reconnectAttempts,
+      RECONNECT_MAX_MS,
+    );
+    reconnectAttempts += 1;
+    status.value = "reconnecting";
     reconnectTimer = setTimeout(() => {
-      reconnectTimer = null
-      if (!closedExplicitly) openSocket()
-    }, delay)
+      reconnectTimer = null;
+      if (!closedExplicitly) openSocket();
+    }, delay);
   }
 
   function handleMessage(raw) {
     try {
-      let message = JSON.parse(typeof raw === 'string' ? raw : String(raw))
-      if (message.type === 'offline-message') message = message.originalMessage || {}
-      if (message.type === 'registered') {
+      let message = JSON.parse(typeof raw === "string" ? raw : String(raw));
+      if (message.type === "offline-message")
+        message = message.originalMessage || {};
+      if (message.type === "registered") {
         if (paired) {
           // Reconnected after a transient drop — resume without re-pairing.
-          status.value = 'connected'
+          status.value = "connected";
         } else {
-          status.value = 'pairing'
-          sendPairRequest()
+          status.value = "pairing";
+          sendPairRequest();
         }
-        return
+        return;
       }
-      if (message.type !== 'message') return
-      const payload = message.payload
-      if (!payload || payload.type !== 'remote-session.encrypted') return
-      const event = crypto.decrypt(payload.envelope)
-      if (event.type === 'pair.accepted') {
-        paired = true
-        reconnectAttempts = 0
-        status.value = 'connected'
-      } else if (event.type === 'session.revoked') {
-        closedExplicitly = true
-        paired = false
-        clearReconnect()
-        if (socket) socket.close()
-        socket = null
-        status.value = 'revoked'
+      if (message.type !== "message") return;
+      const payload = message.payload;
+      if (!payload || payload.type !== "remote-session.encrypted") return;
+      const event = crypto.decrypt(payload.envelope);
+      if (event.type === "pair.accepted") {
+        paired = true;
+        reconnectAttempts = 0;
+        status.value = "connected";
+      } else if (event.type === "session.revoked") {
+        closedExplicitly = true;
+        paired = false;
+        clearReconnect();
+        if (socket) socket.close();
+        socket = null;
+        status.value = "revoked";
       } else {
-        seq += 1
-        events.value = [...events.value, { ...event, _id: seq, _rxAt: Date.now() }].slice(-200)
+        seq += 1;
+        events.value = [
+          ...events.value,
+          { ...event, _id: seq, _rxAt: Date.now() },
+        ].slice(-200);
       }
     } catch (cause) {
-      status.value = 'error'
-      error.value = cause?.message || 'Remote Session protocol error'
+      status.value = "error";
+      error.value = cause?.message || "Remote Session protocol error";
     }
   }
 
   function relaySend(payloadType, envelope) {
-    if (!socket || socket.readyState !== WebSocket.OPEN || !pairing) return false
+    if (!socket || socket.readyState !== WebSocket.OPEN || !pairing)
+      return false;
     socket.send(
       JSON.stringify({
-        type: 'message',
+        type: "message",
         to: pairing.hostPeerId,
         payload: { type: payloadType, ...envelope },
       }),
-    )
-    return true
+    );
+    return true;
   }
 
   function sendPairRequest() {
     const join = {
-      type: 'pair.join',
+      type: "pair.join",
       remoteSessionId: pairing.remoteSessionId,
       token: pairing.pairingToken,
-    }
+    };
     if (pushCredentials?.token) {
-      join.pushToken = pushCredentials.token
-      join.pushProvider = pushCredentials.provider || 'web'
+      join.pushToken = pushCredentials.token;
+      join.pushProvider = pushCredentials.provider || "web";
     }
-    relaySend('remote-session.pair', {
+    relaySend("remote-session.pair", {
       mobilePeerId: peerId,
       mobilePublicKey: crypto.publicKeyBase64(),
       envelope: crypto.encrypt(join),
-    })
+    });
   }
 
   function sendControl(event) {
-    if (!socket || socket.readyState !== WebSocket.OPEN || !paired) return false
-    return relaySend('remote-session.encrypted', { envelope: crypto.encrypt(event) })
+    if (!socket || socket.readyState !== WebSocket.OPEN || !paired)
+      return false;
+    // Stamp the idempotency key before encryption (the host only sees the
+    // decrypted event). Preserve a caller-supplied commandId so an explicit
+    // retry of the SAME logical command stays deduplicable.
+    const stamped = {
+      ...event,
+      commandId: event.commandId || newUuid(),
+      seq: event.seq ?? ++controlSeq,
+    };
+    return relaySend("remote-session.encrypted", {
+      envelope: crypto.encrypt(stamped),
+    });
   }
 
   function connect(uri, options = {}) {
-    disconnect()
+    disconnect();
     try {
-      const parsed = parseRemotePairingUri(uri)
-      pushCredentials = options.pushCredentials || null
-      peerId = newPeerId()
-      crypto = new RemoteSessionCrypto(parsed.remoteSessionId, peerId)
-      crypto.pair(parsed.hostPublicKey, parsed.pairingToken)
-      pairing = parsed
-      remoteSessionId.value = parsed.remoteSessionId
-      paired = false
-      closedExplicitly = false
-      reconnectAttempts = 0
-      error.value = ''
-      events.value = []
-      status.value = 'connecting'
-      openSocket()
-      return true
+      const parsed = parseRemotePairingUri(uri);
+      pushCredentials = options.pushCredentials || null;
+      peerId = newPeerId();
+      crypto = new RemoteSessionCrypto(parsed.remoteSessionId, peerId);
+      crypto.pair(parsed.hostPublicKey, parsed.pairingToken);
+      pairing = parsed;
+      remoteSessionId.value = parsed.remoteSessionId;
+      paired = false;
+      closedExplicitly = false;
+      reconnectAttempts = 0;
+      // Fresh pairing = fresh peerId = fresh per-device seq space on the host;
+      // a transient reconnect (same peerId) keeps the counter running.
+      controlSeq = 0;
+      error.value = "";
+      events.value = [];
+      status.value = "connecting";
+      openSocket();
+      return true;
     } catch (cause) {
-      status.value = 'error'
-      error.value = cause?.message || 'Invalid pairing link'
-      return false
+      status.value = "error";
+      error.value = cause?.message || "Invalid pairing link";
+      return false;
     }
   }
 
   function sendPrompt(content) {
-    const trimmed = (content || '').trim()
-    if (!trimmed) return
-    if (!sendControl({ type: 'prompt', content: trimmed })) {
-      error.value = 'Remote Session is not connected'
+    const trimmed = (content || "").trim();
+    if (!trimmed) return;
+    if (!sendControl({ type: "prompt", content: trimmed })) {
+      error.value = "Remote Session is not connected";
     }
   }
 
   function approve(requestId, approved) {
-    sendControl({ type: 'approval.resolve', requestId, approved })
+    sendControl({ type: "approval.resolve", requestId, approved });
   }
 
   function interrupt() {
-    sendControl({ type: 'interrupt' })
+    sendControl({ type: "interrupt" });
   }
 
   // Update the Web Push subscription after pairing (e.g. the browser re-subscribed
   // with a new endpoint). Records it for the next pair.join and, when already
   // paired, forwards it to the host now via a push.register control event.
-  function updatePushCredentials(token, provider = 'web') {
-    pushCredentials = token ? { token, provider } : null
-    if (!paired) return
-    const event = { type: 'push.register' }
+  function updatePushCredentials(token, provider = "web") {
+    pushCredentials = token ? { token, provider } : null;
+    if (!paired) return;
+    const event = { type: "push.register" };
     if (pushCredentials?.token) {
-      event.pushToken = pushCredentials.token
-      event.pushProvider = pushCredentials.provider
+      event.pushToken = pushCredentials.token;
+      event.pushProvider = pushCredentials.provider;
     }
-    sendControl(event)
+    sendControl(event);
   }
 
   function disconnect() {
-    closedExplicitly = true
-    paired = false
-    clearReconnect()
+    closedExplicitly = true;
+    paired = false;
+    clearReconnect();
     if (socket) {
       try {
-        socket.close()
+        socket.close();
       } catch {
         /* already closing */
       }
     }
-    socket = null
-    if (status.value !== 'revoked') status.value = 'disconnected'
+    socket = null;
+    if (status.value !== "revoked") status.value = "disconnected";
   }
 
   return {
@@ -247,5 +281,5 @@ export const useRemoteSessionStore = defineStore('remoteSession', () => {
     interrupt,
     updatePushCredentials,
     disconnect,
-  }
-})
+  };
+});
