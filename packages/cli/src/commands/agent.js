@@ -187,7 +187,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--auto-pin",
-      "During auto-compaction, pin the original task (first user turn) so it always survives compaction (off by default)",
+      "Force-pin the original task (first user turn) through compaction (ON by default; disable with CC_AUTO_PIN=0 or config context.autoPin=false)",
     )
     .option(
       "--max-rewakes <n>",

@@ -890,6 +890,24 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // Resolve auto-pin (flag > env > config > default-on). Config read is
+  // best-effort — a broken config file must not take headless down.
+  let _autoPinResolved;
+  {
+    const { resolveAutoPinOption } = await import("./auto-pin.js");
+    let _autoPinCfg;
+    try {
+      const { loadConfig } = await import("../lib/config-manager.js");
+      _autoPinCfg = loadConfig()?.context?.autoPin;
+    } catch {
+      _autoPinCfg = undefined;
+    }
+    _autoPinResolved = resolveAutoPinOption({
+      flag: options.autoPin === true,
+      config: _autoPinCfg,
+    });
+  }
+
   const loopOptions = {
     model,
     provider,
@@ -906,11 +924,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,
-    // Auto-pin (OPT-IN, off by default): pin the original task through
-    // compaction. Enable via --auto-pin or CC_AUTO_PIN=1. Falsy → agent-core
-    // passes no pin predicate and compaction is byte-identical.
-    autoPin:
-      options.autoPin === true || process.env.CC_AUTO_PIN === "1" || undefined,
+    // Auto-pin (default ON since 2026-07-07): pin the original task through
+    // compaction. Precedence: --auto-pin flag > CC_AUTO_PIN ("1"/"0") >
+    // config context.autoPin > default on. Falsy → agent-core passes no pin
+    // predicate and compaction is byte-identical.
+    autoPin: _autoPinResolved,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession: options.checkpointSession || sessionId,
     hookDb: db,

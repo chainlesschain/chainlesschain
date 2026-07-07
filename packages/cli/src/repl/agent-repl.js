@@ -64,7 +64,10 @@ import {
   PromptCompressor,
   getContextWindow,
 } from "../harness/prompt-compressor.js";
-import { buildAutoPinPredicate } from "../runtime/auto-pin.js";
+import {
+  buildAutoPinPredicate,
+  resolveAutoPinOption,
+} from "../runtime/auto-pin.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
 import {
@@ -417,15 +420,16 @@ export async function startAgentRepl(options = {}) {
   // Unset → agent-core's 180s default (matches cc chat/ask). Set to 0 to
   // disable. Left undefined here means "use the default".
   let _streamStallTimeoutMs;
-  // Auto-pin (OPT-IN, off by default): when set, compaction pins the original
-  // task. Resolved from config `context.autoPin` or CC_AUTO_PIN=1; falsy → the
-  // compress calls below pass no pin predicate (byte-identical default).
-  let _autoPinOpt;
+  // Auto-pin (default ON since 2026-07-07): compaction pins the original task
+  // (first user turn) so it survives context compression. Resolution order:
+  // CC_AUTO_PIN env ("1"/"0") > config `context.autoPin` (true/false/object) >
+  // default on. See resolveAutoPinOption.
+  let _autoPinCfgValue;
   try {
     const { loadConfig } = await import("../lib/config-manager.js");
     const _cfg = loadConfig();
     _visionModel = _cfg?.llm?.visionModel || undefined;
-    _autoPinOpt = _cfg?.context?.autoPin;
+    _autoPinCfgValue = _cfg?.context?.autoPin;
     const raw = _cfg?.llm?.streamStallTimeoutMs;
     const t = Number(raw);
     // Accept 0 (explicit disable) — only ignore absent/invalid values.
@@ -483,8 +487,8 @@ export async function startAgentRepl(options = {}) {
   if (feature("PROMPT_COMPRESSOR")) {
     _compressor = new PromptCompressor({ model, provider });
   }
-  if (process.env.CC_AUTO_PIN === "1") _autoPinOpt = _autoPinOpt || true;
-  // Compaction options shared by /compact + auto-compact. Adds the opt-in
+  const _autoPinOpt = resolveAutoPinOption({ config: _autoPinCfgValue });
+  // Compaction options shared by /compact + auto-compact. Adds the
   // pin predicate only when auto-pin is enabled; otherwise byte-identical.
   const _compactOpts = (msgs) => {
     const base = { preserveToolPairs: true };

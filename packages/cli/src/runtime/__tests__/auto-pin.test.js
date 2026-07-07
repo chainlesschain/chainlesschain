@@ -1,13 +1,14 @@
 /**
- * auto-pin policy tests — the OPT-IN compaction pin policy. Verifies it is off
- * by default (returns null → caller passes no predicate → byte-identical), and
- * when enabled pins the original task (first user turn) plus explicit pins,
- * honoring the token cap.
+ * auto-pin policy tests. The PREDICATE layer stays opt-valued (null when the
+ * resolved option is falsy → byte-identical compaction); the EFFECTIVE default
+ * is decided by resolveAutoPinOption — ON since 2026-07-07, opt out via
+ * CC_AUTO_PIN=0 or config context.autoPin=false.
  */
 
 import { describe, it, expect } from "vitest";
 import {
   resolveAutoPinConfig,
+  resolveAutoPinOption,
   buildAutoPinPredicate,
   describeAutoPin,
 } from "../auto-pin.js";
@@ -99,6 +100,28 @@ describe("describeAutoPin", () => {
     expect(d.reasons.some((r) => r.why.includes("original task"))).toBe(true);
     expect(d.reasons[d.reasons.length - 1].preview).toContain(
       "Refactor the auth",
+    );
+  });
+});
+
+describe("resolveAutoPinOption (effective default — ON since 2026-07-07)", () => {
+  it("defaults ON when nothing is set", () => {
+    expect(resolveAutoPinOption({ env: undefined, config: undefined })).toBe(
+      true,
+    );
+  });
+  it("CC_AUTO_PIN=0 opts out; =1 forces on over a config false", () => {
+    expect(resolveAutoPinOption({ env: "0", config: true })).toBe(false);
+    expect(resolveAutoPinOption({ env: "1", config: false })).toBe(true);
+  });
+  it("config false opts out; a config object passes through", () => {
+    expect(resolveAutoPinOption({ env: undefined, config: false })).toBe(false);
+    const cfg = { maxPinTokens: 99 };
+    expect(resolveAutoPinOption({ env: undefined, config: cfg })).toBe(cfg);
+  });
+  it("an explicit --auto-pin flag wins over everything", () => {
+    expect(resolveAutoPinOption({ flag: true, env: "0", config: false })).toBe(
+      true,
     );
   });
 });

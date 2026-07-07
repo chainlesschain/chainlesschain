@@ -24,6 +24,25 @@
 const DEFAULT_MAX_PIN_TOKENS = 2000;
 
 /**
+ * Resolve the EFFECTIVE auto-pin setting from (highest precedence first):
+ *   1. an explicit CLI flag (`--auto-pin` → force on),
+ *   2. the CC_AUTO_PIN env var ("1" on / "0" off),
+ *   3. the config value (`context.autoPin`: true | false | {…}),
+ *   4. the default — **ON** (product decision 2026-07-07): pinning the
+ *      original task through compaction costs a bounded slice of context
+ *      (maxPinTokens, default 2000) but prevents goal drift in long sessions.
+ * Opt out with CC_AUTO_PIN=0 or `context.autoPin: false` in config.
+ */
+export function resolveAutoPinOption({ flag, env, config } = {}) {
+  if (flag === true) return true;
+  const e = env !== undefined ? env : process.env.CC_AUTO_PIN;
+  if (e === "0") return false;
+  if (e === "1") return true;
+  if (config !== undefined && config !== null) return config;
+  return true;
+}
+
+/**
  * Normalize the opt-in value into a config object, or null when auto-pin is off.
  * Accepts: falsy (off), `true` (defaults on), or a config object
  * `{ firstUserGoal?, maxPinTokens? }`.
