@@ -177,14 +177,26 @@ for (const lang of LANGS) {
         "references finds every call site",
         { timeout: lang.diagTimeoutMs },
         async () => {
+          // Poll until the server finishes indexing: rust-analyzer answers
+          // reference queries with PARTIAL results while its index is still
+          // building (observed: 2 of 3 on the first query), so a single-shot
+          // assert races the indexer.
           const shift = lang.id === "rust" ? 1 : 0;
-          const res = await ci.references(
-            path.join(dir, lang.defAt.file),
-            lang.defAt.line + shift,
-            lang.id === "java" ? 19 : 6,
-          );
-          expect(res.available).toBe(true);
-          expect(res.locations.length).toBeGreaterThanOrEqual(lang.minRefs);
+          const deadline = Date.now() + lang.diagTimeoutMs;
+          let locations = [];
+          for (;;) {
+            const res = await ci.references(
+              path.join(dir, lang.defAt.file),
+              lang.defAt.line + shift,
+              lang.id === "java" ? 19 : 6,
+            );
+            expect(res.available).toBe(true);
+            locations = res.locations;
+            if (locations.length >= lang.minRefs || Date.now() > deadline)
+              break;
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+          expect(locations.length).toBeGreaterThanOrEqual(lang.minRefs);
         },
       );
 
@@ -192,15 +204,25 @@ for (const lang of LANGS) {
         "diagnostics reports the seeded type error (URI-form regression guard)",
         { timeout: lang.diagTimeoutMs },
         async () => {
-          const res = await ci.diagnostics(path.join(dir, lang.brokenFile), {
-            timeoutMs: lang.diagTimeoutMs,
-          });
-          expect(res.available).toBe(true);
-          // The exact message differs per server; a seeded `String x = 42`-class
-          // error must surface as at least one error-severity diagnostic.
-          const errors = res.diagnostics.filter(
-            (d) => d.severity === "error" || d.severity === 1,
-          );
+          // Poll: rust-analyzer publishes an EMPTY set the moment the doc
+          // opens and the real type-check lands seconds later once the crate
+          // is analyzed — a single waitForDiagnostics settles on the early
+          // empty publish.
+          const deadline = Date.now() + lang.diagTimeoutMs;
+          let errors = [];
+          for (;;) {
+            const res = await ci.diagnostics(path.join(dir, lang.brokenFile), {
+              timeoutMs: 10_000,
+            });
+            expect(res.available).toBe(true);
+            // The exact message differs per server; the seeded `String x = 42`
+            // class error must surface as ≥1 error-severity diagnostic.
+            errors = res.diagnostics.filter(
+              (d) => d.severity === "error" || d.severity === 1,
+            );
+            if (errors.length > 0 || Date.now() > deadline) break;
+            await new Promise((r) => setTimeout(r, 2000));
+          }
           expect(errors.length).toBeGreaterThan(0);
         },
       );

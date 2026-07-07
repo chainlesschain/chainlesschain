@@ -62,6 +62,12 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
     };
   }
 
+  /** Assertion context: a bwrap failure surfaces on stderr, not stdout. */
+  const ctx = (res) =>
+    `exit=${res.exitCode} failedToStart=${res.failedToStart} stderr=${JSON.stringify(
+      (res.stderr || "").slice(0, 500),
+    )}`;
+
   const curl = (p) =>
     `curl -s --max-time 3 http://127.0.0.1:${p}/ || echo NET-BLOCKED`;
 
@@ -69,17 +75,17 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
     const res = executeSandboxedShell(curl(port), sandbox({ network: false }), {
       timeout: 20_000,
     });
-    expect(res.failedToStart).toBeUndefined();
-    expect(res.stdout).toContain("NET-BLOCKED");
-    expect(res.stdout).not.toContain("host-alive");
+    expect(res.failedToStart, ctx(res)).toBeUndefined();
+    expect(res.stdout, ctx(res)).toContain("NET-BLOCKED");
+    expect(res.stdout, ctx(res)).not.toContain("host-alive");
   });
 
   it("network:true — --share-net reaches the same host service", () => {
     const res = executeSandboxedShell(curl(port), sandbox({ network: true }), {
       timeout: 20_000,
     });
-    expect(res.failedToStart).toBeUndefined();
-    expect(res.stdout).toContain("host-alive");
+    expect(res.failedToStart, ctx(res)).toBeUndefined();
+    expect(res.stdout, ctx(res)).toContain("host-alive");
   });
 
   it("filesystem — / is read-only, the workspace is writable", () => {
@@ -89,9 +95,9 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
       sandbox(),
       { timeout: 20_000 },
     );
-    expect(res.failedToStart).toBeUndefined();
-    expect(res.stdout).toContain("inside");
-    expect(res.stdout).toContain("ROOT-RO");
+    expect(res.failedToStart, ctx(res)).toBeUndefined();
+    expect(res.stdout, ctx(res)).toContain("inside");
+    expect(res.stdout, ctx(res)).toContain("ROOT-RO");
     expect(res.stdout).not.toContain("WROTE-ROOT");
     // The write landed in the REAL workspace (bind mount, not a copy).
     expect(fs.readFileSync(path.join(work, "allowed.txt"), "utf8")).toContain(
@@ -111,8 +117,8 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
         sandbox({ policy: { filesystem: { denyRead: [secretDir] } } }),
         { timeout: 20_000 },
       );
-      expect(res.failedToStart).toBeUndefined();
-      expect(res.stdout).toContain("DENIED");
+      expect(res.failedToStart, ctx(res)).toBeUndefined();
+      expect(res.stdout, ctx(res)).toContain("DENIED");
       expect(res.stdout).not.toContain("TOP_SECRET");
       // Control: WITHOUT the deny policy the same read succeeds (the mask is
       // what blocked it, not a broken fixture).
@@ -121,7 +127,7 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
         sandbox(),
         { timeout: 20_000 },
       );
-      expect(open.stdout).toContain("TOP_SECRET");
+      expect(open.stdout, ctx(open)).toContain("TOP_SECRET");
     } finally {
       fs.rmSync(secretDir, { recursive: true, force: true });
     }

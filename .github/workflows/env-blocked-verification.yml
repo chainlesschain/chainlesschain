@@ -109,6 +109,13 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           bwrap --version
 
+      - name: bwrap smoke (surface the raw error if the arg shape can't start)
+        run: |
+          bwrap --die-with-parent --new-session --unshare-all \
+            --ro-bind / / --bind "$PWD" "$PWD" --chdir "$PWD" \
+            --proc /proc --dev /dev --tmpfs /tmp \
+            -- sh -lc 'echo SMOKE-OK && id'
+
       - name: Live bwrap suite (netns / rootfs-RO / denyRead masking)
         working-directory: packages/cli
         env:
