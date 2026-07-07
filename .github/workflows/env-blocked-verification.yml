@@ -116,6 +116,18 @@ jobs:
             --proc /proc --dev /dev --tmpfs /tmp \
             -- sh -lc 'echo SMOKE-OK && id'
 
+      - name: bwrap share-net smoke (loopback reachability with --share-net)
+        run: |
+          python3 -m http.server 18099 --bind 127.0.0.1 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 1
+          curl -sS --max-time 3 -o /dev/null -w "host-direct: %{http_code}\n" http://127.0.0.1:18099/
+          bwrap --die-with-parent --new-session --unshare-all --share-net \
+            --ro-bind / / --proc /proc --dev /dev --tmpfs /tmp \
+            -- sh -lc 'curl -sS --max-time 3 -o /dev/null -w "in-sandbox: %{http_code}\n" http://127.0.0.1:18099/' \
+            || echo "share-net curl FAILED rc=$?"
+          kill $SRV || true
+
       - name: Live bwrap suite (netns / rootfs-RO / denyRead masking)
         working-directory: packages/cli
         env:
