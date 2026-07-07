@@ -68,8 +68,11 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
       (res.stderr || "").slice(0, 500),
     )}`;
 
+  // -sS keeps error text (plain -s would swallow it and make a broken curl
+  // indistinguishable from a blocked network); 2>&1 folds it into stdout so
+  // assertion failures show WHY the request failed.
   const curl = (p) =>
-    `curl -s --max-time 3 http://127.0.0.1:${p}/ || echo NET-BLOCKED`;
+    `curl -sS --max-time 3 http://127.0.0.1:${p}/ 2>&1 || echo "NET-BLOCKED rc=$?"`;
 
   it("network:false — kernel netns blocks even proxy-ignoring tools", () => {
     const res = executeSandboxedShell(curl(port), sandbox({ network: false }), {
@@ -107,8 +110,11 @@ describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
   });
 
   it("policy.denyRead masks a directory with an empty tmpfs", () => {
+    // NOT under /tmp: the sandbox mounts a fresh tmpfs over /tmp, so a /tmp
+    // fixture would be invisible in the control run too and the test would
+    // pass for the wrong reason. The home dir is visible via the ro-bind of /.
     const secretDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "cc-bwrap-secret-"),
+      path.join(os.homedir(), "cc-bwrap-secret-"),
     );
     fs.writeFileSync(path.join(secretDir, "secret.txt"), "TOP_SECRET", "utf8");
     try {
