@@ -7,20 +7,24 @@
  * install records the verification result in a `.plugin-lock.json` inside the
  * immutable version dir; discovery then re-checks it fail-closed.
  *
- * The lock records the manifest's sha256 + the signing key's fingerprint. At
- * load we RE-HASH the on-disk manifest and compare — so a manifest tampered with
- * after install (even inside the version dir) fails the check. The signature
- * itself covers only the manifest file, not every component file — that is a
+ * The lock persists the DETACHED SIGNATURE + PUBLIC KEY themselves (lockVersion
+ * 2), and load-time verification re-runs the actual Ed25519 verify over the
+ * on-disk manifest bytes. The lock file lives in a writable plugin dir, so
+ * nothing in it can be TRUSTED — a recorded boolean or fingerprint could simply
+ * be forged by whoever authored the plugin. What a forger CANNOT do is produce a
+ * signature that verifies under a key the org has pinned via
+ * trustedPluginKeySha256 — which is why the key fingerprint used for the trust
+ * check is COMPUTED from the embedded public key, never read from the lock.
+ * The signature covers only the manifest file, not every component file — a
  * known limitation (documented), an integrity anchor rather than a full
- * supply-chain seal; the immutable version dir + this re-hash catch manifest
- * tampering, which is where the component wiring is declared.
+ * supply-chain seal; the manifest is where the component wiring is declared.
  */
 
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify } from "node:crypto";
 import fs from "fs";
 import path from "path";
 
-const LOCK = ".plugin-lock.json";
+export const LOCK_FILENAME = ".plugin-lock.json";
 
 export const _deps = {
   readFileSync: fs.readFileSync,
@@ -31,18 +35,29 @@ export const _deps = {
 /** Record a verified signature into the version dir. */
 export function writePluginLock(
   versionDir,
-  { manifestFile, sha256, publicKeySha256, signatureVerified },
+  {
+    manifestFile,
+    sha256,
+    publicKeySha256,
+    signatureVerified,
+    signatureBase64,
+    publicKeyPem,
+  },
 ) {
   const rel = path.relative(versionDir, manifestFile).replace(/\\/g, "/");
   const lock = {
-    lockVersion: 1,
+    lockVersion: 2,
     manifest: rel || "plugin.json",
     sha256,
     publicKeySha256: publicKeySha256 || null,
     signatureVerified: signatureVerified === true,
+    // The material load-time enforcement actually re-verifies. Without these a
+    // lock is just self-asserted JSON and counts as unsigned.
+    signatureBase64: signatureBase64 || null,
+    publicKeyPem: publicKeyPem || null,
   };
   _deps.writeFileSync(
-    path.join(versionDir, LOCK),
+    path.join(versionDir, LOCK_FILENAME),
     JSON.stringify(lock, null, 2),
     "utf8",
   );
@@ -51,7 +66,7 @@ export function writePluginLock(
 
 /** Read a version dir's signature lock, or null when absent/unreadable. */
 export function readPluginLock(versionDir) {
-  const p = path.join(versionDir, LOCK);
+  const p = path.join(versionDir, LOCK_FILENAME);
   if (!_deps.existsSync(p)) return null;
   try {
     return JSON.parse(_deps.readFileSync(p, "utf8"));
@@ -62,9 +77,11 @@ export function readPluginLock(versionDir) {
 
 /**
  * Verify an installed plugin's recorded signature against its on-disk manifest.
- * `signed:true` ONLY when a lock exists, was signature-verified, the manifest
- * still hashes to the locked sha256 (tamper detection), and — when trustedKeys
- * is a non-empty Set — the signing key fingerprint is among them.
+ * `signed:true` ONLY when a lock exists, carries real signature material, the
+ * embedded Ed25519 signature VERIFIES over the on-disk manifest bytes, and —
+ * when trustedKeys is a non-empty Set — the signing key's COMPUTED fingerprint
+ * is among them. Every field of the lock is treated as attacker-writable; the
+ * only trust anchors are the cryptographic verify and the caller's trustedKeys.
  *
  * @param {{root:string}} plugin
  * @param {object} [opts] { trustedKeys?: Set<string> }
@@ -96,28 +113,68 @@ export function verifyInstalledSignature(plugin, opts = {}) {
   if (!_deps.existsSync(manifestFile)) {
     return { signed: false, reason: "locked manifest file is missing" };
   }
-  let sha;
+  let bytes;
   try {
-    sha = createHash("sha256")
-      .update(_deps.readFileSync(manifestFile))
-      .digest("hex");
+    bytes = _deps.readFileSync(manifestFile);
   } catch {
     return { signed: false, reason: "manifest unreadable" };
   }
+  const sha = createHash("sha256").update(bytes).digest("hex");
   if (sha.toLowerCase() !== String(lock.sha256 || "").toLowerCase()) {
     return {
       signed: false,
       reason: "manifest tampered since install (sha256 mismatch)",
     };
   }
+  // A lock without real signature material is unverifiable, and therefore
+  // worthless as a signing gate: `signatureVerified:true` is just a JSON field
+  // anyone can write. Legacy (lockVersion 1) locks land here too — reinstalling
+  // the plugin with --signature re-records a verifiable lock.
+  if (!lock.signatureBase64 || !lock.publicKeyPem) {
+    return {
+      signed: false,
+      reason:
+        "lock lacks signature material (legacy or hand-written lock — " +
+        "reinstall the plugin with --signature to re-record it)",
+    };
+  }
+  let keyObject;
+  let publicKeySha256;
+  try {
+    keyObject = createPublicKey(lock.publicKeyPem);
+    // Fingerprint is COMPUTED from the embedded key — the lock's own
+    // publicKeySha256 field is attacker-writable and never used for trust.
+    publicKeySha256 = createHash("sha256")
+      .update(keyObject.export({ type: "spki", format: "der" }))
+      .digest("hex");
+  } catch {
+    return { signed: false, reason: "lock public key is not a valid key" };
+  }
+  let sigOk = false;
+  try {
+    sigOk = verify(
+      null,
+      bytes,
+      keyObject,
+      Buffer.from(String(lock.signatureBase64), "base64"),
+    );
+  } catch {
+    sigOk = false;
+  }
+  if (!sigOk) {
+    return {
+      signed: false,
+      reason: "recorded signature does not verify over the on-disk manifest",
+    };
+  }
   const trustedKeys = opts.trustedKeys;
   if (trustedKeys && trustedKeys.size > 0) {
-    if (!lock.publicKeySha256 || !trustedKeys.has(lock.publicKeySha256)) {
+    if (!trustedKeys.has(publicKeySha256)) {
       return {
         signed: false,
-        reason: `signing key not trusted (${lock.publicKeySha256 || "unsigned"})`,
+        reason: `signing key not trusted (${publicKeySha256})`,
       };
     }
   }
-  return { signed: true, publicKeySha256: lock.publicKeySha256 };
+  return { signed: true, publicKeySha256 };
 }

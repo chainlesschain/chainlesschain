@@ -29,7 +29,7 @@ import {
   discoverPlugins,
 } from "./scopes.js";
 import { verifyPluginManifest } from "../plugin-security.js";
-import { writePluginLock } from "./signature.js";
+import { writePluginLock, LOCK_FILENAME } from "./signature.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -97,6 +97,12 @@ export function installFromDirectory(srcDir, opts = {}) {
   _deps.mkdirSync(dest, { recursive: true });
   copyDirGuarded(src, dest, dest);
 
+  // A lock may ONLY exist if THIS installer wrote it. The source is untrusted
+  // and may ship its own `.plugin-lock.json` (copied verbatim above) — on an
+  // unsigned install that forged lock would otherwise survive into the
+  // "immutable" version dir and defeat load-time requireSignedPlugins.
+  _deps.rmSync(path.join(dest, LOCK_FILENAME), { force: true });
+
   // Record the verified signature into the installed (immutable) version dir so
   // load-time enforcement can re-check it. The manifest was copied verbatim, so
   // its bytes/sha in `dest` match what we verified in `src`.
@@ -110,6 +116,8 @@ export function installFromDirectory(srcDir, opts = {}) {
       sha256: verification.sha256,
       publicKeySha256: verification.publicKeySha256,
       signatureVerified: verification.signatureVerified === true,
+      signatureBase64: verification.signatureBase64,
+      publicKeyPem: verification.publicKeyPem,
     });
   }
 

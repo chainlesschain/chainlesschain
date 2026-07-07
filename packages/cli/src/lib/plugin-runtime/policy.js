@@ -115,6 +115,19 @@ export function filterByManagedPolicy(plugins, managed) {
       continue;
     }
     if (requireSigned) {
+      // Fail closed when no signing keys are pinned: a lock's signature can be
+      // SELF-signed by whoever authored the plugin (the lock lives in a
+      // writable dir), so "signed by anyone" is not a guarantee. Without
+      // trustedPluginKeySha256 the gate would accept any self-signed drop-in.
+      if (!trustedKeys || trustedKeys.size === 0) {
+        dropped.push({
+          name: p.name,
+          reason:
+            "requireSignedPlugins: no trustedPluginKeySha256 fingerprints " +
+            "configured (fail-closed — pin the org's signing keys)",
+        });
+        continue;
+      }
       const v = verifyInstalledSignature(p, { trustedKeys });
       if (!v.signed) {
         dropped.push({

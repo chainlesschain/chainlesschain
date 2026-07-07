@@ -80,16 +80,19 @@ export function verifyPluginManifest({
 
   const wantsSignature = requireSignature || signatureFile || publicKeyFile;
   let signatureVerified = false;
+  let signature = null;
+  let publicKeyPem = null;
+  let publicKeySha256 = null;
   if (wantsSignature) {
     if (!signatureFile || !publicKeyFile) {
       throw new Error(
         "plugin signature verification requires --signature and --public-key",
       );
     }
-    const signature = readFileSync(signatureFile);
-    const publicKey = readFileSync(publicKeyFile, "utf8");
-    const keyObject = createPublicKey(publicKey);
-    const publicKeySha256 = createHash("sha256")
+    signature = readFileSync(signatureFile);
+    publicKeyPem = readFileSync(publicKeyFile, "utf8");
+    const keyObject = createPublicKey(publicKeyPem);
+    publicKeySha256 = createHash("sha256")
       .update(keyObject.export({ type: "spki", format: "der" }))
       .digest("hex");
     const trusted = stringSet(trustedKeySha256);
@@ -110,16 +113,12 @@ export function verifyPluginManifest({
     bytes,
     sha256,
     signatureVerified,
-    publicKeySha256: signatureVerified
-      ? createHash("sha256")
-          .update(
-            createPublicKey(readFileSync(publicKeyFile, "utf8")).export({
-              type: "spki",
-              format: "der",
-            }),
-          )
-          .digest("hex")
-      : null,
+    publicKeySha256: signatureVerified ? publicKeySha256 : null,
+    // The raw signature material, so the installer can persist it and load-time
+    // enforcement can CRYPTOGRAPHICALLY re-verify (not merely trust a recorded
+    // boolean, which a hand-written lock file could forge).
+    signatureBase64: signatureVerified ? signature.toString("base64") : null,
+    publicKeyPem: signatureVerified ? publicKeyPem : null,
   };
 }
 
