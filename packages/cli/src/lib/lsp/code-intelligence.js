@@ -85,11 +85,15 @@ export class CodeIntelligence {
   async references(filePath, line, col, { includeDeclaration = true } = {}) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request("textDocument/references", {
-      textDocument: { uri: ready.uri },
-      position: toLspPosition({ line, col }),
-      context: { includeDeclaration },
-    });
+    const result = await this._readRequest(
+      ready.client,
+      "textDocument/references",
+      {
+        textDocument: { uri: ready.uri },
+        position: toLspPosition({ line, col }),
+        context: { includeDeclaration },
+      },
+    );
     return { available: true, locations: this._normalizeLocations(result) };
   }
 
@@ -97,7 +101,7 @@ export class CodeIntelligence {
   async hover(filePath, line, col) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request("textDocument/hover", {
+    const result = await this._readRequest(ready.client, "textDocument/hover", {
       textDocument: { uri: ready.uri },
       position: toLspPosition({ line, col }),
     });
@@ -108,9 +112,13 @@ export class CodeIntelligence {
   async documentSymbols(filePath) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request("textDocument/documentSymbol", {
-      textDocument: { uri: ready.uri },
-    });
+    const result = await this._readRequest(
+      ready.client,
+      "textDocument/documentSymbol",
+      {
+        textDocument: { uri: ready.uri },
+      },
+    );
     return {
       available: true,
       symbols: this._normalizeSymbols(result, ready.uri),
@@ -124,7 +132,9 @@ export class CodeIntelligence {
     if (!seed) return unavailable("no indexable file found to start a server");
     const ready = await this.manager.ensureFor(seed, this._ensureOpts);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request("workspace/symbol", { query });
+    const result = await this._readRequest(ready.client, "workspace/symbol", {
+      query,
+    });
     return { available: true, symbols: this._normalizeSymbols(result) };
   }
 
@@ -160,7 +170,8 @@ export class CodeIntelligence {
     const caps = ready.client.serverCapabilities || {};
     if (caps.diagnosticProvider) {
       try {
-        const report = await ready.client.request(
+        const report = await this._readRequest(
+          ready.client,
           "textDocument/diagnostic",
           { textDocument: { uri: ready.uri } },
           { timeoutMs },
@@ -182,11 +193,15 @@ export class CodeIntelligence {
   async renamePreview(filePath, line, col, newName) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request("textDocument/rename", {
-      textDocument: { uri: ready.uri },
-      position: toLspPosition({ line, col }),
-      newName,
-    });
+    const result = await this._readRequest(
+      ready.client,
+      "textDocument/rename",
+      {
+        textDocument: { uri: ready.uri },
+        position: toLspPosition({ line, col }),
+        newName,
+      },
+    );
     return { available: true, edits: this._normalizeWorkspaceEdit(result) };
   }
 
@@ -196,10 +211,33 @@ export class CodeIntelligence {
 
   // ---- internals ----
 
+  /**
+   * Issue an idempotent READ request with a bounded ContentModified retry.
+   * LSP -32801 (ContentModified) means "server state changed mid-request —
+   * the result would be stale, ask again"; rust-analyzer emits it freely
+   * while its index is still settling after didOpen. Read-only queries can
+   * always be retried; mutating requests must NOT go through here.
+   */
+  async _readRequest(client, method, params, opts) {
+    let lastErr;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        return await client.request(method, params, opts);
+      } catch (err) {
+        const contentModified =
+          err?.code === -32801 || /content modified/i.test(err?.message || "");
+        if (!contentModified) throw err;
+        lastErr = err;
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
   async _locationQuery(method, filePath, line, col) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
-    const result = await ready.client.request(method, {
+    const result = await this._readRequest(ready.client, method, {
       textDocument: { uri: ready.uri },
       position: toLspPosition({ line, col }),
     });

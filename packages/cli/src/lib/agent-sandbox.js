@@ -151,6 +151,12 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
 }
 
 function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
+  // Mount ORDER matters: bwrap applies mounts sequentially and a later mount
+  // shadows an earlier one. `--tmpfs /tmp` must come BEFORE the workspace
+  // bind — with the old order (bind first, tmpfs last) any workspace living
+  // UNDER /tmp was wiped by the tmpfs overlay and the --chdir failed with
+  // "Can't chdir …: No such file or directory" (caught by the live bwrap CI
+  // suite, whose temp workspace is exactly such a directory).
   const args = [
     "--die-with-parent",
     "--new-session",
@@ -158,17 +164,17 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
     "--ro-bind",
     "/",
     "/",
-    "--bind",
-    hostCwd,
-    hostCwd,
-    "--chdir",
-    hostCwd,
     "--proc",
     "/proc",
     "--dev",
     "/dev",
     "--tmpfs",
     "/tmp",
+    "--bind",
+    hostCwd,
+    hostCwd,
+    "--chdir",
+    hostCwd,
   ];
   if (sandbox.network) args.push("--share-net");
   for (const target of policy.allowWrite) args.push("--bind", target, target);
