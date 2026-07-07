@@ -253,6 +253,17 @@ export function parseGitSource(raw) {
  * command line — no injection). Caller removes the temp dir's parent.
  */
 export function fetchGitRepo(url, ref) {
+  // git argv-injection guard: a value starting with "-" is parsed by git as an
+  // OPTION, not a URL/ref — e.g. a registry-supplied ref "-f" reaches
+  // `git checkout <ref>` on the full-clone retry path, and an option-looking
+  // url reaches `git clone`. Real git URLs/refs never start with "-"
+  // (check-ref-format forbids it), so reject instead of trying to escape.
+  if (String(url).startsWith("-")) {
+    throw new Error(`refusing git source that looks like an option: ${url}`);
+  }
+  if (ref != null && String(ref).startsWith("-")) {
+    throw new Error(`refusing git ref that looks like an option: ${ref}`);
+  }
   const base = _deps.mkdtempSync(path.join(os.tmpdir(), "cc-plugin-git-"));
   const dir = path.join(base, "repo");
   const run = (args) =>

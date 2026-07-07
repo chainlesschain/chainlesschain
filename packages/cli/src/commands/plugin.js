@@ -608,6 +608,10 @@ export function registerPluginCommand(program) {
       "Plugin name to select from a multi-plugin registry",
     )
     .option("--token <token>", "Bearer token for a private registry")
+    .option(
+      "--allow-insecure-registry",
+      "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
       const { installFromSource } =
@@ -636,6 +640,7 @@ export function registerPluginCommand(program) {
             name,
             token: options.token,
             config,
+            allowInsecure: options.allowInsecureRegistry === true,
           });
           installSource = resolved.source;
           integritySha = resolved.sha256;
@@ -694,6 +699,10 @@ export function registerPluginCommand(program) {
     )
     .requiredOption("--registry <url>", "Registry/manifest URL to browse")
     .option("--token <token>", "Bearer token for a private registry")
+    .option(
+      "--allow-insecure-registry",
+      "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
     .option("--json", "Output as JSON")
     .action(async (query, options) => {
       const { fetchRegistry, listRegistryPlugins, resolveRegistryToken } =
@@ -712,6 +721,7 @@ export function registerPluginCommand(program) {
         });
         const { registry, fromCache } = await fetchRegistry(options.registry, {
           token,
+          allowInsecure: options.allowInsecureRegistry === true,
         });
         let rows = listRegistryPlugins(registry);
         if (query) {

@@ -46,6 +46,39 @@ export function isRemoteSource(raw) {
   return /^https?:\/\//i.test(s) && /\.json(\?.*)?(#.*)?$/i.test(s);
 }
 
+/**
+ * Enforce HTTPS for registry URLs. The registry supplies BOTH the git source
+ * and its claimed sha256 — over plain HTTP a network MITM controls the two
+ * together, so the integrity check verifies nothing. Loopback is exempt (a
+ * local dev registry isn't MITM-able off-host); anything else needs the
+ * explicit opt-in (opts.allowInsecure / CC_PLUGIN_REGISTRY_ALLOW_HTTP=1).
+ */
+export function assertRegistryUrlSafe(url, { allowInsecure = false } = {}) {
+  let u;
+  try {
+    u = new URL(String(url));
+  } catch {
+    throw new Error(`invalid registry URL: ${url}`);
+  }
+  if (u.protocol === "https:") return;
+  if (u.protocol !== "http:") {
+    throw new Error(`registry URL must be http(s): ${url}`);
+  }
+  // WHATWG URL keeps the brackets on IPv6 hostnames — strip before comparing.
+  const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const loopback =
+    host === "localhost" || host === "127.0.0.1" || host === "::1";
+  const optIn =
+    allowInsecure === true || process.env.CC_PLUGIN_REGISTRY_ALLOW_HTTP === "1";
+  if (loopback || optIn) return;
+  throw new Error(
+    `plain-HTTP registry rejected: ${url} — a network MITM controls both the ` +
+      `source and its sha256, so the integrity check verifies nothing. Use ` +
+      `https, or opt in with --allow-insecure-registry / ` +
+      `CC_PLUGIN_REGISTRY_ALLOW_HTTP=1 on a trusted network.`,
+  );
+}
+
 /** Where a fetched registry is cached (content-addressed by its URL). */
 export function registryCachePath(url, cacheDir) {
   const dir =
@@ -93,6 +126,7 @@ export async function fetchRegistry(url, opts = {}) {
     timeoutMs = DEFAULT_TIMEOUT_MS,
     allowCache = true,
   } = opts;
+  assertRegistryUrlSafe(url, { allowInsecure: opts.allowInsecure });
   const cachePath = registryCachePath(url, cacheDir);
   const headers = { Accept: "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
