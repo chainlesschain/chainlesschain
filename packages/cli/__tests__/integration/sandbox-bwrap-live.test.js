@@ -20,7 +20,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import http from "node:http";
+import { spawn } from "node:child_process";
 import {
   executeSandboxedShell,
   normalizeSandboxPolicy,
@@ -31,20 +31,53 @@ const LIVE =
 
 describe.runIf(LIVE)("live bubblewrap sandbox (Linux kernel isolation)", () => {
   let work;
-  let server;
+  let serverChild;
   let port;
 
   beforeAll(async () => {
     work = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bwrap-live-"));
-    // A host-loopback HTTP server: reachable ONLY when the sandbox shares the
-    // host network namespace. No external network dependency → not flaky.
-    server = http.createServer((req, res) => res.end("host-alive"));
-    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-    port = server.address().port;
+    // A host-loopback HTTP server IN ITS OWN PROCESS. It must NOT live in this
+    // vitest worker: executeSandboxedShell uses spawnSync, which blocks the
+    // worker's event loop while the sandboxed curl runs — an in-process server
+    // could never accept the connection and the --share-net CONTROL timed out
+    // (curl 28) even though the kernel plumbing was fine. No external network
+    // dependency → not flaky.
+    serverChild = spawn(
+      process.execPath,
+      [
+        "-e",
+        'const http=require("http");const s=http.createServer((q,r)=>r.end("host-alive"));' +
+          's.listen(0,"127.0.0.1",()=>console.log("PORT="+s.address().port));',
+      ],
+      { stdio: ["ignore", "pipe", "inherit"] },
+    );
+    port = await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(
+        () => reject(new Error("helper server start timeout")),
+        10_000,
+      );
+      serverChild.stdout.on("data", (d) => {
+        buf += d.toString("utf8");
+        const m = buf.match(/PORT=(\d+)/);
+        if (m) {
+          clearTimeout(timer);
+          resolve(Number(m[1]));
+        }
+      });
+      serverChild.on("exit", () => {
+        clearTimeout(timer);
+        reject(new Error("helper server exited before reporting its port"));
+      });
+    });
   });
 
   afterAll(async () => {
-    await new Promise((resolve) => server.close(resolve));
+    try {
+      serverChild.kill();
+    } catch {
+      /* already gone */
+    }
     try {
       fs.rmSync(work, { recursive: true, force: true });
     } catch {
