@@ -18,8 +18,8 @@
  * @since 2026-02-15
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../utils/logger.js');
+const { ipcMain } = require("electron");
+const { logger } = require("../utils/logger.js");
 
 /**
  * Register all SSO-related IPC handlers
@@ -32,10 +32,13 @@ const { logger } = require('../utils/logger.js');
  */
 function registerSSOIPC(dependencies) {
   const { database } = dependencies;
+  // Test seams (same pattern as browser-ipc): ipcMain + manager instances can
+  // be injected; production callers pass only { database }.
+  const _ipcMain = dependencies.ipcMain || ipcMain;
 
-  let ssoManager = null;
-  let ssoSessionManager = null;
-  let identityBridge = null;
+  let ssoManager = dependencies.ssoManager || null;
+  let ssoSessionManager = dependencies.ssoSessionManager || null;
+  let identityBridge = dependencies.identityBridge || null;
 
   /**
    * Lazy-load and cache the SSOManager instance
@@ -43,7 +46,7 @@ function registerSSOIPC(dependencies) {
    */
   function getSSOManager() {
     if (!ssoManager) {
-      const { SSOManager } = require('./sso-manager');
+      const { SSOManager } = require("./sso-manager");
       ssoManager = new SSOManager({ database });
     }
     return ssoManager;
@@ -55,7 +58,7 @@ function registerSSOIPC(dependencies) {
    */
   function getSSOSessionManager() {
     if (!ssoSessionManager) {
-      const { SSOSessionManager } = require('./sso-session-manager');
+      const { SSOSessionManager } = require("./sso-session-manager");
       ssoSessionManager = new SSOSessionManager({ database });
     }
     return ssoSessionManager;
@@ -67,13 +70,13 @@ function registerSSOIPC(dependencies) {
    */
   function getIdentityBridge() {
     if (!identityBridge) {
-      const { IdentityBridge } = require('./identity-bridge');
+      const { IdentityBridge } = require("./identity-bridge");
       identityBridge = new IdentityBridge({ database });
     }
     return identityBridge;
   }
 
-  logger.info('[SSO-IPC] Registering 20 SSO IPC handlers');
+  logger.info("[SSO-IPC] Registering 20 SSO IPC handlers");
 
   // ============================================
   // Config Handlers (5)
@@ -83,13 +86,13 @@ function registerSSOIPC(dependencies) {
    * sso:list-providers
    * List all configured SSO providers
    */
-  ipcMain.handle('sso:list-providers', async (event) => {
+  _ipcMain.handle("sso:list-providers", async (event) => {
     try {
       const manager = getSSOManager();
       const providers = await manager.listProviders();
       return { success: true, data: providers };
     } catch (error) {
-      logger.error('[SSO-IPC] Error listing providers:', error);
+      logger.error("[SSO-IPC] Error listing providers:", error);
       return { success: false, error: error.message };
     }
   });
@@ -98,16 +101,16 @@ function registerSSOIPC(dependencies) {
    * sso:add-provider
    * Add a new SSO provider configuration
    */
-  ipcMain.handle('sso:add-provider', async (event, { providerConfig }) => {
+  _ipcMain.handle("sso:add-provider", async (event, { providerConfig }) => {
     try {
       if (!providerConfig) {
-        return { success: false, error: 'providerConfig is required' };
+        return { success: false, error: "providerConfig is required" };
       }
       const manager = getSSOManager();
       const result = await manager.addProvider(providerConfig);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error adding provider:', error);
+      logger.error("[SSO-IPC] Error adding provider:", error);
       return { success: false, error: error.message };
     }
   });
@@ -116,34 +119,40 @@ function registerSSOIPC(dependencies) {
    * sso:update-provider
    * Update an existing SSO provider configuration
    */
-  ipcMain.handle('sso:update-provider', async (event, { providerId, updates }) => {
-    try {
-      if (!providerId || !updates) {
-        return { success: false, error: 'providerId and updates are required' };
+  _ipcMain.handle(
+    "sso:update-provider",
+    async (event, { providerId, updates }) => {
+      try {
+        if (!providerId || !updates) {
+          return {
+            success: false,
+            error: "providerId and updates are required",
+          };
+        }
+        const manager = getSSOManager();
+        const result = await manager.updateProvider(providerId, updates);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error updating provider:", error);
+        return { success: false, error: error.message };
       }
-      const manager = getSSOManager();
-      const result = await manager.updateProvider(providerId, updates);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error updating provider:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * sso:delete-provider
    * Delete an SSO provider configuration
    */
-  ipcMain.handle('sso:delete-provider', async (event, { providerId }) => {
+  _ipcMain.handle("sso:delete-provider", async (event, { providerId }) => {
     try {
       if (!providerId) {
-        return { success: false, error: 'providerId is required' };
+        return { success: false, error: "providerId is required" };
       }
       const manager = getSSOManager();
       const result = await manager.deleteProvider(providerId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error deleting provider:', error);
+      logger.error("[SSO-IPC] Error deleting provider:", error);
       return { success: false, error: error.message };
     }
   });
@@ -152,16 +161,16 @@ function registerSSOIPC(dependencies) {
    * sso:test-connection
    * Test connectivity to an SSO provider
    */
-  ipcMain.handle('sso:test-connection', async (event, { providerId }) => {
+  _ipcMain.handle("sso:test-connection", async (event, { providerId }) => {
     try {
       if (!providerId) {
-        return { success: false, error: 'providerId is required' };
+        return { success: false, error: "providerId is required" };
       }
       const manager = getSSOManager();
       const result = await manager.testConnection(providerId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error testing connection:', error);
+      logger.error("[SSO-IPC] Error testing connection:", error);
       return { success: false, error: error.message };
     }
   });
@@ -174,75 +183,120 @@ function registerSSOIPC(dependencies) {
    * sso:initiate-login
    * Start the SSO login flow for a provider
    */
-  ipcMain.handle('sso:initiate-login', async (event, { providerId, options = {} }) => {
-    try {
-      if (!providerId) {
-        return { success: false, error: 'providerId is required' };
+  _ipcMain.handle(
+    "sso:initiate-login",
+    async (event, { providerId, options = {} }) => {
+      try {
+        if (!providerId) {
+          return { success: false, error: "providerId is required" };
+        }
+        const manager = getSSOManager();
+        const result = await manager.initiateLogin(providerId, options);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error initiating login:", error);
+        return { success: false, error: error.message };
       }
-      const manager = getSSOManager();
-      const result = await manager.initiateLogin(providerId, options);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error initiating login:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * sso:handle-callback
    * Handle the SSO callback after provider authentication
    */
-  ipcMain.handle('sso:handle-callback', async (event, { providerId, callbackData }) => {
-    try {
-      if (!providerId || !callbackData) {
-        return { success: false, error: 'providerId and callbackData are required' };
-      }
-      const manager = getSSOManager();
-      const authResult = await manager.handleCallback(providerId, callbackData);
-
-      // If authentication succeeded, create a session
-      if (authResult && authResult.tokens) {
-        const sessionMgr = getSSOSessionManager();
-        const userDid = authResult.userDid || callbackData.userDid;
-        if (userDid) {
-          const session = await sessionMgr.createSession(userDid, providerId, authResult.tokens);
-          authResult.sessionId = session.sessionId;
+  _ipcMain.handle(
+    "sso:handle-callback",
+    async (event, { providerId, callbackData }) => {
+      try {
+        if (!providerId || !callbackData) {
+          return {
+            success: false,
+            error: "providerId and callbackData are required",
+          };
         }
-      }
+        const manager = getSSOManager();
+        const authResult = await manager.handleCallback(
+          providerId,
+          callbackData,
+        );
 
-      return { success: true, data: authResult };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error handling callback:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        // SSOManager is the authoritative session store: handleCallback already
+        // created + persisted the session (sso_sessions, tokens encrypted) and
+        // returns it as `session`. The old code here waited for
+        // `authResult.tokens` — a field the manager never returns — so its
+        // session-manager branch was dead and the renderer never learned the
+        // sessionId. Surface manager failures as failures (the renderer treated
+        // a wrapped {success:false} payload as success), and flatten `session`
+        // top-level (the renderer store reads `result.session`).
+        if (!authResult || authResult.success === false) {
+          return {
+            success: false,
+            error: authResult?.error || "SSO callback failed",
+          };
+        }
+        return {
+          success: true,
+          data: authResult,
+          session: authResult.session || null,
+        };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error handling callback:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * sso:logout
    * Logout from an SSO provider and invalidate session
    */
-  ipcMain.handle('sso:logout', async (event, { providerId, sessionId, userDid }) => {
+  _ipcMain.handle("sso:logout", async (event, { sessionId, userDid }) => {
     try {
-      if (!providerId) {
-        return { success: false, error: 'providerId is required' };
+      // The renderer store sends only { sessionId }; the old contract required
+      // providerId and then passed it as the FIRST argument to
+      // manager.logout(sessionId) — so renderer logouts always failed
+      // ("providerId is required") and provider-side token revocation never
+      // ran even when providerId was supplied.
+      if (!sessionId && !userDid) {
+        return { success: false, error: "sessionId or userDid is required" };
       }
 
       const manager = getSSOManager();
       const sessionMgr = getSSOSessionManager();
 
-      // Invalidate session(s)
       if (sessionId) {
-        await sessionMgr.invalidateSession(sessionId);
-      } else if (userDid) {
-        await sessionMgr.invalidateAllSessions(userDid);
+        // Authoritative logout: revokes provider tokens + marks the
+        // sso_sessions row REVOKED. Best-effort invalidate any parallel
+        // session-manager record too (different id space; may not exist).
+        const result = await manager.logout(sessionId);
+        try {
+          await sessionMgr.invalidateSession(sessionId);
+        } catch (_e) {
+          /* the parallel store may not know this id */
+        }
+        if (!result || result.success === false) {
+          return { success: false, error: result?.error || "Logout failed" };
+        }
+        return { success: true, data: result };
       }
 
-      // Notify provider of logout
-      const result = await manager.logout(providerId, { sessionId, userDid });
-
-      return { success: true, data: result };
+      // userDid-only: revoke every active manager session for the user.
+      const sessions = await manager.getActiveSessions(userDid);
+      let revoked = 0;
+      for (const s of sessions) {
+        const r = await manager.logout(s.id);
+        if (r && r.success !== false) {
+          revoked++;
+        }
+      }
+      try {
+        await sessionMgr.invalidateAllSessions(userDid);
+      } catch (_e) {
+        /* best-effort */
+      }
+      return { success: true, data: { revoked, total: sessions.length } };
     } catch (error) {
-      logger.error('[SSO-IPC] Error during logout:', error);
+      logger.error("[SSO-IPC] Error during logout:", error);
       return { success: false, error: error.message };
     }
   });
@@ -251,37 +305,31 @@ function registerSSOIPC(dependencies) {
    * sso:refresh-token
    * Refresh OAuth2 tokens for a session
    */
-  ipcMain.handle('sso:refresh-token', async (event, { sessionId }) => {
+  _ipcMain.handle("sso:refresh-token", async (event, { sessionId }) => {
     try {
       if (!sessionId) {
-        return { success: false, error: 'sessionId is required' };
+        return { success: false, error: "sessionId is required" };
       }
 
-      const sessionMgr = getSSOSessionManager();
+      // SSOManager owns the session/token lifecycle: refreshToken(sessionId)
+      // decrypts the stored refresh token, exchanges it at the provider,
+      // persists the new tokens and reschedules auto-refresh. The old code
+      // read the PARALLEL sso-session-manager store (never populated on the
+      // SSO login path → always SESSION_NOT_FOUND) and then called
+      // refreshToken(providerId, refreshToken) against a (sessionId)
+      // signature, feeding the resulting failure object into updateTokens,
+      // which threw — the whole IPC was unusable end to end.
       const manager = getSSOManager();
-
-      // Get current session
-      const session = await sessionMgr.getSession(sessionId);
-      if (!session) {
-        return { success: false, error: 'SESSION_NOT_FOUND' };
+      const result = await manager.refreshToken(sessionId);
+      if (!result || result.success === false) {
+        return {
+          success: false,
+          error: result?.error || "Token refresh failed",
+        };
       }
-
-      if (!session.tokens.refreshToken) {
-        return { success: false, error: 'NO_REFRESH_TOKEN' };
-      }
-
-      // Perform token refresh via provider
-      const newTokens = await manager.refreshToken(
-        session.providerId,
-        session.tokens.refreshToken
-      );
-
-      // Update stored tokens
-      const updateResult = await sessionMgr.updateTokens(sessionId, newTokens);
-
-      return { success: true, data: updateResult };
+      return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error refreshing token:', error);
+      logger.error("[SSO-IPC] Error refreshing token:", error);
       return { success: false, error: error.message };
     }
   });
@@ -294,34 +342,45 @@ function registerSSOIPC(dependencies) {
    * sso:link-identity
    * Link a DID with an SSO provider identity
    */
-  ipcMain.handle('sso:link-identity', async (event, { did, providerId, ssoSubject, ssoAttributes }) => {
-    try {
-      if (!did || !providerId || !ssoSubject) {
-        return { success: false, error: 'did, providerId, and ssoSubject are required' };
+  _ipcMain.handle(
+    "sso:link-identity",
+    async (event, { did, providerId, ssoSubject, ssoAttributes }) => {
+      try {
+        if (!did || !providerId || !ssoSubject) {
+          return {
+            success: false,
+            error: "did, providerId, and ssoSubject are required",
+          };
+        }
+        const bridge = getIdentityBridge();
+        const result = await bridge.linkIdentity(
+          did,
+          providerId,
+          ssoSubject,
+          ssoAttributes || {},
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error linking identity:", error);
+        return { success: false, error: error.message };
       }
-      const bridge = getIdentityBridge();
-      const result = await bridge.linkIdentity(did, providerId, ssoSubject, ssoAttributes || {});
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error linking identity:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * sso:unlink-identity
    * Unlink a DID from an SSO provider
    */
-  ipcMain.handle('sso:unlink-identity', async (event, { did, providerId }) => {
+  _ipcMain.handle("sso:unlink-identity", async (event, { did, providerId }) => {
     try {
       if (!did || !providerId) {
-        return { success: false, error: 'did and providerId are required' };
+        return { success: false, error: "did and providerId are required" };
       }
       const bridge = getIdentityBridge();
       const result = await bridge.unlinkIdentity(did, providerId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error unlinking identity:', error);
+      logger.error("[SSO-IPC] Error unlinking identity:", error);
       return { success: false, error: error.message };
     }
   });
@@ -330,34 +389,37 @@ function registerSSOIPC(dependencies) {
    * sso:get-linked-identities
    * Get all SSO identities linked to a DID
    */
-  ipcMain.handle('sso:get-linked-identities', async (event, { did, options = {} }) => {
-    try {
-      if (!did) {
-        return { success: false, error: 'did is required' };
+  _ipcMain.handle(
+    "sso:get-linked-identities",
+    async (event, { did, options = {} }) => {
+      try {
+        if (!did) {
+          return { success: false, error: "did is required" };
+        }
+        const bridge = getIdentityBridge();
+        const identities = await bridge.getLinkedIdentities(did, options);
+        return { success: true, data: identities };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error getting linked identities:", error);
+        return { success: false, error: error.message };
       }
-      const bridge = getIdentityBridge();
-      const identities = await bridge.getLinkedIdentities(did, options);
-      return { success: true, data: identities };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error getting linked identities:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * sso:verify-link
    * Verify an identity mapping
    */
-  ipcMain.handle('sso:verify-link', async (event, { mappingId }) => {
+  _ipcMain.handle("sso:verify-link", async (event, { mappingId }) => {
     try {
       if (!mappingId) {
-        return { success: false, error: 'mappingId is required' };
+        return { success: false, error: "mappingId is required" };
       }
       const bridge = getIdentityBridge();
       const result = await bridge.verifyLink(mappingId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error verifying link:', error);
+      logger.error("[SSO-IPC] Error verifying link:", error);
       return { success: false, error: error.message };
     }
   });
@@ -370,29 +432,22 @@ function registerSSOIPC(dependencies) {
    * sso:get-sessions
    * Get all active SSO sessions for a user
    */
-  ipcMain.handle('sso:get-sessions', async (event, { userDid }) => {
+  _ipcMain.handle("sso:get-sessions", async (event, { userDid }) => {
     try {
       if (!userDid) {
-        return { success: false, error: 'userDid is required' };
+        return { success: false, error: "userDid is required" };
       }
-      const sessionMgr = getSSOSessionManager();
-      const sessions = await sessionMgr.getSessionsByUser(userDid);
+      // Authoritative store: SSOManager's sso_sessions (where handleCallback
+      // records logins). The old code listed the parallel session-manager
+      // store, which the SSO login path never populates → always []. The
+      // mapped shape carries no token material. `sessions` is flattened
+      // top-level because the renderer store reads `result.sessions`.
+      const manager = getSSOManager();
+      const sessions = await manager.getActiveSessions(userDid);
 
-      // Strip sensitive token data for listing
-      const safeSessions = sessions.map(s => ({
-        id: s.id,
-        userDid: s.userDid,
-        providerId: s.providerId,
-        tokenType: s.tokens ? s.tokens.tokenType : null,
-        scope: s.tokens ? s.tokens.scope : null,
-        expiresAt: s.expiresAt,
-        lastActivity: s.lastActivity,
-        createdAt: s.createdAt,
-      }));
-
-      return { success: true, data: safeSessions };
+      return { success: true, data: sessions, sessions };
     } catch (error) {
-      logger.error('[SSO-IPC] Error getting sessions:', error);
+      logger.error("[SSO-IPC] Error getting sessions:", error);
       return { success: false, error: error.message };
     }
   });
@@ -401,16 +456,16 @@ function registerSSOIPC(dependencies) {
    * sso:invalidate-session
    * Invalidate (delete) a specific SSO session
    */
-  ipcMain.handle('sso:invalidate-session', async (event, { sessionId }) => {
+  _ipcMain.handle("sso:invalidate-session", async (event, { sessionId }) => {
     try {
       if (!sessionId) {
-        return { success: false, error: 'sessionId is required' };
+        return { success: false, error: "sessionId is required" };
       }
       const sessionMgr = getSSOSessionManager();
       const result = await sessionMgr.invalidateSession(sessionId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[SSO-IPC] Error invalidating session:', error);
+      logger.error("[SSO-IPC] Error invalidating session:", error);
       return { success: false, error: error.message };
     }
   });
@@ -419,19 +474,19 @@ function registerSSOIPC(dependencies) {
    * sso:get-session-info
    * Get session metadata without sensitive token data
    */
-  ipcMain.handle('sso:get-session-info', async (event, { sessionId }) => {
+  _ipcMain.handle("sso:get-session-info", async (event, { sessionId }) => {
     try {
       if (!sessionId) {
-        return { success: false, error: 'sessionId is required' };
+        return { success: false, error: "sessionId is required" };
       }
       const sessionMgr = getSSOSessionManager();
       const info = await sessionMgr.getSessionInfo(sessionId);
       if (!info) {
-        return { success: false, error: 'SESSION_NOT_FOUND' };
+        return { success: false, error: "SESSION_NOT_FOUND" };
       }
       return { success: true, data: info };
     } catch (error) {
-      logger.error('[SSO-IPC] Error getting session info:', error);
+      logger.error("[SSO-IPC] Error getting session info:", error);
       return { success: false, error: error.message };
     }
   });
@@ -444,16 +499,16 @@ function registerSSOIPC(dependencies) {
    * sso:get-saml-metadata
    * Get SAML Service Provider metadata for a provider
    */
-  ipcMain.handle('sso:get-saml-metadata', async (event, { providerId }) => {
+  _ipcMain.handle("sso:get-saml-metadata", async (event, { providerId }) => {
     try {
       if (!providerId) {
-        return { success: false, error: 'providerId is required' };
+        return { success: false, error: "providerId is required" };
       }
       const manager = getSSOManager();
       const metadata = await manager.getSAMLMetadata(providerId);
       return { success: true, data: metadata };
     } catch (error) {
-      logger.error('[SSO-IPC] Error getting SAML metadata:', error);
+      logger.error("[SSO-IPC] Error getting SAML metadata:", error);
       return { success: false, error: error.message };
     }
   });
@@ -462,19 +517,28 @@ function registerSSOIPC(dependencies) {
    * sso:parse-assertion
    * Parse and validate a SAML assertion response
    */
-  ipcMain.handle('sso:parse-assertion', async (event, { providerId, samlResponse }) => {
-    try {
-      if (!providerId || !samlResponse) {
-        return { success: false, error: 'providerId and samlResponse are required' };
+  _ipcMain.handle(
+    "sso:parse-assertion",
+    async (event, { providerId, samlResponse }) => {
+      try {
+        if (!providerId || !samlResponse) {
+          return {
+            success: false,
+            error: "providerId and samlResponse are required",
+          };
+        }
+        const manager = getSSOManager();
+        const assertion = await manager.parseAssertion(
+          providerId,
+          samlResponse,
+        );
+        return { success: true, data: assertion };
+      } catch (error) {
+        logger.error("[SSO-IPC] Error parsing SAML assertion:", error);
+        return { success: false, error: error.message };
       }
-      const manager = getSSOManager();
-      const assertion = await manager.parseAssertion(providerId, samlResponse);
-      return { success: true, data: assertion };
-    } catch (error) {
-      logger.error('[SSO-IPC] Error parsing SAML assertion:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   // ============================================
   // OIDC Handlers (2)
@@ -484,27 +548,27 @@ function registerSSOIPC(dependencies) {
    * sso:get-userinfo
    * Get user info from OIDC provider using access token
    */
-  ipcMain.handle('sso:get-userinfo', async (event, { sessionId }) => {
+  _ipcMain.handle("sso:get-userinfo", async (event, { sessionId }) => {
     try {
       if (!sessionId) {
-        return { success: false, error: 'sessionId is required' };
+        return { success: false, error: "sessionId is required" };
       }
 
       const sessionMgr = getSSOSessionManager();
       const session = await sessionMgr.getSession(sessionId);
       if (!session) {
-        return { success: false, error: 'SESSION_NOT_FOUND' };
+        return { success: false, error: "SESSION_NOT_FOUND" };
       }
 
       const manager = getSSOManager();
       const userInfo = await manager.getUserInfo(
         session.providerId,
-        session.tokens.accessToken
+        session.tokens.accessToken,
       );
 
       return { success: true, data: userInfo };
     } catch (error) {
-      logger.error('[SSO-IPC] Error getting user info:', error);
+      logger.error("[SSO-IPC] Error getting user info:", error);
       return { success: false, error: error.message };
     }
   });
@@ -513,36 +577,36 @@ function registerSSOIPC(dependencies) {
    * sso:validate-id-token
    * Validate an OIDC ID token
    */
-  ipcMain.handle('sso:validate-id-token', async (event, { sessionId }) => {
+  _ipcMain.handle("sso:validate-id-token", async (event, { sessionId }) => {
     try {
       if (!sessionId) {
-        return { success: false, error: 'sessionId is required' };
+        return { success: false, error: "sessionId is required" };
       }
 
       const sessionMgr = getSSOSessionManager();
       const session = await sessionMgr.getSession(sessionId);
       if (!session) {
-        return { success: false, error: 'SESSION_NOT_FOUND' };
+        return { success: false, error: "SESSION_NOT_FOUND" };
       }
 
       if (!session.tokens.idToken) {
-        return { success: false, error: 'NO_ID_TOKEN' };
+        return { success: false, error: "NO_ID_TOKEN" };
       }
 
       const manager = getSSOManager();
       const validation = await manager.validateIdToken(
         session.providerId,
-        session.tokens.idToken
+        session.tokens.idToken,
       );
 
       return { success: true, data: validation };
     } catch (error) {
-      logger.error('[SSO-IPC] Error validating ID token:', error);
+      logger.error("[SSO-IPC] Error validating ID token:", error);
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[SSO-IPC] All 20 SSO IPC handlers registered successfully');
+  logger.info("[SSO-IPC] All 20 SSO IPC handlers registered successfully");
 }
 
 module.exports = { registerSSOIPC };
