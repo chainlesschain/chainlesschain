@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Fixed — cc CLI 0.162.152：全面体检 13 修复 + auto-pin 默认开 + 远控幂等激活 + 多语言 LSP/内核沙箱 CI 真机验证
+
+> CLI-only 发版（`chainlesschain` 0.162.151 → **0.162.152**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/web-panel`（随包打入）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版前本机三层全绿（23,167 passed / 0 fail）+ 新 `env-blocked-verification.yml` CI 门（ubuntu 真机：gopls/rust-analyzer/jdtls 三语言 LSP def/refs/diag + bubblewrap 内核级 netns/rootfs/denyRead 隔离）全绿。命令数不变（164）。
+
+- **安全（HIGH）**：插件签名锁可伪造绕过 `requireSignedPlugins` —— lock v2 落真 Ed25519 材料、load 真验签、指纹从公钥现算、install 剥离源自带 lock、空 trustedKeys fail-closed。另修插件远程 registry 纯 HTTP MITM 面（拒 HTTP + 显式 opt-in）与 git argv 注入（拒 `-` 开头 url/ref）。
+- **正确性**：远控账本 seq 水位乱序回退 + 无界增长（保留窗口封顶）；`cc team` 长任务缺 renew 心跳被并发双跑 + `dependsOn` 拼错静默搁浅 + `--state` 非原子写；eval 三任务 check 可作弊（harness 改逐字节比对）+ 超时竞态（整树击杀+等退出）+ dry-run 污染 `--trend` 门；OTLP 时间戳超 2^53 精度/规范违规 + traceId 跨 run 恒同；LSP `normalizeUri` 盘符冒号编码不统一致 **Go 诊断恒空**（gopls 重写 URI 形态）+ 读查询对 `ContentModified` 有界重试；bwrap `--tmpfs /tmp` 挂载顺序遮蔽 /tmp 下工作区。
+- **Added**：compaction **auto-pin 默认开启**（pin 原始任务防长会话跑偏；`CC_AUTO_PIN=0`/config false 可关）；远控客户端（web-panel 直连 + web/Android E2EE 控制事件）发送 commandId/seq，断线重发/relay 补投不再重复执行 agent turn，Phase 5 幂等保护端到端激活。
+
 #### Added — IDE 扩展 VS Code 0.37.4 + JetBrains 0.4.46：一整轮插件审计闭环（22 P0/P1/P2 修复 + 6 优化，已发 Open VSX + JetBrains Marketplace）
 
 > 独立发版轨（不随产品版本号）：VS Code `0.37.3 → 0.37.4`（Open VSX）+ JetBrains `0.4.45 → 0.4.46`（JetBrains Marketplace），tag `ide-vscode-v0.37.4` / `ide-jetbrains-v0.4.46`。由 3-agent 审计 fan-out（VS Code bug / JetBrains bug / 功能差距）产出，两端各自 CI 清洁室构建验证：vscode-ext 51 文件 / 456 测试绿 + vsce 打包 OK；JetBrains compileJava + smokeTest 门 + buildPlugin OK，构建产物 jar 内 plugin.xml = 0.4.46。
