@@ -98,6 +98,13 @@ class RemoteSessionClient(
         sendControl(event)
     }
 
+    // Idempotency (Phase 5): every control event carries a commandId + a
+    // per-pairing monotonic seq INSIDE the encrypted plaintext (the host reads
+    // event.commandId after decryption via its RemoteCommandLedger). The relay
+    // is at-least-once — it stores and REDELIVERS offline-messages — so
+    // without the id a redelivered prompt would run a second agent turn.
+    private val controlSeq = java.util.concurrent.atomic.AtomicLong(0)
+
     // Reconnect state. The pairing token is single-use, so a reconnect within
     // the same process lifetime re-registers with the relay and resumes on the
     // already-derived shared secret instead of re-pairing.
@@ -119,6 +126,8 @@ class RemoteSessionClient(
         paired = false
         closedExplicitly = false
         reconnectAttempts = 0
+        // Fresh pairing = fresh peerId = fresh per-device seq space on the host.
+        controlSeq.set(0)
         _status.value = RemoteSessionStatus.CONNECTING
         openSocket()
     }
@@ -154,6 +163,11 @@ class RemoteSessionClient(
         val activeSocket = socket ?: return false
         val activePairing = pairing ?: return false
         if (!paired) return false
+        // Stamp the idempotency key before encryption (the host only sees the
+        // decrypted event). A caller-supplied commandId is preserved so an
+        // explicit retry of the same logical command stays deduplicable.
+        if (!event.has("commandId")) event.put("commandId", UUID.randomUUID().toString())
+        if (!event.has("seq")) event.put("seq", controlSeq.incrementAndGet())
         val envelope = requireNotNull(crypto).encrypt(event)
         return activeSocket.send(
             JSONObject()
