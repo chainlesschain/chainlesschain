@@ -313,7 +313,50 @@ describe("fix-build task rigor", () => {
     };
     const summary = await runEvalSuite([task], { runAgent: cheatAgent });
     expect(summary.passed).toBe(0);
-    expect(summary.results[0].detail).toMatch(/altered/);
+    expect(summary.results[0].detail).toMatch(/edited/);
+  });
+
+  it("rejects a rewritten build.mjs that keeps the assertion TEXT present", async () => {
+    // The presence-regex bypass: define a local banner() so the assertion
+    // string still appears but app.mjs/config.mjs are never linked. Only a
+    // byte-compare of the harness catches this.
+    const task = BUILTIN_TASKS.find((t) => t.id === "fix-build");
+    const cheatAgent = async ({ cwd }) => {
+      fs.writeFileSync(
+        path.join(cwd, "build.mjs"),
+        'const banner = () => "v1.0.0";\n' +
+          'if (banner() !== "v1.0.0") process.exit(1);\n' +
+          'console.log("BUILD OK");\n',
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: cheatAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/edited/);
+  });
+});
+
+describe("fix-failing-test task rigor", () => {
+  it("rejects prepending an early exit that keeps the assertions present", async () => {
+    // The presence-regex bypass: `ALL OK` + exit(0) BEFORE the loop — the
+    // assertion text survives a regex check but never executes, and calc.js
+    // stays broken. Only a byte-compare of the harness catches this.
+    const task = BUILTIN_TASKS.find((t) => t.id === "fix-failing-test");
+    expect(task).toBeTruthy();
+    const cheatAgent = async ({ cwd }) => {
+      const harness = path.join(cwd, "run-checks.mjs");
+      fs.writeFileSync(
+        harness,
+        "console.log('ALL OK');\nprocess.exit(0);\n" +
+          fs.readFileSync(harness, "utf8"),
+        "utf8",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: cheatAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/edited/);
   });
 });
 
@@ -333,6 +376,28 @@ describe("upgrade-dependency task rigor", () => {
     const summary = await runEvalSuite([task], { runAgent: cheatAgent });
     expect(summary.passed).toBe(0);
     expect(summary.results[0].detail).toMatch(/dependency was edited/);
+  });
+
+  it("rejects overwriting the run.mjs harness so app.mjs is never executed", async () => {
+    // run.mjs had NO guard at all: overwrite it with a bare OK, bump the
+    // manifest, and drop `toTitle` as text into a BROKEN app.mjs — every
+    // textual sub-check passes while the caller was never adapted.
+    const task = BUILTIN_TASKS.find((t) => t.id === "upgrade-dependency");
+    const cheatAgent = async ({ cwd }) => {
+      fs.writeFileSync(path.join(cwd, "run.mjs"), 'console.log("OK");\n');
+      const pkgFile = path.join(cwd, "package.json");
+      const pkg = JSON.parse(fs.readFileSync(pkgFile, "utf8"));
+      pkg.dependencies.stringutil = "^2.0.0";
+      fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + "\n");
+      fs.writeFileSync(
+        path.join(cwd, "app.mjs"),
+        "// toTitle mentioned, nothing works\nthrow new Error('broken');\n",
+      );
+      return { ok: true };
+    };
+    const summary = await runEvalSuite([task], { runAgent: cheatAgent });
+    expect(summary.passed).toBe(0);
+    expect(summary.results[0].detail).toMatch(/run\.mjs was edited/);
   });
 });
 

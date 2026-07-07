@@ -30,6 +30,39 @@ const STRINGUTIL_V2 =
   "  return str.charAt(0).toUpperCase() + str.slice(1);\n" +
   "}\n";
 
+// Harness files the agent is told NOT to edit, shared by setup and check so the
+// check can byte-compare them (same anti-cheat as STRINGUTIL_V2 above). A mere
+// presence-regex is neuterable: prepending `console.log('ALL OK');
+// process.exit(0)` keeps the assertion text present while never running it.
+const RUN_CHECKS_MJS = [
+  "import { sum } from './calc.js';",
+  "const cases = [[1,2,3],[10,5,15],[0,0,0]];",
+  "for (const [a,b,want] of cases) {",
+  "  if (sum(a,b) !== want) {",
+  "    console.error(`FAIL sum(${a},${b})=${sum(a,b)} want ${want}`);",
+  "    process.exit(1);",
+  "  }",
+  "}",
+  "console.log('ALL OK');",
+  "",
+].join("\n");
+
+const BUILD_MJS =
+  'import { banner } from "./app.mjs";\n' +
+  'if (banner() !== "v1.0.0") {\n' +
+  '  console.error("BUILD FAIL: " + banner());\n' +
+  "  process.exit(1);\n" +
+  "}\n" +
+  'console.log("BUILD OK");\n';
+
+const RUN_MJS =
+  'import { label } from "./app.mjs";\n' +
+  'if (label("hello") !== "Hello") {\n' +
+  '  console.error("FAIL: " + label("hello"));\n' +
+  "  process.exit(1);\n" +
+  "}\n" +
+  'console.log("OK");\n';
+
 export const BUILTIN_TASKS = [
   {
     id: "create-file",
@@ -134,32 +167,22 @@ export const BUILTIN_TASKS = [
       );
       fs.writeFileSync(
         path.join(dir, "run-checks.mjs"),
-        [
-          "import { sum } from './calc.js';",
-          "const cases = [[1,2,3],[10,5,15],[0,0,0]];",
-          "for (const [a,b,want] of cases) {",
-          "  if (sum(a,b) !== want) {",
-          "    console.error(`FAIL sum(${a},${b})=${sum(a,b)} want ${want}`);",
-          "    process.exit(1);",
-          "  }",
-          "}",
-          "console.log('ALL OK');",
-          "",
-        ].join("\n"),
+        RUN_CHECKS_MJS,
         "utf8",
       );
     },
     check: (dir) => {
-      // Objective: the test harness must actually pass. Guard against the agent
-      // "fixing" it by neutering run-checks.mjs — require the assertions to
-      // still be present.
+      // Objective: the test harness must actually pass. Byte-compare the
+      // harness — a presence-regex alone is neuterable (prepend an early
+      // `console.log('ALL OK'); process.exit(0)` and the assertion text is
+      // still there but never runs).
       const checks = read(dir, "run-checks.mjs");
       if (checks == null)
         return { pass: false, detail: "run-checks.mjs missing" };
-      if (!/sum\(a,\s*b\)\s*!==\s*want/.test(checks)) {
+      if (checks !== RUN_CHECKS_MJS) {
         return {
           pass: false,
-          detail: "run-checks.mjs assertions were altered",
+          detail: "run-checks.mjs was edited (fix calc.js instead)",
         };
       }
       try {
@@ -487,23 +510,19 @@ export const BUILTIN_TASKS = [
           'export function banner() {\n  return "v" + VERSION;\n}\n',
         "utf8",
       );
-      fs.writeFileSync(
-        path.join(dir, "build.mjs"),
-        'import { banner } from "./app.mjs";\n' +
-          'if (banner() !== "v1.0.0") {\n' +
-          '  console.error("BUILD FAIL: " + banner());\n' +
-          "  process.exit(1);\n" +
-          "}\n" +
-          'console.log("BUILD OK");\n',
-        "utf8",
-      );
+      fs.writeFileSync(path.join(dir, "build.mjs"), BUILD_MJS, "utf8");
     },
     check: (dir) => {
       const build = read(dir, "build.mjs");
       if (build == null) return { pass: false, detail: "build.mjs missing" };
-      // Guard: fix the modules, don't neuter the build harness.
-      if (!/banner\(\)\s*!==\s*"v1\.0\.0"/.test(build)) {
-        return { pass: false, detail: "build.mjs assertion was altered" };
+      // Guard: fix the modules, don't neuter the build harness. Byte-compare —
+      // a presence-regex is satisfiable by a rewritten build.mjs that defines
+      // its own banner() and never imports app.mjs.
+      if (build !== BUILD_MJS) {
+        return {
+          pass: false,
+          detail: "build.mjs was edited (reconcile config.mjs/app.mjs instead)",
+        };
       }
       try {
         const out = execFileSync(process.execPath, ["build.mjs"], {
@@ -534,7 +553,7 @@ export const BUILTIN_TASKS = [
       "`capitalize` export was renamed to `toTitle` (same behavior). Do all of: " +
       "(1) bump stringutil to ^2.0.0 in package.json; (2) update app.mjs to " +
       "import and use `toTitle` instead of `capitalize`; (3) do NOT edit " +
-      "stringutil.mjs. Afterwards `node run.mjs` must print OK.",
+      "stringutil.mjs or run.mjs. Afterwards `node run.mjs` must print OK.",
     setup: (dir) => {
       fs.writeFileSync(
         path.join(dir, "package.json"),
@@ -558,16 +577,7 @@ export const BUILTIN_TASKS = [
           "export function label(s) {\n  return capitalize(s);\n}\n",
         "utf8",
       );
-      fs.writeFileSync(
-        path.join(dir, "run.mjs"),
-        'import { label } from "./app.mjs";\n' +
-          'if (label("hello") !== "Hello") {\n' +
-          '  console.error("FAIL: " + label("hello"));\n' +
-          "  process.exit(1);\n" +
-          "}\n" +
-          'console.log("OK");\n',
-        "utf8",
-      );
+      fs.writeFileSync(path.join(dir, "run.mjs"), RUN_MJS, "utf8");
     },
     check: (dir) => {
       // The dependency is vendored — the agent must adapt the caller, NOT edit
@@ -578,6 +588,17 @@ export const BUILTIN_TASKS = [
         return {
           pass: false,
           detail: "the stringutil dependency was edited (adapt the caller)",
+        };
+      }
+      // The run harness is equally off-limits: without this guard an agent
+      // could overwrite run.mjs with `console.log("OK")` and pass the textual
+      // checks below without app.mjs ever being executed.
+      const runner = read(dir, "run.mjs");
+      if (runner == null) return { pass: false, detail: "run.mjs missing" };
+      if (runner !== RUN_MJS) {
+        return {
+          pass: false,
+          detail: "run.mjs was edited (adapt app.mjs/package.json instead)",
         };
       }
       const pkg = read(dir, "package.json");
