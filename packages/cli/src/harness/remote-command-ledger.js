@@ -22,10 +22,21 @@
  */
 
 export class RemoteCommandLedger {
-  constructor({ now = () => Date.now(), revokedDevices = [] } = {}) {
+  constructor({
+    now = () => Date.now(),
+    revokedDevices = [],
+    maxApplied = 10000,
+  } = {}) {
     this._now = typeof now === "function" ? now : () => now;
     this._applied = new Map(); // commandId → { applyIndex, result, deviceId, ts }
-    this._order = []; // applyIndex → commandId (total order)
+    this._order = []; // retained tail; applyIndex of _order[i] = _baseIndex + i
+    this._baseIndex = 0; // applyIndex of _order[0] (advances as old entries evict)
+    // Retention window: a long-lived `cc serve` would otherwise grow the ledger
+    // (and its snapshot) without bound — ~14 MB per 50k commands measured. The
+    // window must stay large relative to the reconnect-redelivery horizon: a
+    // commandId evicted from the window loses idempotency protection and would
+    // re-execute if re-delivered afterwards.
+    this._maxApplied = Math.max(1, Number(maxApplied) || 10000);
     this._revoked = new Set(revokedDevices);
     this._perDeviceSeq = new Map(); // deviceId → highest accepted seq
     this._inFlight = new Map(); // commandId → Promise<record> for an in-progress apply
@@ -113,13 +124,22 @@ export class RemoteCommandLedger {
     // on success and rejects on failure (so a retry can re-run the side effect).
     const runPromise = (async () => {
       const result = await execute(command);
-      const applyIndex = this._order.length;
+      const applyIndex = this._baseIndex + this._order.length;
       const rec = { applyIndex, result, deviceId, ts: this._now() };
       this._applied.set(commandId, rec);
       this._order.push(commandId);
       if (deviceId != null && Number.isFinite(command.seq)) {
-        this._perDeviceSeq.set(deviceId, command.seq);
+        // Advance-only watermark. Two in-flight commands from one device can
+        // RECORD out of order (seq 6 settles before seq 5 — both passed the
+        // stale check while nothing was recorded); a plain set() would regress
+        // the watermark to 5 and let a NEW commandId reuse seq 6.
+        const cur = this._perDeviceSeq.get(deviceId);
+        this._perDeviceSeq.set(
+          deviceId,
+          cur == null ? command.seq : Math.max(cur, command.seq),
+        );
       }
+      this._evictBeyondWindow();
       return rec;
     })();
     this._inFlight.set(commandId, runPromise);
@@ -140,15 +160,31 @@ export class RemoteCommandLedger {
     }
   }
 
+  /** Chunked eviction of the oldest applied entries beyond the window. */
+  _evictBeyondWindow() {
+    // Amortized: only compact once we're 50% past the cap, then cut back to
+    // exactly the cap — avoids an O(n) splice on every insert at steady state.
+    if (this._order.length <= this._maxApplied * 1.5) return;
+    const excess = this._order.length - this._maxApplied;
+    const evicted = this._order.splice(0, excess);
+    for (const id of evicted) this._applied.delete(id);
+    this._baseIndex += excess;
+  }
+
   /**
    * The ordered tail of applied commands after `cursor` (an applyIndex), so a
    * reconnecting endpoint can replay missed state in the one agreed order.
+   * Entries older than the retention window are gone — a caller can detect the
+   * gap by comparing the first element's applyIndex against its cursor+1 (see
+   * `oldestRetainedIndex()`), and should then resync full state instead.
    * @returns {Array<{applyIndex, commandId, result, deviceId}>}
    */
   appliedSince(cursor = -1) {
     const out = [];
-    for (let i = cursor + 1; i < this._order.length; i++) {
-      const commandId = this._order[i];
+    const start = Math.max(cursor + 1, this._baseIndex);
+    const end = this._baseIndex + this._order.length;
+    for (let i = start; i < end; i++) {
+      const commandId = this._order[i - this._baseIndex];
       const rec = this._applied.get(commandId);
       out.push({
         applyIndex: i,
@@ -160,27 +196,41 @@ export class RemoteCommandLedger {
     return out;
   }
 
-  /** Highest assigned applyIndex (−1 when nothing applied). */
-  cursor() {
-    return this._order.length - 1;
+  /** Lowest applyIndex still retained (entries below it were evicted). */
+  oldestRetainedIndex() {
+    return this._baseIndex;
   }
 
+  /** Highest assigned applyIndex (−1 when nothing applied). */
+  cursor() {
+    return this._baseIndex + this._order.length - 1;
+  }
+
+  /** Total commands ever applied (including evicted ones). */
   appliedCount() {
-    return this._order.length;
+    return this._baseIndex + this._order.length;
   }
 
   snapshot() {
     return {
       order: [...this._order],
+      baseIndex: this._baseIndex,
+      maxApplied: this._maxApplied,
       applied: Array.from(this._applied.entries()),
       revoked: Array.from(this._revoked),
       perDeviceSeq: Array.from(this._perDeviceSeq.entries()),
     };
   }
 
-  static restore(snap, { now = () => Date.now() } = {}) {
-    const l = new RemoteCommandLedger({ now });
+  static restore(snap, { now = () => Date.now(), maxApplied } = {}) {
+    const l = new RemoteCommandLedger({
+      now,
+      // Restore keeps the snapshot's window unless the caller overrides it;
+      // old (pre-window) snapshots fall back to the default.
+      maxApplied: maxApplied ?? snap?.maxApplied,
+    });
     l._order = [...(snap?.order || [])];
+    l._baseIndex = Number.isFinite(snap?.baseIndex) ? snap.baseIndex : 0;
     l._applied = new Map(snap?.applied || []);
     l._revoked = new Set(snap?.revoked || []);
     l._perDeviceSeq = new Map(snap?.perDeviceSeq || []);

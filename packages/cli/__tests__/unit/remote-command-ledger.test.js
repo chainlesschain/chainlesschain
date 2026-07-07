@@ -175,3 +175,88 @@ describe("RemoteCommandLedger validation + snapshot", () => {
     expect(restored.isRevoked("bad")).toBe(true);
   });
 });
+
+describe("RemoteCommandLedger per-device seq watermark monotonicity", () => {
+  it("does not regress the watermark when commands settle out of order", async () => {
+    // seq 5 and seq 6 both pass the stale check while in flight; 6 records
+    // first, then 5 — a plain set() would drop the watermark back to 5 and a
+    // NEW commandId reusing seq 6 would be accepted instead of stale-rejected.
+    const ledger = new RemoteCommandLedger();
+    let release5;
+    const gate5 = new Promise((r) => (release5 = r));
+    const p5 = ledger.apply(
+      { commandId: "c5", deviceId: "d", seq: 5 },
+      async () => {
+        await gate5;
+        return "r5";
+      },
+    );
+    const r6 = await ledger.apply(
+      { commandId: "c6", deviceId: "d", seq: 6 },
+      async () => "r6",
+    );
+    expect(r6.status).toBe("applied");
+    release5();
+    expect((await p5).status).toBe("applied");
+
+    const reuse = await ledger.apply(
+      { commandId: "c7", deviceId: "d", seq: 6 },
+      async () => "should-not-run",
+    );
+    expect(reuse.status).toBe("rejected");
+    expect(reuse.reason).toBe("stale sequence");
+  });
+});
+
+describe("RemoteCommandLedger retention window (bounded growth)", () => {
+  it("evicts the oldest entries beyond maxApplied while keeping order semantics", async () => {
+    const ledger = new RemoteCommandLedger({ maxApplied: 10 });
+    for (let i = 0; i < 40; i++) {
+      await ledger.apply(
+        { commandId: `c${i}`, deviceId: "d", seq: i },
+        async () => i,
+      );
+    }
+    // Bounded: at most maxApplied*1.5 retained (chunked compaction).
+    expect(ledger.snapshot().applied.length).toBeLessThanOrEqual(15);
+    // Global counters keep counting across eviction.
+    expect(ledger.appliedCount()).toBe(40);
+    expect(ledger.cursor()).toBe(39);
+    expect(ledger.oldestRetainedIndex()).toBeGreaterThan(0);
+    // The retained tail replays with its ORIGINAL applyIndex values.
+    const tail = ledger.appliedSince(37);
+    expect(tail.map((e) => e.applyIndex)).toEqual([38, 39]);
+    expect(tail.map((e) => e.commandId)).toEqual(["c38", "c39"]);
+    // A recent command still replays idempotently…
+    const replay = await ledger.apply(
+      { commandId: "c39", deviceId: "d", seq: 39 },
+      async () => "again",
+    );
+    expect(replay.status).toBe("replayed");
+    expect(replay.result).toBe(39);
+  });
+
+  it("snapshot/restore preserves the window and baseIndex", async () => {
+    const ledger = new RemoteCommandLedger({ maxApplied: 10 });
+    for (let i = 0; i < 40; i++) {
+      await ledger.apply(
+        { commandId: `c${i}`, deviceId: "d", seq: i },
+        async () => i,
+      );
+    }
+    const restored = RemoteCommandLedger.restore(
+      JSON.parse(JSON.stringify(ledger.snapshot())),
+    );
+    expect(restored.appliedCount()).toBe(40);
+    expect(restored.oldestRetainedIndex()).toBe(ledger.oldestRetainedIndex());
+    // Window keeps enforcing after restore.
+    for (let i = 40; i < 80; i++) {
+      await restored.apply(
+        { commandId: `c${i}`, deviceId: "d", seq: i },
+        async () => i,
+      );
+    }
+    expect(restored.snapshot().applied.length).toBeLessThanOrEqual(15);
+    expect(restored.appliedCount()).toBe(80);
+  });
+});
