@@ -8,16 +8,36 @@ export default defineConfig({
 
   head: [
     // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
-    ["script", {
-      defer: "",
-      src: "https://www.chainlesschain.com/u/script.js",
-      "data-website-id": "a2896710-c627-4621-bf90-af1b33f74a89",
-      "data-host-url": "https://www.chainlesschain.com/u",
-    }],
-    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "128x128", href: "/logo-128.png" }],
-    ["link", { rel: "apple-touch-icon", sizes: "128x128", href: "/logo-128.png" }],
+    [
+      "script",
+      {
+        defer: "",
+        src: "https://www.chainlesschain.com/u/script.js",
+        "data-website-id": "a2896710-c627-4621-bf90-af1b33f74a89",
+        "data-host-url": "https://www.chainlesschain.com/u",
+      },
+    ],
+    [
+      "link",
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" },
+    ],
+    [
+      "link",
+      { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" },
+    ],
+    [
+      "link",
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "128x128",
+        href: "/logo-128.png",
+      },
+    ],
+    [
+      "link",
+      { rel: "apple-touch-icon", sizes: "128x128", href: "/logo-128.png" },
+    ],
     ["meta", { name: "theme-color", content: "#6366f1" }],
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
     [
@@ -140,7 +160,10 @@ export default defineConfig({
           items: [
             { text: "落地方案", link: "/mtc-landing-plan" },
             { text: "数据格式 v1", link: "/mtc-data-format-v1" },
-            { text: "联邦治理 v1 ⭐NEW", link: "/mtc-federation-governance-v1" },
+            {
+              text: "联邦治理 v1 ⭐NEW",
+              link: "/mtc-federation-governance-v1",
+            },
             { text: "跨链桥设计 v1 ⭐NEW", link: "/mtc-cross-chain-bridge-v1" },
             { text: "v0.2 评审清单", link: "/mtc-review-checklist" },
           ],
@@ -768,6 +791,16 @@ export default defineConfig({
           ],
         },
         {
+          text: "CLI 对标 Claude Code 优化计划 ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "Phase 1-7 优化计划（沙箱/LSP/插件/Team/远控/Hooks/评测）",
+              link: "/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN",
+            },
+          ],
+        },
+        {
           text: "ClaudeBox 学习方案",
           collapsed: true,
           items: [
@@ -934,9 +967,7 @@ export default defineConfig({
         {
           text: "归档",
           collapsed: true,
-          items: [
-            { text: "原始完整文档", link: "/system-design-full" },
-          ],
+          items: [{ text: "原始完整文档", link: "/system-design-full" }],
         },
       ],
     },

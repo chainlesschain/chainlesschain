@@ -304,4 +304,4 @@ cc team run --tasks ci-graph.json --exec --json > events.jsonl
 - [CLI Agent 模式](./cli-agent.md) — `cc agent -p` 无头执行（`--agent` 任务的底层）
 - [可靠性评测 `cc eval`](./cli-eval.md) — 任务成功率评测 + 趋势报告（同 Phase 7 CI 门思路）
 - [A2A 协议](./a2a-protocol.md) — 代理间通信协议
-- 内部计划：`docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md` Phase 4（Agent Team）
+- [CLI 对标 Claude Code 优化计划](/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN) Phase 4（Agent Team）

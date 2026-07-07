@@ -1441,6 +1441,10 @@ export default defineConfig({
             { text: "AI模型部署方案", link: "/design/ai-model-deploy" },
             { text: "浏览器插件计划", link: "/design/BROWSER_EXTENSION_PLAN" },
             { text: "Hook系统设计", link: "/design/HOOKS_SYSTEM_DESIGN" },
+            {
+              text: "CLI 对标 Claude Code 优化计划 ⭐NEW",
+              link: "/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN",
+            },
           ],
         },
         {

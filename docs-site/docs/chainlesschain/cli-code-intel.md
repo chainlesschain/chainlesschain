@@ -211,4 +211,4 @@ cc agent -p "把 add() 改名为 sum() 并更新所有调用处"
 - [CLI Agent 模式](./cli-agent.md) — `cc agent` 无头执行（`code_intelligence` 工具所在的执行链）
 - [Coding Agent 系统](./coding-agent.md) — 面向真实代码仓库的多轮编码闭环
 - [Agent Team `cc team`](./cli-team.md) / [可靠性评测 `cc eval`](./cli-eval.md) — 同批 Claude Code 平价能力
-- 内部计划：`docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md` Phase 2（LSP 语义代码智能）
+- [CLI 对标 Claude Code 优化计划](/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN) Phase 2（LSP 语义代码智能）

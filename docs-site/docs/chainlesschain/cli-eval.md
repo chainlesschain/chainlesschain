@@ -215,4 +215,4 @@ cc eval --trend --history eval-history.jsonl   # 回归 → exit 1 → CI 红
 - [CLI Agent 模式](./cli-agent.md) — `cc agent -p` 无头执行（评测的 runAgent 底层，含 `--otlp` / `--auto-rewake`）
 - [Agent Team `cc team`](./cli-team.md) — 声明式任务图团队编排（同 Phase 4/7 CI 门思路）
 - [Checkpoint](./checkpoint.md) — agent 执行的检查点/回滚
-- 内部计划：`docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md` Phase 7（可靠性评测 / OTel）
+- [CLI 对标 Claude Code 优化计划](/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN) Phase 7（可靠性评测 / OTel）
