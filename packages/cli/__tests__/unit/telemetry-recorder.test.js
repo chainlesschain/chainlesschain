@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   TelemetryRecorder,
   formatTelemetry,
@@ -104,8 +107,11 @@ describe("TelemetryRecorder OTLP export", () => {
     });
     const otlpSpan = rs.scopeSpans[0].spans[0];
     expect(otlpSpan.name).toBe("model_call");
-    expect(otlpSpan.startTimeUnixNano).toBe(1000 * 1e6);
-    expect(otlpSpan.endTimeUnixNano).toBe(1005 * 1e6);
+    // proto3 JSON mapping: 64-bit nano timestamps must be decimal STRINGS —
+    // real epoch-ms × 1e6 exceeds 2^53, so a JSON number is spec-invalid
+    // (strict collectors reject it) and loses precision (~256 ns quantization).
+    expect(otlpSpan.startTimeUnixNano).toBe(String(1000 * 1e6));
+    expect(otlpSpan.endTimeUnixNano).toBe(String(1005 * 1e6));
     expect(otlpSpan.status.code).toBe(1); // ok
     const attrMap = Object.fromEntries(
       otlpSpan.attributes.map((a) => [a.key, a.value]),
@@ -140,6 +146,31 @@ describe("TelemetryRecorder OTLP export", () => {
     const r1 = new TelemetryRecorder();
     const r2 = new TelemetryRecorder();
     expect(r1.traceId).not.toBe(r2.traceId);
+  });
+
+  it("traceIds are unique across PROCESSES, not just within one", () => {
+    // Pre-fix the id was a bare per-process counter: every CLI run's first
+    // recorder exported trace 000…001, so a collector merged successive runs
+    // into one giant trace. The id now embeds process start-time + pid.
+    const child = () =>
+      execFileSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `import { TelemetryRecorder } from ${JSON.stringify(
+            pathToFileURL(path.resolve("src/lib/telemetry/span-recorder.js"))
+              .href,
+          )}; console.log(new TelemetryRecorder().traceId);`,
+        ],
+        { encoding: "utf8" },
+      ).trim();
+    const a = child();
+    const b = child();
+    expect(a).toMatch(/^[0-9a-f]{32}$/);
+    expect(b).toMatch(/^[0-9a-f]{32}$/);
+    expect(a).not.toBe(b);
+    expect(a).not.toBe("0".repeat(31) + "1");
   });
 });
 

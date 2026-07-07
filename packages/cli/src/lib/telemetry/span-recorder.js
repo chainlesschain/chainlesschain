@@ -22,12 +22,19 @@ function spanId() {
 
 // One trace per recorder (a "run"). The OTLP/OTel spec treats an ALL-ZERO
 // traceId as INVALID, so a strict collector would drop every span exported with
-// `"0".repeat(32)` — defeating toOtlp()'s purpose. Derive a non-zero, monotonic
-// (RNG-free, snapshot-replayable) 32-hex traceId per recorder instead.
+// `"0".repeat(32)` — defeating toOtlp()'s purpose. A bare counter is non-zero
+// but resets every PROCESS, so successive CLI runs all exported trace
+// `000…001` and a collector merged them into one giant trace. Prefix the
+// counter with per-process entropy (start time + pid — RNG-free, so ids stay
+// deterministic WITHIN a run) to make traces practically unique ACROSS runs.
+const _traceBase = (
+  Date.now().toString(16).padStart(12, "0") +
+  (process.pid >>> 0).toString(16).padStart(8, "0")
+).slice(0, 20);
 let _traceSeq = 0;
 function newTraceId() {
   _traceSeq = (_traceSeq + 1) % Number.MAX_SAFE_INTEGER;
-  return _traceSeq.toString(16).padStart(32, "0"); // never all-zero (starts at 1)
+  return _traceBase + _traceSeq.toString(16).padStart(12, "0"); // 32 hex, never all-zero
 }
 
 export class TelemetryRecorder {
@@ -186,8 +193,12 @@ export class TelemetryRecorder {
                 spanId: s.id,
                 parentSpanId: s.parentId || "",
                 name: s.name,
-                startTimeUnixNano: s.startTime * 1e6,
-                endTimeUnixNano: s.endTime * 1e6,
+                // proto3 JSON mapping: (s)fixed64/(u)int64 fields MUST be
+                // decimal STRINGS — ms×1e6 ≈ 1.8e18 exceeds 2^53, so a JSON
+                // number both violates the OTLP/JSON spec (strict collectors
+                // reject the span) and quantizes (~256 ns spacing).
+                startTimeUnixNano: String(Math.round(s.startTime * 1e6)),
+                endTimeUnixNano: String(Math.round(s.endTime * 1e6)),
                 status: { code: s.status === "error" ? 2 : 1 },
                 attributes: Object.entries(s.attributes).map(([k, v]) => ({
                   key: k,
@@ -200,7 +211,7 @@ export class TelemetryRecorder {
                 })),
                 events: s.events.map((e) => ({
                   name: e.name,
-                  timeUnixNano: e.time * 1e6,
+                  timeUnixNano: String(Math.round(e.time * 1e6)),
                   attributes: Object.entries(e.attributes).map(([k, v]) => ({
                     key: k,
                     value: { stringValue: String(v) },
