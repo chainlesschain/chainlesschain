@@ -160,6 +160,34 @@ describe("TeamRunner events + guards", () => {
     expect(summary.members[0].completed).toBe(0);
   });
 
+  it("heartbeat renews the lease so a long task is neither stolen nor double-run", async () => {
+    // Real-clock registry with a TTL much shorter than the task duration.
+    // Before the runner-level heartbeat, executors never renewed, so the lease
+    // expired mid-run: a second teammate stole the task (the SAME task ran
+    // twice concurrently) and the first completion was discarded.
+    const reg = new TaskLeaseRegistry({ defaultTtlMs: 120 });
+    reg.addTask({ key: "long", title: "long" });
+    const events = [];
+    let runs = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      ttlMs: 120,
+      renewEveryMs: 30,
+      onEvent: (e) => events.push(e.type),
+      runTask: async () => {
+        runs++;
+        await new Promise((r) => setTimeout(r, 400)); // outlives the 120ms TTL
+        return "done";
+      },
+    });
+    const summary = await runner.run();
+    expect(runs).toBe(1); // never stolen → never double-run
+    expect(reg.getTask("long").status).toBe("completed");
+    expect(events).toContain("task:completed");
+    expect(events).not.toContain("task:completion-discarded");
+    expect(summary.members.reduce((n, m) => n + m.completed, 0)).toBe(1);
+  });
+
   it("requires runTask", async () => {
     const reg = freshRegistry();
     reg.addTask({ key: "x", title: "x" });

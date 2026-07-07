@@ -30,6 +30,8 @@ export class TeamRunner {
     this.runTask = opts.runTask;
     this.teammates = opts.teammates > 0 ? Math.floor(opts.teammates) : 2;
     this.ttlMs = opts.ttlMs;
+    // Lease-renewal heartbeat cadence while a task runs (default ttl/3).
+    this.renewEveryMs = opts.renewEveryMs;
     this.onEvent = typeof opts.onEvent === "function" ? opts.onEvent : () => {};
     this.maxTasks = opts.maxTasks > 0 ? opts.maxTasks : 1000;
     this._now = opts.now || registry._now || (() => Date.now());
@@ -198,6 +200,28 @@ export class TeamRunner {
     this._setState(holder, "running", { key });
     this._emit("task:claimed", { key, holder, attempts: task.attempts });
     const renew = () => this.registry.renew(key, { holder, ttlMs: this.ttlMs });
+    // Heartbeat: the built-in executors (shell / agent / worktree) never call
+    // `renew` themselves, so before this ANY task outliving the lease TTL was
+    // indistinguishable from a crash — a peer could steal it and the SAME task
+    // would run twice concurrently. The runner owns the TTL, so it renews here
+    // for every executor. Stops itself once the lease is lost (renew rejected —
+    // keeping a lost lease alive would be lying to the registry).
+    const effectiveTtl =
+      this.ttlMs > 0 ? this.ttlMs : this.registry.defaultTtlMs || 60000;
+    const every = Math.max(
+      25,
+      Math.floor(this.renewEveryMs > 0 ? this.renewEveryMs : effectiveTtl / 3),
+    );
+    const heartbeat = setInterval(() => {
+      try {
+        const r = renew();
+        if (!r || r.ok !== true) clearInterval(heartbeat);
+      } catch {
+        clearInterval(heartbeat);
+      }
+    }, every);
+    // Never hold the process open just for a heartbeat.
+    if (typeof heartbeat.unref === "function") heartbeat.unref();
     // A teammate-scoped messaging handle: post to a peer / broadcast, and read
     // its own inbox (direct messages + unseen broadcasts).
     const inbox = this.mailbox ? this.mailbox.drain(holder) : [];
@@ -271,6 +295,7 @@ export class TeamRunner {
         attempts: outcome?.attempts,
       });
     } finally {
+      clearInterval(heartbeat);
       this._inFlight--;
     }
   }
