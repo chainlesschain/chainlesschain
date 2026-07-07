@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.152：全面体检 13 修复 + auto-pin 默认开 + 远控幂等激活 + 多语言 LSP/内核沙箱 CI 真机验证（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.151 → **0.162.152** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/web-panel`（随 `prepublishOnly build:web-panel` 打入包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版前本机三层全绿（unit+integration+e2e 23,167 passed / 0 fail）+ 新 `env-blocked-verification.yml` CI 门（真 gopls/rust-analyzer/jdtls 三语言 LSP + 真 bubblewrap 内核隔离，ubuntu）跑通。命令数不变（164）。
+
+- **安全（HIGH）插件签名锁可伪造绕过 `requireSignedPlugins`**：`.plugin-lock.json` 原是可写目录里的自断言 JSON（布尔字段+自选哈希，load 只重哈希不验签；install 还会把源目录自带的伪造 lock 原样拷入；组织没配 `trustedPluginKeySha256` 时 key 检查整个跳过）。改为 lock v2 落真 Ed25519 签名+公钥、load 时**真验签**、trust 指纹从嵌入公钥现算（永不信 lock 字段）、install 无条件剥离源自带 lock、`requireSignedPlugins`+空 key 名单 fail-closed 全拒。3 条 ATTACK 回归测试。
+- **安全：插件远程 registry 拒纯 HTTP**（registry 同时供 source+sha256，MITM 二者全控=完整性检查空转；loopback 豁免、`--allow-insecure-registry`/`CC_PLUGIN_REGISTRY_ALLOW_HTTP=1` 显式 opt-in）+ **fetchGitRepo 拒 `-` 开头 url/ref**（git argv 注入：registry 供的 ref="-f" 在 full-clone retry 路径被 `checkout` 当选项；注意 `checkout -- <ref>` 是错修——`--` 后是 pathspec）。
+- **eval 反作弊三连**：`fix-failing-test`/`fix-build`/`upgrade-dependency` 的 do-not-edit harness 文件从 presence-regex（可被「文本还在但不执行」绕过：前插 `ALL OK`+exit(0)、重写 build.mjs 自定义 banner、run.mjs 干脆零守卫）改为逐字节比对模块常量；4 条作弊回归全在 pre-fix 代码上验 RED。
+- **远控账本双修**：`_perDeviceSeq` 乱序完成回退水位（新 commandId 复用旧 seq 本应拒 stale 实际 applied，真机复现）改 advance-only `Math.max`；`_applied/_order` 随 `cc serve` 无界涨（实测 5 万条 snapshot 14.3MB）加保留窗口（默认 1 万条、分块淘汰、`_baseIndex` 保 applyIndex 全局单调、snapshot 兼容旧格式，实测封顶 4.3MB）。
+- **`cc team` 三修**：runner 层 lease 心跳（内建 shell/agent executor 从不 renew → 超 TTL 长任务被 peer steal **并发双跑**，真时钟回归测试 pre-fix 红）；`dependsOn` 拼错 key 现在 load 时报错（原静默 exit 1 + plan 波次悄悄少块）；`--state` 快照 tmp+rename 原子写（写中崩溃不再截断唯一 resume 文件）。
+- **eval 基建双修**：超时改整树击杀（POSIX detached 组 / Win `taskkill /T /F`）+ 等 `close` 再 settle（原 kill 后立即 resolve，agent 还活着写文件时就快照/check/删目录）；`--dry-run --history` 记录打 `dryRun:true` 且 `--trend` 排除（dry-run 恒 0%，原污染 CI 回归门造成全任务假回归）。
+- **OTLP 合规双修**：`*UnixNano` 时间戳改十进制字符串（ms×1e6≈1.8e18 超 2^53，JSON number 违 proto3 mapping、严格 collector 拒收）；traceId 掺进程启动时间+pid（原裸计数器每进程重置 → 连续 run 全是 `0…01` 被 collector 并成一条 trace）。
+- **LSP 双修（多语言 CI 真机验证抓获）**：`normalizeUri` 统一盘符冒号编码（gopls 把 publish URI 重写成裸 `C:/` 而客户端 didOpen 用 `C%3A/`，诊断 Map key 永不相遇 → **Go 诊断恒空**；tsserver/pyright 原样回显故此前未暴露）；读查询（def/refs/hover/symbols/diag/rename-preview）对 LSP `-32801 ContentModified` 有界重试（rust-analyzer 索引未稳时高频抛出，语义即「请重试」）。
+- **bwrap 沙箱挂载顺序**：`--tmpfs /tmp` 原在工作区 bind 之后挂载，遮蔽任何位于 /tmp 下的工作区（chdir 直接失败、沙箱不可用）；tmpfs 移到 bind 之前（bwrap 顺序挂载、后挂者胜）。
+- **Added：auto-pin 默认开启（产品拍板）**：compaction 现在默认 pin 原始任务（首个 user 轮，token 上限 2000）防长会话跑偏；优先级 `--auto-pin` flag > `CC_AUTO_PIN`("1"/"0") > config `context.autoPin` > 默认开；关= `CC_AUTO_PIN=0` 或 config false。
+- **Added：远控客户端发送 commandId/seq，Phase 5 幂等保护端到端激活**：web-panel 直连 `execute` 带顶层 uuid commandId + 抗页面重载单调 seq + per-TAB deviceId，断线后**同 id 重发一次**（服务端 ledger 保至多一次，`replayed` ack 如实上报）；web/Android 的 E2EE 控制事件（prompt/approval/interrupt）把 commandId+per-pairing seq 打进加密明文（relay 本身 at-least-once 补投 offline-message——无 id 时补投的 prompt 会多跑一整个 agent turn）。勘误：所谓 Terminal 远程客户端不存在（cli 包内无此进程），客户端发送侧已全覆盖。
+- **Added：`env-blocked-verification.yml` CI 门**：ubuntu 真机跑三语言 LSP live 套（gopls/rust-analyzer/jdtls 各 def/refs/diag，`CC_LSP_LIVE_REQUIRE` 使装失败=红而非静默 skip）+ 真 bubblewrap 内核隔离套（netns 断网证明「无视 proxy env 的工具」也被拦、rootfs 只读、denyRead tmpfs 掩蔽）；零 `continue-on-error`。
+- **desktop（不随 npm 包，同批落 main）**：SSO IPC 四 handler 端到端修复（refresh-token 传参形状错+读错 store、logout 把 providerId 当 sessionId 致 provider 侧撤销从未发生、handle-callback 会话 id 不达 renderer、get-sessions 恒空——统一路由到权威 SSOManager store）。
+
 ### Added — IDE 扩展 VS Code 0.37.4 + JetBrains 0.4.46：一整轮插件审计闭环（22 P0/P1/P2 修复 + 6 优化，已发 Open VSX + JetBrains Marketplace）
 
 > 独立发版轨（不随产品版本号）：VS Code `0.37.3 → 0.37.4`（Open VSX）+ JetBrains `0.4.45 → 0.4.46`（JetBrains Marketplace），tag `ide-vscode-v0.37.4` / `ide-jetbrains-v0.4.46`。由 3-agent 审计 fan-out（VS Code bug / JetBrains bug / 功能差距）产出，两端各自 CI 清洁室构建验证：vscode-ext 51 文件 / 456 测试绿 + vsce 打包 OK；JetBrains compileJava + smokeTest 门 + buildPlugin OK，构建产物 jar 内 plugin.xml = 0.4.46。
