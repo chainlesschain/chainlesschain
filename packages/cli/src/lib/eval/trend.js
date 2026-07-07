@@ -84,7 +84,13 @@ function ordered(records) {
  * }}
  */
 export function computeTrend(runs, { regressionThreshold = 0 } = {}) {
-  const norm = ordered((runs || []).map((r) => summarizeRun(r)));
+  // A dry-run record is always 0% (the no-op agent creates nothing) — folding
+  // it in would flag every previously-passing task as a regression (or, in the
+  // other direction, fake an "all fixed" jump). Smoke-testing with
+  // `--dry-run --history` must not poison the release gate.
+  const norm = ordered(
+    (runs || []).filter((r) => r?.dryRun !== true).map((r) => summarizeRun(r)),
+  );
   const history = norm.map((r) => r.passRate);
   if (norm.length === 0) {
     return {

@@ -11,7 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
 import {
@@ -46,48 +46,99 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
 
 /**
+ * Kill an agent child AND its tool grandchildren. A bare child.kill("SIGTERM")
+ * only reaches the direct child (and on Windows TerminateProcess never reaches
+ * grandchildren), leaving tools alive and still WRITING into the workspace.
+ * POSIX children are spawned detached (own process group) so -pid reaps the
+ * whole tree; Windows uses taskkill /T /F. Same pattern as the async-hook
+ * supervisor's _killChildTree.
+ */
+function killAgentTree(child) {
+  if (!child || !child.pid) return;
+  if (process.platform === "win32") {
+    try {
+      spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+        windowsHide: true,
+        timeout: 10000,
+      });
+    } catch {
+      /* fall through to the direct kill below */
+    }
+  } else {
+    try {
+      process.kill(-child.pid, "SIGKILL"); // negative pid = process group
+      return;
+    } catch {
+      /* not a group leader / already gone — fall through */
+    }
+  }
+  try {
+    child.kill("SIGKILL");
+  } catch {
+    /* already gone */
+  }
+}
+
+/**
  * Build a runAgent that shells out to a headless `cc agent -p` in the task's
  * workspace. acceptEdits lets it write files without an interactive prompt.
  */
 function makeHeadlessRunAgent(opts = {}) {
   return function runAgent({ prompt, cwd, timeoutMs }) {
     return new Promise((resolve) => {
-      const args = [
-        BIN,
-        "agent",
-        "-p",
-        prompt,
-        "--permission-mode",
-        "acceptEdits",
-        "--output-format",
-        "text",
-      ];
-      if (opts.model) args.push("--model", opts.model);
-      if (opts.provider) args.push("--provider", opts.provider);
+      let args;
+      if (opts._argv) {
+        // Test seam: run an arbitrary node argv instead of the real agent, so
+        // the timeout/tree-kill path is testable offline.
+        args = opts._argv;
+      } else {
+        args = [
+          BIN,
+          "agent",
+          "-p",
+          prompt,
+          "--permission-mode",
+          "acceptEdits",
+          "--output-format",
+          "text",
+        ];
+        if (opts.model) args.push("--model", opts.model);
+        if (opts.provider) args.push("--provider", opts.provider);
+      }
       const child = spawn(process.execPath, args, {
         cwd,
         env: { ...process.env, CLAUDECODE: "1" },
         windowsHide: true,
+        // Own process group on POSIX so a timeout can reap the whole tree.
+        detached: process.platform !== "win32",
       });
       let out = "";
       let err = "";
       let settled = false;
+      let timedOut = false;
+      let graceTimer = null;
       const done = (result) => {
         if (settled) return;
         settled = true;
+        clearTimeout(graceTimer);
         resolve(result);
       };
       const timer = setTimeout(() => {
-        try {
-          child.kill("SIGTERM");
-        } catch {
-          /* already gone */
-        }
-        done({
-          ok: false,
-          output: out,
-          error: `timed out after ${timeoutMs || 120000}ms`,
-        });
+        // Kill the WHOLE tree, then settle on `close` — resolving immediately
+        // would race a still-live agent against the runner's after-snapshot,
+        // check() and workspace rmSync (nondeterministic scores + EBUSY leaks).
+        timedOut = true;
+        killAgentTree(child);
+        // Last resort if the process is unkillable and `close` never fires —
+        // don't hang the whole suite on one stuck task.
+        graceTimer = setTimeout(() => {
+          done({
+            ok: false,
+            output: out,
+            error: `timed out after ${timeoutMs || 120000}ms (process did not exit after kill)`,
+          });
+        }, 10000);
+        if (typeof graceTimer.unref === "function") graceTimer.unref();
       }, timeoutMs || 120000);
       if (typeof timer.unref === "function") timer.unref();
       child.stdout?.on("data", (d) => (out += d.toString("utf8")));
@@ -98,11 +149,22 @@ function makeHeadlessRunAgent(opts = {}) {
       });
       child.on("close", (code) => {
         clearTimeout(timer);
+        if (timedOut) {
+          done({
+            ok: false,
+            output: out,
+            error: `timed out after ${timeoutMs || 120000}ms`,
+          });
+          return;
+        }
         done({ ok: code === 0, output: out, error: code === 0 ? null : err });
       });
     });
   };
 }
+
+// For tests: the timeout/tree-kill path needs a real spawned process.
+export { makeHeadlessRunAgent, killAgentTree };
 
 export function registerEvalCommand(program, { logger } = {}) {
   const log = logger || console;
@@ -215,6 +277,9 @@ export function registerEvalCommand(program, { logger } = {}) {
           appendHistory(options.history, {
             ranAt: new Date().toISOString(),
             label: options.label || null,
+            // Tagged so --trend can exclude it: a dry-run is always 0% and
+            // would otherwise report every passing task as a regression.
+            ...(options.dryRun ? { dryRun: true } : {}),
             passed: summary.passed,
             total: summary.total,
             passRate: summary.passRate,

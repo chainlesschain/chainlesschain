@@ -35,20 +35,38 @@ afterEach(() => {
 });
 
 describe("cc eval --history / --trend", () => {
-  it("appends a JSONL record per --dry-run and reads it back as a trend", () => {
+  it("tags --dry-run appends and EXCLUDES them from the trend (no gate poisoning)", () => {
+    // A dry-run is always 0%: before the dryRun tag, smoke-testing with
+    // `--dry-run --history` made the next --trend see every previously-passing
+    // task as a regression and fail the CI gate.
     const hist = path.join(tmp, "h.jsonl");
-    const r1 = runCc(["--dry-run", "--history", hist, "--label", "v1"]);
-    expect(r1.status).toBe(1); // dry-run passes 0 tasks → non-zero (expected)
-    const r2 = runCc(["--dry-run", "--history", hist, "--label", "v2"]);
-    expect(r2.status).toBe(1);
-    // Two history lines were appended.
+    // Seed one REAL (all-green) run…
+    fs.writeFileSync(
+      hist,
+      JSON.stringify({
+        ranAt: "2026-07-01",
+        passed: 2,
+        total: 2,
+        passRate: 1,
+        results: [
+          { id: "a", pass: true },
+          { id: "b", pass: true },
+        ],
+      }) + "\n",
+      "utf8",
+    );
+    // …then append a live 0% dry-run AFTER it.
+    const r = runCc(["--dry-run", "--history", hist, "--label", "smoke"]);
+    expect(r.status).toBe(1); // dry-run passes 0 tasks → non-zero (expected)
     const lines = fs.readFileSync(hist, "utf8").split(/\r?\n/).filter(Boolean);
     expect(lines).toHaveLength(2);
-    // Trend of two identical dry-runs → flat, not regressed → gate passes.
+    // The appended record is tagged.
+    expect(JSON.parse(lines[1]).dryRun).toBe(true);
+    // The trend only sees the real run — flat gate, no fake regression.
     const t = runCc(["--trend", "--history", hist]);
     expect(t.status).toBe(0);
-    expect(t.stdout).toMatch(/Eval trend over 2 run/);
-    expect(t.stdout).toMatch(/no regression/);
+    expect(t.stdout).toMatch(/Eval trend over 1 run/);
+    expect(t.stdout).not.toMatch(/REGRESSED/);
   });
 
   it("fails the gate (exit 1) when a task regresses between runs", () => {
