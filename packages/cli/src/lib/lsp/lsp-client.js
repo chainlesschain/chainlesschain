@@ -297,9 +297,15 @@ export function pathToFileUri(p) {
  */
 export function normalizeUri(uri) {
   if (!uri) return uri;
+  // Canonicalize BOTH the drive-letter case AND the colon encoding. Servers
+  // differ in the form they publish back: tsserver/pyright echo the client's
+  // percent-encoded `c%3A/…`, but gopls rewrites to a bare `C:/…` — keeping
+  // the incoming colon form made the two forms distinct Map keys, so every
+  // gopls publishDiagnostics missed the didOpen key and Go diagnostics were
+  // permanently empty regardless of timeout.
   return String(uri).replace(
     /^(file:\/\/\/)([A-Za-z])(%3[Aa]|:)/,
-    (_m, p, drive, colon) => p + drive.toLowerCase() + colon,
+    (_m, p, drive) => p + drive.toLowerCase() + ":",
   );
 }
 

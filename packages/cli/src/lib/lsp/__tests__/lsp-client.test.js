@@ -225,13 +225,19 @@ describe("uri <-> path", () => {
 describe("normalizeUri", () => {
   it("lowercases the windows drive letter so client/server keys match", () => {
     // path.resolve yields C:, servers echo c: — must collapse to one key
-    expect(normalizeUri("file:///C%3A/proj/a.ts")).toBe(
-      "file:///c%3A/proj/a.ts",
-    );
-    expect(normalizeUri("file:///c%3A/proj/a.ts")).toBe(
-      "file:///c%3A/proj/a.ts",
-    );
+    expect(normalizeUri("file:///C%3A/proj/a.ts")).toBe("file:///c:/proj/a.ts");
+    expect(normalizeUri("file:///c%3A/proj/a.ts")).toBe("file:///c:/proj/a.ts");
     expect(normalizeUri("file:///C:/proj/a.ts")).toBe("file:///c:/proj/a.ts");
+  });
+  it("collapses the %3A and bare-colon drive forms to ONE key (gopls)", () => {
+    // The client sends percent-encoded didOpen URIs (file:///C%3A/…);
+    // tsserver/pyright echo that form back, but gopls REWRITES to a bare
+    // colon (file:///C:/…). Before this canonicalization the two forms were
+    // distinct diagnostics-Map keys, so every gopls publish missed the
+    // didOpen key and `cc code-intel diag` on Go was permanently empty.
+    const ours = normalizeUri("file:///C%3A/Users/u/goproj/broken.go");
+    const goplsPublished = normalizeUri("file:///C:/Users/u/goproj/broken.go");
+    expect(ours).toBe(goplsPublished);
   });
   it("leaves POSIX file URIs unchanged", () => {
     expect(normalizeUri("file:///home/u/a.ts")).toBe("file:///home/u/a.ts");
