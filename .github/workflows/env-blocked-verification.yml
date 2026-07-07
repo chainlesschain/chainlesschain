@@ -1,0 +1,116 @@
+name: Env-Blocked Verification (LSP + Sandbox)
+
+# Runs the two verification suites that CANNOT run on the Windows dev machine
+# (plan docs/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md leftovers):
+#
+#   1. Multi-language LIVE LSP (Phase 2): real gopls + rust-analyzer + jdtls
+#      against fixture projects — definition / references / diagnostics
+#      (diagnostics doubles as the normalizeUri drive-colon regression guard).
+#      CC_LSP_LIVE_REQUIRE turns "server missing" into a FAILURE so a broken
+#      install step can never skip its way to green (trap #30 discipline —
+#      no continue-on-error, no always-green skips).
+#
+#   2. Linux kernel-level sandbox (Phase 1): real bubblewrap — netns isolation
+#      (blocks proxy-env-ignoring tools), read-only rootfs, denyRead masking.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/lsp/**"
+      - "packages/cli/src/lib/agent-sandbox.js"
+      - "packages/cli/src/lib/sandbox-egress-proxy.js"
+      - "packages/cli/src/lib/sandbox-network-policy.js"
+      - "packages/cli/__tests__/integration/lsp-live-multilang.test.js"
+      - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
+      - ".github/workflows/env-blocked-verification.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/lsp/**"
+      - "packages/cli/src/lib/agent-sandbox.js"
+      - "packages/cli/src/lib/sandbox-egress-proxy.js"
+      - "packages/cli/src/lib/sandbox-network-policy.js"
+      - "packages/cli/__tests__/integration/lsp-live-multilang.test.js"
+      - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
+      - ".github/workflows/env-blocked-verification.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lsp-live:
+    name: "live LSP: gopls + rust-analyzer + jdtls (ubuntu)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Install gopls (Go preinstalled on the runner)
+        run: |
+          go install golang.org/x/tools/gopls@latest
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Install rust-analyzer (rustup component proxy lands on PATH)
+        run: |
+          rustup component add rust-analyzer
+          rust-analyzer --version
+
+      - name: Install Eclipse JDT LS (jdtls)
+        run: |
+          # jdtls needs a modern JDK; the runner image ships several — pick 21.
+          echo "JAVA_HOME=${JAVA_HOME_21_X64:-$JAVA_HOME_17_X64}" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/jdtls"
+          curl -fsSL https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz \
+            | tar -xz -C "$HOME/jdtls"
+          echo "$HOME/jdtls/bin" >> "$GITHUB_PATH"
+
+      - name: Verify all three servers resolve (fail fast on a broken install)
+        run: |
+          command -v gopls
+          command -v rust-analyzer
+          command -v jdtls
+          gopls version
+
+      - name: Live LSP suite (go+rust+java REQUIRED — missing server = failure)
+        working-directory: packages/cli
+        env:
+          CC_LSP_LIVE: "1"
+          CC_LSP_LIVE_REQUIRE: "go,rust,java"
+        run: npx vitest run --reporter=default __tests__/integration/lsp-live-multilang.test.js
+
+  sandbox-bwrap:
+    name: "live bubblewrap kernel isolation (ubuntu)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Install bubblewrap (+ allow unprivileged userns on Ubuntu 24.04)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          # Ubuntu 24.04 AppArmor blocks unprivileged user namespaces for
+          # unconfined binaries; bwrap needs them. CI-only relaxation.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --version
+
+      - name: Live bwrap suite (netns / rootfs-RO / denyRead masking)
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: npx vitest run --reporter=default __tests__/integration/sandbox-bwrap-live.test.js
