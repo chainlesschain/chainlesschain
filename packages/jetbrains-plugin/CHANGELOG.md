@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Deep link — `jetbrains://idea/chainlesschain/open`.** A doc button, a
+  script, or the `cc` CLI can now open
+  `jetbrains://idea/chainlesschain/open?prompt=fix%20the%20bug` to focus the
+  ChainlessChain chat tool window and (optionally) seed a prompt — VS Code
+  `registerUriHandler` parity. Registered via the platform's dynamic
+  `jbProtocolCommand` extension point; the URL parsing lives in the SDK-free,
+  smoke-tested `DeepLink` (twin of the VS extension's `uri-handler.js`), so an
+  unsupported link is ignored rather than misfiring.
+
 ## [0.4.47] — feature batch: IDE affordances (2026-07-08)
 
 New Tools-menu capabilities surfacing the `cc` CLI's newer features and

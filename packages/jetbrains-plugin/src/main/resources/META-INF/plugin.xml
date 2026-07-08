@@ -228,6 +228,9 @@
             <className>com.chainlesschain.ide.intellij.FixWithCcIntention</className>
             <category>ChainlessChain</category>
         </intentionAction>
+        <!-- jetbrains://idea/chainlesschain/open?prompt=… deep link (VS Code
+             registerUriHandler parity): focus the chat tool window + seed a prompt. -->
+        <jbProtocolCommand implementation="com.chainlesschain.ide.intellij.CcProtocolCommand"/>
     </extensions>
 
     <actions>

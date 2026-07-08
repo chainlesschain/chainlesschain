@@ -66,6 +66,7 @@ public final class PureLogicSmokeMain {
         ideDoctor();
         teamMonitor();
         activityLog();
+        deepLink();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -1173,5 +1174,33 @@ public final class PureLogicSmokeMain {
         eq(ActivityLog.summarizeArgs("getSelection", args), "", "non-path tool -> empty");
         eq(ActivityLog.summarizeArgs("openDiff", null), "", "null args -> empty");
         eq(ActivityLog.shortenPath("a/b"), "a/b", "short path unchanged");
+    }
+
+    private static void deepLink() {
+        System.out.println("DeepLink (jetbrains:// URI parser — VS uri-handler.js twin)");
+        Map<String, String> withPrompt = new LinkedHashMap<>();
+        withPrompt.put("prompt", "fix the bug");
+        Map<String, String> blank = new LinkedHashMap<>();
+        blank.put("prompt", "   ");
+
+        // /open with a prompt
+        DeepLink.Action a = DeepLink.parse("open", withPrompt);
+        check(a != null, "open parses");
+        eq(a.action, "open", "open action");
+        eq(a.prompt, "fix the bug", "prompt carried");
+
+        // bare/null/blank target maps to open (VS "bare authority → open")
+        eq(DeepLink.parse(null, null).action, "open", "null target -> open");
+        eq(DeepLink.parse("", null).action, "open", "empty target -> open");
+        eq(DeepLink.parse("/open", null).action, "open", "leading slash stripped");
+        eq(DeepLink.parse("OPEN", null).action, "open", "case-insensitive");
+
+        // no prompt / blank prompt -> null prompt (never seeds whitespace)
+        check(DeepLink.parse("open", null).prompt == null, "no params -> null prompt");
+        check(DeepLink.parse("open", blank).prompt == null, "blank prompt -> null");
+
+        // unsupported action -> null (ignored, never misfires)
+        check(DeepLink.parse("delete", withPrompt) == null, "unknown action -> null");
+        check(DeepLink.parse("close", null) == null, "unknown close -> null");
     }
 }

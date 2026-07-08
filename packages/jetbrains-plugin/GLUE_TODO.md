@@ -384,6 +384,27 @@ Glue-layer (needs the next pre-release runIde pass):
 - [ ] **@-mention cache TTL** — create a new file, wait ~30s, type `@`; the new
       file should now appear (was unmentionable until the tab was recreated).
 
+## 🔗 Deep-link handler (unreleased) — code-complete, NOT yet runIde-verified (2026-07-08)
+
+Closes the top verified parity gap (JB had no `jetbrains://` handler vs VS
+Code's `registerUriHandler`). Pure `DeepLink` parser smoke-tested — `smokeTest`
+**441/0** (+11); `compileJava` clean against the SDK (`perform(target, params,
+fragment)` override); `buildPlugin` zip verified (`jbProtocolCommand` EP in the
+packaged plugin.xml, `DeepLink` + `CcProtocolCommand` classes in the jar). The
+platform declares the EP `dynamic="true"`, so no restart needed at install.
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **Deep link opens the chat** — with a project open, invoke
+      `jetbrains://idea/chainlesschain/open?prompt=hello%20world` (paste into a
+      browser, or `cmd /c start "" "jetbrains://…"` on Windows): IDE focuses,
+      the ChainlessChain tool window activates, and the active conversation's
+      input is seeded with "hello world" (not sent). Without `?prompt` it just
+      focuses the tool window. An unsupported action
+      (`…/chainlesschain/delete`) is ignored (the platform shows its own
+      "unsupported" notice), and with no open project the platform surfaces the
+      "no open project to focus" message rather than throwing.
+
 ## ✨ Quick-win parity batch (unreleased) — code-complete, NOT yet runIde-verified (2026-07-08)
 
 Three cheap parity gaps closed (backlog head after the 0.4.46 audit). Pure
