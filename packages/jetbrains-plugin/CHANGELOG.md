@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.48] — full localization: one language per IDE + deep link (2026-07-08)
+
 - **Full localization — the plugin follows the IDE language.** Nothing in the UI
   reads as bilingual "English (中文)" anymore. Both the menu/action labels AND
   the runtime dialogs (the LLM-configure wizard, the chat panel's ⚙ LLM menu and

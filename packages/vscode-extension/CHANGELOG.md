@@ -4,6 +4,8 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+## [0.37.6] — proper localization: one language per IDE (2026-07-08)
+
 - **Proper localization — the UI now follows your IDE language.** The extension's
   chrome no longer mixes English and Chinese. Command titles, settings labels,
   the sidebar/status-bar, and every dialog/notification/input are now localized:
