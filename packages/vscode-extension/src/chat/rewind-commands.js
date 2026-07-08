@@ -32,6 +32,47 @@ function buildRestoreArgs(sessionId, id) {
 }
 
 /**
+ * `cc checkpoint show <id> --diff -s <session> --json` — the checkpoint's diff
+ * vs the current work tree, for a PREVIEW before restoring. Full patch (not
+ * --stat) so it opens as a readable diff in an editor tab.
+ */
+function buildShowDiffArgs(sessionId, id) {
+  return [
+    "checkpoint",
+    "show",
+    String(id || ""),
+    "--diff",
+    "-s",
+    String(sessionId || "default"),
+    "--json",
+  ];
+}
+
+/**
+ * Normalize a `checkpoint show --diff --json` payload into preview text. The
+ * git engine returns `{ id, diff:"<patch>" }`; the copy-fallback engine has no
+ * raw patch and returns a status object `{ modified, added, deleted }` — both
+ * become a human-readable string. Returns "" when there's nothing to show.
+ */
+function formatDiffPreview(data) {
+  if (!data || typeof data !== "object") return "";
+  if (typeof data.diff === "string") return data.diff.trim();
+  const list = (label, arr) =>
+    Array.isArray(arr) && arr.length
+      ? `${label} (${arr.length}):\n` +
+        arr
+          .map((f) => `  ${typeof f === "string" ? f : f.rel || ""}`)
+          .join("\n")
+      : "";
+  const parts = [
+    list("modified", data.modified),
+    list("added", data.added),
+    list("deleted", data.deleted),
+  ].filter(Boolean);
+  return parts.join("\n\n");
+}
+
+/**
  * Run a CLI command and resolve `{ ok, data }` (stdout parsed as JSON) or
  * `{ ok:false, error }`. Never rejects — the caller renders a fallback.
  */
@@ -78,8 +119,7 @@ function runCliJson({
 
 /** A checkpoint row → a VS Code QuickPick item (carrying its id). */
 function toQuickPickItem(c) {
-  const files =
-    c && c.fileCount != null ? `${c.fileCount} file(s)` : "";
+  const files = c && c.fileCount != null ? `${c.fileCount} file(s)` : "";
   return {
     id: c && c.id,
     label: (c && c.id) || "?",
@@ -98,6 +138,8 @@ function restoredCount(data) {
 module.exports = {
   buildListArgs,
   buildRestoreArgs,
+  buildShowDiffArgs,
+  formatDiffPreview,
   runCliJson,
   toQuickPickItem,
   restoredCount,

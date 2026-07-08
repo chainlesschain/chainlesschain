@@ -964,13 +964,50 @@ class ChatViewProvider {
       listed.data.map(rewind.toQuickPickItem),
       {
         placeHolder:
-          "Rewind the work tree to which checkpoint? (current state is snapshotted first)",
+          "Rewind the work tree to which checkpoint? (a diff preview opens before you confirm)",
       },
     );
     if (!pick) return;
+    const cpId = pick.id || pick.label;
+    // Preview the diff BEFORE restoring — the old flow restored on pick with no
+    // way to see what would change. Show `checkpoint show --diff` in a
+    // read-only editor tab, then confirm in a modal (Cancel = no write).
+    const shown = await rewind.runCliJson({
+      command,
+      args: rewind.buildShowDiffArgs(id, cpId),
+      cwd,
+      env,
+    });
+    const previewText = shown.ok ? rewind.formatDiffPreview(shown.data) : "";
+    if (previewText) {
+      try {
+        const doc = await this.vscode.workspace.openTextDocument({
+          content:
+            `# Restore preview — ${cpId}\n` +
+            `# (changes that would be reverted; nothing written until you confirm)\n\n` +
+            previewText,
+          language: "diff",
+        });
+        await this.vscode.window.showTextDocument(doc, { preview: true });
+      } catch {
+        /* preview is best-effort — the confirm modal still gates the write */
+      }
+    }
+    const proceed = await this.vscode.window.showWarningMessage(
+      `Restore the work tree to ${cpId}? Your current state is snapshotted first, so this is undoable.`,
+      { modal: true },
+      "Restore",
+    );
+    if (proceed !== "Restore") {
+      this._post({
+        kind: "info",
+        text: `/rewind: cancelled — nothing restored`,
+      });
+      return;
+    }
     const restored = await rewind.runCliJson({
       command,
-      args: rewind.buildRestoreArgs(id, pick.id || pick.label),
+      args: rewind.buildRestoreArgs(id, cpId),
       cwd,
       env,
     });

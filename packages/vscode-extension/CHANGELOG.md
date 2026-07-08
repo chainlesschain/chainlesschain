@@ -4,6 +4,12 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **`/rewind` previews the diff before restoring.** Picking a checkpoint now
+  opens its diff (`cc checkpoint show --diff`) in a read-only editor tab and
+  asks for a modal confirmation before touching your files — the old flow
+  restored the instant you picked, with no way to see what would change.
+  Cancel writes nothing; your current state is still snapshotted first, so a
+  confirmed restore stays undoable.
 - **Team Monitor (read-only).** New command "ChainlessChain: Team Monitor
   (团队任务监控)" watches a `cc team run --state <file>` snapshot in a webview:
   the task graph with per-task status, lease holder, dependencies and retry
