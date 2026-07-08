@@ -57,6 +57,14 @@ class ChatViewProvider {
     this._pendingReopen = null; // Cmd/Ctrl+Shift+T → { sessionId }
     // Most recently closed tab (for reopen-closed), captured on closeTab.
     this._lastClosed = null;
+    // Context-indicator fast path: the LAST LLM call's usage per conversation
+    // (token_usage events) + the model's context-window size learned from ONE
+    // `cc context --json` probe. Together they let the per-turn indicator be
+    // computed locally instead of cold-spawning the CLI after EVERY turn
+    // (seconds per spawn on Windows). Cache is keyed by the panel's raw
+    // provider/model settings and dropped on any LLM reconfigure.
+    this._lastCallUsage = new Map(); // convId → usage of the latest LLM call
+    this._ctxWindowCache = null; // { key, window } from the last CLI probe
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -258,6 +266,17 @@ class ChatViewProvider {
             reason: String(evt.error || ""),
           });
         }
+      }
+      // Remember the latest per-call usage — the context indicator derives the
+      // live context size from it without spawning `cc context` (see
+      // _refreshContextStatus). result events follow the turn's token_usage
+      // events, so by refresh time this is the turn's final call.
+      if (
+        evt?.type === "token_usage" &&
+        evt.usage &&
+        typeof evt.usage === "object"
+      ) {
+        this._lastCallUsage.set(convId, evt.usage);
       }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);
@@ -593,6 +612,9 @@ class ChatViewProvider {
    * message respawns with the new config (session id preserved → context kept).
    */
   _reloadLlmConfig() {
+    // The model (hence its context-window size) may have changed — drop the
+    // cached window so the next indicator refresh re-probes the CLI.
+    this._ctxWindowCache = null;
     let restartedActive = false;
     for (const summary of this._convs.list()) {
       const conv = this._convs.get(summary.id);
@@ -823,9 +845,18 @@ class ChatViewProvider {
   }
 
   /**
-   * Refresh the persistent context-window indicator for a conversation by
-   * asking the CLI (`cc context <id> --json` — the same window math as
-   * `/context`) and posting a compact { total, window, pct } to the webview.
+   * Refresh the persistent context-window indicator for a conversation.
+   *
+   * Fast path (no process spawn): the live context size IS the last LLM
+   * call's usage (recorded from token_usage events in _makeOnEvent), so once
+   * the model's window size is known the status is computed locally. The old
+   * behavior — cold-spawning `cc context <id> --json` after EVERY turn — cost
+   * seconds per turn on Windows for numbers the stream already carries.
+   *
+   * Slow path (first turn per model, or no usage events from this provider):
+   * ask the CLI as before and cache the window it reports, keyed by the
+   * panel's provider/model settings (dropped on any LLM reconfigure).
+   *
    * Best-effort: never throws, silently skips when there's no session id, when
    * disabled via `chainlesschain.chat.contextIndicator`, or when the
    * conversation stops being the active tab before the result lands.
@@ -839,6 +870,22 @@ class ChatViewProvider {
     );
     if (chatCfg.get("contextIndicator") === false) return;
     const introspect = require("./introspect-commands");
+    const model = this._safeLlmSetting("model", chatCfg.get("model"));
+    const provider = this._safeLlmSetting("provider", chatCfg.get("provider"));
+    const cacheKey = `${provider} ${model}`;
+    const usage = this._lastCallUsage.get(convId);
+    if (usage && this._ctxWindowCache?.key === cacheKey) {
+      const status = introspect.contextStatusFromUsage(
+        usage,
+        this._ctxWindowCache.window,
+      );
+      if (status) {
+        if (this._convs.activeId() === convId) {
+          this._post({ kind: "ctxStatus", ...status });
+        }
+        return;
+      }
+    }
     const runText = this.opts.deps?.runCliText || introspect.runCliText;
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
@@ -847,8 +894,8 @@ class ChatViewProvider {
         ? this.opts.getBridgeEnv()
         : {};
     const args = introspect.buildIntrospectArgs("context", id, {
-      model: this._safeLlmSetting("model", chatCfg.get("model")),
-      provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
+      model,
+      provider,
       json: true,
     });
     Promise.resolve(
@@ -862,7 +909,10 @@ class ChatViewProvider {
     ).then(
       (text) => {
         const status = introspect.parseContextStatus(text);
-        if (status && this._convs.activeId() === convId) {
+        if (!status) return;
+        // Remember the window so later turns derive the status locally.
+        this._ctxWindowCache = { key: cacheKey, window: status.window };
+        if (this._convs.activeId() === convId) {
           this._post({ kind: "ctxStatus", ...status });
         }
       },
@@ -938,6 +988,40 @@ class ChatViewProvider {
         text: `/rewind failed: ${restored.error || "unknown error"}`,
       });
     }
+  }
+
+  /**
+   * "Insert at Cursor" from a chat code block: splice the snippet into the
+   * active editor at the caret, replacing a non-empty selection. The webview
+   * has focus when the button is clicked, but `activeTextEditor` keeps
+   * pointing at the last-focused text editor; fall back to the first visible
+   * one. Best-effort with a panel hint when there is nowhere to insert.
+   */
+  _insertCodeAtCursor(code) {
+    if (!code) return;
+    const win = this.vscode.window || {};
+    const editor = win.activeTextEditor || (win.visibleTextEditors || [])[0];
+    if (!editor) {
+      this._post({
+        kind: "info",
+        text: "insert: no editor open — open a file first, then click Insert again",
+      });
+      return;
+    }
+    const fail = () =>
+      this._post({
+        kind: "info",
+        text: "insert failed — the editor rejected the edit (read-only file?)",
+      });
+    Promise.resolve(
+      editor.edit((eb) => {
+        const sel = editor.selection;
+        if (sel && !sel.isEmpty) eb.replace(sel, code);
+        else if (sel) eb.insert(sel.active, code);
+      }),
+    ).then((ok) => {
+      if (!ok) fail();
+    }, fail);
   }
 
   /**
@@ -1071,6 +1155,10 @@ class ChatViewProvider {
           }),
         () => {},
       );
+    } else if (m.type === "insertCode") {
+      // A code block's "Insert" button: splice the snippet into the editor at
+      // the caret (Copilot-Chat "Insert at Cursor" parity).
+      this._insertCodeAtCursor(String(m.code || ""));
     } else if (m.type === "pickSession") {
       this._pickSession().catch(() => {});
     } else if (m.type === "cost" || m.type === "context") {
@@ -1163,6 +1251,7 @@ class ChatViewProvider {
     } else if (m.type === "closeTab") {
       const res = this._convs.close(String(m.id || ""));
       if (res.closed) {
+        this._lastCallUsage.delete(String(m.id || "")); // drop its usage record
         // Remember it so Cmd/Ctrl+Shift+T can reopen+resume the last close.
         if (res.conv) {
           this._lastClosed = {

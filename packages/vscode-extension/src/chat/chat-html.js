@@ -49,13 +49,15 @@ function buildChatHtml({ cspSource, nonce }) {
   .assistant pre { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15));
                    padding:6px 8px; border-radius:4px; overflow-x:auto; margin:4px 0; position:relative; }
   .assistant code { font-family: var(--vscode-editor-font-family); font-size:.95em; }
-  .assistant pre .copy-btn { position:absolute; top:4px; right:4px; font-size:.78em;
-                   padding:1px 6px; line-height:1.4; cursor:pointer; opacity:0; transition:opacity .12s;
+  .assistant pre .codebar { position:absolute; top:4px; right:4px; display:flex; gap:4px;
+                   opacity:0; transition:opacity .12s; }
+  .assistant pre:hover .codebar, .assistant pre .codebar:focus-within { opacity:.85; }
+  .assistant pre .codebar:hover { opacity:1; }
+  .assistant pre .codebar button { font-size:.78em;
+                   padding:1px 6px; line-height:1.4; cursor:pointer;
                    border:1px solid var(--vscode-panel-border); border-radius:3px;
                    background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
                    color: var(--vscode-button-secondaryForeground, inherit); }
-  .assistant pre:hover .copy-btn, .assistant pre .copy-btn:focus { opacity:.85; }
-  .assistant pre .copy-btn:hover { opacity:1; }
   .assistant table { border-collapse:collapse; margin:4px 0; }
   .assistant th, .assistant td { border:1px solid var(--vscode-panel-border);
                                  padding:2px 8px; font-size:.95em; }
@@ -336,39 +338,56 @@ function buildChatHtml({ cspSource, nonce }) {
     blocks.forEach((d) => { if (!d.open) anyClosed = true; });
     blocks.forEach((d) => { d.open = anyClosed; });
   }
-  // Add a Copy button to each fenced code block (Claude-Code panel parity).
-  // Runs at the DOM level after mdLite renders, so md-lite stays a pure
-  // escape-first string renderer (no button markup in its whitelist). Idempotent
-  // — re-decorating a streaming block skips <pre>s already given a button.
+  // Add Insert + Copy buttons to each fenced code block (Claude-Code /
+  // Copilot-Chat panel parity). Runs at the DOM level after mdLite renders, so
+  // md-lite stays a pure escape-first string renderer (no button markup in its
+  // whitelist). Idempotent — re-decorating a streaming block skips <pre>s
+  // already given a button bar.
   function decorateCodeBlocks(container) {
     if (!container || !container.querySelectorAll) return;
     const pres = container.querySelectorAll("pre");
     for (const pre of pres) {
       if (pre.dataset && pre.dataset.cc) continue; // already decorated
       if (pre.dataset) pre.dataset.cc = "1";
-      const btn = document.createElement("button");
-      btn.className = "copy-btn";
-      btn.type = "button";
-      btn.textContent = "Copy";
-      btn.title = "Copy code";
-      btn.addEventListener("click", () => {
+      // read the <code> child so the buttons' own text is never included
+      const codeText = () => {
         const code = pre.querySelector("code");
-        // read the <code> child so the button's own text is never included
-        const text = (code ? code.textContent : pre.textContent) || "";
-        const flash = (label) => {
-          btn.textContent = label;
-          setTimeout(() => { btn.textContent = "Copy"; }, 1200);
+        return (code ? code.textContent : pre.textContent) || "";
+      };
+      const bar = document.createElement("span");
+      bar.className = "codebar";
+      const mkBtn = (label, title) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = label;
+        b.title = title;
+        const flash = (t) => {
+          b.textContent = t;
+          setTimeout(() => { b.textContent = label; }, 1200);
         };
+        b.flash = flash;
+        bar.appendChild(b);
+        return b;
+      };
+      // Insert at cursor: the host splices the snippet into the active editor
+      // (replacing a non-empty selection) — no full agent edit turn needed.
+      const ins = mkBtn("Insert", "Insert at cursor in the active editor");
+      ins.addEventListener("click", () => {
+        vscode.postMessage({ type: "insertCode", code: codeText() });
+        ins.flash("Sent");
+      });
+      const cp = mkBtn("Copy", "Copy code");
+      cp.addEventListener("click", () => {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(
-            () => flash("Copied"),
-            () => flash("Failed"),
+          navigator.clipboard.writeText(codeText()).then(
+            () => cp.flash("Copied"),
+            () => cp.flash("Failed"),
           );
         } else {
-          flash("Copied"); // best-effort in restricted webviews
+          cp.flash("Copied"); // best-effort in restricted webviews
         }
       });
-      pre.appendChild(btn);
+      pre.appendChild(bar);
     }
   }
 

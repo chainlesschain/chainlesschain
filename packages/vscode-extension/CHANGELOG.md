@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Insert at Cursor on chat code blocks.** Every fenced code block in a reply
+  now has an **Insert** button next to Copy: it splices the snippet into the
+  active editor at the caret (replacing a non-empty selection) — no full agent
+  edit turn needed (Copilot-Chat / Claude-Code parity).
+- **perf: the context-window indicator no longer cold-spawns the CLI after
+  every turn.** The live context size is derived locally from the stream's own
+  `token_usage` events; `cc context --json` is probed ONCE per model (to learn
+  the window size) and re-probed only after an LLM reconfigure. On Windows each
+  cold `cc` spawn cost seconds per turn. Providers that emit no `token_usage`
+  keep the old per-turn probe.
+
 ## [0.37.4] — fix: security + correctness audit batch (P0/P1/P2) + performance
 
 ### P0/P1

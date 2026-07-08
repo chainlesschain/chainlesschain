@@ -45,7 +45,39 @@ function parseContextStatus(text) {
     return null;
   }
   const pct = Math.round((total / window) * 100);
-  return { total, window, pct, overflow: data.overflows === true || total > window };
+  return {
+    total,
+    window,
+    pct,
+    overflow: data.overflows === true || total > window,
+  };
+}
+
+/**
+ * Derive the context-window status locally from the LAST LLM call's usage
+ * (a `token_usage` event): that call's prompt + completion size IS the live
+ * context size, so once the window size is known (one `cc context --json`
+ * probe, cached per model) the per-turn indicator needs no CLI spawn at all —
+ * on Windows each cold `cc` spawn costs seconds, once per turn. Returns null
+ * when the usage/window can't produce a meaningful status (caller falls back
+ * to the authoritative CLI probe).
+ */
+function contextStatusFromUsage(usage, window) {
+  if (!usage || typeof usage !== "object") return null;
+  const w = Number(window);
+  if (!Number.isFinite(w) || w <= 0) return null;
+  const total =
+    (Number(usage.input_tokens) || 0) +
+    (Number(usage.cache_read_input_tokens) || 0) +
+    (Number(usage.cache_creation_input_tokens) || 0) +
+    (Number(usage.output_tokens) || 0);
+  if (total <= 0) return null;
+  return {
+    total,
+    window: w,
+    pct: Math.round((total / w) * 100),
+    overflow: total > w,
+  };
 }
 
 /**
@@ -86,4 +118,9 @@ function runCliText({
   });
 }
 
-module.exports = { buildIntrospectArgs, runCliText, parseContextStatus };
+module.exports = {
+  buildIntrospectArgs,
+  runCliText,
+  parseContextStatus,
+  contextStatusFromUsage,
+};

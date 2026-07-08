@@ -9,6 +9,7 @@ import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.j
 import {
   buildIntrospectArgs,
   parseContextStatus,
+  contextStatusFromUsage,
 } from "../../../vscode-extension/src/chat/introspect-commands.js";
 
 describe("buildIntrospectArgs — json", () => {
@@ -66,6 +67,37 @@ describe("parseContextStatus", () => {
     expect(
       parseContextStatus(JSON.stringify({ contextWindow: 0, totalTokens: 5 })),
     ).toBe(null);
+  });
+});
+
+describe("contextStatusFromUsage", () => {
+  it("sums the last call's prompt + completion tokens against the window", () => {
+    expect(
+      contextStatusFromUsage(
+        {
+          input_tokens: 30000,
+          output_tokens: 500,
+          cache_read_input_tokens: 10000,
+        },
+        200000,
+      ),
+    ).toEqual({ total: 40500, window: 200000, pct: 20, overflow: false });
+  });
+
+  it("counts cache_creation tokens and flags overflow", () => {
+    expect(
+      contextStatusFromUsage(
+        { input_tokens: 900, cache_creation_input_tokens: 200 },
+        1000,
+      ),
+    ).toMatchObject({ total: 1100, pct: 110, overflow: true });
+  });
+
+  it("returns null on missing usage, zero totals, or a bad window", () => {
+    expect(contextStatusFromUsage(null, 1000)).toBe(null);
+    expect(contextStatusFromUsage({}, 1000)).toBe(null);
+    expect(contextStatusFromUsage({ input_tokens: 5 }, 0)).toBe(null);
+    expect(contextStatusFromUsage({ input_tokens: 5 }, NaN)).toBe(null);
   });
 });
 
@@ -130,6 +162,86 @@ describe("ChatViewProvider — context indicator refresh", () => {
     await tick();
     expect(runCliText).not.toHaveBeenCalled();
     expect(posted.find((p) => p.kind === "ctxStatus")).toBeUndefined();
+  });
+
+  it("derives later turns locally from token_usage — ONE probe, no per-turn spawn", async () => {
+    const runCliText = vi.fn(async () =>
+      JSON.stringify({ contextWindow: 200000, totalTokens: 12000 }),
+    );
+    const { provider, posted } = makeProvider({ runCliText });
+    provider._handleMessage({ type: "ready" });
+    const convId = provider._convs.activeId();
+    const onEvent = provider._makeOnEvent(convId);
+    onEvent({ type: "system", subtype: "init", session_id: "sess-1" });
+    // Turn 1: usage is already recorded, but the window is unknown → probes.
+    onEvent({
+      type: "token_usage",
+      usage: { input_tokens: 100, output_tokens: 5 },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).toHaveBeenCalledTimes(1);
+    // Turn 2: window cached → derived locally, NO second spawn.
+    onEvent({
+      type: "token_usage",
+      usage: {
+        input_tokens: 30000,
+        output_tokens: 500,
+        cache_read_input_tokens: 10000,
+      },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).toHaveBeenCalledTimes(1);
+    const last = posted.filter((p) => p.kind === "ctxStatus").pop();
+    expect(last).toMatchObject({
+      total: 40500,
+      window: 200000,
+      pct: 20,
+      overflow: false,
+    });
+  });
+
+  it("re-probes after an LLM reconfigure (the cached window is dropped)", async () => {
+    const runCliText = vi.fn(async () =>
+      JSON.stringify({ contextWindow: 200000, totalTokens: 12000 }),
+    );
+    const { provider } = makeProvider({ runCliText });
+    provider._handleMessage({ type: "ready" });
+    const convId = provider._convs.activeId();
+    const onEvent = provider._makeOnEvent(convId);
+    onEvent({ type: "system", subtype: "init", session_id: "sess-1" });
+    onEvent({
+      type: "token_usage",
+      usage: { input_tokens: 100, output_tokens: 5 },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).toHaveBeenCalledTimes(1); // cached now
+    provider._reloadLlmConfig(); // model may have changed → window invalid
+    onEvent({
+      type: "token_usage",
+      usage: { input_tokens: 200, output_tokens: 5 },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).toHaveBeenCalledTimes(2);
+  });
+
+  it("still probes per turn when the provider emits no token_usage (fallback)", async () => {
+    const runCliText = vi.fn(async () =>
+      JSON.stringify({ contextWindow: 200000, totalTokens: 12000 }),
+    );
+    const { provider } = makeProvider({ runCliText });
+    provider._handleMessage({ type: "ready" });
+    const convId = provider._convs.activeId();
+    const onEvent = provider._makeOnEvent(convId);
+    onEvent({ type: "system", subtype: "init", session_id: "sess-1" });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).toHaveBeenCalledTimes(2); // status quo preserved
   });
 
   it("respects the chainlesschain.chat.contextIndicator=false kill-switch", async () => {
