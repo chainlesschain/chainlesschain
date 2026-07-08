@@ -1443,6 +1443,8 @@ export async function executeTool(name, args, context = {}) {
       subAgentBudget: context.subAgentBudget || null,
       interactiveApproval: context.interactiveApproval || false,
       settingsHooks: context.settingsHooks || null,
+      signal: context.signal || null,
+      backgroundSubAgents: context.backgroundSubAgents || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -1541,7 +1543,10 @@ export async function executeTool(name, args, context = {}) {
     name === "spawn_sub_agent" &&
     context.settingsHooks &&
     toolResult &&
-    typeof toolResult === "object"
+    typeof toolResult === "object" &&
+    // Background spawns return a "running" handle here — their SubagentStop
+    // fires later, when the RESULT is drained into the conversation.
+    !(toolResult.background === true && toolResult.status === "running")
   ) {
     try {
       const outcome = runObserveHooks(
@@ -2056,6 +2061,8 @@ async function executeToolInner(
     subAgentBudget = null,
     interactiveApproval = false,
     settingsHooks = null,
+    signal = null,
+    backgroundSubAgents = null,
   },
 ) {
   const localToolDescriptor =
@@ -2777,6 +2784,8 @@ async function executeToolInner(
           subAgentDepth,
           subAgentBudget,
           settingsHooks,
+          signal,
+          backgroundSubAgents,
         }),
       );
     }
@@ -3703,6 +3712,46 @@ export function safeStringifyToolResult(value) {
  * @param {object} ctx - { skillLoader, cwd, parentMessages, interaction, sessionId }
  * @returns {Promise<object>}
  */
+/**
+ * Remove and return every SETTLED background sub-agent entry from the run's
+ * map. Called by agentLoop before each LLM call (deliver fresh results) and
+ * after the end-of-run wait (deliver stragglers).
+ */
+function _takeSettledBackgroundSubAgents(map) {
+  const done = [];
+  for (const [id, entry] of map) {
+    if (entry.settled) {
+      done.push(entry);
+      map.delete(id);
+    }
+  }
+  return done;
+}
+
+/**
+ * Render a settled background sub-agent's outcome as the user-role message
+ * injected into the parent conversation (the only channel that reaches the
+ * model between turns — there is no open tool_call to attach a result to).
+ */
+function _backgroundSubAgentResultText(entry) {
+  const o = entry.outcome || {};
+  const status = o.error ? "FAILED" : "completed";
+  const summary =
+    (o.result && o.result.summary) || o.error || "(no output from sub-agent)";
+  const tools =
+    o.result && Array.isArray(o.result.toolsUsed) && o.result.toolsUsed.length
+      ? `\nTools used: ${o.result.toolsUsed.join(", ")}`
+      : "";
+  const feedback = entry.hookFeedback
+    ? `\nHook feedback: ${entry.hookFeedback}`
+    : "";
+  return (
+    `[Background sub-agent "${entry.role}" (${entry.id}) ${status}]\n` +
+    `Task: ${entry.task}\n` +
+    `Result:\n${summary}${tools}${feedback}`
+  );
+}
+
 async function _executeSpawnSubAgent(args, ctx) {
   // Nesting cap: refuse before any context/registry work.
   const currentDepth = ctx.subAgentDepth || 0;
@@ -3895,6 +3944,88 @@ async function _executeSpawnSubAgent(args, ctx) {
     } catch (_err) {
       registry = null; // registry unavailable — non-critical
     }
+  }
+
+  // ── Background mode (Claude-Code 2.1.198 parity) ────────────────────────
+  // Return a running handle immediately; the parent loop keeps working and
+  // drains the result into the conversation when it settles (agentLoop also
+  // refuses to finish while any background sub-agent is still running). Only
+  // available when the calling loop provided the per-run map — a bare
+  // executeTool() without it falls through to the blocking path.
+  if (args.background === true && ctx.backgroundSubAgents instanceof Map) {
+    // Cancel with the parent: forward the loop's abort signal so killing the
+    // run doesn't orphan a detached child mid-LLM-call.
+    subCtx._signal = subCtx._signal || ctx.signal || null;
+    if (registry) {
+      try {
+        registry.register(subCtx);
+      } catch (_err) {
+        // Registry not available — non-critical
+      }
+    }
+    emit("sub-agent.started", {
+      task: subCtx.task,
+      background: true,
+      allowedTools: allowedTools || null,
+      maxIterations: subCtx.maxIterations,
+      createdAt: subCtx.createdAt,
+    });
+    const entry = {
+      id: subCtx.id,
+      role: subCtx.role,
+      task: subCtx.task,
+      settled: false,
+      outcome: null,
+      hookFeedback: null,
+      promise: null,
+    };
+    // Settle-capture wrapper: the stored promise NEVER rejects, so an
+    // unconsumed handle can't surface as an unhandled rejection.
+    entry.promise = subCtx
+      .run(task)
+      .then(
+        (result) => ({ result, error: null }),
+        (err) => {
+          subCtx.forceComplete(err.message);
+          return { result: subCtx.result, error: err.message };
+        },
+      )
+      .then((outcome) => {
+        entry.settled = true;
+        entry.outcome = outcome;
+        if (registry) {
+          try {
+            registry.complete(subCtx.id, outcome.result);
+          } catch (_err) {
+            // Non-critical
+          }
+        }
+        emit(outcome.error ? "sub-agent.failed" : "sub-agent.completed", {
+          status: subCtx.status,
+          background: true,
+          ...(outcome.error
+            ? { error: outcome.error }
+            : {
+                summary: outcome.result?.summary,
+                toolsUsed: outcome.result?.toolsUsed,
+                iterationCount: outcome.result?.iterationCount,
+                tokenCount: outcome.result?.tokenCount,
+                artifactCount: outcome.result?.artifacts?.length || 0,
+              }),
+          completedAt: subCtx.completedAt,
+        });
+        return outcome;
+      });
+    ctx.backgroundSubAgents.set(subCtx.id, entry);
+    return {
+      success: true,
+      background: true,
+      status: "running",
+      subAgentId: subCtx.id,
+      role: subCtx.role,
+      parentSessionId,
+      note: "Sub-agent is running in the background. Its result will be delivered to you automatically in a later turn — continue with other work; the run will not finish before the result arrives.",
+    };
   }
 
   try {
@@ -5385,7 +5516,17 @@ export async function* agentLoop(messages, options) {
       spawned: 0,
       max: MAX_SUB_AGENTS_PER_RUN,
     },
+    // Abort signal — forwarded to background sub-agents so cancelling the
+    // parent run also cancels children still running detached.
+    signal,
+    // Background sub-agents spawned THIS loop (spawn_sub_agent background:true).
+    // id → { id, role, task, promise, settled, outcome }. Results are drained
+    // into `messages` before each LLM call; the loop refuses to finish while
+    // any are still running (it waits, injects, and gives the model one more
+    // turn) so a background result can never be silently lost.
+    backgroundSubAgents: new Map(),
   };
+  const backgroundSubAgents = toolContext.backgroundSubAgents;
 
   throwIfAborted(signal);
 
@@ -5657,6 +5798,52 @@ export async function* agentLoop(messages, options) {
       }
     }
 
+    // Deliver background sub-agent results that settled since the last turn:
+    // inject them as user-role context so THIS LLM call sees them. (There is
+    // no open tool_call to attach a late result to — the spawn call already
+    // returned its "running" handle.)
+    if (backgroundSubAgents.size > 0) {
+      for (const entry of _takeSettledBackgroundSubAgents(
+        backgroundSubAgents,
+      )) {
+        // SubagentStop fires at RESULT time for background spawns (the
+        // spawn-time handle skips it); a block reason rides along as feedback.
+        if (options.settingsHooks) {
+          try {
+            const outcome = runObserveHooks(
+              options.settingsHooks,
+              "SubagentStop",
+              {
+                stop_hook_active: false,
+                session_id: options.sessionId || null,
+                subagent_response: JSON.stringify(
+                  entry.outcome?.result || { error: entry.outcome?.error },
+                ).substring(0, 2000),
+              },
+              { cwd: toolContext.cwd },
+            );
+            if (outcome.decision === "block" && outcome.reason) {
+              entry.hookFeedback = outcome.reason;
+            }
+          } catch (_err) {
+            // SubagentStop hooks are best-effort
+          }
+        }
+        messages.push({
+          role: "user",
+          content: _backgroundSubAgentResultText(entry),
+        });
+        yield {
+          type: "background-sub-agent-result",
+          runId,
+          subAgentId: entry.id,
+          role: entry.role,
+          error: entry.outcome?.error || null,
+          summary: entry.outcome?.result?.summary || null,
+        };
+      }
+    }
+
     // Turn-scoped context injection (open-agents prepareCall parity).
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
@@ -5736,6 +5923,42 @@ export async function* agentLoop(messages, options) {
     const toolCalls = msg.tool_calls;
 
     if (!toolCalls || toolCalls.length === 0) {
+      // A final answer while background sub-agents are still outstanding is
+      // premature — their results must not be silently lost. Wait for ALL of
+      // them, inject the results, and give the model one more turn to fold
+      // them into its real final answer. The iteration budget is the backstop
+      // if it keeps spawning more.
+      if (backgroundSubAgents.size > 0) {
+        yield {
+          type: "waiting-background-sub-agents",
+          runId,
+          count: backgroundSubAgents.size,
+        };
+        await Promise.all(
+          [...backgroundSubAgents.values()].map((e) => e.promise),
+        );
+        throwIfAborted(signal);
+        messages.push({ role: "assistant", content: msg.content || "" });
+        for (const entry of _takeSettledBackgroundSubAgents(
+          backgroundSubAgents,
+        )) {
+          messages.push({
+            role: "user",
+            content:
+              _backgroundSubAgentResultText(entry) +
+              "\n\nAll background sub-agents have finished. Incorporate their results and give your final answer.",
+          });
+          yield {
+            type: "background-sub-agent-result",
+            runId,
+            subAgentId: entry.id,
+            role: entry.role,
+            error: entry.outcome?.error || null,
+            summary: entry.outcome?.result?.summary || null,
+          };
+        }
+        continue;
+      }
       // Surface the final answer's extended-thinking reasoning (Anthropic, when
       // --think is on) so non-streaming consumers (the REPL) can show it. The
       // streaming path forwards reasoning live via onThinking instead.

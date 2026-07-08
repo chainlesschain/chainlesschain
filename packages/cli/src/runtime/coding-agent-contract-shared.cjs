@@ -588,6 +588,11 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             "Optional declarative profile (from sub-agent-profiles). When set, seeds systemPrompt / tool allowlist / iteration cap. Explicit `tools` overrides the profile allowlist.",
         },
+        background: {
+          type: "boolean",
+          description:
+            "Run the sub-agent in the BACKGROUND: the call returns immediately with a running handle and you continue working; the sub-agent's result is delivered to you automatically in a later turn (the run waits for stragglers before finishing). Use for independent subtasks you don't need before your next step.",
+        },
       },
       required: ["task"],
     },
