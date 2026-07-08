@@ -10,6 +10,7 @@
 
 import { spawn } from "child_process";
 import { EventEmitter } from "events";
+import { pathToFileURL } from "url";
 import { safeJsonParse } from "../lib/safe-json.js";
 
 /**
@@ -147,6 +148,8 @@ export class MCPClient extends EventEmitter {
    * @param {object} [options]
    * @param {string|null} [options.sessionId] agent session id advertised to
    *   spawned stdio MCP servers (CC_SESSION_ID / CLAUDE_CODE_SESSION_ID env).
+   * @param {string[]} [options.roots] workspace root directories exposed to
+   *   servers via the MCP roots capability. Defaults to the process cwd.
    */
   constructor(options = {}) {
     super();
@@ -156,6 +159,13 @@ export class MCPClient extends EventEmitter {
     this._reconnecting = new Map(); // name → in-flight reconnect promise
     this._sessionId =
       options && options.sessionId != null ? String(options.sessionId) : null;
+    // MCP roots capability (Claude-Code 2.1.203 parity): servers may ask the
+    // client for its workspace roots (`roots/list`, a server→client request).
+    // null = derive from process.cwd() at answer time.
+    this._roots =
+      options && Array.isArray(options.roots) && options.roots.length > 0
+        ? options.roots.map(String)
+        : null;
   }
 
   /**
@@ -166,6 +176,52 @@ export class MCPClient extends EventEmitter {
    */
   setSessionId(id) {
     this._sessionId = id != null && id !== "" ? String(id) : null;
+  }
+
+  /**
+   * Current workspace roots in MCP wire shape (`file://` URIs). Falls back to
+   * the process cwd when no explicit roots were configured, so every session
+   * always advertises its working directory.
+   * @returns {Array<{uri: string, name: string}>}
+   */
+  listRoots() {
+    const dirs = this._roots || [process.cwd()];
+    const roots = [];
+    for (const dir of dirs) {
+      try {
+        roots.push({ uri: pathToFileURL(dir).href, name: dir });
+      } catch {
+        // An unconvertible path (bad injected value) is skipped, not fatal.
+      }
+    }
+    return roots;
+  }
+
+  /**
+   * Replace the advertised workspace roots and notify every connected server
+   * (`notifications/roots/list_changed`) so it can re-query `roots/list`.
+   * Call on working-directory changes (e.g. the REPL's /cd).
+   * @param {string[]|null} dirs - absolute directories; null/[] = cwd default
+   */
+  setRoots(dirs) {
+    const next =
+      Array.isArray(dirs) && dirs.length > 0 ? dirs.map(String) : null;
+    const changed = JSON.stringify(next) !== JSON.stringify(this._roots);
+    this._roots = next;
+    if (changed) this.notifyRootsListChanged();
+  }
+
+  /**
+   * Broadcast `notifications/roots/list_changed` to every connected server.
+   * Also for callers whose roots derive from process.cwd() (the default):
+   * after a chdir the root LIST is different even though `_roots` (null =
+   * "derive from cwd") did not change, so setRoots can't detect it.
+   */
+  notifyRootsListChanged() {
+    for (const [name, entry] of this.servers) {
+      if (entry.state !== ServerState.CONNECTED) continue;
+      this._sendNotification(name, "notifications/roots/list_changed", {});
+    }
   }
 
   /**
@@ -338,7 +394,14 @@ export class MCPClient extends EventEmitter {
       // Initialize MCP protocol (retried on transient network errors).
       const initResult = await this._requestWithRetry(name, "initialize", {
         protocolVersion: "2024-11-05",
-        capabilities: { tools: {}, resources: {}, prompts: {} },
+        capabilities: {
+          tools: {},
+          resources: {},
+          prompts: {},
+          // Client-side roots capability: servers may request roots/list and
+          // subscribe to list_changed notifications (Claude-Code 2.1.203).
+          roots: { listChanged: true },
+        },
         clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
       });
 
@@ -969,6 +1032,15 @@ export class MCPClient extends EventEmitter {
       return;
     }
 
+    // Server → client REQUEST (has both an id and a method, and the id is not
+    // one of ours). Previously these fell into the notification branch and
+    // never got a response, so a server calling e.g. roots/list hung until its
+    // own timeout. Answer the ones our advertised capabilities invite.
+    if (msg.id !== undefined && msg.method) {
+      this._handleServerRequest(serverName, msg);
+      return;
+    }
+
     // Server notification
     if (msg.method) {
       this.emit("notification", {
@@ -976,6 +1048,48 @@ export class MCPClient extends EventEmitter {
         method: msg.method,
         params: msg.params,
       });
+    }
+  }
+
+  /**
+   * Answer a server-initiated JSON-RPC request. `roots/list` returns the
+   * session's workspace roots (we advertise the roots capability); `ping`
+   * gets an empty ack per spec. Anything else is answered with a JSON-RPC
+   * method-not-found error instead of silence, so the server fails fast.
+   */
+  _handleServerRequest(serverName, msg) {
+    const { id, method } = msg;
+    if (method === "roots/list") {
+      this._sendResponse(serverName, id, { roots: this.listRoots() });
+      return;
+    }
+    if (method === "ping") {
+      this._sendResponse(serverName, id, {});
+      return;
+    }
+    this._sendResponse(serverName, id, undefined, {
+      code: -32601,
+      message: `method not found: ${method}`,
+    });
+  }
+
+  /**
+   * Write a JSON-RPC response back to a stdio server. HTTP transports cannot
+   * deliver server-initiated requests to this client (no persistent SSE GET
+   * stream is held), so there is never a response to send there.
+   */
+  _sendResponse(serverName, id, result, error) {
+    const entry = this.servers.get(serverName);
+    if (!entry || !entry.process) return;
+    const message = JSON.stringify(
+      error !== undefined
+        ? { jsonrpc: "2.0", id, error }
+        : { jsonrpc: "2.0", id, result },
+    );
+    try {
+      entry.process.stdin.write(message + "\n");
+    } catch {
+      // Ignore response write errors (server may have just exited)
     }
   }
 }

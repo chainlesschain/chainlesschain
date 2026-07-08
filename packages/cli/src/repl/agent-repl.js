@@ -2411,6 +2411,17 @@ export async function startAgentRepl(options = {}) {
           const expanded = target.replace(/^~(?=$|[\\/])/, os.homedir());
           process.chdir(path.resolve(process.cwd(), expanded));
           logger.log(chalk.green(`cwd → ${process.cwd()}`));
+          // MCP roots derive from cwd — tell connected servers to re-query
+          // roots/list (Claude-Code 2.1.203 change-notification parity).
+          for (const c of [_adhocMcp?.mcpClient, _bundleMcpClient]) {
+            if (c && typeof c.notifyRootsListChanged === "function") {
+              try {
+                c.notifyRootsListChanged();
+              } catch {
+                /* best-effort */
+              }
+            }
+          }
         } catch (err) {
           logger.error(`/cd failed: ${err.message}`);
         }
