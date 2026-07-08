@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.ide.ActivityLog;
 import com.chainlesschain.ide.IdeTools;
 import com.chainlesschain.ide.LockfileWriter;
 import com.chainlesschain.ide.McpServer;
@@ -22,6 +23,9 @@ public final class IdeBridgeService implements Disposable {
 
     private final Project project;
     private final LockfileWriter lockfile = new LockfileWriter();
+    // Ring buffer of tool-call activity for the "Show Activity" dialog (VS Code
+    // dashboard parity). Project-lived so counts survive a bridge restart.
+    private final ActivityLog activity = new ActivityLog(200);
     private McpServer server;
     private int port = -1;
     private String token;
@@ -49,6 +53,11 @@ public final class IdeBridgeService implements Disposable {
             token = LockfileWriter.generateToken();
             IntellijEditorFacade facade = new IntellijEditorFacade(project);
             server = new McpServer(IdeTools.build(facade), token);
+            // Record every tool call for the "Show Activity" dialog. Fires on a
+            // pooled server thread; ActivityLog is synchronized.
+            server.setActivityListener((tool, ok, args) -> activity.record(
+                    System.currentTimeMillis(), "tool", tool, ok,
+                    ActivityLog.summarizeArgs(tool, args)));
             port = server.start("127.0.0.1", 0);
 
             List<String> folders = new ArrayList<>();
@@ -90,6 +99,9 @@ public final class IdeBridgeService implements Disposable {
     public synchronized int getPort() { return port; }
 
     public synchronized String getToken() { return token; }
+
+    /** The tool-call activity ring buffer (for the "Show Activity" dialog). */
+    public ActivityLog getActivity() { return activity; }
 
     @Override
     public void dispose() {

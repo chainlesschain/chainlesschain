@@ -420,3 +420,8 @@ Glue-layer (needs the next pre-release runIde pass):
       Cancel writes nothing ("cancelled — nothing restored"); Restore proceeds
       and reports the file count. A checkpoint with no textual diff (copy
       engine) shows "(no textual diff available)" but still gates on confirm.
+- [ ] **Show Activity action** — with the bridge running, have the agent use
+      an IDE tool (open the chat, ask something that reads the selection /
+      diagnostics), then Tools → "ChainlessChain IDE: Show Activity" → dialog
+      lists the calls newest-first with ✓/✗ + totals; Refresh picks up new
+      ones. Bridge stopped → "bridge stopped" + "no tool calls yet".

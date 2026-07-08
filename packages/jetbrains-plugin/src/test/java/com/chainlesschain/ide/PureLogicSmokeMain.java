@@ -65,6 +65,7 @@ public final class PureLogicSmokeMain {
         whatsNew();
         ideDoctor();
         teamMonitor();
+        activityLog();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -1127,5 +1128,50 @@ public final class PureLogicSmokeMain {
                 "{\"version\":2,\"registry\":{\"tasks\":{\"tasks\":[]}}}");
         check(empty.ok, "empty task list still ok");
         eq(TeamMonitor.summarize(empty, 0L).donePct, 0, "empty -> 0% (no div-by-zero)");
+    }
+
+    private static void activityLog() {
+        System.out.println("ActivityLog (bridge tool-call ring buffer + report)");
+        ActivityLog log = new ActivityLog(3); // small cap to test eviction
+        log.record(1000L, "tool", "getSelection", true, "");
+        log.record(2000L, "tool", "openDiff", true, "…/src/a.js");
+        log.record(3000L, "tool", "getDiagnostics", false, "…/src/b.js");
+        ActivityLog.Counts c = log.counts();
+        eq(c.tool, 3, "3 tool calls");
+        eq(c.error, 1, "1 error");
+        // recent = newest first
+        java.util.List<ActivityLog.Entry> recent = log.recent(10);
+        eq(recent.size(), 3, "recent size");
+        eq(recent.get(0).tool, "getDiagnostics", "newest first");
+        // ring buffer evicts the oldest past the cap (max 3)
+        log.record(4000L, "tool", "getOpenEditors", true, "");
+        eq(log.size(), 3, "capped at 3");
+        eq(log.counts().tool, 4, "totals keep counting past the cap");
+        eq(log.recent(1).get(0).tool, "getOpenEditors", "newest after eviction");
+        check(log.recent(10).stream().noneMatch(e -> "getSelection".equals(e.tool)),
+                "oldest evicted");
+
+        // report: header totals + newest-first list, deterministic clock
+        ActivityLog.TimeFmt fmt = ts -> "T" + ts;
+        String report = log.formatReport(51234, 10, fmt);
+        check(report.contains("bridge on 127.0.0.1:51234"), "report shows port");
+        check(report.contains("tool calls: 4"), "report totals");
+        check(report.contains("errors: 1"), "report error count");
+        check(report.indexOf("getOpenEditors") < report.indexOf("openDiff"),
+                "report newest-first");
+        check(report.contains("✗ getDiagnostics"), "failed call marked ✗");
+        // empty log + stopped bridge
+        ActivityLog empty = new ActivityLog(10);
+        String er = empty.formatReport(-1, 10, fmt);
+        check(er.contains("bridge stopped"), "stopped bridge");
+        check(er.contains("no tool calls yet"), "empty placeholder");
+
+        // summarizeArgs: only openDiff/getDiagnostics paths shorten; others empty
+        java.util.Map<String, Object> args = new java.util.HashMap<>();
+        args.put("path", "/home/u/proj/src/deep/file.js");
+        eq(ActivityLog.summarizeArgs("openDiff", args), "…/deep/file.js", "shorten deep path");
+        eq(ActivityLog.summarizeArgs("getSelection", args), "", "non-path tool -> empty");
+        eq(ActivityLog.summarizeArgs("openDiff", null), "", "null args -> empty");
+        eq(ActivityLog.shortenPath("a/b"), "a/b", "short path unchanged");
     }
 }

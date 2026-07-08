@@ -237,6 +237,12 @@
                 description="Show the IDE bridge MCP server status">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.ide.ShowActivity"
+                class="com.chainlesschain.ide.intellij.ShowActivityAction"
+                text="ChainlessChain IDE: Show Activity (工具调用记录)"
+                description="Show the IDE bridge's recent tool calls and running totals">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.team.Monitor"
                 class="com.chainlesschain.ide.intellij.TeamMonitorAction"
                 text="ChainlessChain: Team Monitor (团队任务监控)"

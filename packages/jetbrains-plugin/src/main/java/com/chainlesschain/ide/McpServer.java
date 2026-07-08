@@ -42,6 +42,18 @@ public final class McpServer {
     private HttpServer server;
     private int port = -1;
     private String host = "127.0.0.1";
+    private volatile ActivityListener activityListener;
+
+    /** Fired after each {@code tools/call} so the bridge can log activity (name
+     *  + success + a short arg summary). Optional; unset = no logging. */
+    public interface ActivityListener {
+        void onToolCall(String tool, boolean ok, java.util.Map<String, Object> args);
+    }
+
+    /** Install (or clear with null) the per-tool-call activity listener. */
+    public void setActivityListener(ActivityListener listener) {
+        this.activityListener = listener;
+    }
 
     public McpServer(List<Tool> tools, String token) {
         this(tools, token, "/mcp", defaultServerInfo());
@@ -198,9 +210,11 @@ public final class McpServer {
                 try {
                     out = tool.call(args);
                 } catch (Exception toolErr) {
+                    notifyActivity(name, false, args);
                     // Surface tool failures as an isError result, not a transport error.
                     return errorContent(toolErr.getMessage());
                 }
+                notifyActivity(name, true, args);
                 return toContentResult(out);
             }
             case "resources/list": {
@@ -235,6 +249,17 @@ public final class McpServer {
 
     private static Map<String, Object> errorContent(String message) {
         return contentResult("Error: " + (message == null ? "tool error" : message), true);
+    }
+
+    /** Best-effort activity notification — a bad listener never breaks a call. */
+    private void notifyActivity(String tool, boolean ok, Map<String, Object> args) {
+        ActivityListener l = activityListener;
+        if (l == null) return;
+        try {
+            l.onToolCall(tool, ok, args);
+        } catch (Throwable ignored) {
+            // logging must never affect the tool result / transport
+        }
     }
 
     private static Map<String, Object> contentResult(String text, boolean isError) {

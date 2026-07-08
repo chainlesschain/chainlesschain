@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- **Show Activity — the bridge's tool-call stream.** New Tools action
+  "ChainlessChain IDE: Show Activity (工具调用记录)" shows the IDE bridge's
+  recent tool calls (getSelection / openDiff / getDiagnostics …) newest-first
+  with ✓/✗ status and running totals (calls / errors), plus a Refresh button.
+  Every `tools/call` is recorded into a bounded ring buffer. VS Code dashboard
+  parity (dialog form — the VS side uses a webview).
 - **`/rewind` previews the diff before restoring.** Picking a checkpoint now
   shows its diff (`cc checkpoint show --diff`) in a modal preview with
   Restore / Cancel — the old flow restored the instant you picked, with no way
