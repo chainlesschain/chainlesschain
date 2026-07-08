@@ -1250,15 +1250,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "BLE Devices" },
       },
       {
-        path: "recommendations",
-        name: "Recommendations",
-        component: () =>
-          import(
-            /* webpackChunkName: "recommendations" */ "../pages/social/RecommendationsPage.vue"
-          ),
-        meta: { title: "Recommendations" },
-      },
-      {
         path: "nostr-bridge",
         name: "NostrBridge",
         component: () =>
