@@ -1,6 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.47] — feature batch: IDE affordances (2026-07-08)
+
+New Tools-menu capabilities surfacing the `cc` CLI's newer features and
+catching up to the VS Code extension. All shipped with the pure-core smoke
+gate (PureLogicSmokeMain 430/0).
 
 - **Show Activity — the bridge's tool-call stream.** New Tools action
   "ChainlessChain IDE: Show Activity (工具调用记录)" shows the IDE bridge's

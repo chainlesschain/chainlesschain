@@ -2,7 +2,11 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.5] — feature batch: IDE affordances (2026-07-08)
+
+New IDE-side capabilities surfacing the `cc` CLI's newer features and closing
+Copilot/Claude-Code affordance gaps. All shipped with tests (vscode-ext suite
+55 files / 488 green).
 
 - **`/rewind` previews the diff before restoring.** Picking a checkpoint now
   opens its diff (`cc checkpoint show --diff`) in a read-only editor tab and
