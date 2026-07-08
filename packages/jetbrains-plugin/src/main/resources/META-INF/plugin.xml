@@ -212,6 +212,12 @@
 
     <depends>com.intellij.modules.platform</depends>
 
+    <!-- Localization: action text/description resolve from messages/CcBundle
+         (English base) + CcBundle_zh (Chinese) via action.<id>.text /
+         action.<id>.description keys. Java runtime strings use CcBundle.message().
+         The IDE picks the locale (e.g. the Chinese Language Pack sets zh). -->
+    <resource-bundle>messages.CcBundle</resource-bundle>
+
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
@@ -234,58 +240,42 @@
     </extensions>
 
     <actions>
+        <!-- text/description resolve from messages/CcBundle via
+             action.<id>.text / action.<id>.description (see <resource-bundle>). -->
         <action id="chainlesschain.ide.ShowStatus"
-                class="com.chainlesschain.ide.intellij.ShowStatusAction"
-                text="ChainlessChain IDE: Show Bridge Status"
-                description="Show the IDE bridge MCP server status">
+                class="com.chainlesschain.ide.intellij.ShowStatusAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.ide.ShowActivity"
-                class="com.chainlesschain.ide.intellij.ShowActivityAction"
-                text="ChainlessChain IDE: Show Activity (工具调用记录)"
-                description="Show the IDE bridge's recent tool calls and running totals">
+                class="com.chainlesschain.ide.intellij.ShowActivityAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.team.Monitor"
-                class="com.chainlesschain.ide.intellij.TeamMonitorAction"
-                text="ChainlessChain: Team Monitor (团队任务监控)"
-                description="Watch a cc team run --state snapshot: task graph, lease holders, progress">
+                class="com.chainlesschain.ide.intellij.TeamMonitorAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.ide.DiagnoseBridge"
-                class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction"
-                text="ChainlessChain IDE: Diagnose Bridge (诊断桥接)"
-                description="Show cc ide status / doctor / jetbrains — why a terminal cc agent did or didn't auto-connect">
+                class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.ide.RestartBridge"
-                class="com.chainlesschain.ide.intellij.RestartBridgeAction"
-                text="ChainlessChain IDE: Restart Bridge (重启桥接)"
-                description="Restart the IDE bridge MCP server and rewrite its discovery lockfile">
+                class="com.chainlesschain.ide.intellij.RestartBridgeAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.cli.whatsNew"
-                class="com.chainlesschain.ide.intellij.ShowWhatsNewAction"
-                text="ChainlessChain: What's New (cc 更新说明)"
-                description="Show the cc CLI's release notes (cc changelog --json, needs cc &gt;= 0.162.151)">
+                class="com.chainlesschain.ide.intellij.ShowWhatsNewAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.ide.ConfigureLlm"
-                class="com.chainlesschain.ide.intellij.ConfigureLlmAction"
-                text="ChainlessChain: Configure LLM (配置大模型)"
-                description="Guided LLM setup via cc config set + cc llm test">
+                class="com.chainlesschain.ide.intellij.ConfigureLlmAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.ide.ConfigureVisionModel"
-                class="com.chainlesschain.ide.intellij.ConfigureVisionModelAction"
-                text="ChainlessChain: Configure Vision Model (配置图片识别模型)"
-                description="Set just llm.visionModel — the image-recognition model used when you paste a screenshot">
+                class="com.chainlesschain.ide.intellij.ConfigureVisionModelAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.chat.newConversation"
-                class="com.chainlesschain.ide.intellij.NewConversationAction"
-                text="ChainlessChain: New Chat (新建对话)"
-                description="Open a new ChainlessChain chat conversation tab">
+                class="com.chainlesschain.ide.intellij.NewConversationAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <!-- Ctrl+Alt+N is IDEA's Refactor→Inline and Ctrl+Shift+Esc is OS-reserved
                  on Windows — use an unclaimed Ctrl+Alt+Shift chord instead (D = dialog);
@@ -294,9 +284,7 @@
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift D"/>
         </action>
         <action id="chainlesschain.chat.reopenClosedConversation"
-                class="com.chainlesschain.ide.intellij.ReopenClosedConversationAction"
-                text="ChainlessChain: Reopen Closed Chat (重开已关对话)"
-                description="Reopen the most recently closed ChainlessChain conversation, resuming it">
+                class="com.chainlesschain.ide.intellij.ReopenClosedConversationAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <!-- Ctrl+Shift+T is IDEA's Navigate→Go to Test — use an unclaimed
                  Ctrl+Alt+Shift chord (R = reopen); rebindable in Settings → Keymap. -->
@@ -304,21 +292,15 @@
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift R"/>
         </action>
         <action id="chainlesschain.chat.explainSelection"
-                class="com.chainlesschain.ide.intellij.ExplainSelectionAction"
-                text="ChainlessChain: Explain Selection (解释选中代码)"
-                description="Send the selected code to ChainlessChain chat and ask for an explanation">
+                class="com.chainlesschain.ide.intellij.ExplainSelectionAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.chat.refactorSelection"
-                class="com.chainlesschain.ide.intellij.RefactorSelectionAction"
-                text="ChainlessChain: Refactor Selection (重构选中代码)"
-                description="Send the selected code to ChainlessChain chat and ask for a refactor">
+                class="com.chainlesschain.ide.intellij.RefactorSelectionAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.chat.insertFileReference"
-                class="com.chainlesschain.ide.intellij.InsertFileReferenceAction"
-                text="ChainlessChain: Insert File Reference (@文件引用)"
-                description="Insert an @file reference (with selected line range) into the ChainlessChain chat input">
+                class="com.chainlesschain.ide.intellij.InsertFileReferenceAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <!-- Ctrl+Alt+K is IDEA's Git Commit and Push — use an unclaimed
                  Ctrl+Alt+Shift chord (K kept for muscle memory); rebindable in
@@ -327,27 +309,19 @@
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift K"/>
         </action>
         <action id="chainlesschain.memory.init"
-                class="com.chainlesschain.ide.intellij.GenerateProjectMemoryAction"
-                text="ChainlessChain: Generate Project Memory (生成项目记忆 cc.md)"
-                description="Inventory the project into a cc.md that cc agent auto-loads (chainlesschain init)">
+                class="com.chainlesschain.ide.intellij.GenerateProjectMemoryAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.memory.files"
-                class="com.chainlesschain.ide.intellij.ShowMemoryFilesAction"
-                text="ChainlessChain: Show Project Memory Files (查看项目记忆文件)"
-                description="List the effective memory-file chain (chainlesschain memory files)">
+                class="com.chainlesschain.ide.intellij.ShowMemoryFilesAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.preview.start"
-                class="com.chainlesschain.ide.intellij.StartPreviewAction"
-                text="ChainlessChain: Start App Preview (启动应用预览)"
-                description="Run the project's dev script and show the app in the preview tool window">
+                class="com.chainlesschain.ide.intellij.StartPreviewAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.preview.stop"
-                class="com.chainlesschain.ide.intellij.StopPreviewAction"
-                text="ChainlessChain: Stop App Preview (停止应用预览)"
-                description="Stop the App Preview dev server">
+                class="com.chainlesschain.ide.intellij.StopPreviewAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>
