@@ -237,6 +237,12 @@
                 description="Show the IDE bridge MCP server status">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.ide.DiagnoseBridge"
+                class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction"
+                text="ChainlessChain IDE: Diagnose Bridge (诊断桥接)"
+                description="Show cc ide status / doctor / jetbrains — why a terminal cc agent did or didn't auto-connect">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.ide.RestartBridge"
                 class="com.chainlesschain.ide.intellij.RestartBridgeAction"
                 text="ChainlessChain IDE: Restart Bridge (重启桥接)"

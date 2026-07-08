@@ -404,3 +404,8 @@ Glue-layer (needs the next pre-release runIde pass):
       (重启桥接)" → info dialog with the NEW port; status-bar widget refreshes;
       `~/.chainlesschain/ide/<port>.json` lockfile rewritten (old port's file
       gone). IDE stays responsive during the restart (off-EDT).
+- [ ] **Diagnose Bridge action** — Tools → "ChainlessChain IDE: Diagnose
+      Bridge (诊断桥接)" → scrollable monospace dialog with 4 parts: this
+      project's port, then `cc ide status` / `doctor` / `jetbrains` verbatim;
+      with cc missing → three "(no output …)" placeholders, no hang (15s
+      timeouts, all off-EDT).

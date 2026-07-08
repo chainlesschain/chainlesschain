@@ -63,6 +63,7 @@ public final class PureLogicSmokeMain {
         imageAttachments();
         projectMemory();
         whatsNew();
+        ideDoctor();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -1048,5 +1049,23 @@ public final class PureLogicSmokeMain {
         check(text.contains("fixed things") && !text.contains("> fixed things"),
                 "blockquote markers stripped");
         check(!WhatsNew.changelogToText(null, null).isEmpty(), "null releases -> header only");
+    }
+
+    private static void ideDoctor() {
+        System.out.println("IdeDoctor (Diagnose Bridge args + report)");
+        eq(String.join(" ", IdeDoctor.buildStatusArgs()), "ide status", "status args");
+        eq(String.join(" ", IdeDoctor.buildDoctorArgs()), "ide doctor", "doctor args");
+        eq(String.join(" ", IdeDoctor.buildJetbrainsArgs()), "ide jetbrains", "jetbrains args");
+        String up = IdeDoctor.formatReport(51234,
+                "connect intellij:51234", "reason: workspace-match", "endpoint injected: yes");
+        check(up.contains("running on 127.0.0.1:51234"), "port shown when up");
+        check(up.contains("connect intellij:51234"), "status passthrough");
+        check(up.contains("reason: workspace-match"), "doctor passthrough");
+        check(up.contains("endpoint injected: yes"), "jetbrains passthrough");
+        String down = IdeDoctor.formatReport(-1, "", null, "  ");
+        check(down.contains("STOPPED"), "stopped when port <= 0");
+        check(down.contains("Restart Bridge"), "recovery action named");
+        int placeholders = down.split("no output — is the cc CLI installed", -1).length - 1;
+        eq(placeholders, 3, "3 empty sections -> 3 visible placeholders");
     }
 }

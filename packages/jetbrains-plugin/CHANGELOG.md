@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- **Diagnose Bridge.** New Tools action "ChainlessChain IDE: Diagnose Bridge
+  (诊断桥接)": this project's bridge state plus the CLI's own discovery view
+  (`cc ide status` / `cc ide doctor` / `cc ide jetbrains`) in one scrollable
+  report — when a terminal `cc agent` won't auto-connect, the WHY lives on the
+  CLI side and used to be invisible from the IDE.
 - **What's New is now live from the CLI.** New Tools-menu action
   "ChainlessChain: What's New (cc 更新说明)" renders `cc changelog --json`
   (ships offline with the npm package, needs cc ≥ 0.162.151) in a scrollable
