@@ -384,6 +384,28 @@ Glue-layer (needs the next pre-release runIde pass):
 - [ ] **@-mention cache TTL** — create a new file, wait ~30s, type `@`; the new
       file should now appear (was unmentionable until the tab was recreated).
 
+## 🌐 Localized action labels (unreleased) — code-complete, NOT yet runIde-verified (2026-07-08)
+
+Closes the most visible "中英文混乱" gap: 17 action titles/descriptions were
+bilingual "English (中文)". Now resolved from `messages/CcBundle.properties`
+(English) + `CcBundle_zh.properties` via `action.<id>.text`/`.description`, with
+`<resource-bundle>messages.CcBundle</resource-bundle>` in plugin.xml (actions
+carry no inline `text=`). Verified: `smokeTest` **545/0** (+104 — `bundleParity`
+checks every action id has en+zh keys, en/zh key sets match, and no zh value was
+left equal to the English base); `buildPlugin` + `buildSearchableOptions` clean
+(the headless plugin load resolves the bundle); packaged jar has both
+`.properties` under `messages/` and the Chinese UTF-8 survived.
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **Menu labels localize by IDE language** — with an English IDE, Tools menu
+      shows "ChainlessChain IDE: Restart Bridge" etc. (no "(中文)"); install the
+      Chinese Language Pack (or set the IDE language to 中文) and the same items
+      read "ChainlessChain IDE：重启桥接" etc. Editor right-click shows
+      Explain/Refactor Selection localized too. No blank/missing menu items in
+      either language (the `bundleParity` gate guards the keys, but confirm the
+      platform actually renders them).
+
 ## 🔗 Deep-link handler (unreleased) — code-complete, NOT yet runIde-verified (2026-07-08)
 
 Closes the top verified parity gap (JB had no `jetbrains://` handler vs VS

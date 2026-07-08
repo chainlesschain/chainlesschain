@@ -67,6 +67,7 @@ public final class PureLogicSmokeMain {
         teamMonitor();
         activityLog();
         deepLink();
+        bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -1202,5 +1203,82 @@ public final class PureLogicSmokeMain {
         // unsupported action -> null (ignored, never misfires)
         check(DeepLink.parse("delete", withPrompt) == null, "unknown action -> null");
         check(DeepLink.parse("close", null) == null, "unknown close -> null");
+    }
+
+    /**
+     * l10n bundle parity gate (真·本地化): every plugin.xml action id must have a
+     * .text + .description key in the English base bundle, and CcBundle.properties
+     * must have the SAME key set as CcBundle_zh.properties — so a zh IDE never
+     * shows a blank menu item and a new action can't ship without its translation.
+     * Reads the resource files by relative path (works from the plugin dir under
+     * both `gradlew smokeTest` and the manual javac repro).
+     */
+    private static void bundleParity() {
+        System.out.println("bundleParity (l10n action keys en <-> zh <-> plugin.xml)");
+        java.util.Properties en = loadProps("src/main/resources/messages/CcBundle.properties");
+        java.util.Properties zh = loadProps("src/main/resources/messages/CcBundle_zh.properties");
+        String xml = readText("src/main/resources/META-INF/plugin.xml");
+        if (en == null || zh == null || xml == null) {
+            check(false, "bundle/plugin.xml resources readable");
+            return;
+        }
+        // Every <action id="…"> needs .text + .description in the English base.
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("<action\\s+id=\"([^\"]+)\"").matcher(xml);
+        int actions = 0;
+        while (m.find()) {
+            String id = m.group(1);
+            actions++;
+            check(en.containsKey("action." + id + ".text"), "en has action." + id + ".text");
+            check(en.containsKey("action." + id + ".description"),
+                    "en has action." + id + ".description");
+        }
+        check(actions >= 17, "found the action set (" + actions + ")");
+        // en/zh key sets identical (no orphan, no missing translation).
+        java.util.Set<Object> ek = en.keySet(), zk = zh.keySet();
+        for (Object k : ek) check(zk.contains(k), "zh translates " + k);
+        for (Object k : zk) check(ek.contains(k), "en base for " + k);
+        // No English text leaked into the zh bundle (each zh value differs — the
+        // action titles/descriptions are all translated, not copied through).
+        int identical = 0;
+        for (Object k : ek) {
+            if (zh.containsKey(k) && en.getProperty((String) k).equals(zh.getProperty((String) k))) {
+                identical++;
+            }
+        }
+        check(identical == 0, "no zh value left equal to the English base (" + identical + " untranslated)");
+    }
+
+    private static java.util.Properties loadProps(String rel) {
+        java.io.File f = resolveResource(rel);
+        if (f == null) return null;
+        java.util.Properties p = new java.util.Properties();
+        try (java.io.Reader r = new java.io.InputStreamReader(
+                new java.io.FileInputStream(f), java.nio.charset.StandardCharsets.UTF_8)) {
+            p.load(r);
+            return p;
+        } catch (java.io.IOException e) {
+            return null;
+        }
+    }
+
+    private static String readText(String rel) {
+        java.io.File f = resolveResource(rel);
+        if (f == null) return null;
+        try {
+            return new String(java.nio.file.Files.readAllBytes(f.toPath()),
+                    java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            return null;
+        }
+    }
+
+    /** Tolerate cwd = plugin dir OR repo root (gradle vs manual repro). */
+    private static java.io.File resolveResource(String rel) {
+        for (String root : new String[] {"", "packages/jetbrains-plugin/"}) {
+            java.io.File f = new java.io.File(root + rel);
+            if (f.isFile()) return f;
+        }
+        return null;
     }
 }

@@ -214,8 +214,9 @@
 
     <!-- Localization: action text/description resolve from messages/CcBundle
          (English base) + CcBundle_zh (Chinese) via action.<id>.text /
-         action.<id>.description keys. Java runtime strings use CcBundle.message().
-         The IDE picks the locale (e.g. the Chinese Language Pack sets zh). -->
+         action.<id>.description keys. The IDE picks the locale (e.g. the Chinese
+         Language Pack sets zh). Runtime Java dialog strings localize in a
+         follow-up pass (a DynamicBundle over this same bundle). -->
     <resource-bundle>messages.CcBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
