@@ -879,6 +879,19 @@ public final class PureLogicSmokeMain {
         eq(RewindCommands.restoredCount("{\"restoredCount\":2}"), 2, "restoredCount field");
         eq(RewindCommands.restoredCount("{\"restored\":5}"), 5, "restored fallback field");
         check(RewindCommands.restoredCount("{\"ok\":true}") == null, "missing count -> null");
+
+        // Diff preview (show --diff) — args + both payload shapes.
+        eq(String.join(" ", RewindCommands.buildShowDiffArgs("s1", "cp-3")),
+                "checkpoint show cp-3 --diff -s s1 --json", "show --diff args");
+        eq(RewindCommands.formatDiffPreview("{\"id\":\"cp-3\",\"diff\":\"--- a\\n+++ b\\n\"}"),
+                "--- a\n+++ b", "raw patch trimmed");
+        String status = RewindCommands.formatDiffPreview(
+                "{\"modified\":[{\"rel\":\"a.js\"}],\"added\":[\"b.js\"],\"deleted\":[]}");
+        check(status.contains("modified (1):") && status.contains("a.js"), "status modified");
+        check(status.contains("added (1):") && status.contains("b.js"), "status added");
+        check(!status.contains("deleted"), "empty section dropped");
+        eq(RewindCommands.formatDiffPreview("{}"), "", "no diff/status -> empty");
+        eq(RewindCommands.formatDiffPreview("not json"), "", "bad json -> empty");
     }
 
     private static void sessionList() {

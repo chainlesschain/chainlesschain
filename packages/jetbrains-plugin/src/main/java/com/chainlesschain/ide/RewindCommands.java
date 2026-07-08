@@ -50,6 +50,55 @@ public final class RewindCommands {
                 "-s", orDefault(sessionId), "--force", "--json"));
     }
 
+    /**
+     * {@code cc checkpoint show <id> --diff -s <session> --json} — the
+     * checkpoint's diff vs the current work tree, for a PREVIEW before
+     * restoring (the old flow restored on pick with no way to see what changes).
+     */
+    public static List<String> buildShowDiffArgs(String sessionId, String id) {
+        return new ArrayList<String>(Arrays.asList(
+                "checkpoint", "show", id == null ? "" : id,
+                "--diff", "-s", orDefault(sessionId), "--json"));
+    }
+
+    /**
+     * Normalize {@code checkpoint show --diff --json} stdout into preview text.
+     * The git engine returns {@code { id, diff:"<patch>" }}; the copy-fallback
+     * engine has no raw patch and returns a status object
+     * {@code { modified, added, deleted }} — both become a readable string.
+     * Returns "" when there's nothing to show or the stdout is unusable.
+     */
+    @SuppressWarnings("unchecked")
+    public static String formatDiffPreview(String stdout) {
+        Object parsed;
+        try {
+            parsed = MiniJson.parse(stdout == null ? "" : stdout.trim());
+        } catch (RuntimeException e) {
+            return "";
+        }
+        if (!(parsed instanceof Map)) return "";
+        Map<String, Object> data = (Map<String, Object>) parsed;
+        Object diff = data.get("diff");
+        if (diff instanceof String) return ((String) diff).trim();
+        StringBuilder sb = new StringBuilder();
+        appendList(sb, "modified", data.get("modified"));
+        appendList(sb, "added", data.get("added"));
+        appendList(sb, "deleted", data.get("deleted"));
+        return sb.toString().trim();
+    }
+
+    private static void appendList(StringBuilder sb, String label, Object arr) {
+        if (!(arr instanceof List) || ((List<?>) arr).isEmpty()) return;
+        List<?> list = (List<?>) arr;
+        if (sb.length() > 0) sb.append("\n\n");
+        sb.append(label).append(" (").append(list.size()).append("):\n");
+        for (Object f : list) {
+            String rel = f instanceof Map && ((Map<?, ?>) f).get("rel") != null
+                    ? String.valueOf(((Map<?, ?>) f).get("rel")) : String.valueOf(f);
+            sb.append("  ").append(rel).append("\n");
+        }
+    }
+
     /** Tolerant parse of {@code checkpoint list --json} stdout (empty on any mismatch). */
     public static List<Checkpoint> parseCheckpointList(String stdout) {
         List<Checkpoint> out = new ArrayList<Checkpoint>();

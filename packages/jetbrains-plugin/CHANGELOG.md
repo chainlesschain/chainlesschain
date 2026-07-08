@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- **`/rewind` previews the diff before restoring.** Picking a checkpoint now
+  shows its diff (`cc checkpoint show --diff`) in a modal preview with
+  Restore / Cancel — the old flow restored the instant you picked, with no way
+  to see what would change. Cancel writes nothing; a confirmed restore still
+  snapshots your current state first, so it stays undoable.
 - **Team Monitor (read-only).** New Tools action "ChainlessChain: Team Monitor
   (团队任务监控)": pick a `cc team run --state <file>` snapshot and view the
   parsed task graph — per-task status, lease holder (stale flag when its lease

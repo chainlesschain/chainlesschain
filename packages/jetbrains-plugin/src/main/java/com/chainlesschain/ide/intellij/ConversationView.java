@@ -631,28 +631,77 @@ final class ConversationView {
                 for (RewindCommands.Checkpoint c : list) labels.add(RewindCommands.itemLabel(c));
                 JBPopupFactory.getInstance()
                         .createPopupChooserBuilder(labels)
-                        .setTitle("Rewind to which checkpoint? (current state is snapshotted first)")
+                        .setTitle("Rewind to which checkpoint? (a diff preview opens before you confirm)")
                         .setItemChosenCallback(label -> {
                             int idx = labels.indexOf(label);
                             if (idx < 0) return;
                             final RewindCommands.Checkpoint chosen = list.get(idx);
-                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                                String restored = AgentChatSession.runCapture(
-                                        RewindCommands.buildRestoreArgs(sid, chosen.id), cwd, 60000);
-                                final boolean ok = RewindCommands.restoreOk(restored);
-                                final Integer n = RewindCommands.restoredCount(restored);
-                                final String raw = restored == null ? "" : restored.trim();
-                                SwingUtilities.invokeLater(() -> append(ok
-                                        ? "↩ rewound to " + chosen.id
-                                          + (n != null ? " — " + n + " file(s) restored" : "") + "\n"
-                                        : "✗ /rewind failed: "
-                                          + (raw.isEmpty() ? "no output" : raw) + "\n"));
-                            });
+                            previewThenRestore(sid, chosen, cwd);
                         })
                         .createPopup()
                         .showCenteredInCurrentWindow(project);
             });
         });
+    }
+
+    /**
+     * Preview a checkpoint's diff, then confirm before restoring (VS Code
+     * _rewind parity — the old flow restored on pick with no way to see what
+     * would change). {@code cc checkpoint show --diff} runs off the EDT; the
+     * preview + confirm dialog is shown on it. Cancel = no write. If the diff
+     * is unavailable (copy engine / error), the confirm still gates the write.
+     */
+    private void previewThenRestore(String sid, RewindCommands.Checkpoint chosen, File cwd) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String shown = AgentChatSession.runCapture(
+                    RewindCommands.buildShowDiffArgs(sid, chosen.id), cwd, 30000);
+            final String preview = RewindCommands.formatDiffPreview(shown);
+            SwingUtilities.invokeLater(() -> {
+                boolean confirmed = confirmRestore(chosen.id, preview);
+                if (!confirmed) {
+                    append("ℹ /rewind: cancelled — nothing restored\n");
+                    return;
+                }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    String restored = AgentChatSession.runCapture(
+                            RewindCommands.buildRestoreArgs(sid, chosen.id), cwd, 60000);
+                    final boolean ok = RewindCommands.restoreOk(restored);
+                    final Integer n = RewindCommands.restoredCount(restored);
+                    final String raw = restored == null ? "" : restored.trim();
+                    SwingUtilities.invokeLater(() -> append(ok
+                            ? "↩ rewound to " + chosen.id
+                              + (n != null ? " — " + n + " file(s) restored" : "") + "\n"
+                            : "✗ /rewind failed: "
+                              + (raw.isEmpty() ? "no output" : raw) + "\n"));
+                });
+            });
+        });
+    }
+
+    /** Modal preview + confirm dialog. Returns true only when the user clicks
+     *  Restore. A non-empty diff is shown read-only (monospace); an empty diff
+     *  states "no textual diff" but still lets the user confirm. */
+    private boolean confirmRestore(String checkpointId, String preview) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.add(new JLabel("<html>Restore the work tree to <b>" + escapeHtml(checkpointId)
+                + "</b>?<br>Your current state is snapshotted first, so this is undoable.</html>"),
+                BorderLayout.NORTH);
+        JTextArea area = new JTextArea(preview == null || preview.isEmpty()
+                ? "(no textual diff available for this checkpoint)" : preview);
+        area.setEditable(false);
+        area.setFont(new java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN,
+                area.getFont().getSize()));
+        area.setCaretPosition(0);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new java.awt.Dimension(680, 420));
+        panel.add(scroll, BorderLayout.CENTER);
+
+        com.intellij.openapi.ui.DialogBuilder b = new com.intellij.openapi.ui.DialogBuilder(project);
+        b.setTitle("Restore preview — " + checkpointId);
+        b.setCenterPanel(panel);
+        b.addOkAction().setText("Restore"); // default OK action closes with OK_EXIT_CODE
+        b.addCancelAction();
+        return b.show() == com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE;
     }
 
     /**

@@ -415,3 +415,8 @@ Glue-layer (needs the next pre-release runIde pass):
       status-ordered task list with holder/⇠deps/×attempts, "(stale)" on an
       expired lease; Refresh button re-reads the file. Bad/empty file → clean
       message, no throw.
+- [ ] **`/rewind` diff preview + confirm** — `/rewind` → pick a checkpoint →
+      modal shows its diff (`cc checkpoint show --diff`) with Restore / Cancel;
+      Cancel writes nothing ("cancelled — nothing restored"); Restore proceeds
+      and reports the file count. A checkpoint with no textual diff (copy
+      engine) shows "(no textual diff available)" but still gates on confirm.
