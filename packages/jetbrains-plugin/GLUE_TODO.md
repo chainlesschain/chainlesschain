@@ -383,3 +383,24 @@ Glue-layer (needs the next pre-release runIde pass):
       quicker. Sanity: the panel still uses the configured provider/model.
 - [ ] **@-mention cache TTL** — create a new file, wait ~30s, type `@`; the new
       file should now appear (was unmentionable until the tab was recreated).
+
+## ✨ Quick-win parity batch (unreleased) — code-complete, NOT yet runIde-verified (2026-07-08)
+
+Three cheap parity gaps closed (backlog head after the 0.4.46 audit). Pure
+cores smoke-tested — `smokeTest` **372/0** (+24: WhatsNew section + /retry
+catalog); `buildPlugin` zip verified (both actions registered in the packaged
+plugin.xml, all 3 new classes in the jar).
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **What's New action** — Tools → "ChainlessChain: What's New (cc 更新说明)"
+      with cc ≥ 0.162.151 installed → scrollable monospace dialog listing the
+      last 5 CLI releases, the installed one marked "← installed"; with an old
+      cc → info dialog naming the min version + upgrade command.
+- [ ] **`/retry`** — send a prompt, then type `/retry`: the same prompt is
+      re-sent as a fresh turn; `/retry` before any send → "nothing to retry"
+      hint; `/` autocomplete lists it between /review and /rewind.
+- [ ] **Restart Bridge action** — Tools → "ChainlessChain IDE: Restart Bridge
+      (重启桥接)" → info dialog with the NEW port; status-bar widget refreshes;
+      `~/.chainlesschain/ide/<port>.json` lockfile rewritten (old port's file
+      gone). IDE stays responsive during the restart (off-EDT).

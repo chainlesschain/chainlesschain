@@ -62,6 +62,7 @@ public final class PureLogicSmokeMain {
         sessionList();
         imageAttachments();
         projectMemory();
+        whatsNew();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -463,8 +464,11 @@ public final class PureLogicSmokeMain {
         List<String[]> rev = SlashCommands.filter("rev");
         check(rev.size() == 1 && rev.get(0)[0].equals("/review"), "rev -> only /review");
         List<String[]> re = SlashCommands.filter("re");
-        check(re.size() == 3 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
-                && re.get(2)[0].equals("/rewind"), "re -> /reject /review /rewind (menu order)");
+        check(re.size() == 4 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
+                && re.get(2)[0].equals("/retry") && re.get(3)[0].equals("/rewind"),
+                "re -> /reject /review /retry /rewind (menu order)");
+        List<String[]> ret = SlashCommands.filter("ret");
+        check(ret.size() == 1 && ret.get(0)[0].equals("/retry"), "ret -> only /retry");
         List<String[]> sess = SlashCommands.filter("sess");
         check(sess.size() == 1 && sess.get(0)[0].equals("/sessions"), "sess -> only /sessions");
         // label
@@ -1000,5 +1004,49 @@ public final class PureLogicSmokeMain {
         }), "c", "throwing probe skipped, scan continues");
         eq(JetbrainsMcpProbe.selectLiveUrl(null, u -> true), null, "null candidates → null");
         eq(JetbrainsMcpProbe.selectLiveUrl(cand, null), null, "null prober → null");
+    }
+
+    private static void whatsNew() {
+        System.out.println("WhatsNew (cc changelog --json args + parser + renderer)");
+        // args
+        eq(String.join(" ", WhatsNew.buildChangelogArgs(5)),
+                "changelog -n 5 --json", "changelog args");
+        eq(String.join(" ", WhatsNew.buildChangelogArgs(0)),
+                "changelog -n 5 --json", "non-positive limit -> default 5");
+        // version gate (raw --version output ok, prerelease/garbage tolerated)
+        check(WhatsNew.supportsChangelog("0.162.151"), "min version supported");
+        check(WhatsNew.supportsChangelog("cc 0.163.0\n"), "newer + banner supported");
+        check(!WhatsNew.supportsChangelog("0.162.150"), "older rejected");
+        check(WhatsNew.supportsChangelog("cc (GCC) 12.2.0"),
+                "any found semver >= min passes — a gcc shadow then degrades via empty parse");
+        check(!WhatsNew.supportsChangelog(null), "null rejected");
+        check(!WhatsNew.supportsChangelog("not a version"), "no semver rejected");
+        // parser
+        List<WhatsNew.Release> rels = WhatsNew.parseChangelogJson(
+                "{\"releases\":[{\"cliVersion\":\"0.162.152\",\"productVersion\":\"v5.0.3.134\","
+                + "\"date\":\"2026-07-07\",\"title\":\"audit batch\","
+                + "\"sections\":[{\"heading\":\"CLI\",\"body\":\"> fixed things\"}]},"
+                + "{\"cliVersion\":\"0.162.151\"},"
+                + "{\"noCliVersion\":true}]}");
+        eq(rels.size(), 2, "2 valid releases (row without cliVersion dropped)");
+        eq(rels.get(0).cliVersion, "0.162.152", "cliVersion");
+        eq(rels.get(0).productVersion, "v5.0.3.134", "productVersion");
+        eq(rels.get(0).sections.size(), 1, "sections parsed");
+        eq(rels.get(0).sections.get(0)[0], "CLI", "section heading");
+        check(rels.get(1).sections.isEmpty(), "missing sections -> empty list");
+        check(WhatsNew.parseChangelogJson("not json").isEmpty(), "bad json -> empty");
+        check(WhatsNew.parseChangelogJson("{\"releases\":\"x\"}").isEmpty(),
+                "non-array releases -> empty");
+        check(WhatsNew.parseChangelogJson(null).isEmpty(), "null -> empty");
+        // renderer
+        String text = WhatsNew.changelogToText(rels, "0.162.151");
+        check(text.startsWith("# cc CLI — What's New"), "doc title");
+        check(text.contains("## 0.162.152 (product v5.0.3.134, 2026-07-07)"),
+                "release heading with meta");
+        check(text.contains("## 0.162.151 ← installed"), "installed marker");
+        check(text.contains("### CLI"), "section heading rendered");
+        check(text.contains("fixed things") && !text.contains("> fixed things"),
+                "blockquote markers stripped");
+        check(!WhatsNew.changelogToText(null, null).isEmpty(), "null releases -> header only");
     }
 }

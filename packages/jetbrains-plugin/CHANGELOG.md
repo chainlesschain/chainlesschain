@@ -1,5 +1,21 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **What's New is now live from the CLI.** New Tools-menu action
+  "ChainlessChain: What's New (cc 更新说明)" renders `cc changelog --json`
+  (ships offline with the npm package, needs cc ≥ 0.162.151) in a scrollable
+  dialog with your installed version marked — VS Code 0.37.3 parity; the static
+  Marketplace change-notes only ever covered the plugin, not the CLI.
+- **`/retry` regenerates the last prompt.** New slash command re-sends this
+  tab's last successfully-sent prompt as a fresh turn (VS Code parity); listed
+  in the `/` autocomplete and `/help`.
+- **Restart Bridge is now a real action.** Tools-menu "ChainlessChain IDE:
+  Restart Bridge (重启桥接)" tears down + re-listens the bridge MCP server and
+  rewrites its discovery lockfile — previously only reachable indirectly via an
+  LLM reconfigure, leaving no recovery path for a port conflict / stale
+  lockfile.
+
 ## [0.4.46] — fix: security + correctness audit batch (P0/P1/P2) + performance
 
 ### P0/P1

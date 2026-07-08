@@ -34,6 +34,7 @@ public final class SlashCommands {
             new String[] { "/context", "context-window usage" },
             new String[] { "/cost", "token cost for this session" },
             new String[] { "/review", "review the current git diff" },
+            new String[] { "/retry", "re-send this tab's last prompt" },
             new String[] { "/rewind", "restore a work-tree checkpoint" },
             new String[] { "/sessions", "resume a saved session in this tab" },
             new String[] { "/help", "list panel commands" }));

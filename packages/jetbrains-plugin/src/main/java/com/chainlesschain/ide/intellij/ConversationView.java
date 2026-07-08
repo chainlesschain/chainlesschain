@@ -90,6 +90,10 @@ final class ConversationView {
     // click on the SAME still-running child hard-kills it (interrupt can't reach
     // a hung child). EDT-only.
     private AgentChatSession interruptRequested;
+    // This tab's last successfully-sent user prompt, for /retry (regenerate).
+    // Per-view (= per-conversation), so a retry never replays another tab's
+    // prompt (mirrors the VS Code panel's lastSentByTab). EDT-only.
+    private String lastSentPrompt;
     // Self-created temp images, one batch PER SENT MESSAGE (FIFO). The CLI
     // resolves a turn's images when that turn STARTS, and queued sends run in
     // order, so each turn_end deletes the OLDEST batch — not all of them. (The
@@ -442,6 +446,7 @@ final class ConversationView {
                         append("⚠ failed to start `cc` (is the ChainlessChain CLI installed and on "
                                 + "PATH?): " + err + "\n");
                     } else if (ok) {
+                        if (!text.isEmpty()) lastSentPrompt = text; // for /retry
                         String tag = imgs.isEmpty() ? ""
                                 : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
                         append("\nyou> " + text + tag + "\n");
@@ -550,6 +555,17 @@ final class ConversationView {
                         + "and be concise. Don't edit files unless I ask.");
                 sendCurrentInput();
                 return;
+            case "/retry":
+                // Regenerate: re-send THIS tab's last successfully-sent prompt as
+                // a fresh turn (mirrors the VS Code panel's /retry). Local sugar
+                // — re-enter sendCurrentInput() with the remembered text.
+                if (lastSentPrompt == null || lastSentPrompt.isEmpty()) {
+                    append("ℹ nothing to retry yet — send a message first\n");
+                    return;
+                }
+                input.setText(lastSentPrompt);
+                sendCurrentInput();
+                return;
             case "/plan":
                 sendPlanAction("enter");
                 append("ℹ plan mode — write tools blocked until you approve\n");
@@ -563,7 +579,7 @@ final class ConversationView {
             case "/help":
                 append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
                         + "/ultrathink /think-off /plan /approve /reject /context /cost "
-                        + "/review /rewind /sessions\n");
+                        + "/review /retry /rewind /sessions\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");

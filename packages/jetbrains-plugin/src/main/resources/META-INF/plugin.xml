@@ -237,6 +237,18 @@
                 description="Show the IDE bridge MCP server status">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.ide.RestartBridge"
+                class="com.chainlesschain.ide.intellij.RestartBridgeAction"
+                text="ChainlessChain IDE: Restart Bridge (重启桥接)"
+                description="Restart the IDE bridge MCP server and rewrite its discovery lockfile">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.cli.whatsNew"
+                class="com.chainlesschain.ide.intellij.ShowWhatsNewAction"
+                text="ChainlessChain: What's New (cc 更新说明)"
+                description="Show the cc CLI's release notes (cc changelog --json, needs cc &gt;= 0.162.151)">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.ide.ConfigureLlm"
                 class="com.chainlesschain.ide.intellij.ConfigureLlmAction"
                 text="ChainlessChain: Configure LLM (配置大模型)"
