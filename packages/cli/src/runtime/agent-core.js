@@ -5631,6 +5631,18 @@ export async function* agentLoop(messages, options) {
   const runId =
     options.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Workflow-tracing attributes (Claude-Code 2.1.202): stamp the run id (and
+  // an optional caller-provided workflow name) onto EVERY span this run emits,
+  // so a collector can group one run's model/tool spans into one workflow.
+  if (recorder && typeof recorder.setDefaultAttribute === "function") {
+    recorder.setDefaultAttribute("workflow.run_id", runId);
+    if (options.workflowName) {
+      recorder.setDefaultAttribute(
+        "workflow.name",
+        String(options.workflowName),
+      );
+    }
+  }
   yield {
     type: "run-started",
     runId,

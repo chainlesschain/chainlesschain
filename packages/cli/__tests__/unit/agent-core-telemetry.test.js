@@ -139,6 +139,47 @@ describe("agent-core telemetry spans", () => {
     expect(toolSpans[0].attributes["tool.is_error"]).toBe(true);
   });
 
+  it("stamps workflow.run_id (and workflow.name) onto every span", async () => {
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [readCall("r1", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+
+    const recorder = new TelemetryRecorder();
+    const events = [];
+    for await (const ev of agentLoop([{ role: "user", content: "go" }], {
+      provider: "ollama",
+      model: "test-model",
+      baseUrl: "http://localhost:11434",
+      cwd: tmp,
+      chatFn,
+      runnableProviderFallback: false,
+      recorder,
+      workflowName: "my-workflow",
+    })) {
+      events.push(ev);
+    }
+    const runId = events.find((e) => e.type === "run-started").runId;
+
+    const spans = recorder.spans();
+    expect(spans.length).toBeGreaterThan(0);
+    for (const s of spans) {
+      expect(s.attributes["workflow.run_id"]).toBe(runId);
+      expect(s.attributes["workflow.name"]).toBe("my-workflow");
+    }
+  });
+
   it("is a no-op when no recorder is attached (loop still completes)", async () => {
     fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
     const chatFn = async () => ({

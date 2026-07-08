@@ -174,6 +174,49 @@ describe("TelemetryRecorder OTLP export", () => {
   });
 });
 
+describe("TelemetryRecorder default attributes (workflow tracing)", () => {
+  it("stamps constructor defaultAttributes onto every span", () => {
+    const rec = new TelemetryRecorder({
+      defaultAttributes: { "workflow.run_id": "r1", "workflow.name": "wf" },
+    });
+    rec.startSpan("a").end();
+    rec.startSpan("b", { extra: 1 }).end();
+    for (const s of rec.spans()) {
+      expect(s.attributes["workflow.run_id"]).toBe("r1");
+      expect(s.attributes["workflow.name"]).toBe("wf");
+    }
+    expect(rec.spans()[1].attributes.extra).toBe(1);
+  });
+
+  it("per-span attributes win over defaults on key collision", () => {
+    const rec = new TelemetryRecorder({
+      defaultAttributes: { "workflow.run_id": "default" },
+    });
+    rec.startSpan("a", { "workflow.run_id": "override" }).end();
+    expect(rec.spans()[0].attributes["workflow.run_id"]).toBe("override");
+  });
+
+  it("setDefaultAttribute applies to spans started AFTER the call", () => {
+    const rec = new TelemetryRecorder();
+    rec.startSpan("before").end();
+    rec.setDefaultAttribute("workflow.run_id", "late");
+    rec.startSpan("after").end();
+    const [before, after] = rec.spans();
+    expect(before.attributes["workflow.run_id"]).toBeUndefined();
+    expect(after.attributes["workflow.run_id"]).toBe("late");
+  });
+
+  it("default attributes ride into the OTLP export", () => {
+    const rec = new TelemetryRecorder({
+      defaultAttributes: { "workflow.run_id": "r-otlp" },
+    });
+    rec.startSpan("a").end();
+    const span = rec.toOtlp().resourceSpans[0].scopeSpans[0].spans[0];
+    const attr = span.attributes.find((a) => a.key === "workflow.run_id");
+    expect(attr.value.stringValue).toBe("r-otlp");
+  });
+});
+
 describe("formatTelemetry", () => {
   it("renders spans, counters and failures", () => {
     const clock = makeClock();

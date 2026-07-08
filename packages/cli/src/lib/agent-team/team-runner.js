@@ -40,6 +40,10 @@ export class TeamRunner {
     this.budget = opts.budget || null;
     // Directed/broadcast messaging between teammates (null → disabled).
     this.mailbox = opts.mailbox || null;
+    // Optional TelemetryRecorder: emits a `team.task` span per execution (and
+    // inherits the recorder's default workflow.run_id/name attributes) so
+    // `cc team run --otlp` traces the whole graph. Null → zero cost.
+    this.recorder = opts.recorder || null;
     this._executions = 0;
     this._inFlight = 0;
     this._maxInFlight = 0;
@@ -230,6 +234,13 @@ export class TeamRunner {
         ? this.mailbox.send({ from: holder, to, subject, body })
         : null;
     const startedAt = this._now();
+    const span = this.recorder
+      ? this.recorder.startSpan("team.task", {
+          "team.task.key": key,
+          "team.holder": holder,
+          "team.attempts": task.attempts,
+        })
+      : null;
     try {
       const result = await this.runTask({
         key,
@@ -256,6 +267,7 @@ export class TeamRunner {
         );
       }
       if (done.ok) {
+        if (span) span.end();
         this._setState(holder, "completed-task");
         this._emit("task:completed", {
           key,
@@ -263,6 +275,10 @@ export class TeamRunner {
           ms: this._now() - startedAt,
         });
       } else {
+        if (span) {
+          span.setAttribute("team.completion_discarded", true);
+          span.end();
+        }
         // The registry REJECTED the completion — the lease expired mid-run (the
         // task outran its TTL without renewing), so a peer may already own it.
         // Reporting `task:completed` + bumping the completed counter here would
@@ -277,6 +293,10 @@ export class TeamRunner {
         });
       }
     } catch (err) {
+      if (span) {
+        span.recordException(err, "task_failure");
+        span.end({ status: "error" });
+      }
       // A failed task still consumed a task-count slot (and any wall-clock) — fold
       // it so a doomed retry loop can't dodge the budget.
       if (this.budget) this.budget.record({ usage: null }, this._now());

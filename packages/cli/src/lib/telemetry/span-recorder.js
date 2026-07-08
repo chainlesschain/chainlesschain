@@ -41,13 +41,25 @@ export class TelemetryRecorder {
   constructor({
     now = () => Date.now(),
     serviceName = "chainlesschain-cli",
+    defaultAttributes = {},
   } = {}) {
     this._now = typeof now === "function" ? now : () => now;
     this.serviceName = serviceName;
     this.traceId = newTraceId(); // one trace per recorder (valid non-zero id)
+    // Stamped onto EVERY span (per-span attributes win on key collision).
+    // Used for run-level correlation: workflow.run_id / workflow.name let a
+    // collector group all model/tool/task spans of one run (Claude-Code
+    // 2.1.202 workflow-tracing attributes).
+    this.defaultAttributes = { ...defaultAttributes };
     this._spans = []; // completed spans
     this._counters = new Map(); // name → { total, byAttr }
     this._failures = new Map(); // category → count
+  }
+
+  /** Set (or overwrite) an attribute stamped onto every span from now on. */
+  setDefaultAttribute(key, value) {
+    this.defaultAttributes[key] = value;
+    return this;
   }
 
   /**
@@ -57,7 +69,7 @@ export class TelemetryRecorder {
   startSpan(name, attributes = {}, { parentId = null } = {}) {
     const id = spanId();
     const start = this._now();
-    const attrs = { ...attributes };
+    const attrs = { ...this.defaultAttributes, ...attributes };
     const events = [];
     const self = this;
     let ended = false;

@@ -3,6 +3,7 @@ import { TaskLeaseRegistry } from "../../src/lib/agent-team/task-lease.js";
 import { TeamRunner } from "../../src/lib/agent-team/team-runner.js";
 import { TeamBudget } from "../../src/lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../../src/lib/agent-team/team-mailbox.js";
+import { TelemetryRecorder } from "../../src/lib/telemetry/span-recorder.js";
 
 // The registry clock only governs lease expiry; the runner itself uses real
 // async ticks. TTLs here are large so a lease never expires mid-run.
@@ -64,6 +65,59 @@ describe("TeamRunner DAG execution", () => {
     expect(summary.done).toBe(true);
     expect(peak).toBe(2); // exactly the teammate cap, not 4
     expect(summary.maxConcurrent).toBe(2);
+  });
+});
+
+describe("TeamRunner OTel workflow tracing", () => {
+  it("emits a team.task span per execution, tagged with the workflow attributes", async () => {
+    // maxAttempts:1 → the failing task is NOT retried (one span per outcome).
+    const reg = new TaskLeaseRegistry({
+      now: () => 1000,
+      defaultTtlMs: 1_000_000,
+      maxAttempts: 1,
+    });
+    reg.addTask({ key: "ok", title: "ok" });
+    reg.addTask({ key: "boom", title: "boom" });
+
+    const recorder = new TelemetryRecorder({
+      defaultAttributes: {
+        "workflow.run_id": "team-run-1",
+        "workflow.name": "graph.json",
+      },
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      recorder,
+      runTask: async ({ key }) => {
+        if (key === "boom") throw new Error("kaput");
+        return "done";
+      },
+    });
+    await runner.run();
+
+    const spans = recorder.spans().filter((s) => s.name === "team.task");
+    expect(spans).toHaveLength(2);
+    for (const s of spans) {
+      expect(s.attributes["workflow.run_id"]).toBe("team-run-1");
+      expect(s.attributes["workflow.name"]).toBe("graph.json");
+      expect(s.attributes["team.holder"]).toBe("teammate-1");
+    }
+    const ok = spans.find((s) => s.attributes["team.task.key"] === "ok");
+    const boom = spans.find((s) => s.attributes["team.task.key"] === "boom");
+    expect(ok.status).toBe("ok");
+    expect(boom.status).toBe("error");
+    expect(boom.attributes["failure.category"]).toBe("task_failure");
+  });
+
+  it("is zero-cost without a recorder (no spans, run unchanged)", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "a", title: "a" });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      runTask: async () => "done",
+    });
+    const summary = await runner.run();
+    expect(summary.done).toBe(true);
   });
 });
 

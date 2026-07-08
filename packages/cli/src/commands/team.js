@@ -234,6 +234,10 @@ export function registerTeamCommand(program, { logger } = {}) {
       "Restore progress from --state (completed tasks stay done; stale leases freed)",
     )
     .option("--json", "Emit the event stream as JSON lines")
+    .option(
+      "--otlp <file>",
+      "Write OTLP/JSON spans (one team.task span per execution, tagged workflow.run_id / workflow.name) to a file",
+    )
     .action(async (options) => {
       const ttlMs = Math.max(1, Number(options.ttl) || 60) * 1000;
       let reg;
@@ -380,6 +384,21 @@ export function registerTeamCommand(program, { logger } = {}) {
         runTask = makeAgentRunTask({ model: options.model });
       else runTask = async () => ({ dryRun: true });
 
+      // Optional workflow tracing (Claude-Code 2.1.202 parity): every task
+      // execution becomes a `team.task` span tagged with workflow.run_id +
+      // workflow.name so a collector can reassemble the run as one workflow.
+      let recorder = null;
+      if (options.otlp) {
+        const { TelemetryRecorder } =
+          await import("../lib/telemetry/span-recorder.js");
+        recorder = new TelemetryRecorder({
+          defaultAttributes: {
+            "workflow.run_id": `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            "workflow.name": path.basename(options.tasks),
+          },
+        });
+      }
+
       const teammates = Math.max(1, Number(options.teammates) || 2);
       const runner = new TeamRunner(reg, {
         teammates,
@@ -387,6 +406,7 @@ export function registerTeamCommand(program, { logger } = {}) {
         runTask,
         budget,
         mailbox,
+        recorder,
         onEvent: (e) => {
           if (options.json) console.log(JSON.stringify(e));
           else if (e.type === "task:claimed")
@@ -410,6 +430,20 @@ export function registerTeamCommand(program, { logger } = {}) {
 
       const summary = await runner.run();
       persist();
+
+      if (recorder && options.otlp) {
+        try {
+          fs.writeFileSync(
+            options.otlp,
+            JSON.stringify(recorder.toOtlp(), null, 2),
+            "utf8",
+          );
+          if (!options.json)
+            (log.info || console.log)(`  OTLP spans → ${options.otlp}`);
+        } catch (e) {
+          (log.error || console.error)(`  otlp write failed: ${e.message}`);
+        }
+      }
 
       // Worktree integration: sequentially preview (and optionally merge) each
       // committed branch back to base, then remove the worktrees. Conflicts are
