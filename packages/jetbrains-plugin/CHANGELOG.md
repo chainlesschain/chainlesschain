@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- **Team Monitor (read-only).** New Tools action "ChainlessChain: Team Monitor
+  (团队任务监控)": pick a `cc team run --state <file>` snapshot and view the
+  parsed task graph — per-task status, lease holder (stale flag when its lease
+  expired), dependencies, retry count — plus progress and status counts, with
+  a Refresh button. The CLI runs the team; this window watches. VS Code
+  chainlesschain.team.monitor parity (dialog form).
 - **Diagnose Bridge.** New Tools action "ChainlessChain IDE: Diagnose Bridge
   (诊断桥接)": this project's bridge state plus the CLI's own discovery view
   (`cc ide status` / `cc ide doctor` / `cc ide jetbrains`) in one scrollable

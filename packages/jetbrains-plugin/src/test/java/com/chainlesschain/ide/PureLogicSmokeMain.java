@@ -64,6 +64,7 @@ public final class PureLogicSmokeMain {
         projectMemory();
         whatsNew();
         ideDoctor();
+        teamMonitor();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -1067,5 +1068,51 @@ public final class PureLogicSmokeMain {
         check(down.contains("Restart Bridge"), "recovery action named");
         int placeholders = down.split("no output — is the cc CLI installed", -1).length - 1;
         eq(placeholders, 3, "3 empty sections -> 3 visible placeholders");
+    }
+
+    private static void teamMonitor() {
+        System.out.println("TeamMonitor (cc team --state parse + summarize + report)");
+        String json = "{\"version\":2,\"registry\":{\"tasks\":{\"tasks\":["
+                + "{\"id\":\"a\",\"title\":\"build\",\"status\":\"completed\","
+                + "\"metadata\":{\"key\":\"a\",\"dependsOn\":[]}},"
+                + "{\"id\":\"b\",\"title\":\"test\",\"status\":\"in_progress\","
+                + "\"metadata\":{\"key\":\"b\",\"dependsOn\":[\"a\"],\"attempts\":2,"
+                + "\"lease\":{\"holder\":\"mate-1\",\"expiresAt\":10000}}},"
+                + "{\"id\":\"c\",\"title\":\"stalled\",\"status\":\"in_progress\","
+                + "\"metadata\":{\"lease\":{\"holder\":\"mate-2\",\"expiresAt\":1000}}},"
+                + "{\"id\":\"d\",\"title\":\"waiting\",\"status\":\"blocked\","
+                + "\"metadata\":{\"dependsOn\":[\"b\"]}}]}}}";
+        TeamMonitor.State st = TeamMonitor.parse(json);
+        check(st.ok, "parse ok");
+        eq(st.version, 2L, "version");
+        eq(st.tasks.size(), 4, "4 tasks flattened");
+        TeamMonitor.Task b = st.tasks.get(1);
+        eq(b.holder, "mate-1", "lease holder from metadata");
+        eq(b.attempts, 2, "attempts");
+        check(b.dependsOn.size() == 1 && b.dependsOn.get(0).equals("a"), "dependsOn");
+
+        TeamMonitor.Summary s = TeamMonitor.summarize(st, 5000L);
+        eq(s.total, 4, "total");
+        eq((int) s.counts.get("completed"), 1, "completed count");
+        eq((int) s.counts.get("in_progress"), 2, "in_progress count");
+        eq((int) s.counts.get("blocked"), 1, "blocked count");
+        eq(s.active, 1, "live lease @now=5000 (mate-1)");
+        eq(s.stale, 1, "expired lease @now=5000 (mate-2)");
+        eq(s.donePct, 25, "1/4 done = 25%");
+
+        String report = TeamMonitor.formatReport(st, 5000L);
+        check(report.contains("25% done · 1/4 tasks"), "report header");
+        check(report.contains("@mate-1"), "report shows holder");
+        check(report.contains("(stale)"), "report flags stale lease");
+        check(report.contains("×2"), "report shows retry count");
+
+        // Tolerant failures
+        check(!TeamMonitor.parse("{bad").ok, "bad json -> !ok");
+        check(!TeamMonitor.parse("{\"hello\":1}").ok, "wrong shape -> !ok");
+        check(!TeamMonitor.parse(null).ok, "null -> !ok");
+        TeamMonitor.State empty = TeamMonitor.parse(
+                "{\"version\":2,\"registry\":{\"tasks\":{\"tasks\":[]}}}");
+        check(empty.ok, "empty task list still ok");
+        eq(TeamMonitor.summarize(empty, 0L).donePct, 0, "empty -> 0% (no div-by-zero)");
     }
 }

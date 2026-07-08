@@ -409,3 +409,9 @@ Glue-layer (needs the next pre-release runIde pass):
       project's port, then `cc ide status` / `doctor` / `jetbrains` verbatim;
       with cc missing → three "(no output …)" placeholders, no hang (15s
       timeouts, all off-EDT).
+- [ ] **Team Monitor action** — Tools → "ChainlessChain: Team Monitor
+      (团队任务监控)" → file chooser (remembers last path) → dialog rendering a
+      `cc team run --state <file>` snapshot: header "N% done · x/y tasks",
+      status-ordered task list with holder/⇠deps/×attempts, "(stale)" on an
+      expired lease; Refresh button re-reads the file. Bad/empty file → clean
+      message, no throw.
