@@ -71,10 +71,13 @@ const INVOKABLE = [
   "chainlesschain.chat.newConversation",
   "chainlesschain.chat.reopenClosedSession",
   "chainlesschain.memory.files", // fake terminal
+  "chainlesschain.lens.explain", // no args → early return
+  "chainlesschain.lens.refactor",
 ];
 
 const SPAWNING = [
   "chainlesschain.ide.restart", // bridge disabled → cheap, but still async
+  "chainlesschain.ide.doctor", // spawns cc ide status + doctor
   "chainlesschain.cli.upgrade", // terminal npm i -g
   "chainlesschain.cli.checkUpdate", // npm registry fetch
   "chainlesschain.cli.whatsNew", // spawns cc changelog

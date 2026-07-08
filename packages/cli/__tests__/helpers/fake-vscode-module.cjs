@@ -61,6 +61,22 @@ class WorkspaceEdit {
   }
 }
 
+class Selection {
+  constructor(start, end) {
+    this.start = start;
+    this.end = end;
+    this.anchor = start;
+    this.active = end;
+  }
+}
+
+class CodeLens {
+  constructor(range, command) {
+    this.range = range;
+    this.command = command;
+  }
+}
+
 const commands = {}; // command id → callback (captured by registerCommand)
 const executed = []; // executeCommand log
 const messages = { info: [], warn: [], error: [] };
@@ -81,6 +97,8 @@ const vscode = {
   ThemeIcon,
   ThemeColor,
   Range,
+  Selection,
+  CodeLens,
   WorkspaceEdit,
   TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
   StatusBarAlignment: { Left: 1, Right: 2 },
@@ -150,6 +168,7 @@ const vscode = {
       throw new Error("fake-vscode: openTextDocument not stubbed");
     },
     applyEdit: async () => true,
+    onDidChangeConfiguration: () => ({ dispose: () => {} }),
   },
   commands: {
     registerCommand: (id, fn) => {
@@ -163,6 +182,7 @@ const vscode = {
   },
   languages: {
     registerCodeActionsProvider: () => ({ dispose: () => {} }),
+    registerCodeLensProvider: () => ({ dispose: () => {} }),
     getDiagnostics: () => [],
   },
 

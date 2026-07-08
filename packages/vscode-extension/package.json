@@ -47,6 +47,18 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "chainlesschain.ide.doctor",
+        "title": "ChainlessChain IDE: Diagnose Bridge (诊断桥接)"
+      },
+      {
+        "command": "chainlesschain.lens.explain",
+        "title": "ChainlessChain: Explain Symbol (CodeLens)"
+      },
+      {
+        "command": "chainlesschain.lens.refactor",
+        "title": "ChainlessChain: Refactor Symbol (CodeLens)"
+      },
+      {
         "command": "chainlesschain.diff.accept",
         "title": "ChainlessChain: Accept Diff Review"
       },
@@ -236,6 +248,16 @@
           "when": "view == chainlesschainIdeView",
           "group": "navigation@2"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "chainlesschain.lens.explain",
+          "when": "false"
+        },
+        {
+          "command": "chainlesschain.lens.refactor",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -265,6 +287,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show a persistent context-window usage line (tokens used / window) under the chat, refreshed after each turn."
+        },
+        "chainlesschain.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ✨ Explain / Refactor CodeLens above functions, methods and classes (uses the language's own symbol provider)."
         }
       }
     }

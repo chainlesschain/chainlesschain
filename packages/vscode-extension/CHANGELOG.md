@@ -4,6 +4,17 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **✨ Explain / Refactor CodeLens.** Functions, methods and classes get a
+  one-click lens (via the language's own symbol provider — every language with
+  document symbols, no CLI spawn): it selects the symbol's full range and seeds
+  the same `@selection` prompt as the context-menu actions. Capped at 30
+  symbols per file; `chainlesschain.codeLens.enabled` turns it off (applies to
+  open editors without a reload).
+- **Diagnose Bridge.** New command "ChainlessChain IDE: Diagnose Bridge
+  (诊断桥接)" renders this window's bridge state plus the CLI's own discovery
+  view (`cc ide status` + `cc ide doctor`) as one report — when a terminal
+  `cc agent` won't auto-connect, the WHY lives on the CLI side and used to be
+  invisible from the IDE.
 - **Insert at Cursor on chat code blocks.** Every fenced code block in a reply
   now has an **Insert** button next to Copy: it splices the snippet into the
   active editor at the caret (replacing a non-empty selection) — no full agent

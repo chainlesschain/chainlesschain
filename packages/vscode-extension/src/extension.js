@@ -279,6 +279,51 @@ function activate(context) {
     );
   };
 
+  // "✨ Explain / Refactor" CodeLens above functions/methods/classes: one
+  // click selects the symbol's full range and seeds the SAME @selection
+  // prompt as the context-menu actions. Symbols come from the IDE's own
+  // DocumentSymbolProvider; chainlesschain.codeLens.enabled turns it off (the
+  // change event refreshes open editors without a reload).
+  const { createCcCodeLensProvider } = require("./code-lens.js");
+  const lensRefresh = new vscode.EventEmitter();
+  const lensSeed = (action) => async (uri, range) => {
+    try {
+      if (!uri || !range) return;
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(doc, {
+        preview: false,
+      });
+      editor.selection = new vscode.Selection(range.start, range.end);
+      seedSelectionAction(action);
+    } catch {
+      /* lens is best-effort sugar over the context-menu action */
+    }
+  };
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      { scheme: "file" },
+      createCcCodeLensProvider(vscode, { onDidChange: lensRefresh.event }),
+    ),
+    lensRefresh,
+    vscode.commands.registerCommand(
+      "chainlesschain.lens.explain",
+      lensSeed("explain"),
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.lens.refactor",
+      lensSeed("refactor"),
+    ),
+  );
+  if (typeof vscode.workspace.onDidChangeConfiguration === "function") {
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e?.affectsConfiguration?.("chainlesschain.codeLens")) {
+          lensRefresh.fire();
+        }
+      }),
+    );
+  }
+
   // Live UI updates on every logged event.
   context.subscriptions.push({
     dispose: _activityLog.onChange((e) => {
@@ -300,6 +345,39 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.restart", () =>
       startBridge(context).catch((e) => log("restart failed: " + e.message)),
     ),
+    // Diagnose Bridge: this window's bridge state + the CLI's own discovery
+    // view (`cc ide status` / `cc ide doctor`) in one report — when a terminal
+    // `cc agent` won't auto-connect, the WHY lives on the CLI side.
+    vscode.commands.registerCommand("chainlesschain.ide.doctor", async () => {
+      const doctor = require("./ide-doctor.js");
+      const { runCliText } = require("./chat/introspect-commands.js");
+      const { getResolvedCli } = require("./cli-binary");
+      const command = getResolvedCli();
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+      const [statusText, doctorText] = await Promise.all([
+        runCliText({
+          command,
+          args: doctor.IDE_STATUS_ARGS,
+          cwd,
+          timeoutMs: 15000,
+        }),
+        runCliText({
+          command,
+          args: doctor.IDE_DOCTOR_ARGS,
+          cwd,
+          timeoutMs: 15000,
+        }),
+      ]);
+      const doc = await vscode.workspace.openTextDocument({
+        content: doctor.formatBridgeReport({
+          port: _port,
+          statusText,
+          doctorText,
+        }),
+        language: "markdown",
+      });
+      await vscode.window.showTextDocument(doc, { preview: false });
+    }),
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
