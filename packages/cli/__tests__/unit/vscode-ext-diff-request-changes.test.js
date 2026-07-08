@@ -25,6 +25,12 @@ function fakeVscode({ inputs = [], selection } = {}) {
   const visibleTextEditors = [];
 
   const v = {
+    l10n: {
+      t: (m, ...a) =>
+        String(m).replace(/\{(\d+)\}/g, (x, i) =>
+          a[i] != null ? String(a[i]) : x,
+        ),
+    },
     Uri: { file: (p) => ({ fsPath: p, toString: () => "file://" + p }) },
     workspace: {
       openTextDocument: async (arg) => {

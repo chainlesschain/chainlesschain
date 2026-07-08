@@ -13,6 +13,12 @@ function fakeVscode({ choice, picks } = {}) {
   let untitled = 0;
   const changesCalls = [];
   const v = {
+    l10n: {
+      t: (m, ...a) =>
+        String(m).replace(/\{(\d+)\}/g, (x, i) =>
+          a[i] != null ? String(a[i]) : x,
+        ),
+    },
     Uri: {
       file: (p) => ({
         fsPath: p,
@@ -139,6 +145,12 @@ function fakeVscodePending() {
   let untitled = 0;
   const ctx = []; // setContext(chainlesschainDiffActive, bool) calls
   const v = {
+    l10n: {
+      t: (m, ...a) =>
+        String(m).replace(/\{(\d+)\}/g, (x, i) =>
+          a[i] != null ? String(a[i]) : x,
+        ),
+    },
     Uri: {
       file: (p) => ({
         fsPath: p,
@@ -286,6 +298,12 @@ function fakeVscodeWithTab() {
   const closeListeners = [];
   const tab = { id: "multidiff-tab" }; // the captured multi-diff tab (by ref)
   const v = {
+    l10n: {
+      t: (m, ...a) =>
+        String(m).replace(/\{(\d+)\}/g, (x, i) =>
+          a[i] != null ? String(a[i]) : x,
+        ),
+    },
     Uri: {
       file: (p) => ({
         fsPath: p,

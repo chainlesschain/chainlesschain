@@ -48,12 +48,12 @@ function cleanConfigValue(v) {
 
 /** Curated provider presets (ids must match the CLI's BUILT_IN_PROVIDERS). */
 const PROVIDER_PRESETS = [
-  { id: "volcengine", label: "火山引擎 / 豆包 (volcengine)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "doubao-seed-2-1-pro-260628", needsKey: true },
-  { id: "ollama", label: "Ollama (本地, 免 key)", baseUrl: "http://localhost:11434", defaultModel: "qwen2.5:7b", needsKey: false },
+  { id: "volcengine", label: "Volcengine / Doubao (volcengine)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "doubao-seed-2-1-pro-260628", needsKey: true },
+  { id: "ollama", label: "Ollama (local, no key)", baseUrl: "http://localhost:11434", defaultModel: "qwen2.5:7b", needsKey: false },
   { id: "anthropic", label: "Anthropic Claude", baseUrl: "https://api.anthropic.com/v1", defaultModel: "claude-sonnet-4-6", needsKey: true },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o", needsKey: true },
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", defaultModel: "deepseek-chat", needsKey: true },
-  { id: "dashscope", label: "阿里云百炼 / 通义 (dashscope)", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", defaultModel: "qwen-max", needsKey: true },
+  { id: "dashscope", label: "Aliyun Bailian / Tongyi (dashscope)", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", defaultModel: "qwen-max", needsKey: true },
   { id: "kimi", label: "Moonshot Kimi", baseUrl: "https://api.moonshot.cn/v1", defaultModel: "moonshot-v1-auto", needsKey: true },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", defaultModel: "gemini-2.0-flash", needsKey: true },
   { id: "mistral", label: "Mistral", baseUrl: "https://api.mistral.ai/v1", defaultModel: "mistral-large-latest", needsKey: true },

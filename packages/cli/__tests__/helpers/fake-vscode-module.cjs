@@ -187,6 +187,21 @@ const vscode = {
     registerCodeLensProvider: () => ({ dispose: () => {} }),
     getDiagnostics: () => [],
   },
+  // vscode.l10n.t — returns the base (English) message with {0}/{1} positional
+  // args substituted, matching the real API's format so assertions on the
+  // rendered text hold. (The host loads the zh-cn bundle at runtime; tests run
+  // against the source-language base.)
+  l10n: {
+    t: (message, ...args) => {
+      const s =
+        typeof message === "string"
+          ? message
+          : (message && message.message) || "";
+      return s.replace(/\{(\d+)\}/g, (m, i) =>
+        args[Number(i)] != null ? String(args[Number(i)]) : m,
+      );
+    },
+  },
 
   // ── test seams (not part of the real API) ────────────────────────────────
   __commands: commands,

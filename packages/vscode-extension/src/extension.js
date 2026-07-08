@@ -536,9 +536,13 @@ function activate(context) {
             hasConfiguredApiKey({ command: cliCmd }),
           ]);
         const items = PROVIDER_PRESETS.map((p) => ({
-          label: p.label + (p.id === curProvider ? "  ✓ 当前" : ""),
+          label: vscode.l10n.t(p.label) + (p.id === curProvider ? vscode.l10n.t("  ✓ current") : ""),
           description: p.id,
-          detail: `默认模型 ${p.defaultModel} · ${p.needsKey ? "需要 API key" : "免 key"}`,
+          detail: vscode.l10n.t(
+            "Default model {0} · {1}",
+            p.defaultModel,
+            p.needsKey ? vscode.l10n.t("needs API key") : vscode.l10n.t("no key"),
+          ),
           preset: p,
         }));
         // Surface the current provider first so re-running defaults to "keep".
@@ -550,8 +554,9 @@ function activate(context) {
               : 0,
         );
         const pick = await vscode.window.showQuickPick(items, {
-          placeHolder:
-            "选择 LLM 提供商(写入 ~/.chainlesschain/config.json,CLI 与 Chat 面板共用)",
+          placeHolder: vscode.l10n.t(
+            "Choose an LLM provider (written to ~/.chainlesschain/config.json, shared by the CLI and the Chat panel)",
+          ),
         });
         if (!pick) return;
         const preset = pick.preset;
@@ -559,7 +564,7 @@ function activate(context) {
         // allow keeping the stored key. Switched provider → use preset defaults.
         const sameProvider = preset.id === curProvider;
         const model = await vscode.window.showInputBox({
-          prompt: `模型名(${preset.id})`,
+          prompt: vscode.l10n.t("Model name ({0})", preset.id),
           value: (sameProvider && curModel) || preset.defaultModel,
           ignoreFocusOut: true,
         });
@@ -569,11 +574,11 @@ function activate(context) {
           const canKeep = sameProvider && curHasKey;
           const entered = await vscode.window.showInputBox({
             prompt: canKeep
-              ? `${preset.label} 的 API key(留空 = 保留已有的 key,不必重输)`
-              : `${preset.label} 的 API key(只写入本机 config.json,不进 VS Code 设置)`,
+              ? vscode.l10n.t("API key for {0} (leave blank = keep the existing key, no need to retype)", preset.label)
+              : vscode.l10n.t("API key for {0} (written only to the local config.json, not VS Code settings)", preset.label),
             password: true,
             ignoreFocusOut: true,
-            placeHolder: canKeep ? "留空保留现有 key" : "",
+            placeHolder: canKeep ? vscode.l10n.t("leave blank to keep the existing key") : "",
           });
           if (entered === undefined) return; // cancelled
           // Blank + canKeep → applyLlmConfig omits llm.apiKey, keeping the
@@ -581,13 +586,13 @@ function activate(context) {
           apiKey = entered;
           if (!apiKey && !canKeep) {
             vscode.window.showWarningMessage(
-              "未输入 API key — 配置已取消(该提供商必须有 key)。",
+              vscode.l10n.t("No API key entered — configuration cancelled (this provider requires a key)."),
             );
             return;
           }
         }
         const baseUrl = await vscode.window.showInputBox({
-          prompt: "Base URL(回车用默认)",
+          prompt: vscode.l10n.t("Base URL (Enter for the default)"),
           value: (sameProvider && curBaseUrl) || preset.baseUrl,
           ignoreFocusOut: true,
         });
@@ -596,8 +601,9 @@ function activate(context) {
         // the panel auto-switches to it when you paste a screenshot. Blank =
         // reuse the text model / the CLI default.
         const visionModel = await vscode.window.showInputBox({
-          prompt:
-            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认;粘贴截图时自动切到此模型)",
+          prompt: vscode.l10n.t(
+            "Image-recognition (vision) model (blank = same as the text model / the CLI default; auto-selected when you paste a screenshot)",
+          ),
           value: (sameProvider && curVision) || suggestVisionModel(preset.id),
           ignoreFocusOut: true,
         });
@@ -614,25 +620,25 @@ function activate(context) {
           // A "cc not found" failure needs install guidance (with the Node
           // floor), not the raw shell error — same fix as the JetBrains plugin.
           const msg = looksLikeMissingCli(applied.error)
-            ? `LLM 配置写入失败:未找到 cc CLI。${installGuidance(true)}`
-            : `LLM 配置写入失败:${applied.error}`;
+            ? vscode.l10n.t("Failed to write LLM config: cc CLI not found. {0}", installGuidance(true))
+            : vscode.l10n.t("Failed to write LLM config: {0}", applied.error);
           vscode.window.showErrorMessage(msg);
           return;
         }
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: `已写入 ${preset.id} 配置,正在用 cc llm test 验证连通…`,
+            title: vscode.l10n.t("Wrote {0} config, verifying connectivity with cc llm test…", preset.id),
           },
           async () => {
             const t = await testLlm({ command: cliCmd });
             if (t.ok) {
               vscode.window.showInformationMessage(
-                `LLM 配置完成并连通 ✓ (${preset.id} · ${model})。Chat 面板的下一条消息即生效。`,
+                vscode.l10n.t("LLM configured and reachable ✓ ({0} · {1}). The Chat panel's next message uses it.", preset.id, model),
               );
             } else {
               vscode.window.showWarningMessage(
-                `配置已写入,但连通性测试未通过:${t.detail || "见输出"} — 检查 key/网络后可重跑 ChainlessChain: Configure LLM。`,
+                vscode.l10n.t("Config written, but the connectivity test failed: {0} — check the key/network, then re-run ChainlessChain: Configure LLM.", t.detail || vscode.l10n.t("see output")),
               );
             }
           },
@@ -661,22 +667,23 @@ function activate(context) {
         ]);
         const prefill = current || suggestVisionModel(provider || "");
         const visionModel = await vscode.window.showInputBox({
-          prompt:
-            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认;粘贴截图时自动切到此模型)",
+          prompt: vscode.l10n.t(
+            "Image-recognition (vision) model (blank = same as the text model / the CLI default; auto-selected when you paste a screenshot)",
+          ),
           value: prefill,
           ignoreFocusOut: true,
         });
         if (visionModel === undefined) return;
         const r = await setVisionModel({ command: cliCmd, visionModel });
         if (!r.ok) {
-          vscode.window.showErrorMessage(`视觉模型写入失败:${r.error}`);
+          vscode.window.showErrorMessage(vscode.l10n.t("Failed to write the vision model: {0}", r.error));
         } else if (!visionModel.trim()) {
           vscode.window.showInformationMessage(
-            "已清除图片识别模型 —— 看图时复用文本模型 / CLI 默认。",
+            vscode.l10n.t("Cleared the image-recognition model — images reuse the text model / CLI default."),
           );
         } else {
           vscode.window.showInformationMessage(
-            `图片识别模型已设为 ${visionModel.trim()} ✓(粘贴截图时自动切到它)。`,
+            vscode.l10n.t("Image-recognition model set to {0} ✓ (auto-selected when you paste a screenshot).", visionModel.trim()),
           );
         }
       },

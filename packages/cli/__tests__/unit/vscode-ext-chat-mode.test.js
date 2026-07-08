@@ -233,6 +233,12 @@ describe("createModeStatusBar — render", () => {
           this.id = id;
         }
       },
+      l10n: {
+        t: (m, ...a) =>
+          String(m).replace(/\{(\d+)\}/g, (x, i) =>
+            a[i] != null ? String(a[i]) : x,
+          ),
+      },
       window: { createStatusBarItem: () => item },
     };
     return { vscode, item };

@@ -15,12 +15,16 @@ function createStatusBar(vscode, commandId) {
     if (state && state.port > 0) {
       const n = state.toolCount || 0;
       item.text = `$(plug) IDE :${state.port}` + (n ? ` $(arrow-right)${n}` : "");
-      item.tooltip =
-        `ChainlessChain IDE 桥接\n127.0.0.1:${state.port}（MCP server "ide"）\n` +
-        `工具调用 ${n} 次 · 点击打开仪表板`;
+      item.tooltip = vscode.l10n.t(
+        'ChainlessChain IDE bridge\n127.0.0.1:{0} (MCP server "ide")\n{1} tool calls · click to open the dashboard',
+        String(state.port),
+        String(n),
+      );
     } else {
       item.text = "$(debug-disconnect) IDE off";
-      item.tooltip = "ChainlessChain IDE 桥接已停止 · 点击打开仪表板";
+      item.tooltip = vscode.l10n.t(
+        "ChainlessChain IDE bridge stopped · click to open the dashboard",
+      );
     }
     item.show();
   }
@@ -59,15 +63,21 @@ function createModeStatusBar(vscode, commandId) {
   function render(mode) {
     if (mode === "bypassPermissions") {
       item.text = "$(unlock) bypass approvals";
-      item.tooltip = "ChainlessChain 聊天：跳过所有批准（危险）· /normal 恢复";
+      item.tooltip = vscode.l10n.t(
+        "ChainlessChain chat: skip all approvals (dangerous) · /normal to restore",
+      );
       item.backgroundColor = warnBg;
     } else if (mode === "acceptEdits") {
       item.text = "$(check) auto-accept edits";
-      item.tooltip = "ChainlessChain 聊天：自动接受编辑 · /normal 恢复";
+      item.tooltip = vscode.l10n.t(
+        "ChainlessChain chat: auto-accept edits · /normal to restore",
+      );
       item.backgroundColor = undefined;
     } else {
       item.text = "$(shield) approvals";
-      item.tooltip = "ChainlessChain 聊天：正常批准（每步确认）· /auto · /bypass";
+      item.tooltip = vscode.l10n.t(
+        "ChainlessChain chat: normal approvals (confirm each step) · /auto · /bypass",
+      );
       item.backgroundColor = undefined;
     }
     item.show();

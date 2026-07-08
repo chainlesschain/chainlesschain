@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Proper localization — the UI now follows your IDE language.** The extension's
+  chrome no longer mixes English and Chinese. Command titles, settings labels,
+  the sidebar/status-bar, and every dialog/notification/input are now localized:
+  an English VS Code shows clean English, a 中文 VS Code shows 中文 — the old
+  "English (中文)" double-labels are gone. Command/setting strings move to
+  `package.nls.json` + `package.nls.zh-cn.json`; runtime messages go through
+  `vscode.l10n.t` with an `l10n/bundle.l10n.zh-cn.json` translation bundle. A
+  new test gate (`vscode-ext-l10n.test.js`) fails if a user-facing string is
+  ever added without its translation. (Webview panels — the chat setup card and
+  the dashboard — are the remaining surface and localize next.)
+
 ## [0.37.5] — feature batch: IDE affordances (2026-07-08)
 
 New IDE-side capabilities surfacing the `cc` CLI's newer features and closing

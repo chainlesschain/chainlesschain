@@ -30,111 +30,112 @@
     "onUri"
   ],
   "main": "./src/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "commands": [
       {
         "command": "chainlesschain.ide.showStatus",
-        "title": "ChainlessChain IDE: Show Bridge Status"
+        "title": "%cmd.ide.showStatus.title%"
       },
       {
         "command": "chainlesschain.ide.restart",
-        "title": "ChainlessChain IDE: Restart Bridge",
+        "title": "%cmd.ide.restart.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "chainlesschain.ide.openDashboard",
-        "title": "ChainlessChain IDE: Open Dashboard",
+        "title": "%cmd.ide.openDashboard.title%",
         "icon": "$(dashboard)"
       },
       {
         "command": "chainlesschain.ide.doctor",
-        "title": "ChainlessChain IDE: Diagnose Bridge (诊断桥接)"
+        "title": "%cmd.ide.doctor.title%"
       },
       {
         "command": "chainlesschain.team.monitor",
-        "title": "ChainlessChain: Team Monitor (团队任务监控)",
+        "title": "%cmd.team.monitor.title%",
         "icon": "$(organization)"
       },
       {
         "command": "chainlesschain.lens.explain",
-        "title": "ChainlessChain: Explain Symbol (CodeLens)"
+        "title": "%cmd.lens.explain.title%"
       },
       {
         "command": "chainlesschain.lens.refactor",
-        "title": "ChainlessChain: Refactor Symbol (CodeLens)"
+        "title": "%cmd.lens.refactor.title%"
       },
       {
         "command": "chainlesschain.diff.accept",
-        "title": "ChainlessChain: Accept Diff Review"
+        "title": "%cmd.diff.accept.title%"
       },
       {
         "command": "chainlesschain.diff.reject",
-        "title": "ChainlessChain: Reject Diff Review"
+        "title": "%cmd.diff.reject.title%"
       },
       {
         "command": "chainlesschain.memory.init",
-        "title": "ChainlessChain: Generate Project Memory (cc.md)"
+        "title": "%cmd.memory.init.title%"
       },
       {
         "command": "chainlesschain.memory.files",
-        "title": "ChainlessChain: Show Project Memory Files"
+        "title": "%cmd.memory.files.title%"
       },
       {
         "command": "chainlesschain.llm.configure",
-        "title": "ChainlessChain: Configure LLM (配置大模型)",
+        "title": "%cmd.llm.configure.title%",
         "icon": "$(gear)"
       },
       {
         "command": "chainlesschain.llm.configureVision",
-        "title": "ChainlessChain: Configure Vision Model (配置图片识别模型)"
+        "title": "%cmd.llm.configureVision.title%"
       },
       {
         "command": "chainlesschain.chat.insertReference",
-        "title": "ChainlessChain: Insert File Reference into Chat (@file)"
+        "title": "%cmd.chat.insertReference.title%"
       },
       {
         "command": "chainlesschain.chat.fixDiagnostics",
-        "title": "ChainlessChain: Fix with ChainlessChain (diagnostics)"
+        "title": "%cmd.chat.fixDiagnostics.title%"
       },
       {
         "command": "chainlesschain.chat.explainSelection",
-        "title": "ChainlessChain: Explain Selection"
+        "title": "%cmd.chat.explainSelection.title%"
       },
       {
         "command": "chainlesschain.chat.refactorSelection",
-        "title": "ChainlessChain: Refactor Selection"
+        "title": "%cmd.chat.refactorSelection.title%"
       },
       {
         "command": "chainlesschain.chat.newConversation",
-        "title": "ChainlessChain: New Chat Conversation",
+        "title": "%cmd.chat.newConversation.title%",
         "icon": "$(add)"
       },
       {
         "command": "chainlesschain.chat.reopenClosedSession",
-        "title": "ChainlessChain: Reopen Closed Chat"
+        "title": "%cmd.chat.reopenClosedSession.title%"
       },
       {
         "command": "chainlesschain.preview.start",
-        "title": "ChainlessChain: Start App Preview",
+        "title": "%cmd.preview.start.title%",
         "icon": "$(globe)"
       },
       {
         "command": "chainlesschain.preview.stop",
-        "title": "ChainlessChain: Stop App Preview"
+        "title": "%cmd.preview.stop.title%"
       },
       {
         "command": "chainlesschain.cli.upgrade",
-        "title": "ChainlessChain: Upgrade CLI (npm i -g chainlesschain@latest)",
+        "title": "%cmd.cli.upgrade.title%",
         "icon": "$(cloud-download)"
       },
       {
         "command": "chainlesschain.cli.checkUpdate",
-        "title": "ChainlessChain: Check for CLI Updates (cc version)",
+        "title": "%cmd.cli.checkUpdate.title%",
         "icon": "$(sync)"
       },
       {
         "command": "chainlesschain.cli.whatsNew",
-        "title": "ChainlessChain: What's New in cc CLI (更新说明)",
+        "title": "%cmd.cli.whatsNew.title%",
         "icon": "$(sparkle)"
       }
     ],
@@ -178,7 +179,7 @@
       "activitybar": [
         {
           "id": "chainlesschainIde",
-          "title": "ChainlessChain IDE",
+          "title": "%view.container.title%",
           "icon": "media/logo-mark.png"
         }
       ]
@@ -187,11 +188,11 @@
       "chainlesschainIde": [
         {
           "id": "chainlesschainIdeView",
-          "name": "桥接状态"
+          "name": "%view.status.name%"
         },
         {
           "id": "chainlesschainIdeChat",
-          "name": "Chat",
+          "name": "%view.chat.name%",
           "type": "webview"
         }
       ]
@@ -266,37 +267,37 @@
       ]
     },
     "configuration": {
-      "title": "ChainlessChain IDE Bridge",
+      "title": "%config.title%",
       "properties": {
         "chainlesschain.ide.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Run the IDE bridge MCP server so `cc agent` can auto-connect."
+          "description": "%config.ide.enabled.description%"
         },
         "chainlesschain.cli.path": {
           "type": "string",
           "default": "cc",
-          "description": "Path to the ChainlessChain CLI executable the chat panel spawns (default: `cc` from PATH; install with `npm i -g chainlesschain`)."
+          "description": "%config.cli.path.description%"
         },
         "chainlesschain.chat.provider": {
           "type": "string",
           "default": "",
-          "description": "LLM provider for the chat panel (e.g. ollama, anthropic, volcengine). Empty = the CLI's configured default."
+          "description": "%config.chat.provider.description%"
         },
         "chainlesschain.chat.model": {
           "type": "string",
           "default": "",
-          "description": "Model for the chat panel (e.g. qwen2.5:7b). Empty = the CLI's configured default."
+          "description": "%config.chat.model.description%"
         },
         "chainlesschain.chat.contextIndicator": {
           "type": "boolean",
           "default": true,
-          "description": "Show a persistent context-window usage line (tokens used / window) under the chat, refreshed after each turn."
+          "description": "%config.chat.contextIndicator.description%"
         },
         "chainlesschain.codeLens.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show ✨ Explain / Refactor CodeLens above functions, methods and classes (uses the language's own symbol provider)."
+          "description": "%config.codeLens.enabled.description%"
         }
       }
     }

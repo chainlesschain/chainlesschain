@@ -522,7 +522,7 @@ function createVscodeEditorFacade(vscode) {
           {
             canPickMany: true,
             ignoreFocusOut: true,
-            placeHolder: "勾选要应用的文件(未勾选保留原样);Esc 取消 = 不应用",
+            placeHolder: vscode.l10n.t("Check the files to apply (unchecked = keep as-is); Esc to cancel = apply nothing"),
           },
         );
         if (!picks || picks.length === 0) {
@@ -665,12 +665,12 @@ async function collectReviewComments(vscode, rightDoc) {
     }
     const where = Number.isInteger(anchor.line)
       ? anchor.endLine != null && anchor.endLine !== anchor.line
-        ? `行 ${anchor.line + 1}-${anchor.endLine + 1}`
-        : `行 ${anchor.line + 1}`
-      : "整体";
+        ? vscode.l10n.t("lines {0}-{1}", String(anchor.line + 1), String(anchor.endLine + 1))
+        : vscode.l10n.t("line {0}", String(anchor.line + 1))
+      : vscode.l10n.t("whole file");
     const note = await vscode.window.showInputBox({
-      prompt: `评审意见 #${comments.length + 1}(锚定 ${where};留空结束评审)`,
-      placeHolder: "描述希望 agent 如何修改这处改动…",
+      prompt: vscode.l10n.t("Review comment #{0} (anchored to {1}; blank to finish the review)", String(comments.length + 1), where),
+      placeHolder: vscode.l10n.t("Describe how you want the agent to change this edit…"),
       // Reviewers alt-tab to inspect the diff while typing — focus loss must
       // not silently end the review (same lesson as the hunk-pick QuickPick).
       ignoreFocusOut: true,

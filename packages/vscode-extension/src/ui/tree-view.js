@@ -41,24 +41,24 @@ class IdeBridgeTreeProvider {
       const running = s.port > 0;
 
       const status = new vscode.TreeItem(
-        running ? `运行中 · 端口 ${s.port}` : "已停止",
+        running ? vscode.l10n.t("Running · port {0}", String(s.port)) : vscode.l10n.t("Stopped"),
         C.None,
       );
       status.iconPath = new vscode.ThemeIcon(
         running ? "pass-filled" : "circle-slash",
       );
-      status.description = running ? `${s.toolCount || 0} 次调用` : "";
+      status.description = running ? vscode.l10n.t("{0} calls", String(s.toolCount || 0)) : "";
       status.contextValue = "status";
 
-      const ws = new vscode.TreeItem("工作区", C.Collapsed);
+      const ws = new vscode.TreeItem(vscode.l10n.t("Workspace"), C.Collapsed);
       ws.iconPath = new vscode.ThemeIcon("folder");
       ws.contextValue = "workspace";
 
-      const tools = new vscode.TreeItem("工具 (4)", C.Collapsed);
+      const tools = new vscode.TreeItem(vscode.l10n.t("Tools (4)"), C.Collapsed);
       tools.iconPath = new vscode.ThemeIcon("tools");
       tools.contextValue = "tools";
 
-      const act = new vscode.TreeItem("最近调用", C.Expanded);
+      const act = new vscode.TreeItem(vscode.l10n.t("Recent calls"), C.Expanded);
       act.iconPath = new vscode.ThemeIcon("history");
       act.contextValue = "activity";
 
@@ -69,17 +69,17 @@ class IdeBridgeTreeProvider {
       const s = this.getState() || {};
       const folders = s.workspaceFolders || [];
       if (!folders.length) {
-        return [leaf(vscode, "(无工作区)", "circle-outline")];
+        return [leaf(vscode, vscode.l10n.t("(no workspace)"), "circle-outline")];
       }
       return folders.map((f) => leaf(vscode, f, "folder-opened"));
     }
 
     if (el.contextValue === "tools") {
       const descs = {
-        getSelection: "当前选区",
-        getDiagnostics: "诊断/报错",
-        getOpenEditors: "打开的文件",
-        openDiff: "原生 diff 评审",
+        getSelection: vscode.l10n.t("current selection"),
+        getDiagnostics: vscode.l10n.t("diagnostics / errors"),
+        getOpenEditors: vscode.l10n.t("open files"),
+        openDiff: vscode.l10n.t("native diff review"),
       };
       return Object.keys(descs).map((n) => {
         const t = leaf(vscode, n, "symbol-method");
@@ -90,11 +90,11 @@ class IdeBridgeTreeProvider {
 
     if (el.contextValue === "activity") {
       const recent = this.log.recent(25);
-      if (!recent.length) return [leaf(vscode, "暂无调用", "circle-outline")];
+      if (!recent.length) return [leaf(vscode, vscode.l10n.t("No calls yet"), "circle-outline")];
       return recent.map((e) => {
         const failed = e.ok === false;
         const label =
-          e.type === "tool" ? `${e.tool}${failed ? " ✗" : ""}` : "client 连接";
+          e.type === "tool" ? `${e.tool}${failed ? " ✗" : ""}` : vscode.l10n.t("client connected");
         const t = leaf(
           vscode,
           label,
