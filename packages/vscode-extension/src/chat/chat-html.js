@@ -23,7 +23,7 @@ const SLASH_SOURCE = fs.readFileSync(
   "utf8",
 );
 
-function buildChatHtml({ cspSource, nonce }) {
+function buildChatHtml({ cspSource, nonce, l10n }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,6 +154,7 @@ function buildChatHtml({ cspSource, nonce }) {
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
+  const CC_L10N = ${JSON.stringify(l10n || {})};
   const log = document.getElementById("log");
   const input = document.getElementById("input");
   const status = document.getElementById("status");
@@ -913,12 +914,12 @@ function buildChatHtml({ cspSource, nonce }) {
         const q = document.createElement("div");
         q.className = "q";
         q.textContent = m.reason
-          ? "LLM 连接失败:" + m.reason + " — 先完成大模型配置"
-          : "还没有配置大模型 — 一分钟引导即可开聊(写入本机 config.json,CLI 与面板共用)";
+          ? (CC_L10N.setupFailed || "LLM connection failed: {0}").replace("{0}", m.reason)
+          : (CC_L10N.setupNoConfig || "No model configured yet");
         const btns = document.createElement("div");
         btns.className = "buttons";
         const go = document.createElement("button");
-        go.textContent = "Configure LLM / 配置大模型";
+        go.textContent = CC_L10N.configureLlmBtn || "Configure LLM";
         go.addEventListener("click", () => {
           vscode.postMessage({ type: "configureLlm" });
           card.remove();

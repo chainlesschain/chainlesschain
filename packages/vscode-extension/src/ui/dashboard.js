@@ -23,11 +23,11 @@ function openDashboard(vscode, context, getState, activityLog) {
   }
   _panel = vscode.window.createWebviewPanel(
     "chainlesschainIdeDashboard",
-    "ChainlessChain IDE 桥接",
+    vscode.l10n.t("ChainlessChain IDE bridge"),
     vscode.ViewColumn.Active,
     { enableScripts: true, retainContextWhenHidden: true },
   );
-  _panel.webview.html = renderHtml(_panel.webview);
+  _panel.webview.html = renderHtml(_panel.webview, dashboardStrings(vscode));
 
   _panel.webview.onDidReceiveMessage((msg) => {
     if (msg && msg.command === "restart") {
@@ -60,7 +60,33 @@ function nonce() {
   return require("crypto").randomBytes(16).toString("hex");
 }
 
-function renderHtml(webview) {
+/**
+ * Localize the webview's chrome in the extension host (the webview itself can't
+ * call vscode.l10n.t) — resolved once here, interpolated into the static HTML
+ * and injected as `L` for the inline script.
+ */
+function dashboardStrings(vscode) {
+  return {
+    title: vscode.l10n.t("ChainlessChain IDE bridge"),
+    disconnected: vscode.l10n.t("Disconnected"),
+    restart: vscode.l10n.t("Restart bridge"),
+    port: vscode.l10n.t("Port"),
+    toolCalls: vscode.l10n.t("Tool calls"),
+    clientConnections: vscode.l10n.t("Client connections"),
+    errors: vscode.l10n.t("Errors"),
+    liveToolCalls: vscode.l10n.t("Live tool calls"),
+    thTime: vscode.l10n.t("Time"),
+    thTool: vscode.l10n.t("Tool"),
+    thDetail: vscode.l10n.t("Detail"),
+    noCalls: vscode.l10n.t("No calls yet"),
+    running: vscode.l10n.t("Running"),
+    stopped: vscode.l10n.t("Stopped"),
+    workspace: vscode.l10n.t("Workspace"),
+    clientConnected: vscode.l10n.t("client connected"),
+  };
+}
+
+function renderHtml(webview, L) {
   const n = nonce();
   const csp =
     `default-src 'none'; style-src 'unsafe-inline'; ` +
@@ -98,45 +124,46 @@ function renderHtml(webview) {
 </style>
 </head>
 <body>
-  <h1>ChainlessChain IDE 桥接</h1>
+  <h1>${L.title}</h1>
   <div class="row">
-    <span id="badge"><span class="dot down"></span><span id="state">未连接</span></span>
-    <button id="restart">重启桥接</button>
+    <span id="badge"><span class="dot down"></span><span id="state">${L.disconnected}</span></span>
+    <button id="restart">${L.restart}</button>
   </div>
   <div class="cards">
-    <div class="card"><div class="k">端口</div><div class="v" id="port">—</div></div>
-    <div class="card"><div class="k">工具调用</div><div class="v" id="cTool">0</div></div>
-    <div class="card"><div class="k">client 连接</div><div class="v" id="cConn">0</div></div>
-    <div class="card"><div class="k">错误</div><div class="v" id="cErr">0</div></div>
+    <div class="card"><div class="k">${L.port}</div><div class="v" id="port">—</div></div>
+    <div class="card"><div class="k">${L.toolCalls}</div><div class="v" id="cTool">0</div></div>
+    <div class="card"><div class="k">${L.clientConnections}</div><div class="v" id="cConn">0</div></div>
+    <div class="card"><div class="k">${L.errors}</div><div class="v" id="cErr">0</div></div>
   </div>
   <div class="muted" id="ws"></div>
-  <h3>实时工具调用</h3>
+  <h3>${L.liveToolCalls}</h3>
   <table>
-    <thead><tr><th style="width:90px">时间</th><th style="width:140px">工具</th><th>详情</th></tr></thead>
-    <tbody id="log"><tr><td colspan="3" class="muted">暂无调用</td></tr></tbody>
+    <thead><tr><th style="width:90px">${L.thTime}</th><th style="width:140px">${L.thTool}</th><th>${L.thDetail}</th></tr></thead>
+    <tbody id="log"><tr><td colspan="3" class="muted">${L.noCalls}</td></tr></tbody>
   </table>
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
+  const L = ${JSON.stringify(L)};
   document.getElementById('restart').addEventListener('click', () => vscode.postMessage({ command: 'restart' }));
   function t(ts){ if(!ts) return ''; const d=new Date(ts); const p=x=>String(x).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
   function apply(m){
     const s = m.state || {}, c = m.counts || {};
     const up = s.port > 0;
-    document.getElementById('badge').innerHTML = '<span class="dot '+(up?'up':'down')+'"></span>'+(up?'运行中':'已停止');
+    document.getElementById('badge').innerHTML = '<span class="dot '+(up?'up':'down')+'"></span>'+(up?L.running:L.stopped);
     document.getElementById('port').textContent = up ? s.port : '—';
     document.getElementById('cTool').textContent = c.tool || 0;
     document.getElementById('cConn').textContent = c.connect || 0;
     document.getElementById('cErr').textContent = c.error || 0;
     const ws = (s.workspaceFolders||[]);
-    document.getElementById('ws').textContent = ws.length ? ('工作区: '+ws.join('  ·  ')) : '';
+    document.getElementById('ws').textContent = ws.length ? (L.workspace+': '+ws.join('  ·  ')) : '';
     const rows = (m.recent||[]).map(e => {
       const failed = e.ok === false;
-      const name = e.type==='tool' ? e.tool : 'client 连接';
+      const name = e.type==='tool' ? e.tool : L.clientConnected;
       const detail = e.argsSummary || (failed ? e.error : '');
       return '<tr><td class="t">'+t(e.ts)+'</td><td class="'+(failed?'err':'ok')+'">'+esc(name)+(failed?' ✗':'')+'</td><td>'+esc(detail)+'</td></tr>';
     });
-    document.getElementById('log').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" class="muted">暂无调用</td></tr>';
+    document.getElementById('log').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" class="muted">'+L.noCalls+'</td></tr>';
   }
   // Coalesce a burst of activity events into one DOM rebuild per frame — a busy
   // agent turn posts a full snapshot per tool call, and only the latest matters.

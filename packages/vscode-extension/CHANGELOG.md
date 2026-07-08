@@ -12,8 +12,12 @@ All notable changes to this extension are documented here.
   `package.nls.json` + `package.nls.zh-cn.json`; runtime messages go through
   `vscode.l10n.t` with an `l10n/bundle.l10n.zh-cn.json` translation bundle. A
   new test gate (`vscode-ext-l10n.test.js`) fails if a user-facing string is
-  ever added without its translation. (Webview panels — the chat setup card and
-  the dashboard — are the remaining surface and localize next.)
+  ever added without its translation. The webview panels — the chat setup card
+  and the bridge dashboard — are localized too: since a webview can't call
+  `vscode.l10n.t`, the host resolves the strings and injects them into the page
+  (`CC_L10N` / the dashboard's `L`), so the chat setup card and dashboard chrome
+  follow the IDE language along with everything else. No mixed-language UI
+  remains.
 
 ## [0.37.5] — feature batch: IDE affordances (2026-07-08)
 

@@ -49,6 +49,8 @@ describe("VS Code runtime l10n.t bundle coverage", () => {
     "src/ui/status-bar.js",
     "src/ui/tree-view.js",
     "src/vscode-facade.js",
+    "src/ui/dashboard.js",
+    "src/chat/chat-view.js",
   ];
   // Match l10n.t( "…" ) or l10n.t( '…' ), tolerating a newline before the arg.
   const re = /l10n\.t\(\s*(("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*'))/g;

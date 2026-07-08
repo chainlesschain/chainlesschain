@@ -1079,6 +1079,17 @@ class ChatViewProvider {
     view.webview.html = buildChatHtml({
       cspSource: view.webview.cspSource,
       nonce: crypto.randomBytes(16).toString("hex"),
+      // Localized in the host (the webview can't call vscode.l10n.t) and injected
+      // as CC_L10N for the setup card.
+      l10n: {
+        setupFailed: this.vscode.l10n.t(
+          "LLM connection failed: {0} — configure the model first",
+        ),
+        setupNoConfig: this.vscode.l10n.t(
+          "No model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)",
+        ),
+        configureLlmBtn: this.vscode.l10n.t("Configure LLM"),
+      },
     });
     // First-run onboarding: no llm.provider configured → show the setup card.
     (async () => {

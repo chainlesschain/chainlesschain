@@ -14,6 +14,12 @@ function fakeVscode(captured) {
   let disposeCb = null;
   return {
     ViewColumn: { Active: -1 },
+    l10n: {
+      t: (m, ...a) =>
+        String(m).replace(/\{(\d+)\}/g, (x, i) =>
+          a[i] != null ? String(a[i]) : x,
+        ),
+    },
     window: {
       createWebviewPanel: () => {
         const panel = {
