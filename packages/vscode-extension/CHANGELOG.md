@@ -4,6 +4,13 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Team Monitor (read-only).** New command "ChainlessChain: Team Monitor
+  (团队任务监控)" watches a `cc team run --state <file>` snapshot in a webview:
+  the task graph with per-task status, lease holder, dependencies and retry
+  count, plus progress and live/stale-lease counts. Auto-refreshes when the
+  file changes (the CLI rewrites it atomically after each task settles) —
+  the CLI runs the team, this window watches. The picked file is remembered
+  per workspace.
 - **✨ Explain / Refactor CodeLens.** Functions, methods and classes get a
   one-click lens (via the language's own symbol provider — every language with
   document symbols, no CLI spawn): it selects the symbol's full range and seeds

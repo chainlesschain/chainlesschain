@@ -73,6 +73,7 @@ const INVOKABLE = [
   "chainlesschain.memory.files", // fake terminal
   "chainlesschain.lens.explain", // no args → early return
   "chainlesschain.lens.refactor",
+  "chainlesschain.team.monitor", // showOpenDialog → undefined → returns
 ];
 
 const SPAWNING = [

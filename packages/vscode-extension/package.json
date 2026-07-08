@@ -51,6 +51,11 @@
         "title": "ChainlessChain IDE: Diagnose Bridge (诊断桥接)"
       },
       {
+        "command": "chainlesschain.team.monitor",
+        "title": "ChainlessChain: Team Monitor (团队任务监控)",
+        "icon": "$(organization)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "ChainlessChain: Explain Symbol (CodeLens)"
       },

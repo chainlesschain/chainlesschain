@@ -137,6 +137,8 @@ const vscode = {
     },
     showQuickPick: () => Promise.resolve(undefined),
     showInputBox: () => Promise.resolve(undefined),
+    showOpenDialog: () => Promise.resolve(undefined),
+    showTextDocument: () => Promise.resolve({ selection: undefined }),
     setStatusBarMessage: () => ({ dispose: () => {} }),
     withProgress: (_opts, task) => Promise.resolve(task()),
     createTerminal: () => ({

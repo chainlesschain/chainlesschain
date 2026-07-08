@@ -381,6 +381,25 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
+    // Read-only "cc team" monitor: pick the `cc team run --state <file>`
+    // snapshot (remembered per workspace) and watch it live — task graph,
+    // lease holders, budget. The CLI runs the team; this window watches.
+    vscode.commands.registerCommand("chainlesschain.team.monitor", async () => {
+      const KEY = "chainlesschain.team.lastStatePath";
+      const last = context.workspaceState.get(KEY);
+      const picked = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        openLabel: "Monitor this team state file",
+        title: "Select a `cc team run --state <file>` JSON snapshot",
+        defaultUri: last ? vscode.Uri.file(last) : undefined,
+        filters: { "Team state": ["json"], "All files": ["*"] },
+      });
+      const file = picked && picked[0] && picked[0].fsPath;
+      if (!file) return;
+      await context.workspaceState.update(KEY, file);
+      const { openTeamMonitor } = require("./ui/team-monitor-view.js");
+      openTeamMonitor(vscode, file);
+    }),
     // Diff-review keyboard decisions (Claude-Code IDE parity): Accept / Reject
     // the diff openDiff is currently blocking on, without reaching for the
     // notification buttons. Scoped to `chainlesschainDiffActive` so the keys are
