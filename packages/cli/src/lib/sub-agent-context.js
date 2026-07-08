@@ -336,13 +336,19 @@ export class SubAgentContext {
 
         // Check abort signal
         if (this._signal?.aborted) {
-          this.forceComplete("cancelled");
+          this.forceComplete("cancelled", {
+            partialContent: lastContent,
+            artifacts,
+          });
           break;
         }
 
         // Enforce token budget
         if (this.tokenBudget && this._tokenCount >= this.tokenBudget) {
-          this.forceComplete("token-budget-exceeded");
+          this.forceComplete("token-budget-exceeded", {
+            partialContent: lastContent,
+            artifacts,
+          });
           break;
         }
 
@@ -355,9 +361,17 @@ export class SubAgentContext {
     } catch (err) {
       this.status = "failed";
       this.completedAt = new Date().toISOString();
+      // Return partial work to the parent instead of discarding it: the
+      // summary is the only channel the parent model sees, so a mid-run API
+      // error (rate limit, network drop) must not erase what was already
+      // produced. Artifacts collected before the failure are kept as-is.
+      const partial =
+        lastContent && lastContent.length > 0
+          ? `\n\nPartial output before failure:\n${this.summarize(lastContent)}`
+          : "";
       this.result = {
-        summary: `Sub-agent failed: ${err.message}`,
-        artifacts: [],
+        summary: `Sub-agent failed: ${err.message}${partial}`,
+        artifacts,
         tokenCount: this._tokenCount,
         toolsUsed: [...new Set(this._toolsUsed)],
         iterationCount: this._iterationCount,
@@ -447,15 +461,22 @@ export class SubAgentContext {
   /**
    * Force-complete this sub-agent (e.g. on timeout or parent cancellation).
    * @param {string} [reason] - Reason for force-completion
+   * @param {{partialContent?: string, artifacts?: Array}} [partial] - Work
+   *   produced before the cutoff; returned to the parent instead of being
+   *   discarded (a truncated run should still hand over what it has).
    */
-  forceComplete(reason = "forced") {
+  forceComplete(reason = "forced", partial = {}) {
     if (this.status === "active") {
       this.status = "completed";
       this.completedAt = new Date().toISOString();
       if (!this.result) {
+        const partialText =
+          partial.partialContent && partial.partialContent.length > 0
+            ? `\n\nPartial output before cutoff:\n${this.summarize(partial.partialContent)}`
+            : "";
         this.result = {
-          summary: `(Sub-agent force-completed: ${reason})`,
-          artifacts: [],
+          summary: `(Sub-agent force-completed: ${reason})${partialText}`,
+          artifacts: Array.isArray(partial.artifacts) ? partial.artifacts : [],
           tokenCount: this._tokenCount,
           toolsUsed: [...new Set(this._toolsUsed)],
           iterationCount: this._iterationCount,
