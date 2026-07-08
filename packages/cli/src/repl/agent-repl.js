@@ -105,7 +105,11 @@ import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import { parseBtwCommand, buildAsideBlock, applyAside } from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
-import { buildPermissionPrompt } from "./permission-prompt.js";
+import {
+  buildPermissionPrompt,
+  resolveAskIdleTimeoutMs,
+  questionWithIdleTimeout,
+} from "./permission-prompt.js";
 import {
   parsePermissionTier,
   describeTier,
@@ -425,11 +429,17 @@ export async function startAgentRepl(options = {}) {
   // CC_AUTO_PIN env ("1"/"0") > config `context.autoPin` (true/false/object) >
   // default on. See resolveAutoPinOption.
   let _autoPinCfgValue;
+  // Idle timeout for interactive permission prompts (0 = wait forever).
+  // CC_PERMISSION_ASK_TIMEOUT_MS env > config permissions.askTimeoutMs > off.
+  let _askIdleTimeoutMs = resolveAskIdleTimeoutMs();
   try {
     const { loadConfig } = await import("../lib/config-manager.js");
     const _cfg = loadConfig();
     _visionModel = _cfg?.llm?.visionModel || undefined;
     _autoPinCfgValue = _cfg?.context?.autoPin;
+    _askIdleTimeoutMs = resolveAskIdleTimeoutMs({
+      config: _cfg?.permissions?.askTimeoutMs,
+    });
     const raw = _cfg?.llm?.streamStallTimeoutMs;
     const t = Number(raw);
     // Accept 0 (explicit disable) — only ignore absent/invalid values.
@@ -559,17 +569,24 @@ export async function startAgentRepl(options = {}) {
         });
         const q = (p) => new Promise((res) => rlConfirm.question(p, res));
         const cmd = args?.command ? ` ${args.command}` : "";
-        const ans = (
-          await q(
-            chalk.yellow(
-              `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n` +
-                `  Proceed? [y]es once / [a]lways allow / [N]o: `,
-            ),
-          )
-        )
-          .trim()
-          .toLowerCase();
+        const res = await questionWithIdleTimeout(
+          q,
+          chalk.yellow(
+            `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n` +
+              `  Proceed? [y]es once / [a]lways allow / [N]o: `,
+          ),
+          _askIdleTimeoutMs,
+        );
         rlConfirm.close();
+        if (res.timedOut) {
+          process.stdout.write(
+            chalk.yellow(
+              `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
+            ),
+          );
+          return false;
+        }
+        const ans = res.answer.trim().toLowerCase();
         if (ans === "a" || ans === "always") {
           const saved = await _persistAlwaysAllow(tool || "run_shell", args);
           if (saved) {
@@ -625,10 +642,21 @@ export async function startAgentRepl(options = {}) {
       // (settings/hook ask) or a `reason` (destructive-git / sensitive-file
       // guards) — avoids the literal "null" the old template printed.
       const header = buildPermissionPrompt({ tool, args, rule, reason });
-      const ans = (await q(chalk.yellow(`\n${header}\n  Proceed? (y/N) `)))
-        .trim()
-        .toLowerCase();
+      const res = await questionWithIdleTimeout(
+        q,
+        chalk.yellow(`\n${header}\n  Proceed? (y/N) `),
+        _askIdleTimeoutMs,
+      );
       rl.close();
+      if (res.timedOut) {
+        process.stdout.write(
+          chalk.yellow(
+            `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
+          ),
+        );
+        return false;
+      }
+      const ans = res.answer.trim().toLowerCase();
       return ans === "y" || ans === "yes";
     };
   } catch (_err) {
