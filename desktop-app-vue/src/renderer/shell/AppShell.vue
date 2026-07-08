@@ -95,6 +95,10 @@
       v-model:open="callHistoryPanelOpen"
       :prefill-text="callHistoryPrefill"
     />
+    <RecommendationsPanel
+      v-model:open="recommendationsPanelOpen"
+      :prefill-text="recommendationsPrefill"
+    />
     <GraphQLExplorerPanel
       v-model:open="graphqlExplorerPanelOpen"
       :prefill-text="graphqlExplorerPrefill"
@@ -269,6 +273,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
 import CallHistoryPanel from "./CallHistoryPanel.vue";
+import RecommendationsPanel from "./RecommendationsPanel.vue";
 import GraphQLExplorerPanel from "./GraphQLExplorerPanel.vue";
 import SessionManagerPanel from "./SessionManagerPanel.vue";
 import PermanentMemoryPanel from "./PermanentMemoryPanel.vue";
@@ -344,6 +349,8 @@ const memoryBankPanelOpen = ref(false);
 const memoryBankPrefill = ref("");
 const callHistoryPanelOpen = ref(false);
 const callHistoryPrefill = ref("");
+const recommendationsPanelOpen = ref(false);
+const recommendationsPrefill = ref("");
 const graphqlExplorerPanelOpen = ref(false);
 const graphqlExplorerPrefill = ref("");
 const sessionManagerPanelOpen = ref(false);
@@ -459,6 +466,7 @@ let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
 let unregisterCallHistoryHandler: (() => void) | null = null;
+let unregisterRecommendationsHandler: (() => void) | null = null;
 let unregisterGraphqlExplorerHandler: (() => void) | null = null;
 let unregisterSessionManagerHandler: (() => void) | null = null;
 let unregisterPermanentMemoryHandler: (() => void) | null = null;
@@ -620,6 +628,13 @@ onMounted(async () => {
     ({ args }) => {
       callHistoryPrefill.value = args ?? "";
       callHistoryPanelOpen.value = true;
+    },
+  );
+  unregisterRecommendationsHandler = registerSlashHandler(
+    "builtin:openRecommendationsPanel",
+    ({ args }) => {
+      recommendationsPrefill.value = args ?? "";
+      recommendationsPanelOpen.value = true;
     },
   );
   unregisterGraphqlExplorerHandler = registerSlashHandler(
@@ -911,6 +926,8 @@ onBeforeUnmount(() => {
   unregisterMemoryBankHandler = null;
   unregisterCallHistoryHandler?.();
   unregisterCallHistoryHandler = null;
+  unregisterRecommendationsHandler?.();
+  unregisterRecommendationsHandler = null;
   unregisterGraphqlExplorerHandler?.();
   unregisterGraphqlExplorerHandler = null;
   unregisterSessionManagerHandler?.();

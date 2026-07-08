@@ -403,6 +403,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ch.pluginId).toBe("call-history");
   });
 
+  it("recommendations 的 /recommendations slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const rc = slash.find((s) => s.trigger === "/recommendations");
+    expect(rc).toBeDefined();
+    expect(rc.handler).toBe("builtin:openRecommendationsPanel");
+    expect(rc.pluginId).toBe("recommendations");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");

@@ -1,0 +1,20 @@
+{
+  "id": "recommendations",
+  "name": "内容推荐",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/recommendations 斜杠命令 — 基于本地 AI 的个性化内容推荐流、兴趣画像浏览、点赞/收藏/忽略反馈、一键生成推荐",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "recommendations",
+        "trigger": "/recommendations",
+        "handler": "builtin:openRecommendationsPanel",
+        "description": "打开内容推荐面板",
+        "icon": "BulbOutlined"
+      }
+    }
+  ]
+}
