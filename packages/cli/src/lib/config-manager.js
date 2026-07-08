@@ -5,6 +5,7 @@ import {
   mkdirSync,
   renameSync,
   unlinkSync,
+  copyFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
 import { getConfigPath } from "./paths.js";
@@ -39,10 +40,22 @@ export function loadConfig() {
     // keeps working.
     if (!_warnedConfigPaths.has(configPath)) {
       _warnedConfigPaths.add(configPath);
+      // Back up the broken file before anything can clobber it: a later
+      // `cc config set` load-modify-saves DEFAULTS over this path, silently
+      // destroying whatever the user still had in the broken JSON (API keys,
+      // custom baseUrl). The copy gives them something to repair from.
+      // Fixed sibling name (no timestamp) so repeated runs don't accumulate.
+      let backupNote = "";
+      try {
+        copyFileSync(configPath, `${configPath}.corrupted`);
+        backupNote = ` A copy was saved to ${configPath}.corrupted.`;
+      } catch {
+        /* backup is best-effort — the warning still fires without it */
+      }
       _deps.warn(
         `⚠️  Could not read config at ${configPath} (${err.message}). ` +
           `Using defaults — your saved settings (provider / model / API key) are being IGNORED. ` +
-          `Fix the JSON to restore them.\n`,
+          `Fix the JSON to restore them.${backupNote}\n`,
       );
     }
     return { ...structuredClone(DEFAULT_CONFIG) };

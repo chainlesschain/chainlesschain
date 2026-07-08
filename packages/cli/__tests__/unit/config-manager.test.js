@@ -150,6 +150,40 @@ describe("config-manager", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
+  it("backs up a corrupt config before it can be clobbered", async () => {
+    const mod = await import("../../src/lib/config-manager.js");
+    const warn = vi.fn();
+    mod._deps.warn = warn;
+    const broken = '{ "llm": { "apiKey": "sk-precious" '; // truncated write
+    writeFileSync(configPath, broken, "utf-8");
+
+    mod.loadConfig();
+
+    // The broken original survives as a sibling copy...
+    const backupPath = `${configPath}.corrupted`;
+    expect(readFileSync(backupPath, "utf-8")).toBe(broken);
+    // ...the warning points at it...
+    expect(warn.mock.calls[0][0]).toContain(`${configPath}.corrupted`);
+
+    // ...and a subsequent save (which overwrites the broken file with
+    // defaults+new values) no longer destroys the user's last good data.
+    mod.setConfigValue("edition", "enterprise");
+    expect(readFileSync(backupPath, "utf-8")).toBe(broken);
+    expect(JSON.parse(readFileSync(configPath, "utf-8")).edition).toBe(
+      "enterprise",
+    );
+  });
+
+  it("does not create a backup when the config is healthy", async () => {
+    const mod = await import("../../src/lib/config-manager.js");
+    writeFileSync(configPath, '{ "edition": "personal" }', "utf-8");
+    mod.loadConfig();
+    const leftovers = readdirSync(tempDir).filter((n) =>
+      n.endsWith(".corrupted"),
+    );
+    expect(leftovers).toEqual([]);
+  });
+
   describe("renameWithRetry (Windows EPERM hardening)", () => {
     it("retries transient rename errors then succeeds", async () => {
       const { renameWithRetry } =
