@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.153：上游 Claude Code parity 封顶 2.1.191 → 2.1.204（6 项，CLI-only npm 发版）
+
+> `chainlesschain` 0.162.152 → **0.162.153** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。逐项经 Explore-agent grep 坐实上游 changelog（2.1.192→2.1.204）后落地，全部带回归测试（新增约 30 项）；发版前本机三层全绿（unit+integration+e2e）。命令数不变（164；`cc team run --otlp` 只新增 option 非新命令）。判定明细 + N-A 清单见项目记忆 `cli-parity-gap-backlog`。
+
+- **`spawn_sub_agent` 后台模式（2.1.198）**：`background:true` 令子代理立即返回「running」句柄、父循环继续工作，结果在后续轮自动注水为 user-role 消息喂给模型；若模型想收尾但仍有后台子代理未决，循环**等待全部完成 + 注入结果 + 再给一轮**——后台成果永不静默丢失（迭代预算仍是兜底）。父 abort 信号前传防孤儿；settle-capture 包装永不 reject（未消费句柄不会变未处理 rejection）；SubagentStop 钩子改在结果送达时 fire。opt-in 逐调用，省略 `background` 则阻塞路径字节不变。
+- **子代理中途失败/预算截断返回部分成果（2.1.199）**：被 API 错误（限流/掉线）或 token 预算截断的子代理此前丢弃已产出的一切（父级只见 `Sub-agent failed: <msg>` + 空 artifacts）；现失败/强制完成结果把已产出内容摘要并入 summary（父模型唯一可见的通道）并保留截断前收集的 artifacts。
+- **交互权限询问 idle timeout（2.1.200）**：无人应答的权限询问此前永久阻塞整个 agent turn（`rl.question` 无超时）；两个交互确认点（settings/hook `ask` + ApprovalGate）现把询问与可配置的空闲超时竞速，静默时**自动 DENY**（无人值守下 deny 是唯一安全答案）。默认关（行为字节不变），`CC_PERMISSION_ASK_TIMEOUT_MS` 环境变量或 config `permissions.askTimeoutMs` 开启；布尔/对象配置值按「非超时」拒绝。
+- **MCP roots 能力（2.1.203）**：roots 是**客户端**能力——服务器向客户端发 `roots/list` 请求索要工作区根、并订阅 `notifications/roots/list_changed`。此前**任何**服务器发起的请求都落进 `_handleMessage` 的通知分支、永不应答 → 服务器挂到自己超时。现客户端在 `initialize` 声明 `roots(listChanged)`、以会话工作目录（显式 `roots` 或 `process.cwd()`，`file://` URI）应答 `roots/list`、ack `ping`、未知服务器请求回 JSON-RPC `-32601` 而非静默；`setRoots()`/`notifyRootsListChanged()` 广播变更通知，REPL `/cd` 成功 chdir 后通知已连服务器。
+- **workflow 级 OTel 追踪属性 + `cc team run --otlp`（2.1.202）**：`TelemetryRecorder` 加 `defaultAttributes`（构造）+ `setDefaultAttribute()`——盖在每个 span 上，per-span 键优先；`agentLoop` 把 `workflow.run_id`（run id）+ 可选 `options.workflowName` 盖到本 run 全部 model/tool span。`TeamRunner` 接可选 recorder、每次执行发一个 `team.task` span（task key/holder/attempts；被丢弃的完成打标；失败记为 `task_failure` + error 状态）。新 `cc team run --otlp <file>` 写出以 team run id + 任务图文件名标记的 OTLP/JSON。真机验证：2 任务图 dry-run 产出 2 个共享同一 `workflow.run_id` 的 span。
+- **config.json 损坏先备份再降级（2.1.199）**：`loadConfig` 遇坏 config 此前已优雅降级（warn 一次 + 内存默认，读时不覆盖），但随后一跑 `cc config set` 的 load-modify-**save** 会原子替换坏文件为默认+新值，静默销毁用户仍留在坏 JSON 里的东西（API key / 自定义 baseUrl）。现首次失败加载把文件复制到 `config.json.corrupted`（固定同名、best-effort、每进程一次），警告指向它。
+
 ### Fixed — cc CLI 0.162.152：全面体检 13 修复 + auto-pin 默认开 + 远控幂等激活 + 多语言 LSP/内核沙箱 CI 真机验证（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.151 → **0.162.152** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/web-panel`（随 `prepublishOnly build:web-panel` 打入包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版前本机三层全绿（unit+integration+e2e 23,167 passed / 0 fail）+ 新 `env-blocked-verification.yml` CI 门（真 gopls/rust-analyzer/jdtls 三语言 LSP + 真 bubblewrap 内核隔离，ubuntu）跑通。命令数不变（164）。

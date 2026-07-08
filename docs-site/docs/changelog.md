@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.153：上游 Claude Code parity 封顶 2.1.191 → 2.1.204（6 项）
+
+> CLI-only 发版（`chainlesschain` 0.162.152 → **0.162.153**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。逐项经 grep 坐实上游 changelog（2.1.192→2.1.204）后落地，全部带回归测试（新增约 30 项）；发版前本机三层全绿。命令数不变（164；`cc team run --otlp` 只新增 option 非新命令）。
+
+- **`spawn_sub_agent` 后台模式（2.1.198）**：`background:true` 令子代理立即返回「running」句柄、父循环继续工作，结果在后续轮自动注水为 user-role 消息；模型想收尾但仍有后台子代理未决时，循环等待全部完成 + 注入结果 + 再给一轮——后台成果永不静默丢失。abort 信号前传防孤儿，opt-in 逐调用（省略则阻塞路径字节不变）。
+- **子代理中途失败/预算截断返回部分成果（2.1.199）**：被 API 错误（限流/掉线）或 token 预算截断的子代理不再丢弃已产出内容——摘要并入父级唯一可见的 summary + 保留截断前 artifacts。
+- **交互权限询问 idle timeout（2.1.200）**：无人应答的权限询问不再永久阻塞 agent turn；两确认点（settings/hook ask + ApprovalGate）与可配置空闲超时竞速，静默时自动 DENY。默认关，`CC_PERMISSION_ASK_TIMEOUT_MS` 或 config `permissions.askTimeoutMs` 开启。
+- **MCP roots 能力（2.1.203）**：roots 是客户端能力——服务器向客户端发 `roots/list` 索要工作区根 + 订阅 `list_changed`。此前任何服务器发起的请求都永不应答、服务器挂到超时；现声明 `roots(listChanged)`、以会话工作目录（`file://` URI）应答 `roots/list`、ack `ping`、未知请求回 `-32601`，`/cd` 后广播变更。
+- **workflow 级 OTel 追踪属性 + `cc team run --otlp`（2.1.202）**：`agentLoop` 把 `workflow.run_id`（+ 可选 `workflowName`）盖到 run 的全部 model/tool span；`TeamRunner` 每次执行发 `team.task` span（task/holder/attempts，失败记 error）；新 `cc team run --otlp <file>` 写出 OTLP/JSON。真机验证 2 任务图产出 2 个共享 run_id 的 span。
+- **config.json 损坏先备份再降级（2.1.199）**：坏 config 优雅降级后，一跑 `cc config set` 的 save 会用默认值原子覆盖坏文件、销毁用户仍留在坏 JSON 里的 API key。现首次失败加载先复制到 `config.json.corrupted`（best-effort、每进程一次），警告指向它。
+
 #### Fixed — cc CLI 0.162.152：全面体检 13 修复 + auto-pin 默认开 + 远控幂等激活 + 多语言 LSP/内核沙箱 CI 真机验证
 
 > CLI-only 发版（`chainlesschain` 0.162.151 → **0.162.152**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/web-panel`（随包打入）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版前本机三层全绿（23,167 passed / 0 fail）+ 新 `env-blocked-verification.yml` CI 门（ubuntu 真机：gopls/rust-analyzer/jdtls 三语言 LSP def/refs/diag + bubblewrap 内核级 netns/rootfs/denyRead 隔离）全绿。命令数不变（164）。
