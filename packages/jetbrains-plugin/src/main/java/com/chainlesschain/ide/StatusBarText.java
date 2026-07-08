@@ -42,11 +42,11 @@ public final class StatusBarText {
     /** One tooltip line describing the chat's approval mode + how to change it. */
     public static String modeLine(String mode) {
         if ("acceptEdits".equals(mode)) {
-            return "Chat approvals: auto-accept edits (自动接受编辑) · /normal to restore";
+            return "Chat approvals: auto-accept edits · /normal to restore";
         }
         if ("bypassPermissions".equals(mode)) {
-            return "Chat approvals: BYPASSED (跳过所有批准 — 危险) · /normal to restore";
+            return "Chat approvals: BYPASSED (dangerous) · /normal to restore";
         }
-        return "Chat approvals: normal (每步确认) · /auto · /bypass";
+        return "Chat approvals: normal (confirm each step) · /auto · /bypass";
     }
 }

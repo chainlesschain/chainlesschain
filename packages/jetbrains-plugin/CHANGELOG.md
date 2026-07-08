@@ -2,17 +2,18 @@
 
 ## [Unreleased]
 
-- **Localized action labels — menus follow the IDE language.** The Tools-menu
-  and editor-menu action titles/descriptions no longer read as bilingual
-  "English (中文)". They now resolve from a resource bundle
-  (`messages/CcBundle.properties` English base + `CcBundle_zh.properties`), so an
-  English IDE shows English and a 中文 IDE (e.g. with the Chinese Language Pack)
-  shows 中文 — one language, not both. A smoke gate (`PureLogicSmokeMain`
-  `bundleParity`) fails the build if any `plugin.xml` action lacks a `.text` /
-  `.description` key, if the en/zh key sets drift, or if a zh value was left
-  equal to the English base. (Runtime Java dialog strings — the LLM-configure
-  wizard, chat panel — are the remaining surface and localize next, via a
-  `DynamicBundle` over this same bundle.)
+- **Full localization — the plugin follows the IDE language.** Nothing in the UI
+  reads as bilingual "English (中文)" anymore. Both the menu/action labels AND
+  the runtime dialogs (the LLM-configure wizard, the chat panel's ⚙ LLM menu and
+  status hints, "check for updates", "What's New", bridge-restart) now resolve
+  from a resource bundle (`messages/CcBundle.properties` English base +
+  `CcBundle_zh.properties` via a `CcBundle` `DynamicBundle`), so an English IDE
+  shows English and a 中文 IDE (e.g. with the Chinese Language Pack) shows 中文 —
+  one language, not both. The few SDK-free (pure) layers that can't reach the
+  bundle now emit clean English instead of mixed strings. A smoke gate
+  (`PureLogicSmokeMain` `bundleParity`) fails the build if any `plugin.xml`
+  action lacks a `.text`/`.description` key, if the en/zh key sets drift, or if a
+  zh value was left equal to the English base.
 - **Deep link — `jetbrains://idea/chainlesschain/open`.** A doc button, a
   script, or the `cc` CLI can now open
   `jetbrains://idea/chainlesschain/open?prompt=fix%20the%20bug` to focus the

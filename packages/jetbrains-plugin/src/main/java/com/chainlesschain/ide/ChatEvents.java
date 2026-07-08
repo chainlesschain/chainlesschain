@@ -175,8 +175,8 @@ public final class ChatEvents {
             m.put("isError", isTrue(evt.get("is_error")) && !benign);
             if (benign) {
                 m.put("note", "ask_user_question".equals(tool)
-                        ? "面板暂不支持交互提问 —— 已按最佳判断继续"
-                        : "已跳过 —— 继续");
+                        ? "The panel does not support interactive questions yet — continued with best judgment"
+                        : "Skipped — continuing");
             }
             return m;
         }

@@ -56,8 +56,8 @@ public final class CliVersionCheck {
         String latest = parseVersion(latestRaw);
         if (installed == null || latest == null) return null;
         if (compare(installed, latest) >= 0) return null; // up to date or ahead
-        return "新版本 cc " + latest + " 可用(你的是 " + installed + ")—— 运行 `"
-                + UPGRADE_COMMAND + "` 获取最新功能。";
+        return "A newer cc " + latest + " is available (you have " + installed + ") — run `"
+                + UPGRADE_COMMAND + "` to get the latest features.";
     }
 
     /** Pull the {@code "version":"x.y.z"} out of a npm registry JSON body, or null. */

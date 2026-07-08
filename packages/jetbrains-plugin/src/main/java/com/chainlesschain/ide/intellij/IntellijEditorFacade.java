@@ -311,7 +311,7 @@ public final class IntellijEditorFacade implements EditorFacade {
         }
         DialogWrapper dlg = new DialogWrapper(project, true) {
             {
-                setTitle("勾选要应用的改动块（未勾选的保留原文）");
+                setTitle(CcBundle.message("diff.pickHunks.title"));
                 init();
             }
             @Override

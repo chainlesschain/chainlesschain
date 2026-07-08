@@ -145,8 +145,8 @@ public final class CliLauncher {
      *  Names the Node.js floor too — {@code npm i -g chainlesschain} aborts on
      *  older Node (the package's engines requires >= 22.12.0). */
     public static String missingCliMessage() {
-        return "未找到 ChainlessChain CLI(cc)。请先安装(需 Node.js >= 22.12.0):"
-                + "npm i -g chainlesschain —— 安装后重启 IDE(让它读到新的 PATH),"
-                + "或在终端运行 `cc --version` 确认可用。";
+        return "ChainlessChain CLI (cc) not found. Install it first (needs Node.js >= 22.12.0): "
+                + "npm i -g chainlesschain — after installing, restart the IDE (so it picks up the new PATH), "
+                + "or run `cc --version` in a terminal to confirm.";
     }
 }

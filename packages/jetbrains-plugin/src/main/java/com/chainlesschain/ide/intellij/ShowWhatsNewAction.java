@@ -41,10 +41,12 @@ public final class ShowWhatsNewAction extends AnAction {
             final String installed = CliVersionCheck.parseVersion(versionOut);
             if (!WhatsNew.supportsChangelog(versionOut)) {
                 SwingUtilities.invokeLater(() -> Messages.showInfoMessage(project,
-                        "读取不到 cc 更新说明 — 需要 cc ≥ " + WhatsNew.MIN_CHANGELOG_CLI
-                                + (installed != null ? "(当前 " + installed + ")" : "(未检测到 cc)")
-                                + "。运行 " + CliVersionCheck.UPGRADE_COMMAND + " 升级后重试。",
-                        "ChainlessChain — What's New"));
+                        CcBundle.message("whatsnew.needCli", WhatsNew.MIN_CHANGELOG_CLI,
+                                installed != null
+                                        ? CcBundle.message("whatsnew.installedNote", installed)
+                                        : CcBundle.message("whatsnew.noCliNote"),
+                                CliVersionCheck.UPGRADE_COMMAND),
+                        CcBundle.message("whatsnew.dialogTitle")));
                 return;
             }
             String out = AgentChatSession.runCapture(
@@ -53,8 +55,8 @@ public final class ShowWhatsNewAction extends AnAction {
             SwingUtilities.invokeLater(() -> {
                 if (releases.isEmpty()) {
                     Messages.showInfoMessage(project,
-                            "读取不到 cc 更新说明(cc changelog --json 没有返回数据)。",
-                            "ChainlessChain — What's New");
+                            CcBundle.message("whatsnew.noData"),
+                            CcBundle.message("whatsnew.dialogTitle"));
                     return;
                 }
                 showDialog(project, WhatsNew.changelogToText(releases, installed));

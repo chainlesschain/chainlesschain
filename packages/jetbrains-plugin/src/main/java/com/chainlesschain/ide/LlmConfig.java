@@ -233,7 +233,7 @@ public final class LlmConfig {
     public static String setVisionModel(String visionModel) {
         String v = visionModel == null ? "" : visionModel.trim();
         if (!v.isEmpty() && hasUnsafeShellChars(v)) {
-            return "值含不安全字符 — 请去掉空格/引号/& 等再试";
+            return "Value contains unsafe characters — remove spaces/quotes/& and retry";
         }
         CliResult r = runCli(args("config", "set", "llm.visionModel", v));
         return r.ok ? null : tail(r.output, 200);
@@ -363,7 +363,7 @@ public final class LlmConfig {
         };
         for (String[] f : fields) {
             if (notBlank(f[1]) && hasUnsafeShellChars(f[1])) {
-                return "值含不安全字符 (" + f[0] + ") — 请去掉空格/引号/& 等再试";
+                return "Value contains unsafe characters (" + f[0] + ") — remove spaces/quotes/& and retry";
             }
         }
         for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl, visionModel)) {

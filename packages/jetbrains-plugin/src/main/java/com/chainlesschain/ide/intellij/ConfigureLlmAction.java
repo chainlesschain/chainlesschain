@@ -26,7 +26,9 @@ import java.awt.BorderLayout;
  * {@link LlmConfig}.
  */
 public final class ConfigureLlmAction extends AnAction {
-    private static final String TITLE = "ChainlessChain: Configure LLM";
+    private static String title() {
+        return CcBundle.message("llm.dialogTitle");
+    }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -49,8 +51,11 @@ public final class ConfigureLlmAction extends AnAction {
         int curIdx = 0;
         for (int i = 0; i < LlmConfig.PRESETS.length; i++) {
             LlmConfig.Preset p = LlmConfig.PRESETS[i];
-            labels[i] = p.label + "  —  默认 " + p.defaultModel + (p.needsKey ? " (需 API key)" : " (免 key)")
-                    + (p.id.equals(curProvider) ? "  ✓ 当前" : "");
+            labels[i] = p.label
+                    + CcBundle.message("llm.preset.detail", p.defaultModel,
+                            p.needsKey ? CcBundle.message("llm.preset.needsKey")
+                                    : CcBundle.message("llm.preset.noKey"))
+                    + (p.id.equals(curProvider) ? CcBundle.message("llm.preset.current") : "");
             if (p.id.equals(curProvider)) curIdx = i;
         }
         int idx = chooseProvider(project, labels, curIdx);
@@ -62,7 +67,7 @@ public final class ConfigureLlmAction extends AnAction {
         boolean sameProvider = preset.id.equals(curProvider);
         String modelDefault = (sameProvider && curModel != null) ? curModel : preset.defaultModel;
         String model = Messages.showInputDialog(project,
-                "模型名(" + preset.id + ")", TITLE, null, modelDefault, null);
+                CcBundle.message("llm.prompt.model", preset.id), title(), null, modelDefault, null);
         if (model == null) return;
 
         String apiKey = "";
@@ -70,22 +75,22 @@ public final class ConfigureLlmAction extends AnAction {
             boolean canKeep = sameProvider && curHasKey;
             apiKey = Messages.showPasswordDialog(
                     canKeep
-                            ? preset.label + " 的 API key(留空 = 保留已有的 key,不必重输)"
-                            : preset.label + " 的 API key(只写入本机 config.json,不进 IDE 设置)",
-                    TITLE);
+                            ? CcBundle.message("llm.prompt.apiKey.keep", preset.label)
+                            : CcBundle.message("llm.prompt.apiKey.new", preset.label),
+                    title());
             if (apiKey == null) return; // cancelled
             // Blank + canKeep → applyConfig omits llm.apiKey, keeping the stored
             // one (buildConfigSetArgs skips blank values).
             if (apiKey.trim().isEmpty() && !canKeep) {
                 Messages.showWarningDialog(project,
-                        "未输入 API key — 配置已取消(该提供商必须有 key)。", TITLE);
+                        CcBundle.message("llm.warn.noKey"), title());
                 return;
             }
         }
 
         String baseUrlDefault = (sameProvider && curBaseUrl != null) ? curBaseUrl : preset.baseUrl;
         String baseUrl = Messages.showInputDialog(project,
-                "Base URL(回车用默认)", TITLE, null, baseUrlDefault, null);
+                CcBundle.message("llm.prompt.baseUrl"), title(), null, baseUrlDefault, null);
         if (baseUrl == null) return;
 
         // Vision (image-recognition) model — often differs from the text model.
@@ -93,9 +98,8 @@ public final class ConfigureLlmAction extends AnAction {
         String visionDefault = (sameProvider && curVision != null)
                 ? curVision : LlmConfig.suggestVisionModel(preset.id);
         String visionModel = Messages.showInputDialog(project,
-                "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认)\n"
-                        + "看图时自动切到此模型,可与文本模型不同。",
-                TITLE, null, visionDefault, null);
+                CcBundle.message("llm.prompt.vision"),
+                title(), null, visionDefault, null);
         if (visionModel == null) return;
 
         configureAndVerify(project, preset, model, apiKey, baseUrl, visionModel);
@@ -107,7 +111,7 @@ public final class ConfigureLlmAction extends AnAction {
      * value (or the configured provider's suggestion); blank clears it.
      */
     public static void configureVisionModel(Project project) {
-        new Task.Backgroundable(project, "ChainlessChain: 读取当前视觉模型…", false) {
+        new Task.Backgroundable(project, CcBundle.message("llm.task.readVision"), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 String current = LlmConfig.getConfiguredVisionModel();
@@ -117,9 +121,8 @@ public final class ConfigureLlmAction extends AnAction {
                         : LlmConfig.suggestVisionModel(provider == null ? "" : provider);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     String vision = Messages.showInputDialog(project,
-                            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认)\n"
-                                    + "看图/粘贴截图时自动切到此模型,可与文本模型不同。",
-                            TITLE, null, prefill, null);
+                            CcBundle.message("llm.prompt.vision"),
+                            title(), null, prefill, null);
                     if (vision == null) return; // cancelled
                     applyVisionModel(project, vision);
                 });
@@ -129,20 +132,19 @@ public final class ConfigureLlmAction extends AnAction {
 
     private static void applyVisionModel(Project project, String visionModel) {
         final String fVision = visionModel;
-        new Task.Backgroundable(project, "ChainlessChain: 写入视觉模型…", false) {
+        new Task.Backgroundable(project, CcBundle.message("llm.task.writeVision"), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 final String err = LlmConfig.setVisionModel(fVision);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     if (err != null) {
-                        Messages.showErrorDialog(project, "视觉模型写入失败:" + err, TITLE);
+                        Messages.showErrorDialog(project, CcBundle.message("llm.error.visionWrite", err), title());
                     } else if (fVision == null || fVision.trim().isEmpty()) {
                         Messages.showInfoMessage(project,
-                                "已清除图片识别模型 —— 看图时复用文本模型 / CLI 默认。", TITLE);
+                                CcBundle.message("llm.info.visionCleared"), title());
                     } else {
                         Messages.showInfoMessage(project,
-                                "图片识别模型已设为 " + fVision.trim()
-                                        + " ✓(粘贴截图时自动切到它)。", TITLE);
+                                CcBundle.message("llm.info.visionSet", fVision.trim()), title());
                     }
                 });
             }
@@ -156,14 +158,13 @@ public final class ConfigureLlmAction extends AnAction {
         combo.setSelectedIndex(defaultIdx >= 0 && defaultIdx < labels.length ? defaultIdx : 0);
         DialogWrapper dlg = new DialogWrapper(project, true) {
             {
-                setTitle(TITLE);
+                setTitle(title());
                 init();
             }
             @Override
             protected JComponent createCenterPanel() {
                 JPanel p = new JPanel(new BorderLayout(8, 8));
-                p.add(new JLabel("<html>选择 LLM 提供商<br/>(写入 ~/.chainlesschain/config.json,"
-                        + "CLI 与各编辑器共用)</html>"), BorderLayout.NORTH);
+                p.add(new JLabel(CcBundle.message("llm.chooser.label")), BorderLayout.NORTH);
                 p.add(combo, BorderLayout.CENTER);
                 return p;
             }
@@ -174,7 +175,7 @@ public final class ConfigureLlmAction extends AnAction {
     private static void configureAndVerify(Project project, LlmConfig.Preset preset,
                                     String model, String apiKey, String baseUrl, String visionModel) {
         final String fModel = model, fKey = apiKey, fBaseUrl = baseUrl, fVision = visionModel;
-        new Task.Backgroundable(project, "ChainlessChain: 写入 LLM 配置并验证连通…", false) {
+        new Task.Backgroundable(project, CcBundle.message("llm.task.writeConfig"), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 final String applyError =
@@ -182,18 +183,16 @@ public final class ConfigureLlmAction extends AnAction {
                 final LlmConfig.CliResult test =
                         applyError == null ? LlmConfig.testLlm() : null;
                 final String visionNote = (fVision != null && !fVision.trim().isEmpty())
-                        ? " · 视觉 " + fVision : "";
+                        ? CcBundle.message("llm.result.visionNote", fVision) : "";
                 ApplicationManager.getApplication().invokeLater(() -> {
                     if (applyError != null) {
-                        Messages.showErrorDialog(project, "LLM 配置写入失败:" + applyError, TITLE);
+                        Messages.showErrorDialog(project, CcBundle.message("llm.error.configWrite", applyError), title());
                     } else if (test.ok) {
                         Messages.showInfoMessage(project,
-                                "LLM 配置完成并连通 ✓ (" + preset.id + " · " + fModel + visionNote + ")。"
-                                        + "终端里的 cc agent 即刻生效。", TITLE);
+                                CcBundle.message("llm.info.configured", preset.id, fModel, visionNote), title());
                     } else {
                         Messages.showWarningDialog(project,
-                                "配置已写入,但连通性测试未通过:" + test.output
-                                        + " — 检查 key/网络后可重跑本向导。", TITLE);
+                                CcBundle.message("llm.warn.testFailed", test.output), title());
                     }
                 });
             }

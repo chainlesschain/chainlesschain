@@ -30,9 +30,8 @@ public final class RestartBridgeAction extends AnAction {
             SwingUtilities.invokeLater(() -> com.intellij.openapi.ui.Messages.showInfoMessage(
                     project,
                     port > 0
-                            ? "ChainlessChain IDE bridge restarted on 127.0.0.1:" + port
-                                    + " (server \"ide\")。已在跑的 cc agent 需重启才会重连。"
-                            : "ChainlessChain IDE bridge 重启失败 — 详见 IDE 日志(Help → Show Log)。",
+                            ? CcBundle.message("bridge.restart.ok", port)
+                            : CcBundle.message("bridge.restart.fail"),
                     "ChainlessChain IDE Bridge"));
         });
     }

@@ -50,7 +50,7 @@ public final class DiffHunks {
             String where = oldCount > 0
                     ? (oldStart + 1) + "-" + (oldStart + oldCount)
                     : oldStart + "+"; // pure insertion sits between lines
-            this.header = "行 " + where + " (-" + oldCount + " +" + newCount + ")";
+            this.header = "lines " + where + " (-" + oldCount + " +" + newCount + ")";
             String first = newCount > 0 ? newLines.get(0) : "- " + oldLines.get(0);
             first = first.trim();
             this.preview = first.length() > 60 ? first.substring(0, 60) : first;

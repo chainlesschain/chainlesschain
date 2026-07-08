@@ -831,9 +831,9 @@ public final class PureLogicSmokeMain {
                 "a\nB\nc\nd\ne\nf", "apply hunk 0 only");
         eq(DiffHunks.applyHunks(original, hunks, new java.util.HashSet<>(Arrays.asList(1))),
                 "a\nb\nc\nd\nE1\nE2\nf", "apply hunk 1 only");
-        // Header shape matches the VS Code hunk header ("行 <a>-<b> (-x +y)").
-        check(hunks.get(0).header.startsWith("行 2-2 (-1 +1)"), "hunk 0 header");
-        check(hunks.get(1).header.startsWith("行 5-5 (-1 +2)"), "hunk 1 header");
+        // Header shape ("lines <a>-<b> (-x +y)").
+        check(hunks.get(0).header.startsWith("lines 2-2 (-1 +1)"), "hunk 0 header");
+        check(hunks.get(1).header.startsWith("lines 5-5 (-1 +2)"), "hunk 1 header");
         check(!hunks.get(0).preview.isEmpty(), "hunk preview non-empty");
 
         // Pure insertion (no old lines) — header uses the "<line>+" form.
@@ -973,7 +973,7 @@ public final class PureLogicSmokeMain {
         check(tip.endsWith("Click for bridge status"), "tooltip click hint last");
         String tipOff = StatusBarText.tooltip(-1, "default");
         check(tipOff.contains("stopped"), "stopped tooltip says stopped");
-        check(tipOff.contains("每步确认"), "default tooltip describes normal mode");
+        check(tipOff.contains("confirm each step"), "default tooltip describes normal mode");
     }
 
     private static void jetbrainsMcpProbe() {

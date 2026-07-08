@@ -120,23 +120,23 @@ final class ConversationView {
         // (the old side-by-side layout left the field too narrow).
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         JButton llmBtn = new JButton("⚙ LLM");
-        llmBtn.setToolTipText("配置 LLM 提供商 / 文本模型 / 图片识别(视觉)模型(写入共享 config.json)");
+        llmBtn.setToolTipText(CcBundle.message("chat.btn.llm.tooltip"));
         llmBtn.addActionListener(ev -> {
             javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
             javax.swing.JMenuItem full =
-                    new javax.swing.JMenuItem("配置 LLM(提供商 / 模型 / API key)…");
+                    new javax.swing.JMenuItem(CcBundle.message("chat.menu.configureLlm"));
             full.addActionListener(a -> {
                 ConfigureLlmAction.runWizard(project);
                 reloadLlmConfig();
             });
             javax.swing.JMenuItem vision =
-                    new javax.swing.JMenuItem("图片识别(视觉)模型…");
+                    new javax.swing.JMenuItem(CcBundle.message("chat.menu.visionModel"));
             vision.addActionListener(a -> {
                 ConfigureLlmAction.configureVisionModel(project);
                 reloadLlmConfig();
             });
             javax.swing.JMenuItem checkUpdate =
-                    new javax.swing.JMenuItem("检查 cc 更新…");
+                    new javax.swing.JMenuItem(CcBundle.message("chat.menu.checkUpdate"));
             checkUpdate.addActionListener(a -> checkCliUpdateManually());
             menu.add(full);
             menu.add(vision);
@@ -169,7 +169,7 @@ final class ConversationView {
         root.add(southWrap, BorderLayout.SOUTH);
 
         sendBtn.addActionListener(e -> sendCurrentInput());
-        stopBtn.setToolTipText("中断当前回合;child 卡死时再点一次强制结束进程");
+        stopBtn.setToolTipText(CcBundle.message("chat.btn.stop.tooltip"));
         stopBtn.addActionListener(e -> {
             AgentChatSession s = liveSession();
             if (s == null) return;
@@ -267,7 +267,7 @@ final class ConversationView {
             String ver = probeVersionCached(cwd);
             if (CliVersionCheck.parseVersion(ver) == null) {
                 SwingUtilities.invokeLater(() -> appendThinking(
-                        "面板需要 cc CLI 才能工作。" + CliLauncher.missingCliMessage() + "\n"));
+                        CcBundle.message("chat.needsCli") + " " + CcBundle.message("cli.missing") + "\n"));
                 return;
             }
             String provider;
@@ -278,7 +278,7 @@ final class ConversationView {
             }
             if (provider == null || provider.trim().isEmpty()) {
                 SwingUtilities.invokeLater(() -> appendThinking(
-                        "尚未配置 LLM —— 点右下「⚙ LLM」选择提供商并填入 API key,即可开始对话。\n"));
+                        CcBundle.message("chat.noLlm") + "\n"));
             }
         });
     }
@@ -352,29 +352,29 @@ final class ConversationView {
             SwingUtilities.invokeLater(() -> {
                 if (installed == null) {
                     com.intellij.openapi.ui.Messages.showWarningDialog(project,
-                            "无法读取已安装的 cc 版本。请确认已安装并在 PATH 中(npm i -g chainlesschain)。",
+                            CcBundle.message("chat.update.noVersion"),
                             "ChainlessChain");
                     return;
                 }
                 if (latest == null) {
                     com.intellij.openapi.ui.Messages.showWarningDialog(project,
-                            "无法连接 npm 检查更新(你的版本是 cc " + installed + ")。", "ChainlessChain");
+                            CcBundle.message("chat.update.noNpm", installed), "ChainlessChain");
                     return;
                 }
                 if (CliVersionCheck.compare(installed, latest) >= 0) {
                     com.intellij.openapi.ui.Messages.showInfoMessage(project,
-                            "cc " + installed + " 已是最新(npm 最新为 " + latest + ")。", "ChainlessChain");
+                            CcBundle.message("chat.update.latest", installed, latest), "ChainlessChain");
                     return;
                 }
                 int r = com.intellij.openapi.ui.Messages.showYesNoDialog(project,
-                        "新版本 cc " + latest + " 可用(你的是 " + installed + ")。\n是否复制升级命令到剪贴板?\n\n"
-                                + CliVersionCheck.UPGRADE_COMMAND,
-                        "ChainlessChain", "复制升级命令", "稍后", null);
+                        CcBundle.message("chat.update.available", latest, installed,
+                                CliVersionCheck.UPGRADE_COMMAND),
+                        "ChainlessChain", CcBundle.message("chat.update.copyBtn"),
+                        CcBundle.message("chat.update.laterBtn"), null);
                 if (r == com.intellij.openapi.ui.Messages.YES) {
                     java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                             new java.awt.datatransfer.StringSelection(CliVersionCheck.UPGRADE_COMMAND), null);
-                    appendThinking("ℹ 已复制:" + CliVersionCheck.UPGRADE_COMMAND
-                            + " —— 在终端粘贴运行即可升级。\n");
+                    appendThinking(CcBundle.message("chat.update.copied", CliVersionCheck.UPGRADE_COMMAND) + "\n");
                 }
             });
         });
@@ -751,9 +751,9 @@ final class ConversationView {
     private void reloadLlmConfig() {
         boolean restarted = liveSession() != null;
         restartForModeChange();
-        append(restarted
-                ? "ℹ LLM 配置已更新 —— 下一条消息生效\n"
-                : "ℹ LLM 配置已更新\n");
+        append((restarted
+                ? CcBundle.message("chat.llmUpdated.next")
+                : CcBundle.message("chat.llmUpdated")) + "\n");
     }
 
     /**
@@ -920,8 +920,7 @@ final class ConversationView {
             // Nudge toward the LLM wizard when the failure looks like a
             // missing/expired key or wrong provider (401/403/api key…).
             if ("error".equals(kind) && LlmConfig.looksLikeLlmConfigError(body)) {
-                appendThinking("提示:点右下「⚙ LLM」配置提供商 / API key"
-                        + "(文本模型与图片识别模型可分别设置)。\n");
+                appendThinking(CcBundle.message("chat.hint.llmError") + "\n");
             }
         }
     }
@@ -941,7 +940,7 @@ final class ConversationView {
         String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
         if (id.isEmpty()) return;
         String question = ui.get("question") == null || String.valueOf(ui.get("question")).isEmpty()
-                ? "ChainlessChain 提问" : String.valueOf(ui.get("question"));
+                ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
         java.util.List<String> labels = new java.util.ArrayList<>();
         Object optsO = ui.get("options");
         if (optsO instanceof java.util.List) {
