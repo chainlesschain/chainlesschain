@@ -159,6 +159,9 @@ import { registerRemoteControlCommand } from "./commands/remote-control.js";
 // Agenda: consumer for agent-scheduled wakeups/crons/monitors (第四阶段 #3)
 import { registerAgendaCommand } from "./commands/agenda.js";
 
+// Batch: dynamic worktree batch — split a change into parallel units (第四阶段 #4)
+import { registerBatchCommand } from "./commands/batch.js";
+
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 import { registerPackCommand } from "./commands/pack.js";
@@ -591,6 +594,9 @@ export function createProgram(opts = {}) {
 
   // Agenda: fire agent-scheduled wakeups/crons/monitors
   registerAgendaCommand(program);
+
+  // Batch: dynamic worktree batch
+  registerBatchCommand(program);
 
   // Web UI
   registerUiCommand(program);

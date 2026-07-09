@@ -616,6 +616,25 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - monitor 输出的结构化解析（现只 regex over stdout+stderr）；cron 秒级/时区（现分钟级本地时区）——按需再扩。
 - `notify` 接 remote-session 已配对设备 push（`cc notification send` 已有独立通道，未与 agent notify 合流）。
 
+### 2026-07-09 第二十批（第四阶段 #4 — dynamic workflow + worktree batch）
+
+已落地：
+
+- **`cc batch` 命令**：把一个大改动拆成 N 个独立 UNIT，每个跑在**自己的 git worktree** 里（有界并发），跑测试，汇总每单元的 agent 状态 / 测试结果 / diff stat / 合并冲突预览。这是 Claude Code `/batch` 形态，复用 `cc team --worktree` 同款 worktree-isolator 原语。
+  - `--units <file>`（`{ units: [{key, prompt, test?}] }`）显式单元表；或 `--decompose <goal> --parts N` 让 agent 用 `--json-schema` 结构化输出把目标拆成单元表（`--plan-only` 只出表不跑）。
+  - `--concurrency N`（worker pool）/ `--test <cmd>`（默认测试命令）/ `--merge`（干净且测试通过的分支顺序合回 base）/ `--model` / `--json`。
+- **新 `src/lib/agent-batch.js`**：纯 fan-out + 聚合核心，全 deps 注入（createWorktree/removeWorktree/runAgent/runTest/diffStat/commit/previewMerge/mergeBranch）。**顺序集成**（同 TeamWorktreeCoordinator.integrate）——后一分支与已合入分支冲突时如实报告不覆盖；测试失败的单元即便 committed 也**不合并**（红单元不进 base）；无改动单元跳过集成；`mapPool` 保序有界并发。
+- **命令面 `src/commands/batch.js`**：真 deps=worktree-isolator（create/remove/preview/merge）+ 每单元 worktree 内 `cc agent -p --permission-mode acceptEdits`、`git add -A` numstat diff、`git commit --no-verify`；`--decompose` spawn `cc agent --json-schema`。command-manifest 171→172。
+- 测试：unit 15（core 8——fan-out/test-failed 不合并/冲突不覆盖/no-changes/agent 错误/并发上限/事件/校验 + 内部 mapPool 保序 + normalizeUnits 默认 key；command 7——缺参/units 文件端到端/测试失败 exit1/decompose plan-only/坏文件）+ **integration 2（真 git repo + 真 worktree）**：两独立单元真 worktree 跑通并双合入 main（a.txt/b.txt 真落地）；两单元改 README 同行→第二个真合并冲突被如实报告（merged=1/conflicted=1，base 未被覆盖）。真机 smoke：`cc batch --help` / 缺参错误路径全通。
+
+**第四阶段 4 项全部完成**：① `cc remote-control` 统一入口（批17）② mobile/web 权限审批（批18）③ Monitor/Cron/Push agent 工具（批19）④ dynamic workflow + worktree batch（批20）。
+
+仍待后续：
+
+- `--decompose` 的单元质量依赖 LLM 拆分（无依赖保证是提示词约束，非强制）；跨单元依赖 DAG 仍走 `cc team`（batch 假设单元互相独立）。
+- patch queue / 自动开 PR（现留分支供人 review/merge；未内建 PR 创建）。
+- worktree 清理策略：未合并分支保留供检查（已合并的删分支）；大批量下的磁盘占用留给用户 `git worktree prune`。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -640,7 +659,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 1. `/remote-control` 统一入口。✅（2026-07-09 批17 — `cc remote-control` start/status/stop + 双模配对 URI/QR）
 2. mobile/web 权限审批。✅（2026-07-09 批18 — client-hosted 控制回传 + relay/push 平价 + RemoteApprovalBridge + `cc agent --remote-control`）
 3. Monitor / Cron / Push 工具。✅（2026-07-09 批19 — `notify` + `schedule` agent 工具 + `cc agenda` 消费者 + AgentScheduleStore）
-4. dynamic workflow + worktree batch。
+4. dynamic workflow + worktree batch。✅（2026-07-09 批20 — `cc batch` + agent-batch 核心 + `--decompose` 结构化拆分）
 
 ## 参考资料
 

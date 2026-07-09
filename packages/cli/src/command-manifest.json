@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 171,
+  "commandCount": 172,
   "commands": [
     {
       "name": "a2a",
@@ -106,6 +106,13 @@
       "module": "./commands/automation.js",
       "register": "registerAutomationCommand",
       "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+    },
+    {
+      "name": "batch",
+      "aliases": [],
+      "module": "./commands/batch.js",
+      "register": "registerBatchCommand",
+      "summary": "Split a large change into independent units, run each in its own git worktree in parallel, and aggregate results"
     },
     {
       "name": "bi",
