@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   _deps,
+  buildFollowUpArgv,
   effectiveBackgroundAgentState,
   launchBackgroundAgent,
   listBackgroundAgents,
@@ -208,6 +209,108 @@ describe("background agent supervisor", () => {
     expect(completed?.title).toBe("after");
     expect(completed?.status).toBe("completed");
   });
+
+  it("buildFollowUpArgv strips the first turn's prompt tokens, keeps flags", () => {
+    // positional prompt
+    expect(
+      buildFollowUpArgv(
+        ["agent", "do", "the", "task", "--model", "m", "--session", "s"],
+        { positionalTokens: ["do", "the", "task"] },
+      ),
+    ).toEqual(["agent", "--model", "m", "--session", "s"]);
+    // -p <value> prompt
+    expect(
+      buildFollowUpArgv(["agent", "-p", "fix it", "--session", "s"], {
+        printValue: "fix it",
+      }),
+    ).toEqual(["agent", "--session", "s"]);
+    // bare -p (piped prompt) — flag dropped, no value to drop
+    expect(
+      buildFollowUpArgv(["agent", "-p", "--session", "s"], {
+        printValue: null,
+      }),
+    ).toEqual(["agent", "--session", "s"]);
+    // a flag value that happens to equal a positional token is not stripped
+    expect(
+      buildFollowUpArgv(["agent", "fix", "--title", "fix"], {
+        positionalTokens: ["fix"],
+      }),
+    ).toEqual(["agent", "--title", "fix"]);
+  });
+
+  it("runs follow-up turns over the session transport and finalizes on detach", async () => {
+    const fakeCli = join(dir, "fake-cli-interactive.mjs");
+    // Turn 1 (no -p) stays alive long enough for the test to attach; follow-up
+    // turns (-p present) print their argv and exit quickly.
+    writeFileSync(
+      fakeCli,
+      [
+        "const argv = process.argv.slice(2);",
+        'console.log("TURN " + JSON.stringify(argv));',
+        'const wait = argv.includes("-p") ? 100 : 4000;',
+        "setTimeout(() => process.exit(0), wait);",
+        "",
+      ].join("\n"),
+    );
+    const state = launchBackgroundAgent({
+      argv: ["--flag-a"],
+      cwd: dir,
+      sessionId: "session-interactive",
+      title: "interactive",
+      cliEntry: fakeCli,
+      followUpArgv: ["--flag-a"],
+    });
+
+    // Wait for the worker to publish its transport endpoint.
+    let transport = null;
+    for (let i = 0; i < 100 && !transport; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      transport = readBackgroundAgentState(state.id)?.transport || null;
+    }
+    expect(transport?.pipe).toBeTruthy();
+    expect(transport?.token).toBeTruthy();
+
+    const { connectBackgroundSession } =
+      await import("../../src/lib/background-session-transport.js");
+    const events = [];
+    const conn = await connectBackgroundSession({
+      pipePath: transport.pipe,
+      token: transport.token,
+      onEvent: (m) => events.push(m),
+    });
+    expect(conn.hello).toMatchObject({ type: "hello", interactive: true });
+
+    // Queue a follow-up while turn 1 is still running.
+    conn.send({ type: "prompt", text: "second task" });
+    // Turn 1 is a 4s sleep — /stop cuts it short so turn 2 starts right away.
+    conn.send({ type: "stop" });
+
+    let turn2Ended = false;
+    for (let i = 0; i < 150 && !turn2Ended; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      turn2Ended = events.some((e) => e.type === "turn-ended" && e.turn === 2);
+    }
+    expect(events.some((e) => e.type === "turn-started" && e.turn === 2)).toBe(
+      true,
+    );
+    expect(turn2Ended).toBe(true);
+    expect(readBackgroundAgentLog(state.id)).toContain('"second task"');
+
+    // Detach while idle → the worker finalizes and clears the transport.
+    conn.close();
+    let final = null;
+    for (let i = 0; i < 100; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const current = readBackgroundAgentState(state.id);
+      if (current?.status && current.status !== "running") {
+        final = current;
+        break;
+      }
+    }
+    expect(final?.status).toBe("completed");
+    expect(final?.transport ?? null).toBe(null);
+    expect(final?.turnCount).toBe(2);
+  }, 30000);
 
   it.skipIf(process.platform !== "win32")(
     "stops a running Windows process tree through taskkill",

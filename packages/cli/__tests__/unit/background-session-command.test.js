@@ -51,4 +51,22 @@ describe("background-session command helpers", () => {
     expect(text).toContain("cc logs bg-123 -n 100");
     expect(text).toContain("cc daemon stop bg-123");
   });
+
+  it("shows phase, turns and interactive transport availability", () => {
+    const text = formatBackgroundAgentDetails(
+      {
+        id: "bg-9",
+        status: "running",
+        startedAt: 1_000,
+        phase: "idle",
+        turnCount: 3,
+        transport: { pipe: "\\\\.\\pipe\\cc-bg-bg-9", token: "t" },
+      },
+      "",
+      { now: 2_000 },
+    );
+    expect(text).toContain("phase: idle");
+    expect(text).toContain("turns: 3");
+    expect(text).toContain("transport: interactive attach available");
+  });
 });

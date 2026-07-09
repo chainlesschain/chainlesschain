@@ -445,6 +445,27 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - REPL 的 auto 模式切换只影响本会话；`cc session policy --set` 侧尚无 auto 概念。
 - 决策逐层解释链、按 tool/pattern 细粒度匹配同上批待做。
 
+### 2026-07-09 第十批
+
+已落地：
+
+- **可交互 attach 的 session transport**：background worker 每会话托管本地 NDJSON 控制通道（Windows named pipe `\\.\pipe\cc-bg-<id>` / POSIX domain socket），端点+随机 token 写入 0600 state 文件（持有 state 文件=能力，防同机他用户注入 prompt）。
+- 协议：client→worker `hello(token)/prompt/status/stop/detach`；worker→client `hello/accepted/status/error/turn-started/turn-ended/idle/stopping/closing`；NDJSON 带 carry buffer（跨 chunk 分帧安全）。
+- **worker 多轮 turn 循环**：初始任务=turn 1；prompt 队列；child 退出后若有排队 prompt → `followUpArgv + ["-p", text]` 续轮（同 `--session` 自动续接对话历史）；有客户端 attach 时进 `phase=idle` 存活等待；仅当「无 turn 运行 + 队列空 + 无客户端」才 finalize 退出。
+- `launchBackgroundAgent` 新增 `followUpArgv` 模板（`buildFollowUpArgv` 纯函数从原 argv 剥掉首轮 prompt token——positional/`-p <val>`/裸 `-p` 三种来源；其余 flags（model/permission-mode/session 等）逐轮沿用）；未带模板的旧会话 transport 拒绝 prompt（明确报错）。
+- **`cc attach <id>` 交互模式**：TTY + transport 可用 + running 时默认交互——日志尾随 + 键入文字即发 follow-up prompt，`/stop` 截断当前轮，`/status` 查询，Ctrl-C/`/detach` 断开（turn 运行中断开→任务继续后台跑；idle 断开→会话收尾）；连接失败自动回退日志模式；`--no-input` 强制纯日志。
+- launcher 改为 spawn 前写初始 state + spawn 后 merge pid，且 worker heartbeat 重申 transport 字段——双保险防 launcher/worker 竞写丢 transport 端点。
+- 外部 `cc daemon stop` 语义保持：finalize 不覆盖已记录的 stopped 状态，只清理 transport 端点；worker heartbeat 发现外部终态时自我回收。
+- `cc daemon view` 显示 `phase`/`turns`/`transport: interactive attach available`。
+- 测试：transport 单测 7（token 认证/错 token 拒绝/prompt 队列+错误中继/broadcast/detach 计数/跨 chunk 分帧/CRLF+坏 JSON 容错/管道命名）+ **真进程 E2E**（launch→等 transport 发布→connect→turn 1 运行中排队 prompt→`/stop` 截断→turn 2 自动续跑带 `-p "second task"`→detach→worker finalize completed + transport 清空 + turnCount=2）+ buildFollowUpArgv 4 场景 + view 格式。
+
+仍待后续：
+
+- 交互 attach 的输入行与流式日志同终端混排，长输出时提示行可能被冲掉（v1 接受；可做全屏/alternate-screen 渲染）。
+- follow-up turn 输出仍走日志文件轮询（500ms 粒度）；可升级为 worker 直推输出流。
+- web-panel/IDE 复用同一 transport 协议接后台会话面板。
+- `--print=value` 等号形式的 prompt token 不会从 followUpArgv 剥除（commander 后者优先，行为仍正确，仅 argv 冗余）。
+
 ### 第一阶段：安全与可运营性
 
 1. `manual/auto/dontAsk` permission mode。

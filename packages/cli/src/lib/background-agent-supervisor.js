@@ -154,12 +154,51 @@ export function renameBackgroundAgent(id, title, options = {}) {
   return next;
 }
 
+/**
+ * Build the follow-up argv template for interactive attach turns: the launch
+ * argv minus every token that carried the FIRST turn's prompt (positional
+ * task words, `-p/--print` and its inline value). The worker appends
+ * `["-p", "<follow-up text>"]` per turn, so all remaining flags (model,
+ * permission-mode, session id, …) keep applying to later turns.
+ *
+ * @param {string[]} argv the background child argv (before any piped-prompt
+ *        token is appended)
+ * @param {object} [opts]
+ * @param {string[]} [opts.positionalTokens] raw positional prompt tokens
+ * @param {string|null} [opts.printValue] inline `-p <value>` text, when the
+ *        prompt came from --print
+ */
+export function buildFollowUpArgv(argv, opts = {}) {
+  const positionalLeft = Array.isArray(opts.positionalTokens)
+    ? [...opts.positionalTokens]
+    : [];
+  const printValue =
+    typeof opts.printValue === "string" && opts.printValue.trim()
+      ? opts.printValue
+      : null;
+  const out = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "-p" || arg === "--print") {
+      if (printValue !== null && argv[i + 1] === printValue) i++;
+      continue;
+    }
+    if (positionalLeft.length && arg === positionalLeft[0]) {
+      positionalLeft.shift();
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
 export function launchBackgroundAgent({
   argv,
   cwd,
   sessionId,
   title,
   cliEntry,
+  followUpArgv,
 }) {
   const id = createBackgroundAgentId();
   const dir = backgroundAgentsDir();
@@ -175,8 +214,30 @@ export function launchBackgroundAgent({
     title: title || "Background agent",
     cliEntry: cliEntry || process.argv[1],
     logFile: logPath(id),
+    // Present = interactive attach can start follow-up turns; absent = the
+    // transport rejects prompts (log-only session).
+    ...(Array.isArray(followUpArgv) ? { followUpArgv } : {}),
   };
   writeFileSync(jobFile, JSON.stringify(job), { mode: 0o600 });
+  // Write the initial state BEFORE spawning so the worker's own merges (the
+  // transport endpoint lands within its first ~100ms) can never be clobbered
+  // by a late launcher write racing the worker.
+  const state = {
+    id,
+    sessionId,
+    title: job.title,
+    cwd,
+    pid: null,
+    workerPid: null,
+    agentPid: null,
+    status: "running",
+    startedAt: Date.now(),
+    heartbeatAt: Date.now(),
+    endedAt: null,
+    exitCode: null,
+    logFile: job.logFile,
+  };
+  writeBackgroundAgentState(state);
   let child;
   try {
     child = _deps.spawn(process.execPath, [worker, jobFile], {
@@ -187,26 +248,18 @@ export function launchBackgroundAgent({
     });
   } catch (error) {
     rmSync(jobFile, { force: true });
+    rmSync(statePath(id), { force: true });
     throw error;
   }
   child.unref();
-  const state = {
-    id,
-    sessionId,
-    title: job.title,
-    cwd,
+  const current = readBackgroundAgentState(id) || state;
+  const withPid = {
+    ...current,
     pid: child.pid,
     workerPid: child.pid,
-    agentPid: null,
-    status: "running",
-    startedAt: Date.now(),
-    heartbeatAt: Date.now(),
-    endedAt: null,
-    exitCode: null,
-    logFile: job.logFile,
   };
-  writeBackgroundAgentState(state);
-  return state;
+  writeBackgroundAgentState(withPid);
+  return withPid;
 }
 
 export function readBackgroundAgentLog(id, options = {}) {

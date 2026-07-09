@@ -66,6 +66,13 @@ export function formatBackgroundAgentDetails(
     `  endedAt: ${formatTimestamp(session.endedAt)}`,
     `  log: ${session.logFile || "-"}`,
   ];
+  if (session.phase) lines.push(`  phase: ${session.phase}`);
+  if (Number.isFinite(Number(session.turnCount))) {
+    lines.push(`  turns: ${session.turnCount}`);
+  }
+  if (session.transport?.pipe) {
+    lines.push(`  transport: interactive attach available`);
+  }
   if (session.lostReason) lines.push(`  lostReason: ${session.lostReason}`);
   if (Number.isFinite(Number(session.exitCode))) {
     lines.push(`  exitCode: ${session.exitCode}`);
@@ -133,6 +140,145 @@ async function followBackgroundAgent(id, options = {}) {
   }
 }
 
+/**
+ * Interactive attach over the session transport: stream the log AND accept
+ * typed follow-up prompts (plus /stop · /status · /detach). Returns false
+ * when the transport is unavailable so the caller can fall back to the
+ * log-only follow.
+ */
+async function interactiveAttach(id, state, options = {}) {
+  const { connectBackgroundSession } =
+    await import("../lib/background-session-transport.js");
+  const { readBackgroundAgentLog, logPath } = await loadSupervisor();
+
+  let closed = false;
+  let conn;
+  try {
+    conn = await connectBackgroundSession({
+      pipePath: state.transport.pipe,
+      token: state.transport.token,
+      onEvent: (message) => {
+        switch (message.type) {
+          case "turn-started":
+            logger.log(
+              chalk.gray(
+                `— turn ${message.turn} started${message.prompt ? `: ${message.prompt}` : ""}`,
+              ),
+            );
+            return;
+          case "turn-ended":
+            logger.log(
+              chalk.gray(
+                `— turn ${message.turn} ended (exit ${message.exitCode})`,
+              ),
+            );
+            return;
+          case "idle":
+            logger.log(
+              chalk.gray(
+                "— session idle; type a follow-up prompt, or Ctrl-C to detach (ends the session)",
+              ),
+            );
+            return;
+          case "accepted":
+            logger.log(chalk.gray(`— prompt queued (#${message.queued})`));
+            return;
+          case "status":
+            logger.log(
+              chalk.gray(
+                `— ${message.id} phase=${message.phase} turn=${message.turn}`,
+              ),
+            );
+            return;
+          case "stopping":
+            logger.log(chalk.gray("— stopping current turn"));
+            return;
+          case "closing":
+            return; // close handler prints the final state
+          case "error":
+            logger.log(chalk.yellow(`— ${message.message}`));
+            return;
+          default:
+            return;
+        }
+      },
+      onClose: () => {
+        closed = true;
+      },
+    });
+  } catch {
+    return false; // transport gone (worker finalizing/finalized) — fall back
+  }
+
+  const lines = parseLines(options.lines, 100);
+  const initial = readBackgroundAgentLog(id, { lines });
+  if (initial)
+    process.stdout.write(initial.endsWith("\n") ? initial : `${initial}\n`);
+  const logFile = logPath(id);
+  let offset = existsSync(logFile) ? readFileSync(logFile, "utf8").length : 0;
+  logger.log(
+    chalk.gray(
+      `Attached to ${id} (interactive). Type a prompt to continue the session; /stop · /status · Ctrl-C detaches.`,
+    ),
+  );
+
+  const readline = await import("node:readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.on("line", (line) => {
+    const text = line.trim();
+    if (!text) return;
+    if (text === "/detach" || text === "/exit" || text === "/quit") {
+      rl.close();
+      return;
+    }
+    if (text === "/stop") {
+      conn.send({ type: "stop" });
+      return;
+    }
+    if (text === "/status") {
+      conn.send({ type: "status" });
+      return;
+    }
+    conn.send({ type: "prompt", text });
+  });
+  const detach = () => rl.close();
+  rl.on("SIGINT", detach);
+
+  await new Promise((resolve) => {
+    rl.on("close", resolve);
+    const poll = setInterval(() => {
+      const next = readLogFromOffset(logFile, offset);
+      offset = next.offset;
+      if (next.text) process.stdout.write(next.text);
+      if (closed) {
+        clearInterval(poll);
+        rl.close();
+      }
+    }, 500);
+    poll.unref?.();
+    rl.on("close", () => clearInterval(poll));
+  });
+
+  // Drain any output written between the last poll and detach.
+  const rest = readLogFromOffset(logFile, offset);
+  if (rest.text) process.stdout.write(rest.text);
+  try {
+    conn.close();
+  } catch {
+    /* already closed by the worker */
+  }
+  const { readBackgroundAgentState, effectiveBackgroundAgentState } =
+    await loadSupervisor();
+  const finalState = effectiveBackgroundAgentState(
+    readBackgroundAgentState(id),
+  );
+  if (finalState) logger.log(chalk.gray(`\n${id} is ${finalState.status}.`));
+  return true;
+}
+
 export function registerBackgroundSessionCommands(program) {
   program
     .command("logs <id>")
@@ -156,11 +302,32 @@ export function registerBackgroundSessionCommands(program) {
 
   program
     .command("attach <id>")
-    .description("Attach to a background agent log stream")
+    .description(
+      "Attach to a background agent — interactive when its session transport is available, log stream otherwise",
+    )
     .option("-n, --lines <n>", "Initial lines to print", "100")
     .option("--no-follow", "Print the initial log tail and exit")
+    .option("--no-input", "Log stream only; never send prompts")
     .action(async (id, options) => {
       try {
+        const { readBackgroundAgentState, effectiveBackgroundAgentState } =
+          await loadSupervisor();
+        const state = effectiveBackgroundAgentState(
+          readBackgroundAgentState(id),
+        );
+        if (!state) throw new Error(`Background agent not found: ${id}`);
+        const wantsInteractive =
+          options.input !== false &&
+          options.follow !== false &&
+          state.status === "running" &&
+          state.transport?.pipe &&
+          state.transport?.token &&
+          process.stdin.isTTY;
+        if (wantsInteractive) {
+          const attached = await interactiveAttach(id, state, options);
+          if (attached) return;
+          // transport refused (worker mid-finalize) — fall back to logs
+        }
         await followBackgroundAgent(id, options);
       } catch (error) {
         logger.error(chalk.red(error.message));

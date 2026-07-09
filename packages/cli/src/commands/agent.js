@@ -840,7 +840,7 @@ export function registerAgentCommand(program) {
             process.exitCode = 1;
             return;
           }
-          const { launchBackgroundAgent } =
+          const { launchBackgroundAgent, buildFollowUpArgv } =
             await import("../lib/background-agent-supervisor.js");
           const childArgv = process.argv
             .slice(2)
@@ -856,6 +856,14 @@ export function registerAgentCommand(program) {
             options.session ||
             `session-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
           if (!hasSessionArg) childArgv.push("--session", sessionId);
+          // Follow-up template for interactive attach: same flags/session,
+          // minus the first turn's prompt tokens (built BEFORE any piped
+          // prompt is appended below). The worker appends -p <text> per turn.
+          const followUpArgv = buildFollowUpArgv(childArgv, {
+            positionalTokens: Array.isArray(task) ? task : [],
+            printValue:
+              typeof options.print === "string" ? options.print : null,
+          });
           const promptWasPiped =
             positional.length === 0 &&
             !(typeof options.print === "string" && options.print.trim());
@@ -865,6 +873,7 @@ export function registerAgentCommand(program) {
             cwd: process.cwd(),
             sessionId,
             title: prompt.slice(0, 100),
+            followUpArgv,
           });
           if (options.outputFormat === "json") {
             console.log(JSON.stringify(state));
