@@ -18,6 +18,7 @@ import { PassThrough } from "node:stream";
 
 import { AgentChatSession } from "../../../vscode-extension/src/chat/agent-session.js";
 import { buildAgentArgs } from "../../../vscode-extension/src/vendor/agent-sdk/agent-session.js";
+import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 
 function fakeChild() {
   const child = new EventEmitter();
@@ -89,5 +90,53 @@ describe("AgentChatSession uses the SDK NDJSON framing", () => {
     child.stdout.write("plain warning line\n");
     await tick();
     expect(events).toEqual([{ type: "raw", text: "plain warning line" }]);
+  });
+});
+
+describe("first-conversation persistence (session id declared up front)", () => {
+  it("first spawn passes --resume with a panel-generated id (anonymous sessions are never persisted)", () => {
+    const state = new Map();
+    const memento = {
+      get: (k, d) => (state.has(k) ? state.get(k) : d),
+      update: (k, v) => (state.set(k, v), Promise.resolve()),
+      _map: state,
+    };
+    const factory = (cfg) => ({
+      cfg,
+      running: true,
+      send: () => true,
+      sendEvent: () => true,
+      stop() {},
+    });
+    const sessions = [];
+    const wrapped = (cfg) => {
+      const s = factory(cfg);
+      sessions.push(s);
+      return s;
+    };
+    const vscode = {
+      commands: { executeCommand() {} },
+      workspace: {
+        workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+        getConfiguration: () => ({ get: () => undefined }),
+      },
+    };
+    const provider = new ChatViewProvider(vscode, {
+      deps: { createSession: wrapped },
+      state: memento,
+    });
+    provider.view = { webview: { postMessage: () => Promise.resolve() } };
+    provider._handleMessage({ type: "send", text: "hi" });
+
+    expect(sessions).toHaveLength(1);
+    const args = sessions[0].cfg.args;
+    const resumeIdx = args.indexOf("--resume");
+    // A brand-new conversation must DECLARE its id: without one the CLI's
+    // stream session is persistence-free and a later IDE-reload --resume of
+    // the init-echoed id silently starts empty (pre-reload context lost).
+    expect(resumeIdx).toBeGreaterThanOrEqual(0);
+    expect(args[resumeIdx + 1]).toMatch(/^panel-/);
+    // …and the id is already on the conversation (persisted for reload).
+    expect(provider._convs.active().sessionId).toBe(args[resumeIdx + 1]);
   });
 });

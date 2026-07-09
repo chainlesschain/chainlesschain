@@ -29,6 +29,19 @@ public final class SessionArgs {
     public static final Set<String> PERMISSION_MODES = Collections.unmodifiableSet(
             new LinkedHashSet<String>(Arrays.asList("plan", "acceptEdits", "bypassPermissions")));
 
+    /**
+     * Fresh panel-declared session id. Anonymous stream sessions are
+     * persistence-free by CLI design (Agent Protocol v1, PROTOCOL.md §1.3) —
+     * a resumable conversation must declare its id on the FIRST spawn, so
+     * the tool window generates one here instead of waiting for system/init.
+     * Same {@code panel-} shape as the VS Code twin.
+     */
+    public static String newPanelSessionId() {
+        String rand = Long.toHexString(Double.doubleToLongBits(Math.random()));
+        if (rand.length() > 6) rand = rand.substring(rand.length() - 6);
+        return "panel-" + System.currentTimeMillis() + "-" + rand;
+    }
+
     /** Build the extra-args list (provider/model/resume/mode), omitting blanks. */
     public static List<String> build(String provider, String model, String resume, String mode) {
         return build(provider, model, resume, mode, null);

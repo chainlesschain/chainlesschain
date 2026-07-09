@@ -343,6 +343,13 @@ public final class PureLogicSmokeMain {
         check(SessionArgs.PERMISSION_MODES.contains("acceptEdits")
                 && !SessionArgs.PERMISSION_MODES.contains("default"),
                 "PERMISSION_MODES allow-list (no 'default')");
+        // First-spawn declared id (anonymous stream sessions never persist):
+        // panel- prefix, sane length, and two calls never collide.
+        String sid1 = SessionArgs.newPanelSessionId();
+        String sid2 = SessionArgs.newPanelSessionId();
+        check(sid1.startsWith("panel-") && sid1.length() > 12,
+                "newPanelSessionId shape");
+        check(!sid1.equals(sid2), "newPanelSessionId unique per call");
         // extended thinking flag (on -> --think, ultra -> --ultrathink, else none)
         eq(SessionArgs.build(null, null, null, "default", "on"),
                 Arrays.asList("--think"), "think on -> --think");

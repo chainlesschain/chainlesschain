@@ -94,6 +94,15 @@ describe("buildAgentArgs", () => {
       "--permission-mode",
     );
   });
+
+  it("passes --session for a declared new session; --resume wins over it", () => {
+    expect(buildAgentArgs({ sessionId: "s-new" })).toEqual(
+      expect.arrayContaining(["--session", "s-new"]),
+    );
+    const both = buildAgentArgs({ sessionId: "s-new", resume: "s-old" });
+    expect(both).toEqual(expect.arrayContaining(["--resume", "s-old"]));
+    expect(both).not.toContain("--session");
+  });
 });
 
 describe("buildSpawnCommand", () => {
@@ -104,16 +113,24 @@ describe("buildSpawnCommand", () => {
     });
   });
 
-  it("runs .js entrypoints and POSIX binaries directly", () => {
+  it("runs POSIX binaries directly and .js entrypoints through Node", () => {
     expect(buildSpawnCommand("/opt/bin/cc", ["agent"], "linux")).toEqual({
       command: "/opt/bin/cc",
       args: ["agent"],
     });
+    // A .js path is not directly spawnable (especially on Windows) — it must
+    // go through the current Node executable.
     expect(
       buildSpawnCommand("C:\\cli\\bin\\chainlesschain.js", ["agent"], "win32"),
     ).toEqual({
-      command: "C:\\cli\\bin\\chainlesschain.js",
-      args: ["agent"],
+      command: process.execPath,
+      args: ["C:\\cli\\bin\\chainlesschain.js", "agent"],
+    });
+    expect(
+      buildSpawnCommand("/repo/bin/chainlesschain.js", ["agent"], "linux"),
+    ).toEqual({
+      command: process.execPath,
+      args: ["/repo/bin/chainlesschain.js", "agent"],
     });
   });
 });

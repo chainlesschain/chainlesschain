@@ -449,13 +449,22 @@ class ChatViewProvider {
       provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
       model: this._safeLlmSetting("model", chatCfg.get("model")),
     });
+    // Declare the session id UP FRONT: anonymous stream sessions are
+    // persistence-free by CLI design, so a first conversation spawned
+    // without an id was never written — an IDE reload's --resume of the id
+    // captured from system/init then silently started EMPTY, losing all
+    // pre-reload context. --resume with a fresh id creates + persists it.
+    if (!conv.sessionId) {
+      conv.sessionId = `panel-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+      this._persistTabs();
+    }
     const session = this._createSession({
       command: this._cliCommand(),
       args: [
         ...buildSessionArgs({
           ...llm,
-          // Continue THIS tab's conversation across child restarts; a new tab
-          // (or "New") starts with no resume id for a fresh session.
+          // Continue THIS tab's conversation across child restarts; the id is
+          // panel-generated on first spawn (created + persisted by the CLI).
           resume: conv.sessionId,
           // Approval mode (/auto, /bypass, /normal) — flag is spawn-time, so a
           // mode change stops the child and the next turn respawns with it.

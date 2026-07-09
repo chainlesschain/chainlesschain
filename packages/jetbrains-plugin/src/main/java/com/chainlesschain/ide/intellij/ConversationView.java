@@ -799,6 +799,20 @@ final class ConversationView {
         // (it skips config when --provider is explicit) and fall through to ollama
         // ("配置了火山却 fetch failed"). Blank → SessionArgs omits the flag.
         String[] llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock();
+        // Declare the session id UP FRONT (VS Code twin fix): anonymous
+        // stream sessions are persistence-free by CLI design, so a first
+        // conversation spawned without an id was never written — an IDE
+        // restart's --resume of the id captured from system/init then
+        // silently started EMPTY, losing all pre-restart context. --resume
+        // with a fresh id makes the CLI create + persist it.
+        if (conv.sessionId == null || conv.sessionId.isEmpty()) {
+            conv.sessionId = com.chainlesschain.ide.SessionArgs.newPanelSessionId();
+            if (sessionIdSink != null) {
+                final String cid = conv.id;
+                final String sessId = conv.sessionId;
+                SwingUtilities.invokeLater(() -> sessionIdSink.onSessionId(cid, sessId));
+            }
+        }
         o.extraArgs = SessionArgs.build(
                 llm[0], llm[1], llm[2], llm[3], conv.sessionId, conv.mode, conv.thinking);
 

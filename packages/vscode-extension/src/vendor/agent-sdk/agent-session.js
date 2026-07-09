@@ -36,7 +36,12 @@ const protocol_js_1 = require("./protocol.js");
  * CliLauncher.augmentPath).
  */
 function buildSpawnCommand(cliPath, args, platform = process.platform) {
-    if (platform === "win32" && !/\.(m?js|cjs)$/i.test(cliPath)) {
+    // A .js entrypoint (e.g. a repo checkout's bin/chainlesschain.js) is not
+    // directly spawnable — run it through the current Node.
+    if (/\.(m?js|cjs)$/i.test(cliPath)) {
+        return { command: process.execPath, args: [cliPath, ...args] };
+    }
+    if (platform === "win32") {
         return { command: "cmd.exe", args: ["/c", cliPath, ...args] };
     }
     return { command: cliPath, args };
@@ -56,6 +61,8 @@ function buildAgentArgs(options) {
         args.push("--interactive-approvals");
     if (options.resume)
         args.push("--resume", options.resume);
+    else if (options.sessionId)
+        args.push("--session", options.sessionId);
     if (options.forkSession)
         args.push("--fork-session");
     if (options.permissionMode && options.permissionMode !== "default") {

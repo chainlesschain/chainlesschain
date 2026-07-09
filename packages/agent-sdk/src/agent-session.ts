@@ -74,6 +74,14 @@ export interface AgentSessionOptions {
   env?: Record<string, string | undefined>;
   /** Session id to resume (`--resume <id>`). */
   resume?: string;
+  /**
+   * Explicit session id for a NEW session (`--session <id>`). IMPORTANT:
+   * anonymous stream sessions are persistence-free by CLI design — without
+   * an explicit id (this or `resume`) the transcript is never written and a
+   * later `resume` of the id reported by system/init silently starts empty.
+   * Pass one whenever the session should be resumable.
+   */
+  sessionId?: string;
   /** Fork the resumed session instead of appending (`--fork-session`). */
   forkSession?: boolean;
   permissionMode?: PermissionMode;
@@ -118,7 +126,12 @@ export function buildSpawnCommand(
   args: string[],
   platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] } {
-  if (platform === "win32" && !/\.(m?js|cjs)$/i.test(cliPath)) {
+  // A .js entrypoint (e.g. a repo checkout's bin/chainlesschain.js) is not
+  // directly spawnable — run it through the current Node.
+  if (/\.(m?js|cjs)$/i.test(cliPath)) {
+    return { command: process.execPath, args: [cliPath, ...args] };
+  }
+  if (platform === "win32") {
     return { command: "cmd.exe", args: ["/c", cliPath, ...args] };
   }
   return { command: cliPath, args };
@@ -137,6 +150,7 @@ export function buildAgentArgs(options: AgentSessionOptions): string[] {
   }
   if (options.onApproval) args.push("--interactive-approvals");
   if (options.resume) args.push("--resume", options.resume);
+  else if (options.sessionId) args.push("--session", options.sessionId);
   if (options.forkSession) args.push("--fork-session");
   if (options.permissionMode && options.permissionMode !== "default") {
     args.push("--permission-mode", options.permissionMode);
