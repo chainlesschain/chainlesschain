@@ -181,9 +181,16 @@ export function resolveAutoModeDecisions(effectiveSettings = {}) {
  *
  * @param {object} inner session-core ApprovalGate (or compatible)
  * @param {ReturnType<typeof resolveAutoModeDecisions>} resolved
+ * @param {{ isActive?: () => boolean }} [opts] `isActive` lets a host that can
+ *        switch permission modes mid-session (the REPL) leave the wrapper
+ *        installed permanently and toggle it: when it returns false, decide()
+ *        delegates untouched to the inner gate. Omitted → always active
+ *        (headless runs pick the mode once per process).
  */
-export function createAutoModeApprovalGate(inner, resolved) {
+export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
   const map = resolved?.map || defaultDecisionMap();
+  const isActive =
+    typeof opts.isActive === "function" ? opts.isActive : () => true;
   let confirm = null;
 
   return {
@@ -205,6 +212,7 @@ export function createAutoModeApprovalGate(inner, resolved) {
       return typeof confirm === "function";
     },
     async decide(ctx = {}) {
+      if (!isActive()) return inner.decide(ctx);
       const riskLevel = RISK_LEVELS.includes(ctx.riskLevel)
         ? ctx.riskLevel
         : "low";

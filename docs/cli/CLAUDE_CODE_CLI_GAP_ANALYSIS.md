@@ -419,9 +419,31 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 仍待后续：
 
-- REPL 交互式会话的权限层（permission-tier）尚未消费 `autoMode.decisions`，目前仅 headless agent 两条路径生效。
+- ~~REPL 交互式会话的权限层（permission-tier）尚未消费 `autoMode.decisions`~~（第九批已落地）。
 - 决策解释链仍只到"单条规则"粒度；managed/settings/shell-policy/approval-gate 的逐层决策链展示待做。
 - `autoMode.decisions` 目前只按 riskLevel 分类；按 tool 名/命令 pattern 的细粒度匹配可作为后续扩展。
+
+### 2026-07-09 第九批
+
+已落地：
+
+- REPL 交互式会话消费 `autoMode.decisions`：新增 `auto` 权限模式（`/permissions auto`，别名 `auto-mode`/`automode`）。
+- `auto` 骑在 trusted gate tier 上，同时激活 autoMode.decisions 分类器包装（`createAutoModeApprovalGate` 新增 `isActive` 谓词，REPL 常驻安装、按当前模式动态生效/让行）。
+- 包装在 setConfirmer 之前完成，`ask` 决策走 REPL 的交互式审批提示（y/always/N），非 headless 的 fail-closed。
+- 未定制 decisions 时不安装包装器，`/permissions auto` 行为等同 trusted（有提示说明）；已定制时切换到 auto 会显示 low/medium/high 映射摘要。
+- Shift+Tab 循环把 auto 当 trusted 参与（auto → autopilot），循环也是退出 auto 的方式。
+- `/permissions`（无参）现在显示当前模式行；usage 文案补 `auto`/`manual` 别名。
+- `parsePermissionTier` 新增 `manual` 别名（→strict）；新增纯函数 `parsePermissionModeArg`（auto 感知）。
+- `cc agent --permission-mode` 现在对交互式会话也生效（manual/auto/acceptEdits/bypassPermissions 及各别名；显式 flag 优先于 bundle approvalPolicy；dontAsk/plan 仍 headless-only）。
+- REPL denial 记录的 `permissionMode` 元数据现在如实携带 `auto`。
+- **顺带修复预存 bug**：`resolveAgentPolicy` 显式白名单丢弃 REPL 消费的键——交互式 `cc agent` 的 `--vim`/`--think`/`--thinking-budget`/`--fallback-model`/`--pdh`/`--output-style` 此前全部被静默丢弃（与当年 systemPrompt 同类 bug，有既有回归守卫先例）；本批补齐 7 键透传 + 新守卫测试。
+- 单元测试：parsePermissionModeArg 别名/普通 tier/非法值、describeTier(auto)、isActive 动态让行/生效、policy 透传守卫 ×2。
+
+仍待后续：
+
+- 交互式 `dontAsk`（不问直接 deny 而非弹审批）尚未支持——headless 语义在交互场景的取舍待定。
+- REPL 的 auto 模式切换只影响本会话；`cc session policy --set` 侧尚无 auto 概念。
+- 决策逐层解释链、按 tool/pattern 细粒度匹配同上批待做。
 
 ### 第一阶段：安全与可运营性
 

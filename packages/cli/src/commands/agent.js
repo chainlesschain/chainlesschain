@@ -240,7 +240,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--permission-mode <mode>",
-      "manual | auto | dontAsk | default | plan | acceptEdits | bypassPermissions (headless)",
+      "manual | auto | dontAsk | default | plan | acceptEdits | bypassPermissions (dontAsk/plan headless-only)",
     )
     .option(
       "--no-file-refs",
@@ -1032,6 +1032,10 @@ export function registerAgentCommand(program) {
         apiKey: options.apiKey,
         sessionId: options.session,
         agentId: options.agentId,
+        // --permission-mode also applies interactively: manual → strict,
+        // acceptEdits → trusted, bypassPermissions → autopilot, auto → trusted
+        // + autoMode.decisions classifier (dontAsk/plan stay headless-only).
+        permissionMode: options.permissionMode,
         recallLimit: options.recallLimit,
         recallQuery: options.recallQuery,
         recallMemory: options.recallMemory, // false when --no-recall-memory

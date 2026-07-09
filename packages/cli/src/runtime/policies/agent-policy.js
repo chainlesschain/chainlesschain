@@ -44,6 +44,17 @@ export function resolveAgentPolicy({
     // IDEA built-in MCP tri-state (undefined=auto when the JetBrains plugin
     // injected the endpoint / true=--jetbrains / false=--no-jetbrains).
     jetbrains: overrides.jetbrains,
+    // Consumed by the interactive REPL (startAgentRepl) — plain passthrough
+    // (undefined = unset). These were silently dropped by this allowlist
+    // before 2026-07-09, breaking --vim/--think/--thinking-budget/
+    // --fallback-model/--pdh/--permission-mode for interactive sessions.
+    permissionMode: overrides.permissionMode,
+    vimMode: overrides.vimMode,
+    thinking: overrides.thinking,
+    thinkingBudget: overrides.thinkingBudget,
+    fallbackModels: overrides.fallbackModels,
+    pdh: overrides.pdh,
+    outputStyle: overrides.outputStyle,
   };
 }
 

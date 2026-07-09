@@ -233,6 +233,37 @@ describe("createAutoModeApprovalGate", () => {
     expect(gate.hasConfirmer()).toBe(true);
   });
 
+  it("delegates untouched to the inner gate while isActive() is false", async () => {
+    const inner = {
+      setConfirmer() {},
+      async decide(ctx) {
+        return {
+          decision: "allow",
+          via: "inner-gate",
+          riskLevel: ctx.riskLevel,
+        };
+      },
+    };
+    let active = false;
+    const gate = createAutoModeApprovalGate(
+      inner,
+      resolveAutoModeDecisions({ decisions: { medium: "deny" } }),
+      { isActive: () => active },
+    );
+
+    // Inactive (e.g. REPL tier is strict/trusted): inner gate decides.
+    const inactive = await gate.decide({ riskLevel: "medium" });
+    expect(inactive).toMatchObject({ decision: "allow", via: "inner-gate" });
+
+    // Mode switched to auto mid-session: the configured map bites.
+    active = true;
+    const activeResult = await gate.decide({ riskLevel: "medium" });
+    expect(activeResult).toMatchObject({
+      decision: "deny",
+      via: "auto-mode-config",
+    });
+  });
+
   it("treats unknown risk levels as low", async () => {
     const gate = createAutoModeApprovalGate(
       makeInner(),

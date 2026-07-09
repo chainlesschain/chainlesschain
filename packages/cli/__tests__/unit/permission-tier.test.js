@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parsePermissionTier,
+  parsePermissionModeArg,
   describeTier,
   nextTier,
   TIER_CYCLE,
@@ -12,13 +13,27 @@ import {
 
 describe("parsePermissionTier", () => {
   it("maps strict aliases", () => {
-    for (const a of ["strict", "default", "normal", "off", "STRICT", " Default "]) {
+    for (const a of [
+      "strict",
+      "default",
+      "manual",
+      "normal",
+      "off",
+      "STRICT",
+      " Default ",
+    ]) {
       expect(parsePermissionTier(a)).toBe("strict");
     }
   });
 
   it("maps trusted aliases (acceptEdits parity)", () => {
-    for (const a of ["trusted", "accept", "accept-edits", "acceptedits", "Accept-Edits"]) {
+    for (const a of [
+      "trusted",
+      "accept",
+      "accept-edits",
+      "acceptedits",
+      "Accept-Edits",
+    ]) {
       expect(parsePermissionTier(a)).toBe("trusted");
     }
   });
@@ -37,11 +52,50 @@ describe("parsePermissionTier", () => {
   });
 });
 
+describe("parsePermissionModeArg", () => {
+  it("maps auto aliases to the trusted tier with the auto flag set", () => {
+    for (const a of ["auto", "AUTO", "auto-mode", "automode", " Auto "]) {
+      expect(parsePermissionModeArg(a)).toEqual({
+        tier: "trusted",
+        auto: true,
+      });
+    }
+  });
+
+  it("maps plain tiers with the auto flag unset", () => {
+    expect(parsePermissionModeArg("strict")).toEqual({
+      tier: "strict",
+      auto: false,
+    });
+    expect(parsePermissionModeArg("manual")).toEqual({
+      tier: "strict",
+      auto: false,
+    });
+    expect(parsePermissionModeArg("accept-edits")).toEqual({
+      tier: "trusted",
+      auto: false,
+    });
+    expect(parsePermissionModeArg("bypassPermissions")).toEqual({
+      tier: "autopilot",
+      auto: false,
+    });
+  });
+
+  it("returns null for unknown / empty input", () => {
+    expect(parsePermissionModeArg("loose")).toBe(null);
+    expect(parsePermissionModeArg("")).toBe(null);
+    expect(parsePermissionModeArg(null)).toBe(null);
+    // dontAsk is headless-only — the interactive parser rejects it.
+    expect(parsePermissionModeArg("dontAsk")).toBe(null);
+  });
+});
+
 describe("describeTier", () => {
   it("describes each tier and empty for unknown", () => {
     expect(describeTier("autopilot")).toContain("auto-approved");
     expect(describeTier("trusted")).toContain("high-risk still asks");
     expect(describeTier("strict")).toContain("asks");
+    expect(describeTier("auto")).toContain("autoMode.decisions");
     expect(describeTier("bogus")).toBe("");
   });
 });

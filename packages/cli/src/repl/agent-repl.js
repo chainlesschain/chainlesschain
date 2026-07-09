@@ -113,6 +113,7 @@ import {
 } from "./permission-prompt.js";
 import {
   parsePermissionTier,
+  parsePermissionModeArg,
   describeTier,
   nextTier,
 } from "./permission-tier.js";
@@ -432,10 +433,17 @@ export async function startAgentRepl(options = {}) {
   // the injection after the turn (or as a backstop at the next submit on throw).
   let pendingBtw = [];
   let _btwRestore = null;
-  // Current ApprovalGate session tier (strict|trusted|autopilot), mirrored here
-  // so Shift+Tab can cycle it and `/permissions <tier>` can set it. Kept in sync
-  // with _approvalGate.setSessionPolicy below.
+  // Current permission mode (strict|trusted|autopilot|auto), mirrored here so
+  // Shift+Tab can cycle it and `/permissions <tier>` can set it. Kept in sync
+  // with _approvalGate.setSessionPolicy below. "auto" rides the trusted gate
+  // tier but additionally activates the autoMode.decisions classifier wrapper
+  // (when settings customize it) — gateTierFor() maps mode → real gate tier.
   let _sessionTier = "strict";
+  const gateTierFor = (mode) => (mode === "auto" ? "trusted" : mode);
+  // Resolved autoMode.decisions map (loaded once at startup); null until the
+  // gate is wired. The wrapper is installed only when settings customize the
+  // map, and only bites while _sessionTier === "auto" (isActive predicate).
+  let _autoModeResolved = null;
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   // Configured vision model (config.llm.visionModel) — used when a turn carries
@@ -581,6 +589,29 @@ export async function startAgentRepl(options = {}) {
     const { getApprovalGate } =
       await import("../lib/session-core-singletons.js");
     _approvalGate = await getApprovalGate();
+    // autoMode.decisions: wrap the gate with the configurable classifier
+    // BEFORE setConfirmer so the wrapper captures the interactive confirmer.
+    // Inactive (delegating) unless the session mode is "auto"; not installed
+    // at all when settings don't customize the map (byte-identical path).
+    try {
+      const {
+        loadAutoModeConfig,
+        resolveAutoModeDecisions,
+        createAutoModeApprovalGate,
+      } = await import("../lib/auto-mode-config.js");
+      _autoModeResolved = resolveAutoModeDecisions(
+        loadAutoModeConfig({ cwd: process.cwd() }).effective,
+      );
+      if (_autoModeResolved.customized) {
+        _approvalGate = createAutoModeApprovalGate(
+          _approvalGate,
+          _autoModeResolved,
+          { isActive: () => _sessionTier === "auto" },
+        );
+      }
+    } catch (_err) {
+      _autoModeResolved = null; // fail to the plain gate tiers
+    }
     if (typeof _approvalGate.setConfirmer === "function") {
       _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
         await _fireNotification(
@@ -1068,6 +1099,23 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
+  // --permission-mode for the interactive session (headless parity): manual →
+  // strict, acceptEdits → trusted, bypassPermissions → autopilot, and auto →
+  // trusted tier + the autoMode.decisions classifier. An explicit flag wins
+  // over the bundle's approvalPolicy default. Unknown values are ignored here
+  // (headless validates them; interactively we just keep the default tier).
+  if (options.permissionMode && _approvalGate && sessionId) {
+    const parsed = parsePermissionModeArg(options.permissionMode);
+    if (parsed && typeof _approvalGate.setSessionPolicy === "function") {
+      try {
+        _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+        _sessionTier = parsed.auto ? "auto" : parsed.tier;
+      } catch (_err) {
+        // Non-critical — keep the default tier
+      }
+    }
+  }
+
   // Phase G #5 — inject top-K memory recall into system prompt for new sessions
   // Skip on resume (existing context already reflects prior work) and when
   // --no-recall-memory is passed.
@@ -1417,7 +1465,9 @@ export async function startAgentRepl(options = {}) {
           sessionId &&
           typeof _approvalGate.setSessionPolicy === "function"
         ) {
-          const next = nextTier(_sessionTier);
+          // "auto" rides the trusted tier, so it cycles as trusted → autopilot
+          // (cycling is also how you exit auto mode without /permissions).
+          const next = nextTier(gateTierFor(_sessionTier));
           try {
             _approvalGate.setSessionPolicy(sessionId, next);
             _sessionTier = next;
@@ -3767,13 +3817,13 @@ export async function startAgentRepl(options = {}) {
         return;
       }
       if (arg) {
-        // Set this session's approval tier mid-session (Claude-Code
+        // Set this session's permission mode mid-session (Claude-Code
         // permission-mode / Shift+Tab parity; mirrors `cc session policy --set`).
-        const tier = parsePermissionTier(arg);
-        if (!tier) {
+        const parsed = parsePermissionModeArg(arg);
+        if (!parsed) {
           logger.info(
-            "Usage: /permissions [strict|trusted|autopilot]  " +
-              "(aliases: default · accept-edits · bypass). No arg = show rules.",
+            "Usage: /permissions [strict|trusted|autopilot|auto]  " +
+              "(aliases: default · manual · accept-edits · bypass). No arg = show rules.",
           );
         } else if (
           !_approvalGate ||
@@ -3785,11 +3835,27 @@ export async function startAgentRepl(options = {}) {
           );
         } else {
           try {
-            _approvalGate.setSessionPolicy(sessionId, tier);
-            _sessionTier = tier;
+            _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+            _sessionTier = parsed.auto ? "auto" : parsed.tier;
             logger.info(
-              `Approval policy → ${chalk.cyan(tier)} ${chalk.gray(`(${describeTier(tier)})`)}`,
+              `Approval policy → ${chalk.cyan(_sessionTier)} ${chalk.gray(`(${describeTier(_sessionTier)})`)}`,
             );
+            if (parsed.auto) {
+              if (_autoModeResolved?.customized) {
+                const m = _autoModeResolved.map;
+                logger.info(
+                  chalk.gray(
+                    `  autoMode.decisions: low→${m.low.decision} · medium→${m.medium.decision} · high→${m.high.decision}  (cc auto-mode config for sources)`,
+                  ),
+                );
+              } else {
+                logger.info(
+                  chalk.gray(
+                    "  no customized autoMode.decisions in settings — auto behaves like trusted",
+                  ),
+                );
+              }
+            }
           } catch (_err) {
             logger.info("Could not set the approval policy.");
           }
@@ -3808,7 +3874,12 @@ export async function startAgentRepl(options = {}) {
       logger.log(renderPermissions(_permissionRules, { files }));
       logger.log(
         chalk.gray(
-          "  Set tier mid-session: /permissions <strict|trusted|autopilot>",
+          `  Current mode: ${_sessionTier} (${describeTier(_sessionTier)})`,
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          "  Set tier mid-session: /permissions <strict|trusted|autopilot|auto>",
         ),
       );
       if (_recentDenials.length) {

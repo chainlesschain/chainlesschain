@@ -10,6 +10,7 @@ const TIER_ALIASES = {
   // strict — every risky action asks (the default)
   strict: "strict",
   default: "strict",
+  manual: "strict",
   normal: "strict",
   off: "strict",
   // trusted — low/medium-risk auto-approved, high-risk still asks (acceptEdits)
@@ -45,6 +46,25 @@ export function parsePermissionTier(arg) {
     : null;
 }
 
+const AUTO_ALIASES = new Set(["auto", "auto-mode", "automode"]);
+
+/**
+ * Parse a permission-mode argument that may also be `auto` (the configurable
+ * autoMode.decisions classifier). Auto rides the trusted gate tier; the REPL
+ * additionally activates the decisions wrapper while the mode is `auto`.
+ *
+ * @param {string} arg
+ * @returns {{ tier: "strict"|"trusted"|"autopilot", auto: boolean } | null}
+ */
+export function parsePermissionModeArg(arg) {
+  const a = String(arg == null ? "" : arg)
+    .trim()
+    .toLowerCase();
+  if (AUTO_ALIASES.has(a)) return { tier: "trusted", auto: true };
+  const tier = parsePermissionTier(a);
+  return tier ? { tier, auto: false } : null;
+}
+
 /** One-line description of what a tier auto-approves. */
 export function describeTier(tier) {
   switch (tier) {
@@ -54,6 +74,8 @@ export function describeTier(tier) {
       return "low/medium-risk auto-approved; high-risk still asks";
     case "strict":
       return "every risky action asks";
+    case "auto":
+      return "autoMode.decisions classifier (riskLevel → allow/ask/deny); unconfigured = trusted";
     default:
       return "";
   }
