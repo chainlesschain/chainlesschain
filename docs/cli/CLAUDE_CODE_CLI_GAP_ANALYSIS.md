@@ -598,6 +598,24 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - web-panel/Android 客户端消费 `permission.request` 卡片 UI（协议+push 已就绪）。
 - `permission.request` 事件带完整决策链上下文（第十二批 permissionChain）——polish。
 
+### 2026-07-09 第十九批（第四阶段 #3 — Monitor / Cron / Push agent 工具）
+
+已落地：
+
+- **两个新 agent 工具（extension tier）**：`notify` + `schedule`。工具集 21→23（`AGENT_TOOLS.length`）。
+  - `notify`：把已有多渠道 NotificationManager（Telegram/WeCom/DingTalk/Feishu，`fromEnv`）暴露给 agent——长任务完成/需人决策/报错时推送。`level`→`notifyStart/Success/Failure`；无渠道配置返回 no-op note（不报错）；返回 delivered/failed/channels。新 `src/lib/agent-notify.js`。
+  - `schedule`：一个工具五动作（`wakeup`/`cron`/`monitor`/`list`/`cancel`），对应 Claude Code 的 ScheduleWakeup/CronCreate/Monitor。因一次 `cc agent` turn 无法自己续命定时器，工具**持久化意图**到 `~/.chainlesschain/agent-schedule/<kind>.jsonl`（0600），由新命令 `cc agenda run` 真正触发。
+- **新 `src/lib/agent-schedule-store.js`**：wakeup（一次性 dueAt）/cron（自带 5-field cron 解析+求值器，`* , - /`）/monitor（命令+间隔+stopWhen 正则+maxChecks）三类共享 JSONL 存储；纯函数、注入时钟、per-row 容错（坏行跳过不毒化全表）；`due()`/`markWakeupFired`/`advanceCron`/`recordMonitorCheck` 生命周期。
+- **新 `cc agenda` 命令**（list/run/cancel）：`run` 对每条到期项 wakeup/cron→spawn `cc agent -p <prompt>`（cron 完后 `advanceCron` 推进下次）、monitor→跑命令、输出命中 stopWhen 则 `notify` 并停、否则重挂下一间隔或到 maxChecks 耗尽。effectful deps（spawnAgent/runCommand/notify/now）全可注入。命令数 170→171。
+- **策略**：两工具 riskLevel LOW、`planModeBehavior: blocked`（外部副作用/未来副作用不进 plan mode）、非 read-only（会触发 auto-checkpoint，无害）；`notify` 面向用户自己的渠道故 auto flow。
+- 测试：unit 29——schedule-store 12（cron 解析/nextCronTime/wakeup due/cron 推进/monitor 命中+maxChecks/坏正则/坏行容错/list+cancel）+ agent-notify 5（无渠道 no-op/level 映射/delivered-failed 拆分）+ agenda 8（list/cancel/dry-run/wakeup 触发/monitor 命中+notify/未命中重挂/spawn 失败 exit1）+ agent-core dispatch 9（三类持久化/list/cancel/参数校验/formatToolArgs）。真机 smoke：`cc agenda list/run/--help` 全通；`AGENT_TOOLS` 含 notify/schedule。工具计数回归（agent-core/parity-open-agents/sub-agent-isolation/persona-filter）21→23、19→21 已同步。contract/tool-search/parity-mcp 回归全绿。
+
+仍待后续：
+
+- `cc agenda run` 的常驻触发（`cc loop --every 1m -- cc agenda run` 或系统 cron/systemd timer）——留给用户按环境接；未内建 daemon。
+- monitor 输出的结构化解析（现只 regex over stdout+stderr）；cron 秒级/时区（现分钟级本地时区）——按需再扩。
+- `notify` 接 remote-session 已配对设备 push（`cc notification send` 已有独立通道，未与 agent notify 合流）。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -621,7 +639,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 1. `/remote-control` 统一入口。✅（2026-07-09 批17 — `cc remote-control` start/status/stop + 双模配对 URI/QR）
 2. mobile/web 权限审批。✅（2026-07-09 批18 — client-hosted 控制回传 + relay/push 平价 + RemoteApprovalBridge + `cc agent --remote-control`）
-3. Monitor / Cron / Push 工具。
+3. Monitor / Cron / Push 工具。✅（2026-07-09 批19 — `notify` + `schedule` agent 工具 + `cc agenda` 消费者 + AgentScheduleStore）
 4. dynamic workflow + worktree batch。
 
 ## 参考资料

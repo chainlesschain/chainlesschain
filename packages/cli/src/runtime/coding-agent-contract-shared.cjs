@@ -849,6 +849,110 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       tags: ["tool:search_sessions", "contract:coding-agent", "tier:extension"],
     },
   },
+  {
+    name: "notify",
+    title: "Send Notification",
+    kind: "notify",
+    tier: "extension",
+    description:
+      "Push a notification to the user's configured channels (Telegram / WeCom / DingTalk / Feishu) and/or a paired mobile device. Use for long-running tasks: report completion, flag that you need a human decision, or surface an error. Best-effort: reports which channels delivered.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short notification title" },
+        body: { type: "string", description: "Notification body text" },
+        level: {
+          type: "string",
+          enum: ["info", "success", "failure"],
+          description: "Severity (default: info)",
+        },
+      },
+      required: ["title"],
+    },
+    ...TOOL_POLICY_METADATA.notify,
+    permissions: {
+      level: "standard",
+      scopes: ["network:notify"],
+    },
+    telemetry: {
+      category: "notify",
+      tags: ["tool:notify", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
+    name: "schedule",
+    title: "Schedule / Monitor",
+    kind: "schedule",
+    tier: "extension",
+    description:
+      "Set up work that outlives this turn (persisted for `cc agenda run` to execute). Actions: `wakeup` — run a prompt once after a delay; `cron` — run a prompt on a 5-field cron schedule; `monitor` — run a shell command every interval and notify when its output matches a regex; `list` — show scheduled items; `cancel` — remove one by id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["wakeup", "cron", "monitor", "list", "cancel"],
+          description: "What to do",
+        },
+        prompt: {
+          type: "string",
+          description:
+            "For wakeup/cron: the agent prompt to run (via `cc agent -p`) when it fires",
+        },
+        delay: {
+          type: "string",
+          description:
+            "For wakeup: how long from now before it fires (e.g. 30s, 5m, 1h)",
+        },
+        cron: {
+          type: "string",
+          description:
+            'For cron: a 5-field cron expression, e.g. "0 9 * * 1" (09:00 every Monday)',
+        },
+        command: {
+          type: "string",
+          description: "For monitor: the shell command to run each interval",
+        },
+        interval: {
+          type: "string",
+          description:
+            "For monitor: how often to run the command (e.g. 30s, 5m)",
+        },
+        stop_when: {
+          type: "string",
+          description:
+            "For monitor: a regex; when the command output matches, the monitor fires its notification and stops",
+        },
+        notify_title: {
+          type: "string",
+          description: "For monitor: notification title sent when it matches",
+        },
+        max_checks: {
+          type: "number",
+          description:
+            "For monitor: give up after this many checks (optional safety cap)",
+        },
+        label: {
+          type: "string",
+          description: "Optional human label for list/cancel",
+        },
+        id: {
+          type: "string",
+          description: "For cancel: the schedule entry id to remove",
+        },
+      },
+      required: ["action"],
+    },
+    ...TOOL_POLICY_METADATA.schedule,
+    permissions: {
+      level: "standard",
+      scopes: ["schedule:write"],
+    },
+    telemetry: {
+      category: "schedule",
+      tags: ["tool:schedule", "contract:coding-agent", "tier:extension"],
+    },
+  },
 ]);
 
 const CODING_AGENT_MVP_TOOL_NAMES = Object.freeze(

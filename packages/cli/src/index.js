@@ -156,6 +156,9 @@ import { registerServeCommand } from "./commands/serve.js";
 // Remote Control unified entry (第四阶段 #1)
 import { registerRemoteControlCommand } from "./commands/remote-control.js";
 
+// Agenda: consumer for agent-scheduled wakeups/crons/monitors (第四阶段 #3)
+import { registerAgendaCommand } from "./commands/agenda.js";
+
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 import { registerPackCommand } from "./commands/pack.js";
@@ -585,6 +588,9 @@ export function createProgram(opts = {}) {
 
   // Remote Control unified entry
   registerRemoteControlCommand(program);
+
+  // Agenda: fire agent-scheduled wakeups/crons/monitors
+  registerAgendaCommand(program);
 
   // Web UI
   registerUiCommand(program);

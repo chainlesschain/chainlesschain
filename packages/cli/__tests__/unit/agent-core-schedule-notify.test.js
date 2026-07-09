@@ -1,0 +1,142 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { executeTool, formatToolArgs } from "../../src/runtime/agent-core.js";
+import { AgentScheduleStore } from "../../src/lib/agent-schedule-store.js";
+
+// The `schedule` tool persists under ~/.chainlesschain/agent-schedule. Redirect
+// HOME/USERPROFILE to a temp dir so the dispatch tests never touch the real one.
+describe("schedule tool dispatch", () => {
+  let tmpHome;
+  let savedHome;
+  let savedUserProfile;
+
+  beforeEach(() => {
+    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-home-"));
+    savedHome = process.env.HOME;
+    savedUserProfile = process.env.USERPROFILE;
+    process.env.HOME = tmpHome;
+    process.env.USERPROFILE = tmpHome;
+  });
+
+  afterEach(() => {
+    if (savedHome === undefined) delete process.env.HOME;
+    else process.env.HOME = savedHome;
+    if (savedUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = savedUserProfile;
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it("schedules a wakeup and persists it", async () => {
+    const res = await executeTool("schedule", {
+      action: "wakeup",
+      prompt: "check the deploy",
+      delay: "5m",
+    });
+    expect(res.scheduled).toMatchObject({ kind: "wakeup", status: "pending" });
+    const store = new AgentScheduleStore({
+      dir: path.join(tmpHome, ".chainlesschain", "agent-schedule"),
+    });
+    expect(store.list("wakeup")).toHaveLength(1);
+  });
+
+  it("creates a cron entry", async () => {
+    const res = await executeTool("schedule", {
+      action: "cron",
+      prompt: "daily standup notes",
+      cron: "0 9 * * 1-5",
+    });
+    expect(res.scheduled).toMatchObject({ kind: "cron", cron: "0 9 * * 1-5" });
+  });
+
+  it("creates a monitor entry", async () => {
+    const res = await executeTool("schedule", {
+      action: "monitor",
+      command: "curl -s localhost:3000/health",
+      interval: "30s",
+      stop_when: "healthy",
+      notify_title: "service up",
+    });
+    expect(res.scheduled).toMatchObject({
+      kind: "monitor",
+      intervalMs: 30000,
+      stopWhen: "healthy",
+    });
+  });
+
+  it("lists and cancels", async () => {
+    const created = await executeTool("schedule", {
+      action: "wakeup",
+      prompt: "x",
+    });
+    const listed = await executeTool("schedule", { action: "list" });
+    expect(listed.entries).toHaveLength(1);
+    const cancelled = await executeTool("schedule", {
+      action: "cancel",
+      id: created.scheduled.id,
+    });
+    expect(cancelled.found).toBe(true);
+  });
+
+  it("validates action + required args", async () => {
+    expect((await executeTool("schedule", { action: "wakeup" })).error).toMatch(
+      /requires a prompt/,
+    );
+    expect((await executeTool("schedule", { action: "cron" })).error).toMatch(
+      /requires a prompt and a cron/,
+    );
+    expect(
+      (await executeTool("schedule", { action: "monitor" })).error,
+    ).toMatch(/requires a command/);
+    expect((await executeTool("schedule", { action: "cancel" })).error).toMatch(
+      /requires an id/,
+    );
+    expect((await executeTool("schedule", { action: "bogus" })).error).toMatch(
+      /unknown schedule action/,
+    );
+  });
+});
+
+describe("notify tool dispatch (no channels configured)", () => {
+  it("returns the no-op note when no channels are set", async () => {
+    const saved = {};
+    for (const k of [
+      "TELEGRAM_BOT_TOKEN",
+      "WECOM_WEBHOOK_URL",
+      "DINGTALK_WEBHOOK_URL",
+      "FEISHU_WEBHOOK_URL",
+    ]) {
+      saved[k] = process.env[k];
+      delete process.env[k];
+    }
+    try {
+      const res = await executeTool("notify", { title: "hello" });
+      expect(res.channels).toBe(0);
+      expect(res.note).toMatch(/No notification channels/);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v !== undefined) process.env[k] = v;
+      }
+    }
+  });
+
+  it("errors without a title", async () => {
+    const res = await executeTool("notify", { body: "no title" });
+    expect(res.error).toMatch(/title/);
+  });
+});
+
+describe("formatToolArgs for schedule/notify", () => {
+  it("summarizes notify and schedule actions", () => {
+    expect(formatToolArgs("notify", { level: "success", title: "Done" })).toBe(
+      "success: Done",
+    );
+    expect(
+      formatToolArgs("schedule", { action: "cron", cron: "0 9 * * 1" }),
+    ).toBe("cron 0 9 * * 1");
+    expect(formatToolArgs("schedule", { action: "wakeup", delay: "5m" })).toBe(
+      "wakeup +5m",
+    );
+  });
+});

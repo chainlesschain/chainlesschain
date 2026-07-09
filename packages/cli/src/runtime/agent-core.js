@@ -3010,6 +3010,100 @@ async function executeToolInner(
       }
     }
 
+    case "notify": {
+      try {
+        const { sendAgentNotification } =
+          await import("../lib/agent-notify.js");
+        const outcome = await sendAgentNotification({
+          title: args.title,
+          body: args.body,
+          level: args.level,
+        });
+        return attachDescriptor(outcome);
+      } catch (err) {
+        return attachDescriptor({ error: `notify failed: ${err.message}` });
+      }
+    }
+
+    case "schedule": {
+      try {
+        const { AgentScheduleStore } =
+          await import("../lib/agent-schedule-store.js");
+        const { parseDuration } = await import("../lib/loop.js");
+        const store = new AgentScheduleStore();
+        const action = String(args.action || "").toLowerCase();
+        if (action === "wakeup") {
+          if (!args.prompt) {
+            return attachDescriptor({
+              error: "schedule wakeup requires a prompt",
+            });
+          }
+          const delayMs = args.delay ? parseDuration(args.delay) : 0;
+          const entry = store.scheduleWakeup({
+            prompt: args.prompt,
+            delayMs,
+            label: args.label || null,
+          });
+          return attachDescriptor({
+            scheduled: entry,
+            hint: "Run `cc agenda run` (e.g. via cron or `cc loop`) to fire due entries.",
+          });
+        }
+        if (action === "cron") {
+          if (!args.prompt || !args.cron) {
+            return attachDescriptor({
+              error: "schedule cron requires a prompt and a cron expression",
+            });
+          }
+          const entry = store.createCron({
+            prompt: args.prompt,
+            cron: args.cron,
+            label: args.label || null,
+          });
+          return attachDescriptor({ scheduled: entry });
+        }
+        if (action === "monitor") {
+          if (!args.command) {
+            return attachDescriptor({
+              error: "schedule monitor requires a command",
+            });
+          }
+          const intervalMs = args.interval
+            ? parseDuration(args.interval)
+            : 60000;
+          const entry = store.createMonitor({
+            command: args.command,
+            intervalMs,
+            stopWhen: args.stop_when || null,
+            notify: args.notify_title ? { title: args.notify_title } : null,
+            maxChecks: args.max_checks ?? null,
+            label: args.label || null,
+          });
+          return attachDescriptor({ scheduled: entry });
+        }
+        if (action === "list") {
+          return attachDescriptor({ entries: store.list() });
+        }
+        if (action === "cancel") {
+          if (!args.id) {
+            return attachDescriptor({
+              error: "schedule cancel requires an id",
+            });
+          }
+          const removed = store.cancel(args.id);
+          return attachDescriptor({
+            cancelled: removed ? removed.id : null,
+            found: Boolean(removed),
+          });
+        }
+        return attachDescriptor({
+          error: `unknown schedule action "${args.action}". Valid: wakeup, cron, monitor, list, cancel.`,
+        });
+      } catch (err) {
+        return attachDescriptor({ error: `schedule failed: ${err.message}` });
+      }
+    }
+
     case "search_files": {
       // An explicit directory scopes the search to one root; otherwise span
       // cwd plus any --add-dir roots so cross-package searches find matches.
@@ -6342,6 +6436,16 @@ export function formatToolArgs(name, args) {
       return `[${args.role}] ${(args.task || "").substring(0, 60)}`;
     case "search_sessions":
       return `"${(args.query || "").substring(0, 60)}"`;
+    case "notify":
+      return `${args.level || "info"}: ${(args.title || "").substring(0, 50)}`;
+    case "schedule":
+      return args.action === "cron"
+        ? `cron ${args.cron || ""}`.trim()
+        : args.action === "monitor"
+          ? `monitor ${(args.command || "").substring(0, 40)}`.trim()
+          : args.action === "wakeup"
+            ? `wakeup +${args.delay || "0s"}`
+            : String(args.action || "");
     default:
       return JSON.stringify(args).substring(0, 60);
   }

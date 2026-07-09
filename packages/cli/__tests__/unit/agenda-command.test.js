@@ -1,0 +1,125 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { AgentScheduleStore } from "../../src/lib/agent-schedule-store.js";
+import {
+  runAgendaList,
+  runAgendaCancel,
+  runAgendaRun,
+} from "../../src/commands/agenda.js";
+
+describe("cc agenda", () => {
+  let dir;
+  let clock;
+  let store;
+  let logs;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-agenda-"));
+    clock = 1_000_000;
+    store = new AgentScheduleStore({ dir, now: () => clock });
+    logs = [];
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const log = (m) => logs.push(m);
+
+  it("lists entries as JSON", () => {
+    store.scheduleWakeup({ prompt: "a", delayMs: 1000 });
+    const code = runAgendaList({ json: true }, { store, log });
+    expect(code).toBe(0);
+    const parsed = JSON.parse(logs.join("\n"));
+    expect(parsed.entries).toHaveLength(1);
+  });
+
+  it("cancels by id", () => {
+    const w = store.scheduleWakeup({ prompt: "a" });
+    const code = runAgendaCancel(w.id, { json: true }, { store, log });
+    expect(code).toBe(0);
+    expect(JSON.parse(logs.join("\n")).cancelled).toBe(w.id);
+    expect(runAgendaCancel("missing", { json: true }, { store, log })).toBe(2);
+  });
+
+  it("dry-run reports due entries without firing", async () => {
+    store.scheduleWakeup({ prompt: "wake", delayMs: 0 });
+    const spawnAgent = vi.fn();
+    const code = await runAgendaRun(
+      { dryRun: true, json: true },
+      { store, log, spawnAgent, now: () => clock },
+    );
+    expect(code).toBe(0);
+    expect(spawnAgent).not.toHaveBeenCalled();
+    expect(JSON.parse(logs.join("\n")).actions[0].action).toBe("would-fire");
+  });
+
+  it("fires a due wakeup via cc agent and marks it fired", async () => {
+    const w = store.scheduleWakeup({ prompt: "check", delayMs: 0 });
+    const spawnAgent = vi.fn(async () => 0);
+    const code = await runAgendaRun(
+      { json: true },
+      { store, log, spawnAgent, now: () => clock + 1 },
+    );
+    expect(code).toBe(0);
+    expect(spawnAgent).toHaveBeenCalledWith("check");
+    expect(store.list("wakeup").find((e) => e.id === w.id).status).toBe(
+      "fired",
+    );
+  });
+
+  it("runs a monitor, matches output, and notifies", async () => {
+    const m = store.createMonitor({
+      command: "echo BUILD OK",
+      intervalMs: 1000,
+      stopWhen: "OK",
+      notify: { title: "build done" },
+    });
+    const runCommand = vi.fn(async () => "BUILD OK\n");
+    const notify = vi.fn(async () => ({ delivered: ["telegram"] }));
+    await runAgendaRun(
+      { json: true },
+      { store, log, runCommand, notify, now: () => clock + 2000 },
+    );
+    expect(runCommand).toHaveBeenCalledWith("echo BUILD OK");
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "build done", level: "success" }),
+    );
+    expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+      "matched",
+    );
+  });
+
+  it("re-arms a monitor whose output does not match yet", async () => {
+    const m = store.createMonitor({
+      command: "echo waiting",
+      intervalMs: 1000,
+      stopWhen: "OK",
+    });
+    const runCommand = vi.fn(async () => "still waiting\n");
+    const notify = vi.fn();
+    await runAgendaRun(
+      { json: true },
+      { store, log, runCommand, notify, now: () => clock + 2000 },
+    );
+    expect(notify).not.toHaveBeenCalled();
+    const after = store.list("monitor").find((e) => e.id === m.id);
+    expect(after.status).toBe("active");
+    expect(after.checks).toBe(1);
+  });
+
+  it("reports a spawn failure as an error action (exit 1)", async () => {
+    store.scheduleWakeup({ prompt: "boom", delayMs: 0 });
+    const spawnAgent = vi.fn(async () => {
+      throw new Error("cc agent exited with code 2");
+    });
+    const code = await runAgendaRun(
+      { json: true },
+      { store, log, spawnAgent, now: () => clock + 1 },
+    );
+    expect(code).toBe(1);
+    expect(JSON.parse(logs.join("\n")).actions[0].action).toBe("error");
+  });
+});

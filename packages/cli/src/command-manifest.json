@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 170,
+  "commandCount": 171,
   "commands": [
     {
       "name": "a2a",
@@ -15,6 +15,13 @@
       "module": "./commands/activitypub.js",
       "register": "registerActivityPubCommand",
       "summary": "ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce"
+    },
+    {
+      "name": "agenda",
+      "aliases": [],
+      "module": "./commands/agenda.js",
+      "register": "registerAgendaCommand",
+      "summary": "Fire agent-scheduled wakeups / crons / monitors (persisted by the `schedule` tool)"
     },
     {
       "name": "agent",

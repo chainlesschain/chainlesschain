@@ -261,6 +261,34 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: true,
   },
+  // Sends an outbound notification to the user's own channels/device. No
+  // workspace mutation and no un-gated shell; blocked in plan mode (an
+  // external side effect) but otherwise auto — it targets the user, not a
+  // third party.
+  notify: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.WRITE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: false,
+  },
+  // Persists a wakeup/cron/monitor entry for `cc agenda run` to execute later.
+  // Writing the schedule is itself harmless (a JSONL row under the user's
+  // config dir); the eventual `cc agent`/shell run is gated when the agenda
+  // consumer executes it. Blocked in plan mode (schedules future side effects).
+  schedule: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.WRITE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: false,
+  },
 });
 
 function normalizeGitCommand(command) {
