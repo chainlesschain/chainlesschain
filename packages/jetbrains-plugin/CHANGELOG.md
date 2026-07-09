@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.52] — Background Agents panel (2026-07-10)
 
 - **Background Agents panel (Tools → ChainlessChain: Background Agents)**:
   list `cc agent --bg` supervisor sessions straight from the state dir

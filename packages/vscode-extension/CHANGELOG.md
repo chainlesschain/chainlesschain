@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.9] — Background Agents panel (2026-07-10)
+
+- **Background Agents panel (ChainlessChain: Background Agents).** A new
+  webview lists the `cc agent --bg` supervisor sessions read straight from
+  the state dir (display-only stale-heartbeat / dead-pid correction,
+  phase/turn/elapsed, and a live log tail). Attach to a session to send a
+  follow-up prompt or stop the current turn over the session transport — the
+  same NDJSON pipe protocol `cc attach` speaks, via the vendored
+  `@chainlesschain/agent-sdk` client — with 500 ms log-delta streaming; stop
+  / rename / resume go through `cc daemon … --json`. Run it from the command
+  palette (`chainlesschain.background.agents`). Mirrored by the JetBrains
+  0.4.52 twin (dialog form there).
+
 ## [0.37.8] — first conversation survives an IDE reload (2026-07-10)
 
 - **Fix: the first conversation now survives an IDE reload.** Anonymous
