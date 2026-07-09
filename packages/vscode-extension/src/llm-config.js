@@ -194,7 +194,10 @@ async function hasConfiguredApiKey(opts = {}) {
 async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
   const v = (visionModel == null ? "" : String(visionModel)).trim();
   if (v && hasUnsafeShellChars(v)) {
-    return { ok: false, error: "值含不安全字符 — 请去掉空格/引号/& 等再试" };
+    return {
+      ok: false,
+      error: "Value contains unsafe characters — remove spaces/quotes/& and retry",
+    };
   }
   const r = await runCli(command, ["config", "set", "llm.visionModel", v], deps);
   return r.ok ? { ok: true } : { ok: false, error: r.error || r.stderr.slice(0, 200) };
@@ -204,7 +207,10 @@ async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
 async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
   for (const [key, value] of Object.entries(answers || {})) {
     if (value && hasUnsafeShellChars(value)) {
-      return { ok: false, error: `值含不安全字符 (${key}) — 请去掉空格/引号/& 等再试` };
+      return {
+        ok: false,
+        error: `Value contains unsafe characters (${key}) — remove spaces/quotes/& and retry`,
+      };
     }
   }
   for (const args of buildConfigSetArgs(answers)) {

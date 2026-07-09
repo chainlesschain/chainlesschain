@@ -473,7 +473,10 @@ function activate(context) {
       const releases = parseChangelogJson(text);
       if (!releases || releases.length === 0) {
         vscode.window.showInformationMessage(
-          `ChainlessChain: 读取不到 cc 更新说明 — 需要 cc ≥ ${MIN_CHANGELOG_CLI}(npm i -g chainlesschain 升级后重试)。`,
+          vscode.l10n.t(
+            "ChainlessChain: could not read cc release notes — needs cc ≥ {0} (upgrade with npm i -g chainlesschain, then retry).",
+            MIN_CHANGELOG_CLI,
+          ),
         );
         return;
       }

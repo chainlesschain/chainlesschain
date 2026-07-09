@@ -30,7 +30,7 @@ describe("computeHunks", () => {
       oldStart: 1,
       oldLines: ["b"],
       newLines: ["X"],
-      header: "行 2-2 (-1 +1)",
+      header: "lines 2-2 (-1 +1)",
       preview: "X",
     });
   });

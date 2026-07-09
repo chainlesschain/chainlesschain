@@ -344,8 +344,9 @@ function createVscodeEditorFacade(vscode) {
               // explicit OK or Esc ends it. (Found live: a WeChat screenshot
               // killed the pick three demos in a row.)
               ignoreFocusOut: true,
-              placeHolder:
-                "勾选要应用的改动块(未勾选的保留原文);Esc 取消 = 不应用",
+              placeHolder: vscode.l10n.t(
+                "Check the change blocks to apply (unchecked = keep the original); Esc to cancel = apply nothing",
+              ),
             },
           );
           // Esc / empty selection → fail-safe: nothing is written.

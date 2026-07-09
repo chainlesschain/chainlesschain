@@ -41,12 +41,12 @@ public final class LlmConfig {
     }
 
     public static final Preset[] PRESETS = {
-        new Preset("volcengine", "火山引擎 / 豆包 (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2-1-pro-260628", true),
-        new Preset("ollama", "Ollama (本地, 免 key)", "http://localhost:11434", "qwen2.5:7b", false),
+        new Preset("volcengine", "Volcengine / Doubao (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2-1-pro-260628", true),
+        new Preset("ollama", "Ollama (local, no key)", "http://localhost:11434", "qwen2.5:7b", false),
         new Preset("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1", "claude-sonnet-4-6", true),
         new Preset("openai", "OpenAI", "https://api.openai.com/v1", "gpt-4o", true),
         new Preset("deepseek", "DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat", true),
-        new Preset("dashscope", "阿里云百炼 / 通义 (dashscope)", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-max", true),
+        new Preset("dashscope", "Aliyun Bailian / Tongyi (dashscope)", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-max", true),
         new Preset("kimi", "Moonshot Kimi", "https://api.moonshot.cn/v1", "moonshot-v1-auto", true),
         new Preset("gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta", "gemini-2.0-flash", true),
         new Preset("mistral", "Mistral", "https://api.mistral.ai/v1", "mistral-large-latest", true),

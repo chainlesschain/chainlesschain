@@ -857,7 +857,7 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
       },
     });
     expect(bad.ok).toBe(false);
-    expect(bad.error).toMatch(/不安全字符/);
+    expect(bad.error).toMatch(/unsafe characters/);
   });
 
   it("getConfiguredVisionModel parses output and maps unset to null", async () => {
@@ -968,7 +968,7 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
       },
     });
     expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/不安全字符/);
+    expect(r.error).toMatch(/unsafe characters/);
   });
 
   it("getConfiguredProvider parses both output styles and maps unset to null", async () => {

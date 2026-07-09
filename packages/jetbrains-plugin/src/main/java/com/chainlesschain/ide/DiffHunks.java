@@ -34,7 +34,7 @@ public final class DiffHunks {
         public final List<String> oldLines;
         public final int newStart;
         public final List<String> newLines;
-        /** e.g. {@code "行 12-14 (-3 +5)"} — matches the VS Code header shape. */
+        /** e.g. {@code "lines 12-14 (-3 +5)"} — matches the VS Code header shape. */
         public final String header;
         /** First changed line, trimmed, ≤60 chars — the picker's one-line preview. */
         public final String preview;

@@ -122,7 +122,7 @@ function finalizeHunk(h) {
     .slice(0, 60);
   return {
     ...h,
-    header: `行 ${where} (-${oldCount} +${newCount})`,
+    header: `lines ${where} (-${oldCount} +${newCount})`,
     preview: firstChanged,
   };
 }

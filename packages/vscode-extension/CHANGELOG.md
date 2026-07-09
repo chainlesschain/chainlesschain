@@ -4,6 +4,14 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Localization residuals swept.** A few user-facing strings still showed
+  hardcoded Chinese regardless of the IDE language: the single-file hunk-picker
+  prompt, the "could not read cc release notes" notice, the LLM unsafe-character
+  errors, and the hunk-header label. The two glue-layer strings now go through
+  `vscode.l10n.t` (with their translations added to the bundle, guarded by the
+  `vscode-ext-l10n.test.js` gate); the pure/CLI-shared modules (`llm-config`,
+  `diff-hunks`) emit clean English, matching the "one language per IDE" pass.
+
 ## [0.37.6] — proper localization: one language per IDE (2026-07-08)
 
 - **Proper localization — the UI now follows your IDE language.** The extension's

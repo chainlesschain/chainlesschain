@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- **Localization residuals swept.** The three LLM provider preset labels in the
+  configure dialog (Volcengine / Doubao, Ollama, Aliyun Bailian / Tongyi) were
+  the last bilingual "English (中文)" display strings; the SDK-free `LlmConfig`
+  can't reach the resource bundle, so they now read as clean English, matching
+  the "one language per IDE" pass. (A stale `DiffHunks` javadoc example was
+  corrected to the actual English `lines …` header shape.)
+
 ## [0.4.48] — full localization: one language per IDE + deep link (2026-07-08)
 
 - **Full localization — the plugin follows the IDE language.** Nothing in the UI

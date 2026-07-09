@@ -58,5 +58,7 @@
   "line {0}": "行 {0}",
   "whole file": "整体",
   "Review comment #{0} (anchored to {1}; blank to finish the review)": "评审意见 #{0}（锚定 {1}；留空结束评审）",
-  "Describe how you want the agent to change this edit…": "描述希望 agent 如何修改这处改动…"
+  "Describe how you want the agent to change this edit…": "描述希望 agent 如何修改这处改动…",
+  "Check the change blocks to apply (unchecked = keep the original); Esc to cancel = apply nothing": "勾选要应用的改动块（未勾选保留原文）；Esc 取消 = 不应用",
+  "ChainlessChain: could not read cc release notes — needs cc ≥ {0} (upgrade with npm i -g chainlesschain, then retry).": "ChainlessChain：读取不到 cc 更新说明 — 需要 cc ≥ {0}（npm i -g chainlesschain 升级后重试）。"
 }
