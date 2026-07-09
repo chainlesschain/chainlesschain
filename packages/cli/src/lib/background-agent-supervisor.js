@@ -139,17 +139,40 @@ export function listBackgroundAgents(options = {}) {
     .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
 }
 
+function sleepSyncMs(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const until = Date.now() + ms;
+    while (Date.now() < until) {
+      /* fallback busy-wait — only a few ms */
+    }
+  }
+}
+
 export function renameBackgroundAgent(id, title, options = {}) {
   const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
     now: options.now,
     heartbeatStaleMs: options.heartbeatStaleMs,
   });
   if (!state) throw new Error(`Background agent not found: ${id}`);
-  const next = {
-    ...state,
-    title: normalizeBackgroundAgentTitle(title),
-    renamedAt: typeof options.now === "number" ? options.now : Date.now(),
-  };
+  const normalized = normalizeBackgroundAgentTitle(title);
+  const renamedAt = typeof options.now === "number" ? options.now : Date.now();
+  // The worker persists state via read-modify-write (heartbeat / transport /
+  // turn merges). A rename that lands inside one of those read→write windows
+  // gets clobbered by the worker's stale snapshot — so verify after a short
+  // beat and re-apply onto the freshest state (bounded retries; the window is
+  // milliseconds wide, worst during worker startup's write burst).
+  let next = { ...state, title: normalized, renamedAt };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    writeBackgroundAgentState(next);
+    sleepSyncMs(15);
+    const current = readBackgroundAgentState(id) || next;
+    if (current.title === normalized) {
+      return { ...current, title: normalized, renamedAt };
+    }
+    next = { ...current, title: normalized, renamedAt };
+  }
   writeBackgroundAgentState(next);
   return next;
 }

@@ -529,18 +529,28 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 仍待后续（明确不做/待拍板，非工程遗留）：
 
-- 交互式 `dontAsk`（不问直接 deny）——headless 语义在交互场景的产品取舍待拍板。
+- ~~交互式 `dontAsk`~~（第十五批已落地）。
 - IDE 插件（VS Code/JetBrains）后台面板 UI——`bg-*` 协议已就绪，属独立插件发版批次。
 - attach alternate-screen 渲染 / 日志直推 / 面板虚拟滚动——UI polish，v1 行为已接受。
 - `cc session policy --set` 增加 auto 概念——与 REPL auto 模式的会话级持久化联动，待拍板。
 - 第二/三/四阶段（MCP tool search / Agent SDK / 跨端 remote-control）为路线图级 epic，另立计划。
 
-### 第一阶段：安全与可运营性
+### 2026-07-09 第十五批（第一阶段无保留收口）
 
-1. `manual/auto/dontAsk` permission mode。
-2. `cc auto-mode defaults/config`。
-3. `cc daemon status/stop`、`cc attach`、`cc logs`。
-4. background session rename / crash / stale lock 修复。
+已落地：
+
+- **交互式 `dontAsk` 模式**：`/permissions dontask`（别名 `dont-ask`/`noask`/`no-ask`）+ `cc agent --permission-mode dontAsk` 对交互式会话生效——骑 strict gate tier，两处交互式 confirmer（ApprovalGate 审批提示 + settings/hook `ask` 规则与 guard 提示）在 dontAsk 激活时不弹窗直接 deny，打一行黄字说明；Shift+Tab 把 dontAsk 当 strict 参与循环（循环即退出）；`/permissions` 无参显示与 usage 同步。
+- **修 rename 竞态（全量套抓到）**：worker 状态写是 read-modify-write（heartbeat/transport/turn 合并），rename 落盘撞进某次 read→write 窗口会被 worker 旧快照覆盖（批10 启动期写风暴放大了窗口）；`renameBackgroundAgent` 改为写后 15ms 校验 + 基于最新 state 重套（≤4 次有界重试）。满载全套曾复现失败，修后隔离 4 连稳。
+- 测试：parsePermissionModeArg dontAsk 别名/形状同步 + REPL 相关套件 69 绿。
+
+**第一阶段 4 项全部完成**：① manual/auto/dontAsk 三模式（headless 批1 + auto 分类器批8/13 + REPL 批9/15）② `cc auto-mode defaults/config`（批2/13）③ `cc daemon status/stop`+`cc attach`+`cc logs`（批1/7，交互 attach 批10）④ rename/crash/stale-lock（rename 批5+竞态修复批15；crash→`cc daemon resume` 批14；stale heartbeat/PID reuse 批4）。
+
+### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
+
+1. `manual/auto/dontAsk` permission mode。✅
+2. `cc auto-mode defaults/config`。✅
+3. `cc daemon status/stop`、`cc attach`、`cc logs`。✅
+4. background session rename / crash / stale lock 修复。✅
 
 ### 第二阶段：上下文规模化
 

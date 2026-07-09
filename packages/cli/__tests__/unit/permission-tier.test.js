@@ -58,6 +58,7 @@ describe("parsePermissionModeArg", () => {
       expect(parsePermissionModeArg(a)).toEqual({
         tier: "trusted",
         auto: true,
+        dontAsk: false,
       });
     }
   });
@@ -66,27 +67,41 @@ describe("parsePermissionModeArg", () => {
     expect(parsePermissionModeArg("strict")).toEqual({
       tier: "strict",
       auto: false,
+      dontAsk: false,
     });
     expect(parsePermissionModeArg("manual")).toEqual({
       tier: "strict",
       auto: false,
+      dontAsk: false,
     });
     expect(parsePermissionModeArg("accept-edits")).toEqual({
       tier: "trusted",
       auto: false,
+      dontAsk: false,
     });
     expect(parsePermissionModeArg("bypassPermissions")).toEqual({
       tier: "autopilot",
       auto: false,
+      dontAsk: false,
     });
+  });
+
+  it("maps dontAsk aliases to strict tier with the dontAsk flag set", () => {
+    for (const a of ["dontAsk", "dontask", "dont-ask", "no-ask", "NoAsk"]) {
+      expect(parsePermissionModeArg(a)).toEqual({
+        tier: "strict",
+        auto: false,
+        dontAsk: true,
+      });
+    }
+    expect(parsePermissionModeArg("auto")).toMatchObject({ dontAsk: false });
+    expect(parsePermissionModeArg("strict")).toMatchObject({ dontAsk: false });
   });
 
   it("returns null for unknown / empty input", () => {
     expect(parsePermissionModeArg("loose")).toBe(null);
     expect(parsePermissionModeArg("")).toBe(null);
     expect(parsePermissionModeArg(null)).toBe(null);
-    // dontAsk is headless-only — the interactive parser rejects it.
-    expect(parsePermissionModeArg("dontAsk")).toBe(null);
   });
 });
 

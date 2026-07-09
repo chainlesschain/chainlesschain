@@ -47,22 +47,29 @@ export function parsePermissionTier(arg) {
 }
 
 const AUTO_ALIASES = new Set(["auto", "auto-mode", "automode"]);
+const DONT_ASK_ALIASES = new Set(["dontask", "dont-ask", "noask", "no-ask"]);
 
 /**
  * Parse a permission-mode argument that may also be `auto` (the configurable
- * autoMode.decisions classifier). Auto rides the trusted gate tier; the REPL
- * additionally activates the decisions wrapper while the mode is `auto`.
+ * autoMode.decisions classifier) or `dontAsk` (anything that would prompt is
+ * denied instead — headless semantics brought to the interactive session).
+ * Auto rides the trusted gate tier; dontAsk rides strict; the REPL activates
+ * the matching behavior while the mode is engaged.
  *
  * @param {string} arg
- * @returns {{ tier: "strict"|"trusted"|"autopilot", auto: boolean } | null}
+ * @returns {{ tier: "strict"|"trusted"|"autopilot", auto: boolean, dontAsk: boolean } | null}
  */
 export function parsePermissionModeArg(arg) {
   const a = String(arg == null ? "" : arg)
     .trim()
     .toLowerCase();
-  if (AUTO_ALIASES.has(a)) return { tier: "trusted", auto: true };
+  if (AUTO_ALIASES.has(a))
+    return { tier: "trusted", auto: true, dontAsk: false };
+  if (DONT_ASK_ALIASES.has(a)) {
+    return { tier: "strict", auto: false, dontAsk: true };
+  }
   const tier = parsePermissionTier(a);
-  return tier ? { tier, auto: false } : null;
+  return tier ? { tier, auto: false, dontAsk: false } : null;
 }
 
 /** One-line description of what a tier auto-approves. */
@@ -76,6 +83,8 @@ export function describeTier(tier) {
       return "every risky action asks";
     case "auto":
       return "autoMode.decisions classifier (riskLevel → allow/ask/deny); unconfigured = trusted";
+    case "dontAsk":
+      return "anything that would ask is denied instead (no prompts)";
     default:
       return "";
   }

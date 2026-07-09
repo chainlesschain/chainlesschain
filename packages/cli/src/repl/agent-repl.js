@@ -439,7 +439,11 @@ export async function startAgentRepl(options = {}) {
   // tier but additionally activates the autoMode.decisions classifier wrapper
   // (when settings customize it) — gateTierFor() maps mode → real gate tier.
   let _sessionTier = "strict";
-  const gateTierFor = (mode) => (mode === "auto" ? "trusted" : mode);
+  const gateTierFor = (mode) =>
+    mode === "auto" ? "trusted" : mode === "dontAsk" ? "strict" : mode;
+  // dontAsk (headless parity, interactive form): anything that would prompt
+  // is denied instead — both confirmers below consult this before prompting.
+  const _dontAskActive = () => _sessionTier === "dontAsk";
   // Resolved autoMode.decisions map (loaded once at startup); null until the
   // gate is wired. The wrapper is installed only when settings customize the
   // map, and only bites while _sessionTier === "auto" (isActive predicate).
@@ -614,6 +618,14 @@ export async function startAgentRepl(options = {}) {
     }
     if (typeof _approvalGate.setConfirmer === "function") {
       _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
+        if (_dontAskActive()) {
+          process.stdout.write(
+            chalk.yellow(
+              `\n  ✕ denied without asking (dontAsk mode): ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}\n`,
+            ),
+          );
+          return false;
+        }
         await _fireNotification(
           `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
         );
@@ -684,6 +696,14 @@ export async function startAgentRepl(options = {}) {
     // Confirmer is shared by permission `ask` rules AND hook `ask` decisions,
     // so define it unconditionally (a `hook:` rule label flows through too).
     _permissionConfirm = async ({ tool, args, rule, reason }) => {
+      if (_dontAskActive()) {
+        process.stdout.write(
+          chalk.yellow(
+            `\n  ✕ denied without asking (dontAsk mode): ${tool}${rule ? ` (${rule})` : reason ? ` — ${reason}` : ""}\n`,
+          ),
+        );
+        return false;
+      }
       await _fireNotification(
         `Permission needed: ${tool}${rule ? " (" + rule + ")" : ""}`,
       );
@@ -1109,7 +1129,11 @@ export async function startAgentRepl(options = {}) {
     if (parsed && typeof _approvalGate.setSessionPolicy === "function") {
       try {
         _approvalGate.setSessionPolicy(sessionId, parsed.tier);
-        _sessionTier = parsed.auto ? "auto" : parsed.tier;
+        _sessionTier = parsed.auto
+          ? "auto"
+          : parsed.dontAsk
+            ? "dontAsk"
+            : parsed.tier;
       } catch (_err) {
         // Non-critical — keep the default tier
       }
@@ -3827,7 +3851,7 @@ export async function startAgentRepl(options = {}) {
         const parsed = parsePermissionModeArg(arg);
         if (!parsed) {
           logger.info(
-            "Usage: /permissions [strict|trusted|autopilot|auto]  " +
+            "Usage: /permissions [strict|trusted|autopilot|auto|dontask]  " +
               "(aliases: default · manual · accept-edits · bypass). No arg = show rules.",
           );
         } else if (
@@ -3841,7 +3865,11 @@ export async function startAgentRepl(options = {}) {
         } else {
           try {
             _approvalGate.setSessionPolicy(sessionId, parsed.tier);
-            _sessionTier = parsed.auto ? "auto" : parsed.tier;
+            _sessionTier = parsed.auto
+              ? "auto"
+              : parsed.dontAsk
+                ? "dontAsk"
+                : parsed.tier;
             logger.info(
               `Approval policy → ${chalk.cyan(_sessionTier)} ${chalk.gray(`(${describeTier(_sessionTier)})`)}`,
             );
@@ -3884,7 +3912,7 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         chalk.gray(
-          "  Set tier mid-session: /permissions <strict|trusted|autopilot|auto>",
+          "  Set tier mid-session: /permissions <strict|trusted|autopilot|auto|dontask>",
         ),
       );
       if (_recentDenials.length) {
