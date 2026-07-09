@@ -32,5 +32,7 @@
   "config.chat.provider.description": "对话面板使用的大模型提供方（如 ollama、anthropic、volcengine）。留空 = 使用 CLI 已配置的默认值。",
   "config.chat.model.description": "对话面板使用的模型（如 qwen2.5:7b）。留空 = 使用 CLI 已配置的默认值。",
   "config.chat.contextIndicator.description": "在对话下方显示常驻的上下文窗口用量行（已用 tokens / 窗口），每轮结束后刷新。",
-  "config.codeLens.enabled.description": "在函数、方法和类上方显示 ✨ 解释 / 重构 CodeLens（使用该语言自身的符号提供器）。"
+  "config.codeLens.enabled.description": "在函数、方法和类上方显示 ✨ 解释 / 重构 CodeLens（使用该语言自身的符号提供器）。",
+  "cmd.complete.trigger.title": "ChainlessChain：触发内联补全",
+  "config.completion.enabled.description": "通过 `cc complete` 启用内联 ghost-text 补全。仅手动触发（绑定或使用「触发内联补全」命令，默认 Alt+\\）——打字不会调用模型。"
 }

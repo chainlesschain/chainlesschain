@@ -77,6 +77,13 @@ class CodeLens {
   }
 }
 
+class InlineCompletionItem {
+  constructor(insertText, range) {
+    this.insertText = insertText;
+    this.range = range;
+  }
+}
+
 const commands = {}; // command id → callback (captured by registerCommand)
 const executed = []; // executeCommand log
 const messages = { info: [], warn: [], error: [] };
@@ -99,6 +106,8 @@ const vscode = {
   Range,
   Selection,
   CodeLens,
+  InlineCompletionItem,
+  InlineCompletionTriggerKind: { Invoke: 0, Automatic: 1 },
   WorkspaceEdit,
   TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
   StatusBarAlignment: { Left: 1, Right: 2 },
@@ -185,6 +194,7 @@ const vscode = {
   languages: {
     registerCodeActionsProvider: () => ({ dispose: () => {} }),
     registerCodeLensProvider: () => ({ dispose: () => {} }),
+    registerInlineCompletionItemProvider: () => ({ dispose: () => {} }),
     getDiagnostics: () => [],
   },
   // vscode.l10n.t — returns the base (English) message with {0}/{1} positional

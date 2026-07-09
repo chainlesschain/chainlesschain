@@ -314,6 +314,42 @@ function activate(context) {
       lensSeed("refactor"),
     ),
   );
+
+  // Inline ghost-text completion (manual trigger). The provider only fires on an
+  // explicit Invoke (the keybinding → the built-in inline trigger), so typing
+  // never spawns an LLM; it reuses `cc complete` (the configured LLM).
+  {
+    const { createInlineCompletionProvider } = require("./completion");
+    const { getResolvedCli } = require("./cli-binary");
+    const cwdForDoc = (document) => {
+      try {
+        const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+        if (folder?.uri?.fsPath) return folder.uri.fsPath;
+        const first = vscode.workspace.workspaceFolders?.[0];
+        return first?.uri?.fsPath;
+      } catch {
+        return undefined;
+      }
+    };
+    const inlineProvider = createInlineCompletionProvider({
+      vscode,
+      getCommand: getResolvedCli,
+      getCwd: cwdForDoc,
+      isEnabled: () =>
+        vscode.workspace
+          .getConfiguration("chainlesschain")
+          .get("completion.enabled", true) !== false,
+    });
+    context.subscriptions.push(
+      vscode.languages.registerInlineCompletionItemProvider(
+        { pattern: "**" },
+        inlineProvider,
+      ),
+      vscode.commands.registerCommand("chainlesschain.complete.trigger", () => {
+        vscode.commands.executeCommand("editor.action.inlineSuggest.trigger");
+      }),
+    );
+  }
   if (typeof vscode.workspace.onDidChangeConfiguration === "function") {
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {

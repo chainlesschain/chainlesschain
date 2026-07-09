@@ -48,6 +48,10 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "chainlesschain.complete.trigger",
+        "title": "%cmd.complete.trigger.title%"
+      },
+      {
         "command": "chainlesschain.ide.doctor",
         "title": "%cmd.ide.doctor.title%"
       },
@@ -149,6 +153,12 @@
         "command": "chainlesschain.chat.insertReference",
         "key": "ctrl+alt+k",
         "mac": "cmd+alt+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "chainlesschain.complete.trigger",
+        "key": "alt+\\",
+        "mac": "alt+\\",
         "when": "editorTextFocus"
       },
       {
@@ -298,6 +308,11 @@
           "type": "boolean",
           "default": true,
           "description": "%config.codeLens.enabled.description%"
+        },
+        "chainlesschain.completion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.completion.enabled.description%"
         }
       }
     }
