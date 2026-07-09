@@ -7,6 +7,7 @@ import {
   classifyDenial,
   recordDenial,
   formatDenials,
+  formatDenialChain,
   MAX_RECENT_DENIALS,
 } from "../../src/lib/repl-denials.js";
 
@@ -60,6 +61,36 @@ describe("classifyDenial", () => {
       argsSummary: "curl https://x",
     });
     expect(d).toMatchObject({ via: "policy", summary: "curl https://x" });
+  });
+
+  it("extracts the layer-by-layer permission chain when the result carries one", () => {
+    const chain = [
+      { layer: "settings-rules", outcome: "no-match", rule: null },
+      { layer: "shell-policy", outcome: "warn", rule: null, reason: "medium" },
+      {
+        layer: "approval-gate",
+        outcome: "deny",
+        via: "user-deny",
+        policy: "trusted",
+        riskLevel: "medium",
+      },
+    ];
+    const d = classifyDenial({
+      tool: "run_shell",
+      result: {
+        error: "[ApprovalGate] command denied",
+        approval: { decision: "deny", via: "user-deny" },
+        permissionChain: chain,
+      },
+      argsSummary: "curl https://x",
+    });
+    expect(d.chain).toEqual(chain);
+    // no chain field at all when the result has none (older shape untouched)
+    const plain = classifyDenial({
+      tool: "run_shell",
+      result: { error: "[Shell Policy] blocked" },
+    });
+    expect("chain" in plain).toBe(false);
   });
 
   it("falls back to the [Hook] prefix when no structured field carries via", () => {
@@ -215,5 +246,46 @@ describe("formatDenials", () => {
       { tool: "run_shell", summary: "ls", via: "settings", rule: "r" },
     ]);
     expect(single).not.toContain("×");
+  });
+});
+
+describe("formatDenialChain", () => {
+  it("renders one compact segment per layer with rule/via/policy detail", () => {
+    const line = formatDenialChain([
+      { layer: "settings-rules", outcome: "no-match", rule: null },
+      { layer: "shell-policy", outcome: "warn", rule: "medium-risk-npm" },
+      {
+        layer: "approval-gate",
+        outcome: "deny",
+        via: "user-deny",
+        policy: "trusted",
+      },
+    ]);
+    expect(line).toBe(
+      "settings-rules→no-match · shell-policy→warn (medium-risk-npm) · approval-gate→deny (user-deny, trusted)",
+    );
+  });
+
+  it("returns null for missing/empty chains", () => {
+    expect(formatDenialChain(null)).toBeNull();
+    expect(formatDenialChain([])).toBeNull();
+  });
+
+  it("formatDenials includes the chain line under the denial entry", () => {
+    const out = formatDenials([
+      {
+        tool: "run_shell",
+        summary: "curl https://x",
+        via: "user-deny",
+        rule: null,
+        chain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "deny", via: "user-deny" },
+        ],
+      },
+    ]);
+    expect(out).toContain(
+      "chain: settings-rules→no-match · approval-gate→deny (user-deny)",
+    );
   });
 });

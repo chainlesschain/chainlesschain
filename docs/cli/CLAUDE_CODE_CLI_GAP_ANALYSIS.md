@@ -482,6 +482,24 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - 面板日志目前整段 append；超长日志可做虚拟滚动。
 - bg-attach 面板暂无 rename 入口（CLI `cc daemon rename` 已有，协议可加 `bg-rename`）。
 
+### 2026-07-09 第十二批
+
+已落地：
+
+- **决策逐层解释链**：run_shell 被拒时 result 附带 `permissionChain`——`settings-rules`（decision/rule 或 no-match）→ `shell-policy`（decision/ruleId/reason）→ `approval-gate`（decision/via/policy/riskLevel + autoMode 规则与 reason 透传）。
+- shell-policy 硬拒（gate 未被咨询）不出现幻影 gate 层；`ruleAllowed` 短路路径的 shell 硬拒同样带两层链。
+- `shell-approval.js` 透传 `gateReason`/`gateRule`（第八批 autoMode wrapper 的可解释字段就此接通到 denial 面）。
+- `classifyDenial` 提取 chain；`formatDenials`（REPL `/permissions denials`）与 `formatRecentDenials`（`cc permissions recent`）各加一行紧凑链渲染（`formatDenialChain` 共享）。
+- `permission-denial-store` 持久化 chain（旧记录 null 兼容）。
+- 真机例证：`settings-rules→allow (Bash(rm:*)) · shell-policy→deny (dangerous-delete)`——一眼看清「allow 规则为何没生效」。
+- 修接线：`settingsVerdict` 从 executeTool 外层传入 executeToolInner（此前只传 ruleAllowed）。
+- 测试：agent-core 三场景（gate deny 全三层含 autoMode reason/rule / 硬拒无幻影层 / allow 规则短路后命令真执行）+ classifyDenial 提取与旧形状无 chain 字段 + formatDenialChain 渲染 + store 持久化跨进程回读渲染。
+
+仍待后续：
+
+- 链目前只覆盖 run_shell（denial 最主要来源）；settings deny/host deny 的 early-return 无链（彼时后续层未被咨询，属正确语义），但 read_file/write 等其它工具的 guard 层（sensitive-file/credential/destructive-git）尚未挂链。
+- hook（PreToolUse）拒绝暂不在链内。
+
 ### 第一阶段：安全与可运营性
 
 1. `manual/auto/dontAsk` permission mode。

@@ -87,5 +87,9 @@ export async function evaluateShellCommandWithApproval({
     shellPolicy,
     riskLevel,
     policy: gateResult.policy,
+    // Explainability passthrough (autoMode.decisions wrapper attaches these):
+    // which gate rule fired and why — surfaced in the permission chain.
+    gateReason: gateResult.reason ?? null,
+    gateRule: gateResult.rule ?? null,
   };
 }

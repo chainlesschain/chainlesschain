@@ -1439,6 +1439,7 @@ export async function executeTool(name, args, context = {}) {
       additionalDirectories: context.additionalDirectories || null,
       sandbox: context.sandbox || null,
       ruleAllowed,
+      settingsVerdict,
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
       interactiveApproval: context.interactiveApproval || false,
@@ -2057,6 +2058,7 @@ async function executeToolInner(
     additionalDirectories,
     sandbox,
     ruleAllowed = false,
+    settingsVerdict = null,
     subAgentDepth = 0,
     subAgentBudget = null,
     interactiveApproval = false,
@@ -2338,6 +2340,40 @@ async function executeToolInner(
           : {}),
         ...(classifyAllShell ? { classifyAllShell: true } : {}),
       };
+      // Layer-by-layer explanation chain for a blocked command: which layers
+      // were consulted and what each said (settings rules → shell policy →
+      // approval gate). Attached to denial results so `/permissions denials`
+      // and `cc permissions recent` can explain WHY, not just THAT.
+      const buildPermissionChain = (gated) => {
+        const chain = [
+          {
+            layer: "settings-rules",
+            outcome:
+              settingsVerdict?.decision || (ruleAllowed ? "allow" : "no-match"),
+            rule: settingsVerdict?.rule || null,
+          },
+          {
+            layer: "shell-policy",
+            outcome: shellPolicy?.decision || null,
+            rule: shellPolicy?.ruleId || null,
+            reason: shellPolicy?.reason || null,
+          },
+        ];
+        // A hard shell-policy deny returns before the gate is consulted
+        // (via === "shell-policy") — no approval-gate layer to explain then.
+        if (gated && gated.via !== "shell-policy") {
+          chain.push({
+            layer: "approval-gate",
+            outcome: gated.decision,
+            via: gated.via || null,
+            policy: gated.policy || null,
+            riskLevel: gated.riskLevel || null,
+            rule: gated.gateRule || null,
+            reason: gated.gateReason || null,
+          });
+        }
+        return chain;
+      };
       const override = getRuntimeToolDescriptorByCommand(args.command);
       let shellPolicy;
       let approvalOutcome = null;
@@ -2375,6 +2411,7 @@ async function executeToolInner(
                   : `[ApprovalGate] command denied by the ${tierLabel}approval policy (via ${gated.via}). Retrying the same command will not help — it needs user approval. Tell the user (they can run it themselves, approve it, or relax the policy) and continue with other work.`,
               shellCommandPolicy: shellPolicy,
               approval: approvalOutcome,
+              permissionChain: buildPermissionChain(gated),
             },
             override || runtimeDescriptor,
           );
@@ -2386,6 +2423,7 @@ async function executeToolInner(
             {
               error: `[Shell Policy] ${shellPolicy.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`,
               shellCommandPolicy: shellPolicy,
+              permissionChain: buildPermissionChain(null),
             },
             override || runtimeDescriptor,
           );

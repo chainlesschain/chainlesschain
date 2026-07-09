@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { getHomeDir } from "./paths.js";
-import { MAX_RECENT_DENIALS } from "./repl-denials.js";
+import { MAX_RECENT_DENIALS, formatDenialChain } from "./repl-denials.js";
 
 export const RECENT_DENIALS_VERSION = 1;
 export const DEFAULT_RECENT_DENIAL_LIMIT = 100;
@@ -64,6 +64,9 @@ function normalizeRecord(record, metadata = {}) {
     permissionMode: metadata.permissionMode || record.permissionMode || null,
     cwd: metadata.cwd || record.cwd || null,
     source: metadata.source || record.source || "agent",
+    // Layer-by-layer explanation (settings-rules → shell-policy →
+    // approval-gate) when the denial carried one; null for older records.
+    chain: Array.isArray(record.chain) ? record.chain : null,
   };
 }
 
@@ -144,6 +147,8 @@ export function formatRecentDenials(records, options = {}) {
     const mode = d.permissionMode ? ` · mode ${d.permissionMode}` : "";
     lines.push(`  - ${what}${times}  [${where}${session}${mode}${ago}]`);
     if (d.cwd) lines.push(`      cwd: ${d.cwd}`);
+    const chainLine = formatDenialChain(d.chain);
+    if (chainLine) lines.push(`      chain: ${chainLine}`);
     if (d.reason) lines.push(`      ${d.reason}`);
   }
   return lines.join("\n");

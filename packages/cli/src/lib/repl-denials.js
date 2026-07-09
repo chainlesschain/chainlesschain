@@ -61,6 +61,10 @@ export function classifyDenial(ev = {}) {
     (shellPol ? "shell-policy" : viaFromPrefix(errStr)) ||
     "policy";
   const rule = (policy && policy.rule) || (shellPol && shellPol.ruleId) || null;
+  const chain =
+    result && Array.isArray(result.permissionChain)
+      ? result.permissionChain
+      : null;
   return {
     tool: tool || "?",
     summary: String(
@@ -69,7 +73,27 @@ export function classifyDenial(ev = {}) {
     reason: errStr || "(denied)",
     via,
     rule,
+    ...(chain ? { chain } : {}),
   };
+}
+
+/**
+ * One compact line for a layer-by-layer permission chain, e.g.
+ * `settings-rules→no-match · shell-policy→warn · approval-gate→deny (user-deny, trusted)`.
+ * Returns null when there is nothing to explain.
+ */
+export function formatDenialChain(chain) {
+  if (!Array.isArray(chain) || chain.length === 0) return null;
+  const parts = chain.map((step) => {
+    const base = `${step.layer}→${step.outcome ?? "?"}`;
+    const detail = [
+      step.rule ? String(step.rule) : null,
+      step.via && step.via !== step.outcome ? String(step.via) : null,
+      step.policy ? String(step.policy) : null,
+    ].filter(Boolean);
+    return detail.length ? `${base} (${detail.join(", ")})` : base;
+  });
+  return parts.join(" · ");
 }
 
 /** Two denials are "the same" attempt when tool + command + rule + via match. */
@@ -131,6 +155,8 @@ export function formatDenials(log, opts = {}) {
     const what = d.summary ? `${d.tool} ${d.summary}` : d.tool || "?";
     const times = d.count > 1 ? ` ×${d.count}` : "";
     lines.push(`  • ${what}${times}  [${where}${ago}]`);
+    const chainLine = formatDenialChain(d.chain);
+    if (chainLine) lines.push(`      chain: ${chainLine}`);
     if (d.reason) lines.push(`      ${d.reason}`);
   }
   return lines.join("\n");
