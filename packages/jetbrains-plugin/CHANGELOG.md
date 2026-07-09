@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.51] — first conversation survives an IDE restart (2026-07-10)
 
 - **Fix: the first conversation now survives an IDE restart.** Anonymous
   stream sessions are persistence-free by CLI design, so a chat tab's FIRST

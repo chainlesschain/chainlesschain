@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.8] — first conversation survives an IDE reload (2026-07-10)
 
 - **Fix: the first conversation now survives an IDE reload.** Anonymous
   stream sessions are persistence-free by CLI design, so a chat tab's FIRST
