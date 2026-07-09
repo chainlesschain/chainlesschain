@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.49] — inline ghost-text completion + JCEF dashboard + Settings page (2026-07-09)
 
 - **Inline completion (ghost-text).** A manual-trigger inline code completion,
   matching the VS Code `InlineCompletionItemProvider`: press **Alt+\\** (the

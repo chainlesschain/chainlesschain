@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.7] — inline ghost-text completion (2026-07-09)
 
 - **Inline ghost-text completion (manual trigger).** Press **Alt+\\** (or run
   "ChainlessChain: Trigger Inline Completion") to get an inline suggestion at the
