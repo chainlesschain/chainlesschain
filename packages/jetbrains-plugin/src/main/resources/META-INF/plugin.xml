@@ -250,6 +250,10 @@
         <!-- jetbrains://idea/chainlesschain/open?prompt=… deep link (VS Code
              registerUriHandler parity): focus the chat tool window + seed a prompt. -->
         <jbProtocolCommand implementation="com.chainlesschain.ide.intellij.CcProtocolCommand"/>
+        <!-- Ghost-text inline completion (manual trigger only). VS Code
+             InlineCompletionItemProvider parity; shares the `cc complete` backend. -->
+        <inline.completion.provider
+                implementation="com.chainlesschain.ide.intellij.CcInlineCompletionProvider"/>
     </extensions>
 
     <actions>
@@ -307,6 +311,13 @@
                  Ctrl+Alt+Shift chord (R = reopen); rebindable in Settings → Keymap. -->
             <keyboard-shortcut keymap="$default" first-keystroke="control alt shift R"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift R"/>
+        </action>
+        <!-- Ghost-text: fire an explicit inline-completion request at the caret.
+             Alt+\ matches the VS Code keybinding; rebindable in Settings → Keymap.
+             Manual only — nothing runs on ordinary typing. -->
+        <action id="chainlesschain.completion.trigger"
+                class="com.chainlesschain.ide.intellij.TriggerCompletionAction">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt BACK_SLASH"/>
         </action>
         <action id="chainlesschain.chat.explainSelection"
                 class="com.chainlesschain.ide.intellij.ExplainSelectionAction">

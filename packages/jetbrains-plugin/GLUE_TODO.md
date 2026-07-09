@@ -483,3 +483,14 @@ Glue-layer (needs the next pre-release runIde pass):
       panel's "⊟ context …" line disappears; re-check → it comes back next turn.
       Values persist across an IDE restart (chainlesschain-ide.xml). zh IDE shows
       the localized labels.
+- [ ] **Inline completion / ghost-text (CcInlineCompletionProvider +
+      TriggerCompletionAction)** — in an editor, type a partial line and press
+      **Alt+\\** → a gray ghost suggestion appears at the caret; Tab accepts it,
+      Esc dismisses. Confirm it fires ONLY on the shortcut, never on ordinary
+      typing (no per-keystroke requests). With `cc` uninstalled / LLM
+      unconfigured → no suggestion and no error popup (fails quiet). Verify the
+      request carries the caret's prefix/suffix + language (a mid-file caret
+      completes sensibly, not just append-at-EOF). The action is rebindable in
+      Settings → Keymap ("ChainlessChain: Trigger Inline Completion"); the pure
+      `CcCompletion` request/parse layer is already JUnit-covered — the runIde
+      gate is the ghost-text rendering + Tab-accept + manual-only trigger.

@@ -8,6 +8,12 @@ import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 
 plugins {
     id("java")
+    // Kotlin is needed ONLY for the inline-completion (ghost-text) provider: the
+    // platform's InlineCompletionProvider is a Kotlin suspend/Flow API that can't
+    // be implemented from Java. 1.9.24 matches the Kotlin the 2024.2 platform is
+    // built with; kotlin.stdlib.default.dependency=false (gradle.properties) keeps
+    // the stdlib out of the plugin zip (the IDE provides it).
+    id("org.jetbrains.kotlin.jvm") version "1.9.24"
     id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
@@ -45,6 +51,10 @@ dependencies {
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 // Windows javac defaults to the platform codepage (GBK) — non-ASCII UI

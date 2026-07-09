@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- **Inline completion (ghost-text).** A manual-trigger inline code completion,
+  matching the VS Code `InlineCompletionItemProvider`: press **Alt+\\** (the
+  "ChainlessChain: Trigger Inline Completion" action, rebindable in Settings →
+  Keymap) and the code around the caret is sent to `cc complete --json`, whose
+  reply renders as a gray ghost suggestion you accept with Tab. Manual only —
+  nothing runs on ordinary typing, so there is no per-keystroke LLM traffic. It
+  shares the same `cc complete` backend as the VS Code extension, so it honors
+  the user's configured LLM/provider/key with no new auth (a fast local FIM model
+  like `qwen2.5-coder` just makes it snappier). The spawn + request/response
+  glue is pure-JDK and JUnit-tested ([`CcCompletion`]); only the thin provider
+  adapter is Kotlin, because the platform's inline-completion API is a Kotlin
+  `suspend`/`Flow` surface that can't be implemented from Java. Fails quiet: a
+  backend hiccup yields no suggestion, never an editor error.
 - **Live dashboard tool window (JCEF).** Tools → "ChainlessChain IDE: Open
   Dashboard" (or the ChainlessChain Dashboard tool-window stripe) opens a rich
   webview — status cards (port / tool calls / connections / errors) and a live
