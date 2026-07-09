@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'CLI · 2026-07-09',
+    title: 'Platformization phase 3: @chainlesschain/agent-sdk TypeScript SDK + contract-first across all four consumers',
+    sub: 'New package packages/agent-sdk formalizes the cc agent stream-json duplex protocol as a versioned contract (Agent Protocol v1): stream events, approval callbacks, checkpoints, and session resume are now typed imports. The VS Code extension and web-panel migrated to the SDK (no more per-consumer argv assembly / hand-rolled NDJSON parsing); the JetBrains plugin aligns to the same language-neutral PROTOCOL.md. 36 tests (unit + real-pipe integration + real-CLI e2e) plus full consumer regression green.',
+    desc: 'protocol.ts is the single source of truth for the event vocabulary (system/init, text/thinking deltas, tool_use/result, approval_request/resolved, question round-trip, plan_update, token_usage, result) and stdin input events, with type guards and forward-compatibility rules. AgentSession ships Windows hardening built in (cmd.exe /c shim + NoDefaultCurrentDirectoryInExePath anti-hijack + taskkill /T process-tree reaping); approval callbacks fail closed (a throwing callback denies, matching CLI timeout semantics); attachBackgroundSession speaks the same pipe protocol as cc attach; the /browser entry has zero Node imports for web-panel. The SDK e2e drove the real CLI on day one and caught two real bugs, both fixed: first-conversation transcripts were never persisted in BOTH IDE plugins (an IDE reload resume silently started empty — fixed by declaring the session id on first spawn) and .js entrypoints failed to spawn. Measured decode throughput ~147k events/s; CJS build ~30 KB with zero runtime dependencies.',
+  },
+  {
     tag: 'IDE plugins · 2026-07-08',
     title: 'IDE dual-extension full localization: VS Code 0.37.6 + JetBrains 0.4.48 (mixed zh/en fully resolved on all four surfaces)',
     sub: 'Independent release track: VS Code 0.37.5 → 0.37.6 (Open VSX) + JetBrains 0.4.47 → 0.4.48 (JetBrains Marketplace). The UI language now fully follows the IDE language — no more mixed zh/en. CI double-verified: Open VSX Published / JetBrains Marketplace success; vscode-ext 56 files / 495 tests green + JetBrains smoke 643/0 (incl. bundleParity).',

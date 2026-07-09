@@ -2,6 +2,22 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Fix: the first conversation now survives an IDE reload.** Anonymous
+  stream sessions are persistence-free by CLI design, so a chat tab's FIRST
+  conversation (spawned with no session id) was never written to the session
+  store — after a window reload the panel's `--resume` of the id captured
+  from `system/init` silently started an EMPTY session, losing all
+  pre-reload context. The panel now declares a `panel-<ts>-<rand>` session
+  id on the very first spawn, so the CLI creates and persists the
+  transcript from turn one. (Uncovered by the new agent-sdk real-CLI e2e;
+  same fix in the JetBrains twin.)
+- **Internal: protocol argv + NDJSON stream framing now come from the
+  vendored `@chainlesschain/agent-sdk`** (`src/vendor/agent-sdk/`, synced by
+  `scripts/sync-agent-sdk.mjs`) instead of hand-rolled copies — one contract
+  (Agent Protocol v1) shared with web-panel and documented for JetBrains.
+
 ## [0.37.7] — inline ghost-text completion (2026-07-09)
 
 - **Inline ghost-text completion (manual trigger).** Press **Alt+\\** (or run

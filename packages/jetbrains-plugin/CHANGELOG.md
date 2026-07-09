@@ -1,5 +1,21 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Fix: the first conversation now survives an IDE restart.** Anonymous
+  stream sessions are persistence-free by CLI design, so a chat tab's FIRST
+  conversation (spawned with no session id) was never written to the session
+  store — after an IDE restart the tool window's `--resume` of the id
+  captured from `system/init` silently started an EMPTY session, losing all
+  pre-restart context. `ConversationView.ensureSession` now declares a
+  `panel-<ts>-<rand>` id (`SessionArgs.newPanelSessionId()`) on the very
+  first spawn, so the CLI creates and persists the transcript from turn one.
+  (Uncovered by the agent-sdk real-CLI e2e; same fix in the VS Code twin.)
+- **Docs: the protocol core (`AgentChatSession` / `ChatEvents`) now declares
+  Agent Protocol v1 (`packages/agent-sdk/docs/PROTOCOL.md`) as its wire
+  contract** — the protocol document, not the TypeScript SDK, is the
+  compatibility surface for this plugin.
+
 ## [0.4.50] — ghost-text forward-compat: non-deprecated platform APIs (2026-07-09)
 
 - **Fix (forward compatibility): the ghost-text code now uses only non-deprecated,

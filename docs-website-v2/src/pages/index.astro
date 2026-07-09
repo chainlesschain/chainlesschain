@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'CLI · 2026-07-09',
+    title: '平台化第三阶段：@chainlesschain/agent-sdk TypeScript 接入套件 + 四端契约化',
+    sub: '新包 packages/agent-sdk 把 cc agent 的 stream-json 双工协议固化为版本化正式契约（Agent Protocol v1）：流式事件、审批回调、检查点、会话恢复 import 即得。VS Code 扩展与 web-panel 已迁移到 SDK（不再各自拼 argv、手写 NDJSON 解析）；JetBrains 插件对齐同一份语言中立 PROTOCOL.md。36 测试（单元 + 真管道集成 + 真 CLI e2e）+ 消费端全回归绿。',
+    desc: 'protocol.ts 单一来源定义全事件词汇（system/init、文本/思考增量、tool_use/result、approval_request/resolved、question 往返、plan_update、token_usage、result）与 stdin 输入事件，附 type guards 与向前兼容规则；AgentSession spawn 客户端内置 Windows 加固（cmd.exe /c shim + NoDefaultCurrentDirectoryInExePath 反劫持 + taskkill /T 进程树回收）；审批回调 fail-closed（回调抛错=拒绝，与 CLI 超时语义一致）；attachBackgroundSession 讲 cc attach 同款管道协议；/browser 入口零 Node 依赖供 web-panel。SDK 自带真 CLI e2e 当天即抓出两个真 bug 并齐修：两 IDE 首会话不落盘（IDE 重载后 resume 静默空会话、重载前上下文全丢——首启即声明 session id 修复）+ .js 入口 spawn 失败。解码吞吐实测 ~14.7 万事件/秒，CJS 构建 ~30 KB 零运行时依赖。',
+  },
+  {
     tag: 'IDE 插件 · 2026-07-08',
     title: 'IDE 双扩展真·本地化全收口：VS Code 0.37.6 + JetBrains 0.4.48（中英文混乱四面全清）',
     sub: '独立发版轨：VS Code 0.37.5 → 0.37.6（Open VSX）+ JetBrains 0.4.47 → 0.4.48（JetBrains Marketplace）。UI 语言完整跟随 IDE 语言，不再中英文混排。CI 双验：Open VSX Published / JetBrains Marketplace success；vscode-ext 56 文件 / 495 测试绿 + JetBrains smoke 643/0（含 bundleParity）。',

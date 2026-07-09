@@ -11,9 +11,15 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-09 主线 — **cc CLI MCP Tool Search：大规模 MCP 工具面的上下文规模化（cli 0.162.155）**
+## 2026-07-09 主线 — **平台化第三阶段：`@chainlesschain/agent-sdk` TypeScript 接入套件 + 四端契约化（待随下次 CLI 发版发 npm）**
 
-> 接入多个 MCP server 后全部工具 schema 随每次请求发送、轻松吃掉 10–30% 上下文窗口的问题收口（对标 Claude Code ToolSearch）：schema 超阈值（默认窗口 10%，settings `mcp.toolSearch` / `CC_TOOL_SEARCH` 可配）时自动换成 `[deferred]` 紧凑 stub + 内部 `tool_search` 检索工具，完整 schema 经工具结果按需返回。真机实测 12 工具 server 省 ~14k tokens。三层测试全绿随 0.162.155 发 npm。
+> 新包 `packages/agent-sdk` 把 `cc agent` 的 stream-json 双工协议固化为**版本化正式契约（Agent Protocol v1）**：流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析，而是 `import` 即得（`protocol.ts` 单一来源 + 语言中立 `docs/PROTOCOL.md`）。**VS Code 扩展**（vendored CJS，vsce `--no-dependencies` 约束）与 **web-panel**（vite alias 直指 TS 源，`bg-*` 帧全走 SDK 构造/判别）已迁移；**JetBrains 插件**（Kotlin/Java）声明实现同一份协议文档。`AgentSession` 内置 Windows 加固（`cmd.exe /c` shim + `NoDefaultCurrentDirectoryInExePath` 反劫持 + `taskkill /T` 进程树回收），审批回调 fail-closed。SDK 自带**真 CLI e2e**（fake ollama，断言 init/流/审批真写盘/resume 四契约），落地当天抓出并齐修两个真 bug：**两 IDE 首会话不落盘**（匿名流式会话按 CLI 设计不持久化 → IDE 重载后 resume 静默空会话，重载前上下文全丢；修复=面板首启即声明 `panel-<ts>-<rand>` session id，VS Code + JetBrains 同修）+ `.js` 入口 spawn 失败。验证：agent-sdk 36/36（单元+真管道集成+真 CLI e2e）、vscode-ext 58 文件/512、JetBrains smoke 663/0、web-panel 2458/2458。用户文档 [`docs-site/docs/chainlesschain/agent-sdk.md`](docs-site/docs/chainlesschain/agent-sdk.md) | 设计文档 [`docs/design/modules/103_Agent_SDK平台化方案.md`](docs/design/modules/103_Agent_SDK平台化方案.md)。
+
+## 2026-07-09 发布 — **cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管 + MCP Tool Search（第一阶段收口，已发 npm latest）**
+
+> gap-analysis「第一阶段：安全与可运营性」全量收口（批 1-18，命令数 165→170）：**权限模式补齐 `manual`/`auto`/`dontAsk`**（headless + 交互 REPL 双面；`auto`=settings `autoMode.decisions` 可配置分类器，支持 riskLevel 与 tool/commandPattern 细粒度规则；`dontAsk`=需确认动作直接 deny 不弹审批）；**决策逐层解释链**（被拒命令附 settings-rules→shell-policy→approval-gate 各层判定，`cc permissions recent` 跨会话回看）；**后台会话可运营**（顶层 `cc logs/attach/daemon status|view|stop|rename|resume`，崩溃会话一条命令续接同一对话）；**`cc attach` 可交互接管**（worker 每会话本地 session transport，键入即发 follow-up prompt 多轮续跑）；**web-panel「后台 Agent」面板**（`bg-*` WS 协议复用同一 transport，接管 token 永不过网络边界）；外加 `cc remote-control` 统一远控入口与移动端远程审批桥。已发 npm `latest`（provenance），旧版已标弃用。
+
+- **MCP Tool Search（同版并入）**：接入多个 MCP server 后全部工具 schema 随每次请求发送、轻松吃掉 10–30% 上下文窗口的问题收口（对标 Claude Code ToolSearch）——schema 超阈值（默认窗口 10%，settings `mcp.toolSearch` / `CC_TOOL_SEARCH` 可配）时自动换成 `[deferred]` 紧凑 stub + 内部 `tool_search` 检索工具，完整 schema 经工具结果按需返回。真机实测 12 工具 server 省 ~14k tokens。
 
 - **prompt cache 友好**：stub 常驻且字典序稳定、schema 装载走对话内容（append-only）、晚连接 server 追加不重排——Anthropic 路径的尾部 `cache_control` 缓存断点跨 turn 保持命中。
 - **直调自愈**：未先检索就直接调 deferred 工具 → 返回内嵌完整 schema 的错误并标记已装载（不打真 server），重试即通过。

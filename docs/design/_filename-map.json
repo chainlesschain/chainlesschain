@@ -550,6 +550,10 @@
     "102_Remote_Session方案.md": {
       "docs-site": "102-remote-session.md",
       "docs-site-design": "m102-remote-session.md"
+    },
+    "103_Agent_SDK平台化方案.md": {
+      "docs-site": "103-agent-sdk-platform.md",
+      "docs-site-design": "m103-agent-sdk-platform.md"
     }
   }
 }

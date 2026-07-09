@@ -1833,6 +1833,14 @@ export default defineConfig({
               link: "/design/modules/101b-qqnt-frida-collection",
             },
             {
+              text: "102 Remote Session 方案 ⭐NEW",
+              link: "/design/modules/102-remote-session",
+            },
+            {
+              text: "103 Agent SDK 平台化方案 ⭐NEW",
+              link: "/design/modules/103-agent-sdk-platform",
+            },
+            {
               text: "60b CLI指令技能包 ⭐",
               link: "/design/modules/60b-cli-skill-packs",
             },

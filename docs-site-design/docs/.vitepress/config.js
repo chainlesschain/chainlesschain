@@ -119,6 +119,10 @@ export default defineConfig({
             text: "v5.0.2.49 CLI 项目打包 ⭐NEW",
             link: "/cc-pack-design",
           },
+          {
+            text: "v5.0.3.134 Agent SDK 平台化 (103) ⭐NEW",
+            link: "/modules/m103-agent-sdk-platform",
+          },
         ],
       },
       {
