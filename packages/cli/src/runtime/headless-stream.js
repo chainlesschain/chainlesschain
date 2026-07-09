@@ -42,6 +42,7 @@ import {
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
+import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -973,6 +974,20 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           loadJetbrainsMcp: deps.loadJetbrainsMcp,
         },
       );
+      // MCP tool search (context scaling): defer big tool schemas behind the
+      // internal tool_search tool. Below-threshold / disabled → no-op.
+      if (mcp) {
+        try {
+          (deps.maybeApplyToolSearch || maybeApplyToolSearch)(mcp, {
+            model,
+            provider,
+            cwd: options.cwd || process.cwd(),
+            writeErr,
+          });
+        } catch {
+          // best-effort — full schemas still work without deferral
+        }
+      }
     } catch (err) {
       emit({
         type: "result",

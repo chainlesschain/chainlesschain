@@ -35,6 +35,7 @@ import {
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
+import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   startSession as jsonlStartSession,
@@ -849,6 +850,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       if (mcp && isText) {
         for (const c of mcp.connected) {
           writeErr(`  mcp: ${c.server} (${c.tools} tools)\n`);
+        }
+      }
+      // MCP tool search (context scaling): when the tool schemas would eat a
+      // significant share of the context window, defer them behind the
+      // internal tool_search tool. Below-threshold / disabled → no-op, the
+      // wiring object is untouched.
+      if (mcp) {
+        try {
+          (deps.maybeApplyToolSearch || maybeApplyToolSearch)(mcp, {
+            model,
+            provider,
+            cwd: options.cwd || process.cwd(),
+            writeErr: isText ? writeErr : () => {},
+          });
+        } catch {
+          // best-effort — full schemas still work without deferral
         }
       }
     } catch (err) {

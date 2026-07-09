@@ -64,6 +64,7 @@ import {
   toOllamaMessages,
   imageUrlBlockToAnthropic,
 } from "../lib/image-input.js";
+import { executeToolSearch, gateDeferredMcpCall } from "./mcp-tool-search.js";
 
 /**
  * Names of MCP servers currently mounted by an in-flight run_skill call.
@@ -3385,11 +3386,29 @@ async function executeToolInner(
         }
       }
 
+      // Internal tool-search tool (MCP context scaling): resolves deferred
+      // MCP tool schemas from the registry attached at setup time. Read-only,
+      // local — same risk class as list_skills, so no approval gate.
+      if (localToolExecutor?.kind === "tool-search") {
+        return attachDescriptor(
+          executeToolSearch(localToolExecutor.registry, args || {}),
+        );
+      }
+
       if (localToolExecutor?.kind === "mcp") {
         if (!mcpClient || typeof mcpClient.callTool !== "function") {
           return attachDescriptor({
             error: `MCP client is unavailable for tool: ${name}`,
           });
+        }
+
+        // Deferred-schema gate: a direct call to a tool whose schema was never
+        // loaded returns a self-healing error embedding the schema (and marks
+        // it loaded), instead of forwarding likely-malformed arguments to the
+        // server. No-op unless tool search deferred this tool.
+        const deferredGate = gateDeferredMcpCall(name, localToolExecutor);
+        if (deferredGate) {
+          return attachDescriptor(deferredGate);
         }
 
         try {

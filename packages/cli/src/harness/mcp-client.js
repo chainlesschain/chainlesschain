@@ -411,6 +411,13 @@ export class MCPClient extends EventEmitter {
       entry.state = ServerState.CONNECTED;
       entry.serverInfo = initResult?.serverInfo || {};
       entry.capabilities = initResult?.capabilities || {};
+      // Optional top-level usage instructions from the server's initialize
+      // response (previously discarded). Surfaced by tool search so a deferred
+      // server's guidance still reaches the model on demand.
+      entry.instructions =
+        typeof initResult?.instructions === "string"
+          ? initResult.instructions
+          : null;
 
       // Fetch available tools. Per MCP a server advertises a `tools` capability
       // in its initialize response; if it does and tools/list then fails, that
@@ -469,6 +476,7 @@ export class MCPClient extends EventEmitter {
         resources: entry.resources,
         prompts: entry.prompts,
         serverInfo: entry.serverInfo,
+        instructions: entry.instructions,
       };
     } catch (err) {
       entry.state = ServerState.ERROR;

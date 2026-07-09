@@ -169,6 +169,14 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   // (created before this field existed) is passed in.
   if (!Array.isArray(result.resources)) result.resources = [];
   if (!Array.isArray(result.prompts)) result.prompts = [];
+  // Per-server usage instructions from the MCP initialize response (surfaced
+  // by tool search; absent for servers that send none).
+  if (
+    !result.instructionsByServer ||
+    typeof result.instructionsByServer !== "object"
+  ) {
+    result.instructionsByServer = {};
+  }
   const {
     mcpClient,
     extraToolDefinitions,
@@ -261,6 +269,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       resources: resources.length,
       prompts: prompts.length,
     });
+    if (typeof res?.instructions === "string" && res.instructions.trim()) {
+      result.instructionsByServer[name] = res.instructions.trim();
+    }
     for (const r of resources) {
       if (!r || !r.uri) continue;
       result.resources.push({ ...r, server: name });

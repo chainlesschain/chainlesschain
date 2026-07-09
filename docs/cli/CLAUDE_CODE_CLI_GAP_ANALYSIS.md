@@ -545,6 +545,25 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 **第一阶段 4 项全部完成**：① manual/auto/dontAsk 三模式（headless 批1 + auto 分类器批8/13 + REPL 批9/15）② `cc auto-mode defaults/config`（批2/13）③ `cc daemon status/stop`+`cc attach`+`cc logs`（批1/7，交互 attach 批10）④ rename/crash/stale-lock（rename 批5+竞态修复批15；crash→`cc daemon resume` 批14；stale heartbeat/PID reuse 批4）。
 
+### 2026-07-09 第十六批（第二阶段 上下文规模化 1-3 全落地）
+
+已落地（新模块 `src/runtime/mcp-tool-search.js`）：
+
+- **MCP tool search（延迟 schema，第 1 项）**：当 MCP tool schema 估算 token 超过阈值（默认 auto = 窗口的 10%），每个 MCP 工具定义被就地替换为紧凑 stub（名字 + `[deferred]` 一行摘要 + 空 parameters），并追加内部工具 `tool_search`。模型用 `select:<name>`（逗号分隔多名/唯一裸名）或关键词（name 命中 ×3 > description ×1，`+term` 必须出现在名字里）检索；完整 schema 从 **tool result**（对话内容）返回，不改写 tools 数组。
+- **配置面**：settings `mcp.toolSearch { enabled: auto|true|false, thresholdRatio, maxResults, alwaysLoad: ["server"|"mcp__s__t"|"mcp__s__*"] }`（分层合并 closest wins，非法值 fail-to-defaults）+ env `CC_TOOL_SEARCH=1|0|auto` 覆盖。off / 低于阈值路径**字节不变**（wiring 对象不被触碰）。
+- **直接调用自愈 gate**：未先 search 就直接调 deferred 工具 → 返回内嵌完整 schema 的错误并标记已加载（该次调用不出 CLI，不打真 server），重试即通过——最多浪费一轮。
+- **prompt cache 友好（第 2 项）**：stub 常驻 tools 数组（Anthropic 路径的尾部 `cache_control` 断点因此稳定，见 agent-core chatWithTools 的 anthropicTools 序列化）；stub 按名字典序排序（与连接顺序解耦）；schema 装载走 tool result（append-only）；`applyToolSearchDeferral` 可重入——晚连接 server 的新工具以 stub **追加在数组末尾**（缓存前缀已见部分不重排）。集成测试断言跨 turn tools 数组引用+内容双稳定。今日无 mid-session 连接面（`/mcp`、`/ide` 均只读状态），重入路径为未来 late-connect 备好并有测试；server 断开不改 tools 数组（本就 prefix 稳定，调用报连接错误）。
+- **`/context` MCP 一节（第 3 项）**：REPL `/context` 在角色分桶后新增「MCP tool schemas (sent every request)」——per-server 工具数/token/窗口占比、tool search 状态（deferred/loaded/saved）、优化建议（超阈值未启用→提示开启；最大 server 点名→建议 alwaysLoad 收窄或断开）。`describeMcpToolContext` 输出 sent vs full 双口径。headless `cc context` 不加（归档 JSONL 不含工具定义，无从重建）。
+- **顺带**：MCP `initialize` 的 server `instructions` 此前被丢弃——现 mcp-client 捕获（`entry.instructions` + connect 返回），`setupMcpFromConfig` 聚合成 `instructionsByServer`，tool_search 结果按 server 附带（deferred server 的使用指引仍能按需到达模型）。
+- **接线**：headless-runner + headless-stream + agent-repl 三处 `resolveAgentMcp` 后统一 `maybeApplyToolSearch`（deps 可注入）；dispatch 在 agent-core `kind: "tool-search"`（只读本地，同 list_skills 风险级，无审批门）+ `kind: "mcp"` 分支前置 deferred gate。agent-core 无新增导出（lib shim 无需同步）。
+- 测试：单测 30（config 分层/env 覆盖/非法值/alwaysLoad glob 锚定/排序/重入 append-only/select 与关键词语义/gate 自愈/context 口径）+ 真 loop 集成 3（search→call 全链路含 serverInstructions、直调自愈两连、CC_TOOL_SEARCH=0 legacy 路径等价）；mcp-client 95 / headless-runner+stream+cc-context 83 / agent-repl 50 / shim-parity+parity-mcp-invoke 45 回归全绿。
+
+仍待后续：
+
+- headless `cc context` 若要展示 MCP 占用，需在 session_start 事件记录工具面摘要（待拍板）。
+- ws-session-gateway（web-panel 会话）用独立的 externalTools 组装路径，未接 tool search（web 面板上下文预算另议）。
+- auto 阈值默认 10% 是否合适待真实大 MCP 面校准；`alwaysLoad` 建议可做成 `/context` 一键写 settings（polish）。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -552,11 +571,11 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 3. `cc daemon status/stop`、`cc attach`、`cc logs`。✅
 4. background session rename / crash / stale lock 修复。✅
 
-### 第二阶段：上下文规模化
+### 第二阶段：上下文规模化 ✅（2026-07-09 批16 落地）
 
-1. MCP tool search。
-2. prompt cache 友好的 MCP 动态更新。
-3. `/context` 增加 MCP tool schema 占用与优化建议。
+1. MCP tool search。✅
+2. prompt cache 友好的 MCP 动态更新。✅（稳定排序 + stub 常驻 + tool-result 装载 + 重入 append-only；无 mid-session 连接面，接口已备）
+3. `/context` 增加 MCP tool schema 占用与优化建议。✅（REPL 侧；headless 归档视图待拍板）
 
 ### 第三阶段：平台化
 

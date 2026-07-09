@@ -1095,6 +1095,27 @@ export async function startAgentRepl(options = {}) {
               `(mcp__<server>__<tool>)`,
           ),
         );
+        // MCP tool search (context scaling): defer big tool schemas behind the
+        // internal tool_search tool. Below-threshold / disabled → no-op.
+        try {
+          const { maybeApplyToolSearch } =
+            await import("../runtime/mcp-tool-search.js");
+          const ts = maybeApplyToolSearch(_adhocMcp, {
+            model,
+            provider,
+            cwd: process.cwd(),
+          });
+          if (ts) {
+            logger.log(
+              chalk.gray(
+                `MCP: tool search active — ${ts.deferredCount} schema(s) ` +
+                  `deferred (~${ts.savedTokens} tok saved)`,
+              ),
+            );
+          }
+        } catch (_err) {
+          // best-effort — full schemas still work without deferral
+        }
       }
     } catch (mcpErr) {
       logger.log(chalk.yellow(`MCP: --mcp-config failed — ${mcpErr.message}`));
@@ -1838,7 +1859,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/init")}       Inventory this folder into a cc.md project-memory file (/init [--force])`,
       );
       logger.log(
-        `  ${chalk.cyan("/context")}    Live context-window usage by role`,
+        `  ${chalk.cyan("/context")}    Live context-window usage by role + MCP tool schemas`,
       );
       logger.log(
         `  ${chalk.cyan("/copy")}       Copy last response to clipboard (/copy code → last code block)`,
@@ -2677,6 +2698,48 @@ export async function startAgentRepl(options = {}) {
               : ""
           }`,
         );
+        // MCP tool-schema share of the window (gap-analysis 第二阶段 item 3):
+        // the tools parameter rides along on EVERY request but isn't part of
+        // `messages`, so it's invisible to the role buckets above. Show the
+        // per-server schema cost + tool-search state + optimization advice.
+        if (_adhocMcp?.extraToolDefinitions?.length) {
+          const { describeMcpToolContext } =
+            await import("../runtime/mcp-tool-search.js");
+          const info = describeMcpToolContext(_adhocMcp, {
+            estimate: estimateTokens,
+            model,
+            provider,
+          });
+          if (info) {
+            const ts = info.toolSearch;
+            logger.log(chalk.bold("\nMCP tool schemas (sent every request):"));
+            for (const row of info.servers) {
+              const share = window
+                ? Math.round((row.sentTokens / window) * 100)
+                : 0;
+              logger.log(
+                `  ${row.server.padEnd(16)}${String(row.sentTokens).padStart(7)} tok ${String(share).padStart(3)}%` +
+                  chalk.gray(
+                    `  (${row.tools} tools${
+                      row.deferred ? `, ${row.deferred} deferred` : ""
+                    })`,
+                  ),
+              );
+            }
+            logger.log(
+              `  ${"total".padEnd(16)}${String(info.sentTokens).padStart(7)} tok` +
+                (ts.active
+                  ? chalk.gray(
+                      `  (tool search: ${ts.deferredCount} deferred, ` +
+                        `${ts.loadedCount} loaded, ~${info.savedTokens} tok saved)`,
+                    )
+                  : ""),
+            );
+            for (const line of info.advice) {
+              logger.log(chalk.yellow(`  ⚠ ${line}`));
+            }
+          }
+        }
       } catch (err) {
         logger.error(`/context failed: ${err.message}`);
       }
