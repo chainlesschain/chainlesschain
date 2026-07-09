@@ -1026,6 +1026,43 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // --remote-control: route CONFIRM-tier approvals to paired mobile/web
+  // devices (第四阶段 #2). Pairing info is emitted as a stream event so panel
+  // hosts can render the QR. --permission-prompt-tool and --interactive-
+  // approvals win when given (this block skips) — explicit routing beats the
+  // ambient device bridge.
+  let _remoteApproval = null;
+  if (
+    options.remoteControl &&
+    !options.permissionPromptTool &&
+    options.interactiveApprovals !== true
+  ) {
+    try {
+      const { startHeadlessRemoteApproval } =
+        await import("../lib/remote-approval-bridge.js");
+      _remoteApproval = await startHeadlessRemoteApproval({
+        agentSessionId: sessionId,
+      });
+      emit({
+        type: "remote_control",
+        subtype: "pairing",
+        pairing_uri: _remoteApproval.pairing.uri,
+        remote_session_id: _remoteApproval.pairing.remoteSessionId,
+        expires_at: _remoteApproval.pairing.expiresAt,
+      });
+      if (approvalGate && typeof approvalGate.setConfirmer === "function") {
+        approvalGate.setConfirmer(_remoteApproval.confirmer);
+      }
+    } catch (err) {
+      emit({
+        type: "remote_control",
+        subtype: "unavailable",
+        error: err.message,
+      });
+      _remoteApproval = null;
+    }
+  }
+
   const loopOptionsBase = {
     model,
     provider,
@@ -1759,6 +1796,16 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       await mcp.mcpClient.disconnectAll();
     } catch {
       // ignore — disconnect is best-effort
+    }
+  }
+
+  // Tear down the --remote-control approval bridge + its self-hosted WS
+  // server so the stream session's port never outlives the invocation.
+  if (_remoteApproval) {
+    try {
+      await _remoteApproval.close();
+    } catch {
+      // best-effort
     }
   }
 

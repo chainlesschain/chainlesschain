@@ -929,6 +929,35 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --remote-control: route CONFIRM-tier approvals to paired mobile/web
+  // devices (第四阶段 #2). Self-hosts a lightweight WS server + approval
+  // bridge for THIS run's session, prints the pairing URI/QR to stderr, and
+  // installs the remote confirmer on the gate (same override point as
+  // --permission-prompt-tool; that flag wins when both are given since it is
+  // installed above and this block skips). Fail-closed on timeout.
+  let _remoteApproval = null;
+  if (options.remoteControl && !options.permissionPromptTool) {
+    try {
+      const { startHeadlessRemoteApproval } =
+        await import("../lib/remote-approval-bridge.js");
+      _remoteApproval = await (
+        deps.startHeadlessRemoteApproval || startHeadlessRemoteApproval
+      )({
+        agentSessionId: sessionId,
+        writeErr,
+        isText,
+      });
+      if (approvalGate && typeof approvalGate.setConfirmer === "function") {
+        approvalGate.setConfirmer(_remoteApproval.confirmer);
+      }
+    } catch (err) {
+      // Remote approval could not come up → keep headless fail-closed rather
+      // than running un-gated; say why so the user can fix pairing.
+      writeErr(`  remote-control: unavailable (${err.message})\n`);
+      _remoteApproval = null;
+    }
+  }
+
   // --otlp <file>: attach an OpenTelemetry recorder so the real agent loop's
   // model/tool/retry spans are captured and exported as OTLP/JSON on exit.
   // Off by default (zero cost) — only built when a path is requested.
@@ -1417,6 +1446,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       killAllBackgroundShellTasks();
     } catch {
       // best-effort — never mask the run's own outcome
+    }
+    // Tear down the --remote-control approval bridge + its self-hosted WS
+    // server so the run's port/socket never outlives the invocation.
+    if (_remoteApproval) {
+      try {
+        await _remoteApproval.close();
+      } catch {
+        // best-effort — never mask the run's own outcome
+      }
     }
     // settings.json Stop + SessionEnd hooks when the run finishes. Stop is the
     // canonical async-hook trigger ("run the test suite at turn end"); fire its

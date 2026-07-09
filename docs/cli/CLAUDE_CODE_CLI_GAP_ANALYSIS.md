@@ -582,6 +582,22 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - `devices`/`revoke` 跨进程管理面（registry host-only 语义下需管理密钥通道，v2）。
 - 移动端/web-panel 对 direct-LAN URI 的扫码消费（协议已就绪）。
 
+### 2026-07-09 第十八批（第四阶段 #2 — mobile/web 权限审批）
+
+已落地：
+
+- **协议扩展：client-hosted 会话控制事件回传 host**。`handleRemoteSessionPublish` 成员控制分支（prompt/approval.resolve/interrupt）此前只会 dispatch 进**本 server 的 sessionManager**——REPL/headless 这类「以 WS 客户端身份注册本地会话」的 host，设备发的 approval.resolve 会静默 no-op（`handleSessionAnswer` 查不到 session 也回 success）。现在：会话不在 server 侧 → 转发 `remote-session-control` 帧给 host 连接，由 host 进程解本地权限门；host 不可达在 **ledger 之前**报错（不消耗 commandId slot，host 重连后同 commandId 仍可重试）；审计带 `forwarded:true`；server-hosted 路径字节不变（既有 protocol 测试全绿）。
+- **host 发布路径 relay/push 平价**：host 发布 runtime 事件的 fan-out 此前只发本地连接的成员——relay 配对的手机（无本地 socket）被静默跳过、也不触发厂商 push。现补 `_mirrorRemoteSessionEvent` 同款逻辑：relay 成员走 E2EE `sendEncrypted`；`permission.request`（命中 `isApprovalRequestEvent`）对带 pushToken 的成员触发 push 唤醒。
+- **新 `src/lib/remote-approval-bridge.js`**：`RemoteApprovalBridge`（host 端）——发布 `permission.request`（含 tool/action/detail）、收 `remote-session-control` 的 approval.resolve 解 pending、决策后发 `permission.resolved` 清设备 UI；`makeConfirmer()` 适配 ApprovalGate confirmer 契约（`async (ctx)=>boolean`）：无 fallback = 纯远端 + 超时 fail-closed（默认 5min）；有 fallback = 本地/远端赛跑、本地先答自动 `resolveLocally` 收尾远端 pending。`startHeadlessRemoteApproval()` 一键装配：自起轻量 WSServer（port 0 免冲突、**无 sessionManager**——会话本就 client-hosted）+ bridge + LAN/relay 配对 URI + QR。
+- **`cc agent --remote-control`**：headless（`-p`）与 stream-json 双路接线，同 `--permission-prompt-tool` 的 gate `setConfirmer` 挂点（显式 routing 优先：permission-prompt-tool/interactive-approvals 给出时本 flag 让位）；文本模式配对 URI/QR 打到 stderr，stream 模式发 `remote_control` pairing/unavailable 事件；起桥失败保持 fail-closed 并说明原因；finally 阶段桥+server 必拆（端口不外溢）。
+- 测试：unit 6（转发三事件/审计/host 不可达不耗 commandId + 重连重试/server-hosted 字节不变/relay 加密投递/push 只醒 request 不醒 resolved）+ integration 6（真 WSServer 全链路：设备扫 URI 配对→gate ask→设备 approve/deny→幂等 replay→本地 fallback 赛跑赢后清远端→超时 fail-closed→approverCount）；真进程 smoke：`cc agent -p "say OK" --remote-control` 打印 direct 配对 URI（ephemeral port）→ turn 正常完成 → 干净退出。headless-runner/stream/protocol/mirroring/ledger 回归全绿。
+
+仍待后续：
+
+- REPL 交互式会话的 bridge 接线（本地终端与远端赛跑已由 makeConfirmer fallback 支持，等 agent-repl.js 争用窗口）。
+- web-panel/Android 客户端消费 `permission.request` 卡片 UI（协议+push 已就绪）。
+- `permission.request` 事件带完整决策链上下文（第十二批 permissionChain）——polish。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -604,7 +620,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 ### 第四阶段：跨端与长任务
 
 1. `/remote-control` 统一入口。✅（2026-07-09 批17 — `cc remote-control` start/status/stop + 双模配对 URI/QR）
-2. mobile/web 权限审批。
+2. mobile/web 权限审批。✅（2026-07-09 批18 — client-hosted 控制回传 + relay/push 平价 + RemoteApprovalBridge + `cc agent --remote-control`）
 3. Monitor / Cron / Push 工具。
 4. dynamic workflow + worktree batch。
 

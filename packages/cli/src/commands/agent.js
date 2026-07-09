@@ -316,6 +316,10 @@ export function registerAgentCommand(program) {
       "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
     )
     .option(
+      "--remote-control",
+      "Headless: route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR, waits for remote allow/deny (fail-closed on timeout)",
+    )
+    .option(
       "--settings <file>",
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
@@ -777,6 +781,7 @@ export function registerAgentCommand(program) {
             jetbrains: options.jetbrains,
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
+            remoteControl: options.remoteControl === true,
             interactiveApprovals: options.interactiveApprovals === true,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
@@ -970,6 +975,8 @@ export function registerAgentCommand(program) {
           cwd: process.cwd(),
           // --permission-prompt-tool: defer approvals to an MCP tool
           permissionPromptTool: options.permissionPromptTool || null,
+          // --remote-control: approvals from paired mobile/web devices
+          remoteControl: options.remoteControl === true,
           // --strict-mcp-config: only --mcp-config servers (ignore registered + IDE)
           strictMcpConfig: options.strictMcpConfig === true,
           // --settings: extra .claude/settings.json permission rules

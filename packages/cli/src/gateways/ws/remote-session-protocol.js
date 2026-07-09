@@ -7,6 +7,7 @@ import {
   RemoteSessionCryptoContext,
   createRemotePairingUri,
 } from "../../harness/remote-session-crypto.js";
+import { isApprovalRequestEvent } from "../../harness/remote-session-push.js";
 import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
@@ -462,12 +463,75 @@ export async function handleRemoteSessionPublish(
       ) {
         throw new Error("prompt content is required");
       }
+      // CLIENT-HOSTED sessions (第四阶段 #2): when the agent session does not
+      // live in THIS server's sessionManager — e.g. a REPL/headless process
+      // that connected as a WS client and registered its own local session id —
+      // the server cannot dispatch the control event itself. Forward it to the
+      // HOST connection instead; the host's approval bridge resolves its local
+      // permission gate / prompt queue. Checked BEFORE the idempotency ledger
+      // so "host unreachable" never consumes a commandId slot (stays retryable
+      // after the host reconnects). Server-hosted sessions are byte-identical.
+      let serverHosted = false;
+      try {
+        serverHosted = Boolean(
+          server.sessionManager?.getSession?.(session.agentSessionId),
+        );
+      } catch {
+        serverHosted = false;
+      }
+      let hostTarget = null;
+      if (!serverHosted) {
+        hostTarget = server.clients.get(session.hostClientId);
+        if (!hostTarget) {
+          throw new Error(
+            "Remote session host is not reachable for this control event",
+          );
+        }
+      }
       // Idempotent forward: a control event with a stable commandId runs its
       // side effect (audit + dispatch into the host agent) AT MOST ONCE, so a
       // reconnecting device re-sending the same prompt/approval/interrupt gets a
       // `replayed` ack instead of a second agent turn. No commandId → forwarded
       // directly, byte-identical to before.
       await applyControlIdempotent(server, clientId, ws, message, async () => {
+        if (!serverHosted) {
+          // Audit the control action with the same taxonomy as server-hosted
+          // dispatch, then hand the event to the host process.
+          const auditAction =
+            message.event.type === "prompt"
+              ? "control.prompt"
+              : message.event.type === "approval.resolve"
+                ? "control.approval"
+                : "control.interrupt";
+          audit(server, {
+            sessionId: message.remoteSessionId,
+            actor: clientId,
+            action: auditAction,
+            detail:
+              message.event.type === "prompt"
+                ? { chars: message.event.content.length, forwarded: true }
+                : message.event.type === "approval.resolve"
+                  ? {
+                      requestId:
+                        message.event.requestId || message.event.approvalId,
+                      approved: message.event.answer ?? message.event.approved,
+                      forwarded: true,
+                    }
+                  : { forwarded: true },
+          });
+          server._send(hostTarget.ws, {
+            type: "remote-session-control",
+            remoteSessionId: message.remoteSessionId,
+            agentSessionId: session.agentSessionId,
+            from: clientId,
+            event: message.event,
+          });
+          reply(server, ws, message.id, "remote-session-published", {
+            delivered: 1,
+            forwardedToHost: true,
+          });
+          return;
+        }
         if (message.event.type === "prompt") {
           // Record the shape, not the content — the audit trail must stay
           // useful without hoarding potentially sensitive session prompts.
@@ -514,8 +578,45 @@ export async function handleRemoteSessionPublish(
       message.remoteSessionId,
     )) {
       if (member.clientId === clientId) continue;
+      // Wake a backgrounded device for approval/permission requests — parity
+      // with the server-hosted mirror path (_mirrorRemoteSessionEvent). A
+      // client-hosted session publishing `permission.request` must reach a
+      // suspended phone the same way (第四阶段 #2).
+      if (
+        member.pushToken &&
+        isApprovalRequestEvent(message.event.type) &&
+        typeof server._dispatchApprovalPush === "function"
+      ) {
+        server._dispatchApprovalPush(session, member, message.event);
+      }
       const target = server.clients.get(member.clientId);
-      if (!target) continue;
+      if (!target) {
+        // Relay-paired mobiles have no local socket — deliver over the E2EE
+        // relay like the mirror path does; without this, host-published
+        // events silently skipped every relay member.
+        if (server.remoteSessionRelay) {
+          const crypto = server.remoteSessionCrypto?.get(
+            message.remoteSessionId,
+          );
+          if (crypto) {
+            try {
+              server.remoteSessionRelay.sendEncrypted(
+                member.clientId,
+                crypto.encrypt(member.clientId, {
+                  type: "remote-session-event",
+                  remoteSessionId: message.remoteSessionId,
+                  agentSessionId: session.agentSessionId,
+                  event: message.event,
+                }),
+              );
+              delivered += 1;
+            } catch {
+              // Peer key may be gone — best-effort, same as revocation notice.
+            }
+          }
+        }
+        continue;
+      }
       server._send(target.ws, {
         type: "remote-session-event",
         remoteSessionId: message.remoteSessionId,
