@@ -282,6 +282,40 @@ export async function handleBgDetach(server, clientId, id, ws, message) {
   server._send(ws, { id, type: "bg-detach", bgId: message.bgId, dropped });
 }
 
+export async function handleBgRename(server, id, ws, message) {
+  try {
+    if (!message.bgId) {
+      return sendError(server, id, ws, "NO_BG_ID", "bgId required");
+    }
+    const { renameBackgroundAgent } = await loadSupervisor();
+    const session = renameBackgroundAgent(message.bgId, message.title);
+    server._send(ws, {
+      id,
+      type: "bg-rename",
+      session: sanitizeBackgroundSession(session),
+    });
+  } catch (err) {
+    sendError(server, id, ws, "BG_RENAME_FAILED", err.message);
+  }
+}
+
+export async function handleBgResume(server, id, ws, message) {
+  try {
+    if (!message.bgId) {
+      return sendError(server, id, ws, "NO_BG_ID", "bgId required");
+    }
+    const { resumeBackgroundAgent } = await loadSupervisor();
+    const session = resumeBackgroundAgent(message.bgId, message.text);
+    server._send(ws, {
+      id,
+      type: "bg-resume",
+      session: sanitizeBackgroundSession(session),
+    });
+  } catch (err) {
+    sendError(server, id, ws, "BG_RESUME_FAILED", err.message);
+  }
+}
+
 export async function handleBgStop(server, clientId, id, ws, message) {
   try {
     if (!message.bgId) {

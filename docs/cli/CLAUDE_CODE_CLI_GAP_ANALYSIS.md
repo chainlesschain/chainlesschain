@@ -516,6 +516,25 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - commandPattern 目前仅 `*` 通配（有意保守）；`?`/字符类等按需再扩。
 - 细粒度规则只在 auto 模式生效（by design——manual/acceptEdits 不消费 decisions）。
 
+### 2026-07-09 第十四批（小项收口）
+
+已落地：
+
+- **`cc daemon resume <id> <prompt...>`**：崩溃/完成/停止的后台会话按 `sessionId` 续接为新的后台运行（`agent --session <sid> -p <prompt>` 最小 argv——原 argv 有意不持久化防 secrets 落盘，model/flags 走 config 默认；headless 自动重放 JSONL 对话史）；running 会话拒绝并指引 `cc attach`；WS 侧对应 `bg-resume`。这补上了第一/四/五批「crash reconnect」的用户可用形态：崩溃会话不丢，一条命令续跑。
+- **`bg-rename` WS 协议 + 面板重命名/续跑入口**：web-panel 表格加「重命名」（所有会话）与「续跑」（非 running 且有 sessionId）modal；store 新增 `renameSession`/`resumeSession`。
+- REPL `/permissions denials` 尾部提示跨会话入口 `cc permissions recent`（第六批遗留小项）。
+- `buildFollowUpArgv` 处理 `--print=<value>` 等号形式（第十批遗留）。
+- 顺带：command-manifest 重生同步第十批更新的 attach 描述。
+- 测试：resume argv/followUpArgv 构造 + running/无 sessionId/空 prompt 三拒绝 + equals-form 剥除 + bg-rename/bg-resume 协议（token 不泄露、running 拒绝）+ web-panel store rename/resume/空输入短路。
+
+仍待后续（明确不做/待拍板，非工程遗留）：
+
+- 交互式 `dontAsk`（不问直接 deny）——headless 语义在交互场景的产品取舍待拍板。
+- IDE 插件（VS Code/JetBrains）后台面板 UI——`bg-*` 协议已就绪，属独立插件发版批次。
+- attach alternate-screen 渲染 / 日志直推 / 面板虚拟滚动——UI polish，v1 行为已接受。
+- `cc session policy --set` 增加 auto 概念——与 REPL auto 模式的会话级持久化联动，待拍板。
+- 第二/三/四阶段（MCP tool search / Agent SDK / 跨端 remote-control）为路线图级 epic，另立计划。
+
 ### 第一阶段：安全与可运营性
 
 1. `manual/auto/dontAsk` permission mode。

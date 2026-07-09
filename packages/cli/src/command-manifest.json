@@ -56,7 +56,7 @@
       "aliases": [],
       "module": "./commands/background-session.js",
       "register": "registerBackgroundSessionCommands",
-      "summary": "Attach to a background agent log stream"
+      "summary": "Attach to a background agent — interactive when its session transport is available, log stream otherwise"
     },
     {
       "name": "audit",

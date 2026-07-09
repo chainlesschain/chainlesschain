@@ -3813,6 +3813,11 @@ export async function startAgentRepl(options = {}) {
         // Review what the agent was BLOCKED from running this session
         // (Claude-Code 2.1.193 "recent denials").
         logger.log(formatDenials(_recentDenials));
+        logger.log(
+          chalk.gray(
+            "  Cross-session history (headless + REPL): cc permissions recent",
+          ),
+        );
         prompt();
         return;
       }

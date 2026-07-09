@@ -175,6 +175,42 @@ describe("backgroundAgents store", () => {
     expect(sendRaw).toHaveBeenNthCalledWith(2, { type: "bg-list", all: true });
   });
 
+  it("renameSession and resumeSession hit the bg protocol and refresh", async () => {
+    const store = useBackgroundAgentsStore();
+    sendRaw
+      .mockResolvedValueOnce({
+        type: "bg-rename",
+        session: { id: "bg-1", title: "new" },
+      })
+      .mockResolvedValueOnce({ type: "bg-list", sessions: [] })
+      .mockResolvedValueOnce({
+        type: "bg-resume",
+        session: { id: "bg-2", sessionId: "s", status: "running" },
+      })
+      .mockResolvedValueOnce({ type: "bg-list", sessions: [] });
+
+    expect(await store.renameSession("bg-1", "  new  ")).toBe(true);
+    expect(sendRaw).toHaveBeenNthCalledWith(1, {
+      type: "bg-rename",
+      bgId: "bg-1",
+      title: "new",
+    });
+
+    const resumed = await store.resumeSession("bg-1", "go on");
+    expect(sendRaw).toHaveBeenNthCalledWith(3, {
+      type: "bg-resume",
+      bgId: "bg-1",
+      text: "go on",
+    });
+    expect(resumed).toEqual({ id: "bg-2", sessionId: "s", status: "running" });
+
+    // empty input short-circuits without a request
+    sendRaw.mockClear();
+    expect(await store.renameSession("bg-1", "  ")).toBe(false);
+    expect(await store.resumeSession("bg-1", "")).toBeNull();
+    expect(sendRaw).not.toHaveBeenCalled();
+  });
+
   it("startPolling refreshes on an interval; teardown stops everything", async () => {
     sendRaw.mockResolvedValue({ type: "bg-list", sessions: [] });
 

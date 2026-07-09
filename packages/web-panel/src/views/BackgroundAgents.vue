@@ -50,6 +50,14 @@
             >
               {{ store.attachedId === record.id ? "已连接" : "接管" }}
             </a-button>
+            <a-button size="small" @click="openRename(record)">重命名</a-button>
+            <a-button
+              v-if="record.status !== 'running' && record.sessionId"
+              size="small"
+              @click="openResume(record)"
+            >
+              续跑
+            </a-button>
             <a-popconfirm
               v-if="record.status === 'running'"
               title="终止整个后台会话？"
@@ -109,6 +117,28 @@
         </a-button>
       </div>
     </a-card>
+
+    <a-modal
+      v-model:open="renameOpen"
+      title="重命名后台会话"
+      :confirm-loading="renameBusy"
+      @ok="onRenameOk"
+    >
+      <a-input v-model:value="renameText" placeholder="新标题" @press-enter="onRenameOk" />
+    </a-modal>
+
+    <a-modal
+      v-model:open="resumeOpen"
+      title="续跑该会话（新的后台运行，续接同一对话）"
+      :confirm-loading="resumeBusy"
+      @ok="onResumeOk"
+    >
+      <a-input
+        v-model:value="resumeText"
+        placeholder="输入要继续执行的 prompt"
+        @press-enter="onResumeOk"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -179,6 +209,51 @@ async function onSendPrompt() {
     promptText.value = "";
   } catch (err) {
     message.error(`发送失败：${err.message}`);
+  }
+}
+
+const renameOpen = ref(false);
+const renameBusy = ref(false);
+const renameText = ref("");
+let renameTarget = null;
+function openRename(record) {
+  renameTarget = record.id;
+  renameText.value = record.title || "";
+  renameOpen.value = true;
+}
+async function onRenameOk() {
+  if (!renameText.value.trim()) return;
+  renameBusy.value = true;
+  try {
+    await store.renameSession(renameTarget, renameText.value);
+    renameOpen.value = false;
+  } catch (err) {
+    message.error(`重命名失败：${err.message}`);
+  } finally {
+    renameBusy.value = false;
+  }
+}
+
+const resumeOpen = ref(false);
+const resumeBusy = ref(false);
+const resumeText = ref("");
+let resumeTarget = null;
+function openResume(record) {
+  resumeTarget = record.id;
+  resumeText.value = "";
+  resumeOpen.value = true;
+}
+async function onResumeOk() {
+  if (!resumeText.value.trim()) return;
+  resumeBusy.value = true;
+  try {
+    const session = await store.resumeSession(resumeTarget, resumeText.value);
+    resumeOpen.value = false;
+    if (session) message.success(`已续跑为 ${session.id}`);
+  } catch (err) {
+    message.error(`续跑失败：${err.message}`);
+  } finally {
+    resumeBusy.value = false;
   }
 }
 

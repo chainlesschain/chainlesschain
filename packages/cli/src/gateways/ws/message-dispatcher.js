@@ -183,6 +183,8 @@ export function createWsMessageDispatcher(server) {
           server._handleBgStopTurn(clientId, id, ws, message),
         "bg-detach": () => server._handleBgDetach(clientId, id, ws, message),
         "bg-stop": () => server._handleBgStop(clientId, id, ws, message),
+        "bg-rename": () => server._handleBgRename(id, ws, message),
+        "bg-resume": () => server._handleBgResume(id, ws, message),
         "chat.intent.understand": () =>
           server._handleChatIntentUnderstand(id, ws, message),
         "chat.intent.understand-stream": () =>

@@ -430,6 +430,34 @@ export function registerBackgroundSessionCommands(program) {
     });
 
   daemon
+    .command("resume <id> <prompt...>")
+    .description(
+      "Continue a finished/crashed background session as a new background run on the same conversation",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (id, prompt, options) => {
+      try {
+        const { resumeBackgroundAgent } = await loadSupervisor();
+        const state = resumeBackgroundAgent(
+          id,
+          Array.isArray(prompt) ? prompt.join(" ") : prompt,
+        );
+        if (options.json) {
+          console.log(JSON.stringify(state, null, 2));
+          return;
+        }
+        logger.log(
+          chalk.green(`Resumed session as background agent ${state.id}`),
+        );
+        logger.log(chalk.gray(`  session ${state.sessionId}`));
+        logger.log(chalk.gray(`  attach: cc attach ${state.id}`));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  daemon
     .command("stop [id]")
     .description("Stop one background agent, or all running agents with --any")
     .option("--any", "Stop all running background agents")

@@ -238,6 +238,81 @@ describe("bg-attach relay", () => {
   });
 });
 
+describe("bg-rename / bg-resume", () => {
+  it("renames a session and returns the sanitized state", async () => {
+    writeBackgroundAgentState({
+      id: "bg-ren-a",
+      status: "running",
+      pid: process.pid,
+      startedAt: 1,
+      heartbeatAt: Date.now(),
+      title: "old",
+      transport: { pipe: "p", token: "SECRET" },
+    });
+    const { handleBgRename } =
+      await import("../../src/gateways/ws/background-agent-protocol.js");
+    const { server } = fakeServer();
+    await handleBgRename(server, "1", {}, { bgId: "bg-ren-a", title: " new " });
+    expect(server.sent[0]).toMatchObject({
+      type: "bg-rename",
+      session: { title: "new", interactive: true },
+    });
+    expect(JSON.stringify(server.sent)).not.toContain("SECRET");
+  });
+
+  it("resumes a finished session as a new background run", async () => {
+    const supervisor =
+      await import("../../src/lib/background-agent-supervisor.js");
+    const originalSpawn = supervisor._deps.spawn;
+    supervisor._deps.spawn = () => ({ pid: 4242, unref() {} });
+    try {
+      writeBackgroundAgentState({
+        id: "bg-res-a",
+        status: "failed",
+        sessionId: "sess-9",
+        cwd: process.cwd(),
+        startedAt: 1,
+        endedAt: 2,
+      });
+      const { handleBgResume } =
+        await import("../../src/gateways/ws/background-agent-protocol.js");
+      const { server } = fakeServer();
+      await handleBgResume(
+        server,
+        "1",
+        {},
+        { bgId: "bg-res-a", text: "go on" },
+      );
+      expect(server.sent[0]).toMatchObject({
+        type: "bg-resume",
+        session: { sessionId: "sess-9", status: "running" },
+      });
+
+      // running sessions are refused
+      writeBackgroundAgentState({
+        id: "bg-res-live",
+        status: "running",
+        pid: process.pid,
+        sessionId: "sess-live",
+        startedAt: Date.now(),
+        heartbeatAt: Date.now(),
+      });
+      await handleBgResume(
+        server,
+        "2",
+        {},
+        { bgId: "bg-res-live", text: "again" },
+      );
+      expect(server.sent[1]).toMatchObject({
+        type: "error",
+        code: "BG_RESUME_FAILED",
+      });
+    } finally {
+      supervisor._deps.spawn = originalSpawn;
+    }
+  });
+});
+
 describe("bg-* over the real WS server", () => {
   it("dispatches list/attach/prompt through the wire and pushes worker events", async () => {
     const prompts = [];

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -13,6 +13,7 @@ import {
   readBackgroundAgentLog,
   readBackgroundAgentState,
   renameBackgroundAgent,
+  resumeBackgroundAgent,
   stopBackgroundAgent,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
@@ -236,6 +237,75 @@ describe("background agent supervisor", () => {
         positionalTokens: ["fix"],
       }),
     ).toEqual(["agent", "--title", "fix"]);
+    // equals-form --print=<value> is stripped too
+    expect(
+      buildFollowUpArgv(["agent", "--print=fix it", "--session", "s"], {
+        printValue: "fix it",
+      }),
+    ).toEqual(["agent", "--session", "s"]);
+  });
+
+  it("resumeBackgroundAgent relaunches a finished session on the same conversation", () => {
+    writeBackgroundAgentState({
+      id: "bg-done-abc",
+      status: "completed",
+      sessionId: "sess-42",
+      cwd: "C:\\proj",
+      title: "old task",
+      startedAt: 1,
+      endedAt: 2,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    const state = resumeBackgroundAgent("bg-done-abc", "continue the work");
+
+    expect(state.sessionId).toBe("sess-42");
+    expect(state.status).toBe("running");
+    // the job file (2nd spawn arg) carries the minimal resume argv
+    const jobFile = _deps.spawn.mock.calls[0][1][1];
+    const job = JSON.parse(readFileSync(jobFile, "utf8"));
+    expect(job.argv).toEqual([
+      "agent",
+      "--session",
+      "sess-42",
+      "-p",
+      "continue the work",
+    ]);
+    expect(job.followUpArgv).toEqual(["agent", "--session", "sess-42"]);
+  });
+
+  it("resumeBackgroundAgent refuses running sessions and empty prompts", () => {
+    writeBackgroundAgentState({
+      id: "bg-live-abc",
+      status: "running",
+      pid: process.pid,
+      sessionId: "sess-1",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+    });
+    expect(() => resumeBackgroundAgent("bg-live-abc", "x")).toThrow(
+      /still running/,
+    );
+
+    writeBackgroundAgentState({
+      id: "bg-nosess-abc",
+      status: "failed",
+      startedAt: 1,
+      endedAt: 2,
+    });
+    expect(() => resumeBackgroundAgent("bg-nosess-abc", "x")).toThrow(
+      /no session id/,
+    );
+    writeBackgroundAgentState({
+      id: "bg-done2-abc",
+      status: "completed",
+      sessionId: "s",
+      startedAt: 1,
+      endedAt: 2,
+    });
+    expect(() => resumeBackgroundAgent("bg-done2-abc", "   ")).toThrow(
+      /requires a prompt/,
+    );
   });
 
   it("runs follow-up turns over the session transport and finalizes on detach", async () => {

@@ -100,6 +100,8 @@ import {
   handleBgDetach,
   handleBgList,
   handleBgPrompt,
+  handleBgRename,
+  handleBgResume,
   handleBgStop,
   handleBgStopTurn,
   handleBgView,
@@ -703,6 +705,16 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — kill a whole background session */
   async _handleBgStop(clientId, id, ws, message) {
     return handleBgStop(this, clientId, id, ws, message);
+  }
+
+  /** @private — rename a background session's title */
+  async _handleBgRename(id, ws, message) {
+    return handleBgRename(this, id, ws, message);
+  }
+
+  /** @private — continue a finished session as a new background run */
+  async _handleBgResume(id, ws, message) {
+    return handleBgResume(this, id, ws, message);
   }
 
   /** @private */

@@ -183,6 +183,14 @@ export function buildFollowUpArgv(argv, opts = {}) {
       if (printValue !== null && argv[i + 1] === printValue) i++;
       continue;
     }
+    // equals-form: --print=<value> carries the prompt in the same token
+    if (
+      printValue !== null &&
+      arg.startsWith("--print=") &&
+      arg.slice("--print=".length) === printValue
+    ) {
+      continue;
+    }
     if (positionalLeft.length && arg === positionalLeft[0]) {
       positionalLeft.shift();
       continue;
@@ -190,6 +198,41 @@ export function buildFollowUpArgv(argv, opts = {}) {
     out.push(arg);
   }
   return out;
+}
+
+/**
+ * Continue a finished/crashed background session as a NEW background session
+ * on the same conversation (`cc daemon resume <id> <prompt>`). The original
+ * launch argv is intentionally NOT persisted (it may carry secrets), so the
+ * resume runs a minimal `agent --session <sid> -p <prompt>` — model/provider
+ * come from config defaults, and the headless runner replays the JSONL
+ * transcript for the session id.
+ */
+export function resumeBackgroundAgent(id, prompt, options = {}) {
+  const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+    now: options.now,
+    heartbeatStaleMs: options.heartbeatStaleMs,
+  });
+  if (!state) throw new Error(`Background agent not found: ${id}`);
+  if (state.status === "running") {
+    throw new Error(
+      `Background agent ${id} is still running — use cc attach ${id} to send follow-up prompts instead`,
+    );
+  }
+  if (!state.sessionId) {
+    throw new Error(`Background agent ${id} has no session id to resume from`);
+  }
+  const text = String(prompt || "").trim();
+  if (!text) throw new Error("resume requires a prompt");
+  const argv = ["agent", "--session", state.sessionId, "-p", text];
+  return launchBackgroundAgent({
+    argv,
+    cwd: options.cwd || state.cwd || process.cwd(),
+    sessionId: state.sessionId,
+    title: options.title || state.title || text.slice(0, 100),
+    cliEntry: options.cliEntry,
+    followUpArgv: ["agent", "--session", state.sessionId],
+  });
 }
 
 export function launchBackgroundAgent({

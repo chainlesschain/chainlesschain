@@ -129,6 +129,24 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     }
   }
 
+  async function renameSession(bgId, title) {
+    const ws = useWsStore()
+    const trimmed = String(title || '').trim()
+    if (!bgId || !trimmed) return false
+    await ws.sendRaw({ type: 'bg-rename', bgId, title: trimmed })
+    await fetchSessions()
+    return true
+  }
+
+  async function resumeSession(bgId, text) {
+    const ws = useWsStore()
+    const trimmed = String(text || '').trim()
+    if (!bgId || !trimmed) return null
+    const result = await ws.sendRaw({ type: 'bg-resume', bgId, text: trimmed })
+    await fetchSessions()
+    return result?.session || null
+  }
+
   async function stopSession(bgId) {
     const ws = useWsStore();
     const target = bgId || attachedId.value;
@@ -208,6 +226,8 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     sendPrompt,
     stopTurn,
     detach,
+    renameSession,
+    resumeSession,
     stopSession,
     startPolling,
     stopPolling,
