@@ -1,0 +1,57 @@
+{
+  "name": "@chainlesschain/agent-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript Agent SDK for the ChainlessChain cc CLI — typed stream-json protocol contract (stream events, approval callbacks, checkpoints, session resume) plus Node spawn/pipe transports and a browser-safe protocol entry.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/esm/protocol.d.ts",
+      "import": "./dist/esm/protocol.js",
+      "require": "./dist/cjs/protocol.js"
+    },
+    "./browser": {
+      "types": "./dist/esm/browser.d.ts",
+      "import": "./dist/esm/browser.js",
+      "require": "./dist/cjs/browser.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "docs/PROTOCOL.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/agent-sdk"
+  },
+  "keywords": [
+    "chainlesschain",
+    "agent",
+    "sdk",
+    "stream-json",
+    "cli"
+  ],
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.10.0"
+  }
+}
