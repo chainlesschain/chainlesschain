@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）+ 本地化残留清扫（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.153 → **0.162.154** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版动因：VS Code 0.37.7 + JetBrains 0.4.49 的内联 ghost-text 补全依赖 `cc complete`，此命令不在已发的 0.162.153 里 → 不发 npm 则两端补全功能对终端用户不可用。命令数 **164 → 165**（新增 `cc complete`，清单已重生）。发版前本机三层全绿（unit+integration+e2e）。
+
+- **`cc complete` — IDE 内联补全（fill-in-the-middle）后端**：读 stdin JSON `{prefix,suffix,language}` → 打印光标处应插入的代码（`--json` 输出 `{completion,model,provider}`）。复用 `cc ask` 的 provider 路由（`queryLLM`）——honor 用户已配置的 LLM/provider/key，零新鉴权（本地 FIM 模型如 `qwen2.5-coder` 更快，慢速 chat 模型也能用因为是手动触发）。纯可测 helper：`buildFimPrompt`（cursor-sentinel 提示让无原生 FIM 的 chat 模型也有双向上下文）+ `cleanCompletion`（剥 markdown fence / `<CURSOR>` / 硬上限 2000 字符；**故意不做 suffix-overlap 裁剪**——朴素「补全结尾等于 suffix 首行就切」会吃掉合法的结尾 token 如 `if` 块自己的 `}`，重复交给 prompt 的「勿重复周围代码」指令处理）。fail-quiet：后端故障返回空补全而非在编辑器里抛错。IDE 侧（VS Code `InlineCompletionItemProvider` / JetBrains `InlineCompletionProvider`）共享同一后端，两端行为一致。
+
 ### Added — cc CLI 0.162.153：上游 Claude Code parity 封顶 2.1.191 → 2.1.204（6 项，CLI-only npm 发版）
 
 > `chainlesschain` 0.162.152 → **0.162.153** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。逐项经 Explore-agent grep 坐实上游 changelog（2.1.192→2.1.204）后落地，全部带回归测试（新增约 30 项）；发版前本机三层全绿（unit+integration+e2e）。命令数不变（164；`cc team run --otlp` 只新增 option 非新命令）。判定明细 + N-A 清单见项目记忆 `cli-parity-gap-backlog`。
