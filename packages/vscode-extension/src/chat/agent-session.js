@@ -18,6 +18,10 @@
  */
 const { spawn } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+// Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
+// protocol argv + NDJSON framing are SDK contracts now, not hand-rolled.
+const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
+const { createNdjsonDecoder } = require("../vendor/agent-sdk/ndjson.js");
 
 class AgentChatSession {
   /**
@@ -35,7 +39,7 @@ class AgentChatSession {
     this.opts = opts;
     this._deps = { spawn, ...(opts.deps || {}) };
     this.child = null;
-    this._stdoutBuf = "";
+    this._decode = null;
     this._stderrBuf = "";
   }
 
@@ -46,15 +50,7 @@ class AgentChatSession {
   start() {
     if (this.running) return this;
     const command = this.opts.command || "cc";
-    const args = [
-      "agent",
-      "--input-format",
-      "stream-json",
-      "--output-format",
-      "stream-json",
-      "--include-partial-messages",
-      ...(this.opts.args || []),
-    ];
+    const args = buildAgentArgs({ extraArgs: this.opts.args || [] });
     this.child = this._deps.spawn(command, args, {
       cwd: this.opts.cwd || process.cwd(),
       // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
@@ -63,23 +59,17 @@ class AgentChatSession {
       // npm global shims on Windows are .cmd files — they need a shell.
       shell: process.platform === "win32",
     });
-    this._stdoutBuf = "";
     this._stderrBuf = "";
+    // SDK carry-buffer framing: a chunk boundary can split a line. Non-JSON
+    // stdout surfaces as {type:"raw"} exactly as before.
+    this._decode = createNdjsonDecoder(
+      (evt) => this._emit(evt),
+      { onError: (_err, line) => {
+          if (line) this._emit({ type: "raw", text: line.trim() });
+        } },
+    );
     this.child.stdout.on("data", (chunk) => {
-      this._stdoutBuf += chunk.toString("utf8");
-      let idx;
-      while ((idx = this._stdoutBuf.indexOf("\n")) >= 0) {
-        const line = this._stdoutBuf.slice(0, idx).trim();
-        this._stdoutBuf = this._stdoutBuf.slice(idx + 1);
-        if (!line) continue;
-        let evt;
-        try {
-          evt = JSON.parse(line);
-        } catch {
-          evt = { type: "raw", text: line }; // non-JSON stdout, surface as-is
-        }
-        this._emit(evt);
-      }
+      this._decode(chunk.toString("utf8"));
     });
     this.child.stderr.on("data", (chunk) => {
       this._stderrBuf += chunk.toString("utf8");
@@ -99,16 +89,10 @@ class AgentChatSession {
     this.child.on("close", (code, signal) => {
       // Flush a final unterminated line — error output often lacks the
       // trailing \n and would otherwise be dropped silently.
-      const rest = this._stdoutBuf.trim();
-      this._stdoutBuf = "";
-      if (rest) {
-        let evt;
-        try {
-          evt = JSON.parse(rest);
-        } catch {
-          evt = { type: "raw", text: rest };
-        }
-        this._emit(evt);
+      try {
+        this._decode.flush();
+      } catch {
+        /* best-effort */
       }
       const errRest = this._stderrBuf.trimEnd();
       this._stderrBuf = "";
