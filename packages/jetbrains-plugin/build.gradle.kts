@@ -33,6 +33,13 @@ dependencies {
         bundledPlugin("com.intellij.java")
         pluginVerifier() // for ./gradlew verifyPlugin
     }
+
+    // Real JUnit 5 for the pure com.chainlesschain.ide.* layer (SDK-free plain
+    // Java) — no IntelliJ platform test framework needed, so `./gradlew test`
+    // runs fast and headless. The *SmokeMain harnesses stay as the aggregate
+    // gate (smokeTest task); these give per-test isolation + JUnit XML reports.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
@@ -146,9 +153,14 @@ intellijPlatform {
 }
 
 tasks {
-    // The interop probe main lives under src/test and is not shipped.
+    // Real JUnit 5 over the pure layer. The *SmokeMain harnesses (plain main(),
+    // no @Test) are simply ignored by the JUnit runner; the smokeTest task below
+    // still runs them as the aggregate gate. Pure classes never touch the SDK, so
+    // this needs no platform test framework and runs headless in seconds.
     test {
-        enabled = false
+        useJUnitPlatform()
+        systemProperty("file.encoding", "UTF-8")
+        testLogging { events("failed") }
     }
 }
 

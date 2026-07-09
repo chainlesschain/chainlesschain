@@ -121,6 +121,12 @@ jobs:
       - name: Pure-logic smoke (smokeTest)
         run: ./gradlew smokeTest --no-daemon --stacktrace
 
+      # Real JUnit 5 over the pure com.chainlesschain.ide.* layer (per-test
+      # isolation + JUnit XML). No IntelliJ platform test framework, so it runs
+      # headless in seconds. Complements the aggregate smokeTest gate above.
+      - name: Unit tests (JUnit)
+        run: ./gradlew test --no-daemon --stacktrace
+
       # Downloads the IntelliJ Platform SDK + builds the signed-able plugin zip.
       - name: Build plugin
         run: ./gradlew buildPlugin --no-daemon --stacktrace
