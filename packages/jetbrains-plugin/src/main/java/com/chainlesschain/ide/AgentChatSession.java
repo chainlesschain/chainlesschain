@@ -25,6 +25,13 @@ import java.util.Map;
  * NDJSON event per line ({@code {"type":"user","text":"…"}}), stdout emits
  * NDJSON events (system/init, stream_event deltas, tool_use, result, …).
  *
+ * <p>Wire contract: Agent Protocol v1, documented in
+ * {@code packages/agent-sdk/docs/PROTOCOL.md}. Kotlin/Java cannot consume
+ * the TypeScript SDK, so this class implements the protocol directly — the
+ * protocol document, not the SDK, is the compatibility surface. Argv shape
+ * (incl. cmd.exe /c + NoDefaultCurrentDirectoryInExePath hardening) and the
+ * event vocabulary must track that document.
+ *
  * The child should inherit CHAINLESSCHAIN_IDE_PORT/_TOKEN via
  * {@link Options#extraEnv}, so the agent auto-connects back to THIS IDE's
  * bridge — selection context, diagnostics feedback and openDiff reviews all

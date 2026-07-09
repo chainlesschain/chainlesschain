@@ -10,6 +10,12 @@ import java.util.Map;
  * {@code chat/chat-events.js} (same kinds, same delta-dedup rule, so the two
  * IDE panels stay behaviorally identical).
  *
+ * <p>Wire contract: this class implements Agent Protocol v1 as documented in
+ * {@code packages/agent-sdk/docs/PROTOCOL.md} (the language-neutral contract
+ * behind @chainlesschain/agent-sdk — TypeScript consumers get the same shapes
+ * as types; this plugin consumes the protocol directly). Any event added or
+ * changed there must be reflected here in the same change.
+ *
  * UI message kinds: init / delta / tool / tool_done / info / turn_end /
  * approval / approval_done / plan / error. Pure JDK, headless-testable.
  */

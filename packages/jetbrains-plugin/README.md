@@ -58,6 +58,13 @@ The code is split into two layers:
 | Protocol core | `com.chainlesschain.ide` | **No — pure JDK** | ✅ compiled + interop-tested |
 | Editor glue | `com.chainlesschain.ide.intellij` | Yes | ⏳ build needs the SDK |
 
+**Wire contract**: the protocol core implements Agent Protocol v1 as
+documented in [`packages/agent-sdk/docs/PROTOCOL.md`](../agent-sdk/docs/PROTOCOL.md)
+— the same contract the TypeScript consumers (VS Code extension, web-panel)
+get as types from `@chainlesschain/agent-sdk`. Kotlin/Java consumes the
+protocol directly; the protocol document, not the SDK, is the compatibility
+surface. `AgentChatSession` / `ChatEvents` must track that document.
+
 - **`MiniJson`** — dependency-free JSON parse/serialize.
 - **`McpServer`** — Streamable-HTTP MCP server (`com.sun.net.httpserver`), the
   same wire protocol the CLI MCP client POSTs (initialize / tools/list /
