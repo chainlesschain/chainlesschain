@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cc attach` 可交互接管（session transport）**：worker 每会话托管本地 NDJSON 控制通道（Win named pipe / POSIX socket，随机 token 存 0600 state 文件）；attach 后键入即发 follow-up prompt（同 `--session` 自动续接对话史，多轮 turn 循环），`/stop` 截断当前轮，turn 运行中断开任务照跑、idle 断开会话收尾；transport 不可用自动回退日志流，`--no-input` 强制纯日志。
 - **web-panel「后台 Agent」面板**：新 `bg-*` WS 协议（list/view/attach/prompt/stop-turn/detach/stop/rename/resume，attach 期间推送 worker 事件与日志增量）；takeover token 永不过 WS 边界。面板含列表/接管卡片/日志流/重命名/续跑。
 - 修复：后台 rename 与 worker read-modify-write 竞态（写后校验+有界重试）；`settingsVerdict` 未传入 executeToolInner 的解释链断点；launcher/worker 状态竞写（先写 state 后 spawn + heartbeat 重申 transport）。
+- **MCP tool search（第二阶段批16，随本版一同发布）**：大规模 MCP 面下工具定义超上下文阈值（默认窗口 10%，`mcp.toolSearch` settings / `CC_TOOL_SEARCH` env 可配）时自动换成 `[deferred]` stub + 内部 `tool_search` 检索工具；完整 schema 经 tool result 返回（append-only，保 prompt cache 稳定）；REPL `/context` 新增 MCP tool schemas 占用与优化建议一节。未超阈值/关闭时行为字节不变。
 
 ### Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）+ 本地化残留清扫（CLI-only npm 发版）
 
