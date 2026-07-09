@@ -78,6 +78,18 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'IDE plugins · 2026-07-08',
+    title: 'IDE dual-extension full localization: VS Code 0.37.6 + JetBrains 0.4.48 (mixed zh/en fully resolved on all four surfaces)',
+    sub: 'Independent release track: VS Code 0.37.5 → 0.37.6 (Open VSX) + JetBrains 0.4.47 → 0.4.48 (JetBrains Marketplace). The UI language now fully follows the IDE language — no more mixed zh/en. CI double-verified: Open VSX Published / JetBrains Marketplace success; vscode-ext 56 files / 495 tests green + JetBrains smoke 643/0 (incl. bundleParity).',
+    desc: 'Four localization surfaces cleared: VS Code chrome + VS Code webview + JetBrains action menus + JetBrains runtime dialogs. Webviews cannot call vscode.l10n.t, so the host injects L / CC_L10N into the webview; the JetBrains runtime goes through CcBundle extends DynamicBundle, and pure SDK-free classes were made English-only. Bundled with the IDE-affordances batch (0.37.5 / 0.4.47): jetbrains:// deep-link handler (parity with VS Code registerUriHandler), Show Activity tool-call stream bridge, /rewind previews the checkpoint diff before restoring, read-only cc team monitor, Diagnose Bridge (cc ide status/doctor in-IDE), Explain/Refactor CodeLens. Tags ide-vscode-v0.37.6 / ide-jetbrains-v0.4.48.',
+  },
+  {
+    tag: 'CLI · 2026-07-08',
+    title: 'cc CLI 0.162.150 → 0.162.153: correctness sweep + cc changelog + 13-item audit fixes + upstream parity cap',
+    sub: 'chainlesschain shipped four versions to npm latest (all via npm-publish.yml --provenance): pure packages/cli/src increments, no pdh/lib touch (no Android bundle rollover / no USR_VERSION change). All three test layers green locally before each release (unit+integration+e2e 23,000+), plus a new env-blocked-verification.yml CI gate (real gopls/rust-analyzer/jdtls multi-language LSP + real bubblewrap kernel isolation). Command count 163 → 164 (new cc changelog).',
+    desc: '0.162.150 correctness + robustness sweep (mtc trust-anchor pubkey truncation / loop --resume never terminating / lowcode deploy bad handle / marketplace --limit radix bug / async stdin EPIPE deterministic crash). 0.162.151 adds cc changelog (alias whatsnew): per-version npm release notes queryable offline in-package, distilled from the root CHANGELOG into a CLI-only subset. 0.162.152 13-item audit fixes: plugin signature-lock forgery bypass of requireSignedPlugins (HIGH, now real Ed25519 verification) + registry rejects plain HTTP + eval anti-cheating byte comparison + remote-command ledger watermark/retention window + cc team lease heartbeat preventing concurrent double-run + OTLP compliance + LSP drive-colon encoding that left Go diagnostics permanently empty + auto-pin default-on. 0.162.153 upstream Claude Code parity cap 2.1.191→2.1.204: spawn_sub_agent background mode / sub-agent returns partial work on failure / interactive-permission idle timeout / MCP roots capability / workflow-level OTel + cc team run --otlp / corrupt config.json backed up before fallback.',
+  },
+  {
     tag: 'IDE plugins · 2026-07-06',
     title: 'IDE dual-extension audit round: VS Code 0.37.4 + JetBrains 0.4.46 (22 P0/P1/P2 fixes + 6 optimizations)',
     sub: 'Independent release track (not tied to the product version): VS Code 0.37.3 → 0.37.4 (Open VSX) + JetBrains 0.4.45 → 0.4.46 (JetBrains Marketplace). Produced by a 3-agent audit fan-out (VS Code bug / JetBrains bug / feature-gap); both ends verified via clean-room CI builds — vscode-ext 51 files / 456 tests green + vsce package OK; JetBrains compileJava + smokeTest gate + buildPlugin OK, jar carries plugin.xml 0.4.46.',

@@ -81,6 +81,18 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'IDE 插件 · 2026-07-08',
+    title: 'IDE 双扩展真·本地化全收口：VS Code 0.37.6 + JetBrains 0.4.48（中英文混乱四面全清）',
+    sub: '独立发版轨：VS Code 0.37.5 → 0.37.6（Open VSX）+ JetBrains 0.4.47 → 0.4.48（JetBrains Marketplace）。UI 语言完整跟随 IDE 语言，不再中英文混排。CI 双验：Open VSX Published / JetBrains Marketplace success；vscode-ext 56 文件 / 495 测试绿 + JetBrains smoke 643/0（含 bundleParity）。',
+    desc: '四个本地化面全清：VS Code chrome + VS Code webview + JetBrains action 菜单 + JetBrains 运行时对话。VS Code webview 不能调 vscode.l10n.t，改由宿主注入 L / CC_L10N 到 webview；JetBrains 运行时走 CcBundle extends DynamicBundle，纯 SDK-free 类改 English-only。附带 IDE affordances 批（0.37.5 / 0.4.47）：jetbrains:// 深链处理（对齐 VS Code registerUriHandler）、Show Activity 桥接工具调用流、/rewind 恢复前预览 checkpoint diff、只读 cc team 监视、Diagnose Bridge（IDE 内 cc ide status/doctor）、Explain/Refactor CodeLens。tag ide-vscode-v0.37.6 / ide-jetbrains-v0.4.48。',
+  },
+  {
+    tag: 'CLI · 2026-07-08',
+    title: 'cc CLI 0.162.150 → 0.162.153：正确性大扫 + cc changelog + 全面体检 13 修 + 上游 parity 封顶',
+    sub: 'chainlesschain 连发四版至 npm latest（均经 npm-publish.yml --provenance）：纯 packages/cli/src 增量，未触 pdh/lib（无 Android bundle rollover / 无 USR_VERSION 改动）。发版前本机三层测试全绿（unit+integration+e2e 23,000+）+ 新增 env-blocked-verification.yml CI 门（真 gopls/rust-analyzer/jdtls 三语言 LSP + 真 bubblewrap 内核隔离）。命令数 163 → 164（新增 cc changelog）。',
+    desc: '0.162.150 正确性+健壮性大扫（mtc 信任锚公钥截断 / loop --resume 永不终止 / lowcode deploy 句柄错 / marketplace --limit 进制 bug / async stdin EPIPE 确定性崩溃修复）。0.162.151 新增 cc changelog（别名 whatsnew）：离线随包查 npm 每版更新，从根 CHANGELOG 蒸馏 CLI 专属子集。0.162.152 全面体检 13 修：插件签名锁可伪造绕过 requireSignedPlugins（HIGH，改 Ed25519 真验签）+ registry 拒纯 HTTP + eval 反作弊逐字节比对 + 远控账本水位/保留窗口 + cc team lease 心跳防并发双跑 + OTLP 合规 + LSP 盘符编码致 Go 诊断恒空修复 + auto-pin 默认开。0.162.153 上游 Claude Code parity 封顶 2.1.191→2.1.204：spawn_sub_agent 后台模式 / 子代理失败返部分成果 / 权限询问 idle timeout / MCP roots 能力 / workflow 级 OTel + cc team run --otlp / config 损坏先备份再降级。',
+  },
+  {
     tag: 'IDE 插件 · 2026-07-06',
     title: 'IDE 双扩展审计闭环：VS Code 0.37.4 + JetBrains 0.4.46（22 P0/P1/P2 修复 + 6 优化）',
     sub: '独立发版轨（不随产品版本号）：VS Code 0.37.3 → 0.37.4（Open VSX）+ JetBrains 0.4.45 → 0.4.46（JetBrains Marketplace）。3-agent 审计 fan-out（VS Code bug / JetBrains bug / 功能差距）产出，两端 CI 清洁室构建验证：vscode-ext 51 文件 / 456 测试绿 + vsce 打包；JetBrains compileJava + smokeTest 门 + buildPlugin 绿，jar 内 plugin.xml = 0.4.46。',
