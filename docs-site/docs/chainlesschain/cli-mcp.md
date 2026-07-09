@@ -13,6 +13,7 @@
 - 🔹 **工具发现**: 列出已连接服务器提供的工具
 - 🔹 **工具调用**: 调用 MCP 工具并返回结果（文本/图片/JSON）
 - 🔹 **JSON 输出**: 多数子命令支持 `--json` 格式，便于脚本集成
+- 🔹 **Tool Search**: 大规模 MCP 面下 schema 延迟装载 + `tool_search` 按需检索，保 prompt cache 稳定（见下文）
 
 ## 系统架构
 
@@ -220,6 +221,35 @@ cc mcp read-resource <server> <uri>        # 读取指定 resource 内容
 ```
 
 交互 REPL 中，MCP prompts 自动注册为斜杠命令 `/mcp__<server>__<prompt> [args]`（`/mcp` 总览所有已连接 server 的 prompts 与 resources）；headless/REPL 的 agent 循环可经 resources 读取 server 暴露的上下文数据。
+
+## MCP Tool Search — 大规模工具面的上下文治理（v0.162.155）
+
+接入多个 MCP server 后，全部工具的 inputSchema 会随每次 LLM 请求发送，轻松吃掉 10–30% 的上下文窗口。Tool Search 在 schema 估算 token 超阈值（默认 auto = 窗口的 10%）时自动启用：
+
+- 每个 MCP 工具定义就地替换为紧凑 stub（工具名 + `[deferred]` 一行摘要），并追加内部检索工具 `tool_search`。
+- 模型调用 `tool_search` 按需装载 schema：`select:<name>`（逗号分隔多个，或唯一裸工具名）精确取；关键词搜索匹配工具名（权重 ×3）与描述（×1）；`+词` 要求必须出现在工具名里。
+- 完整 schema 从**工具结果**（对话内容）返回，不改写 tools 数组——对 prompt cache 友好：tools 块跨 turn 字节稳定，晚连接 server 的新工具以 stub 追加末尾、不重排缓存前缀。
+- **直调自愈**：模型未先检索就直接调 deferred 工具时，返回内嵌完整 schema 的错误并标记已装载（该次调用不出 CLI），重试即通过，最多浪费一轮。
+- MCP `initialize` 返回的 server `instructions` 会随 `tool_search` 结果附带，deferred server 的使用指引仍能按需到达模型。
+- 未超阈值 / 显式关闭时行为字节不变（沿用全量 schema 注入）。
+
+配置（settings 分层合并，closest wins）：
+
+```jsonc
+// .claude/settings.json
+{
+  "mcp": {
+    "toolSearch": {
+      "enabled": "auto", // auto（默认，按阈值）| true（总是延迟）| false（关闭）
+      "thresholdRatio": 0.1, // auto 模式阈值：schema tokens > 窗口 × ratio 时启用
+      "maxResults": 5, // tool_search 单次默认返回上限
+      "alwaysLoad": ["ide", "mcp__github__create_issue", "mcp__slack__*"], // 永远全量装载：server 名 / 全名 / * glob
+    },
+  },
+}
+```
+
+环境变量 `CC_TOOL_SEARCH=1|0|auto` 覆盖 settings。REPL `/context` 会显示 per-server 的 schema token 占用、tool search 状态（deferred/loaded/节省量）与优化建议（超阈值未启用会提示开启；点名最大的 server 建议 `alwaysLoad` 收窄或断开）。
 
 ## 配置参考
 

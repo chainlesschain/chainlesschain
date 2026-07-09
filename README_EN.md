@@ -11,6 +11,15 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-07-09 Mainline — **cc CLI MCP Tool Search: context scaling for large MCP tool surfaces (cli 0.162.155)**
+
+> Closes the "every connected MCP server's full tool schemas ride along on every LLM request, eating 10–30% of the context window" problem (parity with Claude Code ToolSearch): when schema tokens exceed a threshold (default 10% of the window; configurable via settings `mcp.toolSearch` / `CC_TOOL_SEARCH`), tool definitions are swapped for compact `[deferred]` stubs plus an internal `tool_search` retrieval tool; full schemas come back on demand via tool results. Real-machine test: a 12-tool server saves ~14k tokens. Full three-tier test sweep green; shipped to npm in 0.162.155.
+
+- **Prompt-cache friendly**: stubs are permanent and lexicographically sorted, schema loading travels as conversation content (append-only), late-connected servers append without reordering — the trailing `cache_control` breakpoint on the Anthropic path stays hot across turns.
+- **Self-healing direct calls**: calling a deferred tool before searching returns a schema-embedding error (never reaches the real server) and marks it loaded; the retry goes through.
+- **`/context` upgrade**: the REPL `/context` gains an MCP tool schemas section — per-server tokens/window share, tool-search state (deferred/loaded/saved), and optimization advice (`alwaysLoad` narrowing / disconnect the named largest server).
+- **Bonus**: the MCP `initialize` server `instructions` string is no longer discarded — it rides along with `tool_search` results per server.
+
 ## 2026-06-18 — **Friend P2P encrypted voice / video calls (FAMILY-67, Android)**
 
 > On top of friend end-to-end encrypted messaging (FAMILY-67), adds **1:1 real-time voice / video calling**: pure P2P + DTLS-SRTP end-to-end encryption, signaling relayed over the existing signaling server (same friend-DID routing as messages), media over a dedicated WebRTC PeerConnection. Design: [`docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md`](docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md) §10.

@@ -11,6 +11,15 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-09 主线 — **cc CLI MCP Tool Search：大规模 MCP 工具面的上下文规模化（cli 0.162.155）**
+
+> 接入多个 MCP server 后全部工具 schema 随每次请求发送、轻松吃掉 10–30% 上下文窗口的问题收口（对标 Claude Code ToolSearch）：schema 超阈值（默认窗口 10%，settings `mcp.toolSearch` / `CC_TOOL_SEARCH` 可配）时自动换成 `[deferred]` 紧凑 stub + 内部 `tool_search` 检索工具，完整 schema 经工具结果按需返回。真机实测 12 工具 server 省 ~14k tokens。三层测试全绿随 0.162.155 发 npm。
+
+- **prompt cache 友好**：stub 常驻且字典序稳定、schema 装载走对话内容（append-only）、晚连接 server 追加不重排——Anthropic 路径的尾部 `cache_control` 缓存断点跨 turn 保持命中。
+- **直调自愈**：未先检索就直接调 deferred 工具 → 返回内嵌完整 schema 的错误并标记已装载（不打真 server），重试即通过。
+- **`/context` 增强**：REPL `/context` 新增 MCP tool schemas 一节——per-server token/窗口占比、tool search 状态（deferred/loaded/节省量）与优化建议（`alwaysLoad` 收窄 / 断开点名的最大 server）。
+- **顺带**：MCP `initialize` 的 server `instructions` 不再被丢弃，随 `tool_search` 结果按 server 附带。
+
 ## 2026-06-18 主线 — **cc CLI 客户端/传输层稳健性硬化（对照 Claude Code CLI）+ 三层测试普查**
 
 > 对照 Claude Code CLI 排查 cc 自身的网络/IO 客户端层（并行平价循环未覆盖的一层），修复一批「静默失败 / 永久挂起 / 截断不报错」类稳健性问题，全部带专项单元测试。三层测试普查全绿（CLI 单元 19523 / 集成隔离 24 / e2e 604），普查另暴露并修 1 个 `--verbose` 回归 + 2 个陈旧断言。

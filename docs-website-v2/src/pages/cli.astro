@@ -521,7 +521,7 @@ const packs = [
           ['cc cost', '估算 token $ 花费，按 provider/model 拆分；REPL 内 /cost'],
           ['cc loop', '定时 / 自适应重复跑 prompt 或命令，停止条件可配'],
           ['cc goal', '跨 session 持久目标 / OKR，agent 每轮对照推进'],
-          ['cc mcp / ide / pdh', '把 MCP server、编辑器、安卓设备的工具喂进 agent 循环'],
+          ['cc mcp / ide / pdh', '把 MCP server、编辑器、安卓设备的工具喂进 agent 循环；大规模工具面自动 Tool Search 延迟装载 schema，省 10-30% 上下文'],
           ['cc output-style', '命名人格叠加系统提示（explanatory / learning）'],
           ['--json-schema', '结构化输出：回答经 JSON Schema 校验，失败自动纠错重试'],
         ].map(([cmd, desc]) => (
