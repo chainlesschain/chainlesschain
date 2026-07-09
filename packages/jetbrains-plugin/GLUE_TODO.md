@@ -494,3 +494,14 @@ Glue-layer (needs the next pre-release runIde pass):
       Settings → Keymap ("ChainlessChain: Trigger Inline Completion"); the pure
       `CcCompletion` request/parse layer is already JUnit-covered — the runIde
       gate is the ghost-text rendering + Tab-accept + manual-only trigger.
+
+## 🗂 Background Agents panel (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+Tools → "ChainlessChain: Background Agents" (`BackgroundAgentsAction`): session
+picker + detail/log text area + Refresh / Send prompt… / Stop turn / Stop
+session / Rename… / Resume…. Pure cores smoke-tested (`BackgroundAgents` list
+/ stale correction / tail; `BackgroundSessionPipeClient` one-shot transport —
+**live-verified against a REAL worker on Windows**: hello auth → prompt →
+`accepted` → the worker actually ran turn 2 with the prompt). runIde gate:
+dialog layout, combo refresh keeping selection, input dialogs, EDT-off
+pipe/CLI actions appending results, zh/en bundle labels.

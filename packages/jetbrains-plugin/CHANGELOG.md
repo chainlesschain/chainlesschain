@@ -1,5 +1,20 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Background Agents panel (Tools → ChainlessChain: Background Agents)**:
+  list `cc agent --bg` supervisor sessions straight from the state dir
+  (display-only stale-heartbeat correction, phase/turn/elapsed, log tail),
+  send a follow-up prompt or stop the current turn over the session
+  transport (one-shot named-pipe/unix-socket connections — the same NDJSON
+  protocol `cc attach` speaks; live-verified against a real worker on
+  Windows), and stop / rename / resume via `cc daemon … --json`. Pure cores
+  `BackgroundAgents` + `BackgroundSessionPipeClient` (smoke-tested); dialog
+  form is VS Code `chainlesschain.background.agents` parity (webview there,
+  Refresh-driven dialog here). Note: a Windows named pipe handle does NOT
+  support concurrent read/write threads — the client uses strictly
+  sequential write→read alternation with a watchdog-close timeout.
+
 ## [0.4.51] — first conversation survives an IDE restart (2026-07-10)
 
 - **Fix: the first conversation now survives an IDE restart.** Anonymous

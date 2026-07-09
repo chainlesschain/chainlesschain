@@ -65,6 +65,7 @@ public final class PureLogicSmokeMain {
         whatsNew();
         ideDoctor();
         teamMonitor();
+        backgroundAgents();
         activityLog();
         deepLink();
         bundleParity();
@@ -1091,6 +1092,66 @@ public final class PureLogicSmokeMain {
         check(down.contains("Restart Bridge"), "recovery action named");
         int placeholders = down.split("no output — is the cc CLI installed", -1).length - 1;
         eq(placeholders, 3, "3 empty sections -> 3 visible placeholders");
+    }
+
+    private static void backgroundAgents() {
+        System.out.println("BackgroundAgents (cc agent --bg state list + display correction)");
+        try {
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("cc-bg-smoke-");
+            long now = 2_000_000L;
+            java.nio.file.Files.writeString(dir.resolve("bg-old.json"),
+                    "{\"id\":\"bg-old\",\"status\":\"completed\",\"startedAt\":100,"
+                    + "\"endedAt\":200,\"exitCode\":0,\"sessionId\":\"s1\"}");
+            java.nio.file.Files.writeString(dir.resolve("bg-new.json"),
+                    "{\"id\":\"bg-new\",\"status\":\"running\",\"startedAt\":1500000,"
+                    + "\"heartbeatAt\":1999000,\"phase\":\"idle\",\"turnCount\":2,"
+                    + "\"title\":\"work\",\"transport\":{\"pipe\":\"p\",\"token\":\"t\"}}");
+            java.nio.file.Files.writeString(dir.resolve("bg-stale.json"),
+                    "{\"id\":\"bg-stale\",\"status\":\"running\",\"startedAt\":1,"
+                    + "\"heartbeatAt\":1,\"transport\":{\"pipe\":\"p\",\"token\":\"t\"}}");
+            java.nio.file.Files.writeString(dir.resolve("bg-x.job.1.json"), "{}");
+            java.nio.file.Files.writeString(dir.resolve("broken.json"), "{nope");
+
+            java.util.List<BackgroundAgents.Session> list = BackgroundAgents.list(dir, now);
+            eq(list.size(), 3, "3 sessions (job + garbage skipped)");
+            eq(list.get(0).id, "bg-new", "newest first");
+            check(list.get(0).interactive, "fresh running + transport = interactive");
+            eq(list.get(0).phase, "idle", "phase surfaced");
+            BackgroundAgents.Session stale = list.stream()
+                    .filter(s -> s.id.equals("bg-stale")).findFirst().orElse(null);
+            check(stale != null && "lost".equals(stale.status), "stale heartbeat shown lost");
+            check(stale != null && !stale.interactive, "lost is never interactive");
+            check(stale != null && "heartbeat-stale".equals(stale.lostReason), "lost reason");
+
+            java.util.Map<String, Integer> sum = BackgroundAgents.summarize(list);
+            eq((int) sum.get("running"), 1, "running count");
+            eq((int) sum.get("lost"), 1, "lost count");
+            eq((int) sum.get("completed"), 1, "completed count");
+
+            // startedAt/endedAt are epoch ms in real states (0 = absent)
+            eq(BackgroundAgents.formatElapsed(1_000, 43_000, 0), "42s", "elapsed s");
+            eq(BackgroundAgents.formatElapsed(1_000, 193_000, 0), "3m 12s", "elapsed m");
+            eq(BackgroundAgents.formatElapsed(1_000, 3_841_000, 0), "1h 4m", "elapsed h");
+            eq(BackgroundAgents.formatElapsed(1_000, 0, 43_000), "42s", "running → now");
+
+            java.nio.file.Path log = dir.resolve("bg-new.log");
+            java.nio.file.Files.writeString(log, "one\ntwo\nthree\n");
+            eq(BackgroundAgents.tailLog(log.toString(), 2), "three\n", "tail last lines");
+            eq(BackgroundAgents.tailLog(dir.resolve("missing.log").toString(), 5), "",
+                    "missing log tolerated");
+
+            String row = BackgroundAgents.formatRow(list.get(0), now);
+            check(row.contains("running") && row.contains("work") && row.contains("⇄"),
+                    "row shows status/title/interactive");
+            String detail = BackgroundAgents.formatDetail(list.get(0), now, 5);
+            check(detail.contains("bg-new") && detail.contains("interactive: yes"),
+                    "detail block");
+
+            for (java.io.File f : dir.toFile().listFiles()) f.delete();
+            dir.toFile().delete();
+        } catch (java.io.IOException e) {
+            check(false, "backgroundAgents smoke IO: " + e.getMessage());
+        }
     }
 
     private static void teamMonitor() {
