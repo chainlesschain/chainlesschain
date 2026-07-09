@@ -171,6 +171,22 @@ function runBuild() {
       fs.cpSync(localesSeed, tmpSeed, { recursive: true });
     }
 
+    // 4. agent-sdk sources — vite.config aliases
+    //    @chainlesschain/agent-sdk/browser → ../agent-sdk/src/browser.ts
+    //    (vite compiles the TS directly; without this copy the isolated
+    //    build fails with ENOENT under `npm publish` in CI).
+    const agentSdkSrc = path.resolve(CLI_ROOT, "../agent-sdk");
+    if (fs.existsSync(agentSdkSrc)) {
+      const tmpSdk = path.join(tmpRepo, "packages", "agent-sdk");
+      fs.cpSync(agentSdkSrc, tmpSdk, {
+        recursive: true,
+        filter: (src) => {
+          const base = path.basename(src);
+          return base !== "node_modules" && base !== "dist";
+        },
+      });
+    }
+
     console.log(`[build-web-panel] 隔离构建目录: ${tmpWp}`);
     console.log("[build-web-panel] 安装依赖 (scrubbed npm_config_* env)...");
     execSync("npm install --legacy-peer-deps", {
