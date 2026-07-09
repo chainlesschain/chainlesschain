@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管全家桶（第一阶段收口，CLI-only npm 发版）
+
+> `chainlesschain` 0.162.154 → **0.162.155** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+web-panel dist 随包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。gap-analysis「第一阶段：安全与可运营性」4 项全部落地（批 1-15，9 commit `e3ab46c73f..1618a3ca83`）。命令数 **165 → 169**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`，清单已重生）。发版前本机三层全绿（unit 21808 / integration 除 1 已知 real-spawn flake 隔离 3 连绿 / e2e 628）。
+
+- **权限模式补齐 `manual`/`auto`/`dontAsk`**（headless + 交互 REPL 双面）：`manual`=default 别名；`auto`=可配置分类器——settings `autoMode.decisions` 按 riskLevel（对象/数组形）与 tool/commandPattern 细粒度规则（`*` glob，声明序优先）映射 allow/ask/deny，未配置时字节不变映射 trusted；`dontAsk`=需确认动作直接 deny 不弹审批（REPL 两处 confirmer 全覆盖）。REPL `/permissions auto|dontask` 中途切换，Shift+Tab 循环兼容；`cc agent --permission-mode` 对交互式会话生效（顺带修 `resolveAgentPolicy` 白名单静默丢弃 `--vim/--think/--fallback-model/--pdh` 等交互 flag 的预存 bug）。
+- **`cc auto-mode defaults|config [--json]`**：内置分类默认值文档 + user/project/local/managed 分层合并后的有效配置（含细粒度规则展示）；修 `mergeSandboxSettings` 数组分支把数组形 decisions 毁成 `"[object Object]"` 的潜伏 bug（新 `mergeAutoModeSettings`，decisions=有序规则集 closer 层整体替换）。
+- **`cc permissions recent|denials [--json|--clear]` + 决策逐层解释链**：跨会话持久 denial ring buffer（headless + REPL 双源）；被拒 run_shell 附带 `permissionChain`（settings-rules→shell-policy→approval-gate 各层判定+理由），`/permissions denials` 与 `cc permissions recent` 渲染紧凑链——一眼看清「allow 规则为何没生效」。
+- **后台会话可运营全家桶**：顶层 `cc logs <id>` / `cc attach <id>` / `cc daemon status|view|stop|rename|resume`。worker heartbeat + workerPid/agentPid 分离 + stale-heartbeat/PID-reuse 防误杀（可靠标 `lost`）；`cc daemon resume <id> <prompt>` 把崩溃/终态会话按 sessionId 续接为新后台运行（原 argv 有意不持久化防 secrets 落盘）。
+- **`cc attach` 可交互接管（session transport）**：worker 每会话托管本地 NDJSON 控制通道（Win named pipe / POSIX socket，随机 token 存 0600 state 文件）；attach 后键入即发 follow-up prompt（同 `--session` 自动续接对话史，多轮 turn 循环），`/stop` 截断当前轮，turn 运行中断开任务照跑、idle 断开会话收尾；transport 不可用自动回退日志流，`--no-input` 强制纯日志。
+- **web-panel「后台 Agent」面板**：新 `bg-*` WS 协议（list/view/attach/prompt/stop-turn/detach/stop/rename/resume，attach 期间推送 worker 事件与日志增量）；takeover token 永不过 WS 边界。面板含列表/接管卡片/日志流/重命名/续跑。
+- 修复：后台 rename 与 worker read-modify-write 竞态（写后校验+有界重试）；`settingsVerdict` 未传入 executeToolInner 的解释链断点；launcher/worker 状态竞写（先写 state 后 spawn + heartbeat 重申 transport）。
+
 ### Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）+ 本地化残留清扫（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.153 → **0.162.154** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版动因：VS Code 0.37.7 + JetBrains 0.4.49 的内联 ghost-text 补全依赖 `cc complete`，此命令不在已发的 0.162.153 里 → 不发 npm 则两端补全功能对终端用户不可用。命令数 **164 → 165**（新增 `cc complete`，清单已重生）。发版前本机三层全绿（unit+integration+e2e）。

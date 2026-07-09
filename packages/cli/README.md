@@ -30,7 +30,7 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
-> **165 top-level commands** are registered (as of CLI v0.162.154). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+> **169 top-level commands** are registered (as of CLI v0.162.155). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
 
 ### `chainlesschain setup`
 
