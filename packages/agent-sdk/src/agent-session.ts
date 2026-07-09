@@ -241,6 +241,13 @@ export class AgentSession {
     child.on("exit", (code) => {
       if (this.exited) return;
       this.exited = true;
+      // A final unterminated line (error output often lacks the trailing
+      // \n) must not be dropped silently.
+      try {
+        decode.flush();
+      } catch {
+        /* flush is best-effort */
+      }
       this.emit("exit", code);
     });
   }

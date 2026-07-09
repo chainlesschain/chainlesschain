@@ -17,16 +17,38 @@ export interface NdjsonDecoderOptions {
 
 const DEFAULT_MAX_LINE = 1024 * 1024;
 
+export interface NdjsonDecode<T = unknown> {
+  (chunk: string | Uint8Array): void;
+  /**
+   * Parse any buffered remainder as a final (unterminated) line. Call on
+   * stream close — error output often lacks the trailing \n and would
+   * otherwise be dropped silently.
+   */
+  flush(): void;
+}
+
 export function createNdjsonDecoder<T = unknown>(
   onMessage: (message: T) => void,
   options: NdjsonDecoderOptions = {},
-): (chunk: string | Uint8Array) => void {
+): NdjsonDecode<T> {
   const maxLineLength = options.maxLineLength ?? DEFAULT_MAX_LINE;
   const onError = options.onError ?? (() => {});
   let carry = "";
   let decoder: TextDecoder | null = null;
 
-  return (chunk: string | Uint8Array): void => {
+  const emitLine = (line: string): void => {
+    if (!line.trim()) return;
+    let message: T;
+    try {
+      message = JSON.parse(line) as T;
+    } catch (error) {
+      onError(error as Error, line);
+      return;
+    }
+    onMessage(message);
+  };
+
+  const decode = ((chunk: string | Uint8Array): void => {
     if (typeof chunk === "string") {
       carry += chunk;
     } else {
@@ -42,17 +64,25 @@ export function createNdjsonDecoder<T = unknown>(
     while ((index = carry.indexOf("\n")) !== -1) {
       const line = carry.slice(0, index).replace(/\r$/, "");
       carry = carry.slice(index + 1);
-      if (!line.trim()) continue;
-      let message: T;
-      try {
-        message = JSON.parse(line) as T;
-      } catch (error) {
-        onError(error as Error, line);
-        continue;
-      }
-      onMessage(message);
+      emitLine(line);
     }
+  }) as NdjsonDecode<T>;
+
+  decode.flush = (): void => {
+    const rest = carry.replace(/\r$/, "");
+    carry = "";
+    if (decoder) {
+      // Finalize any dangling multi-byte sequence.
+      const tail = decoder.decode();
+      if (tail) emitLine(rest + tail);
+      else emitLine(rest);
+      decoder = null;
+      return;
+    }
+    emitLine(rest);
   };
+
+  return decode;
 }
 
 export function encodeNdjson(message: unknown): string {

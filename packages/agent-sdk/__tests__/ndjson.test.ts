@@ -68,3 +68,26 @@ describe("encodeNdjson", () => {
     );
   });
 });
+
+describe("flush", () => {
+  it("emits a final unterminated line on flush", () => {
+    const seen: unknown[] = [];
+    const decode = createNdjsonDecoder((m) => seen.push(m));
+    decode('{"type":"result","is_error":true}');
+    expect(seen).toEqual([]);
+    decode.flush();
+    expect(seen).toEqual([{ type: "result", is_error: true }]);
+    decode.flush(); // idempotent — nothing buffered
+    expect(seen).toHaveLength(1);
+  });
+
+  it("flush reports (not throws) on a partial JSON remainder", () => {
+    const errors: string[] = [];
+    const decode = createNdjsonDecoder(() => {}, {
+      onError: (_e, line) => errors.push(line ?? ""),
+    });
+    decode('{"half":');
+    decode.flush();
+    expect(errors).toEqual(['{"half":']);
+  });
+});
