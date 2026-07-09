@@ -61,6 +61,11 @@
         "icon": "$(organization)"
       },
       {
+        "command": "chainlesschain.background.agents",
+        "title": "%cmd.background.agents.title%",
+        "icon": "$(server-process)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },

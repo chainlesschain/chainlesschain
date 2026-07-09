@@ -4,6 +4,7 @@
   "cmd.ide.openDashboard.title": "ChainlessChain IDE：打开仪表板",
   "cmd.ide.doctor.title": "ChainlessChain IDE：诊断桥接",
   "cmd.team.monitor.title": "ChainlessChain：团队任务监控",
+  "cmd.background.agents.title": "ChainlessChain：后台 Agent 面板",
   "cmd.lens.explain.title": "ChainlessChain：解释符号（CodeLens）",
   "cmd.lens.refactor.title": "ChainlessChain：重构符号（CodeLens）",
   "cmd.diff.accept.title": "ChainlessChain：接受差异评审",

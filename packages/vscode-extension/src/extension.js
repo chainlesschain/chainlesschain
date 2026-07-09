@@ -436,6 +436,14 @@ function activate(context) {
       const { openTeamMonitor } = require("./ui/team-monitor-view.js");
       openTeamMonitor(vscode, file);
     }),
+    // Background Agents panel: list `cc agent --bg` supervisor sessions,
+    // interactively take one over (follow-up prompts / stop-turn via the
+    // agent-sdk pipe client — same transport `cc attach` speaks), and
+    // stop / rename / resume through the CLI's --json commands.
+    vscode.commands.registerCommand("chainlesschain.background.agents", () => {
+      const { openBackgroundAgents } = require("./ui/background-agents-view.js");
+      openBackgroundAgents(vscode);
+    }),
     // Diff-review keyboard decisions (Claude-Code IDE parity): Accept / Reject
     // the diff openDiff is currently blocking on, without reaching for the
     // notification buttons. Scoped to `chainlesschainDiffActive` so the keys are

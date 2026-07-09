@@ -4,6 +4,7 @@
   "cmd.ide.openDashboard.title": "ChainlessChain IDE: Open Dashboard",
   "cmd.ide.doctor.title": "ChainlessChain IDE: Diagnose Bridge",
   "cmd.team.monitor.title": "ChainlessChain: Team Monitor",
+  "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.lens.explain.title": "ChainlessChain: Explain Symbol (CodeLens)",
   "cmd.lens.refactor.title": "ChainlessChain: Refactor Symbol (CodeLens)",
   "cmd.diff.accept.title": "ChainlessChain: Accept Diff Review",
