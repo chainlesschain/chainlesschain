@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.156：agenda/batch 双命令（第四阶段收口）+ @chainlesschain/agent-sdk 0.1.0 npm 首发（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.155 → **0.162.156** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**（平台化第三阶段产物，npm-publish.yml / release.yml 均已加发布 step，防 trap #127 漏发）。纯 `packages/cli/src`（+web-panel dist 随包）+ 新独立包，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数 **170 → 172**（新增顶层 `agenda`/`batch`，清单已重生，13 文档面已扫）。
+
+- **`cc agenda` + notify/schedule 双 agent 工具（第四阶段批19）**：Monitor/Cron/Push 暴露为 agent 可调工具（AGENT_TOOLS 21→23）——`notify` 推送到用户已配置的多通道通知器（Telegram/企业微信/钉钉/飞书）；`schedule` 一工具五动作（wakeup/cron/monitor/list/cancel），单轮进程持不住定时器 → 意图持久化到 `~/.chainlesschain/agent-schedule/*.jsonl`（0600），由 `cc agenda list|run|cancel` 消费触发（wakeup/cron 到期 spawn `cc agent -p`，monitor 跑命令匹配 stop_when 即通知）。两工具 LOW 风险、plan 模式禁用；29 单测 + 真进程 smoke。
+- **`cc batch` 动态 worktree 批处理（第四阶段批20，第四阶段全收口）**：把大改动拆成独立单元并行跑——`--units <file>` 或 `--decompose <goal> --parts N`（agent 经 `--json-schema` 产单元 JSON，`--plan-only` 只打印）；每单元独立 git worktree（复用 `cc team --worktree` 的 worktree-isolator），`--test` 门控、`--merge` 顺序集成（后合分支与已合冲突时报告不强合、测试失败单元永不合并）；15 单测 + 2 真 git/worktree 集成测试。
+- **`@chainlesschain/agent-sdk` 0.1.0 首发**：`cc agent` stream-json 双工协议的 TypeScript 正式契约（Agent Protocol v1）——流式事件全词汇 + 审批回调（fail-closed）+ 检查点 + 会话恢复；`AgentSession` spawn 客户端（Windows `cmd.exe /c` shim + `NoDefaultCurrentDirectoryInExePath` 反劫持 + `taskkill /T` 进程树回收内置）、`attachBackgroundSession` 后台管道接管、`/browser` 浏览器安全入口（web-panel bg-\* 帧）、`/protocol` 纯类型入口；双构建 ESM+CJS，零运行时依赖，36 测试（单元+真管道集成+真 CLI e2e）。VS Code 扩展（vendored）与 web-panel（vite alias）已消费；JetBrains 对齐语言中立 `docs/PROTOCOL.md`。用户文档 `docs-site/docs/chainlesschain/agent-sdk.md`。
+- 修复（随本版仓内，不在 cli 包面）：SDK 真 CLI e2e 抓出的两 IDE 首会话不落盘洞（IDE 重载后 resume 静默空会话）已在两插件修复，随各自下次插件发版出货。
+
 ### Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管全家桶（第一阶段收口，CLI-only npm 发版）
 
 > `chainlesschain` 0.162.154 → **0.162.155** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+web-panel dist 随包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。gap-analysis「第一阶段：安全与可运营性」4 项全部落地（批 1-15，9 commit `e3ab46c73f..1618a3ca83`）。命令数 **165 → 170**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`/`remote-control`，清单已重生）。发版前本机三层全绿（unit 21808 / integration 除 1 已知 real-spawn flake 隔离 3 连绿 / e2e 628）。

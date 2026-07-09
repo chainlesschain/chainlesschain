@@ -99,6 +99,24 @@ jobs:
             fi
           done
 
+      - name: "Publish @chainlesschain/agent-sdk (standalone, own install + TS build)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: packages/agent-sdk
+        run: |
+          set -e
+          # Not an npm workspace member — needs its own devDeps for the
+          # prepublishOnly TypeScript dual build (see npm-publish.yml twin).
+          CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "  @chainlesschain/agent-sdk@$PKG_VER already published, skip"
+          else
+            npm install --no-audit --no-fund
+            echo "📦 Publishing @chainlesschain/agent-sdk@$PKG_VER (was $CURRENT)"
+            npm publish --provenance --access public
+          fi
+
   # Build for Windows
   build-windows:
     needs: [publish-deps]

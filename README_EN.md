@@ -11,7 +11,11 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-07-09 Mainline — **Platformization phase 3: `@chainlesschain/agent-sdk` TypeScript SDK + contract-first across all four consumers (ships to npm with the next CLI release)**
+## 2026-07-09 Release — **cc CLI 0.162.156: `cc agenda` + `cc batch` (phase-4 closeout) + `@chainlesschain/agent-sdk` 0.1.0 first npm publish**
+
+> CLI-only release (0.162.155 → **0.162.156**, npm `latest`, provenance); **`@chainlesschain/agent-sdk` 0.1.0 first-published in the same run**. Command count **170 → 172**: `cc agenda` (the persistent consumer for the new notify/schedule agent tools — wakeup/cron/monitor intents land in `~/.chainlesschain/agent-schedule/` and fire `cc agent -p` when due) + `cc batch` (split a large change into independent units, run each in its own git worktree in parallel, `--test` gate + `--merge` sequential integration that reports conflicts instead of clobbering). Full local three-layer test pyramid green before publish (unit+integration 23,447 / e2e 628). SDK details in the mainline entry below.
+
+## 2026-07-09 Mainline — **Platformization phase 3: `@chainlesschain/agent-sdk` TypeScript SDK + contract-first across all four consumers (published to npm with 0.162.156)**
 
 > New package `packages/agent-sdk` formalizes the `cc agent` stream-json duplex protocol as a **versioned contract (Agent Protocol v1)**: stream events, approval callbacks, checkpoints, and session resume become typed imports instead of per-consumer argv assembly and hand-rolled NDJSON parsing (`protocol.ts` single source of truth + language-neutral `docs/PROTOCOL.md`). The **VS Code extension** (vendored CJS — vsce `--no-dependencies` constraint) and **web-panel** (vite alias straight to the TS source; all `bg-*` frames built/guarded by the SDK) have migrated; the **JetBrains plugin** (Kotlin/Java) declares conformance to the same protocol document. `AgentSession` ships Windows hardening built in (`cmd.exe /c` shim + `NoDefaultCurrentDirectoryInExePath` anti-hijack + `taskkill /T` process-tree reaping); approval callbacks fail closed. The SDK's own **real-CLI e2e** (fake ollama; asserts init/stream/approval-really-writes/resume) caught two real bugs on day one, both fixed: **first-conversation transcripts were never persisted in BOTH IDE plugins** (anonymous stream sessions are persistence-free by CLI design → an IDE-reload resume silently started empty, losing all pre-reload context; fixed by declaring a `panel-<ts>-<rand>` session id on first spawn) and `.js` entrypoints failed to spawn. Verified: agent-sdk 36/36 (unit + real-pipe integration + real-CLI e2e), vscode-ext 58 files/512, JetBrains smoke 663/0, web-panel 2458/2458. User doc [`docs-site/docs/chainlesschain/agent-sdk.md`](docs-site/docs/chainlesschain/agent-sdk.md) | design doc [`docs/design/modules/103_Agent_SDK平台化方案.md`](docs/design/modules/103_Agent_SDK平台化方案.md).
 
@@ -2424,7 +2428,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-170-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-172-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 

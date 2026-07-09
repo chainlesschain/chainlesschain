@@ -11,7 +11,11 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-09 主线 — **平台化第三阶段：`@chainlesschain/agent-sdk` TypeScript 接入套件 + 四端契约化（待随下次 CLI 发版发 npm）**
+## 2026-07-09 发布 — **cc CLI 0.162.156：`cc agenda` + `cc batch`（第四阶段收口）+ `@chainlesschain/agent-sdk` 0.1.0 npm 首发**
+
+> CLI-only 发版（0.162.155 → **0.162.156**，npm `latest`，provenance）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**。命令数 **170 → 172**：`cc agenda`（notify/schedule 双 agent 工具的持久化消费端——wakeup/cron/monitor 意图落 `~/.chainlesschain/agent-schedule/`，到期 spawn `cc agent -p`）+ `cc batch`（大改动拆独立单元、每单元独立 git worktree 并行、`--test` 门控 + `--merge` 顺序集成，冲突报告不强合）。发版前本机三层全绿（unit+integration 23,447 / e2e 628）。SDK 详情见下条主线。
+
+## 2026-07-09 主线 — **平台化第三阶段：`@chainlesschain/agent-sdk` TypeScript 接入套件 + 四端契约化（已随 0.162.156 发 npm）**
 
 > 新包 `packages/agent-sdk` 把 `cc agent` 的 stream-json 双工协议固化为**版本化正式契约（Agent Protocol v1）**：流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析，而是 `import` 即得（`protocol.ts` 单一来源 + 语言中立 `docs/PROTOCOL.md`）。**VS Code 扩展**（vendored CJS，vsce `--no-dependencies` 约束）与 **web-panel**（vite alias 直指 TS 源，`bg-*` 帧全走 SDK 构造/判别）已迁移；**JetBrains 插件**（Kotlin/Java）声明实现同一份协议文档。`AgentSession` 内置 Windows 加固（`cmd.exe /c` shim + `NoDefaultCurrentDirectoryInExePath` 反劫持 + `taskkill /T` 进程树回收），审批回调 fail-closed。SDK 自带**真 CLI e2e**（fake ollama，断言 init/流/审批真写盘/resume 四契约），落地当天抓出并齐修两个真 bug：**两 IDE 首会话不落盘**（匿名流式会话按 CLI 设计不持久化 → IDE 重载后 resume 静默空会话，重载前上下文全丢；修复=面板首启即声明 `panel-<ts>-<rand>` session id，VS Code + JetBrains 同修）+ `.js` 入口 spawn 失败。验证：agent-sdk 36/36（单元+真管道集成+真 CLI e2e）、vscode-ext 58 文件/512、JetBrains smoke 663/0、web-panel 2458/2458。用户文档 [`docs-site/docs/chainlesschain/agent-sdk.md`](docs-site/docs/chainlesschain/agent-sdk.md) | 设计文档 [`docs/design/modules/103_Agent_SDK平台化方案.md`](docs/design/modules/103_Agent_SDK平台化方案.md)。
 
@@ -2710,7 +2714,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-170-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-172-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 

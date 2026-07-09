@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.156：agenda/batch 双命令（第四阶段收口）+ @chainlesschain/agent-sdk 0.1.0 npm 首发
+
+> CLI-only 发版（`chainlesschain` 0.162.155 → **0.162.156**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**（平台化第三阶段产物）。命令数 **170 → 172**（新增顶层 `agenda`/`batch`）。发版前本机三层全绿（unit+integration 23,447 / e2e 628）。
+
+- **`cc agenda` + notify/schedule 双 agent 工具**：Monitor/Cron/Push 暴露为 agent 可调工具（AGENT_TOOLS 21→23）——`notify` 推送多通道通知器（Telegram/企业微信/钉钉/飞书）；`schedule` 一工具五动作（wakeup/cron/monitor/list/cancel），意图持久化 `~/.chainlesschain/agent-schedule/*.jsonl`（0600），`cc agenda list|run|cancel` 消费触发（到期 spawn `cc agent -p`；monitor 匹配 stop_when 即通知）。
+- **`cc batch` 动态 worktree 批处理**：大改动拆独立单元并行——`--units <file>` 或 `--decompose <goal> --parts N`（`--plan-only` 只打印）；每单元独立 git worktree，`--test` 门控、`--merge` 顺序集成（冲突报告不强合、测试失败单元不合并）。
+- **`@chainlesschain/agent-sdk` 0.1.0 首发**：`cc agent` stream-json 双工协议的 TypeScript 正式契约（Agent Protocol v1）——流式事件 + 审批回调（fail-closed）+ 检查点 + 会话恢复；`AgentSession` / `attachBackgroundSession` / `/browser` / `/protocol` 四入口；双构建 ESM+CJS 零运行时依赖；VS Code（vendored）与 web-panel（vite alias）已消费，JetBrains 对齐语言中立 `PROTOCOL.md`。详见[用户文档](/chainlesschain/agent-sdk)。
+
 #### Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管 + MCP Tool Search（第一阶段收口）
 
 > CLI-only 发版（`chainlesschain` 0.162.154 → **0.162.155**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。gap-analysis「第一阶段：安全与可运营性」全量收口。命令数 **165 → 170**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`/`remote-control`）。发版前本机三层全绿（unit 21808 / integration / e2e 628），旧版已按 `<0.162.155` 标弃用。

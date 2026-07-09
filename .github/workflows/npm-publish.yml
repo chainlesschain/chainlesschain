@@ -61,6 +61,13 @@ jobs:
           echo "=== core-mtc tests ==="
           npm test --workspace=packages/core-mtc
 
+      - name: Run Agent SDK tests
+        working-directory: packages/agent-sdk
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          npx vitest run
+
       - name: Run CLI tests
         working-directory: packages/cli
         run: npx vitest run
@@ -239,6 +246,26 @@ jobs:
         working-directory: packages/session-core
         run: |
           CURRENT=$(npm view @chainlesschain/session-core version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Agent SDK — standalone package (NOT an npm workspace member), so it
+      # needs its own install; prepublishOnly runs the TypeScript dual build.
+      # No consumer pins it yet (VS Code vendors the build; web-panel aliases
+      # the TS source), so order relative to the CLI is free. Added 2026-07-09
+      # (platform phase 3 first publish).
+      - name: "Publish @chainlesschain/agent-sdk"
+        working-directory: packages/agent-sdk
+        run: |
+          npm install --no-audit --no-fund
+          CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
           echo "npm: $CURRENT | local: $PKG_VER"
           if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then

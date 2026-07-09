@@ -27,12 +27,13 @@
   "files": [
     "dist/",
     "docs/PROTOCOL.md",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "vitest run",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=22.12.0"

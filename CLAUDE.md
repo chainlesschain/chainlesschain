@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: see `package.json.productVersion` (Evolution Edition — 144 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 170 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
+**Current Version**: see `package.json.productVersion` (Evolution Edition — 144 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 172 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
 **Version hierarchy** (values live in their respective files, do not duplicate here):
 
@@ -94,7 +94,7 @@ Key highlights:
 | ---------------- | ------------------------------- | -------------------------------------------------------- |
 | Desktop Main     | `desktop-app-vue/src/main/`     | Electron main process (AI, IPC, Security, Enterprise)    |
 | Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (113 Pinia stores)                     |
-| CLI              | `packages/cli/`                 | npm CLI (~2MB, 170 commands, Commander)                  |
+| CLI              | `packages/cli/`                 | npm CLI (~2MB, 172 commands, Commander)                  |
 | Java Backend     | `backend/project-service/`      | Spring Boot 3.1.11 + Java 17 + PostgreSQL                |
 | Python AI        | `backend/ai-service/`           | FastAPI + Ollama + Qdrant                                |
 | Android          | `android-app/`                  | 25 REMOTE skills (SeedRegistry, post-v1.0 GA reposition) |
