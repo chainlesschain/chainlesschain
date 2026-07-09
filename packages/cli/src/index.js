@@ -153,6 +153,9 @@ import { registerCliAnythingCommand } from "./commands/cli-anything.js";
 // WebSocket Server Interface
 import { registerServeCommand } from "./commands/serve.js";
 
+// Remote Control unified entry (第四阶段 #1)
+import { registerRemoteControlCommand } from "./commands/remote-control.js";
+
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 import { registerPackCommand } from "./commands/pack.js";
@@ -579,6 +582,9 @@ export function createProgram(opts = {}) {
 
   // WebSocket Server Interface
   registerServeCommand(program);
+
+  // Remote Control unified entry
+  registerRemoteControlCommand(program);
 
   // Web UI
   registerUiCommand(program);

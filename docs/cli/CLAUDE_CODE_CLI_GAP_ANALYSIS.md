@@ -564,6 +564,24 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - ws-session-gateway（web-panel 会话）用独立的 externalTools 组装路径，未接 tool search（web 面板上下文预算另议）。
 - auto 阈值默认 10% 是否合适待真实大 MCP 面校准；`alwaysLoad` 建议可做成 `/context` 一键写 settings（polish）。
 
+### 2026-07-09 第十七批（第四阶段 #1 — `cc remote-control` 统一入口）
+
+已落地：
+
+- **`cc remote-control`（alias `rc`）**：把既有 remote-session 栈（WS server + E2EE relay + registry + 幂等 ledger + push + audit）组合成 Claude-Code `/remote-control` 形态的统一入口。`start`（默认子命令）在进程内起 WS server，再开一个 loopback 客户端充当 remote session **host**（registry 语义：host 断连即整会话关闭，故该连接常驻），自动 `session-create` + `remote-session-create`，打印配对 URI（可选终端 QR）。`status`/`stop` 通过 `~/.chainlesschain/remote-control/<port>.json`（0600，含 server token，与 ide/<port>.json 同本地信任域；status 输出侧脱敏）跨进程发现。
+- **双模配对**：配置 relay（`--relay-url`/`CC_REMOTE_SESSION_RELAY_URL`/config `remoteControl`/`remoteSession`）→ 原生 E2EE `chainlesschain://remote-session/pair#…` URI；无 relay → **direct LAN** 模式，新 `chainlesschain://remote-control/pair#<b64url json>`（v1，内嵌 wsUrl/serverToken/remoteSessionId/一次性 pairingToken/scopes/expiresAt），同一字符串既是深链也是 QR 载荷。`--scopes` 默认全四 scope（observe,prompt,approve,interrupt）。
+- **QR 为渐进增强**：懒加载可选 `qrcode` 包（不加硬依赖，规避 trap #6/#27 hoisting 装机崩），不可用回退纯 URI + 提示。
+- 新 `src/lib/ws-rpc-client.js`：promise 化最小 WS RPC 客户端。**坑：session 协议回包是 envelope（`createCodingAgentEvent`），`id` 被重用为随机 eventId，关联键在 `requestId`**——client 先按 `requestId` 再按 `id` 匹配；错误文本可能在 `payload.message`。首次真机 smoke 即因此超时（server 侧 session 已建、client 等 `id` 匹配等到超时），据实修复。
+- **顺带修真 bug**：`resolveServerPolicy` 白名单丢 `remoteSessionRelayUrl`/`remoteSessionPeerId`——`cc serve --remote-session-relay-url` 自始被静默丢弃、relay 从命令行永远起不来（与第九批 resolveAgentPolicy 丢键同类）。补键 + 回归测试。
+- command-manifest 169→170。
+- 测试：unit 22（scopes/选项优先级/URI 往返/state 文件/QR 注入/policy 回归）+ integration 2（真 WSServer 全链路：起 host→设备仅凭 URI 载荷真实 join→一次性 token 二次 join 被拒→status 不泄 token→stop 注入 kill）；真进程 E2E smoke：start（免 --session，走 envelope 关联）→跨进程 status(running)→stop→status 空，全通。
+
+仍待后续：
+
+- REPL `/remote-control` slash 入口（agent-repl.js 与并行 session 争用中，待窗口）。
+- `devices`/`revoke` 跨进程管理面（registry host-only 语义下需管理密钥通道，v2）。
+- 移动端/web-panel 对 direct-LAN URI 的扫码消费（协议已就绪）。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -585,7 +603,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 ### 第四阶段：跨端与长任务
 
-1. `/remote-control` 统一入口。
+1. `/remote-control` 统一入口。✅（2026-07-09 批17 — `cc remote-control` start/status/stop + 双模配对 URI/QR）
 2. mobile/web 权限审批。
 3. Monitor / Cron / Push 工具。
 4. dynamic workflow + worktree batch。

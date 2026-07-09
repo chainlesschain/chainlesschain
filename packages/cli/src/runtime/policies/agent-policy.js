@@ -69,6 +69,12 @@ export function resolveServerPolicy(overrides = {}) {
     project: overrides.project || process.cwd(),
     httpPort: overrides.httpPort || null,
     bundlePath: overrides.bundlePath || null,
+    // startServer() reads these for the Remote Session E2EE relay. They were
+    // silently dropped by this allowlist before 2026-07-09 — `cc serve
+    // --remote-session-relay-url` never actually enabled the relay (same
+    // allowlist-drop class as the batch-9 resolveAgentPolicy fix).
+    remoteSessionRelayUrl: overrides.remoteSessionRelayUrl || null,
+    remoteSessionPeerId: overrides.remoteSessionPeerId || null,
   };
 }
 

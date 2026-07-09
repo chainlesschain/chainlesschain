@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 169,
+  "commandCount": 170,
   "commands": [
     {
       "name": "a2a",
@@ -834,6 +834,13 @@
       "module": "./commands/recommend.js",
       "register": "registerRecommendCommand",
       "summary": "Smart content recommendation (Phase 48)"
+    },
+    {
+      "name": "remote-control",
+      "aliases": ["rc"],
+      "module": "./commands/remote-control.js",
+      "register": "registerRemoteControlCommand",
+      "summary": "Unified remote-control entry — pair mobile/web devices to drive this machine's agent sessions"
     },
     {
       "name": "reputation",
