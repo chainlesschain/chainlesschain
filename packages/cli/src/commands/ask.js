@@ -97,7 +97,7 @@ export function extractCompletion(data, provider = "provider") {
   return content;
 }
 
-async function queryLLM(question, options = {}) {
+export async function queryLLM(question, options = {}) {
   const provider = options.provider || "ollama";
   const model = options.model || "qwen2:7b";
 

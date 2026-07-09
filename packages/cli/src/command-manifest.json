@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 164,
+  "commandCount": 165,
   "commands": [
     {
       "name": "a2a",
@@ -176,6 +176,13 @@
       "module": "./commands/compact.js",
       "register": "registerCompactCommand",
       "summary": "Compact a stored session's history (offline; persists for --resume)"
+    },
+    {
+      "name": "complete",
+      "aliases": [],
+      "module": "./commands/complete.js",
+      "register": "registerCompleteCommand",
+      "summary": "Inline code completion (FIM) for IDE ghost-text: reads {prefix,suffix,language} JSON on stdin, prints the code to insert."
     },
     {
       "name": "compliance",

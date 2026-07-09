@@ -15,6 +15,7 @@ import { registerDbCommand } from "./commands/db.js";
 import { registerNoteCommand } from "./commands/note.js";
 import { registerChatCommand } from "./commands/chat.js";
 import { registerAskCommand } from "./commands/ask.js";
+import { registerCompleteCommand } from "./commands/complete.js";
 import { registerLlmCommand } from "./commands/llm.js";
 import { registerHubCommand } from "./commands/hub.js";
 import { registerAndroidCommand } from "./commands/android.js";
@@ -429,6 +430,7 @@ export function createProgram(opts = {}) {
   registerNoteCommand(program);
   registerChatCommand(program);
   registerAskCommand(program);
+  registerCompleteCommand(program);
   registerLlmCommand(program);
   registerHubCommand(program);
   registerAndroidCommand(program);
