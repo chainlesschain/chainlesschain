@@ -1,11 +1,6 @@
 import settingsLoader from "./settings-loader.cjs";
 
-const {
-  loadManagedSettings,
-  readSettingsFile,
-  settingsPaths,
-  mergeSandboxSettings,
-} = settingsLoader;
+const { loadManagedSettings, readSettingsFile, settingsPaths } = settingsLoader;
 
 export const AUTO_MODE_SCHEMA = "chainlesschain.auto-mode/v1";
 
@@ -60,6 +55,28 @@ function autoModeFromSettings(data) {
   return clone(data.autoMode);
 }
 
+/**
+ * Layered merge for `autoMode` settings. NOT mergeSandboxSettings: that
+ * helper's array branch stringifies elements (`map(String)`) for sandbox
+ * allowlists, which destroys array-form `decisions` rule objects into
+ * "[object Object]". Here `decisions` arrays are an ORDERED RULE LIST — a
+ * closer layer replaces the whole list; everything else keeps the familiar
+ * closer-scalar-wins / deep-object-merge semantics.
+ */
+function mergeAutoModeSettings(base, overlay) {
+  const out = isPlainObject(base) ? clone(base) : {};
+  for (const [key, value] of Object.entries(overlay || {})) {
+    if (Array.isArray(value)) {
+      out[key] = clone(value);
+    } else if (isPlainObject(value)) {
+      out[key] = mergeAutoModeSettings(out[key], value);
+    } else if (["string", "boolean", "number"].includes(typeof value)) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 export function loadAutoModeConfig(opts = {}) {
   const cwd = opts.cwd || process.cwd();
   let effective = clone(AUTO_MODE_DEFAULTS.settings);
@@ -69,7 +86,7 @@ export function loadAutoModeConfig(opts = {}) {
     const data = readSettingsFile(file, { onWarn: opts.onWarn });
     const autoMode = autoModeFromSettings(data);
     if (!autoMode) continue;
-    effective = mergeSandboxSettings(effective, autoMode);
+    effective = mergeAutoModeSettings(effective, autoMode);
     files.push(file);
   }
 
@@ -78,7 +95,7 @@ export function loadAutoModeConfig(opts = {}) {
   if (managed.settings) {
     const autoMode = autoModeFromSettings(managed.settings);
     if (autoMode) {
-      effective = mergeSandboxSettings(effective, autoMode);
+      effective = mergeAutoModeSettings(effective, autoMode);
       managedFile = managed.file;
       files.push(managed.file);
     }
@@ -119,21 +136,44 @@ function defaultDecisionMap() {
 }
 
 /**
- * Resolve the effective riskLevel → decision map for `--permission-mode auto`.
+ * Compile a shell-style glob (`*` wildcard only) into an anchored RegExp.
+ * Case-sensitive on purpose: match patterns are user-vetted capabilities and
+ * a looser match could over-authorize.
+ */
+function compileGlob(pattern) {
+  const escaped = String(pattern)
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\\\*/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+
+/**
+ * Resolve the effective decision rules for `--permission-mode auto`.
  *
  * Accepts `autoMode.decisions` in two shapes:
  *   - object: `{ "medium": "ask", "high": { "decision": "deny", "reason": "…" } }`
+ *     (riskLevel-level overrides only)
  *   - array (same shape as the defaults document):
  *     `[{ "match": { "riskLevel": "medium" }, "decision": "ask", "reason": "…" }]`
+ *     Array rules may additionally match on `tool` (exact name) and/or
+ *     `commandPattern` (a `*` glob against the shell command). Rules with a
+ *     tool/commandPattern are FINE-GRAINED: they are tried in declaration
+ *     order before the riskLevel map, first full match wins.
  *
- * Invalid risk levels / decision values are ignored (fail to defaults) so a
- * typo in settings.json can never loosen NOR silently break the gate.
+ * Invalid risk levels / decision values / non-string patterns are ignored
+ * (fail to defaults) so a typo in settings.json can never loosen NOR silently
+ * break the gate.
  *
  * @param {object} [effectiveSettings] merged `autoMode` settings
- * @returns {{ map: Record<string,{decision:string,reason:string,source:string}>, customized: boolean }}
+ * @returns {{
+ *   map: Record<string,{decision:string,reason:string,source:string}>,
+ *   rules: Array<{match:object,decision:string,reason:string,_test:(ctx:object)=>boolean}>,
+ *   customized: boolean,
+ * }}
  */
 export function resolveAutoModeDecisions(effectiveSettings = {}) {
   const map = defaultDecisionMap();
+  const rules = [];
   let customized = false;
 
   const raw = effectiveSettings?.decisions;
@@ -141,7 +181,58 @@ export function resolveAutoModeDecisions(effectiveSettings = {}) {
   if (Array.isArray(raw)) {
     for (const rule of raw) {
       if (!isPlainObject(rule)) continue;
-      entries.push([rule.match?.riskLevel, rule.decision, rule.reason]);
+      const match = isPlainObject(rule.match) ? rule.match : {};
+      const decision = normalizeDecisionValue(rule.decision);
+      if (!decision) continue;
+      const hasTool = typeof match.tool === "string" && match.tool.trim();
+      const hasPattern =
+        typeof match.commandPattern === "string" && match.commandPattern.trim();
+      if (hasTool || hasPattern) {
+        // Fine-grained rule: tried in order before the riskLevel map.
+        const riskLevel =
+          typeof match.riskLevel === "string" &&
+          RISK_LEVELS.includes(match.riskLevel.toLowerCase())
+            ? match.riskLevel.toLowerCase()
+            : null;
+        const tool = hasTool ? match.tool.trim() : null;
+        const pattern = hasPattern ? match.commandPattern.trim() : null;
+        const regex = pattern ? compileGlob(pattern) : null;
+        const reason =
+          typeof rule.reason === "string" && rule.reason.trim()
+            ? rule.reason.trim()
+            : `autoMode.decisions rule matches ${[
+                tool ? `tool=${tool}` : null,
+                pattern ? `command=${pattern}` : null,
+                riskLevel ? `risk=${riskLevel}` : null,
+              ]
+                .filter(Boolean)
+                .join(" ")} → ${decision}`;
+        rules.push({
+          match: {
+            ...(riskLevel ? { riskLevel } : {}),
+            ...(tool ? { tool } : {}),
+            ...(pattern ? { commandPattern: pattern } : {}),
+          },
+          decision,
+          reason,
+          _test: (ctx) => {
+            if (riskLevel) {
+              const r = RISK_LEVELS.includes(ctx.riskLevel)
+                ? ctx.riskLevel
+                : "low";
+              if (r !== riskLevel) return false;
+            }
+            if (tool && ctx.tool !== tool) return false;
+            if (regex && !regex.test(String(ctx.args?.command ?? ""))) {
+              return false;
+            }
+            return true;
+          },
+        });
+        customized = true;
+        continue;
+      }
+      entries.push([match.riskLevel, rule.decision, rule.reason]);
     }
   } else if (isPlainObject(raw)) {
     for (const [riskLevel, value] of Object.entries(raw)) {
@@ -167,7 +258,7 @@ export function resolveAutoModeDecisions(effectiveSettings = {}) {
     map[riskLevel] = { decision, reason, source: "settings" };
   }
 
-  return { map, customized };
+  return { map, rules, customized };
 }
 
 /**
@@ -189,6 +280,7 @@ export function resolveAutoModeDecisions(effectiveSettings = {}) {
  */
 export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
   const map = resolved?.map || defaultDecisionMap();
+  const rules = Array.isArray(resolved?.rules) ? resolved.rules : [];
   const isActive =
     typeof opts.isActive === "function" ? opts.isActive : () => true;
   let confirm = null;
@@ -216,12 +308,44 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       const riskLevel = RISK_LEVELS.includes(ctx.riskLevel)
         ? ctx.riskLevel
         : "low";
-      const rule = map[riskLevel];
+      // Fine-grained rules (tool / commandPattern) run in declaration order
+      // before the riskLevel map — first full match wins.
+      let rule = null;
+      for (const candidate of rules) {
+        let matched = false;
+        try {
+          matched = candidate._test({ ...ctx, riskLevel });
+        } catch {
+          matched = false; // a broken matcher never decides anything
+        }
+        if (matched) {
+          rule = {
+            decision: candidate.decision,
+            reason: candidate.reason,
+            source: "settings",
+            match: candidate.match,
+          };
+          break;
+        }
+      }
+      if (!rule) {
+        const fromMap = map[riskLevel];
+        rule = {
+          decision: fromMap.decision,
+          reason: fromMap.reason,
+          source: fromMap.source,
+        };
+      }
       const common = {
         policy: "auto-mode",
         riskLevel,
         reason: rule.reason,
-        rule: { riskLevel, decision: rule.decision, source: rule.source },
+        rule: {
+          riskLevel,
+          decision: rule.decision,
+          source: rule.source,
+          ...(rule.match ? { match: rule.match } : {}),
+        },
       };
       if (rule.decision === "allow") {
         return {

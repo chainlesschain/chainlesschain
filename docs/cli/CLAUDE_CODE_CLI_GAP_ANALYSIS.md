@@ -500,6 +500,22 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - 链目前只覆盖 run_shell（denial 最主要来源）；settings deny/host deny 的 early-return 无链（彼时后续层未被咨询，属正确语义），但 read_file/write 等其它工具的 guard 层（sensitive-file/credential/destructive-git）尚未挂链。
 - hook（PreToolUse）拒绝暂不在链内。
 
+### 2026-07-09 第十三批
+
+已落地：
+
+- **autoMode.decisions 按 tool/commandPattern 细粒度匹配**：数组形规则的 `match` 现支持 `tool`（精确名）与 `commandPattern`（`*` glob，anchored、case-sensitive、正则字符转义防注入）；可与 `riskLevel` 组合。
+- 语义：细粒度规则按声明序在 riskLevel map 之前求值，第一条全条件命中者胜；未命中落回 riskLevel map（现行为不变）；非法值忽略 fail-to-defaults。
+- 决策结果的 `rule` 字段带 `match` 详情（接上第十二批解释链——denial chain 里能看到命中的具体规则）。
+- `cc auto-mode config` 摘要显示 rule 行；`--json` 输出 `rules` 数组。
+- **顺带修真 bug（第八批遗留）**：`loadAutoModeConfig` 此前用 `mergeSandboxSettings` 合并层级配置，其数组分支 `map(String)` 把数组形 decisions 的规则对象全毁成 `"[object Object]"`——数组形配置在真实 settings 读取路径上从未生效（第八批真机验证用对象形未暴露）。新 `mergeAutoModeSettings`：decisions 数组=有序规则集、closer layer 整体替换；标量/对象保持原语义。补两条回归测试（穿层保真 + closer 替换）。
+- 测试：resolver 细粒度收集/声明序/非法 pattern 忽略 + gate 规则优先/glob 不过度匹配（`npm *` 不吃 `pnpm install`）/tool-only/riskLevel-scoped/落回 map + merge 回归 ×2；真机 `cc auto-mode config` 验证 rule 行与 customized 判定。
+
+仍待后续：
+
+- commandPattern 目前仅 `*` 通配（有意保守）；`?`/字符类等按需再扩。
+- 细粒度规则只在 auto 模式生效（by design——manual/acceptEdits 不消费 decisions）。
+
 ### 第一阶段：安全与可运营性
 
 1. `manual/auto/dontAsk` permission mode。

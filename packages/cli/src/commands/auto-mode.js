@@ -18,6 +18,12 @@ function printConfigSummary(config, resolved) {
   logger.log(
     `  classifier:       ${resolved.customized ? "autoMode.decisions (customized)" : "trusted policy (defaults)"}`,
   );
+  for (const rule of resolved.rules || []) {
+    const match = Object.entries(rule.match)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(" ");
+    logger.log(`  rule   ${match} →  ${rule.decision.padEnd(5)} (settings)`);
+  }
   for (const riskLevel of ["low", "medium", "high"]) {
     const rule = resolved.map[riskLevel];
     logger.log(
@@ -63,6 +69,11 @@ export function registerAutoModeCommand(program) {
           printJson({
             ...config,
             decisions: resolved.map,
+            rules: (resolved.rules || []).map((rule) => ({
+              match: rule.match,
+              decision: rule.decision,
+              reason: rule.reason,
+            })),
             customized: resolved.customized,
           });
           return;

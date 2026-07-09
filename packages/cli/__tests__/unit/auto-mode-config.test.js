@@ -81,6 +81,49 @@ describe("loadAutoModeConfig", () => {
     expect(config.files).toEqual([userFile, projFile, localFile]);
   });
 
+  it("preserves array-form decisions rule objects through the layered merge", () => {
+    // Regression: mergeSandboxSettings stringified array elements
+    // ("[object Object]") which silently destroyed array-form decisions —
+    // the shape the fine-grained tool/commandPattern rules require.
+    setFile(projFile, {
+      autoMode: {
+        decisions: [
+          {
+            match: { tool: "run_shell", commandPattern: "npm *" },
+            decision: "allow",
+          },
+        ],
+      },
+    });
+    const config = loadAutoModeConfig({ cwd: CWD, env: {} });
+    expect(config.effective.decisions).toEqual([
+      {
+        match: { tool: "run_shell", commandPattern: "npm *" },
+        decision: "allow",
+      },
+    ]);
+    const resolved = resolveAutoModeDecisions(config.effective);
+    expect(resolved.rules).toHaveLength(1);
+    expect(resolved.customized).toBe(true);
+  });
+
+  it("a closer layer's decisions array replaces the outer one (ordered rules)", () => {
+    setFile(userFile, {
+      autoMode: {
+        decisions: [{ match: { riskLevel: "high" }, decision: "deny" }],
+      },
+    });
+    setFile(localFile, {
+      autoMode: {
+        decisions: [{ match: { riskLevel: "medium" }, decision: "ask" }],
+      },
+    });
+    const config = loadAutoModeConfig({ cwd: CWD, env: {} });
+    expect(config.effective.decisions).toEqual([
+      { match: { riskLevel: "medium" }, decision: "ask" },
+    ]);
+  });
+
   it("applies managed autoMode last", () => {
     setFile(localFile, { autoMode: { classifyAllShell: false } });
     setFile(managedFile, { autoMode: { classifyAllShell: true } });
@@ -153,6 +196,33 @@ describe("resolveAutoModeDecisions", () => {
       decisions: { medium: "allow", high: "ask" },
     });
     expect(resolved.customized).toBe(false);
+  });
+
+  it("collects fine-grained tool/commandPattern rules in declaration order", () => {
+    const resolved = resolveAutoModeDecisions({
+      decisions: [
+        {
+          match: { tool: "run_shell", commandPattern: "npm *" },
+          decision: "allow",
+          reason: "npm is vetted",
+        },
+        { match: { riskLevel: "high", tool: "run_code" }, decision: "deny" },
+        { match: { commandPattern: 42 }, decision: "deny" }, // ignored (bad pattern type, no tool)
+        { match: { riskLevel: "medium" }, decision: "ask" }, // plain riskLevel rule
+      ],
+    });
+    expect(resolved.customized).toBe(true);
+    expect(resolved.rules).toHaveLength(2);
+    expect(resolved.rules[0].match).toEqual({
+      tool: "run_shell",
+      commandPattern: "npm *",
+    });
+    expect(resolved.rules[0].reason).toBe("npm is vetted");
+    expect(resolved.rules[1].match).toEqual({
+      riskLevel: "high",
+      tool: "run_code",
+    });
+    expect(resolved.map.medium.decision).toBe("ask");
   });
 });
 
@@ -271,5 +341,74 @@ describe("createAutoModeApprovalGate", () => {
     );
     const result = await gate.decide({ riskLevel: "weird" });
     expect(result).toMatchObject({ decision: "allow", riskLevel: "low" });
+  });
+
+  it("fine-grained rules win over the riskLevel map, first match first", async () => {
+    const gate = createAutoModeApprovalGate(
+      makeInner(),
+      resolveAutoModeDecisions({
+        decisions: [
+          {
+            match: { tool: "run_shell", commandPattern: "npm *" },
+            decision: "allow",
+          },
+          {
+            match: { tool: "run_shell", commandPattern: "npm publish*" },
+            decision: "deny", // shadowed by the broader allow above (order wins)
+          },
+          { match: { tool: "run_code" }, decision: "deny" },
+          { match: { riskLevel: "medium" }, decision: "deny" },
+        ],
+      }),
+    );
+
+    // glob match → allow even though medium risk maps to deny
+    const npm = await gate.decide({
+      riskLevel: "medium",
+      tool: "run_shell",
+      args: { command: "npm install" },
+    });
+    expect(npm).toMatchObject({ decision: "allow", via: "auto-mode-config" });
+    expect(npm.rule.match).toEqual({
+      tool: "run_shell",
+      commandPattern: "npm *",
+    });
+
+    // pattern does not match a different binary (no substring over-match)
+    const pnpm = await gate.decide({
+      riskLevel: "medium",
+      tool: "run_shell",
+      args: { command: "pnpm install" },
+    });
+    expect(pnpm).toMatchObject({ decision: "deny" }); // falls to medium map
+
+    // tool-only rule bites regardless of risk level
+    const code = await gate.decide({ riskLevel: "low", tool: "run_code" });
+    expect(code).toMatchObject({ decision: "deny" });
+
+    // unrelated tool falls back to the riskLevel map (low → allow default)
+    const other = await gate.decide({ riskLevel: "low", tool: "read_file" });
+    expect(other).toMatchObject({ decision: "allow" });
+  });
+
+  it("riskLevel-scoped fine-grained rules only match their level", async () => {
+    const gate = createAutoModeApprovalGate(
+      makeInner(),
+      resolveAutoModeDecisions({
+        decisions: [
+          {
+            match: { riskLevel: "high", tool: "run_shell" },
+            decision: "deny",
+          },
+        ],
+      }),
+    );
+    const high = await gate.decide({ riskLevel: "high", tool: "run_shell" });
+    expect(high).toMatchObject({ decision: "deny" });
+    const medium = await gate.decide({
+      riskLevel: "medium",
+      tool: "run_shell",
+    });
+    expect(medium).toMatchObject({ decision: "allow" }); // map default
   });
 });
