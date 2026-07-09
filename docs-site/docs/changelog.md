@@ -5,6 +5,25 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管 + MCP Tool Search（第一阶段收口）
+
+> CLI-only 发版（`chainlesschain` 0.162.154 → **0.162.155**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。gap-analysis「第一阶段：安全与可运营性」全量收口。命令数 **165 → 170**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`/`remote-control`）。发版前本机三层全绿（unit 21808 / integration / e2e 628），旧版已按 `<0.162.155` 标弃用。
+
+- **权限模式补齐 `manual`/`auto`/`dontAsk`**（headless + 交互 REPL 双面）：`manual`=default 别名；`auto`=settings `autoMode.decisions` 可配置分类器——按 riskLevel（对象/数组形）与 tool/commandPattern 细粒度规则（`*` glob，声明序优先）映射 allow/ask/deny，未配置时行为与 trusted 完全一致；`dontAsk`=需确认动作直接 deny 不弹审批。REPL `/permissions auto|dontask` 中途切换、Shift+Tab 循环兼容。
+- **`cc auto-mode defaults|config [--json]`**：内置分类默认值 + user/project/local/managed 分层合并后的有效配置（含细粒度规则展示）。
+- **决策逐层解释链 + `cc permissions recent`**：被拒 run_shell 附带 settings-rules→shell-policy→approval-gate 各层判定与理由；跨会话持久 denial ring buffer（headless + REPL 双源），`/permissions denials`、`cc permissions recent` 渲染紧凑链——一眼看清「allow 规则为何没生效」。
+- **后台会话可运营**：顶层 `cc logs <id>` / `cc attach <id>` / `cc daemon status|view|stop|rename|resume`；worker heartbeat + stale-heartbeat/PID-reuse 防误杀；`cc daemon resume <id> <prompt>` 把崩溃/终态会话按 sessionId 续接为新后台运行（原 argv 有意不持久化防 secrets 落盘）。
+- **`cc attach` 可交互接管（session transport）**：worker 每会话托管本地 NDJSON 控制通道（Win named pipe / POSIX socket，随机 token 存 0600 state 文件）；attach 后键入即发 follow-up prompt（同 `--session` 续接对话史，多轮 turn 循环），`/stop` 截断当前轮；turn 运行中断开任务照跑、idle 断开会话收尾；`--no-input` 强制纯日志流。
+- **web-panel「后台 Agent」面板**：新 `bg-*` WS 协议（list/view/attach/prompt/stop-turn/detach/stop/rename/resume）复用同一 transport；接管 token 永不过 WS 边界。
+- **MCP Tool Search（同版并入）**：schema 超阈值（默认窗口 10%，`mcp.toolSearch` / `CC_TOOL_SEARCH` 可配）时换成 `[deferred]` stub + 内部 `tool_search` 检索工具，完整 schema 经工具结果按需返回（append-only，prompt cache 稳定）；REPL `/context` 新增 MCP tool schemas 占用与优化建议。
+- **`cc remote-control`（别名 `rc`）**：统一远控入口 start/status/stop，组合既有 remote-session 栈；配对 URI 双模式（relay E2EE / 直连 LAN）；移动端远程审批桥（权限请求推送远端审批）。
+
+#### Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）
+
+> CLI-only 发版（0.162.153 → **0.162.154**）。VS Code 0.37.7 + JetBrains 0.4.49 的内联 ghost-text 补全依赖 `cc complete`。命令数 164 → 165。
+
+- **`cc complete`**：读 stdin JSON `{prefix,suffix,language}` → 打印光标处应插入的代码（`--json` 输出 `{completion,model,provider}`）。复用 `cc ask` 的 provider 路由，honor 用户已配置的 LLM/provider/key；`buildFimPrompt` cursor-sentinel 提示让无原生 FIM 的 chat 模型也有双向上下文；fail-quiet（后端故障返回空补全而非在编辑器里抛错）。两 IDE 共享同一后端。
+
 #### Added — cc CLI 0.162.153：上游 Claude Code parity 封顶 2.1.191 → 2.1.204（6 项）
 
 > CLI-only 发版（`chainlesschain` 0.162.152 → **0.162.153**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。逐项经 grep 坐实上游 changelog（2.1.192→2.1.204）后落地，全部带回归测试（新增约 30 项）；发版前本机三层全绿。命令数不变（164；`cc team run --otlp` 只新增 option 非新命令）。
