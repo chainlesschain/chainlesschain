@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.editor.Editor;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,7 +17,10 @@ import org.jetbrains.annotations.NotNull;
  * It delegates to the platform's own "Call Inline Completion" action rather than
  * constructing the request itself — that keeps us off the deprecated
  * DirectCall/handler API and rides the platform's maintained trigger path across
- * IDE versions. Fails quiet when there is no editor (no error, just nothing).
+ * IDE versions. The delegation goes through {@link ActionManager#tryToExecute}
+ * (the stable programmatic-execution API), NOT {@code AnAction.actionPerformed}
+ * (which is {@code @ApiStatus.OverrideOnly}) nor the now-deprecated
+ * {@code ActionUtil.invokeAction}. Fails quiet when there is no editor.
  */
 public final class TriggerCompletionAction extends AnAction {
 
@@ -25,9 +29,12 @@ public final class TriggerCompletionAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        if (e.getData(CommonDataKeys.EDITOR) == null) return;
+        Editor editor = e.getData(CommonDataKeys.EDITOR);
+        if (editor == null) return;
         AnAction delegate = ActionManager.getInstance().getAction(PLATFORM_TRIGGER_ID);
-        if (delegate != null) delegate.actionPerformed(e);
+        if (delegate == null) return;
+        ActionManager.getInstance().tryToExecute(
+                delegate, null, editor.getContentComponent(), e.getPlace(), true);
     }
 
     @Override

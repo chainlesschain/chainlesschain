@@ -8,7 +8,7 @@ import com.intellij.codeInsight.inline.completion.InlineCompletionRequest
 import com.intellij.codeInsight.inline.completion.elements.InlineCompletionGrayTextElement
 import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSingleSuggestion
 import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSuggestion
-import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.readAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -36,8 +36,10 @@ class CcInlineCompletionProvider : InlineCompletionProvider {
 
     override suspend fun getSuggestion(request: InlineCompletionRequest): InlineCompletionSuggestion {
         // Read document text / caret / language under a read action (thread-safe),
-        // then do the blocking spawn off the EDT on the IO dispatcher.
-        val ctx = ReadAction.compute<Ctx, RuntimeException> {
+        // then do the blocking spawn off the EDT on the IO dispatcher. The suspend
+        // `readAction {}` is the coroutine-native, non-deprecated form (the
+        // ReadAction.compute(ThrowableComputable) overload is deprecated for removal).
+        val ctx = readAction {
             val text = request.document.immutableCharSequence.toString()
             val offset = request.startOffset.coerceIn(0, text.length)
             val language = request.file?.language?.id ?: ""

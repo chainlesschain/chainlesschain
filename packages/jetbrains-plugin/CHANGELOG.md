@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.50] — ghost-text forward-compat: non-deprecated platform APIs (2026-07-09)
+
+- **Fix (forward compatibility): the ghost-text code now uses only non-deprecated,
+  non-override-only platform APIs.** The JetBrains Marketplace verifier (which
+  checks against newer IDEs than the local 2025.2 gate — 2026.2 EAP / 2026.1.4)
+  flagged two API usages in 0.4.49's inline-completion code: `ReadAction.compute`
+  (deprecated for removal in 2026.2) and a direct `AnAction.actionPerformed` call
+  (an `@ApiStatus.OverrideOnly` API — meant to be overridden, never called). The
+  provider now reads the caret context via the coroutine-native suspend
+  `readAction {}`, and the trigger action fires the platform's inline-completion
+  action through the stable `ActionManager.tryToExecute` instead. No behavior
+  change — purely to stay compatible with 2026.x releases. verifyPlugin is now
+  clean (no deprecated-API / override-only usages).
+
 ## [0.4.49] — inline ghost-text completion + JCEF dashboard + Settings page (2026-07-09)
 
 - **Inline completion (ghost-text).** A manual-trigger inline code completion,
