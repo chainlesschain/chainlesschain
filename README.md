@@ -25,6 +25,7 @@
 - **直调自愈**：未先检索就直接调 deferred 工具 → 返回内嵌完整 schema 的错误并标记已装载（不打真 server），重试即通过。
 - **`/context` 增强**：REPL `/context` 新增 MCP tool schemas 一节——per-server token/窗口占比、tool search 状态（deferred/loaded/节省量）与优化建议（`alwaysLoad` 收窄 / 断开点名的最大 server）。
 - **顺带**：MCP `initialize` 的 server `instructions` 不再被丢弃，随 `tool_search` 结果按 server 附带。
+- **gap-analysis 第四阶段「跨端与长任务」补齐（remote-control 已随本版发；agenda/batch 待随下次 CLI 发版）**：`cc remote-control start/status/stop`（进程内起 WS server + 常驻 loopback HOST 会话 + 打印配对 URI/二维码，relay E2EE 或 direct-LAN 双模）与 `cc agent --remote-control`（confirm 级审批路由到已配对移动/Web 设备，超时 fail-closed）**已随 0.162.155 发 npm**；`cc agenda`（Monitor/Cron/Push 长任务调度消费者 + `notify`/`schedule` 两个 Agent 工具）与 `cc batch`（把大改动拆成独立单元、各跑自己的 git worktree 并发执行、测试与合并冲突预览的动态批处理，支持 `--decompose` 自动拆分）**已落地仓库、待随下次 CLI 发版**（届时命令数 170 → 172）。三层测试全绿（remote-control 36 / agenda 29 / batch 17）。用户文档 [`cli-remote-control.md`](docs-site/docs/chainlesschain/cli-remote-control.md) · [`cli-agenda.md`](docs-site/docs/chainlesschain/cli-agenda.md) · [`cli-batch.md`](docs-site/docs/chainlesschain/cli-batch.md)。
 
 ## 2026-06-18 主线 — **cc CLI 客户端/传输层稳健性硬化（对照 Claude Code CLI）+ 三层测试普查**
 
