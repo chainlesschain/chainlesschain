@@ -30,6 +30,7 @@ const routes = [
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
       { path: 'workflow',   name: 'Workflow',    component: () => import('../views/WorkflowEditor.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },
+      { path: 'background-agents', name: 'BackgroundAgents', component: () => import('../views/BackgroundAgents.vue') },
       { path: 'security',   name: 'Security',    component: () => import('../views/Security.vue') },
       { path: 'did',        name: 'DID',         component: () => import('../views/DID.vue') },
       { path: 'permissions', name: 'Permissions', component: () => import('../views/Permissions.vue') },

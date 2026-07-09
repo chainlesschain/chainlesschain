@@ -463,8 +463,24 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 - 交互 attach 的输入行与流式日志同终端混排，长输出时提示行可能被冲掉（v1 接受；可做全屏/alternate-screen 渲染）。
 - follow-up turn 输出仍走日志文件轮询（500ms 粒度）；可升级为 worker 直推输出流。
-- web-panel/IDE 复用同一 transport 协议接后台会话面板。
+- ~~web-panel/IDE 复用同一 transport 协议接后台会话面板~~（第十一批已落地 web-panel；IDE 插件可复用同一 `bg-*` WS 协议）。
 - `--print=value` 等号形式的 prompt token 不会从 followUpArgv 剥除（commander 后者优先，行为仍正确，仅 argv 冗余）。
+
+### 2026-07-09 第十一批
+
+已落地：
+
+- **`bg-*` WS 协议**（`gateways/ws/background-agent-protocol.js`）：web-panel/IDE 通过 CLI 的 WS server 复用后台 session transport——`bg-list`/`bg-view`/`bg-attach`/`bg-prompt`/`bg-stop-turn`/`bg-detach`/`bg-stop`；attach 期间服务端向该客户端推送 `bg-event`（worker 生命周期事件中继）与 `bg-log`（日志增量，500ms 轮询）。
+- **token 永不过 WS 边界**：`sanitizeBackgroundSession` 剥掉 `transport.token`（本机接管能力），对外只暴露 `interactive: true/false`；pipe 握手由 server 进程（同用户）代做。
+- 幂等 re-attach（面板重连重发 bg-attach 不叠加中继）；WS 客户端断连自动清理其全部中继（与 CLI detach 语义一致：idle worker 无客户端自行收尾）；`bg-stop` 先撤中继再杀会话，避免与 finalize 竞态。
+- **web-panel「后台 Agent」面板**：`BackgroundAgents.vue` + `backgroundAgents` store + 路由 `/background-agents` + 双导航菜单项——列表（状态/phase/轮次/耗时/接管/终止）+ 接管卡片（日志流自动滚动 + follow-up prompt 输入 + 停止本轮 + 断开 + 事件行 + 会话结束标记）。
+- 测试：CLI 侧 7（sanitize 不泄 token / list/view / 真 transport attach-prompt-stop-turn-事件-日志增量-幂等重连-detach / 死会话与未 attach 拒绝 / 断连清理 / **真 WS server 全链路**——真 socket 走 dispatcher 发 bg-list/attach/prompt、worker broadcast 推回、断 socket 中继归零、token 不出现在任何 wire frame）+ web-panel store 7（bg-list/attach 种子/推送过滤/transport-closed/prompt/detach 容错/stopSession/轮询 teardown）+ 路由计数守卫 65→67 同步。web-panel 全套 2318 绿 + vite build 过。
+
+仍待后续：
+
+- IDE 插件（VS Code/JetBrains）侧的后台面板 UI 尚未接——协议已就绪，插件可直连 CLI WS 发 `bg-*`。
+- 面板日志目前整段 append；超长日志可做虚拟滚动。
+- bg-attach 面板暂无 rename 入口（CLI `cc daemon rename` 已有，协议可加 `bg-rename`）。
 
 ### 第一阶段：安全与可运营性
 

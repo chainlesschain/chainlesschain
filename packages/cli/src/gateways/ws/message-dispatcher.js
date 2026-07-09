@@ -175,6 +175,14 @@ export function createWsMessageDispatcher(server) {
         "task-graph-advance": () =>
           server._handleTaskGraphAdvance(id, ws, message),
         "task-graph-state": () => server._handleTaskGraphState(id, ws, message),
+        "bg-list": () => server._handleBgList(id, ws, message),
+        "bg-view": () => server._handleBgView(id, ws, message),
+        "bg-attach": () => server._handleBgAttach(clientId, id, ws, message),
+        "bg-prompt": () => server._handleBgPrompt(clientId, id, ws, message),
+        "bg-stop-turn": () =>
+          server._handleBgStopTurn(clientId, id, ws, message),
+        "bg-detach": () => server._handleBgDetach(clientId, id, ws, message),
+        "bg-stop": () => server._handleBgStop(clientId, id, ws, message),
         "chat.intent.understand": () =>
           server._handleChatIntentUnderstand(id, ws, message),
         "chat.intent.understand-stream": () =>

@@ -81,6 +81,7 @@
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>{{ $t('appLayout.items.workflow') }}</a-menu-item>
             <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template>{{ $t('appLayout.items.pipeline') }}</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>{{ $t('appLayout.items.tasks') }}</a-menu-item>
+            <a-menu-item key="background-agents"><template #icon><RocketOutlined /></template>后台 Agent</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-advanced">
             <template #title><span class="group-label">{{ $t('appLayout.groups.advanced') }}</span></template>
@@ -174,6 +175,7 @@
           <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template></a-menu-item>
           <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
+          <a-menu-item key="background-agents"><template #icon><RocketOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
           <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template></a-menu-item>

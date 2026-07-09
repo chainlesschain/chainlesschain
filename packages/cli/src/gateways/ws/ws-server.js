@@ -94,6 +94,16 @@ import {
   handleChatIntentClassifyFollowup,
 } from "./chat-intent-protocol.js";
 import { handleLlmChat } from "./llm-chat-protocol.js";
+import {
+  cleanupBgAttachments,
+  handleBgAttach,
+  handleBgDetach,
+  handleBgList,
+  handleBgPrompt,
+  handleBgStop,
+  handleBgStopTurn,
+  handleBgView,
+} from "./background-agent-protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -469,6 +479,10 @@ export class ChainlessChainWSServer extends EventEmitter {
         clearTimeout(client.authTimer);
         client.authTimer = null;
       }
+      // Close any background-session transport relays this client held —
+      // mirrors the CLI attach detach semantics (an idle worker with no
+      // remaining clients finalizes itself).
+      cleanupBgAttachments(client);
       this.clients.delete(clientId);
       for (const affected of this.remoteSessions.removeClient(clientId)) {
         if (affected.closed)
@@ -654,6 +668,41 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private - list agent worktrees */
   async _handleWorktreeList(id, ws) {
     return handleWorktreeList(this, id, ws);
+  }
+
+  /** @private — list background agent sessions (token-stripped) */
+  async _handleBgList(id, ws, message) {
+    return handleBgList(this, id, ws, message);
+  }
+
+  /** @private — background agent detail view (state + log tail) */
+  async _handleBgView(id, ws, message) {
+    return handleBgView(this, id, ws, message);
+  }
+
+  /** @private — attach to a background session transport (event/log relay) */
+  async _handleBgAttach(clientId, id, ws, message) {
+    return handleBgAttach(this, clientId, id, ws, message);
+  }
+
+  /** @private — send a follow-up prompt into an attached background session */
+  async _handleBgPrompt(clientId, id, ws, message) {
+    return handleBgPrompt(this, clientId, id, ws, message);
+  }
+
+  /** @private — stop the current turn of an attached background session */
+  async _handleBgStopTurn(clientId, id, ws, message) {
+    return handleBgStopTurn(this, clientId, id, ws, message);
+  }
+
+  /** @private — drop this client's background session relay */
+  async _handleBgDetach(clientId, id, ws, message) {
+    return handleBgDetach(this, clientId, id, ws, message);
+  }
+
+  /** @private — kill a whole background session */
+  async _handleBgStop(clientId, id, ws, message) {
+    return handleBgStop(this, clientId, id, ws, message);
   }
 
   /** @private */
