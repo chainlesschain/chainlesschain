@@ -117,6 +117,25 @@ public final class AgentChatSession {
 
     private static volatile String resolvedBinary = null;
 
+    /** User-configured cc path (IDE Settings → Tools → ChainlessChain IDE). When
+     *  set, it wins over auto-detection — the user told us exactly where cc is. */
+    private static volatile String configuredBinary = null;
+
+    /**
+     * Set the explicit cc binary/path from IDE Settings. Blank/null clears the
+     * override and restores auto-detection. Takes precedence over
+     * {@link #resolveBinary()}'s candidate probing.
+     */
+    public static void setConfiguredBinary(String path) {
+        String p = path == null ? null : path.trim();
+        configuredBinary = (p == null || p.isEmpty()) ? null : p;
+    }
+
+    /** The active cc-path override, or null when unset (auto-detection applies). */
+    public static String configuredBinary() {
+        return configuredBinary;
+    }
+
     /**
      * Resolve the chainlesschain CLI binary, tolerating a {@code cc} that is
      * shadowed by another tool (classically the C compiler — {@code cc} is also
@@ -127,6 +146,8 @@ public final class AgentChatSession {
      * to {@code cc} if none resolve (the spawn then surfaces the real error).
      */
     public static String resolveBinary() {
+        String cfg = configuredBinary;
+        if (cfg != null) return cfg; // explicit user override — skip probing
         String r = resolvedBinary;
         if (r != null) return r;
         String picked = chooseBinary(cand -> runCaptureWith(

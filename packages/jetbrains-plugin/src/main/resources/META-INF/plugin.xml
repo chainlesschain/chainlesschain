@@ -221,6 +221,13 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
+        <applicationService serviceImplementation="com.chainlesschain.ide.intellij.CcSettings"/>
+        <!-- Settings → Tools → ChainlessChain IDE (cc path + context indicator);
+             VS Code chainlesschain.cli.path / chat.contextIndicator parity. -->
+        <applicationConfigurable parentId="tools"
+                                 id="com.chainlesschain.ide.settings"
+                                 displayName="ChainlessChain IDE"
+                                 instance="com.chainlesschain.ide.intellij.CcConfigurable"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.PreviewService"/>
         <toolWindow id="ChainlessChain" anchor="right" secondary="true"

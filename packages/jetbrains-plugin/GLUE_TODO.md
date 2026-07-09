@@ -468,3 +468,10 @@ Glue-layer (needs the next pre-release runIde pass):
       diagnostics), then Tools → "ChainlessChain IDE: Show Activity" → dialog
       lists the calls newest-first with ✓/✗ + totals; Refresh picks up new
       ones. Bridge stopped → "bridge stopped" + "no tool calls yet".
+- [ ] **Settings page (CcConfigurable / CcSettings)** — Settings → Tools →
+      "ChainlessChain IDE" shows a cc-CLI-path field + a context-indicator
+      checkbox. Set a bogus path → chat "needs cc" (resolveBinary honors it, no
+      probing); clear it → auto-detect returns. Uncheck the indicator → the chat
+      panel's "⊟ context …" line disappears; re-check → it comes back next turn.
+      Values persist across an IDE restart (chainlesschain-ide.xml). zh IDE shows
+      the localized labels.

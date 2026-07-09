@@ -12,6 +12,9 @@ import org.jetbrains.annotations.NotNull;
 public final class IdeBridgeStartup implements StartupActivity.DumbAware {
     @Override
     public void runActivity(@NotNull Project project) {
+        // Load persisted settings and push the cc-path override into the pure
+        // layer before any session/capture resolves the binary.
+        CcSettings.getInstance().applyToRuntime();
         IdeBridgeService.getInstance(project).start();
     }
 }

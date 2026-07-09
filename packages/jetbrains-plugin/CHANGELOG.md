@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- **Settings page — Settings → Tools → ChainlessChain IDE.** The plugin finally
+  has a real IDE settings panel (VS Code parity), instead of only a Tools-menu
+  wizard. Two options: an explicit **cc CLI path** (the `chainlesschain.cli.path`
+  equivalent) for when `cc` is installed somewhere the IDE's PATH doesn't cover —
+  it takes precedence over auto-detection and applies without an IDE restart; and
+  a toggle for the chat panel's **context-window indicator**
+  (`chat.contextIndicator` parity). Settings persist across restarts and are
+  localized (en/zh).
 - **Localization residuals swept.** The three LLM provider preset labels in the
   configure dialog (Volcengine / Doubao, Ollama, Aliyun Bailian / Tongyi) were
   the last bilingual "English (中文)" display strings; the SDK-free `LlmConfig`

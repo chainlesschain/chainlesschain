@@ -1203,6 +1203,10 @@ final class ConversationView {
      * the EDT; never blocks the UI and silently no-ops on any failure.
      */
     private void refreshContextIndicator() {
+        if (!CcSettings.getInstance().isContextIndicatorEnabled()) {
+            SwingUtilities.invokeLater(() -> contextLabel.setText(""));
+            return;
+        }
         final String sid = conv.sessionId;
         if (sid == null || sid.isEmpty()) return;
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
