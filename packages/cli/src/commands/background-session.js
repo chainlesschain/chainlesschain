@@ -1,0 +1,304 @@
+import { existsSync, readFileSync } from "node:fs";
+import chalk from "chalk";
+import { logger } from "../lib/logger.js";
+
+function formatAge(ms) {
+  const n = Math.max(0, Math.round(Number(ms || 0) / 1000));
+  if (n < 60) return `${n}s`;
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  if (m < 60) return `${m}m${s ? ` ${s}s` : ""}`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return `${h}h${rest ? ` ${rest}m` : ""}`;
+}
+
+export function formatBackgroundAgentLine(session, now = Date.now()) {
+  const elapsed = session?.endedAt
+    ? session.endedAt - session.startedAt
+    : now - session.startedAt;
+  const title = session?.title ? `  ${session.title}` : "";
+  return `${session.id}  ${String(session.status || "?").padEnd(9)} ${formatAge(elapsed).padStart(6)}  ${session.cwd || ""}${title}`;
+}
+
+function printBackgroundAgents(sessions, { now = Date.now() } = {}) {
+  if (!sessions.length) {
+    logger.log(chalk.gray("No background agents."));
+    return;
+  }
+  for (const session of sessions) {
+    logger.log(formatBackgroundAgentLine(session, now));
+    if (session.pid || session.sessionId) {
+      logger.log(
+        chalk.gray(
+          `  pid ${session.pid || "?"}${session.sessionId ? `  session ${session.sessionId}` : ""}`,
+        ),
+      );
+    }
+  }
+}
+
+function formatTimestamp(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? new Date(n).toISOString() : "-";
+}
+
+export function formatBackgroundAgentDetails(
+  session,
+  logText = "",
+  options = {},
+) {
+  const now = typeof options.now === "number" ? options.now : Date.now();
+  const elapsed = session?.endedAt
+    ? session.endedAt - session.startedAt
+    : now - session.startedAt;
+  const lines = [
+    `Background agent ${session.id}`,
+    `  status: ${session.status || "?"}`,
+    `  title: ${session.title || "-"}`,
+    `  cwd: ${session.cwd || "-"}`,
+    `  pid: ${session.pid || "-"}`,
+    `  workerPid: ${session.workerPid || "-"}`,
+    `  agentPid: ${session.agentPid || "-"}`,
+    `  session: ${session.sessionId || "-"}`,
+    `  elapsed: ${formatAge(elapsed)}`,
+    `  startedAt: ${formatTimestamp(session.startedAt)}`,
+    `  endedAt: ${formatTimestamp(session.endedAt)}`,
+    `  log: ${session.logFile || "-"}`,
+  ];
+  if (session.lostReason) lines.push(`  lostReason: ${session.lostReason}`);
+  if (Number.isFinite(Number(session.exitCode))) {
+    lines.push(`  exitCode: ${session.exitCode}`);
+  }
+  lines.push("", "Recent output:");
+  lines.push(logText ? logText.trimEnd() : "  (no log output)");
+  lines.push("", "Commands:");
+  lines.push(`  cc attach ${session.id}`);
+  lines.push(`  cc logs ${session.id} -n 100`);
+  if (session.status === "running") {
+    lines.push(`  cc daemon stop ${session.id}`);
+  }
+  return lines.join("\n");
+}
+
+function parseLines(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+async function loadSupervisor() {
+  return import("../lib/background-agent-supervisor.js");
+}
+
+function readLogFromOffset(file, offset) {
+  if (!existsSync(file)) return { text: "", offset };
+  const text = readFileSync(file, "utf8");
+  if (offset > text.length) offset = 0;
+  return { text: text.slice(offset), offset: text.length };
+}
+
+async function followBackgroundAgent(id, options = {}) {
+  const {
+    readBackgroundAgentState,
+    effectiveBackgroundAgentState,
+    readBackgroundAgentLog,
+    logPath,
+  } = await loadSupervisor();
+  const lines = parseLines(options.lines, 100);
+  let state = effectiveBackgroundAgentState(readBackgroundAgentState(id));
+  if (!state) throw new Error(`Background agent not found: ${id}`);
+  const logFile = logPath(id);
+  const initial = readBackgroundAgentLog(id, { lines });
+  if (initial)
+    process.stdout.write(initial.endsWith("\n") ? initial : `${initial}\n`);
+  let offset = existsSync(logFile) ? readFileSync(logFile, "utf8").length : 0;
+
+  if (options.follow === false || state.status !== "running") {
+    return state;
+  }
+
+  logger.log(chalk.gray(`Attached to ${id}. Streaming logs; Ctrl-C detaches.`));
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const next = readLogFromOffset(logFile, offset);
+    offset = next.offset;
+    if (next.text) process.stdout.write(next.text);
+    state = effectiveBackgroundAgentState(readBackgroundAgentState(id));
+    if (!state || state.status !== "running") {
+      if (state) {
+        logger.log(chalk.gray(`\n${id} is ${state.status}.`));
+      }
+      return state;
+    }
+  }
+}
+
+export function registerBackgroundSessionCommands(program) {
+  program
+    .command("logs <id>")
+    .description("Print recent output from a background agent")
+    .option("-n, --lines <n>", "Number of lines", "100")
+    .action(async (id, options) => {
+      try {
+        const { readBackgroundAgentState, readBackgroundAgentLog } =
+          await loadSupervisor();
+        if (!readBackgroundAgentState(id)) {
+          throw new Error(`Background agent not found: ${id}`);
+        }
+        process.stdout.write(
+          readBackgroundAgentLog(id, { lines: parseLines(options.lines, 100) }),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("attach <id>")
+    .description("Attach to a background agent log stream")
+    .option("-n, --lines <n>", "Initial lines to print", "100")
+    .option("--no-follow", "Print the initial log tail and exit")
+    .action(async (id, options) => {
+      try {
+        await followBackgroundAgent(id, options);
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  const daemon = program
+    .command("daemon")
+    .description("Inspect and stop background agent supervisor sessions");
+
+  daemon
+    .command("status")
+    .description("Show background agent supervisor status")
+    .option("--all", "Include completed, failed, stopped and lost sessions")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { backgroundAgentsDir, listBackgroundAgents } =
+          await loadSupervisor();
+        const sessions = listBackgroundAgents({ all: options.all === true });
+        const running = sessions.filter((s) => s.status === "running").length;
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                supervisor: "background-agents",
+                dir: backgroundAgentsDir(),
+                running,
+                total: sessions.length,
+                sessions,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.log(
+          `${chalk.bold("Background agent supervisor")}  ${running} running  ${sessions.length} shown`,
+        );
+        logger.log(chalk.gray(`  dir ${backgroundAgentsDir()}`));
+        printBackgroundAgents(sessions);
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  daemon
+    .command("view <id>")
+    .description("Show a detailed background agent view")
+    .option("-n, --lines <n>", "Recent log lines to include", "40")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const {
+          readBackgroundAgentState,
+          effectiveBackgroundAgentState,
+          readBackgroundAgentLog,
+        } = await loadSupervisor();
+        const session = effectiveBackgroundAgentState(
+          readBackgroundAgentState(id),
+        );
+        if (!session) throw new Error(`Background agent not found: ${id}`);
+        const lines = parseLines(options.lines, 40);
+        const log = readBackgroundAgentLog(id, { lines });
+        if (options.json) {
+          console.log(JSON.stringify({ session, log }, null, 2));
+          return;
+        }
+        logger.log(formatBackgroundAgentDetails(session, log));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  daemon
+    .command("rename <id> <title...>")
+    .description("Rename a background agent session")
+    .option("--json", "Output as JSON")
+    .action(async (id, title, options) => {
+      try {
+        const { renameBackgroundAgent } = await loadSupervisor();
+        const state = renameBackgroundAgent(
+          id,
+          Array.isArray(title) ? title.join(" ") : title,
+        );
+        if (options.json) {
+          console.log(JSON.stringify(state, null, 2));
+          return;
+        }
+        logger.log(chalk.green(`Renamed background agent ${state.id}`));
+        logger.log(chalk.gray(`  ${state.title}`));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  daemon
+    .command("stop [id]")
+    .description("Stop one background agent, or all running agents with --any")
+    .option("--any", "Stop all running background agents")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const { listBackgroundAgents, stopBackgroundAgent } =
+          await loadSupervisor();
+        if (!id && options.any !== true) {
+          throw new Error("daemon stop requires <id> or --any");
+        }
+        const targets = options.any
+          ? listBackgroundAgents().map((s) => s.id)
+          : [id];
+        const results = [];
+        for (const target of targets) {
+          results.push(stopBackgroundAgent(target));
+        }
+        if (options.json) {
+          console.log(JSON.stringify(results, null, 2));
+          return;
+        }
+        if (results.length === 0) {
+          logger.log(chalk.gray("No running background agents."));
+          return;
+        }
+        for (const result of results) {
+          if (result.stopped) {
+            logger.log(chalk.green(`Stopped background agent ${result.id}`));
+          } else {
+            logger.log(chalk.gray(`${result.id} is already ${result.status}`));
+          }
+        }
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+}

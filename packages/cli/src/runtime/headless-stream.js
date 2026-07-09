@@ -723,10 +723,34 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let approvalGate = null;
   try {
     approvalGate = await getApprovalGate();
+    if (approvalGate && (options.permissionMode || "default") === "auto") {
+      // autoMode.decisions: user-configured riskLevel → allow/ask/deny
+      // classifier (same wiring as headless-runner). Only wrap when settings
+      // customize the map so the unconfigured path stays byte-identical.
+      try {
+        const {
+          loadAutoModeConfig,
+          resolveAutoModeDecisions,
+          createAutoModeApprovalGate,
+        } = await import("../lib/auto-mode-config.js");
+        const autoConfig = loadAutoModeConfig({
+          cwd,
+          settingsFile: options.settingsFile,
+        });
+        const resolved = resolveAutoModeDecisions(autoConfig.effective);
+        if (resolved.customized) {
+          approvalGate = createAutoModeApprovalGate(approvalGate, resolved);
+        }
+      } catch {
+        // fail to the default trusted mapping — never block the run
+      }
+    }
     if (approvalGate) {
       approvalGate.setSessionPolicy?.(sessionId, perm.sessionPolicy);
       approvalGate.setConfirmer?.(
-        interactive ? interactiveConfirm : perm.confirmer,
+        interactive && perm.allowInteractiveApprovals
+          ? interactiveConfirm
+          : perm.confirmer,
       );
     }
   } catch {

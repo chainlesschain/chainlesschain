@@ -15,9 +15,11 @@
  * Permission model: headless cannot show an interactive approval prompt, so the
  * default is fail-closed (deny MEDIUM/HIGH-risk shell). --permission-mode opts
  * into a looser tier:
- *  - (default) / plan   → STRICT  + deny-confirmer  (plan also restricts tools)
- *  - acceptEdits        → TRUSTED + deny-confirmer  (HIGH-risk shell still denied)
- *  - bypassPermissions  → AUTOPILOT (everything allowed, no confirm)
+ *  - (default) / manual / dontAsk / plan → STRICT + deny-confirmer
+ *    (plan also restricts tools)
+ *  - auto / acceptEdits                  → TRUSTED + deny-confirmer
+ *    (HIGH-risk shell still denied)
+ *  - bypassPermissions                   → AUTOPILOT (everything allowed)
  */
 
 import { bootstrap } from "./bootstrap.js";
@@ -68,6 +70,9 @@ export const READ_ONLY_TOOLS = Object.freeze([
 
 const VALID_PERMISSION_MODES = Object.freeze([
   "default",
+  "manual",
+  "auto",
+  "dontAsk",
   "plan",
   "acceptEdits",
   "bypassPermissions",
@@ -81,19 +86,30 @@ export { installPipeSafety } from "./pipe-safety.js";
 import { installPipeSafety } from "./pipe-safety.js";
 
 /**
- * Resolve a --permission-mode string into the session-policy tier + a
- * non-interactive confirmer + whether to clamp tools to the read-only set.
+ * Normalize a public --permission-mode spelling to the canonical internal mode.
  *
- * @param {string} mode
- * @returns {{ sessionPolicy: string, confirmer: (ctx:any)=>Promise<boolean>, readOnly: boolean }}
+ * @param {string} [mode]
+ * @returns {string}
  */
-export function resolvePermissionMode(mode = "default") {
+export function normalizePermissionMode(mode = "default") {
   const m = mode || "default";
   if (!VALID_PERMISSION_MODES.includes(m)) {
     throw new Error(
       `Invalid --permission-mode "${m}". Expected one of: ${VALID_PERMISSION_MODES.join(", ")}`,
     );
   }
+  return m;
+}
+
+/**
+ * Resolve a --permission-mode string into the session-policy tier + a
+ * non-interactive confirmer + whether to clamp tools to the read-only set.
+ *
+ * @param {string} mode
+ * @returns {{ sessionPolicy: string, confirmer: (ctx:any)=>Promise<boolean>, readOnly: boolean, allowInteractiveApprovals: boolean }}
+ */
+export function resolvePermissionMode(mode = "default") {
+  const m = normalizePermissionMode(mode);
   // Headless can't ask a human — deny when a confirm would be required.
   const denyConfirmer = async () => false;
   const allowConfirmer = async () => true;
@@ -103,25 +119,38 @@ export function resolvePermissionMode(mode = "default") {
         sessionPolicy: "autopilot",
         confirmer: allowConfirmer,
         readOnly: false,
+        allowInteractiveApprovals: false,
       };
+    case "auto":
     case "acceptEdits":
       return {
         sessionPolicy: "trusted",
         confirmer: denyConfirmer,
         readOnly: false,
+        allowInteractiveApprovals: true,
       };
     case "plan":
       return {
         sessionPolicy: "strict",
         confirmer: denyConfirmer,
         readOnly: true,
+        allowInteractiveApprovals: true,
       };
+    case "dontAsk":
+      return {
+        sessionPolicy: "strict",
+        confirmer: denyConfirmer,
+        readOnly: false,
+        allowInteractiveApprovals: false,
+      };
+    case "manual":
     case "default":
     default:
       return {
         sessionPolicy: "strict",
         confirmer: denyConfirmer,
         readOnly: false,
+        allowInteractiveApprovals: true,
       };
   }
 }
@@ -610,6 +639,28 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   let approvalGate = null;
   try {
     approvalGate = await getApprovalGate();
+    if (approvalGate && (options.permissionMode || "default") === "auto") {
+      // autoMode.decisions: user-configured riskLevel → allow/ask/deny
+      // classifier. Only wrap when settings actually customize the map so the
+      // unconfigured auto path keeps the byte-identical trusted-tier mapping.
+      try {
+        const {
+          loadAutoModeConfig,
+          resolveAutoModeDecisions,
+          createAutoModeApprovalGate,
+        } = await import("../lib/auto-mode-config.js");
+        const autoConfig = loadAutoModeConfig({
+          cwd,
+          settingsFile: options.settingsFile,
+        });
+        const resolved = resolveAutoModeDecisions(autoConfig.effective);
+        if (resolved.customized) {
+          approvalGate = createAutoModeApprovalGate(approvalGate, resolved);
+        }
+      } catch {
+        // fail to the default trusted mapping — never block the run
+      }
+    }
     if (approvalGate) {
       if (typeof approvalGate.setSessionPolicy === "function") {
         approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
@@ -1501,6 +1552,18 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       );
     } else if (isStream) {
       emitStream({ type: "denials_summary", count: denials.length, denials });
+    }
+    try {
+      const { appendRecentDenials } =
+        await import("../lib/permission-denial-store.js");
+      appendRecentDenials(denials, {
+        sessionId,
+        permissionMode: options.permissionMode || "default",
+        cwd,
+        source: "headless",
+      });
+    } catch {
+      // Persisting the review surface is best-effort; never affect the run.
     }
   }
 

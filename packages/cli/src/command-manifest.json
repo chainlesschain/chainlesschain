@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 165,
+  "commandCount": 169,
   "commands": [
     {
       "name": "a2a",
@@ -52,6 +52,13 @@
       "summary": "Ask a question to the AI (single-shot)"
     },
     {
+      "name": "attach",
+      "aliases": [],
+      "module": "./commands/background-session.js",
+      "register": "registerBackgroundSessionCommands",
+      "summary": "Attach to a background agent log stream"
+    },
+    {
       "name": "audit",
       "aliases": [],
       "module": "./commands/audit.js",
@@ -71,6 +78,13 @@
       "module": "./commands/automation.js",
       "register": "registerAutomationCommand",
       "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+    },
+    {
+      "name": "auto-mode",
+      "aliases": ["automode"],
+      "module": "./commands/auto-mode.js",
+      "register": "registerAutoModeCommand",
+      "summary": "Inspect auto permission-mode defaults and effective config"
     },
     {
       "name": "autoagent",
@@ -239,6 +253,13 @@
       "module": "./commands/crosschain.js",
       "register": "registerCrossChainCommand",
       "summary": "Cross-chain interoperability (Phase 89)"
+    },
+    {
+      "name": "daemon",
+      "aliases": [],
+      "module": "./commands/background-session.js",
+      "register": "registerBackgroundSessionCommands",
+      "summary": "Inspect and stop background agent supervisor sessions"
     },
     {
       "name": "dao",
@@ -519,6 +540,13 @@
       "module": "./commands/llm.js",
       "register": "registerLlmCommand",
       "summary": "LLM provider management"
+    },
+    {
+      "name": "logs",
+      "aliases": [],
+      "module": "./commands/background-session.js",
+      "register": "registerBackgroundSessionCommands",
+      "summary": "Print recent output from a background agent"
     },
     {
       "name": "loop",

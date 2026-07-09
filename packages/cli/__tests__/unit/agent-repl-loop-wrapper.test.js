@@ -6,6 +6,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { agentLoop } from "../../src/repl/agent-repl.js";
+import {
+  _deps as denialStoreDeps,
+  readRecentDenials,
+} from "../../src/lib/permission-denial-store.js";
 
 // A fake agent-core loop: yields the given events and records the options it
 // was called with (so we can assert what the wrapper forwarded).
@@ -18,11 +22,33 @@ function coreLoop(events) {
 }
 
 let writeSpy;
+let files;
+const originalDenialStoreDeps = { ...denialStoreDeps };
+
 beforeEach(() => {
+  files = {};
   writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  denialStoreDeps.getHomeDir = () => "C:\\cc-home";
+  denialStoreDeps.now = () => 10_000;
+  denialStoreDeps.existsSync = (p) =>
+    Object.prototype.hasOwnProperty.call(files, p);
+  denialStoreDeps.mkdirSync = () => {};
+  denialStoreDeps.readFileSync = (p) => {
+    if (!(p in files)) throw new Error("ENOENT");
+    return files[p];
+  };
+  denialStoreDeps.writeFileSync = (p, text) => {
+    files[p] = String(text);
+  };
+  denialStoreDeps.renameSync = (from, to) => {
+    files[to] = files[from];
+    delete files[from];
+  };
 });
+
 afterEach(() => {
   writeSpy.mockRestore();
+  Object.assign(denialStoreDeps, originalDenialStoreDeps);
 });
 
 describe("agentLoop() wrapper", () => {
@@ -120,6 +146,50 @@ describe("agentLoop() wrapper", () => {
       summary: "rm -rf build",
     });
     expect(typeof denialLog[0].at).toBe("number");
+  });
+
+  it("persists REPL policy denials into the shared recent-denials store when enabled", async () => {
+    const denialLog = [];
+    const core = coreLoop([
+      {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "rm -rf build" },
+      },
+      {
+        type: "tool-result",
+        tool: "run_shell",
+        error: "[Shell Policy] Destructive command blocked.",
+        result: {
+          error: "[Shell Policy] Destructive command blocked.",
+          shellCommandPolicy: {
+            allowed: false,
+            ruleId: "rm-rf",
+            normalizedCommand: "rm -rf build",
+          },
+        },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+
+    await agentLoop([], {
+      _coreLoop: core,
+      denialLog,
+      persistRecentDenials: true,
+      sessionId: "sess-repl",
+      permissionMode: "strict",
+      cwd: "C:\\repo",
+    });
+
+    expect(readRecentDenials()).toHaveLength(1);
+    expect(readRecentDenials()[0]).toMatchObject({
+      tool: "run_shell",
+      summary: "rm -rf build",
+      sessionId: "sess-repl",
+      permissionMode: "strict",
+      cwd: "C:\\repo",
+      source: "repl",
+    });
   });
 
   it("uses a caller-supplied onProviderFallback over the default", async () => {

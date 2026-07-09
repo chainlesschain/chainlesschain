@@ -12,11 +12,16 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { registerPermissionsCommand } from "../../src/commands/permissions.js";
+import {
+  _deps as denialStoreDeps,
+  appendRecentDenials,
+} from "../../src/lib/permission-denial-store.js";
 
 let tmp;
 let cwdSpy;
 let logSpy;
 let errSpy;
+const originalDenialStoreDeps = { ...denialStoreDeps };
 
 function makeProgram() {
   const program = new Command();
@@ -36,6 +41,7 @@ async function run(...argv) {
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-perms-"));
   cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tmp);
+  denialStoreDeps.getHomeDir = () => path.join(tmp, "cc-home");
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   // logger.log/error route to console under the hood; capture both.
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -43,6 +49,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cwdSpy.mockRestore();
+  Object.assign(denialStoreDeps, originalDenialStoreDeps);
   logSpy.mockRestore();
   errSpy.mockRestore();
   try {
@@ -134,5 +141,31 @@ describe("cc permissions list", () => {
     const parsed = JSON.parse(out);
     expect(parsed.rules.deny).toContain("Bash(rm:*)");
     expect(parsed.rules.allow).toContain("Read");
+  });
+});
+
+describe("cc permissions recent", () => {
+  it("emits persisted recent denials as JSON", async () => {
+    appendRecentDenials(
+      {
+        tool: "run_shell",
+        summary: "git push",
+        reason: "blocked",
+        via: "gate",
+        at: 100,
+      },
+      { sessionId: "s1", permissionMode: "auto", cwd: tmp },
+    );
+
+    const out = await run("recent", "--json");
+    const parsed = JSON.parse(out);
+
+    expect(parsed.count).toBe(1);
+    expect(parsed.denials[0]).toMatchObject({
+      tool: "run_shell",
+      summary: "git push",
+      sessionId: "s1",
+      permissionMode: "auto",
+    });
   });
 });

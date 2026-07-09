@@ -240,7 +240,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--permission-mode <mode>",
-      "default | plan | acceptEdits | bypassPermissions (headless)",
+      "manual | auto | dontAsk | default | plan | acceptEdits | bypassPermissions (headless)",
     )
     .option(
       "--no-file-refs",

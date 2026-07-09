@@ -34,6 +34,7 @@ import {
   recordDenial,
   formatDenials,
 } from "../lib/repl-denials.js";
+import { appendRecentDenials } from "../lib/permission-denial-store.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createSession,
@@ -154,8 +155,22 @@ let _classifyAllShell = false;
 let _sandbox = null;
 // Bounded log of tool calls the agent was BLOCKED from running this session
 // (shell-policy / ApprovalGate / settings rule / hook). Surfaced by
-// `/permissions denials` (Claude-Code 2.1.193 "recent denials"). In-memory only.
+// `/permissions denials` and mirrored to `cc permissions recent`.
 const _recentDenials = [];
+
+function persistRecentDenial(record, options = {}) {
+  try {
+    appendRecentDenials(record, {
+      sessionId: options.sessionId,
+      permissionMode: options.permissionMode,
+      cwd: options.cwd || process.cwd(),
+      source: "repl",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Fire settings.json Notification hooks (observe-only) — the agent needs the
@@ -318,7 +333,15 @@ export async function agentLoop(messages, options) {
                 : "",
           });
           if (denial) {
-            recordDenial(options.denialLog, { ...denial, at: Date.now() });
+            const record = { ...denial, at: Date.now() };
+            recordDenial(options.denialLog, record);
+            if (options.persistRecentDenials === true) {
+              persistRecentDenial(record, {
+                sessionId: options.sessionId,
+                permissionMode: options.permissionMode,
+                cwd: options.cwd,
+              });
+            }
           }
         }
         // Parity with Desktop AIChatPage's `Switch to Trusted` button:
@@ -4371,6 +4394,8 @@ export async function startAgentRepl(options = {}) {
         checkpointSession: sessionId,
         checkpointMarks: _checkpointMarks,
         denialLog: _recentDenials,
+        persistRecentDenials: true,
+        permissionMode: _sessionTier,
         prepareCall,
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,

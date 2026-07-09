@@ -103,7 +103,10 @@ export function registerCommandCommand(program) {
     .option("--no-bang", "Do not execute !`cmd` bang segments")
     .option("--output-format <fmt>", "text | json | stream-json", "text")
     .option("--model <model>", "Override the model")
-    .option("--permission-mode <mode>", "ApprovalGate tier (see cc agent)")
+    .option(
+      "--permission-mode <mode>",
+      "manual | auto | dontAsk | default | plan | acceptEdits | bypassPermissions",
+    )
     .action(async (name, args, options) => {
       try {
         const { getCommand, expandCommand } =

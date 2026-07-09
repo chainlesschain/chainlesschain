@@ -72,6 +72,41 @@ export function registerAgentsCommand(program) {
     });
 
   cmd
+    .command("view <id>")
+    .description("Show a detailed background agent view")
+    .option("-n, --lines <n>", "Recent log lines to include", "40")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const [
+          {
+            readBackgroundAgentState,
+            effectiveBackgroundAgentState,
+            readBackgroundAgentLog,
+          },
+          { formatBackgroundAgentDetails },
+        ] = await Promise.all([
+          import("../lib/background-agent-supervisor.js"),
+          import("./background-session.js"),
+        ]);
+        const session = effectiveBackgroundAgentState(
+          readBackgroundAgentState(id),
+        );
+        if (!session) throw new Error(`Background agent not found: ${id}`);
+        const lines = Number.isFinite(Number(options.lines))
+          ? Math.max(1, Math.floor(Number(options.lines)))
+          : 40;
+        const log = readBackgroundAgentLog(id, { lines });
+        if (options.json)
+          console.log(JSON.stringify({ session, log }, null, 2));
+        else logger.log(formatBackgroundAgentDetails(session, log));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  cmd
     .command("stop <id>")
     .description("Stop a running background agent")
     .option("--json", "Output as JSON")
@@ -84,6 +119,29 @@ export function registerAgentsCommand(program) {
         else if (state.stopped)
           logger.log(chalk.green(`Stopped background agent ${id}`));
         else logger.log(chalk.gray(`${id} is already ${state.status}`));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  cmd
+    .command("rename <id> <title...>")
+    .description("Rename a background agent session")
+    .option("--json", "Output as JSON")
+    .action(async (id, title, options) => {
+      try {
+        const { renameBackgroundAgent } =
+          await import("../lib/background-agent-supervisor.js");
+        const state = renameBackgroundAgent(
+          id,
+          Array.isArray(title) ? title.join(" ") : title,
+        );
+        if (options.json) console.log(JSON.stringify(state, null, 2));
+        else {
+          logger.log(chalk.green(`Renamed background agent ${id}`));
+          logger.log(chalk.gray(`  ${state.title}`));
+        }
       } catch (error) {
         logger.error(chalk.red(error.message));
         process.exitCode = 1;
@@ -172,7 +230,10 @@ export function registerAgentsCommand(program) {
     .description("Run a task headlessly as the named subagent")
     .option("--output-format <fmt>", "text | json | stream-json", "text")
     .option("--model <model>", "Override the agent's model")
-    .option("--permission-mode <mode>", "ApprovalGate tier (see cc agent)")
+    .option(
+      "--permission-mode <mode>",
+      "manual | auto | dontAsk | default | plan | acceptEdits | bypassPermissions",
+    )
     .option("--add-dir <dir...>", "Extra workspace roots")
     .action(async (name, task, options) => {
       try {

@@ -17,6 +17,23 @@ import { getHomeDir } from "./paths.js";
 
 export const _deps = { spawn, spawnSync };
 
+export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
+export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
+
+function nowMs(options = {}) {
+  return typeof options.now === "number" ? options.now : Date.now();
+}
+
+function heartbeatStaleMs(options = {}) {
+  const configured =
+    options.heartbeatStaleMs ||
+    process.env.CC_BACKGROUND_AGENT_HEARTBEAT_STALE_MS;
+  const n = Number(configured);
+  return Number.isFinite(n) && n > 0
+    ? Math.floor(n)
+    : DEFAULT_HEARTBEAT_STALE_MS;
+}
+
 export function backgroundAgentsDir() {
   const dir =
     process.env.CC_BACKGROUND_AGENTS_DIR ||
@@ -73,12 +90,43 @@ export function isProcessAlive(pid) {
   }
 }
 
-export function effectiveBackgroundAgentState(state) {
+export function normalizeBackgroundAgentTitle(title) {
+  const value = String(title || "").trim();
+  if (!value) throw new Error("Background agent title cannot be empty");
+  return value.slice(0, 160);
+}
+
+export function effectiveBackgroundAgentState(state, options = {}) {
   if (!state) return null;
-  if (state.status === "running" && !isProcessAlive(state.pid)) {
-    return { ...state, status: "lost", endedAt: state.endedAt || Date.now() };
+  if (state.status !== "running") return state;
+  const t = nowMs(options);
+  let next = state;
+  if (
+    Number.isFinite(Number(state.heartbeatAt)) &&
+    t - Number(state.heartbeatAt) > heartbeatStaleMs(options)
+  ) {
+    next = {
+      ...state,
+      status: "lost",
+      endedAt: state.endedAt || t,
+      lostReason: "heartbeat-stale",
+    };
+  } else if (!isProcessAlive(state.pid)) {
+    next = {
+      ...state,
+      status: "lost",
+      endedAt: state.endedAt || t,
+      lostReason: "process-exited",
+    };
   }
-  return state;
+  if (next !== state && options.persist !== false) {
+    try {
+      writeBackgroundAgentState(next);
+    } catch {
+      /* best-effort; callers still get the corrected state */
+    }
+  }
+  return next;
 }
 
 export function listBackgroundAgents(options = {}) {
@@ -86,9 +134,24 @@ export function listBackgroundAgents(options = {}) {
     .filter((name) => name.endsWith(".json") && !name.includes(".job."))
     .map((name) => readBackgroundAgentState(name.slice(0, -5)))
     .filter(Boolean)
-    .map(effectiveBackgroundAgentState)
+    .map((state) => effectiveBackgroundAgentState(state, options))
     .filter((state) => options.all || state.status === "running")
     .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+}
+
+export function renameBackgroundAgent(id, title, options = {}) {
+  const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+    now: options.now,
+    heartbeatStaleMs: options.heartbeatStaleMs,
+  });
+  if (!state) throw new Error(`Background agent not found: ${id}`);
+  const next = {
+    ...state,
+    title: normalizeBackgroundAgentTitle(title),
+    renamedAt: typeof options.now === "number" ? options.now : Date.now(),
+  };
+  writeBackgroundAgentState(next);
+  return next;
 }
 
 export function launchBackgroundAgent({
@@ -133,8 +196,11 @@ export function launchBackgroundAgent({
     title: job.title,
     cwd,
     pid: child.pid,
+    workerPid: child.pid,
+    agentPid: null,
     status: "running",
     startedAt: Date.now(),
+    heartbeatAt: Date.now(),
     endedAt: null,
     exitCode: null,
     logFile: job.logFile,

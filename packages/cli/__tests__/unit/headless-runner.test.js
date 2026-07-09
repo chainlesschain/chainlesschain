@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   runAgentHeadless,
+  normalizePermissionMode,
   resolvePermissionMode,
   resolveEnabledTools,
   resolveHeadlessSession,
@@ -69,17 +70,27 @@ describe("headless-runner — pure helpers", () => {
   });
 
   it("resolvePermissionMode maps tiers correctly", async () => {
+    expect(normalizePermissionMode("manual")).toBe("manual");
     expect(resolvePermissionMode("bypassPermissions").sessionPolicy).toBe(
       "autopilot",
     );
+    expect(resolvePermissionMode("auto").sessionPolicy).toBe("trusted");
     expect(resolvePermissionMode("acceptEdits").sessionPolicy).toBe("trusted");
     expect(resolvePermissionMode("plan").sessionPolicy).toBe("strict");
     expect(resolvePermissionMode("plan").readOnly).toBe(true);
+    expect(resolvePermissionMode("manual").sessionPolicy).toBe("strict");
+    expect(resolvePermissionMode("manual").readOnly).toBe(false);
+    expect(resolvePermissionMode("dontAsk").sessionPolicy).toBe("strict");
+    expect(resolvePermissionMode("dontAsk").readOnly).toBe(false);
+    expect(resolvePermissionMode("dontAsk").allowInteractiveApprovals).toBe(
+      false,
+    );
     expect(resolvePermissionMode("default").sessionPolicy).toBe("strict");
     expect(resolvePermissionMode("default").readOnly).toBe(false);
 
     // headless confirmer denies unless bypass
     expect(await resolvePermissionMode("default").confirmer({})).toBe(false);
+    expect(await resolvePermissionMode("dontAsk").confirmer({})).toBe(false);
     expect(await resolvePermissionMode("bypassPermissions").confirmer({})).toBe(
       true,
     );
@@ -882,5 +893,77 @@ describe("headless-runner — session resume + persistence", () => {
       resumed_from: "sess-A",
       history_messages: 1,
     });
+  });
+});
+
+describe("headless-runner — auto mode configurable classifier", () => {
+  it("wraps the approval gate only when autoMode.decisions customizes the map", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-auto-mode-"));
+    const settingsFile = join(dir, "settings.json");
+    writeFileSync(
+      settingsFile,
+      JSON.stringify({ autoMode: { decisions: { medium: "deny" } } }),
+    );
+    try {
+      const captured = [];
+      const loopSpy = async function* (_messages, loopOptions) {
+        captured.push(loopOptions.approvalGate);
+        yield { type: "response-complete", content: "done" };
+      };
+
+      const { deps } = makeDeps(replyText("done"));
+      deps.agentLoop = loopSpy;
+      await runAgentHeadless(
+        { prompt: "hi", permissionMode: "auto", settingsFile },
+        deps,
+      );
+      expect(captured[0]?.isAutoModeGate).toBe(true);
+
+      // Configured medium → deny is enforced without any confirmer round-trip.
+      const medium = await captured[0].decide({ riskLevel: "medium" });
+      expect(medium).toMatchObject({
+        decision: "deny",
+        via: "auto-mode-config",
+      });
+      // high stays on the default ask tier; the headless deny-confirmer that
+      // runAgentHeadless installed on the wrapper fails it closed.
+      const high = await captured[0].decide({ riskLevel: "high" });
+      expect(high.decision).toBe("deny");
+
+      // Same settings file but manual mode → the raw gate is passed through.
+      const second = makeDeps(replyText("done"));
+      second.deps.agentLoop = loopSpy;
+      await runAgentHeadless(
+        { prompt: "hi", permissionMode: "manual", settingsFile },
+        second.deps,
+      );
+      expect(captured[1]?.isAutoModeGate).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("auto mode without customized decisions keeps the raw trusted gate", async () => {
+    const captured = [];
+    const { deps, gate } = makeDeps(replyText("done"));
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      captured.push(loopOptions.approvalGate);
+      yield { type: "response-complete", content: "done" };
+    };
+    const dir = mkdtempSync(join(tmpdir(), "cc-auto-mode-plain-"));
+    const settingsFile = join(dir, "settings.json");
+    writeFileSync(settingsFile, JSON.stringify({ autoMode: {} }));
+    try {
+      await runAgentHeadless(
+        { prompt: "hi", permissionMode: "auto", settingsFile },
+        deps,
+      );
+      expect(captured[0]).toBe(gate);
+      expect(gate.calls.policy).toEqual([
+        expect.objectContaining({ policy: "trusted" }),
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

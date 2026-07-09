@@ -4,11 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   _deps,
+  effectiveBackgroundAgentState,
   launchBackgroundAgent,
   listBackgroundAgents,
   logPath,
+  normalizeBackgroundAgentTitle,
   readBackgroundAgentLog,
   readBackgroundAgentState,
+  renameBackgroundAgent,
   stopBackgroundAgent,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
@@ -75,6 +78,74 @@ describe("background agent supervisor", () => {
     ]);
   });
 
+  it("marks stale-heartbeat running sessions as lost and persists the correction", () => {
+    writeBackgroundAgentState({
+      id: "bg-stale-abc",
+      status: "running",
+      pid: process.pid,
+      workerPid: process.pid,
+      startedAt: 1000,
+      heartbeatAt: 1000,
+    });
+
+    const sessions = listBackgroundAgents({
+      all: true,
+      now: 2000,
+      heartbeatStaleMs: 100,
+    });
+    const state = sessions.find((s) => s.id === "bg-stale-abc");
+
+    expect(state.status).toBe("lost");
+    expect(state.lostReason).toBe("heartbeat-stale");
+    expect(readBackgroundAgentState("bg-stale-abc").status).toBe("lost");
+  });
+
+  it("does not stop a stale-heartbeat session even if its pid is alive", () => {
+    writeBackgroundAgentState({
+      id: "bg-reused-abc",
+      status: "running",
+      pid: process.pid,
+      workerPid: process.pid,
+      startedAt: 1000,
+      heartbeatAt: 1000,
+    });
+
+    const state = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-reused-abc"),
+      { now: 2000, heartbeatStaleMs: 100 },
+    );
+    expect(state.status).toBe("lost");
+
+    const stopped = stopBackgroundAgent("bg-reused-abc");
+    expect(stopped.status).toBe("lost");
+    expect(stopped.stopped).toBe(false);
+  });
+
+  it("renames a background agent and persists the title", () => {
+    writeBackgroundAgentState({
+      id: "bg-rename-abc",
+      status: "running",
+      pid: process.pid,
+      startedAt: 1000,
+      heartbeatAt: 1100,
+      title: "Old title",
+    });
+
+    const renamed = renameBackgroundAgent("bg-rename-abc", "  New title  ", {
+      now: 2000,
+    });
+
+    expect(renamed.title).toBe("New title");
+    expect(renamed.renamedAt).toBe(2000);
+    expect(readBackgroundAgentState("bg-rename-abc").title).toBe("New title");
+  });
+
+  it("rejects empty background agent titles", () => {
+    expect(() => normalizeBackgroundAgentTitle("   ")).toThrow(
+      /cannot be empty/,
+    );
+  });
+
   it("tails logs", () => {
     writeBackgroundAgentState({ id: "bg-log-abc", status: "completed" });
     writeFileSync(logPath("bg-log-abc"), "one\ntwo\nthree\n");
@@ -104,7 +175,38 @@ describe("background agent supervisor", () => {
       }
     }
     expect(completed?.exitCode).toBe(0);
+    expect(completed?.workerPid).toBe(state.pid);
+    expect(Number.isInteger(completed?.agentPid)).toBe(true);
+    expect(Number.isFinite(completed?.heartbeatAt)).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
+  });
+
+  it("keeps a running rename when the worker writes completion", async () => {
+    const fakeCli = join(dir, "fake-cli-rename.mjs");
+    writeFileSync(fakeCli, "setTimeout(() => process.exit(0), 150);\n");
+    const state = launchBackgroundAgent({
+      argv: [],
+      cwd: dir,
+      sessionId: "session-rename",
+      title: "before",
+      cliEntry: fakeCli,
+    });
+
+    const renamed = renameBackgroundAgent(state.id, "after");
+    expect(renamed.title).toBe("after");
+
+    let completed = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const current = readBackgroundAgentState(state.id);
+      if (current?.status === "completed") {
+        completed = current;
+        break;
+      }
+    }
+
+    expect(completed?.title).toBe("after");
+    expect(completed?.status).toBe("completed");
   });
 
   it.skipIf(process.platform !== "win32")(

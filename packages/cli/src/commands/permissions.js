@@ -136,6 +136,55 @@ export function registerPermissionsCommand(program) {
       }
     });
 
+  // ── recent ────────────────────────────────────────────────────────────
+  cmd
+    .command("recent")
+    .alias("denials")
+    .description("Show recent policy denials recorded by agent runs")
+    .option("-n, --limit <n>", "Number of denials to show", "20")
+    .option("--json", "Output as JSON")
+    .option("--clear", "Clear the recent denial log")
+    .action(async (options) => {
+      try {
+        const {
+          clearRecentDenials,
+          formatRecentDenials,
+          readRecentDenials,
+          recentDenialsPath,
+        } = await import("../lib/permission-denial-store.js");
+        if (options.clear) {
+          const result = clearRecentDenials();
+          if (options.json) {
+            console.log(JSON.stringify(result, null, 2));
+          } else {
+            logger.log(chalk.green(`Cleared ${result.file}`));
+          }
+          return;
+        }
+        const limit = Math.max(1, Number(options.limit) || 20);
+        const denials = readRecentDenials({ limit });
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                file: recentDenialsPath(),
+                count: denials.length,
+                denials,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.log(formatRecentDenials(denials));
+        logger.log(chalk.gray(`  source: ${recentDenialsPath()}`));
+      } catch (err) {
+        logger.error(chalk.red(`permissions recent failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
   // ── test (dry-run) ─────────────────────────────────────────────────────
   cmd
     .command("test <tool> [args...]")

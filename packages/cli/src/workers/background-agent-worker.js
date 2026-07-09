@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
+  DEFAULT_HEARTBEAT_INTERVAL_MS,
   openBackgroundLogFile,
   readBackgroundAgentState,
   removeJobFile,
@@ -19,7 +20,33 @@ try {
     stdio: ["ignore", log.fd, log.fd],
     windowsHide: true,
   });
+
+  const writeHeartbeat = () => {
+    const current = readBackgroundAgentState(job.id) || { id: job.id };
+    if (current.status && current.status !== "running") return false;
+    writeBackgroundAgentState({
+      ...current,
+      id: job.id,
+      pid: process.pid,
+      workerPid: process.pid,
+      agentPid: child.pid,
+      status: "running",
+      heartbeatAt: Date.now(),
+    });
+    return true;
+  };
+  writeHeartbeat();
+  const heartbeat = setInterval(() => {
+    try {
+      if (!writeHeartbeat()) clearInterval(heartbeat);
+    } catch {
+      /* do not let heartbeat persistence kill the worker */
+    }
+  }, DEFAULT_HEARTBEAT_INTERVAL_MS);
+  heartbeat.unref?.();
+
   child.on("exit", (code, signal) => {
+    clearInterval(heartbeat);
     const current = readBackgroundAgentState(job.id) || {};
     if (current.status === "running") {
       writeBackgroundAgentState({
@@ -34,6 +61,7 @@ try {
     process.exit(code ?? 1);
   });
   child.on("error", (error) => {
+    clearInterval(heartbeat);
     const current = readBackgroundAgentState(job.id) || { id: job.id };
     writeBackgroundAgentState({
       ...current,

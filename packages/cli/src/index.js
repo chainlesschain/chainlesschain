@@ -21,6 +21,7 @@ import { registerHubCommand } from "./commands/hub.js";
 import { registerAndroidCommand } from "./commands/android.js";
 import { registerEvalCommand } from "./commands/eval.js";
 import { registerTeamCommand } from "./commands/team.js";
+import { registerAutoModeCommand } from "./commands/auto-mode.js";
 import {
   registerAgentCommand,
   registerSubAgentV2Command,
@@ -67,6 +68,7 @@ import { registerCheckpointCommand } from "./commands/checkpoint.js";
 import { registerGoalCommand } from "./commands/goal.js";
 import { registerCommandCommand } from "./commands/command.js";
 import { registerAgentsCommand } from "./commands/agents.js";
+import { registerBackgroundSessionCommands } from "./commands/background-session.js";
 import { registerCompactCommand } from "./commands/compact.js";
 import { registerLoopCommand } from "./commands/loop.js";
 import { registerReviewCommand } from "./commands/review.js";
@@ -434,6 +436,7 @@ export function createProgram(opts = {}) {
   registerLlmCommand(program);
   registerHubCommand(program);
   registerAndroidCommand(program);
+  registerAutoModeCommand(program);
   registerAgentCommand(program);
   registerEvalCommand(program);
   registerTeamCommand(program);
@@ -482,6 +485,7 @@ export function createProgram(opts = {}) {
   registerGoalCommand(program);
   registerCommandCommand(program);
   registerAgentsCommand(program);
+  registerBackgroundSessionCommands(program);
   registerCompactCommand(program);
   registerLoopCommand(program);
   registerReviewCommand(program);
