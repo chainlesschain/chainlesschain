@@ -16,6 +16,7 @@ export default defineConfig({
       '@chainlesschain/locales': resolve(process.cwd(), '../locales/seed/index.js'),
       '@chainlesschain/locales/zh-CN': resolve(process.cwd(), '../locales/seed/zh-CN.json'),
       '@chainlesschain/locales/en': resolve(process.cwd(), '../locales/seed/en.json'),
+      '@chainlesschain/agent-sdk/browser': resolve(process.cwd(), '../agent-sdk/src/browser.ts'),
     },
   },
   test: {

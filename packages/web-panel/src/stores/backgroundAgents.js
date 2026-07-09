@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { bgRequest, isBgPushFrame } from "@chainlesschain/agent-sdk/browser";
 import { useWsStore } from "./ws";
 
 const MAX_EVENTS = 200;
@@ -31,7 +32,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     const ws = useWsStore();
     loading.value = true;
     try {
-      const result = await ws.sendRaw({ type: "bg-list", all: showAll.value });
+      const result = await ws.sendRaw(bgRequest("bg-list", { all: showAll.value }));
       if (result && Array.isArray(result.sessions)) {
         sessions.value = result.sessions;
       }
@@ -60,7 +61,8 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     if (unsubscribeMessages) return;
     const ws = useWsStore();
     unsubscribeMessages = ws.onMessage((msg) => {
-      if (!msg || msg.bgId !== attachedId.value) return;
+      // SDK guard: only bg-event / bg-log push frames, and only ours.
+      if (!isBgPushFrame(msg) || msg.bgId !== attachedId.value) return;
       if (msg.type === "bg-log" && typeof msg.chunk === "string") {
         _appendLog(msg.chunk);
       } else if (msg.type === "bg-event" && msg.event) {
@@ -84,7 +86,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     if (attachedId.value && attachedId.value !== bgId) {
       await detach();
     }
-    const result = await ws.sendRaw({ type: "bg-attach", bgId, lines: 200 });
+    const result = await ws.sendRaw(bgRequest("bg-attach", { bgId, lines: 200 }));
     attachedId.value = bgId;
     attachedHello.value = result?.hello || null;
     transportClosed.value = false;
@@ -100,18 +102,16 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     const ws = useWsStore();
     const trimmed = String(text || "").trim();
     if (!attachedId.value || !trimmed) return false;
-    await ws.sendRaw({
-      type: "bg-prompt",
-      bgId: attachedId.value,
-      text: trimmed,
-    });
+    await ws.sendRaw(
+      bgRequest("bg-prompt", { bgId: attachedId.value, text: trimmed }),
+    );
     return true;
   }
 
   async function stopTurn() {
     const ws = useWsStore();
     if (!attachedId.value) return;
-    await ws.sendRaw({ type: "bg-stop-turn", bgId: attachedId.value });
+    await ws.sendRaw(bgRequest("bg-stop-turn", { bgId: attachedId.value }));
   }
 
   async function detach() {
@@ -122,7 +122,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     transportClosed.value = false;
     if (bgId) {
       try {
-        await ws.sendRaw({ type: "bg-detach", bgId });
+        await ws.sendRaw(bgRequest("bg-detach", { bgId }));
       } catch {
         // Relay may already be gone (worker finalized) — local state is reset
       }
@@ -133,7 +133,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     const ws = useWsStore()
     const trimmed = String(title || '').trim()
     if (!bgId || !trimmed) return false
-    await ws.sendRaw({ type: 'bg-rename', bgId, title: trimmed })
+    await ws.sendRaw(bgRequest('bg-rename', { bgId, title: trimmed }))
     await fetchSessions()
     return true
   }
@@ -142,7 +142,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     const ws = useWsStore()
     const trimmed = String(text || '').trim()
     if (!bgId || !trimmed) return null
-    const result = await ws.sendRaw({ type: 'bg-resume', bgId, text: trimmed })
+    const result = await ws.sendRaw(bgRequest('bg-resume', { bgId, text: trimmed }))
     await fetchSessions()
     return result?.session || null
   }
@@ -152,7 +152,7 @@ export const useBackgroundAgentsStore = defineStore("backgroundAgents", () => {
     const target = bgId || attachedId.value;
     if (!target) return;
     try {
-      await ws.sendRaw({ type: "bg-stop", bgId: target });
+      await ws.sendRaw(bgRequest("bg-stop", { bgId: target }));
     } finally {
       if (attachedId.value === target) {
         attachedId.value = null;

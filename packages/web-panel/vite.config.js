@@ -74,6 +74,10 @@ export default defineConfig({
       '@chainlesschain/locales': resolve(process.cwd(), '../locales/seed/index.js'),
       '@chainlesschain/locales/zh-CN': resolve(process.cwd(), '../locales/seed/zh-CN.json'),
       '@chainlesschain/locales/en': resolve(process.cwd(), '../locales/seed/en.json'),
+      // Agent SDK protocol contract (platform phase 3). Same non-workspace
+      // threading as locales: alias straight to the TS source — Vite
+      // compiles it, no build-order dependency on packages/agent-sdk/dist.
+      '@chainlesschain/agent-sdk/browser': resolve(process.cwd(), '../agent-sdk/src/browser.ts'),
     }
   }
 })
