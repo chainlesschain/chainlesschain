@@ -251,6 +251,8 @@ cc mcp read-resource <server> <uri>        # 读取指定 resource 内容
 
 环境变量 `CC_TOOL_SEARCH=1|0|auto` 覆盖 settings。REPL `/context` 会显示 per-server 的 schema token 占用、tool search 状态（deferred/loaded/节省量）与优化建议（超阈值未启用会提示开启；点名最大的 server 建议 `alwaysLoad` 收窄或断开）。
 
+完整参考（架构 / 性能指标 / 故障排查 / 使用示例）见 [MCP Tool Search 专页](./cli-tool-search)。
+
 ## 配置参考
 
 ```bash
@@ -344,6 +346,7 @@ chainlesschain mcp remove github
 
 ## 相关文档
 
+- [MCP Tool Search](./cli-tool-search) — 大规模工具面 schema 延迟装载与检索（完整参考）
 - [LLM 配置](./cli-llm) — LLM 提供商管理
 - [浏览器自动化](./browser-automation) — 浏览器集成
 - [技能系统](./skills) — AI 技能管理

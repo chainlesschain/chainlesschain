@@ -173,6 +173,10 @@ export default defineConfig({
           text: "⭐ 最新功能（Claude Code 平价）",
           items: [
             {
+              text: "Agent SDK — TypeScript 接入套件 ⭐NEW",
+              link: "/chainlesschain/agent-sdk",
+            },
+            {
               text: "Agent Team — 任务图团队编排 (team) ⭐NEW",
               link: "/chainlesschain/cli-team",
             },
@@ -183,6 +187,18 @@ export default defineConfig({
             {
               text: "语义代码智能 — LSP (code-intel) ⭐NEW",
               link: "/chainlesschain/cli-code-intel",
+            },
+            {
+              text: "远程控制 + 移动/Web 审批 (remote-control) ⭐NEW",
+              link: "/chainlesschain/cli-remote-control",
+            },
+            {
+              text: "长任务调度 — Monitor/Cron/Push (agenda) ⭐NEW",
+              link: "/chainlesschain/cli-agenda",
+            },
+            {
+              text: "动态 Worktree 批处理 (batch) ⭐NEW",
+              link: "/chainlesschain/cli-batch",
             },
           ],
         },
@@ -827,6 +843,10 @@ export default defineConfig({
             {
               text: "MCP服务器 (mcp)",
               link: "/chainlesschain/cli-mcp",
+            },
+            {
+              text: "MCP Tool Search (tool-search)",
+              link: "/chainlesschain/cli-tool-search",
             },
             {
               text: "浏览器自动化 (browse)",
