@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- **Live dashboard tool window (JCEF).** Tools → "ChainlessChain IDE: Open
+  Dashboard" (or the ChainlessChain Dashboard tool-window stripe) opens a rich
+  webview — status cards (port / tool calls / connections / errors) and a live
+  tool-call stream — matching the VS Code `chainlesschain.ide.openDashboard`
+  webview instead of the plain-text "Show Activity" dialog. It re-renders only
+  when bridge activity changes (no reload churn), is theme-aware (Darcula/light),
+  and falls back to a monospace text view when JCEF isn't available on the
+  runtime. ("Show Activity" stays as the lightweight dialog alternative.)
 - **Settings page — Settings → Tools → ChainlessChain IDE.** The plugin finally
   has a real IDE settings panel (VS Code parity), instead of only a Tools-menu
   wizard. Two options: an explicit **cc CLI path** (the `chainlesschain.cli.path`

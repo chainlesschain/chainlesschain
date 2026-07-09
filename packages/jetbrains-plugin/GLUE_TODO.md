@@ -468,6 +468,14 @@ Glue-layer (needs the next pre-release runIde pass):
       diagnostics), then Tools → "ChainlessChain IDE: Show Activity" → dialog
       lists the calls newest-first with ✓/✗ + totals; Refresh picks up new
       ones. Bridge stopped → "bridge stopped" + "no tool calls yet".
+- [ ] **Dashboard tool window (DashboardToolWindowFactory)** — Tools → "Open
+      Dashboard" (or the ChainlessChain Dashboard stripe, right) opens a JCEF
+      webview: status dot Running/Stopped, cards (port / tool calls /
+      connections / errors), workspace line, and a live tool-call stream. Have
+      the agent use an IDE tool → new rows appear within ~1s WITHOUT full-page
+      flicker (re-renders only on change). Bridge stopped → "Stopped" + em-dash
+      port + "No tool calls yet". Dark theme stays readable. On a runtime without
+      JCEF → monospace text fallback (same content as Show Activity).
 - [ ] **Settings page (CcConfigurable / CcSettings)** — Settings → Tools →
       "ChainlessChain IDE" shows a cc-CLI-path field + a context-indicator
       checkbox. Set a bogus path → chat "needs cc" (resolveBinary honors it, no

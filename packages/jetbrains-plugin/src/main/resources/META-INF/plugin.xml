@@ -236,6 +236,11 @@
         <toolWindow id="ChainlessChain Preview" anchor="bottom" secondary="true"
                     icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.PreviewToolWindowFactory"/>
+        <!-- Live JCEF dashboard (status cards + tool-call stream); VS Code
+             chainlesschain.ide.openDashboard parity. -->
+        <toolWindow id="ChainlessChain Dashboard" anchor="right" secondary="true"
+                    icon="/icons/chainlesschain.png"
+                    factoryClass="com.chainlesschain.ide.intellij.DashboardToolWindowFactory"/>
         <statusBarWidgetFactory id="chainlesschain.ide.statusBar"
                                 implementation="com.chainlesschain.ide.intellij.BridgeStatusBarWidgetFactory"/>
         <intentionAction>
@@ -256,6 +261,10 @@
         </action>
         <action id="chainlesschain.ide.ShowActivity"
                 class="com.chainlesschain.ide.intellij.ShowActivityAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.ide.OpenDashboard"
+                class="com.chainlesschain.ide.intellij.OpenDashboardAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.team.Monitor"
