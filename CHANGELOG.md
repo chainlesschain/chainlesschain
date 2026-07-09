@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管全家桶（第一阶段收口，CLI-only npm 发版）
 
-> `chainlesschain` 0.162.154 → **0.162.155** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+web-panel dist 随包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。gap-analysis「第一阶段：安全与可运营性」4 项全部落地（批 1-15，9 commit `e3ab46c73f..1618a3ca83`）。命令数 **165 → 169**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`，清单已重生）。发版前本机三层全绿（unit 21808 / integration 除 1 已知 real-spawn flake 隔离 3 连绿 / e2e 628）。
+> `chainlesschain` 0.162.154 → **0.162.155** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+web-panel dist 随包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。gap-analysis「第一阶段：安全与可运营性」4 项全部落地（批 1-15，9 commit `e3ab46c73f..1618a3ca83`）。命令数 **165 → 170**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`/`remote-control`，清单已重生）。发版前本机三层全绿（unit 21808 / integration 除 1 已知 real-spawn flake 隔离 3 连绿 / e2e 628）。
 
 - **权限模式补齐 `manual`/`auto`/`dontAsk`**（headless + 交互 REPL 双面）：`manual`=default 别名；`auto`=可配置分类器——settings `autoMode.decisions` 按 riskLevel（对象/数组形）与 tool/commandPattern 细粒度规则（`*` glob，声明序优先）映射 allow/ask/deny，未配置时字节不变映射 trusted；`dontAsk`=需确认动作直接 deny 不弹审批（REPL 两处 confirmer 全覆盖）。REPL `/permissions auto|dontask` 中途切换，Shift+Tab 循环兼容；`cc agent --permission-mode` 对交互式会话生效（顺带修 `resolveAgentPolicy` 白名单静默丢弃 `--vim/--think/--fallback-model/--pdh` 等交互 flag 的预存 bug）。
 - **`cc auto-mode defaults|config [--json]`**：内置分类默认值文档 + user/project/local/managed 分层合并后的有效配置（含细粒度规则展示）；修 `mergeSandboxSettings` 数组分支把数组形 decisions 毁成 `"[object Object]"` 的潜伏 bug（新 `mergeAutoModeSettings`，decisions=有序规则集 closer 层整体替换）。
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cc attach` 可交互接管（session transport）**：worker 每会话托管本地 NDJSON 控制通道（Win named pipe / POSIX socket，随机 token 存 0600 state 文件）；attach 后键入即发 follow-up prompt（同 `--session` 自动续接对话史，多轮 turn 循环），`/stop` 截断当前轮，turn 运行中断开任务照跑、idle 断开会话收尾；transport 不可用自动回退日志流，`--no-input` 强制纯日志。
 - **web-panel「后台 Agent」面板**：新 `bg-*` WS 协议（list/view/attach/prompt/stop-turn/detach/stop/rename/resume，attach 期间推送 worker 事件与日志增量）；takeover token 永不过 WS 边界。面板含列表/接管卡片/日志流/重命名/续跑。
 - 修复：后台 rename 与 worker read-modify-write 竞态（写后校验+有界重试）；`settingsVerdict` 未传入 executeToolInner 的解释链断点；launcher/worker 状态竞写（先写 state 后 spawn + heartbeat 重申 transport）。
+- **`cc remote-control`（第四阶段批17，随本版一同发布）**：统一远控入口（别名 `rc`）——start/status/stop 组合既有 remote-session 栈（WS server + E2EE relay + registry + ledger + push + audit），配对 URI 双模式（relay E2EE / 直连 LAN），跨进程 0600 state 发现；顺带修 `cc serve --remote-session-relay-url` 白名单丢参从未生效的预存 bug。
 - **MCP tool search（第二阶段批16，随本版一同发布）**：大规模 MCP 面下工具定义超上下文阈值（默认窗口 10%，`mcp.toolSearch` settings / `CC_TOOL_SEARCH` env 可配）时自动换成 `[deferred]` stub + 内部 `tool_search` 检索工具；完整 schema 经 tool result 返回（append-only，保 prompt cache 稳定）；REPL `/context` 新增 MCP tool schemas 占用与优化建议一节。未超阈值/关闭时行为字节不变。
 
 ### Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）+ 本地化残留清扫（CLI-only npm 发版）
