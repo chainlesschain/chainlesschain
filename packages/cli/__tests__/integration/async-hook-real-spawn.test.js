@@ -176,8 +176,11 @@ describe("AsyncHookSupervisor tree-kill (no orphaned grandchild)", () => {
       sup.dispatch([{ command, event: "Stop", timeout: 0.5 }], {});
       const gpid = await readGpid();
       expect(gpid).toBeGreaterThan(0);
-      expect(isAlive(gpid)).toBe(true);
-      // The 0.5s timeout fires → tree-kill → the grandchild must die too.
+      // NOTE: no isAlive(gpid)===true sanity here. Under full-suite load the
+      // 0.5s timeout often fires (and tree-kills successfully) BEFORE our
+      // 25ms poll first reads the pid file — the behavior under test
+      // succeeding early. The teeth are below: without the tree-kill the
+      // grandchild sits alive for 60s and this times out red.
       await waitUntil(() => !isAlive(gpid), 6000);
       expect(isAlive(gpid)).toBe(false);
     } finally {
