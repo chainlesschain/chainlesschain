@@ -92,6 +92,11 @@
         "icon": "$(git-branch)"
       },
       {
+        "command": "chainlesschain.chrome.connector",
+        "title": "%cmd.chrome.connector.title%",
+        "icon": "$(globe)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },

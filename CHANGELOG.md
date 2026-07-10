@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI（未发版）：`cc browse chrome` Chrome 连接器（CDP attach 真浏览器，登录态复用）
+
+- **`cc browse chrome status|launch|state`**：与 `browse fetch/scrape`（每次冷启空白 headless 浏览器）不同，连接器经 CDP attach 到**用户自己的 Chrome**，页面状态带着登录会话。`launch` 启动可调试 Chrome（默认**专用配置目录** `~/.chainlesschain/chrome-profile`——登录一次持久复用；`--default-profile` 可选复用真实配置但要求所有 Chrome 窗口先关闭）；`status` 探测 CDP 端口；`state` attach 后观察窗口期内的 console 消息与失败/4xx-5xx 网络请求（CDP 无追溯历史，`--reload` 可捕获加载期输出），快照 URL/标题/DOM（默认 150k cap）/可选截图，断开不杀浏览器。安全注记：CDP 端口是本机无鉴权控制通道，仅绑 loopback，用完关闭该 Chrome。查找 Chrome/Edge 可执行文件跨三平台（`CHROME_PATH` 优先）。attach 后 page targets 有挂载延迟——轮询 3s 而非误报"无标签页"。6 单测（注入 deps）+ 真 Chrome 145 live e2e（discover→attach→console/network 捕获→DOM→截图→干净断开）。两 IDE 插件新增入口（VS `ChainlessChain: Chrome Connector` / JB Tools 同名）随各自下次插件发版出货。
+
 ### Added — cc CLI 0.162.156：agenda/batch 双命令（第四阶段收口）+ @chainlesschain/agent-sdk 0.1.0 npm 首发（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.155 → **0.162.156** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**（平台化第三阶段产物，npm-publish.yml / release.yml 均已加发布 step，防 trap #127 漏发）。纯 `packages/cli/src`（+web-panel dist 随包）+ 新独立包，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数 **170 → 172**（新增顶层 `agenda`/`batch`，清单已重生，13 文档面已扫）。

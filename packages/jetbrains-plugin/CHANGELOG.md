@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- **Chrome Connector (Tools → ChainlessChain: Chrome Connector).** Drives
+  the new `cc browse chrome` CLI surface: launch a debuggable Chrome (a
+  DEDICATED profile — sign in once there and the login state persists),
+  then capture the active tab's state — console messages and failed/
+  4xx-5xx requests observed over a watch window ("Capture with Reload" for
+  load-time output), DOM snapshot size, and a screenshot — into a
+  monospace report naming the exact CLI command the agent can reproduce.
+  Pure core `ChromeConnector` (JUnit-covered); VS Code twin:
+  `chainlesschain.chrome.connector`. (Needs a cc with `browse chrome`,
+  unreleased at the time of writing.)
 - **Worktree Tasks dialog (Tools → ChainlessChain: Worktree Tasks).** Lists
   the repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with
   change footprint (+ins −del, commits ahead), a working/dirty flag, and a

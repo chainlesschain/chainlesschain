@@ -459,6 +459,120 @@ function activate(context) {
       } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
     }),
+    // Chrome connector (P1 #8): drive `cc browse chrome` — launch a
+    // debuggable Chrome (dedicated profile keeps login state), check the CDP
+    // port, and capture a tab's state (console/network/DOM/screenshot) as a
+    // markdown report the agent can also reproduce via the same CLI command.
+    vscode.commands.registerCommand(
+      "chainlesschain.chrome.connector",
+      async () => {
+        const {
+          buildChromeLaunchArgs,
+          buildChromeStateArgs,
+          buildChromeStatusArgs,
+          parseChromeJson,
+          stateToMarkdown,
+        } = require("./chrome-connector.js");
+        const { runCliText } = require("./chat/introspect-commands.js");
+        const { getResolvedCli } = require("./cli-binary");
+        const command = getResolvedCli();
+        const status = parseChromeJson(
+          await runCliText({
+            command,
+            args: buildChromeStatusArgs(),
+            timeoutMs: 15000,
+          }),
+        );
+        const connected = status?.ok === true;
+        const pick = await vscode.window.showQuickPick(
+          connected
+            ? [
+                {
+                  label: "$(device-camera) Capture page state",
+                  action: "state",
+                },
+                {
+                  label: "$(refresh) Capture with reload",
+                  description: "catches load-time console/network",
+                  action: "stateReload",
+                },
+              ]
+            : [
+                {
+                  label: "$(rocket) Launch connected Chrome",
+                  description:
+                    "dedicated profile — sign in once there, login state persists",
+                  action: "launch",
+                },
+              ],
+          {
+            placeHolder: connected
+              ? `Connected: ${status.browser || "Chrome"} on port ${status.port}`
+              : "No debuggable Chrome on port 9222",
+          },
+        );
+        if (!pick) return;
+        if (pick.action === "launch") {
+          const res = parseChromeJson(
+            await runCliText({
+              command,
+              args: buildChromeLaunchArgs({}),
+              timeoutMs: 30000,
+            }),
+          );
+          vscode.window.showInformationMessage(
+            res?.ok
+              ? vscode.l10n.t(
+                  "Connected Chrome launched (CDP port 9222). Open your page there, then run this command again to capture its state.",
+                )
+              : vscode.l10n.t(
+                  "Could not launch Chrome — install Chrome/Edge or set CHROME_PATH.",
+                ),
+          );
+          return;
+        }
+        const shot = require("path").join(
+          require("os").tmpdir(),
+          `cc-chrome-${Date.now()}.png`,
+        );
+        const state = parseChromeJson(
+          await runCliText({
+            command,
+            args: buildChromeStateArgs({
+              reload: pick.action === "stateReload",
+              screenshotPath: shot,
+            }),
+            timeoutMs: 60000,
+          }),
+        );
+        const markdown = stateToMarkdown(state);
+        if (!markdown) {
+          vscode.window.showWarningMessage(
+            `ChainlessChain: could not capture page state — ${state?.error || "no output"}`,
+          );
+          return;
+        }
+        const doc = await vscode.workspace.openTextDocument({
+          content: markdown,
+          language: "markdown",
+        });
+        try {
+          await vscode.commands.executeCommand("markdown.showPreview", doc.uri);
+        } catch {
+          await vscode.window.showTextDocument(doc, { preview: false });
+        }
+        if (state.screenshotPath) {
+          try {
+            await vscode.commands.executeCommand(
+              "vscode.open",
+              vscode.Uri.file(state.screenshotPath),
+            );
+          } catch {
+            /* screenshot open is best-effort */
+          }
+        }
+      },
+    ),
     // Worktree parallel tasks (P1 #9): list agent task worktrees with change
     // footprint + merge-conflict preview; new isolated task / merge / discard.
     vscode.commands.registerCommand("chainlesschain.worktree.tasks", () => {

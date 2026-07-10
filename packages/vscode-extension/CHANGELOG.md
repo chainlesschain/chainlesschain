@@ -4,6 +4,15 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Chrome Connector (ChainlessChain: Chrome Connector).** Drives the new
+  `cc browse chrome` CLI surface: launch a debuggable Chrome (a DEDICATED
+  profile — sign in once there and the login state persists; unlike
+  `browse fetch` this sees your logged-in pages), then capture the active
+  tab's state — console messages and failed/4xx-5xx requests observed over
+  a watch window (use "Capture with reload" for load-time output), DOM
+  snapshot size, and a screenshot — as a markdown report. The report names
+  the exact CLI command so the agent can reproduce the same context itself
+  (needs a cc with `browse chrome`, unreleased at the time of writing).
 - **Worktree Tasks panel (ChainlessChain: Worktree Tasks).** Lists the
   repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with change
   footprint (+ins −del, commits ahead), a working/dirty state, and a

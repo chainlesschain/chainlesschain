@@ -185,14 +185,21 @@ Claude Code VS Code 已有图形化 plugin management。
 
 ### 8. Browser / App Preview 融合
 
+状态：已完成首版（2026-07-10）。
+
 本地已有 App Preview 基础，但还可向 Claude Code 的 `@browser` 体验靠拢。
 
-建议：
+已落地：
 
-- 增加 Chrome connector，复用用户登录态。
-- 支持 DOM、console、network、screenshot 作为 agent 上下文。
-- 从 IDE 一键让 agent 启动本地应用、打开页面、定位错误、修复并验证。
-- Preview 面板记录 agent 操作轨迹和失败原因。
+- **CLI 层 Chrome connector（本轮新建）**：`cc browse chrome status|launch|state`——CDP attach 用户自己的 Chrome（区别于 `browse fetch/scrape` 的冷启空白 headless），页面状态带登录会话。`launch` 默认用专用配置目录（登录一次持久复用；`--default-profile` 可选复用真实配置、要求 Chrome 全关）；`state` 观察窗口期 console/失败网络请求（CDP 无追溯历史，`--reload` 捕获加载期）+ DOM 快照（150k cap）+ 截图，断开不杀浏览器。真 Chrome 145 live e2e 全链验证。
+- **IDE 入口（双端）**：VS Code `ChainlessChain: Chrome Connector`（未连接→一键 launch；已连接→Capture / Capture with reload → markdown 报告 + 截图打开）/ JetBrains Tools → Chrome Connector（对话框流同构）。报告尾注明 agent 可用同一 `cc browse chrome state --reload` 命令自取上下文——「定位错误→修复→验证」循环的 agent 侧入口即 shell 工具跑该命令。
+- DOM/console/network/screenshot 四类上下文全覆盖；`getPreviewState`（P0 #3 已落地）提供 dev server 侧状态，两者合起来覆盖「本地应用 → 浏览器页面」全链。
+
+剩余/边界：
+
+- 安全注记：CDP 端口是本机无鉴权控制通道（仅 loopback）；文档引导用完关闭。`--default-profile` 的风险（远控真实登录浏览器）已在 CLI 输出明示。
+- agent 一等工具化（`browser_state` 进 AGENT_TOOLS）为后续增量——现阶段 agent 经 shell 工具跑 `cc browse chrome state --json` 已可用，一等工具需要 toolset/policy 面配套。
+- Preview 面板记录 agent 操作轨迹 —— agent 不经面板操作浏览器（直接跑 CLI），轨迹在会话 transcript 里天然留痕；面板侧不重复记账。
 
 ### 9. Worktree 并行任务 UI
 

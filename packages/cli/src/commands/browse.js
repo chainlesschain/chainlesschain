@@ -168,8 +168,18 @@ export function registerBrowseCommand(program) {
       try {
         const spinner = ora(`Taking screenshot of ${url}...`).start();
         const result = await takeScreenshot(url, options.output, {
-          width: numericOption(options.width, { name: "--width", integer: true, min: 1, fallback: 1280 }),
-          height: numericOption(options.height, { name: "--height", integer: true, min: 1, fallback: 720 }),
+          width: numericOption(options.width, {
+            name: "--width",
+            integer: true,
+            min: 1,
+            fallback: 1280,
+          }),
+          height: numericOption(options.height, {
+            name: "--height",
+            integer: true,
+            min: 1,
+            fallback: 720,
+          }),
           fullPage: !!options.fullPage,
         });
         spinner.stop();
@@ -188,7 +198,199 @@ export function registerBrowseCommand(program) {
       }
     });
 
+  registerBrowseChromeCommand(browse);
   registerBrowseV2Command(browse);
+}
+
+/**
+ * `cc browse chrome` — Chrome connector: attach to the USER'S real Chrome
+ * over CDP so page state (DOM/console/network/screenshot) is captured WITH
+ * their login sessions. `launch` starts a debuggable Chrome (dedicated
+ * profile by default; `--default-profile` reuses the real one but requires
+ * every Chrome window to be closed first); `status` checks the port;
+ * `state` attaches, observes, and prints the page state.
+ */
+export function registerBrowseChromeCommand(browse) {
+  const chrome = browse
+    .command("chrome")
+    .description(
+      "Chrome connector — capture page state from YOUR logged-in Chrome over CDP",
+    );
+
+  chrome
+    .command("status")
+    .description("Is a debuggable Chrome listening on the CDP port?")
+    .option("-p, --port <port>", "CDP port", "9222")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { discoverCdp } = await import("../lib/chrome-connector.js");
+      const port = numericOption(options.port, {
+        name: "--port",
+        integer: true,
+        min: 1,
+        fallback: 9222,
+      });
+      const res = await discoverCdp({ port });
+      if (options.json) {
+        console.log(JSON.stringify(res, null, 2));
+        return;
+      }
+      if (res.ok) {
+        logger.success(`Debuggable Chrome on port ${port}: ${res.browser}`);
+      } else {
+        logger.info(
+          `No debuggable Chrome on port ${port}. Start one: cc browse chrome launch`,
+        );
+      }
+    });
+
+  chrome
+    .command("launch")
+    .description(
+      "Launch a debuggable Chrome (dedicated profile; sign in once there and it persists)",
+    )
+    .option("-p, --port <port>", "CDP port", "9222")
+    .option("-u, --url <url>", "Open this URL")
+    .option(
+      "--default-profile",
+      "Reuse your REAL Chrome profile (requires ALL Chrome windows closed; the CDP port then controls your logged-in browser)",
+    )
+    .option("--profile <dir>", "Custom profile directory")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { discoverCdp, launchChrome } =
+        await import("../lib/chrome-connector.js");
+      const port = numericOption(options.port, {
+        name: "--port",
+        integer: true,
+        min: 1,
+        fallback: 9222,
+      });
+      const existing = await discoverCdp({ port });
+      if (existing.ok) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({ ok: true, already: true, port }, null, 2),
+          );
+        } else {
+          logger.success(
+            `A debuggable Chrome is already on port ${port} (${existing.browser})`,
+          );
+        }
+        return;
+      }
+      const res = launchChrome({
+        port,
+        url: options.url,
+        defaultProfile: options.defaultProfile === true,
+        profileDir: options.profile,
+      });
+      if (options.json) {
+        console.log(JSON.stringify({ ...res, port }, null, 2));
+        return;
+      }
+      if (!res.ok) {
+        logger.error(res.error);
+        process.exitCode = 1;
+        return;
+      }
+      logger.success(`Launched ${res.executable} (CDP port ${port})`);
+      if (options.defaultProfile) {
+        logger.info(
+          "Default profile requested — if the window did NOT get the debug port, close every Chrome window and retry.",
+        );
+      } else {
+        logger.info(
+          "Dedicated connector profile — sign in to your sites once there; the login state persists.",
+        );
+      }
+      logger.warn(
+        "The CDP port is an unauthenticated local control channel — close this Chrome when you are done.",
+      );
+    });
+
+  chrome
+    .command("state")
+    .description(
+      "Attach to the connected Chrome and capture a tab's state (DOM/console/network/screenshot)",
+    )
+    .option("-p, --port <port>", "CDP port", "9222")
+    .option("-t, --tab <n>", "Tab index (see the tabs list in the output)", "0")
+    .option(
+      "--watch-ms <ms>",
+      "Observe console/network for this long (collected from attach time)",
+      "3000",
+    )
+    .option(
+      "--reload",
+      "Reload the tab first so load-time console/network is captured",
+    )
+    .option("--no-dom", "Skip the DOM snapshot")
+    .option("--dom-cap <chars>", "DOM snapshot cap", "150000")
+    .option("--screenshot <file>", "Also write a screenshot")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { captureState } = await import("../lib/chrome-connector.js");
+      const state = await captureState({
+        port: numericOption(options.port, {
+          name: "--port",
+          integer: true,
+          min: 1,
+          fallback: 9222,
+        }),
+        tab: numericOption(options.tab, {
+          name: "--tab",
+          integer: true,
+          min: 0,
+          fallback: 0,
+        }),
+        watchMs: numericOption(options.watchMs, {
+          name: "--watch-ms",
+          integer: true,
+          min: 0,
+          fallback: 3000,
+        }),
+        reload: options.reload === true,
+        includeDom: options.dom !== false,
+        domCap: numericOption(options.domCap, {
+          name: "--dom-cap",
+          integer: true,
+          min: 1000,
+          fallback: 150000,
+        }),
+        screenshotPath: options.screenshot || null,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(state, null, 2));
+        return;
+      }
+      if (!state.ok) {
+        logger.error(state.error);
+        process.exitCode = 1;
+        return;
+      }
+      logger.log(
+        chalk.bold(`Tab ${state.tab}: ${state.title || "(untitled)"}`),
+      );
+      logger.log(`  ${chalk.cyan(state.url)}`);
+      logger.log(
+        `  tabs: ${state.tabs.length}  console: ${state.console.length}  network issues: ${state.network.length}` +
+          (state.html
+            ? `  dom: ${state.html.length}${state.htmlTruncated ? "+ (truncated)" : ""} chars`
+            : ""),
+      );
+      for (const c of state.console.slice(0, 20)) {
+        logger.log(`  [console:${c.type}] ${c.text}`);
+      }
+      for (const nw of state.network.slice(0, 20)) {
+        logger.log(
+          `  [net:${nw.kind}] ${nw.url}${nw.status ? ` → ${nw.status}` : ""}${nw.error ? ` (${nw.error})` : ""}`,
+        );
+      }
+      if (state.screenshotPath) {
+        logger.success(`Screenshot: ${state.screenshotPath}`);
+      }
+    });
 }
 
 import {

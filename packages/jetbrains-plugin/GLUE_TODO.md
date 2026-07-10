@@ -613,3 +613,14 @@ pipe/CLI actions appending results, zh/en bundle labels.
       main checkout stays clean. Discard… asks Yes/No, then the worktree dir
       and branch are gone. Non-git project → "(not a git repository…)".
       Terminal plugin disabled → New task falls back to the command dialog.
+
+## 🗂 Chrome Connector (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **ChromeConnectorAction** — needs a cc build with `browse chrome`.
+      Tools → "Chrome Connector" with no debug Chrome → Launch offer →
+      Chrome opens with the dedicated profile; sign in to a site, run the
+      action again → "Connected: Chrome/1xx" → Capture → report shows the
+      tab URL/title, console + network issues (Capture with Reload catches
+      load-time errors), DOM size, screenshot path (file exists). Cancel
+      paths do nothing. cc without `browse chrome` → capture fails with the
+      CLI error surfaced, no exception.
