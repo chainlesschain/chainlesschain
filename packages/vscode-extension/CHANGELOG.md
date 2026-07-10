@@ -4,6 +4,14 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Inline completion hardening (parity audit).** Cancelling a completion
+  (typing on / dismissing) now KILLS the in-flight `cc complete` child
+  instead of letting it finish an LLM call nobody will render; and the
+  reply now goes through the same defensive clean as the JetBrains twin
+  (strip accidental markdown fences and `<CURSOR>` echoes, 2 000-char cap,
+  trailing-whitespace trim — leading indentation preserved). Trigger stays
+  manual-only; the context sent is still only ±4 000 chars of the current
+  document around the caret (no selection, no other files).
 - **Token Usage report (ChainlessChain: Show Token Usage).** A markdown
   report joining `cc session usage --json` with the session list: all-time
   totals, activity-window buckets (last 24 h / 7 d / 30 d — bucketed by each

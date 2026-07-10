@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- **Inline completion hardening (parity audit).** Cancelling a suggestion
+  (typing on / dismissing) now interrupts the blocking backend call
+  (`runInterruptible`) and KILLS the in-flight `cc complete` child instead
+  of blocking up to 12 s for a result nobody will render — mirroring the
+  VS Code twin's cancellation-kills-child wiring. Trigger stays manual-only
+  (Alt+\); the context sent is still only ±4 000 chars of the current
+  document around the caret (no selection, no other files).
 - **Token Usage report (Tools → ChainlessChain: Show Token Usage).** A
   monospace dialog joining `cc session usage --json` with the session list:
   all-time totals, activity-window buckets (last 24 h / 7 d / 30 d —

@@ -199,14 +199,18 @@ Claude Code 推荐使用 worktree 并行处理多个任务。
 
 ### 10. IDE 原生补全收尾
 
+状态：已收口（2026-07-10 parity 审计 + 修复）。
+
 本地 VS Code 已有 completion 基础，JetBrains 侧也在推进 inline completion。
 
-建议：
+审计结论（逐维对比两端实现）：
 
-- 两端统一行为：ghost text、accept word、accept line、dismiss、manual trigger。
-- 做 debounce、cancel、timeout 和并发保护。
-- 明确补全上下文边界，避免误带敏感 selection。
-- 增加 completion 专项测试和性能基准。
+- 行为统一（本已一致）：双端均 manual-only 触发（VS Invoke triggerKind / JB DirectCall，不做 per-keystroke LLM 流量，故无需 debounce）；ghost text 渲染、dismiss、Tab accept 走平台原生；accept word/line 为平台自带能力（VS `inlineSuggest.acceptNextWord` 等），不自造。
+- 上下文边界（本已一致且安全）：双端只发当前文档 caret 前后各 4000 字符 + language id——不含 selection、其它文件、环境变量；敏感内容不会越出当前编辑文件。超时双端一致 12s；后端同为 `cc complete --json` stdin 管道（复用用户配置的 LLM，无新增鉴权）。
+- 修复①（VS 落后 JB）：VS 缺防御性 `cleanCompletion`——JB/CLI 均剥 markdown fence、`<CURSOR>` 哨兵、2000 字符 cap、只修尾部空白；VS 原样透传 CLI 输出，换后端即裸奔。已补齐（镜像 JB 契约，保留行首缩进）。
+- 修复②（取消不杀进程，双端）：VS 原来只在 spawn 完成后检查 cancellation token——用户继续输入/dismiss 后，在途 `cc complete` 子进程仍跑完整个 LLM 调用；现 `token.onCancellationRequested` 即刻杀子进程（已取消 token 直接短路不 spawn）。JB 原来 `withContext(Dispatchers.IO)` 下协程取消不中断阻塞的 `fetch`（白等最长 12s）；改 `runInterruptible`——取消打断 `waitFor` → InterruptedException 路径 + finally `destroyForcibly` 杀子进程。
+- 并发保护：平台自身序列化（VS 对被取代的 provider 调用发 cancel、JB inline completion session 取消旧请求），叠加上述取消→杀进程后不再有并发残留子进程。
+- 性能基准：不做微基准——manual-trigger 路径延迟由 LLM 主导（本地 FIM 模型 vs 云模型差两个量级），`extractContext` 纯切片无热路径；后端延迟可用 `cc complete` CLI 直接计时。专项测试已有（VS vscode-ext-completion 17 项 / JB CcCompletionTest + smoke），本轮新增 clean 契约 + 取消杀进程用例。
 
 ## P2：工程化与安全补强
 

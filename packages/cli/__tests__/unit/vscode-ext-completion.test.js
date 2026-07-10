@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { EventEmitter } from "node:events";
 import {
+  MAX_COMPLETION_CHARS,
+  cleanCompletion,
   extractContext,
   parseCompletionResponse,
   spawnComplete,
@@ -64,6 +66,23 @@ describe("inline completion — parseCompletionResponse", () => {
   });
 });
 
+describe("inline completion — cleanCompletion (JetBrains-twin parity)", () => {
+  it("strips markdown fences and the <CURSOR> sentinel", () => {
+    expect(cleanCompletion("```js\nfoo();\n```")).toBe("foo();");
+    expect(cleanCompletion("bar(<CURSOR>);")).toBe("bar();");
+  });
+
+  it("caps runaway completions and trims TRAILING whitespace only", () => {
+    expect(cleanCompletion("x".repeat(MAX_COMPLETION_CHARS + 100)).length).toBe(
+      MAX_COMPLETION_CHARS,
+    );
+    // Leading indentation is meaningful — must survive.
+    expect(cleanCompletion("  indented();  \n")).toBe("  indented();");
+    expect(cleanCompletion("")).toBe("");
+    expect(cleanCompletion(null)).toBe("");
+  });
+});
+
 describe("inline completion — spawnComplete", () => {
   function fakeSpawn(stdoutText, { failSpawn = false } = {}) {
     const calls = { stdinData: "" };
@@ -111,6 +130,67 @@ describe("inline completion — spawnComplete", () => {
       deps: { spawn: spawnFn },
     });
     expect(out).toBe("");
+  });
+
+  it("applies the defensive clean to the spawned result", async () => {
+    const { spawnFn } = fakeSpawn(
+      JSON.stringify({ completion: "```js\nfoo();\n```" }),
+    );
+    const out = await spawnComplete({
+      command: "cc",
+      request: { prefix: "a" },
+      deps: { spawn: spawnFn },
+    });
+    expect(out).toBe("foo();");
+  });
+
+  it("kills the in-flight child when the token cancels", async () => {
+    // A child that never produces output — only cancellation ends the call.
+    let killed = 0;
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stdin = { on: () => {}, write: () => {}, end: () => {} };
+    child.kill = () => {
+      killed++;
+    };
+    let fireCancel;
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: (fn) => {
+        fireCancel = fn;
+        return { dispose: () => {} };
+      },
+    };
+    const pending = spawnComplete({
+      command: "cc",
+      request: { prefix: "a" },
+      token,
+      deps: { spawn: () => child },
+    });
+    fireCancel();
+    expect(await pending).toBe("");
+    expect(killed).toBeGreaterThan(0);
+  });
+
+  it("short-circuits an already-cancelled token", async () => {
+    let killed = 0;
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stdin = { on: () => {}, write: () => {}, end: () => {} };
+    child.kill = () => {
+      killed++;
+    };
+    const out = await spawnComplete({
+      command: "cc",
+      request: { prefix: "a" },
+      token: {
+        isCancellationRequested: true,
+        onCancellationRequested: () => ({ dispose: () => {} }),
+      },
+      deps: { spawn: () => child },
+    });
+    expect(out).toBe("");
+    expect(killed).toBeGreaterThan(0);
   });
 });
 

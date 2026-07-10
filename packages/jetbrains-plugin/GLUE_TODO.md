@@ -578,3 +578,12 @@ pipe/CLI actions appending results, zh/en bundle labels.
       model rows, and top sessions with the panel tabs' titles. With cc
       missing → info dialog (no exception). zh IDE shows the localized
       action label.
+
+## 🗂 Completion cancellation (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **runInterruptible cancel (CcInlineCompletionProvider)** — trigger
+      Alt+\ with a SLOW model configured, then immediately type another
+      character (platform cancels the session) → the `cc complete` child
+      process disappears from the process list within ~1s (was: lingered up
+      to 12s). Ghost text still renders normally when you wait; Esc
+      dismisses; Tab accepts.

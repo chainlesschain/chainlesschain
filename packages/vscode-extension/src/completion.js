@@ -23,7 +23,12 @@ const CONTEXT_CHARS = 4000;
  * Slice the prefix/suffix around a caret offset, each capped to `maxChars`, and
  * pair them with the document language id — the request `cc complete` consumes.
  */
-function extractContext(fullText, offset, languageId, maxChars = CONTEXT_CHARS) {
+function extractContext(
+  fullText,
+  offset,
+  languageId,
+  maxChars = CONTEXT_CHARS,
+) {
   const text = String(fullText || "");
   const o = Math.max(0, Math.min(Number(offset) || 0, text.length));
   return {
@@ -43,12 +48,39 @@ function parseCompletionResponse(stdout) {
   }
 }
 
+/** Hard cap so a runaway model can't flood the editor with a whole file. */
+const MAX_COMPLETION_CHARS = 2000;
+
+/**
+ * Defensive clean of the completion text: strip an accidental markdown fence,
+ * drop any echoed `<CURSOR>` sentinel, hard-cap the length, and trim TRAILING
+ * whitespace only (leading indentation is meaningful). The CLI already cleans
+ * (complete.js cleanCompletion) — this guards against a future/alternate
+ * backend, mirroring the JetBrains twin's CcCompletion.cleanCompletion.
+ */
+function cleanCompletion(raw) {
+  if (!raw) return "";
+  let s = String(raw);
+  s = s.replace(/^\s*```[^\n]*\n?/, "").replace(/\n?```\s*$/, "");
+  s = s.replace(/<CURSOR>/g, "");
+  if (s.length > MAX_COMPLETION_CHARS) s = s.slice(0, MAX_COMPLETION_CHARS);
+  return s.replace(/\s+$/, "");
+}
+
 /**
  * Spawn `cc complete --json`, pipe the request as JSON on stdin, resolve the
  * completion string. Never rejects — resolves "" on spawn error / timeout / bad
  * output, so a backend hiccup yields no suggestion rather than a thrown error.
  */
-function spawnComplete({ command, request, cwd, env, timeoutMs = 12000, deps } = {}) {
+function spawnComplete({
+  command,
+  request,
+  cwd,
+  env,
+  timeoutMs = 12000,
+  token,
+  deps,
+} = {}) {
   const spawnFn = (deps && deps.spawn) || spawn;
   return new Promise((resolve) => {
     let child;
@@ -71,6 +103,11 @@ function spawnComplete({ command, request, cwd, env, timeoutMs = 12000, deps } =
       done = true;
       clearTimeout(timer);
       try {
+        cancelSub?.dispose?.();
+      } catch {
+        /* best-effort */
+      }
+      try {
         child.kill();
       } catch {
         /* already gone */
@@ -78,9 +115,23 @@ function spawnComplete({ command, request, cwd, env, timeoutMs = 12000, deps } =
       resolve(value);
     };
     const timer = setTimeout(() => finish(""), timeoutMs);
-    if (child.stdout) child.stdout.on("data", (d) => (out += d.toString("utf8")));
+    // Cancellation kills the in-flight child instead of letting it run the
+    // full LLM call to completion for a result nobody will render (the user
+    // typed on / dismissed — VS Code cancels the previous provider call).
+    let cancelSub = null;
+    if (token && typeof token.onCancellationRequested === "function") {
+      if (token.isCancellationRequested) {
+        finish("");
+        return;
+      }
+      cancelSub = token.onCancellationRequested(() => finish(""));
+    }
+    if (child.stdout)
+      child.stdout.on("data", (d) => (out += d.toString("utf8")));
     child.on("error", () => finish(""));
-    child.on("close", () => finish(parseCompletionResponse(out)));
+    child.on("close", () =>
+      finish(cleanCompletion(parseCompletionResponse(out))),
+    );
     if (child.stdin) {
       // stdin can emit EPIPE if the child dies as we write — swallow it.
       child.stdin.on("error", () => {});
@@ -114,19 +165,29 @@ function createInlineCompletionProvider({
     async provideInlineCompletionItems(document, position, context, token) {
       if (isEnabled && !isEnabled()) return undefined;
       // Ignore automatic (per-keystroke) triggers — manual invoke only.
-      if (context && context.triggerKind !== vscode.InlineCompletionTriggerKind.Invoke) {
+      if (
+        context &&
+        context.triggerKind !== vscode.InlineCompletionTriggerKind.Invoke
+      ) {
         return undefined;
       }
       const offset = document.offsetAt(position);
-      const request = extractContext(document.getText(), offset, document.languageId);
+      const request = extractContext(
+        document.getText(),
+        offset,
+        document.languageId,
+      );
       if (!request.prefix && !request.suffix) return undefined;
 
       const completion = await run({
         command: getCommand ? getCommand() : "cc",
         request,
         cwd: getCwd ? getCwd(document) : undefined,
+        // The spawn kills the child when this call is superseded/dismissed.
+        token,
       });
-      if (!completion || (token && token.isCancellationRequested)) return undefined;
+      if (!completion || (token && token.isCancellationRequested))
+        return undefined;
 
       const item = new vscode.InlineCompletionItem(
         completion,
@@ -139,6 +200,8 @@ function createInlineCompletionProvider({
 
 module.exports = {
   CONTEXT_CHARS,
+  MAX_COMPLETION_CHARS,
+  cleanCompletion,
   extractContext,
   parseCompletionResponse,
   spawnComplete,

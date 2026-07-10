@@ -10,7 +10,7 @@ import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSin
 import com.intellij.codeInsight.inline.completion.suggestion.InlineCompletionSuggestion
 import com.intellij.openapi.application.readAction
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import java.io.File
 
 /**
@@ -51,7 +51,14 @@ class CcInlineCompletionProvider : InlineCompletionProvider {
         val prefix = ctx.text.substring(maxOf(0, ctx.offset - MAX_CONTEXT), ctx.offset)
         val suffix = ctx.text.substring(ctx.offset, minOf(ctx.text.length, ctx.offset + MAX_CONTEXT))
 
-        val completion = withContext(Dispatchers.IO) {
+        // runInterruptible (not plain withContext): when the platform cancels
+        // this suggestion (user typed on / dismissed), the coroutine
+        // cancellation interrupts the blocking waitFor inside fetch — fetch's
+        // InterruptedException path + finally destroyForcibly then KILL the
+        // in-flight cc child instead of letting it run the full LLM call for
+        // a result nobody will render. Mirrors the VS Code twin's
+        // token.onCancellationRequested → child.kill wiring.
+        val completion = runInterruptible(Dispatchers.IO) {
             CcCompletion.fetch(prefix, suffix, ctx.language, ctx.cwd?.let(::File), TIMEOUT_MS)
         }
 
