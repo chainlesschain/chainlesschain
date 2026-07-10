@@ -37,6 +37,7 @@ let _activityLog = null;
 let _statusBar = null;
 let _treeProvider = null;
 let _preview = null;
+let _remoteControl = null;
 // Module-level so command callbacks registered in activate() (e.g. the
 // diff.accept/reject keybindings) can reach the facade created per-bridge in
 // startBridge(); reassigned on every restart, nulled on stop.
@@ -453,6 +454,26 @@ function activate(context) {
         openBackgroundAgents,
       } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
+    }),
+    // Remote Control (cc remote-control): start a pairing host so a phone /
+    // web panel can drive this machine's agent sessions, show the one-time
+    // pairing URI, list hosts, stop them. The host child belongs to this
+    // window and is torn down on deactivate.
+    vscode.commands.registerCommand("chainlesschain.remote.control", () => {
+      if (!_remoteControl) {
+        const { createRemoteControlHost } = require("./remote-control-host.js");
+        _remoteControl = createRemoteControlHost(vscode, {
+          command: () => {
+            const configured = vscode.workspace
+              .getConfiguration("chainlesschain.cli")
+              .get("path");
+            if (configured && configured !== "cc") return configured;
+            return require("./cli-binary").getResolvedCli();
+          },
+          log,
+        });
+      }
+      _remoteControl.openMenu().catch(() => {});
     }),
     // Diff-review keyboard decisions (Claude-Code IDE parity): Accept / Reject
     // the diff openDiff is currently blocking on, without reaching for the
@@ -898,6 +919,12 @@ function deactivate() {
     /* best-effort */
   }
   _preview = null;
+  try {
+    _remoteControl?.dispose();
+  } catch {
+    /* best-effort */
+  }
+  _remoteControl = null;
   return stopBridge();
 }
 

@@ -411,6 +411,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     "/cost": () => vscode.postMessage({ type: "cost" }),
     "/context": () => vscode.postMessage({ type: "context" }),
     "/rewind": () => vscode.postMessage({ type: "rewind" }),
+    "/handoff": () => vscode.postMessage({ type: "handoff" }),
     "/retry": () => {
       // Regenerate: re-send THIS tab's last user prompt as a fresh turn (a
       // single global would replay another tab's prompt after a switch).
@@ -500,7 +501,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /review · /expand (Ctrl+O all reasoning) · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /handoff · /review · /expand (Ctrl+O all reasoning) · /help");
         return;
       }
       if (SLASH[cmd]) {

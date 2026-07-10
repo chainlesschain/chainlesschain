@@ -9,6 +9,7 @@ import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.IdeSessionIndex;
 import com.chainlesschain.ide.LlmConfig;
 import com.chainlesschain.ide.PlanReview;
+import com.chainlesschain.ide.RemoteHandoff;
 import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionList;
@@ -558,6 +559,9 @@ final class ConversationView {
             case "/sessions":
                 runSessions();
                 return;
+            case "/handoff":
+                runHandoff();
+                return;
             case "/review":
                 // Seed a review turn: the agent inspects the working-tree diff
                 // using its tools + this window's IDE context (selection /
@@ -595,7 +599,7 @@ final class ConversationView {
             case "/help":
                 append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
                         + "/ultrathink /think-off /plan /approve /reject /context /cost "
-                        + "/review /retry /rewind /sessions\n");
+                        + "/review /retry /rewind /sessions /handoff\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
@@ -825,6 +829,45 @@ final class ConversationView {
                         ? "ℹ deleted session " + chosen.id + "\n"
                         : "⚠ could not delete " + chosen.id
                                 + " (not found in CLI store or IDE index)\n");
+            });
+        });
+    }
+
+    /**
+     * {@code /handoff} — hand this tab's conversation off to a DETACHED
+     * background agent ({@code cc agent --bg --resume <id>}), so it keeps
+     * running without the IDE and can be continued from the web panel's
+     * Background Agents view (browser/phone), {@code cc attach <id>}, or the
+     * Background Agents dialog. The live panel child is stopped first — the
+     * background worker becomes the session's single writer.
+     */
+    private void runHandoff() {
+        if (conv.sessionId == null || conv.sessionId.isEmpty()) {
+            append("ℹ nothing to hand off yet — send a message first\n");
+            return;
+        }
+        String raw = com.intellij.openapi.ui.Messages.showInputDialog(
+                project, "Task for the background agent to continue with",
+                "Hand Off Session", null, "Continue the current task.", null);
+        final String prompt = raw == null ? "" : raw.trim();
+        if (prompt.isEmpty()) return;
+        restartForModeChange(); // stop the live child — the bg worker takes over
+        final String sid = conv.sessionId;
+        final File cwd = project.getBasePath() != null
+                ? new File(project.getBasePath()) : null;
+        append("ℹ handing off to a background agent…\n");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String out = AgentChatSession.runCapture(
+                    RemoteHandoff.buildHandoffArgs(sid, prompt), cwd, 60000);
+            final Map<String, Object> state = RemoteHandoff.parseBackgroundState(out);
+            SwingUtilities.invokeLater(() -> {
+                if (state == null) {
+                    append("⚠ handoff failed — the background launcher returned no state"
+                            + " (is `cc` current?)\n");
+                    return;
+                }
+                indexConversation("running"); // the session runs on — detached
+                append("ℹ " + RemoteHandoff.formatHandoffNote(state) + "\n");
             });
         });
     }

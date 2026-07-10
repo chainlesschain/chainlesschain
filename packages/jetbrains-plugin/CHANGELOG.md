@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- **`/handoff` — hand a conversation off to a background agent.** Stops the
+  tab's child and relaunches the SAME session detached (`cc agent --bg
+  --resume <id>`), so it keeps running without the IDE and can be continued
+  from the web panel's Background Agents view (browser/phone), `cc attach
+  <id>`, or Tools → Background Agents. Pick the session again later to
+  re-attach it to a tab.
+- **Remote Control action (Tools → ChainlessChain: Remote Control).** Starts
+  a `cc remote-control` pairing host as a long-running child of the IDE,
+  shows the one-time pairing URI (copyable dialog) so a phone or web panel
+  can pair and drive this machine's agent sessions
+  (observe/prompt/approve/interrupt), lists discovered hosts
+  (`status --json --prune`), and stops them gracefully (CLI stop first,
+  process-tree destroy fallback). Pure core `RemoteHandoff` (JUnit-covered);
+  VS Code twin: `chainlesschain.remote.control`.
 - **Plan Review as a real editor tab.** An active plan now opens (and keeps
   in sync) a Markdown editor tab, preserving your edits across plan updates.
   The plan card offers Approve, Request changes, Regenerate, Reject —

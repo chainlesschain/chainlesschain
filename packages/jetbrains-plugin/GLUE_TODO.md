@@ -527,3 +527,22 @@ pipe/CLI actions appending results, zh/en bundle labels.
       a file open and cursor placed, have the agent call `getActiveFile` →
       path/language/dirty/cursor line+column match the editor state; no open
       editor → empty/absent fields, no exception.
+
+## 🗂 Remote handoff round (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **/handoff (ConversationView.runHandoff)** — in a tab with history,
+      `/handoff` → input dialog (default "Continue the current task.") → the
+      live child stops, `cc daemon status` (or Tools → Background Agents)
+      shows a new bg agent on the SAME session id; the transcript note names
+      the bg id; web-panel Background Agents can send it a follow-up prompt.
+      A fresh tab (no session yet) → "nothing to hand off yet". Cancel the
+      dialog → nothing spawns.
+- [ ] **Remote Control action (RemoteControlAction)** — Tools → Remote
+      Control → Start host → pairing dialog appears with the URI (Copy URI &
+      Close puts it on the clipboard); re-invoking shows Copy/Status/Stop;
+      Status lists the host as running (port/pid/session); Stop this host →
+      `cc remote-control status` shows nothing (state file removed); killing
+      the IDE hard leaves a stale state file that the next Status (--prune)
+      cleans. Pair the web panel with the URI → it can observe/prompt the
+      machine's sessions. Host crash (kill the node child) → warning dialog
+      offers restart guidance.

@@ -25,7 +25,8 @@
 - 已完成：Plan Review editor tab + inline comments。VS Code 与 JetBrains 均已支持真实 Markdown editor tab、inline comments、批准、拒绝、要求修改、重新生成计划；批准/拒绝会携带计划审阅快照写回会话，CLI/SDK 协议已支持审阅 payload。
 - 已部分完成：Session history / remote resume 统一模型。新增共享 IDE session index，VS Code 与 JetBrains 都写入 `~/.chainlesschain/ide/session-index.json`，会话 picker 合并 CLI session list 与 IDE index，列表可展示 IDE 来源和状态，为跨 IDE/跨 workspace 搜索与后续 remote handoff 打基础。picker 已升级为两步式（选会话 → Resume / Rename / Delete）：status 与 workspace 进入 picker 行参与模糊搜索（跨 workspace 检索）；Rename 走 IDE index title overlay（对 CLI-only 会话同样生效）；Delete 统一走 `cc session delete --force` + IDE index 清理，并清空指向该会话的 tab resume id。
 - 已部分完成：IDE MCP parity。VS Code / JetBrains bridge 已统一增加 `getActiveFile` 工具，agent 可直接读取 active file、language、dirty state 和 cursor，不再只能从 selection 间接推断。
-- 待继续：remote/cloud session handoff 的 IDE 入口，以及 IDE MCP parity 剩余项（JetBrains terminal output、notebook 对齐、preview/browser state、大 payload 分片审计）。
+- 已完成首版：remote/cloud session handoff 的 IDE 入口。两端 `/handoff` 把当前对话转成后台 agent（`cc agent --bg --resume <sessionId>`），可从浏览器 web-panel 后台面板、`cc attach`、IDE Background Agents 面板续接；两端新增 Remote Control 命令（VS Code `chainlesschain.remote.control` / JetBrains Tools → Remote Control）封装 `cc remote-control start/status/stop --json`，展示一次性配对 URI（手机/网页配对后可 observe/prompt/approve/interrupt 本机 agent），状态查看与停止、断线后 `--prune` 清理死宿主并重启重发 token。
+- 待继续：IDE MCP parity 剩余项（JetBrains terminal output、notebook 对齐、preview/browser state、大 payload 分片审计）。
 
 ## P0：优先补齐
 
@@ -73,10 +74,15 @@ Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、
 - 重命名：写入 IDE index 的 title overlay（merge 时 IDE title 优先），CLI-only 会话（CLI 无 rename 命令）同样生效。
 - 删除：`cc session delete <id> --force` 删 CLI transcript + IDE index 条目清理（另一端 picker 不再出现）+ 指向该会话的 tab resume id 置空（防止下一条消息 `--resume` 已删除会话），删除前有 modal 确认。
 - 恢复关闭会话：VS Code 有 tab reload 持久化，JetBrains 有 reopen-closed（§6），picker resume 覆盖任意历史会话。
+- remote/cloud session handoff（首版）：
+  - `/handoff`（两端）：停掉面板子进程，`cc agent --bg --resume <sessionId> -p <prompt>` 把同一会话转成后台 agent（后台 worker 成为该会话唯一写者），从浏览器 web-panel 后台面板、`cc attach <id>`、IDE Background Agents 面板均可续接；tab 稍后可重新 pick 该会话回到 IDE。
+  - Remote Control 命令（两端）：启动 `cc remote-control start --json` 配对宿主（长驻子进程），解析配对 JSON 展示一次性 URI（复制到剪贴板/QR 由 CLI 终端渲染），`status --json --prune` 列宿主并清理死 pid，`stop --port` 优雅停止（VS Code 兜底 taskkill 树杀 / JetBrains destroyForcibly 后代进程）。
+  - 断线恢复：宿主意外退出时 IDE 弹提示（重启重发一次性 token）；`--prune` 清掉硬杀残留的 state 文件。
 
 剩余：
 
-- remote/cloud session handoff 的 IDE 启动、配对、状态展示与断线恢复。
+- 配对 URI 的 IDE 内 QR 渲染（现引导用 CLI 终端 QR 或直接粘贴 URI）。
+- relay（E2EE 跨网）配置的 IDE 设置面（现走 CLI env/config）。
 
 ### 3. IDE MCP 能力补齐和统一
 

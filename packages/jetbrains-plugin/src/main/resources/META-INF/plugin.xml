@@ -279,6 +279,10 @@
                 class="com.chainlesschain.ide.intellij.BackgroundAgentsAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.remote.Control"
+                class="com.chainlesschain.ide.intellij.RemoteControlAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.ide.DiagnoseBridge"
                 class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>

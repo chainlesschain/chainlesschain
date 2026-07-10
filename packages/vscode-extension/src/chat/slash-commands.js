@@ -29,6 +29,7 @@
     ["/context", "context-window usage"],
     ["/rewind", "restore a checkpoint"],
     ["/retry", "regenerate the last prompt"],
+    ["/handoff", "hand off to a background agent (web/mobile)"],
     ["/review", "review the current git diff"],
     ["/help", "list panel commands"],
   ];

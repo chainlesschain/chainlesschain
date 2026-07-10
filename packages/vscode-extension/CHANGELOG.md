@@ -4,6 +4,20 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **`/handoff` — hand a conversation off to a background agent.** Stops the
+  panel child and relaunches the SAME session detached (`cc agent --bg
+  --resume <id>`), so it keeps running without the IDE and can be continued
+  from the web panel's Background Agents view (browser/phone), `cc attach
+  <id>`, or the IDE's Background Agents panel. Pick the session again later
+  to re-attach it to a tab.
+- **Remote Control command (ChainlessChain: Remote Control).** Starts a
+  `cc remote-control` pairing host as a long-running child of this window,
+  surfaces the one-time pairing URI (copy to clipboard) so a phone or web
+  panel can pair and drive this machine's agent sessions
+  (observe/prompt/approve/interrupt), lists discovered hosts
+  (`status --json --prune`), and stops them gracefully (CLI stop first,
+  taskkill tree fallback). If the host dies unexpectedly you're told —
+  restarting issues a fresh pairing URI.
 - **Plan Review as a real editor tab.** A `plan_update` now opens (and keeps
   in sync) an editable Markdown review document instead of only a chat card.
   Editor-title actions: Approve, Request changes, Regenerate, Reject.

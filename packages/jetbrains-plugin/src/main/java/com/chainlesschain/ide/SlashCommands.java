@@ -37,6 +37,7 @@ public final class SlashCommands {
             new String[] { "/retry", "re-send this tab's last prompt" },
             new String[] { "/rewind", "restore a work-tree checkpoint" },
             new String[] { "/sessions", "resume a saved session in this tab" },
+            new String[] { "/handoff", "hand off to a background agent (web/mobile)" },
             new String[] { "/help", "list panel commands" }));
 
     // Whole input so far is `/` + command chars at the start of the line, no

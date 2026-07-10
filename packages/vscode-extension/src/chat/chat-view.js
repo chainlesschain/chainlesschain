@@ -657,6 +657,51 @@ class ChatViewProvider {
   }
 
   /**
+   * /handoff — hand this tab's conversation off to a DETACHED background
+   * agent (`cc agent --bg --resume <id>`), so it keeps running without the
+   * IDE and can be continued from the web panel's Background Agents view
+   * (browser/phone), `cc attach <id>`, or either IDE's Background Agents
+   * panel. The live panel child is stopped first — the background worker
+   * becomes the session's single writer.
+   */
+  async _handoffSession() {
+    const conv = this._activeConv();
+    if (!conv.sessionId) {
+      this._post({
+        kind: "info",
+        text: "nothing to hand off yet — send a message first",
+      });
+      return;
+    }
+    const raw = await this.vscode.window.showInputBox({
+      prompt: "Task for the background agent to continue with",
+      value: "Continue the current task.",
+    });
+    const prompt = typeof raw === "string" ? raw.trim() : "";
+    if (!prompt) return;
+    if (conv.session?.running) {
+      conv.session.stop();
+      this._convs.setSession(conv.id, null);
+    }
+    this._post({ kind: "info", text: "handing off to a background agent…" });
+    const { runHandoff, formatHandoffNote } = require("./remote-handoff");
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const res = await runHandoff({
+      command: this._cliCommand(),
+      sessionId: conv.sessionId,
+      prompt,
+      cwd: folders[0]?.uri?.fsPath,
+    });
+    if (!res.ok) {
+      this._post({ kind: "error", text: `handoff failed: ${res.error}` });
+      return;
+    }
+    // The session is running again — as a background agent.
+    this._indexConversation(conv, "running");
+    this._post({ kind: "info", text: formatHandoffNote(res.state) });
+  }
+
+  /**
    * A `chainlesschain.chat.model` / `.provider` setting, sanitized before it is
    * interpolated into a Windows shell argv (the .cmd shims force `shell:true`,
    * where metacharacters can't be quoted). These settings are `window`-scoped,
@@ -1575,6 +1620,8 @@ class ChatViewProvider {
       this._insertCodeAtCursor(String(m.code || ""));
     } else if (m.type === "pickSession") {
       this._pickSession().catch(() => {});
+    } else if (m.type === "handoff") {
+      this._handoffSession().catch(() => {});
     } else if (m.type === "cost" || m.type === "context") {
       this._runIntrospect(m.type).catch(() => {});
     } else if (m.type === "rewind") {

@@ -66,6 +66,11 @@
         "icon": "$(server-process)"
       },
       {
+        "command": "chainlesschain.remote.control",
+        "title": "%cmd.remote.control.title%",
+        "icon": "$(broadcast)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },
