@@ -580,7 +580,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 - ~~REPL `/remote-control` slash 入口（agent-repl.js 与并行 session 争用中，待窗口）~~（第二十六批已落地）。
 - `devices`/`revoke` 跨进程管理面（registry host-only 语义下需管理密钥通道，v2）。
-- 移动端/web-panel 对 direct-LAN URI 的扫码消费（协议已就绪）。
+- ~~web-panel 对 direct-LAN URI 的扫码消费~~（第二十八批已落地）；移动端消费仍待（web 端形状可作移植参照）。
 
 ### 2026-07-09 第十八批（第四阶段 #2 — mobile/web 权限审批）
 
@@ -595,7 +595,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 仍待后续：
 
 - ~~REPL 交互式会话的 bridge 接线（本地终端与远端赛跑已由 makeConfirmer fallback 支持，等 agent-repl.js 争用窗口）~~（第二十六批已落地——注意并未复用 makeConfirmer fallback，见批26 说明）。
-- web-panel/Android 客户端消费 `permission.request` 卡片 UI（协议+push 已就绪）。
+- ~~web-panel 客户端消费 `permission.request` 卡片 UI~~（第二十八批已落地）；Android 客户端仍待（协议+push 已就绪）。
 - `permission.request` 事件带完整决策链上下文（第十二批 permissionChain）——polish。
 
 ### 2026-07-09 第十九批（第四阶段 #3 — Monitor / Cron / Push agent 工具）
@@ -727,7 +727,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 仍待后续：
 
 - `/remote-control` 与 `cc remote-control start`（批17 统一入口，常驻 server + prompt/interrupt scopes）是两个形态：REPL 内是 approve-only 轻装配；若要 REPL 会话同时被远端 prompt/observe，属 remote-session host 接线（另立批次）。
-- web-panel/Android `permission.request` 卡片 UI 与移动端扫码消费（协议+push 已就绪，同批18 遗留）。
+- ~~web-panel `permission.request` 卡片 UI~~（第二十八批已落地）；Android 卡片与扫码消费仍待（协议+push 已就绪，同批18 遗留）。
 
 ### 2026-07-10 第二十七批（IDE gap P1 #8 收尾 — `browser_state` 一等 agent 工具）
 
@@ -743,6 +743,20 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 - 真机 e2e（真 Chrome + 真 agent 会话）——chrome-connector 本体已有 Chrome 145 live 验证，工具面为纯接线；下次发版顺手。
 - 权限规则面（permission-rules.cjs 的命名 allow/deny 匹配组）——browser_state 与 notify/schedule/publish_artifact 同样不进 TOOL_GROUPS，走默认 auto；如需 per-URL 规则再议。
+
+### 2026-07-10 第二十八批（批17/18 web-panel 遗留收口 — 直连配对 + 审批卡片）
+
+已落地：
+
+- **web-panel 消费 direct-LAN 配对 URI（批17 遗留）**：`remoteSession` store 双 transport 自动检测——`chainlesschain://remote-session/pair#`（既有中继 E2EE 路径，字节不变）与 `chainlesschain://remote-control/pair#`（新直连路径）。新 `utils/remote-control-pairing.js`（CLI `parseDirectPairingUri` 的浏览器移植 + 客户端过期校验）。直连流程：WS 直连 host 端点 → `auth`(serverToken) → `remote-session-join`(一次性 pairingToken) → `remote-session-event` 帧；控制事件走 `remote-session-publish`，**commandId+seq 打在消息顶层**（`applyControlIdempotent` 直连客户端契约，与中继「加密载荷内打 key」相区分）；请求关联 `requestId` 优先于 `id`（envelope 坑，同 WsRpcClient）。**一次性 token ⇒ 直连断线刻意不自动重连**（重连必撞 join 错误），如实报 disconnected + 重新生成配对链接提示；中继路径的共享密钥自动重连语义不变。
+- **`permission.request` 审批卡片（批18 遗留）**：两 transport 共用 `recordEvent` 喂 `pendingApprovals`——`permission.request` 开卡（requestId 去重，容 relay at-least-once 重投）、`permission.resolved` 清卡（他端决定——终端/别的设备/超时——同样清）；`approve()` 乐观清卡 + 按 transport 路由（直连 publish / 中继 E2EE control）。视图 `RemoteSession.vue`：置顶「待审批权限请求」卡片区（tool tag + action + detail 代码块 + 批准/拒绝）+ transport 标签（直连/中继）+ 配对输入框双 scheme 提示；旧的事件列表内联审批按钮保留（兼容 legacy `*approval*` 事件形）。
+- 与批26 对接后端到端链路成立：REPL/headless `--remote-control` 打印直连 URI → web-panel 粘贴/扫码 → 审批卡片 → 批准/拒绝，与终端提示赛跑。
+- 测试：新 store 套件 12（URI 解析往返/过期/畸形/错 scheme + auth→join 全流程与帧形状 + 卡片开合 + **顶层 commandId+seq 断言** + 他端 resolve 清卡 + 重投去重 + 断线不重连 + join 拒绝 + 过期快失败不开 socket + prompt 控制 + revoked + 显式断开）+ 既有中继套件补 1（中继路径卡片开合与 E2EE control 形状）；web-panel 全量 123 文件/2480 全绿（首跑 1 例无关 load-flake，重跑全绿）+ vite build 过（tracked dist/index.html 已还原）。
+
+仍待后续：
+
+- Android 客户端消费 direct-LAN URI 与 permission.request 卡片（web 端形状可作移植参照）。
+- web-panel 侧卡片展示决策链上下文（依赖 CLI 侧 `permission.request` 事件先带 permissionChain，批18 遗留 polish）。
 
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 

@@ -1,11 +1,26 @@
 // Web Remote Session client store.
 //
-// A browser port of the Android RemoteSessionClient/ViewModel: it joins a
-// desktop coding session over the signaling relay (NOT the panel's local CLI
-// WebSocket), speaks the E2EE protocol, and mirrors the host's runtime events.
-// Auto-reconnects transient drops on the already-derived shared secret without
-// re-spending the one-time pairing token; stops on explicit disconnect or a
-// host-issued `session.revoked`.
+// Two transports (auto-detected from the pairing URI):
+//
+//   RELAY  (chainlesschain://remote-session/pair#…)  — a browser port of the
+//   Android RemoteSessionClient: joins over the signaling relay, speaks the
+//   E2EE protocol, auto-reconnects transient drops on the already-derived
+//   shared secret without re-spending the one-time pairing token.
+//
+//   DIRECT (chainlesschain://remote-control/pair#…)  — LAN mode from
+//   `cc remote-control` / `cc agent --remote-control` / REPL `/remote-control`:
+//   connects straight to the host's WS endpoint, authenticates with the
+//   embedded server token, joins with the ONE-TIME pairing token, and speaks
+//   the plaintext-over-WS remote-session protocol (auth → remote-session-join
+//   → remote-session-event frames; controls via remote-session-publish with a
+//   TOP-LEVEL commandId+seq for the host's idempotency ledger). Because the
+//   pairing token is one-time, an unexpected drop cannot re-join — the store
+//   reports `disconnected` with a re-pair hint instead of auto-reconnecting.
+//
+// Both transports feed the same event log and the same `pendingApprovals`
+// cards: a `permission.request` runtime event (RemoteApprovalBridge) opens a
+// card, `permission.resolved` (any decider: another device, the terminal, a
+// timeout) clears it.
 
 import { defineStore } from "pinia";
 import { ref } from "vue";
@@ -13,9 +28,14 @@ import {
   RemoteSessionCrypto,
   parseRemotePairingUri,
 } from "../utils/remote-session-crypto.js";
+import {
+  isDirectPairingUri,
+  parseDirectPairingUri,
+} from "../utils/remote-control-pairing.js";
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
 
 let seq = 0;
 function newUuid() {
@@ -32,6 +52,15 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   const events = ref([]);
   const error = ref("");
   const remoteSessionId = ref(null);
+  // "relay" | "direct" | null — which transport the active pairing uses.
+  const transport = ref(null);
+  // Scopes granted to THIS device by the pairing token (direct mode reports
+  // them from the join ack; relay mode doesn't carry them → null).
+  const scopes = ref(null);
+  // First-class permission cards: [{requestId, tool, action, detail, askedAt}]
+  // opened by `permission.request`, cleared by `permission.resolved` or an
+  // answer sent from this panel.
+  const pendingApprovals = ref([]);
 
   // Non-reactive connection internals (persist for the singleton store).
   let socket = null;
@@ -46,12 +75,18 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // host can wake this browser for approvals when the tab is backgrounded.
   let pushCredentials = null;
   // Idempotency (Phase 5): every control event carries a commandId + a
-  // per-pairing monotonic seq INSIDE the encrypted plaintext (the host reads
-  // message.event.commandId after decryption). The relay is at-least-once —
-  // it stores and REDELIVERS `offline-message`s — so without the id a
-  // redelivered prompt would run a second agent turn. deviceId is NOT sent:
-  // the host derives it from the authenticated peer (spoof-proof).
+  // per-pairing monotonic seq. Relay mode stamps them INSIDE the encrypted
+  // plaintext (the host reads event.commandId after decryption); direct mode
+  // stamps them at the message TOP LEVEL (applyControlIdempotent reads
+  // message.commandId first). deviceId is NOT sent: the host derives it from
+  // the authenticated peer (spoof-proof).
   let controlSeq = 0;
+
+  // Direct-mode internals.
+  let directSocket = null;
+  let directPairing = null;
+  let directPending = new Map(); // id → {resolve, reject, timer}
+  let directCounter = 0;
 
   function clearReconnect() {
     if (reconnectTimer) {
@@ -59,6 +94,45 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       reconnectTimer = null;
     }
   }
+
+  // ── shared event ingestion (both transports) ─────────────────────────────
+
+  function recordEvent(event) {
+    if (event?.type === "permission.request") {
+      const requestId = event.requestId || event.approvalId || null;
+      if (
+        requestId &&
+        !pendingApprovals.value.some((card) => card.requestId === requestId)
+      ) {
+        pendingApprovals.value = [
+          ...pendingApprovals.value,
+          {
+            requestId,
+            tool: event.tool || null,
+            action: event.action || null,
+            detail: event.detail || null,
+            askedAt: event.askedAt || Date.now(),
+          },
+        ];
+      }
+    } else if (event?.type === "permission.resolved") {
+      const requestId = event.requestId || event.approvalId || null;
+      if (requestId) clearApprovalCard(requestId);
+    }
+    seq += 1;
+    events.value = [
+      ...events.value,
+      { ...event, _id: seq, _rxAt: Date.now() },
+    ].slice(-200);
+  }
+
+  function clearApprovalCard(requestId) {
+    pendingApprovals.value = pendingApprovals.value.filter(
+      (card) => card.requestId !== requestId,
+    );
+  }
+
+  // ── relay transport ───────────────────────────────────────────────────────
 
   function openSocket() {
     if (!pairing) return;
@@ -139,11 +213,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
         socket = null;
         status.value = "revoked";
       } else {
-        seq += 1;
-        events.value = [
-          ...events.value,
-          { ...event, _id: seq, _rxAt: Date.now() },
-        ].slice(-200);
+        recordEvent(event);
       }
     } catch (cause) {
       status.value = "error";
@@ -197,9 +267,178 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     });
   }
 
+  // ── direct (LAN) transport ────────────────────────────────────────────────
+
+  function failDirectPending(reason) {
+    for (const [, pending] of directPending) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+    }
+    directPending = new Map();
+  }
+
+  /**
+   * Send `{id, type, ...payload}` and await the matching response frame.
+   * Envelope responses repurpose `id` as an eventId and carry the correlation
+   * key in `requestId` — match `requestId` FIRST, then `id` (same contract as
+   * the CLI's WsRpcClient).
+   */
+  function directRequest(type, payload = {}) {
+    const ws = directSocket;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const id = `web-rc-${++directCounter}-${newUuid()}`;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        directPending.delete(id);
+        reject(new Error(`request "${type}" timed out`));
+      }, DIRECT_REQUEST_TIMEOUT_MS);
+      directPending.set(id, { resolve, reject, timer });
+      ws.send(JSON.stringify({ id, type, ...payload }));
+    });
+  }
+
+  function handleDirectMessage(raw) {
+    let message;
+    try {
+      message = JSON.parse(typeof raw === "string" ? raw : String(raw));
+    } catch {
+      return; // non-JSON frames are not part of this protocol
+    }
+    const key =
+      message.requestId && directPending.has(message.requestId)
+        ? message.requestId
+        : message.id && directPending.has(message.id)
+          ? message.id
+          : null;
+    if (key) {
+      const pending = directPending.get(key);
+      directPending.delete(key);
+      clearTimeout(pending.timer);
+      if (message.type === "error") {
+        pending.reject(
+          new Error(
+            message.message || message.payload?.message || "server error",
+          ),
+        );
+      } else {
+        pending.resolve(message);
+      }
+      return;
+    }
+    if (
+      message.type === "remote-session-event" &&
+      message.remoteSessionId === directPairing?.remoteSessionId
+    ) {
+      recordEvent(message.event || {});
+      return;
+    }
+    if (
+      message.type === "remote-session-revoked" &&
+      message.remoteSessionId === directPairing?.remoteSessionId
+    ) {
+      closedExplicitly = true;
+      if (directSocket) directSocket.close();
+      directSocket = null;
+      status.value = "revoked";
+    }
+  }
+
+  function connectDirect(parsed) {
+    directPairing = parsed;
+    remoteSessionId.value = parsed.remoteSessionId;
+    transport.value = "direct";
+    scopes.value = parsed.scopes;
+    status.value = "connecting";
+    const ws = new WebSocket(parsed.wsUrl);
+    directSocket = ws;
+    ws.addEventListener("open", async () => {
+      if (ws !== directSocket) return;
+      try {
+        status.value = "pairing";
+        if (parsed.serverToken) {
+          const auth = await directRequest("auth", {
+            token: parsed.serverToken,
+          });
+          if (!auth.success) {
+            throw new Error(auth.message || "authentication failed");
+          }
+        }
+        const joined = await directRequest("remote-session-join", {
+          remoteSessionId: parsed.remoteSessionId,
+          token: parsed.pairingToken,
+        });
+        if (ws !== directSocket) return;
+        scopes.value = joined.member?.scopes || parsed.scopes;
+        status.value = "connected";
+      } catch (cause) {
+        if (ws !== directSocket) return;
+        status.value = "error";
+        error.value = cause?.message || "Direct pairing failed";
+        try {
+          ws.close();
+        } catch {
+          /* already closing */
+        }
+        directSocket = null;
+      }
+    });
+    ws.addEventListener("message", (event) => {
+      if (ws !== directSocket) return;
+      handleDirectMessage(event.data);
+    });
+    ws.addEventListener("close", () => {
+      if (ws !== directSocket) return;
+      directSocket = null;
+      failDirectPending("connection closed");
+      if (closedExplicitly) {
+        if (status.value !== "revoked") status.value = "disconnected";
+        return;
+      }
+      // The pairing token was one-time (consumed by the join), so a dropped
+      // direct connection CANNOT silently re-join — surface it honestly
+      // instead of auto-reconnect-looping into join errors.
+      if (status.value === "connected" || status.value === "pairing") {
+        status.value = "disconnected";
+        error.value =
+          "直连会话已断开 — 配对码为一次性，请在主机端重新生成配对链接";
+      }
+    });
+    ws.addEventListener("error", () => {
+      if (ws !== directSocket) return;
+      error.value = "Remote control host connection error";
+    });
+  }
+
+  function sendDirectControl(event) {
+    // Top-level commandId + seq: the direct-WS idempotency contract
+    // (applyControlIdempotent reads message.commandId ?? event.commandId).
+    return directRequest("remote-session-publish", {
+      remoteSessionId: directPairing.remoteSessionId,
+      commandId: newUuid(),
+      seq: ++controlSeq,
+      event,
+    }).catch((cause) => {
+      error.value = cause?.message || "Remote control send failed";
+      return null;
+    });
+  }
+
+  // ── public API ────────────────────────────────────────────────────────────
+
   function connect(uri, options = {}) {
     disconnect();
     try {
+      error.value = "";
+      events.value = [];
+      pendingApprovals.value = [];
+      closedExplicitly = false;
+      controlSeq = 0;
+      if (isDirectPairingUri(uri)) {
+        connectDirect(parseDirectPairingUri(uri));
+        return true;
+      }
       const parsed = parseRemotePairingUri(uri);
       pushCredentials = options.pushCredentials || null;
       peerId = newPeerId();
@@ -207,14 +446,10 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       crypto.pair(parsed.hostPublicKey, parsed.pairingToken);
       pairing = parsed;
       remoteSessionId.value = parsed.remoteSessionId;
+      transport.value = "relay";
+      scopes.value = null;
       paired = false;
-      closedExplicitly = false;
       reconnectAttempts = 0;
-      // Fresh pairing = fresh peerId = fresh per-device seq space on the host;
-      // a transient reconnect (same peerId) keeps the counter running.
-      controlSeq = 0;
-      error.value = "";
-      events.value = [];
       status.value = "connecting";
       openSocket();
       return true;
@@ -228,22 +463,48 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   function sendPrompt(content) {
     const trimmed = (content || "").trim();
     if (!trimmed) return;
+    if (transport.value === "direct") {
+      if (directSocket) sendDirectControl({ type: "prompt", content: trimmed });
+      else error.value = "Remote Session is not connected";
+      return;
+    }
     if (!sendControl({ type: "prompt", content: trimmed })) {
       error.value = "Remote Session is not connected";
     }
   }
 
   function approve(requestId, approved) {
+    if (!requestId) return;
+    // Optimistic card clear — permission.resolved will confirm (idempotent).
+    clearApprovalCard(requestId);
+    if (transport.value === "direct") {
+      if (directSocket) {
+        sendDirectControl({
+          type: "approval.resolve",
+          requestId,
+          answer: approved,
+          approved,
+        });
+      } else {
+        error.value = "Remote Session is not connected";
+      }
+      return;
+    }
     sendControl({ type: "approval.resolve", requestId, approved });
   }
 
   function interrupt() {
+    if (transport.value === "direct") {
+      if (directSocket) sendDirectControl({ type: "interrupt" });
+      return;
+    }
     sendControl({ type: "interrupt" });
   }
 
   // Update the Web Push subscription after pairing (e.g. the browser re-subscribed
   // with a new endpoint). Records it for the next pair.join and, when already
   // paired, forwards it to the host now via a push.register control event.
+  // (Relay transport only — direct LAN pairings are same-network/foreground.)
   function updatePushCredentials(token, provider = "web") {
     pushCredentials = token ? { token, provider } : null;
     if (!paired) return;
@@ -267,6 +528,16 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       }
     }
     socket = null;
+    if (directSocket) {
+      try {
+        directSocket.close();
+      } catch {
+        /* already closing */
+      }
+    }
+    directSocket = null;
+    directPairing = null;
+    failDirectPending("disconnected");
     if (status.value !== "revoked") status.value = "disconnected";
   }
 
@@ -275,6 +546,9 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     events,
     error,
     remoteSessionId,
+    transport,
+    scopes,
+    pendingApprovals,
     connect,
     sendPrompt,
     approve,

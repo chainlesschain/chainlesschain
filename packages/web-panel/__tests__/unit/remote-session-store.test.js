@@ -239,4 +239,40 @@ describe("remoteSession store", () => {
       pushProvider: "web",
     });
   });
+
+  it("opens/clears permission cards on the relay transport too (批27)", () => {
+    const store = useRemoteSessionStore();
+    const active = connectAndOpen(store);
+    expect(store.transport).toBe("relay");
+
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "ra-relay-1",
+      tool: "run_shell",
+      detail: "rm -rf dist",
+    });
+    expect(store.pendingApprovals).toHaveLength(1);
+
+    store.approve("ra-relay-1", false);
+    // Optimistic clear + the E2EE control carries the decision.
+    expect(store.pendingApprovals).toHaveLength(0);
+    expect(active.controls.at(-1)).toMatchObject({
+      type: "approval.resolve",
+      requestId: "ra-relay-1",
+      approved: false,
+    });
+
+    // A resolution decided elsewhere clears a still-open card.
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "ra-relay-2",
+    });
+    expect(store.pendingApprovals).toHaveLength(1);
+    active.pushEvent({
+      type: "permission.resolved",
+      requestId: "ra-relay-2",
+      approved: true,
+    });
+    expect(store.pendingApprovals).toHaveLength(0);
+  });
 });
