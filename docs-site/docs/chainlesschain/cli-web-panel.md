@@ -1,6 +1,6 @@
-# Vue3 Web 管理面板 (ui -- v5.0.2.12)
+# Vue3 Web 管理面板 (ui)
 
-> **版本**: v5.0.2.12 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
+> **版本**: 随 `chainlesschain` 包持续演进（本页按 cli `0.162.157` / 2026-07-10 全量盘点：**8 组 66 个侧栏模块 + 4 个桌面壳专属项，68 视图 / 123 测试文件 2480 测试**）| 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
 
 > **v5.0.2.6 起**：通过 `npm install -g chainlesschain` 安装的用户**无需手动构建**，面板已内置于包中，直接运行 `chainlesschain ui` 即可。
 
@@ -8,14 +8,14 @@
 
 `chainlesschain ui` 启动一个本地 HTTP 服务器，提供基于 Vue3 + Ant Design Vue 的 Web 管理面板。面板通过 WebSocket 连接到 `chainlesschain serve` 的 WS 服务端，将 CLI 的全部能力以可视化界面呈现，无需记忆命令行语法即可完成 AI 对话、技能管理、LLM 配置、安全管理、P2P 网络等操作。
 
-面板包含 23 个功能模块，支持 4 种颜色主题（深色/浅色/海蓝/绿野），并根据运行目录自动区分项目级和全局两种工作模式。
+面板包含 **8 组 66 个侧栏功能模块**（嵌入桌面壳时另有 4 个专属项），支持 4 种颜色主题（深色/浅色/海蓝/绿野），并根据运行目录自动区分项目级和全局两种工作模式。
 
 ## 核心特性
 
-- **23 个功能模块**: 覆盖仪表板、AI 对话、技能管理、LLM 配置、服务状态、运行日志、笔记管理、MCP 工具、记忆系统、定时任务、后台任务、安全中心、P2P 网络、Git 与数据、项目管理、钱包管理、组织管理、使用分析、模板中心、权限管理、RSS 订阅、备份恢复、身份认证
+- **66 个功能模块（8 组）**: 概览（对话/Cowork/AIOps/Token 等 8）、配置（LLM/MCP/语音/同步等 9）、数据（笔记/记忆/个人数据中台/家庭守护/后台 Agent/交付物等 14）、高级（安全/MTC/多签/DID/P2P/移动桥/远程会话/远程终端/联邦等 22）、企业（钱包/组织/租户/SLA 等 6）、社交（社区/治理/声誉/推荐 4）、媒体（视频 1）、扩展（RSS/WebAuthn 2）；嵌入桌面壳时追加桌面组 4 项
 - **4 种颜色主题**: 通过 CSS 自定义属性驱动，主题偏好自动持久化到 localStorage
 - **实时 WebSocket 连接**: 指数退避自动重连，`waitConnected` 保证首次连接就绪后再发送请求
-- **响应式设计**: 七组侧边栏导航，适配不同屏幕尺寸
+- **响应式设计**: 八组侧边栏导航（桌面壳内 +1 组），适配不同屏幕尺寸
 - **项目级 / 全局模式**: 自动检测当前目录是否含 `.chainlesschain/`，切换对应的工作模式
 - **流式 AI 对话**: 支持 Chat/Agent 双模式，逐 token 流式渲染，工具调用可视化
 - **Markdown 渲染**: marked.js + highlight.js 实现代码高亮
@@ -49,7 +49,7 @@
 - **Pinia Stores**: `ws.js`（连接管理）、`theme.js`（主题）、`chat.js`（会话）、`skills.js`（技能）、`providers.js`（LLM）、`tasks.js`（任务）、`dashboard.js`（统计）
 - **三路面板检测**: 优先使用 `--web-panel-dir` 指定目录，其次查找源码构建产物 `packages/web-panel/dist/`，最后使用 npm 包内置产物 `src/assets/web-panel/`，全部未找到时回退到经典单页 HTML
 
-`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **23 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
+`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **66 个侧栏功能模块（8 组）**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
 
 ## 快速开始
 
@@ -72,9 +72,118 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 
 启动后访问：`http://127.0.0.1:18810`
 
-## 二十三个功能模块
+## 功能模块总览（8 组 66 项 + 桌面壳 4 项，2026-07-10 盘点）
 
-侧边栏分七组：**概览**（仪表板/对话/服务/日志）、**配置**（技能/LLM 配置/MCP 工具）、**数据**（笔记/记忆/定时任务/后台任务）、**高级**（安全中心/权限管理/P2P 网络/备份同步/Git 与数据/项目管理）、**企业**（钱包管理/组织管理/使用分析/模板中心）、**扩展**（RSS 订阅/身份认证）。
+侧边栏分八组，嵌入桌面壳（Electron 内嵌模式）时追加「桌面」组。全部 66 个常规项在 router 均有对应视图（`src/views/` 共 68 个 `.vue` = 67 个路由 + 1 个模态组件 `SignProposalModal.vue`；另有 1 个路由型页面 `/project-init` 不在侧栏、由代码内跳转进入）。
+
+### 概览（8 项）
+
+| 模块                 | 视图          | 职责                                                                               |
+| -------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| 仪表板 `dashboard`   | Dashboard.vue | 首页总览：网关/状态统计卡、技能与对话快捷入口、系统健康概况                        |
+| AI 对话 `chat`       | Chat.vue      | 对话主界面：会话侧栏（项目/全局作用域）、上下文模式与意图切换、流式消息 + Markdown |
+| 快速提问 `quick-ask` | QuickAsk.vue  | 一次性轻量问答，无会话历史                                                         |
+| Cowork `cowork`      | Cowork.vue    | 模板/自由模式协同任务：文件拖拽区 + 历史 + 执行面板                                |
+| 服务状态 `services`  | Services.vue  | 应用/WS 服务/LLM 提供商状态卡、初始化状态、端口占用表                              |
+| 智能运维 `aiops`     | AIOps.vue     | 事件 / 剧本 / 基线三 Tab，事件统计与待处理概览                                     |
+| Token 用量 `tokens`  | Tokens.vue    | 周期选择，调用数/总 token，明细 / 近期 / 缓存 Tab                                  |
+| 运行日志 `logs`      | Logs.vue      | 系统状态 / 环境诊断 doctor / 技能来源 / LLM 提供商多 Tab + 搜索                    |
+
+### 配置（9 项）
+
+| 模块                             | 视图                     | 职责                                                     |
+| -------------------------------- | ------------------------ | -------------------------------------------------------- |
+| 技能管理 `skills`                | Skills.vue               | 技能网格卡片 + 搜索过滤                                  |
+| LLM 配置 `providers`             | Providers.vue            | 当前提供商横幅、提供商网格、本地模型（Ollama）、LLM 参数 |
+| MCP 工具 `mcp`                   | McpTools.vue             | MCP 服务器与工具列表管理 + 运行统计                      |
+| 项目设置 `project-settings`      | ProjectSettings.vue      | 项目根目录 / 存储路径配置                                |
+| 语音设置 `speech-settings`       | SpeechSettings.vue       | TTS / ASR 参数                                           |
+| 通知设置 `notification-settings` | NotificationSettings.vue | 通知渠道 / 规则                                          |
+| 同步设置 `sync-settings`         | SyncSettings.vue         | 多 provider / WebDAV 同步（push/pull 经 cc CLI 桥）      |
+| 自然语言编程 `nlprog`            | NLProgramming.vue        | 翻译 / 约定 Tab，翻译数与平均完整度统计                  |
+| 代码生成 `codegen`               | Codegen.vue              | 生成 / 评审 / 脚手架 Tab 及统计                          |
+
+### 数据（14 项）
+
+| 模块                                   | 视图                     | 职责                                                                               |
+| -------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| 笔记管理 `notes`                       | Notes.vue                | 搜索 + 笔记表格 CRUD                                                               |
+| 全局搜索 `search`                      | Search.vue               | 结果 / 索引 Tab                                                                    |
+| 记忆系统 `memory`                      | Memory.vue               | 短期/长期/核心记忆分层 Tab + 召回                                                  |
+| 知识图谱 `knowledge`                   | KnowledgeGraph.vue       | 图可视化 / 实体 / 关系 / 类型分布，实体数·关系数·平均度                            |
+| 个人数据中台 `personal-data-hub`       | PersonalDataHub.vue      | Vault / 本地 LLM / KG 索引 / RAG 索引健康卡，采集与索引中枢                        |
+| 数据浏览器 `personal-data-hub/browser` | PdhVaultBrowser.vue      | 浏览 Vault 内已采集的个人数据条目（嵌套子路由）                                    |
+| 家庭守护 `family-guard`                | FamilyGuardDashboard.vue | 孩子使用时长/应用排行/最近事件                                                     |
+| 服务市场 `marketplace`                 | Marketplace.vue          | 服务 / 调用 Tab，发布数·调用数·成功率                                              |
+| 定时任务 `cron`                        | Cron.vue                 | 全部/活跃/暂停/预设统计 + 预设卡片                                                 |
+| 工作流 `workflow`                      | WorkflowEditor.vue       | 工作流列表 + 可视化编排编辑器                                                      |
+| 流水线 `pipeline`                      | Pipeline.vue             | 流水线 / 部署 / 模板 Tab                                                           |
+| 后台任务 `tasks`                       | Tasks.vue                | 任务列表与状态监控                                                                 |
+| 后台 Agent `background-agents`         | BackgroundAgents.vue     | 常驻后台代理列表与运行管理                                                         |
+| 交付物 `artifacts`                     | Artifacts.vue            | agent 交付物浏览/预览/下载/清理（详见 [Artifacts](/chainlesschain/cli-artifacts)） |
+
+### 高级（22 项）
+
+| 模块                       | 视图               | 职责                                                               |
+| -------------------------- | ------------------ | ------------------------------------------------------------------ |
+| 安全中心 `security`        | Security.vue       | DID 身份 / 文件加密 / 审计日志三 Tab                               |
+| U-Key 签名 `ukey-sign`     | UkeySign.vue       | 硬件 U-Key 签名操作                                                |
+| 信任 `trust`               | Trust.vue          | 证明 / 互操作 / 卫星 / HSM 四 Tab                                  |
+| 审计 `audit`               | Audit.vue          | 事件 / 分类 Tab，总数·失败数                                       |
+| MTC `mtc`                  | Mtc.vue            | Merkle 传递证书：状态/发布者/验证/跨链桥/联邦治理/邀请/投票多 Tab  |
+| MTC 审计 `mtc-audit`       | MtcAudit.vue       | Envelope 查询 / Archive 归档 / M-of-N 治理 / 跨联邦信任 / 定时归档 |
+| M-of-N 多签 `multisig`     | Multisig.vue       | 提案列表 / 域策略，待签·已达阈值·已执行统计                        |
+| DID `did`                  | DID.vue            | DID 创建/详情/签名、MTC 包含证明抽屉                               |
+| 权限管理 `permissions`     | Permissions.vue    | 角色 / 权限检查 / 审计日志                                         |
+| P2P 网络 `p2p`             | P2P.vue            | 设备列表 + 同步、配对/发送 Modal                                   |
+| 移动桥 `mobile-bridge`     | MobileBridge.vue   | 桌面 QR / 手动输入 / 扫描手机 QR 三种配对                          |
+| 远程会话 `remote-session`  | RemoteSession.vue  | 远控会话（中继 E2EE + 直连配对双 transport、审批卡片）             |
+| 手机项目 `mobile-projects` | MobileProjects.vue | Android 项目 → 远程终端入口（pty/shell 桥接）                      |
+| 远程终端 `terminal`        | Terminal.vue       | xterm 的 PTY/Shell 交互终端                                        |
+| 备份恢复 `backup`          | Backup.vue         | 备份管理 / 数据同步 / IPFS 存储三 Tab                              |
+| Git 与数据 `git`           | Git.vue            | Git 操作（分支/状态/提交）+ 导入导出                               |
+| 项目管理 `projects`        | Projects.vue       | 项目列表 CRUD 与状态统计                                           |
+| 跨链 `crosschain`          | Crosschain.vue     | 桥 / 兑换 / 消息 Tab                                               |
+| 合规 `compliance`          | Compliance.vue     | 威胁情报 / UEBA，IOC 与风险实体统计                                |
+| 隐私计算 `privacy`         | Privacy.vue        | 联邦学习模型 / 计算 Tab                                            |
+| 分布式推理 `inference`     | Inference.vue      | 节点 / 任务 Tab，在线节点统计                                      |
+| 联邦 `federation`          | Federation.vue     | 熔断器 / 检查 / 连接池 / 节点健康                                  |
+
+### 企业（6 项）
+
+| 模块                    | 视图             | 职责                                           |
+| ----------------------- | ---------------- | ---------------------------------------------- |
+| 钱包管理 `wallet`       | Wallet.vue       | 钱包 / 资产 / 转账三 Tab                       |
+| 组织管理 `organization` | Organization.vue | 组织列表 / 成员 / 审批                         |
+| 租户 `tenant`           | Tenant.vue       | 租户 / 订阅 / 套餐 Tab                         |
+| SLA `sla`               | Sla.vue          | 合约 / 违约 / 分类 Tab                         |
+| 使用分析 `analytics`    | Analytics.vue    | 总调用/总 token/总成本卡、提供商分布、缓存状态 |
+| 模板中心 `templates`    | Templates.vue    | 项目模板 / BI 模板 / Prompt 模板               |
+
+### 社交（4 项）
+
+| 模块              | 视图           | 职责                                |
+| ----------------- | -------------- | ----------------------------------- |
+| 社区 `community`  | Community.vue  | 动态 / 好友 / 联系人 Tab            |
+| 治理 `governance` | Governance.vue | 提案 / 分类 Tab                     |
+| 声誉 `reputation` | Reputation.vue | 评分 / 运行 / 分类，追踪 DID 数     |
+| 推荐 `recommend`  | Recommend.vue  | 推荐 / 画像 / 兴趣 Tab + 用户选择器 |
+
+### 媒体（1 项）+ 扩展（2 项）
+
+| 模块                | 视图             | 职责                            |
+| ------------------- | ---------------- | ------------------------------- |
+| 视频剪辑 `video`    | VideoEditing.vue | 素材库 + 工作区的视频编辑工作台 |
+| RSS 订阅 `rssfeed`  | RssFeed.vue      | 订阅源管理与文章浏览            |
+| WebAuthn `webauthn` | WebAuthn.vue     | WebAuthn 凭证 / SSO 配置        |
+
+### 桌面壳专属（4 项，仅嵌入桌面时显示）
+
+`desktop:hardware-wallet`（硬件钱包）/ `desktop:backup-dashboard`（备份仪表盘）/ `desktop:llm-test-chat`（LLM 测试对话）/ `desktop:settings`（桌面设置）——这 4 项**不是 web-panel 视图**，点击经 `shell.switch` WS 主题路由到桌面端页面。
+
+## 模块详解（节选）
+
+以下为部分核心模块的功能细节：
 
 ### 🏠 仪表板 (Dashboard)
 
@@ -235,8 +344,6 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 - 浏览器完整下载（独立 HTTP 端点，token 走 Bearer 头）、删除、一键清理过期
 - 详见 [Artifacts 交付物](/chainlesschain/cli-artifacts)
 
-> 注：面板功能模块持续增长（views 目录现有 68 个视图），本页「23 个功能模块」清单为 v5.0.2.12 时代的快照，后续版本新增模块（后台任务面板、MTC、联邦、家庭守护、移动桥接、交付物等）以侧栏实际条目为准。
-
 ### 🔑 身份认证 (WebAuthn)
 
 - **WebAuthn 凭证**：注册、列表、删除
@@ -327,9 +434,9 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 │   ├── RssFeed.vue           RSS 订阅（源/文章）
 │   ├── Backup.vue            备份恢复（同步/IPFS）
 │   ├── WebAuthn.vue          身份认证（SSO/2FA）
-│   └── ...                   其余 11 个基础页面
+│   └── ...                   其余 50+ 页面（全表见「功能模块总览」）
 └── src/components/
-    ├── AppLayout.vue         七组侧边栏（概览/配置/数据/高级/企业/扩展）+ 主题切换器
+    ├── AppLayout.vue         八组侧边栏（概览/配置/数据/高级/企业/社交/媒体/扩展，桌面壳 +1 组）+ 主题切换器
     └── MarkdownRenderer.vue  Markdown 渲染（主题感知）
 ```
 
@@ -423,23 +530,21 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 };
 | Desktop 功能迁移   | —            | —                  | ✅ DID/P2P/Git/Projects             | ✅ 企业+扩展 8 页                                 |
 | 侧边栏分组         | 1 组         | 3 组               | 4 组                                | **7 组**                                          |
 
+> **2026-07（cli 0.162.157）盘点**：模块 23 → **66（8 组，+社交/媒体两组 + 桌面壳专属组 4 项）**，测试 621 → **2480（123 文件）**；新增模块以下方「功能模块总览」与面板侧栏实际条目为准。
+
 ## 测试覆盖率
 
-| 文件                         | 类型 | 测试数  |
-| ---------------------------- | ---- | ------- |
-| `parsers.test.js`            | 单元 | 85      |
-| `theme.test.js`              | 单元 | 17      |
-| `ws-store.test.js`           | 单元 | 12      |
-| `chat-store.test.js`         | 单元 | 15      |
-| `tasks-store.test.js`        | 单元 | 8       |
-| `dashboard-store.test.js`    | 单元 | 6       |
-| `new-pages.test.js`          | 单元 | 83      |
-| `batch-pages.test.js`        | 单元 | 309     |
-| `web-ui-server.test.js`      | 集成 | 23      |
-| `cli-commands.test.js`       | 集成 | 17      |
-| `ws-protocol-compat.test.js` | E2E  | 12      |
-| `panel.test.js`              | E2E  | 46      |
-| **Web Panel 合计**           |      | **621** |
+**123 个测试文件 / 2480 项测试**（2026-07-10 全量实测绿），单元 117 文件 + 集成/E2E 6 文件。代表性套件：
+
+| 套件                                           | 类型 | 覆盖                                                   |
+| ---------------------------------------------- | ---- | ------------------------------------------------------ |
+| `parsers.test.js`                              | 单元 | 纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）           |
+| `batch-pages.test.js` / `new-pages.test.js`    | 单元 | 各页面视图批量行为                                     |
+| `artifacts-store.test.js`                      | 单元 | 交付物 store（预览/下载/清理）                         |
+| `remote-session-*.test.js`                     | 单元 | 远程会话双 transport（中继 E2EE + 直连配对）与审批卡片 |
+| `ws-store.test.js` / `chat-store.test.js`      | 单元 | WS 重连、会话流式                                      |
+| `web-ui-server.test.js`                        | 集成 | HTTP 服务 + 配置注入 + 交付物下载端点                  |
+| `ws-protocol-compat.test.js` / `panel.test.js` | E2E  | Envelope 协议兼容、面板端到端                          |
 
 ## 配置参考
 
@@ -602,8 +707,8 @@ WS 服务端使用安全的命令分词器（`tokenizeCommand`）解析命令字
 | `packages/web-panel/src/stores/theme.js`          | 主题状态管理（4 主题 + localStorage 持久化）                  |
 | `packages/web-panel/src/stores/chat.js`           | 会话与消息状态                                                |
 | `packages/web-panel/src/utils/parsers.js`         | 纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）                  |
-| `packages/web-panel/src/views/`                   | 23 个页面视图组件                                             |
-| `packages/web-panel/src/components/AppLayout.vue` | 七组侧边栏布局 + 主题切换器                                   |
+| `packages/web-panel/src/views/`                   | 68 个页面视图组件                                             |
+| `packages/web-panel/src/components/AppLayout.vue` | 八组侧边栏布局（桌面壳内 +1 组）+ 主题切换器                  |
 | `packages/web-panel/src/style.css`                | 全局 CSS 变量驱动的主题系统                                   |
 
 ## 相关文档
