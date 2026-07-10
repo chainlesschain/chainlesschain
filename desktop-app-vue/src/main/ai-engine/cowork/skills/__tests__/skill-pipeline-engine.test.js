@@ -690,6 +690,115 @@ describe("SkillPipelineEngine", () => {
       expect(result.context.parallelStep.result[2].success).toBe(true);
     });
 
+    // Parallel branches used to bypass the pause/cancel gate entirely (they
+    // call _executeSkillStep directly, not _executeSteps): a pause/cancel
+    // issued as the step started — e.g. from a pipeline:step-started
+    // listener — was ignored and every branch ran anyway.
+    it("holds ALL branches at a pause issued as the step starts, resumes them together", async () => {
+      const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+      mockSkillRegistry.executeSkill.mockResolvedValue({ output: "branch" });
+
+      const pipelineId = engine.createPipeline({
+        name: "Parallel Pause",
+        steps: [
+          {
+            type: StepType.PARALLEL,
+            name: "par",
+            branches: [{ skillId: "b1" }, { skillId: "b2" }, { skillId: "b3" }],
+          },
+        ],
+      });
+
+      let executionId;
+      engine.on("pipeline:step-started", (payload) => {
+        if (payload.stepType === StepType.PARALLEL) {
+          executionId = payload.executionId;
+          engine.pausePipeline(executionId);
+        }
+      });
+
+      const execPromise = engine.executePipeline(pipelineId);
+      await flush();
+      // Every branch is parked at the gate — none reached the registry.
+      expect(mockSkillRegistry.executeSkill).not.toHaveBeenCalled();
+
+      engine.resumePipeline(executionId);
+      const result = await execPromise;
+
+      expect(result.state).toBe(PipelineState.COMPLETED);
+      // ALL THREE woke — the pause gate composes waiters; a plain
+      // _pauseResolve assignment would wake only the last branch and the
+      // pipeline would hang here forever.
+      expect(mockSkillRegistry.executeSkill).toHaveBeenCalledTimes(3);
+      expect(result.context.par.result).toHaveLength(3);
+    });
+
+    it("a cancel issued as the parallel step starts prevents every branch from running", async () => {
+      mockSkillRegistry.executeSkill.mockResolvedValue({ output: "branch" });
+
+      const pipelineId = engine.createPipeline({
+        name: "Parallel Cancel At Start",
+        steps: [
+          {
+            type: StepType.PARALLEL,
+            name: "par",
+            branches: [{ skillId: "b1" }, { skillId: "b2" }],
+          },
+        ],
+      });
+
+      engine.on("pipeline:step-started", (payload) => {
+        if (payload.stepType === StepType.PARALLEL) {
+          engine.cancelPipeline(payload.executionId);
+        }
+      });
+
+      const result = await engine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.CANCELLED);
+      expect(mockSkillRegistry.executeSkill).not.toHaveBeenCalled();
+    });
+
+    it("a cancel while branches are in flight aborts the parallel step", async () => {
+      const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+      const releases = [];
+      mockSkillRegistry.executeSkill.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            releases.push(() => resolve({ output: "late" }));
+          }),
+      );
+
+      const pipelineId = engine.createPipeline({
+        name: "Parallel Cancel In Flight",
+        steps: [
+          {
+            type: StepType.PARALLEL,
+            name: "par",
+            branches: [{ skillId: "b1" }, { skillId: "b2" }],
+          },
+        ],
+      });
+
+      let executionId;
+      engine.on("pipeline:step-started", (payload) => {
+        executionId = payload.executionId;
+      });
+
+      const execPromise = engine.executePipeline(pipelineId);
+      await flush();
+      expect(mockSkillRegistry.executeSkill).toHaveBeenCalledTimes(2); // in flight
+
+      engine.cancelPipeline(executionId);
+      releases.forEach((release) => release()); // skills settle AFTER the cancel
+      const result = await execPromise;
+
+      // The step aborts as cancelled instead of recording a success the
+      // outer loop then discards.
+      expect(result.state).toBe(PipelineState.CANCELLED);
+      expect(result.context.par).toBeUndefined();
+    });
+
     it("should handle individual branch failures gracefully", async () => {
       mockSkillRegistry.executeSkill
         .mockResolvedValueOnce({ output: "ok" })

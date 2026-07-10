@@ -436,9 +436,7 @@ class SkillPipelineEngine extends EventEmitter {
         throw new Error("Pipeline cancelled");
       }
       if (ctl.state === PipelineState.PAUSED) {
-        await new Promise((resolve) => {
-          ctl._pauseResolve = resolve;
-        });
+        await this._awaitPauseGate(ctl);
         if (ctl.state === PipelineState.CANCELLED) {
           throw new Error("Pipeline cancelled");
         }
@@ -470,7 +468,7 @@ class SkillPipelineEngine extends EventEmitter {
           case StepType.CONDITION:
             return await this._executeConditionStep(step, execution);
           case StepType.PARALLEL:
-            return await this._executeParallelStep(step, execution.context);
+            return await this._executeParallelStep(step, execution);
           case StepType.TRANSFORM:
             return this._executeTransformStep(step, execution.context);
           case StepType.LOOP:
@@ -635,13 +633,29 @@ class SkillPipelineEngine extends EventEmitter {
   }
 
   /** @private */
-  async _executeParallelStep(step, context) {
+  async _executeParallelStep(step, execution) {
     if (!step.branches || !Array.isArray(step.branches)) {
       throw new Error("Parallel step requires branches array");
     }
+    const context = execution.context;
+    // Same control routing as _executeSteps: nested executions carry _root.
+    const ctl = execution._root || execution;
 
     const promises = step.branches.map(async (branch, idx) => {
       try {
+        // Branches used to skip the pause/cancel gate entirely (they don't
+        // go through _executeSteps): a pause/cancel issued as this step
+        // started — e.g. from a pipeline:step-started listener — was ignored
+        // and every branch ran anyway.
+        if (ctl.state === PipelineState.CANCELLED) {
+          throw new Error("Pipeline cancelled");
+        }
+        if (ctl.state === PipelineState.PAUSED) {
+          await this._awaitPauseGate(ctl);
+          if (ctl.state === PipelineState.CANCELLED) {
+            throw new Error("Pipeline cancelled");
+          }
+        }
         const result = await this._executeSkillStep(branch, context);
         return { index: idx, success: true, result };
       } catch (error) {
@@ -650,11 +664,33 @@ class SkillPipelineEngine extends EventEmitter {
     });
 
     const results = await Promise.allSettled(promises);
+    // A cancel that landed while branches were in flight aborts the step
+    // instead of recording it as a success the outer loop then discards.
+    if (ctl.state === PipelineState.CANCELLED) {
+      throw new Error("Pipeline cancelled");
+    }
     return results.map((r) =>
       r.status === "fulfilled"
         ? r.value
         : { success: false, error: r.reason?.message },
     );
+  }
+
+  /**
+   * @private Park until resumePipeline/cancelPipeline fires _pauseResolve.
+   * COMPOSES with any existing waiter (parallel branches all park on the same
+   * one-shot signal; a plain assignment would wake only the last branch).
+   */
+  _awaitPauseGate(ctl) {
+    return new Promise((resolve) => {
+      const previousResolve = ctl._pauseResolve;
+      ctl._pauseResolve = () => {
+        if (previousResolve) {
+          previousResolve();
+        }
+        resolve();
+      };
+    });
   }
 
   /** @private */
