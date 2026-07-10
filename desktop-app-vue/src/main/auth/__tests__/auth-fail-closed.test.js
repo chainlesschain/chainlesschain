@@ -127,3 +127,129 @@ describe("SSOManager._enforceIdTokenClaims — fail-closed", () => {
     });
   });
 });
+
+// ─── Session-scoped OIDC methods (shadow-store migration 2026-07-10) ───
+//
+// sso:get-userinfo / sso:validate-id-token / sso:get-session-info used to
+// read the never-populated parallel SSOSessionManager store, then call
+// manager methods that did not exist. These prototype-level tests pin the
+// replacement methods: authoritative _getSession + in-manager decryption,
+// fail-closed on every miss.
+
+describe("SSOManager.getSessionUserInfo / validateSessionIdToken / getSessionInfo", () => {
+  const baseSession = {
+    id: "sess-1",
+    providerId: "p1",
+    userDid: "did:example:1",
+    externalUserId: "ext-1",
+    accessToken: "enc:at",
+    idToken: "enc:idt",
+    state: "active",
+    scopes: "openid",
+    userInfo: { sub: "u1" },
+    expiresAt: 9999999999999,
+    createdAt: 1,
+    updatedAt: 2,
+  };
+
+  function ctx(overrides = {}) {
+    return {
+      _getSession: vi.fn(async () => baseSession),
+      getProvider: vi.fn(async () => ({
+        provider_type: "oidc",
+        config: { clientId: "c" },
+      })),
+      _getOAuthProvider: vi.fn(() => ({
+        getUserInfo: vi.fn(async (token) => ({ sub: "u1", via: token })),
+        validateIdToken: vi.fn(async () => ({
+          sub: "u1",
+          _validation: { valid: true, errors: [] },
+        })),
+      })),
+      _decryptToken: vi.fn((v) => v.replace(/^enc:/, "")),
+      _enforceIdTokenClaims: SSOManager.prototype._enforceIdTokenClaims,
+      ...overrides,
+    };
+  }
+
+  const userInfoOf = (c, id = "sess-1") =>
+    SSOManager.prototype.getSessionUserInfo.call(c, id);
+  const validateOf = (c, id = "sess-1") =>
+    SSOManager.prototype.validateSessionIdToken.call(c, id);
+  const infoOf = (c, id = "sess-1") =>
+    SSOManager.prototype.getSessionInfo.call(c, id);
+
+  it("getSessionUserInfo decrypts inside the manager and calls the provider", async () => {
+    const c = ctx();
+    const res = await userInfoOf(c);
+    expect(res.success).toBe(true);
+    expect(res.userInfo).toEqual({ sub: "u1", via: "at" }); // decrypted token
+    expect(c._decryptToken).toHaveBeenCalledWith("enc:at");
+  });
+
+  it("getSessionUserInfo fails closed on unknown / inactive / SAML sessions", async () => {
+    expect(
+      await userInfoOf(ctx({ _getSession: vi.fn(async () => null) })),
+    ).toEqual({ success: false, error: "SESSION_NOT_FOUND" });
+    expect(
+      await userInfoOf(
+        ctx({
+          _getSession: vi.fn(async () => ({
+            ...baseSession,
+            state: "revoked",
+          })),
+        }),
+      ),
+    ).toEqual({ success: false, error: "SESSION_NOT_ACTIVE" });
+    const saml = await userInfoOf(
+      ctx({
+        getProvider: vi.fn(async () => ({
+          provider_type: "saml",
+          config: {},
+        })),
+      }),
+    );
+    expect(saml.success).toBe(false);
+  });
+
+  it("validateSessionIdToken returns enforced claims and strips _validation", async () => {
+    const res = await validateOf(ctx());
+    expect(res.success).toBe(true);
+    expect(res.claims).toEqual({ sub: "u1" });
+  });
+
+  it("validateSessionIdToken fails closed when the token fails validation", async () => {
+    const res = await validateOf(
+      ctx({
+        _getOAuthProvider: vi.fn(() => ({
+          validateIdToken: vi.fn(async () => ({
+            sub: "u1",
+            _validation: { valid: false, errors: ["Token expired"] },
+          })),
+        })),
+      }),
+    );
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/fail-closed|expired/i);
+  });
+
+  it("validateSessionIdToken reports NO_ID_TOKEN when the session has none", async () => {
+    const res = await validateOf(
+      ctx({
+        _getSession: vi.fn(async () => ({ ...baseSession, idToken: null })),
+      }),
+    );
+    expect(res).toEqual({ success: false, error: "NO_ID_TOKEN" });
+  });
+
+  it("getSessionInfo returns metadata WITHOUT token material", async () => {
+    const info = await infoOf(ctx());
+    expect(info).toMatchObject({ id: "sess-1", providerId: "p1" });
+    expect(info.accessToken).toBeUndefined();
+    expect(info.idToken).toBeUndefined();
+    expect(JSON.stringify(info)).not.toContain("enc:");
+    expect(await infoOf(ctx({ _getSession: vi.fn(async () => null) }))).toBe(
+      null,
+    );
+  });
+});

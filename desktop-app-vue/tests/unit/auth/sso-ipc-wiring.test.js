@@ -30,6 +30,9 @@ const managerStub = {
   refreshToken: vi.fn(),
   logout: vi.fn(),
   getActiveSessions: vi.fn(),
+  getSessionInfo: vi.fn(),
+  getSessionUserInfo: vi.fn(),
+  validateSessionIdToken: vi.fn(),
 };
 const sessionMgrStub = {
   invalidateSession: vi.fn(),
@@ -147,5 +150,101 @@ describe("sso:get-sessions — reads the authoritative store", () => {
     expect(managerStub.getActiveSessions).toHaveBeenCalledWith("did:example:1");
     expect(res.sessions).toEqual(rows); // renderer reads result.sessions
     expect(res.data).toEqual(rows);
+  });
+});
+
+// The remaining shadow-store handlers, migrated 2026-07-10: get-userinfo /
+// validate-id-token / get-session-info read the never-populated parallel
+// store (always SESSION_NOT_FOUND for real logins), and the first two then
+// called manager.getUserInfo()/validateIdToken() — methods that do not
+// exist. invalidate-session invalidated only the parallel store, so real
+// sessions were never revoked.
+
+describe("sso:get-userinfo — routes to manager.getSessionUserInfo", () => {
+  it("returns the provider userinfo from the authoritative session", async () => {
+    managerStub.getSessionUserInfo.mockResolvedValue({
+      success: true,
+      userInfo: { sub: "user-1", email: "u@example.com" },
+    });
+    const res = await invoke("sso:get-userinfo", { sessionId: "sess-1" });
+    expect(managerStub.getSessionUserInfo).toHaveBeenCalledWith("sess-1");
+    expect(res).toEqual({
+      success: true,
+      data: { sub: "user-1", email: "u@example.com" },
+    });
+  });
+
+  it("surfaces a manager failure (unknown session) as failure", async () => {
+    managerStub.getSessionUserInfo.mockResolvedValue({
+      success: false,
+      error: "SESSION_NOT_FOUND",
+    });
+    const res = await invoke("sso:get-userinfo", { sessionId: "nope" });
+    expect(res).toEqual({ success: false, error: "SESSION_NOT_FOUND" });
+  });
+});
+
+describe("sso:validate-id-token — routes to manager.validateSessionIdToken", () => {
+  it("returns enforced claims on success", async () => {
+    managerStub.validateSessionIdToken.mockResolvedValue({
+      success: true,
+      claims: { sub: "user-1", iss: "https://idp.example.com" },
+    });
+    const res = await invoke("sso:validate-id-token", { sessionId: "sess-1" });
+    expect(managerStub.validateSessionIdToken).toHaveBeenCalledWith("sess-1");
+    expect(res.success).toBe(true);
+    expect(res.data).toEqual({ sub: "user-1", iss: "https://idp.example.com" });
+  });
+
+  it("fails closed when validation fails", async () => {
+    managerStub.validateSessionIdToken.mockResolvedValue({
+      success: false,
+      error: "NO_ID_TOKEN",
+    });
+    const res = await invoke("sso:validate-id-token", { sessionId: "sess-1" });
+    expect(res).toEqual({ success: false, error: "NO_ID_TOKEN" });
+  });
+});
+
+describe("sso:get-session-info — routes to manager.getSessionInfo", () => {
+  it("returns metadata from the authoritative store", async () => {
+    const info = { id: "sess-1", providerId: "p1", state: "active" };
+    managerStub.getSessionInfo.mockResolvedValue(info);
+    const res = await invoke("sso:get-session-info", { sessionId: "sess-1" });
+    expect(managerStub.getSessionInfo).toHaveBeenCalledWith("sess-1");
+    expect(res).toEqual({ success: true, data: info });
+  });
+
+  it("maps a null lookup to SESSION_NOT_FOUND", async () => {
+    managerStub.getSessionInfo.mockResolvedValue(null);
+    const res = await invoke("sso:get-session-info", { sessionId: "nope" });
+    expect(res).toEqual({ success: false, error: "SESSION_NOT_FOUND" });
+  });
+});
+
+describe("sso:invalidate-session — revokes via the authoritative manager", () => {
+  it("calls manager.logout and best-effort mirrors the parallel store", async () => {
+    managerStub.logout.mockResolvedValue({ success: true });
+    sessionMgrStub.invalidateSession.mockResolvedValue(true);
+    const res = await invoke("sso:invalidate-session", { sessionId: "sess-1" });
+    expect(managerStub.logout).toHaveBeenCalledWith("sess-1");
+    expect(sessionMgrStub.invalidateSession).toHaveBeenCalledWith("sess-1");
+    expect(res.success).toBe(true);
+  });
+
+  it("still succeeds when the parallel store does not know the id", async () => {
+    managerStub.logout.mockResolvedValue({ success: true });
+    sessionMgrStub.invalidateSession.mockRejectedValue(new Error("unknown"));
+    const res = await invoke("sso:invalidate-session", { sessionId: "sess-1" });
+    expect(res.success).toBe(true);
+  });
+
+  it("surfaces a manager logout failure", async () => {
+    managerStub.logout.mockResolvedValue({
+      success: false,
+      error: "Session not found",
+    });
+    const res = await invoke("sso:invalidate-session", { sessionId: "nope" });
+    expect(res).toEqual({ success: false, error: "Session not found" });
   });
 });

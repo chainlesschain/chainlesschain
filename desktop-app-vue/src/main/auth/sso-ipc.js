@@ -461,8 +461,24 @@ function registerSSOIPC(dependencies) {
       if (!sessionId) {
         return { success: false, error: "sessionId is required" };
       }
-      const sessionMgr = getSSOSessionManager();
-      const result = await sessionMgr.invalidateSession(sessionId);
+      // Authoritative store is SSOManager's sso_sessions (the parallel
+      // session-manager is never populated by the login path, so the old
+      // lookup always missed real sessions). logout() revokes provider
+      // tokens + marks the row REVOKED; mirror to the parallel store
+      // best-effort, same as sso:logout.
+      const manager = getSSOManager();
+      const result = await manager.logout(sessionId);
+      try {
+        await getSSOSessionManager().invalidateSession(sessionId);
+      } catch (_e) {
+        /* the parallel store may not know this id */
+      }
+      if (!result || result.success === false) {
+        return {
+          success: false,
+          error: result?.error || "Failed to invalidate session",
+        };
+      }
       return { success: true, data: result };
     } catch (error) {
       logger.error("[SSO-IPC] Error invalidating session:", error);
@@ -479,8 +495,10 @@ function registerSSOIPC(dependencies) {
       if (!sessionId) {
         return { success: false, error: "sessionId is required" };
       }
-      const sessionMgr = getSSOSessionManager();
-      const info = await sessionMgr.getSessionInfo(sessionId);
+      // Authoritative sso_sessions lookup (metadata only, no token
+      // material) — the parallel session-manager never sees real logins.
+      const manager = getSSOManager();
+      const info = await manager.getSessionInfo(sessionId);
       if (!info) {
         return { success: false, error: "SESSION_NOT_FOUND" };
       }
@@ -554,19 +572,16 @@ function registerSSOIPC(dependencies) {
         return { success: false, error: "sessionId is required" };
       }
 
-      const sessionMgr = getSSOSessionManager();
-      const session = await sessionMgr.getSession(sessionId);
-      if (!session) {
-        return { success: false, error: "SESSION_NOT_FOUND" };
-      }
-
+      // Delegate wholesale to the authoritative manager: the old path read
+      // the never-populated parallel session store (always SESSION_NOT_FOUND
+      // for real logins) and then called manager.getUserInfo(), which does
+      // not exist. Token decryption stays inside the manager.
       const manager = getSSOManager();
-      const userInfo = await manager.getUserInfo(
-        session.providerId,
-        session.tokens.accessToken,
-      );
-
-      return { success: true, data: userInfo };
+      const result = await manager.getSessionUserInfo(sessionId);
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      return { success: true, data: result.userInfo };
     } catch (error) {
       logger.error("[SSO-IPC] Error getting user info:", error);
       return { success: false, error: error.message };
@@ -583,23 +598,15 @@ function registerSSOIPC(dependencies) {
         return { success: false, error: "sessionId is required" };
       }
 
-      const sessionMgr = getSSOSessionManager();
-      const session = await sessionMgr.getSession(sessionId);
-      if (!session) {
-        return { success: false, error: "SESSION_NOT_FOUND" };
-      }
-
-      if (!session.tokens.idToken) {
-        return { success: false, error: "NO_ID_TOKEN" };
-      }
-
+      // Same migration as sso:get-userinfo: authoritative store + validation
+      // inside the manager (fail-closed), instead of the never-populated
+      // parallel store + a manager.validateIdToken() that does not exist.
       const manager = getSSOManager();
-      const validation = await manager.validateIdToken(
-        session.providerId,
-        session.tokens.idToken,
-      );
-
-      return { success: true, data: validation };
+      const result = await manager.validateSessionIdToken(sessionId);
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      return { success: true, data: result.claims };
     } catch (error) {
       logger.error("[SSO-IPC] Error validating ID token:", error);
       return { success: false, error: error.message };

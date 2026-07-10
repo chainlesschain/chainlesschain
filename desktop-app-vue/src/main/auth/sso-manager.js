@@ -1096,6 +1096,118 @@ class SSOManager extends EventEmitter {
   }
 
   /**
+   * Metadata for ONE session WITHOUT token material — the session-scoped
+   * companion of getActiveSessions, reading the same authoritative
+   * sso_sessions store (the parallel SSOSessionManager is never populated
+   * by the login path, so lookups there always miss real sessions).
+   * @param {string} sessionId
+   * @returns {Promise<Object|null>} metadata or null when unknown
+   */
+  async getSessionInfo(sessionId) {
+    if (!sessionId) {
+      return null;
+    }
+    const session = await this._getSession(sessionId);
+    if (!session) {
+      return null;
+    }
+    return {
+      id: session.id,
+      providerId: session.providerId,
+      userDid: session.userDid,
+      externalUserId: session.externalUserId,
+      state: session.state,
+      scopes: session.scopes,
+      userInfo: session.userInfo,
+      expiresAt: session.expiresAt,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+    };
+  }
+
+  /**
+   * Fetch fresh userinfo from the OIDC/OAuth provider using the session's
+   * stored access token. The token is decrypted only inside the manager —
+   * callers (IPC) never see token material.
+   * @param {string} sessionId
+   * @returns {Promise<Object>} { success, userInfo? , error? }
+   */
+  async getSessionUserInfo(sessionId) {
+    try {
+      if (!sessionId) {
+        return { success: false, error: "Session ID is required" };
+      }
+      const session = await this._getSession(sessionId);
+      if (!session) {
+        return { success: false, error: "SESSION_NOT_FOUND" };
+      }
+      if (session.state !== SessionState.ACTIVE) {
+        return { success: false, error: "SESSION_NOT_ACTIVE" };
+      }
+      if (!session.accessToken) {
+        return { success: false, error: "NO_ACCESS_TOKEN" };
+      }
+      const provider = await this.getProvider(session.providerId);
+      if (!provider) {
+        return { success: false, error: "Provider not found for session" };
+      }
+      if (provider.provider_type === ProviderType.SAML) {
+        return {
+          success: false,
+          error: "Userinfo is not supported for SAML providers",
+        };
+      }
+      const oauthProvider = this._getOAuthProvider(provider.config);
+      const userInfo = await oauthProvider.getUserInfo(
+        this._decryptToken(session.accessToken),
+      );
+      return { success: true, userInfo };
+    } catch (error) {
+      logger.error("[SSOManager] getSessionUserInfo error:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Validate the session's stored OIDC id_token. Fail-closed: any decrypt/
+   * validation error is a failure — never a pass-through.
+   * @param {string} sessionId
+   * @returns {Promise<Object>} { success, claims?, error? }
+   */
+  async validateSessionIdToken(sessionId) {
+    try {
+      if (!sessionId) {
+        return { success: false, error: "Session ID is required" };
+      }
+      const session = await this._getSession(sessionId);
+      if (!session) {
+        return { success: false, error: "SESSION_NOT_FOUND" };
+      }
+      if (!session.idToken) {
+        return { success: false, error: "NO_ID_TOKEN" };
+      }
+      const provider = await this.getProvider(session.providerId);
+      if (!provider) {
+        return { success: false, error: "Provider not found for session" };
+      }
+      if (provider.provider_type === ProviderType.SAML) {
+        return {
+          success: false,
+          error: "id_token validation is not supported for SAML providers",
+        };
+      }
+      const oauthProvider = this._getOAuthProvider(provider.config);
+      const claims = await oauthProvider.validateIdToken(
+        this._decryptToken(session.idToken),
+      );
+      return { success: true, claims: this._enforceIdTokenClaims(claims) };
+    } catch (error) {
+      logger.error("[SSOManager] validateSessionIdToken error:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Get active SSO sessions for a user
    * @param {string} userDid - User's DID
    * @param {Object} [options] - Query options
