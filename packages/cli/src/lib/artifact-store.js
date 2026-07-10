@@ -65,6 +65,8 @@ const MIME_BY_EXT = Object.freeze({
 });
 
 export function artifactsDir(homedir = os.homedir()) {
+  // Test/deployment override (same convention as CC_BACKGROUND_AGENTS_DIR).
+  if (process.env.CC_ARTIFACTS_DIR) return process.env.CC_ARTIFACTS_DIR;
   return path.join(homedir, ".chainlesschain", "artifacts");
 }
 

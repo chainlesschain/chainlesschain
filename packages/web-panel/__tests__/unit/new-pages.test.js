@@ -27,7 +27,7 @@ import {
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 67 child routes under root', async () => {
+  it('has exactly 68 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
@@ -43,8 +43,9 @@ describe('Router registration', () => {
     //  MobileProjects added 2026-05-17 (`d1fad8159`) for Android project
     //  management → remote-terminal entry PC placeholder;
     //  RemoteSession added 2026-07-03 for Remote Session Phase 3 第三片 web client;
-    //  BackgroundAgents added 2026-07-09 for the bg-* session-transport panel.)
-    expect(rootRoute.children.length).toBe(67)
+    //  BackgroundAgents added 2026-07-09 for the bg-* session-transport panel;
+    //  Artifacts added 2026-07-10 for the artifact-* deliverable-store panel.)
+    expect(rootRoute.children.length).toBe(68)
   })
 
   it('contains all expected route names', async () => {
@@ -66,6 +67,7 @@ describe('Router registration', () => {
       'Terminal',
       'FamilyGuardDashboard',
       'BackgroundAgents',
+      'Artifacts',
     ]
     for (const name of expected) {
       expect(names).toContain(name)

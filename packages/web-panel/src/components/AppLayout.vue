@@ -82,6 +82,7 @@
             <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template>{{ $t('appLayout.items.pipeline') }}</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>{{ $t('appLayout.items.tasks') }}</a-menu-item>
             <a-menu-item key="background-agents"><template #icon><RocketOutlined /></template>后台 Agent</a-menu-item>
+            <a-menu-item key="artifacts"><template #icon><FileDoneOutlined /></template>交付物</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-advanced">
             <template #title><span class="group-label">{{ $t('appLayout.groups.advanced') }}</span></template>
@@ -176,6 +177,7 @@
           <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-item key="background-agents"><template #icon><RocketOutlined /></template></a-menu-item>
+          <a-menu-item key="artifacts"><template #icon><FileDoneOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
           <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template></a-menu-item>
@@ -327,6 +329,7 @@ import {
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
   NumberOutlined, ClusterOutlined, SoundOutlined, DesktopOutlined, BellOutlined,
   SyncOutlined, MobileOutlined, DatabaseOutlined, UnorderedListOutlined,
+  FileDoneOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'

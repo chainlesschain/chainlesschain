@@ -185,6 +185,12 @@ export function createWsMessageDispatcher(server) {
         "bg-stop": () => server._handleBgStop(clientId, id, ws, message),
         "bg-rename": () => server._handleBgRename(id, ws, message),
         "bg-resume": () => server._handleBgResume(id, ws, message),
+        "artifact-list": () => server._handleArtifactList(id, ws, message),
+        "artifact-show": () => server._handleArtifactShow(id, ws, message),
+        "artifact-content": () =>
+          server._handleArtifactContent(id, ws, message),
+        "artifact-remove": () => server._handleArtifactRemove(id, ws, message),
+        "artifact-clean": () => server._handleArtifactClean(id, ws, message),
         "chat.intent.understand": () =>
           server._handleChatIntentUnderstand(id, ws, message),
         "chat.intent.understand-stream": () =>

@@ -106,6 +106,13 @@ import {
   handleBgStopTurn,
   handleBgView,
 } from "./background-agent-protocol.js";
+import {
+  handleArtifactClean,
+  handleArtifactContent,
+  handleArtifactList,
+  handleArtifactRemove,
+  handleArtifactShow,
+} from "./artifact-protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -715,6 +722,31 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — continue a finished session as a new background run */
   async _handleBgResume(id, ws, message) {
     return handleBgResume(this, id, ws, message);
+  }
+
+  /** @private — list agent-published artifacts (metadata only) */
+  async _handleArtifactList(id, ws, message) {
+    return handleArtifactList(this, id, ws, message);
+  }
+
+  /** @private — one artifact's metadata + stored path */
+  async _handleArtifactShow(id, ws, message) {
+    return handleArtifactShow(this, id, ws, message);
+  }
+
+  /** @private — inline preview content (text utf8 / image base64, capped) */
+  async _handleArtifactContent(id, ws, message) {
+    return handleArtifactContent(this, id, ws, message);
+  }
+
+  /** @private — remove one artifact (stored copy + index row) */
+  async _handleArtifactRemove(id, ws, message) {
+    return handleArtifactRemove(this, id, ws, message);
+  }
+
+  /** @private — drop expired artifacts (TTL) */
+  async _handleArtifactClean(id, ws, message) {
+    return handleArtifactClean(this, id, ws, message);
   }
 
   /** @private */
