@@ -33,6 +33,38 @@ import path from "path";
 import http from "http";
 
 export const DEFAULT_CDP_PORT = 9222;
+
+/** Coerce + bound-check a CDP port (goes into URLs and Chrome argv). */
+export function normalizeCdpPort(port) {
+  const n = Number(port ?? DEFAULT_CDP_PORT);
+  if (!Number.isInteger(n) || n < 1 || n > 65535) {
+    throw new Error(`Invalid CDP port: ${port}`);
+  }
+  return n;
+}
+
+/**
+ * A launch URL must be a real web page. Anything else — and especially a
+ * value starting with `--`, which Chrome would parse as a SWITCH (e.g.
+ * --renderer-cmd-prefix=… is command execution) — is refused. Today `url`
+ * only comes from the local `cc browse chrome launch --url` flag, but this
+ * keeps the argv safe if it ever becomes agent- or remote-driven.
+ */
+export function normalizeLaunchUrl(url) {
+  if (url == null || url === "") return null;
+  let parsed;
+  try {
+    parsed = new URL(String(url));
+  } catch {
+    throw new Error(`Invalid launch URL: ${url}`);
+  }
+  if (!["http:", "https:", "about:"].includes(parsed.protocol)) {
+    throw new Error(
+      `Launch URL must be http(s):// or about: (got ${parsed.protocol})`,
+    );
+  }
+  return String(url); // validated — pass through byte-identical
+}
 export const DEFAULT_DOM_CAP = 150000;
 
 const _deps = {
@@ -65,7 +97,9 @@ export async function discoverCdp({
   port = DEFAULT_CDP_PORT,
   deps = _deps,
 } = {}) {
-  const res = await deps.httpGet(`http://127.0.0.1:${port}/json/version`);
+  const res = await deps.httpGet(
+    `http://127.0.0.1:${normalizeCdpPort(port)}/json/version`,
+  );
   if (res.status !== 200) return { ok: false, port };
   try {
     const info = JSON.parse(res.body);
@@ -150,7 +184,7 @@ export function buildChromeLaunchArgs({
   deps = _deps,
 } = {}) {
   const args = [
-    `--remote-debugging-port=${port}`,
+    `--remote-debugging-port=${normalizeCdpPort(port)}`,
     // No first-run wizards in the dedicated profile.
     "--no-first-run",
     "--no-default-browser-check",
@@ -158,7 +192,8 @@ export function buildChromeLaunchArgs({
   if (!defaultProfile) {
     args.push(`--user-data-dir=${profileDir || connectorProfileDir({ deps })}`);
   }
-  if (url) args.push(String(url));
+  const launchUrl = normalizeLaunchUrl(url);
+  if (launchUrl) args.push(launchUrl);
   return args;
 }
 
@@ -216,7 +251,7 @@ export async function captureState({
   let browser;
   try {
     browser = await playwright.chromium.connectOverCDP(
-      `http://127.0.0.1:${port}`,
+      `http://127.0.0.1:${normalizeCdpPort(port)}`,
     );
   } catch (err) {
     return {

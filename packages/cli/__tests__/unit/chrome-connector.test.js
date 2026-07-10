@@ -72,6 +72,32 @@ describe("launch argv + executable resolution", () => {
     expect(args[args.length - 1]).toBe("http://x");
   });
 
+  it("refuses a launch URL Chrome would parse as a switch (argv injection)", () => {
+    const deps = fakeDeps();
+    expect(() =>
+      buildChromeLaunchArgs({ url: "--renderer-cmd-prefix=calc.exe", deps }),
+    ).toThrow(/Invalid launch URL/);
+    expect(() =>
+      buildChromeLaunchArgs({ url: "javascript:alert(1)", deps }),
+    ).toThrow(/must be http\(s\):\/\/ or about:/);
+    expect(() =>
+      buildChromeLaunchArgs({ url: "file:///etc/passwd", deps }),
+    ).toThrow(/must be http\(s\):\/\/ or about:/);
+  });
+
+  it("refuses a non-numeric or out-of-range CDP port", () => {
+    const deps = fakeDeps();
+    expect(() => buildChromeLaunchArgs({ port: "9222 --evil", deps })).toThrow(
+      /Invalid CDP port/,
+    );
+    expect(() => buildChromeLaunchArgs({ port: 0, deps })).toThrow(
+      /Invalid CDP port/,
+    );
+    expect(() => buildChromeLaunchArgs({ port: 70000, deps })).toThrow(
+      /Invalid CDP port/,
+    );
+  });
+
   it("drops --user-data-dir only when the REAL profile is opted into", () => {
     const args = buildChromeLaunchArgs({
       defaultProfile: true,
