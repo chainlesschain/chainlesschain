@@ -46,5 +46,7 @@
   "config.chat.contextIndicator.description": "Show a persistent context-window usage line (tokens used / window) under the chat, refreshed after each turn.",
   "config.codeLens.enabled.description": "Show ✨ Explain / Refactor CodeLens above functions, methods and classes (uses the language's own symbol provider).",
   "cmd.complete.trigger.title": "ChainlessChain: Trigger Inline Completion",
-  "config.completion.enabled.description": "Enable inline ghost-text completion via `cc complete`. Manual-trigger only (bind or use the Trigger Inline Completion command, default Alt+\\) — typing never calls the model."
+  "config.completion.enabled.description": "Enable inline ghost-text completion via `cc complete`. Manual-trigger only (bind or use the Trigger Inline Completion command, default Alt+\\) — typing never calls the model.",
+  "config.remote.relayUrl.description": "Relay server URL for Remote Control pairing across networks (E2EE), passed to `cc remote-control start` as `--relay-url`. Empty = direct LAN pairing, or the CLI's own `CC_REMOTE_SESSION_RELAY_URL` / `remoteControl.relayUrl` config.",
+  "config.remote.peerId.description": "Stable peer id for relay pairing, passed as `--peer-id`. Empty = the CLI auto-generates one when a relay is configured."
 }

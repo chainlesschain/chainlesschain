@@ -401,6 +401,16 @@
           "type": "boolean",
           "default": true,
           "description": "%config.completion.enabled.description%"
+        },
+        "chainlesschain.remote.relayUrl": {
+          "type": "string",
+          "default": "",
+          "description": "%config.remote.relayUrl.description%"
+        },
+        "chainlesschain.remote.peerId": {
+          "type": "string",
+          "default": "",
+          "description": "%config.remote.peerId.description%"
         }
       }
     }

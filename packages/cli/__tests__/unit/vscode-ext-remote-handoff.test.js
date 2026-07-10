@@ -101,6 +101,48 @@ describe("remote-control host wrappers (VS Code)", () => {
     ]);
   });
 
+  it("appends relay flags only for non-blank settings (IDE relay settings)", () => {
+    expect(
+      buildRemoteControlStartArgs({
+        relayUrl: "wss://relay.example.com",
+        peerId: "ide-peer-1",
+      }),
+    ).toEqual([
+      "remote-control",
+      "start",
+      "--json",
+      "--relay-url",
+      "wss://relay.example.com",
+      "--peer-id",
+      "ide-peer-1",
+    ]);
+    // Blank/whitespace values defer to the CLI's env/config resolution.
+    expect(buildRemoteControlStartArgs({ relayUrl: "  ", peerId: "" })).toEqual(
+      ["remote-control", "start", "--json"],
+    );
+    // peerId is independent of relayUrl (relay may come from env/config).
+    expect(buildRemoteControlStartArgs({ peerId: "p1" })).toEqual([
+      "remote-control",
+      "start",
+      "--json",
+      "--peer-id",
+      "p1",
+    ]);
+    // Trimmed before use.
+    expect(
+      buildRemoteControlStartArgs({
+        relayUrl: " wss://r.example ",
+        peerId: null,
+      }),
+    ).toEqual([
+      "remote-control",
+      "start",
+      "--json",
+      "--relay-url",
+      "wss://r.example",
+    ]);
+  });
+
   it("extracts the pretty-printed pairing JSON from an accumulating buffer", () => {
     const payload = {
       mode: "direct",

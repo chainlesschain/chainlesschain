@@ -49,15 +49,18 @@ public final class RemoteControlAction extends AnAction {
         Process live = host;
         boolean running = live != null && live.isAlive();
         String[] options = running
-                ? new String[] { "Copy pairing URI", "Show host status", "Stop this host", "Cancel" }
-                : new String[] { "Start host", "Show host status", "Cancel" };
+                ? new String[] { "Copy pairing URI", "Show host status", "Stop this host",
+                        "Relay settings…", "Cancel" }
+                : new String[] { "Start host", "Show host status",
+                        "Relay settings…", "Cancel" };
         int pick = Messages.showDialog(project,
                 running
                         ? "Remote-control host is running (port "
                                 + (pairing != null ? pairing.get("port") : "?")
                                 + "). Paired devices can observe, prompt, approve and interrupt."
                         : "Start a remote-control host so a phone or web panel can pair"
-                                + " with this machine and drive its agent sessions.",
+                                + " with this machine and drive its agent sessions."
+                                + describeRelay(),
                 "ChainlessChain Remote Control", options, 0, null);
         if (pick < 0 || "Cancel".equals(options[pick])) return;
         String action = options[pick];
@@ -65,6 +68,66 @@ public final class RemoteControlAction extends AnAction {
         else if ("Copy pairing URI".equals(action)) copyPairingUri(project);
         else if ("Show host status".equals(action)) showStatus(project);
         else if ("Stop this host".equals(action)) stopOwn(project);
+        else if ("Relay settings…".equals(action)) relaySettings(project);
+    }
+
+    // ---- relay (E2EE cross-network) settings — persisted app-wide ----
+
+    private static final String RELAY_URL_KEY = "chainlesschain.remote.relayUrl";
+    private static final String PEER_ID_KEY = "chainlesschain.remote.peerId";
+
+    private static String storedRelayUrl() {
+        String v = com.intellij.ide.util.PropertiesComponent.getInstance()
+                .getValue(RELAY_URL_KEY);
+        return v == null ? "" : v.trim();
+    }
+
+    private static String storedPeerId() {
+        String v = com.intellij.ide.util.PropertiesComponent.getInstance()
+                .getValue(PEER_ID_KEY);
+        return v == null ? "" : v.trim();
+    }
+
+    private static String describeRelay() {
+        String url = storedRelayUrl();
+        return url.isEmpty()
+                ? "\n\nPairing: direct LAN (no relay configured)."
+                : "\n\nPairing: relay (E2EE) via " + url + ".";
+    }
+
+    /**
+     * Two-field relay settings prompt persisted via {@link
+     * com.intellij.ide.util.PropertiesComponent} (application level — the
+     * relay is a machine/account property, not per-project). Blank clears a
+     * value; cleared settings defer to the CLI's env/config resolution. The
+     * values apply to the NEXT host start ({@code --relay-url}/{@code
+     * --peer-id} flags win over env/config, matching CLI precedence).
+     */
+    private static void relaySettings(Project project) {
+        String url = Messages.showInputDialog(project,
+                "Relay server URL for cross-network pairing (E2EE), e.g."
+                        + " wss://relay.example.com. Leave blank for direct LAN pairing"
+                        + " or the CLI's own CC_REMOTE_SESSION_RELAY_URL /"
+                        + " remoteControl.relayUrl config.",
+                "Remote Control — Relay", null, storedRelayUrl(), null);
+        if (url == null) return; // canceled — keep both values untouched
+        String peer = Messages.showInputDialog(project,
+                "Stable peer id for relay pairing (optional). Leave blank and the"
+                        + " CLI auto-generates one when a relay is configured.",
+                "Remote Control — Peer Id", null, storedPeerId(), null);
+        if (peer == null) return;
+        com.intellij.ide.util.PropertiesComponent props =
+                com.intellij.ide.util.PropertiesComponent.getInstance();
+        props.setValue(RELAY_URL_KEY, url.trim(), "");
+        props.setValue(PEER_ID_KEY, peer.trim(), "");
+        boolean live = host != null && host.isAlive();
+        Messages.showInfoMessage(project,
+                (url.trim().isEmpty()
+                        ? "Relay cleared — next host uses direct LAN pairing (or the CLI's env/config)."
+                        : "Relay saved: " + url.trim())
+                        + (live ? "\n\nThe running host keeps its current mode —"
+                                + " stop and start it to apply." : ""),
+                "Remote Control");
     }
 
     private static void copyPairingUri(Project project) {
@@ -91,7 +154,7 @@ public final class RemoteControlAction extends AnAction {
             cmd.add("/c");
         }
         cmd.add(AgentChatSession.resolveBinary());
-        cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs());
+        cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs(storedRelayUrl(), storedPeerId()));
         ProcessBuilder pb = new ProcessBuilder(cmd);
         if (project != null && project.getBasePath() != null) {
             pb.directory(new File(project.getBasePath()));

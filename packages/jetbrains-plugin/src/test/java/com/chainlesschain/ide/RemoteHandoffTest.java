@@ -40,6 +40,26 @@ final class RemoteHandoffTest {
     }
 
     @Test
+    void appendsRelayFlagsOnlyForNonBlankSettings() {
+        assertEquals(Arrays.asList("remote-control", "start", "--json",
+                        "--relay-url", "wss://relay.example.com", "--peer-id", "ide-peer-1"),
+                RemoteHandoff.buildRemoteControlStartArgs(
+                        "wss://relay.example.com", "ide-peer-1"));
+        // Blank/whitespace values defer to the CLI's env/config resolution.
+        assertEquals(Arrays.asList("remote-control", "start", "--json"),
+                RemoteHandoff.buildRemoteControlStartArgs("  ", ""));
+        assertEquals(Arrays.asList("remote-control", "start", "--json"),
+                RemoteHandoff.buildRemoteControlStartArgs(null, null));
+        // peerId is independent of relayUrl (relay may come from env/config).
+        assertEquals(Arrays.asList("remote-control", "start", "--json", "--peer-id", "p1"),
+                RemoteHandoff.buildRemoteControlStartArgs(null, "p1"));
+        // Trimmed before use.
+        assertEquals(Arrays.asList("remote-control", "start", "--json",
+                        "--relay-url", "wss://r.example"),
+                RemoteHandoff.buildRemoteControlStartArgs(" wss://r.example ", null));
+    }
+
+    @Test
     void extractsPrettyPrintedPairingJsonFromAccumulatingBuffer() {
         String pretty = "{\n  \"mode\": \"direct\",\n  \"port\": 18800,\n"
                 + "  \"pairingUri\": \"chainlesschain://remote-session/x?t={not-a-brace}\",\n"

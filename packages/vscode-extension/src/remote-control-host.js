@@ -77,6 +77,23 @@ function createRemoteControlHost(
       });
   }
 
+  /**
+   * Relay (E2EE cross-network) settings — `chainlesschain.remote.relayUrl` /
+   * `.peerId`. Read at each start so a settings change applies to the next
+   * host without a window reload; blank values defer to the CLI's env/config.
+   */
+  function relayOptions() {
+    try {
+      const cfg = vscode.workspace.getConfiguration("chainlesschain.remote");
+      return {
+        relayUrl: cfg.get("relayUrl") || "",
+        peerId: cfg.get("peerId") || "",
+      };
+    } catch {
+      return {};
+    }
+  }
+
   function start() {
     if (child) return;
     stopping = false;
@@ -84,7 +101,7 @@ function createRemoteControlHost(
     let errBuffer = "";
     const proc = doSpawn(
       cliCommand(),
-      buildRemoteControlStartArgs(),
+      buildRemoteControlStartArgs(relayOptions()),
       spawnOpts(),
     );
     child = proc;

@@ -49,9 +49,23 @@ function parseBackgroundState(stdout) {
   return null;
 }
 
-/** `cc remote-control start --json` — long-running; first output is pairing JSON. */
-function buildRemoteControlStartArgs() {
-  return ["remote-control", "start", "--json"];
+/**
+ * `cc remote-control start --json` — long-running; first output is pairing
+ * JSON. Optional relay settings (E2EE cross-network pairing) become
+ * `--relay-url` / `--peer-id` flags. Blank/whitespace values are dropped so a
+ * cleared IDE setting falls back to the CLI's own resolution chain
+ * (env `CC_REMOTE_SESSION_RELAY_URL` → config `remoteControl.relayUrl`);
+ * flags — when present — win, matching the CLI precedence. peerId is passed
+ * independently of relayUrl: a user may set the relay via env/config and only
+ * pin the peer id in the IDE.
+ */
+function buildRemoteControlStartArgs({ relayUrl, peerId } = {}) {
+  const args = ["remote-control", "start", "--json"];
+  const url = String(relayUrl || "").trim();
+  const peer = String(peerId || "").trim();
+  if (url) args.push("--relay-url", url);
+  if (peer) args.push("--peer-id", peer);
+  return args;
 }
 
 /** `cc remote-control status --json --prune` (prune drops dead-pid records). */

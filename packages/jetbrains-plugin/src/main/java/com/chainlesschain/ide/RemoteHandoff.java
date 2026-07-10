@@ -54,7 +54,32 @@ public final class RemoteHandoff {
 
     /** {@code cc remote-control start --json} — long-running; first output is pairing JSON. */
     public static List<String> buildRemoteControlStartArgs() {
-        return new ArrayList<String>(Arrays.asList("remote-control", "start", "--json"));
+        return buildRemoteControlStartArgs(null, null);
+    }
+
+    /**
+     * Start args with optional relay settings (E2EE cross-network pairing):
+     * non-blank values become {@code --relay-url} / {@code --peer-id} flags.
+     * Blank/whitespace values are dropped so a cleared IDE setting falls back
+     * to the CLI's own resolution chain (env {@code
+     * CC_REMOTE_SESSION_RELAY_URL} → config {@code remoteControl.relayUrl});
+     * flags — when present — win, matching CLI precedence. peerId is passed
+     * independently of relayUrl (the relay may come from env/config).
+     */
+    public static List<String> buildRemoteControlStartArgs(String relayUrl, String peerId) {
+        List<String> args = new ArrayList<String>(
+                Arrays.asList("remote-control", "start", "--json"));
+        String url = relayUrl == null ? "" : relayUrl.trim();
+        String peer = peerId == null ? "" : peerId.trim();
+        if (!url.isEmpty()) {
+            args.add("--relay-url");
+            args.add(url);
+        }
+        if (!peer.isEmpty()) {
+            args.add("--peer-id");
+            args.add(peer);
+        }
+        return args;
     }
 
     /** {@code cc remote-control status --json --prune} (prune drops dead-pid records). */

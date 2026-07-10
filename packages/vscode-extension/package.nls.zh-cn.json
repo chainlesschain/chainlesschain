@@ -46,5 +46,7 @@
   "config.chat.contextIndicator.description": "在对话下方显示常驻的上下文窗口用量行（已用 tokens / 窗口），每轮结束后刷新。",
   "config.codeLens.enabled.description": "在函数、方法和类上方显示 ✨ 解释 / 重构 CodeLens（使用该语言自身的符号提供器）。",
   "cmd.complete.trigger.title": "ChainlessChain：触发内联补全",
-  "config.completion.enabled.description": "通过 `cc complete` 启用内联 ghost-text 补全。仅手动触发（绑定或使用「触发内联补全」命令，默认 Alt+\\）——打字不会调用模型。"
+  "config.completion.enabled.description": "通过 `cc complete` 启用内联 ghost-text 补全。仅手动触发（绑定或使用「触发内联补全」命令，默认 Alt+\\）——打字不会调用模型。",
+  "config.remote.relayUrl.description": "Remote Control 跨网配对（E2EE）使用的 relay 服务器 URL，以 `--relay-url` 传给 `cc remote-control start`。留空 = 直连局域网配对，或走 CLI 自身的 `CC_REMOTE_SESSION_RELAY_URL` / `remoteControl.relayUrl` 配置。",
+  "config.remote.peerId.description": "relay 配对使用的稳定 peer id，以 `--peer-id` 传入。留空 = 配置了 relay 时由 CLI 自动生成。"
 }
