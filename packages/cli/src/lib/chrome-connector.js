@@ -90,13 +90,15 @@ export function chromeCandidates({ deps = _deps } = {}) {
       env["PROGRAMFILES(X86)"],
       env["LOCALAPPDATA"],
     ].filter(Boolean);
+    // path.win32, not host path: platform() is injectable, so this branch
+    // must build Windows paths even when the host (e.g. Linux CI) is not.
     return [
       ...custom,
       ...bases.map((b) =>
-        path.join(b, "Google", "Chrome", "Application", "chrome.exe"),
+        path.win32.join(b, "Google", "Chrome", "Application", "chrome.exe"),
       ),
       ...bases.map((b) =>
-        path.join(b, "Microsoft", "Edge", "Application", "msedge.exe"),
+        path.win32.join(b, "Microsoft", "Edge", "Application", "msedge.exe"),
       ),
     ];
   }
