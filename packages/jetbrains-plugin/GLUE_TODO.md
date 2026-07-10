@@ -547,11 +547,11 @@ pipe/CLI actions appending results, zh/en bundle labels.
       snapshot (verify via `cc session show` transcript).
 - [ ] **/sessions two-step picker (runSessions + showSessionActions)** —
       `/sessions` popup rows show `id · store · status · updatedAt · title ·
-      workspace` and speed-search matches workspace; choosing a row opens
+    workspace` and speed-search matches workspace; choosing a row opens
       Resume / Rename… / Delete…. Resume = old behavior (note + next message
       resumes). Rename… input dialog → picker shows the new title on reopen
       (also for a CLI-only session). Delete… Yes/No confirm → `cc session
-      list` no longer shows it, `~/.chainlesschain/ide/session-index.json`
+    list` no longer shows it, `~/.chainlesschain/ide/session-index.json`
       entry gone, and a tab that pointed at the id loses its resume id (next
       message starts fresh, no --resume error).
 - [ ] **getActiveFile bridge tool (IdeTools + IntellijEditorFacade)** — with
@@ -582,7 +582,7 @@ pipe/CLI actions appending results, zh/en bundle labels.
 
 - [ ] **getTerminalOutput (IntellijEditorFacade + TerminalTextReader)** —
       open the integrated terminal, run a failing command (e.g. `npm run
-      nope`), then have the agent call `getTerminalOutput` → the reply lists
+    nope`), then have the agent call `getTerminalOutput` → the reply lists
       the terminal tab (name + buffer tail containing the command and its
       error). Multiple tabs → `limit` caps entries. No terminal open →
       `{terminals: []}`. Classic terminal engine gives text; the reworked
@@ -637,7 +637,7 @@ pipe/CLI actions appending results, zh/en bundle labels.
 - [ ] **WorktreeTasksAction** — Tools → "Worktree Tasks" in a git project.
       New isolated task… with a real task → an integrated terminal tab opens
       running `cc agent --worktree -p …` (Terminal plugin present); Refresh
-      lists the new cc-agent-* row with +ins −del / ↑commits / merge risk.
+      lists the new cc-agent-\* row with +ins −del / ↑commits / merge risk.
       A conflicting branch shows "merge: conflict (file +N)". Merge on a
       clean row fast-succeeds and the status names the base branch; Merge on
       a conflicted row reports FAILED-and-aborted and `git status` in the
@@ -686,3 +686,31 @@ pipe/CLI actions appending results, zh/en bundle labels.
       bridge listening; stop the bridge → ✗ bridge-stopped with the Restart hint;
       open a project over a `\wsl.localhost\…` path (or run the IDE in WSL) → the
       ⚠ WSL2 mirrored-networking advisory with the `.wslconfig` fix appears.
+
+## 4b Diff review edit capture + line anchors (0.4.55) — code-complete, published, NOT yet runIde-verified (2026-07-10)
+
+Gap-analysis #4 close-out (`5ac52a5b90`, released as 0.4.55). Pure `ReviewNote`
+JUnit 11/0 + smoke (795/0, +20); `compileJava` clean against the 2024.2 SDK
+(`DiffContentFactory.createEditable(project, text, null)` verified to exist);
+`buildPlugin` zip verified (0.4.55 plugin.xml + change-notes, `ReviewNote` in
+the jar, 3+3 en/zh `diff.requestChanges.*` bundle keys).
+
+Glue-layer (needs the next pre-release runIde pass):
+
+- [ ] **In-viewer edit survives Accept** — trigger an agent file edit → diff
+      opens; TYPE an extra line into the right (Proposed) pane; close the diff
+      window; choose Accept → the file on disk contains the typed line, and the
+      agent's next turn references the amendment (with cc ≥ next release, its
+      tool result carries `userAmendments`; with older cc just `userEdited`).
+- [ ] **Untouched Accept is byte-exact** — same flow but don't type: the file
+      matches the CLI's proposal byte-for-byte even when the proposal contains
+      CRLF line endings (the normalize-then-compare guard picks the original).
+- [ ] **Pick hunks after editing** — edit the right pane, then "Pick hunks…":
+      the hunk list reflects the EDITED text; applying a subset keeps unpicked
+      regions at the on-disk original.
+- [ ] **Line-anchored note** — "Request changes…" → enter `2: rename this`:
+      the agent's feedback block shows `line 2: rename this ⟪<that line's
+    text>⟫`; enter a plain note → renders as `(general)`; enter `999: x` in a
+      short file → arrives as a general note reading `999: x` (no fake anchor).
+      Full-width `：` also anchors. Prompts render zh under the Chinese
+      Language Pack (diff.requestChanges.\* keys).
