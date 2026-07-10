@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + --bare/无斜杠/读屏模式
+
+> CLI-only 发版（`chainlesschain` 0.162.156 → **0.162.157**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数 **172 不变**（全为子命令/flag）；依赖指针 `@chainlesschain/personal-data-hub` 0.4.50→0.4.51（交易短信→金额事件）。
+
+- **IDE diff 审阅：agent 能看到你改了什么**：在 IDE diff 里编辑 proposed content 后 Accept，工具结果新增 `userAmendments`——提案→实际写入的 -/+ 行级摘要（按最终文件行号锚定分块，尺寸守卫+双 cap），agent 不再只见 `userEdited` 布尔、心智模型与磁盘真身对齐。配合 JetBrains 0.4.55（可编辑右栏回读）/ VS Code 0.37.x 端到端闭环。
+- **plan 审阅快照写入会话**：`{type:"plan", action}` 控制消息可携带 IDE 审阅文档快照（24k cap），批准/拒绝留档进会话 transcript，可审计可回放（agent-sdk 0.1.1 类型同步）。
+- **`cc browse chrome status|launch|state`（Chrome 连接器）**：CDP attach 到用户自己的 Chrome（登录态复用，区别 `browse fetch/scrape` 冷启空白 headless）；`launch` 默认专用配置目录持久登录；`state` 捕获 console/失败网络请求/DOM 快照/截图（`--reload` 捕获加载期）；仅 loopback，断开不杀浏览器。真 Chrome 145 live e2e 全链验证。
+- **`--bare` 裸模式**：`--safe-mode` 之上再关 skills/plugins/MCP/IDE/PDH 自动连接（显式 flag 仍胜出，权限规则不放松）——最小攻击面/最快启动。
+- **`--disable-slash-commands`**：REPL `/` 输入原样送模型（`/exit`/`/quit` 保留），粘贴含斜杠文本不误触发。
+- **`--ax-screen-reader` 读屏友好模式**：零 ANSI 色 + 状态栏关闭，读屏器不再念转义序列。
+
 #### Added — cc CLI 0.162.156：agenda/batch 双命令（第四阶段收口）+ @chainlesschain/agent-sdk 0.1.0 npm 首发
 
 > CLI-only 发版（`chainlesschain` 0.162.155 → **0.162.156**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**（平台化第三阶段产物）。命令数 **170 → 172**（新增顶层 `agenda`/`batch`）。发版前本机三层全绿（unit+integration 23,447 / e2e 628）。

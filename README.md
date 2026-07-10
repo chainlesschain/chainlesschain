@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-10 发布 — **cc CLI 0.162.157：IDE diff 审阅修订摘要 + plan 审阅快照 + `cc browse chrome` + `--bare`/无斜杠/读屏模式**
+
+> CLI-only 发版（0.162.156 → **0.162.157**，npm `latest`，provenance）。IDE 深度整合增量：**diff 审阅里你改了什么 agent 现在看得见**（accepted 结果携带 `userAmendments` -/+ 行级修订摘要，配合 JetBrains 0.4.55 可编辑右栏端到端闭环）+ plan 批准/拒绝携审阅快照写入会话 transcript（可审计回放）+ `cc browse chrome`（CDP attach 用户真 Chrome，登录态复用，console/网络/DOM/截图观察）+ `--bare` 最小攻击面裸模式 / `--disable-slash-commands` / `--ax-screen-reader` 读屏友好。命令数 172 不变。发版前干净 worktree 三层全绿（unit+integration 23,614 / e2e 628）。
+
 ## 2026-07-09 发布 — **cc CLI 0.162.156：`cc agenda` + `cc batch`（第四阶段收口）+ `@chainlesschain/agent-sdk` 0.1.0 npm 首发**
 
 > CLI-only 发版（0.162.155 → **0.162.156**，npm `latest`，provenance）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**。命令数 **170 → 172**：`cc agenda`（notify/schedule 双 agent 工具的持久化消费端——wakeup/cron/monitor 意图落 `~/.chainlesschain/agent-schedule/`，到期 spawn `cc agent -p`）+ `cc batch`（大改动拆独立单元、每单元独立 git worktree 并行、`--test` 门控 + `--merge` 顺序集成，冲突报告不强合）。发版前本机三层全绿（unit+integration 23,447 / e2e 628）。SDK 详情见下条主线。

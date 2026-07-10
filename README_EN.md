@@ -11,6 +11,10 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-07-10 Release — **cc CLI 0.162.157: IDE diff-review amendments + plan review snapshots + `cc browse chrome` + `--bare`/no-slash/screen-reader modes**
+
+> CLI-only release (0.162.156 → **0.162.157**, npm `latest`, provenance). Deeper IDE integration: **the agent now sees what you changed in a diff review** (accepted results carry a `userAmendments` -/+ line-level summary of your in-diff edits; end-to-end with JetBrains 0.4.55's editable right pane) + plan approve/reject carries a review snapshot into the session transcript (auditable, replayable) + `cc browse chrome` (CDP attach to your real Chrome with login state; console/network/DOM/screenshot observation) + `--bare` minimal-attack-surface mode / `--disable-slash-commands` / `--ax-screen-reader`. Command count unchanged at 172. Full three-layer test pyramid green in a clean worktree before publish (unit+integration 23,614 / e2e 628).
+
 ## 2026-07-09 Release — **cc CLI 0.162.156: `cc agenda` + `cc batch` (phase-4 closeout) + `@chainlesschain/agent-sdk` 0.1.0 first npm publish**
 
 > CLI-only release (0.162.155 → **0.162.156**, npm `latest`, provenance); **`@chainlesschain/agent-sdk` 0.1.0 first-published in the same run**. Command count **170 → 172**: `cc agenda` (the persistent consumer for the new notify/schedule agent tools — wakeup/cron/monitor intents land in `~/.chainlesschain/agent-schedule/` and fire `cc agent -p` when due) + `cc batch` (split a large change into independent units, run each in its own git worktree in parallel, `--test` gate + `--merge` sequential integration that reports conflicts instead of clobbering). Full local three-layer test pyramid green before publish (unit+integration 23,447 / e2e 628). SDK details in the mainline entry below.
