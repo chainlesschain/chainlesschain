@@ -219,6 +219,66 @@ describe("remoteSession store", () => {
     expect(store.status).toBe("connected");
   });
 
+  it("gives up reconnecting after the attempt cap instead of polling a dead relay forever", () => {
+    // The store outlives route changes (deliberate: approvals keep arriving
+    // on other pages), so an unbounded reconnect loop would churn in the
+    // background indefinitely once the user navigates away. It must stop
+    // after the capped attempt budget and keep the pairing for resume.
+    vi.useFakeTimers();
+    const store = useRemoteSessionStore();
+    connectAndOpen(store);
+    const baseline = FakeRelay.instances.length;
+
+    // Relay goes down: the live socket drops and every retry fails.
+    FakeRelay.instances.at(-1).close();
+    expect(store.status).toBe("reconnecting");
+    for (let i = 0; i < 30; i += 1) {
+      vi.advanceTimersByTime(30_000); // ≥ max backoff → fires any pending retry
+      const latest = FakeRelay.instances.at(-1);
+      if (latest.readyState !== 3) latest.close(); // retry also fails
+    }
+
+    expect(store.status).toBe("disconnected");
+    expect(store.error).toMatch(/重连已放弃/);
+    // Bounded: exactly the attempt budget, not one socket per 30s forever.
+    const burned = FakeRelay.instances.length - baseline;
+    expect(burned).toBeGreaterThan(0);
+    expect(burned).toBeLessThanOrEqual(20);
+    const after = FakeRelay.instances.length;
+    vi.advanceTimersByTime(600_000); // 10 more minutes: nothing rearms
+    expect(FakeRelay.instances.length).toBe(after);
+  });
+
+  it("resumeReconnect revives a given-up pairing with a fresh attempt budget", () => {
+    vi.useFakeTimers();
+    const store = useRemoteSessionStore();
+    connectAndOpen(store);
+    FakeRelay.instances.at(-1).close();
+    for (let i = 0; i < 30; i += 1) {
+      vi.advanceTimersByTime(30_000);
+      const latest = FakeRelay.instances.at(-1);
+      if (latest.readyState !== 3) latest.close();
+    }
+    expect(store.status).toBe("disconnected");
+
+    // View remounts (user comes back) — relay is reachable again.
+    const before = FakeRelay.instances.length;
+    store.resumeReconnect();
+    expect(FakeRelay.instances.length).toBe(before + 1);
+    expect(store.status).toBe("connecting");
+    FakeRelay.instances.at(-1).open(); // registered → already paired → resume
+    expect(store.status).toBe("connected");
+    expect(store.error).toBe("");
+
+    // No-op guards: already connected / explicitly disconnected.
+    const connectedCount = FakeRelay.instances.length;
+    store.resumeReconnect();
+    expect(FakeRelay.instances.length).toBe(connectedCount);
+    store.disconnect();
+    store.resumeReconnect();
+    expect(FakeRelay.instances.length).toBe(connectedCount);
+  });
+
   it("stops on a host-issued revocation", () => {
     const store = useRemoteSessionStore();
     const active = connectAndOpen(store);

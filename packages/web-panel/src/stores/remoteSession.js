@@ -35,6 +35,12 @@ import {
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+// The connection outlives route changes (singleton store) so approvals keep
+// arriving while the user browses other panel pages — but the reconnect loop
+// must not poll a dead relay forever from a background view. ~20 exponential
+// attempts ≈ 8 minutes of outage, then give up; resumeReconnect() (view
+// mount) starts a fresh round.
+const RECONNECT_MAX_ATTEMPTS = 20;
 const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
 
 let seq = 0;
@@ -187,6 +193,14 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
 
   function scheduleReconnect() {
     if (closedExplicitly || reconnectTimer) return;
+    if (reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+      // Bounded: don't poll a dead relay forever from a backgrounded view.
+      // The pairing is kept — resumeReconnect() revives it.
+      status.value = "disconnected";
+      error.value =
+        "Remote Session 重连已放弃（中继长时间不可达）— 回到本页可自动重试";
+      return;
+    }
     const delay = Math.min(
       RECONNECT_BASE_MS * 2 ** reconnectAttempts,
       RECONNECT_MAX_MS,
@@ -197,6 +211,21 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       reconnectTimer = null;
       if (!closedExplicitly) openSocket();
     }, delay);
+  }
+
+  // Revive a relay pairing whose reconnect loop hit the attempt cap (or that
+  // dropped while nobody was looking). Called on view mount, so leaving the
+  // page bounds the background churn yet coming back picks the session up
+  // with a fresh attempt budget. No-op while connected/connecting, after an
+  // explicit disconnect/revocation, and for direct transport (its one-time
+  // pairing token cannot re-join anyway).
+  function resumeReconnect() {
+    if (transport.value !== "relay" || !pairing || closedExplicitly) return;
+    if (socket || reconnectTimer) return;
+    reconnectAttempts = 0;
+    error.value = "";
+    status.value = "connecting";
+    openSocket();
   }
 
   function handleMessage(raw) {
@@ -583,6 +612,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     approve,
     interrupt,
     updatePushCredentials,
+    resumeReconnect,
     disconnect,
   };
 });

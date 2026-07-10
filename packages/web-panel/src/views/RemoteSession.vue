@@ -193,13 +193,16 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { LinkOutlined, ScanOutlined } from "@ant-design/icons-vue";
 import QrScannerModal from "../components/QrScannerModal.vue";
 import { useRemoteSessionStore } from "../stores/remoteSession.js";
 
 const store = useRemoteSessionStore();
+// The relay reconnect loop is attempt-capped so it can't churn forever after
+// the user leaves this page; re-entering revives a given-up pairing.
+onMounted(() => store.resumeReconnect());
 const { status, events, error, transport, pendingApprovals } =
   storeToRefs(store);
 
