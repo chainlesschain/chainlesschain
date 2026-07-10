@@ -238,6 +238,12 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             "Foreground (synchronous) timeout in milliseconds. Default 60000, max 600000. Ignored when run_in_background is true.",
         },
+        shell: {
+          type: "string",
+          enum: ["default", "cmd", "powershell", "pwsh"],
+          description:
+            "Shell to run the command with (optional). default = the platform shell (cmd.exe on Windows, /bin/sh elsewhere) or the configured settings shell.windowsDefault. Use powershell (Windows PowerShell 5.1) or pwsh (PowerShell 7+) when the command uses PowerShell syntax: cmdlets, object pipelines, $variables.",
+        },
       },
       required: ["command"],
     },

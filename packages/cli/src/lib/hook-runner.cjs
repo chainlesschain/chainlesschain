@@ -21,6 +21,11 @@
  */
 
 const cpDefault = require("node:child_process");
+const {
+  normalizeShellKind,
+  buildPowershellArgv,
+  loadShellConfig,
+} = require("./shell-selector.cjs");
 
 const _deps = { spawnSync: cpDefault.spawnSync };
 
@@ -101,7 +106,12 @@ function tryParseDecision(stdout) {
  *
  * @param {string} command
  * @param {object} [input]   the hook event payload (tool_name, tool_input, …)
- * @param {object} [opts]    { timeout=60000, cwd, event }
+ * @param {object} [opts]    { timeout=60000, cwd, event, shell }
+ *                           `shell: "powershell"|"pwsh"` runs the hook through
+ *                           PowerShell via explicit argv (P1 #8 — per-hook
+ *                           opt-in from the settings hook entry; the shell is
+ *                           taken literally, so a missing executable surfaces
+ *                           as the usual non-blocking spawn error)
  * @returns {{ decision:string, reason:string|null, exitCode:number|null,
  *            stdout?:string, stderr?:string, additionalContext?:string,
  *            nonBlockingError?:boolean, error?:string }}
@@ -121,20 +131,33 @@ function runCommandHook(command, input = {}, opts = {}) {
   if (!command) {
     return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
   }
+  const shellKind = normalizeShellKind(opts.shell);
+  const usePowershell = shellKind === "powershell" || shellKind === "pwsh";
   let res;
   try {
-    res = _deps.spawnSync(command, {
+    const common = {
       input: JSON.stringify(input),
       cwd: cwd || process.cwd(),
       encoding: "utf-8",
       timeout,
-      shell: true,
       maxBuffer: 8 * 1024 * 1024,
       env: {
         ...process.env,
         CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
       },
-    });
+    };
+    if (usePowershell) {
+      // Per-hook `shell: powershell|pwsh` (settings hook entry): explicit argv
+      // instead of the default shell; the enterprise ExecutionPolicy override
+      // (settings shell.powershell.executionPolicy) applies here too.
+      const { executionPolicy } = loadShellConfig({
+        cwd: common.cwd,
+      });
+      const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
+      res = _deps.spawnSync(inv.file, inv.argv, common);
+    } else {
+      res = _deps.spawnSync(command, { ...common, shell: true });
+    }
   } catch (err) {
     return {
       decision: HOOK_DECISIONS.CONTINUE,
@@ -210,13 +233,30 @@ function runHooks(commandHooks, input = {}, opts = {}) {
     const r = runCommandHook(h.command, input, {
       ...opts,
       timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+      // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
+      // "shell":"powershell" }` in the settings hook entry
+      shell: h.shell != null ? h.shell : opts.shell,
     });
     results.push({ command: h.command, ...r });
-    if (r.decision === HOOK_DECISIONS.BLOCK || r.decision === HOOK_DECISIONS.ASK) {
-      return { decision: r.decision, reason: r.reason, hook: h.command, results };
+    if (
+      r.decision === HOOK_DECISIONS.BLOCK ||
+      r.decision === HOOK_DECISIONS.ASK
+    ) {
+      return {
+        decision: r.decision,
+        reason: r.reason,
+        hook: h.command,
+        results,
+      };
     }
   }
   return { decision: HOOK_DECISIONS.CONTINUE, reason: null, results };
 }
 
-module.exports = { runCommandHook, runHooks, tryParseDecision, HOOK_DECISIONS, _deps };
+module.exports = {
+  runCommandHook,
+  runHooks,
+  tryParseDecision,
+  HOOK_DECISIONS,
+  _deps,
+};

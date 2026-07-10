@@ -569,3 +569,41 @@ describe("evaluatePermissionRules — traversal cannot bypass a deny rule", () =
     ).toBe(null);
   });
 });
+
+describe("PowerShell(...) umbrella (P1 #8 — Claude-Code PowerShell tool rules)", () => {
+  it("maps to the run_shell family like Bash(...)", () => {
+    expect(toolMatches("PowerShell", "run_shell")).toBe(true);
+    expect(toolMatches("powershell", "run_shell")).toBe(true);
+    // and not to non-shell tools
+    expect(toolMatches("PowerShell", "read_file")).toBe(false);
+  });
+
+  it("PowerShell(<prefix>:*) matches run_shell commands (CC settings work unchanged)", () => {
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "Remove-Item -Recurse build" },
+      rules: { deny: ["PowerShell(Remove-Item:*)"] },
+    });
+    expect(r.decision).toBe("deny");
+    expect(r.rule).toBe("PowerShell(Remove-Item:*)");
+  });
+
+  it("PowerShell(shell:pwsh) scopes by the per-call shell arg (param-rule form)", () => {
+    const rules_ = { deny: ["PowerShell(shell:pwsh)"] };
+    expect(
+      evaluatePermissionRules({
+        tool: "run_shell",
+        args: { command: "Get-Date", shell: "pwsh" },
+        rules: rules_,
+      }).decision,
+    ).toBe("deny");
+    // same command without the pwsh request → no match
+    expect(
+      evaluatePermissionRules({
+        tool: "run_shell",
+        args: { command: "Get-Date" },
+        rules: rules_,
+      }).decision,
+    ).toBe(null);
+  });
+});

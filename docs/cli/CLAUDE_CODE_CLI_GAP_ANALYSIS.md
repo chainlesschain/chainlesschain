@@ -650,6 +650,23 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - `/tui fullscreen`（#9 清单最后一项）——alternate-screen 渲染与批10 attach 的同类 UI polish，v1 不做。
 - screen-reader 模式目前作用于 REPL 主题/状态行；spinner 类命令（`cc ask`/`cc search` 的 ora）按需再扫。
 
+### 2026-07-10 第二十二批（P1 #8 — Windows / PowerShell first-class）
+
+已落地：
+
+- **新 `src/lib/shell-selector.cjs`**：shell 选择的单一决策点——per-call `run_shell { shell }` > settings `shell.windowsDefault`（layered .claude/settings.json，closest wins；仅 win32 生效）/ `CC_WINDOWS_SHELL` env（赢过 settings）> 平台默认。未配置路径**字节不变**（`useDefaultShell:true` → 既有 execSync/spawn shell:true 原样）。PowerShell 路线走**显式 argv**（`powershell.exe -NoProfile [-ExecutionPolicy <p>] -Command <cmd>`）而非 `shell:"powershell.exe"` 字符串，因此企业 ExecutionPolicy 覆盖（settings `shell.powershell.executionPolicy`）能按调用附加且不改机器状态；policy 值对 PowerShell 固定枚举校验——settings typo 无法夹带 argv（注入防护有单测）。3s TTL 配置 memo（run_shell 每调用解析不重复读盘）。
+- **`run_shell` 工具契约新增可选 `shell` 参数**（`default|cmd|powershell|pwsh`）：模型可按命令语法（cmdlet/对象管道/$变量）自选 shell。前台（execSync→spawnSync argv，错误按 execSync 契约整形：status/stdout/stderr）与后台（spawn argv）双路接线；结果带 `shell` 字段（降级时带 `shell_note`）。平台语义：`pwsh` 跨平台可用；`powershell`/`cmd` 非 Windows 请求降级到默认 shell 并附注释；win32 显式 `cmd` = 默认路径字节不变（作为 windowsDefault=powershell 时的 opt-out）。
+- **权限规则 `PowerShell(...)` umbrella**：映射到 run_shell family（Claude Code settings.json 的 PowerShell 规则原样可用）；shell 级细分可用参数规则形 `PowerShell(shell:pwsh)`（复用 2.1.178 `Tool(param:value)` 机制，因 `shell` 现在是真实工具参数）。
+- **hooks 支持 per-hook `shell: "powershell"|"pwsh"`**（settings hook entry 字段，经 settings-hooks 原样保留到 hook-runner）：显式 argv 执行 + ExecutionPolicy 配置同样生效；shell 字段取字面值（Linux 上缺 powershell.exe → 走既有非阻塞 spawn error 面，不静默换 shell）；stdin JSON 决策协议不变。windowsDefault **刻意不**重写既有 hooks（存量 hook 都按 cmd/sh 写）。
+- **复合命令 PowerShell 语义**：既有 shell-policy 切分器已覆盖 PowerShell 分隔符（`;`/`|`/`&&`/`||`/换行/`$( )` 子表达式），且已有 `powershell-encoded-command` deny 规则；无需 PS AST，判定为已满足（本批验证并记录）。
+- 测试：shell-selector 14（kind/policy 归一化+注入拒绝/argv 构造/优先级/平台降级/layered settings+env 覆盖/非法值 fail-to-default）+ hook-runner PowerShell 路线 6（argv 形状/pwsh/runHooks 透传/fail-to-default/决策协议不变）+ permission-rules PowerShell umbrella 3 + **agent-core 真 spawn 4**（win32 真 powershell.exe 前台 `$(1+1)`→2 语义验证/exit 3 整形/后台任务/POSIX 降级注释——skipIf 平台守卫）；contract/parity/sub-agent-isolation/agent-core 核心+hooks+permission-rules 回归全绿。
+
+仍待后续：
+
+- skills 的 `shell:` 声明——skill handler 是 JS，shell 执行都经 agent 工具链（run_shell 已支持 per-call shell），无独立面；SKILL.md 层面按需再议。
+- REPL `!` bash 透传与 `cc ask` 等命令的 shell 选择——run_shell/hook 之外的散点，按需扫。
+- PowerShell 输出编码（5.1 cmdlet 重定向场景）依赖 CLI 入口的 chcp 65001；如遇中文乱码个案再按 encoding.md 加显式 `[Console]::OutputEncoding`。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅

@@ -2439,6 +2439,24 @@ async function executeToolInner(
         }
       }
 
+      // P1 #8 Windows/PowerShell first-class: per-call args.shell or the
+      // configured settings `shell.windowsDefault` may route this command
+      // through PowerShell via explicit argv (`powershell.exe -NoProfile
+      // [-ExecutionPolicy <p>] -Command <cmd>`). The unconfigured path keeps
+      // the historical default shell byte-identical (useDefaultShell=true).
+      const { resolveShellInvocation } =
+        await import("../lib/shell-selector.cjs");
+      const shellInv = resolveShellInvocation({
+        command: args.command,
+        requested: args.shell,
+        cwd: args.cwd || cwd,
+      });
+      const shellMeta = shellInv.useDefaultShell
+        ? shellInv.note
+          ? { shell_note: shellInv.note }
+          : {}
+        : { shell: shellInv.kind };
+
       // Background: spawn, register, return a task_id immediately. The agent
       // polls output + completion via check_shell. No timeout — that's the whole
       // point of backgrounding (builds, test suites, dev servers).
@@ -2471,9 +2489,9 @@ async function executeToolInner(
           child: null,
         };
         try {
-          const child = spawn(args.command, {
+          const bgSpawnOpts = {
             cwd: task.cwd,
-            shell: true,
+            shell: shellInv.useDefaultShell,
             windowsHide: true,
             // Same agent-identity env as the foreground path: CLAUDECODE marks
             // "running under the agent"; the session id correlates work to the
@@ -2492,7 +2510,12 @@ async function executeToolInner(
             // the whole tree (shell + its grandchild command). No-op on Windows
             // where the tree is killed via taskkill /T instead.
             detached: process.platform !== "win32",
-          });
+          };
+          // PowerShell route: explicit argv (shell:false above); default route
+          // is the historical spawn(command, {shell:true}) byte-for-byte.
+          const child = shellInv.useDefaultShell
+            ? spawn(args.command, bgSpawnOpts)
+            : spawn(shellInv.file, shellInv.argv, bgSpawnOpts);
           task.child = child;
           if (child.stdout) {
             child.stdout.setEncoding("utf8");
@@ -2540,6 +2563,7 @@ async function executeToolInner(
             task_id: id,
             status: task.status,
             command: task.command,
+            ...shellMeta,
             hint: "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
@@ -2638,7 +2662,7 @@ async function executeToolInner(
       }
 
       try {
-        const output = execSync(args.command, {
+        const fgExecOpts = {
           cwd: args.cwd || cwd,
           encoding: "utf8",
           timeout: _resolveShellTimeout(args.timeout),
@@ -2657,10 +2681,35 @@ async function executeToolInner(
                 }
               : {}),
           },
-        });
+        };
+        let output;
+        if (shellInv.useDefaultShell) {
+          output = execSync(args.command, fgExecOpts);
+        } else {
+          // PowerShell route: explicit argv, no intermediate default shell.
+          // Reproduce execSync's contract so the shared catch shapes errors
+          // identically: throw on spawn error; throw an Error carrying
+          // status/stdout/stderr on non-zero exit.
+          const res = spawnSync(shellInv.file, shellInv.argv, {
+            ...fgExecOpts,
+            windowsHide: true,
+          });
+          if (res.error) throw res.error;
+          if (res.status !== 0) {
+            const e = new Error(
+              `Command failed (${shellInv.kind}, exit ${res.status}): ${args.command}`,
+            );
+            e.status = res.status;
+            e.stdout = res.stdout;
+            e.stderr = res.stderr;
+            throw e;
+          }
+          output = res.stdout ?? "";
+        }
         return attachDescriptor(
           {
             stdout: output.substring(0, 30000),
+            ...shellMeta,
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
           },
@@ -2680,6 +2729,7 @@ async function executeToolInner(
               : {}),
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
+            ...shellMeta,
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
           },

@@ -170,6 +170,61 @@ describe("runCommandHook — input + protocol", () => {
   });
 });
 
+describe("per-hook shell selection (P1 #8 — shell: powershell|pwsh)", () => {
+  // The PowerShell route calls spawnSync(file, argv, opts) — 3 args.
+  function stub3(returns) {
+    _deps.spawnSync = vi.fn((cmd, argvOrOpts, maybeOpts) => {
+      calls.push({ cmd, argvOrOpts, maybeOpts });
+      return { status: 0, stdout: "", stderr: "", ...returns };
+    });
+  }
+
+  it("shell:powershell → explicit argv (-NoProfile … -Command <cmd>), no shell:true", () => {
+    stub3({ status: 0 });
+    runCommandHook("Get-Item x.txt", {}, { shell: "powershell" });
+    const c = calls[0];
+    expect(c.cmd).toBe("powershell.exe");
+    expect(c.argvOrOpts[0]).toBe("-NoProfile");
+    expect(c.argvOrOpts[c.argvOrOpts.length - 2]).toBe("-Command");
+    expect(c.argvOrOpts[c.argvOrOpts.length - 1]).toBe("Get-Item x.txt");
+    expect(c.maybeOpts.shell).toBeUndefined();
+    // stdin protocol unchanged
+    expect(c.maybeOpts.input).toBe(JSON.stringify({}));
+  });
+
+  it("shell:pwsh → pwsh executable", () => {
+    stub3({ status: 0 });
+    runCommandHook("Get-Date", {}, { shell: "pwsh" });
+    expect(calls[0].cmd).toBe("pwsh");
+  });
+
+  it("runHooks threads the hook entry's shell field", () => {
+    stub3({ status: 0 });
+    runHooks([{ command: "Get-Date", shell: "powershell" }], {});
+    expect(calls[0].cmd).toBe("powershell.exe");
+  });
+
+  it("no shell field → historical default-shell path (2-arg spawnSync, shell:true)", () => {
+    stub({ status: 0 });
+    runHooks([{ command: "guard.sh" }], {});
+    expect(calls[0].cmd).toBe("guard.sh");
+    expect(calls[0].opts.shell).toBe(true);
+  });
+
+  it("unknown shell values fall back to the default shell (fail-to-default)", () => {
+    stub({ status: 0 });
+    runCommandHook("guard.sh", {}, { shell: "fish" });
+    expect(calls[0].cmd).toBe("guard.sh");
+    expect(calls[0].opts.shell).toBe(true);
+  });
+
+  it("decision protocol works identically through the PowerShell route", () => {
+    stub3({ status: 2, stderr: "ps blocked\n" });
+    const r = runCommandHook("Deny-Thing", {}, { shell: "powershell" });
+    expect(r).toMatchObject({ decision: "block", reason: "ps blocked" });
+  });
+});
+
 describe("tryParseDecision", () => {
   it("returns null for non-JSON stdout", () => {
     expect(tryParseDecision("just text")).toBeNull();

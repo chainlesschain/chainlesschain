@@ -51,6 +51,12 @@ const DECISIONS = Object.freeze({
  */
 const TOOL_GROUPS = Object.freeze({
   bash: ["run_shell"],
+  // Claude-Code registers PowerShell as its own tool; cc runs every shell
+  // through run_shell (with an optional per-call `shell` arg), so
+  // `PowerShell(...)` rules map to the same family — a Claude-Code
+  // settings.json with PowerShell rules works unchanged. Shell-specific
+  // scoping is expressible as `PowerShell(shell:pwsh)` (param-rule form).
+  powershell: ["run_shell"],
   read: ["read_file", "list_dir"],
   grep: ["search_files"],
   glob: ["search_files"],
@@ -358,8 +364,23 @@ const SUGGEST_UMBRELLA = Object.freeze({
 
 /** Commands whose first token is a dispatcher — keep 2 tokens in the prefix. */
 const MULTI_VERB = new Set([
-  "git", "npm", "npx", "yarn", "pnpm", "docker", "kubectl", "cargo",
-  "go", "pip", "pip3", "python", "python3", "node", "dotnet", "gh", "brew",
+  "git",
+  "npm",
+  "npx",
+  "yarn",
+  "pnpm",
+  "docker",
+  "kubectl",
+  "cargo",
+  "go",
+  "pip",
+  "pip3",
+  "python",
+  "python3",
+  "node",
+  "dotnet",
+  "gh",
+  "brew",
 ]);
 
 /**
@@ -382,7 +403,9 @@ function suggestAllowRule(tool, args = {}) {
     const raw = args.path || args.file_path || args.dir || args.directory || "";
     if (!raw) return umbrella;
     const slash = String(raw).replace(/\\/g, "/");
-    const dir = slash.includes("/") ? slash.slice(0, slash.lastIndexOf("/")) : ".";
+    const dir = slash.includes("/")
+      ? slash.slice(0, slash.lastIndexOf("/"))
+      : ".";
     const base = dir === "" ? "/" : dir;
     const norm = /^(\.|\/|~)/.test(base) ? base : `./${base}`;
     return `${umbrella}(${norm}/**)`;
