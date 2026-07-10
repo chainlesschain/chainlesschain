@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: see `package.json.productVersion` (Evolution Edition — 144 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 172 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
+**Current Version**: see `package.json.productVersion` (Evolution Edition — 146 Desktop Skills + 25 Android REMOTE Skills (24 seeded in SeedRegistry) + 172 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
 **Version hierarchy** (values live in their respective files, do not duplicate here):
 
@@ -76,11 +76,11 @@ Key CLI entry points:
 
 ## Feature Index
 
-**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (144 desktop skills, 25 Android REMOTE skills).
+**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (146 desktop skills, 25 Android REMOTE skills).
 
 Key highlights:
 
-- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (141 built-in)
+- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (146 built-in)
 - **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management
 - **Integration**: MCP, Browser Automation, Computer Use, IPFS
 - **v3.0-v4.0**: Pipeline Orchestrator, NL Programming, Multimodal, Agent Federation
