@@ -729,6 +729,21 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - `/remote-control` 与 `cc remote-control start`（批17 统一入口，常驻 server + prompt/interrupt scopes）是两个形态：REPL 内是 approve-only 轻装配；若要 REPL 会话同时被远端 prompt/observe，属 remote-session host 接线（另立批次）。
 - web-panel/Android `permission.request` 卡片 UI 与移动端扫码消费（协议+push 已就绪，同批18 遗留）。
 
+### 2026-07-10 第二十七批（IDE gap P1 #8 收尾 — `browser_state` 一等 agent 工具）
+
+已落地：
+
+- **新 agent 工具 `browser_state`**（extension tier，工具集 **24→25**）：把 `cc browse chrome state` 的 CDP 观察链（`lib/chrome-connector.js` `captureState`）暴露为一等工具——agent 不再需要经 run_shell 跑 CLI 命令自取浏览器上下文。返回 URL/title/tabs + watch 窗口内 console/失败网络请求 + DOM 快照 + 可选截图；「定位错误→修复→验证」web 循环的 agent 侧入口就位（IDE gap 文档 P1 #8 的最后一个边界项）。
+- **参数面**：port/tab/reload/watch_ms/include_dom/dom_cap/screenshot。DOM cap 默认 **40k**（CLI 命令默认 150k——工具结果进对话上下文，必须收紧）；`screenshot` 是布尔——截图写入**生成的临时路径**并返回，刻意不收 agent 指定路径（否则「读」工具能借 page.screenshot 覆盖任意文件）。
+- **策略**：LOW / READ / plan-mode allow / read-only / auto flow——纯观察（不点击不输入不导航；reload 只重跑用户已打开的页面；loopback CDP，无第三方 egress）。与 code_intelligence 同格。
+- 接线三点全套：contract（coding-agent-contract-shared.cjs）+ TOOL_POLICY_METADATA（coding-agent-policy.cjs）+ executeToolInner/formatToolArgs 双 switch（agent-core.js）；shim 无新增导出无需动。
+- 测试：新 browser-state-tool 9（contract schema 含 screenshot 布尔守卫 + policy read-only/plan-mode + 经 `_deps.importPlaywright` 假 playwright 的真 executeTool dispatch：状态回传/dom_cap 截断/临时路径截图/不可连清晰报错/playwright 缺失清晰报错 + formatToolArgs）；工具计数回归 5 处 24→25 同步（agent-core ×3 / parity-open-agents / sub-agent-isolation，e2e 用 e2e config 跑过）。
+
+仍待后续：
+
+- 真机 e2e（真 Chrome + 真 agent 会话）——chrome-connector 本体已有 Chrome 145 live 验证，工具面为纯接线；下次发版顺手。
+- 权限规则面（permission-rules.cjs 的命名 allow/deny 匹配组）——browser_state 与 notify/schedule/publish_artifact 同样不进 TOOL_GROUPS，走默认 auto；如需 per-URL 规则再议。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅

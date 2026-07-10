@@ -304,6 +304,22 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: false,
   },
+  // Attaches to the user's own debuggable Chrome over loopback CDP and
+  // observes one tab (console/network/DOM/optional screenshot) for a bounded
+  // window. Observation only — it never clicks, types, or navigates; the
+  // optional reload re-runs the page the user already has open, and the
+  // screenshot goes to a generated temp path (never an agent-chosen one), so
+  // the tool stays read-only and plan-mode safe.
+  browser_state: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.READ,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
 });
 
 function normalizeGitCommand(command) {

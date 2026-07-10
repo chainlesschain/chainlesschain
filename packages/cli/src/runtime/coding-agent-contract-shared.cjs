@@ -1005,6 +1005,59 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       ],
     },
   },
+  {
+    name: "browser_state",
+    title: "Browser State",
+    kind: "browser",
+    tier: "extension",
+    description:
+      "Capture live state from the user's real Chrome over CDP: current URL/title, open tabs, console messages and failed/error network requests observed during a short watch window, a capped DOM snapshot, and optionally a screenshot (saved to a temp file whose path is returned). Requires a debuggable Chrome — the user starts one with `cc browse chrome launch`. Console/network capture starts at attach time (CDP keeps no history) — set reload=true to observe load-time errors. Use to verify web changes in the user's logged-in browser.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        port: {
+          type: "number",
+          description: "CDP port of the debuggable Chrome (default 9222)",
+        },
+        tab: {
+          type: "number",
+          description: "Tab index to observe (default 0)",
+        },
+        reload: {
+          type: "boolean",
+          description:
+            "Reload the page first to capture load-time console/network (default false)",
+        },
+        watch_ms: {
+          type: "number",
+          description: "Observation window in milliseconds (default 3000)",
+        },
+        include_dom: {
+          type: "boolean",
+          description: "Include a capped HTML snapshot (default true)",
+        },
+        dom_cap: {
+          type: "number",
+          description: "Max HTML characters to return (default 40000)",
+        },
+        screenshot: {
+          type: "boolean",
+          description:
+            "Save a screenshot to a generated temp file and return its path (default false)",
+        },
+      },
+      required: [],
+    },
+    ...TOOL_POLICY_METADATA.browser_state,
+    permissions: {
+      level: "standard",
+      scopes: ["browser:read"],
+    },
+    telemetry: {
+      category: "browser",
+      tags: ["tool:browser_state", "contract:coding-agent", "tier:extension"],
+    },
+  },
 ]);
 
 const CODING_AGENT_MVP_TOOL_NAMES = Object.freeze(

@@ -3187,6 +3187,40 @@ async function executeToolInner(
       }
     }
 
+    case "browser_state": {
+      // P1 #8: first-class Chrome CDP observation — the agent side of the
+      // "locate error → fix → verify" web loop against the user's real,
+      // logged-in browser (`cc browse chrome launch`). DOM is capped harder
+      // than the CLI command's 150k default so a page dump cannot flood the
+      // conversation; screenshots go to a generated temp file (never an
+      // agent-chosen path) to keep the tool strictly read-only.
+      try {
+        const { captureState } = await import("../lib/chrome-connector.js");
+        const screenshotPath = args.screenshot
+          ? path.join(os.tmpdir(), `cc-browser-state-${Date.now()}.png`)
+          : null;
+        const state = await captureState({
+          port: args.port != null ? Number(args.port) : undefined,
+          tab: args.tab != null ? Number(args.tab) : undefined,
+          reload: args.reload === true,
+          watchMs: args.watch_ms != null ? Number(args.watch_ms) : undefined,
+          includeDom: args.include_dom !== false,
+          domCap: args.dom_cap != null ? Number(args.dom_cap) : 40000,
+          screenshotPath,
+        });
+        if (!state.ok) {
+          return attachDescriptor({
+            error: `browser_state failed: ${state.error}`,
+          });
+        }
+        return attachDescriptor(state);
+      } catch (err) {
+        return attachDescriptor({
+          error: `browser_state failed: ${err.message}`,
+        });
+      }
+    }
+
     case "search_files": {
       // An explicit directory scopes the search to one root; otherwise span
       // cwd plus any --add-dir roots so cross-package searches find matches.
@@ -6523,6 +6557,8 @@ export function formatToolArgs(name, args) {
       return `${args.level || "info"}: ${(args.title || "").substring(0, 50)}`;
     case "publish_artifact":
       return `${args.kind || "other"}: ${(args.title || args.path || "").substring(0, 60)}`;
+    case "browser_state":
+      return `tab=${args.tab ?? 0} port=${args.port ?? 9222}${args.reload ? " reload" : ""}`;
     case "schedule":
       return args.action === "cron"
         ? `cron ${args.cron || ""}`.trim()
