@@ -253,11 +253,13 @@ describe('CLI commands via WebSocket execute protocol', () => {
   // ── 10. doctor ──
 
   it('doctor runs diagnostics and returns output', async () => {
-    const response = await executeCommand(ws, 'doctor')
+    // doctor shells out to npm/docker/git serially; on a loaded Windows box
+    // those probes alone can exceed 30s, so give it real headroom.
+    const response = await executeCommand(ws, 'doctor', 90000)
     const output = getOutput(response)
     expect(typeof output).toBe('string')
     expect(output.length).toBeGreaterThan(0)
-  }, 30000)
+  }, 100000)
 
   // ── 11. execute returns correlated id ──
 

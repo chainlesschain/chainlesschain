@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { spawnSync } from "node:child_process";
 import {
   mkdtempSync,
@@ -24,6 +24,10 @@ import {
   withinRoot,
   _internals,
 } from "../../src/lib/checkpoint-store.js";
+
+// Every test (and the beforeEach) shells out to git many times; on a loaded
+// Windows box each spawn can take ~1s, blowing the default 5s budget.
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 /** Run git in the repo (test helper). */
 function git(repo, ...args) {
