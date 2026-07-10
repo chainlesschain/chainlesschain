@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.53] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 
 - **Chrome Connector (Tools → ChainlessChain: Chrome Connector).** Drives
   the new `cc browse chrome` CLI surface: launch a debuggable Chrome (a
@@ -13,7 +13,7 @@
   `chainlesschain.chrome.connector`. (Needs a cc with `browse chrome`,
   unreleased at the time of writing.)
 - **Worktree Tasks dialog (Tools → ChainlessChain: Worktree Tasks).** Lists
-  the repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with
+  the repo's agent task worktrees (cc-agent-_ / batch/_ / agent/\*) with
   change footprint (+ins −del, commits ahead), a working/dirty flag, and a
   merge-conflict preview computed with `git merge-tree --write-tree` (older
   git shows "unknown" instead of guessing). Actions: **New isolated task…**
@@ -25,12 +25,12 @@
   `chainlesschain.worktree.tasks` (webview form).
 - **Plugin & MCP manager (Tools → ChainlessChain: Manage Plugins & MCP).** A
   three-tab dialog over the CLI's --json surface: runtime plugins with scope
-  + manifest validity (Trust / Untrust / Uninstall — per-row scope,
-  confirmed — / Add from a local directory or a --registry source), MCP
-  servers with policy annotations (Test connect / Remove), and a filterable
-  read-only skills listing. Every action shells out to the CLI off-EDT and
-  re-lists. Pure core `PluginManager` (JUnit-covered); VS Code twin:
-  `chainlesschain.plugins.manage` (webview form).
+  - manifest validity (Trust / Untrust / Uninstall — per-row scope,
+    confirmed — / Add from a local directory or a --registry source), MCP
+    servers with policy annotations (Test connect / Remove), and a filterable
+    read-only skills listing. Every action shells out to the CLI off-EDT and
+    re-lists. Pure core `PluginManager` (JUnit-covered); VS Code twin:
+    `chainlesschain.plugins.manage` (webview form).
 - **Inline completion hardening (parity audit).** Cancelling a suggestion
   (typing on / dismissing) now interrupts the blocking backend call
   (`runInterruptible`) and KILLS the in-flight `cc complete` child instead
@@ -61,9 +61,9 @@
   terminals (no hard plugin dependency added).
 - **`/handoff` — hand a conversation off to a background agent.** Stops the
   tab's child and relaunches the SAME session detached (`cc agent --bg
-  --resume <id>`), so it keeps running without the IDE and can be continued
+--resume <id>`), so it keeps running without the IDE and can be continued
   from the web panel's Background Agents view (browser/phone), `cc attach
-  <id>`, or Tools → Background Agents. Pick the session again later to
+<id>`, or Tools → Background Agents. Pick the session again later to
   re-attach it to a tab.
 - **Remote Control action (Tools → ChainlessChain: Remote Control).** Starts
   a `cc remote-control` pairing host as a long-running child of the IDE,

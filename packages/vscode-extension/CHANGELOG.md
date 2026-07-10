@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.10] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 
 - **Chrome Connector (ChainlessChain: Chrome Connector).** Drives the new
   `cc browse chrome` CLI surface: launch a debuggable Chrome (a DEDICATED
@@ -14,7 +14,7 @@ All notable changes to this extension are documented here.
   the exact CLI command so the agent can reproduce the same context itself
   (needs a cc with `browse chrome`, unreleased at the time of writing).
 - **Worktree Tasks panel (ChainlessChain: Worktree Tasks).** Lists the
-  repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with change
+  repo's agent task worktrees (cc-agent-_ / batch/_ / agent/\*) with change
   footprint (+ins −del, commits ahead), a working/dirty state, and a
   merge-conflict preview computed with `git merge-tree --write-tree` (the
   same plumbing the CLI uses; older git shows "?" instead of guessing).
@@ -61,9 +61,9 @@ All notable changes to this extension are documented here.
   effective default; now it's declared).
 - **`/handoff` — hand a conversation off to a background agent.** Stops the
   panel child and relaunches the SAME session detached (`cc agent --bg
-  --resume <id>`), so it keeps running without the IDE and can be continued
+--resume <id>`), so it keeps running without the IDE and can be continued
   from the web panel's Background Agents view (browser/phone), `cc attach
-  <id>`, or the IDE's Background Agents panel. Pick the session again later
+<id>`, or the IDE's Background Agents panel. Pick the session again later
   to re-attach it to a tab.
 - **Remote Control command (ChainlessChain: Remote Control).** Starts a
   `cc remote-control` pairing host as a long-running child of this window,
