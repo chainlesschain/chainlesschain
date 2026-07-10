@@ -24,9 +24,17 @@ const bin = join(cliRoot, "bin", "chainlesschain.js");
 let tmpDir;
 let docGenerateHandler;
 let libreConvertHandler;
+let originalCwd;
 
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "cc-ai-doc-creator-test-"));
+
+  // The generated doc-generate handler writes its output files to
+  // process.cwd(); run from tmpDir so test artifacts land there (and get
+  // cleaned up) instead of littering the repo. Safe: pool is "forks", so
+  // this file owns its process.
+  originalCwd = process.cwd();
+  process.chdir(tmpDir);
 
   execSync(`node "${bin}" init --template ai-doc-creator --yes`, {
     cwd: tmpDir,
@@ -44,6 +52,9 @@ beforeAll(() => {
 }, 45000);
 
 afterAll(() => {
+  if (originalCwd) {
+    process.chdir(originalCwd);
+  }
   if (tmpDir) {
     rmSync(tmpDir, { recursive: true, force: true });
   }
