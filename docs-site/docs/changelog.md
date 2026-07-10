@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control + web-panel 直连配对/审批卡片 + 交付物预览下载
+
+> CLI-only 发版（`chainlesschain` 0.162.157 → **0.162.158**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数不变（173）；AGENT_TOOLS **24 → 25**（新增 `browser_state`）。
+
+- **`browser_state` agent 工具**：Chrome CDP 连接器暴露为第 25 个 agent 工具——URL/标题/标签页 + 观察窗口 console/失败网络请求 + DOM 快照（40k cap）+ 可选截图（生成的临时路径）；LOW/READ/plan 模式可用，纯观察仅 loopback（详见 [cc agent 内置工具](/chainlesschain/cli-agent#内置工具)）。
+- **REPL `/remote-control`（别名 `/rc`）**：交互式会话内起配对（URI + 二维码），终端 prompt 与已配对设备**赛跑审批**，先答先赢；远端超时/断开不是决定——静默手机永不代键盘用户 auto-deny。
+- **web-panel 直连（direct-LAN）配对 + 审批卡片**：面板自动识别 relay E2EE 与 `chainlesschain://remote-control/pair#` 直连双方案；`permission.request` 渲染为一等审批卡（批准/拒绝一键裁决，requestId 去重）；直连断开诚实提示重配对（一次性 token 刻意不自动重连）。
+- **交付物 Markdown 预览 + 浏览器下载**：面板 markdown 预览渲染 + `GET /api/artifacts/<id>/download` 完整副本流式下载（token 门 + 防篡改守卫）。
+- **安全修复 ×2**：直连配对明文 ws:// 仅接受私网/回环主机（钓鱼 URI 无法导走 serverToken 与审批决定）；chrome-connector launch URL 限 http(s)/about:（`--` 开头值不再被 Chrome 当开关）+ CDP 端口边界校验。
+- **健壮性**：审批卡发送失败自动恢复（不再静默丢卡）；测试稳健性两处预算加固 + 测试产物泄漏修复（仓库面）。
+
 #### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + Artifacts + Windows/PowerShell 一等 + --bare/无斜杠/读屏模式
 
 > CLI-only 发版（`chainlesschain` 0.162.156 → **0.162.157**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数 **172 → 173**（新增顶层 `cc artifacts`）；依赖指针 `@chainlesschain/personal-data-hub` 0.4.50→0.4.51（交易短信→金额事件）。

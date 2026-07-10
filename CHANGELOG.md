@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control + web-panel 直连配对/审批卡片 + 交付物预览下载（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.157 → **0.162.158** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + web-panel dist 随包；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数不变（**173**）；AGENT_TOOLS **24 → 25**（新增 `browser_state`）。
+
+- **`browser_state` 一等 agent 工具（IDE gap P1 #8 收口）**：Chrome CDP 连接器（`cc browse chrome`）暴露为第 25 个 agent 工具——URL/标题/标签页 + 观察窗口 console/失败网络请求 + DOM 快照（agent 面 40k cap，CLI 命令面 150k）+ 可选截图（**生成的**临时路径，防 agent 自选路径经读工具覆盖任意文件）；LOW/READ/plan 模式可用，纯观察不点击不输入不导航，仅 loopback CDP。
+- **REPL `/remote-control`（别名 `/rc`）on|off|status（批 26）**：交互式会话内起自托管 WS + RemoteApprovalBridge 配对（URI + 可选二维码），TAB 补全 + /help；`cc agent --remote-control` 对交互式会话同样生效（启动失败降级 local-only 不中断会话）。**交互式远程审批赛跑语义**（新 `src/repl/remote-approval.js`）：两个交互 confirmer（ApprovalGate + settings/hook ask）把终端 prompt 与已配对设备赛跑，先答先赢；与 headless 刻意不同——远端超时/断开**不是决定**（静默的手机永不代键盘用户 auto-deny），设备先答则取消本地 readline 并压掉其搁浅的 idle-timeout。
+- **web-panel 直连（direct-LAN）配对 + `permission.request` 审批卡片（批 28）**：remoteSession store 自动识别双 URI 方案——relay E2EE 路径不变，新增 `chainlesschain://remote-control/pair#` 直连 transport（browser 版 parseDirectPairingUri + 客户端过期检查）；直连控制走 remote-session-publish **顶层 commandId+seq**（applyControlIdempotent direct-client 契约）；一次性 pairing token → 直连断开**刻意不自动重连**（重 join 必失败，诚实 disconnected 态 + 重配对提示）；两种 transport 喂同一 pendingApprovals 卡片（requestId 去重 + permission.resolved 任意裁决方清除 + 首等公民审批卡列表批准/拒绝）。
+- **交付物 Markdown 预览 + 浏览器下载（批 25）**：面板 text/markdown 预览走既有 MarkdownRenderer（marked+DOMPurify+hljs，零新依赖）；新 `GET /api/artifacts/<id>/download` 流式下载完整存档副本（WS 预览仍 cap）——Content-Disposition（RFC 5987）+ no-store/nosniff + 配置 wsToken 时同 WS 强度 token 门（sha256+timingSafeEqual，Bearer 头不进 URL）+ basename 防篡改守卫。
+- **安全修复 ×2**：① **直连配对信任边界**——直连（LAN）配对无密码学主机身份（区别 relay E2EE），钓鱼配对 URI 可把面板指向任意公网 ws:// 端点导走 serverToken/prompt/审批决定；两端 parser（web-panel + CLI 孪生）现拒绝指向非私网主机的明文 ws://（仅 loopback/RFC-1918/link-local/ULA，即 pickLanAddress 可能产出的全集；wss:// 不限），IPv6 括号 + IPv4-mapped 点分/hex 双形态识别，RED 反证过。② **chrome-connector launch-arg 加固**——launch URL 曾逐字进 Chrome argv（`--` 开头值被 Chrome 当开关解析=潜在命令执行面），现限 http(s)://、about:（URL parse 校验字节原样透传）+ CDP 端口处处整型边界校验。
+- **健壮性**：web-panel 审批卡发送失败恢复——approve() 乐观清除后若答复未离开本端（直连 publish 拒绝/socket 断/relay 未配对）恢复卡片并浮错，可重新裁决；失败窗口内别设备已 resolved 则抑制恢复（无僵尸卡）。RED 反证 + web-panel 全套 2512 绿。
+- **测试稳健性（仓库面，不进 npm 包）**：checkpoint-store `vi.setConfig 30s` + web-panel doctor 90s 两处负载敏感预算加固（trap #31 形态）；ai-doc-creator 集成测试改 chdir tmpDir，不再向仓库根泄漏 12 个产物文件。
+
 ### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + Artifacts + Windows/PowerShell 一等 + --bare/无斜杠/读屏模式（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.156 → **0.162.157** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 依赖指针（`@chainlesschain/personal-data-hub` 0.4.50→**0.4.51**，交易短信→金额事件，已先行在 npm）；命令数 **172 → 173**（新增顶层 `cc artifacts`，13 文档面已扫）；无 Android cc bundle rollover / 无 USR_VERSION 改动。agent-sdk 0.1.1（plan review payload additive 类型）此前已在 npm。

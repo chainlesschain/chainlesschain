@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-10 发布 — **cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control 赛跑审批 + web-panel 直连配对/审批卡片 + 交付物预览下载**
+
+> CLI-only 发版（0.162.157 → **0.162.158**，npm `latest`，provenance）。**`browser_state` 第 25 个 agent 工具**（Chrome CDP 观察：URL/标签页/console/失败网络/DOM 快照/截图，纯只读仅 loopback，plan 模式可用）+ **REPL `/remote-control`**（交互会话内配对手机，终端 prompt 与远端设备赛跑审批——远端静默永不代键盘用户 auto-deny）+ **web-panel 直连（direct-LAN）配对与 `permission.request` 一等审批卡**（relay E2EE 与直连双方案自动识别，断线幂等 commandId+seq）+ **交付物 Markdown 预览与浏览器完整下载**。安全修复 ×2：直连配对明文 ws:// 收紧到私网/回环主机（钓鱼配对 URI 无法导走 serverToken/审批决定）+ chrome-connector launch-arg 加固（`--` 开头 URL 不再被 Chrome 当开关解析）。命令数 173 不变，AGENT_TOOLS 24 → 25。
+
 ## 2026-07-10 发布 — **IDE 插件 VS Code 0.37.12 / JetBrains 0.4.56：IDE 内配对二维码 + Remote Control relay 设置面（gap 清单收口）**
 
 > IDE-only 双端发版（Open VSX + JetBrains Marketplace 均已上架）。Remote Control 配对不再要求盯终端：一次性配对 URI 直接在 IDE 内渲染成二维码（VS webview / JB 对话框，双端共享同一自包含 QR 编码器纯核），手机扫码即配对；relay（E2EE 跨网）模式的 `--relay-url` / `--peer-id` 也有了 IDE 设置面（VS settings / JB「Relay settings…」对话框）。至此 IDE gap-analysis 清单全部非环境阻塞项收口（#5 行范围 mention `@file#L12-40` 核实为早已落地的 stale 记录；#8 `browser_state` 一等 agent 工具已进主线，工具数 24 → 25，随下次 cli 发版上 npm）。验证：VS 70 测试文件 / 605 绿 + vsix 解析级检查 7/7；JB test + smokeTest + buildPlugin 绿 + zip 解析级检查 6/6。同日主线还落了 web-panel 直连（direct-LAN）配对 + `permission.request` 审批卡片（批 28，随下次 cli 发版）。
