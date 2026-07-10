@@ -5,6 +5,7 @@ import path from "path";
 import {
   REMOTE_CONTROL_DEFAULT_PORT,
   REMOTE_CONTROL_DEFAULT_SCOPES,
+  assertDirectWsUrlAllowed,
   buildDirectPairingUri,
   parseDirectPairingUri,
   parseScopes,
@@ -129,6 +130,51 @@ describe("direct pairing URI", () => {
     expect(() => parseDirectPairingUri("https://example.com")).toThrow(
       /Not a remote-control pairing URI/,
     );
+  });
+});
+
+describe("direct pairing endpoint trust boundary", () => {
+  // Direct mode has no E2EE host identity — the endpoint IS the trust
+  // boundary. Plaintext ws:// only to loopback/RFC-1918/link-local (all
+  // pickLanAddress can emit); wss:// anywhere. Mirrored in the web-panel
+  // parser (packages/web-panel/src/utils/remote-control-pairing.js).
+  it.each([
+    "ws://127.0.0.1:18800",
+    "ws://192.168.1.10:18800",
+    "ws://10.1.2.3:18800",
+    "ws://172.31.0.9:18800",
+    "ws://[::1]:18800",
+    "ws://localhost:18800",
+    "wss://anywhere.example.com:443",
+  ])("allows %s", (wsUrl) => {
+    expect(() => assertDirectWsUrlAllowed(wsUrl)).not.toThrow();
+  });
+
+  it.each([
+    "ws://evil.example.com:9999",
+    "ws://8.8.8.8:18800",
+    "ws://[2001:db8::1]:18800",
+    "ws://172.32.0.1:18800",
+  ])("refuses plaintext %s to a public host", (wsUrl) => {
+    expect(() => assertDirectWsUrlAllowed(wsUrl)).toThrow(/non-private host/);
+  });
+
+  it("refuses non-WebSocket schemes and garbage", () => {
+    expect(() => assertDirectWsUrlAllowed("http://127.0.0.1:1")).toThrow(
+      /must be ws:\/\/ or wss:\/\//,
+    );
+    expect(() => assertDirectWsUrlAllowed("%%%")).toThrow(
+      /Invalid direct pairing endpoint/,
+    );
+  });
+
+  it("parseDirectPairingUri enforces the guard on embedded wsUrl", () => {
+    const evil = buildDirectPairingUri({
+      wsUrl: "ws://evil.example.com:9999",
+      remoteSessionId: "rs-1",
+      pairingToken: "pair-token",
+    });
+    expect(() => parseDirectPairingUri(evil)).toThrow(/non-private host/);
   });
 });
 

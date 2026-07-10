@@ -24,6 +24,7 @@ import os from "os";
 import path from "path";
 import { randomBytes } from "crypto";
 import { REMOTE_SESSION_SCOPES } from "../harness/remote-session-registry.js";
+import { extractHost, isPrivateHost } from "./sandbox-network-policy.js";
 
 export const REMOTE_CONTROL_DEFAULT_PORT = 18800;
 export const REMOTE_CONTROL_PAIRING_SCHEME =
@@ -159,6 +160,39 @@ export function buildDirectPairingUri({
   return REMOTE_CONTROL_PAIRING_SCHEME + b64url(JSON.stringify(payload));
 }
 
+/**
+ * Direct pairing carries NO cryptographic host identity (unlike relay E2EE),
+ * so the endpoint itself is the trust boundary: plaintext `ws://` is only
+ * acceptable to loopback/RFC-1918/link-local hosts (the only thing
+ * `pickLanAddress()` ever emits); anything else must be `wss://`. Throws on
+ * violation — mirrored by the web-panel parser (remote-control-pairing.js).
+ */
+export function assertDirectWsUrlAllowed(wsUrl) {
+  let parsed;
+  try {
+    parsed = new URL(String(wsUrl));
+  } catch {
+    throw new Error(`Invalid direct pairing endpoint: ${wsUrl}`);
+  }
+  if (parsed.protocol !== "ws:" && parsed.protocol !== "wss:") {
+    throw new Error(
+      `Direct pairing endpoint must be ws:// or wss:// (got ${parsed.protocol})`,
+    );
+  }
+  // extractHost strips IPv6 brackets ("[::1]" → "::1") — isPrivateHost alone
+  // would miss bracketed literals (the documented new URL() gotcha).
+  if (
+    parsed.protocol === "ws:" &&
+    !isPrivateHost(extractHost(parsed.hostname))
+  ) {
+    throw new Error(
+      `Refusing plaintext ws:// to non-private host "${parsed.hostname}" — ` +
+        "direct pairing is LAN/loopback only; use wss:// for anything else",
+    );
+  }
+  return parsed;
+}
+
 /** Inverse of buildDirectPairingUri. Throws on malformed input. */
 export function parseDirectPairingUri(uri) {
   if (
@@ -175,6 +209,7 @@ export function parseDirectPairingUri(uri) {
       `Unsupported remote-control pairing payload (v=${payload.v}, transport=${payload.transport})`,
     );
   }
+  if (payload.wsUrl) assertDirectWsUrlAllowed(payload.wsUrl);
   return payload;
 }
 
