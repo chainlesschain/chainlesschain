@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.11] — P2 hardening: deep-link parity, Remote/WSL Doctor, auto-exec config guard (2026-07-10)
 
 - **Deep link parity — full parameter set (P2 #11).**
   `vscode://chainlesschain.chainlesschain-ide/open` now accepts `session`

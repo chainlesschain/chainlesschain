@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.54] — P2 hardening: deep-link parity, Remote/WSL Doctor, auto-exec config guard (2026-07-10)
 
 - **Deep link parity — full parameter set (P2 #11).** `jetbrains://…/chainlesschain/open`
   now accepts `session` (resume), `file`, `line`, `workspace` and `mode` on top
