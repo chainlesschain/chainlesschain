@@ -228,6 +228,28 @@ function buildIdeTools(editor) {
           },
         ]
       : []),
+    // Conditional: App Preview state (dev server URL + recent output).
+    ...(typeof editor.getPreviewState === "function"
+      ? [
+          {
+            name: "getPreviewState",
+            description:
+              "Return the App Preview dev server's state: whether it is " +
+              "running, its served URL, the npm script, the last exit code " +
+              "and the recent server output (build/runtime errors included) " +
+              "— so you can diagnose the preview without asking the user to " +
+              "paste the terminal. Fetch the URL yourself if you need the " +
+              "page content.",
+            inputSchema: { type: "object", properties: {} },
+            handler: async () => {
+              const res = await editor.getPreviewState();
+              return res && typeof res === "object"
+                ? res
+                : { running: false, url: null, script: null, output: "" };
+            },
+          },
+        ]
+      : []),
     // Conditional 5th tool: notebook code execution (Claude-Code
     // mcp__ide__executeCode parity). Only exposed when the facade supports it.
     ...(typeof editor.executeCode === "function"

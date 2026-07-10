@@ -59,6 +59,28 @@ public interface EditorFacade {
         return false;
     }
 
+    /** Whether {@link #getPreviewState()} is wired — gates the tool's exposure. */
+    default boolean supportsPreviewState() {
+        return false;
+    }
+
+    /**
+     * App Preview dev-server state: running flag, detected URL, npm script,
+     * last exit code, and the recent server output tail. Page-side state
+     * (DOM/console/network/screenshot) needs a real browser connector and is
+     * intentionally not part of this contract.
+     * @return { running, url, script, exitCode, output }
+     */
+    default Map<String, Object> getPreviewState() {
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("running", Boolean.FALSE);
+        out.put("url", null);
+        out.put("script", null);
+        out.put("exitCode", null);
+        out.put("output", "");
+        return out;
+    }
+
     /**
      * Recent integrated-terminal context: the buffer tail of up to {@code limit}
      * terminal tabs. Same field names as the VS Code twin's per-command records

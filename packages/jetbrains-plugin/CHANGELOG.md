@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- **`getPreviewState` bridge tool.** The agent can now read the App
+  Preview dev server's state — running flag, served URL, npm script, last
+  exit code and the recent server output tail (16k; build/runtime errors
+  keep being captured after the URL is detected) — so it diagnoses the
+  preview and fetches the page itself instead of asking you to paste the
+  output. (VS Code twin ships the same tool.)
 - **`getTerminalOutput` bridge tool (VS Code parity).** The agent can now
   read the integrated terminal's recent output — each entry is one terminal
   tab's buffer tail (16k cap) — so it sees what you just ran and how it

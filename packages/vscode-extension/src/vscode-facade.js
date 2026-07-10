@@ -7,7 +7,12 @@ const fs = require("fs");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
 
-function createVscodeEditorFacade(vscode) {
+function createVscodeEditorFacade(vscode, opts = {}) {
+  // Optional provider for the App Preview controller (created lazily by the
+  // preview.start command) — getPreviewState reads through it so the tool
+  // reports "not running" before the first start instead of being absent.
+  const getPreview =
+    typeof opts.getPreview === "function" ? opts.getPreview : () => null;
   // Terminal-context capture (Claude-Code "terminal output in prompts" parity).
   // Feature-detected: shell-integration execution events are stable since VS
   // Code 1.93; on older hosts (engines is ^1.85) the buffer just stays empty.
@@ -634,6 +639,25 @@ function createVscodeEditorFacade(vscode) {
     async getTerminalOutput({ limit } = {}) {
       const n = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 3;
       return { terminals: _terminalCapture.recent(n) };
+    },
+
+    // App Preview state (server-side): whether the dev server runs, its URL,
+    // the npm script and the recent server output tail — the agent reads
+    // build/runtime errors and the preview URL from here. Page-side state
+    // (DOM/console/network/screenshot) needs a real browser connector and is
+    // intentionally NOT faked here.
+    async getPreviewState() {
+      const controller = getPreview();
+      if (controller && typeof controller.state === "function") {
+        return controller.state();
+      }
+      return {
+        running: false,
+        url: null,
+        script: null,
+        exitCode: null,
+        output: "",
+      };
     },
 
     /** Dispose the shell-integration subscriptions (called on deactivate). */

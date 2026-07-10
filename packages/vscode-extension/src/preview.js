@@ -41,6 +41,35 @@ class PreviewController {
     this.script = null;
     this._cwd = null; // remembered for restart-after-crash
     this._stopping = false; // distinguishes a user stop() from a crash
+    this._outputTail = ""; // recent dev-server output for getPreviewState
+    this._lastExitCode = null;
+  }
+
+  /** Per-preview output-tail cap (chars) — enough for a stack trace + banner. */
+  static get MAX_TAIL_CHARS() {
+    return 16000;
+  }
+
+  /**
+   * Snapshot for the `getPreviewState` bridge tool: whether the dev server
+   * runs, its detected URL, the npm script, and the recent server output —
+   * the agent reads build/runtime errors from here instead of asking the
+   * user to paste the terminal.
+   */
+  state() {
+    return {
+      running: this.running,
+      url: this.url,
+      script: this.script,
+      exitCode: this.running ? null : this._lastExitCode,
+      output: this._outputTail,
+    };
+  }
+
+  _capture(buf) {
+    this._outputTail = (this._outputTail + String(buf)).slice(
+      -PreviewController.MAX_TAIL_CHARS,
+    );
   }
 
   /**
@@ -65,6 +94,8 @@ class PreviewController {
     this.url = null;
     this._cwd = cwd;
     this._stopping = false;
+    this._outputTail = "";
+    this._lastExitCode = null;
     this._onStatus({ state: "starting", script: dev.script });
     const child = this._spawn(dev.script, cwd);
     this.child = child;
@@ -77,6 +108,9 @@ class PreviewController {
     const makeOnData = () => {
       let carry = "";
       return (buf) => {
+        // Always capture for getPreviewState — build errors arrive AFTER the
+        // URL is found, which is exactly when the agent needs to read them.
+        this._capture(buf);
         if (this.url) return; // already opened
         carry += String(buf);
         const lines = carry.split(/\r?\n/);
@@ -99,6 +133,7 @@ class PreviewController {
       this.running = false;
       this.child = null;
       this._stopping = false;
+      this._lastExitCode = typeof code === "number" ? code : null;
       // A dev server is meant to run until you stop it — any exit we didn't
       // ask for is a crash. stop() already emitted "stopped", so stay quiet
       // for an intentional exit (avoids a double status).

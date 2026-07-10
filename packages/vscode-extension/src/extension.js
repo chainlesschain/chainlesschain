@@ -163,7 +163,11 @@ async function startBridge(context) {
       /* best-effort */
     }
   })().catch(() => {});
-  const facade = createVscodeEditorFacade(vscode);
+  const facade = createVscodeEditorFacade(vscode, {
+    // getPreviewState reads the App Preview controller lazily — it is created
+    // by the preview.start command, possibly after the bridge is up.
+    getPreview: () => _preview,
+  });
   _facade = facade;
   const tools = buildIdeTools(facade);
   _server = new IdeMcpServer({

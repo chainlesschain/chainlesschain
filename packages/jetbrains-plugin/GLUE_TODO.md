@@ -559,3 +559,13 @@ pipe/CLI actions appending results, zh/en bundle labels.
       output — check which engine 2024.2 uses and note it here. Disable the
       Terminal plugin → tool still answers with an empty list (no
       NoClassDefFoundError in idea.log).
+
+## 🗂 getPreviewState bridge tool (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **getPreviewState (PreviewService.stateMap + IntellijEditorFacade)** —
+      Tools → Start Preview on a project with a dev script; after the URL is
+      detected, have the agent call `getPreviewState` → running=true, the
+      URL, script name, and the server banner in `output`. Introduce a build
+      error → the error text appears in `output` on the next call. Stop
+      Preview → running=false with the last exit code; before any start →
+      running=false, empty output. Restart resets the tail.

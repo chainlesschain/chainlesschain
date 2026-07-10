@@ -26,7 +26,7 @@
 - 已部分完成：Session history / remote resume 统一模型。新增共享 IDE session index，VS Code 与 JetBrains 都写入 `~/.chainlesschain/ide/session-index.json`，会话 picker 合并 CLI session list 与 IDE index，列表可展示 IDE 来源和状态，为跨 IDE/跨 workspace 搜索与后续 remote handoff 打基础。picker 已升级为两步式（选会话 → Resume / Rename / Delete）：status 与 workspace 进入 picker 行参与模糊搜索（跨 workspace 检索）；Rename 走 IDE index title overlay（对 CLI-only 会话同样生效）；Delete 统一走 `cc session delete --force` + IDE index 清理，并清空指向该会话的 tab resume id。
 - 已部分完成：IDE MCP parity。VS Code / JetBrains bridge 已统一增加 `getActiveFile` 工具，agent 可直接读取 active file、language、dirty state 和 cursor，不再只能从 selection 间接推断。
 - 已完成首版：remote/cloud session handoff 的 IDE 入口。两端 `/handoff` 把当前对话转成后台 agent（`cc agent --bg --resume <sessionId>`），可从浏览器 web-panel 后台面板、`cc attach`、IDE Background Agents 面板续接；两端新增 Remote Control 命令（VS Code `chainlesschain.remote.control` / JetBrains Tools → Remote Control）封装 `cc remote-control start/status/stop --json`，展示一次性配对 URI（手机/网页配对后可 observe/prompt/approve/interrupt 本机 agent），状态查看与停止、断线后 `--prune` 清理死宿主并重启重发 token。
-- 待继续：IDE MCP parity 剩余项（JetBrains terminal output、notebook 对齐、preview/browser state、大 payload 分片审计）。
+- 已基本完成：IDE MCP parity（P0 #3）。JetBrains `getTerminalOutput` 已对齐；双端新增 `getPreviewState`（dev server URL + 输出尾）；大 payload/超时/token/trust 统一审计完成（修 VS token 时序比较 + 显式 untrustedWorkspaces 声明，详见 §3）。notebook JetBrains 对齐判 product-blocked；页面侧 browser state 归入 P1 #8 Chrome connector 方向。
 
 ## P0：优先补齐
 
@@ -104,11 +104,18 @@ Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、
 - 既有能力已覆盖 selection、diagnostics、open editors、native diff、multi-file diff；VS Code 侧已有 terminal output 与 notebook executeCode 条件工具。
 - JetBrains `getTerminalOutput`：与 VS Code 同名同字段（terminal/command/exitCode/output）的条件工具。JetBrains 终端无 per-command shell integration API，返回每个终端 tab 的 buffer tail（16k 上限，classic JediTerm widget；reworked 终端 tab 报名字+空输出而非丢弃）。terminal 插件缺席时返回空列表，与 VS Code「无 shell integration 则为空」契约一致；bundled 依赖仅编译期（同 `com.intellij.java` 先例），plugin.xml 不加硬依赖。
 
+- `getPreviewState`（双端）：App Preview dev server 的 running/URL/npm script/最后退出码/最近输出尾（16k，URL 检出后仍持续捕获——构建/运行时报错恰好发生在其后）。agent 由此拿到预览 URL 与 server 侧报错，无需用户贴终端；页面内容可由 agent 自行抓取该 URL。
+- 大 payload/超时/token/workspace trust 统一审计（2026-07-10 完成，结论如下）：
+  - body 上限：双端一致 4MB + HTTP 413（VS `MAX_BODY_BYTES` / JB `readBody` 中断），多字节字符跨 chunk 双端均安全（VS StringDecoder / JB 整段字节后一次解码）。
+  - 超时：双端一致允许长阻塞 tools/call（openDiff 等分钟级审阅）——VS 显式 `requestTimeout=0`，JDK HttpServer 天然持开 + cached pool 防串行阻塞；仅限 loopback + bearer，slow-loris 风险接受并记录。
+  - 鉴权 token：审计发现 VS 端 bearer 比较为普通字符串比较（timing oracle，loopback 低风险）而 JB 已是常数时间——已修，VS 改 `crypto.timingSafeEqual`（含长度不匹配防护）；另修 VS 长阻塞响应期间 client 消失时 `_send` 抛错成 unhandled rejection 的问题。token 存储双端一致（lockfile 0600 / 目录 0700），绑定双端一致 127.0.0.1。
+  - workspace trust：VS package.json 原未声明 `capabilities.untrustedWorkspaces`（默认即 Restricted Mode 禁用，安全但隐式）——已显式声明 `supported: false` 固化意图；JetBrains 侧信任由 IDE 打开项目时的 trust 对话框前置把关，插件在授信后运行，无需额外声明。
+  - 分片：MCP Streamable HTTP 无标准分片语义，双端一致用 4MB 上限 + 413 让 CLI 客户端收到明确错误（而非断连），超大 diff 由 CLI 侧拆分，维持现状。
+
 剩余：
 
 - notebook/Jupyter cell 读取和执行的 JetBrains 对齐 —— 判 product-blocked：Jupyter kernel 执行 API 在 JetBrains 侧属付费 IDE（DataSpell/PyCharm Pro）的 Jupyter 插件，IDEA Community 无可编程 kernel 表面，不强行对齐。
-- preview/browser state 的 DOM、console、network、screenshot 上下文。
-- 大 payload 分片、超时、鉴权 token、workspace trust 边界的统一审计。
+- 页面侧 browser state（DOM、console、network、screenshot）——需真浏览器 connector（P1 #8 Chrome connector 方向），Simple Browser/JCEF 均无该 API 面；server 侧状态已由 `getPreviewState` 覆盖。
 
 ### 4. Diff Review UX
 

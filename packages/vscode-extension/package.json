@@ -30,6 +30,12 @@
     "onUri"
   ],
   "main": "./src/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The IDE bridge exposes editor state and file-writing diff reviews to the local agent; it stays disabled until the workspace is trusted."
+    }
+  },
   "l10n": "./l10n",
   "contributes": {
     "commands": [

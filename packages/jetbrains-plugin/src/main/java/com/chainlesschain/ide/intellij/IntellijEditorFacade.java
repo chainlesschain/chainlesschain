@@ -133,6 +133,22 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     @Override
+    public boolean supportsPreviewState() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getPreviewState() {
+        try {
+            PreviewService preview = PreviewService.getInstance(project);
+            if (preview != null) return preview.stateMap();
+        } catch (Throwable ignored) {
+            // service unavailable (project closing) — fall through to default
+        }
+        return EditorFacade.super.getPreviewState();
+    }
+
+    @Override
     public List<Map<String, Object>> getDiagnostics(String path) {
         return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<List<Map<String, Object>>>) () -> {
             List<Map<String, Object>> out = new ArrayList<>();

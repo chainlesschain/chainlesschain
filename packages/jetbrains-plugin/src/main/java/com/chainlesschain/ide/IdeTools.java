@@ -159,6 +159,31 @@ public final class IdeTools {
             });
         }
 
+        // Conditional: App Preview dev-server state (VS Code twin gates the
+        // same way on facade support).
+        if (editor.supportsPreviewState()) {
+            tools.add(new BaseTool(
+                    "getPreviewState",
+                    "Return the App Preview dev server's state: whether it is running, "
+                            + "its served URL, the npm script, the last exit code and the "
+                            + "recent server output (build/runtime errors included) — so you "
+                            + "can diagnose the preview without asking the user to paste the "
+                            + "terminal. Fetch the URL yourself if you need the page content.",
+                    emptyObjectSchema()) {
+                @Override public Object call(Map<String, Object> args) {
+                    Map<String, Object> res = editor.getPreviewState();
+                    if (res != null) return res;
+                    Map<String, Object> empty = new LinkedHashMap<>();
+                    empty.put("running", Boolean.FALSE);
+                    empty.put("url", null);
+                    empty.put("script", null);
+                    empty.put("exitCode", null);
+                    empty.put("output", "");
+                    return empty;
+                }
+            });
+        }
+
         return tools;
     }
 

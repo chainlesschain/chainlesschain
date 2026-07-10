@@ -4,6 +4,19 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **`getPreviewState` bridge tool.** The agent can now read the App
+  Preview dev server's state — running flag, served URL, npm script, last
+  exit code and the recent server output tail (16k; build/runtime errors
+  keep being captured after the URL is detected) — so it diagnoses the
+  preview and fetches the page itself instead of asking you to paste the
+  terminal. (JetBrains twin ships the same tool.)
+- **Bridge hardening (payload/token/trust audit).** The MCP bridge's bearer
+  token is now compared in constant time (`crypto.timingSafeEqual`, matching
+  the JetBrains twin); a client that disconnects during a long blocking
+  `openDiff` no longer surfaces an unhandled rejection; and the extension
+  now explicitly declares `capabilities.untrustedWorkspaces: false` — the
+  bridge stays off until you trust the workspace (this was already the
+  effective default; now it's declared).
 - **`/handoff` — hand a conversation off to a background agent.** Stops the
   panel child and relaunches the SAME session detached (`cc agent --bg
   --resume <id>`), so it keeps running without the IDE and can be continued

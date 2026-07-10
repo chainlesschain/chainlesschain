@@ -118,9 +118,18 @@ class IdeMcpServer {
       return;
     }
     // Localhost bearer auth: every request (incl. notifications) carries it.
+    // Constant-time comparison — a plain !== short-circuits on the first
+    // differing byte, a (loopback-only, so low-risk) timing oracle. Same
+    // hardening as the JetBrains twin's MessageDigest.isEqual.
     if (this._token) {
-      const auth = req.headers["authorization"] || "";
-      if (auth !== `Bearer ${this._token}`) {
+      const expect = Buffer.from(`Bearer ${this._token}`, "utf8");
+      const got = Buffer.from(
+        String(req.headers["authorization"] || ""),
+        "utf8",
+      );
+      const ok =
+        expect.length === got.length && crypto.timingSafeEqual(expect, got);
+      if (!ok) {
         this._send(res, 401, { error: "unauthorized" });
         return;
       }
@@ -174,7 +183,21 @@ class IdeMcpServer {
           },
         };
       }
-      this._send(res, 200, envelope);
+      // The client may have vanished during a long blocking tool call
+      // (openDiff holds this response open for minutes) — writing to a dead
+      // socket throws, and this is an async listener, so it would surface as
+      // an unhandled rejection instead of a request failure. Best-effort.
+      try {
+        this._send(res, 200, envelope);
+      } catch (e) {
+        if (this._onError) {
+          try {
+            this._onError(e);
+          } catch {
+            /* best-effort */
+          }
+        }
+      }
     });
   }
 

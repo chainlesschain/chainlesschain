@@ -42,10 +42,19 @@ public final class PreviewService {
 
     static final String TOOL_WINDOW_ID = "ChainlessChain Preview";
 
+    /** Output-tail cap (chars) for getPreviewState — matches the VS twin. */
+    private static final int MAX_TAIL_CHARS = 16000;
+
     private final Project project;
     private OSProcessHandler handler;
     private volatile boolean urlFound;
     private Object browser; // JBCefBrowser, held opaquely (JCEF may be absent)
+    // getPreviewState snapshot fields — written from the process listener
+    // thread, read from the MCP server thread.
+    private volatile String lastUrl;
+    private volatile String lastScript;
+    private volatile Integer lastExitCode;
+    private final StringBuilder outputTail = new StringBuilder(); // guarded by itself
 
     public PreviewService(Project project) {
         this.project = project;
@@ -57,6 +66,34 @@ public final class PreviewService {
 
     public synchronized boolean isRunning() {
         return handler != null && !handler.isProcessTerminated();
+    }
+
+    /**
+     * Snapshot for the {@code getPreviewState} bridge tool: whether the dev
+     * server runs, its detected URL, the npm script, the last exit code and
+     * the recent server output tail (build/runtime errors included) — the
+     * agent reads these instead of asking the user to paste the terminal.
+     */
+    public Map<String, Object> stateMap() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        boolean running = isRunning();
+        out.put("running", running);
+        out.put("url", lastUrl);
+        out.put("script", lastScript);
+        out.put("exitCode", running ? null : lastExitCode);
+        synchronized (outputTail) {
+            out.put("output", outputTail.toString());
+        }
+        return out;
+    }
+
+    private void capture(String text) {
+        if (text == null || text.isEmpty()) return;
+        synchronized (outputTail) {
+            outputTail.append(text);
+            int over = outputTail.length() - MAX_TAIL_CHARS;
+            if (over > 0) outputTail.delete(0, over);
+        }
     }
 
     /** Start (or re-focus) the dev-server preview. */
@@ -94,21 +131,32 @@ public final class PreviewService {
             return;
         }
         urlFound = false;
+        lastUrl = null;
+        lastScript = script;
+        lastExitCode = null;
+        synchronized (outputTail) {
+            outputTail.setLength(0);
+        }
         revealToolWindow();
         setStatus("Starting `npm run " + script + "` — waiting for server URL…");
         handler.addProcessListener(new ProcessListener() {
             @Override
             public void onTextAvailable(@NotNull ProcessEvent event, @NotNull Key outputType) {
+                // Always capture for getPreviewState — build errors arrive AFTER
+                // the URL is found, exactly when the agent needs to read them.
+                capture(event.getText());
                 if (urlFound) return;
                 String url = PreviewDetect.detectServerUrl(event.getText());
                 if (url != null) {
                     urlFound = true;
+                    lastUrl = url;
                     SwingUtilities.invokeLater(() -> showUrl(url));
                 }
             }
 
             @Override
             public void processTerminated(@NotNull ProcessEvent event) {
+                lastExitCode = event.getExitCode();
                 if (!urlFound) {
                     SwingUtilities.invokeLater(() ->
                             setStatus("Dev server exited (" + event.getExitCode()
@@ -136,6 +184,7 @@ public final class PreviewService {
             handler.destroyProcess();
             handler = null;
         }
+        lastUrl = null;
         disposeBrowser();
         setStatus("Preview stopped.");
     }
