@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-10 发布 — **IDE 插件 VS Code 0.37.12 / JetBrains 0.4.56：IDE 内配对二维码 + Remote Control relay 设置面（gap 清单收口）**
+
+> IDE-only 双端发版（Open VSX + JetBrains Marketplace 均已上架）。Remote Control 配对不再要求盯终端：一次性配对 URI 直接在 IDE 内渲染成二维码（VS webview / JB 对话框，双端共享同一自包含 QR 编码器纯核），手机扫码即配对；relay（E2EE 跨网）模式的 `--relay-url` / `--peer-id` 也有了 IDE 设置面（VS settings / JB「Relay settings…」对话框）。至此 IDE gap-analysis 清单全部非环境阻塞项收口（#5 行范围 mention `@file#L12-40` 核实为早已落地的 stale 记录；#8 `browser_state` 一等 agent 工具已进主线，工具数 24 → 25，随下次 cli 发版上 npm）。验证：VS 70 测试文件 / 605 绿 + vsix 解析级检查 7/7；JB test + smokeTest + buildPlugin 绿 + zip 解析级检查 6/6。同日主线还落了 web-panel 直连（direct-LAN）配对 + `permission.request` 审批卡片（批 28，随下次 cli 发版）。
+
 ## 2026-07-10 发布 — **cc CLI 0.162.157：IDE diff 审阅修订摘要 + plan 审阅快照 + `cc browse chrome` + `--bare`/无斜杠/读屏模式**
 
 > CLI-only 发版（0.162.156 → **0.162.157**，npm `latest`，provenance）。IDE 深度整合增量：**diff 审阅里你改了什么 agent 现在看得见**（accepted 结果携带 `userAmendments` -/+ 行级修订摘要，配合 JetBrains 0.4.55 可编辑右栏端到端闭环）+ plan 批准/拒绝携审阅快照写入会话 transcript（可审计回放）+ `cc browse chrome`（CDP attach 用户真 Chrome，登录态复用，console/网络/DOM/截图观察）+ **Artifacts v1**（`publish_artifact` 工具+`cc artifacts`——交付物只有元数据进对话）+ **Windows/PowerShell 一等**（run_shell `shell` 参数/显式 argv/`PowerShell(...)` 权限伞形）+ `--bare` 最小攻击面裸模式 / `--disable-slash-commands` / `--ax-screen-reader` 读屏友好。命令数 **172 → 173**。发版前干净 worktree 三层全绿。
