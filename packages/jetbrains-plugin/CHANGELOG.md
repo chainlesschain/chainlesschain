@@ -1,5 +1,24 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Diff review captures your in-viewer edits (gap #4 close-out).** The right
+  pane of the openDiff review is now editable (`createEditable`), and every
+  decision path — Accept, Pick hunks…, Request changes… — reads the pane back,
+  so a proposal you amended inside the native diff viewer is what actually gets
+  written (and what the agent sees as `finalText`/`reviewedText`). Previously
+  the original proposal was silently written and your edits were lost. When the
+  pane is untouched the CLI's byte-exact text is kept (the diff document
+  normalizes line separators).
+- **Line-anchored review notes.** A "Request changes…" note can now anchor to
+  lines of the reviewed text with a `12:` or `12-15:` prefix (1-based, as shown
+  in the diff gutter; full-width `：` accepted) — parsed by the new pure
+  `ReviewNote` core into the same `{line, endLine, lineText, note}` shape the
+  VS Code twin emits from selections, so the CLI renders both identically. An
+  out-of-range or invalid prefix degrades to a general note (never an invented
+  anchor). Prompts localized (en/zh). JUnit `ReviewNoteTest` (11) + smoke
+  assertions.
+
 ## [0.4.54] — P2 hardening: deep-link parity, Remote/WSL Doctor, auto-exec config guard (2026-07-10)
 
 - **Deep link parity — full parameter set (P2 #11).** `jetbrains://…/chainlesschain/open`
@@ -27,12 +46,12 @@
   `chainlesschain.remote.doctor`.
 - **Terminal API future-proofing.** Worktree Tasks' "New isolated task…" now
   opens its integrated terminal via `TerminalToolWindowManager.createShellWidget`
-  + `TerminalWidget.sendCommandToExecute` instead of the scheduled-for-removal
-  `createLocalShellWidget` the 0.4.53 Marketplace verifier flagged (Approved/
-  Compatible on all verified IDEs — informational only). No behavior change;
-  the Terminal-plugin-absent fallback to the command dialog is untouched.
-  `TerminalTextReader` audited in the same pass: already on the current API
-  (`getTerminalWidgets()` / `toShellJediTermWidgetOrThrow`), no change.
+  - `TerminalWidget.sendCommandToExecute` instead of the scheduled-for-removal
+    `createLocalShellWidget` the 0.4.53 Marketplace verifier flagged (Approved/
+    Compatible on all verified IDEs — informational only). No behavior change;
+    the Terminal-plugin-absent fallback to the command dialog is untouched.
+    `TerminalTextReader` audited in the same pass: already on the current API
+    (`getTerminalWidgets()` / `toShellJediTermWidgetOrThrow`), no change.
 
 ## [0.4.53] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 

@@ -3,6 +3,7 @@ package com.chainlesschain.ide.intellij;
 import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
 import com.chainlesschain.ide.MultiDiff;
+import com.chainlesschain.ide.ReviewNote;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffDialogHints;
 import com.intellij.diff.DiffManager;
@@ -211,7 +212,10 @@ public final class IntellijEditorFacade implements EditorFacade {
                 left = readDocumentText(vf);
             }
             DocumentContent leftContent = factory.create(left == null ? "" : left);
-            DocumentContent rightContent = factory.create(modifiedText);
+            // Editable right pane (VS Code parity): the reviewer can amend the
+            // proposal in place before deciding — plain create() yields a
+            // read-only document, so the tweak-then-accept flow needs this.
+            DocumentContent rightContent = factory.createEditable(project, modifiedText, null);
             SimpleDiffRequest request = new SimpleDiffRequest(
                     title != null ? title : "Review: " + path,
                     leftContent, rightContent, "Current", "Proposed");
@@ -220,21 +224,29 @@ public final class IntellijEditorFacade implements EditorFacade {
             // §3+§7: four-way review — Accept / Pick hunks… / Request changes… /
             // Reject. The "changes-requested" / hunk-accept shapes match VS Code
             // so the CLI's requestIdeDiffApproval handles them unchanged.
+            Document rightDoc = rightContent.getDocument();
+            String proposalShown = rightDoc.getText(); // post-normalization baseline
             int choice = Messages.showDialog(project,
                     "Review proposed changes to " + path + ":",
                     "ChainlessChain Review",
                     new String[] { "Accept", "Pick hunks…", "Request changes…", "Reject" },
                     0, null);
 
+            // What the reviewer was actually looking at when they decided. When
+            // untouched, keep the CLI's byte-exact modifiedText (the diff document
+            // normalizes line separators); when edited, their version wins.
+            String shownNow = rightDoc.getText();
+            String reviewed = shownNow.equals(proposalShown) ? modifiedText : shownNow;
+
             Map<String, Object> r = new LinkedHashMap<>();
-            if (choice == 0) { // Accept
-                applyToFile(vf, modifiedText);
+            if (choice == 0) { // Accept — writes the (possibly user-edited) right pane
+                applyToFile(vf, reviewed);
                 r.put("outcome", "accepted");
                 r.put("path", path);
-                r.put("finalText", modifiedText);
+                r.put("finalText", reviewed);
             } else if (choice == 1) { // Pick hunks… — partial accept; unpicked keep original
                 String baseline = left == null ? "" : left;
-                List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(baseline, modifiedText);
+                List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(baseline, reviewed);
                 Set<Integer> picked = hunks.isEmpty() ? new LinkedHashSet<>() : pickHunks(hunks);
                 if (picked.isEmpty()) {
                     // Esc / nothing picked → fail-safe: nothing is written.
@@ -250,7 +262,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("totalHunks", hunks.size());
                 }
             } else if (choice == 2) { // Request changes…
-                List<Map<String, Object>> comments = collectReviewComments();
+                List<Map<String, Object>> comments = collectReviewComments(reviewed);
                 if (comments.isEmpty()) {
                     // No notes entered → treat as a plain rejection.
                     r.put("outcome", "rejected");
@@ -259,7 +271,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("outcome", "changes-requested");
                     r.put("path", path);
                     r.put("comments", comments);
-                    r.put("reviewedText", modifiedText);
+                    r.put("reviewedText", reviewed);
                 }
             } else { // Reject or Esc
                 r.put("outcome", "rejected");
@@ -271,22 +283,24 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     /**
-     * §3: collect one or more free-text review notes (EDT). Each becomes a
-     * {@code {note}} comment in the VS-Code "changes-requested" shape; line
-     * anchors are left null (the diff viewer is show-only here), which the CLI
-     * tolerates. Blank input ends the loop.
+     * §3: collect one or more review notes (EDT), each in the VS-Code
+     * "changes-requested" comment shape. An optional {@code "12:"} /
+     * {@code "12-15:"} prefix anchors the note to those (1-based) lines of the
+     * reviewed right-pane text — {@link ReviewNote#parse} resolves it to the
+     * 0-based {@code {line, endLine, lineText, note}} shape the CLI's
+     * formatReviewComments renders, same as VS Code's selection anchors.
+     * Blank input ends the loop.
      */
-    private List<Map<String, Object>> collectReviewComments() {
+    private List<Map<String, Object>> collectReviewComments(String reviewedText) {
         List<Map<String, Object>> comments = new ArrayList<>();
         for (int i = 0; i < 20; i++) { // hard cap — avoid an accidental infinite loop
             String prompt = comments.isEmpty()
-                    ? "Describe the change you want (blank to cancel):"
-                    : "Another note? (blank to finish, " + comments.size() + " so far):";
+                    ? CcBundle.message("diff.requestChanges.prompt.first")
+                    : CcBundle.message("diff.requestChanges.prompt.more", comments.size());
             String note = Messages.showInputDialog(
-                    project, prompt, "Request Changes", null);
-            if (note == null || note.trim().isEmpty()) break;
-            Map<String, Object> c = new LinkedHashMap<>();
-            c.put("note", note.trim());
+                    project, prompt, CcBundle.message("diff.requestChanges.title"), null);
+            Map<String, Object> c = ReviewNote.parse(note, reviewedText);
+            if (c == null) break;
             comments.add(c);
         }
         return comments;

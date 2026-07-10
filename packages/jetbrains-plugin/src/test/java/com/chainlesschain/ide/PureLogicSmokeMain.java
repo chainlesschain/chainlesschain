@@ -58,6 +58,7 @@ public final class PureLogicSmokeMain {
         jetbrainsMcpProbe();
         statusBarText();
         diffHunks();
+        reviewNote();
         rewindCommands();
         sessionList();
         imageAttachments();
@@ -865,6 +866,38 @@ public final class PureLogicSmokeMain {
         check(DiffHunks.computeHunks(null, null).isEmpty(), "null/null -> no hunks");
         eq(DiffHunks.applyHunks("x", new ArrayList<>(), new java.util.HashSet<>()),
                 "x", "no hunks -> original");
+    }
+
+    private static void reviewNote() {
+        System.out.println("ReviewNote (request-changes line-anchor prefix)");
+
+        String text = "alpha\nbeta\ngamma";
+        eq(ReviewNote.parse(null, text), null, "null input ends loop");
+        eq(ReviewNote.parse("  ", text), null, "blank input ends loop");
+
+        Map<String, Object> plain = ReviewNote.parse("tighten this up", text);
+        eq(plain.get("note"), "tighten this up", "plain note text");
+        check(!plain.containsKey("line"), "plain note has no anchor");
+
+        Map<String, Object> one = ReviewNote.parse("2: rename it", text);
+        eq(one.get("line"), 1, "1-based prefix -> 0-based line");
+        eq(one.get("endLine"), 1, "single anchor endLine == line");
+        eq(one.get("lineText"), "beta", "lineText from reviewed text");
+        eq(one.get("note"), "rename it", "anchored note strips prefix");
+
+        Map<String, Object> range = ReviewNote.parse("1-3: extract helper", text);
+        eq(range.get("line"), 0, "range start");
+        eq(range.get("endLine"), 2, "range end");
+
+        Map<String, Object> clamp = ReviewNote.parse("2-99: tail", text);
+        eq(clamp.get("endLine"), 2, "end clamps to last line");
+
+        Map<String, Object> stale = ReviewNote.parse("99: stale", text);
+        check(!stale.containsKey("line"), "out-of-range start -> general note");
+        eq(stale.get("note"), "99: stale", "out-of-range keeps full text");
+
+        Map<String, Object> cjk = ReviewNote.parse("3：全角冒号", text);
+        eq(cjk.get("line"), 2, "full-width colon anchors");
     }
 
     private static void rewindCommands() {

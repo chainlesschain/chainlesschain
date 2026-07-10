@@ -17,6 +17,8 @@
  * disconnecting the IDE tools themselves.
  */
 
+import { simpleDiff } from "./note-versioning.js";
+
 /** Hard cap on the selected text we inline into the prompt. */
 const SELECTION_TEXT_CAP = 2000;
 /** At most this many open-editor entries are listed. */
@@ -418,6 +420,88 @@ export function formatReviewComments(comments, { path: filePath } = {}) {
     ? `Review comments on ${filePath}:`
     : "Review comments:";
   return `${header}\n${lines.join("\n")}`;
+}
+
+/**
+ * Render what the reviewer changed when they edited the proposal inside the
+ * IDE diff before accepting: a compact -/+ line summary of proposal → final,
+ * so the agent SEES the amendments instead of just a `userEdited` flag (its
+ * mental model of the file would otherwise be its own rejected proposal).
+ * Returns null when the texts are equal or not both strings. Pure.
+ */
+export function summarizeUserAmendments(
+  proposedText,
+  finalText,
+  { maxLines = 30, maxChars = 2400 } = {},
+) {
+  if (typeof proposedText !== "string" || typeof finalText !== "string") {
+    return null;
+  }
+  if (proposedText === finalText) return null;
+  const a = proposedText.split("\n");
+  const b = finalText.split("\n");
+
+  // Common prefix/suffix trim — cheap, and bounds the LCS below.
+  let pre = 0;
+  while (pre < a.length && pre < b.length && a[pre] === b[pre]) pre++;
+  let endA = a.length;
+  let endB = b.length;
+  while (endA > pre && endB > pre && a[endA - 1] === b[endB - 1]) {
+    endA--;
+    endB--;
+  }
+  const midA = a.slice(pre, endA);
+  const midB = b.slice(pre, endB);
+
+  const out = [];
+  const MAX_DP_CELLS = 1_000_000; // simpleDiff is a full-matrix LCS — guard it
+  if (
+    midA.length === 0 ||
+    midB.length === 0 ||
+    (midA.length + 1) * (midB.length + 1) > MAX_DP_CELLS
+  ) {
+    // Pure insertion/deletion (an empty side would round-trip through
+    // join/split as one phantom "" line) or a pathological diff: one direct
+    // block (still tells the agent WHERE and WHAT).
+    out.push(`  @ line ${pre + 1}:`);
+    for (const l of midA) out.push(`  - ${l}`);
+    for (const l of midB) out.push(`  + ${l}`);
+  } else {
+    let lineB = pre; // 1-based final-file line = lineB + 1
+    let inBlock = false;
+    for (const d of simpleDiff(midA.join("\n"), midB.join("\n"))) {
+      if (d.type === "same") {
+        inBlock = false;
+        lineB++;
+        continue;
+      }
+      if (!inBlock) {
+        out.push(`  @ line ${lineB + 1}:`);
+        inBlock = true;
+      }
+      if (d.type === "remove") {
+        out.push(`  - ${d.line}`);
+      } else {
+        out.push(`  + ${d.line}`);
+        lineB++;
+      }
+    }
+  }
+
+  const header =
+    "The user edited the proposal in the IDE diff before accepting — the " +
+    "file was written with THEIR version. Their changes relative to your " +
+    "proposal (-, proposed → +, applied):";
+  let body = out;
+  if (out.length > maxLines) {
+    body = out.slice(0, maxLines);
+    body.push(`  … (${out.length - maxLines} more lines changed)`);
+  }
+  let text = `${header}\n${body.join("\n")}`;
+  if (text.length > maxChars) {
+    text = `${text.slice(0, maxChars)}\n  … (truncated)`;
+  }
+  return text;
 }
 
 // ─── Explicit @selection / @diagnostics at-mentions (Claude-Code parity) ────

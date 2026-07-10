@@ -1041,6 +1041,7 @@ async function tryIdeDiffApprovalForEdit(
       hasIdeOpenDiff,
       requestIdeDiffApproval,
       formatReviewComments,
+      summarizeUserAmendments,
     } = await import("../lib/ide-context.js");
     const mcpLike = {
       mcpClient: context.mcpClient,
@@ -1056,15 +1057,22 @@ async function tryIdeDiffApprovalForEdit(
       title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
     });
     if (verdict?.outcome === "accepted") {
+      // When the reviewer amended the proposal in the diff before accepting,
+      // hand the agent the actual -/+ delta — not just a flag — so its model
+      // of the file matches what was really written (gap #4: the agent
+      // perceives the user's edits).
+      const amendments =
+        verdict.finalText != null && verdict.finalText !== proposal.newContent
+          ? summarizeUserAmendments(proposal.newContent, verdict.finalText)
+          : null;
       return {
         outcome: "accepted",
         result: {
           success: true,
           path: proposal.filePath,
           appliedVia: "ide-diff",
-          ...(verdict.finalText != null &&
-          verdict.finalText !== proposal.newContent
-            ? { userEdited: true }
+          ...(amendments
+            ? { userEdited: true, userAmendments: amendments }
             : {}),
           policy: { decision: "allow", rule, via: "ide-diff" },
         },

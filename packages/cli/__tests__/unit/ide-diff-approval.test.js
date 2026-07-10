@@ -17,6 +17,7 @@ import {
   hasIdeOpenDiff,
   requestIdeDiffApproval,
   formatReviewComments,
+  summarizeUserAmendments,
 } from "../../src/lib/ide-context.js";
 import {
   computeProposedEdit,
@@ -180,6 +181,68 @@ describe("formatReviewComments", () => {
   });
 });
 
+describe("summarizeUserAmendments", () => {
+  it("returns null for equal texts or non-strings", () => {
+    expect(summarizeUserAmendments("same", "same")).toBe(null);
+    expect(summarizeUserAmendments(null, "x")).toBe(null);
+    expect(summarizeUserAmendments("x", undefined)).toBe(null);
+  });
+
+  it("renders a -/+ delta anchored to the final file's 1-based line", () => {
+    const proposed = "a\nlet x = 1\nc";
+    const final_ = "a\nconst x = 1\nc";
+    const out = summarizeUserAmendments(proposed, final_);
+    expect(out).toContain("edited the proposal in the IDE diff");
+    expect(out).toContain("@ line 2:");
+    expect(out).toContain("- let x = 1");
+    expect(out).toContain("+ const x = 1");
+  });
+
+  it("reports each separated change block with its own anchor", () => {
+    const proposed = "a\nB1\nc\nd\nE1\nf";
+    const final_ = "a\nB2\nc\nd\nE2a\nE2b\nf";
+    const out = summarizeUserAmendments(proposed, final_);
+    expect(out).toContain("@ line 2:");
+    expect(out).toContain("- B1");
+    expect(out).toContain("+ B2");
+    expect(out).toContain("@ line 5:");
+    expect(out).toContain("- E1");
+    expect(out).toContain("+ E2a");
+    expect(out).toContain("+ E2b");
+  });
+
+  it("handles pure insertions and deletions", () => {
+    const ins = summarizeUserAmendments("a\nb", "a\nX\nb");
+    expect(ins).toContain("+ X");
+    expect(ins).not.toContain("- a");
+    const del = summarizeUserAmendments("a\nX\nb", "a\nb");
+    expect(del).toContain("- X");
+    expect(del).not.toContain("+ a");
+  });
+
+  it("caps the body at maxLines and maxChars", () => {
+    const proposed = Array.from({ length: 200 }, (_, i) => `p${i}`).join("\n");
+    const final_ = Array.from({ length: 200 }, (_, i) => `f${i}`).join("\n");
+    const out = summarizeUserAmendments(proposed, final_, {
+      maxLines: 10,
+      maxChars: 100000,
+    });
+    expect(out).toMatch(/… \(\d+ more lines changed\)/);
+    const tight = summarizeUserAmendments(proposed, final_, { maxChars: 300 });
+    expect(tight.length).toBeLessThanOrEqual(320);
+    expect(tight).toContain("… (truncated)");
+  });
+
+  it("degrades to one coarse block on pathological sizes without blowing up", () => {
+    // > 1M DP cells after trim (uniquely-numbered lines defeat the trim).
+    const proposed = Array.from({ length: 1100 }, (_, i) => `a${i}`).join("\n");
+    const final_ = Array.from({ length: 1100 }, (_, i) => `b${i}`).join("\n");
+    const out = summarizeUserAmendments(proposed, final_, { maxLines: 6 });
+    expect(out).toContain("@ line 1:");
+    expect(out).toMatch(/… \(\d+ more lines changed\)/);
+  });
+});
+
 describe("computeProposedEdit", () => {
   let tmp;
   beforeEach(() => {
@@ -287,12 +350,12 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
     expect(mcp.calls[0].args.title).toContain("write_file");
   });
 
-  it("flags userEdited when the IDE returns different finalText", async () => {
+  it("flags userEdited AND hands the agent the -/+ amendments", async () => {
     const mcp = fakeDiffMcp({
       callTool: async (_s, _t, args) =>
         txt({
           outcome: "accepted",
-          finalText: args.modifiedText + "// tweaked",
+          finalText: args.modifiedText + "\n// tweaked by reviewer",
         }),
     });
     const res = await executeTool(
@@ -301,6 +364,8 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
       ctx(mcp),
     );
     expect(res.userEdited).toBe(true);
+    expect(res.userAmendments).toContain("edited the proposal in the IDE diff");
+    expect(res.userAmendments).toContain("+ // tweaked by reviewer");
   });
 
   it("rejected review denies without touching the file", async () => {
