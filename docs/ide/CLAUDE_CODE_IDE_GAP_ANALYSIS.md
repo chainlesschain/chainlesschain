@@ -102,11 +102,11 @@ Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、
 
 - VS Code / JetBrains 已统一暴露 `getActiveFile`，返回 active file、language、dirty state、cursor。
 - 既有能力已覆盖 selection、diagnostics、open editors、native diff、multi-file diff；VS Code 侧已有 terminal output 与 notebook executeCode 条件工具。
+- JetBrains `getTerminalOutput`：与 VS Code 同名同字段（terminal/command/exitCode/output）的条件工具。JetBrains 终端无 per-command shell integration API，返回每个终端 tab 的 buffer tail（16k 上限，classic JediTerm widget；reworked 终端 tab 报名字+空输出而非丢弃）。terminal 插件缺席时返回空列表，与 VS Code「无 shell integration 则为空」契约一致；bundled 依赖仅编译期（同 `com.intellij.java` 先例），plugin.xml 不加硬依赖。
 
 剩余：
 
-- JetBrains terminal output 能力。
-- notebook/Jupyter cell 读取和执行的 JetBrains 对齐。
+- notebook/Jupyter cell 读取和执行的 JetBrains 对齐 —— 判 product-blocked：Jupyter kernel 执行 API 在 JetBrains 侧属付费 IDE（DataSpell/PyCharm Pro）的 Jupyter 插件，IDEA Community 无可编程 kernel 表面，不强行对齐。
 - preview/browser state 的 DOM、console、network、screenshot 上下文。
 - 大 payload 分片、超时、鉴权 token、workspace trust 边界的统一审计。
 

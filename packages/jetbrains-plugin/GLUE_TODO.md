@@ -546,3 +546,16 @@ pipe/CLI actions appending results, zh/en bundle labels.
       cleans. Pair the web panel with the URI → it can observe/prompt the
       machine's sessions. Host crash (kill the node child) → warning dialog
       offers restart guidance.
+
+## 🗂 getTerminalOutput bridge tool (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **getTerminalOutput (IntellijEditorFacade + TerminalTextReader)** —
+      open the integrated terminal, run a failing command (e.g. `npm run
+      nope`), then have the agent call `getTerminalOutput` → the reply lists
+      the terminal tab (name + buffer tail containing the command and its
+      error). Multiple tabs → `limit` caps entries. No terminal open →
+      `{terminals: []}`. Classic terminal engine gives text; the reworked
+      terminal (if the IDE defaults to it) yields the tab name with empty
+      output — check which engine 2024.2 uses and note it here. Disable the
+      Terminal plugin → tool still answers with an empty list (no
+      NoClassDefFoundError in idea.log).

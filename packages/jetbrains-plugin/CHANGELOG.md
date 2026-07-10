@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- **`getTerminalOutput` bridge tool (VS Code parity).** The agent can now
+  read the integrated terminal's recent output — each entry is one terminal
+  tab's buffer tail (16k cap) — so it sees what you just ran and how it
+  failed without you pasting it. Same tool name and fields as the VS Code
+  twin; the JetBrains terminal has no per-command shell-integration API, so
+  `command`/`exitCode` stay null and `output` is the buffer tail. Exposed
+  conditionally; with the Terminal plugin disabled the tool reports no
+  terminals (no hard plugin dependency added).
 - **`/handoff` — hand a conversation off to a background agent.** Stops the
   tab's child and relaunches the SAME session detached (`cc agent --bg
   --resume <id>`), so it keeps running without the IDE and can be continued

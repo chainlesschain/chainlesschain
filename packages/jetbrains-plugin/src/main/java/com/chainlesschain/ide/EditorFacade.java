@@ -53,4 +53,23 @@ public interface EditorFacade {
         r.put("count", 0);
         return r;
     }
+
+    /** Whether {@link #getTerminalOutput(int)} is wired — gates the tool's exposure. */
+    default boolean supportsTerminalOutput() {
+        return false;
+    }
+
+    /**
+     * Recent integrated-terminal context: the buffer tail of up to {@code limit}
+     * terminal tabs. Same field names as the VS Code twin's per-command records
+     * ({ terminal, command, exitCode, output }) — here command/exitCode stay
+     * null and `output` is the buffer tail (the JetBrains terminal has no
+     * per-command shell integration API). Empty list when no terminal is open.
+     * @return { terminals: [{ terminal, command, exitCode, output }] }
+     */
+    default Map<String, Object> getTerminalOutput(int limit) {
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("terminals", new java.util.ArrayList<Map<String, Object>>());
+        return out;
+    }
 }

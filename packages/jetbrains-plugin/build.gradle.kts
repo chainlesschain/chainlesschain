@@ -37,6 +37,11 @@ dependencies {
         // (The terminal customizer was dropped in 0.4.7 — deprecated API; the
         // discovery lockfile covers the "cc in a terminal auto-connects" case.)
         bundledPlugin("com.intellij.java")
+        // Terminal buffer access for the getTerminalOutput bridge tool.
+        // Compile-time only, same pattern as com.intellij.java above: plugin.xml
+        // does NOT depend on org.jetbrains.plugins.terminal — the reader is
+        // Throwable-guarded and yields no terminals when the classes are absent.
+        bundledPlugin("org.jetbrains.plugins.terminal")
         pluginVerifier() // for ./gradlew verifyPlugin
     }
 

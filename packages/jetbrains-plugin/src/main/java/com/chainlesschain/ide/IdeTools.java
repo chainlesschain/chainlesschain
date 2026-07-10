@@ -132,7 +132,46 @@ public final class IdeTools {
             }
         });
 
+        // Conditional: recent terminal output. Only exposed when the facade
+        // supports it (terminal plugin present) — VS Code twin gates the same
+        // way on shell integration.
+        if (editor.supportsTerminalOutput()) {
+            tools.add(new BaseTool(
+                    "getTerminalOutput",
+                    "Return recent output from the editor's integrated terminal tabs — "
+                            + "so you can see what the user just ran and how it failed, "
+                            + "without asking them to paste it. Each entry is one terminal "
+                            + "tab's buffer tail. `limit` caps how many terminals to return "
+                            + "(default 3). Empty if no terminal is open.",
+                    schemaWithOptionalLimit()) {
+                @Override public Object call(Map<String, Object> args) {
+                    int limit = 3;
+                    Object raw = args == null ? null : args.get("limit");
+                    if (raw instanceof Number && ((Number) raw).intValue() > 0) {
+                        limit = ((Number) raw).intValue();
+                    }
+                    Map<String, Object> res = editor.getTerminalOutput(limit);
+                    if (res != null && res.get("terminals") instanceof List) return res;
+                    Map<String, Object> empty = new LinkedHashMap<>();
+                    empty.put("terminals", new ArrayList<>());
+                    return empty;
+                }
+            });
+        }
+
         return tools;
+    }
+
+    private static Map<String, Object> schemaWithOptionalLimit() {
+        Map<String, Object> limit = new LinkedHashMap<>();
+        limit.put("type", "number");
+        limit.put("description", "How many recent terminals to return (default 3).");
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("limit", limit);
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("type", "object");
+        s.put("properties", props);
+        return s;
     }
 
     private static Map<String, Object> openMultiDiffSchema() {

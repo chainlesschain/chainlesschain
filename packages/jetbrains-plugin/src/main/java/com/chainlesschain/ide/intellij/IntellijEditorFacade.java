@@ -100,6 +100,38 @@ public final class IntellijEditorFacade implements EditorFacade {
         });
     }
 
+    /** Terminal-plugin classes may be absent (bundled plugin disabled) — the
+     *  tool is still advertised and just reports no terminals then, matching
+     *  the VS Code twin's "empty without shell integration" contract. */
+    @Override
+    public boolean supportsTerminalOutput() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getTerminalOutput(int limit) {
+        final int n = Math.max(1, limit);
+        List<Map<String, Object>> terminals = new ArrayList<>();
+        try {
+            // Widget enumeration walks tool-window UI state — marshal to EDT
+            // like every other editor read (the MCP server calls off-thread).
+            final AtomicReference<List<Map<String, Object>>> ref = new AtomicReference<>();
+            ApplicationManager.getApplication().invokeAndWait(() -> {
+                try {
+                    ref.set(TerminalTextReader.read(project, n));
+                } catch (Throwable t) {
+                    ref.set(null); // terminal plugin absent / API drift
+                }
+            });
+            if (ref.get() != null) terminals = ref.get();
+        } catch (Throwable ignored) {
+            // best-effort: no terminal context is a valid answer
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("terminals", terminals);
+        return out;
+    }
+
     @Override
     public List<Map<String, Object>> getDiagnostics(String path) {
         return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<List<Map<String, Object>>>) () -> {
