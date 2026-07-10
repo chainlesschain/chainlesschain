@@ -289,6 +289,21 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: false,
   },
+  // Copies a finished deliverable (report/patch/screenshot/log) into the
+  // user's own ~/.chainlesschain/artifacts store with metadata. Reads a
+  // workspace file, writes only under the user's config dir — no third-party
+  // egress. Blocked in plan mode (publishing is a side effect of DONE work,
+  // not analysis).
+  publish_artifact: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.WRITE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: false,
+  },
 });
 
 function normalizeGitCommand(command) {

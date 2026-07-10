@@ -667,6 +667,21 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - REPL `!` bash 透传与 `cc ask` 等命令的 shell 选择——run_shell/hook 之外的散点，按需扫。
 - PowerShell 输出编码（5.1 cmdlet 重定向场景）依赖 CLI 入口的 chcp 65001；如遇中文乱码个案再按 encoding.md 加显式 `[Console]::OutputEncoding`。
 
+### 2026-07-10 第二十三批（P1 #10 — Artifacts v1：交付物存储 + publish_artifact 工具 + cc artifacts）
+
+已落地：
+
+- **新 `src/lib/artifact-store.js`**：`~/.chainlesschain/artifacts/`（`index.jsonl` 元数据 + `files/<id><ext>` 副本）。`publish` 拷贝文件并记录 id/title/kind/mime/sha256/size/sessionId/createdAt/expiresAt（TTL 默认 30 天，100MB 上限守卫——artifact 是交付物不是构建产物）；per-row 容错 JSONL（坏行不毒化全表）；注入时钟可测；`list/get/storedPath/remove/cleanupExpired`。
+- **新 agent 工具 `publish_artifact`**（extension tier，工具集 23→24）：任务收尾时把重要产出（报告/patch/截图/日志/findings JSON）发布为持久 artifact；**对话/transcript 只进元数据，永不塞文件体**（gap 清单「session transcript 只记录 artifact metadata」项由工具返回形状天然满足）。策略 LOW / plan mode blocked / auto flow（写的是用户自己的 store，无第三方 egress）。
+- **新命令 `cc artifacts`**（alias `artifact`；list/show/open/remove/clean；命令数 **172→173**，manifest 已重生）：跨会话浏览交付物、按 session/kind 过滤、`open` 输出存储路径供管道/打开、`clean` 按 TTL 清理——直接回应「生成了文件但用户不知道看哪里」。
+- 测试：artifact-store 12（publish 元数据不含 body/副本逐字节一致/TTL/坏行容错/remove+过期清理注入时钟/缺源与目录与超限拒绝）+ 命令 runner 3（注入 store）+ **工具 dispatch 3（HOME 重定向真 executeTool：发布+元数据+hint / 缺文件干净报错 / formatToolArgs）**；工具计数回归 4 处 23→24 同步（agent-core ×2 / parity-open-agents / sub-agent-isolation，含 persona 过滤 21→22）；lazy-dispatch 漂移守卫 + contract + persona-system 回归全绿。真机 smoke：`cc artifacts --help`/`list` 空店提示。
+
+仍待后续：
+
+- web-panel/移动端预览与下载（`bg-*` 面板同类接线，属独立批次；store 单点已备好）。
+- 过期清理目前是显式 `cc artifacts clean`（可挂 `cc agenda`/cron）；未内建后台清理。
+- **命令数 172→173：下次 cli 发版时必扫 ~13 文档面**（mem `cli_command_count_doc_surfaces`），本批未发 npm。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅

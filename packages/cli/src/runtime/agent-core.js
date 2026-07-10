@@ -3162,6 +3162,31 @@ async function executeToolInner(
       }
     }
 
+    case "publish_artifact": {
+      // P1 #10: copy a finished deliverable into the user's artifact store.
+      // Only METADATA returns to the conversation (the transcript never
+      // carries the file body); `cc artifacts` lists/inspects/cleans.
+      try {
+        const { ArtifactStore } = await import("../lib/artifact-store.js");
+        const store = new ArtifactStore();
+        const entry = store.publish({
+          filePath: path.resolve(cwd, String(args.path || "")),
+          title: args.title,
+          kind: args.kind,
+          ttlDays: args.ttl_days,
+          sessionId: sessionId ? String(sessionId) : null,
+        });
+        return attachDescriptor({
+          published: entry,
+          hint: "The user can browse this with `cc artifacts list` / `cc artifacts show <id>`.",
+        });
+      } catch (err) {
+        return attachDescriptor({
+          error: `publish_artifact failed: ${err.message}`,
+        });
+      }
+    }
+
     case "search_files": {
       // An explicit directory scopes the search to one root; otherwise span
       // cwd plus any --add-dir roots so cross-package searches find matches.
@@ -6496,6 +6521,8 @@ export function formatToolArgs(name, args) {
       return `"${(args.query || "").substring(0, 60)}"`;
     case "notify":
       return `${args.level || "info"}: ${(args.title || "").substring(0, 50)}`;
+    case "publish_artifact":
+      return `${args.kind || "other"}: ${(args.title || args.path || "").substring(0, 60)}`;
     case "schedule":
       return args.action === "cron"
         ? `cron ${args.cron || ""}`.trim()

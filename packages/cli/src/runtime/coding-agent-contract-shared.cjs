@@ -959,6 +959,52 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       tags: ["tool:schedule", "contract:coding-agent", "tier:extension"],
     },
   },
+  {
+    name: "publish_artifact",
+    title: "Publish Artifact",
+    kind: "artifact",
+    tier: "extension",
+    description:
+      "Publish a finished deliverable file (Markdown report, patch, screenshot, test log, findings JSON) as a durable artifact the user can find later with `cc artifacts`. The file is copied into the user's artifact store with metadata; only the metadata enters the conversation. Use at the END of a task for its key outputs — not for intermediate scratch files.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Path of the file to publish (relative to cwd or absolute)",
+        },
+        title: {
+          type: "string",
+          description: "Human title for the artifact (default: the file name)",
+        },
+        kind: {
+          type: "string",
+          enum: ["report", "patch", "screenshot", "log", "data", "other"],
+          description: "What kind of deliverable this is (default: other)",
+        },
+        ttl_days: {
+          type: "number",
+          description:
+            "Days to retain before `cc artifacts clean` may remove it (default 30)",
+        },
+      },
+      required: ["path"],
+    },
+    ...TOOL_POLICY_METADATA.publish_artifact,
+    permissions: {
+      level: "standard",
+      scopes: ["filesystem:read", "artifact:write"],
+    },
+    telemetry: {
+      category: "artifact",
+      tags: [
+        "tool:publish_artifact",
+        "contract:coding-agent",
+        "tier:extension",
+      ],
+    },
+  },
 ]);
 
 const CODING_AGENT_MVP_TOOL_NAMES = Object.freeze(

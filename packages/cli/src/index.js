@@ -162,6 +162,9 @@ import { registerAgendaCommand } from "./commands/agenda.js";
 // Batch: dynamic worktree batch — split a change into parallel units (第四阶段 #4)
 import { registerBatchCommand } from "./commands/batch.js";
 
+// Artifacts: agent-published deliverable store (P1 #10)
+import { registerArtifactsCommand } from "./commands/artifacts.js";
+
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 import { registerPackCommand } from "./commands/pack.js";
@@ -597,6 +600,9 @@ export function createProgram(opts = {}) {
 
   // Batch: dynamic worktree batch
   registerBatchCommand(program);
+
+  // Artifacts: agent-published deliverable store
+  registerArtifactsCommand(program);
 
   // Web UI
   registerUiCommand(program);

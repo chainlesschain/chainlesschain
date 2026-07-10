@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 172,
+  "commandCount": 173,
   "commands": [
     {
       "name": "a2a",
@@ -50,6 +50,13 @@
       "module": "./commands/android.js",
       "register": "registerAndroidCommand",
       "summary": "Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)"
+    },
+    {
+      "name": "artifacts",
+      "aliases": ["artifact"],
+      "module": "./commands/artifacts.js",
+      "register": "registerArtifactsCommand",
+      "summary": "Browse agent-published deliverables (reports/patches/screenshots; see the publish_artifact tool)"
     },
     {
       "name": "ask",
