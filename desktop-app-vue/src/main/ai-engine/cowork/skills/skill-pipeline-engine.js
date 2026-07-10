@@ -15,6 +15,12 @@ const { logger } = require("../../../utils/logger.js");
 // bound across the life of the main process.
 const MAX_PIPELINE_EXECUTIONS = 500;
 
+// A hanging skill handler used to hang its pipeline step's await forever
+// (only HybridExecutor had a timeout). Default matches HybridExecutor's
+// executionTimeout; override per step (step.timeout, 0 = no timeout for a
+// deliberately long-running skill) or per engine (options.stepTimeout).
+const DEFAULT_STEP_TIMEOUT_MS = 300_000; // 5 min
+
 /**
  * Step types
  */
@@ -135,6 +141,10 @@ class SkillPipelineEngine extends EventEmitter {
     super();
     this.skillRegistry = options.skillRegistry;
     this.metricsCollector = options.metricsCollector || null;
+    this.stepTimeoutMs =
+      options.stepTimeout != null
+        ? Number(options.stepTimeout)
+        : DEFAULT_STEP_TIMEOUT_MS;
 
     /** @type {Map<string, object>} Pipeline definitions */
     this.pipelines = new Map();
@@ -561,9 +571,37 @@ class SkillPipelineEngine extends EventEmitter {
       _pipelineStep: true,
     };
 
-    return await this.skillRegistry.executeSkill(skillId, task, {
+    // step.timeout (0 disables) > engine stepTimeout > 5-min default. The
+    // rejection fails the step (normal retry/onError semantics apply); the
+    // underlying handler promise cannot be force-killed, it is only no
+    // longer awaited.
+    const timeoutMs =
+      step.timeout != null ? Number(step.timeout) : this.stepTimeoutMs;
+    const run = this.skillRegistry.executeSkill(skillId, task, {
       ...context,
       pipelineContext: true,
+    });
+    if (!(timeoutMs > 0)) {
+      return await run;
+    }
+    return await this._withStepTimeout(run, timeoutMs, skillId);
+  }
+
+  /** @private Reject when the skill's promise outlives timeoutMs. */
+  _withStepTimeout(promise, timeoutMs, skillId) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`技能执行超时: ${skillId} (${timeoutMs}ms)`));
+      }, timeoutMs);
+      Promise.resolve(promise)
+        .then((result) => {
+          clearTimeout(timer);
+          resolve(result);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
     });
   }
 

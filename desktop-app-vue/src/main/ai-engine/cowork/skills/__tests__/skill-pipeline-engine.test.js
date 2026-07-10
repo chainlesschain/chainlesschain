@@ -1198,6 +1198,122 @@ describe("SkillPipelineEngine", () => {
   // Error Handling and Retries
   // ===================================================================
 
+  describe("step execution timeout", () => {
+    // A hanging skill handler used to hang the step's await forever (only
+    // HybridExecutor had a timeout). The rejection follows normal step
+    // failure semantics (retries, pipeline:failed).
+    const hang = () => new Promise(() => {});
+    const slow = (ms, value) =>
+      new Promise((resolve) => setTimeout(() => resolve(value), ms));
+
+    it("fails a step whose skill handler hangs (per-step timeout)", async () => {
+      mockSkillRegistry.executeSkill.mockImplementation(() => hang());
+      const pipelineId = engine.createPipeline({
+        name: "Hang Pipeline",
+        steps: [
+          {
+            type: StepType.SKILL,
+            name: "hangStep",
+            skillId: "hang-skill",
+            timeout: 30,
+          },
+        ],
+      });
+
+      const result = await engine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.FAILED);
+      expect(result.error).toMatch(/技能执行超时: hang-skill \(30ms\)/);
+    });
+
+    it("applies the engine-level stepTimeout when the step has none", async () => {
+      const fastEngine = new SkillPipelineEngine({
+        skillRegistry: mockSkillRegistry,
+        stepTimeout: 25,
+      });
+      mockSkillRegistry.executeSkill.mockImplementation(() => hang());
+      const pipelineId = fastEngine.createPipeline({
+        name: "Engine Timeout Pipeline",
+        steps: [
+          { type: StepType.SKILL, name: "hangStep", skillId: "slow-skill" },
+        ],
+      });
+
+      const result = await fastEngine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.FAILED);
+      expect(result.error).toMatch(/技能执行超时: slow-skill \(25ms\)/);
+      fastEngine.removeAllListeners();
+    });
+
+    it("step.timeout = 0 disables the timeout for a deliberately long skill", async () => {
+      const fastEngine = new SkillPipelineEngine({
+        skillRegistry: mockSkillRegistry,
+        stepTimeout: 10, // would fire well before the 50ms handler
+      });
+      mockSkillRegistry.executeSkill.mockImplementation(() =>
+        slow(50, { output: "long ok" }),
+      );
+      const pipelineId = fastEngine.createPipeline({
+        name: "Long Skill Pipeline",
+        steps: [
+          {
+            type: StepType.SKILL,
+            name: "longStep",
+            skillId: "long-skill",
+            timeout: 0,
+          },
+        ],
+      });
+
+      const result = await fastEngine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.COMPLETED);
+      expect(result.stepResults[0].success).toBe(true);
+      fastEngine.removeAllListeners();
+    });
+
+    it("a timed-out step still follows the retry semantics", async () => {
+      let calls = 0;
+      mockSkillRegistry.executeSkill.mockImplementation(() => {
+        calls += 1;
+        return calls === 1 ? hang() : Promise.resolve({ output: "ok" });
+      });
+      const pipelineId = engine.createPipeline({
+        name: "Timeout Retry Pipeline",
+        steps: [
+          {
+            type: StepType.SKILL,
+            name: "flakyStep",
+            skillId: "flaky-hang",
+            timeout: 30,
+            retries: 1,
+          },
+        ],
+      });
+
+      const result = await engine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.COMPLETED);
+      expect(calls).toBe(2);
+    });
+
+    it("fast skills complete untouched under the default timeout", async () => {
+      // Default 5-min budget: normal skills never see the timer.
+      const pipelineId = engine.createPipeline({
+        name: "Fast Pipeline",
+        steps: [
+          { type: StepType.SKILL, name: "fastStep", skillId: "fast-skill" },
+        ],
+      });
+
+      const result = await engine.executePipeline(pipelineId);
+
+      expect(result.state).toBe(PipelineState.COMPLETED);
+      expect(result.stepResults[0].success).toBe(true);
+    });
+  });
+
   describe("error handling and retries", () => {
     it("should fail pipeline when a step throws", async () => {
       mockSkillRegistry.executeSkill.mockRejectedValue(
