@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+- **Deep link parity — full parameter set (P2 #11).** `jetbrains://…/chainlesschain/open`
+  now accepts `session` (resume), `file`, `line`, `workspace` and `mode` on top
+  of `prompt` — so a doc, script or the CLI can hand off into the IDE at an exact
+  file/line and resume a specific conversation. The order matches the VS Code
+  twin (resume → mode → prompt → file). Security: the prompt is only SEEDED
+  (never auto-sent); `mode` accepts only the safe approval modes and NEVER
+  `bypassPermissions` (an untrusted link can't arm auto-approval); the session id
+  is shape-validated and `workspace` is checked against the open project (a link
+  for another repo is ignored). Windows/中文/space paths round-trip verbatim.
+  Pure core `DeepLink` (JUnit + smoke).
+- **Auto-exec config guard (P2 #13).** New `AutoExecGuard` pure core + Tools →
+  "ChainlessChain: Scan Workspace for Auto-Exec Config": recognizes workspace
+  files that can run code without an explicit action — MCP configs, git/husky
+  hooks, shell profiles, VS Code tasks/launch, JetBrains run configs, `.idea/` —
+  and lets you Trust the workspace (persisted per project path). The agent's own
+  per-write gates still apply; this is the IDE-layer heads-up that the OPEN
+  workspace already CONTAINS such files. VS Code twin:
+  `chainlesschain.workspace.scanAutoExec` + an activation advisory.
+- **Remote / WSL Doctor (P2 #12).** "Diagnose Bridge" now appends a Remote/WSL
+  section (pure `RemoteDoctor`): detects a WSL/remote session, and reports WSL2
+  mirrored-networking, a missing/outdated cc on this host, and a stopped/
+  unreachable bridge port — each with a COPYABLE fix command. VS Code twin:
+  `chainlesschain.remote.doctor`.
 - **Terminal API future-proofing.** Worktree Tasks' "New isolated task…" now
   opens its integrated terminal via `TerminalToolWindowManager.createShellWidget`
   + `TerminalWidget.sendCommandToExecute` instead of the scheduled-for-removal

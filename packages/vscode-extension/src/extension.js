@@ -1072,14 +1072,59 @@ function activate(context) {
           const { parseDeepLink } = require("./uri-handler.js");
           const link = parseDeepLink({ path: uri.path, query: uri.query });
           if (!link) return;
+          // A link may target a specific workspace; if the open folder doesn't
+          // match, don't silently act on the wrong repo — the human can retry.
+          if (link.workspace) {
+            const open = (vscode.workspace.workspaceFolders || []).map((f) =>
+              (f.uri?.fsPath || "").toLowerCase(),
+            );
+            const want = link.workspace.toLowerCase().replace(/[\\/]+$/, "");
+            const matches = open.some(
+              (p) => p.replace(/[\\/]+$/, "") === want,
+            );
+            if (open.length && !matches) {
+              vscode.window.showWarningMessage(
+                `ChainlessChain: this link targets ${link.workspace}, which isn't the open folder — ignored.`,
+              );
+              return;
+            }
+          }
           vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+          // Order: resume (repoints the tab) → mode → prompt seed → file reveal.
+          if (link.session) chatProvider.resumeSessionId(link.session);
+          if (link.mode) chatProvider.applyApprovalMode(link.mode);
           if (link.prompt) chatProvider.seedInput(link.prompt);
+          if (link.file)
+            chatProvider.openFileAtLine(link.file, link.line).catch(() => {});
         } catch (e) {
           log("uri handler failed: " + (e?.message || e));
         }
       },
     }),
+    // Auto-exec config guard (P2 #13): let the user re-scan the open workspace
+    // for files that can run code without an explicit action (tasks / hooks /
+    // MCP / run configs / shell profiles) on demand.
+    vscode.commands.registerCommand("chainlesschain.workspace.scanAutoExec", () =>
+      reviewWorkspaceAutoExec(vscode, context, /*fromCommand*/ true),
+    ),
+    // Remote / WSL Doctor (P2 #12): diagnose the environment signals that make
+    // the bridge flaky on WSL2 / Remote / SSH — mirrored networking, a missing
+    // or outdated CLI on the remote host, a stopped/unreachable bridge port —
+    // each with a copyable fix.
+    vscode.commands.registerCommand("chainlesschain.remote.doctor", () =>
+      runRemoteDoctor(vscode).catch((e) =>
+        log("remote doctor failed: " + (e?.message || e)),
+      ),
+    ),
     { dispose: () => stopBridge(context) },
+  );
+
+  // One-time-per-workspace advisory: if the freshly-opened folder already holds
+  // auto-executable config, surface it once before the agent (which can trigger
+  // it via tasks/hooks/MCP) does much work. Non-blocking; the agent's own
+  // per-write gates still apply. Silent when the workspace is clean or trusted.
+  maybeWarnAutoExecConfig(vscode, context).catch((e) =>
+    log("auto-exec scan failed: " + (e?.message || e)),
   );
 
   startBridge(context).catch((e) => log("start failed: " + e.message));
@@ -1099,6 +1144,165 @@ function deactivate() {
   }
   _remoteControl = null;
   return stopBridge();
+}
+
+/** Quick loopback probe: does something accept a TCP connection on `port`? */
+function _probePort(port, timeoutMs = 600) {
+  return new Promise((resolve) => {
+    if (!port) return resolve("stopped");
+    const net = require("net");
+    const sock = new net.Socket();
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      try {
+        sock.destroy();
+      } catch {
+        /* best-effort */
+      }
+      resolve(v);
+    };
+    sock.setTimeout(timeoutMs);
+    sock.once("connect", () => finish("listening"));
+    sock.once("timeout", () => finish("unknown"));
+    sock.once("error", () => finish("unknown"));
+    try {
+      sock.connect(port, "127.0.0.1");
+    } catch {
+      finish("unknown");
+    }
+  });
+}
+
+/** Gather real environment signals and show the Remote/WSL Doctor report. */
+async function runRemoteDoctor(vscode) {
+  const { analyzeRemoteEnv } = require("./remote-doctor.js");
+  const { MIN_CLI_VERSION } = require("./version-check");
+  const remoteName = vscode.env?.remoteName || null; // 'wsl' | 'ssh-remote' | …
+  const folder = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || "";
+  const cliPath = require("./cli-binary").getResolvedCli();
+  const versionOut = await runCliVersion(cliPath);
+  const cliVersion = versionOut
+    ? (versionOut.match(/\d+\.\d+\.\d+[\w.-]*/) || [null])[0]
+    : null;
+  const port = _port || 0;
+  const portProbe = await _probePort(port);
+  const report = analyzeRemoteEnv({
+    platform: process.platform,
+    isWsl: remoteName === "wsl",
+    isRemote: !!remoteName,
+    remoteUncPath: /^\\\\wsl/i.test(folder) ? folder : null,
+    cliFound: !!versionOut,
+    cliVersion,
+    minCliVersion: MIN_CLI_VERSION,
+    bridgePort: port,
+    portProbe,
+  });
+  _output.appendLine("\n" + report.summary);
+  const pick = await vscode.window.showInformationMessage(
+    `Remote / WSL Doctor: ${report.level.toUpperCase()} — ${report.checks.length} check(s).`,
+    "Show report",
+    "Copy report",
+  );
+  if (pick === "Show report") _output.show(true);
+  else if (pick === "Copy report")
+    await vscode.env.clipboard?.writeText?.(report.summary);
+}
+
+/**
+ * Shallow-scan the open workspace root (plus the dirs where auto-exec config
+ * hides one level deep) and classify what's there. Returns the pure
+ * scanAutoExecConfig findings; never throws (missing dirs → skipped).
+ */
+function scanWorkspaceAutoExec(vscode) {
+  const folder = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+  if (!folder) return { folder: null, findings: [] };
+  const fs = require("fs");
+  const path = require("path");
+  const rels = [];
+  const listDir = (rel) => {
+    try {
+      for (const name of fs.readdirSync(path.join(folder, rel))) {
+        rels.push(rel ? `${rel}/${name}` : name);
+      }
+    } catch {
+      /* dir absent — fine */
+    }
+  };
+  listDir(""); // root: .mcp.json, .bashrc, …
+  for (const d of [".vscode", ".idea", ".idea/runConfigurations", ".git/hooks", ".husky"]) {
+    listDir(d);
+  }
+  const { scanAutoExecConfig } = require("./auto-exec-guard.js");
+  return { folder, findings: scanAutoExecConfig(rels) };
+}
+
+/** globalState key recording that a workspace's auto-exec config was acknowledged. */
+function _autoExecAckKey(folder) {
+  return "chainlesschain.autoExecAck:" + String(folder || "");
+}
+
+/**
+ * Show the one-time advisory when a workspace holds auto-exec config and hasn't
+ * been acknowledged yet. Trust persists the acknowledgement; Review lists the
+ * files. No-op (silent) when clean or already trusted.
+ */
+async function maybeWarnAutoExecConfig(vscode, context) {
+  const { folder, findings } = scanWorkspaceAutoExec(vscode);
+  if (!folder || !findings.length) return;
+  if (context.globalState.get(_autoExecAckKey(folder))) return;
+  const { summarizeAutoExecScan } = require("./auto-exec-guard.js");
+  const pick = await vscode.window.showWarningMessage(
+    summarizeAutoExecScan(findings),
+    { modal: false },
+    "Review",
+    "Trust workspace",
+  );
+  if (pick === "Trust workspace") {
+    await context.globalState.update(_autoExecAckKey(folder), true);
+  } else if (pick === "Review") {
+    await reviewWorkspaceAutoExec(vscode, context, false);
+  }
+}
+
+/**
+ * Command entry (and Review action): present the findings and let the user
+ * trust the workspace. When invoked from the command with a clean workspace,
+ * says so; otherwise offers to persist trust.
+ */
+async function reviewWorkspaceAutoExec(vscode, context, fromCommand) {
+  const { folder, findings } = scanWorkspaceAutoExec(vscode);
+  if (!folder) {
+    if (fromCommand) {
+      vscode.window.showInformationMessage(
+        "ChainlessChain: no folder open to scan.",
+      );
+    }
+    return;
+  }
+  if (!findings.length) {
+    if (fromCommand) {
+      vscode.window.showInformationMessage(
+        "ChainlessChain: no auto-executable config found in this workspace.",
+      );
+    }
+    return;
+  }
+  const { summarizeAutoExecScan } = require("./auto-exec-guard.js");
+  const trusted = !!context.globalState.get(_autoExecAckKey(folder));
+  const buttons = trusted ? ["Untrust"] : ["Trust workspace"];
+  const pick = await vscode.window.showWarningMessage(
+    summarizeAutoExecScan(findings) +
+      (trusted ? "\n\n(This workspace is currently trusted.)" : ""),
+    { modal: true },
+    ...buttons,
+  );
+  if (pick === "Trust workspace") {
+    await context.globalState.update(_autoExecAckKey(folder), true);
+  } else if (pick === "Untrust") {
+    await context.globalState.update(_autoExecAckKey(folder), undefined);
+  }
 }
 
 // Process-level memo of `cc --version` per binary. Activation probes the

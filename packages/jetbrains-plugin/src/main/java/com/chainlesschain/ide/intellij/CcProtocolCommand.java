@@ -49,14 +49,32 @@ public final class CcProtocolCommand extends JBProtocolCommand {
             return CompletableFuture.completedFuture(
                     "ChainlessChain: no open project to focus");
         }
-        final String prompt = link.prompt;
+        // A link may target a specific workspace; if the open project doesn't
+        // match, don't silently act on the wrong repo (VS twin does the same).
+        if (link.workspace != null && !workspaceMatches(project, link.workspace)) {
+            return CompletableFuture.completedFuture(
+                    "ChainlessChain: link targets a different workspace — ignored");
+        }
+        final DeepLink.Action a = link;
         // Tool-window activation + panel access are EDT-only; the protocol
         // dispatcher may call us off the EDT.
         ApplicationManager.getApplication().invokeLater(() ->
                 ChatToolWindowFactory.onPanel(project, panel -> {
-                    if (prompt != null) panel.seedActiveInput(prompt);
+                    // Order mirrors the VS twin: resume → mode → prompt → file.
+                    if (a.session != null) panel.resumeSession(a.session);
+                    if (a.mode != null) panel.applyApprovalMode(a.mode);
+                    if (a.prompt != null) panel.seedActiveInput(a.prompt);
+                    if (a.file != null) panel.openFileAtLine(a.file, a.line);
                 }));
         return CompletableFuture.completedFuture(null); // null = success
+    }
+
+    private static boolean workspaceMatches(Project project, String want) {
+        String base = project.getBasePath();
+        if (base == null) return true; // can't tell → don't block
+        String a = base.replace('\\', '/').replaceAll("/+$", "").toLowerCase();
+        String b = want.replace('\\', '/').replaceAll("/+$", "").toLowerCase();
+        return a.equals(b);
     }
 
     private static @Nullable Project firstOpenProject() {

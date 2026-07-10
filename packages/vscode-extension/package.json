@@ -97,6 +97,16 @@
         "icon": "$(globe)"
       },
       {
+        "command": "chainlesschain.workspace.scanAutoExec",
+        "title": "%cmd.workspace.scanAutoExec.title%",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "chainlesschain.remote.doctor",
+        "title": "%cmd.remote.doctor.title%",
+        "icon": "$(pulse)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },

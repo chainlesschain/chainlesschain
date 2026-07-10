@@ -634,3 +634,30 @@ pipe/CLI actions appending results, zh/en bundle labels.
       load-time errors), DOM size, screenshot path (file exists). Cancel
       paths do nothing. cc without `browse chrome` → capture fails with the
       CLI error surfaced, no exception.
+
+## 🗂 P2 batch (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **Deep link extended params (P2 #11, `CcProtocolCommand` + `ChatPanel`
+      resumeSession/openFileAtLine/applyApprovalMode).** From a terminal:
+      `jetbrains://idea/chainlesschain/open?prompt=hi&file=<abs .java>&line=20`
+      → the IDE focuses the chat tool window, opens that file at line 20, and
+      seeds "hi" (NOT sent). Add `&session=<an existing id>` → a new tab is
+      created resuming that id (next message continues it). Add
+      `&mode=acceptEdits` → the active conversation flips to accept-edits (info
+      line, next message applies). `&mode=bypassPermissions` → mode UNCHANGED
+      (dropped by the parser). `&workspace=<some other path>` → the whole link
+      is ignored with the "different workspace" message. Windows/中文/space paths
+      open correctly.
+- [ ] **Auto-exec scan (P2 #13, `AutoExecScanAction`).** In a project that has
+      `.vscode/tasks.json` + `.mcp.json` (+ a `.git/hooks/pre-commit` that is NOT
+      `.sample`): Tools → "Scan Workspace for Auto-Exec Config" → dialog lists
+      those files loudest-first (MCP/hook first) with "Trust workspace" →
+      choosing it persists (re-running shows "currently trusted" + "Untrust").
+      A clean project → "No auto-executable config found". No project → "Open a
+      project first."
+- [ ] **Remote/WSL Doctor section (P2 #12, `DiagnoseBridgeAction`).** Tools →
+      "Diagnose Bridge" → the report ends with a "Remote / WSL Doctor" section:
+      on a normal local project with the bridge up it shows ✓ cc present / ✓
+      bridge listening; stop the bridge → ✗ bridge-stopped with the Restart hint;
+      open a project over a `\wsl.localhost\…` path (or run the IDE in WSL) → the
+      ⚠ WSL2 mirrored-networking advisory with the `.wslconfig` fix appears.

@@ -2,6 +2,31 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Deep link parity — full parameter set (P2 #11).**
+  `vscode://chainlesschain.chainlesschain-ide/open` now accepts `session`
+  (resume), `file`, `line`, `workspace` and `mode` on top of `prompt` — a doc,
+  script or the CLI can hand off into the chat at an exact file/line and resume a
+  specific conversation. Security: the prompt is only SEEDED (never auto-sent);
+  `mode` accepts only the safe approval modes and NEVER `bypassPermissions` (an
+  untrusted link, e.g. from a web page, can't arm auto-approval); the session id
+  is shape-validated and `workspace` is checked against the open folder (a link
+  for another repo is ignored). Windows / 中文 / space paths round-trip verbatim.
+- **Auto-exec config guard (P2 #13).** New `ChainlessChain: Scan Workspace for
+  Auto-Exec Config` command + a one-time-per-workspace advisory on activation:
+  recognizes workspace files that can run code without an explicit action — MCP
+  configs (`.mcp.json`), git/husky hooks, shell profiles, `.vscode/tasks.json`
+  and `launch.json`/`settings.json`, `.idea/` run configs — and lets you Trust
+  the workspace (persisted). The cc agent's own per-write gates still apply; this
+  is the heads-up that the freshly-opened workspace already CONTAINS such files
+  (which the agent could trigger via tasks/hooks/MCP).
+- **Remote / WSL Doctor (P2 #12).** New `ChainlessChain: Remote / WSL Doctor`
+  command: diagnoses the environment signals that make the bridge flaky on
+  WSL2 / Remote / SSH — mirrored networking, a missing/outdated cc on the remote
+  host, a stopped or unreachable bridge port — each with a copyable fix, written
+  to the output channel (with a Copy report action).
+
 ## [0.37.10] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 
 - **Chrome Connector (ChainlessChain: Chrome Connector).** Drives the new

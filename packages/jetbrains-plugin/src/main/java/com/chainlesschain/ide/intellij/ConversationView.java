@@ -419,6 +419,22 @@ final class ConversationView {
         });
     }
 
+    /**
+     * Deep-link entry: apply a pre-vetted safe approval mode (default /
+     * acceptEdits / plan — the parser already rejects bypassPermissions from an
+     * untrusted link) to this conversation. Same restart-on-next-message
+     * semantics as the /auto · /normal slash commands.
+     */
+    void applyDeepLinkMode(String mode) {
+        if (!com.chainlesschain.ide.DeepLink.SAFE_MODES.contains(mode)) return;
+        // "plan" isn't a spawn-time approval flag here; map it to default so a
+        // deep link never silently arms auto-approval.
+        conv.mode = "acceptEdits".equals(mode) ? "acceptEdits" : "default";
+        restartForModeChange();
+        BridgeStatusBarWidgetFactory.refresh(project);
+        append("ℹ approval mode → " + conv.mode + " (deep link) — next message applies\n");
+    }
+
     private ChatEvents.TurnState turnState() {
         // Defensive: a conversation minted without the TurnState factory holds a
         // HashMap — casting it would CCE on the reader thread and kill all replies.

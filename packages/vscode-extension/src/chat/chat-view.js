@@ -867,11 +867,23 @@ class ChatViewProvider {
     if (!action) return;
     if (action.action === "rename") return this._renameSession(pick.session);
     if (action.action === "delete") return this._deleteSession(pick.session);
+    this.resumeSessionId(pick.label);
+  }
+
+  /**
+   * Arm the ACTIVE conversation to resume `sessionId` on its next message
+   * (shared by the /sessions picker and the deep-link handler). Stops any live
+   * child, repoints the tab's session id, persists it (so a reload before the
+   * next message keeps the pick), and resets the transcript view.
+   */
+  resumeSessionId(sessionId) {
+    const id = String(sessionId || "").trim();
+    if (!id) return;
     const conv = this._activeConv();
     conv.session?.stop();
     this._convs.setSession(conv.id, null);
-    this._convs.setSessionId(conv.id, pick.label);
-    this._rememberSessionId(pick.label);
+    this._convs.setSessionId(conv.id, id);
+    this._rememberSessionId(id);
     this._indexConversation(conv, "stopped");
     // Persist the picked resume id: the tabs blob (written on every mutation) is
     // preferred over the legacy single-session key on restore, so without this a
@@ -881,8 +893,44 @@ class ChatViewProvider {
     this._post({ kind: "reset" });
     this._post({
       kind: "info",
-      text: `will resume ${pick.label} — send a message to continue it`,
+      text: `will resume ${id} — send a message to continue it`,
     });
+  }
+
+  /**
+   * Open `file` (resolved against the workspace when relative) and, when given,
+   * reveal 1-based `line`. Deep-link entry point; tolerant of a missing file.
+   */
+  async openFileAtLine(file, line) {
+    const raw = String(file || "").trim();
+    if (!raw) return;
+    const ws = this.vscode.workspace;
+    const win = this.vscode.window;
+    if (!ws?.openTextDocument || !win?.showTextDocument) return;
+    const path = require("path");
+    const folder = ws.workspaceFolders?.[0]?.uri?.fsPath;
+    const abs =
+      path.isAbsolute(raw) || !folder ? raw : path.join(folder, raw);
+    try {
+      const doc = await ws.openTextDocument(abs);
+      const opts = { preview: false };
+      if (Number.isInteger(line) && line >= 1) {
+        const pos = new this.vscode.Position(line - 1, 0);
+        opts.selection = new this.vscode.Range(pos, pos);
+      }
+      await win.showTextDocument(doc, opts);
+    } catch (err) {
+      this._post?.({
+        kind: "error",
+        text: `deep link could not open ${abs}: ${err.message}`,
+      });
+    }
+  }
+
+  /** Public wrapper for the deep-link handler: apply a (pre-vetted) approval
+   *  mode to the active conversation. */
+  applyApprovalMode(mode) {
+    this._setMode(String(mode || "default"));
   }
 
   /**

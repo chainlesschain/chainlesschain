@@ -68,6 +68,8 @@ public final class PureLogicSmokeMain {
         backgroundAgents();
         activityLog();
         deepLink();
+        autoExecGuard();
+        remoteDoctor();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1271,6 +1273,80 @@ public final class PureLogicSmokeMain {
         // unsupported action -> null (ignored, never misfires)
         check(DeepLink.parse("delete", withPrompt) == null, "unknown action -> null");
         check(DeepLink.parse("close", null) == null, "unknown close -> null");
+
+        // extended params: session/file/line/workspace/mode (P2 #11 完整化)
+        Map<String, String> full = new LinkedHashMap<>();
+        full.put("session", "panel-9-x");
+        full.put("file", "C:\\代码\\a b\\main.ts");
+        full.put("line", "7");
+        full.put("mode", "acceptEdits");
+        DeepLink.Action f = DeepLink.parse("open", full);
+        eq(f.session, "panel-9-x", "session carried");
+        eq(f.file, "C:\\代码\\a b\\main.ts", "windows/cjk/space path verbatim");
+        check(f.line == 7, "1-based line parsed");
+        eq(f.mode, "acceptEdits", "safe mode carried");
+        // security: an untrusted link can NEVER arm bypassPermissions
+        check(!DeepLink.SAFE_MODES.contains("bypassPermissions"), "bypass not a safe mode");
+        check(DeepLink.parse("open", one("mode", "bypassPermissions")).mode == null,
+                "bypass mode dropped");
+        // junk session id + lone line rejected
+        check(DeepLink.parse("open", one("session", "../etc")).session == null,
+                "junk session rejected");
+        check(DeepLink.parse("open", one("line", "9")).line == 0, "lone line dropped");
+    }
+
+    private static Map<String, String> one(String k, String v) {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put(k, v);
+        return m;
+    }
+
+    private static void remoteDoctor() {
+        System.out.println("RemoteDoctor (remote/WSL doctor — VS remote-doctor.js twin)");
+        check(RemoteDoctor.compareVersions("0.162.156", "0.162.155") > 0, "version gt");
+        check(RemoteDoctor.compareVersions("0.162.156-alpha.1", "0.162.156") == 0,
+                "prerelease tail ignored");
+        RemoteDoctor.Signals ok = new RemoteDoctor.Signals();
+        ok.cliFound = true; ok.cliVersion = "0.162.156"; ok.minCliVersion = "0.162.150";
+        ok.bridgePort = 51234; ok.portProbe = "listening";
+        eq(RemoteDoctor.analyze(ok).level, "ok", "clean local ok");
+        RemoteDoctor.Signals wsl = new RemoteDoctor.Signals();
+        wsl.isWsl = true; wsl.cliFound = false;
+        RemoteDoctor.Result r = RemoteDoctor.analyze(wsl);
+        eq(r.level, "error", "wsl + missing cli errors");
+        boolean hasWslCheck = false, hasFix = false;
+        for (RemoteDoctor.Check c : r.checks) {
+            if (c.id.equals("wsl-networking")) hasWslCheck = true;
+            if (c.id.equals("cli-missing") && "npm install -g chainlesschain".equals(c.fix)) hasFix = true;
+        }
+        check(hasWslCheck, "wsl networking advisory present");
+        check(hasFix, "cli install fix present");
+        check(r.summary.contains("Remote / WSL Doctor"), "summary header");
+    }
+
+    private static void autoExecGuard() {
+        System.out.println("AutoExecGuard (auto-exec config guard — VS auto-exec-guard.js twin)");
+        eq(AutoExecGuard.classify(".mcp.json").category, "mcp-config", "mcp config");
+        eq(AutoExecGuard.classify(".git/hooks/pre-commit").category, "git-hook", "git hook");
+        eq(AutoExecGuard.classify(".husky/pre-push").category, "git-hook", "husky hook");
+        eq(AutoExecGuard.classify(".zshrc").category, "shell-profile", "shell profile");
+        eq(AutoExecGuard.classify(".vscode/tasks.json").category, "vscode-tasks", "vscode task");
+        eq(AutoExecGuard.classify(".idea/runConfigurations/App.xml").category,
+                "jetbrains-run-config", "jetbrains run config");
+        // separator/case insensitive
+        eq(AutoExecGuard.classify(".vscode\\tasks.json").category, "vscode-tasks", "backslash path");
+        // not-risky
+        check(AutoExecGuard.classify("src/index.ts") == null, "ordinary file not flagged");
+        check(AutoExecGuard.classify(".git/hooks/pre-commit.sample") == null,
+                "inert sample hook not flagged");
+        // scan dedupes + sorts loudest-first
+        java.util.List<AutoExecGuard.Finding> f = AutoExecGuard.scan(java.util.List.of(
+                "src/a.ts", ".vscode/settings.json", ".vscode/settings.json",
+                ".mcp.json", ".vscode/tasks.json"));
+        check(f.size() == 3, "scan dedupes to 3");
+        eq(f.get(0).category, "mcp-config", "loudest first");
+        check(AutoExecGuard.summarize(f).contains("3 auto-executable"), "summary counts");
+        eq(AutoExecGuard.summarize(java.util.List.of()), "", "empty summary");
     }
 
     /**

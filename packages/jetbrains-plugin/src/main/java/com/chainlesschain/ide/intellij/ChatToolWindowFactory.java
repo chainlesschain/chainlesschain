@@ -148,6 +148,44 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             if (v != null) v.seedInput(text);
         }
 
+        /** Deep link: resume an explicit session id in a NEW tab. */
+        void resumeSession(String sessionId) {
+            if (sessionId == null || sessionId.trim().isEmpty()) return;
+            ConversationManager.Conversation conv =
+                    conversations.create(null, sessionId.trim(), true);
+            addTabFor(conv, true);
+            persistSessionIds();
+        }
+
+        /** Deep link: apply a (pre-vetted safe) approval mode to the active view. */
+        void applyApprovalMode(String mode) {
+            ConversationView v = activeView();
+            if (v != null) v.applyDeepLinkMode(mode);
+        }
+
+        /** Deep link: open a file (abs or project-relative) and reveal a 1-based line. */
+        void openFileAtLine(String file, int line) {
+            if (file == null || file.trim().isEmpty()) return;
+            String raw = file.trim();
+            java.io.File f = new java.io.File(raw);
+            if (!f.isAbsolute() && project.getBasePath() != null) {
+                f = new java.io.File(project.getBasePath(), raw);
+            }
+            com.intellij.openapi.vfs.VirtualFile vf =
+                    com.intellij.openapi.vfs.LocalFileSystem.getInstance()
+                            .refreshAndFindFileByPath(f.getPath().replace('\\', '/'));
+            if (vf == null) return;
+            int row = line >= 1 ? line - 1 : 0;
+            new com.intellij.openapi.fileEditor.OpenFileDescriptor(project, vf, row, 0)
+                    .navigate(true);
+        }
+
+        private ConversationView activeView() {
+            String id = conversations.activeId();
+            if (id == null && !tabIds.isEmpty()) id = tabIds.get(0);
+            return id != null ? views.get(id) : null;
+        }
+
         /** §6 reopen-closed: re-open the most recently closed conversation, resuming it. */
         void reopenClosed() {
             if (lastClosedSessionId == null && lastClosedTitle == null) {

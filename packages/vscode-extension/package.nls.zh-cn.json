@@ -10,6 +10,8 @@
   "cmd.plugins.manage.title": "ChainlessChain：管理插件与 MCP",
   "cmd.worktree.tasks.title": "ChainlessChain：Worktree 并行任务",
   "cmd.chrome.connector.title": "ChainlessChain：Chrome 连接器（页面状态）",
+  "cmd.workspace.scanAutoExec.title": "ChainlessChain：扫描工作区自动执行配置",
+  "cmd.remote.doctor.title": "ChainlessChain：远程 / WSL 诊断",
   "cmd.lens.explain.title": "ChainlessChain：解释符号（CodeLens）",
   "cmd.lens.refactor.title": "ChainlessChain：重构符号（CodeLens）",
   "cmd.diff.accept.title": "ChainlessChain：接受差异评审",

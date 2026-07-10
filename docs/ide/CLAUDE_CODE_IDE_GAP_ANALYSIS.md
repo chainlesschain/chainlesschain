@@ -240,49 +240,58 @@ Claude Code 推荐使用 worktree 并行处理多个任务。
 
 ### 11. URI / Deep Link 完整化
 
+状态：已完成（2026-07-10）。
+
 Claude Code VS Code 支持 URI handler 打开 prompt/session。
 
-建议：
+已落地（双端，参数一致）：
 
-- 支持 prompt prefill、resume session、file、line、workspace、mode。
-- Windows 路径、中文路径、空格路径必须有专项测试。
-- JetBrains DeepLink 与 VS Code URI 参数保持一致。
+- `parseDeepLink`（VS `uri-handler.js`）/ `DeepLink.parse`（JB `DeepLink.java`）从只支持 `/open?prompt=` 扩展为 `prompt` + `session`（resume）+ `file` + `line` + `workspace` + `mode`。宿主动作顺序统一：resume（repoint tab）→ mode → prompt seed → file reveal。VS `registerUriHandler` / JB `CcProtocolCommand` 两处胶水同步接线（`resumeSessionId`/`openFileAtLine`/`applyApprovalMode`）。
+- 安全（deep link = 不可信输入）：prompt 只 **seed** 从不自动发送（人复核后按 Send）；`mode` 只收安全审批模式（default/acceptEdits/plan），**永不接受 `bypassPermissions`**（外链不得武装自动批准，见 #13）；session id 形状校验（`[A-Za-z0-9._-]{1,128}`，拒 `../` 与超长）；`line` 校验 1-based 正整数，无 file 的 line 丢弃；`workspace` 原样返回由宿主比对当前打开目录不符则忽略（防「A 仓库的链接作用到 B 仓库」）。
+- 路径鲁棒性专项测试：Windows 盘符（`C:\Users\me\My Project\…`）、含空格、中文/emoji 路径（`/home/me/项目/文件.ts`、`D:\代码\a b\📁\main.rs`）经 percent-decode 后逐字节 round-trip；VS 12 项 + JB DeepLinkTest 6 新用例 + 双端 smoke。
+- JetBrains DeepLink 与 VS Code URI 参数保持一致（同名 key、同安全策略、同动作顺序）。
 
 ### 12. Remote Development / WSL Doctor
 
+状态：已完成（2026-07-10）。
+
 Claude Code JetBrains 文档特别强调 WSL2、Remote Development、firewall、CLI path 等问题。
 
-建议：
+已落地（双端）：
 
-- IDE Doctor 自动检测 WSL2 mirrored networking、firewall、端口占用。
-- 检测远程主机是否安装插件、CLI 是否可执行、版本是否兼容。
-- 给出可复制命令和一键修复入口。
+- 纯核 `analyzeRemoteEnv`（VS `remote-doctor.js`）/ `RemoteDoctor.analyze`（JB `RemoteDoctor.java`）：注入环境信号（platform / isWsl / remoteUncPath / isRemote / cliFound / cliVersion / minCliVersion / bridgePort / portProbe），产出分级检查（ok/warn/error）+ 每条**可复制修复命令**。检查覆盖：WSL2 mirrored networking（`.wslconfig` `networkingMode=mirrored` + `wsl --shutdown`）、CLI 缺失/版本落后（remote-aware 提示 + `npm install -g chainlesschain[@latest]`）、bridge 端口停/不可达（Restart Bridge）、远程会话防火墙/回环可达性（`netsh advfirewall` 规则）。
+- 版本比较 `compareVersions` 忽略 prerelease 尾，用于 CLI 兼容判定。
+- 宿主接线：VS 新命令 `chainlesschain.remote.doctor`（采集真实信号：`vscode.env.remoteName`/`\\wsl` UNC 路径/`cc --version`/bridge `_port`/loopback socket 探测 → 报告写 output channel + Copy report）；JB 折进既有 `DiagnoseBridgeAction`（`cc ide status/doctor/jetbrains` 之后追加「Remote / WSL Doctor」段，同样真采集 `WSL_DISTRO_NAME`/UNC/`--version`/端口探测）。
+- 测试：VS 8 项 + JB RemoteDoctorTest 7 项 + 双端 smoke。
 
 ### 13. 可自动执行配置保护
 
+状态：已完成（2026-07-10）。
+
 官方 JetBrains 文档提示，IDE 配置文件可能带来自动执行风险。
 
-建议对以下文件加特殊确认：
+已落地（双端）：
 
-- `.vscode/settings.json`
-- `.vscode/tasks.json`
-- `.vscode/launch.json`
-- `.idea/`
-- JetBrains run configurations
-- shell profile
-- hooks
-- MCP 配置
+- 纯核分类器 `classifyAutoExecTarget`/`scanAutoExecConfig`/`summarizeAutoExecScan`（VS `auto-exec-guard.js`）/ `AutoExecGuard`（JB `AutoExecGuard.java`）：识别可无显式操作即执行代码的配置文件并分级（severity 5→2）——MCP 配置（`.mcp.json`、`.vscode/mcp.json`、`.cursor/mcp.json`，可 spawn 进程）/ git·husky hooks（`.git/hooks/*`、`.husky/*`，排除 `.sample` 模板）/ shell profile（`.bashrc`/`.zshrc`/`.profile`/PowerShell profile）/ `.vscode/tasks.json`（可 folderOpen 自动跑）/ `.idea/runConfigurations/`（JetBrains 运行配置）/ `.vscode/launch.json` / `.vscode/settings.json` / `.idea/`。路径分隔符 + 大小写不敏感（Windows-safe），普通文件与 inert sample hook 不误报。
+- 定位判定：cc agent 的文件写入由 CLI 自身 per-write 权限门把关（confirm 再写）；本项是 IDE 层的**互补** —— 提示人「刚打开的（未信任）工作区已经**包含**这些文件」，agent 可能经 tasks/hooks/MCP 触发它们。
+- 宿主接线：VS 激活时一次性 per-workspace 咨询（扫工作区根 + `.vscode`/`.idea`/`.git/hooks`/`.husky` 一层，命中且未信任 → 非阻断警告 [Review]/[Trust workspace]，信任持久化 globalState per workspace path）+ 命令 `chainlesschain.workspace.scanAutoExec`；JB Tools → Scan Workspace for Auto-Exec Config（`AutoExecScanAction`，`PropertiesComponent` 持久化信任 per project path）。
+- 测试：VS 7 项 + JB AutoExecGuardTest 6 项 + 双端 smoke。
 
 ### 14. 分发和内置 CLI
 
+状态：分发面已完成；「插件私有 CLI 副本 + checksum/回滚」判定为**刻意不做**（2026-07-10）。
+
 Claude Code VS Code 插件会为 chat panel 管理自己的 CLI 副本。
 
-建议：
+已完成：
 
-- 支持插件内置或自动安装 CLI。
-- CLI 升级带 checksum 校验和回滚。
-- VS Code 覆盖 Open VSX 与 Microsoft Marketplace。
-- JetBrains Marketplace 发布包签名、兼容矩阵和 smoke test 自动化。
+- **VS Code 覆盖 Open VSX 与 Microsoft Marketplace**：CI「IDE Extensions」workflow 双渠道 —— Open VSX 每版 `ovsx publish`（0.37.10 已 live `🚀 Published`），官方 VS Marketplace step 存在但因缺 `VSCE_PAT` secret 优雅跳过（`::notice::… skipping`，非失败；配 secret 即启用，无需改代码）。
+- **JetBrains Marketplace 发布包签名、兼容矩阵、smoke test 自动化**：`publishPlugin` 每版上架（0.4.53 已 `BUILD SUCCESSFUL`），Marketplace 服务端签名（本地 `signPlugin` 无证书时 SKIPPED，上架仍成功）；兼容矩阵 `sinceBuild=242`/`untilBuild=null` + `verifyPlugin`（对 2025.2）；CI 每版跑 smokeTest（PureLogicSmokeMain 775 断言）+ JUnit + buildPlugin 解析级包验。
+- **自动安装 CLI（务实版）**：检测 cc 缺失/落后 → 一键 guarded `npm install -g chainlesschain@latest`（终端可见、用户确认），covered by version-check nudge；#12 Remote Doctor 亦对缺失/落后给可复制安装命令。
+
+刻意不做（判定 + 理由）：
+
+- **插件内置/私有 CLI 副本 + 独立 checksum 校验 + 回滚**：npm 是 CLI 的**单一分发渠道**（SSOT）。插件私有副本会（1）分叉更新路径（用户 `npm i -g` 与插件私有副本各自为政，版本诊断更难）；（2）膨胀 vsix/zip（cc ~2MB + node 依赖）；（3）重复 npm 自身的完整性保证（registry `dist.integrity` SHASUM + 锁文件）。故不引入私有安装位；「auto-install」以 npm 全局安装的 guarded nudge 实现，回滚 = `npm install -g chainlesschain@<旧版>`。此判定与项目「npm 先发、release 后拉」的既定分发纪律一致。
 
 ## 建议落地顺序
 
