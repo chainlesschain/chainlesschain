@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.55] — diff review: your in-viewer edits are captured + line-anchored notes (2026-07-10)
 
 - **Diff review captures your in-viewer edits (gap #4 close-out).** The right
   pane of the openDiff review is now editable (`createEditable`), and every
