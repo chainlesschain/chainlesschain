@@ -228,6 +228,15 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 - **IPFS 存储**：节点状态、文件固定/取消固定
 - 命令：`backup create/list/restore`、`sync status/push/pull`、`ipfs status/pins --json`
 
+### 📦 交付物 (Artifacts) — cli ≥ 0.162.157 新增
+
+- agent 经 `publish_artifact` 发布的交付物（报告/补丁/截图/日志/数据）表格浏览，按类型过滤
+- 在线预览：Markdown（DOMPurify 消毒渲染）/ 图片 / 文本（超限标"已截断"）
+- 浏览器完整下载（独立 HTTP 端点，token 走 Bearer 头）、删除、一键清理过期
+- 详见 [Artifacts 交付物](/chainlesschain/cli-artifacts)
+
+> 注：面板功能模块持续增长（views 目录现有 68 个视图），本页「23 个功能模块」清单为 v5.0.2.12 时代的快照，后续版本新增模块（后台任务面板、MTC、联邦、家庭守护、移动桥接、交付物等）以侧栏实际条目为准。
+
 ### 🔑 身份认证 (WebAuthn)
 
 - **WebAuthn 凭证**：注册、列表、删除

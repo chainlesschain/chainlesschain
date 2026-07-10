@@ -5,7 +5,7 @@
 ## 核心特性
 
 - 🤖 **Claude Code 风格**: 代理式 AI 会话，自主完成任务
-- 🔧 **19 个内置工具**: 读写/编辑文件、执行命令（含后台）、搜索代码库与会话、代码执行、联网搜索/抓取、Jupyter 编辑、子代理、技能调用等
+- 🔧 **24 个内置工具**: 读写/编辑文件、执行命令（含后台）、搜索代码库与会话、代码执行、联网搜索/抓取、Jupyter 编辑、子代理、技能调用、LSP 代码智能、通知/定时意图、交付物发布等
 - 🎯 **146 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
@@ -101,6 +101,10 @@ chainlesschain agent -p "..." --think --thinking-budget 8000      # legacy Claud
 chainlesschain agent --image shot.png -p "图里是什么?"             # 多模态图像输入（可重复 --image）
 chainlesschain agent -p "..." --json-schema schema.json           # 结构化输出：最终回答必须通过 JSON Schema 校验
 chainlesschain agent -p --input-format stream-json --interactive-approvals  # 危险操作改结构化审批往返（见下）
+chainlesschain agent -p "..." --safe-mode                         # 裸跑：禁项目记忆/settings hooks/记忆召回/IDE 上下文/状态行（权限规则仍生效）
+chainlesschain agent -p "..." --bare                              # --safe-mode 之上再禁 skills/插件/MCP·IDE 自动连接——脚本化调用的最小最快面（显式 --mcp-config 仍加载）
+chainlesschain agent --disable-slash-commands                     # 交互 REPL：'/' 开头输入原样给模型不当斜杠命令（/exit /quit 仍可用）
+chainlesschain agent --ax-screen-reader                           # 读屏友好输出：无 ANSI 颜色、无原地状态行重绘（也可 CC_SCREEN_READER=1）
 ```
 
 **交互式审批**（`--interactive-approvals`，v0.162.45+，仅 stream-json 双工模式）：confirm 级决策（危险 shell + settings/hook `ask`）从 headless 一律拒绝（fail-closed）变为**结构化往返** —— emit `approval_request`（id/tool/command/risk/rule/reason），阻塞该工具等 stdin 的 `{type:"approval",id,approve}`（裁决走中断同款并发泵，mid-turn 即时生效）；超时（`CC_APPROVAL_TIMEOUT_MS` 默认 120s）与 stdin 关闭一律 fail-closed 并 emit `approval_resolved`。不加 flag 的 CI/管道行为字节不变。VS Code Chat 面板基于此渲染内联 Approve/Deny 审批卡。
@@ -204,7 +208,7 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 
 ## 内置工具
 
-代理模式提供 19 个内置工具：
+代理模式提供 24 个内置工具（cli ≥ 0.162.157）：
 
 | 工具                | 说明                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -227,6 +231,11 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 | `notebook_edit`     | 编辑 Jupyter `.ipynb` 单元格：按 `cell_id`（优先）或 `cell_index` 定位，`edit_mode` = replace（默认）/ insert / delete |
 | `todo_write`        | 会话级待办清单（open-agents 对标）                                                                                     |
 | `ask_user_question` | 主动向用户提问并阻塞等待回答                                                                                           |
+| `code_intelligence` | LSP 语义代码智能：定义 / 引用 / 诊断 / 重命名（详见 [code-intel](./cli-code-intel)）                                   |
+| `slash_command`     | 在会话内执行 REPL 斜杠命令                                                                                             |
+| `notify`            | 落一条通知意图到 `~/.chainlesschain/agent-schedule/`，由 [cc agenda](./cli-agenda) 消费触发                            |
+| `schedule`          | 落一条定时任务意图（同上，agenda 调度执行）                                                                            |
+| `publish_artifact`  | 把完工交付物发布进个人交付物库，只回传元数据（详见 [Artifacts](./cli-artifacts)）                                      |
 
 ### run_code 工具详情
 

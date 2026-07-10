@@ -200,6 +200,10 @@ export default defineConfig({
               text: "动态 Worktree 批处理 (batch) ⭐NEW",
               link: "/chainlesschain/cli-batch",
             },
+            {
+              text: "Artifacts 交付物 (artifacts / publish_artifact) ⭐NEW",
+              link: "/chainlesschain/cli-artifacts",
+            },
           ],
         },
         {
@@ -294,6 +298,10 @@ export default defineConfig({
             {
               text: "远程 MCP 授权 (cc mcp OAuth) ⭐NEW",
               link: "/chainlesschain/mcp-oauth",
+            },
+            {
+              text: "IDE 插件使用指南 (VS Code / JetBrains) ⭐NEW",
+              link: "/chainlesschain/ide-plugin",
             },
             {
               text: "IDE 桥接 (VS Code / JetBrains) ⭐NEW",
