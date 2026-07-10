@@ -26,6 +26,15 @@ All notable changes to this extension are documented here.
   WSL2 / Remote / SSH — mirrored networking, a missing/outdated cc on the remote
   host, a stopped or unreachable bridge port — each with a copyable fix, written
   to the output channel (with a Copy report action).
+- **Deprecated-API audit (2026-07-10) — clean, no code change.** Prompted by
+  the JetBrains twin's 0.4.53 Marketplace verifier flag, the extension was
+  audited for the same class of problem: zero usages of deprecated VS Code
+  APIs (`rootPath`, `extensionPath`/`storagePath`/`logPath`, `scm.inputBox`,
+  `TextEditor.show/hide`, legacy `Task` constructor), no proposed APIs, and no
+  deprecated Node runtime APIs (`new Buffer()`, `url.parse`, `crypto.createCipher`,
+  `fs.rmdir`) across `src/**` including the vendored agent-sdk. The
+  shell-integration events (stable since VS Code 1.93 > engines ^1.85.0) remain
+  behind an existence guard and degrade gracefully on older IDEs.
 
 ## [0.37.10] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 
