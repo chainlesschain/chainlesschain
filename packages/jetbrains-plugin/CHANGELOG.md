@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Terminal API future-proofing.** Worktree Tasks' "New isolated task…" now
+  opens its integrated terminal via `TerminalToolWindowManager.createShellWidget`
+  + `TerminalWidget.sendCommandToExecute` instead of the scheduled-for-removal
+  `createLocalShellWidget` the 0.4.53 Marketplace verifier flagged (Approved/
+  Compatible on all verified IDEs — informational only). No behavior change;
+  the Terminal-plugin-absent fallback to the command dialog is untouched.
+  `TerminalTextReader` audited in the same pass: already on the current API
+  (`getTerminalWidgets()` / `toShellJediTermWidgetOrThrow`), no change.
+
 ## [0.4.53] — IDE workflows: plan review, session manager, handoff, managers, Chrome connector (2026-07-10)
 
 - **Chrome Connector (Tools → ChainlessChain: Chrome Connector).** Drives
