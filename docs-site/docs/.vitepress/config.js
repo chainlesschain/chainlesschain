@@ -299,6 +299,10 @@ export default defineConfig({
               text: "IDE 桥接 (VS Code / JetBrains) ⭐NEW",
               link: "/chainlesschain/ide-bridge",
             },
+            {
+              text: "IDE 计划审阅与会话索引 ⭐NEW",
+              link: "/chainlesschain/ide-plan-review",
+            },
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
             { text: "计算机操控", link: "/chainlesschain/computer-use" },
             {
