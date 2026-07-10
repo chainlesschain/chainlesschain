@@ -132,6 +132,23 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     );
   }
 
+  // Undo an optimistic clear when the approval never left this client (send
+  // failed / not connected) so the user can answer again. Same requestId
+  // dedup as recordEvent — a re-delivered permission.request or a concurrent
+  // restore never duplicates the card.
+  function restoreApprovalCard(card) {
+    if (!card || !card.requestId) return;
+    // Don't resurrect a request another device/terminal resolved while our
+    // send was failing — its permission.resolved is already in the log.
+    const resolvedMeanwhile = events.value.some(
+      (e) => e.type === "permission.resolved" && e.requestId === card.requestId,
+    );
+    if (resolvedMeanwhile) return;
+    if (!pendingApprovals.value.some((c) => c.requestId === card.requestId)) {
+      pendingApprovals.value = [...pendingApprovals.value, card];
+    }
+  }
+
   // ── relay transport ───────────────────────────────────────────────────────
 
   function openSocket() {
@@ -475,22 +492,34 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
 
   function approve(requestId, approved) {
     if (!requestId) return;
-    // Optimistic card clear — permission.resolved will confirm (idempotent).
+    const card =
+      pendingApprovals.value.find((c) => c.requestId === requestId) || null;
+    // Optimistic card clear (snappy UI + no double-answer while in flight) —
+    // permission.resolved will confirm (idempotent). If the send fails or we
+    // were never connected, the card is RESTORED so the answer can be retried
+    // (the host gate stays pending until its own timeout).
     clearApprovalCard(requestId);
     if (transport.value === "direct") {
-      if (directSocket) {
-        sendDirectControl({
-          type: "approval.resolve",
-          requestId,
-          answer: approved,
-          approved,
-        });
-      } else {
+      if (!directSocket) {
         error.value = "Remote Session is not connected";
+        restoreApprovalCard(card);
+        return;
       }
+      sendDirectControl({
+        type: "approval.resolve",
+        requestId,
+        answer: approved,
+        approved,
+      }).then((result) => {
+        // sendDirectControl resolves null on failure (error.value already set).
+        if (result === null) restoreApprovalCard(card);
+      });
       return;
     }
-    sendControl({ type: "approval.resolve", requestId, approved });
+    if (!sendControl({ type: "approval.resolve", requestId, approved })) {
+      error.value = "Remote Session is not connected";
+      restoreApprovalCard(card);
+    }
   }
 
   function interrupt() {

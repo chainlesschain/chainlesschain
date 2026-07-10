@@ -174,6 +174,35 @@ describe("remoteSession store", () => {
     expect(second.controls.at(-1).seq).toBe(1);
   });
 
+  it("restores the approval card when the relay send cannot go out", () => {
+    const store = useRemoteSessionStore();
+    const active = connectAndOpen(store);
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "req-lost",
+      tool: "run_shell",
+    });
+    expect(store.pendingApprovals).toHaveLength(1);
+
+    // Socket drops out from under us — sendControl returns false.
+    active.readyState = 3;
+    store.approve("req-lost", true);
+    expect(store.pendingApprovals).toHaveLength(1); // card retained, not lost
+    expect(store.pendingApprovals[0]).toMatchObject({ requestId: "req-lost" });
+    expect(store.error).toMatch(/not connected/);
+    expect(active.controls).toHaveLength(0);
+
+    // Once the link is back the retry follows the normal optimistic flow.
+    active.readyState = 1;
+    store.approve("req-lost", false);
+    expect(store.pendingApprovals).toHaveLength(0);
+    expect(active.controls.at(-1)).toMatchObject({
+      type: "approval.resolve",
+      requestId: "req-lost",
+      approved: false,
+    });
+  });
+
   it("auto-reconnects a transient drop and resumes without re-pairing", () => {
     vi.useFakeTimers();
     const store = useRemoteSessionStore();

@@ -47,6 +47,7 @@ class FakeDirectServer {
   static OPEN = 1;
   static instances = [];
   static rejectJoin = null;
+  static rejectPublish = null;
 
   constructor(url) {
     this.url = url;
@@ -112,6 +113,15 @@ class FakeDirectServer {
       return;
     }
     if (msg.type === "remote-session-publish") {
+      if (FakeDirectServer.rejectPublish) {
+        this.deliver({
+          id: msg.id,
+          type: "error",
+          code: "REMOTE_SESSION_PUBLISH_ERROR",
+          message: FakeDirectServer.rejectPublish,
+        });
+        return;
+      }
       this.published.push(msg);
       this.deliver({
         id: msg.id,
@@ -174,6 +184,7 @@ describe("remoteSession store — direct transport", () => {
     setActivePinia(createPinia());
     FakeDirectServer.instances = [];
     FakeDirectServer.rejectJoin = null;
+    FakeDirectServer.rejectPublish = null;
     vi.stubGlobal("WebSocket", FakeDirectServer);
   });
 
@@ -261,6 +272,75 @@ describe("remoteSession store — direct transport", () => {
     active.pushEvent({ type: "permission.request", requestId: "ra-3" });
     active.pushEvent({ type: "permission.request", requestId: "ra-3" });
     expect(store.pendingApprovals).toHaveLength(1);
+  });
+
+  it("restores the card when the approval publish is rejected (send never landed)", async () => {
+    const store = useRemoteSessionStore();
+    const active = await connectDirect(store);
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "ra-fail",
+      tool: "run_shell",
+    });
+    FakeDirectServer.rejectPublish = "session revoked mid-flight";
+
+    store.approve("ra-fail", true);
+    expect(store.pendingApprovals).toHaveLength(0); // optimistic clear
+    await flush();
+    // Publish failed → the card is back so the user can answer again.
+    expect(store.pendingApprovals).toHaveLength(1);
+    expect(store.pendingApprovals[0]).toMatchObject({
+      requestId: "ra-fail",
+      tool: "run_shell",
+    });
+    expect(store.error).toMatch(/revoked mid-flight/);
+    expect(active.published).toHaveLength(0);
+
+    // Retry once the failure clears — normal optimistic flow resumes.
+    FakeDirectServer.rejectPublish = null;
+    store.approve("ra-fail", true);
+    await flush();
+    expect(store.pendingApprovals).toHaveLength(0);
+    expect(active.published.at(-1).event).toMatchObject({
+      type: "approval.resolve",
+      requestId: "ra-fail",
+      answer: true,
+    });
+  });
+
+  it("keeps the card when approving while disconnected", async () => {
+    const store = useRemoteSessionStore();
+    const active = await connectDirect(store);
+    active.pushEvent({ type: "permission.request", requestId: "ra-off" });
+    // Host revokes the pairing → directSocket is dropped.
+    active.deliver({
+      type: "remote-session-revoked",
+      remoteSessionId: SESSION_ID,
+    });
+    expect(store.status).toBe("revoked");
+
+    store.approve("ra-off", true);
+    expect(store.pendingApprovals).toHaveLength(1); // not lost
+    expect(store.error).toMatch(/not connected/);
+    expect(active.published).toHaveLength(0);
+  });
+
+  it("does not resurrect a card someone else resolved while our send was failing", async () => {
+    const store = useRemoteSessionStore();
+    const active = await connectDirect(store);
+    active.pushEvent({ type: "permission.request", requestId: "ra-race" });
+    FakeDirectServer.rejectPublish = "boom";
+
+    store.approve("ra-race", true);
+    // Before the failure microtask runs, another device resolves the request.
+    active.pushEvent({
+      type: "permission.resolved",
+      requestId: "ra-race",
+      approved: false,
+      via: "local",
+    });
+    await flush();
+    expect(store.pendingApprovals).toHaveLength(0); // terminal — no zombie card
   });
 
   it("does NOT auto-reconnect a dropped direct link (one-time pairing token)", async () => {
