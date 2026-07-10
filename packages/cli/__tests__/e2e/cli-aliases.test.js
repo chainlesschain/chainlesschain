@@ -118,9 +118,14 @@ describe("E2E: CLI aliases", () => {
       // doctor may exit non-zero if some checks fail — that's OK; either way it
       // must actually RUN the checks (header + a Node.js version check), not
       // just return a defined-but-empty string (the old no-op assertion).
+      // Budget 120s, not the shared 30s: doctor probes backend service ports
+      // (postgres/redis/ws/...), and on a host where those are firewalled
+      // half-up each probe waits out its full connect timeout — measured 76s
+      // wall for a HEALTHY doctor run (trap #31 class, real slowness not a
+      // hang).
       let output;
       try {
-        output = runCli("doctor");
+        output = runCli("doctor", { timeout: 120000 });
       } catch (err) {
         output = (err.stdout || "") + (err.stderr || "");
       }
