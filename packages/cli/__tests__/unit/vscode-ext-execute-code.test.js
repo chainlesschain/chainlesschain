@@ -1,7 +1,7 @@
 /**
  * executeCode — the conditional 5th IDE tool (Claude-Code mcp__ide__executeCode
  * parity). Exposed ONLY when the editor facade implements `executeCode`, so
- * 4-tool consumers (JetBrains plugin, older facades, every existing test) are
+ * base-tool consumers (JetBrains plugin, older facades, every existing test) are
  * untouched. Verified without a VS Code host: tool logic with a fake facade +
  * the real extension MCP server driven by the real CLI MCPClient.
  */
@@ -33,9 +33,10 @@ const kernelFacade = () => ({
 });
 
 describe("buildIdeTools — conditional executeCode", () => {
-  it("facade WITHOUT executeCode keeps the classic 4 tools", () => {
+  it("facade WITHOUT executeCode keeps the core tools", () => {
     const names = buildIdeTools(baseFacade()).map((t) => t.name);
     expect(names.sort()).toEqual([
+      "getActiveFile",
       "getDiagnostics",
       "getOpenEditors",
       "getSelection",
@@ -43,10 +44,10 @@ describe("buildIdeTools — conditional executeCode", () => {
     ]);
   });
 
-  it("facade WITH executeCode exposes 5 tools incl. the schema", () => {
+  it("facade WITH executeCode exposes 6 tools incl. the schema", () => {
     const tools = buildIdeTools(kernelFacade());
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
-    expect(Object.keys(byName)).toHaveLength(5);
+    expect(Object.keys(byName)).toHaveLength(6);
     expect(byName.executeCode.inputSchema.required).toEqual(["code"]);
     expect(byName.executeCode.inputSchema.properties.timeout_ms).toBeTruthy();
   });

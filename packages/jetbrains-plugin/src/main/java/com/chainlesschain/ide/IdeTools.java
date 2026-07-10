@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The four IDE tools (getSelection / getDiagnostics / getOpenEditors /
- * openDiff), identical in name + contract to the VS Code extension so the CLI
+ * The IDE tools (getSelection / getActiveFile / getDiagnostics /
+ * getOpenEditors / openDiff), identical in name + contract to the VS Code extension so the CLI
  * sees the same `mcp__ide__*` surface regardless of editor. Each tool delegates
  * to the injected {@link EditorFacade}.
  */
@@ -27,6 +27,16 @@ public final class IdeTools {
             @Override public Object call(Map<String, Object> args) {
                 Map<String, Object> sel = editor.getSelection();
                 return sel; // may be null
+            }
+        });
+
+        tools.add(new BaseTool(
+                "getActiveFile",
+                "Return the active editor's file path, language, dirty state, and "
+                        + "cursor position without including selected text.",
+                emptyObjectSchema()) {
+            @Override public Object call(Map<String, Object> args) {
+                return editor.getActiveFile();
             }
         });
 

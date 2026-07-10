@@ -281,6 +281,15 @@ export interface QuestionAnswerInput {
 export interface PlanControlInput {
   type: "plan";
   action: "enter" | "approve" | "reject";
+  /** Optional IDE review/audit payload written into the session transcript. */
+  review?: {
+    action?: string;
+    reviewedAt?: string | null;
+    conversationId?: string | null;
+    snapshot?: string;
+  };
+  /** Back-compat shorthand for review.snapshot. */
+  snapshot?: string;
 }
 
 export interface FeedbackInput {
@@ -470,7 +479,9 @@ export function isAgentEvent(value: unknown): value is AgentStreamEvent {
   return isObject(value) && typeof value.type === "string";
 }
 
-export function isSystemInit(event: AgentStreamEvent): event is SystemInitEvent {
+export function isSystemInit(
+  event: AgentStreamEvent,
+): event is SystemInitEvent {
   return (
     event.type === "system" &&
     (event as SystemInitEvent).subtype === "init" &&

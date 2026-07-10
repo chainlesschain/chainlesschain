@@ -48,7 +48,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | compact | `{"type":"compact"}` | manual history compaction between turns |
 | approval verdict | `{"type":"approval","id":str,"approve":bool}` | answers an `approval_request` |
 | question answer | `{"type":"answer","id":str,"answer":str\|str[]\|null}` | `null` cancels |
-| plan control | `{"type":"plan","action":"enter"\|"approve"\|"reject"}` | plan-mode UI |
+| plan control | `{"type":"plan","action":"enter"\|"approve"\|"reject","review":{"snapshot":str}?}` | plan-mode UI; approve/reject may carry an IDE review snapshot for audit/replay |
 | feedback | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}` | PDH self-learning |
 | assist resume | `{"type":"resume","token":str?,"action":"completed"\|"skip"}` | PDH guided collection |
 

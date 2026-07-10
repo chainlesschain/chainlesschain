@@ -85,6 +85,22 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     @Override
+    public Map<String, Object> getActiveFile() {
+        return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<Map<String, Object>>) () -> {
+            Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+            if (editor == null) return null;
+            Document doc = editor.getDocument();
+            VirtualFile vf = FileDocumentManager.getInstance().getFile(doc);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("file", vf == null ? null : vf.getPath());
+            out.put("languageId", vf == null ? null : vf.getFileType().getName());
+            out.put("isDirty", vf != null && FileDocumentManager.getInstance().isFileModified(vf));
+            out.put("cursor", pos(doc, editor.getCaretModel().getOffset()));
+            return out;
+        });
+    }
+
+    @Override
     public List<Map<String, Object>> getDiagnostics(String path) {
         return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<List<Map<String, Object>>>) () -> {
             List<Map<String, Object>> out = new ArrayList<>();

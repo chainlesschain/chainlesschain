@@ -1,6 +1,6 @@
 /**
  * The IDE tools exposed to the agent (server `ide` → mcp__ide__*):
- *   getSelection / getDiagnostics / getOpenEditors / openDiff
+ *   getSelection / getActiveFile / getDiagnostics / getOpenEditors / openDiff
  *   (+ executeCode, only when the host editor can run notebook code)
  *
  * Each tool delegates to an injected `editor` facade so this module stays free
@@ -10,6 +10,7 @@
  *
  * Facade contract (all may be async):
  *   getSelection()                      -> { file, languageId?, selection, text } | null
+ *   getActiveFile()                     -> { file, languageId?, isDirty?, cursor? } | null
  *   getDiagnostics({ path? })           -> [{ file, severity, message, line, character, source? }]
  *   getOpenEditors()                    -> [{ file, active, languageId?, isDirty? }]
  *   openDiff({ path, originalText?, modifiedText, title? }) -> { shown, ... }
@@ -34,6 +35,26 @@ function buildIdeTools(editor) {
       },
     },
     {
+      name: "getActiveFile",
+      description:
+        "Return the active editor's file path, language, dirty state, and " +
+        "cursor position without including selected text. Use this when you " +
+        "only need the current file context.",
+      inputSchema: { type: "object", properties: {} },
+      handler: async () => {
+        if (typeof editor.getActiveFile === "function") {
+          return (await editor.getActiveFile()) || null;
+        }
+        const sel = await editor.getSelection();
+        if (!sel) return null;
+        return {
+          file: sel.file || null,
+          languageId: sel.languageId,
+          cursor: sel.selection?.start || null,
+        };
+      },
+    },
+    {
       name: "getDiagnostics",
       description:
         "Return current diagnostics (errors/warnings from linters, type " +
@@ -43,7 +64,8 @@ function buildIdeTools(editor) {
         properties: {
           path: {
             type: "string",
-            description: "Absolute file path to scope diagnostics to (optional).",
+            description:
+              "Absolute file path to scope diagnostics to (optional).",
           },
         },
       },
@@ -80,7 +102,10 @@ function buildIdeTools(editor) {
       inputSchema: {
         type: "object",
         properties: {
-          path: { type: "string", description: "Absolute path of the file to diff." },
+          path: {
+            type: "string",
+            description: "Absolute path of the file to diff.",
+          },
           modifiedText: {
             type: "string",
             description: "Proposed new file content (right-hand side).",
@@ -158,7 +183,9 @@ function buildIdeTools(editor) {
             },
             handler: async (args = {}) => {
               if (!Array.isArray(args.files) || args.files.length === 0) {
-                throw new Error("openMultiDiff requires a non-empty `files` array");
+                throw new Error(
+                  "openMultiDiff requires a non-empty `files` array",
+                );
               }
               const res = await editor.openMultiDiff({
                 files: args.files,

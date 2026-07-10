@@ -26,6 +26,12 @@ const {
   looksLikeLlmConfigError,
   hasUnsafeShellChars,
 } = require("../llm-config.js");
+const {
+  buildPlanReviewFeedbackPrompt,
+  buildPlanReviewRecord,
+  formatPlanReviewMarkdown,
+} = require("./plan-review.js");
+const { upsertIdeSessionRecord } = require("./ide-session-index.js");
 
 class ChatViewProvider {
   /**
@@ -47,6 +53,9 @@ class ChatViewProvider {
       opts.deps?.createSession || ((cfg) => new AgentChatSession(cfg).start());
     // Injectable for tests (the default reads ~/.chainlesschain/config.json).
     this._resolveChatLlm = opts.deps?.resolveChatLlm || resolveChatLlm;
+    this._upsertIdeSessionRecord =
+      opts.deps?.upsertIdeSessionRecord || upsertIdeSessionRecord;
+    this._enableSessionIndex = opts.enableSessionIndex === true;
     // "Insert File Reference" (Cmd/Ctrl+Alt+K): text queued here until the
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
@@ -65,6 +74,7 @@ class ChatViewProvider {
     // provider/model settings and dropped on any LLM reconfigure.
     this._lastCallUsage = new Map(); // convId → usage of the latest LLM call
     this._ctxWindowCache = null; // { key, window } from the last CLI probe
+    this._planReviews = new Map(); // convId -> { document, lastText, lastPlan }
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -131,6 +141,30 @@ class ChatViewProvider {
       list.findIndex((t) => t.active),
     );
     this.opts.state.update("chainlesschain.chat.tabs", { tabs, activeIndex });
+  }
+
+  _workspaceFolders() {
+    return (this.vscode.workspace.workspaceFolders || [])
+      .map((f) => f?.uri?.fsPath)
+      .filter(Boolean);
+  }
+
+  _indexConversation(conv, status) {
+    if (!this._enableSessionIndex || !conv?.sessionId) return;
+    try {
+      this._upsertIdeSessionRecord({
+        id: conv.sessionId,
+        title: conv.title || "",
+        ide: "vscode",
+        conversationId: conv.id || "",
+        workspaceFolders: this._workspaceFolders(),
+        status,
+        mode: conv.mode || "default",
+        updatedAt: new Date().toISOString(),
+      });
+    } catch {
+      /* best-effort: index failures must never break chat */
+    }
   }
 
   /** Back-compat accessor: the active conversation's live session (or null). */
@@ -242,6 +276,7 @@ class ChatViewProvider {
             this._rememberSessionId(evt.session_id);
           }
           this._persistTabs(); // resume id changed without a tab-bar repost
+          this._indexConversation(conv, "running");
         }
         if (evt.resumed_messages > 0) {
           this._postFrom(convId, {
@@ -280,16 +315,22 @@ class ChatViewProvider {
       }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);
+      if (ui?.kind === "plan") {
+        conv.plan = ui;
+        this._syncPlanReviewEditor(convId, ui).catch(() => {});
+      }
       // Pending-approval signal: an approval landed in a tab you are NOT looking
       // at — the agent is BLOCKED on you. Flag it (a distinct dot from the green
       // "done" one) and remember the card so switching to the tab re-surfaces it.
       if (ui?.kind === "approval") {
         this._convs.setPendingApproval(convId, ui);
+        this._indexConversation(conv, "waiting_approval");
         if (this._convs.markNeedsApproval(convId)) {
           this._postTabs();
           this._notifyApprovalPending(conv);
         }
       } else if (ui?.kind === "approval_done") {
+        this._indexConversation(conv, "running");
         if (this._convs.clearApproval(convId)) this._postTabs();
       } else if (ui?.kind === "question") {
         // The agent called ask_user_question and is BLOCKED on the user. The
@@ -310,8 +351,10 @@ class ChatViewProvider {
             this._notifyApprovalPending(conv);
           }
         }
+        this._indexConversation(conv, "waiting_approval");
       }
       if (evt?.type === "result") {
+        this._indexConversation(conv, evt.is_error ? "errored" : "completed");
         // The turn is done — the CLI inlined any pasted images at turn start,
         // so their temp files are consumed and can be deleted now (they would
         // otherwise pile up in os.tmpdir() forever).
@@ -394,6 +437,225 @@ class ChatViewProvider {
     this._postTabs();
   }
 
+  _planReviewTargetFromDocument(doc) {
+    if (!doc?.uri) return null;
+    const key = String(doc.uri.toString ? doc.uri.toString() : doc.uri);
+    for (const [convId, review] of this._planReviews.entries()) {
+      const uri = review?.document?.uri;
+      const reviewKey = uri && String(uri.toString ? uri.toString() : uri);
+      if (reviewKey === key) {
+        const conv = this._convs.get(convId);
+        if (conv) return { convId, conv, review };
+      }
+    }
+    return null;
+  }
+
+  _planReviewTargetFromEditor() {
+    return this._planReviewTargetFromDocument(
+      this.vscode.window?.activeTextEditor?.document,
+    );
+  }
+
+  updatePlanReviewContext() {
+    const active = !!this._planReviewTargetFromEditor();
+    try {
+      this.vscode.commands
+        ?.executeCommand?.(
+          "setContext",
+          "chainlesschainPlanReviewActive",
+          active,
+        )
+        ?.then?.(undefined, () => {});
+    } catch {
+      /* context key is best-effort */
+    }
+  }
+
+  _activePlanReviewTarget() {
+    const fromEditor = this._planReviewTargetFromEditor();
+    if (fromEditor) return fromEditor;
+    const conv = this._activeConv();
+    return {
+      convId: conv.id,
+      conv,
+      review: this._planReviews.get(conv.id) || null,
+    };
+  }
+
+  async _replacePlanReviewDocument(document, text) {
+    const ws = this.vscode.workspace;
+    if (
+      !document ||
+      !ws?.applyEdit ||
+      !this.vscode.WorkspaceEdit ||
+      !this.vscode.Range ||
+      !this.vscode.Position
+    ) {
+      return false;
+    }
+    let end;
+    try {
+      end = document.lineAt(Math.max(0, document.lineCount - 1)).range.end;
+    } catch {
+      end = new this.vscode.Position(0, 0);
+    }
+    const edit = new this.vscode.WorkspaceEdit();
+    edit.replace(
+      document.uri,
+      new this.vscode.Range(new this.vscode.Position(0, 0), end),
+      text,
+    );
+    return ws.applyEdit(edit);
+  }
+
+  async _syncPlanReviewEditor(convId, plan) {
+    const conv = this._convs.get(convId);
+    if (!conv || !plan) return;
+    if (
+      !plan.active ||
+      plan.state === "approved" ||
+      plan.state === "rejected"
+    ) {
+      return;
+    }
+    // Only steal focus for the tab the user is looking at. Background tabs keep
+    // their plan snapshot, and the editor opens when that tab becomes active.
+    if (this._convs.activeId() !== convId) return;
+    const ws = this.vscode.workspace;
+    const win = this.vscode.window;
+    if (!ws?.openTextDocument || !win?.showTextDocument) return;
+
+    const text = formatPlanReviewMarkdown(plan, {
+      conversationTitle: conv.title,
+      sessionId: conv.sessionId,
+      updatedAt: new Date(),
+    });
+    const existing = this._planReviews.get(convId);
+    if (!existing?.document) {
+      const document = await ws.openTextDocument({
+        content: text,
+        language: "markdown",
+      });
+      await win.showTextDocument(document, {
+        preview: false,
+        viewColumn: this.vscode.ViewColumn?.Beside,
+      });
+      this._planReviews.set(convId, {
+        document,
+        lastText: text,
+        lastPlan: plan,
+      });
+      this.updatePlanReviewContext();
+      this._post({
+        kind: "info",
+        text: "opened plan review editor tab",
+      });
+      return;
+    }
+
+    existing.lastPlan = plan;
+    const currentText =
+      typeof existing.document.getText === "function"
+        ? existing.document.getText()
+        : existing.lastText;
+    if (currentText !== existing.lastText) {
+      // Preserve reviewer edits/inline notes; do not overwrite a dirty review.
+      existing.pendingText = text;
+      return;
+    }
+    if (existing.lastText !== text) {
+      const ok = await this._replacePlanReviewDocument(existing.document, text);
+      if (ok) existing.lastText = text;
+      else existing.pendingText = text;
+    }
+  }
+
+  _recordPlanReview(record) {
+    const KEY = "chainlesschain.chat.planReviews";
+    const cur = this.opts.state?.get?.(KEY);
+    const list = Array.isArray(cur) ? cur.slice(-19) : [];
+    list.push(record);
+    this.opts.state?.update?.(KEY, list);
+  }
+
+  async reviewPlan(action) {
+    const normalized = String(action || "").trim();
+    if (
+      !["approve", "reject", "requestChanges", "regenerate"].includes(
+        normalized,
+      )
+    ) {
+      this._post({
+        kind: "info",
+        text: `unknown plan review action "${action}"`,
+      });
+      return false;
+    }
+    const target = this._activePlanReviewTarget();
+    const { conv, review } = target;
+    const session = conv?.session;
+    if (!session?.running) {
+      this._post({
+        kind: "error",
+        text: "plan review needs a running agent session",
+      });
+      return false;
+    }
+    const document = review?.document;
+    const documentText =
+      (document && typeof document.getText === "function"
+        ? document.getText()
+        : review?.lastText) ||
+      formatPlanReviewMarkdown(conv.plan || {}, {
+        conversationTitle: conv.title,
+        sessionId: conv.sessionId,
+      });
+    const record = buildPlanReviewRecord({
+      action: normalized,
+      documentText,
+      conversationId: conv.id,
+      conversationTitle: conv.title,
+      sessionId: conv.sessionId,
+      plan: conv.plan || review?.lastPlan,
+    });
+    this._recordPlanReview(record);
+
+    if (normalized === "approve" || normalized === "reject") {
+      const ok = session.sendEvent({
+        type: "plan",
+        action: normalized,
+        review: record,
+      });
+      this._post({
+        kind: ok ? "info" : "error",
+        text: ok
+          ? `plan ${normalized === "approve" ? "approved" : "rejected"} from review editor`
+          : "could not send plan review decision",
+      });
+      if (ok) {
+        this._indexConversation(
+          conv,
+          normalized === "reject" ? "stopped" : "running",
+        );
+      }
+      return ok;
+    }
+
+    const prompt = buildPlanReviewFeedbackPrompt(normalized, documentText);
+    const ok = session.send(prompt);
+    this._post({
+      kind: ok ? "info" : "error",
+      text: ok
+        ? normalized === "regenerate"
+          ? "requested a regenerated plan from review editor"
+          : "sent plan review comments to the agent"
+        : "could not send plan review comments",
+    });
+    if (ok) this._indexConversation(conv, "running");
+    return ok;
+  }
+
   /**
    * A `chainlesschain.chat.model` / `.provider` setting, sanitized before it is
    * interpolated into a Windows shell argv (the .cmd shims force `shell:true`,
@@ -457,6 +719,7 @@ class ChatViewProvider {
     if (!conv.sessionId) {
       conv.sessionId = `panel-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
       this._persistTabs();
+      this._indexConversation(conv, "running");
     }
     const session = this._createSession({
       command: this._cliCommand(),
@@ -493,22 +756,32 @@ class ChatViewProvider {
       onEvent: this._makeOnEvent(conv.id),
       onStderr: (line) =>
         this._postFrom(conv.id, { kind: "stderr", text: line }),
-      onExit: ({ code }) => this._postFrom(conv.id, { kind: "exited", code }),
+      onExit: ({ code }) => {
+        this._indexConversation(conv, "stopped");
+        this._postFrom(conv.id, { kind: "exited", code });
+      },
     });
     this._convs.setSession(conv.id, session);
+    this._indexConversation(conv, "running");
     if (typeof this.opts.log === "function") {
       this.opts.log(`chat: spawned ${this._cliCommand()} agent (cwd ${cwd})`);
     }
     return session;
   }
 
-  /** /sessions — native QuickPick over `cc session list`, then resume. */
+  /**
+   * /sessions — native QuickPick over `cc session list` merged with the shared
+   * IDE index, then a second action pick: resume (default), rename or delete.
+   * Status + workspace ride along in the rows so cross-workspace sessions are
+   * searchable (matchOnDescription/matchOnDetail cover them).
+   */
   async _pickSession() {
     const { listSessions } = require("./session-list");
     const folders = this.vscode.workspace.workspaceFolders || [];
     const items = await listSessions({
       command: this._cliCommand(),
       cwd: folders[0]?.uri?.fsPath,
+      includeIdeIndex: true,
     });
     if (!items.length) {
       this._post({ kind: "info", text: "no saved sessions found" });
@@ -517,23 +790,44 @@ class ChatViewProvider {
     const pick = await this.vscode.window.showQuickPick(
       items.map((s) => ({
         label: s.id,
-        description: s.store + (s.updatedAt ? " · " + s.updatedAt : ""),
-        detail: s.title || undefined,
+        description:
+          s.store +
+          (s.status ? " · " + s.status : "") +
+          (s.updatedAt ? " · " + s.updatedAt : ""),
+        detail: [s.title, s.workspace].filter(Boolean).join(" · ") || undefined,
+        session: s,
       })),
       {
-        placeHolder: "Resume which session in the chat panel?",
-        // The label is only the session id; let the user also search by title
-        // (detail) and store/date (description), not just the opaque id.
+        placeHolder: "Pick a session to resume, rename or delete",
+        // The label is only the session id; let the user also search by title/
+        // workspace (detail) and store/status/date (description), not just the
+        // opaque id.
         matchOnDetail: true,
         matchOnDescription: true,
       },
     );
     if (!pick) return;
+    const action = await this.vscode.window.showQuickPick(
+      [
+        {
+          label: "$(debug-continue) Resume in this tab",
+          action: "resume",
+          description: "next message continues " + pick.label,
+        },
+        { label: "$(edit) Rename", action: "rename" },
+        { label: "$(trash) Delete", action: "delete" },
+      ],
+      { placeHolder: pick.label },
+    );
+    if (!action) return;
+    if (action.action === "rename") return this._renameSession(pick.session);
+    if (action.action === "delete") return this._deleteSession(pick.session);
     const conv = this._activeConv();
     conv.session?.stop();
     this._convs.setSession(conv.id, null);
     this._convs.setSessionId(conv.id, pick.label);
     this._rememberSessionId(pick.label);
+    this._indexConversation(conv, "stopped");
     // Persist the picked resume id: the tabs blob (written on every mutation) is
     // preferred over the legacy single-session key on restore, so without this a
     // window reload before the next message would restore the tab's OLD id and
@@ -543,6 +837,67 @@ class ChatViewProvider {
     this._post({
       kind: "info",
       text: `will resume ${pick.label} — send a message to continue it`,
+    });
+  }
+
+  /**
+   * Rename a picked session. The title lives in the shared IDE index as an
+   * overlay — the picker merge prefers it, so this also "renames" sessions
+   * that only exist in the CLI store (which has no rename command).
+   */
+  async _renameSession(s) {
+    const raw = await this.vscode.window.showInputBox({
+      prompt: `New title for ${s.id}`,
+      value: s.title || "",
+    });
+    const title = typeof raw === "string" ? raw.trim() : "";
+    if (!title) return;
+    try {
+      const { renameIdeSessionRecord } = require("./ide-session-index");
+      renameIdeSessionRecord(s.id, title);
+      this._post({ kind: "info", text: `renamed ${s.id} → "${title}"` });
+    } catch (err) {
+      this._post({ kind: "error", text: `rename failed: ${err.message}` });
+    }
+  }
+
+  /**
+   * Delete a picked session: `cc session delete --force` removes the CLI
+   * transcript, and the shared IDE index entry is pruned so the other IDE's
+   * picker stops offering it. Tabs pointing at the id lose their resume id
+   * (otherwise the next message would --resume a deleted session).
+   */
+  async _deleteSession(s) {
+    const proceed = await this.vscode.window.showWarningMessage(
+      `Delete session ${s.id}? Its saved transcript is removed. This cannot be undone.`,
+      { modal: true },
+      "Delete",
+    );
+    if (proceed !== "Delete") return;
+    const { deleteCliSession } = require("./session-list");
+    const { removeIdeSessionRecord } = require("./ide-session-index");
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const cliDeleted = await deleteCliSession({
+      command: this._cliCommand(),
+      id: s.id,
+      cwd: folders[0]?.uri?.fsPath,
+    });
+    let indexDeleted = false;
+    try {
+      indexDeleted = removeIdeSessionRecord(s.id);
+    } catch {
+      /* index prune is best-effort */
+    }
+    for (const conv of this._convs.list()) {
+      if (conv.sessionId === s.id) this._convs.setSessionId(conv.id, null);
+    }
+    this._persistTabs();
+    this._post({
+      kind: "info",
+      text:
+        cliDeleted || indexDeleted
+          ? `deleted session ${s.id}`
+          : `could not delete ${s.id} (not found in CLI store or IDE index)`,
     });
   }
 
@@ -881,7 +1236,7 @@ class ChatViewProvider {
     const introspect = require("./introspect-commands");
     const model = this._safeLlmSetting("model", chatCfg.get("model"));
     const provider = this._safeLlmSetting("provider", chatCfg.get("provider"));
-    const cacheKey = `${provider} ${model}`;
+    const cacheKey = `${provider}::${model}`;
     const usage = this._lastCallUsage.get(convId);
     if (usage && this._ctxWindowCache?.key === cacheKey) {
       const status = introspect.contextStatusFromUsage(
@@ -1190,6 +1545,8 @@ class ChatViewProvider {
       } else {
         this.session?.sendEvent({ type: "plan", action });
       }
+    } else if (m.type === "planReviewAction") {
+      this.reviewPlan(m.action).catch(() => {});
     } else if (m.type === "files") {
       // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
       // first, then ranked workspace-relative paths, then workspace symbols
@@ -1261,7 +1618,9 @@ class ChatViewProvider {
       // event rendered like any other status line.
       this.session?.sendEvent({ type: "compact" });
     } else if (m.type === "stop") {
-      this.session?.stop();
+      const conv = this._activeConv();
+      conv?.session?.stop?.();
+      this._indexConversation(conv, "stopped");
     } else if (m.type === "ready") {
       this._onWebviewReady();
       // Show the tab bar from the first paint (bootstraps one conversation
@@ -1273,6 +1632,7 @@ class ChatViewProvider {
       // id so the next message spawns fresh. Webview clears on "reset".
       const conv = this._activeConv();
       conv.session?.stop();
+      this._indexConversation(conv, "stopped");
       this._convs.setSession(conv.id, null);
       this._convs.setSessionId(conv.id, null);
       // Reset the title back to its default ("Chat N") so the fresh
@@ -1304,6 +1664,9 @@ class ChatViewProvider {
           this._post(conv.pendingApproval);
           this._convs.setPendingApproval(conv.id, null);
         }
+        if (conv.plan) {
+          this._syncPlanReviewEditor(conv.id, conv.plan).catch(() => {});
+        }
       }
     } else if (m.type === "closeTab") {
       const res = this._convs.close(String(m.id || ""));
@@ -1315,6 +1678,7 @@ class ChatViewProvider {
             sessionId: res.conv.sessionId || null,
             title: res.conv.title,
           };
+          this._indexConversation(res.conv, "stopped");
         }
         res.conv?.session?.stop?.();
         if (this._convs.count() === 0) this._convs.create({}); // never empty

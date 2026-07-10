@@ -124,6 +124,26 @@
         "title": "%cmd.chat.reopenClosedSession.title%"
       },
       {
+        "command": "chainlesschain.plan.approve",
+        "title": "%cmd.plan.approve.title%",
+        "icon": "$(check)"
+      },
+      {
+        "command": "chainlesschain.plan.requestChanges",
+        "title": "%cmd.plan.requestChanges.title%",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "chainlesschain.plan.regenerate",
+        "title": "%cmd.plan.regenerate.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "chainlesschain.plan.reject",
+        "title": "%cmd.plan.reject.title%",
+        "icon": "$(close)"
+      },
+      {
         "command": "chainlesschain.preview.start",
         "title": "%cmd.preview.start.title%",
         "icon": "$(globe)"
@@ -268,6 +288,28 @@
           "command": "chainlesschain.ide.restart",
           "when": "view == chainlesschainIdeView",
           "group": "navigation@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "chainlesschain.plan.approve",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@0"
+        },
+        {
+          "command": "chainlesschain.plan.requestChanges",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@1"
+        },
+        {
+          "command": "chainlesschain.plan.regenerate",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "chainlesschain.plan.reject",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [

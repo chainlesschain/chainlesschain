@@ -229,6 +229,7 @@ function activate(context) {
           }
         : {},
     state: context.workspaceState, // per-workspace chat session resume
+    enableSessionIndex: true,
     log,
   });
   context.subscriptions.push(
@@ -243,6 +244,13 @@ function activate(context) {
     ),
     chatProvider,
   );
+  if (typeof vscode.window.onDidChangeActiveTextEditor === "function") {
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(() =>
+        chatProvider.updatePlanReviewContext(),
+      ),
+    );
+  }
 
   // "Fix with ChainlessChain" (Claude Code parity): a QuickFix lightbulb on any
   // diagnostic seeds the chat panel with a fix request scoped to that file +
@@ -441,7 +449,9 @@ function activate(context) {
     // agent-sdk pipe client — same transport `cc attach` speaks), and
     // stop / rename / resume through the CLI's --json commands.
     vscode.commands.registerCommand("chainlesschain.background.agents", () => {
-      const { openBackgroundAgents } = require("./ui/background-agents-view.js");
+      const {
+        openBackgroundAgents,
+      } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
     }),
     // Diff-review keyboard decisions (Claude-Code IDE parity): Accept / Reject
@@ -583,12 +593,16 @@ function activate(context) {
             hasConfiguredApiKey({ command: cliCmd }),
           ]);
         const items = PROVIDER_PRESETS.map((p) => ({
-          label: vscode.l10n.t(p.label) + (p.id === curProvider ? vscode.l10n.t("  ✓ current") : ""),
+          label:
+            vscode.l10n.t(p.label) +
+            (p.id === curProvider ? vscode.l10n.t("  ✓ current") : ""),
           description: p.id,
           detail: vscode.l10n.t(
             "Default model {0} · {1}",
             p.defaultModel,
-            p.needsKey ? vscode.l10n.t("needs API key") : vscode.l10n.t("no key"),
+            p.needsKey
+              ? vscode.l10n.t("needs API key")
+              : vscode.l10n.t("no key"),
           ),
           preset: p,
         }));
@@ -621,11 +635,19 @@ function activate(context) {
           const canKeep = sameProvider && curHasKey;
           const entered = await vscode.window.showInputBox({
             prompt: canKeep
-              ? vscode.l10n.t("API key for {0} (leave blank = keep the existing key, no need to retype)", preset.label)
-              : vscode.l10n.t("API key for {0} (written only to the local config.json, not VS Code settings)", preset.label),
+              ? vscode.l10n.t(
+                  "API key for {0} (leave blank = keep the existing key, no need to retype)",
+                  preset.label,
+                )
+              : vscode.l10n.t(
+                  "API key for {0} (written only to the local config.json, not VS Code settings)",
+                  preset.label,
+                ),
             password: true,
             ignoreFocusOut: true,
-            placeHolder: canKeep ? vscode.l10n.t("leave blank to keep the existing key") : "",
+            placeHolder: canKeep
+              ? vscode.l10n.t("leave blank to keep the existing key")
+              : "",
           });
           if (entered === undefined) return; // cancelled
           // Blank + canKeep → applyLlmConfig omits llm.apiKey, keeping the
@@ -633,7 +655,9 @@ function activate(context) {
           apiKey = entered;
           if (!apiKey && !canKeep) {
             vscode.window.showWarningMessage(
-              vscode.l10n.t("No API key entered — configuration cancelled (this provider requires a key)."),
+              vscode.l10n.t(
+                "No API key entered — configuration cancelled (this provider requires a key).",
+              ),
             );
             return;
           }
@@ -667,7 +691,10 @@ function activate(context) {
           // A "cc not found" failure needs install guidance (with the Node
           // floor), not the raw shell error — same fix as the JetBrains plugin.
           const msg = looksLikeMissingCli(applied.error)
-            ? vscode.l10n.t("Failed to write LLM config: cc CLI not found. {0}", installGuidance(true))
+            ? vscode.l10n.t(
+                "Failed to write LLM config: cc CLI not found. {0}",
+                installGuidance(true),
+              )
             : vscode.l10n.t("Failed to write LLM config: {0}", applied.error);
           vscode.window.showErrorMessage(msg);
           return;
@@ -675,17 +702,27 @@ function activate(context) {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: vscode.l10n.t("Wrote {0} config, verifying connectivity with cc llm test…", preset.id),
+            title: vscode.l10n.t(
+              "Wrote {0} config, verifying connectivity with cc llm test…",
+              preset.id,
+            ),
           },
           async () => {
             const t = await testLlm({ command: cliCmd });
             if (t.ok) {
               vscode.window.showInformationMessage(
-                vscode.l10n.t("LLM configured and reachable ✓ ({0} · {1}). The Chat panel's next message uses it.", preset.id, model),
+                vscode.l10n.t(
+                  "LLM configured and reachable ✓ ({0} · {1}). The Chat panel's next message uses it.",
+                  preset.id,
+                  model,
+                ),
               );
             } else {
               vscode.window.showWarningMessage(
-                vscode.l10n.t("Config written, but the connectivity test failed: {0} — check the key/network, then re-run ChainlessChain: Configure LLM.", t.detail || vscode.l10n.t("see output")),
+                vscode.l10n.t(
+                  "Config written, but the connectivity test failed: {0} — check the key/network, then re-run ChainlessChain: Configure LLM.",
+                  t.detail || vscode.l10n.t("see output"),
+                ),
               );
             }
           },
@@ -723,14 +760,21 @@ function activate(context) {
         if (visionModel === undefined) return;
         const r = await setVisionModel({ command: cliCmd, visionModel });
         if (!r.ok) {
-          vscode.window.showErrorMessage(vscode.l10n.t("Failed to write the vision model: {0}", r.error));
+          vscode.window.showErrorMessage(
+            vscode.l10n.t("Failed to write the vision model: {0}", r.error),
+          );
         } else if (!visionModel.trim()) {
           vscode.window.showInformationMessage(
-            vscode.l10n.t("Cleared the image-recognition model — images reuse the text model / CLI default."),
+            vscode.l10n.t(
+              "Cleared the image-recognition model — images reuse the text model / CLI default.",
+            ),
           );
         } else {
           vscode.window.showInformationMessage(
-            vscode.l10n.t("Image-recognition model set to {0} ✓ (auto-selected when you paste a screenshot).", visionModel.trim()),
+            vscode.l10n.t(
+              "Image-recognition model set to {0} ✓ (auto-selected when you paste a screenshot).",
+              visionModel.trim(),
+            ),
           );
         }
       },
@@ -803,6 +847,18 @@ function activate(context) {
     vscode.commands.registerCommand(
       "chainlesschain.chat.reopenClosedSession",
       () => chatProvider.reopenClosedSession(),
+    ),
+    vscode.commands.registerCommand("chainlesschain.plan.approve", () =>
+      chatProvider.reviewPlan("approve").catch(() => {}),
+    ),
+    vscode.commands.registerCommand("chainlesschain.plan.requestChanges", () =>
+      chatProvider.reviewPlan("requestChanges").catch(() => {}),
+    ),
+    vscode.commands.registerCommand("chainlesschain.plan.regenerate", () =>
+      chatProvider.reviewPlan("regenerate").catch(() => {}),
+    ),
+    vscode.commands.registerCommand("chainlesschain.plan.reject", () =>
+      chatProvider.reviewPlan("reject").catch(() => {}),
     ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {
       const {

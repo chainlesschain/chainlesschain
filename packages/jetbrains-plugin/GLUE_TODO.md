@@ -505,3 +505,25 @@ session / Rename… / Resume…. Pure cores smoke-tested (`BackgroundAgents` lis
 `accepted` → the worker actually ran turn 2 with the prompt). runIde gate:
 dialog layout, combo refresh keeping selection, input dialogs, EDT-off
 pipe/CLI actions appending results, zh/en bundle labels.
+
+## 🗂 Plan Review + session index round (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **Plan Review editor tab (ConversationView + PlanReview)** — start plan
+      mode, receive a `plan_update` → a Markdown editor tab opens with the
+      plan; edit it, next plan_update keeps your edits; plan card buttons:
+      Request changes / Regenerate send the edited review text back as a
+      prompt; Approve / Reject send `{type:"plan",action,review}` with a
+      snapshot (verify via `cc session show` transcript).
+- [ ] **/sessions two-step picker (runSessions + showSessionActions)** —
+      `/sessions` popup rows show `id · store · status · updatedAt · title ·
+      workspace` and speed-search matches workspace; choosing a row opens
+      Resume / Rename… / Delete…. Resume = old behavior (note + next message
+      resumes). Rename… input dialog → picker shows the new title on reopen
+      (also for a CLI-only session). Delete… Yes/No confirm → `cc session
+      list` no longer shows it, `~/.chainlesschain/ide/session-index.json`
+      entry gone, and a tab that pointed at the id loses its resume id (next
+      message starts fresh, no --resume error).
+- [ ] **getActiveFile bridge tool (IdeTools + IntellijEditorFacade)** — with
+      a file open and cursor placed, have the agent call `getActiveFile` →
+      path/language/dirty/cursor line+column match the editor state; no open
+      editor → empty/absent fields, no exception.

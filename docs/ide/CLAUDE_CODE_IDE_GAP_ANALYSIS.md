@@ -1,6 +1,6 @@
 # Claude Code IDE 插件对照优化建议
 
-更新时间：2026-07-09
+更新时间：2026-07-10
 
 本文对照 Claude Code 官方 VS Code / JetBrains IDE 插件能力，梳理 ChainlessChain IDE 插件后续值得补齐和优化的方向。
 
@@ -20,9 +20,18 @@
 
 因此下一轮不应只追求“把 CLI 功能搬进 IDE”，而应优先补齐 IDE 原生工作流：计划审阅、上下文选择、权限确认、diff 反馈、远程续接、多会话并行和图形化插件管理。
 
+## 本轮实施状态
+
+- 已完成：Plan Review editor tab + inline comments。VS Code 与 JetBrains 均已支持真实 Markdown editor tab、inline comments、批准、拒绝、要求修改、重新生成计划；批准/拒绝会携带计划审阅快照写回会话，CLI/SDK 协议已支持审阅 payload。
+- 已部分完成：Session history / remote resume 统一模型。新增共享 IDE session index，VS Code 与 JetBrains 都写入 `~/.chainlesschain/ide/session-index.json`，会话 picker 合并 CLI session list 与 IDE index，列表可展示 IDE 来源和状态，为跨 IDE/跨 workspace 搜索与后续 remote handoff 打基础。picker 已升级为两步式（选会话 → Resume / Rename / Delete）：status 与 workspace 进入 picker 行参与模糊搜索（跨 workspace 检索）；Rename 走 IDE index title overlay（对 CLI-only 会话同样生效）；Delete 统一走 `cc session delete --force` + IDE index 清理，并清空指向该会话的 tab resume id。
+- 已部分完成：IDE MCP parity。VS Code / JetBrains bridge 已统一增加 `getActiveFile` 工具，agent 可直接读取 active file、language、dirty state 和 cursor，不再只能从 selection 间接推断。
+- 待继续：remote/cloud session handoff 的 IDE 入口，以及 IDE MCP parity 剩余项（JetBrains terminal output、notebook 对齐、preview/browser state、大 payload 分片审计）。
+
 ## P0：优先补齐
 
 ### 1. Plan Review 作为一等工作流
+
+状态：已完成首版。
 
 Claude Code VS Code 的 Plan mode 会打开完整 Markdown 计划文档，用户可以在文档中直接加 inline comments，再批准执行。
 
@@ -33,7 +42,16 @@ Claude Code VS Code 的 Plan mode 会打开完整 Markdown 计划文档，用户
 - 批准后将计划快照写入会话，方便审计和回放。
 - JetBrains 侧可用 Markdown editor + gutter action 实现。
 
+已落地：
+
+- VS Code 在收到 `plan_update` 后打开/同步可编辑 Markdown review document，并在 editor title 提供 Approve、Request changes、Regenerate、Reject 命令。
+- JetBrains 在收到 active plan 后打开 Markdown editor tab，保留 reviewer 已编辑内容，计划卡提供 Request changes、Regenerate、Approve、Reject。
+- `approve` / `reject` 会发送 `{ type: "plan", action, review }`，review 内含会话、计划状态、条目数量和截断后的 Markdown 快照。
+- `requestChanges` / `regenerate` 会把 review 文档内容作为用户反馈 prompt 发回 agent。
+
 ### 2. 会话历史和远程续接
+
+状态：已部分完成。
 
 Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、重命名、删除和恢复关闭会话。
 
@@ -44,7 +62,25 @@ Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、
 - 支持 remote/cloud session handoff，能从手机或浏览器续接本地 IDE 会话。
 - 会话列表展示状态：running、waiting approval、errored、stopped、completed。
 
+已落地：
+
+- 新增共享 index：`~/.chainlesschain/ide/session-index.json`，只保存 metadata，不保存 transcript。
+- VS Code / JetBrains 均在会话运行、等待审批、完成、错误、停止等生命周期写入 index。
+- VS Code `/sessions` picker 合并 `cc session list --json` 与共享 IDE index；JetBrains `/sessions` picker 同步合并两类来源。
+- index 字段覆盖 `sessionId`、title、IDE 来源、conversation id、workspace、状态、权限模式和更新时间。
+- 两端 `/sessions` picker 升级为两步式：选中会话后可 Resume / Rename / Delete。
+- 搜索：status 与 workspace 进入 picker 行（VS Code matchOnDescription/matchOnDetail；JetBrains popup speed search），支持跨 workspace 检索。
+- 重命名：写入 IDE index 的 title overlay（merge 时 IDE title 优先），CLI-only 会话（CLI 无 rename 命令）同样生效。
+- 删除：`cc session delete <id> --force` 删 CLI transcript + IDE index 条目清理（另一端 picker 不再出现）+ 指向该会话的 tab resume id 置空（防止下一条消息 `--resume` 已删除会话），删除前有 modal 确认。
+- 恢复关闭会话：VS Code 有 tab reload 持久化，JetBrains 有 reopen-closed（§6），picker resume 覆盖任意历史会话。
+
+剩余：
+
+- remote/cloud session handoff 的 IDE 启动、配对、状态展示与断线恢复。
+
 ### 3. IDE MCP 能力补齐和统一
+
+状态：已部分完成。
 
 官方 IDE 插件内置 IDE MCP server，用于读取 selection、打开 diff、访问 IDE 上下文等。
 
@@ -55,6 +91,18 @@ Claude Code VS Code 支持本地/远程会话历史、多 tab/window、搜索、
 - notebook/Jupyter cell 读取和执行。
 - preview/browser state：DOM、console、network、screenshot。
 - 大 payload 分片、超时、鉴权 token、workspace trust 边界。
+
+已落地：
+
+- VS Code / JetBrains 已统一暴露 `getActiveFile`，返回 active file、language、dirty state、cursor。
+- 既有能力已覆盖 selection、diagnostics、open editors、native diff、multi-file diff；VS Code 侧已有 terminal output 与 notebook executeCode 条件工具。
+
+剩余：
+
+- JetBrains terminal output 能力。
+- notebook/Jupyter cell 读取和执行的 JetBrains 对齐。
+- preview/browser state 的 DOM、console、network、screenshot 上下文。
+- 大 payload 分片、超时、鉴权 token、workspace trust 边界的统一审计。
 
 ### 4. Diff Review UX
 
@@ -195,4 +243,3 @@ Claude Code VS Code 插件会为 chat panel 管理自己的 CLI 副本。
 8. Worktree 并行任务 UI。
 9. JetBrains / VS Code inline completion parity。
 10. Remote/WSL Doctor、安全配置保护和发布自动化。
-

@@ -1,5 +1,27 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **Plan Review as a real editor tab.** An active plan now opens (and keeps
+  in sync) a Markdown editor tab, preserving your edits across plan updates.
+  The plan card offers Approve, Request changes, Regenerate, Reject —
+  Approve/Reject sends a review snapshot (`{type:"plan",action,review}`)
+  written into the session transcript for audit/replay; Request-changes/
+  Regenerate feed your edited review text back to the agent. (VS Code twin
+  ships the same workflow.)
+- **Shared IDE session index + session manager picker.** JetBrains and
+  VS Code both maintain `~/.chainlesschain/ide/session-index.json`
+  (metadata only), so `/sessions` now merges CLI sessions with sessions
+  started in either IDE — including status and workspace in the popup rows
+  (speed-searchable, cross-workspace). Choosing a session now offers
+  **Resume / Rename… / Delete…**: rename overlays a title via the shared
+  index (works for CLI-only sessions too), delete runs
+  `cc session delete --force`, prunes the shared index and clears a tab
+  still pointing at the deleted id (Yes/No confirm first).
+- **`getActiveFile` bridge tool.** The IDE MCP bridge now exposes the active
+  file's path, language, dirty state and cursor position directly. (Also in
+  VS Code.)
+
 ## [0.4.52] — Background Agents panel (2026-07-10)
 
 - **Background Agents panel (Tools → ChainlessChain: Background Agents)**:

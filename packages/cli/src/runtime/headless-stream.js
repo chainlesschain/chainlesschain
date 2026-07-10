@@ -181,6 +181,47 @@ export function planSnapshot(pm) {
   }
   return { active: pm.isActive(), state: pm.state || null, items, risk };
 }
+
+const MAX_PLAN_REVIEW_SNAPSHOT_CHARS = 24000;
+
+function planReviewFromInput(obj) {
+  const review =
+    obj && obj.review && typeof obj.review === "object" ? obj.review : null;
+  const snapshot =
+    typeof obj?.snapshot === "string"
+      ? obj.snapshot
+      : typeof review?.snapshot === "string"
+        ? review.snapshot
+        : "";
+  if (!snapshot.trim()) return null;
+  const text =
+    snapshot.length > MAX_PLAN_REVIEW_SNAPSHOT_CHARS
+      ? snapshot.slice(0, MAX_PLAN_REVIEW_SNAPSHOT_CHARS) +
+        `\n\n[review snapshot truncated: ${snapshot.length - MAX_PLAN_REVIEW_SNAPSHOT_CHARS} chars omitted]`
+      : snapshot;
+  return {
+    action: String(review?.action || obj.action || "").toLowerCase(),
+    reviewedAt:
+      typeof review?.reviewedAt === "string" ? review.reviewedAt : null,
+    conversationId:
+      typeof review?.conversationId === "string" ? review.conversationId : null,
+    snapshot: text,
+  };
+}
+
+function planReviewSystemMessage(review) {
+  if (!review?.snapshot) return null;
+  const meta = [
+    review.action ? `action=${review.action}` : null,
+    review.reviewedAt ? `reviewedAt=${review.reviewedAt}` : null,
+    review.conversationId ? `conversationId=${review.conversationId}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    "[PLAN REVIEW SNAPSHOT]" + (meta ? ` ${meta}` : "") + "\n" + review.snapshot
+  );
+}
 import { withQuietStdout } from "./quiet-stdout.js";
 
 /**
@@ -199,7 +240,9 @@ export function parseInputEvent(line) {
   //   {"type":"plan","action":"enter"|"approve"|"reject"}
   if (obj && typeof obj === "object" && obj.type === "plan") {
     const action = String(obj.action || "").toLowerCase();
-    return action ? { plan: action } : null;
+    if (!action) return null;
+    const planReview = planReviewFromInput(obj);
+    return planReview ? { plan: action, planReview } : { plan: action };
   }
   // Turn interrupt (panel Stop / Claude-Code Esc parity): aborts the
   // in-flight turn without ending the conversation. {"type":"interrupt"}
@@ -1304,6 +1347,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // exits plan mode. Every control answers with a `plan_update` event.
     if (parsed.plan) {
       const pm = getPlanModeManager();
+      const reviewMessage =
+        parsed.plan === "approve" || parsed.plan === "reject"
+          ? planReviewSystemMessage(parsed.planReview)
+          : null;
+      if (reviewMessage) {
+        messages.push({ role: "system", content: reviewMessage });
+      }
       if (parsed.plan === "enter") {
         if (!pm.isActive()) {
           pm.enterPlanMode({ title: "Agent Plan" });

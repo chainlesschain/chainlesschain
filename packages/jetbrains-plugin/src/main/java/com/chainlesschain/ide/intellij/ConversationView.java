@@ -6,14 +6,21 @@ import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
+import com.chainlesschain.ide.IdeSessionIndex;
 import com.chainlesschain.ide.LlmConfig;
+import com.chainlesschain.ide.PlanReview;
 import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionList;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -29,6 +36,10 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +86,11 @@ final class ConversationView {
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
     private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
     private JComponent planCard;
+    private Map<String, Object> currentPlanUi;
+    private File planReviewFile;
+    private VirtualFile planReviewVirtualFile;
+    private String planReviewLastText;
+    private Map<String, Object> planReviewLastPlan;
     // Serial per-tab worker for spawn + send: ensureSession() reads config files,
     // probes the cc binary (worst case seconds on a cold machine) and starts a
     // process — never on the EDT. Bound 1 keeps this tab's sends ordered.
@@ -705,16 +721,18 @@ final class ConversationView {
     }
 
     /**
-     * {@code /sessions} — pick a saved session ({@code cc session list --json})
-     * and resume it in THIS tab: the live child is stopped and the next message
-     * respawns with {@code --resume <picked>} (mirrors the VS Code panel's
-     * _pickSession; the transcript above the note is the OLD conversation).
+     * {@code /sessions} — pick a saved session ({@code cc session list --json}
+     * merged with the shared IDE index), then choose resume / rename / delete
+     * (mirrors the VS Code panel's two-step _pickSession). Resume stops the
+     * live child; the next message respawns with {@code --resume <picked>}.
      */
     private void runSessions() {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             String out = AgentChatSession.runCapture(SessionList.buildListArgs(30), cwd, 30000);
-            final List<SessionList.SessionItem> list = SessionList.parseSessionList(out);
+            final List<SessionList.SessionItem> list = SessionList.mergeSessionItems(
+                    SessionList.parseSessionList(out),
+                    IdeSessionIndex.sessionItems(IdeSessionIndex.defaultFile()));
             SwingUtilities.invokeLater(() -> {
                 if (list.isEmpty()) {
                     append("ℹ no saved sessions found\n");
@@ -724,19 +742,89 @@ final class ConversationView {
                 for (SessionList.SessionItem s : list) labels.add(SessionList.itemLabel(s));
                 JBPopupFactory.getInstance()
                         .createPopupChooserBuilder(labels)
-                        .setTitle("Resume which session in this conversation tab?")
+                        .setTitle("Pick a session to resume, rename or delete")
                         .setItemChosenCallback(label -> {
                             int idx = labels.indexOf(label);
                             if (idx < 0) return;
-                            SessionList.SessionItem chosen = list.get(idx);
-                            restartForModeChange(); // stop the live child; next message respawns
-                            conv.sessionId = chosen.id;
-                            if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, chosen.id);
-                            append("ℹ will resume " + chosen.id
-                                    + " — send a message to continue it\n");
+                            showSessionActions(list.get(idx), cwd);
                         })
                         .createPopup()
                         .showCenteredInCurrentWindow(project);
+            });
+        });
+    }
+
+    /** Second step of {@code /sessions}: act on the chosen session. */
+    private void showSessionActions(SessionList.SessionItem chosen, File cwd) {
+        final String RESUME = "Resume in this tab";
+        final String RENAME = "Rename…";
+        final String DELETE = "Delete…";
+        JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(java.util.Arrays.asList(RESUME, RENAME, DELETE))
+                .setTitle(chosen.id)
+                .setItemChosenCallback(action -> {
+                    if (RESUME.equals(action)) {
+                        restartForModeChange(); // stop the live child; next message respawns
+                        conv.sessionId = chosen.id;
+                        if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, chosen.id);
+                        indexConversation("stopped");
+                        append("ℹ will resume " + chosen.id
+                                + " — send a message to continue it\n");
+                    } else if (RENAME.equals(action)) {
+                        renameSession(chosen);
+                    } else if (DELETE.equals(action)) {
+                        deleteSession(chosen, cwd);
+                    }
+                })
+                .createPopup()
+                .showCenteredInCurrentWindow(project);
+    }
+
+    /**
+     * Rename a picked session. The title lives in the shared IDE index as an
+     * overlay — the picker merge prefers it, so this also "renames" sessions
+     * that only exist in the CLI store (which has no rename command).
+     */
+    private void renameSession(SessionList.SessionItem chosen) {
+        String raw = com.intellij.openapi.ui.Messages.showInputDialog(
+                project, "New title for " + chosen.id, "Rename Session", null,
+                chosen.title, null);
+        final String title = raw == null ? "" : raw.trim();
+        if (title.isEmpty()) return;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            final boolean ok = IdeSessionIndex.renameDefault(chosen.id, title);
+            SwingUtilities.invokeLater(() -> append(ok
+                    ? "ℹ renamed " + chosen.id + " → \"" + title + "\"\n"
+                    : "⚠ rename failed for " + chosen.id + "\n"));
+        });
+    }
+
+    /**
+     * Delete a picked session: {@code cc session delete --force} removes the
+     * CLI transcript, and the shared IDE index entry is pruned so the other
+     * IDE's picker stops offering it. A tab pointing at the id loses its
+     * resume id (otherwise the next message would --resume a deleted session).
+     */
+    private void deleteSession(SessionList.SessionItem chosen, File cwd) {
+        int r = com.intellij.openapi.ui.Messages.showYesNoDialog(project,
+                "Delete session " + chosen.id
+                        + "? Its saved transcript is removed. This cannot be undone.",
+                "Delete Session", null);
+        if (r != com.intellij.openapi.ui.Messages.YES) return;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String out = AgentChatSession.runCapture(
+                    SessionList.buildDeleteArgs(chosen.id), cwd, 30000);
+            final boolean cliDeleted = out != null && !out.isEmpty();
+            final boolean indexDeleted = IdeSessionIndex.removeDefault(chosen.id);
+            SwingUtilities.invokeLater(() -> {
+                if (chosen.id.equals(conv.sessionId)) {
+                    conv.sessionId = null;
+                    if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, null);
+                }
+                append(cliDeleted || indexDeleted
+                        ? "ℹ deleted session " + chosen.id + "\n"
+                        : "⚠ could not delete " + chosen.id
+                                + " (not found in CLI store or IDE index)\n");
             });
         });
     }
@@ -767,6 +855,7 @@ final class ConversationView {
      */
     void restartForModeChange() {
         conv.turnState = new ChatEvents.TurnState();
+        indexConversation("stopped");
         try {
             sendExecutor.execute(() -> {
                 AgentChatSession s = liveSession();
@@ -778,6 +867,23 @@ final class ConversationView {
         } catch (java.util.concurrent.RejectedExecutionException ignored) {
             // executor already shut down (dispose in progress) — nothing to stop
         }
+    }
+
+    private void indexConversation(String status) {
+        if (conv.sessionId == null || conv.sessionId.isEmpty()) return;
+        String workspace = project.getBasePath() != null ? project.getBasePath() : "";
+        List<String> folders = new ArrayList<String>();
+        if (!workspace.isEmpty()) folders.add(workspace);
+        IdeSessionIndex.upsertDefault(IdeSessionIndex.record(
+                conv.sessionId,
+                conv.title,
+                "jetbrains",
+                conv.id,
+                workspace,
+                folders,
+                status,
+                conv.mode,
+                Instant.now()));
     }
 
     /** Lazy spawn: first message starts the child; mode/thinking changes restart it.
@@ -807,6 +913,7 @@ final class ConversationView {
         // with a fresh id makes the CLI create + persist it.
         if (conv.sessionId == null || conv.sessionId.isEmpty()) {
             conv.sessionId = com.chainlesschain.ide.SessionArgs.newPanelSessionId();
+            indexConversation("running");
             if (sessionIdSink != null) {
                 final String cid = conv.id;
                 final String sessId = conv.sessionId;
@@ -844,6 +951,7 @@ final class ConversationView {
                 Object sid = event.get("session_id");
                 if (sid != null && !String.valueOf(sid).isEmpty()) {
                     conv.sessionId = String.valueOf(sid);
+                    indexConversation("running");
                     if (sessionIdSink != null) {
                         // This callback runs on the stdout pump thread; the sink
                         // (persistSessionIds) walks Swing-owned tab state — hop to
@@ -866,11 +974,15 @@ final class ConversationView {
             SwingUtilities.invokeLater(() -> render(ui));
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
-                append("\n── agent exited (" + code + ") — next message restarts ──\n"));
+        {
+            indexConversation("stopped");
+            append("\n── agent exited (" + code + ") — next message restarts ──\n");
+        });
 
         AgentChatSession session = new AgentChatSession(o);
         conv.session = session;
         session.start();
+        indexConversation("running");
     }
 
     @SuppressWarnings("unchecked")
@@ -901,6 +1013,7 @@ final class ConversationView {
             contextLabel.setText(" " + turnTokens.statusLine());
             contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
+            indexConversation("completed");
             Object text = ui.get("text");
             // The final result text only arrives here when nothing streamed; run
             // it through the same markdown path. (When deltas streamed, text is
@@ -922,12 +1035,16 @@ final class ConversationView {
         } else if ("plan".equals(kind)) {
             showPlanCard(ui); // §5 interactive plan card (items + Approve/Reject)
         } else if ("approval".equals(kind)) {
+            indexConversation("waiting_approval");
             showApprovalCard(ui); // §5 interactive approval card (Approve/Deny)
         } else if ("approval_done".equals(kind)) {
+            indexConversation("running");
             resolveApprovalCard(ui);
         } else if ("question".equals(kind)) {
+            indexConversation("waiting_approval");
             askQuestion(ui); // ask_user_question round-trip → dialog → {type:answer}
         } else if ("info".equals(kind) || "error".equals(kind)) {
+            if ("error".equals(kind)) indexConversation("errored");
             Object text = ui.get("text");
             String body = String.valueOf(text != null ? text : kind);
             append(("error".equals(kind) ? "⚠ " : "ℹ ") + body + "\n");
@@ -1069,6 +1186,7 @@ final class ConversationView {
             ev.put("approve", approve);
             s.sendEvent(ev);
         }
+        indexConversation("running");
         removeApprovalCard(id);
         append("ℹ " + (approve ? "approved" : "denied") + " (" + id + ")\n");
     }
@@ -1098,6 +1216,8 @@ final class ConversationView {
             append("📋 plan " + (state == null ? "ended" : state) + "\n");
             return;
         }
+        currentPlanUi = ui;
+        syncPlanReviewEditor(ui);
         removePlanCard();
         List<Object> items = ui.get("items") instanceof List
                 ? (List<Object>) ui.get("items") : java.util.Collections.emptyList();
@@ -1107,19 +1227,33 @@ final class ConversationView {
         sb.append("<br>");
         int n = 1;
         for (Object it : items) {
-            String text = it instanceof Map && ((Map<String, Object>) it).get("text") != null
-                    ? String.valueOf(((Map<String, Object>) it).get("text")) : String.valueOf(it);
-            sb.append(n++).append(". ").append(escapeHtml(text)).append("<br>");
+            if (it instanceof Map) {
+                Map<String, Object> item = (Map<String, Object>) it;
+                String title = item.get("title") == null
+                        ? String.valueOf(it) : String.valueOf(item.get("title"));
+                String tool = item.get("tool") == null ? "" : String.valueOf(item.get("tool"));
+                sb.append(n++).append(". ");
+                if (!tool.isEmpty()) sb.append(escapeHtml(tool)).append(": ");
+                sb.append(escapeHtml(title)).append("<br>");
+            } else {
+                sb.append(n++).append(". ").append(escapeHtml(String.valueOf(it))).append("<br>");
+            }
         }
 
         JPanel card = new JPanel(new BorderLayout(4, 4));
         card.setBorder(BorderFactory.createLineBorder(WARN));
         card.add(htmlLabel(sb.toString()), BorderLayout.CENTER);
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
+        JButton changes = new JButton("Request changes");
+        JButton regen = new JButton("Regenerate");
         JButton ok = new JButton("Approve");
         JButton no = new JButton("Reject");
+        changes.addActionListener(e -> requestPlanRevision("requestChanges"));
+        regen.addActionListener(e -> requestPlanRevision("regenerate"));
         ok.addActionListener(e -> respondPlan("approve"));
         no.addActionListener(e -> respondPlan("reject"));
+        btns.add(changes);
+        btns.add(regen);
         btns.add(ok);
         btns.add(no);
         card.add(btns, BorderLayout.SOUTH);
@@ -1131,14 +1265,50 @@ final class ConversationView {
     }
 
     private void respondPlan(String action) {
-        sendPlanAction(action);
+        Map<String, Object> review = PlanReview.reviewRecord(
+                action,
+                readPlanReviewText(),
+                conv.id,
+                conv.title,
+                conv.sessionId,
+                currentPlanUi,
+                Instant.now());
+        sendPlanAction(action, review);
+        indexConversation("reject".equals(action) ? "stopped" : "running");
         removePlanCard();
-        append("📋 plan " + action + "d\n");
+        String label = "reject".equals(action) ? "rejected" : action + "d";
+        append("📋 plan " + label + "\n");
+    }
+
+    private void requestPlanRevision(String action) {
+        final String prompt = PlanReview.feedbackPrompt(action, readPlanReviewText());
+        sendExecutor.execute(() -> {
+            AgentChatSession s = liveSession();
+            if (s == null || !s.isRunning()) {
+                try {
+                    ensureSession();
+                } catch (IOException ex) {
+                    final String msg = ex.getMessage();
+                    SwingUtilities.invokeLater(() ->
+                            append("warning: could not start agent for plan review: " + msg + "\n"));
+                    return;
+                }
+                s = liveSession();
+            }
+            final boolean ok = s != null && s.send(prompt);
+            SwingUtilities.invokeLater(() -> append(ok
+                    ? "plan review comments sent\n"
+                    : "warning: could not send plan review comments\n"));
+        });
     }
 
     /** Send a plan control ({type:plan,action}); entering plan may need to spawn
      *  the child, so the whole thing runs on the send worker, never the EDT. */
     private void sendPlanAction(String action) {
+        sendPlanAction(action, null);
+    }
+
+    private void sendPlanAction(String action, Map<String, Object> review) {
         sendExecutor.execute(() -> {
             AgentChatSession s = liveSession();
             if (s == null || !s.isRunning()) {
@@ -1153,12 +1323,71 @@ final class ConversationView {
                 s = liveSession();
             }
             if (s != null) {
-                Map<String, Object> ev = new LinkedHashMap<>();
-                ev.put("type", "plan");
-                ev.put("action", action);
-                s.sendEvent(ev);
+                s.sendEvent(PlanReview.planEvent(action, review));
             }
         });
+        indexConversation("running");
+    }
+
+    private void syncPlanReviewEditor(Map<String, Object> plan) {
+        String text = PlanReview.markdown(plan, conv.title, conv.sessionId, Instant.now());
+        try {
+            if (planReviewVirtualFile == null) {
+                if (planReviewFile == null) {
+                    planReviewFile = Files.createTempFile(
+                            "chainlesschain-plan-" + conv.id + "-", ".md").toFile();
+                    planReviewFile.deleteOnExit();
+                }
+                Files.write(planReviewFile.toPath(), text.getBytes(StandardCharsets.UTF_8));
+                planReviewVirtualFile =
+                        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
+                if (planReviewVirtualFile != null) {
+                    FileEditorManager.getInstance(project).openFile(planReviewVirtualFile, true);
+                }
+                planReviewLastText = text;
+                planReviewLastPlan = plan;
+                append("opened plan review editor tab\n");
+                return;
+            }
+
+            String current = readPlanReviewText();
+            planReviewLastPlan = plan;
+            if (planReviewLastText != null && !current.equals(planReviewLastText)) {
+                // Preserve inline reviewer edits; do not overwrite a dirty review.
+                return;
+            }
+            if (!text.equals(planReviewLastText)) {
+                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
+                if (doc != null) {
+                    ApplicationManager.getApplication().runWriteAction(() -> doc.setText(text));
+                } else if (planReviewFile != null) {
+                    Files.write(planReviewFile.toPath(), text.getBytes(StandardCharsets.UTF_8));
+                    LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
+                }
+                planReviewLastText = text;
+            }
+        } catch (Exception e) {
+            append("warning: could not open plan review editor: " + e.getMessage() + "\n");
+        }
+    }
+
+    private String readPlanReviewText() {
+        try {
+            if (planReviewVirtualFile != null) {
+                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
+                if (doc != null) return doc.getText();
+            }
+            if (planReviewFile != null && planReviewFile.isFile()) {
+                return new String(Files.readAllBytes(planReviewFile.toPath()), StandardCharsets.UTF_8);
+            }
+        } catch (Exception ignored) {
+            // fall through to regenerated markdown
+        }
+        return PlanReview.markdown(
+                currentPlanUi != null ? currentPlanUi : planReviewLastPlan,
+                conv.title,
+                conv.sessionId,
+                Instant.now());
     }
 
     private void removePlanCard() {
@@ -1275,6 +1504,7 @@ final class ConversationView {
 
     void dispose() {
         sendExecutor.shutdown(); // pending sends may still finish; no new ones
+        indexConversation("stopped");
         AgentChatSession s = liveSession();
         if (s != null) {
             s.stop();

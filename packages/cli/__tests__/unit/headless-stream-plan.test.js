@@ -69,6 +69,30 @@ describe("parseInputEvent — plan controls", () => {
     });
     expect(parseInputEvent('{"type":"plan"}')).toBe(null);
   });
+
+  it("parses optional IDE review snapshots on plan controls", () => {
+    const parsed = parseInputEvent(
+      JSON.stringify({
+        type: "plan",
+        action: "approve",
+        review: {
+          action: "approve",
+          reviewedAt: "2026-07-10T00:00:00.000Z",
+          conversationId: "conv-1",
+          snapshot: "# Plan\n\nLooks good.",
+        },
+      }),
+    );
+    expect(parsed).toMatchObject({
+      plan: "approve",
+      planReview: {
+        action: "approve",
+        reviewedAt: "2026-07-10T00:00:00.000Z",
+        conversationId: "conv-1",
+        snapshot: "# Plan\n\nLooks good.",
+      },
+    });
+  });
 });
 
 describe("stream plan mode", () => {
@@ -128,6 +152,39 @@ describe("stream plan mode", () => {
     expect(h.events().some((e) => e.type === "result" && !e.is_error)).toBe(
       true,
     );
+  });
+
+  it("approve writes an IDE review snapshot into the continuation turn", async () => {
+    const h = harness({
+      inputObjs: [
+        { type: "plan", action: "enter" },
+        {
+          type: "plan",
+          action: "approve",
+          review: { action: "approve", snapshot: "# Review\n\nApproved." },
+        },
+      ],
+    });
+    const pm = getPlanModeManager();
+    const origEnter = pm.enterPlanMode.bind(pm);
+    pm.enterPlanMode = (o) => {
+      const r = origEnter(o);
+      pm.addPlanItem({
+        title: "write_file: a.js",
+        tool: "write_file",
+        params: { path: "a.js" },
+        estimatedImpact: "medium",
+      });
+      return r;
+    };
+    try {
+      await h.run();
+    } finally {
+      pm.enterPlanMode = origEnter;
+    }
+    const sys = h.seenTurns[0].filter((m) => m.role === "system");
+    expect(sys.some((m) => /PLAN REVIEW SNAPSHOT/.test(m.content))).toBe(true);
+    expect(sys.some((m) => /# Review/.test(m.content))).toBe(true);
   });
 
   it("approve with NO items reports 'nothing to approve' and runs no turn", async () => {

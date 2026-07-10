@@ -127,6 +127,18 @@ function createVscodeEditorFacade(vscode) {
       };
     },
 
+    async getActiveFile() {
+      const ed = vscode.window.activeTextEditor;
+      if (!ed) return null;
+      const pos = ed.selection?.active || ed.selection?.start;
+      return {
+        file: ed.document.uri.fsPath,
+        languageId: ed.document.languageId,
+        isDirty: Boolean(ed.document.isDirty),
+        cursor: pos ? { line: pos.line, character: pos.character } : null,
+      };
+    },
+
     async getDiagnostics({ path } = {}) {
       const out = [];
       for (const [uri, diags] of vscode.languages.getDiagnostics()) {
@@ -523,7 +535,9 @@ function createVscodeEditorFacade(vscode) {
           {
             canPickMany: true,
             ignoreFocusOut: true,
-            placeHolder: vscode.l10n.t("Check the files to apply (unchecked = keep as-is); Esc to cancel = apply nothing"),
+            placeHolder: vscode.l10n.t(
+              "Check the files to apply (unchecked = keep as-is); Esc to cancel = apply nothing",
+            ),
           },
         );
         if (!picks || picks.length === 0) {
@@ -666,12 +680,22 @@ async function collectReviewComments(vscode, rightDoc) {
     }
     const where = Number.isInteger(anchor.line)
       ? anchor.endLine != null && anchor.endLine !== anchor.line
-        ? vscode.l10n.t("lines {0}-{1}", String(anchor.line + 1), String(anchor.endLine + 1))
+        ? vscode.l10n.t(
+            "lines {0}-{1}",
+            String(anchor.line + 1),
+            String(anchor.endLine + 1),
+          )
         : vscode.l10n.t("line {0}", String(anchor.line + 1))
       : vscode.l10n.t("whole file");
     const note = await vscode.window.showInputBox({
-      prompt: vscode.l10n.t("Review comment #{0} (anchored to {1}; blank to finish the review)", String(comments.length + 1), where),
-      placeHolder: vscode.l10n.t("Describe how you want the agent to change this edit…"),
+      prompt: vscode.l10n.t(
+        "Review comment #{0} (anchored to {1}; blank to finish the review)",
+        String(comments.length + 1),
+        where,
+      ),
+      placeHolder: vscode.l10n.t(
+        "Describe how you want the agent to change this edit…",
+      ),
       // Reviewers alt-tab to inspect the diff while typing — focus loss must
       // not silently end the review (same lesson as the hunk-pick QuickPick).
       ignoreFocusOut: true,

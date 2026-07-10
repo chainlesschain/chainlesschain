@@ -1,7 +1,7 @@
 /**
  * VS Code IDE-bridge extension (Phase 1) — verified WITHOUT a VS Code host:
  *   1. interop: the extension's embedded MCP server driven by the REAL CLI
- *      MCPClient (initialize → tools/list → tools/call for all 4 tools + auth).
+ *      MCPClient (initialize → tools/list → tools/call for core tools + auth).
  *   2. tool logic: buildIdeTools against a fake editor facade.
  *   3. discovery contract: lockfile written by the extension is read back by
  *      the CLI's Phase-0 ide-bridge reader (editor-writes ↔ CLI-reads).
@@ -36,6 +36,12 @@ function fakeFacade() {
       },
       text: "foo()",
     }),
+    getActiveFile: async () => ({
+      file: "/abs/ws/src/a.js",
+      languageId: "javascript",
+      isDirty: true,
+      cursor: { line: 3, character: 9 },
+    }),
     getDiagnostics: async ({ path: p } = {}) => {
       const all = [
         {
@@ -69,8 +75,9 @@ describe("buildIdeTools (fake facade)", () => {
   const tools = buildIdeTools(fakeFacade());
   const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
 
-  it("exposes the 4 IDE tools with schemas", () => {
+  it("exposes the core IDE tools with schemas", () => {
     expect(Object.keys(byName).sort()).toEqual([
+      "getActiveFile",
       "getDiagnostics",
       "getOpenEditors",
       "getSelection",
@@ -87,6 +94,15 @@ describe("buildIdeTools (fake facade)", () => {
       file: "/abs/ws/src/a.js",
       text: "foo()",
     });
+  });
+
+  it("getActiveFile returns current file metadata without selection text", async () => {
+    expect(await byName.getActiveFile.handler({})).toMatchObject({
+      file: "/abs/ws/src/a.js",
+      isDirty: true,
+      cursor: { line: 3, character: 9 },
+    });
+    expect(await byName.getActiveFile.handler({})).not.toHaveProperty("text");
   });
 
   it("getDiagnostics scopes by path", async () => {
@@ -131,13 +147,14 @@ describe("IdeMcpServer ↔ CLI MCPClient interop", () => {
     await server.stop();
   });
 
-  it("connects, lists 4 tools, and calls getSelection over Streamable HTTP", async () => {
+  it("connects, lists core tools, and calls getSelection over Streamable HTTP", async () => {
     const r = await client.connect("ide", {
       url: server.url(),
       transport: "http",
       headers: { Authorization: `Bearer ${TOKEN}` },
     });
     expect(r.tools.map((t) => t.name).sort()).toEqual([
+      "getActiveFile",
       "getDiagnostics",
       "getOpenEditors",
       "getSelection",

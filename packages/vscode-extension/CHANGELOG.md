@@ -2,6 +2,29 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Plan Review as a real editor tab.** A `plan_update` now opens (and keeps
+  in sync) an editable Markdown review document instead of only a chat card.
+  Editor-title actions: Approve, Request changes, Regenerate, Reject.
+  Approve/Reject sends a review snapshot (`{type:"plan",action,review}`)
+  that the CLI writes into the session transcript for audit/replay;
+  Request-changes/Regenerate feed your edited review text back to the agent
+  as revision instructions. (JetBrains twin ships the same workflow.)
+- **Shared IDE session index + session manager picker.** VS Code and
+  JetBrains both maintain `~/.chainlesschain/ide/session-index.json`
+  (metadata only), so `/sessions` now merges CLI sessions with sessions
+  started in either IDE — including status (`running`, `waiting_approval`,
+  `errored`, `stopped`, `completed`) and workspace, both searchable in the
+  picker for cross-workspace lookup. Picking a session now offers
+  **Resume / Rename / Delete**: rename overlays a title via the shared index
+  (works for CLI-only sessions too — the CLI has no rename command), delete
+  runs `cc session delete --force`, prunes the shared index and clears any
+  tab still pointing at the deleted id (with a modal confirm first).
+- **`getActiveFile` bridge tool.** The IDE MCP bridge now exposes the active
+  file's path, language, dirty state and cursor position directly, so the
+  agent no longer has to infer them from the selection. (Also in JetBrains.)
+
 ## [0.37.9] — Background Agents panel (2026-07-10)
 
 - **Background Agents panel (ChainlessChain: Background Agents).** A new

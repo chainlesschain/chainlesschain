@@ -14,6 +14,20 @@ public interface EditorFacade {
     /** { file, languageId, selection:{start,end}, text } or null when no editor. */
     Map<String, Object> getSelection();
 
+    /** { file, languageId, isDirty, cursor:{line,character} } or null when no editor. */
+    default Map<String, Object> getActiveFile() {
+        Map<String, Object> sel = getSelection();
+        if (sel == null) return null;
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("file", sel.get("file"));
+        out.put("languageId", sel.get("languageId"));
+        Object range = sel.get("selection");
+        Object cursor = null;
+        if (range instanceof Map) cursor = ((Map<?, ?>) range).get("start");
+        out.put("cursor", cursor);
+        return out;
+    }
+
     /** [{ file, severity, message, line, character, source? }], optionally scoped. */
     List<Map<String, Object>> getDiagnostics(String path);
 
