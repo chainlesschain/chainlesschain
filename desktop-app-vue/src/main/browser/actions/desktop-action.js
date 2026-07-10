@@ -25,6 +25,7 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
+const { imageToScreen } = require("./coordinate-mapping.js");
 
 /**
  * 特殊按键映射
@@ -163,7 +164,10 @@ class DesktopAction extends EventEmitter {
    * @returns {Promise<Object>}
    */
   async captureScreen(options = {}) {
-    const displayId = options.displayId || screen.getPrimaryDisplay().id;
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const displayId = options.displayId || primaryDisplay.id;
+    const targetDisplay =
+      screen.getAllDisplays().find((d) => d.id === displayId) || primaryDisplay;
 
     try {
       const sources = await desktopCapturer.getSources({
@@ -192,13 +196,33 @@ class DesktopAction extends EventEmitter {
         await fs.writeFile(filePath, thumbnail.toPNG());
       }
 
-      this.emit("screenCaptured", { displayId, size: thumbnail.getSize() });
+      // The thumbnail preserves aspect and is fit WITHIN thumbnailSize, so its
+      // real pixel dims are NOT necessarily 1920×1080 — read them back. Publish
+      // the coordinate space explicitly so a vision model's picks in image
+      // space can be mapped to screen pixels for click() (see coordinateSpace
+      // + click({ sourceImage })). This was the silent root cause: the image
+      // was ~1920×1080 while click() drove robotjs in physical screen pixels.
+      const imageSize = thumbnail.getSize();
+      const scaleFactor = targetDisplay.scaleFactor || 1;
+      const coordinateSpace = {
+        imageSize,
+        displayId,
+        logicalSize: targetDisplay.size,
+        physicalSize: {
+          width: targetDisplay.size.width * scaleFactor,
+          height: targetDisplay.size.height * scaleFactor,
+        },
+        scaleFactor,
+      };
+
+      this.emit("screenCaptured", { displayId, size: imageSize });
 
       return {
         success: true,
         image: thumbnail.toDataURL(),
         base64: thumbnail.toPNG().toString("base64"),
-        size: thumbnail.getSize(),
+        size: imageSize,
+        coordinateSpace,
         filePath,
       };
     } catch (error) {
@@ -219,8 +243,29 @@ class DesktopAction extends EventEmitter {
     const button = options.button || "left";
     const double = options.double || false;
 
+    // Opt-in image→screen translation: when the caller passes the source
+    // screenshot's pixel dims (e.g. a vision model picked (x,y) on the image
+    // returned by captureScreen), map them into screen pixels before driving
+    // robotjs. Without sourceImage the numbers are used verbatim, so every
+    // existing caller is byte-for-byte unchanged.
+    let target = { x, y };
+    if (options.sourceImage) {
+      const display =
+        this.getScreenInfo().displays.find(
+          (d) => d.id === (options.displayId ?? d.id),
+        ) || this.getScreenInfo().primary;
+      target = imageToScreen({
+        imageX: x,
+        imageY: y,
+        imageWidth: options.sourceImage.width,
+        imageHeight: options.sourceImage.height,
+        display: { size: display.size, scaleFactor: display.scaleFactor },
+        space: options.coordinateSpace || "physical",
+      });
+    }
+
     // 移动鼠标
-    robot.moveMouse(x, y);
+    robot.moveMouse(target.x, target.y);
 
     // 等待（可选）
     if (options.moveDelay) {
@@ -230,14 +275,17 @@ class DesktopAction extends EventEmitter {
     // 点击
     robot.mouseClick(button, double);
 
-    this.emit("desktopClick", { x, y, button, double });
+    this.emit("desktopClick", { x: target.x, y: target.y, button, double });
 
     return {
       success: true,
       action: "click",
-      x,
-      y,
+      x: target.x,
+      y: target.y,
       button,
+      // Echo the source coords when a translation happened, so callers can
+      // tell the image-space input from the screen-space output.
+      ...(options.sourceImage ? { imageX: x, imageY: y } : {}),
     };
   }
 
