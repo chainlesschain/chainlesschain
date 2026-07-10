@@ -270,6 +270,18 @@ post-publish (`a234f53e9a`, compileJava clean on 2024.2 baseline); clears with t
 next release. TerminalTextReader audited same day: already on the current API
 (`getTerminalWidgets()`/`toShellJediTermWidgetOrThrow`), no change needed.
 
+VS Code twin audited the same day (2026-07-10) for the same class of problem —
+**clean, no change needed**: zero hits across `src/**` (incl. `chat/`, `ui/`,
+`vendor/` agent-sdk) for deprecated VS Code APIs (`rootPath`,
+`extensionPath`/`storagePath`/`logPath`, `scm.inputBox`, `TextEditor.show/hide`,
+legacy `new vscode.Task(...)`), proposed APIs (no `enabledApiProposals`, no
+`onDidWriteTerminalData`), and Node runtime deprecations (`new Buffer()`,
+`url.parse`, `crypto.createCipher`, `fs.rmdir`, `process.binding`). Only note:
+`vscode-facade.js` subscribes to shell-integration events (stable since 1.93 >
+engines ^1.85.0) behind an existence guard — deliberate graceful degradation,
+keep the guard. Risk class is inherently lower there: VS Code never removes
+stable APIs, so only proposed APIs / above-engines usage can break.
+
 ## ⚠️ Reverted
 
 - [x] ~~**getTerminalOutput** tool (0.4.4)~~ — **REVERTED in 0.4.5.** The terminal API
