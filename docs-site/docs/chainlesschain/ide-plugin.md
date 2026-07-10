@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **版本: VS Code 扩展 `0.37.11`（Open VSX 已上架，安装破万）+ JetBrains 插件 `0.4.55`（JetBrains Marketplace 已上架）| 更新 2026-07-10 | 状态: ✅ 双端功能对齐 | 9+ IDE 工具 | Chat 面板 + Plan 审阅 + 原生 Diff 评审 + 后台代理 | VS 侧 ~596 专项测试 + JB 侧 314 JUnit / ~795 smoke 断言**
+> **版本: VS Code 扩展 `0.37.12`（Open VSX 已上架，安装破万）+ JetBrains 插件 `0.4.56`（JetBrains Marketplace 已上架）| 更新 2026-07-10 | 状态: ✅ 双端功能对齐 | 9+ IDE 工具 | Chat 面板 + Plan 审阅 + 原生 Diff 评审 + 后台代理 | VS 侧 ~605 专项测试 + JB 侧 JUnit / ~795 smoke 断言**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 
@@ -125,17 +125,17 @@ settings 权限规则对 `Write`/`Edit` 配了 `ask` 且在交互会话时，终
 
 ### 6. 后台与协作面板
 
-| 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                      |
-| --------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                            |
-| **Team Monitor**      | ChainlessChain: Team Monitor         | 观察 `cc team run` 快照：任务图、lease 持有者、进度                                                       |
-| **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，出一次性配对 URI，手机 / Web 观察-提问-审批-中断                         |
-| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 代理任务 worktree：新建隔离任务（开集成终端）、变更足迹 + `git merge-tree` 冲突预览、Merge back / Discard |
-| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 运行时插件信任 / 卸载 / 添加，MCP server 测试 / 移除，技能列表过滤                                        |
-| **Chrome Connector**  | ChainlessChain: Chrome Connector     | 驱动 `cc browse chrome`，抓取页面 console / network / DOM / 截图成报告                                    |
-| **Token Usage**       | ChainlessChain: Show Token Usage     | 全时段 / 24h / 7d / 30d 用量、按模型汇总、Top 会话                                                        |
-| **Dashboard**         | ChainlessChain IDE: Open Dashboard   | 桥接状态卡 + 实时工具调用流 + Restart                                                                     |
-| **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                         |
+| 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                                                                                             |
+| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                                                                                                   |
+| **Team Monitor**      | ChainlessChain: Team Monitor         | 观察 `cc team run` 快照：任务图、lease 持有者、进度                                                                                                                              |
+| **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，IDE 内直接渲染一次性配对 URI 的 QR 码（0.37.12/0.4.56+，手机扫码即配对），relay（E2EE 跨网）可在 IDE 设置面配置，手机 / Web 观察-提问-审批-中断 |
+| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 代理任务 worktree：新建隔离任务（开集成终端）、变更足迹 + `git merge-tree` 冲突预览、Merge back / Discard                                                                        |
+| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 运行时插件信任 / 卸载 / 添加，MCP server 测试 / 移除，技能列表过滤                                                                                                               |
+| **Chrome Connector**  | ChainlessChain: Chrome Connector     | 驱动 `cc browse chrome`，抓取页面 console / network / DOM / 截图成报告                                                                                                           |
+| **Token Usage**       | ChainlessChain: Show Token Usage     | 全时段 / 24h / 7d / 30d 用量、按模型汇总、Top 会话                                                                                                                               |
+| **Dashboard**         | ChainlessChain IDE: Open Dashboard   | 桥接状态卡 + 实时工具调用流 + Restart                                                                                                                                            |
+| **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                                                                                                |
 
 ### 7. 深链与本地化
 
