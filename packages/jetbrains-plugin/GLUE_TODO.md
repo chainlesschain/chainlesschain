@@ -266,9 +266,22 @@ Marketplace verifier post-publish. 0.4.53 Marketplace verifier flagged 1
 scheduled-for-removal usage (`TerminalToolWindowManager.createLocalShellWidget`
 in WorktreeTasksAction, Approved/Compatible on all verified IDEs) → migrated to
 `createShellWidget(dir, tab, focus, defer)` + `TerminalWidget.sendCommandToExecute`
-post-publish (`a234f53e9a`, compileJava clean on 2024.2 baseline); clears with the
-next release. TerminalTextReader audited same day: already on the current API
+post-publish (`a234f53e9a`, compileJava clean on 2024.2 baseline). TerminalTextReader
+audited same day: already on the current API
 (`getTerminalWidgets()`/`toShellJediTermWidgetOrThrow`), no change needed.
+0.4.54 verifier outcome (2026-07-10): scheduled-for-removal flag CLEARED, but
+`createShellWidget` itself is now plain-**deprecated** on 2026.x — Marketplace
+shows "Approved / Compatible, 1 usage of deprecated API" (2026.2 rc + 2026.1.4;
+IDE-run verification Success, no issues). **Deliberately accepted, do not chase**:
+the blessed replacement `com.intellij.terminal.frontend.toolwindow.TerminalToolWindowTabsManager`
+(`createTabBuilder()…createTab()`) is `@ApiStatus.Experimental`, only exists since
+~2025.3 (intellij-community first commit 2025-10-04, IJPL-211122), and exposes no
+`sendCommandToExecute` on the shown surface — migrating would mean reflection
+against an Experimental API on our 242.0+ baseline, the exact failure class that
+broke 0.4.4. Call site is Throwable-guarded with a copy-the-command dialog
+fallback (`WorktreeTasksAction.runInTerminal`), so removal in a future IDE
+degrades gracefully. Revisit when TabsManager loses `@ApiStatus.Experimental`
+AND the verifier escalates createShellWidget to scheduled-for-removal.
 
 VS Code twin audited the same day (2026-07-10) for the same class of problem —
 **clean, no change needed**: zero hits across `src/**` (incl. `chat/`, `ui/`,
