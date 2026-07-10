@@ -600,3 +600,16 @@ pipe/CLI actions appending results, zh/en bundle labels.
       box narrows live; >200 matches shows the "narrow the filter" tail row.
       No selection + action button → "Select a row first." cc missing → all
       tabs show "(could not read CLI output)". zh IDE shows localized label.
+
+## 🗂 Worktree Tasks (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **WorktreeTasksAction** — Tools → "Worktree Tasks" in a git project.
+      New isolated task… with a real task → an integrated terminal tab opens
+      running `cc agent --worktree -p …` (Terminal plugin present); Refresh
+      lists the new cc-agent-* row with +ins −del / ↑commits / merge risk.
+      A conflicting branch shows "merge: conflict (file +N)". Merge on a
+      clean row fast-succeeds and the status names the base branch; Merge on
+      a conflicted row reports FAILED-and-aborted and `git status` in the
+      main checkout stays clean. Discard… asks Yes/No, then the worktree dir
+      and branch are gone. Non-git project → "(not a git repository…)".
+      Terminal plugin disabled → New task falls back to the command dialog.

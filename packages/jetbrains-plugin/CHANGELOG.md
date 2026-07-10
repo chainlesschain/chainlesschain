@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- **Worktree Tasks dialog (Tools → ChainlessChain: Worktree Tasks).** Lists
+  the repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with
+  change footprint (+ins −del, commits ahead), a working/dirty flag, and a
+  merge-conflict preview computed with `git merge-tree --write-tree` (older
+  git shows "unknown" instead of guessing). Actions: **New isolated task…**
+  (runs `cc agent --worktree -p …` in the integrated terminal when the
+  Terminal plugin is present, else hands you the command), **Merge** back
+  (a conflicted merge is aborted immediately), and **Discard…** (worktree
+  remove + branch delete, confirmed — unmerged commits are lost). Pure core
+  `WorktreeTasks` (JUnit-covered); VS Code twin:
+  `chainlesschain.worktree.tasks` (webview form).
 - **Plugin & MCP manager (Tools → ChainlessChain: Manage Plugins & MCP).** A
   three-tab dialog over the CLI's --json surface: runtime plugins with scope
   + manifest validity (Trust / Untrust / Uninstall — per-row scope,

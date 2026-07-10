@@ -459,6 +459,12 @@ function activate(context) {
       } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
     }),
+    // Worktree parallel tasks (P1 #9): list agent task worktrees with change
+    // footprint + merge-conflict preview; new isolated task / merge / discard.
+    vscode.commands.registerCommand("chainlesschain.worktree.tasks", () => {
+      const { openWorktreeTasks } = require("./ui/worktree-tasks-view.js");
+      openWorktreeTasks(vscode);
+    }),
     // Plugin / MCP manager (P1 #7): a webview over the CLI's --json surface —
     // runtime plugins (trust/uninstall/add), MCP servers (test/remove), and a
     // filterable read-only skills listing.

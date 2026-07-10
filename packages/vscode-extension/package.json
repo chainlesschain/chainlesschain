@@ -87,6 +87,11 @@
         "icon": "$(extensions)"
       },
       {
+        "command": "chainlesschain.worktree.tasks",
+        "title": "%cmd.worktree.tasks.title%",
+        "icon": "$(git-branch)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },

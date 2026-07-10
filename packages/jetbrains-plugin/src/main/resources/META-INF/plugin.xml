@@ -291,6 +291,10 @@
                 class="com.chainlesschain.ide.intellij.PluginManagerAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.worktree.Tasks"
+                class="com.chainlesschain.ide.intellij.WorktreeTasksAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.ide.DiagnoseBridge"
                 class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>

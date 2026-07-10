@@ -4,6 +4,17 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Worktree Tasks panel (ChainlessChain: Worktree Tasks).** Lists the
+  repo's agent task worktrees (cc-agent-* / batch/* / agent/*) with change
+  footprint (+ins −del, commits ahead), a working/dirty state, and a
+  merge-conflict preview computed with `git merge-tree --write-tree` (the
+  same plumbing the CLI uses; older git shows "?" instead of guessing).
+  Actions: **New isolated task…** (runs `cc agent --worktree -p …` in the
+  integrated terminal — watchable and interruptible), **Merge** back into
+  the main checkout (a conflicted merge is aborted immediately so your tree
+  never stays half-merged), and **Discard** (worktree remove + branch
+  delete, with a modal warning that unmerged commits are lost). (JetBrains
+  twin: Tools → Worktree Tasks, dialog form.)
 - **Plugin & MCP manager (ChainlessChain: Manage Plugins & MCP).** A webview
   over the CLI's --json surface: runtime plugins with scope badges and
   manifest validity (Trust / Untrust / Uninstall — per-row scope, confirmed —

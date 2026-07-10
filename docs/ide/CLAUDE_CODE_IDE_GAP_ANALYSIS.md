@@ -196,14 +196,23 @@ Claude Code VS Code 已有图形化 plugin management。
 
 ### 9. Worktree 并行任务 UI
 
+状态：已完成首版（2026-07-10）。
+
 Claude Code 推荐使用 worktree 并行处理多个任务。
 
-建议：
+已落地（双端）：
 
-- 在 IDE 中提供“新建隔离任务”入口。
-- 每个任务绑定独立 worktree、branch、session、diff。
-- Team monitor 展示任务状态、改动范围、冲突风险。
-- 提供合并、放弃、重新运行、转交人工审阅入口。
+- Worktree Tasks 面板：VS Code `ChainlessChain: Worktree Tasks`（webview）/ JetBrains Tools → Worktree Tasks（对话框）。枚举 agent 任务 worktree（`cc agent --worktree` → `cc-agent-*`、`cc batch` → `batch/*`、team 隔离 → `agent/*`；人类 feature 分支不掺入）。
+- 每行展示：branch + worktree 路径、改动范围（`git diff --shortstat` 压缩为 `+40 −2 (3 files)` + 领先 commit 数）、运行状态（dirty=agent 工作中）、**合并冲突预判**（`git merge-tree --write-tree`，与 CLI previewWorktreeMerge 同 plumbing；git < 2.38 显示 `?` 不猜）。
+- 新建隔离任务：输入任务 → 集成终端跑 `cc agent --worktree -p "<task>"`（`--bg --worktree` 被 CLI 明确拒绝，终端交互式=可观察可打断；JB 走 terminal 插件 `createLocalShellWidget`，插件缺席回退为展示命令）。
+- 合并：主 checkout 内 `git merge --no-ff <branch>`；冲突则立刻 `merge --abort` 保持主树干净，并提示手工 `git merge <branch>` 解决。
+- 放弃：确认后 `git worktree remove --force` + `git branch -D`（明示未合并 commit 会丢失）。
+
+边界/判定：
+
+- 全部走 plain git（CLI 未把 worktree lib 暴露为命令）；冲突预判/merge 语义与 CLI 内部实现同源。
+- 「重新运行」= 新建隔离任务再跑一次（worktree 是一次性的，无重启语义）；「转交人工审阅」= 面板展示的 branch 本身就是普通 git 分支，走正常 PR/review 流程。
+- Team monitor 集成已有（双端 team-monitor 面板读 `cc team run --state`），本面板管的是 worktree 维度。
 
 ### 10. IDE 原生补全收尾
 
