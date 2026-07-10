@@ -13,7 +13,7 @@
 
 ## 2026-07-10 发布 — **cc CLI 0.162.157：IDE diff 审阅修订摘要 + plan 审阅快照 + `cc browse chrome` + `--bare`/无斜杠/读屏模式**
 
-> CLI-only 发版（0.162.156 → **0.162.157**，npm `latest`，provenance）。IDE 深度整合增量：**diff 审阅里你改了什么 agent 现在看得见**（accepted 结果携带 `userAmendments` -/+ 行级修订摘要，配合 JetBrains 0.4.55 可编辑右栏端到端闭环）+ plan 批准/拒绝携审阅快照写入会话 transcript（可审计回放）+ `cc browse chrome`（CDP attach 用户真 Chrome，登录态复用，console/网络/DOM/截图观察）+ `--bare` 最小攻击面裸模式 / `--disable-slash-commands` / `--ax-screen-reader` 读屏友好。命令数 172 不变。发版前干净 worktree 三层全绿（unit+integration 23,614 / e2e 628）。
+> CLI-only 发版（0.162.156 → **0.162.157**，npm `latest`，provenance）。IDE 深度整合增量：**diff 审阅里你改了什么 agent 现在看得见**（accepted 结果携带 `userAmendments` -/+ 行级修订摘要，配合 JetBrains 0.4.55 可编辑右栏端到端闭环）+ plan 批准/拒绝携审阅快照写入会话 transcript（可审计回放）+ `cc browse chrome`（CDP attach 用户真 Chrome，登录态复用，console/网络/DOM/截图观察）+ **Artifacts v1**（`publish_artifact` 工具+`cc artifacts`——交付物只有元数据进对话）+ **Windows/PowerShell 一等**（run_shell `shell` 参数/显式 argv/`PowerShell(...)` 权限伞形）+ `--bare` 最小攻击面裸模式 / `--disable-slash-commands` / `--ax-screen-reader` 读屏友好。命令数 **172 → 173**。发版前干净 worktree 三层全绿。
 
 ## 2026-07-09 发布 — **cc CLI 0.162.156：`cc agenda` + `cc batch`（第四阶段收口）+ `@chainlesschain/agent-sdk` 0.1.0 npm 首发**
 

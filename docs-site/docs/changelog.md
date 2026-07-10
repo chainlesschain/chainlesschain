@@ -5,9 +5,12 @@
 
 ## [Unreleased]
 
-#### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + --bare/无斜杠/读屏模式
+#### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + Artifacts + Windows/PowerShell 一等 + --bare/无斜杠/读屏模式
 
-> CLI-only 发版（`chainlesschain` 0.162.156 → **0.162.157**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数 **172 不变**（全为子命令/flag）；依赖指针 `@chainlesschain/personal-data-hub` 0.4.50→0.4.51（交易短信→金额事件）。
+> CLI-only 发版（`chainlesschain` 0.162.156 → **0.162.157**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数 **172 → 173**（新增顶层 `cc artifacts`）；依赖指针 `@chainlesschain/personal-data-hub` 0.4.50→0.4.51（交易短信→金额事件）。
+
+- **Artifacts v1**：agent 工具 `publish_artifact` 把完成的交付物发布到 `~/.chainlesschain/artifacts`（元数据+文件分离，**只有元数据进对话**，TTL/sha256/100MB 守卫）；`cc artifacts list|show|open|remove|clean` 管理与打开（AGENT_TOOLS 23→24）。
+- **Windows/PowerShell 一等公民**：run_shell 可选 `shell` 参数（`default|cmd|powershell|pwsh`），选择链 per-call > settings `shell.windowsDefault` > 平台默认；PowerShell 显式 argv（防走私）；权限 `PowerShell(...)` 伞形 + hooks 每 hook 可声明 shell。
 
 - **IDE diff 审阅：agent 能看到你改了什么**：在 IDE diff 里编辑 proposed content 后 Accept，工具结果新增 `userAmendments`——提案→实际写入的 -/+ 行级摘要（按最终文件行号锚定分块，尺寸守卫+双 cap），agent 不再只见 `userEdited` 布尔、心智模型与磁盘真身对齐。配合 JetBrains 0.4.55（可编辑右栏回读）/ VS Code 0.37.x 端到端闭环。
 - **plan 审阅快照写入会话**：`{type:"plan", action}` 控制消息可携带 IDE 审阅文档快照（24k cap），批准/拒绝留档进会话 transcript，可审计可回放（agent-sdk 0.1.1 类型同步）。

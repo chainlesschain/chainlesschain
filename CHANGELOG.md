@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + --bare/无斜杠/读屏模式（CLI-only npm 发版）
+### Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + Artifacts + Windows/PowerShell 一等 + --bare/无斜杠/读屏模式（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.156 → **0.162.157** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 依赖指针（`@chainlesschain/personal-data-hub` 0.4.50→**0.4.51**，交易短信→金额事件，已先行在 npm）；命令数 **172 不变**（本版全是子命令/flag，无新顶层命令，无 13 文档面扫）；无 Android cc bundle rollover / 无 USR_VERSION 改动。agent-sdk 0.1.1（plan review payload additive 类型）此前已在 npm。
+> `chainlesschain` 0.162.156 → **0.162.157** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 依赖指针（`@chainlesschain/personal-data-hub` 0.4.50→**0.4.51**，交易短信→金额事件，已先行在 npm）；命令数 **172 → 173**（新增顶层 `cc artifacts`，13 文档面已扫）；无 Android cc bundle rollover / 无 USR_VERSION 改动。agent-sdk 0.1.1（plan review payload additive 类型）此前已在 npm。
+
+- **Artifacts v1：`publish_artifact` agent 工具 + `cc artifacts` 命令**：agent 完成的交付物（报告/图表/构建产物）发布到 `~/.chainlesschain/artifacts`（index.jsonl + 按 id 存文件，title/kind/mime/sha256/session/TTL 元数据，100MB 守卫）——**只有元数据进对话/transcript**，大产物不再撑爆上下文；`cc artifacts list|show|open|remove|clean`（别名 `artifact`）管理与打开；工具 LOW 风险、plan 模式禁用（AGENT_TOOLS 23→24）。
+- **Windows/PowerShell 一等公民（批 22）**：run_shell 新增可选 `shell` 参数（`default|cmd|powershell|pwsh`），选择链 per-call > settings `shell.windowsDefault`（win32-only 分层，`CC_WINDOWS_SHELL` env 胜出）> 平台默认（未配置路径字节不变）；PowerShell 经**显式 argv** 运行（`-NoProfile [-ExecutionPolicy <enum 校验>] -Command`，防 argv 走私）；权限规则新增 `PowerShell(...)` 伞形族与 `shell:pwsh` 参数域；settings hooks 每 hook 可声明 `shell: powershell|pwsh`。结果携带 `shell`/`shell_note`。
 
 - **IDE diff 审阅：agent 能看到你改了什么（gap #4 收口的 CLI 面）**：在 IDE diff 里编辑 proposed content 后 Accept，工具结果此前只带 `userEdited: true` 布尔——agent 不知道你具体改了什么，其对文件的心智模型仍是它自己的原提案。现在新增 `userAmendments`：新纯核 `summarizeUserAmendments`（`lib/ide-context.js`）产出提案→实际写入的 -/+ 行级摘要，按最终文件 1-based 行锚定分块（复用 note-versioning 的 simpleDiff LCS；纯插入/删除直排防幻影空行；1M cell 守卫降级粗块；行数/字符双 cap）。配合 JetBrains 0.4.55（可编辑右栏回读）/ VS Code 0.37.x（原生支持）形成端到端闭环。
 - **plan 审阅快照写入会话（IDE plan review 的 CLI 协议面）**：`{type:"plan", action:"approve"|"reject"}` 控制消息现可携带 `review` 载荷（IDE 端 Markdown 审阅文档的快照 + 元数据，24k cap），CLI 把它写进会话 transcript——计划批准/拒绝留档可审计可回放（headless-stream.js；agent-sdk 0.1.1 `PlanControlInput.review` 类型同步）。
