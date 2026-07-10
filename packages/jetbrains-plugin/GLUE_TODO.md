@@ -262,7 +262,13 @@ tools). Reserved cc server name `idea`.
 cleared 2025.2 deprecated → 0.4.7 cleared 2026.x scheduled-for-removal + deprecated
 (SimpleListCellRenderer→DefaultListCellRenderer, removed LocalTerminalCustomizer).
 `./gradlew verifyPlugin` (2025.2) = Compatible/0 flags; 2026.x confirmed clean on the
-Marketplace verifier post-publish.
+Marketplace verifier post-publish. 0.4.53 Marketplace verifier flagged 1
+scheduled-for-removal usage (`TerminalToolWindowManager.createLocalShellWidget`
+in WorktreeTasksAction, Approved/Compatible on all verified IDEs) → migrated to
+`createShellWidget(dir, tab, focus, defer)` + `TerminalWidget.sendCommandToExecute`
+post-publish (`a234f53e9a`, compileJava clean on 2024.2 baseline); clears with the
+next release. TerminalTextReader audited same day: already on the current API
+(`getTerminalWidgets()`/`toShellJediTermWidgetOrThrow`), no change needed.
 
 ## ⚠️ Reverted
 
@@ -613,6 +619,10 @@ pipe/CLI actions appending results, zh/en bundle labels.
       main checkout stays clean. Discard… asks Yes/No, then the worktree dir
       and branch are gone. Non-git project → "(not a git repository…)".
       Terminal plugin disabled → New task falls back to the command dialog.
+      Note: the terminal path was migrated post-0.4.53 from the
+      scheduled-for-removal `createLocalShellWidget` to `createShellWidget` +
+      `sendCommandToExecute` (`a234f53e9a`) — the runIde pass must exercise the
+      NEW open-terminal-and-run path, not just the fallback dialog.
 
 ## 🗂 Chrome Connector (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
 
