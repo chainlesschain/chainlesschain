@@ -578,7 +578,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 仍待后续：
 
-- REPL `/remote-control` slash 入口（agent-repl.js 与并行 session 争用中，待窗口）。
+- ~~REPL `/remote-control` slash 入口（agent-repl.js 与并行 session 争用中，待窗口）~~（第二十六批已落地）。
 - `devices`/`revoke` 跨进程管理面（registry host-only 语义下需管理密钥通道，v2）。
 - 移动端/web-panel 对 direct-LAN URI 的扫码消费（协议已就绪）。
 
@@ -594,7 +594,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 仍待后续：
 
-- REPL 交互式会话的 bridge 接线（本地终端与远端赛跑已由 makeConfirmer fallback 支持，等 agent-repl.js 争用窗口）。
+- ~~REPL 交互式会话的 bridge 接线（本地终端与远端赛跑已由 makeConfirmer fallback 支持，等 agent-repl.js 争用窗口）~~（第二十六批已落地——注意并未复用 makeConfirmer fallback，见批26 说明）。
 - web-panel/Android 客户端消费 `permission.request` 卡片 UI（协议+push 已就绪）。
 - `permission.request` 事件带完整决策链上下文（第十二批 permissionChain）——polish。
 
@@ -687,7 +687,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 已落地（代码 commit `e16d488a85`，由并行 session 在发版收尾时连带提交——内容即本批工作）：
 
 - **CLI 侧 `artifact-*` WS 协议**（`gateways/ws/artifact-protocol.js`，与批11 `bg-*` 同构）：`artifact-list`（kind/session 过滤）/ `artifact-show`（元数据+storedPath）/ `artifact-content`（内联预览）/ `artifact-remove` / `artifact-clean`；ws-server 5 个 wrapper + message-dispatcher 5 路由。
-- **预览策略（服务端强制上限）**：text 类 mime（text/* + json/yaml/xml）→ utf8，256KB 硬顶（caller `maxBytes` 只能收窄不能放大）+ `truncated` 标记；image/* → base64，8MB 硬顶（超限回 `previewable:false` 不灌爆 socket）；其余 mime 元数据-only（提示本机 `cc artifacts open`）。
+- **预览策略（服务端强制上限）**：text 类 mime（text/_ + json/yaml/xml）→ utf8，256KB 硬顶（caller `maxBytes` 只能收窄不能放大）+ `truncated` 标记；image/_ → base64，8MB 硬顶（超限回 `previewable:false` 不灌爆 socket）；其余 mime 元数据-only（提示本机 `cc artifacts open`）。
 - **防篡改守卫**：index.jsonl 的 `file` 字段必须是纯 basename——手改索引行 `"file":"../../…"` 无法把 content 路由变成任意文件读（有回归测试）。
 - **artifact-store 加 `CC_ARTIFACTS_DIR` env 覆盖**（同 `CC_BACKGROUND_AGENTS_DIR` 惯例，测试/部署隔离用）。
 - **web-panel「交付物」面板**：`Artifacts.vue` + `artifacts` Pinia store + 路由 `/artifacts` + 双导航菜单项（FileDoneOutlined）——列表（标题/kind tag/mime/大小/发布时间/会话 + kind 过滤）+ 预览卡（文本 `<pre>` / 图片 data-URI `<img>` / 不可预览显示原因）+ 删除/清理过期。
@@ -704,7 +704,7 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 已落地：
 
 - **Markdown 富渲染**：交付物预览对 `text/markdown` 复用面板既有 `MarkdownRenderer.vue`（marked + DOMPurify 消毒 + highlight.js 代码高亮）——store 新增 `previewIsMarkdown` 判定（previewable ∧ utf8 ∧ text/markdown），其余文本仍走 `<pre>`；无新依赖。
-- **浏览器下载 `GET /api/artifacts/<id>/download`**（web-ui-server）：完整文件流式下载（WS `artifact-content` 预览路由有 256KB/8MB 上限，本端点不截断）——`fs.createReadStream` + `Content-Type`/`Content-Length`/`Content-Disposition`（RFC 5987 filename*，标题带扩展名优先，CRLF 清洗）+ `no-store`/`nosniff`。**token 门**：server 配了 wsToken 时下载必须带同一 token（`Authorization: Bearer` 或 `?token=`，sha256+timingSafeEqual 常时比较，与 WS auth 同强度）；未配 token（本机默认）不加门。同一 basename 防篡改守卫（同批24 WS 路由）。`handleApiRequest` 加第三参 `ctx`（附加式，smoke-runner 的 /api/skills 兼容不变），SPA 与 minimal 两个 server 都传 wsToken。
+- **浏览器下载 `GET /api/artifacts/<id>/download`**（web-ui-server）：完整文件流式下载（WS `artifact-content` 预览路由有 256KB/8MB 上限，本端点不截断）——`fs.createReadStream` + `Content-Type`/`Content-Length`/`Content-Disposition`（RFC 5987 filename\*，标题带扩展名优先，CRLF 清洗）+ `no-store`/`nosniff`。**token 门**：server 配了 wsToken 时下载必须带同一 token（`Authorization: Bearer` 或 `?token=`，sha256+timingSafeEqual 常时比较，与 WS auth 同强度）；未配 token（本机默认）不加门。同一 basename 防篡改守卫（同批24 WS 路由）。`handleApiRequest` 加第三参 `ctx`（附加式，smoke-runner 的 /api/skills 兼容不变），SPA 与 minimal 两个 server 都传 wsToken。
 - **面板「下载」按钮**（表格行 + 预览卡）：store `downloadArtifact(entry)` = fetch（token 走 Bearer header，**不进 URL** 防浏览器历史泄漏）→ blob → objectURL → 瞬时 `<a download>` 点击 → revoke；同源相对路径（面板即由该 HTTP server 服务）。
 - 测试：CLI 4（真 http server + 真 fetch——300KB 文件逐字节完整下载不被预览 cap 截断 + Content-Disposition/Length；token 门四态 Bearer/?token=/wrong/absent；未知 id 404 + 篡改索引 400；/api/skills 与 SPA fallback 不被遮蔽）+ web-panel store 3（previewIsMarkdown 三态 / download 全链路含 Bearer header 与 blob 点击序列 / HTTP 错误与网络失败包含）；web-ui-server 既有 106+28 回归绿；vite build 过（dist/index.html 已还原）。
 
@@ -712,6 +712,22 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 
 - 移动端消费 `artifact-*` 协议（协议就绪，独立批）。
 - vite dev 模式下下载走相对路径需 devServer proxy `/api`（生产面板由同一 server 服务无此问题）——如遇再配。
+
+### 2026-07-10 第二十六批（批17/18 REPL 遗留收口 — 交互式会话的远端审批）
+
+已落地：
+
+- **REPL `/remote-control` slash 入口**（别名 `/rc`；on/off/status）：交互式会话内起停配对——`on` 复用批18 的 `startHeadlessRemoteApproval` 装配（自托管 WS server（OS 分配端口）+ RemoteApprovalBridge），打印配对 URI + 可选 QR；`status` 显示 URI 与 approverCount；`off` 拆桥+关 server，confirmers 立即回落本地。TAB 补全、`/help` 同步；`cc agent --remote-control` 现在对交互式会话也生效（经 `resolveAgentPolicy` 白名单透传——批9 丢键 trap，守卫测试已扩展；headless 起桥失败 fail-closed，交互式则降级 local-only 打黄字警告，因为终端本身仍可审批）。
+- **REPL 两个交互 confirmer 的赛跑接线**（新 `src/repl/remote-approval.js`）：ApprovalGate confirmer 与 settings/hook `ask` confirmer 的本地 readline 提示重构为**可取消句柄**（`{promise, cancel}`），`/remote-control` 激活时经 `raceLocalAndRemote` 与配对设备赛跑——先答者胜。未激活路径字节不变（`local.promise` 直接返回）。
+- **交互语义与 headless 刻意不同（未复用 makeConfirmer fallback，因其有两处不适配）**：① 远端 `timeout`/`closed` **不是决定**——手机静默不能自动 deny 坐在键盘前的用户（headless 的 fail-closed 超时语义只属于无人值守场景），赛跑落回本地继续等；② 设备先答时**取消本地 readline**（makeConfirmer 的 race 会把本地提示悬挂在 stdin 上吃掉后续输入）+ `canceled` 标记灭掉 stranded idle-timeout 腿（否则几分钟后突然打印"auto-denied"）。本地先答仍 `resolveLocally` 清设备卡片（与批18 同语义）。
+- **dontAsk 优先**：dontAsk 激活时不弹本地也不发远端（deny before bridge），语义不变。
+- 退出清理：`rl.on("close")` 拆桥+关 server（配对端点不外溢过 session）。
+- 测试：unit 11（describeAskContext 4 形态 + race 6 语义——本地胜/远端胜取消/timeout 非决定/closed 非决定/本地 reject 不外抛/无 requestId 容错 + policy 透传守卫扩展 remoteControl）+ **integration 2（真 WSServer + 真 bridge + 真配对设备）**：设备先答→本地句柄被取消；远端真超时→终端仍权威可 allow。agent-repl/permission-prompt/repl-denials/repl-completer/permissions-command/repl-multiline/slash-dispatch/remote-control-lib/agent-policy 回归全绿；`cc agent --help` 真机验 flag 文案。
+
+仍待后续：
+
+- `/remote-control` 与 `cc remote-control start`（批17 统一入口，常驻 server + prompt/interrupt scopes）是两个形态：REPL 内是 approve-only 轻装配；若要 REPL 会话同时被远端 prompt/observe，属 remote-session host 接线（另立批次）。
+- web-panel/Android `permission.request` 卡片 UI 与移动端扫码消费（协议+push 已就绪，同批18 遗留）。
 
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 

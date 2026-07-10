@@ -329,7 +329,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--remote-control",
-      "Headless: route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR, waits for remote allow/deny (fail-closed on timeout)",
+      "Route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR. Headless waits for the remote allow/deny (fail-closed on timeout); interactive races the terminal prompt (first answer wins; also /remote-control)",
     )
     .option(
       "--settings <file>",
@@ -1130,6 +1130,9 @@ export function registerAgentCommand(program) {
         jetbrains: options.jetbrains,
         // --disable-slash-commands: REPL sends "/" input to the model verbatim
         disableSlashCommands: options.disableSlashCommands === true,
+        // --remote-control: start the paired-device approval bridge for the
+        // interactive session too (terminal prompt races the device).
+        remoteControl: options.remoteControl === true,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

@@ -56,6 +56,9 @@ export function resolveAgentPolicy({
     pdh: overrides.pdh,
     outputStyle: overrides.outputStyle,
     disableSlashCommands: overrides.disableSlashCommands === true,
+    // --remote-control also applies interactively: the REPL starts the
+    // paired-device approval bridge at startup (批26).
+    remoteControl: overrides.remoteControl === true,
   };
 }
 

@@ -111,6 +111,7 @@ import {
   resolveAskIdleTimeoutMs,
   questionWithIdleTimeout,
 } from "./permission-prompt.js";
+import { describeAskContext, raceLocalAndRemote } from "./remote-approval.js";
 import {
   parsePermissionTier,
   parsePermissionModeArg,
@@ -448,6 +449,11 @@ export async function startAgentRepl(options = {}) {
   // gate is wired. The wrapper is installed only when settings customize the
   // map, and only bites while _sessionTier === "auto" (isActive predicate).
   let _autoModeResolved = null;
+  // `/remote-control` (批17/18 REPL 收口): paired-device approvals for this
+  // interactive session. Holds { bridge, pairing, close } while active; both
+  // interactive confirmers below race the terminal against the paired device
+  // (first answer wins). null = local-only (byte-identical prompt path).
+  let _remoteApproval = null;
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   // Configured vision model (config.llm.visionModel) — used when a turn carries
@@ -617,6 +623,59 @@ export async function startAgentRepl(options = {}) {
       _autoModeResolved = null; // fail to the plain gate tiers
     }
     if (typeof _approvalGate.setConfirmer === "function") {
+      // The local prompt as a cancelable handle so an active /remote-control
+      // can race it against a paired device: cancel closes the readline when
+      // the device answers first, and `canceled` mutes the stranded
+      // idle-timeout leg so it can't print "auto-denied" after the fact.
+      const askGateApprovalLocally = ({ tool, args, riskLevel }) => {
+        const rlConfirm = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
+        let canceled = false;
+        const q = (p) => new Promise((res) => rlConfirm.question(p, res));
+        const cmd = args?.command ? ` ${args.command}` : "";
+        const promise = (async () => {
+          const res = await questionWithIdleTimeout(
+            q,
+            chalk.yellow(
+              `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n` +
+                `  Proceed? [y]es once / [a]lways allow / [N]o: `,
+            ),
+            _askIdleTimeoutMs,
+          );
+          rlConfirm.close();
+          if (canceled) return false; // raced out — the device already decided
+          if (res.timedOut) {
+            process.stdout.write(
+              chalk.yellow(
+                `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
+              ),
+            );
+            return false;
+          }
+          const ans = res.answer.trim().toLowerCase();
+          if (ans === "a" || ans === "always") {
+            const saved = await _persistAlwaysAllow(tool || "run_shell", args);
+            if (saved) {
+              process.stdout.write(
+                chalk.green(
+                  `  ✓ always allow: added ${saved.rule} → ${saved.file}\n`,
+                ),
+              );
+            }
+            return true;
+          }
+          return ans === "y" || ans === "yes";
+        })();
+        return {
+          promise,
+          cancel: () => {
+            canceled = true;
+            rlConfirm.close();
+          },
+        };
+      };
       _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
         if (_dontAskActive()) {
           process.stdout.write(
@@ -629,42 +688,14 @@ export async function startAgentRepl(options = {}) {
         await _fireNotification(
           `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
         );
-        const rlConfirm = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
+        const local = askGateApprovalLocally({ tool, args, riskLevel });
+        if (!_remoteApproval?.bridge) return local.promise;
+        return raceLocalAndRemote({
+          bridge: _remoteApproval.bridge,
+          ask: describeAskContext({ tool, args, riskLevel }),
+          local,
+          writeOut: (text) => process.stdout.write(chalk.cyan(text)),
         });
-        const q = (p) => new Promise((res) => rlConfirm.question(p, res));
-        const cmd = args?.command ? ` ${args.command}` : "";
-        const res = await questionWithIdleTimeout(
-          q,
-          chalk.yellow(
-            `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n` +
-              `  Proceed? [y]es once / [a]lways allow / [N]o: `,
-          ),
-          _askIdleTimeoutMs,
-        );
-        rlConfirm.close();
-        if (res.timedOut) {
-          process.stdout.write(
-            chalk.yellow(
-              `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
-            ),
-          );
-          return false;
-        }
-        const ans = res.answer.trim().toLowerCase();
-        if (ans === "a" || ans === "always") {
-          const saved = await _persistAlwaysAllow(tool || "run_shell", args);
-          if (saved) {
-            process.stdout.write(
-              chalk.green(
-                `  ✓ always allow: added ${saved.rule} → ${saved.file}\n`,
-              ),
-            );
-          }
-          return true;
-        }
-        return ans === "y" || ans === "yes";
       });
     }
   } catch (_err) {
@@ -693,6 +724,46 @@ export async function startAgentRepl(options = {}) {
       loaded.rules.ask.length +
       loaded.rules.deny.length;
     _permissionRules = total > 0 ? loaded.rules : null;
+    // Local prompt as a cancelable handle (same shape as the gate confirmer
+    // above) so /remote-control can race it against a paired device.
+    const askPermissionLocally = ({ tool, args, rule, reason }) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      let canceled = false;
+      const q = (p) => new Promise((res) => rl.question(p, res));
+      // Picks the right phrasing whether the caller passed a `rule`
+      // (settings/hook ask) or a `reason` (destructive-git / sensitive-file
+      // guards) — avoids the literal "null" the old template printed.
+      const header = buildPermissionPrompt({ tool, args, rule, reason });
+      const promise = (async () => {
+        const res = await questionWithIdleTimeout(
+          q,
+          chalk.yellow(`\n${header}\n  Proceed? (y/N) `),
+          _askIdleTimeoutMs,
+        );
+        rl.close();
+        if (canceled) return false; // raced out — the device already decided
+        if (res.timedOut) {
+          process.stdout.write(
+            chalk.yellow(
+              `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
+            ),
+          );
+          return false;
+        }
+        const ans = res.answer.trim().toLowerCase();
+        return ans === "y" || ans === "yes";
+      })();
+      return {
+        promise,
+        cancel: () => {
+          canceled = true;
+          rl.close();
+        },
+      };
+    };
     // Confirmer is shared by permission `ask` rules AND hook `ask` decisions,
     // so define it unconditionally (a `hook:` rule label flows through too).
     _permissionConfirm = async ({ tool, args, rule, reason }) => {
@@ -707,31 +778,14 @@ export async function startAgentRepl(options = {}) {
       await _fireNotification(
         `Permission needed: ${tool}${rule ? " (" + rule + ")" : ""}`,
       );
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
+      const local = askPermissionLocally({ tool, args, rule, reason });
+      if (!_remoteApproval?.bridge) return local.promise;
+      return raceLocalAndRemote({
+        bridge: _remoteApproval.bridge,
+        ask: describeAskContext({ tool, args, rule, reason }),
+        local,
+        writeOut: (text) => process.stdout.write(chalk.cyan(text)),
       });
-      const q = (p) => new Promise((res) => rl.question(p, res));
-      // Picks the right phrasing whether the caller passed a `rule`
-      // (settings/hook ask) or a `reason` (destructive-git / sensitive-file
-      // guards) — avoids the literal "null" the old template printed.
-      const header = buildPermissionPrompt({ tool, args, rule, reason });
-      const res = await questionWithIdleTimeout(
-        q,
-        chalk.yellow(`\n${header}\n  Proceed? (y/N) `),
-        _askIdleTimeoutMs,
-      );
-      rl.close();
-      if (res.timedOut) {
-        process.stdout.write(
-          chalk.yellow(
-            `\n  ⏱ no response in ${_askIdleTimeoutMs}ms — auto-denied\n`,
-          ),
-        );
-        return false;
-      }
-      const ans = res.answer.trim().toLowerCase();
-      return ans === "y" || ans === "yes";
     };
   } catch (_err) {
     if (_err?.code === "CC_MANAGED_SETTINGS_INVALID") throw _err;
@@ -898,6 +952,60 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     // Non-critical — SessionManager integration must not block startup
+  }
+
+  // `/remote-control` start/stop (批17 slash 入口 + 批18 REPL 接线): reuses
+  // the headless assembly (self-hosted WS on an OS-assigned port + a
+  // RemoteApprovalBridge for this session); the interactive difference is
+  // purely how the confirmers consume it — they RACE the terminal prompt
+  // against the paired device instead of gating on the remote alone.
+  const _startRemoteApproval = async () => {
+    const { startHeadlessRemoteApproval } =
+      await import("../lib/remote-approval-bridge.js");
+    const started = await startHeadlessRemoteApproval({
+      agentSessionId:
+        sessionId || `repl-${process.pid}-${Date.now().toString(36)}`,
+      isText: false, // the REPL prints its own pairing lines below
+    });
+    _remoteApproval = {
+      bridge: started.bridge,
+      pairing: started.pairing,
+      close: started.close,
+    };
+    logger.log(
+      chalk.cyan(
+        "  remote-control: permission prompts can be answered from a paired device (first answer — terminal or device — wins)",
+      ),
+    );
+    logger.log(`  pairing: ${started.pairing.uri}`);
+    try {
+      const { renderQrCode } = await import("../lib/remote-control.js");
+      const qr = await renderQrCode(started.pairing.uri);
+      if (qr) logger.log(qr);
+    } catch (_err) {
+      // QR is progressive enhancement — the URI line is the contract
+    }
+  };
+  const _stopRemoteApproval = async () => {
+    const active = _remoteApproval;
+    _remoteApproval = null; // confirmers fall back to local-only immediately
+    if (active) await active.close().catch(() => undefined);
+  };
+
+  // --remote-control also applies to interactive sessions. Headless fails
+  // closed when the bridge can't start (approvals would silently fall
+  // closed); interactively the terminal still prompts, so a start failure
+  // degrades to local-only with a warning instead of aborting the session.
+  if (options.remoteControl === true) {
+    try {
+      await _startRemoteApproval();
+    } catch (err) {
+      logger.log(
+        chalk.yellow(
+          `  remote-control unavailable (${err.message}) — approvals stay local-only`,
+        ),
+      );
+    }
   }
 
   // --system-prompt replaces the built-in prompt; --append-system-prompt
@@ -1377,6 +1485,7 @@ export async function startAgentRepl(options = {}) {
           "/release-notes",
           "/reload-plugins",
           "/reload-skills",
+          "/remote-control",
           "/review",
           "/rewind",
           "/search",
@@ -1908,6 +2017,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set/cycle tier (/permissions <tier> · Shift+Tab); /permissions denials to review blocked calls`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/remote-control")} Answer permission prompts from a paired phone/web device (on|off|status; alias /rc)`,
       );
       logger.log(
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
@@ -4028,6 +4140,57 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // `/remote-control` — pair a phone/web device to answer this session's
+    // permission prompts (批17 slash 入口 + 批18 REPL 接线). First answer —
+    // terminal or device — wins; devices get permission.request cards + push.
+    if (
+      trimmed === "/remote-control" ||
+      trimmed.startsWith("/remote-control ") ||
+      trimmed === "/rc" ||
+      trimmed.startsWith("/rc ")
+    ) {
+      const arg = trimmed
+        .replace(/^\/(remote-control|rc)/, "")
+        .trim()
+        .toLowerCase();
+      if (arg === "off" || arg === "stop") {
+        if (!_remoteApproval) {
+          logger.info("remote-control is not active.");
+        } else {
+          await _stopRemoteApproval();
+          logger.info(
+            "remote-control stopped — approvals are local-only again.",
+          );
+        }
+      } else if (arg === "status") {
+        if (!_remoteApproval) {
+          logger.info("remote-control: off — start with /remote-control");
+        } else {
+          logger.log(`  pairing: ${_remoteApproval.pairing.uri}`);
+          const approvers = await _remoteApproval.bridge.approverCount();
+          logger.log(
+            `  paired approvers: ${approvers}${approvers === 0 ? "  (scan the pairing URI from the mobile app or web panel)" : ""}`,
+          );
+        }
+      } else if (arg === "" || arg === "on" || arg === "start") {
+        if (_remoteApproval) {
+          logger.info(
+            "remote-control already running — /remote-control status",
+          );
+        } else {
+          try {
+            await _startRemoteApproval();
+          } catch (err) {
+            logger.info(`remote-control failed to start: ${err.message}`);
+          }
+        }
+      } else {
+        logger.info("Usage: /remote-control [on|off|status]   (alias /rc)");
+      }
+      prompt();
+      return;
+    }
+
     // `/cost` — running token spend + estimated $ for this session (Claude-Code
     // parity). In-memory accumulation, so it works without session persistence.
     if (trimmed === "/cost" || trimmed.startsWith("/cost ")) {
@@ -4963,6 +5126,16 @@ export async function startAgentRepl(options = {}) {
     if (_adhocMcp?.mcpClient) {
       try {
         await _adhocMcp.mcpClient.disconnectAll();
+      } catch (_e) {
+        // Non-critical
+      }
+    }
+
+    // Tear down /remote-control (bridge + its self-hosted WS server) so the
+    // pairing endpoint doesn't outlive the session.
+    if (_remoteApproval) {
+      try {
+        await _stopRemoteApproval();
       } catch (_e) {
         // Non-critical
       }

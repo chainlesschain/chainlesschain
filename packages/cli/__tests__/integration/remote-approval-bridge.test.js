@@ -8,10 +8,11 @@
  *   remote-session-control to the host → bridge settles the confirmer.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChainlessChainWSServer } from "../../src/gateways/ws/ws-server.js";
 import { WsRpcClient } from "../../src/lib/ws-rpc-client.js";
 import { RemoteApprovalBridge } from "../../src/lib/remote-approval-bridge.js";
+import { raceLocalAndRemote } from "../../src/repl/remote-approval.js";
 
 const TOKEN = "bridge-integration-token";
 
@@ -174,5 +175,54 @@ describe("remote approval bridge (integration)", () => {
 
   it("counts approvers", async () => {
     expect(await bridge.approverCount()).toBe(1);
+  });
+
+  // REPL race (批26): the interactive terminal prompt races the device.
+  it("REPL race: device answers first → local prompt is canceled", async () => {
+    const ask = waitForEvent(
+      device,
+      (m) =>
+        m.type === "remote-session-event" &&
+        m.event?.type === "permission.request",
+    );
+    const cancel = vi.fn();
+    const race = raceLocalAndRemote({
+      bridge,
+      ask: { tool: "run_shell", detail: "npm publish" },
+      local: { promise: new Promise(() => {}), cancel }, // user never answers
+      writeOut: () => {},
+    });
+    const request = await ask;
+    await device.request("remote-session-publish", {
+      remoteSessionId: bridge.remoteSessionId,
+      commandId: "dev-cmd-race-1",
+      event: {
+        type: "approval.resolve",
+        requestId: request.event.requestId,
+        answer: true,
+      },
+    });
+    await expect(race).resolves.toBe(true);
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("REPL race: remote timeout keeps the terminal authoritative", async () => {
+    let answerLocal;
+    const race = raceLocalAndRemote({
+      bridge,
+      // timeoutMs rides the requestDecision spread — real timeout fires first
+      ask: { tool: "run_shell", timeoutMs: 120 },
+      local: {
+        promise: new Promise((resolve) => {
+          answerLocal = resolve;
+        }),
+        cancel: vi.fn(),
+      },
+      writeOut: () => {},
+    });
+    // Give the remote leg time to fail-timeout, then answer at the keyboard.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    answerLocal(true);
+    await expect(race).resolves.toBe(true);
   });
 });
