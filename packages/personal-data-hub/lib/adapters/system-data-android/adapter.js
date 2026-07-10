@@ -19,6 +19,7 @@
 //   - cc-driven pull (would need a BoundService + Unix socket; v0.1 is UI-pushed)
 
 const { newId } = require("../../ids");
+const { parseTransactionSms } = require("./sms-transaction");
 const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
@@ -35,6 +36,11 @@ const NAME = "system-data-android";
 //   tables. Same content lives on the entity rows; events are now a
 //   convenience copy. Adds ~50-200 bytes per event but keeps the detail
 //   UI single-table.
+// v0.3.3 (2026-07-10): bank/payment transaction SMS are now parsed into
+//   amount-bearing financial events (subtype payment/transfer/income/refund
+//   + content.amount) instead of plain MESSAGE, so the one reliably-collected
+//   money source feeds the spending analysis. Non-transaction SMS (OTP,
+//   marketing, plain chat) keep the MESSAGE mapping — strictly additive.
 // v0.3.1 (2026-05-25): normalize() now emits a synthetic OTHER event per
 //   contact + per app. Snapshot mode previously only wrote persons/items;
 //   Vault Browser's `category=system` facet only counts events, so the
@@ -49,7 +55,7 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.3.2";
+const VERSION = "0.3.3";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -59,7 +65,10 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 // sync also lets the raw_events store dedup naturally.
 function contactOriginalId(c) {
   const k =
-    (c && typeof c.lookupKey === "string" && c.lookupKey.length > 0 && c.lookupKey) ||
+    (c &&
+      typeof c.lookupKey === "string" &&
+      c.lookupKey.length > 0 &&
+      c.lookupKey) ||
     (c && typeof c.displayName === "string" && c.displayName) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-contact:${k}`;
@@ -72,20 +81,23 @@ function appOriginalId(a) {
 }
 function smsOriginalId(s) {
   // Stable across re-syncs: use SMS _id from the system content provider.
-  const k = (s && s.id != null && String(s.id)) ||
+  const k =
+    (s && s.id != null && String(s.id)) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-sms:${k}`;
 }
 function callOriginalId(c) {
   // Stable across re-syncs: use call_log _id from the system content provider.
-  const k = (c && c.id != null && String(c.id)) ||
+  const k =
+    (c && c.id != null && String(c.id)) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-call:${k}`;
 }
 function mediaOriginalId(m) {
   // Full filesystem path is stable as long as the file isn't moved/renamed.
   // Path is unique within the device.
-  const k = (m && typeof m.path === "string" && m.path) ||
+  const k =
+    (m && typeof m.path === "string" && m.path) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-media:${k}`;
 }
@@ -119,7 +131,13 @@ class SystemDataAndroidAdapter {
         apps: true,
         sms: true,
         calls: true,
-        media: { photos: true, pictures: true, videos: true, downloads: true, documents: true },
+        media: {
+          photos: true,
+          pictures: true,
+          videos: true,
+          downloads: true,
+          documents: true,
+        },
       },
     };
 
@@ -139,7 +157,11 @@ class SystemDataAndroidAdapter {
   // ─── PersonalDataAdapter contract ──────────────────────────────────────
 
   async authenticate(ctx = {}) {
-    if (!ctx || typeof ctx.inputPath !== "string" || ctx.inputPath.length === 0) {
+    if (
+      !ctx ||
+      typeof ctx.inputPath !== "string" ||
+      ctx.inputPath.length === 0
+    ) {
       return {
         ok: false,
         reason: "INPUT_PATH_REQUIRED",
@@ -175,14 +197,15 @@ class SystemDataAndroidAdapter {
     // If neither inputPath nor useBridge is set, bridge auto-engages when
     // available (which only happens on Android with the JNI binding loaded,
     // OR under CC_ANDROID_BRIDGE_OVERRIDE=1 in tests).
-    const wantBridge = opts.useBridge === true || (!opts.inputPath && this._bridgeAvailable());
+    const wantBridge =
+      opts.useBridge === true || (!opts.inputPath && this._bridgeAvailable());
     if (wantBridge) {
       yield* this._syncViaBridge(opts);
       return;
     }
     if (!opts || typeof opts.inputPath !== "string") {
       throw new Error(
-        "system-data-android.sync: needs opts.inputPath (snapshot mode) OR opts.useBridge=true (in-APK Android cc with cc-android-bridge.node loaded)"
+        "system-data-android.sync: needs opts.inputPath (snapshot mode) OR opts.useBridge=true (in-APK Android cc with cc-android-bridge.node loaded)",
       );
     }
     yield* this._syncViaSnapshot(opts);
@@ -203,12 +226,13 @@ class SystemDataAndroidAdapter {
     const bridge = this._deps.bridgeProvider();
     if (!bridge || typeof bridge.invoke !== "function") {
       throw new Error(
-        "system-data-android.sync: useBridge=true but cc-android-bridge is not loaded (run inside in-APK cc, or set CC_ANDROID_BRIDGE_OVERRIDE=1 for tests)"
+        "system-data-android.sync: useBridge=true but cc-android-bridge is not loaded (run inside in-APK cc, or set CC_ANDROID_BRIDGE_OVERRIDE=1 for tests)",
       );
     }
     const includeContacts = opts.include?.contacts !== false;
     const includeApps = opts.include?.apps !== false;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const capturedAt = Date.now();
     let emitted = 0;
 
@@ -216,7 +240,11 @@ class SystemDataAndroidAdapter {
       const res = await bridge.invoke("contacts.query", {
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res) ? res : Array.isArray(res?.contacts) ? res.contacts : [];
+      const arr = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.contacts)
+          ? res.contacts
+          : [];
       for (const c of arr) {
         if (emitted >= limit) return;
         // originalId required by registry.putRawEvent (NOT NULL column); use
@@ -233,7 +261,11 @@ class SystemDataAndroidAdapter {
 
     if (includeApps) {
       const res = await bridge.invoke("app.list", { includeSystem: false });
-      const arr = Array.isArray(res) ? res : Array.isArray(res?.apps) ? res.apps : [];
+      const arr = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.apps)
+          ? res.apps
+          : [];
       for (const a of arr) {
         if (emitted >= limit) return;
         yield {
@@ -251,7 +283,11 @@ class SystemDataAndroidAdapter {
       const res = await bridge.invoke("sms.query", {
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res) ? res : Array.isArray(res?.sms) ? res.sms : [];
+      const arr = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.sms)
+          ? res.sms
+          : [];
       for (const s of arr) {
         if (emitted >= limit) return;
         yield {
@@ -269,7 +305,11 @@ class SystemDataAndroidAdapter {
       const res = await bridge.invoke("call.query", {
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res) ? res : Array.isArray(res?.calls) ? res.calls : [];
+      const arr = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.calls)
+          ? res.calls
+          : [];
       for (const c of arr) {
         if (emitted >= limit) return;
         yield {
@@ -285,7 +325,13 @@ class SystemDataAndroidAdapter {
     // Media files — metadata only (path, size, mtime, ext). Never reads
     // file content off the device. UI uses per-category include keys so
     // a privacy-conscious user can keep photos but skip downloads, etc.
-    const MEDIA_CATEGORIES = ["photos", "pictures", "videos", "downloads", "documents"];
+    const MEDIA_CATEGORIES = [
+      "photos",
+      "pictures",
+      "videos",
+      "downloads",
+      "documents",
+    ];
     for (const cat of MEDIA_CATEGORIES) {
       // Per-category include key: include.media.photos, include.media.videos, ...
       // Top-level `include.media === false` disables ALL media in one switch.
@@ -295,7 +341,11 @@ class SystemDataAndroidAdapter {
         category: cat,
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res) ? res : Array.isArray(res?.files) ? res.files : [];
+      const arr = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.files)
+          ? res.files
+          : [];
       for (const f of arr) {
         if (emitted >= limit) return;
         yield {
@@ -318,7 +368,7 @@ class SystemDataAndroidAdapter {
       snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
     ) {
       throw new Error(
-        `system-data-android.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`
+        `system-data-android.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
     }
     const capturedAt =
@@ -328,7 +378,8 @@ class SystemDataAndroidAdapter {
 
     const includeContacts = opts.include?.contacts !== false;
     const includeApps = opts.include?.apps !== false;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     let emitted = 0;
 
     if (includeContacts && Array.isArray(snapshot.contacts)) {
@@ -374,7 +425,9 @@ class SystemDataAndroidAdapter {
       // back to displayName only if missing, which lets future runs still dedup
       // by name for the dataset where lookupKey is absent.
       const stableKey =
-        (typeof p.lookupKey === "string" && p.lookupKey.length > 0 && p.lookupKey) ||
+        (typeof p.lookupKey === "string" &&
+          p.lookupKey.length > 0 &&
+          p.lookupKey) ||
         (typeof p.displayName === "string" && p.displayName) ||
         `unknown-${raw.capturedAt}`;
       const displayName =
@@ -383,10 +436,14 @@ class SystemDataAndroidAdapter {
           : "(无名联系人)";
       const identifiers = {};
       if (Array.isArray(p.phones) && p.phones.length > 0) {
-        identifiers.phone = p.phones.filter((x) => typeof x === "string" && x.length > 0);
+        identifiers.phone = p.phones.filter(
+          (x) => typeof x === "string" && x.length > 0,
+        );
       }
       if (Array.isArray(p.emails) && p.emails.length > 0) {
-        identifiers.email = p.emails.filter((x) => typeof x === "string" && x.length > 0);
+        identifiers.email = p.emails.filter(
+          (x) => typeof x === "string" && x.length > 0,
+        );
       }
 
       const person = {
@@ -398,12 +455,16 @@ class SystemDataAndroidAdapter {
         source: source(`android-contact:${stableKey}`),
       };
       if (Object.keys(identifiers).length > 0) person.identifiers = identifiers;
-      if (typeof p.organization === "string" && p.organization.trim().length > 0) {
+      if (
+        typeof p.organization === "string" &&
+        p.organization.trim().length > 0
+      ) {
         person.relation = p.organization.trim();
       }
       const extra = {};
       if (typeof p.starred === "boolean") extra.starred = p.starred;
-      if (typeof p.photoUri === "string" && p.photoUri.length > 0) extra.photoUri = p.photoUri;
+      if (typeof p.photoUri === "string" && p.photoUri.length > 0)
+        extra.photoUri = p.photoUri;
       if (Object.keys(extra).length > 0) person.extra = extra;
 
       // v0.3.1 — synthesise an OTHER event so the snapshot contact shows up
@@ -425,7 +486,10 @@ class SystemDataAndroidAdapter {
       if (identifiers.email && identifiers.email.length > 0) {
         eventExtra.emails = identifiers.email;
       }
-      if (typeof p.organization === "string" && p.organization.trim().length > 0) {
+      if (
+        typeof p.organization === "string" &&
+        p.organization.trim().length > 0
+      ) {
         eventExtra.organization = p.organization.trim();
       }
       if (typeof p.starred === "boolean") eventExtra.starred = p.starred;
@@ -452,7 +516,8 @@ class SystemDataAndroidAdapter {
     if (raw.kind === "app") {
       const a = raw.payload || {};
       const pkgName =
-        (typeof a.packageName === "string" && a.packageName) || `unknown.${newId()}`;
+        (typeof a.packageName === "string" && a.packageName) ||
+        `unknown.${newId()}`;
       const label =
         typeof a.label === "string" && a.label.trim().length > 0
           ? a.label.trim()
@@ -471,8 +536,12 @@ class SystemDataAndroidAdapter {
           packageName: pkgName,
           versionName: typeof a.versionName === "string" ? a.versionName : null,
           versionCode: Number.isInteger(a.versionCode) ? a.versionCode : null,
-          firstInstallTime: Number.isInteger(a.firstInstallTime) ? a.firstInstallTime : null,
-          lastUpdateTime: Number.isInteger(a.lastUpdateTime) ? a.lastUpdateTime : null,
+          firstInstallTime: Number.isInteger(a.firstInstallTime)
+            ? a.firstInstallTime
+            : null,
+          lastUpdateTime: Number.isInteger(a.lastUpdateTime)
+            ? a.lastUpdateTime
+            : null,
           isSystem: a.isSystem === true,
         },
       };
@@ -485,11 +554,13 @@ class SystemDataAndroidAdapter {
       if (typeof a.versionName === "string" && a.versionName.length > 0) {
         eventExtra.versionName = a.versionName;
       }
-      if (Number.isInteger(a.versionCode)) eventExtra.versionCode = a.versionCode;
+      if (Number.isInteger(a.versionCode))
+        eventExtra.versionCode = a.versionCode;
       if (Number.isInteger(a.firstInstallTime)) {
         eventExtra.firstInstallTime = a.firstInstallTime;
       }
-      if (Number.isInteger(a.lastUpdateTime)) eventExtra.lastUpdateTime = a.lastUpdateTime;
+      if (Number.isInteger(a.lastUpdateTime))
+        eventExtra.lastUpdateTime = a.lastUpdateTime;
       if (typeof a.isSystem === "boolean") eventExtra.isSystem = a.isSystem;
       const event = {
         id: `event-android-app-${pkgName}`,
@@ -533,20 +604,49 @@ class SystemDataAndroidAdapter {
         // a plain object — title/text/etc go INSIDE this object, not on the
         // event root.
         content: {
-          title: bodyText.length > 0
-            ? (bodyText.length > 80 ? bodyText.substring(0, 80) + "…" : bodyText)
-            : "(空短信)",
+          title:
+            bodyText.length > 0
+              ? bodyText.length > 80
+                ? bodyText.substring(0, 80) + "…"
+                : bodyText
+              : "(空短信)",
           text: bodyText,
         },
       };
       const extra = { direction, threadId: p.threadId };
       if (typeof p.dateSent === "number") extra.dateSent = p.dateSent;
       if (typeof p.read === "boolean") extra.read = p.read;
-      if (typeof p.subject === "string" && p.subject.length > 0) extra.subject = p.subject;
+      if (typeof p.subject === "string" && p.subject.length > 0)
+        extra.subject = p.subject;
       if (Number.isInteger(p.type)) extra.smsType = p.type;
+
+      // Bank / payment notification SMS carry a real transaction amount. When
+      // confidently recognized, upgrade this from a plain MESSAGE to an
+      // amount-bearing financial event so it feeds the spending analysis.
+      // `direction` on extra keeps its MESSAGE meaning (inbox/sent); the money
+      // direction lives on content.amount, which vault.sumEventAmount reads
+      // first. Strictly additive — a null parse leaves the MESSAGE mapping.
+      const tx = parseTransactionSms(bodyText);
+      if (tx) {
+        event.subtype = tx.subtype;
+        event.content.amount = {
+          value: tx.amountYuan,
+          currency: tx.currency,
+          direction: tx.direction,
+        };
+        extra.txDirection = tx.direction;
+        if (typeof tx.balanceYuan === "number")
+          extra.balanceYuan = tx.balanceYuan;
+      }
       event.extra = extra;
 
-      return { events: [event], persons: [], places: [], items: [], topics: [] };
+      return {
+        events: [event],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
+      };
     }
 
     if (raw.kind === "call") {
@@ -557,16 +657,24 @@ class SystemDataAndroidAdapter {
       const eventId = `event-android-call-${p.id || raw.capturedAt}`;
       const occurredAt = Number.isInteger(p.date) ? p.date : raw.capturedAt;
       const callTypeName =
-        p.type === 1 ? "incoming" :
-        p.type === 2 ? "outgoing" :
-        p.type === 3 ? "missed" :
-        p.type === 4 ? "voicemail" :
-        p.type === 5 ? "rejected" :
-        p.type === 6 ? "blocked" : "unknown";
+        p.type === 1
+          ? "incoming"
+          : p.type === 2
+            ? "outgoing"
+            : p.type === 3
+              ? "missed"
+              : p.type === 4
+                ? "voicemail"
+                : p.type === 5
+                  ? "rejected"
+                  : p.type === 6
+                    ? "blocked"
+                    : "unknown";
       const titleName =
-        (typeof p.name === "string" && p.name.trim().length > 0) ? p.name.trim() : (p.number || "未知号码");
-      const title =
-        `${callTypeName === "missed" ? "未接 " : ""}${callTypeName === "outgoing" ? "拨打 " : ""}${callTypeName === "incoming" ? "来电 " : ""}${titleName}`;
+        typeof p.name === "string" && p.name.trim().length > 0
+          ? p.name.trim()
+          : p.number || "未知号码";
+      const title = `${callTypeName === "missed" ? "未接 " : ""}${callTypeName === "outgoing" ? "拨打 " : ""}${callTypeName === "incoming" ? "来电 " : ""}${titleName}`;
       const event = {
         id: eventId,
         type: ENTITY_TYPES.EVENT,
@@ -584,21 +692,34 @@ class SystemDataAndroidAdapter {
       }
       const extra = { direction, callType: callTypeName };
       if (Number.isInteger(p.type)) extra.androidCallType = p.type;
-      if (typeof p.geocoded === "string" && p.geocoded.length > 0) extra.geocoded = p.geocoded;
+      if (typeof p.geocoded === "string" && p.geocoded.length > 0)
+        extra.geocoded = p.geocoded;
       if (typeof p.name === "string" && p.name.length > 0) extra.name = p.name;
       event.extra = extra;
 
-      return { events: [event], persons: [], places: [], items: [], topics: [] };
+      return {
+        events: [event],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
+      };
     }
 
     if (raw.kind === "media-file") {
       const p = raw.payload || {};
       const path = typeof p.path === "string" ? p.path : "";
-      const fileName = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
+      const fileName = path.includes("/")
+        ? path.substring(path.lastIndexOf("/") + 1)
+        : path;
       // Category → item subtype + category string
       let subtype = ITEM_SUBTYPES.OTHER;
       let category = "media";
-      if (p.category === "photos" || p.category === "pictures" || p.category === "videos") {
+      if (
+        p.category === "photos" ||
+        p.category === "pictures" ||
+        p.category === "videos"
+      ) {
         subtype = ITEM_SUBTYPES.MEDIA;
         category = p.category;
       } else if (p.category === "documents") {
@@ -627,7 +748,9 @@ class SystemDataAndroidAdapter {
       return { events: [], persons: [], places: [], items: [item], topics: [] };
     }
 
-    throw new Error(`system-data-android.normalize: unknown raw.kind=${raw.kind}`);
+    throw new Error(
+      `system-data-android.normalize: unknown raw.kind=${raw.kind}`,
+    );
   }
 }
 

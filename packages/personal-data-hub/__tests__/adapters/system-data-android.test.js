@@ -19,7 +19,11 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../lib/constants");
-const { validatePerson, validateItem, validateEvent } = require("../../lib/schemas");
+const {
+  validatePerson,
+  validateItem,
+  validateEvent,
+} = require("../../lib/schemas");
 
 let tmpDir;
 let snapshotPath;
@@ -66,13 +70,19 @@ describe("SystemDataAndroidAdapter.authenticate", () => {
 
   it("fails when inputPath does not exist", async () => {
     const adapter = new SystemDataAndroidAdapter();
-    const r = await adapter.authenticate({ inputPath: join(tmpDir, "does-not-exist.json") });
+    const r = await adapter.authenticate({
+      inputPath: join(tmpDir, "does-not-exist.json"),
+    });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("INPUT_PATH_UNREADABLE");
   });
 
   it("succeeds when inputPath is readable", async () => {
-    writeSnapshot({ schemaVersion: SNAPSHOT_SCHEMA_VERSION, contacts: [], apps: [] });
+    writeSnapshot({
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [],
+      apps: [],
+    });
     const adapter = new SystemDataAndroidAdapter();
     const r = await adapter.authenticate({ inputPath: snapshotPath });
     expect(r).toEqual({ ok: true, mode: "snapshot-file" });
@@ -201,7 +211,9 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
   it("dedupes by stable lookupKey — same key across syncs returns same id", async () => {
     writeSnapshot({
       schemaVersion: SNAPSHOT_SCHEMA_VERSION,
-      contacts: [{ lookupKey: "abc", displayName: "Alice", phones: [], emails: [] }],
+      contacts: [
+        { lookupKey: "abc", displayName: "Alice", phones: [], emails: [] },
+      ],
       apps: [],
     });
     const adapter = new SystemDataAndroidAdapter();
@@ -234,7 +246,13 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
       schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       contacts: [{ lookupKey: "k", displayName: "X", phones: [], emails: [] }],
       apps: [
-        { packageName: "com.x", label: "X", versionName: "1", versionCode: 1, isSystem: false },
+        {
+          packageName: "com.x",
+          label: "X",
+          versionName: "1",
+          versionCode: 1,
+          isSystem: false,
+        },
       ],
     });
     const adapter = new SystemDataAndroidAdapter();
@@ -260,7 +278,10 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
     });
     const adapter = new SystemDataAndroidAdapter();
     let count = 0;
-    for await (const _raw of adapter.sync({ inputPath: snapshotPath, limit: 2 })) {
+    for await (const _raw of adapter.sync({
+      inputPath: snapshotPath,
+      limit: 2,
+    })) {
       count += 1;
     }
     expect(count).toBe(2);
@@ -283,7 +304,11 @@ describe("SystemDataAndroidAdapter — degenerate snapshots", () => {
     const batch = adapter.normalize({
       kind: "app",
       capturedAt: 1_700_000_000_000,
-      payload: { packageName: "com.android.settings", label: "Settings", isSystem: true },
+      payload: {
+        packageName: "com.android.settings",
+        label: "Settings",
+        isSystem: true,
+      },
     });
     expect(batch.items[0].category).toBe("system-app");
     expect(batch.items[0].extra.isSystem).toBe(true);
@@ -292,7 +317,7 @@ describe("SystemDataAndroidAdapter — degenerate snapshots", () => {
   it("throws on unknown raw.kind", () => {
     const adapter = new SystemDataAndroidAdapter();
     expect(() =>
-      adapter.normalize({ kind: "mystery", capturedAt: 1, payload: {} })
+      adapter.normalize({ kind: "mystery", capturedAt: 1, payload: {} }),
     ).toThrow(/unknown raw.kind/);
   });
 });
@@ -341,7 +366,12 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
         { lookupKey: "ck-2", displayName: "同事" },
       ],
       apps: [
-        { packageName: "com.tencent.mm", label: "微信", versionName: "8.0", isSystem: false },
+        {
+          packageName: "com.tencent.mm",
+          label: "微信",
+          versionName: "8.0",
+          isSystem: false,
+        },
       ],
     });
     adapter._deps.bridgeProvider = () => bridge;
@@ -357,9 +387,10 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
 
   it("auto-engages bridge when inputPath omitted AND bridge.available", async () => {
     const adapter = new SystemDataAndroidAdapter();
-    adapter._deps.bridgeProvider = () => makeBridge({
-      contacts: [{ lookupKey: "auto", displayName: "Auto" }],
-    });
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        contacts: [{ lookupKey: "auto", displayName: "Auto" }],
+      });
     const out = [];
     for await (const r of adapter.sync({})) out.push(r);
     expect(out).toHaveLength(1);
@@ -368,12 +399,16 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
 
   it("respects include.contacts=false in bridge mode", async () => {
     const adapter = new SystemDataAndroidAdapter();
-    adapter._deps.bridgeProvider = () => makeBridge({
-      contacts: [{ displayName: "should be skipped" }],
-      apps: [{ packageName: "com.kept" }],
-    });
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        contacts: [{ displayName: "should be skipped" }],
+        apps: [{ packageName: "com.kept" }],
+      });
     const out = [];
-    for await (const r of adapter.sync({ useBridge: true, include: { contacts: false } })) {
+    for await (const r of adapter.sync({
+      useBridge: true,
+      include: { contacts: false },
+    })) {
       out.push(r);
     }
     expect(out).toHaveLength(1);
@@ -382,10 +417,13 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
 
   it("limit caps bridge yields", async () => {
     const adapter = new SystemDataAndroidAdapter();
-    const many = Array.from({ length: 10 }, (_, i) => ({ displayName: `c${i}` }));
+    const many = Array.from({ length: 10 }, (_, i) => ({
+      displayName: `c${i}`,
+    }));
     adapter._deps.bridgeProvider = () => makeBridge({ contacts: many });
     const out = [];
-    for await (const r of adapter.sync({ useBridge: true, limit: 3 })) out.push(r);
+    for await (const r of adapter.sync({ useBridge: true, limit: 3 }))
+      out.push(r);
     expect(out).toHaveLength(3);
   });
 
@@ -399,7 +437,9 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
   it("propagates bridge.invoke errors", async () => {
     const adapter = new SystemDataAndroidAdapter();
     adapter._deps.bridgeProvider = () =>
-      makeBridge({ throws: new Error("ANDROID_BRIDGE_NOT_AVAILABLE: not-on-android") });
+      makeBridge({
+        throws: new Error("ANDROID_BRIDGE_NOT_AVAILABLE: not-on-android"),
+      });
     const it = adapter.sync({ useBridge: true });
     await expect(it.next()).rejects.toThrow(/ANDROID_BRIDGE_NOT_AVAILABLE/);
   });
@@ -429,7 +469,8 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     });
     const adapter = new SystemDataAndroidAdapter();
     const out = [];
-    for await (const r of adapter.sync({ inputPath: snapshotPath })) out.push(r);
+    for await (const r of adapter.sync({ inputPath: snapshotPath }))
+      out.push(r);
     expect(out).toHaveLength(1);
     expect(out[0].payload.displayName).toBe("From Snapshot");
   });
@@ -439,8 +480,24 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     const adapter = new SystemDataAndroidAdapter();
     adapter._deps.bridgeProvider = () =>
       makeBridge({
-        sms: [{ id: 7, address: "10086", body: "余额: ¥10", date: 1_700_000_000_000, type: 1 }],
-        calls: [{ id: 9, number: "13900000000", duration: 12, date: 1_700_000_001_000, type: 2 }],
+        sms: [
+          {
+            id: 7,
+            address: "10086",
+            body: "余额: ¥10",
+            date: 1_700_000_000_000,
+            type: 1,
+          },
+        ],
+        calls: [
+          {
+            id: 9,
+            number: "13900000000",
+            duration: 12,
+            date: 1_700_000_001_000,
+            type: 2,
+          },
+        ],
       });
     const out = [];
     for await (const r of adapter.sync({ useBridge: true })) out.push(r);
@@ -457,11 +514,67 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
         calls: [{ id: 2, number: "x", duration: 0, date: 1, type: 1 }],
       });
     const noSms = [];
-    for await (const r of adapter.sync({ useBridge: true, include: { sms: false } })) noSms.push(r);
+    for await (const r of adapter.sync({
+      useBridge: true,
+      include: { sms: false },
+    }))
+      noSms.push(r);
     expect(noSms.map((r) => r.kind)).toEqual(["call"]);
     const noCalls = [];
-    for await (const r of adapter.sync({ useBridge: true, include: { calls: false } })) noCalls.push(r);
+    for await (const r of adapter.sync({
+      useBridge: true,
+      include: { calls: false },
+    }))
+      noCalls.push(r);
     expect(noCalls.map((r) => r.kind)).toEqual(["sms"]);
+  });
+
+  // v0.3.3 — bank/payment transaction SMS upgraded to amount-bearing events.
+  it("v0.3.3 normalizes a bank transaction SMS into a payment event with content.amount", () => {
+    const adapter = new SystemDataAndroidAdapter();
+    const batch = adapter.normalize({
+      kind: "sms",
+      capturedAt: 1_700_000_000_000,
+      payload: {
+        id: 42,
+        address: "95588",
+        body: "【工商银行】您尾号1234的储蓄卡消费人民币328.84元，余额1000.00元。",
+        date: 1_700_000_000_000,
+        type: 1,
+      },
+    });
+    const [event] = batch.events;
+    expect(event.subtype).toBe(EVENT_SUBTYPES.PAYMENT);
+    expect(event.content.amount).toEqual({
+      value: 328.84,
+      currency: "CNY",
+      direction: "out",
+    });
+    expect(event.extra.txDirection).toBe("out");
+    expect(event.extra.balanceYuan).toBe(1000.0);
+    // Still a schema-valid event.
+    expect(validateEvent(event).valid).toBe(true);
+    // Body text preserved for search / display.
+    expect(event.content.text).toContain("消费");
+  });
+
+  it("v0.3.3 leaves a plain / OTP SMS as a MESSAGE event (no amount)", () => {
+    const adapter = new SystemDataAndroidAdapter();
+    const batch = adapter.normalize({
+      kind: "sms",
+      capturedAt: 1_700_000_000_000,
+      payload: {
+        id: 43,
+        address: "10086",
+        body: "您的验证码是123456，请勿泄露。",
+        date: 1,
+        type: 1,
+      },
+    });
+    const [event] = batch.events;
+    expect(event.subtype).toBe(EVENT_SUBTYPES.MESSAGE);
+    expect(event.content.amount).toBeUndefined();
+    expect(event.extra.txDirection).toBeUndefined();
   });
 
   // v0.3 — media files across 5 /sdcard categories.
@@ -470,8 +583,24 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     adapter._deps.bridgeProvider = () =>
       makeBridge({
         media: {
-          photos: [{ path: "/sdcard/DCIM/Camera/img.jpg", size: 1234, mtimeMs: 1, ext: "jpg", category: "photos" }],
-          videos: [{ path: "/sdcard/Movies/m.mp4", size: 999, mtimeMs: 2, ext: "mp4", category: "videos" }],
+          photos: [
+            {
+              path: "/sdcard/DCIM/Camera/img.jpg",
+              size: 1234,
+              mtimeMs: 1,
+              ext: "jpg",
+              category: "photos",
+            },
+          ],
+          videos: [
+            {
+              path: "/sdcard/Movies/m.mp4",
+              size: 999,
+              mtimeMs: 2,
+              ext: "mp4",
+              category: "videos",
+            },
+          ],
         },
       });
     const out = [];
@@ -491,7 +620,10 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
         },
       });
     const out = [];
-    for await (const r of adapter.sync({ useBridge: true, include: { media: false } })) {
+    for await (const r of adapter.sync({
+      useBridge: true,
+      include: { media: false },
+    })) {
       out.push(r);
     }
     expect(out).toHaveLength(0);
