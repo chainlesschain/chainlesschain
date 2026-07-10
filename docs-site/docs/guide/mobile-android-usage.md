@@ -20,7 +20,7 @@ ChainlessChain Android 是桌面 ChainlessChain 在移动场景下的**三层延
 | ------------------------- | --------------------------------------- | -------------------------------------------------------------------- |
 | **L1** StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥              | Android Keystore + StrongBox HSM 芯片级隔离，桌面 U-Key 需插着才能用 |
 | **L2** 移动现场捕获       | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没麦克风触手可及、没摄像头、没 GPS、不能接 Android 系统分享      |
-| **L3** REMOTE 遥控器      | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑                           |
+| **L3** REMOTE 遥控器      | 调桌面 146 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑                           |
 
 设计原则：**手机不重复实现桌面**，只补桌面在移动场景做不到的事。对齐 Claude Desktop / Mobile 的二端分工。
 
@@ -387,7 +387,7 @@ cc status sync   # 应看到 "mobile-bridge: running"
 # 手机端 → 远程终端 tab → 选已配对桌面 → 新建会话
 # 终端拉起后输入：
 $ cc --version              # 看桌面 CLI 版本
-$ cc skill list             # 列 141 个 desktop skills
+$ cc skill list             # 列 146 个 desktop skills
 $ cc ask "explain merkle tree"  # 调桌面 LLM 跑 ask
 $ cc note search merkle     # 搜桌面知识库
 ```

@@ -21,7 +21,7 @@ npm run test:e2e           # End-to-end tests
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
 - **Commands**: `src/commands/` (64 command files)
-- **REPL**: `src/repl/` (chat-repl.js, agent-repl.js — 10 tools + 141 skills + Plan Mode)
+- **REPL**: `src/repl/` (chat-repl.js, agent-repl.js — 10 tools + 146 skills + Plan Mode)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
 - **Libraries**: `src/lib/` (70+ modules)
 - **Core packages**: core-env, shared-logger, core-infra, core-config, core-db
