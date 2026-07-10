@@ -2,6 +2,30 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.12] — Remote Control: in-IDE pairing QR + relay settings (2026-07-10)
+
+- **In-IDE pairing QR.** The Remote Control pairing notice gains a "Show QR"
+  button and the menu a "Show pairing QR" item: the one-time pairing URI is
+  rendered as a QR code right in the IDE (static no-script webview) — no more
+  switching to a CLI terminal or pasting the URI by hand to pair a phone.
+  The extension ships no QR library, so this adds a self-contained pure
+  encoder (byte mode, ECC M, auto version 1–40, ISO 18004 masking), decode-
+  verified against the independent jsQR decoder and cross-checked against the
+  reference npm `qrcode` implementation; the JetBrains twin asserts the same
+  fixtures, so both IDEs render identical symbols. The QR stays black-on-white
+  in both themes (scanners need the contrast), the URI is HTML-escaped, and
+  the panel closes automatically when the host stops or dies — a stale
+  one-time URI never stays scannable. URIs beyond QR capacity fall back to
+  copy guidance.
+- **Relay (E2EE cross-network) settings.** New `chainlesschain.remote.relayUrl`
+  and `chainlesschain.remote.peerId` settings (en/zh descriptions): pairing
+  across networks no longer requires CLI env/config. Values are read at each
+  host start (a settings change applies to the next start, no reload) and are
+  passed as `--relay-url`/`--peer-id`; blank values defer to the CLI's own
+  resolution chain (`CC_REMOTE_SESSION_RELAY_URL` → `remoteControl.relayUrl`),
+  and the peer id works independently of the relay URL (the relay may come
+  from env/config).
+
 ## [0.37.11] — P2 hardening: deep-link parity, Remote/WSL Doctor, auto-exec config guard (2026-07-10)
 
 - **Deep link parity — full parameter set (P2 #11).**
@@ -14,7 +38,7 @@ All notable changes to this extension are documented here.
   is shape-validated and `workspace` is checked against the open folder (a link
   for another repo is ignored). Windows / 中文 / space paths round-trip verbatim.
 - **Auto-exec config guard (P2 #13).** New `ChainlessChain: Scan Workspace for
-  Auto-Exec Config` command + a one-time-per-workspace advisory on activation:
+Auto-Exec Config` command + a one-time-per-workspace advisory on activation:
   recognizes workspace files that can run code without an explicit action — MCP
   configs (`.mcp.json`), git/husky hooks, shell profiles, `.vscode/tasks.json`
   and `launch.json`/`settings.json`, `.idea/` run configs — and lets you Trust

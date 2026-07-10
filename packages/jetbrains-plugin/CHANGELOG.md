@@ -1,5 +1,26 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.56] — Remote Control: in-IDE pairing QR + relay settings (2026-07-10)
+
+- **In-IDE pairing QR.** The Remote Control pairing dialog now renders the
+  one-time pairing URI as a QR code above the note, and a new "Show pairing
+  QR" menu item reopens it while the host is running — no more switching to a
+  CLI terminal or pasting the URI by hand to pair a phone. The plugin bundles
+  no QR library, so this adds a self-contained pure encoder
+  (`com.chainlesschain.ide.QrCode`: byte mode, ECC M, auto version 1–40,
+  ISO 18004 masking) that asserts the same fixtures as the VS Code twin —
+  both IDEs render identical, decode-verified symbols. The QR is drawn
+  black-on-white regardless of IDE theme (scanners need the contrast); URIs
+  beyond QR capacity fall back to the text-only dialog.
+- **Relay (E2EE cross-network) settings.** New "Relay settings…" option in the
+  Remote Control dialog (relay server URL + optional stable peer id, persisted
+  application-wide): pairing across networks no longer requires CLI
+  env/config. The start dialog shows the current pairing mode; values apply to
+  the next host start as `--relay-url`/`--peer-id`, blank values defer to the
+  CLI's own resolution chain (`CC_REMOTE_SESSION_RELAY_URL` →
+  `remoteControl.relayUrl`), and the peer id works independently of the relay
+  URL.
+
 ## [0.4.55] — diff review: your in-viewer edits are captured + line-anchored notes (2026-07-10)
 
 - **Diff review captures your in-viewer edits (gap #4 close-out).** The right
