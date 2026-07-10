@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.CliLauncher;
+import com.chainlesschain.ide.QrCode;
 import com.chainlesschain.ide.RemoteHandoff;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -49,8 +50,8 @@ public final class RemoteControlAction extends AnAction {
         Process live = host;
         boolean running = live != null && live.isAlive();
         String[] options = running
-                ? new String[] { "Copy pairing URI", "Show host status", "Stop this host",
-                        "Relay settings…", "Cancel" }
+                ? new String[] { "Show pairing QR", "Copy pairing URI", "Show host status",
+                        "Stop this host", "Relay settings…", "Cancel" }
                 : new String[] { "Start host", "Show host status",
                         "Relay settings…", "Cancel" };
         int pick = Messages.showDialog(project,
@@ -65,10 +66,21 @@ public final class RemoteControlAction extends AnAction {
         if (pick < 0 || "Cancel".equals(options[pick])) return;
         String action = options[pick];
         if ("Start host".equals(action)) start(project);
+        else if ("Show pairing QR".equals(action)) reshowPairing(project);
         else if ("Copy pairing URI".equals(action)) copyPairingUri(project);
         else if ("Show host status".equals(action)) showStatus(project);
         else if ("Stop this host".equals(action)) stopOwn(project);
         else if ("Relay settings…".equals(action)) relaySettings(project);
+    }
+
+    private static void reshowPairing(Project project) {
+        Map<String, Object> p = pairing;
+        if (p == null || p.get("pairingUri") == null) {
+            Messages.showInfoMessage(project,
+                    "No pairing URI yet — the host is still starting.", "Remote Control");
+            return;
+        }
+        showPairing(project, p);
     }
 
     // ---- relay (E2EE cross-network) settings — persisted app-wide ----
@@ -212,9 +224,13 @@ public final class RemoteControlAction extends AnAction {
         area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, area.getFont().getSize()));
         JScrollPane scroll = new JScrollPane(area);
         scroll.setPreferredSize(new Dimension(760, 180));
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 8));
+        javax.swing.JLabel qrLabel = pairingQrLabel(parsed.get("pairingUri"));
+        if (qrLabel != null) panel.add(qrLabel, java.awt.BorderLayout.NORTH);
+        panel.add(scroll, java.awt.BorderLayout.CENTER);
         DialogBuilder b = new DialogBuilder(project);
         b.setTitle("Remote Control — Pairing");
-        b.setCenterPanel(scroll);
+        b.setCenterPanel(panel);
         b.addOkAction().setText("Copy URI & Close");
         b.addCancelAction().setText("Close");
         if (b.show() == com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) {
@@ -224,6 +240,41 @@ public final class RemoteControlAction extends AnAction {
                         .setContents(new StringSelection(String.valueOf(uri)));
             }
         }
+    }
+
+    /**
+     * In-dialog QR of the one-time pairing URI (gap #2 — no CLI terminal
+     * needed). Deliberately black-on-white regardless of IDE theme: scanners
+     * need the contrast. Null when the URI is missing or exceeds QR capacity
+     * (dialog falls back to text-only).
+     */
+    private static javax.swing.JLabel pairingQrLabel(Object uri) {
+        if (uri == null || String.valueOf(uri).isEmpty()) return null;
+        QrCode qr = QrCode.encode(String.valueOf(uri));
+        if (qr == null) return null;
+        final int scale = 4;
+        final int border = 4;
+        int dim = (qr.size + border * 2) * scale;
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                dim, dim, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        try {
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(0, 0, dim, dim);
+            g.setColor(java.awt.Color.BLACK);
+            for (int y = 0; y < qr.size; y++) {
+                for (int x = 0; x < qr.size; x++) {
+                    if (qr.modules[y][x]) {
+                        g.fillRect((x + border) * scale, (y + border) * scale, scale, scale);
+                    }
+                }
+            }
+        } finally {
+            g.dispose();
+        }
+        javax.swing.JLabel label = new javax.swing.JLabel(new javax.swing.ImageIcon(img));
+        label.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        return label;
     }
 
     private static void showStatus(Project project) {

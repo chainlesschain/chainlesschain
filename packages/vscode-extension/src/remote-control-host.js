@@ -10,6 +10,7 @@
  */
 const { spawn, execFile } = require("child_process");
 const { hardenedEnv } = require("./hardened-env");
+const { encodeQr, qrToSvg } = require("./qr-code");
 const {
   buildRemoteControlStartArgs,
   buildRemoteControlStatusArgs,
@@ -18,6 +19,47 @@ const {
   formatPairingNote,
   parseRemoteControlStatus,
 } = require("./chat/remote-handoff");
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+}
+
+/**
+ * Static QR webview HTML (no scripts). The QR block stays black-on-white in
+ * both themes — scanners need the contrast, so it does not follow the IDE
+ * palette.
+ */
+function pairingQrHtml(pairing) {
+  const uri = String(pairing?.pairingUri || "");
+  const qr = encodeQr(uri);
+  const svg = qr ? qrToSvg(qr) : null;
+  const exp = pairing?.pairing?.expiresAt
+    ? new Date(pairing.pairing.expiresAt).toISOString()
+    : null;
+  const body = svg
+    ? `<div style="background:#fff;padding:16px;border-radius:8px;line-height:0">` +
+      svg.replace("<svg ", '<svg width="320" height="320" ') +
+      `</div>`
+    : `<p>The pairing URI is too long to render as a QR code — copy it instead.</p>`;
+  return (
+    `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>` +
+    `<body style="display:flex;flex-direction:column;align-items:center;` +
+    `gap:12px;padding:24px;font-family:sans-serif">` +
+    body +
+    `<p style="max-width:480px;text-align:center;margin:0">Scan with the ` +
+    `ChainlessChain mobile app or paste into the web panel. One-time URI` +
+    `${exp ? ` — expires ${escapeHtml(exp)}` : ""}.</p>` +
+    `<code style="max-width:480px;word-break:break-all;font-size:11px;` +
+    `opacity:.8">${escapeHtml(uri)}</code>` +
+    `</body></html>`
+  );
+}
 
 function createRemoteControlHost(
   vscode,
@@ -29,6 +71,7 @@ function createRemoteControlHost(
   let child = null;
   let pairing = null; // parsed start --json payload
   let stopping = false;
+  let qrPanel = null;
 
   function spawnOpts(extra = {}) {
     return {
@@ -62,6 +105,37 @@ function createRemoteControlHost(
     vscode.window.setStatusBarMessage("$(broadcast) Pairing URI copied", 3000);
   }
 
+  /** In-IDE QR of the one-time pairing URI (gap #2 — no CLI terminal needed). */
+  function showQrPanel() {
+    if (!pairing?.pairingUri) return;
+    const html = pairingQrHtml(pairing);
+    if (qrPanel) {
+      qrPanel.webview.html = html;
+      qrPanel.reveal();
+      return;
+    }
+    qrPanel = vscode.window.createWebviewPanel(
+      "chainlesschainPairingQr",
+      "Remote Control — Pairing QR",
+      vscode.ViewColumn.Beside,
+      {}, // static HTML: no scripts, no local resources
+    );
+    qrPanel.onDidDispose(() => {
+      qrPanel = null;
+    });
+    qrPanel.webview.html = html;
+  }
+
+  function closeQrPanel() {
+    // A stopped host's URI is dead — don't leave a scannable stale QR around.
+    try {
+      qrPanel?.dispose();
+    } catch {
+      /* already disposed */
+    }
+    qrPanel = null;
+  }
+
   function announcePairing() {
     const note = formatPairingNote(pairing);
     if (!note) return;
@@ -70,10 +144,12 @@ function createRemoteControlHost(
       .showInformationMessage(
         `Remote control ready on port ${pairing.port} (${pairing.mode}). ` +
           "Pair a phone or web panel with the one-time URI.",
+        "Show QR",
         "Copy pairing URI",
       )
       .then((pick) => {
         if (pick === "Copy pairing URI") copyPairingUri().catch(() => {});
+        else if (pick === "Show QR") showQrPanel();
       });
   }
 
@@ -121,6 +197,7 @@ function createRemoteControlHost(
       if (child !== proc) return;
       child = null;
       pairing = null;
+      closeQrPanel();
       if (!stopping) {
         vscode.window.showWarningMessage(
           `ChainlessChain remote-control host exited (code ${code ?? "?"})` +
@@ -135,6 +212,7 @@ function createRemoteControlHost(
       if (child !== proc) return;
       child = null;
       pairing = null;
+      closeQrPanel();
       vscode.window.showErrorMessage(
         `Could not start the remote-control host: ${err.message}`,
       );
@@ -152,6 +230,7 @@ function createRemoteControlHost(
     const port = pairing?.port;
     child = null;
     pairing = null;
+    closeQrPanel();
     const finishKill = () => {
       if (proc.exitCode !== null || proc.killed) return;
       const pid = proc.pid;
@@ -222,6 +301,7 @@ function createRemoteControlHost(
     const running = Boolean(child);
     const items = running
       ? [
+          { label: "$(device-camera) Show pairing QR", action: "qr" },
           { label: "$(clippy) Copy pairing URI", action: "copy" },
           { label: "$(list-unordered) Show host status", action: "status" },
           {
@@ -247,6 +327,7 @@ function createRemoteControlHost(
     });
     if (!pick) return;
     if (pick.action === "start") start();
+    else if (pick.action === "qr") showQrPanel();
     else if (pick.action === "copy") await copyPairingUri();
     else if (pick.action === "status") await showStatus();
     else if (pick.action === "stopOwn") stopOwn();
@@ -260,4 +341,4 @@ function createRemoteControlHost(
   };
 }
 
-module.exports = { createRemoteControlHost };
+module.exports = { createRemoteControlHost, pairingQrHtml };
