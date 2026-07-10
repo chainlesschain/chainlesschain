@@ -32,7 +32,7 @@
 
 ### 1.1 当前问题
 
-ChainlessChain 桌面端是"重资产个人 AI 主机"——139 内置 skills、Cowork 多智能体、RAG / 向量检索、MCP、Marketplace、联邦治理、Workflow、ZKP，典型久坐工作站形态。Android 端（v0.37.0）当前的对标方式有三个结构性问题：
+ChainlessChain 桌面端是"重资产个人 AI 主机"——146 内置 skills、Cowork 多智能体、RAG / 向量检索、MCP、Marketplace、联邦治理、Workflow、ZKP，典型久坐工作站形态。Android 端（v0.37.0）当前的对标方式有三个结构性问题：
 
 1. **REMOTE 缺一等公民地位** — `android-app/.../remote/commands/` 已堆出 23 个 *Commands.kt（AI / Application / Browser / Clipboard / Desktop / Device / Display / Extension / File / History / Input / Knowledge / Media / Network / Notification / Power / Process / Security / Storage / System / SystemInfo / UserBrowser / Workflow），但桌面侧没有统一白名单、签名核验、审批通道，散落在 13+ handlers/ 文件里隐式映射；UI 对应的 `remote/ui/` 18 个子模块也是 hardcoded screen，没有可发现的 SkillRegistry。"REMOTE 即一等公民"是隐性事实，不是显性架构。
 
@@ -131,7 +131,7 @@ app/src/main/java/com/chainlesschain/android/
 
 | 类别              | 桌面位置                                          | Android 关系       |
 | ----------------- | ------------------------------------------------- | ------------------ |
-| Skills System     | `desktop-app-vue/.../ai-engine/cowork/skills/`    | REMOTE 调用对象（141 skills） |
+| Skills System     | `desktop-app-vue/.../ai-engine/cowork/skills/`    | REMOTE 调用对象（146 skills） |
 | RAG / 向量检索    | `desktop-app-vue/.../rag/`                        | REMOTE             |
 | Cowork 多智能体   | `desktop-app-vue/.../ai-engine/cowork/`           | REMOTE + 审批 UI   |
 | Marketplace       | `desktop-app-vue/.../marketplace/`                | REMOTE + 审批 UI   |

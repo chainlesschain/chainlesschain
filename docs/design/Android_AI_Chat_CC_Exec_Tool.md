@@ -66,7 +66,7 @@
 - ❌ 写命令 (`add` / `delete` / `install` / `update` / `create`)。Phase v1.1 才做，UX 不一样（必须二次确认 + diff 预览）。
 - ❌ `cc ask`（v0.1 曾考虑，v0.2 移出 —— Chat 内直接问 LLM 已是自然路径，`cc ask` 在 Android Chat 里套 nested LLM call 增 2× 成本且与 T12 API key 过滤冲突。终端 tab 仍可手动用）。
 - ❌ 用户自定义白名单。v1 硬编码 8 个（去 ask 后）；UI 不暴露配置。
-- ❌ iOS / Desktop 端。**Android only**。iOS Phase 5 chat 已就位，但 iOS 本地无 cc，要走 DC RPC 到桌面；Desktop 有 cc 但 139 skill 系统已经把"自然语言→能力"占住，不应再叠一层。三端形态本就该差异化。
+- ❌ iOS / Desktop 端。**Android only**。iOS Phase 5 chat 已就位，但 iOS 本地无 cc，要走 DC RPC 到桌面；Desktop 有 cc 但 146 skill 系统已经把"自然语言→能力"占住，不应再叠一层。三端形态本就该差异化。
 - ❌ 流式 cc 输出（cc 也基本不流式，exec 等出口即可）。
 - ❌ 并行 tool calls。v1 串行。
 - ⚠️ 多轮 tool call **支持但受限**：v0.2 允许最多 3 轮 + 相同 (name, args) 去重（v0.1 误限 1 轮，砍掉合法的"先 search 后 note show"组合查询）。
