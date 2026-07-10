@@ -1,4 +1,4 @@
-﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
+# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
@@ -2718,7 +2718,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-172-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-173-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
