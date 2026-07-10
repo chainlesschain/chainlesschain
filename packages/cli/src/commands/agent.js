@@ -169,6 +169,18 @@ export function registerAgentCommand(program) {
       "Run bare: disable project memory, settings hooks, memory recall, IDE context, status line and update notice (permission rules STAY active)",
     )
     .option(
+      "--bare",
+      "Everything --safe-mode disables PLUS skills, plugins and MCP/IDE auto-connect — minimal fast surface for scripted calls (explicit --mcp-config still loads; permission rules STAY active)",
+    )
+    .option(
+      "--disable-slash-commands",
+      "Interactive REPL: don't dispatch '/' input as slash commands — it reaches the model verbatim (/exit and /quit stay live)",
+    )
+    .option(
+      "--ax-screen-reader",
+      "Screen-reader friendly output: no ANSI colors, no in-place status line repaints (also CC_SCREEN_READER=1)",
+    )
+    .option(
       "--worktree",
       "Run this session in a fresh git worktree (isolated branch; auto-removed when the session changes nothing)",
     )
@@ -371,15 +383,42 @@ export function registerAgentCommand(program) {
       }
       // --safe-mode flag OR CC_SAFE_MODE / CLAUDE_CODE_SAFE_MODE env (Claude-Code
       // 2.1.169 parity): flip every customization kill-switch BEFORE anything
-      // loads. Permission rules stay active.
+      // loads. Permission rules stay active. --bare (CC_BARE) is safe mode
+      // PLUS skills, plugins and MCP/IDE/PDH/JetBrains auto-connect off.
       {
-        const { applySafeMode, safeModeRequested } =
-          await import("../lib/safe-mode.js");
-        if (safeModeRequested(options)) {
+        const {
+          applySafeMode,
+          safeModeRequested,
+          applyBareMode,
+          bareModeRequested,
+        } = await import("../lib/safe-mode.js");
+        if (bareModeRequested(options)) {
+          const applied = applyBareMode();
+          // Ambient auto-connects off; an EXPLICIT --ide/--pdh/--jetbrains
+          // (or --mcp-config, handled downstream) still wins — bare kills
+          // defaults, not explicit input.
+          options.mcp = false;
+          if (options.ide === undefined) options.ide = false;
+          if (options.pdh === undefined) options.pdh = false;
+          if (options.jetbrains === undefined) options.jetbrains = false;
+          process.stderr.write(
+            `bare mode: hooks/skills/plugins/memory/MCP-auto-connect disabled (${applied.join(", ")}) — permission rules stay active.\n`,
+          );
+        } else if (safeModeRequested(options)) {
           const applied = applySafeMode();
           process.stderr.write(
             `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
           );
+        }
+      }
+      // --ax-screen-reader flag OR CC_SCREEN_READER env: linear output for
+      // screen readers (mono theme + no repainting status line). Applied
+      // before anything renders.
+      {
+        const { screenReaderRequested, applyScreenReaderMode } =
+          await import("../lib/accessibility.js");
+        if (screenReaderRequested(options)) {
+          applyScreenReaderMode();
         }
       }
       // --project-mcp: opt IN to project-scoped `.mcp.json` discovery, which is
@@ -1089,6 +1128,8 @@ export function registerAgentCommand(program) {
         pdh: options.pdh,
         // --jetbrains / --no-jetbrains: IDEA built-in MCP for the interactive session
         jetbrains: options.jetbrains,
+        // --disable-slash-commands: REPL sends "/" input to the model verbatim
+        disableSlashCommands: options.disableSlashCommands === true,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

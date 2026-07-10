@@ -43,3 +43,43 @@ export function safeModeRequested(opts = {}, env = process.env) {
   const raw = env.CC_SAFE_MODE || env.CLAUDE_CODE_SAFE_MODE;
   return raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim());
 }
+
+/**
+ * `cc agent --bare` — everything --safe-mode disables PLUS skills, plugins and
+ * MCP auto-connect: a minimal, fast agent surface for scripted invocations.
+ * The two extra env switches are consumed at the single chokepoints all
+ * loading funnels through (skill-loader `loadAll`, plugin-runtime
+ * `discoverPlugins`); MCP/IDE/PDH/JetBrains auto-connect are flipped off on
+ * the parsed options by the agent command itself (an explicit --mcp-config
+ * still loads — bare kills ambient auto-connects, not explicit input).
+ * Permission rules stay active, same as safe mode.
+ */
+export const BARE_MODE_EXTRA_SWITCHES = Object.freeze({
+  CC_SKILLS: "0", // every skill layer (list_skills/run_skill surface empties)
+  CC_PLUGINS: "0", // plugin runtime (hooks/monitors/MCP/LSP/bin/env/skills/agents)
+});
+
+/**
+ * Apply bare mode to an env: all safe-mode switches + the bare extras.
+ * @returns {string[]} the switch names applied (for the startup notice)
+ */
+export function applyBareMode(env = process.env) {
+  const applied = applySafeMode(env);
+  for (const [k, v] of Object.entries(BARE_MODE_EXTRA_SWITCHES)) {
+    env[k] = v;
+  }
+  return [...applied, ...Object.keys(BARE_MODE_EXTRA_SWITCHES)];
+}
+
+/**
+ * Whether bare mode is requested — the explicit `--bare` flag or the ambient
+ * `CC_BARE` env var (truthy values: 1 / true / yes / on).
+ * @param {{ bare?: boolean }} [opts]
+ * @param {object} [env=process.env]
+ * @returns {boolean}
+ */
+export function bareModeRequested(opts = {}, env = process.env) {
+  if (opts && opts.bare === true) return true;
+  const raw = env.CC_BARE;
+  return raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim());
+}

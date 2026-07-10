@@ -7,9 +7,17 @@ import { createRequire } from "module";
 import {
   applySafeMode,
   safeModeRequested,
+  applyBareMode,
+  bareModeRequested,
   SAFE_MODE_SWITCHES,
+  BARE_MODE_EXTRA_SWITCHES,
 } from "../../src/lib/safe-mode.js";
 import { recallStartupMemories } from "../../src/lib/memory-injection.js";
+import {
+  CLISkillLoader,
+  allSkillsDisabled,
+} from "../../src/lib/skill-loader.js";
+import { discoverPlugins } from "../../src/lib/plugin-runtime/scopes.js";
 
 const require_ = createRequire(import.meta.url);
 const { loadHooks } = require_("../../src/lib/settings-hooks.cjs");
@@ -17,6 +25,8 @@ const { loadHooks } = require_("../../src/lib/settings-hooks.cjs");
 afterEach(() => {
   delete process.env.CC_SETTINGS_HOOKS;
   delete process.env.CC_MEMORY_INJECT;
+  delete process.env.CC_SKILLS;
+  delete process.env.CC_PLUGINS;
 });
 
 describe("applySafeMode", () => {
@@ -73,6 +83,60 @@ describe("CC_SETTINGS_HOOKS gate", () => {
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe("applyBareMode / bareModeRequested (--bare = safe mode + skills/plugins off)", () => {
+  it("applies every safe-mode switch PLUS the bare extras", () => {
+    const env = {};
+    const applied = applyBareMode(env);
+    expect(env).toEqual({ ...SAFE_MODE_SWITCHES, ...BARE_MODE_EXTRA_SWITCHES });
+    expect(applied.sort()).toEqual(
+      [
+        ...Object.keys(SAFE_MODE_SWITCHES),
+        ...Object.keys(BARE_MODE_EXTRA_SWITCHES),
+      ].sort(),
+    );
+    // permission rules stay active — never in the switch list
+    expect(env.CC_PERMISSION_RULES).toBeUndefined();
+  });
+
+  it("bareModeRequested: --bare flag or CC_BARE env", () => {
+    expect(bareModeRequested({ bare: true }, {})).toBe(true);
+    for (const v of ["1", "true", "YES", "on"]) {
+      expect(bareModeRequested({}, { CC_BARE: v })).toBe(true);
+    }
+    expect(bareModeRequested({}, {})).toBe(false);
+    expect(bareModeRequested({}, { CC_BARE: "0" })).toBe(false);
+    // --bare does NOT imply --safe-mode's own detector (distinct flags)
+    expect(safeModeRequested({ bare: true }, {})).toBe(false);
+  });
+});
+
+describe("CC_SKILLS gate (bare: every skill layer off)", () => {
+  it("allSkillsDisabled recognizes the switch", () => {
+    expect(allSkillsDisabled({ env: { CC_SKILLS: "0" } })).toBe(true);
+    expect(allSkillsDisabled({ env: { CC_SKILLS: "off" } })).toBe(true);
+    expect(allSkillsDisabled({ env: {} })).toBe(false);
+    expect(allSkillsDisabled({ env: { CC_SKILLS: "1" } })).toBe(false);
+  });
+
+  it("CLISkillLoader.loadAll returns [] when the switch is set", () => {
+    process.env.CC_SKILLS = "0";
+    const loader = new CLISkillLoader();
+    expect(loader.loadAll()).toEqual([]);
+    expect(loader.getResolvedSkills()).toEqual([]);
+    // and loads normally without the switch (bundled layers exist in-repo)
+    delete process.env.CC_SKILLS;
+    loader.clearCache();
+    expect(loader.loadAll().length).toBeGreaterThan(0);
+  });
+});
+
+describe("CC_PLUGINS gate (bare: plugin runtime off at the discovery chokepoint)", () => {
+  it("discoverPlugins returns [] when the switch is set", () => {
+    expect(discoverPlugins({ env: { CC_PLUGINS: "0" } })).toEqual([]);
+    expect(discoverPlugins({ env: { CC_PLUGINS: "false" } })).toEqual([]);
   });
 });
 

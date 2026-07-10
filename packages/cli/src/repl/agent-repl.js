@@ -1262,6 +1262,24 @@ export async function startAgentRepl(options = {}) {
     options.vimMode === true || process.env.CC_VIM === "1" ? true : false;
   let _vim = null;
 
+  // --disable-slash-commands (Claude-Code parity): built-in slash dispatch,
+  // custom command macros and MCP prompt expansion are all bypassed — a
+  // "/"-leading line reaches the model verbatim, the same fall-through an
+  // unmatched slash line already takes. /exit and /quit stay live so the
+  // session remains closable from the keyboard.
+  const _slashCommandsDisabled =
+    options.disableSlashCommands === true ||
+    /^(1|true|yes|on)$/i.test(
+      String(process.env.CC_DISABLE_SLASH_COMMANDS || "").trim(),
+    );
+
+  // --ax-screen-reader / CC_SCREEN_READER: force the mono theme (no ANSI
+  // color codes) so output linearizes cleanly. The repainting status line is
+  // already killed by the CC_STATUSLINE=0 switch agent.js applies.
+  const _screenReaderMode = /^(1|true|yes|on)$/i.test(
+    String(process.env.CC_SCREEN_READER || "").trim(),
+  );
+
   // Color theme (Claude-Code `/theme` parity). Capture chalk's auto-detected
   // level BEFORE any theme touches it so `mono`→level 0 stays reversible, then
   // apply the persisted theme (config `cli.theme`). `mono` strips all color;
@@ -1282,6 +1300,10 @@ export async function startAgentRepl(options = {}) {
   } catch (_e) {
     /* config optional — keep default */
   }
+  // Screen-reader mode overrides the persisted theme: colors are invisible to
+  // a reader and ANSI codes are noise, so run mono for this session (the
+  // stored cli.theme is untouched — /theme still shows and can change it).
+  if (_screenReaderMode) _theme = "mono";
   applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
   const themedPrompt = (text) => {
     const a = promptAccent(_theme);
@@ -1316,65 +1338,69 @@ export async function startAgentRepl(options = {}) {
     // cwd left unset on purpose: the completer resolves process.cwd() lazily
     // so it follows `/cd` mid-session.
     // Keep in sync with the rl.on("line") handlers + /help below.
-    slashCommands: [
-      "/add-dir",
-      "/agents",
-      "/auto",
-      "/btw",
-      "/cd",
-      "/clear",
-      "/compact",
-      "/config",
-      "/context",
-      "/copy",
-      "/cost",
-      "/cowork",
-      "/doctor",
-      "/effort",
-      "/exit",
-      "/export",
-      "/help",
-      "/hooks",
-      "/ide",
-      "/init",
-      "/mcp",
-      "/memory",
-      "/microcompact",
-      "/model",
-      "/output-style",
-      "/permissions",
-      "/plan",
-      "/pr-comments",
-      "/profile",
-      "/provider",
-      "/quit",
-      "/reindex",
-      "/release-notes",
-      "/reload-plugins",
-      "/reload-skills",
-      "/review",
-      "/rewind",
-      "/search",
-      "/session",
-      "/sessions",
-      "/stats",
-      "/status",
-      "/statusline",
-      "/sub-agents",
-      "/task",
-      "/tasks",
-      "/terminal-setup",
-      "/theme",
-      "/think",
-      "/todos",
-      "/ultrathink",
-      "/vim",
-    ],
+    // --disable-slash-commands: nothing to complete — "/" input is plain text.
+    slashCommands: _slashCommandsDisabled
+      ? []
+      : [
+          "/add-dir",
+          "/agents",
+          "/auto",
+          "/btw",
+          "/cd",
+          "/clear",
+          "/compact",
+          "/config",
+          "/context",
+          "/copy",
+          "/cost",
+          "/cowork",
+          "/doctor",
+          "/effort",
+          "/exit",
+          "/export",
+          "/help",
+          "/hooks",
+          "/ide",
+          "/init",
+          "/mcp",
+          "/memory",
+          "/microcompact",
+          "/model",
+          "/output-style",
+          "/permissions",
+          "/plan",
+          "/pr-comments",
+          "/profile",
+          "/provider",
+          "/quit",
+          "/reindex",
+          "/release-notes",
+          "/reload-plugins",
+          "/reload-skills",
+          "/review",
+          "/rewind",
+          "/search",
+          "/session",
+          "/sessions",
+          "/stats",
+          "/status",
+          "/statusline",
+          "/sub-agents",
+          "/task",
+          "/tasks",
+          "/terminal-setup",
+          "/theme",
+          "/think",
+          "/todos",
+          "/ultrathink",
+          "/vim",
+        ],
     // User/project custom commands (.claude/commands/*.md) join TAB completion
     // alongside the built-ins above. Sync + best-effort; the completer
     // TTL-caches the result so this filesystem walk runs at most once per few
     // seconds, and process.cwd() makes it follow `/cd` mid-session.
     getDynamicSlashCommands: () => {
+      if (_slashCommandsDisabled) return [];
       try {
         return discoverCommands(process.cwd()).map((cmd) => `/${cmd.name}`);
       } catch {
@@ -1719,7 +1745,20 @@ export async function startAgentRepl(options = {}) {
       _mlBuffer.length = 0;
     }
 
-    const trimmed = input.trim();
+    const rawLine = input.trim();
+    // --disable-slash-commands: hide "/"-leading input from every built-in
+    // slash handler below by dispatching a sentinel no handler can match; the
+    // turn tail restores the user's real text (promptText), so the line goes
+    // to the model verbatim — the same fall-through an unmatched slash line
+    // already takes. /exit and /quit stay live so the session can be closed.
+    // Predicate + sentinel are pure (lib/slash-dispatch.js, unit-tested).
+    const { slashDispatchBypassed, slashBypassSentinel } =
+      await import("../lib/slash-dispatch.js");
+    const _slashBypassed = slashDispatchBypassed(
+      rawLine,
+      _slashCommandsDisabled,
+    );
+    const trimmed = _slashBypassed ? slashBypassSentinel() : rawLine;
     if (!trimmed) {
       prompt();
       return;
@@ -4086,13 +4125,15 @@ export async function startAgentRepl(options = {}) {
     // parity. resolveSlashMacro maps a leading /name to a command macro and
     // expands its template; a non-match returns the line unchanged so a literal
     // prompt like "/etc/hosts" still reaches the LLM. Wire is unit-tested.
-    let promptText = trimmed;
+    // Under --disable-slash-commands the sentinel never reached a handler;
+    // restore the user's real text so the model sees it verbatim.
+    let promptText = _slashBypassed ? rawLine : trimmed;
 
     // MCP server-provided prompts (Claude-Code parity): `/mcp__<server>__<name>
     // [json-args]` fetches a rendered prompt template from the connected MCP
     // server and uses its text as this turn's input. Falls through unchanged
     // when the line isn't an MCP prompt command.
-    if (promptText.startsWith("/mcp__")) {
+    if (!_slashBypassed && promptText.startsWith("/mcp__")) {
       try {
         const expanded = await expandMcpPrompt(
           promptText,
@@ -4114,7 +4155,7 @@ export async function startAgentRepl(options = {}) {
     // `/pr-comments [<n>|<url>] [--repo owner/name]` (Claude-Code parity):
     // fetch a GitHub PR's reviews + conversation + inline comments via `gh` and
     // feed them as this turn's input so the agent can address the feedback.
-    if (promptText.startsWith("/pr-comments")) {
+    if (!_slashBypassed && promptText.startsWith("/pr-comments")) {
       try {
         const { expandPrComments } = await import("./pr-comments.js");
         const res = await expandPrComments(promptText);

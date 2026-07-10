@@ -55,6 +55,7 @@ export function resolveAgentPolicy({
     fallbackModels: overrides.fallbackModels,
     pdh: overrides.pdh,
     outputStyle: overrides.outputStyle,
+    disableSlashCommands: overrides.disableSlashCommands === true,
   };
 }
 

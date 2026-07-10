@@ -68,6 +68,19 @@ export function bundledSkillsDisabled(opts = {}) {
   }
 }
 
+/**
+ * Whether ALL skill layers are disabled — `cc agent --bare` sets CC_SKILLS=0
+ * (safe-mode "feature=0 disables" convention). Single gate: `loadAll` is the
+ * one place every layer funnels through, so this empties list_skills /
+ * run_skill / persona auto-activation in one check.
+ * @param {{ env?: object }} [opts]
+ * @returns {boolean}
+ */
+export function allSkillsDisabled(opts = {}) {
+  const raw = (opts.env || process.env).CC_SKILLS;
+  return raw != null && /^(0|false|no|off)$/i.test(String(raw).trim());
+}
+
 /** Layer names in priority order (lowest → highest) */
 export const LAYER_NAMES = [
   "bundled",
@@ -475,6 +488,12 @@ export class CLISkillLoader {
    * @returns {object[]} Resolved skill list
    */
   loadAll(options = {}) {
+    // `cc agent --bare` (CC_SKILLS=0): no skill layer loads at all — cache the
+    // empty result so getResolvedSkills stays cheap on every call.
+    if (allSkillsDisabled(options)) {
+      this._cache = [];
+      return this._cache;
+    }
     const layers = this.getLayerPaths();
     const skillMap = new Map();
     // Claude-Code `disableBundledSkills`: hide the built-in layer so only

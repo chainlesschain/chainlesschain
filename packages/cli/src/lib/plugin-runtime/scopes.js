@@ -117,6 +117,18 @@ export function activeVersion(scope, name, opts = {}) {
  * @returns {Array<{scope, name, version, root, manifest}>}
  */
 export function discoverPlugins(opts = {}) {
+  // `cc agent --bare` (CC_PLUGINS=0): the plugin runtime is fully off. Every
+  // component collector (hooks/monitors/MCP/LSP/bin/settings-env/skills/
+  // agents) funnels through this discovery, so one gate disables them all.
+  // Other processes (`cc plugin installed` …) don't inherit the agent's env,
+  // so plugin management tooling is unaffected.
+  const rawPlugins = (opts.env || process.env).CC_PLUGINS;
+  if (
+    rawPlugins != null &&
+    /^(0|false|no|off)$/i.test(String(rawPlugins).trim())
+  ) {
+    return [];
+  }
   const scopes = opts.scopes || SCOPES;
   const byName = new Map(); // name → record (later scope overrides earlier)
   for (const scope of scopes) {

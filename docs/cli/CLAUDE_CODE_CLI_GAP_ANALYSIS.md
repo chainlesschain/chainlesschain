@@ -635,6 +635,21 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - patch queue / 自动开 PR（现留分支供人 review/merge；未内建 PR 创建）。
 - worktree 清理策略：未合并分支保留供检查（已合并的删分支）；大批量下的磁盘占用留给用户 `git worktree prune`。
 
+### 2026-07-10 第二十一批（P1 #9 — TUI/入口一致性：--bare / --disable-slash-commands / --ax-screen-reader）
+
+已落地：
+
+- **`cc agent --bare`**（也认 `CC_BARE` env）：`--safe-mode` 的全部 kill-switch **加** skills（`CC_SKILLS=0`）、plugins（`CC_PLUGINS=0`）与 MCP/IDE/PDH/JetBrains 自动连接关闭——脚本化调用的最小快速面。两个新 env 在各自单一咽喉消费：skill-loader `loadAll`（所有 8 层 skill 一处清空）、plugin-runtime `discoverPlugins`（六类组件收集器全部经此漏斗）。显式输入不被杀：`--mcp-config` 仍加载、显式 `--ide/--pdh/--jetbrains` 仍生效（bare 只杀 ambient 默认）。权限规则保持生效（同 safe-mode 铁律）。
+- **`cc agent --disable-slash-commands`**（也认 `CC_DISABLE_SLASH_COMMANDS` env）：交互式 REPL 不再分发 "/" 输入——内建 slash、custom macros（.claude/commands）、MCP prompt 展开全部旁路，行文本原样进模型（与现有「未匹配 slash 落回 LLM」同一条 fall-through）；`/exit`/`/quit` 保留可退出；TAB 补全不再提示 slash。实现为纯谓词+哨兵（`lib/slash-dispatch.js`，哨兵首字符 NUL 保证任何 dispatch 分支永不匹配），零重构 2300 行 handleLine 分发链；经 `resolveAgentPolicy` 白名单透传（批9 丢键 trap 已加回归守卫）。
+- **`cc agent --ax-screen-reader`**（也认 `CC_SCREEN_READER` env）：屏幕阅读器友好输出——REPL 强制 mono 主题（chalk level 0，无 ANSI 色码；持久化的 cli.theme 不动）+ 复用 `CC_STATUSLINE=0` 关掉原地重绘状态行。新 `lib/accessibility.js`。headless 文本输出本就是顺序纯文本。
+- 顶层 `cc attach`/`cc logs`/`cc daemon` 已于批1/7/10 落地（#9 清单中该项无需重做）。
+- 测试：safe-mode 套件扩展（applyBareMode 开关集/请求检测/CC_SKILLS 门经真 CLISkillLoader/CC_PLUGINS 门经真 discoverPlugins）+ accessibility 8 例 + slash-dispatch 谓词与哨兵性质 6 例 + agent-policy REPL 透传守卫加 disableSlashCommands；skill-loader/plugin-runtime/repl-theme/multiline/macro 回归全绿。真机 smoke：`--help` 三 flag 在列；`--bare --ax-screen-reader -p` 打印 8 开关通知后 headless 正常完成。
+
+仍待后续：
+
+- `/tui fullscreen`（#9 清单最后一项）——alternate-screen 渲染与批10 attach 的同类 UI polish，v1 不做。
+- screen-reader 模式目前作用于 REPL 主题/状态行；spinner 类命令（`cc ask`/`cc search` 的 ora）按需再扫。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
@@ -648,11 +663,11 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 2. prompt cache 友好的 MCP 动态更新。✅（稳定排序 + stub 常驻 + tool-result 装载 + 重入 append-only；无 mid-session 连接面，接口已备）
 3. `/context` 增加 MCP tool schema 占用与优化建议。✅（REPL 侧；headless 归档视图待拍板）
 
-### 第三阶段：平台化
+### 第三阶段：平台化 ✅（2026-07-09/10 并行 session 出货）
 
-1. TypeScript Agent SDK。
-2. web-panel / IDE 改用 SDK，而不是各自拼 CLI argv。
-3. approval callback、stream event、checkpoint、session resume 成为 SDK 契约。
+1. TypeScript Agent SDK。✅（`packages/agent-sdk` → `@chainlesschain/agent-sdk` 0.1.0 npm 首发，随 cli `0.162.156` 同 CI run；`protocol.ts` 单一来源 + `PROTOCOL.md`）
+2. web-panel / IDE 改用 SDK，而不是各自拼 CLI argv。✅（四端契约化；VS Code 协议 argv/NDJSON framing 委托 vendored agent-sdk，JB 声明 Agent Protocol v1 契约；首会话持久化修复随 IDE `0.37.8`/`0.4.51` 上市场）
+3. approval callback、stream event、checkpoint、session resume 成为 SDK 契约。✅（stream-json 事件契约化；SDK 真 CLI e2e 36 例含会话持久化回归）
 
 ### 第四阶段：跨端与长任务
 
