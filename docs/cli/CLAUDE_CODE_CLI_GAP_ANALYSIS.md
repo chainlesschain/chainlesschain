@@ -682,6 +682,23 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - 过期清理目前是显式 `cc artifacts clean`（可挂 `cc agenda`/cron）；未内建后台清理。
 - **命令数 172→173：下次 cli 发版时必扫 ~13 文档面**（mem `cli_command_count_doc_surfaces`），本批未发 npm。
 
+### 2026-07-10 第二十四批（P1 #10 收尾 — web-panel artifact 预览面板）
+
+已落地（代码 commit `e16d488a85`，由并行 session 在发版收尾时连带提交——内容即本批工作）：
+
+- **CLI 侧 `artifact-*` WS 协议**（`gateways/ws/artifact-protocol.js`，与批11 `bg-*` 同构）：`artifact-list`（kind/session 过滤）/ `artifact-show`（元数据+storedPath）/ `artifact-content`（内联预览）/ `artifact-remove` / `artifact-clean`；ws-server 5 个 wrapper + message-dispatcher 5 路由。
+- **预览策略（服务端强制上限）**：text 类 mime（text/* + json/yaml/xml）→ utf8，256KB 硬顶（caller `maxBytes` 只能收窄不能放大）+ `truncated` 标记；image/* → base64，8MB 硬顶（超限回 `previewable:false` 不灌爆 socket）；其余 mime 元数据-only（提示本机 `cc artifacts open`）。
+- **防篡改守卫**：index.jsonl 的 `file` 字段必须是纯 basename——手改索引行 `"file":"../../…"` 无法把 content 路由变成任意文件读（有回归测试）。
+- **artifact-store 加 `CC_ARTIFACTS_DIR` env 覆盖**（同 `CC_BACKGROUND_AGENTS_DIR` 惯例，测试/部署隔离用）。
+- **web-panel「交付物」面板**：`Artifacts.vue` + `artifacts` Pinia store + 路由 `/artifacts` + 双导航菜单项（FileDoneOutlined）——列表（标题/kind tag/mime/大小/发布时间/会话 + kind 过滤）+ 预览卡（文本 `<pre>` / 图片 data-URI `<img>` / 不可预览显示原因）+ 删除/清理过期。
+- 测试：CLI 协议 7（真 ArtifactStore 温 dir：过滤/show/文本 cap+truncated/maxBytes 收窄/图片 base64 逐字节/zip 拒预览/篡改索引拒服务/remove+clean）+ web-panel store 6（list 过滤+倒序/文本与图片预览/失败包含/删除关预览/clean 计数/helpers）+ 路由计数守卫 67→68；web-panel 全套 2464 绿 + vite build 过（tracked dist/index.html 构建后已还原）+ CLI bg-ws 协议回归绿。
+
+仍待后续：
+
+- 移动端（Android/iOS）对同一 `artifact-*` 协议的消费（协议就绪）。
+- 预览目前不渲染 Markdown（纯文本 `<pre>`）；富渲染属 polish。
+- 下载（浏览器另存）——现只有预览与本机 `cc artifacts open`；可加 HTTP 端点或 blob 下载。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅
