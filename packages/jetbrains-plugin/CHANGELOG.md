@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- **Plugin & MCP manager (Tools → ChainlessChain: Manage Plugins & MCP).** A
+  three-tab dialog over the CLI's --json surface: runtime plugins with scope
+  + manifest validity (Trust / Untrust / Uninstall — per-row scope,
+  confirmed — / Add from a local directory or a --registry source), MCP
+  servers with policy annotations (Test connect / Remove), and a filterable
+  read-only skills listing. Every action shells out to the CLI off-EDT and
+  re-lists. Pure core `PluginManager` (JUnit-covered); VS Code twin:
+  `chainlesschain.plugins.manage` (webview form).
 - **Inline completion hardening (parity audit).** Cancelling a suggestion
   (typing on / dismissing) now interrupts the blocking backend call
   (`runInterruptible`) and KILLS the in-flight `cc complete` child instead

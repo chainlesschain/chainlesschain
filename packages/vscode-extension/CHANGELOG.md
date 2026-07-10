@@ -4,6 +4,14 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Plugin & MCP manager (ChainlessChain: Manage Plugins & MCP).** A webview
+  over the CLI's --json surface: runtime plugins with scope badges and
+  manifest validity (Trust / Untrust / Uninstall — per-row scope, confirmed —
+  / Add from a local directory or a --registry source), MCP servers with
+  policy annotations (Test connect / Remove), and a filterable read-only
+  skills listing. Every action shells out to the CLI and re-lists, so the
+  CLI store stays the single source of truth. (JetBrains twin: Tools →
+  Manage Plugins & MCP, dialog form.)
 - **Inline completion hardening (parity audit).** Cancelling a completion
   (typing on / dismissing) now KILLS the in-flight `cc complete` child
   instead of letting it finish an LLM call nobody will render; and the

@@ -7,6 +7,7 @@
   "cmd.background.agents.title": "ChainlessChain：后台 Agent 面板",
   "cmd.remote.control.title": "ChainlessChain：远程控制（配对手机/网页）",
   "cmd.usage.show.title": "ChainlessChain：查看 Token 用量",
+  "cmd.plugins.manage.title": "ChainlessChain：管理插件与 MCP",
   "cmd.lens.explain.title": "ChainlessChain：解释符号（CodeLens）",
   "cmd.lens.refactor.title": "ChainlessChain：重构符号（CodeLens）",
   "cmd.diff.accept.title": "ChainlessChain：接受差异评审",

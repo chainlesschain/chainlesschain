@@ -82,6 +82,11 @@
         "icon": "$(graph)"
       },
       {
+        "command": "chainlesschain.plugins.manage",
+        "title": "%cmd.plugins.manage.title%",
+        "icon": "$(extensions)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },

@@ -7,6 +7,7 @@
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.remote.control.title": "ChainlessChain: Remote Control (pair phone/web)",
   "cmd.usage.show.title": "ChainlessChain: Show Token Usage",
+  "cmd.plugins.manage.title": "ChainlessChain: Manage Plugins & MCP",
   "cmd.lens.explain.title": "ChainlessChain: Explain Symbol (CodeLens)",
   "cmd.lens.refactor.title": "ChainlessChain: Refactor Symbol (CodeLens)",
   "cmd.diff.accept.title": "ChainlessChain: Accept Diff Review",

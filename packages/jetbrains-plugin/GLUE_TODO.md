@@ -587,3 +587,16 @@ pipe/CLI actions appending results, zh/en bundle labels.
       process disappears from the process list within ~1s (was: lingered up
       to 12s). Ghost text still renders normally when you wait; Esc
       dismisses; Tab accepts.
+
+## 🗂 Plugin & MCP manager (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **PluginManagerAction** — Tools → "Manage Plugins & MCP" → three tabs.
+      Plugins: rows show ✔/✖ + version + [scope]; select one → Trust /
+      Untrust round-trips (re-list), Uninstall asks Yes/No then the row
+      disappears and `cc plugin installed` agrees; Add… with a local plugin
+      dir installs it (and with a registry URL fetches). MCP: rows show
+      transport/endpoint/[blocked: reason]; Test connect writes the result
+      into the status line; Remove asks then drops the row. Skills: filter
+      box narrows live; >200 matches shows the "narrow the filter" tail row.
+      No selection + action button → "Select a row first." cc missing → all
+      tabs show "(could not read CLI output)". zh IDE shows localized label.

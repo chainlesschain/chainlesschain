@@ -459,6 +459,13 @@ function activate(context) {
       } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
     }),
+    // Plugin / MCP manager (P1 #7): a webview over the CLI's --json surface —
+    // runtime plugins (trust/uninstall/add), MCP servers (test/remove), and a
+    // filterable read-only skills listing.
+    vscode.commands.registerCommand("chainlesschain.plugins.manage", () => {
+      const { openPluginManager } = require("./ui/plugin-manager-view.js");
+      openPluginManager(vscode);
+    }),
     // Remote Control (cc remote-control): start a pairing host so a phone /
     // web panel can drive this machine's agent sessions, show the one-time
     // pairing URI, list hosts, stop them. The host child belongs to this

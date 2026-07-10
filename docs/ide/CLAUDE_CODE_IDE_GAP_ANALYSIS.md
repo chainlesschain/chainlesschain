@@ -166,14 +166,22 @@ Claude Code IDE 有 Manual、Plan、Edit automatically 等权限模式，也有 
 
 ### 7. 插件/MCP 图形管理器
 
+状态：已完成首版（2026-07-10）。
+
 Claude Code VS Code 已有图形化 plugin management。
 
-建议：
+已落地（双端，全部落在 CLI `--json` 表面上，CLI store 是唯一事实源）：
 
-- 在 VS Code / JetBrains 内提供统一管理页。
-- 支持安装、启用、禁用、升级 plugin、MCP、hook、skill、memory。
-- 区分 user scope、workspace scope、project scope。
-- 显示权限、来源、版本、签名和最近更新时间。
+- 统一管理页：VS Code `ChainlessChain: Manage Plugins & MCP`（webview，三区）/ JetBrains Tools → Manage Plugins & MCP（对话框，三 tab）。
+- 运行时插件（`cc plugin installed --json`，统一 plugin runtime）：列表带 scope 徽章（user/project/workspace）+ manifest 有效性；操作 = Trust / Untrust（签名信任门）、Uninstall（按行的 scope，先确认）、Add（本地目录或 `--registry <url>` 远程源）。
+- MCP 服务器（`cc mcp servers --json`，带 policy 注解）：transport/endpoint/auto-connect/allowed-blocked（含 block 原因）；操作 = Test connect（`mcp connect --json` 结果回显）、Remove（先确认）。新增服务器参数面较宽（command/url/transport/headers），引导用 `cc mcp add`。
+- 技能：`cc skill list --json` 只读列表 + 实时筛选（id/name/category/description，VS 显示前 60 / JB 前 200 防巨列表）。
+
+明确不做/边界（判定记录）：
+
+- `plugin list/install/enable/disable`（DB 记账系统）不 surfaced——那是 legacy bookkeeping store，非统一运行时；enable/disable 概念在运行时侧由 trust/uninstall 承担。
+- hooks 与 memory 不进本页：hooks 归 settings.json（有专门 settings 工具链），memory 已有独立命令（memory.init / memory.files）。
+- 来源 URL / 签名详情 / 最近更新时间 —— CLI-blocked：`plugin installed --json` 未输出这些字段（trust 状态、签名验证细节在 CLI 内部）；CLI 补字段后 UI 直接跟上。
 
 ### 8. Browser / App Preview 融合
 
