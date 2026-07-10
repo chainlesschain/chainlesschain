@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- **Token Usage report (Tools → ChainlessChain: Show Token Usage).** A
+  monospace dialog joining `cc session usage --json` with the session list:
+  all-time totals, activity-window buckets (last 24 h / 7 d / 30 d —
+  bucketed by each session's last activity, stated openly as an
+  approximation), per-provider/model rollup and top sessions with titles.
+  Pure core `UsageReport` (JUnit-covered); VS Code twin:
+  `chainlesschain.usage.show`.
 - **`getPreviewState` bridge tool.** The agent can now read the App
   Preview dev server's state — running flag, served URL, npm script, last
   exit code and the recent server output tail (16k; build/runtime errors

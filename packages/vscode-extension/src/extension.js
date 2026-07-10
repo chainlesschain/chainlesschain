@@ -569,6 +569,48 @@ function activate(context) {
         await vscode.window.showTextDocument(doc, { preview: false });
       }
     }),
+    // Token usage report (P1 #6): join `cc session usage --json` with
+    // `cc session list --json` and preview a markdown report — all-time /
+    // activity-window totals, per-model rollup, top sessions.
+    vscode.commands.registerCommand("chainlesschain.usage.show", async () => {
+      const {
+        buildSessionListArgs,
+        buildUsageArgs,
+        parseSessionListJson,
+        parseUsageJson,
+        summarizeUsage,
+        usageToMarkdown,
+      } = require("./usage-report.js");
+      const { runCliText } = require("./chat/introspect-commands.js");
+      const { getResolvedCli } = require("./cli-binary");
+      const command = getResolvedCli();
+      const [usageText, listText] = await Promise.all([
+        runCliText({ command, args: buildUsageArgs(), timeoutMs: 30000 }),
+        runCliText({ command, args: buildSessionListArgs(), timeoutMs: 30000 }),
+      ]);
+      const summary = summarizeUsage({
+        usage: parseUsageJson(usageText),
+        sessions: parseSessionListJson(listText),
+      });
+      const markdown = usageToMarkdown(summary);
+      if (!markdown) {
+        vscode.window.showInformationMessage(
+          vscode.l10n.t(
+            "ChainlessChain: could not read token usage — is the cc CLI installed and on PATH?",
+          ),
+        );
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument({
+        content: markdown,
+        language: "markdown",
+      });
+      try {
+        await vscode.commands.executeCommand("markdown.showPreview", doc.uri);
+      } catch {
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
+    }),
     // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
     // files` in the shared terminal — cc.md is then auto-loaded by cc agent.
     vscode.commands.registerCommand("chainlesschain.memory.init", async () => {

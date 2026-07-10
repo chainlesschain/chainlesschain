@@ -4,6 +4,12 @@ All notable changes to this extension are documented here.
 
 ## [Unreleased]
 
+- **Token Usage report (ChainlessChain: Show Token Usage).** A markdown
+  report joining `cc session usage --json` with the session list: all-time
+  totals, activity-window buckets (last 24 h / 7 d / 30 d — bucketed by each
+  session's last activity, stated openly as an approximation), per-provider/
+  model rollup and top sessions with titles. Per-skill/plugin attribution
+  needs CLI-side event tagging and is noted as such.
 - **`getPreviewState` bridge tool.** The agent can now read the App
   Preview dev server's state — running flag, served URL, npm script, last
   exit code and the recent server output tail (16k; build/runtime errors

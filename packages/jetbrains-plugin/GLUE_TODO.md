@@ -569,3 +569,12 @@ pipe/CLI actions appending results, zh/en bundle labels.
       error → the error text appears in `output` on the next call. Stop
       Preview → running=false with the last exit code; before any start →
       running=false, empty output. Restart resets the tail.
+
+## 🗂 Token Usage report (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
+
+- [ ] **ShowUsageAction** — after a few panel conversations, Tools →
+      "ChainlessChain: Show Token Usage" → dialog shows all-time totals
+      matching `cc session usage`, non-zero Last-24h window, the provider/
+      model rows, and top sessions with the panel tabs' titles. With cc
+      missing → info dialog (no exception). zh IDE shows the localized
+      action label.

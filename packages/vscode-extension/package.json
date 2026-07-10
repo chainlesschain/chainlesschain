@@ -77,6 +77,11 @@
         "icon": "$(broadcast)"
       },
       {
+        "command": "chainlesschain.usage.show",
+        "title": "%cmd.usage.show.title%",
+        "icon": "$(graph)"
+      },
+      {
         "command": "chainlesschain.lens.explain",
         "title": "%cmd.lens.explain.title%"
       },
