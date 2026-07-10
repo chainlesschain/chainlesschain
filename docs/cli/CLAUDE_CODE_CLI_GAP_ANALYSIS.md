@@ -699,6 +699,20 @@ Claude Code 当前把 PowerShell 作为独立 tool，而不只是 shell fallback
 - 预览目前不渲染 Markdown（纯文本 `<pre>`）；富渲染属 polish。
 - 下载（浏览器另存）——现只有预览与本机 `cc artifacts open`；可加 HTTP 端点或 blob 下载。
 
+### 2026-07-10 第二十五批（P1 #10 polish — 预览 Markdown 富渲染 + 浏览器下载）
+
+已落地：
+
+- **Markdown 富渲染**：交付物预览对 `text/markdown` 复用面板既有 `MarkdownRenderer.vue`（marked + DOMPurify 消毒 + highlight.js 代码高亮）——store 新增 `previewIsMarkdown` 判定（previewable ∧ utf8 ∧ text/markdown），其余文本仍走 `<pre>`；无新依赖。
+- **浏览器下载 `GET /api/artifacts/<id>/download`**（web-ui-server）：完整文件流式下载（WS `artifact-content` 预览路由有 256KB/8MB 上限，本端点不截断）——`fs.createReadStream` + `Content-Type`/`Content-Length`/`Content-Disposition`（RFC 5987 filename*，标题带扩展名优先，CRLF 清洗）+ `no-store`/`nosniff`。**token 门**：server 配了 wsToken 时下载必须带同一 token（`Authorization: Bearer` 或 `?token=`，sha256+timingSafeEqual 常时比较，与 WS auth 同强度）；未配 token（本机默认）不加门。同一 basename 防篡改守卫（同批24 WS 路由）。`handleApiRequest` 加第三参 `ctx`（附加式，smoke-runner 的 /api/skills 兼容不变），SPA 与 minimal 两个 server 都传 wsToken。
+- **面板「下载」按钮**（表格行 + 预览卡）：store `downloadArtifact(entry)` = fetch（token 走 Bearer header，**不进 URL** 防浏览器历史泄漏）→ blob → objectURL → 瞬时 `<a download>` 点击 → revoke；同源相对路径（面板即由该 HTTP server 服务）。
+- 测试：CLI 4（真 http server + 真 fetch——300KB 文件逐字节完整下载不被预览 cap 截断 + Content-Disposition/Length；token 门四态 Bearer/?token=/wrong/absent；未知 id 404 + 篡改索引 400；/api/skills 与 SPA fallback 不被遮蔽）+ web-panel store 3（previewIsMarkdown 三态 / download 全链路含 Bearer header 与 blob 点击序列 / HTTP 错误与网络失败包含）；web-ui-server 既有 106+28 回归绿；vite build 过（dist/index.html 已还原）。
+
+仍待后续：
+
+- 移动端消费 `artifact-*` 协议（协议就绪，独立批）。
+- vite dev 模式下下载走相对路径需 devServer proxy `/api`（生产面板由同一 server 服务无此问题）——如遇再配。
+
 ### 第一阶段：安全与可运营性 ✅（2026-07-09 批1-15 全部落地）
 
 1. `manual/auto/dontAsk` permission mode。✅

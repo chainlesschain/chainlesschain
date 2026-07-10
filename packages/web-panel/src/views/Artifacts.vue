@@ -56,6 +56,7 @@
             <a-button size="small" @click="store.openPreview(record)"
               >预览</a-button
             >
+            <a-button size="small" @click="onDownload(record)">下载</a-button>
             <a-popconfirm title="删除该交付物？" @confirm="onRemove(record.id)">
               <a-button size="small" danger>删除</a-button>
             </a-popconfirm>
@@ -83,7 +84,12 @@
         </a-space>
       </template>
       <template #extra>
-        <a-button size="small" @click="store.closePreview()">关闭</a-button>
+        <a-space>
+          <a-button size="small" @click="onDownload(store.preview.entry)"
+            >下载</a-button
+          >
+          <a-button size="small" @click="store.closePreview()">关闭</a-button>
+        </a-space>
       </template>
 
       <img
@@ -92,6 +98,9 @@
         class="preview-image"
         alt="artifact preview"
       />
+      <div v-else-if="store.previewIsMarkdown" class="preview-markdown">
+        <MarkdownRenderer :content="store.preview.content || ''" />
+      </div>
       <pre
         v-else-if="store.preview.previewable"
         class="preview-text"
@@ -119,6 +128,7 @@
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import { ReloadOutlined } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
+import MarkdownRenderer from "../components/MarkdownRenderer.vue";
 import { useArtifactsStore } from "../stores/artifacts";
 
 const store = useArtifactsStore();
@@ -148,6 +158,11 @@ async function onClean() {
   message.info(n > 0 ? `清理了 ${n} 个过期交付物` : "没有过期交付物");
 }
 
+async function onDownload(entry) {
+  const ok = await store.downloadArtifact(entry);
+  if (!ok) message.error("下载失败");
+}
+
 onMounted(() => {
   store.fetchArtifacts();
 });
@@ -173,6 +188,10 @@ onBeforeUnmount(() => {
   word-break: break-word;
   font-size: 12px;
   margin: 0;
+}
+.preview-markdown {
+  max-height: 480px;
+  overflow: auto;
 }
 .preview-image {
   max-width: 100%;

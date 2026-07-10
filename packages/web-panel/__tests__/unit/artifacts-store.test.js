@@ -120,6 +120,86 @@ describe("artifacts store", () => {
     expect(sendRaw).toHaveBeenCalledWith({ type: "artifact-clean" });
   });
 
+  it("previewIsMarkdown only for utf8 text/markdown previews", async () => {
+    const store = useArtifactsStore();
+    sendRaw.mockResolvedValueOnce({
+      previewable: true,
+      encoding: "utf8",
+      content: "# t",
+    });
+    await store.openPreview({ id: "a", mime: "text/markdown" });
+    expect(store.previewIsMarkdown).toBe(true);
+
+    sendRaw.mockResolvedValueOnce({
+      previewable: true,
+      encoding: "utf8",
+      content: "plain",
+    });
+    await store.openPreview({ id: "b", mime: "text/plain" });
+    expect(store.previewIsMarkdown).toBe(false);
+
+    sendRaw.mockResolvedValueOnce({
+      previewable: true,
+      encoding: "base64",
+      content: "aGk=",
+    });
+    await store.openPreview({ id: "c", mime: "image/png" });
+    expect(store.previewIsMarkdown).toBe(false);
+  });
+
+  it("downloadArtifact fetches with the Bearer token and clicks a blob link", async () => {
+    const store = useArtifactsStore();
+    const clicked = [];
+    const a = {
+      click: () => clicked.push("click"),
+      remove: () => clicked.push("remove"),
+    };
+    const deps = {
+      fetch: vi.fn().mockResolvedValue({
+        ok: true,
+        blob: async () => ({ size: 3 }),
+      }),
+      document: {
+        createElement: () => a,
+        body: { appendChild: () => clicked.push("append") },
+      },
+      URL: {
+        createObjectURL: vi.fn(() => "blob:xyz"),
+        revokeObjectURL: vi.fn(),
+      },
+      config: { wsToken: "tok-1" },
+    };
+    const ok = await store.downloadArtifact(
+      { id: "art_1", title: "weekly.md" },
+      deps,
+    );
+    expect(ok).toBe(true);
+    expect(deps.fetch).toHaveBeenCalledWith("/api/artifacts/art_1/download", {
+      headers: { Authorization: "Bearer tok-1" },
+    });
+    expect(a.href).toBe("blob:xyz");
+    expect(a.download).toBe("weekly.md");
+    expect(clicked).toEqual(["append", "click", "remove"]);
+    expect(deps.URL.revokeObjectURL).toHaveBeenCalledWith("blob:xyz");
+  });
+
+  it("downloadArtifact returns false on HTTP error or fetch failure", async () => {
+    const store = useArtifactsStore();
+    const deps = {
+      fetch: vi.fn().mockResolvedValue({ ok: false, status: 401 }),
+      document: { createElement: () => ({}), body: { appendChild: () => {} } },
+      URL: { createObjectURL: () => "", revokeObjectURL: () => {} },
+      config: {},
+    };
+    await expect(
+      store.downloadArtifact({ id: "art_x" }, deps),
+    ).resolves.toBe(false);
+    deps.fetch = vi.fn().mockRejectedValue(new Error("net down"));
+    await expect(
+      store.downloadArtifact({ id: "art_x" }, deps),
+    ).resolves.toBe(false);
+  });
+
   it("formatSize / kindColor helpers", () => {
     const store = useArtifactsStore();
     expect(store.formatSize(512)).toBe("512 B");

@@ -19,6 +19,7 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { getInlineSource as getEnvelopeInlineSource } from "./web-ui-envelope.js";
 import { CLISkillLoader } from "./skill-loader.js";
@@ -1224,27 +1225,139 @@ function findWebPanelDist(staticDir) {
   return null;
 }
 
+/** Constant-time token check (same construction as ws-server's): hash both
+ *  sides to a fixed length so length differences don't leak, then compare in
+ *  constant time. `null`/absent configured token → no auth required. */
+function downloadTokenOk(configuredToken, req) {
+  if (!configuredToken) return true;
+  let supplied = "";
+  const auth = String(req.headers?.authorization || "");
+  if (auth.toLowerCase().startsWith("bearer ")) {
+    supplied = auth.slice(7).trim();
+  } else {
+    try {
+      supplied =
+        new URL(req.url, "http://localhost").searchParams.get("token") || "";
+    } catch {
+      supplied = "";
+    }
+  }
+  const a = crypto.createHash("sha256").update(String(supplied)).digest();
+  const b = crypto
+    .createHash("sha256")
+    .update(String(configuredToken))
+    .digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+/** RFC 5987 filename* value for a Content-Disposition header. */
+function encodeDispositionFilename(name) {
+  const base = String(name || "artifact").replace(/[\r\n"]/g, "_");
+  return `attachment; filename*=UTF-8''${encodeURIComponent(base)}`;
+}
+
 /**
  * Handle `/api/*` routes. Returns `true` if the request was handled (caller
  * must stop further processing) and `false` for everything else (caller
  * continues with the static/SPA handler).
  *
- * Currently exposes a single read-only endpoint:
+ * Endpoints:
  *
  *   GET /api/skills → 200 { schema: 1, skills: [{name, source, category,
  *                    description, version}] }
+ *   GET /api/artifacts/<id>/download → the artifact's stored copy as an
+ *                    attachment (full file — the WS artifact-content preview
+ *                    route is capped; this is the uncapped download path the
+ *                    web-panel's 下载 button uses). When the server was
+ *                    created with a wsToken, the same token must accompany
+ *                    the request (`Authorization: Bearer` or `?token=`).
  *
- * The smoke-runner's project-mode probe (packer/smoke-runner.js) hits this
- * to verify bundled skills were materialized and registered. The shape is
- * deliberately minimal — the Web UI's richer skill views use WS.
+ * The smoke-runner's project-mode probe (packer/smoke-runner.js) hits
+ * /api/skills to verify bundled skills were materialized and registered. The
+ * shapes are deliberately minimal — the Web UI's richer views use WS.
  *
  * @param {import("http").IncomingMessage} req
  * @param {import("http").ServerResponse}  res
+ * @param {{ wsToken?: string|null }} [ctx]  server context (auth for downloads)
  * @returns {boolean}  true if handled, false if the caller should continue
  */
-export function handleApiRequest(req, res) {
+export function handleApiRequest(req, res, ctx = {}) {
   const urlPath = req.url.split("?")[0];
   if (!urlPath.startsWith("/api/")) return false;
+
+  const artifactMatch = urlPath.match(
+    /^\/api\/artifacts\/([A-Za-z0-9_]+)\/download$/,
+  );
+  if (artifactMatch) {
+    if (req.method !== "GET") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Method Not Allowed" }));
+      return true;
+    }
+    // The panel authenticates its WS with this token; the download endpoint
+    // serves artifact FILE CONTENT, so it must not be weaker than the WS.
+    if (!downloadTokenOk(ctx.wsToken || null, req)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return true;
+    }
+    // Async body in a sync router: the route is claimed (return true) and the
+    // response completes when the store import resolves.
+    (async () => {
+      try {
+        const { ArtifactStore } = await import("./artifact-store.js");
+        const store = new ArtifactStore();
+        const entry = store.get(artifactMatch[1]);
+        if (!entry) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Not Found" }));
+          return;
+        }
+        // Same tamper guard as the WS content route: the stored filename must
+        // be a plain basename or the index row is refused.
+        if (
+          !entry.file ||
+          entry.file !== path.basename(entry.file) ||
+          entry.file.includes("..")
+        ) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Bad artifact index row" }));
+          return;
+        }
+        const storedPath = store.storedPath(entry);
+        let size;
+        try {
+          size = fs.statSync(storedPath).size;
+        } catch {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Stored copy missing" }));
+          return;
+        }
+        const downloadName =
+          entry.title && path.extname(entry.title)
+            ? entry.title
+            : path.basename(entry.sourcePath || entry.file);
+        res.writeHead(200, {
+          "Content-Type": entry.mime || "application/octet-stream",
+          "Content-Length": size,
+          "Content-Disposition": encodeDispositionFilename(downloadName),
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+        });
+        const stream = fs.createReadStream(storedPath);
+        stream.on("error", () => res.destroy());
+        stream.pipe(res);
+      } catch (err) {
+        try {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        } catch {
+          /* headers already sent — connection is torn down by the stream */
+        }
+      }
+    })();
+    return true;
+  }
 
   if (urlPath === "/api/skills") {
     if (req.method !== "GET") {
@@ -1328,7 +1441,7 @@ export function createWebUIServer(opts) {
     return http.createServer((req, res) => {
       // /api/* routes are handled before the static file logic so GET /api/skills
       // doesn't accidentally resolve to index.html via the SPA fallback.
-      if (handleApiRequest(req, res)) return;
+      if (handleApiRequest(req, res, { wsToken: opts.wsToken || null })) return;
 
       if (req.method !== "GET") {
         res.writeHead(405, { "Content-Type": "text/plain" });
@@ -1415,7 +1528,7 @@ export function createWebUIServer(opts) {
   // ── Fallback: embedded classic single-page HTML ─────────────────────────
   const html = buildHtml(opts);
   return http.createServer((req, res) => {
-    if (handleApiRequest(req, res)) return;
+    if (handleApiRequest(req, res, { wsToken: opts.wsToken || null })) return;
 
     const urlPath = req.url.split("?")[0];
     if (

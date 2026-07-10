@@ -79,6 +79,51 @@ export const useArtifactsStore = defineStore("artifacts", () => {
     return `data:${p.entry?.mime || "image/png"};base64,${p.content}`;
   });
 
+  /** Rich-render the preview as Markdown? (utf8 text with a markdown mime) */
+  const previewIsMarkdown = computed(() => {
+    const p = preview.value;
+    return (
+      p?.previewable === true &&
+      p.encoding === "utf8" &&
+      String(p.entry?.mime || "").toLowerCase() === "text/markdown"
+    );
+  });
+
+  /**
+   * Download the FULL stored file through the HTTP endpoint (the WS preview
+   * route is capped; this one streams everything) — fetch + blob + a
+   * transient <a download> click. The panel's WS token authenticates the
+   * request as a Bearer header (never in the URL, so it can't leak into
+   * browser history).
+   */
+  async function downloadArtifact(entry, deps = {}) {
+    if (!entry?.id) return false;
+    const fetchFn = deps.fetch || globalThis.fetch;
+    const doc = deps.document || globalThis.document;
+    const urlApi = deps.URL || globalThis.URL;
+    const cfg = (deps.config || globalThis.window?.__CC_CONFIG__) ?? {};
+    try {
+      const res = await fetchFn(`/api/artifacts/${entry.id}/download`, {
+        headers: cfg.wsToken
+          ? { Authorization: `Bearer ${cfg.wsToken}` }
+          : {},
+      });
+      if (!res.ok) return false;
+      const blob = await res.blob();
+      const href = urlApi.createObjectURL(blob);
+      const a = doc.createElement("a");
+      a.href = href;
+      a.download = entry.title || entry.id;
+      doc.body.appendChild(a);
+      a.click();
+      a.remove();
+      urlApi.revokeObjectURL(href);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function removeArtifact(artifactId) {
     const ws = useWsStore();
     if (!artifactId) return false;
@@ -139,11 +184,13 @@ export const useArtifactsStore = defineStore("artifacts", () => {
     preview,
     previewLoading,
     previewImageSrc,
+    previewIsMarkdown,
     fetchArtifacts,
     openPreview,
     closePreview,
     removeArtifact,
     cleanExpired,
+    downloadArtifact,
     formatSize,
     kindColor,
   };
