@@ -249,8 +249,22 @@ function registerPermissionIPC(database) {
   });
 
   // ========================================
-  // Approval Workflows (8 handlers)
+  // Approval Workflows (9 handlers)
   // ========================================
+
+  ipcMain.handle("perm:get-workflows", async (_event, params) => {
+    try {
+      const {
+        getApprovalWorkflowManager,
+      } = require("./approval-workflow-manager");
+      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const { orgId, ...options } = params || {};
+      return await manager.getWorkflows(orgId, options);
+    } catch (error) {
+      logger.error("[IPC] perm:get-workflows failed:", error);
+      throw error;
+    }
+  });
 
   ipcMain.handle("perm:create-workflow", async (_event, params) => {
     try {

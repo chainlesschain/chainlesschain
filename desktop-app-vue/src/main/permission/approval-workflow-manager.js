@@ -162,6 +162,67 @@ class ApprovalWorkflowManager extends EventEmitter {
     }
   }
 
+  /**
+   * List approval workflows for an organization
+   */
+  async getWorkflows(orgId, options = {}) {
+    try {
+      const db = this.database.getDatabase();
+
+      let query = `SELECT * FROM approval_workflows WHERE org_id = ?`;
+      const params = [orgId];
+
+      if (options.enabledOnly) {
+        query += ` AND enabled = 1`;
+      }
+
+      query += ` ORDER BY created_at DESC`;
+
+      const rows = db.prepare(query).all(...params);
+
+      return {
+        success: true,
+        workflows: rows.map((r) => {
+          // A corrupt JSON column on one workflow must not throw out of the
+          // map and break the whole list — degrade that field to null/[].
+          let approvers = [];
+          try {
+            approvers = JSON.parse(r.approvers) || [];
+          } catch {
+            approvers = [];
+          }
+          let triggerConditions = null;
+          if (r.trigger_conditions) {
+            try {
+              triggerConditions = JSON.parse(r.trigger_conditions);
+            } catch {
+              triggerConditions = null;
+            }
+          }
+          return {
+            id: r.id,
+            orgId: r.org_id,
+            name: r.name,
+            description: r.description,
+            triggerResourceType: r.trigger_resource_type,
+            triggerAction: r.trigger_action,
+            triggerConditions,
+            approvalType: r.approval_type,
+            approvers,
+            timeoutHours: r.timeout_hours,
+            onTimeout: r.on_timeout,
+            enabled: r.enabled === 1,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at,
+          };
+        }),
+      };
+    } catch (error) {
+      logger.error("[ApprovalWorkflow] Error listing workflows:", error);
+      throw error;
+    }
+  }
+
   // ========================================
   // Approval Request Operations
   // ========================================

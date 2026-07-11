@@ -1,0 +1,20 @@
+{
+  "id": "approval-center",
+  "name": "审批中心",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/approvals 斜杠命令 — 审批中心（待审批请求 批准/拒绝 + 审批历史 + 审批工作流 创建/启停）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "approval-center",
+        "trigger": "/approvals",
+        "handler": "builtin:openApprovalCenterPanel",
+        "description": "打开审批中心",
+        "icon": "AuditOutlined"
+      }
+    }
+  ]
+}

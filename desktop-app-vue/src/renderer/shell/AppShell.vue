@@ -187,6 +187,10 @@
       v-model:open="permissionManagementPanelOpen"
       :prefill-text="permissionManagementPrefill"
     />
+    <ApprovalCenterPanel
+      v-model:open="approvalCenterPanelOpen"
+      :prefill-text="approvalCenterPrefill"
+    />
     <SharedAlbumsPanel
       v-model:open="sharedAlbumsPanelOpen"
       :prefill-text="sharedAlbumsPrefill"
@@ -296,6 +300,7 @@ import TagManagerPanel from "./TagManagerPanel.vue";
 import CoworkDashboardPanel from "./CoworkDashboardPanel.vue";
 import SSOConfigurationPanel from "./SSOConfigurationPanel.vue";
 import PermissionManagementPanel from "./PermissionManagementPanel.vue";
+import ApprovalCenterPanel from "./ApprovalCenterPanel.vue";
 import SharedAlbumsPanel from "./SharedAlbumsPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
@@ -395,6 +400,8 @@ const ssoConfigurationPanelOpen = ref(false);
 const ssoConfigurationPrefill = ref("");
 const permissionManagementPanelOpen = ref(false);
 const permissionManagementPrefill = ref("");
+const approvalCenterPanelOpen = ref(false);
+const approvalCenterPrefill = ref("");
 const sharedAlbumsPanelOpen = ref(false);
 const sharedAlbumsPrefill = ref("");
 const organizationsPanelOpen = ref(false);
@@ -489,6 +496,7 @@ let unregisterTagManagerHandler: (() => void) | null = null;
 let unregisterCoworkDashboardHandler: (() => void) | null = null;
 let unregisterSSOConfigurationHandler: (() => void) | null = null;
 let unregisterPermissionManagementHandler: (() => void) | null = null;
+let unregisterApprovalCenterHandler: (() => void) | null = null;
 let unregisterSharedAlbumsHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
@@ -791,6 +799,13 @@ onMounted(async () => {
       permissionManagementPanelOpen.value = true;
     },
   );
+  unregisterApprovalCenterHandler = registerSlashHandler(
+    "builtin:openApprovalCenterPanel",
+    ({ args }) => {
+      approvalCenterPrefill.value = args ?? "";
+      approvalCenterPanelOpen.value = true;
+    },
+  );
   unregisterSharedAlbumsHandler = registerSlashHandler(
     "builtin:openSharedAlbumsPanel",
     ({ args }) => {
@@ -972,6 +987,8 @@ onBeforeUnmount(() => {
   unregisterSSOConfigurationHandler = null;
   unregisterPermissionManagementHandler?.();
   unregisterPermissionManagementHandler = null;
+  unregisterApprovalCenterHandler?.();
+  unregisterApprovalCenterHandler = null;
   unregisterSharedAlbumsHandler?.();
   unregisterSharedAlbumsHandler = null;
   unregisterOrganizationsHandler?.();

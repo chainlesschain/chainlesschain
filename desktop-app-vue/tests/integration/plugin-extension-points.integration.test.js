@@ -411,6 +411,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(rc.pluginId).toBe("recommendations");
   });
 
+  it("approval-center 的 /approvals slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ac = slash.find((s) => s.trigger === "/approvals");
+    expect(ac).toBeDefined();
+    expect(ac.handler).toBe("builtin:openApprovalCenterPanel");
+    expect(ac.pluginId).toBe("approval-center");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");
