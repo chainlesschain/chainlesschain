@@ -202,10 +202,12 @@ describe("getBaseSystemPrompt — environment section", () => {
     expect(prompt).toContain("Git:");
   });
 
-  it("mentions auto-install and persistence in prompt", () => {
+  it("mentions gated auto-install and opt-in persistence in prompt", () => {
     const prompt = getBaseSystemPrompt("/test/dir");
-    expect(prompt).toContain("auto-installed via pip");
+    // gap 2026-07-11: auto-install is opt-in, scripts default to temp files
+    expect(prompt).toContain("NOT auto-installed");
     expect(prompt).toContain("agent-scripts");
+    expect(prompt).toContain("persist:true");
   });
 });
 
@@ -220,10 +222,10 @@ describe("executeTool — run_code enhancements", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("persists scripts to .chainlesschain/agent-scripts/ by default", async () => {
+  it("persists scripts to .chainlesschain/agent-scripts/ only with persist:true", async () => {
     const result = await executeTool(
       "run_code",
-      { language: "node", code: 'console.log("persist-test")' },
+      { language: "node", code: 'console.log("persist-test")', persist: true },
       { cwd: tempDir },
     );
     expect(result.success).toBe(true);
@@ -234,19 +236,22 @@ describe("executeTool — run_code enhancements", () => {
     expect(existsSync(result.scriptPath)).toBe(true);
   });
 
-  it("uses temp file and cleans up when persist=false", async () => {
+  it("uses a temp file by DEFAULT (gap 2026-07-11: scripts stay out of the project)", async () => {
     const result = await executeTool(
       "run_code",
       {
         language: "node",
         code: 'console.log("temp-test")',
-        persist: false,
       },
       { cwd: tempDir },
     );
     expect(result.success).toBe(true);
     expect(result.output).toContain("temp-test");
     expect(result.scriptPath).toBeUndefined();
+    // Nothing lands in the project tree
+    expect(existsSync(join(tempDir, ".chainlesschain", "agent-scripts"))).toBe(
+      false,
+    );
   });
 
   it("returns error classification on syntax error", async () => {
@@ -291,7 +296,7 @@ describe("executeTool — run_code enhancements", () => {
 
     await executeTool(
       "run_code",
-      { language: "node", code: 'console.log("mkdir-test")' },
+      { language: "node", code: 'console.log("mkdir-test")', persist: true },
       { cwd: tempDir },
     );
 
@@ -301,7 +306,7 @@ describe("executeTool — run_code enhancements", () => {
   it("script filename includes language and timestamp", async () => {
     const result = await executeTool(
       "run_code",
-      { language: "node", code: 'console.log("name-test")' },
+      { language: "node", code: 'console.log("name-test")', persist: true },
       { cwd: tempDir },
     );
     expect(result.scriptPath).toMatch(/-node\.js$/);

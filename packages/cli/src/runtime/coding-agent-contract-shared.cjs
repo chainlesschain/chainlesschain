@@ -521,7 +521,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "code",
     tier: "extension",
     description:
-      "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. Scripts are saved for reference. Missing Python packages are auto-installed.",
+      "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. Scripts run from a temp file unless persist:true. Missing Python packages are NOT auto-installed unless the user opted in (settings runCode.autoInstall).",
     inputSchema: {
       type: "object",
       properties: {
@@ -538,7 +538,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         persist: {
           type: "boolean",
           description:
-            "If true (default), save script in .chainlesschain/agent-scripts/. If false, use temp file and clean up.",
+            "If true, save the script in .chainlesschain/agent-scripts/ for reference. Default false: run from a temp file outside the project.",
         },
       },
       required: ["language", "code"],

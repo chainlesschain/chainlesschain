@@ -673,8 +673,8 @@ Key behaviors:
 When the user's problem involves data processing, calculations, file operations, text parsing, API calls, web scraping, or any task that can be solved programmatically:
 - Proactively write and execute code using run_code tool
 - Choose the best language: Python for data/math/scraping, Node.js for JSON/API, Bash for system tasks
-- Missing Python packages are auto-installed via pip when import errors are detected
-- Scripts are persisted in .chainlesschain/agent-scripts/ for reference
+- Missing Python packages are NOT auto-installed by default; the tool result tells you (and the user) how to opt in (settings runCode.autoInstall)
+- Scripts run from a temp file by default; pass persist:true to keep one in .chainlesschain/agent-scripts/ for reference
 - Show the results and explain them clearly
 - If the first attempt fails, debug and retry with a different approach
 
@@ -3908,7 +3908,10 @@ async function _executeRunCode(args, cwd) {
   const lang = args.language;
   const code = args.code;
   const timeoutSec = Math.min(Math.max(args.timeout || 60, 1), 300);
-  const persist = args.persist !== false; // default true
+  // gap-analysis 2026-07-11 P0 "依赖安装与凭据": agent-generated scripts
+  // default to the OS temp dir; only an explicit persist:true lands them in
+  // the project (.chainlesschain/agent-scripts/).
+  const persist = args.persist === true; // default false (temp dir)
 
   const extMap = { python: ".py", node: ".js", bash: ".sh" };
   const ext = extMap[lang];
@@ -3978,6 +3981,51 @@ async function _executeRunCode(args, cwd) {
             };
           }
 
+          // Auto-install is OPT-IN (settings runCode.autoInstall / env
+          // CC_RUN_CODE_AUTO_INSTALL=1) with an optional package allowlist;
+          // every attempt — including refused ones — is audited.
+          const {
+            resolveAutoInstallPolicy,
+            isPackageAllowed,
+            autoInstallDisabledHint,
+            recordInstallAudit,
+          } = await import("../lib/dependency-install-policy.js");
+          const installPolicy = resolveAutoInstallPolicy({ cwd });
+          if (!installPolicy.enabled) {
+            recordInstallAudit({
+              package: packageName,
+              interpreter,
+              cwd,
+              outcome: "disabled",
+            });
+            return {
+              error: (stderr || message).substring(0, 5000),
+              stderr: stderr.substring(0, 5000),
+              exitCode: err.status,
+              language: lang,
+              ...classified,
+              hint: autoInstallDisabledHint(packageName),
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          }
+          if (!isPackageAllowed(packageName, installPolicy.allowlist)) {
+            recordInstallAudit({
+              package: packageName,
+              interpreter,
+              cwd,
+              outcome: "blocked",
+            });
+            return {
+              error: (stderr || message).substring(0, 5000),
+              stderr: stderr.substring(0, 5000),
+              exitCode: err.status,
+              language: lang,
+              ...classified,
+              hint: `Package "${packageName}" is not in runCode.installAllowlist — install it manually or add it to the allowlist.`,
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          }
+
           // Attempt pip install
           try {
             execSync(`${interpreter} -m pip install ${packageName}`, {
@@ -3985,6 +4033,12 @@ async function _executeRunCode(args, cwd) {
               timeout: 120000,
               maxBuffer: 2 * 1024 * 1024,
               stdio: ["pipe", "pipe", "pipe"],
+            });
+            recordInstallAudit({
+              package: packageName,
+              interpreter,
+              cwd,
+              outcome: "installed",
             });
 
             // Retry execution
@@ -4006,6 +4060,13 @@ async function _executeRunCode(args, cwd) {
               scriptPath: persist ? scriptPath : undefined,
             };
           } catch (pipErr) {
+            recordInstallAudit({
+              package: packageName,
+              interpreter,
+              cwd,
+              outcome: "failed",
+              detail: (pipErr.stderr || pipErr.message || "").substring(0, 200),
+            });
             return {
               error: (stderr || message).substring(0, 5000),
               stderr: stderr.substring(0, 5000),

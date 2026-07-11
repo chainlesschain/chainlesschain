@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock plan-mode, skill-loader, hook-manager before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -63,6 +63,16 @@ describe("run_code pip auto-install flow", () => {
     execSyncCalls = [];
     execSyncImpl = null;
     vi.mocked(execSync).mockReset();
+    // gap 2026-07-11: auto-install is opt-in — these flow tests opt in; the
+    // default-disabled behavior has its own cases below. Audit lines go to
+    // the temp dir, never the real home.
+    process.env.CC_RUN_CODE_AUTO_INSTALL = "1";
+    process.env.CC_AUDIT_DIR = path.join(tempDir, "audit");
+  });
+
+  afterEach(() => {
+    delete process.env.CC_RUN_CODE_AUTO_INSTALL;
+    delete process.env.CC_AUDIT_DIR;
   });
 
   it("auto-installs missing Python package and retries", async () => {
@@ -193,5 +203,65 @@ describe("run_code pip auto-install flow", () => {
     expect(pipCalled).toBe(false);
     // Verify the validation function also rejects it
     expect(isValidPackageName("foo; rm -rf /")).toBe(false);
+  });
+
+  it("DEFAULT: refuses to auto-install and returns the opt-in hint", async () => {
+    delete process.env.CC_RUN_CODE_AUTO_INSTALL; // back to the default policy
+    let pipCalled = false;
+    vi.mocked(execSync).mockImplementation((cmd) => {
+      if (String(cmd).includes("pip install")) {
+        pipCalled = true;
+        return "";
+      }
+      const err = new Error("ModuleNotFoundError: No module named 'pandas'");
+      err.stderr = "ModuleNotFoundError: No module named 'pandas'";
+      err.status = 1;
+      throw err;
+    });
+
+    const result = await executeTool(
+      "run_code",
+      { language: "python", code: "import pandas" },
+      { cwd: tempDir },
+    );
+
+    expect(pipCalled).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.hint).toContain("disabled by default");
+    expect(result.hint).toContain("runCode");
+  });
+
+  it("blocks packages outside runCode.installAllowlist (opt-in + allowlist)", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    // Project settings: allowlist that does NOT include pandas
+    const claudeDir = path.join(tempDir, ".claude");
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(claudeDir, "settings.json"),
+      JSON.stringify({ runCode: { installAllowlist: ["requests"] } }),
+      "utf-8",
+    );
+
+    let pipCalled = false;
+    vi.mocked(execSync).mockImplementation((cmd) => {
+      if (String(cmd).includes("pip install")) {
+        pipCalled = true;
+        return "";
+      }
+      const err = new Error("ModuleNotFoundError: No module named 'pandas'");
+      err.stderr = "ModuleNotFoundError: No module named 'pandas'";
+      err.status = 1;
+      throw err;
+    });
+
+    const result = await executeTool(
+      "run_code",
+      { language: "python", code: "import pandas" },
+      { cwd: tempDir },
+    );
+
+    expect(pipCalled).toBe(false);
+    expect(result.hint).toContain("installAllowlist");
   });
 });
