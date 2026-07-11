@@ -342,6 +342,67 @@ export function registerMcpCommand(program) {
       }
     });
 
+  // mcp computer-use — expose GUI control verbs as an MCP server (opt-in)
+  mcp
+    .command("computer-use")
+    .description(
+      "Expose GUI control (screenshot/window-list/click/type/scroll/clipboard/app-launch) as a Streamable-HTTP MCP server. OFF by default; input verbs need confirm:true; high-risk apps (terminals/IDEs/settings/password managers) always confirm",
+    )
+    .option("--port <n>", "Port to listen on (default: random free port)", "0")
+    .option(
+      "--capabilities <list>",
+      "Comma-separated subset (default: all): screenshot,window_list,app_launch,click,type,scroll,clipboard_read,clipboard_write",
+    )
+    .option(
+      "--allow-apps <list>",
+      "Comma-separated app allowlist for input/launch verbs (default: any app)",
+    )
+    .option(
+      "--confirm-all",
+      "Require confirm:true for every verb, not just input verbs",
+    )
+    .option("--token <token>", "Fixed Bearer token (default: random)")
+    .option("--no-auth", "Disable Bearer auth (server binds 127.0.0.1 only)")
+    .action(async (options) => {
+      try {
+        const { startComputerUseServer } =
+          await import("../lib/computer-use/computer-use-server.js");
+        const handle = await startComputerUseServer({
+          port: Number(options.port) || 0,
+          token: options.auth === false ? false : options.token || null,
+          config: {
+            capabilities: options.capabilities
+              ? options.capabilities.split(",").map((s) => s.trim())
+              : undefined,
+            appAllowlist: options.allowApps
+              ? options.allowApps.split(",").map((s) => s.trim())
+              : undefined,
+            confirmAll: options.confirmAll === true,
+          },
+        });
+        logger.log(
+          chalk.bold("Computer-use MCP server ready (Streamable-HTTP)"),
+        );
+        logger.log(`  URL:          ${chalk.cyan(handle.url)}`);
+        logger.log(`  Capabilities: ${handle.capabilities.join(", ")}`);
+        if (handle.token) {
+          logger.log(`  Auth:         Bearer ${handle.token}`);
+        } else {
+          logger.log(chalk.yellow("  Auth:         disabled (--no-auth)"));
+        }
+        logger.log(
+          chalk.yellow(
+            "  ⚠ GUI control can act on anything on screen. Input verbs need confirm:true; high-risk apps always confirm.",
+          ),
+        );
+        logger.log(chalk.gray("\nCtrl+C to stop."));
+        await new Promise(() => {});
+      } catch (err) {
+        logger.error(chalk.red(`mcp computer-use failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
   // mcp servers — list configured servers
   mcp
     .command("servers")
