@@ -54,6 +54,17 @@ import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
 import { mergeConsecutiveMessages } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
+import {
+  STREAM_PROTOCOL_VERSION,
+  computePolicyDigest,
+  computeToolsHash,
+  buildLoadedSources,
+} from "../lib/headless-manifest.js";
+import {
+  HEADLESS_EXIT_CODES,
+  classifyLoopError,
+  exitCodeForEndReason,
+} from "../lib/exit-codes.cjs";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -200,13 +211,18 @@ export function parseToolList(value) {
  * Persistence is intentionally OFF unless a resume/continue/persist intent is
  * present, so a plain one-shot `cc agent -p "..."` writes nothing to disk.
  *
- * @param {object} options { resume, continueSession, sessionId, persistSession }
+ * `--ephemeral` forces persistence OFF regardless of the above: a resume id
+ * still REPLAYS prior history into context, but nothing new is written — the
+ * deterministic-CI shape ("read context, leave no trace").
+ *
+ * @param {object} options { resume, continueSession, sessionId, persistSession, ephemeral }
  * @param {object} store   { getLastSessionId }  (injection seam)
  * @param {string} fallbackId  used when nothing is being resumed
  * @returns {{ sessionId:string, resumeId:string|null, persist:boolean, wantLatest:boolean }}
  */
 export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
-  const { resume, continueSession, sessionId, persistSession } = options;
+  const { resume, continueSession, sessionId, persistSession, ephemeral } =
+    options;
   const wantLatest = continueSession === true || resume === true;
   let resumeId = null;
   if (wantLatest) {
@@ -217,7 +233,10 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
   } else if (typeof resume === "string" && resume.trim()) {
     resumeId = resume.trim();
   }
-  const persist = persistSession === true || resumeId != null || wantLatest;
+  const persist =
+    ephemeral === true
+      ? false
+      : persistSession === true || resumeId != null || wantLatest;
   const id = resumeId || sessionId || fallbackId;
   return { sessionId: id, resumeId, persist, wantLatest };
 }
@@ -900,7 +919,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } catch (err) {
       writeErr(`Error: ${err.message}\n`);
       emitHeadlessError(err.message);
-      return { exitCode: 1, result: err.message, isError: true };
+      // Bad --mcp-config / MCP wiring is a CONFIG error, not a run failure.
+      return {
+        exitCode: HEADLESS_EXIT_CODES.CONFIG_ERROR,
+        result: err.message,
+        isError: true,
+      };
     }
   }
 
@@ -943,7 +967,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       writeErr(`Error: ${err.message}\n`);
       if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
       emitHeadlessError(err.message);
-      return { exitCode: 1, result: err.message, isError: true };
+      // A bad --permission-prompt-tool reference is a CONFIG error.
+      return {
+        exitCode: HEADLESS_EXIT_CODES.CONFIG_ERROR,
+        result: err.message,
+        isError: true,
+      };
     }
     if (approvalGate && typeof approvalGate.setConfirmer === "function") {
       approvalGate.setConfirmer(
@@ -1175,11 +1204,29 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   emitStream({
     type: "system",
     subtype: "init",
+    // Deterministic-headless manifest (gap-analysis 2026-07-11): protocol
+    // version + persistence + live sources + policy/tool digests so CI can
+    // assert the run shape. Mirrors agent-sdk PROTOCOL_VERSION.
+    protocol_version: STREAM_PROTOCOL_VERSION,
     session_id: sessionId,
+    session_persistence: persist,
     model,
     provider,
     permission_mode: options.permissionMode || "default",
     tools: enabledToolNames,
+    tools_hash: computeToolsHash(enabledToolNames),
+    policy_digest: computePolicyDigest({
+      permissionMode: options.permissionMode,
+      allowedTools: options.allowedTools,
+      disallowedTools: options.disallowedTools,
+      permissionRules,
+    }),
+    loaded_sources: buildLoadedSources({
+      permissionRules,
+      settingsHooks,
+      mcp: Boolean(mcp),
+      enabledToolNames,
+    }),
     max_turns: budget.limit,
     resumed_from: resumeId,
     history_messages: history.length,
@@ -1471,7 +1518,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } else {
       writeErr(`Error: ${message}\n`);
     }
-    return { exitCode: 1, result: message, isError: true };
+    // Provider/transport failures get their own exit code (5) so CI can tell
+    // "the model call failed" from "the run itself errored" (1).
+    return { exitCode: classifyLoopError(err), result: message, isError: true };
   } finally {
     // Drop the signal handlers first — a normal return must not leave a
     // process-wide SIGINT/SIGTERM listener behind (a later Ctrl-C would wrongly
@@ -1739,7 +1788,13 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
-  return { exitCode: isError ? 1 : 0, result: finalText, isError };
+  // Exit-code taxonomy: max-turns → 3, cost cap → 4 (both still non-zero, so
+  // "any failure" checks keep working; scripts can now tell exhaustion apart).
+  return {
+    exitCode: exitCodeForEndReason(endReason, isError),
+    result: finalText,
+    isError,
+  };
 }
 
 function buildResultEnvelope({

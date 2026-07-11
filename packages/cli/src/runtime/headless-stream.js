@@ -43,6 +43,12 @@ import {
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
+import {
+  STREAM_PROTOCOL_VERSION,
+  computePolicyDigest,
+  computeToolsHash,
+  buildLoadedSources,
+} from "../lib/headless-manifest.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -718,7 +724,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
   };
-  const persist = Boolean(options.sessionId);
+  // --ephemeral forces persistence OFF even with an explicit session id (the
+  // id is kept for event correlation only; nothing is written or replayed).
+  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
 
   // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
   // CONFIRM-tier decisions (risky shell via the ApprovalGate, settings/hook
@@ -961,11 +969,31 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   emit({
     type: "system",
     subtype: "init",
+    // Deterministic-headless manifest (gap-analysis 2026-07-11): protocol
+    // version + persistence + live sources + policy/tool digests. The init
+    // event fires BEFORE MCP resolution here (stream consumers expect it
+    // promptly), so `mcp` in loaded_sources reflects the run's MCP intent
+    // (config file / registry auto-connect enabled), not connection outcome.
+    protocol_version: STREAM_PROTOCOL_VERSION,
     session_id: sessionId,
+    session_persistence: persist,
     model,
     provider,
     permission_mode: options.permissionMode || "default",
     tools: enabledToolNames,
+    tools_hash: computeToolsHash(enabledToolNames),
+    policy_digest: computePolicyDigest({
+      permissionMode: options.permissionMode,
+      allowedTools: options.allowedTools,
+      disallowedTools: disabledTools,
+      permissionRules,
+    }),
+    loaded_sources: buildLoadedSources({
+      permissionRules,
+      settingsHooks,
+      mcp: Boolean(options.mcpConfig) || options.useRegisteredMcp !== false,
+      enabledToolNames,
+    }),
     input_format: "stream-json",
     additional_directories: additionalDirectories,
     resumed_messages: resumedMessages,

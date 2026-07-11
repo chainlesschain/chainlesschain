@@ -173,6 +173,14 @@ export function registerAgentCommand(program) {
       "Everything --safe-mode disables PLUS skills, plugins and MCP/IDE auto-connect — minimal fast surface for scripted calls (explicit --mcp-config still loads; permission rules STAY active)",
     )
     .option(
+      "--ephemeral",
+      "No session persistence: nothing is written to the session store (headless; a --resume id still replays history read-only)",
+    )
+    .option(
+      "--capabilities",
+      "Print a machine-readable capability manifest (JSON: protocol version, tools, permission modes, exit codes) and exit",
+    )
+    .option(
       "--disable-slash-commands",
       "Interactive REPL: don't dispatch '/' input as slash commands — it reaches the model verbatim (/exit and /quit stay live)",
     )
@@ -367,6 +375,14 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      // --capabilities: print the machine-readable manifest and exit — no
+      // config, no bootstrap, no network (gap-analysis 2026-07-11 快速收益 #6).
+      if (options.capabilities) {
+        const { buildAgentCapabilities } =
+          await import("../lib/headless-manifest.js");
+        console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
+        return;
+      }
       // CC_API_KEY env fallback for --api-key: lets callers (IDE plugins,
       // scripts) pass the key via the environment instead of argv, where it
       // is visible to every local process (/proc/<pid>/cmdline, Win32_Process).
@@ -830,6 +846,7 @@ export function registerAgentCommand(program) {
             outputStyle: options.outputStyle || null,
             strictMcpConfig: options.strictMcpConfig === true,
             replayUserMessages: options.replayUserMessages === true,
+            ephemeral: options.ephemeral === true,
             maxCostUsd,
             priceTable,
             chatFn: fallbackChatFn,
@@ -1025,6 +1042,8 @@ export function registerAgentCommand(program) {
           // --settings: extra .claude/settings.json permission rules
           settingsFile: options.settings || null,
           outputStyle: options.outputStyle || null,
+          // --ephemeral: no session persistence (resume replay stays read-only)
+          ephemeral: options.ephemeral === true,
           // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
           maxCostUsd,
           priceTable,
@@ -1074,6 +1093,13 @@ export function registerAgentCommand(program) {
         return;
       }
 
+      // --ephemeral is a headless contract (the interactive REPL owns its own
+      // session lifecycle) — warn instead of silently dropping the flag.
+      if (options.ephemeral) {
+        process.stderr.write(
+          "--ephemeral is only used in headless mode (-p / a task / piped stdin); ignoring for the interactive session.\n",
+        );
+      }
       // Reached only for an interactive session, where --image has no turn to
       // attach to 鈥?warn instead of silently dropping the attachment.
       if (images.length) {

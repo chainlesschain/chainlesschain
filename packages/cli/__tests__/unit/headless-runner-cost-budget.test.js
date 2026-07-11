@@ -59,7 +59,8 @@ describe("runAgentHeadless --max-budget-usd", () => {
       deps,
     );
     expect(res.isError).toBe(true);
-    expect(res.exitCode).toBe(1);
+    // Exit-code taxonomy (gap 2026-07-11): cost-cap stop → 4, not 1.
+    expect(res.exitCode).toBe(4);
     const env = envelope(out);
     expect(env.subtype).toBe("error_max_budget");
     // stopped before the second call / final response

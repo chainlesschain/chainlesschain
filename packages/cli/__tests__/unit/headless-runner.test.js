@@ -323,7 +323,8 @@ describe("headless-runner — max-turns", () => {
       { prompt: "loop forever", outputFormat: "json", maxTurns: 1 },
       deps,
     );
-    expect(r.exitCode).toBe(1);
+    // Exit-code taxonomy (gap 2026-07-11): max-turns exhaustion → 3, not 1.
+    expect(r.exitCode).toBe(3);
     expect(r.isError).toBe(true);
     expect(chatFn).toHaveBeenCalledTimes(1); // capped at 1 iteration
     const env = JSON.parse(out.join("").trim());
