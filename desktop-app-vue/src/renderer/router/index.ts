@@ -383,16 +383,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "同步设置", requiresAuth: false },
       },
       {
-        // FAMILY-26 家长端家庭守护仪表板（只读 telemetry 镜像）
-        path: "family-guard",
-        name: "FamilyGuardDashboard",
-        component: () =>
-          import(
-            /* webpackChunkName: "family-guard-dashboard" */ "../pages/family-guard/FamilyGuardDashboard.vue"
-          ),
-        meta: { title: "家庭守护" },
-      },
-      {
         path: "settings/sync-webdav",
         name: "SyncWebDAV",
         component: settingsPages.webdav,
