@@ -1229,14 +1229,135 @@ async function runRemoteDoctor(vscode) {
     portProbe,
   });
   _output.appendLine("\n" + report.summary);
+  const { classifyFixes } = require("./remote-doctor-fixes.js");
+  const fixes = classifyFixes(report.checks);
+  const buttons = ["Show report", "Copy report"];
+  if (fixes.length) buttons.push("Fix…");
   const pick = await vscode.window.showInformationMessage(
     `Remote / WSL Doctor: ${report.level.toUpperCase()} — ${report.checks.length} check(s).`,
-    "Show report",
-    "Copy report",
+    ...buttons,
   );
   if (pick === "Show report") _output.show(true);
   else if (pick === "Copy report")
     await vscode.env.clipboard?.writeText?.(report.summary);
+  else if (pick === "Fix…") await offerRemoteDoctorFixes(vscode, report, fixes);
+}
+
+/**
+ * Fix menu for the Remote/WSL Doctor (gap #12). Three tiers, none silent:
+ *  - autoApplicable → shown verbatim, ONE modal confirm, then a visible
+ *    terminal (npm upgrade) or the existing restart-bridge command;
+ *  - scriptable (admin firewall rules) → a complete idempotent .ps1 is written
+ *    where the USER chooses and opened for review — never executed by us;
+ *  - manualOnly (.wslconfig) → the exact ini + target path go to the clipboard.
+ */
+async function offerRemoteDoctorFixes(vscode, report, fixes) {
+  const {
+    buildFirewallFixScript,
+    buildWslConfigPatch,
+  } = require("./remote-doctor-fixes.js");
+  const autos = fixes.filter((f) => f.kind === "autoApplicable");
+  const items = [];
+  if (autos.length) {
+    items.push({
+      label: `Apply safe fixes (${autos.length})`,
+      detail: autos.map((a) => a.title).join(" · "),
+      key: "auto",
+    });
+  }
+  if (fixes.some((f) => f.kind === "scriptable")) {
+    items.push({
+      label: "Generate firewall fix script (.ps1)…",
+      detail: "Admin-required — saved for you to review and run elevated.",
+      key: "firewall",
+    });
+  }
+  if (fixes.some((f) => f.action?.type === "wslconfig")) {
+    items.push({
+      label: "Copy .wslconfig patch",
+      detail: "Merge into %UserProfile%\\.wslconfig, then `wsl --shutdown`.",
+      key: "wslconfig",
+    });
+  }
+  for (const f of fixes) {
+    if (f.action?.type === "copy") {
+      items.push({
+        label: `Copy fix: ${f.title}`,
+        detail: String(f.action.text).split("\n")[0],
+        key: "copy",
+        fix: f,
+      });
+    }
+  }
+  if (!items.length) return;
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: "Remote / WSL Doctor — choose a fix",
+  });
+  if (!picked) return;
+
+  if (picked.key === "auto") {
+    // Never silent: list exactly what will run and require one confirm.
+    const lines = autos.map((a) =>
+      a.action.type === "terminal"
+        ? `• run in terminal: ${a.action.command}`
+        : `• run command: ChainlessChain IDE: Restart Bridge`,
+    );
+    const ok = await vscode.window.showWarningMessage(
+      `Apply ${autos.length} safe fix(es)?`,
+      { modal: true, detail: lines.join("\n") },
+      "Apply",
+    );
+    if (ok !== "Apply") return;
+    let term = null;
+    for (const a of autos) {
+      if (a.action.type === "terminal") {
+        term = term || vscode.window.createTerminal("ChainlessChain Doctor");
+        term.show();
+        term.sendText(a.action.command);
+      } else if (a.action.type === "vscodeCommand") {
+        await vscode.commands.executeCommand(a.action.command);
+      }
+    }
+    return;
+  }
+
+  if (picked.key === "firewall") {
+    const script = buildFirewallFixScript(report.checks);
+    if (!script) return;
+    const path = require("path");
+    const os = require("os");
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(
+        path.join(os.homedir(), "cc-ide-firewall-fix.ps1"),
+      ),
+      filters: { PowerShell: ["ps1"] },
+    });
+    if (!uri) return;
+    require("fs").writeFileSync(uri.fsPath, script, "utf-8");
+    const doc = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(doc, { preview: false });
+    vscode.window.showInformationMessage(
+      "ChainlessChain: firewall fix script saved — review it, then run it from an elevated PowerShell.",
+    );
+    return;
+  }
+
+  if (picked.key === "wslconfig") {
+    const patch = buildWslConfigPatch(report.checks);
+    if (!patch) return;
+    await vscode.env.clipboard?.writeText?.(patch.ini);
+    vscode.window.showInformationMessage(
+      `ChainlessChain: .wslconfig patch copied — merge it into ${patch.targetPathHint}, then run \`${patch.postStep}\`. ${patch.note}`,
+    );
+    return;
+  }
+
+  if (picked.key === "copy" && picked.fix) {
+    await vscode.env.clipboard?.writeText?.(String(picked.fix.action.text));
+    vscode.window.showInformationMessage(
+      `ChainlessChain: fix for "${picked.fix.title}" copied to the clipboard.`,
+    );
+  }
 }
 
 /**

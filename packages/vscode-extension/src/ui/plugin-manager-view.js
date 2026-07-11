@@ -1,9 +1,11 @@
 /**
- * Plugin / MCP manager webview (P1 #7) — a singleton panel with three
- * sections: runtime plugins (trust/untrust · uninstall · add), MCP servers
- * (test-connect · remove), and a read-only skills listing with a filter box.
- * Every action shells out to the CLI's --json commands (plugin-manager.js
- * builds the argv, parses the replies) and re-lists afterwards, so the CLI
+ * Plugin / MCP manager webview (P1 #7 + gap #11 quality board) — a singleton
+ * panel with four sections: runtime plugins (trust/untrust · uninstall · add),
+ * a quality board (per-plugin component counts + broken/lsp/unused flags from
+ * `plugin validate` and `code-intel status`), MCP servers (test-connect ·
+ * remove), and a read-only skills listing with a filter box. Every action
+ * shells out to the CLI's --json commands (plugin-manager.js/plugin-quality.js
+ * build the argv, parse the replies) and re-lists afterwards, so the CLI
  * store stays the single source of truth. SDK-bound glue only.
  */
 const {
@@ -19,6 +21,14 @@ const {
   parsePluginInstalled,
   parseSkillList,
 } = require("../plugin-manager.js");
+const {
+  buildPluginValidateArgs,
+  buildCodeIntelStatusArgs,
+  parsePluginValidate,
+  parseCodeIntelStatus,
+  buildQualityRows,
+  renderQualityHtml,
+} = require("../plugin-quality.js");
 
 let _panel = null;
 
@@ -29,17 +39,59 @@ async function runCli(args, timeoutMs = 30000) {
 }
 
 async function snapshot() {
-  const [pluginsText, mcpText, skillsText] = await Promise.all([
+  const [pluginsText, mcpText, skillsText, lspText] = await Promise.all([
     runCli(buildPluginInstalledArgs()),
     runCli(buildMcpServersArgs()),
     runCli(buildSkillListArgs(), 60000),
+    runCli(buildCodeIntelStatusArgs(), 60000),
   ]);
+  const plugins = parsePluginInstalled(pluginsText);
   return {
     type: "update",
-    plugins: parsePluginInstalled(pluginsText),
+    plugins,
     mcp: parseMcpServers(mcpText),
     skills: parseSkillList(skillsText),
+    qualityHtml: await gatherQualityHtml(plugins, lspText),
   };
+}
+
+/**
+ * Quality board (gap #11): per-plugin `plugin validate <dir> --json` +
+ * `code-intel status --json` → flag rows. Every per-plugin validate failure is
+ * tolerated (that row reports "validate failed"), and an unreadable status
+ * probe degrades the LSP flag to "unknown" — one failing source never blanks
+ * the section.
+ */
+async function gatherQualityHtml(plugins, lspText) {
+  const validations = {};
+  if (Array.isArray(plugins)) {
+    await Promise.all(
+      plugins.map(async (p) => {
+        if (!p.dir) {
+          validations[p.name] = {
+            failed: true,
+            message: "no install dir reported",
+          };
+          return;
+        }
+        let out = "";
+        try {
+          out = await runCli(buildPluginValidateArgs(p.dir));
+        } catch {
+          /* per-plugin tolerance — parsed below as failed */
+        }
+        validations[p.name] = parsePluginValidate(out) || {
+          failed: true,
+          message: "validate produced no JSON",
+        };
+      }),
+    );
+  }
+  const lspStatus = parseCodeIntelStatus(lspText);
+  const rows = buildQualityRows({ plugins, validations, lspStatus });
+  return renderQualityHtml(rows, {
+    lspStatusAvailable: Array.isArray(lspStatus),
+  });
 }
 
 function post(payload) {
@@ -180,6 +232,9 @@ function renderHtml() {
   #note { font-family: var(--vscode-editor-font-family); font-size:11px; opacity:.75;
           white-space:pre-wrap; margin-top:10px; }
   .err { color: var(--vscode-errorForeground,#f85149); }
+  .warnflag { color: var(--vscode-editorWarning-foreground, orange); }
+  .pill.ok { color:#3fb950; } .pill.bad { color: var(--vscode-errorForeground,#f85149); }
+  .pill.muted { opacity:.55; }
 </style>
 </head>
 <body>
@@ -191,6 +246,9 @@ function renderHtml() {
 
   <h2>Runtime plugins</h2>
   <div id="plugins"></div>
+
+  <h2>Quality</h2>
+  <div id="quality"><p class="muted">Analyzing…</p></div>
 
   <h2>MCP servers</h2>
   <div id="mcp"></div>
@@ -274,6 +332,8 @@ function renderHtml() {
       renderPlugins(m.plugins);
       renderMcp(m.mcp);
       renderSkills(m.skills);
+      // Quality rows are rendered (and escaped) host-side in plugin-quality.js.
+      document.getElementById('quality').innerHTML = m.qualityHtml || '';
     }
   });
 </script>
