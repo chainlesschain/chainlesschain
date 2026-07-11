@@ -693,6 +693,89 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // session index — SQLite index over the JSONL store (gap P2#14). Gives fast
+  // list/search without scanning every transcript, and can mirror sessions to a
+  // configured off-box target (fs/http). The index is a derived cache: safe to
+  // delete and rebuild from the JSONL at any time.
+  session
+    .command("index")
+    .description(
+      "Build/refresh the SQLite session index; search it, or mirror sessions off-box",
+    )
+    .argument("[query]", "Search the index for a term (omit to just sync)")
+    .option("--rebuild", "Force a full re-index (ignore mtime cache)")
+    .option("--stats", "Show index-wide counters")
+    .option("--mirror <ids...>", "Push session id(s) to the configured mirror")
+    .option(
+      "--limit <n>",
+      "Max rows for search/list",
+      (v) => parseInt(v, 10),
+      20,
+    )
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      let db;
+      try {
+        const idx = await import("../harness/session-index.js");
+        db = idx.openIndex();
+        const sync = idx.syncIndex(db, { force: Boolean(options.rebuild) });
+
+        if (options.mirror && options.mirror.length) {
+          const result = await mirrorSessions(options.mirror);
+          if (options.json) return console.log(JSON.stringify(result, null, 2));
+          for (const r of result.pushed)
+            logger.log(chalk.green(`  mirrored ${r.id} (${r.bytes} bytes)`));
+          for (const r of result.errors) logger.error(`  ${r.id}: ${r.error}`);
+          if (!result.target)
+            logger.log(
+              chalk.yellow(
+                "No mirror configured — set session.mirror.kind (fs|http) + target in config.",
+              ),
+            );
+          return;
+        }
+
+        if (options.stats) {
+          const st = idx.indexStats(db);
+          if (options.json) return console.log(JSON.stringify(st, null, 2));
+          logger.log(
+            `${st.sessions} sessions, ${st.messages} messages, ${st.events} events indexed`,
+          );
+          return;
+        }
+
+        if (query) {
+          const hits = idx.searchSessions(db, query, { limit: options.limit });
+          if (options.json) return console.log(JSON.stringify(hits, null, 2));
+          if (hits.length === 0) {
+            logger.log(chalk.gray(`No sessions match "${query}".`));
+            return;
+          }
+          for (const h of hits) {
+            logger.log(
+              `${chalk.cyan(h.id)}  ${chalk.gray(h.title)}  ${chalk.gray(h.updated_at)}`,
+            );
+            if (h.snippet) logger.log(`  …${h.snippet}…`);
+          }
+          return;
+        }
+
+        if (options.json) return console.log(JSON.stringify(sync, null, 2));
+        logger.success(
+          `Index synced: ${sync.updated} updated, ${sync.removed} removed, ${sync.total} total.`,
+        );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      } finally {
+        try {
+          db?.close();
+        } catch {
+          /* best-effort */
+        }
+      }
+    });
+
   // session policy — Managed Agents parity Phase E1 approval policy
   session
     .command("policy")
@@ -1399,6 +1482,42 @@ export function registerSessionCommand(program) {
       const flipped = autoFailStuckTurnsV2();
       console.log(JSON.stringify(flipped, null, 2));
     });
+}
+
+/**
+ * Push the given session ids to the configured off-box mirror (gap P2#14).
+ * Mirror config: session.mirror = { kind: "fs"|"http", dir|baseUrl, token? }.
+ * Returns { target, pushed, errors }; target null when no mirror is configured.
+ */
+async function mirrorSessions(ids) {
+  const { createMirror } = await import("../harness/session-mirror.js");
+  const store = await import("../harness/jsonl-session-store.js");
+  let cfg = {};
+  try {
+    cfg =
+      (await import("../lib/config-manager.js")).loadConfig()?.session
+        ?.mirror || {};
+  } catch {
+    cfg = {};
+  }
+  const mirror = createMirror(cfg);
+  if (!mirror) return { target: null, pushed: [], errors: [] };
+
+  const pushed = [];
+  const errors = [];
+  const { readFileSync, existsSync } = await import("node:fs");
+  for (const id of ids) {
+    try {
+      if (store.isUnsafeSessionId(id)) throw new Error("unsafe session id");
+      const file = store.sessionPath(id);
+      if (!existsSync(file)) throw new Error("session not found");
+      const bytes = readFileSync(file, "utf-8");
+      pushed.push(await mirror.push(id, bytes));
+    } catch (err) {
+      errors.push({ id, error: err.message });
+    }
+  }
+  return { target: mirror.target, pushed, errors };
 }
 
 // === Iter21 V2 governance overlay ===
