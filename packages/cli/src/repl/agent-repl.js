@@ -1483,6 +1483,25 @@ export async function startAgentRepl(options = {}) {
   if (_tuiMode === "fullscreen" && process.stdout.isTTY) {
     process.stdout.write(_ALT_ENTER);
   }
+
+  // Fast mode (Claude-Code `/fast` parity, generalized to a latency profile).
+  // When on, the next turn minimizes reasoning and — unless the user pinned a
+  // model this session — swaps to the provider's low-latency model. Resolved
+  // from config `cli.fastMode`; toggled at runtime via `/fast`. `_modelPinned`
+  // tracks an explicit `/model x` so fast mode never overrides a chosen model.
+  const {
+    parseFastCommand: _parseFastCommand,
+    resolveFastPlan: _resolveFastPlan,
+    renderFastStatus: _renderFastStatus,
+  } = await import("./fast-mode.js");
+  let _fastMode = false;
+  let _modelPinned = false;
+  try {
+    const { getConfigValue } = await import("../lib/config-manager.js");
+    _fastMode = getConfigValue("cli.fastMode") === true;
+  } catch (_e) {
+    /* config optional */
+  }
   const themedPrompt = (text) => {
     const a = promptAccent(_theme);
     if (a === "blue") return chalk.blue(text);
@@ -1537,6 +1556,7 @@ export async function startAgentRepl(options = {}) {
           "/effort",
           "/exit",
           "/export",
+          "/fast",
           "/help",
           "/hooks",
           "/ide",
@@ -2092,6 +2112,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/tui")}        Fullscreen no-flicker view (/tui <fullscreen|default>; CC_NO_FLICKER=1)`,
       );
       logger.log(
+        `  ${chalk.cyan("/fast")}       Latency profile — faster+cheaper, less reasoning (/fast on|off|status)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
       );
       logger.log(
@@ -2508,6 +2531,7 @@ export async function startAgentRepl(options = {}) {
       if (arg) {
         model = arg;
         _curModel = model; // keep the status-line readout in sync
+        _modelPinned = true; // explicit choice — fast mode must not override it
         logger.info(`Model: ${chalk.cyan(model)}`);
         // Claude-Code 2.1.183 parity: warn when the newly-selected model is a
         // provider-retired/deprecated snapshot. Headless paths already warn via
@@ -2723,6 +2747,48 @@ export async function startAgentRepl(options = {}) {
       logger.log(chalk.gray(_renderTuiStatus(_tuiMode)));
       prompt();
       return;
+    }
+
+    // `/fast` — latency profile (Claude-Code parity). on/off/status/toggle.
+    // When on, the next turn minimizes reasoning and swaps to the provider's
+    // low-latency model (unless a model is pinned). Persisted to cli.fastMode.
+    {
+      const fast = _parseFastCommand(trimmed);
+      if (fast) {
+        if (fast.error) {
+          logger.error(chalk.red(fast.error));
+          prompt();
+          return;
+        }
+        if (fast.action === "status") {
+          logger.log(
+            chalk.gray(
+              _renderFastStatus({ enabled: _fastMode, provider, model }),
+            ),
+          );
+          prompt();
+          return;
+        }
+        _fastMode =
+          fast.action === "on"
+            ? true
+            : fast.action === "off"
+              ? false
+              : !_fastMode;
+        try {
+          const { setConfigValue } = await import("../lib/config-manager.js");
+          setConfigValue("cli.fastMode", _fastMode);
+        } catch (_e) {
+          /* persistence is best-effort */
+        }
+        logger.log(
+          chalk.gray(
+            _renderFastStatus({ enabled: _fastMode, provider, model }),
+          ),
+        );
+        prompt();
+        return;
+      }
     }
 
     if (trimmed === "/vim" || trimmed.startsWith("/vim ")) {
@@ -4796,6 +4862,22 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
+    // Fast mode (P2#12): minimize reasoning + swap to the provider's
+    // low-latency model for this turn (never over a pinned model). Applied
+    // after auto-selection so it has the last word on latency.
+    let turnThinking = thinking;
+    if (_fastMode) {
+      const fastPlan = _resolveFastPlan({
+        enabled: true,
+        provider,
+        model: activeModel,
+        modelPinned: _modelPinned,
+      });
+      turnThinking = fastPlan.thinking;
+      if (fastPlan.swapped) activeModel = fastPlan.model;
+      logger.info(chalk.gray(`[fast] ${fastPlan.note}`));
+    }
+
     try {
       process.stdout.write("\n");
       const iterationBudget = new IterationBudget({ owner: sessionId });
@@ -4914,7 +4996,7 @@ export async function startAgentRepl(options = {}) {
         // turn only (provider/baseUrl/apiKey unchanged, model → vision model).
         provider: _visionLlm ? _visionLlm.provider : provider,
         model: _visionLlm ? _visionLlm.model : activeModel,
-        thinking,
+        thinking: turnThinking,
         thinkingBudget,
         baseUrl: _visionLlm ? _visionLlm.baseUrl : baseUrl,
         apiKey: _visionLlm ? _visionLlm.apiKey : apiKey,
