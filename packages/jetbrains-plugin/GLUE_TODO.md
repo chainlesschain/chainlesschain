@@ -638,6 +638,17 @@ pipe/CLI actions appending results, zh/en bundle labels.
       model rows, and top sessions with the panel tabs' titles. With cc
       missing → info dialog (no exception). zh IDE shows the localized
       action label.
+- [ ] **Usage attribution sections (2026-07-11, gap #4 IDE half)** — with a
+      cc new enough that `cc session usage --json` returns `attribution`
+      (byOrigin/bySkill/bySubagent/tools), the same dialog additionally shows
+      By origin (share %), By skill / By subagent (top-10 + "…N more"), Tool
+      calls (per-tool + MCP buckets, the non-summable "turn tokens ≈" note)
+      and, when thresholds trip, the Hints block (sub-agent-heavy /
+      high cache-miss / long-context — same exported thresholds as the VS
+      twin). With an OLD cc (no attribution) the dialog must be unchanged —
+      the legacy footer line renders (snapshot-locked in UsageReportTest, so
+      this is a formality). Pure layer fully JUnit/smoke-covered; the runIde
+      pass is only the dialog-rendering eyeball.
 
 ## 🗂 Completion cancellation (unreleased) — code-complete, NOT yet runIde-verified (2026-07-10)
 
@@ -980,3 +991,38 @@ compile on 2024.2). Needs a real IDE:
       `JetBrainsClient`), the report shows the ℹ jb-remote-dev advisory
       (install on HOST + docs link) without degrading the overall verdict;
       on a normal local IDE the check is absent.
+
+## 🤖 GUI smoke gate (gap #8, skeleton landed 2026-07-11) — first nightly run PENDING
+
+The Remote Robot foundation is wired but has NEVER executed against a real
+IDE (this machine builds headless; the IDE download + xvfb display live on
+CI). Framework decision: Remote Robot over the Starter framework — the
+build's IntelliJ Platform Gradle Plugin 2.1.0 ships `robotServerPlugin()` +
+`intellijPlatformTesting.runIde`, while its `testIdeUi`/Starter integration
+only matured in later 2.x. What exists: `src/uiTest/java` (isolated source
+set, NOT in test/smokeTest/buildPlugin), `./gradlew runIdeForUiTests`
+(sandbox IDE + robot-server :8082 + throwaway project +
+`-Didea.trust.all.projects=true`), `./gradlew uiSmokeTest` (connect → main
+frame → ChainlessChain stripe button → chat JBTabbedPane; failure PNG into
+build/reports/ui-smoke/), and the nightly
+`.github/workflows/ide-jetbrains-ui-smoke.yml` (schedule + dispatch,
+non-blocking for releases, NO continue-on-error — a red nightly stays red).
+
+- [ ] **First real nightly run** — watch the first scheduled (or
+      `workflow_dispatch`) run end-to-end: IDE downloads, robot server comes
+      up within the 20-min wait loop, the smoke test finds the stripe button
+      (locator is new-UI `SquareStripeButton` OR classic `StripeButton` —
+      verify which one 2024.2 actually renders and prune the other), and the
+      failure-artifact path works (force one failure to see the screenshot
+      upload). Expect locator iteration — that is normal for the first run.
+- [ ] **Expand coverage (from the gap doc #8 list), one scenario per PR:**
+  - [ ] first message (send → echo renders in the transcript)
+  - [ ] diff accept / request changes (agent edit → diff viewer → verdict)
+  - [ ] plan review (plan_update → editor tab + plan card buttons)
+  - [ ] `@mention` (popup appears, choosing splices the token)
+  - [ ] terminal (getTerminalOutput round-trip with a real terminal tab)
+  - [ ] inline completion (Alt+\ ghost text renders, Tab accepts)
+  - [ ] Remote QR (Remote Control pairing dialog renders the QR panel)
+- [ ] **Budget watch** — if the nightly regularly exceeds ~30 min of IDE
+      boot + test time, cache the IDE download (gradle cache action) before
+      adding more scenarios.

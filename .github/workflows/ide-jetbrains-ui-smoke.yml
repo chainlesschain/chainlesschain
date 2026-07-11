@@ -1,0 +1,95 @@
+# JetBrains plugin GUI smoke gate (gap #8) — NIGHTLY, NON-BLOCKING.
+#
+# Launches a sandbox IDE (IntelliJ 2024.2, downloaded by the Gradle plugin)
+# under xvfb with the Remote Robot server, then runs the src/uiTest smoke
+# suite against it over HTTP (open the ChainlessChain tool window, assert the
+# chat panel renders; failure screenshots are uploaded as artifacts).
+#
+# Deliberately DECOUPLED from ide-extensions.yml and every release path:
+# schedule + manual dispatch only, never a required check. Per the
+# cosmetic-green CI trap (#30): NO continue-on-error, NO always-exit-0
+# wrappers — if the smoke test fails, the nightly run is red.
+
+name: IDE JetBrains UI Smoke
+
+on:
+  schedule:
+    # Nightly, 19:30 UTC (03:30 CST) — off the busy CI hours.
+    - cron: "30 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-smoke:
+    name: JetBrains plugin GUI smoke (Remote Robot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: packages/jetbrains-plugin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # Compile gate first: a broken uiTest source set should fail fast and
+      # loudly, before an IDE download is spent on it.
+      - name: Compile UI test source set
+        run: ./gradlew compileUiTestJava --no-daemon --stacktrace
+
+      # Launch the sandbox IDE with the robot-server plugin in the background
+      # under a virtual display. The task blocks while the IDE runs, so it is
+      # backgrounded here and reaped in the always() step below.
+      - name: Launch IDE with robot-server (background, xvfb)
+        run: |
+          nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            ./gradlew runIdeForUiTests --no-daemon --stacktrace \
+            > /tmp/runIdeForUiTests.log 2>&1 &
+          echo $! > /tmp/ide.pid
+
+      - name: Wait for the robot server (port 8082)
+        run: |
+          for i in $(seq 1 120); do
+            if curl -sf http://127.0.0.1:8082 >/dev/null 2>&1; then
+              echo "robot server is up (attempt $i)"
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/ide.pid)" 2>/dev/null; then
+              echo "::error::IDE process died before the robot server came up"
+              tail -n 200 /tmp/runIdeForUiTests.log
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "::error::robot server did not come up within 20 minutes"
+          tail -n 200 /tmp/runIdeForUiTests.log
+          exit 1
+
+      - name: Run UI smoke tests
+        run: ./gradlew uiSmokeTest --no-daemon --stacktrace
+
+      - name: Stop the sandbox IDE
+        if: always()
+        run: |
+          kill "$(cat /tmp/ide.pid)" 2>/dev/null || true
+          # Give Gradle a moment to tear down, then hard-kill leftovers.
+          sleep 5
+          pkill -f 'runIdeForUiTests' 2>/dev/null || true
+
+      - name: Upload failure artifacts (screenshots, reports, IDE log)
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: jetbrains-ui-smoke-failure
+          path: |
+            packages/jetbrains-plugin/build/reports/ui-smoke/
+            packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+            /tmp/runIdeForUiTests.log
+          if-no-files-found: ignore

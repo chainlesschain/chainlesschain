@@ -61,6 +61,7 @@ public final class PureLogicSmokeMain {
         reviewNote();
         rewindCommands();
         sessionList();
+        usageReport();
         imageAttachments();
         projectMemory();
         whatsNew();
@@ -2054,6 +2055,62 @@ public final class PureLogicSmokeMain {
         } catch (java.io.IOException e) {
             throw new AssertionError(e);
         }
+    }
+
+    private static void usageReport() {
+        System.out.println("UsageReport (attribution):");
+        long now = java.time.Instant.parse("2026-07-10T12:00:00Z").toEpochMilli();
+
+        // Old CLI (no attribution section) → legacy footer, no new sections.
+        String legacyJson = "{\"total\":{\"inputTokens\":1000,\"outputTokens\":500,"
+                + "\"totalTokens\":1500,\"calls\":12},\"sessions\":[],\"byModel\":[]}";
+        String legacy = UsageReport.render(UsageReport.parseUsageJson(legacyJson),
+                SessionList.parseSessionList("[]"), now);
+        check(legacy.contains("needs CLI-side event tagging"), "legacy footer kept without attribution");
+        check(!legacy.contains("By origin:"), "no attribution sections without the CLI section");
+        check(UsageReport.deriveUsageHints(UsageReport.parseUsageJson(legacyJson)).isEmpty(),
+                "no hints without attribution");
+        check(UsageReport.normalizeAttribution("garbage") == null, "malformed attribution -> null");
+
+        // New CLI: attribution sections + all three hints (VS-twin fixture).
+        String attributed = "{"
+                + "\"total\":{\"inputTokens\":120000,\"outputTokens\":8000,\"totalTokens\":128000,"
+                + "\"cacheReadTokens\":2000,\"cacheCreationTokens\":5000,\"calls\":2},"
+                + "\"sessions\":[],\"byModel\":[],"
+                + "\"attribution\":{"
+                + "\"byOrigin\":[{\"origin\":\"subagent\",\"inputTokens\":70000,\"outputTokens\":4000,"
+                + "\"totalTokens\":74000,\"calls\":3},{\"origin\":\"main\",\"inputTokens\":50000,"
+                + "\"outputTokens\":4000,\"totalTokens\":54000,\"calls\":8}],"
+                + "\"bySkill\":[{\"skill\":\"csv-clean\",\"inputTokens\":10,\"outputTokens\":5,"
+                + "\"totalTokens\":15,\"calls\":1}],"
+                + "\"bySubagent\":[{\"subagentId\":\"sub-1\",\"role\":\"researcher\",\"origin\":\"subagent\","
+                + "\"totalTokens\":74000,\"calls\":3}],"
+                + "\"tools\":{\"totalCalls\":7,\"totalErrors\":2,"
+                + "\"byTool\":[{\"tool\":\"read_file\",\"mcpServer\":null,\"calls\":4,\"errors\":1,\"turnTokens\":600}],"
+                + "\"byMcpServer\":[{\"server\":\"github\",\"calls\":3,\"errors\":1,\"turnTokens\":150}]}}"
+                + "}";
+        String report = UsageReport.render(UsageReport.parseUsageJson(attributed),
+                SessionList.parseSessionList("[]"), now);
+        check(report.contains("By origin:"), "By origin section renders");
+        check(report.contains("57.8%"), "origin share % renders");
+        check(report.contains("By skill:") && report.contains("csv-clean"), "By skill renders");
+        check(report.contains("By subagent:") && report.contains("sub-1"), "By subagent renders");
+        check(report.contains("Tool calls: 7 calls · 2 errors across 1 tool(s)"), "tool totals header");
+        check(report.contains("MCP servers:"), "MCP server bucket renders");
+        check(report.contains("do not sum that column across rows"), "turnTokens caveat present");
+        check(!report.contains("needs CLI-side event tagging"), "stale footer replaced");
+        check(report.contains("- Sub-agent-heavy: 58%"), "subagent hint fires");
+        check(report.contains("- High cache-miss: only 2,000 cache-read"), "cache-miss hint fires");
+        check(report.contains("- Long-context: average input per LLM call is 60,000"), "long-context hint fires");
+
+        // Boundary: exactly at the subagent share threshold → strict > → silent.
+        String atThreshold = "{\"total\":{\"inputTokens\":100,\"outputTokens\":10,\"totalTokens\":110,\"calls\":12},"
+                + "\"sessions\":[],\"byModel\":[],"
+                + "\"attribution\":{\"byOrigin\":[{\"origin\":\"subagent\",\"totalTokens\":40,\"calls\":1},"
+                + "{\"origin\":\"main\",\"totalTokens\":60,\"calls\":1}],"
+                + "\"bySkill\":[],\"bySubagent\":[],\"tools\":{}}}";
+        check(UsageReport.deriveUsageHints(UsageReport.parseUsageJson(atThreshold)).isEmpty(),
+                "share exactly at threshold stays silent");
     }
 
     private static void bundleParity() {

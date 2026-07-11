@@ -2,6 +2,38 @@
 
 ## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
 
+- **Usage report renders CLI usage attribution + cost hints (gap #4 IDE
+  half, VS Code twin).** The Token Usage dialog now renders the additive
+  `attribution` section newer CLIs return on `cc session usage --json`:
+  By origin (with share %), By skill / By subagent (top-10 + "…N more"
+  folded row), and Tool calls (per-tool + MCP-server buckets with the
+  non-summable "turn tokens ≈" caveat — every token_usage event in a turn
+  counts once per distinct tool, so that column is never totalled, "—" in
+  the folded row). Actionable hints fire only when the fields exist, with
+  the SAME exported thresholds as the VS Code twin: sub-agent share > 40%
+  of attributed tokens, cache-read ratio < 0.25 above 10k input (and only
+  when the provider reports cache fields), average input per LLM call
+  > 50k. With an old CLI (no attribution section) the report stays
+  byte-identical to the previous renderer — snapshot-locked in
+  `UsageReportTest`. Hostile skill/tool names (newlines, 60+ chars) are
+  collapsed/capped to keep one row per line.
+- **GUI smoke gate skeleton (gap #8, nightly-only).** First automated GUI
+  verification foundation: an isolated `src/uiTest/java` source set with a
+  Remote Robot smoke test (launch sandbox IDE → wait for the main frame →
+  open the ChainlessChain tool window via its stripe button → assert the
+  chat tab pane renders → full-screen PNG into `build/reports/ui-smoke/`
+  on failure), `./gradlew runIdeForUiTests` (robot-server :8082 + a
+  throwaway trusted sandbox project) and `./gradlew uiSmokeTest`, plus the
+  nightly `.github/workflows/ide-jetbrains-ui-smoke.yml` (schedule +
+  manual dispatch under xvfb; non-blocking for releases but honestly red
+  on failure — no continue-on-error). Framework decision: Remote Robot
+  over the Starter framework, since the build's IntelliJ Platform Gradle
+  Plugin 2.1.0 ships `robotServerPlugin()`/`intellijPlatformTesting` while
+  its `testIdeUi` Starter integration only matured in later 2.x releases.
+  `test`/`smokeTest`/`buildPlugin` are untouched by the new source set,
+  and the runIde registration is guarded so a framework change can never
+  break the release build. NOT yet executed against a real IDE (needs the
+  CI display + IDE download) — see GLUE_TODO "GUI smoke gate".
 - **Managed CLI runtime (gap #2 插件托管/内置 CLI, VS Code twin).** When no
   usable global `cc` is found, the plugin can download, verify and use its own
   copy of the `chainlesschain` npm package — Tools → "ChainlessChain: Install
