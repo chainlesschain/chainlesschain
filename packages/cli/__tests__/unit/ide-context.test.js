@@ -709,3 +709,134 @@ describe("formatIdeContext — terminal block", () => {
     expect(big).toBeTruthy();
   });
 });
+
+// ─── credential redaction wiring (ide-context-redaction.js) ────────────────
+
+describe("collectIdeContext — credential redaction wiring", () => {
+  const SECRET_SEL = {
+    file: "C:/proj/src/config.js",
+    selection: {
+      start: { line: 0, character: 0 },
+      end: { line: 1, character: 0 },
+    },
+    text: 'const API_KEY = "sk-ant-api03-abcdefghij0123456789";',
+  };
+  const MIXED_EDITORS = [
+    { file: "C:/proj/src/app.js", active: true },
+    { file: "C:/proj/.env", active: false },
+    { file: "C:/proj/README.md", active: false },
+  ];
+
+  it("redacts secrets in the selection and drops credential-file tabs", async () => {
+    const mcp = fakeIdeMcp({ selection: SECRET_SEL, editors: MIXED_EDITORS });
+    const ctx = await collectIdeContext(mcp, { env: {} });
+    expect(ctx.selection.text).toContain("[REDACTED]");
+    expect(ctx.selection.text).not.toContain("sk-ant-api03");
+    expect(ctx.openEditors.map((e) => e.file)).toEqual([
+      "C:/proj/src/app.js",
+      "C:/proj/README.md",
+    ]);
+    const block = formatIdeContext(ctx);
+    expect(block).not.toContain(".env");
+    expect(block).not.toContain("sk-ant-api03");
+  });
+
+  it("drops the whole selection when it lives in a credential file", async () => {
+    const mcp = fakeIdeMcp({
+      selection: { ...SECRET_SEL, file: "C:/proj/.env" },
+      editors: EDITORS,
+    });
+    const ctx = await collectIdeContext(mcp, { env: {} });
+    expect(ctx.selection).toBe(null);
+  });
+
+  it("redacts terminal command/output secrets end to end", async () => {
+    const mcp = fakeIdeMcpTerm({
+      terminals: [
+        {
+          command: "export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCY",
+          exitCode: 0,
+          output: "token AKIAIOSFODNN7EXAMPL2 accepted",
+        },
+      ],
+    });
+    const block = await buildIdePromptContext(mcp, { env: {} });
+    expect(block).toContain("[REDACTED]");
+    expect(block).not.toContain("wJalrXUtnFEMIK7MDENGbPxRfiCY");
+    expect(block).not.toContain("AKIAIOSFODNN7EXAMPL2");
+    expect(block).toContain("AWS_SECRET_ACCESS_KEY"); // key name survives
+  });
+
+  it("CC_IDE_CONTEXT_REDACTION=0 shares everything raw", async () => {
+    const mcp = fakeIdeMcp({ selection: SECRET_SEL, editors: MIXED_EDITORS });
+    const ctx = await collectIdeContext(mcp, {
+      env: { CC_IDE_CONTEXT_REDACTION: "0" },
+    });
+    expect(ctx.selection.text).toContain("sk-ant-api03-abcdefghij0123456789");
+    expect(ctx.openEditors).toHaveLength(3);
+  });
+});
+
+describe("collectIdeDiagnostics — credential redaction wiring", () => {
+  it("drops credential-file diagnostics and scrubs message text", async () => {
+    const mcp = fakeDiagMcp({
+      diagnostics: [
+        {
+          file: "C:/proj/.env",
+          severity: "error",
+          message: "syntax error",
+          line: 0,
+        },
+        {
+          file: "C:/proj/src/app.js",
+          severity: "error",
+          message: "unexpected Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig here",
+          line: 2,
+        },
+      ],
+    });
+    const out = await collectIdeDiagnostics(mcp, "C:/proj/src/app.js", {
+      env: {},
+      settleMs: 0,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].file).toBe("C:/proj/src/app.js");
+    expect(out[0].message).toContain("Bearer [REDACTED]");
+    expect(out[0].message).not.toContain("eyJhbGciOiJIUzI1NiJ9");
+  });
+});
+
+describe("expandIdeMentions — credential redaction wiring", () => {
+  it("@terminal output is scrubbed", async () => {
+    const { expandIdeMentions } = await import("../../src/lib/ide-context.js");
+    const mcp = fakeIdeMcpTerm({
+      terminals: [
+        {
+          command: "cat notes.txt",
+          exitCode: 0,
+          output: "API_KEY=abcd1234efgh5678\nall good",
+        },
+      ],
+    });
+    const out = await expandIdeMentions("check @terminal please", mcp, {
+      env: {},
+    });
+    expect(out.block).toContain("API_KEY=[REDACTED]");
+    expect(out.block).not.toContain("abcd1234efgh5678");
+  });
+
+  it("@selection inside a credential file is withheld", async () => {
+    const { expandIdeMentions } = await import("../../src/lib/ide-context.js");
+    const mcp = fakeIdeMcp({
+      selection: {
+        file: "C:/proj/.env",
+        text: "DB_PASSWORD=hunter2hunter2",
+      },
+    });
+    const out = await expandIdeMentions("explain @selection", mcp, {
+      env: {},
+    });
+    expect(out.block).toBe(null);
+    expect(out.warnings.join(" ")).toContain("@selection");
+  });
+});

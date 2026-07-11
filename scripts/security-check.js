@@ -101,6 +101,9 @@ const ALLOWED_FILES = [
   "alipay-bill-adapter.test.js",
   // Hub Phase 7.5b: tests fake iOS backup passwords + synthetic keys (no real credentials)
   "mobile-extractor-encrypted.test.js",
+  // IDE context redaction tests (fake secrets to exercise the redaction paths)
+  "ide-context-redaction.test.js",
+  "ide-context.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

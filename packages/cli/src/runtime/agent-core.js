@@ -1263,6 +1263,8 @@ export async function executeTool(name, args, context = {}) {
   // Sensitive-file write guard (Claude-Code 2.1.160 parity): shell startup
   // files / PowerShell profiles / git+husky hooks execute code on the user's
   // next shell or commit — even otherwise-permitted edit flows confirm first.
+  // Auto-exec configs (.vscode/tasks.json, .mcp.json, .idea run configs, …)
+  // ride the same gate via autoExecConfigReason.
   // An explicit settings `allow` rule is the only bypass (exact user
   // pre-authorization); headless without a confirmer fails closed.
   if (
@@ -1272,9 +1274,10 @@ export async function executeTool(name, args, context = {}) {
     settingsVerdict.decision !== "allow" &&
     args?.path
   ) {
-    const { sensitiveFileReason } =
+    const { sensitiveFileReason, autoExecConfigReason } =
       await import("../lib/sensitive-file-guard.js");
-    const sensReason = sensitiveFileReason(args.path);
+    const sensReason =
+      sensitiveFileReason(args.path) || autoExecConfigReason(args.path);
     if (sensReason) {
       const ok = await requestInteractivePermission(name, args, context, cwd, {
         tool: name,

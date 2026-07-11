@@ -18,6 +18,10 @@
  */
 
 import { simpleDiff } from "./note-versioning.js";
+import {
+  filterIdeFileEntry,
+  redactSecretsInText,
+} from "./ide-context-redaction.js";
 
 /** Hard cap on the selected text we inline into the prompt. */
 const SELECTION_TEXT_CAP = 2000;
@@ -86,6 +90,61 @@ export function parseToolResultJson(result) {
   }
 }
 
+// ─── Redaction seams (see [[ide-context-redaction.js]]) ─────────────────────
+// IDE context bypasses the tool-permission layer entirely (nothing goes
+// through read_file), so credential files and secret-shaped text are filtered
+// HERE, at the collection boundary, before anything reaches the prompt.
+// CC_IDE_CONTEXT_REDACTION=0 disables (the filters below become pass-through).
+
+/** Drop the selection when it lives in a credential file; scrub its text. */
+function sanitizeIdeSelection(sel, env) {
+  if (!sel) return sel;
+  if (sel.file && filterIdeFileEntry(sel.file, { env }) === null) return null;
+  if (typeof sel.text === "string" && sel.text.length > 0) {
+    const scrubbed = redactSecretsInText(sel.text, { env });
+    if (scrubbed !== sel.text) return { ...sel, text: scrubbed };
+  }
+  return sel;
+}
+
+/** Drop open-editor entries whose file is a credential file. */
+function sanitizeIdeEditors(editors, env) {
+  if (!Array.isArray(editors)) return editors;
+  return editors.filter(
+    (e) => !(e && e.file && filterIdeFileEntry(e.file, { env }) === null),
+  );
+}
+
+/** Scrub secret-shaped text out of terminal commands and their output. */
+function sanitizeIdeTerminals(terms, env) {
+  if (!Array.isArray(terms)) return terms;
+  return terms.map((t) => {
+    if (!t || typeof t !== "object") return t;
+    const out = { ...t };
+    if (typeof out.command === "string") {
+      out.command = redactSecretsInText(out.command, { env });
+    }
+    if (typeof out.output === "string") {
+      out.output = redactSecretsInText(out.output, { env });
+    }
+    return out;
+  });
+}
+
+/** Drop diagnostics for credential files; scrub their message text. */
+function sanitizeIdeDiagnostics(diags, env) {
+  if (!Array.isArray(diags)) return diags;
+  return diags
+    .filter(
+      (d) => !(d && d.file && filterIdeFileEntry(d.file, { env }) === null),
+    )
+    .map((d) =>
+      d && typeof d.message === "string"
+        ? { ...d, message: redactSecretsInText(d.message, { env }) }
+        : d,
+    );
+}
+
 /** Resolve to the promise's value, or null after `ms` / on rejection. */
 function withTimeout(promise, ms) {
   return new Promise((resolve) => {
@@ -137,18 +196,22 @@ export async function collectIdeContext(mcp, opts = {}) {
       ? call("mcp__ide__getTerminalOutput", { limit: TERMINAL_LIMIT })
       : Promise.resolve(null),
   ]);
-  const openEditors = Array.isArray(editors?.editors) ? editors.editors : null;
-  const terminals = Array.isArray(terminalData?.terminals)
+  const env = opts.env || process.env;
+  const sel = sanitizeIdeSelection(selection || null, env);
+  let openEditors = Array.isArray(editors?.editors) ? editors.editors : null;
+  if (openEditors) openEditors = sanitizeIdeEditors(openEditors, env);
+  let terminals = Array.isArray(terminalData?.terminals)
     ? terminalData.terminals
     : null;
+  if (terminals) terminals = sanitizeIdeTerminals(terminals, env);
   if (
-    !selection &&
+    !sel &&
     !(openEditors && openEditors.length > 0) &&
     !(terminals && terminals.length > 0)
   ) {
     return null;
   }
-  return { selection: selection || null, openEditors, terminals };
+  return { selection: sel, openEditors, terminals };
 }
 
 /**
@@ -304,8 +367,11 @@ export async function collectIdeDiagnostics(mcp, filePath, opts = {}) {
   );
   const all = Array.isArray(data?.diagnostics) ? data.diagnostics : null;
   if (!all) return null;
-  const relevant = all.filter(
-    (d) => d && DIAG_SEVERITIES.has(String(d.severity).toLowerCase()),
+  const relevant = sanitizeIdeDiagnostics(
+    all.filter(
+      (d) => d && DIAG_SEVERITIES.has(String(d.severity).toLowerCase()),
+    ),
+    env,
   );
   return relevant.length > 0 ? relevant : null;
 }
@@ -653,6 +719,7 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
   const mentions = findIdeMentions(src);
   if (mentions.length === 0) return out;
   const timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
+  const env = opts.env || process.env;
   const blocks = [];
   for (const kind of mentions) {
     try {
@@ -663,11 +730,9 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           );
           continue;
         }
-        const sel = await callIdeToolJson(
-          mcp,
-          "mcp__ide__getSelection",
-          {},
-          timeoutMs,
+        const sel = sanitizeIdeSelection(
+          await callIdeToolJson(mcp, "mcp__ide__getSelection", {}, timeoutMs),
+          env,
         );
         const b = formatSelectionMention(sel);
         if (b) {
@@ -689,7 +754,14 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           {},
           timeoutMs,
         );
-        const b = formatDiagnosticsMention(data);
+        const safe =
+          data && Array.isArray(data.diagnostics)
+            ? {
+                ...data,
+                diagnostics: sanitizeIdeDiagnostics(data.diagnostics, env),
+              }
+            : data;
+        const b = formatDiagnosticsMention(safe);
         if (b) {
           blocks.push(b);
           out.expanded.push("diagnostics");
@@ -709,7 +781,11 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           { limit: TERMINAL_MENTION_LIMIT },
           timeoutMs,
         );
-        const b = formatTerminalMention(data);
+        const safe =
+          data && Array.isArray(data.terminals)
+            ? { ...data, terminals: sanitizeIdeTerminals(data.terminals, env) }
+            : data;
+        const b = formatTerminalMention(safe);
         if (b) {
           blocks.push(b);
           out.expanded.push("terminal");

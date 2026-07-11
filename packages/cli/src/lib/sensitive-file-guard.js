@@ -66,3 +66,54 @@ export function sensitiveFileReason(targetPath) {
   }
   return null;
 }
+
+/**
+ * Auto-exec CONFIG write guard — the CLI-side twin of the IDE extension's
+ * `classifyAutoExecTarget` (vscode-extension/src/auto-exec-guard.js, kept as
+ * an independent pure function: no cross-package import). These files are not
+ * shells or hooks, but writing them still plants code that RUNS without an
+ * explicit user action: VS Code tasks auto-run on folder open, launch configs
+ * fire on debug, `.mcp.json` spawns arbitrary server processes the agent then
+ * auto-loads, JetBrains run configurations execute on the next Run, and
+ * devcontainer postCreate/postStart commands run on container open. Same
+ * conservative name-based posture as `sensitiveFileReason`; an unknown path is
+ * simply not risky (null), never a false positive.
+ *
+ * @param {string} targetPath  path as the tool received it (rel or abs)
+ * @returns {string|null} human reason when auto-exec-risky, null otherwise
+ */
+export function autoExecConfigReason(targetPath) {
+  const p = String(targetPath || "");
+  if (!p) return null;
+  const norm = p.replace(/\\/g, "/").toLowerCase();
+  const base = norm.split("/").pop() || "";
+  if (!base) return null;
+  if (base === ".mcp.json" || base === "mcp.json") {
+    return `auto-exec config: MCP server config (${base}) — can spawn arbitrary server processes the agent auto-loads`;
+  }
+  if (/(^|\/)\.vscode\/tasks\.json$/.test(norm)) {
+    return "auto-exec config: VS Code tasks (.vscode/tasks.json) — tasks can auto-run on folder open";
+  }
+  if (/(^|\/)\.vscode\/launch\.json$/.test(norm)) {
+    return "auto-exec config: VS Code launch/debug config (.vscode/launch.json) — runs commands on the next debug session";
+  }
+  if (/(^|\/)\.vscode\/settings\.json$/.test(norm)) {
+    return "auto-exec config: VS Code workspace settings (.vscode/settings.json) — can rebind shells/tools the user then runs";
+  }
+  if (/(^|\/)\.idea\/runconfigurations\//.test(norm)) {
+    return `auto-exec config: JetBrains run configuration (${base}) — executes on the user's next Run action`;
+  }
+  if (/(^|\/)\.idea\/workspace\.xml$/.test(norm)) {
+    return "auto-exec config: JetBrains workspace.xml — can embed run/startup tasks";
+  }
+  if (
+    base === "devcontainer.json" ||
+    /(^|\/)\.devcontainer\/devcontainer\.json$/.test(norm)
+  ) {
+    return "auto-exec config: devcontainer.json — postCreate/postStart commands run on container open";
+  }
+  if (base.endsWith(".code-workspace")) {
+    return `auto-exec config: VS Code workspace file (${base}) — can carry auto-run tasks and settings`;
+  }
+  return null;
+}
