@@ -534,6 +534,76 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // session rename — named sessions (gap-analysis 2026-07-11 快速收益 #5).
+  // Appends a session_rename event (hash chain stays intact); last one wins.
+  session
+    .command("rename")
+    .description("Rename a headless (JSONL) session — shows up in session list")
+    .argument("<id>", "Session ID")
+    .argument("<title...>", "New title")
+    .option("--json", "Output as JSON")
+    .action(async (id, title, options) => {
+      try {
+        const { renameSession } =
+          await import("../harness/jsonl-session-store.js");
+        const result = renameSession(
+          id,
+          Array.isArray(title) ? title.join(" ") : title,
+        );
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        logger.success(`Renamed session ${result.id}`);
+        logger.info(`  ${result.title}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // session prune — retention sweep (gap-analysis 2026-07-11 P1 "保留期限").
+  session
+    .command("prune")
+    .description(
+      "Delete JSONL sessions whose last activity is older than a cutoff (newest N always kept)",
+    )
+    .requiredOption(
+      "--older-than <days>",
+      "Delete sessions idle for more than this many days",
+    )
+    .option("--keep <n>", "Always keep the newest N sessions (default 10)")
+    .option("--dry-run", "List what would be deleted without deleting")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { pruneJsonlSessions } =
+          await import("../harness/jsonl-session-store.js");
+        const result = pruneJsonlSessions({
+          olderThanDays: Number(options.olderThan),
+          keep: options.keep != null ? Number(options.keep) : undefined,
+          dryRun: options.dryRun === true,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        const verb = result.dryRun ? "Would delete" : "Deleted";
+        logger.info(
+          `${verb} ${result.deleted.length} of ${result.scanned} session(s).`,
+        );
+        for (const id of result.deleted.slice(0, 50)) {
+          logger.info(`  - ${id}`);
+        }
+        if (result.deleted.length > 50) {
+          logger.info(`  … and ${result.deleted.length - 50} more`);
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   session
     .command("migrate")
     .description("Migrate legacy JSON session files to JSONL")

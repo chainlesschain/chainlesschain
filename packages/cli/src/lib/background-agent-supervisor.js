@@ -224,6 +224,38 @@ export function renameBackgroundAgent(id, title, options = {}) {
 }
 
 /**
+ * Remove a background agent's RECORD (state file + log) — `cc daemon rm`
+ * (gap-analysis 2026-07-11 P0 "后台 Agent Supervisor" 补 rm 动词). Terminal
+ * sessions (completed/failed/stopped/lost) remove directly; a still-running
+ * one is refused unless `force`, which stops it first. The underlying JSONL
+ * conversation session is NOT touched — that's `cc session delete`.
+ */
+export function removeBackgroundAgent(id, options = {}) {
+  const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+    now: options.now,
+    heartbeatStaleMs: options.heartbeatStaleMs,
+  });
+  if (!state) throw new Error(`Background agent not found: ${id}`);
+  if (state.status === "running") {
+    if (options.force !== true) {
+      throw new Error(
+        `${id} is still running — stop it first (cc daemon stop ${id}) or pass --force`,
+      );
+    }
+    try {
+      stopBackgroundAgent(id);
+    } catch {
+      /* best-effort — the record removal below is the point of rm --force */
+    }
+  }
+  rmSync(statePath(id), { force: true });
+  if (options.keepLog !== true) {
+    rmSync(logPath(id), { force: true });
+  }
+  return { id, removed: true, status: state.status };
+}
+
+/**
  * Pin/unpin a session for the dashboard (`cc daemon view`) — pinned sessions
  * sort first inside their group. Same read-modify-write + verify-retry dance
  * as rename: the worker's periodic state merges can clobber a write that

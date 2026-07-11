@@ -12,11 +12,14 @@ import {
   normalizeBackgroundAgentTitle,
   readBackgroundAgentLog,
   readBackgroundAgentState,
+  removeBackgroundAgent,
   renameBackgroundAgent,
   resumeBackgroundAgent,
+  statePath,
   stopBackgroundAgent,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
+import { existsSync } from "node:fs";
 
 let dir;
 const originalSpawn = _deps.spawn;
@@ -409,4 +412,66 @@ describe("background agent supervisor", () => {
       );
     },
   );
+});
+
+describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
+  it("removes a terminal session's state + log", () => {
+    writeBackgroundAgentState({
+      id: "bg-rm-done",
+      status: "completed",
+      startedAt: Date.now(),
+    });
+    writeFileSync(logPath("bg-rm-done"), "some log\n", "utf-8");
+    const result = removeBackgroundAgent("bg-rm-done");
+    expect(result).toMatchObject({
+      id: "bg-rm-done",
+      removed: true,
+      status: "completed",
+    });
+    expect(existsSync(statePath("bg-rm-done"))).toBe(false);
+    expect(existsSync(logPath("bg-rm-done"))).toBe(false);
+    expect(readBackgroundAgentState("bg-rm-done")).toBeNull();
+  });
+
+  it("refuses a RUNNING session without --force", () => {
+    writeBackgroundAgentState({
+      id: "bg-rm-live",
+      status: "running",
+      pid: process.pid,
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+    });
+    expect(() => removeBackgroundAgent("bg-rm-live")).toThrow(/--force/);
+    expect(existsSync(statePath("bg-rm-live"))).toBe(true);
+  });
+
+  it("--force stops the running session first, then removes", () => {
+    writeBackgroundAgentState({
+      id: "bg-rm-force",
+      status: "running",
+      pid: process.pid,
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+    });
+    _deps.spawnSync = vi.fn(() => ({ status: 0 })); // taskkill / kill stub
+    const result = removeBackgroundAgent("bg-rm-force", { force: true });
+    expect(result.removed).toBe(true);
+    expect(existsSync(statePath("bg-rm-force"))).toBe(false);
+  });
+
+  it("--keep-log preserves the log file", () => {
+    writeBackgroundAgentState({
+      id: "bg-rm-keep",
+      status: "failed",
+      startedAt: Date.now(),
+    });
+    writeFileSync(logPath("bg-rm-keep"), "crash trace\n", "utf-8");
+    removeBackgroundAgent("bg-rm-keep", { keepLog: true });
+    expect(existsSync(statePath("bg-rm-keep"))).toBe(false);
+    expect(existsSync(logPath("bg-rm-keep"))).toBe(true);
+  });
+
+  it("unknown id throws", () => {
+    expect(() => removeBackgroundAgent("bg-nope")).toThrow(/not found/i);
+  });
 });

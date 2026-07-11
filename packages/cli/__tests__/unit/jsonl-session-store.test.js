@@ -28,6 +28,8 @@ const {
   readEvents,
   rebuildMessages,
   listJsonlSessions,
+  renameSession,
+  pruneJsonlSessions,
   forkSession,
   sessionExists,
   getLastSessionId,
@@ -380,6 +382,88 @@ describe("jsonl-session-store", () => {
       expect(bad.title).toBe("NoTs");
       expect(good).toBeTruthy();
       expect(good.created_at).not.toBe(""); // healthy session keeps its date
+    });
+  });
+
+  // ── renameSession / pruneJsonlSessions (gap 2026-07-11) ───────────
+
+  describe("renameSession", () => {
+    it("appends a rename event; the LAST rename wins in listings", () => {
+      startSession("rn-1", { title: "Original" });
+      renameSession("rn-1", "Better name");
+      renameSession("rn-1", "Final name");
+      const s = listJsonlSessions().find((x) => x.id === "rn-1");
+      expect(s.title).toBe("Final name");
+      // Hash chain stays intact — rename is append-only, no rewrite.
+      expect(verifySession("rn-1").status).toBe("verified");
+    });
+
+    it("rejects unknown session ids and empty titles", () => {
+      expect(() => renameSession("rn-nope", "x")).toThrow(/not found/i);
+      startSession("rn-2", { title: "T" });
+      expect(() => renameSession("rn-2", "   ")).toThrow(/non-empty/i);
+    });
+  });
+
+  describe("pruneJsonlSessions", () => {
+    it("deletes sessions idle past the cutoff, keeping the newest N", () => {
+      const now = Date.now();
+      // Three old sessions + one fresh. Timestamps ride the event records, so
+      // fabricate old files directly (valid chain not required for pruning).
+      for (const [id, age] of [
+        ["old-a", 40],
+        ["old-b", 35],
+        ["fresh", 1],
+      ]) {
+        const ts = now - age * 24 * 60 * 60 * 1000;
+        writeFileSync(
+          sessionPath(id),
+          JSON.stringify({
+            type: "session_start",
+            timestamp: ts,
+            data: { title: id },
+          }) + "\n",
+          "utf-8",
+        );
+      }
+      const result = pruneJsonlSessions({
+        olderThanDays: 30,
+        keep: 1,
+        now,
+      });
+      expect(result.deleted.sort()).toEqual(["old-a", "old-b"]);
+      expect(sessionExists("fresh")).toBe(true);
+      expect(sessionExists("old-a")).toBe(false);
+    });
+
+    it("keep floor protects even ancient sessions; dry-run deletes nothing", () => {
+      const now = Date.now();
+      writeFileSync(
+        sessionPath("ancient"),
+        JSON.stringify({
+          type: "session_start",
+          timestamp: now - 400 * 24 * 60 * 60 * 1000,
+          data: { title: "ancient" },
+        }) + "\n",
+        "utf-8",
+      );
+      // keep default (10) > total count → nothing deleted
+      expect(pruneJsonlSessions({ olderThanDays: 30, now }).deleted).toEqual(
+        [],
+      );
+      // dry-run: reported but still on disk
+      const dry = pruneJsonlSessions({
+        olderThanDays: 30,
+        keep: 0,
+        dryRun: true,
+        now,
+      });
+      expect(dry.deleted).toEqual(["ancient"]);
+      expect(sessionExists("ancient")).toBe(true);
+    });
+
+    it("requires a numeric --older-than", () => {
+      expect(() => pruneJsonlSessions({})).toThrow(/older-than/i);
     });
   });
 

@@ -271,10 +271,17 @@ export function listJsonlSessions(options = {}) {
       const messageCount = events.filter(
         (e) => e.type === "user_message" || e.type === "assistant_message",
       ).length;
+      // cc session rename appends session_rename events; the LAST one wins.
+      let renamedTitle = null;
+      for (const e of events) {
+        if (e.type === "session_rename" && e.data?.title) {
+          renamedTitle = e.data.title;
+        }
+      }
 
       return {
         id,
-        title: startEvent?.data?.title || "Untitled",
+        title: renamedTitle || startEvent?.data?.title || "Untitled",
         provider: startEvent?.data?.provider || "",
         model: startEvent?.data?.model || "",
         message_count: messageCount,
@@ -294,6 +301,68 @@ export function listJsonlSessions(options = {}) {
     .map(({ _lastTs, _eventCount, ...rest }) => rest);
 
   return files;
+}
+
+/**
+ * Rename a session (gap-analysis 2026-07-11 P1 "命名会话"): appends a
+ * `session_rename` event so the hash chain stays intact (no rewrite). The
+ * LAST rename wins when listing/showing.
+ */
+export function renameSession(sessionId, title) {
+  if (!sessionExists(sessionId)) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+  const normalized = String(title || "").trim();
+  if (!normalized) throw new Error("A non-empty title is required");
+  appendEvent(sessionId, "session_rename", { title: normalized.slice(0, 200) });
+  return { id: sessionId, title: normalized.slice(0, 200) };
+}
+
+/**
+ * Prune old sessions (gap-analysis 2026-07-11 P1 "保留期限"): delete session
+ * transcripts whose LAST activity is older than `olderThanDays`, always
+ * keeping the newest `keep` (default 10) regardless of age. Dry-run returns
+ * the same shape without deleting.
+ */
+export function pruneJsonlSessions(options = {}) {
+  const olderThanDays = Number(options.olderThanDays);
+  if (!Number.isFinite(olderThanDays) || olderThanDays < 0) {
+    throw new Error(
+      "prune requires --older-than <days> (a non-negative number)",
+    );
+  }
+  const keep = Number.isFinite(Number(options.keep))
+    ? Math.max(0, Math.floor(Number(options.keep)))
+    : 10;
+  const now = typeof options.now === "number" ? options.now : Date.now();
+  const cutoff = now - olderThanDays * 24 * 60 * 60 * 1000;
+  // listJsonlSessions sorts by last activity DESC — the first `keep` entries
+  // survive unconditionally.
+  const all = listJsonlSessions({ limit: 100000 });
+  const candidates = all.slice(keep).filter((s) => {
+    const last = Date.parse(s.updated_at || s.created_at || "");
+    return Number.isFinite(last) && last < cutoff;
+  });
+  const deleted = [];
+  for (const s of candidates) {
+    if (options.dryRun === true) {
+      deleted.push(s.id);
+      continue;
+    }
+    try {
+      rmSync(sessionPath(s.id), { force: true });
+      _chainTailCache.delete(s.id);
+      deleted.push(s.id);
+    } catch {
+      /* per-file failures never abort the sweep */
+    }
+  }
+  return {
+    scanned: all.length,
+    kept: all.length - deleted.length,
+    deleted,
+    dryRun: options.dryRun === true,
+  };
 }
 
 export function forkSession(sourceId) {

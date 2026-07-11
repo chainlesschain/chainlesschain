@@ -597,6 +597,36 @@ export function registerBackgroundSessionCommands(program) {
       }
     });
 
+  // daemon rm — record cleanup (gap-analysis 2026-07-11 P0 后台 Supervisor).
+  daemon
+    .command("rm <id>")
+    .description(
+      "Remove a finished background agent's record + log (running agents need --force; the conversation session itself is untouched)",
+    )
+    .option("--force", "Stop a still-running agent first, then remove")
+    .option("--keep-log", "Keep the log file, remove only the state record")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const { removeBackgroundAgent } = await loadSupervisor();
+        const result = removeBackgroundAgent(id, {
+          force: options.force === true,
+          keepLog: options.keepLog === true,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        logger.log(
+          chalk.green(`Removed background agent ${result.id}`) +
+            chalk.gray(` (was ${result.status})`),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
   daemon
     .command("stop [id]")
     .description("Stop one background agent, or all running agents with --any")
