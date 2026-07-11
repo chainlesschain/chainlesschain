@@ -62,12 +62,57 @@ export function logPath(id) {
   return join(backgroundAgentsDir(), `${safeId(id)}.log`);
 }
 
+const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "lost"]);
+
 export function writeBackgroundAgentState(state) {
   const target = statePath(state.id);
+  // Field-aware merge against the freshest on-disk state. The state file has
+  // multiple concurrent read-modify-write writers (launcher, worker heartbeat/
+  // turn/finalize, rename/pin/stop from other processes) with last-writer-wins
+  // semantics — a writer holding a stale snapshot used to clobber a terminal
+  // status back to "running" (phantom session, real exit code lost) or roll a
+  // fresh rename back to the old title. Two invariants restore convergence:
+  //   1. a terminal status wins over a racing "running" snapshot — there is no
+  //      legitimate same-id terminal→running transition (resume mints a NEW
+  //      id, and the worker's own writeHeartbeat already refuses to resurrect);
+  //   2. the newest rename/pin (by renamedAt/pinnedAt) wins regardless of
+  //      which writer's snapshot carries it.
+  // The read happens immediately before the atomic rename, shrinking the
+  // clobber window from "any caller's RMW span" to microseconds; rename/pin
+  // additionally verify-and-retry on top of this.
+  let next = state;
+  const current = readBackgroundAgentState(state.id);
+  if (current) {
+    if (TERMINAL_STATUSES.has(current.status) && next.status === "running") {
+      next = {
+        ...next,
+        status: current.status,
+        endedAt: current.endedAt ?? next.endedAt ?? null,
+        exitCode: current.exitCode ?? next.exitCode ?? null,
+        ...(current.signal !== undefined ? { signal: current.signal } : {}),
+        ...(current.error !== undefined ? { error: current.error } : {}),
+        ...(current.lostReason !== undefined
+          ? { lostReason: current.lostReason }
+          : {}),
+        ...(current.stoppedByUser !== undefined
+          ? { stoppedByUser: current.stoppedByUser }
+          : {}),
+        // terminal sessions have no live phase or transport endpoint
+        phase: null,
+        transport: null,
+      };
+    }
+    if (Number(current.renamedAt || 0) > Number(next.renamedAt || 0)) {
+      next = { ...next, title: current.title, renamedAt: current.renamedAt };
+    }
+    if (Number(current.pinnedAt || 0) > Number(next.pinnedAt || 0)) {
+      next = { ...next, pinned: current.pinned, pinnedAt: current.pinnedAt };
+    }
+  }
   const tmp = `${target}.${process.pid}.tmp`;
-  writeFileSync(tmp, JSON.stringify(state, null, 2), { mode: 0o600 });
+  writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
   renameSync(tmp, target);
-  return state;
+  return next;
 }
 
 export function readBackgroundAgentState(id) {

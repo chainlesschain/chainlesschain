@@ -1,0 +1,149 @@
+# Background agent / worktree stability matrix (gap #5)
+
+Systematic regression matrix for background agents, attach/resume, and
+worktree edge cases. Each cell maps to a concrete test (or an honestly
+declared gap). Status legend:
+
+- **covered-new** — added by this matrix pass
+- **covered-existing** — already covered by an earlier test; not duplicated
+- **pinned-gap** — current behavior is pinned by a test + TODO; a real fix is
+  still owed (do not silently change semantics)
+- **not-testable-here** — with the why
+
+Test files:
+
+- `__tests__/unit/background-stability-matrix.test.js` — part 1 (earlier pass:
+  env inheritance, launch-time cwd hygiene, async spawn errors, stale-running,
+  attach fallback, resume guards, agent-worktree keep-vs-remove)
+- `__tests__/unit/background-stability-matrix2.test.js` — part 2 (this pass,
+  unit cells)
+- `__tests__/integration/background-stability-realspawn.test.js` — real
+  detached-worker cells
+- `__tests__/integration/worktree-stability-edges.test.js` — worktree edge
+  cells (real git)
+- `__tests__/unit/background-agent-supervisor.test.js` — baseline supervisor
+  suite (launch/list/rename/logs/resume/transport real-spawn)
+
+## Matrix
+
+### 1. attach/resume across a simulated upgrade (old-schema state files)
+
+| Cell                                                                                                                                 | Test                                                                                                                                                                                                                                        | Status                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Listing + reconcile of a state missing `heartbeatAt`/`workerPid`/`startedAt`/`title` (pre-heartbeat schema); rendering never crashes | matrix2 › "lists and reconciles a pre-heartbeat-schema state"                                                                                                                                                                               | covered-new                                                                                                                    |
+| Old-schema running state, dead pid → still reconciles to `lost/process-exited`                                                       | matrix2 › "old-schema running state with a dead pid still reconciles to lost"                                                                                                                                                               | covered-new                                                                                                                    |
+| Resume of a state missing `cwd` degrades to `process.cwd()`                                                                          | matrix2 › "resume of an old-schema state missing cwd degrades to process.cwd()"                                                                                                                                                             | covered-new                                                                                                                    |
+| Corrupted state JSON is skipped by listing (returns `null`, filtered)                                                                | matrix2 › "a corrupted state file is skipped by listing"                                                                                                                                                                                    | covered-new                                                                                                                    |
+| Forward compat: unknown fields from a NEWER schema survive rename round-trip                                                         | matrix2 › "unknown fields from a NEWER schema survive a rename round-trip"                                                                                                                                                                  | covered-new                                                                                                                    |
+| Attach when the state has no `transport` at all (old schema) falls back to log follow                                                | guarded by `state.transport?.pipe` optional chain in `commands/background-session.js` attach action; the transport-gone fallback itself is covered by matrix pt.1 › "interactiveAttach returns false (fallback) when the transport is gone" | covered-existing (fallback path); the commander-action wiring itself is not unit-tested — would need a TTY + commander harness |
+
+### 2. cwd deleted after launch
+
+| Cell                                                                                                               | Test                                                                            | Status           |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ---------------- |
+| Launch against a deleted cwd fails fast, one clear error, no phantom files                                         | matrix pt.1 › "rejects a deleted cwd with one clear error"                      | covered-existing |
+| **Resume** against a deleted cwd → clear error (`does not exist`), not an ENOENT crash; no phantom running session | matrix2 › "resume against a deleted cwd fails with one clear error"             | covered-new      |
+| List / details / logs still render when the recorded cwd is gone                                                   | matrix2 › "list/details/logs still work when the recorded cwd no longer exists" | covered-new      |
+| cwd raced away between validation and spawn (async spawn error) → reaped to `failed`                               | matrix pt.1 › "reaps a post-spawn 'error' event into a failed state"            | covered-existing |
+
+### 3. cwd locked/replaced
+
+| Cell                                                            | Test                                                      | Status                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Launch against a cwd replaced by a FILE → `not a directory`     | matrix pt.1 › "rejects a cwd that was replaced by a FILE" | covered-existing                                                                                                                                                                                                                                                                  |
+| **Resume** against a cwd replaced by a FILE → `not a directory` | matrix2 › "resume against a cwd that is now a FILE"       | covered-new                                                                                                                                                                                                                                                                       |
+| Windows exclusive-lock on cwd (open handle with no sharing)     | —                                                         | not-testable-here: Node/libuv always opens with full share flags, so a genuine no-share handle needs a non-Node native helper; the deleted/file-replaced/inaccessible shapes above cover the observable failure modes (`assertUsableCwd` maps EACCES/EPERM into "not accessible") |
+
+### 4. Windows process tree / pid semantics
+
+| Cell                                                                                                                    | Test                                                                                                         | Status                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Worker records `pid === workerPid` (supervising node process) and `agentPid` (per-turn CLI child); the two DIVERGE      | realspawn › "records BOTH pids, they diverge, and the watched pid is the worker's"                           | covered-new                                                                                                                                                                                                                  |
+| Liveness is keyed to the WORKER pid: worker dead + agent child alive → `lost` (documented: nothing supervises the leak) | matrix2 › "worker pid dead → lost, even when agentPid is still alive"                                        | **pinned-gap** — semantics pinned; a leaked agent child after worker death is NOT reaped by the supervisor (only `stopBackgroundAgent`'s `taskkill /T` / POSIX group-kill reaps the tree, and only while state is `running`) |
+| Worker alive + agentPid dead → still `running` (idle/between turns shape)                                               | matrix2 › "worker pid alive + agentPid dead → still running"                                                 | covered-new                                                                                                                                                                                                                  |
+| `stop` kills the tree via `taskkill /PID <worker> /T /F` on Windows                                                     | supervisor baseline › "stops a running Windows process tree through taskkill" (mocked spawnSync, win32-only) | covered-existing                                                                                                                                                                                                             |
+
+### 5. Status consistency (running→completed/failed/stopped/lost, pid reuse)
+
+| Cell                                                                                                                                | Test                                                                                                                                        | Status                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| running→completed with exit code (real worker)                                                                                      | supervisor baseline › "runs the real detached worker and records completion"                                                                | covered-existing                                                                                                                                                      |
+| running→failed via async spawn error                                                                                                | matrix pt.1 › "reaps a post-spawn 'error' event"                                                                                            | covered-existing                                                                                                                                                      |
+| running→lost via dead pid (`process-exited`)                                                                                        | matrix pt.1 › "dead-pid sessions reconcile to lost"                                                                                         | covered-existing                                                                                                                                                      |
+| running→lost via stale heartbeat even with an alive pid                                                                             | supervisor baseline › "marks stale-heartbeat running sessions as lost" + "does not stop a stale-heartbeat session even if its pid is alive" | covered-existing                                                                                                                                                      |
+| running→stopped via `stopBackgroundAgent`                                                                                           | supervisor baseline (win32 mocked)                                                                                                          | covered-existing                                                                                                                                                      |
+| Terminal states pass through reconciliation untouched                                                                               | matrix pt.1 › "terminal states pass through reconciliation untouched"                                                                       | covered-existing                                                                                                                                                      |
+| Lost-correction preserves a pre-existing `endedAt`                                                                                  | matrix2 › "lost-correction preserves a pre-existing endedAt"                                                                                | covered-new                                                                                                                                                           |
+| **Terminal-wins write merge**: a stale `running` snapshot can never resurrect a terminal state (rename-race B1 regression)          | matrix2 › "REGRESSION (rename race B1)"                                                                                                     | covered-new (fix in `writeBackgroundAgentState`)                                                                                                                      |
+| **Newest-rename-wins**: a stale snapshot can never roll back a fresh rename (rename-race B2 regression); same for pin               | matrix2 › "REGRESSION (rename race B2)" + "same newest-wins protection for pin state"                                                       | covered-new (fix in `writeBackgroundAgentState`)                                                                                                                      |
+| Pid reuse: alive foreign pid + fresh-looking heartbeat is trusted as `running`; only heartbeat staleness (default 120 s) catches it | matrix2 › "PINNED GAP: a reused pid with a fresh-looking heartbeat is trusted"                                                              | **pinned-gap** — no `startedAt`-vs-process-start identity check exists; undetectable window is bounded by `CC_BACKGROUND_AGENT_HEARTBEAT_STALE_MS`. TODO in the test. |
+
+### 6. "Needs input" phase / phase+turnCount transitions
+
+| Cell                                                                                                                            | Test                                                                                                                                                      | Status                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| phase `turn` → `idle` persists `phase`/`turnCount`, clears `agentPid`, stays `running` (real worker + real transport client)    | realspawn › "persists phase/turnCount through idle…"                                                                                                      | covered-new                                                                                                                                                                                                        |
+| Stale-correction never flips a live `running` session with an alive pid (identity pin: same object returned, nothing persisted) | matrix2 › "running + alive pid + fresh heartbeat passes through IDENTICALLY" + live re-check inside the realspawn phase test                              | covered-new                                                                                                                                                                                                        |
+| Rename landed while `idle` survives the worker's finalize (live rename-race regression)                                         | realspawn › phase test (rename step) + supervisor baseline › "keeps a running rename when the worker writes completion"                                   | covered-new + covered-existing (baseline test de-flaked — see below)                                                                                                                                               |
+| Details view surfaces `phase`, `turns`, interactive-transport availability                                                      | matrix2 › "details view surfaces phase and turn count" + background-session-command.test.js › "shows phase, turns and interactive transport availability" | covered-new + covered-existing                                                                                                                                                                                     |
+| Follow-up turn over the transport increments `turnCount`, finalize clears `phase`/`transport`                                   | supervisor baseline › "runs follow-up turns over the session transport and finalizes on detach"                                                           | covered-existing                                                                                                                                                                                                   |
+| A real "waiting for approval" phase value                                                                                       | —                                                                                                                                                         | not-testable-here: the worker only emits `turn`/`idle` today; approval phases are a headless-runner concern surfaced via logs, not via `state.phase`. When such a phase is added, extend the realspawn phase test. |
+
+### 7. Worktree edges (what the existing libs support)
+
+| Cell                                                                                                                                                        | Test                                                                                                  | Status           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------- |
+| Agent worktree commands run INSIDE the worktree, never the parent checkout                                                                                  | matrix pt.1 › "setupAgentWorktree runs its git commands INSIDE the new worktree"                      | covered-existing |
+| finish keeps dirty / unverifiable work, removes only verified-clean                                                                                         | matrix pt.1 (2 tests) + agent-worktree.test.js                                                        | covered-existing |
+| Nested repo (repo-in-repo): nearest `.git` wins, outer checkout untouched                                                                                   | worktree-edges › 7a                                                                                   | covered-new      |
+| Worktree created from inside another worktree registers with the shared repo                                                                                | worktree-edges › 7b                                                                                   | covered-new      |
+| Repo reached through a directory link (Windows junction via `symlinkSync(…, "junction")` — no admin needed; plain dir symlink on POSIX): create/list/remove | worktree-edges › 7c                                                                                   | covered-new      |
+| Dirty-merge rollback: conflicted `mergeWorktree` aborts — no MERGE_HEAD, clean status, base content intact, agent branch preserved                          | worktree-edges › 7d (rollback assertions; conflict-report shape already in worktree-isolator.test.js) | covered-new      |
+| Merge-preview doesn't mutate the worktree branch                                                                                                            | worktree-isolator.test.js › previewWorktreeMerge                                                      | covered-existing |
+| Reverse-merge conflict-direction mapping (UD/DU)                                                                                                            | worktree-isolator.test.js › applyWorktreeAutomationCandidate UD/DU tests                              | covered-existing |
+
+### 8. Log tail rotated/truncated while following
+
+| Cell                                                                                                                                                                                                                           | Test                                                       | Status                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Truncation while the worker holds an O_APPEND fd: appender keeps writing, session completes, reader survives, tail reads clean (no duplicated stale content)                                                                   | realspawn › "neither the appender nor the reader crashes…" | covered-new                                                                                                                                                                                                                                                                                                                                                                      |
+| Supervisor-level reader after truncate/rotate/delete: no crash, fresh content only, deleted file reads as `""`                                                                                                                 | matrix2 › log tail describe (2 tests)                      | covered-new                                                                                                                                                                                                                                                                                                                                                                      |
+| Follow-mode incremental reader (`readLogFromOffset` in `commands/background-session.js`): on truncation it resets `offset → 0` and re-emits any retained prefix (benign duplication of at most the surviving prefix; no crash) | —                                                          | **pinned-gap (documented, untested)**: the function is module-private (not exported) and the follow loop needs live stdin/TTY; exporting it was out of scope for this pass (only `__tests__/**` + supervisor were touchable). The truncation _guard_ (`if (offset > text.length) offset = 0`) is exercised indirectly by the realspawn truncation test via the same file shapes. |
+
+## Rename-race flake — root cause + fix
+
+`background-agent-supervisor.test.js › "keeps a running rename when the worker
+writes completion"` was flaky under load. Root cause: the state file has
+multiple concurrent read-modify-write writers (launcher, worker
+heartbeat/turn/finalize, rename/pin/stop from other processes) with
+last-writer-wins semantics. Two losing interleavings existed:
+
+- **B1 resurrection** — rename reads a `running` snapshot; worker `finalize`
+  writes `completed`; rename's write lands last → session flips back to a
+  phantom `running` with a dead pid and the exit code is lost (later shows as
+  `lost`, not `completed`). Rename's verify loop only checked `title`, so it
+  exited happy.
+- **B2 lost rename** — worker's finalize read a pre-rename snapshot and its
+  terminal write landed after rename's bounded 4×15 ms verify loop → title
+  rolled back forever.
+
+Bounded retries cannot beat a write that lands after the loop, so this was
+unfixable test-side. Fix (in `src/lib/background-agent-supervisor.js`
+`writeBackgroundAgentState`): field-aware merge against the freshest on-disk
+state at write time — (1) a terminal status always wins over a racing
+`running` snapshot (no legitimate same-id terminal→running transition exists;
+resume mints a new id, and the worker's `writeHeartbeat` already refuses to
+resurrect), (2) the newest rename/pin (by `renamedAt`/`pinnedAt`) wins
+regardless of which writer's snapshot carries it. Every interleaving now
+converges. The test's fixed 30×50 ms poll (too short for a cold detached node
+boot under CI load — an independent flake contributor) was also made
+deadline-based (10 s).
+
+## Ground rules encoded in these tests
+
+- per-test tmp dirs via `mkdtempSync` + `CC_BACKGROUND_AGENTS_DIR`
+- real-spawn tests track every launched id and `taskkill /T /F` (Windows) /
+  process-group `SIGKILL` (POSIX) any survivor in `afterEach`
+- no arbitrary sleeps — all waits are deadline-based polls (`pollUntil`)
+- explicit `utf-8` on every file read/write
+- each test budgeted < 15 s wall time (20 s vitest cap on real-spawn tests)

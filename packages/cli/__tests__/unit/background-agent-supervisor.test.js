@@ -197,8 +197,13 @@ describe("background agent supervisor", () => {
     const renamed = renameBackgroundAgent(state.id, "after");
     expect(renamed.title).toBe("after");
 
+    // Deadline-based poll: a cold detached node boot can take >1.5s under CI
+    // load — the fixed 30×50ms loop here used to expire before the worker
+    // even wrote completion. (The rename-vs-finalize clobber itself is fixed
+    // at the root in writeBackgroundAgentState's field-aware merge.)
     let completed = null;
-    for (let i = 0; i < 30; i++) {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const current = readBackgroundAgentState(state.id);
       if (current?.status === "completed") {
