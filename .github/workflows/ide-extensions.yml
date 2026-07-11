@@ -53,6 +53,18 @@ jobs:
       - name: Package .vsix
         run: npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
 
+      # Parse gate: a .vsix is a ZIP — crack it open (dependency-free reader
+      # in the script) and assert the marketplace metadata is coherent before
+      # the artifact is uploaded or any publish step can run: publisher/name/
+      # version match package.json, engines/repository/icon/README/LICENSE/
+      # main all packed, and extension.vsixmanifest Identity agrees. The
+      # selftest exercises the reader + assertion core against a synthetic
+      # zip first, so a broken verifier can't green-light a broken package.
+      - name: Verify .vsix metadata
+        run: |
+          node scripts/verify-vsix.selftest.mjs
+          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
+
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v6
         with:
