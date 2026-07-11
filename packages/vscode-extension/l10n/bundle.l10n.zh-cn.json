@@ -63,5 +63,21 @@
   "ChainlessChain: could not read cc release notes — needs cc ≥ {0} (upgrade with npm i -g chainlesschain, then retry).": "ChainlessChain：读取不到 cc 更新说明 — 需要 cc ≥ {0}（npm i -g chainlesschain 升级后重试）。",
   "ChainlessChain: could not read token usage — is the cc CLI installed and on PATH?": "ChainlessChain：读取不到 Token 用量——cc CLI 是否已安装并在 PATH 上？",
   "Connected Chrome launched (CDP port 9222). Open your page there, then run this command again to capture its state.": "已启动连接的 Chrome（CDP 端口 9222）。在那里打开你的页面，然后再次运行本命令捕获页面状态。",
-  "Could not launch Chrome — install Chrome/Edge or set CHROME_PATH.": "无法启动 Chrome——请安装 Chrome/Edge 或设置 CHROME_PATH。"
+  "Could not launch Chrome — install Chrome/Edge or set CHROME_PATH.": "无法启动 Chrome——请安装 Chrome/Edge 或设置 CHROME_PATH。",
+  "Open setting": "打开设置",
+  "Download managed copy": "下载托管副本",
+  "Use terminal npm": "在终端用 npm 安装",
+  "Not now": "暂不",
+  "ChainlessChain: the configured CLI path ({0}) did not answer as chainlesschain. The setting was left untouched — fix chainlesschain.cli.path, or download a managed copy.": "ChainlessChain：配置的 CLI 路径（{0}）没有以 chainlesschain 身份应答。该设置未被改动——请修正 chainlesschain.cli.path，或下载托管副本。",
+  "ChainlessChain: no usable `cc` CLI was found. Download a managed copy into extension storage, or install it globally with npm (requires Node.js >= {0}).": "ChainlessChain：未找到可用的 `cc` CLI。可下载托管副本到扩展存储，或用 npm 全局安装（需要 Node.js >= {0}）。",
+  "ChainlessChain: no usable `cc` CLI was found, and a managed copy is impossible: no Node.js >= {0} on PATH (the managed cc runs via `node`). Install Node.js first.": "ChainlessChain：未找到可用的 `cc` CLI，且托管副本无法工作：PATH 中没有 Node.js >= {0}（托管的 cc 需经 `node` 运行）。请先安装 Node.js。",
+  "ChainlessChain: extension storage is unavailable — cannot install a managed CLI copy.": "ChainlessChain：扩展存储不可用——无法安装托管 CLI 副本。",
+  "ChainlessChain: the managed cc CLI runs via `node`, but no Node.js was found on PATH — a managed copy cannot work here. Install Node.js >= {0}, then retry.": "ChainlessChain：托管的 cc CLI 需经 `node` 运行，但 PATH 中未找到 Node.js——托管副本在此环境无法工作。请安装 Node.js >= {0} 后重试。",
+  "ChainlessChain: Node.js {0} on PATH is older than the {1} the cc CLI requires — upgrade Node.js, then retry.": "ChainlessChain：PATH 中的 Node.js {0} 低于 cc CLI 要求的 {1}——请升级 Node.js 后重试。",
+  "Installing managed cc CLI…": "正在安装托管 cc CLI…",
+  "ChainlessChain: managed cc {0} installed and active for this window.": "ChainlessChain：托管 cc {0} 已安装并在本窗口生效。",
+  "ChainlessChain: managed CLI install failed ({0}: {1}).": "ChainlessChain：托管 CLI 安装失败（{0}：{1}）。",
+  "ChainlessChain: no previous managed cc version to roll back to.": "ChainlessChain：没有可回滚的上一个托管 cc 版本。",
+  "ChainlessChain: managed CLI rollback failed ({0}).": "ChainlessChain：托管 CLI 回滚失败（{0}）。",
+  "ChainlessChain: managed cc rolled back to {0}.": "ChainlessChain：托管 cc 已回滚到 {0}。"
 }

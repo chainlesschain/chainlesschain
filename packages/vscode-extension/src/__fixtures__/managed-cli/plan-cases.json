@@ -1,0 +1,167 @@
+[
+  {
+    "name": "latest from version manifest — sha512 preferred over shasum",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "versionManifest",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.158",
+      "tarballUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz",
+      "integrity": {
+        "algorithm": "sha512",
+        "value": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+      }
+    }
+  },
+  {
+    "name": "shasum-only manifest falls back to sha1 (lowercased hex)",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "versionManifestShasumOnly",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.100",
+      "tarballUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.100.tgz",
+      "integrity": {
+        "algorithm": "sha1",
+        "value": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+      }
+    }
+  },
+  {
+    "name": "packument + latest resolves through dist-tags",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "packument",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.158",
+      "tarballUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz",
+      "integrity": {
+        "algorithm": "sha512",
+        "value": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+      }
+    }
+  },
+  {
+    "name": "packument + exact pinned version",
+    "input": {
+      "requestedVersion": "0.162.100",
+      "metaRef": "packument",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.100",
+      "tarballUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.100.tgz",
+      "integrity": {
+        "algorithm": "sha1",
+        "value": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+      }
+    }
+  },
+  {
+    "name": "packument + unknown version → version-not-found",
+    "input": {
+      "requestedVersion": "9.9.9",
+      "metaRef": "packument",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": false,
+      "error": "version-not-found",
+      "version": "9.9.9"
+    }
+  },
+  {
+    "name": "below floor rejected",
+    "input": {
+      "requestedVersion": "0.162.100",
+      "metaRef": "packument",
+      "floorVersion": "0.162.150"
+    },
+    "expected": {
+      "ok": false,
+      "error": "below-floor",
+      "version": "0.162.100",
+      "floorVersion": "0.162.150"
+    }
+  },
+  {
+    "name": "at floor accepted",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "versionManifest",
+      "floorVersion": "0.162.158"
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.158",
+      "tarballUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz",
+      "integrity": {
+        "algorithm": "sha512",
+        "value": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+      }
+    }
+  },
+  {
+    "name": "missing meta → no-registry-meta",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": null,
+      "floorVersion": null
+    },
+    "expected": { "ok": false, "error": "no-registry-meta" }
+  },
+  {
+    "name": "manifest without dist → no-tarball",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "noDist",
+      "floorVersion": null
+    },
+    "expected": { "ok": false, "error": "no-tarball", "version": "0.162.158" }
+  },
+  {
+    "name": "http tarball URL rejected fail-closed",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "httpTarball",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": false,
+      "error": "insecure-tarball-url",
+      "version": "0.162.158"
+    }
+  },
+  {
+    "name": "wrong package name rejected",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "wrongName",
+      "floorVersion": null
+    },
+    "expected": {
+      "ok": false,
+      "error": "wrong-package",
+      "name": "chainlesschain-evil-fork"
+    }
+  },
+  {
+    "name": "no integrity and no shasum → fail-closed",
+    "input": {
+      "requestedVersion": "latest",
+      "metaRef": "noIntegrity",
+      "floorVersion": null
+    },
+    "expected": { "ok": false, "error": "no-integrity", "version": "0.162.158" }
+  }
+]

@@ -1,0 +1,104 @@
+[
+  {
+    "name": "first install — no previous state",
+    "op": "next",
+    "input": { "version": "0.162.158", "previousState": null, "now": 1000 },
+    "expected": {
+      "version": "0.162.158",
+      "installedAt": 1000,
+      "previousVersion": null
+    }
+  },
+  {
+    "name": "upgrade records the outgoing version as rollback target",
+    "op": "next",
+    "input": {
+      "version": "0.162.158",
+      "previousState": {
+        "version": "0.162.150",
+        "installedAt": 500,
+        "previousVersion": null
+      },
+      "now": 2000
+    },
+    "expected": {
+      "version": "0.162.158",
+      "installedAt": 2000,
+      "previousVersion": "0.162.150"
+    }
+  },
+  {
+    "name": "re-install of the SAME version keeps the old rollback target",
+    "op": "next",
+    "input": {
+      "version": "0.162.158",
+      "previousState": {
+        "version": "0.162.158",
+        "installedAt": 500,
+        "previousVersion": "0.162.150"
+      },
+      "now": 3000
+    },
+    "expected": {
+      "version": "0.162.158",
+      "installedAt": 3000,
+      "previousVersion": "0.162.150"
+    }
+  },
+  {
+    "name": "rollback to previous still on disk",
+    "op": "rollback",
+    "input": {
+      "state": {
+        "version": "0.162.158",
+        "installedAt": 2000,
+        "previousVersion": "0.162.150"
+      },
+      "diskVersions": ["0.162.158", "0.162.150"],
+      "now": 4000
+    },
+    "expected": {
+      "ok": true,
+      "version": "0.162.150",
+      "newState": {
+        "version": "0.162.150",
+        "installedAt": 4000,
+        "previousVersion": null
+      }
+    }
+  },
+  {
+    "name": "rollback with no previous version",
+    "op": "rollback",
+    "input": {
+      "state": {
+        "version": "0.162.158",
+        "installedAt": 1000,
+        "previousVersion": null
+      },
+      "diskVersions": ["0.162.158"],
+      "now": 4000
+    },
+    "expected": { "ok": false, "reason": "no-previous" }
+  },
+  {
+    "name": "rollback when the previous version dir was wiped",
+    "op": "rollback",
+    "input": {
+      "state": {
+        "version": "0.162.158",
+        "installedAt": 2000,
+        "previousVersion": "0.162.150"
+      },
+      "diskVersions": ["0.162.158"],
+      "now": 4000
+    },
+    "expected": { "ok": false, "reason": "previous-missing" }
+  },
+  {
+    "name": "rollback with no state at all",
+    "op": "rollback",
+    "input": { "state": null, "diskVersions": [], "now": 4000 },
+    "expected": { "ok": false, "reason": "no-state" }
+  }
+]

@@ -1,0 +1,68 @@
+{
+  "versionManifest": {
+    "name": "chainlesschain",
+    "version": "0.162.158",
+    "dist": {
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz",
+      "integrity": "sha512-1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w==",
+      "shasum": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+    }
+  },
+  "versionManifestShasumOnly": {
+    "name": "chainlesschain",
+    "version": "0.162.100",
+    "dist": {
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.100.tgz",
+      "shasum": "0CA78699DB5ADC32C3B3FDA20FA0F774F1BE7E63"
+    }
+  },
+  "packument": {
+    "name": "chainlesschain",
+    "dist-tags": { "latest": "0.162.158" },
+    "versions": {
+      "0.162.100": {
+        "name": "chainlesschain",
+        "version": "0.162.100",
+        "dist": {
+          "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.100.tgz",
+          "shasum": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+        }
+      },
+      "0.162.158": {
+        "name": "chainlesschain",
+        "version": "0.162.158",
+        "dist": {
+          "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz",
+          "integrity": "sha512-1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+        }
+      }
+    }
+  },
+  "noDist": {
+    "name": "chainlesschain",
+    "version": "0.162.158"
+  },
+  "httpTarball": {
+    "name": "chainlesschain",
+    "version": "0.162.158",
+    "dist": {
+      "tarball": "http://evil.example.com/chainlesschain-0.162.158.tgz",
+      "shasum": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+    }
+  },
+  "wrongName": {
+    "name": "chainlesschain-evil-fork",
+    "version": "0.162.158",
+    "dist": {
+      "tarball": "https://registry.npmjs.org/chainlesschain-evil-fork/-/chainlesschain-evil-fork-0.162.158.tgz",
+      "shasum": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+    }
+  },
+  "noIntegrity": {
+    "name": "chainlesschain",
+    "version": "0.162.158",
+    "dist": {
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.162.158.tgz"
+    }
+  }
+}

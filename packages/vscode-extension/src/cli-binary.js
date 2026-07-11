@@ -40,12 +40,21 @@ function looksLikeCcVersion(out) {
 /**
  * Resolve the CLI binary. An explicit non-`cc` configured path wins; otherwise
  * probe cc → chainlesschain → clc → clchain and return the first that looks like
- * chainlesschain. Falls back to the configured path (or "cc") if none match.
- * @param {{configuredPath?:string, getVersionOf:(bin:string)=>Promise<string|null>}} deps
+ * chainlesschain. An optional `getManaged` candidate source (the managed CLI
+ * runtime, see managed-cli.js) is consulted ONLY after every global probe
+ * failed — an explicit setting is never silently replaced, and behavior with
+ * no managed install is byte-identical to before. Falls back to the
+ * configured path (or "cc") if nothing matches.
+ * @param {{configuredPath?:string,
+ *          getVersionOf:(bin:string)=>Promise<string|null>,
+ *          getManaged?:()=>Promise<{command:string}|null>|{command:string}|null}} deps
  */
-async function resolveCliBinary({ configuredPath, getVersionOf } = {}) {
-  const explicit =
-    typeof configuredPath === "string" && configuredPath.trim();
+async function resolveCliBinary({
+  configuredPath,
+  getVersionOf,
+  getManaged,
+} = {}) {
+  const explicit = typeof configuredPath === "string" && configuredPath.trim();
   if (explicit && configuredPath !== "cc") return configuredPath;
   for (const cand of ["cc", "chainlesschain", "clc", "clchain"]) {
     let out = null;
@@ -55,6 +64,16 @@ async function resolveCliBinary({ configuredPath, getVersionOf } = {}) {
       out = null;
     }
     if (looksLikeCcVersion(out)) return cand;
+  }
+  if (typeof getManaged === "function") {
+    try {
+      const managed = await getManaged();
+      if (managed && typeof managed.command === "string" && managed.command) {
+        return managed.command;
+      }
+    } catch {
+      /* managed resolution is best-effort — fall through */
+    }
   }
   return explicit ? configuredPath : "cc";
 }

@@ -127,12 +127,18 @@ async function startBridge(context) {
   // (1) short-circuits the rest; (2) short-circuits (3).
   (async () => {
     const { resolveCliBinary, setResolvedCli } = require("./cli-binary");
-    const configuredPath = vscode.workspace
-      .getConfiguration("chainlesschain.cli")
-      .get("path");
+    const cliCfg = vscode.workspace.getConfiguration("chainlesschain.cli");
+    const configuredPath = cliCfg.get("path");
+    const managedEnabled = cliCfg.get("managed.enabled", true) !== false;
     const bin = await resolveCliBinary({
       configuredPath,
       getVersionOf: (b) => runCliVersion(b),
+      // Managed CLI runtime (see managed-cli.js): consulted ONLY after every
+      // global probe failed, and never when an explicit path is configured —
+      // an explicit `chainlesschain.cli.path` is never silently replaced.
+      getManaged: managedEnabled
+        ? () => resolveManagedCliCommand(context)
+        : undefined,
     });
     setResolvedCli(bin);
     const missing = await notifyIfCliMissing(vscode, context);
@@ -683,6 +689,19 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.cli.upgrade", () => {
       upgradeCliInTerminal(vscode);
     }),
+    // Managed CLI runtime (插件托管/内置 CLI): download a verified copy of the
+    // chainlesschain npm package into extension storage and run it via the
+    // PATH `node` — for machines without a usable global cc. The previously
+    // active version stays one rollback away.
+    vscode.commands.registerCommand("chainlesschain.cli.installManaged", () => {
+      installManagedCliCommand(vscode, context).catch(() => {});
+    }),
+    vscode.commands.registerCommand(
+      "chainlesschain.cli.rollbackManaged",
+      () => {
+        rollbackManagedCliCommand(vscode, context).catch(() => {});
+      },
+    ),
     // On-demand: check the installed cc against npm `latest` and report — unlike
     // the activation nudge this ALWAYS shows a result (incl. "up to date") and
     // ignores the once-per-version throttle / "don't show again".
@@ -1558,6 +1577,257 @@ function upgradeCliInTerminal(vscode, command) {
   term.sendText(command || UPGRADE_COMMAND);
 }
 
+// ---------------------------------------------------------------------------
+// Managed CLI runtime (插件托管/内置 CLI) — glue over src/managed-cli-flow.js.
+// All decision logic is in the pure core (managed-cli.js); this is IO only.
+// ---------------------------------------------------------------------------
+
+/** Root dir for the managed CLI (per-user extension storage), or null. */
+function managedCliRoot(context) {
+  const base = context?.globalStorageUri?.fsPath;
+  if (!base) return null;
+  const { MANAGED_DIR_NAME } = require("./managed-cli");
+  return require("node:path").join(base, MANAGED_DIR_NAME);
+}
+
+/**
+ * Cheap candidate source for resolveCliBinary: an existing managed install,
+ * runnable only when a new-enough `node` is on PATH (the extension host's
+ * Electron is NOT usable for spawning cc). Returns {command, version} | null.
+ */
+async function resolveManagedCliCommand(context) {
+  const root = managedCliRoot(context);
+  if (!root) return null;
+  const { managedNodeDiagnostic } = require("./managed-cli");
+  const { MIN_NODE_VERSION } = require("./version-check");
+  const nodeDiag = managedNodeDiagnostic({
+    nodeVersionOutput: await runCliVersion("node").catch(() => null),
+    minNodeVersion: MIN_NODE_VERSION,
+  });
+  if (!nodeDiag.ok) return null; // shim would fail — treat as not installed
+  const { resolveManagedCommand } = require("./managed-cli-flow");
+  return resolveManagedCommand(root);
+}
+
+/** "ChainlessChain: Install Managed CLI" — download/verify/extract/activate. */
+async function installManagedCliCommand(vscode, context) {
+  const { MIN_NODE_VERSION, MIN_CLI_VERSION } = require("./version-check");
+  const { managedNodeDiagnostic } = require("./managed-cli");
+  const root = managedCliRoot(context);
+  if (!root) {
+    vscode.window.showErrorMessage(
+      vscode.l10n.t(
+        "ChainlessChain: extension storage is unavailable — cannot install a managed CLI copy.",
+      ),
+    );
+    return;
+  }
+  // The managed copy runs as `node <entry>` — no usable node ⇒ impossible,
+  // and the diagnostic must say exactly that (明确诊断), not a vague failure.
+  const nodeDiag = managedNodeDiagnostic({
+    nodeVersionOutput: await runCliVersion("node").catch(() => null),
+    minNodeVersion: MIN_NODE_VERSION,
+  });
+  if (!nodeDiag.ok) {
+    vscode.window.showErrorMessage(
+      nodeDiag.reason === "no-node"
+        ? vscode.l10n.t(
+            "ChainlessChain: the managed cc CLI runs via `node`, but no Node.js was found on PATH — a managed copy cannot work here. Install Node.js >= {0}, then retry.",
+            MIN_NODE_VERSION,
+          )
+        : vscode.l10n.t(
+            "ChainlessChain: Node.js {0} on PATH is older than the {1} the cc CLI requires — upgrade Node.js, then retry.",
+            nodeDiag.version,
+            MIN_NODE_VERSION,
+          ),
+    );
+    return;
+  }
+  const res = await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: vscode.l10n.t("Installing managed cc CLI…"),
+    },
+    async (progress) => {
+      const { runManagedInstall } = require("./managed-cli-flow");
+      return runManagedInstall({
+        rootDir: root,
+        floorVersion: MIN_CLI_VERSION,
+        io: {
+          fetchJson: (url) => httpsGetJson(url),
+          fetchBuffer: (url) => httpsGetBuffer(url),
+          report: (step) => progress.report({ message: step }),
+        },
+      });
+    },
+  );
+  if (res && res.ok) {
+    // Re-point this window's CLI resolution at the fresh install immediately.
+    require("./cli-binary").setResolvedCli(res.command);
+    log(`managed cc ${res.version} installed at ${res.entry}`);
+    vscode.window.showInformationMessage(
+      vscode.l10n.t(
+        "ChainlessChain: managed cc {0} installed and active for this window.",
+        res.version,
+      ),
+    );
+  } else {
+    vscode.window.showErrorMessage(
+      vscode.l10n.t(
+        "ChainlessChain: managed CLI install failed ({0}: {1}).",
+        String(res?.step || "unknown"),
+        String(res?.error || "unknown"),
+      ),
+    );
+  }
+}
+
+/** "ChainlessChain: Roll Back Managed CLI" — one step, gated on previousVersion. */
+async function rollbackManagedCliCommand(vscode, context) {
+  const root = managedCliRoot(context);
+  if (!root) {
+    vscode.window.showErrorMessage(
+      vscode.l10n.t(
+        "ChainlessChain: extension storage is unavailable — cannot install a managed CLI copy.",
+      ),
+    );
+    return;
+  }
+  const { runManagedRollback } = require("./managed-cli-flow");
+  const res = runManagedRollback({ rootDir: root });
+  if (!res.ok) {
+    if (res.reason === "no-previous" || res.reason === "no-state") {
+      vscode.window.showInformationMessage(
+        vscode.l10n.t(
+          "ChainlessChain: no previous managed cc version to roll back to.",
+        ),
+      );
+    } else {
+      vscode.window.showErrorMessage(
+        vscode.l10n.t(
+          "ChainlessChain: managed CLI rollback failed ({0}).",
+          String(res.reason),
+        ),
+      );
+    }
+    return;
+  }
+  require("./cli-binary").setResolvedCli(res.command);
+  log(`managed cc rolled back to ${res.version}`);
+  vscode.window.showInformationMessage(
+    vscode.l10n.t(
+      "ChainlessChain: managed cc rolled back to {0}.",
+      res.version,
+    ),
+  );
+}
+
+/** GET a JSON document over https (same conventions as fetchLatestCliVersion:
+ *  best-effort, timeout, resolve null — never reject). */
+function httpsGetJson(url, timeoutMs = 15000) {
+  const https = require("https");
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(
+        url,
+        { headers: { Accept: "application/json" } },
+        (res) => {
+          if (res.statusCode !== 200) {
+            res.resume();
+            return finish(null);
+          }
+          res.setEncoding("utf8");
+          let body = "";
+          res.on("data", (d) => (body += d));
+          res.on("end", () => {
+            try {
+              finish(JSON.parse(body));
+            } catch {
+              finish(null);
+            }
+          });
+        },
+      );
+      req.on("error", () => finish(null));
+      req.setTimeout(timeoutMs, () => {
+        try {
+          req.destroy();
+        } catch {
+          /* best-effort */
+        }
+        finish(null);
+      });
+    } catch {
+      finish(null);
+    }
+  });
+}
+
+/** GET a binary body over https (redirect-following, size-capped, 120s). The
+ *  integrity check downstream is the real gate — this only fetches bytes. */
+function httpsGetBuffer(url, redirectsLeft = 3, maxBytes = 64 * 1024 * 1024) {
+  const https = require("https");
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(url, (res) => {
+        const status = res.statusCode || 0;
+        if (status >= 301 && status <= 308 && res.headers.location) {
+          res.resume();
+          if (redirectsLeft <= 0) return finish(null);
+          const next = new URL(res.headers.location, url).toString();
+          if (!next.startsWith("https://")) return finish(null); // never downgrade
+          return httpsGetBuffer(next, redirectsLeft - 1, maxBytes).then(finish);
+        }
+        if (status !== 200) {
+          res.resume();
+          return finish(null);
+        }
+        const chunks = [];
+        let total = 0;
+        res.on("data", (d) => {
+          total += d.length;
+          if (total > maxBytes) {
+            try {
+              req.destroy();
+            } catch {
+              /* best-effort */
+            }
+            return finish(null);
+          }
+          chunks.push(d);
+        });
+        res.on("end", () => finish(Buffer.concat(chunks)));
+        res.on("error", () => finish(null));
+      });
+      req.on("error", () => finish(null));
+      req.setTimeout(120000, () => {
+        try {
+          req.destroy();
+        } catch {
+          /* best-effort */
+        }
+        finish(null);
+      });
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 /** The npm `latest` dist-tag of the CLI, or null (best-effort, 5s timeout). */
 function fetchLatestCliVersion() {
   const https = require("https");
@@ -1621,7 +1891,66 @@ async function notifyIfCliMissing(vscode, context) {
     String((await runCliVersion(getResolvedCli()).catch(() => null)) || ""),
   );
   if (present) return false; // chainlesschain cc is present → not missing
+  const cliCfg = vscode.workspace.getConfiguration("chainlesschain.cli");
+  const configured = cliCfg.get("path");
+  const managedEnabled = cliCfg.get("managed.enabled", true) !== false;
+  // A broken EXPLICIT `chainlesschain.cli.path` is an error to surface, and
+  // the managed copy is only ever an OFFER here — the setting itself stays
+  // authoritative and is never silently replaced (repo iron rule).
+  if (configured && configured !== "cc") {
+    const buttons = [vscode.l10n.t("Open setting")];
+    if (managedEnabled) buttons.push(vscode.l10n.t("Download managed copy"));
+    const pick = await vscode.window.showErrorMessage(
+      vscode.l10n.t(
+        "ChainlessChain: the configured CLI path ({0}) did not answer as chainlesschain. The setting was left untouched — fix chainlesschain.cli.path, or download a managed copy.",
+        String(configured),
+      ),
+      ...buttons,
+    );
+    if (pick === vscode.l10n.t("Open setting")) {
+      vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "chainlesschain.cli.path",
+      );
+    } else if (pick === vscode.l10n.t("Download managed copy")) {
+      vscode.commands.executeCommand("chainlesschain.cli.installManaged");
+    }
+    return true;
+  }
   if (context.globalState.get("cliMissingDismissed")) return true;
+  if (managedEnabled) {
+    // Managed-runtime offer (Download / Use terminal npm / Not now). If the
+    // managed runtime is impossible (no `node` on PATH), say EXACTLY that —
+    // the install command repeats the diagnostic if invoked anyway.
+    const { managedNodeDiagnostic } = require("./managed-cli");
+    const nodeDiag = managedNodeDiagnostic({
+      nodeVersionOutput: await runCliVersion("node").catch(() => null),
+      minNodeVersion: MIN_NODE_VERSION,
+    });
+    const message = nodeDiag.ok
+      ? vscode.l10n.t(
+          "ChainlessChain: no usable `cc` CLI was found. Download a managed copy into extension storage, or install it globally with npm (requires Node.js >= {0}).",
+          MIN_NODE_VERSION,
+        )
+      : vscode.l10n.t(
+          "ChainlessChain: no usable `cc` CLI was found, and a managed copy is impossible: no Node.js >= {0} on PATH (the managed cc runs via `node`). Install Node.js first.",
+          MIN_NODE_VERSION,
+        );
+    const buttons = nodeDiag.ok
+      ? [
+          vscode.l10n.t("Download managed copy"),
+          vscode.l10n.t("Use terminal npm"),
+          vscode.l10n.t("Not now"),
+        ]
+      : [vscode.l10n.t("Use terminal npm"), vscode.l10n.t("Not now")];
+    const pick = await vscode.window.showWarningMessage(message, ...buttons);
+    if (pick === vscode.l10n.t("Download managed copy")) {
+      vscode.commands.executeCommand("chainlesschain.cli.installManaged");
+    } else if (pick === vscode.l10n.t("Use terminal npm")) {
+      upgradeCliInTerminal(vscode, "npm i -g chainlesschain");
+    }
+    return true;
+  }
   const pick = await vscode.window.showWarningMessage(
     `ChainlessChain: the \`cc\` CLI isn't installed or isn't on PATH — the chat panel needs it to work (requires Node.js >= ${MIN_NODE_VERSION}). Install it now?`,
     "Install cc",

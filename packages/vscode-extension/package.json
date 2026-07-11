@@ -222,6 +222,16 @@
         "command": "chainlesschain.cli.whatsNew",
         "title": "%cmd.cli.whatsNew.title%",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "chainlesschain.cli.installManaged",
+        "title": "%cmd.cli.installManaged.title%",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "chainlesschain.cli.rollbackManaged",
+        "title": "%cmd.cli.rollbackManaged.title%",
+        "icon": "$(history)"
       }
     ],
     "keybindings": [
@@ -391,6 +401,11 @@
           "type": "string",
           "default": "cc",
           "description": "%config.cli.path.description%"
+        },
+        "chainlesschain.cli.managed.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.cli.managed.enabled.description%"
         },
         "chainlesschain.chat.provider": {
           "type": "string",

@@ -1,0 +1,261 @@
+[
+  {
+    "name": "explicit usable setting wins outright",
+    "input": {
+      "configured": { "path": "C:/tools/cc.cmd", "usable": true },
+      "global": { "binary": "cc", "version": "0.162.158" },
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "explicit",
+      "command": "C:/tools/cc.cmd",
+      "offerManaged": false,
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "broken explicit path is NEVER silently replaced — managed only OFFERED",
+    "input": {
+      "configured": { "path": "C:/broken/cc.cmd", "usable": false },
+      "global": { "binary": "chainlesschain", "version": "0.162.158" },
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "explicit",
+      "command": "C:/broken/cc.cmd",
+      "offerManaged": true,
+      "diagnostics": ["explicit-path-broken"]
+    }
+  },
+  {
+    "name": "broken explicit + managed disabled — no offer, says why",
+    "input": {
+      "configured": { "path": "/opt/cc-broken", "usable": false },
+      "global": null,
+      "managed": null,
+      "managedEnabled": false,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "explicit",
+      "command": "/opt/cc-broken",
+      "offerManaged": false,
+      "diagnostics": ["explicit-path-broken", "managed-disabled"]
+    }
+  },
+  {
+    "name": "broken explicit + no node on PATH — managed impossible, exact diagnostic",
+    "input": {
+      "configured": { "path": "/opt/cc-broken", "usable": false },
+      "global": null,
+      "managed": null,
+      "managedEnabled": true,
+      "nodeOnPath": false,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "explicit",
+      "command": "/opt/cc-broken",
+      "offerManaged": false,
+      "diagnostics": ["explicit-path-broken", "no-node-on-path"]
+    }
+  },
+  {
+    "name": "global at floor beats an installed managed copy",
+    "input": {
+      "configured": null,
+      "global": { "binary": "cc", "version": "0.162.47" },
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "global",
+      "command": "cc",
+      "offerManaged": false,
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "no floor — any global chainlesschain is usable",
+    "input": {
+      "configured": null,
+      "global": { "binary": "clc", "version": "0.1.0" },
+      "managed": null,
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": null
+    },
+    "expected": {
+      "use": "global",
+      "command": "clc",
+      "offerManaged": false,
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "below-floor global yields to an installed managed copy",
+    "input": {
+      "configured": null,
+      "global": { "binary": "cc", "version": "0.150.0" },
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "managed",
+      "command": "/store/managed-cli/cc-managed",
+      "offerManaged": false,
+      "diagnostics": ["global-below-floor"]
+    }
+  },
+  {
+    "name": "below-floor global with no managed install — used, managed offered",
+    "input": {
+      "configured": null,
+      "global": { "binary": "cc", "version": "0.150.0" },
+      "managed": null,
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "global",
+      "command": "cc",
+      "offerManaged": true,
+      "diagnostics": ["global-below-floor"]
+    }
+  },
+  {
+    "name": "below-floor global + managed installed but DISABLED — global used",
+    "input": {
+      "configured": null,
+      "global": { "binary": "cc", "version": "0.150.0" },
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": false,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "global",
+      "command": "cc",
+      "offerManaged": false,
+      "diagnostics": ["managed-disabled", "global-below-floor"]
+    }
+  },
+  {
+    "name": "no global — installed managed copy is used",
+    "input": {
+      "configured": null,
+      "global": null,
+      "managed": {
+        "command": "\"C:\\Users\\Some One\\store\\cc-managed.cmd\"",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "managed",
+      "command": "\"C:\\Users\\Some One\\store\\cc-managed.cmd\"",
+      "offerManaged": false,
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "managed installed but node vanished from PATH — unusable, exact diagnostic",
+    "input": {
+      "configured": null,
+      "global": null,
+      "managed": {
+        "command": "/store/managed-cli/cc-managed",
+        "version": "0.162.158"
+      },
+      "managedEnabled": true,
+      "nodeOnPath": false,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "none",
+      "command": null,
+      "offerManaged": false,
+      "diagnostics": ["no-node-on-path"]
+    }
+  },
+  {
+    "name": "nothing anywhere — offer managed download",
+    "input": {
+      "configured": null,
+      "global": null,
+      "managed": null,
+      "managedEnabled": true,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "none",
+      "command": null,
+      "offerManaged": true,
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "nothing anywhere + managed disabled — short-circuit, no offer",
+    "input": {
+      "configured": null,
+      "global": null,
+      "managed": null,
+      "managedEnabled": false,
+      "nodeOnPath": true,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "none",
+      "command": null,
+      "offerManaged": false,
+      "diagnostics": ["managed-disabled"]
+    }
+  },
+  {
+    "name": "nothing anywhere + no node on PATH — managed impossible, says exactly that",
+    "input": {
+      "configured": null,
+      "global": null,
+      "managed": null,
+      "managedEnabled": true,
+      "nodeOnPath": false,
+      "floorVersion": "0.162.47"
+    },
+    "expected": {
+      "use": "none",
+      "command": null,
+      "offerManaged": false,
+      "diagnostics": ["no-node-on-path"]
+    }
+  }
+]

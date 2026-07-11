@@ -1,0 +1,39 @@
+[
+  {
+    "name": "sha512 match",
+    "payloadUtf8": "managed-cli twin fixture payload v1\n",
+    "integrity": {
+      "algorithm": "sha512",
+      "value": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+    },
+    "expected": {
+      "ok": true,
+      "algorithm": "sha512",
+      "expected": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w==",
+      "actual": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+    }
+  },
+  {
+    "name": "sha1 match — uppercase expected hex is normalized",
+    "payloadUtf8": "managed-cli twin fixture payload v1\n",
+    "integrity": {
+      "algorithm": "sha1",
+      "value": "0CA78699DB5ADC32C3B3FDA20FA0F774F1BE7E63"
+    },
+    "expected": {
+      "ok": true,
+      "algorithm": "sha1",
+      "expected": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63",
+      "actual": "0ca78699db5adc32c3b3fda20fa0f774f1be7e63"
+    }
+  },
+  {
+    "name": "sha512 mismatch on tampered payload",
+    "payloadUtf8": "managed-cli twin fixture payload v1 TAMPERED\n",
+    "integrity": {
+      "algorithm": "sha512",
+      "value": "1pAcZDJJZsfx0lpr4Neui7a+/hc/NDw2Wd7V5NDLN4vbWVnUA/+i+m3qtvzDd/A4athI0vWtpubkHwNyWVZq0w=="
+    },
+    "expected": { "ok": false }
+  }
+]
