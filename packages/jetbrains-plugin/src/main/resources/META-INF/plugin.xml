@@ -320,6 +320,17 @@
                 class="com.chainlesschain.ide.intellij.AutoExecScanAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <!-- Managed CLI runtime (gap #2 插件托管/内置 CLI; VS Code managed-cli twin):
+             used ONLY when no usable global cc is found — an explicit configured
+             cc path is never replaced. -->
+        <action id="chainlesschain.managedCli.Install"
+                class="com.chainlesschain.ide.intellij.InstallManagedCliAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.managedCli.Rollback"
+                class="com.chainlesschain.ide.intellij.RollbackManagedCliAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.ide.DiagnoseBridge"
                 class="com.chainlesschain.ide.intellij.DiagnoseBridgeAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>

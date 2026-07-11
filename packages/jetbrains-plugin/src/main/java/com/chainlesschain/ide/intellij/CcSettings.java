@@ -27,6 +27,12 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
         public String ccPath = "";
         /** Show the chat panel's context-window indicator. */
         public boolean contextIndicator = true;
+        /**
+         * Consult the plugin-managed cc copy when every global probe fails
+         * (VS Code {@code chainlesschain.cli.managed.enabled} parity). Never
+         * applies when an explicit cc path is set.
+         */
+        public boolean managedCliEnabled = true;
     }
 
     private CcState state = new CcState();
@@ -63,8 +69,23 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
         state.contextIndicator = enabled;
     }
 
+    public boolean isManagedCliEnabled() {
+        return state.managedCliEnabled;
+    }
+
+    public void setManagedCliEnabled(boolean enabled) {
+        state.managedCliEnabled = enabled;
+        applyToRuntime();
+    }
+
     /** Push runtime-consumed settings into the pure layer (idempotent). */
     public void applyToRuntime() {
         AgentChatSession.setConfiguredBinary(getCcPath());
+        // Managed-CLI candidate source: consulted only after every global
+        // probe fails, never for an explicit path (both enforced inside
+        // AgentChatSession.resolveBinary). Disabled ⇒ no supplier at all.
+        AgentChatSession.setManagedCliSupplier(state.managedCliEnabled
+                ? com.chainlesschain.ide.ManagedCliRuntime::defaultResolveCommand
+                : null);
     }
 }

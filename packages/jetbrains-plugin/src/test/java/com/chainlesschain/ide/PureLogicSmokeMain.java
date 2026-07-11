@@ -77,6 +77,7 @@ public final class PureLogicSmokeMain {
         policyViewer();
         pluginQuality();
         remoteDoctorFixes();
+        managedCli();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1861,6 +1862,200 @@ public final class PureLogicSmokeMain {
      * Reads the resource files by relative path (works from the plugin dir under
      * both `gradlew smokeTest` and the manual javac repro).
      */
+    /**
+     * Managed CLI runtime (gap #2 插件托管/内置 CLI) — the decision core must
+     * produce byte-identical results with the VS Code twin on the SHARED
+     * fixtures in packages/vscode-extension/src/__fixtures__/managed-cli/.
+     * The fixture-file-exists guard makes fixture drift (moved/renamed files)
+     * fail the smoke instead of silently running zero cases.
+     */
+    private static void managedCli() {
+        System.out.println("ManagedCli (twin fixtures + tar + seam):");
+        java.io.File dir = null;
+        for (String root : new String[] {
+                "../vscode-extension", "packages/vscode-extension" }) {
+            java.io.File d = new java.io.File(root + "/src/__fixtures__/managed-cli");
+            if (d.isDirectory()) { dir = d; break; }
+        }
+        check(dir != null, "shared managed-cli fixture dir exists (twin drift guard)");
+        if (dir == null) return;
+        for (String f : new String[] { "registry-meta.json", "plan-cases.json",
+                "verify-cases.json", "state-cases.json", "candidate-cases.json" }) {
+            check(new java.io.File(dir, f).isFile(), "fixture file exists: " + f);
+        }
+        Map<String, Object> registryMeta;
+        List<Object> planCases;
+        List<Object> verifyCases;
+        List<Object> stateCases;
+        List<Object> candidateCases;
+        try {
+            registryMeta = smokeJsonObj(new java.io.File(dir, "registry-meta.json"));
+            planCases = smokeJsonArr(new java.io.File(dir, "plan-cases.json"));
+            verifyCases = smokeJsonArr(new java.io.File(dir, "verify-cases.json"));
+            stateCases = smokeJsonArr(new java.io.File(dir, "state-cases.json"));
+            candidateCases = smokeJsonArr(new java.io.File(dir, "candidate-cases.json"));
+        } catch (Exception e) {
+            check(false, "fixtures parse as JSON: " + e);
+            return;
+        }
+        check(planCases.size() >= 12, "plan case count (" + planCases.size() + ")");
+        check(verifyCases.size() >= 3, "verify case count (" + verifyCases.size() + ")");
+        check(stateCases.size() >= 7, "state case count (" + stateCases.size() + ")");
+        check(candidateCases.size() >= 14,
+                "candidate case count (" + candidateCases.size() + ")");
+
+        // plan-cases: full deep-equal with the JS twin's expected values.
+        for (Object o : planCases) {
+            Map<String, Object> c = castMap(o);
+            Map<String, Object> input = castMap(c.get("input"));
+            Object metaRef = input.get("metaRef");
+            Map<String, Object> res = ManagedCli.planManagedInstall(
+                    (String) input.get("requestedVersion"),
+                    metaRef == null ? null : castMap(registryMeta.get(metaRef)),
+                    (String) input.get("floorVersion"));
+            eq(res, c.get("expected"), "plan: " + c.get("name"));
+        }
+        // verify-cases: every key present in expected must match.
+        for (Object o : verifyCases) {
+            Map<String, Object> c = castMap(o);
+            Map<String, Object> res = ManagedCli.verifyTarball(
+                    ((String) c.get("payloadUtf8"))
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    castMap(c.get("integrity")));
+            for (Map.Entry<String, Object> e : castMap(c.get("expected")).entrySet()) {
+                eq(res.get(e.getKey()), e.getValue(),
+                        "verify[" + e.getKey() + "]: " + c.get("name"));
+            }
+        }
+        // state-cases: next/rollback transitions with the injected now.
+        for (Object o : stateCases) {
+            Map<String, Object> c = castMap(o);
+            Map<String, Object> input = castMap(c.get("input"));
+            Map<String, Object> res;
+            if ("next".equals(c.get("op"))) {
+                res = ManagedCli.nextState(
+                        (String) input.get("version"),
+                        input.get("previousState") == null
+                                ? null : castMap(input.get("previousState")),
+                        ((Number) input.get("now")).longValue());
+            } else {
+                @SuppressWarnings("unchecked")
+                List<Object> disk = (List<Object>) input.get("diskVersions");
+                res = ManagedCli.rollbackPlan(
+                        input.get("state") == null ? null : castMap(input.get("state")),
+                        disk::contains,
+                        ((Number) input.get("now")).longValue());
+            }
+            eq(res, c.get("expected"), "state: " + c.get("name"));
+        }
+        // candidate-cases: the fixture-locked decision order (explicit > global
+        // ≥ floor > managed > below-floor-global > none) + diagnostic codes.
+        for (Object o : candidateCases) {
+            Map<String, Object> c = castMap(o);
+            eq(ManagedCli.deriveCliCandidates(castMap(c.get("input"))),
+                    c.get("expected"), "candidates: " + c.get("name"));
+        }
+
+        // Tar reader: zip-slip fail-closed + GNU @LongLink long-name support.
+        byte[] slip = smokeTgz(
+                smokeTarEntry("package/../../evil.txt", "pwned", '0'),
+                smokeTarEntry("package/package.json", "{}", '0'));
+        ManagedCli.Extraction slipRes = ManagedCli.extractPackage(slip);
+        eq(slipRes.error, "unsafe-path", "tar zip-slip rejected");
+        StringBuilder ln = new StringBuilder("package/gnu/");
+        for (int i = 0; i < 150; i++) ln.append('x');
+        String longName = ln.append(".js").toString();
+        byte[] gnu = smokeTgz(
+                smokeTarEntry("././@LongLink", longName + "\0", 'L'),
+                smokeTarEntry("package/gnu-trunc", "gnu long content", '0'));
+        ManagedCli.Extraction gnuRes = ManagedCli.extractPackage(gnu);
+        check(gnuRes.error == null && gnuRes.files.size() == 1
+                && longName.equals(gnuRes.files.get(0).path), "tar @LongLink long name");
+        eq(ManagedCli.extractPackage(
+                        smokeTgz(smokeTarEntry("other/file.js", "x", '0'))).error,
+                "unexpected-layout", "tar non-package layout fail-closed");
+
+        // Resolution seam: managed only after every global probe fails; a
+        // usable global wins without consulting the supplier.
+        eq(AgentChatSession.chooseBinaryOrManaged(cand -> null, () -> "/store/cc-managed"),
+                "/store/cc-managed", "seam: managed after all probes fail");
+        final int[] consulted = { 0 };
+        eq(AgentChatSession.chooseBinaryOrManaged(
+                        cand -> "cc".equals(cand) ? "0.162.158" : null,
+                        () -> { consulted[0]++; return "/store/cc-managed"; }),
+                "cc", "seam: global wins");
+        eq(consulted[0], 0, "seam: managed never consulted when a global answers");
+        eq(AgentChatSession.chooseBinaryOrManaged(cand -> null, () -> {
+            throw new RuntimeException("boom");
+        }), null, "seam: throwing supplier falls through");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMap(Object o) {
+        return (Map<String, Object>) o;
+    }
+
+    private static Map<String, Object> smokeJsonObj(java.io.File f) throws java.io.IOException {
+        return castMap(MiniJson.parse(new String(
+                java.nio.file.Files.readAllBytes(f.toPath()),
+                java.nio.charset.StandardCharsets.UTF_8)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> smokeJsonArr(java.io.File f) throws java.io.IOException {
+        return (List<Object>) MiniJson.parse(new String(
+                java.nio.file.Files.readAllBytes(f.toPath()),
+                java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /** Compact tar-entry builder (header + padded data) for the smoke checks. */
+    private static byte[] smokeTarEntry(String name, String content, char type) {
+        byte[] data = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        long size = type == '5' ? 0 : data.length;
+        byte[] h = new byte[512];
+        byte[] nb = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        System.arraycopy(nb, 0, h, 0, Math.min(nb.length, 100));
+        byte[] mode = "0000644\0".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        System.arraycopy(mode, 0, h, 100, mode.length);
+        StringBuilder oct = new StringBuilder(Long.toOctalString(size));
+        while (oct.length() < 11) oct.insert(0, '0');
+        byte[] sz = (oct + "\0").getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        System.arraycopy(sz, 0, h, 124, sz.length);
+        h[156] = (byte) type;
+        byte[] magic = "ustar".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        System.arraycopy(magic, 0, h, 257, magic.length);
+        java.util.Arrays.fill(h, 148, 156, (byte) 0x20);
+        long sum = 0;
+        for (byte b : h) sum += b & 0xff;
+        StringBuilder cs = new StringBuilder(Long.toOctalString(sum));
+        while (cs.length() < 6) cs.insert(0, '0');
+        byte[] csb = (cs + "\0 ").getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        System.arraycopy(csb, 0, h, 148, csb.length);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        out.writeBytes(h);
+        if (size > 0) {
+            byte[] padded = new byte[(int) ((size + 511) / 512) * 512];
+            System.arraycopy(data, 0, padded, 0, (int) size);
+            out.writeBytes(padded);
+        }
+        return out.toByteArray();
+    }
+
+    private static byte[] smokeTgz(byte[]... entries) {
+        try {
+            java.io.ByteArrayOutputStream tar = new java.io.ByteArrayOutputStream();
+            for (byte[] e : entries) tar.writeBytes(e);
+            tar.writeBytes(new byte[1024]);
+            java.io.ByteArrayOutputStream gz = new java.io.ByteArrayOutputStream();
+            try (java.util.zip.GZIPOutputStream out = new java.util.zip.GZIPOutputStream(gz)) {
+                out.write(tar.toByteArray());
+            }
+            return gz.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
+    }
+
     private static void bundleParity() {
         System.out.println("bundleParity (l10n action keys en <-> zh <-> plugin.xml)");
         java.util.Properties en = loadProps("src/main/resources/messages/CcBundle.properties");

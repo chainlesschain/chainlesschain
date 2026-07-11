@@ -2,6 +2,27 @@
 
 ## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
 
+- **Managed CLI runtime (gap #2 插件托管/内置 CLI, VS Code twin).** When no
+  usable global `cc` is found, the plugin can download, verify and use its own
+  copy of the `chainlesschain` npm package — Tools → "ChainlessChain: Install
+  Managed CLI…" (ONE confirm dialog naming version + size + target dir, then
+  a background task: registry plan → https-only download with a 64 MB cap and
+  ≤3 redirects → sha512/sha1 integrity verify → pure-Java .tgz extraction
+  with PaxHeader/@LongLink/ustar-prefix support and a zip-slip guard →
+  launcher shims → `current.json` state written LAST so a failed install
+  never breaks the active one) and "Roll Back Managed CLI" (one-step, gated
+  on a recorded `previousVersion` still on disk; the rollback slot is
+  consumed). Iron rule: the managed copy is consulted ONLY after every
+  global probe (`cc`/`chainlesschain`/`clc`/`clchain`) fails, and NEVER when
+  an explicit cc path is configured — a broken explicit path is never
+  silently replaced. New settings toggle "use a plugin-managed cc CLI"
+  (default on); node preflight gives the exact `no-node`/`node-too-old`
+  diagnostic before downloading. The whole decision core is the pure
+  `ManagedCli`/`ManagedCliRuntime` twin of the VS Code extension's
+  managed-cli.js, asserted **byte-identical** on the SHARED fixtures in
+  `packages/vscode-extension/src/__fixtures__/managed-cli/` (plan / verify /
+  state / candidate-ordering cases; JUnit + smoke with a fixture-drift
+  guard); en+zh localized glue.
 - **Plugin / LSP quality board (gap #11).** The Plugins & MCP manager gains a
   read-only "Quality" tab: per-plugin component counts over the 8 real
   manifest types (skills/agents/hooks/mcp/lsp/monitors/bin/settings, from

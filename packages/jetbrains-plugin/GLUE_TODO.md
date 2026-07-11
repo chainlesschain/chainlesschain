@@ -84,6 +84,35 @@ implemented and build-verified** (0.4.0).
 The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
 Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
 
+## 🔧 Managed CLI runtime (gap #2, unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Pure core (`ManagedCli`/`ManagedCliRuntime`) is fixture-locked against the VS
+Code twin (JUnit `ManagedCliTest` + smoke `managedCli()` with a
+fixture-drift guard) — no GUI gate. The SDK glue needs the usual
+`./gradlew runIde` pass before the next publish:
+
+- [ ] **Install flow** — Tools → "ChainlessChain: Install Managed CLI…" on a
+      machine with node but no global cc: ONE confirm dialog shows version +
+      size + target dir (`~/.chainlesschain/ide/managed-cli-jetbrains`);
+      background task reports resolve/download/verify/extract/install; success
+      dialog names the shim command; a new chat tab then spawns via the
+      managed copy (`cc-managed.cmd` on Windows).
+- [ ] **Settings toggle** — Settings → Tools → ChainlessChain IDE: uncheck
+      "use a plugin-managed cc CLI" → with no global cc the panel goes back to
+      the missing-CLI hint (managed no longer consulted); recheck → recovers
+      without an IDE restart.
+- [ ] **Rollback** — after installing two versions, Tools → "Roll Back
+      Managed CLI" confirms `current → previous`, flips the shim, and a second
+      rollback is refused ("no previous version"). With no managed install the
+      action says there is nothing to roll back.
+- [ ] **No-node diagnostic** — with node absent from PATH (or too old), the
+      install action refuses BEFORE downloading with the exact
+      no-node/node-too-old message (Node >= 22.12.0).
+- [ ] **Explicit-path supremacy (iron rule)** — set an explicit (even broken)
+      cc path in Settings; verify every spawn keeps using it and the managed
+      copy is never substituted; clear the path → managed kicks in only after
+      the cc/chainlesschain/clc/clchain probes fail.
+
 ## 🔧 Bug-sweep batch B1–B9 (post-0.4.44, unreleased) — code-complete, NOT yet runIde-verified (2026-07-06)
 
 Nine fixes from the 2026-07-06 audit. Verified: `compileJava` clean +

@@ -24,6 +24,7 @@ public final class CcConfigurable implements Configurable {
 
     private JBTextField ccPathField;
     private JBCheckBox contextIndicatorBox;
+    private JBCheckBox managedCliBox;
     private JPanel panel;
 
     @Override
@@ -35,6 +36,7 @@ public final class CcConfigurable implements Configurable {
     public @Nullable JComponent createComponent() {
         ccPathField = new JBTextField();
         contextIndicatorBox = new JBCheckBox(CcBundle.message("settings.contextIndicator.label"));
+        managedCliBox = new JBCheckBox(CcBundle.message("settings.managedCli.label"));
 
         JBLabel hint = new JBLabel(CcBundle.message("settings.ccPath.hint"));
         hint.setForeground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
@@ -45,6 +47,7 @@ public final class CcConfigurable implements Configurable {
                         new JBLabel(CcBundle.message("settings.ccPath.label")), ccPathField, 1, false)
                 .addComponentToRightColumn(hint, 1)
                 .addComponent(contextIndicatorBox, 1)
+                .addComponent(managedCliBox, 1)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
         return panel;
@@ -54,7 +57,8 @@ public final class CcConfigurable implements Configurable {
     public boolean isModified() {
         CcSettings s = CcSettings.getInstance();
         return !ccPathField.getText().trim().equals(s.getCcPath())
-                || contextIndicatorBox.isSelected() != s.isContextIndicatorEnabled();
+                || contextIndicatorBox.isSelected() != s.isContextIndicatorEnabled()
+                || managedCliBox.isSelected() != s.isManagedCliEnabled();
     }
 
     @Override
@@ -62,6 +66,7 @@ public final class CcConfigurable implements Configurable {
         CcSettings s = CcSettings.getInstance();
         s.setCcPath(ccPathField.getText());
         s.setContextIndicatorEnabled(contextIndicatorBox.isSelected());
+        s.setManagedCliEnabled(managedCliBox.isSelected());
     }
 
     @Override
@@ -69,6 +74,7 @@ public final class CcConfigurable implements Configurable {
         CcSettings s = CcSettings.getInstance();
         ccPathField.setText(s.getCcPath());
         contextIndicatorBox.setSelected(s.isContextIndicatorEnabled());
+        managedCliBox.setSelected(s.isManagedCliEnabled());
     }
 
     @Override
@@ -76,5 +82,6 @@ public final class CcConfigurable implements Configurable {
         panel = null;
         ccPathField = null;
         contextIndicatorBox = null;
+        managedCliBox = null;
     }
 }

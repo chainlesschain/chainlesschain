@@ -144,6 +144,55 @@ public final class AgentChatSession {
     }
 
     /**
+     * Managed-CLI candidate source (see {@link ManagedCliRuntime}): returns a
+     * spawnable command for the plugin-managed cc copy, or null. Consulted
+     * ONLY after every global probe failed — and NEVER when an explicit
+     * configured path is set (iron rule: an explicit setting is never
+     * silently replaced). Null (the default) keeps the pre-managed behavior
+     * byte-identical. Wired by {@code intellij/CcSettings.applyToRuntime()}
+     * according to the "managed CLI enabled" setting.
+     */
+    private static volatile java.util.function.Supplier<String> managedCliSupplier = null;
+
+    /** Install (or clear, with null) the managed-CLI candidate source. */
+    public static void setManagedCliSupplier(java.util.function.Supplier<String> supplier) {
+        managedCliSupplier = supplier;
+    }
+
+    /** The managed command, or null (unset supplier / no install / any failure). */
+    static String managedCommandOrNull() {
+        java.util.function.Supplier<String> s = managedCliSupplier;
+        if (s == null) return null;
+        try {
+            String cmd = s.get();
+            return cmd == null || cmd.trim().isEmpty() ? null : cmd;
+        } catch (Throwable t) {
+            return null; // managed resolution is best-effort — fall through
+        }
+    }
+
+    /**
+     * Pure candidate selection incl. the managed fallback: the first global
+     * binary that answers as chainlesschain, else the managed command, else
+     * null. Exposed for tests (both sources injected). Mirrors the VS Code
+     * twin's {@code resolveCliBinary} ordering: managed is consulted only
+     * after EVERY global probe failed.
+     */
+    static String chooseBinaryOrManaged(
+            java.util.function.Function<String, String> versionOf,
+            java.util.function.Supplier<String> managedSupplier) {
+        String picked = chooseBinary(versionOf);
+        if (picked != null) return picked;
+        if (managedSupplier == null) return null;
+        try {
+            String cmd = managedSupplier.get();
+            return cmd == null || cmd.trim().isEmpty() ? null : cmd;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
      * Resolve the chainlesschain CLI binary, tolerating a {@code cc} that is
      * shadowed by another tool (classically the C compiler — {@code cc} is also
      * gcc/clang's name). The npm package installs {@code cc}, {@code chainlesschain},
@@ -163,7 +212,13 @@ public final class AgentChatSession {
             resolvedBinary = picked;
             return picked;
         }
-        // All candidates failed (CLI not installed yet). Do NOT cache the
+        // All global candidates failed — consult the plugin-managed copy (only
+        // now; a usable global or an explicit path always wins). Not cached:
+        // the lookup is a cheap state read, and a global cc installed
+        // mid-session must win again on the next resolve.
+        String managed = managedCommandOrNull();
+        if (managed != null) return managed;
+        // Nothing anywhere (CLI not installed yet). Do NOT cache the
         // fallback: the user may install the CLI mid-session, and a cached miss
         // would keep this IDE session broken until restart.
         return "cc";
