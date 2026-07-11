@@ -575,7 +575,8 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       { prompt: "hi", mcpConfig: "x.json", sessionId: "s-bad" },
       deps,
     );
-    expect(r.exitCode).toBe(1);
+    // Exit-code taxonomy (gap 2026-07-11): bad --mcp-config → 6 (config error).
+    expect(r.exitCode).toBe(6);
     expect(err.join("")).toMatch(/no servers found/);
   });
 });
@@ -771,7 +772,8 @@ describe("runAgentHeadless — --permission-prompt-tool wiring", () => {
       },
       d,
     );
-    expect(r.exitCode).toBe(1);
+    // Exit-code taxonomy (gap 2026-07-11): bad --permission-prompt-tool → 6.
+    expect(r.exitCode).toBe(6);
     expect(err.join("")).toMatch(/not found among loaded MCP tools/);
   });
 });
