@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
+## [0.4.57] — Sessions workbench, PSI semantic tools, managed CLI, artifacts/policy/quality panels (2026-07-11)
 
 - **Usage report renders CLI usage attribution + cost hints (gap #4 IDE
   half, VS Code twin).** The Token Usage dialog now renders the additive

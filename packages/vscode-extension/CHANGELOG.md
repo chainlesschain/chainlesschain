@@ -2,6 +2,62 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.13] — Sessions workbench, semantic tools, managed CLI, artifacts/policy/quality panels (2026-07-11)
+
+- **Sessions Workbench (`ChainlessChain: Sessions Workbench`).** One panel
+  aggregating chat sessions, cross-IDE session index, background agents and
+  remote-control hosts: search, status pills, waiting-approval-first sort,
+  per-kind actions (resume into the chat view, attach via the Background
+  Agents panel, daemon resume/stop/rename, remote stop). A failing source
+  degrades to a warning row instead of a blank panel; auto-refresh only while
+  visible.
+- **Semantic tools for the agent.** The IDE bridge now advertises 12 new
+  `mcp__ide__*` tools — `getHover`, `goToDefinition`, `findReferences`,
+  `renamePreview` (reference-derived, never mutates), `getCallHierarchy`,
+  `getSymbolInfo`, `getProjectModel` and friends — so `cc` can navigate
+  symbols and project structure instead of only reading files. 1-based
+  line/column contract documented per tool; results capped (200 refs /
+  100 hierarchy nodes / 8k hover chars).
+- **Managed CLI runtime.** When no usable global `cc` exists the extension
+  can download, integrity-verify (sha512), cache and roll back its own copy
+  of the `chainlesschain` npm package under global storage — first-start
+  usable without touching PATH. An explicitly configured `chainlesschain.cli.path`
+  is never silently replaced (a broken one surfaces an error and managed is
+  only *offered*); exact diagnostics for managed-disabled / no-node-on-PATH /
+  node-too-old. New setting `chainlesschain.cli.managed.enabled` (default on),
+  commands `Install Managed CLI` / `Roll Back Managed CLI`.
+- **Artifacts drawer (`ChainlessChain: Artifacts`).** Browse `cc` artifacts
+  with kind filter and mime-aware preview (markdown preview, images inline,
+  HTML only via external browser, SVG deliberately as text), plus download /
+  copy path / reveal / remove. Only metadata is listed — bodies are never
+  inlined.
+- **Permissions & Policy viewer (`ChainlessChain: Permissions & Policy`).**
+  Read-only visualization of what the agent may do and why: allow/ask/deny
+  rules with source file + managed badge, recent denials, auto-mode
+  risk→decision matrix with fine-grained rules and the precedence chain,
+  and MCP servers when the CLI database is available.
+- **Plugin/LSP quality board.** The Plugin & MCP manager gains a Quality
+  section: per-plugin contributed component counts, broken (validate
+  errors), LSP available/unavailable/unknown from the `cc code-intel`
+  probe — unknown is reported honestly, never fabricated — and a
+  conservative unused flag that never fires on LSP-only plugins.
+- **Remote/WSL Doctor one-click fixes.** Diagnosis now offers a Fix… flow:
+  safe fixes apply after one explicit confirmation (allowlisted npm upgrade,
+  bridge restart) in a visible terminal; admin-required Windows Firewall
+  fixes generate a reviewable `.ps1` (elevation header + idempotency guard,
+  hostile check text can never reach the script); `.wslconfig` changes are
+  copy-only. The extension never executes admin operations itself.
+- **Usage report: attribution + cost hints.** With a new-enough CLI the
+  usage report breaks tokens down by origin (main/sub-agent/skill), skill,
+  sub-agent and tool/MCP-server call rollups, and adds actionable hints
+  (sub-agent-heavy, cache-miss ratio, long-context average) — only when the
+  underlying fields actually exist. With an older CLI the report is
+  byte-identical to before.
+- **CI hardening.** Every packaged `.vsix` now passes a 17-check metadata
+  parse gate (publisher/name/version coherence, icon/README/LICENSE/main
+  actually packed, vsixmanifest Identity agreement) before it can be
+  uploaded or published; the verifier's own selftest runs first.
+
 ## [0.37.12] — Remote Control: in-IDE pairing QR + relay settings (2026-07-10)
 
 - **In-IDE pairing QR.** The Remote Control pairing notice gains a "Show QR"
