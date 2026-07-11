@@ -102,6 +102,16 @@
         "icon": "$(globe)"
       },
       {
+        "command": "chainlesschain.artifacts.show",
+        "title": "%cmd.artifacts.show.title%",
+        "icon": "$(package)"
+      },
+      {
+        "command": "chainlesschain.policy.show",
+        "title": "%cmd.policy.show.title%",
+        "icon": "$(law)"
+      },
+      {
         "command": "chainlesschain.workspace.scanAutoExec",
         "title": "%cmd.workspace.scanAutoExec.title%",
         "icon": "$(shield)"

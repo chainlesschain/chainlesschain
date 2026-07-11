@@ -473,6 +473,22 @@ function activate(context) {
         },
       });
     }),
+    // Artifacts drawer (gap #9): browse the agent deliverable store
+    // (`cc artifacts`) — metadata list + preview (markdown/image/text via
+    // vscode APIs; html opens externally, never executed in the webview),
+    // copy path / reveal / download / remove.
+    vscode.commands.registerCommand("chainlesschain.artifacts.show", () => {
+      const { openArtifactsDrawer } = require("./ui/artifacts-view.js");
+      openArtifactsDrawer(vscode);
+    }),
+    // Permission / policy viewer (gap #10): read-only panel over
+    // `cc permissions list/recent`, `cc auto-mode config/defaults` and
+    // `cc mcp servers` — merged rules with source + managed badge, recent
+    // denials, the auto-mode decision matrix and precedence chain.
+    vscode.commands.registerCommand("chainlesschain.policy.show", () => {
+      const { openPolicyViewer } = require("./ui/policy-view.js");
+      openPolicyViewer(vscode);
+    }),
     // Chrome connector (P1 #8): drive `cc browse chrome` — launch a
     // debuggable Chrome (dedicated profile keeps login state), check the CDP
     // port, and capture a tab's state (console/network/DOM/screenshot) as a
