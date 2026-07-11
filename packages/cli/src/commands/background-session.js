@@ -146,7 +146,7 @@ async function followBackgroundAgent(id, options = {}) {
  * when the transport is unavailable so the caller can fall back to the
  * log-only follow.
  */
-async function interactiveAttach(id, state, options = {}) {
+export async function interactiveAttach(id, state, options = {}) {
   const { connectBackgroundSession } =
     await import("../lib/background-session-transport.js");
   const { readBackgroundAgentLog, logPath } = await loadSupervisor();
@@ -279,6 +279,116 @@ async function interactiveAttach(id, state, options = {}) {
   return true;
 }
 
+/**
+ * `cc daemon view` (no id) — the interactive agent dashboard. Wires the real
+ * supervisor/transport into the injectable controller (repl/bg-dashboard.js).
+ * Non-TTY (or --json) degrades to the status listing.
+ */
+async function runDashboardView(options = {}) {
+  const supervisor = await loadSupervisor();
+  const {
+    listBackgroundAgents,
+    readBackgroundAgentLog,
+    stopBackgroundAgent,
+    renameBackgroundAgent,
+    setBackgroundAgentPinned,
+    resumeBackgroundAgent,
+    readBackgroundAgentState,
+    effectiveBackgroundAgentState,
+  } = supervisor;
+
+  const listAll = () => listBackgroundAgents({ all: true });
+
+  if (options.json || !process.stdout.isTTY || !process.stdin.isTTY) {
+    const sessions = listAll();
+    if (options.json) {
+      console.log(JSON.stringify({ sessions }, null, 2));
+    } else {
+      printBackgroundAgents(sessions);
+      logger.log(
+        chalk.gray("(interactive dashboard needs a TTY — showing a snapshot)"),
+      );
+    }
+    return;
+  }
+
+  const { runBgDashboard } = await import("../repl/bg-dashboard.js");
+  const { fileURLToPath } = await import("node:url");
+  const { spawn } = await import("node:child_process");
+  const BIN_PATH = fileURLToPath(
+    new URL("../../bin/chainlesschain.js", import.meta.url),
+  );
+
+  await runBgDashboard({
+    listAgents: listAll,
+    readLog: (id, lines) => {
+      try {
+        return readBackgroundAgentLog(id, { lines });
+      } catch {
+        return "";
+      }
+    },
+    stopAgent: (id) => stopBackgroundAgent(id),
+    renameAgent: (id, title) => renameBackgroundAgent(id, title),
+    pinAgent: (id, pinned) => setBackgroundAgentPinned(id, pinned),
+    replyAgent: async (session, text) => {
+      // Running with a live transport → queue a follow-up turn; otherwise
+      // continue the finished conversation as a new background session.
+      if (
+        session.status === "running" &&
+        session.transport?.pipe &&
+        session.transport?.token
+      ) {
+        const { connectBackgroundSession } =
+          await import("../lib/background-session-transport.js");
+        const conn = await connectBackgroundSession({
+          pipePath: session.transport.pipe,
+          token: session.transport.token,
+          onEvent: () => {},
+          onClose: () => {},
+        });
+        try {
+          conn.send({ type: "prompt", text });
+          // give the frame a beat to flush before closing
+          await new Promise((r) => setTimeout(r, 150));
+        } finally {
+          try {
+            conn.close();
+          } catch {
+            /* worker already closed it */
+          }
+        }
+        return;
+      }
+      resumeBackgroundAgent(session.id, text);
+    },
+    attachAgent: async (session) => {
+      const fresh = effectiveBackgroundAgentState(
+        readBackgroundAgentState(session.id),
+      );
+      if (!fresh) return;
+      if (
+        fresh.status === "running" &&
+        fresh.transport?.pipe &&
+        fresh.transport?.token
+      ) {
+        const attached = await interactiveAttach(session.id, fresh, {});
+        if (attached) return;
+      }
+      await followBackgroundAgent(session.id, { lines: 40 });
+    },
+    dispatchAgent: async (text) => {
+      const child = spawn(
+        process.execPath,
+        [BIN_PATH, "agent", "--bg", "-p", text],
+        { detached: true, stdio: "ignore", windowsHide: true },
+      );
+      child.unref();
+      return null; // id is minted by the launcher; the next refresh shows it
+    },
+  });
+}
+
 export function registerBackgroundSessionCommands(program) {
   program
     .command("logs <id>")
@@ -378,12 +488,18 @@ export function registerBackgroundSessionCommands(program) {
     });
 
   daemon
-    .command("view <id>")
-    .description("Show a detailed background agent view")
+    .command("view [id]")
+    .description(
+      "Detailed view of one background agent, or the interactive agent dashboard when no id is given",
+    )
     .option("-n, --lines <n>", "Recent log lines to include", "40")
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
       try {
+        if (!id) {
+          await runDashboardView(options);
+          return;
+        }
         const {
           readBackgroundAgentState,
           effectiveBackgroundAgentState,

@@ -178,6 +178,34 @@ export function renameBackgroundAgent(id, title, options = {}) {
 }
 
 /**
+ * Pin/unpin a session for the dashboard (`cc daemon view`) — pinned sessions
+ * sort first inside their group. Same read-modify-write + verify-retry dance
+ * as rename: the worker's periodic state merges can clobber a write that
+ * lands inside its read→write window.
+ */
+export function setBackgroundAgentPinned(id, pinned, options = {}) {
+  const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+    now: options.now,
+    heartbeatStaleMs: options.heartbeatStaleMs,
+  });
+  if (!state) throw new Error(`Background agent not found: ${id}`);
+  const value = pinned === true;
+  const pinnedAt = typeof options.now === "number" ? options.now : Date.now();
+  let next = { ...state, pinned: value, pinnedAt };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    writeBackgroundAgentState(next);
+    sleepSyncMs(15);
+    const current = readBackgroundAgentState(id) || next;
+    if (current.pinned === value) {
+      return { ...current, pinned: value, pinnedAt };
+    }
+    next = { ...current, pinned: value, pinnedAt };
+  }
+  writeBackgroundAgentState(next);
+  return next;
+}
+
+/**
  * Build the follow-up argv template for interactive attach turns: the launch
  * argv minus every token that carried the FIRST turn's prompt (positional
  * task words, `-p/--print` and its inline value). The worker appends
