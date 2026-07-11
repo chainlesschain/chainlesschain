@@ -599,6 +599,23 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             "Run the sub-agent in the BACKGROUND: the call returns immediately with a running handle and you continue working; the sub-agent's result is delivered to you automatically in a later turn (the run waits for stragglers before finishing). Use for independent subtasks you don't need before your next step.",
         },
+        disallowedTools: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional tool DENY-list for the sub-agent: these are removed from whatever tool set it would otherwise get (explicit `tools`, agent-file allowlist, or all).",
+        },
+        maxTurns: {
+          type: "number",
+          description:
+            "Optional iteration cap for the sub-agent's own loop (positive integer; default 8 or the profile's cap).",
+        },
+        isolation: {
+          type: "string",
+          enum: ["worktree"],
+          description:
+            "Optional isolation mode: \"worktree\" runs the sub-agent in a fresh git worktree so its file edits land on an isolated branch (diff/merge summary comes back with the result).",
+        },
       },
       required: ["task"],
     },

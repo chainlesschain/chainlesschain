@@ -8,10 +8,13 @@
  * `review/security.md` is the agent `review:security`.
  *
  * Frontmatter (all optional):
- *   name          override the filename-derived name
- *   description   one-line summary (when to use this agent)
- *   tools         allow-list — comma string or YAML array; omit = inherit all
- *   model         model override for runs of this agent
+ *   name             override the filename-derived name
+ *   description      one-line summary (when to use this agent)
+ *   tools            allow-list — comma string or YAML array; omit = inherit all
+ *   disallowedTools  deny-list — removed from whatever the allow-list resolves to
+ *   model            model override for runs of this agent
+ *   maxTurns         per-run iteration cap for this agent (positive integer)
+ *   isolation        "worktree" → run in a fresh git worktree (gap 2026-07-11)
  *
  * Project scope shadows personal on a name clash. Discovery + parse are pure
  * (inject fs/path/home) so the whole thing is unit-testable.
@@ -132,13 +135,18 @@ export function parseAgentFile(file, scope, opts = {}) {
     return null;
   }
   const { data, body } = parseFrontmatter(content);
+  const maxTurns = Number(data.maxTurns);
   return {
     file,
     scope,
     name: data.name || null, // resolved against the path in discoverAgents
     description: data.description || "",
     tools: normalizeTools(data.tools),
+    disallowedTools: normalizeTools(data.disallowedTools),
     model: data.model || null,
+    maxTurns:
+      Number.isFinite(maxTurns) && maxTurns > 0 ? Math.floor(maxTurns) : null,
+    isolation: data.isolation === "worktree" ? "worktree" : null,
     systemPrompt: body || "",
   };
 }

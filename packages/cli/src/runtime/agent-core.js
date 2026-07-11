@@ -4294,6 +4294,17 @@ async function _executeSpawnSubAgent(args, ctx) {
     tools: explicitTools,
     profile: profileName,
   } = args;
+  // Extended sub-agent contract (gap 2026-07-11 P1): per-spawn deny-list,
+  // iteration cap and worktree isolation — spawn args win over the agent
+  // file's frontmatter defaults.
+  let disallowedTools = Array.isArray(args.disallowedTools)
+    ? args.disallowedTools.filter(Boolean)
+    : null;
+  let subMaxTurns =
+    Number.isFinite(Number(args.maxTurns)) && Number(args.maxTurns) > 0
+      ? Math.floor(Number(args.maxTurns))
+      : null;
+  let subIsolation = args.isolation === "worktree" ? "worktree" : null;
 
   // Named subagent delegation (cc agents / .chainlesschain|.claude/agents/*.md):
   // load the agent's persona (its body = system prompt) + tool allow-list.
@@ -4311,6 +4322,13 @@ async function _executeSpawnSubAgent(args, ctx) {
       }
       role = role || md.name;
       if (!explicitTools && Array.isArray(md.tools)) explicitTools = md.tools;
+      if (!disallowedTools && Array.isArray(md.disallowedTools)) {
+        disallowedTools = md.disallowedTools;
+      }
+      if (!subMaxTurns && md.maxTurns) subMaxTurns = md.maxTurns;
+      if (!subIsolation && md.isolation === "worktree") {
+        subIsolation = "worktree";
+      }
       if (md.model) mdModel = md.model;
       if (md.systemPrompt) {
         mdProfile = { name: md.name, systemPrompt: md.systemPrompt };
@@ -4350,9 +4368,19 @@ async function _executeSpawnSubAgent(args, ctx) {
   // profile.systemPrompt seam) when no declarative profile was requested.
   if (!profile && mdProfile) profile = mdProfile;
 
-  const allowedTools = Array.isArray(explicitTools)
+  let allowedTools = Array.isArray(explicitTools)
     ? explicitTools
     : profile?.toolAllowlist || null;
+  // Deny-list: subtract from the resolved allow-list; with no allow-list
+  // ("all tools"), subtract from the full built-in contract set. spawn itself
+  // is always denied downstream by depth/breadth caps, so no special-casing.
+  if (Array.isArray(disallowedTools) && disallowedTools.length > 0) {
+    const deny = new Set(disallowedTools.map((t) => String(t).trim()));
+    const base = Array.isArray(allowedTools)
+      ? allowedTools
+      : listCodingAgentToolNames();
+    allowedTools = base.filter((t) => !deny.has(t));
+  }
 
   // Auto-condense parent context if caller didn't provide explicit context
   let resolvedContext = inheritedContext || null;
@@ -4460,6 +4488,10 @@ async function _executeSpawnSubAgent(args, ctx) {
     // single total-sub-agent pool (breadth cap spans the whole tree).
     subAgentBudget: ctx.subAgentBudget || null,
     onUsage,
+    // Extended contract (gap 2026-07-11): per-agent iteration cap + opt-in
+    // worktree isolation. undefined keeps the profile/flag defaults intact.
+    ...(subMaxTurns ? { maxIterations: subMaxTurns } : {}),
+    ...(subIsolation === "worktree" ? { useWorktree: true } : {}),
   });
   subCtxRef = subCtx;
 

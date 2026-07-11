@@ -85,6 +85,29 @@ describe("parseAgentFile", () => {
     const a = parseAgentFile("/p/y.md", "project", { deps: { fs } });
     expect(a.tools).toBeNull();
     expect(a.systemPrompt).toBe("Just a prompt.");
+    // Extended contract fields default off
+    expect(a.disallowedTools).toBeNull();
+    expect(a.maxTurns).toBeNull();
+    expect(a.isolation).toBeNull();
+  });
+
+  it("parses the extended contract fields (gap 2026-07-11)", () => {
+    const fs = memFs({
+      "/p/z.md": `---\ndisallowed-tools: run_shell, run_code\nmax-turns: 5\nisolation: worktree\n---\nCareful agent.`,
+    });
+    const a = parseAgentFile("/p/z.md", "project", { deps: { fs } });
+    expect(a.disallowedTools).toEqual(["run_shell", "run_code"]);
+    expect(a.maxTurns).toBe(5);
+    expect(a.isolation).toBe("worktree");
+  });
+
+  it("rejects invalid maxTurns / unknown isolation values", () => {
+    const fs = memFs({
+      "/p/w.md": `---\nmax-turns: -3\nisolation: vm\n---\nX.`,
+    });
+    const a = parseAgentFile("/p/w.md", "project", { deps: { fs } });
+    expect(a.maxTurns).toBeNull();
+    expect(a.isolation).toBeNull();
   });
 });
 
@@ -101,7 +124,9 @@ describe("discoverAgents", () => {
   });
 
   it("lets frontmatter name override the filename", () => {
-    const o = opts({ "/cwd/.claude/agents/x.md": "---\nname: custom\n---\nbody" });
+    const o = opts({
+      "/cwd/.claude/agents/x.md": "---\nname: custom\n---\nbody",
+    });
     expect(discoverAgents("/cwd", o)[0].name).toBe("custom");
   });
 
@@ -123,7 +148,10 @@ describe("discoverAgents", () => {
     });
     const all = discoverAgents("/cwd", o);
     expect(all).toHaveLength(1);
-    expect(all[0]).toMatchObject({ scope: "project", systemPrompt: "claude-portable" });
+    expect(all[0]).toMatchObject({
+      scope: "project",
+      systemPrompt: "claude-portable",
+    });
   });
 
   it("getAgent accepts ':' or '/' forms and a leading slash", () => {

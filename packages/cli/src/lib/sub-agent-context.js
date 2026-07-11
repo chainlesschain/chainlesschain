@@ -253,12 +253,16 @@ export class SubAgentContext {
     const artifacts = [];
     let lastContent = "";
 
-    // Build filtered tool list
-    const tools = this._getFilteredTools();
-
     // Merge LLM options — pass shared iteration budget if available
     const options = {
       ...this._llmOptions,
+      // Tool allowlist (fixed 2026-07-11): the filtered list used to be
+      // computed via _getFilteredTools() but never handed to agentLoop, so a
+      // sub-agent's `tools`/frontmatter allowlist was silently ignored at the
+      // LLM surface. agentLoop consumes NAMES via enabledToolNames.
+      ...(Array.isArray(this.allowedTools) && this.allowedTools.length > 0
+        ? { enabledToolNames: this.allowedTools }
+        : {}),
       contextEngine: this.contextEngine,
       cwd: this.cwd,
       // Nesting level: lets a nested spawn_sub_agent see — and cap — its depth.
