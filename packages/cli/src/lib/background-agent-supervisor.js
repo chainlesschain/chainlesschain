@@ -8,6 +8,7 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -286,6 +287,33 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
   });
 }
 
+/**
+ * Fail fast on an unusable cwd. Without this, spawn() surfaces a bad cwd as
+ * an ASYNC 'error' event on the detached child — which nothing listened to
+ * (uncaught exception with no context) — and the pre-written state/job files
+ * stayed behind as a phantom "running" session. Deleted, file-replaced, and
+ * unmounted paths all land here with one clear message.
+ */
+function assertUsableCwd(cwd) {
+  let reason = null;
+  if (!cwd) {
+    reason = "no working directory given";
+  } else if (!existsSync(cwd)) {
+    reason = "directory does not exist (deleted or unmounted?)";
+  } else {
+    try {
+      if (!statSync(cwd).isDirectory()) reason = "path is not a directory";
+    } catch (err) {
+      reason = `directory is not accessible (${err.code || err.message})`;
+    }
+  }
+  if (reason) {
+    throw new Error(
+      `Cannot launch background agent: cwd "${cwd ?? ""}" — ${reason}`,
+    );
+  }
+}
+
 export function launchBackgroundAgent({
   argv,
   cwd,
@@ -294,6 +322,7 @@ export function launchBackgroundAgent({
   cliEntry,
   followUpArgv,
 }) {
+  assertUsableCwd(cwd);
   const id = createBackgroundAgentId();
   const dir = backgroundAgentsDir();
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
@@ -344,6 +373,28 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(statePath(id), { force: true });
     throw error;
+  }
+  // Async spawn failures (EPERM, cwd raced away between the check and the
+  // spawn, …) arrive as an 'error' event on the detached child. Reap them
+  // into the state file instead of leaving a phantom "running" session and
+  // an uncaught exception.
+  if (typeof child.on === "function") {
+    child.on("error", (error) => {
+      try {
+        rmSync(jobFile, { force: true });
+        const current = readBackgroundAgentState(id);
+        if (current && current.status === "running") {
+          writeBackgroundAgentState({
+            ...current,
+            status: "failed",
+            endedAt: Date.now(),
+            lostReason: `spawn-error: ${error.code || error.message}`,
+          });
+        }
+      } catch {
+        /* best-effort */
+      }
+    });
   }
   child.unref();
   const current = readBackgroundAgentState(id) || state;

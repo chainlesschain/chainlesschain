@@ -250,7 +250,9 @@ describe("background agent supervisor", () => {
       id: "bg-done-abc",
       status: "completed",
       sessionId: "sess-42",
-      cwd: "C:\\proj",
+      // must be a REAL directory: launch now fail-fasts on an unusable cwd
+      // (stability matrix #2) instead of crashing async in spawn
+      cwd: dir,
       title: "old task",
       startedAt: 1,
       endedAt: 2,
