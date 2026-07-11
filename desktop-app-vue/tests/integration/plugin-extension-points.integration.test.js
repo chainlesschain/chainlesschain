@@ -419,6 +419,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ac.pluginId).toBe("approval-center");
   });
 
+  it("evomap-dashboard 的 /evomap slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const em = slash.find((s) => s.trigger === "/evomap");
+    expect(em).toBeDefined();
+    expect(em.handler).toBe("builtin:openEvoMapDashboardPanel");
+    expect(em.pluginId).toBe("evomap-dashboard");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");

@@ -1,0 +1,20 @@
+{
+  "id": "evomap-dashboard",
+  "name": "EvoMap 仪表板",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/evomap 斜杠命令 — EvoMap 仪表板（GEP-A2A 节点注册/状态 + 信用 + 自动发布/热门资产 + 配置开关 + 同步日志）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "evomap-dashboard",
+        "trigger": "/evomap",
+        "handler": "builtin:openEvoMapDashboardPanel",
+        "description": "打开 EvoMap 仪表板",
+        "icon": "GlobalOutlined"
+      }
+    }
+  ]
+}

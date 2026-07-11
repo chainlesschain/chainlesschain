@@ -191,6 +191,10 @@
       v-model:open="approvalCenterPanelOpen"
       :prefill-text="approvalCenterPrefill"
     />
+    <EvoMapDashboardPanel
+      v-model:open="evoMapDashboardPanelOpen"
+      :prefill-text="evoMapDashboardPrefill"
+    />
     <SharedAlbumsPanel
       v-model:open="sharedAlbumsPanelOpen"
       :prefill-text="sharedAlbumsPrefill"
@@ -301,6 +305,7 @@ import CoworkDashboardPanel from "./CoworkDashboardPanel.vue";
 import SSOConfigurationPanel from "./SSOConfigurationPanel.vue";
 import PermissionManagementPanel from "./PermissionManagementPanel.vue";
 import ApprovalCenterPanel from "./ApprovalCenterPanel.vue";
+import EvoMapDashboardPanel from "./EvoMapDashboardPanel.vue";
 import SharedAlbumsPanel from "./SharedAlbumsPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
@@ -402,6 +407,8 @@ const permissionManagementPanelOpen = ref(false);
 const permissionManagementPrefill = ref("");
 const approvalCenterPanelOpen = ref(false);
 const approvalCenterPrefill = ref("");
+const evoMapDashboardPanelOpen = ref(false);
+const evoMapDashboardPrefill = ref("");
 const sharedAlbumsPanelOpen = ref(false);
 const sharedAlbumsPrefill = ref("");
 const organizationsPanelOpen = ref(false);
@@ -497,6 +504,7 @@ let unregisterCoworkDashboardHandler: (() => void) | null = null;
 let unregisterSSOConfigurationHandler: (() => void) | null = null;
 let unregisterPermissionManagementHandler: (() => void) | null = null;
 let unregisterApprovalCenterHandler: (() => void) | null = null;
+let unregisterEvoMapDashboardHandler: (() => void) | null = null;
 let unregisterSharedAlbumsHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
@@ -806,6 +814,13 @@ onMounted(async () => {
       approvalCenterPanelOpen.value = true;
     },
   );
+  unregisterEvoMapDashboardHandler = registerSlashHandler(
+    "builtin:openEvoMapDashboardPanel",
+    ({ args }) => {
+      evoMapDashboardPrefill.value = args ?? "";
+      evoMapDashboardPanelOpen.value = true;
+    },
+  );
   unregisterSharedAlbumsHandler = registerSlashHandler(
     "builtin:openSharedAlbumsPanel",
     ({ args }) => {
@@ -989,6 +1004,8 @@ onBeforeUnmount(() => {
   unregisterPermissionManagementHandler = null;
   unregisterApprovalCenterHandler?.();
   unregisterApprovalCenterHandler = null;
+  unregisterEvoMapDashboardHandler?.();
+  unregisterEvoMapDashboardHandler = null;
   unregisterSharedAlbumsHandler?.();
   unregisterSharedAlbumsHandler = null;
   unregisterOrganizationsHandler?.();
