@@ -203,6 +203,10 @@
       v-model:open="familyGuardPanelOpen"
       :prefill-text="familyGuardPrefill"
     />
+    <InferenceNetworkPanel
+      v-model:open="inferenceNetworkPanelOpen"
+      :prefill-text="inferenceNetworkPrefill"
+    />
     <SharedAlbumsPanel
       v-model:open="sharedAlbumsPanelOpen"
       :prefill-text="sharedAlbumsPrefill"
@@ -316,6 +320,7 @@ import ApprovalCenterPanel from "./ApprovalCenterPanel.vue";
 import EvoMapDashboardPanel from "./EvoMapDashboardPanel.vue";
 import TaskReportsPanel from "./TaskReportsPanel.vue";
 import FamilyGuardPanel from "./FamilyGuardPanel.vue";
+import InferenceNetworkPanel from "./InferenceNetworkPanel.vue";
 import SharedAlbumsPanel from "./SharedAlbumsPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
@@ -423,6 +428,8 @@ const taskReportsPanelOpen = ref(false);
 const taskReportsPrefill = ref("");
 const familyGuardPanelOpen = ref(false);
 const familyGuardPrefill = ref("");
+const inferenceNetworkPanelOpen = ref(false);
+const inferenceNetworkPrefill = ref("");
 const sharedAlbumsPanelOpen = ref(false);
 const sharedAlbumsPrefill = ref("");
 const organizationsPanelOpen = ref(false);
@@ -521,6 +528,7 @@ let unregisterApprovalCenterHandler: (() => void) | null = null;
 let unregisterEvoMapDashboardHandler: (() => void) | null = null;
 let unregisterTaskReportsHandler: (() => void) | null = null;
 let unregisterFamilyGuardHandler: (() => void) | null = null;
+let unregisterInferenceNetworkHandler: (() => void) | null = null;
 let unregisterSharedAlbumsHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
@@ -851,6 +859,13 @@ onMounted(async () => {
       familyGuardPanelOpen.value = true;
     },
   );
+  unregisterInferenceNetworkHandler = registerSlashHandler(
+    "builtin:openInferenceNetworkPanel",
+    ({ args }) => {
+      inferenceNetworkPrefill.value = args ?? "";
+      inferenceNetworkPanelOpen.value = true;
+    },
+  );
   unregisterSharedAlbumsHandler = registerSlashHandler(
     "builtin:openSharedAlbumsPanel",
     ({ args }) => {
@@ -1040,6 +1055,8 @@ onBeforeUnmount(() => {
   unregisterTaskReportsHandler = null;
   unregisterFamilyGuardHandler?.();
   unregisterFamilyGuardHandler = null;
+  unregisterInferenceNetworkHandler?.();
+  unregisterInferenceNetworkHandler = null;
   unregisterSharedAlbumsHandler?.();
   unregisterSharedAlbumsHandler = null;
   unregisterOrganizationsHandler?.();

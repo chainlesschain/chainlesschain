@@ -443,6 +443,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(fg.pluginId).toBe("family-guard");
   });
 
+  it("inference-network 的 /inference slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const inf = slash.find((s) => s.trigger === "/inference");
+    expect(inf).toBeDefined();
+    expect(inf.handler).toBe("builtin:openInferenceNetworkPanel");
+    expect(inf.pluginId).toBe("inference-network");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");

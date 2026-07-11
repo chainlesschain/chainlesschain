@@ -1,0 +1,20 @@
+{
+  "id": "inference-network",
+  "name": "推理网络",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/inference 斜杠命令 — 推理网络（去中心化 AI 推理节点：注册/列表/在线状态/任务与延迟统计）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "inference-network",
+        "trigger": "/inference",
+        "handler": "builtin:openInferenceNetworkPanel",
+        "description": "打开推理网络",
+        "icon": "ClusterOutlined"
+      }
+    }
+  ]
+}

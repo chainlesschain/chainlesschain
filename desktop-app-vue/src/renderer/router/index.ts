@@ -1374,15 +1374,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "Token Incentive" },
       },
       {
-        path: "inference-network",
-        name: "InferenceNetwork",
-        component: () =>
-          import(
-            /* webpackChunkName: "inference-network" */ "../pages/ai/InferenceNetworkPage.vue"
-          ),
-        meta: { title: "Inference Network" },
-      },
-      {
         path: "trust-root",
         name: "TrustRoot",
         component: () =>
