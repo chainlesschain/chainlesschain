@@ -332,6 +332,10 @@ export function registerAgentCommand(program) {
       "Route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR. Headless waits for the remote allow/deny (fail-closed on timeout); interactive races the terminal prompt (first answer wins; also /remote-control)",
     )
     .option(
+      "--channels <list>",
+      "Inbound channels for the interactive session (webhook[:port],telegram) — external events enter as user turns; webhook needs its bearer token, telegram needs channels.telegram.allowFrom",
+    )
+    .option(
       "--settings <file>",
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
@@ -1133,6 +1137,9 @@ export function registerAgentCommand(program) {
         // --remote-control: start the paired-device approval bridge for the
         // interactive session too (terminal prompt races the device).
         remoteControl: options.remoteControl === true,
+        // --channels: inbound channel listeners (webhook/telegram) whose
+        // events become user turns in this session.
+        channels: options.channels || null,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

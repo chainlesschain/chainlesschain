@@ -47,6 +47,7 @@ import {
   appendAssistantMessage,
   appendCompactEvent,
   appendTokenUsage,
+  appendToolCallCompact,
   rebuildMessages,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
@@ -316,6 +317,25 @@ export async function agentLoop(messages, options) {
         ),
       );
     } else if (event.type === "tool-result") {
+      // 用量归因: persist a compact tool_call record (name + error flag +
+      // skill hint — never args, which can carry whole file bodies) so
+      // `cc session usage --by tool|mcp` and `cc insights` can aggregate
+      // tool use for REPL sessions. Best-effort; opt out with
+      // options.persistToolCalls === false.
+      if (options.sessionId && options.persistToolCalls !== false) {
+        try {
+          appendToolCallCompact(options.sessionId, {
+            tool: event.tool,
+            isError: Boolean(event.error || event.result?.error),
+            skill:
+              event.tool === "run_skill" && _lastExec?.tool === "run_skill"
+                ? _lastExec.args?.skill_name
+                : undefined,
+          });
+        } catch (_e) {
+          // persistence is best-effort — never break the turn
+        }
+      }
       if (event.error || event.result?.error) {
         process.stdout.write(
           chalk.red(`  Error: ${event.error || event.result?.error}\n`),
@@ -1560,6 +1580,37 @@ export async function startAgentRepl(options = {}) {
   // Let the EPIPE guard route a broken pipe through this interface's graceful
   // "close" cleanup instead of a bare exit.
   _replRl = rl;
+
+  // Inbound channels (--channels, gap-2026-07-11 P0#5): external events enter
+  // this session as user turns. rl.emit("line") reuses the REPL's own input
+  // path, so an event landing mid-turn queues behind it (pending-lines), and
+  // the [channel:...] prefix keeps provenance visible while guaranteeing the
+  // injected line can never read as a slash command or shell escape.
+  let _channels = null;
+  if (options.channels) {
+    try {
+      const { startChannels, formatChannelEvent } =
+        await import("../lib/channels/channel-manager.js");
+      let channelsConfig = {};
+      try {
+        channelsConfig =
+          (await import("../lib/config-manager.js")).loadConfig()?.channels ||
+          {};
+      } catch (_err) {
+        // config read is best-effort; channels validate their own inputs
+      }
+      _channels = await startChannels(options.channels, {
+        config: channelsConfig,
+        onEvent: (event) => rl.emit("line", formatChannelEvent(event)),
+        log: (msg) => logger.info(msg),
+      });
+      for (const c of _channels.channels) {
+        logger.info(`channel ready: ${c.describe}`);
+      }
+    } catch (err) {
+      logger.warn(`channels: ${err.message}`);
+    }
+  }
 
   // Vim-mode plumbing: capture readline's OWN keypress listeners now so we can
   // suspend them while in NORMAL mode (the engine drives editing then) and
@@ -4838,6 +4889,10 @@ export async function startAgentRepl(options = {}) {
               provider: ue.provider,
               model: ue.model,
               usage: ue.usage,
+              // 用量归因: sub-agent / isolated-skill usage carries its
+              // attribution frame into the transcript; main-loop events stay
+              // exactly as before (absence ⇒ origin "main").
+              ...(ue.attribution ? { attribution: ue.attribution } : {}),
             });
           } catch (_e) {
             /* best-effort */
@@ -5073,6 +5128,16 @@ export async function startAgentRepl(options = {}) {
   });
 
   rl.on("close", async () => {
+    // Stop inbound channel listeners before anything else — no new external
+    // events may enter a session that is shutting down.
+    if (_channels) {
+      try {
+        _channels.stop();
+      } catch (_err) {
+        // best-effort
+      }
+      _channels = null;
+    }
     // settings.json SessionEnd hooks (observe-only) when the REPL exits.
     if (_settingsHooks) {
       try {
