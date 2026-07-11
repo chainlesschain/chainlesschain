@@ -5,12 +5,23 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
+      # extension sources (and its manifest / l10n bundles) directly — an
+      # extension-only commit must still run them.
+      - "packages/vscode-extension/src/**"
+      - "packages/vscode-extension/package.json"
+      - "packages/vscode-extension/package.nls*.json"
+      - "packages/vscode-extension/l10n/**"
       - ".github/workflows/cli-ci.yml"
       - ".github/workflows/_cli-test.yml"
   pull_request:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "packages/vscode-extension/src/**"
+      - "packages/vscode-extension/package.json"
+      - "packages/vscode-extension/package.nls*.json"
+      - "packages/vscode-extension/l10n/**"
       - ".github/workflows/cli-ci.yml"
       - ".github/workflows/_cli-test.yml"
   workflow_dispatch:

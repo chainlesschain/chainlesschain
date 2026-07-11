@@ -80,4 +80,24 @@ describe("applyTextToFile applyEdit-rejection fallback", () => {
       fs.rmSync(file, { force: true });
     }
   });
+
+  it("binary proposal is short-circuited before any write (guard wiring)", async () => {
+    const file = path.join(os.tmpdir(), `cc-apply-binary-${Date.now()}.txt`);
+    fs.writeFileSync(file, "old", "utf8");
+    try {
+      const v = fakeVscode({ applyEditResult: true });
+      const facade = createVscodeEditorFacade(v);
+      const res = await facade.openDiff({
+        path: file,
+        modifiedText: "BLOB" + String.fromCharCode(0),
+      });
+      expect(res).toMatchObject({
+        outcome: "rejected",
+        reason: "binary file, skipped",
+      });
+      expect(fs.readFileSync(file, "utf8")).toBe("old"); // untouched
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
 });

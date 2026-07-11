@@ -4,6 +4,12 @@
  * with a fake facade. This file only runs inside the extension host.
  */
 const fs = require("fs");
+const {
+  checkApplySafety,
+  looksBinary,
+  REASON_DISK_DRIFTED,
+  REASON_BINARY_SKIPPED,
+} = require("./diff-apply-guard");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
 
@@ -209,6 +215,16 @@ function createVscodeEditorFacade(vscode, opts = {}) {
     },
 
     async openDiff({ path, modifiedText, originalText, title }) {
+      // Binary guard: the whole diff pipeline is UTF-8 text — reviewing (and
+      // on accept, rewriting) a binary file through it corrupts the bytes.
+      // Short-circuit before any UI opens; nothing is written.
+      if (
+        looksBinary(modifiedText) ||
+        looksBinary(originalText) ||
+        (typeof originalText !== "string" && looksBinary(safeReadFileRaw(path)))
+      ) {
+        return { outcome: "rejected", path, reason: REASON_BINARY_SKIPPED };
+      }
       const fileUri = vscode.Uri.file(path);
       let leftUri;
       if (typeof originalText === "string") {
@@ -331,6 +347,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         }
         if (choice === "Accept") {
           const finalText = rightDoc.getText(); // includes any user edits
+          // Optimistic-concurrency gate: the review was decided against
+          // `originalText` — if the disk moved meanwhile, don't blind-write.
+          if (!(await confirmDriftOverwrite(vscode, path, originalText))) {
+            return { outcome: "rejected", path, reason: REASON_DISK_DRIFTED };
+          }
           await applyTextToFile(vscode, fileUri, finalText);
           return { outcome: "accepted", path, finalText };
         }
@@ -375,6 +396,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
             hunks,
             picks.map((p) => p.hunk.index),
           );
+          // Same drift gate as Accept: hunks were computed against the agent's
+          // baseline, so a moved disk would be clobbered by this write too.
+          if (!(await confirmDriftOverwrite(vscode, path, originalText))) {
+            return { outcome: "rejected", path, reason: REASON_DISK_DRIFTED };
+          }
           await applyTextToFile(vscode, fileUri, finalText);
           return {
             outcome: "accepted",
@@ -420,12 +446,75 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         selectWrites,
       } = require("./multi-diff");
       const norm = normalizeMultiDiffFiles(files);
-      const changed = norm.filter(
+      // Binary guard (same as openDiff): a binary file must never round-trip
+      // the UTF-8 text pipeline — drop it from the reviewable set up front.
+      const skippedBinary = [];
+      const textual = [];
+      for (const f of norm) {
+        const binary =
+          looksBinary(f.modifiedText) ||
+          looksBinary(f.originalText) ||
+          (f.originalText == null && looksBinary(safeReadFileRaw(f.path)));
+        if (binary) skippedBinary.push(f.path);
+        else textual.push(f);
+      }
+      const changed = textual.filter(
         (f) => (f.originalText || "") !== f.modifiedText,
       );
       if (changed.length === 0) {
-        return { outcome: "rejected", reason: "no changes" };
+        return skippedBinary.length > 0
+          ? { outcome: "rejected", reason: REASON_BINARY_SKIPPED, skippedBinary }
+          : { outcome: "rejected", reason: "no changes" };
       }
+      // Baseline per path for the accept-time drift gate (normalize() stores
+      // null when the caller sent no baseline → gate stays inert for those).
+      const baselineByPath = new Map(
+        changed.map((f) => [f.path, f.originalText]),
+      );
+      // Write the chosen files, skipping any whose disk drifted from the
+      // reviewed baseline and whose overwrite the user declined.
+      const applyWritesGuarded = async (writes) => {
+        const written = [];
+        const skippedConflicts = [];
+        for (const w of writes) {
+          const baseline = baselineByPath.get(w.path);
+          const ok = await confirmDriftOverwrite(
+            vscode,
+            w.path,
+            typeof baseline === "string" ? baseline : undefined,
+          );
+          if (!ok) {
+            skippedConflicts.push(w.path);
+            continue;
+          }
+          await applyTextToFile(
+            vscode,
+            vscode.Uri.file(w.path),
+            w.modifiedText,
+          );
+          written.push(w.path);
+        }
+        return { written, skippedConflicts };
+      };
+      // Shape a decision result: identical to the historical shape unless a
+      // guard actually skipped something (then the extra keys ride along).
+      const decisionResult = (written, skippedConflicts, extra = {}) => {
+        const out = {
+          outcome: "accepted",
+          applied: written.length,
+          total: changed.length,
+          ...extra,
+        };
+        if (skippedConflicts.length > 0) {
+          out.skippedConflicts = skippedConflicts;
+          if (written.length === 0) {
+            out.outcome = "rejected";
+            out.reason = REASON_DISK_DRIFTED;
+          }
+        }
+        if (skippedBinary.length > 0) out.skippedBinary = skippedBinary;
+        return out;
+      };
       // Build the [resourceUri, leftUri, rightUri] list for vscode.changes.
       const resources = [];
       for (const f of changed) {
@@ -519,18 +608,8 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       }
       if (choice === "Accept all") {
         const writes = selectWrites(changed, null);
-        for (const w of writes) {
-          await applyTextToFile(
-            vscode,
-            vscode.Uri.file(w.path),
-            w.modifiedText,
-          );
-        }
-        return {
-          outcome: "accepted",
-          applied: writes.length,
-          total: changed.length,
-        };
+        const { written, skippedConflicts } = await applyWritesGuarded(writes);
+        return decisionResult(written, skippedConflicts);
       }
       if (choice === "Pick files…") {
         const picks = await vscode.window.showQuickPick(
@@ -552,19 +631,8 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           changed,
           picks.map((p) => p.path),
         );
-        for (const w of writes) {
-          await applyTextToFile(
-            vscode,
-            vscode.Uri.file(w.path),
-            w.modifiedText,
-          );
-        }
-        return {
-          outcome: "accepted",
-          applied: writes.length,
-          total: changed.length,
-          files: writes.map((w) => w.path),
-        };
+        const { written, skippedConflicts } = await applyWritesGuarded(writes);
+        return decisionResult(written, skippedConflicts, { files: written });
       }
       return { outcome: "rejected" };
     },
@@ -830,6 +898,58 @@ function safeReadFile(path) {
   } catch {
     return "";
   }
+}
+
+/** Like safeReadFile but distinguishes "missing/unreadable" (null) from "". */
+function safeReadFileOrNull(path) {
+  try {
+    return fs.readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/** Raw bytes for the binary sniff (null when missing/unreadable). */
+function safeReadFileRaw(path) {
+  try {
+    return fs.readFileSync(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Optimistic-concurrency gate for a diff apply: the reviewer decided against
+ * `baselineText` (openDiff's originalText), so if the on-disk file changed
+ * during the review a blind whole-file write would destroy those concurrent
+ * edits. Drift → explicit modal confirm, and dismissing it (Esc) cancels —
+ * fail-safe, never auto-overwrite. Returns true when the write may proceed.
+ *
+ * Byte-identical legacy path: no baseline (older callers diff against the
+ * live file) or a missing/unreadable file (nothing to clobber) → true, and
+ * no prompt is ever shown.
+ */
+async function confirmDriftOverwrite(vscode, path, baselineText) {
+  if (typeof baselineText !== "string") return true;
+  const current = safeReadFileOrNull(path);
+  if (current === null) return true; // new/deleted file — nothing to clobber
+  const verdict = checkApplySafety({ baselineText, currentDiskText: current });
+  if (verdict.safe) return true;
+  const overwrite = vscode.l10n.t("Overwrite");
+  let pick;
+  try {
+    pick = await vscode.window.showWarningMessage(
+      vscode.l10n.t(
+        "{0} was modified on disk during the review. Overwrite those changes?",
+        path,
+      ),
+      { modal: true },
+      overwrite,
+    );
+  } catch {
+    pick = undefined; // an unshowable prompt must never mean "overwrite"
+  }
+  return pick === overwrite;
 }
 
 /**

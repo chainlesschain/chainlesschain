@@ -267,6 +267,30 @@ describe("openMultiDiff closes its review tab after a button decision", () => {
   });
 });
 
+describe("openMultiDiff diff-apply-guard wiring", () => {
+  it("drops binary entries from the reviewable set (they are never written)", async () => {
+    const NUL = String.fromCharCode(0);
+    const fx = fakeVscode({ choice: "Accept all" });
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const res = await facade.openMultiDiff({
+      files: [
+        { path: "/ws/a.js", originalText: "1", modifiedText: "2" },
+        {
+          path: "/ws/logo.png",
+          originalText: "x" + NUL,
+          modifiedText: "y" + NUL,
+        },
+      ],
+    });
+    expect(res).toMatchObject({
+      outcome: "accepted",
+      applied: 1,
+      skippedBinary: ["/ws/logo.png"],
+    });
+    expect(fx.writes.map((w) => w.path)).toEqual(["/ws/a.js"]);
+  });
+});
+
 describe("buildIdeTools exposes openMultiDiff conditionally", () => {
   it("present when the facade supports it; absent otherwise", () => {
     const withIt = buildIdeTools({

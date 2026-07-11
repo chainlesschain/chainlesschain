@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.ide.DiffApplyGuard;
 import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
 import com.chainlesschain.ide.MultiDiff;
@@ -211,6 +212,21 @@ public final class IntellijEditorFacade implements EditorFacade {
             if (left == null && vf != null) {
                 left = readDocumentText(vf);
             }
+            // Binary guard (twin of VS Code's diff-apply-guard): the review
+            // pipeline is UTF-8 text — rewriting a binary file through it
+            // corrupts the bytes. Short-circuit before any UI opens; nothing
+            // is written. (A binary file has no Document, so also sniff the
+            // raw bytes when the caller sent no baseline.)
+            if (DiffApplyGuard.looksBinary(modifiedText)
+                    || DiffApplyGuard.looksBinary(originalText)
+                    || (originalText == null && DiffApplyGuard.looksBinary(readBytesSafe(vf)))) {
+                Map<String, Object> bin = new LinkedHashMap<>();
+                bin.put("outcome", "rejected");
+                bin.put("path", path);
+                bin.put("reason", DiffApplyGuard.REASON_BINARY_SKIPPED);
+                result.set(bin);
+                return;
+            }
             DocumentContent leftContent = factory.create(left == null ? "" : left);
             // Editable right pane (VS Code parity): the reviewer can amend the
             // proposal in place before deciding — plain create() yields a
@@ -240,10 +256,19 @@ public final class IntellijEditorFacade implements EditorFacade {
 
             Map<String, Object> r = new LinkedHashMap<>();
             if (choice == 0) { // Accept — writes the (possibly user-edited) right pane
-                applyToFile(vf, reviewed);
-                r.put("outcome", "accepted");
-                r.put("path", path);
-                r.put("finalText", reviewed);
+                // Optimistic-concurrency gate: the review was decided against
+                // originalText — if the file moved on disk meanwhile, don't
+                // blind-write. No baseline (null) → legacy path, no prompt.
+                if (!confirmDriftOverwrite(vf, path, originalText)) {
+                    r.put("outcome", "rejected");
+                    r.put("path", path);
+                    r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
+                } else {
+                    applyToFile(vf, reviewed);
+                    r.put("outcome", "accepted");
+                    r.put("path", path);
+                    r.put("finalText", reviewed);
+                }
             } else if (choice == 1) { // Pick hunks… — partial accept; unpicked keep original
                 String baseline = left == null ? "" : left;
                 List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(baseline, reviewed);
@@ -252,6 +277,12 @@ public final class IntellijEditorFacade implements EditorFacade {
                     // Esc / nothing picked → fail-safe: nothing is written.
                     r.put("outcome", "rejected");
                     r.put("path", path);
+                } else if (!confirmDriftOverwrite(vf, path, originalText)) {
+                    // Same drift gate as Accept: the hunks were computed against
+                    // the agent's baseline, so a moved disk would be clobbered.
+                    r.put("outcome", "rejected");
+                    r.put("path", path);
+                    r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
                 } else {
                     String finalText = DiffHunks.applyHunks(baseline, hunks, picked);
                     applyToFile(vf, finalText);
@@ -308,16 +339,40 @@ public final class IntellijEditorFacade implements EditorFacade {
 
     @Override
     public Map<String, Object> openMultiDiff(List<MultiDiff.FileChange> files, String title) {
-        final List<MultiDiff.FileChange> norm = MultiDiff.normalizeMultiDiffFiles(files);
+        final List<MultiDiff.FileChange> all = MultiDiff.normalizeMultiDiffFiles(files);
         final AtomicReference<Map<String, Object>> result = new AtomicReference<>();
         ApplicationManager.getApplication().invokeAndWait(() -> {
             Map<String, Object> r = new LinkedHashMap<>();
+            // Binary guard (twin of VS Code): a binary file must never
+            // round-trip the UTF-8 text pipeline — drop it from the reviewable
+            // set up front, tracking which paths were skipped.
+            final List<String> skippedBinary = new ArrayList<>();
+            final List<MultiDiff.FileChange> norm = new ArrayList<>();
+            for (MultiDiff.FileChange f : all) {
+                boolean binary = DiffApplyGuard.looksBinary(f.modifiedText)
+                        || DiffApplyGuard.looksBinary(f.originalText)
+                        || (f.originalText == null
+                                && DiffApplyGuard.looksBinary(
+                                        readBytesSafe(LocalFileSystem.getInstance().findFileByPath(f.path))));
+                if (binary) skippedBinary.add(f.path);
+                else norm.add(f);
+            }
             if (norm.isEmpty()) {
                 r.put("outcome", "rejected");
                 r.put("written", new ArrayList<String>());
                 r.put("count", 0);
+                if (!skippedBinary.isEmpty()) {
+                    r.put("reason", DiffApplyGuard.REASON_BINARY_SKIPPED);
+                    r.put("skippedBinary", skippedBinary);
+                }
                 result.set(r);
                 return;
+            }
+            // Baseline per path for the accept-time drift gate (null baseline
+            // → gate stays inert for that file, legacy byte-identical path).
+            final Map<String, String> baselineByPath = new LinkedHashMap<>();
+            for (MultiDiff.FileChange f : norm) {
+                baselineByPath.put(f.path, f.originalText);
             }
             DiffContentFactory factory = DiffContentFactory.getInstance();
             List<DiffRequest> requests = new ArrayList<>();
@@ -342,23 +397,37 @@ public final class IntellijEditorFacade implements EditorFacade {
                     "Accept all", "Choose files…", "Reject", null);
 
             List<String> written = new ArrayList<>();
+            List<String> skippedConflicts = new ArrayList<>();
             String outcome;
             if (choice == Messages.YES) {
-                for (MultiDiff.FileChange f : norm) {
+                for (MultiDiff.FileChange f : MultiDiff.selectWrites(norm, null)) {
+                    if (!confirmDriftOverwriteByPath(f.path, baselineByPath.get(f.path))) {
+                        skippedConflicts.add(f.path);
+                        continue;
+                    }
                     applyToPath(f.path, f.modifiedText);
                     written.add(f.path);
                 }
-                outcome = "accepted";
+                outcome = written.isEmpty() && !skippedConflicts.isEmpty() ? "rejected" : "accepted";
             } else if (choice == Messages.NO) {
                 Set<String> picked = pickFiles(summary);
                 if (picked.isEmpty()) {
                     outcome = "rejected";
                 } else {
-                    for (MultiDiff.FileChange f : MultiDiff.selectWrites(norm, picked)) {
+                    List<MultiDiff.FileChange> writes = MultiDiff.selectWrites(norm, picked);
+                    for (MultiDiff.FileChange f : writes) {
+                        if (!confirmDriftOverwriteByPath(f.path, baselineByPath.get(f.path))) {
+                            skippedConflicts.add(f.path);
+                            continue;
+                        }
                         applyToPath(f.path, f.modifiedText);
                         written.add(f.path);
                     }
-                    outcome = written.size() == norm.size() ? "accepted" : "partial";
+                    if (written.isEmpty() && !skippedConflicts.isEmpty()) {
+                        outcome = "rejected";
+                    } else {
+                        outcome = written.size() == norm.size() ? "accepted" : "partial";
+                    }
                 }
             } else {
                 outcome = "rejected";
@@ -366,6 +435,11 @@ public final class IntellijEditorFacade implements EditorFacade {
             r.put("outcome", outcome);
             r.put("written", written);
             r.put("count", written.size());
+            if (!skippedConflicts.isEmpty()) {
+                r.put("skippedConflicts", skippedConflicts);
+                if (written.isEmpty()) r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
+            }
+            if (!skippedBinary.isEmpty()) r.put("skippedBinary", skippedBinary);
             result.set(r);
         });
         return result.get();
@@ -450,6 +524,57 @@ public final class IntellijEditorFacade implements EditorFacade {
             doc.setText(text);
             FileDocumentManager.getInstance().saveDocument(doc);
         });
+    }
+
+    /**
+     * Optimistic-concurrency gate for a diff apply (twin of VS Code's
+     * confirmDriftOverwrite). The reviewer decided against {@code baselineText}
+     * (openDiff's originalText); if the file moved on disk during the review a
+     * blind whole-file write would destroy those concurrent edits. Drift → an
+     * explicit Yes/No confirm defaulting to No — dismissing (Esc) cancels,
+     * never auto-overwrites. Returns whether the write may proceed.
+     *
+     * <p>Byte-identical legacy path: no baseline (null) or an unreadable
+     * current document (nothing to clobber) → true with NO prompt.
+     */
+    private boolean confirmDriftOverwrite(VirtualFile vf, String path, String baselineText) {
+        if (baselineText == null) return true;
+        String current = readDocumentText(vf);
+        // readDocumentText returns "" for a missing file/document; a genuinely
+        // empty baseline still compares equal, so "" here is not special-cased.
+        if (DiffApplyGuard.safeToApply(baselineText, current)) return true;
+        int pick = Messages.showYesNoDialog(project,
+                CcBundle.message("diff.driftOverwrite.message", path),
+                CcBundle.message("diff.driftOverwrite.title"),
+                CcBundle.message("diff.driftOverwrite.overwrite"),
+                Messages.getCancelButton(),
+                null);
+        return pick == Messages.YES;
+    }
+
+    /** Resolve a path → VirtualFile, then run the drift gate. */
+    private boolean confirmDriftOverwriteByPath(String path, String baselineText) {
+        if (baselineText == null) return true;
+        VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(path);
+        if (vf == null) vf = LocalFileSystem.getInstance().refreshAndFindFileByPath(path);
+        return confirmDriftOverwrite(vf, path, baselineText);
+    }
+
+    /** Raw bytes for the binary sniff (null when missing/unreadable). */
+    private byte[] readBytesSafe(VirtualFile vf) {
+        if (vf == null) return null;
+        try {
+            return ApplicationManager.getApplication().runReadAction(
+                    (com.intellij.openapi.util.Computable<byte[]>) () -> {
+                        try {
+                            return vf.contentsToByteArray();
+                        } catch (Throwable t) {
+                            return null;
+                        }
+                    });
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     /**
