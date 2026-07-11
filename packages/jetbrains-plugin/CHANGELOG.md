@@ -1,7 +1,27 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased] — PSI-backed semantic tools over the IDE bridge (2026-07-11)
+## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
 
+- **Unified Sessions Workbench tool window (gap #3).** New "ChainlessChain
+  Sessions" tool window (Tools → "ChainlessChain: Sessions Workbench")
+  aggregates every session surface into one searchable table: saved chat
+  sessions (`cc session list --json`), the cross-IDE session index
+  (`~/.chainlesschain/ide/session-index.json`, incl. `waiting_approval`
+  status), `cc agent --bg` background agents (with the CLI's stale-heartbeat
+  display correction) and `cc remote-control` pairing hosts. A background
+  agent running chat session X absorbs/annotates that chat row (the
+  background row wins and carries the session id); rows sort
+  waiting-approval → running → last activity, and the search field filters
+  title/workspace/id case-insensitively. Per-row actions route to the
+  existing paths: resume (chat) opens a new chat tab via the deep-link
+  take-over path, attach sends a one-shot session-transport prompt (same
+  path as the Background Agents panel), rename/delete/stop/resume spawn the
+  matching `cc session`/`cc daemon`/`cc remote-control` commands off-EDT,
+  and logs/status render read-only dialogs. The table auto-refreshes every
+  15s while visible (never when hidden); a failed source degrades to a
+  visible warning row and the panel still renders. All
+  aggregation/dedup/sort/filter/time formatting lives in the pure
+  `SessionsWorkbench` core (JUnit + smoke, SDK-free, en+zh localized glue).
 - **Seven new `mcp__ide__*` semantic tools (gap #7).** The bridge now exposes
   the IDE's semantic index to the cc agent: `getHover` (quick-doc, HTML
   stripped + capped), `goToDefinition` (declaration locations — never navigates

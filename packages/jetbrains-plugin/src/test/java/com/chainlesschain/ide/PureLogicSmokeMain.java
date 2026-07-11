@@ -72,6 +72,7 @@ public final class PureLogicSmokeMain {
         autoExecGuard();
         remoteDoctor();
         semanticTools();
+        sessionsWorkbench();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1470,6 +1471,114 @@ public final class PureLogicSmokeMain {
         eq(f.get(0).category, "mcp-config", "loudest first");
         check(AutoExecGuard.summarize(f).contains("3 auto-executable"), "summary counts");
         eq(AutoExecGuard.summarize(java.util.List.of()), "", "empty summary");
+    }
+
+    /**
+     * SessionsWorkbench — unified sessions workbench core (gap #3): source
+     * parsing → unified rows, background↔chat dedup, waitingApproval/running
+     * sort precedence, case-insensitive filter, per-kind action ids, relative
+     * time and plain-text display columns.
+     */
+    private static void sessionsWorkbench() {
+        System.out.println("SessionsWorkbench:");
+        final long now = 1_800_000_000_000L;
+
+        // Source parsing + action derivation.
+        List<SessionsWorkbench.Row> chat = SessionsWorkbench.chatRows(
+                "[{\"id\":\"s1\",\"title\":\"Fix bug\",\"updated_at\":\"2026-07-10 12:00:00\"}]");
+        eq(chat.size(), 1, "wb chat parsed");
+        eq(chat.get(0).kind, "chat", "wb chat kind");
+        eq(chat.get(0).actions, Arrays.asList("resume", "rename", "delete"), "wb chat actions");
+        check(chat.get(0).lastActivity > 0, "wb sqlite datetime parsed");
+        eq(SessionsWorkbench.chatRows("not json {{").size(), 0, "wb malformed chat tolerated");
+        eq(SessionsWorkbench.remoteRows("]]").size(), 0, "wb malformed remote tolerated");
+
+        Map<String, Object> ideRow = new LinkedHashMap<String, Object>();
+        ideRow.put("id", "s1");
+        ideRow.put("workspace", "C:/repo");
+        ideRow.put("status", "waiting_approval");
+        ideRow.put("updatedAt", "2026-07-11T00:00:00Z");
+        List<SessionsWorkbench.Row> ide =
+                SessionsWorkbench.ideRows(java.util.List.of(ideRow));
+        check(ide.get(0).waitingApproval, "wb waiting_approval flagged");
+
+        // ide index row annotates the same-id chat row (title falls back).
+        List<SessionsWorkbench.Row> mergedIde =
+                SessionsWorkbench.aggregate(chat, ide, null, null, null);
+        eq(mergedIde.size(), 1, "wb chat+ide dedup by id");
+        eq(mergedIde.get(0).kind, "ide", "wb index row wins");
+        eq(mergedIde.get(0).title, "Fix bug", "wb title falls back to chat");
+
+        // Background agent referencing sessionId absorbs the chat row.
+        BackgroundAgents.Session running = new BackgroundAgents.Session(
+                "bg1", "running", null, null, -1, "", "", "s1",
+                now - 1000, 0, null, "", "\\\\.\\pipe\\x", "tok", true);
+        List<SessionsWorkbench.Row> bg =
+                SessionsWorkbench.backgroundRows(java.util.List.of(running));
+        eq(bg.get(0).actions, Arrays.asList("attach", "stop", "rename"),
+                "wb running bg actions");
+        List<SessionsWorkbench.Row> merged =
+                SessionsWorkbench.aggregate(chat, null, bg, null, null);
+        eq(merged.size(), 1, "wb bg absorbs its chat row");
+        eq(merged.get(0).id, "bg1", "wb bg row wins");
+        eq(merged.get(0).sessionId, "s1", "wb bg carries sessionId");
+        eq(merged.get(0).title, "Fix bug", "wb bg inherits chat title");
+
+        BackgroundAgents.Session done = new BackgroundAgents.Session(
+                "bg2", "completed", null, null, -1, "t", "", null,
+                now - 9000, now - 5000, 0, "", null, null, false);
+        eq(SessionsWorkbench.backgroundRows(java.util.List.of(done)).get(0).actions,
+                Arrays.asList("resume", "logs", "rename"), "wb finished bg actions");
+
+        // Remote host rows + port extraction.
+        List<SessionsWorkbench.Row> remote = SessionsWorkbench.remoteRows(
+                "[{\"port\":18800,\"alive\":true,\"mode\":\"direct\","
+                        + "\"agentSessionId\":\"s5\"},{\"invalid\":true}]");
+        eq(remote.size(), 1, "wb invalid remote state skipped");
+        eq(remote.get(0).status, "running", "wb alive → running");
+        eq(remote.get(0).actions, Arrays.asList("status", "stop"), "wb remote actions");
+        eq(SessionsWorkbench.remotePort("remote:18800"), 18800L, "wb remote port");
+        eq(SessionsWorkbench.remotePort("s1"), 0L, "wb non-remote port 0");
+
+        // Sort precedence: warning first, then approval, then running, then time.
+        Map<String, Object> approval = new LinkedHashMap<String, Object>(ideRow);
+        approval.put("id", "appr");
+        approval.put("updatedAt", "2026-06-01T00:00:00Z");
+        Map<String, Object> stoppedNew = new LinkedHashMap<String, Object>();
+        stoppedNew.put("id", "stopped-new");
+        stoppedNew.put("status", "stopped");
+        stoppedNew.put("updatedAt", "2026-07-09T00:00:00Z");
+        Map<String, Object> runningOld = new LinkedHashMap<String, Object>();
+        runningOld.put("id", "run-old");
+        runningOld.put("status", "running");
+        runningOld.put("updatedAt", "2026-07-01T00:00:00Z");
+        List<SessionsWorkbench.Row> sorted = SessionsWorkbench.aggregate(null,
+                SessionsWorkbench.ideRows(Arrays.asList(stoppedNew, runningOld, approval)),
+                null, null,
+                java.util.List.of(SessionsWorkbench.warningRow("chat", "boom")));
+        eq(sorted.get(0).kind, "warning", "wb warning row first");
+        eq(sorted.get(1).id, "appr", "wb approval before running");
+        eq(sorted.get(2).id, "run-old", "wb running before newer stopped");
+        eq(sorted.get(3).id, "stopped-new", "wb then lastActivity desc");
+
+        // Filter over title/workspace/id, case-insensitive.
+        eq(SessionsWorkbench.filter(mergedIde, "REPO").size(), 1, "wb filter workspace");
+        eq(SessionsWorkbench.filter(mergedIde, "s1").size(), 1, "wb filter id");
+        eq(SessionsWorkbench.filter(mergedIde, "zzz").size(), 0, "wb filter miss");
+        eq(SessionsWorkbench.filter(mergedIde, null).size(), 1, "wb null query keeps all");
+
+        // Relative time.
+        eq(SessionsWorkbench.formatRelativeTime(now, 0), "", "wb no time → empty");
+        eq(SessionsWorkbench.formatRelativeTime(now, now - 10_000), "just now", "wb just now");
+        eq(SessionsWorkbench.formatRelativeTime(now, now - 5 * 60_000L), "5m ago", "wb minutes");
+        eq(SessionsWorkbench.formatRelativeTime(now, now - 3 * 3_600_000L), "3h ago", "wb hours");
+        eq(SessionsWorkbench.formatRelativeTime(now, now - 2 * 86_400_000L), "2d ago", "wb days");
+
+        // Display columns (plain text, id fallback for untitled).
+        String[] cols = SessionsWorkbench.toColumns(mergedIde.get(0), now);
+        eq(cols.length, SessionsWorkbench.COLUMN_COUNT, "wb column count");
+        eq(cols[1], "Fix bug", "wb title column");
+        check(cols[2].contains("approval"), "wb approval surfaced in status column");
     }
 
     /**

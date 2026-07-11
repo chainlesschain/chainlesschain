@@ -755,3 +755,54 @@ headless; `compileJava` against the 2024.2 SDK proves the PSI APIs exist
 - [ ] **Non-Java IDE (optional).** In an IDE without the Java plugin the
       bridge still starts (compile-time-only dep) and callHierarchy degrades
       with the "requires the Java plugin" reason.
+
+## 🗂 Sessions Workbench tool window (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #3 「跨端 Remote/Cloud Session 入口」. Pure core `SessionsWorkbench`
+(source parsing / aggregate+dedup / sort / filter / action ids / relative time /
+display columns; JUnit `SessionsWorkbenchTest` + smoke section) is verified
+headless; `compileJava` proves the SDK glue compiles. The glue
+(`intellij/SessionsWorkbenchToolWindowFactory` + `SessionsWorkbenchAction`,
+tool window id `ChainlessChain Sessions`) needs a real IDE:
+
+- [ ] **Open.** Tools → "ChainlessChain: Sessions Workbench" reveals the
+      tool window (right stripe, ChainlessChain icon); the table renders with
+      columns Kind / Title / Status / Workspace / Last activity and the count
+      note at the bottom. zh IDE (Chinese Language Pack) shows the localized
+      menu item, buttons and column headers.
+- [ ] **Aggregation.** With ≥1 saved chat session, an IDE-index entry, a
+      running `cc agent -p "…" --bg` and a `cc remote-control start` host all
+      present, all four kinds appear; a background agent whose sessionId
+      matches a chat session REPLACES that chat row (kind=background, session
+      id shown in detail); waiting-approval rows sort above running rows,
+      running above the rest.
+- [ ] **Search.** Typing in the search field narrows rows by title/workspace/
+      id case-insensitively; clearing restores; selection survives a refresh
+      when the row still exists.
+- [ ] **Auto-refresh.** Visible window refreshes every ~15s (watch a bg agent
+      finish → row flips to finished actions); hiding the tool window stops
+      the cc spawns (Process Explorer: no new `cc session list` children while
+      hidden); closing the project disposes the timer (no leaked Alarm).
+- [ ] **Buttons enable per row.** chat/ide row → Resume/Rename/Delete only;
+      running background → Attach/Stop/Rename; finished background →
+      Resume/Logs/Rename; remote host → Status/Stop; warning row → none.
+- [ ] **Resume (chat).** Selecting a chat/ide row + Resume activates the chat
+      tool window and opens a NEW tab that continues the picked session on the
+      next message (same behavior as the deep-link `session=` param).
+- [ ] **Attach (running bg).** Prompt dialog → the running agent receives the
+      follow-up over the one-shot pipe (reply JSON lands in the note line);
+      a non-interactive running agent shows the "no live session transport"
+      info instead.
+- [ ] **Rename.** Background row → `cc daemon rename` (title changes after
+      refresh); chat/ide row → IDE-index overlay rename (title changes in this
+      table AND in the chat panel's /sessions picker).
+- [ ] **Delete (chat).** Confirm dialog → transcript removed
+      (`cc session delete --force`) + index entry pruned; the row disappears.
+- [ ] **Stop.** Running background row → `cc daemon stop`; remote row →
+      `cc remote-control stop --port <n>` (state file pruned, row goes stale/
+      disappears on refresh).
+- [ ] **Logs / Status.** Finished background row → monospace log-tail dialog;
+      remote row → hosts status dialog listing port/pid/mode/session.
+- [ ] **Failure tolerance.** Rename `cc` off the PATH (or point ccPath at a
+      bogus binary) → the chat + remote sources degrade to warning rows at the
+      top, background + ide rows still render, no dialog spam, no EDT freeze.

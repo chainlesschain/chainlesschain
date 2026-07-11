@@ -241,6 +241,11 @@
         <toolWindow id="ChainlessChain Dashboard" anchor="right" secondary="true"
                     icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.DashboardToolWindowFactory"/>
+        <!-- Unified sessions workbench (gap #3): chat sessions + cross-IDE
+             index + background agents + remote-control hosts in one table. -->
+        <toolWindow id="ChainlessChain Sessions" anchor="right" secondary="true"
+                    icon="/icons/chainlesschain.png"
+                    factoryClass="com.chainlesschain.ide.intellij.SessionsWorkbenchToolWindowFactory"/>
         <statusBarWidgetFactory id="chainlesschain.ide.statusBar"
                                 implementation="com.chainlesschain.ide.intellij.BridgeStatusBarWidgetFactory"/>
         <intentionAction>
@@ -281,6 +286,10 @@
         </action>
         <action id="chainlesschain.remote.Control"
                 class="com.chainlesschain.ide.intellij.RemoteControlAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.sessions.Workbench"
+                class="com.chainlesschain.ide.intellij.SessionsWorkbenchAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.usage.Show"
