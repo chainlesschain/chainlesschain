@@ -243,10 +243,6 @@ const enterpriseCollabPages = createRouteGroup("enterprise-collab", {
     import(
       /* webpackChunkName: "perm-settings" */ "../pages/permissions/PermissionSettingsPage.vue"
     ),
-  approvalCenter: () =>
-    import(
-      /* webpackChunkName: "approval-center" */ "../pages/permissions/ApprovalCenterPage.vue"
-    ),
   teamSettings: () =>
     import(
       /* webpackChunkName: "team-settings" */ "../pages/permissions/TeamSettingsPage.vue"
@@ -1012,12 +1008,6 @@ const routes: RouteRecordRaw[] = [
         name: "OrgPermissions",
         component: enterpriseCollabPages.permissionSettings,
         meta: { title: "权限设置" },
-      },
-      {
-        path: "org/:orgId/approvals",
-        name: "ApprovalCenter",
-        component: enterpriseCollabPages.approvalCenter,
-        meta: { title: "审批中心" },
       },
       {
         path: "org/:orgId/teams",
