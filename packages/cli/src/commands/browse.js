@@ -391,6 +391,92 @@ export function registerBrowseChromeCommand(browse) {
         logger.success(`Screenshot: ${state.screenshotPath}`);
       }
     });
+
+  chrome
+    .command("act")
+    .description(
+      "Perform EXPLICIT actions (click/type/press/navigate/waitForSelector/screenshot/assertText) in the connected Chrome — unlike 'state', this DRIVES your logged-in browser",
+    )
+    .option("-p, --port <port>", "CDP port", "9222")
+    .option("-t, --tab <n>", "Tab index", "0")
+    .requiredOption(
+      "--actions <json|@file>",
+      'JSON array of steps, e.g. \'[{"type":"click","selector":"#go"}]\', or @steps.json',
+    )
+    .option(
+      "--continue-on-error",
+      "Keep executing the remaining steps after a failed one (default: fail fast)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { discoverCdp, performActions } =
+        await import("../lib/chrome-connector.js");
+      const port = numericOption(options.port, {
+        name: "--port",
+        integer: true,
+        min: 1,
+        fallback: 9222,
+      });
+      let actions;
+      try {
+        const raw = options.actions.startsWith("@")
+          ? (await import("fs")).readFileSync(options.actions.slice(1), "utf-8")
+          : options.actions;
+        actions = JSON.parse(raw);
+      } catch (err) {
+        logger.error(
+          `--actions must be a JSON array (or @file.json): ${err.message}`,
+        );
+        process.exit(1);
+      }
+      // Refuse outright when nothing is listening — an action command must
+      // never silently no-op or launch a browser on its own.
+      const probe = await discoverCdp({ port });
+      if (!probe.ok) {
+        const msg = `No debuggable Chrome on port ${port} — refusing to act. Start one first: cc browse chrome launch`;
+        if (options.json) {
+          console.log(JSON.stringify({ ok: false, error: msg }, null, 2));
+        } else {
+          logger.error(msg);
+        }
+        process.exitCode = 1;
+        return;
+      }
+      const res = await performActions(actions, {
+        port,
+        tab: numericOption(options.tab, {
+          name: "--tab",
+          integer: true,
+          min: 0,
+          fallback: 0,
+        }),
+        continueOnError: options.continueOnError === true,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(res, null, 2));
+        if (!res.ok) process.exitCode = 1;
+        return;
+      }
+      if (res.error) {
+        logger.error(res.error);
+        process.exitCode = 1;
+        return;
+      }
+      if (res.profileWarning) logger.warn(res.profileWarning);
+      for (const step of res.steps) {
+        const mark = step.ok ? chalk.green("ok") : chalk.red("FAIL");
+        logger.log(
+          `  [${mark}] ${step.action} ${chalk.gray(`(${step.durationMs}ms)`)} ${step.detail}`,
+        );
+      }
+      logger.log(
+        `  ${res.executed}/${actions.length} step(s) executed → ${chalk.cyan(res.url)}${res.title ? ` (${res.title})` : ""}`,
+      );
+      if (res.auditError) {
+        logger.warn(`audit log write failed: ${res.auditError}`);
+      }
+      if (!res.ok) process.exitCode = 1;
+    });
 }
 
 import {

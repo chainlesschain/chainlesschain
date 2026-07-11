@@ -50,7 +50,8 @@ describe("E2E: open-agents parity Phases 2–5", () => {
     expect(names).toContain("schedule");
     expect(names).toContain("publish_artifact");
     expect(names).toContain("browser_state");
-    expect(names).toHaveLength(25);
+    expect(names).toContain("browser_act");
+    expect(names).toHaveLength(26);
   });
 
   it("spawn_sub_agent contract exposes profile enum (Phase 3)", async () => {

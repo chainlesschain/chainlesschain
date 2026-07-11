@@ -73,6 +73,7 @@ const _deps = {
   homedir: () => os.homedir(),
   platform: () => process.platform,
   env: () => process.env,
+  tmpdir: () => os.tmpdir(),
   httpGet,
   importPlaywright: () => import("playwright"),
 };
@@ -340,6 +341,391 @@ export async function captureState({
       page.off("requestfailed", onRequestFailed);
       page.off("response", onResponse);
     }
+  } finally {
+    // connectOverCDP close() disconnects the client; the browser lives on.
+    await browser.close().catch(() => {});
+  }
+}
+
+// ─── Browser Action mode (gap-analysis #6) ────────────────────────────────
+//
+// captureState/browser_state stay the read-only DEFAULT. performActions is
+// the explicit, approval-gated capability that DRIVES the connected browser:
+// click / type / press / navigate / waitForSelector / screenshot /
+// assertText. Every executed step is appended to an audit JSONL under
+// ~/.chainlesschain/browser-actions/<date>.jsonl (CC_BROWSER_ACTIONS_DIR
+// overrides the dir for tests). Screenshot paths are ALWAYS generated
+// internally — a caller-supplied path is refused (same invariant as
+// browser_state: an action tool must not double as an arbitrary-file writer).
+
+export const SUPPORTED_BROWSER_ACTIONS = Object.freeze([
+  "click",
+  "type",
+  "press",
+  "navigate",
+  "waitForSelector",
+  "screenshot",
+  "assertText",
+]);
+export const MAX_BROWSER_ACTIONS = 30;
+export const DEFAULT_ACTION_TIMEOUT_MS = 10000;
+export const MAX_ACTION_TIMEOUT_MS = 30000;
+
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
+
+/** Audit log directory (CC_BROWSER_ACTIONS_DIR override for tests). */
+export function browserActionsDir({ deps = _deps } = {}) {
+  const env = deps.env();
+  if (env.CC_BROWSER_ACTIONS_DIR) return env.CC_BROWSER_ACTIONS_DIR;
+  return path.join(deps.homedir(), ".chainlesschain", "browser-actions");
+}
+
+/**
+ * Resolve an optional caller CDP endpoint to a PORT, enforcing the connector's
+ * loopback-only contract: only http:// against 127.0.0.1 / localhost / [::1]
+ * is accepted. performActions then connects to `http://127.0.0.1:<port>` —
+ * the caller string is never used as the connection target verbatim, so a
+ * crafted endpoint cannot widen the trust boundary the prior security fix
+ * established.
+ */
+export function resolveLoopbackCdpPort(
+  cdpUrl,
+  fallbackPort = DEFAULT_CDP_PORT,
+) {
+  if (cdpUrl == null || cdpUrl === "") return normalizeCdpPort(fallbackPort);
+  let parsed;
+  try {
+    parsed = new URL(String(cdpUrl));
+  } catch {
+    throw new Error(`Invalid CDP endpoint: ${cdpUrl}`);
+  }
+  if (parsed.protocol !== "http:") {
+    throw new Error(
+      `CDP endpoint must be http:// on loopback (got ${parsed.protocol})`,
+    );
+  }
+  if (!LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase())) {
+    throw new Error(
+      `CDP endpoint must be loopback-only (127.0.0.1 / localhost) — refusing host "${parsed.hostname}"`,
+    );
+  }
+  return normalizeCdpPort(parsed.port || DEFAULT_CDP_PORT);
+}
+
+function truncateForAudit(value, cap = 200) {
+  const s = String(value);
+  return s.length > cap ? `${s.slice(0, cap)}…` : s;
+}
+
+/**
+ * Validate + normalize the caller's action list BEFORE anything connects.
+ * Throws on the first invalid action — performActions turns that into
+ * {ok:false, error} without touching the browser. Screenshot paths are
+ * generated here (deps.tmpdir), and any caller-supplied path key is refused.
+ */
+export function normalizeBrowserActions(actions, { deps = _deps } = {}) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    throw new Error("actions must be a non-empty array of action objects");
+  }
+  if (actions.length > MAX_BROWSER_ACTIONS) {
+    throw new Error(
+      `too many actions (${actions.length}) — max ${MAX_BROWSER_ACTIONS} per call`,
+    );
+  }
+  const requireSelector = (raw, type) => {
+    const sel = raw.selector;
+    if (typeof sel !== "string" || sel.trim() === "" || sel.length > 1000) {
+      throw new Error(`${type} requires a non-empty "selector" string`);
+    }
+    return sel;
+  };
+  return actions.map((raw, i) => {
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error(`action[${i}] must be an object with a "type"`);
+    }
+    const type = String(raw.type || "");
+    if (!SUPPORTED_BROWSER_ACTIONS.includes(type)) {
+      throw new Error(
+        `action[${i}] has unsupported type "${type}". Supported: ${SUPPORTED_BROWSER_ACTIONS.join(", ")}`,
+      );
+    }
+    switch (type) {
+      case "click":
+        return { type, selector: requireSelector(raw, "click") };
+      case "type": {
+        if (typeof raw.text !== "string") {
+          throw new Error(`type requires a "text" string`);
+        }
+        return { type, selector: requireSelector(raw, "type"), text: raw.text };
+      }
+      case "press": {
+        if (
+          typeof raw.key !== "string" ||
+          raw.key.trim() === "" ||
+          raw.key.length > 50
+        ) {
+          throw new Error(`press requires a non-empty "key" string`);
+        }
+        return { type, key: raw.key };
+      }
+      case "navigate": {
+        let parsed;
+        try {
+          parsed = new URL(String(raw.url || ""));
+        } catch {
+          throw new Error(`navigate has an invalid "url": ${raw.url}`);
+        }
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          throw new Error(
+            `navigate url must be http(s):// (got ${parsed.protocol})`,
+          );
+        }
+        return { type, url: String(raw.url) };
+      }
+      case "waitForSelector": {
+        const t = Number(raw.timeoutMs ?? raw.timeout_ms ?? 5000);
+        const timeoutMs = Math.min(
+          Math.max(Number.isFinite(t) ? t : 5000, 1),
+          MAX_ACTION_TIMEOUT_MS,
+        );
+        return {
+          type,
+          selector: requireSelector(raw, "waitForSelector"),
+          timeoutMs,
+        };
+      }
+      case "screenshot": {
+        // The path is GENERATED — never caller-supplied. Refuse loudly so a
+        // model (or user) learns the invariant instead of being silently
+        // second-guessed.
+        for (const k of ["path", "file", "output", "screenshotPath"]) {
+          if (raw[k] != null) {
+            throw new Error(
+              `screenshot path is generated internally — remove "${k}"`,
+            );
+          }
+        }
+        return {
+          type,
+          screenshotPath: path.join(
+            deps.tmpdir(),
+            `cc-browser-act-${Date.now()}-${i}.png`,
+          ),
+        };
+      }
+      case "assertText": {
+        if (typeof raw.expected !== "string" || raw.expected === "") {
+          throw new Error(`assertText requires a non-empty "expected" string`);
+        }
+        return {
+          type,
+          selector: requireSelector(raw, "assertText"),
+          expected: raw.expected,
+        };
+      }
+      /* c8 ignore next 2 -- unreachable: type already validated above */
+      default:
+        throw new Error(`unsupported action type "${type}"`);
+    }
+  });
+}
+
+/** One JSONL row per EXECUTED step (explicit utf-8, best-effort). */
+function appendActionAudit(entry, deps) {
+  const dir = browserActionsDir({ deps });
+  deps.fs.mkdirSync(dir, { recursive: true });
+  const date = entry.ts.slice(0, 10);
+  deps.fs.appendFileSync(
+    path.join(dir, `${date}.jsonl`),
+    JSON.stringify(entry) + "\n",
+    "utf-8",
+  );
+}
+
+/**
+ * Does the dedicated connector profile own the CDP port we are attaching to?
+ * Chrome writes DevToolsActivePort (first line = port) into the user-data-dir
+ * it was launched with; if the file under ~/.chainlesschain/chrome-profile is
+ * missing or names a different port, we are driving some OTHER profile —
+ * possibly the user's real logged-in browser — and the result carries a
+ * profileWarning.
+ */
+function connectorProfileOwnsPort(port, deps) {
+  try {
+    const marker = path.join(
+      connectorProfileDir({ deps }),
+      "DevToolsActivePort",
+    );
+    if (!deps.fs.existsSync(marker)) return false;
+    const firstLine = String(deps.fs.readFileSync(marker, "utf-8"))
+      .split(/\r?\n/)[0]
+      .trim();
+    return Number(firstLine) === Number(port);
+  } catch {
+    return false;
+  }
+}
+
+async function runOneAction(page, act, timeoutMs) {
+  switch (act.type) {
+    case "click":
+      await page.click(act.selector, { timeout: timeoutMs });
+      return `clicked ${act.selector}`;
+    case "type":
+      await page.fill(act.selector, act.text, { timeout: timeoutMs });
+      return `typed ${act.text.length} chars into ${act.selector}`;
+    case "press":
+      await page.keyboard.press(act.key);
+      return `pressed ${act.key}`;
+    case "navigate":
+      await page.goto(act.url, {
+        waitUntil: "domcontentloaded",
+        timeout: timeoutMs,
+      });
+      return `navigated to ${act.url}`;
+    case "waitForSelector":
+      await page.waitForSelector(act.selector, { timeout: act.timeoutMs });
+      return `selector appeared: ${act.selector}`;
+    case "screenshot":
+      await page.screenshot({ path: act.screenshotPath });
+      return `screenshot saved: ${act.screenshotPath}`;
+    case "assertText": {
+      const text = await page.textContent(act.selector, {
+        timeout: timeoutMs,
+      });
+      if (text == null) {
+        throw new Error(`assertText: no element matches ${act.selector}`);
+      }
+      if (!text.includes(act.expected)) {
+        throw new Error(
+          `assertText FAILED: "${truncateForAudit(act.expected, 80)}" not found in ${act.selector} (got: ${truncateForAudit(text.trim(), 120)})`,
+        );
+      }
+      return `assertText passed: ${act.selector} contains "${truncateForAudit(act.expected, 80)}"`;
+    }
+    /* c8 ignore next 2 -- unreachable: normalizeBrowserActions validated type */
+    default:
+      throw new Error(`unsupported action type "${act.type}"`);
+  }
+}
+
+/**
+ * Execute an ordered list of explicit browser actions against the connected
+ * Chrome. Fail-fast on the first failed step unless `continueOnError`. Each
+ * step result is {ok, action, detail, durationMs}; the overall result adds
+ * final page url/title, `executed` count, optional `profileWarning` (attached
+ * browser is NOT the dedicated connector profile) and `auditError` (audit
+ * write failed — actions themselves are never aborted for audit IO).
+ */
+export async function performActions(
+  actions,
+  {
+    port = DEFAULT_CDP_PORT,
+    cdpUrl = null,
+    tab = 0,
+    continueOnError = false,
+    sessionId = null,
+    actionTimeoutMs = DEFAULT_ACTION_TIMEOUT_MS,
+    deps = _deps,
+  } = {},
+) {
+  let normalized;
+  let resolvedPort;
+  try {
+    resolvedPort = resolveLoopbackCdpPort(cdpUrl, port);
+    normalized = normalizeBrowserActions(actions, { deps });
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+  const stepTimeout = Math.min(
+    Math.max(Number(actionTimeoutMs) || DEFAULT_ACTION_TIMEOUT_MS, 1),
+    MAX_ACTION_TIMEOUT_MS,
+  );
+
+  let playwright;
+  try {
+    playwright = await deps.importPlaywright();
+  } catch {
+    return {
+      ok: false,
+      error: "playwright is not installed — npm install playwright",
+    };
+  }
+  let browser;
+  try {
+    browser = await playwright.chromium.connectOverCDP(
+      `http://127.0.0.1:${resolvedPort}`,
+    );
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        `cannot attach to CDP on port ${resolvedPort} (${err.message.split("\n")[0]}) — ` +
+        "launch a debuggable Chrome first (cc browse chrome launch)",
+    };
+  }
+  try {
+    // Same post-connect target-attach race as captureState: poll briefly.
+    let pages = [];
+    for (let i = 0; i < 20; i++) {
+      pages = browser.contexts().flatMap((c) => c.pages());
+      if (pages.length > 0) break;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    if (pages.length === 0) {
+      return { ok: false, error: "the connected Chrome has no open tabs" };
+    }
+    const index = Math.min(Math.max(0, Number(tab) || 0), pages.length - 1);
+    const page = pages[index];
+
+    const result = { ok: false, port: resolvedPort, tab: index, steps: [] };
+    if (!connectorProfileOwnsPort(resolvedPort, deps)) {
+      result.profileWarning =
+        "the attached Chrome does not appear to be running the dedicated connector profile " +
+        "(~/.chainlesschain/chrome-profile) — actions run in that browser's REAL session";
+    }
+
+    let auditError = null;
+    for (const act of normalized) {
+      const started = Date.now();
+      const step = { ok: false, action: act.type, detail: "", durationMs: 0 };
+      try {
+        step.detail = await runOneAction(page, act, stepTimeout);
+        step.ok = true;
+        if (act.screenshotPath) step.screenshotPath = act.screenshotPath;
+      } catch (err) {
+        step.detail = String(err && err.message ? err.message : err).split(
+          "\n",
+        )[0];
+      }
+      step.durationMs = Date.now() - started;
+      result.steps.push(step);
+      try {
+        const entry = {
+          ts: new Date(started).toISOString(),
+          action: act.type,
+          ok: step.ok,
+          durationMs: step.durationMs,
+        };
+        if (sessionId) entry.sessionId = String(sessionId);
+        if (act.selector) entry.selector = truncateForAudit(act.selector);
+        if (act.url) entry.url = truncateForAudit(act.url);
+        if (act.key) entry.key = truncateForAudit(act.key, 50);
+        appendActionAudit(entry, deps);
+      } catch (err) {
+        auditError = err.message;
+      }
+      if (!step.ok && !continueOnError) break;
+    }
+
+    result.executed = result.steps.length;
+    result.ok =
+      result.steps.length === normalized.length &&
+      result.steps.every((s) => s.ok);
+    if (auditError) result.auditError = auditError;
+    result.url = page.url();
+    result.title = await page.title().catch(() => "");
+    return result;
   } finally {
     // connectOverCDP close() disconnects the client; the browser lives on.
     await browser.close().catch(() => {});

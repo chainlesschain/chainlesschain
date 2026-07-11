@@ -1058,6 +1058,94 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       tags: ["tool:browser_state", "contract:coding-agent", "tier:extension"],
     },
   },
+  {
+    name: "browser_act",
+    title: "Browser Actions",
+    kind: "browser",
+    tier: "extension",
+    description:
+      "Perform EXPLICIT actions in the user's connected Chrome over loopback CDP: click, type, press, navigate (http/https only), waitForSelector, screenshot (saved to a generated temp path — never a chosen one), assertText. Approval-gated (HIGH risk): use browser_state first to observe; only act when the task genuinely requires driving the browser. Steps run in order and fail fast unless continue_on_error; each returns {ok, action, detail, durationMs} and every executed step is audit-logged under ~/.chainlesschain/browser-actions/. Requires a debuggable Chrome (`cc browse chrome launch`).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        actions: {
+          type: "array",
+          description:
+            "Ordered action steps. Each item: {type: click|type|press|navigate|waitForSelector|screenshot|assertText} plus its fields — click/waitForSelector/assertText need selector; type needs selector+text; press needs key; navigate needs url (http/https); waitForSelector accepts timeout_ms (capped 30000); assertText needs expected (substring); screenshot takes NO path (generated internally).",
+          items: {
+            type: "object",
+            properties: {
+              type: {
+                type: "string",
+                enum: [
+                  "click",
+                  "type",
+                  "press",
+                  "navigate",
+                  "waitForSelector",
+                  "screenshot",
+                  "assertText",
+                ],
+                description: "Action kind",
+              },
+              selector: {
+                type: "string",
+                description:
+                  "CSS selector (click/type/waitForSelector/assertText)",
+              },
+              text: { type: "string", description: "Text to type (type)" },
+              key: {
+                type: "string",
+                description: "Key to press, e.g. Enter (press)",
+              },
+              url: {
+                type: "string",
+                description: "http(s):// URL to open (navigate)",
+              },
+              timeout_ms: {
+                type: "number",
+                description:
+                  "waitForSelector timeout in ms (default 5000, max 30000)",
+              },
+              expected: {
+                type: "string",
+                description: "Expected substring (assertText)",
+              },
+            },
+            required: ["type"],
+          },
+        },
+        cdp_url: {
+          type: "string",
+          description:
+            "CDP endpoint — loopback-only, e.g. http://127.0.0.1:9222 (default port 9222)",
+        },
+        port: {
+          type: "number",
+          description: "CDP port of the debuggable Chrome (default 9222)",
+        },
+        tab: {
+          type: "number",
+          description: "Tab index to act in (default 0)",
+        },
+        continue_on_error: {
+          type: "boolean",
+          description:
+            "Keep executing remaining steps after a failed one (default false: fail fast)",
+        },
+      },
+      required: ["actions"],
+    },
+    ...TOOL_POLICY_METADATA.browser_act,
+    permissions: {
+      level: "elevated",
+      scopes: ["browser:act"],
+    },
+    telemetry: {
+      category: "browser",
+      tags: ["tool:browser_act", "contract:coding-agent", "tier:extension"],
+    },
+  },
 ]);
 
 const CODING_AGENT_MVP_TOOL_NAMES = Object.freeze(

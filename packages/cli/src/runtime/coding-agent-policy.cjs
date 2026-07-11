@@ -320,6 +320,23 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: true,
   },
+  // DRIVES the user's connected Chrome over loopback CDP — clicks, typing,
+  // key presses, navigation, screenshots, text assertions. Unlike
+  // browser_state (pure observation, the default) this mutates the page and
+  // acts inside whatever session that browser is logged into, so it carries
+  // the same gating as run_shell/run_code: HIGH risk (the ApprovalGate
+  // CONFIRMs HIGH even on the trusted/auto tier, so auto mode still prompts),
+  // blocked in plan mode, plan approval + explicit confirmation required.
+  browser_act: {
+    riskLevel: RISK_LEVELS.HIGH,
+    category: TOOL_CATEGORIES.EXECUTE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: true,
+    requiresConfirmation: true,
+    approvalFlow: "policy",
+    isReadOnly: false,
+  },
 });
 
 function normalizeGitCommand(command) {
