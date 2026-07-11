@@ -38,22 +38,38 @@ export async function reconcileConfigLlmProvider(cfgLlm = {}) {
   if (!cfgLlm || !cfgLlm.provider || !cfgLlm.baseUrl) {
     return { llm: cfgLlm, changed: false };
   }
-  const { inferProviderFromBaseUrl, modelForeignToProvider } = await import(
-    "./runnable-provider.js"
-  );
+  const { inferProviderFromBaseUrl, modelForeignToProvider } =
+    await import("./runnable-provider.js");
   const inferred = inferProviderFromBaseUrl(cfgLlm.baseUrl);
   if (!inferred || inferred === cfgLlm.provider) {
     return { llm: cfgLlm, changed: false };
   }
   const corrected = { ...cfgLlm, provider: inferred };
   if (modelForeignToProvider(inferred, cfgLlm.model)) {
-    const { selectModelForTask, TaskType } = await import(
-      "./task-model-selector.js"
-    );
+    const { selectModelForTask, TaskType } =
+      await import("./task-model-selector.js");
     const def = selectModelForTask(inferred, TaskType.CHAT);
     if (def) corrected.model = def;
   }
   return { llm: corrected, changed: true };
+}
+
+import { resolveApiKeyFromHelper } from "./api-key-helper.js";
+
+/**
+ * Key backfill order: config llm.apiKey (plaintext, legacy) first, then
+ * llm.apiKeyHelper (external command → OS credential store). The helper only
+ * runs when no key is otherwise present, so configured setups never pay a
+ * subprocess spawn.
+ */
+function backfillApiKey(options, cfgLlm) {
+  if (options.apiKey) return;
+  if (cfgLlm.apiKey) {
+    options.apiKey = cfgLlm.apiKey;
+  } else if (cfgLlm.apiKeyHelper) {
+    const key = resolveApiKeyFromHelper(cfgLlm.apiKeyHelper);
+    if (key) options.apiKey = key;
+  }
 }
 
 export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
@@ -71,7 +87,7 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
     options.provider === cfgLlm.provider
   ) {
     if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
-    if (!options.apiKey && cfgLlm.apiKey) options.apiKey = cfgLlm.apiKey;
+    backfillApiKey(options, cfgLlm);
     if (!options.model && !opts.explicitModel && cfgLlm.model) {
       options.model = cfgLlm.model;
     }
@@ -85,6 +101,6 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
     options.model = cfgLlm.model;
   }
   if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
-  if (!options.apiKey && cfgLlm.apiKey) options.apiKey = cfgLlm.apiKey;
+  backfillApiKey(options, cfgLlm);
   return options;
 }

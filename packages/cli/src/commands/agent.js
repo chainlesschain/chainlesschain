@@ -389,6 +389,17 @@ export function registerAgentCommand(program) {
       // An explicit --api-key still wins.
       if (!options.apiKey && process.env.CC_API_KEY) {
         options.apiKey = process.env.CC_API_KEY;
+      } else if (
+        options.apiKey &&
+        process.argv.includes("--api-key") &&
+        !process.env.VITEST &&
+        !process.env.VITEST_WORKER_ID
+      ) {
+        // gap-analysis 2026-07-11: argv keys leak into shell history, process
+        // lists and logs — steer callers to the env/helper paths.
+        process.stderr.write(
+          "⚠️  --api-key on the command line is visible to every local process (shell history, ps). Prefer CC_API_KEY env or config llm.apiKeyHelper.\n",
+        );
       }
       const bypassPermissions = !!(
         options.allowDangerousBypass ||
