@@ -1448,6 +1448,41 @@ export async function startAgentRepl(options = {}) {
   // stored cli.theme is untouched — /theme still shows and can change it).
   if (_screenReaderMode) _theme = "mono";
   applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
+
+  // Fullscreen / no-flicker TUI mode (Claude-Code `/tui` parity). Resolve from
+  // CC_NO_FLICKER (forces fullscreen) or persisted `cli.tuiMode`; switchable at
+  // runtime via `/tui fullscreen|default`. Screen-reader mode forces default —
+  // an alternate screen buffer breaks readers. The heavy renderer lives in
+  // fullscreen-tui.js; here we just track the mode and toggle the alt buffer.
+  const {
+    resolveTuiMode: _resolveTuiMode,
+    renderTuiStatus: _renderTuiStatus,
+    ALT_SCREEN_ENTER: _ALT_ENTER,
+    ALT_SCREEN_LEAVE: _ALT_LEAVE,
+  } = await import("./fullscreen-tui.js");
+  let _tuiMode = "default";
+  try {
+    const { getConfigValue } = await import("../lib/config-manager.js");
+    _tuiMode = _resolveTuiMode({
+      env: process.env.CC_NO_FLICKER,
+      setting: getConfigValue("cli.tuiMode"),
+    });
+  } catch (_e) {
+    _tuiMode = _resolveTuiMode({ env: process.env.CC_NO_FLICKER });
+  }
+  if (_screenReaderMode) _tuiMode = "default";
+  const _setTuiMode = (next) => {
+    if (next === _tuiMode) return;
+    // Enter/leave the alternate screen buffer so the user's scrollback is
+    // preserved either way. Only touch a real TTY.
+    if (process.stdout.isTTY) {
+      process.stdout.write(next === "fullscreen" ? _ALT_ENTER : _ALT_LEAVE);
+    }
+    _tuiMode = next;
+  };
+  if (_tuiMode === "fullscreen" && process.stdout.isTTY) {
+    process.stdout.write(_ALT_ENTER);
+  }
   const themedPrompt = (text) => {
     const a = promptAccent(_theme);
     if (a === "blue") return chalk.blue(text);
@@ -1537,6 +1572,7 @@ export async function startAgentRepl(options = {}) {
           "/theme",
           "/think",
           "/todos",
+          "/tui",
           "/ultrathink",
           "/vim",
         ],
@@ -2051,6 +2087,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/tui")}        Fullscreen no-flicker view (/tui <fullscreen|default>; CC_NO_FLICKER=1)`,
       );
       logger.log(
         `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
@@ -2643,6 +2682,45 @@ export async function startAgentRepl(options = {}) {
       }
       rl.setPrompt(getPrompt());
       logger.log(chalk.gray(`Theme set to ${_theme}.`));
+      prompt();
+      return;
+    }
+
+    // `/tui` — fullscreen no-flicker view (Claude-Code parity). `fullscreen`
+    // enters the alternate screen buffer; `default` returns to streaming
+    // scrollback. No arg prints the current mode. Persisted to `cli.tuiMode`.
+    if (trimmed === "/tui" || trimmed.startsWith("/tui ")) {
+      const arg = trimmed.slice("/tui".length).trim().toLowerCase();
+      if (!arg) {
+        logger.log(chalk.gray(_renderTuiStatus(_tuiMode)));
+        prompt();
+        return;
+      }
+      const next = _resolveTuiMode({ arg });
+      if (arg !== "fullscreen" && arg !== "default") {
+        logger.error(
+          chalk.red(`Unknown TUI mode "${arg}". Use: fullscreen | default`),
+        );
+        prompt();
+        return;
+      }
+      if (_screenReaderMode && next === "fullscreen") {
+        logger.info(
+          chalk.gray(
+            "Screen-reader mode is on — staying in default (scrollback) view.",
+          ),
+        );
+        prompt();
+        return;
+      }
+      _setTuiMode(next);
+      try {
+        const { setConfigValue } = await import("../lib/config-manager.js");
+        setConfigValue("cli.tuiMode", _tuiMode);
+      } catch (_e) {
+        /* persistence is best-effort */
+      }
+      logger.log(chalk.gray(_renderTuiStatus(_tuiMode)));
       prompt();
       return;
     }
@@ -5128,6 +5206,15 @@ export async function startAgentRepl(options = {}) {
   });
 
   rl.on("close", async () => {
+    // Leave the alternate screen buffer first so the terminal is restored to
+    // the user's scrollback no matter how the REPL exits.
+    if (_tuiMode === "fullscreen" && process.stdout.isTTY) {
+      try {
+        process.stdout.write(_ALT_LEAVE);
+      } catch (_err) {
+        // best-effort restore
+      }
+    }
     // Stop inbound channel listeners before anything else — no new external
     // events may enter a session that is shutting down.
     if (_channels) {
