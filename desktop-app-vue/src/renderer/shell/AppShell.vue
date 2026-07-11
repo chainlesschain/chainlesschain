@@ -195,6 +195,10 @@
       v-model:open="evoMapDashboardPanelOpen"
       :prefill-text="evoMapDashboardPrefill"
     />
+    <TaskReportsPanel
+      v-model:open="taskReportsPanelOpen"
+      :prefill-text="taskReportsPrefill"
+    />
     <SharedAlbumsPanel
       v-model:open="sharedAlbumsPanelOpen"
       :prefill-text="sharedAlbumsPrefill"
@@ -306,6 +310,7 @@ import SSOConfigurationPanel from "./SSOConfigurationPanel.vue";
 import PermissionManagementPanel from "./PermissionManagementPanel.vue";
 import ApprovalCenterPanel from "./ApprovalCenterPanel.vue";
 import EvoMapDashboardPanel from "./EvoMapDashboardPanel.vue";
+import TaskReportsPanel from "./TaskReportsPanel.vue";
 import SharedAlbumsPanel from "./SharedAlbumsPanel.vue";
 import OrganizationsPanel from "./OrganizationsPanel.vue";
 import NLProgrammingPanel from "./NLProgrammingPanel.vue";
@@ -409,6 +414,8 @@ const approvalCenterPanelOpen = ref(false);
 const approvalCenterPrefill = ref("");
 const evoMapDashboardPanelOpen = ref(false);
 const evoMapDashboardPrefill = ref("");
+const taskReportsPanelOpen = ref(false);
+const taskReportsPrefill = ref("");
 const sharedAlbumsPanelOpen = ref(false);
 const sharedAlbumsPrefill = ref("");
 const organizationsPanelOpen = ref(false);
@@ -505,6 +512,7 @@ let unregisterSSOConfigurationHandler: (() => void) | null = null;
 let unregisterPermissionManagementHandler: (() => void) | null = null;
 let unregisterApprovalCenterHandler: (() => void) | null = null;
 let unregisterEvoMapDashboardHandler: (() => void) | null = null;
+let unregisterTaskReportsHandler: (() => void) | null = null;
 let unregisterSharedAlbumsHandler: (() => void) | null = null;
 let unregisterOrganizationsHandler: (() => void) | null = null;
 let unregisterNLProgrammingHandler: (() => void) | null = null;
@@ -821,6 +829,13 @@ onMounted(async () => {
       evoMapDashboardPanelOpen.value = true;
     },
   );
+  unregisterTaskReportsHandler = registerSlashHandler(
+    "builtin:openTaskReportsPanel",
+    ({ args }) => {
+      taskReportsPrefill.value = args ?? "";
+      taskReportsPanelOpen.value = true;
+    },
+  );
   unregisterSharedAlbumsHandler = registerSlashHandler(
     "builtin:openSharedAlbumsPanel",
     ({ args }) => {
@@ -1006,6 +1021,8 @@ onBeforeUnmount(() => {
   unregisterApprovalCenterHandler = null;
   unregisterEvoMapDashboardHandler?.();
   unregisterEvoMapDashboardHandler = null;
+  unregisterTaskReportsHandler?.();
+  unregisterTaskReportsHandler = null;
   unregisterSharedAlbumsHandler?.();
   unregisterSharedAlbumsHandler = null;
   unregisterOrganizationsHandler?.();

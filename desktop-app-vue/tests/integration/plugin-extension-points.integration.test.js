@@ -427,6 +427,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(em.pluginId).toBe("evomap-dashboard");
   });
 
+  it("task-reports 的 /task-reports slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const tr = slash.find((s) => s.trigger === "/task-reports");
+    expect(tr).toBeDefined();
+    expect(tr.handler).toBe("builtin:openTaskReportsPanel");
+    expect(tr.pluginId).toBe("task-reports");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");

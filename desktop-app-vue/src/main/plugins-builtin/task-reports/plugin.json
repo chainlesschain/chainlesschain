@@ -1,0 +1,20 @@
+{
+  "id": "task-reports",
+  "name": "团队报告",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/task-reports 斜杠命令 — 团队报告（日报/周报列表 + 快速写报告 + AI 摘要生成 + 详情查看）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "task-reports",
+        "trigger": "/task-reports",
+        "handler": "builtin:openTaskReportsPanel",
+        "description": "打开团队报告",
+        "icon": "FileTextOutlined"
+      }
+    }
+  ]
+}

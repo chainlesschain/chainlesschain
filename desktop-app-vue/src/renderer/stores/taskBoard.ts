@@ -1009,11 +1009,13 @@ export const useTaskBoardStore = defineStore("taskBoard", {
       this.loading.reports = true;
 
       try {
+        // Handler contract is { orgId, options } — task:get-reports reads
+        // params.options; spreading options top-level silently dropped them.
         const result: TaskBoardApiResult = await (
           window as any
         ).electronAPI.invoke("task:get-reports", {
           orgId,
-          ...options,
+          options,
         });
 
         if (result.success) {
