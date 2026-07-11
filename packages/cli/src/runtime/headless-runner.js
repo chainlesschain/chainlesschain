@@ -65,6 +65,7 @@ import {
   classifyLoopError,
   exitCodeForEndReason,
 } from "../lib/exit-codes.cjs";
+import { isolationLevel } from "../lib/agent-sandbox.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -1227,6 +1228,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       mcp: Boolean(mcp),
       enabledToolNames,
     }),
+    // True isolation level for tool subprocesses: os-sandbox (bwrap) /
+    // container (docker) / policy-only (no sandbox — rules are pre-execution).
+    isolation_level: isolationLevel(options.sandbox),
     max_turns: budget.limit,
     resumed_from: resumeId,
     history_messages: history.length,

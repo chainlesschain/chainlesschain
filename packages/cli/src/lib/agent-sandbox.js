@@ -215,11 +215,79 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
   };
 }
 
+/**
+ * The run's TRUE isolation level (gap-analysis 2026-07-11 P0 "OS 级沙箱"):
+ *  - "os-sandbox"  : bubblewrap — kernel namespaces confine the child
+ *  - "container"   : docker — container boundary confines the child
+ *  - "policy-only" : no sandbox — permission rules/shell policy are advisory
+ *                    for already-spawned subprocesses
+ * Surfaced in the headless init event and sandboxSummary so a caller can see
+ * what actually confines tool subprocesses instead of assuming.
+ */
+export function isolationLevel(sandbox) {
+  if (!sandbox) return "policy-only";
+  if (sandbox.engine === "bubblewrap") return "os-sandbox";
+  if (sandbox.engine === "docker") return "container";
+  return "policy-only";
+}
+
+/**
+ * Probe whether the configured sandbox ENGINE is actually runnable on this
+ * host (binary present + responds to a version query). Cheap: one spawnSync
+ * with a short timeout; no container is started.
+ * @returns {{available:boolean, reason:string|null}}
+ */
+export function probeSandboxAvailability(sandbox, deps = _deps) {
+  if (!sandbox) return { available: true, reason: null };
+  const probeArgs =
+    sandbox.engine === "bubblewrap"
+      ? ["bwrap", ["--version"]]
+      : ["docker", ["version", "--format", "{{.Server.Version}}"]];
+  const result = deps.spawnSync(probeArgs[0], probeArgs[1], {
+    encoding: "utf8",
+    timeout: 10000,
+    windowsHide: true,
+  });
+  if (result.error) {
+    return {
+      available: false,
+      reason:
+        result.error.code === "ENOENT"
+          ? `${probeArgs[0]} is not installed`
+          : result.error.message,
+    };
+  }
+  if (typeof result.status === "number" && result.status !== 0) {
+    return {
+      available: false,
+      reason: `${probeArgs[0]} probe exited ${result.status}: ${(result.stderr || "").trim().slice(0, 200)}`,
+    };
+  }
+  return { available: true, reason: null };
+}
+
+/**
+ * Strict mode (`sandbox.failIfUnavailable: true` in settings): refuse to
+ * START the agent when the configured sandbox engine is unavailable, instead
+ * of silently degrading per command. Throws with an actionable message; a
+ * no-op when the flag is unset or the sandbox is fine.
+ */
+export function assertSandboxAvailable(sandbox, deps = _deps) {
+  if (!sandbox || sandbox.policy?.failIfUnavailable !== true) return;
+  const probe = probeSandboxAvailability(sandbox, deps);
+  if (!probe.available) {
+    throw new Error(
+      `sandbox.failIfUnavailable: ${sandbox.engine} sandbox is unavailable (${probe.reason}) — refusing to start. Install/start ${sandbox.engine === "bubblewrap" ? "bubblewrap" : "Docker"}, or unset failIfUnavailable to allow per-command degradation.`,
+    );
+  }
+}
+
 export function sandboxSummary(sandbox) {
   if (!sandbox) return null;
   return {
     engine: sandbox.engine,
     image: sandbox.image,
+    isolationLevel: isolationLevel(sandbox),
     network: sandbox.network ? "enabled" : "disabled",
     workspace: "read-write",
     policy: {

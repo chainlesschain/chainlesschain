@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_SANDBOX_IMAGE,
   _deps,
+  assertSandboxAvailable,
   executeSandboxedShell,
+  isolationLevel,
   normalizeAgentSandbox,
   normalizeSandboxPolicy,
+  probeSandboxAvailability,
   sandboxSummary,
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
@@ -94,6 +97,7 @@ describe("agent sandbox", () => {
     expect(sandboxSummary(normalizeAgentSandbox(true))).toEqual({
       engine: "docker",
       image: DEFAULT_SANDBOX_IMAGE,
+      isolationLevel: "container",
       network: "disabled",
       workspace: "read-write",
       policy: {
@@ -210,5 +214,69 @@ describe("agent sandbox", () => {
     expect(result.stdout).toBe("sandboxed\n");
     expect(result.sandbox.network).toBe("disabled");
     expect(result.policyTrace).toEqual(["shell-policy", "approval", "sandbox"]);
+  });
+});
+
+describe("strict sandbox mode (gap 2026-07-11: failIfUnavailable + isolation level)", () => {
+  it("isolationLevel maps engines to the true confinement tier", () => {
+    expect(isolationLevel(null)).toBe("policy-only");
+    expect(isolationLevel(normalizeAgentSandbox(true, { settings: {} }))).toBe(
+      "container",
+    );
+    expect(
+      isolationLevel(
+        normalizeAgentSandbox(true, { settings: { engine: "bubblewrap" } }),
+      ),
+    ).toBe("os-sandbox");
+  });
+
+  it("sandboxSummary surfaces isolationLevel", () => {
+    const summary = sandboxSummary(normalizeAgentSandbox(true));
+    expect(summary.isolationLevel).toBe("container");
+  });
+
+  it("probeSandboxAvailability reports a missing engine binary", () => {
+    const error = new Error("spawn docker ENOENT");
+    error.code = "ENOENT";
+    const deps = { spawnSync: vi.fn(() => ({ error, status: null })) };
+    const probe = probeSandboxAvailability(normalizeAgentSandbox(true), deps);
+    expect(probe.available).toBe(false);
+    expect(probe.reason).toMatch(/docker is not installed/i);
+    // docker installed but daemon down (probe exits non-zero)
+    const daemonDown = {
+      spawnSync: vi.fn(() => ({
+        status: 1,
+        stdout: "",
+        stderr: "Cannot connect to the Docker daemon",
+      })),
+    };
+    const probe2 = probeSandboxAvailability(
+      normalizeAgentSandbox(true),
+      daemonDown,
+    );
+    expect(probe2.available).toBe(false);
+    expect(probe2.reason).toMatch(/daemon/i);
+  });
+
+  it("assertSandboxAvailable refuses to start ONLY under failIfUnavailable", () => {
+    const error = new Error("spawn bwrap ENOENT");
+    error.code = "ENOENT";
+    const deps = { spawnSync: vi.fn(() => ({ error, status: null })) };
+    const strict = normalizeAgentSandbox(true, {
+      settings: { engine: "bubblewrap", failIfUnavailable: true },
+    });
+    expect(() => assertSandboxAvailable(strict, deps)).toThrow(
+      /refusing to start/i,
+    );
+    // Same broken engine WITHOUT the flag → no throw (per-command degradation)
+    const lax = normalizeAgentSandbox(true, {
+      settings: { engine: "bubblewrap" },
+    });
+    expect(() => assertSandboxAvailable(lax, deps)).not.toThrow();
+    // Healthy engine + flag → no throw
+    const healthy = { spawnSync: vi.fn(() => ({ status: 0, stdout: "27" })) };
+    expect(() => assertSandboxAvailable(strict, healthy)).not.toThrow();
+    // No sandbox at all → no probe, no throw
+    expect(() => assertSandboxAvailable(null, deps)).not.toThrow();
   });
 });

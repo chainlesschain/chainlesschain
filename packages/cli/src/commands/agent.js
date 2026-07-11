@@ -16,7 +16,10 @@ import {
 } from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
-import { normalizeAgentSandbox } from "../lib/agent-sandbox.js";
+import {
+  normalizeAgentSandbox,
+  assertSandboxAvailable,
+} from "../lib/agent-sandbox.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -965,6 +968,15 @@ export function registerAgentCommand(program) {
           network: options.sandboxNetwork === true,
           settings: settingsSandbox,
         });
+        // Strict sandbox mode: failIfUnavailable refuses to START when the
+        // configured engine can't run — no silent per-command degradation.
+        try {
+          assertSandboxAvailable(agentSandbox);
+        } catch (err) {
+          process.stderr.write(`Error: ${err.message}\n`);
+          await _finishWorktree();
+          process.exit(6); // config error (see lib/exit-codes.cjs)
+        }
         // Resume requested onto a session with no headless (JSONL) transcript?
         // Warn instead of silently starting empty 鈥?headless resume rebuilds
         // from the JSONL store only (DB-only sessions are not replayable here).
@@ -1119,6 +1131,20 @@ export function registerAgentCommand(program) {
         );
       }
 
+      // Strict sandbox mode also guards the interactive session: refuse to
+      // start when failIfUnavailable is set and the engine can't run.
+      const interactiveSandbox = normalizeAgentSandbox(options.sandbox, {
+        cwd: process.cwd(),
+        network: options.sandboxNetwork === true,
+        settings: settingsSandbox,
+      });
+      try {
+        assertSandboxAvailable(interactiveSandbox);
+      } catch (err) {
+        process.stderr.write(`Error: ${err.message}\n`);
+        process.exit(6); // config error (see lib/exit-codes.cjs)
+      }
+
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
         thinking,
@@ -1140,11 +1166,7 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
-        sandbox: normalizeAgentSandbox(options.sandbox, {
-          cwd: process.cwd(),
-          network: options.sandboxNetwork === true,
-          settings: settingsSandbox,
-        }),
+        sandbox: interactiveSandbox,
         autoCheckpoint,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
         vimMode: options.vim === true,
