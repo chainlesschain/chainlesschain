@@ -435,6 +435,14 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(tr.pluginId).toBe("task-reports");
   });
 
+  it("family-guard 的 /family-guard slash 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const fg = slash.find((s) => s.trigger === "/family-guard");
+    expect(fg).toBeDefined();
+    expect(fg.handler).toBe("builtin:openFamilyGuardPanel");
+    expect(fg.pluginId).toBe("family-guard");
+  });
+
   it("graphql-explorer 的 /graphql slash 被注册", () => {
     const slash = Array.from(pm.uiRegistry.slashCommands.values());
     const gq = slash.find((s) => s.trigger === "/graphql");

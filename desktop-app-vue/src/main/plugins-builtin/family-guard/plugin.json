@@ -1,0 +1,20 @@
+{
+  "id": "family-guard",
+  "name": "家庭守护",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/family-guard 斜杠命令 — 家庭守护（孩子端使用数据只读镜像：使用时长/应用排行/事件流，按孩子与时间范围筛选）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "family-guard",
+        "trigger": "/family-guard",
+        "handler": "builtin:openFamilyGuardPanel",
+        "description": "打开家庭守护",
+        "icon": "SafetyCertificateOutlined"
+      }
+    }
+  ]
+}
