@@ -714,3 +714,44 @@ Glue-layer (needs the next pre-release runIde pass):
       short file → arrives as a general note reading `999: x` (no fake anchor).
       Full-width `：` also anchors. Prompts render zh under the Chinese
       Language Pack (diff.requestChanges.\* keys).
+
+## 🗂 PSI semantic bridge tools (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #7 「更深 IDE 语义工具」. Pure core `SemanticTools` (validation /
+caps / shaping, JUnit `SemanticToolsTest` 30/0 + smoke 813/0, +18) is verified
+headless; `compileJava` against the 2024.2 SDK proves the PSI APIs exist
+(`LanguageDocumentation.allForLanguage`, `ReferencesSearch.search`,
+`MethodReferencesSearch.search`, `PsiCallExpression.resolveMethod`,
+`ModuleRootManager`). The glue `intellij/PsiSemanticFacade` needs a real IDE:
+
+- [ ] **Tools advertised.** With the bridge up, `cc` in the project →
+      `/ide` (or MCP tools/list) shows `mcp__ide__getHover`, `goToDefinition`,
+      `findReferences`, `renamePreview`, `getCallHierarchy`, `getSymbolInfo`,
+      `getProjectModel` alongside the existing tools.
+- [ ] **getHover** on a JDK symbol (e.g. `String.format` usage, 1-based
+      line/column) → rendered quick-doc text (HTML stripped, no tags); on a
+      doc-less local variable → signature-ish fallback text; on whitespace →
+      `found:false` with a reason.
+- [ ] **goToDefinition** on a method usage → its declaration file/line/column
+      (1-based) WITHOUT the user's editor navigating anywhere; on the
+      declaration itself → the same location (self-definition).
+- [ ] **findReferences** on a symbol with many usages → list capped at `max`
+      (default 100), `total` + `truncated:true` when over; declaration NOT in
+      the list.
+- [ ] **renamePreview** on a widely-used symbol → per-file occurrence counts,
+      declaration file flagged, `preview:true`, and — critically — NO file
+      modified, no refactoring dialog, no undo entry.
+- [ ] **getCallHierarchy** on a Java method → 1 level of callers + callees,
+      each `Class#method` + file/line, capped; on a Kotlin function / non-method
+      → empty lists + `reason` (graceful degrade, not an error).
+- [ ] **getSymbolInfo** on a field → name/kind=field/containingClass/package/
+      owner/file/line/language; on a local variable → kind reflects it.
+- [ ] **getProjectModel** → the project's modules with source roots +
+      dependency names (capped at 100 each) and the project JDK name/version.
+- [ ] **Dumb mode.** Trigger reindexing (Invalidate Caches or open mid-index):
+      hover/symbolInfo/callHierarchy return a "still indexing" reason,
+      definition/references surface a friendly isError — nothing hangs or
+      throws raw `IndexNotReadyException` at the CLI.
+- [ ] **Non-Java IDE (optional).** In an IDE without the Java plugin the
+      bridge still starts (compile-time-only dep) and callHierarchy degrades
+      with the "requires the Java plugin" reason.

@@ -71,6 +71,7 @@ public final class PureLogicSmokeMain {
         deepLink();
         autoExecGuard();
         remoteDoctor();
+        semanticTools();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1355,6 +1356,95 @@ public final class PureLogicSmokeMain {
         check(hasWslCheck, "wsl networking advisory present");
         check(hasFix, "cli install fix present");
         check(r.summary.contains("Remote / WSL Doctor"), "summary header");
+    }
+
+    private static void semanticTools() {
+        System.out.println("SemanticTools (PSI semantic bridge tools — pure core)");
+        // 1-based position contract
+        SemanticTools.Position p = SemanticTools.requirePosition(mapOf(
+                "path", "src/A.java", "line", 12L, "column", 3L));
+        eq(p.line, 12, "position line parsed");
+        eq(p.column, 3, "position column parsed");
+        boolean rejected = false;
+        try { SemanticTools.requirePosition(mapOf("path", "f", "line", 0L, "column", 1L)); }
+        catch (IllegalArgumentException e) { rejected = e.getMessage().contains("1-based"); }
+        check(rejected, "0-based line rejected with contract in message");
+        // clamp
+        eq(SemanticTools.clampMax(null, 100, 200), 100, "max default");
+        eq(SemanticTools.clampMax(9999L, 100, 200), 200, "max hard cap");
+        // hover shaping
+        Map<String, Object> hoverRaw = new LinkedHashMap<>();
+        hoverRaw.put("text", "<b>int&nbsp;count</b><br/>the &lt;count&gt;");
+        Map<String, Object> hover = SemanticTools.shapeHover(hoverRaw);
+        eq(hover.get("text"), "int count\nthe <count>", "hover html stripped + entities");
+        eq(SemanticTools.shapeHover(null).get("found"), Boolean.FALSE, "hover null degrades");
+        // reference caps
+        List<Map<String, Object>> refs = new ArrayList<>();
+        for (int i = 0; i < 150; i++) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("file", "f" + (i % 4) + ".java");
+            refs.add(r);
+        }
+        Map<String, Object> shaped = SemanticTools.shapeReferences(refs, 100);
+        eq(((List<?>) shaped.get("references")).size(), 100, "references capped at max");
+        eq(shaped.get("total"), 150L, "references total reported");
+        eq(shaped.get("truncated"), Boolean.TRUE, "references truncated flag");
+        // rename preview: counts only, never a mutation
+        Map<String, Object> sym = new LinkedHashMap<>();
+        sym.put("name", "count");
+        sym.put("file", "f0.java");
+        Map<String, Object> ren = SemanticTools.shapeRenamePreview(sym, refs);
+        eq(ren.get("totalOccurrences"), 151L, "rename total = refs + declaration");
+        eq(ren.get("fileCount"), 4L, "rename groups per file");
+        eq(ren.get("preview"), Boolean.TRUE, "rename is preview-only");
+        check(String.valueOf(ren.get("note")).contains("nothing was renamed"),
+                "rename note says no mutation");
+        // call hierarchy degrade + caps
+        Map<String, Object> ch = SemanticTools.shapeCallHierarchy(null, 25);
+        check(((List<?>) ch.get("callers")).isEmpty() && ch.get("reason") != null,
+                "call hierarchy null degrades with reason");
+        // conditional registration (same gating pattern as terminal/preview tools)
+        SemanticTools.SemanticFacade fake = new SemanticTools.SemanticFacade() {
+            @Override public Map<String, Object> hover(String pa, int l, int c) { return null; }
+            @Override public List<Map<String, Object>> definitions(String pa, int l, int c) { return new ArrayList<>(); }
+            @Override public List<Map<String, Object>> references(String pa, int l, int c, int b) { return refs; }
+            @Override public Map<String, Object> symbolInfo(String pa, int l, int c) { return sym; }
+            @Override public Map<String, Object> callHierarchy(String pa, int l, int c, int b) { return null; }
+            @Override public Map<String, Object> projectModel() { return null; }
+        };
+        EditorFacade noEditor = new EditorFacade() {
+            @Override public Map<String, Object> getSelection() { return null; }
+            @Override public List<Map<String, Object>> getDiagnostics(String path) { return new ArrayList<>(); }
+            @Override public List<Map<String, Object>> getOpenEditors() { return new ArrayList<>(); }
+            @Override public Map<String, Object> openDiff(String pa, String m, String o, String t) { return null; }
+        };
+        check(findTool(IdeTools.build(noEditor), "getHover") == null,
+                "semantic tools absent without facade");
+        List<Tool> withSem = IdeTools.build(noEditor, fake);
+        int present = 0;
+        for (String n : new String[] { "getHover", "goToDefinition", "findReferences",
+                "renamePreview", "getCallHierarchy", "getSymbolInfo", "getProjectModel" }) {
+            if (findTool(withSem, n) != null) present++;
+        }
+        eq(present, 7, "all 7 semantic tools registered with facade");
+        try {
+            Object res = findTool(withSem, "renamePreview").call(mapOf(
+                    "path", "f0.java", "line", 1L, "column", 1L));
+            eq(((Map<?, ?>) res).get("totalOccurrences"), 151L, "renamePreview tool end-to-end");
+        } catch (Exception e) {
+            check(false, "renamePreview tool call threw: " + e);
+        }
+    }
+
+    private static Tool findTool(List<Tool> tools, String name) {
+        for (Tool t : tools) if (t.name().equals(name)) return t;
+        return null;
+    }
+
+    private static Map<String, Object> mapOf(Object... kv) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        for (int i = 0; i + 1 < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]);
+        return m;
     }
 
     private static void autoExecGuard() {

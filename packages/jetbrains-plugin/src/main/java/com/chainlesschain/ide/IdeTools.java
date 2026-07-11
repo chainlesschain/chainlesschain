@@ -16,6 +16,17 @@ public final class IdeTools {
     private IdeTools() {}
 
     public static List<Tool> build(EditorFacade editor) {
+        return build(editor, null);
+    }
+
+    /**
+     * Build the tool set; when a {@link SemanticTools.SemanticFacade} is
+     * provided (IntelliJ glue with PSI available), the semantic tools
+     * (getHover / goToDefinition / findReferences / renamePreview /
+     * getCallHierarchy / getSymbolInfo / getProjectModel) are exposed too —
+     * same conditional-registration pattern as getTerminalOutput below.
+     */
+    public static List<Tool> build(EditorFacade editor, SemanticTools.SemanticFacade semantics) {
         List<Tool> tools = new ArrayList<>();
 
         tools.add(new BaseTool(
@@ -182,6 +193,14 @@ public final class IdeTools {
                     return empty;
                 }
             });
+        }
+
+        // Conditional: PSI-backed semantic tools (hover / definition / references /
+        // rename preview / call hierarchy / symbol info / project model). Only
+        // exposed when the IntelliJ glue supplies a SemanticFacade — the pure
+        // interop tests and non-PSI hosts simply don't advertise them.
+        if (semantics != null) {
+            tools.addAll(SemanticTools.build(semantics));
         }
 
         return tools;

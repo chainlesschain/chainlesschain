@@ -52,7 +52,11 @@ public final class IdeBridgeService implements Disposable {
             }
             token = LockfileWriter.generateToken();
             IntellijEditorFacade facade = new IntellijEditorFacade(project);
-            server = new McpServer(IdeTools.build(facade), token);
+            // PSI-backed semantic tools (hover/definition/references/rename
+            // preview/call hierarchy/symbol info/project model) — conditional
+            // registration, same as the terminal/preview tools.
+            PsiSemanticFacade semantics = new PsiSemanticFacade(project);
+            server = new McpServer(IdeTools.build(facade, semantics), token);
             // Record every tool call for the "Show Activity" dialog. Fires on a
             // pooled server thread; ActivityLog is synchronized.
             server.setActivityListener((tool, ok, args) -> activity.record(

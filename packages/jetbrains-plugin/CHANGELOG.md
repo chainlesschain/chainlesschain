@@ -1,5 +1,24 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased] — PSI-backed semantic tools over the IDE bridge (2026-07-11)
+
+- **Seven new `mcp__ide__*` semantic tools (gap #7).** The bridge now exposes
+  the IDE's semantic index to the cc agent: `getHover` (quick-doc, HTML
+  stripped + capped), `goToDefinition` (declaration locations — never navigates
+  the user's editor), `findReferences` (Find-Usages engine, `max` capped,
+  default 100 / hard cap 200), `renamePreview` (per-file occurrence counts of a
+  would-be rename — **strictly read-only, no refactoring runs**),
+  `getCallHierarchy` (one level of callers/callees for Java methods, capped per
+  direction; other languages degrade with a `reason`), `getSymbolInfo`
+  (name/kind/containing class/package/owner) and `getProjectModel` (modules,
+  source roots, dependencies, project JDK). Positions are **1-based**
+  line/column, documented in every tool schema. All shaping/caps/validation
+  live in the pure `SemanticTools` core (JUnit + smoke, SDK-free); the PSI glue
+  (`PsiSemanticFacade`) runs everything inside read actions off the EDT,
+  answers "still indexing" cleanly in dumb mode, and keeps `com.intellij.java`
+  compile-time-only so non-Java IDEs still load the plugin. Tools register
+  conditionally, same pattern as `getTerminalOutput`.
+
 ## [0.4.56] — Remote Control: in-IDE pairing QR + relay settings (2026-07-10)
 
 - **In-IDE pairing QR.** The Remote Control pairing dialog now renders the
