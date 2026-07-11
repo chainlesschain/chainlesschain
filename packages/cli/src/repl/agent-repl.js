@@ -1472,6 +1472,7 @@ export async function startAgentRepl(options = {}) {
           "/cd",
           "/clear",
           "/compact",
+          "/checkup",
           "/config",
           "/context",
           "/copy",
@@ -2007,7 +2008,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set, ${chalk.cyan("/config --help")} keys`,
       );
       logger.log(
-        `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
+        `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks; alias /checkup)`,
       );
       logger.log(
         `  ${chalk.cyan("/status")}     Environment snapshot (version/model/session/cwd/roots/IDE·MCP·hooks)`,
@@ -3951,7 +3952,13 @@ export async function startAgentRepl(options = {}) {
 
     // `/doctor` — consolidated session-health readout (Claude-Code parity):
     // provider/key/IDE/MCP/permissions/hooks in one pass-or-warn view.
-    if (trimmed === "/doctor" || trimmed.startsWith("/doctor ")) {
+    // `/checkup` is the Claude-Code 2.1.205 alias for the same readout.
+    if (
+      trimmed === "/doctor" ||
+      trimmed.startsWith("/doctor ") ||
+      trimmed === "/checkup" ||
+      trimmed.startsWith("/checkup ")
+    ) {
       let config = {};
       try {
         config = (await import("../lib/config-manager.js")).loadConfig() || {};

@@ -340,10 +340,10 @@
     },
     {
       "name": "doctor",
-      "aliases": [],
+      "aliases": ["checkup"],
       "module": "./commands/doctor.js",
       "register": "registerDoctorCommand",
-      "summary": "Diagnose your ChainlessChain environment"
+      "summary": "Diagnose your ChainlessChain environment (alias: checkup)"
     },
     {
       "name": "economy",

@@ -35,6 +35,18 @@ describe("Slash command parity (cc vs Claude Code)", () => {
     }
   });
 
+  it("resolves /checkup as an alias of /doctor (Claude-Code 2.1.205 parity)", async () => {
+    const { SlashCommandRegistry } =
+      await import("../../src/repl/slash-command-registry.js");
+    const registry = SlashCommandRegistry.getInstance();
+    const cmd = registry.getCommand("/checkup");
+    expect(cmd).toBeDefined();
+    expect(cmd.name).toBe("/doctor");
+    expect(registry.hasCommand("/checkup")).toBe(true);
+    // an unknown name still misses
+    expect(registry.getCommand("/nope")).toBeUndefined();
+  });
+
   it("should have /login command handler", async () => {
     const { SlashCommandRegistry } =
       await import("../../src/repl/slash-command-registry.js");

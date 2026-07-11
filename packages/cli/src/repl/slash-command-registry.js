@@ -35,7 +35,13 @@ export class SlashCommandRegistry {
   }
 
   getCommand(name) {
-    return this._commands.get(name);
+    const direct = this._commands.get(name);
+    if (direct) return direct;
+    // Alias resolution: a command registered with aliases answers to them too.
+    for (const cmd of this._commands.values()) {
+      if (cmd.aliases && cmd.aliases.includes(name)) return cmd;
+    }
+    return undefined;
   }
 
   getAllCommands() {
@@ -43,7 +49,7 @@ export class SlashCommandRegistry {
   }
 
   hasCommand(name) {
-    return this._commands.has(name);
+    return Boolean(this.getCommand(name));
   }
 
   _registerBuiltinCommands() {
@@ -188,8 +194,10 @@ export class SlashCommandRegistry {
       ],
     ];
 
+    // Claude-Code 2.1.205 parity: /checkup is an alias of /doctor.
+    const ALIASES = { "/doctor": ["/checkup"] };
     for (const [name, description, handler] of commands) {
-      this.register(name, { description, handler });
+      this.register(name, { description, handler, aliases: ALIASES[name] });
     }
   }
 }
