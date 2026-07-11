@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 173,
+  "commandCount": 174,
   "commands": [
     {
       "name": "a2a",
@@ -883,6 +883,13 @@
       "module": "./commands/orchestrate.js",
       "register": "registerOrchestrateCommand",
       "summary": "Agent router V2 governance"
+    },
+    {
+      "name": "routine",
+      "aliases": [],
+      "module": "./commands/routine.js",
+      "register": "registerRoutineCommand",
+      "summary": "Named scheduled/triggered agent tasks with run history (cron/once/webhook/github)"
     },
     {
       "name": "runtime",
