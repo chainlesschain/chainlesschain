@@ -1502,6 +1502,30 @@ export async function startAgentRepl(options = {}) {
   } catch (_e) {
     /* config optional */
   }
+
+  // Voice dictation (Claude-Code `/voice` parity). Local-first STT priority;
+  // degrades cleanly on headless/SSH. Real capture is a host binding — probed
+  // from config `voice.backends` (map of backend id → true) — so with no
+  // backend bundled, `/voice hold` reports how to enable one rather than
+  // pretending to listen. `voice.allowCloud` gates cloud transcription.
+  const {
+    parseVoiceCommand: _parseVoiceCommand,
+    resolveSttBackend: _resolveSttBackend,
+    detectVoiceEnvironment: _detectVoiceEnvironment,
+    renderVoiceStatus: _renderVoiceStatus,
+  } = await import("./voice-dictation.js");
+  let _voiceMode = "off";
+  let _voiceConfig = { backends: {}, allowCloud: false };
+  try {
+    const { getConfigValue } = await import("../lib/config-manager.js");
+    const v = getConfigValue("voice") || {};
+    _voiceConfig = {
+      backends: v.backends || {},
+      allowCloud: v.allowCloud === true,
+    };
+  } catch (_e) {
+    /* config optional */
+  }
   const themedPrompt = (text) => {
     const a = promptAccent(_theme);
     if (a === "blue") return chalk.blue(text);
@@ -1595,6 +1619,7 @@ export async function startAgentRepl(options = {}) {
           "/tui",
           "/ultrathink",
           "/vim",
+          "/voice",
         ],
     // User/project custom commands (.claude/commands/*.md) join TAB completion
     // alongside the built-ins above. Sync + best-effort; the completer
@@ -2113,6 +2138,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/fast")}       Latency profile — faster+cheaper, less reasoning (/fast on|off|status)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/voice")}      Speech dictation — local-first STT (/voice hold|tap|off)`,
       );
       logger.log(
         `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
@@ -2784,6 +2812,68 @@ export async function startAgentRepl(options = {}) {
         logger.log(
           chalk.gray(
             _renderFastStatus({ enabled: _fastMode, provider, model }),
+          ),
+        );
+        prompt();
+        return;
+      }
+    }
+
+    // `/voice` — speech dictation (Claude-Code parity). hold=push-to-talk,
+    // tap=toggle, off, status. Local-first STT; degrades on headless/SSH or
+    // when no capture backend is configured (voice.backends / voice.allowCloud).
+    {
+      const voice = _parseVoiceCommand(trimmed);
+      if (voice) {
+        if (voice.error) {
+          logger.error(chalk.red(voice.error));
+          prompt();
+          return;
+        }
+        const voiceEnv = _detectVoiceEnvironment({
+          env: process.env,
+          isTTY: Boolean(process.stdin.isTTY),
+        });
+        if (voice.action === "status") {
+          const be = _resolveSttBackend(_voiceConfig).backend;
+          logger.log(
+            chalk.gray(
+              _renderVoiceStatus({
+                mode: _voiceMode,
+                backend: be,
+                env: voiceEnv,
+              }),
+            ),
+          );
+          prompt();
+          return;
+        }
+        if (voice.action === "off") {
+          _voiceMode = "off";
+          logger.log(chalk.gray("Voice: off."));
+          prompt();
+          return;
+        }
+        // hold | tap — need a usable environment AND a resolvable backend.
+        if (!voiceEnv.supported) {
+          logger.info(chalk.yellow(`Voice unavailable — ${voiceEnv.reason}.`));
+          prompt();
+          return;
+        }
+        const { backend, reason } = _resolveSttBackend(_voiceConfig);
+        if (!backend) {
+          logger.info(chalk.yellow(`Voice: ${reason}`));
+          prompt();
+          return;
+        }
+        _voiceMode = voice.action;
+        logger.log(
+          chalk.gray(
+            _renderVoiceStatus({
+              mode: _voiceMode,
+              backend,
+              env: voiceEnv,
+            }) + ` (${reason})`,
           ),
         );
         prompt();
