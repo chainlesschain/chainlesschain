@@ -18,7 +18,15 @@
  *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
  *     without notebook support) the executeCode tool is simply not exposed,
  *     so every existing 4-tool consumer keeps working unchanged.
+ *   lsp?                                -> semantic navigation capability
+ *     OPTIONAL — an object of raw language-server queries (see the contract
+ *     in semantic-tools.js). When present, the semantic tools (getHover,
+ *     goToDefinition, findReferences, renamePreview, getCallHierarchy,
+ *     getSymbolInfo, getProjectModel) are exposed; when absent nothing
+ *     changes for existing consumers.
  */
+
+const { buildSemanticTools } = require("./semantic-tools");
 
 function buildIdeTools(editor) {
   return [
@@ -288,6 +296,14 @@ function buildIdeTools(editor) {
             },
           },
         ]
+      : []),
+    // Conditional: semantic navigation tools (hover / definition / references
+    // / rename preview / call hierarchy / containing symbols / project model)
+    // backed by the host's language providers. Only exposed when the facade
+    // supplies the `lsp` capability object (VS Code); the tool logic lives in
+    // the pure semantic-tools.js module.
+    ...(editor.lsp && typeof editor.lsp === "object"
+      ? buildSemanticTools(editor.lsp)
       : []),
   ];
 }

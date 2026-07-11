@@ -660,6 +660,99 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       };
     },
 
+    // Semantic navigation capability (gap #7): raw language-server queries
+    // via VS Code's built-in `vscode.execute…Provider` commands. This is a
+    // thin adapter — all validation / shaping / caps live in the pure
+    // semantic-tools.js module, which receives this object injected. Every
+    // position here is 0-based (the VS Code convention); semantic-tools owns
+    // the 1-based↔0-based conversion for tool callers.
+    lsp: {
+      async hover({ path, line, character }) {
+        const doc = await vscode.workspace.openTextDocument(
+          vscode.Uri.file(path),
+        );
+        return vscode.commands.executeCommand(
+          "vscode.executeHoverProvider",
+          doc.uri,
+          new vscode.Position(line, character),
+        );
+      },
+      async definition({ path, line, character }) {
+        const doc = await vscode.workspace.openTextDocument(
+          vscode.Uri.file(path),
+        );
+        return vscode.commands.executeCommand(
+          "vscode.executeDefinitionProvider",
+          doc.uri,
+          new vscode.Position(line, character),
+        );
+      },
+      async references({ path, line, character }) {
+        const doc = await vscode.workspace.openTextDocument(
+          vscode.Uri.file(path),
+        );
+        return vscode.commands.executeCommand(
+          "vscode.executeReferenceProvider",
+          doc.uri,
+          new vscode.Position(line, character),
+        );
+      },
+      async prepareCallHierarchy({ path, line, character }) {
+        const doc = await vscode.workspace.openTextDocument(
+          vscode.Uri.file(path),
+        );
+        return vscode.commands.executeCommand(
+          "vscode.prepareCallHierarchy",
+          doc.uri,
+          new vscode.Position(line, character),
+        );
+      },
+      // The hierarchy item must be the very instance prepareCallHierarchy
+      // returned (VS Code resolves the provider through it), so these take
+      // the item, not a path/position.
+      async incomingCalls(item) {
+        return vscode.commands.executeCommand(
+          "vscode.provideIncomingCalls",
+          item,
+        );
+      },
+      async outgoingCalls(item) {
+        return vscode.commands.executeCommand(
+          "vscode.provideOutgoingCalls",
+          item,
+        );
+      },
+      async documentSymbols({ path }) {
+        const doc = await vscode.workspace.openTextDocument(
+          vscode.Uri.file(path),
+        );
+        return vscode.commands.executeCommand(
+          "vscode.executeDocumentSymbolProvider",
+          doc.uri,
+        );
+      },
+      async workspaceRoots() {
+        return (vscode.workspace.workspaceFolders || []).map((f) => ({
+          name: f.name,
+          path: f.uri.fsPath,
+        }));
+      },
+      async openEditorLanguages() {
+        return (vscode.workspace.textDocuments || [])
+          .filter((d) => d?.uri?.scheme === "file")
+          .map((d) => ({ file: d.uri.fsPath, languageId: d.languageId }));
+      },
+      async listFiles({ max } = {}) {
+        const cap = Number.isFinite(max) && max > 0 ? Math.floor(max) : 5000;
+        const uris = await vscode.workspace.findFiles(
+          "**/*",
+          "**/{node_modules,.git,dist,out,build,.vscode-test}/**",
+          cap,
+        );
+        return (uris || []).map((u) => u.fsPath);
+      },
+    },
+
     /** Dispose the shell-integration subscriptions (called on deactivate). */
     disposeTerminalCapture() {
       for (const d of _terminalDisposables) {
