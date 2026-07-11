@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { readPrLinkLedger } from "../lib/pr-link-ledger.js";
 
 function formatAge(ms) {
   const n = Math.max(0, Math.round(Number(ms || 0) / 1000));
@@ -67,6 +68,11 @@ export function formatBackgroundAgentDetails(
     `  log: ${session.logFile || "-"}`,
   ];
   if (session.phase) lines.push(`  phase: ${session.phase}`);
+  if (session.pr?.number) {
+    lines.push(
+      `  pr: #${session.pr.number}${session.pr.state ? ` ${session.pr.state}` : ""}${session.pr.url ? `  ${session.pr.url}` : ""}`,
+    );
+  }
   if (Number.isFinite(Number(session.turnCount))) {
     lines.push(`  turns: ${session.turnCount}`);
   }
@@ -297,7 +303,25 @@ async function runDashboardView(options = {}) {
     effectiveBackgroundAgentState,
   } = supervisor;
 
-  const listAll = () => listBackgroundAgents({ all: true });
+  const listAll = () => {
+    const sessions = listBackgroundAgents({ all: true });
+    // PR/session linking: decorate rows whose conversation touched a PR
+    // (`#123 open`). One ledger read per refresh; best-effort.
+    try {
+      const ledger = readPrLinkLedger();
+      for (const s of sessions) {
+        const links = s.sessionId ? ledger[s.sessionId] : null;
+        if (Array.isArray(links) && links.length > 0 && !s.pr) {
+          s.pr = [...links].sort(
+            (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
+          )[0];
+        }
+      }
+    } catch {
+      /* PR decoration is cosmetic */
+    }
+    return sessions;
+  };
 
   if (options.json || !process.stdout.isTTY || !process.stdin.isTTY) {
     const sessions = listAll();

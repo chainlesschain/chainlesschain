@@ -197,6 +197,15 @@ export function registerSessionCommand(program) {
           process.exit(1);
         }
 
+        // PR/session linking: surface PRs this session created/touched.
+        try {
+          const { getPrLinks } = await import("../lib/pr-link-ledger.js");
+          const prLinks = getPrLinks(sess.id);
+          if (prLinks.length > 0) sess.prLinks = prLinks;
+        } catch (_err) {
+          // PR decoration is cosmetic
+        }
+
         if (options.json) {
           console.log(JSON.stringify(sess, null, 2));
         } else {
@@ -206,6 +215,15 @@ export function registerSessionCommand(program) {
               `ID: ${sess.id}  Provider: ${sess.provider}  Model: ${sess.model}  Messages: ${sess.message_count}`,
             ),
           );
+          if (sess.prLinks) {
+            for (const pr of sess.prLinks) {
+              logger.log(
+                chalk.magenta(
+                  `PR: #${pr.number}${pr.state ? ` ${pr.state}` : ""}${pr.url ? `  ${pr.url}` : ""}`,
+                ),
+              );
+            }
+          }
           logger.log("");
 
           let messages = sess.messages;
@@ -903,14 +921,106 @@ export function registerSessionCommand(program) {
   // ---------------------------------------------------------------
   // session usage [id] — Phase I: aggregate token usage
   // ---------------------------------------------------------------
+  const USAGE_BY_DIMENSIONS = [
+    "origin",
+    "skill",
+    "subagent",
+    "tool",
+    "mcp",
+    "model",
+  ];
+
+  // Shared `--by` renderer for the per-session and global modes (both result
+  // shapes carry the same `attribution` section). turnTokens is a turn-level
+  // approximation — a turn's tokens count once per distinct tool, so the
+  // column must not be summed across rows.
+  const printUsageBy = (result, by) => {
+    const a = result.attribution || {};
+    const tokRow = (label, r) =>
+      logger.log(
+        `  ${chalk.gray(String(label).padEnd(28))} in=${r.inputTokens}  out=${r.outputTokens}  total=${chalk.cyan(r.totalTokens.toLocaleString())}  calls=${r.calls}`,
+      );
+    const toolRow = (label, r) =>
+      logger.log(
+        `  ${chalk.gray(String(label).padEnd(28))} calls=${r.calls}  errors=${r.errors}  turnTokens≈${chalk.cyan((r.turnTokens || 0).toLocaleString())}`,
+      );
+    const empty = (what) => logger.log(chalk.gray(`  (no ${what} recorded)`));
+
+    switch (by) {
+      case "model": {
+        const rows = result.byModel || [];
+        if (rows.length === 0) return empty("token_usage events");
+        for (const r of rows)
+          tokRow(`${r.provider || "?"}/${r.model || "?"}`, r);
+        return;
+      }
+      case "origin": {
+        const rows = a.byOrigin || [];
+        if (rows.length === 0) return empty("token_usage events");
+        for (const r of rows) tokRow(r.origin, r);
+        return;
+      }
+      case "skill": {
+        const rows = a.bySkill || [];
+        if (rows.length === 0)
+          return empty("skill-attributed usage (isolated skill runs)");
+        for (const r of rows) tokRow(r.skill, r);
+        return;
+      }
+      case "subagent": {
+        const rows = a.bySubagent || [];
+        if (rows.length === 0) return empty("sub-agent-attributed usage");
+        for (const r of rows)
+          tokRow(`${r.subagentId}${r.role ? ` [${r.role}]` : ""}`, r);
+        return;
+      }
+      case "tool": {
+        const rows = a.tools?.byTool || [];
+        if (rows.length === 0) return empty("tool_call events");
+        for (const r of rows) toolRow(r.tool, r);
+        logger.log(
+          chalk.gray(
+            "  turnTokens = tokens of turns that used the tool (approximation; do not sum across rows)",
+          ),
+        );
+        return;
+      }
+      case "mcp": {
+        const rows = a.tools?.byMcpServer || [];
+        if (rows.length === 0)
+          return empty("MCP tool calls (mcp__<server>__*)");
+        for (const r of rows) toolRow(r.server, r);
+        logger.log(
+          chalk.gray(
+            "  turnTokens = tokens of turns that used the server (approximation; do not sum across rows)",
+          ),
+        );
+        return;
+      }
+      default:
+        break;
+    }
+  };
+
   session
     .command("usage")
     .description("Aggregate token usage (per-session or global)")
     .argument("[id]", "Session ID (omit for global rollup)")
     .option("--json", "Output as JSON")
+    .option(
+      "--by <dimension>",
+      `Breakdown dimension: ${USAGE_BY_DIMENSIONS.join("|")}`,
+    )
     .option("--limit <n>", "Max sessions for global rollup", "1000")
     .action(async (id, options) => {
       try {
+        const by = options.by ? String(options.by).toLowerCase() : null;
+        if (by && !USAGE_BY_DIMENSIONS.includes(by)) {
+          logger.error(
+            `Invalid --by "${options.by}" — expected one of: ${USAGE_BY_DIMENSIONS.join(", ")}`,
+          );
+          process.exit(1);
+        }
         const { sessionUsage, allSessionsUsage } =
           await import("../lib/session-usage.js");
         const result = id
@@ -919,6 +1029,22 @@ export function registerSessionCommand(program) {
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        if (by) {
+          const t = result.total;
+          logger.log(
+            chalk.bold(
+              id
+                ? `Session ${chalk.gray(id.slice(0, 16))} — by ${by}`
+                : `Global usage — by ${by}`,
+            ),
+          );
+          logger.log(
+            `  total: ${chalk.cyan(t.totalTokens.toLocaleString())} tokens  in=${t.inputTokens}  out=${t.outputTokens}  calls=${t.calls}`,
+          );
+          printUsageBy(result, by);
           return;
         }
 

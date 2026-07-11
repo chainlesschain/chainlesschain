@@ -1470,6 +1470,14 @@ export async function executeTool(name, args, context = {}) {
       parentMessages: context.parentMessages,
       interaction: context.interaction,
       sessionId: context.sessionId || null,
+      // Parent LLM config — documented at toolContext as forwarded to
+      // spawn_sub_agent for provider/key inheritance; without this line it
+      // never actually reached executeToolInner (sub-agents silently fell
+      // back to config defaults and their usage was mis-attributed).
+      llmOptions: context.llmOptions || null,
+      // 用量归因: shared per-run sink for child-loop (sub-agent / isolated
+      // skill) token usage, drained by agentLoop as attributed events.
+      subAgentUsageSink: context.subAgentUsageSink || null,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
@@ -2106,6 +2114,7 @@ async function executeToolInner(
     settingsHooks = null,
     signal = null,
     backgroundSubAgents = null,
+    subAgentUsageSink = null,
   },
 ) {
   const localToolDescriptor =
@@ -2738,6 +2747,21 @@ async function executeToolInner(
           }
           output = res.stdout ?? "";
         }
+        // PR/session linking (gap-2026-07-11 P1#9): a successful `gh pr …`
+        // (or `git push`) ties this session to the PR it touched. Async and
+        // best-effort — never delays or fails the tool result.
+        if (sessionId) {
+          import("../lib/pr-link-ledger.js")
+            .then((m) =>
+              m.recordFromShellCommand({
+                sessionId,
+                command: args.command,
+                output: String(output || ""),
+                cwd: args.cwd || cwd,
+              }),
+            )
+            .catch(() => {});
+        }
         return attachDescriptor(
           {
             stdout: output.substring(0, 30000),
@@ -2915,6 +2939,7 @@ async function executeToolInner(
           settingsHooks,
           signal,
           backgroundSubAgents,
+          subAgentUsageSink,
         }),
       );
     }
@@ -3532,13 +3557,46 @@ async function executeToolInner(
       // Check if skill requests isolation (via SKILL.md frontmatter)
       const skillIsolation = match.isolation === true;
       if (skillIsolation) {
+        // 用量归因: an isolated skill runs as a child loop whose real token
+        // usage would otherwise be invisible — forward it into the parent
+        // run's sink tagged origin:"skill" so `cc session usage --by skill`
+        // can break it out. A nested frame passes through unchanged.
+        const skillUsageSink = Array.isArray(subAgentUsageSink)
+          ? subAgentUsageSink
+          : null;
+        let skillSubRef = null;
         // Run skill through isolated sub-agent context
         const subCtx = SubAgentContext.create({
           role: `skill-${args.skill_name}`,
           task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
           allowedTools: ["read_file", "search_files", "list_dir"],
           cwd,
+          onUsage: skillUsageSink
+            ? (u) => {
+                try {
+                  skillUsageSink.push(
+                    u && u.attribution
+                      ? u
+                      : {
+                          provider: u?.provider ?? null,
+                          model: u?.model ?? null,
+                          usage: u?.usage || null,
+                          attribution: {
+                            origin: "skill",
+                            skill: args.skill_name,
+                            subagentId: skillSubRef?.id || null,
+                            parentSessionId: sessionId || null,
+                            depth: (subAgentDepth || 0) + 1,
+                          },
+                        },
+                  );
+                } catch (_e) {
+                  // usage forwarding is best-effort
+                }
+              }
+            : null,
         });
+        skillSubRef = subCtx;
         try {
           const result = await subCtx.run(args.input);
           return attachDescriptor({
@@ -4123,6 +4181,27 @@ function _backgroundSubAgentResultText(entry) {
   );
 }
 
+/**
+ * Drain the run's attributed child-loop usage sink (spawn_sub_agent /
+ * isolated run_skill — see toolContext.subAgentUsageSink), re-yielding each
+ * record as a regular `token-usage` event that carries its `attribution`
+ * frame. Consumers that ignore `attribution` see ordinary usage events;
+ * attribution-aware consumers (REPL persistence, headless runner) can split
+ * child spend from the main conversation's.
+ */
+function* _drainSubAgentUsage(sink) {
+  while (Array.isArray(sink) && sink.length > 0) {
+    const u = sink.shift();
+    yield {
+      type: "token-usage",
+      provider: u?.provider ?? null,
+      model: u?.model ?? null,
+      usage: u?.usage || {},
+      attribution: u?.attribution || null,
+    };
+  }
+}
+
 async function _executeSpawnSubAgent(args, ctx) {
   // Nesting cap: refuse before any context/registry work.
   const currentDepth = ctx.subAgentDepth || 0;
@@ -4272,6 +4351,40 @@ async function _executeSpawnSubAgent(args, ctx) {
     model: mdModel || parentLlm.model || undefined,
   };
 
+  // 用量归因: forward the child's real token usage into the parent run's sink
+  // (threaded through toolContext) so agentLoop re-yields it as attributed
+  // `token-usage` events. A nested child's already-attributed record passes
+  // through unchanged (deepest frame wins). subCtxRef closes over the created
+  // context so the frame can carry the sub-agent's id.
+  const usageSink = Array.isArray(ctx.subAgentUsageSink)
+    ? ctx.subAgentUsageSink
+    : null;
+  let subCtxRef = null;
+  const onUsage = usageSink
+    ? (u) => {
+        try {
+          usageSink.push(
+            u && u.attribution
+              ? u
+              : {
+                  provider: u?.provider ?? null,
+                  model: u?.model ?? null,
+                  usage: u?.usage || null,
+                  attribution: {
+                    origin: "subagent",
+                    subagentId: subCtxRef?.id || null,
+                    role: subCtxRef?.role || role || null,
+                    parentSessionId,
+                    depth: currentDepth + 1,
+                  },
+                },
+          );
+        } catch (_e) {
+          // usage forwarding is best-effort
+        }
+      }
+    : null;
+
   const subCtx = SubAgentContext.create({
     role,
     task,
@@ -4285,7 +4398,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     // Same shared counter object so the child's own spawns draw from the run's
     // single total-sub-agent pool (breadth cap spans the whole tree).
     subAgentBudget: ctx.subAgentBudget || null,
+    onUsage,
   });
+  subCtxRef = subCtx;
 
   const emit = (type, payload) => {
     if (!interaction || typeof interaction.emit !== "function") return;
@@ -5896,8 +6011,18 @@ export async function* agentLoop(messages, options) {
     // any are still running (it waits, injects, and gives the model one more
     // turn) so a background result can never be silently lost.
     backgroundSubAgents: new Map(),
+    // 用量归因: per-run sink for child-loop (spawn_sub_agent / isolated
+    // run_skill) token usage. Child loops consume their own generator events,
+    // so their real usage never reaches this loop's consumers — the spawn
+    // wiring pushes it here and the loop drains it at iteration boundaries as
+    // `token-usage` events carrying an `attribution` frame. Callers may pass
+    // their own array to observe it directly.
+    subAgentUsageSink: Array.isArray(options.subAgentUsageSink)
+      ? options.subAgentUsageSink
+      : [],
   };
   const backgroundSubAgents = toolContext.backgroundSubAgents;
+  const subAgentUsageSink = toolContext.subAgentUsageSink;
 
   throwIfAborted(signal);
 
@@ -6032,6 +6157,10 @@ export async function* agentLoop(messages, options) {
   while (budget.hasRemaining()) {
     budget.consume();
     throwIfAborted(signal);
+
+    // Surface attributed child-loop usage collected since the last boundary
+    // (blocking spawns push during executeTool; background spawns push live).
+    yield* _drainSubAgentUsage(subAgentUsageSink);
 
     // Emit progressive warnings (once per level)
     const level = budget.warningLevel();
@@ -6607,7 +6736,9 @@ export async function* agentLoop(messages, options) {
     }
   }
 
-  // Budget exhausted — yield exhaustion event + final message
+  // Budget exhausted — flush any child usage the final iteration produced,
+  // then yield exhaustion event + final message
+  yield* _drainSubAgentUsage(subAgentUsageSink);
   yield { type: "iteration-budget-exhausted", budget: budget.toSummary() };
   yield {
     type: "response-complete",
