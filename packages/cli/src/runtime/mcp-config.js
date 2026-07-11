@@ -631,16 +631,47 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   if (root) files.push(path.join(root, ".mcp.json"));
   files.push(path.join(cwd, ".mcp.json"));
 
+  // Fingerprint trust (gap 2026-07-11): the --project-mcp opt-in covers the
+  // file as last seen. First use records a sha256; a CHANGED file is refused
+  // (fail-closed) until re-trusted via CC_PROJECT_MCP_TRUST=1 or
+  // `cc mcp trust-project`. Injectable for tests.
+  const trust =
+    deps.projectMcpTrust ||
+    (await import("../lib/project-mcp-trust.js").catch(() => null));
+
   const servers = {};
   const seenFiles = [];
   for (const file of files) {
     if (!fileExists(file)) continue;
+    let content;
     let raw;
     try {
-      raw = JSON.parse(readFile(file));
+      content = readFile(file);
+      raw = JSON.parse(content);
     } catch (err) {
       writeErr(`  mcp: ignoring malformed ${file} (${err.message})\n`);
       continue;
+    }
+    if (trust) {
+      try {
+        const check = trust.checkProjectMcpTrust(file, content);
+        if (check.status === "changed") {
+          if (trust.projectMcpRetrustRequested(env)) {
+            trust.recordProjectMcpTrust(file, content);
+            writeErr(`  mcp: ${file} re-trusted (CC_PROJECT_MCP_TRUST).\n`);
+          } else {
+            writeErr(
+              `  mcp: SKIPPING ${file} — its content changed since it was last trusted. ` +
+                `Review the diff, then re-trust with CC_PROJECT_MCP_TRUST=1 or \`cc mcp trust-project\`.\n`,
+            );
+            continue;
+          }
+        } else if (check.status === "first-use") {
+          trust.recordProjectMcpTrust(file, content);
+        }
+      } catch {
+        /* trust bookkeeping is best-effort; the opt-in gate above still holds */
+      }
     }
     const parsed = parseMcpServers(raw);
     if (Object.keys(parsed).length > 0) {

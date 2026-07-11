@@ -1051,11 +1051,61 @@ export class MCPClient extends EventEmitter {
 
     // Server notification
     if (msg.method) {
+      // tools/resources list_changed (gap 2026-07-11 MCP 生命周期): refetch
+      // the changed list so entry.tools/entry.resources stay live —
+      // `listTools()`, `/mcp` status and callTool routing all see the update.
+      // (The LLM tool array of an in-flight turn is deliberately NOT mutated:
+      // tool-search's prompt-cache stability depends on an append-only,
+      // stable-prefix tool list.)
+      if (msg.method === "notifications/tools/list_changed") {
+        this._refreshServerList(serverName, "tools");
+      } else if (msg.method === "notifications/resources/list_changed") {
+        this._refreshServerList(serverName, "resources");
+      }
       this.emit("notification", {
         server: serverName,
         method: msg.method,
         params: msg.params,
       });
+    }
+  }
+
+  /**
+   * Re-fetch a server's tools / resources list after a `*_list_changed`
+   * notification. Coalesced per server+kind: a burst of notifications folds
+   * into the in-flight refetch plus at most one trailing pass. Best-effort —
+   * a failed refetch keeps the previous list and waits for the next
+   * notification. Emits "tools-changed" / "resources-changed" on update.
+   */
+  async _refreshServerList(serverName, kind) {
+    const entry = this.servers.get(serverName);
+    if (!entry) return;
+    const flags = (entry._listRefresh = entry._listRefresh || {});
+    if (flags[`${kind}Running`]) {
+      flags[`${kind}Dirty`] = true;
+      return;
+    }
+    flags[`${kind}Running`] = true;
+    try {
+      do {
+        flags[`${kind}Dirty`] = false;
+        try {
+          const method = kind === "tools" ? "tools/list" : "resources/list";
+          const result = await this._sendRequest(serverName, method, {});
+          const list =
+            (kind === "tools" ? result?.tools : result?.resources) || [];
+          entry[kind] = list;
+          if (kind === "tools") entry.toolsError = null;
+          this.emit(`${kind}-changed`, {
+            server: serverName,
+            count: list.length,
+          });
+        } catch {
+          break; // keep the previous list; the next notification retries
+        }
+      } while (flags[`${kind}Dirty`]);
+    } finally {
+      flags[`${kind}Running`] = false;
     }
   }
 

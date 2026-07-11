@@ -41,10 +41,16 @@ beforeEach(() => {
   fs.writeFileSync(path.join(root, ".git"), "gitdir: /nowhere\n", "utf-8");
   // Project `.mcp.json` is OPT-IN (default-off); enable it for the load tests.
   process.env.CC_PROJECT_MCP = "1";
+  // Fingerprint trust store goes to the temp dir, never the real home.
+  process.env.CC_PROJECT_MCP_TRUST_STORE = path.join(
+    path.dirname(root),
+    "trust-store.json",
+  );
 });
 
 afterEach(() => {
   delete process.env.CC_PROJECT_MCP;
+  delete process.env.CC_PROJECT_MCP_TRUST_STORE;
   try {
     fs.rmSync(path.dirname(root), { recursive: true, force: true });
   } catch {
@@ -138,5 +144,73 @@ describe("loadProjectMcp", () => {
     const names = res.mcpClient.connects.map((c) => c.name);
     expect(names).toContain("fresh"); // new server connects
     expect(names).not.toContain("dup"); // already-connected name preserved
+  });
+});
+
+describe("loadProjectMcp — fingerprint re-trust (gap 2026-07-11)", () => {
+  it("first use records the fingerprint; a CHANGED file is then refused", async () => {
+    const file = path.join(root, ".mcp.json");
+    write(file, { mcpServers: { rooty: { command: "node" } } });
+
+    // First load: trusted on first use, servers connect.
+    const res1 = await loadProjectMcp(
+      { cwd: sub },
+      { createClient: fakeClientFactory() },
+    );
+    expect(res1.mcpClient.connects.map((c) => c.name)).toEqual(["rooty"]);
+
+    // The file changes (e.g. a new commit swaps the command) → refused.
+    write(file, { mcpServers: { rooty: { command: "EVIL" } } });
+    const warnings = [];
+    const res2 = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        writeErr: (s) => warnings.push(s),
+      },
+    );
+    expect(res2).toBeNull(); // nothing loaded
+    expect(warnings.join("")).toMatch(/changed since it was last trusted/i);
+  });
+
+  it("CC_PROJECT_MCP_TRUST=1 re-trusts the changed file and loads it", async () => {
+    const file = path.join(root, ".mcp.json");
+    write(file, { mcpServers: { rooty: { command: "node" } } });
+    await loadProjectMcp({ cwd: sub }, { createClient: fakeClientFactory() });
+
+    write(file, { mcpServers: { rooty: { command: "node2" } } });
+    process.env.CC_PROJECT_MCP_TRUST = "1";
+    try {
+      const res = await loadProjectMcp(
+        { cwd: sub },
+        { createClient: fakeClientFactory() },
+      );
+      expect(res.mcpClient.connects.map((c) => c.name)).toEqual(["rooty"]);
+    } finally {
+      delete process.env.CC_PROJECT_MCP_TRUST;
+    }
+
+    // The new fingerprint is now recorded — a plain re-run loads again.
+    const res3 = await loadProjectMcp(
+      { cwd: sub },
+      { createClient: fakeClientFactory() },
+    );
+    expect(res3.mcpClient.connects.map((c) => c.name)).toEqual(["rooty"]);
+  });
+
+  it("an unchanged file keeps loading without any prompt", async () => {
+    const file = path.join(root, ".mcp.json");
+    write(file, { mcpServers: { rooty: { command: "node" } } });
+    await loadProjectMcp({ cwd: sub }, { createClient: fakeClientFactory() });
+    const warnings = [];
+    const res = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        writeErr: (s) => warnings.push(s),
+      },
+    );
+    expect(res.mcpClient.connects.map((c) => c.name)).toEqual(["rooty"]);
+    expect(warnings.join("")).not.toMatch(/SKIPPING/);
   });
 });

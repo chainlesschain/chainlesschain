@@ -1000,6 +1000,52 @@ export function registerMcpCommand(program) {
 
   // mcp scaffold — generate a boilerplate MCP server project
   mcp
+    .command("trust-project")
+    .description(
+      "Re-trust the project .mcp.json after reviewing a content change (records its fingerprint for --project-mcp runs)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const fsMod = await import("node:fs");
+        const { projectRootBase } = await import("../lib/project-root.cjs");
+        const { recordProjectMcpTrust, projectMcpFingerprint } =
+          await import("../lib/project-mcp-trust.js");
+        const cwd = process.cwd();
+        const candidates = [path.join(cwd, ".mcp.json")];
+        const root = projectRootBase(cwd, { fs: fsMod.default, path });
+        if (root) candidates.push(path.join(root, ".mcp.json"));
+        const results = [];
+        for (const file of [...new Set(candidates)]) {
+          if (!fsMod.existsSync(file)) continue;
+          const content = fsMod.readFileSync(file, "utf-8");
+          const ok = recordProjectMcpTrust(file, content);
+          results.push({
+            file,
+            trusted: ok,
+            fingerprint: projectMcpFingerprint(content).slice(0, 16),
+          });
+        }
+        if (options.json) {
+          console.log(JSON.stringify(results, null, 2));
+          return;
+        }
+        if (results.length === 0) {
+          console.log("No .mcp.json found in this project.");
+          return;
+        }
+        for (const r of results) {
+          console.log(
+            `${r.trusted ? "Trusted" : "FAILED to record"} ${r.file} (${r.fingerprint})`,
+          );
+        }
+      } catch (err) {
+        console.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  mcp
     .command("scaffold <name>")
     .description("Scaffold a new MCP server project (stdio or http+sse)")
     .option("-d, --description <text>", "Short description of the server")
