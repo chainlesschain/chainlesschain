@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）
+
+> CLI-only 发版（`chainlesschain` 0.162.158 → **0.162.159**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。顶层命令数 **173 → 175**（新增 `cc cloud` + `cc routine`；`cc session index` 是 `session` 子命令、`/tui`/`/voice`/`/fast` 为 REPL-only 均不计数）。
+
+- **`cc cloud` 自托管 cloud handoff**：`cc cloud run/status/attach/list`——`git bundle` 当前分支上传到私有 runner（`cloud.baseUrl`/`CC_CLOUD_URL`），完成后 `attach` 轮询到终态并 `git apply --3way` 回流 patch、落 plan/artifacts、显示 PR——无 Anthropic 云依赖。
+- **`/tui` 全屏无闪烁视图**：`/tui fullscreen` 进备用屏缓冲 + 视口窗口化 + diff 重绘（仅改动行重写，无整屏清屏）；`/tui default` 退回流式；`CC_NO_FLICKER=1` 启动即全屏。
+- **`/voice` 语音听写**：`/voice hold|tap|off`；local-first STT 优先级（本地 Whisper > 系统 STT > 云，云需 `voice.allowCloud`）；SSH/无 TTY/CI 清晰降级。
+- **`/fast` 延迟档**：`/fast on|off|status`——下一轮最小化推理 + 换 provider 低延迟模型（不覆盖 `/model` 钉过的模型），始终显示成本/质量权衡。
+- **插件治理**：manifest `dependencies` semver 约束经 `cc plugin validate` 校验；LSP 注册表改每 languageId 有序候选表（一个插件 server 缺失回退 builtin，扩展名不再变黑）；LSP/MCP/hooks/monitors 被动组件不再被误判"未使用"。
+- **`cc session index` 外部 session 存储**：JSONL 仍权威，新增 SQLite 索引（增量同步 + 内容搜索 + `--rebuild`，1072 真 session 验过）+ 可插拔 off-box mirror（`fs`/`http` 驱动，S3/WebDAV/Redis 同接口待配）。
+- **早前 P0/P1 同随本版发出**：`cc bg view` 交互式 agent 面板 + supervisor 稳定性加固 + `/doctor` 可修复 checkup（`/checkup` 别名）+ transcript hash-chain 防篡改（`cc session verify`）+ Inbound Channels + computer-use MCP + Routines（`cc routine`）+ PR/session linking。
+
 #### Added — cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control + web-panel 直连配对/审批卡片 + 交付物预览下载
 
 > CLI-only 发版（`chainlesschain` 0.162.157 → **0.162.158**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令数不变（173）；AGENT_TOOLS **24 → 25**（新增 `browser_state`）。
