@@ -11,6 +11,10 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-07-11 Release — **cc CLI 0.162.159: Claude-Code parity gap-analysis, all 14 items landed (cloud handoff + /tui + /voice + /fast + plugin governance + session SQLite index)**
+
+> CLI-only release (0.162.158 → **0.162.159**, npm `latest`, provenance). All 14 items from `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` are implemented: **`cc cloud`** self-hosted cloud handoff (`git bundle` → private runner → reflow patch/PR, no Anthropic cloud dependency) + **`/tui`** fullscreen no-flicker view (alternate screen buffer + diff repaint + `CC_NO_FLICKER=1`) + **`/voice`** dictation (local-first STT, clean SSH/headless degrade) + **`/fast`** latency profile (minimize reasoning + swap to a low-latency model, never over a pinned `/model`) + **plugin governance** (manifest `dependencies` semver constraints + LSP registry candidate-list fallback to builtin + passive components no longer mis-flagged "unused") + **`cc session index`** external session storage (JSONL stays authoritative + a SQLite index for incremental sync/search + a pluggable fs/http mirror). Command count **173 → 175** (new `cc cloud` + `cc routine`).
+
 ## 2026-07-10 Release — **cc CLI 0.162.158: browser_state agent tool + REPL /remote-control racing approvals + web-panel direct-LAN pairing/approval cards + artifact preview & download**
 
 > CLI-only release (0.162.157 → **0.162.158**, npm `latest`, provenance). **`browser_state` becomes the 25th agent tool** (Chrome CDP observation: URL/tabs/console/failed-network/DOM snapshot/screenshot; read-only, loopback-only, plan-mode allowed) + **REPL `/remote-control`** (pair your phone from an interactive session; the terminal prompt races the paired device for approvals — a silent phone never auto-denies a user at the keyboard) + **web-panel direct-LAN pairing & first-class `permission.request` approval cards** (auto-detects relay-E2EE vs direct URI schemes; disconnect-idempotent commandId+seq) + **artifact Markdown preview & full browser download**. Two security fixes: direct-pairing plaintext ws:// restricted to private/loopback hosts (a phished pairing URI can no longer exfiltrate the serverToken/approval decisions) + chrome-connector launch-arg hardening (a `--`-prefixed URL is no longer parsed by Chrome as a switch). Command count stays 173; AGENT_TOOLS 24 → 25.
@@ -2440,7 +2444,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-173-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 

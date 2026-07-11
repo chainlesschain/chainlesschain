@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-11 发布 — **cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）**
+
+> CLI-only 发版（0.162.158 → **0.162.159**，npm `latest`，provenance）。对照 `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` 14 项全落地：**`cc cloud`** 自托管 cloud handoff（`git bundle` 上传私有 runner→回流 patch/PR，无 Anthropic 云依赖）+ **`/tui`** 全屏无闪烁视图（备用屏缓冲 + diff 重绘 + `CC_NO_FLICKER=1`）+ **`/voice`** 语音听写（local-first STT，SSH/headless 清晰降级）+ **`/fast`** 延迟档（最小化推理 + 换低延迟模型，不覆盖 `/model` 钉过的模型）+ **插件治理**（manifest `dependencies` semver 约束 + LSP 注册表候选表回退 builtin + 被动组件不误判"未使用"）+ **`cc session index`** 外部 session 存储（JSONL 权威 + SQLite 索引增量同步/搜索 + 可插拔 fs/http mirror）。命令数 **173 → 175**（新增 `cc cloud` + `cc routine`）。
+
 ## 2026-07-10 发布 — **cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control 赛跑审批 + web-panel 直连配对/审批卡片 + 交付物预览下载**
 
 > CLI-only 发版（0.162.157 → **0.162.158**，npm `latest`，provenance）。**`browser_state` 第 25 个 agent 工具**（Chrome CDP 观察：URL/标签页/console/失败网络/DOM 快照/截图，纯只读仅 loopback，plan 模式可用）+ **REPL `/remote-control`**（交互会话内配对手机，终端 prompt 与远端设备赛跑审批——远端静默永不代键盘用户 auto-deny）+ **web-panel 直连（direct-LAN）配对与 `permission.request` 一等审批卡**（relay E2EE 与直连双方案自动识别，断线幂等 commandId+seq）+ **交付物 Markdown 预览与浏览器完整下载**。安全修复 ×2：直连配对明文 ws:// 收紧到私网/回环主机（钓鱼配对 URI 无法导走 serverToken/审批决定）+ chrome-connector launch-arg 加固（`--` 开头 URL 不再被 Chrome 当开关解析）。命令数 173 不变，AGENT_TOOLS 24 → 25。
@@ -2726,7 +2730,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
-![Commands](https://img.shields.io/badge/CLI%20commands-173-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
 ![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
