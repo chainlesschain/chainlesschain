@@ -10,7 +10,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import runner from "../../src/lib/hook-runner.cjs";
 
-const { runCommandHook, runHooks, tryParseDecision, _deps } = runner;
+const {
+  runCommandHook,
+  runHooks,
+  tryParseDecision,
+  HOOK_PAYLOAD_SCHEMA_VERSION,
+  _resetHookBreaker,
+  _deps,
+} = runner;
 
 let calls;
 function stub(returns) {
@@ -23,6 +30,7 @@ function stub(returns) {
 
 beforeEach(() => {
   calls = [];
+  _resetHookBreaker(); // failure counters must not leak across cases
 });
 
 describe("runCommandHook — input + protocol", () => {
@@ -34,9 +42,22 @@ describe("runCommandHook — input + protocol", () => {
       { event: "PreToolUse" },
     );
     expect(calls[0].opts.input).toBe(
-      JSON.stringify({ tool_name: "Bash", x: 1 }),
+      JSON.stringify({
+        tool_name: "Bash",
+        x: 1,
+        schema_version: HOOK_PAYLOAD_SCHEMA_VERSION,
+      }),
     );
     expect(calls[0].opts.env.CLAUDE_HOOK_EVENT).toBe("PreToolUse");
+  });
+
+  it("stamps schema_version on every payload (gap 2026-07-11)", () => {
+    stub({ status: 0 });
+    runCommandHook("guard.sh", {}, {});
+    expect(JSON.parse(calls[0].opts.input).schema_version).toBe(1);
+    // A caller-provided value is preserved (forward-compat escape hatch).
+    runCommandHook("guard.sh", { schema_version: 9 }, {});
+    expect(JSON.parse(calls[1].opts.input).schema_version).toBe(9);
   });
 
   it("exit 2 → block, reason from stderr", () => {
@@ -188,8 +209,8 @@ describe("per-hook shell selection (P1 #8 — shell: powershell|pwsh)", () => {
     expect(c.argvOrOpts[c.argvOrOpts.length - 2]).toBe("-Command");
     expect(c.argvOrOpts[c.argvOrOpts.length - 1]).toBe("Get-Item x.txt");
     expect(c.maybeOpts.shell).toBeUndefined();
-    // stdin protocol unchanged
-    expect(c.maybeOpts.input).toBe(JSON.stringify({}));
+    // stdin protocol unchanged (payload now carries schema_version)
+    expect(c.maybeOpts.input).toBe(JSON.stringify({ schema_version: 1 }));
   });
 
   it("shell:pwsh → pwsh executable", () => {
@@ -270,5 +291,77 @@ describe("runHooks — ordered short-circuit", () => {
     const r = runHooks([{ command: "a" }, { command: "b" }], {});
     expect(r.decision).toBe("continue");
     expect(r.results).toHaveLength(2);
+  });
+});
+
+describe("hook circuit breaker (gap 2026-07-11: consecutive-failure trip)", () => {
+  it("trips after 3 consecutive non-blocking failures and skips within cooldown", () => {
+    stub({ status: 1, stderr: "flaky" });
+    for (let i = 0; i < 3; i++) {
+      const r = runCommandHook("flaky.sh", {}, {});
+      expect(r.nonBlockingError).toBe(true);
+    }
+    // 4th run: breaker open → skipped, no spawn
+    const spawnsBefore = calls.length;
+    const r = runCommandHook("flaky.sh", {}, {});
+    expect(r.skipped).toBe(true);
+    expect(r.breakerOpen).toBe(true);
+    expect(r.reason).toMatch(/circuit breaker open/);
+    expect(calls.length).toBe(spawnsBefore);
+  });
+
+  it("a success closes the breaker (counter resets)", () => {
+    stub({ status: 1, stderr: "flaky" });
+    runCommandHook("reset.sh", {}, {});
+    runCommandHook("reset.sh", {}, {});
+    stub({ status: 0 }); // recovers
+    calls = [];
+    expect(runCommandHook("reset.sh", {}, {}).decision).toBe("continue");
+    // two more failures ≠ threshold (counter restarted after the success)
+    stub({ status: 1, stderr: "flaky" });
+    runCommandHook("reset.sh", {}, {});
+    const r = runCommandHook("reset.sh", {}, {});
+    expect(r.skipped).toBeUndefined(); // still running, not tripped
+  });
+
+  it("half-open after cooldown: one trial runs; success closes it", async () => {
+    process.env.CC_HOOK_BREAKER_COOLDOWN_MS = "5";
+    try {
+      stub({ status: 1, stderr: "down" });
+      for (let i = 0; i < 3; i++) runCommandHook("cool.sh", {}, {});
+      expect(runCommandHook("cool.sh", {}, {}).skipped).toBe(true);
+      await new Promise((r) => setTimeout(r, 10)); // cooldown elapses
+      stub({ status: 0 }); // service recovered
+      const trial = runCommandHook("cool.sh", {}, {});
+      expect(trial.skipped).toBeUndefined();
+      expect(trial.decision).toBe("continue");
+      // Closed again: subsequent runs execute normally.
+      const again = runCommandHook("cool.sh", {}, {});
+      expect(again.skipped).toBeUndefined();
+    } finally {
+      delete process.env.CC_HOOK_BREAKER_COOLDOWN_MS;
+    }
+  });
+
+  it("blocking decisions never count as failures", () => {
+    stub({ status: 2, stderr: "no" });
+    for (let i = 0; i < 5; i++) {
+      const r = runCommandHook("blocker.sh", {}, {});
+      expect(r.decision).toBe("block"); // never skipped — block is the hook WORKING
+    }
+  });
+
+  it("CC_HOOK_BREAKER_THRESHOLD=0 disables the breaker", () => {
+    process.env.CC_HOOK_BREAKER_THRESHOLD = "0";
+    try {
+      stub({ status: 1, stderr: "flaky" });
+      for (let i = 0; i < 6; i++) {
+        const r = runCommandHook("nogate.sh", {}, {});
+        expect(r.nonBlockingError).toBe(true);
+        expect(r.skipped).toBeUndefined();
+      }
+    } finally {
+      delete process.env.CC_HOOK_BREAKER_THRESHOLD;
+    }
   });
 });

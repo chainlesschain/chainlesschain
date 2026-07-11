@@ -117,6 +117,69 @@ function tryParseDecision(stdout) {
  *            nonBlockingError?:boolean, error?:string }}
  */
 function runCommandHook(command, input = {}, opts = {}) {
+  if (!command) {
+    return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
+  }
+  // Circuit breaker (gap 2026-07-11 P2 "Hooks 硬化"): N consecutive
+  // non-blocking failures (spawn error / timeout / non-zero non-2 exit) of
+  // the SAME command trip an open state — further runs are skipped for a
+  // cooldown, then one half-open trial runs; success (or a real block/ask
+  // decision) closes it. CC_HOOK_BREAKER_THRESHOLD=0 disables.
+  const breaker = hookBreakerConfig();
+  if (breaker.threshold > 0) {
+    const st = _breaker.get(command);
+    if (st && st.fails >= breaker.threshold) {
+      const now = Date.now();
+      if (now - st.openedAt < breaker.cooldownMs) {
+        return {
+          decision: HOOK_DECISIONS.CONTINUE,
+          reason: `hook circuit breaker open (${st.fails} consecutive failures) — skipped for cooldown`,
+          exitCode: null,
+          skipped: true,
+          breakerOpen: true,
+        };
+      }
+      // half-open: let this one trial through; the outcome below decides.
+    }
+  }
+  const result = _runCommandHookInner(command, input, opts);
+  if (breaker.threshold > 0) {
+    if (result.nonBlockingError) {
+      const st = _breaker.get(command) || { fails: 0, openedAt: 0 };
+      st.fails += 1;
+      if (st.fails >= breaker.threshold) st.openedAt = Date.now();
+      _breaker.set(command, st);
+    } else {
+      _breaker.delete(command); // success / block / ask closes the breaker
+    }
+  }
+  return result;
+}
+
+// Payload schema version (gap 2026-07-11 P2): every hook's stdin JSON carries
+// schema_version so hook scripts can branch on future payload changes.
+// Additive-only changes keep the version; a breaking reshape must bump it.
+const HOOK_PAYLOAD_SCHEMA_VERSION = 1;
+
+// command → { fails, openedAt } (per process; hooks are per-run anyway)
+const _breaker = new Map();
+
+function hookBreakerConfig(env = process.env) {
+  const threshold = Number(env.CC_HOOK_BREAKER_THRESHOLD);
+  const cooldown = Number(env.CC_HOOK_BREAKER_COOLDOWN_MS);
+  return {
+    threshold:
+      Number.isFinite(threshold) && threshold >= 0 ? Math.floor(threshold) : 3,
+    cooldownMs: Number.isFinite(cooldown) && cooldown > 0 ? cooldown : 60000,
+  };
+}
+
+/** Test seam: clear breaker state between cases. */
+function _resetHookBreaker() {
+  _breaker.clear();
+}
+
+function _runCommandHookInner(command, input = {}, opts = {}) {
   const { cwd, event } = opts;
   // spawnSync is SYNCHRONOUS — it blocks the whole agent until the hook returns
   // or its timeout fires. Node treats a 0/undefined timeout as UNLIMITED, so a
@@ -128,15 +191,15 @@ function runCommandHook(command, input = {}, opts = {}) {
     Number.isFinite(_rawTimeout) && _rawTimeout > 0
       ? Math.min(_rawTimeout, 600000)
       : 60000;
-  if (!command) {
-    return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
-  }
   const shellKind = normalizeShellKind(opts.shell);
   const usePowershell = shellKind === "powershell" || shellKind === "pwsh";
   let res;
   try {
     const common = {
-      input: JSON.stringify(input),
+      input: JSON.stringify({
+        ...input,
+        schema_version: input.schema_version ?? HOOK_PAYLOAD_SCHEMA_VERSION,
+      }),
       cwd: cwd || process.cwd(),
       encoding: "utf-8",
       timeout,
@@ -258,5 +321,8 @@ module.exports = {
   runHooks,
   tryParseDecision,
   HOOK_DECISIONS,
+  HOOK_PAYLOAD_SCHEMA_VERSION,
+  hookBreakerConfig,
+  _resetHookBreaker,
   _deps,
 };
