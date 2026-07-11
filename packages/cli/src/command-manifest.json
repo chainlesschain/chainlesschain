@@ -1,6 +1,6 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
-  "commandCount": 174,
+  "commandCount": 175,
   "commands": [
     {
       "name": "a2a",
@@ -176,6 +176,13 @@
       "module": "./commands/cli-anything.js",
       "register": "registerCliAnythingCommand",
       "summary": "CLI-Anything — discover and register Agent-native CLI tools as skills"
+    },
+    {
+      "name": "cloud",
+      "aliases": [],
+      "module": "./commands/cloud.js",
+      "register": "registerCloudCommand",
+      "summary": "Self-hosted cloud handoff — offload a task to a private runner (bundle → run → reflow)"
     },
     {
       "name": "code-intel",
