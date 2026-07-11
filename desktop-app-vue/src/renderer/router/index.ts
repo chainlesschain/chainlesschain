@@ -235,10 +235,6 @@ const enterpriseCollabPages = createRouteGroup("enterprise-collab", {
     import(
       /* webpackChunkName: "task-board" */ "../pages/tasks/TaskBoardPage.vue"
     ),
-  taskReports: () =>
-    import(
-      /* webpackChunkName: "task-reports" */ "../pages/tasks/TaskReportsPage.vue"
-    ),
   permissionSettings: () =>
     import(
       /* webpackChunkName: "perm-settings" */ "../pages/permissions/PermissionSettingsPage.vue"
@@ -995,12 +991,6 @@ const routes: RouteRecordRaw[] = [
         name: "TaskBoard",
         component: enterpriseCollabPages.taskBoard,
         meta: { title: "任务看板" },
-      },
-      {
-        path: "tasks/reports",
-        name: "TaskReports",
-        component: enterpriseCollabPages.taskReports,
-        meta: { title: "团队报告" },
       },
       // ===== 企业版: 权限和审批 =====
       {
