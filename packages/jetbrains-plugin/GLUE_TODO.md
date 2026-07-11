@@ -881,3 +881,73 @@ Refresh button that re-gathers in place). Needs a real IDE:
       "⚠ unavailable" warning entries, dialog still opens; with only one
       source broken (e.g. corrupt recent-denials store) the other sections
       still render.
+
+## 🗂 Plugin / LSP quality board (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #11. Pure core `PluginQuality` (validate/status parsers, honest
+lsp verdict derivation — unknown never fabricated, flag rules incl.
+lsp-only-not-unused and the deliberate absence of a `slow` flag, text board
+render + summary line; JUnit `PluginQualityTest` + smoke section) is verified
+headless; `compileJava` proves the glue (new "Quality" tab in
+`PluginManagerAction`, gathered off-EDT after the existing tabs). Needs a
+real IDE:
+
+- [ ] **Open.** Tools → "ChainlessChain: 管理插件与 MCP" now shows a
+      Quality tab (zh IDE: 质量看板) between Plugins and MCP servers; while
+      gathering it shows the loading line, then the board text + the counts
+      summary label.
+- [ ] **Counts.** With ≥1 runtime plugin installed the board lists each
+      plugin's non-zero component counts ("skills 2 · lsp 1"); a plugin
+      contributing nothing shows "(none)" + the `unused` flag.
+- [ ] **Broken.** A plugin whose manifest fails validate shows `✖ broken`
+      + the first errors; a plugin whose validate output can't be read
+      (e.g. dir deleted behind the store) shows "validate failed: …" +
+      "validity unknown" — NOT broken.
+- [ ] **LSP verdicts.** A trusted plugin with a resolvable LSP server shows
+      `lsp ok`; break the server binary (rename it) → `lsp unavailable`;
+      untrust the plugin → `lsp unknown` (its server is no longer
+      registered — the builtin row for the same language must NOT be used);
+      with `cc code-intel status` failing, the board header warns and all
+      lsp verdicts degrade to unknown.
+- [ ] **Per-plugin tolerance.** One plugin with a corrupt manifest must not
+      blank the section — the other rows still render.
+- [ ] **Refresh.** The dialog-level Refresh button re-gathers the board too
+      (quality fills after the three list tabs; no EDT freeze during the
+      per-plugin validate spawns).
+
+## 🗂 Remote / WSL Doctor one-click fixes (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #12. Pure core `RemoteDoctorFixes` (three-tier classification,
+strict npm allowlist, digits-validated port extraction, .ps1 generation
+invariants, .wslconfig patch; JUnit `RemoteDoctorFixesTest` + smoke section)
++ the RemoteDoctor `jb-remote-dev` info check are verified headless;
+`compileJava` proves the glue (fix buttons under the Diagnose Bridge report;
+`FileSaverDescriptor` + `FileChooserFactory.createSaveFileDialog(…).save(
+(VirtualFile) null, name)` and `TerminalToolWindowManager.createShellWidget`
+compile on 2024.2). Needs a real IDE:
+
+- [ ] **No-op case.** All-ok report → no fix buttons at all under the text.
+- [ ] **Apply safe fixes.** With an outdated cc (or cc off PATH) + stopped
+      bridge, the button lists exactly what will run in ONE confirmation
+      (npm line + restart line, zh IDE localized); Yes → the npm command
+      runs in a VISIBLE "ChainlessChain Doctor" terminal tab (never hidden
+      exec) and the bridge restarts via the existing service path with the
+      usual restarted/failed message.
+- [ ] **Terminal fallback.** With the Terminal plugin disabled, the npm fix
+      degrades to "command copied to clipboard" info message instead of
+      throwing.
+- [ ] **Save .ps1.** With the firewall advisory present (remote session +
+      unverified port), the save dialog defaults to
+      cc-ide-firewall-fix.ps1; the saved file opens in the editor, first
+      line `#Requires -RunAsAdministrator`, `$ports = @(<real port>)`, and
+      running it unelevated refuses / elevated adds the rule and a second
+      run prints "already exists - skipping". The plugin itself never runs
+      netsh.
+- [ ] **Copy .wslconfig patch.** Button copies exactly
+      `[wsl2]\nnetworkingMode=mirrored\n` and the info message names
+      %UserProfile%\.wslconfig + `wsl --shutdown`.
+- [ ] **Remote Development check.** In a JetBrains Client / remote-dev
+      frontend (system property `remote.development` or platform prefix
+      `JetBrainsClient`), the report shows the ℹ jb-remote-dev advisory
+      (install on HOST + docs link) without degrading the overall verdict;
+      on a normal local IDE the check is absent.

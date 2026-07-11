@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.PluginManager;
+import com.chainlesschain.ide.PluginQuality;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -17,22 +18,28 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Plugin / MCP manager dialog (Tools menu, P1 #7) — three tabs over the CLI's
- * --json surface: runtime plugins (trust/untrust · uninstall · add), MCP
- * servers (test-connect · remove) and a filterable read-only skills listing.
+ * Plugin / MCP manager dialog (Tools menu, P1 #7 + gap #11) — four tabs over
+ * the CLI's --json surface: runtime plugins (trust/untrust · uninstall · add),
+ * a read-only Quality board (per-plugin component counts + broken/lsp/unused
+ * flags from `plugin validate` and `code-intel status`), MCP servers
+ * (test-connect · remove) and a filterable read-only skills listing.
  * Every action shells out to the CLI off-EDT and re-lists, so the CLI store
- * stays the single source of truth. Pure core: {@link PluginManager}.
- * VS Code twin: {@code chainlesschain.plugins.manage} (webview there).
+ * stays the single source of truth. Pure cores: {@link PluginManager} +
+ * {@link PluginQuality}. VS Code twin: {@code chainlesschain.plugins.manage}
+ * (webview there).
  */
 public final class PluginManagerAction extends AnAction {
 
@@ -58,6 +65,13 @@ public final class PluginManagerAction extends AnAction {
         JLabel status = new JLabel(" ");
         JTextField skillFilter = new JTextField(18);
 
+        // ---- quality tab widgets (gap #11) --------------------------------
+        JTextArea qualityArea = new JTextArea(CcBundle.message("plugins.quality.loading"));
+        qualityArea.setEditable(false);
+        qualityArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN,
+                qualityArea.getFont().getSize()));
+        JLabel qualitySummary = new JLabel(" ");
+
         Runnable refresh = () -> {
             status.setText("loading…");
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -78,6 +92,51 @@ public final class PluginManagerAction extends AnAction {
                     applySkillFilter(skillModel, skills.get(), skillFilter.getText());
                     status.setText(plugins.get() == null && mcp.get() == null
                             ? "could not read CLI output — is cc installed?" : " ");
+                });
+                // Quality board (gap #11): per-plugin `plugin validate` +
+                // `code-intel status`. Runs after the lists so the tabs fill
+                // first; every per-plugin validate failure is tolerated and an
+                // unreadable status probe degrades the LSP flag to "unknown" —
+                // one failing source never blanks the section.
+                String lspOut = AgentChatSession.runCapture(
+                        PluginQuality.buildCodeIntelStatusArgs(), cwd, SLOW_CLI_TIMEOUT_MS);
+                List<PluginQuality.StatusServer> lspStatus =
+                        PluginQuality.parseCodeIntelStatus(lspOut);
+                Map<String, PluginQuality.Validation> validations =
+                        new LinkedHashMap<String, PluginQuality.Validation>();
+                List<Map<String, Object>> pluginRows = plugins.get();
+                if (pluginRows != null) {
+                    for (Map<String, Object> p : pluginRows) {
+                        String name = String.valueOf(p.get("name"));
+                        String dir = p.get("dir") == null ? "" : String.valueOf(p.get("dir"));
+                        if (dir.isEmpty()) {
+                            validations.put(name, PluginQuality.Validation.failure(
+                                    "no install dir reported"));
+                            continue;
+                        }
+                        String out = null;
+                        try {
+                            out = AgentChatSession.runCapture(
+                                    PluginQuality.buildPluginValidateArgs(dir),
+                                    cwd, CLI_TIMEOUT_MS);
+                        } catch (Throwable ignored) {
+                            // per-plugin tolerance — reported as failed below
+                        }
+                        PluginQuality.Validation v = PluginQuality.parsePluginValidate(out);
+                        validations.put(name, v != null ? v
+                                : PluginQuality.Validation.failure("validate produced no JSON"));
+                    }
+                }
+                List<PluginQuality.Row> qualityRows = PluginQuality.buildQualityRows(
+                        pluginRows, validations, lspStatus);
+                final String boardText =
+                        PluginQuality.describe(qualityRows, lspStatus != null);
+                final String summaryText =
+                        PluginQuality.summaryLine(qualityRows, lspStatus != null);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    qualityArea.setText(boardText);
+                    qualityArea.setCaretPosition(0);
+                    qualitySummary.setText(summaryText);
                 });
             });
         };
@@ -164,8 +223,16 @@ public final class PluginManagerAction extends AnAction {
         skillTab.add(skillTop, BorderLayout.NORTH);
         skillTab.add(new JScrollPane(skillList), BorderLayout.CENTER);
 
+        // ---- quality tab (gap #11, read-only board) -----------------------
+        JPanel qualityTab = new JPanel(new BorderLayout(4, 4));
+        JPanel qualityTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        qualityTop.add(qualitySummary);
+        qualityTab.add(qualityTop, BorderLayout.NORTH);
+        qualityTab.add(new JScrollPane(qualityArea), BorderLayout.CENTER);
+
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Plugins", pluginTab);
+        tabs.addTab(CcBundle.message("plugins.quality.tab"), qualityTab);
         tabs.addTab("MCP servers", mcpTab);
         tabs.addTab("Skills", skillTab);
 

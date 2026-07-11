@@ -2,6 +2,38 @@
 
 ## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
 
+- **Plugin / LSP quality board (gap #11).** The Plugins & MCP manager gains a
+  read-only "Quality" tab: per-plugin component counts over the 8 real
+  manifest types (skills/agents/hooks/mcp/lsp/monitors/bin/settings, from
+  `cc plugin validate <dir> --json`) plus flags — `broken` (validate errors /
+  invalid manifest), the LSP verdict from the live `cc code-intel status
+  --json` probe (`ok`/`unavailable`, and honestly `unknown` when the probe
+  can't vouch for the plugin's OWN server — untrusted plugins are never
+  judged by someone else's row) and `unused` (contributes nothing; an
+  LSP-only plugin is deliberately NOT unused). There is no fabricated `slow`
+  flag — the CLI records no timing. A counts summary line tops the board;
+  every per-plugin validate failure is tolerated (that row degrades to
+  "validity unknown") and an unreadable probe only downgrades LSP verdicts
+  to unknown. Pure `PluginQuality` core (JUnit + smoke, SDK-free); the
+  gather runs off-EDT after the existing tabs fill; en+zh localized.
+- **Remote / WSL Doctor one-click fixes (gap #12).** The Diagnose Bridge
+  report now offers a fix row (only when something is actionable): "Apply
+  safe fixes" runs the strictly-allowlisted `npm install -g
+  chainlesschain[@latest]` in a VISIBLE integrated terminal and restarts the
+  bridge via the existing IdeBridgeService path — after ONE confirmation
+  listing exactly what runs; tampered fix text NEVER executes (degrades to
+  copy-only). "Save firewall fix script (.ps1)" generates a complete,
+  deterministic, elevation-checked (`#Requires -RunAsAdministrator` first
+  line), idempotent (existing cc-ide rule per port is skipped), pure-ASCII
+  netsh script embedding nothing from the checks except digits-validated
+  ports 1–65535 — saved where the user chooses and opened for review, never
+  executed by the plugin. "Copy .wslconfig patch" puts the exact
+  `[wsl2]\nnetworkingMode=mirrored` ini on the clipboard with the target
+  path + `wsl --shutdown` note. New JB-specific check: a JetBrains Remote
+  Development / JetBrains Client frontend gets an info-level advisory that
+  the plugin must be installed on the HOST backend (docs pointer; never
+  degrades the overall verdict). Pure `RemoteDoctorFixes` core (JUnit +
+  smoke, SDK-free, injection fixtures); en+zh localized glue.
 - **Artifacts drawer (gap #9).** New Tools → "ChainlessChain: Artifacts"
   dialog browses the agent-published deliverable store (`cc artifacts list
   --json` — reports/patches/screenshots/logs published by the

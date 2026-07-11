@@ -24,11 +24,19 @@ public final class RemoteDoctor {
         public String minCliVersion;
         public int bridgePort;       // 0 = stopped
         public String portProbe;     // "listening" | "stopped" | "unknown"
+        /**
+         * JB-specific: this IDE frontend is a JetBrains Remote Development /
+         * JetBrains Client window (glue detects it via the
+         * {@code remote.development} system property / the
+         * {@code JetBrainsClient} platform prefix). Plugins execute on the
+         * HOST backend, so the plugin must be installed there.
+         */
+        public boolean remoteDevClient;
     }
 
     /** A leveled check with an optional copyable fix. */
     public static final class Check {
-        public final String level; // ok | warn | error
+        public final String level; // ok | info | warn | error
         public final String id;
         public final String title;
         public final String detail;
@@ -83,7 +91,22 @@ public final class RemoteDoctor {
 
     public static Result analyze(Signals s) {
         List<Check> checks = new ArrayList<>();
-        boolean remote = s.isWsl || s.remoteUncPath != null || s.isRemote;
+        boolean remote = s.isWsl || s.remoteUncPath != null || s.isRemote
+                || s.remoteDevClient;
+
+        if (s.remoteDevClient) {
+            // Info-level (never degrades the overall verdict): a JetBrains
+            // Remote Development frontend runs plugins on the HOST backend —
+            // installing this plugin only in the thin client does nothing.
+            checks.add(new Check("info", "jb-remote-dev",
+                    "JetBrains Remote Development client detected",
+                    "This IDE window is a Remote Development / JetBrains Client "
+                            + "frontend. Plugins execute on the HOST backend — install "
+                            + "the ChainlessChain plugin on the host (Settings on Host "
+                            + "→ Plugins), not only in this client, or the bridge and "
+                            + "chat panel won't exist where cc runs.",
+                    "Docs: https://www.jetbrains.com/help/idea/remote-development-overview.html"));
+        }
 
         if (s.isWsl || s.remoteUncPath != null) {
             checks.add(new Check("warn", "wsl-networking", "WSL2 networking",
@@ -150,6 +173,7 @@ public final class RemoteDoctor {
                 : "Remote / WSL Doctor — local session").append("\n\n");
         for (Check c : checks) {
             String icon = "ok".equals(c.level) ? "✓"
+                    : "info".equals(c.level) ? "ℹ"
                     : "warn".equals(c.level) ? "⚠" : "✗";
             sb.append(icon).append(' ').append(c.title).append('\n');
             if (c.detail != null && !c.detail.isEmpty()) {

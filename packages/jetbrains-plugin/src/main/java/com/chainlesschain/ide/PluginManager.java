@@ -91,6 +91,7 @@ public final class PluginManager {
             p.put("name", r.get("name"));
             p.put("version", str(r.get("version")));
             p.put("scope", r.get("scope") == null ? "user" : String.valueOf(r.get("scope")));
+            p.put("dir", str(r.get("dir"))); // quality board runs `plugin validate <dir>`
             p.put("ok", Boolean.TRUE.equals(r.get("ok")));
             out.add(p);
         }

