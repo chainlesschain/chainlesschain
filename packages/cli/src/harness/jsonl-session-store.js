@@ -146,6 +146,25 @@ export function appendToolCall(sessionId, toolName, args) {
   appendEvent(sessionId, "tool_call", { tool: toolName, args });
 }
 
+/**
+ * Compact tool-call record for usage attribution (用量归因): tool name +
+ * error flag (+ an optional skill hint for `run_skill`) — deliberately NOT
+ * the args, which can carry whole file bodies (write_file content) and would
+ * bloat the transcript. Written at tool-result time by the agent drivers so
+ * `cc session usage --by tool|mcp` and `cc insights` can aggregate tool use
+ * for any persisted session.
+ */
+export function appendToolCallCompact(
+  sessionId,
+  { tool, isError, skill } = {},
+) {
+  appendEvent(sessionId, "tool_call", {
+    tool: tool || "?",
+    is_error: Boolean(isError),
+    ...(skill ? { skill: String(skill) } : {}),
+  });
+}
+
 export function appendToolResult(sessionId, toolName, result) {
   appendEvent(sessionId, "tool_result", { tool: toolName, result });
 }

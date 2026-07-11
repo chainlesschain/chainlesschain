@@ -494,14 +494,20 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
         break;
       }
       case "token-usage":
-        usage.input_tokens += event.usage?.input_tokens || 0;
-        usage.output_tokens += event.usage?.output_tokens || 0;
-        // Carry prompt-cache tokens into the turn's accumulated usage so the
-        // final `result` envelope (read by IDE panels) reflects caching too.
-        usage.cache_read_input_tokens +=
-          event.usage?.cache_read_input_tokens || 0;
-        usage.cache_creation_input_tokens +=
-          event.usage?.cache_creation_input_tokens || 0;
+        // 用量归因: attributed child-loop usage (sub-agent / isolated skill)
+        // is forwarded on the stream (same wire shape) and counted toward the
+        // cost budget, but stays out of the turn's `usage` envelope, which
+        // keeps its long-standing main-loop-only semantics.
+        if (!event.attribution) {
+          usage.input_tokens += event.usage?.input_tokens || 0;
+          usage.output_tokens += event.usage?.output_tokens || 0;
+          // Carry prompt-cache tokens into the turn's accumulated usage so the
+          // final `result` envelope (read by IDE panels) reflects caching too.
+          usage.cache_read_input_tokens +=
+            event.usage?.cache_read_input_tokens || 0;
+          usage.cache_creation_input_tokens +=
+            event.usage?.cache_creation_input_tokens || 0;
+        }
         emit({ type: "token_usage", usage: event.usage });
         if (costBudget) {
           costBudget.add({

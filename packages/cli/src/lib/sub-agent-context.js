@@ -115,6 +115,14 @@ export class SubAgentContext {
     // Optional progress callback for streaming events to consumers
     this._onProgress = options.onProgress || null;
 
+    // Usage-attribution seam (用量归因): forwards the child loop's REAL
+    // provider-reported token usage to the spawner (the ~4-chars/token
+    // estimate kept in _tokenCount below is only a budget heuristic and never
+    // leaves this context). Wired by spawn_sub_agent / isolated run_skill so
+    // the parent loop can re-yield attributed `token-usage` events.
+    this._onUsage =
+      typeof options.onUsage === "function" ? options.onUsage : null;
+
     // Optional abort signal for cancellation
     this._signal = options.signal || null;
 
@@ -294,6 +302,21 @@ export class SubAgentContext {
 
       for await (const event of gen) {
         this._iterationCount++;
+
+        if (event.type === "token-usage" && this._onUsage) {
+          // Forward real usage to the spawner. A nested child's event already
+          // carries its own attribution frame — preserve it (deepest wins).
+          try {
+            this._onUsage({
+              provider: event.provider || null,
+              model: event.model || null,
+              usage: event.usage || null,
+              attribution: event.attribution || null,
+            });
+          } catch (_e) {
+            // Usage forwarding is best-effort — never break the child loop
+          }
+        }
 
         if (event.type === "tool-executing") {
           this._toolsUsed.push(event.tool);

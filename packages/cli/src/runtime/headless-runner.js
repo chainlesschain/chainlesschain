@@ -42,6 +42,7 @@ import {
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
   appendTokenUsage as jsonlAppendTokenUsage,
+  appendToolCallCompact as jsonlAppendToolCallCompact,
   appendCompactEvent as jsonlAppendCompactEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
@@ -437,6 +438,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
+    appendToolCallCompact:
+      deps.appendToolCallCompact || jsonlAppendToolCallCompact,
     appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
     verifySession: deps.verifySession || jsonlVerifySession,
@@ -1140,6 +1143,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     cache_read_input_tokens: 0,
     cache_creation_input_tokens: 0,
   };
+  // 用量归因: attributed child-loop usage (spawn_sub_agent / isolated
+  // run_skill). Kept OUT of the `usage` accumulator above so the result
+  // envelope and the end-of-run aggregate token_usage event keep their
+  // long-standing "main loop only" semantics — the attributed records are
+  // persisted as their own token_usage events instead (no double count).
+  const attributedUsage = [];
   let finalText = "";
   let endReason = "complete";
   let stopForCost = false;
@@ -1300,13 +1309,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             break;
           }
           case "token-usage": {
-            usage.input_tokens += event.usage?.input_tokens || 0;
-            usage.output_tokens += event.usage?.output_tokens || 0;
-            // Carry prompt-cache tokens into accumulated usage (cost accuracy).
-            usage.cache_read_input_tokens +=
-              event.usage?.cache_read_input_tokens || 0;
-            usage.cache_creation_input_tokens +=
-              event.usage?.cache_creation_input_tokens || 0;
+            if (event.attribution) {
+              // Child-loop (sub-agent / isolated-skill) spend: excluded from
+              // the main `usage` envelope, persisted with its attribution
+              // frame below, but still counted toward the cost budget — it
+              // is real money on the same key.
+              attributedUsage.push({
+                provider: event.provider ?? null,
+                model: event.model ?? null,
+                usage: event.usage || null,
+                attribution: event.attribution,
+              });
+            } else {
+              usage.input_tokens += event.usage?.input_tokens || 0;
+              usage.output_tokens += event.usage?.output_tokens || 0;
+              // Carry prompt-cache tokens into accumulated usage (cost accuracy).
+              usage.cache_read_input_tokens +=
+                event.usage?.cache_read_input_tokens || 0;
+              usage.cache_creation_input_tokens +=
+                event.usage?.cache_creation_input_tokens || 0;
+            }
             emitStream({ type: "token_usage", usage: event.usage });
             if (costBudget) {
               costBudget.add({
@@ -1565,6 +1587,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (persist && !isError) {
     try {
       if (finalText) store.appendAssistantMessage(sessionId, finalText);
+      // 用量归因: compact per-tool records (name + error flag + skill hint —
+      // never args) so `cc session usage --by tool|mcp` can aggregate
+      // headless sessions too.
+      for (const tc of toolCalls) {
+        store.appendToolCallCompact(sessionId, {
+          tool: tc.tool,
+          isError: Boolean(tc.is_error),
+          skill:
+            tc.tool === "run_skill" ? tc.args?.skill_name || null : undefined,
+        });
+      }
+      // Attributed child-loop usage first (chronology: it happened during
+      // the run), then the unchanged main-loop aggregate.
+      for (const au of attributedUsage) {
+        store.appendTokenUsage(sessionId, au);
+      }
       store.appendTokenUsage(sessionId, usage);
     } catch {
       // Persistence is best-effort — never fail the run over it.

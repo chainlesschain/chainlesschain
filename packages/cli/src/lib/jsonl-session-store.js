@@ -15,6 +15,7 @@ export {
   appendUserMessage,
   appendAssistantMessage,
   appendToolCall,
+  appendToolCallCompact,
   appendToolResult,
   appendCompactEvent,
   readEvents,
