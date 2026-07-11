@@ -8,7 +8,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   HEARTBEAT_STALE_MS,
+  LOG_TRUNCATION_NOTICE,
+  PID_IDENTITY_TOLERANCE_MS,
   effectiveStatus,
+  isSameProcess,
   listBackgroundSessions,
   summarizeSessions,
   formatElapsed,
@@ -28,7 +31,9 @@ function writeState(state) {
   writeFileSync(join(dir, `${state.id}.json`), JSON.stringify(state), "utf8");
 }
 
-const aliveDeps = { kill: () => true }; // pid probe: alive
+// pid probe: alive + identity unknown (null → fail-open, i.e. the legacy
+// kill(pid,0) semantics the fixtures below assume without shelling to wmic/ps)
+const aliveDeps = { kill: () => true, readProcessStartTimeMs: () => null };
 const deadDeps = {
   kill: () => {
     const e = new Error("ESRCH");
@@ -70,6 +75,80 @@ describe("effectiveStatus (display-only correction)", () => {
         { now, deps: deadDeps },
       ),
     ).toEqual({ status: "lost", lostReason: "process-exited" });
+  });
+
+  it("marks a reused pid (created after startedAt) as lost (Gap 1)", () => {
+    const now = 1_000_000;
+    // alive pid, fresh heartbeat, but the pid's owner was born long after
+    // this session started → OS pid reuse.
+    const deps = {
+      kill: () => true,
+      readProcessStartTimeMs: () => now - 100, // ~this instant, not 500s ago
+    };
+    expect(
+      effectiveStatus(
+        {
+          status: "running",
+          pid: 1,
+          startedAt: now - 500_000,
+          heartbeatAt: now,
+        },
+        { now, deps },
+      ),
+    ).toEqual({ status: "lost", lostReason: "pid-reused" });
+  });
+
+  it("keeps a reused-looking session running when the probe cannot answer (fail-open)", () => {
+    const now = 1_000_000;
+    const deps = { kill: () => true, readProcessStartTimeMs: () => null };
+    expect(
+      effectiveStatus(
+        {
+          status: "running",
+          pid: 1,
+          startedAt: now - 500_000,
+          heartbeatAt: now,
+        },
+        { now, deps },
+      ),
+    ).toEqual({ status: "running", lostReason: null });
+  });
+
+  it("isSameProcess honors the tolerance window and legacy/dead fallbacks", () => {
+    const start = 1_000_000;
+    const alive = { kill: () => true };
+    // within tolerance → same
+    expect(
+      isSameProcess(1, start, {
+        ...alive,
+        readProcessStartTimeMs: () => start + PID_IDENTITY_TOLERANCE_MS - 1,
+      }),
+    ).toBe(true);
+    // beyond tolerance → reused
+    expect(
+      isSameProcess(1, start, {
+        ...alive,
+        readProcessStartTimeMs: () => start + PID_IDENTITY_TOLERANCE_MS + 1000,
+      }),
+    ).toBe(false);
+    // no anchor → legacy (alive is enough)
+    expect(
+      isSameProcess(1, undefined, {
+        ...alive,
+        readProcessStartTimeMs: () => start + 10_000_000,
+      }),
+    ).toBe(true);
+    // dead pid → never the same process
+    expect(
+      isSameProcess(1, start, {
+        kill: () => {
+          const e = new Error("ESRCH");
+          e.code = "ESRCH";
+          throw e;
+        },
+        readProcessStartTimeMs: () => start,
+      }),
+    ).toBe(false);
   });
 
   it("passes terminal states through untouched", () => {
@@ -172,7 +251,7 @@ describe("summarize / format / log helpers", () => {
     expect(tailLog(join(dir, "missing.log"))).toBe("");
   });
 
-  it("readLogDelta streams growth and restarts on truncation", () => {
+  it("readLogDelta streams growth and, on truncation, resumes from the tail with a marker (Gap 3)", () => {
     const log = join(dir, "d.log");
     writeFileSync(log, "hello ", "utf8");
     const first = readLogDelta(log, 0);
@@ -180,8 +259,22 @@ describe("summarize / format / log helpers", () => {
     writeFileSync(log, "hello world", "utf8");
     const second = readLogDelta(log, first.offset);
     expect(second.chunk).toBe("world");
+    expect(second.truncated).toBeUndefined();
     writeFileSync(log, "new", "utf8"); // truncated/rotated
     const third = readLogDelta(log, second.offset);
-    expect(third.chunk).toBe("new");
+    expect(third.truncated).toBe(true);
+    expect(third.chunk).toContain(LOG_TRUNCATION_NOTICE);
+    expect(third.chunk).toContain("new");
+  });
+
+  it("truncation does NOT replay the whole rotated file (Gap 3 RED anchor)", () => {
+    const log = join(dir, "rot.log");
+    const big = "STALE\n".repeat(2000);
+    writeFileSync(log, big, "utf8");
+    writeFileSync(log, "AFTER\n", "utf8"); // rotated smaller
+    const out = readLogDelta(log, big.length);
+    expect(out.truncated).toBe(true);
+    expect(out.chunk).toContain("AFTER");
+    expect(out.chunk).not.toContain("STALE");
   });
 });

@@ -6,6 +6,7 @@ import {
   _deps,
   buildFollowUpArgv,
   effectiveBackgroundAgentState,
+  isSameProcess,
   launchBackgroundAgent,
   listBackgroundAgents,
   logPath,
@@ -24,15 +25,23 @@ import { existsSync } from "node:fs";
 let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
+const originalReadStart = _deps.readProcessStartTimeMs;
+const originalKillTree = _deps.killProcessTree;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
+  // Hermetic pid-identity probe: null = "unknown" → fail-open, i.e. exactly
+  // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
+  // Identity tests inject their own probe explicitly.
+  _deps.readProcessStartTimeMs = () => null;
 });
 
 afterEach(async () => {
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
+  _deps.readProcessStartTimeMs = originalReadStart;
+  _deps.killProcessTree = originalKillTree;
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
@@ -474,4 +483,240 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
   it("unknown id throws", () => {
     expect(() => removeBackgroundAgent("bg-nope")).toThrow(/not found/i);
   });
+});
+
+describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", () => {
+  it("a pid created well AFTER startedAt reconciles running → lost (pid-reused) and persists", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-reuse-a",
+      status: "running",
+      pid: process.pid, // alive — but "not our worker" per the injected probe
+      workerPid: process.pid,
+      startedAt: now - 300_000,
+      heartbeatAt: now, // fresh — loss must come from the identity check
+    });
+    // pid owner born ~290s after the recorded session start → reused
+    _deps.readProcessStartTimeMs = vi.fn(() => now - 10_000);
+
+    const s = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-reuse-a"),
+      { now },
+    );
+    expect(s.status).toBe("lost");
+    expect(s.lostReason).toBe("pid-reused");
+    expect(readBackgroundAgentState("bg-reuse-a").status).toBe("lost");
+    expect(_deps.readProcessStartTimeMs).toHaveBeenCalledWith(process.pid);
+  });
+
+  it("probe failure fails OPEN — a live worker is never declared dead by a broken probe", () => {
+    const now = Date.now();
+    const state = writeBackgroundAgentState({
+      id: "bg-reuse-open",
+      status: "running",
+      pid: process.pid,
+      startedAt: now - 300_000,
+      heartbeatAt: now,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => null);
+    const s = effectiveBackgroundAgentState(state, { now });
+    expect(s.status).toBe("running");
+    expect(s).toBe(state); // passthrough, no correction minted
+  });
+
+  it("creation time at/before startedAt (within tolerance) is the same process", () => {
+    const now = Date.now();
+    _deps.readProcessStartTimeMs = () => now - 295_000; // ~5s after start
+    expect(isSameProcess(process.pid, now - 300_000)).toBe(true);
+    _deps.readProcessStartTimeMs = () => now - 305_000; // before start
+    expect(isSameProcess(process.pid, now - 300_000)).toBe(true);
+    _deps.readProcessStartTimeMs = () => now - 100_000; // 200s later → reused
+    expect(isSameProcess(process.pid, now - 300_000)).toBe(false);
+    // dead pid is never "the same process"
+    expect(isSameProcess(999999999, now)).toBe(false);
+    // no anchor → legacy semantics (alive is enough)
+    expect(isSameProcess(process.pid, undefined)).toBe(true);
+  });
+
+  it.skipIf(process.platform !== "win32")(
+    "stop refuses to taskkill a reused pid — even when the pre-stop reconcile just passed",
+    () => {
+      const now = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-reuse-stop",
+        status: "running",
+        pid: process.pid,
+        startedAt: now - 300_000,
+        heartbeatAt: now,
+      });
+      // First identity check (effectiveBackgroundAgentState) sees our worker;
+      // the pid is reused in the gap before the kill → the last-instant
+      // re-check must catch it.
+      _deps.readProcessStartTimeMs = vi
+        .fn()
+        .mockReturnValueOnce(now - 299_000) // reconcile: same process
+        .mockReturnValue(now - 1_000); // pre-kill: reused
+      _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+
+      const result = stopBackgroundAgent("bg-reuse-stop");
+      expect(result.stopped).toBe(false);
+      expect(result.status).toBe("lost");
+      expect(result.lostReason).toBe("pid-reused");
+      expect(_deps.spawnSync).not.toHaveBeenCalled(); // no taskkill fired
+      expect(readBackgroundAgentState("bg-reuse-stop").status).toBe("lost");
+    },
+  );
+});
+
+describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
+  it("reaps the recorded agent child when the worker is lost (dead worker pid)", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-orphan-a",
+      status: "running",
+      pid: 999999999, // worker gone
+      workerPid: 999999999,
+      agentPid: process.pid, // leaked agent child, alive
+      agentStartedAt: now - 5_000,
+      startedAt: now - 60_000,
+      heartbeatAt: now,
+    });
+    _deps.readProcessStartTimeMs = vi.fn((pid) =>
+      pid === process.pid ? now - 5_000 : null,
+    );
+    _deps.killProcessTree = vi.fn(() => true);
+
+    const s = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-orphan-a"),
+      { now },
+    );
+    expect(s.status).toBe("lost");
+    expect(s.lostReason).toBe("process-exited");
+    expect(_deps.killProcessTree).toHaveBeenCalledWith(process.pid, "SIGKILL");
+  });
+
+  it("never kills without an identity anchor (no agentStartedAt → fail closed)", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-orphan-b",
+      status: "running",
+      pid: 999999999,
+      agentPid: process.pid, // alive but unverifiable
+      startedAt: now - 60_000,
+      heartbeatAt: now,
+    });
+    _deps.killProcessTree = vi.fn(() => true);
+    const s = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-orphan-b"),
+      { now },
+    );
+    expect(s.status).toBe("lost");
+    expect(_deps.killProcessTree).not.toHaveBeenCalled();
+  });
+
+  it("never kills an agent pid that was itself reused", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-orphan-c",
+      status: "running",
+      pid: 999999999,
+      agentPid: process.pid,
+      agentStartedAt: now - 100_000,
+      startedAt: now - 120_000,
+      heartbeatAt: now,
+    });
+    // agent pid owner born ~99s after the recorded agent start → reused
+    _deps.readProcessStartTimeMs = vi.fn(() => now - 1_000);
+    _deps.killProcessTree = vi.fn(() => true);
+    const s = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-orphan-c"),
+      { now },
+    );
+    expect(s.status).toBe("lost");
+    expect(_deps.killProcessTree).not.toHaveBeenCalled();
+  });
+
+  it("stop on an already-lost session still reaps the leaked agent child", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-orphan-stop",
+      status: "lost",
+      lostReason: "heartbeat-stale",
+      pid: 999999999,
+      agentPid: process.pid,
+      agentStartedAt: now - 5_000,
+      startedAt: now - 60_000,
+      endedAt: now - 1_000,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => now - 5_000);
+    _deps.killProcessTree = vi.fn(() => true);
+
+    const result = stopBackgroundAgent("bg-orphan-stop");
+    expect(result.stopped).toBe(false);
+    expect(_deps.killProcessTree).toHaveBeenCalledWith(process.pid, "SIGKILL");
+  });
+});
+
+describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
+  it("rejects prompts past the 100-entry cap with a transport error event", async () => {
+    const fakeCli = join(dir, "fake-cli-queue.mjs");
+    // Turn 1 (no -p) sleeps long so the queue stays full while we flood it;
+    // follow-up turns would exit fast (they never get to run — see reap).
+    writeFileSync(
+      fakeCli,
+      [
+        "const argv = process.argv.slice(2);",
+        'const wait = argv.includes("-p") ? 50 : 20000;',
+        "setTimeout(() => process.exit(0), wait);",
+        "",
+      ].join("\n"),
+    );
+    const state = launchBackgroundAgent({
+      argv: ["--flag-a"],
+      cwd: dir,
+      sessionId: "session-queue",
+      title: "queue cap",
+      cliEntry: fakeCli,
+      followUpArgv: ["--flag-a"],
+    });
+
+    let transport = null;
+    for (let i = 0; i < 100 && !transport; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      transport = readBackgroundAgentState(state.id)?.transport || null;
+    }
+    expect(transport?.pipe).toBeTruthy();
+
+    const { connectBackgroundSession } =
+      await import("../../src/lib/background-session-transport.js");
+    const events = [];
+    const conn = await connectBackgroundSession({
+      pipePath: transport.pipe,
+      token: transport.token,
+      onEvent: (m) => events.push(m),
+    });
+
+    for (let i = 0; i < 101; i++) {
+      conn.send({ type: "prompt", text: `queued task ${i}` });
+    }
+    const replies = () =>
+      events.filter((e) => e.type === "accepted" || e.type === "error");
+    for (let i = 0; i < 100 && replies().length < 101; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    const accepted = events.filter((e) => e.type === "accepted");
+    const errors = events.filter((e) => e.type === "error");
+    expect(accepted.length).toBe(100);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toMatch(/prompt queue full/);
+
+    conn.close();
+    // Reap the worker tree so the 20s turn + 100 queued turns never run on.
+    try {
+      stopBackgroundAgent(state.id);
+    } catch {
+      /* already gone */
+    }
+  }, 30000);
 });

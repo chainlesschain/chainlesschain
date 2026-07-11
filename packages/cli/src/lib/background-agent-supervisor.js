@@ -16,10 +16,166 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getHomeDir } from "./paths.js";
 
-export const _deps = { spawn, spawnSync };
-
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
+
+/**
+ * Pid identity tolerance (Gap 1: OS pid reuse). A pid alone does not identify
+ * a process — after the worker dies the OS can hand the same pid to an
+ * unrelated process, making `kill(pid, 0)` lie: the session shows "running"
+ * until the heartbeat goes stale and, far worse, `stopBackgroundAgent` would
+ * `taskkill /T /F` an innocent process tree. The state file records
+ * `startedAt` (launcher clock, written just before the spawn), so we compare
+ * it against the pid's REAL creation time. Reuse is one-sided: a process
+ * that took over the pid can only have been created AFTER the original
+ * worker died — i.e. noticeably later than startedAt. Creation at/before
+ * startedAt (± tolerance for clock skew and spawn latency) is our process.
+ */
+export const PID_IDENTITY_TOLERANCE_MS = 60000;
+
+const START_TIME_CACHE_TTL_MS = 10000;
+const _startTimeCache = new Map();
+
+/** CIM_DATETIME (`20260711120000.500000+480`) → epoch ms, null when unparseable. */
+export function parseCimDateToMs(raw) {
+  const m =
+    /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.(\d{6})([+-])(\d{3})$/.exec(
+      String(raw || "").trim(),
+    );
+  if (!m) return null;
+  const localAsUtc = Date.UTC(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    Number(m[4]),
+    Number(m[5]),
+    Number(m[6]),
+    Math.floor(Number(m[7]) / 1000),
+  );
+  const offsetMinutes = (m[8] === "-" ? -1 : 1) * Number(m[9]);
+  return localAsUtc - offsetMinutes * 60000;
+}
+
+/**
+ * Read a process's creation time (epoch ms) with ONE synchronous probe, or
+ * null when it cannot be determined (missing tools, permissions, platform
+ * quirks). Callers must treat null as "unknown" and FAIL OPEN to the legacy
+ * kill(pid, 0) answer — a broken probe must never declare a live worker dead
+ * (nor green-light killing a process we could not identify as ours; see the
+ * per-call-site policy).
+ */
+function defaultReadProcessStartTimeMs(pid) {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0) return null;
+  if (process.platform === "win32") {
+    // wmic first (fast, ~100-300ms); PowerShell CIM as fallback (wmic is
+    // removed from recent Windows 11 builds).
+    try {
+      const r = spawnSync(
+        "wmic",
+        [
+          "process",
+          "where",
+          `ProcessId=${target}`,
+          "get",
+          "CreationDate",
+          "/value",
+        ],
+        { windowsHide: true, encoding: "utf8", timeout: 5000 },
+      );
+      if (!r.error && r.status === 0) {
+        const m = /CreationDate=([^\r\n]+)/.exec(r.stdout || "");
+        const ms = m ? parseCimDateToMs(m[1]) : null;
+        if (ms !== null) return ms;
+      }
+    } catch {
+      /* fall through to PowerShell */
+    }
+    try {
+      const script =
+        `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${target}' -ErrorAction SilentlyContinue; ` +
+        "if ($p -and $p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() }";
+      const r = spawnSync(
+        "powershell",
+        ["-NoProfile", "-NonInteractive", "-Command", script],
+        { windowsHide: true, encoding: "utf8", timeout: 10000 },
+      );
+      if (!r.error && r.status === 0) {
+        const n = Number(String(r.stdout || "").trim());
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    } catch {
+      /* fail open below */
+    }
+    return null;
+  }
+  // POSIX: `ps -o lstart=` gives an absolute start timestamp on Linux + macOS
+  // (procps and BSD ps both support it; busybox ps does not → null → open).
+  try {
+    const r = spawnSync("ps", ["-o", "lstart=", "-p", String(target)], {
+      encoding: "utf8",
+      timeout: 5000,
+    });
+    if (!r.error && r.status === 0) {
+      const t = Date.parse(String(r.stdout || "").trim());
+      if (Number.isFinite(t) && t > 0) return t;
+    }
+  } catch {
+    /* fail open below */
+  }
+  return null;
+}
+
+/**
+ * Kill a whole process tree (Gap 2 orphan reclaim). Windows: `taskkill /T`.
+ * POSIX: negative-pid group signal (the worker spawns the agent child
+ * detached → its own group), falling back to a direct kill.
+ */
+function defaultKillProcessTree(pid, signal = "SIGKILL") {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0) return false;
+  try {
+    if (process.platform === "win32") {
+      const r = spawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
+        windowsHide: true,
+        encoding: "utf8",
+      });
+      return !r.error && r.status === 0;
+    }
+    try {
+      process.kill(-target, signal);
+      return true;
+    } catch {
+      process.kill(target, signal);
+      return true;
+    }
+  } catch {
+    return false;
+  }
+}
+
+export const _deps = {
+  spawn,
+  spawnSync,
+  readProcessStartTimeMs: defaultReadProcessStartTimeMs,
+  killProcessTree: defaultKillProcessTree,
+};
+
+/** Cached probe (default impl only — injected probes run uncached for tests). */
+function processStartTimeMs(pid) {
+  if (_deps.readProcessStartTimeMs !== defaultReadProcessStartTimeMs) {
+    const raw = _deps.readProcessStartTimeMs(pid);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const key = Number(pid);
+  const at = Date.now();
+  const hit = _startTimeCache.get(key);
+  if (hit && at - hit.at < START_TIME_CACHE_TTL_MS) return hit.value;
+  const value = defaultReadProcessStartTimeMs(key);
+  _startTimeCache.set(key, { at, value });
+  return value;
+}
 
 function nowMs(options = {}) {
   return typeof options.now === "number" ? options.now : Date.now();
@@ -136,6 +292,55 @@ export function isProcessAlive(pid) {
   }
 }
 
+/**
+ * Is the live process at `pid` the SAME process the state file recorded at
+ * `expectedStartedAtMs` — or a pid-reusing stranger? (Gap 1.)
+ *
+ * - dead pid → false (not the same process; it is no process at all)
+ * - no anchor (legacy state without startedAt) → true (legacy semantics)
+ * - probe failed → true (FAIL OPEN: never declare a live worker dead — and
+ *   never kill — on the strength of a broken probe; callers fall back to the
+ *   plain kill(pid,0) behavior this system always had)
+ * - creation time > startedAt + tolerance → false (a reuser can only be
+ *   born after the original died)
+ */
+export function isSameProcess(pid, expectedStartedAtMs, options = {}) {
+  if (!isProcessAlive(pid)) return false;
+  const expected = Number(expectedStartedAtMs);
+  if (!Number.isFinite(expected) || expected <= 0) return true;
+  const actual = processStartTimeMs(pid);
+  if (actual === null) return true;
+  const tolerance = Number.isFinite(Number(options.toleranceMs))
+    ? Number(options.toleranceMs)
+    : PID_IDENTITY_TOLERANCE_MS;
+  return actual <= expected + tolerance;
+}
+
+/**
+ * Reap a lost worker's recorded agent child (Gap 2). The worker persists
+ * `agentPid` + `agentStartedAt` per turn; when the WORKER dies (crash /
+ * pid-reuse detection) nothing used to kill that grandchild — it kept
+ * running unsupervised. Kill it, tree-wide, IF we can prove identity:
+ *
+ * - `agentStartedAt` anchor is REQUIRED — unlike the read-only liveness
+ *   probe, this path kills, so a legacy state without the anchor fails
+ *   CLOSED (no kill) rather than risking a pid-reused stranger;
+ * - with the anchor present, a failed creation-time probe fails open to the
+ *   kill (the orphan leak is the common case, reuse the rare one — and the
+ *   anchor already bounds the window to this session's lifetime).
+ *
+ * @returns {boolean} true when a kill was actually issued
+ */
+export function reclaimOrphanAgentProcess(state) {
+  const agentPid = Number(state?.agentPid);
+  if (!Number.isInteger(agentPid) || agentPid <= 0) return false;
+  if (agentPid === Number(state?.pid)) return false; // never the worker itself
+  const anchor = Number(state?.agentStartedAt);
+  if (!Number.isFinite(anchor) || anchor <= 0) return false; // fail closed
+  if (!isSameProcess(agentPid, anchor)) return false; // reused / already gone
+  return _deps.killProcessTree(agentPid, "SIGKILL") === true;
+}
+
 export function normalizeBackgroundAgentTitle(title) {
   const value = String(title || "").trim();
   if (!value) throw new Error("Background agent title cannot be empty");
@@ -164,12 +369,34 @@ export function effectiveBackgroundAgentState(state, options = {}) {
       endedAt: state.endedAt || t,
       lostReason: "process-exited",
     };
+  } else if (!isSameProcess(state.pid, state.startedAt)) {
+    // Gap 1: the pid is alive but belongs to a process created well after
+    // this session started — the OS reused the worker's pid.
+    next = {
+      ...state,
+      status: "lost",
+      endedAt: state.endedAt || t,
+      lostReason: "pid-reused",
+    };
   }
-  if (next !== state && options.persist !== false) {
-    try {
-      writeBackgroundAgentState(next);
-    } catch {
-      /* best-effort; callers still get the corrected state */
+  if (next !== state) {
+    // Gap 2: the worker is gone (dead pid or pid-reused stranger) — reap the
+    // recorded agent grandchild so a crashed worker never leaves it running
+    // unsupervised. A merely-stale heartbeat with a live, verified worker
+    // still owns its child, so isSameProcess gates the reclaim.
+    if (!isSameProcess(state.pid, state.startedAt)) {
+      try {
+        reclaimOrphanAgentProcess(state);
+      } catch {
+        /* best-effort */
+      }
+    }
+    if (options.persist !== false) {
+      try {
+        writeBackgroundAgentState(next);
+      } catch {
+        /* best-effort; callers still get the corrected state */
+      }
     }
   }
   return next;
@@ -430,6 +657,7 @@ export function launchBackgroundAgent({
     pid: null,
     workerPid: null,
     agentPid: null,
+    agentStartedAt: null,
     status: "running",
     startedAt: Date.now(),
     heartbeatAt: Date.now(),
@@ -496,7 +724,35 @@ export function readBackgroundAgentLog(id, options = {}) {
 export function stopBackgroundAgent(id) {
   const state = effectiveBackgroundAgentState(readBackgroundAgentState(id));
   if (!state) throw new Error(`Background agent not found: ${id}`);
-  if (state.status !== "running") return { ...state, stopped: false };
+  if (state.status !== "running") {
+    // Gap 2: stopping an already-lost session still reaps a leaked agent
+    // child recorded before the worker died (identity-guarded inside).
+    if (state.status === "lost") {
+      try {
+        reclaimOrphanAgentProcess(state);
+      } catch {
+        /* best-effort */
+      }
+    }
+    return { ...state, stopped: false };
+  }
+  // Gap 1: last-instant identity re-check before the kill — never
+  // taskkill/SIGTERM a pid the OS has re-assigned to an unrelated process.
+  if (!isSameProcess(state.pid, state.startedAt)) {
+    try {
+      reclaimOrphanAgentProcess(state);
+    } catch {
+      /* best-effort */
+    }
+    const lost = {
+      ...state,
+      status: "lost",
+      endedAt: Date.now(),
+      lostReason: "pid-reused",
+    };
+    writeBackgroundAgentState(lost);
+    return { ...lost, stopped: false };
+  }
   if (process.platform === "win32") {
     const killed = _deps.spawnSync(
       "taskkill",
@@ -516,6 +772,30 @@ export function stopBackgroundAgent(id) {
       process.kill(-Number(state.pid), "SIGTERM");
     } catch {
       process.kill(Number(state.pid), "SIGTERM");
+    }
+    // The worker detaches the agent child into its OWN process group (so a
+    // crashed worker's child can be group-killed) — which also means the
+    // worker-group SIGTERM above no longer reaches it. Kill the agent group
+    // explicitly, identity-guarded via its agentStartedAt anchor.
+    const agentPid = Number(state.agentPid);
+    const anchor = Number(state.agentStartedAt);
+    if (
+      Number.isInteger(agentPid) &&
+      agentPid > 0 &&
+      agentPid !== Number(state.pid) &&
+      Number.isFinite(anchor) &&
+      anchor > 0 &&
+      isSameProcess(agentPid, anchor)
+    ) {
+      try {
+        process.kill(-agentPid, "SIGTERM");
+      } catch {
+        try {
+          process.kill(agentPid, "SIGTERM");
+        } catch {
+          /* already gone */
+        }
+      }
     }
   }
   const next = {

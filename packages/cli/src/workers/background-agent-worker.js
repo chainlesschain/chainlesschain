@@ -38,6 +38,12 @@ let lastExit = { code: 0, signal: null };
 let transportState = null;
 const promptQueue = [];
 
+// Backpressure (Gap 4): an attached client can push prompts faster than
+// turns drain — an unbounded queue grows without limit and every entry is a
+// future agent turn. Past the cap the prompt is REJECTED (the transport
+// relays the throw as {type:"error", message}) instead of silently queued.
+const MAX_PROMPT_QUEUE = 100;
+
 function mergeState(patch) {
   const current = readBackgroundAgentState(job.id) || { id: job.id };
   const next = { ...current, id: job.id, ...patch };
@@ -109,12 +115,20 @@ function startTurn(argv, promptText) {
     env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
     stdio: ["ignore", log.fd, log.fd],
     windowsHide: true,
+    // POSIX: give the agent child its own process group so an orphan reclaim
+    // (worker crashed → supervisor kills the recorded agentPid) or /stop can
+    // signal the WHOLE agent tree via -pid. Windows reaps via taskkill /T.
+    detached: process.platform !== "win32",
   });
   mergeState({
     status: "running",
     phase,
     turnCount,
     agentPid: child.pid,
+    // Identity anchor for the supervisor's orphan reclaim (Gap 2): pairs
+    // with agentPid the way startedAt pairs with the worker pid, so a
+    // pid-reusing stranger is never killed in the worker's name.
+    agentStartedAt: Date.now(),
     heartbeatAt: Date.now(),
   });
   server?.broadcast({
@@ -150,7 +164,12 @@ function maybeContinue() {
   }
   if (server && server.clientCount() > 0) {
     phase = "idle";
-    mergeState({ phase, agentPid: null, heartbeatAt: Date.now() });
+    mergeState({
+      phase,
+      agentPid: null,
+      agentStartedAt: null,
+      heartbeatAt: Date.now(),
+    });
     server.broadcast({ type: "idle", turn: turnCount });
     return;
   }
@@ -188,13 +207,29 @@ async function main() {
             "this session was launched without follow-up support — start a new one with cc agent --bg",
           );
         }
+        if (promptQueue.length >= MAX_PROMPT_QUEUE) {
+          throw new Error(
+            `prompt queue full (${MAX_PROMPT_QUEUE} pending) — wait for queued turns to drain before sending more`,
+          );
+        }
         promptQueue.push(text);
         const queued = promptQueue.length;
         if (!child) maybeContinue();
         return { queued };
       },
       onStop: () => {
-        child?.kill("SIGTERM");
+        if (!child) return;
+        if (process.platform !== "win32") {
+          // The agent child is detached into its own group — signal the
+          // whole tree, not just the top-level CLI process.
+          try {
+            process.kill(-child.pid, "SIGTERM");
+          } catch {
+            child.kill("SIGTERM");
+          }
+        } else {
+          child.kill("SIGTERM");
+        }
       },
       onClientChange: (count) => {
         // Last client detached while the session is idle → nothing left to

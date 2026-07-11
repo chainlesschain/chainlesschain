@@ -13,8 +13,23 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 const HEARTBEAT_STALE_MS = 120000;
+
+// Pid identity (Gap 1: OS pid reuse — mirrors the CLI supervisor). A pid
+// alone does not identify a process: after the worker dies the OS can hand
+// the same pid to an unrelated process, so kill(pid, 0) alone would show a
+// long-dead session as "running". Reuse is one-sided — a process that took
+// over the pid can only have been created AFTER startedAt — so compare the
+// pid's real creation time against the state file's startedAt.
+const PID_IDENTITY_TOLERANCE_MS = 60000;
+const START_TIME_CACHE_TTL_MS = 10000;
+const LOG_TRUNCATION_NOTICE =
+  "--- log truncated/rotated, resuming from tail ---";
+const TRUNCATION_RESUME_TAIL_BYTES = 4096;
+
+const startTimeCache = new Map();
 
 function backgroundAgentsDir() {
   return path.join(os.homedir(), ".chainlesschain", "background-agents");
@@ -29,6 +44,120 @@ function isProcessAlive(pid, deps = {}) {
   } catch (error) {
     return error?.code === "EPERM";
   }
+}
+
+/** CIM_DATETIME (`20260711120000.500000+480`) → epoch ms, null when unparseable. */
+function parseCimDateToMs(raw) {
+  const m =
+    /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.(\d{6})([+-])(\d{3})$/.exec(
+      String(raw || "").trim(),
+    );
+  if (!m) return null;
+  const localAsUtc = Date.UTC(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    Number(m[4]),
+    Number(m[5]),
+    Number(m[6]),
+    Math.floor(Number(m[7]) / 1000),
+  );
+  const offsetMinutes = (m[8] === "-" ? -1 : 1) * Number(m[9]);
+  return localAsUtc - offsetMinutes * 60000;
+}
+
+/**
+ * One synchronous probe for a process's creation time (epoch ms); null when
+ * it cannot be determined — callers FAIL OPEN to the plain kill(pid,0)
+ * answer (this module is display-only, it never kills anything).
+ */
+function readProcessStartTimeMs(pid) {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0) return null;
+  if (process.platform === "win32") {
+    try {
+      const r = spawnSync(
+        "wmic",
+        [
+          "process",
+          "where",
+          `ProcessId=${target}`,
+          "get",
+          "CreationDate",
+          "/value",
+        ],
+        { windowsHide: true, encoding: "utf8", timeout: 5000 },
+      );
+      if (!r.error && r.status === 0) {
+        const m = /CreationDate=([^\r\n]+)/.exec(r.stdout || "");
+        const ms = m ? parseCimDateToMs(m[1]) : null;
+        if (ms !== null) return ms;
+      }
+    } catch (_err) {
+      /* fall through to PowerShell */
+    }
+    try {
+      const script =
+        `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${target}' -ErrorAction SilentlyContinue; ` +
+        "if ($p -and $p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() }";
+      const r = spawnSync(
+        "powershell",
+        ["-NoProfile", "-NonInteractive", "-Command", script],
+        { windowsHide: true, encoding: "utf8", timeout: 10000 },
+      );
+      if (!r.error && r.status === 0) {
+        const n = Number(String(r.stdout || "").trim());
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    } catch (_err) {
+      /* fail open below */
+    }
+    return null;
+  }
+  try {
+    const r = spawnSync("ps", ["-o", "lstart=", "-p", String(target)], {
+      encoding: "utf8",
+      timeout: 5000,
+    });
+    if (!r.error && r.status === 0) {
+      const t = Date.parse(String(r.stdout || "").trim());
+      if (Number.isFinite(t) && t > 0) return t;
+    }
+  } catch (_err) {
+    /* fail open below */
+  }
+  return null;
+}
+
+/** Cached probe (default impl only — an injected deps probe runs uncached). */
+function processStartTimeMs(pid, deps = {}) {
+  if (typeof deps.readProcessStartTimeMs === "function") {
+    const raw = deps.readProcessStartTimeMs(Number(pid));
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const key = Number(pid);
+  const at = Date.now();
+  const hit = startTimeCache.get(key);
+  if (hit && at - hit.at < START_TIME_CACHE_TTL_MS) return hit.value;
+  const value = readProcessStartTimeMs(key);
+  startTimeCache.set(key, { at, value });
+  return value;
+}
+
+/**
+ * Same-process check for a recorded pid. Fail-open rules match the CLI
+ * supervisor: dead pid → false; no startedAt anchor → true (legacy states);
+ * probe failure → true (never flip a live session to lost on a broken
+ * probe); creation later than startedAt + tolerance → false (pid reused).
+ */
+function isSameProcess(pid, expectedStartedAtMs, deps = {}) {
+  if (!isProcessAlive(pid, deps)) return false;
+  const expected = Number(expectedStartedAtMs);
+  if (!Number.isFinite(expected) || expected <= 0) return true;
+  const actual = processStartTimeMs(pid, deps);
+  if (actual === null) return true;
+  return actual <= expected + PID_IDENTITY_TOLERANCE_MS;
 }
 
 /**
@@ -52,6 +181,11 @@ function effectiveStatus(state, { now = Date.now(), deps } = {}) {
   }
   if (!isProcessAlive(state.pid, deps)) {
     return { status: "lost", lostReason: "process-exited" };
+  }
+  if (!isSameProcess(state.pid, state.startedAt, deps)) {
+    // Gap 1: alive pid, but created well after this session started — the
+    // OS reused the worker's pid for an unrelated process.
+    return { status: "lost", lostReason: "pid-reused" };
   }
   return { status: "running", lostReason: null };
 }
@@ -159,8 +293,9 @@ function tailLog(logFile, lines = 120) {
 
 /**
  * Read the log delta past `offset` (byte-oriented on the decoded string —
- * consistent as long as the same reader polls). Handles truncation/rotation
- * by restarting from 0.
+ * consistent as long as the same reader polls). Truncation/rotation (Gap 3):
+ * instead of restarting from 0 — which replayed the ENTIRE new file into the
+ * webview — emit an explicit marker and resume from the current tail.
  */
 function readLogDelta(logFile, offset = 0) {
   let text;
@@ -169,15 +304,25 @@ function readLogDelta(logFile, offset = 0) {
   } catch {
     return { chunk: "", offset };
   }
-  let from = offset;
-  if (from > text.length) from = 0;
+  const from = offset;
+  if (from > text.length) {
+    const start = Math.max(0, text.length - TRUNCATION_RESUME_TAIL_BYTES);
+    return {
+      chunk: `\n${LOG_TRUNCATION_NOTICE}\n${text.slice(start)}`,
+      offset: text.length,
+      truncated: true,
+    };
+  }
   return { chunk: text.slice(from), offset: text.length };
 }
 
 module.exports = {
   HEARTBEAT_STALE_MS,
+  LOG_TRUNCATION_NOTICE,
+  PID_IDENTITY_TOLERANCE_MS,
   backgroundAgentsDir,
   effectiveStatus,
+  isSameProcess,
   listBackgroundSessions,
   summarizeSessions,
   formatElapsed,

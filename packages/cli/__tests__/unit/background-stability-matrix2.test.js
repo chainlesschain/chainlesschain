@@ -53,15 +53,24 @@ import {
 let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
+const originalReadStart = _deps.readProcessStartTimeMs;
+const originalKillTree = _deps.killProcessTree;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-matrix2-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
+  // Hermetic pid-identity probe (Gap 1): null = unknown → fail-open, i.e.
+  // the legacy kill(pid,0)-only semantics the fixtures here assume (many use
+  // pid: process.pid with synthetic startedAt values). Identity-specific
+  // tests inject their own probe.
+  _deps.readProcessStartTimeMs = () => null;
 });
 
 afterEach(async () => {
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
+  _deps.readProcessStartTimeMs = originalReadStart;
+  _deps.killProcessTree = originalKillTree;
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
@@ -354,27 +363,37 @@ describe("5. status consistency — terminal-wins merge + pid reuse", () => {
     expect(s.endedAt).toBe(777);
   });
 
-  it("PINNED GAP: a reused pid with a fresh-looking heartbeat is trusted as running", () => {
-    // TODO(pid-identity): the supervisor has no startedAt-vs-process-start
-    // identity check. If the OS reuses the worker's pid for an unrelated
-    // process, the session stays "running" until the heartbeat goes stale
-    // (default 120s) — the heartbeat is the ONLY defense, so the undetectable
-    // window is bounded by CC_BACKGROUND_AGENT_HEARTBEAT_STALE_MS. This test
-    // pins the current (defenseless-within-the-window) behavior; a future fix
-    // should record process start time and compare. Do not "fix" by flipping
-    // this expectation without implementing the identity check.
+  it("GAP CLOSED (2026-07-11): a reused pid with a fresh-looking heartbeat is detected via the process-creation identity check", () => {
+    // The formerly-pinned TODO(pid-identity) gap: the supervisor now records
+    // startedAt and compares it against the pid's real creation time. A pid
+    // whose owner was created well after startedAt cannot be the worker —
+    // it is an OS pid reuse, reconciled to lost WITHIN the heartbeat window.
+    const now = Date.now();
     const state = writeBackgroundAgentState({
       id: "bg-pid-reused",
       status: "running",
       pid: process.pid, // "reused": alive, but it is not the worker
-      startedAt: Date.now() - 86_400_000, // started "yesterday"
-      heartbeatAt: Date.now(), // fresh (in reality frozen at reuse time)
+      startedAt: now - 86_400_000, // started "yesterday"
+      heartbeatAt: now, // fresh (in reality frozen at reuse time)
     });
-    expect(effectiveBackgroundAgentState(state).status).toBe("running");
-    // …and once the heartbeat crosses the stale threshold, the same state is
-    // reconciled to lost — the actual defense in force:
-    const later = effectiveBackgroundAgentState(state, {
-      now: Date.now() + 200_000,
+    // the pid's current owner was born ~24h after the recorded start
+    _deps.readProcessStartTimeMs = vi.fn(() => now - 60_000);
+    const s = effectiveBackgroundAgentState(state, { now });
+    expect(s.status).toBe("lost");
+    expect(s.lostReason).toBe("pid-reused");
+    // …while a probe that cannot answer (null) fails OPEN and leaves the
+    // heartbeat as the defense in force — never flipping a live session:
+    _deps.readProcessStartTimeMs = () => null;
+    const open = writeBackgroundAgentState({
+      id: "bg-pid-open",
+      status: "running",
+      pid: process.pid,
+      startedAt: now - 86_400_000,
+      heartbeatAt: now,
+    });
+    expect(effectiveBackgroundAgentState(open, { now }).status).toBe("running");
+    const later = effectiveBackgroundAgentState(open, {
+      now: now + 200_000,
       heartbeatStaleMs: 120_000,
     });
     expect(later.status).toBe("lost");

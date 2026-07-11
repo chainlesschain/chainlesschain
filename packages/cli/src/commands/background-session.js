@@ -103,10 +103,24 @@ async function loadSupervisor() {
   return import("../lib/background-agent-supervisor.js");
 }
 
-function readLogFromOffset(file, offset) {
+export const LOG_TRUNCATION_NOTICE =
+  "--- log truncated/rotated, resuming from tail ---";
+const TRUNCATION_RESUME_TAIL_BYTES = 4096;
+
+export function readLogFromOffset(file, offset) {
   if (!existsSync(file)) return { text: "", offset };
   const text = readFileSync(file, "utf8");
-  if (offset > text.length) offset = 0;
+  if (offset > text.length) {
+    // Gap 3: the log shrank under us (rotation/truncation). Resetting the
+    // offset to 0 used to REPLAY the entire new file into the follow stream;
+    // resume from the current tail instead, with an explicit marker.
+    const from = Math.max(0, text.length - TRUNCATION_RESUME_TAIL_BYTES);
+    return {
+      text: `\n${LOG_TRUNCATION_NOTICE}\n${text.slice(from)}`,
+      offset: text.length,
+      truncated: true,
+    };
+  }
   return { text: text.slice(offset), offset: text.length };
 }
 

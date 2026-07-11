@@ -41,15 +41,23 @@ import { groupKey } from "../../src/repl/bg-dashboard.js";
 let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
+const originalReadStart = _deps.readProcessStartTimeMs;
+const originalKillTree = _deps.killProcessTree;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-matrix-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
+  // Hermetic pid-identity probe (Gap 1): null = unknown → fail-open (legacy
+  // kill(pid,0) semantics), so pid: process.pid fixtures behave as before
+  // without shelling out to wmic/ps.
+  _deps.readProcessStartTimeMs = () => null;
 });
 
 afterEach(async () => {
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
+  _deps.readProcessStartTimeMs = originalReadStart;
+  _deps.killProcessTree = originalKillTree;
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {

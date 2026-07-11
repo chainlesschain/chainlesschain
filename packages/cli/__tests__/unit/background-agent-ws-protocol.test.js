@@ -21,6 +21,7 @@ import {
   sanitizeBackgroundSession,
 } from "../../src/gateways/ws/background-agent-protocol.js";
 import {
+  _deps,
   logPath,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
@@ -28,16 +29,22 @@ import { startBackgroundSessionServer } from "../../src/lib/background-session-t
 
 let dir;
 let servers;
+const originalReadStart = _deps.readProcessStartTimeMs;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-ws-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
   servers = [];
+  // Hermetic pid-identity probe (Gap 1): null → fail-open, so fixtures using
+  // pid: process.pid with synthetic startedAt values keep legacy semantics
+  // without shelling out to wmic/ps.
+  _deps.readProcessStartTimeMs = () => null;
 });
 
 afterEach(async () => {
   for (const server of servers) await server.close().catch(() => {});
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
+  _deps.readProcessStartTimeMs = originalReadStart;
   rmSync(dir, { recursive: true, force: true });
 });
 
