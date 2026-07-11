@@ -72,6 +72,11 @@
         "icon": "$(server-process)"
       },
       {
+        "command": "chainlesschain.sessions.workbench",
+        "title": "%cmd.sessions.workbench.title%",
+        "icon": "$(list-tree)"
+      },
+      {
         "command": "chainlesschain.remote.control",
         "title": "%cmd.remote.control.title%",
         "icon": "$(broadcast)"

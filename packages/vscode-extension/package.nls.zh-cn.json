@@ -5,6 +5,7 @@
   "cmd.ide.doctor.title": "ChainlessChain IDE：诊断桥接",
   "cmd.team.monitor.title": "ChainlessChain：团队任务监控",
   "cmd.background.agents.title": "ChainlessChain：后台 Agent 面板",
+  "cmd.sessions.workbench.title": "ChainlessChain：会话工作台（跨端会话入口）",
   "cmd.remote.control.title": "ChainlessChain：远程控制（配对手机/网页）",
   "cmd.usage.show.title": "ChainlessChain：查看 Token 用量",
   "cmd.plugins.manage.title": "ChainlessChain：管理插件与 MCP",

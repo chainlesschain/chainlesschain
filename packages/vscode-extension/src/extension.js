@@ -459,6 +459,20 @@ function activate(context) {
       } = require("./ui/background-agents-view.js");
       openBackgroundAgents(vscode);
     }),
+    // Sessions Workbench (gap #3 跨端 session 入口): one panel aggregating
+    // chat sessions (cc session list), cross-IDE session index, background
+    // agents, and remote-control hosts — with resume/attach/rename/delete/
+    // stop/continue routed to the existing flows. Resume reuses the chat
+    // view's resumeSessionId (same path /sessions and deep links take).
+    vscode.commands.registerCommand("chainlesschain.sessions.workbench", () => {
+      const { openSessionsWorkbench } = require("./ui/sessions-view.js");
+      openSessionsWorkbench(vscode, {
+        resumeChatSession: (id) => {
+          vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+          chatProvider.resumeSessionId(id);
+        },
+      });
+    }),
     // Chrome connector (P1 #8): drive `cc browse chrome` — launch a
     // debuggable Chrome (dedicated profile keeps login state), check the CDP
     // port, and capture a tab's state (console/network/DOM/screenshot) as a
@@ -1079,9 +1093,7 @@ function activate(context) {
               (f.uri?.fsPath || "").toLowerCase(),
             );
             const want = link.workspace.toLowerCase().replace(/[\\/]+$/, "");
-            const matches = open.some(
-              (p) => p.replace(/[\\/]+$/, "") === want,
-            );
+            const matches = open.some((p) => p.replace(/[\\/]+$/, "") === want);
             if (open.length && !matches) {
               vscode.window.showWarningMessage(
                 `ChainlessChain: this link targets ${link.workspace}, which isn't the open folder — ignored.`,
@@ -1104,8 +1116,9 @@ function activate(context) {
     // Auto-exec config guard (P2 #13): let the user re-scan the open workspace
     // for files that can run code without an explicit action (tasks / hooks /
     // MCP / run configs / shell profiles) on demand.
-    vscode.commands.registerCommand("chainlesschain.workspace.scanAutoExec", () =>
-      reviewWorkspaceAutoExec(vscode, context, /*fromCommand*/ true),
+    vscode.commands.registerCommand(
+      "chainlesschain.workspace.scanAutoExec",
+      () => reviewWorkspaceAutoExec(vscode, context, /*fromCommand*/ true),
     ),
     // Remote / WSL Doctor (P2 #12): diagnose the environment signals that make
     // the bridge flaky on WSL2 / Remote / SSH — mirrored networking, a missing
@@ -1231,7 +1244,13 @@ function scanWorkspaceAutoExec(vscode) {
     }
   };
   listDir(""); // root: .mcp.json, .bashrc, …
-  for (const d of [".vscode", ".idea", ".idea/runConfigurations", ".git/hooks", ".husky"]) {
+  for (const d of [
+    ".vscode",
+    ".idea",
+    ".idea/runConfigurations",
+    ".git/hooks",
+    ".husky",
+  ]) {
     listDir(d);
   }
   const { scanAutoExecConfig } = require("./auto-exec-guard.js");
