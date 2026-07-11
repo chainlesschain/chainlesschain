@@ -67,8 +67,12 @@ function tsServer() {
   };
 }
 
-// Registry of plugin-contributed servers, keyed by languageId. Wins over
-// builtins if a plugin explicitly overrides.
+// Registry of plugin-contributed servers, keyed by languageId → ordered list of
+// defs (registration order). Multiple plugins may contribute a server for the
+// same languageId/extension; they are tried in order and then fall through to
+// the builtin, so one plugin's server being uninstalled or failing to resolve
+// does NOT knock out code intelligence for that extension — the next candidate
+// (another plugin, or the builtin) still serves it.
 const pluginServers = new Map();
 // Plugin-contributed extension→languageId overrides, kept SEPARATE from the
 // builtin EXTENSION_LANGUAGE map so `_resetPluginServers` (used by
@@ -86,12 +90,18 @@ export function registerLanguageServer(def) {
   if (!def || !def.languageId || !def.command) {
     throw new Error("registerLanguageServer requires { languageId, command }");
   }
-  pluginServers.set(def.languageId, {
+  const entry = {
     id: def.id || def.command,
     bins: [def.command],
     argsFor: () => (Array.isArray(def.args) ? def.args : []),
     fromPlugin: true,
-  });
+  };
+  const existing = pluginServers.get(def.languageId) || [];
+  // De-dupe by server id so re-registering the same server (e.g. a reload)
+  // doesn't stack duplicates, but distinct plugins for one language coexist.
+  const list = existing.filter((e) => e.id !== entry.id);
+  list.push(entry);
+  pluginServers.set(def.languageId, list);
   if (Array.isArray(def.extensions)) {
     for (const ext of def.extensions) {
       pluginExtensions.set(
@@ -123,17 +133,22 @@ export function languageIdForFile(filePath) {
  * @returns {{ languageId, id, command, args } | null}
  */
 export function resolveServer(languageId, projectRoot) {
-  const def = pluginServers.get(languageId) || BUILTIN_SERVERS[languageId];
-  if (!def) return null;
-  for (const bin of def.bins) {
-    const command = resolveBin(bin, projectRoot);
-    if (command) {
-      return {
-        languageId,
-        id: def.id,
-        command,
-        args: def.argsFor(bin),
-      };
+  // Try plugin-contributed servers in registration order, then the builtin.
+  // The first candidate whose binary actually resolves wins; a plugin server
+  // that isn't installed falls through instead of shadowing the builtin.
+  const candidates = [...(pluginServers.get(languageId) || [])];
+  if (BUILTIN_SERVERS[languageId]) candidates.push(BUILTIN_SERVERS[languageId]);
+  for (const def of candidates) {
+    for (const bin of def.bins) {
+      const command = resolveBin(bin, projectRoot);
+      if (command) {
+        return {
+          languageId,
+          id: def.id,
+          command,
+          args: def.argsFor(bin),
+        };
+      }
     }
   }
   return null;
@@ -185,17 +200,29 @@ export function resolveBin(bin, projectRoot) {
 export function probeServers(projectRoot) {
   const seen = new Set();
   const out = [];
-  const all = { ...BUILTIN_SERVERS };
-  for (const [lid, def] of pluginServers) all[lid] = def;
-  for (const [languageId, def] of Object.entries(all)) {
+  // One (languageId, def) pair per candidate: every plugin server plus each
+  // builtin. Probing each independently means an unavailable plugin server is
+  // reported as its own row without hiding the builtin's availability.
+  const pairs = [];
+  for (const [languageId, defs] of pluginServers) {
+    for (const def of defs) pairs.push([languageId, def]);
+  }
+  for (const [languageId, def] of Object.entries(BUILTIN_SERVERS)) {
+    pairs.push([languageId, def]);
+  }
+  for (const [languageId, def] of pairs) {
     if (seen.has(def.id)) continue; // one row per server family
     seen.add(def.id);
-    const resolved = resolveServer(languageId, projectRoot);
+    let command = null;
+    for (const bin of def.bins) {
+      command = resolveBin(bin, projectRoot);
+      if (command) break;
+    }
     out.push({
       languageId,
       id: def.id,
-      available: Boolean(resolved),
-      command: resolved ? resolved.command : null,
+      available: Boolean(command),
+      command,
     });
   }
   return out;

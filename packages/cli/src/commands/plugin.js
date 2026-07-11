@@ -538,10 +538,61 @@ export function registerPluginCommand(program) {
 
       const counts = summarizeComponents(manifest);
 
+      // Dependency version constraints (gap P2#13): if the manifest declares
+      // `dependencies` (plugin name → semver range, plus reserved host/cc),
+      // check them against what's installed and the running cc version. Unmet
+      // deps are surfaced but do not by themselves fail structural validation —
+      // they may simply be absent in this environment.
+      let dependencyCheck = null;
+      try {
+        const rawManifest = manifest.manifestPath
+          ? JSON.parse(
+              (await import("node:fs")).readFileSync(
+                manifest.manifestPath,
+                "utf8",
+              ),
+            )
+          : {};
+        if (rawManifest && rawManifest.dependencies) {
+          const { checkPluginDependencies, formatDependencyIssues } =
+            await import("../lib/plugin-runtime/governance.js");
+          const { discoverPlugins } =
+            await import("../lib/plugin-runtime/scopes.js");
+          const { VERSION } = await import("../constants.js");
+          const installed = {};
+          try {
+            for (const p of discoverPlugins({ skipPolicy: true })) {
+              installed[p.name] = p.version;
+            }
+          } catch {
+            /* discovery best-effort */
+          }
+          const result = checkPluginDependencies(rawManifest, {
+            installed,
+            hostVersion: VERSION,
+          });
+          dependencyCheck = {
+            ok: result.ok,
+            issues: formatDependencyIssues(
+              manifest.metadata?.name || dir,
+              result,
+            ),
+            ...result,
+          };
+        }
+      } catch {
+        /* dependency inspection is best-effort */
+      }
+
       if (options.json) {
         console.log(
           JSON.stringify(
-            { ...manifest, componentCounts: counts, verification },
+            {
+              ...manifest,
+              componentCounts: counts,
+              verification,
+              dependencyCheck,
+            },
             null,
             2,
           ),
@@ -569,6 +620,17 @@ export function registerPluginCommand(program) {
           chalk.bold("\nVerification: ") +
             (verification.ok ? chalk.green("passed") : chalk.red("FAILED")),
         );
+      }
+      if (dependencyCheck) {
+        logger.log(
+          chalk.bold("\nDependencies: ") +
+            (dependencyCheck.ok
+              ? chalk.green("satisfied")
+              : chalk.yellow("unmet")),
+        );
+        for (const issue of dependencyCheck.issues) {
+          logger.log(chalk.yellow(`  ⚠ ${issue}`));
+        }
       }
       for (const w of manifest.warnings) logger.log(chalk.yellow(`  ⚠ ${w}`));
       for (const e of manifest.errors) logger.log(chalk.red(`  ✖ ${e}`));
