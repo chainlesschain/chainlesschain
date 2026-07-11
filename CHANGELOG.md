@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.159 → **0.162.160** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面**只加子命令**（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**（manifest 无需重生）。对照 `docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md`（docs 根）审计确认仍缺的 8 项全落地（commit 链 `c4533ad848..4c2e297754`）。
+>
+> ⚠️ **行为变更（升级前须知）**：① `run_code` 的 pip 依赖**默认不再自动安装**（改 opt-in，见下）；② agent 脚本默认写 OS 临时目录、不再落项目根（`persist:true` 才进项目）；③ headless/agent **退出码细化**——最大轮次→3、预算超限→4、模型错误→5、配置错误→6（成功仍 0、通用失败仍 1、hook block 仍 2、SIGINT/SIGTERM 仍 130/143）。依赖固定 exit≠0 判失败的脚本不受影响；依赖"失败必为 1"的脚本需放宽。
+
+- **确定性 Headless（A）**：新增 `--ephemeral`（resume 只读回放、零落盘）；init 事件补 `protocol_version`/`session_persistence`/`loaded_sources`/`policy_digest`/`tools_hash`/`isolation_level`（消费者可判定回放确定性与工具/策略指纹）；退出码分类（`lib/exit-codes.cjs`）；`cc agent --capabilities` 打印机读能力清单（协议版本、agent 工具集、权限模式、退出码、特性开关）后退出。
+- **依赖安装安全（B）**：`run_code` 的 pip 自动安装**默认关闭**——经 settings `runCode.autoInstall` 或 `CC_RUN_CODE_AUTO_INSTALL` 显式开启，且受 `runCode.installAllowlist`（PEP 503 归一化包名）约束，每次安装写审计 JSONL（`~/.chainlesschain/audit/`，`CC_AUDIT_DIR` 可覆盖）；agent 脚本默认写 OS 临时目录（`persist:true` 才进项目根）。系统提示词/工具契约文案已同步。
+- **凭据卫生（C）**：config `llm.apiKeyHelper`——从外部命令（→ OS 凭据库）解析 API Key，5 分钟缓存，helper 失败 **fail-closed 并告警一次**（返回 null，绝不静默替换成别的凭据）；argv `--api-key` 明文传参现给出告警（进程表/shell 历史泄露面）。
+- **沙箱严格模式（D）**：`failIfUnavailable` 此前只是声明、从不执行——现在启动期探测沙箱引擎（docker `version` / bwrap `--version`），不可用即拒绝启动（退出码 6），headless 与交互双路均生效；`isolation_level`（os-sandbox / container / policy-only）透出到 init 事件与 `sandboxSummary`，不再静默降级为"只有工具规则"。
+- **Subagent 契约（E）**：`spawn_sub_agent` 与 `.claude/agents/*.md` frontmatter 双入口新增 `disallowedTools`（从 allowedTools 减去）、`maxTurns`、`isolation:worktree`。**顺手修出一个真 bug**：`SubAgentContext._runCore` 早已算出工具白名单却从未传给 agentLoop——子代理在 LLM 面一直看到全量工具，白名单形同虚设（修=`enabledToolNames` 透传）。
+- **会话运营（F）**：`cc session rename <id> <title>`（append `session_rename` 事件，哈希链不破）+ `cc session prune --older-than <days> [--keep N] [--dry-run]`（按最后活动保留期清理，默认保最新 10）+ `cc daemon rm <id> [--force] [--keep-log]`（终态直接移除、运行中需 `--force`）。
+- **MCP 生命周期（G）**：mcp-client 处理 `notifications/tools/list_changed` + `notifications/resources/list_changed`——合并式重拉服务器工具/资源清单（刻意**不动 in-flight LLM 工具数组**，保 tool-search 缓存稳定性，追加式更新）；项目 `.mcp.json` 首用记 sha256 指纹，文件变更后 **fail-closed 拒绝加载**，需 `CC_PROJECT_MCP_TRUST=1` 或 `cc mcp trust-project` 显式重信任（防被换过的项目配置静默拉起新 MCP server）。
+- **Hooks 硬化（H）**：每个 hook 的 stdin payload 打 `schema_version`（=1，additive 变更保号、破坏性 reshape 才 bump）；连续失败熔断——同一 hook 命令连续 3 次非阻塞失败（spawn error / 超时 / 非 2 非零退出）开闸，60s 冷却后半开试跑一次，成功或真 block/ask 决策关闸（`CC_HOOK_BREAKER_THRESHOLD=0` 关闭、`CC_HOOK_BREAKER_COOLDOWN_MS` 可调）；坏 hook 不再每轮拖慢 agent。
+
 ### Added — cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.158 → **0.162.159** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。顶层命令数 **173 → 175**（新增 `cc cloud` + `cc routine`；`cc session index` 是 `session` 子命令、`/tui` `/voice` `/fast` 为 REPL-only 均不计数）。对照 `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` 14 项全落地。

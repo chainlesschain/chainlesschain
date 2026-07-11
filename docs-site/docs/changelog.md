@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）
+
+> CLI-only 发版（`chainlesschain` 0.162.159 → **0.162.160**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**。
+>
+> ⚠️ **行为变更**：① `run_code` 的 pip 依赖默认不再自动安装（改 opt-in）；② agent 脚本默认写 OS 临时目录（`persist:true` 才进项目）；③ headless/agent 退出码细化——最大轮次→3、预算→4、模型错误→5、配置错误→6（成功 0/通用失败 1/hook block 2/信号 130·143 不变）。
+
+- **确定性 Headless**：`--ephemeral`（resume 只读回放、零落盘）+ init 事件补 `protocol_version`/`session_persistence`/`loaded_sources`/`policy_digest`/`tools_hash`/`isolation_level` + 退出码分类 + `cc agent --capabilities` 机读能力清单。
+- **依赖安装安全**：pip 自动安装默认关（settings `runCode.autoInstall` / `CC_RUN_CODE_AUTO_INSTALL` 显式开）+ PEP 503 包名 allowlist + 安装审计 JSONL；agent 脚本默认写临时目录。
+- **凭据卫生**：config `llm.apiKeyHelper`（外部命令→OS 凭据库，失败 fail-closed 告警一次、绝不静默替换）+ argv `--api-key` 明文告警。
+- **沙箱严格模式**：`failIfUnavailable` 启动期强制探测引擎，不可用即拒绝启动（退出码 6，不再静默降级）+ `isolation_level`（os-sandbox/container/policy-only）透出。
+- **Subagent 契约**：`disallowedTools`/`maxTurns`/`isolation:worktree`（spawn 参数 + frontmatter 双入口）；顺手修真 bug——子代理工具白名单从未传入 LLM 面（enabledToolNames 透传）。
+- **会话运营**：`cc session rename`（append 事件、哈希链不破）+ `cc session prune --older-than/--keep/--dry-run` + `cc daemon rm [--force/--keep-log]`。
+- **MCP 生命周期**：`tools/resources list_changed` 合并式重拉（不动 in-flight LLM 工具数组，保 tool-search 缓存稳定）+ 项目 `.mcp.json` 指纹重信任（变更 fail-closed，`cc mcp trust-project` 重信任）。
+- **Hooks 硬化**：payload `schema_version`（=1）+ 连续失败熔断（3 次开闸/60s 半开，`CC_HOOK_BREAKER_THRESHOLD/COOLDOWN_MS` 可调；block 决策不计失败）。
+
 #### Added — cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）
 
 > CLI-only 发版（`chainlesschain` 0.162.158 → **0.162.159**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。顶层命令数 **173 → 175**（新增 `cc cloud` + `cc routine`；`cc session index` 是 `session` 子命令、`/tui`/`/voice`/`/fast` 为 REPL-only 均不计数）。
