@@ -14,9 +14,19 @@ Source of truth in the CLI:
 | background-session pipe | `packages/cli/src/lib/background-session-transport.js` |
 | bg-\* WS relay | `packages/cli/src/gateways/ws/background-agent-protocol.js` |
 
-Versioning: this file describes **protocol v1**. Any field/type change in the
-CLI modules above must bump `PROTOCOL_VERSION` in `src/protocol.ts` and be
-reflected here in the same commit.
+Versioning: this file describes **protocol v1**. Any BREAKING field/type
+change in the CLI modules above must bump `PROTOCOL_VERSION` in
+`src/protocol.ts` and be reflected here in the same commit. Additive
+OPTIONAL fields stay on the current version — consumers MUST tolerate
+their absence and MUST ignore unknown fields.
+
+Cross-language conformance: the fixtures under `__fixtures__/protocol/`
+(NDJSON event samples + `expected.json` UI-mapping table) are asserted by
+BOTH the TypeScript side (`__tests__/protocol-fixtures.test.ts`, which also
+drives the VS Code extension's `chat-events.js`) and the JetBrains twin
+(`packages/jetbrains-plugin/.../ProtocolFixturesTest.java` against
+`ChatEvents.java`). A protocol change lands with a fixture update in the
+same commit.
 
 ---
 
@@ -59,8 +69,8 @@ cc agent --input-format stream-json --output-format stream-json \
 | `system` (`subtype:"init"`) | `session_id` (resume id — persist this), `model`, `provider`, `permission_mode`, `tools[]`, `resumed_messages` |
 | `system` (`subtype:"end"`) | `turns` |
 | `stream_event` | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}` |
-| `tool_use` | `tool`, `args` |
-| `tool_result` | `tool`, `is_error`, `error?`, `result?` |
+| `tool_use` | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1) |
+| `tool_result` | `tool`, `is_error`, `error?`, `result?`, `id?` (pairs with the `tool_use` of the same `id`) |
 | `token_usage` | `usage:{input_tokens,output_tokens,cache_read_input_tokens,cache_creation_input_tokens}` |
 | `approval_request` | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s) |
 | `approval_resolved` | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this |
@@ -75,6 +85,23 @@ cc agent --input-format stream-json --output-format stream-json \
 | `result` | terminal per turn: `subtype:"success"\|"error"\|"blocked"\|"interrupted"`, `is_error`, `result`, `session_id`, `num_turns`, `duration_ms`, `tool_calls`, `usage`, `denials?` |
 
 Unknown `type`s MUST be ignored (forward compatibility), not treated as errors.
+
+#### 1.2.1 Additive v1 fields (`seq`, tool-call `id`)
+
+Advertised in `cc agent --capabilities` → `features.event_seq` /
+`features.tool_use_id`. Both are **optional** — consumers MUST tolerate
+their absence (older CLIs never send them) and MUST NOT change behavior
+solely because they are missing.
+
+- **`seq`** (every stdout line): 1-based, monotonically increasing emit
+  sequence number, unique within one session process. Use it to order /
+  de-duplicate relayed lines; do NOT require gap-free numbering across
+  reconnects or transports that re-frame lines.
+- **`tool_use.id` / `tool_result.id`**: per-session tool-call correlation
+  id (`tu-<n>`, 1-based). A `tool_result` carries the id of the
+  `tool_use` it settles, so UIs can pair calls without relying on
+  adjacency. Without ids, pairing stays adjacency-based (a `tool_result`
+  follows its `tool_use`), exactly as before.
 
 ### 1.3 SDK contracts built on this
 

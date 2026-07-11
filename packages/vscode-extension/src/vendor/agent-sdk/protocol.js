@@ -14,9 +14,11 @@
  * Consumers: the Node SDK client in this package, the VS Code extension,
  * the web-panel, and (as documentation) the JetBrains plugin — Kotlin
  * consumes the same wire shapes via docs/PROTOCOL.md, which is generated
- * from the same field inventory. Any field change here is a protocol
- * change: bump PROTOCOL_VERSION and update docs/PROTOCOL.md in the same
- * commit.
+ * from the same field inventory. Any BREAKING field change here is a
+ * protocol change: bump PROTOCOL_VERSION and update docs/PROTOCOL.md in
+ * the same commit. Additive OPTIONAL fields stay on the current version
+ * (consumers MUST tolerate their absence and ignore unknown fields) —
+ * mirror packages/cli/src/lib/headless-manifest.js STREAM_PROTOCOL_VERSION.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PROTOCOL_VERSION = void 0;

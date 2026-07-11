@@ -1,0 +1,16 @@
+{"type":"token_usage","usage":{"input_tokens":1200,"output_tokens":40,"cache_read_input_tokens":900},"seq":13}
+{"type":"token_usage"}
+{"type":"plan_update","active":true,"state":"reviewing","items":[{"id":"p1","title":"Edit config","tool":"write_file","impact":"medium","status":"pending"}],"risk":{"level":"medium","totalScore":4},"session_id":"sess-fx-1","seq":14}
+{"type":"plan_update","active":false}
+{"type":"compaction","stats":{"saved":1234}}
+{"type":"compaction"}
+{"type":"iteration_warning","message":"approaching turn 45/50"}
+{"type":"iteration_warning"}
+{"type":"iteration_budget_exhausted","budget":50}
+{"type":"session_error","error":"spawn cc ENOENT"}
+{"type":"raw","subtype":"provider_fallback","text":"provider fell back to ollama"}
+{"type":"stream_retry","attempt":2,"message":"API connection dropped - retrying"}
+{"type":"user","message":{"role":"user","content":"hi"},"session_id":"sess-fx-1"}
+{"type":"feedback_ack","turn_id":"t-1","kind":"positive","session_id":"sess-fx-1"}
+{"type":"resume_ack","token":"rs-1","action":"completed","session_id":"sess-fx-1"}
+{"type":"totally_new_event_v9","payload":{"x":1},"seq":42}

@@ -66,7 +66,8 @@ describe("createStreamCoalescer", () => {
     coalescer.emitTextDelta("calling ");
     coalescer.emitTextDelta("tool");
     coalescer.emit({ type: "tool_use", tool: "read_file" });
-    // The batched text run lands BEFORE the tool_use line.
+    // The batched text run lands BEFORE the tool_use line. Every line is
+    // stamped with the monotonic protocol-v1 `seq` (see test below).
     expect(lines).toEqual([
       {
         type: "stream_event",
@@ -74,9 +75,33 @@ describe("createStreamCoalescer", () => {
           type: "content_block_delta",
           delta: { type: "text_delta", text: "calling tool" },
         },
+        seq: 1,
       },
-      { type: "tool_use", tool: "read_file" },
+      { type: "tool_use", tool: "read_file", seq: 2 },
     ]);
+  });
+
+  it("stamps every emitted line with a monotonic 1-based seq (one per LINE)", () => {
+    const { coalescer, lines, fireTimer } = capture({ coalesceMs: 50 });
+    coalescer.emit({ type: "system", subtype: "init", session_id: "s" });
+    coalescer.emitTextDelta("a");
+    coalescer.emitTextDelta("b"); // batched with "a" → ONE line, ONE seq
+    fireTimer();
+    coalescer.emit({ type: "result", subtype: "success", is_error: false });
+    expect(lines.map((l) => l.seq)).toEqual([1, 2, 3]);
+    // seq is stamped at write time — a batched run consumes a single number.
+    expect(lines[1].event.delta.text).toBe("ab");
+  });
+
+  it("stampSeq:false restores the unstamped legacy output", () => {
+    const lines = [];
+    const c = createStreamCoalescer({
+      writeOut: (s) => lines.push(JSON.parse(s)),
+      coalesceMs: 0,
+      stampSeq: false,
+    });
+    c.emit({ type: "tool_use", tool: "read_file" });
+    expect(lines).toEqual([{ type: "tool_use", tool: "read_file" }]);
   });
 
   it("flushes the prior run when the delta kind changes (text → thinking)", () => {

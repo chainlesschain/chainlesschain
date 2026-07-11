@@ -1,0 +1,7 @@
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello, "}},"seq":2}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"world"}},"seq":3}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"let me check the file first"}},"seq":4}
+{"type":"result","subtype":"success","is_error":false,"result":"Hello, world","usage":{"input_tokens":12,"output_tokens":4},"seq":5}
+{"type":"result","subtype":"success","is_error":false,"result":"Second turn, no deltas"}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"signature_delta","signature":"c2ln"}}}
+{"type":"stream_event","event":{"type":"message_start"}}

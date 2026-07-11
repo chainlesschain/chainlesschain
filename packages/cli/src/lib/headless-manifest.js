@@ -162,6 +162,11 @@ export function buildAgentCapabilities() {
       interactive_approvals: true,
       permission_prompt_tool: true,
       remote_control: true,
+      // Additive protocol-v1 stream fields (agent-sdk docs/PROTOCOL.md §1.2.1):
+      // every stream-json stdout line carries a monotonic `seq`, and
+      // tool_use/tool_result lines carry a pairing `id` ("tu-<n>").
+      tool_use_id: true,
+      event_seq: true,
       mcp: {
         config_file: true,
         registry: true,

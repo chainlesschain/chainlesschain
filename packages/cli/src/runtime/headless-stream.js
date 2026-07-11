@@ -97,14 +97,23 @@ export function resolveStreamCoalesceMs(options = {}, env = {}) {
  *
  * The flush timer is `unref()`d so it never holds the process open. Pure aside
  * from the injected `writeOut`/timer seams, so it unit-tests deterministically.
+ *
+ * Every emitted NDJSON line is stamped with a monotonic 1-based `seq`
+ * (additive protocol-v1 field, agent-sdk docs/PROTOCOL.md §1.2.1) — the
+ * coalescer is the single output choke point, so numbering here covers every
+ * line including batched delta runs (one seq per LINE, not per token).
+ * `stampSeq:false` restores the unstamped legacy output.
  */
 export function createStreamCoalescer({
   writeOut,
   coalesceMs = 50,
   setTimer,
   clearTimer,
+  stampSeq = true,
 } = {}) {
-  const rawEmit = (obj) => writeOut(JSON.stringify(obj) + "\n");
+  let seq = 0;
+  const rawEmit = (obj) =>
+    writeOut(JSON.stringify(stampSeq ? { ...obj, seq: ++seq } : obj) + "\n");
   const startTimer =
     setTimer ||
     ((fn, ms) => {
@@ -446,7 +455,11 @@ export async function* readJsonLines(input, opts = {}) {
  * Run a single turn through the core agent loop, emitting NDJSON events.
  * Returns the turn outcome so the caller can grow history + the result line.
  */
-async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
+async function runTurn(
+  messages,
+  loopOptions,
+  { runLoop, emit, costBudget, nextToolUseId },
+) {
   const usage = {
     input_tokens: 0,
     output_tokens: 0,
@@ -482,16 +495,31 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   }
   for await (const event of runLoop(messages, loopOptions)) {
     switch (event.type) {
-      case "tool-executing":
-        toolCalls.push({ tool: event.tool, args: event.args });
-        emit({ type: "tool_use", tool: event.tool, args: event.args });
+      case "tool-executing": {
+        // Additive protocol-v1 correlation id ("tu-<n>", session-scoped —
+        // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
+        // echoes the same id so UIs can pair calls without adjacency.
+        const toolUseId = nextToolUseId ? nextToolUseId() : undefined;
+        toolCalls.push({ id: toolUseId, tool: event.tool, args: event.args });
+        emit({
+          type: "tool_use",
+          ...(toolUseId ? { id: toolUseId } : {}),
+          tool: event.tool,
+          args: event.args,
+        });
         break;
+      }
       case "tool-result": {
         const err = event.error || event.result?.error || null;
-        if (toolCalls.length > 0)
-          toolCalls[toolCalls.length - 1].is_error = Boolean(err);
+        // The loop runs tools serially, so this result settles the most
+        // recent tool_use (same adjacency rule the is_error attribution
+        // below has always used).
+        const lastCall =
+          toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null;
+        if (lastCall) lastCall.is_error = Boolean(err);
         emit({
           type: "tool_result",
+          ...(lastCall?.id ? { id: lastCall.id } : {}),
           tool: event.tool,
           is_error: Boolean(err),
           error: err,
@@ -1235,6 +1263,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
   let turns = 0;
   let sawError = false;
+  // Session-scoped tool-call correlation ids ("tu-<n>", additive protocol-v1
+  // field): one counter across ALL turns so ids never repeat within a session.
+  let toolUseCounter = 0;
+  const nextToolUseId = () => `tu-${++toolUseCounter}`;
   // Version-skew notice (friendly reminder): a chat-panel agent process is
   // long-lived, so if cc was updated on disk while it kept running, it's still
   // executing stale in-memory code (a fixed bug then looks "not fixed"). Checked
@@ -1735,7 +1767,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
-        { runLoop, emit, costBudget },
+        { runLoop, emit, costBudget, nextToolUseId },
       );
     } catch (err) {
       currentAbort = null;

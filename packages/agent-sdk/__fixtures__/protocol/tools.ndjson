@@ -1,0 +1,8 @@
+{"type":"tool_use","tool":"read_file","args":{"path":"src/index.js"}}
+{"type":"tool_result","tool":"read_file","is_error":false,"error":null,"result":{"content":"export {};"}}
+{"type":"tool_use","id":"tu-1","tool":"run_shell","args":{"command":"npm test"},"seq":6}
+{"type":"tool_result","id":"tu-1","tool":"run_shell","is_error":true,"error":"exit 1","result":null,"seq":7}
+{"type":"tool_result","tool":"ask_user_question","is_error":true,"error":"user_not_reachable"}
+{"type":"tool_result","tool":"ask_user_question","is_error":true,"result":{"error":"user_timeout"}}
+{"type":"tool_use","id":"tu-2","tool":"run_shell","args":{"command":"echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"seq":8}
+{"type":"tool_use","tool":"custom_tool","args":{"foo":1}}

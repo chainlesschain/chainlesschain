@@ -13,12 +13,26 @@
  * Consumers: the Node SDK client in this package, the VS Code extension,
  * the web-panel, and (as documentation) the JetBrains plugin — Kotlin
  * consumes the same wire shapes via docs/PROTOCOL.md, which is generated
- * from the same field inventory. Any field change here is a protocol
- * change: bump PROTOCOL_VERSION and update docs/PROTOCOL.md in the same
- * commit.
+ * from the same field inventory. Any BREAKING field change here is a
+ * protocol change: bump PROTOCOL_VERSION and update docs/PROTOCOL.md in
+ * the same commit. Additive OPTIONAL fields stay on the current version
+ * (consumers MUST tolerate their absence and ignore unknown fields) —
+ * mirror packages/cli/src/lib/headless-manifest.js STREAM_PROTOCOL_VERSION.
  */
 
 export const PROTOCOL_VERSION = 1;
+
+/**
+ * Additive per-line metadata (protocol v1, additive): every CLI → client
+ * stream line MAY carry `seq`, a 1-based monotonically increasing emit
+ * sequence number, unique within one session process. Consumers MUST
+ * tolerate its absence (older CLIs never send it) and MUST NOT require
+ * gap-free numbering across reconnects — it orders lines, nothing more.
+ */
+export interface StreamEventMeta {
+  /** Monotonic 1-based per-session-process emit sequence number. */
+  seq?: number;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent output events (CLI → client), one JSON object per NDJSON line
@@ -32,7 +46,7 @@ export interface TokenUsage {
 }
 
 /** First event of a session; carries the resume id. */
-export interface SystemInitEvent {
+export interface SystemInitEvent extends StreamEventMeta {
   type: "system";
   subtype: "init";
   session_id: string;
@@ -46,7 +60,7 @@ export interface SystemInitEvent {
   resumed_messages?: number;
 }
 
-export interface SystemEndEvent {
+export interface SystemEndEvent extends StreamEventMeta {
   type: "system";
   subtype: "end";
   turns?: number;
@@ -63,7 +77,7 @@ export interface ThinkingDelta {
 }
 
 /** Partial-output event (requires --include-partial-messages). */
-export interface ContentDeltaEvent {
+export interface ContentDeltaEvent extends StreamEventMeta {
   type: "stream_event";
   event: {
     type: "content_block_delta";
@@ -71,21 +85,30 @@ export interface ContentDeltaEvent {
   };
 }
 
-export interface ToolUseEvent {
+export interface ToolUseEvent extends StreamEventMeta {
   type: "tool_use";
+  /**
+   * Additive (protocol v1): per-session tool-call correlation id
+   * (`tu-<n>`, 1-based). The matching ToolResultEvent carries the SAME id.
+   * Optional — older CLIs pair by adjacency (a tool_result follows its
+   * tool_use); consumers MUST tolerate its absence.
+   */
+  id?: string;
   tool: string;
   args?: Record<string, unknown>;
 }
 
-export interface ToolResultEvent {
+export interface ToolResultEvent extends StreamEventMeta {
   type: "tool_result";
+  /** Additive (protocol v1): id of the ToolUseEvent this result settles. */
+  id?: string;
   tool: string;
   is_error?: boolean;
   error?: string | null;
   result?: unknown;
 }
 
-export interface TokenUsageEvent {
+export interface TokenUsageEvent extends StreamEventMeta {
   type: "token_usage";
   usage: TokenUsage;
 }
@@ -96,7 +119,7 @@ export interface TokenUsageEvent {
  * arrives on stdin, or the CLI-side timeout fails closed
  * (CC_APPROVAL_TIMEOUT_MS, default 120 s).
  */
-export interface ApprovalRequestEvent {
+export interface ApprovalRequestEvent extends StreamEventMeta {
   type: "approval_request";
   id: string;
   session_id?: string;
@@ -107,7 +130,7 @@ export interface ApprovalRequestEvent {
   reason: string | null;
 }
 
-export interface ApprovalResolvedEvent {
+export interface ApprovalResolvedEvent extends StreamEventMeta {
   type: "approval_resolved";
   id: string;
   approved: boolean;
@@ -117,7 +140,7 @@ export interface ApprovalResolvedEvent {
 }
 
 /** ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS=1). */
-export interface QuestionRequestEvent {
+export interface QuestionRequestEvent extends StreamEventMeta {
   type: "question_request";
   id: string;
   question: string;
@@ -126,7 +149,7 @@ export interface QuestionRequestEvent {
   session_id?: string;
 }
 
-export interface QuestionResolvedEvent {
+export interface QuestionResolvedEvent extends StreamEventMeta {
   type: "question_resolved";
   id: string;
   answer?: unknown;
@@ -134,7 +157,7 @@ export interface QuestionResolvedEvent {
   session_id?: string;
 }
 
-export interface PlanUpdateEvent {
+export interface PlanUpdateEvent extends StreamEventMeta {
   type: "plan_update";
   active?: boolean;
   state?: string | null;
@@ -148,28 +171,28 @@ export interface PlanUpdateEvent {
   risk?: { level?: string; totalScore?: number } | null;
 }
 
-export interface CompactionEvent {
+export interface CompactionEvent extends StreamEventMeta {
   type: "compaction";
   [key: string]: unknown;
 }
 
-export interface StreamRetryEvent {
+export interface StreamRetryEvent extends StreamEventMeta {
   type: "stream_retry";
   [key: string]: unknown;
 }
 
-export interface IterationWarningEvent {
+export interface IterationWarningEvent extends StreamEventMeta {
   type: "iteration_warning";
   message?: string;
 }
 
-export interface IterationBudgetExhaustedEvent {
+export interface IterationBudgetExhaustedEvent extends StreamEventMeta {
   type: "iteration_budget_exhausted";
   budget?: number;
 }
 
 /** Non-protocol stdout or provider fallback / version-skew notices. */
-export interface RawEvent {
+export interface RawEvent extends StreamEventMeta {
   type: "raw";
   subtype?: string;
   text?: string;
@@ -179,7 +202,7 @@ export interface RawEvent {
 export type ResultSubtype = "success" | "error" | "blocked" | "interrupted";
 
 /** Terminal event of one turn. */
-export interface ResultEvent {
+export interface ResultEvent extends StreamEventMeta {
   type: "result";
   subtype: ResultSubtype;
   is_error: boolean;
@@ -193,17 +216,17 @@ export interface ResultEvent {
 }
 
 /** Echo of an accepted input turn (--replay-user-messages). */
-export interface UserEchoEvent {
+export interface UserEchoEvent extends StreamEventMeta {
   type: "user";
   [key: string]: unknown;
 }
 
-export interface FeedbackAckEvent {
+export interface FeedbackAckEvent extends StreamEventMeta {
   type: "feedback_ack";
   [key: string]: unknown;
 }
 
-export interface ResumeAckEvent {
+export interface ResumeAckEvent extends StreamEventMeta {
   type: "resume_ack";
   [key: string]: unknown;
 }

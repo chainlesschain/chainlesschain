@@ -486,4 +486,77 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     expect(opts[0].model).toBe("base-model"); // unchanged
     expect(opts[0].enabledToolNames).toBeNull(); // base (no allow-list)
   });
+
+  // ── Additive protocol-v1 stream fields (PROTOCOL.md §1.2.1) ───────────────
+
+  const parseEmitted = (lines) =>
+    lines
+      .join("")
+      .trimEnd()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+
+  it("stamps every output line with a strictly monotonic 1-based seq", async () => {
+    const agentLoop = async function* () {
+      yield { type: "tool-executing", tool: "read_file", args: { path: "a" } };
+      yield { type: "tool-result", tool: "read_file", result: { ok: true } };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+
+    const events = parseEmitted(deps._lines);
+    // init … tool_use / tool_result / result … system end — EVERY line.
+    expect(events.length).toBeGreaterThanOrEqual(5);
+    expect(events.map((e) => e.seq)).toEqual(
+      events.map((_, i) => i + 1), // 1, 2, 3, … with no gaps or repeats
+    );
+  });
+
+  it("pairs tool_use and tool_result with the same session-unique tu-<n> id", async () => {
+    const agentLoop = async function* (messages) {
+      const turn = messages.filter((m) => m.role === "user").length;
+      yield {
+        type: "tool-executing",
+        tool: "read_file",
+        args: { path: `f${turn}` },
+      };
+      yield { type: "tool-result", tool: "read_file", result: { ok: turn } };
+      yield {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "ls" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "run_shell",
+        error: "exit 1",
+        result: null,
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input(
+        { type: "user", text: "one" },
+        { type: "user", text: "two" },
+      ),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+
+    const events = parseEmitted(deps._lines);
+    const uses = events.filter((e) => e.type === "tool_use");
+    const dones = events.filter((e) => e.type === "tool_result");
+    expect(uses).toHaveLength(4); // 2 tools × 2 turns
+    expect(dones).toHaveLength(4);
+    // Each result carries the id of the tool_use it settles…
+    expect(uses.map((u) => u.id)).toEqual(dones.map((d) => d.id));
+    // …and ids are session-unique across turns (counter never resets).
+    expect(uses.map((u) => u.id)).toEqual(["tu-1", "tu-2", "tu-3", "tu-4"]);
+  });
 });

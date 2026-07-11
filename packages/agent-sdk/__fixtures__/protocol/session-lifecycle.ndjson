@@ -1,0 +1,10 @@
+{"type":"system","subtype":"init","protocol_version":1,"session_id":"sess-fx-1","model":"claude-sonnet-4-5","provider":"anthropic","permission_mode":"default","tools":["read_file","write_file","run_shell"],"input_format":"stream-json","resumed_messages":0,"seq":1}
+{"type":"system","subtype":"init","session_id":"sess-fx-min"}
+{"type":"system","subtype":"end","turns":2,"seq":99}
+{"type":"result","subtype":"success","is_error":false,"result":"Done.","session_id":"sess-fx-1","turn":1,"usage":{"input_tokens":100,"output_tokens":25},"seq":9}
+{"type":"result","subtype":"success","is_error":false,"result":"Second"}
+{"type":"result","subtype":"error","is_error":true,"error":"boom","result":"partial output"}
+{"type":"result","subtype":"error","is_error":true,"result":"failed output"}
+{"type":"result","subtype":"error","is_error":true}
+{"type":"result","subtype":"blocked","is_error":true,"result":"blocked by UserPromptSubmit hook","session_id":"sess-fx-1"}
+{"type":"result","subtype":"interrupted","is_error":false,"interrupted":true,"session_id":"sess-fx-1","turn":3}
