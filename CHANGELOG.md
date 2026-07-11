@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.158 → **0.162.159** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。顶层命令数 **173 → 175**（新增 `cc cloud` + `cc routine`；`cc session index` 是 `session` 子命令、`/tui` `/voice` `/fast` 为 REPL-only 均不计数）。对照 `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` 14 项全落地。
+
+- **`cc cloud`（P1#7）自托管 cloud handoff**：`cc cloud run/status/attach/list`——`git bundle`（base64）当前分支上传到配置的私有 runner（`cloud.baseUrl`/`cloud.token` 或 `CC_CLOUD_URL`/`CC_CLOUD_TOKEN`），runner 完成后 `cc cloud attach` 轮询到终态并 `git apply --3way` 回流 patch、落 plan/artifacts、显示 PR——无 Anthropic 云依赖。本地 job 台账 `~/.chainlesschain/cloud-jobs/`（穿越守卫），不落地的 patch 存旁不失败。
+- **`/tui`（P1#10）全屏无闪烁视图**：`/tui fullscreen` 进备用屏缓冲（`?1049h`，保滚动历史）+ 尾锚定视口窗口化 + diff 重绘（仅改动行光标寻址重写，无整屏清屏→无闪烁）；`/tui default` 退回流式滚动；`CC_NO_FLICKER=1` 启动即全屏；屏幕阅读器模式强制 default。持久化 `cli.tuiMode`。
+- **`/voice`（P2#11）语音听写**：`/voice hold|tap|off`（hold=按住说话，tap=切换）；严格 local-first STT 优先级（本地 Whisper > 系统 STT > 云，云需 `voice.allowCloud` 显式开）；SSH/无 TTY/CI/`CC_NO_VOICE` 环境清晰降级不假装监听；真实采集是主机绑定 DI seam。
+- **`/fast`（P2#12）延迟档**：`/fast on|off|status`——下一轮最小化推理（thinking off）+ 除非用户 `/model` 钉过模型否则换到 provider 的低延迟模型（anthropic→haiku-4-5、openai→4o-mini、deepseek/dashscope/mistral/gemini），始终显示成本/质量权衡。持久化 `cli.fastMode`。
+- **插件治理（P2#13）三项**：manifest `dependencies`（插件名→semver 区间 + 保留 `host`/`cc` 约束 CLI 版本）经 `cc plugin validate` 校验缺失/越界依赖；LSP 注册表改**每 languageId 有序候选表**——一个插件 LSP server 二进制缺失不再遮蔽 builtin（回退到下一候选/内建，扩展名不再"变黑"）；`isPluginInUse` 把 LSP/MCP/hooks/monitors 被动组件视为 in-use，不再被"未调用即弃用"误判。
+- **`cc session index`（P2#14）外部 session 存储**：JSONL 仍是权威源，新增 SQLite 索引（`~/.chainlesschain/session-index.db`）——增量按 mtime+size 同步 + 内容/标题搜索（LIKE 转义通配符）+ stats + `--rebuild`，取代逐文件解析（1072 真 session 验过）；可插拔 off-box mirror（`fs`/`http` 驱动，S3/WebDAV/Redis 同接口待配），`session.mirror.{kind,dir|baseUrl,token}` 配置，加密/访问控制由驱动独立负责。
+- **P0/P1 早前提交同随本版发出**：`cc bg view` 交互式 agent 面板（P0#1）+ background supervisor 稳定性加固（P0#2）+ `/doctor` 可修复 checkup + `/checkup` 别名（P0#3）+ transcript hash-chain 防篡改 `cc session verify`（P0#4）+ Inbound Channels（webhook/telegram allowlist，P0#5）+ computer-use MCP 显式开启（P1#6）+ Routines（cron/once/webhook/github，P1#8）+ PR/session linking（P1#9）。
+
 ### Added — cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control + web-panel 直连配对/审批卡片 + 交付物预览下载（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.157 → **0.162.158** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + web-panel dist 随包；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数不变（**173**）；AGENT_TOOLS **24 → 25**（新增 `browser_state`）。
