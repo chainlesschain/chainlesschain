@@ -7,9 +7,25 @@
  *
  * The usage store records no per-event timestamps, so windows bucket by each
  * SESSION's last-activity time — an approximation the report states openly.
- * Attribution by skill/subagent/plugin (Claude-Code parity) needs CLI-side
- * event tagging and is out of the IDE's hands.
+ *
+ * Usage attribution (用量归因): newer CLIs additionally return an ADDITIVE
+ * `attribution` section on `cc session usage --json` (byOrigin / bySkill /
+ * bySubagent roll-ups + per-tool / MCP-server call counts with a
+ * turn-approximated token figure). When present it is rendered as extra
+ * report sections plus derived high-cost hints; when absent (old CLI) the
+ * report output is byte-identical to the pre-attribution renderer.
  */
+
+/** Max rows rendered per attribution table before folding into "others". */
+const ATTRIBUTION_MAX_ROWS = 10;
+/** Sub-agent-heavy hint: subagent share of attributed tokens above this. */
+const SUBAGENT_SHARE_HINT_THRESHOLD = 0.4;
+/** Cache-miss hint: cacheRead below this fraction of input tokens… */
+const CACHE_MISS_MAX_READ_RATIO = 0.25;
+/** …but only once input volume is large enough for the ratio to mean much. */
+const CACHE_MISS_MIN_INPUT_TOKENS = 10000;
+/** Long-context hint: average input tokens per LLM call above this. */
+const LONG_CONTEXT_AVG_INPUT_TOKENS = 50000;
 
 function buildUsageArgs(limit = 1000) {
   return ["session", "usage", "--json", "--limit", String(limit)];
@@ -47,6 +63,34 @@ function parseSessionListJson(text) {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Tolerant normalization of the CLI's additive `attribution` section.
+ * Returns null when the section is absent/malformed (old CLI) so the
+ * renderer can keep the legacy output byte-identical.
+ */
+function normalizeAttribution(a) {
+  if (!a || typeof a !== "object") return null;
+  const rows = (arr) =>
+    Array.isArray(arr) ? arr.filter((r) => r && typeof r === "object") : [];
+  const tools = a.tools && typeof a.tools === "object" ? a.tools : {};
+  return {
+    byOrigin: rows(a.byOrigin),
+    bySkill: rows(a.bySkill),
+    bySubagent: rows(a.bySubagent),
+    tools: {
+      totalCalls: num(tools.totalCalls),
+      totalErrors: num(tools.totalErrors),
+      byTool: rows(tools.byTool),
+      byMcpServer: rows(tools.byMcpServer),
+    },
+  };
+}
 
 /**
  * Join usage with session metadata and bucket by last-activity windows.
@@ -98,6 +142,8 @@ function summarizeUsage({ usage, sessions = [], now = Date.now() } = {}) {
       last30d: strip(windows.last30d),
     },
     topSessions: perSession.slice(0, 10),
+    // Additive: null on old CLIs, which keeps the report byte-identical.
+    attribution: normalizeAttribution(usage.attribution),
   };
 }
 
@@ -107,6 +153,202 @@ function strip({ totalTokens, calls, sessions }) {
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-US");
+}
+
+/**
+ * Derive one-line high-cost hints from the summary. Only computed when the
+ * CLI reported an attribution section (new CLI), and each hint only fires
+ * when the fields it reads actually exist — no guessing on old data.
+ */
+function deriveUsageHints(summary) {
+  const hints = [];
+  if (!summary || !summary.attribution) return hints;
+
+  // 1. Sub-agent-heavy: subagent share of attributed tokens.
+  const byOrigin = summary.attribution.byOrigin;
+  const attributedTotal = byOrigin.reduce((n, r) => n + num(r.totalTokens), 0);
+  const sub = byOrigin.find((r) => r.origin === "subagent");
+  if (sub && attributedTotal > 0) {
+    const share = num(sub.totalTokens) / attributedTotal;
+    if (share > SUBAGENT_SHARE_HINT_THRESHOLD) {
+      hints.push(
+        `Sub-agent-heavy: ${(share * 100).toFixed(0)}% of attributed tokens (${fmt(sub.totalTokens)} of ${fmt(attributedTotal)}) came from sub-agents (threshold ${SUBAGENT_SHARE_HINT_THRESHOLD * 100}%) — review spawn_sub_agent fan-out if unintended.`,
+      );
+    }
+  }
+
+  // 2. High cache-miss: only when the provider reports cache fields at all.
+  const t = summary.total || {};
+  if (
+    typeof t.cacheReadTokens === "number" &&
+    typeof t.cacheCreationTokens === "number" &&
+    t.cacheReadTokens + t.cacheCreationTokens > 0
+  ) {
+    const input = num(t.inputTokens);
+    if (
+      input >= CACHE_MISS_MIN_INPUT_TOKENS &&
+      num(t.cacheReadTokens) < CACHE_MISS_MAX_READ_RATIO * input
+    ) {
+      const pct = input > 0 ? ((num(t.cacheReadTokens) / input) * 100).toFixed(1) : "0";
+      hints.push(
+        `High cache-miss: only ${fmt(t.cacheReadTokens)} cache-read vs ${fmt(input)} input tokens (${pct}%, threshold ${CACHE_MISS_MAX_READ_RATIO * 100}%) — stable prompt prefixes may not be cache-aligned.`,
+      );
+    }
+  }
+
+  // 3. Long-context sessions: average input per LLM call.
+  const calls = num(t.calls);
+  if (typeof t.inputTokens === "number" && calls > 0) {
+    const avg = num(t.inputTokens) / calls;
+    if (avg > LONG_CONTEXT_AVG_INPUT_TOKENS) {
+      hints.push(
+        `Long-context: average input per LLM call is ${fmt(Math.round(avg))} tokens (threshold ${fmt(LONG_CONTEXT_AVG_INPUT_TOKENS)}) — consider compacting or splitting long sessions.`,
+      );
+    }
+  }
+
+  return hints;
+}
+
+/** Split rows into top-N + the folded remainder (null when under the cap). */
+function capRows(rows, max = ATTRIBUTION_MAX_ROWS) {
+  if (!Array.isArray(rows) || rows.length <= max)
+    return { top: rows || [], others: null };
+  return { top: rows.slice(0, max), others: rows.slice(max) };
+}
+
+function sumBy(rows, key) {
+  return rows.reduce((n, r) => n + num(r[key]), 0);
+}
+
+const TURN_TOKENS_CAVEAT =
+  "_Turn tokens ≈ is an approximation: every token_usage event in a turn is" +
+  " attributed to EVERY tool that ran in that turn, so a turn's tokens count" +
+  " once per distinct tool/server — do not sum that column across rows (it is" +
+  " not a partition)._";
+
+/** Markdown lines for the attribution sections (attribution known present). */
+function attributionToLines(summary) {
+  const a = summary.attribution;
+  const lines = [];
+
+  // ── By origin ──
+  lines.push("## By origin", "");
+  if (a.byOrigin.length === 0) {
+    lines.push("_No attributed token_usage events recorded._");
+  } else {
+    const total = sumBy(a.byOrigin, "totalTokens");
+    lines.push(
+      "| Origin | Tokens | Share | In | Out | Calls |",
+      "| --- | ---: | ---: | ---: | ---: | ---: |",
+    );
+    for (const r of a.byOrigin) {
+      const share =
+        total > 0 ? `${((num(r.totalTokens) / total) * 100).toFixed(1)}%` : "—";
+      lines.push(
+        `| ${escapeCell(r.origin || "?")} | ${fmt(r.totalTokens)} | ${share} | ${fmt(r.inputTokens)} | ${fmt(r.outputTokens)} | ${fmt(r.calls)} |`,
+      );
+    }
+  }
+
+  // ── By skill ──
+  lines.push("", "## By skill", "");
+  if (a.bySkill.length === 0) {
+    lines.push("_No skill-attributed usage (isolated skill runs) recorded._");
+  } else {
+    lines.push(
+      "| Skill | Tokens | In | Out | Calls |",
+      "| --- | ---: | ---: | ---: | ---: |",
+    );
+    const { top, others } = capRows(a.bySkill);
+    for (const r of top) {
+      lines.push(
+        `| ${escapeCell(r.skill || "?")} | ${fmt(r.totalTokens)} | ${fmt(r.inputTokens)} | ${fmt(r.outputTokens)} | ${fmt(r.calls)} |`,
+      );
+    }
+    if (others) {
+      lines.push(
+        `| _…${others.length} more_ | ${fmt(sumBy(others, "totalTokens"))} | ${fmt(sumBy(others, "inputTokens"))} | ${fmt(sumBy(others, "outputTokens"))} | ${fmt(sumBy(others, "calls"))} |`,
+      );
+    }
+  }
+
+  // ── By sub-agent ──
+  lines.push("", "## By subagent", "");
+  if (a.bySubagent.length === 0) {
+    lines.push("_No sub-agent-attributed usage recorded._");
+  } else {
+    lines.push(
+      "| Sub-agent | Role | Origin | Tokens | Calls |",
+      "| --- | --- | --- | ---: | ---: |",
+    );
+    const { top, others } = capRows(a.bySubagent);
+    for (const r of top) {
+      lines.push(
+        `| ${escapeCell(r.subagentId || "?")} | ${escapeCell(r.role || "")} | ${escapeCell(r.origin || "?")} | ${fmt(r.totalTokens)} | ${fmt(r.calls)} |`,
+      );
+    }
+    if (others) {
+      lines.push(
+        `| _…${others.length} more_ | | | ${fmt(sumBy(others, "totalTokens"))} | ${fmt(sumBy(others, "calls"))} |`,
+      );
+    }
+  }
+
+  // ── Tool calls ──
+  lines.push("", "## Tool calls", "");
+  if (a.tools.byTool.length === 0) {
+    lines.push("_No tool_call events recorded._");
+  } else {
+    lines.push(
+      `**${fmt(a.tools.totalCalls)} calls · ${fmt(a.tools.totalErrors)} errors** across ${fmt(a.tools.byTool.length)} tool(s).`,
+      "",
+      "| Tool | MCP server | Calls | Errors | Turn tokens ≈ |",
+      "| --- | --- | ---: | ---: | ---: |",
+    );
+    const { top, others } = capRows(a.tools.byTool);
+    for (const r of top) {
+      lines.push(
+        `| ${escapeCell(r.tool || "?")} | ${escapeCell(r.mcpServer || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+      );
+    }
+    if (others) {
+      // turnTokens is per-row non-summable (see caveat) → never totalled.
+      lines.push(
+        `| _…${others.length} more_ | | ${fmt(sumBy(others, "calls"))} | ${fmt(sumBy(others, "errors"))} | — |`,
+      );
+    }
+    if (a.tools.byMcpServer.length > 0) {
+      lines.push(
+        "",
+        "### MCP servers",
+        "",
+        "| Server | Calls | Errors | Turn tokens ≈ |",
+        "| --- | ---: | ---: | ---: |",
+      );
+      const servers = capRows(a.tools.byMcpServer);
+      for (const r of servers.top) {
+        lines.push(
+          `| ${escapeCell(r.server || "?")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+        );
+      }
+      if (servers.others) {
+        lines.push(
+          `| _…${servers.others.length} more_ | ${fmt(sumBy(servers.others, "calls"))} | ${fmt(sumBy(servers.others, "errors"))} | — |`,
+        );
+      }
+    }
+    lines.push("", TURN_TOKENS_CAVEAT);
+  }
+
+  // ── Hints ──
+  const hints = deriveUsageHints(summary);
+  if (hints.length > 0) {
+    lines.push("", "## Hints", "");
+    for (const h of hints) lines.push(`- ${h}`);
+  }
+
+  return lines;
 }
 
 /** Render the summary as the markdown report the command previews. */
@@ -163,11 +405,17 @@ function usageToMarkdown(summary) {
       );
     }
   }
-  lines.push(
-    "",
-    "_Per-skill / per-subagent / per-plugin attribution needs CLI-side event tagging (not recorded yet)._",
-    "",
-  );
+  if (summary.attribution) {
+    // New CLI (attribution section present): render the 用量归因 sections.
+    lines.push("", ...attributionToLines(summary), "");
+  } else {
+    // Old CLI: keep the legacy tail byte-identical.
+    lines.push(
+      "",
+      "_Per-skill / per-subagent / per-plugin attribution needs CLI-side event tagging (not recorded yet)._",
+      "",
+    );
+  }
   return lines.join("\n");
 }
 
@@ -176,14 +424,23 @@ function row(label, w) {
 }
 
 function escapeCell(s) {
+  // Newlines/backticks would break the table row; pipes would open new cells.
   return String(s || "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/`/g, "\\`")
     .replace(/\|/g, "\\|")
     .slice(0, 60);
 }
 
 module.exports = {
+  ATTRIBUTION_MAX_ROWS,
+  CACHE_MISS_MAX_READ_RATIO,
+  CACHE_MISS_MIN_INPUT_TOKENS,
+  LONG_CONTEXT_AVG_INPUT_TOKENS,
+  SUBAGENT_SHARE_HINT_THRESHOLD,
   buildSessionListArgs,
   buildUsageArgs,
+  deriveUsageHints,
   parseSessionListJson,
   parseUsageJson,
   summarizeUsage,
