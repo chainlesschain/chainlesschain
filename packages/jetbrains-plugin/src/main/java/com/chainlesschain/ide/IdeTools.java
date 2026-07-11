@@ -19,14 +19,27 @@ public final class IdeTools {
         return build(editor, null);
     }
 
+    public static List<Tool> build(EditorFacade editor, SemanticTools.SemanticFacade semantics) {
+        return build(editor, semantics, null);
+    }
+
     /**
      * Build the tool set; when a {@link SemanticTools.SemanticFacade} is
      * provided (IntelliJ glue with PSI available), the semantic tools
      * (getHover / goToDefinition / findReferences / renamePreview /
      * getCallHierarchy / getSymbolInfo / getProjectModel) are exposed too —
      * same conditional-registration pattern as getTerminalOutput below.
+     *
+     * <p>When {@code workspaceRoots} is non-null, the path-taking tools
+     * (openDiff / openMultiDiff / getDiagnostics) enforce the
+     * {@link IdePathGuard} workspace boundary — agent-supplied paths outside
+     * every root (traversal, UNC, other directories) are refused with the
+     * tools' existing error shape (an exception the MCP server surfaces as an
+     * isError result, never a transport crash). A null roots list preserves
+     * the historical unguarded behavior for pure-logic test hosts.
      */
-    public static List<Tool> build(EditorFacade editor, SemanticTools.SemanticFacade semantics) {
+    public static List<Tool> build(EditorFacade editor, SemanticTools.SemanticFacade semantics,
+                                   List<String> workspaceRoots) {
         List<Tool> tools = new ArrayList<>();
 
         tools.add(new BaseTool(
@@ -58,6 +71,14 @@ public final class IdeTools {
                 schemaWithOptionalPath()) {
             @Override public Object call(Map<String, Object> args) {
                 String path = args == null ? null : (String) args.get("path");
+                if (path != null && !path.isEmpty() && workspaceRoots != null) {
+                    IdePathGuard.Result g = IdePathGuard.validate(path, workspaceRoots);
+                    if (!g.ok) {
+                        throw new IllegalArgumentException(
+                                "getDiagnostics: unsafe read path rejected: " + g.reason);
+                    }
+                    path = g.resolved;
+                }
                 List<Map<String, Object>> diags = editor.getDiagnostics(path);
                 Map<String, Object> out = new LinkedHashMap<>();
                 out.put("diagnostics", diags == null ? new ArrayList<>() : diags);
@@ -94,15 +115,25 @@ public final class IdeTools {
                 if (!(path instanceof String) || !(modified instanceof String)) {
                     throw new IllegalArgumentException("openDiff requires `path` and `modifiedText`");
                 }
+                // Write-capable tool: the target must live inside the workspace.
+                String safePath = (String) path;
+                if (workspaceRoots != null) {
+                    IdePathGuard.Result g = IdePathGuard.validate(safePath, workspaceRoots);
+                    if (!g.ok) {
+                        throw new IllegalArgumentException(
+                                "openDiff: unsafe write target rejected: " + g.reason);
+                    }
+                    safePath = g.resolved;
+                }
                 Map<String, Object> res = editor.openDiff(
-                        (String) path,
+                        safePath,
                         (String) modified,
                         (String) args.get("originalText"),
                         (String) args.get("title"));
                 if (res != null) return res;
                 Map<String, Object> fallback = new LinkedHashMap<>();
                 fallback.put("outcome", "rejected");
-                fallback.put("path", path);
+                fallback.put("path", safePath);
                 return fallback;
             }
         });
@@ -126,8 +157,20 @@ public final class IdeTools {
                         Object p = m.get("path");
                         Object mod = m.get("modifiedText");
                         if (!(p instanceof String) || !(mod instanceof String)) continue;
+                        // Write-capable tool: EVERY target must live inside the
+                        // workspace — one bad path rejects the whole batch.
+                        String safePath = (String) p;
+                        if (workspaceRoots != null) {
+                            IdePathGuard.Result g = IdePathGuard.validate(safePath, workspaceRoots);
+                            if (!g.ok) {
+                                throw new IllegalArgumentException(
+                                        "openMultiDiff: unsafe write target rejected ("
+                                                + safePath + "): " + g.reason);
+                            }
+                            safePath = g.resolved;
+                        }
                         Object orig = m.get("originalText");
-                        changes.add(new MultiDiff.FileChange((String) p, (String) mod,
+                        changes.add(new MultiDiff.FileChange(safePath, (String) mod,
                                 orig instanceof String ? (String) orig : null));
                     }
                 }

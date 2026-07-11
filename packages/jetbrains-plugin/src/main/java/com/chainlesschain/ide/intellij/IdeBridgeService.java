@@ -56,17 +56,19 @@ public final class IdeBridgeService implements Disposable {
             // preview/call hierarchy/symbol info/project model) — conditional
             // registration, same as the terminal/preview tools.
             PsiSemanticFacade semantics = new PsiSemanticFacade(project);
-            server = new McpServer(IdeTools.build(facade, semantics), token);
+            // Workspace roots computed BEFORE the tools are built: they bound
+            // where the path-taking tools (openDiff / openMultiDiff /
+            // getDiagnostics) may operate (IdePathGuard).
+            List<String> folders = new ArrayList<>();
+            String base = project.getBasePath();
+            if (base != null) folders.add(base);
+            server = new McpServer(IdeTools.build(facade, semantics, folders), token);
             // Record every tool call for the "Show Activity" dialog. Fires on a
             // pooled server thread; ActivityLog is synchronized.
             server.setActivityListener((tool, ok, args) -> activity.record(
                     System.currentTimeMillis(), "tool", tool, ok,
                     ActivityLog.summarizeArgs(tool, args)));
             port = server.start("127.0.0.1", 0);
-
-            List<String> folders = new ArrayList<>();
-            String base = project.getBasePath();
-            if (base != null) folders.add(base);
 
             long pid = ProcessHandle.current().pid();
             lockfile.write(port, token, folders, server.url(), System.currentTimeMillis(), pid);

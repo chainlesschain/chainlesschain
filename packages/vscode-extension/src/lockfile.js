@@ -17,7 +17,67 @@ const _deps = {
   // signal-0 existence probe (overridable in tests). Throws ESRCH for a dead
   // pid, EPERM for a live one we don't own.
   kill: (pid, sig) => process.kill(pid, sig),
+  // ACL tightening seam (overridable in tests — real ACL changes are not
+  // unit-testable cross-platform).
+  platform: () => process.platform,
+  env: () => process.env,
+  spawnSync: (cmd, args, opts) =>
+    require("child_process").spawnSync(cmd, args, opts),
 };
+
+// Warn at most once per session when ACL tightening fails — the bridge must
+// still start (fail-open), but a hardened setup should be diagnosable.
+const _aclWarnState = { warned: false };
+
+function _warnAclOnce(detail) {
+  if (_aclWarnState.warned) return;
+  _aclWarnState.warned = true;
+  try {
+    console.warn(
+      `[chainlesschain-ide] failed to tighten lockfile ACL (token stays ` +
+        `chmod-protected only, which is a no-op on Windows): ${detail}`,
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Windows: the POSIX 0600/0700 modes below are a no-op on NTFS, so the bearer
+ * token in the lockfile stays readable by other local users. Tighten with an
+ * explicit ACL: strip inherited entries, then grant only the current user
+ * full control (`icacls <p> /inheritance:r /grant:r <user>:F` — array argv,
+ * so a USERNAME with spaces is safe). Strictly fail-open: a missing or
+ * failing icacls must NEVER block bridge startup.
+ *
+ * @returns {boolean} true when the ACL was tightened
+ */
+function _tightenWindowsAcl(target) {
+  if (_deps.platform() !== "win32") return false;
+  try {
+    const user = _deps.env().USERNAME;
+    if (!user) {
+      _warnAclOnce("USERNAME is not set");
+      return false;
+    }
+    const r = _deps.spawnSync(
+      "icacls",
+      [target, "/inheritance:r", "/grant:r", `${user}:F`],
+      { stdio: "ignore", windowsHide: true, timeout: 10000 },
+    );
+    if (!r || r.error || r.status !== 0) {
+      _warnAclOnce(
+        (r && r.error && r.error.message) ||
+          `icacls exited with status ${r && r.status}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (e) {
+    _warnAclOnce((e && e.message) || String(e));
+    return false;
+  }
+}
 
 /** True if `pid` names a live process (EPERM = alive but not ours). */
 function _isProcessAlive(pid) {
@@ -71,6 +131,7 @@ function writeLock({
   } catch {
     /* best-effort */
   }
+  _tightenWindowsAcl(dir); // chmod is a no-op on Windows — see helper
   const file = path.join(dir, `${port}.json`);
   const lock = {
     ide,
@@ -92,6 +153,7 @@ function writeLock({
   } catch {
     /* best-effort */
   }
+  _tightenWindowsAcl(file); // the file carries the bearer token
   return file;
 }
 
@@ -150,4 +212,6 @@ module.exports = {
   removeLock,
   pruneStaleLocks,
   _deps,
+  _tightenWindowsAcl,
+  _aclWarnState,
 };

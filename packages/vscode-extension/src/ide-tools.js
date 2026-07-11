@@ -27,8 +27,81 @@
  */
 
 const { buildSemanticTools } = require("./semantic-tools");
+const { validateIdeToolPath } = require("./ide-path-guard");
 
-function buildIdeTools(editor) {
+/**
+ * Resolve the workspace folders that bound where the path-taking IDE tools
+ * (openDiff / openMultiDiff / getDiagnostics) may operate. Priority:
+ *   1. options.getWorkspaceFolders — explicit injection (tests, other hosts)
+ *   2. editor.getWorkspaceFolders() — facades that expose folders directly
+ *   3. editor.lsp.workspaceRoots() — the VS Code facade's semantic capability
+ *   4. the live `vscode` API — lazy require so this module stays vscode-free
+ *      and unit-testable outside a VS Code host
+ * Returns an array of folder paths, [] when a provider exists but no folder
+ * is open (fail-closed: everything is rejected), or null when NO provider is
+ * reachable at all — only pure-logic test hosts hit that, and they keep the
+ * historical unguarded behavior.
+ */
+async function resolveWorkspaceFolders(editor, options) {
+  if (typeof options.getWorkspaceFolders === "function") {
+    try {
+      const v = await options.getWorkspaceFolders();
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return []; // provider exists but failed → fail-closed
+    }
+  }
+  if (editor && typeof editor.getWorkspaceFolders === "function") {
+    try {
+      const v = await editor.getWorkspaceFolders();
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  }
+  if (editor && editor.lsp && typeof editor.lsp.workspaceRoots === "function") {
+    try {
+      const roots = await editor.lsp.workspaceRoots();
+      return (Array.isArray(roots) ? roots : [])
+        .map((r) => (typeof r === "string" ? r : r && r.path))
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  try {
+    // eslint-disable-next-line global-require -- only resolvable inside a VS
+    // Code extension host; unit tests fall through to the catch.
+    const vscode = require("vscode");
+    const folders = vscode?.workspace?.workspaceFolders;
+    if (!Array.isArray(folders)) return [];
+    return folders.map((f) => f?.uri?.fsPath).filter(Boolean);
+  } catch {
+    return null; // no boundary provider (pure-logic host)
+  }
+}
+
+function buildIdeTools(editor, options = {}) {
+  /**
+   * Enforce the workspace path boundary for a tool-supplied path. Returns the
+   * resolved path to forward to the facade; throws an Error (which the MCP
+   * server surfaces as an isError result — same shape as the existing
+   * argument-validation throws, never a transport crash) when the path is
+   * outside the workspace. `access` distinguishes the read/write wording.
+   */
+  async function guardToolPath(rawPath, access, tool) {
+    const folders = await resolveWorkspaceFolders(editor, options);
+    if (folders === null) return rawPath; // no boundary provider (see above)
+    const v = validateIdeToolPath(rawPath, folders);
+    if (!v.ok) {
+      throw new Error(
+        access === "read"
+          ? `${tool}: unsafe read path rejected: ${v.reason}`
+          : `${tool}: unsafe write target rejected: ${v.reason}`,
+      );
+    }
+    return v.resolved;
+  }
   return [
     {
       name: "getSelection",
@@ -78,7 +151,11 @@ function buildIdeTools(editor) {
         },
       },
       handler: async (args = {}) => {
-        const diags = await editor.getDiagnostics({ path: args.path });
+        let scopePath = args.path;
+        if (scopePath !== undefined && scopePath !== null && scopePath !== "") {
+          scopePath = await guardToolPath(scopePath, "read", "getDiagnostics");
+        }
+        const diags = await editor.getDiagnostics({ path: scopePath });
         return { diagnostics: Array.isArray(diags) ? diags : [] };
       },
     },
@@ -131,14 +208,16 @@ function buildIdeTools(editor) {
         if (!args.path || typeof args.modifiedText !== "string") {
           throw new Error("openDiff requires `path` and `modifiedText`");
         }
+        // Write-capable tool: the target must live inside the workspace.
+        const safePath = await guardToolPath(args.path, "write", "openDiff");
         const res = await editor.openDiff({
-          path: args.path,
+          path: safePath,
           modifiedText: args.modifiedText,
           originalText: args.originalText,
           title: args.title,
         });
         // Fail-safe: a facade that returns nothing is treated as "not applied".
-        return res || { outcome: "rejected", path: args.path };
+        return res || { outcome: "rejected", path: safePath };
       },
     },
     // Conditional: batch multi-file diff review. Only exposed when the facade
@@ -195,8 +274,20 @@ function buildIdeTools(editor) {
                   "openMultiDiff requires a non-empty `files` array",
                 );
               }
+              // Write-capable tool: EVERY target must live inside the
+              // workspace — one bad path rejects the whole batch (no partial
+              // silent drop).
+              const safeFiles = [];
+              for (const f of args.files) {
+                const safePath = await guardToolPath(
+                  f && f.path,
+                  "write",
+                  "openMultiDiff",
+                );
+                safeFiles.push({ ...f, path: safePath });
+              }
               const res = await editor.openMultiDiff({
-                files: args.files,
+                files: safeFiles,
                 title: args.title,
               });
               return res || { outcome: "rejected" };
