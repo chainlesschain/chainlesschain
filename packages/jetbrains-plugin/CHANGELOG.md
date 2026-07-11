@@ -2,6 +2,33 @@
 
 ## [Unreleased] — Sessions workbench + PSI-backed semantic tools (2026-07-11)
 
+- **Artifacts drawer (gap #9).** New Tools → "ChainlessChain: Artifacts"
+  dialog browses the agent-published deliverable store (`cc artifacts list
+  --json` — reports/patches/screenshots/logs published by the
+  `publish_artifact` tool): searchable, kind-filterable metadata table
+  (title/kind/human size/MIME/relative created — payload bytes are never read
+  for listing), with per-row actions derived from previewability: Open puts
+  text and images into the IDE editor (it has an image viewer) and sends HTML
+  to the external browser, Reveal in folder / Copy path always work, and
+  Remove confirms then runs `cc artifacts remove <id>` off-EDT and refreshes.
+  Binary artifacts (zip/pdf) get reveal/copy only. Parsing (tolerant of
+  malformed JSON), filtering, previewability classification and action
+  derivation live in the pure `Artifacts` core (JUnit + smoke, SDK-free);
+  the list load and every cc spawn run off-EDT; en+zh localized.
+- **Permissions and Policy viewer (gap #10).** New Tools → "ChainlessChain:
+  Permissions and Policy" read-only monospace dialog joins the four cc policy
+  surfaces off-EDT: the merged `permissions.{allow,ask,deny}` ruleset grouped
+  deny→ask→allow with each rule's source file and managed-policy badges
+  (`cc permissions list --json`), recent policy denials most-recent first
+  with count/mode/relative time (`cc permissions recent --json`), the
+  auto-mode risk→decision matrix plus fine-grained `autoMode.decisions`
+  rules and customized/defaults classifier state (`cc auto-mode config
+  --json`), and the built-in decision precedence chain (`cc auto-mode
+  defaults`). A summary counts line tops the view; a Refresh button
+  re-gathers in place; a failed or malformed source degrades to a warning
+  entry while the other sections still render. All parsing/shaping/rendering
+  lives in the pure `PolicyViewer` core (JUnit + smoke, SDK-free); en+zh
+  localized.
 - **Unified Sessions Workbench tool window (gap #3).** New "ChainlessChain
   Sessions" tool window (Tools → "ChainlessChain: Sessions Workbench")
   aggregates every session surface into one searchable table: saved chat

@@ -806,3 +806,78 @@ tool window id `ChainlessChain Sessions`) needs a real IDE:
 - [ ] **Failure tolerance.** Rename `cc` off the PATH (or point ccPath at a
       bogus binary) → the chat + remote sources degrade to warning rows at the
       top, background + ide rows still render, no dialog spam, no EDT freeze.
+
+## 🗂 Artifacts drawer (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #9. Pure core `Artifacts` (list JSON parsing / newest-first
+shaping / kind+query filter / previewability classification / action
+derivation / human size / stored-path derivation; JUnit `ArtifactsTest` +
+smoke section) is verified headless; `compileJava` proves the SDK glue
+(`intellij/ArtifactsAction`, dialog form like BackgroundAgentsAction —
+deliberately NOT a tool window) compiles, incl. `RevealFileAction.openFile`,
+`LocalFileSystem.refreshAndFindFileByNioFile` and `BrowserUtil.browse(File)`
+on 2024.2. Needs a real IDE:
+
+- [ ] **Open.** Tools → "ChainlessChain: Artifacts" opens the dialog; with
+      ≥1 published artifact (`cc agent` publish_artifact or copy a row into
+      `~/.chainlesschain/artifacts/index.jsonl` + `files/`) the table shows
+      Title/Kind/Size/MIME/Created, newest first; zh IDE shows localized
+      menu item, buttons, column headers and count note.
+- [ ] **Filter.** Kind combo narrows to one kind; search field filters
+      title/id/mime/source-path case-insensitively; count note updates
+      "{shown} of {total}".
+- [ ] **Buttons enable per row.** Markdown/log/json/png rows → Open enabled;
+      html row → Open enabled (external); zip/pdf row → Open disabled,
+      Reveal/Copy/Remove still enabled; no selection → all row actions
+      disabled.
+- [ ] **Open (text).** A .md/.log artifact opens read-write in the IDE
+      editor from `artifacts/files/<id><ext>` (the stored copy, NOT the
+      sourcePath).
+- [ ] **Open (image).** A .png artifact opens in the IDE image viewer.
+- [ ] **Open (html).** An .html artifact opens in the system browser.
+- [ ] **Reveal / Copy path.** Reveal selects the stored copy in
+      Explorer/Finder; Copy path puts the absolute stored path on the
+      clipboard (note line echoes it).
+- [ ] **Remove.** Confirm dialog → `cc artifacts remove <id>` runs off-EDT,
+      the note shows the CLI JSON, and the row disappears on the follow-up
+      refresh; `cc artifacts list` no longer shows the id.
+- [ ] **Missing payload.** Delete a stored file behind the index row →
+      Open/Reveal show the "Stored file not found" note instead of throwing.
+- [ ] **Failure tolerance.** cc off the PATH → dialog still opens, note
+      shows the load-failed message, no EDT freeze; CC_ARTIFACTS_DIR override
+      is honored for Open/Reveal/Copy (paths must match the CLI's).
+
+## 🗂 Permissions & Policy viewer (unreleased) — code-complete, NOT yet runIde-verified (2026-07-11)
+
+Gap-analysis #10. Pure core `PolicyViewer` (permissions-list / recent-denials
+/ auto-mode-config / auto-mode-defaults parsing, malformed → null, describe()
+per-source failure tolerance, summary counts line; JUnit `PolicyViewerTest` +
+smoke section) is verified headless; `compileJava` proves the glue
+(`intellij/PolicyViewerAction`, ShowUsageAction-style monospace dialog + a
+Refresh button that re-gathers in place). Needs a real IDE:
+
+- [ ] **Open.** Tools → "ChainlessChain: Permissions and Policy" shows the
+      dialog with the summary line first ("permissions: X allow / Y ask /
+      Z deny · N recent denials · auto-mode: …"), then the four sections;
+      zh IDE shows the localized menu item / title / Refresh button.
+- [ ] **Rules.** With rules in `.claude/settings.json` (+ `--user`/`--local`
+      layers) the ruleset renders grouped deny → ask → allow, each rule
+      showing its source file; with a managed policy file present the
+      "[managed]" badge and the active restriction lines appear.
+- [ ] **Denials.** After an agent run hits a deny rule, `cc permissions
+      recent` entries render most-recent first with tool + summary + xN
+      count + via:rule + mode + relative time and the reason line.
+- [ ] **Auto-mode.** With `autoMode.decisions` customized in settings the
+      matrix shows the overridden decisions with source `settings`, the
+      fine-grained tool/commandPattern rules render above the matrix, and
+      `classifyAllShell` reflects the effective value; unconfigured shows
+      "trusted policy (defaults)".
+- [ ] **Precedence.** The chain renders managed-settings >
+      permission-rules.deny > … > hooks (from `cc auto-mode defaults`).
+- [ ] **Refresh.** Add a rule via `cc permissions add …` while the dialog is
+      open → Refresh re-gathers off-EDT (button disabled while in flight)
+      and the new rule appears; no EDT freeze during the 4 cc spawns.
+- [ ] **Failure tolerance.** cc off the PATH → all four sections degrade to
+      "⚠ unavailable" warning entries, dialog still opens; with only one
+      source broken (e.g. corrupt recent-denials store) the other sections
+      still render.

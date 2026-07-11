@@ -73,6 +73,8 @@ public final class PureLogicSmokeMain {
         remoteDoctor();
         semanticTools();
         sessionsWorkbench();
+        artifacts();
+        policyViewer();
         bundleParity();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
@@ -1579,6 +1581,137 @@ public final class PureLogicSmokeMain {
         eq(cols.length, SessionsWorkbench.COLUMN_COUNT, "wb column count");
         eq(cols[1], "Fix bug", "wb title column");
         check(cols[2].contains("approval"), "wb approval surfaced in status column");
+    }
+
+    /**
+     * Artifacts — the artifacts drawer core (gap #9): list JSON parsing (incl.
+     * malformed tolerance), newest-first shaping, kind+query filtering, human
+     * size, previewability classification and per-row action derivation.
+     */
+    private static void artifacts() {
+        System.out.println("Artifacts:");
+        final long now = 1_800_000_000_000L;
+        List<Artifacts.Row> rows = Artifacts.parseList(
+                "{\"artifacts\":[{\"id\":\"art_a\",\"title\":\"Report\","
+                        + "\"kind\":\"report\",\"mime\":\"text/markdown\",\"size\":2048,"
+                        + "\"sha256\":\"abc\",\"sourcePath\":\"C:/t/r.md\","
+                        + "\"file\":\"art_a.md\",\"sessionId\":\"s1\","
+                        + "\"createdAt\":\"2026-07-01T00:00:00Z\","
+                        + "\"expiresAt\":\"2026-07-31T00:00:00Z\"},"
+                        + "{\"id\":\"art_b\",\"title\":\"Shot\",\"kind\":\"screenshot\","
+                        + "\"mime\":\"image/png\",\"size\":512,\"file\":\"art_b.png\","
+                        + "\"createdAt\":\"2026-07-10T00:00:00Z\"}]}");
+        eq(rows.size(), 2, "art list parsed");
+        eq(rows.get(0).id, "art_b", "art newest first");
+        eq(rows.get(1).sessionId, "s1", "art session carried");
+        eq(Artifacts.parseList("not json {{").size(), 0, "art malformed tolerated");
+        eq(Artifacts.parseList("{}").size(), 0, "art missing array tolerated");
+        eq(Artifacts.parseList("[{\"title\":\"no id\"}]").size(), 0, "art no-id skipped");
+
+        eq(Artifacts.filter(rows, "", "report").size(), 1, "art kind filter");
+        eq(Artifacts.filter(rows, "SHOT", null).size(), 1, "art query ci filter");
+        eq(Artifacts.filter(rows, "zzz", "").size(), 0, "art filter miss");
+
+        eq(Artifacts.formatSize(512), "512 B", "art size bytes");
+        eq(Artifacts.formatSize(1536), "1.5 KB", "art size kb");
+        eq(Artifacts.formatSize(5L * 1024 * 1024), "5.0 MB", "art size mb");
+
+        eq(Artifacts.previewClass("text/markdown", "a.md"), "text", "art md text");
+        eq(Artifacts.previewClass("image/png", "a.png"), "image", "art png image");
+        eq(Artifacts.previewClass("text/html", "a.html"), "html", "art html");
+        eq(Artifacts.previewClass("application/zip", "a.zip"), "binary", "art zip binary");
+        eq(Artifacts.previewClass("application/octet-stream", "run.log"), "text",
+                "art ext fallback");
+
+        eq(Artifacts.actionsFor(rows.get(1)), Arrays.asList("openInEditor",
+                "revealInFolder", "copyPath", "remove"), "art text actions");
+        Artifacts.Row html = new Artifacts.Row("h", "t", "report", "text/html",
+                1, "", "", "h.html", "", now, 0);
+        check(Artifacts.actionsFor(html).contains("openExternal"), "art html external");
+        check(!Artifacts.actionsFor(html).contains("openInEditor"), "art html no editor");
+
+        String[] cols = Artifacts.toColumns(rows.get(1), rows.get(1).createdAt + 120_000L);
+        eq(cols.length, Artifacts.COLUMN_COUNT, "art column count");
+        eq(cols[2], "2.0 KB", "art size column");
+        eq(cols[4], "2m ago", "art relative time column");
+        check(Artifacts.describe(rows.get(1), now).contains("sha256: abc"),
+                "art describe sha");
+        check(Artifacts.storedPath("C:/store", rows.get(1)).endsWith("art_a.md"),
+                "art stored path");
+        eq(Artifacts.defaultArtifactsDir("C:/x", "C:/home"), "C:/x", "art env override");
+        eq(Artifacts.buildRemoveArgs("a"), Arrays.asList("artifacts", "remove", "a", "--json"),
+                "art remove args");
+    }
+
+    /**
+     * PolicyViewer — the permission/policy viewer core (gap #10): payload
+     * parsing (permissions list / recent denials / auto-mode config +
+     * defaults), malformed → null, describe() per-source failure tolerance
+     * and the counts summary line.
+     */
+    private static void policyViewer() {
+        System.out.println("PolicyViewer:");
+        final long now = 1_800_000_000_000L;
+        PolicyViewer.PermissionsSection perm = PolicyViewer.parsePermissions(
+                "{\"rules\":{\"allow\":[\"Read\"],\"ask\":[],\"deny\":[\"Bash(rm:*)\"]},"
+                        + "\"sources\":{\"deny:Bash(rm:*)\":\".claude/settings.json\"},"
+                        + "\"files\":[\".claude/settings.json\"],"
+                        + "\"managed\":{\"requireSignedPlugins\":true},"
+                        + "\"managedFile\":\"C:/m.json\"}");
+        check(perm != null, "pv permissions parsed");
+        eq(perm.count("deny"), 1, "pv deny count");
+        eq(perm.rules.get(0).kind, "deny", "pv deny first");
+        eq(perm.rules.get(0).source, ".claude/settings.json", "pv rule source");
+        check(perm.managedFlags.contains("signed plugin manifests required"),
+                "pv managed flag");
+        check(PolicyViewer.parsePermissions("not json") == null, "pv malformed null");
+
+        List<PolicyViewer.Denial> denials = PolicyViewer.parseDenials(
+                "{\"denials\":[{\"at\":" + (now - 120_000L) + ",\"tool\":\"run_shell\","
+                        + "\"summary\":\"rm -rf\",\"via\":\"settings-rules\","
+                        + "\"rule\":\"Bash(rm:*)\",\"count\":3,"
+                        + "\"permissionMode\":\"auto\"}]}");
+        check(denials != null && denials.size() == 1, "pv denials parsed");
+        eq(denials.get(0).count, 3L, "pv denial count");
+        check(PolicyViewer.parseDenials("oops") == null, "pv denials malformed null");
+
+        PolicyViewer.AutoModeSection auto = PolicyViewer.parseAutoMode(
+                "{\"effective\":{\"classifyAllShell\":true},\"files\":[],"
+                        + "\"decisions\":{\"low\":{\"decision\":\"allow\","
+                        + "\"reason\":\"r\",\"source\":\"default\"},"
+                        + "\"high\":{\"decision\":\"deny\",\"reason\":\"locked\","
+                        + "\"source\":\"settings\"}},"
+                        + "\"rules\":[{\"match\":{\"tool\":\"run_shell\"},"
+                        + "\"decision\":\"ask\",\"reason\":\"eyes\"}],"
+                        + "\"customized\":true}");
+        check(auto != null && auto.customized, "pv auto customized");
+        eq(auto.decisions.get("high").decision, "deny", "pv risk matrix");
+        eq(auto.rules.get(0).match, "tool=run_shell", "pv fine rule match");
+        check(PolicyViewer.parseAutoMode("{\"decisions\":[]}") == null,
+                "pv auto malformed null");
+
+        List<String> prec = PolicyViewer.parsePrecedence(
+                "{\"precedence\":[\"managed-settings\",\"hooks\"]}");
+        check(prec != null && prec.size() == 2, "pv precedence parsed");
+        check(PolicyViewer.parsePrecedence("{}") == null, "pv precedence missing null");
+
+        String text = PolicyViewer.describe(perm, denials, auto, prec, now);
+        check(text.contains("Bash(rm:*)"), "pv describe rules");
+        check(text.contains("x3"), "pv describe denial count");
+        check(text.contains("2m ago"), "pv describe relative time");
+        check(text.contains("[managed]"), "pv describe managed badge");
+        check(text.contains("managed-settings > hooks"), "pv describe precedence");
+        String degraded = PolicyViewer.describe(null, denials, null, null, now);
+        check(degraded.contains("⚠ unavailable"), "pv failed source warns");
+        check(degraded.contains("run_shell rm -rf"), "pv healthy section still renders");
+
+        eq(PolicyViewer.summaryLine(perm, denials, auto),
+                "permissions: 1 allow / 0 ask / 1 deny · 1 recent denials"
+                        + " · auto-mode: customized (+1 fine-grained)",
+                "pv summary line");
+        eq(PolicyViewer.summaryLine(null, null, null),
+                "permissions: n/a · denials: n/a · auto-mode: n/a",
+                "pv summary n/a");
     }
 
     /**
