@@ -46,6 +46,7 @@ import {
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
   getLastSessionId as jsonlGetLastSessionId,
+  verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -438,6 +439,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
     appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+    verifySession: deps.verifySession || jsonlVerifySession,
   };
   const isStream = outputFormat === "stream-json";
   const isJson = outputFormat === "json";
@@ -626,6 +628,30 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // never duplicated.
   let history = [];
   if (resumeId && store.sessionExists(resumeId)) {
+    // Tamper gate: a broken transcript hash chain means the file was edited
+    // outside the store. Headless runs fail closed — a tampered transcript is
+    // never silently rebuilt into trusted model context. Escape hatch:
+    // CC_ALLOW_TAMPERED_RESUME=1 resumes with a stderr warning.
+    let trust = null;
+    try {
+      trust = store.verifySession(resumeId);
+    } catch {
+      trust = null; // verification unavailable → keep legacy behaviour
+    }
+    if (trust && trust.status === "tampered") {
+      if (process.env.CC_ALLOW_TAMPERED_RESUME !== "1") {
+        const msg =
+          `Session ${resumeId} transcript failed integrity verification (${trust.reason}` +
+          (trust.firstInvalidLine ? ` at line ${trust.firstInvalidLine}` : "") +
+          `). Refusing to resume tampered context; run 'cc session verify ${resumeId}', or set CC_ALLOW_TAMPERED_RESUME=1 to override.`;
+        emitHeadlessError(msg);
+        writeErr(msg + "\n");
+        return { exitCode: 1, result: msg, isError: true };
+      }
+      writeErr(
+        `⚠ Resuming a TAMPERED transcript (${trust.reason}) — restored context is untrusted.\n`,
+      );
+    }
     try {
       history = (store.rebuildMessages(resumeId) || []).filter(
         (m) => m && m.role !== "system",

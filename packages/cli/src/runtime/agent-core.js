@@ -1291,6 +1291,38 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  // Session-store write guard (transcript tamper protection): JSONL
+  // transcripts under ~/.chainlesschain/sessions are hash-chained and treated
+  // as an audit surface — an agent editing a transcript rewrites the history
+  // that `cc session verify` and resume trust. Same posture as the
+  // sensitive-file guard: confirm-first, an explicit settings `allow` rule is
+  // the only bypass, headless without a confirmer fails closed.
+  if (
+    (name === "write_file" ||
+      name === "edit_file" ||
+      name === "notebook_edit") &&
+    settingsVerdict.decision !== "allow" &&
+    args?.path
+  ) {
+    const { sessionStorePathReason } =
+      await import("../lib/session-store-guard.js");
+    const storeReason = sessionStorePathReason(args.path, { cwd });
+    if (storeReason) {
+      const ok = await requestInteractivePermission(name, args, context, cwd, {
+        tool: name,
+        args,
+        rule: null,
+        reason: `session store: ${storeReason}`,
+      });
+      if (!ok) {
+        return {
+          error: `[Session Store] Writing "${args.path}" would modify a session transcript (${storeReason}) — denied. Add a settings allow rule to pre-authorize.`,
+          policy: { decision: "ask", via: "session-store-guard" },
+        };
+      }
+    }
+  }
+
   // Destructive-git guard (Claude-Code 2.1.183 parity: "destructive git
   // commands blocked when unintended"). The `git` tool otherwise runs any
   // command unguarded in auto mode — including `reset --hard`, `clean -fd`,
@@ -3217,6 +3249,77 @@ async function executeToolInner(
       } catch (err) {
         return attachDescriptor({
           error: `browser_state failed: ${err.message}`,
+        });
+      }
+    }
+
+    case "browser_act": {
+      // Gap-analysis #6: the ACTION side of the Chrome connector.
+      // browser_state stays the read-only default; browser_act explicitly
+      // drives the user's logged-in browser (click/type/press/navigate/
+      // waitForSelector/screenshot/assertText) and is gated like run_code:
+      // HIGH risk through the ApprovalGate (CONFIRM even on the trusted/auto
+      // tier), pre-authorizable only by an explicit settings allow rule
+      // (ruleAllowed). Unlike run_code there is no legacy ungated behavior to
+      // preserve, so the gate applies whenever an ApprovalGate is wired —
+      // headless without a confirmer fails closed. Screenshot paths are
+      // generated inside performActions (never agent-chosen), and each
+      // executed step is audit-logged to ~/.chainlesschain/browser-actions/.
+      try {
+        if (
+          approvalGate &&
+          !ruleAllowed &&
+          typeof approvalGate.decide === "function"
+        ) {
+          const { APPROVAL_RISK, APPROVAL_DECISION } =
+            await import("@chainlesschain/session-core");
+          const summary = Array.isArray(args.actions)
+            ? args.actions
+                .map((a) => a?.type)
+                .filter(Boolean)
+                .slice(0, 10)
+                .join(",")
+            : "";
+          const gate = await approvalGate.decide({
+            sessionId,
+            riskLevel: APPROVAL_RISK.HIGH,
+            tool: "browser_act",
+            args: { actions: summary },
+          });
+          if (gate.decision !== APPROVAL_DECISION.ALLOW) {
+            const tierLabel =
+              typeof gate.policy === "string" ? `"${gate.policy}" ` : "";
+            return attachDescriptor({
+              error: `[ApprovalGate] browser_act denied by the ${tierLabel}approval policy (via ${gate.via}). Retrying won't help — driving the user's browser needs their approval. Tell the user (they can approve it or relax the policy) and continue with other work.`,
+              approval: {
+                decision: gate.decision,
+                via: gate.via,
+                riskLevel: "high",
+                policy: gate.policy,
+              },
+            });
+          }
+        }
+        const { performActions } = await import("../lib/chrome-connector.js");
+        const result = await performActions(args.actions, {
+          port: args.port != null ? Number(args.port) : undefined,
+          cdpUrl: args.cdp_url != null ? String(args.cdp_url) : null,
+          tab: args.tab != null ? Number(args.tab) : undefined,
+          continueOnError: args.continue_on_error === true,
+          sessionId: sessionId ? String(sessionId) : null,
+        });
+        if (!result.ok && result.error) {
+          // Nothing ran (validation / attach failure) — surface as an error.
+          // A step-level failure returns the per-step outcomes instead so the
+          // model can see exactly which step broke.
+          return attachDescriptor({
+            error: `browser_act failed: ${result.error}`,
+          });
+        }
+        return attachDescriptor(result);
+      } catch (err) {
+        return attachDescriptor({
+          error: `browser_act failed: ${err.message}`,
         });
       }
     }
@@ -6559,6 +6662,13 @@ export function formatToolArgs(name, args) {
       return `${args.kind || "other"}: ${(args.title || args.path || "").substring(0, 60)}`;
     case "browser_state":
       return `tab=${args.tab ?? 0} port=${args.port ?? 9222}${args.reload ? " reload" : ""}`;
+    case "browser_act": {
+      const kinds = Array.isArray(args.actions)
+        ? args.actions.map((a) => a?.type).filter(Boolean)
+        : [];
+      const head = kinds.slice(0, 4).join(",");
+      return `${kinds.length} action(s)${head ? `: ${head}` : ""}${kinds.length > 4 ? ",…" : ""} tab=${args.tab ?? 0} port=${args.port ?? 9222}`;
+    }
     case "schedule":
       return args.action === "cron"
         ? `cron ${args.cron || ""}`.trim()

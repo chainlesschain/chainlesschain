@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  rmSync,
+  existsSync,
+  writeFileSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -32,6 +38,8 @@ const {
   sessionPath,
   isUnsafeSessionId,
   toIsoSafe,
+  verifySession,
+  verifyAllSessions,
 } = await import("../../src/lib/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
@@ -572,6 +580,125 @@ describe("jsonl-session-store", () => {
       });
       expect(result.failed).toBe(true);
       expect(result.attempts).toBeGreaterThan(1);
+    });
+  });
+
+  // ── transcript hash chain (tamper-evidence) ───────────────────────
+  describe("transcript hash chain", () => {
+    it("appends chained records that verify end-to-end", () => {
+      const id = startSession("chain-1", { title: "Chained" });
+      appendUserMessage(id, "q1");
+      appendAssistantMessage(id, "a1");
+      appendToolCall(id, "read_file", { path: "x" });
+
+      const events = readEvents(id);
+      expect(events.every((e) => typeof e.hash === "string")).toBe(true);
+      expect(events[0].prevHash).toBeNull();
+      expect(events[1].prevHash).toBe(events[0].hash);
+
+      const result = verifySession(id);
+      expect(result.status).toBe("verified");
+      expect(result.chainedEvents).toBe(4);
+    });
+
+    it("detects an edited transcript record", () => {
+      const id = startSession("chain-tamper", { title: "T" });
+      appendUserMessage(id, "original");
+      appendAssistantMessage(id, "reply");
+
+      const raw = readFileSync(sessionPath(id), "utf-8");
+      writeFileSync(
+        sessionPath(id),
+        raw.replace("original", "REWRITTEN"),
+        "utf-8",
+      );
+
+      const result = verifySession(id);
+      expect(result.status).toBe("tampered");
+      expect(result.firstInvalidLine).toBe(2);
+    });
+
+    it("detects a deleted transcript record", () => {
+      const id = startSession("chain-delete", { title: "T" });
+      appendUserMessage(id, "one");
+      appendAssistantMessage(id, "two");
+
+      const lines = readFileSync(sessionPath(id), "utf-8")
+        .split("\n")
+        .filter((l) => l.trim());
+      lines.splice(1, 1);
+      writeFileSync(sessionPath(id), lines.join("\n") + "\n", "utf-8");
+
+      expect(verifySession(id).status).toBe("tampered");
+    });
+
+    it("classifies a pre-chaining transcript as legacy and a mixed one as partial", () => {
+      const legacyId = "legacy-plain";
+      writeFileSync(
+        sessionPath(legacyId),
+        [
+          JSON.stringify({
+            type: "session_start",
+            timestamp: 1,
+            data: { title: "Old" },
+          }),
+          JSON.stringify({
+            type: "user_message",
+            timestamp: 2,
+            data: { role: "user", content: "hi" },
+          }),
+        ].join("\n") + "\n",
+        "utf-8",
+      );
+      expect(verifySession(legacyId).status).toBe("legacy");
+
+      // Appends onto a legacy file start a fresh chain → partial
+      appendAssistantMessage(legacyId, "new reply");
+      const result = verifySession(legacyId);
+      expect(result.status).toBe("partial");
+      expect(result.legacyEvents).toBe(2);
+      expect(result.chainedEvents).toBe(1);
+    });
+
+    it("keeps the chain valid across forkSession", () => {
+      const id = startSession("chain-fork", { title: "F" });
+      appendUserMessage(id, "q");
+      appendAssistantMessage(id, "a");
+
+      const forkedId = forkSession(id);
+      expect(verifySession(forkedId).status).toBe("verified");
+      // fork marker chains onto the copied tail
+      const events = readEvents(forkedId);
+      expect(events[events.length - 1].prevHash).toBe(
+        events[events.length - 2].hash,
+      );
+    });
+
+    it("verifySession reports not-found / invalid-id without throwing", () => {
+      expect(verifySession("no-such").status).toBe("not-found");
+      expect(verifySession("../evil").status).toBe("invalid-id");
+    });
+
+    it("verifyAllSessions covers every transcript in the dir", () => {
+      startSession("all-a");
+      startSession("all-b");
+      const results = verifyAllSessions();
+      const ids = results.map((r) => r.sessionId);
+      expect(ids).toContain("all-a");
+      expect(ids).toContain("all-b");
+      expect(results.every((r) => r.status === "verified")).toBe(true);
+    });
+
+    it("self-heals the chain-tail cache when the file is deleted externally", () => {
+      const id = startSession("chain-heal", { title: "H" });
+      appendUserMessage(id, "q");
+      rmSync(sessionPath(id), { force: true });
+      // Re-create through the store — must restart at genesis, not chain onto
+      // the deleted file's cached tail.
+      appendUserMessage(id, "fresh");
+      const result = verifySession(id);
+      expect(result.status).toBe("verified");
+      expect(readEvents(id)[0].prevHash).toBeNull();
     });
   });
 });

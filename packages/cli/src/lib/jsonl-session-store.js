@@ -33,4 +33,7 @@ export {
   isUnsafeSessionId,
   appendTokenUsage,
   toIsoSafe,
+  verifySession,
+  verifyAllSessions,
+  TRANSCRIPT_CHAIN_STATUS,
 } from "../harness/jsonl-session-store.js";

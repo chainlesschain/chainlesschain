@@ -14,6 +14,12 @@ import {
 import { join, basename, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { getHomeDir } from "../lib/paths.js";
+import {
+  computeEventHash,
+  latestChainHash,
+  verifyTranscriptText,
+  TRANSCRIPT_CHAIN_STATUS,
+} from "./transcript-integrity.js";
 
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
@@ -54,10 +60,65 @@ export function appendTokenUsage(sessionId, usage) {
   appendEvent(sessionId, "token_usage", usage || {});
 }
 
-export function appendEvent(sessionId, type, data) {
-  const line = JSON.stringify({ type, timestamp: Date.now(), data }) + "\n";
-  appendFileSync(sessionPath(sessionId), line, "utf-8");
+// Chain-tail cache: hash of the last chained record per session, so appends
+// stay O(1) instead of re-reading the file. Keyed per process — two processes
+// appending the SAME session concurrently could fork the chain (verify would
+// then flag it), but the store has always assumed a single writer per session.
+const _chainTailCache = new Map();
+
+function _resolveChainTail(sessionId, filePath) {
+  if (!existsSync(filePath)) {
+    // Missing file self-heals a stale cache entry (file deleted externally,
+    // or a test tearing down the sessions dir between cases).
+    _chainTailCache.set(sessionId, null);
+    return null;
+  }
+  const cached = _chainTailCache.get(sessionId);
+  if (cached !== undefined) return cached;
+  const tail = latestChainHash(readFileSync(filePath, "utf-8"));
+  _chainTailCache.set(sessionId, tail);
+  return tail;
 }
+
+export function appendEvent(sessionId, type, data) {
+  const filePath = sessionPath(sessionId);
+  const prevHash = _resolveChainTail(sessionId, filePath);
+  const core = { type, timestamp: Date.now(), data };
+  const hash = computeEventHash(prevHash, core);
+  const line = JSON.stringify({ ...core, prevHash, hash }) + "\n";
+  appendFileSync(filePath, line, "utf-8");
+  _chainTailCache.set(sessionId, hash);
+}
+
+/**
+ * Verify a session transcript's hash chain (tamper-evidence).
+ * Statuses: verified | partial (legacy prefix + valid chain) | legacy
+ * (pre-chaining transcript) | tampered | empty — plus not-found / invalid-id.
+ */
+export function verifySession(sessionId) {
+  if (isUnsafeSessionId(sessionId)) {
+    return { sessionId, status: "invalid-id", reason: "invalid session id" };
+  }
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) {
+    return { sessionId, status: "not-found", reason: "session file not found" };
+  }
+  return {
+    sessionId,
+    ...verifyTranscriptText(readFileSync(filePath, "utf-8")),
+  };
+}
+
+export function verifyAllSessions(options = {}) {
+  const dir = getSessionsDir();
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".jsonl"))
+    .slice(0, options.limit || 1000)
+    .map((file) => verifySession(basename(file, ".jsonl")));
+}
+
+export { TRANSCRIPT_CHAIN_STATUS };
 
 export function startSession(sessionId, meta = {}) {
   const id =

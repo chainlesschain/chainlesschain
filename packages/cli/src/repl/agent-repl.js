@@ -1298,6 +1298,21 @@ export async function startAgentRepl(options = {}) {
   if (options.sessionId && sessionId) {
     try {
       if (useJsonl) {
+        // Interactive tamper warning: a broken hash chain means the transcript
+        // was edited outside the store — resume proceeds (the user is present)
+        // but the restored context is flagged untrusted.
+        try {
+          const { verifySession } =
+            await import("../harness/jsonl-session-store.js");
+          const trust = verifySession(sessionId);
+          if (trust.status === "tampered") {
+            logger.warn(
+              `⚠ Transcript integrity check FAILED (${trust.reason}) — restored context is untrusted. Run 'cc session verify ${sessionId}'.`,
+            );
+          }
+        } catch (_err) {
+          // verification is best-effort in the interactive path
+        }
         const rebuilt = rebuildMessages(sessionId);
         if (rebuilt.length > 0) {
           messages.push(...rebuilt.filter((m) => m.role !== "system"));
@@ -2982,6 +2997,18 @@ export async function startAgentRepl(options = {}) {
         const resumeId = sessionArg.slice(7).trim();
         try {
           if (useJsonl && sessionExists(resumeId)) {
+            try {
+              const { verifySession } =
+                await import("../harness/jsonl-session-store.js");
+              const trust = verifySession(resumeId);
+              if (trust.status === "tampered") {
+                logger.warn(
+                  `⚠ Transcript integrity check FAILED (${trust.reason}) — restored context is untrusted. Run 'cc session verify ${resumeId}'.`,
+                );
+              }
+            } catch (_err) {
+              // verification is best-effort in the interactive path
+            }
             const rebuilt = rebuildMessages(resumeId);
             messages.length = 1; // keep system prompt
             messages.push(...rebuilt.filter((m) => m.role !== "system"));

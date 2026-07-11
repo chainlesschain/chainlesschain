@@ -248,6 +248,10 @@ export function registerSessionCommand(program) {
     )
     .option("--model <model>", "Model name")
     .option("--provider <provider>", "LLM provider")
+    .option(
+      "--allow-tampered",
+      "Resume even when the transcript hash chain is broken (context is untrusted)",
+    )
     .action(async (id, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -270,6 +274,29 @@ export function registerSessionCommand(program) {
 
         // Try JSONL first
         if (feature("JSONL_SESSION") && sessionExists(id)) {
+          // Tamper gate: a broken hash chain means the transcript was edited
+          // outside the store — never silently rebuild it as trusted context.
+          const { verifySession } =
+            await import("../harness/jsonl-session-store.js");
+          const trust = verifySession(id);
+          if (trust.status === "tampered") {
+            if (!options.allowTampered) {
+              logger.error(
+                `Session ${id} transcript failed integrity verification: ${trust.reason}` +
+                  (trust.firstInvalidLine
+                    ? ` (line ${trust.firstInvalidLine})`
+                    : ""),
+              );
+              logger.error(
+                "Refusing to resume tampered context. Inspect it read-only with " +
+                  `'cc session show ${id}' / 'cc session verify ${id}', or pass --allow-tampered to override.`,
+              );
+              process.exit(1);
+            }
+            logger.warn(
+              `⚠ Resuming a TAMPERED transcript (${trust.reason}) — treat restored context as untrusted.`,
+            );
+          }
           const events = readEvents(id);
           const startEvent = events.find((e) => e.type === "session_start");
           sess = {
@@ -588,6 +615,60 @@ export function registerSessionCommand(program) {
             logger.log(`  ${chalk.gray(item.reason)}`);
           }
         }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // session verify — transcript hash-chain integrity (tamper-evidence).
+  // Distinct from `validate` (structural: parseable lines + session_start):
+  // verify recomputes the per-event hash chain and flags edits / deletions /
+  // insertions / reordering of chained records.
+  session
+    .command("verify")
+    .description(
+      "Verify transcript hash-chain integrity (tamper-evidence); omit id to verify all",
+    )
+    .argument("[id]", "Session ID to verify (omit to verify every session)")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const store = await import("../harness/jsonl-session-store.js");
+        const result = id ? store.verifySession(id) : store.verifyAllSessions();
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          const results = Array.isArray(result) ? result : [result];
+          if (results.length === 0) {
+            logger.log("No sessions to verify.");
+          }
+          for (const item of results) {
+            const color =
+              item.status === "tampered"
+                ? chalk.red
+                : item.status === "verified"
+                  ? chalk.green
+                  : chalk.yellow;
+            const counts =
+              item.chainedEvents != null
+                ? ` (${item.chainedEvents} chained, ${item.legacyEvents} legacy${item.truncatedTail ? ", truncated tail" : ""})`
+                : "";
+            logger.log(`${color(item.status)} ${item.sessionId}${counts}`);
+            if (item.reason) {
+              const where = item.firstInvalidLine
+                ? ` at line ${item.firstInvalidLine}`
+                : "";
+              logger.log(`  ${chalk.gray(item.reason + where)}`);
+            }
+          }
+        }
+
+        const anyTampered = (Array.isArray(result) ? result : [result]).some(
+          (item) => item.status === "tampered",
+        );
+        if (anyTampered) process.exit(1);
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
