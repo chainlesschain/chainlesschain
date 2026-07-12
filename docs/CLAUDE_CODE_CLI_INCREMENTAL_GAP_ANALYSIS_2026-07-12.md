@@ -558,6 +558,52 @@ Monitors、Bin 和安全 Settings 子集。下一步建议：
 [`settings.js`](../packages/cli/src/lib/plugin-runtime/settings.js#L23)。
 参考 [Plugins 官方文档](https://code.claude.com/docs/en/plugins)。
 
+### 已落地（增量）
+
+新建纯核 `src/lib/plugin-runtime/capabilities.js`（无 IO，manifest 的声明式安全契
+约），覆盖 gap 前四条（能力声明 / 安装升级 capability diff + 重新 consent /
+optionsSchema 类型·默认·校验·作用域·敏感性 / 敏感项不得来自项目配置）：
+
+- **声明式能力**（`manifest.permissions` → `normalizeCapabilities`）：`process` /
+  `network{any,domains}` / `filesystem{roots}` / `mcp` / `monitor` /
+  `credential{names}`，全部**默认 DENY**、必须显式声明。`network:true|"*"`=任意
+  主机（描述里高亮）。
+- **capability diff + 重新 consent**：`diffCapabilities(prev,next)` 输出
+  added/removed（稳定 token，如 `process`/`network:*`/`network:api.x.com`/
+  `filesystem:/tmp`/`credential:GH_TOKEN`）+ `widened`；`consentRequiredForUpgrade`
+  ——**任何加宽**（新能力/新域名/新根）都要求重新 consent（首装=从空 diff，必
+  consent）；**收窄**不需要。与现有 exact-version trust（[[trust.js]]）互补：trust
+  锚版本、diff 锚能力。
+- **声明 vs 实际审计** `auditDeclaredCapabilities`：抓「声明了 permissions 但组件超
+  出声明」——ship MCP server 却没声明 `mcp`/`network`、ship bin/hooks/lsp（spawn 进
+  程）却没声明 `process`、ship monitors 没声明 `monitor`。**接线**：manifest.js
+  `parsePluginManifest` 现 normalize `permissions`→`result.capabilities`
+  (+`capabilitiesDeclared`) 与 `optionsSchema`→`result.optionsSchema`；**仅当**声明
+  了 permissions 才跑审计并把发现推进 `warnings`（未声明的 legacy 插件不受限、零新
+  警告，现有 manifest 测试全绿）。
+- **typed optionsSchema**（`normalizeOptionsSchema`/`validateOptions`/
+  `optionDefaults`/`redactSensitiveOptions`）：每键 `type`(string/number/boolean/
+  enum/string[])·`default`·`required`·`enum`·`scope`(user/project/both)·
+  `sensitive`；`validateOptions` 强制类型/必填/enum/作用域，并强制**敏感项永不能来
+  自项目配置**（`sensitive` 键 scope 归一到 user、project 传入即 error——checked-in
+  的项目文件无法夹带密钥，须走 user scope/OS keychain）；`redactSensitiveOptions`
+  给日志/审计打码。
+
+**测试**：`plugin-runtime-capabilities.test.js` 33 项（normalize/diff/consent/
+audit/optionsSchema/validate 敏感-项目拒绝 + user 放行/redact）+
+`plugin-runtime-manifest.test.js` 补 3 项（normalize 上 manifest / legacy 零警告 /
+声明缺 mcp 告警）= 39 绿；依赖套 settings/install/signature/scopes/manager 88 项回
+归绿。
+
+**仍欠（consent 持久化 + 强制 + UI）**：把 consented capabilities 落进 trust 条目
+（或 sibling store），`isPluginTrusted` 旁加 `isPluginCapabilityConsented` 门；
+`install.js` `installFromDirectory`/`updatePlugin` 里接 diff→交互重新 consent（现装
+非交互）；`discoverPlugins`/各 collector 按声明能力**强制**（如未声明 `network` 的
+MCP server 真拦，非仅 warn）；`cc plugin validate`/`add`/`upgrade` 渲染能力清单+diff
+（仿现有 dependencyCheck）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目
+门 + OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker /
+lockfile-SBOM 属更大基建，未起。
+
 ## P2：Hooks、结构化输出与质量闭环
 
 ### Hooks

@@ -211,3 +211,43 @@ describe("parsePluginManifest — explicit declarations + security", () => {
     expect(m.components.skills).toHaveLength(0);
   });
 });
+
+describe("parsePluginManifest — declared capabilities + options schema (P1)", () => {
+  it("normalizes permissions + optionsSchema onto the manifest", () => {
+    write("plugin.json", {
+      name: "p",
+      version: "1.0.0",
+      permissions: { process: true, network: ["api.example.com"] },
+      optionsSchema: { apiKey: { type: "string", sensitive: true } },
+    });
+    const m = parsePluginManifest(root);
+    expect(m.ok).toBe(true);
+    expect(m.capabilitiesDeclared).toBe(true);
+    expect(m.capabilities.process).toBe(true);
+    expect(m.capabilities.network.domains).toEqual(["api.example.com"]);
+    expect(m.optionsSchema.apiKey).toMatchObject({
+      sensitive: true,
+      scope: "user",
+    });
+  });
+
+  it("a legacy manifest with no permissions block gets no capability warnings", () => {
+    write("plugin.json", { name: "p", version: "1.0.0" });
+    write(".mcp.json", { mcpServers: [{ name: "srv" }] });
+    const m = parsePluginManifest(root);
+    expect(m.capabilitiesDeclared).toBe(false);
+    expect(m.warnings.join()).not.toMatch(/capability:/);
+  });
+
+  it("warns when a declared plugin ships an MCP server without the mcp capability", () => {
+    write("plugin.json", {
+      name: "p",
+      version: "1.0.0",
+      permissions: { process: true },
+    });
+    write(".mcp.json", { mcpServers: [{ name: "srv" }] });
+    const m = parsePluginManifest(root);
+    expect(m.ok).toBe(true);
+    expect(m.warnings.join()).toMatch(/capability:.*mcp/);
+  });
+});

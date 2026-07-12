@@ -27,6 +27,11 @@
 import fs from "fs";
 import path from "path";
 import semver from "semver";
+import {
+  normalizeCapabilities,
+  normalizeOptionsSchema,
+  auditDeclaredCapabilities,
+} from "./capabilities.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -73,6 +78,14 @@ export function parsePluginManifest(root) {
     scope: null,
     metadata: {},
     components: emptyComponents(),
+    // Declarative security contract (P1): the plugin's declared capabilities
+    // (manifest.permissions) + typed config schema (manifest.optionsSchema),
+    // normalized by capabilities.js. `capabilitiesDeclared` distinguishes a
+    // plugin that declared a permissions block (subject to the declared-vs-
+    // actual audit) from a legacy one that declared nothing (unrestricted).
+    capabilities: normalizeCapabilities(null),
+    capabilitiesDeclared: false,
+    optionsSchema: {},
     errors,
     warnings,
   };
@@ -164,6 +177,23 @@ export function parsePluginManifest(root) {
   c.lsp = resolveLsp(abs, manifest, safeResolve, errors, warnings);
   c.bin = resolveBin(abs, manifest, safeResolve, warnings);
   c.settings = resolveSettings(abs, manifest, safeResolve);
+
+  // ── declared capabilities + options schema (P1) ──
+  const hasPermissions =
+    manifest.permissions &&
+    typeof manifest.permissions === "object" &&
+    !Array.isArray(manifest.permissions);
+  result.capabilities = normalizeCapabilities(manifest.permissions);
+  result.capabilitiesDeclared = Boolean(hasPermissions);
+  result.optionsSchema = normalizeOptionsSchema(manifest.optionsSchema);
+  // Declared-vs-actual audit runs ONLY when a permissions block is present — a
+  // legacy plugin that declares nothing is unrestricted by design, so it never
+  // gets these warnings (keeps existing manifests warning-free).
+  if (hasPermissions) {
+    for (const f of auditDeclaredCapabilities(result)) {
+      warnings.push(`capability: ${f.reason}`);
+    }
+  }
 
   result.ok = errors.length === 0;
   return result;
