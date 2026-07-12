@@ -4282,6 +4282,25 @@ async function _executeSpawnSubAgent(args, ctx) {
       error: `spawn_sub_agent: max nesting depth (${MAX_SUB_AGENT_DEPTH}) reached — complete the task directly instead of delegating further.`,
     };
   }
+  // Contract-aware recursion tightening: a parent's EFFECTIVE contract can only
+  // LOWER the absolute hard caps (fail-closed, tighten-only). Evaluated before
+  // the breadth counter increments so spawnedCount is this-spawn-exclusive.
+  if (ctx.subAgentContract) {
+    try {
+      const { enforceRecursionLimits } =
+        await import("../lib/subagent-contract.js");
+      const recur = enforceRecursionLimits({
+        depth: currentDepth,
+        spawnedCount: ctx.subAgentBudget?.spawned || 0,
+        contract: ctx.subAgentContract,
+        hardDepthCap: MAX_SUB_AGENT_DEPTH,
+        hardChildrenCap: ctx.subAgentBudget?.max ?? MAX_SUB_AGENTS_PER_RUN,
+      });
+      if (!recur.ok) return { error: `spawn_sub_agent: ${recur.reason}` };
+    } catch {
+      /* contract module unavailable — hard caps above still apply */
+    }
+  }
   // Breadth cap: a shared counter (one object for the whole tree) bounds the
   // TOTAL sub-agents a run may spawn, so a wide fan-out can't blow up even
   // within the depth limit. Refuse + count BEFORE any work so the increment
@@ -4322,6 +4341,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   // Explicit role/tools still win over the agent file's values.
   let mdProfile = null;
   let mdModel = null;
+  let mdContract = null; // agent-file's normalized subagent contract (definition)
   if (args.agent) {
     try {
       const { getAgent } = await import("../lib/agents.js");
@@ -4341,6 +4361,7 @@ async function _executeSpawnSubAgent(args, ctx) {
         subIsolation = "worktree";
       }
       if (md.model) mdModel = md.model;
+      if (md.contract) mdContract = md.contract;
       if (md.systemPrompt) {
         mdProfile = { name: md.name, systemPrompt: md.systemPrompt };
       }
@@ -4355,6 +4376,44 @@ async function _executeSpawnSubAgent(args, ctx) {
     return {
       error: "spawn_sub_agent requires 'task' and either 'role' or 'agent'",
     };
+  }
+
+  // Resolve the child's EFFECTIVE subagent contract: spawnArgs > agent-file
+  // definition (mdContract) > parent ceiling (ctx.subAgentContract). The safe,
+  // tighten-only fields are consumed below (isolation fail-closed, budget,
+  // effort, context inheritance); this child's contract becomes the ceiling for
+  // ITS own nested spawns (threaded via SubAgentContext.subAgentContract).
+  let effectiveContract = null;
+  let explicitContext = null;
+  try {
+    const { resolveSubagentContract, normalizeSubagentContract } =
+      await import("../lib/subagent-contract.js");
+    const spawnContract = normalizeSubagentContract(args);
+    explicitContext = spawnContract.context ?? mdContract?.context ?? null;
+    effectiveContract = resolveSubagentContract({
+      parent: ctx.subAgentContract || {},
+      definition: mdContract,
+      spawnArgs: spawnContract,
+    });
+  } catch {
+    effectiveContract = null; // contract resolution is best-effort
+  }
+
+  // Worktree isolation must FAIL CLOSED: if requested but the cwd is not a git
+  // repo, refuse the spawn instead of silently running in the parent checkout.
+  if (subIsolation === "worktree") {
+    try {
+      const { resolveIsolationFailClosed } =
+        await import("../lib/subagent-contract.js");
+      const { isGitRepo } = await import("../lib/git-integration.js");
+      const iso = resolveIsolationFailClosed({
+        requested: "worktree",
+        available: isGitRepo(ctx.cwd),
+      });
+      if (!iso.ok) return { error: `spawn_sub_agent: ${iso.reason}` };
+    } catch {
+      /* helper unavailable — sub-agent-context.js still fails closed at run() */
+    }
   }
 
   // Phase 3: resolve declarative profile if requested. Explicit tools/context
@@ -4393,9 +4452,15 @@ async function _executeSpawnSubAgent(args, ctx) {
     allowedTools = base.filter((t) => !deny.has(t));
   }
 
-  // Auto-condense parent context if caller didn't provide explicit context
+  // Auto-condense parent context if caller didn't provide explicit context.
+  // An explicit `context: fresh` contract suppresses this inheritance (the
+  // child starts clean); `fork` / unset keep the existing auto-condense.
   let resolvedContext = inheritedContext || null;
-  if (!resolvedContext && Array.isArray(ctx.parentMessages)) {
+  if (
+    !resolvedContext &&
+    explicitContext !== "fresh" &&
+    Array.isArray(ctx.parentMessages)
+  ) {
     const recentMsgs = ctx.parentMessages
       .filter((m) => m.role === "assistant" && typeof m.content === "string")
       .slice(-3)
@@ -4449,6 +4514,9 @@ async function _executeSpawnSubAgent(args, ctx) {
   const subLlmOptions = {
     ...parentLlm,
     model: mdModel || parentLlm.model || undefined,
+    // Contract `effort` is a compute hint (reasoning level), not authority —
+    // forwarded to the child loop; harmless if the provider ignores it.
+    ...(effectiveContract?.effort ? { effort: effectiveContract.effort } : {}),
   };
 
   // 用量归因: forward the child's real token usage into the parent run's sink
@@ -4503,6 +4571,12 @@ async function _executeSpawnSubAgent(args, ctx) {
     // worktree isolation. undefined keeps the profile/flag defaults intact.
     ...(subMaxTurns ? { maxIterations: subMaxTurns } : {}),
     ...(subIsolation === "worktree" ? { useWorktree: true } : {}),
+    // Resolved contract (gap 2026-07-12): cap the child's token budget and hand
+    // it its EFFECTIVE contract so its OWN spawns inherit this ceiling.
+    ...(effectiveContract?.budget?.tokens
+      ? { tokenBudget: effectiveContract.budget.tokens }
+      : {}),
+    ...(effectiveContract ? { subAgentContract: effectiveContract } : {}),
   });
   subCtxRef = subCtx;
 

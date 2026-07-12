@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
 
 describe("sub-agent-context", () => {
@@ -206,6 +209,42 @@ describe("sub-agent-context", () => {
       const userMsgs = ctx.messages.filter((m) => m.role === "user");
       expect(userMsgs).toHaveLength(1);
       expect(userMsgs[0].content).toBe("user prompt");
+    });
+
+    it("fails closed when useWorktree is set but cwd is not a git repo (no silent parent-checkout run)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "cc-sac-nogit-"));
+      try {
+        const ctx = SubAgentContext.create({
+          role: "iso",
+          task: "task",
+          useWorktree: true,
+          cwd: dir,
+        });
+        const result = await ctx.run("do it");
+        expect(ctx.status).toBe("failed");
+        expect(result.isolationError).toBe(true);
+        expect(result.summary).toMatch(/not a git repository|refusing/i);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  // ─── Effective contract for nested-spawn ceiling ───────
+  describe("subAgentContract", () => {
+    it("stores an effective contract handed to nested spawns", () => {
+      const contract = { permissionMode: "manual", maxChildren: 2 };
+      const ctx = SubAgentContext.create({
+        role: "x",
+        task: "t",
+        subAgentContract: contract,
+      });
+      expect(ctx.subAgentContract).toEqual(contract);
+    });
+
+    it("defaults subAgentContract to null", () => {
+      const ctx = SubAgentContext.create({ role: "x", task: "t" });
+      expect(ctx.subAgentContract).toBeNull();
     });
   });
 

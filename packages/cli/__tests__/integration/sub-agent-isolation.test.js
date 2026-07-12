@@ -122,6 +122,21 @@ describe("Integration: Sub-Agent Isolation", () => {
       expect(result.error).toContain("requires 'task'");
     });
 
+    it("fails closed when worktree isolation is requested but cwd is not a git repo", async () => {
+      // tempDir is a fresh mkdtemp — not a git repo. The resolved contract's
+      // isolation:worktree must refuse rather than run in the parent checkout.
+      const result = await executeTool(
+        "spawn_sub_agent",
+        { role: "iso", task: "do it", isolation: "worktree" },
+        { cwd: tempDir },
+      );
+      expect(result).toBeDefined();
+      expect(result.error).toBeDefined();
+      expect(result.error).toMatch(
+        /worktree isolation.*unavailable|refusing to run in the parent checkout/i,
+      );
+    });
+
     it("creates and runs a sub-agent with mocked LLM returning simple response", async () => {
       // Mock fetch to simulate an LLM response with no tool calls
       globalThis.fetch = vi.fn().mockResolvedValue({

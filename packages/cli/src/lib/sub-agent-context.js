@@ -77,6 +77,10 @@ export class SubAgentContext {
     // Shared run-wide TOTAL-sub-agent counter (one object across the whole tree)
     // so this sub-agent's own spawns draw from the same breadth pool.
     this.subAgentBudget = options.subAgentBudget || null;
+    // This context's EFFECTIVE subagent contract — the ceiling handed to its OWN
+    // nested spawns (threaded into the loop options so a nested spawn_sub_agent
+    // reads it as ctx.subAgentContract).
+    this.subAgentContract = options.subAgentContract || null;
     this.cwd = options.cwd || process.cwd();
     this.status = "active";
     this.result = null;
@@ -176,9 +180,25 @@ export class SubAgentContext {
       );
     }
 
-    // If worktree isolation is enabled, wrap execution in isolated worktree
-    if (this._useWorktree && isGitRepo(this._repoDir)) {
-      return this._runInWorktree(userPrompt, loopOptions);
+    // If worktree isolation is enabled, wrap execution in isolated worktree.
+    if (this._useWorktree) {
+      if (isGitRepo(this._repoDir)) {
+        return this._runInWorktree(userPrompt, loopOptions);
+      }
+      // FAIL CLOSED: isolation was explicitly requested but this is not a git
+      // repo. Never silently fall back to the parent checkout — refuse.
+      this.status = "failed";
+      this.completedAt = new Date().toISOString();
+      this.result = {
+        summary:
+          "Worktree isolation was requested but the working directory is not a git repository — refusing to run in the parent checkout.",
+        artifacts: [],
+        tokenCount: this._tokenCount,
+        toolsUsed: [...new Set(this._toolsUsed)],
+        iterationCount: this._iterationCount,
+        isolationError: true,
+      };
+      return this.result;
     }
 
     return this._runCore(userPrompt, loopOptions);
@@ -270,6 +290,8 @@ export class SubAgentContext {
       // Shared total-sub-agent counter so a nested spawn_sub_agent draws from
       // (and is bounded by) the run's single breadth pool.
       subAgentBudget: this.subAgentBudget,
+      // This context's effective contract = the ceiling for its nested spawns.
+      subAgentContract: this.subAgentContract,
       ...loopOptions,
     };
     if (this.iterationBudget) {
