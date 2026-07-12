@@ -325,6 +325,75 @@ describe("Integration: Sub-Agent Isolation", () => {
     });
   });
 
+  // ─── child memory inheritance (2026-07-12) ─────────────
+
+  describe("child memory inheritance", () => {
+    const parentDb = { __fakeMemoryDb: true };
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      });
+
+    const spawnAndCapture = async (spawnArgs, parentCtx) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+            ...parentCtx,
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("denies memory for a plain (fresh-default) spawn even when the parent has a memory db", async () => {
+      const opts = await spawnAndCapture({}, { memoryDb: parentDb });
+      expect(opts.memoryEnabled).toBe(false);
+      expect(opts.db).toBeUndefined();
+    });
+
+    it("grants the parent memory db to the child on explicit memory:true", async () => {
+      const opts = await spawnAndCapture(
+        { memory: true },
+        { memoryDb: parentDb, permanentMemory: { __pm: true } },
+      );
+      expect(opts.memoryEnabled).toBe(true);
+      expect(opts.db).toBe(parentDb);
+      expect(opts.permanentMemory).toEqual({ __pm: true });
+    });
+
+    it("denies memory on explicit memory:true when the parent has no memory db", async () => {
+      // Nothing to inherit → memoryEnabled:false (no db conjured from thin air).
+      const opts = await spawnAndCapture({ memory: true }, {});
+      expect(opts.memoryEnabled).toBe(false);
+      expect(opts.db).toBeUndefined();
+    });
+
+    it("does NOT grant memory on a top-level context:fork (parent ceiling lacks memory)", async () => {
+      // fork inherits the parent CONTRACT's memory, which is unset at top level,
+      // so a bare fork must not silently hand the child the memory db.
+      const opts = await spawnAndCapture(
+        { context: "fork" },
+        { memoryDb: parentDb },
+      );
+      expect(opts.memoryEnabled).toBe(false);
+      expect(opts.db).toBeUndefined();
+    });
+  });
+
   // ─── SubAgentContext isolation ─────────────────────────
 
   describe("SubAgentContext message isolation", () => {

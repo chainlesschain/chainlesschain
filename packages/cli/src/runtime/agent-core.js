@@ -1502,6 +1502,9 @@ export async function executeTool(name, args, context = {}) {
       // the MCP tool definitions this loop exposes (inheritable by a spawn).
       subAgentContract: context.subAgentContract || null,
       extraToolDefinitions: context.extraToolDefinitions || null,
+      // Parent memory source — forwarded so a memory-granted spawn inherits it.
+      memoryDb: context.memoryDb || null,
+      permanentMemory: context.permanentMemory || null,
       interactiveApproval: context.interactiveApproval || false,
       settingsHooks: context.settingsHooks || null,
       signal: context.signal || null,
@@ -2112,6 +2115,8 @@ async function executeToolInner(
     externalToolExecutors,
     extraToolDefinitions = null,
     mcpClient,
+    memoryDb = null,
+    permanentMemory = null,
     subAgentContract = null,
     llmOptions,
     shellPolicyOverrides,
@@ -2971,6 +2976,9 @@ async function executeToolInner(
           externalToolDescriptors,
           externalToolExecutors,
           extraToolDefinitions,
+          // Parent memory — inherited into the child only when contract grants it.
+          memoryDb,
+          permanentMemory,
           signal,
           backgroundSubAgents,
           subAgentUsageSink,
@@ -4477,6 +4485,18 @@ async function _executeSpawnSubAgent(args, ctx) {
     inheritedHooks = null;
   }
 
+  // Memory INHERITANCE (contract `memory` boolean, tighten-only across depth):
+  // grant the child the parent's hierarchical-memory DB ONLY when the resolved
+  // contract says memory:true (explicit, or context:fork from a memory-bearing
+  // parent). Default (silent-`fresh`→memory:false) → no db + memoryEnabled:false
+  // → no recall = today's behavior. `effectiveContract.memory` already encodes
+  // the intersect (a parent that denied memory can never re-grant downstream).
+  const memoryGranted = effectiveContract?.memory === true;
+  const inheritedMemory =
+    memoryGranted && ctx.memoryDb
+      ? { db: ctx.memoryDb, permanentMemory: ctx.permanentMemory || null }
+      : null;
+
   // Worktree isolation must FAIL CLOSED: if requested but the cwd is not a git
   // repo, refuse the spawn instead of silently running in the parent checkout.
   if (subIsolation === "worktree") {
@@ -4671,6 +4691,16 @@ async function _executeSpawnSubAgent(args, ctx) {
         }
       : {}),
     ...(inheritedHooks ? { settingsHooks: inheritedHooks } : {}),
+    // Memory INHERITANCE (2026-07-12): grant the child the parent's memory DB
+    // (namespaced by the child's task id) only when the contract allows; else
+    // memoryEnabled:false hard-suppresses recall even if a db leaks through.
+    ...(inheritedMemory
+      ? {
+          db: inheritedMemory.db,
+          permanentMemory: inheritedMemory.permanentMemory,
+          memoryEnabled: true,
+        }
+      : { memoryEnabled: false }),
   });
   subCtxRef = subCtx;
 
@@ -6239,6 +6269,13 @@ export async function* agentLoop(messages, options) {
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
     extraToolDefinitions: options.extraToolDefinitions || null,
     mcpClient: options.mcpClient || null,
+    // Parent memory source — a spawn can inherit the parent's hierarchical
+    // memory DB into the child ONLY when the resolved contract grants memory
+    // (context:fork from a memory-bearing parent, or explicit memory:true).
+    // Read off this loop's context engine (REPL sets one with db+permanentMemory).
+    memoryDb: options.contextEngine?.db ?? options.db ?? null,
+    permanentMemory:
+      options.contextEngine?.permanentMemory ?? options.permanentMemory ?? null,
     // Parent LLM config — forwarded to spawn_sub_agent so a delegated subagent
     // inherits the provider/key and can override just the model (cc agents `model:`).
     llmOptions: {

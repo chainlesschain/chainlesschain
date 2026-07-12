@@ -46,11 +46,17 @@ export class CLIContextEngineering {
    * @param {string} [options.scope.taskId] - Task/sub-agent ID
    * @param {string} [options.scope.role] - Sub-agent role
    * @param {string} [options.scope.parentObjective] - Parent task objective
+   * @param {boolean} [options.memoryEnabled=true] - When false, hierarchical
+   *   memory recall is suppressed even if a `db` is present. The subagent
+   *   contract's `memory` boolean drives this for spawned children so a child
+   *   denied memory physically cannot recall it (defense-in-depth beyond the
+   *   spawn simply withholding the db).
    */
-  constructor({ db, permanentMemory, scope } = {}) {
+  constructor({ db, permanentMemory, scope, memoryEnabled = true } = {}) {
     this.db = db || null;
     this.permanentMemory = permanentMemory || null;
     this.scope = scope || null;
+    this.memoryEnabled = memoryEnabled !== false;
     this.errorHistory = [];
     this.taskContext = null;
     this._bm25 = null;
@@ -121,7 +127,8 @@ export class CLIContextEngineering {
     }
 
     // 3. Memory injection (scoped: higher threshold, namespace-aware)
-    if (this.db && userQuery) {
+    // Suppressed when memoryEnabled is false (subagent contract memory:false).
+    if (this.memoryEnabled && this.db && userQuery) {
       try {
         const memoryQuery = this.scope
           ? `[${this.scope.role}] ${userQuery}`

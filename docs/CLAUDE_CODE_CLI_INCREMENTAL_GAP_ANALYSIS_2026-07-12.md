@@ -527,10 +527,22 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   []/列表三态 + 无匹配返 null + 缺 serverName 回退 wire 名）+ `sub-agent-isolation.test.js`
   +5（默认不继承 / fork 继承全部 MCP+hooks / 显式 mcpServers 子集 / 显式 hooks matcher 子集）；
   全 subagent + runtime-convergence shim parity 回归绿。未改 agent-core 导出（shim parity）。
+- **memory capability 继承 + INTERSECT**（2026-07-12 四轮收尾）——`memory` 不是工具而是
+  `CLIContextEngineering` 的分层记忆召回（`this.db && userQuery`→`recallMemory`）。spawn 现在
+  仅当 resolved 契约 `memory === true`（显式 `memory:true`，或 `context:fork` 且父上限契约
+  已授记忆）才把父 loop 的记忆 DB（`ctx.memoryDb`/`permanentMemory`，从本 loop 的
+  `contextEngine.db` 取）传给子；子的 `CLIContextEngineering` 用**子 taskId 作命名空间**隔离召回。
+  **默认字节不变**：silent-`fresh`→`memory:false`→不传 db + `memoryEnabled:false`→零召回=旧行为。
+  `effectiveContract.memory` 已是 tighten-only 交集结果（父拒记忆则下游永不再授）。**双侧闸**：
+  新增 `CLIContextEngineering` 的 `memoryEnabled` 选项（默认 true），false 时即便 db 在场也硬压
+  召回块（防御纵深，非仅靠 spawn 不传 db）。经 `toolContext`（`memoryDb`/`permanentMemory`）→
+  `executeTool`→`executeToolInner`→`_executeSpawnSubAgent`→`SubAgentContext.create`
+  （`memoryEnabled` + 条件 `db`）贯通。测试 +6：`cli-context-engineering.test.js` +2
+  （memoryEnabled:false 硬压召回 / 默认 true 召回）+ `sub-agent-isolation.test.js` +4（默认拒 /
+  显式 memory:true 授父 db / memory:true 但父无 db 仍拒 / 顶层 fork 不擅授）。未改 agent-core 导出。
 
-**仍欠（更大面 / 仍未接）**：`memory` INTERSECT + `permissionMode` 强制进子审批门；
-`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个 Subagent、每 child 的
-checkpoint 归因仍缺。
+**仍欠（更大面 / 仍未接）**：`permissionMode` 强制进子审批门；`background` 由契约统一驱动
+（现仍读 spawn args）；精确取消单个 Subagent、每 child 的 checkpoint 归因仍缺。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

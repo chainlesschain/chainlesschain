@@ -187,6 +187,50 @@ describe("CLIContextEngineering", () => {
       );
       expect(memMsg).toBeUndefined();
     });
+
+    it("suppresses recall entirely when memoryEnabled is false (contract memory:false)", () => {
+      const mockDb = {};
+      _deps.generateInstinctPrompt = vi.fn(() => "");
+      _deps.recallMemory = vi.fn(() => [
+        { content: "should not surface", layer: "long-term", retention: 0.9 },
+      ]);
+
+      const eng = new CLIContextEngineering({
+        db: mockDb,
+        memoryEnabled: false,
+      });
+      const result = eng.buildOptimizedMessages(
+        [{ role: "system", content: "sys" }],
+        { userQuery: "preferences" },
+      );
+
+      // The db is present but the gate must skip recall altogether.
+      expect(_deps.recallMemory).not.toHaveBeenCalled();
+      const memMsg = result.find(
+        (m) => m.role === "system" && m.content.includes("Relevant Memories"),
+      );
+      expect(memMsg).toBeUndefined();
+    });
+
+    it("recalls when memoryEnabled defaults to true", () => {
+      const mockDb = {};
+      _deps.generateInstinctPrompt = vi.fn(() => "");
+      _deps.recallMemory = vi.fn(() => [
+        { content: "kept", layer: "long-term", retention: 0.9 },
+      ]);
+
+      const eng = new CLIContextEngineering({ db: mockDb });
+      const result = eng.buildOptimizedMessages(
+        [{ role: "system", content: "sys" }],
+        { userQuery: "preferences" },
+      );
+
+      expect(_deps.recallMemory).toHaveBeenCalled();
+      const memMsg = result.find(
+        (m) => m.role === "system" && m.content.includes("Relevant Memories"),
+      );
+      expect(memMsg).toBeDefined();
+    });
   });
 
   // 鈹€鈹€ BM25 Notes injection 鈹€鈹€

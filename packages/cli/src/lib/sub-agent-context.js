@@ -45,8 +45,10 @@ export class SubAgentContext {
    * @param {number} [options.maxIterations] - Iteration limit (fallback if no budget)
    * @param {import('./iteration-budget.js').IterationBudget} [options.iterationBudget] - Shared iteration budget (takes priority over maxIterations)
    * @param {number} [options.tokenBudget] - Optional token budget
-   * @param {object} [options.db] - Database instance
+   * @param {object} [options.db] - Database instance (memory recall source)
    * @param {object} [options.permanentMemory] - Permanent memory instance
+   * @param {boolean} [options.memoryEnabled=true] - When false, the child's
+   *   context engine suppresses hierarchical-memory recall (contract memory:false)
    * @param {object} [options.llmOptions] - LLM provider/model/key options
    * @param {string} [options.cwd] - Working directory
    * @param {boolean} [options.useWorktree] - Force worktree isolation (overrides flag)
@@ -101,10 +103,17 @@ export class SubAgentContext {
     // Independent message history — never shared with parent
     this.messages = [];
 
-    // Independent context engine — does not inherit parent's compaction/errors
+    // Independent context engine — does not inherit parent's compaction/errors.
+    // Memory recall is gated by the subagent contract: the spawn passes a `db`
+    // and memoryEnabled:true only when the resolved contract grants memory
+    // (context:fork from a memory-bearing parent, or explicit memory:true).
+    // Default (silent-`fresh`→memory:false) → no db + memoryEnabled:false → no
+    // recall, which is today's byte-identical behavior for a plain sub-agent.
+    this._memoryEnabled = options.memoryEnabled !== false;
     this.contextEngine = new CLIContextEngineering({
       db: options.db || null,
       permanentMemory: options.permanentMemory || null,
+      memoryEnabled: this._memoryEnabled,
       scope: {
         taskId: this.id,
         role: this.role,
