@@ -44,6 +44,8 @@ import {
   appendTokenUsage as jsonlAppendTokenUsage,
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendCompactEvent as jsonlAppendCompactEvent,
+  appendEvent as jsonlAppendEvent,
+  readEvents as jsonlReadEvents,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
   getLastSessionId as jsonlGetLastSessionId,
@@ -461,6 +463,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     appendToolCallCompact:
       deps.appendToolCallCompact || jsonlAppendToolCallCompact,
     appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
+    appendEvent: deps.appendEvent || jsonlAppendEvent,
+    readEvents: deps.readEvents || jsonlReadEvents,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
     verifySession: deps.verifySession || jsonlVerifySession,
   };
@@ -1349,19 +1353,62 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       evidence: { kind: "model", raw: text.slice(0, 200) },
     };
   };
+  // Persist the engine snapshot as a hash-chained `goal_snapshot` session event
+  // (best-effort, only when persisting). Re-read on --resume so an unfinished
+  // goal continues across processes with its outerTurns/tokens/cost/startedAtMs
+  // intact. rebuildMessages ignores this event type, so it never pollutes model
+  // context. Defined here so the outer loop can call it after each evaluate().
+  const persistGoalSnapshot = () => {
+    if (!persist || !goalEngine) return;
+    try {
+      store.appendEvent(sessionId, "goal_snapshot", goalEngine.snapshot());
+    } catch {
+      // best-effort — never fail the run over persistence
+    }
+  };
   if (options.goalCondition) {
     try {
       const eng = await import("../lib/goal-condition-engine.js");
-      goalEngine = new eng.GoalConditionEngine({
-        condition: options.goalCondition,
-        budget: {
-          maxOuterTurns: options.maxOuterTurns,
-          maxTokens: options.goalMaxTokens,
-          maxCostUsd: options.goalMaxCostUsd,
-          maxTimeMs: options.goalMaxTimeMs,
-        },
-        now: () => (deps.now ? deps.now() : Date.now()),
-      });
+      const goalNow = () => (deps.now ? deps.now() : Date.now());
+      // Cross-process resume: if the resumed session persisted an UNFINISHED
+      // goal, continue it (fromSnapshot keeps accumulated progress + startedAtMs)
+      // rather than starting fresh. A finished (done) snapshot is ignored — the
+      // prior goal already concluded, so --goal-condition begins a new cycle. On
+      // restore the persisted condition/budget win over freshly-passed flags, so
+      // a resume faithfully continues the same goal.
+      let restoredSnap = null;
+      if (resumeId) {
+        try {
+          const events = store.readEvents(resumeId) || [];
+          for (let i = events.length - 1; i >= 0; i--) {
+            const ev = events[i];
+            if (ev && ev.type === "goal_snapshot") {
+              const snap = ev.data;
+              if (snap && snap.state && snap.state.done !== true)
+                restoredSnap = snap;
+              break; // only the latest goal_snapshot matters
+            }
+          }
+        } catch {
+          restoredSnap = null; // unreadable transcript → start fresh
+        }
+      }
+      if (restoredSnap) {
+        goalEngine = eng.GoalConditionEngine.fromSnapshot(restoredSnap, {
+          now: goalNow,
+        });
+      } else {
+        goalEngine = new eng.GoalConditionEngine({
+          condition: options.goalCondition,
+          budget: {
+            maxOuterTurns: options.maxOuterTurns,
+            maxTokens: options.goalMaxTokens,
+            maxCostUsd: options.goalMaxCostUsd,
+            maxTimeMs: options.goalMaxTimeMs,
+          },
+          now: goalNow,
+        });
+      }
       _goalHelpers = {
         isDeterministicCondition: eng.isDeterministicCondition,
         runDeterministicCheck: eng.runDeterministicCheck,
@@ -1372,11 +1419,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         type: started.type,
         condition: started.condition,
         budget: started.budget,
+        resumed: Boolean(restoredSnap),
       });
+      persistGoalSnapshot(); // checkpoint the starting/restored state
       if (isText)
         writeErr(
-          `  ◎ goal-condition active: ${goalEngine.condition.source} ` +
-            `(≤${goalEngine.budget.maxOuterTurns} outer turns)\n`,
+          `  ◎ goal-condition ${restoredSnap ? "resumed" : "active"}: ` +
+            `${goalEngine.condition.source} ` +
+            `(outer turn ${goalEngine.state.outerTurns + 1}/` +
+            `${goalEngine.budget.maxOuterTurns})\n`,
         );
     } catch (err) {
       // A bad spec should have been rejected at the command layer; fail-open so
@@ -1675,6 +1726,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               );
           }
         }
+        // Checkpoint the post-evaluate state (outerTurns incremented, and
+        // done/outcome on a terminal decision) so a crash or Ctrl-C between here
+        // and the next turn still resumes at the right point.
+        persistGoalSnapshot();
         if (decision === _goalHelpers.GOAL_DECISION.CONTINUE) {
           messages.push({
             role: "user",

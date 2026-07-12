@@ -12,6 +12,7 @@ import {
   parseToolList,
   READ_ONLY_TOOLS,
 } from "../../src/runtime/headless-runner.js";
+import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 
 // installPipeSafety moved to pipe-safety.js (canonical tests in
 // pipe-safety.test.js); headless-runner re-exports it for back-compat.
@@ -1090,5 +1091,149 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
     const types = parseLines(out).map((e) => e.type);
     expect(seen.turns).toBe(1);
     expect(types.some((t) => t.startsWith("goal_"))).toBe(false);
+  });
+});
+
+describe("headless-runner — goal-condition cross-process resume", () => {
+  function scriptedLoop(texts) {
+    let i = 0;
+    return async function* () {
+      const content = texts[Math.min(i, texts.length - 1)];
+      i++;
+      yield { type: "response-complete", content };
+      yield { type: "run-ended", reason: "complete" };
+    };
+  }
+
+  // A fake JSONL store with a chain-free event log: appendEvent pushes, and
+  // readEvents replays. Captures goal_snapshot payloads per session id.
+  function makeGoalStore(seed = {}) {
+    const log = {}; // id -> raw event array (shape readEvents returns)
+    for (const [id, evs] of Object.entries(seed)) log[id] = [...evs];
+    const snapshots = {}; // id -> list of goal_snapshot `data`
+    return {
+      log,
+      snapshots,
+      deps: {
+        getLastSessionId: () => null,
+        sessionExists: (id) => Object.prototype.hasOwnProperty.call(log, id),
+        rebuildMessages: () => [],
+        startSession: (id) => {
+          if (!log[id]) log[id] = [];
+        },
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendTokenUsage: () => {},
+        appendEvent: (id, type, data) => {
+          (log[id] = log[id] || []).push({ type, timestamp: 0, data });
+          if (type === "goal_snapshot")
+            (snapshots[id] = snapshots[id] || []).push(data);
+        },
+        readEvents: (id) => log[id] || [],
+      },
+    };
+  }
+
+  // Build a prior-process goal_snapshot event exactly as readEvents returns it.
+  function seedSnapshot({ outerTurns, done }) {
+    const e = new GoalConditionEngine({
+      condition: "contains:DONE",
+      budget: { maxOuterTurns: 5 },
+      now: () => 500,
+    });
+    e.state = {
+      ...e.state,
+      outerTurns,
+      tokens: 100,
+      done,
+      outcome: done ? "completed" : null,
+    };
+    return { type: "goal_snapshot", timestamp: 0, data: e.snapshot() };
+  }
+
+  const parseLines = (out) =>
+    out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+
+  it("persists goal_snapshot events, the last one marking done", async () => {
+    const store = makeGoalStore();
+    const { deps, out } = makeDeps(replyText("x"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = scriptedLoop(["still working", "DONE"]);
+
+    await runAgentHeadless(
+      {
+        prompt: "make it pass",
+        outputFormat: "stream-json",
+        goalCondition: "contains:DONE",
+        sessionId: "sess-G",
+        persistSession: true,
+      },
+      deps,
+    );
+
+    const snaps = store.snapshots["sess-G"] || [];
+    expect(snaps.length).toBeGreaterThanOrEqual(2); // opening + per-evaluate
+    expect(snaps[0].state.done).toBe(false); // starting checkpoint
+    expect(snaps[snaps.length - 1].state.done).toBe(true);
+    expect(snaps[snaps.length - 1].state.outcome).toBe("completed");
+    const started = parseLines(out).find((e) => e.type === "goal_started");
+    expect(started.resumed).toBe(false); // a fresh (non-resumed) run
+  });
+
+  it("resumes an UNFINISHED goal — continues outerTurns across the process", async () => {
+    const store = makeGoalStore({
+      "sess-R": [seedSnapshot({ outerTurns: 2, done: false })],
+    });
+    const { deps, out } = makeDeps(replyText("x"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = scriptedLoop(["DONE"]); // met on the first turn this process
+
+    await runAgentHeadless(
+      {
+        prompt: "keep going",
+        outputFormat: "stream-json",
+        goalCondition: "contains:DONE",
+        resume: "sess-R",
+      },
+      deps,
+    );
+
+    const started = parseLines(out).find((e) => e.type === "goal_started");
+    expect(started.resumed).toBe(true); // restored from the prior process
+    const snaps = store.snapshots["sess-R"] || [];
+    const last = snaps[snaps.length - 1];
+    // 2 restored outer turns + 1 evaluate this process → 3, and done.
+    expect(last.state.outerTurns).toBe(3);
+    expect(last.state.done).toBe(true);
+    // startedAtMs is carried over so elapsed time keeps counting.
+    expect(last.state.startedAtMs).toBe(500);
+  });
+
+  it("ignores a FINISHED snapshot — starts a fresh goal cycle", async () => {
+    const store = makeGoalStore({
+      "sess-D": [seedSnapshot({ outerTurns: 4, done: true })],
+    });
+    const { deps, out } = makeDeps(replyText("x"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = scriptedLoop(["DONE"]);
+
+    await runAgentHeadless(
+      {
+        prompt: "new cycle",
+        outputFormat: "stream-json",
+        goalCondition: "contains:DONE",
+        resume: "sess-D",
+      },
+      deps,
+    );
+
+    const started = parseLines(out).find((e) => e.type === "goal_started");
+    expect(started.resumed).toBe(false); // done snapshot ignored
+    const last = (store.snapshots["sess-D"] || []).slice(-1)[0];
+    expect(last.state.outerTurns).toBe(1); // fresh count, not continued from 4
   });
 });
