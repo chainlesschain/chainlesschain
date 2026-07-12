@@ -25,6 +25,7 @@ import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookRunner from "../lib/hook-runner.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
+import { applyCredentialProxy } from "../lib/credential-proxy.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -2540,7 +2541,10 @@ async function executeToolInner(
             // Same agent-identity env as the foreground path: CLAUDECODE marks
             // "running under the agent"; the session id correlates work to the
             // run (CC_SESSION_ID + CLAUDE_CODE_SESSION_ID for Claude-Code parity).
-            env: {
+            // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
+            // real long-lived secrets out of the spawned command's env — a
+            // no-op (same object) when disabled. See credential-proxy.js.
+            env: applyCredentialProxy({
               ...process.env,
               CLAUDECODE: "1",
               ...(sessionId
@@ -2549,7 +2553,7 @@ async function executeToolInner(
                     CLAUDE_CODE_SESSION_ID: String(sessionId),
                   }
                 : {}),
-            },
+            }).env,
             // POSIX: own process group so check_shell{kill}/teardown can signal
             // the whole tree (shell + its grandchild command). No-op on Windows
             // where the tree is killed via taskkill /T instead.
@@ -2715,7 +2719,10 @@ async function executeToolInner(
           // parity): CLAUDECODE=1 marks "running under the agent"; CC_SESSION_ID
           // + its CLAUDE_CODE_SESSION_ID mirror let scripts/hooks correlate work
           // to the agent session (the mirror is what CC-targeting tools expect).
-          env: {
+          // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
+          // real long-lived secrets out of the shell's env — a no-op (same
+          // object) when disabled. See credential-proxy.js.
+          env: applyCredentialProxy({
             ...process.env,
             CLAUDECODE: "1",
             ...(sessionId
@@ -2724,7 +2731,7 @@ async function executeToolInner(
                   CLAUDE_CODE_SESSION_ID: String(sessionId),
                 }
               : {}),
-          },
+          }).env,
         };
         let output;
         if (shellInv.useDefaultShell) {

@@ -179,6 +179,36 @@ uncertain_side_effect
 
 参考 [Sandbox 官方文档](https://code.claude.com/docs/en/sandboxing)。
 
+### 已落地（增量）
+
+- **凭据代理（子进程不再默认继承真实长期凭据）**：新增纯逻辑模块
+  [`credential-proxy.js`](../packages/cli/src/lib/credential-proxy.js)。此前
+  `run_shell`/`run_code` 以 `{...process.env}` 派生子进程
+  （[`agent-core.js`](../packages/cli/src/runtime/agent-core.js) 前台+后台两处），
+  会把 agent 自己的 `ANTHROPIC_API_KEY`、云密钥、token 原样泄露给任意命令。
+  - `maskCredentialEnv` 把凭据命名的 env 变量替换成不可逆 **sentinel**
+    （`cc-cred-redacted:<NAME>`）或直接删除（`mode:"deny"`），真值留在
+    **parent 持有的 vault**，子进程永远拿不到；`resolveApprovedInjection` 仅对
+    **已批准 host** 即时注入（fail-closed）。凭据名分类复用 credential-guard 的
+    `isSecretEnvName`（单一真源，避免漂移）。
+  - `redactEnvForAudit` / `redactSecretValue` 保证审计日志只见 `***`/sentinel，
+    绝不记录还原后的真值。
+  - 已接线到两处 `run_shell`/`run_code` spawn（`applyCredentialProxy(env).env`），
+    **opt-in**（`CC_CREDENTIAL_PROXY=1` 或 `config.credentialProxy.enabled`），
+    默认关时返回**同一对象**、行为字节不变；开启即掩码。默认关是为了不破坏
+    合法从 env 读 token 的工作流；**default-on 是后续目标**（需 changelog 行为
+    变更 + 逐 host 注入接线齐备）。
+  - 测试：`credential-proxy.test.js`（分类 / 掩码 / deny / 不双掩 / 审计脱敏 /
+    approved-only 注入 / 配置与 env 门 / **真 spawn 端到端**证明子进程只见
+    sentinel、`deny` 下变量彻底消失）。
+
+**仍欠（多为环境/平台阻塞）**：macOS Seatbelt profile；原生 Windows 的 OS 级
+边界（WSL2/容器/受限进程）；把 `run_shell`/`run_code`/Hook/Plugin Bin/LSP/
+MCP stdio 统一收进 Process Sandbox Broker；Python per-session venv + 版本锁 +
+hash 校验；npm/pip/winget/brew 安装入口的统一权限类型与审计事件；凭据代理
+default-on + 逐 host 短期凭据注入接到 egress proxy；三平台真集成测试
+（子进程链 / symlink·junction / 路径穿越 / 私网·metadata endpoint）。
+
 ## P0：权限来源与跨 Agent 授权边界
 
 当系统同时存在 Subagent、Team、Remote Control、Inbound Channel、Hook 和 MCP 时，

@@ -213,6 +213,17 @@ const PRINT_COMMANDS = new Set([
 const SECRET_VAR_RE =
   /(?:^|_)(KEY|KEYS|TOKEN|SECRET|SECRETS|PASSWORD|PASSWD|PASSPHRASE|CREDENTIAL|CREDENTIALS|PRIVATE|APIKEY|ACCESSKEY)(?:_|$)/i;
 
+/**
+ * True when an environment-variable NAME looks like it holds a secret
+ * (ANTHROPIC_API_KEY, GITHUB_TOKEN, DB_PASSWORD, …). Shared single source of
+ * truth so the credential READ guard and the credential PROXY
+ * ([[credential-proxy.js]] — which keeps secrets out of subprocess envs)
+ * classify identically. `MONKEY`/`KEYBOARD`/`TOKENIZER` do NOT match.
+ */
+export function isSecretEnvName(name) {
+  return typeof name === "string" && SECRET_VAR_RE.test(name);
+}
+
 // Ways a secret var is referenced inside a shell segment.
 const SECRET_REF_PATTERNS = [
   /\$env:([A-Za-z_][A-Za-z0-9_]*)/gi, // PowerShell  $env:NAME
