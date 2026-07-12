@@ -35,6 +35,7 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 | P0#2 写路径风险提升 | auto-exec 配置写守卫接入 CLI 写路径（`.vscode/tasks·launch·settings`、`.mcp.json`、`.idea/runConfigurations`、devcontainer、code-workspace → 写前确认，headless fail-closed） | `492f89a5fd` |
 | P0#3 远程开发 | 声明 `extensionKind: ["workspace"]`，锁死扩展与注入终端在 repo host（Remote/WSL/Container 确定性）；Remote/WSL Doctor 四类检查此前已 landed | `1abdce5d1b` |
 | P0#4 会话可靠性 | 修复 supervisor 3 个 pinned gaps（pid 复用身份校验 / 孤儿 agent 子进程回收 / follow 截断全量重放）+ prompt 队列有界（100 上限背压） | `fe3e139ede` |
+| P0#4 统一状态机 | 三套发散表示（supervisor `status` / worker `phase` / IDE connection）折进 ONE 规范 10 态（starting/ready/running/waitingApproval/cancelling/disconnected/recovering/completed/failed/stopped）。纯核 `session-lifecycle.js`：`deriveSessionState` 带优先级折叠（terminal>recovery>disconnect>cancel>approval>phase）、`canTransitionSessionState` 合法迁移图（terminal 吸收态）、`requiresIdempotencyGuard` 标记 recovering/disconnected 恢复窗口（"危险工具恢复时不得静默重试"=resume 前须先查 ledger 再执行）。有牙：`listBackgroundAgents` 在展示 feed 附派生 NON-persisted `lifecycleState`（`cc daemon list --json`/仪表板即得），刻意不进 `effectiveBackgroundAgentState`（其输出经 rename/pin/stop 读改写回盘会泄漏到磁盘 schema，回归测试守此坑）；22 lifecycle + 5 supervisor 测试绿 | `1af75dfb50` |
 | P0#5 质量门 | 修 CI 路径过滤缺口（只改扩展源码的 PR 现在会跑 76 个 vscode-ext 测试）；协议 fixture 契约兼作跨端机器强制 | `1abdce5d1b` / `190a973a7a` |
 | P1 diff 加固 | diff apply 乐观并发守卫（评审期盘上漂移 → 确认再写，默认取消）+ 二进制文件守卫（NUL 探测，UTF-8 中文不误判），双端纯核孪生 | `1abdce5d1b` |
 | P1 diff 编辑器缓冲区 stale 拒绝 | VS 漂移门原只读磁盘 → 评审期目标文件在他处标签**未保存**编辑时盲写会静默销毁；改为优先比对**活缓冲区**文本（内容比对而非版本号，edit-then-undo 不误报），与 JB（早已读内存 Document）对齐；文案两端刷新覆盖"未保存/磁盘"两态 | `2a21a587ad` |
@@ -50,9 +51,11 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
   本轮实现保守正则，度量未做；approvalId 绑定操作指纹（工具名+参数哈希）属 P2。
 - **远程开发（P0#3）**：五类远程环境（WSL/SSH/Dev Containers/Codespaces/Gateway）的连接/上下文/
   diff/审批/取消/resume 统一 E2E 矩阵、URI/path round-trip 100% 正确 = 需真实远程环境，环境阻塞。
-- **会话可靠性（P0#4）**：统一状态机（starting/ready/…/recovering，当前 3 套发散表示）属抽象整合；
-  IDE 聊天面板的危险工具幂等覆盖（当前 ledger 仅 WS 端点）需 headless resume 侧改动；
-  1000 次启停 / 8 小时 soak = 环境阻塞。
+- **会话可靠性（P0#4）**：统一状态机已落地（`session-lifecycle.js`，10 态 + 迁移图 +
+  恢复窗口幂等守卫谓词 `requiresIdempotencyGuard`，`1af75dfb50`）——三套发散表示已折进单一
+  规范词汇并经 `listBackgroundAgents` 展示 feed 出货。剩：把 `requiresIdempotencyGuard` 真正
+  接进 headless resume 执行链（当前危险工具 ledger 仅 WS 端点，IDE 聊天面板路径的幂等覆盖需
+  resume 侧改动）；1000 次启停 / 8 小时 soak = 环境阻塞。
 - **质量门（P0#5）**：capability manifest 单一真源生成文档/测试/行为清单、Marketplace 安装包
   smoke、nightly 远程矩阵 = 部分需 CI 配额与真实安装环境。
 - **P1 剩项**：diff 的 rename/delete 语义（需协议/agent 侧携带改名与删除意图，属跨层大改，
