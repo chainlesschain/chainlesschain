@@ -899,6 +899,11 @@ export function registerAgentCommand(program) {
             maxCostUsd,
             priceTable,
             chatFn: fallbackChatFn,
+            // --json-schema: structured output for stream-INPUT mode. The schema
+            // is resolved + meta-validated up front, its output contract injected
+            // into the system prompt, and a per-turn `structured_result` event is
+            // appended after each turn (parity with single-prompt --json-schema).
+            jsonSchema: options.jsonSchema || null,
           });
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);

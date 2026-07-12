@@ -1055,11 +1055,33 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       instructionExcludes = null; // fail-open
     }
   }
+  // --json-schema (P2 §"JSON Schema 与流式结构化结果"): resolve + meta-validate
+  // the schema up front (fail-fast on a broken contract, mirroring the
+  // single-prompt path), then inject its output contract into the system prompt
+  // so the model's final reply is JSON. A per-turn `structured_result` event is
+  // emitted after each turn below. Off by default → nothing changes.
+  let _jsonSchema = null;
+  let _jso = null;
+  if (options.jsonSchema) {
+    try {
+      _jso = await import("../lib/json-schema-output.js");
+      _jsonSchema = _jso.loadSchemaFile(_jso._deps.fs, options.jsonSchema);
+    } catch (err) {
+      // Fail-fast, exactly like `cc agent -p --json-schema` on a bad schema.
+      writeErr(`Error: ${err.message}\n`);
+      return { exitCode: 1, turns: 0 };
+    }
+  }
+
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
-      appendSystemPrompt: options.appendSystemPrompt,
+      appendSystemPrompt: _jsonSchema
+        ? [options.appendSystemPrompt, _jso.buildSchemaInstruction(_jsonSchema)]
+            .filter(Boolean)
+            .join("\n\n")
+        : options.appendSystemPrompt,
       outputStyle: outputStyleBody,
       instructionExcludes,
     },
@@ -2061,6 +2083,22 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       turn: turns,
       usage: outcome.usage,
     });
+
+    // --json-schema (P2): emit this turn's structured verdict right after its
+    // result — schema_digest + valid + value/errors from the turn's final text.
+    // Never falls back to free text; an unparseable/invalid reply reports
+    // valid:false with coded/pointered errors. Parity with single-prompt output.
+    if (_jsonSchema) {
+      const parsed = _jso.extractJsonPayload(String(outcome.finalText ?? ""));
+      emit({
+        ..._jso.buildStructuredResult(
+          _jsonSchema,
+          parsed.ok ? parsed.value : null,
+        ),
+        session_id: sessionId,
+        turn: turns,
+      });
+    }
 
     // Session-wide cost cap reached → stop accepting further turns.
     if (costStopped) break;
