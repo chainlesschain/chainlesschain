@@ -759,10 +759,19 @@ text 经 `extractJsonPayload`→`buildStructuredResult` 组装，退出码反映
 （inline 有效/无效/meta-invalid + stream-branch 组装有效/无效）+ 坏 inline schema
 在任何模型调用前失败验证分支可达。
 
+**已落地（2026-07-12 二轮）**：`json-schema-validate.js` 现**断言** `format`
+（date-time/date/time/email/uri/uuid/ipv4/ipv6/hostname，日历感知 date、闰秒 time、
+无前导零 ipv4 八位组、单 `::` ipv6、RFC-1123 hostname；未知 format 按 Draft 2020-12
+退回注解一律通过，导出 `KNOWN_FORMATS`）+ 支持 **`if`/`then`/`else`** 条件模式（`if`
+复用 `_branchValid` 作**永不上报**的测试，then/else 错误带 `/then`·`/else` schemaPath）；
+meta-validation 加 `format` 须为字符串 + if/then/else 递归为子 schema。测试
+`json-schema-validate.test.js` +16（36 项，原 20），`json-schema-output` 消费套
+25/25 无回归（经 `validateSchema` 贯通）。commit `0849b2ae3e`。
+
 **仍欠**：从 `headless-stream.js` 的 per-turn `result` 事件内部 emit
 `structured_result`（本轮走的是单-prompt runAgentHeadless 的 stream 输出旁路）；
 `runJsonSchemaConstrained` 的重试校验切到新验证器（更精确纠错 + JSON Pointer）；
-format(email/uri/date-time) 断言与 if/then/else 留待。
+`format` 断言接进 `runJsonSchemaConstrained` 的重试循环（现新验证器已支持，尚未接线）。
 
 ### LSP 与 Code Review
 
