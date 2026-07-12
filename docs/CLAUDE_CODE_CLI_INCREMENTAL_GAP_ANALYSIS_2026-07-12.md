@@ -382,12 +382,24 @@ headless-runner 与 headless-stream 两个 `composeSystemPrompt` 调用点均已
 （显式 `options.instructionExcludes` 优先，读错 fail-open，默认 null 时行为字节不变）。
 测试：`settings-loader.test.js` 新增 5 项（单层/跨层 union/去重/非数组忽略/空数组）。
 
+**已落地（2026-07-12 三轮）**：`cc context --sources`（opt-in）在原按角色分桶的
+基础上加**按来源分解**——新纯核 `context-breakdown.js`（`breakdownInstructionSources`
+逐 instruction 文件 token 归因 + `rankContextSources` 把 project-memory 总量与消息角色
+桶合并成按占比排名的来源列表 + `relativizeInstructionPath`，估算器注入、零 I/O）；
+命令层 `--sources` 对当前 cwd 加载 project-instruction 文件（honor 同一
+`instructionExcludes`），文本渲染「By source」段（逐 cc.md/CLAUDE.md/规则/@import 文件
+的 scope+路径+token）+ JSON 加 `sources`/`instructions`/`instructionTokens`/
+`combinedTotal`；**无 flag 时字节不变**。诚实边界：skill/MCP 工具 schema 是运行时工具
+定义，不在持久 transcript 也不在 project memory 内，明示不计入。仓库根实测归因真
+CLAUDE.md(3033)+截断 CLAUDE.local.md(11150)+4 规则文件。测试 `context-breakdown.test.js`
++10 + `cc-context.test.js` 6/6 不变。commit `afd2f6695b`。
+
 **仍欠**：子目录指令**按首次访问子树懒加载**（tool-time 注入，module 99 §5.3）；per-directory
 Skills/`paths:` 按需发现只注入名称/短描述；`worktree.sparsePaths` sparse-checkout
 
 - `symlinkDirectories`（含 junction/symlink 逃逸防护，需真 git）；additional roots
-  变更发 MCP `roots/list_changed`；`/context` 扩展为按 instruction/skill/MCP schema/
-  消息的 token 占用+来源分解（现 `cc context` 仅按消息角色分桶）。
+  变更发 MCP `roots/list_changed`；`/context` 的 skill/MCP schema 来源归因（需运行时
+  加载技能/MCP 注册表，非持久会话可得）留待。
 
 ## P1：统一持久 Scheduler、Monitor 和 Channel
 
