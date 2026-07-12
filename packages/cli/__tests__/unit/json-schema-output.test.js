@@ -8,6 +8,7 @@ import {
   runJsonSchemaConstrained,
   loadSchemaFile,
   buildStructuredResult,
+  formatSchemaErrors,
 } from "../../src/lib/json-schema-output.js";
 
 const SCHEMA = {
@@ -182,6 +183,79 @@ describe("runJsonSchemaConstrained", () => {
     expect(buildSchemaInstruction({ type: "object" })).toContain(
       '{"type":"object"}',
     );
+  });
+});
+
+describe("formatSchemaErrors", () => {
+  it("renders coded errors as `<pointer>: <message>`, (root) for empty", () => {
+    expect(
+      formatSchemaErrors([
+        { instancePath: "/email", message: "string is not a valid email" },
+        { instancePath: "", message: 'missing required property "x"' },
+      ]),
+    ).toEqual([
+      "/email: string is not a valid email",
+      '(root): missing required property "x"',
+    ]);
+  });
+
+  it("is null-safe", () => {
+    expect(formatSchemaErrors()).toEqual([]);
+  });
+});
+
+describe("runJsonSchemaConstrained — richer validation (P2 wiring)", () => {
+  const base = { prompt: "give me a user" };
+
+  it("enforces `format` the loose validator ignored (rejects a non-email)", async () => {
+    const schema = {
+      type: "object",
+      required: ["email"],
+      properties: { email: { type: "string", format: "email" } },
+    };
+    let err = "";
+    const code = await runJsonSchemaConstrained({
+      schema,
+      baseOptions: base,
+      maxAttempts: 2,
+      writeOut: () => {},
+      writeErr: (s) => {
+        err += s;
+      },
+      runHeadless: async () => ({ result: '{"email":"not-an-email"}' }),
+    });
+    expect(code).toBe(1);
+    expect(err).toContain("/email"); // JSON Pointer, not a `$.email` string
+    expect(err).toContain("valid email");
+  });
+
+  it("feeds a JSON Pointer + `minimum` into the corrective retry prompt", async () => {
+    const schema = {
+      type: "object",
+      required: ["age"],
+      properties: { age: { type: "integer", minimum: 18 } },
+    };
+    const prompts = [];
+    let out = "";
+    const code = await runJsonSchemaConstrained({
+      schema,
+      baseOptions: base,
+      writeOut: (s) => {
+        out += s;
+      },
+      writeErr: () => {},
+      runHeadless: async (opts) => {
+        prompts.push(opts.prompt);
+        return prompts.length === 1
+          ? { result: '{"age":5}' } // below minimum — loose validator missed this
+          : { result: '{"age":21}' };
+      },
+    });
+    expect(code).toBe(0);
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("/age");
+    expect(prompts[1]).toMatch(/minimum/i);
+    expect(JSON.parse(out).age).toBe(21);
   });
 });
 

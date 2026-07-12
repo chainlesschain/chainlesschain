@@ -7,13 +7,17 @@
  * `deps.writeOut` capture seam — the runner itself is untouched: each attempt
  * runs with output captured, the validated JSON is the only thing printed.
  *
- * Validator subset (enough for tool/script contracts, not full draft-2020):
- * type (object/array/string/number/integer/boolean/null), properties,
- * required, items, enum, const, additionalProperties:false. Zero deps.
+ * Constrained validation delegates to the richer Draft-2020-12-subset validator
+ * in [[json-schema-validate.js]] (type, properties, required, items/prefixItems,
+ * enum/const, additionalProperties, min/max, pattern, format, allOf/anyOf/oneOf/
+ * not, if/then/else, local $ref) so retries get precise coded/pointered errors —
+ * the model is told exactly WHICH JSON Pointer failed and WHY. The legacy
+ * `validateAgainstSchema` (loose `$.a.b` strings) stays exported for callers.
  */
 
 import fsDefault from "fs";
 import {
+  validate,
   validateSchema,
   buildStructuredResultEvent,
   computeSchemaDigest,
@@ -94,6 +98,20 @@ export function validateAgainstSchema(value, schema, path = "$") {
     });
   }
   return errors;
+}
+
+/**
+ * Render the richer validator's coded/pointered error objects as human-readable
+ * `<JSON Pointer>: <message>` strings for the corrective retry prompt and the
+ * final failure report. The empty root pointer is shown as `(root)`.
+ *
+ * @param {Array<{instancePath?:string, message:string}>} errors
+ * @returns {string[]}
+ */
+export function formatSchemaErrors(errors) {
+  return (errors || []).map(
+    (e) => `${e.instancePath || "(root)"}: ${e.message}`,
+  );
 }
 
 /**
@@ -288,12 +306,15 @@ export async function runJsonSchemaConstrained(cfg = {}) {
     lastRaw = raw;
     const parsed = extractJsonPayload(raw);
     if (parsed.ok) {
-      const errors = validateAgainstSchema(parsed.value, schema);
-      if (errors.length === 0) {
+      // Richer validator: enforces the full supported subset (format assertions,
+      // if/then/else, min/max, pattern, combinators, …) and yields coded/pointered
+      // errors so the retry prompt tells the model exactly which pointer failed.
+      const { valid, errors } = validate(parsed.value, schema);
+      if (valid) {
         writeOut(`${JSON.stringify(parsed.value, null, 2)}\n`);
         return 0;
       }
-      lastErrors = errors;
+      lastErrors = formatSchemaErrors(errors);
     } else {
       lastErrors = [parsed.error];
     }
