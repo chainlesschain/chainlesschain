@@ -31,35 +31,35 @@ Plugin、LSP、Checkpoint、会话哈希链和 Agent SDK。
 [`changelog.json`](../packages/cli/src/data/changelog.json#L27)。本报告不重复建议
 以下已经落地的能力：
 
-| 能力 | 当前实现证据 | 判断 |
-| --- | --- | --- |
-| 确定性 Headless | `--bare`、`--ephemeral`、协议版本、能力清单、退出码分类 | 已有，不再扩命令面 |
-| Fallback 与结构化输出 | [`fallback-model.js`](../packages/cli/src/runtime/fallback-model.js#L234)、[`json-schema-output.js`](../packages/cli/src/lib/json-schema-output.js#L206) | 已有，需补标准完整度 |
-| 后台 Agent | `--bg`、daemon、attach、reply、logs、rm、[`bg-dashboard.js`](../packages/cli/src/repl/bg-dashboard.js#L42) | 已有主体，需补恢复语义 |
+| 能力                       | 当前实现证据                                                                                                                                                                                             | 判断                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 确定性 Headless            | `--bare`、`--ephemeral`、协议版本、能力清单、退出码分类                                                                                                                                                  | 已有，不再扩命令面       |
+| Fallback 与结构化输出      | [`fallback-model.js`](../packages/cli/src/runtime/fallback-model.js#L234)、[`json-schema-output.js`](../packages/cli/src/lib/json-schema-output.js#L206)                                                 | 已有，需补标准完整度     |
+| 后台 Agent                 | `--bg`、daemon、attach、reply、logs、rm、[`bg-dashboard.js`](../packages/cli/src/repl/bg-dashboard.js#L42)                                                                                               | 已有主体，需补恢复语义   |
 | Goal/Loop/Schedule/Monitor | [`goal-assess.js`](../packages/cli/src/lib/goal-assess.js#L203)、[`loop.js`](../packages/cli/src/commands/loop.js#L139)、[`agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js#L6) | 已有分立能力，缺统一闭环 |
-| Inbound Channels | [`agent.js`](../packages/cli/src/commands/agent.js#L346)、[`channel-manager.js`](../packages/cli/src/lib/channels/channel-manager.js#L2) | Webhook/Telegram 已有 |
-| LSP | [`code-intelligence.js`](../packages/cli/src/lib/lsp/code-intelligence.js#L79)、[`agent-core.js`](../packages/cli/src/runtime/agent-core.js#L3437) | 语义查询工具已完整 |
-| Plugin Runtime | LSP、MCP、Hooks、Monitors、Bin、Settings、签名和版本信任 | 已有生态主体 |
-| MCP 生命周期 | Tool Search、OAuth、重连、`list_changed`、项目指纹重信任 | 已有主要链路 |
-| 会话完整性 | Hash chain、`cc session verify`、resume tamper gate、运行时写保护 | 已有基础防篡改 |
+| Inbound Channels           | [`agent.js`](../packages/cli/src/commands/agent.js#L346)、[`channel-manager.js`](../packages/cli/src/lib/channels/channel-manager.js#L2)                                                                 | Webhook/Telegram 已有    |
+| LSP                        | [`code-intelligence.js`](../packages/cli/src/lib/lsp/code-intelligence.js#L79)、[`agent-core.js`](../packages/cli/src/runtime/agent-core.js#L3437)                                                       | 语义查询工具已完整       |
+| Plugin Runtime             | LSP、MCP、Hooks、Monitors、Bin、Settings、签名和版本信任                                                                                                                                                 | 已有生态主体             |
+| MCP 生命周期               | Tool Search、OAuth、重连、`list_changed`、项目指纹重信任                                                                                                                                                 | 已有主要链路             |
+| 会话完整性                 | Hash chain、`cc session verify`、resume tamper gate、运行时写保护                                                                                                                                        | 已有基础防篡改           |
 
 ## 优先级总表
 
-| 优先级 | 建议 | 用户价值 | 实现量 | 当前主要差距 |
-| --- | --- | --- | --- | --- |
-| P0 | 后台 Agent 状态机与恢复台账 | 很高 | 大 | `idle` 被当作 `needs-input`；无真实等待审批态；风险工具崩溃后缺幂等状态 |
-| P0 | 跨平台沙箱与凭据代理 | 很高 | 大 | Linux 较完整；macOS/Windows 与 `run_code` 隔离未闭环 |
-| P0 | 权限来源与跨 Agent 授权边界 | 很高 | 中 | Agent/Channel/Hook 消息需要不可伪造的 authority |
-| P1 | 会话级完成条件引擎 | 高 | 中 | Goal 只记录/评估进展，Loop 独立；没有未达条件自动续轮 |
-| P1 | 大型 Monorepo 上下文与 Worktree 优化 | 很高 | 中 | 缺目录懒加载、排除规则、`sparsePaths` 和安全依赖复用 |
-| P1 | 持久 Scheduler/Monitor/Channel 事件运行时 | 高 | 大 | Agenda 依赖外部调用；Monitor 主要是命令输出正则；Channel 仅接交互 REPL |
-| P1 | 完整 Subagent 契约 | 高 | 中 | 尚缺 permission/skills/MCP/hooks/memory/effort/background 等统一继承 |
-| P1 | Turn、Checkpoint 与会话恢复合一 | 高 | 中 | 绑定偏隐式；Shell/外部进程修改覆盖范围无法精确表达 |
-| P1 | Plugin 能力声明与配置 Schema | 中 | 中 | 已有版本信任，但缺逐能力 consent、`optionsSchema` 和敏感配置托管 |
-| P2 | Hooks 统一事件总线与 Replay | 中 | 中 | 事件覆盖和两套 Hook 模型未完全统一 |
-| P2 | JSON Schema 与流式结构化结果 | 中 | 小 | 只实现常用子集，且和 `stream-json` 不兼容 |
-| P2 | LSP 自动诊断与多 Agent Code Review | 中 | 中 | LSP 以主动查询为主；Review 是单 Agent 单遍发现 |
-| P2 | Doctor、文档生成与因果可观测性 | 中 | 小/中 | CLI 文档仍应从注册表生成；跨 Agent trace 需统一 |
+| 优先级 | 建议                                      | 用户价值 | 实现量 | 当前主要差距                                                            |
+| ------ | ----------------------------------------- | -------- | ------ | ----------------------------------------------------------------------- |
+| P0     | 后台 Agent 状态机与恢复台账               | 很高     | 大     | `idle` 被当作 `needs-input`；无真实等待审批态；风险工具崩溃后缺幂等状态 |
+| P0     | 跨平台沙箱与凭据代理                      | 很高     | 大     | Linux 较完整；macOS/Windows 与 `run_code` 隔离未闭环                    |
+| P0     | 权限来源与跨 Agent 授权边界               | 很高     | 中     | Agent/Channel/Hook 消息需要不可伪造的 authority                         |
+| P1     | 会话级完成条件引擎                        | 高       | 中     | Goal 只记录/评估进展，Loop 独立；没有未达条件自动续轮                   |
+| P1     | 大型 Monorepo 上下文与 Worktree 优化      | 很高     | 中     | 缺目录懒加载、排除规则、`sparsePaths` 和安全依赖复用                    |
+| P1     | 持久 Scheduler/Monitor/Channel 事件运行时 | 高       | 大     | Agenda 依赖外部调用；Monitor 主要是命令输出正则；Channel 仅接交互 REPL  |
+| P1     | 完整 Subagent 契约                        | 高       | 中     | 尚缺 permission/skills/MCP/hooks/memory/effort/background 等统一继承    |
+| P1     | Turn、Checkpoint 与会话恢复合一           | 高       | 中     | 绑定偏隐式；Shell/外部进程修改覆盖范围无法精确表达                      |
+| P1     | Plugin 能力声明与配置 Schema              | 中       | 中     | 已有版本信任，但缺逐能力 consent、`optionsSchema` 和敏感配置托管        |
+| P2     | Hooks 统一事件总线与 Replay               | 中       | 中     | 事件覆盖和两套 Hook 模型未完全统一                                      |
+| P2     | JSON Schema 与流式结构化结果              | 中       | 小     | 只实现常用子集，且和 `stream-json` 不兼容                               |
+| P2     | LSP 自动诊断与多 Agent Code Review        | 中       | 中     | LSP 以主动查询为主；Review 是单 Agent 单遍发现                          |
+| P2     | Doctor、文档生成与因果可观测性            | 中       | 小/中  | CLI 文档仍应从注册表生成；跨 Agent trace 需统一                         |
 
 ## P0：后台 Agent 从“能后台跑”升级为“可恢复运行时”
 
@@ -126,6 +126,30 @@ uncertain_side_effect
 - 问题等待和权限等待可在 daemon 重启后继续显示并通过 attach/reply 完成。
 - worker 死亡后无孤儿 agent 子进程。
 - Dashboard 的 `Idle` 与 `Needs input` 有独立状态和测试。
+
+### 已落地（增量）
+
+- **PID 复用识别（Gap 1）**：`isSameProcess(pid, startedAt)` 用进程创建时间
+  锚定，复用的陌生 pid 即便心跳新鲜也被 reconcile 成
+  `lost/pid-reused`；见
+  [`background-agent-supervisor.js`](../packages/cli/src/lib/background-agent-supervisor.js#L307)。
+- **孤儿 agent 子进程回收（Gap 2）**：worker 死亡/被判 pid-reused 时，
+  `reclaimOrphanAgentProcess` 以 `agentStartedAt` 锚定后 tree-kill 记录的
+  `agentPid`（无锚点 fail-closed）；见
+  [`background-agent-supervisor.js`](../packages/cli/src/lib/background-agent-supervisor.js#L334)。
+- **`Idle` 与 `Needs input` 独立状态**：新增共享纯逻辑契约
+  [`background-agent-phase.js`](../packages/cli/src/lib/background-agent-phase.js)
+  （`BACKGROUND_AGENT_PHASES` + `normalizeBackgroundAgentPhase` +
+  `phaseGroupKey`），把 `idle`（结束一轮、已停泊、无阻塞）与真正的
+  `needs_input`/`waiting_permission`/pending-approval 区分开，Dashboard 新增
+  独立的 **Idle** 分组。修复了此前把每个 `idle` 会话误归入 “Needs input”
+  的分类 bug。测试：`background-agent-phase.test.js` +
+  `bg-dashboard.test.js`。
+
+**仍欠**：状态机的其余持久态（`waiting_permission`/`uncertain_side_effect`
+等）需要真实**生产者**——由 headless-runner 把被阻塞的审批/提问写入
+`state.phase` / `pendingApprovals`（消费侧契约已就绪）；副作用台账
+（prepared→started→committed|failed|unknown）与崩溃恢复重放尚未实现。
 
 ## P0：跨平台沙箱、`run_code` 和凭据代理
 
@@ -394,23 +418,23 @@ OpenTelemetry 统一 `session.id`、`turn.id`、`prompt.id`、`tool_use.id`、`a
 
 ## 建议新增测试
 
-| 测试 | 关键场景 |
-| --- | --- |
-| `background-agent-recovery.test.js` | Supervisor/worker 在副作用前中后崩溃、PID reuse、孤儿回收 |
-| `background-agent-needs-input.test.js` | idle/question/permission 三态、重启后 reply |
-| `permission-authority.test.js` | Agent/Channel/Hook 文本不能伪造用户批准 |
-| `sandbox-platform-contract.test.js` | Linux/macOS/Windows 相同语义，严格模式不降级 |
-| `sandbox-credential-broker.test.js` | sentinel 注入、host 限制、日志脱敏 |
-| `goal-condition-loop.test.js` | 未完成续跑、完成停止、预算耗尽、resume |
-| `daemon-agenda-recovery.test.js` | cron 重启、错过触发只补一次、去重和过期 |
-| `monitor-event-backpressure.test.js` | WS/SSE 高频事件、断线重连、大小限制 |
-| `monorepo-lazy-context.test.js` | 子目录说明/Skills 按需加载、excludes、token 预算 |
-| `worktree-sparse-security.test.js` | sparse checkout、junction/symlink 逃逸、清理 |
-| `subagent-runtime-contract.test.js` | 权限/Skills/MCP/Hooks/Memory/Effort 继承与覆盖 |
-| `checkpoint-turn-binding.test.js` | conversation/files/both、partial coverage、跨 Worktree |
-| `plugin-capability-schema.test.js` | capability diff、敏感选项 scope、重新 consent |
-| `hook-event-golden.test.js` | CLI/SDK/IDE 的 event schema、顺序、合并和 replay |
-| `structured-output-stream.test.js` | 完整 schema、无效 schema、stream final envelope |
+| 测试                                   | 关键场景                                                  |
+| -------------------------------------- | --------------------------------------------------------- |
+| `background-agent-recovery.test.js`    | Supervisor/worker 在副作用前中后崩溃、PID reuse、孤儿回收 |
+| `background-agent-needs-input.test.js` | idle/question/permission 三态、重启后 reply               |
+| `permission-authority.test.js`         | Agent/Channel/Hook 文本不能伪造用户批准                   |
+| `sandbox-platform-contract.test.js`    | Linux/macOS/Windows 相同语义，严格模式不降级              |
+| `sandbox-credential-broker.test.js`    | sentinel 注入、host 限制、日志脱敏                        |
+| `goal-condition-loop.test.js`          | 未完成续跑、完成停止、预算耗尽、resume                    |
+| `daemon-agenda-recovery.test.js`       | cron 重启、错过触发只补一次、去重和过期                   |
+| `monitor-event-backpressure.test.js`   | WS/SSE 高频事件、断线重连、大小限制                       |
+| `monorepo-lazy-context.test.js`        | 子目录说明/Skills 按需加载、excludes、token 预算          |
+| `worktree-sparse-security.test.js`     | sparse checkout、junction/symlink 逃逸、清理              |
+| `subagent-runtime-contract.test.js`    | 权限/Skills/MCP/Hooks/Memory/Effort 继承与覆盖            |
+| `checkpoint-turn-binding.test.js`      | conversation/files/both、partial coverage、跨 Worktree    |
+| `plugin-capability-schema.test.js`     | capability diff、敏感选项 scope、重新 consent             |
+| `hook-event-golden.test.js`            | CLI/SDK/IDE 的 event schema、顺序、合并和 replay          |
+| `structured-output-stream.test.js`     | 完整 schema、无效 schema、stream final envelope           |
 
 ## 参考资料
 

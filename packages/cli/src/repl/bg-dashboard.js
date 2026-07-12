@@ -1,9 +1,11 @@
 /**
  * Background-agent dashboard — the interactive agent view behind
  * `cc daemon view` (no id). Claude-Code `claude agents` parity: one live panel
- * over every background session with grouping (Needs input / Working /
+ * over every background session with grouping (Needs input / Working / Idle /
  * Completed / Failed / Stopped), peek + reply, attach hand-off, stop, rename,
- * pin, filter, and new-task dispatch.
+ * pin, filter, and new-task dispatch. Phase→group classification is the shared
+ * `background-agent-phase.js` contract, so `idle` (parked, nothing blocking)
+ * is kept distinct from a genuine `needs-input` (a human decision blocks it).
  *
  * Design:
  * - Pure model/render layer (`groupKey`, `buildDashboardModel`,
@@ -17,10 +19,12 @@
  */
 
 import chalk from "chalk";
+import { phaseGroupKey } from "../lib/background-agent-phase.js";
 
 export const GROUP_ORDER = [
   "needs-input",
   "working",
+  "idle",
   "completed",
   "failed",
   "stopped",
@@ -29,24 +33,21 @@ export const GROUP_ORDER = [
 export const GROUP_TITLES = {
   "needs-input": "Needs input",
   working: "Working",
+  idle: "Idle",
   completed: "Completed",
   failed: "Failed",
   stopped: "Stopped",
 };
 
 /**
- * Group a session: running+idle phase = waiting for a follow-up (the closest
- * analog of "needs input" — the worker finished a turn and a client can
- * reply); running+turn = working; lost workers count as failed.
+ * Group a session into a dashboard bucket. Delegates to the shared
+ * `background-agent-phase.js` contract so the worker/supervisor and this panel
+ * agree on phase semantics: running + pending approval / blocking phase →
+ * "needs-input"; running + idle (parked, nothing blocking) → "idle"; running +
+ * working/turn/starting → "working"; lost/unknown → "failed".
  */
 export function groupKey(session) {
-  const status = session?.status;
-  if (status === "running") {
-    return session.phase === "idle" ? "needs-input" : "working";
-  }
-  if (status === "completed") return "completed";
-  if (status === "stopped") return "stopped";
-  return "failed"; // failed | lost | unknown
+  return phaseGroupKey(session);
 }
 
 function formatAge(ms) {

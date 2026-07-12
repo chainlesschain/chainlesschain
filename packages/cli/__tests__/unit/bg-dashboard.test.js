@@ -26,16 +26,48 @@ function session(overrides = {}) {
 }
 
 describe("bg-dashboard model", () => {
-  it("groups sessions: running+idle → needs-input, lost → failed", () => {
+  it("groups sessions: idle is its OWN group (not needs-input), blocking phases → needs-input", () => {
+    // A live turn is working; a parked idle session is Idle, NOT needs-input.
     expect(groupKey({ status: "running", phase: "turn" })).toBe("working");
-    expect(groupKey({ status: "running", phase: "idle" })).toBe("needs-input");
+    expect(groupKey({ status: "running", phase: "idle" })).toBe("idle");
+    // Genuine "needs input": explicit blocking phases or a pending approval.
+    expect(groupKey({ status: "running", phase: "needs_input" })).toBe(
+      "needs-input",
+    );
+    expect(groupKey({ status: "running", phase: "waiting_permission" })).toBe(
+      "needs-input",
+    );
+    expect(
+      groupKey({ status: "running", phase: "idle", pendingApprovals: 2 }),
+    ).toBe("needs-input");
     expect(groupKey({ status: "completed" })).toBe("completed");
     expect(groupKey({ status: "failed" })).toBe("failed");
     expect(groupKey({ status: "lost" })).toBe("failed");
     expect(groupKey({ status: "stopped" })).toBe("stopped");
   });
 
-  it("orders groups Needs input → Working → Completed → Failed → Stopped and drops empty groups", () => {
+  it("keeps Idle and Needs input as distinct, co-existing groups", () => {
+    const model = buildDashboardModel(
+      [
+        session({ id: "parked", status: "running", phase: "idle" }),
+        session({
+          id: "blocked",
+          status: "running",
+          phase: "waiting_permission",
+        }),
+      ],
+      { now: NOW },
+    );
+    const keys = model.groups.map((g) => g.key);
+    expect(keys).toContain("idle");
+    expect(keys).toContain("needs-input");
+    const idle = model.groups.find((g) => g.key === "idle");
+    const needs = model.groups.find((g) => g.key === "needs-input");
+    expect(idle.rows.map((s) => s.id)).toEqual(["parked"]);
+    expect(needs.rows.map((s) => s.id)).toEqual(["blocked"]);
+  });
+
+  it("orders groups Needs input → Working → Idle → Completed and drops empty groups", () => {
     const model = buildDashboardModel(
       [
         session({ id: "a", status: "completed", endedAt: NOW }),
@@ -45,11 +77,12 @@ describe("bg-dashboard model", () => {
       { now: NOW },
     );
     expect(model.groups.map((g) => g.key)).toEqual([
-      "needs-input",
       "working",
+      "idle",
       "completed",
     ]);
-    expect(model.flat.map((s) => s.id)).toEqual(["b", "c", "a"]);
+    // display order follows GROUP_ORDER: working (c) → idle (b) → completed (a)
+    expect(model.flat.map((s) => s.id)).toEqual(["c", "b", "a"]);
   });
 
   it("sorts pinned sessions first inside their group", () => {
@@ -67,19 +100,25 @@ describe("bg-dashboard model", () => {
     const sessions = [
       session({ id: "run", status: "running", phase: "turn" }),
       session({ id: "idle", status: "running", phase: "idle" }),
+      session({ id: "blocked", status: "running", phase: "needs_input" }),
       session({ id: "done", status: "completed", endedAt: NOW }),
     ];
+    // "active" = every running session (working, idle and blocked alike).
     expect(
-      buildDashboardModel(sessions, { now: NOW, filter: "active" }).flat.map(
-        (s) => s.id,
+      new Set(
+        buildDashboardModel(sessions, { now: NOW, filter: "active" }).flat.map(
+          (s) => s.id,
+        ),
       ),
-    ).toEqual(["idle", "run"]);
+    ).toEqual(new Set(["run", "idle", "blocked"]));
+    // "needs-input" now excludes a merely-idle session — only genuinely
+    // blocked ones surface.
     expect(
       buildDashboardModel(sessions, {
         now: NOW,
         filter: "needs-input",
       }).flat.map((s) => s.id),
-    ).toEqual(["idle"]);
+    ).toEqual(["blocked"]);
     expect(FILTERS).toContain("all");
   });
 });
@@ -101,7 +140,7 @@ describe("bg-dashboard render", () => {
       { now: NOW },
     );
     const out = renderDashboard(model, { selectedIndex: 0 });
-    expect(out).toContain(GROUP_TITLES["needs-input"]);
+    expect(out).toContain(GROUP_TITLES.idle); // idle phase → Idle group
     expect(out).toContain(GROUP_TITLES.completed);
     expect(out).toContain("bg-one");
     expect(out).toContain("❯"); // selection marker
@@ -160,9 +199,21 @@ describe("bg-dashboard controller", () => {
   it("navigates, stops the selected agent, and quits", async () => {
     const io = fakeIo();
     const stopAgent = vi.fn();
+    // Same group (Working) with distinct ages so display order is unambiguous
+    // (newest first): bg-a, then bg-b — one "down" lands on bg-b.
     const sessions = [
-      session({ id: "bg-a", status: "running", phase: "idle" }),
-      session({ id: "bg-b", status: "running", phase: "turn" }),
+      session({
+        id: "bg-a",
+        status: "running",
+        phase: "turn",
+        startedAt: NOW - 10,
+      }),
+      session({
+        id: "bg-b",
+        status: "running",
+        phase: "turn",
+        startedAt: NOW - 99_000,
+      }),
     ];
     const done = runBgDashboard({
       io,
