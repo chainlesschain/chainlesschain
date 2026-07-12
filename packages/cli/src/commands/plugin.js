@@ -632,6 +632,17 @@ export function registerPluginCommand(program) {
           logger.log(chalk.yellow(`  ⚠ ${issue}`));
         }
       }
+      // Declared capabilities (Phase 3 gap): show what the plugin says it needs
+      // so a user can compare against the components it ships (the audit findings
+      // for an under-declared manifest already surface in manifest.warnings).
+      if (manifest.capabilitiesDeclared) {
+        const { describeCapabilities } =
+          await import("../lib/plugin-runtime/capabilities.js");
+        const capLines = describeCapabilities(manifest.capabilities);
+        logger.log(chalk.bold("\nCapabilities (declared):"));
+        if (capLines.length === 0) logger.log(chalk.gray("  (none)"));
+        for (const l of capLines) logger.log(`  ${chalk.magenta(l)}`);
+      }
       for (const w of manifest.warnings) logger.log(chalk.yellow(`  ⚠ ${w}`));
       for (const e of manifest.errors) logger.log(chalk.red(`  ✖ ${e}`));
       if (manifest.ok) {
@@ -902,6 +913,161 @@ export function registerPluginCommand(program) {
         logger.success(`Revoked trust for ${name} (${options.scope} scope)`);
       } else {
         logger.info(`${name} was not trusted at ${options.scope} scope`);
+      }
+    });
+
+  // plugin consent [name] — view / grant a plugin's CAPABILITY consent
+  // (process / network / filesystem / mcp / monitor / credential). Distinct from
+  // `trust`, which pins the code VERSION: consent pins the capability SET, and
+  // any widening re-prompts even for an already-trusted plugin.
+  plugin
+    .command("consent [name]")
+    .description(
+      "View or grant a plugin's capability consent (--grant / --revoke / --list)",
+    )
+    .option("--scope <scope>", "Scope of the plugin", "project")
+    .option(
+      "--grant",
+      "Grant consent for the plugin's currently-declared capabilities",
+    )
+    .option("--revoke", "Revoke capability consent")
+    .option("--list", "List all capability consent entries")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      const consent =
+        await import("../lib/plugin-runtime/capability-consent.js");
+      const { describeCapabilities } =
+        await import("../lib/plugin-runtime/capabilities.js");
+
+      if (!name || options.list) {
+        const rows = consent.listCapabilityConsent();
+        if (options.json) {
+          console.log(JSON.stringify(rows, null, 2));
+          return;
+        }
+        if (rows.length === 0) {
+          logger.info("No capability consent recorded.");
+          return;
+        }
+        logger.log(chalk.bold(`Capability consent (${rows.length}):`));
+        for (const r of rows) {
+          logger.log(`  ${chalk.cyan(r.name)} v${r.version} [${r.scope}]`);
+          for (const c of r.capabilities) logger.log(`    ${chalk.magenta(c)}`);
+        }
+        return;
+      }
+
+      if (options.revoke) {
+        const res = consent.revokeCapabilityConsent(name, {
+          scope: options.scope,
+        });
+        if (res.removed) {
+          logger.success(
+            `Revoked capability consent for ${name} (${options.scope} scope)`,
+          );
+        } else {
+          logger.info(
+            `${name} had no capability consent at ${options.scope} scope`,
+          );
+        }
+        return;
+      }
+
+      // Resolve the installed plugin + its declared capabilities.
+      const { discoverPlugins } =
+        await import("../lib/plugin-runtime/scopes.js");
+      let installed = null;
+      try {
+        installed = discoverPlugins({
+          cwd: process.cwd(),
+          skipPolicy: true,
+        }).find((p) => p.name === name && p.scope === options.scope);
+      } catch {
+        /* discovery best-effort */
+      }
+      if (!installed) {
+        logger.error(`${name} is not installed at ${options.scope} scope`);
+        process.exitCode = 1;
+        return;
+      }
+      const declared = installed.manifest?.capabilities;
+      const entry =
+        consent.loadConsentStore()[`${options.scope}:${name}`] || null;
+      const status = consent.capabilityConsentStatus(declared, entry);
+
+      if (options.grant) {
+        consent.consentPluginCapabilities(name, {
+          scope: options.scope,
+          version: installed.version,
+          capabilities: declared,
+        });
+        const capLines = describeCapabilities(declared);
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                granted: true,
+                name,
+                scope: options.scope,
+                version: installed.version,
+                capabilities: capLines,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.success(
+          `Granted capability consent for ${name} v${installed.version} (${options.scope} scope)`,
+        );
+        for (const l of capLines) logger.log(`    ${chalk.magenta(l)}`);
+        return;
+      }
+
+      // Show status.
+      const capLines = describeCapabilities(declared);
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            {
+              name,
+              scope: options.scope,
+              version: installed.version,
+              declared: capLines,
+              ...status,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      logger.log(
+        chalk.bold("Capability consent: ") +
+          `${chalk.cyan(name)} v${installed.version} [${options.scope}]`,
+      );
+      logger.log(chalk.bold("Declared capabilities:"));
+      if (capLines.length === 0) logger.log(chalk.gray("  (none)"));
+      for (const l of capLines) logger.log(`  ${chalk.magenta(l)}`);
+      logger.log(
+        chalk.bold("Status: ") +
+          (status.consented
+            ? chalk.green("consented")
+            : chalk.yellow("NEEDS CONSENT")),
+      );
+      logger.log(chalk.gray(`  ${status.reason}`));
+      if (status.added.length) {
+        logger.log(
+          chalk.yellow(`  new since consent: ${status.added.join(", ")}`),
+        );
+      }
+      if (!status.consented) {
+        logger.log(
+          chalk.dim(
+            `  run \`cc plugin consent ${name} --grant\` to allow them`,
+          ),
+        );
       }
     });
 

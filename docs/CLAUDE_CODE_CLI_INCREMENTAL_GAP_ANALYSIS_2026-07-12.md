@@ -647,14 +647,35 @@ audit/optionsSchema/validate 敏感-项目拒绝 + user 放行/redact）+
 声明缺 mcp 告警）= 39 绿；依赖套 settings/install/signature/scopes/manager 88 项回
 归绿。
 
-**仍欠（consent 持久化 + 强制 + UI）**：把 consented capabilities 落进 trust 条目
-（或 sibling store），`isPluginTrusted` 旁加 `isPluginCapabilityConsented` 门；
-`install.js` `installFromDirectory`/`updatePlugin` 里接 diff→交互重新 consent（现装
-非交互）；`discoverPlugins`/各 collector 按声明能力**强制**（如未声明 `network` 的
-MCP server 真拦，非仅 warn）；`cc plugin validate`/`add`/`upgrade` 渲染能力清单+diff
-（仿现有 dependencyCheck）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目
-门 + OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker /
-lockfile-SBOM 属更大基建，未起。
+**已接线（2026-07-12 收尾）**：consent 持久化 + 门 + UI 首段落地——新 sibling store
+[`capability-consent.js`](../packages/cli/src/lib/plugin-runtime/capability-consent.js)
+（用户数据目录 `plugin-capability-consent.json`，IO 注入、绝不进仓库，与
+[[trust.js]] 正交：trust 锚**版本代码**、consent 锚**能力集**）。纯核
+`capabilityConsentStatus(declared, entry)`：无声明→免 consent；无 entry→未同意（带
+added tokens）；**任何加宽**（diffCapabilities.widened）→需重新 consent；收窄/版本
+bump 但集不变→仍同意（版本交给 trust）——与 `consentRequiredForUpgrade` 语义一致。
+`consentPluginCapabilities`/`revokeCapabilityConsent`/`listCapabilityConsent` +
+`isPluginCapabilityConsented(plugin, declared)` 门。**坑**：`normalizeCapabilities`
+**非幂等**（对已归一集重跑会把 `filesystem:{roots:[]}`/`credential:{names:[]}` 经
+`toList` 腐化成 `"[object Object]"` token），故本模块用 `canonicalCaps` 探测已归一集
+直通、只归一 raw。命令面：`cc plugin consent [name]`（无名/`--list` 列出；`<name>`
+经 discoverPlugins 取声明能力+当前 consent 状态；`--grant` 记录、`--revoke` 撤销；
+`--json`）+ `cc plugin validate` 渲染 “Capabilities (declared)” 段（`describeCapabilities`）。
+均 `plugin` 子命令 → 顶层数 175 不变。测试：`plugin-runtime-capability-consent.test.js`
+11（空集/never/widened/covered/narrowed/版本 bump 不重提 + store 往返 grant→widen 撤销
+→revoke→list + 无版本 throw）+ `plugin-consent-command.test.js` 6（装真插件 fixture
+到临时 project scope 驱动 Commander：needs-consent→grant→consented / 升级加宽重提 /
+list+revoke / 未装报错 / validate 渲染能力 JSON）；plugin-runtime capabilities/manifest/
+install 回归 61 绿。
+
+**仍欠（强制 + 交互 consent + 敏感项托管）**：`discoverPlugins`/各 collector 按 consent
+**强制拦截**（现 `isPluginCapabilityConsented` 门就绪但 collector 仍只按 trust 放行、能力
+门未接进加载路径；未声明 `network` 的 MCP server 真拦亦未接）；`install.js`
+`installFromDirectory`/`updatePlugin` 装/升级时**交互** diff→重新 consent（现装非交互，
+只能事后 `cc plugin consent --grant`）；`cc plugin add`/`upgrade` 渲染能力清单+diff（现只
+`validate`/`consent` 渲染）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 +
+OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大
+基建，未起。
 
 ## P2：Hooks、结构化输出与质量闭环
 
