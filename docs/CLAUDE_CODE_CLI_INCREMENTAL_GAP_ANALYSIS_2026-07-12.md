@@ -408,8 +408,18 @@ headless-runner 与 headless-stream 两个 `composeSystemPrompt` 调用点均已
 CLAUDE.md(3033)+截断 CLAUDE.local.md(11150)+4 规则文件。测试 `context-breakdown.test.js`
 +10 + `cc-context.test.js` 6/6 不变。commit `afd2f6695b`。
 
-**仍欠**：子目录指令**按首次访问子树懒加载**（tool-time 注入，module 99 §5.3）；per-directory
-Skills/`paths:` 按需发现只注入名称/短描述；`worktree.sparsePaths` sparse-checkout
+**已落地（子树懒加载纯核）**：子目录指令**按首次访问子树懒加载**的判定核心已建——
+[`project-instructions.js`](../packages/cli/src/lib/project-instructions.js) 新增
+`resolveSubtreeInstructions`（给一个 tool 刚访问的路径，返回 `baseDir`（启动 cwd，已
+加载）与该路径所在目录之间**每一层**的 `cc.md`/`CLAUDE.md`/`AGENTS.md`，shallowest-first、
+honor `instructionExcludes`、对已加载文件去重；尚未创建的待写文件回落到其父目录；只对
+`baseDir` 的**后代**生效，祖先在启动时已加载）+ `SubtreeInstructionLoader`（跨会话记录已
+注入的子树，二次访问同子树 no-op，返回**仅新增**的文件）。纯 + fail-open。测试
+`project-instructions-subtree.test.js` 13 项（真临时 monorepo 树）（`70783bdb02`）。
+
+**仍欠**：把 `SubtreeInstructionLoader.onAccess` 接进 agent-core 的 read/edit 工具执行路径
+做 **tool-time 注入**（属 agent-core 接线）；per-directory Skills/`paths:` 按需发现只注入
+名称/短描述；`worktree.sparsePaths` sparse-checkout
 
 - `symlinkDirectories`（含 junction/symlink 逃逸防护，需真 git）；additional roots
   变更发 MCP `roots/list_changed`；`/context` 的 skill/MCP schema 来源归因（需运行时
