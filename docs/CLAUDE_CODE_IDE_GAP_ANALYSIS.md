@@ -14,8 +14,13 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 ## 落地状态（2026-07-11 实施）
 
 本轮先做 4 路审计（协议 / 连接与隐式上下文安全 / 会话生命周期 / 远程与质量门），逐项核实
-「已有 / 部分 / 缺失」后，落地了 Windows 可做的真缺口。CLI/IDE 改动均未发 npm/未发插件，
-随下次各自 release；对已发布 CLI 全部优雅降级。
+「已有 / 部分 / 缺失」后，落地了 Windows 可做的真缺口；对已发布 CLI 全部优雅降级。
+
+> **已发版（2026-07-12）**：下表所有 IDE-bridge 改动已随 **VS Code `0.37.14`（Open VSX live）
+> + JetBrains `0.4.58`（JetBrains Marketplace live，`listed=true approved=true`）** 出货 —
+> release commit `b5c489783d`（+ JB CI-gate `b5b019fb67`），tag `ide-vscode-v0.37.14` /
+> `ide-jetbrains-v0.4.58`，CI run 29186401638 / 29186401760 双 success，两注册表 API 均实证。
+> agent-sdk vendored 0.1.5。CLI 侧纯逻辑（negotiation/replay/backpressure 核）随下次 cli release。
 
 | 领域 | 本轮收口 | Commit |
 | --- | --- | --- |
