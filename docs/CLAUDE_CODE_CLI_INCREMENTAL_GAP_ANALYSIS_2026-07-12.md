@@ -319,12 +319,22 @@ evidence、turn/token/cost/time，可随 session resume，并强制
     检查含真 spawn exit-zero/reducer 的 complete·continue·exhausted 四种终止
     条件/引擎驱动到完成/**快照跨 resume 累计正确**）。
 
-**仍欠（接到外层回合驱动）**：把引擎接进 headless-runner 的外层回合循环——加
-`--goal-condition <spec>` + `--max-outer-turns`/`--goal-max-tokens`/`-cost`/`-time`
-flag（REPL `/goal <condition>`），未满足条件时用 `job.followUpArgv` 自动起下一回合
-（与后台 worker 的续跑机制一致），并把四个 `goal_*` 事件经 stream-json 输出、
-SDK `AgentSession` 转发；`model:` 条件复用现有 `assessChat`/`chatWithTools` 作
-独立 evaluator。均需真实外层循环 harness，作为下一步集成。
+**已接线（2026-07-12 收尾）**：引擎已接进 headless-runner 现有的外层 `while(true)`
+循环（与 auto-rewake 并列的新 opt-in re-drive）。新增 flag `--goal-condition <spec>`
++ `--max-outer-turns`/`--goal-max-tokens`/`--goal-max-cost`/`--goal-max-time`，spec
+在命令层前置校验。每回合 settle 后（auto-rewake 之后）评估条件：确定性检查内联跑
+（spawnSync/existsSync，`deps.goalCheck` 可注入）；`model:` 条件复用运行模型作独立
+judge（默认 `chatWithTools`+`firstBalancedJson`，`deps.goalConditionJudge` 可覆盖）。
+未满足且预算剩余 → 追加 follow-up user 回合 re-drive；满足 → `goal_completed`；预算
+耗尽 → `goal_exhausted`。四个 `goal_*` 事件经 stream-json 输出，per-turn 用量以增量
+喂引擎（引擎累计 == run 累计）。OPT-IN：未设时外层循环恰跑一次、字节不变。测试：
+`headless-runner.test.js` 新增 5 项（确定性 re-drive 到完成 / max-outer-turns 耗尽 /
+exit-zero 注入 spawnSync / 注入 model judge / 未设时惰性）；cost-budget/stall/
+async-hook(auto-rewake) 回归全绿。
+
+**仍欠**：跨进程 resume——把 `snapshot()`/`fromSnapshot()` 落进 session 记录随
+`--resume` 续跑（现为进程内外层循环）；REPL `/goal <condition>` 交互入口 + SDK
+`AgentSession` 事件转发。
 
 ## P1：大型 Monorepo 的上下文和 Worktree 优化
 
@@ -365,9 +375,13 @@ UniApp 和 signaling server，是最合适的真实基准仓库。
     `pathIsExcluded` 三类匹配、真临时目录验证「排除子树的 cc.md 不载 / 排除子树
     的规则不载 / 指向排除子树的 @import 不载（附对照的未排除控制）」。
 
-**仍欠**：把 `instructionExcludes` 从 `.claude/settings.json` / 统一 config 读出
-并在 headless-runner 处传入 `composeSystemPrompt`（最后一公里配置接线）；子目录
-指令**按首次访问子树懒加载**（tool-time 注入，module 99 §5.3）；per-directory
+**已接线（2026-07-12 收尾）**：`readStringArraySetting`（settings-loader.cjs，跨
+分层 `.claude/settings.json` union + 去重）把 `instructionExcludes` 读出，
+headless-runner 与 headless-stream 两个 `composeSystemPrompt` 调用点均已前向透传
+（显式 `options.instructionExcludes` 优先，读错 fail-open，默认 null 时行为字节不变）。
+测试：`settings-loader.test.js` 新增 5 项（单层/跨层 union/去重/非数组忽略/空数组）。
+
+**仍欠**：子目录指令**按首次访问子树懒加载**（tool-time 注入，module 99 §5.3）；per-directory
 Skills/`paths:` 按需发现只注入名称/短描述；`worktree.sparsePaths` sparse-checkout
 
 - `symlinkDirectories`（含 junction/symlink 逃逸防护，需真 git）；additional roots
@@ -712,13 +726,20 @@ meta-validation 拒绝各类坏 schema/structured_result 两态）+ `json-schema
 补 3 项（loadSchemaFile meta-validation 拒坏 schema + buildStructuredResult 两态）=
 40 绿。
 
-**仍欠（接进流协议 + 命令面）**：把 `structured_result` 真正 emit 进
-`headless-stream.js`（在 per-turn `result` 事件旁，line ~2028），并**移除
-`--json-schema` 与 `stream-json` 的互斥守卫**（agent.js:1089-1094）让二者兼容；
-`runJsonSchemaConstrained` 的重试校验切到新验证器（更精确的纠错提示 + JSON Pointer）
-并在最终失败时 emit `structured_result{valid:false}` 而非仅 exit 1+stderr；
-`--json-schema` 支持 inline JSON（当前只接文件路径）；format(email/uri/date-time)
-断言与 if/then/else 留待。
+**已接线（2026-07-12 收尾）**：**移除了 `--json-schema` × `stream-json` 互斥守卫**——
+stream 模式下正常流式输出后，把终局 `structured_result` 事件（schema_digest + valid +
+value，invalid 带 coded/pointered errors）作为最后一行 NDJSON emit（由 run 的 final
+text 经 `extractJsonPayload`→`buildStructuredResult` 组装，退出码反映 validity）；
+**`--json-schema` 现支持 inline JSON**（值以 `{` 开头即当字面 schema，路径不可能以 `{`
+开头故判定无歧义，错误信息区分 inline/file，meta-validation 两者都跑）。text/json 路径
+的 capture+validate+retry 循环保持不变。测试：`json-schema-output.test.js` 新增 7 项
+（inline 有效/无效/meta-invalid + stream-branch 组装有效/无效）+ 坏 inline schema
+在任何模型调用前失败验证分支可达。
+
+**仍欠**：从 `headless-stream.js` 的 per-turn `result` 事件内部 emit
+`structured_result`（本轮走的是单-prompt runAgentHeadless 的 stream 输出旁路）；
+`runJsonSchemaConstrained` 的重试校验切到新验证器（更精确纠错 + JSON Pointer）；
+format(email/uri/date-time) 断言与 if/then/else 留待。
 
 ### LSP 与 Code Review
 
