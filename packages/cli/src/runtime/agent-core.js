@@ -6327,6 +6327,30 @@ function _usageTokens(usage) {
   return { input, output, cacheRead, cacheWrite };
 }
 
+/**
+ * Best-effort text of the first user prompt in a message list, for the
+ * `--otlp-content` span attribute. Handles both string content and the
+ * multimodal `[{type:"text",text}, …]` shape; returns "" when none is found.
+ * Not exported (no shim-parity impact) — only the telemetry seam uses it.
+ */
+function extractInitialPromptText(messages) {
+  if (!Array.isArray(messages)) return "";
+  for (const msg of messages) {
+    if (!msg || msg.role !== "user") continue;
+    const content = msg.content;
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+      const text = content
+        .filter((part) => part && part.type === "text" && part.text)
+        .map((part) => part.text)
+        .join("\n")
+        .trim();
+      if (text) return text;
+    }
+  }
+  return "";
+}
+
 export async function* agentLoop(messages, options) {
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
@@ -6542,13 +6566,23 @@ export async function* agentLoop(messages, options) {
     // Normalize the unified id set (P2 observability): every id is charset-
     // sanitized + length-capped, and only these allow-listed keys are stamped,
     // so span cardinality stays bounded and no content leaks in as an id.
-    const idAttrs = buildTelemetryAttributes({
+    const telemetryCtx = {
       "workflow.run_id": runId,
       "workflow.name": options.workflowName || undefined,
       "session.id": options.sessionId || undefined,
       "agent.id": options.agentId || undefined,
       "parent_agent.id": options.parentAgentId || undefined,
-    });
+    };
+    // --otlp-content opt-in (P2): only when explicitly enabled do we feed the
+    // initial prompt through the redactor with includeContent — so a debugger
+    // can see which prompt a span belongs to. Default OFF omits the field
+    // entirely (not just redacts it), keeping default OTLP output byte-identical.
+    const includeContent = options.otlpIncludeContent === true;
+    if (includeContent) {
+      const promptText = extractInitialPromptText(messages);
+      if (promptText) telemetryCtx.prompt = promptText;
+    }
+    const idAttrs = buildTelemetryAttributes(telemetryCtx, { includeContent });
     for (const [k, v] of Object.entries(idAttrs)) {
       recorder.setDefaultAttribute(k, v);
     }

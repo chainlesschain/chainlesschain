@@ -205,6 +205,10 @@ export function registerAgentCommand(program) {
       "Write the agent run's OpenTelemetry spans (model/tool/retry) as OTLP/JSON to <file>",
     )
     .option(
+      "--otlp-content",
+      "Include prompt/response CONTENT in --otlp spans (off by default; content is redacted unless this is set)",
+    )
+    .option(
       "--auto-rewake",
       "When an async `asyncRewake` hook (e.g. a background test) fails at turn end, re-engage the agent to fix it (bounded by --max-rewakes)",
     )
@@ -1064,6 +1068,9 @@ export function registerAgentCommand(program) {
           autoCheckpoint,
           // --otlp <file>: capture + export the run's OTel spans as OTLP/JSON.
           otlp: options.otlp || null,
+          // --otlp-content: opt in to emitting prompt/response CONTENT in those
+          // spans. Default false → content stays redacted (privacy by default).
+          otlpContent: options.otlpContent === true,
           // --auto-rewake / --max-rewakes: bounded re-drive on async-hook failure.
           // --max-rewakes implies --auto-rewake (a positive budget turns it on).
           autoRewake:

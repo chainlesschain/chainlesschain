@@ -1095,6 +1095,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     model,
     provider,
     recorder: _otlpRecorder,
+    // --otlp-content: opt in to stamping prompt CONTENT onto --otlp spans. Off by
+    // default → content stays redacted (agent-core omits it entirely, so default
+    // OTLP output is byte-identical). Only meaningful when a recorder is attached.
+    otlpIncludeContent: options.otlpContent === true,
     hookSupervisor: _hookSupervisor,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink). null/off
     // → chatWithTools sends no thinking field. thinkingBudget (--thinking-budget)

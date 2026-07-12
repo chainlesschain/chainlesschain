@@ -200,4 +200,90 @@ describe("agent-core telemetry spans", () => {
     );
     expect(events.some((e) => e.type === "response-complete")).toBe(true);
   });
+
+  it("omits prompt CONTENT from spans by default (privacy — byte-identical)", async () => {
+    const chatFn = async () => ({
+      message: { role: "assistant", content: "done" },
+    });
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "a secret prompt" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+        // otlpIncludeContent NOT set → default off
+      }),
+    );
+    const spans = recorder.spans();
+    expect(spans.length).toBeGreaterThan(0);
+    for (const s of spans) {
+      // Field is absent entirely (not even the redaction sentinel), so the
+      // default OTLP export is unchanged.
+      expect(s.attributes["content.prompt"]).toBeUndefined();
+    }
+  });
+
+  it("stamps the initial prompt as content.prompt when --otlp-content is opted in", async () => {
+    const chatFn = async () => ({
+      message: { role: "assistant", content: "done" },
+    });
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "build the release" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+        otlpIncludeContent: true,
+      }),
+    );
+    const spans = recorder.spans();
+    expect(spans.length).toBeGreaterThan(0);
+    for (const s of spans) {
+      expect(s.attributes["content.prompt"]).toBe("build the release");
+    }
+  });
+
+  it("extracts multimodal text parts for content.prompt when opted in", async () => {
+    const chatFn = async () => ({
+      message: { role: "assistant", content: "done" },
+    });
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop(
+        [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "first line" },
+              { type: "image", url: "x" },
+              { type: "text", text: "second line" },
+            ],
+          },
+        ],
+        {
+          provider: "ollama",
+          model: "test-model",
+          baseUrl: "http://localhost:11434",
+          cwd: tmp,
+          chatFn,
+          runnableProviderFallback: false,
+          recorder,
+          otlpIncludeContent: true,
+        },
+      ),
+    );
+    const spans = recorder.spans();
+    expect(spans.length).toBeGreaterThan(0);
+    for (const s of spans) {
+      expect(s.attributes["content.prompt"]).toBe("first line\nsecond line");
+    }
+  });
 });
