@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.161：增量 gap-analysis（P0 后台状态机/跨 Agent 授权/凭据代理 + P1 完成条件/Monorepo 排除/持久 Scheduler）+ bg-* WS relay 协议硬化（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.160 → **0.162.161** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/agent-sdk` 协议增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（`cc agenda list` 增 `nextWakeupAt` 字段），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 Windows-可做、自包含、全测试的最有价值切片，每节文档记录「已落地」与「仍欠」。
+>
+> 全部为纯核 + 时钟注入（无 timer/RNG，确定性可测）+ 最小真实接线的低风险增量；已落地增量的 9 个测试文件 148 测全绿。
+
+- **跨事件 `trace_id`（协议 §1.2.1）**：stream-json 每行标注 run-scoped `trace_id`（`--trace-id` / `CC_TRACE_ID` / 自动生成），`sanitizeTraceId` 限字符集 `[A-Za-z0-9._:-]`≤128，供跨进程/跨 Agent 事件关联。
+- **后台 Agent 状态机（P0）**：拆分 Idle 与 Needs-input——`background-agent-phase.js` 归一化 phase（starting/working/idle/needs_input/waiting_permission，legacy `turn`→working），`phaseGroupKey` 让 `cc` 后台仪表板把「空闲」与「待输入/待批准」分组显示，不再混为一谈。
+- **跨 Agent 授权边界（P0 安全）**：`agent-authority.js` 授权信封——`origin`（user/model/subagent/teammate/channel/hook/remote/system/permission_tool）→ `authority`（none/steer/approve/manage），仅 user=manage、permission_tool=approve、已认证且 approve-scoped 的 remote=approve 可批准；`approvalBindingDigest({toolCallId,args,policyDigest})` 常数时间校验、fail-closed，防止一个 Agent 冒用另一个的批准。`origin` 恒由可信 dispatch 赋值，绝不从消息内容读取。
+- **跨平台沙箱与凭据代理（P0）**：`credential-proxy.js`——子进程环境默认屏蔽长效凭据（`maskCredentialEnv` 把 secret 值换成哨兵 `cc-cred-redacted:<NAME>`，`mask`/`deny` 双模式），审计日志绝不记录还原后的明文（`redactEnvForAudit`），`resolveApprovedInjection` 按 approved-host fail-closed 注入；`CC_CREDENTIAL_PROXY` 开关，关闭时同对象引用零开销。接线到 agent-core 前后台两处 spawn。
+- **会话级完成条件引擎（P1）**：`goal-condition-engine.js`——确定性完成条件（`exit-zero:`/`file-exists:`/`contains:`/`regex:`/`model:`/裸），预算（maxOuterTurns 默认 10、硬顶 100）+ 纯 reducer `evaluateGoalStep`，`GoalConditionEngine` 支持 snapshot/fromSnapshot 恢复；确定性检查经注入 spawnSync/existsSync 可测。
+- **大型 Monorepo 上下文排除（P1）**：`instructionExcludes`——`project-instructions.js` 支持按 glob 排除 legacy/vendor/generated 子树（裸名=任意段匹配、带斜杠前缀=目录+后代、`*`/`**`/`?` 通配、祖先匹配语义），@import 目标落在排除子树内也跳过（避免把凭据文件拉进 prompt）；`composeSystemPrompt` 透传 `instructionExcludes`。
+- **统一持久 Scheduler 规划器（P1）**：`schedule-planner.js`——确定性 jitter（FNV-1a 稳定 per-task 偏移，跨重启不漂移，避免共享 cron 分钟的惊群）、自适应唤醒（`nextWakeupAt`/`msUntilNextWakeup` 让 daemon 睡到最早 fire 而非轮询）、过期（`isEntryExpired`/`partitionSchedule` 先退休过期再触发）；接线到 `cc agenda list`（JSON `nextWakeupAt` + "next wakeup" 行）。
+- **bg-* WS relay 协议硬化**：事件序号缺口检测 + replay（慢/断线消费者补投）、出站背压（slow-consumer 保护）、跨语言 fixture 契约 + `tool_use_id` + event seq，IDE 上报文件路径的 remote URI/path 映射，MCP tool-path 边界守卫 + Windows lockfile ACL，diff-apply 并发/二进制守卫 + 读取实时编辑器缓冲的 stale-rejection，后台 Agent supervisor 3 个 pinned gap 收口 + 有界 prompt 队列。
+
 ### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.159 → **0.162.160** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面**只加子命令**（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**（manifest 无需重生）。对照 `docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md`（docs 根）审计确认仍缺的 8 项全落地（commit 链 `c4533ad848..4c2e297754`）。

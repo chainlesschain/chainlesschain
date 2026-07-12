@@ -5,6 +5,19 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-* WS relay 协议硬化
+
+> CLI-only 发版（`chainlesschain` 0.162.160 → **0.162.161**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（`cc agenda list` 增 `nextWakeupAt`），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 最有价值切片，均为纯核 + 时钟注入 + 最小接线的低风险增量（9 测试文件 148 测全绿）。
+
+- **跨事件 `trace_id`**：stream-json 每行标注 run-scoped `trace_id`（`--trace-id`/`CC_TRACE_ID`/自动），限字符集 `[A-Za-z0-9._:-]`≤128，供跨进程/跨 Agent 关联。
+- **后台 Agent 状态机（P0）**：拆分 Idle 与 Needs-input，后台仪表板把「空闲」与「待输入/待批准」分组显示。
+- **跨 Agent 授权边界（P0 安全）**：授权信封 `origin→authority`，仅 user/permission_tool/已认证 approve-scoped remote 可批准；approval binding 常数时间校验、fail-closed，防冒用批准；`origin` 恒由可信 dispatch 赋值。
+- **凭据代理（P0 沙箱）**：子进程默认屏蔽长效凭据（哨兵 `cc-cred-redacted:<NAME>`），审计绝不记录还原明文，按 approved-host fail-closed 注入；`CC_CREDENTIAL_PROXY` 开关。
+- **会话级完成条件引擎（P1）**：确定性完成条件（exit-zero/file-exists/contains/regex/model/裸）+ 预算 + 可恢复快照。
+- **大型 Monorepo 上下文排除（P1）**：`instructionExcludes` 按 glob 排除 legacy/vendor/generated 子树，@import 也跳过（防凭据文件进 prompt）。
+- **统一持久 Scheduler 规划器（P1）**：确定性 jitter（避免共享 cron 分钟惊群）+ 自适应唤醒（睡到最早 fire 而非轮询）+ 过期退休；接线 `cc agenda list`。
+- **bg-* WS relay 协议硬化**：事件序号缺口检测 + replay、出站背压、跨语言 fixture 契约 + `tool_use_id`、IDE 文件路径 remote URI/path 映射、MCP tool-path 边界守卫 + Windows lockfile ACL、diff-apply 并发/二进制守卫 + stale-rejection、supervisor 3 pinned gap + 有界 prompt 队列。
+
 #### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）
 
 > CLI-only 发版（`chainlesschain` 0.162.159 → **0.162.160**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**。
