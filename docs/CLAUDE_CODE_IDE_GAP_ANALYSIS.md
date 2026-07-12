@@ -22,6 +22,7 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 | P0#1 协议产品化 | 跨语言协议 fixture 契约（TS↔Java 从「对文档」升级为读同一批 fixture 的机器强制断言）+ `tool_use_id` + 事件 `seq`（additive，PROTOCOL_VERSION 不变） | `190a973a7a` |
 | P0#1 跨事件 trace id | 每条 stream-json 行携带 run 级 `trace_id`（贯穿 Webview→Bridge→CLI→transcript/诊断包），IDE 可经 `--trace-id`/`CC_TRACE_ID` 端到端注入（sanitized 单 token）；区别于 resume 复用的 `session_id`；additive 于同一 coalescer 打点、opt-in 保持旧行为字节不变；capability `features.trace_id` + 契约测试（TS+JB） | `948adc711b` |
 | P0#1 bg 事件 seq gap 回放 | bg-* WS relay 的 `bg-event`/`bg-log` 推送原无 seq → WS 闪断丢失生命周期转换静默不可知；新建纯核 `event-seq-replay.js`（`EventReplayBuffer` 生产端 + `SeqGapTracker` 消费端，控制面 `RemoteCommandLedger` 的事件向孪生）+ 接入 relay：每帧打 per-attachment seq、`bg-attach {sinceSeq}` 重放漏帧并回 `latestSeq`/`replayTruncated`（越界则全量重同步）；additive 旧客户端忽略 seq | `f1cc226dc7` |
+| P0#1 背压协议 | relay 原直推 `ws.send` 无 `ws.bufferedAmount` 上限 → 慢客户端撑爆服务端内存/UI 假死；新建纯核 `backpressure-policy.js`（高低水位滞回，永不丢 CRITICAL=`bg-event`，超压丢 DROPPABLE=`bg-log`）接入 relay：丢帧仍记录（seq 前进→下一帧 gap 触发 `sinceSeq` 重放自愈）+ 一次性 `bg-lag{lagging}` 提示 UI「追赶中」不冻结；正常路径 buffer=0 字节不变 | `27ef0b008e` |
 | P0#2 隐式上下文安全 | IDE 选区/标签/terminal/diagnostics 注入前过 read-deny（凭据文件剔除）+ 凭据脱敏（PEM/Bearer/AWS/厂商 token 前缀/秘密赋值）；逃生门 `CC_IDE_CONTEXT_REDACTION=0` | `492f89a5fd` |
 | P0#2 连接安全 | MCP 工具路径边界守卫（`..`/UNC/工作区外/前缀混淆全拒，双端纯核孪生）+ Windows lockfile bearer token owner-only ACL（icacls / AclFileAttributeView，fail-open） | `c299976aff` |
 | P0#2 写路径风险提升 | auto-exec 配置写守卫接入 CLI 写路径（`.vscode/tasks·launch·settings`、`.mcp.json`、`.idea/runConfigurations`、devcontainer、code-workspace → 写前确认，headless fail-closed） | `492f89a5fd` |
@@ -33,9 +34,9 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 
 ### 仍缺（环境阻塞 / 大改 / 待拍板）
 
-- **协议（P0#1）剩项**：capability 双向协商与 N/N-1 降级、背压协议、remote URI/path mapping。
-  这些是协议层较大改动，非 Windows 环境阻塞，建议单独规划一轮。（跨事件 trace id 已于
-  `948adc711b`、bg 事件面 seq gap 回放已于 `f1cc226dc7` 收口；stream-json 面的 seq gap 回放
+- **协议（P0#1）剩项**：capability 双向协商与 N/N-1 降级、remote URI/path mapping。这些是协议层
+  较大改动，非 Windows 环境阻塞，建议单独规划一轮。（跨事件 trace id 已于 `948adc711b`、bg 事件面
+  seq gap 回放已于 `f1cc226dc7`、背压协议已于 `27ef0b008e` 收口；stream-json 面的 seq gap 回放
   对单管道语义无意义——管道断=进程亡、无重连，故不做，其消费端 `SeqGapTracker` 已就绪可复用。）
 - **隐式上下文（P0#2）度量项**：200 种凭据样本脱敏召回率 ≥99% / 误报 <2% 需真实语料基线，
   本轮实现保守正则，度量未做；approvalId 绑定操作指纹（工具名+参数哈希）属 P2。
