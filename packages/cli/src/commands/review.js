@@ -34,6 +34,7 @@ import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { firstBalancedJson } from "../lib/json-schema-output.js";
+import { dedupeFindings } from "../lib/review-pipeline.js";
 
 /** Diffs larger than this are truncated before going to the model. */
 const MAX_DIFF_CHARS = 200_000;
@@ -411,7 +412,7 @@ export function parseFindings(text) {
     }
   }
   if (!arr) return [];
-  return arr
+  const mapped = arr
     .filter(
       (f) =>
         f &&
@@ -427,6 +428,10 @@ export function parseFindings(text) {
       title: f.title ? String(f.title) : "",
       body: f.body ? String(f.body) : f.title ? String(f.title) : "finding",
     }));
+  // Collapse duplicate findings the model may repeat for the same path:line:title
+  // (keeps the highest severity). Shape-preserving for this {path,line,severity,
+  // title,body} model — see review-pipeline.dedupeFindings.
+  return dedupeFindings(mapped);
 }
 
 /** Format one finding into a PR comment body. Pure. */

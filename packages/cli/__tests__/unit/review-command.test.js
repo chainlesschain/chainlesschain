@@ -259,6 +259,15 @@ describe("parseFindings", () => {
     expect(f[0].path).toBe("a.js");
     expect(f[0].line).toBe(7);
   });
+
+  it("dedupes repeated findings for the same path:line:title (P2)", () => {
+    const f = parseFindings(
+      '[{"path":"a.js","line":3,"severity":"Low","title":"bug","body":"x"},' +
+        '{"path":"a.js","line":3,"severity":"High","title":"Bug","body":"y"}]',
+    );
+    expect(f).toHaveLength(1);
+    expect(f[0].severity).toBe("High"); // keeps the higher severity
+  });
 });
 
 describe("buildCommentBody / buildReviewPayload", () => {

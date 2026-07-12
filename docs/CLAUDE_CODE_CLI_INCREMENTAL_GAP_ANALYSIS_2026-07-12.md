@@ -734,6 +734,44 @@ crash/backoff 和 `/doctor` 检查。
 3. deduper 合并重复结论并按置信度过滤。
 4. 输出 path、line、category、severity、failure scenario、evidence。
 
+### 已落地（增量）
+
+审计确认 LSP 侧 **server crash/backoff（滑窗隔离）与 server 池、空闲自释放**已存
+在（`lsp-manager.js` maxRestarts/restartWindowMs + agent-core `_getSharedCodeIntel`
+60s idle），`review.js` 已有 `--comment` 的 JSON findings 单遍模型；只补两处真缺口，
+两个纯核（无 timer/RNG，可测）：
+
+- **多 Agent Review 聚合管线** `src/lib/review-pipeline.js`：把 review 从单遍升级为
+  finder→verifier→deduper→结构化输出的**纯聚合核**——`dedupeFindings`（按
+  `path:line:title` 合并，保留最高 severity，跨 finder 时 union
+  categories/dimensions/evidence，**对 `{path,line,severity,title,body}` 形状无损**
+  以便接线）+ `applyVerdicts`（verifier 复现裁决：refuted 丢弃、reproduced 提置信
+  度）+ `filterByConfidence` + `rankFindings`（severity→confidence 排序）+
+  `buildReviewReport`（gap 要的 path/line/category/severity/**failure_scenario**/
+  evidence + severity/category rollup）。finder/verifier **agent 扇出**是命令层编排
+  （仍欠）。**接线**：`review.js` `parseFindings` 现把解析结果过 `dedupeFindings`，
+  折叠模型重复报的同一 `path:line:title`（保留高 severity），形状无损、现有测试全绿。
+- **LSP 编辑触发自动诊断调度器** `src/lib/lsp/diagnostics-scheduler.js`（纯+时钟注
+  入）：`DiagnosticsScheduler` 把编辑流变成节流的诊断运行——**debounce**（连打合并
+  成一次，`due(now)` 判定）+ **throttle**（同文件最小运行间隔，被限流仍保 pending
+  待窗口过）+ `msUntilNextDue`（睡到最早可运行）；`capDiagnostics` **token 上限**（按
+  message 估 token，超预算截断，**先丢最不严重**，保底留 1，接受数字/字符串两种
+  severity）。补齐现有单发 `_postEditDiagnostics`（cap 20、无 debounce）缺的调度层。
+
+**测试**：`review-pipeline.test.js` 18 项（severity/confidence/dedup 形状无损+跨维合
+并+区分同位不同 issue/verdicts/filter/rank/结构化报告）+ `diagnostics-scheduler.test.js`
+13 项（debounce 合并/throttle 保 pending/msUntilNextDue/独立文件/token cap 按严重度
+丢弃+数字 severity+保底 1）+ `review-command` 补 1 项 dedup = 32 绿；review-command
+既有回归绿。
+
+**仍欠（agent 扇出编排 + 调度器接线）**：`review.js` `runReview` 真正 fan-out 4 个
+finder（correctness/security/performance/tests，经 `runAgentHeadless`×N 或
+`spawn_sub_agent` + 新 sub-agent-profiles）→ verifier 复现 → 喂 `buildReviewReport`
+出结构化报告（`--json`/`--comment` 复用），高 effort 才开多 Agent；
+`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core 的编辑→诊断路径（替
+`_postEditDiagnostics` 的裸 cap 20 + 无节流）；LSP 多根 workspace / `/doctor` 检查
+（Doctor 段一并做）；backoff 目前是滑窗隔离非指数退避，留待评估。
+
 ## P2：Doctor、文档与可观测性
 
 `/doctor` 已经存在，建议扩展为 Runtime Checkup：
