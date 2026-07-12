@@ -125,6 +125,32 @@ export function normalizeEffort(value) {
   return v;
 }
 
+/**
+ * Decide whether the multi-finder fan-out and its skeptic verifier pass run.
+ * Explicit flags always win; otherwise the top effort tier (`high`) auto-enables
+ * BOTH — a "high" review IS the thorough, verified pass — while low/medium stay
+ * single-pass (byte-identical default). `--single` forces single-pass even at
+ * high effort. Verify only ever runs with multi. Pure.
+ *
+ * @param {{multi?, verify?, effort?, single?}} opts  Commander-shaped (undefined = unset)
+ * @returns {{multi:boolean, verify:boolean, auto:boolean}}  auto = enabled by effort
+ */
+export function resolveMultiVerify({ multi, verify, effort, single } = {}) {
+  const highEffort = normalizeEffort(effort) === "high";
+  let multiOn;
+  if (single === true) multiOn = false;
+  else if (multi === true) multiOn = true;
+  else if (multi === false) multiOn = false;
+  else multiOn = highEffort; // unset → auto-enable at high effort
+  const verifyOn =
+    verify === true ? true : verify === false ? false : multiOn && highEffort;
+  return {
+    multi: multiOn,
+    verify: multiOn && verifyOn,
+    auto: multi == null && single !== true && multiOn,
+  };
+}
+
 /** Resolve the review lens from flags. Pure. */
 export function resolveReviewMode({ security, simplify } = {}) {
   if (security && simplify) {
@@ -918,8 +944,25 @@ export async function runReview(options = {}, deps = {}) {
   }
 
   // --multi: fan out one finder per dimension and merge into a structured
-  // report. Opt-in — the default single-pass path below is byte-identical.
-  if (options.multi) {
+  // report. Opt-in — or auto-enabled at high effort (a "high" review IS the
+  // thorough, verified pass). The default single-pass path below is
+  // byte-identical for low/medium effort with no flags.
+  const {
+    multi: useMulti,
+    verify: useVerify,
+    auto,
+  } = resolveMultiVerify({
+    multi: options.multi,
+    verify: options.verify,
+    effort: options.effort,
+    single: options.single,
+  });
+  if (useMulti) {
+    if (auto && deps.writeErr) {
+      deps.writeErr(
+        `high-effort review: multi-finder fan-out${useVerify ? " + verifier" : ""} auto-enabled (use --single to force single-pass)\n`,
+      );
+    }
     return runMultiFinderReview(
       {
         diff: hasDiff ? diff : "(no tracked changes)",
@@ -928,7 +971,7 @@ export async function runReview(options = {}, deps = {}) {
         scope,
         untrackedBlocks: untracked.blocks,
         truncated,
-        verify: options.verify === true,
+        verify: useVerify,
         outputFormat: options.outputFormat || "text",
         writeOut: deps.writeOut,
         writeErr: deps.writeErr,
@@ -1022,6 +1065,10 @@ export function registerReviewCommand(program) {
     .option(
       "--verify",
       "With --multi: run a skeptic verifier agent per finding and drop the ones it cannot reproduce",
+    )
+    .option(
+      "--single",
+      "Force a single-pass review even at high effort (disables the multi-finder auto-enable)",
     )
     .option("--json", "Emit the agent result envelope as JSON")
     .action(async (effortArg, options) => {

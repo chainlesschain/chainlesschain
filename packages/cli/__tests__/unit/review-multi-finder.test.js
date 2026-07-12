@@ -12,6 +12,7 @@ import {
   buildVerifierPrompt,
   parseVerdict,
   runVerifierPass,
+  resolveMultiVerify,
   REVIEW_DIMENSIONS,
 } from "../../src/commands/review.js";
 import { findingKey } from "../../src/lib/review-pipeline.js";
@@ -253,5 +254,69 @@ describe("runMultiFinderReview --verify", () => {
     expect(res.report.summary.total).toBe(1); // x.js:1 refuted → dropped
     expect(res.report.findings[0].path).toBe("y.js");
     expect(res.verified).toBe(1);
+  });
+});
+
+describe("resolveMultiVerify (effort auto-enable)", () => {
+  it("stays single-pass for low/medium effort with no flags (byte-identical default)", () => {
+    expect(resolveMultiVerify({ effort: "low" })).toEqual({
+      multi: false,
+      verify: false,
+      auto: false,
+    });
+    expect(resolveMultiVerify({ effort: "medium" })).toEqual({
+      multi: false,
+      verify: false,
+      auto: false,
+    });
+    expect(resolveMultiVerify({})).toEqual({
+      multi: false,
+      verify: false,
+      auto: false,
+    }); // unset effort → medium
+  });
+
+  it("auto-enables multi + verify at high effort with no flags", () => {
+    expect(resolveMultiVerify({ effort: "high" })).toEqual({
+      multi: true,
+      verify: true,
+      auto: true,
+    });
+  });
+
+  it("--single forces single-pass even at high effort", () => {
+    expect(resolveMultiVerify({ effort: "high", single: true })).toEqual({
+      multi: false,
+      verify: false,
+      auto: false,
+    });
+  });
+
+  it("explicit --multi at low effort enables multi but not verify, and is not 'auto'", () => {
+    expect(resolveMultiVerify({ effort: "low", multi: true })).toEqual({
+      multi: true,
+      verify: false,
+      auto: false,
+    });
+  });
+
+  it("explicit --multi --verify at low effort enables both", () => {
+    expect(
+      resolveMultiVerify({ effort: "low", multi: true, verify: true }),
+    ).toEqual({ multi: true, verify: true, auto: false });
+  });
+
+  it("--no-verify (verify:false) at high effort keeps multi, drops verify", () => {
+    expect(resolveMultiVerify({ effort: "high", verify: false })).toEqual({
+      multi: true,
+      verify: false,
+      auto: true,
+    });
+  });
+
+  it("verify never survives without multi", () => {
+    expect(resolveMultiVerify({ effort: "low", verify: true }).verify).toBe(
+      false,
+    );
   });
 });
