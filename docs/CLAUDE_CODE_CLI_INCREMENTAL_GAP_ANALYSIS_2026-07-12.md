@@ -775,9 +775,17 @@ bump 但集不变→仍同意（版本交给 trust）——与 `consentRequiredF
 list+revoke / 未装报错 / validate 渲染能力 JSON）；plugin-runtime capabilities/manifest/
 install 回归 61 绿。
 
-**仍欠（强制 + 交互 consent + 敏感项托管）**：`discoverPlugins`/各 collector 按 consent
-**强制拦截**（现 `isPluginCapabilityConsented` 门就绪但 collector 仍只按 trust 放行、能力
-门未接进加载路径；未声明 `network` 的 MCP server 真拦亦未接）；`install.js`
+**已接线（consent 强制拦截，opt-in）**：consent 门已接进 `discoverPlugins` 这个**唯一
+chokepoint**（六类组件收集器都经它）——`policy.js` 新增 `filterByCapabilityConsent`（声明了
+能力但未 consent 的插件**整体丢弃**、fail-closed、widening 后重掉、scope 敏感；未声明
+permissions 的 legacy 插件与空 all-deny 声明不受影响）+ `capabilityConsentRequired`（gate
+判定）；`scopes.js` `discoverPlugins` 在 managed-policy 过滤后再跑 consent 过滤。**opt-in
+保字节不变**：org 设 `requirePluginCapabilityConsent` 或用户 `CC_REQUIRE_PLUGIN_CONSENT=1`
+才启用，默认（无 managed + 未开）原样返回全部。测试 `plugin-runtime-consent-enforce.test.js`
+7 项 + policy/scopes/install/consent/command/doctor 回归绿（`659d2909b4`）。
+
+**仍欠（交互 consent + 未声明组件级真拦 + 敏感项托管）**：未声明 `network` 的 MCP server 在
+**组件级**真拦（现按整插件 consent 门拦，尚无「声明缺失→单组件拒」的更细粒度）；`install.js`
 `installFromDirectory`/`updatePlugin` 装/升级时**交互** diff→重新 consent（现装非交互，
 只能事后 `cc plugin consent --grant`）；`cc plugin add`/`upgrade` 渲染能力清单+diff（现只
 `validate`/`consent` 渲染）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 +
