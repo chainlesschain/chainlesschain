@@ -20,6 +20,7 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 | 领域 | 本轮收口 | Commit |
 | --- | --- | --- |
 | P0#1 协议产品化 | 跨语言协议 fixture 契约（TS↔Java 从「对文档」升级为读同一批 fixture 的机器强制断言）+ `tool_use_id` + 事件 `seq`（additive，PROTOCOL_VERSION 不变） | `190a973a7a` |
+| P0#1 跨事件 trace id | 每条 stream-json 行携带 run 级 `trace_id`（贯穿 Webview→Bridge→CLI→transcript/诊断包），IDE 可经 `--trace-id`/`CC_TRACE_ID` 端到端注入（sanitized 单 token）；区别于 resume 复用的 `session_id`；additive 于同一 coalescer 打点、opt-in 保持旧行为字节不变；capability `features.trace_id` + 契约测试（TS+JB） | `948adc711b` |
 | P0#2 隐式上下文安全 | IDE 选区/标签/terminal/diagnostics 注入前过 read-deny（凭据文件剔除）+ 凭据脱敏（PEM/Bearer/AWS/厂商 token 前缀/秘密赋值）；逃生门 `CC_IDE_CONTEXT_REDACTION=0` | `492f89a5fd` |
 | P0#2 连接安全 | MCP 工具路径边界守卫（`..`/UNC/工作区外/前缀混淆全拒，双端纯核孪生）+ Windows lockfile bearer token owner-only ACL（icacls / AclFileAttributeView，fail-open） | `c299976aff` |
 | P0#2 写路径风险提升 | auto-exec 配置写守卫接入 CLI 写路径（`.vscode/tasks·launch·settings`、`.mcp.json`、`.idea/runConfigurations`、devcontainer、code-workspace → 写前确认，headless fail-closed） | `492f89a5fd` |
@@ -31,9 +32,9 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 
 ### 仍缺（环境阻塞 / 大改 / 待拍板）
 
-- **协议（P0#1）剩项**：capability 双向协商与 N/N-1 降级、跨事件 trace id、stream/bg 事件面的
-  event seq gap 回放与 ack/replay（当前仅远程接管控制面有）、背压协议、remote URI/path mapping。
-  这些是协议层较大改动，非 Windows 环境阻塞，建议单独规划一轮。
+- **协议（P0#1）剩项**：capability 双向协商与 N/N-1 降级、stream/bg 事件面的 event seq gap
+  回放与 ack/replay（当前仅远程接管控制面有）、背压协议、remote URI/path mapping。这些是协议层
+  较大改动，非 Windows 环境阻塞，建议单独规划一轮。（跨事件 trace id 已于 `948adc711b` 收口。）
 - **隐式上下文（P0#2）度量项**：200 种凭据样本脱敏召回率 ≥99% / 误报 <2% 需真实语料基线，
   本轮实现保守正则，度量未做；approvalId 绑定操作指纹（工具名+参数哈希）属 P2。
 - **远程开发（P0#3）**：五类远程环境（WSL/SSH/Dev Containers/Codespaces/Gateway）的连接/上下文/
