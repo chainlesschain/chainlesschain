@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
 import { sendAgentNotification } from "../lib/agent-notify.js";
+import { nextWakeupAt } from "../lib/schedule-planner.js";
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -63,8 +64,13 @@ export function runAgendaList(options = {}, _deps = {}) {
   const log = _deps.log || ((m) => console.log(m));
   const store = _deps.store || new AgentScheduleStore();
   const entries = store.list(options.kind || null);
+  // Adaptive next-wakeup (schedule-planner): the earliest future fire time
+  // across all schedulable, non-expired entries — what a daemon would sleep
+  // until. `now` is injectable for tests.
+  const now = _deps.now ? _deps.now() : Date.now();
+  const nextAt = nextWakeupAt(entries, { now });
   if (options.json) {
-    log(JSON.stringify({ entries }, null, 2));
+    log(JSON.stringify({ entries, nextWakeupAt: nextAt }, null, 2));
     return 0;
   }
   if (entries.length === 0) {
@@ -85,6 +91,14 @@ export function runAgendaList(options = {}, _deps = {}) {
         `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command, 40)}`,
     );
     log(`           ${chalk.dim(when)}`);
+  }
+  if (nextAt != null) {
+    const rel = Math.max(0, Math.round((nextAt - now) / 1000));
+    log(
+      chalk.gray(
+        `\n  next wakeup: ${new Date(nextAt).toISOString()} (in ${rel}s)`,
+      ),
+    );
   }
   log("");
   return 0;

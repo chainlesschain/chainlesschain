@@ -393,6 +393,35 @@ interactive REPL，见 [`agent.js`](../packages/cli/src/commands/agent.js#L1199)
 参考 [Scheduled Tasks](https://code.claude.com/docs/en/scheduled-tasks) 和
 [Channels](https://code.claude.com/docs/en/channels)。
 
+### 已落地（增量）
+
+- **调度规划器（自适应 wakeup + 确定性 jitter + 过期）**：新增纯逻辑模块
+  [`schedule-planner.js`](../packages/cli/src/lib/schedule-planner.js)，补上持久
+  store 之外仍缺的三件：
+  - **确定性 jitter**：`jitterOffsetMs(id, jitterMs)` 用 FNV-1a 哈希 task id 得
+    稳定偏移（无 RNG，跨重启不变），把共享同一 cron 分钟（如 `0 * * * *`）的任务
+    错峰，避免惊群；`effectiveFireAt` = 基准 fire + jitter。
+  - **自适应 wakeup**：`nextWakeupAt`/`msUntilNextWakeup` 给出所有可调度、未过期
+    条目里最早的未来 fire 时间——daemon 据此**精确睡眠**而非轮询（现 `cc agenda
+run` 依赖外部周期调用）。
+  - **过期**：`isEntryExpired`（`expiresAt<=now`）；`partitionSchedule` 把条目分成
+    `expired`（先退休，绝不再补最后一次）/`due`（立即 fire）/`waiting`。
+  - 「重启只补一次不惊群」的 catch-up 不变式本就由 store 的 `advanceCron`（跳到
+    `nextCronTime(now)`）保证，本模块不重新引入 per-miss 扇出。
+  - 已接线到 `cc agenda list`：输出 `nextWakeupAt`（JSON）+「next wakeup」行。
+  - 测试：`schedule-planner.test.js`（jitter 确定性/有界/错峰、effectiveFireAt、
+    schedulable/expired、partition 三分含 jitter 推迟、adaptive wakeup 忽略过期/
+    终态、`msUntilNextWakeup` 钳位）+ `agenda-command.test.js`（list 报告最早
+    next-wakeup、无可调度时为 null）。
+
+**仍欠（daemon 事件运行时闭环）**：把 daemon 变成常驻 Event Runtime——用
+`msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due/退休 expired（并给
+create 加 `expiresAt`/`jitterMs`）；Monitor 扩到文件变化/WebSocket/SSE/HTTP
+webhook/MCP event（现仅 shell stdout 正则）；事件加 `event_id`/去重窗口/
+backpressure/大小上限/authority（复用 [[agent-authority.js]]）/审计；每个定时/
+事件任务独立预算·权限模式·Worktree·最大存活期；Channel pairing/allowlist 与
+Permission Approval 分层不混用。
+
 ## P1：补齐 Subagent 契约
 
 当前已实现 `disallowedTools`、`maxTurns` 和 `isolation: worktree`。还应补齐：

@@ -36,6 +36,25 @@ describe("cc agenda", () => {
     expect(parsed.entries).toHaveLength(1);
   });
 
+  it("reports the adaptive next-wakeup (earliest future fire time)", () => {
+    store.scheduleWakeup({ prompt: "later", dueAt: clock + 5000 });
+    store.scheduleWakeup({ prompt: "sooner", dueAt: clock + 2000 });
+    const code = runAgendaList(
+      { json: true },
+      { store, log, now: () => clock },
+    );
+    expect(code).toBe(0);
+    const parsed = JSON.parse(logs.join("\n"));
+    expect(parsed.nextWakeupAt).toBe(clock + 2000); // the sooner of the two
+  });
+
+  it("next-wakeup is null when nothing is schedulable", () => {
+    const w = store.scheduleWakeup({ prompt: "x", delayMs: 0 });
+    store.markWakeupFired(w.id, clock); // now terminal
+    runAgendaList({ json: true }, { store, log, now: () => clock });
+    expect(JSON.parse(logs.join("\n")).nextWakeupAt).toBe(null);
+  });
+
   it("cancels by id", () => {
     const w = store.scheduleWakeup({ prompt: "a" });
     const code = runAgendaCancel(w.id, { json: true }, { store, log });
