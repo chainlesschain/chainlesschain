@@ -498,6 +498,30 @@ describe("headless-runner — tool list threading into the loop", () => {
     expect(captured.options.enabledToolNames).toEqual([...READ_ONLY_TOOLS]);
   });
 
+  it("seeds the subagent-contract ceiling with the run's permission mode", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    await runAgentHeadless(
+      { prompt: "delegate", permissionMode: "bypassPermissions" },
+      deps,
+    );
+    // A spawned sub-agent reads this as its parent ceiling → can inherit bypass.
+    expect(captured.options.subAgentContract).toEqual({
+      permissionMode: "bypassPermissions",
+    });
+  });
+
+  it("defaults the ceiling permission mode to 'default' when unset (byte-identical)", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    await runAgentHeadless({ prompt: "hello" }, deps);
+    expect(captured.options.subAgentContract).toEqual({
+      permissionMode: "default",
+    });
+  });
+
   it("threads additionalDirectories into the loop and the system prompt", async () => {
     const captured = {};
     const { deps } = makeDeps(replyText("x"));

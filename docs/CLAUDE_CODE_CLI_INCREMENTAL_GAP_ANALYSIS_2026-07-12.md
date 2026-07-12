@@ -560,10 +560,23 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   不动→全默认 spawn（→"default"）逐字节不变。best-effort try/catch 永不因强制而破坏 spawn。
   测试 +4（`sub-agent-isolation.test.js`：默认不夹 / plan 夹到只读 / plan+显式列表取交 /
   非 plan(manual) 不夹保留写工具）。未改 agent-core 导出（shim parity）。
+- **非 plan confirmer 线程化 + 运行模式作子上限**（2026-07-12 六轮收尾）——把 resolved 模式的
+  **非交互 confirmer** 作为子的 `permissionConfirm`（治 ask / 敏感文件写 / 破坏性 git 三门），
+  **仅当**它是 autopilot（`bypassPermissions`）的**放行** confirmer 才线程化；其余模式的无头子本就
+  隐式拒（无 confirmer），故不设以保持逐字节不变——**关键**保住并行只读快路径与 IDE-diff 分支
+  （二者都以「是否存在 permissionConfirm」为闸）。`SubAgentContext` 存 `_permissionConfirm` 并转发进
+  子 `agentLoop`。**可达性**：bypass 唯有当子上限契约=bypass 才解析得到（tighten-only），故
+  headless-runner 的 loopOptions 现播种 `subAgentContract:{permissionMode: 运行模式}` 作子上限——
+  `--permission-mode bypassPermissions` 的运行可把 bypass 交给子（→放行 confirmer），`default` 运行
+  解析子仍为 "default"（逐字节不变，原 null 上限也得 "default"）。测试 +6（`sub-agent-isolation`：
+  默认不线程 / manual 不线程 / bypass 上限→子得放行 confirmer 且 `()`==true / default 上限下子请求
+  bypass 被夹→不线程；`headless-runner`：运行模式播种进 ceiling / 缺省播 "default"）。未改 agent-core
+  导出（shim parity）。
 
 **仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
-Subagent、每 child 的 checkpoint 归因仍缺。plan 之外的模式在无头子里靠 deny-confirmer 默认拒
-交互审批（confirmer 尚未按父模式细分线程化，属更大面）。
+Subagent、每 child 的 checkpoint 归因仍缺。`acceptEdits`/`auto` 的「trusted 自动放行」需子侧
+ApprovalGate sessionPolicy（受共享单例全局 confirmer 制约，属更大面，与 run_shell 会话策略线程化
+一并 defer）；agent-repl 侧运行模式播种子上限亦待接（当前仅 headless）。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

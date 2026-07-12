@@ -1118,6 +1118,13 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     approvalGate,
     permissionRules,
     settingsHooks,
+    // Seed the subagent-contract CEILING with this run's permission mode so a
+    // spawned sub-agent inherits/tightens from it (tighten-only): a
+    // `--permission-mode bypassPermissions` run can hand a child bypass (→ allow
+    // confirmer), a `--permission-mode plan` run clamps children to read-only,
+    // while a "default" run resolves children to "default" exactly as before
+    // (byte-identical — the previous null ceiling also yielded "default").
+    subAgentContract: { permissionMode: options.permissionMode || "default" },
     classifyAllShell,
     enabledToolNames,
     disabledTools,

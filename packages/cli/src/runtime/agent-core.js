@@ -4550,13 +4550,20 @@ async function _executeSpawnSubAgent(args, ctx) {
     allowedTools = base.filter((t) => !deny.has(t));
   }
 
-  // permissionMode enforcement into the child gate: a `plan`-mode child is
-  // clamped to the read-only tool set — the SAME rule the main loop applies via
-  // resolveEnabledTools, so a plan sub-agent physically cannot mutate anything.
-  // `tightenPermissionMode` already stops a child EXCEEDING the parent's mode;
-  // this enforces the restrictive end. Non-plan modes leave tools untouched, so
-  // a fully-defaulted spawn (→ "default") is byte-identical. Reuses the runner's
+  // permissionMode enforcement into the child gate. Reuses the runner's own
   // resolvers (single-sourced, no drift); best-effort so it never breaks a spawn.
+  //  • `plan` → clamp to the read-only tool set (same rule as resolveEnabledTools),
+  //    so a plan sub-agent physically cannot mutate anything.
+  //  • confirmer threading → hand the child the mode's NON-interactive confirmer
+  //    as `permissionConfirm` (governs the ask / sensitive-file / destructive-git
+  //    gates) ONLY when it is the autopilot (bypassPermissions) ALLOW confirmer.
+  //    Every other mode's headless child already denies implicitly (no confirmer),
+  //    so we leave it unset to stay byte-identical — crucially preserving the
+  //    parallel-read fast-path + IDE-diff branch, both of which key off whether a
+  //    permissionConfirm is present.
+  // `tightenPermissionMode` already stops a child EXCEEDING the parent's mode; a
+  // fully-defaulted spawn (→ "default") touches neither tools nor confirmer.
+  let childPermissionConfirm = null;
   if (effectiveContract?.permissionMode) {
     try {
       const { resolvePermissionMode, resolveEnabledTools } =
@@ -4564,6 +4571,15 @@ async function _executeSpawnSubAgent(args, ctx) {
       const perm = resolvePermissionMode(effectiveContract.permissionMode);
       if (perm.readOnly) {
         allowedTools = resolveEnabledTools({ allowedTools, readOnly: true });
+      }
+      // autopilot ⟺ bypassPermissions — the only mode whose headless confirmer
+      // ALLOWS. Threading a deny confirmer would needlessly disable the child's
+      // parallel-read fast-path, so restrict to the allow case.
+      if (
+        perm.sessionPolicy === "autopilot" &&
+        typeof perm.confirmer === "function"
+      ) {
+        childPermissionConfirm = perm.confirmer;
       }
     } catch {
       // Enforcement is best-effort — never break the spawn.
@@ -4721,6 +4737,12 @@ async function _executeSpawnSubAgent(args, ctx) {
           memoryEnabled: true,
         }
       : { memoryEnabled: false }),
+    // permissionMode confirmer (2026-07-12): only set for the autopilot (bypass)
+    // ALLOW confirmer; absent for every other mode so the child stays
+    // implicitly-deny + byte-identical (parallel-read fast-path preserved).
+    ...(childPermissionConfirm
+      ? { permissionConfirm: childPermissionConfirm }
+      : {}),
   });
   subCtxRef = subCtx;
 

@@ -463,6 +463,70 @@ describe("Integration: Sub-Agent Isolation", () => {
     });
   });
 
+  // ─── child permissionMode confirmer threading (2026-07-12) ─
+
+  describe("child permissionMode confirmer threading", () => {
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      });
+
+    const spawnAndCapture = async (spawnArgs, parentCtx = {}) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+            ...parentCtx,
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("threads no confirmer for a default spawn (byte-identical implicit-deny)", async () => {
+      const opts = await spawnAndCapture({});
+      expect(opts.permissionConfirm).toBeUndefined();
+    });
+
+    it("threads no confirmer for a non-autopilot mode (manual stays implicit-deny)", async () => {
+      const opts = await spawnAndCapture({ permissionMode: "manual" });
+      expect(opts.permissionConfirm).toBeUndefined();
+    });
+
+    it("threads an ALLOW confirmer when the child inherits bypassPermissions from the parent ceiling", async () => {
+      // A bypass parent loop (its subAgentContract ceiling) hands a silent child
+      // bypass → autopilot → the allow confirmer flows into the child.
+      const opts = await spawnAndCapture(
+        {},
+        { subAgentContract: { permissionMode: "bypassPermissions" } },
+      );
+      expect(typeof opts.permissionConfirm).toBe("function");
+      await expect(opts.permissionConfirm()).resolves.toBe(true);
+    });
+
+    it("a child cannot escalate to bypass above a default parent ceiling (no confirmer)", async () => {
+      // tighten-only: requesting bypass under a "default" ceiling clamps to
+      // "default", so no allow confirmer is threaded.
+      const opts = await spawnAndCapture({
+        permissionMode: "bypassPermissions",
+      });
+      expect(opts.permissionConfirm).toBeUndefined();
+    });
+  });
+
   // ─── SubAgentContext isolation ─────────────────────────
 
   describe("SubAgentContext message isolation", () => {

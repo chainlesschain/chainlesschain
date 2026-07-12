@@ -167,6 +167,11 @@ export class SubAgentContext {
     // filtered by the contract's `hooks` allow-list; forwarded into agentLoop.
     this._settingsHooks = options.settingsHooks || null;
 
+    // permissionMode confirmer for this child loop. null = no confirmer (the
+    // spawn default → the child denies ask/sensitive-file/git gates). The spawn
+    // sets this only for the autopilot (bypassPermissions) ALLOW confirmer.
+    this._permissionConfirm = options.permissionConfirm || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const profilePrompt = this._profile?.systemPrompt
@@ -345,6 +350,11 @@ export class SubAgentContext {
     // sub-agent keeps its no-hooks default.
     if (this._settingsHooks) {
       options.settingsHooks = this._settingsHooks;
+    }
+    // permissionMode confirmer (spawn sets it only for bypassPermissions). Only
+    // forward when present so a plain sub-agent keeps its implicit-deny default.
+    if (this._permissionConfirm) {
+      options.permissionConfirm = this._permissionConfirm;
     }
 
     try {
