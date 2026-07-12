@@ -338,3 +338,48 @@ describe("readBooleanSetting — dotted nested path (autoMode.classifyAllShell)"
     ).toBeUndefined();
   });
 });
+
+describe("readStringArraySetting — instructionExcludes (union across layers)", () => {
+  const { readStringArraySetting } = loader;
+
+  it("returns undefined when no layer sets it", () => {
+    setFile(userFile, { permissions: { allow: ["Read"] } });
+    expect(
+      readStringArraySetting("instructionExcludes", { cwd: CWD }),
+    ).toBeUndefined();
+  });
+
+  it("reads a string array from a single layer", () => {
+    setFile(userFile, { instructionExcludes: ["node_modules", "dist"] });
+    expect(readStringArraySetting("instructionExcludes", { cwd: CWD })).toEqual(
+      ["node_modules", "dist"],
+    );
+  });
+
+  it("unions entries across layers and de-duplicates", () => {
+    setFile(userFile, { instructionExcludes: ["node_modules", "dist"] });
+    setFile(projFile, { instructionExcludes: ["dist", "packages/legacy"] });
+    setFile(localFile, { instructionExcludes: ["**/generated/**"] });
+    expect(readStringArraySetting("instructionExcludes", { cwd: CWD })).toEqual(
+      ["node_modules", "dist", "packages/legacy", "**/generated/**"],
+    );
+  });
+
+  it("ignores non-array values and blank/non-string members", () => {
+    setFile(userFile, { instructionExcludes: "node_modules" });
+    expect(
+      readStringArraySetting("instructionExcludes", { cwd: CWD }),
+    ).toBeUndefined();
+    setFile(userFile, { instructionExcludes: ["ok", "  ", 42, null, "keep"] });
+    expect(readStringArraySetting("instructionExcludes", { cwd: CWD })).toEqual(
+      ["ok", "keep"],
+    );
+  });
+
+  it("returns an empty array (not undefined) for an explicitly empty array", () => {
+    setFile(userFile, { instructionExcludes: [] });
+    expect(readStringArraySetting("instructionExcludes", { cwd: CWD })).toEqual(
+      [],
+    );
+  });
+});

@@ -744,12 +744,35 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     outputStyleBody = null;
   }
 
+  // Large-monorepo context lever: `instructionExcludes` (settings.json or an
+  // explicit caller/SDK option) suppresses cc.md/CLAUDE.md/AGENTS.md, path-scoped
+  // rules, and @imports that resolve into legacy/vendor/generated subtrees.
+  // Explicit option wins; otherwise union across the layered settings files.
+  let instructionExcludes = Array.isArray(options.instructionExcludes)
+    ? options.instructionExcludes
+    : null;
+  if (!instructionExcludes) {
+    try {
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
+      const fromSettings = readStringArraySetting("instructionExcludes", {
+        cwd,
+        settingsFile: options.settingsFile,
+      });
+      if (fromSettings && fromSettings.length)
+        instructionExcludes = fromSettings;
+    } catch {
+      instructionExcludes = null; // fail-open
+    }
+  }
+
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
       outputStyle: outputStyleBody,
+      instructionExcludes,
     },
   );
 

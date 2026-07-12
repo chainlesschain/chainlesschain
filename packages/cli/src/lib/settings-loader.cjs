@@ -415,11 +415,53 @@ function readBooleanSetting(key, opts = {}) {
   return value;
 }
 
+/**
+ * Read a string-array setting across the layered `.claude/settings.json` files
+ * plus managed settings. Unlike {@link readBooleanSetting} (last-layer wins),
+ * arrays UNION across layers (mirroring how `env`/`sandbox` accumulate in
+ * {@link loadSettingsConfig}) — a user-scope and a project-scope layer can each
+ * contribute entries. Non-array values and non-string members are ignored.
+ * Returns a de-duplicated array, or `undefined` when no layer sets it.
+ *
+ * @param {string} key  settings key or dotted path (e.g. "instructionExcludes")
+ * @param {object} [opts]
+ * @param {string} [opts.cwd=process.cwd()]
+ * @param {string} [opts.settingsFile]
+ * @param {(msg:string)=>void} [opts.onWarn]
+ * @returns {string[]|undefined}
+ */
+function readStringArraySetting(key, opts = {}) {
+  const cwd = opts.cwd || process.cwd();
+  const parts = String(key).split(".");
+  const collected = [];
+  let sawAny = false;
+  const absorb = (data) => {
+    let node = data;
+    for (const p of parts) {
+      node = node && typeof node === "object" ? node[p] : undefined;
+    }
+    if (Array.isArray(node)) {
+      sawAny = true;
+      for (const item of node) {
+        if (typeof item === "string" && item.trim()) collected.push(item);
+      }
+    }
+  };
+  for (const file of settingsPaths(cwd, opts.settingsFile)) {
+    absorb(readSettingsFile(file, { onWarn: opts.onWarn }));
+  }
+  const managed = loadManagedSettings(opts);
+  if (managed.settings) absorb(managed.settings);
+  if (!sawAny) return undefined;
+  return [...new Set(collected)];
+}
+
 module.exports = {
   loadSettings,
   loadSettingsConfig,
   readSettingsFile,
   readBooleanSetting,
+  readStringArraySetting,
   settingsPaths,
   managedSettingsPath,
   loadManagedSettings,

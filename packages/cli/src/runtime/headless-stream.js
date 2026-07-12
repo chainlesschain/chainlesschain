@@ -1035,12 +1035,33 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   } catch {
     outputStyleBody = null;
   }
+  // Large-monorepo context lever: `instructionExcludes` (settings.json or an
+  // explicit caller/SDK option) suppresses instruction/rule/@import files that
+  // resolve into excluded subtrees. Explicit option wins; else union settings.
+  let instructionExcludes = Array.isArray(options.instructionExcludes)
+    ? options.instructionExcludes
+    : null;
+  if (!instructionExcludes) {
+    try {
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
+      const fromSettings = readStringArraySetting("instructionExcludes", {
+        cwd,
+        settingsFile: options.settingsFile,
+      });
+      if (fromSettings && fromSettings.length)
+        instructionExcludes = fromSettings;
+    } catch {
+      instructionExcludes = null; // fail-open
+    }
+  }
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
       outputStyle: outputStyleBody,
+      instructionExcludes,
     },
   );
   const messages = [{ role: "system", content: systemContent }];
