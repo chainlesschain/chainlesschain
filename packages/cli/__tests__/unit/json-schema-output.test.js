@@ -7,6 +7,7 @@ import {
   buildSchemaInstruction,
   runJsonSchemaConstrained,
   loadSchemaFile,
+  buildStructuredResult,
 } from "../../src/lib/json-schema-output.js";
 
 const SCHEMA = {
@@ -210,5 +211,30 @@ describe("loadSchemaFile", () => {
 
   it("errors clearly when no schema file is given", () => {
     expect(() => loadSchemaFile({}, undefined)).toThrow(/No schema provided/);
+  });
+
+  it("rejects a malformed schema at load time (startup meta-validation)", () => {
+    const fs = { readFileSync: () => '{"type":"objetc"}' }; // typo'd type
+    expect(() => loadSchemaFile(fs, "typo.json")).toThrow(
+      /Invalid JSON Schema in "typo\.json"/,
+    );
+  });
+});
+
+describe("buildStructuredResult (P2 structured_result event)", () => {
+  const schema = {
+    type: "object",
+    properties: { n: { type: "number" } },
+    required: ["n"],
+  };
+  it("emits a valid structured_result with a schema digest", () => {
+    const ev = buildStructuredResult(schema, { n: 1 });
+    expect(ev).toMatchObject({ type: "structured_result", valid: true });
+    expect(ev.schema_digest).toMatch(/^sha256:/);
+  });
+  it("emits valid:false with coded/pointered errors, never free text", () => {
+    const ev = buildStructuredResult(schema, { n: "x" });
+    expect(ev.valid).toBe(false);
+    expect(ev.errors[0]).toMatchObject({ code: "type", instancePath: "/n" });
   });
 });

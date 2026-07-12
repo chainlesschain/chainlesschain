@@ -680,6 +680,46 @@ schema，并在流协议增加最终事件：
 
 失败时返回稳定错误码和 JSON Pointer，不得静默退回自由文本。
 
+### 已落地（增量）
+
+新建纯核 `src/lib/json-schema-validate.js`（无依赖，`crypto` 仅算 digest），把现有
+只支持 type/properties/required/items/enum/const/additionalProperties:false、报
+`$.a.b[0]` 字符串、且不自校验的子集升级为更全的 Draft 2020-12 子集验证器：
+
+- **稳定错误码 + RFC 6901 JSON Pointer**：`validate(value, schema)` 返回
+  `{valid, errors:[{code, keyword, instancePath, schemaPath, message}]}`——`code`=
+  失败关键字（type/required/enum/minimum/pattern/uniqueItems/anyOf/oneOf/$ref…，
+  标准且稳定），`instancePath`/`schemaPath` 均为 JSON Pointer（`/items/0/name`），
+  **不再是自由文本**。
+- **更全关键字**：新增 minimum/maximum/exclusiveMinimum·Maximum/multipleOf、
+  minLength/maxLength/pattern、minItems/maxItems/uniqueItems、minProperties/
+  maxProperties、prefixItems(元组)、additionalProperties 的 **schema 形**、
+  allOf/anyOf/oneOf/not、以及**本地 `$ref`**（`#/$defs/…`、`#/definitions/…`、任意
+  文档内 JSON Pointer，带 128 层递归护栏防环）。
+- **启动时校验 schema** `validateSchema`（meta-validation）：拒绝坏 type 值、非数组
+  required、非数字的数值关键字、非法正则、非对象 properties 等——**接线**到
+  `json-schema-output.js` 的 `loadSchemaFile`：加载 `--json-schema` 文件时先跑
+  meta-validation，坏 schema **fail-fast** 报带 schemaPath 的清单，而非静默拿坏契约
+  逐条误判。
+- **`structured_result` 终局事件**（`buildStructuredResultEvent`/导出的
+  `buildStructuredResult`）：`{type:"structured_result", schema_digest:"sha256:…",
+  valid, value, errors?}`——`schema_digest` 用 canonical(sorted-key) sha256 让消费方
+  可 pin 契约；invalid 时带 coded/pointered errors，**永不退回自由文本**。
+
+**测试**：`json-schema-validate.test.js` 20 项（pointer 转义/digest 确定性+key-order
+无关/core+numeric+string+array 约束/prefixItems·tuple/combinators/$ref 解析与未解析/
+meta-validation 拒绝各类坏 schema/structured_result 两态）+ `json-schema-output`
+补 3 项（loadSchemaFile meta-validation 拒坏 schema + buildStructuredResult 两态）=
+40 绿。
+
+**仍欠（接进流协议 + 命令面）**：把 `structured_result` 真正 emit 进
+`headless-stream.js`（在 per-turn `result` 事件旁，line ~2028），并**移除
+`--json-schema` 与 `stream-json` 的互斥守卫**（agent.js:1089-1094）让二者兼容；
+`runJsonSchemaConstrained` 的重试校验切到新验证器（更精确的纠错提示 + JSON Pointer）
+并在最终失败时 emit `structured_result{valid:false}` 而非仅 exit 1+stderr；
+`--json-schema` 支持 inline JSON（当前只接文件路径）；format(email/uri/date-time)
+断言与 if/then/else 留待。
+
 ### LSP 与 Code Review
 
 现有 LSP 已支持 definition、references、hover、symbols、diagnostics 和 rename preview。

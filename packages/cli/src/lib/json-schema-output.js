@@ -13,9 +13,25 @@
  */
 
 import fsDefault from "fs";
+import {
+  validateSchema,
+  buildStructuredResultEvent,
+  computeSchemaDigest,
+} from "./json-schema-validate.js";
 
 export const MAX_ATTEMPTS = 3;
 export const _deps = { fs: fsDefault };
+
+/**
+ * Build the terminal `structured_result` stream event for a value against a
+ * schema (P2). Delegates to the richer Draft-2020-12-subset validator so the
+ * event carries a schema digest + coded/pointered errors — never free text.
+ */
+export function buildStructuredResult(schema, value) {
+  return buildStructuredResultEvent({ schema, value });
+}
+
+export { computeSchemaDigest };
 
 /** Validate `value` against the schema subset. Returns error strings ([] = valid). */
 export function validateAgainstSchema(value, schema, path = "$") {
@@ -193,13 +209,26 @@ export function loadSchemaFile(fs, schemaFile) {
   } catch (e) {
     throw new Error(`Cannot read schema file "${schemaFile}": ${e.message}`);
   }
+  let parsed;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch (e) {
     throw new Error(
       `Invalid JSON in schema file "${schemaFile}": ${e.message}`,
     );
   }
+  // Startup schema meta-validation (P2): reject a malformed schema up front
+  // (bad type value, non-array required, invalid regex, …) instead of silently
+  // mis-validating every reply against a broken contract.
+  const meta = validateSchema(parsed);
+  if (!meta.valid) {
+    const detail = meta.errors
+      .slice(0, 5)
+      .map((e) => `  - ${e.schemaPath || "/"}: ${e.message}`)
+      .join("\n");
+    throw new Error(`Invalid JSON Schema in "${schemaFile}":\n${detail}`);
+  }
+  return parsed;
 }
 
 /**
