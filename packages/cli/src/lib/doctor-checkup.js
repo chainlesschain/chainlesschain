@@ -315,6 +315,58 @@ async function pluginSection(opts, _deps2) {
   } catch (err) {
     checks.push(failedCheck("plugins", "Installed plugins", err));
   }
+
+  // Broken manifests + un-consented capabilities (Phase 3 capability gap).
+  // Distinct from the signature-lock check above: re-discover to get each
+  // plugin's parsed manifest (listInstalled drops it) so we can flag an invalid
+  // manifest and any DECLARED capability set the user has not consented to.
+  try {
+    const { discoverPlugins } = await import("./plugin-runtime/scopes.js");
+    const { isPluginCapabilityConsented } =
+      await import("./plugin-runtime/capability-consent.js");
+    const { checkPluginsAndLsp } = await import("./runtime-checkup.js");
+    const discovered =
+      discoverPlugins({ cwd: opts.cwd || process.cwd(), skipPolicy: true }) ||
+      [];
+    // Broken manifests → warn (shared runtime-checkup evaluator).
+    for (const f of checkPluginsAndLsp(
+      discovered.map((p) => ({
+        id: p.name,
+        healthy: p.manifest?.ok !== false,
+        kind: "plugin",
+      })),
+    )) {
+      checks.push(
+        check(
+          f.id,
+          `plugin ${f.ref}`,
+          CHECK_LEVELS.WARN,
+          `${f.message} — ${f.remediation}`,
+        ),
+      );
+    }
+    // Declared capabilities not yet consented → warn.
+    for (const p of discovered) {
+      if (!p.manifest?.capabilitiesDeclared) continue;
+      const consented = isPluginCapabilityConsented(
+        { name: p.name, scope: p.scope, version: p.version },
+        p.manifest.capabilities,
+      );
+      if (!consented) {
+        checks.push(
+          check(
+            "plugin-capability-unconsented",
+            `plugin ${p.name}`,
+            CHECK_LEVELS.WARN,
+            `declares capabilities not yet consented — run \`cc plugin consent ${p.name}\``,
+          ),
+        );
+      }
+    }
+  } catch (err) {
+    checks.push(failedCheck("plugin-capabilities", "plugin capabilities", err));
+  }
+
   return { id: "plugins", title: "Plugin trust", checks };
 }
 

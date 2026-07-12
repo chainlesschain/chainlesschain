@@ -944,11 +944,22 @@ task-lease 过期**已被现有 `backgroundSection`/`worktreeSection`/`session-l
 
 - `agent-core-telemetry`(+1 session.id 断言) + `doctor-checkup`(section-id 更新) 全绿。
 
+**已接线（2026-07-12 收尾）**：`checkPluginsAndLsp` 评估器 + 插件能力 consent 喂进
+doctor——`doctor-checkup.js` 的 `pluginSection`（此前只报安装数 + 签名锁）新增一块：
+用 `discoverPlugins` 拿每个已装插件的**解析后 manifest**（`listInstalled` 丢了它），
+对 `manifest.ok===false` 的**坏 manifest** 经共享 `checkPluginsAndLsp` 评估器报 warn，
+并对**声明了能力但未 consent** 的插件（复用上节 [[capability-consent.js]] 的
+`isPluginCapabilityConsented` 门）报 warn + 指到 `cc plugin consent <name>`。与既有签名
+锁检查不重叠、best-effort（失败降一条 err check 不崩）。测试：
+`doctor-plugin-capabilities.test.js` 3（装真 fixture：未 consent 报警 / consent 后消失
+/ 无声明不报）；doctor-checkup + runtime-checkup + doctor-status 回归 34 绿。
+
 **仍欠**：其余 id（`turn.id`/`prompt.id`/`tool_use.id`/`permission.decision_id`/
 `checkpoint.id`）需在各自 seam 的 span 上真正 `setAttribute`（本轮只在 run 级默认属性
 接了 session/agent）；`content.*` opt-in 开关尚未接到 `--otlp` 命令面（脱敏纯核就绪，
-CLI flag 未暴露）；`runtime-checkup` 的 hook/plugin/lsp/orphan 评估器为纯库尚未喂真实
-统计（doctor 只接了 agenda + 指令文件）；`gen-cli-reference` 未纳入 `package.json` 脚本
+CLI flag 未暴露）；`runtime-checkup` 的 hook/orphan 评估器仍为纯库尚未喂真实统计
+（doctor 现接了 agenda + 指令文件 + 插件坏 manifest/未 consent；hook 失败·熔断统计与
+LSP 活性属运行时态，doctor 静态跑不到）；`gen-cli-reference` 未纳入 `package.json` 脚本
 /CI drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；
 `/doctor` 的 MCP schema 成本、session hash/mirror 加密/保留策略检查未做。
 
