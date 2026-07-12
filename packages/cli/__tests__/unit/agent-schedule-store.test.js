@@ -233,4 +233,40 @@ describe("AgentScheduleStore", () => {
       expect(store.list().map((e) => e.id)).toEqual([recent.id]);
     });
   });
+
+  describe("file-watch monitor source", () => {
+    it("creates a file monitor with source=file", () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/build.done",
+        intervalMs: 1000,
+      });
+      expect(m.source).toBe("file");
+      expect(m.watchFile).toBe("/tmp/build.done");
+      expect(m.command).toBeNull();
+      expect(m.status).toBe("active");
+    });
+
+    it("tags a command monitor with source=command", () => {
+      const m = store.createMonitor({ command: "echo hi", intervalMs: 1000 });
+      expect(m.source).toBe("command");
+      expect(m.watchFile).toBeNull();
+      expect(m.command).toBe("echo hi");
+    });
+
+    it("rejects supplying both command and watchFile", () => {
+      expect(() =>
+        store.createMonitor({
+          command: "echo",
+          watchFile: "/tmp/x",
+          intervalMs: 1000,
+        }),
+      ).toThrow(/exactly one/);
+    });
+
+    it("rejects supplying neither command nor watchFile", () => {
+      expect(() => store.createMonitor({ intervalMs: 1000 })).toThrow(
+        /exactly one/,
+      );
+    });
+  });
 });

@@ -130,6 +130,73 @@ describe("cc agenda", () => {
     expect(after.checks).toBe(1);
   });
 
+  describe("file-watch monitor", () => {
+    it("matches a watched file's content and notifies", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/build.log",
+        intervalMs: 1000,
+        stopWhen: "BUILD OK",
+        notify: { title: "built" },
+      });
+      const readWatchedFile = vi.fn(async () => ({
+        exists: true,
+        content: "...\nBUILD OK\n",
+      }));
+      const notify = vi.fn(async () => ({ delivered: ["telegram"] }));
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(readWatchedFile).toHaveBeenCalledWith("/tmp/build.log");
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "built", level: "success" }),
+      );
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+    });
+
+    it("fires when a watched file appears (no stopWhen pattern)", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/marker",
+        intervalMs: 1000,
+      });
+      const readWatchedFile = vi.fn(async () => ({
+        exists: true,
+        content: "",
+      }));
+      const notify = vi.fn(async () => ({}));
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(notify).toHaveBeenCalled();
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+    });
+
+    it("re-arms while a watched file is still missing", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/never",
+        intervalMs: 1000,
+      });
+      const readWatchedFile = vi.fn(async () => ({
+        exists: false,
+        content: "",
+      }));
+      const notify = vi.fn();
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(notify).not.toHaveBeenCalled();
+      const after = store.list("monitor").find((e) => e.id === m.id);
+      expect(after.status).toBe("active");
+      expect(after.checks).toBe(1);
+    });
+  });
+
   it("reports a spawn failure as an error action (exit 1)", async () => {
     store.scheduleWakeup({ prompt: "boom", delayMs: 0 });
     const spawnAgent = vi.fn(async () => {

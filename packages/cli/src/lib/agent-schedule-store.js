@@ -248,6 +248,7 @@ export class AgentScheduleStore {
 
   createMonitor({
     command,
+    watchFile = null,
     intervalMs,
     stopWhen = null,
     notify = null,
@@ -255,8 +256,14 @@ export class AgentScheduleStore {
     label = null,
     expiresAt = null,
   } = {}) {
-    if (!command || typeof command !== "string") {
-      throw new Error("monitor requires a command");
+    // A monitor watches exactly one source: a shell `command` (match its output)
+    // or a `watchFile` (match its content, or fire when the file appears).
+    const hasCommand = typeof command === "string" && command.length > 0;
+    const hasFile = typeof watchFile === "string" && watchFile.length > 0;
+    if (hasCommand === hasFile) {
+      throw new Error(
+        "monitor requires exactly one of `command` or `watchFile`",
+      );
     }
     const interval = Math.max(1000, Number(intervalMs) || 60000);
     if (stopWhen != null) {
@@ -269,7 +276,9 @@ export class AgentScheduleStore {
     const entry = {
       id: randomUUID(),
       kind: "monitor",
-      command,
+      source: hasFile ? "file" : "command",
+      command: hasCommand ? command : null,
+      watchFile: hasFile ? watchFile : null,
       intervalMs: interval,
       stopWhen: stopWhen || null,
       notify: notify || null,

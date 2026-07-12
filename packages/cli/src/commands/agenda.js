@@ -7,15 +7,18 @@
  *   cc agenda list [--json]           show all scheduled entries
  *   cc agenda run [--json] [--dry-run]  fire everything due right now
  *   cc agenda cancel <id>             remove one entry
+ *   cc agenda prune [--older-than N]  drop finished entries
  *
  * `run` for each due entry:
  *   - wakeup  → spawn `cc agent -p <prompt>`, mark fired
  *   - cron    → spawn `cc agent -p <prompt>`, advance to next fire time
- *   - monitor → run <command>; if output matches stop_when, send the
+ *   - monitor → check its source (a shell <command>'s output, or a <watchFile>'s
+ *               content / appearance); if it matches stop_when, send the
  *               notification and stop; else re-arm for the next interval
  */
 
 import { spawn, execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
@@ -94,19 +97,23 @@ export function runAgendaList(options = {}, _deps = {}) {
   log("");
   log(chalk.bold("  Agenda:\n"));
   for (const e of entries) {
+    const monitorWhat =
+      e.source === "file"
+        ? `file ${e.watchFile}`
+        : `every ${Math.round(e.intervalMs / 1000)}s`;
     const when =
       e.kind === "wakeup"
         ? new Date(e.dueAt).toISOString()
         : e.kind === "cron"
           ? `${e.cron} (next ${new Date(e.nextAt).toISOString()})`
-          : `every ${Math.round(e.intervalMs / 1000)}s (next ${new Date(e.nextAt).toISOString()})`;
+          : `${monitorWhat} (next ${new Date(e.nextAt).toISOString()})`;
     const expiry =
       e.expiresAt != null
         ? chalk.dim(` · expires ${new Date(e.expiresAt).toISOString()}`)
         : "";
     log(
       `  ${chalk.cyan(e.kind.padEnd(8))} ${chalk.dim(e.id.slice(0, 8))} ` +
-        `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command, 40)}`,
+        `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command || e.watchFile, 40)}`,
     );
     log(`           ${chalk.dim(when)}${expiry}`);
   }
@@ -195,6 +202,7 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const store = _deps.store || new AgentScheduleStore();
   const spawnAgent = _deps.spawnAgent || defaultSpawnAgent;
   const runCommand = _deps.runCommand || defaultRunCommand;
+  const readWatchedFile = _deps.readWatchedFile || defaultReadWatchedFile;
   const notify = _deps.notify || sendAgentNotification;
   const now = _deps.now ? _deps.now() : Date.now();
   // Retire expired entries BEFORE firing due ones — an expired task never gets
@@ -220,13 +228,27 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         store.advanceCron(entry.id);
         actions.push({ id: entry.id, kind: "cron", action: "fired" });
       } else if (entry.kind === "monitor") {
-        const output = await runCommand(entry.command);
-        const matched = entry.stopWhen
-          ? new RegExp(entry.stopWhen).test(output)
-          : false;
+        // Two sources: a shell command (match its output) or a watched file
+        // (match its content, or — with no stopWhen — fire when it appears).
+        let output = "";
+        let matched = false;
+        if (entry.source === "file") {
+          const file = await readWatchedFile(entry.watchFile);
+          output = file.content;
+          matched = entry.stopWhen
+            ? new RegExp(entry.stopWhen).test(file.content)
+            : file.exists; // no pattern → the file appearing is the signal
+        } else {
+          output = await runCommand(entry.command);
+          matched = entry.stopWhen
+            ? new RegExp(entry.stopWhen).test(output)
+            : false;
+        }
         if (matched) {
+          const what =
+            entry.source === "file" ? entry.watchFile : entry.command;
           await notify({
-            title: entry.notify?.title || `Monitor matched: ${entry.command}`,
+            title: entry.notify?.title || `Monitor matched: ${what}`,
             body: truncate(output, 500),
             level: "success",
           });
@@ -304,6 +326,15 @@ function defaultRunCommand(command) {
   } catch (err) {
     // A non-zero exit still yields output we want to match against.
     return (err.stdout || "") + (err.stderr || "");
+  }
+}
+
+/** Read a watched file → { exists, content }. A missing file is not an error. */
+function defaultReadWatchedFile(filePath) {
+  try {
+    return { exists: true, content: readFileSync(filePath, "utf-8") };
+  } catch {
+    return { exists: false, content: "" };
   }
 }
 
