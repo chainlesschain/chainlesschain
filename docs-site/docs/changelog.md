@@ -5,6 +5,19 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0
+
+> CLI-only 发版（`chainlesschain` 0.162.161 → **0.162.162**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」。均为纯核 + 时钟注入 + 最小接线的低风险增量。
+
+- **Subagent 契约（P1）**：tighten-only 继承/覆盖——权限加宽钳回父级、capabilities 与父级取交集、memory 父拒则永不授予、预算封顶父级余量、maxDepth/maxChildren 只降不升；接线 `.claude/agents/*.md` 解析。
+- **Turn↔Checkpoint 绑定（P1）**：显式 turn→checkpoint 表，有副作用无 checkpoint 标 PARTIAL、有变更无 checkpoint 标 NONE；`resolveRestorePlan` 永不过度承诺可恢复范围（conversation/files/both）。
+- **Plugin 能力声明 + 配置 Schema（P1）**：能力默认 DENY（process/network/filesystem/mcp/monitor/credential），加宽即需重新同意；敏感选项只从用户级取、拒绝来自 project 配置；接线 `parsePluginManifest`。
+- **Hooks 统一事件总线 + Replay（P2）**：事件类型并集 + 版本化信封（`event_id`=sha256、trace_id/parent_id）+ 决策最严胜出（block>ask>allow>continue）+ 决策类事件 replay 必须显式 sandbox；接线 `settings-hook-events`。
+- **JSON Schema 结构化输出（P2）**：Draft 2020-12 子集校验器（JSON Pointer/错误码/`sha256:` schema 摘要/`structured_result` 信封/本地 $ref 128 层守卫）；接线 `json-schema-output`（加载即 meta 校验）。
+- **多 Agent Code Review + LSP 自动诊断（P2）**：review-pipeline 纯聚合核（dedupe 跨维度合并 + verifier 复现剔除 + 结构化 path/line/category/severity/failure_scenario/evidence + rollup，接线 `review.js parseFindings`）；`DiagnosticsScheduler`（编辑 debounce/throttle）+ `capDiagnostics`（token 上限、先丢最不严重、恒留≥1）。
+- **Doctor Runtime Checkup + CLI 文档漂移 + 统一 OTel id（P2）**：`telemetry-ids` 九个稳定 id key 归一 + content 默认脱敏 `[redacted]`（opt-in 才输出）+ 基数收敛（allow-list key、id 净化≤128），接线每 span 带 workflow.run_id+session.id；`runtime-checkup` 纯 Doctor 评估器，doctor 新 `runtimeSection` 只消费 agenda + 指令文件免双报；`docs-drift` + `gen-cli-reference.mjs` 从 manifest(175)+工具(26) 生成参考文档并双向 diff（`--check` CI fail-on-drift）。
+- **IDE gap P0（cli/src 侧）**：远程审批绑定操作指纹（常数时间校验、防冒用/断线重发）+ 统一会话生命周期状态机（折叠 supervisor/worker/IDE 状态为单一词汇表）。
+
 #### Added — cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-* WS relay 协议硬化
 
 > CLI-only 发版（`chainlesschain` 0.162.160 → **0.162.161**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（`cc agenda list` 增 `nextWakeupAt`），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 最有价值切片，均为纯核 + 时钟注入 + 最小接线的低风险增量（9 测试文件 148 测全绿）。
