@@ -9,6 +9,8 @@ import {
   pruneMarksAfter,
   snapshotClearedConversation,
   restoreClearedConversation,
+  buildRewindPlan,
+  renderRewindWarnings,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
 
@@ -227,5 +229,42 @@ describe("restoreClearedConversation (CC 2.1.191 — /rewind clear)", () => {
     expect(
       restoreClearedConversation([{ role: "system" }], [], { messages: [] }),
     ).toBeNull();
+  });
+});
+
+describe("buildRewindPlan (coverage-aware)", () => {
+  // conv() user turns live at message indices 1, 3, 5.
+  it("marks a pure-edit turn with a checkpoint as fully restorable", () => {
+    const messages = conv();
+    // A write checkpoint taken during turn@3 (atMessageCount 4 > 3, <= next 5).
+    const marks = [{ atMessageCount: 4, id: "cp-edit", tool: "write_file" }];
+    const plan = buildRewindPlan(messages, marks, 3);
+    expect(plan.coverage).toBe("full");
+    expect(plan.files).toEqual({ rewindTo: "cp-edit" });
+    expect(renderRewindWarnings(plan)).toEqual([]);
+  });
+
+  it("warns that a shell turn's side-effects can't be fully undone", () => {
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-sh", tool: "run_shell" }];
+    const plan = buildRewindPlan(messages, marks, 3);
+    expect(plan.coverage).toBe("partial");
+    const lines = renderRewindWarnings(plan);
+    expect(lines.some((l) => /coverage: partial/.test(l))).toBe(true);
+    expect(lines.some((l) => /side-effects|best-effort/.test(l))).toBe(true);
+  });
+
+  it("warns when a turn has no checkpoint to restore files from", () => {
+    const messages = conv();
+    const plan = buildRewindPlan(messages, [], 3);
+    expect(plan.files).toBeNull();
+    expect(renderRewindWarnings(plan).join(" ")).toMatch(/no file checkpoint/);
+  });
+
+  it("renderRewindWarnings is empty for a null plan and full coverage", () => {
+    expect(renderRewindWarnings(null)).toEqual([]);
+    expect(renderRewindWarnings({ coverage: "full", warnings: [] })).toEqual(
+      [],
+    );
   });
 });

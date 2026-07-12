@@ -25,6 +25,13 @@
  * turn be matched to its pre-mutation snapshot purely from the count.
  */
 
+import {
+  buildTurnBindingFromMarks,
+  resolveRestorePlan,
+  RESTORE_SCOPE,
+  TURN_COVERAGE,
+} from "./turn-binding.js";
+
 export const DEFAULT_LIST_LIMIT = 10;
 export const PREVIEW_CHARS = 60;
 
@@ -217,6 +224,51 @@ export function restoreClearedConversation(messages, marks, cleared) {
     stashed: curMsgs.length,
     newCleared,
   };
+}
+
+/**
+ * Coverage-aware restore plan for a rewound turn, derived from the REPL's
+ * EXISTING implicit state (`listUserTurns()` output + `{atMessageCount,id,tool}`
+ * marks) — no new agent-loop events required. Bridges those into the explicit
+ * turn-binding table and asks `resolveRestorePlan` for the honest plan, so
+ * `/rewind` can warn when a restore can't be fully promised (side-effects, a
+ * missing checkpoint, or a conversation/files drift) instead of silently doing a
+ * lossy rewind.
+ *
+ * @param {Array} messages  live conversation (for listUserTurns)
+ * @param {Array<{atMessageCount:number,id:string,tool?:string}>} marks
+ * @param {number} turnIndex  message index returned by rewindToTurn()
+ * @param {string} [scope]  one of RESTORE_SCOPE (default BOTH)
+ * @returns {{scope, coverage, conversation, files, warnings:string[]}}
+ */
+export function buildRewindPlan(
+  messages,
+  marks,
+  turnIndex,
+  scope = RESTORE_SCOPE.BOTH,
+) {
+  const turns = listUserTurns(messages, { limit: 1000 });
+  const log = buildTurnBindingFromMarks(turns, marks);
+  const turn = log.get(`turn-${Number(turnIndex)}`);
+  return resolveRestorePlan(turn, scope);
+}
+
+/**
+ * Human-readable lines for a rewind plan's coverage + warnings, for `/rewind` to
+ * print before it truncates. Returns [] for a fully-restorable turn with no
+ * warnings (nothing worth interrupting the user for).
+ *
+ * @param {{coverage:string, warnings:string[]}} plan  from buildRewindPlan()
+ * @returns {string[]}
+ */
+export function renderRewindWarnings(plan) {
+  if (!plan) return [];
+  const lines = [];
+  if (plan.coverage && plan.coverage !== TURN_COVERAGE.FULL) {
+    lines.push(`  coverage: ${plan.coverage} (restore is not guaranteed)`);
+  }
+  for (const w of plan.warnings || []) lines.push(`  ⚠ ${w}`);
+  return lines;
 }
 
 /** Render the picker list (shared by /rewind and double-Esc). */
