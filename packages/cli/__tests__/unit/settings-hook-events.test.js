@@ -48,7 +48,7 @@ describe("runUserPromptSubmitHooks", () => {
   });
 
   it("plain stdout becomes additionalContext", () => {
-    const cmd = 'node -e "console.log(\'branch is main, be careful\')"';
+    const cmd = "node -e \"console.log('branch is main, be careful')\"";
     const r = runUserPromptSubmitHooks(ups(cmd), { prompt: "x", cwd: CWD });
     expect(r.blocked).toBe(false);
     expect(r.additionalContext).toBe("branch is main, be careful");
@@ -72,7 +72,7 @@ describe("runUserPromptSubmitHooks", () => {
 
 describe("runSessionStartHooks", () => {
   it("injects context; matcher matches the source", () => {
-    const cmd = 'node -e "console.log(\'session ctx\')"';
+    const cmd = "node -e \"console.log('session ctx')\"";
     const r = runSessionStartHooks(ss(cmd, "startup"), {
       source: "startup",
       cwd: CWD,
@@ -81,7 +81,7 @@ describe("runSessionStartHooks", () => {
   });
 
   it("source mismatch → no hooks fire", () => {
-    const cmd = 'node -e "console.log(\'x\')"';
+    const cmd = "node -e \"console.log('x')\"";
     const r = runSessionStartHooks(ss(cmd, "resume"), {
       source: "startup",
       cwd: CWD,
@@ -96,7 +96,12 @@ describe("runObserveHooks (Stop / SessionEnd / PreCompact)", () => {
   });
 
   it("runs the event's hooks and returns continue when they exit 0", () => {
-    const r = runObserveHooks(obs("Stop", 'node -e ""'), "Stop", {}, { cwd: CWD });
+    const r = runObserveHooks(
+      obs("Stop", 'node -e ""'),
+      "Stop",
+      {},
+      { cwd: CWD },
+    );
     expect(r.decision).toBe("continue");
     expect(r.results).toHaveLength(1);
   });
@@ -126,5 +131,25 @@ describe("aggregateContext", () => {
       { exitCode: 0, stdout: "  " },
     ]);
     expect(out).toBe("a\nplain");
+  });
+});
+
+describe("unified-bus delivery id (P2)", () => {
+  // A hook that reads its stdin JSON and reports whether it carried an event_id.
+  const echoId =
+    "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let j={};try{j=JSON.parse(d)}catch(e){};const ok=j.event_id&&j.event_id.indexOf('evt_')===0;process.stdout.write(JSON.stringify({additionalContext:ok?'HAS_ID':'NO_ID'}))})\"";
+
+  it("stamps event_id onto the UserPromptSubmit hook payload", () => {
+    const r = runUserPromptSubmitHooks(ups(echoId), {
+      prompt: "hi",
+      cwd: CWD,
+      sessionId: "s1",
+    });
+    expect(r.additionalContext).toBe("HAS_ID");
+  });
+
+  it("stamps event_id onto the SessionStart hook payload", () => {
+    const r = runSessionStartHooks(ss(echoId), { source: "startup", cwd: CWD });
+    expect(r.additionalContext).toBe("HAS_ID");
   });
 });

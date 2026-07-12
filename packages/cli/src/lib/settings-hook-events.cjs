@@ -18,6 +18,24 @@
 
 const { collectHooks } = require("./settings-hooks.cjs");
 const { runHooks } = require("./hook-runner.cjs");
+const { buildHookEnvelope } = require("./hook-event-bus.cjs");
+
+/**
+ * Stamp a unified-bus delivery id (event_id) onto a hook payload (P2 event bus).
+ * Additive — a hook that ignores it is unaffected; a hook that reads it gets a
+ * stable per-delivery id for correlation / `cc hook replay`. traceId/parentId
+ * are threaded when the caller provides them (else null).
+ */
+function withDeliveryId(event, payload, { sessionId, traceId, parentId } = {}) {
+  const env = buildHookEnvelope({
+    eventType: event,
+    data: payload,
+    sessionId: sessionId || payload.session_id || null,
+    traceId: traceId || null,
+    parentId: parentId || null,
+  });
+  return { ...payload, event_id: env.event_id };
+}
 
 /**
  * Split collected hooks into the blocking (sync) set and the fire-and-forget
@@ -70,12 +88,16 @@ function runUserPromptSubmitHooks(
   if (matched.length === 0) return { blocked: false, additionalContext: null };
   const { sync } = partitionAsyncHooks(matched);
   if (sync.length === 0) return { blocked: false, additionalContext: null };
-  const payload = {
-    hook_event_name: "UserPromptSubmit",
-    prompt: String(prompt || ""),
-    cwd,
-    session_id: sessionId || null,
-  };
+  const payload = withDeliveryId(
+    "UserPromptSubmit",
+    {
+      hook_event_name: "UserPromptSubmit",
+      prompt: String(prompt || ""),
+      cwd,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
   const outcome = runHooks(sync, payload, {
     cwd,
     event: "UserPromptSubmit",
@@ -129,12 +151,16 @@ function runSessionStartHooks(settingsHooks, { source, cwd, sessionId } = {}) {
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "SessionStart", source || "");
   if (matched.length === 0) return { additionalContext: null };
-  const payload = {
-    hook_event_name: "SessionStart",
-    source: source || "startup",
-    cwd,
-    session_id: sessionId || null,
-  };
+  const payload = withDeliveryId(
+    "SessionStart",
+    {
+      hook_event_name: "SessionStart",
+      source: source || "startup",
+      cwd,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
   const outcome = runHooks(matched, payload, { cwd, event: "SessionStart" });
   return { additionalContext: aggregateContext(outcome.results) };
 }
@@ -159,7 +185,7 @@ function runObserveHooks(
   if (sync.length === 0) return { decision: "continue", results: [] };
   return runHooks(
     sync,
-    { hook_event_name: event, cwd, ...payload },
+    withDeliveryId(event, { hook_event_name: event, cwd, ...payload }),
     { cwd, event },
   );
 }
