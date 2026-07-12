@@ -1,0 +1,194 @@
+{
+  "_doc": "Shared cross-language contract for negotiateProtocol (agent-sdk docs/PROTOCOL.md §1.3). The JS core (packages/cli/src/lib/capability-negotiation.js) and the Java twin (packages/jetbrains-plugin CapabilityNegotiation.java) both read THIS file and MUST compute identical {ok, agreedVersion, features(sorted), downgraded, disabledFeatures(sorted)}. `client:null` means no offer (legacy peer). `featureMinVersion` (optional) gates a feature to a minimum protocol version. Do not edit a case without re-running both sides.",
+  "cases": [
+    {
+      "name": "no client offer keeps full v1 behavior",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"]
+      },
+      "client": null,
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    },
+    {
+      "name": "matching v1 client, all features accepted",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"]
+      },
+      "client": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"]
+      },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    },
+    {
+      "name": "client narrows features to a subset",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "tool_use_id", "trace_id"]
+      },
+      "client": { "protocolVersion": 1, "features": ["trace_id"] },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["trace_id"],
+        "downgraded": true,
+        "disabledFeatures": ["event_seq", "tool_use_id"]
+      }
+    },
+    {
+      "name": "client omits features field, accepts all offered",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id"]
+      },
+      "client": { "protocolVersion": 1 },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq", "trace_id"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    },
+    {
+      "name": "newer client offers v2, server maxes at v1 (client downgrades)",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id"]
+      },
+      "client": {
+        "protocolVersion": 2,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id"]
+      },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq", "trace_id"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    },
+    {
+      "name": "N/N-1: server speaks v2, v1-only client negotiates down to v1",
+      "server": {
+        "protocolVersion": 2,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id", "structured_error"]
+      },
+      "client": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id", "structured_error"]
+      },
+      "featureMinVersion": { "structured_error": 2 },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq", "trace_id"],
+        "downgraded": true,
+        "disabledFeatures": ["structured_error"]
+      }
+    },
+    {
+      "name": "both on v2, v2-only feature survives",
+      "server": {
+        "protocolVersion": 2,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id", "structured_error"]
+      },
+      "client": {
+        "protocolVersion": 2,
+        "minProtocolVersion": 2,
+        "features": ["event_seq", "trace_id", "structured_error"]
+      },
+      "featureMinVersion": { "structured_error": 2 },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 2,
+        "features": ["event_seq", "structured_error", "trace_id"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    },
+    {
+      "name": "incompatible: client too new (min 3, server max 2)",
+      "server": {
+        "protocolVersion": 2,
+        "minProtocolVersion": 1,
+        "features": ["event_seq", "trace_id"]
+      },
+      "client": {
+        "protocolVersion": 4,
+        "minProtocolVersion": 3,
+        "features": ["event_seq", "trace_id"]
+      },
+      "expected": {
+        "ok": false,
+        "agreedVersion": null,
+        "features": [],
+        "downgraded": true,
+        "disabledFeatures": ["event_seq", "trace_id"]
+      }
+    },
+    {
+      "name": "incompatible: client too old (max 1, server min 2)",
+      "server": {
+        "protocolVersion": 3,
+        "minProtocolVersion": 2,
+        "features": ["event_seq", "trace_id"]
+      },
+      "client": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq"]
+      },
+      "expected": {
+        "ok": false,
+        "agreedVersion": null,
+        "features": [],
+        "downgraded": true,
+        "disabledFeatures": ["event_seq", "trace_id"]
+      }
+    },
+    {
+      "name": "client requests a feature the server does not offer (ignored)",
+      "server": {
+        "protocolVersion": 1,
+        "minProtocolVersion": 1,
+        "features": ["event_seq"]
+      },
+      "client": {
+        "protocolVersion": 1,
+        "features": ["event_seq", "trace_id", "made_up"]
+      },
+      "expected": {
+        "ok": true,
+        "agreedVersion": 1,
+        "features": ["event_seq"],
+        "downgraded": false,
+        "disabledFeatures": []
+      }
+    }
+  ]
+}

@@ -21,7 +21,7 @@
  * mirror packages/cli/src/lib/headless-manifest.js STREAM_PROTOCOL_VERSION.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PROTOCOL_VERSION = void 0;
+exports.PROTOCOL_FEATURES = exports.MIN_PROTOCOL_VERSION = exports.PROTOCOL_VERSION = void 0;
 exports.isAgentEvent = isAgentEvent;
 exports.isSystemInit = isSystemInit;
 exports.isContentDelta = isContentDelta;
@@ -30,6 +30,25 @@ exports.isApprovalRequest = isApprovalRequest;
 exports.isQuestionRequest = isQuestionRequest;
 exports.isResult = isResult;
 exports.PROTOCOL_VERSION = 1;
+/**
+ * The oldest protocol version the CLI can still negotiate down to (the N-1 in
+ * "N / N-1"). At v1 there is no older line shape, so it equals PROTOCOL_VERSION;
+ * once a v2 line shape ships this drops to 1 so a v1-only client negotiates a
+ * v1 session. Mirror of packages/cli/src/lib/capability-negotiation.js
+ * PROTOCOL_MIN_VERSION.
+ */
+exports.MIN_PROTOCOL_VERSION = 1;
+/**
+ * The wire-protocol features subject to negotiation — additive per-line fields
+ * a client may or may not understand. Runtime capabilities (bare, worktree,
+ * mcp, …) are NOT negotiated. Mirror of capability-negotiation.js
+ * PROTOCOL_FEATURES.
+ */
+exports.PROTOCOL_FEATURES = [
+    "event_seq",
+    "tool_use_id",
+    "trace_id",
+];
 // ─────────────────────────────────────────────────────────────────────────────
 // Type guards
 // ─────────────────────────────────────────────────────────────────────────────

@@ -53,6 +53,7 @@ cc agent --input-format stream-json --output-format stream-json \
 
 | Event            | Shape                                                                                           | Notes                                                                          |
 | ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| capability hello | `{"type":"hello","protocol_version":int?,"min_protocol_version":int?,"features":[str...]?}`     | optional first line; negotiates a common level — see 1.2.2. CLI replies `system/negotiated` |
 | user turn        | `{"type":"user","text":str,"images":[path...]?,"llm":{provider,model,baseUrl?,apiKey?}?}`       | ≤ 8 images honored; `llm` switches this turn's model only                      |
 | interrupt        | `{"type":"interrupt"}`                                                                          | aborts in-flight turn, session survives                                        |
 | compact          | `{"type":"compact"}`                                                                            | manual history compaction between turns                                        |
@@ -67,6 +68,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | `type`                                             | Key fields                                                                                                                                                                   |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `system` (`subtype:"init"`)                        | `session_id` (resume id — persist this), `model`, `provider`, `permission_mode`, `tools[]`, `resumed_messages`                                                               |
+| `system` (`subtype:"negotiated"`)                  | `protocol_version` (agreed, or null), `features[]`, `downgraded`, `disabled_features[]?`, `ok`, `reason?` — reply to a `hello`, see 1.2.2                                     |
 | `system` (`subtype:"end"`)                         | `turns`                                                                                                                                                                      |
 | `stream_event`                                     | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}`                                                         |
 | `tool_use`                                         | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1)                                                                                                                       |
@@ -110,6 +112,39 @@ NOT change behavior solely because they are missing.
   `tool_use` it settles, so UIs can pair calls without relying on
   adjacency. Without ids, pairing stays adjacency-based (a `tool_result`
   follows its `tool_use`), exactly as before.
+
+#### 1.2.2 Capability negotiation + N / N-1 downgrade
+
+The manifest above is one-directional (the CLI states what it can do). A
+client MAY instead **negotiate**: send a `hello` as its first stdin line
+declaring the protocol range and the wire features (1.2.1) it understands,
+and the CLI picks a common level, stepping DOWN when the two disagree, then
+honors it for the rest of the run. This is what lets a v1-only client stay
+correct once a v2 line shape ships. It is fully optional — a client that
+never sends `hello` gets full current-version behavior, byte-for-byte
+unchanged.
+
+- **`protocol_version`** = highest the client can parse; **`min_protocol_version`**
+  = lowest it will accept (defaults to `protocol_version`). The CLI advertises
+  its own range as `protocol_version` / `min_protocol_version` in
+  `cc agent --capabilities`.
+- **Agreed version** = `min(client.max, server.max)`. If that is below
+  `max(client.min, server.min)` the ranges don't overlap → the CLI replies
+  `ok:false` and keeps its own baseline (it never emits a shape the client
+  can't read).
+- **`features`** narrows the additive fields: send the array to accept only a
+  subset (e.g. `["trace_id"]` → the CLI stops stamping `seq`); omit it to
+  accept whatever the agreed version offers. A field whose minimum version is
+  above the agreed version is dropped (an N-only field on an N-1 session).
+- The CLI echoes the outcome once as `system/negotiated`
+  (`protocol_version`, `features[]`, `downgraded`, `disabled_features[]`,
+  `ok`, `reason?`). `downgraded:true` means the agreed version or feature set
+  is below the CLI's own maximum.
+
+Source of truth: `packages/cli/src/lib/capability-negotiation.js`
+(`negotiateProtocol`), mirrored by the JetBrains twin
+`CapabilityNegotiation.java`; both are pinned to the shared fixture
+`packages/cli/__tests__/fixtures/capability-negotiation-cases.json`.
 
 ### 1.3 SDK contracts built on this
 

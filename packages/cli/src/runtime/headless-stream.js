@@ -53,7 +53,13 @@ import {
   computePolicyDigest,
   computeToolsHash,
   buildLoadedSources,
+  buildAgentCapabilities,
 } from "../lib/headless-manifest.js";
+import {
+  negotiateProtocol,
+  buildServerOffer,
+  applyNegotiationToGate,
+} from "../lib/capability-negotiation.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -146,12 +152,19 @@ export function createStreamCoalescer({
   clearTimer,
   stampSeq = true,
   traceId = null,
+  fieldGate = null,
 } = {}) {
   let seq = 0;
+  // `fieldGate` (if provided) is read LIVE per line so a capability
+  // negotiation arriving mid-stream (client `hello`) can suppress an additive
+  // field the client said it can't parse. Absent / undefined key = stamp (so
+  // the default path is byte-for-byte unchanged); only an explicit `false`
+  // suppresses. See lib/capability-negotiation.js applyNegotiationToGate.
+  const gateOn = (field) => !fieldGate || fieldGate[field] !== false;
   const rawEmit = (obj) => {
     let line = obj;
-    if (traceId) line = { ...line, trace_id: traceId };
-    if (stampSeq) line = { ...line, seq: ++seq };
+    if (traceId && gateOn("trace_id")) line = { ...line, trace_id: traceId };
+    if (stampSeq && gateOn("seq")) line = { ...line, seq: ++seq };
     writeOut(JSON.stringify(line) + "\n");
   };
   const startTimer =
@@ -290,6 +303,19 @@ export function parseInputEvent(line) {
     obj = JSON.parse(trimmed);
   } catch {
     return { error: `invalid JSON line: ${trimmed.slice(0, 80)}` };
+  }
+  // Capability handshake (agent-sdk docs/PROTOCOL.md §1.3): an optional first
+  // line by which the client announces the protocol range + wire features it
+  // understands, so the CLI can negotiate a common level and step down on
+  // disagreement. {"type":"hello","protocol_version":2,"features":[...]}
+  if (obj && typeof obj === "object" && obj.type === "hello") {
+    const offer = {};
+    if (obj.protocol_version !== undefined)
+      offer.protocolVersion = obj.protocol_version;
+    if (obj.min_protocol_version !== undefined)
+      offer.minProtocolVersion = obj.min_protocol_version;
+    if (obj.features !== undefined) offer.features = obj.features;
+    return { hello: offer };
   }
   // Plan-mode control events (chat-panel plan UI):
   //   {"type":"plan","action":"enter"|"approve"|"reject"}
@@ -752,6 +778,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // `--trace-id` / options.traceId / CC_TRACE_ID; otherwise a per-process id
   // is minted (unique even when two runs resume the same session_id).
   const traceId = resolveTraceId(options, process.env, deps);
+  // Live field-gate for the capability handshake (docs/PROTOCOL.md §1.3): a
+  // client `hello` narrowing the wire features flips these to suppress the
+  // additive fields it can't parse. All true by default = current behavior
+  // byte-for-byte; the coalescer reads it per line.
+  const fieldGate = { seq: true, trace_id: true, tool_use_id: true };
   // Batch consecutive partial-message text/thinking deltas into one stream_event
   // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
   // pending deltas before writing a non-delta line, so ordering is preserved;
@@ -762,6 +793,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       writeOut,
       coalesceMs: resolveStreamCoalesceMs(options, process.env),
       traceId,
+      fieldGate,
     });
   const emit = streamCoalescer.emit;
 
@@ -1357,8 +1389,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let sawError = false;
   // Session-scoped tool-call correlation ids ("tu-<n>", additive protocol-v1
   // field): one counter across ALL turns so ids never repeat within a session.
+  // Gated by the capability handshake (docs/PROTOCOL.md §1.3): a client that
+  // negotiated tool_use_id off gets undefined (no `id` field emitted).
   let toolUseCounter = 0;
-  const nextToolUseId = () => `tu-${++toolUseCounter}`;
+  const nextToolUseId = () =>
+    fieldGate.tool_use_id === false ? undefined : `tu-${++toolUseCounter}`;
   // Version-skew notice (friendly reminder): a chat-panel agent process is
   // long-lived, so if cc was updated on disk while it kept running, it's still
   // executing stale in-memory code (a fixed bug then looks "not fixed"). Checked
@@ -1387,6 +1422,30 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       for await (const line of readJsonLines(input)) {
         const parsed = parseInputEvent(line);
         if (parsed == null) continue;
+        if (parsed.hello) {
+          // Capability handshake (docs/PROTOCOL.md §1.3): negotiate the client's
+          // offer against this CLI's, apply the agreed feature set to the live
+          // field-gate, and echo the result. Never queued (it's out-of-band
+          // control, like interrupt/approval). Incompatible (ok:false) leaves
+          // the gate untouched — the CLI keeps its safe baseline.
+          const negotiated = negotiateProtocol(
+            buildServerOffer(buildAgentCapabilities()),
+            parsed.hello,
+          );
+          applyNegotiationToGate(negotiated, fieldGate);
+          emit({
+            type: "system",
+            subtype: "negotiated",
+            session_id: sessionId,
+            protocol_version: negotiated.agreedVersion,
+            features: negotiated.features,
+            downgraded: negotiated.downgraded,
+            disabled_features: negotiated.disabledFeatures,
+            ok: negotiated.ok,
+            reason: negotiated.reason,
+          });
+          continue;
+        }
         if (parsed.interrupt) {
           currentAbort?.abort();
           continue;

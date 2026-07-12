@@ -23,6 +23,29 @@
 export const PROTOCOL_VERSION = 1;
 
 /**
+ * The oldest protocol version the CLI can still negotiate down to (the N-1 in
+ * "N / N-1"). At v1 there is no older line shape, so it equals PROTOCOL_VERSION;
+ * once a v2 line shape ships this drops to 1 so a v1-only client negotiates a
+ * v1 session. Mirror of packages/cli/src/lib/capability-negotiation.js
+ * PROTOCOL_MIN_VERSION.
+ */
+export const MIN_PROTOCOL_VERSION = 1;
+
+/**
+ * The wire-protocol features subject to negotiation — additive per-line fields
+ * a client may or may not understand. Runtime capabilities (bare, worktree,
+ * mcp, …) are NOT negotiated. Mirror of capability-negotiation.js
+ * PROTOCOL_FEATURES.
+ */
+export const PROTOCOL_FEATURES = [
+  "event_seq",
+  "tool_use_id",
+  "trace_id",
+] as const;
+
+export type ProtocolFeature = (typeof PROTOCOL_FEATURES)[number];
+
+/**
  * Additive per-line metadata (protocol v1, additive): every CLI → client
  * stream line MAY carry `seq`, a 1-based monotonically increasing emit
  * sequence number, unique within one session process, and `trace_id`, a
@@ -74,6 +97,31 @@ export interface SystemEndEvent extends StreamEventMeta {
   type: "system";
   subtype: "end";
   turns?: number;
+}
+
+/**
+ * Echo of the capability handshake (agent-sdk docs/PROTOCOL.md §1.3), emitted
+ * once after the CLI receives a client `hello` on stdin. It reports the level
+ * the two sides agreed on; the CLI then stamps only the `features` fields for
+ * the rest of the run. Additive — a client that never sends `hello` never sees
+ * this line, and older consumers ignore the unknown `subtype`.
+ */
+export interface NegotiatedCapabilitiesEvent extends StreamEventMeta {
+  type: "system";
+  subtype: "negotiated";
+  session_id: string;
+  /** Agreed protocol version (min of both maxes), or null when incompatible. */
+  protocol_version: number | null;
+  /** Effective wire features both sides support at the agreed version. */
+  features: string[];
+  /** true when the agreed version or feature set is below the CLI's own max. */
+  downgraded: boolean;
+  /** Server-offered features dropped in negotiation (version-gated or unaccepted). */
+  disabled_features?: string[];
+  /** false when the two version ranges don't overlap (CLI keeps its baseline). */
+  ok: boolean;
+  /** Human-readable cause when ok:false. */
+  reason?: string | null;
 }
 
 export interface TextDelta {
@@ -250,6 +298,7 @@ export interface UnknownAgentEvent {
 export type AgentStreamEvent =
   | SystemInitEvent
   | SystemEndEvent
+  | NegotiatedCapabilitiesEvent
   | ContentDeltaEvent
   | ToolUseEvent
   | ToolResultEvent
@@ -280,6 +329,26 @@ export interface LlmHint {
   model?: string;
   baseUrl?: string;
   apiKey?: string;
+}
+
+/**
+ * Optional first stdin line: the client announces the protocol range + wire
+ * features IT understands so the CLI can negotiate a common level and step
+ * DOWN when they disagree (agent-sdk docs/PROTOCOL.md §1.3). Fully optional — a
+ * client that never sends it gets full current-version behavior unchanged. The
+ * CLI replies with a `system/negotiated` line.
+ */
+export interface ClientHelloInput {
+  type: "hello";
+  /** Highest protocol version the client can parse (default: the CLI's max). */
+  protocol_version?: number;
+  /** Lowest version the client will accept (default: protocol_version). */
+  min_protocol_version?: number;
+  /**
+   * Wire features the client understands. Omit to accept whatever the agreed
+   * version offers; send the array to narrow to a subset (e.g. ["trace_id"]).
+   */
+  features?: string[];
 }
 
 export interface UserMessageInput {
@@ -339,6 +408,7 @@ export interface ResumeAssistInput {
 }
 
 export type AgentInputEvent =
+  | ClientHelloInput
   | UserMessageInput
   | InterruptInput
   | CompactInput

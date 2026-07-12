@@ -16,6 +16,7 @@
 
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
+import { PROTOCOL_MIN_VERSION } from "./capability-negotiation.js";
 
 export const STREAM_PROTOCOL_VERSION = 1;
 
@@ -137,6 +138,10 @@ export function buildAgentCapabilities() {
     name: "chainlesschain-cli",
     version,
     protocol_version: STREAM_PROTOCOL_VERSION,
+    // Oldest wire version this CLI can still negotiate down to (the N-1 in the
+    // capability handshake, agent-sdk docs/PROTOCOL.md §1.3). At v1 there is no
+    // older line shape, so min === current.
+    min_protocol_version: PROTOCOL_MIN_VERSION,
     agent_tools: contract.listCodingAgentToolNames(),
     permission_modes: [
       "default",
