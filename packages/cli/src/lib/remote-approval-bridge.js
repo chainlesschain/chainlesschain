@@ -24,6 +24,10 @@
 import { randomBytes } from "crypto";
 import { WsRpcClient } from "./ws-rpc-client.js";
 import {
+  approvalFingerprintOk,
+  operationFingerprint,
+} from "./operation-fingerprint.js";
+import {
   buildDirectPairingUri,
   pickLanAddress,
   renderQrCode,
@@ -113,6 +117,15 @@ export class RemoteApprovalBridge {
     const requestId = message.event.requestId || message.event.approvalId;
     const pending = requestId ? this._pending.get(requestId) : null;
     if (!pending) return;
+    // Confused-deputy guard: a resolve that carries an operation fingerprint
+    // must match the operation this ask published. A mismatch (stale card /
+    // replayed / swapped body) is rejected — the ask stays pending and fails
+    // closed on timeout. Absent fingerprint = legacy device, accepted.
+    if (
+      !approvalFingerprintOk(pending.fingerprint, message.event.fingerprint)
+    ) {
+      return;
+    }
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
     const answer = message.event.answer ?? message.event.approved;
@@ -150,6 +163,7 @@ export class RemoteApprovalBridge {
     onRequestId = null,
   } = {}) {
     const requestId = `ra-${process.pid}-${++this._counter}-${randomBytes(4).toString("hex")}`;
+    const fingerprint = operationFingerprint({ tool, action, detail });
     if (onRequestId) {
       try {
         onRequestId(requestId);
@@ -171,6 +185,7 @@ export class RemoteApprovalBridge {
       if (typeof timer.unref === "function") timer.unref();
       this._pending.set(requestId, {
         timer,
+        fingerprint,
         resolve: (decision) => {
           this._publish({
             type: "permission.resolved",
@@ -187,6 +202,7 @@ export class RemoteApprovalBridge {
         tool: tool || null,
         action,
         detail,
+        fingerprint,
         askedAt: this._now(),
       });
     });
