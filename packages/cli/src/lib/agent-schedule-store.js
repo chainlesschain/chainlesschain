@@ -250,6 +250,7 @@ export class AgentScheduleStore {
     command,
     watchFile = null,
     watchUrl = null,
+    watchChange = false,
     intervalMs,
     stopWhen = null,
     notify = null,
@@ -285,6 +286,17 @@ export class AgentScheduleStore {
         );
       }
     }
+    if (watchChange) {
+      // `watchChange` is a file-only mode — fire when the file's mtime advances.
+      // It carries its own signal, so it cannot be combined with a stopWhen
+      // content pattern (that would be an ambiguous double condition).
+      if (!hasFile) {
+        throw new Error("monitor watchChange requires a watchFile");
+      }
+      if (stopWhen != null) {
+        throw new Error("monitor watchChange cannot be combined with stopWhen");
+      }
+    }
     const interval = Math.max(1000, Number(intervalMs) || 60000);
     if (stopWhen != null) {
       // Validate the regex up-front so a bad pattern errors at creation, not
@@ -301,6 +313,8 @@ export class AgentScheduleStore {
       command: hasCommand ? command : null,
       watchFile: hasFile ? watchFile : null,
       watchUrl: hasUrl ? watchUrl : null,
+      watchChange: hasFile ? Boolean(watchChange) : false,
+      lastMtimeMs: null,
       intervalMs: interval,
       stopWhen: stopWhen || null,
       notify: notify || null,
@@ -431,11 +445,20 @@ export class AgentScheduleStore {
    * Record a monitor check. `matched` ends the monitor (done); otherwise it is
    * re-armed for the next interval, or exhausted once maxChecks is hit.
    */
-  recordMonitorCheck(id, { matched = false, atMs = null } = {}) {
+  recordMonitorCheck(
+    id,
+    { matched = false, atMs = null, mtimeMs = null } = {},
+  ) {
     const now = atMs != null ? atMs : this._now();
     return this._mutate("monitor", id, (entry) => {
       entry.checks = (entry.checks || 0) + 1;
       entry.lastCheckAt = now;
+      // Record the mtime baseline the first time we see the file (for a
+      // watchChange monitor); leave it fixed thereafter so "changed" always
+      // means "changed since we started watching".
+      if (mtimeMs != null && entry.lastMtimeMs == null) {
+        entry.lastMtimeMs = mtimeMs;
+      }
       if (matched) {
         entry.status = "matched";
         entry.matchedAt = now;

@@ -13,13 +13,13 @@
  *   - wakeup  → spawn `cc agent -p <prompt>`, mark fired
  *   - cron    → spawn `cc agent -p <prompt>`, advance to next fire time
  *   - monitor → check its source (a shell <command>'s output, a <watchFile>'s
- *               content / appearance, or a <watchUrl>'s response body / 2xx);
- *               if it matches stop_when, send the notification and stop; else
- *               re-arm for the next interval
+ *               content / appearance / modification, or a <watchUrl>'s response
+ *               body / 2xx); if it matches stop_when, send the notification and
+ *               stop; else re-arm for the next interval
  */
 
 import { spawn, execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
@@ -237,12 +237,23 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         // or an HTTP endpoint (match its response body, or fire on 2xx).
         let output = "";
         let matched = false;
+        let mtimeMs = null;
         if (entry.source === "file") {
           const file = await readWatchedFile(entry.watchFile);
           output = file.content;
-          matched = entry.stopWhen
-            ? new RegExp(entry.stopWhen).test(file.content)
-            : file.exists; // no pattern → the file appearing is the signal
+          mtimeMs = file.mtimeMs ?? null;
+          if (entry.watchChange) {
+            // Fire once the file's mtime advances past the baseline recorded on
+            // the first check. The first check only establishes the baseline.
+            matched =
+              entry.lastMtimeMs != null &&
+              mtimeMs != null &&
+              mtimeMs > entry.lastMtimeMs;
+          } else {
+            matched = entry.stopWhen
+              ? new RegExp(entry.stopWhen).test(file.content)
+              : file.exists; // no pattern → the file appearing is the signal
+          }
         } else if (entry.source === "http") {
           const res = await fetchUrl(entry.watchUrl);
           output = res.body;
@@ -268,7 +279,10 @@ export async function runAgendaRun(options = {}, _deps = {}) {
             level: "success",
           });
         }
-        const updated = store.recordMonitorCheck(entry.id, { matched });
+        const updated = store.recordMonitorCheck(entry.id, {
+          matched,
+          mtimeMs,
+        });
         actions.push({
           id: entry.id,
           kind: "monitor",
@@ -344,12 +358,22 @@ function defaultRunCommand(command) {
   }
 }
 
-/** Read a watched file → { exists, content }. A missing file is not an error. */
+/**
+ * Read a watched file → { exists, content, mtimeMs }. A missing file is not an
+ * error. mtimeMs feeds watchChange monitors (fire when the file is modified).
+ */
 function defaultReadWatchedFile(filePath) {
   try {
-    return { exists: true, content: readFileSync(filePath, "utf-8") };
+    const content = readFileSync(filePath, "utf-8");
+    let mtimeMs = null;
+    try {
+      mtimeMs = statSync(filePath).mtimeMs;
+    } catch {
+      /* content read but stat failed — treat mtime as unknown */
+    }
+    return { exists: true, content, mtimeMs };
   } catch {
-    return { exists: false, content: "" };
+    return { exists: false, content: "", mtimeMs: null };
   }
 }
 

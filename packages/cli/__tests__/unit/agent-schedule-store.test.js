@@ -308,4 +308,56 @@ describe("AgentScheduleStore", () => {
       ).toThrow(/valid URL/);
     });
   });
+
+  describe("watchChange (mtime) monitor", () => {
+    it("creates a file monitor with watchChange and a null mtime baseline", () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/config.json",
+        watchChange: true,
+        intervalMs: 1000,
+      });
+      expect(m.source).toBe("file");
+      expect(m.watchChange).toBe(true);
+      expect(m.lastMtimeMs).toBeNull();
+    });
+
+    it("records the mtime baseline once and leaves it fixed", () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/config.json",
+        watchChange: true,
+        intervalMs: 1000,
+      });
+      store.recordMonitorCheck(m.id, { matched: false, mtimeMs: 111 });
+      expect(store.list("monitor")[0].lastMtimeMs).toBe(111);
+      // a later non-null mtime must NOT move the baseline
+      store.recordMonitorCheck(m.id, { matched: false, mtimeMs: 222 });
+      expect(store.list("monitor")[0].lastMtimeMs).toBe(111);
+    });
+
+    it("rejects watchChange without a watchFile", () => {
+      expect(() =>
+        store.createMonitor({
+          command: "echo",
+          watchChange: true,
+          intervalMs: 1000,
+        }),
+      ).toThrow(/watchChange requires a watchFile/);
+    });
+
+    it("rejects watchChange combined with stopWhen", () => {
+      expect(() =>
+        store.createMonitor({
+          watchFile: "/tmp/x",
+          watchChange: true,
+          stopWhen: "OK",
+          intervalMs: 1000,
+        }),
+      ).toThrow(/cannot be combined with stopWhen/);
+    });
+
+    it("defaults watchChange false for a command source", () => {
+      const m = store.createMonitor({ command: "echo hi", intervalMs: 1000 });
+      expect(m.watchChange).toBe(false);
+    });
+  });
 });

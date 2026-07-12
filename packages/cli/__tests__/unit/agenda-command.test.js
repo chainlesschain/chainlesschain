@@ -197,6 +197,79 @@ describe("cc agenda", () => {
     });
   });
 
+  describe("watchChange (mtime) monitor", () => {
+    it("establishes a baseline on the first check without firing", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/config.json",
+        watchChange: true,
+        intervalMs: 1000,
+      });
+      const readWatchedFile = vi.fn(async () => ({
+        exists: true,
+        content: "v1",
+        mtimeMs: 1000,
+      }));
+      const notify = vi.fn();
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(notify).not.toHaveBeenCalled();
+      const after = store.list("monitor").find((e) => e.id === m.id);
+      expect(after.status).toBe("active");
+      expect(after.lastMtimeMs).toBe(1000); // baseline recorded
+    });
+
+    it("fires once the file's mtime advances past the baseline", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/config.json",
+        watchChange: true,
+        intervalMs: 1000,
+        notify: { title: "changed" },
+      });
+      store.recordMonitorCheck(m.id, { matched: false, mtimeMs: 1000 }); // baseline
+      const readWatchedFile = vi.fn(async () => ({
+        exists: true,
+        content: "v2",
+        mtimeMs: 2000, // advanced
+      }));
+      const notify = vi.fn(async () => ({ delivered: ["telegram"] }));
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "changed", level: "success" }),
+      );
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+    });
+
+    it("re-arms while the file's mtime is unchanged", async () => {
+      const m = store.createMonitor({
+        watchFile: "/tmp/config.json",
+        watchChange: true,
+        intervalMs: 1000,
+      });
+      store.recordMonitorCheck(m.id, { matched: false, mtimeMs: 1000 }); // baseline
+      const readWatchedFile = vi.fn(async () => ({
+        exists: true,
+        content: "v1",
+        mtimeMs: 1000, // same
+      }));
+      const notify = vi.fn();
+      await runAgendaRun(
+        { json: true },
+        { store, log, readWatchedFile, notify, now: () => clock + 2000 },
+      );
+      expect(notify).not.toHaveBeenCalled();
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "active",
+      );
+    });
+  });
+
   describe("http monitor", () => {
     it("matches a watched URL's response body and notifies", async () => {
       const m = store.createMonitor({
