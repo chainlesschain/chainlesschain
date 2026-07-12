@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/agent-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TypeScript Agent SDK for the ChainlessChain cc CLI — typed stream-json protocol contract (stream events, approval callbacks, checkpoints, session resume) plus Node spawn/pipe transports and a browser-safe protocol entry.",
   "license": "MIT",
   "type": "module",
