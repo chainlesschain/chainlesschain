@@ -172,6 +172,36 @@ describe("collectIdeContext", () => {
   });
 });
 
+describe("collectIdeContext — remote path mapping", () => {
+  // A file:// POSIX URI decodes to the same host path on every platform, so
+  // this assertion is host-independent (see remote-path-mapping.test.js for the
+  // platform-specific WSL/UNC/drive cases).
+  it("folds a remote file:// URI in the selection into a host path", async () => {
+    const mcp = fakeIdeMcp({
+      selection: { ...SELECTION, file: "file:///home/u/my%20proj/app.js" },
+    });
+    const ctx = await collectIdeContext(mcp, { env: {} });
+    expect(ctx.selection.file).toBe("/home/u/my proj/app.js");
+  });
+
+  it("maps open-editor file URIs too", async () => {
+    const mcp = fakeIdeMcp({
+      selection: null,
+      editors: [{ file: "file:///home/u/%E6%96%87.ts", active: true }],
+    });
+    const ctx = await collectIdeContext(mcp, { env: {} });
+    expect(ctx.openEditors[0].file).toBe("/home/u/文.ts");
+  });
+
+  it("CC_IDE_PATH_MAP=0 leaves the IDE path untouched", async () => {
+    const mcp = fakeIdeMcp({
+      selection: { ...SELECTION, file: "file:///home/u/x.ts" },
+    });
+    const ctx = await collectIdeContext(mcp, { env: { CC_IDE_PATH_MAP: "0" } });
+    expect(ctx.selection.file).toBe("file:///home/u/x.ts");
+  });
+});
+
 describe("formatIdeContext", () => {
   it("renders active file, open editors, and a 1-based selection range", () => {
     const s = formatIdeContext({ selection: SELECTION, openEditors: EDITORS });

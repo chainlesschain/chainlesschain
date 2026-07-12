@@ -22,6 +22,7 @@ import {
   filterIdeFileEntry,
   redactSecretsInText,
 } from "./ide-context-redaction.js";
+import { normalizeIdePathForCli, detectWsl } from "./remote-path-mapping.js";
 
 /** Hard cap on the selected text we inline into the prompt. */
 const SELECTION_TEXT_CAP = 2000;
@@ -95,24 +96,55 @@ export function parseToolResultJson(result) {
 // through read_file), so credential files and secret-shaped text are filtered
 // HERE, at the collection boundary, before anything reaches the prompt.
 // CC_IDE_CONTEXT_REDACTION=0 disables (the filters below become pass-through).
+//
+// The same boundary also folds a remote file representation (a vscode-remote://
+// URI, a \\wsl.localhost\… UNC, or a Windows drive path while cc runs in WSL)
+// into the path THIS host can open (see [[remote-path-mapping.js]]) — otherwise
+// the agent, reading the inlined path, would target a file cc can't see. The
+// credential filter runs on the ORIGINAL value (basename is preserved by the
+// map, so the verdict is unchanged). CC_IDE_PATH_MAP=0 disables it.
+
+/** Env gate: CC_IDE_PATH_MAP=0|false|off disables remote path normalization. */
+export function idePathMapEnabled(env = process.env) {
+  const v = String(env?.CC_IDE_PATH_MAP ?? "").toLowerCase();
+  return !(v === "0" || v === "false" || v === "off");
+}
+
+/** Fold one IDE-reported file value into a path cc can open on this host. */
+function mapIdeFile(file, env) {
+  if (typeof file !== "string" || !idePathMapEnabled(env)) return file;
+  return normalizeIdePathForCli(file, {
+    platform: process.platform,
+    wsl: detectWsl(env || {}),
+  });
+}
 
 /** Drop the selection when it lives in a credential file; scrub its text. */
 function sanitizeIdeSelection(sel, env) {
   if (!sel) return sel;
   if (sel.file && filterIdeFileEntry(sel.file, { env }) === null) return null;
-  if (typeof sel.text === "string" && sel.text.length > 0) {
-    const scrubbed = redactSecretsInText(sel.text, { env });
-    if (scrubbed !== sel.text) return { ...sel, text: scrubbed };
+  let out = sel;
+  const mappedFile = mapIdeFile(sel.file, env);
+  if (mappedFile !== sel.file) out = { ...out, file: mappedFile };
+  if (typeof out.text === "string" && out.text.length > 0) {
+    const scrubbed = redactSecretsInText(out.text, { env });
+    if (scrubbed !== out.text) out = { ...out, text: scrubbed };
   }
-  return sel;
+  return out;
 }
 
-/** Drop open-editor entries whose file is a credential file. */
+/** Drop open-editor entries whose file is a credential file; map the rest. */
 function sanitizeIdeEditors(editors, env) {
   if (!Array.isArray(editors)) return editors;
-  return editors.filter(
-    (e) => !(e && e.file && filterIdeFileEntry(e.file, { env }) === null),
-  );
+  return editors
+    .filter(
+      (e) => !(e && e.file && filterIdeFileEntry(e.file, { env }) === null),
+    )
+    .map((e) => {
+      if (!e || typeof e.file !== "string") return e;
+      const mapped = mapIdeFile(e.file, env);
+      return mapped === e.file ? e : { ...e, file: mapped };
+    });
 }
 
 /** Scrub secret-shaped text out of terminal commands and their output. */
@@ -131,18 +163,25 @@ function sanitizeIdeTerminals(terms, env) {
   });
 }
 
-/** Drop diagnostics for credential files; scrub their message text. */
+/** Drop diagnostics for credential files; map their file + scrub message text. */
 function sanitizeIdeDiagnostics(diags, env) {
   if (!Array.isArray(diags)) return diags;
   return diags
     .filter(
       (d) => !(d && d.file && filterIdeFileEntry(d.file, { env }) === null),
     )
-    .map((d) =>
-      d && typeof d.message === "string"
-        ? { ...d, message: redactSecretsInText(d.message, { env }) }
-        : d,
-    );
+    .map((d) => {
+      if (!d) return d;
+      let out = d;
+      if (typeof d.file === "string") {
+        const mapped = mapIdeFile(d.file, env);
+        if (mapped !== d.file) out = { ...out, file: mapped };
+      }
+      if (typeof out.message === "string") {
+        out = { ...out, message: redactSecretsInText(out.message, { env }) };
+      }
+      return out;
+    });
 }
 
 /** Resolve to the promise's value, or null after `ms` / on rejection. */
