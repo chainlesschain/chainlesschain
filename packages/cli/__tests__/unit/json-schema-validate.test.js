@@ -11,6 +11,7 @@ import {
   validate,
   validateSchema,
   buildStructuredResultEvent,
+  KNOWN_FORMATS,
 } from "../../src/lib/json-schema-validate.js";
 
 describe("jsonPointer (RFC 6901)", () => {
@@ -179,6 +180,139 @@ describe("validate — combinators + $ref", () => {
   });
 });
 
+describe("validate — format assertions", () => {
+  it("exposes the known format set", () => {
+    expect(KNOWN_FORMATS.has("date-time")).toBe(true);
+    expect(KNOWN_FORMATS.has("email")).toBe(true);
+    expect(KNOWN_FORMATS.has("uuid")).toBe(true);
+  });
+
+  it("date-time (RFC 3339) — needs a date, time and offset", () => {
+    expect(
+      validate("2026-07-12T10:30:00Z", { format: "date-time" }).valid,
+    ).toBe(true);
+    expect(
+      validate("2026-07-12T10:30:00+08:00", { format: "date-time" }).valid,
+    ).toBe(true);
+    // no offset
+    expect(validate("2026-07-12T10:30:00", { format: "date-time" }).valid).toBe(
+      false,
+    );
+    // not a datetime at all
+    expect(validate("2026-07-12", { format: "date-time" }).valid).toBe(false);
+  });
+
+  it("date rejects impossible calendar dates", () => {
+    expect(validate("2024-02-29", { format: "date" }).valid).toBe(true); // leap
+    expect(validate("2023-02-29", { format: "date" }).valid).toBe(false); // not leap
+    expect(validate("2026-13-01", { format: "date" }).valid).toBe(false); // month 13
+    expect(validate("2026-04-31", { format: "date" }).valid).toBe(false); // April has 30
+  });
+
+  it("time accepts leap second, rejects out-of-range", () => {
+    expect(validate("23:59:60", { format: "time" }).valid).toBe(true);
+    expect(validate("24:00:00", { format: "time" }).valid).toBe(false);
+    expect(validate("10:61:00", { format: "time" }).valid).toBe(false);
+  });
+
+  it("email / uri / uuid", () => {
+    expect(validate("a@b.com", { format: "email" }).valid).toBe(true);
+    expect(validate("no-at-sign", { format: "email" }).valid).toBe(false);
+    expect(validate("https://x.io/p?q=1", { format: "uri" }).valid).toBe(true);
+    expect(validate("/relative/path", { format: "uri" }).valid).toBe(false);
+    expect(
+      validate("123e4567-e89b-12d3-a456-426614174000", { format: "uuid" })
+        .valid,
+    ).toBe(true);
+    expect(validate("not-a-uuid", { format: "uuid" }).valid).toBe(false);
+  });
+
+  it("ipv4 rejects >255 octets and leading zeros", () => {
+    expect(validate("192.168.0.1", { format: "ipv4" }).valid).toBe(true);
+    expect(validate("256.0.0.1", { format: "ipv4" }).valid).toBe(false);
+    expect(validate("192.168.01.1", { format: "ipv4" }).valid).toBe(false);
+    expect(validate("1.2.3", { format: "ipv4" }).valid).toBe(false);
+  });
+
+  it("ipv6 accepts full + :: compressed, rejects garbage", () => {
+    expect(
+      validate("2001:0db8:0000:0000:0000:0000:0000:0001", { format: "ipv6" })
+        .valid,
+    ).toBe(true);
+    expect(validate("2001:db8::1", { format: "ipv6" }).valid).toBe(true);
+    expect(validate("::1", { format: "ipv6" }).valid).toBe(true);
+    expect(validate("not:ipv6", { format: "ipv6" }).valid).toBe(false);
+    expect(validate("2001:db8:::1", { format: "ipv6" }).valid).toBe(false);
+  });
+
+  it("hostname per RFC 1123 labels", () => {
+    expect(validate("example.com", { format: "hostname" }).valid).toBe(true);
+    expect(validate("-bad.com", { format: "hostname" }).valid).toBe(false);
+    expect(validate("a..b", { format: "hostname" }).valid).toBe(false);
+  });
+
+  it("unknown format is annotation-only (always passes)", () => {
+    expect(validate("anything", { format: "made-up-format" }).valid).toBe(true);
+  });
+
+  it("format error carries the format code + JSON Pointer", () => {
+    const schema = {
+      type: "object",
+      properties: { when: { type: "string", format: "date-time" } },
+    };
+    const r = validate({ when: "nope" }, schema);
+    expect(r.valid).toBe(false);
+    expect(r.errors[0]).toMatchObject({
+      code: "format",
+      keyword: "format",
+      instancePath: "/when",
+      schemaPath: "/properties/when/format",
+    });
+  });
+});
+
+describe("validate — if/then/else conditional", () => {
+  // if country is US, postal must be 5 digits, else non-empty
+  const schema = {
+    type: "object",
+    properties: { country: {}, postal: { type: "string" } },
+    if: { properties: { country: { const: "US" } }, required: ["country"] },
+    then: { properties: { postal: { pattern: "^[0-9]{5}$" } } },
+    else: { properties: { postal: { minLength: 1 } } },
+  };
+
+  it("applies `then` when `if` matches", () => {
+    expect(validate({ country: "US", postal: "94107" }, schema).valid).toBe(
+      true,
+    );
+    const bad = validate({ country: "US", postal: "abc" }, schema);
+    expect(bad.valid).toBe(false);
+    expect(bad.errors.some((e) => e.schemaPath.startsWith("/then"))).toBe(true);
+  });
+
+  it("applies `else` when `if` does not match", () => {
+    expect(validate({ country: "CA", postal: "K1A" }, schema).valid).toBe(true);
+    const bad = validate({ country: "CA", postal: "" }, schema);
+    expect(bad.valid).toBe(false);
+    expect(bad.errors.some((e) => e.schemaPath.startsWith("/else"))).toBe(true);
+  });
+
+  it("`if` errors are never reported (it is only a test)", () => {
+    // value fails `if` (no country) → else applies; there must be no error
+    // whose schemaPath points into `/if`.
+    const r = validate({ postal: "x" }, schema);
+    expect(r.valid).toBe(true);
+    expect(r.errors.every((e) => !e.schemaPath.startsWith("/if"))).toBe(true);
+  });
+
+  it("`then`/`else` are inert without `if`", () => {
+    expect(
+      validate("x", { then: { type: "number" }, else: { type: "boolean" } })
+        .valid,
+    ).toBe(true);
+  });
+});
+
 describe("validateSchema (startup meta-validation)", () => {
   it("accepts a well-formed schema and boolean schemas", () => {
     expect(
@@ -212,6 +346,22 @@ describe("validateSchema (startup meta-validation)", () => {
       properties: { a: { type: "wrong" } },
     });
     expect(r.errors[0].schemaPath).toBe("/properties/a/type");
+  });
+
+  it("rejects a non-string format", () => {
+    expect(validateSchema({ format: 42 }).errors[0]).toMatchObject({
+      code: "format",
+      schemaPath: "/format",
+    });
+    expect(validateSchema({ format: "email" }).valid).toBe(true);
+  });
+
+  it("recurses into if/then/else subschemas", () => {
+    const r = validateSchema({
+      if: { type: "string" },
+      then: { type: "wrong" },
+    });
+    expect(r.errors[0].schemaPath).toBe("/then/type");
   });
 });
 

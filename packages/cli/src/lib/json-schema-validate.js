@@ -22,9 +22,11 @@
  * Supported keywords: type (+ integer), enum, const, properties, required,
  * additionalProperties (bool|schema), patternProperties-free, items,
  * prefixItems, minItems/maxItems, uniqueItems, minLength/maxLength, pattern,
- * minimum/maximum/exclusiveMinimum/exclusiveMaximum, multipleOf,
- * minProperties/maxProperties, allOf/anyOf/oneOf/not, and local `$ref`
- * (`#/$defs/…`, `#/definitions/…`, or any in-document JSON Pointer).
+ * format (date-time/date/time/email/uri/uuid/ipv4/ipv6/hostname — asserted;
+ * unknown formats pass through as annotations), minimum/maximum/
+ * exclusiveMinimum/exclusiveMaximum, multipleOf, minProperties/maxProperties,
+ * allOf/anyOf/oneOf/not, if/then/else, and local `$ref` (`#/$defs/…`,
+ * `#/definitions/…`, or any in-document JSON Pointer).
  */
 
 import crypto from "crypto";
@@ -40,6 +42,97 @@ const KNOWN_TYPES = new Set([
 ]);
 
 const MAX_REF_DEPTH = 128; // guards recursive $ref against cyclic data
+
+// ─── format assertions ───────────────────────────────────────────────────────
+// Draft 2020-12 `format` is asserted here (the protocol-facing structured-output
+// contract wants it enforced, not merely annotated). A format not in this map is
+// treated as an annotation and always passes. All checkers are pure strings→bool.
+
+function isCalendarDate(y, m, d) {
+  if (m < 1 || m > 12 || d < 1) return false;
+  const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return d <= days[m - 1];
+}
+
+function checkDate(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  return !!m && isCalendarDate(+m[1], +m[2], +m[3]);
+}
+
+function checkTime(v) {
+  const m = /^(\d{2}):(\d{2}):(\d{2})(\.\d+)?([Zz]|[+-]\d{2}:\d{2})?$/.exec(v);
+  if (!m) return false;
+  const hh = +m[1];
+  const mm = +m[2];
+  const ss = +m[3];
+  return hh <= 23 && mm <= 59 && ss <= 60; // 60 allows a leap second
+}
+
+function checkDateTime(v) {
+  const m = /^(.+)[Tt](.+)$/.exec(v);
+  if (!m) return false;
+  // RFC 3339 date-time requires an offset/Z on the time part.
+  if (!/([Zz]|[+-]\d{2}:\d{2})$/.test(m[2])) return false;
+  return checkDate(m[1]) && checkTime(m[2]);
+}
+
+function checkOctet(s) {
+  if (!/^\d{1,3}$/.test(s)) return false;
+  if (s.length > 1 && s[0] === "0") return false; // no leading zeros
+  return +s <= 255;
+}
+
+function checkIpv4(v) {
+  const parts = v.split(".");
+  return parts.length === 4 && parts.every(checkOctet);
+}
+
+function checkIpv6(v) {
+  if (typeof v !== "string" || v.length === 0) return false;
+  // At most one "::" compression; split on it.
+  const halves = v.split("::");
+  if (halves.length > 2) return false;
+  const hextet = /^[0-9a-fA-F]{1,4}$/;
+  if (halves.length === 2) {
+    const left = halves[0] === "" ? [] : halves[0].split(":");
+    const right = halves[1] === "" ? [] : halves[1].split(":");
+    if (
+      !left.every((g) => hextet.test(g)) ||
+      !right.every((g) => hextet.test(g))
+    )
+      return false;
+    return left.length + right.length <= 7; // "::" stands for ≥1 zero group
+  }
+  const groups = v.split(":");
+  return groups.length === 8 && groups.every((g) => hextet.test(g));
+}
+
+function checkHostname(v) {
+  if (typeof v !== "string" || v.length === 0 || v.length > 253) return false;
+  const labels = v.replace(/\.$/, "").split(".");
+  return labels.every((l) =>
+    /^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(l),
+  );
+}
+
+const FORMAT_CHECKERS = {
+  "date-time": checkDateTime,
+  date: checkDate,
+  time: checkTime,
+  email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+  uri: (v) => /^[A-Za-z][A-Za-z0-9+.-]*:\S*$/.test(v),
+  uuid: (v) =>
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+      v,
+    ),
+  ipv4: checkIpv4,
+  ipv6: checkIpv6,
+  hostname: checkHostname,
+};
+
+/** Known format names (exported for meta-validation / callers). */
+export const KNOWN_FORMATS = new Set(Object.keys(FORMAT_CHECKERS));
 
 /** RFC 6901 JSON Pointer from a segment array ("" = document root). */
 export function jsonPointer(segments) {
@@ -194,6 +287,32 @@ function _validate(value, schema, inst, sch, root, errors, depth) {
     _validateObject(value, schema, inst, sch, root, errors, depth);
 
   _validateCombinators(value, schema, inst, sch, root, errors, depth);
+  _validateConditional(value, schema, inst, sch, root, errors, depth);
+}
+
+/**
+ * if/then/else — Draft 2020-12 conditional application. `if` is a *test* whose
+ * own errors are never reported; if the value matches `if`, `then` applies,
+ * otherwise `else` applies. No `if` keyword ⇒ then/else are inert.
+ */
+function _validateConditional(value, schema, inst, sch, root, errors, depth) {
+  if (schema.if === undefined) return;
+  const matched = _branchValid(value, schema.if, root, depth);
+  if (matched) {
+    if (schema.then !== undefined) {
+      _validate(
+        value,
+        schema.then,
+        inst,
+        [...sch, "then"],
+        root,
+        errors,
+        depth,
+      );
+    }
+  } else if (schema.else !== undefined) {
+    _validate(value, schema.else, inst, [...sch, "else"], root, errors, depth);
+  }
 }
 
 function _validateString(value, schema, inst, sch, errors) {
@@ -229,6 +348,19 @@ function _validateString(value, schema, inst, sch, errors) {
         inst,
         [...sch, "pattern"],
         `string does not match pattern ${schema.pattern}`,
+      );
+    }
+  }
+  if (typeof schema.format === "string") {
+    const check = FORMAT_CHECKERS[schema.format];
+    // Unknown format = annotation only (always passes), per Draft 2020-12.
+    if (check && !check(value)) {
+      _err(
+        errors,
+        "format",
+        inst,
+        [...sch, "format"],
+        `string is not a valid ${schema.format}`,
       );
     }
   }
@@ -650,6 +782,14 @@ function _metaValidate(schema, segs, errors, depth) {
   }
   if (schema.not !== undefined)
     _metaValidate(schema.not, [...segs, "not"], errors, depth + 1);
+  if (schema.format !== undefined && typeof schema.format !== "string") {
+    _metaErr(errors, "format", [...segs, "format"], "format must be a string");
+  }
+  for (const k of ["if", "then", "else"]) {
+    if (schema[k] !== undefined) {
+      _metaValidate(schema[k], [...segs, k], errors, depth + 1);
+    }
+  }
   for (const defsKey of ["$defs", "definitions"]) {
     if (schema[defsKey] !== undefined) {
       if (
