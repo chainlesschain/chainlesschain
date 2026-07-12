@@ -498,15 +498,24 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   在 breadth 计数自增前评估）。
 - **budget.tokens → 子 tokenBudget**；**effort → 子 LLM options**（compute hint）；
   显式 **`context:fresh`** 抑制父上下文自动浓缩继承（fork/未设不变）。
+- **skills capability INTERSECT**（2026-07-12 二轮收尾）——resolved `skills` allow-list
+  真正喂进子 `agentLoop`：`run_skill`/`list_skills` 按 `skillAllowlist`（id/dirName）
+  过滤（null=不限 / []=无 / 列表=仅这些），`run_skill` 拒跑白名单外技能（真强制非装饰）；
+  经 `toolContext`→`executeTool`→`executeToolInner` 贯通，`SubAgentContext.skillAllowlist`
+  转发进子 loop，嵌套 spawn 经 effective-contract 链跨深度 INTERSECT。**安全**：
+  `_executeSpawnSubAgent` 仅当**显式驱动**（显式 `skills` 列表或显式 `context` 模式）才置
+  allow-list——全默认 spawn 保持 null（不限），故 silent-`fresh`→[] 默认永不剥光全部技能。
 - 测试：`sub-agent-context.test.js` +3（fail-closed worktree / subAgentContract 存储与
-  默认）+ `sub-agent-isolation.test.js` +1（executeTool 层 fail-closed 拒绝）；全 subagent
-  套 + runtime-convergence shim parity 回归绿。未改 agent-core 导出（shim parity）。
+  默认）+ `sub-agent-isolation.test.js` +1（executeTool 层 fail-closed 拒绝）+
+  `agent-core-skill-mcp.test.js` +4（allow-list 限制/空表 restricted/run_skill 拒外允内/
+  默认不限）；全 subagent + skill-mcp + runtime-convergence shim parity 回归绿。未改
+  agent-core 导出（shim parity）。
 
-**仍欠（需子循环能力管道 / 更大面）**：`permissionMode` 强制进子审批门；
-`skills`/`mcpServers`/`hooks`/`memory` 的 INTERSECT 真正喂进子 `agentLoop`
-（默认 `fresh`→`[]` 会剥光全部能力，裸接线不安全，需子循环支持 + 运行时剩余 budget
-真源）；`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个 Subagent、每
-child 的 checkpoint 归因仍缺。
+**仍欠（需子循环能力管道 / 更大面）**：`mcpServers`/`hooks` 的 INTERSECT 目前**空转**
+——spawn 路径根本不把父 `mcpClient`/`externalTool*`/`settingsHooks` 传给子（子今天拿到
+零 MCP 工具 + 零 Pre/PostToolUse hook），须先做**子能力继承**（一个独立 feature）才有可
+INTERSECT 的集合；`memory` INTERSECT + `permissionMode` 强制进子审批门；`background` 由契约
+统一驱动（现仍读 spawn args）；精确取消单个 Subagent、每 child 的 checkpoint 归因仍缺。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 
