@@ -34,7 +34,11 @@ import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { firstBalancedJson } from "../lib/json-schema-output.js";
-import { dedupeFindings, buildReviewReport } from "../lib/review-pipeline.js";
+import {
+  dedupeFindings,
+  buildReviewReport,
+  findingKey,
+} from "../lib/review-pipeline.js";
 
 /** Diffs larger than this are truncated before going to the model. */
 const MAX_DIFF_CHARS = 200_000;
@@ -672,11 +676,90 @@ export function renderMultiFinderReport(report = {}, byDimension = {}) {
   return lines.join("\n") + "\n";
 }
 
+/** Build a skeptic verifier's prompt for one finding. Pure. */
+export function buildVerifierPrompt(f = {}) {
+  return [
+    "You are a SKEPTICAL code reviewer. Independently verify the finding below by reading the actual code with your tools. Assume it is WRONG until you can reproduce it; default to REFUTED if you cannot.",
+    `Finding: [${f.severity}] ${f.path}:${f.line}`,
+    f.title ? `Claim: ${f.title}` : "",
+    f.evidence || f.failureScenario
+      ? `Details: ${f.evidence || f.failureScenario}`
+      : "",
+    "",
+    'Reply with ONLY a JSON object (no prose): {"reproduced": true|false, "confidence": 0.0-1.0, "reason": "one line"}. Set reproduced=true ONLY if the defect is real and reachable.',
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
+}
+
+/** Parse a verifier reply into an applyVerdicts verdict. Pure; null if unparseable. */
+export function parseVerdict(text) {
+  const balanced = firstBalancedJson(String(text || ""), "{");
+  if (!balanced) return null;
+  let obj;
+  try {
+    obj = JSON.parse(balanced);
+  } catch {
+    return null;
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const reproduced = obj.reproduced === true || obj.verified === true;
+  const conf = Number(obj.confidence);
+  return {
+    verified: reproduced,
+    ...(Number.isFinite(conf) ? { confidence: conf } : {}),
+    ...(obj.reason ? { note: String(obj.reason) } : {}),
+  };
+}
+
+/**
+ * Run one skeptic verifier agent per (already-deduped) finding and collect a
+ * verdicts map keyed by findingKey. A verifier that throws/parses to nothing
+ * leaves the finding unverified (kept as-is). Deps: { runAgentHeadless }.
+ */
+export async function runVerifierPass(findings, ctx = {}, deps = {}) {
+  const run =
+    deps.runAgentHeadless ||
+    (await import("../runtime/headless-runner.js")).runAgentHeadless;
+  const writeErr = ctx.writeErr || (() => {});
+  const verdicts = {};
+  for (const f of findings || []) {
+    let captured = "";
+    let outcome;
+    try {
+      outcome = await run(
+        {
+          ...(ctx.baseOptions || {}),
+          prompt: buildVerifierPrompt(f),
+          outputFormat: "text",
+        },
+        {
+          writeOut: (s) => {
+            captured += s;
+          },
+          writeErr,
+        },
+      );
+    } catch (e) {
+      writeErr(
+        `review --verify: verifier failed for ${f.path}:${f.line}: ${e.message}\n`,
+      );
+      continue;
+    }
+    const text = String(outcome?.result ?? captured ?? "");
+    const v = parseVerdict(text);
+    if (v) verdicts[findingKey(f)] = v;
+  }
+  return verdicts;
+}
+
 /**
  * Fan out one finder agent per review dimension, capture each finder's JSON
- * findings, and dedupe/rank them into a structured report. Each finder runs a
- * captured headless turn (its raw output never hits stdout — only the final
- * report does). Deps: { runAgentHeadless, dimensions }.
+ * findings, and dedupe/rank them into a structured report. With `ctx.verify`, a
+ * skeptic verifier agent then independently reproduces each finding and REFUTED
+ * ones are dropped. Each agent runs a captured headless turn (its raw output
+ * never hits stdout — only the final report does).
+ * Deps: { runAgentHeadless, dimensions }.
  */
 export async function runMultiFinderReview(ctx = {}, deps = {}) {
   const run =
@@ -728,9 +811,24 @@ export async function runMultiFinderReview(ctx = {}, deps = {}) {
     all.push(...found);
   }
 
-  const report = buildReviewReport(all);
+  // Optional skeptic pass: verify each unique finding; refuted ones are dropped
+  // by buildReviewReport via applyVerdicts. Verify the DEDUPED set so a finding
+  // reported by several finders is only checked once.
+  let verdicts = {};
+  let verifiedCount = null;
+  if (ctx.verify) {
+    const unique = dedupeFindings(all);
+    verdicts = await runVerifierPass(unique, ctx, deps);
+    verifiedCount = Object.values(verdicts).filter((v) => v.verified).length;
+  }
+
+  const report = buildReviewReport(all, { verdicts });
+  const meta = {
+    byDimension,
+    ...(ctx.verify ? { verified: verifiedCount } : {}),
+  };
   if (ctx.outputFormat === "json") {
-    writeOut(`${JSON.stringify({ ...report, byDimension }, null, 2)}\n`);
+    writeOut(`${JSON.stringify({ ...report, ...meta }, null, 2)}\n`);
   } else {
     writeOut(renderMultiFinderReport(report, byDimension));
   }
@@ -742,6 +840,7 @@ export async function runMultiFinderReview(ctx = {}, deps = {}) {
     multi: true,
     report,
     byDimension,
+    ...(ctx.verify ? { verified: verifiedCount } : {}),
   };
 }
 
@@ -829,6 +928,7 @@ export async function runReview(options = {}, deps = {}) {
         scope,
         untrackedBlocks: untracked.blocks,
         truncated,
+        verify: options.verify === true,
         outputFormat: options.outputFormat || "text",
         writeOut: deps.writeOut,
         writeErr: deps.writeErr,
@@ -918,6 +1018,10 @@ export function registerReviewCommand(program) {
     .option(
       "--multi",
       "Fan out one finder agent per dimension (correctness/security/performance/tests) and merge into a structured report",
+    )
+    .option(
+      "--verify",
+      "With --multi: run a skeptic verifier agent per finding and drop the ones it cannot reproduce",
     )
     .option("--json", "Emit the agent result envelope as JSON")
     .action(async (effortArg, options) => {

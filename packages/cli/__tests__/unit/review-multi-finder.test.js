@@ -9,8 +9,12 @@ import {
   buildDimensionPrompt,
   renderMultiFinderReport,
   runMultiFinderReview,
+  buildVerifierPrompt,
+  parseVerdict,
+  runVerifierPass,
   REVIEW_DIMENSIONS,
 } from "../../src/commands/review.js";
+import { findingKey } from "../../src/lib/review-pipeline.js";
 
 describe("buildDimensionPrompt", () => {
   it("focuses the finder on one dimension and asks for a JSON array", () => {
@@ -143,5 +147,111 @@ describe("runMultiFinderReview", () => {
       "performance",
       "tests",
     ]);
+  });
+});
+
+describe("buildVerifierPrompt", () => {
+  it("asks a skeptic to reproduce the finding and reply JSON", () => {
+    const p = buildVerifierPrompt({
+      severity: "High",
+      path: "x.js",
+      line: 3,
+      title: "off-by-one",
+      evidence: "loops to <= len",
+    });
+    expect(p).toMatch(/SKEPTICAL/);
+    expect(p).toMatch(/x\.js:3/);
+    expect(p).toMatch(/off-by-one/);
+    expect(p).toMatch(/"reproduced"/);
+  });
+});
+
+describe("parseVerdict", () => {
+  it("reads reproduced/confidence/reason into an applyVerdicts verdict", () => {
+    expect(
+      parseVerdict('{"reproduced": true, "confidence": 0.8, "reason": "real"}'),
+    ).toEqual({ verified: true, confidence: 0.8, note: "real" });
+    expect(parseVerdict('noise {"reproduced": false} tail')).toEqual({
+      verified: false,
+    });
+  });
+
+  it("returns null for unparseable output", () => {
+    expect(parseVerdict("not json at all")).toBeNull();
+  });
+});
+
+describe("runVerifierPass", () => {
+  it("collects verdicts keyed by findingKey; a thrown verifier leaves no verdict", async () => {
+    const findings = [
+      { path: "x.js", line: 1, title: "a", severity: "High" },
+      { path: "y.js", line: 2, title: "b", severity: "Low" },
+    ];
+    const run = vi.fn(async (opts) => {
+      if (opts.prompt.includes("x.js:1")) throw new Error("boom");
+      return { result: '{"reproduced": true, "confidence": 0.7}' };
+    });
+    const verdicts = await runVerifierPass(
+      findings,
+      { writeErr: () => {} },
+      { runAgentHeadless: run },
+    );
+    expect(Object.keys(verdicts)).toEqual([findingKey(findings[1])]);
+    expect(verdicts[findingKey(findings[1])].verified).toBe(true);
+  });
+});
+
+describe("runMultiFinderReview --verify", () => {
+  const dimensions = [
+    { key: "alpha", label: "alpha", hint: "a" },
+    { key: "beta", label: "beta", hint: "b" },
+  ];
+
+  it("drops findings the verifier refutes and reports the verified count", async () => {
+    const run = vi.fn(async (opts) => {
+      if (opts.prompt.includes("SKEPTICAL")) {
+        // refute the x.js:1 finding, reproduce y.js:2
+        return opts.prompt.includes("x.js:1")
+          ? { result: '{"reproduced": false, "confidence": 0.9}' }
+          : { result: '{"reproduced": true, "confidence": 0.8}' };
+      }
+      const label = /a (\w+) code reviewer/.exec(opts.prompt)?.[1];
+      return {
+        result: JSON.stringify(
+          label === "alpha"
+            ? [
+                {
+                  path: "x.js",
+                  line: 1,
+                  severity: "High",
+                  title: "bug",
+                  body: "b",
+                },
+                {
+                  path: "y.js",
+                  line: 2,
+                  severity: "Low",
+                  title: "real",
+                  body: "b",
+                },
+              ]
+            : [],
+        ),
+      };
+    });
+    const res = await runMultiFinderReview(
+      {
+        verify: true,
+        writeOut: () => {},
+        writeErr: () => {},
+        scope: "working",
+      },
+      { runAgentHeadless: run, dimensions },
+    );
+    // 2 finder calls + 2 verifier calls (deduped findings)
+    expect(run).toHaveBeenCalledTimes(4);
+    expect(res.report.summary.total).toBe(1); // x.js:1 refuted → dropped
+    expect(res.report.findings[0].path).toBe("y.js");
+    expect(res.verified).toBe(1);
   });
 });
