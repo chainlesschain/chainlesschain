@@ -146,10 +146,24 @@ uncertain_side_effect
   的分类 bug。测试：`background-agent-phase.test.js` +
   `bg-dashboard.test.js`。
 
+- **副作用台账 + 崩溃恢复重放（纯核已落地）**：新增
+  [`side-effect-ledger.js`](../packages/cli/src/lib/side-effect-ledger.js)——
+  每个不可逆动作两阶段记账 `prepare→start→commit|fail|unknown`，`reconcileSideEffects`
+  把每个 op 分桶 **redo/inspect/skip**：`committed`→skip、仅 `prepared`→redo（未发出
+  副作用）、`started` 未落定的**非幂等** op→**inspect**（可能已生效，禁盲目重放）——
+  正是验收要求的「file-write/git-push/package-install 中途强杀，恢复后不重复副作用」。
+  幂等性按 kind 默认（外部效果一律 false，`read`/`file-write-checkpointed` 为 true）可
+  显式覆盖；时钟经注入保持确定性（无 `Date.now()`）。持久化经
+  [`side-effect-ledger-store.js`](../packages/cli/src/lib/side-effect-ledger-store.js)
+  落链式 `side_effect_ledger` 事件（继承哈希链，`reconcileSessionSideEffects` 为恢复
+  入口）。测试：`side-effect-ledger.test.js` + `side-effect-ledger-store.test.js` 26 项
+  （含三类副作用中途强杀的验收）（`75ed4843b7`）。
+
 **仍欠**：状态机的其余持久态（`waiting_permission`/`uncertain_side_effect`
 等）需要真实**生产者**——由 headless-runner 把被阻塞的审批/提问写入
-`state.phase` / `pendingApprovals`（消费侧契约已就绪）；副作用台账
-（prepared→started→committed|failed|unknown）与崩溃恢复重放尚未实现。
+`state.phase` / `pendingApprovals`（消费侧契约已就绪）；把 `SideEffectLedger` 的
+`prepare/start/commit` 真正接进 `agent-core.js` 的 `run_shell`/`git`/包安装工具执行
+路径（记账 seam 属 agent-core 接线）尚未起。
 
 ## P0：跨平台沙箱、`run_code` 和凭据代理
 
