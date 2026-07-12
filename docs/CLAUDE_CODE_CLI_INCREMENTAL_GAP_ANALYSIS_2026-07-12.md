@@ -488,10 +488,22 @@ exhausted/expired 且终止时间戳 ≤ before 的条目跨 kind 清除（防 a
 文件用例），不再每 tick spawn shell；command 监视器字节兼容。commit `98124b255f`。
 两笔测试各 store+agenda 共 +14（prune 7 / file-monitor 7），scheduler 套 62/62 全绿。
 
+**已落地（2026-07-13 续，两笔 Monitor 源扩展）**：(c) **Monitor HTTP 源**（"Monitor 扩
+到…HTTP"）——`createMonitor` 现是三向互斥源 `command`/`watchFile`/`watchUrl`（恰一，
+`source:"http"`），创建期校验 http(s) 协议 + URL 合法性（拒 `file://` 等）；`cc agenda
+run` 经可注入 `fetchUrl`（默认 global fetch，30s 超时，失败不报错只 re-arm）GET 端点：
+有 `stopWhen` 匹配响应体、无 pattern 则 **2xx 即触发**（"等服务起来"用例）；`list` 显示
+`url <watchUrl>`。commit `5d45d684bf`。(d) **文件源真·mtime 变化检测**——`createMonitor`
+加 `watchChange`（文件专属、与 `stopWhen` 互斥），entry 带 `lastMtimeMs` 基线；
+`recordMonitorCheck` 接受 `mtimeMs` **仅首次**落基线且此后固定（"自开始监视以来变化"
+语义）；`readWatchedFile` 默认经 `statSync` 返回 `mtimeMs`，文件分支在 `watchChange` 下比
+基线，mtime 前进即触发、首检只建基线。commit `7c6d365682`。两笔测试各 store+agenda 共
++15（http 7 / mtime 8），scheduler 套 70/70 全绿。
+
 **仍欠（daemon 事件运行时闭环）**：把 daemon 变成常驻 Event Runtime——用
 `msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due（退休已接）；agent 工具
-create 透传 `expiresAt` + per-entry `jitterMs`；Monitor 再扩到 WebSocket/SSE/HTTP
-webhook/MCP event + 真·mtime 变化检测（文件源已落**内容/出现**两态）；事件加
+create 透传 `expiresAt` + per-entry `jitterMs`；Monitor 再扩到 WebSocket/SSE/入站 HTTP
+webhook（服务端接收，区别于已落的 HTTP **轮询**源）/MCP event；事件加
 `event_id`/去重窗口/backpressure/大小上限/authority（复用 [[agent-authority.js]]）/审计；
 每个定时/事件任务独立预算·权限模式·Worktree·最大存活期；Channel pairing/allowlist 与
 Permission Approval 分层不混用。
