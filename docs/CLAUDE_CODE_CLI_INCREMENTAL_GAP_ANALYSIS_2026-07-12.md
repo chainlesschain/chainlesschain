@@ -478,6 +478,19 @@ schedule-planner 的 `isEntryExpired` 把过期的可调度条目跨 kind 标 `s
 占用）故本轮 defer；`jitterMs` 目前是 planner 的**全局**入参而非 per-entry，per-entry
 jitter 留待。
 
+**已落地（2026-07-13，per-entry jitterMs）**：把 jitter 从 planner 的**全局**入参下沉为
+**每条目属性**——`agent-schedule-store.js` 三个 create（scheduleWakeup/createCron/
+createMonitor）现接受并存储归一化 `jitterMs`（非负整数否则 0）；schedule-planner 新增
+`resolveEntryJitterMs(entry, global)`：**per-entry `entry.jitterMs` 权威、盖过传入的全局
+fallback**，无该字段的 legacy 条目仍回落全局，`effectiveFireAt`/`partitionSchedule`/
+`nextWakeupAt` 全部据此解析。`store.due()` 改用 `effectiveFireAt(entry)` 比较——一条 cron
+可自带 spread 错峰而不扰动其余；`jitterMs:0`（默认）→ 基准 fire 时间**逐字节不变**于原
+`dueAt`/`nextAt` 比较。测试：schedule-planner +1（per-entry 盖全局 / 0 禁用 / legacy 回落）
++ agent-schedule-store +3（三 kind 归一化存储 / due 按 per-entry offset 推迟 / jitterMs:0
+即时 fire）；scheduler 套 73/73 + agent-core schedule-tool caller 8/8 回归绿。**注**：agent
+`schedule` 工具透传 `jitterMs`（连同 `expiresAt`）仍待 `agent-core.js` 那处接线（该文件
+并行 session 热区），故当前只能经直接 store API / 未来 daemon 供给 jitter。
+
 **已落地（2026-07-13 六轮）**：(a) `cc agenda prune`（`--older-than <秒>`/`--json`）——
 store 新 `pruneTerminal({before})` + 导出 `TERMINAL_STATUSES`，把 fired/matched/
 exhausted/expired 且终止时间戳 ≤ before 的条目跨 kind 清除（防 append-only JSONL 无界
@@ -827,13 +840,23 @@ permissions 的 legacy 插件与空 all-deny 声明不受影响）+ `capabilityC
 才启用，默认（无 managed + 未开）原样返回全部。测试 `plugin-runtime-consent-enforce.test.js`
 7 项 + policy/scopes/install/consent/command/doctor 回归绿（`659d2909b4`）。
 
+**已接线（2026-07-13 收尾，`cc plugin add`/`upgrade` 渲染能力清单+diff）**：新增共享
+helper `resolvePluginCapabilityNotice`（经 `discoverPlugins` 取刚装插件的**解析后 manifest**
+声明能力 + `capabilityConsentStatus` 现状；best-effort，能力渲染绝不破坏一次成功安装）+
+`printPluginCapabilityNotice`。`add` 成功后渲染「Capabilities (declared)」清单，并对**未
+consent / 加宽**打 `⚠ capability consent required` + `added` diff + 指到 `cc plugin consent
+<name> --grant`；`--json` 把该结构折进结果（`capabilities` 字段，无声明→`null`）。`upgrade`
+成功后同样渲染——一次加宽能力的升级会 diff 出**新增**能力并要求重新 consent。声明能力为
+空的插件不打扰（notice=null）。测试：`plugin-add-capability-notice.test.js` 5（fresh 装
+needs-consent JSON 折入 / 无声明→null / 文本 re-consent 提示 / 升级加宽→重 consent+network
+diff / 升级不加宽→满意 notice），plugin consent/install 回归 46 绿。
+
 **仍欠（交互 consent + 未声明组件级真拦 + 敏感项托管）**：未声明 `network` 的 MCP server 在
 **组件级**真拦（现按整插件 consent 门拦，尚无「声明缺失→单组件拒」的更细粒度）；`install.js`
-`installFromDirectory`/`updatePlugin` 装/升级时**交互** diff→重新 consent（现装非交互，
-只能事后 `cc plugin consent --grant`）；`cc plugin add`/`upgrade` 渲染能力清单+diff（现只
-`validate`/`consent` 渲染）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 +
-OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大
-基建，未起。
+`installFromDirectory`/`updatePlugin` 装/升级时**交互** diff→重新 consent（现渲染清单+diff+
+提示但仍非阻塞交互，需事后 `cc plugin consent --grant`）；把 optionsSchema 敏感项接
+settings.js 的 `p.scope` 项目门 + OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox
+Broker / lockfile-SBOM 属更大基建，未起。
 
 ## P2：Hooks、结构化输出与质量闭环
 

@@ -30,6 +30,59 @@ import {
   getPluginSkills,
 } from "../harness/plugin-manager.js";
 
+/**
+ * After an install/upgrade, resolve the just-installed plugin's DECLARED
+ * capabilities and its current consent status, so `cc plugin add`/`upgrade`
+ * surface a capability list + diff and tell the user when a WIDENING requires
+ * re-consent (mirroring `cc plugin consent`). Best-effort: capability rendering
+ * must never fail an otherwise-successful install. Returns a structured summary
+ * (for --json folding) or null when the plugin declares nothing / can't be
+ * resolved.
+ */
+async function resolvePluginCapabilityNotice(name, scope, cwd) {
+  try {
+    const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
+    const { describeCapabilities } =
+      await import("../lib/plugin-runtime/capabilities.js");
+    const consent = await import("../lib/plugin-runtime/capability-consent.js");
+    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
+      (p) => p.name === name && p.scope === scope,
+    );
+    if (!installed) return null;
+    const declared = installed.manifest?.capabilities;
+    if (!declared || consent.capabilitiesAreEmpty(declared)) return null;
+    const entry = consent.loadConsentStore()[`${scope}:${name}`] || null;
+    const status = consent.capabilityConsentStatus(declared, entry);
+    return {
+      declared: describeCapabilities(declared),
+      consented: status.consented,
+      reason: status.reason,
+      added: status.added,
+    };
+  } catch {
+    return null; // capability rendering is advisory — never break an install
+  }
+}
+
+/** Print the capability notice (text mode) after an install/upgrade. */
+function printPluginCapabilityNotice(name, notice) {
+  if (!notice) return;
+  logger.log(chalk.bold("\nCapabilities (declared):"));
+  for (const l of notice.declared) logger.log(`  ${chalk.magenta(l)}`);
+  if (notice.consented) {
+    logger.log(chalk.gray(`  capability consent: ${notice.reason}`));
+    return;
+  }
+  logger.log(
+    chalk.yellow(`  ⚠ capability consent required (${notice.reason})`),
+  );
+  if (notice.added.length)
+    logger.log(chalk.yellow(`    new: ${notice.added.join(", ")}`));
+  logger.log(
+    chalk.dim(`    run \`cc plugin consent ${name} --grant\` to allow them`),
+  );
+}
+
 export function registerPluginCommand(program) {
   const plugin = program
     .command("plugin")
@@ -747,8 +800,15 @@ export function registerPluginCommand(program) {
           force: options.force === true,
           signature,
         });
+        const capNotice = await resolvePluginCapabilityNotice(
+          res.name,
+          res.scope,
+          process.cwd(),
+        );
         if (options.json) {
-          console.log(JSON.stringify(res, null, 2));
+          console.log(
+            JSON.stringify({ ...res, capabilities: capNotice }, null, 2),
+          );
         } else {
           logger.success(
             `Installed ${res.name} v${res.version} (${res.scope} scope)` +
@@ -757,6 +817,7 @@ export function registerPluginCommand(program) {
           logger.log(chalk.gray(`  → ${res.dir}`));
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
+          printPluginCapabilityNotice(res.name, capNotice);
         }
       } catch (err) {
         logger.error(`Install failed: ${err.message}`);
@@ -1178,6 +1239,17 @@ export function registerPluginCommand(program) {
             `${res.name} is already up to date at v${res.version} (use --force to reinstall)`,
           );
         }
+        // Surface the (possibly widened) capability set + re-consent hint. An
+        // upgrade that adds a capability shows a `⚠ capability consent required`
+        // notice diffed against the prior consent.
+        printPluginCapabilityNotice(
+          res.name,
+          await resolvePluginCapabilityNotice(
+            res.name,
+            options.scope,
+            process.cwd(),
+          ),
+        );
       } catch (err) {
         logger.error(`Upgrade failed: ${err.message}`);
         process.exitCode = 1;
