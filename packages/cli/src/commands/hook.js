@@ -101,10 +101,7 @@ export function registerHookCommand(program) {
           }
           const events = Object.keys(settingsHooks);
           if (events.length > 0) {
-            const n = events.reduce(
-              (a, e) => a + settingsHooks[e].length,
-              0,
-            );
+            const n = events.reduce((a, e) => a + settingsHooks[e].length, 0);
             logger.log(chalk.bold(`\n.claude/settings.json hooks (${n}):`));
             for (const ev of events) {
               if (options.event && ev !== options.event) continue;
@@ -145,7 +142,8 @@ export function registerHookCommand(program) {
           settingsFile: options.settings,
         });
         const matched = collectHooks(hooks, event, tool);
-        const toolInput = args && args.length ? { command: args.join(" "), args } : {};
+        const toolInput =
+          args && args.length ? { command: args.join(" "), args } : {};
         const payload = {
           hook_event_name: event,
           tool_name: tool,
@@ -156,14 +154,18 @@ export function registerHookCommand(program) {
 
         if (!options.run) {
           if (options.json) {
-            console.log(JSON.stringify({ event, tool, matched, payload }, null, 2));
+            console.log(
+              JSON.stringify({ event, tool, matched, payload }, null, 2),
+            );
           } else if (matched.length === 0) {
             logger.log(
               chalk.gray(`no settings.json hooks match ${event} / ${tool}`),
             );
           } else {
             logger.log(
-              chalk.bold(`${matched.length} hook(s) would fire for ${event} / ${tool}:`),
+              chalk.bold(
+                `${matched.length} hook(s) would fire for ${event} / ${tool}:`,
+              ),
             );
             for (const h of matched) logger.log(`  ${chalk.gray(h.command)}`);
             logger.log(chalk.dim("  (use --run to execute and see decisions)"));
@@ -197,6 +199,178 @@ export function registerHookCommand(program) {
         }
       } catch (err) {
         logger.error(`hook test failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // hook replay — replay a recorded hook delivery by event id (P2 event bus).
+  // Dry-run by default; --run executes observe-only hooks. A DECISION hook can
+  // re-gate control flow, so its replay is refused without an explicit sandbox
+  // (and, since a real sandbox executor is not yet available, is never executed
+  // — only its dry-run plan is shown).
+  hook
+    .command("replay <event-id>")
+    .description(
+      "Replay a recorded hook delivery (needs CC_HOOK_EVENT_LOG); dry-run by default, --run executes observe-only hooks",
+    )
+    .option("--run", "Execute the replayed hooks (observe-only events only)")
+    .option(
+      "--sandbox",
+      "Assert an explicit sandbox for a decision-hook replay",
+    )
+    .option("--file <path>", "Read from a specific hook event log file")
+    .option("--json", "Output as JSON")
+    .action(async (eventId, options) => {
+      try {
+        const { findHookEvent } = await import("../lib/hook-event-log.cjs");
+        const { planHookReplay } = await import("../lib/hook-event-bus.cjs");
+        const envelope = findHookEvent(eventId, { filePath: options.file });
+        if (!envelope) {
+          logger.error(
+            `hook event "${eventId}" not found` +
+              (options.file
+                ? ""
+                : " (enable recording with CC_HOOK_EVENT_LOG=1)"),
+          );
+          process.exitCode = 1;
+          return;
+        }
+        const plan = planHookReplay(envelope, {
+          sandbox: Boolean(options.sandbox),
+        });
+        if (!plan.ok) {
+          if (options.json) {
+            console.log(JSON.stringify(plan, null, 2));
+          } else {
+            logger.error(`cannot replay: ${plan.reason}`);
+          }
+          process.exitCode = 1;
+          return;
+        }
+        // Decision events re-gate flow; a real sandbox executor is still owed,
+        // so we never EXECUTE them — the dry-run plan is shown instead.
+        if (options.run && plan.requiresSandbox) {
+          const note =
+            "decision-hook execution needs a real sandbox executor (not yet available); showing dry-run plan";
+          if (options.json) {
+            console.log(
+              JSON.stringify({ ...plan, executed: false, note }, null, 2),
+            );
+          } else {
+            logger.warn(`${note}:`);
+            logger.log(JSON.stringify(plan.payload, null, 2));
+          }
+          return;
+        }
+        if (!options.run) {
+          if (options.json) {
+            console.log(JSON.stringify({ ...plan, executed: false }, null, 2));
+          } else {
+            logger.log(
+              chalk.bold(
+                `replay (dry-run) of ${plan.event_type} [${plan.event_id}]`,
+              ),
+            );
+            if (plan.requiresSandbox)
+              logger.log(chalk.dim("  (decision event — sandboxed)"));
+            logger.log(JSON.stringify(plan.payload, null, 2));
+            logger.log(
+              chalk.dim("  (use --run to execute observe-only hooks)"),
+            );
+          }
+          return;
+        }
+        // observe-only + --run: re-collect and execute the matching hooks.
+        const { loadHooks, collectHooks } =
+          await import("../lib/settings-hooks.cjs");
+        const { runHooks } = await import("../lib/hook-runner.cjs");
+        const { hooks } = loadHooks({ cwd: process.cwd() });
+        const matched = collectHooks(
+          hooks,
+          plan.event_type,
+          plan.payload.tool_name || "",
+        );
+        const outcome = runHooks(matched, plan.payload, {
+          cwd: process.cwd(),
+          event: plan.event_type,
+        });
+        if (options.json) {
+          console.log(
+            JSON.stringify({ ...plan, executed: true, outcome }, null, 2),
+          );
+        } else {
+          logger.log(
+            chalk.bold(
+              `replayed ${plan.event_type} [${plan.event_id}] → ${outcome.results.length} hook(s)`,
+            ),
+          );
+          for (const r of outcome.results) {
+            logger.log(
+              `  ${chalk.gray(r.command)} → ${r.decision}` +
+                (r.exitCode != null ? ` (exit ${r.exitCode})` : ""),
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(`hook replay failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  // hook events-log — list / verify the recorded hook delivery log.
+  hook
+    .command("events-log")
+    .description(
+      "List or verify the recorded hook delivery log (CC_HOOK_EVENT_LOG)",
+    )
+    .option("--limit <n>", "Max entries to show", "20")
+    .option("--verify", "Verify the hash chain instead of listing")
+    .option("--file <path>", "Read from a specific hook event log file")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { listHookEvents, verifyHookEventChain, hookEventLogPath } =
+          await import("../lib/hook-event-log.cjs");
+        if (options.verify) {
+          const result = verifyHookEventChain({ filePath: options.file });
+          if (options.json) {
+            console.log(JSON.stringify(result, null, 2));
+          } else if (result.ok) {
+            logger.success(
+              `hook event log chain OK (${result.length} record(s))`,
+            );
+          } else {
+            logger.error(
+              `hook event log chain BROKEN at #${result.brokenAt}: ${result.reason}`,
+            );
+            process.exitCode = 1;
+          }
+          return;
+        }
+        const events = listHookEvents({
+          limit: parseInt(options.limit, 10) || 20,
+          filePath: options.file,
+        });
+        const logPath = options.file || hookEventLogPath();
+        if (options.json) {
+          console.log(JSON.stringify({ events, path: logPath }, null, 2));
+          return;
+        }
+        if (events.length === 0) {
+          logger.info(
+            `No recorded hook events (enable with CC_HOOK_EVENT_LOG=1). Log: ${logPath}`,
+          );
+          return;
+        }
+        logger.log(chalk.bold(`Recorded hook events (${events.length}):\n`));
+        for (const e of events) {
+          logger.log(
+            `  ${chalk.cyan(e.event_id)} ${chalk.yellow(e.event_type)}` +
+              (e.session_id ? ` session=${e.session_id}` : ""),
+          );
+        }
+      } catch (err) {
+        logger.error(`hook events-log failed: ${err.message}`);
         process.exitCode = 1;
       }
     });

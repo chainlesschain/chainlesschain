@@ -19,12 +19,18 @@
 const { collectHooks } = require("./settings-hooks.cjs");
 const { runHooks } = require("./hook-runner.cjs");
 const { buildHookEnvelope } = require("./hook-event-bus.cjs");
+const hookEventLog = require("./hook-event-log.cjs");
 
 /**
  * Stamp a unified-bus delivery id (event_id) onto a hook payload (P2 event bus).
  * Additive — a hook that ignores it is unaffected; a hook that reads it gets a
  * stable per-delivery id for correlation / `cc hook replay`. traceId/parentId
  * are threaded when the caller provides them (else null).
+ *
+ * When `CC_HOOK_EVENT_LOG` is enabled, the FULL envelope is best-effort recorded
+ * to the hash-chained hook event log so `cc hook replay <event-id>` has a real
+ * source. Recording is opt-in and never throws, so the default firing path is
+ * byte-for-byte unchanged.
  */
 function withDeliveryId(event, payload, { sessionId, traceId, parentId } = {}) {
   const env = buildHookEnvelope({
@@ -34,6 +40,13 @@ function withDeliveryId(event, payload, { sessionId, traceId, parentId } = {}) {
     traceId: traceId || null,
     parentId: parentId || null,
   });
+  if (hookEventLog.isHookEventLogEnabled()) {
+    try {
+      hookEventLog.appendHookEvent(env);
+    } catch {
+      /* best-effort — recording must not break the turn */
+    }
+  }
   return { ...payload, event_id: env.event_id };
 }
 
