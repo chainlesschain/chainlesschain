@@ -1,7 +1,7 @@
 {
   "ChainlessChain IDE bridge": "ChainlessChain IDE 桥接",
   "Overwrite": "覆盖",
-  "{0} was modified on disk during the review. Overwrite those changes?": "{0} 在评审期间被修改。要覆盖这些修改吗？",
+  "{0} was modified during the review (unsaved editor edits or on disk). Overwrite those changes?": "{0} 在评审期间被修改（编辑器未保存的改动或磁盘上的改动）。要覆盖这些修改吗？",
   "Disconnected": "未连接",
   "Restart bridge": "重启桥接",
   "Port": "端口",

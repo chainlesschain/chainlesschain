@@ -529,10 +529,13 @@ public final class IntellijEditorFacade implements EditorFacade {
     /**
      * Optimistic-concurrency gate for a diff apply (twin of VS Code's
      * confirmDriftOverwrite). The reviewer decided against {@code baselineText}
-     * (openDiff's originalText); if the file moved on disk during the review a
-     * blind whole-file write would destroy those concurrent edits. Drift → an
-     * explicit Yes/No confirm defaulting to No — dismissing (Esc) cancels,
-     * never auto-overwrites. Returns whether the write may proceed.
+     * (openDiff's originalText); if the file changed during the review — saved
+     * to disk OR edited in an open editor buffer — a blind whole-file write
+     * would destroy those concurrent edits. {@link #readDocumentText} reads the
+     * in-memory Document, so unsaved buffer edits count too (VS Code's twin now
+     * reads its live buffer for the same parity). Drift → an explicit Yes/No
+     * confirm defaulting to No — dismissing (Esc) cancels, never
+     * auto-overwrites. Returns whether the write may proceed.
      *
      * <p>Byte-identical legacy path: no baseline (null) or an unreadable
      * current document (nothing to clobber) → true with NO prompt.

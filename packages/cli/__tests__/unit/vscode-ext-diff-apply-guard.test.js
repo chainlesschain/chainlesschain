@@ -89,6 +89,7 @@ function fakeVscode() {
   let infoResolve = null;
   const warnings = []; // { message, resolve }
   const diffCalls = [];
+  const openDocs = []; // open editor buffers (workspace.textDocuments)
   const v = {
     l10n: {
       t: (m, ...a) =>
@@ -121,6 +122,7 @@ function fakeVscode() {
         };
       },
       applyEdit: async () => false, // force the fs fallback → real disk writes
+      textDocuments: openDocs, // open editor buffers (may hold unsaved edits)
     },
     commands: {
       executeCommand: async (cmd, ...args) => {
@@ -150,6 +152,13 @@ function fakeVscode() {
     diffCalls,
     warnings,
     decide: (choice) => infoResolve(choice),
+    // Register `path` as an OPEN editor buffer whose live text is `text`
+    // (may differ from disk = unsaved edits the review never saw).
+    openBuffer: (p, text) =>
+      openDocs.push({
+        uri: { fsPath: p, scheme: "file", toString: () => "file://" + p },
+        getText: () => text,
+      }),
   };
 }
 
@@ -177,7 +186,7 @@ describe("openDiff Accept: optimistic-concurrency drift gate (wiring)", () => {
       await tick();
       // Drift detected → confirm prompt; dismissing (undefined) = cancel.
       expect(fx.warnings).toHaveLength(1);
-      expect(fx.warnings[0].message).toContain("modified on disk");
+      expect(fx.warnings[0].message).toContain("modified during the review");
       fx.warnings[0].resolve(undefined);
       const res = await p;
       expect(res).toMatchObject({
@@ -249,6 +258,64 @@ describe("openDiff Accept: optimistic-concurrency drift gate (wiring)", () => {
       expect(fx.warnings).toHaveLength(0);
       expect(res).toMatchObject({ outcome: "accepted" });
       expect(fs.readFileSync(file, "utf8")).toBe("proposal");
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
+});
+
+describe("openDiff Accept: dirty editor-buffer drift gate (wiring)", () => {
+  // The disk-drift gate above only sees SAVED changes. A file open in another
+  // editor tab with UNSAVED edits leaves the disk untouched, yet accepting the
+  // diff would blind-write the whole document and silently destroy those edits
+  // (applyTextToFile replaces the live buffer). The gate must compare against
+  // the live buffer, not just disk — parity with the JetBrains twin, whose
+  // drift gate already reads the in-memory Document.
+  it("unsaved buffer diverged from baseline → prompt; cancel keeps the edits", async () => {
+    const file = tmpFile("buffer-drift.txt", "baseline"); // disk still == baseline
+    try {
+      const fx = fakeVscode();
+      fx.openBuffer(file, "user unsaved edit"); // live buffer moved, disk did not
+      const facade = createVscodeEditorFacade(fx.vscode);
+      const p = facade.openDiff({
+        path: file,
+        originalText: "baseline",
+        modifiedText: "agent proposal",
+      });
+      await tick();
+      fx.decide("Accept");
+      await tick();
+      // Disk never moved, but the live buffer did → must still gate.
+      expect(fx.warnings).toHaveLength(1);
+      fx.warnings[0].resolve(undefined); // cancel → keep the user's unsaved edits
+      const res = await p;
+      expect(res).toMatchObject({
+        outcome: "rejected",
+        reason: REASON_DISK_DRIFTED,
+      });
+      expect(fs.readFileSync(file, "utf8")).toBe("baseline"); // nothing blind-written
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
+
+  it("clean open buffer (matches baseline) → no prompt, accepted", async () => {
+    const file = tmpFile("buffer-clean.txt", "baseline");
+    try {
+      const fx = fakeVscode();
+      fx.openBuffer(file, "baseline"); // buffer == disk == baseline, no drift
+      const facade = createVscodeEditorFacade(fx.vscode);
+      const p = facade.openDiff({
+        path: file,
+        originalText: "baseline",
+        modifiedText: "agent proposal",
+      });
+      await tick();
+      fx.decide("Accept");
+      const res = await p;
+      expect(fx.warnings).toHaveLength(0); // buffer matched → never prompted
+      expect(res).toMatchObject({ outcome: "accepted" });
+      expect(fs.readFileSync(file, "utf8")).toBe("agent proposal");
     } finally {
       fs.rmSync(file, { force: true });
     }

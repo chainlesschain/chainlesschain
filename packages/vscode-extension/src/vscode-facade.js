@@ -919,19 +919,45 @@ function safeReadFileRaw(path) {
 }
 
 /**
+ * The file's current content for the drift gate — the LIVE editor buffer when
+ * the file is open (so unsaved edits count), else the on-disk text. Reading
+ * only disk (the old behavior) missed a whole failure class: a file open in
+ * another tab with unsaved edits leaves the disk untouched, so the gate saw no
+ * drift and the accept blind-wrote the buffer, silently destroying those edits
+ * (applyTextToFile replaces the whole document). The JetBrains twin already
+ * reads the in-memory Document; this brings VS Code to parity. null = the file
+ * is neither open nor readable → nothing to clobber.
+ */
+function currentTextForDrift(vscode, path) {
+  try {
+    const docs = (vscode.workspace && vscode.workspace.textDocuments) || [];
+    for (const d of docs) {
+      const uri = d && d.uri;
+      if (uri && uri.scheme === "file" && uri.fsPath === path) {
+        return d.getText();
+      }
+    }
+  } catch {
+    /* no open-document API / read failed — fall back to disk */
+  }
+  return safeReadFileOrNull(path);
+}
+
+/**
  * Optimistic-concurrency gate for a diff apply: the reviewer decided against
- * `baselineText` (openDiff's originalText), so if the on-disk file changed
- * during the review a blind whole-file write would destroy those concurrent
- * edits. Drift → explicit modal confirm, and dismissing it (Esc) cancels —
- * fail-safe, never auto-overwrite. Returns true when the write may proceed.
+ * `baselineText` (openDiff's originalText), so if the file changed during the
+ * review — saved to disk OR edited in an open editor buffer — a blind
+ * whole-file write would destroy those concurrent edits. Drift → explicit
+ * modal confirm, and dismissing it (Esc) cancels — fail-safe, never
+ * auto-overwrite. Returns true when the write may proceed.
  *
  * Byte-identical legacy path: no baseline (older callers diff against the
- * live file) or a missing/unreadable file (nothing to clobber) → true, and
- * no prompt is ever shown.
+ * live file) or a missing/unreadable file that isn't open (nothing to
+ * clobber) → true, and no prompt is ever shown.
  */
 async function confirmDriftOverwrite(vscode, path, baselineText) {
   if (typeof baselineText !== "string") return true;
-  const current = safeReadFileOrNull(path);
+  const current = currentTextForDrift(vscode, path);
   if (current === null) return true; // new/deleted file — nothing to clobber
   const verdict = checkApplySafety({ baselineText, currentDiskText: current });
   if (verdict.safe) return true;
@@ -940,7 +966,7 @@ async function confirmDriftOverwrite(vscode, path, baselineText) {
   try {
     pick = await vscode.window.showWarningMessage(
       vscode.l10n.t(
-        "{0} was modified on disk during the review. Overwrite those changes?",
+        "{0} was modified during the review (unsaved editor edits or on disk). Overwrite those changes?",
         path,
       ),
       { modal: true },
