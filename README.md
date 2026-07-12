@@ -11,6 +11,18 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-12 发布 — **cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0**
+
+> CLI-only 发版（0.162.161 → **0.162.162**，npm `latest`，provenance）。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）**P0/P1/P2 全部章节收口**：P1 Subagent 契约（tighten-only 继承/覆盖，权限加宽钳回父级、capabilities 取交集、memory 父拒不授予）+ Turn↔Checkpoint 绑定（覆盖度 FULL/PARTIAL/NONE，恢复计划永不过度承诺）+ Plugin 能力声明与配置 Schema（默认 DENY + 加宽需重新同意 + 敏感选项拒 project 配置）；P2 Hooks 统一事件总线（信封 + `event_id` + 决策最严胜出 + 决策类 replay 必须显式 sandbox）+ JSON Schema 结构化输出（Draft 2020-12 子集 + `schema_digest` + `structured_result`）+ 多 Agent Review 聚合核（dedupe 跨维度合并 + verifier 复现剔除 + 结构化 path/line/category/severity/failure_scenario/evidence）与 LSP 自动诊断调度（debounce/throttle + token 上限先丢最不严重）+ Doctor Runtime Checkup（agenda 逾期/慢·熔断 Hook/失效 Plugin·LSP/冗长指令文件）+ CLI 参考文档漂移检测（从 manifest 175 + 工具 26 生成并双向 diff）+ 统一 OTel id（九 id 归一 + content 默认脱敏 `[redacted]` + 基数收敛，每 span 带 workflow.run_id+session.id）+ IDE gap P0（远程审批绑定操作指纹 + 会话生命周期状态机）。命令数 **175 不变**。发版前本地三层全绿（unit 23,182 / integration 1,044 / e2e 628）。
+
+## 2026-07-12 发布 — **cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化**
+
+> CLI-only 发版（0.162.160 → **0.162.161**，npm `latest`，provenance）。跨事件 `trace_id`（stream-json 每行 run-scoped，字符集 ≤128）+ 后台 Agent Idle/Needs-input 状态机（仪表板分组）+ 跨 Agent 授权信封（`origin→authority`，仅 user/permission_tool/认证 approve-scoped remote 可批准，approval binding 常数时间 fail-closed 防冒用）+ 凭据代理（子进程默认屏蔽长效凭据哨兵 `cc-cred-redacted:<NAME>`，审计绝不记录还原明文，approved-host fail-closed 注入）+ 会话级完成条件引擎（exit-zero/file-exists/contains/regex/model/裸 + 预算 + 可恢复快照）+ Monorepo `instructionExcludes`（glob 排除 legacy/vendor/generated，@import 也跳过防凭据进 prompt）+ 统一持久 Scheduler 规划器（FNV-1a 确定性 jitter 防惊群 + 自适应唤醒 + 过期退休）+ bg-\* WS relay 序号缺口 replay / 出站背压 / 跨语言 fixture 契约。命令数 **175 不变**。
+
+## 2026-07-11 发布 — **cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）**
+
+> CLI-only 发版（0.162.159 → **0.162.160**，npm `latest`，provenance）。⚠️ **三处行为变更**：`run_code` 的 pip 依赖默认不再自动安装（改 opt-in + allowlist + 审计 JSONL）；agent 脚本默认写 OS 临时目录（`persist:true` 才进项目）；headless/agent 退出码细化（最大轮次→3 / 预算→4 / 模型错误→5 / 配置错误→6）。另含 `--ephemeral` 只读回放 + init 事件补协议/持久化/指纹字段 + `cc agent --capabilities` 机读能力清单 + `llm.apiKeyHelper`（外部命令→OS 凭据库，失败 fail-closed 告警一次绝不静默替换）+ 沙箱 `failIfUnavailable` 启动期强制探测引擎（不可用即拒绝启动，不再静默降级）+ Subagent `disallowedTools`/`maxTurns`/`isolation:worktree`（并修出子代理工具白名单从未传入 LLM 面的真 bug）+ `cc session rename/prune` · `cc daemon rm` · `cc mcp trust-project` + MCP `list_changed` 合并式重拉 + `.mcp.json` 指纹变更 fail-closed 重信任 + Hook payload `schema_version` + 连续失败熔断。命令数 **175 不变**（只加子命令）。
+
 ## 2026-07-11 发布 — **cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）**
 
 > CLI-only 发版（0.162.158 → **0.162.159**，npm `latest`，provenance）。对照 `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` 14 项全落地：**`cc cloud`** 自托管 cloud handoff（`git bundle` 上传私有 runner→回流 patch/PR，无 Anthropic 云依赖）+ **`/tui`** 全屏无闪烁视图（备用屏缓冲 + diff 重绘 + `CC_NO_FLICKER=1`）+ **`/voice`** 语音听写（local-first STT，SSH/headless 清晰降级）+ **`/fast`** 延迟档（最小化推理 + 换低延迟模型，不覆盖 `/model` 钉过的模型）+ **插件治理**（manifest `dependencies` semver 约束 + LSP 注册表候选表回退 builtin + 被动组件不误判"未使用"）+ **`cc session index`** 外部 session 存储（JSONL 权威 + SQLite 索引增量同步/搜索 + 可插拔 fs/http mirror）。命令数 **173 → 175**（新增 `cc cloud` + `cc routine`）。
