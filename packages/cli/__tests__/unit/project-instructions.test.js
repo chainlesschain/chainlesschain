@@ -19,6 +19,8 @@ import {
   loadProjectInstructionsBlock,
   parseRuleFrontmatter,
   ruleApplies,
+  normalizeInstructionExcludes,
+  pathIsExcluded,
 } from "../../src/lib/project-instructions.js";
 import { composeSystemPrompt } from "../../src/runtime/system-prompt.js";
 
@@ -381,5 +383,105 @@ describe("composeSystemPrompt projectMemory wiring", () => {
     expect(
       loadProjectInstructionsBlock({ cwd: path.join(tmp, "empty"), home }),
     ).toBe("");
+  });
+});
+
+describe("instructionExcludes (large-monorepo reduction lever)", () => {
+  it("normalizeInstructionExcludes trims, de-dups, drops trailing slashes, normalizes slashes", () => {
+    expect(
+      normalizeInstructionExcludes([
+        " vendor/ ",
+        "vendor",
+        "",
+        String.raw`packages\legacy` + "/",
+      ]),
+    ).toEqual(["vendor", "packages/legacy"]);
+    expect(normalizeInstructionExcludes("not-an-array")).toEqual([]);
+  });
+
+  describe("pathIsExcluded", () => {
+    it("matches a bare name as a segment anywhere", () => {
+      expect(
+        pathIsExcluded("packages/x/node_modules/y/cc.md", ["node_modules"]),
+      ).toBe(true);
+      expect(pathIsExcluded("src/app/cc.md", ["node_modules"])).toBe(false);
+    });
+    it("matches a slashed prefix and everything under it", () => {
+      expect(pathIsExcluded("packages/legacy", ["packages/legacy"])).toBe(true);
+      expect(
+        pathIsExcluded("packages/legacy/sub/cc.md", ["packages/legacy"]),
+      ).toBe(true);
+      expect(
+        pathIsExcluded("packages/legacy-keep/cc.md", ["packages/legacy"]),
+      ).toBe(false);
+    });
+    it("matches globs (*, **, ?)", () => {
+      expect(pathIsExcluded("a/generated/b/cc.md", ["**/generated/**"])).toBe(
+        true,
+      );
+      // `vendor/*` matches each direct child dir (vendor/x), so anything under
+      // it is excluded too (ancestor-match semantics — the reduction lever).
+      expect(pathIsExcluded("vendor/x/cc.md", ["vendor/*"])).toBe(true);
+      expect(pathIsExcluded("vendor/x/y/cc.md", ["vendor/*"])).toBe(true);
+      expect(pathIsExcluded("src/app/cc.md", ["vendor/*"])).toBe(false);
+      expect(pathIsExcluded("dist/x/cc.md", ["build?"])).toBe(false);
+    });
+    it("is a no-op with no excludes", () => {
+      expect(pathIsExcluded("anything/cc.md", [])).toBe(false);
+    });
+  });
+
+  it("skips a cc.md discovered under an excluded subtree", () => {
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/cc.md", "root memory");
+    write("repo/packages/legacy/cc.md", "legacy memory");
+    const cwd = path.join(tmp, "repo", "packages", "legacy");
+    const withoutExcl = findInstructionFiles({ cwd, home }).map((f) =>
+      path.basename(path.dirname(f.path)),
+    );
+    expect(withoutExcl).toContain("legacy"); // normally the legacy cc.md loads
+    const files = findInstructionFiles({
+      cwd,
+      home,
+      instructionExcludes: ["packages/legacy"],
+    });
+    // root cc.md still loads; the excluded legacy cc.md does not
+    expect(files.some((f) => f.path.endsWith(path.join("repo", "cc.md")))).toBe(
+      true,
+    );
+    expect(
+      files.some((f) => f.path.includes(path.join("legacy", "cc.md"))),
+    ).toBe(false);
+  });
+
+  it("skips path-scoped rules under an excluded subtree", () => {
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/vendor/.claude/rules/dep.md", "vendor rule");
+    const files = findInstructionFiles({
+      cwd: path.join(tmp, "repo", "vendor"),
+      home,
+      instructionExcludes: ["vendor"],
+    });
+    expect(files.some((f) => f.scope === "rule")).toBe(false);
+  });
+
+  it("does not @import a file that resolves under an excluded subtree", () => {
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/generated/big.md", "GENERATED HUGE CONTEXT");
+    write("repo/cc.md", "root\n@generated/big.md\n");
+    const excluded = loadProjectInstructions({
+      cwd: path.join(tmp, "repo"),
+      home,
+      instructionExcludes: ["generated"],
+    });
+    expect(JSON.stringify(excluded.files)).not.toContain(
+      "GENERATED HUGE CONTEXT",
+    );
+    // without the exclude, the import loads (control)
+    const included = loadProjectInstructions({
+      cwd: path.join(tmp, "repo"),
+      home,
+    });
+    expect(JSON.stringify(included.files)).toContain("GENERATED HUGE CONTEXT");
   });
 });

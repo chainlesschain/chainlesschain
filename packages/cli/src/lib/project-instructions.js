@@ -44,6 +44,83 @@ export const PROJECT_FILE_NAMES = ["cc.md", "CLAUDE.md", "AGENTS.md"];
 /** Local (gitignored) companion names, first match wins. */
 export const LOCAL_FILE_NAMES = ["cc.local.md", "CLAUDE.local.md"];
 
+/**
+ * `instructionExcludes` — a large-monorepo reduction lever (P1). Subtrees whose
+ * instruction / rule / @import files should NEVER load (legacy, vendored,
+ * generated). Opt-in: empty by default so behavior is byte-identical unless the
+ * caller (config `instructionExcludes`) sets it. Patterns are matched against a
+ * path RELATIVE to the project root, with forward slashes:
+ *   - a bare name (`node_modules`, `dist`) matches that segment ANYWHERE;
+ *   - a slashed prefix (`packages/legacy`) matches that dir and everything under;
+ *   - a glob (`**​/generated/**`, `vendor/*`) matches via `*`/`**`/`?`.
+ */
+export function normalizeInstructionExcludes(list) {
+  if (!Array.isArray(list)) return [];
+  return [
+    ...new Set(
+      list
+        .map((s) =>
+          String(s || "")
+            .trim()
+            .replace(/\\/g, "/")
+            .replace(/\/+$/, ""),
+        )
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function globToRegExp(glob) {
+  let re = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "*") {
+      if (glob[i + 1] === "*") {
+        re += ".*";
+        i++;
+        if (glob[i + 1] === "/") i++; // `**/` also swallows the slash
+      } else {
+        re += "[^/]*";
+      }
+    } else if (c === "?") {
+      re += "[^/]";
+    } else {
+      re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+  return new RegExp("^" + re + "$");
+}
+
+/**
+ * True when a repo-relative path falls under an excluded subtree. A file is
+ * excluded when it, or any of its ancestor directories, matches a pattern.
+ */
+export function pathIsExcluded(relPath, excludes) {
+  if (!excludes || excludes.length === 0) return false;
+  const rel = String(relPath || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\/?/, "")
+    .replace(/\/+$/, "");
+  if (!rel) return false;
+  const segs = rel.split("/");
+  for (const pat of excludes) {
+    if (/[*?[\]]/.test(pat)) {
+      const re = globToRegExp(pat);
+      if (re.test(rel)) return true;
+      let acc = "";
+      for (const s of segs) {
+        acc = acc ? `${acc}/${s}` : s;
+        if (re.test(acc)) return true;
+      }
+    } else {
+      if (rel === pat || rel.startsWith(`${pat}/`)) return true;
+      // a bare (slash-free) name matches that path segment anywhere
+      if (!pat.includes("/") && segs.includes(pat)) return true;
+    }
+  }
+  return false;
+}
+
 // Same boundary rule as file-ref-expander: `@` at start / after whitespace or
 // an opening bracket-quote, so emails and decorative @ never match.
 const IMPORT_TOKEN_RE = /(^|[\s("'`[{])@([^\s"'`)\]}]+)/g;
@@ -100,13 +177,21 @@ export function findInstructionFiles(opts = {}) {
   const { fs, path, os } = resolveDeps(opts);
   const cwd = path.resolve(opts.cwd || process.cwd());
   const home = opts.home || os.homedir() || "";
+  const excludes = normalizeInstructionExcludes(opts.instructionExcludes);
 
   const seen = new Set();
   const out = [];
+  const root = findProjectRoot(cwd, opts) || cwd;
+  // A discovered file under an excluded subtree (relative to the project root)
+  // never loads. The user-scope file lives outside the repo, so it is exempt.
+  const excluded = (abs) =>
+    excludes.length > 0 &&
+    pathIsExcluded(path.relative(root, path.resolve(abs)), excludes);
   const push = (p, scope) => {
     if (!p) return;
     const abs = path.resolve(p);
     if (seen.has(abs) || !isFile(fs, abs)) return;
+    if (scope !== "user" && excluded(abs)) return;
     seen.add(abs);
     out.push({ path: abs, scope });
   };
@@ -121,7 +206,6 @@ export function findInstructionFiles(opts = {}) {
     );
   }
 
-  const root = findProjectRoot(cwd, opts) || cwd;
   const chain = [];
   let dir = cwd;
   for (;;) {
@@ -274,6 +358,10 @@ export function loadProjectInstructions(opts = {}) {
     : DEFAULT_MAX_TOTAL_BYTES;
 
   const roots = findInstructionFiles(opts);
+  const excludes = normalizeInstructionExcludes(opts.instructionExcludes);
+  const projectRoot =
+    findProjectRoot(path.resolve(opts.cwd || process.cwd()), opts) ||
+    path.resolve(opts.cwd || process.cwd());
   const visited = new Set(roots.map((r) => r.path));
   const out = [];
   const warnings = [];
@@ -322,6 +410,15 @@ export function loadProjectInstructions(opts = {}) {
       const resolved = path.resolve(baseDir, target);
       if (visited.has(resolved) || !isFile(fs, resolved)) continue; // silent:
       // non-files are decorative @tokens (npm scopes, emails), not imports.
+      // An @import that resolves under an excluded subtree does not load — the
+      // reduction lever must not be bypassed by an import pointing into it.
+      if (
+        excludes.length > 0 &&
+        pathIsExcluded(path.relative(projectRoot, resolved), excludes)
+      ) {
+        visited.add(resolved);
+        continue;
+      }
       // Refuse to import a credential / secret file. `cc agent` auto-loads
       // project memory, so a cloned/untrusted repo's cc.md must NOT be able to
       // pull `@~/.ssh/id_rsa` / `@../.env` into the LLM-bound system prompt

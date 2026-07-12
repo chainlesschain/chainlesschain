@@ -70,6 +70,9 @@ export function composeSystemPrompt(base, opts = {}) {
       cwd,
       home: opts.projectMemoryHome,
       deps: opts.projectMemoryDeps,
+      // Large-monorepo reduction lever: subtrees whose instruction/rule/@import
+      // files never load (config `instructionExcludes`, forwarded by the caller).
+      instructionExcludes: opts.instructionExcludes,
     });
     if (block) result = result ? `${result}\n\n${block}` : block;
   }

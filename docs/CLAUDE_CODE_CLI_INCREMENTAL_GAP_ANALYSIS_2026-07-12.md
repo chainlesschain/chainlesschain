@@ -348,6 +348,32 @@ UniApp 和 signaling server，是最合适的真实基准仓库。
 验收直接以本仓库测量冷启动、首轮 token、Worktree 创建时间、磁盘占用和检索调用数。
 参考 [大型代码库官方指南](https://code.claude.com/docs/en/large-codebases)。
 
+### 已落地（增量）
+
+- **`instructionExcludes`（大仓上下文缩减杠杆）**：
+  [`project-instructions.js`](../packages/cli/src/lib/project-instructions.js)
+  新增 `normalizeInstructionExcludes` + `pathIsExcluded`，让 legacy/vendor/
+  generated 子树的 `cc.md`/`CLAUDE.md`/`AGENTS.md`、路径作用域 `.claude/rules/
+*.md`、以及**解析到被排除子树的 `@import`** 全部**不加载**（否则一个指向
+  vendor 的 import 就能绕过杠杆）。匹配相对仓库根：裸名（`node_modules`/`dist`）
+  按**任意路径段**命中；带斜杠前缀（`packages/legacy`）命中该目录及其全部子孙；
+  glob（`**/generated/**`、`vendor/*`，`*`/`**`/`?`）按祖先目录命中即排除整棵
+  子树。**opt-in**：无 excludes 时行为字节不变；user-scope（仓库外）豁免。已经
+  `composeSystemPrompt(opts.instructionExcludes)` 前向透传（任意 caller/SDK 可
+  供给）。
+  - 测试：`project-instructions.test.js` 新增块——normalize 归一/去重/斜杠、
+    `pathIsExcluded` 三类匹配、真临时目录验证「排除子树的 cc.md 不载 / 排除子树
+    的规则不载 / 指向排除子树的 @import 不载（附对照的未排除控制）」。
+
+**仍欠**：把 `instructionExcludes` 从 `.claude/settings.json` / 统一 config 读出
+并在 headless-runner 处传入 `composeSystemPrompt`（最后一公里配置接线）；子目录
+指令**按首次访问子树懒加载**（tool-time 注入，module 99 §5.3）；per-directory
+Skills/`paths:` 按需发现只注入名称/短描述；`worktree.sparsePaths` sparse-checkout
+
+- `symlinkDirectories`（含 junction/symlink 逃逸防护，需真 git）；additional roots
+  变更发 MCP `roots/list_changed`；`/context` 扩展为按 instruction/skill/MCP schema/
+  消息的 token 占用+来源分解（现 `cc context` 仅按消息角色分桶）。
+
 ## P1：统一持久 Scheduler、Monitor 和 Channel
 
 当前 Schedule/Monitor 意图已持久化到 JSONL，但需要外部周期调用 `cc agenda run`；
