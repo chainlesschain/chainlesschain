@@ -501,6 +501,45 @@ Summarize from here/up to here。Shell、外部进程和用户编辑造成的变
 删除和 key rotation。参考
 [Checkpointing 官方文档](https://code.claude.com/docs/en/checkpointing)。
 
+### 已落地（增量）
+
+**显式的 turn→checkpoint 绑定表**（此前只有 `repl-rewind.js` 的隐式
+`_checkpointMarks` 扁平数组 + `pickCheckpointForTurn` 启发式，且进程内易失、切
+session 即清）。新建纯核 `src/lib/turn-binding.js`（无 timer/RNG/git/IO，确定性）：
+
+- **每 turn 一条显式记录** `TurnBindingLog`：`turnId → {conversationOffset,
+  fileCheckpointId, toolCallIds[], permissionDecisionIds[], childAgentIds[],
+  worktreeId, coverage}`——gap 列的整张表；`startTurn`/`recordToolCall`/
+  `recordPermissionDecision`/`recordChildAgent`/`bindCheckpoint`（保留最早=pre-
+  mutation 快照）/`setWorktree`/`markUserEdit` 累积，`toJSON`/`fromJSON` 可序列化
+  给 session 记录持久化（IO 归调用方）。
+- **诚实的 `coverage: full|partial|none`**（`computeCoverage`，确定性）：跑过
+  shell/外部进程/用户编辑（`classifyToolKind` 子串判定 shell）→ **PARTIAL**（副
+  作用在文件树之外、`不能承诺完全恢复`）；无文件改动→FULL；改文件且有 checkpoint
+  →FULL；改文件但无 checkpoint→NONE（文件不可复原）。把 `agent-repl.js` 里那句非
+  正式提示串正式建模成数据字段。
+- **恢复计划 `resolveRestorePlan(turn, scope)`**——scope∈{conversation, files,
+  both} 对应 gap 的三种恢复界面，**永不过度承诺**：partial 覆盖、缺 checkpoint、
+  或单侧恢复导致文件与对话漂移，都返回 warnings 而非静默做有损恢复。
+- **区间选择 `selectTurnRange`**（Summarize from here / up to here）+ **桥接
+  `buildTurnBindingFromMarks`**：从 REPL 现有的 `listUserTurns` + `_checkpointMarks`
+  就地构造显式表（把每个 mark 归属到「其 atMessageCount 之下最大 index 的 turn」、
+  turn 的 checkpoint 取该 turn 最早 mark），**让 coverage-aware 恢复今天就能从已有
+  状态派生**，无需先改 agent loop。
+
+**测试**：`turn-binding.test.js` 21 项（classifyToolKind / computeCoverage 四分支 /
+TurnBindingLog 全字段 + earliest-checkpoint + dedupe + JSON round-trip /
+resolveRestorePlan 三 scope + 漂移与 partial warnings / selectTurnRange /
+桥接归属与 orphan mark）全绿。
+
+**仍欠（持久化 + 运行时事件 + 恢复 UI）**：把绑定作为**新链式事件**
+`appendEvent(sessionId, "turn_checkpoint_binding", …)` 落 `jsonl-session-store.js`
+（继承哈希链防篡改，替代易失的 `_checkpointMarks`）；从 agent loop 事件（checkpoint /
+tool-executing 的 `tool_use_id` / 权限决定 `requestId` / `spawn_sub_agent` /
+worktree create）实时喂 `TurnBindingLog`（tool-call **持久 id** 目前不存在，需引入）；
+把 `resolveRestorePlan` 的 scope 选择 + coverage 警告接进 `/rewind` 交互输出；外部
+Session Mirror 的加密/保留期/删除/key rotation 属独立基建，未起。
+
 ## P1：Plugin 能力声明和配置 Schema
 
 当前 Plugin 已具备 exact-version trust、签名、managed allow/block、LSP、MCP、Hooks、
