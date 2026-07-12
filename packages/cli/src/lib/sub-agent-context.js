@@ -172,6 +172,12 @@ export class SubAgentContext {
     // sets this only for the autopilot (bypassPermissions) ALLOW confirmer.
     this._permissionConfirm = options.permissionConfirm || null;
 
+    // permissionMode ApprovalGate for this child loop. null = ungated (the spawn
+    // default). The spawn sets a dedicated confirmer-less gate (seeded with the
+    // mode's tier) for the strict/trusted tiers so run_shell/browser_act are
+    // gated headlessly (CONFIRM→no-confirmer→DENY).
+    this._approvalGate = options.approvalGate || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const profilePrompt = this._profile?.systemPrompt
@@ -355,6 +361,11 @@ export class SubAgentContext {
     // forward when present so a plain sub-agent keeps its implicit-deny default.
     if (this._permissionConfirm) {
       options.permissionConfirm = this._permissionConfirm;
+    }
+    // permissionMode ApprovalGate (spawn sets it for strict/trusted tiers). Only
+    // forward when present so a plain sub-agent stays ungated (byte-identical).
+    if (this._approvalGate) {
+      options.approvalGate = this._approvalGate;
     }
 
     try {

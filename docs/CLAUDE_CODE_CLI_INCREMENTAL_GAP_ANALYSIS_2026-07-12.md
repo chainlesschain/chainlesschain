@@ -630,11 +630,21 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   →toolContext.subAgentContract→spawn 上限。strict 会话→子 "default" 逐字节不变。测试 +4
   （`permission-tier.test.js`：autopilot→bypass 精确 / trusted→acceptEdits + auto/dontAsk 透传 /
   strict+未知→default / 五个 tier 全 round-trip 到合法 SUBAGENT_PERMISSION_MODES）。未改 agent-core 导出。
+- **ApprovalGate sessionPolicy 进子门**（2026-07-13 八轮收尾）——补齐 `run_shell`/`browser_act` 的
+  会话策略强制。原共享单例 gate 的 confirmer 是**全局**的（转发给无头子会触发父的交互 confirmer），
+  故改**给子建专属、无 confirmer 的 ApprovalGate**（`new ApprovalGate({defaultPolicy: perm.sessionPolicy})`
+  from `@chainlesschain/session-core`），零干扰父单例。`decide()` 仅在 base=CONFIRM 时问 confirmer——
+  无 confirmer 则自动 DENY（无头正确）：strict 拒 MED/HIGH、trusted 仅拒 HIGH、autopilot 全放。
+  `perm.sessionPolicy`（已算）即 tier。**仅当** permissionMode 被显式驱动（spawn/agent-file 显式，或
+  运行上限非 "default"）**且** tier≠autopilot 才挂——纯默认 spawn 不挂门=逐字节不变（旧=无门=放行），
+  autopilot 挂门是纯 no-op 故跳过。`SubAgentContext` 存 `_approvalGate` 并转发进子 `agentLoop`。⚠️
+  `run_code` 门在 `interactiveApproval` 之后（子恒 false）故本笔只覆 run_shell/browser_act。测试 +5
+  （`sub-agent-isolation.test.js`：默认不挂 / "default" 上限不挂 / 显式 manual→strict 门+HIGH·MED 拒
+  LOW 放 / acceptEdits 上限→trusted 门+HIGH 拒 MED 放 / autopilot 不挂）。未改 agent-core 导出（shim parity）。
 
 **仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
-Subagent、每 child 的 checkpoint 归因仍缺。`acceptEdits`/`auto` 的「trusted 自动放行」需子侧
-ApprovalGate sessionPolicy（受共享单例全局 confirmer 制约，属更大面，与 run_shell 会话策略线程化
-一并 defer）。
+Subagent、每 child 的 checkpoint 归因仍缺；`run_code` 门在子里走 `interactiveApproval`（恒 false）
+故 tier 不覆盖它，属独立缺口。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

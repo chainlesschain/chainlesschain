@@ -527,6 +527,94 @@ describe("Integration: Sub-Agent Isolation", () => {
     });
   });
 
+  // ─── child ApprovalGate sessionPolicy (2026-07-13) ─────
+
+  describe("child ApprovalGate sessionPolicy", () => {
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      });
+
+    const spawnAndCapture = async (spawnArgs, parentCtx = {}) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+            ...parentCtx,
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("attaches NO gate for a plain default spawn (byte-identical ungated)", async () => {
+      const opts = await spawnAndCapture({});
+      expect(opts.approvalGate).toBeUndefined();
+    });
+
+    it("attaches NO gate for a silent child under a 'default' ceiling", async () => {
+      const opts = await spawnAndCapture(
+        {},
+        { subAgentContract: { permissionMode: "default" } },
+      );
+      expect(opts.approvalGate).toBeUndefined();
+    });
+
+    it("attaches a STRICT, confirmer-less gate for an explicit manual mode", async () => {
+      const opts = await spawnAndCapture({ permissionMode: "manual" });
+      expect(opts.approvalGate).toBeTruthy();
+      expect(opts.approvalGate.getSessionPolicy("child")).toBe("strict");
+      // No confirmer → CONFIRM (MED/HIGH under strict) auto-denies.
+      expect(
+        (await opts.approvalGate.decide({ riskLevel: "high" })).decision,
+      ).toBe("deny");
+      expect(
+        (await opts.approvalGate.decide({ riskLevel: "medium" })).decision,
+      ).toBe("deny");
+      expect(
+        (await opts.approvalGate.decide({ riskLevel: "low" })).decision,
+      ).toBe("allow");
+    });
+
+    it("attaches a TRUSTED gate when the child inherits acceptEdits from the ceiling", async () => {
+      // acceptEdits is more permissive than a top-level "default" ceiling, so it
+      // only survives when the ceiling itself is acceptEdits (a run in that mode).
+      const opts = await spawnAndCapture(
+        {},
+        { subAgentContract: { permissionMode: "acceptEdits" } },
+      );
+      expect(opts.approvalGate.getSessionPolicy("child")).toBe("trusted");
+      // trusted: HIGH still denies (no confirmer), MED/LOW auto-allow.
+      expect(
+        (await opts.approvalGate.decide({ riskLevel: "high" })).decision,
+      ).toBe("deny");
+      expect(
+        (await opts.approvalGate.decide({ riskLevel: "medium" })).decision,
+      ).toBe("allow");
+    });
+
+    it("attaches NO gate for autopilot (bypass) — its gate would be a no-op", async () => {
+      const opts = await spawnAndCapture(
+        {},
+        { subAgentContract: { permissionMode: "bypassPermissions" } },
+      );
+      expect(opts.approvalGate).toBeUndefined();
+    });
+  });
+
   // ─── SubAgentContext isolation ─────────────────────────
 
   describe("SubAgentContext message isolation", () => {

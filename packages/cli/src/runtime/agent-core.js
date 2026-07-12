@@ -4428,6 +4428,12 @@ async function _executeSpawnSubAgent(args, ctx) {
   // an explicit list subsets them. See filterInherited* below.
   let mcpAllow = [];
   let hookAllow = [];
+  // Was the child's permission mode EXPLICITLY driven — a `permissionMode` in the
+  // spawn args / agent file, OR a NON-"default" parent ceiling from the run
+  // (`--permission-mode manual|acceptEdits|…`)? Only then do we attach an
+  // ApprovalGate to the child (below), so a plain default spawn stays ungated
+  // = byte-identical.
+  let permModeDriven = false;
   try {
     const { resolveSubagentContract, normalizeSubagentContract } =
       await import("../lib/subagent-contract.js");
@@ -4438,6 +4444,11 @@ async function _executeSpawnSubAgent(args, ctx) {
       definition: mdContract,
       spawnArgs: spawnContract,
     });
+    permModeDriven =
+      spawnContract.permissionMode != null ||
+      mdContract?.permissionMode != null ||
+      (ctx.subAgentContract?.permissionMode != null &&
+        ctx.subAgentContract.permissionMode !== "default");
     // Skill capability INTERSECT: restrict the child's skills ONLY when it was
     // explicitly driven — an explicit `skills` list (spawn args or agent file)
     // OR an explicit `context` mode. A fully-defaulted spawn stays unrestricted
@@ -4460,6 +4471,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     skillAllowlist = null;
     mcpAllow = []; // inherit no MCP / hooks when resolution fails
     hookAllow = [];
+    permModeDriven = false; // no gate when resolution fails
   }
 
   // Filter the parent loop's live MCP plumbing + settings hooks down to what the
@@ -4561,9 +4573,19 @@ async function _executeSpawnSubAgent(args, ctx) {
   //    so we leave it unset to stay byte-identical — crucially preserving the
   //    parallel-read fast-path + IDE-diff branch, both of which key off whether a
   //    permissionConfirm is present.
+  //  • ApprovalGate sessionPolicy → attach the child its OWN ApprovalGate seeded
+  //    with the mode's tier (perm.sessionPolicy) and NO confirmer, so run_shell /
+  //    browser_act are gated per tier headlessly: strict denies MED/HIGH, trusted
+  //    denies only HIGH, autopilot allows all (CONFIRM→no-confirmer→DENY). A fresh
+  //    per-child gate (never the shared singleton) means zero interference with
+  //    the parent's global confirmer. Attached ONLY when the mode was explicitly
+  //    driven (permModeDriven) AND the tier actually gates (non-autopilot) — a
+  //    plain default spawn stays ungated = byte-identical; autopilot's gate would
+  //    be a pure no-op so it is skipped.
   // `tightenPermissionMode` already stops a child EXCEEDING the parent's mode; a
-  // fully-defaulted spawn (→ "default") touches neither tools nor confirmer.
+  // fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.
   let childPermissionConfirm = null;
+  let childApprovalGate = null;
   if (effectiveContract?.permissionMode) {
     try {
       const { resolvePermissionMode, resolveEnabledTools } =
@@ -4580,6 +4602,13 @@ async function _executeSpawnSubAgent(args, ctx) {
         typeof perm.confirmer === "function"
       ) {
         childPermissionConfirm = perm.confirmer;
+      }
+      // Dedicated, confirmer-less child ApprovalGate for the strict/trusted tiers.
+      if (permModeDriven && perm.sessionPolicy !== "autopilot") {
+        const { ApprovalGate } = await import("@chainlesschain/session-core");
+        childApprovalGate = new ApprovalGate({
+          defaultPolicy: perm.sessionPolicy,
+        });
       }
     } catch {
       // Enforcement is best-effort — never break the spawn.
@@ -4743,6 +4772,10 @@ async function _executeSpawnSubAgent(args, ctx) {
     ...(childPermissionConfirm
       ? { permissionConfirm: childPermissionConfirm }
       : {}),
+    // permissionMode ApprovalGate (2026-07-13): a dedicated confirmer-less gate
+    // seeded with the mode's tier gates the child's run_shell / browser_act;
+    // absent (ungated) for a plain default spawn = byte-identical.
+    ...(childApprovalGate ? { approvalGate: childApprovalGate } : {}),
   });
   subCtxRef = subCtx;
 
