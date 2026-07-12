@@ -478,12 +478,22 @@ schedule-planner 的 `isEntryExpired` 把过期的可调度条目跨 kind 标 `s
 占用）故本轮 defer；`jitterMs` 目前是 planner 的**全局**入参而非 per-entry，per-entry
 jitter 留待。
 
+**已落地（2026-07-13 六轮）**：(a) `cc agenda prune`（`--older-than <秒>`/`--json`）——
+store 新 `pruneTerminal({before})` + 导出 `TERMINAL_STATUSES`，把 fired/matched/
+exhausted/expired 且终止时间戳 ≤ before 的条目跨 kind 清除（防 append-only JSONL 无界
+增长，配 retireExpired 成 reclaim 对；子命令不改顶层命令数）。commit `49c23ca68e`。
+(b) **Monitor 文件源**（"Monitor 扩到文件变化"首项）——`createMonitor` 接受 `watchFile`
+（与 `command` 互斥、恰一）并标 `source:"command"|"file"`；`cc agenda run` 经可注入
+`readWatchedFile` 读文件：有 `stopWhen` 匹配内容、无 pattern 则**文件出现**即触发（哨兵
+文件用例），不再每 tick spawn shell；command 监视器字节兼容。commit `98124b255f`。
+两笔测试各 store+agenda 共 +14（prune 7 / file-monitor 7），scheduler 套 62/62 全绿。
+
 **仍欠（daemon 事件运行时闭环）**：把 daemon 变成常驻 Event Runtime——用
 `msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due（退休已接）；agent 工具
-create 透传 `expiresAt` + per-entry `jitterMs`；Monitor 扩到文件变化/WebSocket/SSE/HTTP
-webhook/MCP event（现仅 shell stdout 正则）；事件加 `event_id`/去重窗口/
-backpressure/大小上限/authority（复用 [[agent-authority.js]]）/审计；每个定时/
-事件任务独立预算·权限模式·Worktree·最大存活期；Channel pairing/allowlist 与
+create 透传 `expiresAt` + per-entry `jitterMs`；Monitor 再扩到 WebSocket/SSE/HTTP
+webhook/MCP event + 真·mtime 变化检测（文件源已落**内容/出现**两态）；事件加
+`event_id`/去重窗口/backpressure/大小上限/authority（复用 [[agent-authority.js]]）/审计；
+每个定时/事件任务独立预算·权限模式·Worktree·最大存活期；Channel pairing/allowlist 与
 Permission Approval 分层不混用。
 
 ## P1：补齐 Subagent 契约
