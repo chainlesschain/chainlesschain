@@ -12,9 +12,10 @@
  * `run` for each due entry:
  *   - wakeup  → spawn `cc agent -p <prompt>`, mark fired
  *   - cron    → spawn `cc agent -p <prompt>`, advance to next fire time
- *   - monitor → check its source (a shell <command>'s output, or a <watchFile>'s
- *               content / appearance); if it matches stop_when, send the
- *               notification and stop; else re-arm for the next interval
+ *   - monitor → check its source (a shell <command>'s output, a <watchFile>'s
+ *               content / appearance, or a <watchUrl>'s response body / 2xx);
+ *               if it matches stop_when, send the notification and stop; else
+ *               re-arm for the next interval
  */
 
 import { spawn, execSync } from "node:child_process";
@@ -100,7 +101,9 @@ export function runAgendaList(options = {}, _deps = {}) {
     const monitorWhat =
       e.source === "file"
         ? `file ${e.watchFile}`
-        : `every ${Math.round(e.intervalMs / 1000)}s`;
+        : e.source === "http"
+          ? `url ${e.watchUrl}`
+          : `every ${Math.round(e.intervalMs / 1000)}s`;
     const when =
       e.kind === "wakeup"
         ? new Date(e.dueAt).toISOString()
@@ -113,7 +116,7 @@ export function runAgendaList(options = {}, _deps = {}) {
         : "";
     log(
       `  ${chalk.cyan(e.kind.padEnd(8))} ${chalk.dim(e.id.slice(0, 8))} ` +
-        `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command || e.watchFile, 40)}`,
+        `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command || e.watchFile || e.watchUrl, 40)}`,
     );
     log(`           ${chalk.dim(when)}${expiry}`);
   }
@@ -203,6 +206,7 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const spawnAgent = _deps.spawnAgent || defaultSpawnAgent;
   const runCommand = _deps.runCommand || defaultRunCommand;
   const readWatchedFile = _deps.readWatchedFile || defaultReadWatchedFile;
+  const fetchUrl = _deps.fetchUrl || defaultFetchUrl;
   const notify = _deps.notify || sendAgentNotification;
   const now = _deps.now ? _deps.now() : Date.now();
   // Retire expired entries BEFORE firing due ones — an expired task never gets
@@ -228,8 +232,9 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         store.advanceCron(entry.id);
         actions.push({ id: entry.id, kind: "cron", action: "fired" });
       } else if (entry.kind === "monitor") {
-        // Two sources: a shell command (match its output) or a watched file
-        // (match its content, or — with no stopWhen — fire when it appears).
+        // Three sources: a shell command (match its output), a watched file
+        // (match its content, or — with no stopWhen — fire when it appears),
+        // or an HTTP endpoint (match its response body, or fire on 2xx).
         let output = "";
         let matched = false;
         if (entry.source === "file") {
@@ -238,6 +243,12 @@ export async function runAgendaRun(options = {}, _deps = {}) {
           matched = entry.stopWhen
             ? new RegExp(entry.stopWhen).test(file.content)
             : file.exists; // no pattern → the file appearing is the signal
+        } else if (entry.source === "http") {
+          const res = await fetchUrl(entry.watchUrl);
+          output = res.body;
+          matched = entry.stopWhen
+            ? new RegExp(entry.stopWhen).test(res.body)
+            : res.ok; // no pattern → a 2xx response is the signal
         } else {
           output = await runCommand(entry.command);
           matched = entry.stopWhen
@@ -246,7 +257,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         }
         if (matched) {
           const what =
-            entry.source === "file" ? entry.watchFile : entry.command;
+            entry.source === "file"
+              ? entry.watchFile
+              : entry.source === "http"
+                ? entry.watchUrl
+                : entry.command;
           await notify({
             title: entry.notify?.title || `Monitor matched: ${what}`,
             body: truncate(output, 500),
@@ -335,6 +350,21 @@ function defaultReadWatchedFile(filePath) {
     return { exists: true, content: readFileSync(filePath, "utf-8") };
   } catch {
     return { exists: false, content: "" };
+  }
+}
+
+/**
+ * GET a watched URL → { ok, status, body }. Any failure (network, timeout,
+ * non-2xx) is not an error here — it just yields ok:false so the monitor
+ * re-arms and tries again next interval.
+ */
+async function defaultFetchUrl(url) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    const body = await res.text();
+    return { ok: res.ok, status: res.status, body };
+  } catch {
+    return { ok: false, status: 0, body: "" };
   }
 }
 

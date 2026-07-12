@@ -269,4 +269,43 @@ describe("AgentScheduleStore", () => {
       );
     });
   });
+
+  describe("http monitor source", () => {
+    it("creates an http monitor with source=http", () => {
+      const m = store.createMonitor({
+        watchUrl: "https://example.com/health",
+        intervalMs: 1000,
+      });
+      expect(m.source).toBe("http");
+      expect(m.watchUrl).toBe("https://example.com/health");
+      expect(m.command).toBeNull();
+      expect(m.watchFile).toBeNull();
+      expect(m.status).toBe("active");
+    });
+
+    it("rejects supplying more than one source", () => {
+      expect(() =>
+        store.createMonitor({
+          command: "echo",
+          watchUrl: "https://x.test",
+          intervalMs: 1000,
+        }),
+      ).toThrow(/exactly one/);
+    });
+
+    it("rejects a non-http(s) watchUrl scheme", () => {
+      expect(() =>
+        store.createMonitor({
+          watchUrl: "file:///etc/passwd",
+          intervalMs: 1000,
+        }),
+      ).toThrow(/http\(s\)/);
+    });
+
+    it("rejects a malformed watchUrl", () => {
+      expect(() =>
+        store.createMonitor({ watchUrl: "not a url", intervalMs: 1000 }),
+      ).toThrow(/valid URL/);
+    });
+  });
 });

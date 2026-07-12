@@ -249,6 +249,7 @@ export class AgentScheduleStore {
   createMonitor({
     command,
     watchFile = null,
+    watchUrl = null,
     intervalMs,
     stopWhen = null,
     notify = null,
@@ -256,14 +257,33 @@ export class AgentScheduleStore {
     label = null,
     expiresAt = null,
   } = {}) {
-    // A monitor watches exactly one source: a shell `command` (match its output)
-    // or a `watchFile` (match its content, or fire when the file appears).
+    // A monitor watches exactly one source:
+    //   - a shell `command`  → match its stdout/stderr
+    //   - a `watchFile`      → match its content, or fire when the file appears
+    //   - a `watchUrl`       → GET it and match the response body, or fire on 2xx
     const hasCommand = typeof command === "string" && command.length > 0;
     const hasFile = typeof watchFile === "string" && watchFile.length > 0;
-    if (hasCommand === hasFile) {
+    const hasUrl = typeof watchUrl === "string" && watchUrl.length > 0;
+    const sourceCount = Number(hasCommand) + Number(hasFile) + Number(hasUrl);
+    if (sourceCount !== 1) {
       throw new Error(
-        "monitor requires exactly one of `command` or `watchFile`",
+        "monitor requires exactly one of `command`, `watchFile`, or `watchUrl`",
       );
+    }
+    if (hasUrl) {
+      // Only http(s) endpoints — reject file:// and other schemes up-front so a
+      // bad URL errors at creation, not silently at the first poll.
+      let parsed;
+      try {
+        parsed = new URL(watchUrl);
+      } catch {
+        throw new Error(`monitor watchUrl is not a valid URL: ${watchUrl}`);
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        throw new Error(
+          `monitor watchUrl must be http(s), got: ${parsed.protocol}`,
+        );
+      }
     }
     const interval = Math.max(1000, Number(intervalMs) || 60000);
     if (stopWhen != null) {
@@ -273,12 +293,14 @@ export class AgentScheduleStore {
       new RegExp(stopWhen);
     }
     const now = this._now();
+    const source = hasFile ? "file" : hasUrl ? "http" : "command";
     const entry = {
       id: randomUUID(),
       kind: "monitor",
-      source: hasFile ? "file" : "command",
+      source,
       command: hasCommand ? command : null,
       watchFile: hasFile ? watchFile : null,
+      watchUrl: hasUrl ? watchUrl : null,
       intervalMs: interval,
       stopWhen: stopWhen || null,
       notify: notify || null,

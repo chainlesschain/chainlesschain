@@ -197,6 +197,72 @@ describe("cc agenda", () => {
     });
   });
 
+  describe("http monitor", () => {
+    it("matches a watched URL's response body and notifies", async () => {
+      const m = store.createMonitor({
+        watchUrl: "https://ci.test/status",
+        intervalMs: 1000,
+        stopWhen: "deployed",
+        notify: { title: "shipped" },
+      });
+      const fetchUrl = vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        body: '{"state":"deployed"}',
+      }));
+      const notify = vi.fn(async () => ({ delivered: ["telegram"] }));
+      await runAgendaRun(
+        { json: true },
+        { store, log, fetchUrl, notify, now: () => clock + 2000 },
+      );
+      expect(fetchUrl).toHaveBeenCalledWith("https://ci.test/status");
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "shipped", level: "success" }),
+      );
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+    });
+
+    it("fires on any 2xx response when there is no stopWhen pattern", async () => {
+      const m = store.createMonitor({
+        watchUrl: "https://svc.test/health",
+        intervalMs: 1000,
+      });
+      const fetchUrl = vi.fn(async () => ({ ok: true, status: 204, body: "" }));
+      const notify = vi.fn(async () => ({}));
+      await runAgendaRun(
+        { json: true },
+        { store, log, fetchUrl, notify, now: () => clock + 2000 },
+      );
+      expect(notify).toHaveBeenCalled();
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+    });
+
+    it("re-arms while the endpoint is still failing", async () => {
+      const m = store.createMonitor({
+        watchUrl: "https://svc.test/health",
+        intervalMs: 1000,
+      });
+      const fetchUrl = vi.fn(async () => ({
+        ok: false,
+        status: 503,
+        body: "",
+      }));
+      const notify = vi.fn();
+      await runAgendaRun(
+        { json: true },
+        { store, log, fetchUrl, notify, now: () => clock + 2000 },
+      );
+      expect(notify).not.toHaveBeenCalled();
+      const after = store.list("monitor").find((e) => e.id === m.id);
+      expect(after.status).toBe("active");
+      expect(after.checks).toBe(1);
+    });
+  });
+
   it("reports a spawn failure as an error action (exit 1)", async () => {
     store.scheduleWakeup({ prompt: "boom", delayMs: 0 });
     const spawnAgent = vi.fn(async () => {
