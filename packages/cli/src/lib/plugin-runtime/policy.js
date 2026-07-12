@@ -25,6 +25,7 @@
 import { enforcePluginPolicy } from "../plugin-security.js";
 import { loadManagedSettings } from "../settings-loader.cjs";
 import { verifyInstalledSignature } from "./signature.js";
+import { isPluginCapabilityConsented } from "./capability-consent.js";
 
 // Managed settings are org-admin controlled and effectively static for a
 // session, and discoverPlugins is called by every collector — memoize the load
@@ -138,6 +139,67 @@ export function filterByManagedPolicy(plugins, managed) {
       }
     }
     kept.push(p);
+  }
+  return { kept, dropped };
+}
+
+/**
+ * Whether capability-consent must be ENFORCED at load time. The consent gate
+ * ([[capability-consent.js]]) already exists but was consulted only by `cc
+ * plugin consent`/`validate`/`doctor` — a plugin that declared capabilities and
+ * was never consented still loaded all six component types. Enforcement is
+ * OPT-IN (byte-identical default): an org sets `requirePluginCapabilityConsent`
+ * in managed settings, or a single user exports `CC_REQUIRE_PLUGIN_CONSENT=1`.
+ *
+ * @param {object|null} managed  managed settings
+ * @param {object} [env]         process env (injectable)
+ * @returns {boolean}
+ */
+export function capabilityConsentRequired(managed, env) {
+  const raw = (env || process.env).CC_REQUIRE_PLUGIN_CONSENT;
+  if (raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim())) return true;
+  return (
+    managed?.requirePluginCapabilityConsent === true ||
+    managed?.requirePluginCapabilityConsent === "require"
+  );
+}
+
+/**
+ * Drop plugins that DECLARE capabilities but whose current capability SET has
+ * not been consented (first request or any widening). Fail-closed: a consent
+ * check that throws drops the plugin. Legacy plugins that declare no
+ * `permissions` block are UNAFFECTED — the same "未声明 legacy 不受限" rule the
+ * declaration audit uses. A plugin whose declared set is empty (all-deny) is
+ * auto-consented by `isPluginCapabilityConsented`, so it stays.
+ *
+ * @param {Array<{name, scope, manifest}>} plugins
+ * @returns {{ kept: Array, dropped: Array<{name, reason}> }}
+ */
+export function filterByCapabilityConsent(plugins) {
+  const kept = [];
+  const dropped = [];
+  for (const p of plugins) {
+    if (!p.manifest?.capabilitiesDeclared) {
+      kept.push(p); // legacy plugin, no declaration → not gated
+      continue;
+    }
+    let consented = false;
+    try {
+      consented = isPluginCapabilityConsented(
+        { name: p.name, scope: p.scope },
+        p.manifest.capabilities,
+      );
+    } catch {
+      consented = false; // fail closed
+    }
+    if (consented) {
+      kept.push(p);
+    } else {
+      dropped.push({
+        name: p.name,
+        reason: `capabilities not consented — run \`cc plugin consent ${p.name} --grant\``,
+      });
+    }
   }
   return { kept, dropped };
 }

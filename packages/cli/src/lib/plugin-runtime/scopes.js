@@ -27,6 +27,8 @@ import { parsePluginManifest } from "./manifest.js";
 import {
   loadManagedPluginPolicy,
   filterByManagedPolicy,
+  filterByCapabilityConsent,
+  capabilityConsentRequired,
   warnDroppedOnce,
 } from "./policy.js";
 
@@ -160,10 +162,24 @@ export function discoverPlugins(opts = {}) {
     env: opts.env,
     managedSettingsFile: opts.managedSettingsFile,
   });
-  if (!managed) return all;
-  const { kept, dropped } = filterByManagedPolicy(all, managed);
-  if (dropped.length > 0) warnDroppedOnce(dropped);
-  return kept;
+  const consentGate = capabilityConsentRequired(managed, opts.env);
+  // Default (no managed policy AND consent enforcement off): byte-identical —
+  // return every discovered plugin, exactly as before.
+  if (!managed && !consentGate) return all;
+  let list = all;
+  if (managed) {
+    const { kept, dropped } = filterByManagedPolicy(list, managed);
+    if (dropped.length > 0) warnDroppedOnce(dropped);
+    list = kept;
+  }
+  // Capability-consent enforcement funnels through the SAME chokepoint, so an
+  // un-consented plugin loads NONE of its six component types (opt-in).
+  if (consentGate) {
+    const { kept, dropped } = filterByCapabilityConsent(list);
+    if (dropped.length > 0) warnDroppedOnce(dropped);
+    list = kept;
+  }
+  return list;
 }
 
 // ── internals ────────────────────────────────────────────────────────────
