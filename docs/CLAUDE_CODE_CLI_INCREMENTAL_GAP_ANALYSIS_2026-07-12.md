@@ -298,6 +298,34 @@ evidence、turn/token/cost/time，可随 session resume，并强制
 `max_outer_turns`、token/cost/time 上限。SDK 增加
 `goal_started/evaluated/completed/exhausted` 事件。
 
+### 已落地（增量）
+
+- **完成条件引擎核心**：新增纯逻辑模块
+  [`goal-condition-engine.js`](../packages/cli/src/lib/goal-condition-engine.js)
+  （与 `cc goal` OKR、`cc loop` 定时器**刻意分离**，驱动 agent **外层回合**）：
+  - `parseGoalCondition`：`exit-zero:<cmd>` / `file-exists:<path>` /
+    `contains:<text>` / `regex:<pat>` 四种**确定性检查器** + `model:<desc>`／裸
+    文本的**模型判断**。
+  - `checkDeterministicCondition`（纯，按 evidence 判定）+ `runDeterministicCheck`
+    （注入 `spawnSync`/`existsSync` 采证，真 spawn 跑 `exit-zero`）。
+  - `evaluateGoalStep` 纯 reducer + `GoalConditionEngine` 类：每个外层回合
+    evaluate → `complete`/`continue`/`exhausted`，强制 `max_outer_turns` +
+    token/cost/time 预算（含硬上限 100 回合防空转），产出 SDK 事件
+    `goal_started/goal_evaluated/goal_completed/goal_exhausted`，每个事件带
+    结构化 reason/evidence + turn/token/cost/time。
+  - **可 resume**：`snapshot()`/`fromSnapshot()` 保留 startedAtMs 与累计用量，
+    跨进程继续计时/计量。时钟经 `now` 注入、绝不隐式读取——快照可确定性重放。
+  - 测试：`goal-condition-engine.test.js`（条件解析/预算归一含硬上限/四种确定性
+    检查含真 spawn exit-zero/reducer 的 complete·continue·exhausted 四种终止
+    条件/引擎驱动到完成/**快照跨 resume 累计正确**）。
+
+**仍欠（接到外层回合驱动）**：把引擎接进 headless-runner 的外层回合循环——加
+`--goal-condition <spec>` + `--max-outer-turns`/`--goal-max-tokens`/`-cost`/`-time`
+flag（REPL `/goal <condition>`），未满足条件时用 `job.followUpArgv` 自动起下一回合
+（与后台 worker 的续跑机制一致），并把四个 `goal_*` 事件经 stream-json 输出、
+SDK `AgentSession` 转发；`model:` 条件复用现有 `assessChat`/`chatWithTools` 作
+独立 evaluator。均需真实外层循环 harness，作为下一步集成。
+
 ## P1：大型 Monorepo 的上下文和 Worktree 优化
 
 ChainlessChain 本身包含 Electron/Vue、Spring Boot、FastAPI、Forum、Android、iOS、
