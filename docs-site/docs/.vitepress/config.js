@@ -204,6 +204,34 @@ export default defineConfig({
               text: "Artifacts 交付物 (artifacts / publish_artifact) ⭐NEW",
               link: "/chainlesschain/cli-artifacts",
             },
+            {
+              text: "自托管云端接管 — Bundle→Run→Reflow (cloud) ⭐NEW",
+              link: "/chainlesschain/cli-cloud",
+            },
+            {
+              text: "命名定时/触发任务 — Cron/Once/Webhook/GitHub (routine) ⭐NEW",
+              link: "/chainlesschain/cli-routine",
+            },
+            {
+              text: "后台 Agent — daemon/attach/logs (background) ⭐NEW",
+              link: "/chainlesschain/cli-background-agents",
+            },
+            {
+              text: "会话洞察 — 轮次/工具/成本 (insights) ⭐NEW",
+              link: "/chainlesschain/cli-insights",
+            },
+            {
+              text: "上下文窗口分解 (context) ⭐NEW",
+              link: "/chainlesschain/cli-context",
+            },
+            {
+              text: "自动权限模式检视 (auto-mode) ⭐NEW",
+              link: "/chainlesschain/cli-auto-mode",
+            },
+            {
+              text: "行内代码补全 — FIM Ghost-Text (complete) ⭐NEW",
+              link: "/chainlesschain/cli-complete",
+            },
           ],
         },
         {
