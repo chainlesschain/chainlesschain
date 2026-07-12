@@ -1040,10 +1040,18 @@ verifier 抛错/不可解析→无 verdict→finding 保留（保守）；仅 `-
 keyed+throw 无 verdict/multi--verify 丢 refuted+verified 计数+4 调用=2 finder+2 verifier）=
 12 绿 + review 套回归 67。
 
-**仍欠（调度器接线 + LSP 多根 + effort 自动）**：`--multi`/`--verify` 按 effort 自动开
-（现纯 opt-in）；`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core 的编辑→诊断路径
-（替 `_postEditDiagnostics` 的裸 cap 20 + 无节流）；LSP 多根 workspace / `/doctor` 检查；
-backoff 目前是滑窗隔离非指数退避，留待评估。
+**已接线（effort 自动开）**：`--multi`/`--verify` 现按 effort **自动开**——新纯核
+`resolveMultiVerify({multi,verify,effort,single})`：顶层 tier `high` 无 flag 时自动开
+multi+verify（一次 high review 即彻底的、经核验的一遍），low/medium 无 flag 保持单遍
+**字节不变**；显式 flag 恒胜、`--single` 强制单遍、verify 永不脱离 multi；auto 时 stderr
+提示。接进 `runReview`（`if(options.multi)`→`resolveMultiVerify` 决策）+ 新 `--single`
+命令 flag。测试 `review-multi-finder.test.js` +7（low/medium/未设单遍 + high 自动双开 +
+single 强制单遍 + 低 effort 显式 multi 无 verify + no-verify 保 multi + verify 不脱 multi）；
+review 套回归 129 绿（`b8b2e8df95`）。
+
+**仍欠（调度器接线 + LSP 多根）**：`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core 的
+编辑→诊断路径（替 `_postEditDiagnostics` 的裸 cap 20 + 无节流，属 agent-core接线）；LSP 多根
+workspace / `/doctor` 检查；backoff 目前是滑窗隔离非指数退避，留待评估。
 
 ## P2：Doctor、文档与可观测性
 
