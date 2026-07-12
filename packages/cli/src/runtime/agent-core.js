@@ -1471,6 +1471,8 @@ export async function executeTool(name, args, context = {}) {
   try {
     toolResult = await executeToolInner(name, args, {
       skillLoader,
+      // Subagent skill capability INTERSECT — forwarded to run_skill/list_skills.
+      skillAllowlist: context.skillAllowlist ?? null,
       cwd,
       parentMessages: context.parentMessages,
       interaction: context.interaction,
@@ -2096,6 +2098,7 @@ async function executeToolInner(
   args,
   {
     skillLoader,
+    skillAllowlist = null,
     cwd,
     parentMessages,
     interaction,
@@ -2128,6 +2131,13 @@ async function executeToolInner(
       : null;
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
+  // Subagent skill capability INTERSECT: null = unrestricted; a list (possibly
+  // empty) restricts which skills run_skill/list_skills expose in this loop.
+  const _skillAllowlist = Array.isArray(skillAllowlist) ? skillAllowlist : null;
+  const skillAllowed = (s) =>
+    !_skillAllowlist ||
+    _skillAllowlist.includes(s.id) ||
+    _skillAllowlist.includes(s.dirName);
   const hostToolPolicies =
     hostManagedToolPolicy?.tools || hostManagedToolPolicy?.toolPolicies || null;
   const hostToolPolicy =
@@ -3549,11 +3559,12 @@ async function executeToolInner(
     }
 
     case "run_skill": {
-      const allSkills = skillLoader.getResolvedSkills();
+      const allSkills = skillLoader.getResolvedSkills().filter(skillAllowed);
       if (allSkills.length === 0) {
         return attachDescriptor({
-          error:
-            "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
+          error: _skillAllowlist
+            ? "No skills are available to this sub-agent (restricted by its contract's skill allow-list)."
+            : "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
         });
       }
       const match = allSkills.find(
@@ -3694,9 +3705,13 @@ async function executeToolInner(
     }
 
     case "list_skills": {
-      let skills = skillLoader.getResolvedSkills();
+      let skills = skillLoader.getResolvedSkills().filter(skillAllowed);
       if (skills.length === 0) {
-        return attachDescriptor({ error: "No skills found." });
+        return attachDescriptor({
+          error: _skillAllowlist
+            ? "No skills are available to this sub-agent (restricted by its contract's skill allow-list)."
+            : "No skills found.",
+        });
       }
       if (args.category) {
         skills = skills.filter(
@@ -4385,6 +4400,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   // ITS own nested spawns (threaded via SubAgentContext.subAgentContract).
   let effectiveContract = null;
   let explicitContext = null;
+  let skillAllowlist = null;
   try {
     const { resolveSubagentContract, normalizeSubagentContract } =
       await import("../lib/subagent-contract.js");
@@ -4395,8 +4411,20 @@ async function _executeSpawnSubAgent(args, ctx) {
       definition: mdContract,
       spawnArgs: spawnContract,
     });
+    // Skill capability INTERSECT: restrict the child's skills ONLY when it was
+    // explicitly driven — an explicit `skills` list (spawn args or agent file)
+    // OR an explicit `context` mode. A fully-defaulted spawn stays unrestricted
+    // (null) so the silent-`fresh`→[] default can never strip ALL skills from a
+    // plain sub-agent. `effectiveContract.skills` already encodes the intersect
+    // against the parent ceiling (tighten-only across depth).
+    const skillsDriven =
+      spawnContract.skills != null ||
+      mdContract?.skills != null ||
+      explicitContext != null;
+    skillAllowlist = skillsDriven ? (effectiveContract.skills ?? null) : null;
   } catch {
     effectiveContract = null; // contract resolution is best-effort
+    skillAllowlist = null;
   }
 
   // Worktree isolation must FAIL CLOSED: if requested but the cwd is not a git
@@ -4577,6 +4605,9 @@ async function _executeSpawnSubAgent(args, ctx) {
       ? { tokenBudget: effectiveContract.budget.tokens }
       : {}),
     ...(effectiveContract ? { subAgentContract: effectiveContract } : {}),
+    // Skill capability INTERSECT (2026-07-12): a non-null allow-list (possibly
+    // empty) restricts run_skill/list_skills in the child loop.
+    ...(skillAllowlist != null ? { skillAllowlist } : {}),
   });
   subCtxRef = subCtx;
 
@@ -6130,6 +6161,10 @@ export async function* agentLoop(messages, options) {
   const toolContext = {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
+    // Contract-driven skill allow-list (subagent capability INTERSECT). null =
+    // unrestricted; [] = none; a list restricts run_skill/list_skills to those
+    // ids/dirNames. Set by the spawn path from the resolved subagent contract.
+    skillAllowlist: options.skillAllowlist ?? null,
     cwd: options.cwd || process.cwd(),
     planManager: options.planManager || null,
     sessionId: options.sessionId || null,

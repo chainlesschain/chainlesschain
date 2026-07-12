@@ -81,6 +81,10 @@ export class SubAgentContext {
     // nested spawns (threaded into the loop options so a nested spawn_sub_agent
     // reads it as ctx.subAgentContract).
     this.subAgentContract = options.subAgentContract || null;
+    // Skill capability INTERSECT: null = unrestricted; a list (possibly empty)
+    // restricts run_skill/list_skills in this context's loop to those skills.
+    this.skillAllowlist =
+      options.skillAllowlist != null ? options.skillAllowlist : null;
     this.cwd = options.cwd || process.cwd();
     this.status = "active";
     this.result = null;
@@ -292,6 +296,8 @@ export class SubAgentContext {
       subAgentBudget: this.subAgentBudget,
       // This context's effective contract = the ceiling for its nested spawns.
       subAgentContract: this.subAgentContract,
+      // Skill allow-list restricting run_skill/list_skills in this loop.
+      skillAllowlist: this.skillAllowlist,
       ...loopOptions,
     };
     if (this.iterationBudget) {

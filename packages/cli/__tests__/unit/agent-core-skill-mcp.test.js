@@ -231,4 +231,60 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
     // Only successfully-mounted servers are unmounted
     expect(fakeMcp.disconnect).toHaveBeenCalledExactlyOnceWith("ok");
   });
+
+  // ─── Subagent skill capability INTERSECT (contract skillAllowlist) ────────
+  it("list_skills restricts to the contract skill allow-list", async () => {
+    registerSkill({ id: "alpha" });
+    registerSkill({ id: "beta" });
+    registerSkill({ id: "gamma" });
+    const all = await executeTool("list_skills", {}, { cwd: tempDir });
+    expect(all.count).toBe(3);
+    const restricted = await executeTool(
+      "list_skills",
+      {},
+      { cwd: tempDir, skillAllowlist: ["alpha", "gamma"] },
+    );
+    expect(restricted.count).toBe(2);
+    expect(restricted.skills.map((s) => s.id).sort()).toEqual([
+      "alpha",
+      "gamma",
+    ]);
+  });
+
+  it("list_skills with an empty allow-list reports a restricted-none error", async () => {
+    registerSkill({ id: "alpha" });
+    const res = await executeTool(
+      "list_skills",
+      {},
+      { cwd: tempDir, skillAllowlist: [] },
+    );
+    expect(res.error).toMatch(/restricted by its contract/i);
+  });
+
+  it("run_skill refuses a skill outside the allow-list, allows one inside", async () => {
+    registerSkill({ id: "alpha" });
+    registerSkill({ id: "beta" });
+    const denied = await executeTool(
+      "run_skill",
+      { skill_name: "beta", input: "x" },
+      { cwd: tempDir, skillAllowlist: ["alpha"] },
+    );
+    expect(denied.error).toMatch(/not found/i);
+    const allowed = await executeTool(
+      "run_skill",
+      { skill_name: "alpha", input: "x" },
+      { cwd: tempDir, skillAllowlist: ["alpha"] },
+    );
+    expect(allowed.success).toBe(true);
+  });
+
+  it("run_skill is unrestricted when no allow-list is set (default behavior)", async () => {
+    registerSkill({ id: "alpha" });
+    const res = await executeTool(
+      "run_skill",
+      { skill_name: "alpha", input: "x" },
+      { cwd: tempDir },
+    );
+    expect(res.success).toBe(true);
+  });
 });
