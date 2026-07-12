@@ -34,7 +34,7 @@ import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { firstBalancedJson } from "../lib/json-schema-output.js";
-import { dedupeFindings } from "../lib/review-pipeline.js";
+import { dedupeFindings, buildReviewReport } from "../lib/review-pipeline.js";
 
 /** Diffs larger than this are truncated before going to the model. */
 const MAX_DIFF_CHARS = 200_000;
@@ -585,8 +585,169 @@ export async function runReviewComment(options = {}, deps = {}) {
   };
 }
 
+// ── multi-agent fan-out (opt-in `--multi`) ──────────────────────────────────
+// A high-confidence review runs one focused FINDER per dimension, then dedupes
+// and ranks their findings into a single structured report — instead of the
+// default single agent that hunts everything at once. Each finder is blind to
+// the others; overlapping findings merge (union categories, keep max severity).
+
+/** The review dimensions fanned out, one finder agent each. */
+export const REVIEW_DIMENSIONS = Object.freeze([
+  {
+    key: "correctness",
+    label: "correctness",
+    hint: "logic errors, off-by-one, null/undefined, wrong API usage, unhandled errors, race conditions",
+  },
+  {
+    key: "security",
+    label: "security",
+    hint: "injection, auth/authz gaps, secrets, path traversal, SSRF, unsafe deserialization, missing input validation",
+  },
+  {
+    key: "performance",
+    label: "performance",
+    hint: "N+1 queries, unbounded loops, sync IO on hot paths, memory leaks, needless allocations/copies",
+  },
+  {
+    key: "tests",
+    label: "test coverage",
+    hint: "untested branches, missing edge cases, weak assertions, changed behavior lacking a test",
+  },
+]);
+
+const JSON_FINDINGS_CONTRACT =
+  'Output ONLY a JSON array (no prose, no fences). Each element: {"path":"file","line":12,"severity":"Critical|High|Medium|Low|Note","title":"one-line issue","body":"why it is a bug and how to fix"}. Output [] if you find nothing.';
+
+/** Build a single dimension finder's prompt from the shared diff context. Pure. */
+export function buildDimensionPrompt(ctx = {}, dim = {}) {
+  const {
+    diff = "",
+    summary = "",
+    label = "",
+    untrackedBlocks = [],
+    truncated = false,
+  } = ctx;
+  return [
+    `You are a ${dim.label} code reviewer. Report ONLY ${dim.label} issues: ${dim.hint}.`,
+    `Review this diff (${label}). ${summary}`,
+    truncated ? "(diff truncated — review what is shown)" : "",
+    "```diff",
+    diff,
+    "```",
+    ...(untrackedBlocks && untrackedBlocks.length
+      ? ["", "New untracked files:", ...untrackedBlocks]
+      : []),
+    "",
+    JSON_FINDINGS_CONTRACT,
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
+}
+
+/** Render a structured review report to markdown. Pure. */
+export function renderMultiFinderReport(report = {}, byDimension = {}) {
+  const findings = report.findings || [];
+  const summary = report.summary || { total: 0, bySeverity: {} };
+  const sevOrder = ["Critical", "High", "Medium", "Low", "Note"];
+  const lines = [];
+  lines.push(`# Multi-agent review — ${summary.total} finding(s)`);
+  lines.push("");
+  lines.push(
+    sevOrder.map((s) => `${s}: ${summary.bySeverity?.[s] || 0}`).join("  ·  "),
+  );
+  const dimLine = Object.entries(byDimension)
+    .map(([k, v]) => `${k} ${v}`)
+    .join("  ·  ");
+  if (dimLine) lines.push(`By dimension: ${dimLine}`);
+  lines.push("");
+  for (const f of findings) {
+    lines.push(
+      `## [${f.severity}] ${f.path}:${f.line}${f.category ? ` (${f.category})` : ""}`,
+    );
+    if (f.failure_scenario) lines.push(f.failure_scenario);
+    if (f.evidence) lines.push(`> ${f.evidence}`);
+    lines.push("");
+  }
+  if (findings.length === 0) lines.push("No findings.");
+  return lines.join("\n") + "\n";
+}
+
 /**
- * Core review run — collects the diff and dispatches one headless agent turn.
+ * Fan out one finder agent per review dimension, capture each finder's JSON
+ * findings, and dedupe/rank them into a structured report. Each finder runs a
+ * captured headless turn (its raw output never hits stdout — only the final
+ * report does). Deps: { runAgentHeadless, dimensions }.
+ */
+export async function runMultiFinderReview(ctx = {}, deps = {}) {
+  const run =
+    deps.runAgentHeadless ||
+    (await import("../runtime/headless-runner.js")).runAgentHeadless;
+  const dimensions = deps.dimensions || REVIEW_DIMENSIONS;
+  const writeOut = ctx.writeOut || ((s) => process.stdout.write(s));
+  const writeErr = ctx.writeErr || ((s) => process.stderr.write(s));
+
+  const all = [];
+  const byDimension = {};
+  for (const dim of dimensions) {
+    let captured = "";
+    let outcome;
+    try {
+      outcome = await run(
+        {
+          ...(ctx.baseOptions || {}),
+          prompt: buildDimensionPrompt(ctx, dim),
+          outputFormat: "text",
+        },
+        {
+          writeOut: (s) => {
+            captured += s;
+          },
+          writeErr,
+        },
+      );
+    } catch (e) {
+      writeErr(`review --multi: ${dim.key} finder failed: ${e.message}\n`);
+      byDimension[dim.key] = 0;
+      continue;
+    }
+    const text =
+      String(outcome?.result ?? captured ?? "").trim() || captured.trim();
+    // Carry title into `failureScenario` (the one-line issue) and body into
+    // `evidence` so the structured report keeps them; `title` stays on the
+    // object so cross-dimension dedup keys on path:line:title.
+    const found = parseFindings(text).map((f) => ({
+      path: f.path,
+      line: f.line,
+      severity: f.severity,
+      title: f.title,
+      category: dim.key,
+      failureScenario: f.title || f.body || "",
+      evidence: f.body || "",
+    }));
+    byDimension[dim.key] = found.length;
+    all.push(...found);
+  }
+
+  const report = buildReviewReport(all);
+  if (ctx.outputFormat === "json") {
+    writeOut(`${JSON.stringify({ ...report, byDimension }, null, 2)}\n`);
+  } else {
+    writeOut(renderMultiFinderReport(report, byDimension));
+  }
+  return {
+    exitCode: 0,
+    isError: false,
+    scope: ctx.scope,
+    empty: false,
+    multi: true,
+    report,
+    byDimension,
+  };
+}
+
+/**
+ * Core review run — collects the diff and dispatches one headless agent turn
+ * (or, with `--multi`, one finder agent per dimension merged into a report).
  * Deps are injected for tests (git / runAgentHeadless / config helpers).
  *
  * @returns {Promise<{exitCode:number, isError:boolean, scope:string, empty?:boolean}>}
@@ -657,6 +818,35 @@ export async function runReview(options = {}, deps = {}) {
     // fall back to runner defaults
   }
 
+  // --multi: fan out one finder per dimension and merge into a structured
+  // report. Opt-in — the default single-pass path below is byte-identical.
+  if (options.multi) {
+    return runMultiFinderReview(
+      {
+        diff: hasDiff ? diff : "(no tracked changes)",
+        summary,
+        label,
+        scope,
+        untrackedBlocks: untracked.blocks,
+        truncated,
+        outputFormat: options.outputFormat || "text",
+        writeOut: deps.writeOut,
+        writeErr: deps.writeErr,
+        baseOptions: {
+          model: options.model,
+          provider: options.provider,
+          baseUrl: options.baseUrl,
+          apiKey: options.apiKey,
+          cwd,
+          permissionMode: "plan",
+          expandFileRefs: false,
+          maxTurns: Number.isFinite(options.maxTurns) ? options.maxTurns : 20,
+        },
+      },
+      deps,
+    );
+  }
+
   // review-only → plan mode (clamped to read-only tools, cannot mutate).
   // --fix     → acceptEdits + auto-checkpoint (reversible edits).
   const permissionMode = fix ? "acceptEdits" : "plan";
@@ -724,6 +914,10 @@ export function registerReviewCommand(program) {
     .option(
       "--dry-run",
       "With --comment: show what would be posted without posting",
+    )
+    .option(
+      "--multi",
+      "Fan out one finder agent per dimension (correctness/security/performance/tests) and merge into a structured report",
     )
     .option("--json", "Emit the agent result envelope as JSON")
     .action(async (effortArg, options) => {

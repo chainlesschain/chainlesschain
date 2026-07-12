@@ -914,13 +914,25 @@ crash/backoff 和 `/doctor` 检查。
 丢弃+数字 severity+保底 1）+ `review-command` 补 1 项 dedup = 32 绿；review-command
 既有回归绿。
 
-**仍欠（agent 扇出编排 + 调度器接线）**：`review.js` `runReview` 真正 fan-out 4 个
-finder（correctness/security/performance/tests，经 `runAgentHeadless`×N 或
-`spawn_sub_agent` + 新 sub-agent-profiles）→ verifier 复现 → 喂 `buildReviewReport`
-出结构化报告（`--json`/`--comment` 复用），高 effort 才开多 Agent；
-`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core 的编辑→诊断路径（替
-`_postEditDiagnostics` 的裸 cap 20 + 无节流）；LSP 多根 workspace / `/doctor` 检查
-（Doctor 段一并做）；backoff 目前是滑窗隔离非指数退避，留待评估。
+**已接线（2026-07-12 收尾）**：多 Agent Review fan-out 落地——`cc review --multi`（opt-in
+新 flag）在 `review.js` 新增 `runMultiFinderReview`：对 4 个维度
+（correctness/security/performance/tests）各跑**一个聚焦 finder**（`runAgentHeadless`×N，
+输出 captured 不落 stdout，只出最终报告），每个 finder 回 JSON findings 经 `parseFindings`
+标 category、跨 finder 用 `buildReviewReport`（dedupe→verdicts→filter→rank）合成结构化
+报告（path/line/category/severity/failure_scenario/evidence + bySeverity/byCategory
+rollup + byDimension 计数）。title→`failureScenario`、body→`evidence`，title 保留供
+`path:line:title` 跨维 dedup（同一 finding 被多 finder 报→合并、取最高 severity、union
+categories）。纯核 `buildDimensionPrompt`/`renderMultiFinderReport` + `REVIEW_DIMENSIONS`。
+`--multi` 默认关时单遍路径**字节不变**；finder 抛错容错（该维 0 计、其余照跑）。测试：
+`review-multi-finder.test.js` 7（prompt 聚焦/render/跨维合并+max severity/captured 不打印/
+finder throw 容错/默认 4 维），review 命令套回归 74 绿。verifier 独立复现扇出（每 finding
+再派 skeptic agent）留待——`buildReviewReport` 已接受 `verdicts` 入参可后续注入。
+
+**仍欠（verifier 扇出 + 调度器接线 + LSP 多根）**：`buildReviewReport` 的 verdicts 由真
+verifier agent 复现填充（现 fan-out 只到 finder→dedupe，未派 skeptic 复现）；`--multi`
+按 effort 自动开（现纯 opt-in）；`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core
+的编辑→诊断路径（替 `_postEditDiagnostics` 的裸 cap 20 + 无节流）；LSP 多根 workspace /
+`/doctor` 检查；backoff 目前是滑窗隔离非指数退避，留待评估。
 
 ## P2：Doctor、文档与可观测性
 
