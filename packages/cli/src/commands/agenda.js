@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
 import { sendAgentNotification } from "../lib/agent-notify.js";
-import { nextWakeupAt } from "../lib/schedule-planner.js";
+import { nextWakeupAt, partitionSchedule } from "../lib/schedule-planner.js";
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -86,11 +86,15 @@ export function runAgendaList(options = {}, _deps = {}) {
         : e.kind === "cron"
           ? `${e.cron} (next ${new Date(e.nextAt).toISOString()})`
           : `every ${Math.round(e.intervalMs / 1000)}s (next ${new Date(e.nextAt).toISOString()})`;
+    const expiry =
+      e.expiresAt != null
+        ? chalk.dim(` · expires ${new Date(e.expiresAt).toISOString()}`)
+        : "";
     log(
       `  ${chalk.cyan(e.kind.padEnd(8))} ${chalk.dim(e.id.slice(0, 8))} ` +
         `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command, 40)}`,
     );
-    log(`           ${chalk.dim(when)}`);
+    log(`           ${chalk.dim(when)}${expiry}`);
   }
   if (nextAt != null) {
     const rel = Math.max(0, Math.round((nextAt - now) / 1000));
@@ -130,7 +134,13 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const spawnAgent = _deps.spawnAgent || defaultSpawnAgent;
   const runCommand = _deps.runCommand || defaultRunCommand;
   const notify = _deps.notify || sendAgentNotification;
-  const due = store.due(null, _deps.now ? _deps.now() : null);
+  const now = _deps.now ? _deps.now() : Date.now();
+  // Retire expired entries BEFORE firing due ones — an expired task never gets
+  // a final fire (schedule-planner semantics). Dry-run inspects without mutating.
+  const retired = options.dryRun
+    ? partitionSchedule(store.list(), { now }).expired
+    : store.retireExpired(now);
+  const due = store.due(null, now);
   const actions = [];
 
   for (const entry of due) {
@@ -177,11 +187,25 @@ export async function runAgendaRun(options = {}, _deps = {}) {
     }
   }
 
+  const retiredSummary = retired.map((e) => ({ id: e.id, kind: e.kind }));
   if (options.json) {
-    log(JSON.stringify({ due: due.length, actions }, null, 2));
-  } else if (actions.length === 0) {
+    log(
+      JSON.stringify(
+        { due: due.length, retired: retiredSummary, actions },
+        null,
+        2,
+      ),
+    );
+  } else if (actions.length === 0 && retired.length === 0) {
     log(chalk.gray("  Nothing due.\n"));
   } else {
+    for (const e of retired) {
+      log(
+        chalk.gray(
+          `  ${e.kind} ${e.id.slice(0, 8)}: ${options.dryRun ? "would-expire" : "expired"}`,
+        ),
+      );
+    }
     for (const a of actions) {
       const colour = a.action === "error" ? chalk.red : chalk.green;
       log(colour(`  ${a.kind} ${a.id.slice(0, 8)}: ${a.action}`));
@@ -231,6 +255,8 @@ function statusBadge(status) {
       return chalk.cyan(status);
     case "exhausted":
       return chalk.yellow(status);
+    case "expired":
+      return chalk.gray(status);
     default:
       return status;
   }

@@ -23,8 +23,22 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
+import { isEntryExpired } from "./schedule-planner.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
+
+/** A valid absolute-epoch-ms expiry, or null (never expires). */
+function normalizeExpiresAt(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Is an entry currently in a schedulable (non-terminal) state? */
+function isSchedulableStatus(entry) {
+  return entry.kind === "wakeup"
+    ? entry.status === "pending"
+    : entry.status === "active";
+}
 
 export function agentScheduleDir(homedir = os.homedir()) {
   return path.join(homedir, ".chainlesschain", "agent-schedule");
@@ -154,7 +168,13 @@ export class AgentScheduleStore {
 
   // ── create ──────────────────────────────────────────────────────────────
 
-  scheduleWakeup({ prompt, delayMs = 0, dueAt = null, label = null } = {}) {
+  scheduleWakeup({
+    prompt,
+    delayMs = 0,
+    dueAt = null,
+    label = null,
+    expiresAt = null,
+  } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("wakeup requires a prompt");
     }
@@ -166,6 +186,7 @@ export class AgentScheduleStore {
       label: label || null,
       dueAt:
         dueAt != null ? Number(dueAt) : now + Math.max(0, Number(delayMs) || 0),
+      expiresAt: normalizeExpiresAt(expiresAt),
       createdAt: now,
       status: "pending",
     };
@@ -175,7 +196,7 @@ export class AgentScheduleStore {
     return entry;
   }
 
-  createCron({ prompt, cron, label = null } = {}) {
+  createCron({ prompt, cron, label = null, expiresAt = null } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("cron requires a prompt");
     }
@@ -191,6 +212,7 @@ export class AgentScheduleStore {
       cron,
       label: label || null,
       nextAt,
+      expiresAt: normalizeExpiresAt(expiresAt),
       createdAt: now,
       lastRunAt: null,
       runs: 0,
@@ -209,6 +231,7 @@ export class AgentScheduleStore {
     notify = null,
     maxChecks = null,
     label = null,
+    expiresAt = null,
   } = {}) {
     if (!command || typeof command !== "string") {
       throw new Error("monitor requires a command");
@@ -231,6 +254,7 @@ export class AgentScheduleStore {
       maxChecks: maxChecks != null ? Number(maxChecks) : null,
       label: label || null,
       nextAt: now + interval,
+      expiresAt: normalizeExpiresAt(expiresAt),
       createdAt: now,
       checks: 0,
       status: "active",
@@ -254,11 +278,40 @@ export class AgentScheduleStore {
   due(kind = null, atMs = null) {
     const now = atMs != null ? atMs : this._now();
     return this.list(kind).filter((entry) => {
+      // An entry past its expiry never fires — even if it is not yet retired
+      // (defense-in-depth: retireExpired need not have run first).
+      if (isEntryExpired(entry, now)) return false;
       if (entry.kind === "wakeup") {
         return entry.status === "pending" && entry.dueAt <= now;
       }
       return entry.status === "active" && entry.nextAt <= now;
     });
+  }
+
+  /**
+   * Retire every schedulable entry whose `expiresAt` has passed (status →
+   * "expired", stamping `expiredAt`), across all kinds, so it never fires again.
+   * A daemon / `cc agenda run` calls this before firing due entries — mirroring
+   * the schedule-planner's "retire expired BEFORE due" semantics. Returns the
+   * list of retired entries.
+   */
+  retireExpired(atMs = null) {
+    const now = atMs != null ? atMs : this._now();
+    const retired = [];
+    for (const kind of SCHEDULE_KINDS) {
+      const entries = this._readAll(kind);
+      let changed = false;
+      for (const entry of entries) {
+        if (isSchedulableStatus(entry) && isEntryExpired(entry, now)) {
+          entry.status = "expired";
+          entry.expiredAt = now;
+          retired.push(entry);
+          changed = true;
+        }
+      }
+      if (changed) this._writeAll(kind, entries);
+    }
+    return retired;
   }
 
   cancel(id) {

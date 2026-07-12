@@ -141,4 +141,72 @@ describe("cc agenda", () => {
     expect(code).toBe(1);
     expect(JSON.parse(logs.join("\n")).actions[0].action).toBe("error");
   });
+
+  describe("expiry retirement", () => {
+    it("retires an expired entry before firing and never fires it", async () => {
+      const dead = store.scheduleWakeup({
+        prompt: "stale",
+        delayMs: 0,
+        expiresAt: clock + 100,
+      });
+      const spawnAgent = vi.fn(async () => 0);
+      const code = await runAgendaRun(
+        { json: true },
+        { store, log, spawnAgent, now: () => clock + 500 },
+      );
+      expect(code).toBe(0);
+      expect(spawnAgent).not.toHaveBeenCalled(); // expired → never fires
+      const parsed = JSON.parse(logs.join("\n"));
+      expect(parsed.retired.map((e) => e.id)).toContain(dead.id);
+      expect(store.list("wakeup").find((e) => e.id === dead.id).status).toBe(
+        "expired",
+      );
+    });
+
+    it("fires a live due entry while retiring an expired one", async () => {
+      store.scheduleWakeup({
+        prompt: "stale",
+        delayMs: 0,
+        expiresAt: clock + 100,
+      });
+      const live = store.scheduleWakeup({
+        prompt: "go",
+        delayMs: 0,
+        expiresAt: clock + 100000,
+      });
+      const spawnAgent = vi.fn(async () => 0);
+      await runAgendaRun(
+        { json: true },
+        { store, log, spawnAgent, now: () => clock + 500 },
+      );
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+      expect(spawnAgent).toHaveBeenCalledWith("go");
+      const parsed = JSON.parse(logs.join("\n"));
+      expect(parsed.retired).toHaveLength(1);
+      expect(parsed.actions.filter((a) => a.action === "fired")).toHaveLength(
+        1,
+      );
+      expect(store.list("wakeup").find((e) => e.id === live.id).status).toBe(
+        "fired",
+      );
+    });
+
+    it("dry-run reports would-expire without mutating the store", async () => {
+      const dead = store.scheduleWakeup({
+        prompt: "stale",
+        delayMs: 0,
+        expiresAt: clock + 100,
+      });
+      const code = await runAgendaRun(
+        { dryRun: true, json: true },
+        { store, log, now: () => clock + 500 },
+      );
+      expect(code).toBe(0);
+      const parsed = JSON.parse(logs.join("\n"));
+      expect(parsed.retired.map((e) => e.id)).toContain(dead.id);
+      expect(store.list("wakeup").find((e) => e.id === dead.id).status).toBe(
+        "pending", // dry-run must not mutate
+      );
+    });
+  });
 });

@@ -124,4 +124,70 @@ describe("AgentScheduleStore", () => {
     fs.appendFileSync(path.join(dir, "wakeup.jsonl"), "{ broken\n");
     expect(store.list("wakeup")).toHaveLength(1);
   });
+
+  describe("expiry (expiresAt / retireExpired)", () => {
+    it("stores a normalized expiresAt on every kind, null when absent/invalid", () => {
+      const w = store.scheduleWakeup({
+        prompt: "a",
+        expiresAt: clock + 5000,
+      });
+      const c = store.createCron({
+        prompt: "b",
+        cron: "0 0 * * *",
+        expiresAt: clock + 9000,
+      });
+      const m = store.createMonitor({
+        command: "echo hi",
+        intervalMs: 1000,
+        expiresAt: -1, // invalid → null
+      });
+      const plain = store.scheduleWakeup({ prompt: "c" });
+      expect(w.expiresAt).toBe(clock + 5000);
+      expect(c.expiresAt).toBe(clock + 9000);
+      expect(m.expiresAt).toBeNull();
+      expect(plain.expiresAt).toBeNull();
+    });
+
+    it("due() never fires an expired entry even before it is retired", () => {
+      store.scheduleWakeup({
+        prompt: "soon-but-expired",
+        dueAt: clock, // due now…
+        expiresAt: clock + 100, // …but expires shortly after
+      });
+      expect(store.due(null, clock)).toHaveLength(1); // due, not yet expired
+      expect(store.due(null, clock + 200)).toHaveLength(0); // past expiry → skipped
+    });
+
+    it("retireExpired marks past-expiry schedulable entries expired, leaves others", () => {
+      const dead = store.scheduleWakeup({
+        prompt: "dead",
+        delayMs: 0,
+        expiresAt: clock + 100,
+      });
+      const live = store.scheduleWakeup({
+        prompt: "live",
+        delayMs: 0,
+        expiresAt: clock + 10000,
+      });
+      const noExpiry = store.createCron({
+        prompt: "forever",
+        cron: "0 0 * * *",
+      });
+
+      const retired = store.retireExpired(clock + 500);
+      expect(retired.map((e) => e.id)).toEqual([dead.id]);
+
+      const byId = Object.fromEntries(store.list().map((e) => [e.id, e]));
+      expect(byId[dead.id].status).toBe("expired");
+      expect(byId[dead.id].expiredAt).toBe(clock + 500);
+      expect(byId[live.id].status).toBe("pending");
+      expect(byId[noExpiry.id].status).toBe("active");
+    });
+
+    it("retireExpired is idempotent — an already-expired entry is not re-retired", () => {
+      store.scheduleWakeup({ prompt: "x", expiresAt: clock + 100 });
+      expect(store.retireExpired(clock + 200)).toHaveLength(1);
+      expect(store.retireExpired(clock + 300)).toHaveLength(0);
+    });
+  });
 });
