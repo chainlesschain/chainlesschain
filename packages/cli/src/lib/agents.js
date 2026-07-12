@@ -15,6 +15,21 @@
  *   model            model override for runs of this agent
  *   maxTurns         per-run iteration cap for this agent (positive integer)
  *   isolation        "worktree" → run in a fresh git worktree (gap 2026-07-11)
+ *   permission-mode  child permission mode (tighten-only vs parent)
+ *   skills           capability allow-list — skills the child may use
+ *   mcp-servers      capability allow-list — MCP servers the child may use
+ *   hooks            capability allow-list — hooks the child may run
+ *   memory           whether the child may read permanent memory
+ *   effort           reasoning effort (low|medium|high|xhigh)
+ *   background       run detached
+ *   context          "fresh" (default, isolated) | "fork" (inherit parent)
+ *   max-depth/max-children  ceilings this agent imposes on its own descendants
+ *   budget           { tokens, cost, time } caps
+ *
+ * The extended P1 contract (permission/skills/mcp/hooks/memory/effort/
+ * background/context/depth/children/budget) is normalized into a `contract`
+ * field via subagent-contract.js; the top-level tools/maxTurns/isolation are
+ * kept as-is for the existing spawn path.
  *
  * Project scope shadows personal on a name clash. Discovery + parse are pure
  * (inject fs/path/home) so the whole thing is unit-testable.
@@ -26,6 +41,7 @@ import { homedir } from "node:os";
 import yaml from "js-yaml";
 import { projectRootBase } from "./project-root.cjs";
 import { discoverPluginAgentLayers } from "./plugin-runtime/agents.js";
+import { normalizeSubagentContract } from "./subagent-contract.js";
 
 const _deps = { fs: fsDefault, path: pathDefault };
 
@@ -147,6 +163,9 @@ export function parseAgentFile(file, scope, opts = {}) {
     maxTurns:
       Number.isFinite(maxTurns) && maxTurns > 0 ? Math.floor(maxTurns) : null,
     isolation: data.isolation === "worktree" ? "worktree" : null,
+    // Extended P1 subagent contract (permission/skills/mcp/hooks/memory/effort/
+    // background/context/depth/children/budget), normalized + validated.
+    contract: normalizeSubagentContract(data),
     systemPrompt: body || "",
   };
 }

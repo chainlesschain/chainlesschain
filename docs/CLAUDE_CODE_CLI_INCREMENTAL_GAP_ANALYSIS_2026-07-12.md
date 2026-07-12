@@ -441,6 +441,45 @@ Permission Approval 分层不混用。
 递归派生默认必须有深度和总 Agent 数上限。Worktree 不可用时必须失败。参考
 [并行 Agent 官方总览](https://code.claude.com/docs/en/agents)。
 
+### 已落地（增量）
+
+统一继承/覆盖的**纯策略核心** `src/lib/subagent-contract.js`（无 I/O、确定性）——
+把 gap 列出的整套字段（`permissionMode`、`skills`、`mcpServers`、`hooks`、
+`memory`、`effort`、`background`、`context: fresh|fork`、`maxDepth`、
+`maxChildren`、token/cost/time budget）normalize + validate + 按 **spawnArgs >
+definition > parent** 合并，并强制**只能收紧不能放宽**的安全不变量（镜像
+[[agent-authority.js]]）：
+
+- **`permissionMode` tighten-only**：`tightenPermissionMode` 按 permissiveness
+  rank（`plan < manual < default < acceptEdits < auto=dontAsk < bypassPermissions`）
+  钳制——子 Agent 请求比父更宽的模式一律降到父的模式；非法/缺省则继承父（fail-safe）。
+- **能力集 INTERSECT 父上限**：`skills`/`mcpServers`/`hooks` 与父的集合求交（父
+  为 null=不限），子永远拿不到父没有的能力；`context: fresh`（默认）不继承任何
+  能力、`fork` 才继承。
+- **memory 不可越权授予**：父显式拒绝（`memory:false`）时子永远拿不到；fork 且父
+  有才继承。
+- **budget 封顶父剩余**：`capBudget` 逐字段（tokens/cost/time）取 `min(请求, 父剩余)`。
+- **深度/宽度天花板只降不升**：`maxDepth`/`maxChildren` 取 `min(父, 子请求)`。
+- **递归 fail-closed**：`enforceRecursionLimits` 在 depth/breadth 达上限即拒（子契约
+  上限与 run 硬上限取更小者）；`resolveIsolationFailClosed` 编码「worktree 不可用
+  必须失败、不得回落主 checkout」的策略。
+
+**接线（最小、低风险）**：`agents.js` `parseAgentFile` 现把上述扩展字段
+normalize 成 `contract`（前十六字段仍原样保留给现有 spawn 路径），agent-file 定义
+可声明整套契约、并在对象上可读。**测试**：`subagent-contract.test.js` 33 项
+（normalize/enums/tighten-only/intersect/fresh-vs-fork/budget-cap/recursion/
+worktree-fail-closed）+ `agents-loader.test.js` 补 2 项 = 42 绿；相关
+spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
+
+**仍欠（把 `contract` 接到运行时执行）**：`_executeSpawnSubAgent` 目前只消费
+`tools`/`disallowedTools`/`maxTurns`/`isolation`，尚未把 resolved 的
+`permissionMode`/`effort`/`context`/`skills`/`mcpServers`/`hooks`/`memory`/
+`background`/`budget` 喂进子 `agentLoop`（需父有效契约 + 运行时剩余 budget 的真源
+接入）；`context:fresh` 当前已是 SubAgentContext 的隐式行为但未由 `context` 字段
+显式驱动；`resolveIsolationFailClosed` 的策略未替换 sub-agent-context.js 里
+「非 git repo → 静默跑主 checkout」的 fail-open（line ~180）；精确取消单个
+Subagent、每 child 的 checkpoint 归因仍缺。
+
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 
 当前已有自动 Checkpoint、哈希链和 `/rewind`，但建议升级为显式表：

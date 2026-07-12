@@ -109,6 +109,28 @@ describe("parseAgentFile", () => {
     expect(a.maxTurns).toBeNull();
     expect(a.isolation).toBeNull();
   });
+
+  it("normalizes the extended P1 contract into `contract` (gap 2026-07-12)", () => {
+    const fs = memFs({
+      "/p/c.md": `---\npermission-mode: manual\nskills: rag, search\neffort: max\ncontext: fork\nmax-depth: 2\n---\nContract agent.`,
+    });
+    const a = parseAgentFile("/p/c.md", "project", { deps: { fs } });
+    expect(a.contract).toMatchObject({
+      permissionMode: "manual",
+      skills: ["rag", "search"],
+      effort: "xhigh", // synonym
+      context: "fork",
+      maxDepth: 2,
+    });
+  });
+
+  it("a body-only file yields an all-null contract (nothing declared)", () => {
+    const fs = memFs({ "/p/plain.md": "Just a prompt." });
+    const a = parseAgentFile("/p/plain.md", "project", { deps: { fs } });
+    expect(a.contract.permissionMode).toBeNull();
+    expect(a.contract.skills).toBeNull();
+    expect(a.contract.context).toBeNull();
+  });
 });
 
 describe("discoverAgents", () => {
