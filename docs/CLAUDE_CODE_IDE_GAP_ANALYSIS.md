@@ -33,6 +33,7 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 | P0#2 隐式上下文安全 | IDE 选区/标签/terminal/diagnostics 注入前过 read-deny（凭据文件剔除）+ 凭据脱敏（PEM/Bearer/AWS/厂商 token 前缀/秘密赋值）；逃生门 `CC_IDE_CONTEXT_REDACTION=0` | `492f89a5fd` |
 | P0#2 连接安全 | MCP 工具路径边界守卫（`..`/UNC/工作区外/前缀混淆全拒，双端纯核孪生）+ Windows lockfile bearer token owner-only ACL（icacls / AclFileAttributeView，fail-open） | `c299976aff` |
 | P0#2 写路径风险提升 | auto-exec 配置写守卫接入 CLI 写路径（`.vscode/tasks·launch·settings`、`.mcp.json`、`.idea/runConfigurations`、devcontainer、code-workspace → 写前确认，headless fail-closed） | `492f89a5fd` |
+| P0#2 approvalId 绑定操作指纹 | 远程审批原只按随机 `requestId` 匹配 resolve（"哪个 ask" 而非 "哪个操作"）→ 陈旧审批卡/重放/请求体被换会放行用户从没看过的操作。纯核 `operation-fingerprint.js`：`operationFingerprint`（tool+action+规范化 args 的确定性 32-hex，键序无关/数组序有关）+`fingerprintsMatch`（timingSafeEqual 常数时间）+`approvalFingerprintOk`（向后兼容裁决：无指纹的旧设备 resolve 放行、present-but-mismatch 拒绝、经既有 timeout fail-closed）。接入 `RemoteApprovalBridge`：ask 算指纹→记 pending+publish 到 permission.request（设备可回显），`_onServerEvent` 拒绝指纹指向不同操作的 resolve（confused-deputy 防御）；线协议 additive（现有零指纹设备流不变）；16 单测+4 bridge RED（错指纹→不 settle→timeout） | `44d6af76ac` |
 | P0#3 远程开发 | 声明 `extensionKind: ["workspace"]`，锁死扩展与注入终端在 repo host（Remote/WSL/Container 确定性）；Remote/WSL Doctor 四类检查此前已 landed | `1abdce5d1b` |
 | P0#4 会话可靠性 | 修复 supervisor 3 个 pinned gaps（pid 复用身份校验 / 孤儿 agent 子进程回收 / follow 截断全量重放）+ prompt 队列有界（100 上限背压） | `fe3e139ede` |
 | P0#4 统一状态机 | 三套发散表示（supervisor `status` / worker `phase` / IDE connection）折进 ONE 规范 10 态（starting/ready/running/waitingApproval/cancelling/disconnected/recovering/completed/failed/stopped）。纯核 `session-lifecycle.js`：`deriveSessionState` 带优先级折叠（terminal>recovery>disconnect>cancel>approval>phase）、`canTransitionSessionState` 合法迁移图（terminal 吸收态）、`requiresIdempotencyGuard` 标记 recovering/disconnected 恢复窗口（"危险工具恢复时不得静默重试"=resume 前须先查 ledger 再执行）。有牙：`listBackgroundAgents` 在展示 feed 附派生 NON-persisted `lifecycleState`（`cc daemon list --json`/仪表板即得），刻意不进 `effectiveBackgroundAgentState`（其输出经 rename/pin/stop 读改写回盘会泄漏到磁盘 schema，回归测试守此坑）；22 lifecycle + 5 supervisor 测试绿 | `1af75dfb50` |
@@ -48,7 +49,9 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
   管道断=进程亡、无重连，故不做，其消费端 `SeqGapTracker` 已就绪可复用。真正的多版本降级要等 v2 行
   shape 落地才有实测断言；当前机制以合成 v2/v3 fixture 锁定，v1 会话 agreedVersion 恒 1。）
 - **隐式上下文（P0#2）度量项**：200 种凭据样本脱敏召回率 ≥99% / 误报 <2% 需真实语料基线，
-  本轮实现保守正则，度量未做；approvalId 绑定操作指纹（工具名+参数哈希）属 P2。
+  本轮实现保守正则，度量未做。approvalId 绑定操作指纹（工具名+参数哈希）已落地
+  （`operation-fingerprint.js` + RemoteApprovalBridge 接线，`44d6af76ac`）；剩项=设备端
+  （android/web）回显指纹以获得完整闭环（CLI 主机侧验证已 fail-closed，设备回显是增益非阻塞）。
 - **远程开发（P0#3）**：五类远程环境（WSL/SSH/Dev Containers/Codespaces/Gateway）的连接/上下文/
   diff/审批/取消/resume 统一 E2E 矩阵、URI/path round-trip 100% 正确 = 需真实远程环境，环境阻塞。
 - **会话可靠性（P0#4）**：统一状态机已落地（`session-lifecycle.js`，10 态 + 迁移图 +
