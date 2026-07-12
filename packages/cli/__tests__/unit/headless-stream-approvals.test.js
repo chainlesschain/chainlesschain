@@ -12,6 +12,7 @@ import {
   runAgentHeadlessStream,
   parseInputEvent,
 } from "../../src/runtime/headless-stream.js";
+import { approvalBindingDigest } from "../../src/lib/agent-authority.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -19,11 +20,27 @@ describe("parseInputEvent — approval verdicts", () => {
   it("parses approve/deny and rejects malformed ones", () => {
     expect(
       parseInputEvent('{"type":"approval","id":"appr-1","approve":true}'),
-    ).toEqual({ approval: { id: "appr-1", approve: true } });
+    ).toEqual({ approval: { id: "appr-1", approve: true, binding: null } });
     expect(
       parseInputEvent('{"type":"approval","id":"appr-2","approve":"yes"}'),
-    ).toEqual({ approval: { id: "appr-2", approve: false } }); // strict boolean
+    ).toEqual({ approval: { id: "appr-2", approve: false, binding: null } }); // strict boolean
     expect(parseInputEvent('{"type":"approval"}')).toBe(null); // no id
+  });
+
+  it("carries an optional approval binding when present", () => {
+    expect(
+      parseInputEvent(
+        '{"type":"approval","id":"appr-1","approve":true,"binding":"ab_deadbeef"}',
+      ),
+    ).toEqual({
+      approval: { id: "appr-1", approve: true, binding: "ab_deadbeef" },
+    });
+    // a non-string binding is ignored (stays null)
+    expect(
+      parseInputEvent(
+        '{"type":"approval","id":"appr-1","approve":true,"binding":5}',
+      ),
+    ).toEqual({ approval: { id: "appr-1", approve: true, binding: null } });
   });
 });
 
@@ -126,6 +143,62 @@ describe("interactive approvals round-trip", () => {
     expect(
       h.events().find((e) => e.type === "approval_resolved"),
     ).toMatchObject({ approved: false, via: "user-deny" });
+    expect(h.events().find((e) => e.type === "result").result).toBe(
+      "skipped (denied)",
+    );
+  });
+
+  it("approval_request advertises a binding; echoing it back approves", async () => {
+    // The binding is a pure function of the confirm context, so a faithful UI
+    // can reproduce exactly what the request advertised.
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: "npm run test:unit" },
+      policyDigest: "medium", // ctx.rule ?? riskLevel — confirmingLoop sends riskLevel
+    });
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    const req = h.events().find((e) => e.type === "approval_request");
+    expect(req.binding).toBe(expectedBinding);
+    expect(req.binding).toMatch(/^ab_[0-9a-f]{32}$/);
+    expect(
+      h.events().find((e) => e.type === "approval_resolved"),
+    ).toMatchObject({ id: "appr-1", approved: true, via: "user-approve" });
+    expect(h.events().find((e) => e.type === "result").result).toBe("executed");
+  });
+
+  it("a mismatched binding is rejected (deny, fail closed) — replay/param-substitution", async () => {
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        // A stale / mis-routed verdict for this id carrying a binding computed
+        // from DIFFERENT args must NOT green-light the blocked tool.
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          approve: true,
+          binding: "ab_00000000000000000000000000000000",
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(
+      h.events().find((e) => e.type === "approval_resolved"),
+    ).toMatchObject({ approved: false, via: "binding-mismatch" });
     expect(h.events().find((e) => e.type === "result").result).toBe(
       "skipped (denied)",
     );

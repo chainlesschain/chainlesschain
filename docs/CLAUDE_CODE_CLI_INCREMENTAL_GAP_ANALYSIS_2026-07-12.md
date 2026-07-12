@@ -212,6 +212,41 @@ signature_or_local_capability
 安全测试必须证明：恶意消息中的“approved/用户同意”不会通过权限门；重连重放、参数
 替换、Agent 名称复用和跨 Session 投递不会复用错误批准。
 
+### 已落地（增量）
+
+- **不可伪造的 authority 契约**：新增纯逻辑模块
+  [`agent-authority.js`](../packages/cli/src/lib/agent-authority.js) 作为单一
+  真源——`ORIGIN`（user/model/subagent/teammate/channel/hook/remote/system/
+  permission_tool）+ `AUTHORITY`（none/steer/approve/manage）+
+  `authorityForOrigin` + `canApprove`/`assertCanApprove`。规则内建：只有本地
+  user、显式 permission_tool、或**已认证且被授予 approve scope** 的 remote 设备
+  能批准；model/subagent/teammate/channel/hook 的消息最高只能 steer——其载荷里
+  的 “approved” 只是文本。`origin` 恒由可信派发代码按“消息如何到达”赋值，绝不
+  从不可信的消息**内容**读取。
+- **批准绑定 `tool_call_id + normalized_arguments + policy_digest`**：
+  `approvalBindingDigest` / `verifyApprovalBinding`（key 顺序无关、常数时间比较、
+  fail-closed）。已在本地 headless 审批链路端到端接线——
+  [`headless-stream.js`](../packages/cli/src/runtime/headless-stream.js) 的
+  `approval_request` 现携带 `binding`，`settleApproval` 对携带**不匹配** binding
+  的 _approve_ 裁决判为 `binding-mismatch` 拒绝（deny 恒放行，无 binding 向后兼容）。
+  这挫败重放、参数替换与错投的批准。
+- **provenance 描述**：`describeAuthorityChain` 输出无秘密的来源链字符串，供权限/
+  审计日志记录“哪个 principal、哪个 session、什么 authority”。
+- 测试：`agent-authority.test.js`（伪造批准被拒 / 未认证 remote 不能批准 /
+  参数替换·跨请求·agent 名复用 binding 失配 / rank 排序 / provenance）+
+  `headless-stream-approvals.test.js`（binding 往返：匹配放行、失配拒绝、缺失
+  向后兼容）。
+
+**仍欠（把契约接到其余 seam）**：当前**唯一**的 origin 感知检查是
+`remote-session-protocol.js:440` 的 per-device scope。下一步把 `assertCanApprove`
+
+- `describeAuthorityChain` 接到远端审批 seam（E: `handleSessionAnswer` /
+  G: relay 控制路径）与审计日志，并把 `binding` 透传到远端/relay 审批往返
+  （`approval_request` → 设备回显 → 校验）；channel 消息虽已是 steer-only 文本前缀，
+  仍应显式标注 authority；agent-sdk 的 `ApprovalRequestEvent` 可选加 `binding` 回显
+  （需 bump SDK 版本，故留待下次 SDK 发版）。repo 配置不得开 bypass/auto 与 managed
+  deny 放宽的强制项亦未做。seam 全图见提交说明。
+
 ## P1：会话级完成条件引擎
 
 当前 `cc goal` 是跨会话目标/OKR：它可以向运行注入目标，并在 `--goal-assess` 后

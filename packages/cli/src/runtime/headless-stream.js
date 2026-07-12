@@ -17,6 +17,10 @@
  */
 
 import { randomUUID } from "node:crypto";
+import {
+  approvalBindingDigest,
+  verifyApprovalBinding,
+} from "../lib/agent-authority.js";
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -309,7 +313,17 @@ export function parseInputEvent(line) {
   //   {"type":"approval","id":"appr-1","approve":true|false}
   if (obj && typeof obj === "object" && obj.type === "approval") {
     if (!obj.id) return null;
-    return { approval: { id: String(obj.id), approve: obj.approve === true } };
+    return {
+      approval: {
+        id: String(obj.id),
+        approve: obj.approve === true,
+        // Optional approval binding (authority §"权限来源与跨 Agent 授权边界"):
+        // when present it must match the digest the matching approval_request
+        // advertised, so a stale/mis-routed/param-substituted verdict can't
+        // green-light a different tool call. Absent → legacy behavior.
+        binding: typeof obj.binding === "string" ? obj.binding : null,
+      },
+    };
   }
   // Answer to an ask_user_question (panel QuickPick for interactive questions):
   //   {"type":"answer","id":"q-1","answer":<string|string[]|null>}
@@ -815,9 +829,32 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     Number(process.env.CC_APPROVAL_TIMEOUT_MS) > 0
       ? Number(process.env.CC_APPROVAL_TIMEOUT_MS)
       : 120000;
-  const settleApproval = (id, approve, via) => {
+  const settleApproval = (id, approve, via, incomingBinding = null) => {
     const p = pendingApprovals.get(id);
     if (!p) return;
+    // Approval binding (authority §"权限来源与跨 Agent 授权边界"): an *approve*
+    // verdict that carries a binding which does NOT match the one the request
+    // advertised is stale / mis-routed / argument-tampered — reject it (deny,
+    // fail closed) instead of green-lighting a different or changed tool call.
+    // A verdict with no binding stays backward-compatible; a deny always wins.
+    if (
+      approve === true &&
+      incomingBinding &&
+      p.binding &&
+      !verifyApprovalBinding(p.binding, incomingBinding)
+    ) {
+      pendingApprovals.delete(id);
+      clearTimeout(p.timer);
+      emit({
+        type: "approval_resolved",
+        id,
+        approved: false,
+        via: "binding-mismatch",
+        session_id: sessionId,
+      });
+      p.resolve(false);
+      return;
+    }
     pendingApprovals.delete(id);
     clearTimeout(p.timer);
     emit({
@@ -832,12 +869,22 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const interactiveConfirm = (ctx = {}) =>
     new Promise((resolve) => {
       const id = `appr-${++approvalSeq}`;
+      // Bind this approval request to the exact call it authorizes: the request
+      // id, its normalized arguments, and the policy/rule in force. The digest
+      // rides on `approval_request` so a UI/relay can echo it back on approve,
+      // letting settleApproval reject a verdict meant for a different call.
+      const binding = approvalBindingDigest({
+        toolCallId: id,
+        args:
+          ctx.args ?? (ctx.command != null ? { command: ctx.command } : null),
+        policyDigest: ctx.rule || ctx.riskLevel || ctx.risk || null,
+      });
       const timer = setTimeout(
         () => settleApproval(id, false, "timeout"),
         approvalTimeoutMs,
       );
       timer.unref?.();
-      pendingApprovals.set(id, { resolve, timer });
+      pendingApprovals.set(id, { resolve, timer, binding });
       emit({
         type: "approval_request",
         id,
@@ -847,6 +894,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         risk: ctx.riskLevel || ctx.risk || null,
         rule: ctx.rule || null,
         reason: ctx.reason || null,
+        binding,
       });
     });
 
@@ -1349,6 +1397,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
             parsed.approval.id,
             parsed.approval.approve,
             parsed.approval.approve ? "user-approve" : "user-deny",
+            parsed.approval.binding,
           );
           continue;
         }
