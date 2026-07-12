@@ -643,13 +643,26 @@ TurnBindingLog 全字段 + earliest-checkpoint + dedupe + JSON round-trip /
 resolveRestorePlan 三 scope + 漂移与 partial warnings / selectTurnRange /
 桥接归属与 orphan mark）全绿。
 
-**仍欠（持久化 + 运行时事件 + 恢复 UI）**：把绑定作为**新链式事件**
-`appendEvent(sessionId, "turn_checkpoint_binding", …)` 落 `jsonl-session-store.js`
-（继承哈希链防篡改，替代易失的 `_checkpointMarks`）；从 agent loop 事件（checkpoint /
+**已落地（持久化 + 恢复计划派生）**：绑定现作为**链式事件**
+`appendEvent(sessionId, "turn_checkpoint_binding", …)` 落 canonical
+`../harness/jsonl-session-store.js`（继承哈希链防篡改，替代易失的
+`_checkpointMarks`）——新纯核 `src/lib/turn-binding-store.js`：
+`persistTurnBinding`（写整张表快照，**最新快照胜**，best-effort 永不抛）/
+`loadTurnBindingLog`（resume 时倒扫重建，跳过 malformed 快照）/
+`resolveRestorePlanFromSession` / `selectTurnRangeFromSession`（I/O 经 `_deps`
+注入，纯测试）。`repl-rewind.js` 加 `buildRewindPlan`/`renderRewindWarnings`：
+从 REPL **现有**的隐式 marks（`listUserTurns` + `{atMessageCount,id,tool}`）经
+`buildTurnBindingFromMarks` → `resolveRestorePlan` 派生 coverage-aware 计划，让
+`/rewind` **今天**就能打印诚实的 coverage/警告（side-effect / 缺 checkpoint /
+对话-文件漂移），无需先改 agent loop。测试：`turn-binding-store.test.js` 11 项 +
+`repl-rewind.test.js` 新增 4 项（`955177b3e8`）。
+
+**仍欠（运行时事件 + 恢复 UI）**：从 agent loop 事件（checkpoint /
 tool-executing 的 `tool_use_id` / 权限决定 `requestId` / `spawn_sub_agent` /
-worktree create）实时喂 `TurnBindingLog`（tool-call **持久 id** 目前不存在，需引入）；
-把 `resolveRestorePlan` 的 scope 选择 + coverage 警告接进 `/rewind` 交互输出；外部
-Session Mirror 的加密/保留期/删除/key rotation 属独立基建，未起。
+worktree create）**实时**喂 `TurnBindingLog`（tool-call **持久 id** 目前不存在，需
+引入），并在每 turn 结束 `persistTurnBinding`；把 `buildRewindPlan` 的 scope 选择 +
+警告接进 `/rewind` **交互输出**（`agent-repl.js`，属 REPL 接线）；外部 Session
+Mirror 的加密/保留期/删除/key rotation 属独立基建，未起。
 
 ## P1：Plugin 能力声明和配置 Schema
 
