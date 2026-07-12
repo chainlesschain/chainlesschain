@@ -2924,8 +2924,20 @@ async function executeToolInner(
       // the run_shell gate). A settings `allow` rule (ruleAllowed) pre-
       // authorizes; headless leaves interactiveApproval false so its existing
       // per-permission-mode behavior is unchanged.
+      //
+      // A spawned sub-agent gets a dedicated CONFIRMER-LESS ApprovalGate for a
+      // strict/trusted mode (2026-07-13). It has no human to prompt, so gate
+      // run_code under it too — decide() auto-denies CONFIRM via no-confirmer,
+      // enforcing the tier on arbitrary code exactly like run_shell/browser_act
+      // (which already gate whenever an approvalGate is present). This is the
+      // child's gate specifically: the main headless + REPL gates ALWAYS carry a
+      // confirmer, so `!hasConfirmer()` leaves them byte-identical.
+      const policyGateNoConfirmer =
+        approvalGate &&
+        typeof approvalGate.hasConfirmer === "function" &&
+        !approvalGate.hasConfirmer();
       if (
-        interactiveApproval &&
+        (interactiveApproval || policyGateNoConfirmer) &&
         approvalGate &&
         !ruleAllowed &&
         typeof approvalGate.decide === "function"

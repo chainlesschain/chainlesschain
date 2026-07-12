@@ -577,6 +577,8 @@ describe("Integration: Sub-Agent Isolation", () => {
       const opts = await spawnAndCapture({ permissionMode: "manual" });
       expect(opts.approvalGate).toBeTruthy();
       expect(opts.approvalGate.getSessionPolicy("child")).toBe("strict");
+      // Confirmer-less → run_code is gated too (executeToolInner keys on this).
+      expect(opts.approvalGate.hasConfirmer()).toBe(false);
       // No confirmer → CONFIRM (MED/HIGH under strict) auto-denies.
       expect(
         (await opts.approvalGate.decide({ riskLevel: "high" })).decision,

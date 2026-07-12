@@ -24,6 +24,13 @@ function gate(decision) {
   };
 }
 
+/** Gate stub carrying a hasConfirmer() — models a real ApprovalGate. */
+function gateWithConfirmer(decision, hasConfirmer) {
+  const g = gate(decision);
+  g.hasConfirmer = () => hasConfirmer;
+  return g;
+}
+
 describe("run_code ApprovalGate gate (interactive-only)", () => {
   it("denies run_code when interactive + gate denies (not executed)", async () => {
     const g = gate(APPROVAL_DECISION.DENY);
@@ -73,5 +80,42 @@ describe("run_code ApprovalGate gate (interactive-only)", () => {
     });
     expect(res.error || "").not.toMatch(/ApprovalGate/);
     expect(g.calls.length).toBe(0); // ruleAllowed short-circuits the gate
+  });
+});
+
+describe("run_code confirmer-less policy gate (spawned sub-agent)", () => {
+  it("gates run_code under a confirmer-less gate even when non-interactive", async () => {
+    // The dedicated gate a strict/trusted sub-agent gets has no confirmer, so it
+    // enforces the tier on arbitrary code even though the child can't prompt.
+    const g = gateWithConfirmer(APPROVAL_DECISION.DENY, false);
+    const res = await executeTool("run_code", NODE_OK, {
+      cwd: process.cwd(),
+      approvalGate: g,
+      interactiveApproval: false,
+    });
+    expect(res.error).toMatch(/\[ApprovalGate\] run_code denied/);
+    expect(g.calls[0]).toMatchObject({ tool: "run_code", riskLevel: "high" });
+  });
+
+  it("does NOT gate run_code under a gate that HAS a confirmer when non-interactive (main-headless byte-identical)", async () => {
+    const g = gateWithConfirmer(APPROVAL_DECISION.DENY, true);
+    const res = await executeTool("run_code", NODE_OK, {
+      cwd: process.cwd(),
+      approvalGate: g,
+      interactiveApproval: false,
+    });
+    expect(res.error || "").not.toMatch(/ApprovalGate/);
+    expect(g.calls.length).toBe(0); // confirmer present → headless path unchanged
+  });
+
+  it("a confirmer-less gate that ALLOWS lets run_code proceed", async () => {
+    const g = gateWithConfirmer(APPROVAL_DECISION.ALLOW, false);
+    const res = await executeTool("run_code", NODE_OK, {
+      cwd: process.cwd(),
+      approvalGate: g,
+      interactiveApproval: false,
+    });
+    expect(res.error || "").not.toMatch(/ApprovalGate/);
+    expect(g.calls.length).toBe(1); // gate consulted once, allowed
   });
 });

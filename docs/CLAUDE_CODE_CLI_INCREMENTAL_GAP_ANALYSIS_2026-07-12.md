@@ -641,10 +641,21 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   `run_code` 门在 `interactiveApproval` 之后（子恒 false）故本笔只覆 run_shell/browser_act。测试 +5
   （`sub-agent-isolation.test.js`：默认不挂 / "default" 上限不挂 / 显式 manual→strict 门+HIGH·MED 拒
   LOW 放 / acceptEdits 上限→trusted 门+HIGH 拒 MED 放 / autopilot 不挂）。未改 agent-core 导出（shim parity）。
+- **run_code 会话策略进子门**（2026-07-13 九轮收尾）——补齐上一笔的 `run_code` 独立缺口。原 run_code
+  门在 `interactiveApproval`（子恒 false）之后故子里不 gate；run_code 执行任意代码比 run_shell 更强，
+  strict/trusted 子里放行=洞。**零管道**修法：子拿到的专属 gate 是**无 confirmer** 的，据此判定——
+  `policyGateNoConfirmer = approvalGate && typeof hasConfirmer==="function" && !hasConfirmer()` 唯一
+  标识子的专属 gate（主 headless + REPL 的 gate **恒有** confirmer），run_code 门条件改为
+  `(interactiveApproval || policyGateNoConfirmer)`。子的无 confirmer gate → decide HIGH → CONFIRM →
+  no-confirmer → DENY，与 run_shell/browser_act 一致。主 headless/REPL 有 confirmer 故 `!hasConfirmer()`
+  false → 逐字节不变（现存 gate stub 无 hasConfirmer 方法 → `typeof==="function"` false → 也不变）。
+  测试 +3（`agent-core-run-code-gate.test.js`：无 confirmer gate 非交互也 gate 且 DENY / 有 confirmer gate
+  非交互不 gate 逐字节 / 无 confirmer gate ALLOW 则放行）+ sub-agent-isolation 加 `hasConfirmer()===false`
+  断言。未改 agent-core 导出（shim parity）。
 
 **仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
-Subagent、每 child 的 checkpoint 归因仍缺；`run_code` 门在子里走 `interactiveApproval`（恒 false）
-故 tier 不覆盖它，属独立缺口。
+Subagent、每 child 的 checkpoint 归因仍缺。**至此 subagent-contract 强制轴全部收口**（skills/mcp/
+hooks/memory/permissionMode + confirmer + 两 runner ceiling + shell/run_code 门）。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 
