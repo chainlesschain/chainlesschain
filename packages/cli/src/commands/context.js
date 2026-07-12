@@ -66,22 +66,21 @@ export function registerContextCommand(program) {
     .argument("[id]", "Session ID (omit for the most-recent headless session)")
     .option("--model <model>", "Size against this model's context window")
     .option("--provider <provider>", "Provider (for the window default)")
+    .option(
+      "--sources",
+      "Also break tokens down by source (project-memory instruction files + message classes)",
+    )
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
-      const {
-        rebuildMessages,
-        getLastSessionId,
-        sessionExists,
-        readEvents,
-      } = await import("../harness/jsonl-session-store.js");
-      const { estimateTokens, getContextWindow } = await import(
-        "../harness/prompt-compressor.js"
-      );
+      const { rebuildMessages, getLastSessionId, sessionExists, readEvents } =
+        await import("../harness/jsonl-session-store.js");
+      const { estimateTokens, getContextWindow } =
+        await import("../harness/prompt-compressor.js");
 
       const sessionId = id || getLastSessionId();
       if (!sessionId) {
         logger.error(
-          'No session found. Run a headless agent with `--session <id>` first, or pass a session id.',
+          "No session found. Run a headless agent with `--session <id>` first, or pass a session id.",
         );
         process.exitCode = 1;
         return;
@@ -121,6 +120,55 @@ export function registerContextCommand(program) {
       const used = window > 0 ? total / window : 0;
       const remaining = Math.max(0, window - total);
 
+      // --sources (opt-in): attribute the project-memory instruction files that
+      // WOULD load for the current cwd (same instructionExcludes the agent
+      // honors), folded in with the session's message-role buckets. The base
+      // view is byte-for-byte unchanged when the flag is absent.
+      let sourceReport = null;
+      if (options.sources) {
+        try {
+          const { loadProjectInstructions } =
+            await import("../lib/project-instructions.js");
+          const { breakdownInstructionSources, rankContextSources } =
+            await import("../lib/context-breakdown.js");
+          const cwd = process.cwd();
+          let instructionExcludes;
+          try {
+            const { readStringArraySetting } =
+              await import("../lib/settings-loader.cjs");
+            instructionExcludes = readStringArraySetting(
+              "instructionExcludes",
+              {
+                cwd,
+              },
+            );
+          } catch {
+            instructionExcludes = undefined; // fail-open — load everything
+          }
+          const loaded = loadProjectInstructions({ cwd, instructionExcludes });
+          const instr = breakdownInstructionSources(
+            loaded.files,
+            estimateTokens,
+            cwd,
+          );
+          const ranked = rankContextSources({
+            instructionTotal: instr.total,
+            buckets,
+            counts,
+          });
+          sourceReport = {
+            cwd,
+            instructions: instr.sources,
+            instructionTokens: instr.total,
+            ranked: ranked.sources,
+            combinedTotal: ranked.total,
+          };
+        } catch {
+          // Best-effort — a source breakdown must never break the base view.
+          sourceReport = null;
+        }
+      }
+
       if (options.json) {
         console.log(
           JSON.stringify(
@@ -136,6 +184,15 @@ export function registerContextCommand(program) {
               breakdown: buckets,
               counts,
               overflows: total > window,
+              ...(sourceReport
+                ? {
+                    sources: sourceReport.ranked,
+                    instructions: sourceReport.instructions,
+                    instructionTokens: sourceReport.instructionTokens,
+                    combinedTotal: sourceReport.combinedTotal,
+                    cwd: sourceReport.cwd,
+                  }
+                : {}),
             },
             null,
             2,
@@ -144,7 +201,9 @@ export function registerContextCommand(program) {
         return;
       }
 
-      logger.log(chalk.bold(`Context — session ${chalk.gray(sessionId.slice(0, 28))}`));
+      logger.log(
+        chalk.bold(`Context — session ${chalk.gray(sessionId.slice(0, 28))}`),
+      );
       logger.log(
         chalk.gray(
           `  model ${model || "(default)"} · provider ${provider} · ` +
@@ -172,17 +231,69 @@ export function registerContextCommand(program) {
 
       logger.log("");
       const pct = (used * 100).toFixed(1);
-      const color = used > 0.9 ? chalk.red : used > 0.7 ? chalk.yellow : chalk.green;
+      const color =
+        used > 0.9 ? chalk.red : used > 0.7 ? chalk.yellow : chalk.green;
       logger.log(
         `  ${chalk.bold("total".padEnd(11))} ${String(total).padStart(7)}  ` +
           `${color(bar(used))} ${color(`${pct}% of window`)}`,
       );
       logger.log(
-        chalk.gray(`  headroom      ${String(remaining).padStart(7)} tokens remaining`),
+        chalk.gray(
+          `  headroom      ${String(remaining).padStart(7)} tokens remaining`,
+        ),
       );
       if (total > window) {
         logger.log(
-          chalk.red("  ⚠ exceeds the model context window — compaction required"),
+          chalk.red(
+            "  ⚠ exceeds the model context window — compaction required",
+          ),
+        );
+      }
+
+      if (sourceReport) {
+        logger.log("");
+        logger.log(
+          chalk.bold("By source") +
+            chalk.gray(`  (project memory for ${sourceReport.cwd})`),
+        );
+        if (sourceReport.instructions.length) {
+          for (const s of sourceReport.instructions) {
+            logger.log(
+              chalk.gray(`  · ${String(s.scope).padEnd(7)} `) +
+                `${String(s.tokens).padStart(7)}  ${s.source}` +
+                (s.truncated ? chalk.yellow("  (truncated)") : ""),
+            );
+          }
+          logger.log(
+            chalk.gray("    project-memory subtotal ") +
+              `${String(sourceReport.instructionTokens).padStart(7)} tokens`,
+          );
+        } else {
+          logger.log(
+            chalk.gray("  (no project-memory instruction files for this cwd)"),
+          );
+        }
+        logger.log("");
+        for (const s of sourceReport.ranked) {
+          logger.log(
+            `  ${String(s.source).padEnd(30)} ${String(s.tokens).padStart(7)}  ` +
+              `${chalk.cyan(bar(s.share))} ${String(Math.round(s.share * 100)).padStart(3)}%`,
+          );
+        }
+        logger.log(
+          chalk.gray(
+            "  note: instructions reflect the current cwd (what a new run here",
+          ),
+        );
+        logger.log(
+          chalk.gray(
+            "  would load); messages are this session's stored turns. Skill / MCP",
+          ),
+        );
+        logger.log(
+          chalk.gray(
+            "  tool schemas load at runtime and are not counted here.",
+          ),
         );
       }
     });
