@@ -441,9 +441,22 @@ run` 依赖外部周期调用）。
     终态、`msUntilNextWakeup` 钳位）+ `agenda-command.test.js`（list 报告最早
     next-wakeup、无可调度时为 null）。
 
+**已落地（2026-07-12 四轮）**：调度**过期退休 end-to-end**（daemon runtime 的一块）——
+`agent-schedule-store.js` 的三个 create（scheduleWakeup/createCron/createMonitor）现接受
+并存储归一化 `expiresAt`（正 epoch-ms 否则 null）；新 `retireExpired(atMs)` 用
+schedule-planner 的 `isEntryExpired` 把过期的可调度条目跨 kind 标 `status:"expired"`
+（盖 `expiredAt`）并返回退休列表；`due()` 加防御性过期跳过——过期条目即便未退休也绝不
+再 fire。`cc agenda run` 在 fire due 之前先退休过期（dry-run 用 `partitionSchedule`
+只读探查不改动）并在 JSON/文本报 `retired`；`list` 显示 `expires <ISO>` 与 expired 徽章。
+测试 store +4 / agenda +3（退休先于 fire、退休过期同时 fire 存活、dry-run 不改动、
+幂等）= 40/40；agent-core schedule-tool caller 8/8 向后兼容。commit `4556add29e`。
+**注**：agent `schedule` 工具透传 `expiresAt` 的 1 行改在 `agent-core.js`（并行 session
+占用）故本轮 defer；`jitterMs` 目前是 planner 的**全局**入参而非 per-entry，per-entry
+jitter 留待。
+
 **仍欠（daemon 事件运行时闭环）**：把 daemon 变成常驻 Event Runtime——用
-`msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due/退休 expired（并给
-create 加 `expiresAt`/`jitterMs`）；Monitor 扩到文件变化/WebSocket/SSE/HTTP
+`msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due（退休已接）；agent 工具
+create 透传 `expiresAt` + per-entry `jitterMs`；Monitor 扩到文件变化/WebSocket/SSE/HTTP
 webhook/MCP event（现仅 shell stdout 正则）；事件加 `event_id`/去重窗口/
 backpressure/大小上限/authority（复用 [[agent-authority.js]]）/审计；每个定时/
 事件任务独立预算·权限模式·Worktree·最大存活期；Channel pairing/allowlist 与
