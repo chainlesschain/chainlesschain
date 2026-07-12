@@ -2,6 +2,28 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.14] — Protocol hardening, diff/connection safety, capability negotiation (2026-07-12)
+
+- **Diff-apply safety.** Optimistic-concurrency guard (a target file that
+  drifted on disk _or_ in an unsaved editor buffer during review is
+  re-compared and, by default, cancelled rather than blindly overwritten —
+  content comparison, so edit-then-undo does not false-positive) plus a
+  binary-file guard (NUL probe; UTF-8 中文 never misflagged). `extensionKind:
+  ["workspace"]` pins the extension and its injected terminal to the repo host
+  for deterministic Remote/WSL/Dev-Container behavior.
+- **Connection safety.** MCP tool-path boundary guard rejects `..`, UNC,
+  out-of-workspace and prefix-confusion paths; the Windows lockfile carrying
+  the bridge bearer token is written owner-only (icacls ACL, fail-open).
+- **Protocol v1 hardening (additive — older CLIs degrade gracefully).** The
+  event→UI mapping is now machine-enforced against a cross-language fixture
+  contract shared with the JetBrains panel. The vendored Agent Protocol SDK
+  (0.1.5) carries the additive per-line fields (`tool_use_id`, event `seq`,
+  run-scoped `trace_id`), bg-\* WS relay event-seq gap detection + replay and
+  outbound backpressure, and **bidirectional capability negotiation with
+  N/N-1 downgrade** (a client `hello` narrows the wire features / protocol
+  version; the CLI echoes `system/negotiated` and steps down on disagreement).
+  `PROTOCOL_VERSION` stays 1; consumers ignore fields they do not use.
+
 ## [0.37.13] — Sessions workbench, semantic tools, managed CLI, artifacts/policy/quality panels (2026-07-11)
 
 - **Sessions Workbench (`ChainlessChain: Sessions Workbench`).** One panel

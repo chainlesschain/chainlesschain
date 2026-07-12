@@ -1,5 +1,24 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.58] — Protocol hardening, diff/connection safety, capability negotiation (2026-07-12)
+
+- **Diff-apply safety (VS Code twins).** Optimistic-concurrency guard (a
+  target file that drifted on disk or in an in-memory Document during review
+  is re-compared and cancelled by default) plus a binary-file guard (NUL
+  probe; UTF-8 中文 never misflagged). `extensionKind`-equivalent pinning keeps
+  the bridge on the repo host.
+- **Connection safety (twins).** MCP tool-path boundary guard rejects `..`,
+  UNC, out-of-workspace and prefix-confusion paths; the Windows lockfile
+  bearer token is written owner-only (AclFileAttributeView, fail-open).
+- **Protocol v1 hardening.** The panel's event→UI mapper
+  (`ChatEvents.mapAgentEvent`) is now machine-enforced against the SAME
+  cross-language fixture the VS Code panel uses (`ProtocolFixturesTest`).
+  Adds the Java twin of **bidirectional capability negotiation with N/N-1
+  downgrade** (`CapabilityNegotiation`) — the algorithm both sides use to
+  agree a protocol version + wire-feature set and step down on disagreement —
+  pinned to a shared fixture by a JUnit contract (`CapabilityNegotiationTest`,
+  10 cases). Additive; behavior unchanged against an older CLI.
+
 ## [0.4.57] — Sessions workbench, PSI semantic tools, managed CLI, artifacts/policy/quality panels (2026-07-11)
 
 - **Usage report renders CLI usage attribution + cost hints (gap #4 IDE
