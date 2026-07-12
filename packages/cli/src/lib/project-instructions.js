@@ -477,4 +477,132 @@ export function loadProjectInstructionsBlock(opts = {}) {
   }
 }
 
+function isDir(fs, p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Lazy subtree-instruction discovery (module 99 §5.3 "子目录指令按首次访问子树
+ * 懒加载"). Startup only loads the instruction chain from the project root DOWN
+ * to the cwd (see `findInstructionFiles`); a large monorepo's per-package
+ * `cc.md`/`CLAUDE.md`/`AGENTS.md` that sit BELOW the cwd are intentionally NOT
+ * injected up front — they cost tokens for subtrees a turn may never touch.
+ *
+ * This resolver answers "given a path a tool just accessed, which subtree
+ * instruction files should now be injected?" — the files in every directory
+ * strictly between `baseDir` (the already-loaded cwd) and the accessed path's
+ * directory, minus anything already loaded or excluded. Pure + deterministic;
+ * the tool-time injection itself is the caller's job.
+ *
+ * @param {object} opts
+ * @param {string} opts.repoRoot        excludes are matched relative to this
+ * @param {string} opts.baseDir         the startup cwd (its own file already loaded)
+ * @param {string} opts.accessedPath    a file/dir a tool touched (abs or rel to baseDir)
+ * @param {Set<string>|string[]} [opts.alreadyLoaded]  abs paths already injected
+ * @param {string[]} [opts.instructionExcludes]
+ * @returns {Array<{path:string, scope:"project", dir:string}>} shallowest-first
+ */
+export function resolveSubtreeInstructions(opts = {}) {
+  const { fs, path } = resolveDeps(opts);
+  const repoRoot = path.resolve(opts.repoRoot || opts.baseDir || process.cwd());
+  const baseDir = path.resolve(opts.baseDir || repoRoot);
+  const excludes = normalizeInstructionExcludes(opts.instructionExcludes);
+  const already =
+    opts.alreadyLoaded instanceof Set
+      ? opts.alreadyLoaded
+      : new Set((opts.alreadyLoaded || []).map((p) => path.resolve(p)));
+
+  if (!opts.accessedPath) return [];
+  // Resolve the accessed path to a directory inside the subtree. A not-yet-
+  // created file (about to be written) stats as neither file nor dir → treat it
+  // as a file and use its parent.
+  let target = path.resolve(baseDir, opts.accessedPath);
+  if (!isDir(fs, target)) target = path.dirname(target);
+
+  // Subtree instructions apply only to DESCENDANTS of baseDir (ancestors were
+  // loaded at startup). Reject a target that escapes baseDir or the repo.
+  const relFromBase = path.relative(baseDir, target);
+  if (
+    !relFromBase ||
+    relFromBase.startsWith("..") ||
+    path.isAbsolute(relFromBase)
+  ) {
+    return [];
+  }
+  const relFromRoot = path.relative(repoRoot, target);
+  if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) return [];
+
+  // Directories strictly between baseDir (exclusive) and target (inclusive).
+  const dirs = [];
+  let dir = target;
+  while (dir !== baseDir) {
+    dirs.push(dir);
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // hit fs root without meeting baseDir
+    dir = parent;
+  }
+  dirs.reverse(); // shallowest first
+
+  const out = [];
+  for (const d of dirs) {
+    const file = firstExisting(fs, path, d, PROJECT_FILE_NAMES);
+    if (!file) continue;
+    const abs = path.resolve(file);
+    if (already.has(abs)) continue;
+    if (
+      excludes.length > 0 &&
+      pathIsExcluded(path.relative(repoRoot, abs), excludes)
+    ) {
+      continue;
+    }
+    out.push({ path: abs, scope: "project", dir: d });
+  }
+  return out;
+}
+
+/**
+ * Stateful companion to `resolveSubtreeInstructions`: tracks which subtree
+ * directories have already been injected across a session so a second access to
+ * the same subtree is a no-op. `onAccess(path)` returns ONLY the freshly
+ * discovered files. Fail-open (any error → []).
+ */
+export class SubtreeInstructionLoader {
+  constructor(opts = {}) {
+    const path = opts.deps?.path || pathDefault;
+    this._opts = opts;
+    this._loadedDirs = new Set();
+    this._loadedFiles = new Set(
+      (opts.alreadyLoaded || []).map((p) => path.resolve(p)),
+    );
+  }
+
+  /** @returns {Array<{path:string, scope:"project", dir:string}>} newly injected */
+  onAccess(accessedPath) {
+    try {
+      const found = resolveSubtreeInstructions({
+        ...this._opts,
+        accessedPath,
+        alreadyLoaded: this._loadedFiles,
+      });
+      const fresh = found.filter((f) => !this._loadedDirs.has(f.dir));
+      for (const f of fresh) {
+        this._loadedDirs.add(f.dir);
+        this._loadedFiles.add(f.path);
+      }
+      return fresh;
+    } catch {
+      return [];
+    }
+  }
+
+  /** Absolute paths injected so far (startup set + every onAccess discovery). */
+  loadedFiles() {
+    return [...this._loadedFiles];
+  }
+}
+
 export const _deps = { fs: fsDefault, path: pathDefault, os: osDefault };
