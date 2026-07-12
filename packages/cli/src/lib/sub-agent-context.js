@@ -153,6 +153,11 @@ export class SubAgentContext {
         : {};
     this._mcpClient = options.mcpClient || null;
 
+    // Inherited settings hooks (Pre/PostToolUse) for this child loop. null =
+    // no hooks (the spawn default). The spawn path passes the parent's hooks
+    // filtered by the contract's `hooks` allow-list; forwarded into agentLoop.
+    this._settingsHooks = options.settingsHooks || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const profilePrompt = this._profile?.systemPrompt
@@ -325,6 +330,12 @@ export class SubAgentContext {
     }
     if (this._mcpClient) {
       options.mcpClient = this._mcpClient;
+    }
+    // Inherited Pre/PostToolUse hooks (spawn passes the parent's, filtered by
+    // the contract's `hooks` allow-list). Only set when non-null so a plain
+    // sub-agent keeps its no-hooks default.
+    if (this._settingsHooks) {
+      options.settingsHooks = this._settingsHooks;
     }
 
     try {

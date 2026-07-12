@@ -513,11 +513,24 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   默认不限）；全 subagent + skill-mcp + runtime-convergence shim parity 回归绿。未改
   agent-core 导出（shim parity）。
 
-**仍欠（需子循环能力管道 / 更大面）**：`mcpServers`/`hooks` 的 INTERSECT 目前**空转**
-——spawn 路径根本不把父 `mcpClient`/`externalTool*`/`settingsHooks` 传给子（子今天拿到
-零 MCP 工具 + 零 Pre/PostToolUse hook），须先做**子能力继承**（一个独立 feature）才有可
-INTERSECT 的集合；`memory` INTERSECT + `permissionMode` 强制进子审批门；`background` 由契约
-统一驱动（现仍读 spawn args）；精确取消单个 Subagent、每 child 的 checkpoint 归因仍缺。
+- **mcp/hooks capability 继承 + INTERSECT**（2026-07-12 三轮收尾）——spawn 路径现在把
+  父 loop 的**活** MCP plumbing（`mcpClient`/`externalToolDescriptors`/`externalToolExecutors`/
+  `extraToolDefinitions`）与 `settingsHooks` 按契约的 `mcpServers`/`hooks` allow-list 过滤后
+  传给子。新纯核 `subagent-inheritance.js`（`filterInheritedMcp` 按 `mcp__<server>__<tool>`
+  的 server 段过滤、`filterInheritedHooks` 按 group 的 `matcher` 过滤，null=全 / []=无 /
+  列表=子集）。**默认字节不变**：silent-`fresh`→契约 `mcpServers=[]`/`hooks=[]`→过滤返回
+  null→spawn 什么都不传，plain sub-agent 与旧行为逐字节一致；`context:fork`→null→继承全部；
+  显式 `mcpServers`/`hooks` 列表→INTERSECT 父上限后子集继承。经 `toolContext`→`executeTool`
+  →`executeToolInner`→`_executeSpawnSubAgent`→`SubAgentContext.create` 贯通，子 loop 的
+  `_runCore` 已把这些 forward 进 `agentLoop` options。嵌套 spawn 经 effective-contract 链跨
+  深度 INTERSECT。测试 +19：`subagent-inheritance.test.js` +14（server/matcher 提取 + null/
+  []/列表三态 + 无匹配返 null + 缺 serverName 回退 wire 名）+ `sub-agent-isolation.test.js`
+  +5（默认不继承 / fork 继承全部 MCP+hooks / 显式 mcpServers 子集 / 显式 hooks matcher 子集）；
+  全 subagent + runtime-convergence shim parity 回归绿。未改 agent-core 导出（shim parity）。
+
+**仍欠（更大面 / 仍未接）**：`memory` INTERSECT + `permissionMode` 强制进子审批门；
+`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个 Subagent、每 child 的
+checkpoint 归因仍缺。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

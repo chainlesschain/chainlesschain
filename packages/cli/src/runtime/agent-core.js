@@ -1498,6 +1498,10 @@ export async function executeTool(name, args, context = {}) {
       settingsVerdict,
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
+      // Effective contract of THIS loop (parent ceiling for a nested spawn) +
+      // the MCP tool definitions this loop exposes (inheritable by a spawn).
+      subAgentContract: context.subAgentContract || null,
+      extraToolDefinitions: context.extraToolDefinitions || null,
       interactiveApproval: context.interactiveApproval || false,
       settingsHooks: context.settingsHooks || null,
       signal: context.signal || null,
@@ -2106,7 +2110,9 @@ async function executeToolInner(
     hostManagedToolPolicy,
     externalToolDescriptors,
     externalToolExecutors,
+    extraToolDefinitions = null,
     mcpClient,
+    subAgentContract = null,
     llmOptions,
     shellPolicyOverrides,
     classifyAllShell = false,
@@ -2957,7 +2963,14 @@ async function executeToolInner(
           llmOptions,
           subAgentDepth,
           subAgentBudget,
+          subAgentContract,
           settingsHooks,
+          // Parent MCP plumbing — a spawn can inherit these into the child,
+          // filtered by the resolved contract's mcpServers allow-list.
+          mcpClient,
+          externalToolDescriptors,
+          externalToolExecutors,
+          extraToolDefinitions,
           signal,
           backgroundSubAgents,
           subAgentUsageSink,
@@ -4401,6 +4414,12 @@ async function _executeSpawnSubAgent(args, ctx) {
   let effectiveContract = null;
   let explicitContext = null;
   let skillAllowlist = null;
+  // MCP-server + hook allow-lists for child INHERITANCE. Default `[]` = inherit
+  // NONE, which equals today's behavior (a spawned child gets zero MCP tools /
+  // zero Pre-PostToolUse hooks). `context: fork` resolves these to `null` (all);
+  // an explicit list subsets them. See filterInherited* below.
+  let mcpAllow = [];
+  let hookAllow = [];
   try {
     const { resolveSubagentContract, normalizeSubagentContract } =
       await import("../lib/subagent-contract.js");
@@ -4422,9 +4441,40 @@ async function _executeSpawnSubAgent(args, ctx) {
       mdContract?.skills != null ||
       explicitContext != null;
     skillAllowlist = skillsDriven ? (effectiveContract.skills ?? null) : null;
+    // MCP/hooks work the OTHER way from skills: their pre-inheritance default is
+    // "none", so the silent-`fresh`→[] resolution IS the safe current behavior —
+    // no explicit-driven guard needed. A list (or `null` on fork) opts the child
+    // into inheriting the corresponding parent capabilities.
+    mcpAllow = effectiveContract.mcpServers ?? null;
+    hookAllow = effectiveContract.hooks ?? null;
   } catch {
     effectiveContract = null; // contract resolution is best-effort
     skillAllowlist = null;
+    mcpAllow = []; // inherit no MCP / hooks when resolution fails
+    hookAllow = [];
+  }
+
+  // Filter the parent loop's live MCP plumbing + settings hooks down to what the
+  // child may inherit. Default `[]` → null → the spawn passes nothing, so a plain
+  // sub-agent is byte-identical to before.
+  let inheritedMcp = null;
+  let inheritedHooks = null;
+  try {
+    const { filterInheritedMcp, filterInheritedHooks } =
+      await import("../lib/subagent-inheritance.js");
+    inheritedMcp = filterInheritedMcp(
+      {
+        extraToolDefinitions: ctx.extraToolDefinitions,
+        externalToolDescriptors: ctx.externalToolDescriptors,
+        externalToolExecutors: ctx.externalToolExecutors,
+        mcpClient: ctx.mcpClient,
+      },
+      mcpAllow,
+    );
+    inheritedHooks = filterInheritedHooks(ctx.settingsHooks || null, hookAllow);
+  } catch {
+    inheritedMcp = null; // inheritance is best-effort; never break the spawn
+    inheritedHooks = null;
   }
 
   // Worktree isolation must FAIL CLOSED: if requested but the cwd is not a git
@@ -4608,6 +4658,19 @@ async function _executeSpawnSubAgent(args, ctx) {
     // Skill capability INTERSECT (2026-07-12): a non-null allow-list (possibly
     // empty) restricts run_skill/list_skills in the child loop.
     ...(skillAllowlist != null ? { skillAllowlist } : {}),
+    // MCP + hook capability INHERITANCE (2026-07-12): only non-null when the
+    // contract opted the child into inheriting (context:fork or an explicit
+    // list). filterInherited* already subset these to the allowed servers /
+    // matchers. Absent → child inherits neither (today's default).
+    ...(inheritedMcp
+      ? {
+          extraToolDefinitions: inheritedMcp.extraToolDefinitions,
+          externalToolDescriptors: inheritedMcp.externalToolDescriptors,
+          externalToolExecutors: inheritedMcp.externalToolExecutors,
+          mcpClient: inheritedMcp.mcpClient,
+        }
+      : {}),
+    ...(inheritedHooks ? { settingsHooks: inheritedHooks } : {}),
   });
   subCtxRef = subCtx;
 
@@ -6171,6 +6234,10 @@ export async function* agentLoop(messages, options) {
     hostManagedToolPolicy: options.hostManagedToolPolicy || null,
     externalToolDescriptors: options.externalToolDescriptors || null,
     externalToolExecutors: options.externalToolExecutors || null,
+    // MCP tool DEFINITIONS the LLM sees (mcp__server__tool). Threaded here so a
+    // spawn can inherit the parent's MCP tools into the child (filtered by the
+    // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
+    extraToolDefinitions: options.extraToolDefinitions || null,
     mcpClient: options.mcpClient || null,
     // Parent LLM config — forwarded to spawn_sub_agent so a delegated subagent
     // inherits the provider/key and can override just the model (cc agents `model:`).
@@ -6215,6 +6282,10 @@ export async function* agentLoop(messages, options) {
       spawned: 0,
       max: MAX_SUB_AGENTS_PER_RUN,
     },
+    // This loop's EFFECTIVE subagent contract (set when this loop IS a spawned
+    // sub-agent). Threaded so a nested spawn_sub_agent sees it as the parent
+    // ceiling (tighten-only). null at the top level (no ceiling).
+    subAgentContract: options.subAgentContract || null,
     // Abort signal — forwarded to background sub-agents so cancelling the
     // parent run also cancels children still running detached.
     signal,

@@ -213,6 +213,118 @@ describe("Integration: Sub-Agent Isolation", () => {
     });
   });
 
+  // ─── MCP + hook capability inheritance (2026-07-12) ────
+
+  describe("child MCP + hook inheritance", () => {
+    const parentMcp = {
+      externalToolDescriptors: {
+        mcp__github__create_issue: { serverName: "github" },
+        mcp__fs__read: { serverName: "fs" },
+      },
+      externalToolExecutors: {
+        mcp__github__create_issue: { kind: "mcp", serverName: "github" },
+        mcp__fs__read: { kind: "mcp", serverName: "fs" },
+      },
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "mcp__github__create_issue",
+            parameters: { type: "object" },
+          },
+        },
+        {
+          type: "function",
+          function: { name: "mcp__fs__read", parameters: { type: "object" } },
+        },
+      ],
+      mcpClient: { callTool: async () => ({}) },
+    };
+    const parentHooks = {
+      PreToolUse: [{ matcher: "Bash", hooks: [{ command: "echo bash" }] }],
+      PostToolUse: [{ matcher: "Write", hooks: [{ command: "echo write" }] }],
+    };
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      });
+
+    const spawnAndCapture = async (spawnArgs, parentCtx) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+            ...parentCtx,
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("does NOT inherit parent MCP/hooks for a plain (fresh-default) spawn", async () => {
+      const opts = await spawnAndCapture(
+        {},
+        { ...parentMcp, settingsHooks: parentHooks },
+      );
+      // fresh → [] → filters return null → the spawn passes nothing.
+      expect(opts.externalToolDescriptors).toBeUndefined();
+      expect(opts.externalToolExecutors).toBeUndefined();
+      expect(opts.extraToolDefinitions).toBeUndefined();
+      expect(opts.settingsHooks).toBeUndefined();
+    });
+
+    it("inherits ALL parent MCP tools on context:fork", async () => {
+      const opts = await spawnAndCapture({ context: "fork" }, parentMcp);
+      expect(Object.keys(opts.externalToolDescriptors).sort()).toEqual([
+        "mcp__fs__read",
+        "mcp__github__create_issue",
+      ]);
+      expect(opts.extraToolDefinitions).toHaveLength(2);
+      expect(opts.mcpClient).toBe(parentMcp.mcpClient);
+    });
+
+    it("subsets inherited MCP to an explicit mcpServers list", async () => {
+      const opts = await spawnAndCapture({ mcpServers: ["github"] }, parentMcp);
+      expect(Object.keys(opts.externalToolDescriptors)).toEqual([
+        "mcp__github__create_issue",
+      ]);
+      expect(opts.extraToolDefinitions).toHaveLength(1);
+      expect(opts.extraToolDefinitions[0].function.name).toBe(
+        "mcp__github__create_issue",
+      );
+    });
+
+    it("inherits parent hooks on context:fork", async () => {
+      const opts = await spawnAndCapture(
+        { context: "fork" },
+        { settingsHooks: parentHooks },
+      );
+      expect(opts.settingsHooks).toEqual(parentHooks);
+    });
+
+    it("subsets inherited hooks to an explicit hooks matcher list", async () => {
+      const opts = await spawnAndCapture(
+        { hooks: ["Bash"] },
+        { settingsHooks: parentHooks },
+      );
+      expect(opts.settingsHooks.PreToolUse).toHaveLength(1);
+      expect(opts.settingsHooks.PostToolUse).toBeUndefined();
+    });
+  });
+
   // ─── SubAgentContext isolation ─────────────────────────
 
   describe("SubAgentContext message isolation", () => {
