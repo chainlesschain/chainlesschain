@@ -146,9 +146,22 @@ Request/reply routes on the CLI's WS gateway: `bg-list` · `bg-view` ·
 `bg-attach` · `bg-prompt {bgId,text}` · `bg-stop-turn` · `bg-detach` ·
 `bg-stop` · `bg-rename` · `bg-resume`.
 
-Unsolicited pushes while attached:
-`{"type":"bg-event","bgId","event":<worker event>}` and
-`{"type":"bg-log","bgId","chunk"}`.
+Unsolicited pushes while attached, each stamped with a per-attachment
+monotonic 1-based `seq` (additive — older clients ignore it):
+`{"type":"bg-event","bgId","seq","event":<worker event>}` and
+`{"type":"bg-log","bgId","seq","chunk"}`.
+
+Gap replay (reconnect resilience): a client tracks the last `seq` it saw and,
+on a re-attach after a WS blip, sends `bg-attach {bgId, sinceSeq}`. If the relay
+is still live, it re-pushes the frames after `sinceSeq` (bounded buffer) and the
+`bg-attach` reply carries `latestSeq`, `replayed` (count) and `replayTruncated`.
+`replayTruncated:true` means the missed range was already evicted — the client
+must full-resync from the log tail. Every `bg-attach` reply carries `latestSeq`;
+a fresh (non-`reattached`) reply means a new relay whose `seq` restarts at 1, so
+the client resets its gap tracker. Symmetric to the control-plane
+`RemoteCommandLedger` (`replaySince(cursor)`); shared core in
+`packages/cli/src/lib/event-seq-replay.js` (`EventReplayBuffer` producer +
+`SeqGapTracker` consumer).
 
 Security: `transport.token` never crosses the WS boundary — the gateway
 performs the pipe handshake itself and exposes only `interactive:true|false`.

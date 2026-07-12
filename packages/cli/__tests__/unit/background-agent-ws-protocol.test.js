@@ -245,6 +245,40 @@ describe("bg-attach relay", () => {
   });
 });
 
+describe("bg-event seq + gap replay (reconnect resilience)", () => {
+  it("stamps monotonic seq on pushes and replays missed frames on re-attach", async () => {
+    const { bgId, transport } = await startWorkerTransport();
+    const { server } = fakeServer();
+    await handleBgAttach(server, "c1", "1", {}, { bgId });
+
+    // Three lifecycle events → seq 1,2,3 on the bg-event push frames.
+    transport.broadcast({ type: "turn-started", turn: 1 });
+    transport.broadcast({ type: "turn-ended", turn: 1 });
+    transport.broadcast({ type: "idle" });
+    await vi.waitFor(() => {
+      expect(server.sent.filter((m) => m.type === "bg-event").length).toBe(3);
+    });
+    expect(
+      server.sent.filter((m) => m.type === "bg-event").map((e) => e.seq),
+    ).toEqual([1, 2, 3]);
+
+    // A panel that last saw seq 1 (WS blipped) re-attaches with sinceSeq:1 and
+    // gets seq 2 and 3 replayed plus the current watermark — no lost events.
+    const before = server.sent.length;
+    await handleBgAttach(server, "c1", "9", {}, { bgId, sinceSeq: 1 });
+    const reAttach = server.sent.find(
+      (m) => m.type === "bg-attach" && m.reattached,
+    );
+    expect(reAttach).toMatchObject({ latestSeq: 3, replayTruncated: false });
+    expect(
+      server.sent
+        .slice(before)
+        .filter((m) => m.type === "bg-event")
+        .map((e) => e.seq),
+    ).toEqual([2, 3]);
+  });
+});
+
 describe("bg-rename / bg-resume", () => {
   it("renames a session and returns the sanitized state", async () => {
     writeBackgroundAgentState({

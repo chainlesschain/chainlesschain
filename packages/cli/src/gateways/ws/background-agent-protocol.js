@@ -8,17 +8,28 @@
  * Routes (request → reply):
  *   bg-list      {all?}            → {type:"bg-list", sessions}
  *   bg-view      {bgId, lines?}    → {type:"bg-view", session, log}
- *   bg-attach    {bgId, lines?}    → {type:"bg-attach", bgId, hello, log}
+ *   bg-attach    {bgId, lines?, sinceSeq?} → {type:"bg-attach", bgId, hello,
+ *                                    log, latestSeq, [reattached, replayed,
+ *                                    replayTruncated]}
  *   bg-prompt    {bgId, text}      → {type:"bg-prompt", bgId, sent}
  *   bg-stop-turn {bgId}            → {type:"bg-stop-turn", bgId, sent}
  *   bg-detach    {bgId}            → {type:"bg-detach", bgId}
  *   bg-stop      {bgId}            → {type:"bg-stop", session}   (kill whole session)
  *
- * While attached, the server pushes unsolicited frames to that client:
- *   {type:"bg-event", bgId, event}   worker lifecycle events (turn-started /
+ * While attached, the server pushes unsolicited frames to that client, each
+ * stamped with a per-attachment monotonic `seq` (additive; older clients
+ * ignore it) so the client can detect gaps and request a replay:
+ *   {type:"bg-event", bgId, seq, event}  worker lifecycle events (turn-started /
  *                                    turn-ended / idle / accepted / error /
  *                                    transport-closed)
- *   {type:"bg-log",   bgId, chunk}   log-file delta (500ms poll)
+ *   {type:"bg-log",   bgId, seq, chunk}  log-file delta (500ms poll)
+ *
+ * Reconnect resilience: a panel whose WS blipped re-sends bg-attach with the
+ * last `seq` it saw (`sinceSeq`); the still-live relay re-pushes the frames it
+ * missed (bounded buffer) and reports `latestSeq`. If the missed range was
+ * already evicted, `replayTruncated:true` tells the client to full-resync from
+ * the log. If the relay was fully torn down (WS closed → cleanup), the fresh
+ * attach returns hello + log tail as before and the client resets its tracker.
  *
  * The state file's `transport.token` is the local takeover capability — it is
  * NEVER sent over WS. Sessions are serialized with `interactive: true/false`
@@ -26,6 +37,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import { EventReplayBuffer } from "../../lib/event-seq-replay.js";
 
 const LOG_POLL_MS = 500;
 
@@ -139,6 +151,20 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
     if (existing) {
       // Idempotent re-attach: reply with the live handshake instead of
       // stacking a second relay (a reconnecting panel re-sends bg-attach).
+      // If the panel reports the last seq it saw (`sinceSeq`), replay the
+      // push frames it missed while the WS was blipped — re-sent as normal
+      // bg-event/bg-log frames (their original seq), so the client's gap
+      // tracker sees a contiguous run. `replayTruncated` tells the client the
+      // hole predates our buffer and it must full-resync (re-read the log).
+      const sinceSeq = Number(message.sinceSeq);
+      let replayTruncated = false;
+      let replayed = 0;
+      if (Number.isFinite(sinceSeq)) {
+        const { frames, truncated } = existing.buffer.replaySince(sinceSeq);
+        replayTruncated = truncated;
+        replayed = frames.length;
+        for (const frame of frames) server._send(ws, frame);
+      }
       server._send(ws, {
         id,
         type: "bg-attach",
@@ -146,6 +172,9 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
         hello: existing.hello,
         log: "",
         reattached: true,
+        latestSeq: existing.buffer.latestSeq,
+        replayed,
+        replayTruncated,
       });
       return;
     }
@@ -172,6 +201,14 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
       );
     }
 
+    // Per-attachment replay buffer: stamps a monotonic seq on every push frame
+    // and retains a bounded tail so a reconnecting client can fill gaps
+    // (bg-attach { sinceSeq }). One buffer per relay instance — seq restarts
+    // at 1 on a fresh attach, so the client resets its tracker then.
+    const buffer = new EventReplayBuffer();
+    const pushEvent = (event) =>
+      server._send(ws, buffer.record({ type: "bg-event", bgId, event }));
+
     const { connectBackgroundSession } =
       await import("../../lib/background-session-transport.js");
     let conn;
@@ -179,16 +216,10 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
       conn = await connectBackgroundSession({
         pipePath: session.transport.pipe,
         token: session.transport.token,
-        onEvent: (event) => {
-          server._send(ws, { type: "bg-event", bgId, event });
-        },
+        onEvent: (event) => pushEvent(event),
         onClose: () => {
           if (dropAttachment(client, bgId)) {
-            server._send(ws, {
-              type: "bg-event",
-              bgId,
-              event: { type: "transport-closed" },
-            });
+            pushEvent({ type: "transport-closed" });
           }
         },
       });
@@ -212,7 +243,7 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
         if (text.length > offset) {
           const chunk = text.slice(offset);
           offset = text.length;
-          server._send(ws, { type: "bg-log", bgId, chunk });
+          server._send(ws, buffer.record({ type: "bg-log", bgId, chunk }));
         }
       } catch {
         /* transient read failures skip one tick */
@@ -220,7 +251,7 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
     }, LOG_POLL_MS);
     poll.unref?.();
 
-    attachments(client).set(bgId, { conn, poll, hello: conn.hello });
+    attachments(client).set(bgId, { conn, poll, hello: conn.hello, buffer });
     server._send(ws, {
       id,
       type: "bg-attach",
@@ -229,6 +260,7 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
       log: readBackgroundAgentLog(bgId, {
         lines: Number(message.lines) || 100,
       }),
+      latestSeq: buffer.latestSeq,
     });
   } catch (err) {
     sendError(server, id, ws, "BG_ATTACH_FAILED", err.message);

@@ -460,21 +460,35 @@ export interface BgWsRequest {
   text?: string;
   name?: string;
   requestId?: string;
+  /**
+   * bg-attach only (additive): the last push `seq` the client saw. On a
+   * re-attach to a still-live relay, the server re-pushes the frames after it
+   * (gap replay) and answers with `latestSeq` / `replayTruncated`. Absent →
+   * legacy behavior (no replay).
+   */
+  sinceSeq?: number;
   [key: string]: unknown;
 }
 
-/** Unsolicited push while attached: relayed worker lifecycle event. */
+/**
+ * Unsolicited push while attached: relayed worker lifecycle event. `seq` is a
+ * per-attachment monotonic 1-based number (additive) enabling gap detection +
+ * replay; consumers MUST tolerate its absence and MUST reset their tracker on
+ * a fresh (non-reattached) bg-attach, since a new relay restarts seq at 1.
+ */
 export interface BgWsEventFrame {
   type: "bg-event";
   bgId: string;
   event: BgServerMessage | { type: "transport-closed" };
+  seq?: number;
 }
 
-/** Unsolicited push while attached: appended log chunk. */
+/** Unsolicited push while attached: appended log chunk (seq additive). */
 export interface BgWsLogFrame {
   type: "bg-log";
   bgId: string;
   chunk: string;
+  seq?: number;
 }
 
 export type BgWsPushFrame = BgWsEventFrame | BgWsLogFrame;
