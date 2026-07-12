@@ -24,6 +24,7 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 | P0#1 bg 事件 seq gap 回放 | bg-* WS relay 的 `bg-event`/`bg-log` 推送原无 seq → WS 闪断丢失生命周期转换静默不可知；新建纯核 `event-seq-replay.js`（`EventReplayBuffer` 生产端 + `SeqGapTracker` 消费端，控制面 `RemoteCommandLedger` 的事件向孪生）+ 接入 relay：每帧打 per-attachment seq、`bg-attach {sinceSeq}` 重放漏帧并回 `latestSeq`/`replayTruncated`（越界则全量重同步）；additive 旧客户端忽略 seq | `f1cc226dc7` |
 | P0#1 背压协议 | relay 原直推 `ws.send` 无 `ws.bufferedAmount` 上限 → 慢客户端撑爆服务端内存/UI 假死；新建纯核 `backpressure-policy.js`（高低水位滞回，永不丢 CRITICAL=`bg-event`，超压丢 DROPPABLE=`bg-log`）接入 relay：丢帧仍记录（seq 前进→下一帧 gap 触发 `sinceSeq` 重放自愈）+ 一次性 `bg-lag{lagging}` 提示 UI「追赶中」不冻结；正常路径 buffer=0 字节不变 | `27ef0b008e` |
 | P0#1 remote URI/path mapping | 本地 IDE（含 Remote-WSL/SSH/Dev Containers）上报的文件形态 cc 主机打不开（`file://`/`vscode-remote://wsl\|ssh-remote\|dev-container` URI、`\\wsl.localhost\<distro>\` UNC、WSL 内的 `C:\` 盘路径）→ 直接内联进 prompt 会让 read/edit 指向本机看不见的路径；新建纯核 `remote-path-mapping.js` 把外来形态折成 CLI 本机 fs 路径（`normalizeIdePathForCli`，反向 `cliPathToIdeUri`），本机/未识别形态字节不变透传，百分号解码无损保留空格+中文；接入 `ide-context.js` 的选区/标签/诊断三处（凭据剔除之后，basename 脱敏不受影响），逃生门 `CC_IDE_PATH_MAP=0`；additive 无线协议变更 | `f27a893a09` |
+| P0#1 capability 双向协商 + N/N-1 降级 | manifest 原单向（CLI 声明能力），客户端无法反向声明所懂、CLI 也无规则选公共级或降级 → 未来 v2 行客户端会静默误解析。客户端可发首行 `hello`（协议范围+懂的 wire 特性），CLI 与自身 offer 协商后回 `system/negotiated` 并按结果打点：agreedVersion=min(双方 max)、无重叠区间则 `ok:false` 保基线、有效特性=服务端 offer∩客户端接受−版本门；无 `hello` 则全量行为字节不变。纯核 `capability-negotiation.js`（`negotiateProtocol`/`buildServerOffer`/`applyNegotiationToGate`）接入 headless-stream：`hello` 翻转 coalescer+tool-use-id 读的活 `fieldGate`，真正抑制 seq/trace_id/tool_use_id（有牙）。Java 孪生 `CapabilityNegotiation.java` 镜像算法，双端钉同一 fixture `capability-negotiation-cases.json`（JS 10 例+Java 50 断言）；协议 additive（`ClientHelloInput`/`NegotiatedCapabilitiesEvent`/`MIN_PROTOCOL_VERSION`/`PROTOCOL_FEATURES` + PROTOCOL.md §1.2.2，agent-sdk 0.1.4→0.1.5 revendor） | `3c24d22352` |
 | P0#2 隐式上下文安全 | IDE 选区/标签/terminal/diagnostics 注入前过 read-deny（凭据文件剔除）+ 凭据脱敏（PEM/Bearer/AWS/厂商 token 前缀/秘密赋值）；逃生门 `CC_IDE_CONTEXT_REDACTION=0` | `492f89a5fd` |
 | P0#2 连接安全 | MCP 工具路径边界守卫（`..`/UNC/工作区外/前缀混淆全拒，双端纯核孪生）+ Windows lockfile bearer token owner-only ACL（icacls / AclFileAttributeView，fail-open） | `c299976aff` |
 | P0#2 写路径风险提升 | auto-exec 配置写守卫接入 CLI 写路径（`.vscode/tasks·launch·settings`、`.mcp.json`、`.idea/runConfigurations`、devcontainer、code-workspace → 写前确认，headless fail-closed） | `492f89a5fd` |
@@ -35,11 +36,11 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.4、JetBrain
 
 ### 仍缺（环境阻塞 / 大改 / 待拍板）
 
-- **协议（P0#1）剩项**：capability 双向协商与 N/N-1 降级。这是协议层较大改动（需双向 handshake +
-  版本矩阵），非 Windows 环境阻塞，建议单独规划一轮。（跨事件 trace id 已于 `948adc711b`、bg 事件面
-  seq gap 回放已于 `f1cc226dc7`、背压协议已于 `27ef0b008e`、remote URI/path mapping 已于 `f27a893a09`
-  收口；stream-json 面的 seq gap 回放对单管道语义无意义——管道断=进程亡、无重连，故不做，其消费端
-  `SeqGapTracker` 已就绪可复用。）
+- **协议（P0#1）全部收口**：跨事件 trace id (`948adc711b`)、bg 事件面 seq gap 回放
+  (`f1cc226dc7`)、背压协议 (`27ef0b008e`)、remote URI/path mapping (`f27a893a09`)、capability
+  双向协商 + N/N-1 降级 (`3c24d22352`) 均已落地。（stream-json 面的 seq gap 回放对单管道语义无意义——
+  管道断=进程亡、无重连，故不做，其消费端 `SeqGapTracker` 已就绪可复用。真正的多版本降级要等 v2 行
+  shape 落地才有实测断言；当前机制以合成 v2/v3 fixture 锁定，v1 会话 agreedVersion 恒 1。）
 - **隐式上下文（P0#2）度量项**：200 种凭据样本脱敏召回率 ≥99% / 误报 <2% 需真实语料基线，
   本轮实现保守正则，度量未做；approvalId 绑定操作指纹（工具名+参数哈希）属 P2。
 - **远程开发（P0#3）**：五类远程环境（WSL/SSH/Dev Containers/Codespaces/Gateway）的连接/上下文/
