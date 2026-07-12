@@ -16,6 +16,7 @@ import {
   removeBackgroundAgent,
   renameBackgroundAgent,
   resumeBackgroundAgent,
+  sessionLifecycleState,
   statePath,
   stopBackgroundAgent,
   writeBackgroundAgentState,
@@ -90,6 +91,61 @@ describe("background agent supervisor", () => {
       "bg-new-def",
       "bg-old-abc",
     ]);
+  });
+
+  it("attaches the canonical unified lifecycleState to the list feed", () => {
+    // running + a live turn → running; a pending approval → waitingApproval.
+    writeBackgroundAgentState({
+      id: "bg-run-1",
+      status: "running",
+      pid: process.pid,
+      startedAt: 3,
+      phase: "turn",
+    });
+    writeBackgroundAgentState({
+      id: "bg-appr-2",
+      status: "running",
+      pid: process.pid,
+      startedAt: 2,
+      phase: "idle",
+      pendingApprovals: 1,
+    });
+    writeBackgroundAgentState({
+      id: "bg-done-3",
+      status: "completed",
+      startedAt: 1,
+      endedAt: 2,
+    });
+    const byId = Object.fromEntries(
+      listBackgroundAgents({ all: true }).map((s) => [s.id, s.lifecycleState]),
+    );
+    expect(byId["bg-run-1"]).toBe("running");
+    expect(byId["bg-appr-2"]).toBe("waitingApproval");
+    expect(byId["bg-done-3"]).toBe("completed");
+  });
+
+  it("does NOT leak the derived lifecycleState into the on-disk schema via mutate paths", () => {
+    // The rename/pin read-modify-write paths spread effectiveBackgroundAgentState's
+    // output back into writeBackgroundAgentState — so lifecycleState must never be
+    // baked in there, only attached at the display feed.
+    writeBackgroundAgentState({
+      id: "bg-mut-1",
+      status: "running",
+      pid: process.pid,
+      startedAt: 3,
+      phase: "turn",
+    });
+    renameBackgroundAgent("bg-mut-1", "renamed", { now: 100 });
+    const raw = JSON.parse(readFileSync(statePath("bg-mut-1"), "utf8"));
+    expect(raw).not.toHaveProperty("lifecycleState");
+    // effectiveBackgroundAgentState (the mutate-path input) is also unenriched.
+    expect(
+      effectiveBackgroundAgentState(readBackgroundAgentState("bg-mut-1")),
+    ).not.toHaveProperty("lifecycleState");
+    // but the derived state is still computable on demand.
+    expect(sessionLifecycleState(readBackgroundAgentState("bg-mut-1"))).toBe(
+      "running",
+    );
   });
 
   it("marks stale-heartbeat running sessions as lost and persists the correction", () => {

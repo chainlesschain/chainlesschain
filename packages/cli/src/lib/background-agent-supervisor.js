@@ -15,6 +15,7 @@ import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getHomeDir } from "./paths.js";
+import { deriveSessionState } from "./session-lifecycle.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -347,6 +348,26 @@ export function normalizeBackgroundAgentTitle(title) {
   return value.slice(0, 160);
 }
 
+/**
+ * The canonical unified lifecycle state (session-lifecycle.js) for a session —
+ * folds the supervisor `status` + worker `phase` + `pendingApprovals` into one
+ * of the 10 canonical states so every consumer (dashboard, `cc daemon list
+ * --json`, an IDE bridge) reasons about a single vocabulary. Pure; call it at a
+ * DISPLAY boundary only. It is deliberately NOT baked into
+ * effectiveBackgroundAgentState because that function's output is spread back
+ * into writeBackgroundAgentState by the rename/pin/stop read-modify-write
+ * paths — a derived field there would leak into the on-disk schema.
+ */
+export function sessionLifecycleState(state) {
+  return deriveSessionState(state);
+}
+
+/** A display copy of `state` with the derived `lifecycleState` attached. */
+function withLifecycleState(state) {
+  if (!state) return state;
+  return { ...state, lifecycleState: deriveSessionState(state) };
+}
+
 export function effectiveBackgroundAgentState(state, options = {}) {
   if (!state) return null;
   if (state.status !== "running") return state;
@@ -403,13 +424,19 @@ export function effectiveBackgroundAgentState(state, options = {}) {
 }
 
 export function listBackgroundAgents(options = {}) {
-  return readdirSync(backgroundAgentsDir())
-    .filter((name) => name.endsWith(".json") && !name.includes(".job."))
-    .map((name) => readBackgroundAgentState(name.slice(0, -5)))
-    .filter(Boolean)
-    .map((state) => effectiveBackgroundAgentState(state, options))
-    .filter((state) => options.all || state.status === "running")
-    .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  return (
+    readdirSync(backgroundAgentsDir())
+      .filter((name) => name.endsWith(".json") && !name.includes(".job."))
+      .map((name) => readBackgroundAgentState(name.slice(0, -5)))
+      .filter(Boolean)
+      .map((state) => effectiveBackgroundAgentState(state, options))
+      .filter((state) => options.all || state.status === "running")
+      .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0))
+      // Display-only enrichment: attach the canonical unified lifecycle state.
+      // This is a list feed (never written back to disk), so the derived field
+      // cannot leak into the on-disk schema the way it would in the mutate paths.
+      .map(withLifecycleState)
+  );
 }
 
 function sleepSyncMs(ms) {
