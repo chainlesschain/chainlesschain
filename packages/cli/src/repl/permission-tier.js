@@ -72,6 +72,34 @@ export function parsePermissionModeArg(arg) {
   return tier ? { tier, auto: false, dontAsk: false } : null;
 }
 
+/**
+ * Inverse of the tier mapping: turn a live REPL session tier back into a
+ * subagent-contract permission MODE, so a spawned sub-agent inherits/tightens
+ * from the interactive session's CURRENT approval tier (its run-mode ceiling).
+ * Lossy on the restrictive end (strict ← default/manual/plan) — "default" is the
+ * safe representative and resolves identically for a child — but the PERMISSIVE
+ * end (autopilot → bypassPermissions) is exact, which is what lets a bypass
+ * session hand its children the allow confirmer. `auto`/`dontAsk` carry through.
+ *
+ * @param {string} tier  strict | trusted | autopilot | auto | dontAsk
+ * @returns {"default"|"acceptEdits"|"bypassPermissions"|"auto"|"dontAsk"}
+ */
+export function permissionModeForTier(tier) {
+  switch (tier) {
+    case "autopilot":
+      return "bypassPermissions";
+    case "trusted":
+      return "acceptEdits";
+    case "auto":
+      return "auto";
+    case "dontAsk":
+      return "dontAsk";
+    case "strict":
+    default:
+      return "default";
+  }
+}
+
 /** One-line description of what a tier auto-approves. */
 export function describeTier(tier) {
   switch (tier) {

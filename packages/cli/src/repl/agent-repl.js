@@ -116,6 +116,7 @@ import { describeAskContext, raceLocalAndRemote } from "./remote-approval.js";
 import {
   parsePermissionTier,
   parsePermissionModeArg,
+  permissionModeForTier,
   describeTier,
   nextTier,
 } from "./permission-tier.js";
@@ -5102,6 +5103,17 @@ export async function startAgentRepl(options = {}) {
         denialLog: _recentDenials,
         persistRecentDenials: true,
         permissionMode: _sessionTier,
+        // Seed the subagent-contract CEILING with the interactive session's
+        // CURRENT approval tier (mapped back to a permission mode) so a spawned
+        // sub-agent inherits/tightens from it (tighten-only), mirroring the
+        // headless runner. An autopilot session hands children bypassPermissions
+        // (→ allow confirmer); a mid-session Shift+Tab / `/permissions` change is
+        // reflected because `_sessionTier` is read per turn. A strict session
+        // resolves children to "default" exactly as before (byte-identical — the
+        // previous absent ceiling also yielded "default").
+        subAgentContract: {
+          permissionMode: permissionModeForTier(_sessionTier),
+        },
         prepareCall,
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,

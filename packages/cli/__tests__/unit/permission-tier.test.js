@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   parsePermissionTier,
   parsePermissionModeArg,
+  permissionModeForTier,
   describeTier,
   nextTier,
   TIER_CYCLE,
@@ -112,6 +113,39 @@ describe("describeTier", () => {
     expect(describeTier("strict")).toContain("asks");
     expect(describeTier("auto")).toContain("autoMode.decisions");
     expect(describeTier("bogus")).toBe("");
+  });
+});
+
+describe("permissionModeForTier (run-mode ceiling seed)", () => {
+  it("maps the permissive end exactly (autopilot → bypassPermissions)", () => {
+    expect(permissionModeForTier("autopilot")).toBe("bypassPermissions");
+  });
+
+  it("maps trusted → acceptEdits and carries auto/dontAsk through", () => {
+    expect(permissionModeForTier("trusted")).toBe("acceptEdits");
+    expect(permissionModeForTier("auto")).toBe("auto");
+    expect(permissionModeForTier("dontAsk")).toBe("dontAsk");
+  });
+
+  it("maps strict and any unknown tier to 'default'", () => {
+    expect(permissionModeForTier("strict")).toBe("default");
+    expect(permissionModeForTier("bogus")).toBe("default");
+    expect(permissionModeForTier(undefined)).toBe("default");
+  });
+
+  it("every parsePermissionModeArg tier round-trips to a valid subagent mode", () => {
+    // The five values _sessionTier can hold all map to a mode the contract
+    // accepts (SUBAGENT_PERMISSION_MODES), so the ceiling is never invalid.
+    const VALID = new Set([
+      "default",
+      "acceptEdits",
+      "bypassPermissions",
+      "auto",
+      "dontAsk",
+    ]);
+    for (const tier of ["strict", "trusted", "autopilot", "auto", "dontAsk"]) {
+      expect(VALID.has(permissionModeForTier(tier))).toBe(true);
+    }
   });
 });
 

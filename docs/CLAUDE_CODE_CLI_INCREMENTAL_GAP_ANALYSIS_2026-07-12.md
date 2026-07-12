@@ -599,11 +599,22 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   默认不线程 / manual 不线程 / bypass 上限→子得放行 confirmer 且 `()`==true / default 上限下子请求
   bypass 被夹→不线程；`headless-runner`：运行模式播种进 ceiling / 缺省播 "default"）。未改 agent-core
   导出（shim parity）。
+- **agent-repl 运行模式播种子上限**（2026-07-13 七轮收尾）——补齐上一笔只做了 headless 的缺口：
+  交互 REPL 现也把**当前会话审批档**作子上限。REPL 只跟踪 `_sessionTier`（tier 词表 strict/trusted/
+  autopilot/auto/dontAsk，可由 `--permission-mode` 启动 + `/permissions`/Shift+Tab 中途改），与
+  permission-mode 词表不同，故新增纯核 `permissionModeForTier`（permission-tier.js）反向映射：
+  autopilot→`bypassPermissions`（**放行端精确**，是让 bypass 会话把放行 confirmer 交给子的关键）、
+  trusted→`acceptEdits`、auto/dontAsk 原样、strict/未知→`default`（限制端有损但对子解析等价）。REPL
+  的 `agentLoop` options 现加 `subAgentContract:{permissionMode: permissionModeForTier(_sessionTier)}`，
+  每轮读 `_sessionTier` 故中途改档即时生效；本地 `agentLoop` 包装器 `...options` 透传进 `coreAgentLoop`
+  →toolContext.subAgentContract→spawn 上限。strict 会话→子 "default" 逐字节不变。测试 +4
+  （`permission-tier.test.js`：autopilot→bypass 精确 / trusted→acceptEdits + auto/dontAsk 透传 /
+  strict+未知→default / 五个 tier 全 round-trip 到合法 SUBAGENT_PERMISSION_MODES）。未改 agent-core 导出。
 
 **仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
 Subagent、每 child 的 checkpoint 归因仍缺。`acceptEdits`/`auto` 的「trusted 自动放行」需子侧
 ApprovalGate sessionPolicy（受共享单例全局 confirmer 制约，属更大面，与 run_shell 会话策略线程化
-一并 defer）；agent-repl 侧运行模式播种子上限亦待接（当前仅 headless）。
+一并 defer）。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 
