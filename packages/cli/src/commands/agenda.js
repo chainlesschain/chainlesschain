@@ -58,6 +58,20 @@ export function registerAgendaCommand(program) {
     .action((id, options) => {
       process.exitCode = runAgendaCancel(id, options);
     });
+
+  cmd
+    .command("prune")
+    .description(
+      "Remove finished entries (fired / matched / exhausted / expired)",
+    )
+    .option(
+      "--older-than <seconds>",
+      "Only prune entries that finished more than N seconds ago",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action((options) => {
+      process.exitCode = runAgendaPrune(options);
+    });
 }
 
 export function runAgendaList(options = {}, _deps = {}) {
@@ -122,6 +136,54 @@ export function runAgendaCancel(id, options = {}, _deps = {}) {
   }
   log(chalk.red(`\n  ✖ No entry with id ${id}\n`));
   return 2;
+}
+
+/**
+ * Remove finished (terminal) entries so the store does not grow without bound.
+ * `--older-than <seconds>` keeps entries that finished more recently.
+ */
+export function runAgendaPrune(options = {}, _deps = {}) {
+  const log = _deps.log || ((m) => console.log(m));
+  const store = _deps.store || new AgentScheduleStore();
+  const now = _deps.now ? _deps.now() : Date.now();
+
+  let before = Infinity;
+  if (options.olderThan != null) {
+    const secs = Number(options.olderThan);
+    if (!Number.isFinite(secs) || secs < 0) {
+      log(chalk.red(`\n  ✖ invalid --older-than: ${options.olderThan}\n`));
+      return 2;
+    }
+    before = now - secs * 1000;
+  }
+
+  const removed = store.pruneTerminal({ before });
+  if (options.json) {
+    log(
+      JSON.stringify(
+        {
+          pruned: removed.map((e) => ({
+            id: e.id,
+            kind: e.kind,
+            status: e.status,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  if (removed.length === 0) {
+    log(chalk.gray("\n  No finished entries to prune.\n"));
+    return 0;
+  }
+  log(
+    chalk.green(
+      `\n  ✓ Pruned ${removed.length} finished entr${removed.length === 1 ? "y" : "ies"}\n`,
+    ),
+  );
+  return 0;
 }
 
 /**

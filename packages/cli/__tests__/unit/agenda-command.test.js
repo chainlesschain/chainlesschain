@@ -7,6 +7,7 @@ import {
   runAgendaList,
   runAgendaCancel,
   runAgendaRun,
+  runAgendaPrune,
 } from "../../src/commands/agenda.js";
 
 describe("cc agenda", () => {
@@ -207,6 +208,58 @@ describe("cc agenda", () => {
       expect(store.list("wakeup").find((e) => e.id === dead.id).status).toBe(
         "pending", // dry-run must not mutate
       );
+    });
+  });
+
+  describe("prune", () => {
+    it("removes finished entries and reports them as JSON", () => {
+      const fired = store.scheduleWakeup({ prompt: "done", delayMs: 0 });
+      store.markWakeupFired(fired.id, clock);
+      store.scheduleWakeup({ prompt: "pending", delayMs: 5000 }); // kept
+
+      const code = runAgendaPrune(
+        { json: true },
+        { store, log, now: () => clock },
+      );
+      expect(code).toBe(0);
+      const parsed = JSON.parse(logs.join("\n"));
+      expect(parsed.pruned).toHaveLength(1);
+      expect(parsed.pruned[0]).toMatchObject({ id: fired.id, status: "fired" });
+      expect(store.list()).toHaveLength(1);
+    });
+
+    it("--older-than keeps recently-finished entries", () => {
+      const old = store.scheduleWakeup({ prompt: "old", delayMs: 0 });
+      store.markWakeupFired(old.id, clock);
+      const recent = store.scheduleWakeup({ prompt: "recent", delayMs: 0 });
+      store.markWakeupFired(recent.id, clock + 10_000);
+
+      const code = runAgendaPrune(
+        { json: true, olderThan: "5" }, // 5s → cutoff clock+5s
+        { store, log, now: () => clock + 10_000 },
+      );
+      expect(code).toBe(0);
+      const parsed = JSON.parse(logs.join("\n"));
+      expect(parsed.pruned.map((e) => e.id)).toEqual([old.id]);
+      expect(store.list().map((e) => e.id)).toEqual([recent.id]);
+    });
+
+    it("rejects an invalid --older-than with exit 2", () => {
+      const code = runAgendaPrune(
+        { json: true, olderThan: "soon" },
+        { store, log, now: () => clock },
+      );
+      expect(code).toBe(2);
+    });
+
+    it("reports nothing to prune when the store is all-schedulable", () => {
+      store.scheduleWakeup({ prompt: "pending", delayMs: 5000 });
+      const code = runAgendaPrune(
+        { json: true },
+        { store, log, now: () => clock },
+      );
+      expect(code).toBe(0);
+      expect(JSON.parse(logs.join("\n")).pruned).toHaveLength(0);
     });
   });
 });

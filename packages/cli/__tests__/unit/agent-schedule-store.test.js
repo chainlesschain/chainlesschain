@@ -190,4 +190,47 @@ describe("AgentScheduleStore", () => {
       expect(store.retireExpired(clock + 300)).toHaveLength(0);
     });
   });
+
+  describe("pruneTerminal", () => {
+    it("removes terminal entries and keeps schedulable ones", () => {
+      const fired = store.scheduleWakeup({ prompt: "done", delayMs: 0 });
+      store.markWakeupFired(fired.id, clock);
+      store.scheduleWakeup({ prompt: "pending", delayMs: 5000 }); // stays
+      const cron = store.createCron({ prompt: "c", cron: "0 0 * * *" }); // active, stays
+
+      const removed = store.pruneTerminal();
+      expect(removed.map((e) => e.id)).toEqual([fired.id]);
+      const remaining = store.list();
+      expect(remaining).toHaveLength(2);
+      expect(remaining.some((e) => e.id === cron.id)).toBe(true);
+      // idempotent
+      expect(store.pruneTerminal()).toHaveLength(0);
+    });
+
+    it("prunes expired + exhausted + matched across kinds", () => {
+      const w = store.scheduleWakeup({ prompt: "w", expiresAt: clock + 10 });
+      store.retireExpired(clock + 100); // → expired
+      const m = store.createMonitor({
+        command: "echo",
+        intervalMs: 1000,
+        stopWhen: "x",
+      });
+      store.recordMonitorCheck(m.id, { matched: true, atMs: clock }); // → matched
+      const removed = store.pruneTerminal();
+      expect(removed.map((e) => e.id).sort()).toEqual([w.id, m.id].sort());
+      expect(store.list()).toHaveLength(0);
+    });
+
+    it("`before` keeps entries that finished more recently than the cutoff", () => {
+      const old = store.scheduleWakeup({ prompt: "old", delayMs: 0 });
+      store.markWakeupFired(old.id, clock); // firedAt = clock
+      const recent = store.scheduleWakeup({ prompt: "recent", delayMs: 0 });
+      store.markWakeupFired(recent.id, clock + 10_000); // firedAt = clock + 10s
+
+      // Prune only entries finished at/before clock+5s → removes `old`, keeps `recent`.
+      const removed = store.pruneTerminal({ before: clock + 5_000 });
+      expect(removed.map((e) => e.id)).toEqual([old.id]);
+      expect(store.list().map((e) => e.id)).toEqual([recent.id]);
+    });
+  });
 });

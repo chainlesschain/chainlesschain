@@ -40,6 +40,28 @@ function isSchedulableStatus(entry) {
     : entry.status === "active";
 }
 
+/** Statuses an entry can never leave — safe to prune. */
+export const TERMINAL_STATUSES = Object.freeze([
+  "fired",
+  "matched",
+  "exhausted",
+  "expired",
+]);
+const TERMINAL_SET = new Set(TERMINAL_STATUSES);
+
+/** Best available "this entry reached a terminal state at" timestamp. */
+function terminalAt(entry) {
+  return (
+    entry.firedAt ??
+    entry.matchedAt ??
+    entry.expiredAt ??
+    entry.lastRunAt ??
+    entry.lastCheckAt ??
+    entry.createdAt ??
+    0
+  );
+}
+
 export function agentScheduleDir(homedir = os.homedir()) {
   return path.join(homedir, ".chainlesschain", "agent-schedule");
 }
@@ -325,6 +347,28 @@ export class AgentScheduleStore {
       }
     }
     return null;
+  }
+
+  /**
+   * Remove terminal entries (fired / matched / exhausted / expired) whose
+   * terminal timestamp is at or before `before` (default: all terminal
+   * entries), across all kinds. Keeps the append-only JSONL store from growing
+   * without bound once entries finish. Returns the removed entries; only a kind
+   * that actually changed is rewritten.
+   */
+  pruneTerminal({ before = Infinity } = {}) {
+    const removed = [];
+    for (const kind of SCHEDULE_KINDS) {
+      const entries = this._readAll(kind);
+      const keep = entries.filter((entry) => {
+        const prunable =
+          TERMINAL_SET.has(entry.status) && terminalAt(entry) <= before;
+        if (prunable) removed.push(entry);
+        return !prunable;
+      });
+      if (keep.length !== entries.length) this._writeAll(kind, keep);
+    }
+    return removed;
   }
 
   // ── lifecycle mutations (used by `cc agenda run`) ──────────────────────────
