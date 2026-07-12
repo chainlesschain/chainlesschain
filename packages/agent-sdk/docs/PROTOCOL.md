@@ -163,5 +163,15 @@ the client resets its gap tracker. Symmetric to the control-plane
 `packages/cli/src/lib/event-seq-replay.js` (`EventReplayBuffer` producer +
 `SeqGapTracker` consumer).
 
+Backpressure: if the client drains too slowly (`ws.bufferedAmount` over a high
+water), the relay sheds droppable frames (`bg-log`) while always delivering
+critical ones (`bg-event`). Dropped frames are still recorded, so the seq gap on
+the next delivered frame trips the `sinceSeq` replay above. The relay marks the
+episode with `{"type":"bg-lag","bgId","lagging":true}` and its end with
+`{"type":"bg-lag","bgId","lagging":false,"dropped","latestSeq"}` (no `seq` —
+out-of-band control). A client SHOULD surface a "catching up" affordance on lag
+and MAY eagerly `bg-attach {sinceSeq}` on recovery. Policy core:
+`packages/cli/src/lib/backpressure-policy.js`.
+
 Security: `transport.token` never crosses the WS boundary — the gateway
 performs the pipe handshake itself and exposes only `interactive:true|false`.

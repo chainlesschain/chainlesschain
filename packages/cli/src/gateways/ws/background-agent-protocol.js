@@ -31,6 +31,15 @@
  * the log. If the relay was fully torn down (WS closed → cleanup), the fresh
  * attach returns hello + log tail as before and the client resets its tracker.
  *
+ * Backpressure: if the WS client drains too slowly (ws.bufferedAmount over the
+ * high water), DROPPABLE frames (bg-log) are shed while CRITICAL ones (bg-event
+ * lifecycle) are always delivered. Dropped frames are still recorded (seq
+ * advances), so the gap on the next delivered frame trips the client's
+ * replaySince recovery. A one-shot {type:"bg-lag", bgId, lagging:true} marks
+ * the start and {type:"bg-lag", bgId, lagging:false, dropped, latestSeq} the
+ * recovery — the UI shows "catching up" instead of freezing. bg-lag frames
+ * carry no seq (out-of-band control; the gap tracker ignores them).
+ *
  * The state file's `transport.token` is the local takeover capability — it is
  * NEVER sent over WS. Sessions are serialized with `interactive: true/false`
  * instead; the server process (same user) performs the pipe handshake itself.
@@ -38,6 +47,11 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { EventReplayBuffer } from "../../lib/event-seq-replay.js";
+import {
+  BackpressurePolicy,
+  CRITICAL,
+  DROPPABLE,
+} from "../../lib/backpressure-policy.js";
 
 const LOG_POLL_MS = 500;
 
@@ -206,8 +220,36 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
     // (bg-attach { sinceSeq }). One buffer per relay instance — seq restarts
     // at 1 on a fresh attach, so the client resets its tracker then.
     const buffer = new EventReplayBuffer();
+    // Backpressure: if the WS client drains too slowly (ws.bufferedAmount grows
+    // past the high water), shed DROPPABLE frames (bg-log — recoverable) while
+    // still delivering CRITICAL ones (bg-event lifecycle). Dropped frames are
+    // still RECORDED (seq advances), so the seq gap on the next delivered frame
+    // trips the client's replaySince recovery; a one-shot bg-lag notice lets
+    // the UI show "catching up" instead of freezing. Buffer stays 0 in the
+    // normal case → byte-identical legacy behavior.
+    const backpressure = new BackpressurePolicy();
+    const bufferedBytes = () =>
+      ws && Number.isFinite(ws.bufferedAmount) ? ws.bufferedAmount : 0;
+    const pushFrame = (base, frameClass) => {
+      const frame = buffer.record(base); // record always → seq advances, replay recovers drops
+      const d = backpressure.evaluate(bufferedBytes(), frameClass);
+      if (d.lagStarted)
+        server._send(ws, { type: "bg-lag", bgId, lagging: true });
+      if (d.send) server._send(ws, frame);
+      if (d.lagEnded) {
+        server._send(ws, {
+          type: "bg-lag",
+          bgId,
+          lagging: false,
+          dropped: d.dropped,
+          latestSeq: buffer.latestSeq,
+        });
+      }
+    };
     const pushEvent = (event) =>
-      server._send(ws, buffer.record({ type: "bg-event", bgId, event }));
+      pushFrame({ type: "bg-event", bgId, event }, CRITICAL);
+    const pushLog = (chunk) =>
+      pushFrame({ type: "bg-log", bgId, chunk }, DROPPABLE);
 
     const { connectBackgroundSession } =
       await import("../../lib/background-session-transport.js");
@@ -243,7 +285,7 @@ export async function handleBgAttach(server, clientId, id, ws, message) {
         if (text.length > offset) {
           const chunk = text.slice(offset);
           offset = text.length;
-          server._send(ws, buffer.record({ type: "bg-log", bgId, chunk }));
+          pushLog(chunk);
         }
       } catch {
         /* transient read failures skip one tick */

@@ -279,6 +279,40 @@ describe("bg-event seq + gap replay (reconnect resilience)", () => {
   });
 });
 
+describe("bg-* backpressure (slow-consumer degradation)", () => {
+  it("emits bg-lag when the client's send buffer is over the high water, never dropping critical frames", async () => {
+    const { bgId, transport } = await startWorkerTransport();
+    const { server } = fakeServer();
+    // A real ws exposes bufferedAmount; drive it to simulate a slow client.
+    const ws = { bufferedAmount: 0 };
+    await handleBgAttach(server, "c1", "1", ws, { bgId });
+
+    // Stuck consumer: outbound buffer above the 4 MiB high water.
+    ws.bufferedAmount = 5 * 1024 * 1024;
+    transport.broadcast({ type: "turn-started", turn: 1 });
+    await vi.waitFor(() => {
+      expect(
+        server.sent.some((m) => m.type === "bg-lag" && m.lagging === true),
+      ).toBe(true);
+    });
+    // The lifecycle (critical) frame is delivered even while lagging.
+    expect(
+      server.sent.some(
+        (m) => m.type === "bg-event" && m.event.type === "turn-started",
+      ),
+    ).toBe(true);
+
+    // Consumer drains → the next frame reports recovery.
+    ws.bufferedAmount = 0;
+    transport.broadcast({ type: "idle" });
+    await vi.waitFor(() => {
+      expect(
+        server.sent.some((m) => m.type === "bg-lag" && m.lagging === false),
+      ).toBe(true);
+    });
+  });
+});
+
 describe("bg-rename / bg-resume", () => {
   it("renames a session and returns the sanitized state", async () => {
     writeBackgroundAgentState({

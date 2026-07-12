@@ -491,7 +491,24 @@ export interface BgWsLogFrame {
   seq?: number;
 }
 
-export type BgWsPushFrame = BgWsEventFrame | BgWsLogFrame;
+/**
+ * Backpressure marker (additive): the relay is shedding droppable frames
+ * because the client's send buffer is over the high water. `lagging:true`
+ * starts a lag episode (show a "catching up" affordance, not a freeze);
+ * `lagging:false` ends it, reporting how many frames were `dropped` and the
+ * current `latestSeq` so the client can request a `sinceSeq` replay to recover
+ * them. Carries NO `seq` (out-of-band control — do not feed it to a gap
+ * tracker). Critical frames (bg-event) are never dropped.
+ */
+export interface BgWsLagFrame {
+  type: "bg-lag";
+  bgId: string;
+  lagging: boolean;
+  dropped?: number;
+  latestSeq?: number;
+}
+
+export type BgWsPushFrame = BgWsEventFrame | BgWsLogFrame | BgWsLagFrame;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session & checkpoint records (cc session list --json / cc checkpoint --json)
