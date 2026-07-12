@@ -203,18 +203,29 @@ export function loadSchemaFile(fs, schemaFile) {
       "No schema provided: pass --json-schema <file> or a schema object",
     );
   }
+  // Inline JSON support: a value that starts with `{` is treated as a literal
+  // schema object, never a path (a filesystem path can't start with `{`). This
+  // lets `--json-schema '{"type":"object",...}'` work without a temp file.
+  const trimmed = String(schemaFile).trim();
+  const isInline = trimmed.startsWith("{");
   let raw;
-  try {
-    raw = fs.readFileSync(schemaFile, "utf-8");
-  } catch (e) {
-    throw new Error(`Cannot read schema file "${schemaFile}": ${e.message}`);
+  if (isInline) {
+    raw = trimmed;
+  } else {
+    try {
+      raw = fs.readFileSync(schemaFile, "utf-8");
+    } catch (e) {
+      throw new Error(`Cannot read schema file "${schemaFile}": ${e.message}`);
+    }
   }
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch (e) {
     throw new Error(
-      `Invalid JSON in schema file "${schemaFile}": ${e.message}`,
+      isInline
+        ? `Invalid inline JSON schema: ${e.message}`
+        : `Invalid JSON in schema file "${schemaFile}": ${e.message}`,
     );
   }
   // Startup schema meta-validation (P2): reject a malformed schema up front
@@ -226,7 +237,9 @@ export function loadSchemaFile(fs, schemaFile) {
       .slice(0, 5)
       .map((e) => `  - ${e.schemaPath || "/"}: ${e.message}`)
       .join("\n");
-    throw new Error(`Invalid JSON Schema in "${schemaFile}":\n${detail}`);
+    throw new Error(
+      `Invalid JSON Schema in ${isInline ? "inline schema" : `"${schemaFile}"`}:\n${detail}`,
+    );
   }
   return parsed;
 }

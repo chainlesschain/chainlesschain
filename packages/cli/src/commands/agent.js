@@ -1133,21 +1133,51 @@ export function registerAgentCommand(program) {
           chatFn: fallbackChatFn,
         };
 
-        // --json-schema: structured output 鈥?wrap the runner with capture +
-        // validate + retry (json-schema-output.js); prints only the
-        // validated JSON. Incompatible with stream-json (event stream and a
-        // single JSON contract don't mix).
+        // --json-schema: structured output. Accepts a file path OR inline JSON.
+        //  - text/json output: wrap the runner with capture + validate + retry
+        //    (json-schema-output.js); prints only the validated JSON.
+        //  - stream-json output: stream events normally, then emit a terminal
+        //    `structured_result` event (schema_digest + valid + value/errors) as
+        //    the last NDJSON line, so the two protocols are now compatible.
         if (options.jsonSchema) {
+          const jso = await import("../lib/json-schema-output.js");
           if (options.outputFormat === "stream-json") {
-            process.stderr.write(
-              "--json-schema is incompatible with --output-format stream-json.\n",
-            );
-            process.exit(1);
+            try {
+              const schema = jso.loadSchemaFile(
+                jso._deps.fs,
+                options.jsonSchema,
+              );
+              const instruction = jso.buildSchemaInstruction(schema);
+              const outcome = await runAgentHeadless({
+                ...headlessOptions,
+                appendSystemPrompt: [
+                  headlessOptions.appendSystemPrompt,
+                  instruction,
+                ]
+                  .filter(Boolean)
+                  .join("\n\n"),
+              });
+              // The normal stream (init … result) has already been written to
+              // stdout by the runner. Append the structured verdict as the final
+              // NDJSON line, built from the run's final text.
+              const parsed = jso.extractJsonPayload(
+                String(outcome?.result ?? ""),
+              );
+              const evt = jso.buildStructuredResult(
+                schema,
+                parsed.ok ? parsed.value : null,
+              );
+              process.stdout.write(JSON.stringify(evt) + "\n");
+              await _finishWorktree();
+              process.exit(evt.valid ? 0 : 1);
+            } catch (err) {
+              process.stderr.write(`Error: ${err.message}\n`);
+              await _finishWorktree();
+              process.exit(1);
+            }
           }
           try {
-            const { runJsonSchemaConstrained } =
-              await import("../lib/json-schema-output.js");
-            const code = await runJsonSchemaConstrained({
+            const code = await jso.runJsonSchemaConstrained({
               schemaFile: options.jsonSchema,
               baseOptions: headlessOptions,
               runHeadless: runAgentHeadless,

@@ -219,6 +219,35 @@ describe("loadSchemaFile", () => {
       /Invalid JSON Schema in "typo\.json"/,
     );
   });
+
+  it("accepts inline JSON (a value starting with `{`) without touching the fs", () => {
+    const fs = {
+      readFileSync: () => {
+        throw new Error("fs must not be read for inline JSON");
+      },
+    };
+    expect(
+      loadSchemaFile(
+        fs,
+        '{"type":"object","properties":{"n":{"type":"number"}}}',
+      ),
+    ).toEqual({
+      type: "object",
+      properties: { n: { type: "number" } },
+    });
+  });
+
+  it("names 'inline schema' (not a file) when inline JSON is malformed", () => {
+    expect(() => loadSchemaFile({}, "{bad")).toThrow(
+      /Invalid inline JSON schema:/,
+    );
+  });
+
+  it("meta-validates inline JSON too", () => {
+    expect(() => loadSchemaFile({}, '{"type":"objetc"}')).toThrow(
+      /Invalid JSON Schema in inline schema/,
+    );
+  });
 });
 
 describe("buildStructuredResult (P2 structured_result event)", () => {
@@ -236,5 +265,26 @@ describe("buildStructuredResult (P2 structured_result event)", () => {
     const ev = buildStructuredResult(schema, { n: "x" });
     expect(ev.valid).toBe(false);
     expect(ev.errors[0]).toMatchObject({ code: "type", instancePath: "/n" });
+  });
+
+  // Mirrors the stream-json + --json-schema branch in agent.js: the run's final
+  // text is passed through extractJsonPayload → buildStructuredResult to produce
+  // the terminal event.
+  it("composes a terminal event from a run's final text (valid case)", () => {
+    const finalText = 'Here is the result:\n```json\n{"n": 42}\n```';
+    const parsed = extractJsonPayload(finalText);
+    const ev = buildStructuredResult(schema, parsed.ok ? parsed.value : null);
+    expect(ev).toMatchObject({
+      type: "structured_result",
+      valid: true,
+      value: { n: 42 },
+    });
+  });
+
+  it("composes valid:false when the final text does not conform", () => {
+    const parsed = extractJsonPayload('{"n":"not-a-number"}');
+    const ev = buildStructuredResult(schema, parsed.ok ? parsed.value : null);
+    expect(ev.valid).toBe(false);
+    expect(ev.errors.length).toBeGreaterThan(0);
   });
 });
