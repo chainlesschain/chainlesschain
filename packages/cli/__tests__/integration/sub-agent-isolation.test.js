@@ -46,6 +46,8 @@ const { executeTool, AGENT_TOOLS } =
 const { SubAgentRegistry } =
   await import("../../src/lib/sub-agent-registry.js");
 const { SubAgentContext } = await import("../../src/lib/sub-agent-context.js");
+const { READ_ONLY_TOOLS } =
+  await import("../../src/runtime/headless-runner.js");
 
 describe("Integration: Sub-Agent Isolation", () => {
   let tempDir;
@@ -391,6 +393,73 @@ describe("Integration: Sub-Agent Isolation", () => {
       );
       expect(opts.memoryEnabled).toBe(false);
       expect(opts.db).toBeUndefined();
+    });
+  });
+
+  // ─── child permissionMode enforcement (2026-07-12) ─────
+
+  describe("child permissionMode enforcement", () => {
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      });
+
+    const spawnAndCapture = async (spawnArgs) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("leaves tools unclamped for a default spawn (no permission mode)", async () => {
+      const opts = await spawnAndCapture({});
+      // null = all tools; the default resolves to "default" (not read-only).
+      expect(opts.allowedTools).toBeNull();
+    });
+
+    it("clamps a plan-mode child to the read-only tool set", async () => {
+      const opts = await spawnAndCapture({ permissionMode: "plan" });
+      expect(Array.isArray(opts.allowedTools)).toBe(true);
+      // Every surviving tool is read-only; write/execute tools are gone.
+      for (const t of opts.allowedTools) {
+        expect(READ_ONLY_TOOLS).toContain(t);
+      }
+      expect(opts.allowedTools).toContain("read_file");
+      expect(opts.allowedTools).not.toContain("write_file");
+      expect(opts.allowedTools).not.toContain("run_shell");
+    });
+
+    it("intersects an explicit tool list with read-only under plan mode", async () => {
+      const opts = await spawnAndCapture({
+        permissionMode: "plan",
+        tools: ["read_file", "write_file", "list_dir", "run_shell"],
+      });
+      expect(opts.allowedTools.sort()).toEqual(["list_dir", "read_file"]);
+    });
+
+    it("does NOT clamp a non-plan (manual) mode — write tools survive", async () => {
+      const opts = await spawnAndCapture({
+        permissionMode: "manual",
+        tools: ["read_file", "write_file"],
+      });
+      expect(opts.allowedTools).toEqual(["read_file", "write_file"]);
     });
   });
 

@@ -552,9 +552,18 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   （`memoryEnabled` + 条件 `db`）贯通。测试 +6：`cli-context-engineering.test.js` +2
   （memoryEnabled:false 硬压召回 / 默认 true 召回）+ `sub-agent-isolation.test.js` +4（默认拒 /
   显式 memory:true 授父 db / memory:true 但父无 db 仍拒 / 顶层 fork 不擅授）。未改 agent-core 导出。
+- **permissionMode 强制进子门**（2026-07-12 五轮收尾）——`plan` 模式的子被夹到只读工具集
+  （`read_file`/`search_files`/`list_dir`/`list_skills`/`search_sessions`），与主 loop 完全同一
+  规则：复用 `resolvePermissionMode`+`resolveEnabledTools`（单源零漂移），plan-mode 子物理上
+  无法 write/exec。`tightenPermissionMode` 已阻止子**超过**父模式；本笔强制其**限制端**（plan→
+  零 mutation），且 deny-list 与只读夹在 spawn 内组合（先减 deny 再交只读）。非 plan 模式工具集
+  不动→全默认 spawn（→"default"）逐字节不变。best-effort try/catch 永不因强制而破坏 spawn。
+  测试 +4（`sub-agent-isolation.test.js`：默认不夹 / plan 夹到只读 / plan+显式列表取交 /
+  非 plan(manual) 不夹保留写工具）。未改 agent-core 导出（shim parity）。
 
-**仍欠（更大面 / 仍未接）**：`permissionMode` 强制进子审批门；`background` 由契约统一驱动
-（现仍读 spawn args）；精确取消单个 Subagent、每 child 的 checkpoint 归因仍缺。
+**仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
+Subagent、每 child 的 checkpoint 归因仍缺。plan 之外的模式在无头子里靠 deny-confirmer 默认拒
+交互审批（confirmer 尚未按父模式细分线程化，属更大面）。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

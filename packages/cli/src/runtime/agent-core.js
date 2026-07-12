@@ -4550,6 +4550,26 @@ async function _executeSpawnSubAgent(args, ctx) {
     allowedTools = base.filter((t) => !deny.has(t));
   }
 
+  // permissionMode enforcement into the child gate: a `plan`-mode child is
+  // clamped to the read-only tool set — the SAME rule the main loop applies via
+  // resolveEnabledTools, so a plan sub-agent physically cannot mutate anything.
+  // `tightenPermissionMode` already stops a child EXCEEDING the parent's mode;
+  // this enforces the restrictive end. Non-plan modes leave tools untouched, so
+  // a fully-defaulted spawn (→ "default") is byte-identical. Reuses the runner's
+  // resolvers (single-sourced, no drift); best-effort so it never breaks a spawn.
+  if (effectiveContract?.permissionMode) {
+    try {
+      const { resolvePermissionMode, resolveEnabledTools } =
+        await import("./headless-runner.js");
+      const perm = resolvePermissionMode(effectiveContract.permissionMode);
+      if (perm.readOnly) {
+        allowedTools = resolveEnabledTools({ allowedTools, readOnly: true });
+      }
+    } catch {
+      // Enforcement is best-effort — never break the spawn.
+    }
+  }
+
   // Auto-condense parent context if caller didn't provide explicit context.
   // An explicit `context: fresh` contract suppresses this inheritance (the
   // child starts clean); `fork` / unset keep the existing auto-condense.
