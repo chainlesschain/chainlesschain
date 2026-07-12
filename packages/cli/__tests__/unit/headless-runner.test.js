@@ -968,3 +968,127 @@ describe("headless-runner — auto mode configurable classifier", () => {
     }
   });
 });
+
+describe("headless-runner — goal-condition outer-turn re-drive", () => {
+  // A fake agentLoop whose per-turn final text is scripted; records how many
+  // outer turns ran and the messages it saw on the latest turn.
+  function scriptedLoop(texts, seen) {
+    let i = 0;
+    return async function* (messages) {
+      const content = texts[Math.min(i, texts.length - 1)];
+      i++;
+      seen.turns = i;
+      seen.lastMessages = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      yield { type: "response-complete", content };
+      yield { type: "run-ended", reason: "complete" };
+    };
+  }
+
+  const parseLines = (out) =>
+    out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+
+  it("re-drives until a deterministic `contains:` condition is met", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["still working", "ALL GREEN — done"], seen);
+    await runAgentHeadless(
+      {
+        prompt: "make it pass",
+        outputFormat: "stream-json",
+        goalCondition: "contains:ALL GREEN",
+      },
+      deps,
+    );
+    const events = parseLines(out);
+    const types = events.map((e) => e.type);
+    expect(seen.turns).toBe(2); // exactly one re-drive
+    expect(types).toContain("goal_started");
+    expect(types.filter((t) => t === "goal_evaluated")).toHaveLength(2);
+    expect(types).toContain("goal_completed");
+    expect(events.find((e) => e.type === "goal_completed").reason).toMatch(
+      /ALL GREEN/,
+    );
+    // The second turn saw the injected follow-up user turn.
+    const userTurns = seen.lastMessages.filter((m) => m.role === "user");
+    expect(userTurns.length).toBeGreaterThanOrEqual(2);
+    expect(userTurns.pop().content).toMatch(/not yet met/i);
+  });
+
+  it("stops with goal_exhausted at --max-outer-turns when never met", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["nope"], seen);
+    await runAgentHeadless(
+      {
+        prompt: "try",
+        outputFormat: "stream-json",
+        goalCondition: "contains:DONE",
+        maxOuterTurns: 3,
+      },
+      deps,
+    );
+    const events = parseLines(out);
+    expect(seen.turns).toBe(3);
+    const ex = events.find((e) => e.type === "goal_exhausted");
+    expect(ex).toBeTruthy();
+    expect(ex.limit).toBe("max_outer_turns");
+  });
+
+  it("evaluates exit-zero via injected spawnSync (met → complete, one turn)", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["built"], seen);
+    deps.goalCheck = { spawnSync: () => ({ status: 0 }) };
+    await runAgentHeadless(
+      {
+        prompt: "build it",
+        outputFormat: "stream-json",
+        goalCondition: "exit-zero:npm run build",
+      },
+      deps,
+    );
+    const types = parseLines(out).map((e) => e.type);
+    expect(seen.turns).toBe(1); // met on the first turn, no re-drive
+    expect(types).toContain("goal_completed");
+  });
+
+  it("uses an injected judge for a model-judged condition", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["progress...", "finished"], seen);
+    let calls = 0;
+    deps.goalConditionJudge = async (_cond, t) => {
+      calls++;
+      return { met: /finished/.test(t.finalText), reason: `judge#${calls}` };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "do",
+        outputFormat: "stream-json",
+        goalCondition: "model:the work is finished",
+      },
+      deps,
+    );
+    const types = parseLines(out).map((e) => e.type);
+    expect(seen.turns).toBe(2);
+    expect(calls).toBe(2);
+    expect(types).toContain("goal_completed");
+  });
+
+  it("is inert when --goal-condition is unset (single turn, no goal_* events)", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["done"], seen);
+    await runAgentHeadless({ prompt: "hi", outputFormat: "stream-json" }, deps);
+    const types = parseLines(out).map((e) => e.type);
+    expect(seen.turns).toBe(1);
+    expect(types.some((t) => t.startsWith("goal_"))).toBe(false);
+  });
+});

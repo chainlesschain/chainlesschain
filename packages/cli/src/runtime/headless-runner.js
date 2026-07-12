@@ -1301,6 +1301,91 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     };
   };
 
+  // --goal-condition: session-level completion-condition engine (P1). After each
+  // outer turn an independent checker judges a completion CONDITION; if unmet and
+  // budget remains, a follow-up user turn re-drives the agent — until met
+  // (goal_completed) or a budget is exhausted (goal_exhausted). OPT-IN: when
+  // unset, `goalEngine` is null and the outer loop runs exactly once, so one-shot
+  // `cc agent -p` behavior is byte-for-byte unchanged.
+  let goalEngine = null;
+  let _goalHelpers = null;
+  let _goalTokensSeen = 0; // per-turn usage deltas (engine totals == run total)
+  let _goalCostSeen = 0;
+  // Model-judged conditions reuse the run's own model as an independent
+  // evaluator (mirrors --goal-assess). Overridable via deps for tests.
+  const _defaultGoalJudge = async (cond, transcript) => {
+    const { chatWithTools } = await import("./agent-core.js");
+    const { firstBalancedJson } = await import("../lib/json-schema-output.js");
+    const judgePrompt =
+      `You are judging whether a coding session met a completion condition.\n` +
+      `Condition: ${cond.text || cond.source}\n\n` +
+      `Latest assistant output:\n${String(transcript.finalText || "").slice(0, 2000)}\n\n` +
+      `Reply with STRICT JSON only: {"met": true|false, "reason": "<short>"}.`;
+    const r = await chatWithTools([{ role: "user", content: judgePrompt }], {
+      model,
+      provider,
+      baseUrl,
+      apiKey,
+      enabledToolNames: [],
+    });
+    const text = r?.message?.content || "";
+    let met = false;
+    let reason = "model judge returned no verdict";
+    const block = firstBalancedJson(text, "{");
+    if (block) {
+      try {
+        const parsed = JSON.parse(block);
+        met = parsed.met === true;
+        if (typeof parsed.reason === "string" && parsed.reason.trim())
+          reason = parsed.reason.trim();
+        else reason = met ? "condition met" : "condition not met";
+      } catch {
+        /* tolerant: a non-JSON verdict stays unmet */
+      }
+    }
+    return {
+      met,
+      reason,
+      evidence: { kind: "model", raw: text.slice(0, 200) },
+    };
+  };
+  if (options.goalCondition) {
+    try {
+      const eng = await import("../lib/goal-condition-engine.js");
+      goalEngine = new eng.GoalConditionEngine({
+        condition: options.goalCondition,
+        budget: {
+          maxOuterTurns: options.maxOuterTurns,
+          maxTokens: options.goalMaxTokens,
+          maxCostUsd: options.goalMaxCostUsd,
+          maxTimeMs: options.goalMaxTimeMs,
+        },
+        now: () => (deps.now ? deps.now() : Date.now()),
+      });
+      _goalHelpers = {
+        isDeterministicCondition: eng.isDeterministicCondition,
+        runDeterministicCheck: eng.runDeterministicCheck,
+        GOAL_DECISION: eng.GOAL_DECISION,
+      };
+      const started = goalEngine.start();
+      emitStream({
+        type: started.type,
+        condition: started.condition,
+        budget: started.budget,
+      });
+      if (isText)
+        writeErr(
+          `  ◎ goal-condition active: ${goalEngine.condition.source} ` +
+            `(≤${goalEngine.budget.maxOuterTurns} outer turns)\n`,
+        );
+    } catch (err) {
+      // A bad spec should have been rejected at the command layer; fail-open so
+      // a malformed condition never aborts an otherwise-valid run.
+      goalEngine = null;
+      if (isText) writeErr(`  goal-condition ignored: ${err.message}\n`);
+    }
+  }
+
   // A Ctrl-C (SIGINT) / SIGTERM terminates Node WITHOUT unwinding the `finally`
   // below, so its background-task reaper is bypassed — a backgrounded run_shell
   // task (e.g. a dev server) this run spawned would be orphaned. Install a
@@ -1514,6 +1599,99 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               `${rw.error ? `: ${rw.error}` : ""}\n`,
           );
         }
+      }
+      // ── goal-condition re-drive (opt-in via --goal-condition) ─────────────
+      // After the turn settles (and any auto-rewake fix), evaluate the session
+      // completion condition. Unmet + budget remaining → append a follow-up user
+      // turn and re-drive; met → goal_completed; budget spent → goal_exhausted.
+      // Cost / max-turns exhaustion of the INNER loop stops here regardless.
+      if (
+        goalEngine &&
+        _goalHelpers &&
+        !goalEngine.done &&
+        !stopForCost &&
+        endReason !== "cost-budget-exhausted" &&
+        endReason !== "max_turns"
+      ) {
+        // Feed this turn's usage DELTA so the engine's totals equal the run's
+        // cumulative usage (recordTurnUsage accumulates).
+        const curTokens =
+          usage.input_tokens +
+          usage.output_tokens +
+          usage.cache_read_input_tokens +
+          usage.cache_creation_input_tokens;
+        const curCost = costBudget ? Number(costBudget.spentUsd) || 0 : 0;
+        goalEngine.recordTurnUsage({
+          tokens: curTokens - _goalTokensSeen,
+          costUsd: curCost - _goalCostSeen,
+        });
+        _goalTokensSeen = curTokens;
+        _goalCostSeen = curCost;
+
+        const cond = goalEngine.condition;
+        let evaluation;
+        try {
+          if (_goalHelpers.isDeterministicCondition(cond)) {
+            const gc = deps.goalCheck || {};
+            const spawnSync =
+              gc.spawnSync || (await import("node:child_process")).spawnSync;
+            const existsSync =
+              gc.existsSync || (await import("node:fs")).existsSync;
+            evaluation = _goalHelpers.runDeterministicCheck(cond, {
+              spawnSync,
+              existsSync,
+              cwd,
+              lastOutput: finalText,
+            });
+          } else {
+            const judge = deps.goalConditionJudge || _defaultGoalJudge;
+            evaluation = await judge(cond, {
+              prompt: options.prompt,
+              finalText,
+              toolCalls,
+            });
+          }
+        } catch (err) {
+          evaluation = {
+            met: false,
+            reason: `goal check failed: ${err.message}`,
+            evidence: { error: true },
+          };
+        }
+
+        const { decision, events } = goalEngine.evaluate(evaluation);
+        for (const ev of events) {
+          emitStream(ev);
+          if (isText) {
+            if (ev.type === "goal_completed")
+              writeErr(`  ✔ goal-condition met: ${ev.reason}\n`);
+            else if (ev.type === "goal_exhausted")
+              writeErr(
+                `  ⛔ goal-condition unmet (${ev.limit}): ${ev.reason}\n`,
+              );
+            else if (ev.type === "goal_evaluated")
+              writeErr(
+                `  ◎ goal-condition ${ev.met ? "met" : "not met"}: ${ev.reason}\n`,
+              );
+          }
+        }
+        if (decision === _goalHelpers.GOAL_DECISION.CONTINUE) {
+          messages.push({
+            role: "user",
+            content:
+              `The completion condition is not yet met: ${evaluation.reason}.\n` +
+              `Keep working toward: "${cond.source}". When you believe it is ` +
+              `satisfied, make sure it actually passes.`,
+          });
+          finalText = "";
+          endReason = "complete";
+          if (isText)
+            writeErr(
+              `  ↻ goal-condition re-drive — outer turn ${goalEngine.state.outerTurns + 1}\n`,
+            );
+          continue; // re-drive: run another outer turn
+        }
+        // complete | exhausted → fall through to the break below.
       }
       break;
     }

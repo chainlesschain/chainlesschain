@@ -312,6 +312,30 @@ export function registerAgentCommand(program) {
       "After the run, ask the model to assess goal progress and persist it (opt-in; costs one extra completion; requires --goal)",
     )
     .option(
+      "--goal-condition <spec>",
+      "Session completion condition; re-drives outer turns until met. Prefix exit-zero:/file-exists:/contains:/regex: (deterministic) or model:<desc> (model-judged)",
+    )
+    .option(
+      "--max-outer-turns <n>",
+      "Max outer re-drive turns for --goal-condition (default 10, hard cap 100)",
+      (v) => parseInt(v, 10),
+    )
+    .option(
+      "--goal-max-tokens <n>",
+      "Token budget across --goal-condition outer turns",
+      (v) => parseInt(v, 10),
+    )
+    .option(
+      "--goal-max-cost <usd>",
+      "Cost budget (USD) across --goal-condition outer turns",
+      (v) => parseFloat(v),
+    )
+    .option(
+      "--goal-max-time <ms>",
+      "Wall-clock budget (ms) across --goal-condition outer turns",
+      (v) => parseInt(v, 10),
+    )
+    .option(
       "--mcp-config <file>",
       "Load ad-hoc MCP servers from a JSON file for this run (headless); their tools become callable (mcp__<server>__<tool>)",
     )
@@ -1001,6 +1025,19 @@ export function registerAgentCommand(program) {
         }
         const { runAgentHeadless, parseToolList } =
           await import("../runtime/headless-runner.js");
+        // --goal-condition: validate the spec up front so a bad prefix fails
+        // fast (before any model call) with a clear message.
+        if (options.goalCondition) {
+          try {
+            const { parseGoalCondition } =
+              await import("../lib/goal-condition-engine.js");
+            parseGoalCondition(options.goalCondition);
+          } catch (e) {
+            process.stderr.write(`--goal-condition: ${e.message}\n`);
+            await _finishWorktree();
+            process.exit(1);
+          }
+        }
         const maxTurns = options.maxTurns
           ? parseInt(options.maxTurns, 10)
           : undefined;
@@ -1052,6 +1089,21 @@ export function registerAgentCommand(program) {
           goal: options.goal,
           // --goal-assess: run-end LLM progress assessment (Phase 2)
           goalAssess: options.goalAssess === true,
+          // --goal-condition: session-level completion-condition engine — drives
+          // outer turns until the condition is met or a budget is exhausted.
+          goalCondition: options.goalCondition || null,
+          maxOuterTurns: Number.isFinite(options.maxOuterTurns)
+            ? options.maxOuterTurns
+            : undefined,
+          goalMaxTokens: Number.isFinite(options.goalMaxTokens)
+            ? options.goalMaxTokens
+            : undefined,
+          goalMaxCostUsd: Number.isFinite(options.goalMaxCost)
+            ? options.goalMaxCost
+            : undefined,
+          goalMaxTimeMs: Number.isFinite(options.goalMaxTime)
+            ? options.goalMaxTime
+            : undefined,
           // --mcp-config: connect ad-hoc MCP servers + expose their tools
           mcpConfig: options.mcpConfig || null,
           // --no-mcp: skip registered (cc mcp add) auto-connect servers
