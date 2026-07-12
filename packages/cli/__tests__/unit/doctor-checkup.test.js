@@ -34,6 +34,7 @@ describe("doctor-checkup", () => {
       "transcripts",
       "background",
       "worktrees",
+      "runtime",
     ]);
     for (const s of sections) {
       expect(Array.isArray(s.checks)).toBe(true);

@@ -167,6 +167,7 @@ describe("agent-core telemetry spans", () => {
       runnableProviderFallback: false,
       recorder,
       workflowName: "my-workflow",
+      sessionId: "sess 01\n02", // unsanitized on purpose → normalized on stamp
     })) {
       events.push(ev);
     }
@@ -177,6 +178,8 @@ describe("agent-core telemetry spans", () => {
     for (const s of spans) {
       expect(s.attributes["workflow.run_id"]).toBe(runId);
       expect(s.attributes["workflow.name"]).toBe("my-workflow");
+      // P2: session.id is now stamped on every span, charset-sanitized.
+      expect(s.attributes["session.id"]).toBe("sess_01_02");
     }
   });
 

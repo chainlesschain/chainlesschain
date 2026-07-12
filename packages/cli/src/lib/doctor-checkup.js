@@ -26,6 +26,7 @@ import {
 import { execSync } from "node:child_process";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
+import { checkAgenda, checkInstructionFiles } from "./runtime-checkup.js";
 
 export const CHECK_LEVELS = Object.freeze({
   OK: "ok",
@@ -540,6 +541,80 @@ async function worktreeSection(opts, deps) {
   return { id: "worktrees", title: "Git worktrees", checks };
 }
 
+// ── runtime checkup: agenda expiry + verbose instruction files ──────────────
+// Only the gaps the OTHER sections don't already cover. Stale sessions,
+// worktrees, orphan processes and lost background agents are handled by
+// transcriptSection / worktreeSection / backgroundSection — surfacing them here
+// too would double-report, so this section deliberately covers just the agenda
+// schedule store and the instruction files (cc.md / AGENTS.md / CLAUDE.md).
+const SEVERITY_TO_LEVEL = {
+  error: CHECK_LEVELS.ERR,
+  warn: CHECK_LEVELS.WARN,
+  info: CHECK_LEVELS.INFO,
+};
+
+async function runtimeSection(opts, deps) {
+  const checks = [];
+  const now = deps.now();
+
+  // Agenda schedule store — overdue/never-fired wakeups, retirable leftovers.
+  try {
+    const { AgentScheduleStore } = await import("./agent-schedule-store.js");
+    const store = new AgentScheduleStore();
+    const entries = store.list().map((e) => ({
+      id: e.id,
+      dueAt: e.kind === "wakeup" ? e.dueAt : e.nextAt,
+      recurring: e.kind !== "wakeup",
+    }));
+    for (const f of checkAgenda(entries, now)) {
+      checks.push(
+        check(
+          f.id,
+          `agenda ${f.ref}`,
+          SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+          `${f.message} — ${f.remediation}`,
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("agenda", "agenda schedule store", err));
+  }
+
+  // Instruction files — flag verbose ones (byte size only; a derivability
+  // heuristic would need code analysis and isn't computed here).
+  try {
+    const cwd = opts.cwd || process.cwd();
+    const files = [];
+    for (const name of ["cc.md", "AGENTS.md", "CLAUDE.md"]) {
+      const p = join(cwd, name);
+      if (deps.existsSync(p)) {
+        try {
+          files.push({ path: name, bytes: deps.statSync(p).size });
+        } catch {
+          // raced/unreadable — skip
+        }
+      }
+    }
+    for (const f of checkInstructionFiles(files)) {
+      checks.push(
+        check(
+          f.id,
+          f.ref,
+          SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+          `${f.message} — ${f.remediation}`,
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("instructions", "instruction files", err));
+  }
+
+  if (checks.length === 0) {
+    checks.push(check("runtime-clean", "runtime hygiene", CHECK_LEVELS.OK, ""));
+  }
+  return { id: "runtime", title: "Runtime checkup", checks };
+}
+
 /**
  * Collect all checkup sections. Never throws — a failing subsystem becomes an
  * `err` check inside its section.
@@ -557,6 +632,7 @@ export async function collectCheckupSections(opts = {}) {
     transcriptSection,
     backgroundSection,
     worktreeSection,
+    runtimeSection,
   ]) {
     try {
       sections.push(await build(opts, deps));

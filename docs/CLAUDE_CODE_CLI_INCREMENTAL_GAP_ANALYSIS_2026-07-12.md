@@ -790,6 +790,48 @@ OpenTelemetry 统一 `session.id`、`turn.id`、`prompt.id`、`tool_use.id`、`a
 `parent_agent.id`、`workflow.run_id`、`permission.decision_id`、`checkpoint.id`。
 默认隐藏 prompt/response/tool arguments，显式 opt-in 才输出内容，并控制标签基数。
 
+### 已落地（增量）
+
+三个纯核 + 各自最小接线（审计确认：背景孤儿/PID、worktree 陈旧、session lifecycle、
+task-lease 过期**已被现有 `backgroundSection`/`worktreeSection`/`session-lifecycle.js`/
+`task-lease.js` 覆盖**，故本轮只补真缺口，不重复上报）：
+
+- **统一 OTel id + 内容脱敏 + 基数收敛**（`src/lib/telemetry-ids.js`）：
+  `buildTelemetryAttributes(ctx,{includeContent})` 把杂乱别名（`sessionId`/`session_id`/
+  `session.id` …）归一到九个稳定 id key；`content.prompt/response/tool_arguments`
+  **默认脱敏为 `[redacted]`**，仅显式 `includeContent` 才输出且仍长度封顶；只发
+  allow-list key（外来高基数 label 直接丢弃），id 值经 `sanitizeIdValue` 收字符集 +
+  ≤128 截断；`auditAttributes` 可 fail-closed 校验。此前 `span-recorder.js` **仅** 打
+  `workflow.run_id`/`workflow.name`、无脱敏、无基数控制。**接线**：`agent-core.js` 运行
+  开场把 `workflow.run_id`+`session.id`(+`agent.id`/`parent_agent.id` 若在)经归一化
+  `setDefaultAttribute` 到每个 span（`session.id` 现每 span 都带，字符集已净化，
+  `agent-core-telemetry.test.js` 端到端断言）。
+- **Doctor Runtime Checkup 纯评估器**（`src/lib/runtime-checkup.js`）：对注入的运行时
+  快照产出分级 findings —— agenda 逾期/漏触发、孤儿进程、慢/熔断 Hook、失效
+  Plugin/LSP、陈旧 session/worktree、冗长指令文件；`runRuntimeCheckup` 汇总按严重度
+  排序 + rollup，缺失快照段跳过不崩。**接线**：`doctor-checkup.js` 新增 `runtimeSection`
+  （排在 section 数组末）**只**消费 `checkAgenda`（真读 `AgentScheduleStore.list()`，逾期
+  wakeup / 可退休 cron）+ `checkInstructionFiles`（真 stat `cc.md`/`AGENTS.md`/`CLAUDE.md`
+  字节数），其余检查刻意不接线以免与既有 section 双报。
+- **CLI 参考文档自动生成 + 漂移检测**（`src/lib/docs-drift.js` + `scripts/gen-cli-reference.mjs`）：
+  从权威源 `command-manifest.json`（175 命令）+ `listCodingAgentToolNames()`（26 工具）
+  构建 canonical reference、渲染稳定 markdown，并双向 diff 一份手写文档（
+  `detectDocDrift` → 未文档化命令/工具 + 指向已删命令的陈旧 `cc <x>` 提及，`knownTokens`
+  可把 flag/退出码/协议字段一并纳入权威集）。生成器 `node scripts/gen-cli-reference.mjs`
+  可 `--out <file>` 生成或 `--check <doc>` 在 CI 里对文档 fail-on-drift（退出 1）。此前
+  无任何 reference 生成器/漂移检测。
+
+测试：`telemetry-ids.test.js`(9) + `runtime-checkup.test.js`(12) + `docs-drift.test.js`(10)
++ `agent-core-telemetry`(+1 session.id 断言) + `doctor-checkup`(section-id 更新) 全绿。
+
+**仍欠**：其余 id（`turn.id`/`prompt.id`/`tool_use.id`/`permission.decision_id`/
+`checkpoint.id`）需在各自 seam 的 span 上真正 `setAttribute`（本轮只在 run 级默认属性
+接了 session/agent）；`content.*` opt-in 开关尚未接到 `--otlp` 命令面（脱敏纯核就绪，
+CLI flag 未暴露）；`runtime-checkup` 的 hook/plugin/lsp/orphan 评估器为纯库尚未喂真实
+统计（doctor 只接了 agenda + 指令文件）；`gen-cli-reference` 未纳入 `package.json` 脚本
+/CI drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；
+`/doctor` 的 MCP schema 成本、session hash/mirror 加密/保留策略检查未做。
+
 ## 不建议优先复制
 
 - Claude 账号登录、订阅用量、Anthropic 专属云权限与品牌命令。

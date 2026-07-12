@@ -26,6 +26,7 @@ import sharedHookRunner from "../lib/hook-runner.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
+import { buildTelemetryAttributes } from "../lib/telemetry-ids.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -6234,12 +6235,18 @@ export async function* agentLoop(messages, options) {
   // an optional caller-provided workflow name) onto EVERY span this run emits,
   // so a collector can group one run's model/tool spans into one workflow.
   if (recorder && typeof recorder.setDefaultAttribute === "function") {
-    recorder.setDefaultAttribute("workflow.run_id", runId);
-    if (options.workflowName) {
-      recorder.setDefaultAttribute(
-        "workflow.name",
-        String(options.workflowName),
-      );
+    // Normalize the unified id set (P2 observability): every id is charset-
+    // sanitized + length-capped, and only these allow-listed keys are stamped,
+    // so span cardinality stays bounded and no content leaks in as an id.
+    const idAttrs = buildTelemetryAttributes({
+      "workflow.run_id": runId,
+      "workflow.name": options.workflowName || undefined,
+      "session.id": options.sessionId || undefined,
+      "agent.id": options.agentId || undefined,
+      "parent_agent.id": options.parentAgentId || undefined,
+    });
+    for (const [k, v] of Object.entries(idAttrs)) {
+      recorder.setDefaultAttribute(k, v);
     }
   }
   yield {
