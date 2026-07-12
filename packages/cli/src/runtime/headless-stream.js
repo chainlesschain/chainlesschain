@@ -16,6 +16,7 @@
  * not duplicate (or fork) `runAgentHeadless`'s internals.
  */
 
+import { randomUUID } from "node:crypto";
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -86,6 +87,30 @@ export function resolveStreamCoalesceMs(options = {}, env = {}) {
   return n;
 }
 
+/** Basic wire-safe trace-id sanitizer: keep only id-friendly chars, cap length
+ *  (so an injected id can't smuggle whitespace/newlines into NDJSON or blow up
+ *  a log line). Non-string / empty after trimming → falsy so a fresh one mints. */
+function sanitizeTraceId(value) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim().replace(/[^A-Za-z0-9._:-]/g, "");
+  return cleaned ? cleaned.slice(0, 128) : null;
+}
+
+/**
+ * Resolve the run's cross-event trace id (additive protocol-v1, §1.2.1).
+ * Precedence: explicit `options.traceId` > `CC_TRACE_ID` env > a freshly
+ * minted per-process id. Callers may inject `deps.genTraceId` for
+ * deterministic tests. The result is sanitized so an externally supplied id
+ * stays a safe single NDJSON token.
+ */
+export function resolveTraceId(options = {}, env = {}, deps = {}) {
+  const supplied =
+    sanitizeTraceId(options.traceId) || sanitizeTraceId(env.CC_TRACE_ID);
+  if (supplied) return supplied;
+  const gen = deps.genTraceId || (() => `tr-${randomUUID()}`);
+  return gen();
+}
+
 /**
  * Coalescer for the NDJSON output stream. Every line still flows through `emit`,
  * but consecutive partial-message text/thinking deltas are buffered and flushed
@@ -103,6 +128,12 @@ export function resolveStreamCoalesceMs(options = {}, env = {}) {
  * coalescer is the single output choke point, so numbering here covers every
  * line including batched delta runs (one seq per LINE, not per token).
  * `stampSeq:false` restores the unstamped legacy output.
+ *
+ * When a `traceId` is provided, every line is ALSO stamped with `trace_id` —
+ * a run-scoped cross-event correlation id (additive protocol-v1, §1.2.1). It
+ * is opt-in (default: absent, legacy shape) so the IDE bridge can thread its
+ * own id end-to-end (CC_TRACE_ID / --trace-id) while unstamped callers stay
+ * byte-identical.
  */
 export function createStreamCoalescer({
   writeOut,
@@ -110,10 +141,15 @@ export function createStreamCoalescer({
   setTimer,
   clearTimer,
   stampSeq = true,
+  traceId = null,
 } = {}) {
   let seq = 0;
-  const rawEmit = (obj) =>
-    writeOut(JSON.stringify(stampSeq ? { ...obj, seq: ++seq } : obj) + "\n");
+  const rawEmit = (obj) => {
+    let line = obj;
+    if (traceId) line = { ...line, trace_id: traceId };
+    if (stampSeq) line = { ...line, seq: ++seq };
+    writeOut(JSON.stringify(line) + "\n");
+  };
   const startTimer =
     setTimer ||
     ((fn, ms) => {
@@ -695,6 +731,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   if (!deps.writeOut && !deps.writeErr) {
     installPipeSafety();
   }
+  // Run-scoped cross-event trace id (additive protocol-v1, docs/PROTOCOL.md
+  // §1.2.1): one id stamped on EVERY stdout line so a consumer can correlate
+  // the whole run across Webview → Bridge → CLI logs, transcripts and
+  // diagnostic bundles. The IDE bridge may thread its own id through
+  // `--trace-id` / options.traceId / CC_TRACE_ID; otherwise a per-process id
+  // is minted (unique even when two runs resume the same session_id).
+  const traceId = resolveTraceId(options, process.env, deps);
   // Batch consecutive partial-message text/thinking deltas into one stream_event
   // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
   // pending deltas before writing a non-delta line, so ordering is preserved;
@@ -704,6 +747,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     createStreamCoalescer({
       writeOut,
       coalesceMs: resolveStreamCoalesceMs(options, process.env),
+      traceId,
     });
   const emit = streamCoalescer.emit;
 
