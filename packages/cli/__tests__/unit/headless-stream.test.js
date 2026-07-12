@@ -517,6 +517,45 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     );
   });
 
+  it("stamps a caller-supplied trace_id (sanitized) on every output line", async () => {
+    const agentLoop = async function* () {
+      yield { type: "tool-executing", tool: "read_file", args: { path: "a" } };
+      yield { type: "tool-result", tool: "read_file", result: { ok: true } };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    // An IDE threads its own correlation id; an unsafe char is sanitized so the
+    // NDJSON stays one token per line.
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, traceId: "ide run\n42" },
+      deps,
+    );
+    const events = parseEmitted(deps._lines);
+    expect(events.length).toBeGreaterThanOrEqual(5);
+    const ids = new Set(events.map((e) => e.trace_id));
+    expect(ids).toEqual(new Set(["iderun42"])); // one id, whole run
+  });
+
+  it("mints a per-run trace_id when none is supplied (uniform, tr- prefix)", async () => {
+    const agentLoop = async function* () {
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    const events = parseEmitted(deps._lines);
+    const ids = new Set(events.map((e) => e.trace_id));
+    expect(ids.size).toBe(1); // same id on every line
+    expect([...ids][0]).toMatch(/^tr-/);
+  });
+
   it("pairs tool_use and tool_result with the same session-unique tu-<n> id", async () => {
     const agentLoop = async function* (messages) {
       const turn = messages.filter((m) => m.role === "user").length;

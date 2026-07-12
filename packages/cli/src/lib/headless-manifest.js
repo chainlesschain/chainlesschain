@@ -163,10 +163,13 @@ export function buildAgentCapabilities() {
       permission_prompt_tool: true,
       remote_control: true,
       // Additive protocol-v1 stream fields (agent-sdk docs/PROTOCOL.md §1.2.1):
-      // every stream-json stdout line carries a monotonic `seq`, and
-      // tool_use/tool_result lines carry a pairing `id` ("tu-<n>").
+      // every stream-json stdout line carries a monotonic `seq` and a
+      // run-scoped `trace_id`, and tool_use/tool_result lines carry a pairing
+      // `id` ("tu-<n>"). `trace_id` is caller-injectable (--trace-id /
+      // CC_TRACE_ID) for end-to-end IDE ↔ CLI correlation.
       tool_use_id: true,
       event_seq: true,
+      trace_id: true,
       mcp: {
         config_file: true,
         registry: true,

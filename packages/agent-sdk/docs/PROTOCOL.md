@@ -8,11 +8,11 @@ this document directly. **The protocol — not any SDK — is the contract.**
 
 Source of truth in the CLI:
 
-| Surface | CLI module |
-| --- | --- |
-| stream-json duplex | `packages/cli/src/runtime/headless-stream.js` |
-| background-session pipe | `packages/cli/src/lib/background-session-transport.js` |
-| bg-\* WS relay | `packages/cli/src/gateways/ws/background-agent-protocol.js` |
+| Surface                 | CLI module                                                  |
+| ----------------------- | ----------------------------------------------------------- |
+| stream-json duplex      | `packages/cli/src/runtime/headless-stream.js`               |
+| background-session pipe | `packages/cli/src/lib/background-session-transport.js`      |
+| bg-\* WS relay          | `packages/cli/src/gateways/ws/background-agent-protocol.js` |
 
 Versioning: this file describes **protocol v1**. Any BREAKING field/type
 change in the CLI modules above must bump `PROTOCOL_VERSION` in
@@ -51,52 +51,60 @@ cc agent --input-format stream-json --output-format stream-json \
 
 ### 1.1 Client → CLI (stdin events)
 
-| Event | Shape | Notes |
-| --- | --- | --- |
-| user turn | `{"type":"user","text":str,"images":[path...]?,"llm":{provider,model,baseUrl?,apiKey?}?}` | ≤ 8 images honored; `llm` switches this turn's model only |
-| interrupt | `{"type":"interrupt"}` | aborts in-flight turn, session survives |
-| compact | `{"type":"compact"}` | manual history compaction between turns |
-| approval verdict | `{"type":"approval","id":str,"approve":bool}` | answers an `approval_request` |
-| question answer | `{"type":"answer","id":str,"answer":str\|str[]\|null}` | `null` cancels |
-| plan control | `{"type":"plan","action":"enter"\|"approve"\|"reject","review":{"snapshot":str}?}` | plan-mode UI; approve/reject may carry an IDE review snapshot for audit/replay |
-| feedback | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}` | PDH self-learning |
-| assist resume | `{"type":"resume","token":str?,"action":"completed"\|"skip"}` | PDH guided collection |
+| Event            | Shape                                                                                           | Notes                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| user turn        | `{"type":"user","text":str,"images":[path...]?,"llm":{provider,model,baseUrl?,apiKey?}?}`       | ≤ 8 images honored; `llm` switches this turn's model only                      |
+| interrupt        | `{"type":"interrupt"}`                                                                          | aborts in-flight turn, session survives                                        |
+| compact          | `{"type":"compact"}`                                                                            | manual history compaction between turns                                        |
+| approval verdict | `{"type":"approval","id":str,"approve":bool}`                                                   | answers an `approval_request`                                                  |
+| question answer  | `{"type":"answer","id":str,"answer":str\|str[]\|null}`                                          | `null` cancels                                                                 |
+| plan control     | `{"type":"plan","action":"enter"\|"approve"\|"reject","review":{"snapshot":str}?}`              | plan-mode UI; approve/reject may carry an IDE review snapshot for audit/replay |
+| feedback         | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}` | PDH self-learning                                                              |
+| assist resume    | `{"type":"resume","token":str?,"action":"completed"\|"skip"}`                                   | PDH guided collection                                                          |
 
 ### 1.2 CLI → client (stdout events)
 
-| `type` | Key fields |
-| --- | --- |
-| `system` (`subtype:"init"`) | `session_id` (resume id — persist this), `model`, `provider`, `permission_mode`, `tools[]`, `resumed_messages` |
-| `system` (`subtype:"end"`) | `turns` |
-| `stream_event` | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}` |
-| `tool_use` | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1) |
-| `tool_result` | `tool`, `is_error`, `error?`, `result?`, `id?` (pairs with the `tool_use` of the same `id`) |
-| `token_usage` | `usage:{input_tokens,output_tokens,cache_read_input_tokens,cache_creation_input_tokens}` |
-| `approval_request` | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s) |
-| `approval_resolved` | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this |
-| `question_request` / `question_resolved` | `id`, `question`, `options?`, `multiSelect?` (needs env `CC_INTERACTIVE_QUESTIONS=1`) |
-| `plan_update` | `active`, `state`, `items[]{id,title,tool,impact,status}`, `risk{level,totalScore}` |
-| `compaction` | history-trim stats |
-| `stream_retry` | provider retry notice |
-| `iteration_warning` / `iteration_budget_exhausted` | `message` / `budget` |
-| `raw` | non-protocol stdout; `subtype:"provider_fallback"` / `"version_skew"` |
-| `user` | echo of accepted input (`--replay-user-messages`) |
-| `feedback_ack` / `resume_ack` | PDH round-trip acks |
-| `result` | terminal per turn: `subtype:"success"\|"error"\|"blocked"\|"interrupted"`, `is_error`, `result`, `session_id`, `num_turns`, `duration_ms`, `tool_calls`, `usage`, `denials?` |
+| `type`                                             | Key fields                                                                                                                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `system` (`subtype:"init"`)                        | `session_id` (resume id — persist this), `model`, `provider`, `permission_mode`, `tools[]`, `resumed_messages`                                                               |
+| `system` (`subtype:"end"`)                         | `turns`                                                                                                                                                                      |
+| `stream_event`                                     | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}`                                                         |
+| `tool_use`                                         | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1)                                                                                                                       |
+| `tool_result`                                      | `tool`, `is_error`, `error?`, `result?`, `id?` (pairs with the `tool_use` of the same `id`)                                                                                  |
+| `token_usage`                                      | `usage:{input_tokens,output_tokens,cache_read_input_tokens,cache_creation_input_tokens}`                                                                                     |
+| `approval_request`                                 | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s)            |
+| `approval_resolved`                                | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this                                                                                                     |
+| `question_request` / `question_resolved`           | `id`, `question`, `options?`, `multiSelect?` (needs env `CC_INTERACTIVE_QUESTIONS=1`)                                                                                        |
+| `plan_update`                                      | `active`, `state`, `items[]{id,title,tool,impact,status}`, `risk{level,totalScore}`                                                                                          |
+| `compaction`                                       | history-trim stats                                                                                                                                                           |
+| `stream_retry`                                     | provider retry notice                                                                                                                                                        |
+| `iteration_warning` / `iteration_budget_exhausted` | `message` / `budget`                                                                                                                                                         |
+| `raw`                                              | non-protocol stdout; `subtype:"provider_fallback"` / `"version_skew"`                                                                                                        |
+| `user`                                             | echo of accepted input (`--replay-user-messages`)                                                                                                                            |
+| `feedback_ack` / `resume_ack`                      | PDH round-trip acks                                                                                                                                                          |
+| `result`                                           | terminal per turn: `subtype:"success"\|"error"\|"blocked"\|"interrupted"`, `is_error`, `result`, `session_id`, `num_turns`, `duration_ms`, `tool_calls`, `usage`, `denials?` |
 
 Unknown `type`s MUST be ignored (forward compatibility), not treated as errors.
 
-#### 1.2.1 Additive v1 fields (`seq`, tool-call `id`)
+#### 1.2.1 Additive v1 fields (`seq`, `trace_id`, tool-call `id`)
 
 Advertised in `cc agent --capabilities` → `features.event_seq` /
-`features.tool_use_id`. Both are **optional** — consumers MUST tolerate
-their absence (older CLIs never send them) and MUST NOT change behavior
-solely because they are missing.
+`features.trace_id` / `features.tool_use_id`. All are **optional** —
+consumers MUST tolerate their absence (older CLIs never send them) and MUST
+NOT change behavior solely because they are missing.
 
 - **`seq`** (every stdout line): 1-based, monotonically increasing emit
   sequence number, unique within one session process. Use it to order /
   de-duplicate relayed lines; do NOT require gap-free numbering across
   reconnects or transports that re-frame lines.
+- **`trace_id`** (every stdout line): a run-scoped correlation id repeated
+  unchanged on every line of the run. Callers MAY inject it via `--trace-id`
+  or the `CC_TRACE_ID` env var to trace one run end-to-end across their own
+  logs, the CLI, the transcript and diagnostic bundles; otherwise the CLI
+  mints one per process. It is distinct from `session_id` (which a resume
+  reuses across processes) — two runs resuming the same session get
+  different `trace_id`s. An injected id is sanitized to a single safe token
+  (`[A-Za-z0-9._:-]`, ≤128 chars).
 - **`tool_use.id` / `tool_result.id`**: per-session tool-call correlation
   id (`tu-<n>`, 1-based). A `tool_result` carries the id of the
   `tool_use` it settles, so UIs can pair calls without relying on

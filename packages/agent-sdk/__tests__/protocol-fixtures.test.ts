@@ -27,10 +27,10 @@ const fixturesDir = join(here, "..", "__fixtures__", "protocol");
 const chatEvents = require(
   join(here, "..", "..", "vscode-extension", "src", "chat", "chat-events.js"),
 ) as {
-  mapAgentEvent: (evt: unknown, state: { sawDelta: boolean }) => Record<
-    string,
-    unknown
-  > | null;
+  mapAgentEvent: (
+    evt: unknown,
+    state: { sawDelta: boolean },
+  ) => Record<string, unknown> | null;
   createTurnState: () => { sawDelta: boolean };
 };
 
@@ -123,7 +123,9 @@ const FIXTURE_FILES = [
 describe("protocol fixture contract (VS Code chat-events twin)", () => {
   it("expected.json covers every fixture file", () => {
     for (const f of FIXTURE_FILES) {
-      expect(Array.isArray(expected[f]), `missing expected for ${f}`).toBe(true);
+      expect(Array.isArray(expected[f]), `missing expected for ${f}`).toBe(
+        true,
+      );
     }
   });
 
@@ -134,22 +136,31 @@ describe("protocol fixture contract (VS Code chat-events twin)", () => {
       expect(events.length, `line count for ${file}`).toBe(want.length);
       // ONE fresh turn-state per file, events fed top-to-bottom (README rule).
       const state = chatEvents.createTurnState();
-      const got = events.map((evt) => project(chatEvents.mapAgentEvent(evt, state)));
+      const got = events.map((evt) =>
+        project(chatEvents.mapAgentEvent(evt, state)),
+      );
       expect(got).toEqual(want);
     });
   }
 
   it("ignores unknown event types (forward compatibility)", () => {
     const state = chatEvents.createTurnState();
-    expect(chatEvents.mapAgentEvent({ type: "totally_new_event_v9" }, state)).toBe(
-      null,
-    );
+    expect(
+      chatEvents.mapAgentEvent({ type: "totally_new_event_v9" }, state),
+    ).toBe(null);
   });
 
-  it("tolerates the additive seq / tool-call id fields without changing mapping", () => {
+  it("tolerates the additive seq / trace_id / tool-call id fields without changing mapping", () => {
     const state = chatEvents.createTurnState();
     const withMeta = chatEvents.mapAgentEvent(
-      { type: "tool_use", id: "tu-9", tool: "read_file", args: { path: "x" }, seq: 7 },
+      {
+        type: "tool_use",
+        id: "tu-9",
+        tool: "read_file",
+        args: { path: "x" },
+        seq: 7,
+        trace_id: "tr-abc",
+      },
       state,
     );
     const withoutMeta = chatEvents.mapAgentEvent(

@@ -25,13 +25,23 @@ export const PROTOCOL_VERSION = 1;
 /**
  * Additive per-line metadata (protocol v1, additive): every CLI → client
  * stream line MAY carry `seq`, a 1-based monotonically increasing emit
- * sequence number, unique within one session process. Consumers MUST
- * tolerate its absence (older CLIs never send it) and MUST NOT require
- * gap-free numbering across reconnects — it orders lines, nothing more.
+ * sequence number, unique within one session process, and `trace_id`, a
+ * run-scoped correlation id repeated on every line of the run. Consumers MUST
+ * tolerate their absence (older CLIs never send them), MUST NOT require
+ * gap-free `seq` numbering across reconnects (it orders lines, nothing more),
+ * and MUST NOT change behavior solely because `trace_id` is missing.
  */
 export interface StreamEventMeta {
   /** Monotonic 1-based per-session-process emit sequence number. */
   seq?: number;
+  /**
+   * Run-scoped cross-event correlation id (same value on every line of one
+   * run). Callers MAY inject it via `--trace-id` / `CC_TRACE_ID` to trace a
+   * run end-to-end (IDE/Webview → Bridge → CLI → transcript/diagnostics);
+   * otherwise the CLI mints one per process (distinct even when two runs
+   * resume the same `session_id`).
+   */
+  trace_id?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

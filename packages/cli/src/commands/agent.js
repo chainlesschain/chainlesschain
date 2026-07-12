@@ -291,6 +291,10 @@ export function registerAgentCommand(program) {
       "text",
     )
     .option(
+      "--trace-id <id>",
+      "Correlation id stamped as `trace_id` on every stream-json output line (also read from CC_TRACE_ID). Lets an IDE/bridge trace one run across its own logs, the CLI, transcripts and diagnostics. Auto-generated per run when omitted.",
+    )
+    .option(
       "--fallback-model <model>",
       "Backup model(s) to try in order when the primary fails (transient error or model-not-found). Repeatable or comma-separated; up to 3. A `provider:model` entry (e.g. openai:gpt-4o) falls back cross-provider, using that provider's API key from its env var (skipped if unset — never reuses the primary key). Defaults to config llm.fallbackModels.",
       (val, prev) => (prev || []).concat([val]),
@@ -828,6 +832,9 @@ export function registerAgentCommand(program) {
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
             sessionId: options.session,
+            // Cross-event correlation id for this run (stamped as `trace_id` on
+            // every output line); falls back to CC_TRACE_ID / auto-generated.
+            traceId: options.traceId || null,
             // Auto-checkpoint follows the same resolution as the headless/REPL
             // paths (default ON in a git repo) so panel/stream sessions snapshot
             // before mutating tools and can be rewound via `cc checkpoint`.
