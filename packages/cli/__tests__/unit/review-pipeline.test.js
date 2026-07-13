@@ -215,3 +215,57 @@ describe("buildReviewReport (structured output)", () => {
     expect(buildReviewReport(raw, { verdicts }).summary.total).toBe(0);
   });
 });
+
+describe("buildReviewReport comment anchoring (P1-1)", () => {
+  const raw = [
+    {
+      path: "a.js",
+      line: 2,
+      severity: "High",
+      title: "bug",
+      category: "correctness",
+      failureScenario: "off-by-one",
+      confidence: 0.9,
+    },
+  ];
+
+  it("emits no anchor when fileContents is omitted (byte-identical output)", () => {
+    const report = buildReviewReport(raw);
+    expect(report.findings[0].anchor).toBeUndefined();
+  });
+
+  it("attaches a re-anchorable anchor when the file content is supplied", () => {
+    const content = "const a = 1;\nconst b = a - 1;\nreturn b;\n";
+    const report = buildReviewReport(raw, {
+      fileContents: { "a.js": content },
+    });
+    const anchor = report.findings[0].anchor;
+    expect(anchor).toBeDefined();
+    expect(anchor.file).toBe("a.js");
+    expect(anchor.line).toBe(2);
+    expect(anchor.anchorLine).toBe("const b = a - 1;");
+    expect(anchor.comment).toBe("off-by-one");
+    expect(typeof anchor.baseHash).toBe("string");
+  });
+
+  it("accepts a Map for fileContents too", () => {
+    const report = buildReviewReport(raw, {
+      fileContents: new Map([["a.js", "x\nconst b = a - 1;\ny\n"]]),
+    });
+    expect(report.findings[0].anchor.anchorLine).toBe("const b = a - 1;");
+  });
+
+  it("skips the anchor for files not present in fileContents", () => {
+    const report = buildReviewReport(raw, {
+      fileContents: { "other.js": "..." },
+    });
+    expect(report.findings[0].anchor).toBeUndefined();
+  });
+
+  it("skips the anchor when the finding has no line", () => {
+    const report = buildReviewReport([{ ...raw[0], line: null }], {
+      fileContents: { "a.js": "one\ntwo\n" },
+    });
+    expect(report.findings[0].anchor).toBeUndefined();
+  });
+});

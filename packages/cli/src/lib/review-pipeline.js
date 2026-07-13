@@ -12,7 +12,15 @@
  * verifier verdicts, confidence-filter, rank, and render the structured report.
  * The fan-out of finder/verifier AGENTS is orchestration the command layer adds;
  * everything here is deterministic and testable without an LLM.
+ *
+ * P1-1 wiring (行评论锚定): when the caller supplies the reviewed file contents,
+ * each finding's output carries a re-anchorable comment ANCHOR (file + base hash
+ * + line + anchored line text + context) via [[review-comment-anchor.js]] instead
+ * of only a bare `line` coordinate — so a downstream IDE Diff Review can relocate
+ * or stale the comment after the agent edits the file, never reusing a dead line.
  */
+
+import { makeCommentAnchor } from "./review-comment-anchor.js";
 
 /** The finder dimensions a full review fans out across. */
 export const REVIEW_DIMENSIONS = Object.freeze([
@@ -184,16 +192,44 @@ export function rankFindings(findings) {
   );
 }
 
-function toOutputFinding(f) {
-  return {
+/** Look a path's content up from a Map or plain object, or return undefined. */
+function lookupContent(fileContents, filePath) {
+  if (!fileContents) return undefined;
+  if (typeof fileContents.get === "function") return fileContents.get(filePath);
+  return fileContents[filePath];
+}
+
+function toOutputFinding(f, fileContents) {
+  const line = Number.isFinite(Number(f.line))
+    ? Math.floor(Number(f.line))
+    : null;
+  const failureScenario = String(f.failureScenario || f.failure_scenario || "");
+  const out = {
     path: String(f.path || ""),
-    line: Number.isFinite(Number(f.line)) ? Math.floor(Number(f.line)) : null,
+    line,
     category: f.category || (f.categories && f.categories[0]) || "correctness",
     severity: normalizeSeverity(f.severity),
-    failure_scenario: String(f.failureScenario || f.failure_scenario || ""),
+    failure_scenario: failureScenario,
     evidence: String(f.evidence || ""),
     confidence: clampConfidence(f.confidence),
   };
+  // P1-1: anchor the comment to the CODE it addresses, not to a coordinate, so
+  // an IDE diff review can relocate/stale it after edits (never reuse a dead
+  // line). Only when the caller supplied this file's content AND we have a
+  // valid 1-based line to anchor.
+  if (line != null && line >= 1) {
+    const content = lookupContent(fileContents, out.path);
+    if (typeof content === "string") {
+      out.anchor = makeCommentAnchor({
+        file: out.path,
+        content,
+        line,
+        comment: failureScenario || out.evidence,
+        id: `${out.path}:${line}:${out.category}`,
+      });
+    }
+  }
+  return out;
 }
 
 /**
@@ -202,17 +238,20 @@ function toOutputFinding(f) {
  * evidence output) plus severity/category rollups.
  *
  * @param {Array} rawFindings   findings from all finders
- * @param {object} [opts]       { verdicts, minConfidence }
+ * @param {object} [opts]       { verdicts, minConfidence, fileContents }
+ *   fileContents — optional Map/object of `path → current file content`. When a
+ *   finding's file is present, its output gains a re-anchorable `anchor` (P1-1);
+ *   omit it and the output is byte-identical to before.
  */
 export function buildReviewReport(
   rawFindings,
-  { verdicts = {}, minConfidence = 0 } = {},
+  { verdicts = {}, minConfidence = 0, fileContents = null } = {},
 ) {
   const deduped = dedupeFindings(rawFindings);
   const verified = applyVerdicts(deduped, verdicts);
   const filtered = filterByConfidence(verified, { minConfidence });
   const ranked = rankFindings(filtered);
-  const findings = ranked.map(toOutputFinding);
+  const findings = ranked.map((f) => toOutputFinding(f, fileContents));
 
   const bySeverity = { Critical: 0, High: 0, Medium: 0, Low: 0, Note: 0 };
   const byCategory = {};

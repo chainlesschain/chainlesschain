@@ -848,7 +848,23 @@ export async function runMultiFinderReview(ctx = {}, deps = {}) {
     verifiedCount = Object.values(verdicts).filter((v) => v.verified).length;
   }
 
-  const report = buildReviewReport(all, { verdicts });
+  // P1-1: read each referenced file's current content so every finding's output
+  // carries a re-anchorable comment anchor (file + base hash + line + context),
+  // not just a bare line number — an IDE diff review can then relocate or stale
+  // the comment after the agent's fix instead of reusing a dead coordinate.
+  // Best-effort: an unreadable path is simply skipped (no anchor for it).
+  const reviewCwd = ctx.baseOptions?.cwd || process.cwd();
+  const readFile = deps.readFileSync || fs.readFileSync;
+  const fileContents = new Map();
+  for (const p of new Set(all.map((f) => f && f.path).filter(Boolean))) {
+    try {
+      fileContents.set(p, readFile(path.resolve(reviewCwd, p), "utf-8"));
+    } catch {
+      /* file gone / binary / outside tree — no anchor, never fail the review */
+    }
+  }
+
+  const report = buildReviewReport(all, { verdicts, fileContents });
   const meta = {
     byDimension,
     ...(ctx.verify ? { verified: verifiedCount } : {}),
