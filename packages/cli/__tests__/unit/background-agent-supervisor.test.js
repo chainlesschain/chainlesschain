@@ -849,3 +849,46 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     }
   }, 30000);
 });
+
+// TEMP DIAGNOSTIC (forks-pool worker-death flake): runs LAST. Dumps everything
+// still pinning the worker's event loop into a FAILING assertion — a failed
+// test's output is never swallowed by --silent=passed-only, unlike a passed
+// file's captured stdout or an afterAll throw. Remove once the leak is fixed.
+describe("ZZZ diagnostic (temp)", () => {
+  it("dump lingering handles", async () => {
+    await new Promise((r) => setTimeout(r, 800));
+    const resources = process.getActiveResourcesInfo?.() || [];
+    let handles = [];
+    try {
+      const active = process._getActiveHandles?.() || [];
+      handles = active.map((h) => {
+        const name = h?.constructor?.name || typeof h;
+        let ref = "?";
+        try {
+          ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
+        } catch {
+          /* ignore */
+        }
+        let kind = "";
+        try {
+          if (typeof h?.pid === "number")
+            kind = `:child(pid=${h.pid},killed=${h.killed})`;
+          else if (h?.listening !== undefined) kind = ":server";
+          else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
+            kind = `:socket(fd=${h?._handle?.fd},destroyed=${h?.destroyed})`;
+          else if (name === "Pipe" || name === "Socket")
+            kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
+        } catch {
+          /* ignore */
+        }
+        return `${name}${kind}:ref=${ref}`;
+      });
+    } catch {
+      /* ignore */
+    }
+    // Force a failure carrying the dump so CI's POSIX run surfaces it.
+    expect(
+      `HDUMP resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}`,
+    ).toBe("__SEE_HDUMP__");
+  });
+});
