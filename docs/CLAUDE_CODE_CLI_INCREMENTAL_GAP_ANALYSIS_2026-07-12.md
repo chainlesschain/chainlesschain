@@ -768,12 +768,24 @@ resolveRestorePlan 三 scope + 漂移与 partial warnings / selectTurnRange /
 对话-文件漂移），无需先改 agent loop。测试：`turn-binding-store.test.js` 11 项 +
 `repl-rewind.test.js` 新增 4 项（`955177b3e8`）。
 
-**仍欠（运行时事件 + 恢复 UI）**：从 agent loop 事件（checkpoint /
+**已接线（2026-07-13，`/rewind` coverage-aware 警告）**：把 `buildRewindPlan` +
+`renderRewindWarnings` 接进 `agent-repl.js` 的交互 `/rewind` 处理器——一个 turn 被回退
+后，从 REPL **现有**的 checkpoint marks 派生 coverage-aware 计划（不需新 agent-loop
+事件），在**文件恢复提示之前**打印诚实警告：shell/外部副作用 → PARTIAL（“restore is
+not guaranteed”）、无 checkpoint → 文件不可复原、对话-文件漂移。`rewindToTurn` 会**截断**
+`messages`，故处理器先 `messages.slice()` 快照（`buildRewindPlan` 需目标 turn 仍在场才能
+绑定其 checkpoint）；best-effort——advisory 绝不阻断回退本身；FULL 覆盖的 turn 不打印
+（不无谓打断）。测试：`repl-rewind.test.js` +3 集成（处理器数据流：快照 + `res.index`
+→ partial/shell 警告 / 无 checkpoint 警告 / 从 post-rewind 截断 messages 构建则绑不到
+turn → coverage `none` 的守卫）；agent-repl 65 + repl-rewind 26 绿。
+
+**仍欠（运行时事件 + Session Mirror）**：从 agent loop 事件（checkpoint /
 tool-executing 的 `tool_use_id` / 权限决定 `requestId` / `spawn_sub_agent` /
 worktree create）**实时**喂 `TurnBindingLog`（tool-call **持久 id** 目前不存在，需
-引入），并在每 turn 结束 `persistTurnBinding`；把 `buildRewindPlan` 的 scope 选择 +
-警告接进 `/rewind` **交互输出**（`agent-repl.js`，属 REPL 接线）；外部 Session
-Mirror 的加密/保留期/删除/key rotation 属独立基建，未起。
+引入），并在每 turn 结束 `persistTurnBinding`（当前 `/rewind` 警告从**隐式** marks 就地
+派生，尚未落显式持久表）；`/rewind` 的 scope 选择（conversation-only / files-only）交互入口
+待接（现只印 BOTH 计划的警告）；外部 Session Mirror 的加密/保留期/删除/key rotation 属
+独立基建，未起。
 
 ## P1：Plugin 能力声明和配置 Schema
 
