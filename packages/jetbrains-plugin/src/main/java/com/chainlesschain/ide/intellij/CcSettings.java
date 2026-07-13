@@ -28,6 +28,13 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
         /** Show the chat panel's context-window indicator. */
         public boolean contextIndicator = true;
         /**
+         * Lean chat context (VS Code {@code chainlesschain.chat.leanContext}
+         * parity): inject {@code CC_PROJECT_MEMORY=lean} into the chat panel's
+         * {@code cc agent} child so the system prompt keeps only the primary
+         * entry file and sheds CLAUDE.local.md / .claude/rules / rules.md.
+         */
+        public boolean leanContext = true;
+        /**
          * Consult the plugin-managed cc copy when every global probe fails
          * (VS Code {@code chainlesschain.cli.managed.enabled} parity). Never
          * applies when an explicit cc path is set.
@@ -67,6 +74,14 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
 
     public void setContextIndicatorEnabled(boolean enabled) {
         state.contextIndicator = enabled;
+    }
+
+    public boolean isLeanContextEnabled() {
+        return state.leanContext;
+    }
+
+    public void setLeanContextEnabled(boolean enabled) {
+        state.leanContext = enabled;
     }
 
     public boolean isManagedCliEnabled() {

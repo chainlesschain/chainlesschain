@@ -28,6 +28,20 @@ public final class ProjectMemory {
         return new ArrayList<String>(Arrays.asList("memory", "files"));
     }
 
+    /**
+     * Lean chat context (VS Code {@code chainlesschain.chat.leanContext} parity):
+     * the value to set for the {@code CC_PROJECT_MEMORY} env var on the chat
+     * panel's {@code cc agent} child, or {@code null} when the setting is off (do
+     * not set the var at all). {@code "lean"} keeps only the primary entry
+     * instruction file (cc.md/CLAUDE.md) and sheds CLAUDE.local.md, .claude/rules,
+     * and .chainlesschain/rules.md — the heavy per-turn block. Delivered as an env
+     * var, not a CLI flag, so an older {@code cc} that predates lean mode falls
+     * back to full memory (safe) instead of erroring on an unknown flag.
+     */
+    public static String leanContextEnvValue(boolean enabled) {
+        return enabled ? "lean" : null;
+    }
+
     /** The two init modes for the chooser, {@code [label, description]} rows. */
     public static List<String[]> initModes() {
         return Arrays.asList(

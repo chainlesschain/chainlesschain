@@ -24,6 +24,7 @@ public final class CcConfigurable implements Configurable {
 
     private JBTextField ccPathField;
     private JBCheckBox contextIndicatorBox;
+    private JBCheckBox leanContextBox;
     private JBCheckBox managedCliBox;
     private JPanel panel;
 
@@ -36,6 +37,7 @@ public final class CcConfigurable implements Configurable {
     public @Nullable JComponent createComponent() {
         ccPathField = new JBTextField();
         contextIndicatorBox = new JBCheckBox(CcBundle.message("settings.contextIndicator.label"));
+        leanContextBox = new JBCheckBox(CcBundle.message("settings.leanContext.label"));
         managedCliBox = new JBCheckBox(CcBundle.message("settings.managedCli.label"));
 
         JBLabel hint = new JBLabel(CcBundle.message("settings.ccPath.hint"));
@@ -47,6 +49,7 @@ public final class CcConfigurable implements Configurable {
                         new JBLabel(CcBundle.message("settings.ccPath.label")), ccPathField, 1, false)
                 .addComponentToRightColumn(hint, 1)
                 .addComponent(contextIndicatorBox, 1)
+                .addComponent(leanContextBox, 1)
                 .addComponent(managedCliBox, 1)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
@@ -58,6 +61,7 @@ public final class CcConfigurable implements Configurable {
         CcSettings s = CcSettings.getInstance();
         return !ccPathField.getText().trim().equals(s.getCcPath())
                 || contextIndicatorBox.isSelected() != s.isContextIndicatorEnabled()
+                || leanContextBox.isSelected() != s.isLeanContextEnabled()
                 || managedCliBox.isSelected() != s.isManagedCliEnabled();
     }
 
@@ -66,6 +70,7 @@ public final class CcConfigurable implements Configurable {
         CcSettings s = CcSettings.getInstance();
         s.setCcPath(ccPathField.getText());
         s.setContextIndicatorEnabled(contextIndicatorBox.isSelected());
+        s.setLeanContextEnabled(leanContextBox.isSelected());
         s.setManagedCliEnabled(managedCliBox.isSelected());
     }
 
@@ -74,6 +79,7 @@ public final class CcConfigurable implements Configurable {
         CcSettings s = CcSettings.getInstance();
         ccPathField.setText(s.getCcPath());
         contextIndicatorBox.setSelected(s.isContextIndicatorEnabled());
+        leanContextBox.setSelected(s.isLeanContextEnabled());
         managedCliBox.setSelected(s.isManagedCliEnabled());
     }
 
@@ -82,6 +88,7 @@ public final class CcConfigurable implements Configurable {
         panel = null;
         ccPathField = null;
         contextIndicatorBox = null;
+        leanContextBox = null;
         managedCliBox = null;
     }
 }

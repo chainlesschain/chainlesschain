@@ -1,6 +1,7 @@
 package com.chainlesschain.ide;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -32,5 +33,17 @@ class ProjectMemoryTest {
     void initModesHasTwoModesSecondIsAi() {
         assertEquals(2, ProjectMemory.initModes().size());
         assertTrue(ProjectMemory.initModes().get(1)[0].contains("--ai"));
+    }
+
+    @Test
+    void leanContextEnvOnIsLean() {
+        assertEquals("lean", ProjectMemory.leanContextEnvValue(true));
+    }
+
+    @Test
+    void leanContextEnvOffIsNull() {
+        // off → return null so ConversationView does not set CC_PROJECT_MEMORY at
+        // all (full project memory, byte-identical to pre-lean behavior).
+        assertNull(ProjectMemory.leanContextEnvValue(false));
     }
 }

@@ -997,6 +997,8 @@ public final class PureLogicSmokeMain {
         eq(String.join(" ", ProjectMemory.buildMemoryFilesArgs()), "memory files", "memory files");
         eq(ProjectMemory.initModes().size(), 2, "two init modes");
         check(ProjectMemory.initModes().get(1)[0].contains("--ai"), "second mode is --ai");
+        eq(ProjectMemory.leanContextEnvValue(true), "lean", "lean context env = lean when on");
+        check(ProjectMemory.leanContextEnvValue(false) == null, "lean context env = null when off");
     }
 
     private static void statusBarText() {

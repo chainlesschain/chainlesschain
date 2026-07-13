@@ -1004,6 +1004,16 @@ final class ConversationView {
         // Opt into the ask_user_question round-trip: the agent's questions pop a
         // dialog here (an old `cc` ignores the env var → graceful degrade).
         o.extraEnv.put("CC_INTERACTIVE_QUESTIONS", "1");
+        // Lean chat context (Settings → ChainlessChain IDE, default on): inject
+        // CC_PROJECT_MEMORY=lean so the agent's system prompt keeps only the entry
+        // instruction file (cc.md/CLAUDE.md) and sheds CLAUDE.local.md / .claude/
+        // rules / rules.md — a doc-heavy repo re-sends that block (~8k+ tokens)
+        // EVERY turn. Env var, not a CLI flag, so an older `cc` degrades to full
+        // memory instead of erroring on an unknown flag. Needs cc >= 0.162.165 to
+        // actually shed. Terminal `cc` is untouched (scoped to this child).
+        String leanEnv = com.chainlesschain.ide.ProjectMemory.leanContextEnvValue(
+                CcSettings.getInstance().isLeanContextEnabled());
+        if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
             if (event != null && "system".equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {

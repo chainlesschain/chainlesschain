@@ -1,5 +1,22 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.59] — Lean chat context: trim project memory re-sent every turn (2026-07-13)
+
+- **Lean context (new setting in Settings → Tools → ChainlessChain IDE, ON by
+  default).** The chat panel now injects `CC_PROJECT_MEMORY=lean` into the
+  `cc agent` child so the system prompt keeps only the primary **entry**
+  instruction file (`cc.md` › `CLAUDE.md` › `AGENTS.md`, first match) and sheds
+  the heavy companions — `CLAUDE.local.md` (personal status), `.claude/rules/*.md`,
+  and `.chainlesschain/rules.md`. In a doc-heavy repo that block is re-sent on
+  **every** turn (often ~8k+ tokens = real cost on a paid provider); the agent can
+  still read those files with its tools when a task needs them. VS Code
+  `chainlesschain.chat.leanContext` parity.
+- **Version-safe by design.** Delivered as an environment variable, not a CLI
+  flag, so an older `cc` that predates lean mode falls back to full memory (no
+  crash, no unknown-flag error) — the shedding needs `cc ≥ 0.162.165`. Scoped to
+  this panel's child only; the terminal `cc` is untouched. Uncheck the setting to
+  always inject full project memory.
+
 ## [0.4.58] — Protocol hardening, diff/connection safety, capability negotiation (2026-07-12)
 
 - **Diff-apply safety (VS Code twins).** Optimistic-concurrency guard (a
