@@ -203,6 +203,15 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 - 恢复后文件哈希、对话上下文、Session 指针和 Tool Ledger 一致。
 - 原 Session 不被 Branch 覆盖；Session 级临时授权不默认继承。
 
+**已落地（2026-07-13 续，联合 Rewind 的第四个动作「从这里分支」纯核）**：P0-3 的前三个恢复动作（「只恢复对话 / 只恢复代码 / 恢复二者」）此前已由 [`turn-binding.js`](../packages/cli/src/lib/turn-binding.js) 的 `resolveRestorePlan()` + 诚实 coverage 覆盖；缺的第四个动作「从这里分支」现补齐为纯逻辑模块 [`session-branch.js`](../packages/cli/src/lib/session-branch.js)（复用 turn-binding 的 `TURN_COVERAGE`，无 RNG / Date / fs / git）：
+
+- **`deriveBranchId(parentSessionId, parentTurnId, seq)`**：sha256 确定性分支 id（无 RNG）——同输入同 id，跨重启重放的分支请求解析为一个分支；`seq` 消歧「同一 turn 上的两个分支」。
+- **`deriveBranchSessionId`**：traversal-safe 的新 session id（清掉分隔符），确定性命名。
+- **`planSessionBranch({ parentSessionId, turn, seq, writeIntent })`** 落实 P0-3 四条不变量：目标恒为**新** session id（绝不落回父）；`preservesParent:true`（原 session 永不被覆盖）；`requiresWorktree` 当分支要写、或分支点本身已改文件（避免与父工作树碰撞）；`inheritSessionGrants:false`（Session 级临时授权不入分支）。`conversationTruncateTo` = 分支点 turn 的会话偏移（保留该 turn 及之前历史）。warnings 诚实：PARTIAL（不可逆副作用无法在分支重现）/ NONE（无 checkpoint、工作树可能与分支点对话不符）/ 缺 offset（退回父全量历史）。
+- **`validateBranchLineage(records)`**：分支血统完整性守卫——检测环（分支不得是自己的祖先，否则 restore 会走回原分支）与孤儿（声明的父不存在），是「原 Session 不被覆盖」的图级后盾。
+
+`forkSession()`（[[jsonl-session-store.js]]）是整会话拷贝、无 turn 级截断/血统/worktree/授权语义，故本模块为其纯规划层。测试：`session-branch.test.js` 19（分支 id 确定性/消歧 + traversal-safe + 四不变量 + worktree 触发（写意图 / 分支点已改文件）+ PARTIAL/NONE/缺 offset 诚实 warning + 血统环/孤儿检测）。纯核尚未接进 REPL `/rewind` 与 IDE Session Timeline seam，故默认路径零影响。
+
 ### P0-4 JetBrains GUI 自动化成为发布证据
 
 `packages/jetbrains-plugin/GLUE_TODO.md:995-1028` 表明 Remote Robot 骨架尚未完成真实 IDE 首次闭环。
