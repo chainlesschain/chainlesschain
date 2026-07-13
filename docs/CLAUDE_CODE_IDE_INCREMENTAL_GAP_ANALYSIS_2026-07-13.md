@@ -390,6 +390,13 @@ Auto-fix 边界：
 
 每个任务配置模型、预算、时长、并发、Worktree、权限、成功条件、失败通知和产物去向；默认禁止无人值守发布、合并或修改共享基础设施。
 
+**已落地（2026-07-13 续，无人值守动作策略纯核）**：本节末句「默认禁止无人值守发布、合并或修改共享基础设施」现落为纯逻辑模块 [`unattended-action-policy.js`](../packages/cli/src/lib/unattended-action-policy.js)。[[cost-budget.js]] 已封 USD 花费、[[schedule-planner.js]] 决定任务**何时**触发，但没有任何东西决定被触发的任务**能做什么**不可逆动作。新模块是那个决策，一切**默认 DENY**：
+
+- **`evaluateUnattendedAction({actionClass, attended, trigger, allowlist, protectedBranch, budgetExhausted})`**：预算耗尽→全拦（不分是否值守）；`attended===true`→人可在预算内授权任何动作；**无人值守**下 read/local_write/commit 低危放行、plain push 到非保护分支放行，而 **publish/merge/deploy/infra_mutation/external_message 高危默认 `requires-attendance` 拦**——**push 到保护分支等同 merge**（拦）。高危仅当**显式 allowlist** 且触发源可信才放行；`trigger.trusted===false`（P1-8「外部内容默认不可信」）即便 allowlisted 也 `untrusted-trigger` 拦。无法识别的动作在无人值守下 `unknown-action-unattended` fail-closed（值守则交人裁决）。
+- `normalizeActionClass` / `classifyActionRisk`（low/high/conditional/unknown 分级）。
+
+测试 `unattended-action-policy.test.js` 11（别名分级 + 值守全放/预算全拦 + 无人值守低危放行 + 五类高危默认拦 + 保护分支 push=merge + allowlist 放行 + 不可信触发拦 + 未知动作 fail-closed）。纯核尚未接进 `cc agenda`/事件触发 runner 的动作门 seam（把它插进定时/事件任务的工具执行前置检查是后续接线），故默认路径零影响。
+
 ### P1-9 Capability Manifest 与脱敏诊断包
 
 从一份 Canonical Manifest 生成 CLI Capability、VS Code/JetBrains 协商、协议文档、Compatibility Fixture、行为矩阵和 Release Notes Capability Diff，防止代码、文档与测试漂移。
