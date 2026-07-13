@@ -1,18 +1,10 @@
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
-  writeSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,61 +29,46 @@ import {
 } from "../../src/lib/background-agent-supervisor.js";
 import { existsSync } from "node:fs";
 
-// TEMP DIAGNOSTIC (forks-pool worker-death flake): dump what still pins the
-// worker's event loop after this file's tests finish, so we can identify the
-// POSIX-only leaked handle. fs.writeSync(2, …) is SYNCHRONOUS so the bytes hit
-// fd 2 before vitest force-kills the hung worker (process.stderr.write buffers
-// and is lost on SIGKILL). Remove once the leak is fixed.
-function collectHandles() {
-  const resources = process.getActiveResourcesInfo?.() || [];
-  let handles = [];
-  try {
-    const active = process._getActiveHandles?.() || [];
-    handles = active.map((h) => {
-      const name = h?.constructor?.name || typeof h;
-      let ref = "?";
-      try {
-        ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
-      } catch {
-        /* ignore */
-      }
-      let kind = "";
-      try {
-        if (typeof h?.pid === "number")
-          kind = `:child(pid=${h.pid},killed=${h.killed},connected=${h.connected})`;
-        else if (h?.listening !== undefined) kind = ":server";
-        else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
-          kind = `:socket(destroyed=${h?.destroyed},connecting=${h?.connecting},fd=${h?._handle?.fd})`;
-        else if (name === "Pipe" || name === "Socket")
-          kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
-      } catch {
-        /* ignore */
-      }
-      return `${name}${kind}:ref=${ref}`;
-    });
-  } catch {
-    /* ignore */
-  }
-  return `resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}`;
-}
-afterAll(async () => {
-  // Let all legit async cleanup settle (ref'd timer so it reliably fires).
-  await new Promise((r) => setTimeout(r, 700));
-  const info = collectHandles();
-  writeSync(2, `\n[HDUMP-SUPERVISOR] ${info}\n`);
-  // --silent=passed-only swallows a PASSED file's captured stdout/stderr, but
-  // an afterAll HOOK FAILURE is always reported — carry the dump in the throw
-  // so the CI POSIX run surfaces exactly what pins the worker's event loop.
-  // (This file's shard already fails on the worker-death; the throw only makes
-  // the diagnostic visible.) Remove once the leak is fixed.
-  throw new Error(`[HDUMP-SUPERVISOR] ${info}`);
-});
-
 let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalKillTree = _deps.killProcessTree;
+
+// PIDs of the REAL detached workers a test spawns (cliEntry tests). Several of
+// them run a fake CLI that sleeps 4s–20s, so without an explicit reap they
+// outlive the test as ORPHAN node processes (seen in CI as GitHub's "Terminate
+// orphan process: pid (…) (node)"). On POSIX those orphans keep their transport
+// domain-socket SERVER alive with our client still associated, which stops the
+// vitest forks worker's event loop from draining → "Timeout terminating forks
+// worker … Worker exited unexpectedly" (the recurring forks-pool worker-death
+// flake, unit shard 2/4 on ubuntu+macos). Reaping every spawned tree in
+// afterEach removes the orphans and lets the worker terminate cleanly.
+let spawnedWorkerPids = new Set();
+
+function killTree(pid) {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0 || target === process.pid)
+    return;
+  try {
+    if (process.platform === "win32") {
+      originalSpawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
+        windowsHide: true,
+      });
+    } else {
+      // Detached workers are session/group leaders → negative-pid group kill;
+      // the agent grandchild is detached into its OWN group, so its recorded
+      // agentPid is reaped separately (collected from the state files below).
+      try {
+        process.kill(-target, "SIGKILL");
+      } catch {
+        process.kill(target, "SIGKILL");
+      }
+    }
+  } catch {
+    /* already gone */
+  }
+}
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
@@ -100,9 +77,41 @@ beforeEach(() => {
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
   _deps.readProcessStartTimeMs = () => null;
+  // Track every REAL child this test spawns so afterEach can reap it. Mocked
+  // tests reassign _deps.spawn to their own vi.fn AFTER beforeEach, so this
+  // wrapper only ever records genuine detached workers, never fake pids.
+  spawnedWorkerPids = new Set();
+  _deps.spawn = (...args) => {
+    const child = originalSpawn(...args);
+    if (child && typeof child.pid === "number")
+      spawnedWorkerPids.add(child.pid);
+    return child;
+  };
 });
 
 afterEach(async () => {
+  // Reap every real worker this test spawned — plus the per-turn agent
+  // grandchild the worker recorded in its state file (own process group) —
+  // BEFORE tearing down _deps / the temp dir, so none of them outlive the test
+  // as orphan node processes holding a live transport socket.
+  try {
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json") || name.includes(".job.")) continue;
+      try {
+        const st = JSON.parse(readFileSync(join(dir, name), "utf8"));
+        for (const pid of [st.workerPid, st.pid, st.agentPid]) {
+          if (Number.isInteger(pid) && pid > 0) spawnedWorkerPids.add(pid);
+        }
+      } catch {
+        /* unreadable/partial state file — skip */
+      }
+    }
+  } catch {
+    /* dir already gone */
+  }
+  for (const pid of spawnedWorkerPids) killTree(pid);
+  spawnedWorkerPids.clear();
+
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
