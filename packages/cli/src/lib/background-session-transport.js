@@ -270,12 +270,26 @@ export function connectBackgroundSession(opts) {
           if (message.type === "hello") {
             settled = true;
             clearTimeout(timer);
+            // The transport client socket must never be the sole reason its
+            // owner's event loop stays alive — real callers are held open by
+            // their own handles (attach: stdin/readline; WS bridge: the
+            // WebSocket server), both of which already unref their poll timers.
+            // A still-open (or half-closed) socket lingering at teardown was
+            // pinning vitest's forks-pool worker past its terminate deadline
+            // → "Worker exited unexpectedly" flake on CI.
+            socket.unref?.();
             resolve({
               hello: message,
               send: (msg) => writeMessage(socket, msg),
               close: () => {
                 writeMessage(socket, { type: "detach" });
                 socket.end();
+                // Release the handle immediately rather than lingering in a
+                // half-open FIN wait if the peer never FINs back (worker still
+                // finalizing / already gone). Best-effort: end() has already
+                // flushed the detach frame.
+                const reaper = setTimeout(() => socket.destroy(), 1000);
+                reaper.unref?.();
               },
             });
           }
