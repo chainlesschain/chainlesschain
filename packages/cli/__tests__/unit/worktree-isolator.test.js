@@ -82,6 +82,85 @@ describe("worktree-isolator", () => {
     });
   });
 
+  // ── createWorktree: sparse checkout & dependency symlinks (P1 monorepo) ──
+
+  describe("createWorktree sparse/symlink", () => {
+    function seedMonorepo(dir) {
+      for (const pkg of ["packages/cli", "packages/core", "backend"]) {
+        mkdirSync(join(dir, pkg), { recursive: true });
+        writeFileSync(join(dir, pkg, "index.js"), `// ${pkg}\n`, "utf-8");
+      }
+      execSync("git add -A", { cwd: dir });
+      execSync('git commit -m "seed monorepo"', { cwd: dir });
+    }
+
+    it("sparse-checkout materializes only requested packages", () => {
+      seedMonorepo(repoDir);
+      const { path, sparsePaths } = createWorktree(
+        repoDir,
+        "sparse-branch",
+        null,
+        { sparsePaths: ["packages/cli"] },
+      );
+      expect(sparsePaths).toEqual(["packages/cli"]);
+      expect(existsSync(join(path, "packages/cli/index.js"))).toBe(true);
+      // Excluded packages are absent from the working tree.
+      expect(existsSync(join(path, "packages/core/index.js"))).toBe(false);
+      expect(existsSync(join(path, "backend/index.js"))).toBe(false);
+    });
+
+    it("no sparsePaths → full checkout (byte-identical default path)", () => {
+      seedMonorepo(repoDir);
+      const { path, sparsePaths } = createWorktree(repoDir, "full-branch");
+      expect(sparsePaths).toBeUndefined();
+      expect(existsSync(join(path, "packages/core/index.js"))).toBe(true);
+      expect(existsSync(join(path, "backend/index.js"))).toBe(true);
+    });
+
+    it("symlinks approved dependency directory from the main checkout", () => {
+      seedMonorepo(repoDir);
+      // Simulate an installed dependency dir in the main checkout.
+      mkdirSync(join(repoDir, "node_modules", "leftpad"), { recursive: true });
+      writeFileSync(
+        join(repoDir, "node_modules", "leftpad", "package.json"),
+        "{}",
+        "utf-8",
+      );
+
+      const { path, symlinkedDirectories } = createWorktree(
+        repoDir,
+        "linked-branch",
+        null,
+        { symlinkDirectories: ["node_modules"] },
+      );
+      expect(symlinkedDirectories).toEqual(["node_modules"]);
+      // Reading through the link reaches the main checkout's dependency.
+      expect(
+        existsSync(join(path, "node_modules", "leftpad", "package.json")),
+      ).toBe(true);
+    });
+
+    it("skips approved-but-absent symlink dirs without error", () => {
+      seedMonorepo(repoDir);
+      const { symlinkedDirectories } = createWorktree(
+        repoDir,
+        "nolink-branch",
+        null,
+        { symlinkDirectories: ["node_modules"] },
+      );
+      expect(symlinkedDirectories).toBeUndefined();
+    });
+
+    it("fails closed on junction/symlink escape attempts", () => {
+      seedMonorepo(repoDir);
+      expect(() =>
+        createWorktree(repoDir, "escape-branch", null, {
+          symlinkDirectories: ["../outside"],
+        }),
+      ).toThrow(/Unsafe symlink directory/);
+    });
+  });
+
   // ── removeWorktree ────────────────────────────────────────────────
 
   describe("removeWorktree", () => {

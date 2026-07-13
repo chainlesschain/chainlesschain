@@ -8,8 +8,8 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, rmSync, symlinkSync, mkdirSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import {
   isGitRepo,
   gitExec,
@@ -18,10 +18,14 @@ import {
   assertSafeGitPath,
 } from "../lib/git-integration.js";
 import { evaluateWorktreeCleanup } from "../lib/worktree-cleanup-safety.js";
+import {
+  normalizeSparsePaths,
+  planSymlinkDirectories,
+} from "../lib/worktree-sparse.js";
 
 const WORKTREE_DIR = ".worktrees";
 
-export function createWorktree(repoDir, branchName, baseBranch) {
+export function createWorktree(repoDir, branchName, baseBranch, options = {}) {
   assertSafeGitRef(branchName, "branch name");
   if (baseBranch) assertSafeGitRef(baseBranch, "base branch");
   if (!isGitRepo(repoDir)) {
@@ -41,7 +45,46 @@ export function createWorktree(repoDir, branchName, baseBranch) {
   const base = baseBranch || "HEAD";
   gitExec(`worktree add "${worktreePath}" -b "${branchName}" ${base}`, repoDir);
 
-  return { path: worktreePath, branch: branchName };
+  const result = { path: worktreePath, branch: branchName };
+
+  // Sparse checkout: only materialize the packages this task needs. For a
+  // large monorepo this cuts worktree creation time and disk. Cone mode wants
+  // directory paths — our sparsePaths are package dirs. Fail-closed on unsafe
+  // paths (normalizeSparsePaths drops them); empty/absent → full checkout,
+  // byte-identical to the no-sparse path.
+  const sparsePaths = normalizeSparsePaths(options.sparsePaths);
+  if (sparsePaths) {
+    for (const p of sparsePaths) assertSafeGitPath(p, "sparse path");
+    gitExecArgs(["sparse-checkout", "set", ...sparsePaths], worktreePath);
+    result.sparsePaths = sparsePaths;
+  }
+
+  // Dependency reuse: link explicitly-approved directories (e.g. node_modules)
+  // from the main checkout into the worktree so the task does not reinstall.
+  // planSymlinkDirectories throws (fail-closed) on any junction/symlink escape.
+  if (options.symlinkDirectories != null) {
+    const plan = planSymlinkDirectories(options.symlinkDirectories, {
+      repoDir,
+      worktreePath,
+    });
+    const linked = [];
+    for (const { name, source, dest } of plan) {
+      if (!existsSync(source)) continue; // approved but absent — nothing to reuse
+      if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+      mkdirSync(dirname(dest), { recursive: true });
+      // 'junction' on Windows needs no admin and works for directories;
+      // 'dir' elsewhere. Both resolve to an absolute source we validated.
+      symlinkSync(
+        source,
+        dest,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      linked.push(name);
+    }
+    if (linked.length > 0) result.symlinkedDirectories = linked;
+  }
+
+  return result;
 }
 
 export function removeWorktree(repoDir, worktreePath, options = {}) {
