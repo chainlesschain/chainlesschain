@@ -316,6 +316,16 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 
 Agent 每轮按风险选择静态检查、API Probe、DOM 断言或视觉截图，不要求所有改动都启动浏览器。截图、DOM 摘要、操作序列和测试结果保存为 Artifact；登录态持久化必须显式开启并区分项目、Session 和用户作用域。
 
+**已落地（2026-07-13 续，App Preview 自动验证判定层纯核）**：本节的 Launch 配置契约、按风险选层、证据 Artifact 契约与登录态作用域全部落为纯逻辑模块 [`app-preview.js`](../packages/cli/src/lib/app-preview.js)——它是**判定 + 描述层，不是 runner**（永不 spawn dev server / 开浏览器 / 碰 fs·clock·RNG·process），与 [[execution-location.js]] 同姿态：
+
+- **`detectDevServer(pkg)`**：从 package.json 自动识别 dev-server——先按依赖签名（vite/next/nuxt/angular/vue-cli/astro/sveltekit/gatsby/remix/CRA/webpack-dev-server）给出 framework + **已知默认端口** + `npm run <dev|start|serve|develop>`；仅命中 dev 脚本而无已知框架时给命令但 **`port:null`（绝不臆造端口）**；无可识别信号 → `null`（调用方不得猜命令）。
+- **`normalizeLaunchConfig` / `validateLaunchConfig`**（fail-closed，EXHAUSTIVE）：Launch 配置 = 启动命令 / cwd / 端口 / 健康检查{path,timeoutMs} / **env 引用（仅名字）** / 关闭策略（graceful 默认）。**核心不变量**：env 只留**引用名**、值一律丢弃——env 条目携带 `value/secret/token/password` → `env-value-present`；缺启动命令 → `missing-start-command`；启动命令内嵌秘密（过 [[secret-scan.js]] `containsSecret`）→ `secret-in-command`；给了 healthCheck 却无 path/url → `health-check-missing-target`。配置可安全渲染/落日志/外传。
+- **`selectVerificationTier(change, {minTier})`**：落实「不要求所有改动都启动浏览器」——无信号 → **static-check**（最便宜，不起服务不开浏览器）；server/API 改 → api-probe；UI 改 → dom-assert；高危或显式视觉关切 → visual-screenshot；多信号取最高层；显式 `minTier` **只能抬高不能压低**地板。
+- **`buildEvidenceArtifact(kind, data)`**（secret-safe）：截图/DOM 摘要/操作序列/测试结果四类证据 Artifact 契约，未知 kind → `null`（不盲存）；每个自由文本字段（summary/steps/output/label）过 `redactSecrets`，捕获的 console error 不会把 token 带进 Artifact。
+- **`resolveLoginStateScope(req)`**（fail-closed）：登录态持久化默认 **OFF**——`enabled!==true` 不持久化；即便开启，scope 不在 {project|session|user} 也不持久化（`scope-unspecified`）；truthy-but-not-true 亦 fail-closed。绝不静默留 cookie jar。
+
+测试 `app-preview.test.js` 30（dev-server 依赖/脚本/无端口臆造/null + 配置 env-仅名·端口越界·健康检查 + 校验五违规穷举 + 选层默认/单信号/多信号取高/minTier 只抬 + 证据四类 secret 零泄漏 + 登录态四路 fail-closed）。纯核尚未接进 Agent 分支的 Dev Server 启动 / Session Preview 面板 / Artifact 落盘 seam，故默认路径零影响。剩项（Dev Server 自动识别真起进程、Console/Network Error 回灌、DOM/截图真捕获与修复复验闭环）仍开放。
+
 ### P1-4 PR/CI Monitor、Auto-fix 与受控合并
 
 Session 顶部提供 PR 状态条，展示 Branch、PR、Checks、Review、Mergeability 和最近失败原因。
