@@ -546,7 +546,9 @@ describe("Integration: WebSocket Session Workflow", () => {
       answer: "yes",
     });
 
-    expect(resolveAnswer).toHaveBeenCalledWith("q-1", "yes");
+    // handleSessionAnswer forwards the optional approval `binding` as a 3rd arg
+    // (authority §"权限来源"); a message with no binding echoes null.
+    expect(resolveAnswer).toHaveBeenCalledWith("q-1", "yes", null);
   });
 
   // ─── ws-server handles session messages in switch ───────────────────
