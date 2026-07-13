@@ -496,8 +496,8 @@ fallback**，无该字段的 legacy 条目仍回落全局，`effectiveFireAt`/`p
 
 - agent-schedule-store +3（三 kind 归一化存储 / due 按 per-entry offset 推迟 / jitterMs:0
   即时 fire）；scheduler 套 73/73 + agent-core schedule-tool caller 8/8 回归绿。**注**：agent
-  `schedule` 工具透传 `jitterMs`（连同 `expiresAt`）仍待 `agent-core.js` 那处接线（该文件
-  并行 session 热区），故当前只能经直接 store API / 未来 daemon 供给 jitter。
+  `schedule` 工具透传 `jitterMs`（连同 `expiresAt`）随即由下一笔（见下方 `b9ad1a1538`）
+  接进 `agent-core.js`，故 agent 现在也能经工具供给 jitter，不再仅限直接 store API。
 
 **已落地（2026-07-13 收尾，agent `schedule` 工具透传 `expires`/`jitter`）**：补上前两笔的
 `agent-core.js` 接线缺口——`schedule` 工具现把 `args.expires`/`args.jitter`（duration 串）
