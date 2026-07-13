@@ -30,6 +30,7 @@ const {
   pruneWorktrees,
   isolateTask,
   cleanupAgentWorktrees,
+  assessAgentWorktreeCleanup,
   diffWorktree,
   previewWorktreeMerge,
   applyWorktreeAutomationCandidate,
@@ -194,6 +195,64 @@ describe("worktree-isolator", () => {
       expect(
         worktrees.some((w) => w.branch && w.branch.startsWith("agent/")),
       ).toBe(false);
+    });
+
+    it("KEEPS an agent worktree with uncommitted changes (P1-5 guard)", () => {
+      const wt = createWorktree(repoDir, "agent/dirty");
+      writeFileSync(join(wt.path, "scratch.txt"), "wip\n", "utf-8");
+
+      const cleaned = cleanupAgentWorktrees(repoDir);
+      expect(cleaned).toBe(0);
+      expect(
+        listWorktrees(repoDir).some((w) => w.branch === "agent/dirty"),
+      ).toBe(true);
+    });
+
+    it("KEEPS an agent worktree with an unpushed local commit", () => {
+      const wt = createWorktree(repoDir, "agent/committed");
+      writeFileSync(join(wt.path, "f.txt"), "content\n", "utf-8");
+      execSync("git add -A", { cwd: wt.path });
+      execSync('git commit -m "agent work"', { cwd: wt.path });
+
+      const cleaned = cleanupAgentWorktrees(repoDir);
+      expect(cleaned).toBe(0);
+      expect(
+        listWorktrees(repoDir).some((w) => w.branch === "agent/committed"),
+      ).toBe(true);
+    });
+
+    it("force:true wipes even unsafe worktrees (legacy behavior)", () => {
+      const wt = createWorktree(repoDir, "agent/dirty2");
+      writeFileSync(join(wt.path, "scratch.txt"), "wip\n", "utf-8");
+
+      const cleaned = cleanupAgentWorktrees(repoDir, { force: true });
+      expect(cleaned).toBe(1);
+      expect(
+        listWorktrees(repoDir).some((w) => w.branch === "agent/dirty2"),
+      ).toBe(false);
+    });
+  });
+
+  describe("assessAgentWorktreeCleanup", () => {
+    it("reports removable vs kept with blockers, deleting nothing", () => {
+      createWorktree(repoDir, "agent/clean");
+      const dirty = createWorktree(repoDir, "agent/dirty3");
+      writeFileSync(join(dirty.path, "scratch.txt"), "wip\n", "utf-8");
+
+      const report = assessAgentWorktreeCleanup(repoDir);
+      expect(report.removable).toBe(1);
+      expect(report.kept).toBe(1);
+      const dirtyAssessment = report.assessments.find(
+        (a) => a.branch === "agent/dirty3",
+      );
+      expect(dirtyAssessment.safeToRemove).toBe(false);
+      expect(dirtyAssessment.blockers).toContain("untracked-files");
+
+      // read-only: both worktrees still present
+      expect(
+        listWorktrees(repoDir).filter((w) => w.branch?.startsWith("agent/"))
+          .length,
+      ).toBe(2);
     });
   });
 

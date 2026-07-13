@@ -54,13 +54,16 @@ function prList(v) {
 }
 
 /**
- * Decide whether commits on this worktree are unpushed. A worktree whose HEAD
- * equals its base has no new commits. Otherwise: with a known upstream, unpushed
- * iff `aheadCount > 0`; WITHOUT a known upstream, any divergence from base is
- * treated as unpushed (there is nowhere it could have been pushed to) — the
- * fail-closed reading.
+ * Decide whether commits on this worktree are unpushed. A caller that already
+ * computed push-state passes an explicit `unpushed` boolean, which wins. Else it
+ * is derived: a worktree whose HEAD equals its base has no new commits;
+ * otherwise, with a known upstream, unpushed iff `aheadCount > 0`; WITHOUT a
+ * known upstream, any divergence from base is treated as unpushed (there is
+ * nowhere it could have been pushed to) — the fail-closed reading.
  */
 function commitsAreUnpushed(state) {
+  if (state.unpushed === true) return true;
+  if (state.unpushed === false) return false;
   const { baseSha, headSha, hasUpstream, aheadCount } = state;
   const hasNewCommits =
     headSha != null && baseSha != null && String(headSha) !== String(baseSha);
@@ -83,6 +86,7 @@ function commitsAreUnpushed(state) {
  * @param {string}  [state.headSha]       worktree HEAD commit
  * @param {boolean} [state.hasUpstream]   branch has a configured upstream
  * @param {number}  [state.aheadCount]    commits ahead of upstream
+ * @param {boolean} [state.unpushed]      explicit push-state (wins over derivation)
  * @param {Array}   [state.linkedPrs]     open PRs referencing this branch
  * @returns {{safeToRemove:boolean, blockers:string[], reasons:object}}
  */

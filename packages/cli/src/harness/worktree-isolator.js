@@ -17,6 +17,7 @@ import {
   assertSafeGitRef,
   assertSafeGitPath,
 } from "../lib/git-integration.js";
+import { evaluateWorktreeCleanup } from "../lib/worktree-cleanup-safety.js";
 
 const WORKTREE_DIR = ".worktrees";
 
@@ -145,12 +146,103 @@ export async function isolateTask(repoDir, taskId, fn) {
   }
 }
 
-export function cleanupAgentWorktrees(repoDir) {
+/**
+ * Gather the cleanup-safety state of one worktree for
+ * [[worktree-cleanup-safety.js]] `evaluateWorktreeCleanup`. Fail-closed: any git
+ * command that cannot be read leaves the worktree marked unverifiable (→ kept).
+ * `linkedPrs` is not known at this layer (no PR store here) and is left empty;
+ * a higher layer that knows about PRs can call `evaluateWorktreeCleanup` itself.
+ */
+function _worktreeCleanupState(repoDir, wt) {
+  const state = {
+    readable: true,
+    uncommitted: false,
+    untracked: false,
+    unpushed: false,
+    linkedPrs: [],
+  };
+
+  // Dirty state: separate tracked modifications from untracked files.
+  try {
+    const porcelain = execSync("git status --porcelain", {
+      cwd: wt.path,
+      encoding: "utf-8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    const lines = porcelain.split("\n").filter((l) => l.trim().length > 0);
+    state.untracked = lines.some((l) => l.startsWith("??"));
+    state.uncommitted = lines.some((l) => !l.startsWith("??"));
+  } catch (_e) {
+    state.readable = false; // cannot verify → fail-closed keep
+    return state;
+  }
+
+  // Unpushed: only relevant if the branch has commits beyond the repo HEAD; if
+  // it does, they are unpushed unless a remote branch contains them.
+  try {
+    assertSafeGitRef(wt.branch, "branch name");
+    if (_hasBranchCommits(repoDir, wt.branch)) {
+      const remotes = gitExecArgs(
+        ["branch", "-r", "--contains", wt.branch],
+        repoDir,
+      );
+      state.unpushed = remotes.trim().length === 0;
+    }
+  } catch (_e) {
+    state.unpushed = true; // cannot prove the commits are pushed → keep
+  }
+
+  return state;
+}
+
+/**
+ * Assess (read-only) which `agent/*` worktrees are safe to remove. Returns the
+ * per-worktree decision from [[worktree-cleanup-safety.js]] without deleting
+ * anything — the "清理前检查未提交修改、未追踪文件、未 Push Commit 和关联 PR"
+ * report from IDE gap P1-5.
+ */
+export function assessAgentWorktreeCleanup(repoDir) {
+  const worktrees = listWorktrees(repoDir);
+  const assessments = [];
+  for (const wt of worktrees) {
+    if (!(wt.branch && wt.branch.startsWith("agent/"))) continue;
+    const state = _worktreeCleanupState(repoDir, wt);
+    const decision = evaluateWorktreeCleanup(state);
+    assessments.push({
+      path: wt.path,
+      branch: wt.branch,
+      safeToRemove: decision.safeToRemove,
+      blockers: decision.blockers,
+    });
+  }
+  return {
+    assessments,
+    removable: assessments.filter((a) => a.safeToRemove).length,
+    kept: assessments.filter((a) => !a.safeToRemove).length,
+  };
+}
+
+/**
+ * Remove `agent/*` worktrees. By DEFAULT this is now fail-closed: a worktree
+ * with uncommitted / untracked / unpushed work (or one whose state cannot be
+ * read) is KEPT, not force-deleted — the P1-5 data-loss guard. Pass
+ * `{ force: true }` for the legacy "wipe every agent worktree" behavior.
+ *
+ * @returns {number} count of worktrees actually removed
+ */
+export function cleanupAgentWorktrees(repoDir, options = {}) {
+  const force = options.force === true;
   const worktrees = listWorktrees(repoDir);
   let cleaned = 0;
 
   for (const wt of worktrees) {
     if (wt.branch && wt.branch.startsWith("agent/")) {
+      if (!force) {
+        const decision = evaluateWorktreeCleanup(
+          _worktreeCleanupState(repoDir, wt),
+        );
+        if (!decision.safeToRemove) continue; // keep work we cannot safely lose
+      }
       try {
         removeWorktree(repoDir, wt.path, { deleteBranch: true });
         cleaned++;

@@ -79,6 +79,19 @@ describe("evaluateWorktreeCleanup — individual blockers", () => {
     expect(r.blockers).toContain(CLEANUP_BLOCKER.UNPUSHED);
   });
 
+  it("honors an explicit unpushed=true override (caller computed push-state)", () => {
+    const r = evaluateWorktreeCleanup(cleanState({ unpushed: true }));
+    expect(r.blockers).toContain(CLEANUP_BLOCKER.UNPUSHED);
+  });
+
+  it("honors an explicit unpushed=false override even with divergent shas", () => {
+    const r = evaluateWorktreeCleanup(
+      cleanState({ headSha: "def", hasUpstream: false, unpushed: false }),
+    );
+    expect(r.blockers).not.toContain(CLEANUP_BLOCKER.UNPUSHED);
+    expect(r.safeToRemove).toBe(true);
+  });
+
   it("does NOT block when new commits are fully pushed (upstream, 0 ahead)", () => {
     const r = evaluateWorktreeCleanup(
       cleanState({ headSha: "def", hasUpstream: true, aheadCount: 0 }),

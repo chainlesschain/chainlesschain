@@ -5,6 +5,7 @@ export {
   pruneWorktrees,
   isolateTask,
   cleanupAgentWorktrees,
+  assessAgentWorktreeCleanup,
   diffWorktree,
   previewWorktreeMerge,
   applyWorktreeAutomationCandidate,

@@ -344,7 +344,9 @@ Auto-fix 边界：
 - **`evaluateWorktreeCleanup(state)`** 一切**默认 KEEP**：`readable===false`（git 状态读不出）→ 短路只报 `unverifiable`（绝不销毁无法核实可弃的工作）；否则逐项收集 `uncommitted-changes` / `untracked-files`（与 uncommitted 区分）/ `unpushed-commits`（有 upstream 看 `aheadCount>0`；**无 upstream 则任何越过 base 的 commit 都算未 push**——fail-closed 读法）/ `linked-pr`（有开着的 PR 引用本分支）。仅当**全清**才 `safeToRemove:true`。
 - **`summarizeWorktreeCleanup(state)`** 人读单行，只列计数与具名 blocker（PR 数正确单复数），**绝不回显文件内容或 PR 正文**。
 
-测试 `worktree-cleanup-safety.test.js` 13（clean 放行 + unverifiable 短路 + 四类 blocker 单独命中 + 已 push（upstream/0-ahead）不拦 + 全命中穷举收集 + summary secret-safe）。纯核尚未接进 `finishAgentWorktree` / 后台 worktree reaper seam（把它作为移除前的前置闸是后续接线），故默认路径零影响。剩项（统一后台 Agent 状态视图、Peek/Attach/Retry 交互）仍开放。
+测试 `worktree-cleanup-safety.test.js` 15（clean 放行 + unverifiable 短路 + 四类 blocker 单独命中 + 显式 `unpushed` 覆写 + 已 push（upstream/0-ahead）不拦 + 全命中穷举收集 + summary secret-safe）。
+
+**已接线（2026-07-13 续）**：纯核已接进后台 worktree reaper。[[worktree-isolator.js]] 的 `cleanupAgentWorktrees` 此前**无条件 `worktree remove --force`** 掉每个 `agent/*` worktree——正是 P1-5 警告的数据丢失面（后台 agent 未 push/未提交的活儿被清理销毁）。现每个待清理 worktree 先过 `_worktreeCleanupState`（porcelain 拆 tracked-modified vs `??` untracked + `branch -r --contains` 判 commit 是否在远端 → `unpushed`；git 读不出→`readable:false` fail-closed）再喂 `evaluateWorktreeCleanup`，**不安全即跳过（保留）**；`{ force:true }` 保留旧「全清」逃生门。另加只读 `assessAgentWorktreeCleanup(repoDir)`=清理前 P1-5 检查报告（removable/kept/blockers，删任何东西之前）。回归=`worktree-isolator.test.js` 既有「清全部」用例仍绿（fresh 无提交无改动的 agent worktree 判 safe 照常删）+ 新 4 例（脏 worktree 保留 / 未 push commit 保留 / force 照删 / assess 只读报告带 blocker）。剩项（统一后台 Agent 状态视图、Peek/Attach/Retry 交互、PR-linked 需上层 PR store 注入 `linkedPrs`）仍开放。
 
 ### P1-6 Agent 内 Skills / MCP / Plugin 治理
 
