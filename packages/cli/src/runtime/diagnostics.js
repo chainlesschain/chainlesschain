@@ -289,6 +289,66 @@ export async function collectDoctorReport() {
 }
 
 /**
+ * Parse `git worktree list --porcelain` output into `{ path, branch }` entries.
+ *
+ * Pure (no I/O) so it can be unit-tested against fixed fixtures. A detached
+ * worktree has no `branch` line and yields `branch: null`.
+ */
+export function parseGitWorktrees(porcelain) {
+  if (!porcelain || typeof porcelain !== "string") return [];
+  const entries = [];
+  let cur = null;
+  for (const line of porcelain.split("\n")) {
+    const trimmed = line.trimEnd();
+    if (trimmed.startsWith("worktree ")) {
+      if (cur) entries.push(cur);
+      cur = { path: trimmed.slice("worktree ".length).trim(), branch: null };
+    } else if (trimmed.startsWith("branch ") && cur) {
+      cur.branch = trimmed
+        .slice("branch ".length)
+        .replace("refs/heads/", "")
+        .trim();
+    }
+  }
+  if (cur) entries.push(cur);
+  return entries;
+}
+
+/** Best-effort live git worktree list for the current repo. */
+export function collectWorktrees() {
+  return parseGitWorktrees(safeExec("git worktree list --porcelain"));
+}
+
+/**
+ * Map a doctor report + ambient runtime signals into the input contract of
+ * `buildDiagnosticBundle` (src/lib/diagnostic-bundle.js).
+ *
+ * Pure & deterministic aside from reading this process's own platform tags:
+ * the caller gathers live signals (env, worktrees, lockfiles) and passes them
+ * in, so the mapping itself is unit-testable. Session-runtime fields
+ * (connectionState, reconnectHistory, trace, redactionEvents) are absent from a
+ * cold `cc doctor` invocation and left to the bundle builder's safe defaults.
+ */
+export function buildDoctorDiagnosticInput(report, signals = {}) {
+  const r = report || {};
+  return {
+    version: r.version || null,
+    platform: {
+      os: process.platform,
+      arch: process.arch,
+      node: process.versions?.node || null,
+    },
+    ports: (Array.isArray(r.ports) ? r.ports : [])
+      .filter((p) => p && p.open)
+      .map((p) => ({ port: p.port, proto: p.name })),
+    worktrees: Array.isArray(signals.worktrees) ? signals.worktrees : [],
+    lockfiles: Array.isArray(signals.lockfiles) ? signals.lockfiles : [],
+    env: signals.env && typeof signals.env === "object" ? signals.env : {},
+    notes: signals.notes != null ? signals.notes : null,
+  };
+}
+
+/**
  * Collect a machine-readable status report.
  *
  * Shape:
