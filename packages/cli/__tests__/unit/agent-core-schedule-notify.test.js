@@ -142,6 +142,22 @@ describe("schedule tool dispatch", () => {
     });
   });
 
+  it("threads a goal-condition + budget through to the persisted entry", async () => {
+    const res = await executeTool("schedule", {
+      action: "cron",
+      prompt: "nightly test-to-green",
+      cron: "0 2 * * *",
+      goal_condition: "exit-zero: npm test",
+      max_outer_turns: 6,
+      goal_max_tokens: 40000,
+    });
+    expect(res.scheduled.runPolicy).toEqual({
+      goalCondition: "exit-zero: npm test",
+      maxOuterTurns: 6,
+      goalMaxTokens: 40000,
+    });
+  });
+
   it("drops an invalid permission_mode and omits runPolicy when nothing is set", async () => {
     const bad = await executeTool("schedule", {
       action: "cron",

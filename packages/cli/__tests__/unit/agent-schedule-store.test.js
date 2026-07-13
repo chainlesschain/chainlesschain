@@ -217,6 +217,53 @@ describe("AgentScheduleStore", () => {
       const m = store.createMonitor({ command: "x", intervalMs: 1000 });
       expect("runPolicy" in m).toBe(false);
     });
+
+    it("keeps a valid goal-condition + its token/cost/time/outer-turn budget", () => {
+      expect(
+        normalizeRunPolicy({
+          goalCondition: "exit-zero: npm test",
+          maxOuterTurns: 8,
+          goalMaxTokens: 50000,
+          goalMaxCost: 1.5,
+          goalMaxTime: 600000,
+        }),
+      ).toEqual({
+        goalCondition: "exit-zero: npm test",
+        maxOuterTurns: 8,
+        goalMaxTokens: 50000,
+        goalMaxCost: 1.5,
+        goalMaxTime: 600000,
+      });
+    });
+
+    it("drops an invalid goal-condition spec (and its budgets) entirely", () => {
+      // "exit-zero:" with no command throws in parseGoalCondition → whole goal set dropped.
+      expect(
+        normalizeRunPolicy({
+          goalCondition: "exit-zero:",
+          goalMaxTokens: 50000,
+        }),
+      ).toBeNull();
+      // a valid non-goal field still survives alongside a dropped bad goal
+      expect(
+        normalizeRunPolicy({ maxTurns: 4, goalCondition: "regex:" }),
+      ).toEqual({ maxTurns: 4 });
+    });
+
+    it("stores a goal-condition run policy on a cron and round-trips it", () => {
+      const c = store.createCron({
+        prompt: "nightly build check",
+        cron: "0 2 * * *",
+        goalCondition: "file-exists: dist/app.js",
+        goalMaxTokens: 20000,
+      });
+      expect(c.runPolicy).toEqual({
+        goalCondition: "file-exists: dist/app.js",
+        goalMaxTokens: 20000,
+      });
+      const reloaded = store.list("cron").find((e) => e.id === c.id);
+      expect(reloaded.runPolicy.goalCondition).toBe("file-exists: dist/app.js");
+    });
   });
 
   describe("expiry (expiresAt / retireExpired)", () => {

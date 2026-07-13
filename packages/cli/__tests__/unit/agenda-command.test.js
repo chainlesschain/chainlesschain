@@ -114,6 +114,38 @@ describe("cc agenda", () => {
       ]);
     });
 
+    it("buildAgentArgs emits goal-condition + its budget flags", () => {
+      expect(
+        buildAgentArgs("build", {
+          goalCondition: "exit-zero: npm test",
+          maxOuterTurns: 8,
+          goalMaxTokens: 50000,
+          goalMaxCost: 1.5,
+          goalMaxTime: 600000,
+        }),
+      ).toEqual([
+        "agent",
+        "-p",
+        "build",
+        "--goal-condition",
+        "exit-zero: npm test",
+        "--max-outer-turns",
+        "8",
+        "--goal-max-tokens",
+        "50000",
+        "--goal-max-cost",
+        "1.5",
+        "--goal-max-time",
+        "600000",
+      ]);
+      // no goal-condition → no goal flags even if budgets linger
+      expect(buildAgentArgs("x", { goalMaxTokens: 999 })).toEqual([
+        "agent",
+        "-p",
+        "x",
+      ]);
+    });
+
     it("passes a fired entry's runPolicy through to spawnAgent", async () => {
       store.scheduleWakeup({
         prompt: "isolated",

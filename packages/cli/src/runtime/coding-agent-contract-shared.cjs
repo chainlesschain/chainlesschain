@@ -993,6 +993,31 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             "For wakeup/cron: cap the fired agent's loop iterations (a per-task budget)",
         },
+        goal_condition: {
+          type: "string",
+          description:
+            "For wakeup/cron: run the fired agent to a completion condition, re-driving outer turns until met. Prefix exit-zero:/file-exists:/contains:/regex: (deterministic) or model:<desc> (model-judged). Invalid specs are dropped.",
+        },
+        max_outer_turns: {
+          type: "number",
+          description:
+            "For wakeup/cron with goal_condition: max outer re-drive turns (default 10, hard cap 100)",
+        },
+        goal_max_tokens: {
+          type: "number",
+          description:
+            "For wakeup/cron with goal_condition: token budget across outer turns",
+        },
+        goal_max_cost: {
+          type: "number",
+          description:
+            "For wakeup/cron with goal_condition: cost budget (USD) across outer turns",
+        },
+        goal_max_time: {
+          type: "number",
+          description:
+            "For wakeup/cron with goal_condition: wall-clock budget (ms) across outer turns",
+        },
         id: {
           type: "string",
           description: "For cancel: the schedule entry id to remove",

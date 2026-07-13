@@ -25,6 +25,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
 import { SUBAGENT_PERMISSION_MODES } from "./subagent-contract.js";
+import { parseGoalCondition } from "./goal-condition-engine.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 
@@ -59,6 +60,16 @@ function normalizeJitterMs(v) {
  *                        source SUBAGENT_PERMISSION_MODES; invalid → dropped)
  *   - worktree        → `--worktree` (run the task in a fresh git worktree)
  *   - maxTurns        → `--max-turns <n>` (cap the agent loop — a real budget)
+ *   - goalCondition   → `--goal-condition <spec>` (re-drive the run to a
+ *                        completion condition; validated via parseGoalCondition,
+ *                        invalid spec → the whole goal set is dropped) with its
+ *                        own token/cost/time/outer-turn budget:
+ *       goalMaxTokens  → `--goal-max-tokens <n>`
+ *       goalMaxCost    → `--goal-max-cost <usd>`
+ *       goalMaxTime    → `--goal-max-time <ms>`
+ *       maxOuterTurns  → `--max-outer-turns <n>`
+ *     (the goal budgets are meaningless without a valid condition, so they are
+ *     only kept when the condition parses.)
  *
  * Monitors run a shell command / watch a file rather than spawning an agent, so
  * a run policy does not apply to them.
@@ -67,6 +78,11 @@ export function normalizeRunPolicy({
   permissionMode = null,
   worktree = false,
   maxTurns = null,
+  goalCondition = null,
+  goalMaxTokens = null,
+  goalMaxCost = null,
+  goalMaxTime = null,
+  maxOuterTurns = null,
 } = {}) {
   const policy = {};
   if (
@@ -78,6 +94,31 @@ export function normalizeRunPolicy({
   if (worktree === true) policy.worktree = true;
   const turns = Math.floor(Number(maxTurns));
   if (Number.isFinite(turns) && turns > 0) policy.maxTurns = turns;
+
+  // goal-condition + its budgets: run to a completion condition with a per-task
+  // token/cost/time/outer-turn budget. Validate the spec up front so a doomed
+  // condition never gets scheduled; an invalid spec drops the whole goal set.
+  if (typeof goalCondition === "string" && goalCondition.trim()) {
+    let validSpec = false;
+    try {
+      parseGoalCondition(goalCondition);
+      validSpec = true;
+    } catch {
+      // invalid spec → drop goalCondition and its budgets entirely
+    }
+    if (validSpec) {
+      policy.goalCondition = goalCondition.trim();
+      const gTokens = Math.floor(Number(goalMaxTokens));
+      if (Number.isFinite(gTokens) && gTokens > 0)
+        policy.goalMaxTokens = gTokens;
+      const gCost = Number(goalMaxCost);
+      if (Number.isFinite(gCost) && gCost > 0) policy.goalMaxCost = gCost;
+      const gTime = Math.floor(Number(goalMaxTime));
+      if (Number.isFinite(gTime) && gTime > 0) policy.goalMaxTime = gTime;
+      const outer = Math.floor(Number(maxOuterTurns));
+      if (Number.isFinite(outer) && outer > 0) policy.maxOuterTurns = outer;
+    }
+  }
   return Object.keys(policy).length > 0 ? policy : null;
 }
 
@@ -251,27 +292,23 @@ export class AgentScheduleStore {
 
   // ── create ──────────────────────────────────────────────────────────────
 
-  scheduleWakeup({
-    prompt,
-    delayMs = 0,
-    dueAt = null,
-    label = null,
-    expiresAt = null,
-    expiresInMs = null,
-    jitterMs = 0,
-    permissionMode = null,
-    worktree = false,
-    maxTurns = null,
-  } = {}) {
+  scheduleWakeup(options = {}) {
+    const {
+      prompt,
+      delayMs = 0,
+      dueAt = null,
+      label = null,
+      expiresAt = null,
+      expiresInMs = null,
+      jitterMs = 0,
+    } = options;
     if (!prompt || typeof prompt !== "string") {
       throw new Error("wakeup requires a prompt");
     }
     const now = this._now();
-    const runPolicy = normalizeRunPolicy({
-      permissionMode,
-      worktree,
-      maxTurns,
-    });
+    // The full options object is passed to normalizeRunPolicy, which reads only
+    // the policy fields it knows — new policy knobs need no signature change here.
+    const runPolicy = normalizeRunPolicy(options);
     const entry = {
       id: randomUUID(),
       kind: "wakeup",
@@ -291,17 +328,15 @@ export class AgentScheduleStore {
     return entry;
   }
 
-  createCron({
-    prompt,
-    cron,
-    label = null,
-    expiresAt = null,
-    expiresInMs = null,
-    jitterMs = 0,
-    permissionMode = null,
-    worktree = false,
-    maxTurns = null,
-  } = {}) {
+  createCron(options = {}) {
+    const {
+      prompt,
+      cron,
+      label = null,
+      expiresAt = null,
+      expiresInMs = null,
+      jitterMs = 0,
+    } = options;
     if (!prompt || typeof prompt !== "string") {
       throw new Error("cron requires a prompt");
     }
@@ -310,11 +345,8 @@ export class AgentScheduleStore {
     if (nextAt == null) {
       throw new Error(`cron "${cron}" has no upcoming match`);
     }
-    const runPolicy = normalizeRunPolicy({
-      permissionMode,
-      worktree,
-      maxTurns,
-    });
+    // Full options → normalizeRunPolicy (reads only known policy fields).
+    const runPolicy = normalizeRunPolicy(options);
     const entry = {
       id: randomUUID(),
       kind: "cron",

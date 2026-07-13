@@ -3215,6 +3215,11 @@ async function executeToolInner(
           permissionMode: args.permission_mode || null,
           worktree: args.worktree === true,
           maxTurns: args.max_turns ?? null,
+          goalCondition: args.goal_condition || null,
+          maxOuterTurns: args.max_outer_turns ?? null,
+          goalMaxTokens: args.goal_max_tokens ?? null,
+          goalMaxCost: args.goal_max_cost ?? null,
+          goalMaxTime: args.goal_max_time ?? null,
         };
         if (action === "wakeup") {
           if (!args.prompt) {

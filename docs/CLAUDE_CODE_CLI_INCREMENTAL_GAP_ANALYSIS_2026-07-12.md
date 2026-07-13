@@ -572,13 +572,27 @@ round-trip、monitor 不带、unset 省键）+ `agenda-command.test.js` +2（bui
 fired 条目 runPolicy 透传 spawnAgent）+ `agent-core-schedule-notify.test.js` +2（工具三参透传、
 非法 mode 丢弃+unset 省键）；scheduler+agenda+schedule-tool 套 77+15 全绿。未改 agent-core 导出。
 
+**已落地（2026-07-13 续，per-task token/cost/time 预算 via goal-condition）**：补上前笔仍欠的
+per-task **token/cost/time** 预算——`runPolicy` 现可携带 `goalCondition`（经 `parseGoalCondition`
+schedule-**创建期**校验，非法 spec 连同其预算整组丢弃，doomed 条件永不入库）+ 每任务
+`goalMaxTokens`/`goalMaxCost`/`goalMaxTime`/`maxOuterTurns`。`buildAgentArgs` 译成真 `cc agent`
+flag：`--goal-condition <spec>` + `--goal-max-tokens`/`--goal-max-cost`/`--goal-max-time`/
+`--max-outer-turns`——一个定时任务因此可**跑到完成条件**（如 `exit-zero: npm test` 每夜重驱动到
+测试全绿）并带自己的 token/cost/time/回合预算，复用已落的 goal-condition 引擎。`schedule` 工具
+经 `goal_condition`/`max_outer_turns`/`goal_max_*` 透传（contract descriptor 加 5 属性）；无
+goal-condition→零 goal flag；预算无有效条件即无意义故只在条件解析成功时保留；`cc agenda list`
+加 `goal: <spec>` 摘要。create 方法改为把**整个 options 对象**喂 `normalizeRunPolicy`（只读它认识
+的字段），后续策略字段零签名改动。**默认仍字节不变**。测试：store +3（goal 全字段保留 / 非法
+spec 整组丢弃+非 goal 字段存活 / cron round-trip）+ agenda +1（buildAgentArgs goal flag，无
+condition→零 flag）+ schedule-tool +1（goal_condition 透传）= 82 绿。未改 agent-core 导出。
+
 **仍欠（daemon 事件运行时闭环）**：把 daemon 变成常驻 Event Runtime——用
 `msUntilNextWakeup` 驱动睡眠、`partitionSchedule` fire due（退休已接；agent 工具的
-`expires`/`jitter`/`permission_mode`/`worktree`/`max_turns` 透传亦已接）；Monitor 再扩到
-WebSocket/SSE/入站 HTTP webhook（服务端接收，区别于已落的 HTTP **轮询**源）/MCP event；
-事件加 `event_id`/去重窗口/backpressure/大小上限/authority（复用 [[agent-authority.js]]）/
-审计；per-task **token/cost/time** 预算（现落的是 `--max-turns` 回合预算，goal-condition 式
-token/cost/time 预算未接）；Channel pairing/allowlist 与 Permission Approval 分层不混用。
+`expires`/`jitter`/`permission_mode`/`worktree`/`max_turns`/`goal_condition`+预算 透传亦已接）；
+Monitor 再扩到 WebSocket/SSE/入站 HTTP webhook（服务端接收，区别于已落的 HTTP **轮询**源）/
+MCP event；事件加 `event_id`/去重窗口/backpressure/大小上限/authority（复用 [[agent-authority.js]]）
+/审计（**per-task 预算/权限模式/Worktree/最大存活期全部已落**）；Channel pairing/allowlist 与
+Permission Approval 分层不混用。
 
 ## P1：补齐 Subagent 契约
 

@@ -351,6 +351,24 @@ export function buildAgentArgs(prompt, policy = null) {
     if (Number.isFinite(policy.maxTurns) && policy.maxTurns > 0) {
       args.push("--max-turns", String(policy.maxTurns));
     }
+    if (
+      typeof policy.goalCondition === "string" &&
+      policy.goalCondition.length > 0
+    ) {
+      args.push("--goal-condition", policy.goalCondition);
+      if (Number.isFinite(policy.maxOuterTurns) && policy.maxOuterTurns > 0) {
+        args.push("--max-outer-turns", String(policy.maxOuterTurns));
+      }
+      if (Number.isFinite(policy.goalMaxTokens) && policy.goalMaxTokens > 0) {
+        args.push("--goal-max-tokens", String(policy.goalMaxTokens));
+      }
+      if (Number.isFinite(policy.goalMaxCost) && policy.goalMaxCost > 0) {
+        args.push("--goal-max-cost", String(policy.goalMaxCost));
+      }
+      if (Number.isFinite(policy.goalMaxTime) && policy.goalMaxTime > 0) {
+        args.push("--goal-max-time", String(policy.goalMaxTime));
+      }
+    }
   }
   return args;
 }
@@ -450,5 +468,6 @@ function describePolicy(policy) {
   if (policy.permissionMode) parts.push(policy.permissionMode);
   if (policy.worktree === true) parts.push("worktree");
   if (Number.isFinite(policy.maxTurns)) parts.push(`≤${policy.maxTurns} turns`);
+  if (policy.goalCondition) parts.push(`goal: ${policy.goalCondition}`);
   return parts.join(", ");
 }
