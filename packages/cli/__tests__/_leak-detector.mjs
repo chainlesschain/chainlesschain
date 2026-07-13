@@ -27,10 +27,10 @@ afterAll(async () => {
       }
       const isServer = h?.listening === true;
       const isChild = typeof h?.pid === "number";
-      // Genuinely pinning: a listening server, a live child, or a handle backed
-      // by a real (>=0) fd that is still ref'd. Skip fd=-1/undefined husks.
-      const realFd = typeof fd === "number" && fd >= 0;
-      if (!isServer && !isChild && !(realFd && ref === true)) continue;
+      // Report ANY ref'd handle (a ref'd handle pins the loop regardless of fd —
+      // POSIX libuv counts an fd=-1 ref'd socket that Windows tolerates), plus
+      // servers/children.
+      if (!isServer && !isChild && ref !== true) continue;
       let kind = "";
       try {
         if (isChild) kind = `:child(pid=${h.pid})`;
