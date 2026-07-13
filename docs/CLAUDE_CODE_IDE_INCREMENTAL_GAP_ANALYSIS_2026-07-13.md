@@ -384,6 +384,14 @@ Auto-fix 边界：
 - 分别测量 Source Context、Transcript、Trace、Artifact、Diagnostic Bundle。
 - 给出 Recall、False Positive Rate、P95 延迟和最大输入内存。
 
+**已落地（2026-07-13 续，凭据脱敏真实语料基准纯核）**：现有 [[ide-context-redaction.js]] `redactSecretsInText` 是**精度优先**（守 IDE 上下文，不能乱改代码否则用户关掉），覆盖 AWS/Bearer/PEM/厂商前缀/`SECRET=value`——但 JWT、连接串、Cookie 无专规则，且无语料/指标。本节补为**新**纯逻辑模块 [`secret-scan.js`](../packages/cli/src/lib/secret-scan.js)，走**导出闸门该有的召回优先**姿态（诊断包/Artifact/Trace 出机器必须朝「不泄漏」失败）：
+
+- **`scanSecrets` / `redactSecrets` / `containsSecret`**：7 类——provider_token（sk-/gh\*/glpat/xox/AKIA/ASIA）、**jwt**（`eyJ…`.`eyJ…`.`…` 三段）、bearer、pem_private_key、**connection_string**（`scheme://user:pass@host`，仅 `:pass@` 形态命中故 `https://example.com` 不动）、**cookie**（Set-Cookie/Cookie 头值）、env_assignment（key 过 `isSecretEnvName` 闸 + 值 token-like + 前瞻拒 `getToken()`）。每类保留读者仍需的结构（Bearer 词 / 头名 / 连接 scheme），只吞秘密值。每次扫描**新编译 RegExp**避免 `/g/` lastIndex 跨调用漏配。
+- **标注语料 `SECRET_CORPUS`**：10 正例（逐条带必须消失的 `secret` 子串）+ 8 反例（UUID / git sha / 纯 base64 / 函数调用 `getToken()` / 非秘密 key 赋值 / 无凭据 URL / 散文 / hex 摘要），跨 5 个导出面分布。
+- **`runRedactionBenchmark(corpus, {redactor, clock})`**：客观指标——overall/byCategory/bySurface 的 **Recall**、**False-Positive-Rate**、**maxInputBytes**，注入时钟时给 **P95 延迟**。诚实性由测试锁定：本模块 recall=1.0 / FPR=0 全类全面，且**空操作 redactor 打分 recall=0**（防作弊）。
+
+测试：`secret-scan.test.js` 9（逐类检测 + 反例零改动 + benchmark recall/FPR/per-category/per-surface/P95/no-op-0）；`ide-context-redaction`+`credential-guard` 42 绿（仅只读 import `isSecretEnvName`，零回归）。纯核尚未接进 Transcript/Trace/Diagnostic-Bundle 导出 seam（这三面今天**零脱敏**接线，正是本基准要暴露的洞），故默认路径零影响。剩项（真接进导出闸 + 与 P1-9 诊断包联动）待后续接线。
+
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:51-52,117-123`。
 
 ### 8.2 跨设备 Operation Fingerprint

@@ -104,6 +104,11 @@ const ALLOWED_FILES = [
   // IDE context redaction tests (fake secrets to exercise the redaction paths)
   "ide-context-redaction.test.js",
   "ide-context.test.js",
+  // §8.1 recall-first secret scanner: the module + its test carry a labeled
+  // corpus of FAKE example secrets (AKIA…EXAMPLE, sk-…, ghp_…, placeholder JWT)
+  // used to measure redaction recall/FPR — no real credentials.
+  "secret-scan.js",
+  "secret-scan.test.js",
 ];
 
 function checkFileForSecrets(filePath) {
