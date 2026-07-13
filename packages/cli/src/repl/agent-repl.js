@@ -2188,7 +2188,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
       );
       logger.log(
-        `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind <n> --files|--conversation")} scopes it; ${chalk.cyan("/rewind clear")} restores a /clear`,
+        `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind <n> --files|--conversation")} scopes it; ${chalk.cyan("/rewind <n> --branch")} forks a session; ${chalk.cyan("/rewind clear")} restores a /clear`,
       );
       logger.log(
         `  ${chalk.cyan("/goal <cond>")} Set a session goal checked after each turn (exit-zero:/file-exists:/contains:/regex:/text); ${chalk.cyan("/goal")} shows, ${chalk.cyan("/goal clear")} drops`,
@@ -3020,6 +3020,8 @@ export async function startAgentRepl(options = {}) {
           restoreClearedConversation,
           buildRewindPlan,
           renderRewindWarnings,
+          buildBranchPlan,
+          renderBranchPlan,
           parseRewindArg,
           RESTORE_SCOPE,
         } = await import("../lib/repl-rewind.js");
@@ -3051,6 +3053,69 @@ export async function startAgentRepl(options = {}) {
           prompt();
           return;
         }
+        if (parsed.command === "branch") {
+          // "从这里分支" (P0-3's fourth restore action): fork a NEW independent
+          // session that keeps history up to the chosen turn and diverges from
+          // there. The origin session is NEVER truncated (preservesParent), so
+          // the live conversation continues unchanged.
+          const targetTurn = listUserTurns(messages, { limit: 1000 }).find(
+            (t) => t.n === parsed.n,
+          );
+          if (!targetTurn) {
+            logger.error(`No such turn: ${parsed.n} — run /rewind to list.`);
+          } else if (!sessionId) {
+            logger.error(
+              "Branch needs a persisted session — none is active yet.",
+            );
+          } else {
+            const turnIndex = targetTurn.index;
+            const plan = buildBranchPlan(
+              messages,
+              _checkpointMarks,
+              turnIndex,
+              {
+                parentSessionId: sessionId,
+                writeIntent: parsed.writeIntent,
+              },
+            );
+            if (!plan || !plan.branchSessionId) {
+              logger.error("Could not plan a branch from that turn.");
+            } else {
+              try {
+                const { createBranchSession } =
+                  await import("../harness/jsonl-session-store.js");
+                const res = createBranchSession({
+                  branchSessionId: plan.branchSessionId,
+                  parentSessionId: sessionId,
+                  parentTurnId: plan.parentTurnId,
+                  messages: messages.slice(0, turnIndex),
+                  meta: { title: `Branch of ${sessionId}` },
+                });
+                logger.log(
+                  chalk.green(
+                    res.created
+                      ? `🌿 branched to ${res.branchSessionId} — ${res.messages} message(s) kept; parent ${sessionId} untouched`
+                      : `🌿 branch ${res.branchSessionId} already exists; parent ${sessionId} untouched`,
+                  ),
+                );
+                for (const line of renderBranchPlan(plan))
+                  logger.log(chalk.yellow(line));
+                logger.log(
+                  chalk.gray(
+                    `  resume it with  cc agent --resume ${res.branchSessionId}` +
+                      (plan.requiresWorktree
+                        ? "  (write task → branch into an isolated worktree)"
+                        : ""),
+                  ),
+                );
+              } catch (e) {
+                logger.error(`branch failed: ${e.message}`);
+              }
+            }
+          }
+          prompt();
+          return;
+        }
         if (parsed.command === "list") {
           logger.log(chalk.bold("\nRewind — pick a user turn (newest first):"));
           logger.log(renderTurnList(listUserTurns(messages)));
@@ -3061,6 +3126,11 @@ export async function startAgentRepl(options = {}) {
           logger.log(
             chalk.gray(
               "  scope: /rewind <n> --conversation | --files | --both (default)",
+            ),
+          );
+          logger.log(
+            chalk.gray(
+              "  branch: /rewind <n> --branch [--write] forks an independent session (parent kept)",
             ),
           );
           if (_clearedConversation) {

@@ -31,6 +31,7 @@ import {
   RESTORE_SCOPE,
   TURN_COVERAGE,
 } from "./turn-binding.js";
+import { planSessionBranch } from "./session-branch.js";
 
 // Re-exported so the REPL handler can reference the scope constants from the
 // same module it imports the rewind helpers from.
@@ -276,22 +277,72 @@ export function renderRewindWarnings(plan) {
 }
 
 /**
+ * Coverage-aware BRANCH plan for a chosen turn ("从这里分支" — P0-3's fourth
+ * restore action). Bridges the REPL's implicit state (`listUserTurns()` output +
+ * checkpoint marks) into the explicit turn-binding table exactly like
+ * buildRewindPlan(), then asks the pure [[session-branch.js]] planner for a
+ * deterministic branch plan (new session id, worktree-for-writes decision,
+ * honest coverage warnings). Unlike a rewind, a branch never truncates the live
+ * conversation — the origin session is preserved.
+ *
+ * @param {Array} messages  live conversation (for listUserTurns)
+ * @param {Array<{atMessageCount:number,id:string,tool?:string}>} marks
+ * @param {number} turnIndex  message index of the branch-point user turn
+ * @param {{parentSessionId?:string, seq?:number, writeIntent?:boolean}} [opts]
+ * @returns {object} the plan from planSessionBranch()
+ */
+export function buildBranchPlan(
+  messages,
+  marks,
+  turnIndex,
+  { parentSessionId = null, seq = 0, writeIntent = false } = {},
+) {
+  const turns = listUserTurns(messages, { limit: 1000 });
+  const log = buildTurnBindingFromMarks(turns, marks);
+  const turn = log.get(`turn-${Number(turnIndex)}`);
+  return planSessionBranch({ parentSessionId, turn, seq, writeIntent });
+}
+
+/**
+ * Human-readable coverage + warning lines for a branch plan, printed before the
+ * branch is written. Returns [] for a full-coverage branch with no warnings.
+ *
+ * @param {{coverage:string, warnings:string[]}} plan  from buildBranchPlan()
+ * @returns {string[]}
+ */
+export function renderBranchPlan(plan) {
+  if (!plan) return [];
+  const lines = [];
+  if (plan.coverage && plan.coverage !== TURN_COVERAGE.FULL) {
+    lines.push(
+      `  coverage: ${plan.coverage} (the branch inherits the working tree as-is)`,
+    );
+  }
+  for (const w of plan.warnings || []) lines.push(`  ⚠ ${w}`);
+  return lines;
+}
+
+/**
  * Parse a `/rewind` argument line into a command + optional restore scope.
  * Claude-Code parity: a rewind can restore the conversation only, the files
  * only, or both. The turn number and an optional `--conversation` / `--files` /
- * `--both` flag may appear in any order.
+ * `--both` flag may appear in any order. `--branch` (optionally `--write`) turns
+ * the pick into a branch-from-here (P0-3) instead of a rewind.
  *
  *   /rewind                       → { command: "list", scope: BOTH }
  *   /rewind clear                 → { command: "clear", scope: BOTH }
  *   /rewind 3                     → { command: "turn", n: 3, scope: BOTH }
  *   /rewind 3 --conversation      → { command: "turn", n: 3, scope: CONVERSATION }
  *   /rewind --files 3             → { command: "turn", n: 3, scope: FILES }
+ *   /rewind 3 --branch            → { command: "branch", n: 3, writeIntent: false }
+ *   /rewind 3 --branch --write    → { command: "branch", n: 3, writeIntent: true }
  *
  * An unknown flag is ignored (kept forgiving); a non-numeric, flag-less arg with
- * no turn number falls back to `list` so a typo can't silently rewind.
+ * no turn number falls back to `list` so a typo can't silently rewind — and a
+ * `--branch` with no turn number lists too rather than branch off nothing.
  *
  * @param {string} arg  the text after `/rewind`
- * @returns {{command:"list"|"clear"|"turn", n?:number, scope:string}}
+ * @returns {{command:"list"|"clear"|"turn"|"branch", n?:number, scope:string, writeIntent?:boolean}}
  */
 export function parseRewindArg(arg) {
   const raw = String(arg == null ? "" : arg).trim();
@@ -301,6 +352,8 @@ export function parseRewindArg(arg) {
   const tokens = raw.split(/\s+/).filter(Boolean);
   let n = null;
   let scope = RESTORE_SCOPE.BOTH;
+  let branch = false;
+  let writeIntent = false;
   for (const t of tokens) {
     if (t === "--files" || t === "--files-only") scope = RESTORE_SCOPE.FILES;
     else if (
@@ -310,8 +363,11 @@ export function parseRewindArg(arg) {
     )
       scope = RESTORE_SCOPE.CONVERSATION;
     else if (t === "--both") scope = RESTORE_SCOPE.BOTH;
+    else if (t === "--branch" || t === "--fork") branch = true;
+    else if (t === "--write" || t === "--write-intent") writeIntent = true;
     else if (n === null && /^\d+$/.test(t)) n = Number(t);
   }
+  if (branch && n !== null) return { command: "branch", n, scope, writeIntent };
   if (n === null) return { command: "list", scope };
   return { command: "turn", n, scope };
 }

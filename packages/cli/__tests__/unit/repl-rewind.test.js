@@ -11,6 +11,8 @@ import {
   restoreClearedConversation,
   buildRewindPlan,
   renderRewindWarnings,
+  buildBranchPlan,
+  renderBranchPlan,
   parseRewindArg,
   RESTORE_SCOPE,
   PREVIEW_CHARS,
@@ -389,5 +391,84 @@ describe("buildRewindPlan honours the restore scope", () => {
     const marks = [{ atMessageCount: 4, id: "cp-a", tool: "edit_file" }];
     const plan = buildRewindPlan(messages, marks, 3, RESTORE_SCOPE.FILES);
     expect(plan.scope).toBe(RESTORE_SCOPE.FILES);
+  });
+});
+
+describe("parseRewindArg (branch — P0-3 从这里分支)", () => {
+  it("parses --branch with a turn number into a branch command", () => {
+    expect(parseRewindArg("3 --branch")).toEqual({
+      command: "branch",
+      n: 3,
+      scope: RESTORE_SCOPE.BOTH,
+      writeIntent: false,
+    });
+    // --fork is an accepted alias.
+    expect(parseRewindArg("--fork 2").command).toBe("branch");
+  });
+
+  it("flags a write-intent branch (→ isolated worktree)", () => {
+    expect(parseRewindArg("3 --branch --write")).toEqual({
+      command: "branch",
+      n: 3,
+      scope: RESTORE_SCOPE.BOTH,
+      writeIntent: true,
+    });
+    expect(parseRewindArg("--branch 4 --write-intent").writeIntent).toBe(true);
+  });
+
+  it("falls back to list when --branch has no turn number (can't branch off nothing)", () => {
+    expect(parseRewindArg("--branch").command).toBe("list");
+    expect(parseRewindArg("--branch --write").command).toBe("list");
+  });
+});
+
+describe("buildBranchPlan / renderBranchPlan (P0-3)", () => {
+  // conv() user turns live at message indices 1, 3, 5.
+  it("plans a deterministic branch that preserves the parent and never inherits grants", () => {
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-edit", tool: "write_file" }];
+    const plan = buildBranchPlan(messages, marks, 3, {
+      parentSessionId: "sess-A",
+    });
+    expect(plan.parentSessionId).toBe("sess-A");
+    expect(plan.parentTurnId).toBe("turn-3");
+    expect(plan.preservesParent).toBe(true);
+    expect(plan.inheritSessionGrants).toBe(false);
+    // A full-coverage (checkpointed write) branch point still requires a worktree
+    // because the branch point already mutated files.
+    expect(plan.requiresWorktree).toBe(true);
+    expect(plan.branchSessionId).toMatch(/^sess-A-b-/);
+    // Determinism: same inputs → same branch session id.
+    const again = buildBranchPlan(messages, marks, 3, {
+      parentSessionId: "sess-A",
+    });
+    expect(again.branchSessionId).toBe(plan.branchSessionId);
+  });
+
+  it("requires a worktree when the branch itself intends to write", () => {
+    const messages = conv();
+    const plan = buildBranchPlan(messages, [], 3, {
+      parentSessionId: "sess-A",
+      writeIntent: true,
+    });
+    expect(plan.requiresWorktree).toBe(true);
+    expect(renderBranchPlan(plan).join(" ")).toMatch(/worktree/);
+  });
+
+  it("warns honestly when the branch point ran irreversible side-effects", () => {
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-sh", tool: "run_shell" }];
+    const plan = buildBranchPlan(messages, marks, 3, {
+      parentSessionId: "sess-A",
+    });
+    expect(plan.coverage).toBe("partial");
+    const lines = renderBranchPlan(plan);
+    expect(lines.some((l) => /coverage: partial/.test(l))).toBe(true);
+    expect(lines.some((l) => /irreversible|side-effect/.test(l))).toBe(true);
+  });
+
+  it("renderBranchPlan is empty for a clean full-coverage branch", () => {
+    expect(renderBranchPlan({ coverage: "full", warnings: [] })).toEqual([]);
+    expect(renderBranchPlan(null)).toEqual([]);
   });
 });

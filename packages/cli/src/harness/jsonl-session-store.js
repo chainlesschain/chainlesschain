@@ -385,6 +385,66 @@ export function forkSession(sourceId) {
   return newId;
 }
 
+/**
+ * Create an independent BRANCH session ("从这里分支" — P0-3's fourth restore
+ * action) that keeps a parent's conversation up to a chosen turn and diverges
+ * from there. Unlike forkSession() (whole-session copy, random id, no lineage),
+ * this writes ONLY the caller-supplied pre-branch messages under a deterministic
+ * id (see deriveBranchSessionId) and records parent lineage — so the origin
+ * session is never touched (preservesParent) and a replayed branch request
+ * resolves to the SAME file instead of a duplicate (idempotent).
+ *
+ * @param {object} params
+ * @param {string} params.branchSessionId   deterministic branch id
+ * @param {string|null} [params.parentSessionId]
+ * @param {string|null} [params.parentTurnId]
+ * @param {Array<{role:string,content:any}>} [params.messages]  pre-branch turns
+ * @param {{title?:string,provider?:string,model?:string}} [params.meta]
+ * @returns {{branchSessionId:string, created:boolean, messages:number}}
+ */
+export function createBranchSession({
+  branchSessionId,
+  parentSessionId = null,
+  parentTurnId = null,
+  messages = [],
+  meta = {},
+} = {}) {
+  if (isUnsafeSessionId(branchSessionId)) {
+    throw new Error(
+      `unsafe branch session id: ${String(branchSessionId).slice(0, 60)}`,
+    );
+  }
+  // Idempotent: a replayed branch request resolves to the existing branch
+  // rather than doubling it (matches deriveBranchId's determinism).
+  if (existsSync(sessionPath(branchSessionId))) {
+    return { branchSessionId, created: false, messages: 0 };
+  }
+
+  startSession(branchSessionId, {
+    title: meta.title || `Branch of ${parentSessionId ?? "session"}`,
+    provider: meta.provider || "",
+    model: meta.model || "",
+  });
+  appendEvent(branchSessionId, "session_branch", {
+    parentSessionId: parentSessionId == null ? null : String(parentSessionId),
+    parentTurnId: parentTurnId == null ? null : String(parentTurnId),
+  });
+
+  let count = 0;
+  for (const m of Array.isArray(messages) ? messages : []) {
+    if (!m || m.role == null) continue;
+    if (m.role === "user") {
+      appendUserMessage(branchSessionId, m.content);
+      count += 1;
+    } else if (m.role === "assistant") {
+      appendAssistantMessage(branchSessionId, m.content);
+      count += 1;
+    }
+    // system prompt + tool scaffolding are re-established on resume; skip here.
+  }
+  return { branchSessionId, created: true, messages: count };
+}
+
 export function sessionExists(sessionId) {
   if (isUnsafeSessionId(sessionId)) return false; // never resolve a traversal id
   return existsSync(sessionPath(sessionId));

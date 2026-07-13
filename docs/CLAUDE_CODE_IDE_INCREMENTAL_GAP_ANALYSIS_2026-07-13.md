@@ -227,7 +227,15 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 - **`planSessionBranch({ parentSessionId, turn, seq, writeIntent })`** 落实 P0-3 四条不变量：目标恒为**新** session id（绝不落回父）；`preservesParent:true`（原 session 永不被覆盖）；`requiresWorktree` 当分支要写、或分支点本身已改文件（避免与父工作树碰撞）；`inheritSessionGrants:false`（Session 级临时授权不入分支）。`conversationTruncateTo` = 分支点 turn 的会话偏移（保留该 turn 及之前历史）。warnings 诚实：PARTIAL（不可逆副作用无法在分支重现）/ NONE（无 checkpoint、工作树可能与分支点对话不符）/ 缺 offset（退回父全量历史）。
 - **`validateBranchLineage(records)`**：分支血统完整性守卫——检测环（分支不得是自己的祖先，否则 restore 会走回原分支）与孤儿（声明的父不存在），是「原 Session 不被覆盖」的图级后盾。
 
-`forkSession()`（[[jsonl-session-store.js]]）是整会话拷贝、无 turn 级截断/血统/worktree/授权语义，故本模块为其纯规划层。测试：`session-branch.test.js` 19（分支 id 确定性/消歧 + traversal-safe + 四不变量 + worktree 触发（写意图 / 分支点已改文件）+ PARTIAL/NONE/缺 offset 诚实 warning + 血统环/孤儿检测）。纯核尚未接进 REPL `/rewind` 与 IDE Session Timeline seam，故默认路径零影响。
+`forkSession()`（[[jsonl-session-store.js]]）是整会话拷贝、无 turn 级截断/血统/worktree/授权语义，故本模块为其纯规划层。测试：`session-branch.test.js` 19（分支 id 确定性/消歧 + traversal-safe + 四不变量 + worktree 触发（写意图 / 分支点已改文件）+ PARTIAL/NONE/缺 offset 诚实 warning + 血统环/孤儿检测）。
+
+**已接线（2026-07-13 续，「从这里分支」进 REPL `/rewind`）**：纯核 planner 现接进 agent-repl 的 `/rewind` 交互面——`/rewind <n> --branch [--write]`（`--fork` 为别名）从选中 turn 派生一个**独立**会话，保留该 turn 之前的历史并从此分叉，**父会话绝不被截断**（`preservesParent`，活着的对话继续不变）。三段接线：
+
+- **`repl-rewind.js`**（薄纯核）：`parseRewindArg` 认 `--branch`/`--write`（`--branch` 缺 turn 号退回 list，不对空分支）；新 `buildBranchPlan(messages, marks, turnIndex, {parentSessionId, seq, writeIntent})` 把 REPL 的隐式态（`listUserTurns()` + checkpoint marks）经 `buildTurnBindingFromMarks` 桥成显式 turn record，喂 `planSessionBranch`；`renderBranchPlan(plan)` 打印 coverage + 诚实 warning。
+- **`jsonl-session-store.js` `createBranchSession({branchSessionId, parentSessionId, parentTurnId, messages, meta})`**：给 `forkSession` 补上它缺的 turn 级截断/血统/幂等——只写分支点**之前**的 user/assistant 消息（system prompt 与工具脚手架在 resume 时重建）到确定性 id 下，记 `session_branch` 血统事件；分支 id 已存在则幂等返回不重复（对齐 `deriveBranchId` 确定性）；traversal id fail-closed。
+- **`agent-repl.js` `/rewind` 处理器**：新 `branch` 分支——定位 turn → `buildBranchPlan` → `createBranchSession(messages.slice(0, turnIndex))` → 打印新会话 id、worktree 提示（写任务）、诚实 warning、`cc agent --resume <id>` 恢复指引；`/help` 与 `/rewind` list 面加 `--branch` 说明。
+
+测试：`repl-rewind.test.js` +7（`--branch`/`--write`/`--fork` 解析 + 缺号退回 list + buildBranchPlan 确定性/preservesParent/inheritSessionGrants=false/worktree 触发/PARTIAL 诚实 warning + renderBranchPlan 空态）；`jsonl-session-store.test.js` +4（只写 pre-branch 消息 + 血统事件 + 不碰父会话 + 幂等重放 + traversal 拒绝）。114 跨文件回归绿（repl-rewind/session-branch/jsonl-session-store），agent-repl 65 单测绿。IDE Session Timeline GUI seam 仍待接（环境阻塞），默认 `/rewind` 路径字节不变。
 
 ### P0-4 JetBrains GUI 自动化成为发布证据
 

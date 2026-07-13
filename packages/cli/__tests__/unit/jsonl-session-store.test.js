@@ -31,6 +31,7 @@ const {
   renameSession,
   pruneJsonlSessions,
   forkSession,
+  createBranchSession,
   sessionExists,
   getLastSessionId,
   migrateLegacySessionFile,
@@ -488,6 +489,75 @@ describe("jsonl-session-store", () => {
 
     it("returns null for non-existent session", () => {
       expect(forkSession("nope")).toBeNull();
+    });
+  });
+
+  // ── createBranchSession (P0-3 从这里分支) ──────────────────────────
+
+  describe("createBranchSession", () => {
+    it("writes ONLY the pre-branch messages under the given id + records lineage", () => {
+      const res = createBranchSession({
+        branchSessionId: "parent-b-abc123",
+        parentSessionId: "parent",
+        parentTurnId: "turn-3",
+        messages: [
+          { role: "system", content: "SYS" }, // dropped — startSession re-adds
+          { role: "user", content: "q1" },
+          { role: "assistant", content: "a1" },
+        ],
+        meta: { title: "Branch of parent" },
+      });
+      expect(res).toMatchObject({
+        branchSessionId: "parent-b-abc123",
+        created: true,
+        messages: 2, // only the user + assistant turns
+      });
+      const events = readEvents("parent-b-abc123");
+      expect(events[0].type).toBe("session_start");
+      expect(events[1].type).toBe("session_branch");
+      expect(events[1].data).toMatchObject({
+        parentSessionId: "parent",
+        parentTurnId: "turn-3",
+      });
+      expect(events.filter((e) => e.type === "user_message").length).toBe(1);
+      expect(events.filter((e) => e.type === "assistant_message").length).toBe(
+        1,
+      );
+    });
+
+    it("does NOT touch the parent session (preservesParent)", () => {
+      startSession("origin", { title: "Origin" });
+      appendUserMessage("origin", "keep me");
+      const before = readEvents("origin").length;
+      createBranchSession({
+        branchSessionId: "origin-b-xyz",
+        parentSessionId: "origin",
+        parentTurnId: "turn-1",
+        messages: [{ role: "user", content: "keep me" }],
+      });
+      expect(readEvents("origin").length).toBe(before);
+    });
+
+    it("is idempotent — a replayed branch resolves to the existing file", () => {
+      createBranchSession({
+        branchSessionId: "p-b-dup",
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "one" }],
+      });
+      const eventsAfterFirst = readEvents("p-b-dup").length;
+      const second = createBranchSession({
+        branchSessionId: "p-b-dup",
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "one" }],
+      });
+      expect(second).toMatchObject({ created: false, messages: 0 });
+      expect(readEvents("p-b-dup").length).toBe(eventsAfterFirst);
+    });
+
+    it("rejects a traversal branch id", () => {
+      expect(() => createBranchSession({ branchSessionId: "../evil" })).toThrow(
+        /unsafe branch session id/,
+      );
     });
   });
 

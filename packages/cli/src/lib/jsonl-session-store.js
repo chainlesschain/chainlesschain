@@ -24,6 +24,7 @@ export {
   renameSession,
   pruneJsonlSessions,
   forkSession,
+  createBranchSession,
   sessionExists,
   getLastSessionId,
   migrateLegacySessions,
