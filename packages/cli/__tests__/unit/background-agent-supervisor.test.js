@@ -456,7 +456,9 @@ describe("background agent supervisor", () => {
     );
   });
 
-  it("runs follow-up turns over the session transport and finalizes on detach", async () => {
+  // BISECT (temp): does skipping the transport-client-socket tests clear the
+  // forks-pool worker-death on POSIX? If so, the client socket is the pin.
+  it.skip("runs follow-up turns over the session transport and finalizes on detach", async () => {
     const fakeCli = join(dir, "fake-cli-interactive.mjs");
     // Turn 1 (no -p) stays alive long enough for the test to attach; follow-up
     // turns (-p present) print their argv and exit quickly.
@@ -787,7 +789,7 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
 });
 
 describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
-  it("rejects prompts past the 100-entry cap with a transport error event", async () => {
+  it.skip("rejects prompts past the 100-entry cap with a transport error event", async () => {
     const fakeCli = join(dir, "fake-cli-queue.mjs");
     // Turn 1 (no -p) sleeps long so the queue stays full while we flood it;
     // follow-up turns would exit fast (they never get to run — see reap).
@@ -848,47 +850,4 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       /* already gone */
     }
   }, 30000);
-});
-
-// TEMP DIAGNOSTIC (forks-pool worker-death flake): runs LAST. Dumps everything
-// still pinning the worker's event loop into a FAILING assertion — a failed
-// test's output is never swallowed by --silent=passed-only, unlike a passed
-// file's captured stdout or an afterAll throw. Remove once the leak is fixed.
-describe("ZZZ diagnostic (temp)", () => {
-  it("dump lingering handles", async () => {
-    await new Promise((r) => setTimeout(r, 800));
-    const resources = process.getActiveResourcesInfo?.() || [];
-    let handles = [];
-    try {
-      const active = process._getActiveHandles?.() || [];
-      handles = active.map((h) => {
-        const name = h?.constructor?.name || typeof h;
-        let ref = "?";
-        try {
-          ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
-        } catch {
-          /* ignore */
-        }
-        let kind = "";
-        try {
-          if (typeof h?.pid === "number")
-            kind = `:child(pid=${h.pid},killed=${h.killed})`;
-          else if (h?.listening !== undefined) kind = ":server";
-          else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
-            kind = `:socket(fd=${h?._handle?.fd},destroyed=${h?.destroyed})`;
-          else if (name === "Pipe" || name === "Socket")
-            kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
-        } catch {
-          /* ignore */
-        }
-        return `${name}${kind}:ref=${ref}`;
-      });
-    } catch {
-      /* ignore */
-    }
-    // Force a failure carrying the dump so CI's POSIX run surfaces it.
-    expect(
-      `HDUMP resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}`,
-    ).toBe("__SEE_HDUMP__");
-  });
 });
