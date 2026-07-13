@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.165：精简项目记忆——`--no-project-memory` 全关 + `CC_PROJECT_MEMORY=lean` 只留入口文件 + IDE 聊天「精简上下文」默认开（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.164 → **0.162.165** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+ VS Code 插件设置）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 `cc agent --no-project-memory` **标志** + `CC_PROJECT_MEMORY` 环境变量识别，**顶层命令数 175 不变**；默认路径字节不变。动机：文档密集的仓库里 `cc agent` 每轮都把整套项目记忆重发进系统提示（本仓库实测约 12k token/轮），付费模型即真金白银。
+
+- **精简系统提示三态**：`cc agent` 每轮重发的项目记忆现分三档——`full`（默认，不变）/ `lean` / `off`。`--no-project-memory`（全关）跳过整个自动加载的项目记忆层级（`cc.md`/`CLAUDE.md`/`AGENTS.md` 入口 + `CLAUDE.local.md` + `.claude/rules/*` + `.chainlesschain/rules.md`），贯穿 headless `-p` / stream-json / 交互 REPL 全模式；`agent` 需要时仍可用工具自读那些文件。
+- **`CC_PROJECT_MEMORY=lean` 只留入口文件**：保留主入口指令文件（按 `cc.md` > `CLAUDE.md` > `AGENTS.md` 首个命中，优先 `cc.md`），丢掉沉重附属——`CLAUDE.local.md`（个人开发状态）、`.claude/rules/*.md`、`.chainlesschain/rules.md`。本仓库实测项目记忆 ~12k → ~5k token/轮，入口文件保留。遗留 `CC_PROJECT_MEMORY=0`（关指令块、`rules.md` 仍保留）契约完全不变。
+- **IDE 聊天「精简上下文」（随本版 CLI 运行时生效，设置随下次插件发版）**：VS Code 插件新增 `chainlesschain.chat.leanContext`（默认开）→ 面板子进程注入 `CC_PROJECT_MEMORY=lean`。经**环境变量而非 CLI 标志**下发——旧 `cc` 不认时自动回退 full（安全、不会因未知标志报错），终端 `cc` 不受影响。
+
 ### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 行评论锚定 / 终端上下文策略 / worktree 清理安全闸 / 崩溃恢复台账 / 无人值守动作门 / 跨设备操作指纹（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.163 → **0.162.164** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 **session 子命令 `cc session pr-status`** 与 REPL `/rewind <n> --branch`、`cc doctor` 新增「Execution context」诊断段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（纯核已建、本版补真实运行时/命令面接线，默认路径保持字节不变）。

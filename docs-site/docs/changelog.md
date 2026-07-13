@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.165：精简项目记忆——`--no-project-memory` + `CC_PROJECT_MEMORY=lean` 只留入口文件 + IDE「精简上下文」默认开
+
+> CLI-only 发版（`chainlesschain` 0.162.164 → **0.162.165**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。只加 `cc agent --no-project-memory` 标志 + `CC_PROJECT_MEMORY` 环境变量识别，**顶层命令数 175 不变**，默认路径字节不变。动机：文档密集仓库里 `cc agent` 每轮把整套项目记忆重发进系统提示（实测约 12k token/轮），付费模型即真金白银。
+
+- **精简系统提示三态**：`full`（默认，不变）/ `lean` / `off`。`--no-project-memory` 全关，跳过整个自动加载项目记忆层级（`cc.md`/`CLAUDE.md` 入口 + `CLAUDE.local.md` + `.claude/rules/*` + `rules.md`），贯穿 headless `-p` / stream-json / REPL 全模式；需要时 `agent` 仍可用工具自读。
+- **`CC_PROJECT_MEMORY=lean` 只留入口**：保留主入口文件（`cc.md` > `CLAUDE.md` > `AGENTS.md` 首个命中），丢 `CLAUDE.local.md` + `.claude/rules/*` + `rules.md`；实测 ~12k → ~5k token/轮。遗留 `CC_PROJECT_MEMORY=0` 契约不变。
+- **IDE 聊天「精简上下文」**：VS Code 插件 `chainlesschain.chat.leanContext`（默认开）注入 `CC_PROJECT_MEMORY=lean`（随本版 CLI 运行时生效，设置随下次插件发版）；经环境变量下发，旧 `cc` 自动回退 full、终端 `cc` 不受影响。
+
 #### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 锚定 / 终端上下文 / worktree 清理安全闸 / 崩溃恢复台账
 
 > CLI-only 发版（`chainlesschain` 0.162.163 → **0.162.164**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加 session 子命令 `cc session pr-status` + REPL `/rewind <n> --branch` + `cc doctor`「Execution context」段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（默认路径字节不变）。
