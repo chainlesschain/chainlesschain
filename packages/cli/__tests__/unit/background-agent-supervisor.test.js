@@ -7,7 +7,13 @@ import {
   it,
   vi,
 } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -33,10 +39,10 @@ import { existsSync } from "node:fs";
 
 // TEMP DIAGNOSTIC (forks-pool worker-death flake): dump what still pins the
 // worker's event loop after this file's tests finish, so we can identify the
-// POSIX-only leaked handle. process.stderr.write bypasses vitest --silent.
-// Remove once the leak is fixed.
-afterAll(async () => {
-  await new Promise((r) => setTimeout(r, 400));
+// POSIX-only leaked handle. fs.writeSync(2, …) is SYNCHRONOUS so the bytes hit
+// fd 2 before vitest force-kills the hung worker (process.stderr.write buffers
+// and is lost on SIGKILL). Remove once the leak is fixed.
+function dumpHandles(tag) {
   try {
     const resources = process.getActiveResourcesInfo?.() || [];
     let handles = [];
@@ -52,18 +58,13 @@ afterAll(async () => {
         }
         let kind = "";
         try {
-          if (h?.remoteAddress !== undefined || h?._sockname !== undefined) {
-            const path =
-              h?._handle?.pipe ||
-              h?.server?._pipeName ||
-              h?._pipeName ||
-              h?.remoteAddress ||
-              "?";
-            kind = `:socket(path=${path},destroyed=${h?.destroyed},connecting=${h?.connecting},pending=${h?.pending})`;
-          } else if (typeof h?.pid === "number") kind = `:child(pid=${h.pid})`;
+          if (typeof h?.pid === "number")
+            kind = `:child(pid=${h.pid},killed=${h.killed},connected=${h.connected})`;
           else if (h?.listening !== undefined) kind = ":server";
+          else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
+            kind = `:socket(destroyed=${h?.destroyed},connecting=${h?.connecting},fd=${h?._handle?.fd})`;
           else if (name === "Pipe" || name === "Socket")
-            kind = `:pipe(fd=${h?.fd},ref=${h?._handle ? "h" : "?"})`;
+            kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
         } catch {
           /* ignore */
         }
@@ -72,12 +73,20 @@ afterAll(async () => {
     } catch {
       /* ignore */
     }
-    process.stderr.write(
-      `\n[HDUMP-SUPERVISOR] resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}\n`,
+    writeSync(
+      2,
+      `\n[HDUMP-SUPERVISOR ${tag}] resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}\n`,
     );
   } catch {
     /* ignore */
   }
+}
+afterAll(() => {
+  dumpHandles("t0");
+  // A second sync dump on a real timer: anything still ref'd here is what
+  // keeps the loop alive past all legit async cleanup.
+  const t = setTimeout(() => dumpHandles("t500"), 500);
+  t.unref?.();
 });
 
 let dir;
