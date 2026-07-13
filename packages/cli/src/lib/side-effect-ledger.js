@@ -348,6 +348,35 @@ export function planOpRecovery(op) {
 }
 
 /**
+ * Count COMMITTED side-effects that share an idempotency key beyond the first —
+ * the "resume 后重复副作用 = 0" acceptance metric (P0-2 §11.2). A committed op's
+ * dedup key is `meta.idempotencyKey`; when absent it falls back to the (unique)
+ * `opId`, so un-keyed ops never register as duplicates. A correct resume never
+ * re-commits an already-committed effect, so this must stay `0`.
+ *
+ * @param {SideEffectLedger|{ops:Array}} ledger
+ * @returns {number}
+ */
+export function countDuplicateCommittedEffects(ledger) {
+  const ops =
+    ledger instanceof SideEffectLedger
+      ? ledger.list()
+      : Array.isArray(ledger?.ops)
+        ? ledger.ops
+        : [];
+  const seen = new Map();
+  let duplicates = 0;
+  for (const o of ops) {
+    if (o?.state !== SIDE_EFFECT_STATE.COMMITTED) continue;
+    const key = (o.meta && o.meta.idempotencyKey) || o.opId;
+    const n = (seen.get(key) || 0) + 1;
+    seen.set(key, n);
+    if (n > 1) duplicates++;
+  }
+  return duplicates;
+}
+
+/**
  * Build a recovery plan for every op in a (crash-rebuilt) ledger.
  *
  * @param {SideEffectLedger|{ops:Array}} ledger

@@ -45,6 +45,11 @@ import {
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
+import {
+  classifyEditReplay,
+  editIdempotencyKey,
+  EDIT_REPLAY,
+} from "../lib/idempotency.js";
 import { buildSearchCommand } from "../lib/search-command.js";
 import { discoverCommands } from "../lib/slash-commands.js";
 import {
@@ -2343,6 +2348,30 @@ async function executeToolInner(
         replaceAll,
       );
       if (count === 0) {
+        // Idempotent replay (P0-2 "Diff Apply 内容哈希"): a resumed edit whose
+        // old_string is already gone but whose new_string is present already
+        // landed. Report a no-op success (NO write occurs — zero data risk)
+        // rather than a misleading "not found" error, so a recovered worker
+        // doesn't get stuck re-issuing an edit that already happened.
+        const replay = classifyEditReplay({
+          content,
+          oldString: args.old_string,
+          newString: args.new_string,
+        });
+        if (replay === EDIT_REPLAY.ALREADY_APPLIED) {
+          return attachDescriptor({
+            success: true,
+            path: filePath,
+            alreadyApplied: true,
+            idempotencyKey: editIdempotencyKey({
+              path: args.path,
+              oldString: args.old_string,
+              newString: args.new_string,
+              replaceAll,
+            }),
+            note: "edit already applied (new_string present, old_string absent) — no change made",
+          });
+        }
         return attachDescriptor({ error: "old_string not found in file" });
       }
       // Require a UNIQUE match (Claude-Code Edit parity) — replacing the first

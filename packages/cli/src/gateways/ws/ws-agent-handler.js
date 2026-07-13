@@ -12,6 +12,12 @@
  */
 
 import { agentLoop, formatToolArgs } from "../../runtime/agent-core.js";
+import { classifyToolSideEffect } from "../../lib/side-effect-ledger.js";
+import {
+  loadSideEffectLedger,
+  persistSideEffectLedger,
+} from "../../lib/side-effect-ledger-store.js";
+import { operationIdempotencyKey } from "../../lib/idempotency.js";
 import {
   detectTaskType,
   selectModelForTask,
@@ -35,6 +41,9 @@ export class WSAgentHandler {
     this._processing = false;
     this._abortController = null;
     this._activeRequestId = null;
+    // P0-2: monotonic sequence for crash-safe side-effect ledger op ids. The
+    // session id + a per-op nonce keep ids unique across turns and processes.
+    this._sideEffectSeq = 0;
   }
 
   /**
@@ -120,6 +129,14 @@ export class WSAgentHandler {
         signal: abortController.signal,
       };
 
+      // P0-2: crash-safe side-effect ledger for the IDE/bridge path — mirrors
+      // the headless runner. A dangerous tool is recorded prepare→start (snapshot
+      // persisted BEFORE it settles) and commit/fail on its result, so a bridge
+      // worker killed mid-flight is surfaced for verification on resume (see
+      // handleSessionResume) instead of being blindly replayed.
+      const sideEffectLedger = loadSideEffectLedger(session.id);
+      let currentSideEffectOpId = null;
+
       for await (const event of agentLoop(session.messages, loopOptions)) {
         switch (event.type) {
           case "slot-filling":
@@ -137,6 +154,28 @@ export class WSAgentHandler {
               args: event.args,
               display: formatToolArgs(event.tool, event.args),
             });
+            currentSideEffectOpId = null;
+            {
+              const se = classifyToolSideEffect(event.tool, event.args);
+              if (se) {
+                const opId = `ws:${session.id}:${Date.now()}:${this._sideEffectSeq++}`;
+                currentSideEffectOpId = opId;
+                sideEffectLedger
+                  .prepare(opId, {
+                    kind: se.kind,
+                    key: se.key,
+                    meta: {
+                      tool: event.tool,
+                      idempotencyKey: operationIdempotencyKey({
+                        tool: event.tool,
+                        args: event.args,
+                      }),
+                    },
+                  })
+                  .start(opId);
+                persistSideEffectLedger(session.id, sideEffectLedger);
+              }
+            }
             break;
 
           case "tool-result":
@@ -146,6 +185,17 @@ export class WSAgentHandler {
               result: event.result,
               error: event.error,
             });
+            if (currentSideEffectOpId) {
+              const err = event.error || event.result?.error || null;
+              if (err)
+                sideEffectLedger.fail(
+                  currentSideEffectOpId,
+                  String(err).slice(0, 200),
+                );
+              else sideEffectLedger.commit(currentSideEffectOpId);
+              persistSideEffectLedger(session.id, sideEffectLedger);
+              currentSideEffectOpId = null;
+            }
             break;
 
           case "response-complete":

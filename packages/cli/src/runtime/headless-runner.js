@@ -57,6 +57,7 @@ import {
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
+import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
@@ -1589,7 +1590,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
                   .prepare(opId, {
                     kind: se.kind,
                     key: se.key,
-                    meta: { tool: event.tool },
+                    // Content-addressed key: a resumed replay of the SAME effect
+                    // derives the SAME key, so an external provider can de-dupe
+                    // and countDuplicateCommittedEffects can measure `0` repeats.
+                    meta: {
+                      tool: event.tool,
+                      idempotencyKey: operationIdempotencyKey({
+                        tool: event.tool,
+                        args: event.args,
+                      }),
+                    },
                   })
                   .start(opId);
                 persistSideEffectLedger();

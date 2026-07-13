@@ -10,6 +10,7 @@ import {
   RECOVERY_ACTION,
   kindIsIdempotent,
   classifyToolSideEffect,
+  countDuplicateCommittedEffects,
   planOpRecovery,
   reconcileSideEffects,
 } from "../../src/lib/side-effect-ledger.js";
@@ -169,6 +170,40 @@ describe("classifyToolSideEffect", () => {
     const se = classifyToolSideEffect("run_shell", { command: long });
     expect(se.key.length).toBeLessThanOrEqual(81);
     expect(se.key.endsWith("…")).toBe(true);
+  });
+});
+
+describe("countDuplicateCommittedEffects (resume 0-duplicate metric)", () => {
+  it("is 0 when each idempotency key is committed at most once", () => {
+    const l = new SideEffectLedger();
+    l.prepare("a", { kind: "git-push", meta: { idempotencyKey: "op_x" } })
+      .start("a")
+      .commit("a");
+    l.prepare("b", { kind: "file-write", meta: { idempotencyKey: "op_y" } })
+      .start("b")
+      .commit("b");
+    expect(countDuplicateCommittedEffects(l)).toBe(0);
+  });
+
+  it("counts a second commit of the same idempotency key (a naive replay)", () => {
+    const l = new SideEffectLedger();
+    // Same external effect committed twice under different opIds — what a blind
+    // resume-replay would produce; the metric must catch it.
+    l.prepare("a1", { kind: "git-push", meta: { idempotencyKey: "op_push" } })
+      .start("a1")
+      .commit("a1");
+    l.prepare("a2", { kind: "git-push", meta: { idempotencyKey: "op_push" } })
+      .start("a2")
+      .commit("a2");
+    expect(countDuplicateCommittedEffects(l)).toBe(1);
+  });
+
+  it("ignores unsettled ops and un-keyed ops never collide", () => {
+    const l = new SideEffectLedger();
+    l.prepare("s", { kind: "git-push" }).start("s"); // started, not committed
+    l.prepare("k1", { kind: "file-write" }).start("k1").commit("k1"); // no key → opId
+    l.prepare("k2", { kind: "file-write" }).start("k2").commit("k2"); // no key → opId
+    expect(countDuplicateCommittedEffects(l)).toBe(0);
   });
 });
 

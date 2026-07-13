@@ -10,6 +10,18 @@
  */
 import { describe, it, expect } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import {
+  SideEffectLedger,
+  countDuplicateCommittedEffects,
+} from "../../src/lib/side-effect-ledger.js";
+
+/** Rebuild the latest persisted ledger from an in-memory event log. */
+function latestLedger(events) {
+  const snap = [...events]
+    .reverse()
+    .find((e) => e.type === "side_effect_ledger");
+  return snap ? SideEffectLedger.fromJSON(snap.data) : new SideEffectLedger();
+}
 
 function makeStore() {
   const events = [];
@@ -40,13 +52,13 @@ function makeStore() {
   };
 }
 
-function baseDeps(store, agentLoop) {
+function baseDeps(store, agentLoop, now = () => 1000) {
   return {
     bootstrap: async () => ({ db: null }),
     getApprovalGate: async () => null,
     resolveAgentMcp: async () => null,
     writeOut: () => {},
-    now: () => 1000,
+    now,
     agentLoop,
     ...store.deps,
   };
@@ -202,5 +214,88 @@ describe("headless side-effect ledger — record + resume reconcile", () => {
     expect(store.events.some((e) => e.type === "side_effect_ledger")).toBe(
       false,
     );
+  });
+
+  it("kill-point metric: a correct resume yields 0 duplicate committed effects", async () => {
+    const store = makeStore();
+    // Run 1: git push completes cleanly (committed under idempotency key K).
+    const okLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "git",
+        args: { command: "push origin main" },
+      };
+      yield { type: "tool-result", tool: "git", result: { ok: true } };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "push",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 1000,
+      },
+      baseDeps(store, okLoop),
+    );
+
+    // Run 2: a CORRECT resume — the model heeds the recovery guidance and does
+    // NOT re-issue the push.
+    const noReplayLoop = async function* () {
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "continue",
+        resume: "sid",
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 2000,
+      },
+      baseDeps(store, noReplayLoop),
+    );
+
+    expect(countDuplicateCommittedEffects(latestLedger(store.events))).toBe(0);
+  });
+
+  it("kill-point metric: the SAME push committed twice is detected as 1 duplicate", async () => {
+    const store = makeStore();
+    const pushLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "git",
+        args: { command: "push origin main" },
+      };
+      yield { type: "tool-result", tool: "git", result: { ok: true } };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    // Run 1 commits the push.
+    await runAgentHeadless(
+      {
+        prompt: "push",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 1000,
+      },
+      baseDeps(store, pushLoop),
+    );
+    // Run 2 (resume) blindly re-issues the IDENTICAL push — a naive replay the
+    // metric must catch (same idempotency key committed a second time). A
+    // distinct run clock gives the replay a fresh opId (real runs differ by
+    // wall-clock), so it is a genuine second commit, not a no-op.
+    await runAgentHeadless(
+      {
+        prompt: "continue",
+        resume: "sid",
+        outputFormat: "json",
+        expandFileRefs: false,
+      },
+      baseDeps(store, pushLoop, () => 2000),
+    );
+
+    expect(countDuplicateCommittedEffects(latestLedger(store.events))).toBe(1);
   });
 });

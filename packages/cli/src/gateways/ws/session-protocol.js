@@ -5,6 +5,46 @@ import {
   CODING_AGENT_EVENT_TYPES,
 } from "../../runtime/runtime-events.js";
 import { createSessionRecord } from "../../runtime/contracts/session-record.js";
+import { loadSideEffectLedger } from "../../lib/side-effect-ledger-store.js";
+import { reconcileSideEffects } from "../../lib/side-effect-ledger.js";
+
+/**
+ * P0-2: on a bridge/IDE resume, surface any irreversible tool that was in flight
+ * when the prior worker died. Returns a de-identified recovery descriptor (kind
+ * + short key + reason, never argument values) plus a human-readable notice, or
+ * null when nothing needs verification. PURE apart from reading the ledger.
+ */
+function buildResumeRecovery(sessionId) {
+  try {
+    const ledger = loadSideEffectLedger(sessionId);
+    const plan = reconcileSideEffects(ledger);
+    if (!plan.inspect.length) return null;
+    const items = plan.plans
+      .filter((p) => p.action === "inspect")
+      .map((p) => {
+        const op = ledger.get(p.opId) || {};
+        return {
+          kind: op.kind || "unknown",
+          key: op.key || null,
+          reason: p.reason,
+        };
+      });
+    const notice =
+      "Recovery notice — the previous run was interrupted while these " +
+      "irreversible operations were in flight; their outcome is UNKNOWN. Do " +
+      "NOT blindly re-run them. Verify whether each already took effect before " +
+      "repeating it, and ask the user if unsure:\n" +
+      items
+        .map(
+          (it) =>
+            `  • [${it.kind}]${it.key ? ` (${it.key})` : ""} — ${it.reason}`,
+        )
+        .join("\n");
+    return { count: items.length, items, notice };
+  } catch {
+    return null;
+  }
+}
 
 // Build a unified envelope for a solicited WS response. The bridge correlates
 // by `requestId` (the inbound request's id) and unwraps `payload` for callers
@@ -226,6 +266,14 @@ export async function handleSessionResume(server, id, ws, message) {
     status: "resumed",
   });
 
+  // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
+  // in flight when the prior worker died, warn the IDE client AND inject a
+  // system note so the resumed model does not silently replay it.
+  const recovery = buildResumeRecovery(session.id);
+  if (recovery && Array.isArray(session.messages)) {
+    session.messages.push({ role: "system", content: recovery.notice });
+  }
+
   server.emit(
     RUNTIME_EVENTS.SESSION_RESUME,
     createRuntimeEvent(
@@ -235,6 +283,7 @@ export async function handleSessionResume(server, id, ws, message) {
         historyCount: history.length,
         sessionType: session.type || null,
         record,
+        ...(recovery ? { recovery } : {}),
       },
       { kind: "server", sessionId: session.id },
     ),
@@ -249,6 +298,7 @@ export async function handleSessionResume(server, id, ws, message) {
         sessionId: session.id,
         history,
         record,
+        ...(recovery ? { recovery } : {}),
       },
       session.id,
     ),
