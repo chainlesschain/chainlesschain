@@ -36,7 +36,16 @@ beforeEach(() => {
 
 afterEach(async () => {
   delete process.env.CC_ARTIFACTS_DIR;
-  if (server) await new Promise((resolve) => server.close(resolve));
+  if (server) {
+    // global fetch (undici) keeps a keep-alive client socket pooled; a plain
+    // server.close() only stops accepting NEW connections and waits for that
+    // idle-but-open socket, leaving it pinning the vitest forks worker's event
+    // loop (→ the "Worker exited unexpectedly" forks-pool flake blamed on a
+    // sibling file via worker reuse). closeAllConnections() FINs the pooled
+    // socket so both ends release immediately.
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+  }
   server = null;
   fs.rmSync(dir, { recursive: true, force: true });
   fs.rmSync(srcDir, { recursive: true, force: true });

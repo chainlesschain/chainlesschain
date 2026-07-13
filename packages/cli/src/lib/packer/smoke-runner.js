@@ -324,7 +324,10 @@ function probeHttp({ host, port, path: urlPath, timeoutMs }) {
         const status = res.statusCode || 0;
         // Drain body so the socket can close cleanly.
         res.on("data", () => {});
-        res.on("end", () => resolve(status));
+        res.on("end", () => {
+          req.destroy(); // release the socket now, don't wait for GC
+          resolve(status);
+        });
         res.on("error", reject);
       },
     );
@@ -342,6 +345,7 @@ function probeHttpJson({ host, port, path: urlPath, timeoutMs }) {
       (res) => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           res.resume();
+          req.destroy();
           reject(new Error(`HTTP ${res.statusCode} from ${urlPath}`));
           return;
         }
@@ -350,6 +354,7 @@ function probeHttpJson({ host, port, path: urlPath, timeoutMs }) {
           body += d.toString("utf8");
         });
         res.on("end", () => {
+          req.destroy(); // release the socket now, don't wait for GC
           try {
             resolve(JSON.parse(body));
           } catch (e) {
