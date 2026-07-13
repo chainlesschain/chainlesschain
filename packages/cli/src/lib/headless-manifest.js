@@ -17,6 +17,10 @@
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
 import { PROTOCOL_MIN_VERSION } from "./capability-negotiation.js";
+import {
+  CAPABILITY_MANIFEST,
+  toAgentFeatureFlags,
+} from "./capability-manifest.js";
 
 export const STREAM_PROTOCOL_VERSION = 1;
 
@@ -143,46 +147,15 @@ export function buildAgentCapabilities() {
     // older line shape, so min === current.
     min_protocol_version: PROTOCOL_MIN_VERSION,
     agent_tools: contract.listCodingAgentToolNames(),
-    permission_modes: [
-      "default",
-      "manual",
-      "auto",
-      "dontAsk",
-      "plan",
-      "acceptEdits",
-      "bypassPermissions",
-    ],
-    output_formats: ["text", "json", "stream-json"],
-    input_formats: ["text", "stream-json"],
+    // P1-9: permission modes, formats and the feature flags all project from the
+    // single canonical [[capability-manifest.js]] so `cc agent --capabilities`,
+    // the negotiator and the docs can no longer drift. Additive protocol-v1
+    // stream fields (event_seq / tool_use_id / trace_id) come in via the wire
+    // features; the mcp object and sandbox_engines come from the manifest too.
+    permission_modes: [...CAPABILITY_MANIFEST.permissionModes],
+    output_formats: [...CAPABILITY_MANIFEST.outputFormats],
+    input_formats: [...CAPABILITY_MANIFEST.inputFormats],
     exit_codes: HEADLESS_EXIT_CODES,
-    features: {
-      bare: true,
-      safe_mode: true,
-      ephemeral: true,
-      background: true,
-      worktree: true,
-      checkpoint: true,
-      json_schema_output: true,
-      partial_messages: true,
-      interactive_approvals: true,
-      permission_prompt_tool: true,
-      remote_control: true,
-      // Additive protocol-v1 stream fields (agent-sdk docs/PROTOCOL.md §1.2.1):
-      // every stream-json stdout line carries a monotonic `seq` and a
-      // run-scoped `trace_id`, and tool_use/tool_result lines carry a pairing
-      // `id` ("tu-<n>"). `trace_id` is caller-injectable (--trace-id /
-      // CC_TRACE_ID) for end-to-end IDE ↔ CLI correlation.
-      tool_use_id: true,
-      event_seq: true,
-      trace_id: true,
-      mcp: {
-        config_file: true,
-        registry: true,
-        tool_search: true,
-        oauth: true,
-        managed_allowlist: true,
-      },
-      sandbox_engines: ["docker", "bubblewrap"],
-    },
+    features: toAgentFeatureFlags(),
   };
 }

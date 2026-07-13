@@ -36,31 +36,42 @@
  * fixture __tests__/fixtures/capability-negotiation-cases.json.
  */
 
+import {
+  CAPABILITY_MANIFEST,
+  toProtocolFeatures,
+  toFeatureMinVersion,
+  toFieldGate,
+} from "./capability-manifest.js";
+
 /** The current protocol version the CLI speaks (mirror of PROTOCOL_VERSION). */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = CAPABILITY_MANIFEST.protocolVersion;
 
 /**
  * The oldest protocol version the CLI can still speak end-to-end (the N-1 in
  * "N / N-1"). At v1 there is no older line shape, so min === current; once v2
  * ships this drops to 1 so a v1-only client negotiates a v1 session.
  */
-export const PROTOCOL_MIN_VERSION = 1;
+export const PROTOCOL_MIN_VERSION = CAPABILITY_MANIFEST.minProtocolVersion;
 
 /**
  * The wire-protocol features subject to negotiation — the additive per-line
  * fields a client may or may not understand. Runtime capabilities (bare,
  * worktree, mcp, …) are NOT negotiated: they change what the CLI can do, not
  * the shape of a line the client must parse.
+ *
+ * P1-9: projected from the single canonical [[capability-manifest.js]] so the
+ * negotiator, `cc agent --capabilities`, the protocol docs and the Java twin can
+ * no longer drift — add a v2 field to the manifest ONCE and it flows here.
  */
-export const PROTOCOL_FEATURES = ["event_seq", "tool_use_id", "trace_id"];
+export const PROTOCOL_FEATURES = toProtocolFeatures();
 
 /**
  * Minimum protocol version a feature requires. Empty today (every current
- * feature is a v1 additive field). When a v2 field lands, add it here so an
- * N-1 (v1) session drops it automatically.
+ * feature is a v1 additive field). When a v2 field lands, bump its manifest
+ * `minVersion` and an N-1 (v1) session drops it automatically.
  * @type {Record<string, number>}
  */
-export const FEATURE_MIN_VERSION = {};
+export const FEATURE_MIN_VERSION = toFeatureMinVersion();
 
 function intOr(value, fallback) {
   const n = Number(value);
@@ -185,12 +196,12 @@ export function negotiateProtocol(server = {}, clientOffer = null, opts = {}) {
   };
 }
 
-/** Feature key → the stream line field it gates. */
-const FEATURE_TO_FIELD = {
-  event_seq: "seq",
-  trace_id: "trace_id",
-  tool_use_id: "tool_use_id",
-};
+/**
+ * Feature key → the stream line field it gates. P1-9: projected from the
+ * canonical [[capability-manifest.js]] so this map can't drift from the
+ * negotiated feature list.
+ */
+const FEATURE_TO_FIELD = toFieldGate();
 
 /**
  * Fold a negotiation result into a live field-gate the emitter reads per line:
