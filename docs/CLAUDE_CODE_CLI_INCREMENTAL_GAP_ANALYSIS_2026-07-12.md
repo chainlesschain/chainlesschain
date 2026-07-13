@@ -1445,11 +1445,23 @@ findings（与上节**静态**配置校验互补：静态抓"永不触发"、这
 stopAll 持久化+delta 清零）+ `doctor-checkup.test.js` +1（注入熔断 hook stats → runtime
 section err）。
 
-**仍欠**：orphan 进程评估器（`checkOrphanProcesses`）仍需真实进程表快照喂入（属运行时态）；
-`gen-cli-reference` 未纳入 `package.json` 脚本/CI drift-gate，也未生成 committed 参考文档
-（刻意留作工具，避免维护漂移义务）；`/doctor` 的 MCP schema 成本需活连接、session
-`mirror`/保留策略在本仓非既有特性（造检查会违反"先查证"原则），均需新基建而非接线，留待
-产品决策。
+**已接线（2026-07-13，doctor 沙箱真实能力 / 静默降级）**：P2 doctor 项"沙箱真实能力和
+静默降级"落地——纯核 `checkSandbox(snapshot)`（`runtime-checkup.js`）对已探测快照分级：
+①**已配置但引擎不可用且非 fail-closed** → **error `sandbox-silent-degrade`**（工具子进程
+**无隔离却不告警**，最危险；你以为在沙箱里其实没有）②已配置 strict 但不可用 → warn（fail-
+closed 会拒启动，非静默）③可用 → info 报真实 isolation level。**接线**：`runtimeSection`
+从 settings 文件读 `.sandbox`（`deps.readFileSync` 可注入），`enabled===true` 时经既有
+`normalizeAgentSandbox` + `probeSandboxAvailability`（一次 `spawnSync` `docker version`/
+`bwrap --version` 探测，`deps.spawnSync` 可注入）+ `isolationLevel` 喂评估器。**纯静态探测、
+不启容器**。测试：`runtime-checkup.test.js` +4（silent-degrade error / strict-unavailable
+warn / available info / 未配置 no-op）+ `doctor-checkup.test.js` +2（fake 不可用引擎 →
+runtime section err / 可用引擎 → info 无误报）。
+
+**仍欠**：orphan 进程评估器（`checkOrphanProcesses`）仍需真实进程表快照喂入（属运行时态；
+背景 agent 孤儿已由 `backgroundSection` 覆盖）；`gen-cli-reference` 未纳入 `package.json`
+脚本/CI drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；
+`/doctor` 的 MCP schema 成本需活连接、session `mirror`/保留策略在本仓非既有特性（造检查会
+违反"先查证"原则），均需新基建而非接线，留待产品决策。
 
 ## 不建议优先复制
 

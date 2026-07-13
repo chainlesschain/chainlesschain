@@ -23,7 +23,7 @@ import {
   statSync,
   rmSync,
 } from "node:fs";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
 import {
@@ -31,6 +31,7 @@ import {
   checkInstructionFiles,
   checkHookConfig,
   checkHooks,
+  checkSandbox,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "./runtime-checkup.js";
 
@@ -51,6 +52,7 @@ export const _deps = {
   statSync,
   rmSync,
   execSync,
+  spawnSync,
   now: () => Date.now(),
 };
 
@@ -732,6 +734,58 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("hook-health", "async hook stats", err));
+  }
+
+  // Sandbox real capability — catch the "silent degradation" case where a
+  // sandbox is configured in settings.json but its engine (docker/bwrap) isn't
+  // actually runnable, so tool subprocesses run UNSANDBOXED without warning.
+  try {
+    const settingsHooks = await import("./settings-hooks.cjs");
+    const shMod = settingsHooks.default || settingsHooks;
+    const sandboxMod = await import("./agent-sandbox.js");
+    const cwd = opts.cwd || process.cwd();
+    let sandboxSettings = null;
+    for (const file of shMod.settingsFiles(cwd)) {
+      if (!deps.existsSync(file)) continue;
+      try {
+        const parsed = JSON.parse(deps.readFileSync(file, "utf-8"));
+        if (parsed && parsed.sandbox && typeof parsed.sandbox === "object") {
+          sandboxSettings = { ...(sandboxSettings || {}), ...parsed.sandbox };
+        }
+      } catch {
+        // malformed settings.json is reported by the config section
+      }
+    }
+    if (sandboxSettings && sandboxSettings.enabled === true) {
+      const sandbox = sandboxMod.normalizeAgentSandbox(true, {
+        settings: sandboxSettings,
+        cwd,
+      });
+      if (sandbox) {
+        const probe = sandboxMod.probeSandboxAvailability(sandbox, {
+          spawnSync: deps.spawnSync,
+        });
+        for (const f of checkSandbox({
+          configured: true,
+          engine: sandbox.engine,
+          available: probe.available,
+          reason: probe.reason,
+          failIfUnavailable: sandbox.policy?.failIfUnavailable === true,
+          isolationLevel: sandboxMod.isolationLevel(sandbox),
+        })) {
+          checks.push(
+            check(
+              f.id,
+              `sandbox ${f.ref}`,
+              SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+              f.remediation ? `${f.message} — ${f.remediation}` : f.message,
+            ),
+          );
+        }
+      }
+    }
+  } catch (err) {
+    checks.push(failedCheck("sandbox", "sandbox availability", err));
   }
 
   if (checks.length === 0) {

@@ -345,6 +345,62 @@ export function checkHookConfig(
   return out;
 }
 
+/**
+ * Sandbox real-capability / silent-degradation (P2 doctor "沙箱真实能力和静默
+ * 降级"). Given a probed snapshot, flag the dangerous case: a sandbox is
+ * CONFIGURED but its engine is unavailable AND `failIfUnavailable` is off — so
+ * tool subprocesses run with NO isolation and nothing warns (you think you're
+ * sandboxed but you're not). Strict-but-unavailable is a warn (fail-closed: the
+ * agent refuses to start, so it's not silent). Available → an info confirming
+ * the true isolation level.
+ *
+ * @param {object} snapshot { configured, engine, available, reason,
+ *   failIfUnavailable, isolationLevel }
+ */
+export function checkSandbox(snapshot = {}) {
+  const out = [];
+  if (!snapshot || !snapshot.configured) return out;
+  const engine = snapshot.engine || "sandbox";
+  const why = snapshot.reason ? `: ${snapshot.reason}` : "";
+  if (snapshot.available) {
+    out.push(
+      finding(
+        "sandbox-active",
+        "sandbox",
+        "info",
+        `Sandbox ${engine} available (isolation: ${snapshot.isolationLevel || "unknown"})`,
+        "",
+        { ref: engine },
+      ),
+    );
+    return out;
+  }
+  if (snapshot.failIfUnavailable) {
+    out.push(
+      finding(
+        "sandbox-strict-unavailable",
+        "sandbox",
+        "warn",
+        `Sandbox ${engine} is configured (strict) but unavailable${why} — the agent refuses to start until it's installed`,
+        `install ${engine} or unset sandbox.failIfUnavailable`,
+        { ref: engine },
+      ),
+    );
+  } else {
+    out.push(
+      finding(
+        "sandbox-silent-degrade",
+        "sandbox",
+        "error",
+        `Sandbox ${engine} is configured but unavailable${why} — commands run WITHOUT isolation and won't warn`,
+        `install ${engine}, or set sandbox.failIfUnavailable:true to fail closed`,
+        { ref: engine },
+      ),
+    );
+  }
+  return out;
+}
+
 /** Plugins / LSP servers reported unhealthy or dead. */
 export function checkPluginsAndLsp(plugins = []) {
   const out = [];

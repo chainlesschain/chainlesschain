@@ -14,6 +14,7 @@ import {
   checkPluginsAndLsp,
   checkInstructionFiles,
   checkHookConfig,
+  checkSandbox,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "../../src/lib/runtime-checkup.js";
 
@@ -218,6 +219,53 @@ describe("checkHookConfig (static settings.json hook validation)", () => {
       AnythingGoes: [{ hooks: [{ command: "x" }] }],
     });
     expect(out).toHaveLength(0);
+  });
+});
+
+describe("checkSandbox (real capability / silent degradation)", () => {
+  it("flags an ERROR when configured but unavailable and not fail-closed", () => {
+    const out = checkSandbox({
+      configured: true,
+      engine: "docker",
+      available: false,
+      reason: "docker is not installed",
+      failIfUnavailable: false,
+      isolationLevel: "container",
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("sandbox-silent-degrade");
+    expect(out[0].severity).toBe("error");
+    expect(out[0].message).toMatch(/WITHOUT isolation/);
+  });
+
+  it("only WARNs when unavailable but fail-closed (not silent)", () => {
+    const out = checkSandbox({
+      configured: true,
+      engine: "bubblewrap",
+      available: false,
+      reason: "bwrap is not installed",
+      failIfUnavailable: true,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("sandbox-strict-unavailable");
+    expect(out[0].severity).toBe("warn");
+  });
+
+  it("reports an info with the isolation level when available", () => {
+    const out = checkSandbox({
+      configured: true,
+      engine: "docker",
+      available: true,
+      isolationLevel: "container",
+    });
+    expect(out[0].id).toBe("sandbox-active");
+    expect(out[0].severity).toBe("info");
+    expect(out[0].message).toMatch(/container/);
+  });
+
+  it("no-ops when no sandbox is configured", () => {
+    expect(checkSandbox({ configured: false })).toEqual([]);
+    expect(checkSandbox({})).toEqual([]);
   });
 });
 

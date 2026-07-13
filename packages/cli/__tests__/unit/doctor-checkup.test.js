@@ -162,6 +162,45 @@ describe("doctor-checkup", () => {
     expect(finding.name).toMatch(/flaky/);
   });
 
+  it("flags a silently-degraded sandbox (configured but engine unavailable) in the runtime section", async () => {
+    const settingsJson = JSON.stringify({
+      sandbox: { enabled: true, engine: "docker" },
+    });
+    const deps = fakeDeps({
+      existsSync: (p) => String(p).endsWith("settings.json"),
+      readFileSync: (p) =>
+        String(p).endsWith("settings.json") ? settingsJson : "",
+      // docker probe fails → engine unavailable
+      spawnSync: () => ({ error: { code: "ENOENT" }, status: null }),
+    });
+    const sections = await collectCheckupSections({ deps });
+    const runtime = sections.find((s) => s.id === "runtime");
+    const finding = runtime.checks.find(
+      (c) => c.id === "sandbox-silent-degrade",
+    );
+    expect(finding).toBeTruthy();
+    expect(finding.level).toBe(CHECK_LEVELS.ERR);
+    expect(finding.detail).toMatch(/WITHOUT isolation/);
+  });
+
+  it("reports an available sandbox as an info (no false degradation alarm)", async () => {
+    const settingsJson = JSON.stringify({
+      sandbox: { enabled: true, engine: "docker" },
+    });
+    const deps = fakeDeps({
+      existsSync: (p) => String(p).endsWith("settings.json"),
+      readFileSync: (p) =>
+        String(p).endsWith("settings.json") ? settingsJson : "",
+      spawnSync: () => ({ status: 0, stdout: "24.0.0" }),
+    });
+    const sections = await collectCheckupSections({ deps });
+    const runtime = sections.find((s) => s.id === "runtime");
+    expect(runtime.checks.some((c) => c.id === "sandbox-silent-degrade")).toBe(
+      false,
+    );
+    expect(runtime.checks.some((c) => c.id === "sandbox-active")).toBe(true);
+  });
+
   describe("runCheckupFixes", () => {
     it("applies the SAFE stale-job prune, deleting only old .job files", async () => {
       const rmSync = vi.fn();
