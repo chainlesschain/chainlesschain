@@ -31,5 +31,21 @@ export default defineConfig({
     // See internal handbook trap #31.
     testTimeout: 90000,
     hookTimeout: 120000,
+    // teardownTimeout governs how long vitest's pool waits for a worker to
+    // GRACEFULLY stop before it logs "Timeout terminating <pool> worker for
+    // test files X" and force-terminates it — the force path then trips an
+    // unhandled "Worker exited unexpectedly" and fails the whole shard even
+    // though every test passed (vitest cli-api pool: setTimeout(…,
+    // teardownTimeout) racing runner.stop()). The real-subprocess + real-socket
+    // suites (background-agent-supervisor / background-session-transport spawn
+    // detached `node` workers and bind POSIX domain sockets / named pipes)
+    // drain in <1s unloaded, but under the 2-fork parallel CI load the worker's
+    // event-loop teardown (child reaping + socket close under contention) has
+    // recurringly exceeded the 10s DEFAULT — the "forks-pool worker-death"
+    // flake (unit shard 2/4 on ubuntu+macos). Raised 10000 → 30000, same
+    // rationale as the testTimeout/hookTimeout bumps above. A genuinely hung
+    // worker now surfaces at 30s instead of 10s — an acceptable trade for
+    // killing a false-red shard.
+    teardownTimeout: 30000,
   },
 });
