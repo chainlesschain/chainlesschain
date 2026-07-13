@@ -397,6 +397,35 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Always use TDD");
   });
 
+  it("skips rules.md under projectMemory:false (lean prompt)", () => {
+    // `cc agent --no-project-memory` → opts.projectMemory === false → the
+    // rules.md append is suppressed for token-tight surfaces (e.g. IDE chat).
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = { name: "test" };
+    const ccDir = join(tempDir, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(join(ccDir, "rules.md"), "Always use TDD", "utf-8");
+
+    const lean = buildSystemPrompt(tempDir, { projectMemory: false });
+    expect(lean).not.toContain("## Project Rules");
+    expect(lean).not.toContain("Always use TDD");
+  });
+
+  it("keeps rules.md when projectMemory is absent or true (default-on)", () => {
+    // Only an explicit `false` skips it — undefined/true stay byte-identical
+    // to the legacy default-on behaviour.
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = { name: "test" };
+    const ccDir = join(tempDir, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(join(ccDir, "rules.md"), "Always use TDD", "utf-8");
+
+    expect(buildSystemPrompt(tempDir, {})).toContain("## Project Rules");
+    expect(buildSystemPrompt(tempDir, { projectMemory: true })).toContain(
+      "## Project Rules",
+    );
+  });
+
   it("returns persona prompt when config has persona", () => {
     _mockProjectRoot = tempDir;
     _mockProjectConfig = {

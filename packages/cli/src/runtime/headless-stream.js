@@ -1073,8 +1073,16 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // --no-project-memory (options.projectMemory === false) → lean system prompt:
+  // skip both the rules.md append inside buildSystemPrompt AND the auto-loaded
+  // cc.md/CLAUDE.md instruction block. Only `=== false` changes anything; when
+  // the flag is absent (undefined) both paths stay byte-identical.
+  const _leanNoProjectMemory = options.projectMemory === false;
   const systemContent = composeSystemPrompt(
-    buildSystemPrompt(cwd, { additionalDirectories }),
+    buildSystemPrompt(cwd, {
+      additionalDirectories,
+      projectMemory: options.projectMemory,
+    }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: _jsonSchema
@@ -1084,6 +1092,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         : options.appendSystemPrompt,
       outputStyle: outputStyleBody,
       instructionExcludes,
+      projectMemory: _leanNoProjectMemory ? false : undefined,
     },
   );
   const messages = [{ role: "system", content: systemContent }];

@@ -852,13 +852,21 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --no-project-memory (options.projectMemory === false): lean prompt — skip
+  // rules.md (in buildSystemPrompt) + the cc.md/CLAUDE.md block. Absent flag
+  // (undefined) leaves both paths byte-identical.
+  const _leanNoProjectMemory = options.projectMemory === false;
   const systemContent = composeSystemPrompt(
-    buildSystemPrompt(cwd, { additionalDirectories }),
+    buildSystemPrompt(cwd, {
+      additionalDirectories,
+      projectMemory: options.projectMemory,
+    }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
       outputStyle: outputStyleBody,
       instructionExcludes,
+      projectMemory: _leanNoProjectMemory ? false : undefined,
     },
   );
 

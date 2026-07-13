@@ -851,20 +851,38 @@ export function buildSystemPrompt(cwd, opts = {}) {
     // Non-critical — skill loader may not be available
   }
 
-  // Append rules.md
-  try {
-    const projectRoot = findProjectRoot(dir);
-    if (projectRoot) {
-      const rulesPath = path.join(projectRoot, ".chainlesschain", "rules.md");
-      if (fs.existsSync(rulesPath)) {
-        const content = fs.readFileSync(rulesPath, "utf-8");
-        if (content.trim()) {
-          prompt += `\n\n## Project Rules\n${content}`;
+  // Append rules.md — unless the caller opted into a lean/off prompt. `rules.md`
+  // is coding-convention DETAIL (the entry cc.md/CLAUDE.md references it), so it
+  // is shed both when project memory is fully off (`--no-project-memory` →
+  // projectMemory === false) AND in entry-only lean mode (projectMemory ===
+  // "lean", or the env signal CC_PROJECT_MEMORY=lean when no explicit value is
+  // threaded). NOTE: legacy `CC_PROJECT_MEMORY=0` intentionally still KEEPS
+  // rules.md (its long-standing contract only dropped the instruction block) —
+  // so we only honor the "lean" env here, never "0".
+  const _pm = opts.projectMemory;
+  const _envLean =
+    process.env.CC_PROJECT_MEMORY === "lean" ||
+    process.env.CC_PROJECT_MEMORY === "entry";
+  const _dropRules =
+    _pm === false ||
+    _pm === "lean" ||
+    _pm === "entry" ||
+    (_pm == null && _envLean);
+  if (!_dropRules) {
+    try {
+      const projectRoot = findProjectRoot(dir);
+      if (projectRoot) {
+        const rulesPath = path.join(projectRoot, ".chainlesschain", "rules.md");
+        if (fs.existsSync(rulesPath)) {
+          const content = fs.readFileSync(rulesPath, "utf-8");
+          if (content.trim()) {
+            prompt += `\n\n## Project Rules\n${content}`;
+          }
         }
       }
+    } catch {
+      // Non-critical
     }
-  } catch {
-    // Non-critical
   }
 
   // Advertise extra workspace roots (--add-dir) so the model knows it may

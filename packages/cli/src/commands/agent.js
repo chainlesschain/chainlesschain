@@ -286,6 +286,10 @@ export function registerAgentCommand(program) {
       "Append extra guidance to the system prompt (literal text or @file)",
     )
     .option(
+      "--no-project-memory",
+      "Skip auto-loaded project memory (cc.md / CLAUDE.md / AGENTS.md hierarchy, .chainlesschain/rules.md, .claude/rules/*.md) — a lean system prompt for token-tight surfaces (e.g. IDE chat). The agent can still read those files with tools when it needs them.",
+    )
+    .option(
       "--output-style <name>",
       "Apply a named output-style persona (.claude/output-styles/<name>.md or a built-in: explanatory | learning)",
     )
@@ -880,6 +884,9 @@ export function registerAgentCommand(program) {
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd,
             }),
+            // --no-project-memory → options.projectMemory === false. Undefined
+            // (flag absent) leaves the default-on path byte-identical.
+            projectMemory: options.projectMemory,
             includePartialMessages: options.includePartialMessages === true,
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
@@ -1095,6 +1102,9 @@ export function registerAgentCommand(program) {
           appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
             cwd: process.cwd(),
           }),
+          // --no-project-memory → options.projectMemory === false (default-on
+          // path is untouched when the flag is absent, i.e. undefined).
+          projectMemory: options.projectMemory,
           // --include-partial-messages: live token deltas as stream_event lines
           includePartialMessages: options.includePartialMessages === true,
           // --goal [id]: bind a cc goal into the run (Phase 1)
@@ -1279,6 +1289,10 @@ export function registerAgentCommand(program) {
         appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
           cwd: process.cwd(),
         }),
+        // --no-project-memory also applies interactively → options.projectMemory
+        // === false suppresses the auto-loaded rules.md + cc.md/CLAUDE.md block
+        // in the REPL's composed system prompt. Absent (undefined) = default-on.
+        projectMemory: options.projectMemory,
         // --fallback-model also applies interactively (wrapper built in the
         // REPL). Pass the fully resolved chain (flag + config default).
         fallbackModels: fallbackModels.length ? fallbackModels : null,

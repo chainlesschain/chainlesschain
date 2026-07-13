@@ -9,6 +9,9 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   runAgentHeadless,
   resolveHeadlessSession,
@@ -266,6 +269,50 @@ describe("runAgentHeadless — init manifest + ephemeral + exit codes", () => {
     };
     const outcome = await runAgentHeadless({ prompt: "x" }, deps);
     expect(outcome.exitCode).toBe(HEADLESS_EXIT_CODES.MODEL_ERROR);
+  });
+
+  it("--no-project-memory (projectMemory:false) omits rules.md from the system prompt", async () => {
+    // A capturing loop lets us assert what actually reached the model as the
+    // system message — the real integration seam for `cc agent --no-project-memory`.
+    const proj = fs.mkdtempSync(path.join(os.tmpdir(), "cc-nopm-"));
+    fs.mkdirSync(path.join(proj, ".chainlesschain"), { recursive: true });
+    // findProjectRoot keys off .chainlesschain/config.json (project-detector).
+    fs.writeFileSync(
+      path.join(proj, ".chainlesschain", "config.json"),
+      JSON.stringify({ name: "nopm-fixture" }),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(proj, ".chainlesschain", "rules.md"),
+      "SECRET-RULE-MARKER",
+      "utf-8",
+    );
+
+    const captureRun = () => {
+      let systemContent = null;
+      const { deps } = makeDeps(replyText("ok"));
+      deps.agentLoop = async function* (messages) {
+        systemContent = messages[0]?.content ?? "";
+        yield { type: "response-complete", content: "ok" };
+        yield { type: "run-ended", reason: "end_turn" };
+      };
+      return { deps, get: () => systemContent };
+    };
+
+    // Default (flag absent): rules.md is appended.
+    const on = captureRun();
+    await runAgentHeadless({ prompt: "hi", cwd: proj }, on.deps);
+    expect(on.get()).toContain("SECRET-RULE-MARKER");
+
+    // --no-project-memory → projectMemory:false: rules.md omitted.
+    const off = captureRun();
+    await runAgentHeadless(
+      { prompt: "hi", cwd: proj, projectMemory: false },
+      off.deps,
+    );
+    expect(off.get()).not.toContain("SECRET-RULE-MARKER");
+
+    fs.rmSync(proj, { recursive: true, force: true });
   });
 
   it("a bad --mcp-config exits 6 (config error)", async () => {

@@ -29,4 +29,21 @@ describe("resolveAgentPolicy — system prompt overrides", () => {
     expect(policy.appendSystemPrompt).toBeNull();
     expect(policy.fallbackModel).toBeNull();
   });
+
+  it("forwards the --no-project-memory tri-state (allowlist passthrough)", () => {
+    // Without the allowlist entry the flag is silently dropped and the REPL
+    // never sees `options.projectMemory === false` — the lean prompt breaks.
+    expect(
+      resolveAgentPolicy({ config: {}, overrides: { projectMemory: false } })
+        .projectMemory,
+    ).toBe(false);
+    expect(
+      resolveAgentPolicy({ config: {}, overrides: { projectMemory: true } })
+        .projectMemory,
+    ).toBe(true);
+    // Absent flag → undefined (default-on path preserved downstream).
+    expect(
+      resolveAgentPolicy({ config: {}, overrides: {} }).projectMemory,
+    ).toBeUndefined();
+  });
 });

@@ -1038,11 +1038,22 @@ export async function startAgentRepl(options = {}) {
   // output-style persona can be swapped in/out at runtime via /output-style.
   // `let` (not const): /add-dir rebuilds this mid-session to re-advertise the
   // updated working roots; output-style swaps also read it live.
+  // --no-project-memory (options.projectMemory === false): lean prompt — skip
+  // rules.md (in buildSystemPrompt) + the cc.md/CLAUDE.md block (in
+  // composeSystemPrompt). Map only an explicit `false` to a suppressing value;
+  // anything else (Commander defaults an absent `--no-` flag to `true`) stays
+  // `undefined` so the runtime default-on path — and CC_PROJECT_MEMORY=0 — keep
+  // their existing behaviour byte-identically.
+  const _leanNoProjectMemory = options.projectMemory === false;
   let _replBaseSystem = composeSystemPrompt(
-    buildSystemPrompt(process.cwd(), { additionalDirectories }),
+    buildSystemPrompt(process.cwd(), {
+      additionalDirectories,
+      projectMemory: options.projectMemory,
+    }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
+      projectMemory: _leanNoProjectMemory ? false : undefined,
     },
   );
   let _activeOutputStyle = null; // { name, body }
@@ -2393,10 +2404,14 @@ export async function startAgentRepl(options = {}) {
             // Re-advertise the updated roots in the system prompt; keep the
             // active output-style body layered on top (same as /output-style).
             _replBaseSystem = composeSystemPrompt(
-              buildSystemPrompt(process.cwd(), { additionalDirectories }),
+              buildSystemPrompt(process.cwd(), {
+                additionalDirectories,
+                projectMemory: options.projectMemory,
+              }),
               {
                 systemPrompt: options.systemPrompt,
                 appendSystemPrompt: options.appendSystemPrompt,
+                projectMemory: _leanNoProjectMemory ? false : undefined,
               },
             );
             messages[0].content = _activeOutputStyle

@@ -49,6 +49,11 @@ export function resolveAgentPolicy({
     // before 2026-07-09, breaking --vim/--think/--thinking-budget/
     // --fallback-model/--pdh/--permission-mode for interactive sessions.
     permissionMode: overrides.permissionMode,
+    // --no-project-memory tri-state (undefined=default-on / false=lean prompt).
+    // Plain passthrough consumed by startAgentRepl → composeSystemPrompt /
+    // buildSystemPrompt; without this allowlist entry the flag would be silently
+    // dropped for interactive sessions (same class as the vim/think/pdh fixes).
+    projectMemory: overrides.projectMemory,
     vimMode: overrides.vimMode,
     thinking: overrides.thinking,
     thinkingBudget: overrides.thinkingBudget,
