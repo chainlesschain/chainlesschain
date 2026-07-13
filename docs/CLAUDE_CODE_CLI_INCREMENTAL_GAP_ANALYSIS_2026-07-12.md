@@ -307,8 +307,13 @@ interaction-adapter `resolveAnswer(requestId, answer, binding)` 贯通；带 bin
 remote-session-protocol +2（binding 透传到 host 门 / 审计带 authority provenance）+ 既有
 approval 测试改为 3 参 `resolveAnswer`。
 
-**仍欠**：G-relay 加密控制路径（`_handleRemoteEncryptedControl`）的同款 authority + binding 接线
-（本笔覆 server-hosted / forwarded 两路，relay 路径待接）；把 binding 从**权限门产生端**真正
+**已覆盖（2026-07-13 勘误）**：G-relay 加密控制路径（`_handleRemoteEncryptedControl`）**无需单独
+接线**——它解密移动端信封后即汇流进 `handleRemoteSessionPublish`（本笔已加固的同一 handler，见
+`ws-server.js` L1369），故 `approval.resolve` 走同款 `assertCanApprove` authority 门 +
+`describeAuthorityChain` 审计、回显 `binding` 经 `handleSessionAnswer` 同样透传；authority
+envelope 的 principal 用已认证的 relay peer（`from`），语义与 server-hosted / forwarded 三路一致。
+
+**仍欠**：把 binding 从**权限门产生端**真正
 attach 到 interaction-adapter 请求（现校验就绪但尚无生产者 attach binding，需权限-门-over-WS 接线）；
 agent-sdk 的 `ApprovalRequestEvent` 可选加 `binding` 回显（需 bump SDK 版本，留待下次 SDK 发版）；
 repo 配置不得开 bypass/auto 与 managed deny 放宽的强制项亦未做（注：permission mode 来自 CLI flag
