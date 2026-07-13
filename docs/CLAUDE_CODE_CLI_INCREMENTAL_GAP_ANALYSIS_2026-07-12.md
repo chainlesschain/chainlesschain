@@ -1383,13 +1383,25 @@ parity）。同批把 `content.*` opt-in 补齐到逐 span：`agent.model` span 
 checkpoint.id 正向匹配 checkpoint 事件 / opt-in 下 response+tool_arguments 双 stamp / 默认
 两字段全 undefined）。
 
-**仍欠**：`permission.decision_id` 需先在权限门造一个 decision-id 概念再穿过 confirmer
-路径 stamp（该 seam 现无 span，与本轮四 id 不同源，留作独立切片）；`runtime-checkup`
-的 hook/orphan 评估器仍为纯库尚未喂真实统计
-（doctor 现接了 agenda + 指令文件 + 插件坏 manifest/未 consent；hook 失败·熔断统计与
-LSP 活性属运行时态，doctor 静态跑不到）；`gen-cli-reference` 未纳入 `package.json` 脚本
-/CI drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；
-`/doctor` 的 MCP schema 成本、session hash/mirror 加密/保留策略检查未做。
+**已接线（2026-07-13，`permission.decision_id` — 统一 id 集收口 5/5）**：`executeTool`
+对**被门拦的**工具（deny / ask-fail / host-block / sandbox）返回 `{error, policy}`——
+allow 路径的工具直接执行无独立决定。`agent.tool` span 的 `onResult` 现从已浮出的
+`r.policy` 派生 `permission.decision_id`（纯函数 `permissionDecisionId(callId, policy)` =
+`<tool_use.id>:perm:<via|decision>`，确定性无时钟/RNG，故持 tool-result 的 policy +
+tool_call_id 的消费方可重算）+ stamp 低基数 `permission.decision`（allow-list META key）。
+**不改权限热路径**（只读既有 policy 字段），仅在真发生门决定时 stamp（allow 路径无
+id）。测试：`agent-core-telemetry.test.js` +2（settings deny → `call-…:perm:settings` +
+`permission.decision=deny` + is_error / 普通 allow 路径两字段全 undefined）。至此
+`session/turn/prompt/tool_use/agent/parent_agent/workflow.run_id/permission.decision_id/
+checkpoint.id` 九个 id 全部在真实 seam 落地。
+
+**仍欠**：`runtime-checkup` 的 hook/orphan 评估器仍为纯库尚未喂真实统计——**经核实**
+hook 熔断/失败/时延状态只在 `hook-manager.js`/`async-hook-supervisor.cjs` 内存态、无落盘，
+MCP 工具 schema 也无磁盘缓存，故静态 `cc doctor` 进程读不到（喂真数据需先建持久化层，属
+独立功能非接线收尾）；`gen-cli-reference` 未纳入 `package.json` 脚本/CI drift-gate，也未生成
+committed 参考文档（刻意留作工具，避免维护漂移义务）；`/doctor` 的 MCP schema 成本需活
+连接、session `mirror`/保留策略在本仓非既有特性（造检查会违反"先查证"原则），均需新基建
+而非接线，留待产品决策。
 
 ## 不建议优先复制
 

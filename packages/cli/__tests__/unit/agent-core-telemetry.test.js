@@ -303,6 +303,83 @@ describe("agent-core telemetry spans", () => {
     expect(toolSpan.attributes["tool_use.id"]).toBe("call-write-1");
   });
 
+  it("stamps permission.decision_id + permission.decision on a gated (denied) tool span", async () => {
+    fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [readCall("call-denied-9", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "read a.txt" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+        // settings deny rule → executeTool returns {error, policy:{decision:"deny",via:"settings"}}
+        permissionRules: { deny: ["Read"] },
+      }),
+    );
+
+    const toolSpan = recorder.spans().find((s) => s.name === "agent.tool");
+    // The gated decision is identified and low-cardinality-labeled on the span.
+    expect(toolSpan.attributes["permission.decision"]).toBe("deny");
+    // decision_id is derived from the tool_use id + gate (recomputable).
+    expect(toolSpan.attributes["permission.decision_id"]).toBe(
+      "call-denied-9:perm:settings",
+    );
+    // ...and the span is flagged an error (the denial surfaced as {error}).
+    expect(toolSpan.attributes["tool.is_error"]).toBe(true);
+  });
+
+  it("does NOT stamp permission.decision_id on an ordinary (allowed) tool span", async () => {
+    fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [readCall("r1", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "read a.txt" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+      }),
+    );
+    const toolSpan = recorder.spans().find((s) => s.name === "agent.tool");
+    // Allow-path tool executed with no distinct decision → no permission ids.
+    expect(toolSpan.attributes["permission.decision_id"]).toBeUndefined();
+    expect(toolSpan.attributes["permission.decision"]).toBeUndefined();
+  });
+
   it("stamps content.response (model) + content.tool_arguments (tool) only when --otlp-content is opted in", async () => {
     fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
     let n = 0;

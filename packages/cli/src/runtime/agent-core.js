@@ -6405,6 +6405,22 @@ function extractInitialPromptText(messages) {
   return "";
 }
 
+/**
+ * Stable id for a permission GATE decision, so a denied/gated tool span can be
+ * correlated with the decision that blocked it. Only gated results carry a
+ * `policy` (allow-path tools execute with no distinct decision), so this returns
+ * null when there's nothing to identify. Deterministic (call id + gate) — no
+ * clock/RNG — so a consumer holding the tool-result's policy + tool_call_id can
+ * recompute it. Not exported (no shim-parity impact) — only the telemetry seam
+ * uses it.
+ */
+function permissionDecisionId(callId, policy) {
+  if (!policy || typeof policy !== "object" || !policy.decision) return null;
+  const gate = policy.via || policy.decision;
+  const base = callId || "call";
+  return `${base}:perm:${gate}`;
+}
+
 export async function* agentLoop(messages, options) {
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
@@ -7249,6 +7265,34 @@ export async function* agentLoop(messages, options) {
               "tool.is_error",
               !!(r && typeof r === "object" && r.error),
             );
+            // permission.decision_id (P2): a GATED tool result carries a
+            // `policy` (deny / ask-fail / host-block / sandbox); allow-path
+            // tools execute with no distinct decision. Stamp a stable id
+            // (derived from the call + gate, so it's recomputable from the
+            // tool-result's policy + tool_call_id) plus the low-cardinality
+            // decision, letting a blocked tool span be tied to its decision.
+            const decId =
+              r && typeof r === "object"
+                ? permissionDecisionId(call.id, r.policy)
+                : null;
+            if (decId) {
+              const permAttrs = buildTelemetryAttributes({
+                decisionId: decId,
+                "permission.decision": r.policy.decision,
+              });
+              if (permAttrs["permission.decision_id"]) {
+                span.setAttribute(
+                  "permission.decision_id",
+                  permAttrs["permission.decision_id"],
+                );
+              }
+              if (permAttrs["permission.decision"]) {
+                span.setAttribute(
+                  "permission.decision",
+                  permAttrs["permission.decision"],
+                );
+              }
+            }
           },
           "tool_error",
         );
