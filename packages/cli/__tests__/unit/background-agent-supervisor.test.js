@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -29,6 +35,65 @@ const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalKillTree = _deps.killProcessTree;
 
+// Kill a single recorded pid's whole tree. The real-launch tests here spawn a
+// DETACHED worker (its own process group on POSIX) that in turn spawns the
+// agent grandchild — a live grandchild left running after the test survives as
+// an orphan `node` process. Under the forks pool that orphan outlives the
+// vitest worker and trips its terminate deadline ("[vitest-pool]: Timeout
+// terminating forks worker … / Worker exited unexpectedly" — the POSIX-only
+// unit shard flake; GitHub's post-job "Cleaning up orphan processes" was
+// reaping 6 of these, but only AFTER the shard had already gone red).
+function reapTree(pid) {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0) return;
+  if (target === process.pid) return; // never kill the vitest worker itself
+  try {
+    if (process.platform === "win32") {
+      originalSpawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
+        windowsHide: true,
+      });
+    } else {
+      // Detached child is a group leader → the negative pid takes the worker
+      // AND the agent it spawned in one shot; the direct kill is the fallback
+      // for a child that never got its own group.
+      try {
+        process.kill(-target, "SIGKILL");
+      } catch {
+        /* no such group */
+      }
+      try {
+        process.kill(target, "SIGKILL");
+      } catch {
+        /* already gone */
+      }
+    }
+  } catch {
+    /* best-effort reap */
+  }
+}
+
+// Reap every process a test launched, reading RAW state files directly — never
+// via effectiveBackgroundAgentState, whose identity-reclaim path could itself
+// SIGKILL process.pid in the pid-reuse fixtures (which record pid=process.pid).
+function reapLaunchedAgents(stateDir) {
+  let files;
+  try {
+    files = readdirSync(stateDir);
+  } catch {
+    return; // dir already gone
+  }
+  for (const name of files) {
+    if (!name.endsWith(".json") || name.includes(".job.")) continue;
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(join(stateDir, name), "utf8"));
+    } catch {
+      continue;
+    }
+    for (const pid of [raw.workerPid, raw.agentPid, raw.pid]) reapTree(pid);
+  }
+}
+
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
@@ -43,6 +108,9 @@ afterEach(async () => {
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
   _deps.killProcessTree = originalKillTree;
+  // Reap real detached worker+agent trees BEFORE removing the state dir (raw
+  // state files carry the pids) so no orphan `node` process outlives the test.
+  reapLaunchedAgents(dir);
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
