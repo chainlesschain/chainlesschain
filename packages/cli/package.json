@@ -20,6 +20,8 @@
     "lint": "eslint src/ bin/ --ext .js",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
     "sync-skill-packs": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; const r = await generateCliPacks({ force: false }); console.log('Skill packs synced:', r.generated.length, 'generated,', r.skipped.length, 'skipped');\"",
+    "docs:cli-reference": "node scripts/gen-cli-reference.mjs --out ../../docs/cli/CLI_REFERENCE.generated.md",
+    "docs:cli-reference:check": "node scripts/gen-cli-reference.mjs --check ../../docs/cli/CLI_REFERENCE.generated.md",
     "postinstall": "node scripts/postinstall.mjs",
     "build:web-panel": "node scripts/build-web-panel.mjs",
     "build:web-panel:force": "node scripts/build-web-panel.mjs --force",

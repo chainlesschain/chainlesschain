@@ -1,0 +1,210 @@
+# CLI Reference (generated)
+
+<!-- Generated from command-manifest.json + AGENT_TOOLS. Do not edit by hand. -->
+
+## Commands (175)
+
+- `a2a` — A2A Protocol — agent-to-agent communication
+- `activitypub` (aliases: ap) — ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce
+- `agenda` — Fire agent-scheduled wakeups / crons / monitors (persisted by the `schedule` tool)
+- `agent` (aliases: a) — Start an agentic AI session (reads/writes files, runs commands)
+- `agent-network` (aliases: anet) — Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing
+- `agents` — User-defined subagents (.claude/agents/*.md)
+- `android` — Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)
+- `artifacts` (aliases: artifact) — Browse agent-published deliverables (reports/patches/screenshots; see the publish_artifact tool)
+- `ask` — Ask a question to the AI (single-shot)
+- `attach` — Attach to a background agent — interactive when its session transport is available, log stream otherwise
+- `audit` — Audit log — security event tracking and compliance
+- `auth` — RBAC permission management
+- `auto` — Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)
+- `auto-mode` (aliases: automode) — Inspect auto permission-mode defaults and effective config
+- `autoagent` — Autonomous agent V2 governance
+- `automation` — Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)
+- `batch` — Split a large change into independent units, run each in its own git worktree in parallel, and aggregate results
+- `bi` — Business intelligence — queries, dashboards, reports, analytics
+- `bm25` — BM25 Search V2 governance (in-memory, CLI v0.143.0)
+- `browse` — Headless browser automation and web scraping
+- `ccron` — Cowork Cron V2 governance (in-memory, CLI v0.143.0)
+- `changelog` (aliases: whatsnew) — Show cc CLI version update notes (npm package changelog)
+- `chat` — Start an interactive AI chat session
+- `checkpoint` — Snapshot / rewind file state (git-plumbing, copy fallback)
+- `cli-anything` — CLI-Anything — discover and register Agent-native CLI tools as skills
+- `cloud` — Self-hosted cloud handoff — offload a task to a private runner (bundle → run → reflow)
+- `code-intel` (aliases: ci) — Semantic code navigation via LSP (definition/references/symbols/diagnostics)
+- `codegen` — Code generation agent (Phase 86)
+- `collab` — Collaboration governance — decisions, voting, autonomy levels, task assignment
+- `command` (aliases: cmd) — User-defined slash-command macros (.claude/commands/*.md)
+- `compact` — Compact a stored session's history (offline; persists for --resume)
+- `complete` — Inline code completion (FIM) for IDE ghost-text: reads {prefix,suffix,language} JSON on stdin, prints the code to insert.
+- `compliance` — Compliance management — evidence, reports, scanning, policies
+- `compt` — Compression Telemetry V2 governance (in-memory, CLI v0.143.0)
+- `config` — Manage ChainlessChain configuration
+- `consol` — Session Consolidator V2 governance (in-memory, CLI v0.134.0)
+- `context` — Context-window token breakdown for a session (Claude-Code /context parity)
+- `cost` — Estimated $ cost from recorded token usage (per-session or global)
+- `cowork` — Multi-agent collaboration (debate review, A/B comparison, analysis)
+- `crosschain` — Cross-chain interoperability (Phase 89)
+- `daemon` — Inspect and stop background agent supervisor sessions
+- `dao` — DAO Governance v2 — proposals, voting, delegation, treasury
+- `db` — Database management
+- `dbevo` — Database evolution & migration framework (Phase 80)
+- `decrypt` — Decrypt an encrypted file
+- `dev` — Autonomous developer — dev sessions, ADRs, code review, refactor catalog
+- `did` — Decentralized Identity (DID) management
+- `did-v2` (aliases: didv2) — Decentralized Identity 2.0 (Phase 55) — W3C DID v2.0 + VP + social recovery + roaming
+- `dlp` — Data Loss Prevention — scanning, incidents, policies
+- `doctor` (aliases: checkup) — Diagnose your ChainlessChain environment (alias: checkup)
+- `economy` — Agent economy — payments, channels, marketplace, NFTs
+- `ecosystem` (aliases: eco) — Plugin Ecosystem 2.0 (Phase 64) — registry + deps + install + AI review + publish + revenue + recommend
+- `encrypt` — File encryption and database encryption management
+- `eval` — Run the reliability eval suite (self-checking coding tasks) and report the task-success rate
+- `evolution` — Self-evolving AI system — capabilities, learning, diagnosis
+- `evomap` — EvoMap — gene exchange protocol for agent capabilities
+- `execbe` — Execution backend V2 governance
+- `export` — Export knowledge base to external formats
+- `federation` — Federation hardening system (Phase 58)
+- `fflag` — Feature Flags V2 governance (in-memory, CLI v0.143.0)
+- `fusion` — Protocol fusion & AI social (Phase 72-73)
+- `git` — Git integration for knowledge base versioning
+- `goal` — Cross-session persistent goals / OKRs
+- `governance` — Community governance — proposals, voting, impact analysis, prediction
+- `hardening` — Security hardening — baselines, audits, regression detection
+- `hmemory` — Hierarchical Memory 2.0 — four-layer memory system
+- `hook` — Lifecycle hook management
+- `hub` — Personal Data Hub — local vault + adapters + AnalysisEngine on this machine
+- `ide` — Inspect IDE bridge discovery (editor MCP server auto-connect)
+- `import` — Import knowledge from external sources
+- `incentive` — Token incentive — ledger accounts, transfers, contributions, leaderboard
+- `inference` — Decentralized inference network (Phase 67)
+- `infra` — Decentralized infrastructure (Phase 74-75)
+- `init` — Inventory the current folder into a cc.md project-memory file (default); pass -t/--template to scaffold a .chainlesschain/ project instead
+- `insights` — Analyze a session: turns, tools, errors, duration, tokens + cost
+- `instinct` — Instinct learning — learned user preferences
+- `ipfs` — IPFS decentralized storage (Phase 17)
+- `itbudget` — Iteration Budget V2 governance
+- `kg` — Knowledge graph — entities, relations, multi-hop reasoning, stats
+- `learning` — Autonomous learning loop — trajectories, reflection, skill synthesis
+- `llm` — LLM provider management
+- `logs` — Print recent output from a background agent
+- `loop` — Repeatedly run an agent prompt or `-- <command>` on a fixed interval
+- `lowcode` — Low-code application platform
+- `marketplace` — Skill marketplace — publish skill services, record invocations, view stats
+- `matrix` — Matrix bridge — rooms, messaging, E2EE
+- `mcp` — MCP server management and tool execution
+- `mcpscaf` — MCP Scaffold V2 governance
+- `meminj` — Memory Injection V2 governance
+- `memory` — Persistent memory and daily notes
+- `mtc` — Merkle Tree Certificates — batch issuance & verification
+- `multimodal` (aliases: mm) — Multimodal collaboration (Phase 27)
+- `multisig` — M-of-N multi-signature proposals beyond MTC publisher_signature
+- `nlprog` — Natural language programming system (Phase 28)
+- `nostr` — Nostr bridge — relays, events, keypairs, DID mapping
+- `note` — Note and knowledge base management
+- `notification` (aliases: notif) — Push notifications to paired mobile devices
+- `ops` — Autonomous operations / AIOps
+- `orchestrate` — Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify
+- `orchgov` — Orchestrator V2 governance
+- `org` — Organization, team, and approval management
+- `output-style` (aliases: output-styles) — List / show agent output-style personas
+- `p2p` — Peer-to-peer messaging and device management
+- `pack` — Bundle the current project environment into a standalone executable
+- `pair` — LAN pairing utilities (preflight diagnostics + pairing token issuance)
+- `pdfp` — PDF Parser V2 governance (in-memory, CLI v0.143.0)
+- `pdh` — Inspect PDH bridge discovery (Android personal-data MCP server auto-connect)
+- `perception` — Multimodal perception engine (Phase 84)
+- `perf` — Performance monitoring & auto-tuning (Phase 22)
+- `perm` — Permission Engine V2 governance
+- `permissions` (aliases: perms) — Inspect / dry-run / edit .claude/settings.json permission rules
+- `permmem` — Permanent memory V2 — pin maturity + retention jobs
+- `persona` — Manage project AI persona configuration
+- `pipeline` (aliases: pipe) — Development Pipeline Orchestration (Phase 26) — 7-stage AI dev pipeline + gates + deploys
+- `planmode` — Plan Mode V2 governance
+- `plugin` — Plugin and marketplace management
+- `pqc` — Post-quantum cryptography — key management and migration
+- `privacy` — Privacy computing (Phase 91)
+- `project` — Manage desktop projects (shared SQLite, syncs to mobile via Phase 3d)
+- `promcomp` — Prompt Compressor V2 governance (in-memory, CLI v0.143.0)
+- `quantize` — Model quantization system (Phase 20)
+- `rcache` — Response cache V2 — profile maturity + refresh jobs
+- `recommend` — Smart content recommendation (Phase 48)
+- `remote-control` (aliases: rc) — Unified remote-control entry — pair mobile/web devices to drive this machine's agent sessions
+- `reputation` (aliases: rep) — Reputation optimizer — observations, decay, anomaly detection, Bayesian optimization
+- `review` — Diff-first code review of your changes (Claude-Code /code-review parity)
+- `router` — Agent router V2 governance
+- `routine` — Named scheduled/triggered agent tasks with run history (cron/once/webhook/github)
+- `runtime` — Universal application runtime (Phase 63)
+- `sandbox` — Security sandbox v2 — isolated agent execution environments
+- `scim` — SCIM provisioning — user management, connectors, sync
+- `search` — Search knowledge base (BM25 + vector hybrid)
+- `serve` — Start WebSocket server for remote CLI access
+- `services` — Manage Docker backend services
+- `seshhook` — Session Hooks V2 governance
+- `seshsearch` — Session Search V2 governance
+- `seshtail` — Session Tail V2 governance
+- `seshu` — Session Usage V2 governance
+- `session` — Conversation session management
+- `setup` — Interactive setup wizard for ChainlessChain
+- `sganal` — Social Graph Analytics V2 governance (in-memory, CLI v0.143.0)
+- `siem` — SIEM integration — log export to external targets
+- `skill` — Manage and run AI skills (multi-layer: bundled + global + project)
+- `sla` — Cross-org SLA management — contracts, metrics, violations, compensation
+- `slotfill` — Slot Filler V2 governance
+- `social` — Social platform — contacts, friends, posts, chat
+- `sso` — SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)
+- `start` — Launch ChainlessChain desktop application
+- `status` — Show status of ChainlessChain app and services
+- `statusline` (aliases: status-line) — Preview / show the .claude/settings.json statusLine
+- `stop` — Stop ChainlessChain
+- `stream` — Stream a single prompt through session-core StreamRouter (NDJSON on stdout)
+- `stress` — Federation stress testing — load simulation, bottleneck & capacity planning
+- `subagent` — Sub-agent registry V2 governance
+- `svccont` — Service Container V2 governance
+- `sync` — File and knowledge synchronization
+- `team` — Run a declared task graph across N teammates (exclusive leases + dependency DAG)
+- `tech` — Tech Learning Engine — stack analysis, anti-pattern detection, practice store
+- `tenant` — Multi-tenant SaaS — tenants, usage metering, subscriptions, quotas
+- `terminal-setup` — Bind Shift+Enter to a REPL newline (Claude-Code parity)
+- `terraform` — Terraform IaC — workspace and run management
+- `tms` — Task Model Selector V2 governance
+- `todo` — Todo manager V2 governance
+- `tokens` — LLM token usage tracking and response cache
+- `topiccls` — Topic Classifier V2 governance
+- `trust` — Trust & security (Phase 68-71)
+- `ui` — Start a local web management UI (project or global mode)
+- `update` — Check for and install updates
+- `uprof` — User Profile V2 governance
+- `vcheck` — Version Checker V2 governance (in-memory, CLI v0.143.0)
+- `video` — Video editing agent — long footage + music → montage (CutClaw-inspired)
+- `wallet` — Digital wallet and asset management
+- `webfetch` — Web Fetch V2 governance
+- `workflow` — Workflow engine — create, run, and manage DAG-based workflows
+- `zkp` — Zero-knowledge proof engine — circuits, proofs, identity
+
+## Agent tools (26)
+
+- `ask_user_question`
+- `browser_act`
+- `browser_state`
+- `check_shell`
+- `code_intelligence`
+- `edit_file`
+- `edit_file_hashed`
+- `git`
+- `list_dir`
+- `list_skills`
+- `notebook_edit`
+- `notify`
+- `publish_artifact`
+- `read_file`
+- `run_code`
+- `run_shell`
+- `run_skill`
+- `schedule`
+- `search_files`
+- `search_sessions`
+- `slash_command`
+- `spawn_sub_agent`
+- `todo_write`
+- `web_fetch`
+- `web_search`
+- `write_file`

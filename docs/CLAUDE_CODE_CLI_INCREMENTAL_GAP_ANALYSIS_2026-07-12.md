@@ -1480,11 +1480,20 @@ runtime section err / 可用引擎 → info 无误报）。
 多定义 id 一条 warn 列出各层。测试：`runtime-checkup.test.js` +4（跨层重复/同层重复/唯一
 干净/空与畸形）+ `doctor-checkup.test.js` +2（注入重复 → runtime warn / 唯一 → 无误报）。
 
+**已接线（2026-07-13，文档：CLI 参考生成器纳入 npm 脚本 + committed 参考）**：P2 "文档"
+支柱落地——`gen-cli-reference.mjs`（权威源 `command-manifest.json` 175 命令 + `AGENT_TOOLS`
+26 工具）此前只是孤立脚本。现 `package.json` 加两脚本：`npm run docs:cli-reference`（重生
+`CLI_REFERENCE.generated.md`）+ `npm run docs:cli-reference:check`（对该文件跑漂移检测，退出
+1 on drift）；并 commit 生成的 `CLI_REFERENCE.generated.md`（175 命令 + 26 工具，含"Do not
+edit by hand"头）作为可浏览参考。**刻意不接 CI drift-gate**（避免 fail-build 维护义务——
+仍为**产品决策**，非本轮范围）；参考文档漂移时 `npm run docs:cli-reference` 一键重生（自动
+产物非手维护）。round-trip 已验证（生成后 `:check` 退出 0 无漂移）。
+
 **仍欠**：orphan 进程评估器（`checkOrphanProcesses`）仍需真实进程表快照喂入（属运行时态；
-背景 agent 孤儿已由 `backgroundSection` 覆盖）；`gen-cli-reference` 未纳入 `package.json`
-脚本/CI drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；
-`/doctor` 的 MCP schema 成本需活连接、session `mirror`/保留策略在本仓非既有特性（造检查会
-违反"先查证"原则），均需新基建而非接线，留待产品决策。
+背景 agent 孤儿已由 `backgroundSection` 覆盖，背景 shell 孤儿仅硬崩溃遗留、价值低且需
+agent-core 热路径 I/O，未做）；`gen-cli-reference` 的 **CI drift-gate** 仍刻意不接（避免
+维护漂移义务，产品决策）；`/doctor` 的 MCP schema 成本需活连接、session `mirror`/保留策略在
+本仓非既有特性（造检查会违反"先查证"原则），均需新基建而非接线，留待产品决策。
 
 ## 不建议优先复制
 
