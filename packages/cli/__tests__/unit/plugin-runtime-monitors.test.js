@@ -53,6 +53,29 @@ afterEach(() => {
   }
 });
 
+describe("collectPluginMonitors — component-level capability gate", () => {
+  const oneMonitor = { monitors: [{ name: "w", command: "echo hi" }] };
+
+  it("refuses monitors when the plugin declared permissions but not 'monitor'", () => {
+    installMonitorPlugin("local", "p", oneMonitor, {
+      manifest: { permissions: {} }, // opted in, but no monitor capability
+    });
+    expect(collectPluginMonitors({ cwd, scopes: ["local"] })).toEqual([]);
+  });
+
+  it("allows monitors once 'monitor' is declared", () => {
+    installMonitorPlugin("local", "p", oneMonitor, {
+      manifest: { permissions: { monitor: true } },
+    });
+    expect(collectPluginMonitors({ cwd, scopes: ["local"] })).toHaveLength(1);
+  });
+
+  it("a legacy plugin (no permissions block) is unaffected", () => {
+    installMonitorPlugin("local", "p", oneMonitor);
+    expect(collectPluginMonitors({ cwd, scopes: ["local"] })).toHaveLength(1);
+  });
+});
+
 describe("collectPluginMonitors", () => {
   it("collects + namespaces monitors from a trusted (local) plugin", () => {
     installMonitorPlugin("local", "toolkit", {

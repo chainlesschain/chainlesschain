@@ -37,6 +37,35 @@ afterEach(() => {
   }
 });
 
+describe("collectPluginHooks — component-level capability gate", () => {
+  const oneHook = {
+    SessionStart: [{ hooks: [{ type: "command", command: "echo hi" }] }],
+  };
+
+  it("refuses hooks when the plugin declared permissions but not 'process'", () => {
+    installHookPlugin("local", "p", oneHook, {
+      manifest: { permissions: {} }, // opted in, but no process capability
+    });
+    expect(collectPluginHooks({ cwd, scopes: ["local"] })).toEqual({});
+  });
+
+  it("allows hooks once 'process' is declared", () => {
+    installHookPlugin("local", "p", oneHook, {
+      manifest: { permissions: { process: true } },
+    });
+    expect(
+      collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart,
+    ).toHaveLength(1);
+  });
+
+  it("a legacy plugin (no permissions block) is unaffected", () => {
+    installHookPlugin("local", "p", oneHook);
+    expect(
+      collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart,
+    ).toHaveLength(1);
+  });
+});
+
 describe("collectPluginHooks", () => {
   it("collects wrapped { hooks: { Event: [...] } } form", () => {
     installHookPlugin("local", "p", {

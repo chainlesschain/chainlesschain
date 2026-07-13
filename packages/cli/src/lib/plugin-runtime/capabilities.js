@@ -220,6 +220,25 @@ export function auditDeclaredCapabilities(manifest) {
   return findings;
 }
 
+/**
+ * Component-level capability denial. A plugin that opted into the capability
+ * model (declared a `permissions` block, so `capabilitiesDeclared === true`) but
+ * ships a component whose required capability it did NOT declare should have that
+ * single component refused — not just flagged by the whole-plugin consent notice.
+ * `capabilityNames` is the set of capability names whose absence denies this
+ * component (e.g. `["process"]` for a hook/bin/lsp, `["monitor"]` for a monitor,
+ * `["mcp","network"]` for an MCP server). Legacy plugins (no permissions block)
+ * are unrestricted by design and never denied. Returns `{reason}` or null.
+ */
+export function componentCapabilityDenial(manifest, capabilityNames) {
+  if (!manifest || manifest.capabilitiesDeclared !== true) return null;
+  const wanted = new Set(capabilityNames || []);
+  const finding = auditDeclaredCapabilities(manifest).find((f) =>
+    wanted.has(f.capability),
+  );
+  return finding ? { reason: finding.reason } : null;
+}
+
 // ─── options schema ─────────────────────────────────────────────────────────
 
 export const OPTION_TYPES = Object.freeze([

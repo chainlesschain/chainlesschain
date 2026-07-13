@@ -17,8 +17,35 @@
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
+import { componentCapabilityDenial } from "./capabilities.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
+
+// One-time stderr notice when a plugin's hooks are refused at the COMPONENT
+// level because the plugin opted into the capability model but did not declare
+// the `process` capability its shell hooks need. Distinct from the trust gate:
+// these plugins ARE trusted, but their hook component is denied.
+const _capabilityDenied = new Set();
+function warnHookCapabilityDeniedOnce(entries) {
+  if (!entries || entries.length === 0) return;
+  if (_capabilityDenied.has("hook-capability")) return;
+  _capabilityDenied.add("hook-capability");
+  const list = entries.map((e) => `${e.name} (${e.reason})`).join("; ");
+  try {
+    process.stderr.write(
+      `[plugins] refused hook(s) from plugin(s) that declared a permissions ` +
+        `block but did not declare the 'process' capability their hooks need: ${list}\n` +
+        `          add 'process' to the plugin's permissions block to enable them.\n`,
+    );
+  } catch {
+    /* stderr notice is best-effort */
+  }
+}
+
+/** Test hook: reset the one-time capability-denied warning guard. */
+export function _resetHookWarnings() {
+  _capabilityDenied.clear();
+}
 
 /** Accept either `{ hooks: {Event:[...]} }` (plugin wrap) or `{Event:[...]}`. */
 function normalizeHookMap(parsed) {
@@ -57,10 +84,19 @@ export function collectPluginHooks(opts = {}) {
     "hooks",
   );
   const merged = {};
+  const denied = [];
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const h = p.manifest.components?.hooks;
     if (!h) continue;
+    // Component-level capability gate: a plugin that declared a permissions
+    // block but under-declared the `process` capability its shell hooks need
+    // gets its hooks refused here (mirrors the MCP collector's denial).
+    const denial = componentCapabilityDenial(p.manifest, ["process"]);
+    if (denial) {
+      denied.push({ name: p.name, reason: denial.reason });
+      continue;
+    }
     let parsed;
     if (h.absPath) {
       try {
@@ -89,6 +125,7 @@ export function collectPluginHooks(opts = {}) {
       merged[event] = (merged[event] || []).concat(entries);
     }
   }
+  warnHookCapabilityDeniedOnce(denied);
   return merged;
 }
 

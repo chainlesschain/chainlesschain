@@ -21,10 +21,37 @@
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
+import { componentCapabilityDenial } from "./capabilities.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
 const VALID_MODES = new Set(["interval", "longRunning"]);
+
+// One-time stderr notice when a plugin's monitors are refused at the COMPONENT
+// level because the plugin opted into the capability model but did not declare
+// the `monitor` capability. Distinct from the trust gate: these plugins ARE
+// trusted, but their monitor component is denied.
+const _capabilityDenied = new Set();
+function warnMonitorCapabilityDeniedOnce(entries) {
+  if (!entries || entries.length === 0) return;
+  if (_capabilityDenied.has("monitor-capability")) return;
+  _capabilityDenied.add("monitor-capability");
+  const list = entries.map((e) => `${e.name} (${e.reason})`).join("; ");
+  try {
+    process.stderr.write(
+      `[plugins] refused monitor(s) from plugin(s) that declared a permissions ` +
+        `block but did not declare the 'monitor' capability: ${list}\n` +
+        `          add 'monitor' to the plugin's permissions block to enable them.\n`,
+    );
+  } catch {
+    /* stderr notice is best-effort */
+  }
+}
+
+/** Test hook: reset the one-time capability-denied warning guard. */
+export function _resetMonitorWarnings() {
+  _capabilityDenied.clear();
+}
 
 /** Normalize one raw monitor entry into a validated descriptor, or null. */
 function normalizeMonitor(plugin, raw) {
@@ -76,10 +103,19 @@ export function collectPluginMonitors(opts = {}) {
     "monitors",
   );
   const out = [];
+  const denied = [];
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const m = p.manifest.components?.monitors;
     if (!m) continue;
+    // Component-level capability gate: a plugin that declared a permissions
+    // block but did not declare the `monitor` capability gets its monitors
+    // refused here (mirrors the MCP collector's denial).
+    const denial = componentCapabilityDenial(p.manifest, ["monitor"]);
+    if (denial) {
+      denied.push({ name: p.name, reason: denial.reason });
+      continue;
+    }
     let parsed;
     if (m.absPath) {
       try {
@@ -112,5 +148,6 @@ export function collectPluginMonitors(opts = {}) {
       if (desc) out.push(desc);
     }
   }
+  warnMonitorCapabilityDeniedOnce(denied);
   return out;
 }

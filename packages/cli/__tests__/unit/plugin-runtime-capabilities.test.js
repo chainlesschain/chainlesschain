@@ -10,6 +10,7 @@ import {
   consentRequiredForUpgrade,
   describeCapabilities,
   auditDeclaredCapabilities,
+  componentCapabilityDenial,
   normalizeOptionsSchema,
   optionDefaults,
   validateOptions,
@@ -162,6 +163,43 @@ describe("auditDeclaredCapabilities (declared-vs-actual)", () => {
       },
     };
     expect(auditDeclaredCapabilities(manifest)).toEqual([]);
+  });
+});
+
+describe("componentCapabilityDenial (component-level enforcement)", () => {
+  const hookPlugin = (permissions) => ({
+    capabilitiesDeclared: true,
+    capabilities: normalizeCapabilities(permissions),
+    components: {
+      hooks: { count: 1, inline: true },
+      mcp: null,
+      bin: [],
+      lsp: [],
+      monitors: null,
+    },
+  });
+
+  it("denies a component whose required capability was not declared", () => {
+    const d = componentCapabilityDenial(hookPlugin({}), ["process"]);
+    expect(d).not.toBeNull();
+    expect(d.reason).toMatch(/process/);
+  });
+
+  it("allows the component once the capability is declared", () => {
+    expect(
+      componentCapabilityDenial(hookPlugin({ process: true }), ["process"]),
+    ).toBeNull();
+  });
+
+  it("returns null for a legacy plugin that never opted in", () => {
+    const legacy = { ...hookPlugin({}), capabilitiesDeclared: false };
+    expect(componentCapabilityDenial(legacy, ["process"])).toBeNull();
+    expect(componentCapabilityDenial(null, ["process"])).toBeNull();
+  });
+
+  it("ignores findings for capabilities the caller did not ask about", () => {
+    // ships hooks (→ a 'process' finding) but we only ask about 'monitor'
+    expect(componentCapabilityDenial(hookPlugin({}), ["monitor"])).toBeNull();
   });
 });
 
