@@ -393,6 +393,14 @@ Auto-fix 边界：
 - 参数、策略或目标变化后旧审批立即失效。
 - 离线重放、多卡并发、超时和重复提交全部 Fail-closed。
 
+**已落地（2026-07-13 续，跨设备 Operation Fingerprint 纯核）**：此前审批指纹被拆成两套不相交机制——[[operation-fingerprint.js]] 的 `operationFingerprint` 只覆盖 tool+params，agent-authority.js 的 `approvalBindingDigest` 只覆盖 toolCallId+args+松散 rule 标签，**目标环境 / Workspace / Session / 有效期 / 真策略版本全缺**，一个陈旧审批在 env/workspace/session/策略版本变更后仍能生效。本节四条现补齐为 [[operation-fingerprint.js]] 的**追加**函数（不动旧三函数，向后兼容）：
+
+- **全元组指纹** `computeOperationFingerprint({toolName, params, targetEnv, workspace, session, policyVersion, notBefore, notAfter})`（`opf_`+40hex，与 32hex legacy 不混淆）——覆盖全部七维；`operationDescriptorKey` 是**去有效期**的逻辑键（同一操作、不同窗口逻辑键相同）。任一维（含参数/策略/目标）变→指纹变→旧审批失效（第 1、3 条）。
+- **可读摘要 + 短标识分离**：`summarizeOperation`（**绝不回显参数值**，只列 param key 名 + 目标坐标 ws/env/sess/pol，防 shell 命令/token 泄漏）+ `shortOperationId`（`XXXX-XXXX`，操作员在设备与终端肉眼比对同一卡）——协议仍携带完整指纹（第 2 条）。
+- **Fail-closed 解析器** `resolveOperationApproval(pending, resolution, {now})` + `OperationApprovalRegistry`（注入时钟纯核）：`fingerprintsMatch` 常数时间比对（离线重放不同操作→`fingerprint-mismatch`）、有效期窗口外→`not-yet-valid`/`expired`（超时）、设了窗口却无时钟→`no-clock`（fail-closed）、已解析→`duplicate`（重复提交）、被新卡取代→`superseded`（多卡并发单赢家：`issue` 同逻辑键再发即让旧卡失活）。第 4 条四种全 fail-closed。
+
+测试：`operation-fingerprint.test.js` 27（原 13 + §8.2 新 14：全元组确定性/七维敏感/窗口敏感/逻辑键窗口无关 + 短标识+摘要 secret-safe + 解析器六种拒因 + registry 单赢家/at-most-once/未知/过期）；依赖它的 `remote-approval-fingerprint.test.js` 4 绿（旧函数零回归）。纯核尚未接进 remote-approval-bridge `permission.request`/`approval.resolve` 与 headless-stream 绑定 seam（把 `policyDigest` 升级为真 policyVersion + 发全元组指纹是后续接线），故默认路径零影响。
+
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:36,52-54`。
 
 ### 8.3 企业发布与可访问性
