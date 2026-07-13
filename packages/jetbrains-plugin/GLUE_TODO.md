@@ -24,6 +24,26 @@ implemented and build-verified** (0.4.0).
 > the pure layers are no longer a manual-javac-only check. The runIde GUI gate
 > above still applies to the SDK glue.
 
+> 🧭 **Status reconciliation (2026-07-13) — two independent axes, do not conflate:**
+> This file is a working snapshot frozen at ~**0.4.55** (2026-07-11); its version
+> labels have NOT been updated for **0.4.57 / 0.4.58**. Read the section titles
+> with two separate lenses:
+>
+> - **是否发布 (shipped)** — every `(unreleased)` code batch below (Managed CLI,
+>   PSI semantic tools, Sessions Workbench, Artifacts drawer, Policy viewer,
+>   Plugin/LSP quality board, Remote/WSL Doctor, and the earlier B1–B9 / security /
+>   perf / localization / deep-link / quick-win batches) **has since shipped** in
+>   0.4.56–0.4.58 on JetBrains Marketplace. **The word `(unreleased)` in those
+>   titles is stale** — reconcile against release tags `ide-jetbrains-v0.4.5x`,
+>   not this file's own labels.
+> - **是否真实 GUI 验收 (real-IDE GUI-verified)** — this is _independent_ of
+>   shipping and mostly **still open**. "NOT yet runIde-verified" + unchecked
+>   `[ ]` glue boxes remain accurate even for shipped features (e.g. 4b diff
+>   review at 0.4.55 is **published but not GUI-verified**). The single canonical
+>   pending item for this axis is the **GUI smoke gate** at the end of this file
+>   (Remote Robot nightly — first run still PENDING); it is _not_ superseded by
+>   any release and is the mechanism meant to eventually close every open `[ ]`.
+
 ---
 
 ## ✅ Landed glue (build-verified, 0.4.0)
@@ -576,11 +596,11 @@ pipe/CLI actions appending results, zh/en bundle labels.
       snapshot (verify via `cc session show` transcript).
 - [ ] **/sessions two-step picker (runSessions + showSessionActions)** —
       `/sessions` popup rows show `id · store · status · updatedAt · title ·
-    workspace` and speed-search matches workspace; choosing a row opens
+  workspace` and speed-search matches workspace; choosing a row opens
       Resume / Rename… / Delete…. Resume = old behavior (note + next message
       resumes). Rename… input dialog → picker shows the new title on reopen
       (also for a CLI-only session). Delete… Yes/No confirm → `cc session
-    list` no longer shows it, `~/.chainlesschain/ide/session-index.json`
+  list` no longer shows it, `~/.chainlesschain/ide/session-index.json`
       entry gone, and a tab that pointed at the id loses its resume id (next
       message starts fresh, no --resume error).
 - [ ] **getActiveFile bridge tool (IdeTools + IntellijEditorFacade)** — with
@@ -611,7 +631,7 @@ pipe/CLI actions appending results, zh/en bundle labels.
 
 - [ ] **getTerminalOutput (IntellijEditorFacade + TerminalTextReader)** —
       open the integrated terminal, run a failing command (e.g. `npm run
-    nope`), then have the agent call `getTerminalOutput` → the reply lists
+  nope`), then have the agent call `getTerminalOutput` → the reply lists
       the terminal tab (name + buffer tail containing the command and its
       error). Multiple tabs → `limit` caps entries. No terminal open →
       `{terminals: []}`. Classic terminal engine gives text; the reworked
@@ -750,7 +770,7 @@ Glue-layer (needs the next pre-release runIde pass):
       regions at the on-disk original.
 - [ ] **Line-anchored note** — "Request changes…" → enter `2: rename this`:
       the agent's feedback block shows `line 2: rename this ⟪<that line's
-    text>⟫`; enter a plain note → renders as `(general)`; enter `999: x` in a
+  text>⟫`; enter a plain note → renders as `(general)`; enter `999: x` in a
       short file → arrives as a general note reading `999: x` (no fake anchor).
       Full-width `：` also anchors. Prompts render zh under the Chinese
       Language Pack (diff.requestChanges.\* keys).
@@ -905,7 +925,7 @@ Refresh button that re-gathers in place). Needs a real IDE:
       showing its source file; with a managed policy file present the
       "[managed]" badge and the active restriction lines appear.
 - [ ] **Denials.** After an agent run hits a deny rule, `cc permissions
-      recent` entries render most-recent first with tool + summary + xN
+    recent` entries render most-recent first with tool + summary + xN
       count + via:rule + mode + relative time and the reason line.
 - [ ] **Auto-mode.** With `autoMode.decisions` customized in settings the
       matrix shows the overridden decisions with source `settings`, the
@@ -939,8 +959,7 @@ real IDE:
 - [ ] **Counts.** With ≥1 runtime plugin installed the board lists each
       plugin's non-zero component counts ("skills 2 · lsp 1"); a plugin
       contributing nothing shows "(none)" + the `unused` flag.
-- [ ] **Broken.** A plugin whose manifest fails validate shows `✖ broken`
-      + the first errors; a plugin whose validate output can't be read
+- [ ] **Broken.** A plugin whose manifest fails validate shows `✖ broken` + the first errors; a plugin whose validate output can't be read
       (e.g. dir deleted behind the store) shows "validate failed: …" +
       "validity unknown" — NOT broken.
 - [ ] **LSP verdicts.** A trusted plugin with a resolvable LSP server shows
@@ -960,33 +979,34 @@ real IDE:
 Gap-analysis #12. Pure core `RemoteDoctorFixes` (three-tier classification,
 strict npm allowlist, digits-validated port extraction, .ps1 generation
 invariants, .wslconfig patch; JUnit `RemoteDoctorFixesTest` + smoke section)
-+ the RemoteDoctor `jb-remote-dev` info check are verified headless;
-`compileJava` proves the glue (fix buttons under the Diagnose Bridge report;
-`FileSaverDescriptor` + `FileChooserFactory.createSaveFileDialog(…).save(
-(VirtualFile) null, name)` and `TerminalToolWindowManager.createShellWidget`
-compile on 2024.2). Needs a real IDE:
 
-- [ ] **No-op case.** All-ok report → no fix buttons at all under the text.
-- [ ] **Apply safe fixes.** With an outdated cc (or cc off PATH) + stopped
+- the RemoteDoctor `jb-remote-dev` info check are verified headless;
+  `compileJava` proves the glue (fix buttons under the Diagnose Bridge report;
+  `FileSaverDescriptor` + `FileChooserFactory.createSaveFileDialog(…).save(
+(VirtualFile) null, name)` and `TerminalToolWindowManager.createShellWidget`
+  compile on 2024.2). Needs a real IDE:
+
+* [ ] **No-op case.** All-ok report → no fix buttons at all under the text.
+* [ ] **Apply safe fixes.** With an outdated cc (or cc off PATH) + stopped
       bridge, the button lists exactly what will run in ONE confirmation
       (npm line + restart line, zh IDE localized); Yes → the npm command
       runs in a VISIBLE "ChainlessChain Doctor" terminal tab (never hidden
       exec) and the bridge restarts via the existing service path with the
       usual restarted/failed message.
-- [ ] **Terminal fallback.** With the Terminal plugin disabled, the npm fix
+* [ ] **Terminal fallback.** With the Terminal plugin disabled, the npm fix
       degrades to "command copied to clipboard" info message instead of
       throwing.
-- [ ] **Save .ps1.** With the firewall advisory present (remote session +
+* [ ] **Save .ps1.** With the firewall advisory present (remote session +
       unverified port), the save dialog defaults to
       cc-ide-firewall-fix.ps1; the saved file opens in the editor, first
       line `#Requires -RunAsAdministrator`, `$ports = @(<real port>)`, and
       running it unelevated refuses / elevated adds the rule and a second
       run prints "already exists - skipping". The plugin itself never runs
       netsh.
-- [ ] **Copy .wslconfig patch.** Button copies exactly
+* [ ] **Copy .wslconfig patch.** Button copies exactly
       `[wsl2]\nnetworkingMode=mirrored\n` and the info message names
       %UserProfile%\.wslconfig + `wsl --shutdown`.
-- [ ] **Remote Development check.** In a JetBrains Client / remote-dev
+* [ ] **Remote Development check.** In a JetBrains Client / remote-dev
       frontend (system property `remote.development` or platform prefix
       `JetBrainsClient`), the report shows the ℹ jb-remote-dev advisory
       (install on HOST + docs link) without degrading the overall verdict;

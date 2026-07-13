@@ -303,19 +303,20 @@ Claude Code JetBrains 文档特别强调 WSL2、Remote Development、firewall、
 
 ### 14. 分发和内置 CLI
 
-状态：分发面已完成；「插件私有 CLI 副本 + checksum/回滚」判定为**刻意不做**（2026-07-10）。
+状态：分发面已完成。**⚠️ 历史决策已反转（2026-07-13 校准）**：原「插件私有 CLI 副本 + checksum/回滚 = 刻意不做」（2026-07-10）已被后续实现取代 —— VS Code **0.37.13** / JetBrains **0.4.57**（2026-07-11）已发布 **Managed CLI runtime**：无可用全局 `cc` 时，扩展按需从 npm 下载自己的 `chainlesschain` 副本到全局存储、**sha512 校验、缓存并可回滚**，显式配置的 `chainlesschain.cli.path` 永不被静默替换。详见下方「刻意不做」块的划除说明。
 
 Claude Code VS Code 插件会为 chat panel 管理自己的 CLI 副本。
 
 已完成：
 
-- **VS Code 覆盖 Open VSX 与 Microsoft Marketplace**：CI「IDE Extensions」workflow 双渠道 —— Open VSX 每版 `ovsx publish`（0.37.10 已 live `🚀 Published`），官方 VS Marketplace step 存在但因缺 `VSCE_PAT` secret 优雅跳过（`::notice::… skipping`，非失败；配 secret 即启用，无需改代码）。
+- **VS Code 发布 Open VSX（官方 Microsoft Marketplace 未发）**：CI「IDE Extensions」workflow —— Open VSX 每版 `ovsx publish`（0.37.10 起 live `🚀 Published`）；官方 VS Marketplace step 存在但因缺 `VSCE_PAT` secret 优雅跳过（`::notice::… skipping`，非失败；配 secret 即启用，无需改代码）。**校准（2026-07-13）**：官方 Microsoft VS Code Marketplace **从未发布**（gallery API 实测 0 结果，`VSCE_PAT` 未配置），Open VSX 是唯一渠道；stock VS Code 用户需从 Open VSX 下 `.vsix` 手装（与 `packages/vscode-extension/README.md`、`docs/internal/ide-extensions-releasing.md` 一致）。
 - **JetBrains Marketplace 发布包签名、兼容矩阵、smoke test 自动化**：`publishPlugin` 每版上架（0.4.53 已 `BUILD SUCCESSFUL`），Marketplace 服务端签名（本地 `signPlugin` 无证书时 SKIPPED，上架仍成功）；兼容矩阵 `sinceBuild=242`/`untilBuild=null` + `verifyPlugin`（对 2025.2）；CI 每版跑 smokeTest（PureLogicSmokeMain 775 断言）+ JUnit + buildPlugin 解析级包验。
 - **自动安装 CLI（务实版）**：检测 cc 缺失/落后 → 一键 guarded `npm install -g chainlesschain@latest`（终端可见、用户确认），covered by version-check nudge；#12 Remote Doctor 亦对缺失/落后给可复制安装命令。
 
-刻意不做（判定 + 理由）：
+~~刻意不做（判定 + 理由）：~~ **【已于 2026-07-13 反转，见本节顶部状态行；以下为历史判定，保留存档】**
 
-- **插件内置/私有 CLI 副本 + 独立 checksum 校验 + 回滚**：npm 是 CLI 的**单一分发渠道**（SSOT）。插件私有副本会（1）分叉更新路径（用户 `npm i -g` 与插件私有副本各自为政，版本诊断更难）；（2）膨胀 vsix/zip（cc ~2MB + node 依赖）；（3）重复 npm 自身的完整性保证（registry `dist.integrity` SHASUM + 锁文件）。故不引入私有安装位；「auto-install」以 npm 全局安装的 guarded nudge 实现，回滚 = `npm install -g chainlesschain@<旧版>`。此判定与项目「npm 先发、release 后拉」的既定分发纪律一致。
+- ~~**插件内置/私有 CLI 副本 + 独立 checksum 校验 + 回滚**~~：〔历史理由〕原判定：npm 是 CLI 的**单一分发渠道**（SSOT）。插件私有副本会（1）分叉更新路径（用户 `npm i -g` 与插件私有副本各自为政，版本诊断更难）；（2）膨胀 vsix/zip（cc ~2MB + node 依赖）；（3）重复 npm 自身的完整性保证（registry `dist.integrity` SHASUM + 锁文件）。故不引入私有安装位；「auto-install」以 npm 全局安装的 guarded nudge 实现，回滚 = `npm install -g chainlesschain@<旧版>`。此判定与项目「npm 先发、release 后拉」的既定分发纪律一致。
+  - **实际落地（0.37.13 / 0.4.57）**：Managed CLI runtime 化解了原判定的三点顾虑而非违背它 —— 副本**按需从 npm 下载到全局存储**（不打进 vsix/zip，故不膨胀分发包）、复用 npm registry 完整性并额外做 sha512 校验、且**仅在没有可用全局 `cc` 时**才 offer（显式 `chainlesschain.cli.path` 永不被替换，不分叉用户显式选择的更新路径）。本质是「npm 的受管本地缓存」，而非第二个分发渠道，故 SSOT 纪律仍成立。
 
 ## 建议落地顺序
 

@@ -9,7 +9,7 @@ All notable changes to this extension are documented here.
   re-compared and, by default, cancelled rather than blindly overwritten —
   content comparison, so edit-then-undo does not false-positive) plus a
   binary-file guard (NUL probe; UTF-8 中文 never misflagged). `extensionKind:
-  ["workspace"]` pins the extension and its injected terminal to the repo host
+["workspace"]` pins the extension and its injected terminal to the repo host
   for deterministic Remote/WSL/Dev-Container behavior.
 - **Connection safety.** MCP tool-path boundary guard rejects `..`, UNC,
   out-of-workspace and prefix-confusion paths; the Windows lockfile carrying
@@ -45,7 +45,7 @@ All notable changes to this extension are documented here.
   of the `chainlesschain` npm package under global storage — first-start
   usable without touching PATH. An explicitly configured `chainlesschain.cli.path`
   is never silently replaced (a broken one surfaces an error and managed is
-  only *offered*); exact diagnostics for managed-disabled / no-node-on-PATH /
+  only _offered_); exact diagnostics for managed-disabled / no-node-on-PATH /
   node-too-old. New setting `chainlesschain.cli.managed.enabled` (default on),
   commands `Install Managed CLI` / `Roll Back Managed CLI`.
 - **Artifacts drawer (`ChainlessChain: Artifacts`).** Browse `cc` artifacts
@@ -485,13 +485,19 @@ IDE experience:
   the chat; add `?prompt=…` to also seed the input. Lets other tools and docs
   link straight into a ChainlessChain chat.
 
-## [0.36.16] — chore: publish to the official VS Code Marketplace
+## [0.36.16] — chore: attempt to publish to the official VS Code Marketplace
 
-- **No functional changes** — same code as 0.36.15. This version exists to
+- **No functional changes** — same code as 0.36.15. This version was intended to
   publish the extension to the **official VS Code Marketplace**
-  (marketplace.visualstudio.com), in addition to Open VSX, now that a `VSCE_PAT`
-  secret is configured. Real VS Code users can now find "ChainlessChain IDE
-  Bridge" in the Extensions panel.
+  (marketplace.visualstudio.com), in addition to Open VSX.
+- **⚠️ Correction (2026-07-13):** the publish to the official Microsoft VS Code
+  Marketplace **never actually happened**. No `VSCE_PAT` secret was ever
+  configured (creating the Azure DevOps org requires an Azure subscription the
+  project does not maintain), so the Marketplace publish step in CI is _skipped_,
+  not executed — a live gallery-API check returns **0 results** for this
+  extension. **Open VSX remains the only channel**; stock Microsoft VS Code users
+  must install the `.vsix` from Open VSX manually. See `README.md` (Install) and
+  `docs/internal/ide-extensions-releasing.md` for the authoritative status.
 
 ## [0.36.15] — fix: stopping App Preview kills the whole dev-server tree
 
