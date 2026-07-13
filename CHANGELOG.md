@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线收尾 + REPL /goal·coverage-aware /rewind + Monitor 源扩展 + 每任务调度策略 + Plugin/Schedule 工具增强（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。
+
+- **Subagent 契约全轴强制（P1）**：`_executeSpawnSubAgent` 真正消费 `resolveSubagentContract`（spawnArgs > agent-file > 父级天花板），tighten-only 强制 skills/mcp/hooks/memory capability INTERSECT、permissionMode（plan→只读工具集）、budget/effort/context、worktree fail-closed、递归深度/宽度上限；非 plan confirmer 线程化 + headless 与交互 REPL 均以运行模式播种子级天花板；子级专属无 confirmer ApprovalGate 强制 run_shell/run_code/browser_act 会话策略。
+- **跨 Agent 授权边界接线（P0）**：本地 headless 审批链路携带并校验 `tool_call_id + normalized_arguments + policy_digest` 绑定（重放/参数替换/错投的批准判 `binding-mismatch` 拒绝）；入站 channel 事件显式打 steer authority（其载荷里的 "approved" 只是文本，不能代表用户批准）。
+- **会话完成条件引擎接线（P1）**：`--goal-condition <spec>`（exit-zero/file-exists/contains/regex/model）驱动 headless 外层回合，跨进程 `--resume` 续跑（持久 `goal_snapshot`），REPL `/goal <condition>` 交互入口；`goal_started/evaluated/completed/exhausted` 事件。
+- **Turn↔Checkpoint 绑定持久化 + coverage-aware /rewind（P1）**：绑定作为链式会话事件持久化；`/rewind` 打印诚实的 coverage/警告（副作用 / 缺 checkpoint / 对话-文件漂移），永不过度承诺可恢复范围。
+- **副作用台账崩溃恢复（P0 纯核）**：`side-effect-ledger.js` 两阶段记账 `prepare→start→commit|fail|unknown` + `reconcileSideEffects` 分桶 redo/inspect/skip（file-write/git-push/package-install 中途强杀不重复副作用）。
+- **持久 Scheduler/Monitor 扩展（P1）**：`cc agenda prune`（回收终态条目）+ 过期退休（`expiresAt`/`retireExpired`）+ Monitor 文件/HTTP/mtime-change 源（替每 tick spawn shell）+ agent `schedule` 工具透传 `expires`/`jitter` + 每任务 permission-mode/worktree/turn 预算。
+- **Plugin 能力 consent 生命周期（P1）**：consent 存储 + load-path chokepoint enforcement（opt-in）+ `cc plugin consent` + `add`/`upgrade` 渲染能力清单+diff+re-consent 提示 + doctor 未同意/坏 manifest 告警。
+- **Monorepo 上下文（P1）**：`instructionExcludes` 从分层 settings 接进 `composeSystemPrompt`（排除 legacy/vendor/generated 子树，含 @import）+ `cc context --sources`（逐来源 token 归因）+ 懒加载子树指令纯核。
+- **Hooks 持久事件日志 + Replay（P2）**：哈希链 JSONL 事件日志（opt-in `CC_HOOK_EVENT_LOG`）+ `cc hook replay`（决策类事件必显式 `--sandbox`，绝不 re-gate 真流程）/`cc hook events-log`（列出/校验链）。
+- **JSON Schema（P2）**：`--json-schema` 接受 inline JSON + 与 `stream-json` 兼容（终局 `structured_result` NDJSON 行）+ format/if-then-else 断言 + 约束式重试改用富校验器（带 RFC 6901 JSON Pointer 提示）。
+- **多 Agent Review（P2）**：`cc review --multi`（correctness/security/performance/tests 分维 finder 扇出）+ `--verify`（skeptic 复现剔除 refuted）+ high effort 自动双开。
+- **OTel（P2）**：`--otlp-content` opt-in 输出 prompt/response/tool_arguments（默认脱敏 `[redacted]`）+ 每 span 归一化 session/agent id。
+
 ### Added — cc CLI 0.162.162：增量 gap-analysis 收尾（P1 Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema + P2 Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0（远程审批指纹/会话生命周期）（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.161 → **0.162.162** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 一个构建脚本；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）的 P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」（多为环境/平台阻塞或运行时深接线）。
@@ -22,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor Runtime Checkup + CLI 文档漂移 + 统一 OTel id（P2）**：`telemetry-ids.js`——`buildTelemetryAttributes` 把杂乱别名归一到九个稳定 id key（session/turn/prompt/tool_use/agent/parent_agent/workflow.run_id/permission.decision_id/checkpoint.id），`content.*` 默认脱敏为 `[redacted]`（仅显式 opt-in 才输出且长度封顶），只发 allow-list key（外来高基数 label 丢弃）、id 值字符集净化+≤128 截断；接线到 `agent-core.js`（每 span 现带归一化的 workflow.run_id+session.id）。`runtime-checkup.js`——纯 Doctor 评估器（agenda 逾期/孤儿进程/慢·熔断 Hook/失效 Plugin·LSP/陈旧 session·worktree/冗长指令文件）；接线到 `doctor-checkup.js` 新 `runtimeSection`（只消费 agenda + 指令文件，其余留给既有 section 免双报）。`docs-drift.js` + `scripts/gen-cli-reference.mjs`——从 `command-manifest.json`(175)+`listCodingAgentToolNames()`(26) 生成 canonical 参考文档并双向 diff 漂移（`--out` 生成 / `--check` CI fail-on-drift）。
 - **IDE gap P0（cli/src 侧）**：远程审批绑定操作指纹（`approvalBindingDigest` 常数时间校验，断线重发/跨 Agent 冒用防护）+ 统一会话生命周期状态机（`session-lifecycle.js` 折叠 supervisor 状态/worker phase/IDE 状态为单一词汇表）。
 
-### Added — cc CLI 0.162.161：增量 gap-analysis（P0 后台状态机/跨 Agent 授权/凭据代理 + P1 完成条件/Monorepo 排除/持久 Scheduler）+ bg-* WS relay 协议硬化（CLI-only npm 发版）
+### Added — cc CLI 0.162.161：增量 gap-analysis（P0 后台状态机/跨 Agent 授权/凭据代理 + P1 完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.160 → **0.162.161** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/agent-sdk` 协议增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（`cc agenda list` 增 `nextWakeupAt` 字段），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 Windows-可做、自包含、全测试的最有价值切片，每节文档记录「已落地」与「仍欠」。
 >
@@ -35,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **会话级完成条件引擎（P1）**：`goal-condition-engine.js`——确定性完成条件（`exit-zero:`/`file-exists:`/`contains:`/`regex:`/`model:`/裸），预算（maxOuterTurns 默认 10、硬顶 100）+ 纯 reducer `evaluateGoalStep`，`GoalConditionEngine` 支持 snapshot/fromSnapshot 恢复；确定性检查经注入 spawnSync/existsSync 可测。
 - **大型 Monorepo 上下文排除（P1）**：`instructionExcludes`——`project-instructions.js` 支持按 glob 排除 legacy/vendor/generated 子树（裸名=任意段匹配、带斜杠前缀=目录+后代、`*`/`**`/`?` 通配、祖先匹配语义），@import 目标落在排除子树内也跳过（避免把凭据文件拉进 prompt）；`composeSystemPrompt` 透传 `instructionExcludes`。
 - **统一持久 Scheduler 规划器（P1）**：`schedule-planner.js`——确定性 jitter（FNV-1a 稳定 per-task 偏移，跨重启不漂移，避免共享 cron 分钟的惊群）、自适应唤醒（`nextWakeupAt`/`msUntilNextWakeup` 让 daemon 睡到最早 fire 而非轮询）、过期（`isEntryExpired`/`partitionSchedule` 先退休过期再触发）；接线到 `cc agenda list`（JSON `nextWakeupAt` + "next wakeup" 行）。
-- **bg-* WS relay 协议硬化**：事件序号缺口检测 + replay（慢/断线消费者补投）、出站背压（slow-consumer 保护）、跨语言 fixture 契约 + `tool_use_id` + event seq，IDE 上报文件路径的 remote URI/path 映射，MCP tool-path 边界守卫 + Windows lockfile ACL，diff-apply 并发/二进制守卫 + 读取实时编辑器缓冲的 stale-rejection，后台 Agent supervisor 3 个 pinned gap 收口 + 有界 prompt 队列。
+- **bg-\* WS relay 协议硬化**：事件序号缺口检测 + replay（慢/断线消费者补投）、出站背压（slow-consumer 保护）、跨语言 fixture 契约 + `tool_use_id` + event seq，IDE 上报文件路径的 remote URI/path 映射，MCP tool-path 边界守卫 + Windows lockfile ACL，diff-apply 并发/二进制守卫 + 读取实时编辑器缓冲的 stale-rejection，后台 Agent supervisor 3 个 pinned gap 收口 + 有界 prompt 队列。
 
 ### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）（CLI-only npm 发版）
 

@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线收尾 + REPL /goal·coverage-aware /rewind + Monitor 源扩展 + 每任务调度策略
+
+> CLI-only 发版（`chainlesschain` 0.162.162 → **0.162.163**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节 last-mile「仍欠」。
+
+- **Subagent 契约全轴强制（P1）**：spawn 真正消费 `resolveSubagentContract`，tighten-only 强制 skills/mcp/hooks/memory 交集、permissionMode（plan→只读）、budget/effort/context、worktree fail-closed、递归上限；headless 与 REPL 均以运行模式播种子级天花板；子级专属 ApprovalGate 强制 run_shell/run_code/browser_act。
+- **跨 Agent 授权边界接线（P0）**：headless 审批携带并校验 `tool_call_id+参数+policy` 绑定（重放/参数替换/错投判 `binding-mismatch` 拒）；入站 channel 事件显式打 steer authority。
+- **会话完成条件引擎接线（P1）**：`--goal-condition`（exit-zero/file-exists/contains/regex/model）驱动 headless 外层回合 + 跨进程 `--resume` 续跑 + REPL `/goal <condition>`。
+- **Turn↔Checkpoint 持久化 + coverage-aware /rewind（P1）**：绑定持久为链式会话事件；`/rewind` 打印诚实 coverage/警告（副作用/缺 checkpoint/漂移）。
+- **副作用台账崩溃恢复（P0 纯核）**：两阶段记账 + redo/inspect/skip 分桶（中途强杀不重复副作用）。
+- **持久 Scheduler/Monitor（P1）**：`cc agenda prune` + 过期退休 + Monitor 文件/HTTP/mtime 源 + `schedule` 工具 `expires`/`jitter` + 每任务 permission-mode/worktree/turn 预算。
+- **Plugin 能力 consent（P1）**：consent 存储 + 加载路径 enforcement + `cc plugin consent` + `add`/`upgrade` 能力 diff+re-consent + doctor 告警。
+- **Monorepo 上下文（P1）**：`instructionExcludes` 接进 `composeSystemPrompt` + `cc context --sources` + 懒加载子树指令。
+- **Hooks 持久事件日志 + `cc hook replay`（P2）**、**JSON Schema inline + stream 兼容 + format/if-then-else（P2）**、**`cc review --multi --verify` + high 自动开（P2）**、**`--otlp-content` opt-in（P2）**。
+
 #### Added — cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0
 
 > CLI-only 发版（`chainlesschain` 0.162.161 → **0.162.162**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」。均为纯核 + 时钟注入 + 最小接线的低风险增量。
@@ -18,7 +32,7 @@
 - **Doctor Runtime Checkup + CLI 文档漂移 + 统一 OTel id（P2）**：`telemetry-ids` 九个稳定 id key 归一 + content 默认脱敏 `[redacted]`（opt-in 才输出）+ 基数收敛（allow-list key、id 净化≤128），接线每 span 带 workflow.run_id+session.id；`runtime-checkup` 纯 Doctor 评估器，doctor 新 `runtimeSection` 只消费 agenda + 指令文件免双报；`docs-drift` + `gen-cli-reference.mjs` 从 manifest(175)+工具(26) 生成参考文档并双向 diff（`--check` CI fail-on-drift）。
 - **IDE gap P0（cli/src 侧）**：远程审批绑定操作指纹（常数时间校验、防冒用/断线重发）+ 统一会话生命周期状态机（折叠 supervisor/worker/IDE 状态为单一词汇表）。
 
-#### Added — cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-* WS relay 协议硬化
+#### Added — cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化
 
 > CLI-only 发版（`chainlesschain` 0.162.160 → **0.162.161**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（`cc agenda list` 增 `nextWakeupAt`），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 最有价值切片，均为纯核 + 时钟注入 + 最小接线的低风险增量（9 测试文件 148 测全绿）。
 
@@ -29,7 +43,7 @@
 - **会话级完成条件引擎（P1）**：确定性完成条件（exit-zero/file-exists/contains/regex/model/裸）+ 预算 + 可恢复快照。
 - **大型 Monorepo 上下文排除（P1）**：`instructionExcludes` 按 glob 排除 legacy/vendor/generated 子树，@import 也跳过（防凭据文件进 prompt）。
 - **统一持久 Scheduler 规划器（P1）**：确定性 jitter（避免共享 cron 分钟惊群）+ 自适应唤醒（睡到最早 fire 而非轮询）+ 过期退休；接线 `cc agenda list`。
-- **bg-* WS relay 协议硬化**：事件序号缺口检测 + replay、出站背压、跨语言 fixture 契约 + `tool_use_id`、IDE 文件路径 remote URI/path 映射、MCP tool-path 边界守卫 + Windows lockfile ACL、diff-apply 并发/二进制守卫 + stale-rejection、supervisor 3 pinned gap + 有界 prompt 队列。
+- **bg-\* WS relay 协议硬化**：事件序号缺口检测 + replay、出站背压、跨语言 fixture 契约 + `tool_use_id`、IDE 文件路径 remote URI/path 映射、MCP tool-path 边界守卫 + Windows lockfile ACL、diff-apply 并发/二进制守卫 + stale-rejection、supervisor 3 pinned gap + 有界 prompt 队列。
 
 #### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）
 
