@@ -312,6 +312,14 @@ Auto-fix 边界：
 - Auto-merge 默认关闭；必须满足分支保护、必需 Checks、Review 和无待处理审批。
 - 不默认直接 Push 主分支或绕过保护。
 
+**已落地（2026-07-13 续，PR/CI 自动化策略纯核）**：本节的 Auto-fix 边界与受控合并全部落为纯逻辑判定引擎 [`pr-automation-policy.js`](../packages/cli/src/lib/pr-automation-policy.js)——无状态、无 I/O，一切**默认 DENY**（未证明即拦）：
+
+- **`autoFixDecision({check, headCommitSha, iteration, maxIterations, budget})`**：仅当 check 为 failing、`iteration < maxIterations`（默认 3）、且**失败日志 commit == head commit**（`stale-failure-log` 拦过期失败、缺 sha→`commit-sha-unverifiable`）、且 token/时间预算未耗尽时放行；每种拒因带名（对应「最多迭代 N 次 / 只读当前 Commit 日志 / 显示预算」）。
+- **`autoMergeDecision(...)`**：**穷举**收集所有未满足项，仅当 `unmet` 为空才允许——`enabled!==true`→默认关；`hasOpenPr!==true`→拒直推分支绕过 PR；分支保护 / Review / 待处理审批 / 任一 check failing 或 pending / **必需 check 缺席或未过**（present-and-passed，缺跑的必需 check 是拦而非放）逐条成为 `unmet`。对应「默认关 + 分支保护 + 必需 Checks + Review + 无待处理审批 + 不绕过保护」。
+- `summarizeChecks`（跨 provider 词汇归一，空 checks≠allPassed）+ `describePrStatusBar`（Branch/PR#/checks tally/review/merge 的**无 token** 状态条）。
+
+测试 `pr-automation-policy.test.js` 16（归一/summary + auto-fix 六判定 + auto-merge 穷举拒因/必需 check 缺席/默认关 + 状态条）。纯核尚未接进 `cc` 的 PR 监控命令 / IDE 状态条 seam，故默认路径零影响。剩项（真 GitHub Checks 拉取 + 每次修复独立 Checkpoint 的接线）待后续。
+
 ### P1-5 统一后台 Agent / Worktree 工作台
 
 复用现有 Background Harness、Sub-runtime Pool、Task Graph 和 Worktree：
