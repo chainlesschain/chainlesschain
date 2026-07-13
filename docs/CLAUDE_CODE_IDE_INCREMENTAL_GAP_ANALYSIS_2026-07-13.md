@@ -336,7 +336,9 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 - **`stripAnsi`**：可审计的 CSI/OSC/两三字节转义清除（供搜索/复制/入模前），非串→`""`；**`truncateScrollback`**：保留活跃尾部 N 行并**标注省略行数**（非静默截头），坏 `maxLines` 回落默认 400。
 - **`describeBackgroundCommand({command, pid, ports, status})`**：「后台命令显示 PID、端口、健康状态并可安全停止」的安全描述子——命令串 secret-redact（`FOO=token cmd` 不把 token 泄进状态胶囊）、PID 强转正整数或 null、端口校验去重、`normalizeHealthStatus` fail-closed 归一（未知→UNKNOWN），`stoppable` 仅在握有真 PID 时为真。
 
-测试 `terminal-context.test.js` 17（ANSI 清除 CSI/光标/非串 + scrollback 保尾标省略/坏 cap 回落 + 选上下文四路 fail-closed/选区优先/ANSI+secret 双清/scrollback cap + 健康状态归一 + 后台描述子端口去重·命令脱敏·无 PID 不可停）。纯核尚未接进真 PTY 宿主 / Agent 终端面板 / shell-tool 后台任务视图 seam，故默认路径零影响。剩项（真 PTY 内嵌、持续 ANSI 流、用户接管输入、终端搜索/复制 UI）仍开放。
+测试 `terminal-context.test.js` 17（ANSI 清除 CSI/光标/非串 + scrollback 保尾标省略/坏 cap 回落 + 选上下文四路 fail-closed/选区优先/ANSI+secret 双清/scrollback cap + 健康状态归一 + 后台描述子端口去重·命令脱敏·无 PID 不可停）。
+
+**已接线（2026-07-13 续，`describeBackgroundCommand` 进后台任务快照）**：三个 seam 中的 **shell-tool 后台任务视图**已接线——[[agent-core.js]] 的 `listBackgroundShellTasks()`（同时喂 REPL `/tasks` 与**模型可见**的 `check_shell { list:true }` 工具）此前原样吐 `command` 裸串，一条 `curl -H "Authorization: Bearer …"` 或 `FOO=token cmd` 会把凭据泄进模型上下文与 `/tasks` 渲染。现每条快照过 `describeBackgroundCommand({command, pid: t.child?.pid})`：`command` 经 [[secret-scan.js]] `redactSecrets` 脱敏、新增 `pid` 字段、`stoppable = 任务仍 running && 有真 PID`（一个 valid pid 不能让已死任务变可停）。任务自身的生命周期 `status`（running/exited/failed/error）**刻意保留不被健康状态覆盖**（二者语义不同——后台 shell 无健康探针）。测试 `agent-core-run-shell-background.test.js` +1（真 spawn 一个带 `sk-` token 的常驻命令 → 快照 command 零 SECRET+含 `[REDACTED]`+pid 正整数+stoppable=true）；后台/tasks-status/terminal-context 41 + runtime-convergence-shims 41 全回归绿。剩项（真 PTY 内嵌、持续 ANSI 流、用户接管输入、终端搜索/复制 UI、选区入模的 Agent 终端面板 seam）仍开放。
 
 ### P1-3 App Preview 自动验证
 

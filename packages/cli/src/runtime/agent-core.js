@@ -26,6 +26,7 @@ import sharedHookRunner from "../lib/hook-runner.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
+import { describeBackgroundCommand } from "../lib/terminal-context.js";
 import { buildTelemetryAttributes } from "../lib/telemetry-ids.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
@@ -143,18 +144,37 @@ function _readBgStream(stream) {
 }
 
 /**
- * Snapshot of background shell tasks (for REPL/host status surfaces).
- * @returns {Array<{id:string,status:string,command:string,exitCode:number|null}>}
+ * Snapshot of background shell tasks (for REPL/host status surfaces AND the
+ * model-facing `check_shell { list:true }` tool).
+ *
+ * P1-2 (terminal-context): the `command` string can carry an inline secret
+ * (`FOO=token cmd`, `curl -H "Authorization: Bearer …"`); this list is shown to
+ * the model and rendered in `/tasks`, so run it through
+ * `describeBackgroundCommand` to secret-redact the command and expose the PID.
+ * The task's own lifecycle `status` (running/exited/failed/error) is preserved
+ * — that is distinct from a health check, so it is NOT replaced. `stoppable` is
+ * gated on the task still running (a valid pid alone doesn't make a dead task
+ * stoppable).
+ * @returns {Array<{id:string,status:string,command:string,pid:number|null,
+ *   stoppable:boolean,exitCode:number|null,startedAt:string,endedAt:string}>}
  */
 export function listBackgroundShellTasks() {
-  return Array.from(_backgroundShellTasks.values()).map((t) => ({
-    id: t.id,
-    status: t.status,
-    command: t.command,
-    exitCode: t.exitCode,
-    startedAt: t.startedAt,
-    endedAt: t.endedAt,
-  }));
+  return Array.from(_backgroundShellTasks.values()).map((t) => {
+    const desc = describeBackgroundCommand({
+      command: t.command,
+      pid: t.child?.pid,
+    });
+    return {
+      id: t.id,
+      status: t.status,
+      command: desc.command, // P1-2: secret-redacted
+      pid: desc.pid, // P1-2: PID surfaced
+      stoppable: t.status === "running" && desc.stoppable,
+      exitCode: t.exitCode,
+      startedAt: t.startedAt,
+      endedAt: t.endedAt,
+    };
+  });
 }
 
 // Kill a background task's whole process tree. Because tasks are spawned with

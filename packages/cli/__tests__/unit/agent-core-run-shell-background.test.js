@@ -178,6 +178,29 @@ describe("agent-core run_shell background + check_shell", () => {
     );
     expect(listBackgroundShellTasks().length).toBe(before + 1);
   });
+
+  // P1-2 (terminal-context): the snapshot is shown to the model / rendered in
+  // /tasks, so a secret embedded in the command must be redacted, and a running
+  // task must surface its pid and be marked stoppable.
+  it("redacts secrets in the command and surfaces pid + stoppable", async () => {
+    const SECRET = "sk-abcdef0123456789abcdef0123456789abcdef01";
+    const start = await executeTool(
+      "run_shell",
+      {
+        // The token is a trailing argv the -e script ignores; the process stays
+        // alive so we observe a running snapshot before afterEach drains it.
+        command: `${NODE} -e "setTimeout(()=>{},60000)" ${SECRET}`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const snap = listBackgroundShellTasks().find((t) => t.id === start.task_id);
+    expect(snap).toBeDefined();
+    expect(snap.command).not.toContain(SECRET);
+    expect(snap.command).toContain("[REDACTED]");
+    expect(Number.isInteger(snap.pid) && snap.pid > 0).toBe(true);
+    expect(snap.stoppable).toBe(true);
+  });
 });
 
 describe("agent-core run_shell configurable foreground timeout", () => {
