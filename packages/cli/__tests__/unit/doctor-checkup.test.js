@@ -35,6 +35,7 @@ describe("doctor-checkup", () => {
       "background",
       "worktrees",
       "runtime",
+      "execution",
     ]);
     for (const s of sections) {
       expect(Array.isArray(s.checks)).toBe(true);
@@ -227,6 +228,46 @@ describe("doctor-checkup", () => {
     });
     const runtime = sections.find((s) => s.id === "runtime");
     expect(runtime.checks.some((c) => c.id === "skill-duplicate")).toBe(false);
+  });
+
+  describe("execution section (P1-7)", () => {
+    it("reports a local trusted machine as OK with no policy advisory", async () => {
+      const sections = await collectCheckupSections({
+        deps: fakeDeps(),
+        env: {}, // no SSH/WSL/container markers → local
+      });
+      const exec = sections.find((s) => s.id === "execution");
+      const loc = exec.checks.find((c) => c.id === "execution-location");
+      expect(loc.level).toBe(CHECK_LEVELS.OK);
+      expect(loc.name).toMatch(/local/);
+      expect(exec.checks.some((c) => c.id === "execution-policy")).toBe(false);
+    });
+
+    it("warns on a remote SSH environment and lists the fail-closed advisory", async () => {
+      const sections = await collectCheckupSections({
+        deps: fakeDeps(),
+        env: { SSH_CONNECTION: "10.0.0.1 22 10.0.0.2 22" },
+      });
+      const exec = sections.find((s) => s.id === "execution");
+      const loc = exec.checks.find((c) => c.id === "execution-location");
+      expect(loc.level).toBe(CHECK_LEVELS.WARN);
+      expect(loc.name).toMatch(/ssh/);
+      // Remote box + no configured return path → surfaced as a policy advisory.
+      const policy = exec.checks.find((c) => c.id === "execution-policy");
+      expect(policy.detail).toMatch(/remote-without-return-path/);
+    });
+
+    it("detects a container via the /.dockerenv marker", async () => {
+      const sections = await collectCheckupSections({
+        deps: fakeDeps({ existsSync: (p) => String(p) === "/.dockerenv" }),
+        env: {},
+      });
+      const loc = sections
+        .find((s) => s.id === "execution")
+        .checks.find((c) => c.id === "execution-location");
+      expect(loc.name).toMatch(/container/);
+      expect(loc.level).toBe(CHECK_LEVELS.WARN);
+    });
   });
 
   describe("runCheckupFixes", () => {

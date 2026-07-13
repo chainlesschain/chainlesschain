@@ -435,7 +435,14 @@ Auto-fix 边界：
 - **两条给它牙齿的不变量**：①**凭据永不带值**——`redactCredentialRefs` 丢弃任何 `value/token/secret/password/key` 字段，描述子可安全渲染/落日志/外传（对应「Credentials 只显示来源和作用域，不显示值」）；②**UNKNOWN 位置 fail-closed** 到最严权限地板（read-only、shell/network/mcp/external 全关），绝不给未知/远程环境默认环境权限。已知位置每个 ambient power 需显式 `=== true` 才授予（truthy-not-true 不算）。
 - **`validateExecutionContext(input)`** 穷举收集违规（fail-closed）：`credential-value-present`（凭据带值泄漏）/ `unknown-location` / `remote-without-return-path`（远程任务结果无处安全回传）/ `remote-egress-granted`（远程箱子拿到 network/external 出网——最高危，必须显式确认而非 ambient）。
 
-测试 `execution-location.test.js` 15（别名归一 + remote 分类 + UNKNOWN 地板 + 显式-true 授予 + 凭据零值 + 描述子全字段 + 未知 return-path→none + 校验五违规穷举）。纯核尚未接进 Session 创建 / Desktop 执行位置切换 / 审批卡 seam（审批卡指纹已由 §8.2 [[operation-fingerprint.js]] 覆盖），故默认路径零影响。
+测试 `execution-location.test.js` 15（别名归一 + remote 分类 + UNKNOWN 地板 + 显式-true 授予 + 凭据零值 + 描述子全字段 + 未知 return-path→none + 校验五违规穷举）。
+
+**已接线（2026-07-13 续，执行位置进 `cc doctor` 诊断面）**：纯核接进 [[doctor-checkup.js]] 的分层 checkup——新增 `executionSection`（`collectCheckupSections` 第 11 段），只读、绝不阻断，把「任务在哪执行」变成一条**可见**诊断：
+
+- **`detectAmbientLocation({env, dockerEnvFileExists})`**（新加进 [[execution-location.js]]，纯——调用方喂 `process.env` + `existsSync('/.dockerenv')`，模块保持 fs/process-free）按**最具体优先**判定 ambient location：Codespaces→CLOUD / `SSH_CONNECTION|SSH_CLIENT|SSH_TTY`→SSH / `/.dockerenv`·`container`·`KUBERNETES_SERVICE_HOST`→CONTAINER / `WSL_DISTRO_NAME|WSL_INTEROP`→WSL / 否则 LOCAL（空串不算 marker）。
+- **doctor 段**用检测到的 location 喂 `validateExecutionContext`（诚实最小输入=location + cwd，**不**伪造 return-path/授权）：LOCAL→OK「local trusted machine」；remote/UNKNOWN→WARN「fails closed to read-only unless powers are granted explicitly」，并把 `validateExecutionContext` 的 violations（如远程箱子 `remote-without-return-path`）列成独立 `execution-policy` 建议行。doctor 命令的通用 section 循环自动渲染，无需改 [[doctor.js]]；LOCAL 默认路径行为不变（多一段只读诊断）。真机 `cc doctor --json` 实测本机 → `execution` 段 `location:local`/`level:ok`。
+
+测试 `execution-location.test.js` +6（`detectAmbientLocation` 默认 LOCAL / Codespaces 最具体 / SSH 压 WSL / 三路 container / WSL / 空串非 marker）；`doctor-checkup.test.js` +3（local=OK 无 policy 行 / SSH=WARN 且列 remote-without-return-path / `/.dockerenv`=container WARN）+ section-id 列表加 `execution`；40 跨文件回归绿。Session 创建 / Desktop 执行位置切换 / 审批卡 seam 仍开放（审批卡指纹已由 §8.2 [[operation-fingerprint.js]] 覆盖），后台/远程真跑 backend 的强制 clamp 待上层注入。
 
 ### P1-8 Scheduled / Event-driven Coding Session
 

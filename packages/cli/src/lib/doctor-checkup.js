@@ -819,6 +819,72 @@ async function runtimeSection(opts, deps) {
   return { id: "runtime", title: "Runtime checkup", checks };
 }
 
+// ── execution context (P1-7) ───────────────────────────────────────────────
+// "任务在哪执行是 Session 一等属性": surface the DETECTED execution location and
+// the fail-closed permission posture it implies. Read-only advisory — it never
+// blocks. A local trusted machine is OK; a remote/unknown environment is a WARN
+// because a session there fails closed to read-only unless powers are granted
+// explicitly (and any policy violation from the pure model is listed).
+async function executionSection(opts, deps) {
+  const checks = [];
+  try {
+    const {
+      detectAmbientLocation,
+      validateExecutionContext,
+      EXECUTION_LOCATION,
+    } = await import("./execution-location.js");
+    // /.dockerenv is the classic in-container marker; keep it injectable via deps
+    // so the section is deterministic under test.
+    let dockerEnvFileExists = false;
+    try {
+      dockerEnvFileExists = deps.existsSync("/.dockerenv") === true;
+    } catch {
+      // non-POSIX host / unreadable — treat as not-a-container.
+    }
+    const location = detectAmbientLocation({
+      env: opts.env || process.env,
+      dockerEnvFileExists,
+    });
+    // Honest minimal input: just the detected location + the working dir. We do
+    // NOT fabricate a return path or granted powers — the validation then flags a
+    // real remote box with nowhere to return results, which is a meaningful hint.
+    const result = validateExecutionContext({
+      location,
+      source: { dir: opts.cwd || process.cwd() },
+    });
+    const isUnknown = location === EXECUTION_LOCATION.UNKNOWN;
+    const level =
+      isUnknown || result.descriptor.remote
+        ? CHECK_LEVELS.WARN
+        : CHECK_LEVELS.OK;
+    checks.push(
+      check(
+        "execution-location",
+        `Execution location: ${location}`,
+        level,
+        result.descriptor.remote
+          ? "remote/unknown — a session here fails closed to read-only unless powers are granted explicitly"
+          : isUnknown
+            ? "could not identify the environment — treated as untrusted (read-only floor)"
+            : "local trusted machine",
+      ),
+    );
+    if (result.violations.length > 0) {
+      checks.push(
+        check(
+          "execution-policy",
+          "Execution policy",
+          CHECK_LEVELS.WARN,
+          `fail-closed advisories: ${result.violations.join(", ")}`,
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("execution-location", "execution context", err));
+  }
+  return { id: "execution", title: "Execution context", checks };
+}
+
 /**
  * Collect all checkup sections. Never throws — a failing subsystem becomes an
  * `err` check inside its section.
@@ -837,6 +903,7 @@ export async function collectCheckupSections(opts = {}) {
     backgroundSection,
     worktreeSection,
     runtimeSection,
+    executionSection,
   ]) {
     try {
       sections.push(await build(opts, deps));

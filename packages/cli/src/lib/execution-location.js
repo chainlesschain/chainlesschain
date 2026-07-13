@@ -72,6 +72,43 @@ export function isRemoteLocation(location) {
   return REMOTE_LOCATIONS.has(normalizeExecutionLocation(location));
 }
 
+/**
+ * Detect the ambient execution location from process signals. PURE: the caller
+ * supplies `env` (process.env) and `dockerEnvFileExists` (existsSync('/.dockerenv'))
+ * so this stays fs/process-free and unit-testable. Ordered most-specific-first,
+ * so a Codespace (which is also a container) reports CLOUD, and an SSH login
+ * outranks a bare WSL marker.
+ *
+ * @param {{env?:object, dockerEnvFileExists?:boolean}} [signals]
+ * @returns {string} a canonical EXECUTION_LOCATION value
+ */
+export function detectAmbientLocation({ env = {}, dockerEnvFileExists } = {}) {
+  const e = env && typeof env === "object" ? env : {};
+  const has = (k) => typeof e[k] === "string" && e[k].trim() !== "";
+
+  // Cloud dev environments (GitHub Codespaces) — most specific.
+  if (e.CODESPACES === "true" || has("GITHUB_CODESPACE_TOKEN")) {
+    return EXECUTION_LOCATION.CLOUD;
+  }
+  // An interactive SSH login carries these — a remote shell, not the box's own tty.
+  if (has("SSH_CONNECTION") || has("SSH_CLIENT") || has("SSH_TTY")) {
+    return EXECUTION_LOCATION.SSH;
+  }
+  // Containers: the classic /.dockerenv marker, an explicit `container` env, or k8s.
+  if (
+    dockerEnvFileExists === true ||
+    has("container") ||
+    has("KUBERNETES_SERVICE_HOST")
+  ) {
+    return EXECUTION_LOCATION.CONTAINER;
+  }
+  // WSL exports these into every shell.
+  if (has("WSL_DISTRO_NAME") || has("WSL_INTEROP")) {
+    return EXECUTION_LOCATION.WSL;
+  }
+  return EXECUTION_LOCATION.LOCAL;
+}
+
 /** The most-restrictive permission profile — the fail-closed floor. */
 function lockedDownPermissions() {
   return Object.freeze({

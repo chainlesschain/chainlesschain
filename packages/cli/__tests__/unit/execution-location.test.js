@@ -9,6 +9,7 @@ import {
   EXECUTION_LOCATION,
   normalizeExecutionLocation,
   isRemoteLocation,
+  detectAmbientLocation,
   clampPermissionsForLocation,
   redactCredentialRefs,
   describeExecutionContext,
@@ -40,6 +41,58 @@ describe("normalizeExecutionLocation", () => {
     expect(isRemoteLocation("cloud")).toBe(true);
     expect(isRemoteLocation("local")).toBe(false);
     expect(isRemoteLocation("wsl")).toBe(false);
+  });
+});
+
+describe("detectAmbientLocation (env-driven, pure)", () => {
+  it("defaults to LOCAL when no environment marker is present", () => {
+    expect(detectAmbientLocation({ env: {} })).toBe(EXECUTION_LOCATION.LOCAL);
+    expect(detectAmbientLocation()).toBe(EXECUTION_LOCATION.LOCAL);
+  });
+
+  it("detects a Codespace (cloud) most specifically", () => {
+    expect(
+      detectAmbientLocation({
+        env: { CODESPACES: "true", WSL_DISTRO_NAME: "Ubuntu" },
+      }),
+    ).toBe(EXECUTION_LOCATION.CLOUD);
+  });
+
+  it("detects an SSH login above a bare WSL marker", () => {
+    expect(
+      detectAmbientLocation({
+        env: { SSH_CONNECTION: "1.2.3.4 22 5.6.7.8 22", WSL_DISTRO_NAME: "x" },
+      }),
+    ).toBe(EXECUTION_LOCATION.SSH);
+  });
+
+  it("detects a container via /.dockerenv, `container` env, or k8s", () => {
+    expect(detectAmbientLocation({ env: {}, dockerEnvFileExists: true })).toBe(
+      EXECUTION_LOCATION.CONTAINER,
+    );
+    expect(detectAmbientLocation({ env: { container: "podman" } })).toBe(
+      EXECUTION_LOCATION.CONTAINER,
+    );
+    expect(
+      detectAmbientLocation({ env: { KUBERNETES_SERVICE_HOST: "10.0.0.1" } }),
+    ).toBe(EXECUTION_LOCATION.CONTAINER);
+  });
+
+  it("detects WSL from its shell exports", () => {
+    expect(detectAmbientLocation({ env: { WSL_DISTRO_NAME: "Ubuntu" } })).toBe(
+      EXECUTION_LOCATION.WSL,
+    );
+    expect(
+      detectAmbientLocation({ env: { WSL_INTEROP: "/run/WSL/1_interop" } }),
+    ).toBe(EXECUTION_LOCATION.WSL);
+  });
+
+  it("ignores blank env values (not a truthy marker)", () => {
+    expect(
+      detectAmbientLocation({
+        env: { SSH_CONNECTION: "   ", WSL_INTEROP: "" },
+      }),
+    ).toBe(EXECUTION_LOCATION.LOCAL);
   });
 });
 
