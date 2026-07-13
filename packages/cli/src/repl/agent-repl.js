@@ -2188,7 +2188,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
       );
       logger.log(
-        `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind clear")} restores a /clear`,
+        `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind <n> --files|--conversation")} scopes it; ${chalk.cyan("/rewind clear")} restores a /clear`,
       );
       logger.log(
         `  ${chalk.cyan("/goal <cond>")} Set a session goal checked after each turn (exit-zero:/file-exists:/contains:/regex:/text); ${chalk.cyan("/goal")} shows, ${chalk.cyan("/goal clear")} drops`,
@@ -3020,9 +3020,15 @@ export async function startAgentRepl(options = {}) {
           restoreClearedConversation,
           buildRewindPlan,
           renderRewindWarnings,
+          parseRewindArg,
+          RESTORE_SCOPE,
         } = await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
-        if (arg === "clear" || arg === "undo-clear") {
+        // Parse the turn number + optional restore scope (--conversation /
+        // --files / --both). Claude-Code parity: a rewind can restore the
+        // conversation only, the files only, or both.
+        const parsed = parseRewindArg(arg);
+        if (parsed.command === "clear") {
           // Restore the conversation stashed by /clear (Claude-Code 2.1.191).
           const r = restoreClearedConversation(
             messages,
@@ -3045,13 +3051,18 @@ export async function startAgentRepl(options = {}) {
           prompt();
           return;
         }
-        if (!arg) {
+        if (parsed.command === "list") {
           logger.log(chalk.bold("\nRewind — pick a user turn (newest first):"));
           logger.log(renderTurnList(listUserTurns(messages)));
           const fileHint = _checkpointMarks.length
             ? "  (restores files to that point too — checkpoints are on)"
             : "  (conversation only — start with --checkpoint / git to also rewind files)";
           logger.log(chalk.gray(`Usage: /rewind <n>${fileHint}`));
+          logger.log(
+            chalk.gray(
+              "  scope: /rewind <n> --conversation | --files | --both (default)",
+            ),
+          );
           if (_clearedConversation) {
             logger.log(
               chalk.gray(
@@ -3060,50 +3071,67 @@ export async function startAgentRepl(options = {}) {
             );
           }
         } else {
-          // Snapshot BEFORE rewindToTurn truncates `messages`: buildRewindPlan
-          // needs the target turn still present to bind it to its checkpoint.
+          const scope = parsed.scope;
+          const rewindConversation = scope !== RESTORE_SCOPE.FILES;
+          const restoreFiles = scope !== RESTORE_SCOPE.CONVERSATION;
+          // Snapshot + locate the target turn BEFORE any truncation:
+          // buildRewindPlan needs the turn still present to bind its checkpoint,
+          // and a files-only rewind keeps the conversation intact entirely.
           const preRewind = messages.slice();
-          const res = rewindToTurn(messages, arg);
-          if (!res) {
-            logger.error(`No such turn: ${arg} — run /rewind to list.`);
+          const targetTurn = listUserTurns(messages, { limit: 1000 }).find(
+            (t) => t.n === parsed.n,
+          );
+          if (!targetTurn) {
+            logger.error(`No such turn: ${parsed.n} — run /rewind to list.`);
           } else {
-            logger.log(
-              chalk.yellow(
-                `⎌ rewound — dropped ${res.removed} message(s); edit and resend below`,
-              ),
-            );
-            // Coverage-aware honesty (P1 turn/checkpoint binding): print what a
-            // restore can and cannot promise for this turn BEFORE offering the
-            // file restore — a shell/external side-effect → PARTIAL, no
-            // checkpoint → files can't be restored, conversation/files drift.
-            // Derived from the REPL's existing marks (no new agent-loop events);
+            const turnIndex = targetTurn.index;
+            // 1) Conversation rewind (skipped for files-only).
+            if (rewindConversation) {
+              const res = rewindToTurn(messages, parsed.n);
+              logger.log(
+                chalk.yellow(
+                  `⎌ rewound — dropped ${res.removed} message(s); edit and resend below`,
+                ),
+              );
+            } else {
+              logger.log(
+                chalk.yellow("⎌ files-only rewind — conversation left intact"),
+              );
+            }
+            // 2) Coverage-aware honesty for the CHOSEN scope (P1 turn/checkpoint
+            // binding): print what a restore can and cannot promise — a shell/
+            // external side-effect → PARTIAL, no checkpoint → files can't be
+            // restored, and a scope-specific conversation/files drift. Derived
+            // from the REPL's existing marks (no new agent-loop events);
             // best-effort so the advisory never blocks the rewind itself.
             try {
               const plan = buildRewindPlan(
                 preRewind,
                 _checkpointMarks,
-                res.index,
+                turnIndex,
+                scope,
               );
               for (const line of renderRewindWarnings(plan))
                 logger.log(chalk.yellow(line));
             } catch {
               /* advisory only — a rewind must never fail over its own warning */
             }
-            // Claude-Code parity: rewind restores files too. Match the dropped
-            // turn to the snapshot taken just before it first mutated the tree,
-            // then offer to roll the working tree back to it (undoable — the
-            // restore takes its own safety checkpoint first).
-            const cp = pickCheckpointForTurn(_checkpointMarks, res.index);
-            pruneMarksAfter(_checkpointMarks, res.index);
+            // 3) File restore (skipped for conversation-only). Match the turn to
+            // the snapshot taken just before it first mutated the tree, then
+            // offer to roll the working tree back to it (undoable — the restore
+            // takes its own safety checkpoint first). Prune dropped-turn marks
+            // only when the conversation was actually truncated.
+            const cp = restoreFiles
+              ? pickCheckpointForTurn(_checkpointMarks, turnIndex)
+              : null;
+            if (rewindConversation)
+              pruneMarksAfter(_checkpointMarks, turnIndex);
             if (cp) {
               const q = (p) => new Promise((r) => rl.question(p, r));
-              const ans = (
-                await q(
-                  chalk.yellow(
-                    `  Also restore files to before this turn? (checkpoint ${cp.id}) [Y/n] `,
-                  ),
-                )
-              )
+              const promptText = rewindConversation
+                ? `  Also restore files to before this turn? (checkpoint ${cp.id}) [Y/n] `
+                : `  Restore files to before this turn? (checkpoint ${cp.id}) [Y/n] `;
+              const ans = (await q(chalk.yellow(promptText)))
                 .trim()
                 .toLowerCase();
               if (ans === "" || ans === "y" || ans === "yes") {
@@ -3120,7 +3148,7 @@ export async function startAgentRepl(options = {}) {
                   );
                 } catch (e) {
                   logger.error(
-                    `  file restore skipped: ${e.message} (conversation already rewound)`,
+                    `  file restore skipped: ${e.message}${rewindConversation ? " (conversation already rewound)" : ""}`,
                   );
                 }
               } else {
@@ -3130,9 +3158,19 @@ export async function startAgentRepl(options = {}) {
                   ),
                 );
               }
+            } else if (restoreFiles && scope === RESTORE_SCOPE.FILES) {
+              logger.log(
+                chalk.gray(
+                  "  no checkpoint captured for that turn — nothing to restore",
+                ),
+              );
             }
             prompt();
-            if (res.text) rl.write(res.text);
+            // Prefill the input line with the turn's text only when the
+            // conversation was rewound (edit-and-resend); files-only leaves the
+            // conversation and the prompt untouched.
+            if (rewindConversation && typeof targetTurn.content === "string")
+              rl.write(targetTurn.content);
             return;
           }
         }

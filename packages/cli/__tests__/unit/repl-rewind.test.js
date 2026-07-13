@@ -11,6 +11,8 @@ import {
   restoreClearedConversation,
   buildRewindPlan,
   renderRewindWarnings,
+  parseRewindArg,
+  RESTORE_SCOPE,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
 
@@ -303,5 +305,89 @@ describe("buildRewindPlan integration with rewindToTurn (handler data flow)", ()
     const res = rewindToTurn(messages, 2);
     const planFromTruncated = buildRewindPlan(messages, marks, res.index);
     expect(planFromTruncated.coverage).toBe("none");
+  });
+});
+
+describe("parseRewindArg (turn + restore scope)", () => {
+  it("treats an empty / non-numeric arg as the list command", () => {
+    expect(parseRewindArg("")).toEqual({
+      command: "list",
+      scope: RESTORE_SCOPE.BOTH,
+    });
+    expect(parseRewindArg("   ")).toEqual({
+      command: "list",
+      scope: RESTORE_SCOPE.BOTH,
+    });
+    // A flag with no turn number still lists (a typo can't silently rewind).
+    expect(parseRewindArg("--files")).toEqual({
+      command: "list",
+      scope: RESTORE_SCOPE.FILES,
+    });
+  });
+
+  it("recognises clear / undo-clear", () => {
+    expect(parseRewindArg("clear").command).toBe("clear");
+    expect(parseRewindArg("undo-clear").command).toBe("clear");
+  });
+
+  it("parses a bare turn number as scope=both", () => {
+    expect(parseRewindArg("3")).toEqual({
+      command: "turn",
+      n: 3,
+      scope: RESTORE_SCOPE.BOTH,
+    });
+  });
+
+  it("parses the scope flag in either order", () => {
+    expect(parseRewindArg("3 --conversation")).toEqual({
+      command: "turn",
+      n: 3,
+      scope: RESTORE_SCOPE.CONVERSATION,
+    });
+    expect(parseRewindArg("--files 3")).toEqual({
+      command: "turn",
+      n: 3,
+      scope: RESTORE_SCOPE.FILES,
+    });
+    expect(parseRewindArg("2 --both").scope).toBe(RESTORE_SCOPE.BOTH);
+    // Aliases.
+    expect(parseRewindArg("2 --conv").scope).toBe(RESTORE_SCOPE.CONVERSATION);
+    expect(parseRewindArg("2 --files-only").scope).toBe(RESTORE_SCOPE.FILES);
+  });
+
+  it("ignores an unknown flag but keeps the turn number", () => {
+    expect(parseRewindArg("5 --bogus")).toEqual({
+      command: "turn",
+      n: 5,
+      scope: RESTORE_SCOPE.BOTH,
+    });
+  });
+
+  it("takes the first numeric token as the turn number", () => {
+    expect(parseRewindArg("7 9 --files").n).toBe(7);
+  });
+});
+
+describe("buildRewindPlan honours the restore scope", () => {
+  it("conversation-only over a file-mutating turn warns about the files it won't touch", () => {
+    const messages = conv();
+    // A checkpoint captured before turn 2 (index 3) → the turn mutated files.
+    const marks = [{ atMessageCount: 4, id: "cp-a", tool: "edit_file" }];
+    const plan = buildRewindPlan(
+      messages,
+      marks,
+      3,
+      RESTORE_SCOPE.CONVERSATION,
+    );
+    expect(plan.scope).toBe(RESTORE_SCOPE.CONVERSATION);
+    // Rewinding the conversation but leaving files → the plan flags the drift.
+    expect(plan.warnings.join(" ")).toMatch(/file/i);
+  });
+
+  it("files-only plan targets the files scope", () => {
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-a", tool: "edit_file" }];
+    const plan = buildRewindPlan(messages, marks, 3, RESTORE_SCOPE.FILES);
+    expect(plan.scope).toBe(RESTORE_SCOPE.FILES);
   });
 });

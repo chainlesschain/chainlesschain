@@ -32,6 +32,10 @@ import {
   TURN_COVERAGE,
 } from "./turn-binding.js";
 
+// Re-exported so the REPL handler can reference the scope constants from the
+// same module it imports the rewind helpers from.
+export { RESTORE_SCOPE };
+
 export const DEFAULT_LIST_LIMIT = 10;
 export const PREVIEW_CHARS = 60;
 
@@ -269,6 +273,47 @@ export function renderRewindWarnings(plan) {
   }
   for (const w of plan.warnings || []) lines.push(`  ⚠ ${w}`);
   return lines;
+}
+
+/**
+ * Parse a `/rewind` argument line into a command + optional restore scope.
+ * Claude-Code parity: a rewind can restore the conversation only, the files
+ * only, or both. The turn number and an optional `--conversation` / `--files` /
+ * `--both` flag may appear in any order.
+ *
+ *   /rewind                       → { command: "list", scope: BOTH }
+ *   /rewind clear                 → { command: "clear", scope: BOTH }
+ *   /rewind 3                     → { command: "turn", n: 3, scope: BOTH }
+ *   /rewind 3 --conversation      → { command: "turn", n: 3, scope: CONVERSATION }
+ *   /rewind --files 3             → { command: "turn", n: 3, scope: FILES }
+ *
+ * An unknown flag is ignored (kept forgiving); a non-numeric, flag-less arg with
+ * no turn number falls back to `list` so a typo can't silently rewind.
+ *
+ * @param {string} arg  the text after `/rewind`
+ * @returns {{command:"list"|"clear"|"turn", n?:number, scope:string}}
+ */
+export function parseRewindArg(arg) {
+  const raw = String(arg == null ? "" : arg).trim();
+  if (raw === "clear" || raw === "undo-clear") {
+    return { command: "clear", scope: RESTORE_SCOPE.BOTH };
+  }
+  const tokens = raw.split(/\s+/).filter(Boolean);
+  let n = null;
+  let scope = RESTORE_SCOPE.BOTH;
+  for (const t of tokens) {
+    if (t === "--files" || t === "--files-only") scope = RESTORE_SCOPE.FILES;
+    else if (
+      t === "--conversation" ||
+      t === "--conv" ||
+      t === "--conversation-only"
+    )
+      scope = RESTORE_SCOPE.CONVERSATION;
+    else if (t === "--both") scope = RESTORE_SCOPE.BOTH;
+    else if (n === null && /^\d+$/.test(t)) n = Number(t);
+  }
+  if (n === null) return { command: "list", scope };
+  return { command: "turn", n, scope };
 }
 
 /** Render the picker list (shared by /rewind and double-Esc). */
