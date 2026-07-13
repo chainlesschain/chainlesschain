@@ -521,6 +521,33 @@ export class CLISkillLoader {
   }
 
   /**
+   * Every skill found in every layer, WITHOUT dedup. loadAll() keeps only the
+   * winning copy per id (Map.set overwrite), so a skill id defined in more than
+   * one layer silently shadows — a caller (e.g. `cc doctor`) needs the full,
+   * un-deduped list to detect and report that. Same scan logic as loadAll, no
+   * override collapse.
+   * @returns {Array<{id:string, layer:string, skillDir:string}>}
+   */
+  listSkillLayerEntries(options = {}) {
+    if (allSkillsDisabled(options)) return [];
+    const dropBundled = bundledSkillsDisabled(options);
+    const out = [];
+    for (const { layer, path: layerPath, exists } of this.getLayerPaths()) {
+      if (!exists) continue;
+      if (dropBundled && (layer === "bundled" || layer === "cli-bundled"))
+        continue;
+      for (const skill of this._loadFromDir(layerPath, layer)) {
+        out.push({
+          id: skill.id,
+          layer: skill.source || layer,
+          skillDir: skill.skillDir,
+        });
+      }
+    }
+    return out;
+  }
+
+  /**
    * Get resolved skills (uses cache if available)
    * @returns {object[]}
    */

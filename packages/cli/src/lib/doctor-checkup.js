@@ -32,6 +32,7 @@ import {
   checkHookConfig,
   checkHooks,
   checkSandbox,
+  checkDuplicateSkills,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "./runtime-checkup.js";
 
@@ -786,6 +787,30 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("sandbox", "sandbox availability", err));
+  }
+
+  // Duplicate skills — an id defined in more than one layer silently shadows
+  // (loadAll keeps only the winner), so a user's custom skill can override, or
+  // be overridden by, another without any signal. opts.skillLayerEntries lets a
+  // caller inject the (un-deduped) entry list; otherwise scan via the loader.
+  try {
+    let entries = opts.skillLayerEntries;
+    if (!entries) {
+      const { CLISkillLoader } = await import("./skill-loader.js");
+      entries = new CLISkillLoader().listSkillLayerEntries();
+    }
+    for (const f of checkDuplicateSkills(entries)) {
+      checks.push(
+        check(
+          f.id,
+          `skill ${f.ref}`,
+          SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+          `${f.message} — ${f.remediation}`,
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("skill-duplicate", "skill layers", err));
   }
 
   if (checks.length === 0) {

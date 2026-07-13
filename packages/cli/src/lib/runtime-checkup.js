@@ -401,6 +401,42 @@ export function checkSandbox(snapshot = {}) {
   return out;
 }
 
+/**
+ * Skill ids defined MORE THAN ONCE across (or within) layers (P2 doctor "重复
+ * Skill"). The loader's loadAll() silently keeps only the highest-priority copy
+ * per id (Map.set overwrite), so a user never learns their custom skill shadowed
+ * — or was shadowed by — another. Given the full, un-deduped per-layer entry
+ * list, flag every id with more than one definition.
+ *
+ * @param {Array<{id:string, layer:string}>} entries
+ */
+export function checkDuplicateSkills(entries = []) {
+  const byId = new Map(); // id → layer[]
+  for (const e of entries) {
+    if (!e || !e.id) continue;
+    const arr = byId.get(e.id) || [];
+    arr.push(e.layer || "?");
+    byId.set(e.id, arr);
+  }
+  const out = [];
+  for (const [id, layers] of byId) {
+    if (layers.length > 1) {
+      const uniq = [...new Set(layers)];
+      out.push(
+        finding(
+          "skill-duplicate",
+          "skills",
+          "warn",
+          `Skill "${id}" has ${layers.length} definitions (${uniq.join(", ")}) — only the highest-priority copy loads`,
+          "rename or remove the redundant skill copy",
+          { ref: id, layers: uniq },
+        ),
+      );
+    }
+  }
+  return out;
+}
+
 /** Plugins / LSP servers reported unhealthy or dead. */
 export function checkPluginsAndLsp(plugins = []) {
   const out = [];

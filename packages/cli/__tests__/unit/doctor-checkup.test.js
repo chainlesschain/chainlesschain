@@ -201,6 +201,34 @@ describe("doctor-checkup", () => {
     expect(runtime.checks.some((c) => c.id === "sandbox-active")).toBe(true);
   });
 
+  it("flags a duplicate skill id (silent shadowing) in the runtime section", async () => {
+    const sections = await collectCheckupSections({
+      deps: fakeDeps(),
+      skillLayerEntries: [
+        { id: "deploy", layer: "cli-bundled" },
+        { id: "deploy", layer: "project" },
+        { id: "unique", layer: "user" },
+      ],
+    });
+    const runtime = sections.find((s) => s.id === "runtime");
+    const finding = runtime.checks.find((c) => c.id === "skill-duplicate");
+    expect(finding).toBeTruthy();
+    expect(finding.level).toBe(CHECK_LEVELS.WARN);
+    expect(finding.name).toMatch(/deploy/);
+  });
+
+  it("does not flag skills when every id is unique (injected entries)", async () => {
+    const sections = await collectCheckupSections({
+      deps: fakeDeps(),
+      skillLayerEntries: [
+        { id: "a", layer: "user" },
+        { id: "b", layer: "project" },
+      ],
+    });
+    const runtime = sections.find((s) => s.id === "runtime");
+    expect(runtime.checks.some((c) => c.id === "skill-duplicate")).toBe(false);
+  });
+
   describe("runCheckupFixes", () => {
     it("applies the SAFE stale-job prune, deleting only old .job files", async () => {
       const rmSync = vi.fn();

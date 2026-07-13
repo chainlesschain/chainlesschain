@@ -15,6 +15,7 @@ import {
   checkInstructionFiles,
   checkHookConfig,
   checkSandbox,
+  checkDuplicateSkills,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "../../src/lib/runtime-checkup.js";
 
@@ -266,6 +267,45 @@ describe("checkSandbox (real capability / silent degradation)", () => {
   it("no-ops when no sandbox is configured", () => {
     expect(checkSandbox({ configured: false })).toEqual([]);
     expect(checkSandbox({})).toEqual([]);
+  });
+});
+
+describe("checkDuplicateSkills (silent skill shadowing)", () => {
+  it("flags an id defined across two layers", () => {
+    const out = checkDuplicateSkills([
+      { id: "deploy", layer: "cli-bundled" },
+      { id: "deploy", layer: "project" },
+      { id: "other", layer: "user" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("skill-duplicate");
+    expect(out[0].ref).toBe("deploy");
+    expect(out[0].layers).toEqual(["cli-bundled", "project"]);
+    expect(out[0].message).toMatch(/2 definitions/);
+  });
+
+  it("flags a same-layer duplicate too (2 definitions, 1 layer)", () => {
+    const out = checkDuplicateSkills([
+      { id: "dup", layer: "project" },
+      { id: "dup", layer: "project" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toMatch(/2 definitions/);
+    expect(out[0].layers).toEqual(["project"]);
+  });
+
+  it("is clean when every id is unique", () => {
+    expect(
+      checkDuplicateSkills([
+        { id: "a", layer: "user" },
+        { id: "b", layer: "project" },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("no-ops on empty / malformed input", () => {
+    expect(checkDuplicateSkills([])).toEqual([]);
+    expect(checkDuplicateSkills([null, {}, { layer: "x" }])).toEqual([]);
   });
 });
 
