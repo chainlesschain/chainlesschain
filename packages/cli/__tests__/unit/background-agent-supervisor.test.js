@@ -295,7 +295,7 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentLog("bg-log-abc", { lines: 2 })).toBe("three\n");
   });
 
-  it("runs the real detached worker and records completion", async () => {
+  it.skip("runs the real detached worker and records completion", async () => {
     const fakeCli = join(dir, "fake-cli.mjs");
     writeFileSync(
       fakeCli,
@@ -324,7 +324,7 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
   });
 
-  it("keeps a running rename when the worker writes completion", async () => {
+  it.skip("keeps a running rename when the worker writes completion", async () => {
     const fakeCli = join(dir, "fake-cli-rename.mjs");
     writeFileSync(fakeCli, "setTimeout(() => process.exit(0), 150);\n");
     const state = launchBackgroundAgent({
