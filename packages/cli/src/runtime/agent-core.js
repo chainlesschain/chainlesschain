@@ -2100,6 +2100,26 @@ async function _withPostEditDiagnostics(result, filePath, cwd) {
   return newDiagnostics ? { ...result, newDiagnostics } : result;
 }
 
+/**
+ * Drop skills whose `paths:` frontmatter scopes them to a different subtree than
+ * the agent's cwd (large-monorepo lazy skill surface). A skill with no `paths`
+ * applies everywhere, so a skill set with none is returned unchanged. Best-effort:
+ * any failure (or an unlocatable project root → relCwd "") falls open to the full
+ * list, never hiding a skill spuriously.
+ */
+async function filterSkillsByCwd(skills, cwd) {
+  try {
+    if (!Array.isArray(skills) || skills.every((s) => !s?.paths)) return skills;
+    const { filterSkillsByRelCwd, relCwdForCwd } =
+      await import("../lib/skill-path-scope.js");
+    const { findProjectRoot } = await import("../lib/project-detector.js");
+    const root = (cwd && findProjectRoot(cwd)) || cwd || "";
+    return filterSkillsByRelCwd(skills, relCwdForCwd(cwd, root));
+  } catch {
+    return skills; // fail-open: never hide a skill because scoping errored
+  }
+}
+
 async function executeToolInner(
   name,
   args,
@@ -3620,7 +3640,10 @@ async function executeToolInner(
     }
 
     case "run_skill": {
-      const allSkills = skillLoader.getResolvedSkills().filter(skillAllowed);
+      const allSkills = await filterSkillsByCwd(
+        skillLoader.getResolvedSkills().filter(skillAllowed),
+        cwd,
+      );
       if (allSkills.length === 0) {
         return attachDescriptor({
           error: _skillAllowlist
@@ -3766,7 +3789,10 @@ async function executeToolInner(
     }
 
     case "list_skills": {
-      let skills = skillLoader.getResolvedSkills().filter(skillAllowed);
+      let skills = await filterSkillsByCwd(
+        skillLoader.getResolvedSkills().filter(skillAllowed),
+        cwd,
+      );
       if (skills.length === 0) {
         return attachDescriptor({
           error: _skillAllowlist

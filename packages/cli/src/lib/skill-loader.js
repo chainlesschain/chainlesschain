@@ -28,6 +28,7 @@ import { getElectronUserDataDir } from "./paths.js";
 import { findProjectRoot } from "./project-detector.js";
 import { findProjectRoot as findGitRoot } from "./project-instructions.js";
 import { parseSkillMcpServers } from "./skill-mcp.js";
+import { normalizeSkillPaths } from "./skill-path-scope.js";
 import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 
@@ -467,6 +468,10 @@ export class CLISkillLoader {
           executionMode: data.executionMode || null,
           cliDomain: data.cliDomain || null,
           cliVersionHash: data.cliVersionHash || null,
+          // Optional per-directory path-scope: when set, the skill is only
+          // surfaced/runnable under a matching subtree (large-monorepo lazy
+          // context). null (the default) = applies everywhere.
+          paths: normalizeSkillPaths(data),
           dirName: entry.name,
           hasHandler: fs.existsSync(path.join(skillDir, "handler.js")),
           body,
