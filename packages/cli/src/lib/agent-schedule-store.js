@@ -575,7 +575,13 @@ export class AgentScheduleStore {
    */
   recordMonitorCheck(
     id,
-    { matched = false, atMs = null, mtimeMs = null } = {},
+    {
+      matched = false,
+      atMs = null,
+      mtimeMs = null,
+      eventId = null,
+      authority = null,
+    } = {},
   ) {
     const now = atMs != null ? atMs : this._now();
     return this._mutate("monitor", id, (entry) => {
@@ -590,6 +596,16 @@ export class AgentScheduleStore {
       if (matched) {
         entry.status = "matched";
         entry.matchedAt = now;
+        // Audit record of the firing: the deterministic monitor-event id + the
+        // (always SYSTEM/steer) authority the event was delivered under. Durable
+        // on the entry so `cc agenda list --json` and a future resident daemon
+        // can recognise / dedup the exact observation. Only stamped when the
+        // caller supplies them, so legacy callers stay byte-identical.
+        if (eventId != null) {
+          entry.lastEventId = String(eventId);
+          entry.lastEventAt = now;
+        }
+        if (authority != null) entry.lastAuthority = String(authority);
       } else if (entry.maxChecks != null && entry.checks >= entry.maxChecks) {
         entry.status = "exhausted";
       } else {

@@ -106,6 +106,43 @@ describe("AgentScheduleStore", () => {
     expect(exhausted.status).toBe("exhausted");
   });
 
+  it("persists the monitor-event id + authority audit on a matched check", () => {
+    const m = store.createMonitor({
+      command: "echo hi",
+      intervalMs: 1000,
+      stopWhen: "done",
+    });
+    const rec = store.recordMonitorCheck(m.id, {
+      matched: true,
+      atMs: 42,
+      eventId: "ev_abc123",
+      authority: "steer",
+    });
+    expect(rec.status).toBe("matched");
+    expect(rec.lastEventId).toBe("ev_abc123");
+    expect(rec.lastAuthority).toBe("steer");
+    expect(rec.lastEventAt).toBe(42);
+  });
+
+  it("omits the event audit fields for a legacy check without an eventId", () => {
+    const m = store.createMonitor({
+      command: "echo hi",
+      intervalMs: 1000,
+      stopWhen: "done",
+    });
+    const rec = store.recordMonitorCheck(m.id, { matched: true });
+    expect(rec.status).toBe("matched");
+    expect(rec.lastEventId).toBeUndefined();
+    expect(rec.lastAuthority).toBeUndefined();
+    // A non-matching check never stamps the audit fields even if supplied.
+    const m2 = store.createMonitor({ command: "x", intervalMs: 1000 });
+    const rec2 = store.recordMonitorCheck(m2.id, {
+      matched: false,
+      eventId: "ev_should_not_stick",
+    });
+    expect(rec2.lastEventId).toBeUndefined();
+  });
+
   it("rejects a bad monitor regex at creation", () => {
     expect(() =>
       store.createMonitor({ command: "x", intervalMs: 1000, stopWhen: "(" }),

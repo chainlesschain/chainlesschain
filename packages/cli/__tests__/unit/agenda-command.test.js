@@ -189,6 +189,139 @@ describe("cc agenda", () => {
     );
   });
 
+  describe("monitor event envelope (event_id / authority / dedup)", () => {
+    it("stamps a matched firing with a deterministic event_id + steer authority", async () => {
+      const m = store.createMonitor({
+        command: "echo BUILD OK",
+        intervalMs: 1000,
+        stopWhen: "OK",
+      });
+      const runCommand = vi.fn(async () => "BUILD OK\n");
+      const notify = vi.fn(async () => ({ delivered: ["telegram"] }));
+      await runAgendaRun(
+        { json: true },
+        { store, log, runCommand, notify, now: () => clock + 2000 },
+      );
+      const { actions } = JSON.parse(logs.join("\n"));
+      const fired = actions.find((a) => a.id === m.id);
+      expect(fired.action).toBe("matched");
+      // event_id is deterministic (RNG-free) and prefixed by the pure core.
+      expect(fired.event_id).toMatch(/^ev_[0-9a-f]{24}$/);
+      // A monitor firing tops out at "steer" — it can never approve a gate.
+      expect(fired.authority).toBe("steer");
+      // The audit identity is persisted on the entry for a resident daemon.
+      const entry = store.list("monitor").find((e) => e.id === m.id);
+      expect(entry.lastEventId).toBe(fired.event_id);
+      expect(entry.lastAuthority).toBe("steer");
+      // The store stamps the audit time from its own clock.
+      expect(entry.lastEventAt).toBe(clock);
+    });
+
+    it("suppresses a duplicate firing when lastEventId already matches", async () => {
+      // A resident-daemon future re-observation: an entry that is still
+      // schedulable but already carries the exact event_id for this observation.
+      // recordMonitorCheck sets a terminal status on match, so this pre-seeded
+      // state is constructed via an injected store to exercise the dedup guard.
+      const { monitorEventId } = await import("../../src/lib/monitor-event.js");
+      const predicted = monitorEventId("mon-dup", {
+        what: "echo BUILD OK",
+        output: "BUILD OK\n",
+      });
+      const entry = {
+        id: "mon-dup",
+        kind: "monitor",
+        source: "command",
+        command: "echo BUILD OK",
+        stopWhen: "OK",
+        status: "active",
+        notify: null,
+        lastEventId: predicted,
+      };
+      const record = vi.fn((_id, opts) => {
+        if (opts.matched) entry.status = "matched";
+        return entry;
+      });
+      const fakeStore = {
+        list: () => [entry],
+        due: () => [entry],
+        retireExpired: () => [],
+        recordMonitorCheck: record,
+      };
+      const runCommand = vi.fn(async () => "BUILD OK\n");
+      const notify = vi.fn(async () => ({}));
+      await runAgendaRun(
+        { json: true },
+        {
+          store: fakeStore,
+          log,
+          runCommand,
+          notify,
+          now: () => clock + 2000,
+        },
+      );
+      const { actions } = JSON.parse(logs.join("\n"));
+      const fired = actions.find((a) => a.id === "mon-dup");
+      expect(fired.action).toBe("duplicate");
+      expect(fired.event_id).toBe(predicted);
+      // The firing is still recorded (audit) but NOT re-notified.
+      expect(record).toHaveBeenCalledWith(
+        "mon-dup",
+        expect.objectContaining({ matched: true, eventId: predicted }),
+      );
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it("keeps action=matched and records the match when the notification fails", async () => {
+      const m = store.createMonitor({
+        command: "echo BUILD OK",
+        intervalMs: 1000,
+        stopWhen: "OK",
+      });
+      const runCommand = vi.fn(async () => "BUILD OK\n");
+      const notify = vi.fn(async () => {
+        throw new Error("telegram down");
+      });
+      const code = await runAgendaRun(
+        { json: true },
+        { store, log, runCommand, notify, now: () => clock + 2000 },
+      );
+      const { actions } = JSON.parse(logs.join("\n"));
+      const fired = actions.find((a) => a.id === m.id);
+      expect(fired.action).toBe("matched");
+      expect(fired.notifyError).toBe("telegram down");
+      // The match is durably recorded even though delivery failed (best-effort).
+      expect(store.list("monitor").find((e) => e.id === m.id).status).toBe(
+        "matched",
+      );
+      // A best-effort delivery failure is not a run-level error.
+      expect(code).toBe(0);
+    });
+
+    it("byte-caps an oversized notification body without splitting a code point", async () => {
+      const m = store.createMonitor({
+        command: "echo big",
+        intervalMs: 1000,
+        stopWhen: "DONE",
+      });
+      const big = "DONE " + "π".repeat(600); // multi-byte, well over 500 bytes
+      const runCommand = vi.fn(async () => big);
+      let capturedBody = null;
+      const notify = vi.fn(async ({ body }) => {
+        capturedBody = body;
+        return {};
+      });
+      await runAgendaRun(
+        { json: true },
+        { store, log, runCommand, notify, now: () => clock + 2000 },
+      );
+      expect(Buffer.byteLength(capturedBody, "utf8")).toBeLessThanOrEqual(500);
+      // No lone/partial UTF-8 unit — round-trips cleanly.
+      expect(Buffer.from(capturedBody, "utf8").toString("utf8")).toBe(
+        capturedBody,
+      );
+    });
+  });
+
   it("re-arms a monitor whose output does not match yet", async () => {
     const m = store.createMonitor({
       command: "echo waiting",

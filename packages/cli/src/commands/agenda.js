@@ -25,6 +25,7 @@ import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
 import { sendAgentNotification } from "../lib/agent-notify.js";
 import { nextWakeupAt, partitionSchedule } from "../lib/schedule-planner.js";
+import { monitorEventEnvelope, capEventPayload } from "../lib/monitor-event.js";
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -276,22 +277,63 @@ export async function runAgendaRun(options = {}, _deps = {}) {
               : entry.source === "http"
                 ? entry.watchUrl
                 : entry.command;
-          await notify({
-            title: entry.notify?.title || `Monitor matched: ${what}`,
-            body: truncate(output, 500),
-            level: "success",
+          // Stamp the firing with the shared delivery guarantees (monitor-event.js):
+          // a deterministic event_id (audit identity, RNG-free) + a SYSTEM
+          // authority envelope (steer only — a monitor firing can NEVER answer a
+          // permission gate) + a byte-safe payload cap.
+          const envelope = monitorEventEnvelope(
+            entry.id,
+            { what, output },
+            { at: now, source: entry.source },
+          );
+          // At-most-once dedup: a persisted lastEventId equal to this event_id
+          // means this exact observation already fired (e.g. a resident daemon
+          // re-observing the same state) — record but do not re-notify.
+          const duplicate =
+            entry.lastEventId != null &&
+            entry.lastEventId === envelope.event_id;
+          // Persist the firing (status→matched + event_id + authority audit)
+          // BEFORE the notification side-effect so the record is durable even if
+          // the alert delivery fails; delivery itself is best-effort.
+          const updated = store.recordMonitorCheck(entry.id, {
+            matched: true,
+            mtimeMs,
+            eventId: envelope.event_id,
+            authority: envelope.authority,
+          });
+          const action = {
+            id: entry.id,
+            kind: "monitor",
+            action: duplicate ? "duplicate" : "matched",
+            status: updated?.status,
+            event_id: envelope.event_id,
+            authority: envelope.authority,
+          };
+          if (envelope.truncated) action.truncated = true;
+          if (!duplicate) {
+            try {
+              await notify({
+                title: entry.notify?.title || `Monitor matched: ${what}`,
+                body: capEventPayload(output, 500).value,
+                level: "success",
+              });
+            } catch (notifyErr) {
+              action.notifyError = notifyErr.message;
+            }
+          }
+          actions.push(action);
+        } else {
+          const updated = store.recordMonitorCheck(entry.id, {
+            matched: false,
+            mtimeMs,
+          });
+          actions.push({
+            id: entry.id,
+            kind: "monitor",
+            action: "checked",
+            status: updated?.status,
           });
         }
-        const updated = store.recordMonitorCheck(entry.id, {
-          matched,
-          mtimeMs,
-        });
-        actions.push({
-          id: entry.id,
-          kind: "monitor",
-          action: matched ? "matched" : "checked",
-          status: updated?.status,
-        });
       }
     } catch (err) {
       actions.push({
