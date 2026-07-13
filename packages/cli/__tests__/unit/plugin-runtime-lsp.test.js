@@ -20,12 +20,12 @@ import {
 
 let cwd;
 
-function installLspPlugin(scope, name, lsp) {
+function installLspPlugin(scope, name, lsp, { manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
-    JSON.stringify({ name, version: "1.0.0" }),
+    JSON.stringify({ name, version: "1.0.0", ...manifest }),
     "utf8",
   );
   fs.writeFileSync(path.join(dir, ".lsp.json"), JSON.stringify(lsp), "utf8");
@@ -45,6 +45,37 @@ afterEach(() => {
   } catch {
     /* best-effort */
   }
+});
+
+describe("ensurePluginLspServers — component-level capability gate", () => {
+  const oneServer = {
+    servers: [{ languageId: "toml", command: "taplo", extensions: [".toml"] }],
+  };
+
+  it("refuses language servers when the plugin declared permissions but not 'process'", () => {
+    installLspPlugin("local", "p", oneServer, {
+      manifest: { permissions: {} }, // opted in, but no process capability
+    });
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
+    ).toEqual([]);
+  });
+
+  it("allows language servers once 'process' is declared", () => {
+    installLspPlugin("local", "p", oneServer, {
+      manifest: { permissions: { process: true } },
+    });
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
+    ).toHaveLength(1);
+  });
+
+  it("a legacy plugin (no permissions block) is unaffected", () => {
+    installLspPlugin("local", "p", oneServer);
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
+    ).toHaveLength(1);
+  });
 });
 
 describe("ensurePluginLspServers", () => {

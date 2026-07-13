@@ -19,6 +19,33 @@
 import path from "path";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
+import { componentCapabilityDenial } from "./capabilities.js";
+
+// One-time stderr notice when a plugin's bin dir is refused at the COMPONENT
+// level because the plugin opted into the capability model but did not declare
+// the `process` capability its executables need. Distinct from the trust gate:
+// these plugins ARE trusted, but their bin component is denied.
+const _capabilityDenied = new Set();
+function warnBinCapabilityDeniedOnce(entries) {
+  if (!entries || entries.length === 0) return;
+  if (_capabilityDenied.has("bin-capability")) return;
+  _capabilityDenied.add("bin-capability");
+  const list = entries.map((e) => `${e.name} (${e.reason})`).join("; ");
+  try {
+    process.stderr.write(
+      `[plugins] refused bin dir(s) from plugin(s) that declared a permissions ` +
+        `block but did not declare the 'process' capability: ${list}\n` +
+        `          add 'process' to the plugin's permissions block to enable them.\n`,
+    );
+  } catch {
+    /* stderr notice is best-effort */
+  }
+}
+
+/** Test hook: reset the one-time capability-denied warning guard. */
+export function _resetBinWarnings() {
+  _capabilityDenied.clear();
+}
 
 /**
  * Collect trusted, installed plugins' `bin/` directories.
@@ -40,10 +67,19 @@ export function collectPluginBinDirs(opts = {}) {
     "bin",
   );
   const out = [];
+  const denied = [];
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const bins = p.manifest.components?.bin;
     if (!Array.isArray(bins) || bins.length === 0) continue;
+    // Component-level capability gate: a plugin that declared a permissions
+    // block but did not declare the `process` capability its executables need
+    // gets its bin dir refused here (mirrors the MCP collector's denial).
+    const denial = componentCapabilityDenial(p.manifest, ["process"]);
+    if (denial) {
+      denied.push({ name: p.name, reason: denial.reason });
+      continue;
+    }
     // Every bin entry's absPath is a file inside the plugin's bin dir; collect
     // the unique parent directories (usually just `<root>/bin`).
     const dirs = new Set(bins.map((b) => path.dirname(b.absPath)));
@@ -56,6 +92,7 @@ export function collectPluginBinDirs(opts = {}) {
       });
     }
   }
+  warnBinCapabilityDeniedOnce(denied);
   return out;
 }
 

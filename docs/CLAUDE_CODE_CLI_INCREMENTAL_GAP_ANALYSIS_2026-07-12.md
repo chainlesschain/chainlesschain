@@ -968,25 +968,26 @@ consent / 加宽**打 `⚠ capability consent required` + `added` diff + 指到 
 needs-consent JSON 折入 / 无声明→null / 文本 re-consent 提示 / 升级加宽→重 consent+network
 diff / 升级不加宽→满意 notice），plugin consent/install 回归 46 绿。
 
-**已落地（2026-07-13，声明缺失→单组件拒：hooks + monitors）**：把「声明了 permissions 却
-under-declare 某组件所需能力→拒该**单个组件**」从纯警告升级为**真拦**。新增共享纯核
-`componentCapabilityDenial(manifest, capabilityNames)`（capabilities.js）——仅对**已 opt-in**
+**已落地（2026-07-13，声明缺失→单组件拒：hooks + monitors + bin + lsp）**：把「声明了
+permissions 却 under-declare 某组件所需能力→拒该**单个组件**」从纯警告升级为**真拦**。新增共享
+纯核 `componentCapabilityDenial(manifest, capabilityNames)`（capabilities.js）——仅对**已 opt-in**
 （`capabilitiesDeclared === true`）的插件，用 `auditDeclaredCapabilities` 找出 caller 关心的
 能力缺口，返回 `{reason}` 否则 null；legacy（无 permissions 块）插件永不受限（能力模型 opt-in
-的既定设计）。接进两个组件收集器：`collectPluginHooks` 对 ship 了 hooks 却没声明 `process`
-的插件**拒收其 hooks**（hooks 跑 shell 命令）；`collectPluginMonitors` 对没声明 `monitor`
-的插件**拒收其 monitors**。各带一次性 stderr 告警（`_resetHookWarnings`/`_resetMonitorWarnings`
-测试可重置）。**默认字节不变**：legacy 插件与已正确声明能力的插件行为不变（现有 collector
-回归 44 绿）。测试：`plugin-runtime-capabilities.test.js` +4（helper：缺声明拒/声明放/legacy
-放/只认 caller 关心的能力）+ `plugin-runtime-hooks.test.js` +3 + `plugin-runtime-monitors.test.js`
-+3（真临时插件：declared-无能力拒、declared-有能力放、legacy 放）= 46 绿。
+的既定设计）。接进**四个**组件收集器：`collectPluginHooks`（hooks 跑 shell → 需 `process`）/
+`collectPluginMonitors`（需 `monitor`）/ `collectPluginBinDirs`（bin 是可执行文件 → 需 `process`）/
+`ensurePluginLspServers`（LSP server spawn 二进制 → 需 `process`）——各对 under-declare 的插件
+**拒收该组件**，带一次性 stderr 告警（`_resetHookWarnings`/`_resetMonitorWarnings`/`_resetBinWarnings`/
+`_resetLspWarnings` 测试可重置）。**默认字节不变**：legacy 插件与已正确声明能力的插件行为不变
+（现有 collector 回归全绿）。测试：`plugin-runtime-capabilities.test.js` +4（helper：缺声明拒/
+声明放/legacy 放/只认 caller 关心的能力）+ hooks/monitors/bin/lsp 各 +3（真临时插件：declared-无
+能力拒、declared-有能力放、legacy 放）= 46+18 绿。
 
-**仍欠（MCP/bin/lsp 组件拒 + 交互 consent + 敏感项托管）**：MCP server（需 `mcp`/`network`）
-与 bin/lsp（需 `process`）的组件级拒可复用同一 `componentCapabilityDenial` 接进各自 collector
-（MCP collector 正由并行 session 处理，本轮未碰）；`install.js` `installFromDirectory`/
-`updatePlugin` 装/升级时**交互** diff→重新 consent（现渲染清单+diff+提示但仍非阻塞交互，需事后
-`cc plugin consent --grant`）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 + OS
-keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大基建，未起。
+**仍欠（MCP 组件拒 + 交互 consent + 敏感项托管）**：MCP server（需 `mcp`/`network`）的组件级拒
+可复用同一 `componentCapabilityDenial` 接进 `collectPluginMcpServers`（MCP collector 正由并行
+session 处理，本轮未碰）；`install.js` `installFromDirectory`/`updatePlugin` 装/升级时**交互**
+diff→重新 consent（现渲染清单+diff+提示但仍非阻塞交互，需事后 `cc plugin consent --grant`）；
+把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 + OS keychain 取值；shell-form 命令
+插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大基建，未起。
 
 ## P2：Hooks、结构化输出与质量闭环
 

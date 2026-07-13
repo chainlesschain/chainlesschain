@@ -17,12 +17,12 @@ let cwd;
 let storeFile;
 let savedStorePath;
 
-function installBinPlugin(scope, name, binFiles) {
+function installBinPlugin(scope, name, binFiles, { manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
-    JSON.stringify({ name, version: "1.0.0" }),
+    JSON.stringify({ name, version: "1.0.0", ...manifest }),
     "utf8",
   );
   for (const f of binFiles) {
@@ -45,6 +45,27 @@ afterEach(() => {
   } catch {
     /* best-effort */
   }
+});
+
+describe("collectPluginBinDirs — component-level capability gate", () => {
+  it("refuses a bin dir when the plugin declared permissions but not 'process'", () => {
+    installBinPlugin("local", "p", ["tool"], {
+      manifest: { permissions: {} }, // opted in, but no process capability
+    });
+    expect(collectPluginBinDirs({ cwd, scopes: ["local"] })).toEqual([]);
+  });
+
+  it("allows the bin dir once 'process' is declared", () => {
+    installBinPlugin("local", "p", ["tool"], {
+      manifest: { permissions: { process: true } },
+    });
+    expect(collectPluginBinDirs({ cwd, scopes: ["local"] })).toHaveLength(1);
+  });
+
+  it("a legacy plugin (no permissions block) is unaffected", () => {
+    installBinPlugin("local", "p", ["tool"]);
+    expect(collectPluginBinDirs({ cwd, scopes: ["local"] })).toHaveLength(1);
+  });
 });
 
 describe("collectPluginBinDirs", () => {
