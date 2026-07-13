@@ -293,15 +293,26 @@ steer-only 契约变成**机器可校验**（下游审批 seam 可断言 `canApp
 `channels.test.js` +2（envelope 恒 steer/never-approve 即便正文含 “approved” / startChannels
 包裹每条投递事件带 channel authority 且原字段存活）= 13 绿。
 
-**仍欠（把契约接到其余 seam）**：当前 origin 感知检查是
-`remote-session-protocol.js:440` 的 per-device scope + channel 事件的 steer 标注（本笔）。
-下一步把 `assertCanApprove`
+**已接线（2026-07-13，远端审批 seam）**：把 `assertCanApprove` + `describeAuthorityChain`
+接进 `remote-session-protocol.js` 的 `approval.resolve` seam——远端 _approve_ 现经**单一
+权威规则** `assertCanApprove({origin:remote, authenticated, approve scope})` 前置校验（在
+幂等 ledger 之前，故被拒的 approve 绝不消耗 commandId slot），使远端 seam 与本地/headless
+审批门共用同一规则、绝不漂移；`describeAuthorityChain` provenance（origin/principal/session/
+authority）落 `control.approval` 审计（server-hosted 与 forwarded 两路）。**binding 透传 +
+fail-closed 校验**：回显的 `binding` 经 `approval.resolve` → `handleSessionAnswer` →
+interaction-adapter `resolveAnswer(requestId, answer, binding)` 贯通；带 binding 发起的请求
+若 approve 回显的 binding 不匹配 → 结算为 **DENY**（fail closed），镜像本地 headless 门。向后
+兼容：请求无 binding 或答复未回显 binding → 逐字节不变。测试：interaction-adapter +4（binding
+随请求外发 / 不匹配→deny / 未回显向后兼容 / 纯 question 不加 binding 字段）+
+remote-session-protocol +2（binding 透传到 host 门 / 审计带 authority provenance）+ 既有
+approval 测试改为 3 参 `resolveAnswer`。
 
-- `describeAuthorityChain` 接到远端审批 seam（E: `handleSessionAnswer` /
-  G: relay 控制路径）与审计日志，并把 `binding` 透传到远端/relay 审批往返
-  （`approval_request` → 设备回显 → 校验）；agent-sdk 的 `ApprovalRequestEvent` 可选加
-  `binding` 回显（需 bump SDK 版本，故留待下次 SDK 发版）。repo 配置不得开 bypass/auto 与
-  managed deny 放宽的强制项亦未做。seam 全图见提交说明。
+**仍欠**：G-relay 加密控制路径（`_handleRemoteEncryptedControl`）的同款 authority + binding 接线
+（本笔覆 server-hosted / forwarded 两路，relay 路径待接）；把 binding 从**权限门产生端**真正
+attach 到 interaction-adapter 请求（现校验就绪但尚无生产者 attach binding，需权限-门-over-WS 接线）；
+agent-sdk 的 `ApprovalRequestEvent` 可选加 `binding` 回显（需 bump SDK 版本，留待下次 SDK 发版）；
+repo 配置不得开 bypass/auto 与 managed deny 放宽的强制项亦未做（注：permission mode 来自 CLI flag
+而非 project settings，故经 settings 的 mode 升级路径本就不存在）。
 
 ## P1：会话级完成条件引擎
 
