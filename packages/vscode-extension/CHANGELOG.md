@@ -2,6 +2,23 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.15] — Lean chat context: trim project memory re-sent every turn (2026-07-13)
+
+- **Lean context (new setting `chainlesschain.chat.leanContext`, ON by default).**
+  The chat panel now injects `CC_PROJECT_MEMORY=lean` into the `cc agent` child so
+  the system prompt keeps only the primary **entry** instruction file
+  (`cc.md` › `CLAUDE.md` › `AGENTS.md`, first match) and sheds the heavy
+  companions — `CLAUDE.local.md` (gitignored personal status), `.claude/rules/*.md`,
+  and `.chainlesschain/rules.md`. In a doc-heavy repo that block is re-sent on
+  **every** turn (often ~8k+ tokens = real cost on a paid provider); the agent can
+  still `read` those files with its tools when a task actually needs them. Measured
+  ~12k → ~5k tokens of project memory per turn on a large monorepo, entry file kept.
+- **Version-safe by design.** Delivered as an environment variable, **not** a CLI
+  flag, so an older `cc` that predates lean mode simply falls back to full memory
+  (no crash, no unknown-flag error) — the shedding needs `cc ≥ 0.162.165`. Scoped to
+  this panel's child only; the terminal `cc` is untouched. Turn the setting OFF to
+  always inject full project memory.
+
 ## [0.37.14] — Protocol hardening, diff/connection safety, capability negotiation (2026-07-12)
 
 - **Diff-apply safety.** Optimistic-concurrency guard (a target file that
