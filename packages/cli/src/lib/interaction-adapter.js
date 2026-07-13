@@ -14,6 +14,7 @@ import {
   LEGACY_TO_UNIFIED_TYPE,
 } from "../runtime/runtime-events.js";
 import { createAbortError } from "./abort-utils.js";
+import { verifyApprovalBinding } from "./agent-authority.js";
 import { createEnvelope } from "@chainlesschain/session-core";
 
 // Phase 5: parallel service-envelope emission. Map WS agent-handler event
@@ -167,12 +168,21 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         reject,
         timeoutId,
         kind: options.kind || null,
+        // Approval binding (authority §"权限来源"): when a permission gate raises
+        // this request WITH a binding (tool_call_id + args + policy digest), an
+        // *approve* answer must echo the SAME binding or it is a stale / mis-
+        // routed / argument-tampered verdict and is rejected in _resolvePending.
+        // null (the default for plain questions) → no binding check, unchanged.
+        binding: options.binding || null,
       });
 
       this._sendWs({
         ...message,
         sessionId: this.sessionId,
         requestId,
+        // Ride the binding out so the remote UI/bridge can echo it back on the
+        // answer (only present when the caller supplied one).
+        ...(options.binding ? { binding: options.binding } : {}),
       });
     });
   }
@@ -210,8 +220,8 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * Called by ws-server when a session-answer message arrives.
    * Resolves the corresponding pending promise.
    */
-  resolveAnswer(requestId, answer) {
-    this._resolvePending(requestId, answer, "question");
+  resolveAnswer(requestId, answer, binding = null) {
+    this._resolvePending(requestId, answer, "question", binding);
   }
 
   async requestHostTool(toolName, args = {}, extra = {}) {
@@ -321,7 +331,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     }
   }
 
-  _resolvePending(requestId, payload, expectedKind = null) {
+  _resolvePending(
+    requestId,
+    payload,
+    expectedKind = null,
+    incomingBinding = null,
+  ) {
     const pending = this._pending.get(requestId);
     if (!pending) {
       return;
@@ -337,11 +352,26 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       return;
     }
 
+    // Approval-binding guard (authority §"权限来源"): if this request was raised
+    // with a binding AND the answer echoes a binding that does NOT match, the
+    // verdict is for a different / argument-tampered call — settle as a DENY
+    // (fail closed) instead of the approve it claims to be, mirroring the local
+    // headless approval gate. Backward-compatible: no request binding, or an
+    // answer with no echoed binding, resolves exactly as before.
+    let effective = payload;
+    if (
+      pending.binding &&
+      incomingBinding &&
+      !verifyApprovalBinding(pending.binding, incomingBinding)
+    ) {
+      effective = false;
+    }
+
     this._pending.delete(requestId);
     if (pending.timeoutId) {
       clearTimeout(pending.timeoutId);
     }
-    pending.resolve(payload);
+    pending.resolve(effective);
   }
 }
 

@@ -492,7 +492,10 @@ export async function handleSessionInterrupt(server, id, ws, message) {
 }
 
 export function handleSessionAnswer(server, id, ws, message) {
-  const { sessionId, requestId, answer } = message;
+  // `binding` (authority §"权限来源"): an approve answer may echo the binding the
+  // request advertised so the interaction adapter can reject a stale / tampered
+  // verdict. Absent → backward-compatible (no binding check).
+  const { sessionId, requestId, answer, binding = null } = message;
 
   if (!server.sessionManager) {
     server._send(
@@ -504,7 +507,7 @@ export function handleSessionAnswer(server, id, ws, message) {
 
   const session = server.sessionManager.getSession(sessionId);
   if (session && session.interaction && session.interaction.resolveAnswer) {
-    session.interaction.resolveAnswer(requestId, answer);
+    session.interaction.resolveAnswer(requestId, answer, binding);
   }
 
   server._send(

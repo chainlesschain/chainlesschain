@@ -189,6 +189,47 @@ describe("WebSocketInteractionAdapter", () => {
     expect(await promise).toBe(false);
   });
 
+  // Approval binding (authority §"权限来源"): a request raised WITH a binding
+  // rejects an approve whose echoed binding doesn't match — fail closed.
+  it("rides the binding out on the request when supplied", async () => {
+    const promise = adapter._request(
+      { type: "question", questionType: "confirm", question: "Run?" },
+      { kind: "question", binding: "ab_correct" },
+    );
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.binding).toBe("ab_correct");
+    adapter.resolveAnswer(sent.requestId, true, "ab_correct");
+    expect(await promise).toBe(true);
+  });
+
+  it("rejects an approve whose echoed binding mismatches (→ deny)", async () => {
+    const promise = adapter._request(
+      { type: "question", questionType: "confirm", question: "Run?" },
+      { kind: "question", binding: "ab_correct" },
+    );
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    adapter.resolveAnswer(sent.requestId, true, "ab_TAMPERED");
+    expect(await promise).toBe(false); // forced deny, not the approve it claimed
+  });
+
+  it("honors an approve with no echoed binding (backward compatible)", async () => {
+    const promise = adapter._request(
+      { type: "question", questionType: "confirm", question: "Run?" },
+      { kind: "question", binding: "ab_correct" },
+    );
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    adapter.resolveAnswer(sent.requestId, true); // no binding echoed → unchanged
+    expect(await promise).toBe(true);
+  });
+
+  it("adds no binding field to a plain question (byte-identical)", async () => {
+    const promise = adapter.askConfirm("Proceed?");
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect("binding" in sent).toBe(false);
+    adapter.resolveAnswer(sent.requestId, true);
+    expect(await promise).toBe(true);
+  });
+
   it("resolveAnswer resolves pending promise", async () => {
     const promise = adapter.askInput("Q?");
     const sent = JSON.parse(ws.send.mock.calls[0][0]);

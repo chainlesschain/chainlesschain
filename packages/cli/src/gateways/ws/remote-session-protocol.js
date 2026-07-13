@@ -9,6 +9,11 @@ import {
 } from "../../harness/remote-session-crypto.js";
 import { isApprovalRequestEvent } from "../../harness/remote-session-push.js";
 import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
+import {
+  ORIGIN,
+  assertCanApprove,
+  describeAuthorityChain,
+} from "../../lib/agent-authority.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
   prompt: "prompt",
@@ -463,6 +468,30 @@ export async function handleRemoteSessionPublish(
       ) {
         throw new Error("prompt content is required");
       }
+      // Authority (§"权限来源与跨 Agent 授权边界"): a remote *approve* is honored
+      // only from an authenticated, approve-scoped device — the SINGLE
+      // authoritative rule, not just the per-device scope check above, so the
+      // remote seam can never drift from the local/headless approval gate. The
+      // approve scope was already proven by the `authorize(..., "approve")` call
+      // above; asserting here makes that rule explicit and centralized. Built
+      // up-front (before the idempotency ledger) so a rejected approve never
+      // consumes a commandId slot. A deny always passes (anyone may deny —
+      // fail-safe). The envelope also feeds `describeAuthorityChain` provenance
+      // into the audit trail below.
+      let approvalEnvelope = null;
+      if (message.event.type === "approval.resolve") {
+        approvalEnvelope = {
+          origin: ORIGIN.REMOTE,
+          authenticated: true,
+          scopes: ["approve"],
+          principalId: clientId,
+          sessionId: message.remoteSessionId,
+        };
+        const approved = message.event.answer ?? message.event.approved;
+        if (approved === true || approved === "true" || approved === "yes") {
+          assertCanApprove(approvalEnvelope);
+        }
+      }
       // CLIENT-HOSTED sessions (第四阶段 #2): when the agent session does not
       // live in THIS server's sessionManager — e.g. a REPL/headless process
       // that connected as a WS client and registered its own local session id —
@@ -515,10 +544,15 @@ export async function handleRemoteSessionPublish(
                       requestId:
                         message.event.requestId || message.event.approvalId,
                       approved: message.event.answer ?? message.event.approved,
+                      // Log-safe provenance: which principal/session/authority.
+                      authority: describeAuthorityChain(approvalEnvelope || {}),
                       forwarded: true,
                     }
                   : { forwarded: true },
           });
+          // Hand the event to the host process. `message.event` carries any
+          // echoed approval binding, so the host gate can reject a stale /
+          // tampered verdict.
           server._send(hostTarget.ws, {
             type: "remote-session-control",
             remoteSessionId: message.remoteSessionId,
@@ -553,12 +587,17 @@ export async function handleRemoteSessionPublish(
             detail: {
               requestId: message.event.requestId || message.event.approvalId,
               approved: message.event.answer ?? message.event.approved,
+              // Log-safe provenance: which principal/session/authority approved.
+              authority: describeAuthorityChain(approvalEnvelope || {}),
             },
           });
           await handleSessionAnswer(server, message.id, ws, {
             ...controlMessage,
             requestId: message.event.requestId || message.event.approvalId,
             answer: message.event.answer ?? message.event.approved,
+            // Echoed approval binding (if any): the host interaction gate rejects
+            // a verdict whose binding doesn't match the pending request.
+            binding: message.event.binding ?? null,
           });
         } else if (message.event.type === "interrupt") {
           audit(server, {

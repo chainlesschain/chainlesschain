@@ -109,11 +109,54 @@ describe("remote session WebSocket protocol", () => {
       event: { type: "approval.resolve", approvalId: "a-1", approved: true },
     });
     const session = server.sessionManager.getSession.mock.results.at(-1).value;
-    expect(session.interaction.resolveAnswer).toHaveBeenCalledWith("a-1", true);
+    // Authority: the echoed approval binding (null here) rides through to the
+    // host interaction gate as a 3rd argument.
+    expect(session.interaction.resolveAnswer).toHaveBeenCalledWith(
+      "a-1",
+      true,
+      null,
+    );
     expect(phone.sent.at(-1)).toMatchObject({
       type: "command.response",
       sessionId: "agent-1",
     });
+  });
+
+  it("forwards an echoed approval binding to the host interaction gate", async () => {
+    const remoteSessionId = createAndJoin();
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "approve-b",
+      remoteSessionId,
+      event: {
+        type: "approval.resolve",
+        approvalId: "a-2",
+        approved: true,
+        binding: "ab_deadbeef",
+      },
+    });
+    const session = server.sessionManager.getSession.mock.results.at(-1).value;
+    expect(session.interaction.resolveAnswer).toHaveBeenCalledWith(
+      "a-2",
+      true,
+      "ab_deadbeef",
+    );
+  });
+
+  it("stamps log-safe authority provenance on the approval audit", async () => {
+    const remoteSessionId = createAndJoin();
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "approve-prov",
+      remoteSessionId,
+      event: { type: "approval.resolve", approvalId: "a-3", approved: true },
+    });
+    const entry = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId, action: "control.approval" })
+      .at(0);
+    expect(entry.actor).toBe("phone");
+    // A paired, approve-scoped device speaks with `approve` authority.
+    expect(entry.detail.authority).toMatch(/origin=remote/);
+    expect(entry.detail.authority).toMatch(/principal=phone/);
+    expect(entry.detail.authority).toMatch(/authority=approve/);
   });
 
   it("routes scoped prompts into the active Agent Session handler", async () => {
