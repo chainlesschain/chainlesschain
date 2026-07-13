@@ -257,6 +257,64 @@ describe("crash-loop restart guard", () => {
     expect(lastClient).not.toBe(quarantined);
     await mgr.disposeAll();
   });
+
+  describe("exponential restart backoff (opt-in)", () => {
+    it("computes exponential backoff per crash, capped, and 0 when disabled", () => {
+      const on = new LSPManager({
+        restartBackoffBaseMs: 1000,
+        restartBackoffMaxMs: 8000,
+      });
+      expect(on._restartBackoffMs(0)).toBe(0); // first start — no wait
+      expect(on._restartBackoffMs(1)).toBe(1000);
+      expect(on._restartBackoffMs(2)).toBe(2000);
+      expect(on._restartBackoffMs(3)).toBe(4000);
+      expect(on._restartBackoffMs(4)).toBe(8000);
+      expect(on._restartBackoffMs(5)).toBe(8000); // capped
+      // Disabled by default → always 0 (byte-identical immediate respawn).
+      const off = new LSPManager();
+      expect(off.restartBackoffBaseMs).toBe(0);
+      expect(off._restartBackoffMs(2)).toBe(0);
+    });
+
+    it("degrades (backing off) during the cooldown, then re-spawns once it elapses", async () => {
+      let t = 1000;
+      const mgr = new LSPManager({
+        maxRestarts: 5,
+        restartWindowMs: 60000,
+        restartBackoffBaseMs: 1000,
+        restartBackoffMaxMs: 8000,
+        now: () => t,
+      });
+      await mgr.ensureFor("/proj/src/a.ts"); // spawn #1
+      const first = lastClient;
+      crash(first); // 1 crash at t=1000
+      // Same tick → within the 1st-crash backoff (1000ms) → degrade, no respawn.
+      const backingOff = await mgr.ensureFor("/proj/src/a.ts");
+      expect(backingOff.unavailable).toBe(true);
+      expect(backingOff.backoff).toBe(true);
+      expect(backingOff.quarantined).toBeUndefined();
+      expect(backingOff.retryInMs).toBe(1000);
+      expect(lastClient).toBe(first); // did NOT spawn during cooldown
+      // Advance past the cooldown → a fresh spawn is allowed.
+      t += 1000;
+      const ready = await mgr.ensureFor("/proj/src/a.ts");
+      expect(ready.unavailable).toBeUndefined();
+      expect(lastClient).not.toBe(first);
+      await mgr.disposeAll();
+    });
+
+    it("does NOT back off by default — respawns a crashed server on the next request", async () => {
+      const mgr = new LSPManager({ maxRestarts: 3, now: () => 5000 });
+      await mgr.ensureFor("/proj/src/a.ts");
+      const first = lastClient;
+      crash(first);
+      // Same tick, backoff disabled → immediate fresh spawn (prior behaviour).
+      const ready = await mgr.ensureFor("/proj/src/a.ts");
+      expect(ready.unavailable).toBeUndefined();
+      expect(lastClient).not.toBe(first);
+      await mgr.disposeAll();
+    });
+  });
 });
 
 describe("diagnostics", () => {

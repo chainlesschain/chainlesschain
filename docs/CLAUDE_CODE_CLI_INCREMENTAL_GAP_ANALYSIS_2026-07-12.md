@@ -1314,9 +1314,22 @@ multi+verify（一次 high review 即彻底的、经核验的一遍），low/med
 single 强制单遍 + 低 effort 显式 multi 无 verify + no-verify 保 multi + verify 不脱 multi）；
 review 套回归 129 绿（`b8b2e8df95`）。
 
+**已落地（2026-07-13，LSP 重启指数退避，opt-in）**：`lsp-manager.js` 在原有滑窗**隔离**
+（`maxRestarts` 内 crash 数达上限即 quarantine）之上补**退避**——之前落在 quarantine 上限内的
+崩溃会在**下一次请求**立即 re-spawn，一个启动即崩的 server 会毫秒级连爆 `maxRestarts` 次再隔离。
+新增 `restartBackoffBaseMs`/`restartBackoffMaxMs` 选项 + `_restartBackoffMs(crashCount)`（指数
+`base·2^(N-1)` 封顶，确定性无 jitter）：第 N 次崩溃后第 N+1 次 spawn 须等退避时间，`ensureFor`
+在 quarantine 判定之后、spawn 之前查「距上次崩溃是否够久」，未够则返回 `{unavailable, backoff:true,
+retryInMs}`（transient 冷却，区别于 quarantine，caller 一样降级文本搜索）。**默认 `restartBackoffBaseMs=0`
+＝关 → 逐字节不变**（立即 re-spawn 的原行为，现有崩溃循环测试全不动）——因无法在 agent-core
+（并行 session 占用）接线打开，故取 opt-in 成熟度，恰合本项「留待评估」定性。测试：
+`lsp-manager.test.js` +3（指数值 0/1000/2000/4000/8000/封顶 + 默认关 0 / 冷却期降级 backoff:true
++retryInMs 后放行 / 默认关立即 re-spawn）= 17 绿；LSP 套 81 绿。
+
 **仍欠（调度器接线 + LSP 多根）**：`DiagnosticsScheduler`/`capDiagnostics` 接进 agent-core 的
 编辑→诊断路径（替 `_postEditDiagnostics` 的裸 cap 20 + 无节流，属 agent-core接线）；LSP 多根
-workspace / `/doctor` 检查；backoff 目前是滑窗隔离非指数退避，留待评估。
+workspace / `/doctor` 检查；退避 default-on（需 agent-core 处构造 LSPManager 时传 base，属
+agent-core接线）留待。
 
 ## P2：Doctor、文档与可观测性
 

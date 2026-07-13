@@ -33,6 +33,14 @@ export class LSPManager {
    * @param {number} [opts.restartWindowMs] sliding window for the crash count.
    *   A server that stays healthy for this long has its crash history pruned and
    *   can restart fresh. Default 30000.
+   * @param {number} [opts.restartBackoffBaseMs] exponential backoff BETWEEN
+   *   restart attempts: after the Nth recent crash the (N+1)th re-spawn waits
+   *   `base·2^(N-1)` (capped by `restartBackoffMaxMs`) before it is allowed,
+   *   spreading out a fast startup-crash loop instead of bursting `maxRestarts`
+   *   spawns back-to-back. Default 0 = OFF (byte-identical to the prior
+   *   immediate-respawn behaviour); opt-in pending evaluation.
+   * @param {number} [opts.restartBackoffMaxMs] cap for the exponential backoff.
+   *   Default 8000.
    * @param {() => number} [opts.now] injected clock (deterministic crash-loop tests)
    */
   constructor(opts = {}) {
@@ -65,6 +73,19 @@ export class LSPManager {
     this.restartWindowMs = Number.isFinite(opts.restartWindowMs)
       ? opts.restartWindowMs
       : 30000;
+    // Exponential backoff BETWEEN restart attempts (distinct from the quarantine
+    // cap above). Without it, a server that crashes on startup is re-spawned on
+    // the very next request — bursting `maxRestarts` spawns back-to-back in
+    // milliseconds before quarantine. When enabled, the (N+1)th spawn after N
+    // recent crashes waits `base·2^(N-1)` (capped), so a fast crash loop can't
+    // storm the process table. Default 0 = OFF → byte-identical to the prior
+    // immediate-respawn behaviour (opt-in pending evaluation).
+    this.restartBackoffBaseMs = Number.isFinite(opts.restartBackoffBaseMs)
+      ? Math.max(0, opts.restartBackoffBaseMs)
+      : 0;
+    this.restartBackoffMaxMs = Number.isFinite(opts.restartBackoffMaxMs)
+      ? opts.restartBackoffMaxMs
+      : 8000;
     this._now = typeof opts.now === "function" ? opts.now : () => Date.now();
     /** key → array of recent crash timestamps (survives entry re-spawn) */
     this._crashLog = new Map();
@@ -78,6 +99,18 @@ export class LSPManager {
     if (pruned.length) this._crashLog.set(key, pruned);
     else this._crashLog.delete(key);
     return pruned;
+  }
+
+  /**
+   * Minimum delay before the next restart attempt given `crashCount` recent
+   * crashes: exponential `base·2^(crashCount-1)`, capped at `restartBackoffMaxMs`.
+   * Returns 0 when backoff is disabled (base 0) or `crashCount <= 0` (a first
+   * start). Deterministic (no jitter) so crash-loop tests stay reproducible.
+   */
+  _restartBackoffMs(crashCount) {
+    if (this.restartBackoffBaseMs <= 0 || crashCount <= 0) return 0;
+    const exp = this.restartBackoffBaseMs * 2 ** (crashCount - 1);
+    return Math.min(exp, this.restartBackoffMaxMs);
   }
 
   /**
@@ -124,6 +157,29 @@ export class LSPManager {
             `retrying in ~${Math.max(0, Math.round(retryInMs / 1000))}s`,
           quarantined: true,
         };
+      }
+      // Under the quarantine cap but recently crashed: when backoff is enabled,
+      // space out the re-spawn exponentially so a fast startup-crash loop doesn't
+      // storm the process table. The caller degrades to text search until the
+      // cooldown elapses — a transient state, distinct from quarantine.
+      if (crashes.length > 0) {
+        const backoffMs = this._restartBackoffMs(crashes.length);
+        if (backoffMs > 0) {
+          const lastCrash = crashes[crashes.length - 1];
+          const sinceLast = this._now() - lastCrash;
+          if (sinceLast < backoffMs) {
+            const retryInMs = backoffMs - sinceLast;
+            return {
+              unavailable: true,
+              reason:
+                `${resolved.id} restarting after a crash — backing off ` +
+                `~${Math.max(0, Math.round(retryInMs / 1000))}s ` +
+                `(attempt ${crashes.length + 1}/${this.maxRestarts})`,
+              backoff: true,
+              retryInMs,
+            };
+          }
+        }
       }
       entry = await this._getOrStartServer(key, resolved, projectRoot);
     }
