@@ -372,6 +372,14 @@ Auto-fix 边界：
 
 移动端/Web 审批卡必须显示操作摘要与 Fingerprint 短标识，Resolve 请求携带完整 Fingerprint；陈旧或不匹配请求 Fail-closed。
 
+**已落地（2026-07-13 续，执行位置一等属性模型纯核）**：本节的属性表（「任务在哪执行是 Session 一等属性」）现落为纯逻辑模块 [`execution-location.js`](../packages/cli/src/lib/execution-location.js)。此前 [[execution-backend.js]] 只是运行时**执行器**（Local/Docker/SSH backend 真跑命令），**无** session 级、可展示、可失效的策略层，也没有 UNKNOWN 位置的 fail-closed 默认。新模块是那一层的纯描述子 + 策略：
+
+- **`describeExecutionContext(input)`** 产出属性表全字段的安全描述子——Execution Location（`normalizeExecutionLocation` 归一 Local/WSL/SSH/Container/Cloud，无法识别 → **UNKNOWN**）/ Source（dir/repo/commit/多仓库）/ Permissions（`clampPermissionsForLocation` 收窄）/ Credentials（`redactCredentialRefs` 只留 name/source/scope）/ Lifecycle / Cost / Return Path。
+- **两条给它牙齿的不变量**：①**凭据永不带值**——`redactCredentialRefs` 丢弃任何 `value/token/secret/password/key` 字段，描述子可安全渲染/落日志/外传（对应「Credentials 只显示来源和作用域，不显示值」）；②**UNKNOWN 位置 fail-closed** 到最严权限地板（read-only、shell/network/mcp/external 全关），绝不给未知/远程环境默认环境权限。已知位置每个 ambient power 需显式 `=== true` 才授予（truthy-not-true 不算）。
+- **`validateExecutionContext(input)`** 穷举收集违规（fail-closed）：`credential-value-present`（凭据带值泄漏）/ `unknown-location` / `remote-without-return-path`（远程任务结果无处安全回传）/ `remote-egress-granted`（远程箱子拿到 network/external 出网——最高危，必须显式确认而非 ambient）。
+
+测试 `execution-location.test.js` 15（别名归一 + remote 分类 + UNKNOWN 地板 + 显式-true 授予 + 凭据零值 + 描述子全字段 + 未知 return-path→none + 校验五违规穷举）。纯核尚未接进 Session 创建 / Desktop 执行位置切换 / 审批卡 seam（审批卡指纹已由 §8.2 [[operation-fingerprint.js]] 覆盖），故默认路径零影响。
+
 ### P1-8 Scheduled / Event-driven Coding Session
 
 按风险分阶段：
