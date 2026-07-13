@@ -24,6 +24,7 @@ import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
+import { SUBAGENT_PERMISSION_MODES } from "./subagent-contract.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 
@@ -42,6 +43,42 @@ function normalizeExpiresAt(v) {
 function normalizeJitterMs(v) {
   const n = Math.floor(Number(v));
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * A per-task execution policy for wakeup/cron entries — how the spawned
+ * `cc agent` run should behave when this entry fires. Each field maps to a real
+ * `cc agent` flag consumed by `cc agenda run`, so a scheduled task can carry its
+ * OWN permission mode, worktree isolation and turn budget instead of inheriting
+ * whatever ambient environment `cc agenda run` happens to run in (the gap's
+ * "每个定时任务独立预算·权限模式·Worktree"). Returns `null` when nothing is set —
+ * the entry then omits `runPolicy` entirely and is byte-identical to before,
+ * so the default (unpolicied) task keeps spawning a plain `cc agent -p`.
+ *
+ *   - permissionMode  → `--permission-mode <mode>` (validated against the single
+ *                        source SUBAGENT_PERMISSION_MODES; invalid → dropped)
+ *   - worktree        → `--worktree` (run the task in a fresh git worktree)
+ *   - maxTurns        → `--max-turns <n>` (cap the agent loop — a real budget)
+ *
+ * Monitors run a shell command / watch a file rather than spawning an agent, so
+ * a run policy does not apply to them.
+ */
+export function normalizeRunPolicy({
+  permissionMode = null,
+  worktree = false,
+  maxTurns = null,
+} = {}) {
+  const policy = {};
+  if (
+    typeof permissionMode === "string" &&
+    SUBAGENT_PERMISSION_MODES.includes(permissionMode)
+  ) {
+    policy.permissionMode = permissionMode;
+  }
+  if (worktree === true) policy.worktree = true;
+  const turns = Math.floor(Number(maxTurns));
+  if (Number.isFinite(turns) && turns > 0) policy.maxTurns = turns;
+  return Object.keys(policy).length > 0 ? policy : null;
 }
 
 /**
@@ -222,11 +259,19 @@ export class AgentScheduleStore {
     expiresAt = null,
     expiresInMs = null,
     jitterMs = 0,
+    permissionMode = null,
+    worktree = false,
+    maxTurns = null,
   } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("wakeup requires a prompt");
     }
     const now = this._now();
+    const runPolicy = normalizeRunPolicy({
+      permissionMode,
+      worktree,
+      maxTurns,
+    });
     const entry = {
       id: randomUUID(),
       kind: "wakeup",
@@ -236,6 +281,7 @@ export class AgentScheduleStore {
         dueAt != null ? Number(dueAt) : now + Math.max(0, Number(delayMs) || 0),
       expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
       jitterMs: normalizeJitterMs(jitterMs),
+      ...(runPolicy ? { runPolicy } : {}),
       createdAt: now,
       status: "pending",
     };
@@ -252,6 +298,9 @@ export class AgentScheduleStore {
     expiresAt = null,
     expiresInMs = null,
     jitterMs = 0,
+    permissionMode = null,
+    worktree = false,
+    maxTurns = null,
   } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("cron requires a prompt");
@@ -261,6 +310,11 @@ export class AgentScheduleStore {
     if (nextAt == null) {
       throw new Error(`cron "${cron}" has no upcoming match`);
     }
+    const runPolicy = normalizeRunPolicy({
+      permissionMode,
+      worktree,
+      maxTurns,
+    });
     const entry = {
       id: randomUUID(),
       kind: "cron",
@@ -270,6 +324,7 @@ export class AgentScheduleStore {
       nextAt,
       expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
       jitterMs: normalizeJitterMs(jitterMs),
+      ...(runPolicy ? { runPolicy } : {}),
       createdAt: now,
       lastRunAt: null,
       runs: 0,

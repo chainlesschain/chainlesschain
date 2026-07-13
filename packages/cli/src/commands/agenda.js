@@ -114,11 +114,14 @@ export function runAgendaList(options = {}, _deps = {}) {
       e.expiresAt != null
         ? chalk.dim(` · expires ${new Date(e.expiresAt).toISOString()}`)
         : "";
+    const policy = e.runPolicy
+      ? chalk.dim(` · ${describePolicy(e.runPolicy)}`)
+      : "";
     log(
       `  ${chalk.cyan(e.kind.padEnd(8))} ${chalk.dim(e.id.slice(0, 8))} ` +
         `${statusBadge(e.status)}  ${e.label || truncate(e.prompt || e.command || e.watchFile || e.watchUrl, 40)}`,
     );
-    log(`           ${chalk.dim(when)}${expiry}`);
+    log(`           ${chalk.dim(when)}${expiry}${policy}`);
   }
   if (nextAt != null) {
     const rel = Math.max(0, Math.round((nextAt - now) / 1000));
@@ -224,11 +227,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
     }
     try {
       if (entry.kind === "wakeup") {
-        await spawnAgent(entry.prompt);
+        await spawnAgent(entry.prompt, entry.runPolicy);
         store.markWakeupFired(entry.id);
         actions.push({ id: entry.id, kind: "wakeup", action: "fired" });
       } else if (entry.kind === "cron") {
-        await spawnAgent(entry.prompt);
+        await spawnAgent(entry.prompt, entry.runPolicy);
         store.advanceCron(entry.id);
         actions.push({ id: entry.id, kind: "cron", action: "fired" });
       } else if (entry.kind === "monitor") {
@@ -329,13 +332,40 @@ export async function runAgendaRun(options = {}, _deps = {}) {
 
 // ─── default effectful deps (overridable in tests) ─────────────────────────
 
-function defaultSpawnAgent(prompt) {
+/**
+ * Build the `cc agent` argv for a scheduled prompt, appending the entry's
+ * per-task run policy as real `cc agent` flags. A missing / empty policy adds
+ * nothing, so an unpolicied task spawns exactly `cc agent -p <prompt>` as
+ * before (byte-identical). Exported for unit tests.
+ */
+export function buildAgentArgs(prompt, policy = null) {
+  const args = ["agent", "-p", prompt];
+  if (policy && typeof policy === "object") {
+    if (
+      typeof policy.permissionMode === "string" &&
+      policy.permissionMode.length > 0
+    ) {
+      args.push("--permission-mode", policy.permissionMode);
+    }
+    if (policy.worktree === true) args.push("--worktree");
+    if (Number.isFinite(policy.maxTurns) && policy.maxTurns > 0) {
+      args.push("--max-turns", String(policy.maxTurns));
+    }
+  }
+  return args;
+}
+
+function defaultSpawnAgent(prompt, policy = null) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [BIN_PATH, "agent", "-p", prompt], {
-      stdio: "ignore",
-      detached: false,
-      env: process.env,
-    });
+    const child = spawn(
+      process.execPath,
+      [BIN_PATH, ...buildAgentArgs(prompt, policy)],
+      {
+        stdio: "ignore",
+        detached: false,
+        env: process.env,
+      },
+    );
     child.on("error", reject);
     child.on("close", (code) =>
       code === 0 || code == null
@@ -412,4 +442,13 @@ function statusBadge(status) {
 function truncate(text, n) {
   const s = String(text || "");
   return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
+/** Compact human summary of a scheduled entry's per-task run policy. */
+function describePolicy(policy) {
+  const parts = [];
+  if (policy.permissionMode) parts.push(policy.permissionMode);
+  if (policy.worktree === true) parts.push("worktree");
+  if (Number.isFinite(policy.maxTurns)) parts.push(`≤${policy.maxTurns} turns`);
+  return parts.join(", ");
 }

@@ -969,6 +969,30 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             "For wakeup/cron/monitor: a random-but-stable spread (e.g. 30s) so entries sharing a schedule fan out instead of firing all at once",
         },
+        permission_mode: {
+          type: "string",
+          enum: [
+            "plan",
+            "manual",
+            "default",
+            "acceptEdits",
+            "auto",
+            "dontAsk",
+            "bypassPermissions",
+          ],
+          description:
+            "For wakeup/cron: run the fired `cc agent` with this permission mode instead of the ambient one (e.g. `plan` for a read-only report, `manual` to gate every action)",
+        },
+        worktree: {
+          type: "boolean",
+          description:
+            "For wakeup/cron: run the fired `cc agent` in a fresh git worktree so its changes stay isolated",
+        },
+        max_turns: {
+          type: "number",
+          description:
+            "For wakeup/cron: cap the fired agent's loop iterations (a per-task budget)",
+        },
         id: {
           type: "string",
           description: "For cancel: the schedule entry id to remove",

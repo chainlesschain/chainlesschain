@@ -125,6 +125,39 @@ describe("schedule tool dispatch", () => {
     expect(res.scheduled.expiresAt).toBeNull();
     expect(res.scheduled.jitterMs).toBe(0);
   });
+
+  it("threads per-task run policy (permission_mode/worktree/max_turns) through", async () => {
+    const res = await executeTool("schedule", {
+      action: "wakeup",
+      prompt: "isolated report",
+      delay: "1m",
+      permission_mode: "plan",
+      worktree: true,
+      max_turns: 5,
+    });
+    expect(res.scheduled.runPolicy).toEqual({
+      permissionMode: "plan",
+      worktree: true,
+      maxTurns: 5,
+    });
+  });
+
+  it("drops an invalid permission_mode and omits runPolicy when nothing is set", async () => {
+    const bad = await executeTool("schedule", {
+      action: "cron",
+      prompt: "cron with junk mode",
+      cron: "0 9 * * 1",
+      permission_mode: "not-a-mode",
+    });
+    // Invalid mode dropped; no other policy field → no runPolicy at all.
+    expect(bad.scheduled.runPolicy).toBeUndefined();
+
+    const plain = await executeTool("schedule", {
+      action: "wakeup",
+      prompt: "plain wakeup",
+    });
+    expect(plain.scheduled.runPolicy).toBeUndefined();
+  });
 });
 
 describe("notify tool dispatch (no channels configured)", () => {

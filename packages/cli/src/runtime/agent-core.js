@@ -3207,6 +3207,15 @@ async function executeToolInner(
         // firing as a thundering herd.
         const expiresInMs = args.expires ? parseDuration(args.expires) : null;
         const jitterMs = args.jitter ? parseDuration(args.jitter) : 0;
+        // Optional per-task execution policy for wakeup/cron: the scheduled run
+        // can carry its OWN permission mode, worktree isolation and turn budget
+        // instead of inheriting whatever ambient env `cc agenda run` runs in.
+        // The store validates/drops each field; monitors ignore it.
+        const runPolicy = {
+          permissionMode: args.permission_mode || null,
+          worktree: args.worktree === true,
+          maxTurns: args.max_turns ?? null,
+        };
         if (action === "wakeup") {
           if (!args.prompt) {
             return attachDescriptor({
@@ -3220,6 +3229,7 @@ async function executeToolInner(
             label: args.label || null,
             expiresInMs,
             jitterMs,
+            ...runPolicy,
           });
           return attachDescriptor({
             scheduled: entry,
@@ -3238,6 +3248,7 @@ async function executeToolInner(
             label: args.label || null,
             expiresInMs,
             jitterMs,
+            ...runPolicy,
           });
           return attachDescriptor({ scheduled: entry });
         }

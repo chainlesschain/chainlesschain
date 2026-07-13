@@ -8,6 +8,7 @@ import {
   runAgendaCancel,
   runAgendaRun,
   runAgendaPrune,
+  buildAgentArgs,
 } from "../../src/commands/agenda.js";
 
 describe("cc agenda", () => {
@@ -84,10 +85,54 @@ describe("cc agenda", () => {
       { store, log, spawnAgent, now: () => clock + 1 },
     );
     expect(code).toBe(0);
-    expect(spawnAgent).toHaveBeenCalledWith("check");
+    // An unpolicied wakeup passes prompt + undefined policy (byte-identical argv).
+    expect(spawnAgent).toHaveBeenCalledWith("check", undefined);
     expect(store.list("wakeup").find((e) => e.id === w.id).status).toBe(
       "fired",
     );
+  });
+
+  describe("per-task run policy", () => {
+    it("buildAgentArgs appends policy flags, or nothing when unset", () => {
+      expect(buildAgentArgs("hi")).toEqual(["agent", "-p", "hi"]);
+      expect(buildAgentArgs("hi", null)).toEqual(["agent", "-p", "hi"]);
+      expect(
+        buildAgentArgs("hi", {
+          permissionMode: "plan",
+          worktree: true,
+          maxTurns: 5,
+        }),
+      ).toEqual([
+        "agent",
+        "-p",
+        "hi",
+        "--permission-mode",
+        "plan",
+        "--worktree",
+        "--max-turns",
+        "5",
+      ]);
+    });
+
+    it("passes a fired entry's runPolicy through to spawnAgent", async () => {
+      store.scheduleWakeup({
+        prompt: "isolated",
+        delayMs: 0,
+        permissionMode: "plan",
+        worktree: true,
+        maxTurns: 3,
+      });
+      const spawnAgent = vi.fn(async () => 0);
+      await runAgendaRun(
+        { json: true },
+        { store, log, spawnAgent, now: () => clock + 1 },
+      );
+      expect(spawnAgent).toHaveBeenCalledWith("isolated", {
+        permissionMode: "plan",
+        worktree: true,
+        maxTurns: 3,
+      });
+    });
   });
 
   it("runs a monitor, matches output, and notifies", async () => {
@@ -387,7 +432,7 @@ describe("cc agenda", () => {
         { store, log, spawnAgent, now: () => clock + 500 },
       );
       expect(spawnAgent).toHaveBeenCalledTimes(1);
-      expect(spawnAgent).toHaveBeenCalledWith("go");
+      expect(spawnAgent).toHaveBeenCalledWith("go", undefined);
       const parsed = JSON.parse(logs.join("\n"));
       expect(parsed.retired).toHaveLength(1);
       expect(parsed.actions.filter((a) => a.action === "fired")).toHaveLength(

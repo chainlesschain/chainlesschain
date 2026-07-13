@@ -6,6 +6,7 @@ import {
   AgentScheduleStore,
   parseCron,
   nextCronTime,
+  normalizeRunPolicy,
 } from "../../src/lib/agent-schedule-store.js";
 import { jitterOffsetMs } from "../../src/lib/schedule-planner.js";
 
@@ -162,6 +163,59 @@ describe("AgentScheduleStore", () => {
     it("due() with jitterMs 0 fires exactly at the base time (byte-identical)", () => {
       const q = store.scheduleWakeup({ prompt: "q", delayMs: 0, jitterMs: 0 });
       expect(store.due(null, clock).map((e) => e.id)).toEqual([q.id]);
+    });
+  });
+
+  describe("per-task run policy (permissionMode / worktree / maxTurns)", () => {
+    it("normalizeRunPolicy keeps only valid fields, or null when empty", () => {
+      expect(
+        normalizeRunPolicy({
+          permissionMode: "plan",
+          worktree: true,
+          maxTurns: 5,
+        }),
+      ).toEqual({ permissionMode: "plan", worktree: true, maxTurns: 5 });
+      // invalid mode dropped, worktree only when strictly true, maxTurns floored & positive
+      expect(
+        normalizeRunPolicy({
+          permissionMode: "bogus",
+          worktree: "yes",
+          maxTurns: 2.9,
+        }),
+      ).toEqual({ maxTurns: 2 });
+      expect(normalizeRunPolicy({ maxTurns: 0 })).toBeNull();
+      expect(normalizeRunPolicy({})).toBeNull();
+      expect(normalizeRunPolicy()).toBeNull();
+    });
+
+    it("stores runPolicy on wakeup/cron, and omits the key entirely when unset", () => {
+      const w = store.scheduleWakeup({
+        prompt: "a",
+        permissionMode: "manual",
+        maxTurns: 3,
+      });
+      const c = store.createCron({
+        prompt: "b",
+        cron: "0 0 * * *",
+        worktree: true,
+      });
+      expect(w.runPolicy).toEqual({ permissionMode: "manual", maxTurns: 3 });
+      expect(c.runPolicy).toEqual({ worktree: true });
+
+      // Unpolicied entries stay byte-identical (no runPolicy key at all).
+      const plain = store.scheduleWakeup({ prompt: "c" });
+      expect("runPolicy" in plain).toBe(false);
+      // survives a round-trip through the JSONL store
+      const reloaded = store.list("wakeup").find((e) => e.id === w.id);
+      expect(reloaded.runPolicy).toEqual({
+        permissionMode: "manual",
+        maxTurns: 3,
+      });
+    });
+
+    it("ignores an invalid policy on a monitor (monitors never carry one)", () => {
+      const m = store.createMonitor({ command: "x", intervalMs: 1000 });
+      expect("runPolicy" in m).toBe(false);
     });
   });
 
