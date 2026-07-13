@@ -319,6 +319,15 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 - 后台命令显示 PID、端口、健康状态并可安全停止。
 - Agent 不得把 Terminal 中的敏感输出默认加入模型上下文。
 
+**已落地（2026-07-13 续，终端上下文策略层纯核）**：本节的文本处理与「敏感输出不入上下文」策略落为纯逻辑模块 [`terminal-context.js`](../packages/cli/src/lib/terminal-context.js)——它是**策略 + 文本层，不是 PTY**（永不 spawn shell / 分配伪终端 / 碰 fs·clock·RNG·process），由真 PTY 宿主喂入捕获字节与选区意图、读回「哪些可安全交给模型」：
+
+- **核心不变量①（fail-closed）**：`selectTerminalContextForModel({output, selection, optIn, maxLines})` 在 `optIn !== true` 时返回 **`null`（什么都不附带）**——落实「Agent 不得把 Terminal 中的敏感输出默认加入模型上下文」，环境 scrollback 绝不静默流进 prompt；truthy-but-not-true 亦 fail-closed。
+- **核心不变量②**：一旦显式 opt-in，优先取用户 `selection`（「把选中输出附加到下一轮」）而非全量 output，且**先 ANSI-strip 再 secret-redact（过 [[secret-scan.js]]）再 scrollback-cap** 才成为上下文——打印出的 token 或控制序列都进不去。
+- **`stripAnsi`**：可审计的 CSI/OSC/两三字节转义清除（供搜索/复制/入模前），非串→`""`；**`truncateScrollback`**：保留活跃尾部 N 行并**标注省略行数**（非静默截头），坏 `maxLines` 回落默认 400。
+- **`describeBackgroundCommand({command, pid, ports, status})`**：「后台命令显示 PID、端口、健康状态并可安全停止」的安全描述子——命令串 secret-redact（`FOO=token cmd` 不把 token 泄进状态胶囊）、PID 强转正整数或 null、端口校验去重、`normalizeHealthStatus` fail-closed 归一（未知→UNKNOWN），`stoppable` 仅在握有真 PID 时为真。
+
+测试 `terminal-context.test.js` 17（ANSI 清除 CSI/光标/非串 + scrollback 保尾标省略/坏 cap 回落 + 选上下文四路 fail-closed/选区优先/ANSI+secret 双清/scrollback cap + 健康状态归一 + 后台描述子端口去重·命令脱敏·无 PID 不可停）。纯核尚未接进真 PTY 宿主 / Agent 终端面板 / shell-tool 后台任务视图 seam，故默认路径零影响。剩项（真 PTY 内嵌、持续 ANSI 流、用户接管输入、终端搜索/复制 UI）仍开放。
+
 ### P1-3 App Preview 自动验证
 
 增加项目级 Launch 配置：启动命令、CWD、端口、健康检查、环境变量引用和关闭策略。Session 统一展示 Preview、Server Log、Console Error、Network Failure 和最近验证证据。
