@@ -109,6 +109,9 @@ const ALLOWED_FILES = [
   // used to measure redaction recall/FPR — no real credentials.
   "secret-scan.js",
   "secret-scan.test.js",
+  // P1-9 diagnostic bundle: the test feeds FAKE example secrets through the
+  // bundle to prove the export gate scrubs them — no real credentials.
+  "diagnostic-bundle.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

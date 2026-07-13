@@ -369,7 +369,13 @@ Auto-fix 边界：
 
 - `toProtocolFeatures` / `toFeatureMinVersion` / `toFieldGate` / `toServerOffer` → 喂 `negotiateProtocol`；`toAgentFeatureFlags` → `cc agent --capabilities` 的 `features` 对象。
 - `buildCompatFixture`（VS/JB 孪生可 pin 的确定性快照 + `digest`）、`renderBehaviorMatrix` / `renderProtocolDoc`（可被 CI 与签入副本 byte-diff 的行为矩阵 + Markdown）、`capabilityDigest`（一字符串变即能力面变）、`diffCapabilities(prev,next)`（release-notes 用的 added/removed/changed + 协议 bump）。
-- **防漂移牙齿**：`capability-manifest.test.js` 的 drift-guard 断言**活的手写常量**（`PROTOCOL_FEATURES`/`FEATURE_MIN_VERSION`、negotiator 实际打的字段、`buildAgentCapabilities().features` 深比对）恒等于 manifest 投影——某处改而 manifest 未改即 CI 红。测试 16（drift-guard ×6 + fixture/digest/matrix/doc/diff）。纯核尚未接进 `--capabilities` 命令与 negotiator 的常量导出（改为从 manifest 读是后续接线），故默认路径零影响。剩项（脱敏诊断包一键导出 / 覆盖率 / 离线协议回放）仍开放。
+- **防漂移牙齿**：`capability-manifest.test.js` 的 drift-guard 断言**活的手写常量**（`PROTOCOL_FEATURES`/`FEATURE_MIN_VERSION`、negotiator 实际打的字段、`buildAgentCapabilities().features` 深比对）恒等于 manifest 投影——某处改而 manifest 未改即 CI 红。测试 16（drift-guard ×6 + fixture/digest/matrix/doc/diff）。纯核尚未接进 `--capabilities` 命令与 negotiator 的常量导出（改为从 manifest 读是后续接线），故默认路径零影响。
+
+**已落地（2026-07-13 续，脱敏诊断包纯核）**：本节第二句「一键导出的脱敏诊断包」现落为纯逻辑模块 [`diagnostic-bundle.js`](../packages/cli/src/lib/diagnostic-bundle.js)，把诊断包契约钉成代码：
+
+- **`buildDiagnosticBundle(input, opts)`** 组装 schema `cc-diagnostic-bundle/v1`——版本 / 平台 / Capability（复用 [[capability-manifest.js]] `buildCompatFixture`，绝不另造第二真相）/ 连接状态 / 重连历史 / Trace 摘要（仅 traceId+spanCount，无内容）/ 脱敏事件 {surface,category,count} / 进程·端口·锁文件·Worktree 摘要 / env（`summarizeEnv` 只留**变量名**并旗标 secret-named，值绝不入包）。**默认排除** `EXCLUDED_BY_DEFAULT`=源码正文 / API Key / Cookie / 完整环境变量值 / 未经许可的终端输出（终端输出默认整段丢弃 + `terminalOutputWithheld` 标记，仅 `includeTerminalOutput:true` 才纳入且仍脱敏）。组装末尾对**整包**跑一次 `deepRedact`，无论秘密落在哪个字段都被 [[secret-scan.js]] 兜住。
+- **导出前必跑 Secret Scan**：`secretScanGate(bundle)` 深走全部字符串，任何残留秘密→`ok:false`/`blocked:true` 并给出**点路径**（如 `notes`/`a.b[1]`），**fail-closed**；`exportDiagnosticBundle` 一步组装+闸门，闸门不过则**不交出可导出体**。
+- 测试 `diagnostic-bundle.test.js` 10（env 仅名 / 契约字段 / 终端默认扣留 vs 显式纳入 / 自由文本脱敏 / 干净包过闸 / 手改残留秘密被拦带路径 / 七字段喂 token 零泄漏）；复用的 secret-scan+capability-manifest 25 绿。纯核尚未接进 `cc doctor` / IDE「导出诊断」命令 seam，故默认路径零影响。剩项（覆盖率指标 / 离线协议回放）仍开放。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:28,62-66,194-200`。
 
