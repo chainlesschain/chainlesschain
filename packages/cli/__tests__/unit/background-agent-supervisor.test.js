@@ -42,51 +42,49 @@ import { existsSync } from "node:fs";
 // POSIX-only leaked handle. fs.writeSync(2, …) is SYNCHRONOUS so the bytes hit
 // fd 2 before vitest force-kills the hung worker (process.stderr.write buffers
 // and is lost on SIGKILL). Remove once the leak is fixed.
-function dumpHandles(tag) {
+function collectHandles() {
+  const resources = process.getActiveResourcesInfo?.() || [];
+  let handles = [];
   try {
-    const resources = process.getActiveResourcesInfo?.() || [];
-    let handles = [];
-    try {
-      const active = process._getActiveHandles?.() || [];
-      handles = active.map((h) => {
-        const name = h?.constructor?.name || typeof h;
-        let ref = "?";
-        try {
-          ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
-        } catch {
-          /* ignore */
-        }
-        let kind = "";
-        try {
-          if (typeof h?.pid === "number")
-            kind = `:child(pid=${h.pid},killed=${h.killed},connected=${h.connected})`;
-          else if (h?.listening !== undefined) kind = ":server";
-          else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
-            kind = `:socket(destroyed=${h?.destroyed},connecting=${h?.connecting},fd=${h?._handle?.fd})`;
-          else if (name === "Pipe" || name === "Socket")
-            kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
-        } catch {
-          /* ignore */
-        }
-        return `${name}${kind}:ref=${ref}`;
-      });
-    } catch {
-      /* ignore */
-    }
-    writeSync(
-      2,
-      `\n[HDUMP-SUPERVISOR ${tag}] resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}\n`,
-    );
+    const active = process._getActiveHandles?.() || [];
+    handles = active.map((h) => {
+      const name = h?.constructor?.name || typeof h;
+      let ref = "?";
+      try {
+        ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
+      } catch {
+        /* ignore */
+      }
+      let kind = "";
+      try {
+        if (typeof h?.pid === "number")
+          kind = `:child(pid=${h.pid},killed=${h.killed},connected=${h.connected})`;
+        else if (h?.listening !== undefined) kind = ":server";
+        else if (h?.remoteAddress !== undefined || h?._sockname !== undefined)
+          kind = `:socket(destroyed=${h?.destroyed},connecting=${h?.connecting},fd=${h?._handle?.fd})`;
+        else if (name === "Pipe" || name === "Socket")
+          kind = `:pipe(fd=${h?.fd ?? h?._handle?.fd})`;
+      } catch {
+        /* ignore */
+      }
+      return `${name}${kind}:ref=${ref}`;
+    });
   } catch {
     /* ignore */
   }
+  return `resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}`;
 }
-afterAll(() => {
-  dumpHandles("t0");
-  // A second sync dump on a real timer: anything still ref'd here is what
-  // keeps the loop alive past all legit async cleanup.
-  const t = setTimeout(() => dumpHandles("t500"), 500);
-  t.unref?.();
+afterAll(async () => {
+  // Let all legit async cleanup settle (ref'd timer so it reliably fires).
+  await new Promise((r) => setTimeout(r, 700));
+  const info = collectHandles();
+  writeSync(2, `\n[HDUMP-SUPERVISOR] ${info}\n`);
+  // --silent=passed-only swallows a PASSED file's captured stdout/stderr, but
+  // an afterAll HOOK FAILURE is always reported — carry the dump in the throw
+  // so the CI POSIX run surfaces exactly what pins the worker's event loop.
+  // (This file's shard already fails on the worker-death; the throw only makes
+  // the diagnostic visible.) Remove once the leak is fixed.
+  throw new Error(`[HDUMP-SUPERVISOR] ${info}`);
 });
 
 let dir;
