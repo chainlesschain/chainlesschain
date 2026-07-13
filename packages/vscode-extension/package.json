@@ -425,6 +425,11 @@
           "default": true,
           "description": "%config.chat.contextIndicator.description%"
         },
+        "chainlesschain.chat.leanContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.chat.leanContext.description%"
+        },
         "chainlesschain.codeLens.enabled": {
           "type": "boolean",
           "default": true,

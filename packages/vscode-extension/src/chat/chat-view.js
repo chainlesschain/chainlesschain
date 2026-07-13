@@ -796,6 +796,20 @@ class ChatViewProvider {
         ...process.env,
         ...bridgeEnv,
         CC_INTERACTIVE_QUESTIONS: "1",
+        // Lean context (chainlesschain.chat.leanContext, default on): trim the
+        // auto-loaded project memory injected into the system prompt on EVERY
+        // turn. "lean" keeps the primary ENTRY instruction file (cc.md/CLAUDE.md)
+        // but sheds the heavy companions — CLAUDE.local.md (gitignored personal
+        // status), .claude/rules/*.md, and .chainlesschain/rules.md — which in a
+        // doc-heavy monorepo re-cost ~8k+ tokens/message on a paid provider. The
+        // agent can still READ any of those with its tools when a task needs
+        // them. Delivered via the CC_PROJECT_MEMORY env var (not a CLI flag) so
+        // an older `cc` that predates lean mode simply falls back to FULL memory
+        // (safe: no crash, just no savings) instead of erroring on an unknown
+        // flag. Scoped to the panel child only — terminal `cc` is untouched.
+        ...(chatCfg.get("leanContext") !== false
+          ? { CC_PROJECT_MEMORY: "lean" }
+          : {}),
         ...(llm.apiKey ? { CC_API_KEY: String(llm.apiKey) } : {}),
       },
       onEvent: this._makeOnEvent(conv.id),

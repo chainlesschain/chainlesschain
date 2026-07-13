@@ -58,14 +58,25 @@ export function composeSystemPrompt(base, opts = {}) {
   // Project memory (cc.md / CLAUDE.md hierarchy) — injected right after the
   // base so explicit --append-system-prompt / output-style still come later.
   //
-  // Default-on at runtime; the implicit default is suppressed under vitest
-  // (process.env.VITEST) so the long-standing pure contract of this function
-  // holds for existing unit tests — callers/tests that want the block in a
-  // test pass `projectMemory: true` explicitly.
-  const pmExplicit = typeof projectMemory === "boolean" ? projectMemory : null;
-  const pmDefault =
-    process.env.CC_PROJECT_MEMORY !== "0" && !process.env.VITEST;
-  if (pmExplicit === true || (pmExplicit === null && pmDefault)) {
+  // Tri-state `projectMemory`: true (full) | false (off) | "lean" (entry-only:
+  // the cc.md/CLAUDE.md/AGENTS.md ENTRY files, skipping local + .claude/rules/*).
+  // undefined → resolve from CC_PROJECT_MEMORY ("0"=off, "lean"/"entry"=lean,
+  // else full). The full default is suppressed under vitest (process.env.VITEST)
+  // so the long-standing pure contract holds for existing unit tests — callers
+  // that want the block in a test pass `projectMemory: true`/`"lean"` explicitly.
+  let pmMode; // "off" | "lean" | "full"
+  if (projectMemory === false) pmMode = "off";
+  else if (projectMemory === true) pmMode = "full";
+  else if (projectMemory === "lean" || projectMemory === "entry")
+    pmMode = "lean";
+  else {
+    const env = process.env.CC_PROJECT_MEMORY;
+    if (env === "0") pmMode = "off";
+    else if ((env === "lean" || env === "entry") && !process.env.VITEST)
+      pmMode = "lean";
+    else pmMode = process.env.VITEST ? "off" : "full";
+  }
+  if (pmMode !== "off") {
     const block = loadProjectInstructionsBlock({
       cwd,
       home: opts.projectMemoryHome,
@@ -73,6 +84,8 @@ export function composeSystemPrompt(base, opts = {}) {
       // Large-monorepo reduction lever: subtrees whose instruction/rule/@import
       // files never load (config `instructionExcludes`, forwarded by the caller).
       instructionExcludes: opts.instructionExcludes,
+      // Lean mode → keep only the entry instruction files.
+      entryOnly: pmMode === "lean",
     });
     if (block) result = result ? `${result}\n\n${block}` : block;
   }

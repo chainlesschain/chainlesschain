@@ -178,6 +178,12 @@ export function findInstructionFiles(opts = {}) {
   const cwd = path.resolve(opts.cwd || process.cwd());
   const home = opts.home || os.homedir() || "";
   const excludes = normalizeInstructionExcludes(opts.instructionExcludes);
+  // Lean / entry-only mode (`CC_PROJECT_MEMORY=lean`, IDE chat default): keep the
+  // primary instruction ENTRY files (user + project cc.md/CLAUDE.md/AGENTS.md
+  // hierarchy) but skip the heavy companions — local (cc.local.md/CLAUDE.local.md,
+  // gitignored personal status) and path-scoped `.claude/rules/*.md`. The agent
+  // can still read those with its tools when a task actually needs them.
+  const entryOnly = opts.entryOnly === true;
 
   const seen = new Set();
   const out = [];
@@ -217,7 +223,7 @@ export function findInstructionFiles(opts = {}) {
   }
   for (const d of chain) {
     push(firstExisting(fs, path, d, PROJECT_FILE_NAMES), "project");
-    push(firstExisting(fs, path, d, LOCAL_FILE_NAMES), "local");
+    if (!entryOnly) push(firstExisting(fs, path, d, LOCAL_FILE_NAMES), "local");
     // NOTE: `.chainlesschain/rules.md` is intentionally NOT loaded here — it is
     // already injected by buildSystemPrompt() (as "## Project Rules"), which is
     // the base of every composeSystemPrompt() call. Loading it here too sent it
@@ -225,6 +231,8 @@ export function findInstructionFiles(opts = {}) {
     // below are NOT covered by buildSystemPrompt, so they stay.
     // Path-scoped rule files (`.claude/rules/*.md`, YAML frontmatter `paths:`
     // globs). Glob filtering happens at LOAD time where content is available.
+    // Skipped in entry-only mode (they are the bulk of the token weight).
+    if (entryOnly) continue;
     try {
       const rulesDir = path.join(d, ".claude", "rules");
       for (const f of fs

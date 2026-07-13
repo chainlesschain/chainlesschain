@@ -50,6 +50,7 @@
   "config.chat.provider.description": "对话面板使用的大模型提供方（如 ollama、anthropic、volcengine）。留空 = 使用 CLI 已配置的默认值。",
   "config.chat.model.description": "对话面板使用的模型（如 qwen2.5:7b）。留空 = 使用 CLI 已配置的默认值。",
   "config.chat.contextIndicator.description": "在对话下方显示常驻的上下文窗口用量行（已用 tokens / 窗口），每轮结束后刷新。",
+  "config.chat.leanContext.description": "精简上下文（默认开启）：精简对话面板系统提示中自动加载的项目记忆。保留主入口文件（cc.md / CLAUDE.md / AGENTS.md），但去掉沉重的附属文件——CLAUDE.local.md（个人开发状态）、.claude/rules/*.md、.chainlesschain/rules.md——这些在文档密集的仓库里每一轮都会重发（常达 ~8k+ tokens，付费模型即真金白银）。需要时 agent 仍可用工具自行读取这些文件。关闭则每轮都注入完整项目记忆。仅影响本 IDE 对话面板，终端 cc 不受影响。（需 cc 版本支持精简模式；旧版会回退为完整记忆。）",
   "config.codeLens.enabled.description": "在函数、方法和类上方显示 ✨ 解释 / 重构 CodeLens（使用该语言自身的符号提供器）。",
   "cmd.complete.trigger.title": "ChainlessChain：触发内联补全",
   "config.completion.enabled.description": "通过 `cc complete` 启用内联 ghost-text 补全。仅手动触发（绑定或使用「触发内联补全」命令，默认 Alt+\\）——打字不会调用模型。",
