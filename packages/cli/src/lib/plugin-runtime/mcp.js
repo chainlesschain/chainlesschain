@@ -17,8 +17,37 @@
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
+import { componentCapabilityDenial } from "./capabilities.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
+
+// One-time stderr notice when a plugin's MCP server is refused at the COMPONENT
+// level because the plugin opted into the capability model but did not declare
+// the `mcp` capability its server needs. Distinct from the trust gate: these
+// plugins ARE trusted, but their MCP component is denied. (Network is enforced
+// separately at connection time by the egress/network policy, so a local stdio
+// server is not denied for lacking a `network` declaration.)
+const _capabilityDenied = new Set();
+function warnMcpCapabilityDeniedOnce(entries) {
+  if (!entries || entries.length === 0) return;
+  if (_capabilityDenied.has("mcp-capability")) return;
+  _capabilityDenied.add("mcp-capability");
+  const list = entries.map((e) => `${e.name} (${e.reason})`).join("; ");
+  try {
+    process.stderr.write(
+      `[plugins] refused MCP server(s) from plugin(s) that declared a permissions ` +
+        `block but did not declare the 'mcp' capability their server needs: ${list}\n` +
+        `          add 'mcp' to the plugin's permissions block to enable them.\n`,
+    );
+  } catch {
+    /* stderr notice is best-effort */
+  }
+}
+
+/** Test hook: reset the one-time capability-denied warning guard. */
+export function _resetMcpWarnings() {
+  _capabilityDenied.clear();
+}
 
 /** Accept `{ mcpServers: {...} }`, `{ servers: {...} }`, or a bare map. */
 function normalizeServerMap(parsed) {
@@ -52,10 +81,20 @@ export function collectPluginMcpServers(opts = {}) {
   );
   const servers = {};
   const sources = [];
+  const denied = [];
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const m = p.manifest.components?.mcp;
     if (!m) continue;
+    // Component-level capability gate: a plugin that declared a permissions
+    // block but under-declared the `mcp` capability its server needs gets its
+    // MCP component refused here (mirrors the hooks/monitors/bin/lsp denial).
+    // Legacy plugins (no permissions block) are unrestricted and never denied.
+    const denial = componentCapabilityDenial(p.manifest, ["mcp"]);
+    if (denial) {
+      denied.push({ name: p.name, reason: denial.reason });
+      continue;
+    }
     let parsed = null;
     if (m.absPath) {
       try {
@@ -85,5 +124,6 @@ export function collectPluginMcpServers(opts = {}) {
     }
     if (added > 0 && m.absPath) sources.push(m.absPath);
   }
+  warnMcpCapabilityDeniedOnce(denied);
   return { servers, sources };
 }

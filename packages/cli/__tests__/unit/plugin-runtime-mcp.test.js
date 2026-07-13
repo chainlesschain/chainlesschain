@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
-import { collectPluginMcpServers } from "../../src/lib/plugin-runtime/mcp.js";
+import {
+  collectPluginMcpServers,
+  _resetMcpWarnings,
+} from "../../src/lib/plugin-runtime/mcp.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
   trustPlugin,
@@ -39,6 +42,7 @@ beforeEach(() => {
   savedStorePath = trustDeps.storePath;
   trustDeps.storePath = () => storeFile;
   _resetTrustWarnings();
+  _resetMcpWarnings();
 });
 afterEach(() => {
   trustDeps.storePath = savedStorePath;
@@ -142,5 +146,53 @@ describe("collectPluginMcpServers — trust gating (MCP spawns commands)", () =>
     trustPlugin("weather", { scope: "project", version: "1.0.0" });
     const { servers } = collectPluginMcpServers({ cwd, scopes: ["project"] });
     expect(servers.weather.command).toBe("weather-mcp");
+  });
+});
+
+describe("collectPluginMcpServers — component-level capability denial", () => {
+  it("refuses the MCP server of a plugin that declared permissions but not `mcp`", () => {
+    installMcpPlugin(
+      "local",
+      "weather",
+      { mcpServers: { weather: { command: "weather-mcp" } } },
+      // Opted into the capability model (permissions block) but under-declared:
+      // ships an MCP server without declaring the `mcp` capability.
+      { manifest: { permissions: { process: true } } },
+    );
+    expect(collectPluginMcpServers({ cwd, scopes: ["local"] }).servers).toEqual(
+      {},
+    );
+  });
+
+  it("collects the MCP server once the plugin declares the `mcp` capability", () => {
+    installMcpPlugin(
+      "local",
+      "weather",
+      { mcpServers: { weather: { command: "weather-mcp" } } },
+      { manifest: { permissions: { mcp: true } } },
+    );
+    const { servers } = collectPluginMcpServers({ cwd, scopes: ["local"] });
+    expect(servers.weather.command).toBe("weather-mcp");
+  });
+
+  it("does NOT deny a local stdio server for lacking a `network` declaration", () => {
+    // Network is enforced at connection time, not at collection — a stdio
+    // server that declared `mcp` (but no network) must still be collected.
+    installMcpPlugin(
+      "local",
+      "db",
+      { mcpServers: { pg: { command: "pg-mcp", args: ["--stdio"] } } },
+      { manifest: { permissions: { mcp: true } } },
+    );
+    const { servers } = collectPluginMcpServers({ cwd, scopes: ["local"] });
+    expect(servers.pg.command).toBe("pg-mcp");
+  });
+
+  it("leaves a legacy plugin (no permissions block) unrestricted", () => {
+    installMcpPlugin("local", "legacy", {
+      mcpServers: { legacy: { command: "legacy-mcp" } },
+    });
+    const { servers } = collectPluginMcpServers({ cwd, scopes: ["local"] });
+    expect(servers.legacy.command).toBe("legacy-mcp");
   });
 });
