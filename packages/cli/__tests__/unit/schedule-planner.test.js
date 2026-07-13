@@ -7,6 +7,7 @@ import {
   jitterOffsetMs,
   baseFireAt,
   effectiveFireAt,
+  resolveEntryJitterMs,
   isSchedulable,
   isEntryExpired,
   partitionSchedule,
@@ -64,6 +65,19 @@ describe("baseFireAt / effectiveFireAt", () => {
     expect(eff).toBe(1000 + jitterOffsetMs("jit", 5000));
     // jitter=0 → base unchanged
     expect(effectiveFireAt(c, 0)).toBe(1000);
+  });
+
+  it("a per-entry jitterMs wins over the passed global fallback", () => {
+    // The entry carries its OWN window (3000); the global 5000 is ignored.
+    const c = cron({ id: "own", nextAt: 1000, jitterMs: 3000 });
+    expect(resolveEntryJitterMs(c, 5000)).toBe(3000);
+    expect(effectiveFireAt(c, 5000)).toBe(1000 + jitterOffsetMs("own", 3000));
+    // per-entry 0 disables jitter even when a global is supplied
+    const quiet = cron({ id: "own", nextAt: 1000, jitterMs: 0 });
+    expect(effectiveFireAt(quiet, 5000)).toBe(1000);
+    // no per-entry field → fall back to the global
+    const legacy = cron({ id: "own", nextAt: 1000 });
+    expect(resolveEntryJitterMs(legacy, 5000)).toBe(5000);
   });
 });
 

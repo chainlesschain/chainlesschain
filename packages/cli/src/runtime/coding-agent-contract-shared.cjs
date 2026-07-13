@@ -614,7 +614,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           type: "string",
           enum: ["worktree"],
           description:
-            "Optional isolation mode: \"worktree\" runs the sub-agent in a fresh git worktree so its file edits land on an isolated branch (diff/merge summary comes back with the result).",
+            'Optional isolation mode: "worktree" runs the sub-agent in a fresh git worktree so its file edits land on an isolated branch (diff/merge summary comes back with the result).',
         },
       },
       required: ["task"],
@@ -958,6 +958,16 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         label: {
           type: "string",
           description: "Optional human label for list/cancel",
+        },
+        expires: {
+          type: "string",
+          description:
+            "For wakeup/cron/monitor: retire the entry after this long if it hasn't fired (e.g. 2h, 7d); it then never fires",
+        },
+        jitter: {
+          type: "string",
+          description:
+            "For wakeup/cron/monitor: a random-but-stable spread (e.g. 30s) so entries sharing a schedule fan out instead of firing all at once",
         },
         id: {
           type: "string",

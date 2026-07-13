@@ -52,11 +52,27 @@ export function baseFireAt(entry) {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * The jitter window that governs an entry: a PER-ENTRY `entry.jitterMs` (a
+ * finite, non-negative number stored at create time) is authoritative and wins
+ * over the caller's `jitterMs` fallback; an entry without its own field falls
+ * back to the passed global. This lets each scheduled task carry its own spread
+ * — one noisy cron can jitter without perturbing the rest — while still honoring
+ * a daemon-wide default for entries that predate per-entry jitter.
+ */
+export function resolveEntryJitterMs(entry, jitterMs = 0) {
+  const per = Number(entry?.jitterMs);
+  if (Number.isFinite(per) && per >= 0) return per;
+  return Number(jitterMs) || 0;
+}
+
 /** Base fire time with the entry's deterministic jitter applied. */
 export function effectiveFireAt(entry, jitterMs = 0) {
   const base = baseFireAt(entry);
   if (base == null) return null;
-  return base + jitterOffsetMs(entry?.id, jitterMs);
+  return (
+    base + jitterOffsetMs(entry?.id, resolveEntryJitterMs(entry, jitterMs))
+  );
 }
 
 /** Is an entry still pending/active (not in a terminal state)? */

@@ -3201,6 +3201,12 @@ async function executeToolInner(
         const { parseDuration } = await import("../lib/loop.js");
         const store = new AgentScheduleStore();
         const action = String(args.action || "").toLowerCase();
+        // Optional lifecycle knobs shared by all create actions: `expires` is a
+        // duration after which an un-fired entry retires (never re-fires); `jitter`
+        // is a per-entry spread so tasks sharing a cron minute fan out instead of
+        // firing as a thundering herd.
+        const expiresInMs = args.expires ? parseDuration(args.expires) : null;
+        const jitterMs = args.jitter ? parseDuration(args.jitter) : 0;
         if (action === "wakeup") {
           if (!args.prompt) {
             return attachDescriptor({
@@ -3212,6 +3218,8 @@ async function executeToolInner(
             prompt: args.prompt,
             delayMs,
             label: args.label || null,
+            expiresInMs,
+            jitterMs,
           });
           return attachDescriptor({
             scheduled: entry,
@@ -3228,6 +3236,8 @@ async function executeToolInner(
             prompt: args.prompt,
             cron: args.cron,
             label: args.label || null,
+            expiresInMs,
+            jitterMs,
           });
           return attachDescriptor({ scheduled: entry });
         }
@@ -3247,6 +3257,8 @@ async function executeToolInner(
             notify: args.notify_title ? { title: args.notify_title } : null,
             maxChecks: args.max_checks ?? null,
             label: args.label || null,
+            expiresInMs,
+            jitterMs,
           });
           return attachDescriptor({ scheduled: entry });
         }

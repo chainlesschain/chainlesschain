@@ -96,6 +96,35 @@ describe("schedule tool dispatch", () => {
       /unknown schedule action/,
     );
   });
+
+  it("threads expires + jitter through to the persisted entry", async () => {
+    const before = Date.now();
+    const res = await executeTool("schedule", {
+      action: "wakeup",
+      prompt: "expiring wakeup",
+      delay: "1m",
+      expires: "2h",
+      jitter: "30s",
+    });
+    // jitter is stored verbatim; expiry is anchored to "now" (± clock skew).
+    expect(res.scheduled.jitterMs).toBe(30_000);
+    expect(res.scheduled.expiresAt).toBeGreaterThanOrEqual(
+      before + 2 * 3600_000,
+    );
+    expect(res.scheduled.expiresAt).toBeLessThanOrEqual(
+      Date.now() + 2 * 3600_000 + 5000,
+    );
+  });
+
+  it("omits expiry/jitter when not supplied (defaults)", async () => {
+    const res = await executeTool("schedule", {
+      action: "cron",
+      prompt: "plain cron",
+      cron: "0 9 * * 1",
+    });
+    expect(res.scheduled.expiresAt).toBeNull();
+    expect(res.scheduled.jitterMs).toBe(0);
+  });
 });
 
 describe("notify tool dispatch (no channels configured)", () => {

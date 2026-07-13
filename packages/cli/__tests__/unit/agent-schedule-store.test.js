@@ -7,6 +7,7 @@ import {
   parseCron,
   nextCronTime,
 } from "../../src/lib/agent-schedule-store.js";
+import { jitterOffsetMs } from "../../src/lib/schedule-planner.js";
 
 describe("parseCron", () => {
   it("parses the 5 fields with * , - / support", () => {
@@ -125,6 +126,45 @@ describe("AgentScheduleStore", () => {
     expect(store.list("wakeup")).toHaveLength(1);
   });
 
+  describe("per-entry jitterMs", () => {
+    it("stores a normalized jitterMs on every kind, 0 when absent/invalid", () => {
+      const w = store.scheduleWakeup({ prompt: "a", jitterMs: 5000 });
+      const c = store.createCron({
+        prompt: "b",
+        cron: "0 0 * * *",
+        jitterMs: 3000.9, // floored
+      });
+      const m = store.createMonitor({
+        command: "x",
+        intervalMs: 1000,
+        jitterMs: -1, // invalid → 0
+      });
+      const plain = store.scheduleWakeup({ prompt: "c" });
+      expect(w.jitterMs).toBe(5000);
+      expect(c.jitterMs).toBe(3000);
+      expect(m.jitterMs).toBe(0);
+      expect(plain.jitterMs).toBe(0);
+    });
+
+    it("due() defers a jittered entry until its per-entry offset elapses", () => {
+      // dueAt == clock, so with no jitter it would fire immediately.
+      const j = store.scheduleWakeup({
+        prompt: "j",
+        delayMs: 0,
+        jitterMs: 5000,
+      });
+      const offset = jitterOffsetMs(j.id, 5000);
+      expect(offset).toBeGreaterThan(0); // this id draws a real offset
+      expect(store.due(null, clock)).toHaveLength(0); // jittered into the future
+      expect(store.due(null, clock + offset).map((e) => e.id)).toEqual([j.id]);
+    });
+
+    it("due() with jitterMs 0 fires exactly at the base time (byte-identical)", () => {
+      const q = store.scheduleWakeup({ prompt: "q", delayMs: 0, jitterMs: 0 });
+      expect(store.due(null, clock).map((e) => e.id)).toEqual([q.id]);
+    });
+  });
+
   describe("expiry (expiresAt / retireExpired)", () => {
     it("stores a normalized expiresAt on every kind, null when absent/invalid", () => {
       const w = store.scheduleWakeup({
@@ -146,6 +186,34 @@ describe("AgentScheduleStore", () => {
       expect(c.expiresAt).toBe(clock + 9000);
       expect(m.expiresAt).toBeNull();
       expect(plain.expiresAt).toBeNull();
+    });
+
+    it("resolves a relative expiresInMs against the store clock on every kind", () => {
+      const w = store.scheduleWakeup({ prompt: "a", expiresInMs: 5000 });
+      const c = store.createCron({
+        prompt: "b",
+        cron: "0 0 * * *",
+        expiresInMs: 9000,
+      });
+      const m = store.createMonitor({
+        command: "echo hi",
+        intervalMs: 1000,
+        expiresInMs: 2000,
+      });
+      expect(w.expiresAt).toBe(clock + 5000);
+      expect(c.expiresAt).toBe(clock + 9000);
+      expect(m.expiresAt).toBe(clock + 2000);
+    });
+
+    it("an explicit expiresAt wins over expiresInMs; invalid relative → null", () => {
+      const both = store.scheduleWakeup({
+        prompt: "x",
+        expiresAt: clock + 1,
+        expiresInMs: 999999, // ignored — absolute wins
+      });
+      const bad = store.scheduleWakeup({ prompt: "y", expiresInMs: -1 });
+      expect(both.expiresAt).toBe(clock + 1);
+      expect(bad.expiresAt).toBeNull();
     });
 
     it("due() never fires an expired entry even before it is retired", () => {

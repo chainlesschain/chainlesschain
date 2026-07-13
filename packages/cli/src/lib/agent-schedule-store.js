@@ -23,7 +23,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
-import { isEntryExpired } from "./schedule-planner.js";
+import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 
@@ -31,6 +31,30 @@ export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 function normalizeExpiresAt(v) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * A non-negative integer jitter window (ms), or 0. Stored PER entry so each
+ * task carries its own deterministic spread — the schedule-planner applies a
+ * stable per-id offset within `[0, jitterMs)` so tasks sharing a cron minute
+ * fan out instead of firing as a thundering herd. 0 (the default) = no jitter.
+ */
+function normalizeJitterMs(v) {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Resolve an entry's expiry: an explicit absolute `expiresAt` (epoch-ms) wins;
+ * otherwise a positive relative `expiresInMs` is anchored to the store's own
+ * `now` (symmetric with `delayMs` on a wakeup, and deterministic under an
+ * injected clock). No expiry → null.
+ */
+function resolveExpiresAt(expiresAt, expiresInMs, now) {
+  if (expiresAt != null) return normalizeExpiresAt(expiresAt);
+  const rel = Math.floor(Number(expiresInMs));
+  if (Number.isFinite(rel) && rel > 0) return normalizeExpiresAt(now + rel);
+  return null;
 }
 
 /** Is an entry currently in a schedulable (non-terminal) state? */
@@ -196,6 +220,8 @@ export class AgentScheduleStore {
     dueAt = null,
     label = null,
     expiresAt = null,
+    expiresInMs = null,
+    jitterMs = 0,
   } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("wakeup requires a prompt");
@@ -208,7 +234,8 @@ export class AgentScheduleStore {
       label: label || null,
       dueAt:
         dueAt != null ? Number(dueAt) : now + Math.max(0, Number(delayMs) || 0),
-      expiresAt: normalizeExpiresAt(expiresAt),
+      expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
+      jitterMs: normalizeJitterMs(jitterMs),
       createdAt: now,
       status: "pending",
     };
@@ -218,7 +245,14 @@ export class AgentScheduleStore {
     return entry;
   }
 
-  createCron({ prompt, cron, label = null, expiresAt = null } = {}) {
+  createCron({
+    prompt,
+    cron,
+    label = null,
+    expiresAt = null,
+    expiresInMs = null,
+    jitterMs = 0,
+  } = {}) {
     if (!prompt || typeof prompt !== "string") {
       throw new Error("cron requires a prompt");
     }
@@ -234,7 +268,8 @@ export class AgentScheduleStore {
       cron,
       label: label || null,
       nextAt,
-      expiresAt: normalizeExpiresAt(expiresAt),
+      expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
+      jitterMs: normalizeJitterMs(jitterMs),
       createdAt: now,
       lastRunAt: null,
       runs: 0,
@@ -257,6 +292,8 @@ export class AgentScheduleStore {
     maxChecks = null,
     label = null,
     expiresAt = null,
+    expiresInMs = null,
+    jitterMs = 0,
   } = {}) {
     // A monitor watches exactly one source:
     //   - a shell `command`  → match its stdout/stderr
@@ -321,7 +358,8 @@ export class AgentScheduleStore {
       maxChecks: maxChecks != null ? Number(maxChecks) : null,
       label: label || null,
       nextAt: now + interval,
-      expiresAt: normalizeExpiresAt(expiresAt),
+      expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
+      jitterMs: normalizeJitterMs(jitterMs),
       createdAt: now,
       checks: 0,
       status: "active",
@@ -348,10 +386,13 @@ export class AgentScheduleStore {
       // An entry past its expiry never fires — even if it is not yet retired
       // (defense-in-depth: retireExpired need not have run first).
       if (isEntryExpired(entry, now)) return false;
-      if (entry.kind === "wakeup") {
-        return entry.status === "pending" && entry.dueAt <= now;
-      }
-      return entry.status === "active" && entry.nextAt <= now;
+      if (!isSchedulableStatus(entry)) return false;
+      // The effective fire time applies the entry's OWN deterministic jitter
+      // (`entry.jitterMs`, default 0 → base fire time, byte-identical to the
+      // prior `dueAt`/`nextAt` comparison). A jittered entry fires slightly
+      // later, spreading tasks that share a cron minute.
+      const fireAt = effectiveFireAt(entry);
+      return fireAt != null && fireAt <= now;
     });
   }
 
