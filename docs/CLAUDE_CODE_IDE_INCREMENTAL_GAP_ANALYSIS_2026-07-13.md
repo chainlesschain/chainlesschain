@@ -356,6 +356,13 @@ Auto-fix 边界：
 - Extension Tier 工具需经过 Capability、Policy、权限、预算和 UI 支持检查后再开放。
 - 企业策略锁定来源、版本和 Allowlist。
 
+**已落地（2026-07-13 续，Agent 工具准入 + 归因纯核）**：本节「Extension Tier 工具需经过 Capability、Policy、权限、预算和 UI 支持检查后再开放」+「每次 Tool/Skill 调用显示 Attribution」现落为纯逻辑模块 [`agent-tool-admission.js`](../packages/cli/src/lib/agent-tool-admission.js)。[[plugin-runtime/capabilities.js]] 判的是**插件**是否声明了组件所需能力（安装期契约），**不**决定一个 agent **工具**能否开进运行中的 session。新模块是那个 session 级准入 + 归因，穷举 fail-closed（同 [[pr-automation-policy.js]]）：
+
+- **`admitTool({tool, tier, capabilityGranted, policyAllowed, permissionGranted, budgetOk, uiSupported})`**：**extension 层**（run_skill/spawn_sub_agent/browser/schedule/publish_artifact/MCP）需五闸全过——Capability + Policy + 权限 + 预算 + UI 支持，任一不 `=== true` 即入 `unmet` 具名拒因；**mvp 层**（内置读写/shell）只受 Policy + 预算约束（内置工具的**逐次权限**在执行期问，不在准入期）；**未知 tier 一律当 extension**（最严 fail-closed）。
+- **`buildToolAttribution` / `describeToolAttribution`**：每次调用的归因记录（tool ← source@version (scope) · tier · admitted/denied(reason)），**只带来源不带参数值/凭据**，可安全落 transcript。
+
+测试 `agent-tool-admission.test.js` 10（tier 归一 fail-closed + extension 五闸单独/穷举 + 未知 tier=extension + mvp 仅 policy+budget + 归因记录/否决 unmet + 无 token 单行）。纯核尚未接进 agent 工具注册 / `/skills` picker / MCP session enable seam（把它插进 extension 工具开放前置检查是后续接线），故默认路径零影响。
+
 ### P1-7 Local / SSH / Cloud / Remote Control 统一模型
 
 “任务在哪执行”应是 Session 一等属性：
