@@ -51,6 +51,12 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
+import {
+  SideEffectLedger,
+  reconcileSideEffects,
+  classifyToolSideEffect,
+} from "../lib/side-effect-ledger.js";
+import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
@@ -688,6 +694,81 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // ── P0-2: crash-safe side-effect ledger ────────────────────────────────
+  // Dangerous tools (file writes, opaque shell, git push, publish/schedule/
+  // notify/browser actions) are recorded prepare→start→commit|fail and the
+  // full snapshot persisted before the effect settles, so a worker killed
+  // mid-flight does NOT blindly replay an effect that may already have landed.
+  // Only active when persisting (an ephemeral/one-shot run can't be resumed);
+  // the byte-for-byte default path is untouched when no dangerous tool runs.
+  const sideEffectRunNonce = String(deps.now ? deps.now() : Date.now());
+  let sideEffectLedger = new SideEffectLedger({ clock: deps.now || null });
+  let sideEffectSeq = 0;
+  let currentSideEffectOpId = null;
+  let resumeSideEffectContext = null;
+  const persistSideEffectLedger = () => {
+    if (!persist) return;
+    try {
+      store.appendEvent(
+        sessionId,
+        SIDE_EFFECT_LEDGER_EVENT,
+        sideEffectLedger.toJSON(),
+      );
+    } catch {
+      // best-effort — never fail the run over ledger persistence
+    }
+  };
+  if (persist) {
+    try {
+      const events = store.readEvents(sessionId) || [];
+      for (let i = events.length - 1; i >= 0; i--) {
+        const e = events[i];
+        if (
+          e &&
+          e.type === SIDE_EFFECT_LEDGER_EVENT &&
+          e.data &&
+          Array.isArray(e.data.ops)
+        ) {
+          sideEffectLedger = SideEffectLedger.fromJSON(e.data, {
+            clock: deps.now || null,
+          });
+          break;
+        }
+      }
+    } catch {
+      // fresh ledger — best effort
+    }
+    // On resume, surface any operation that was in flight when the prior run
+    // died: its outcome is UNKNOWN, so the model is told to VERIFY before any
+    // replay rather than silently re-issue an irreversible effect.
+    if (resumeId) {
+      try {
+        const plan = reconcileSideEffects(sideEffectLedger);
+        if (plan.inspect.length > 0) {
+          const lines = plan.plans
+            .filter((p) => p.action === "inspect")
+            .map((p) => {
+              const op = sideEffectLedger.get(p.opId);
+              const kind = op?.kind || "unknown";
+              const key = op?.key ? ` (${op.key})` : "";
+              return `  • [${kind}]${key} — ${p.reason}`;
+            });
+          resumeSideEffectContext =
+            "Recovery notice — the previous run was interrupted while these " +
+            "irreversible operations were in flight; their outcome is UNKNOWN. " +
+            "Do NOT blindly re-run them. Verify whether each already took " +
+            "effect before repeating it, and ask the user if unsure:\n" +
+            lines.join("\n");
+          writeErr(
+            `⚠ ${plan.inspect.length} interrupted side-effect(s) need verification before replay (resume ${resumeId}).\n`,
+          );
+        }
+      } catch {
+        resumeSideEffectContext = null;
+      }
+    }
+  }
+
   // ── Wire the persistent ApprovalGate with our non-interactive confirmer
   // and force the session-policy tier dictated by --permission-mode. ──────
   let approvalGate = null;
@@ -862,6 +943,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     { role: "system", content: systemContent },
     ...(sessionStartContext
       ? [{ role: "system", content: sessionStartContext }]
+      : []),
+    ...(resumeSideEffectContext
+      ? [{ role: "system", content: resumeSideEffectContext }]
       : []),
     ...history,
     { role: "user", content: userMessageContent },
@@ -1492,10 +1576,41 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               args: event.args,
             });
             toolCalls.push({ tool: event.tool, args: event.args });
+            // P0-2: record an irreversible effect as STARTED (persisted before
+            // it settles) so a crash before the matching tool-result leaves a
+            // reconcilable "in flight" marker instead of a silent replay.
+            currentSideEffectOpId = null;
+            if (persist) {
+              const se = classifyToolSideEffect(event.tool, event.args);
+              if (se) {
+                const opId = `${sideEffectRunNonce}:${sideEffectSeq++}`;
+                currentSideEffectOpId = opId;
+                sideEffectLedger
+                  .prepare(opId, {
+                    kind: se.kind,
+                    key: se.key,
+                    meta: { tool: event.tool },
+                  })
+                  .start(opId);
+                persistSideEffectLedger();
+              }
+            }
             break;
           }
           case "tool-result": {
             const err = event.error || event.result?.error || null;
+            // P0-2: settle the in-flight side-effect (commit on success, fail on
+            // a clean error) and persist the updated ledger snapshot.
+            if (persist && currentSideEffectOpId) {
+              if (err)
+                sideEffectLedger.fail(
+                  currentSideEffectOpId,
+                  String(err).slice(0, 200),
+                );
+              else sideEffectLedger.commit(currentSideEffectOpId);
+              persistSideEffectLedger();
+              currentSideEffectOpId = null;
+            }
             if (isText && err) writeErr(`  Error: ${err}\n`);
             emitStream({
               type: "tool_result",

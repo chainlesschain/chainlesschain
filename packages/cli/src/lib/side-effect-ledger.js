@@ -66,6 +66,82 @@ export function kindIsIdempotent(kind) {
   return KIND_IDEMPOTENT.get(String(kind || "")) === true;
 }
 
+/** Trim a free-text descriptor to a short, log-safe key. */
+function shortKey(v) {
+  if (v == null) return null;
+  const s = String(v);
+  return s.length > 80 ? s.slice(0, 80) + "…" : s;
+}
+
+/**
+ * Classify one agent tool call into a side-effect kind for the ledger, or null
+ * when the tool issues no irreversible external effect (reads, searches, plain
+ * git status, etc.). PURE. Conservative by design — an opaque shell command is
+ * NON-idempotent so a mid-flight crash forces INSPECT rather than a blind
+ * replay (the P0-2 "started_unknown 风险操作默认 needs_input" invariant).
+ *
+ * Only the tools that can leave a durable external mark are recorded; read-only
+ * and purely-local-recoverable tools return null so a resumed session is not
+ * spammed with false "verify before replay" warnings.
+ *
+ * @param {string} toolName
+ * @param {object} [args]
+ * @returns {{kind:string, key:string|null}|null}
+ */
+export function classifyToolSideEffect(toolName, args = {}) {
+  const name = String(toolName || "");
+  const a = args && typeof args === "object" ? args : {};
+  switch (name) {
+    case "write_file":
+    case "notebook_edit":
+    case "edit_file":
+      return {
+        kind: "file-write",
+        key: shortKey(a.path || a.file || a.notebook_path),
+      };
+    case "edit_file_hashed":
+      // Hash-guarded: re-applying over an already-changed tree fails safely, so
+      // a replay cannot silently double-apply — idempotent-by-construction.
+      return {
+        kind: "file-write-checkpointed",
+        key: shortKey(a.path || a.file),
+      };
+    case "run_shell":
+    case "run_code":
+      // Opaque command: could be `npm publish`, `rm -rf`, or just `npm test`.
+      // We cannot tell, so fail-closed to a non-idempotent effect.
+      return { kind: "shell", key: shortKey(a.command || a.code) };
+    case "git": {
+      const cmd = String(a.command || "").trim();
+      const verb = cmd.split(/\s+/)[0] || "";
+      if (verb === "push") return { kind: "git-push", key: shortKey(cmd) };
+      // Every other git op (status/diff/commit/branch/fetch/pull/…) is either
+      // read-only or locally recoverable via git — not an irreversible effect.
+      return null;
+    }
+    case "publish_artifact":
+      return {
+        kind: "network-mutation",
+        key: shortKey(a.title || a.path || a.name),
+      };
+    case "schedule":
+      return {
+        kind: "network-mutation",
+        key: shortKey(a.name || a.cron || a.when),
+      };
+    case "notify":
+      return { kind: "network-mutation", key: shortKey(a.title || a.message) };
+    case "browser_act":
+      // A CDP action (click/type/submit) can mutate remote state.
+      return {
+        kind: "network-mutation",
+        key: shortKey(a.action || a.selector),
+      };
+    default:
+      return null;
+  }
+}
+
 function nowFrom(clock) {
   return typeof clock === "function" ? Number(clock()) || 0 : 0;
 }

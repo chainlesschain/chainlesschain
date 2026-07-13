@@ -9,6 +9,7 @@ import {
   SIDE_EFFECT_STATE,
   RECOVERY_ACTION,
   kindIsIdempotent,
+  classifyToolSideEffect,
   planOpRecovery,
   reconcileSideEffects,
 } from "../../src/lib/side-effect-ledger.js";
@@ -94,6 +95,80 @@ describe("SideEffectLedger lifecycle", () => {
     expect(back.get("a").idempotent).toBe(false);
     expect(back.get("a").meta.remote).toBe("origin");
     expect(back.get("b").idempotent).toBe(true);
+  });
+});
+
+describe("classifyToolSideEffect", () => {
+  it("records file writes as non-idempotent file-write with the path as key", () => {
+    for (const tool of ["write_file", "edit_file", "notebook_edit"]) {
+      const se = classifyToolSideEffect(tool, { path: "src/a.js" });
+      expect(se).toEqual({ kind: "file-write", key: "src/a.js" });
+      expect(kindIsIdempotent(se.kind)).toBe(false);
+    }
+  });
+
+  it("marks edit_file_hashed idempotent (hash-guarded replay is safe)", () => {
+    const se = classifyToolSideEffect("edit_file_hashed", { path: "a.js" });
+    expect(se.kind).toBe("file-write-checkpointed");
+    expect(kindIsIdempotent(se.kind)).toBe(true);
+  });
+
+  it("treats opaque shell / run_code as non-idempotent (fail-closed)", () => {
+    expect(
+      classifyToolSideEffect("run_shell", { command: "npm test" }),
+    ).toEqual({ kind: "shell", key: "npm test" });
+    expect(kindIsIdempotent("shell")).toBe(false);
+    expect(classifyToolSideEffect("run_code", { code: "print(1)" }).kind).toBe(
+      "shell",
+    );
+  });
+
+  it("records only `git push`; other git subcommands are null", () => {
+    expect(
+      classifyToolSideEffect("git", { command: "push origin main" }),
+    ).toEqual({ kind: "git-push", key: "push origin main" });
+    for (const command of ["status", "diff --stat", "commit -m x", "pull"]) {
+      expect(classifyToolSideEffect("git", { command })).toBeNull();
+    }
+  });
+
+  it("records publish / schedule / notify / browser_act as network mutations", () => {
+    expect(
+      classifyToolSideEffect("publish_artifact", { title: "Report" }).kind,
+    ).toBe("network-mutation");
+    expect(classifyToolSideEffect("schedule", { name: "nightly" }).kind).toBe(
+      "network-mutation",
+    );
+    expect(classifyToolSideEffect("notify", { title: "done" }).kind).toBe(
+      "network-mutation",
+    );
+    expect(
+      classifyToolSideEffect("browser_act", { action: "click" }).kind,
+    ).toBe("network-mutation");
+  });
+
+  it("returns null for read-only / local tools (no false resume warnings)", () => {
+    for (const tool of [
+      "read_file",
+      "search_files",
+      "list_dir",
+      "code_intelligence",
+      "web_search",
+      "web_fetch",
+      "todo_write",
+      "browser_state",
+      "spawn_sub_agent",
+    ]) {
+      expect(classifyToolSideEffect(tool, {})).toBeNull();
+    }
+    expect(classifyToolSideEffect(null)).toBeNull();
+  });
+
+  it("truncates an over-long key with an ellipsis", () => {
+    const long = "x".repeat(200);
+    const se = classifyToolSideEffect("run_shell", { command: long });
+    expect(se.key.length).toBeLessThanOrEqual(81);
+    expect(se.key.endsWith("…")).toBe(true);
   });
 });
 
