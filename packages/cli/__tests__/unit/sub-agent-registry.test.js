@@ -41,6 +41,15 @@ function createMockSubCtx(overrides = {}) {
         iterationCount: 0,
       };
     },
+    _aborted: false,
+    _cancelReason: null,
+    abort(reason) {
+      if (this.status !== "active" || this._aborted) return false;
+      this._aborted = true;
+      this._cancelReason = reason;
+      return true;
+    },
+    ...overrides,
   };
 }
 
@@ -135,6 +144,56 @@ describe("sub-agent-registry", () => {
       registry.forceCompleteAll("session-1");
       expect(registry.getActive()).toHaveLength(1);
       expect(registry.getActive()[0].id).toBe("sub-y");
+    });
+  });
+
+  // ─── Precise single-agent cancel ─────────────────────────
+
+  describe("cancel()", () => {
+    it("aborts a single active sub-agent by id", () => {
+      const sub = createMockSubCtx({ id: "sub-cancel" });
+      registry.register(sub);
+      const res = registry.cancel("sub-cancel", "user-requested");
+      expect(res).toEqual({ found: true, cancelled: true });
+      expect(sub._aborted).toBe(true);
+      expect(sub._cancelReason).toBe("user-requested");
+    });
+
+    it("reports not-found for an unknown id", () => {
+      expect(registry.cancel("nope")).toEqual({
+        found: false,
+        cancelled: false,
+      });
+    });
+
+    it("leaves sibling sub-agents untouched", () => {
+      const a = createMockSubCtx({ id: "sub-keep-a" });
+      const b = createMockSubCtx({ id: "sub-keep-b" });
+      registry.register(a);
+      registry.register(b);
+      registry.cancel("sub-keep-a");
+      expect(a._aborted).toBe(true);
+      expect(b._aborted).toBe(false);
+    });
+
+    it("found:true but cancelled:false when the context has no abort()", () => {
+      const legacy = createMockSubCtx({ id: "sub-legacy" });
+      delete legacy.abort;
+      registry.register(legacy);
+      expect(registry.cancel("sub-legacy")).toEqual({
+        found: true,
+        cancelled: false,
+      });
+    });
+
+    it("cancelled:false when the tracked agent is no longer active", () => {
+      const sub = createMockSubCtx({ id: "sub-done" });
+      registry.register(sub);
+      sub.forceComplete("already-done");
+      expect(registry.cancel("sub-done")).toEqual({
+        found: true,
+        cancelled: false,
+      });
     });
   });
 

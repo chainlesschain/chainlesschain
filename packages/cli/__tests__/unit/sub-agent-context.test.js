@@ -170,6 +170,48 @@ describe("sub-agent-context", () => {
     });
   });
 
+  // ─── abort() / isAborted() ───────────────────────────────
+
+  describe("abort()", () => {
+    it("a fresh active context is not aborted", () => {
+      const ctx = SubAgentContext.create({ role: "test", task: "task" });
+      expect(ctx.isAborted()).toBe(false);
+    });
+
+    it("abort() flags the context and records the reason", () => {
+      const ctx = SubAgentContext.create({ role: "test", task: "task" });
+      expect(ctx.abort("user-requested")).toBe(true);
+      expect(ctx.isAborted()).toBe(true);
+      expect(ctx._cancelReason).toBe("user-requested");
+    });
+
+    it("a second abort() is a no-op and returns false", () => {
+      const ctx = SubAgentContext.create({ role: "test", task: "task" });
+      ctx.abort("first");
+      expect(ctx.abort("second")).toBe(false);
+      expect(ctx._cancelReason).toBe("first"); // first reason wins
+    });
+
+    it("cannot abort a context that is no longer active", () => {
+      const ctx = SubAgentContext.create({ role: "test", task: "task" });
+      ctx.forceComplete("done");
+      expect(ctx.abort("late")).toBe(false);
+      expect(ctx.isAborted()).toBe(false);
+    });
+
+    it("honors an external AbortSignal passed at construction", () => {
+      const controller = new AbortController();
+      const ctx = SubAgentContext.create({
+        role: "test",
+        task: "task",
+        signal: controller.signal,
+      });
+      expect(ctx.isAborted()).toBe(false);
+      controller.abort();
+      expect(ctx.isAborted()).toBe(true);
+    });
+  });
+
   // ─── toJSON ──────────────────────────────────────────────
 
   describe("toJSON()", () => {

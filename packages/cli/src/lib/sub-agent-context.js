@@ -140,8 +140,13 @@ export class SubAgentContext {
     this._onUsage =
       typeof options.onUsage === "function" ? options.onUsage : null;
 
-    // Optional abort signal for cancellation
+    // Optional EXTERNAL abort signal for cancellation (e.g. a parent-provided
+    // AbortSignal). In addition, every context owns an INTERNAL controller so a
+    // single sub-agent can be cancelled precisely by id via `abort()` (the
+    // registry's `cancel(id)`), independent of any external signal.
     this._signal = options.signal || null;
+    this._abortController = new AbortController();
+    this._cancelReason = null;
 
     // Optional MCP / external tool plumbing. These are forwarded into the
     // agentLoop options so MCP-backed tools (e.g. from a cowork template's
@@ -430,9 +435,9 @@ export class SubAgentContext {
           }
         }
 
-        // Check abort signal
-        if (this._signal?.aborted) {
-          this.forceComplete("cancelled", {
+        // Check abort signal (external OR this context's own `abort()`)
+        if (this.isAborted()) {
+          this.forceComplete(this._cancelReason || "cancelled", {
             partialContent: lastContent,
             artifacts,
           });
@@ -579,6 +584,33 @@ export class SubAgentContext {
         };
       }
     }
+  }
+
+  /**
+   * True when this sub-agent has been asked to stop — either via an external
+   * abort signal or via this context's own `abort()` (precise single-agent
+   * cancel). The agent loop checks this each iteration and winds down
+   * cooperatively (force-completes with the partial work it has).
+   */
+  isAborted() {
+    return Boolean(
+      this._signal?.aborted || this._abortController.signal.aborted,
+    );
+  }
+
+  /**
+   * Precisely cancel THIS sub-agent: trip its internal abort signal so the loop
+   * stops at its next iteration and hands back partial work. Idempotent. The
+   * `reason` surfaces in the force-completed summary. Returns true if the abort
+   * was newly requested, false if it was already aborted / not active.
+   */
+  abort(reason = "cancelled") {
+    if (this.status !== "active" || this._abortController.signal.aborted) {
+      return false;
+    }
+    this._cancelReason = reason;
+    this._abortController.abort();
+    return true;
   }
 
   /**

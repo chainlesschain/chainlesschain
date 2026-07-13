@@ -783,9 +783,21 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
   非交互不 gate 逐字节 / 无 confirmer gate ALLOW 则放行）+ sub-agent-isolation 加 `hasConfirmer()===false`
   断言。未改 agent-core 导出（shim parity）。
 
-**仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；精确取消单个
-Subagent、每 child 的 checkpoint 归因仍缺。**至此 subagent-contract 强制轴全部收口**（skills/mcp/
-hooks/memory/permissionMode + confirmer + 两 runner ceiling + shell/run_code 门）。
+**已落地（2026-07-13 续，精确取消单个 Subagent）**：`SubAgentContext` 现内建一个自有
+`AbortController`（独立于可选的外部 `options.signal`），新增 `isAborted()`（外部 signal **或**
+内部 controller 任一 aborted 即真）与 `abort(reason)`（仅在 `status==="active"` 且未 abort 时生效，
+记录首个 `_cancelReason`，重复调用 no-op 返回 false）。ReAct 循环的中断检查从只看外部 signal 改为
+`if (this.isAborted())` → `forceComplete(this._cancelReason || "cancelled", ...)`，故自有 abort 与
+父级 signal 走同一收敛路径。`SubAgentRegistry` 新增 `cancel(id, reason)`：查 `_active`，未命中
+`{found:false,cancelled:false}`；命中则调 `subCtx.abort?.(reason)`，返回 `{found:true, cancelled}`
+（legacy 无 abort 的 ctx → cancelled:false，不抛）。默认路径逐字节不变（无人调 `abort`/`cancel` 时
+新增字段休眠）。测试 +10（context 5：fresh 未 abort / abort 置位记原因 / 二次 no-op 保首因 / 非 active
+拒绝 / 外部 AbortSignal 透传；registry 5：单个 abort / unknown not-found / 兄弟不受影响 / 无 abort()
+→ cancelled:false / 已完成 → cancelled:false）。
+
+**仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；每 child 的
+checkpoint 归因仍缺。**至此 subagent-contract 强制轴全部收口**（skills/mcp/hooks/memory/
+permissionMode + confirmer + 两 runner ceiling + shell/run_code 门）+ 精确单-agent 取消。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

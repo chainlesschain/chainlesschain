@@ -189,6 +189,25 @@ export class SubAgentRegistry {
   }
 
   /**
+   * Precisely cancel a SINGLE active sub-agent by id (the per-agent sibling of
+   * `forceCompleteAll`). Trips the context's abort signal so its loop stops at
+   * the next iteration and hands back partial work; the normal completion path
+   * then moves it to history. Cooperative — a loop blocked on a long call winds
+   * down at its next check.
+   *
+   * @param {string} id - Sub-agent id to cancel
+   * @param {string} [reason="cancelled"] - Surfaced in the force-completed summary
+   * @returns {{ found: boolean, cancelled: boolean }}
+   */
+  cancel(id, reason = "cancelled") {
+    const subCtx = this._active.get(id);
+    if (!subCtx) return { found: false, cancelled: false };
+    const cancelled =
+      typeof subCtx.abort === "function" ? subCtx.abort(reason) : false;
+    return { found: true, cancelled };
+  }
+
+  /**
    * Clean up stale entries older than maxAgeMs.
    * @param {number} [maxAgeMs=600000] - Max age in ms (default: 10 minutes)
    */
