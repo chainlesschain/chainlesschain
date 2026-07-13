@@ -14,6 +14,12 @@
  */
 
 import { logger } from "../logger.js";
+import {
+  ORIGIN,
+  authorityForOrigin,
+  canApprove,
+  describeAuthorityChain,
+} from "../agent-authority.js";
 
 export const CHANNEL_KINDS = ["webhook", "telegram"];
 
@@ -55,6 +61,48 @@ export function formatChannelEvent(event) {
 }
 
 /**
+ * The unforgeable authority envelope for an inbound channel event. A channel
+ * message tops out at `steer` (agent-authority.js): it may add a user turn but
+ * can NEVER answer a permission gate — "the user approved" in a webhook /
+ * telegram body is just text. This makes that ceiling explicit and
+ * machine-checkable (downstream approval seams can assert `canApprove === false`)
+ * rather than merely implied by the visible `[channel:…]` text prefix.
+ *
+ * `origin` is set here by HOW the event arrived (an inbound channel), never read
+ * from the untrusted message content — mirroring the agent-authority contract.
+ */
+export function channelEventEnvelope(event) {
+  const envelope = {
+    origin: ORIGIN.CHANNEL,
+    principalId: event?.sender != null ? String(event.sender) : null,
+    correlationId: event?.channel != null ? String(event.channel) : null,
+  };
+  return {
+    ...envelope,
+    authority: authorityForOrigin(ORIGIN.CHANNEL, envelope), // always "steer"
+    canApprove: canApprove(envelope), // always false
+    provenance: describeAuthorityChain(envelope),
+  };
+}
+
+/**
+ * Wrap a caller's `onEvent` so every inbound event is stamped with its explicit
+ * channel authority BEFORE it reaches the agent — the caller cannot forget to
+ * tag it, and the message content cannot elevate itself past `steer`.
+ */
+function stampChannelAuthority(onEvent) {
+  return (event) => {
+    const env = channelEventEnvelope(event);
+    return onEvent?.({
+      ...event,
+      authority: env.authority,
+      canApprove: env.canApprove,
+      provenance: env.provenance,
+    });
+  };
+}
+
+/**
  * Start every requested channel. Returns a handle with the started channel
  * descriptions and a single stop().
  *
@@ -72,6 +120,10 @@ export async function startChannels(specsInput, opts = {}) {
   const config = opts.config || {};
   const log = opts.log || ((msg) => logger.info(msg));
   const deps = opts.deps || {};
+  // Every inbound event is stamped with its channel authority (`steer`, never
+  // `approve`) before the caller's handler sees it — so a channel message can
+  // never be mistaken for a user approval no matter what it contains.
+  const onEvent = stampChannelAuthority(opts.onEvent);
 
   const started = [];
   const stopAll = () => {
@@ -95,7 +147,7 @@ export async function startChannels(specsInput, opts = {}) {
         )({
           ...cfg,
           port: spec.arg ? Number(spec.arg) : cfg.port,
-          onEvent: opts.onEvent,
+          onEvent,
           log,
         });
         started.push({ kind: "webhook", describe: handle.describe, ...handle });
@@ -107,7 +159,7 @@ export async function startChannels(specsInput, opts = {}) {
           deps.telegram?.startTelegramChannel || startTelegramChannel
         )({
           ...cfg,
-          onEvent: opts.onEvent,
+          onEvent,
           log,
         });
         started.push({

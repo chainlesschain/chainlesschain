@@ -281,15 +281,27 @@ signature_or_local_capability
   `headless-stream-approvals.test.js`（binding 往返：匹配放行、失配拒绝、缺失
   向后兼容）。
 
-**仍欠（把契约接到其余 seam）**：当前**唯一**的 origin 感知检查是
-`remote-session-protocol.js:440` 的 per-device scope。下一步把 `assertCanApprove`
+**已落地（2026-07-13，channel 消息显式标注 authority）**：`channel-manager.js` 新增
+`channelEventEnvelope(event)`——为每条入站 channel 事件构建**不可伪造**的 authority 信封
+（`origin: ORIGIN.CHANNEL` → `authorityForOrigin` 恒得 `steer`、`canApprove` 恒 false、
+`describeAuthorityChain` provenance 串）。`origin` 由**事件如何到达**（入站 channel）在此
+赋值，绝不从不可信的**消息内容**读取（镜像 agent-authority 契约）。`startChannels` 用
+`stampChannelAuthority` 包住 caller 的 `onEvent`——每条事件在到达 agent **之前**就被打上
+`authority:"steer"` + `canApprove:false`，caller 无法漏标、消息内容也无法把自己抬过 steer
+（webhook/telegram 正文里的 “the user approved” 只是文本）。把此前**仅靠可见文本前缀**隐含的
+steer-only 契约变成**机器可校验**（下游审批 seam 可断言 `canApprove===false`）。测试：
+`channels.test.js` +2（envelope 恒 steer/never-approve 即便正文含 “approved” / startChannels
+包裹每条投递事件带 channel authority 且原字段存活）= 13 绿。
+
+**仍欠（把契约接到其余 seam）**：当前 origin 感知检查是
+`remote-session-protocol.js:440` 的 per-device scope + channel 事件的 steer 标注（本笔）。
+下一步把 `assertCanApprove`
 
 - `describeAuthorityChain` 接到远端审批 seam（E: `handleSessionAnswer` /
   G: relay 控制路径）与审计日志，并把 `binding` 透传到远端/relay 审批往返
-  （`approval_request` → 设备回显 → 校验）；channel 消息虽已是 steer-only 文本前缀，
-  仍应显式标注 authority；agent-sdk 的 `ApprovalRequestEvent` 可选加 `binding` 回显
-  （需 bump SDK 版本，故留待下次 SDK 发版）。repo 配置不得开 bypass/auto 与 managed
-  deny 放宽的强制项亦未做。seam 全图见提交说明。
+  （`approval_request` → 设备回显 → 校验）；agent-sdk 的 `ApprovalRequestEvent` 可选加
+  `binding` 回显（需 bump SDK 版本，故留待下次 SDK 发版）。repo 配置不得开 bypass/auto 与
+  managed deny 放宽的强制项亦未做。seam 全图见提交说明。
 
 ## P1：会话级完成条件引擎
 
