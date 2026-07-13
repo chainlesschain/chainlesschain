@@ -26,6 +26,7 @@ import { randomUUID } from "crypto";
 import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
 import { SUBAGENT_PERMISSION_MODES } from "./subagent-contract.js";
 import { parseGoalCondition } from "./goal-condition-engine.js";
+import { normalizeActionClass } from "./unattended-action-policy.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 
@@ -83,6 +84,7 @@ export function normalizeRunPolicy({
   goalMaxCost = null,
   goalMaxTime = null,
   maxOuterTurns = null,
+  unattendedAllowlist = null,
 } = {}) {
   const policy = {};
   if (
@@ -119,6 +121,17 @@ export function normalizeRunPolicy({
       if (Number.isFinite(outer) && outer > 0) policy.maxOuterTurns = outer;
     }
   }
+
+  // P1-8: action classes this UNATTENDED task may still perform (e.g. "publish",
+  // "external_message"). Validated against the known classes; unknowns dropped.
+  // Absent → the scheduled run gets the default-deny high-risk tool set.
+  if (Array.isArray(unattendedAllowlist)) {
+    const cleaned = [
+      ...new Set(unattendedAllowlist.map(normalizeActionClass).filter(Boolean)),
+    ];
+    if (cleaned.length > 0) policy.unattendedAllowlist = cleaned;
+  }
+
   return Object.keys(policy).length > 0 ? policy : null;
 }
 

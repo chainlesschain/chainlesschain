@@ -93,9 +93,18 @@ describe("cc agenda", () => {
   });
 
   describe("per-task run policy", () => {
-    it("buildAgentArgs appends policy flags, or nothing when unset", () => {
-      expect(buildAgentArgs("hi")).toEqual(["agent", "-p", "hi"]);
-      expect(buildAgentArgs("hi", null)).toEqual(["agent", "-p", "hi"]);
+    // P1-8: a scheduled run is unattended, so buildAgentArgs denies the high-risk
+    // external tools (notify / publish_artifact) by default.
+    const DENY = ["--disallowed-tools", "notify,publish_artifact"];
+
+    it("buildAgentArgs denies unattended high-risk tools, then appends policy flags", () => {
+      expect(buildAgentArgs("hi")).toEqual(["agent", "-p", "hi", ...DENY]);
+      expect(buildAgentArgs("hi", null)).toEqual([
+        "agent",
+        "-p",
+        "hi",
+        ...DENY,
+      ]);
       expect(
         buildAgentArgs("hi", {
           permissionMode: "plan",
@@ -106,12 +115,32 @@ describe("cc agenda", () => {
         "agent",
         "-p",
         "hi",
+        ...DENY,
         "--permission-mode",
         "plan",
         "--worktree",
         "--max-turns",
         "5",
       ]);
+    });
+
+    it("unattendedAllowlist opts a class back in (removes it from the deny set)", () => {
+      // Allowing "external_message" un-blocks notify; publish is still denied.
+      expect(
+        buildAgentArgs("hi", { unattendedAllowlist: ["external_message"] }),
+      ).toEqual([
+        "agent",
+        "-p",
+        "hi",
+        "--disallowed-tools",
+        "publish_artifact",
+      ]);
+      // Allowing both leaves nothing to disallow.
+      expect(
+        buildAgentArgs("hi", {
+          unattendedAllowlist: ["publish", "external_message"],
+        }),
+      ).toEqual(["agent", "-p", "hi"]);
     });
 
     it("buildAgentArgs emits goal-condition + its budget flags", () => {
@@ -127,6 +156,7 @@ describe("cc agenda", () => {
         "agent",
         "-p",
         "build",
+        ...DENY,
         "--goal-condition",
         "exit-zero: npm test",
         "--max-outer-turns",
@@ -143,6 +173,7 @@ describe("cc agenda", () => {
         "agent",
         "-p",
         "x",
+        ...DENY,
       ]);
     });
 

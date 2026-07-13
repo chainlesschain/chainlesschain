@@ -26,6 +26,7 @@ import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
 import { sendAgentNotification } from "../lib/agent-notify.js";
 import { nextWakeupAt, partitionSchedule } from "../lib/schedule-planner.js";
 import { monitorEventEnvelope, capEventPayload } from "../lib/monitor-event.js";
+import { unattendedDisallowedTools } from "../lib/unattended-action-policy.js";
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -382,6 +383,20 @@ export async function runAgendaRun(options = {}, _deps = {}) {
  */
 export function buildAgentArgs(prompt, policy = null) {
   const args = ["agent", "-p", prompt];
+  // P1-8: a scheduled run is UNATTENDED — deny high-risk external tools
+  // (publish_artifact / notify) by default so no timer-fired agent can publish
+  // or message outward on its own. A task opts specific action classes back in
+  // via runPolicy.unattendedAllowlist; those tools are then NOT disallowed.
+  const disallow = unattendedDisallowedTools({
+    attended: false,
+    allowlist:
+      policy && Array.isArray(policy.unattendedAllowlist)
+        ? policy.unattendedAllowlist
+        : [],
+  });
+  if (disallow.length > 0) {
+    args.push("--disallowed-tools", disallow.join(","));
+  }
   if (policy && typeof policy === "object") {
     if (
       typeof policy.permissionMode === "string" &&

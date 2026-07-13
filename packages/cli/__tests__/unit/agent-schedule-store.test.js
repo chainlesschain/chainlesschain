@@ -225,6 +225,23 @@ describe("AgentScheduleStore", () => {
       expect(normalizeRunPolicy()).toBeNull();
     });
 
+    it("normalizeRunPolicy keeps a validated unattendedAllowlist (P1-8)", () => {
+      // Known classes (incl. aliases) are normalized + de-duped; unknowns drop.
+      expect(
+        normalizeRunPolicy({
+          unattendedAllowlist: [
+            "publish",
+            "release",
+            "external_message",
+            "bogus",
+          ],
+        }),
+      ).toEqual({ unattendedAllowlist: ["publish", "external_message"] });
+      // All-unknown or non-array → the field is omitted entirely.
+      expect(normalizeRunPolicy({ unattendedAllowlist: ["nope"] })).toBeNull();
+      expect(normalizeRunPolicy({ unattendedAllowlist: "publish" })).toBeNull();
+    });
+
     it("stores runPolicy on wakeup/cron, and omits the key entirely when unset", () => {
       const w = store.scheduleWakeup({
         prompt: "a",

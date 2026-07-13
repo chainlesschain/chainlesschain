@@ -440,7 +440,11 @@ Auto-fix 边界：
 - **`evaluateUnattendedAction({actionClass, attended, trigger, allowlist, protectedBranch, budgetExhausted})`**：预算耗尽→全拦（不分是否值守）；`attended===true`→人可在预算内授权任何动作；**无人值守**下 read/local_write/commit 低危放行、plain push 到非保护分支放行，而 **publish/merge/deploy/infra_mutation/external_message 高危默认 `requires-attendance` 拦**——**push 到保护分支等同 merge**（拦）。高危仅当**显式 allowlist** 且触发源可信才放行；`trigger.trusted===false`（P1-8「外部内容默认不可信」）即便 allowlisted 也 `untrusted-trigger` 拦。无法识别的动作在无人值守下 `unknown-action-unattended` fail-closed（值守则交人裁决）。
 - `normalizeActionClass` / `classifyActionRisk`（low/high/conditional/unknown 分级）。
 
-测试 `unattended-action-policy.test.js` 11（别名分级 + 值守全放/预算全拦 + 无人值守低危放行 + 五类高危默认拦 + 保护分支 push=merge + allowlist 放行 + 不可信触发拦 + 未知动作 fail-closed）。纯核尚未接进 `cc agenda`/事件触发 runner 的动作门 seam（把它插进定时/事件任务的工具执行前置检查是后续接线），故默认路径零影响。
+测试 `unattended-action-policy.test.js` 11（别名分级 + 值守全放/预算全拦 + 无人值守低危放行 + 五类高危默认拦 + 保护分支 push=merge + allowlist 放行 + 不可信触发拦 + 未知动作 fail-closed）。
+
+**已接线（2026-07-13 续，`cc agenda` 动作门落到工具层）**：纯核已接进定时/事件 runner。`cc agenda run` 对每个 due 的 wakeup/cron 任务 spawn 一个**独立** `cc agent -p` 子进程（[[agenda.js]] `defaultSpawnAgent`），该 run 恒为**无人值守**——所以把动作门投影到**工具层**：新增 [`unattended-action-policy.js`](../packages/cli/src/lib/unattended-action-policy.js) `unattendedDisallowedTools({attended, allowlist, trigger, budgetExhausted})`——用 `TOOL_ACTION_CLASS`（`publish_artifact`→publish、`notify`→external_message，两个能干净按工具粒度拦的高危外呼；`git push`/npm-publish-via-shell 走 `git`/`run_shell` 工具，仍由 shell 策略管而非整工具删）逐个跑 `evaluateUnattendedAction`，deny 的就进 disallow 列表。[[agenda.js]] `buildAgentArgs` 现给每个定时 agent run 追加 `--disallowed-tools <deny>`（默认 `notify,publish_artifact`），模型连调用都不能——**默认禁止无人值守发布/外呼**落地。任务经 `runPolicy.unattendedAllowlist`（action-class 数组）显式把某类放回：[[agent-schedule-store.js]] `normalizeRunPolicy` 校验并持久化该字段（未知类丢弃），`schedule` 工具的 `unattended_allow`（数组或逗号串）→ runPolicy。allowlist 到某类 → 对应工具从 deny 集移除；attended run（此路径无）/两类都 allowlist → 空 deny 集（byte-identical `cc agent -p`）。
+
+测试 `unattended-action-policy.test.js` +5（默认拦两外呼 + allowlist 移除 + attended 零限 + 不可信触发即便 allowlist 仍拦 + 预算耗尽全拦）；`agenda-command.test.js` buildAgentArgs 更新为默认带 deny + allowlist 用例；`agent-schedule-store.test.js` +1（normalizeRunPolicy 校验/去重 unattendedAllowlist、未知类丢弃）。⚠️行为变更：定时 `cc agent` run 默认失去 `notify`/`publish_artifact`（P1-8 意图内），任务需 `unattended_allow` 显式放回。剩项（`git push`/deploy/infra 的 shell 层动作分类门、事件触发 runner 的触发源信任传播）仍开放。
 
 ### P1-9 Capability Manifest 与脱敏诊断包
 

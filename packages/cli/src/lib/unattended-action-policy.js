@@ -75,6 +75,43 @@ export function normalizeActionClass(value) {
   return ACTION_ALIASES.get(value.trim().toLowerCase()) || null;
 }
 
+/**
+ * Agent tools whose effect maps to a high-risk action class that can be cleanly
+ * blocked at the tool layer. `git push` / npm-publish-via-shell are deliberately
+ * NOT here — they ride the `git` / `run_shell` tools (which also do read-only
+ * work) and stay governed by the shell policy, not a blanket tool removal.
+ */
+export const TOOL_ACTION_CLASS = Object.freeze({
+  publish_artifact: ACTION_CLASS.PUBLISH,
+  notify: ACTION_CLASS.EXTERNAL_MESSAGE,
+});
+
+/**
+ * The agent tools an UNATTENDED run must be denied — the enforcement projection
+ * of `evaluateUnattendedAction` onto the tool layer (P1-8). A scheduled
+ * `cc agent` run passes the result as `--disallowed-tools`, so the model can
+ * never even call a denied high-risk tool. An attended run — or one whose class
+ * is on the allowlist — yields no restriction. PURE; result is sorted so the
+ * spawned argv is stable.
+ *
+ * @param {{attended?:boolean, allowlist?:string[], trigger?:object, budgetExhausted?:boolean}} p
+ * @returns {string[]} tool names to disallow
+ */
+export function unattendedDisallowedTools(p = {}) {
+  const out = [];
+  for (const [tool, actionClass] of Object.entries(TOOL_ACTION_CLASS)) {
+    const verdict = evaluateUnattendedAction({
+      actionClass,
+      attended: p.attended === true,
+      allowlist: p.allowlist,
+      trigger: p.trigger,
+      budgetExhausted: p.budgetExhausted,
+    });
+    if (!verdict.allow) out.push(tool);
+  }
+  return out.sort();
+}
+
 /** Coarse risk tier for an action: "low" | "high" | "conditional" | "unknown". */
 export function classifyActionRisk(actionClass) {
   const a = normalizeActionClass(actionClass);

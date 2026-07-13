@@ -3269,6 +3269,16 @@ async function executeToolInner(
           goalMaxTokens: args.goal_max_tokens ?? null,
           goalMaxCost: args.goal_max_cost ?? null,
           goalMaxTime: args.goal_max_time ?? null,
+          // P1-8: action classes this unattended task may still perform (e.g.
+          // "publish", "external_message"). Accepts an array or a comma list.
+          unattendedAllowlist: Array.isArray(args.unattended_allow)
+            ? args.unattended_allow
+            : typeof args.unattended_allow === "string"
+              ? args.unattended_allow
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : null,
         };
         if (action === "wakeup") {
           if (!args.prompt) {

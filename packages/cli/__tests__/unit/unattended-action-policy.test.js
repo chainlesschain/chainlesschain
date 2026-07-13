@@ -9,6 +9,7 @@ import {
   normalizeActionClass,
   classifyActionRisk,
   evaluateUnattendedAction,
+  unattendedDisallowedTools,
 } from "../../src/lib/unattended-action-policy.js";
 
 describe("normalizeActionClass / classifyActionRisk", () => {
@@ -114,5 +115,53 @@ describe("evaluateUnattendedAction — fail closed on unknown", () => {
       evaluateUnattendedAction({ actionClass: "frobnicate", attended: true })
         .allow,
     ).toBe(true);
+  });
+});
+
+describe("unattendedDisallowedTools (P1-8 tool-layer projection)", () => {
+  it("denies both high-risk external tools by default (unattended)", () => {
+    expect(unattendedDisallowedTools({ attended: false })).toEqual([
+      "notify",
+      "publish_artifact",
+    ]);
+  });
+
+  it("removes an allowlisted class from the deny set", () => {
+    // external_message allowlisted → notify permitted, publish still denied.
+    expect(
+      unattendedDisallowedTools({
+        attended: false,
+        allowlist: ["external_message"],
+      }),
+    ).toEqual(["publish_artifact"]);
+    expect(
+      unattendedDisallowedTools({
+        attended: false,
+        allowlist: ["publish", "external_message"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("attended runs restrict nothing", () => {
+    expect(unattendedDisallowedTools({ attended: true })).toEqual([]);
+  });
+
+  it("an untrusted trigger denies high-risk tools even if allowlisted", () => {
+    expect(
+      unattendedDisallowedTools({
+        attended: false,
+        allowlist: ["publish", "external_message"],
+        trigger: { trusted: false },
+      }),
+    ).toEqual(["notify", "publish_artifact"]);
+  });
+
+  it("an exhausted budget denies everything", () => {
+    expect(
+      unattendedDisallowedTools({
+        attended: true,
+        budgetExhausted: true,
+      }),
+    ).toEqual(["notify", "publish_artifact"]);
   });
 });
