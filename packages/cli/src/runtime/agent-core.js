@@ -6884,6 +6884,18 @@ export async function* agentLoop(messages, options) {
       }
     }
 
+    // Per-span unified ids (P2 observability): the run-level default attributes
+    // stamp session/agent/workflow ids on every span, but turn/prompt ids are
+    // per-iteration. A "turn" is one model iteration of the run; "prompt" is the
+    // model request within that turn. Normalized through buildTelemetryAttributes
+    // so they get the same charset-sanitized + cardinality-bounded treatment as
+    // the run-level ids (turn.id correlates with the agent.iteration counter).
+    const modelIdAttrs = recorder
+      ? buildTelemetryAttributes({
+          turnId: `${runId}:t${budget.consumed}`,
+          promptId: `${runId}:t${budget.consumed}:p`,
+        })
+      : null;
     const result = await _withSpan(
       recorder,
       "agent.model",
@@ -6891,6 +6903,7 @@ export async function* agentLoop(messages, options) {
         "gen_ai.system": options.provider || "ollama",
         "gen_ai.request.model": options.model || "unknown",
         "agent.iteration": budget.consumed,
+        ...(modelIdAttrs || {}),
       },
       () => llmCall(callMessages, options),
       (span, r) => {
@@ -6912,6 +6925,21 @@ export async function* agentLoop(messages, options) {
           Array.isArray(r?.message?.tool_calls) &&
             r.message.tool_calls.length > 0,
         );
+        // response CONTENT is opt-in (--otlp-content): stamped only when
+        // enabled, redacted + length-capped through the same normalizer; the
+        // field is entirely absent by default so default OTLP stays unchanged.
+        if (options.otlpIncludeContent === true && r?.message?.content) {
+          const respAttrs = buildTelemetryAttributes(
+            { response: r.message.content },
+            { includeContent: true },
+          );
+          if (respAttrs["content.response"] != null) {
+            span.setAttribute(
+              "content.response",
+              respAttrs["content.response"],
+            );
+          }
+        }
       },
       "model_error",
     );
@@ -7189,11 +7217,32 @@ export async function* agentLoop(messages, options) {
 
       let toolResult;
       let toolError = null;
+      // Per-span unified ids (P2 observability): a tool span carries its turn.id
+      // (correlating with the model span of the same iteration), the provider's
+      // tool_use.id (so a tool-result event can be tied back to its call), and —
+      // when auto-checkpoint fired before a mutating tool — the checkpoint.id the
+      // user could restore to. All normalized through buildTelemetryAttributes.
+      // tool_arguments CONTENT is opt-in (--otlp-content): the alias key is only
+      // present when explicitly enabled, so by default the field is omitted
+      // entirely (byte-identical default OTLP), and even opted-in it's length-
+      // capped by redactContent. Mirrors the run-level content.prompt opt-in.
+      const toolContentOptIn = options.otlpIncludeContent === true;
+      const toolIdAttrs = recorder
+        ? buildTelemetryAttributes(
+            {
+              turnId: `${runId}:t${budget.consumed}`,
+              toolUseId: call.id,
+              checkpointId: cpId || undefined,
+              ...(toolContentOptIn ? { toolArguments: toolArgs } : {}),
+            },
+            { includeContent: toolContentOptIn },
+          )
+        : null;
       try {
         toolResult = await _withSpan(
           recorder,
           "agent.tool",
-          { "tool.name": toolName },
+          { "tool.name": toolName, ...(toolIdAttrs || {}) },
           () => executeTool(toolName, toolArgs, toolContext),
           (span, r) => {
             span.setAttribute(

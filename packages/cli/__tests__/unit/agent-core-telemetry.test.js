@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { spawnSync } from "node:child_process";
 import { agentLoop } from "../../src/runtime/agent-core.js";
 import { TelemetryRecorder } from "../../src/lib/telemetry/span-recorder.js";
 
@@ -180,6 +181,204 @@ describe("agent-core telemetry spans", () => {
       expect(s.attributes["workflow.name"]).toBe("my-workflow");
       // P2: session.id is now stamped on every span, charset-sanitized.
       expect(s.attributes["session.id"]).toBe("sess_01_02");
+    }
+  });
+
+  it("stamps per-span unified ids: turn/prompt on model, turn/tool_use/checkpoint on tool", async () => {
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [readCall("call-abc-123", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+
+    const recorder = new TelemetryRecorder();
+    const events = [];
+    for await (const ev of agentLoop([{ role: "user", content: "go" }], {
+      provider: "ollama",
+      model: "test-model",
+      baseUrl: "http://localhost:11434",
+      cwd: tmp,
+      chatFn,
+      runnableProviderFallback: false,
+      recorder,
+    })) {
+      events.push(ev);
+    }
+    const runId = events.find((e) => e.type === "run-started").runId;
+    // runId is charset-sanitized before it becomes part of a per-span id token.
+    const runToken = runId.replace(/[^\w.\-:/@]/g, "_").replace(/_+/g, "_");
+
+    const modelSpans = recorder.spans().filter((s) => s.name === "agent.model");
+    const toolSpans = recorder.spans().filter((s) => s.name === "agent.tool");
+
+    // Model spans: turn.id + prompt.id, one turn per iteration.
+    for (const s of modelSpans) {
+      expect(s.attributes["turn.id"]).toMatch(
+        new RegExp(`^${runToken}:t\\d+$`),
+      );
+      expect(s.attributes["prompt.id"]).toBe(`${s.attributes["turn.id"]}:p`);
+    }
+    // Two model iterations → two distinct turn ids.
+    const turnIds = modelSpans.map((s) => s.attributes["turn.id"]);
+    expect(new Set(turnIds).size).toBe(2);
+
+    // Tool span: carries the provider tool_use.id and the turn.id of its
+    // iteration (which matches the FIRST model span — the tool-call turn).
+    expect(toolSpans[0].attributes["tool_use.id"]).toBe("call-abc-123");
+    expect(toolSpans[0].attributes["turn.id"]).toBe(
+      modelSpans[0].attributes["turn.id"],
+    );
+    // No auto-checkpoint fired for a read-only tool → checkpoint.id omitted.
+    expect(toolSpans[0].attributes["checkpoint.id"]).toBeUndefined();
+  });
+
+  it("stamps checkpoint.id on the tool span when auto-checkpoint fires before a mutating tool", async () => {
+    const git = (...args) => {
+      const r = spawnSync("git", args, { cwd: tmp, encoding: "utf-8" });
+      if (r.status !== 0) throw new Error(r.stderr || `git ${args.join(" ")}`);
+    };
+    git("init", "-q");
+    git("config", "user.email", "t@test.local");
+    git("config", "user.name", "tester");
+    git("config", "core.autocrlf", "false");
+    fs.writeFileSync(path.join(tmp, "seed.txt"), "seed\n", "utf8");
+    git("add", "-A");
+    git("commit", "-q", "-m", "init");
+
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "call-write-1",
+                type: "function",
+                function: {
+                  name: "write_file",
+                  arguments: JSON.stringify({ path: "out.txt", content: "hi" }),
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+
+    const recorder = new TelemetryRecorder();
+    const events = [];
+    for await (const ev of agentLoop([{ role: "user", content: "write it" }], {
+      provider: "ollama",
+      model: "test-model",
+      baseUrl: "http://localhost:11434",
+      cwd: tmp,
+      chatFn,
+      runnableProviderFallback: false,
+      recorder,
+      autoCheckpoint: true,
+      checkpointSession: "t1",
+    })) {
+      events.push(ev);
+    }
+
+    const cpEvent = events.find((e) => e.type === "checkpoint");
+    expect(cpEvent).toBeTruthy();
+    const toolSpan = recorder.spans().find((s) => s.name === "agent.tool");
+    // The tool span's checkpoint.id matches the emitted checkpoint event id.
+    expect(toolSpan.attributes["checkpoint.id"]).toBe(cpEvent.id);
+    expect(toolSpan.attributes["tool_use.id"]).toBe("call-write-1");
+  });
+
+  it("stamps content.response (model) + content.tool_arguments (tool) only when --otlp-content is opted in", async () => {
+    fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "calling the tool now",
+            tool_calls: [readCall("r1", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "final answer" } };
+    };
+
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "read a.txt" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+        otlpIncludeContent: true,
+      }),
+    );
+
+    const modelSpans = recorder.spans().filter((s) => s.name === "agent.model");
+    const toolSpans = recorder.spans().filter((s) => s.name === "agent.tool");
+    // Model spans carry the assistant response text.
+    expect(modelSpans[0].attributes["content.response"]).toBe(
+      "calling the tool now",
+    );
+    expect(modelSpans[1].attributes["content.response"]).toBe("final answer");
+    // Tool span carries the (redacted-shaped) tool arguments JSON.
+    expect(toolSpans[0].attributes["content.tool_arguments"]).toBe(
+      JSON.stringify({ path: "a.txt" }),
+    );
+  });
+
+  it("omits content.response and content.tool_arguments by default (byte-identical)", async () => {
+    fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "hi",
+            tool_calls: [readCall("r1", "a.txt")],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    };
+    const recorder = new TelemetryRecorder();
+    await drain(
+      agentLoop([{ role: "user", content: "read a.txt" }], {
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://localhost:11434",
+        cwd: tmp,
+        chatFn,
+        runnableProviderFallback: false,
+        recorder,
+        // otlpIncludeContent NOT set → both fields absent entirely
+      }),
+    );
+    for (const s of recorder.spans()) {
+      expect(s.attributes["content.response"]).toBeUndefined();
+      expect(s.attributes["content.tool_arguments"]).toBeUndefined();
     }
   });
 
