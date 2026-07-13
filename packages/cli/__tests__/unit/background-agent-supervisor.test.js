@@ -1,11 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,41 +29,6 @@ const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalKillTree = _deps.killProcessTree;
 
-// PIDs of the REAL detached workers a test spawns (cliEntry tests). Several of
-// them run a fake CLI that sleeps 4s–20s, so without an explicit reap they
-// outlive the test as ORPHAN node processes (seen in CI as GitHub's "Terminate
-// orphan process: pid (…) (node)"). On POSIX those orphans keep their transport
-// domain-socket SERVER alive with our client still associated, which stops the
-// vitest forks worker's event loop from draining → "Timeout terminating forks
-// worker … Worker exited unexpectedly" (the recurring forks-pool worker-death
-// flake, unit shard 2/4 on ubuntu+macos). Reaping every spawned tree in
-// afterEach removes the orphans and lets the worker terminate cleanly.
-let spawnedWorkerPids = new Set();
-
-function killTree(pid) {
-  const target = Number(pid);
-  if (!Number.isInteger(target) || target <= 0 || target === process.pid)
-    return;
-  try {
-    if (process.platform === "win32") {
-      originalSpawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
-        windowsHide: true,
-      });
-    } else {
-      // Detached workers are session/group leaders → negative-pid group kill;
-      // the agent grandchild is detached into its OWN group, so its recorded
-      // agentPid is reaped separately (collected from the state files below).
-      try {
-        process.kill(-target, "SIGKILL");
-      } catch {
-        process.kill(target, "SIGKILL");
-      }
-    }
-  } catch {
-    /* already gone */
-  }
-}
-
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
@@ -77,41 +36,9 @@ beforeEach(() => {
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
   _deps.readProcessStartTimeMs = () => null;
-  // Track every REAL child this test spawns so afterEach can reap it. Mocked
-  // tests reassign _deps.spawn to their own vi.fn AFTER beforeEach, so this
-  // wrapper only ever records genuine detached workers, never fake pids.
-  spawnedWorkerPids = new Set();
-  _deps.spawn = (...args) => {
-    const child = originalSpawn(...args);
-    if (child && typeof child.pid === "number")
-      spawnedWorkerPids.add(child.pid);
-    return child;
-  };
 });
 
 afterEach(async () => {
-  // Reap every real worker this test spawned — plus the per-turn agent
-  // grandchild the worker recorded in its state file (own process group) —
-  // BEFORE tearing down _deps / the temp dir, so none of them outlive the test
-  // as orphan node processes holding a live transport socket.
-  try {
-    for (const name of readdirSync(dir)) {
-      if (!name.endsWith(".json") || name.includes(".job.")) continue;
-      try {
-        const st = JSON.parse(readFileSync(join(dir, name), "utf8"));
-        for (const pid of [st.workerPid, st.pid, st.agentPid]) {
-          if (Number.isInteger(pid) && pid > 0) spawnedWorkerPids.add(pid);
-        }
-      } catch {
-        /* unreadable/partial state file — skip */
-      }
-    }
-  } catch {
-    /* dir already gone */
-  }
-  for (const pid of spawnedWorkerPids) killTree(pid);
-  spawnedWorkerPids.clear();
-
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
@@ -295,7 +222,7 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentLog("bg-log-abc", { lines: 2 })).toBe("three\n");
   });
 
-  it.skip("runs the real detached worker and records completion", async () => {
+  it("runs the real detached worker and records completion", async () => {
     const fakeCli = join(dir, "fake-cli.mjs");
     writeFileSync(
       fakeCli,
@@ -324,7 +251,7 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
   });
 
-  it.skip("keeps a running rename when the worker writes completion", async () => {
+  it("keeps a running rename when the worker writes completion", async () => {
     const fakeCli = join(dir, "fake-cli-rename.mjs");
     writeFileSync(fakeCli, "setTimeout(() => process.exit(0), 150);\n");
     const state = launchBackgroundAgent({
@@ -456,9 +383,7 @@ describe("background agent supervisor", () => {
     );
   });
 
-  // BISECT (temp): does skipping the transport-client-socket tests clear the
-  // forks-pool worker-death on POSIX? If so, the client socket is the pin.
-  it.skip("runs follow-up turns over the session transport and finalizes on detach", async () => {
+  it("runs follow-up turns over the session transport and finalizes on detach", async () => {
     const fakeCli = join(dir, "fake-cli-interactive.mjs");
     // Turn 1 (no -p) stays alive long enough for the test to attach; follow-up
     // turns (-p present) print their argv and exit quickly.
@@ -789,7 +714,7 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
 });
 
 describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
-  it.skip("rejects prompts past the 100-entry cap with a transport error event", async () => {
+  it("rejects prompts past the 100-entry cap with a transport error event", async () => {
     const fakeCli = join(dir, "fake-cli-queue.mjs");
     // Turn 1 (no -p) sleeps long so the queue stays full while we flood it;
     // follow-up turns would exit fast (they never get to run — see reap).
