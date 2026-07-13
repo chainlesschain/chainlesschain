@@ -159,7 +159,10 @@ describe("client-hosted remote session control forwarding", () => {
       remoteSessionId,
       event: { type: "approval.resolve", approvalId: "a-9", approved: false },
     });
-    expect(resolveAnswer).toHaveBeenCalledWith("a-9", false);
+    // handleSessionAnswer forwards the (optional) approval binding as a third
+    // arg so the interaction gate can reject a stale/tampered verdict; a resolve
+    // with no binding echoes null.
+    expect(resolveAnswer).toHaveBeenCalledWith("a-9", false, null);
     expect(host.sent.some((m) => m.type === "remote-session-control")).toBe(
       false,
     );
