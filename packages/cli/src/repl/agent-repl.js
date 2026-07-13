@@ -3010,6 +3010,8 @@ export async function startAgentRepl(options = {}) {
           pickCheckpointForTurn,
           pruneMarksAfter,
           restoreClearedConversation,
+          buildRewindPlan,
+          renderRewindWarnings,
         } = await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
         if (arg === "clear" || arg === "undo-clear") {
@@ -3050,6 +3052,9 @@ export async function startAgentRepl(options = {}) {
             );
           }
         } else {
+          // Snapshot BEFORE rewindToTurn truncates `messages`: buildRewindPlan
+          // needs the target turn still present to bind it to its checkpoint.
+          const preRewind = messages.slice();
           const res = rewindToTurn(messages, arg);
           if (!res) {
             logger.error(`No such turn: ${arg} — run /rewind to list.`);
@@ -3059,6 +3064,23 @@ export async function startAgentRepl(options = {}) {
                 `⎌ rewound — dropped ${res.removed} message(s); edit and resend below`,
               ),
             );
+            // Coverage-aware honesty (P1 turn/checkpoint binding): print what a
+            // restore can and cannot promise for this turn BEFORE offering the
+            // file restore — a shell/external side-effect → PARTIAL, no
+            // checkpoint → files can't be restored, conversation/files drift.
+            // Derived from the REPL's existing marks (no new agent-loop events);
+            // best-effort so the advisory never blocks the rewind itself.
+            try {
+              const plan = buildRewindPlan(
+                preRewind,
+                _checkpointMarks,
+                res.index,
+              );
+              for (const line of renderRewindWarnings(plan))
+                logger.log(chalk.yellow(line));
+            } catch {
+              /* advisory only — a rewind must never fail over its own warning */
+            }
             // Claude-Code parity: rewind restores files too. Match the dropped
             // turn to the snapshot taken just before it first mutated the tree,
             // then offer to roll the working tree back to it (undoable — the

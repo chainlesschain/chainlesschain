@@ -268,3 +268,40 @@ describe("buildRewindPlan (coverage-aware)", () => {
     );
   });
 });
+
+// The exact data flow the /rewind handler uses: snapshot messages BEFORE
+// rewindToTurn truncates them, then feed that snapshot + res.index into
+// buildRewindPlan so the coverage warning binds the right (still-present) turn.
+describe("buildRewindPlan integration with rewindToTurn (handler data flow)", () => {
+  it("warns on a shell turn using the pre-rewind snapshot + res.index", () => {
+    const messages = conv();
+    const preRewind = messages.slice();
+    const marks = [{ atMessageCount: 4, id: "cp-sh", tool: "run_shell" }];
+    const res = rewindToTurn(messages, 2); // drops turn@3 onward; MUTATES messages
+    expect(res.index).toBe(3);
+    const plan = buildRewindPlan(preRewind, marks, res.index);
+    expect(plan.coverage).toBe("partial");
+    expect(
+      renderRewindWarnings(plan).some((l) => /coverage: partial/.test(l)),
+    ).toBe(true);
+  });
+
+  it("warns 'no file checkpoint' when the rewound turn had no snapshot", () => {
+    const messages = conv();
+    const preRewind = messages.slice();
+    const res = rewindToTurn(messages, 2);
+    const plan = buildRewindPlan(preRewind, [], res.index);
+    expect(renderRewindWarnings(plan).join(" ")).toMatch(/no file checkpoint/);
+  });
+
+  it("binds nothing if built from the post-rewind (truncated) messages", () => {
+    // Guards the snapshot requirement: after rewindToTurn truncates messages the
+    // target turn is gone, so a plan built from `messages` reports coverage
+    // "none" (unknown turn) — which is why the handler must use the snapshot.
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-sh", tool: "run_shell" }];
+    const res = rewindToTurn(messages, 2);
+    const planFromTruncated = buildRewindPlan(messages, marks, res.index);
+    expect(planFromTruncated.coverage).toBe("none");
+  });
+});
