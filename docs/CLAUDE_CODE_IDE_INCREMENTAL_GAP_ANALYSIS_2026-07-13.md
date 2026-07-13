@@ -284,6 +284,14 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 - 行评论传递 `file + base hash + line/hunk anchor + comment`。
 - Agent 修复后评论标记为 resolved/outdated，不错误复用旧行号。
 
+**已落地（2026-07-13 续，行评论锚定 + 陈旧判定纯核）**：本节最后两条（行评论的 `file + base hash + line anchor` 传递、修复后标 resolved/outdated 且**不复用旧行号**）现落为纯逻辑模块 [`review-comment-anchor.js`](../packages/cli/src/lib/review-comment-anchor.js)。此前 [[review-pipeline.js]] 只聚合 findings，其 `line` 是**对单快照的裸坐标**——agent 一改文件，行 42 就指向无关代码。新模块把评论锚到它所指的**代码**而非坐标：
+
+- **`makeCommentAnchor({file, content, line, comment, contextRadius})`** 捕获 `file` / sha256 `baseHash` / 1-based line / 锚定行原文 + 上下各 `contextRadius` 行上下文；越界行 → `line:null`、`anchorLine:""`。
+- **`reanchorComment(anchor, newContent)`** 在新版本重算命运：`current`（hash 一致，行保留）/ `moved`（锚定行**唯一**重定位，行更新）/ `outdated`（锚定行被改走/删除 → **`line:null`**，修复多半已处理它，旧号绝不复用）/ `ambiguous`（多个等可能位置 → `line:null`，交人）。上下文仅作**同文本多命中的消歧 tie-breaker**，故 0-radius 的唯一命中仍能重定位。**硬不变量**：任何无法唯一定位的场景 `line` 恒为 `null`，再无陈旧坐标穿越 re-anchor。
+- **`markResolved`**（调用方显式「你修好了」终态，区别于自动检测的 outdated「被评论的代码消失了」）+ **`reconcileComments(anchors, newContent, {resolvedIds})`**（批量 re-anchor 并按 status 分桶）。
+
+测试 `review-comment-anchor.test.js` 11（锚定捕获 + current/moved/outdated（编辑走/整段删/无捕获文本）/ambiguous（对称 0-radius 多命中）+ 上下文消歧唯一→moved + resolved 终态 + 混合集分桶且 outdated/ambiguous 恒 null 行）。纯核尚未接进 [[review-pipeline.js]] 的 finding 输出与 IDE Diff Review 评论线程 seam，故默认路径零影响。剩项（Rename/Delete/Mode-change changeset 语义、Monaco 逐 hunk Review Queue、Binary/Large 降级）仍开放。
+
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:64-66,187-192`。
 
 ### P1-2 交互终端
@@ -330,6 +338,13 @@ Auto-fix 边界：
 - 后台可写 Session 默认独立 Worktree；只读任务可复用当前树。
 - 清理前检查未提交修改、未追踪文件、未 Push Commit 和关联 PR。
 - 跨 Session 只传摘要和 Artifact 引用，避免整段 Transcript 污染上下文。
+
+**已落地（2026-07-13 续，Worktree 清理安全闸纯核）**：本节「清理前检查未提交修改、未追踪文件、未 Push Commit 和关联 PR」现落为纯逻辑模块 [`worktree-cleanup-safety.js`](../packages/cli/src/lib/worktree-cleanup-safety.js)。此前 [[agent-worktree.js]] `finishAgentWorktree()` 把「dirty」压成一个标志，**不区分未追踪文件、不知道 commit 是否已 push、也无关联 PR 概念**——一个已 commit+push 但留了开着的 PR、或留了全新未追踪临时文件的后台 agent worktree，仍可能被更宽的 sweep 收割。新模块是任何 worktree reaper 背后的纯决策：给一个状态描述子（调用方从 `git status --porcelain` / `git rev-list @{u}..HEAD` / PR store 收集），返回是否可安全移除，并像 [[pr-automation-policy.js]] 一样**穷举**收集全部 blocker：
+
+- **`evaluateWorktreeCleanup(state)`** 一切**默认 KEEP**：`readable===false`（git 状态读不出）→ 短路只报 `unverifiable`（绝不销毁无法核实可弃的工作）；否则逐项收集 `uncommitted-changes` / `untracked-files`（与 uncommitted 区分）/ `unpushed-commits`（有 upstream 看 `aheadCount>0`；**无 upstream 则任何越过 base 的 commit 都算未 push**——fail-closed 读法）/ `linked-pr`（有开着的 PR 引用本分支）。仅当**全清**才 `safeToRemove:true`。
+- **`summarizeWorktreeCleanup(state)`** 人读单行，只列计数与具名 blocker（PR 数正确单复数），**绝不回显文件内容或 PR 正文**。
+
+测试 `worktree-cleanup-safety.test.js` 13（clean 放行 + unverifiable 短路 + 四类 blocker 单独命中 + 已 push（upstream/0-ahead）不拦 + 全命中穷举收集 + summary secret-safe）。纯核尚未接进 `finishAgentWorktree` / 后台 worktree reaper seam（把它作为移除前的前置闸是后续接线），故默认路径零影响。剩项（统一后台 Agent 状态视图、Peek/Attach/Retry 交互）仍开放。
 
 ### P1-6 Agent 内 Skills / MCP / Plugin 治理
 
