@@ -374,7 +374,15 @@ Auto-fix 边界：
 - **`autoMergeDecision(...)`**：**穷举**收集所有未满足项，仅当 `unmet` 为空才允许——`enabled!==true`→默认关；`hasOpenPr!==true`→拒直推分支绕过 PR；分支保护 / Review / 待处理审批 / 任一 check failing 或 pending / **必需 check 缺席或未过**（present-and-passed，缺跑的必需 check 是拦而非放）逐条成为 `unmet`。对应「默认关 + 分支保护 + 必需 Checks + Review + 无待处理审批 + 不绕过保护」。
 - `summarizeChecks`（跨 provider 词汇归一，空 checks≠allPassed）+ `describePrStatusBar`（Branch/PR#/checks tally/review/merge 的**无 token** 状态条）。
 
-测试 `pr-automation-policy.test.js` 16（归一/summary + auto-fix 六判定 + auto-merge 穷举拒因/必需 check 缺席/默认关 + 状态条）。纯核尚未接进 `cc` 的 PR 监控命令 / IDE 状态条 seam，故默认路径零影响。剩项（真 GitHub Checks 拉取 + 每次修复独立 Checkpoint 的接线）待后续。
+测试 `pr-automation-policy.test.js` 16（归一/summary + auto-fix 六判定 + auto-merge 穷举拒因/必需 check 缺席/默认关 + 状态条）。
+
+**已接线（2026-07-13 续，PR 监控进 `cc session pr-status`）**：纯核判定引擎接进新的 **session 子命令**（不动顶层命令数 175 —— pr-status 嵌在既有 `session` 组下）`cc session pr-status [id] [--pr N] [--checks-file <json>] [--enable] [--json]`：
+
+- **数据源**=[[pr-link-ledger.js]]（已记 session 触碰过的 PR + 状态）；无 id 取最近会话，取该会话最新 linked PR（或 `--pr N`）。
+- **信号采集**双路：`--checks-file <json>` 直接喂 PR 信号（**离线/可测主路**，绕过 gh），否则**尽力** `gh pr view --json …` 经纯 `mapGhPrToSignals`（gh JSON→信号；branch-protection/pending-approval 不在 gh json → undefined 保持 fail-closed，不臆造）映射，gh 不可用则报「pass --checks-file」不崩。
+- **渲染**=纯 `renderPrStatus(signals,{enabled})`——`describePrStatusBar`（`branch·PR#·checks tally·review·merge`，无 token）+ `autoMergeDecision`（**auto-merge 默认关**，`--enable` 才考虑合格性；未满足项穷举列出：auto-merge-disabled / branch-protection / review / pending-approvals / checks-failing|pending / required-check-missing:<name>）。真机 `cc session pr-status --checks-file` 实测：默认 `merge:blocked`(auto-merge-disabled)，`--enable` 全绿 → `merge:ready`+`✓ eligible`。
+
+测试 `session-pr-status.test.js` 6（mapGhPrToSignals 映射+非 open / renderPrStatus 默认关拒·enable 全过·必需 check 缺席拒·失败 check 拒且状态条标 ✗）+ e2e `session-pr-status-e2e.test.js` 3（真 `cc` bin --checks-file：默认拒 / --enable 过 / 必需 check pending 拒）。剩项（真 GitHub Checks 端到端拉取需 gh auth 环境 + 每次修复独立 Checkpoint 的 auto-fix runner 接线 + IDE 状态条 seam）待后续。
 
 ### P1-5 统一后台 Agent / Worktree 工作台
 

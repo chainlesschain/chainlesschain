@@ -76,6 +76,97 @@ function _sessionEpoch(ts) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Render a PR's automation status (P1-4 "PR/CI Monitor + 受控合并") from a
+ * gathered signals object — PURE, so it is testable without gh / the network.
+ * `enabled` mirrors the "auto-merge is OFF by default" rule: only an explicit
+ * opt-in even considers a merge. Everything else defers to the fail-closed
+ * pr-automation-policy decision engine.
+ *
+ * @param {object} signals  {branch, prNumber, hasOpenPr, headCommitSha,
+ *   branchProtectionSatisfied, reviewApproved, pendingApprovals,
+ *   requiredChecks, checks}
+ * @param {{enabled?:boolean}} [opts]
+ * @returns {{statusBar:string, autoMerge:{allow:boolean,reason:string,unmet:string[]}, lines:string[]}}
+ */
+export async function renderPrStatus(signals = {}, opts = {}) {
+  const { autoMergeDecision, describePrStatusBar } =
+    await import("../lib/pr-automation-policy.js");
+  const autoMerge = autoMergeDecision({
+    enabled: opts.enabled === true,
+    hasOpenPr: signals.hasOpenPr,
+    branchProtectionSatisfied: signals.branchProtectionSatisfied,
+    reviewApproved: signals.reviewApproved,
+    pendingApprovals: signals.pendingApprovals,
+    requiredChecks: signals.requiredChecks,
+    checks: signals.checks,
+  });
+  const statusBar = describePrStatusBar({
+    branch: signals.branch,
+    prNumber: signals.prNumber,
+    checks: signals.checks,
+    reviewApproved: signals.reviewApproved,
+    mergeable: autoMerge.allow,
+  });
+  const lines = [statusBar];
+  if (autoMerge.allow) {
+    lines.push("auto-merge: ✓ eligible");
+  } else {
+    lines.push(`auto-merge: ✗ blocked (${autoMerge.unmet.join(", ")})`);
+  }
+  return { statusBar, autoMerge, lines };
+}
+
+/**
+ * Best-effort map of `gh pr view --json …` output to the pr-automation signals.
+ * PURE (json → json); the command supplies the gh JSON (or a --checks-file). A
+ * missing field stays undefined so the fail-closed policy denies rather than
+ * assuming.
+ */
+export function mapGhPrToSignals(gh = {}) {
+  const rollup = Array.isArray(gh.statusCheckRollup)
+    ? gh.statusCheckRollup
+    : [];
+  return {
+    branch: gh.headRefName || undefined,
+    prNumber: gh.number,
+    hasOpenPr: String(gh.state || "").toUpperCase() === "OPEN",
+    headCommitSha: gh.headRefOid || undefined,
+    reviewApproved: gh.reviewDecision === "APPROVED",
+    // gh doesn't expose branch-protection satisfaction or pending in-app
+    // approvals here; leave them undefined → fail-closed unless a --checks-file
+    // asserts them.
+    checks: rollup.map((c) => ({
+      name: c.name || c.context,
+      // check runs use `conclusion`; legacy statuses use `state`.
+      state: c.conclusion || c.state || c.status,
+    })),
+  };
+}
+
+/**
+ * Best-effort live fetch of a PR's signals via `gh pr view --json`. Returns the
+ * mapped signals, or throws (caller degrades to a "pass --checks-file" hint).
+ * 8s timeout, stderr suppressed — a missing / unauthenticated gh just fails.
+ */
+async function fetchPrSignalsViaGh(target) {
+  const { execFileSync } = await import("node:child_process");
+  const args = [
+    "pr",
+    "view",
+    String(target.number),
+    "--json",
+    "number,state,headRefName,headRefOid,reviewDecision,statusCheckRollup",
+  ];
+  if (target.repo) args.push("--repo", String(target.repo));
+  const out = execFileSync("gh", args, {
+    encoding: "utf-8",
+    timeout: 8000,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return mapGhPrToSignals(JSON.parse(out));
+}
+
 export function rankSessions(sessions, limit) {
   // Dedup by id, preferring the JSONL copy when a session exists in both stores
   // (the original "JSONL takes precedence" intent, previously achieved only as
@@ -249,6 +340,87 @@ export function registerSessionCommand(program) {
         }
 
         await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // session pr-status — PR/CI monitor + controlled auto-merge decision (P1-4)
+  // for a session's linked PR. Offline-testable via --checks-file; otherwise a
+  // best-effort `gh pr view` fetch for the session's newest linked PR.
+  session
+    .command("pr-status")
+    .description(
+      "PR/CI monitor + controlled auto-merge decision for a session's linked PR",
+    )
+    .argument("[id]", "Session id (default: most recent)")
+    .option("--pr <number>", "Which linked PR to assess (default: newest)")
+    .option(
+      "--checks-file <path>",
+      "JSON file of PR signals {branch,prNumber,hasOpenPr,branchProtectionSatisfied,reviewApproved,pendingApprovals,requiredChecks,checks} — bypasses gh",
+    )
+    .option("--enable", "Consider auto-merge eligibility (default: off)")
+    .option("--json", "Output as machine-readable JSON")
+    .action(async (id, options) => {
+      try {
+        let signals = null;
+        let source = "";
+        if (options.checksFile) {
+          // Offline / explicit path: the caller supplies the PR signals.
+          signals = JSON.parse(fs.readFileSync(options.checksFile, "utf-8"));
+          source = options.checksFile;
+        } else {
+          // Live path: resolve the session's linked PR and fetch via gh.
+          const { getPrLinks } = await import("../lib/pr-link-ledger.js");
+          const { getLastSessionId } =
+            await import("../harness/jsonl-session-store.js");
+          const sid = !id || id === "last" ? getLastSessionId() : id;
+          const links = sid ? getPrLinks(sid) : [];
+          if (links.length === 0) {
+            logger.error(
+              "No linked PRs for this session — pass --checks-file to assess a PR directly.",
+            );
+            process.exit(1);
+          }
+          let target;
+          if (options.pr) {
+            target = links.find((l) => String(l.number) === String(options.pr));
+            if (!target) {
+              logger.error(`Session has no linked PR #${options.pr}.`);
+              process.exit(1);
+            }
+          } else {
+            // Newest by updatedAt (epoch-normalized; unknowns sort last).
+            target = links
+              .slice()
+              .sort(
+                (a, b) =>
+                  (Date.parse(b.updatedAt) || 0) -
+                  (Date.parse(a.updatedAt) || 0),
+              )[0];
+          }
+          signals = await fetchPrSignalsViaGh(target).catch(() => null);
+          if (!signals) {
+            logger.error(
+              `Could not fetch PR #${target.number} via gh — authenticate gh or pass --checks-file.`,
+            );
+            process.exit(1);
+          }
+          source = `gh:${target.repo || "?"}#${target.number}`;
+        }
+
+        const result = await renderPrStatus(signals, {
+          enabled: options.enable === true,
+        });
+        if (options.json) {
+          console.log(JSON.stringify({ source, ...result }, null, 2));
+        } else {
+          logger.log(
+            chalk.bold("PR automation status") + chalk.gray(`  (${source})`),
+          );
+          for (const line of result.lines) logger.log(`  ${line}`);
+        }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
