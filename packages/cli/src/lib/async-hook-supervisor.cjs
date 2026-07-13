@@ -60,6 +60,19 @@ class AsyncHookSupervisor {
     this._results = []; // completed records awaiting drainResults()
     this._rewakes = []; // failed asyncRewake records awaiting drainRewakes()
     this._stopped = false;
+    // Reliability aggregate for `cc doctor` (慢/熔断 Hook). Folded in-memory on
+    // each completion and persisted ONCE on stopAll() — never per run, so the
+    // hook hot path takes no extra I/O. Persistence is opt-in: production passes
+    // `persistStats:true` (→ default path) or an explicit `hookStatsPath`; tests
+    // that pass neither stay hermetic (aggregation still runs, just no write).
+    this._statAgg = {};
+    this._statsStore = opts.statsStore || require("./hook-stats-store.cjs");
+    this._hookStatsPath =
+      opts.hookStatsPath ||
+      (opts.persistStats === true
+        ? this._statsStore.defaultHookStatsPath()
+        : null);
+    this._statsFs = opts.statsFs || null; // injected fs for tests
     // The exit reaper is installed LAZILY (on first spawn), not in the ctor:
     // a supervisor that never dispatches a hook (or the many built in tests)
     // must not leave a permanent `process.once('exit')` listener behind —
@@ -327,6 +340,20 @@ class AsyncHookSupervisor {
       ms: fields.started != null ? now - fields.started : 0,
     };
     this._pushResult(rec);
+    // Fold this run into the reliability aggregate (in-memory, bounded by
+    // distinct hooks). Persisted once on stopAll(); best-effort — a stats bug
+    // must never affect hook execution.
+    try {
+      this._statsStore.aggregateRun(this._statAgg, {
+        command: rec.command,
+        event: rec.event,
+        ok: rec.ok,
+        ms: rec.ms,
+        now: rec.ts,
+      });
+    } catch {
+      /* stats are best-effort */
+    }
     // A rewake fires only for a hook that OPTED IN and finished in a failure
     // state — a passing async check should not re-engage the agent.
     if (hook.asyncRewake && !rec.ok) {
@@ -381,6 +408,33 @@ class AsyncHookSupervisor {
       /* ignore */
     }
     this._exitHookInstalled = false;
+    this._persistStats();
+  }
+
+  /**
+   * Best-effort persist of the session's hook reliability aggregate, merged with
+   * whatever is already on disk (accumulates across sessions). No-op when
+   * persistence wasn't enabled or nothing was recorded. Never throws — called
+   * from stopAll(), which also runs on process 'exit'.
+   */
+  _persistStats() {
+    if (!this._hookStatsPath) return;
+    try {
+      const fs = this._statsFs || undefined;
+      this._statsStore.persistSessionStats(
+        this._statAgg,
+        this._hookStatsPath,
+        fs,
+      );
+      this._statAgg = {}; // folded in — don't double-count on a later stop
+    } catch {
+      /* persistence is best-effort */
+    }
+  }
+
+  /** Current in-memory reliability aggregate (test/inspection accessor). */
+  getStatsAggregate() {
+    return this._statAgg;
   }
 }
 

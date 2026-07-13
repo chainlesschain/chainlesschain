@@ -135,6 +135,33 @@ describe("doctor-checkup", () => {
     expect(finding.name).toMatch(/settings\.json/);
   });
 
+  it("surfaces a circuit-broken async hook from the persisted stats in the runtime section", async () => {
+    const statsJson = JSON.stringify({
+      "PostToolUse::flaky": {
+        id: "PostToolUse::flaky",
+        command: "flaky",
+        event: "PostToolUse",
+        runs: 5,
+        failures: 5,
+        consecutiveFailures: 5,
+        totalMs: 500,
+        maxMs: 120,
+        lastRunAt: 9,
+      },
+    });
+    const deps = fakeDeps({
+      existsSync: (p) => String(p).endsWith("hook-stats.json"),
+      readFileSync: (p) =>
+        String(p).endsWith("hook-stats.json") ? statsJson : "",
+    });
+    const sections = await collectCheckupSections({ deps });
+    const runtime = sections.find((s) => s.id === "runtime");
+    const finding = runtime.checks.find((c) => c.id === "hook-circuit-open");
+    expect(finding).toBeTruthy();
+    expect(finding.level).toBe(CHECK_LEVELS.ERR);
+    expect(finding.name).toMatch(/flaky/);
+  });
+
   describe("runCheckupFixes", () => {
     it("applies the SAFE stale-job prune, deleting only old .job files", async () => {
       const rmSync = vi.fn();

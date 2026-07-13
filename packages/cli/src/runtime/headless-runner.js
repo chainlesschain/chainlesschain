@@ -1067,7 +1067,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     try {
       const { AsyncHookSupervisor } =
         await import("../lib/async-hook-supervisor.cjs");
-      _hookSupervisor = new AsyncHookSupervisor();
+      _hookSupervisor = new AsyncHookSupervisor({ persistStats: true });
     } catch {
       _hookSupervisor = null; // async hooks are best-effort
     }

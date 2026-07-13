@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { EventEmitter } from "node:events";
+import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { AsyncHookSupervisor } from "../../src/lib/async-hook-supervisor.cjs";
 import {
   partitionAsyncHooks,
@@ -415,5 +419,57 @@ describe("collectHooks carries async fields", () => {
       asyncRewake: true,
       timeout: 30,
     });
+  });
+});
+
+describe("AsyncHookSupervisor reliability stats (doctor)", () => {
+  const require = createRequire(import.meta.url);
+  const store = require("../../src/lib/hook-stats-store.cjs");
+
+  it("aggregates completed runs in-memory (no path → hermetic, no write)", () => {
+    const child = makeFakeChild();
+    let t = 1000;
+    const sup = new AsyncHookSupervisor({
+      spawn: makeSpawn([child]),
+      now: () => (t += 100),
+    });
+    sup.dispatch([{ command: "run-tests", event: "PostToolUse" }], {
+      hook_event_name: "PostToolUse",
+    });
+    child._finish(1, "", "boom"); // non-zero exit → failure
+    const agg = sup.getStatsAggregate();
+    const entry = Object.values(agg)[0];
+    expect(entry.runs).toBe(1);
+    expect(entry.failures).toBe(1);
+    expect(entry.consecutiveFailures).toBe(1);
+    sup.stopAll(); // no hookStatsPath → no persistence, nothing to clean up
+  });
+
+  it("persists the aggregate to disk on stopAll when a path is set", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-hooksup-"));
+    const file = path.join(tmp, "hook-stats.json");
+    try {
+      const child = makeFakeChild();
+      let t = 5000;
+      const sup = new AsyncHookSupervisor({
+        spawn: makeSpawn([child]),
+        now: () => (t += 50),
+        hookStatsPath: file,
+      });
+      sup.dispatch([{ command: "flaky-hook", event: "PostToolUse" }], {
+        hook_event_name: "PostToolUse",
+      });
+      child._finish(2, "", "fail"); // failure
+      sup.stopAll();
+
+      const loaded = store.loadHookStats(file);
+      const entry = Object.values(loaded)[0];
+      expect(entry.command).toBe("flaky-hook");
+      expect(entry.failures).toBe(1);
+      // The in-memory delta was cleared after persist (no double count).
+      expect(Object.keys(sup.getStatsAggregate()).length).toBe(0);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

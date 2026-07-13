@@ -30,6 +30,8 @@ import {
   checkAgenda,
   checkInstructionFiles,
   checkHookConfig,
+  checkHooks,
+  DEFAULT_CHECKUP_THRESHOLDS,
 } from "./runtime-checkup.js";
 
 export const CHECK_LEVELS = Object.freeze({
@@ -622,7 +624,7 @@ async function runtimeSection(opts, deps) {
       dueAt: e.kind === "wakeup" ? e.dueAt : e.nextAt,
       recurring: e.kind !== "wakeup",
     }));
-    for (const f of checkAgenda(entries, now)) {
+    for (const f of checkAgenda(entries, now, DEFAULT_CHECKUP_THRESHOLDS)) {
       checks.push(
         check(
           f.id,
@@ -651,7 +653,7 @@ async function runtimeSection(opts, deps) {
         }
       }
     }
-    for (const f of checkInstructionFiles(files)) {
+    for (const f of checkInstructionFiles(files, DEFAULT_CHECKUP_THRESHOLDS)) {
       checks.push(
         check(
           f.id,
@@ -701,6 +703,35 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("hook-config", "settings hook config", err));
+  }
+
+  // Async-hook RUNTIME health — the reliability aggregate persisted by
+  // AsyncHookSupervisor.stopAll(): hooks that have been repeatedly failing,
+  // circuit-broken (N failures in a row), or slow on average. Complements the
+  // static config check above (which catches hooks that never fire at all).
+  try {
+    const store = await import("./hook-stats-store.cjs");
+    const mod = store.default || store;
+    const statsFs = {
+      existsSync: deps.existsSync,
+      readFileSync: deps.readFileSync,
+    };
+    const stats = mod.loadHookStats(mod.defaultHookStatsPath(), statsFs);
+    const hooks = mod.toCheckHooksInput(stats, {
+      circuitThreshold: DEFAULT_CHECKUP_THRESHOLDS.hookFailureThreshold,
+    });
+    for (const f of checkHooks(hooks, DEFAULT_CHECKUP_THRESHOLDS)) {
+      checks.push(
+        check(
+          f.id,
+          `hook ${f.ref}`,
+          SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+          `${f.message} — ${f.remediation}`,
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("hook-health", "async hook stats", err));
   }
 
   if (checks.length === 0) {

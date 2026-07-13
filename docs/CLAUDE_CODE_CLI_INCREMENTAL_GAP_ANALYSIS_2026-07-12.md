@@ -1419,13 +1419,28 @@ section。**零热路径改动**（纯静态读配置，不碰 hook 执行）。
 +7（未知事件/坏 matcher/无 command/坏 timeout×2/干净/空块/无 validEvents 跳过）+
 `doctor-checkup.test.js` +1（fake settings.json 未知事件 → runtime section warn）。
 
-**仍欠**：hook **运行时**健康（慢/熔断/失败统计）与 orphan 评估器仍为纯库尚未喂真实
-统计——**经核实** hook 熔断/失败/时延状态只在 `hook-manager.js`/`async-hook-supervisor.cjs`
-内存态、无落盘，MCP 工具 schema 也无磁盘缓存，故静态 `cc doctor` 进程读不到（喂真数据需先
-建持久化层，属独立功能非接线收尾）；`gen-cli-reference` 未纳入 `package.json` 脚本/CI
-drift-gate，也未生成 committed 参考文档（刻意留作工具，避免维护漂移义务）；`/doctor` 的
-MCP schema 成本需活连接、session `mirror`/保留策略在本仓非既有特性（造检查会违反"先查证"
-原则），均需新基建而非接线，留待产品决策。
+**已接线（2026-07-13，hook 运行时健康持久化 → doctor `checkHooks`）**：为 `checkHooks`
+评估器补上真实数据源——新纯核 `hook-stats-store.cjs`（跨会话 async-hook 可靠性聚合：每
+hook 的 runs/failures/consecutiveFailures/totalMs/maxMs/lastRunAt，`aggregateRun` 纯折叠、
+`mergeStats` 跨会话累加、`toCheckHooksInput` 塑形成 `{id,failures,avgMs,circuitOpen}`、
+load/save best-effort 原子写、entries 上限 200 按 lastRunAt 淘汰）。`async-hook-supervisor.cjs`
+在唯一完成漏斗 `_record` 把每次运行折进**内存**聚合（按 distinct hook 有界），**仅在
+`stopAll()` 持久化一次**（与磁盘 merge，跨会话累加）——**hook 热路径零额外 I/O、零写放大**；
+持久化 opt-in（生产 5 处 `new AsyncHookSupervisor({persistStats:true})`，测试不传→hermetic
+不写）。`doctor-checkup.js` 的 `runtimeSection` 读该聚合跑 `checkHooks` → 慢/失败/熔断 hook
+findings（与上节**静态**配置校验互补：静态抓"永不触发"、这里抓"跑了但坏"）。**顺带修**
+既有 latent bug：`runtimeSection` 调 `checkAgenda`/`checkInstructionFiles` 漏传 thresholds，
+非空 agenda 或存在 `CLAUDE.md` 时 `t.xxx` 解引用 undefined 抛错被 catch 成 failedCheck（这两
+检查在真实仓里从来没真正跑过）——现传 `DEFAULT_CHECKUP_THRESHOLDS`。测试：
+`hook-stats-store.test.js`(7) + `async-hook-supervisor.test.js` +2（内存聚合 hermetic /
+stopAll 持久化+delta 清零）+ `doctor-checkup.test.js` +1（注入熔断 hook stats → runtime
+section err）。
+
+**仍欠**：orphan 进程评估器（`checkOrphanProcesses`）仍需真实进程表快照喂入（属运行时态）；
+`gen-cli-reference` 未纳入 `package.json` 脚本/CI drift-gate，也未生成 committed 参考文档
+（刻意留作工具，避免维护漂移义务）；`/doctor` 的 MCP schema 成本需活连接、session
+`mirror`/保留策略在本仓非既有特性（造检查会违反"先查证"原则），均需新基建而非接线，留待
+产品决策。
 
 ## 不建议优先复制
 

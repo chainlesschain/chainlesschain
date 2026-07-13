@@ -3475,7 +3475,9 @@ export async function startAgentRepl(options = {}) {
             if (!_asyncHookSupervisor) {
               const { AsyncHookSupervisor } =
                 await import("../lib/async-hook-supervisor.cjs");
-              _asyncHookSupervisor = new AsyncHookSupervisor();
+              _asyncHookSupervisor = new AsyncHookSupervisor({
+                persistStats: true,
+              });
             }
             dispatchAsyncHooks(_settingsHooks, "ConfigChange", payload, {
               cwd,
@@ -4851,7 +4853,9 @@ export async function startAgentRepl(options = {}) {
         if (!_asyncHookSupervisor) {
           const { AsyncHookSupervisor } =
             await import("../lib/async-hook-supervisor.cjs");
-          _asyncHookSupervisor = new AsyncHookSupervisor();
+          _asyncHookSupervisor = new AsyncHookSupervisor({
+            persistStats: true,
+          });
         }
         dispatchAsyncHooks(
           _settingsHooks,
@@ -5138,7 +5142,7 @@ export async function startAgentRepl(options = {}) {
       if (_settingsHooks && !_asyncHookSupervisor) {
         const { AsyncHookSupervisor } =
           await import("../lib/async-hook-supervisor.cjs");
-        _asyncHookSupervisor = new AsyncHookSupervisor();
+        _asyncHookSupervisor = new AsyncHookSupervisor({ persistStats: true });
       }
       const {
         content: response,
@@ -5480,7 +5484,9 @@ export async function startAgentRepl(options = {}) {
           if (!_asyncHookSupervisor) {
             const { AsyncHookSupervisor } =
               await import("../lib/async-hook-supervisor.cjs");
-            _asyncHookSupervisor = new AsyncHookSupervisor();
+            _asyncHookSupervisor = new AsyncHookSupervisor({
+              persistStats: true,
+            });
           }
           dispatchAsyncHooks(
             _settingsHooks,
