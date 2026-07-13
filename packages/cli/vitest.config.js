@@ -29,9 +29,6 @@ export default defineConfig({
     // of the heaviest flows. Unit tests share this budget but are fast, so the
     // only cost is a genuinely-hung unit test failing at 90s instead of 60s.
     // See internal handbook trap #31.
-    // TEMP leak-hunt (forks-pool worker-death flake): fails any file that leaves
-    // a ChildProcess/non-std socket handle pinning the worker. Remove after.
-    setupFiles: ["./__tests__/_leak-detector.mjs"],
     testTimeout: 90000,
     hookTimeout: 120000,
     // teardownTimeout governs how long vitest's pool waits for a worker to
