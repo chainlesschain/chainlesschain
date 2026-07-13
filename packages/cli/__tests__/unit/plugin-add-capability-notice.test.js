@@ -10,7 +10,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { registerPluginCommand } from "../../src/commands/plugin.js";
-import { _deps as consentDeps } from "../../src/lib/plugin-runtime/capability-consent.js";
+import {
+  _deps as consentDeps,
+  listCapabilityConsent,
+} from "../../src/lib/plugin-runtime/capability-consent.js";
 
 let cwd, srcRoot, storeDir, logSpy, errSpy, origStorePath;
 
@@ -103,6 +106,53 @@ describe("cc plugin add — capability notice", () => {
     expect(text).toMatch(/capability consent required/);
     expect(text).toMatch(/cc plugin consent greeter --grant/);
   });
+
+  it("stays advisory (no grant) by default in a non-interactive session", async () => {
+    const dir = makeSource("greeter", "1.0.0", { process: true });
+    const out = JSON.parse(
+      await run("add", dir, "--scope", "project", "--json"),
+    );
+    expect(out.capabilitiesGranted).toBe(false);
+    expect(Object.keys(listCapabilityConsent())).toHaveLength(0);
+  });
+
+  it("--grant-capabilities records consent at install time (--json)", async () => {
+    const dir = makeSource("greeter", "1.0.0", { process: true });
+    const out = JSON.parse(
+      await run(
+        "add",
+        dir,
+        "--scope",
+        "project",
+        "--grant-capabilities",
+        "--json",
+      ),
+    );
+    expect(out.capabilitiesGranted).toBe(true);
+    expect(
+      listCapabilityConsent().find(
+        (e) => e.scope === "project" && e.name === "greeter",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("--grant-capabilities records consent at install time (text mode)", async () => {
+    const dir = makeSource("greeter", "1.0.0", { process: true });
+    const text = await run(
+      "add",
+      dir,
+      "--scope",
+      "project",
+      "--grant-capabilities",
+    );
+    expect(text).toMatch(/capability consent granted for greeter/);
+    expect(text).not.toMatch(/cc plugin consent greeter --grant/);
+    expect(
+      listCapabilityConsent().find(
+        (e) => e.scope === "project" && e.name === "greeter",
+      ),
+    ).toBeTruthy();
+  });
 });
 
 describe("cc plugin upgrade — capability diff", () => {
@@ -127,6 +177,32 @@ describe("cc plugin upgrade — capability diff", () => {
     expect(text).toMatch(/Updated greeter/);
     expect(text).toMatch(/capability consent required/);
     expect(text).toMatch(/network:\*/);
+  });
+
+  it("--grant-capabilities re-consents the widened set during upgrade", async () => {
+    await run(
+      "add",
+      makeSource("greeter", "1.0.0", { process: true }),
+      "--scope",
+      "project",
+      "--grant-capabilities",
+    );
+
+    const text = await run(
+      "upgrade",
+      makeSource("greeter", "2.0.0", { process: true, network: "*" }),
+      "--scope",
+      "project",
+      "--grant-capabilities",
+    );
+    expect(text).toMatch(/Updated greeter/);
+    expect(text).toMatch(/capability consent granted for greeter/);
+    // The recorded consent now covers the widened set → a plain re-check is satisfied.
+    const entry = listCapabilityConsent().find(
+      (e) => e.scope === "project" && e.name === "greeter",
+    );
+    expect(entry).toBeTruthy();
+    expect(entry.version).toBe("2.0.0");
   });
 
   it("shows a satisfied notice when an upgrade does not widen", async () => {

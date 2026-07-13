@@ -64,8 +64,12 @@ async function resolvePluginCapabilityNotice(name, scope, cwd) {
   }
 }
 
-/** Print the capability notice (text mode) after an install/upgrade. */
-function printPluginCapabilityNotice(name, notice) {
+/**
+ * Print the capability notice (text mode) after an install/upgrade. Pass
+ * `{ hint: false }` to omit the trailing `cc plugin consent … --grant` pointer
+ * when consent is being granted inline (explicit flag or interactive prompt).
+ */
+function printPluginCapabilityNotice(name, notice, { hint = true } = {}) {
   if (!notice) return;
   logger.log(chalk.bold("\nCapabilities (declared):"));
   for (const l of notice.declared) logger.log(`  ${chalk.magenta(l)}`);
@@ -78,9 +82,81 @@ function printPluginCapabilityNotice(name, notice) {
   );
   if (notice.added.length)
     logger.log(chalk.yellow(`    new: ${notice.added.join(", ")}`));
-  logger.log(
-    chalk.dim(`    run \`cc plugin consent ${name} --grant\` to allow them`),
-  );
+  if (hint)
+    logger.log(
+      chalk.dim(`    run \`cc plugin consent ${name} --grant\` to allow them`),
+    );
+}
+
+/**
+ * Record consent for a freshly installed/upgraded plugin's currently-declared
+ * capabilities (re-discovers to get the raw declared set + version). Best-effort
+ * — returns false rather than throwing so it can never break an install.
+ */
+async function grantInstalledPluginCapabilities(name, scope, cwd) {
+  try {
+    const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
+    const consent = await import("../lib/plugin-runtime/capability-consent.js");
+    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
+      (p) => p.name === name && p.scope === scope,
+    );
+    if (!installed) return false;
+    const declared = installed.manifest?.capabilities;
+    if (!declared || consent.capabilitiesAreEmpty(declared)) return false;
+    consent.consentPluginCapabilities(name, {
+      scope,
+      version: installed.version,
+      capabilities: declared,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Handle the capability-consent gate after a text-mode install/upgrade: print
+ * the notice and, when consent is required, either auto-grant (explicit
+ * `--grant-capabilities`) or block interactively (TTY) to grant it right away
+ * instead of forcing a separate `cc plugin consent --grant` step. Returns true
+ * if consent was recorded during this call.
+ */
+async function applyCapabilityConsentGate(name, scope, notice, cwd, opts = {}) {
+  const consent = await import("../lib/plugin-runtime/capability-consent.js");
+  const action = consent.resolveConsentAction(notice, {
+    grant: opts.grant === true,
+    interactive: opts.interactive === true,
+  });
+  if (action === "advisory") {
+    printPluginCapabilityNotice(name, notice);
+    return false;
+  }
+  // Show the ⚠ notice + new-capability diff before deciding; suppress the
+  // "run cc plugin consent" pointer since we grant inline here.
+  printPluginCapabilityNotice(name, notice, { hint: false });
+  if (action === "prompt") {
+    let ok = false;
+    try {
+      const { confirm } = await import("@inquirer/prompts");
+      ok = await confirm({
+        message: `Grant these capabilities to ${name} now?`,
+        default: false,
+      });
+    } catch {
+      ok = false; // Ctrl-C / non-interactive → treat as decline (fail closed)
+    }
+    if (!ok) {
+      logger.log(
+        chalk.dim(
+          "    capabilities not granted — components needing them stay disabled",
+        ),
+      );
+      return false;
+    }
+  }
+  const granted = await grantInstalledPluginCapabilities(name, scope, cwd);
+  if (granted) logger.success(`  ✔ capability consent granted for ${name}`);
+  return granted;
 }
 
 export function registerPluginCommand(program) {
@@ -738,6 +814,10 @@ export function registerPluginCommand(program) {
       "--allow-insecure-registry",
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
     )
+    .option(
+      "--grant-capabilities",
+      "Grant the plugin's declared capabilities at install time (no separate consent step)",
+    )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
       const { installFromSource } =
@@ -806,8 +886,21 @@ export function registerPluginCommand(program) {
           process.cwd(),
         );
         if (options.json) {
+          // Non-interactive JSON path: honor an explicit --grant-capabilities so
+          // scripted installs can consent atomically; never prompt.
+          let capabilitiesGranted = false;
+          if (options.grantCapabilities && capNotice && !capNotice.consented)
+            capabilitiesGranted = await grantInstalledPluginCapabilities(
+              res.name,
+              res.scope,
+              process.cwd(),
+            );
           console.log(
-            JSON.stringify({ ...res, capabilities: capNotice }, null, 2),
+            JSON.stringify(
+              { ...res, capabilities: capNotice, capabilitiesGranted },
+              null,
+              2,
+            ),
           );
         } else {
           logger.success(
@@ -817,7 +910,16 @@ export function registerPluginCommand(program) {
           logger.log(chalk.gray(`  → ${res.dir}`));
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
-          printPluginCapabilityNotice(res.name, capNotice);
+          await applyCapabilityConsentGate(
+            res.name,
+            res.scope,
+            capNotice,
+            process.cwd(),
+            {
+              grant: options.grantCapabilities === true,
+              interactive: Boolean(process.stdin.isTTY),
+            },
+          );
         }
       } catch (err) {
         logger.error(`Install failed: ${err.message}`);
@@ -1322,6 +1424,10 @@ export function registerPluginCommand(program) {
     )
     .option("--scope <scope>", `Scope to update in (${SCOPES})`, "user")
     .option("--force", "Reinstall even if the version is unchanged")
+    .option(
+      "--grant-capabilities",
+      "Grant any newly declared capabilities during the upgrade (no separate consent step)",
+    )
     .action(async (source, options) => {
       const { updatePlugin } = await import("../lib/plugin-runtime/install.js");
       try {
@@ -1345,14 +1451,21 @@ export function registerPluginCommand(program) {
         }
         // Surface the (possibly widened) capability set + re-consent hint. An
         // upgrade that adds a capability shows a `⚠ capability consent required`
-        // notice diffed against the prior consent.
-        printPluginCapabilityNotice(
+        // notice diffed against the prior consent, then either auto-grants
+        // (--grant-capabilities) or blocks interactively to re-consent now.
+        await applyCapabilityConsentGate(
           res.name,
+          options.scope,
           await resolvePluginCapabilityNotice(
             res.name,
             options.scope,
             process.cwd(),
           ),
+          process.cwd(),
+          {
+            grant: options.grantCapabilities === true,
+            interactive: Boolean(process.stdin.isTTY),
+          },
         );
       } catch (err) {
         logger.error(`Upgrade failed: ${err.message}`);

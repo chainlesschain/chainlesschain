@@ -1129,9 +1129,22 @@ optionsSchema 只被 manifest.js **归一化**、`validateOptions`/`optionDefaul
   两存储经门合并）+ `plugin-options-command.test.js` 4（真插件 fixture：默认 / user 存值脱敏
   显示 / 敏感项 project 掉落 / 畸形 --set·未装报错）= 12 绿；plugin-runtime 全套 209 回归绿。
 
-**仍欠（交互 consent + keychain 托管）**：`install.js` `installFromDirectory`/`updatePlugin`
-装/升级时**阻塞式交互** diff→重新 consent（现渲染清单+diff+提示但仍非阻塞，需事后
-`cc plugin consent --grant`）；把敏感选项**值**从 user-scope JSON 迁到 **OS keychain**
+**已接线（2026-07-13，`cc plugin add`/`upgrade` 安装期 diff→重新 consent 门）**：补上前一条
+「装/升级时非阻塞、需事后 `cc plugin consent --grant`」——把 consent 提到**安装/升级当下**决策。
+新纯核 `resolveConsentAction(notice, {grant, interactive})`（[[capability-consent.js]]，无 IO、确定
+性）把「有无待 consent 能力 × 是否显式授予 × 是否交互 TTY」判成 `advisory | prompt | grant`
+三态（**显式 flag 恒胜过交互 prompt**）。命令层新增 `--grant-capabilities`（`add` 与 `upgrade`
+各一）+ 共享 `applyCapabilityConsentGate`：`grant`→立即记 consent（脚本/CI 路径，`--json` 也
+honor 并折出 `capabilitiesGranted`）、`prompt`→交互 TTY 下 `@inquirer/prompts` `confirm` 当场
+问、答 yes 才 `consentPluginCapabilities` 记录（Ctrl-C / 非交互 fail-closed 视为拒绝）、
+`advisory`→保留原「⚠ + 指到 `cc plugin consent --grant`」提示。**默认字节不变**：非交互、无
+`--grant-capabilities` 时逐字节等于原 advisory 路径（既有 add/upgrade 通知测试全绿）。一次
+加宽能力的 `upgrade --grant-capabilities` 直接 diff 出新增能力并就地 re-consent（记录版本推进）。
+测试：`plugin-runtime-capability-consent.test.js` +4（`resolveConsentAction` 三态 + flag-wins-over-TTY）
++ `plugin-add-capability-notice.test.js` +4（默认非交互不 grant / `--grant-capabilities` json+text
+记录 consent / 升级 re-consent 到 widened 版本）= 27 绿；consent/enforce/install/doctor 回归 39 绿。
+
+**仍欠（keychain 托管 + 更大基建）**：把敏感选项**值**从 user-scope JSON 迁到 **OS keychain**
 （DPAPI/Keychain/Secret Service，平台相关；project-scope 门已强制，keychain 取值属平台接线）；
 shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大基建，未起。
 

@@ -127,6 +127,34 @@ export function capabilityConsentStatus(declaredCaps, entry) {
   };
 }
 
+/**
+ * Decide how an install/upgrade command should handle capability consent at the
+ * point of installation (pure — no I/O). `notice` is the shape returned by the
+ * command layer's capability resolver: `{ consented, added, ... }` or null when
+ * the plugin declares no capabilities.
+ *
+ * Returns one of:
+ *   - "advisory" — nothing to consent (no caps, or already consented), OR the
+ *     caller is non-interactive and did not pass an explicit grant flag: print
+ *     the notice and require a later `cc plugin consent --grant`.
+ *   - "grant"    — an explicit grant flag was given: record consent immediately
+ *     (scriptable / CI path).
+ *   - "prompt"   — consent is required and the session is interactive: ask the
+ *     user, then grant on confirmation.
+ *
+ * Precedence: an explicit grant flag always wins over an interactive prompt, so
+ * `--grant-capabilities` is honored even under a TTY without a second question.
+ */
+export function resolveConsentAction(
+  notice,
+  { grant = false, interactive = false } = {},
+) {
+  if (!notice || notice.consented) return "advisory";
+  if (grant) return "grant";
+  if (interactive) return "prompt";
+  return "advisory";
+}
+
 /** Load the store and report whether one plugin's declared caps are consented. */
 export function isPluginCapabilityConsented(plugin, declaredCaps) {
   if (!plugin || !plugin.name) return false;

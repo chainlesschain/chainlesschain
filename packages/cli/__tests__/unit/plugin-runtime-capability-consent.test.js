@@ -15,6 +15,7 @@ import {
   consentPluginCapabilities,
   revokeCapabilityConsent,
   listCapabilityConsent,
+  resolveConsentAction,
   _deps,
 } from "../../src/lib/plugin-runtime/capability-consent.js";
 
@@ -91,6 +92,39 @@ describe("capabilityConsentStatus (pure)", () => {
     expect(capabilityConsentStatus({ process: true }, entry).consented).toBe(
       true,
     );
+  });
+});
+
+describe("resolveConsentAction (pure)", () => {
+  const needsConsent = { consented: false, added: ["process"] };
+  const consented = { consented: true, added: [] };
+
+  it("is advisory when there is nothing to consent", () => {
+    expect(resolveConsentAction(null, { interactive: true })).toBe("advisory");
+    expect(resolveConsentAction(consented, { interactive: true })).toBe(
+      "advisory",
+    );
+    expect(resolveConsentAction(consented, { grant: true })).toBe("advisory");
+  });
+
+  it("is advisory when consent is required but the session is non-interactive", () => {
+    expect(resolveConsentAction(needsConsent, {})).toBe("advisory");
+    expect(
+      resolveConsentAction(needsConsent, { grant: false, interactive: false }),
+    ).toBe("advisory");
+  });
+
+  it("prompts when consent is required and the session is interactive", () => {
+    expect(resolveConsentAction(needsConsent, { interactive: true })).toBe(
+      "prompt",
+    );
+  });
+
+  it("grants when the explicit flag is set — even under a TTY (flag wins)", () => {
+    expect(resolveConsentAction(needsConsent, { grant: true })).toBe("grant");
+    expect(
+      resolveConsentAction(needsConsent, { grant: true, interactive: true }),
+    ).toBe("grant");
   });
 });
 
