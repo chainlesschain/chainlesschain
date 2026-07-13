@@ -487,7 +487,9 @@ Auto-fix 边界：
 - **标注语料 `SECRET_CORPUS`**：10 正例（逐条带必须消失的 `secret` 子串）+ 8 反例（UUID / git sha / 纯 base64 / 函数调用 `getToken()` / 非秘密 key 赋值 / 无凭据 URL / 散文 / hex 摘要），跨 5 个导出面分布。
 - **`runRedactionBenchmark(corpus, {redactor, clock})`**：客观指标——overall/byCategory/bySurface 的 **Recall**、**False-Positive-Rate**、**maxInputBytes**，注入时钟时给 **P95 延迟**。诚实性由测试锁定：本模块 recall=1.0 / FPR=0 全类全面，且**空操作 redactor 打分 recall=0**（防作弊）。
 
-测试：`secret-scan.test.js` 9（逐类检测 + 反例零改动 + benchmark recall/FPR/per-category/per-surface/P95/no-op-0）；`ide-context-redaction`+`credential-guard` 42 绿（仅只读 import `isSecretEnvName`，零回归）。纯核尚未接进 Transcript/Trace/Diagnostic-Bundle 导出 seam（这三面今天**零脱敏**接线，正是本基准要暴露的洞），故默认路径零影响。剩项（真接进导出闸 + 与 P1-9 诊断包联动）待后续接线。
+测试：`secret-scan.test.js` 9（逐类检测 + 反例零改动 + benchmark recall/FPR/per-category/per-surface/P95/no-op-0）；`ide-context-redaction`+`credential-guard` 42 绿（仅只读 import `isSecretEnvName`，零回归）。
+
+**已接线（2026-07-13 续，Transcript 导出闸落地）**：三个导出面中，Diagnostic-Bundle 已由 [[diagnostic-bundle.js]] 的 `deepRedact`+`secretScanGate` 强制脱敏（P1-9），本轮补齐 **Transcript 面**——[`cc session export`](../packages/cli/src/commands/session.js) 现在导出前对渲染出的 Markdown（chat-DB 或 JSONL agent transcript 两条源都过同一闸）跑 `scanSecrets`，命中即 `redactSecrets` 替换为 `[REDACTED]` 并把脱敏计数写 **stderr**（不进导出文件）。默认脱敏——一份 transcript 可能夹带 provider token / JWT / 连接串 / cookie（在工具命令或结果里），导出离机必须朝「不泄漏」失败；`--no-redact` 保留原值供用户自己的可信备份。E2E 用真 `cc` bin：种一个用户轮携带 `sk-` token 的 JSONL 会话，`export` 默认输出零 SECRET+含 `[REDACTED]`+stderr 有计数，`--no-redact` 保留原值。测试 `session-export-redact.test.js` 2 绿。剩项（Trace 导出面脱敏接线 + 与覆盖率指标联动）待后续接线。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:51-52,117-123`。
 

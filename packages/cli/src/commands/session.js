@@ -9,6 +9,7 @@ import path from "path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
+import { scanSecrets, redactSecrets } from "../lib/secret-scan.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   listSessions,
@@ -368,6 +369,10 @@ export function registerSessionCommand(program) {
       "Session ID (or prefix; `last` = most recent agent session)",
     )
     .option("-o, --output <file>", "Output file path")
+    .option(
+      "--no-redact",
+      "Do NOT redact detected secrets from the exported transcript (default: redact)",
+    )
     .action(async (id, options) => {
       try {
         let markdown = null;
@@ -404,6 +409,20 @@ export function registerSessionCommand(program) {
         if (!markdown) {
           logger.error(`Session not found: ${id}`);
           process.exit(1);
+        }
+
+        // §8.1 export gate: a transcript can carry provider tokens, JWTs,
+        // connection strings or cookies (in tool commands / results). Redact by
+        // default — an export leaves the machine and must fail toward "no leak".
+        // `--no-redact` keeps raw values for the user's own trusted backup.
+        if (options.redact !== false) {
+          const findings = scanSecrets(markdown);
+          if (findings.length > 0) {
+            markdown = redactSecrets(markdown);
+            logger.warn(
+              `Redacted ${findings.length} secret${findings.length === 1 ? "" : "s"} from the export (use --no-redact to keep raw values).`,
+            );
+          }
         }
 
         if (options.output) {
