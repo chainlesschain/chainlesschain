@@ -12,6 +12,8 @@
  * `summary()` renders them. The clock is injected so tests are deterministic.
  */
 
+import { redactSecrets } from "../secret-scan.js";
+
 let _seq = 0;
 function spanId() {
   _seq = (_seq + 1) % Number.MAX_SAFE_INTEGER;
@@ -187,8 +189,19 @@ export class TelemetryRecorder {
     };
   }
 
-  /** OTLP/JSON-shaped export (resourceSpans) — ingestible by an OTel collector. */
-  toOtlp() {
+  /**
+   * OTLP/JSON-shaped export (resourceSpans) — ingestible by an OTel collector.
+   *
+   * §8.1 export gate: a span attribute or an exception message can carry a
+   * provider token / JWT / connection string (a tool `command` attribute, an
+   * error string, a redirect URL). A trace is shipped to a collector that may be
+   * external, so string values are secret-redacted by default (recall-first —
+   * an export must fail toward "no leak"). Only true secret substrings are
+   * replaced, so a span with no secret is byte-identical. `{ redact: false }`
+   * keeps raw values for a fully-trusted local collector.
+   */
+  toOtlp({ redact = true } = {}) {
+    const scrub = redact ? (v) => redactSecrets(String(v)) : (v) => String(v);
     return {
       resourceSpans: [
         {
@@ -219,14 +232,14 @@ export class TelemetryRecorder {
                       ? { doubleValue: v }
                       : typeof v === "boolean"
                         ? { boolValue: v }
-                        : { stringValue: String(v) },
+                        : { stringValue: scrub(v) },
                 })),
                 events: s.events.map((e) => ({
                   name: e.name,
                   timeUnixNano: String(Math.round(e.time * 1e6)),
                   attributes: Object.entries(e.attributes).map(([k, v]) => ({
                     key: k,
-                    value: { stringValue: String(v) },
+                    value: { stringValue: scrub(v) },
                   })),
                 })),
               })),

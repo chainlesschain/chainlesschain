@@ -148,6 +148,41 @@ describe("TelemetryRecorder OTLP export", () => {
     expect(r1.traceId).not.toBe(r2.traceId);
   });
 
+  it("redacts secrets from span + event string attributes by default (§8.1)", () => {
+    const clock = makeClock(1000);
+    const rec = new TelemetryRecorder({ now: clock.now });
+    const TOKEN = "sk-abcdef0123456789abcdef0123456789abcdef01";
+    const span = rec.startSpan("tool_call", {
+      command: `curl -H 'Authorization: Bearer ${TOKEN}'`,
+      tool: "run_shell", // non-secret string → unchanged
+    });
+    span.recordException(new Error(`auth failed with ${TOKEN}`), "auth");
+    clock.advance(1);
+    span.end();
+
+    const otlpSpan = rec.toOtlp().resourceSpans[0].scopeSpans[0].spans[0];
+    const json = JSON.stringify(otlpSpan);
+    expect(json).not.toContain(TOKEN); // neither the attr nor the exception msg leaks
+    expect(json).toContain("[REDACTED]");
+    // A non-secret attribute value is byte-identical (redaction only fires on
+    // real secret substrings).
+    const attrMap = Object.fromEntries(
+      otlpSpan.attributes.map((a) => [a.key, a.value]),
+    );
+    expect(attrMap.tool).toEqual({ stringValue: "run_shell" });
+  });
+
+  it("keeps raw span values with { redact: false }", () => {
+    const clock = makeClock(1000);
+    const rec = new TelemetryRecorder({ now: clock.now });
+    const TOKEN = "sk-abcdef0123456789abcdef0123456789abcdef01";
+    const span = rec.startSpan("tool_call", { command: `use ${TOKEN}` });
+    clock.advance(1);
+    span.end();
+    const raw = rec.toOtlp({ redact: false });
+    expect(JSON.stringify(raw)).toContain(TOKEN);
+  });
+
   it("traceIds are unique across PROCESSES, not just within one", () => {
     // Pre-fix the id was a bare per-process counter: every CLI run's first
     // recorder exported trace 000…001, so a collector merged successive runs
