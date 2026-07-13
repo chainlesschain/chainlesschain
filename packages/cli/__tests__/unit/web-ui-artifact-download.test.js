@@ -20,6 +20,13 @@ let baseUrl;
 
 async function startServer(ctx = {}) {
   server = http.createServer((req, res) => {
+    // Force each response to close its TCP connection so global fetch (undici)
+    // does NOT keep the client socket alive in its pool — a pooled keep-alive
+    // socket outlives the test and pins the vitest forks-pool worker (the
+    // "Worker exited unexpectedly" flake). Can't close undici's global
+    // dispatcher instead: the forks worker is reused across files, so that
+    // would break fetch for later files.
+    res.setHeader("Connection", "close");
     if (handleApiRequest(req, res, ctx)) return;
     res.writeHead(404);
     res.end();
