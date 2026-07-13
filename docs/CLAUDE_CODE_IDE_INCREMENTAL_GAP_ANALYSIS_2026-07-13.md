@@ -365,6 +365,12 @@ Auto-fix 边界：
 
 应明确：Trace 字段传播已经落地；一键导出的脱敏诊断包、覆盖率指标和离线协议回放仍需完成。诊断包包含版本、平台、Capability、连接状态、脱敏事件、Trace、重连历史、进程/端口/锁文件/Worktree 摘要；默认不包含源码正文、API Key、Cookie、完整环境变量和未经许可的终端输出。导出前必须运行 Secret Scan。
 
+**已落地（2026-07-13 续，Capability Manifest 单源生成器纯核）**：本节第一句「从一份 Canonical Manifest 生成 …，防止代码、文档与测试漂移」现落为纯逻辑模块 [`capability-manifest.js`](../packages/cli/src/lib/capability-manifest.js)。此前 wire-protocol 能力面被**手写三处**（[[capability-negotiation.js]] 的 `PROTOCOL_FEATURES` / `FEATURE_MIN_VERSION` / 私有 `FEATURE_TO_FIELD`、[[headless-manifest.js]] 的 `buildAgentCapabilities().features`、Java 孪生 + 共享 fixture），加一个 v2 字段只改其一即会在漏掉的对端错解析。新模块是**唯一**定义，其余全为纯投影：
+
+- `toProtocolFeatures` / `toFeatureMinVersion` / `toFieldGate` / `toServerOffer` → 喂 `negotiateProtocol`；`toAgentFeatureFlags` → `cc agent --capabilities` 的 `features` 对象。
+- `buildCompatFixture`（VS/JB 孪生可 pin 的确定性快照 + `digest`）、`renderBehaviorMatrix` / `renderProtocolDoc`（可被 CI 与签入副本 byte-diff 的行为矩阵 + Markdown）、`capabilityDigest`（一字符串变即能力面变）、`diffCapabilities(prev,next)`（release-notes 用的 added/removed/changed + 协议 bump）。
+- **防漂移牙齿**：`capability-manifest.test.js` 的 drift-guard 断言**活的手写常量**（`PROTOCOL_FEATURES`/`FEATURE_MIN_VERSION`、negotiator 实际打的字段、`buildAgentCapabilities().features` 深比对）恒等于 manifest 投影——某处改而 manifest 未改即 CI 红。测试 16（drift-guard ×6 + fixture/digest/matrix/doc/diff）。纯核尚未接进 `--capabilities` 命令与 negotiator 的常量导出（改为从 manifest 读是后续接线），故默认路径零影响。剩项（脱敏诊断包一键导出 / 覆盖率 / 离线协议回放）仍开放。
+
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:28,62-66,194-200`。
 
 ## 8. 安全、质量和企业治理
