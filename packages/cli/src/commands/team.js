@@ -215,6 +215,14 @@ export function registerTeamCommand(program, { logger } = {}) {
       "--merge",
       "With --worktree: merge each clean branch back to base (conflicts reported, not forced)",
     )
+    .option(
+      "--sparse-paths <paths>",
+      "With --worktree: comma-separated packages to sparse-checkout (only these are materialized)",
+    )
+    .option(
+      "--symlink-dirs <dirs>",
+      "With --worktree: comma-separated approved dependency dirs to symlink from the main checkout (e.g. node_modules)",
+    )
     .option("--max-tasks <n>", "Budget: total task executions across the team")
     .option("--max-tokens <n>", "Budget: total LLM tokens across the team")
     .option(
@@ -348,7 +356,17 @@ export function registerTeamCommand(program, { logger } = {}) {
       let runTask;
       let coord = null;
       if (options.worktree) {
-        coord = new TeamWorktreeCoordinator(process.cwd());
+        const splitList = (v) =>
+          v
+            ? String(v)
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : null;
+        coord = new TeamWorktreeCoordinator(process.cwd(), {
+          sparsePaths: splitList(options.sparsePaths),
+          symlinkDirectories: splitList(options.symlinkDirs),
+        });
         if (!coord.isGitRepo()) {
           (log.error || console.error)(
             "--worktree requires a git repository (run inside one)",

@@ -253,3 +253,66 @@ describe("TeamWorktreeCoordinator.cleanupAll", () => {
     expect(removed).toEqual(["/wt/team-a", "/wt/team-b"]);
   });
 });
+
+describe("TeamWorktreeCoordinator sparse/symlink threading", () => {
+  function captureWorktreeOpts() {
+    const calls = [];
+    _deps.createWorktree = (repo, branch, base, opts) => {
+      calls.push(opts);
+      return { path: `/wt/${branch.replace(/\//g, "-")}` };
+    };
+    _deps.runShell = async () => {};
+    _deps.commit = () => true;
+    return calls;
+  }
+
+  it("passes NO options by default (full checkout, byte-identical)", async () => {
+    const calls = captureWorktreeOpts();
+    const coord = new TeamWorktreeCoordinator("/repo");
+    await coord.makeRunTask()({
+      key: "a",
+      task: { metadata: { command: "c" } },
+    });
+    expect(calls[0]).toBeUndefined();
+  });
+
+  it("applies coordinator-wide sparsePaths / symlinkDirectories defaults", async () => {
+    const calls = captureWorktreeOpts();
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      sparsePaths: ["packages/cli"],
+      symlinkDirectories: ["node_modules"],
+    });
+    await coord.makeRunTask()({
+      key: "a",
+      task: { metadata: { command: "c" } },
+    });
+    expect(calls[0]).toEqual({
+      sparsePaths: ["packages/cli"],
+      symlinkDirectories: ["node_modules"],
+    });
+  });
+
+  it("lets a per-task value override the coordinator default", async () => {
+    const calls = captureWorktreeOpts();
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      sparsePaths: ["packages/cli"],
+    });
+    await coord.makeRunTask()({
+      key: "a",
+      task: { sparsePaths: ["backend"], metadata: { command: "c" } },
+    });
+    expect(calls[0].sparsePaths).toEqual(["backend"]);
+  });
+
+  it("normalizes/drops unsafe sparse paths (no options if all invalid)", async () => {
+    const calls = captureWorktreeOpts();
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      sparsePaths: ["../evil", "/abs"],
+    });
+    await coord.makeRunTask()({
+      key: "a",
+      task: { metadata: { command: "c" } },
+    });
+    expect(calls[0]).toBeUndefined();
+  });
+});

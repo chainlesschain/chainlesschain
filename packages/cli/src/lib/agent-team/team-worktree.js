@@ -22,7 +22,30 @@ import {
   mergeWorktree as _mergeWorktree,
 } from "../../harness/worktree-isolator.js";
 import { isGitRepo as _isGitRepo } from "../../lib/git-integration.js";
+import { normalizeSparsePaths } from "../../lib/worktree-sparse.js";
 import { execFileSync, spawn } from "node:child_process";
+
+/**
+ * Resolve the sparse-checkout / dependency-symlink options for a task, letting a
+ * per-task value (from the plan) override the coordinator-wide default. Returns
+ * `undefined` when nothing is configured so `createWorktree` takes its unchanged
+ * full-checkout path (byte-identical to before this feature).
+ */
+function resolveWorktreeOptions(task, defaults) {
+  const t = task || {};
+  const sparse = normalizeSparsePaths(
+    t.sparsePaths ?? t.metadata?.sparsePaths ?? defaults.sparsePaths ?? null,
+  );
+  const symlink =
+    t.symlinkDirectories ??
+    t.metadata?.symlinkDirectories ??
+    defaults.symlinkDirectories ??
+    null;
+  const opts = {};
+  if (sparse) opts.sparsePaths = sparse;
+  if (symlink != null) opts.symlinkDirectories = symlink;
+  return Object.keys(opts).length ? opts : undefined;
+}
 
 function defaultRunShell(command, cwd) {
   return new Promise((resolve, reject) => {
@@ -72,9 +95,15 @@ export const _deps = {
 };
 
 export class TeamWorktreeCoordinator {
-  constructor(repoDir) {
+  constructor(repoDir, options = {}) {
     this.repoDir = repoDir;
     this._created = new Map(); // key → { branch, path, committed }
+    // Coordinator-wide sparse-checkout / dependency-symlink defaults; a per-task
+    // value (task.sparsePaths / task.metadata.sparsePaths) overrides these.
+    this._worktreeDefaults = {
+      sparsePaths: options.sparsePaths ?? null,
+      symlinkDirectories: options.symlinkDirectories ?? null,
+    };
   }
 
   isGitRepo() {
@@ -114,7 +143,13 @@ export class TeamWorktreeCoordinator {
         }
         this._created.delete(key);
       }
-      const { path: worktreePath } = _deps.createWorktree(this.repoDir, branch);
+      const wtOptions = resolveWorktreeOptions(task, this._worktreeDefaults);
+      const { path: worktreePath } = _deps.createWorktree(
+        this.repoDir,
+        branch,
+        null,
+        wtOptions,
+      );
       this._created.set(key, { branch, path: worktreePath, committed: false });
       if (typeof runInWorktree === "function") {
         await runInWorktree({ key, task, holder, cwd: worktreePath });
