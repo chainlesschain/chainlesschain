@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,6 +30,55 @@ import {
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import { existsSync } from "node:fs";
+
+// TEMP DIAGNOSTIC (forks-pool worker-death flake): dump what still pins the
+// worker's event loop after this file's tests finish, so we can identify the
+// POSIX-only leaked handle. process.stderr.write bypasses vitest --silent.
+// Remove once the leak is fixed.
+afterAll(async () => {
+  await new Promise((r) => setTimeout(r, 400));
+  try {
+    const resources = process.getActiveResourcesInfo?.() || [];
+    let handles = [];
+    try {
+      const active = process._getActiveHandles?.() || [];
+      handles = active.map((h) => {
+        const name = h?.constructor?.name || typeof h;
+        let ref = "?";
+        try {
+          ref = h?._handle?.hasRef?.() ?? h?.hasRef?.() ?? "?";
+        } catch {
+          /* ignore */
+        }
+        let kind = "";
+        try {
+          if (h?.remoteAddress !== undefined || h?._sockname !== undefined) {
+            const path =
+              h?._handle?.pipe ||
+              h?.server?._pipeName ||
+              h?._pipeName ||
+              h?.remoteAddress ||
+              "?";
+            kind = `:socket(path=${path},destroyed=${h?.destroyed},connecting=${h?.connecting},pending=${h?.pending})`;
+          } else if (typeof h?.pid === "number") kind = `:child(pid=${h.pid})`;
+          else if (h?.listening !== undefined) kind = ":server";
+          else if (name === "Pipe" || name === "Socket")
+            kind = `:pipe(fd=${h?.fd},ref=${h?._handle ? "h" : "?"})`;
+        } catch {
+          /* ignore */
+        }
+        return `${name}${kind}:ref=${ref}`;
+      });
+    } catch {
+      /* ignore */
+    }
+    process.stderr.write(
+      `\n[HDUMP-SUPERVISOR] resources=${JSON.stringify(resources)} handles=${JSON.stringify(handles)}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+});
 
 let dir;
 const originalSpawn = _deps.spawn;

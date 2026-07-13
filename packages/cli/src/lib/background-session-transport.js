@@ -282,14 +282,22 @@ export function connectBackgroundSession(opts) {
               hello: message,
               send: (msg) => writeMessage(socket, msg),
               close: () => {
-                writeMessage(socket, { type: "detach" });
-                socket.end();
-                // Release the handle immediately rather than lingering in a
-                // half-open FIN wait if the peer never FINs back (worker still
-                // finalizing / already gone). Best-effort: end() has already
-                // flushed the detach frame.
-                const reaper = setTimeout(() => socket.destroy(), 1000);
-                reaper.unref?.();
+                // Best-effort graceful detach, then HARD destroy so the client
+                // handle is released synchronously. `socket.end()` alone leaves
+                // a half-open, still-REFERENCED socket: a prior `send()` (i.e.
+                // socket.write) re-refs the handle, undoing the connect-time
+                // unref, so end()'s FIN-wait keeps the owner's event loop alive
+                // until the peer FINs back. Under CI's 2-fork parallel load that
+                // outlived vitest's worker-terminate deadline → "Worker exited
+                // unexpectedly" forks-pool flake. destroy() drops the handle now;
+                // the worker sees the socket close and finalizes the same as it
+                // would on an explicit detach.
+                try {
+                  writeMessage(socket, { type: "detach" });
+                } catch {
+                  /* peer already gone */
+                }
+                socket.destroy();
               },
             });
           }
