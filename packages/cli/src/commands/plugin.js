@@ -1132,6 +1132,110 @@ export function registerPluginCommand(program) {
       }
     });
 
+  // plugin options — view a plugin's resolved typed options, or set values at a
+  // scope. The security-critical rule: a SENSITIVE option can never be set from
+  // PROJECT scope (a checked-in file must not inject secrets) — such values are
+  // dropped + warned; use `--scope user`.
+  plugin
+    .command("options <name>")
+    .description(
+      "View or set a plugin's typed options (--set key=value, --scope user|project)",
+    )
+    .option("--scope <scope>", "Scope for --set (user|project)", "user")
+    .option(
+      "--set <pair>",
+      "Set an option value (key=value); repeatable",
+      (v, acc) => {
+        acc.push(v);
+        return acc;
+      },
+      [],
+    )
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      const { discoverPlugins } =
+        await import("../lib/plugin-runtime/scopes.js");
+      const optsMod = await import("../lib/plugin-runtime/plugin-options.js");
+
+      let installed = null;
+      try {
+        installed = discoverPlugins({
+          cwd: process.cwd(),
+          skipPolicy: true,
+        }).find((p) => p.name === name);
+      } catch {
+        /* discovery best-effort */
+      }
+      if (!installed) {
+        logger.error(`${name} is not installed`);
+        process.exitCode = 1;
+        return;
+      }
+      const schema = installed.manifest?.optionsSchema || {};
+
+      // --set: persist values at the requested scope (then fall through to show).
+      if (options.set && options.set.length) {
+        const scope = options.scope === "project" ? "project" : "user";
+        const current = optsMod.loadPluginOptionValues(name, scope, {
+          cwd: process.cwd(),
+        });
+        for (const pair of options.set) {
+          const eq = pair.indexOf("=");
+          if (eq <= 0) {
+            logger.error(`Invalid --set "${pair}" (expected key=value)`);
+            process.exitCode = 1;
+            return;
+          }
+          current[pair.slice(0, eq)] = pair.slice(eq + 1);
+        }
+        optsMod.setPluginOptionValues(name, current, scope, {
+          cwd: process.cwd(),
+        });
+        logger.success(`Set option(s) for ${name} at ${scope} scope`);
+      }
+
+      const resolved = optsMod.getResolvedPluginOptions(name, schema, {
+        cwd: process.cwd(),
+      });
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            {
+              name,
+              scope: installed.scope,
+              options: resolved.redacted,
+              sources: resolved.sources,
+              warnings: resolved.warnings,
+              droppedFromProject: resolved.droppedFromProject,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      logger.log(chalk.bold(`Options: ${chalk.cyan(name)}`));
+      const keys = Object.keys(resolved.redacted);
+      if (keys.length === 0) logger.log(chalk.gray("  (no options)"));
+      for (const k of keys) {
+        logger.log(
+          `  ${chalk.cyan(k)} = ${resolved.redacted[k]} ${chalk.gray(
+            `[${resolved.sources[k] || "default"}]`,
+          )}`,
+        );
+      }
+      if (resolved.droppedFromProject.length) {
+        logger.log(
+          chalk.yellow(
+            `  ⚠ dropped from project config (sensitive/user-only): ${resolved.droppedFromProject.join(
+              ", ",
+            )} — set with --scope user`,
+          ),
+        );
+      }
+      for (const w of resolved.warnings) logger.log(chalk.gray(`  ${w}`));
+    });
+
   // plugin monitors — list (and optionally run) trusted plugins' background
   // monitors. `--run --seconds N` actually starts the supervisor for N seconds,
   // prints captured output, then reaps everything (verifies no leaked process).

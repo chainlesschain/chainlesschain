@@ -1095,10 +1095,35 @@ permissions 块）与已声明 `mcp` 的插件行为不变。测试：`plugin-ru
 plugin-runtime-manifest/consent-enforce/install 回归 49 绿。**至此 6 个组件收集器
 （hooks/monitors/bin/lsp/mcp + settings 早已安全子集）能力拒全收口。**
 
-**仍欠（交互 consent + 敏感项托管）**：`install.js` `installFromDirectory`/`updatePlugin`
+**已落地（2026-07-13，optionsSchema 敏感项 project-scope 门 + 值解析消费方）**：此前
+optionsSchema 只被 manifest.js **归一化**、`validateOptions`/`optionDefaults`/
+`redactSensitiveOptions` 纯核也在，但**没有任何消费方**真正解析并应用选项**值**——敏感
+项 project 门空有规则、无接线。新建纯核 + 注入-IO store
+[`plugin-options.js`](../packages/cli/src/lib/plugin-runtime/plugin-options.js)
+（镜像 [[capability-consent.js]] 的双存储 + 纯解析器结构）：
+
+- **双 scope 值存储**：user scope → 用户数据目录 `plugin-options.json`（可含密钥）/
+  project scope → 仓库内 `.chainlesschain/plugin-options.json`（可 checked-in → **禁含
+  密钥**）。IO 注入，单测绝不碰真目录。
+- **`resolvePluginOptions`（纯）**：按 `defaults < project(仅非敏感·非 user-only) < user`
+  分层合并，对 project config 里出现的**任何敏感/user-only 选项 DROP + WARN**（复用
+  `validateOptions` 的 `scope:"project"` 错误——sensitive/user-only 在 project 即 error），
+  返回 `{options, redacted, warnings, sources, droppedFromProject}`——checked-in 的项目
+  文件**无法注入密钥**，敏感项只能走 user scope。`getResolvedPluginOptions` 从两存储读值
+  再解析。
+- **命令面 `cc plugin options <name>`**（`plugin` 子命令 → 顶层数 175 不变）：默认渲染
+  解析后选项（敏感值 `***` 脱敏 + 每项 `[default|project|user]` 来源 + project 掉落告警）；
+  `--set key=value`（可重复）在 `--scope user|project` 存值；`--json` 结构化。
+- 测试：`plugin-runtime-plugin-options.test.js` 8（纯解析：默认 / 三层优先级 / 敏感项
+  project 掉落 / user-only project 掉落 / 脱敏 / 类型强制+未知告警 + store 注入-IO 往返/
+  两存储经门合并）+ `plugin-options-command.test.js` 4（真插件 fixture：默认 / user 存值脱敏
+  显示 / 敏感项 project 掉落 / 畸形 --set·未装报错）= 12 绿；plugin-runtime 全套 209 回归绿。
+
+**仍欠（交互 consent + keychain 托管）**：`install.js` `installFromDirectory`/`updatePlugin`
 装/升级时**阻塞式交互** diff→重新 consent（现渲染清单+diff+提示但仍非阻塞，需事后
-`cc plugin consent --grant`）；把 optionsSchema 敏感项接 settings.js 的 `p.scope` 项目门 +
-OS keychain 取值；shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大基建，未起。
+`cc plugin consent --grant`）；把敏感选项**值**从 user-scope JSON 迁到 **OS keychain**
+（DPAPI/Keychain/Secret Service，平台相关；project-scope 门已强制，keychain 取值属平台接线）；
+shell-form 命令插值加固 / 统一 Sandbox Broker / lockfile-SBOM 属更大基建，未起。
 
 ## P2：Hooks、结构化输出与质量闭环
 
