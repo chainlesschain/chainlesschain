@@ -216,6 +216,135 @@ export function checkHooks(hooks = [], t) {
   return out;
 }
 
+/**
+ * STATICALLY validate a settings.json `hooks` block for reliably-detectable
+ * breakage — a hook that will silently NEVER fire (unknown event name, an
+ * uncompilable `/…/` regex matcher, a missing command) or is misconfigured (a
+ * non-positive / over-cap timeout). This is the config subset a doctor can
+ * catch without running anything; RUNTIME health (slow / circuit-broken hooks)
+ * needs live per-process stats and is handled by `checkHooks`, not here.
+ *
+ * @param {object} hooksBlock raw `.hooks` object from settings.json
+ * @param {object} [opts] { validEvents: Set<string>|string[], maxTimeoutSec }
+ */
+export function checkHookConfig(
+  hooksBlock,
+  { validEvents, maxTimeoutSec = 600 } = {},
+) {
+  const out = [];
+  if (!hooksBlock || typeof hooksBlock !== "object") return out;
+  const known =
+    validEvents instanceof Set ? validEvents : new Set(validEvents || []);
+
+  for (const [event, groups] of Object.entries(hooksBlock)) {
+    // An event key the loader doesn't understand → every hook under it is dead
+    // (silently never fires). This is the highest-value static catch.
+    if (known.size && !known.has(event)) {
+      out.push(
+        finding(
+          "hook-unknown-event",
+          "hooks",
+          "warn",
+          `Hook event "${event}" is not recognized — its hooks never fire`,
+          "fix the event name in settings.json hooks",
+          { ref: event },
+        ),
+      );
+      continue;
+    }
+    if (!Array.isArray(groups)) {
+      out.push(
+        finding(
+          "hook-malformed",
+          "hooks",
+          "warn",
+          `Hook event "${event}" is not an array`,
+          "settings.json hooks[<event>] must be an array",
+          { ref: event },
+        ),
+      );
+      continue;
+    }
+    groups.forEach((g, gi) => {
+      const at = `${event}[${gi}]`;
+      // A `/body/flags` regex matcher that won't compile silently never matches.
+      if (g && typeof g.matcher === "string" && g.matcher.startsWith("/")) {
+        const m = g.matcher.match(/^\/(.*)\/([a-z]*)$/);
+        try {
+          new RegExp(m ? m[1] : g.matcher.slice(1), m ? m[2] : "");
+        } catch {
+          out.push(
+            finding(
+              "hook-bad-matcher",
+              "hooks",
+              "warn",
+              `Hook ${at} matcher ${g.matcher} is not a valid regex — it never matches`,
+              "fix the regex matcher",
+              { ref: at },
+            ),
+          );
+        }
+      }
+      const cmds = g && Array.isArray(g.hooks) ? g.hooks : null;
+      if (!cmds) {
+        out.push(
+          finding(
+            "hook-malformed",
+            "hooks",
+            "warn",
+            `Hook ${at} has no hooks array`,
+            "each hook group needs a hooks:[] array",
+            { ref: at },
+          ),
+        );
+        return;
+      }
+      cmds.forEach((h, hi) => {
+        const hAt = `${at}.hooks[${hi}]`;
+        if (!h || typeof h.command !== "string" || !h.command.trim()) {
+          out.push(
+            finding(
+              "hook-no-command",
+              "hooks",
+              "warn",
+              `Hook ${hAt} has no command — it does nothing`,
+              "add a command string or remove the entry",
+              { ref: hAt },
+            ),
+          );
+        }
+        if (h && h.timeout != null) {
+          const t = Number(h.timeout);
+          if (!Number.isFinite(t) || t <= 0) {
+            out.push(
+              finding(
+                "hook-bad-timeout",
+                "hooks",
+                "info",
+                `Hook ${hAt} timeout ${h.timeout} is not a positive number`,
+                "timeout is in seconds; use a positive value",
+                { ref: hAt },
+              ),
+            );
+          } else if (t > maxTimeoutSec) {
+            out.push(
+              finding(
+                "hook-bad-timeout",
+                "hooks",
+                "info",
+                `Hook ${hAt} timeout ${t}s exceeds the ${maxTimeoutSec}s cap (clamped)`,
+                "lower the timeout",
+                { ref: hAt },
+              ),
+            );
+          }
+        }
+      });
+    });
+  }
+  return out;
+}
+
 /** Plugins / LSP servers reported unhealthy or dead. */
 export function checkPluginsAndLsp(plugins = []) {
   const out = [];

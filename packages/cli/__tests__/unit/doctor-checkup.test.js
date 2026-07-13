@@ -116,6 +116,25 @@ describe("doctor-checkup", () => {
     expect(wt.checks[0].level).toBe(CHECK_LEVELS.OK);
   });
 
+  it("flags a settings.json hook under an unknown event in the runtime section", async () => {
+    const badSettings = JSON.stringify({
+      hooks: {
+        PreToolYuse: [{ matcher: "Bash", hooks: [{ command: "./x.sh" }] }],
+      },
+    });
+    const deps = fakeDeps({
+      existsSync: (p) => String(p).endsWith("settings.json"),
+      readFileSync: (p) =>
+        String(p).endsWith("settings.json") ? badSettings : "",
+    });
+    const sections = await collectCheckupSections({ deps });
+    const runtime = sections.find((s) => s.id === "runtime");
+    const finding = runtime.checks.find((c) => c.id === "hook-unknown-event");
+    expect(finding).toBeTruthy();
+    expect(finding.level).toBe(CHECK_LEVELS.WARN);
+    expect(finding.name).toMatch(/settings\.json/);
+  });
+
   describe("runCheckupFixes", () => {
     it("applies the SAFE stale-job prune, deleting only old .job files", async () => {
       const rmSync = vi.fn();

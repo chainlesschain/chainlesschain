@@ -13,8 +13,11 @@ import {
   checkHooks,
   checkPluginsAndLsp,
   checkInstructionFiles,
+  checkHookConfig,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "../../src/lib/runtime-checkup.js";
+
+const VALID_EVENTS = ["PreToolUse", "PostToolUse", "SessionStart"];
 
 const DAY = 24 * 60 * 60 * 1000;
 const T = DEFAULT_CHECKUP_THRESHOLDS;
@@ -142,6 +145,79 @@ describe("checkInstructionFiles", () => {
       "instructions-derivable",
       "instructions-verbose",
     ]);
+  });
+});
+
+describe("checkHookConfig (static settings.json hook validation)", () => {
+  it("flags an unknown event whose hooks would never fire", () => {
+    const out = checkHookConfig(
+      { PreToolYuse: [{ matcher: "Bash", hooks: [{ command: "x" }] }] },
+      { validEvents: VALID_EVENTS },
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("hook-unknown-event");
+    expect(out[0].severity).toBe("warn");
+  });
+
+  it("flags an uncompilable regex matcher", () => {
+    const out = checkHookConfig(
+      { PreToolUse: [{ matcher: "/[unclosed/", hooks: [{ command: "x" }] }] },
+      { validEvents: VALID_EVENTS },
+    );
+    expect(out.some((f) => f.id === "hook-bad-matcher")).toBe(true);
+  });
+
+  it("flags a hook entry with no command", () => {
+    const out = checkHookConfig(
+      { PostToolUse: [{ matcher: "*", hooks: [{ command: "  " }] }] },
+      { validEvents: VALID_EVENTS },
+    );
+    expect(out.some((f) => f.id === "hook-no-command")).toBe(true);
+  });
+
+  it("flags non-positive and over-cap timeouts", () => {
+    const out = checkHookConfig(
+      {
+        PreToolUse: [
+          {
+            matcher: "Bash",
+            hooks: [
+              { command: "a", timeout: 0 },
+              { command: "b", timeout: 9999 },
+            ],
+          },
+        ],
+      },
+      { validEvents: VALID_EVENTS, maxTimeoutSec: 600 },
+    );
+    const badTimeouts = out.filter((f) => f.id === "hook-bad-timeout");
+    expect(badTimeouts).toHaveLength(2);
+    expect(badTimeouts.every((f) => f.severity === "info")).toBe(true);
+  });
+
+  it("passes a well-formed hook block clean", () => {
+    const out = checkHookConfig(
+      {
+        PreToolUse: [
+          { matcher: "Bash", hooks: [{ command: "./guard.sh", timeout: 60 }] },
+        ],
+        SessionStart: [{ hooks: [{ command: "echo hi" }] }],
+      },
+      { validEvents: VALID_EVENTS },
+    );
+    expect(out).toHaveLength(0);
+  });
+
+  it("no-ops on a missing / non-object block", () => {
+    expect(checkHookConfig(null, { validEvents: VALID_EVENTS })).toEqual([]);
+    expect(checkHookConfig("nope", { validEvents: VALID_EVENTS })).toEqual([]);
+  });
+
+  it("skips the unknown-event check when no validEvents are supplied", () => {
+    const out = checkHookConfig({
+      AnythingGoes: [{ hooks: [{ command: "x" }] }],
+    });
+    expect(out).toHaveLength(0);
   });
 });
 

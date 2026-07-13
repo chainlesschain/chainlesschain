@@ -26,7 +26,11 @@ import {
 import { execSync } from "node:child_process";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
-import { checkAgenda, checkInstructionFiles } from "./runtime-checkup.js";
+import {
+  checkAgenda,
+  checkInstructionFiles,
+  checkHookConfig,
+} from "./runtime-checkup.js";
 
 export const CHECK_LEVELS = Object.freeze({
   OK: "ok",
@@ -659,6 +663,44 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("instructions", "instruction files", err));
+  }
+
+  // settings.json hook config — statically catch hooks that will silently never
+  // fire (unknown event / bad regex matcher / missing command) or are
+  // misconfigured (bad timeout). Runtime hook health (slow/circuit-broken) needs
+  // live per-process stats and isn't computed here.
+  try {
+    const settingsHooks = await import("./settings-hooks.cjs");
+    const mod = settingsHooks.default || settingsHooks;
+    const cwd = opts.cwd || process.cwd();
+    const files = mod.settingsFiles(cwd);
+    const seen = new Set();
+    for (const file of files) {
+      if (seen.has(file) || !deps.existsSync(file)) continue;
+      seen.add(file);
+      let hooksBlock = null;
+      try {
+        const parsed = JSON.parse(deps.readFileSync(file, "utf-8"));
+        hooksBlock = parsed && typeof parsed === "object" ? parsed.hooks : null;
+      } catch {
+        continue; // malformed settings.json is reported elsewhere (config section)
+      }
+      if (!hooksBlock) continue;
+      for (const f of checkHookConfig(hooksBlock, {
+        validEvents: mod.HOOK_EVENTS,
+      })) {
+        checks.push(
+          check(
+            f.id,
+            `${basename(file)} ${f.ref}`,
+            SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+            `${f.message} — ${f.remediation}`,
+          ),
+        );
+      }
+    }
+  } catch (err) {
+    checks.push(failedCheck("hook-config", "settings hook config", err));
   }
 
   if (checks.length === 0) {
