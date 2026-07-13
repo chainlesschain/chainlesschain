@@ -15,6 +15,7 @@ import {
   buildExportMarkdown,
   buildExportText,
   chatErrorMessage,
+  composeWithFileContext,
   extractRagContext,
   formatChatTime,
 } from "../chatPanelHelpers";
@@ -208,6 +209,40 @@ describe("buildActiveFileContext", () => {
     const out = buildActiveFileContext({ file_path: "big.ts", content: big })!;
     expect(out).toContain("…(truncated)");
     expect(out.length).toBeLessThan(big.length);
+  });
+});
+
+describe("composeWithFileContext", () => {
+  const file = {
+    file_name: "app.ts",
+    file_path: "src/app.ts",
+    content: "export const x = 1;",
+  };
+
+  it("returns the raw text unchanged when the toggle is off", () => {
+    expect(composeWithFileContext("do the thing", file, false)).toBe(
+      "do the thing",
+    );
+  });
+
+  // Regression for the Agent-branch context drop (gap analysis P0-1): with the
+  // toggle on, the outbound text sent to the coding agent MUST carry the
+  // active-file block — the Agent send path routes its message through this
+  // exact function, so enrichment here proves the agent no longer gets raw text.
+  it("prepends the active-file block when the toggle is on", () => {
+    const out = composeWithFileContext("fix the bug", file, true);
+    expect(out).toBe(
+      '<active-file path="src/app.ts">\nexport const x = 1;\n</active-file>\n\nfix the bug',
+    );
+    expect(out.endsWith("fix the bug")).toBe(true);
+  });
+
+  it("returns the raw text when the toggle is on but no usable file exists", () => {
+    expect(composeWithFileContext("hi", null, true)).toBe("hi");
+    expect(composeWithFileContext("hi", undefined, true)).toBe("hi");
+    expect(
+      composeWithFileContext("hi", { file_path: "x.ts", content: "  " }, true),
+    ).toBe("hi");
   });
 });
 

@@ -1182,7 +1182,7 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons-vue";
 import { useProjectStore } from "@/stores/project";
-import { buildActiveFileContext } from "@/shell/helpers/chatPanelHelpers";
+import { composeWithFileContext } from "@/shell/helpers/chatPanelHelpers";
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
@@ -1220,15 +1220,11 @@ const currentFileName = computed(
   () => projectStore.currentFile?.file_name ?? null,
 );
 function withFileContext(raw) {
-  if (!includeFileContext.value) {
-    return raw;
-  }
-  const f = projectStore.currentFile;
-  if (!f?.content) {
-    return raw;
-  }
-  const block = buildActiveFileContext(f);
-  return block ? `${block}\n\n${raw}` : raw;
+  return composeWithFileContext(
+    raw,
+    projectStore.currentFile,
+    includeFileContext.value,
+  );
 }
 const agentLogger = createLogger("AIChatPageCodingAgent");
 
@@ -1970,7 +1966,12 @@ const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
         isThinking.value = false;
         return;
       }
-      const result = await codingAgentStore.sendMessage(text);
+      // Inline the active-file context (when the toggle is on) into the
+      // agent-bound text too — the displayed/persisted user message above stays
+      // the original `text`. Previously the Agent branch sent raw `text`,
+      // silently dropping the "include current file" context the chat branch
+      // honored (see docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS P0-1).
+      const result = await codingAgentStore.sendMessage(withFileContext(text));
       if (!result?.success) {
         throw new Error(result?.error || "Failed to send coding agent message");
       }

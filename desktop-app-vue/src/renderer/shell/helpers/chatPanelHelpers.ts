@@ -122,6 +122,27 @@ export function buildActiveFileContext(
   return `<active-file path="${safeLabel}">\n${content}\n</active-file>`;
 }
 
+/**
+ * Prepend the active-file context block to an outbound message when the
+ * "include current file" toggle is on and a usable file is available. Shared by
+ * both the plain-chat and the Agent send paths so neither can silently drop the
+ * context the user explicitly opted in to (the Agent branch used to bypass this
+ * and send raw text). Ephemeral: callers keep storing/displaying the original
+ * `raw` text — only the model/agent-bound string is enriched. Returns `raw`
+ * unchanged when the toggle is off or no file with content is present. Pure.
+ */
+export function composeWithFileContext(
+  raw: string,
+  file: ActiveFileContext | null | undefined,
+  include: boolean,
+): string {
+  if (!include) {
+    return raw;
+  }
+  const block = buildActiveFileContext(file);
+  return block ? `${block}\n\n${raw}` : raw;
+}
+
 export interface ChatExportMeta {
   title?: string;
   model?: string;
