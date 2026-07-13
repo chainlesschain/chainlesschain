@@ -461,6 +461,10 @@ export async function startAgentRepl(options = {}) {
   // tier but additionally activates the autoMode.decisions classifier wrapper
   // (when settings customize it) — gateTierFor() maps mode → real gate tier.
   let _sessionTier = "strict";
+  // `/goal <condition>`: an optional SESSION completion condition. When set, the
+  // condition is evaluated + reported after each turn (interactive — no auto
+  // re-drive; that autonomous loop is headless-only). null = no session goal.
+  let _sessionGoal = null;
   const gateTierFor = (mode) =>
     mode === "auto" ? "trusted" : mode === "dontAsk" ? "strict" : mode;
   // dontAsk (headless parity, interactive form): anything that would prompt
@@ -1582,6 +1586,7 @@ export async function startAgentRepl(options = {}) {
           "/exit",
           "/export",
           "/fast",
+          "/goal",
           "/help",
           "/hooks",
           "/ide",
@@ -2184,6 +2189,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/rewind")}     Rewind to an earlier turn (double-Esc lists); ${chalk.cyan("/rewind clear")} restores a /clear`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/goal <cond>")} Set a session goal checked after each turn (exit-zero:/file-exists:/contains:/regex:/text); ${chalk.cyan("/goal")} shows, ${chalk.cyan("/goal clear")} drops`,
       );
       logger.log(
         `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
@@ -3556,6 +3564,35 @@ export async function startAgentRepl(options = {}) {
     }
 
     // Stats
+    if (trimmed === "/goal" || trimmed.startsWith("/goal ")) {
+      // Session completion condition (distinct from `cc goal` OKR): set / show /
+      // clear a condition that is evaluated + reported after each turn.
+      try {
+        const rg = await import("../lib/repl-goal.js");
+        const cmd = rg.parseGoalCommand(trimmed.slice("/goal".length));
+        if (cmd.action === "clear") {
+          if (_sessionGoal) {
+            _sessionGoal = null;
+            logger.log(chalk.gray("◎ session goal cleared."));
+          } else {
+            logger.log(chalk.gray("No session goal to clear."));
+          }
+        } else if (cmd.action === "status") {
+          for (const l of rg.renderGoalStatus(_sessionGoal))
+            logger.log(chalk.gray(l));
+        } else {
+          // set — createReplGoal throws on a malformed spec (caught below).
+          _sessionGoal = rg.createReplGoal(cmd.spec, { now: () => Date.now() });
+          for (const l of rg.renderGoalStart(_sessionGoal))
+            logger.log(chalk.cyan(l));
+        }
+      } catch (err) {
+        logger.error(`/goal: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
     if (trimmed === "/stats") {
       if (contextEngine) {
         const stats = contextEngine.getStats();
@@ -5193,6 +5230,71 @@ export async function startAgentRepl(options = {}) {
         const last = usageEvents[usageEvents.length - 1]?.usage || {};
         const used = (last.input_tokens || 0) + (last.output_tokens || 0);
         if (used > 0) _ctxUsedTokens = used;
+      }
+
+      // /goal (session completion condition): evaluate this turn's answer and
+      // report met / not-yet / dropped. Deterministic conditions (exit-zero /
+      // file-exists / contains / regex) run inline; a model condition reuses the
+      // session model as an independent judge. Interactive → REPORT only, never
+      // auto re-drive (that autonomous loop is headless-only). Best-effort — an
+      // eval failure never disturbs the turn.
+      if (_sessionGoal && !_sessionGoal.done) {
+        try {
+          const rg = await import("../lib/repl-goal.js");
+          const fsMod = await import("node:fs");
+          const cpMod = await import("node:child_process");
+          const judge = async (cond, { finalText }) => {
+            const { chatWithTools } = await import("../runtime/agent-core.js");
+            const { firstBalancedJson } =
+              await import("../lib/json-schema-output.js");
+            const p =
+              `Judge whether this coding session met a completion condition.\n` +
+              `Condition: ${cond.text || cond.source}\n\n` +
+              `Latest assistant output:\n${String(finalText || "").slice(0, 2000)}\n\n` +
+              `Reply with STRICT JSON only: {"met": true|false, "reason": "<short>"}.`;
+            const jr = await chatWithTools([{ role: "user", content: p }], {
+              model: activeModel,
+              provider,
+              baseUrl,
+              apiKey,
+              enabledToolNames: [],
+            });
+            const text = jr?.message?.content || "";
+            let met = false;
+            let reason = "model judge returned no verdict";
+            const block = firstBalancedJson(text, "{");
+            if (block) {
+              try {
+                const parsed = JSON.parse(block);
+                met = parsed.met === true;
+                reason =
+                  typeof parsed.reason === "string" && parsed.reason.trim()
+                    ? parsed.reason.trim()
+                    : met
+                      ? "condition met"
+                      : "condition not met";
+              } catch {
+                /* a non-JSON verdict stays unmet */
+              }
+            }
+            return { met, reason, evidence: { kind: "model" } };
+          };
+          const { decision, events, done } = await rg.evaluateReplGoalTurn(
+            _sessionGoal,
+            response || "",
+            {
+              cwd: process.cwd(),
+              spawnSync: cpMod.spawnSync,
+              existsSync: fsMod.existsSync,
+              judge,
+            },
+          );
+          for (const l of rg.renderGoalVerdict(decision, events))
+            logger.log(chalk.cyan(l));
+          if (done) _sessionGoal = null; // completed or exhausted → drop
+        } catch (err) {
+          logger.verbose(`/goal eval skipped: ${err.message}`);
+        }
       }
 
       // Fire AssistantResponse hook with rewrite/suppress support
