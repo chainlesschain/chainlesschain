@@ -104,7 +104,7 @@ export async function smokeTestExe(ctx) {
         // is enough in practice, but /T protects us if that ever changes.
         spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {
           stdio: "ignore",
-        });
+        }).unref();
       } else {
         child.kill("SIGTERM");
       }
@@ -115,9 +115,10 @@ export async function smokeTestExe(ctx) {
 
   // Early-death watchdog: if the child exits before we see a listening
   // port, report the stdout/stderr so the user sees the real failure
-  // instead of a generic timeout.
+  // instead of a generic timeout. Named so cleanup() can detach it.
+  let onExit;
   const deathPromise = new Promise((_, reject) => {
-    child.on("exit", (code, signal) => {
+    onExit = (code, signal) => {
       reject(
         new PackError(
           `Smoke-test process exited (code=${code}, signal=${signal}) before ports came up.\n` +
@@ -126,8 +127,44 @@ export async function smokeTestExe(ctx) {
           EXIT.SMOKE,
         ),
       );
-    });
+    };
+    child.on("exit", onExit);
   });
+
+  // Full teardown: killing the child is not enough — the parent still holds
+  // the child's stdout/stderr PIPE handles and the ChildProcess object, all of
+  // which keep the event loop alive (killed-but-unreaped on Windows, or
+  // still-open pipes on POSIX). Left dangling across the ~8 smokeTestExe calls
+  // this test makes, they pinned the vitest forks-pool worker so it could not
+  // terminate → the "Worker exited unexpectedly" / "Timeout terminating forks
+  // worker" flake blamed on whatever file ran next on the reused worker. Detach
+  // the exit watcher, destroy the pipes, kill, and unref so nothing survives.
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    try {
+      child.removeListener("exit", onExit);
+    } catch {
+      /* noop */
+    }
+    killChild();
+    try {
+      child.stdout?.destroy();
+    } catch {
+      /* noop */
+    }
+    try {
+      child.stderr?.destroy();
+    } catch {
+      /* noop */
+    }
+    try {
+      child.unref();
+    } catch {
+      /* noop */
+    }
+  };
 
   try {
     await Promise.race([
@@ -135,7 +172,7 @@ export async function smokeTestExe(ctx) {
       deathPromise,
     ]);
   } catch (e) {
-    killChild();
+    cleanup();
     throw e;
   }
 
@@ -148,7 +185,7 @@ export async function smokeTestExe(ctx) {
       timeoutMs: probeTimeoutMs,
     });
   } catch (e) {
-    killChild();
+    cleanup();
     throw new PackError(
       `Smoke-test HTTP probe failed: ${e.message}`,
       EXIT.SMOKE,
@@ -156,7 +193,7 @@ export async function smokeTestExe(ctx) {
   }
 
   if (uiStatus < 200 || uiStatus >= 300) {
-    killChild();
+    cleanup();
     throw new PackError(
       `Smoke-test HTTP probe: http://127.0.0.1:${uiPort}/ returned ${uiStatus} (expected 2xx)`,
       EXIT.SMOKE,
@@ -191,7 +228,7 @@ export async function smokeTestExe(ctx) {
           `        skills check: /api/skills returned 404 — skipping (older pack predating Phase 2b)`,
         );
         skillsCheck = { ok: true, skipped: "endpoint-404" };
-        killChild();
+        cleanup();
         return {
           ok: true,
           uiStatus,
@@ -200,7 +237,7 @@ export async function smokeTestExe(ctx) {
           skillsCheck,
         };
       }
-      killChild();
+      cleanup();
       throw new PackError(
         `Smoke-test /api/skills probe failed: ${e.message}`,
         EXIT.SMOKE,
@@ -216,7 +253,7 @@ export async function smokeTestExe(ctx) {
     );
     const missing = bundledSkillNames.filter((n) => !registeredNames.has(n));
     if (missing.length > 0) {
-      killChild();
+      cleanup();
       throw new PackError(
         `Smoke-test skills check: bundled skill(s) not registered: ${missing.join(", ")}`,
         EXIT.SMOKE,
@@ -228,7 +265,7 @@ export async function smokeTestExe(ctx) {
     skillsCheck = { ok: true, checked: bundledSkillNames.length };
   }
 
-  killChild();
+  cleanup();
 
   return {
     ok: true,
@@ -280,7 +317,9 @@ function tryConnect(host, port, timeoutMs) {
 function probeHttp({ host, port, path: urlPath, timeoutMs }) {
   return new Promise((resolve, reject) => {
     const req = http.get(
-      { host, port, path: urlPath, timeout: timeoutMs },
+      // agent:false → a one-off connection that closes after the response
+      // instead of lingering in the global keep-alive pool (leak-free probe).
+      { host, port, path: urlPath, timeout: timeoutMs, agent: false },
       (res) => {
         const status = res.statusCode || 0;
         // Drain body so the socket can close cleanly.
@@ -299,7 +338,7 @@ function probeHttp({ host, port, path: urlPath, timeoutMs }) {
 function probeHttpJson({ host, port, path: urlPath, timeoutMs }) {
   return new Promise((resolve, reject) => {
     const req = http.get(
-      { host, port, path: urlPath, timeout: timeoutMs },
+      { host, port, path: urlPath, timeout: timeoutMs, agent: false },
       (res) => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           res.resume();

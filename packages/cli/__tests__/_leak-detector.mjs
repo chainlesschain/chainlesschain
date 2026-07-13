@@ -15,7 +15,13 @@ afterAll(() => {
         children.push(`child(pid=${h.pid},killed=${h.killed})`);
       } else if (
         (h?.remoteAddress !== undefined || h?._sockname !== undefined) &&
-        ![0, 1, 2].includes(h?._handle?.fd)
+        ![0, 1, 2].includes(h?._handle?.fd) &&
+        // Only count GENUINELY-pinning sockets: a live fd that isn't destroyed.
+        // fd === -1 / destroyed === true are already-closed husks that don't
+        // keep the loop alive.
+        typeof h?._handle?.fd === "number" &&
+        h._handle.fd >= 0 &&
+        h?.destroyed !== true
       ) {
         socks.push(`sock(fd=${h?._handle?.fd},destroyed=${h?.destroyed})`);
       }
