@@ -502,7 +502,11 @@ Auto-fix 边界：
 - **可读摘要 + 短标识分离**：`summarizeOperation`（**绝不回显参数值**，只列 param key 名 + 目标坐标 ws/env/sess/pol，防 shell 命令/token 泄漏）+ `shortOperationId`（`XXXX-XXXX`，操作员在设备与终端肉眼比对同一卡）——协议仍携带完整指纹（第 2 条）。
 - **Fail-closed 解析器** `resolveOperationApproval(pending, resolution, {now})` + `OperationApprovalRegistry`（注入时钟纯核）：`fingerprintsMatch` 常数时间比对（离线重放不同操作→`fingerprint-mismatch`）、有效期窗口外→`not-yet-valid`/`expired`（超时）、设了窗口却无时钟→`no-clock`（fail-closed）、已解析→`duplicate`（重复提交）、被新卡取代→`superseded`（多卡并发单赢家：`issue` 同逻辑键再发即让旧卡失活）。第 4 条四种全 fail-closed。
 
-测试：`operation-fingerprint.test.js` 27（原 13 + §8.2 新 14：全元组确定性/七维敏感/窗口敏感/逻辑键窗口无关 + 短标识+摘要 secret-safe + 解析器六种拒因 + registry 单赢家/at-most-once/未知/过期）；依赖它的 `remote-approval-fingerprint.test.js` 4 绿（旧函数零回归）。纯核尚未接进 remote-approval-bridge `permission.request`/`approval.resolve` 与 headless-stream 绑定 seam（把 `policyDigest` 升级为真 policyVersion + 发全元组指纹是后续接线），故默认路径零影响。
+测试：`operation-fingerprint.test.js` 27（原 13 + §8.2 新 14：全元组确定性/七维敏感/窗口敏感/逻辑键窗口无关 + 短标识+摘要 secret-safe + 解析器六种拒因 + registry 单赢家/at-most-once/未知/过期）。
+
+**已接线（2026-07-13 续，remote-approval-bridge 用全元组指纹 + 失败关闭 registry）**：[[remote-approval-bridge.js]] 此前用旧 2 字段 `operationFingerprint({tool, action, detail})` + `approvalFingerprintOk` 做混淆代理防护——只绑 tool+detail，一个陈旧审批在 session/workspace/env/policy 变更后仍能生效。现改用 §8.2 全元组：`requestDecision` 用 `OperationApprovalRegistry.issue({toolName, params, workspace, session(默认 agentSessionId), targetEnv, policyVersion, notBefore:askedAt, notAfter:askedAt+timeout})` 发卡（`opf_`+40hex），`permission.request` 同时发**完整指纹** + `shortId`（设备/终端肉眼比对同一卡）+ **secret-free `summary`**（只列工具+param key 名+目标坐标，不回显命令值；原始命令仍在 `detail` 供人看）+ 有效期窗口。`approval.resolve` 走 `registry.resolve(fingerprint, {now})` 失败关闭——`fingerprint-mismatch`（换操作/换 session·workspace·env·policy）/`superseded`（多卡并发单赢家）/`duplicate`（重复提交）/`not-yet-valid`·`expired`（离线重放过窗），任一拒 → ask 留 pending → 超时 fail-closed。回显无指纹 = legacy 设备，用本卡自身指纹解析（仍受窗口/重复守卫）；`resolveLocally` 也消费 registry 卡防迟到远端二次结算。有效期窗口贴 ask 生命周期（notAfter=askedAt+timeout）。
+
+测试 `remote-approval-fingerprint.test.js` 重写为 6（发布指纹回显即结算 + 异操作指纹拒 + **异 session 指纹拒**（陈旧上下文）+ legacy 无指纹兼容 + **过窗 expired 拒不结算**（注入时钟）+ 发布带 opf_/shortId/secret-free summary/窗口）；bridge 集成 6 + repl-race 都绿（legacy 无回显路径零回归）。剩项（把 `policyDigest` 升级为真 policyVersion 传入 + headless-stream 侧绑定 seam）仍开放。⚠️注：`remote-session-client-hosted.test.js > keeps server-hosted dispatch byte-identical` 在 main HEAD 即 fail（并行 session 遗留，与本改无关，stash 验证过）。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:36,52-54`。
 

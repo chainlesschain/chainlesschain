@@ -24,8 +24,8 @@
 import { randomBytes } from "crypto";
 import { WsRpcClient } from "./ws-rpc-client.js";
 import {
-  approvalFingerprintOk,
-  operationFingerprint,
+  fingerprintsMatch,
+  OperationApprovalRegistry,
 } from "./operation-fingerprint.js";
 import {
   buildDirectPairingUri,
@@ -60,9 +60,15 @@ export class RemoteApprovalBridge {
     this.client = null;
     this.remoteSessionId = null;
     this.pairing = null;
-    this._pending = new Map(); // requestId → { resolve, timer }
+    this._pending = new Map(); // requestId → { resolve, timer, fingerprint }
     this._counter = 0;
     this._closed = false;
+    // §8.2 cross-device approval registry: full-tuple operation fingerprints,
+    // single-winner across concurrent cards for one logical operation, at-most-
+    // once resolution, and validity-window enforcement — all fail-closed.
+    this._registry = new OperationApprovalRegistry({
+      clock: () => this._now(),
+    });
   }
 
   /** Connect, register the client-hosted remote session, start listening. */
@@ -117,15 +123,24 @@ export class RemoteApprovalBridge {
     const requestId = message.event.requestId || message.event.approvalId;
     const pending = requestId ? this._pending.get(requestId) : null;
     if (!pending) return;
-    // Confused-deputy guard: a resolve that carries an operation fingerprint
-    // must match the operation this ask published. A mismatch (stale card /
-    // replayed / swapped body) is rejected — the ask stays pending and fails
-    // closed on timeout. Absent fingerprint = legacy device, accepted.
+    // Confused-deputy guard: a resolve that echoes a fingerprint must match the
+    // operation this ask published. A mismatch (stale card / replayed / swapped
+    // body / different session·workspace·env·policy) is rejected — the ask stays
+    // pending and fails closed on timeout. An absent fingerprint is a legacy
+    // device: resolved via this ask's own fingerprint (still window-guarded).
     if (
-      !approvalFingerprintOk(pending.fingerprint, message.event.fingerprint)
+      message.event.fingerprint != null &&
+      !fingerprintsMatch(pending.fingerprint, message.event.fingerprint)
     ) {
       return;
     }
+    // Fail-closed §8.2 enforcement: single-winner (superseded card), at-most-once
+    // (duplicate), and validity window (not-yet-valid / expired). A rejected
+    // verdict leaves the ask pending so it still fails closed on timeout.
+    const verdict = this._registry.resolve(pending.fingerprint, {
+      now: this._now(),
+    });
+    if (!verdict.ok) return;
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
     const answer = message.event.answer ?? message.event.approved;
@@ -159,11 +174,35 @@ export class RemoteApprovalBridge {
     tool,
     action = null,
     detail = null,
+    workspace = null,
+    session = null,
+    targetEnv = null,
+    policyVersion = null,
     timeoutMs,
     onRequestId = null,
   } = {}) {
     const requestId = `ra-${process.pid}-${++this._counter}-${randomBytes(4).toString("hex")}`;
-    const fingerprint = operationFingerprint({ tool, action, detail });
+    const askedAt = this._now();
+    const effectiveTimeout = timeoutMs || this.decisionTimeoutMs;
+    // §8.2 full-tuple descriptor: the fingerprint binds tool + params + target
+    // env + workspace + session + policy version + validity window, so an
+    // approval never carries over to a different operation OR a changed context.
+    // The validity window rides the ask lifetime — a resolve after it expires is
+    // rejected `expired`.
+    const desc = {
+      toolName: tool,
+      params: detail,
+      workspace,
+      session: session || this.agentSessionId,
+      targetEnv,
+      policyVersion,
+      notBefore: askedAt,
+      notAfter:
+        Number.isFinite(askedAt) && Number.isFinite(effectiveTimeout)
+          ? askedAt + effectiveTimeout
+          : null,
+    };
+    const card = this._registry.issue(desc);
     if (onRequestId) {
       try {
         onRequestId(requestId);
@@ -181,11 +220,11 @@ export class RemoteApprovalBridge {
           via: "timeout",
         });
         resolve({ approved: false, via: "timeout", from: null });
-      }, timeoutMs || this.decisionTimeoutMs);
+      }, effectiveTimeout);
       if (typeof timer.unref === "function") timer.unref();
       this._pending.set(requestId, {
         timer,
-        fingerprint,
+        fingerprint: card.fingerprint,
         resolve: (decision) => {
           this._publish({
             type: "permission.resolved",
@@ -202,8 +241,14 @@ export class RemoteApprovalBridge {
         tool: tool || null,
         action,
         detail,
-        fingerprint,
-        askedAt: this._now(),
+        // Full fingerprint (protocol) + short id / secret-free summary (what the
+        // operator eyeballs on the device to confirm it is the SAME card).
+        fingerprint: card.fingerprint,
+        shortId: card.shortId,
+        summary: card.summary,
+        notBefore: desc.notBefore,
+        notAfter: desc.notAfter,
+        askedAt,
       });
     });
   }
@@ -214,6 +259,9 @@ export class RemoteApprovalBridge {
     if (!pending) return false;
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
+    // Consume the registry card so a late remote resolve for the SAME operation
+    // is a `duplicate`, never a second settle.
+    this._registry.resolve(pending.fingerprint, { now: this._now() });
     pending.resolve({ approved, via: "local", from: null });
     return true;
   }
@@ -248,6 +296,11 @@ export class RemoteApprovalBridge {
             : ctx?.args
               ? JSON.stringify(ctx.args).slice(0, 2000)
               : null,
+        // §8.2 context that binds the fingerprint (session defaults to this
+        // bridge's agent session inside requestDecision).
+        workspace: ctx?.cwd || ctx?.workspace || null,
+        targetEnv: ctx?.targetEnv || null,
+        policyVersion: ctx?.policyVersion || null,
       };
       if (onAsk) {
         try {
