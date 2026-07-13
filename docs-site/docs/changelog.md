@@ -5,7 +5,18 @@
 
 ## [Unreleased]
 
-#### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线收尾 + REPL /goal·coverage-aware /rewind + Monitor 源扩展 + 每任务调度策略
+#### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 锚定 / 终端上下文 / worktree 清理安全闸 / 崩溃恢复台账
+
+> CLI-only 发版（`chainlesschain` 0.162.163 → **0.162.164**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加 session 子命令 `cc session pr-status` + REPL `/rewind <n> --branch` + `cc doctor`「Execution context」段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（默认路径字节不变）。
+
+- **8.1 凭据脱敏三导出面全闸**：`cc session export`（`--no-redact` 保原值）+ OTLP `toOtlp()` span/exception 脱敏 + `cc doctor --export-bundle` 诊断包——离机导出朝「不泄漏」失败。
+- **P0-2 崩溃恢复副作用台账**：两阶段记账接进 headless + IDE/Bridge resume（reconcile 注入 Recovery notice 不盲重跑）+ Diff-Apply 内容哈希幂等 + 0-重复度量。
+- **P0-3「从这里分支」**：`/rewind <n> --branch [--write]` 派生独立会话保留分支点前历史，父会话不被截断；确定性 id + 血统事件 + 幂等。
+- **P1-1 复杂 Diff 行评论锚定**：finding 锚到代码（file+baseHash+锚行+上下文）非裸坐标，改文件后重定位/标 outdated 不复用旧行号。
+- **P1-2 终端上下文策略**：非 opt-in 绝不把终端输出入模型上下文 + ANSI/secret 双清 + 后台任务快照命令脱敏/暴露 PID。
+- **P1-4 PR/CI 监控**：`cc session pr-status`——状态条 + 默认关的 auto-merge 合格性穷举判定。
+- **P1-5 worktree 清理安全闸**：reaper 清理前 fail-closed（未提交/未追踪/未 push/关联 PR 任一→保留）。
+- **P1-6 会话级工具准入 + 归因**、**P1-7 `cc doctor` 执行位置一等属性**、**P1-8 无人值守动作门**、**P1-9 脱敏诊断包**、**8.2 跨设备操作指纹**、**Monorepo worktree 稀疏检出 + P2 doctor 检查/LSP 退避/OTel ids**。
 
 > CLI-only 发版（`chainlesschain` 0.162.162 → **0.162.163**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节 last-mile「仍欠」。
 

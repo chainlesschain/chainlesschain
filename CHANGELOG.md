@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线收尾 + REPL /goal·coverage-aware /rewind + Monitor 源扩展 + 每任务调度策略 + Plugin/Schedule 工具增强（CLI-only npm 发版）
+### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 行评论锚定 / 终端上下文策略 / worktree 清理安全闸 / 崩溃恢复台账 / 无人值守动作门 / 跨设备操作指纹（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.163 → **0.162.164** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 **session 子命令 `cc session pr-status`** 与 REPL `/rewind <n> --branch`、`cc doctor` 新增「Execution context」诊断段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（纯核已建、本版补真实运行时/命令面接线，默认路径保持字节不变）。
+
+- **8.1 凭据脱敏三导出面全闸**：一份导出物离机必须朝「不泄漏」失败——`cc session export` 导出前对渲染 transcript 跑召回优先 secret-scan（命中替 `[REDACTED]`，脱敏计数写 stderr，`--no-redact` 保原值）；OTLP `toOtlp()` 对 span/event 字符串属性（含 exception message）默认脱敏（`cc agent/team --otlp`、`cc eval`）；诊断包 `cc doctor --export-bundle` 强制脱敏（P1-9）。三面共用同一 recall-first 扫描器。
+- **P0-2 崩溃恢复副作用台账**：两阶段记账 `prepare→start→commit|fail|unknown` 接进 headless 与 IDE/Bridge/Extension-Host resume——`--resume` reconcile 台账，started-未落定-非幂等 op 注入去标识「Recovery notice」而非盲目重跑；Diff-Apply 内容哈希幂等（old 已改+new 已在→幂等 no-op 不重写）；外部操作 Idempotency Key + 0-重复副作用度量。
+- **P0-3「从这里分支」进 `/rewind`**：`/rewind <n> --branch [--write]`（`--fork` 别名）从选中 turn 派生独立会话，保留分支点之前历史并从此分叉，**父会话绝不被截断**；确定性分支 id + `session_branch` 血统事件 + 幂等重放 + traversal fail-closed。
+- **P1-1 复杂 Diff 行评论锚定**：review finding 锚到它所指的**代码**（file+baseHash+锚定行原文+上下文）而非裸坐标；agent 改文件后可 `reanchorComment` 重定位/标 outdated，绝不复用旧行号（接进 `review-pipeline` finding 输出 + `cc review` 尽力填 fileContents）。
+- **P1-2 终端上下文策略 + 后台任务脱敏**：`selectTerminalContextForModel` fail-closed（非显式 opt-in 绝不把终端 scrollback 塞进模型上下文）+ ANSI-strip→secret-redact→scrollback-cap；`check_shell {list}` / `/tasks` 后台任务快照对命令串脱敏并暴露 PID（stoppable 仅在握真 PID 时）。
+- **P1-4 PR/CI 监控 + 受控合并**：新子命令 `cc session pr-status [id] [--pr N] [--checks-file <json>] [--enable] [--json]`——从 PR-link ledger 取会话关联 PR，`gh pr view` 或 `--checks-file` 采信号，渲染状态条 + **默认关**的 auto-merge 合格性判定（穷举列未满足项：分支保护/Review/待审批/失败或 pending check/缺席必需 check）。
+- **P1-5 worktree 清理安全闸**：后台 agent worktree reaper 清理前过 fail-closed 安全闸——未提交/未追踪/未 push/关联 PR 任一命中即**保留**（旧「全清」逃生门 `force:true` 保留）；`git` 读不出→保留（绝不销毁无法核实的工作）。
+- **P1-6 会话级 agent 工具准入 + 归因**：extension 层工具（run_skill/spawn_sub_agent/browser/schedule/publish_artifact/MCP）需 Capability+Policy+权限+预算+UI 五闸全过；每次调用记只带来源的安全归因（可落 transcript）。
+- **P1-7 执行位置一等属性**：`cc doctor` 新增「Execution context」诊断段——检测 ambient location（Codespaces/SSH/Container/WSL/Local），remote/unknown fail-closed 到只读地板并列 policy 违规；凭据只显示来源/作用域不显示值。
+- **P1-8 无人值守动作门**：`cc agenda` 定时/事件任务默认拦截 notify/publish_artifact 等高危外呼（`unattendedAllowlist` 显式放回）；action-class 分级 fail-closed。
+- **P1-9 脱敏诊断包**：`cc doctor --export-bundle` 一键导出去标识诊断包（版本/平台/Capability/连接/脱敏事件/进程·端口·锁文件·worktree 摘要；默认不含源码/Key/Cookie/完整环境变量；导出前强制 secret-scan）。
+- **8.2 跨设备操作指纹**：远程审批 `remote-approval-bridge` 升级到全元组 `OperationApprovalRegistry`（工具名/规范化参数/目标环境/workspace/session/策略版本/有效期）；`permission.request` 发完整指纹 + 短标识 + 无秘密摘要，`approval.resolve` 失败关闭（mismatch/superseded/duplicate/过窗）。
+- **Monorepo / P2 硬化**：worktree `sparsePaths` 稀疏检出 + `symlinkDirectories` 逃逸守卫接进 team runner；`cc doctor` 新增沙箱真能力/静默降级、重复 skill 影子、settings.json hook 配置静态校验、async-hook 可靠性健康检查；LSP 服务器可选指数退避重启；每 span 归一 OTel session/agent id + `permission.decision_id`。
 
 > `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。
 
