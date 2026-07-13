@@ -45,14 +45,26 @@ afterAll(async () => {
     const timerCount = resources.filter(
       (r) => r === "Timeout" || r === "Immediate",
     ).length;
-    if (extra.length || timerCount > 1) {
+    let requests = [];
+    try {
+      requests = (process._getActiveRequests?.() || []).map(
+        (r) => r?.constructor?.name || typeof r,
+      );
+    } catch {
+      /* ignore */
+    }
+    // Clean baseline after settle is 6 resources
+    // (SimpleWriteWrap + 4 PipeWrap + 1 Timeout). Anything above = a real pin —
+    // a handle, an extra timer, or an active REQUEST (DNS/fs/connect/write)
+    // that _getActiveHandles never lists.
+    if (extra.length || timerCount > 1 || requests.length || resources.length > 6) {
       let file = "?";
       try {
         file = expect.getState?.().testPath || "?";
       } catch {
         /* ignore */
       }
-      const msg = `[LEAK2] ${file} timers=${timerCount} resources=${JSON.stringify(resources)} extraHandles=${JSON.stringify(extra)}`;
+      const msg = `[LEAK2] ${file} timers=${timerCount} resources=${JSON.stringify(resources)} extraHandles=${JSON.stringify(extra)} requests=${JSON.stringify(requests)}`;
       writeSync(2, `\n${msg}\n`);
       throw new Error(msg);
     }
