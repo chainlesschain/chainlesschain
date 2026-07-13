@@ -13,8 +13,9 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
     pool: "forks",
     forks: {
-      maxForks: 2,
-      minForks: 1,
+      // TEMP probe: singleFork (serial, one worker per shard) to test whether
+      // the forks-pool worker-death flake is a parallel worker-RECYCLING race.
+      singleFork: true,
     },
     // 90s testTimeout: vitest 4 honors testTimeout strictly (v3's hardcoded
     // 60s birpc heartbeat used to mask anything between testTimeout and the
