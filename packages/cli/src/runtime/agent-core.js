@@ -184,6 +184,35 @@ export function listBackgroundShellTasks() {
 // spawned detached (its own process group), so signal the group via the
 // negative pid. Windows: `taskkill /T` walks and kills the whole tree.
 // Returns true if a running task was signalled.
+// Release the parent-side handles of a background task's child: the stdout/
+// stderr PIPES (ref'd — on their own they keep the event loop alive) and the
+// process handle. Called once a task is terminal or has been signalled to die,
+// so a still-draining or slowly-dying child can never pin the process past a
+// teardown. In production the agent's own REPL/run loop holds the loop open, so
+// this changes nothing there; in the vitest forks pool nothing else does, and a
+// SIGTERM'd-but-not-yet-dead child was tripping the worker-terminate deadline
+// (the POSIX-only "Timeout terminating forks worker / Worker exited
+// unexpectedly" unit-shard flake). Idempotent + best-effort.
+function _releaseBgChildHandles(task) {
+  const child = task?.child;
+  if (!child) return;
+  try {
+    child.stdout?.destroy();
+  } catch {
+    /* noop */
+  }
+  try {
+    child.stderr?.destroy();
+  } catch {
+    /* noop */
+  }
+  try {
+    child.unref?.();
+  } catch {
+    /* noop */
+  }
+}
+
 function _killTask(task) {
   const child = task?.child;
   if (!child || child.killed || task?.status !== "running") return false;
@@ -217,6 +246,9 @@ function _killTask(task) {
     } else {
       child.kill("SIGTERM");
     }
+    // Drop the ref'd pipe/process handles now — the group signal is away, so a
+    // slowly-dying child must not pin the loop while it finishes exiting.
+    _releaseBgChildHandles(task);
     return true;
   } catch (_err) {
     return false;
@@ -276,6 +308,7 @@ function _killTaskSync(task) {
     } else {
       child.kill("SIGKILL");
     }
+    _releaseBgChildHandles(task);
     return true;
   } catch (_err) {
     return false;
@@ -2692,6 +2725,7 @@ async function executeToolInner(
             task.status = "error";
             task.error = String(err?.message || err).substring(0, 2000);
             task.endedAt = new Date().toISOString();
+            _releaseBgChildHandles(task);
           });
           // 'close' (not 'exit') so stdout/stderr are fully drained before the
           // status leaves "running" — otherwise a poll can observe completion
@@ -2704,6 +2738,7 @@ async function executeToolInner(
             task.exitCode = code;
             task.signal = signal;
             task.endedAt = new Date().toISOString();
+            _releaseBgChildHandles(task);
           });
         } catch (err) {
           task.status = "error";
