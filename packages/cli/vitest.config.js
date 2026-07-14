@@ -11,10 +11,6 @@ export default defineConfig({
     // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite
     // separately and passes the e2e config explicitly.
     exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
-    // TEMP diagnostic: capture the forks worker's exit code + any late uncaught
-    // error at teardown (POSIX unit shard-2/4 "Worker exited unexpectedly").
-    // Remove once diagnosed.
-    setupFiles: ["./__tests__/_worker-crash-diag.mjs"],
     pool: "forks",
     forks: {
       maxForks: 2,
