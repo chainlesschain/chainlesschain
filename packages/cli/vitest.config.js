@@ -11,6 +11,9 @@ export default defineConfig({
     // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite
     // separately and passes the e2e config explicitly.
     exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
+    // TEMP diagnostic: prints the cmdlines of orphan node procs that pin the
+    // forks worker at teardown (POSIX shard-2/4 flake). Remove once fixed.
+    globalSetup: ["./__tests__/_leak-diag.global.mjs"],
     pool: "forks",
     forks: {
       maxForks: 2,
