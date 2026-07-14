@@ -85,6 +85,15 @@ export async function smokeTestExe(ctx) {
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
     shell: needsShell,
+    // POSIX: own process group so teardown can signal the WHOLE tree via the
+    // negative pid. Critical when shell:true wraps the launch in `/bin/sh -c`
+    // (the `.sh` test shim, and any real exe that re-execs): a plain
+    // child.kill() then hits only the wrapper shell and orphans the real
+    // `node` server grandchild (ppid→1), which kept serving AND — via the
+    // stdio pipe fds it inherited from the worker — pinned the vitest forks
+    // pool past its terminate deadline ("Worker exited unexpectedly" flake).
+    // No-op on Windows, where killChild uses taskkill /T to walk the tree.
+    detached: process.platform !== "win32",
   });
 
   let stdoutBuf = "";
@@ -105,8 +114,25 @@ export async function smokeTestExe(ctx) {
         spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {
           stdio: "ignore",
         }).unref();
+      } else if (child.pid) {
+        // Negative pid → the whole process group from the detached spawn above,
+        // so a shell:true wrapper's exec'd/forked `node` grandchild dies too
+        // (a plain child.kill would signal only the wrapper and orphan the
+        // server). SIGKILL, not SIGTERM: a smoke teardown has no reason to wait
+        // for a graceful close and not every packed/fake server installs a
+        // SIGTERM handler. Fall back to a direct kill if the group is already
+        // gone (ESRCH).
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch {
+          try {
+            child.kill("SIGKILL");
+          } catch {
+            /* already gone */
+          }
+        }
       } else {
-        child.kill("SIGTERM");
+        child.kill("SIGKILL");
       }
     } catch {
       /* best effort */
