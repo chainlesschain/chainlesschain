@@ -11,6 +11,12 @@ export default defineConfig({
     // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite
     // separately and passes the e2e config explicitly.
     exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
+    // Strip process SIGTERM/SIGINT handlers a test leaks into the reused forks
+    // worker: a leaked `process.once("SIGTERM", …process.exit())` (headless
+    // signal path) fires when tinypool SIGTERMs the idle worker to recycle it,
+    // exiting it out from under the pool → "Worker exited unexpectedly /
+    // Timeout terminating forks worker" (POSIX-only unit shard-2/4 flake).
+    setupFiles: ["./__tests__/_strip-leaked-signal-handlers.mjs"],
     pool: "forks",
     forks: {
       maxForks: 2,
