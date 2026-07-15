@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.166：P1-9「Capability Manifest」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标
+
+> CLI-only 发版（`chainlesschain` 0.162.165 → **0.162.166**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（3 个纯逻辑模块 + 3 个离线工具 + 测试）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**只加 npm 脚本 + 离线工具,顶层命令数 175 不变**,默认路径字节不变。收口 `CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项。
+
+- **协议能力文档 CI byte-diff 单源生成**：`scripts/gen-protocol-doc.mjs` 从唯一源 `capability-manifest.js` 投影签入副本 `docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md`；npm 脚本 `docs:protocol`/`docs:protocol:check`；测试内 byte-diff 断言使 manifest 加字段未重生成即测试红。
+- **离线协议回放 + 兼容审计**：`protocol-replay.js` 拿录制 stream-json 会话 + 协商上下文离线回放到线上形态 / 审计前向兼容违规（携带 gate-OFF wire 字段即违规,fail-closed）；离线工具 `scripts/replay-protocol.mjs`（`--replay`/`--audit`,违规 exit 1）+ golden fixture。
+- **治理覆盖率指标（§11.3）**：`governance-coverage.js` 计算高风险 Tool Call Ledger/Trace 覆盖率 + Plugin/MCP/Skill/Hook 溯源可追溯率,`ok` 仅双 100% 才真;离线工具 `scripts/coverage-report.mjs`（读 run-summary JSON,任一 gap exit 1）。
+
 #### Added — cc CLI 0.162.165：精简项目记忆——`--no-project-memory` + `CC_PROJECT_MEMORY=lean` 只留入口文件 + IDE「精简上下文」默认开
 
 > CLI-only 发版（`chainlesschain` 0.162.164 → **0.162.165**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。只加 `cc agent --no-project-memory` 标志 + `CC_PROJECT_MEMORY` 环境变量识别，**顶层命令数 175 不变**，默认路径字节不变。动机：文档密集仓库里 `cc agent` 每轮把整套项目记忆重发进系统提示（实测约 12k token/轮），付费模型即真金白银。

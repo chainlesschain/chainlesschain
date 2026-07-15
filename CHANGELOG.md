@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.166：P1-9「Capability Manifest 与脱敏诊断包」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.165 → **0.162.166** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 3 个 `src/lib` 纯逻辑模块 + 3 个 `scripts/` 离线工具 + 测试）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**只加 npm 脚本 + 离线工具,无新增顶层命令,命令数 175 不变**;默认路径字节不变。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项全部收口。
+
+- **协议能力文档 CI byte-diff 单源生成**：新增生成器 `scripts/gen-protocol-doc.mjs`（`--out`/`--check`）从唯一源 `capability-manifest.js` `renderProtocolDoc()` 投影出 `docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md`（协议版本 + 可协商 wire 特性表 + 权限模式）；npm 脚本 `docs:protocol` / `docs:protocol:check`；`capability-manifest.test.js` 新增 byte-diff 断言（读签入副本 = `renderProtocolDoc()`），manifest 加 wire 字段但未重生成即测试红——drift 不可能 merge 绿。
+- **离线协议回放 + 兼容审计**：新增 `protocol-replay.js`——拿一段录制的 stream-json 会话 + 协商上下文（server×client offer），**无需活体对端**离线①回放到该协商下的线上形态（未通过协商的字段按 field-gate 剥离）②审计录制是否遵守协商（任何帧携带已 gate-OFF 的可协商 wire 字段 = 前向兼容违规,fail-closed）。可 gate 字段集从唯一源 `toFieldGate()` 投影不会漂移；`sessionDigest` 键序无关可 pin golden 录制。离线工具 `scripts/replay-protocol.mjs`（`--replay`/`--audit`,违规 exit 1）+ golden fixture。
+- **治理覆盖率指标（§11.3 验收）**：新增 `governance-coverage.js`——①高风险 Tool Call Ledger/Trace 覆盖率（每个不可逆副作用调用须既有 side-effect-ledger 记录又有 trace span,「高风险」复用唯一源 `classifyToolSideEffect`）②Plugin/MCP/Skill/Hook 溯源可追溯率（外部来源调用须带 source+version+scope+权限决策）;`ok` 仅双 100% 才真(fail-closed),给逐条未覆盖项。离线工具 `scripts/coverage-report.mjs`（读 run-summary JSON,任一 gap exit 1,可对录制 run 工件 CI 强制 100%）。
+
 ### Added — cc CLI 0.162.165：精简项目记忆——`--no-project-memory` 全关 + `CC_PROJECT_MEMORY=lean` 只留入口文件 + IDE 聊天「精简上下文」默认开（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.164 → **0.162.165** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+ VS Code 插件设置）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 `cc agent --no-project-memory` **标志** + `CC_PROJECT_MEMORY` 环境变量识别，**顶层命令数 175 不变**；默认路径字节不变。动机：文档密集的仓库里 `cc agent` 每轮都把整套项目记忆重发进系统提示（本仓库实测约 12k token/轮），付费模型即真金白银。
