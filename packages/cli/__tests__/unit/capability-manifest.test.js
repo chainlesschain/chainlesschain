@@ -7,6 +7,8 @@
  * added to one place but not the manifest fails the build.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   CAPABILITY_MANIFEST,
   toProtocolFeatures,
@@ -133,6 +135,22 @@ describe("renderBehaviorMatrix / renderProtocolDoc", () => {
     expect(doc).toBe(renderProtocolDoc());
     for (const f of PROTOCOL_FEATURES) expect(doc).toContain(`\`${f}\``);
     expect(doc.endsWith("\n")).toBe(true);
+  });
+
+  // CI byte-diff drift guard (P1-9 "renderProtocolDoc 接进 CI byte-diff 签入副本"):
+  // the checked-in generated doc MUST equal the manifest projection byte-for-byte.
+  // A v2 wire field added to CAPABILITY_MANIFEST but not regenerated here (via
+  // `npm run docs:protocol`) fails this test — the same guarantee gen-cli-
+  // reference gives, but run inside the suite so drift can never merge green.
+  it("checked-in PROTOCOL_CAPABILITY_MANIFEST.generated.md matches renderProtocolDoc() byte-for-byte", () => {
+    const docPath = fileURLToPath(
+      new URL(
+        "../../../../docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md",
+        import.meta.url,
+      ),
+    );
+    const committed = readFileSync(docPath, "utf-8");
+    expect(committed).toBe(renderProtocolDoc());
   });
 });
 
