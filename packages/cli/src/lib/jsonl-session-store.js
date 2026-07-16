@@ -21,6 +21,7 @@ export {
   readEvents,
   rebuildMessages,
   listJsonlSessions,
+  listSessionIds,
   renameSession,
   pruneJsonlSessions,
   forkSession,
