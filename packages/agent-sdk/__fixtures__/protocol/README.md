@@ -39,10 +39,14 @@ tests keep the two panels honest.
   - `interaction.ndjson` — `approval_request` / `approval_resolved` and
     `question_request` / `question_resolved` (answered vs. timed-out).
   - `misc.ndjson` — `token_usage`, `plan_update`, `compaction`,
-    `iteration_warning`, `iteration_budget_exhausted`, `session_error`,
-    `raw` (provider fallback), and several **UI-silent** / **unknown**
-    forward-compat events (`stream_retry`, `user`, `feedback_ack`,
-    `resume_ack`, and a fabricated `totally_new_event_v9`).
+    `iteration_warning`, `iteration_budget_exhausted` (info line),
+    `stream_retry` (info line — a reconnect loop must not look like a
+    silent stall), `cost_budget_exhausted` (info line with the $ figures),
+    budget-stop `result` subtypes (`error_max_turns` / `error_max_budget` —
+    the stop REASON renders instead of repainting already-streamed text),
+    `session_error`, `raw` (provider fallback), and several **UI-silent** /
+    **unknown** forward-compat events (`user`, `feedback_ack`, `resume_ack`,
+    and a fabricated `totally_new_event_v9`).
 - `expected.json` — for each `*.ndjson` file, the ordered array of expected
   projections (one per non-blank line). `_doc` describes the state rule.
 

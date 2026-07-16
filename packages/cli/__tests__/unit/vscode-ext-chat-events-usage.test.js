@@ -50,8 +50,15 @@ describe("chat-events — iteration_warning mapping", () => {
     expect(r.text).toMatch(/^⚠ .*iteration/i);
   });
 
-  it("iteration_budget_exhausted stays UI-silent (the result envelope reports it)", () => {
-    expect(map({ type: "iteration_budget_exhausted", budget: 25 })).toBe(null);
+  it("iteration_budget_exhausted renders an info line (a budget stop must not be a silent stall)", () => {
+    expect(map({ type: "iteration_budget_exhausted", budget: 25 })).toEqual({
+      kind: "info",
+      text: "⏹ turn budget exhausted (25 turns)",
+    });
+    expect(map({ type: "iteration_budget_exhausted" })).toEqual({
+      kind: "info",
+      text: "⏹ turn budget exhausted",
+    });
   });
 });
 

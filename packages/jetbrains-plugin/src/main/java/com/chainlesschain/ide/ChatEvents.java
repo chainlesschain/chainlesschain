@@ -77,6 +77,26 @@ public final class ChatEvents {
         return v instanceof Number ? ((Number) v).longValue() : 0L;
     }
 
+    /** JS-style rendering of a finite number ("2", not "2.0"); null otherwise —
+     *  keeps the info-line wording byte-identical to the VS Code mapper. */
+    private static String numText(Object v) {
+        if (!(v instanceof Number)) return null;
+        double d = ((Number) v).doubleValue();
+        if (Double.isNaN(d) || Double.isInfinite(d)) return null;
+        if (d == Math.floor(d) && Math.abs(d) < 9.007199254740992E15) {
+            return Long.toString((long) d);
+        }
+        return Double.toString(d);
+    }
+
+    /** "$1.00"-style dollars from a finite number; null otherwise. */
+    private static String usd(Object v) {
+        if (!(v instanceof Number)) return null;
+        double d = ((Number) v).doubleValue();
+        if (Double.isNaN(d) || Double.isInfinite(d)) return null;
+        return "$" + String.format(java.util.Locale.ROOT, "%.2f", d);
+    }
+
     /** One-line argument summary for the tool trace (mirrors the CLI). */
     public static String summarizeToolArgs(Object args) {
         if (!(args instanceof Map)) return "";
@@ -204,6 +224,23 @@ public final class ChatEvents {
                 m.put("usage", null);
                 return m;
             }
+            // Budget stops (error_max_turns / error_max_budget) carry the FULL
+            // final text in evt.result — repainting it as the error would
+            // duplicate everything that already streamed, in red. Show the stop
+            // reason instead (the dedicated budget events carry the figures).
+            String subtype = str(evt, "subtype", "");
+            if ("error_max_turns".equals(subtype) || "error_max_budget".equals(subtype)) {
+                String reason = "error_max_turns".equals(subtype)
+                        ? "⏹ stopped: turn budget exhausted"
+                        : "⏹ stopped: cost budget exhausted";
+                String result = evt.get("result") == null
+                        ? "" : String.valueOf(evt.get("result"));
+                m.put("isError", true);
+                m.put("text", sawDelta ? reason
+                        : result.isEmpty() ? reason : result + "\n" + reason);
+                m.put("usage", evt.get("usage"));
+                return m;
+            }
             boolean isError = isTrue(evt.get("is_error"));
             m.put("isError", isError);
             Object text;
@@ -277,6 +314,34 @@ public final class ChatEvents {
             Object msg = evt.get("message");
             m.put("text", "⚠ " + (msg instanceof String && !((String) msg).isEmpty()
                     ? msg : "approaching the iteration limit"));
+            return m;
+        }
+        if ("stream_retry".equals(type)) {
+            // Transient API connection drop mid-stream — without this line the
+            // reconnect loop is an unexplained "thinking…" stall.
+            Map<String, Object> m = ui("info");
+            Object msg = evt.get("message");
+            String attempt = numText(evt.get("attempt"));
+            m.put("text", "⚠ "
+                    + (msg instanceof String && !((String) msg).isEmpty()
+                            ? msg : "API connection dropped — retrying")
+                    + (attempt != null ? " (attempt " + attempt + ")" : ""));
+            return m;
+        }
+        if ("iteration_budget_exhausted".equals(type)) {
+            Map<String, Object> m = ui("info");
+            String budget = numText(evt.get("budget"));
+            m.put("text", "⏹ turn budget exhausted"
+                    + (budget != null ? " (" + budget + " turns)" : ""));
+            return m;
+        }
+        if ("cost_budget_exhausted".equals(type)) {
+            Map<String, Object> m = ui("info");
+            String spent = usd(evt.get("spent_usd"));
+            String limit = usd(evt.get("limit_usd"));
+            m.put("text", "⏹ cost budget exhausted"
+                    + (spent != null && limit != null
+                            ? " (" + spent + " of " + limit + ")" : ""));
             return m;
         }
         if ("session_error".equals(type)) {

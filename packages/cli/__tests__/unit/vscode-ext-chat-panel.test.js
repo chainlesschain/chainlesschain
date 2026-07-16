@@ -108,9 +108,12 @@ describe("mapAgentEvent", () => {
       kind: "usage",
       usage: {},
     });
+    // iteration_budget_exhausted is an info line now (fixture-pinned) — the
+    // remaining truly-silent representative is an unknown forward-compat type.
     expect(
       mapAgentEvent({ type: "iteration_budget_exhausted", budget: 25 }, st),
-    ).toBe(null);
+    ).toMatchObject({ kind: "info" });
+    expect(mapAgentEvent({ type: "totally_new_event_v9" }, st)).toBe(null);
     expect(mapAgentEvent(null, st)).toBe(null);
   });
 

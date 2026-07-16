@@ -14,3 +14,6 @@
 {"type":"feedback_ack","turn_id":"t-1","kind":"positive","session_id":"sess-fx-1"}
 {"type":"resume_ack","token":"rs-1","action":"completed","session_id":"sess-fx-1"}
 {"type":"totally_new_event_v9","payload":{"x":1},"seq":42}
+{"type":"cost_budget_exhausted","limit_usd":1,"spent_usd":0.52,"session_id":"sess-fx-1","turn":7}
+{"type":"result","subtype":"error_max_turns","is_error":true,"result":"partial answer","session_id":"sess-fx-1","turn":7}
+{"type":"result","subtype":"error_max_budget","is_error":true,"result":"","session_id":"sess-fx-1","turn":8}

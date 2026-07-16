@@ -117,6 +117,29 @@ function mapAgentEvent(evt, state) {
           usage: null,
         };
       }
+      // Budget stops (error_max_turns / error_max_budget) carry the FULL
+      // final text in evt.result — repainting it as the error would duplicate
+      // everything that already streamed, in red. Show the stop reason
+      // instead (the dedicated budget events above carry the figures).
+      if (
+        evt.subtype === "error_max_turns" ||
+        evt.subtype === "error_max_budget"
+      ) {
+        const reason =
+          evt.subtype === "error_max_turns"
+            ? "⏹ stopped: turn budget exhausted"
+            : "⏹ stopped: cost budget exhausted";
+        return {
+          kind: "turn_end",
+          isError: true,
+          text: sawDelta
+            ? reason
+            : evt.result
+              ? `${evt.result}\n${reason}`
+              : reason,
+          usage: evt.usage || null,
+        };
+      }
       return {
         kind: "turn_end",
         isError: evt.is_error === true,
@@ -188,10 +211,41 @@ function mapAgentEvent(evt, state) {
         kind: "info",
         text: "⚠ " + (evt.message || "approaching the iteration limit"),
       };
+    case "stream_retry":
+      // Transient API connection drop mid-stream — without this line the
+      // reconnect loop is an unexplained "thinking…" stall.
+      return {
+        kind: "info",
+        text:
+          "⚠ " +
+          (evt.message || "API connection dropped — retrying") +
+          (Number.isFinite(evt.attempt) ? ` (attempt ${evt.attempt})` : ""),
+      };
+    case "iteration_budget_exhausted":
+      return {
+        kind: "info",
+        text:
+          "⏹ turn budget exhausted" +
+          (Number.isFinite(evt.budget) ? ` (${evt.budget} turns)` : ""),
+      };
+    case "cost_budget_exhausted": {
+      const spent = Number.isFinite(evt.spent_usd)
+        ? `$${Number(evt.spent_usd).toFixed(2)}`
+        : null;
+      const limit = Number.isFinite(evt.limit_usd)
+        ? `$${Number(evt.limit_usd).toFixed(2)}`
+        : null;
+      return {
+        kind: "info",
+        text:
+          "⏹ cost budget exhausted" +
+          (spent && limit ? ` (${spent} of ${limit})` : ""),
+      };
+    }
     case "raw":
       return { kind: "info", text: evt.text };
     default:
-      return null; // iteration_budget_exhausted, … — UI-silent for now
+      return null; // unknown/UI-silent event types
   }
 }
 

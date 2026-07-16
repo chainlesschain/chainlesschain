@@ -130,6 +130,102 @@ class ChatEventsTest {
         assertNull(ChatEvents.mapAgentEvent(null, new ChatEvents.TurnState()));
     }
 
+    // ── stream_retry + budget events (byte-identical to the VS mapper) ──────
+
+    @Test
+    void streamRetryMapsToInfoWithAttempt() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "stream_retry");
+        evt.put("attempt", 2L);
+        evt.put("message", "API connection dropped - retrying");
+        Map<String, Object> ui = ChatEvents.mapAgentEvent(evt, st);
+        assertEquals("info", ui.get("kind"));
+        assertEquals("⚠ API connection dropped - retrying (attempt 2)", ui.get("text"));
+    }
+
+    @Test
+    void streamRetryWithoutFieldsUsesDefaultWording() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "stream_retry");
+        Map<String, Object> ui = ChatEvents.mapAgentEvent(evt, st);
+        assertEquals("⚠ API connection dropped — retrying", ui.get("text"));
+    }
+
+    @Test
+    void iterationBudgetExhaustedMapsToInfo() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "iteration_budget_exhausted");
+        evt.put("budget", 50L);
+        assertEquals("⏹ turn budget exhausted (50 turns)",
+                ChatEvents.mapAgentEvent(evt, st).get("text"));
+        evt.remove("budget");
+        assertEquals("⏹ turn budget exhausted",
+                ChatEvents.mapAgentEvent(evt, st).get("text"));
+    }
+
+    @Test
+    void costBudgetExhaustedMapsToInfoWithTwoDecimalDollars() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "cost_budget_exhausted");
+        evt.put("spent_usd", 0.52);
+        evt.put("limit_usd", 1L); // integer limit still renders "$1.00"
+        assertEquals("⏹ cost budget exhausted ($0.52 of $1.00)",
+                ChatEvents.mapAgentEvent(evt, st).get("text"));
+        evt.remove("limit_usd"); // one figure missing → no parenthetical
+        assertEquals("⏹ cost budget exhausted",
+                ChatEvents.mapAgentEvent(evt, st).get("text"));
+    }
+
+    @Test
+    void budgetResultAfterStreamedTextShowsOnlyTheStopReason() {
+        // The error_max_* result carries the FULL final text in evt.result —
+        // repainting it would duplicate everything that already streamed.
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> delta = new LinkedHashMap<>();
+        delta.put("type", "text_delta");
+        delta.put("text", "streamed body");
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("delta", delta);
+        Map<String, Object> stream = new LinkedHashMap<>();
+        stream.put("type", "stream_event");
+        stream.put("event", event);
+        ChatEvents.mapAgentEvent(stream, st); // sets sawDelta
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "result");
+        result.put("subtype", "error_max_turns");
+        result.put("is_error", true);
+        result.put("result", "streamed body");
+        Map<String, Object> ui = ChatEvents.mapAgentEvent(result, st);
+        assertEquals("turn_end", ui.get("kind"));
+        assertEquals(Boolean.TRUE, ui.get("isError"));
+        assertEquals("⏹ stopped: turn budget exhausted", ui.get("text"));
+    }
+
+    @Test
+    void budgetResultWithoutStreamedTextKeepsTheResultPlusReason() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "result");
+        result.put("subtype", "error_max_budget");
+        result.put("is_error", true);
+        result.put("result", "partial answer");
+        Map<String, Object> ui = ChatEvents.mapAgentEvent(result, st);
+        assertEquals("partial answer\n⏹ stopped: cost budget exhausted", ui.get("text"));
+
+        Map<String, Object> empty = new LinkedHashMap<>();
+        empty.put("type", "result");
+        empty.put("subtype", "error_max_budget");
+        empty.put("is_error", true);
+        empty.put("result", "");
+        assertEquals("⏹ stopped: cost budget exhausted",
+                ChatEvents.mapAgentEvent(empty, new ChatEvents.TurnState()).get("text"));
+    }
+
     // ── buildSessionArgs (unambiguous from source) ──────────────────────────
 
     @Test

@@ -49,13 +49,16 @@
     { "kind": "info", "text": "compacted: saved ? tokens" },
     { "kind": "info", "text": "⚠ approaching turn 45/50" },
     { "kind": "info", "text": "⚠ approaching the iteration limit" },
-    { "kind": null },
+    { "kind": "info", "text": "⏹ turn budget exhausted (50 turns)" },
     { "kind": "error", "text": "spawn cc ENOENT" },
     { "kind": "info", "text": "provider fell back to ollama" },
+    { "kind": "info", "text": "⚠ API connection dropped - retrying (attempt 2)" },
     { "kind": null },
     { "kind": null },
     { "kind": null },
     { "kind": null },
-    { "kind": null }
+    { "kind": "info", "text": "⏹ cost budget exhausted ($0.52 of $1.00)" },
+    { "kind": "turn_end", "isError": true, "text": "partial answer\n⏹ stopped: turn budget exhausted", "hasUsage": false },
+    { "kind": "turn_end", "isError": true, "text": "⏹ stopped: cost budget exhausted", "hasUsage": false }
   ]
 }
