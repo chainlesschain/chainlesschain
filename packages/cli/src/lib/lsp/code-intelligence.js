@@ -64,7 +64,11 @@ export class CodeIntelligence {
       /* plugin LSP contributions are best-effort */
     }
     this.manager =
-      opts.manager || new LSPManager({ projectRoot: opts.projectRoot });
+      opts.manager ||
+      new LSPManager({
+        projectRoot: opts.projectRoot,
+        ...(opts.lspOptions || {}),
+      });
     this._ownsManager = !opts.manager;
     // One-shot callers (the `cc code-intel` CLI) spawn a cold server per run and
     // must wait for the project to load before querying; the long-lived agent

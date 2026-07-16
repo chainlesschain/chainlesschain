@@ -273,3 +273,74 @@ describe.skipIf(!tsAvailable)("code_intelligence tool — live TS server", () =>
     expect(res.available === true || res.unavailable === true).toBe(true);
   });
 });
+
+describe("shared code-intelligence pool — restart backoff default", () => {
+  afterAll(async () => {
+    await disposeSharedCodeIntel();
+    delete process.env.CC_LSP_RESTART_BACKOFF_MS;
+  });
+
+  it("constructs the pooled manager with backoff ON by default (1s base)", async () => {
+    delete process.env.CC_LSP_RESTART_BACKOFF_MS;
+    await disposeSharedCodeIntel(); // fresh pool so the env is honored
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-backoff-"));
+    try {
+      const ci = await _getSharedCodeIntel(dir);
+      expect(ci.manager.restartBackoffBaseMs).toBe(1000);
+      // Exponential schedule is live: 1s → 2s → 4s → 8s (capped).
+      expect(ci.manager._restartBackoffMs(1)).toBe(1000);
+      expect(ci.manager._restartBackoffMs(2)).toBe(2000);
+      expect(ci.manager._restartBackoffMs(4)).toBe(8000);
+    } finally {
+      await disposeSharedCodeIntel();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("CC_LSP_RESTART_BACKOFF_MS=0 restores immediate respawn (legacy)", async () => {
+    process.env.CC_LSP_RESTART_BACKOFF_MS = "0";
+    await disposeSharedCodeIntel();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-backoff0-"));
+    try {
+      const ci = await _getSharedCodeIntel(dir);
+      expect(ci.manager.restartBackoffBaseMs).toBe(0);
+      expect(ci.manager._restartBackoffMs(3)).toBe(0);
+    } finally {
+      delete process.env.CC_LSP_RESTART_BACKOFF_MS;
+      await disposeSharedCodeIntel();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("code_intelligence tool — multi-root workspace", () => {
+  afterAll(async () => {
+    await disposeSharedCodeIntel();
+  });
+
+  it("keys the server pool on the root containing the file (--add-dir root)", async () => {
+    const rootA = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-rootA-"));
+    const rootB = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-rootB-"));
+    try {
+      // An unsupported file type inside rootB degrades gracefully, but the
+      // pool must have been keyed on rootB (the containing root), not rootA.
+      const target = path.join(rootB, "notes.xyz");
+      fs.writeFileSync(target, "hello", "utf-8");
+      const res = await executeTool(
+        "code_intelligence",
+        { action: "document_symbols", file: target },
+        { cwd: rootA, additionalDirectories: [rootB] },
+      );
+      expect(res.unavailable).toBe(true); // no server for .xyz — degradation path
+      const pooledB = await _getSharedCodeIntel(rootB);
+      expect(pooledB.manager.projectRoot).toBe(path.resolve(rootB));
+      // rootA's ci (created by the fallback below) differs from rootB's.
+      const pooledA = await _getSharedCodeIntel(rootA);
+      expect(pooledA).not.toBe(pooledB);
+    } finally {
+      await disposeSharedCodeIntel();
+      fs.rmSync(rootA, { recursive: true, force: true });
+      fs.rmSync(rootB, { recursive: true, force: true });
+    }
+  });
+});

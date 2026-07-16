@@ -28,6 +28,11 @@ import { mergeProviderOptions } from "../lib/provider-options.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
 import { describeBackgroundCommand } from "../lib/terminal-context.js";
 import { buildTelemetryAttributes } from "../lib/telemetry-ids.js";
+import {
+  workspaceRootsFor,
+  pickRootForFile,
+  mergeWorkspaceSymbolResults,
+} from "../lib/lsp/workspace-roots.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -2114,6 +2119,21 @@ const _codeIntelPool = new Map(); // root -> { ci, idleTimer }
 const CODE_INTEL_IDLE_MS = 60_000;
 let _codeIntelExitHooked = false;
 
+// Restart backoff between language-server re-spawns (P2 LSP): DEFAULT ON at a
+// 1s base (1s→2s→4s→8s cap, see lsp-manager) so a server that crashes on
+// startup can't burst `maxRestarts` spawns back-to-back before quarantine.
+// `CC_LSP_RESTART_BACKOFF_MS` overrides the base; 0 restores the legacy
+// immediate-respawn behavior.
+const DEFAULT_LSP_RESTART_BACKOFF_MS = 1000;
+function _lspRestartBackoffBaseMs() {
+  const raw = process.env.CC_LSP_RESTART_BACKOFF_MS;
+  if (raw !== undefined && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return Math.max(0, n);
+  }
+  return DEFAULT_LSP_RESTART_BACKOFF_MS;
+}
+
 export async function _getSharedCodeIntel(cwd) {
   const root = path.resolve(cwd || process.cwd());
   let entry = _codeIntelPool.get(root);
@@ -2133,7 +2153,11 @@ export async function _getSharedCodeIntel(cwd) {
     entry = _codeIntelPool.get(root);
     if (!entry) {
       entry = {
-        ci: new CodeIntelligence({ projectRoot: root, coldStart: true }),
+        ci: new CodeIntelligence({
+          projectRoot: root,
+          coldStart: true,
+          lspOptions: { restartBackoffBaseMs: _lspRestartBackoffBaseMs() },
+        }),
         idleTimer: null,
       };
       _codeIntelPool.set(root, entry);
@@ -3862,8 +3886,15 @@ async function executeToolInner(
           error: `code_intelligence action "rename_preview" requires "new_name".`,
         });
       }
-      const ci = await _getSharedCodeIntel(cwd);
+      // Multi-root workspace (P2 LSP): key the shared server pool on the root
+      // that actually CONTAINS the file — a file inside an `--add-dir` root
+      // gets that project's language server, not the cwd's. Single-root
+      // sessions resolve to cwd exactly as before (byte-identical).
       const file = args.file ? path.resolve(cwd, args.file) : null;
+      const wsRoots = workspaceRootsFor(cwd, additionalDirectories);
+      const ci = await _getSharedCodeIntel(
+        file ? pickRootForFile(file, wsRoots) : cwd,
+      );
       let res;
       try {
         switch (action) {
@@ -3879,9 +3910,29 @@ async function executeToolInner(
           case "document_symbols":
             res = await ci.documentSymbols(file);
             break;
-          case "workspace_symbols":
-            res = await ci.workspaceSymbols(String(args.query));
+          case "workspace_symbols": {
+            // Fan out across EVERY workspace root and merge — symbols from an
+            // --add-dir project are stamped with their `root` so same-named
+            // symbols stay unambiguous. One root → the exact legacy call.
+            if (wsRoots.length > 1) {
+              const perRoot = [];
+              for (const r of wsRoots) {
+                try {
+                  const rci = await _getSharedCodeIntel(r);
+                  perRoot.push(await rci.workspaceSymbols(String(args.query)));
+                } catch (err) {
+                  perRoot.push({
+                    available: false,
+                    reason: err?.message || "workspace_symbols failed",
+                  });
+                }
+              }
+              res = mergeWorkspaceSymbolResults(perRoot, wsRoots);
+            } else {
+              res = await ci.workspaceSymbols(String(args.query));
+            }
             break;
+          }
           case "diagnostics":
             res = await ci.diagnostics(file);
             break;
