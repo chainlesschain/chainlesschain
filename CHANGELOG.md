@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子生产者（CwdChanged / Worktree\* / InstructionsLoaded）+ doctor 孤儿子进程 + 4 项杂项 gap 接线（CLI-only npm 发版）
+### Added — cc CLI 0.162.168：增量 gap-analysis 第二批接线——后台 Agent「等待审批」真实状态 + hook 事件溯源（trace/parent）+ LSP 多根与重启退避默认开 + 严格 hook 合并真并行 + 大仓 subagent worktree/子树指令 + run_code install 审计（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.167 → **0.162.168** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（10 个 feat commit + 测试 + gap-analysis 文档状态）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**。绝大多数改动 opt-in / 默认路径字节不变；**两处默认行为变化**（均可 env 关）：LSP 重启退避默认开（`CC_LSP_RESTART_BACKOFF_MS=0` 恢复旧行为）与子树指令懒注入默认开（`CC_SUBTREE_INSTRUCTIONS=0` 关）。
+
+- **P0 后台 Agent：`waiting_permission` 真实生产者**：后台 agent 卡在人工审批（`--permission-prompt-tool` / `--remote-control`）时不再永远显示 "Working"——agent 子进程（经 worker 注入的 `CC_BACKGROUND_AGENT_ID`）在审批 pending 期间把 `phase:"waiting_permission"` + 实时 `pendingApprovals` 计数写进共享 state，settle 即恢复；Dashboard "Needs input" 分组从此有真数据。前台运行返回同一 confirmer 函数对象、零 IO 字节不变；worker 在每回合开始与 idle 重置计数，被 SIGKILL 于审批中途的子进程不会把会话永久钉在 "Needs input"。
+- **P0 沙箱：统一 install 审计扩到 `run_code`**：分类器新识别模块调用 `python`/`python3`/`py` `-m pip install …`（含 `sudo` 包裹；`-m http.server`/`-m venv`/`setup.py install` 不误报）；`run_code` 的 pip 自动安装 installed/failed 尝试在同一 opt-in 策略（`CC_INSTALL_AUDIT` / settings `installPolicy`）下落统一 `install-commands.jsonl`（`source:"run_code_auto_install"` + pip 分类 + global 判定）——一份审计覆盖所有「下载并运行第三方代码」入口。
+- **P2 Hooks：strictest-merge 决策合并（opt-in `CC_HOOK_STRICT_MERGE=1`）+ PreToolUse 真并行**：修掉真实安全缺口——原按序短路下**较早**的一个 `ask` 会掩盖**较晚**一个 hook 的 `block`（blocker 根本没跑）。开启后跑完全部匹配 hook 取最严（block>ask>allow>continue）；PreToolUse 路径经异步 spawn **真并行**（wall-clock=最慢单 hook 而非求和，硬超时 SIGKILL 挂死 hook）。默认关=逐字节原短路行为。
+- **P2 Hooks：trace_id/parent_id 事件溯源**：PreToolUse / PostToolUse / PermissionRequest / SubagentStop 四个 payload 构造点现带 `event_id` + `trace_id`（本 run）+ `parent_id`（spawn 方 run）；`spawn_sub_agent` 与隔离 `run_skill` 把父 trace 线程进子 loop，子 agent 的 hook 事件跨深度关联回父 trace。未线程时字段整个省略——legacy payload 字节不变；`CC_HOOK_EVENT_LOG` 开启时这些决策事件顺带可被 `cc hook replay` 寻址。
+- **P2 LSP：重启退避默认开 + 多根 workspace**：池化语言服务器重启退避默认 1s→2s→4s→8s 封顶（启动即崩的 server 不再毫秒级连爆 `maxRestarts` 次；`CC_LSP_RESTART_BACKOFF_MS` 覆盖、`=0` 恢复立即重生）。`code_intelligence` 现按**包含该文件的根**（containment 最深根胜）key 共享 server 池——`--add-dir` 根内的文件拿到它自己项目的语言服务器而非 cwd 的；`workspace_symbols` 跨全部根扇出合并、逐 symbol 标注 `root`。单根会话字节不变。
+- **P1 大仓：子树指令懒注入（tool-time）**：工具**首次访问**某子树（read_file / list_dir / write_file / edit_file / edit_file_hashed）时把该子树自带的 `cc.md`/`CLAUDE.md`/`AGENTS.md` 附到工具结果的 `subtreeInstructions` 字段（每子树每进程恰一次，honor `instructionExcludes`，fail-open）——monorepo 里 per-package 规则不再要求启动时全量注入。子树无指令文件（常态）零成本；`CC_SUBTREE_INSTRUCTIONS=0` 整体关闭。同批：post-edit 诊断从未排序裸 cap 20 改为 **severity 优先 + token 预算**封顶（error 先于 warning，`CC_EDIT_DIAGNOSTICS_TOKENS` 默认 2000）。
+- **P1 subagent/大仓三项收尾**：①subagent worktree spawn 透传 `sparsePaths`/`symlinkDirectories`（spawn-arg 胜 agent-file；隔离 worktree 只 checkout 任务需要的包 + junction 复用依赖目录）；②agent-file frontmatter `background: true` 现真生效（此前只认调用方显式传参）；③headless `--add-dir` 启动根 seed——`cc agent -p --add-dir` 现把完整根列表告知已连 MCP 服务器（`roots/list_changed`），此前它们的 `roots/list` 永远只见 cwd。
 
 > `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。
 

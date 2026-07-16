@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.168：增量 gap-analysis 第二批接线——后台 Agent「等待审批」真实状态 + hook 事件溯源 + LSP 多根与退避默认开 + 严格 hook 合并真并行 + 大仓 subagent worktree/子树指令 + run_code install 审计
+
+> CLI-only 发版（`chainlesschain` 0.162.167 → **0.162.168**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（10 个 feat commit + 测试 + 文档状态）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**。绝大多数改动 opt-in / 默认路径字节不变；**两处默认行为变化**（均可 env 关）：LSP 重启退避默认开（`CC_LSP_RESTART_BACKOFF_MS=0` 恢复旧行为）、子树指令懒注入默认开（`CC_SUBTREE_INSTRUCTIONS=0` 关）。
+
+- **P0 后台 Agent：`waiting_permission` 真实生产者**：后台 agent 卡在人工审批（`--permission-prompt-tool`/`--remote-control`）时不再永远显示 "Working"——子进程在审批 pending 期间把 `phase:"waiting_permission"` + 实时 `pendingApprovals` 写进共享 state、settle 恢复；Dashboard "Needs input" 分组有真数据。前台零 IO 字节不变；worker 回合开始/idle 重置计数，防被 SIGKILL 的子进程把会话钉死在 "Needs input"。
+- **P0 沙箱：统一 install 审计扩到 `run_code`**：新识别 `python -m pip install`（含 sudo 包裹，`-m http.server`/`-m venv` 不误报）；run_code 自动安装的 installed/failed 在同一 opt-in 策略（`CC_INSTALL_AUDIT`/settings `installPolicy`）下落统一 `install-commands.jsonl`——一份审计覆盖所有「下载并运行第三方代码」入口。
+- **P2 Hooks：strictest-merge（opt-in `CC_HOOK_STRICT_MERGE=1`）+ PreToolUse 真并行**：修「较早的 `ask` 掩盖较晚的 `block`」缺口——开启后跑完全部匹配 hook 取最严；PreToolUse 经异步 spawn 真并行（wall-clock=最慢单 hook，硬超时 SIGKILL）。默认关=逐字节原行为。
+- **P2 Hooks：trace_id/parent_id 事件溯源**：PreToolUse/PostToolUse/PermissionRequest/SubagentStop payload 现带 `event_id`+`trace_id`（本 run）+`parent_id`（spawn 方 run）；子 agent hook 事件跨深度关联父 trace。未线程时字段整个省略——legacy 字节不变。
+- **P2 LSP：重启退避默认开 + 多根 workspace**：退避默认 1s→2s→4s→8s 封顶；`code_intelligence` 按**包含文件的根**key server 池（`--add-dir` 根拿自己项目的服务器），`workspace_symbols` 跨根扇出合并、逐 symbol 标 `root`。单根字节不变。
+- **P1 大仓：子树指令懒注入**：工具首访子树时把该子树 `cc.md`/`CLAUDE.md`/`AGENTS.md` 附到工具结果 `subtreeInstructions`（每子树一次，honor `instructionExcludes`）；post-edit 诊断改 severity 优先 + token 预算封顶（`CC_EDIT_DIAGNOSTICS_TOKENS` 默认 2000）。
+- **P1 subagent 三项收尾**：worktree spawn 透传 `sparsePaths`/`symlinkDirectories`；agent-file `background: true` 真生效；headless `--add-dir` 启动根 seed MCP `roots/list_changed`。
+
 #### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子 + doctor 孤儿子进程 + 4 项杂项接线
 
 > CLI-only 发版（`chainlesschain` 0.162.166 → **0.162.167**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + 文档状态）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**，所有改动 opt-in / 默认路径字节不变。收尾 `CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 多个可落地「仍欠」项。
