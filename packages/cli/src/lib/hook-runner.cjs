@@ -26,6 +26,7 @@ const {
   buildPowershellArgv,
   loadShellConfig,
 } = require("./shell-selector.cjs");
+const { mergeHookDecisions } = require("./hook-event-bus.cjs");
 
 const _deps = { spawnSync: cpDefault.spawnSync };
 
@@ -287,19 +288,56 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
 }
 
 /**
- * Run a list of command hooks in order; first BLOCK (or ASK) short-circuits.
- * @returns {{ decision, reason, hook?, results }}
+ * Run a list of command hooks and reduce to one decision.
+ *
+ * Default (`opts.mergeStrict` falsy): in-order, the first BLOCK **or** ASK
+ * short-circuits — byte-identical to the historical behavior.
+ *
+ * `opts.mergeStrict: true`: run EVERY matching hook (no short-circuit) then take
+ * the STRICTEST decision (block > ask > allow > continue) via mergeHookDecisions.
+ * This closes the safety gap where an earlier hook's `ask` masks a LATER hook's
+ * `block` (the short-circuit path returns `ask` and never runs the blocker).
+ * Claude-Code parity: all matching hooks contribute to the merged decision.
+ * spawnSync is synchronous so execution is sequential — but the MERGE is
+ * order-independent, so the outcome matches a parallel run.
+ *
+ * @returns {{ decision, reason, hook?, results, contributing? }}
  */
 function runHooks(commandHooks, input = {}, opts = {}) {
   const results = [];
-  for (const h of commandHooks || []) {
-    const r = runCommandHook(h.command, input, {
+  const hooks = commandHooks || [];
+  const runOne = (h) =>
+    runCommandHook(h.command, input, {
       ...opts,
       timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
       // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
       // "shell":"powershell" }` in the settings hook entry
       shell: h.shell != null ? h.shell : opts.shell,
     });
+
+  if (opts.mergeStrict) {
+    const decisions = [];
+    for (const h of hooks) {
+      const r = runOne(h);
+      results.push({ command: h.command, ...r });
+      decisions.push({
+        decision: r.decision,
+        reason: r.reason,
+        hook: h.command,
+      });
+    }
+    const merged = mergeHookDecisions(decisions);
+    return {
+      decision: merged.decision,
+      reason: merged.reason,
+      hook: merged.hook,
+      results,
+      contributing: merged.contributing,
+    };
+  }
+
+  for (const h of hooks) {
+    const r = runOne(h);
     results.push({ command: h.command, ...r });
     if (
       r.decision === HOOK_DECISIONS.BLOCK ||

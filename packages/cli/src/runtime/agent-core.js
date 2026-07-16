@@ -410,6 +410,19 @@ function _resolveShellTimeout(raw) {
 }
 
 /**
+ * Opt-in: run ALL matching decision hooks and take the STRICTEST outcome
+ * (block > ask > allow > continue) instead of the default in-order first-wins
+ * short-circuit — so an earlier hook's `ask` can no longer mask a later hook's
+ * `block`. Default off = byte-identical short-circuit behavior. Flipping the
+ * default is a product decision (all matching hooks then run every time, which
+ * changes hook-execution volume + side effects).
+ */
+function _hookStrictMergeEnabled() {
+  const v = process.env.CC_HOOK_STRICT_MERGE;
+  return v === "1" || v === "true";
+}
+
+/**
  * Run settings.json `PreToolUse` hooks (decision-capable). DB hooks are handled
  * separately + stay observe-only. A `block` decision stops the tool; an `ask`
  * routes to the confirmer (headless without one falls closed). spawnSync is
@@ -430,6 +443,7 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
   const outcome = runCommandHooks(matched, payload, {
     cwd,
     event: "PreToolUse",
+    mergeStrict: _hookStrictMergeEnabled(),
   });
   if (outcome.decision === "block") {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
@@ -502,6 +516,7 @@ function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
   const outcome = runCommandHooks(matched, payload, {
     cwd,
     event: "PermissionRequest",
+    mergeStrict: _hookStrictMergeEnabled(),
   });
   // Precedence: deny > ask > allow > defer. The runner normalizes deny/block →
   // "block" and short-circuits block/ask, but it COLLAPSES an "allow" into the

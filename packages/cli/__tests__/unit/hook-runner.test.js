@@ -294,6 +294,84 @@ describe("runHooks — ordered short-circuit", () => {
   });
 });
 
+describe("runHooks — mergeStrict (strictest-wins, all hooks run)", () => {
+  // Map each hook command to a canned spawnSync result so order + which hooks
+  // ran is observable.
+  const RESULTS = {
+    asker: { status: 0, stdout: '{"decision":"ask"}' },
+    blocker: { status: 2, stderr: "blocked by policy" },
+    allower: { status: 0, stdout: '{"decision":"approve"}' },
+    cont: { status: 0, stdout: "" },
+  };
+  function stubByCommand() {
+    _deps.spawnSync = vi.fn((cmd) => {
+      calls.push({ cmd });
+      return { status: 0, stdout: "", stderr: "", ...(RESULTS[cmd] || {}) };
+    });
+  }
+
+  it("default (no mergeStrict): an earlier ask MASKS a later block", () => {
+    stubByCommand();
+    const r = runHooks([{ command: "asker" }, { command: "blocker" }], {});
+    expect(r.decision).toBe("ask"); // short-circuits at asker
+    expect(calls.map((c) => c.cmd)).toEqual(["asker"]); // blocker never ran
+  });
+
+  it("mergeStrict: a later block WINS over an earlier ask", () => {
+    stubByCommand();
+    const r = runHooks(
+      [{ command: "asker" }, { command: "blocker" }],
+      {},
+      {
+        mergeStrict: true,
+      },
+    );
+    expect(r.decision).toBe("block");
+    expect(r.hook).toBe("blocker");
+    expect(calls.map((c) => c.cmd)).toEqual(["asker", "blocker"]); // both ran
+    expect(r.results).toHaveLength(2);
+    expect(r.contributing).toHaveLength(2);
+  });
+
+  it("mergeStrict: ask beats allow", () => {
+    stubByCommand();
+    const r = runHooks(
+      [{ command: "allower" }, { command: "asker" }],
+      {},
+      {
+        mergeStrict: true,
+      },
+    );
+    expect(r.decision).toBe("ask");
+  });
+
+  it("mergeStrict: allow surfaces directly when nothing stricter fires", () => {
+    stubByCommand();
+    const r = runHooks(
+      [{ command: "cont" }, { command: "allower" }],
+      {},
+      {
+        mergeStrict: true,
+      },
+    );
+    expect(r.decision).toBe("allow");
+    expect(r.hook).toBe("allower");
+  });
+
+  it("mergeStrict: all continue → continue (both ran)", () => {
+    stubByCommand();
+    const r = runHooks(
+      [{ command: "cont" }, { command: "cont" }],
+      {},
+      {
+        mergeStrict: true,
+      },
+    );
+    expect(r.decision).toBe("continue");
+    expect(calls).toHaveLength(2);
+  });
+});
+
 describe("hook circuit breaker (gap 2026-07-11: consecutive-failure trip)", () => {
   it("trips after 3 consecutive non-blocking failures and skips within cooldown", () => {
     stub({ status: 1, stderr: "flaky" });

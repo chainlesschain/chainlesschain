@@ -449,3 +449,47 @@ describe("PreCompact hook block", () => {
     expect(events).toContain("compaction-skipped");
   });
 });
+
+describe("PreToolUse strictest-merge (CC_HOOK_STRICT_MERGE)", () => {
+  // stderr-tagged block so we can tell WHICH hook produced the decision.
+  const HOOK_BLOCK_TAGGED =
+    "node -e \"process.stderr.write('STRICT_BLOCKED');process.exit(2)\"";
+  const twoPre = (c1, c2) => ({
+    PreToolUse: [
+      {
+        matcher: "*",
+        hooks: [
+          { type: "command", command: c1 },
+          { type: "command", command: c2 },
+        ],
+      },
+    ],
+  });
+
+  afterEach(() => {
+    delete process.env.CC_HOOK_STRICT_MERGE;
+  });
+
+  it("default: an earlier ask MASKS a later block (short-circuit)", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, settingsHooks: twoPre(HOOK_ASK, HOOK_BLOCK_TAGGED) },
+    );
+    // Headless has no confirmer, so the ask still falls closed (blocked) — but
+    // the LATER block hook never ran, so its tag is absent.
+    expect(res.error).toBeDefined();
+    expect(res.error).not.toContain("STRICT_BLOCKED");
+  });
+
+  it("CC_HOOK_STRICT_MERGE=1: a later block WINS over an earlier ask", async () => {
+    process.env.CC_HOOK_STRICT_MERGE = "1";
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, settingsHooks: twoPre(HOOK_ASK, HOOK_BLOCK_TAGGED) },
+    );
+    expect(res.error).toContain("STRICT_BLOCKED");
+    expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
+  });
+});

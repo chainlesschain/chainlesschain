@@ -1375,9 +1375,23 @@ memory 关时不调 / 回调抛错不改 prompt）+ `settings-hook-events.test.j
 system-prompt/hook-events/hooks/headless-runner/headless-stream/agent-repl/project-instructions/
 agent-policy 套回归 ~249 绿。
 
-**仍欠（合并接线 + 真沙箱 + 余下新事件触发）**：把 `mergeHookDecisions` 真正接进
-agent-core 的 PreToolUse/PermissionRequest 合并点（现为手写 first-wins + 从 results
-捞 allow）并让多 hook **并行**跑；`planHookReplay`/`cc hook replay --run` 的 DECISION
+**已接线（2026-07-16，`mergeHookDecisions` strictest-merge 接进决策合并点，opt-in）**：把纯核
+`mergeHookDecisions`（block>ask>allow>continue 取最严）接进 `hook-runner.cjs` 的 `runHooks`——新增
+`opts.mergeStrict`：为真时**跑完每个匹配 hook**（不短路）再取最严决策，**默认 false 时逐字节等于**
+原「按序遇 block/ask 短路」。这修掉一个真实安全缺口：原短路路径下**较早**的一个 `ask` 会**掩盖较晚**
+一个 hook 的 `block`（返回 ask 而那个 blocker 根本没跑）。`agent-core.js` 的
+`runSettingsPreToolUseHooks`/`runSettingsPermissionRequestHooks` 两个合并点现按
+`_hookStrictMergeEnabled()`（env `CC_HOOK_STRICT_MERGE=1`）透传 `mergeStrict`；spawnSync 同步故执行
+仍是**顺序**而非真并行，但**合并与顺序无关**故结果等价于并行跑。**默认关=字节不变**（现有 PreToolUse/
+PermissionRequest hook 测试全绿）；default-flip 是产品决策（开启后每次都跑完全部 hook，改变 hook 执行量
++副作用）。测试：`hook-runner.test.js` +5（默认 ask 掩盖 block / mergeStrict later-block 胜且两 hook 都跑
++contributing / ask 胜 allow / allow 直接浮出 / 全 continue）+ `agent-core-hooks.test.js` +2（端到端：
+默认 `[ASK,BLOCK]` 不含 block 标记 / `CC_HOOK_STRICT_MERGE=1` 时 later-block 标记胜出 + policy.decision=block）
+= 63 绿。
+
+**仍欠（真并行 + 真沙箱 + 余下新事件触发）**：mergeStrict 目前是**顺序跑完再合并**（正确但非真
+并行——真并行需把 `spawnSync` 换成 async spawn，属更大重构）+ default-flip（产品决策）；
+`planHookReplay`/`cc hook replay --run` 的 DECISION
 事件需要真沙箱执行器（hook 目前 `shell:true` 继承全 env，无沙箱层）；**余下**新事件类型
 （TaskCreated/TaskCompleted/MCPElicitation）的真触发（`CwdChanged`/`Worktree*`/`InstructionsLoaded`
 已落；剩下的 TaskCreated/TaskCompleted 无单一「用户任务表」语义 seam（散在 team/cowork/a2a 编排命令），
