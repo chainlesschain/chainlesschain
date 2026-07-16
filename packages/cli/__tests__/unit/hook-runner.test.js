@@ -8,16 +8,41 @@
  * stubbed (no real process).
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import runner from "../../src/lib/hook-runner.cjs";
 
 const {
   runCommandHook,
+  runCommandHookAsync,
   runHooks,
+  runHooksParallel,
+  interpretHookOutcome,
   tryParseDecision,
   HOOK_PAYLOAD_SCHEMA_VERSION,
   _resetHookBreaker,
   _deps,
 } = runner;
+
+/** A controllable fake child process for the async `_deps.spawn` path. */
+function fakeChild() {
+  const child = new EventEmitter();
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  child.stdinWrites = [];
+  child.stdin = {
+    write: (d) => child.stdinWrites.push(String(d)),
+    end: () => {},
+    on: () => {},
+  };
+  child.kill = vi.fn();
+  child.finish = ({ stdout = "", stderr = "", code = 0 } = {}) => {
+    if (stdout) child.stdout.emit("data", Buffer.from(stdout));
+    if (stderr) child.stderr.emit("data", Buffer.from(stderr));
+    child.emit("close", code);
+  };
+  child.fail = (err) => child.emit("error", err);
+  return child;
+}
 
 let calls;
 function stub(returns) {
@@ -441,5 +466,143 @@ describe("hook circuit breaker (gap 2026-07-11: consecutive-failure trip)", () =
     } finally {
       delete process.env.CC_HOOK_BREAKER_THRESHOLD;
     }
+  });
+});
+
+describe("interpretHookOutcome — shared protocol interpreter", () => {
+  it("maps spawn error / exit 2 / exit 0 JSON / other exit", () => {
+    expect(interpretHookOutcome({ error: new Error("ENOENT") })).toMatchObject({
+      decision: "continue",
+      nonBlockingError: true,
+    });
+    expect(interpretHookOutcome({ status: 2, stderr: "nope" })).toMatchObject({
+      decision: "block",
+      reason: "nope",
+    });
+    expect(
+      interpretHookOutcome({ status: 0, stdout: '{"decision":"ask"}' }),
+    ).toMatchObject({ decision: "ask" });
+    expect(interpretHookOutcome({ status: 1, stderr: "warn" })).toMatchObject({
+      decision: "continue",
+      nonBlockingError: true,
+    });
+  });
+});
+
+describe("runCommandHookAsync — async single hook", () => {
+  it("writes the JSON payload to stdin and parses an exit-0 decision", async () => {
+    const child = fakeChild();
+    _deps.spawn = vi.fn(() => child);
+    const p = runCommandHookAsync(
+      "guard.sh",
+      { tool_name: "Bash", x: 1 },
+      { event: "PreToolUse" },
+    );
+    child.finish({ stdout: '{"decision":"block","reason":"bad"}' });
+    const r = await p;
+    expect(r).toMatchObject({ decision: "block", reason: "bad" });
+    expect(child.stdinWrites[0]).toBe(
+      JSON.stringify({
+        tool_name: "Bash",
+        x: 1,
+        schema_version: HOOK_PAYLOAD_SCHEMA_VERSION,
+      }),
+    );
+  });
+
+  it("exit 2 → block", async () => {
+    const child = fakeChild();
+    _deps.spawn = vi.fn(() => child);
+    const p = runCommandHookAsync("g.sh", {});
+    child.finish({ code: 2, stderr: "blocked here" });
+    expect((await p).decision).toBe("block");
+  });
+
+  it("spawn 'error' event → non-blocking continue", async () => {
+    const child = fakeChild();
+    _deps.spawn = vi.fn(() => child);
+    const p = runCommandHookAsync("missing.sh", {});
+    child.fail(new Error("ENOENT"));
+    const r = await p;
+    expect(r.decision).toBe("continue");
+    expect(r.nonBlockingError).toBe(true);
+  });
+
+  it("SIGKILLs and reports non-blocking on timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const child = fakeChild(); // never finishes
+      _deps.spawn = vi.fn(() => child);
+      const p = runCommandHookAsync("hang.sh", {}, { timeout: 5000 });
+      await vi.advanceTimersByTimeAsync(5000);
+      const r = await p;
+      expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+      expect(r.decision).toBe("continue");
+      expect(r.nonBlockingError).toBe(true);
+      expect(r.reason).toMatch(/timed out/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("runHooksParallel — concurrent strictest merge", () => {
+  const RESULTS = {
+    asker: { code: 0, stdout: '{"decision":"ask"}' },
+    blocker: { code: 2, stderr: "blocked by policy" },
+    allower: { code: 0, stdout: '{"decision":"approve"}' },
+    cont: { code: 0, stdout: "" },
+  };
+
+  it("spawns all hooks concurrently and takes the strictest decision", async () => {
+    const children = {};
+    _deps.spawn = vi.fn((cmd) => {
+      const c = fakeChild();
+      children[cmd] = c;
+      return c;
+    });
+    const p = runHooksParallel(
+      [{ command: "asker" }, { command: "blocker" }],
+      {},
+    );
+    // Both spawned up-front (concurrent), before any finishes.
+    expect(Object.keys(children).sort()).toEqual(["asker", "blocker"]);
+    // Finish out of order — the merge is order-independent.
+    children.asker.finish(RESULTS.asker);
+    children.blocker.finish(RESULTS.blocker);
+    const r = await p;
+    expect(r.decision).toBe("block"); // strictest wins over the earlier ask
+    expect(r.hook).toBe("blocker");
+    expect(r.results).toHaveLength(2);
+    expect(r.contributing).toHaveLength(2);
+  });
+
+  it("allow surfaces when nothing stricter fires", async () => {
+    const children = {};
+    _deps.spawn = vi.fn((cmd) => (children[cmd] = fakeChild()));
+    const p = runHooksParallel(
+      [{ command: "cont" }, { command: "allower" }],
+      {},
+    );
+    children.cont.finish(RESULTS.cont);
+    children.allower.finish(RESULTS.allower);
+    const r = await p;
+    expect(r.decision).toBe("allow");
+    expect(r.hook).toBe("allower");
+  });
+
+  it("all continue → continue (both ran)", async () => {
+    // Same command twice → collect children in an ARRAY so neither is lost.
+    const children = [];
+    _deps.spawn = vi.fn(() => {
+      const c = fakeChild();
+      children.push(c);
+      return c;
+    });
+    const p = runHooksParallel([{ command: "cont" }, { command: "cont" }], {});
+    children.forEach((c) => c.finish(RESULTS.cont));
+    const r = await p;
+    expect(r.decision).toBe("continue");
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
   });
 });

@@ -91,7 +91,8 @@ const { isDangerousGitCommand, isReadOnlyGitCommand, normalizeGitCommand } =
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
-const { runHooks: runCommandHooks } = sharedHookRunner;
+const { runHooks: runCommandHooks, runHooksParallel: runCommandHooksParallel } =
+  sharedHookRunner;
 const { runObserveHooks, aggregateContext, partitionAsyncHooks } =
   sharedHookEvents;
 
@@ -440,11 +441,17 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
     cwd,
     session_id: context.sessionId || null,
   };
-  const outcome = runCommandHooks(matched, payload, {
-    cwd,
-    event: "PreToolUse",
-    mergeStrict: _hookStrictMergeEnabled(),
-  });
+  // Strict merge (opt-in) runs ALL matching hooks and takes the strictest
+  // decision. This path is async so the hooks run in TRUE PARALLEL
+  // (runHooksParallel) — wall-clock is the slowest hook, not their sum — while
+  // still yielding the same strictest outcome. Default path is the sync in-order
+  // short-circuit runner (byte-identical).
+  const outcome = _hookStrictMergeEnabled()
+    ? await runCommandHooksParallel(matched, payload, {
+        cwd,
+        event: "PreToolUse",
+      })
+    : runCommandHooks(matched, payload, { cwd, event: "PreToolUse" });
   if (outcome.decision === "block") {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
   }

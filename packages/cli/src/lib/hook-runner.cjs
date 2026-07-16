@@ -28,7 +28,7 @@ const {
 } = require("./shell-selector.cjs");
 const { mergeHookDecisions } = require("./hook-event-bus.cjs");
 
-const _deps = { spawnSync: cpDefault.spawnSync };
+const _deps = { spawnSync: cpDefault.spawnSync, spawn: cpDefault.spawn };
 
 const HOOK_DECISIONS = Object.freeze({
   BLOCK: "block",
@@ -117,43 +117,65 @@ function tryParseDecision(stdout) {
  *            stdout?:string, stderr?:string, additionalContext?:string,
  *            nonBlockingError?:boolean, error?:string }}
  */
+// Circuit breaker (gap 2026-07-11 P2 "Hooks 硬化"): N consecutive non-blocking
+// failures (spawn error / timeout / non-zero non-2 exit) of the SAME command
+// trip an open state — further runs are skipped for a cooldown, then one
+// half-open trial runs; success (or a real block/ask decision) closes it.
+// CC_HOOK_BREAKER_THRESHOLD=0 disables. Extracted so the sync + async runners
+// share ONE breaker implementation.
+function _breakerShortCircuit(command, breaker) {
+  if (breaker.threshold <= 0) return null;
+  const st = _breaker.get(command);
+  if (st && st.fails >= breaker.threshold) {
+    const now = Date.now();
+    if (now - st.openedAt < breaker.cooldownMs) {
+      return {
+        decision: HOOK_DECISIONS.CONTINUE,
+        reason: `hook circuit breaker open (${st.fails} consecutive failures) — skipped for cooldown`,
+        exitCode: null,
+        skipped: true,
+        breakerOpen: true,
+      };
+    }
+    // half-open: let this one trial through; the outcome records below.
+  }
+  return null;
+}
+
+function _breakerRecord(command, breaker, result) {
+  if (breaker.threshold <= 0) return;
+  if (result.nonBlockingError) {
+    const st = _breaker.get(command) || { fails: 0, openedAt: 0 };
+    st.fails += 1;
+    if (st.fails >= breaker.threshold) st.openedAt = Date.now();
+    _breaker.set(command, st);
+  } else {
+    _breaker.delete(command); // success / block / ask closes the breaker
+  }
+}
+
 function runCommandHook(command, input = {}, opts = {}) {
   if (!command) {
     return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
   }
-  // Circuit breaker (gap 2026-07-11 P2 "Hooks 硬化"): N consecutive
-  // non-blocking failures (spawn error / timeout / non-zero non-2 exit) of
-  // the SAME command trip an open state — further runs are skipped for a
-  // cooldown, then one half-open trial runs; success (or a real block/ask
-  // decision) closes it. CC_HOOK_BREAKER_THRESHOLD=0 disables.
   const breaker = hookBreakerConfig();
-  if (breaker.threshold > 0) {
-    const st = _breaker.get(command);
-    if (st && st.fails >= breaker.threshold) {
-      const now = Date.now();
-      if (now - st.openedAt < breaker.cooldownMs) {
-        return {
-          decision: HOOK_DECISIONS.CONTINUE,
-          reason: `hook circuit breaker open (${st.fails} consecutive failures) — skipped for cooldown`,
-          exitCode: null,
-          skipped: true,
-          breakerOpen: true,
-        };
-      }
-      // half-open: let this one trial through; the outcome below decides.
-    }
-  }
+  const shortCircuit = _breakerShortCircuit(command, breaker);
+  if (shortCircuit) return shortCircuit;
   const result = _runCommandHookInner(command, input, opts);
-  if (breaker.threshold > 0) {
-    if (result.nonBlockingError) {
-      const st = _breaker.get(command) || { fails: 0, openedAt: 0 };
-      st.fails += 1;
-      if (st.fails >= breaker.threshold) st.openedAt = Date.now();
-      _breaker.set(command, st);
-    } else {
-      _breaker.delete(command); // success / block / ask closes the breaker
-    }
+  _breakerRecord(command, breaker, result);
+  return result;
+}
+
+/** Async counterpart of runCommandHook (same breaker + protocol). */
+async function runCommandHookAsync(command, input = {}, opts = {}) {
+  if (!command) {
+    return { decision: HOOK_DECISIONS.CONTINUE, reason: null, exitCode: 0 };
   }
+  const breaker = hookBreakerConfig();
+  const shortCircuit = _breakerShortCircuit(command, breaker);
+  if (shortCircuit) return shortCircuit;
+  const result = await _runCommandHookInnerAsync(command, input, opts);
+  _breakerRecord(command, breaker, result);
   return result;
 }
 
@@ -231,7 +253,19 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
       nonBlockingError: true,
     };
   }
-  // spawnSync surfaces timeout/ENOENT on res.error (status null) — non-blocking.
+  return interpretHookOutcome(res);
+}
+
+/**
+ * Interpret a finished hook process — a spawnSync result OR the collected output
+ * of an async spawn — into a normalized decision. The exit-code / JSON-stdout
+ * protocol lives in ONE place so the sync and async runners can never drift.
+ *
+ * @param {{error?:Error|null, status:number|null, stdout?:string, stderr?:string}} res
+ */
+function interpretHookOutcome(res) {
+  // A surfaced spawn error (timeout / ENOENT, status null) is non-blocking — a
+  // broken hook must never wedge the agent; only an explicit block blocks.
   if (res.error) {
     return {
       decision: HOOK_DECISIONS.CONTINUE,
@@ -285,6 +319,107 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
     stderr,
     nonBlockingError: true,
   };
+}
+
+/**
+ * Async single-hook runner — mirrors _runCommandHookInner but uses async spawn
+ * so a batch can run CONCURRENTLY (see runHooksParallel). stdin gets the JSON
+ * payload; stdout/stderr are collected (bounded); a hard timeout SIGKILLs a hung
+ * hook and reports it as a non-blocking error. Interpretation is shared via
+ * interpretHookOutcome so the exit-code protocol matches the sync path exactly.
+ */
+async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
+  const { cwd, event } = opts;
+  const _rawTimeout = Number(opts.timeout);
+  const timeout =
+    Number.isFinite(_rawTimeout) && _rawTimeout > 0
+      ? Math.min(_rawTimeout, 600000)
+      : 60000;
+  const shellKind = normalizeShellKind(opts.shell);
+  const usePowershell = shellKind === "powershell" || shellKind === "pwsh";
+  const wd = cwd || process.cwd();
+  const inputJson = JSON.stringify({
+    ...input,
+    schema_version: input.schema_version ?? HOOK_PAYLOAD_SCHEMA_VERSION,
+  });
+  const spawnEnv = {
+    ...process.env,
+    CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
+  };
+
+  let child;
+  try {
+    if (usePowershell) {
+      const { executionPolicy } = loadShellConfig({ cwd: wd });
+      const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
+      child = _deps.spawn(inv.file, inv.argv, { cwd: wd, env: spawnEnv });
+    } else {
+      child = _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });
+    }
+  } catch (err) {
+    return {
+      decision: HOOK_DECISIONS.CONTINUE,
+      reason: `hook spawn failed: ${err.message}`,
+      exitCode: null,
+      error: err.message,
+      nonBlockingError: true,
+    };
+  }
+
+  return await new Promise((resolve) => {
+    const MAXB = 8 * 1024 * 1024;
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const done = (res) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(interpretHookOutcome(res));
+    };
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        /* already exited */
+      }
+      done({
+        error: new Error(`hook timed out after ${timeout}ms`),
+        status: null,
+        stdout,
+        stderr,
+      });
+    }, timeout);
+    if (typeof timer.unref === "function") timer.unref();
+
+    child.on("error", (err) =>
+      done({ error: err, status: null, stdout, stderr }),
+    );
+    if (child.stdout) {
+      child.stdout.on("data", (d) => {
+        if (stdout.length < MAXB) stdout += d.toString("utf8");
+      });
+    }
+    if (child.stderr) {
+      child.stderr.on("data", (d) => {
+        if (stderr.length < MAXB) stderr += d.toString("utf8");
+      });
+    }
+    child.on("close", (code) =>
+      done({ error: null, status: code, stdout, stderr }),
+    );
+    // Feed the payload to the hook's stdin. A fast-exiting hook may close its
+    // end first (EPIPE) — that is harmless, the exit code still governs.
+    try {
+      if (child.stdin) {
+        child.stdin.on("error", () => {});
+        child.stdin.write(inputJson);
+        child.stdin.end();
+      }
+    } catch {
+      /* stdin already closed */
+    }
+  });
 }
 
 /**
@@ -354,9 +489,48 @@ function runHooks(commandHooks, input = {}, opts = {}) {
   return { decision: HOOK_DECISIONS.CONTINUE, reason: null, results };
 }
 
+/**
+ * Run every matching hook CONCURRENTLY (async spawn) and reduce to the strictest
+ * decision (block > ask > allow > continue) via mergeHookDecisions — the true-
+ * parallel form of runHooks({mergeStrict}). Wall-clock is the slowest single hook
+ * rather than their sum; the merge is order-independent so the outcome matches
+ * the sequential strict merge exactly. Same per-hook timeout/shell resolution as
+ * runHooks. Returns the same shape ({decision, reason, hook, results,
+ * contributing}) so the decision consumers are unchanged.
+ */
+async function runHooksParallel(commandHooks, input = {}, opts = {}) {
+  const hooks = commandHooks || [];
+  const settled = await Promise.all(
+    hooks.map((h) =>
+      runCommandHookAsync(h.command, input, {
+        ...opts,
+        timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+        shell: h.shell != null ? h.shell : opts.shell,
+      }).then((r) => ({ h, r })),
+    ),
+  );
+  const results = settled.map(({ h, r }) => ({ command: h.command, ...r }));
+  const decisions = settled.map(({ h, r }) => ({
+    decision: r.decision,
+    reason: r.reason,
+    hook: h.command,
+  }));
+  const merged = mergeHookDecisions(decisions);
+  return {
+    decision: merged.decision,
+    reason: merged.reason,
+    hook: merged.hook,
+    results,
+    contributing: merged.contributing,
+  };
+}
+
 module.exports = {
   runCommandHook,
+  runCommandHookAsync,
   runHooks,
+  runHooksParallel,
+  interpretHookOutcome,
   tryParseDecision,
   HOOK_DECISIONS,
   HOOK_PAYLOAD_SCHEMA_VERSION,
