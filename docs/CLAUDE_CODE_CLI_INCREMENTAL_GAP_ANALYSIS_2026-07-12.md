@@ -594,9 +594,24 @@ settings 读出并 honor。系统提示新增一行契约让模型把 `subtreeIn
 write_file 建新文件注入 / `CC_SUBTREE_INSTRUCTIONS=0` 关 / 嵌套两级 shallowest-first）+
 code-intel/convergence-shim 回归 60 绿。
 
-**仍欠**：**subagent** worktree spawn 路径的
-sparsePaths/symlinkDirectories 透传（team 路径已接；subagent-worktree 创建在 agent-core /
-sub-agent-context，属 agent-core 接线）；headless（`cc agent -p --add-dir`）的启动根 seed（headless
+**已接线（2026-07-16，subagent worktree spawn 透传 sparsePaths/symlinkDirectories）**：把 team 路径
+已有的能力补到 **subagent** spawn 路径。此前 subagent 的隔离 worktree 经 `isolateTask(repoDir,
+taskId, fn)` 创建，**从不**给 `createWorktree` 传第四个 options 参数——故 subagent 无法 sparse-checkout
+只拉需要的包。补齐三层透传：①`harness/worktree-isolator.js` 的 `isolateTask` 新增第四参 `options`
+（`{sparsePaths, symlinkDirectories}`），转发给 `createWorktree(repoDir, branch, undefined, options)`
+（lib shim 是引用 re-export，签名变更自动生效，无需改 shim）；②`sub-agent-context.js` 构造新增
+`this._worktreeOptions = options.worktreeOptions || null`，`_runInWorktree` 把它作第四参传 `isolateTask`；
+③`agent-core.js` `_executeSpawnSubAgent` **仅当** `subIsolation==="worktree"` 时从 `args.sparsePaths ??
+md.sparsePaths` / `args.symlinkDirectories ?? md.symlinkDirectories` 解析（经 `normalizeSparsePaths`
+过滤不安全路径，spawn args 胜 agent-file），只在有值时把 `worktreeOptions` 挂进 `SubAgentContext.create`。
+**默认字节不变**：非 worktree spawn 或无 sparse/symlink 参数→`worktreeOptions` 键整个省略→全量 checkout。
+嵌套 spawn 各自解析（无跨深度透传语义，符合「每任务自选包」）。测试：`worktree-isolator.test.js` +2
+（真 git：isolateTask 转发 sparsePaths 只出 packages/cli / 无 options 全量）+ `sub-agent-isolation.test.js`
+（integration）+4（spawn-arg sparsePaths→create.worktreeOptions / symlinkDirectories 同 / 无隔离→无 options
+字节不变 / 隔离但无参→无 options）= 全绿；team-worktree/worktree-sparse/parity-worktree 回归 27+51 绿。
+**未改 agent-core 导出**。
+
+**仍欠**：headless（`cc agent -p --add-dir`）的启动根 seed（headless
 MCP 客户端构造在 runtime 层，属该路径接线）；`/context` 的 skill/MCP schema 来源归因（诚实边界：
 技能名/短描述经 `list_skills` **工具按需发现**、并不在启动系统提示里占窗口，MCP schema 需活连接，
 两者都不属持久 transcript，故 `context-breakdown.js` 刻意不计入——非疏漏）留待。

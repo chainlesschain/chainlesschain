@@ -163,9 +163,17 @@ export function pruneWorktrees(repoDir) {
   return before - after;
 }
 
-export async function isolateTask(repoDir, taskId, fn) {
+export async function isolateTask(repoDir, taskId, fn, options = {}) {
   const branchName = `agent/${taskId}`;
-  const { path: worktreePath } = createWorktree(repoDir, branchName);
+  // options (large-monorepo): { sparsePaths, symlinkDirectories } forwarded to
+  // createWorktree so an isolated task only materializes the packages it needs
+  // and reuses approved dep dirs. Empty/absent → full checkout (byte-identical).
+  const { path: worktreePath } = createWorktree(
+    repoDir,
+    branchName,
+    undefined,
+    options || {},
+  );
 
   try {
     const result = await fn(worktreePath);

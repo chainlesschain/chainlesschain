@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { execSync } from "node:child_process";
 
 // Mock plan-mode (required by agent-core at import time)
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -216,6 +217,80 @@ describe("Integration: Sub-Agent Isolation", () => {
   });
 
   // ─── MCP + hook capability inheritance (2026-07-12) ────
+
+  describe("worktree sparse-checkout / symlink passthrough (large-monorepo)", () => {
+    function initGitMonorepo(dir) {
+      execSync("git init", { cwd: dir });
+      execSync('git config user.email "t@t.com"', { cwd: dir });
+      execSync('git config user.name "T"', { cwd: dir });
+      for (const pkg of ["packages/cli", "packages/core"]) {
+        mkdirSync(join(dir, pkg), { recursive: true });
+        writeFileSync(join(dir, pkg, "index.js"), `// ${pkg}\n`, "utf-8");
+      }
+      execSync("git add -A", { cwd: dir });
+      execSync('git commit -m "init"', { cwd: dir });
+    }
+    const okFetch = () =>
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ message: { role: "assistant", content: "done" } }),
+      });
+    const captureCreate = async (spawnArgs) => {
+      globalThis.fetch = okFetch();
+      const createSpy = vi.spyOn(SubAgentContext, "create");
+      try {
+        await executeTool(
+          "spawn_sub_agent",
+          { role: "r", task: "t", ...spawnArgs },
+          {
+            cwd: tempDir,
+            provider: "ollama",
+            model: "m",
+            baseUrl: "http://localhost:11434",
+          },
+        );
+        expect(createSpy).toHaveBeenCalled();
+        return createSpy.mock.calls[0][0];
+      } finally {
+        createSpy.mockRestore();
+      }
+    };
+
+    it("threads spawn-arg sparsePaths into create's worktreeOptions", async () => {
+      initGitMonorepo(tempDir);
+      const opts = await captureCreate({
+        isolation: "worktree",
+        sparsePaths: ["packages/cli"],
+      });
+      expect(opts.useWorktree).toBe(true);
+      expect(opts.worktreeOptions).toEqual({ sparsePaths: ["packages/cli"] });
+    });
+
+    it("threads symlinkDirectories too", async () => {
+      initGitMonorepo(tempDir);
+      const opts = await captureCreate({
+        isolation: "worktree",
+        symlinkDirectories: ["node_modules"],
+      });
+      expect(opts.worktreeOptions).toEqual({
+        symlinkDirectories: ["node_modules"],
+      });
+    });
+
+    it("no worktree isolation → no worktreeOptions (byte-identical)", async () => {
+      // sparsePaths present but isolation absent → options are NOT resolved.
+      const opts = await captureCreate({ sparsePaths: ["packages/cli"] });
+      expect(opts.useWorktree).toBeUndefined();
+      expect(opts.worktreeOptions).toBeUndefined();
+    });
+
+    it("worktree isolation with no sparse/symlink args → no worktreeOptions", async () => {
+      initGitMonorepo(tempDir);
+      const opts = await captureCreate({ isolation: "worktree" });
+      expect(opts.useWorktree).toBe(true);
+      expect(opts.worktreeOptions).toBeUndefined();
+    });
+  });
 
   describe("child MCP + hook inheritance", () => {
     const parentMcp = {

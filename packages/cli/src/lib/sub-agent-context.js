@@ -98,6 +98,10 @@ export class SubAgentContext {
     this._worktreePath = null;
     this._worktreeBranch = null;
     this._repoDir = this.cwd;
+    // Optional worktree creation options (large-monorepo): { sparsePaths,
+    // symlinkDirectories } — only materialize the needed packages and reuse
+    // approved dep dirs. null → full checkout (byte-identical default).
+    this._worktreeOptions = options.worktreeOptions || null;
 
     // ── Isolated state ──────────────────────────────────────────────
     // Independent message history — never shared with parent
@@ -254,6 +258,7 @@ export class SubAgentContext {
           this.cwd = wtPath;
           return this._runCore(userPrompt, loopOptions);
         },
+        this._worktreeOptions || {},
       );
 
       // Annotate result with worktree info + diff preview

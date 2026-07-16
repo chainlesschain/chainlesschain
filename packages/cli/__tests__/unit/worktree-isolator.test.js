@@ -256,6 +256,50 @@ describe("worktree-isolator", () => {
       // Worktree should be cleaned up
       expect(existsSync(capturedPath)).toBe(false);
     });
+
+    it("forwards sparsePaths options to createWorktree (large-monorepo)", async () => {
+      for (const pkg of ["packages/cli", "packages/core", "backend"]) {
+        mkdirSync(join(repoDir, pkg), { recursive: true });
+        writeFileSync(join(repoDir, pkg, "index.js"), `// ${pkg}\n`, "utf-8");
+      }
+      execSync("git add -A", { cwd: repoDir });
+      execSync('git commit -m "seed monorepo"', { cwd: repoDir });
+
+      let seen = {};
+      await isolateTask(
+        repoDir,
+        "sparse-task",
+        async (wtPath) => {
+          seen = {
+            cli: existsSync(join(wtPath, "packages/cli/index.js")),
+            core: existsSync(join(wtPath, "packages/core/index.js")),
+            backend: existsSync(join(wtPath, "backend/index.js")),
+          };
+          return "done";
+        },
+        { sparsePaths: ["packages/cli"] },
+      );
+      // Only the requested package is materialized in the isolated worktree.
+      expect(seen).toEqual({ cli: true, core: false, backend: false });
+    });
+
+    it("no options → full checkout (byte-identical default)", async () => {
+      for (const pkg of ["packages/cli", "packages/core"]) {
+        mkdirSync(join(repoDir, pkg), { recursive: true });
+        writeFileSync(join(repoDir, pkg, "index.js"), `// ${pkg}\n`, "utf-8");
+      }
+      execSync("git add -A", { cwd: repoDir });
+      execSync('git commit -m "seed"', { cwd: repoDir });
+
+      let bothPresent = false;
+      await isolateTask(repoDir, "full-task", async (wtPath) => {
+        bothPresent =
+          existsSync(join(wtPath, "packages/cli/index.js")) &&
+          existsSync(join(wtPath, "packages/core/index.js"));
+        return "done";
+      });
+      expect(bothPresent).toBe(true);
+    });
   });
 
   // ── cleanupAgentWorktrees ─────────────────────────────────────────

@@ -4702,6 +4702,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   let mdProfile = null;
   let mdModel = null;
   let mdContract = null; // agent-file's normalized subagent contract (definition)
+  let mdSparsePaths = null; // agent-file worktree sparse-checkout paths
+  let mdSymlinkDirectories = null; // agent-file worktree dep-dir symlinks
   if (args.agent) {
     try {
       const { getAgent } = await import("../lib/agents.js");
@@ -4719,6 +4721,10 @@ async function _executeSpawnSubAgent(args, ctx) {
       if (!subMaxTurns && md.maxTurns) subMaxTurns = md.maxTurns;
       if (!subIsolation && md.isolation === "worktree") {
         subIsolation = "worktree";
+      }
+      if (md.sparsePaths != null) mdSparsePaths = md.sparsePaths;
+      if (md.symlinkDirectories != null) {
+        mdSymlinkDirectories = md.symlinkDirectories;
       }
       if (md.model) mdModel = md.model;
       if (md.contract) mdContract = md.contract;
@@ -5040,6 +5046,30 @@ async function _executeSpawnSubAgent(args, ctx) {
       }
     : null;
 
+  // Worktree sparse-checkout + dependency symlink (large-monorepo lever): when
+  // the child runs in an isolated worktree, only materialize the packages it
+  // needs (sparsePaths) and reuse approved dep dirs (e.g. node_modules) from the
+  // main checkout (symlinkDirectories). Mirrors the team-worktree passthrough;
+  // spawn args win over the agent-file's values. Resolved ONLY when isolation is
+  // on → absent for a non-worktree spawn = byte-identical (full checkout).
+  let subWorktreeOptions = null;
+  if (subIsolation === "worktree") {
+    try {
+      const { normalizeSparsePaths } =
+        await import("../lib/worktree-sparse.js");
+      const sparse = normalizeSparsePaths(
+        args.sparsePaths ?? mdSparsePaths ?? null,
+      );
+      const symlink = args.symlinkDirectories ?? mdSymlinkDirectories ?? null;
+      const wtOpts = {};
+      if (sparse) wtOpts.sparsePaths = sparse;
+      if (symlink != null) wtOpts.symlinkDirectories = symlink;
+      if (Object.keys(wtOpts).length) subWorktreeOptions = wtOpts;
+    } catch {
+      subWorktreeOptions = null; // best-effort → full checkout on any error
+    }
+  }
+
   const subCtx = SubAgentContext.create({
     role,
     task,
@@ -5058,6 +5088,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     // worktree isolation. undefined keeps the profile/flag defaults intact.
     ...(subMaxTurns ? { maxIterations: subMaxTurns } : {}),
     ...(subIsolation === "worktree" ? { useWorktree: true } : {}),
+    // Worktree sparse-checkout / dep-symlink options (large-monorepo); only
+    // present for a worktree spawn that requested them (else full checkout).
+    ...(subWorktreeOptions ? { worktreeOptions: subWorktreeOptions } : {}),
     // Resolved contract (gap 2026-07-12): cap the child's token budget and hand
     // it its EFFECTIVE contract so its OWN spawns inherit this ceiling.
     ...(effectiveContract?.budget?.tokens
