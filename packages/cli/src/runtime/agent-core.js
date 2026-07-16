@@ -93,8 +93,12 @@ const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
 const { runHooks: runCommandHooks, runHooksParallel: runCommandHooksParallel } =
   sharedHookRunner;
-const { runObserveHooks, aggregateContext, partitionAsyncHooks } =
-  sharedHookEvents;
+const {
+  runObserveHooks,
+  aggregateContext,
+  partitionAsyncHooks,
+  withDeliveryId,
+} = sharedHookEvents;
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
@@ -433,14 +437,25 @@ function _hookStrictMergeEnabled() {
 async function runSettingsPreToolUseHooks(name, args, context, cwd) {
   const matched = collectHooks(context.settingsHooks, "PreToolUse", name);
   if (!matched || matched.length === 0) return { blocked: false };
-  const payload = {
-    hook_event_name: "PreToolUse",
-    tool_name: umbrellaFor(name),
-    raw_tool_name: name,
-    tool_input: args,
-    cwd,
-    session_id: context.sessionId || null,
-  };
+  // Unified-bus envelope (P2): stamps event_id + threads trace_id (this run) /
+  // parent_id (spawning run) from the loop context. Additive fields — a hook
+  // that ignores them is unaffected; absent context omits them entirely.
+  const payload = withDeliveryId(
+    "PreToolUse",
+    {
+      hook_event_name: "PreToolUse",
+      tool_name: umbrellaFor(name),
+      raw_tool_name: name,
+      tool_input: args,
+      cwd,
+      session_id: context.sessionId || null,
+    },
+    {
+      sessionId: context.sessionId || null,
+      traceId: context.hookTraceId || null,
+      parentId: context.hookParentId || null,
+    },
+  );
   // Strict merge (opt-in) runs ALL matching hooks and takes the strictest
   // decision. This path is async so the hooks run in TRUE PARALLEL
   // (runHooksParallel) — wall-clock is the slowest hook, not their sum — while
@@ -511,15 +526,23 @@ function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
     name,
   );
   if (!matched || matched.length === 0) return { decision: null };
-  const payload = {
-    hook_event_name: "PermissionRequest",
-    tool_name: umbrellaFor(name),
-    raw_tool_name: name,
-    tool_input: args,
-    permission_reason: reason || null,
-    cwd,
-    session_id: context.sessionId || null,
-  };
+  const payload = withDeliveryId(
+    "PermissionRequest",
+    {
+      hook_event_name: "PermissionRequest",
+      tool_name: umbrellaFor(name),
+      raw_tool_name: name,
+      tool_input: args,
+      permission_reason: reason || null,
+      cwd,
+      session_id: context.sessionId || null,
+    },
+    {
+      sessionId: context.sessionId || null,
+      traceId: context.hookTraceId || null,
+      parentId: context.hookParentId || null,
+    },
+  );
   const outcome = runCommandHooks(matched, payload, {
     cwd,
     event: "PermissionRequest",
@@ -1665,18 +1688,26 @@ export async function executeTool(name, args, context = {}) {
         // ran synchronously here, defeating fire-and-forget (a background lint /
         // test after each edit would stall the turn).
         const { sync, async: asyncHooks } = partitionAsyncHooks(matched);
-        const payload = {
-          hook_event_name: "PostToolUse",
-          tool_name: umbrellaFor(name),
-          raw_tool_name: name,
-          tool_input: args,
-          tool_response:
-            typeof toolResult === "object"
-              ? JSON.stringify(toolResult).substring(0, 2000)
-              : String(toolResult).substring(0, 2000),
-          cwd,
-          session_id: context.sessionId || null,
-        };
+        const payload = withDeliveryId(
+          "PostToolUse",
+          {
+            hook_event_name: "PostToolUse",
+            tool_name: umbrellaFor(name),
+            raw_tool_name: name,
+            tool_input: args,
+            tool_response:
+              typeof toolResult === "object"
+                ? JSON.stringify(toolResult).substring(0, 2000)
+                : String(toolResult).substring(0, 2000),
+            cwd,
+            session_id: context.sessionId || null,
+          },
+          {
+            sessionId: context.sessionId || null,
+            traceId: context.hookTraceId || null,
+            parentId: context.hookParentId || null,
+          },
+        );
         if (sync.length > 0) {
           const outcome = runCommandHooks(sync, payload, {
             cwd,
@@ -1723,7 +1754,11 @@ export async function executeTool(name, args, context = {}) {
               ? JSON.stringify(toolResult).substring(0, 2000)
               : String(toolResult).substring(0, 2000),
         },
-        { cwd },
+        {
+          cwd,
+          traceId: context.hookTraceId || null,
+          parentId: context.hookParentId || null,
+        },
       );
       if (outcome.decision === "block" && outcome.reason) {
         toolResult.hookFeedback = toolResult.hookFeedback
@@ -2353,6 +2388,9 @@ async function executeToolInner(
     signal = null,
     backgroundSubAgents = null,
     subAgentUsageSink = null,
+    // Hook-envelope tracing: this run's trace id, threaded into child loops
+    // (spawn_sub_agent / isolated run_skill) as their parent_id.
+    hookTraceId = null,
   },
 ) {
   const localToolDescriptor =
@@ -3251,6 +3289,8 @@ async function executeToolInner(
           subAgentBudget,
           subAgentContract,
           settingsHooks,
+          // Parent trace for the child's hook envelopes (parent_id).
+          hookTraceId,
           // Parent MCP plumbing — a spawn can inherit these into the child,
           // filtered by the resolved contract's mcpServers allow-list.
           mcpClient,
@@ -3941,6 +3981,7 @@ async function executeToolInner(
           role: `skill-${args.skill_name}`,
           task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
           allowedTools: ["read_file", "search_files", "list_dir"],
+          hookParentTraceId: hookTraceId || null,
           cwd,
           onUsage: skillUsageSink
             ? (u) => {
@@ -5081,6 +5122,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     role,
     task,
     parentId: parentSessionId,
+    // Hook-envelope tracing: the child loop stamps its own runId as trace_id
+    // and THIS run's id as parent_id on every settings-hook payload it fires.
+    hookParentTraceId: ctx.hookTraceId || null,
     inheritedContext: resolvedContext,
     allowedTools: allowedTools || null,
     cwd: ctx.cwd,
@@ -6738,9 +6782,23 @@ export async function* agentLoop(messages, options) {
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
   // emits model/tool/retry spans + a per-run counter; when absent, zero cost.
   const recorder = options.recorder || null;
+  // Phase 5 run bookends — a stable runId lets envelope subscribers correlate
+  // every tool_call / tool_result / message / ended event back to one run.
+  // Minted BEFORE the tool context so hook envelopes can carry it as trace_id.
+  const runId =
+    options.runId ||
+    `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   const toolContext = {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
+    // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
+    // fired during this run carries trace_id = this run's id; a spawned child
+    // loop carries parent_id = the spawning run's id (threaded by
+    // spawn_sub_agent via hookParentTraceId), so a subagent's hook events
+    // correlate back to the parent trace. Null parent at the top level.
+    hookTraceId: runId,
+    hookParentId: options.hookParentTraceId || null,
     // Contract-driven skill allow-list (subagent capability INTERSECT). null =
     // unrestricted; [] = none; a list restricts run_skill/list_skills to those
     // ids/dirNames. Set by the spawn path from the resolved subagent contract.
@@ -6930,11 +6988,6 @@ export async function* agentLoop(messages, options) {
     });
   }
 
-  // Phase 5 run bookends — a stable runId lets envelope subscribers correlate
-  // every tool_call / tool_result / message / ended event back to one run.
-  const runId =
-    options.runId ||
-    `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   // Workflow-tracing attributes (Claude-Code 2.1.202): stamp the run id (and
   // an optional caller-provided workflow name) onto EVERY span this run emits,
   // so a collector can group one run's model/tool spans into one workflow.

@@ -309,4 +309,49 @@ describe("unified-bus delivery id (P2)", () => {
     const r = runSessionStartHooks(ss(echoId), { source: "startup", cwd: CWD });
     expect(r.additionalContext).toBe("HAS_ID");
   });
+
+  // Echo back the tracing fields (and whether they exist at all) so both the
+  // threaded and the omitted shape are observable end-to-end via stdin.
+  const echoTrace =
+    "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let j={};try{j=JSON.parse(d)}catch(e){};const has=('trace_id' in j)?'has':'absent';process.stdout.write(JSON.stringify({additionalContext:(j.trace_id||'none')+'|'+(j.parent_id||'none')+'|'+has}))})\"";
+  const obs = (command) => ({
+    Stop: [{ matcher: null, hooks: [{ type: "command", command }] }],
+  });
+
+  it("threads trace_id + parent_id into the delivered payload when provided", () => {
+    const outcome = runObserveHooks(
+      obs(echoTrace),
+      "Stop",
+      { session_id: "s1" },
+      { cwd: CWD, traceId: "run-123", parentId: "run-parent-9" },
+    );
+    expect(aggregateContext(outcome.results)).toBe("run-123|run-parent-9|has");
+  });
+
+  it("omits trace_id/parent_id entirely when the caller does not thread them", () => {
+    const outcome = runObserveHooks(
+      obs(echoTrace),
+      "Stop",
+      { session_id: "s1" },
+      { cwd: CWD },
+    );
+    // Legacy payload shape stays byte-identical: no null placeholders.
+    expect(aggregateContext(outcome.results)).toBe("none|none|absent");
+  });
+
+  it("withDeliveryId stamps trace/parent onto the payload and keeps event_id", () => {
+    const p = ev.withDeliveryId(
+      "PreToolUse",
+      { hook_event_name: "PreToolUse", session_id: "s1" },
+      { sessionId: "s1", traceId: "run-a", parentId: "run-b" },
+    );
+    expect(p.event_id).toMatch(/^evt_/);
+    expect(p.trace_id).toBe("run-a");
+    expect(p.parent_id).toBe("run-b");
+    const bare = ev.withDeliveryId("PreToolUse", {
+      hook_event_name: "PreToolUse",
+    });
+    expect("trace_id" in bare).toBe(false);
+    expect("parent_id" in bare).toBe(false);
+  });
 });

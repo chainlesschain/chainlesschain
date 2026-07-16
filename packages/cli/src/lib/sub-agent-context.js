@@ -87,6 +87,10 @@ export class SubAgentContext {
     // restricts run_skill/list_skills in this context's loop to those skills.
     this.skillAllowlist =
       options.skillAllowlist != null ? options.skillAllowlist : null;
+    // Hook-envelope tracing: the spawning run's id — this child loop stamps it
+    // as parent_id on every settings-hook payload it fires (its own runId
+    // becomes the trace_id). null → top-level semantics (no parent).
+    this._hookParentTraceId = options.hookParentTraceId || null;
     this.cwd = options.cwd || process.cwd();
     this.status = "active";
     this.result = null;
@@ -333,6 +337,10 @@ export class SubAgentContext {
       subAgentContract: this.subAgentContract,
       // Skill allow-list restricting run_skill/list_skills in this loop.
       skillAllowlist: this.skillAllowlist,
+      // Parent trace for hook envelopes (absent → key omitted, no parent_id).
+      ...(this._hookParentTraceId
+        ? { hookParentTraceId: this._hookParentTraceId }
+        : {}),
       ...loopOptions,
     };
     if (this.iterationBudget) {

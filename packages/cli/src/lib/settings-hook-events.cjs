@@ -47,7 +47,15 @@ function withDeliveryId(event, payload, { sessionId, traceId, parentId } = {}) {
       /* best-effort — recording must not break the turn */
     }
   }
-  return { ...payload, event_id: env.event_id };
+  // trace_id/parent_id are stamped onto the DELIVERED payload only when the
+  // caller actually threaded them (agent-core context) — absent they are
+  // omitted entirely, keeping every legacy payload byte-identical.
+  return {
+    ...payload,
+    event_id: env.event_id,
+    ...(env.trace_id ? { trace_id: env.trace_id } : {}),
+    ...(env.parent_id ? { parent_id: env.parent_id } : {}),
+  };
 }
 
 /**
@@ -343,7 +351,7 @@ function runObserveHooks(
   settingsHooks,
   event,
   payload = {},
-  { cwd, matchTarget } = {},
+  { cwd, matchTarget, traceId, parentId } = {},
 ) {
   if (!settingsHooks) return { decision: "continue", results: [] };
   const matched = collectHooks(settingsHooks, event, matchTarget || "");
@@ -351,12 +359,17 @@ function runObserveHooks(
   if (sync.length === 0) return { decision: "continue", results: [] };
   return runHooks(
     sync,
-    withDeliveryId(event, { hook_event_name: event, cwd, ...payload }),
+    withDeliveryId(
+      event,
+      { hook_event_name: event, cwd, ...payload },
+      { traceId, parentId },
+    ),
     { cwd, event },
   );
 }
 
 module.exports = {
+  withDeliveryId,
   runUserPromptSubmitHooks,
   runSessionStartHooks,
   runCwdChangedHooks,

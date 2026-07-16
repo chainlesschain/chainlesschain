@@ -493,3 +493,83 @@ describe("PreToolUse strictest-merge (CC_HOOK_STRICT_MERGE)", () => {
     expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
   });
 });
+
+describe("hook envelope tracing (P2 trace_id/parent_id)", () => {
+  // Echo the tracing fields back as a block reason so they surface on res.error.
+  const HOOK_ECHO_TRACE =
+    "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let j={};try{j=JSON.parse(d)}catch(e){};console.log(JSON.stringify({decision:'block',reason:'trace='+(j.trace_id||'none')+' parent='+(j.parent_id||'none')}))})\"";
+
+  it("threads context.hookTraceId/hookParentId into the PreToolUse payload", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: pre(HOOK_ECHO_TRACE),
+        hookTraceId: "run-x",
+        hookParentId: "run-parent",
+      },
+    );
+    expect(res.error).toContain("trace=run-x");
+    expect(res.error).toContain("parent=run-parent");
+  });
+
+  it("omits both when the caller does not thread them (legacy shape)", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, settingsHooks: pre(HOOK_ECHO_TRACE) },
+    );
+    expect(res.error).toContain("trace=none");
+    expect(res.error).toContain("parent=none");
+  });
+
+  it("agentLoop stamps its own runId as trace_id with no parent at top level", async () => {
+    const sentinel = path.join(tmp, "trace.json");
+    const hookFile = path.join(tmp, "tracehook.js");
+    fs.writeFileSync(
+      hookFile,
+      `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').writeFileSync(${JSON.stringify(sentinel)},d)});`,
+    );
+    fs.writeFileSync(path.join(tmp, "a.txt"), "AAA", "utf-8");
+    let n = 0;
+    const chatFn = async () => {
+      n += 1;
+      if (n === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "t1",
+                type: "function",
+                function: {
+                  name: "read_file",
+                  arguments: JSON.stringify({ path: "a.txt" }),
+                },
+              },
+            ],
+          },
+          usage: {},
+        };
+      }
+      return { message: { role: "assistant", content: "done" }, usage: {} };
+    };
+    const gen = agentLoop([{ role: "user", content: "read a.txt" }], {
+      chatFn,
+      cwd: tmp,
+      settingsHooks: pre(`node "${hookFile}"`),
+      autoCompact: false,
+    });
+    // eslint-disable-next-line no-unused-vars
+    for await (const _ev of gen) {
+      /* consume events */
+    }
+    const payload = JSON.parse(fs.readFileSync(sentinel, "utf-8"));
+    // trace_id is the loop's own runId; the top level has no parent.
+    expect(payload.trace_id).toMatch(/^run-/);
+    expect("parent_id" in payload).toBe(false);
+    expect(payload.event_id).toMatch(/^evt_/);
+  });
+});
