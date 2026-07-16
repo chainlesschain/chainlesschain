@@ -707,6 +707,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   let sideEffectSeq = 0;
   let currentSideEffectOpId = null;
   let resumeSideEffectContext = null;
+  let resumeAsyncHookContext = null;
   const persistSideEffectLedger = () => {
     if (!persist) return;
     try {
@@ -766,6 +767,34 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         }
       } catch {
         resumeSideEffectContext = null;
+      }
+      // On resume, recover any async-hook REWAKE (a background check that opted
+      // in and FAILED) that the previous run parked but died before draining —
+      // surface it to the model instead of silently swallowing the failure. The
+      // take also clears the bucket so it isn't replayed on a later resume.
+      try {
+        const { takePending } = await import("../lib/async-hook-queue.cjs");
+        const recovered = takePending(
+          { sessionId, now: deps.now ? deps.now() : Date.now() },
+          deps.asyncHookQueuePath || undefined,
+          deps.asyncHookQueueFs || undefined,
+        );
+        if (Array.isArray(recovered) && recovered.length > 0) {
+          const lines = recovered.map((r) => {
+            const detail = r.error || r.additionalContext || "failed";
+            return `  • ${r.command} — ${detail}`;
+          });
+          resumeAsyncHookContext =
+            "Recovery notice — the previous run was interrupted after these " +
+            "background (async) hook checks FAILED but before you were told. " +
+            "Review each failure and decide whether it still needs action:\n" +
+            lines.join("\n");
+          writeErr(
+            `⚠ Recovered ${recovered.length} failed async-hook check(s) from interrupted run (resume ${resumeId}).\n`,
+          );
+        }
+      } catch {
+        resumeAsyncHookContext = null;
       }
     }
   }
@@ -955,6 +984,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       : []),
     ...(resumeSideEffectContext
       ? [{ role: "system", content: resumeSideEffectContext }]
+      : []),
+    ...(resumeAsyncHookContext
+      ? [{ role: "system", content: resumeAsyncHookContext }]
       : []),
     ...history,
     { role: "user", content: userMessageContent },
@@ -1160,7 +1192,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     try {
       const { AsyncHookSupervisor } =
         await import("../lib/async-hook-supervisor.cjs");
-      _hookSupervisor = new AsyncHookSupervisor({ persistStats: true });
+      _hookSupervisor = new AsyncHookSupervisor({
+        persistStats: true,
+        // Durably park failed-rewake signals keyed by session so a crash before
+        // the turn loop drains them doesn't lose the failure — recovered on the
+        // next `--resume` (see the resume block above). Only a PERSISTABLE
+        // session can be resumed, so the queue follows `persist`; a one-shot /
+        // --ephemeral run stays byte-unchanged (no session id → no writes).
+        persistQueue: persist,
+        sessionId: persist ? sessionId : null,
+      });
     } catch {
       _hookSupervisor = null; // async hooks are best-effort
     }

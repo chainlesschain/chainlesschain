@@ -118,6 +118,15 @@ export function verifyAllSessions(options = {}) {
     .map((file) => verifySession(basename(file, ".jsonl")));
 }
 
+/** All locally-stored session ids (the source of truth a mirror derives from). */
+export function listSessionIds() {
+  const dir = getSessionsDir();
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".jsonl"))
+    .map((file) => basename(file, ".jsonl"));
+}
+
 export { TRANSCRIPT_CHAIN_STATUS };
 
 export function startSession(sessionId, meta = {}) {

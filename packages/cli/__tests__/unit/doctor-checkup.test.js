@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   collectCheckupSections,
   runCheckupFixes,
   unsafeFixCommands,
   CHECK_LEVELS,
 } from "../../src/lib/doctor-checkup.js";
+import { _deps as registryDeps } from "../../src/lib/lsp/lsp-server-registry.js";
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -375,5 +376,67 @@ describe("doctor-checkup", () => {
     expect(unsafeFixCommands(sections)).toEqual([
       { description: "d", command: "run-me" },
     ]);
+  });
+});
+
+describe("doctor-checkup — LSP readiness (runtime section)", () => {
+  const ROOT = "/proj";
+  // A fake project tree: root has a src/ dir + a README; src/ holds two .ts files.
+  const lspDeps = () => ({
+    readdirSync: (dir) => {
+      const d = String(dir).replace(/\\/g, "/");
+      if (d === ROOT) return ["src", "README.md"];
+      if (d.endsWith("/src")) return ["a.ts", "b.ts"];
+      return [];
+    },
+    statSync: (p) => ({
+      isDirectory: () => String(p).replace(/\\/g, "/").endsWith("/src"),
+      mtimeMs: 0,
+    }),
+    existsSync: () => false, // keep every OTHER doctor section a no-op
+    readFileSync: () => "",
+    rmSync: vi.fn(),
+    execSync: vi.fn(() => ""),
+    now: () => 10_000_000,
+  });
+
+  const runtimeChecks = async (deps) => {
+    const sections = await collectCheckupSections({ deps, cwd: ROOT });
+    return sections.find((s) => s.id === "runtime").checks;
+  };
+
+  let origExists;
+  beforeEach(() => {
+    origExists = registryDeps.existsSync;
+  });
+  afterEach(() => {
+    registryDeps.existsSync = origExists;
+  });
+
+  it("warns when the project has TS files but no server is installed", async () => {
+    registryDeps.existsSync = () => false; // nothing on PATH / node_modules
+    const checks = await runtimeChecks(lspDeps());
+    const lsp = checks.find((c) => c.id === "lsp-server-missing");
+    expect(lsp).toBeTruthy();
+    expect(lsp.level).toBe(CHECK_LEVELS.WARN);
+    expect(lsp.detail).toMatch(/typescript file/);
+    expect(lsp.detail).toMatch(/text-search/);
+  });
+
+  it("stays silent when the language server IS installed", async () => {
+    registryDeps.existsSync = () => true; // resolveBin finds a server
+    const checks = await runtimeChecks(lspDeps());
+    expect(checks.find((c) => c.id === "lsp-server-missing")).toBeUndefined();
+  });
+
+  it("emits no LSP finding for a project with no source files", async () => {
+    registryDeps.existsSync = () => false;
+    const emptyDeps = {
+      ...lspDeps(),
+      readdirSync: () => ["README.md", "LICENSE"],
+      statSync: () => ({ isDirectory: () => false, mtimeMs: 0 }),
+    };
+    const checks = await runtimeChecks(emptyDeps);
+    expect(checks.find((c) => c.id === "lsp-server-missing")).toBeUndefined();
   });
 });

@@ -4,7 +4,12 @@
  */
 import { describe, it, expect } from "vitest";
 import path from "path";
-import { resolveAddDir, formatAddDirRoots } from "../../src/repl/add-dir.js";
+import {
+  resolveAddDir,
+  formatAddDirRoots,
+  workspaceRootDirs,
+  notifyMcpRootsChanged,
+} from "../../src/repl/add-dir.js";
 
 const CWD = path.resolve("/proj");
 const HOME = path.resolve("/home/alice");
@@ -98,5 +103,74 @@ describe("formatAddDirRoots", () => {
     expect(out).toMatch(/Working roots \(3\):/);
     expect(out).toContain(a);
     expect(out).toContain(b);
+  });
+});
+
+describe("workspaceRootDirs", () => {
+  it("puts the primary cwd first, then resolved extras", () => {
+    const dirs = workspaceRootDirs(CWD, ["../lib", path.resolve("/shared")]);
+    expect(dirs[0]).toBe(CWD);
+    expect(dirs).toContain(path.resolve("/lib"));
+    expect(dirs).toContain(path.resolve("/shared"));
+    expect(dirs).toHaveLength(3);
+  });
+
+  it("de-dupes the primary and repeated extras", () => {
+    const dirs = workspaceRootDirs(CWD, [
+      ".", // resolves to the primary → dropped
+      "../lib",
+      path.resolve("/lib"), // same as ../lib → dropped
+      null,
+      "",
+    ]);
+    expect(dirs).toEqual([CWD, path.resolve("/lib")]);
+  });
+
+  it("handles no extras (primary only)", () => {
+    expect(workspaceRootDirs(CWD, [])).toEqual([CWD]);
+    expect(workspaceRootDirs(CWD, undefined)).toEqual([CWD]);
+  });
+});
+
+describe("notifyMcpRootsChanged", () => {
+  function fakeClient() {
+    const calls = [];
+    return { calls, setRoots: (dirs) => calls.push(dirs) };
+  }
+
+  it("calls setRoots on each unique client and counts them", () => {
+    const a = fakeClient();
+    const b = fakeClient();
+    const dirs = [CWD, path.resolve("/lib")];
+    const n = notifyMcpRootsChanged([a, b], dirs);
+    expect(n).toBe(2);
+    expect(a.calls).toEqual([dirs]);
+    expect(b.calls).toEqual([dirs]);
+  });
+
+  it("skips null/duplicate clients and those without setRoots", () => {
+    const a = fakeClient();
+    const noSet = { foo: 1 };
+    // a appears twice; null + a client lacking setRoots are skipped.
+    const n = notifyMcpRootsChanged([a, null, a, noSet], [CWD]);
+    expect(n).toBe(1);
+    expect(a.calls).toHaveLength(1);
+  });
+
+  it("is best-effort: one client throwing does not block the rest", () => {
+    const bad = {
+      setRoots: () => {
+        throw new Error("boom");
+      },
+    };
+    const good = fakeClient();
+    const n = notifyMcpRootsChanged([bad, good], [CWD]);
+    expect(n).toBe(1); // only `good` counted
+    expect(good.calls).toEqual([[CWD]]);
+  });
+
+  it("returns 0 for empty / non-array input", () => {
+    expect(notifyMcpRootsChanged([], [CWD])).toBe(0);
+    expect(notifyMcpRootsChanged(null, [CWD])).toBe(0);
   });
 });

@@ -16,6 +16,7 @@ import {
   checkHookConfig,
   checkSandbox,
   checkDuplicateSkills,
+  checkLspReadiness,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "../../src/lib/runtime-checkup.js";
 
@@ -336,5 +337,53 @@ describe("runRuntimeCheckup (aggregate)", () => {
       sessions: [{ id: "old", lastActiveAt: 0 }],
     });
     expect(report.summary.total).toBe(0);
+  });
+});
+
+describe("checkLspReadiness", () => {
+  it("warns for a language present but with no server installed", () => {
+    const out = checkLspReadiness([
+      {
+        languageId: "python",
+        fileCount: 12,
+        available: false,
+        serverId: "pyright",
+        exampleBin: "pyright-langserver",
+      },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("lsp-server-missing");
+    expect(out[0].severity).toBe("warn");
+    expect(out[0].message).toMatch(/12 python file/);
+    expect(out[0].message).toMatch(/pyright-langserver/);
+    expect(out[0].remediation).toMatch(/pyright/);
+    expect(out[0].ref).toBe("python");
+  });
+
+  it("stays silent for an installed language (no noise)", () => {
+    expect(
+      checkLspReadiness([
+        { languageId: "typescript", fileCount: 40, available: true },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores languages with no files present", () => {
+    expect(
+      checkLspReadiness([{ languageId: "go", fileCount: 0, available: false }]),
+    ).toEqual([]);
+  });
+
+  it("handles empty / malformed input", () => {
+    expect(checkLspReadiness()).toEqual([]);
+    expect(checkLspReadiness([null, {}, { fileCount: 3 }])).toEqual([]);
+  });
+
+  it("falls back to a generic server name when none is given", () => {
+    const out = checkLspReadiness([
+      { languageId: "rust", fileCount: 3, available: false },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].remediation).toMatch(/rust language server/);
   });
 });

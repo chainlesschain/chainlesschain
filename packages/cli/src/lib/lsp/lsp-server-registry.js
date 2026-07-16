@@ -232,3 +232,17 @@ export function probeServers(projectRoot) {
 export function supportedExtensions() {
   return Object.keys(EXTENSION_LANGUAGE).sort();
 }
+
+/**
+ * Describe the server that WOULD serve a languageId, whether or not its binary
+ * is installed — the first plugin candidate, else the builtin. Unlike
+ * `resolveServer` (which returns null when nothing is on PATH), this names the
+ * expected server so a doctor / status view can say *what to install*. Returns
+ * `{ id, bins }` or null for an unsupported language.
+ */
+export function describeServer(languageId) {
+  const candidates = [...(pluginServers.get(languageId) || [])];
+  if (BUILTIN_SERVERS[languageId]) candidates.push(BUILTIN_SERVERS[languageId]);
+  const def = candidates[0];
+  return def ? { id: def.id, bins: [...def.bins] } : null;
+}

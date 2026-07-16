@@ -1267,6 +1267,23 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
+  // Seed connected MCP servers with the startup workspace roots when the session
+  // began with extra `--add-dir` roots — otherwise `roots/list` would only ever
+  // return the cwd until the first mid-session /add-dir. No-op (byte-unchanged)
+  // when there are no extra roots. Best-effort.
+  if (additionalDirectories.length > 0) {
+    try {
+      const { workspaceRootDirs, notifyMcpRootsChanged } =
+        await import("./add-dir.js");
+      notifyMcpRootsChanged(
+        [_adhocMcp?.mcpClient, _bundleMcpClient],
+        workspaceRootDirs(process.cwd(), additionalDirectories),
+      );
+    } catch {
+      /* best-effort — root advertisement must not block session startup */
+    }
+  }
+
   // Apply bundle approval policy to this session (after both gate and sessionId are ready)
   if (_bundleResolved?.approvalPolicy?.default && _approvalGate && sessionId) {
     try {
@@ -2382,8 +2399,12 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/add-dir" || trimmed.startsWith("/add-dir ")) {
       const arg = trimmed.slice("/add-dir".length).trim();
       try {
-        const { resolveAddDir, formatAddDirRoots } =
-          await import("./add-dir.js");
+        const {
+          resolveAddDir,
+          formatAddDirRoots,
+          workspaceRootDirs,
+          notifyMcpRootsChanged,
+        } = await import("./add-dir.js");
         if (!arg) {
           logger.log(
             "\n" +
@@ -2417,6 +2438,14 @@ export async function startAgentRepl(options = {}) {
             messages[0].content = _activeOutputStyle
               ? `${_replBaseSystem}\n\n${_activeOutputStyle.body}`
               : _replBaseSystem;
+            // The workspace root LIST changed — advertise it to connected MCP
+            // servers and fire notifications/roots/list_changed so they re-query
+            // roots/list (Claude-Code 2.1.203 parity, same as /cd but with an
+            // explicit new root, not just a cwd-derived change).
+            notifyMcpRootsChanged(
+              [_adhocMcp?.mcpClient, _bundleMcpClient],
+              workspaceRootDirs(process.cwd(), additionalDirectories),
+            );
             logger.log(chalk.green(`Added working root: ${res.dir}`));
           }
         }

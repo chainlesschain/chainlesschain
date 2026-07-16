@@ -473,3 +473,108 @@ describe("AsyncHookSupervisor reliability stats (doctor)", () => {
     }
   });
 });
+
+describe("AsyncHookSupervisor persistent rewake queue (crash recovery)", () => {
+  const require = createRequire(import.meta.url);
+  const queueStore = require("../../src/lib/async-hook-queue.cjs");
+  const QFILE = "/virtual/async-hook-queue.json";
+
+  // Exact-match in-memory fs (the queue only uses these five calls).
+  function memFs() {
+    const files = new Map();
+    return {
+      files,
+      existsSync: (p) => files.has(p),
+      readFileSync: (p) => {
+        if (!files.has(p)) throw new Error("ENOENT " + p);
+        return files.get(p);
+      },
+      writeFileSync: (p, d) => files.set(p, d),
+      renameSync: (a, b) => {
+        files.set(b, files.get(a));
+        files.delete(a);
+      },
+      mkdirSync: () => {},
+    };
+  }
+
+  function makeSup(qfs, extra = {}) {
+    let t = 1000;
+    return new AsyncHookSupervisor({
+      now: () => (t += 100),
+      sessionId: "sess-A",
+      queuePath: QFILE,
+      queueFs: qfs,
+      ...extra,
+    });
+  }
+
+  it("parks a FAILED rewake so a crash before drain can recover it", () => {
+    const qfs = memFs();
+    const child = makeFakeChild();
+    const sup = makeSup(qfs, { spawn: makeSpawn([child]) });
+    sup.dispatch([{ command: "npm test", event: "Stop", asyncRewake: true }], {
+      hook_event_name: "Stop",
+    });
+    child._finish(1, "", "1 failing"); // failure → rewake recorded + parked
+    // Simulate a crash: the run never drained. A resuming session recovers it.
+    const recovered = queueStore.takePending(
+      { sessionId: "sess-A", now: 9999 },
+      QFILE,
+      qfs,
+    );
+    expect(recovered).toHaveLength(1);
+    expect(recovered[0].command).toBe("npm test");
+    expect(recovered[0].error).toContain("1 failing");
+    sup.stopAll();
+  });
+
+  it("does NOT park a PASSING rewake hook (no failure to re-engage)", () => {
+    const qfs = memFs();
+    const child = makeFakeChild();
+    const sup = makeSup(qfs, { spawn: makeSpawn([child]) });
+    sup.dispatch([{ command: "npm test", event: "Stop", asyncRewake: true }], {
+      hook_event_name: "Stop",
+    });
+    child._finish(0, "all green"); // success → no rewake, nothing parked
+    expect(
+      queueStore.takePending({ sessionId: "sess-A", now: 9999 }, QFILE, qfs),
+    ).toEqual([]);
+    sup.stopAll();
+  });
+
+  it("drainRewakes clears the durable copy (consumed → not replayed on resume)", () => {
+    const qfs = memFs();
+    const child = makeFakeChild();
+    const sup = makeSup(qfs, { spawn: makeSpawn([child]) });
+    sup.dispatch([{ command: "npm test", event: "Stop", asyncRewake: true }], {
+      hook_event_name: "Stop",
+    });
+    child._finish(1, "", "boom");
+    const drained = sup.drainRewakes();
+    expect(drained).toHaveLength(1);
+    // The run consumed it → the durable bucket is gone.
+    expect(
+      queueStore.takePending({ sessionId: "sess-A", now: 9999 }, QFILE, qfs),
+    ).toEqual([]);
+    sup.stopAll();
+  });
+
+  it("writes NOTHING when the queue is not configured (byte-unchanged default)", () => {
+    const qfs = memFs();
+    // No sessionId / queuePath → queue disabled even with a fs handed in.
+    let t = 1000;
+    const child = makeFakeChild();
+    const sup = new AsyncHookSupervisor({
+      now: () => (t += 100),
+      spawn: makeSpawn([child]),
+      queueFs: qfs,
+    });
+    sup.dispatch([{ command: "npm test", event: "Stop", asyncRewake: true }], {
+      hook_event_name: "Stop",
+    });
+    child._finish(1, "", "boom");
+    expect(qfs.files.size).toBe(0); // no writes at all
+    sup.stopAll();
+  });
+});

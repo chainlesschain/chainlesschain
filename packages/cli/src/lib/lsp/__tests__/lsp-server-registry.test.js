@@ -11,6 +11,7 @@ import {
   resolveServer,
   resolveBin,
   probeServers,
+  describeServer,
   registerLanguageServer,
   _resetPluginServers,
   _deps,
@@ -124,5 +125,31 @@ describe("probeServers", () => {
     const ids = rows.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain("typescript-language-server");
+  });
+});
+
+describe("describeServer", () => {
+  it("names the builtin server for a language even when not installed", () => {
+    existsFor([]); // nothing on PATH
+    const ts = describeServer("typescript");
+    expect(ts.id).toBe("typescript-language-server");
+    expect(ts.bins).toContain("typescript-language-server");
+    // Independent of install state — it describes the EXPECTED server.
+    expect(describeServer("python").id).toBe("pyright");
+    expect(describeServer("go").id).toBe("gopls");
+  });
+
+  it("returns null for an unsupported language", () => {
+    expect(describeServer("cobol")).toBe(null);
+    expect(describeServer(undefined)).toBe(null);
+  });
+
+  it("prefers a registered plugin server over the builtin", () => {
+    registerLanguageServer({
+      languageId: "typescript",
+      command: "my-ts-lsp",
+      id: "plugin-ts",
+    });
+    expect(describeServer("typescript").id).toBe("plugin-ts");
   });
 });

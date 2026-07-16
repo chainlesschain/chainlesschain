@@ -968,6 +968,18 @@ export function registerSessionCommand(program) {
     .option("--stats", "Show index-wide counters")
     .option("--mirror <ids...>", "Push session id(s) to the configured mirror")
     .option(
+      "--mirror-delete <ids...>",
+      "Delete session id(s) from the configured mirror",
+    )
+    .option(
+      "--mirror-prune",
+      "Delete mirror entries whose session no longer exists locally (retention)",
+    )
+    .option(
+      "--mirror-rotate",
+      "Re-encrypt all mirrored sessions from session.mirror.encryptionPrevious to session.mirror.encryption (key rotation)",
+    )
+    .option(
       "--limit <n>",
       "Max rows for search/list",
       (v) => parseInt(v, 10),
@@ -993,6 +1005,48 @@ export function registerSessionCommand(program) {
                 "No mirror configured — set session.mirror.kind (fs|http) + target in config.",
               ),
             );
+          return;
+        }
+
+        if (options.mirrorDelete && options.mirrorDelete.length) {
+          const result = await mirrorDeleteSessions(options.mirrorDelete);
+          if (options.json) return console.log(JSON.stringify(result, null, 2));
+          if (!result.target)
+            return logger.log(chalk.yellow("No mirror configured."));
+          for (const id of result.deleted)
+            logger.log(chalk.green(`  deleted ${id} from mirror`));
+          for (const r of result.errors) logger.error(`  ${r.id}: ${r.error}`);
+          return;
+        }
+
+        if (options.mirrorPrune) {
+          const result = await mirrorPruneSessions();
+          if (options.json) return console.log(JSON.stringify(result, null, 2));
+          if (!result.target)
+            return logger.log(chalk.yellow("No mirror configured."));
+          logger.log(
+            chalk.green(
+              `  pruned ${result.deleted.length} orphaned mirror entr${
+                result.deleted.length === 1 ? "y" : "ies"
+              } (${result.kept.length} kept)`,
+            ),
+          );
+          return;
+        }
+
+        if (options.mirrorRotate) {
+          const result = await mirrorRotateKey();
+          if (options.json) return console.log(JSON.stringify(result, null, 2));
+          if (!result.target)
+            return logger.log(chalk.yellow("No mirror configured."));
+          if (result.error) return logger.error(`  ${result.error}`);
+          logger.log(
+            chalk.green(
+              `  rotated ${result.rotated.length} session(s) to key "${result.keyId}"` +
+                ` (${result.skipped.length} already current)`,
+            ),
+          );
+          for (const r of result.failed) logger.error(`  ${r.id}: ${r.error}`);
           return;
         }
 
@@ -1779,6 +1833,84 @@ async function mirrorSessions(ids) {
     }
   }
   return { target: mirror.target, pushed, errors };
+}
+
+/** Load the configured mirror (or null). Shared by every mirror subcommand. */
+async function loadConfiguredMirror() {
+  const { createMirror } = await import("../harness/session-mirror.js");
+  let cfg = {};
+  try {
+    cfg =
+      (await import("../lib/config-manager.js")).loadConfig()?.session
+        ?.mirror || {};
+  } catch {
+    cfg = {};
+  }
+  return { mirror: createMirror(cfg), cfg };
+}
+
+/** Delete session id(s) from the configured off-box mirror. */
+async function mirrorDeleteSessions(ids) {
+  const store = await import("../harness/jsonl-session-store.js");
+  const { mirror } = await loadConfiguredMirror();
+  if (!mirror) return { target: null, deleted: [], errors: [] };
+  const deleted = [];
+  const errors = [];
+  for (const id of ids) {
+    try {
+      if (store.isUnsafeSessionId(id)) throw new Error("unsafe session id");
+      await mirror.delete(id);
+      deleted.push(id);
+    } catch (err) {
+      errors.push({ id, error: err.message });
+    }
+  }
+  return { target: mirror.target, deleted, errors };
+}
+
+/**
+ * Retention prune: delete mirror entries whose session no longer exists in the
+ * local store (the mirror is one-way derived, so local is the source of truth).
+ */
+async function mirrorPruneSessions() {
+  const store = await import("../harness/jsonl-session-store.js");
+  const { pruneMirror } = await import("../harness/session-mirror.js");
+  const { mirror } = await loadConfiguredMirror();
+  if (!mirror) return { target: null, deleted: [], kept: [] };
+  const keep = store.listSessionIds();
+  const res = await pruneMirror(mirror, { keep });
+  return { target: mirror.target, ...res };
+}
+
+/**
+ * Key rotation: re-encrypt every mirrored session from the PREVIOUS key
+ * (`session.mirror.encryptionPrevious`) to the CURRENT key
+ * (`session.mirror.encryption`). Requires both to be configured.
+ */
+async function mirrorRotateKey() {
+  const { createMirror, createMirrorCipher, rotateMirrorKey } =
+    await import("../harness/session-mirror.js");
+  const { cfg } = await loadConfiguredMirror();
+  if (!cfg || !cfg.kind || cfg.kind === "none") {
+    return { target: null };
+  }
+  const prev = cfg.encryptionPrevious || cfg.encryptionOld;
+  const next = cfg.encryption;
+  if (!prev?.passphrase || !next?.passphrase) {
+    return {
+      target: cfg.dir || cfg.baseUrl || cfg.url || null,
+      error:
+        "rotation needs both session.mirror.encryptionPrevious and session.mirror.encryption passphrases",
+    };
+  }
+  // Drive the RAW driver (createMirror without encryption) so rotation manages
+  // the ciphertext itself with the two explicit ciphers.
+  const raw = createMirror({ ...cfg, encryption: undefined });
+  const res = await rotateMirrorKey(raw, {
+    from: createMirrorCipher(prev),
+    to: createMirrorCipher(next),
+  });
+  return { target: raw.target, ...res };
 }
 
 // === Iter21 V2 governance overlay ===

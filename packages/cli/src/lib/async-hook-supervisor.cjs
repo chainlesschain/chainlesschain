@@ -73,6 +73,22 @@ class AsyncHookSupervisor {
         ? this._statsStore.defaultHookStatsPath()
         : null);
     this._statsFs = opts.statsFs || null; // injected fs for tests
+    // Persistent rewake queue (opt-in). A rewake — an async check that OPTED IN
+    // and finished in a FAILURE state — is the one actionable signal this
+    // supervisor produces, but it lives only in `_rewakes` until the turn loop
+    // drains it. If the process dies in that window the failure is lost. When a
+    // `sessionId` + `persistQueue` (or an explicit `queuePath`) are supplied,
+    // each rewake is durably parked keyed by session so `--resume` can recover
+    // it; it's removed again the moment the run drains it. Disabled (no writes,
+    // byte-unchanged) when either is absent — mirrors the stats-store opt-in.
+    this._queueStore = opts.queueStore || require("./async-hook-queue.cjs");
+    this._queueSessionId = opts.sessionId ? String(opts.sessionId) : null;
+    this._queuePath =
+      opts.queuePath ||
+      (opts.persistQueue === true
+        ? this._queueStore.defaultAsyncHookQueuePath()
+        : null);
+    this._queueFs = opts.queueFs || null; // injected fs for tests
     // The exit reaper is installed LAZILY (on first spawn), not in the ctor:
     // a supervisor that never dispatches a hook (or the many built in tests)
     // must not leave a permanent `process.once('exit')` listener behind —
@@ -359,6 +375,29 @@ class AsyncHookSupervisor {
     if (hook.asyncRewake && !rec.ok) {
       this._rewakes.push(rec);
       if (this._rewakes.length > RESULT_RING) this._rewakes.shift();
+      // Durably park it (opt-in) so a crash before the turn loop drains this
+      // rewake doesn't lose the failure signal. Immediate write, not deferred to
+      // stopAll — a rewake must survive even a hard exit that never runs stopAll.
+      this._persistRewake(rec);
+    }
+  }
+
+  /** True when a session id + queue location were both configured. */
+  _queueEnabled() {
+    return !!(this._queueSessionId && this._queuePath);
+  }
+
+  /** Best-effort durable append of one rewake record. Never throws. */
+  _persistRewake(rec) {
+    if (!this._queueEnabled()) return;
+    try {
+      this._queueStore.appendRewake(
+        { sessionId: this._queueSessionId, records: [rec], now: rec.ts },
+        this._queuePath,
+        this._queueFs || undefined,
+      );
+    } catch {
+      /* queue is best-effort */
     }
   }
 
@@ -377,6 +416,19 @@ class AsyncHookSupervisor {
   drainRewakes() {
     const r = this._rewakes;
     this._rewakes = [];
+    // The run has now consumed these rewakes (it will surface / re-engage on
+    // them), so they no longer need to survive a crash — drop the durable copies.
+    if (r.length > 0 && this._queueEnabled()) {
+      try {
+        this._queueStore.removeRewakes(
+          { sessionId: this._queueSessionId, records: r },
+          this._queuePath,
+          this._queueFs || undefined,
+        );
+      } catch {
+        /* queue is best-effort */
+      }
+    }
     return r;
   }
 

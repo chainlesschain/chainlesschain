@@ -27,12 +27,18 @@ import { execSync, spawnSync } from "node:child_process";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
 import {
+  languageIdForFile,
+  resolveServer,
+  describeServer,
+} from "./lsp/lsp-server-registry.js";
+import {
   checkAgenda,
   checkInstructionFiles,
   checkHookConfig,
   checkHooks,
   checkSandbox,
   checkDuplicateSkills,
+  checkLspReadiness,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "./runtime-checkup.js";
 
@@ -614,6 +620,71 @@ const SEVERITY_TO_LEVEL = {
   info: CHECK_LEVELS.INFO,
 };
 
+// Heavy / generated directories a project-language scan must never descend into
+// (they'd dominate the budget and aren't the user's source).
+const LSP_SCAN_SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "build",
+  "out",
+  "target",
+  "coverage",
+  "vendor",
+  "venv",
+  "__pycache__",
+]);
+
+/**
+ * Bounded shallow walk of a project root, counting source files per LSP
+ * languageId (via `languageIdForFile`). Deliberately capped by total entries
+ * visited AND depth so `cc doctor` stays fast on a huge monorepo; heavy build /
+ * vendor dirs and dot-dirs are skipped. fs access goes through injected `deps`
+ * (readdirSync/statSync) so it's unit-testable. Returns a Map languageId→count.
+ */
+function scanProjectLanguages(
+  root,
+  deps,
+  { maxEntries = 20000, maxDepth = 8 } = {},
+) {
+  const counts = new Map();
+  let visited = 0;
+  const stack = [{ dir: root, depth: 0 }];
+  while (stack.length && visited < maxEntries) {
+    const { dir, depth } = stack.pop();
+    let names;
+    try {
+      names = deps.readdirSync(dir);
+    } catch {
+      continue; // unreadable dir — skip, never crash the doctor
+    }
+    for (const name of names) {
+      if (visited >= maxEntries) break;
+      visited += 1;
+      const lang = languageIdForFile(name);
+      if (lang) {
+        counts.set(lang, (counts.get(lang) || 0) + 1);
+        continue;
+      }
+      // Not a source file — maybe a directory to descend (bounded). Skip heavy
+      // build/vendor trees and dot-dirs (rarely hold the user's own source).
+      if (
+        depth < maxDepth &&
+        !LSP_SCAN_SKIP_DIRS.has(name) &&
+        !String(name).startsWith(".")
+      ) {
+        let isDir = false;
+        try {
+          isDir = deps.statSync(join(dir, name)).isDirectory();
+        } catch {
+          isDir = false;
+        }
+        if (isDir) stack.push({ dir: join(dir, name), depth: depth + 1 });
+      }
+    }
+  }
+  return counts;
+}
+
 async function runtimeSection(opts, deps) {
   const checks = [];
   const now = deps.now();
@@ -787,6 +858,41 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("sandbox", "sandbox availability", err));
+  }
+
+  // LSP readiness — languages the project actually contains but for which no
+  // language server is installed: the silent reason `code_intelligence` /
+  // `cc code-intel` degrades to plain text search. A STATIC install-gap check
+  // (no server is started); the project scan is bounded so it stays fast.
+  try {
+    const root = opts.cwd || process.cwd();
+    const langCounts = scanProjectLanguages(root, deps);
+    if (langCounts.size > 0) {
+      const languages = [];
+      for (const [languageId, fileCount] of langCounts) {
+        const resolved = resolveServer(languageId, root);
+        const desc = describeServer(languageId);
+        languages.push({
+          languageId,
+          fileCount,
+          available: !!resolved,
+          serverId: (resolved && resolved.id) || (desc && desc.id) || null,
+          exampleBin: desc && desc.bins ? desc.bins[0] : null,
+        });
+      }
+      for (const f of checkLspReadiness(languages)) {
+        checks.push(
+          check(
+            f.id,
+            `lsp ${f.ref}`,
+            SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.INFO,
+            `${f.message} — ${f.remediation}`,
+          ),
+        );
+      }
+    }
+  } catch (err) {
+    checks.push(failedCheck("lsp-readiness", "lsp server readiness", err));
   }
 
   // Duplicate skills — an id defined in more than one layer silently shadows

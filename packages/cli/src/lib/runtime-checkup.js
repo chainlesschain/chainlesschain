@@ -437,6 +437,39 @@ export function checkDuplicateSkills(entries = []) {
   return out;
 }
 
+/**
+ * LSP READINESS: languages the project actually contains but for which no
+ * language server is installed — the silent reason `code_intelligence` /
+ * `cc code-intel` quietly degrades to plain text search. Unlike
+ * `checkPluginsAndLsp` (live server health) this is a STATIC install-gap check a
+ * separate `cc doctor` process can compute without any server running: it
+ * correlates source files present with `resolveServer` availability. Only
+ * present-but-missing languages warn; installed languages produce nothing (no
+ * noise). Each `languages` entry: `{ languageId, fileCount, available, serverId,
+ * exampleBin }`.
+ */
+export function checkLspReadiness(languages = []) {
+  const out = [];
+  for (const l of languages) {
+    if (!l || !l.languageId) continue;
+    const fileCount = Number(l.fileCount) || 0;
+    if (fileCount <= 0 || l.available) continue;
+    const server = l.serverId || `a ${l.languageId} language server`;
+    const install = l.exampleBin ? ` (e.g. install ${l.exampleBin})` : "";
+    out.push(
+      finding(
+        "lsp-server-missing",
+        "lsp",
+        "warn",
+        `${fileCount} ${l.languageId} file(s) present but no language server installed${install}`,
+        `install ${server} for real code-intelligence, or ignore to keep text-search fallback`,
+        { ref: l.languageId, fileCount, serverId: l.serverId || null },
+      ),
+    );
+  }
+  return out;
+}
+
 /** Plugins / LSP servers reported unhealthy or dead. */
 export function checkPluginsAndLsp(plugins = []) {
   const out = [];
