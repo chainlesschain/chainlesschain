@@ -231,6 +231,62 @@ describe("doctor-checkup", () => {
     expect(runtime.checks.some((c) => c.id === "skill-duplicate")).toBe(false);
   });
 
+  it("flags a leaked agent subprocess (worker dead, child alive) with a kill command", async () => {
+    const sections = await collectCheckupSections({
+      deps: fakeDeps(),
+      // Injected snapshot (mirrors opts.skillLayerEntries): an agent child that
+      // is alive while its worker parent has died → an orphaned subprocess.
+      backgroundProcesses: [
+        { pid: 4242, alive: true, parentAlive: false, kind: "agent-child" },
+      ],
+      activeSessionIds: [],
+    });
+    const runtime = sections.find((s) => s.id === "runtime");
+    const finding = runtime.checks.find((c) => c.id === "orphan-process");
+    expect(finding).toBeTruthy();
+    expect(finding.level).toBe(CHECK_LEVELS.ERR);
+    expect(finding.name).toMatch(/4242/);
+    expect(finding.fix).toBeTruthy();
+    expect(finding.fix.safe).toBe(false); // killing a process needs judgement
+    expect(finding.fix.command).toMatch(/4242/);
+  });
+
+  it("flags an agent child whose session is gone as orphaned", async () => {
+    const sections = await collectCheckupSections({
+      deps: fakeDeps(),
+      backgroundProcesses: [
+        {
+          pid: 99,
+          alive: true,
+          parentAlive: true,
+          sessionId: "sess-gone",
+          kind: "agent-child",
+        },
+      ],
+      activeSessionIds: ["sess-live"], // sess-gone is not active
+    });
+    const runtime = sections.find((s) => s.id === "runtime");
+    expect(runtime.checks.some((c) => c.id === "orphan-process")).toBe(true);
+  });
+
+  it("does not flag a healthy agent child (parent alive, session active)", async () => {
+    const sections = await collectCheckupSections({
+      deps: fakeDeps(),
+      backgroundProcesses: [
+        {
+          pid: 7,
+          alive: true,
+          parentAlive: true,
+          sessionId: "s1",
+          kind: "agent-child",
+        },
+      ],
+      activeSessionIds: ["s1"],
+    });
+    const runtime = sections.find((s) => s.id === "runtime");
+    expect(runtime.checks.some((c) => c.id === "orphan-process")).toBe(false);
+  });
+
   describe("execution section (P1-7)", () => {
     it("reports a local trusted machine as OK with no policy advisory", async () => {
       const sections = await collectCheckupSections({

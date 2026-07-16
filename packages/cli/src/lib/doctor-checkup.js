@@ -39,6 +39,7 @@ import {
   checkSandbox,
   checkDuplicateSkills,
   checkLspReadiness,
+  checkOrphanProcesses,
   DEFAULT_CHECKUP_THRESHOLDS,
 } from "./runtime-checkup.js";
 
@@ -610,10 +611,13 @@ async function worktreeSection(opts, deps) {
 
 // ── runtime checkup: agenda expiry + verbose instruction files ──────────────
 // Only the gaps the OTHER sections don't already cover. Stale sessions,
-// worktrees, orphan processes and lost background agents are handled by
-// transcriptSection / worktreeSection / backgroundSection — surfacing them here
-// too would double-report, so this section deliberately covers just the agenda
-// schedule store and the instruction files (cc.md / AGENTS.md / CLAUDE.md).
+// worktrees and lost background agents (worker STATUS) are handled by
+// transcriptSection / worktreeSection / backgroundSection — surfacing those
+// here too would double-report. This section covers the agenda schedule store,
+// instruction files (cc.md / AGENTS.md / CLAUDE.md), and — distinct from
+// backgroundSection's worker-status check — leaked agent CHILD subprocesses
+// (a per-turn agentPid still alive after its worker died), probed via a static
+// one-shot PID-liveness check and the shared checkOrphanProcesses evaluator.
 const SEVERITY_TO_LEVEL = {
   error: CHECK_LEVELS.ERR,
   warn: CHECK_LEVELS.WARN,
@@ -893,6 +897,76 @@ async function runtimeSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("lsp-readiness", "lsp server readiness", err));
+  }
+
+  // Orphaned agent subprocesses — a background worker died but its per-turn
+  // agent CHILD (the LLM/tool subprocess recorded as `agentPid`) is still
+  // alive: a leaked process nothing reaped. backgroundSection reports the
+  // worker's STATUS; this probes the actual child PID's liveness (static,
+  // one-shot, anchored on the process start time to defeat PID reuse) and
+  // feeds the shared checkOrphanProcesses evaluator. Only PIDs we recorded are
+  // probed → no false positives, no OS-wide process-table scan. Tests inject
+  // opts.backgroundProcesses / opts.activeSessionIds (mirrors
+  // opts.skillLayerEntries below).
+  try {
+    let processes = opts.backgroundProcesses;
+    let activeSessionIds = opts.activeSessionIds;
+    if (!processes) {
+      const bgMod = await import("./background-agent-supervisor.js");
+      const agents = bgMod.listBackgroundAgents({ all: true }) || [];
+      activeSessionIds = agents
+        .filter((a) => a.status === "running")
+        .map((a) => a.sessionId)
+        .filter(Boolean);
+      processes = [];
+      for (const a of agents) {
+        let state;
+        try {
+          state = bgMod.readBackgroundAgentState(a.id);
+        } catch {
+          continue; // unreadable/raced state file — skip
+        }
+        const agentPid = Number(state?.agentPid);
+        if (!Number.isInteger(agentPid) || agentPid <= 0) continue;
+        if (agentPid === Number(state?.pid)) continue; // that's the worker itself
+        // Alive AND still the same process we launched (not a reused PID).
+        const anchor = state.agentStartedAt || state.startedAt;
+        if (!bgMod.isSameProcess(agentPid, anchor)) continue; // dead → nothing to reap
+        const parentAlive = bgMod.isSameProcess(
+          Number(state.pid),
+          state.startedAt,
+        );
+        processes.push({
+          pid: agentPid,
+          alive: true,
+          parentAlive,
+          sessionId: state.sessionId || null,
+          kind: "agent-child",
+        });
+      }
+    }
+    for (const f of checkOrphanProcesses(processes, activeSessionIds || [])) {
+      const killCmd =
+        process.platform === "win32"
+          ? `taskkill /PID ${f.ref} /T /F`
+          : `kill ${f.ref}`;
+      checks.push(
+        check(
+          f.id,
+          `process pid=${f.ref}`,
+          SEVERITY_TO_LEVEL[f.severity] || CHECK_LEVELS.WARN,
+          `${f.message} — ${f.remediation}`,
+          {
+            id: `reap-orphan-${f.ref}`,
+            safe: false,
+            description: `terminate leaked agent subprocess pid=${f.ref}`,
+            command: killCmd,
+          },
+        ),
+      );
+    }
+  } catch (err) {
+    checks.push(failedCheck("orphan-process", "orphan agent processes", err));
   }
 
   // Duplicate skills — an id defined in more than one layer silently shadows
