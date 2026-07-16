@@ -269,3 +269,27 @@ describe("recordInstallCommandAudit (injected fs)", () => {
     ).toBe(false);
   });
 });
+
+describe("classifyInstallSegment — python -m pip module invocation", () => {
+  it("classifies `python -m pip install` exactly like a direct pip call", () => {
+    for (const cmd of [
+      "python -m pip install requests",
+      "python3 -m pip install requests",
+      "python3.11 -m pip install requests",
+      "py -m pip install requests",
+      "sudo python3 -m pip install requests",
+    ]) {
+      const r = classifyInstallSegment(cmd);
+      expect(r, cmd).toBeTruthy();
+      expect(r.manager).toBe("pip");
+      expect(r.packages).toEqual(["requests"]);
+    }
+  });
+
+  it("does not misclassify other python module invocations", () => {
+    expect(classifyInstallSegment("python -m http.server 8080")).toBeNull();
+    expect(classifyInstallSegment("python -m venv .venv")).toBeNull();
+    // `python script.py install` — no -m, python is not a manager.
+    expect(classifyInstallSegment("python setup.py install")).toBeNull();
+  });
+});

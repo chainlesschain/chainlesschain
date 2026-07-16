@@ -4496,6 +4496,32 @@ async function _executeRunCode(args, cwd) {
             };
           }
 
+          // Unified install-command audit (P0 sandbox slice): the same opt-in
+          // trail (CC_INSTALL_AUDIT / settings installPolicy) that records
+          // run_shell installs also records run_code auto-installs — one audit
+          // file covers every "fetch and run third-party code" entry point.
+          // Best-effort; default (policy off) writes nothing.
+          let auditUnifiedInstall = () => {};
+          try {
+            const icp = await import("../lib/install-command-policy.js");
+            const unified = icp.resolveInstallPolicy({});
+            if (unified.audit) {
+              const installCommand = `${interpreter} -m pip install ${packageName}`;
+              const cls = icp.classifyInstallCommand(installCommand);
+              auditUnifiedInstall = (outcome, detail) =>
+                icp.recordInstallCommandAudit({
+                  source: "run_code_auto_install",
+                  command: installCommand,
+                  outcome,
+                  ...(detail ? { detail } : {}),
+                  installs: cls.installs,
+                  global: icp.hasGlobalInstall(cls),
+                });
+            }
+          } catch {
+            /* unified audit must never affect the install itself */
+          }
+
           // Attempt pip install
           try {
             execSync(`${interpreter} -m pip install ${packageName}`, {
@@ -4510,6 +4536,7 @@ async function _executeRunCode(args, cwd) {
               cwd,
               outcome: "installed",
             });
+            auditUnifiedInstall("installed");
 
             // Retry execution
             const retryStart = Date.now();
@@ -4537,6 +4564,10 @@ async function _executeRunCode(args, cwd) {
               outcome: "failed",
               detail: (pipErr.stderr || pipErr.message || "").substring(0, 200),
             });
+            auditUnifiedInstall(
+              "failed",
+              (pipErr.stderr || pipErr.message || "").substring(0, 200),
+            );
             return {
               error: (stderr || message).substring(0, 5000),
               stderr: stderr.substring(0, 5000),

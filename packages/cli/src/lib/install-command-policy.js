@@ -128,8 +128,18 @@ function unwrapArgv(tokens) {
  * @returns {{manager:string, subcommand:string, packages:string[], global:boolean}|null}
  */
 export function classifyInstallSegment(segment) {
-  const argv = unwrapArgv(tokenizeShellCommand(segment));
+  let argv = unwrapArgv(tokenizeShellCommand(segment));
   if (argv.length === 0) return null;
+  // Module invocation: `python -m pip install …` (and `py -m pip …`) is the
+  // canonical way run_code's auto-install — and plenty of humans — invoke pip;
+  // treat the module as the binary so it classifies like a direct `pip`.
+  if (
+    /^(python[0-9.]*|py)$/.test(normalizeBin(argv[0])) &&
+    argv[1] === "-m" &&
+    argv.length > 2
+  ) {
+    argv = argv.slice(2);
+  }
   const bin = normalizeBin(argv[0]);
   const mgr = MANAGERS.find((m) => m.bin.test(bin));
   if (!mgr) return null;

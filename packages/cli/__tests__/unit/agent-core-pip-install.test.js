@@ -265,3 +265,98 @@ describe("run_code pip auto-install flow", () => {
     expect(result.hint).toContain("installAllowlist");
   });
 });
+
+describe("run_code auto-install — unified install-command audit (P0 sandbox)", () => {
+  let tempDir;
+
+  beforeEach(async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-uaudit-"));
+    execSyncCalls = [];
+    execSyncImpl = null;
+    vi.mocked(execSync).mockReset();
+    process.env.CC_RUN_CODE_AUTO_INSTALL = "1";
+    process.env.CC_AUDIT_DIR = path.join(tempDir, "audit");
+  });
+
+  afterEach(() => {
+    delete process.env.CC_RUN_CODE_AUTO_INSTALL;
+    delete process.env.CC_AUDIT_DIR;
+    delete process.env.CC_INSTALL_AUDIT;
+  });
+
+  const runAutoInstallFlow = async () => {
+    let callIdx = 0;
+    vi.mocked(execSync).mockImplementation(() => {
+      callIdx++;
+      if (callIdx === 1) {
+        const err = new Error("ModuleNotFoundError: No module named 'pandas'");
+        err.stderr = "ModuleNotFoundError: No module named 'pandas'";
+        err.status = 1;
+        throw err;
+      }
+      return callIdx === 2 ? "Successfully installed" : "ok";
+    });
+    return executeTool(
+      "run_code",
+      { language: "python", code: "import pandas" },
+      { cwd: tempDir },
+    );
+  };
+
+  it("CC_INSTALL_AUDIT=1: the auto-install lands in install-commands.jsonl as a pip install", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    process.env.CC_INSTALL_AUDIT = "1";
+
+    const result = await runAutoInstallFlow();
+    expect(result.success).toBe(true);
+
+    const auditFile = path.join(tempDir, "audit", "install-commands.jsonl");
+    expect(fs.existsSync(auditFile)).toBe(true);
+    const lines = fs
+      .readFileSync(auditFile, "utf-8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    const rec = lines.find((l) => l.source === "run_code_auto_install");
+    expect(rec).toBeTruthy();
+    expect(rec.kind).toBe("install-command");
+    expect(rec.outcome).toBe("installed");
+    expect(rec.command).toContain("-m pip install pandas");
+    // The module invocation classifies like a direct pip call.
+    expect(rec.installs).toEqual([
+      {
+        manager: "pip",
+        subcommand: "install",
+        packages: ["pandas"],
+        global: false,
+      },
+    ]);
+    expect(rec.global).toBe(false);
+  });
+
+  it("policy off (default): no unified audit line is written", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+
+    const result = await runAutoInstallFlow();
+    expect(result.success).toBe(true);
+
+    const auditFile = path.join(tempDir, "audit", "install-commands.jsonl");
+    // dependency-install-policy writes its own trail; the UNIFIED trail stays
+    // silent when CC_INSTALL_AUDIT / settings installPolicy are unset.
+    if (fs.existsSync(auditFile)) {
+      const hasUnified = fs
+        .readFileSync(auditFile, "utf-8")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l))
+        .some((l) => l.source === "run_code_auto_install");
+      expect(hasUnified).toBe(false);
+    }
+  });
+});
