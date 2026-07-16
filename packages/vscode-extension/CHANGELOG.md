@@ -2,6 +2,44 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **Windows cmd.exe argv hardening.** Every `cc` spawn on Windows goes through
+  a shell (`.cmd` shim), and Node joins argv with plain spaces — so user-typed
+  text with `&`/`|`/quotes (a `/handoff` prompt like `verify & deploy`, a
+  background-agent rename/resume prompt, relay settings) was mangled or
+  executed as a second command. All such tokens are now cmd-escaped
+  (cross-spawn algorithm), round-trip-proven against a real cmd.exe + `.cmd`
+  shim including CJK and injection payloads.
+- **Ghost-text cancel really cancels.** Dismissing an inline completion now
+  `taskkill /T`s the process tree; before, only the cmd.exe wrapper died and
+  the orphaned `cc complete` still ran the full LLM call (tokens burned per
+  dismissed suggestion) and held the SQLite lock.
+- **Deep-link file containment.** `vscode://…/open?file=…` is untrusted; the
+  target must now resolve inside the open workspace (UNC, `..` escapes and
+  outside absolute paths — e.g. `?file=C:\Users\me\.ssh\id_rsa` — are refused
+  instead of opened).
+- **Plugin manager Trust/Untrust fixed.** The panel now passes the plugin row's
+  `--scope`; before, the CLI defaulted to project scope, so Trust errored for
+  user-scope installs and **Untrust silently succeeded without revoking**.
+- **Blocked background agents are visible.** `waiting_permission` /
+  `needs_input` phases and `pendingApprovals` (produced by cc ≥ 0.162.168)
+  render an orange "⏸ waiting for you (N approvals pending)" badge plus a
+  summary card, and the Sessions workbench sorts blocked agents first.
+- **Budget/retry stream events surface.** Mid-stream API reconnects
+  (`stream_retry`) and turn/cost budget stops render as info lines with the
+  stop reason instead of a silent stall — and a budget stop no longer repaints
+  the entire streamed answer in red.
+- **Crash-safe resume notice (with cc ≥ next release).** A chat session killed
+  mid-irreversible-operation (git push, publish, opaque shell) now surfaces a
+  "N interrupted side-effect(s) need verification" notice on resume — the
+  CLI-side ledger now covers the panel's stream path.
+- Fixed: MCP bridge oversize-request crash window (a body chunk arriving after
+  the 413 could throw an uncaught exception in the extension host) and an
+  O(n²) byte-count on large bodies; a rapid double attach in Background Agents
+  leaking a pipe handle and log timer; the background list poll stalling the
+  extension host with a synchronous `wmic` probe (cache TTL 10s→60s).
+
 ## [0.37.15] — Lean chat context: trim project memory re-sent every turn (2026-07-13)
 
 - **Lean context (new setting `chainlesschain.chat.leanContext`, ON by default).**

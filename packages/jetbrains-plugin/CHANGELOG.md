@@ -1,5 +1,45 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **No more EDT freezes on a wedged agent.** `/stop`, `/compact`, approval and
+  question replies, and tab-close/stop all did blocking child-stdin pipe I/O
+  on the UI thread — a child that stopped reading froze the whole IDE (and
+  `/stop`, the command you reach for exactly then, had no escape). All routed
+  off-EDT; closing a tab can no longer deadlock against a blocked send, and a
+  queued send no longer respawns a `cc` child for a closed tab.
+- **Windows process-tree kill for captures and ghost-text.** Cancelled inline
+  completions and timed-out `cc` captures killed only the cmd.exe wrapper —
+  every dismissed suggestion still burned a full LLM call, and a hung capture
+  left an immortal node process holding the SQLite lock. Descendants are now
+  reaped first.
+- **Shared session index is concurrency-safe.** Cross-IDE (and in-process)
+  read-merge-write races silently dropped sessions from the picker, and a
+  same-millisecond tmp-file collision dropped writes; now locked + unique tmp
+  names, with index writes coalesced onto a background thread instead of full
+  file rewrites on the EDT several times per turn.
+- **Pipe client survives split CJK.** A multi-byte character straddling a
+  4096-byte read boundary corrupted the NDJSON line and made prompt/stop
+  actions falsely time out; the carry buffer is now byte-level.
+- **Blocked background agents are visible + resumable.** `waiting_permission`
+  / `needs_input` / `pendingApprovals` (cc ≥ 0.162.168) surface as
+  "waiting for approval (N pending)" in the list/detail, sort first in the
+  Sessions workbench, and Resume is enabled for blocked sessions. Liveness now
+  also checks pid identity (a crashed/pid-reused worker shows `lost` with the
+  reason instead of "running" for 2 minutes).
+- **Plugin manager Trust/Untrust fixed** (scope threading — an unscoped
+  untrust of a user-scope plugin silently kept trust). VS Code parity.
+- **Faster, quieter panels.** Context-window indicator is derived locally from
+  `token_usage` (was: a cold `cc context` spawn after every turn); Background
+  Agents dialog reads log tails via a 64KB seek off-EDT (was: whole multi-MB
+  log on the EDT per refresh); Dashboard's 1s refresh pauses while hidden.
+- **Budget/retry stream events surface** as info lines (fixture-pinned parity
+  with VS Code): API reconnects, turn/cost budget stops with reasons — a
+  budget stop no longer repaints the streamed answer as an error.
+- **What's New nudge**: one-shot balloon after a `cc` upgrade with a button to
+  the release notes (parity with VS Code). Team monitor now shows budget and
+  member rollups.
+
 ## [0.4.59] — Lean chat context: trim project memory re-sent every turn (2026-07-13)
 
 - **Lean context (new setting in Settings → Tools → ChainlessChain IDE, ON by
