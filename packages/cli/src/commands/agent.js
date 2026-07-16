@@ -506,6 +506,11 @@ export function registerAgentCommand(program) {
       let _worktree = null;
       let _worktreeFinished = false;
       let _finishAgentWorktreeFn = null;
+      // Settings hooks loaded once at worktree setup, reused by both the
+      // WorktreeCreate producer and the WorktreeRemove producer in
+      // _finishWorktree(). Null unless --worktree is active + hooks loaded.
+      let _worktreeSettingsHooks = null;
+      let _worktreeAsyncSupervisor = null;
       if (options.worktree) {
         try {
           const { setupAgentWorktree, finishAgentWorktree } =
@@ -516,6 +521,43 @@ export function registerAgentCommand(program) {
           process.stderr.write(
             `worktree: ${_worktree.path} (branch ${_worktree.branch})\n`,
           );
+          // WorktreeCreate lifecycle hook (observe-only, best-effort): a fresh
+          // isolated worktree just appeared — let automation react (register it
+          // with a tracker, seed per-branch tooling). Loaded from the REPO ROOT
+          // (its committed/user-level .claude hooks apply). No-op & byte-unchanged
+          // without a registered WorktreeCreate hook; never blocks the session.
+          try {
+            const { loadHooks } = await import("../lib/settings-hooks.cjs");
+            _worktreeSettingsHooks =
+              loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
+            const { runWorktreeCreateHooks, dispatchAsyncHooks } =
+              await import("../lib/settings-hook-events.cjs");
+            runWorktreeCreateHooks(_worktreeSettingsHooks, {
+              worktreePath: _worktree.path,
+              branch: _worktree.branch,
+              baseSha: _worktree.baseSha,
+              cwd: _worktree.path,
+            });
+            if (!_worktreeAsyncSupervisor) {
+              const { AsyncHookSupervisor } =
+                await import("../lib/async-hook-supervisor.cjs");
+              _worktreeAsyncSupervisor = new AsyncHookSupervisor({
+                persistStats: true,
+              });
+            }
+            dispatchAsyncHooks(
+              _worktreeSettingsHooks,
+              "WorktreeCreate",
+              {
+                worktree_path: _worktree.path,
+                branch: _worktree.branch,
+                base_sha: _worktree.baseSha,
+              },
+              { cwd: _worktree.path, supervisor: _worktreeAsyncSupervisor },
+            );
+          } catch {
+            /* worktree lifecycle hooks are best-effort — never block */
+          }
           // The worktree is created BEFORE flag validation, and several
           // `process.exit(1)` guards below (plus any future ones) would skip the
           // normal cleanup and orphan an empty worktree + branch on disk. A sync
@@ -548,6 +590,39 @@ export function registerAgentCommand(program) {
               ? `worktree removed (${fin.reason}).\n`
               : `worktree kept (${fin.reason}): ${_worktree.path}\n${fin.mergeHint ? `  merge: ${fin.mergeHint}\n` : ""}`,
           );
+          // WorktreeRemove lifecycle hook (observe-only, best-effort): teardown
+          // just resolved — fire with `removed` distinguishing an auto-removed
+          // empty worktree from one kept for its changes. Reuses the hooks loaded
+          // at setup; no-op & byte-unchanged without a registered hook.
+          if (_worktreeSettingsHooks) {
+            try {
+              const { runWorktreeRemoveHooks, dispatchAsyncHooks } =
+                await import("../lib/settings-hook-events.cjs");
+              runWorktreeRemoveHooks(_worktreeSettingsHooks, {
+                worktreePath: _worktree.path,
+                branch: _worktree.branch,
+                removed: fin.removed === true,
+                reason: fin.reason,
+                cwd: _worktree.repoRoot,
+              });
+              dispatchAsyncHooks(
+                _worktreeSettingsHooks,
+                "WorktreeRemove",
+                {
+                  worktree_path: _worktree.path,
+                  branch: _worktree.branch,
+                  removed: fin.removed === true,
+                  reason: fin.reason,
+                },
+                {
+                  cwd: _worktree.repoRoot,
+                  supervisor: _worktreeAsyncSupervisor,
+                },
+              );
+            } catch {
+              /* WorktreeRemove firing is best-effort */
+            }
+          }
         } catch {
           /* keep silently — never block exit */
         }

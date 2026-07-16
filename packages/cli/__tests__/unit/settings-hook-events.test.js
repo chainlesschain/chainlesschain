@@ -12,6 +12,8 @@ const {
   runUserPromptSubmitHooks,
   runSessionStartHooks,
   runCwdChangedHooks,
+  runWorktreeCreateHooks,
+  runWorktreeRemoveHooks,
   runObserveHooks,
   aggregateContext,
 } = ev;
@@ -118,6 +120,87 @@ describe("runCwdChangedHooks", () => {
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.old_cwd+'|'+j.cwd+'|'+j.hook_event_name)})\"";
     const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/old", newCwd: "/new" });
     expect(r.additionalContext).toBe("/old|/new|CwdChanged");
+  });
+});
+
+describe("runWorktreeCreateHooks", () => {
+  const wc = (command, matcher = null) => ({
+    WorktreeCreate: [{ matcher, hooks: [{ type: "command", command }] }],
+  });
+
+  it("returns null context with no settings / no hooks", () => {
+    expect(runWorktreeCreateHooks(null, { branch: "cc-agent-x" })).toEqual({
+      additionalContext: null,
+    });
+    // matcher scoped to a different branch → no fire
+    expect(
+      runWorktreeCreateHooks(wc('node -e ""', "other"), {
+        branch: "cc-agent-x",
+        cwd: CWD,
+      }),
+    ).toEqual({ additionalContext: null });
+  });
+
+  it("fires and injects context; branch matches the matcher target", () => {
+    const cmd = "node -e \"console.log('worktree ready')\"";
+    const r = runWorktreeCreateHooks(wc(cmd, "/^cc-agent-/"), {
+      worktreePath: CWD,
+      branch: "cc-agent-42",
+      baseSha: "deadbeef",
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe("worktree ready");
+  });
+
+  it("threads worktree_path + branch + base_sha into the hook stdin payload", () => {
+    const cmd =
+      "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.hook_event_name+'|'+j.branch+'|'+j.base_sha+'|'+j.worktree_path)})\"";
+    const r = runWorktreeCreateHooks(wc(cmd), {
+      worktreePath: "/wt/p",
+      branch: "cc-agent-9",
+      baseSha: "abc123",
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe("WorktreeCreate|cc-agent-9|abc123|/wt/p");
+  });
+});
+
+describe("runWorktreeRemoveHooks", () => {
+  const wr = (command, matcher = null) => ({
+    WorktreeRemove: [{ matcher, hooks: [{ type: "command", command }] }],
+  });
+
+  it("returns null context with no settings / no hooks", () => {
+    expect(runWorktreeRemoveHooks(null, { branch: "cc-agent-x" })).toEqual({
+      additionalContext: null,
+    });
+  });
+
+  it("threads removed + reason + branch into the hook stdin payload", () => {
+    const cmd =
+      "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.hook_event_name+'|'+j.removed+'|'+j.reason+'|'+j.branch)})\"";
+    const r = runWorktreeRemoveHooks(wr(cmd), {
+      worktreePath: "/wt/p",
+      branch: "cc-agent-9",
+      removed: true,
+      reason: "no changes",
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe(
+      "WorktreeRemove|true|no changes|cc-agent-9",
+    );
+  });
+
+  it("reports removed:false for a kept worktree", () => {
+    const cmd =
+      "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(String(j.removed))})\"";
+    const r = runWorktreeRemoveHooks(wr(cmd), {
+      branch: "cc-agent-9",
+      removed: false,
+      reason: "uncommitted changes",
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe("false");
   });
 });
 

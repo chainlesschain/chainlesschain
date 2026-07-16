@@ -263,6 +263,22 @@ describe("lifecycle event registry", () => {
       collectHooks(b, "CwdChanged", "/new/dir").map((h) => h.command),
     ).toEqual(["on-cd.sh"]);
   });
+  it("recognises WorktreeCreate/WorktreeRemove; branch is the matcher target", () => {
+    expect(HOOK_EVENTS).toContain("WorktreeCreate");
+    expect(HOOK_EVENTS).toContain("WorktreeRemove");
+    // A branch-scoped regex matcher fires only for matching branch names.
+    const b = {
+      WorktreeCreate: [cmdGroup("/^cc-agent-/", "on-wt.sh")],
+      WorktreeRemove: [cmdGroup(null, "cleanup.sh")],
+    };
+    expect(
+      collectHooks(b, "WorktreeCreate", "cc-agent-42").map((h) => h.command),
+    ).toEqual(["on-wt.sh"]);
+    expect(collectHooks(b, "WorktreeCreate", "feature/x")).toEqual([]);
+    expect(
+      collectHooks(b, "WorktreeRemove", "cc-agent-42").map((h) => h.command),
+    ).toEqual(["cleanup.sh"]);
+  });
 });
 
 describe("Notification event", () => {

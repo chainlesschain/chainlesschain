@@ -213,6 +213,81 @@ function runCwdChangedHooks(
 }
 
 /**
+ * WorktreeCreate settings hooks (observe + context injection). Fired right after
+ * `cc agent --worktree` carves a fresh isolated git worktree — a hook can react
+ * (register the worktree with an external tracker, seed per-branch tooling,
+ * warm a build cache). The matcher target is the branch name, so a regex matcher
+ * can scope to a branch pattern. Observe-only: worktree setup already succeeded,
+ * so a `block` decision is ignored and only emitted context is returned. No-op
+ * (byte-unchanged) without a registered WorktreeCreate hook.
+ * @returns {{ additionalContext:string|null }}
+ */
+function runWorktreeCreateHooks(
+  settingsHooks,
+  { worktreePath, branch, baseSha, cwd, sessionId } = {},
+) {
+  if (!settingsHooks) return { additionalContext: null };
+  const matched = collectHooks(settingsHooks, "WorktreeCreate", branch || "");
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { additionalContext: null };
+  const payload = withDeliveryId(
+    "WorktreeCreate",
+    {
+      hook_event_name: "WorktreeCreate",
+      worktree_path: worktreePath || null,
+      branch: branch || null,
+      base_sha: baseSha || null,
+      cwd: cwd || worktreePath || null,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
+  const outcome = runHooks(sync, payload, {
+    cwd: cwd || worktreePath,
+    event: "WorktreeCreate",
+  });
+  return { additionalContext: aggregateContext(outcome.results) };
+}
+
+/**
+ * WorktreeRemove settings hooks (observe + context injection). Fired when a
+ * `cc agent --worktree` session finishes and its worktree is torn down (or when
+ * a `keep` decision leaves it in place — `removed` distinguishes the two) — a
+ * hook can react (unregister the worktree, prune a per-branch cache, notify CI).
+ * Matcher target is the branch name. Observe-only: teardown already happened, so
+ * a `block` decision is ignored and only emitted context is returned. No-op
+ * (byte-unchanged) without a registered WorktreeRemove hook.
+ * @returns {{ additionalContext:string|null }}
+ */
+function runWorktreeRemoveHooks(
+  settingsHooks,
+  { worktreePath, branch, removed, reason, cwd, sessionId } = {},
+) {
+  if (!settingsHooks) return { additionalContext: null };
+  const matched = collectHooks(settingsHooks, "WorktreeRemove", branch || "");
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { additionalContext: null };
+  const payload = withDeliveryId(
+    "WorktreeRemove",
+    {
+      hook_event_name: "WorktreeRemove",
+      worktree_path: worktreePath || null,
+      branch: branch || null,
+      removed: removed === true,
+      reason: reason || null,
+      cwd: cwd || worktreePath || null,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
+  const outcome = runHooks(sync, payload, {
+    cwd: cwd || worktreePath,
+    event: "WorktreeRemove",
+  });
+  return { additionalContext: aggregateContext(outcome.results) };
+}
+
+/**
  * Generic observe-only fire (SessionEnd / Stop / PreCompact). Returns the raw
  * runHooks outcome so callers can read a block reason; never gates flow here.
  *
@@ -241,6 +316,8 @@ module.exports = {
   runUserPromptSubmitHooks,
   runSessionStartHooks,
   runCwdChangedHooks,
+  runWorktreeCreateHooks,
+  runWorktreeRemoveHooks,
   runObserveHooks,
   aggregateContext,
   partitionAsyncHooks,

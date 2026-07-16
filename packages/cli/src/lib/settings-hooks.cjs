@@ -50,6 +50,8 @@ const HOOK_EVENTS = Object.freeze([
   "Notification",
   "PermissionRequest",
   "CwdChanged",
+  "WorktreeCreate",
+  "WorktreeRemove",
 ]);
 
 /**
