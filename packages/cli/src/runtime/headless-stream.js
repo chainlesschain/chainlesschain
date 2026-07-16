@@ -1302,6 +1302,23 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // Seed MCP roots for --add-dir (roots/list_changed parity): advertise the full
+  // workspace-root list to connected MCP servers when the stream session started
+  // with extra roots. No --add-dir → workspaceRootDirs = [cwd] → no-op. Mirrors
+  // the single-prompt runner + the REPL /add-dir path. Best-effort.
+  if (mcp?.mcpClient && additionalDirectories.length > 0) {
+    try {
+      const { notifyMcpRootsChanged, workspaceRootDirs } =
+        await import("../repl/add-dir.js");
+      notifyMcpRootsChanged(
+        [mcp.mcpClient],
+        workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
+      );
+    } catch {
+      // best-effort — root advertisement never blocks a run
+    }
+  }
+
   // --permission-prompt-tool: defer CONFIRM-tier approvals to an MCP tool
   // (loaded via --mcp-config) instead of headless fail-closed.
   if (options.permissionPromptTool) {

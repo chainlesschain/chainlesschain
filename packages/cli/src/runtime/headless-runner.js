@@ -1108,6 +1108,25 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // Seed MCP roots for --add-dir (Claude-Code roots/list_changed parity): a
+  // headless session started with extra workspace roots must advertise the FULL
+  // root list to connected MCP servers, exactly like the REPL /add-dir path —
+  // otherwise a server's roots/list only ever sees the cwd. Only meaningful when
+  // extra roots exist (setRoots fires only when the list actually changes); no
+  // --add-dir → workspaceRootDirs = [cwd] and this is a no-op. Best-effort.
+  if (mcp?.mcpClient && additionalDirectories.length > 0) {
+    try {
+      const { notifyMcpRootsChanged, workspaceRootDirs } =
+        await import("../repl/add-dir.js");
+      notifyMcpRootsChanged(
+        [mcp.mcpClient],
+        workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
+      );
+    } catch {
+      // best-effort — root advertisement never blocks a run
+    }
+  }
+
   // IDE live context (Claude-Code parity): when an IDE bridge is connected,
   // share the editor's selection/active file/open tabs with this turn. Appended
   // to the in-flight user message only — AFTER persistence — so a resumed

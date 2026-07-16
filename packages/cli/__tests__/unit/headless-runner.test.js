@@ -541,6 +541,44 @@ describe("headless-runner — tool list threading into the loop", () => {
     expect(systemMsg.content).toContain("## Additional working directories");
     expect(systemMsg.content).toContain("/abs/pkg-a");
   });
+
+  it("seeds MCP roots with the full workspace-root list when --add-dir is used", async () => {
+    const setRoots = vi.fn();
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop({});
+    deps.resolveAgentMcp = async () => ({
+      mcpClient: { setRoots },
+      connected: [],
+    });
+    await runAgentHeadless(
+      {
+        prompt: "look across packages",
+        additionalDirectories: ["/abs/pkg-a", "/abs/pkg-b"],
+      },
+      deps,
+    );
+    expect(setRoots).toHaveBeenCalledTimes(1);
+    // workspaceRootDirs resolves each root to an absolute path (drive-prefixed
+    // on Windows), so match on the trailing segment rather than the raw input.
+    const roots = setRoots.mock.calls[0][0];
+    expect(roots).toHaveLength(3);
+    expect(roots.some((r) => r.includes("pkg-a"))).toBe(true);
+    expect(roots.some((r) => r.includes("pkg-b"))).toBe(true);
+    // cwd is always the first advertised root.
+    expect(roots[0]).toBe(process.cwd());
+  });
+
+  it("does NOT seed MCP roots without --add-dir (byte-identical)", async () => {
+    const setRoots = vi.fn();
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop({});
+    deps.resolveAgentMcp = async () => ({
+      mcpClient: { setRoots },
+      connected: [],
+    });
+    await runAgentHeadless({ prompt: "hi" }, deps);
+    expect(setRoots).not.toHaveBeenCalled();
+  });
 });
 
 describe("headless-runner — custom slash-command macros (-p parity)", () => {
