@@ -151,7 +151,10 @@ public final class CcCompletion {
 
             boolean done = p.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (!done) {
-                p.destroyForcibly();
+                // Reap descendants too: on Windows p is the cmd.exe shim wrapper;
+                // killing it alone orphans the real node cc, which finishes the
+                // whole LLM call for a completion nobody will ever see.
+                AgentChatSession.destroyTreeForcibly(p);
                 return "";
             }
             pump.join(500);
@@ -161,7 +164,7 @@ public final class CcCompletion {
             if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             return "";
         } finally {
-            if (p != null && p.isAlive()) p.destroyForcibly();
+            if (p != null && p.isAlive()) AgentChatSession.destroyTreeForcibly(p);
         }
     }
 }

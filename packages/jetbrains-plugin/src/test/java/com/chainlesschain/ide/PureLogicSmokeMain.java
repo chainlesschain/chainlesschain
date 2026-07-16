@@ -1519,7 +1519,7 @@ public final class PureLogicSmokeMain {
 
         // Background agent referencing sessionId absorbs the chat row.
         BackgroundAgents.Session running = new BackgroundAgents.Session(
-                "bg1", "running", null, null, -1, "", "", "s1",
+                "bg1", "running", null, null, -1, 0, "", "", "s1",
                 now - 1000, 0, null, "", "\\\\.\\pipe\\x", "tok", true);
         List<SessionsWorkbench.Row> bg =
                 SessionsWorkbench.backgroundRows(java.util.List.of(running));
@@ -1533,7 +1533,7 @@ public final class PureLogicSmokeMain {
         eq(merged.get(0).title, "Fix bug", "wb bg inherits chat title");
 
         BackgroundAgents.Session done = new BackgroundAgents.Session(
-                "bg2", "completed", null, null, -1, "t", "", null,
+                "bg2", "completed", null, null, -1, 0, "t", "", null,
                 now - 9000, now - 5000, 0, "", null, null, false);
         eq(SessionsWorkbench.backgroundRows(java.util.List.of(done)).get(0).actions,
                 Arrays.asList("resume", "logs", "rename"), "wb finished bg actions");

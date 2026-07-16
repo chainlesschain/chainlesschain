@@ -23,9 +23,19 @@ public final class PluginManager {
         return new ArrayList<String>(Arrays.asList("plugin", "installed", "--json"));
     }
 
-    public static List<String> buildPluginTrustArgs(String name, boolean trusted) {
-        return new ArrayList<String>(Arrays.asList(
+    public static List<String> buildPluginTrustArgs(String name, boolean trusted, String scope) {
+        List<String> args = new ArrayList<String>(Arrays.asList(
                 "plugin", trusted ? "trust" : "untrust", String.valueOf(name)));
+        // The CLI defaults trust/untrust to --scope project, but the panel's Add
+        // installs at user scope — without the row's scope, Trust errors ("not
+        // installed at project scope") and Untrust silently no-ops (exit 0,
+        // trust kept), i.e. the security control appears to succeed without
+        // revoking. Mirrors the VS Code twin's buildPluginTrustArgs.
+        if (scope != null && !scope.isEmpty()) {
+            args.add("--scope");
+            args.add(scope);
+        }
+        return args;
     }
 
     public static List<String> buildPluginUninstallArgs(String name, String scope) {

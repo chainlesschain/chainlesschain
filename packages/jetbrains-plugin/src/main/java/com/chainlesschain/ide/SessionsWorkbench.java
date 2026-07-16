@@ -150,10 +150,12 @@ public final class SessionsWorkbench {
         for (BackgroundAgents.Session s : sessions) {
             if (s == null || s.id == null || s.id.isEmpty()) continue;
             long last = Math.max(s.startedAt, s.endedAt);
-            String phase = s.phase == null ? "" : s.phase.toLowerCase().replace('-', '_');
+            // Canonical blocking signals (waiting_permission / needs_input /
+            // pendingApprovals>0), not just the legacy *approval* phase label.
             out.add(new Row(s.id, KIND_BACKGROUND,
                     s.title == null ? "" : s.title, s.cwd == null ? "" : s.cwd,
-                    s.status, last, phase.contains("approval"),
+                    s.status, last,
+                    BackgroundAgents.needsAttention(s.phase, s.pendingApprovals),
                     actionsFor(KIND_BACKGROUND, s.status),
                     s.sessionId == null ? "" : s.sessionId));
         }

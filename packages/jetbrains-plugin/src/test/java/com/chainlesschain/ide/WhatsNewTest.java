@@ -72,4 +72,21 @@ class WhatsNewTest {
     void changelogToTextHeaderOnlyWhenNoReleases() {
         assertFalse(WhatsNew.changelogToText(null, null).isEmpty());
     }
+
+    @Test
+    void upgradeNudgeFiresOnlyOnARealUpgrade() {
+        // First run (no remembered version) stores silently — no toast.
+        assertFalse(WhatsNew.shouldNudgeUpgrade(null, "0.162.160"));
+        assertFalse(WhatsNew.shouldNudgeUpgrade("", "0.162.160"));
+        // No cc / unparsable current — nothing to nudge about.
+        assertFalse(WhatsNew.shouldNudgeUpgrade("0.162.159", null));
+        assertFalse(WhatsNew.shouldNudgeUpgrade("0.162.159", "  "));
+        // Same version — silent.
+        assertFalse(WhatsNew.shouldNudgeUpgrade("0.162.160", "0.162.160"));
+        // Downgrade must NOT say "updated" (the notes button may not even work).
+        assertFalse(WhatsNew.shouldNudgeUpgrade("0.162.160", "0.162.150"));
+        // Real upgrade → nudge.
+        assertTrue(WhatsNew.shouldNudgeUpgrade("0.162.159", "0.162.160"));
+        assertTrue(WhatsNew.shouldNudgeUpgrade("0.161.999", "0.162.0"));
+    }
 }

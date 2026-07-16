@@ -19,6 +19,21 @@ public final class WhatsNew {
     /** First cc release that ships {@code cc changelog}. */
     public static final String MIN_CHANGELOG_CLI = "0.162.151";
 
+    /**
+     * One-shot upgrade nudge decision (VS whats-new.js upgradeNudge twin).
+     * {@code prev} is the version remembered from the last IDE start — null/
+     * blank on first run, which stores silently (nagging a fresh install with
+     * "you upgraded!" is noise). Only a REAL upgrade nudges: a downgrade
+     * (npm i -g chainlesschain@older) must not say "updated" and offer notes
+     * the installed CLI may not even have. The toast text itself is glue
+     * (bundled, en+zh) — this is just the decision.
+     */
+    public static boolean shouldNudgeUpgrade(String prev, String current) {
+        if (current == null || current.trim().isEmpty()) return false;
+        if (prev == null || prev.trim().isEmpty() || prev.equals(current)) return false;
+        return CliVersionCheck.compare(current, prev) > 0;
+    }
+
     /** One release entry from {@code cc changelog --json}. */
     public static final class Release {
         public final String cliVersion;

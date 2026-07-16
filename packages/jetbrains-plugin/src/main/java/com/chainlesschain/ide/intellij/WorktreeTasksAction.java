@@ -119,16 +119,24 @@ public final class WorktreeTasksAction extends AnAction {
                     "Task for the isolated agent (runs in its own git worktree + branch)",
                     "New Isolated Task", null);
             if (task == null || task.trim().isEmpty()) return;
-            String cmd = WorktreeTasks.buildNewTaskCommand(task,
-                    AgentChatSession.resolveBinary(), File.separatorChar == '\\');
-            if (runInTerminal(project, repo, cmd)) {
-                status.setText("task started in the integrated terminal — Refresh lists it");
-            } else {
-                // Terminal plugin absent — hand the command over instead.
-                Messages.showInfoMessage(project,
-                        "Run this in a terminal at the project root:\n\n" + cmd,
-                        "New Isolated Task");
-            }
+            status.setText("resolving cc…");
+            // resolveBinary()'s first use runs up to 4 serial cmd.exe probes
+            // (12s budget each) — never on the EDT; terminal glue back on it.
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                final String cmd = WorktreeTasks.buildNewTaskCommand(task,
+                        AgentChatSession.resolveBinary(), File.separatorChar == '\\');
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (runInTerminal(project, repo, cmd)) {
+                        status.setText("task started in the integrated terminal — Refresh lists it");
+                    } else {
+                        // Terminal plugin absent — hand the command over instead.
+                        status.setText(" ");
+                        Messages.showInfoMessage(project,
+                                "Run this in a terminal at the project root:\n\n" + cmd,
+                                "New Isolated Task");
+                    }
+                });
+            });
         });
         merge.addActionListener(ev -> withSelected(project, list, tasks.get(), t -> {
             String branch = String.valueOf(t.get("branch"));

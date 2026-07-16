@@ -31,7 +31,12 @@ public final class ShowWhatsNewAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        final Project project = e.getProject();
+        show(e.getProject());
+    }
+
+    /** Fetch + render the notes for {@code project} — also the entry point the
+     *  startup upgrade-nudge notification's button uses. */
+    static void show(final Project project) {
         if (project == null) return;
         final File cwd = project.getBasePath() != null
                 ? new File(project.getBasePath()) : null;

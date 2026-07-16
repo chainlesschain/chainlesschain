@@ -14,10 +14,17 @@ final class PluginManagerTest {
     void targetsUnifiedRuntimeCommands() {
         assertEquals(Arrays.asList("plugin", "installed", "--json"),
                 PluginManager.buildPluginInstalledArgs());
+        // The row's install scope rides along — CLI trust/untrust default to
+        // scope project, so without it Trust errors on user-scope installs and
+        // Untrust silently no-ops (VS Code twin buildPluginTrustArgs parity).
+        assertEquals(Arrays.asList("plugin", "trust", "p1", "--scope", "user"),
+                PluginManager.buildPluginTrustArgs("p1", true, "user"));
+        assertEquals(Arrays.asList("plugin", "untrust", "p1", "--scope", "project"),
+                PluginManager.buildPluginTrustArgs("p1", false, "project"));
         assertEquals(Arrays.asList("plugin", "trust", "p1"),
-                PluginManager.buildPluginTrustArgs("p1", true));
+                PluginManager.buildPluginTrustArgs("p1", true, null));
         assertEquals(Arrays.asList("plugin", "untrust", "p1"),
-                PluginManager.buildPluginTrustArgs("p1", false));
+                PluginManager.buildPluginTrustArgs("p1", false, ""));
         assertEquals(Arrays.asList("plugin", "uninstall", "p1", "--scope", "project"),
                 PluginManager.buildPluginUninstallArgs("p1", "project"));
         assertEquals(Arrays.asList("plugin", "uninstall", "p1", "--scope", "user"),

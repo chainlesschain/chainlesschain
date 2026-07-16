@@ -57,6 +57,37 @@ class TeamMonitorTest {
     }
 
     @Test
+    void parsesMembersAndBudgetAndReportsThem() {
+        String json = "{\"version\":2,\"registry\":{\"tasks\":{\"tasks\":["
+                + "{\"id\":\"a\",\"title\":\"build\",\"status\":\"completed\"}]}},"
+                + "\"members\":[{\"holder\":\"mate-1\",\"state\":\"working\","
+                + "\"completed\":3,\"failed\":1},{\"holder\":\"mate-2\",\"completed\":0}],"
+                + "\"budget\":{\"limits\":{\"maxTasks\":10,\"maxUsd\":1},"
+                + "\"totals\":{\"tasks\":4,\"tokens\":12345,\"spentUsd\":0.42}}}";
+        TeamMonitor.State st = TeamMonitor.parse(json);
+        assertTrue(st.ok);
+        assertEquals(2, st.members.size());
+        assertEquals("mate-1", st.members.get(0).get("holder"));
+        assertTrue(st.budget != null && st.budget.get("totals") != null);
+
+        String report = TeamMonitor.formatReport(st, 0L);
+        assertTrue(report.contains("budget: 4 tasks/10 · 12k tokens · $0.42 spent of $1.00"),
+                report);
+        assertTrue(report.contains("@mate-1 (✓3 ✗1)"), report);
+        assertTrue(report.contains("@mate-2 (✓0)"), report);
+    }
+
+    @Test
+    void statesWithoutMembersOrBudgetKeepTheOldReportShape() {
+        TeamMonitor.State st = TeamMonitor.parse(JSON);
+        assertTrue(st.members.isEmpty());
+        assertEquals(null, st.budget);
+        String report = TeamMonitor.formatReport(st, 5000L);
+        assertFalse(report.contains("budget:"));
+        assertFalse(report.contains("members:"));
+    }
+
+    @Test
     void parseIsTolerantOfBadInput() {
         assertFalse(TeamMonitor.parse("{bad").ok);
         assertFalse(TeamMonitor.parse("{\"hello\":1}").ok);

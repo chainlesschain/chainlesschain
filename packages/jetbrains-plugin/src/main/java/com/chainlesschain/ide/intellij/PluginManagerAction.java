@@ -156,12 +156,14 @@ public final class PluginManagerAction extends AnAction {
         JButton untrust = new JButton("Untrust");
         JButton uninstall = new JButton("Uninstall…");
         JButton add = new JButton("Add…");
+        // Thread the row's install scope through — CLI trust/untrust default to
+        // scope project, and the panel's Add installs at user scope (B-drift fix).
         trust.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
                 runThenRefresh(PluginManager.buildPluginTrustArgs(
-                        String.valueOf(p.get("name")), true), cwd, refresh, status)));
+                        String.valueOf(p.get("name")), true, scopeOf(p)), cwd, refresh, status)));
         untrust.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
                 runThenRefresh(PluginManager.buildPluginTrustArgs(
-                        String.valueOf(p.get("name")), false), cwd, refresh, status)));
+                        String.valueOf(p.get("name")), false, scopeOf(p)), cwd, refresh, status)));
         uninstall.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
             String name = String.valueOf(p.get("name"));
             String scope = String.valueOf(p.get("scope"));
@@ -261,6 +263,12 @@ public final class PluginManagerAction extends AnAction {
         for (JButton btn : buttons) btns.add(btn);
         panel.add(btns, BorderLayout.SOUTH);
         return panel;
+    }
+
+    /** The installed-list row's scope ("" when the parse had none). */
+    private static String scopeOf(Map<String, Object> p) {
+        Object scope = p.get("scope");
+        return scope == null ? "" : String.valueOf(scope);
     }
 
     /** Run the selected-row action, or explain that a row must be selected. */

@@ -56,31 +56,50 @@ public final class BackgroundAgentsAction extends AnAction {
         final java.util.concurrent.atomic.AtomicReference<List<BackgroundAgents.Session>> sessions =
                 new java.util.concurrent.atomic.AtomicReference<>(List.of());
 
+        // State listing + formatDetail (which tails the log file) are file I/O —
+        // gathered on a pooled thread, rendered on the EDT (the old inline run
+        // froze the dialog for as long as the state dir / log read took).
         Runnable refresh = () -> {
-            long now = System.currentTimeMillis();
-            List<BackgroundAgents.Session> list =
-                    BackgroundAgents.list(BackgroundAgents.defaultDir(), now);
-            sessions.set(list);
-            int keep = picker.getSelectedIndex();
-            DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
-            for (BackgroundAgents.Session s : list) model.addElement(BackgroundAgents.formatRow(s, now));
-            picker.setModel(model);
-            if (model.getSize() > 0) {
-                picker.setSelectedIndex(keep >= 0 && keep < model.getSize() ? keep : 0);
-            }
-            BackgroundAgents.Session sel = selected(sessions.get(), picker);
-            detail.setText(sel == null
-                    ? CcBundle.message("bg.agents.empty")
-                    : BackgroundAgents.formatDetail(sel, now, LOG_LINES));
-            detail.setCaretPosition(detail.getDocument().getLength());
+            final int keep = picker.getSelectedIndex();
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                long now = System.currentTimeMillis();
+                List<BackgroundAgents.Session> list =
+                        BackgroundAgents.list(BackgroundAgents.defaultDir(), now);
+                DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+                for (BackgroundAgents.Session s : list) {
+                    model.addElement(BackgroundAgents.formatRow(s, now));
+                }
+                int selIdx = keep >= 0 && keep < list.size() ? keep : (list.isEmpty() ? -1 : 0);
+                final String detailText = selIdx < 0
+                        ? null
+                        : BackgroundAgents.formatDetail(list.get(selIdx), now, LOG_LINES);
+                final int idx = selIdx;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    sessions.set(list);
+                    picker.setModel(model);
+                    if (idx >= 0) picker.setSelectedIndex(idx);
+                    detail.setText(detailText == null
+                            ? CcBundle.message("bg.agents.empty") : detailText);
+                    detail.setCaretPosition(detail.getDocument().getLength());
+                });
+            });
         };
 
         picker.addActionListener(ev -> {
-            BackgroundAgents.Session sel = selected(sessions.get(), picker);
-            if (sel != null) {
-                detail.setText(BackgroundAgents.formatDetail(sel, System.currentTimeMillis(), LOG_LINES));
-                detail.setCaretPosition(detail.getDocument().getLength());
-            }
+            final BackgroundAgents.Session sel = selected(sessions.get(), picker);
+            if (sel == null) return;
+            // formatDetail tails the log file — off the EDT, render when done
+            // (skipped if the user has already moved to another row).
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                final String text =
+                        BackgroundAgents.formatDetail(sel, System.currentTimeMillis(), LOG_LINES);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (selected(sessions.get(), picker) == sel) {
+                        detail.setText(text);
+                        detail.setCaretPosition(detail.getDocument().getLength());
+                    }
+                });
+            });
         });
 
         JButton refreshBtn = new JButton(CcBundle.message("bg.agents.refresh"));
@@ -129,7 +148,14 @@ public final class BackgroundAgentsAction extends AnAction {
         JButton resumeBtn = new JButton(CcBundle.message("bg.agents.resume"));
         resumeBtn.addActionListener(ev -> {
             BackgroundAgents.Session sel = selected(sessions.get(), picker);
-            if (sel == null || "running".equals(sel.status) || sel.sessionId == null) return;
+            if (sel == null || sel.sessionId == null) return;
+            // A running session normally can't be resumed — EXCEPT when it is
+            // blocked on a human (waiting_permission / needs_input / pending
+            // approvals): that one needs the affordance to get unblocked.
+            if ("running".equals(sel.status)
+                    && !BackgroundAgents.needsAttention(sel.phase, sel.pendingApprovals)) {
+                return;
+            }
             String text = Messages.showInputDialog(project,
                     CcBundle.message("bg.agents.resume.ask"),
                     CcBundle.message("bg.agents.resume"), null);

@@ -113,10 +113,16 @@ public final class BackgroundSessionPipeClient {
         throw new IOException("no settling reply within 64 messages");
     }
 
-    /** Blocking NDJSON line reader with a carry buffer over Transport.read. */
+    /**
+     * Blocking NDJSON line reader over Transport.read. The carry is BYTES
+     * ({@link NdjsonLineBuffer}) — decoding each 4096-byte chunk independently
+     * tore a multibyte UTF-8 char straddling a read boundary into U+FFFD, the
+     * JSON line failed to parse, and readUntil timed out on a reply that had
+     * already arrived.
+     */
     private static final class LineReader {
         private final Transport t;
-        private final StringBuilder carry = new StringBuilder();
+        private final NdjsonLineBuffer carry = new NdjsonLineBuffer();
         private final byte[] buf = new byte[4096];
 
         LineReader(Transport t) {
@@ -126,12 +132,8 @@ public final class BackgroundSessionPipeClient {
         /** Next line (without \n), or null on EOF/closed handle. */
         String readLine() throws IOException {
             while (true) {
-                int idx = carry.indexOf("\n");
-                if (idx >= 0) {
-                    String line = carry.substring(0, idx).replace("\r", "").trim();
-                    carry.delete(0, idx + 1);
-                    return line;
-                }
+                String line = carry.poll();
+                if (line != null) return line;
                 int n;
                 try {
                     n = t.read(buf);
@@ -139,7 +141,7 @@ public final class BackgroundSessionPipeClient {
                     return null; // watchdog close or peer gone
                 }
                 if (n < 0) return null;
-                carry.append(new String(buf, 0, n, StandardCharsets.UTF_8));
+                carry.feed(buf, n);
             }
         }
     }

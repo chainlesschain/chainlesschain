@@ -87,6 +87,47 @@ final class IdeSessionIndexTest {
     }
 
     @Test
+    void concurrentUpsertsLoseNoRecords() throws Exception {
+        // Read-merge-write used to race in-process (lost updates) and two
+        // same-millisecond writers collided on the tmp file name, silently
+        // dropping one upsert. N parallel writers must all land.
+        Path dir = Files.createTempDirectory("cc-ide-index");
+        Path file = dir.resolve("session-index.json");
+        final int n = 16;
+        Thread[] workers = new Thread[n];
+        final java.util.concurrent.CountDownLatch start =
+                new java.util.concurrent.CountDownLatch(1);
+        for (int i = 0; i < n; i++) {
+            final String id = "race-" + i;
+            workers[i] = new Thread(() -> {
+                try {
+                    start.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                try {
+                    IdeSessionIndex.upsert(file, IdeSessionIndex.record(
+                            id, "t", "jetbrains", "", "", null, "running", "default",
+                            Instant.now()));
+                } catch (Exception e) {
+                    fail("upsert threw: " + e);
+                }
+            });
+        }
+        for (Thread t : workers) t.start();
+        start.countDown();
+        for (Thread t : workers) t.join(30_000);
+
+        List<Map<String, Object>> rows = IdeSessionIndex.read(file);
+        assertEquals(n, rows.size(), "every concurrent upsert must survive");
+        // No orphaned tmp files left behind (unique names + completed moves).
+        try (java.util.stream.Stream<Path> s = Files.list(dir)) {
+            assertTrue(s.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
+                    "no stranded .tmp files");
+        }
+    }
+
+    @Test
     void deleteArgsForceSkipTheInteractiveConfirm() {
         assertEquals(Arrays.asList("session", "delete", "s1", "--force"),
                 SessionList.buildDeleteArgs("s1"));

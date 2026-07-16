@@ -32,8 +32,13 @@ class SessionsWorkbenchTest {
 
     private static BackgroundAgents.Session bg(String id, String status, String sessionId,
             long startedAt, long endedAt, String phase) {
-        return new BackgroundAgents.Session(id, status, null, phase, -1, "", "",
-                sessionId, startedAt, endedAt, null, "", null, null,
+        return bg(id, status, sessionId, startedAt, endedAt, phase, 0);
+    }
+
+    private static BackgroundAgents.Session bg(String id, String status, String sessionId,
+            long startedAt, long endedAt, String phase, int pendingApprovals) {
+        return new BackgroundAgents.Session(id, status, null, phase, -1, pendingApprovals,
+                "", "", sessionId, startedAt, endedAt, null, "", null, null,
                 "running".equals(status));
     }
 
@@ -101,6 +106,21 @@ class SessionsWorkbenchTest {
         assertEquals(NOW - 5000, rows.get(1).lastActivity, "endedAt wins for finished");
         assertEquals("s9", rows.get(0).sessionId);
         assertTrue(rows.get(2).waitingApproval, "approval phase flagged");
+    }
+
+    @Test
+    void backgroundRowsFlagCanonicalBlockingSignals() {
+        // waiting_permission / needs_input / pendingApprovals>0 all mean "a
+        // human decision is blocking this session" — not just *approval* labels.
+        List<SessionsWorkbench.Row> rows = SessionsWorkbench.backgroundRows(List.of(
+                bg("bg1", "running", null, NOW - 1000, 0, "waiting_permission"),
+                bg("bg2", "running", null, NOW - 900, 0, "needs_input"),
+                bg("bg3", "running", null, NOW - 800, 0, "working", 2),
+                bg("bg4", "running", null, NOW - 700, 0, "working")));
+        assertTrue(rows.get(0).waitingApproval, "waiting_permission flagged");
+        assertTrue(rows.get(1).waitingApproval, "needs_input flagged");
+        assertTrue(rows.get(2).waitingApproval, "pendingApprovals>0 wins over phase");
+        assertFalse(rows.get(3).waitingApproval, "plain working not flagged");
     }
 
     @Test

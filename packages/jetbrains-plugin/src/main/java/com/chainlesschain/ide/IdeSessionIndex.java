@@ -26,6 +26,50 @@ public final class IdeSessionIndex {
 
     public static final int MAX_RECORDS = 200;
 
+    // Every mutation is a read-merge-write of the whole file; two writers
+    // interleaving lose one of the updates. In-process: one monitor. Cross-
+    // process (VS Code writes the same file): an OS lock on a sibling .lock
+    // file — best-effort, a lock failure NEVER drops the write (fail open;
+    // losing exclusion beats losing the upsert).
+    private static final Object IO_LOCK = new Object();
+    private static final java.util.concurrent.atomic.AtomicLong TMP_SEQ =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    private interface IoMutation {
+        void run() throws IOException;
+    }
+
+    private static void locked(Path file, IoMutation body) throws IOException {
+        synchronized (IO_LOCK) {
+            java.nio.channels.FileChannel ch = null;
+            java.nio.channels.FileLock lock = null;
+            try {
+                Files.createDirectories(file.getParent());
+                ch = java.nio.channels.FileChannel.open(
+                        file.resolveSibling(file.getFileName().toString() + ".lock"),
+                        java.nio.file.StandardOpenOption.CREATE,
+                        java.nio.file.StandardOpenOption.WRITE);
+                lock = ch.lock();
+            } catch (Exception ignored) {
+                // fail open — cross-process exclusion is best-effort
+            }
+            try {
+                body.run();
+            } finally {
+                try {
+                    if (lock != null) lock.release();
+                } catch (Exception ignored) {
+                    // already released / channel closed
+                }
+                try {
+                    if (ch != null) ch.close();
+                } catch (Exception ignored) {
+                    // already closed
+                }
+            }
+        }
+    }
+
     public static Path defaultFile() {
         return Paths.get(System.getProperty("user.home"),
                 ".chainlesschain", "ide", "session-index.json");
@@ -58,8 +102,11 @@ public final class IdeSessionIndex {
     }
 
     public static void upsert(Path file, Map<String, Object> record) throws IOException {
-        List<Map<String, Object>> merged = merge(read(file), record, Instant.now(), MAX_RECORDS);
-        write(file, merged);
+        locked(file, () -> {
+            List<Map<String, Object>> merged =
+                    merge(read(file), record, Instant.now(), MAX_RECORDS);
+            write(file, merged);
+        });
     }
 
     public static boolean renameDefault(String id, String title) {
@@ -79,20 +126,22 @@ public final class IdeSessionIndex {
         String key = clean(id);
         String next = clean(title);
         if (key.isEmpty() || next.isEmpty()) return false;
-        List<Map<String, Object>> rows = read(file);
-        Map<String, Object> match = null;
-        for (Map<String, Object> row : rows) {
-            if (key.equals(row.get("id"))) match = row;
-        }
-        if (match == null) {
-            match = new LinkedHashMap<String, Object>();
-            match.put("id", key);
-            match = normalize(match, Instant.now());
-            rows.add(match);
-        }
-        match.put("title", next);
-        match.put("updatedAt", String.valueOf(Instant.now()));
-        write(file, rows);
+        locked(file, () -> {
+            List<Map<String, Object>> rows = read(file);
+            Map<String, Object> match = null;
+            for (Map<String, Object> row : rows) {
+                if (key.equals(row.get("id"))) match = row;
+            }
+            if (match == null) {
+                match = new LinkedHashMap<String, Object>();
+                match.put("id", key);
+                match = normalize(match, Instant.now());
+                rows.add(match);
+            }
+            match.put("title", next);
+            match.put("updatedAt", String.valueOf(Instant.now()));
+            write(file, rows);
+        });
         return true;
     }
 
@@ -108,16 +157,18 @@ public final class IdeSessionIndex {
     public static boolean remove(Path file, String id) throws IOException {
         String key = clean(id);
         if (key.isEmpty()) return false;
-        List<Map<String, Object>> rows = read(file);
-        boolean removed = false;
-        for (java.util.Iterator<Map<String, Object>> it = rows.iterator(); it.hasNext();) {
-            if (key.equals(it.next().get("id"))) {
-                it.remove();
-                removed = true;
+        boolean[] removed = new boolean[1];
+        locked(file, () -> {
+            List<Map<String, Object>> rows = read(file);
+            for (java.util.Iterator<Map<String, Object>> it = rows.iterator(); it.hasNext();) {
+                if (key.equals(it.next().get("id"))) {
+                    it.remove();
+                    removed[0] = true;
+                }
             }
-        }
-        if (removed) write(file, rows);
-        return removed;
+            if (removed[0]) write(file, rows);
+        });
+        return removed[0];
     }
 
     @SuppressWarnings("unchecked")
@@ -189,8 +240,10 @@ public final class IdeSessionIndex {
         root.put("version", 1L);
         root.put("sessions", sessions == null
                 ? new ArrayList<Map<String, Object>>() : sessions);
+        // Unique per write: two same-millisecond writers used to collide on the
+        // tmp name — the second Files.move failed and its upsert vanished.
         Path tmp = file.resolveSibling(file.getFileName().toString()
-                + "." + System.currentTimeMillis() + ".tmp");
+                + "." + System.nanoTime() + "-" + TMP_SEQ.incrementAndGet() + ".tmp");
         Files.write(tmp, MiniJson.stringify(root).getBytes(StandardCharsets.UTF_8));
         try {
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING,

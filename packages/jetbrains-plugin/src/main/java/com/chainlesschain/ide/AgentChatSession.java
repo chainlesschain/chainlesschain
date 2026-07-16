@@ -247,6 +247,28 @@ public final class AgentChatSession {
         return false;
     }
 
+    /**
+     * Force-kill a child AND its descendants. On Windows every spawn here is
+     * {@code cmd.exe /c cc …} (npm .cmd shim), so {@code destroyForcibly()}
+     * alone only kills the cmd.exe wrapper and orphans the real node agent —
+     * a dismissed completion keeps burning a full LLM call, and a hung capture
+     * leaves an immortal process holding better_sqlite3.node. Reap the tree
+     * first (same trap {@link #stop()} guards). Best-effort, never throws.
+     */
+    public static void destroyTreeForcibly(Process p) {
+        if (p == null) return;
+        try {
+            p.descendants().forEach(ProcessHandle::destroy);
+        } catch (Throwable ignored) {
+            // best-effort — fall through to destroyForcibly()
+        }
+        try {
+            p.destroyForcibly();
+        } catch (Throwable ignored) {
+            // best-effort
+        }
+    }
+
     /** {@code <binary> <args…>} → captured stdout, or "" on failure/timeout. */
     private static String runCaptureWith(String binary, List<String> args, File cwd, long timeoutMs) {
         List<String> cmd = new ArrayList<>();
@@ -295,7 +317,7 @@ public final class AgentChatSession {
             errDrain.start();
             boolean done = p.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
             if (!done) {
-                p.destroyForcibly();
+                destroyTreeForcibly(p); // kill the real cc, not just cmd.exe
                 return "";
             }
             pump.join(500);

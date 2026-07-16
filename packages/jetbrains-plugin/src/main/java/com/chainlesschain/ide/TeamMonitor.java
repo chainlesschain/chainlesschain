@@ -48,12 +48,20 @@ public final class TeamMonitor {
         public final String error;      // when !ok
         public final long version;
         public final List<Task> tasks;
+        /** Teammate records {holder,state,completed,failed,…}; empty when absent. */
+        public final List<Map<String, Object>> members;
+        /** Budget snapshot {limits:{…},totals:{…}}; null when the state has none. */
+        public final Map<String, Object> budget;
 
-        State(boolean ok, String error, long version, List<Task> tasks) {
+        State(boolean ok, String error, long version, List<Task> tasks,
+                List<Map<String, Object>> members, Map<String, Object> budget) {
             this.ok = ok;
             this.error = error;
             this.version = version;
             this.tasks = tasks;
+            this.members = members == null
+                    ? new ArrayList<Map<String, Object>>() : members;
+            this.budget = budget;
         }
     }
 
@@ -84,17 +92,18 @@ public final class TeamMonitor {
         try {
             root = MiniJson.parse(json == null ? "" : json.trim());
         } catch (RuntimeException e) {
-            return new State(false, "not JSON — is this a cc team --state file?", 0, null);
+            return new State(false, "not JSON — is this a cc team --state file?", 0, null,
+                    null, null);
         }
         if (!(root instanceof Map)) {
-            return new State(false, "empty or non-object state", 0, null);
+            return new State(false, "empty or non-object state", 0, null, null, null);
         }
         Map<String, Object> snap = (Map<String, Object>) root;
         List<?> rawTasks = tasksArray(snap);
         if (rawTasks == null) {
             return new State(false,
                     "no task graph in this file — pass the path you gave `cc team run --state`.",
-                    0, null);
+                    0, null, null, null);
         }
         List<Task> tasks = new ArrayList<Task>();
         for (Object o : rawTasks) {
@@ -119,7 +128,17 @@ public final class TeamMonitor {
         }
         long version = snap.get("version") instanceof Number
                 ? ((Number) snap.get("version")).longValue() : 1;
-        return new State(true, null, version, tasks);
+        // v2 bundles teammate records + the budget snapshot alongside the task
+        // graph (VS team-monitor.js parity) — tolerate their absence.
+        List<Map<String, Object>> members = new ArrayList<Map<String, Object>>();
+        if (snap.get("members") instanceof List) {
+            for (Object m : (List<?>) snap.get("members")) {
+                if (m instanceof Map) members.add((Map<String, Object>) m);
+            }
+        }
+        Map<String, Object> budget = snap.get("budget") instanceof Map
+                ? (Map<String, Object>) snap.get("budget") : null;
+        return new State(true, null, version, tasks, members, budget);
     }
 
     /** Roll a parsed state up into counts + progress ({@code nowMs} judges lease liveness). */
@@ -153,7 +172,24 @@ public final class TeamMonitor {
           .append(s.active).append(" active");
         if (s.stale > 0) sb.append(" · ").append(s.stale).append(" stale lease");
         if (s.counts.get("blocked") > 0) sb.append(" · ").append(s.counts.get("blocked")).append(" blocked");
-        sb.append("\n\n");
+        sb.append("\n");
+        String budget = budgetLine(state.budget);
+        if (!budget.isEmpty()) sb.append("budget: ").append(budget).append("\n");
+        if (!state.members.isEmpty()) {
+            sb.append("members:");
+            for (Map<String, Object> m : state.members) {
+                Object holder = m.get("holder");
+                if (holder == null) continue;
+                sb.append("  @").append(holder);
+                long done = numOr(m.get("completed"), 0);
+                long failed = numOr(m.get("failed"), 0);
+                sb.append(" (✓").append(done);
+                if (failed > 0) sb.append(" ✗").append(failed);
+                sb.append(')');
+            }
+            sb.append("\n");
+        }
+        sb.append("\n");
         // Status order for readability: active work first, done last.
         String[] order = { "in_progress", "pending", "blocked", "completed", "cancelled" };
         for (String st : order) {
@@ -174,6 +210,37 @@ public final class TeamMonitor {
     }
 
     // --- internals -----------------------------------------------------------
+
+    /** Compact one-line budget summary from {limits,totals}; "" when unusable. */
+    private static String budgetLine(Map<String, Object> budget) {
+        if (budget == null) return "";
+        Map<?, ?> totals = budget.get("totals") instanceof Map
+                ? (Map<?, ?>) budget.get("totals") : null;
+        Map<?, ?> limits = budget.get("limits") instanceof Map
+                ? (Map<?, ?>) budget.get("limits") : null;
+        if (totals == null) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append(numOr(totals.get("tasks"), 0)).append(" tasks");
+        Object maxTasks = limits == null ? null : limits.get("maxTasks");
+        if (maxTasks instanceof Number) sb.append("/").append(numOr(maxTasks, 0));
+        sb.append(" · ").append(ChatEvents.formatTokens(numOr(totals.get("tokens"), 0)))
+          .append(" tokens");
+        Object spent = totals.get("spentUsd");
+        if (spent instanceof Number) {
+            sb.append(" · $").append(String.format(java.util.Locale.ROOT, "%.2f",
+                    ((Number) spent).doubleValue())).append(" spent");
+            Object maxUsd = limits == null ? null : limits.get("maxUsd");
+            if (maxUsd instanceof Number) {
+                sb.append(" of $").append(String.format(java.util.Locale.ROOT, "%.2f",
+                        ((Number) maxUsd).doubleValue()));
+            }
+        }
+        return sb.toString();
+    }
+
+    private static long numOr(Object v, long dflt) {
+        return v instanceof Number ? ((Number) v).longValue() : dflt;
+    }
 
     private static List<?> tasksArray(Map<String, Object> snap) {
         Object registry = snap.get("registry");

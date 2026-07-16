@@ -62,19 +62,22 @@ public final class DashboardToolWindowFactory implements ToolWindowFactory, Dumb
         toolWindow.getContentManager().addContent(content);
 
         Alarm alarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, parent);
-        new Refresher(project, browser, fallback, alarm).schedule(0);
+        new Refresher(project, toolWindow, browser, fallback, alarm).schedule(0);
     }
 
     /** Polls the bridge and re-renders only when activity changes (no reload churn). */
     private static final class Refresher {
         private final Project project;
+        private final ToolWindow toolWindow;
         private final Object browser; // JBCefBrowser or null
         private final JTextArea fallback;
         private final Alarm alarm;
         private String lastSig;
 
-        Refresher(Project project, Object browser, JTextArea fallback, Alarm alarm) {
+        Refresher(Project project, ToolWindow toolWindow, Object browser,
+                  JTextArea fallback, Alarm alarm) {
             this.project = project;
+            this.toolWindow = toolWindow;
             this.browser = browser;
             this.fallback = fallback;
             this.alarm = alarm;
@@ -85,6 +88,13 @@ public final class DashboardToolWindowFactory implements ToolWindowFactory, Dumb
         }
 
         private void tick() {
+            // Only poll while the window is showing — a hidden dashboard must
+            // not keep re-rendering every second (same gate as the sessions
+            // workbench). The alarm dies with the window via its parent.
+            if (!toolWindow.isVisible()) {
+                schedule(1000);
+                return;
+            }
             try {
                 IdeBridgeService svc = IdeBridgeService.getInstance(project);
                 int port = svc == null ? -1 : svc.getPort();

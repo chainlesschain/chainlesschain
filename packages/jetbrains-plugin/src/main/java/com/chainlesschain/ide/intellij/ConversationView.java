@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
+import com.chainlesschain.ide.ContextStatus;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
@@ -101,6 +102,27 @@ final class ConversationView {
     // True while a send is being spawned/delivered off-EDT; further Enter presses
     // are ignored instead of double-sending the same composer text.
     private volatile boolean sendInFlight = false;
+    // Set by dispose(): sendExecutor.shutdown() lets ALREADY-QUEUED tasks run,
+    // and ensureSession() would happily spawn a fresh cc child for the dead
+    // view — checked at the top of ensureSession and every queued task body.
+    private volatile boolean disposed = false;
+    // One shared worker funnels ALL session-index writes off the EDT:
+    // indexConversation used to read+parse+rewrite the 200-record index file
+    // synchronously on the EDT several times per turn. Application-level (not
+    // per-view) so a disposing view's final "stopped" upsert still flushes.
+    private static final java.util.concurrent.ExecutorService INDEX_EXECUTOR =
+            com.intellij.util.concurrency.AppExecutorUtil.createBoundedApplicationPoolExecutor(
+                    "ChainlessChain session index", 1);
+    // Latest-wins coalescing per conversation: several status flips inside one
+    // turn collapse into the newest record still pending when the worker runs.
+    private final java.util.concurrent.atomic.AtomicReference<Map<String, Object>>
+            pendingIndexRecord = new java.util.concurrent.atomic.AtomicReference<>();
+    // §6 local context indicator (VS Code parity): the LAST LLM call's usage
+    // (token_usage events) + the model's window size learned from ONE
+    // `cc context --json` probe → per-turn indicator with no CLI spawn.
+    // usage is EDT-only; the window cache is cleared on LLM reconfigure.
+    private Map<String, Object> lastCallUsage;
+    private volatile long cachedContextWindow;
     // Live per-turn token tally (token_usage events); reset at turn end. EDT-only.
     private ChatEvents.TokenTally turnTokens;
     // Stop escalation: the session interrupt was already sent to — a second Stop
@@ -462,6 +484,7 @@ final class ConversationView {
         final java.util.List<String> imgs = images.snapshot();
         sendInFlight = true;
         sendExecutor.execute(() -> {
+            if (disposed) return; // queued before a tab close — don't respawn cc
             boolean sent = false;
             String spawnError = null;
             try {
@@ -516,17 +539,26 @@ final class ConversationView {
                 return;
             case "/stop": {
                 AgentChatSession s = liveSession();
-                if (s != null) { s.interrupt(); append("ℹ interrupted\n"); }
-                else append("ℹ no running agent\n");
+                // interrupt() writes+flushes the child's stdin under the session
+                // monitor — a wedged child that stopped reading freezes the EDT.
+                // Pooled thread, NOT sendExecutor: an interrupt must never queue
+                // behind the very sends it is trying to break (Stop button twin).
+                if (s != null) {
+                    ApplicationManager.getApplication().executeOnPooledThread(s::interrupt);
+                    append("ℹ interrupted\n");
+                } else append("ℹ no running agent\n");
                 return;
             }
             case "/compact": {
                 // Manual compaction (Claude-Code IDE parity): trim the live
                 // history in the CLI child between turns. The CLI answers with
                 // a `compaction` event rendered as "compacted: saved … tokens".
+                // Same blocking-stdin-write hazard as /stop → pooled thread.
                 AgentChatSession s = liveSession();
-                if (s != null) { s.compact(); append("ℹ compacting…\n"); }
-                else append("ℹ no running agent to compact\n");
+                if (s != null) {
+                    ApplicationManager.getApplication().executeOnPooledThread(s::compact);
+                    append("ℹ compacting…\n");
+                } else append("ℹ no running agent to compact\n");
                 return;
             }
             case "/auto":
@@ -896,6 +928,9 @@ final class ConversationView {
      * the "配置完还没用 / 新开一个对话才行" symptom. Mirrors the VS Code panel reload.
      */
     private void reloadLlmConfig() {
+        // The model (hence its context-window size) may have changed — drop the
+        // cached window so the next indicator refresh re-probes the CLI.
+        cachedContextWindow = 0;
         boolean restarted = liveSession() != null;
         restartForModeChange();
         append((restarted
@@ -928,12 +963,22 @@ final class ConversationView {
         }
     }
 
+    /**
+     * Record this conversation's lifecycle status in the shared IDE index.
+     * The write is a full read+parse+rewrite of the 200-record index file —
+     * done synchronously it stalled the EDT several times per turn. The record
+     * is snapshotted here (cheap, callers may be on the EDT or the stdout
+     * pump) and flushed by the shared single-thread worker; latest-wins per
+     * view, so a burst of status flips collapses into one file write. The
+     * worker is application-level, so dispose()'s final "stopped" upsert still
+     * flushes after the view is gone.
+     */
     private void indexConversation(String status) {
         if (conv.sessionId == null || conv.sessionId.isEmpty()) return;
         String workspace = project.getBasePath() != null ? project.getBasePath() : "";
         List<String> folders = new ArrayList<String>();
         if (!workspace.isEmpty()) folders.add(workspace);
-        IdeSessionIndex.upsertDefault(IdeSessionIndex.record(
+        Map<String, Object> record = IdeSessionIndex.record(
                 conv.sessionId,
                 conv.title,
                 "jetbrains",
@@ -942,13 +987,25 @@ final class ConversationView {
                 folders,
                 status,
                 conv.mode,
-                Instant.now()));
+                Instant.now());
+        // Slot already full → an unconsumed worker task will pick THIS newer
+        // record up (invariant: non-null slot ⟹ one queued task not yet run).
+        if (pendingIndexRecord.getAndSet(record) != null) return;
+        try {
+            INDEX_EXECUTOR.execute(() -> {
+                Map<String, Object> r = pendingIndexRecord.getAndSet(null);
+                if (r != null) IdeSessionIndex.upsertDefault(r);
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            // application shutdown — losing a display-status upsert is fine
+        }
     }
 
     /** Lazy spawn: first message starts the child; mode/thinking changes restart it.
      *  Blocking (config reads + binary probe + process start) — call it from the
      *  {@link #sendExecutor} worker, never the EDT. */
     private void ensureSession() throws IOException {
+        if (disposed) return; // never spawn a fresh child for a closed view
         AgentChatSession existing = liveSession();
         if (existing != null && existing.isRunning()) return;
 
@@ -1078,7 +1135,11 @@ final class ConversationView {
             // fires once per LLM call; accumulate onto the status line. The
             // turn_end below overwrites with the authoritative total.
             if (turnTokens == null) turnTokens = new ChatEvents.TokenTally();
-            turnTokens.add(asMapOrNull(ui.get("usage")));
+            Map<String, Object> callUsage = asMapOrNull(ui.get("usage"));
+            turnTokens.add(callUsage);
+            // The LAST call's usage is the live context size — feeds the local
+            // (spawn-free) context indicator after the turn (VS Code parity).
+            if (callUsage != null) lastCallUsage = callUsage;
             contextLabel.setText(" " + turnTokens.statusLine());
             contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
@@ -1167,8 +1228,26 @@ final class ConversationView {
         ev.put("type", "answer");
         ev.put("id", id);
         ev.put("answer", answer);
-        AgentChatSession s = liveSession();
-        if (s != null) s.sendEvent(ev);
+        queueSessionEvent(ev);
+    }
+
+    /**
+     * Deliver one protocol event to the live child on the send worker, never
+     * the EDT — sendEvent does a blocking pipe write+flush under the session
+     * monitor, and a wedged child that stopped reading stdin would freeze the
+     * whole IDE. The send worker (bound 1) keeps replies ordered with sends,
+     * so an approval/answer can never overtake the turn it belongs to.
+     */
+    private void queueSessionEvent(Map<String, Object> ev) {
+        try {
+            sendExecutor.execute(() -> {
+                if (disposed) return;
+                AgentChatSession s = liveSession();
+                if (s != null) s.sendEvent(ev);
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            // executor already shut down (dispose in progress) — child is gone too
+        }
     }
 
     /** Single-select question → a combo-box dialog (non-deprecated; replaces
@@ -1247,14 +1326,11 @@ final class ConversationView {
     }
 
     private void respondApproval(String id, boolean approve) {
-        AgentChatSession s = liveSession();
-        if (s != null) {
-            Map<String, Object> ev = new LinkedHashMap<>();
-            ev.put("type", "approval");
-            ev.put("id", id);
-            ev.put("approve", approve);
-            s.sendEvent(ev);
-        }
+        Map<String, Object> ev = new LinkedHashMap<>();
+        ev.put("type", "approval");
+        ev.put("id", id);
+        ev.put("approve", approve);
+        queueSessionEvent(ev); // blocking stdin write — never on the EDT
         indexConversation("running");
         removeApprovalCard(id);
         append("ℹ " + (approve ? "approved" : "denied") + " (" + id + ")\n");
@@ -1352,6 +1428,7 @@ final class ConversationView {
     private void requestPlanRevision(String action) {
         final String prompt = PlanReview.feedbackPrompt(action, readPlanReviewText());
         sendExecutor.execute(() -> {
+            if (disposed) return;
             AgentChatSession s = liveSession();
             if (s == null || !s.isRunning()) {
                 try {
@@ -1379,6 +1456,7 @@ final class ConversationView {
 
     private void sendPlanAction(String action, Map<String, Object> review) {
         sendExecutor.execute(() -> {
+            if (disposed) return;
             AgentChatSession s = liveSession();
             if (s == null || !s.isRunning()) {
                 try {
@@ -1510,9 +1588,12 @@ final class ConversationView {
     }
 
     /**
-     * §6 persistent context-window indicator: best-effort {@code cc context <id> --json}
-     * after a turn, parsed by the pure {@link IntrospectArgs#parseContextStatus}. Runs off
-     * the EDT; never blocks the UI and silently no-ops on any failure.
+     * §6 persistent context-window indicator. Preferred path (VS Code parity):
+     * derive it LOCALLY from the last LLM call's {@code token_usage} + the
+     * model's window size learned from ONE {@code cc context --json} probe —
+     * the old per-turn probe cold-spawned the CLI after EVERY turn (seconds on
+     * Windows). The CLI probe remains the authoritative fallback and fills the
+     * window cache. Runs off the EDT; silently no-ops on any failure.
      */
     private void refreshContextIndicator() {
         if (!CcSettings.getInstance().isContextIndicatorEnabled()) {
@@ -1521,6 +1602,14 @@ final class ConversationView {
         }
         final String sid = conv.sessionId;
         if (sid == null || sid.isEmpty()) return;
+        // Local, spawn-free path (called from render() on the EDT — lastCallUsage
+        // is EDT-owned): last call's usage IS the live context size.
+        IntrospectArgs.ContextStatus local =
+                ContextStatus.fromUsage(lastCallUsage, cachedContextWindow);
+        if (local != null) {
+            paintContextStatus(local);
+            return;
+        }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
@@ -1528,18 +1617,23 @@ final class ConversationView {
                 String json = AgentChatSession.runCapture(args, cwd, 8000);
                 final IntrospectArgs.ContextStatus st = IntrospectArgs.parseContextStatus(json);
                 if (st == null) return;
-                SwingUtilities.invokeLater(() -> {
-                    contextLabel.setText(" ⊟ context " + human(st.total) + " / "
-                            + human(st.window) + " (" + st.pct + "%)");
-                    // JBColor: theme-aware red/gray so the dimmed status line
-                    // stays readable under Darcula (plain AWT RED is glaring).
-                    contextLabel.setForeground(st.overflow
-                            ? com.intellij.ui.JBColor.RED : com.intellij.ui.JBColor.GRAY);
-                });
+                // Remember the window so later turns derive the status locally.
+                cachedContextWindow = st.window;
+                SwingUtilities.invokeLater(() -> paintContextStatus(st));
             } catch (Throwable ignored) {
                 // best-effort — context line is non-essential
             }
         });
+    }
+
+    /** Paint the ⊟ status line (EDT only). */
+    private void paintContextStatus(IntrospectArgs.ContextStatus st) {
+        contextLabel.setText(" ⊟ context " + human(st.total) + " / "
+                + human(st.window) + " (" + st.pct + "%)");
+        // JBColor: theme-aware red/gray so the dimmed status line
+        // stays readable under Darcula (plain AWT RED is glaring).
+        contextLabel.setForeground(st.overflow
+                ? com.intellij.ui.JBColor.RED : com.intellij.ui.JBColor.GRAY);
     }
 
     /** Compact token count: 12345 → "12.3k", 1500000 → "1.5M". */
@@ -1572,12 +1666,17 @@ final class ConversationView {
     }
 
     void dispose() {
+        disposed = true; // gates ensureSession + every queued task body
         sendExecutor.shutdown(); // pending sends may still finish; no new ones
-        indexConversation("stopped");
+        indexConversation("stopped"); // queued — INDEX_EXECUTOR outlives the view
         AgentChatSession s = liveSession();
+        conv.session = null;
         if (s != null) {
-            s.stop();
-            conv.session = null;
+            // stop() is synchronized and closes stdin (blocking pipe I/O). A
+            // sendExecutor worker blocked in sendEvent() holds the session
+            // monitor — stopping inline would deadlock the EDT on tab/project
+            // close. Mirror the force-stop path: pooled thread.
+            ApplicationManager.getApplication().executeOnPooledThread(s::stop);
         }
         deleteAllSentImageTemps();
         images.clearAll(); // also delete pending-but-unsent own temp pngs

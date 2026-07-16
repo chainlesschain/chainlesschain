@@ -248,6 +248,9 @@
                     factoryClass="com.chainlesschain.ide.intellij.SessionsWorkbenchToolWindowFactory"/>
         <statusBarWidgetFactory id="chainlesschain.ide.statusBar"
                                 implementation="com.chainlesschain.ide.intellij.BridgeStatusBarWidgetFactory"/>
+        <!-- Balloon notifications (one-shot cc-upgrade "What's New" nudge; VS
+             Code showInformationMessage parity). -->
+        <notificationGroup id="ChainlessChain" displayType="BALLOON"/>
         <intentionAction>
             <className>com.chainlesschain.ide.intellij.FixWithCcIntention</className>
             <category>ChainlessChain</category>
