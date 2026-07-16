@@ -193,6 +193,82 @@ export function hasGlobalInstall(classification) {
   );
 }
 
+// ── remote-script execution ("curl … | sh") ────────────────────────────────
+// The most dangerous "fetch and run third-party code" vector isn't a package
+// manager at all — it's piping a download straight into a shell, or running a
+// shell over a command/process substitution that downloads. It runs UNPINNED,
+// UNVERIFIED, attacker-mutable code with the agent's privileges. These patterns
+// must be recognized on the RAW command (the pipe/substitution structure is lost
+// once split into segments), so they use anchored regexes rather than the
+// per-segment classifier.
+const REMOTE_FETCHERS = "curl|wget|fetch|iwr|invoke-webrequest|http|httpie";
+const SHELL_INTERPRETERS =
+  "sh|bash|zsh|ksh|dash|fish|python[0-9.]*|ruby|perl|node|deno|pwsh|powershell|eval|source";
+
+// `curl URL | sh`, `wget -O- URL | sudo bash`, `curl URL | tee f | sh`. After
+// the pipe, skip inline wrappers (`sudo `/`env `, space-separated) AND piped
+// pass-throughs (`tee f |`, `cat |`) before the interpreter.
+const PIPE_TO_SHELL_RE = new RegExp(
+  `\\b(${REMOTE_FETCHERS})\\b[^|]*\\|\\s*(?:(?:sudo|env|command|nice)\\s+|(?:tee|cat)\\b[^|]*\\|\\s*)*(${SHELL_INTERPRETERS})\\b`,
+  "i",
+);
+// `bash -c "$(curl URL)"`, `sh <(curl URL)`, `eval "$(wget -O- URL)"`
+const SUBST_TO_SHELL_RE = new RegExp(
+  `\\b(${SHELL_INTERPRETERS})\\b[^\\n]*[$<]\\(\\s*(?:sudo\\s+)?(${REMOTE_FETCHERS})\\b`,
+  "i",
+);
+
+function firstUrl(s) {
+  const m = String(s).match(/\bhttps?:\/\/[^\s'"|)>]+/i);
+  return m ? m[0] : null;
+}
+
+/**
+ * Detect remote-script execution in a raw shell command: a network fetcher piped
+ * into (or command/process-substituted into) a shell interpreter. Returns
+ * `{ isRemoteExec, matches:[{pattern, fetcher, interpreter, url}] }`. Pure.
+ */
+export function classifyRemoteExecCommand(command) {
+  const s = String(command || "");
+  const matches = [];
+  const pipe = PIPE_TO_SHELL_RE.exec(s);
+  if (pipe) {
+    matches.push({
+      pattern: "pipe-to-shell",
+      fetcher: pipe[1].toLowerCase(),
+      interpreter: pipe[2].toLowerCase(),
+      url: firstUrl(s),
+    });
+  }
+  const subst = SUBST_TO_SHELL_RE.exec(s);
+  if (subst) {
+    matches.push({
+      pattern: "cmdsubst-to-shell",
+      interpreter: subst[1].toLowerCase(),
+      fetcher: subst[2].toLowerCase(),
+      url: firstUrl(s),
+    });
+  }
+  return { isRemoteExec: matches.length > 0, matches };
+}
+
+/**
+ * Combined "untrusted code acquisition" classification: package installs AND
+ * remote-script execution. `flagged` is true if EITHER fires — the single signal
+ * a caller gates/audits on. Pure.
+ */
+export function classifyCodeAcquisition(command) {
+  const install = classifyInstallCommand(command);
+  const remote = classifyRemoteExecCommand(command);
+  return {
+    flagged: install.isInstall || remote.isRemoteExec,
+    isInstall: install.isInstall,
+    installs: install.installs,
+    isRemoteExec: remote.isRemoteExec,
+    remoteExec: remote.matches,
+  };
+}
+
 /**
  * Resolve the install-command policy from env/settings (opt-in, so the default
  * shell path is byte-unchanged). `audit` enables the audit trail; `riskFloor`

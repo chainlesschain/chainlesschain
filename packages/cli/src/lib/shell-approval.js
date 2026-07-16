@@ -25,7 +25,7 @@ import {
   APPROVAL_DECISION as DECISION,
 } from "@chainlesschain/session-core";
 import {
-  classifyInstallCommand,
+  classifyCodeAcquisition,
   hasGlobalInstall,
   applyRiskFloor,
   recordInstallCommandAudit,
@@ -65,8 +65,8 @@ export async function evaluateShellCommandWithApproval({
     installPolicy || resolveInstallPolicy({ env: process.env });
   let install = null;
   if (effectiveInstallPolicy && effectiveInstallPolicy.enabled) {
-    const cls = classifyInstallCommand(command);
-    if (cls.isInstall) {
+    const cls = classifyCodeAcquisition(command);
+    if (cls.flagged) {
       install = cls;
       if (effectiveInstallPolicy.riskFloor) {
         riskLevel = applyRiskFloor(riskLevel, effectiveInstallPolicy.riskFloor);
@@ -78,6 +78,7 @@ export async function evaluateShellCommandWithApproval({
             shellDecision: shellPolicy.decision,
             riskLevel,
             installs: cls.installs,
+            remoteExec: cls.remoteExec,
             global: hasGlobalInstall(cls),
             sessionId,
           },

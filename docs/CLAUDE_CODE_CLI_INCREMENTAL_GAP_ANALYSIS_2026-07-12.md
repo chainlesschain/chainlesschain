@@ -248,6 +248,20 @@ compound 两笔 / 非安装 null / resolveInstallPolicy env-wins·settings·关 
 +失败不抛）+ `shell-approval.test.js` +4（默认无 install 字节不变 / riskFloor 抬高致 strict 拒 /
 审计经注入-fs 记 global apt / 非安装不套 floor）= 30 绿；agent-core run-shell approval 6 回归绿。
 
+**已接线（2026-07-16 续，远程脚本执行 `curl … | sh` 检测）**：包管理器只是「下载并运行第三方
+代码」的一半；另一半是 `curl -fsSL https://x/install.sh | sh` / `bash -c "$(curl …)"` / `sh <(wget …)`
+这类**从网络取脚本直接喂给解释器**的惯用法——它绕过所有包管理器却同样是任意远程代码执行，此前也无
+任何一处认出。为 `install-command-policy.js` 增 `classifyRemoteExecCommand`：两条模式——**pipe-to-shell**
+（fetcher `curl`/`wget`/`fetch`/`iwr`/`Invoke-WebRequest` 管道进 `sh`/`bash`/`zsh`/`python`/`node`/`ruby`/
+`perl`/`php`，允许中间 `sudo`/`env`/`tee`/`cat` 包裹，抽取 URL+解释器）与 **subst-to-shell**（解释器读
+`$(…)`/`<(…)` 命令·进程替换里的 fetcher）；`cat script.sh | sh`、`curl -O file.tar`（纯下载不管道进
+shell）**不误报**。统一入口 `classifyCodeAcquisition` = install ∪ remote-exec（`flagged`=任一命中），
+`shell-approval.js` 改调它、命中即抬 riskFloor + 记审计（审计含 `remoteExec` 明细）。同样**默认字节
+不变**（policy 未开→跳过）。测试：`install-command-policy.test.js` +13（classifyRemoteExecCommand
+pipe/subst/不误报 + classifyCodeAcquisition install·curl|sh·普通命令）+ `shell-approval.test.js` +1
+（`curl|sh` 触发 riskFloor 致 strict 拒）= `install-command-policy.test.js` 30 + `shell-approval.test.js`
++5；三文件 43 绿；agent-core run-shell approval 回归绿。
+
 **仍欠（多为环境/平台阻塞）**：macOS Seatbelt profile；原生 Windows 的 OS 级
 边界（WSL2/容器/受限进程）；把 `run_shell`/`run_code`/Hook/Plugin Bin/LSP/
 MCP stdio 统一收进 Process Sandbox Broker；Python per-session venv + 版本锁 +
