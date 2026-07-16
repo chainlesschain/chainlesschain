@@ -11,6 +11,34 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-16 发布 — **IDE 插件 VS Code 0.37.16 / JetBrains 0.4.60：bug-sweep + parity 批（Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见 / budget·retry 流事件契约）**
+
+> VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批：**Windows cmd.exe argv 注入加固**（用户文本含 `&`/`|`/引号不再被撕坏或当第二条命令执行，cross-spawn 算法真 cmd.exe 往返验证）+ **JB EDT 冻结/死锁类修复**（`/stop`/`/compact`/审批回复/tab 关闭的阻塞管道 IO 全部移出 UI 线程）+ **ghost-text 进程树击杀**（取消补全不再留孤儿 `cc complete` 白烧 LLM 调用并占 SQLite 锁）+ **阻塞后台 Agent 可见**（`waiting_permission`/`pendingApprovals`，配合 cc ≥ 0.162.168，「等待审批」徽标 + 排最前 + JB Resume 可用）+ **budget/retry 流事件**（API 重连与预算停止渲染为带原因 info 行，fixture 契约钉死双端 parity）+ deep-link 包含性 / Plugin Trust-Untrust scope / JB 会话索引并发安全 / 管道 CJK byte-carry。验证：VS 914 测试全绿 + vsix 解析级包验；JB JUnit+smokeTest 1213/0 + verifyPlugin Compatible。
+
+## 2026-07-16 发布 — **cc CLI 0.162.168：增量 gap-analysis 第二批接线（后台 Agent「等待审批」真实状态 / hook trace·parent 溯源 / LSP 多根+重启退避默认开 / 严格 hook 合并真并行 / 大仓 subagent worktree·子树指令 / run_code install 审计）**
+
+> CLI-only 发版（0.162.167 → **0.162.168**，npm `latest`，provenance）。后台 agent 卡人工审批时把 `phase:"waiting_permission"` + 实时 `pendingApprovals` 写进共享 state（Dashboard "Needs input" 从此有真数据）+ 统一 install 审计扩到 `run_code` 的 pip 自动安装（识别 `python -m pip install` 含 sudo 包裹，一份 `install-commands.jsonl` 覆盖所有「下载并运行第三方代码」入口）+ hook 事件溯源（`event_id`/`trace_id`/`parent_id` 四 payload 构造点，子 agent hook 事件跨深度关联父 trace）+ strictest-merge 决策合并（opt-in `CC_HOOK_STRICT_MERGE=1`，修「较早 ask 掩盖较晚 block」缺口）与 PreToolUse 真并行 + LSP 重启退避默认开（1s→2s→4s→8s，`CC_LSP_RESTART_BACKOFF_MS=0` 关）与多根 `code_intelligence`（`--add-dir` 根拿自己项目的语言服务器）+ 子树指令懒注入默认开（工具首访子树附 `cc.md`/`CLAUDE.md`/`AGENTS.md`，`CC_SUBTREE_INSTRUCTIONS=0` 关）+ subagent worktree 稀疏检出透传 / agent-file `background:true` 真生效 / headless `--add-dir` seed MCP roots。命令数 **175 不变**。
+
+## 2026-07-16 发布 — **cc CLI 0.162.167：增量 gap-analysis 收尾（P0 沙箱远程脚本执行检测 / 4 个生命周期事件钩子 / doctor 孤儿子进程 / 4 项杂项接线）**
+
+> CLI-only 发版（0.162.166 → **0.162.167**，npm `latest`，provenance）。统一「代码获取」分类器把 20+ 包管理器安装命令与 `curl … | sh` 一类下载即执行远程脚本归类，shell 审批抬高风险地板 + 落审计（`remoteExec` 标记；`cat file | sh` 与仅下载不误报）+ 4 个生命周期钩子真实生产者（`CwdChanged` / `WorktreeCreate`·`WorktreeRemove` / `InstructionsLoaded`——携权威指令文件清单绝不含内容，observe-only 零字节默认）+ `cc doctor` 孤儿 agent 子进程检测（进程起始时间锚定防 PID 复用，给 `taskkill`/`kill` 修复命令）+ async-hook 持久重唤队列崩溃恢复 / MCP roots/list_changed 广播 / LSP 就绪安装缺口检查 / Session Mirror at-rest 加密·删除·保留·密钥轮换。命令数 **175 不变**。
+
+## 2026-07-15 发布 — **cc CLI 0.162.166：P1-9「Capability Manifest 与脱敏诊断包」收官（协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标）**
+
+> CLI-only 发版（0.162.165 → **0.162.166**，npm `latest`，provenance）。协议能力文档从唯一源 `capability-manifest.js` 单源生成 + 测试内 byte-diff 断言（manifest 加字段未重生成即测试红，drift 不可能 merge 绿）+ 离线协议回放与前向兼容审计（录制 stream-json 会话按协商上下文回放/审计，携带 gate-OFF wire 字段即违规 fail-closed）+ 治理覆盖率指标（高风险调用 Ledger/Trace 覆盖率 + Plugin/MCP/Skill/Hook 溯源可追溯率，双 100% 才 `ok`，离线工具可对 CI 强制）。命令数 **175 不变**。
+
+## 2026-07-13 发布 — **cc CLI 0.162.165：精简项目记忆（`--no-project-memory` 全关 / `CC_PROJECT_MEMORY=lean` 只留入口文件 / IDE 聊天「精简上下文」默认开）**
+
+> CLI-only 发版（0.162.164 → **0.162.165**，npm `latest`，provenance）。文档密集仓库里 `cc agent` 每轮重发整套项目记忆（实测 ~12k token/轮）——现分三档：`full`（默认不变）/ `lean`（保留 `cc.md` > `CLAUDE.md` > `AGENTS.md` 首个入口文件，丢 `CLAUDE.local.md`、`.claude/rules/*`、`.chainlesschain/rules.md`，实测 ~12k → ~5k）/ `off`（`--no-project-memory` 跳过整个层级）。IDE 侧经环境变量下发（旧 `cc` 不认自动回退 full）。命令数 **175 不变**。
+
+## 2026-07-13 发布 — **cc CLI 0.162.164：IDE 增量 gap-analysis 全批接线（凭据脱敏三导出面 / /rewind 从这里分支 / cc session pr-status / Diff 行评论锚定 / worktree 清理安全闸 / 崩溃恢复台账 / 脱敏诊断包）**
+
+> CLI-only 发版（0.162.163 → **0.162.164**，npm `latest`，provenance）。`cc session export` / OTLP / `cc doctor --export-bundle` 三导出面共用 recall-first secret-scan（导出物离机朝「不泄漏」失败）+ 崩溃恢复两阶段副作用台账（`--resume` reconcile，started-未落定-非幂等 op 注入 Recovery notice 而非盲重跑）+ `/rewind <n> --branch` 从选中 turn 派生独立会话（父会话绝不截断）+ review finding 锚到代码而非裸坐标（file+baseHash+行原文，改后 reanchor/标 outdated）+ `cc session pr-status`（PR/CI 状态条 + 默认关的 auto-merge 合格性穷举判定）+ worktree reaper fail-closed 安全闸（未提交/未 push/关联 PR 任一即保留）+ `cc doctor`「Execution context」段 + 无人值守动作门 + 跨设备操作指纹全元组校验。命令数 **175 不变**。
+
+## 2026-07-13 发布 — **cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线（Subagent 契约全轴强制 / 跨 Agent 授权边界 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel）**
+
+> CLI-only 发版（0.162.162 → **0.162.163**，npm `latest`，provenance）。0.162.162 announce 的纯核整批落成真实运行时接线：spawn 真正消费 `resolveSubagentContract`（tighten-only）+ 本地 headless 审批链路携带并校验授权信封 + 会话完成条件引擎接线 + Turn↔Checkpoint 绑定持久化与 coverage-aware `/rewind` + 副作用台账崩溃恢复纯核 + 持久 Scheduler jitter + `cc plugin consent` 再同意 + `cc hook replay`/`events-log` + REPL `/goal` 循环 + `--json-schema` 结构化输出 + 统一 OTel id。命令面只加子命令与 flag，**顶层命令数 175 不变**。本地三层全绿（unit+integration 25,008 + e2e 628）。
+
 ## 2026-07-12 发布 — **cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0**
 
 > CLI-only 发版（0.162.161 → **0.162.162**，npm `latest`，provenance）。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）**P0/P1/P2 全部章节收口**：P1 Subagent 契约（tighten-only 继承/覆盖，权限加宽钳回父级、capabilities 取交集、memory 父拒不授予）+ Turn↔Checkpoint 绑定（覆盖度 FULL/PARTIAL/NONE，恢复计划永不过度承诺）+ Plugin 能力声明与配置 Schema（默认 DENY + 加宽需重新同意 + 敏感选项拒 project 配置）；P2 Hooks 统一事件总线（信封 + `event_id` + 决策最严胜出 + 决策类 replay 必须显式 sandbox）+ JSON Schema 结构化输出（Draft 2020-12 子集 + `schema_digest` + `structured_result`）+ 多 Agent Review 聚合核（dedupe 跨维度合并 + verifier 复现剔除 + 结构化 path/line/category/severity/failure_scenario/evidence）与 LSP 自动诊断调度（debounce/throttle + token 上限先丢最不严重）+ Doctor Runtime Checkup（agenda 逾期/慢·熔断 Hook/失效 Plugin·LSP/冗长指令文件）+ CLI 参考文档漂移检测（从 manifest 175 + 工具 26 生成并双向 diff）+ 统一 OTel id（九 id 归一 + content 默认脱敏 `[redacted]` + 基数收敛，每 span 带 workflow.run_id+session.id）+ IDE gap P0（远程审批绑定操作指纹 + 会话生命周期状态机）。命令数 **175 不变**。发版前本地三层全绿（unit 23,182 / integration 1,044 / e2e 628）。

@@ -1,6 +1,6 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本: Design Module 98（机制篇，更新 2026-07-10）| 状态: ✅ 七 Phase 全落地 + 双 marketplace 上架（VS Code `0.37.11` Open VSX / JetBrains `0.4.55` Marketplace）| 9+ IDE 工具 + Chat 面板 + 实时感知 | 跨语言 interop 实证**
+> **版本: Design Module 98（机制篇，更新 2026-07-16）| 状态: ✅ 七 Phase 全落地 + 双 marketplace 上架（VS Code `0.37.16` Open VSX / JetBrains `0.4.60` Marketplace）| 9+ IDE 工具 + Chat 面板 + 实时感知 | 跨语言 interop 实证**
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -138,7 +138,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**(`com.chainlesschain.ide`,最新 v0.4.55):IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装(2024.2+),或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **已过审上架 JetBrains Marketplace**(`com.chainlesschain.ide`,最新 v0.4.60):IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装(2024.2+),或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

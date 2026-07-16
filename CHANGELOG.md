@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — IDE 扩展 VS Code 0.37.16 + JetBrains 0.4.60：2026-07-16 bug-sweep + parity 批——Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见（配合 cc 0.162.168）/ budget·retry 流事件契约（已发 Open VSX + JetBrains Marketplace）
+
+> VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批 + 双端 parity 移植；协议契约改动（budget/retry 流事件 fixture）双端原子落地。发版前验证：VS 侧 82 测试文件 / 914 全绿 + vsix 解析级包验（版本 / win-shell 转义 / stream_retry / waiting 徽标）；JB 侧 JUnit + smokeTest 1213/0 + verifyPlugin Compatible + buildPlugin zip 解析验证（plugin.xml 0.4.60 + change-notes）；agent-sdk fixtures 44/44（仅 fixture，无 src 改动 → 无 SDK bump）。
+
+- **Windows cmd.exe argv 注入加固（VS）**：Windows 上所有 `cc` spawn 走 `.cmd` shim（shell 语义）、Node 用裸空格拼 argv——用户文本含 `&`/`|`/引号会被撕坏甚至当第二条命令执行（`/handoff` 提示词如 `verify & deploy`、后台 agent rename/resume 提示词、relay 设置）。全部按 cross-spawn 算法 cmd 转义，对真 cmd.exe + `.cmd` shim 往返验证（含 CJK 与注入载荷）。
+- **JB EDT 冻结/死锁类修复**：`/stop`、`/compact`、审批/提问回复、tab 关闭全在 UI 线程做阻塞式子进程 stdin 管道 IO——子进程停读 = 整个 IDE 冻结（而 `/stop` 恰是那时你要按的键）。全部移出 EDT；关 tab 不再与阻塞 send 死锁，排队的 send 不再为已关 tab 重生 `cc` 子进程。
+- **ghost-text / 捕获进程树击杀（双端）**：取消内联补全或 `cc` 捕获超时此前只杀 cmd.exe 包装层——孤儿 `cc complete` 照跑完整 LLM 调用（每次划掉建议都白烧 token）并占住 SQLite 锁；现全树回收（`taskkill /T`，JB 侧先收后代）。
+- **阻塞后台 Agent 可见（双端，配合 cc ≥ 0.162.168）**：`waiting_permission` / `needs_input` 相位与 `pendingApprovals` 计数渲染「等待审批（N pending）」徽标 + 摘要卡，Sessions 工作台阻塞会话排最前；JB 侧 Resume 对阻塞会话可用 + 存活检查校验 pid 身份（崩溃/pid 复用显 `lost` 及原因，而非假 "running" 2 分钟）。
+- **budget/retry 流事件（fixture 契约钉死的双端 parity）**：流中 API 重连（`stream_retry`）与轮次/成本预算停止渲染为带原因的 info 行而非静默卡住；预算停止不再把整段流式回答刷红。
+- **VS 杂项**：deep-link 文件包含性（`vscode://…/open?file=…` 目标必须解析进打开的 workspace，UNC / `..` 逃逸 / 外部绝对路径如 `?file=C:\Users\me\.ssh\id_rsa` 拒开）；Plugin 管理器 Trust/Untrust 传行内 `--scope`（此前 user-scope 安装 Trust 报错、**Untrust 静默成功但没撤销**——JB 同修）；MCP bridge 413 后续 body chunk 崩溃窗口 + 大 body O(n²) 字节计数；Background Agents 快速双 attach 泄漏管道句柄/日志定时器；后台列表轮询同步 `wmic` 探测卡扩展宿主（cache TTL 10s→60s）；崩溃恢复台账扩到面板 stream 路径（配 cc 下一版的 headless-stream 台账）。
+- **JB 杂项**：共享会话索引并发安全（跨 IDE read-merge-write 竞态静默丢会话、同毫秒 tmp 冲突丢写 → 加锁 + 唯一 tmp 名 + 索引写合并到后台线程）；管道客户端 byte-level carry（多字节字符跨 4096 字节读边界撕裂 NDJSON 行 → prompt/stop 假超时）；context 窗口指示本地从 `token_usage` 派生（不再每轮冷 spawn `cc context`）；后台 Agent 日志 64KB seek 尾读 off-EDT（此前整多 MB 日志每次刷新上 EDT）；Dashboard 隐藏时暂停 1s 刷新；What's New 升级气泡 + Team monitor 预算/成员汇总（VS parity）。
+
 ### Added — cc CLI 0.162.168：增量 gap-analysis 第二批接线——后台 Agent「等待审批」真实状态 + hook 事件溯源（trace/parent）+ LSP 多根与重启退避默认开 + 严格 hook 合并真并行 + 大仓 subagent worktree/子树指令 + run_code install 审计（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.167 → **0.162.168** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（10 个 feat commit + 测试 + gap-analysis 文档状态）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**。绝大多数改动 opt-in / 默认路径字节不变；**两处默认行为变化**（均可 env 关）：LSP 重启退避默认开（`CC_LSP_RESTART_BACKOFF_MS=0` 恢复旧行为）与子树指令懒注入默认开（`CC_SUBTREE_INSTRUCTIONS=0` 关）。
@@ -18,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **P2 LSP：重启退避默认开 + 多根 workspace**：池化语言服务器重启退避默认 1s→2s→4s→8s 封顶（启动即崩的 server 不再毫秒级连爆 `maxRestarts` 次；`CC_LSP_RESTART_BACKOFF_MS` 覆盖、`=0` 恢复立即重生）。`code_intelligence` 现按**包含该文件的根**（containment 最深根胜）key 共享 server 池——`--add-dir` 根内的文件拿到它自己项目的语言服务器而非 cwd 的；`workspace_symbols` 跨全部根扇出合并、逐 symbol 标注 `root`。单根会话字节不变。
 - **P1 大仓：子树指令懒注入（tool-time）**：工具**首次访问**某子树（read_file / list_dir / write_file / edit_file / edit_file_hashed）时把该子树自带的 `cc.md`/`CLAUDE.md`/`AGENTS.md` 附到工具结果的 `subtreeInstructions` 字段（每子树每进程恰一次，honor `instructionExcludes`，fail-open）——monorepo 里 per-package 规则不再要求启动时全量注入。子树无指令文件（常态）零成本；`CC_SUBTREE_INSTRUCTIONS=0` 整体关闭。同批：post-edit 诊断从未排序裸 cap 20 改为 **severity 优先 + token 预算**封顶（error 先于 warning，`CC_EDIT_DIAGNOSTICS_TOKENS` 默认 2000）。
 - **P1 subagent/大仓三项收尾**：①subagent worktree spawn 透传 `sparsePaths`/`symlinkDirectories`（spawn-arg 胜 agent-file；隔离 worktree 只 checkout 任务需要的包 + junction 复用依赖目录）；②agent-file frontmatter `background: true` 现真生效（此前只认调用方显式传参）；③headless `--add-dir` 启动根 seed——`cc agent -p --add-dir` 现把完整根列表告知已连 MCP 服务器（`roots/list_changed`），此前它们的 `roots/list` 永远只见 cwd。
+
+### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子（CwdChanged/Worktree/InstructionsLoaded）+ doctor 孤儿子进程 + 4 项杂项接线（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。
 
@@ -59,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **P1-9 脱敏诊断包**：`cc doctor --export-bundle` 一键导出去标识诊断包（版本/平台/Capability/连接/脱敏事件/进程·端口·锁文件·worktree 摘要；默认不含源码/Key/Cookie/完整环境变量；导出前强制 secret-scan）。
 - **8.2 跨设备操作指纹**：远程审批 `remote-approval-bridge` 升级到全元组 `OperationApprovalRegistry`（工具名/规范化参数/目标环境/workspace/session/策略版本/有效期）；`permission.request` 发完整指纹 + 短标识 + 无秘密摘要，`approval.resolve` 失败关闭（mismatch/superseded/duplicate/过窗）。
 - **Monorepo / P2 硬化**：worktree `sparsePaths` 稀疏检出 + `symlinkDirectories` 逃逸守卫接进 team runner；`cc doctor` 新增沙箱真能力/静默降级、重复 skill 影子、settings.json hook 配置静态校验、async-hook 可靠性健康检查；LSP 服务器可选指数退避重启；每 span 归一 OTel session/agent id + `permission.decision_id`。
+
+### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线——Subagent 契约全轴强制 / 跨 Agent 授权边界 / 完成条件引擎 / Turn↔Checkpoint 持久化 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。
 

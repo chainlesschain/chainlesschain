@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **版本: VS Code 扩展 `0.37.12`（Open VSX 已上架，安装破万）+ JetBrains 插件 `0.4.56`（JetBrains Marketplace 已上架）| 更新 2026-07-10 | 状态: ✅ 双端功能对齐 | 9+ IDE 工具 | Chat 面板 + Plan 审阅 + 原生 Diff 评审 + 后台代理 | VS 侧 ~605 专项测试 + JB 侧 JUnit / ~795 smoke 断言**
+> **版本: VS Code 扩展 `0.37.16`（Open VSX 已上架，安装破万）+ JetBrains 插件 `0.4.60`（JetBrains Marketplace 已上架）| 更新 2026-07-16 | 状态: ✅ 双端功能对齐 | 9+ IDE 工具 | Chat 面板 + Plan 审阅 + 原生 Diff 评审 + 后台代理 | VS 侧 ~914 专项测试 + JB 侧 JUnit / ~1213 smoke 断言**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 

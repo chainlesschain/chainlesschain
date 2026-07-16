@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+#### Added — IDE 扩展 VS Code 0.37.16 + JetBrains 0.4.60：2026-07-16 bug-sweep + parity 批——Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见（配合 cc 0.162.168）/ budget·retry 流事件契约
+
+> VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批 + 双端 parity 移植；协议契约改动（budget/retry 流事件 fixture）双端原子落地。发版前验证：VS 侧 914 测试全绿 + vsix 解析级包验；JB 侧 JUnit + smokeTest 1213/0 + verifyPlugin Compatible + buildPlugin zip 解析验证。
+
+- **Windows cmd.exe argv 注入加固（VS）**：Windows 上 `cc` spawn 走 `.cmd` shim，用户文本含 `&`/`|`/引号会被撕坏甚至当第二条命令执行（`/handoff`、后台 agent rename/resume、relay 设置）——全部按 cross-spawn 算法 cmd 转义，真 cmd.exe 往返验证（含 CJK 与注入载荷）。
+- **JB EDT 冻结/死锁类修复**：`/stop`、`/compact`、审批/提问回复、tab 关闭全在 UI 线程做阻塞式子进程管道 IO——子进程停读 = 整个 IDE 冻结；全部移出 EDT，关 tab 不再与阻塞 send 死锁。
+- **ghost-text / 捕获进程树击杀（双端）**：取消内联补全此前只杀 cmd.exe 包装层——孤儿 `cc complete` 照跑完整 LLM 调用并占 SQLite 锁；现全树回收。
+- **阻塞后台 Agent 可见（双端，配合 cc ≥ 0.162.168）**：`waiting_permission`/`needs_input`/`pendingApprovals` 渲染「等待审批（N pending）」徽标 + 摘要卡，Sessions 工作台阻塞会话排最前；JB 侧 Resume 可用 + 存活检查校验 pid 身份（不再假 "running" 2 分钟）。
+- **budget/retry 流事件（双端 parity）**：流中 API 重连与轮次/成本预算停止渲染为带原因的 info 行而非静默卡住；预算停止不再把整段流式回答刷红。
+- **VS 杂项**：deep-link 文件包含性（workspace 外目标拒开）；Plugin Trust/Untrust scope 修复（Untrust 此前静默没撤销，JB 同修）；MCP bridge 413 崩溃窗口；后台列表 `wmic` 探测卡宿主。
+- **JB 杂项**：共享会话索引并发安全（竞态丢会话/丢写 → 加锁+唯一 tmp+后台合并写）；管道 byte-level carry（CJK 跨 4096 读边界撕裂 → prompt/stop 假超时）；context 指示本地派生；日志 64KB seek 尾读；What's New 气泡 + Team monitor 汇总。
+
 #### Added — cc CLI 0.162.168：增量 gap-analysis 第二批接线——后台 Agent「等待审批」真实状态 + hook 事件溯源 + LSP 多根与退避默认开 + 严格 hook 合并真并行 + 大仓 subagent worktree/子树指令 + run_code install 审计
 
 > CLI-only 发版（`chainlesschain` 0.162.167 → **0.162.168**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（10 个 feat commit + 测试 + 文档状态）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**。绝大多数改动 opt-in / 默认路径字节不变；**两处默认行为变化**（均可 env 关）：LSP 重启退避默认开（`CC_LSP_RESTART_BACKOFF_MS=0` 恢复旧行为）、子树指令懒注入默认开（`CC_SUBTREE_INSTRUCTIONS=0` 关）。
@@ -54,6 +66,8 @@
 - **P1-4 PR/CI 监控**：`cc session pr-status`——状态条 + 默认关的 auto-merge 合格性穷举判定。
 - **P1-5 worktree 清理安全闸**：reaper 清理前 fail-closed（未提交/未追踪/未 push/关联 PR 任一→保留）。
 - **P1-6 会话级工具准入 + 归因**、**P1-7 `cc doctor` 执行位置一等属性**、**P1-8 无人值守动作门**、**P1-9 脱敏诊断包**、**8.2 跨设备操作指纹**、**Monorepo worktree 稀疏检出 + P2 doctor 检查/LSP 退避/OTel ids**。
+
+#### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线——Subagent 契约全轴强制 / 跨 Agent 授权边界 / 完成条件引擎 / Turn↔Checkpoint 持久化 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel
 
 > CLI-only 发版（`chainlesschain` 0.162.162 → **0.162.163**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节 last-mile「仍欠」。
 
