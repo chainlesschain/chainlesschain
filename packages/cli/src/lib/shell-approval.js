@@ -24,6 +24,13 @@ import {
   APPROVAL_RISK as RISK,
   APPROVAL_DECISION as DECISION,
 } from "@chainlesschain/session-core";
+import {
+  classifyInstallCommand,
+  hasGlobalInstall,
+  applyRiskFloor,
+  recordInstallCommandAudit,
+  resolveInstallPolicy,
+} from "./install-command-policy.js";
 
 export const SHELL_TO_RISK = {
   allow: RISK.LOW,
@@ -37,13 +44,48 @@ export async function evaluateShellCommandWithApproval({
   sessionId = null,
   approvalGate = null,
   shellPolicyOptions = {},
+  installPolicy = null,
 } = {}) {
   const shellPolicy = sharedShellPolicy.evaluateShellCommandPolicy(
     command,
     shellPolicyOptions,
   );
 
-  const riskLevel = SHELL_TO_RISK[shellPolicy.decision] || RISK.MEDIUM;
+  let riskLevel = SHELL_TO_RISK[shellPolicy.decision] || RISK.MEDIUM;
+
+  // Unified install-command classification (OPT-IN via installPolicy). A package
+  // install (npm/pip/winget/brew/…) fetches and runs third-party code, so it is
+  // a distinct, auditable permission type regardless of which tool does it. When
+  // a riskFloor is configured it RAISES (never lowers) the risk before gating;
+  // audit records the attempt. Absent/disabled → nothing runs, byte-unchanged.
+  // Explicit policy wins; otherwise self-activate from env (CC_INSTALL_AUDIT /
+  // CC_INSTALL_RISK_FLOOR) so the real run_shell path picks it up with no extra
+  // wiring. Both unset → disabled → the block below is skipped, byte-unchanged.
+  const effectiveInstallPolicy =
+    installPolicy || resolveInstallPolicy({ env: process.env });
+  let install = null;
+  if (effectiveInstallPolicy && effectiveInstallPolicy.enabled) {
+    const cls = classifyInstallCommand(command);
+    if (cls.isInstall) {
+      install = cls;
+      if (effectiveInstallPolicy.riskFloor) {
+        riskLevel = applyRiskFloor(riskLevel, effectiveInstallPolicy.riskFloor);
+      }
+      if (effectiveInstallPolicy.audit) {
+        recordInstallCommandAudit(
+          {
+            command,
+            shellDecision: shellPolicy.decision,
+            riskLevel,
+            installs: cls.installs,
+            global: hasGlobalInstall(cls),
+            sessionId,
+          },
+          effectiveInstallPolicy.auditOpts || {},
+        );
+      }
+    }
+  }
 
   // Hard-blocked rules bypass the gate entirely — the gate tier cannot
   // up-authorize them.
@@ -56,6 +98,7 @@ export async function evaluateShellCommandWithApproval({
       shellPolicy,
       riskLevel,
       policy: null,
+      install,
     };
   }
 
@@ -69,6 +112,7 @@ export async function evaluateShellCommandWithApproval({
       shellPolicy,
       riskLevel,
       policy: null,
+      install,
     };
   }
 
@@ -87,6 +131,7 @@ export async function evaluateShellCommandWithApproval({
     shellPolicy,
     riskLevel,
     policy: gateResult.policy,
+    install,
     // Explainability passthrough (autoMode.decisions wrapper attaches these):
     // which gate rule fired and why — surfaced in the permission chain.
     gateReason: gateResult.reason ?? null,

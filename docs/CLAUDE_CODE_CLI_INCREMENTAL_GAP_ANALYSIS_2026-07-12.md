@@ -227,12 +227,33 @@ ledger 事件、零注入。这满足了本项验收「file-write/git-push/packa
     approved-only 注入 / 配置与 env 门 / **真 spawn 端到端**证明子进程只见
     sentinel、`deny` 下变量彻底消失）。
 
+**已接线（2026-07-16，安装入口统一权限类型 + 审计事件）**：补上「npm/pip/winget/brew 等安装
+入口的统一权限类型与审计事件」——此前只有 `dependency-install-policy.js` 管 `run_code` 里的 pip
+自动安装，`run_shell` 的 `npm install`/`brew install`/… 只是**普通 shell 命令**，没有任何一处认出
+「这在下载并运行第三方代码」、也无统一审计。新纯核 `src/lib/install-command-policy.js`：
+`classifyInstallSegment`/`classifyInstallCommand`——**20 个包管理器**（npm/pnpm/yarn/bun/pip/pipx/
+poetry/conda/brew/winget/choco/apt/dnf/yum/apk/snap/gem/cargo/go/composer/dotnet）的 per-manager 表，
+识别安装子命令、抽取包名、判 **global/system 作用域**（`-g`/`--global`/`yarn global`/系统级管理器
+恒 global）；复用 shell-policy 的 `splitCommandSegments` 故 `npm i a && pip install b` **两笔都报**；
+`unwrapArgv` 剥 `sudo`/`env`/`VAR=` 前缀、`normalizeBin` 剥路径与 `.exe/.cmd`。`resolveInstallPolicy`
+（env `CC_INSTALL_AUDIT`/`CC_INSTALL_RISK_FLOOR` 或 settings `installPolicy`，**默认全关**）+
+`applyRiskFloor`（只升不降）+ `recordInstallCommandAudit`（注入-fs，写 `~/.chainlesschain/audit/
+install-commands.jsonl`，best-effort 永不抛）。**接线**（`shell-approval.js` `evaluateShellCommandWith
+Approval`，**非** agent-core）：显式 `installPolicy` 优先，否则**自 env 自激活**——`CC_INSTALL_AUDIT=1`
+即让真 `run_shell` 审批路径**无需改 agent-core** 就开始分类+审计；命中安装则把分类挂到结果的
+`install` 字段、按 `riskFloor` **在 gate 前**抬高风险（如强制 install 恒过审批门）、记审计。**默认
+字节不变**：env/policy 全未设→`install:null`、零 I/O、风险与决策逐字节同旧。测试：
+`install-command-policy.test.js` 17（多管理器+global / sudo·env·路径·.cmd / dotnet package-word /
+compound 两笔 / 非安装 null / resolveInstallPolicy env-wins·settings·关 / riskFloor 只升 / 审计注入-fs
++失败不抛）+ `shell-approval.test.js` +4（默认无 install 字节不变 / riskFloor 抬高致 strict 拒 /
+审计经注入-fs 记 global apt / 非安装不套 floor）= 30 绿；agent-core run-shell approval 6 回归绿。
+
 **仍欠（多为环境/平台阻塞）**：macOS Seatbelt profile；原生 Windows 的 OS 级
 边界（WSL2/容器/受限进程）；把 `run_shell`/`run_code`/Hook/Plugin Bin/LSP/
 MCP stdio 统一收进 Process Sandbox Broker；Python per-session venv + 版本锁 +
-hash 校验；npm/pip/winget/brew 安装入口的统一权限类型与审计事件；凭据代理
-default-on + 逐 host 短期凭据注入接到 egress proxy；三平台真集成测试
-（子进程链 / symlink·junction / 路径穿越 / 私网·metadata endpoint）。
+hash 校验；把 install-command 分类接进 `run_code`/Plugin-Bin 安装路径（现覆 `run_shell`）+
+default-on（现 opt-in）；凭据代理 default-on + 逐 host 短期凭据注入接到 egress proxy；三平台真集成
+测试（子进程链 / symlink·junction / 路径穿越 / 私网·metadata endpoint）。
 
 ## P0：权限来源与跨 Agent 授权边界
 
