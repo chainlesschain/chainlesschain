@@ -99,4 +99,37 @@ describe("IdeMcpServer — multi-byte body reassembly", () => {
     expect(echoed).toBe(text);
     expect(echoed).not.toContain("�"); // no replacement chars
   });
+
+  it("responds 413 exactly once when chunks keep arriving past the cap", async () => {
+    const server = new IdeMcpServer({ tools: [] });
+    const req = new PassThrough();
+    req.method = "POST";
+    req.headers = {};
+    let heads = 0;
+    const res = fakeRes();
+    const origWriteHead = res.writeHead.bind(res);
+    res.writeHead = (code) => {
+      heads++;
+      origWriteHead(code);
+    };
+    const done = new Promise((resolve) => {
+      const orig = res.end.bind(res);
+      res.end = (s) => {
+        orig(s);
+        resolve();
+      };
+    });
+    server._onRequest(req, res);
+    // 5 chunks of 1MB cross the 4MB cap on the fifth; the sixth emit models a
+    // chunk that was already buffered when destroy() ran — the case that used
+    // to re-enter _send on the finished response and throw
+    // ERR_HTTP_HEADERS_SENT uncaught inside the listener. Emitted directly so
+    // stream teardown timing cannot swallow the re-entry.
+    const mb = "a".repeat(1024 * 1024);
+    for (let i = 0; i < 6; i++) req.emit("data", mb);
+    await done;
+    expect(res.status).toBe(413);
+    expect(res.json).toEqual({ error: "payload too large" });
+    expect(heads).toBe(1); // no double writeHead after the abort
+  });
 });

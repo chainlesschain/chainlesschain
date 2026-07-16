@@ -15,6 +15,7 @@
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { escapeCmdArgs } = require("../win-shell");
 
 /** `cc agent --bg --resume <sessionId> -p <prompt> --output-format json`. */
 function buildHandoffArgs(sessionId, prompt) {
@@ -175,16 +176,21 @@ function runHandoff({
         error: "missing session or prompt",
       });
     }
+    const platform = deps?.platform || process.platform;
+    // shell:true joins argv with plain spaces — the user-typed prompt must be
+    // cmd-escaped or `… & run tests` executes `run tests` as a second command.
+    const useShell = platform === "win32";
+    const args = buildHandoffArgs(sessionId, String(prompt).trim());
     run(
       command,
-      buildHandoffArgs(sessionId, String(prompt).trim()),
+      useShell ? escapeCmdArgs(args, { platform }) : args,
       {
         cwd,
         env: hardenedEnv(env),
         timeout: 60000,
         windowsHide: true,
         // npm global shims on Windows are .cmd files — they need a shell.
-        shell: process.platform === "win32",
+        shell: useShell,
       },
       (err, stdout, stderr) => {
         const state = parseBackgroundState(stdout);

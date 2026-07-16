@@ -131,7 +131,11 @@ async function handleMessage(vscode, msg) {
   if (msg.command === "refresh") return refresh();
 
   if (msg.command === "pluginTrust") {
-    await runCli(buildPluginTrustArgs(msg.name, msg.trusted === true));
+    // Scope must match where the plugin is installed (rows carry it) — the
+    // CLI defaults to project scope and untrust at the wrong scope no-ops.
+    await runCli(
+      buildPluginTrustArgs(msg.name, msg.trusted === true, msg.scope),
+    );
     return refresh();
   }
   if (msg.command === "pluginUninstall") {
@@ -274,8 +278,8 @@ function renderHtml() {
         + '<td><span class="pill">'+esc(p.scope)+'</span></td>'
         + '<td>'+(p.ok?'<span class="ok">✔ ok</span>':'<span class="bad">✖ invalid</span>')+'</td>'
         + '<td>'
-        + '<button class="sec" data-act="trust" data-name="'+esc(p.name)+'">Trust</button>'
-        + '<button class="sec" data-act="untrust" data-name="'+esc(p.name)+'">Untrust</button>'
+        + '<button class="sec" data-act="trust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Trust</button>'
+        + '<button class="sec" data-act="untrust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Untrust</button>'
         + '<button class="sec" data-act="uninstall" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Uninstall</button>'
         + '</td></tr>').join('')
       + '</tbody></table>';
@@ -314,8 +318,8 @@ function renderHtml() {
     if (!b) return;
     const name = b.getAttribute('data-name');
     const act = b.getAttribute('data-act');
-    if (act === 'trust') vscode.postMessage({command:'pluginTrust', name, trusted:true});
-    else if (act === 'untrust') vscode.postMessage({command:'pluginTrust', name, trusted:false});
+    if (act === 'trust') vscode.postMessage({command:'pluginTrust', name, trusted:true, scope: b.getAttribute('data-scope')||'user'});
+    else if (act === 'untrust') vscode.postMessage({command:'pluginTrust', name, trusted:false, scope: b.getAttribute('data-scope')||'user'});
     else if (act === 'uninstall') vscode.postMessage({command:'pluginUninstall', name, scope: b.getAttribute('data-scope')||'user'});
     else if (act === 'connect') vscode.postMessage({command:'mcpConnect', name});
     else if (act === 'mcpRemove') vscode.postMessage({command:'mcpRemove', name});

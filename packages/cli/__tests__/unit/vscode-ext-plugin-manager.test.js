@@ -27,6 +27,23 @@ describe("plugin/MCP manager argv builders", () => {
       "untrust",
       "p1",
     ]);
+    // The row's install scope must be forwarded: the CLI defaults trust and
+    // untrust to --scope project, but the panel installs at user scope — an
+    // unscoped untrust of a user-scope plugin exits 0 WITHOUT revoking.
+    expect(buildPluginTrustArgs("p1", true, "user")).toEqual([
+      "plugin",
+      "trust",
+      "p1",
+      "--scope",
+      "user",
+    ]);
+    expect(buildPluginTrustArgs("p1", false, "user")).toEqual([
+      "plugin",
+      "untrust",
+      "p1",
+      "--scope",
+      "user",
+    ]);
     expect(buildPluginUninstallArgs("p1", "project")).toEqual([
       "plugin",
       "uninstall",

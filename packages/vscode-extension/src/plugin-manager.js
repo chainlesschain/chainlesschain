@@ -19,8 +19,14 @@ function buildPluginInstalledArgs() {
   return ["plugin", "installed", "--json"];
 }
 
-function buildPluginTrustArgs(name, trusted) {
-  return ["plugin", trusted ? "trust" : "untrust", String(name)];
+function buildPluginTrustArgs(name, trusted, scope) {
+  const args = ["plugin", trusted ? "trust" : "untrust", String(name)];
+  // The CLI defaults trust/untrust to --scope project, but the panel's Add
+  // installs at user scope — without the row's scope, Trust errors ("not
+  // installed at project scope") and Untrust silently no-ops (exit 0, trust
+  // kept), i.e. the security control appears to succeed without revoking.
+  if (scope) args.push("--scope", String(scope));
+  return args;
 }
 
 function buildPluginUninstallArgs(name, scope = "user") {

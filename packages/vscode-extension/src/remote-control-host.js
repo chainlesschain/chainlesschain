@@ -10,6 +10,7 @@
  */
 const { spawn, execFile } = require("child_process");
 const { hardenedEnv } = require("./hardened-env");
+const { escapeCmdArgs } = require("./win-shell");
 const { encodeQr, qrToSvg } = require("./qr-code");
 const {
   buildRemoteControlStartArgs,
@@ -73,21 +74,31 @@ function createRemoteControlHost(
   let stopping = false;
   let qrPanel = null;
 
+  const platform = deps.platform || process.platform;
+  const useShell = platform === "win32";
+
   function spawnOpts(extra = {}) {
     return {
       env: hardenedEnv(process.env),
       windowsHide: true,
       // npm global shims on Windows are .cmd files — they need a shell.
-      shell: process.platform === "win32",
+      shell: useShell,
       ...extra,
     };
+  }
+
+  // shell:true joins argv with plain spaces — relayUrl/peerId come from
+  // (workspace-overridable) settings, so cmd metacharacters in them must be
+  // escaped or they mangle/execute as a second command.
+  function shellArgs(args) {
+    return useShell ? escapeCmdArgs(args, { platform }) : args;
   }
 
   function runCli(args) {
     return new Promise((resolve) => {
       doExecFile(
         cliCommand(),
-        args,
+        shellArgs(args),
         spawnOpts({ timeout: 30000 }),
         (err, stdout, stderr) =>
           resolve({
@@ -177,7 +188,7 @@ function createRemoteControlHost(
     let errBuffer = "";
     const proc = doSpawn(
       cliCommand(),
-      buildRemoteControlStartArgs(relayOptions()),
+      shellArgs(buildRemoteControlStartArgs(relayOptions())),
       spawnOpts(),
     );
     child = proc;

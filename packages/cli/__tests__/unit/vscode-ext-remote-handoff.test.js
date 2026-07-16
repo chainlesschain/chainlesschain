@@ -49,6 +49,7 @@ describe("remote/cloud session handoff (VS Code)", () => {
       sessionId: "panel-1",
       prompt: "Continue.",
       deps: {
+        platform: "linux", // POSIX spawn — argv passes through unescaped
         execFile: (cmd, args, opts, cb) => {
           seen = args;
           cb(null, JSON.stringify({ id: "bg-9", sessionId: "panel-1" }));
@@ -68,6 +69,29 @@ describe("remote/cloud session handoff (VS Code)", () => {
     expect(failed.error).toContain("ENOENT");
     expect((await runHandoff({ sessionId: "", prompt: "x" })).ok).toBe(false);
     expect((await runHandoff({ sessionId: "s", prompt: "  " })).ok).toBe(false);
+  });
+
+  it("cmd-escapes the user prompt on Windows (shell:true joins argv unquoted)", async () => {
+    let seen, opts;
+    await runHandoff({
+      sessionId: "panel-1",
+      prompt: "Continue the task & run tests",
+      deps: {
+        platform: "win32",
+        execFile: (cmd, args, o, cb) => {
+          seen = args;
+          opts = o;
+          cb(null, JSON.stringify({ id: "bg-9" }));
+        },
+      },
+    });
+    expect(opts.shell).toBe(true);
+    const prompt = seen[5]; // ["agent","--bg","--resume",id,"-p",<prompt>,…] — all tokens escaped
+    // The & must be ^-escaped (twice — cmd re-parses for the .cmd shim) and
+    // the token quoted, or cmd.exe executes `run tests` as a second command.
+    expect(prompt).not.toBe("Continue the task & run tests");
+    expect(prompt).toContain("^^&");
+    expect(prompt.startsWith('^^^"')).toBe(true);
   });
 
   it("formats a transcript note pointing at the continuation surfaces", () => {

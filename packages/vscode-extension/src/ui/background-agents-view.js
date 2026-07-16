@@ -11,6 +11,7 @@
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { escapeCmdArgs } = require("../win-shell");
 const {
   listBackgroundSessions,
   summarizeSessions,
@@ -23,6 +24,7 @@ let _panel = null;
 let _listTimer = null;
 let _logTimer = null;
 let _attach = null; // { id, handle, logFile, offset }
+let _attachSeq = 0; // generation counter: a newer attach() invalidates older ones
 
 function cliCommand(vscode) {
   const { getResolvedCli } = require("../cli-binary");
@@ -35,14 +37,18 @@ function cliCommand(vscode) {
 
 /** Run a `cc …` command, resolve {ok, json|raw, error}. Never rejects. */
 function runCliJson(vscode, args, { timeoutMs = 15000 } = {}) {
+  const useShell = process.platform === "win32"; // cc is a .cmd shim on Windows
   return new Promise((resolve) => {
     execFile(
       cliCommand(vscode),
-      args,
+      // shell:true joins argv with plain spaces — rename titles / resume
+      // prompts are user-typed, so cmd metacharacters must be escaped or
+      // `verify & deploy` executes `deploy` as a second command.
+      useShell ? escapeCmdArgs(args) : args,
       {
         timeout: timeoutMs,
         windowsHide: true,
-        shell: process.platform === "win32", // cc is a .cmd shim on Windows
+        shell: useShell,
         env: hardenedEnv(process.env),
         maxBuffer: 4 * 1024 * 1024,
       },
@@ -91,6 +97,7 @@ function stopLogPoll() {
 }
 
 function detach({ notify = true } = {}) {
+  _attachSeq++; // invalidate any in-flight attach() awaiting its handshake
   stopLogPoll();
   const current = _attach;
   _attach = null;
@@ -105,7 +112,13 @@ function detach({ notify = true } = {}) {
 }
 
 async function attach(id) {
-  detach({ notify: false });
+  // attach() awaits the pipe handshake, so two rapid attach requests can
+  // interleave: both pass the detach() below with _attach still null, and the
+  // slower one would overwrite _attach — leaking the other's socket handle
+  // (and its 500ms log timer) until process exit. The generation counter
+  // makes every older in-flight attach discard its own handle on resolve.
+  detach({ notify: false }); // also bumps _attachSeq, superseding older attaches
+  const seq = ++_attachSeq;
   const sessions = listBackgroundSessions();
   const session = sessions.find((s) => s.id === id);
   if (!session) {
@@ -128,11 +141,22 @@ async function attach(id) {
       },
     });
   } catch (e) {
-    post({
-      type: "attach-fail",
-      id,
-      error: String(e.message || e).slice(0, 300),
-    });
+    if (seq === _attachSeq)
+      post({
+        type: "attach-fail",
+        id,
+        error: String(e.message || e).slice(0, 300),
+      });
+    return;
+  }
+  if (seq !== _attachSeq) {
+    // A newer attach (or detach) superseded us while the handshake ran —
+    // this handle must not become _attach; close it instead of leaking it.
+    try {
+      handle.detach();
+    } catch {
+      /* best-effort */
+    }
     return;
   }
   const initial = tailLog(session.logFile, 200);
@@ -295,6 +319,7 @@ function renderHtml() {
   .st { font-weight:600; } .st.running { color: var(--vscode-charts-blue,#3794ff); }
   .st.completed { color:#3fb950; } .st.failed, .st.lost { color: var(--vscode-errorForeground,#f85149); }
   .st.stopped { color: var(--vscode-editorWarning-foreground, orange); }
+  .wait { color: var(--vscode-editorWarning-foreground, orange); font-weight:600; }
   .muted { opacity:.55; }
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; padding:3px 10px; border-radius:4px; cursor:pointer; margin-right:4px; }
@@ -358,6 +383,7 @@ function renderHtml() {
     const s = m.summary || {total:0, running:0, interactive:0, counts:{}};
     document.getElementById('cards').innerHTML =
       card('total', s.total) + card('running', s.running) + card('interactive', s.interactive)
+      + (s.waiting ? card('waiting', s.waiting) : '')
       + card('done', (s.counts&&s.counts.completed)||0) + card('lost', (s.counts&&s.counts.lost)||0);
     const rows = (m.sessions||[]).map(x => {
       const acts = [];
@@ -365,7 +391,12 @@ function renderHtml() {
       if (x.status==='running') acts.push('<button class="sec" data-act="stop" data-id="'+esc(x.id)+'">Stop</button>');
       if (x.status!=='running' && x.sessionId) acts.push('<button class="sec" data-act="resume" data-id="'+esc(x.id)+'">Resume</button>');
       acts.push('<button class="sec" data-act="rename" data-id="'+esc(x.id)+'">Rename</button>');
-      const phase = x.phase ? ' <span class="muted">('+esc(x.phase)+(x.turnCount?(' · turn '+x.turnCount):'')+')</span>' : '';
+      // A blocked session (waiting_permission / needs_input / pending
+      // approvals) must not read like a healthy "running" row.
+      const blocked = x.status==='running' && (x.phase==='waiting_permission' || x.phase==='needs_input' || (x.pendingApprovals|0) > 0);
+      const phase = blocked
+        ? ' <span class="wait">⏸ waiting for you'+((x.pendingApprovals|0)>0?(' ('+x.pendingApprovals+' approval'+(x.pendingApprovals>1?'s':'')+' pending)'):'')+'</span>'
+        : x.phase ? ' <span class="muted">('+esc(x.phase)+(x.turnCount?(' · turn '+x.turnCount):'')+')</span>' : '';
       const reason = x.lostReason ? ' <span class="muted">'+esc(x.lostReason)+'</span>' : '';
       return '<tr><td class="st '+esc(x.status)+'">'+esc(x.status)+reason+'</td>'
         + '<td>'+esc(x.title||x.id)+phase+'<div class="muted">'+esc(x.id)+' · '+esc(x.cwd||'')+'</div></td>'

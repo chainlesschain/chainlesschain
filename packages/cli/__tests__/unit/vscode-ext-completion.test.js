@@ -172,6 +172,53 @@ describe("inline completion — spawnComplete", () => {
     expect(killed).toBeGreaterThan(0);
   });
 
+  it.runIf(process.platform === "win32")(
+    "tree-kills the cmd.exe wrapper on Windows cancel (plain kill orphans the cc grandchild)",
+    async () => {
+      const treeKills = [];
+      const child = new EventEmitter();
+      child.pid = 4242;
+      child.stdout = new EventEmitter();
+      child.stdin = { on: () => {}, write: () => {}, end: () => {} };
+      child.kill = () => {};
+      let fireCancel;
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: (fn) => {
+          fireCancel = fn;
+          return { dispose: () => {} };
+        },
+      };
+      const pending = spawnComplete({
+        command: "cc",
+        request: { prefix: "a" },
+        token,
+        deps: {
+          spawn: () => child,
+          treeKill: (cmd, args) => treeKills.push([cmd, ...args]),
+        },
+      });
+      fireCancel();
+      expect(await pending).toBe("");
+      expect(treeKills).toEqual([["taskkill", "/pid", "4242", "/T", "/F"]]);
+    },
+  );
+
+  it("does not tree-kill a child that already exited (normal completion)", async () => {
+    const treeKills = [];
+    const { spawnFn } = fakeSpawn('{"completion":"x"}');
+    const out = await spawnComplete({
+      command: "cc",
+      request: { prefix: "a" },
+      deps: {
+        spawn: spawnFn,
+        treeKill: (...a) => treeKills.push(a),
+      },
+    });
+    expect(out).toBe("x");
+    expect(treeKills).toEqual([]);
+  });
+
   it("short-circuits an already-cancelled token", async () => {
     let killed = 0;
     const child = new EventEmitter();

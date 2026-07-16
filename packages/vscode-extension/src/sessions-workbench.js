@@ -159,7 +159,15 @@ function aggregateSessions({
       workspace: b.cwd || linked?.workspace || "",
       status: b.status || "?",
       lastActivity: maxEpoch(last, linked?.lastActivity ?? null),
-      waitingApproval: Boolean(linked?.waitingApproval),
+      // The supervisor's own phase reporter is authoritative for a blocked
+      // worker (phase waiting_permission / needs_input, pendingApprovals>0)
+      // — the linked chat row alone misses background-side approval parks.
+      waitingApproval:
+        Boolean(linked?.waitingApproval) ||
+        (b.status === "running" &&
+          (b.phase === "waiting_permission" ||
+            b.phase === "needs_input" ||
+            Number(b.pendingApprovals) > 0)),
       sessionId: b.sessionId || null,
       interactive: Boolean(b.interactive),
     });

@@ -13,6 +13,7 @@ import {
   effectiveStatus,
   isSameProcess,
   listBackgroundSessions,
+  needsAttention,
   summarizeSessions,
   formatElapsed,
   tailLog,
@@ -233,8 +234,28 @@ describe("summarize / format / log helpers", () => {
       total: 4,
       running: 2,
       interactive: 1,
+      waiting: 0,
       counts: { running: 2, completed: 1, lost: 1 },
     });
+  });
+
+  it("summarizeSessions counts blocked (waiting_permission / pendingApprovals) running sessions", () => {
+    const sum = summarizeSessions([
+      { status: "running", phase: "waiting_permission" },
+      { status: "running", phase: "streaming", pendingApprovals: 2 },
+      { status: "running", phase: "streaming" },
+      // a completed session never counts as waiting, whatever its last phase
+      { status: "completed", phase: "waiting_permission" },
+    ]);
+    expect(sum.waiting).toBe(2);
+  });
+
+  it("needsAttention flags waiting_permission / needs_input / pendingApprovals>0", () => {
+    expect(needsAttention("waiting_permission", 0)).toBe(true);
+    expect(needsAttention("needs_input", 0)).toBe(true);
+    expect(needsAttention("streaming", 1)).toBe(true);
+    expect(needsAttention("streaming", 0)).toBe(false);
+    expect(needsAttention(null, 0)).toBe(false);
   });
 
   it("formatElapsed renders s / m / h buckets", () => {

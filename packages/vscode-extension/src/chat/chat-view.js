@@ -921,10 +921,23 @@ class ChatViewProvider {
     const ws = this.vscode.workspace;
     const win = this.vscode.window;
     if (!ws?.openTextDocument || !win?.showTextDocument) return;
-    const path = require("path");
-    const folder = ws.workspaceFolders?.[0]?.uri?.fsPath;
-    const abs =
-      path.isAbsolute(raw) || !folder ? raw : path.join(folder, raw);
+    // Deep links are untrusted input (any web page can mint one): contain the
+    // target to the open workspace folders, same boundary as the MCP tools.
+    // Without this, `vscode://…/open?file=C:\Users\me\.ssh\id_rsa` opens any
+    // readable file in the editor. Rejects UNC/device paths and `..` escapes.
+    const { validateIdeToolPath } = require("../ide-path-guard");
+    const folders = (ws.workspaceFolders || [])
+      .map((f) => f?.uri?.fsPath)
+      .filter(Boolean);
+    const v = validateIdeToolPath(raw, folders);
+    if (!v.ok) {
+      this._post?.({
+        kind: "error",
+        text: `deep link file rejected (outside the open workspace): ${raw}`,
+      });
+      return;
+    }
+    const abs = v.resolved;
     try {
       const doc = await ws.openTextDocument(abs);
       const opts = { preview: false };

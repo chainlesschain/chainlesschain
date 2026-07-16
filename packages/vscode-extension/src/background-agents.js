@@ -24,7 +24,13 @@ const HEARTBEAT_STALE_MS = 120000;
 // over the pid can only have been created AFTER startedAt — so compare the
 // pid's real creation time against the state file's startedAt.
 const PID_IDENTITY_TOLERANCE_MS = 60000;
-const START_TIME_CACHE_TTL_MS = 10000;
+// The probe behind this cache is a SYNCHRONOUS wmic/powershell spawn
+// (100-500ms on Windows) that blocks the extension host, and the Background
+// Agents view polls the list every 3s — so the TTL directly sets how often
+// the host stalls per running session. A process's creation time never
+// changes while it lives; the only staleness risk is pid reuse (needs the
+// worker to die first), which the display tolerates for one TTL window.
+const START_TIME_CACHE_TTL_MS = 60000;
 const LOG_TRUNCATION_NOTICE =
   "--- log truncated/rotated, resuming from tail ---";
 const TRUNCATION_RESUME_TAIL_BYTES = 4096;
@@ -224,6 +230,9 @@ function listBackgroundSessions({
       status: eff.status,
       lostReason: eff.lostReason,
       phase: state.phase || null,
+      pendingApprovals: Number.isFinite(Number(state.pendingApprovals))
+        ? Number(state.pendingApprovals)
+        : 0,
       turnCount: Number.isFinite(Number(state.turnCount))
         ? Number(state.turnCount)
         : null,
@@ -244,18 +253,36 @@ function listBackgroundSessions({
   return sessions;
 }
 
+/**
+ * A session that is blocked on the human: the supervisor's phase reporter
+ * writes `phase:"waiting_permission"` + `pendingApprovals` when the worker
+ * parks on an approval (and may write `needs_input` for question blocks).
+ * Without this the session reads as "running fine" while it silently waits.
+ */
+function needsAttention(phase, pendingApprovals) {
+  return (
+    phase === "waiting_permission" ||
+    phase === "needs_input" ||
+    Number(pendingApprovals) > 0
+  );
+}
+
 /** Status counts + running/interactive totals for the summary cards. */
 function summarizeSessions(sessions) {
   const counts = {};
   let interactive = 0;
+  let waiting = 0;
   for (const s of sessions || []) {
     counts[s.status] = (counts[s.status] || 0) + 1;
     if (s.interactive) interactive++;
+    if (s.status === "running" && needsAttention(s.phase, s.pendingApprovals))
+      waiting++;
   }
   return {
     total: (sessions || []).length,
     running: counts.running || 0,
     interactive,
+    waiting,
     counts,
   };
 }
@@ -324,6 +351,7 @@ module.exports = {
   effectiveStatus,
   isSameProcess,
   listBackgroundSessions,
+  needsAttention,
   summarizeSessions,
   formatElapsed,
   tailLog,

@@ -98,6 +98,7 @@ function spawnComplete({
     }
     let out = "";
     let done = false;
+    let exited = false;
     const finish = (value) => {
       if (done) return;
       done = true;
@@ -107,10 +108,27 @@ function spawnComplete({
       } catch {
         /* best-effort */
       }
-      try {
-        child.kill();
-      } catch {
-        /* already gone */
+      // Cancel/timeout with the child still alive: on Windows the child is a
+      // cmd.exe wrapper (shell:true for the .cmd shim), so a plain kill()
+      // orphans the real cc/node grandchild, which runs the full LLM call to
+      // completion anyway — burning tokens — and holds the better_sqlite3
+      // lock. taskkill /T reaps the tree (same pattern as agent-session.js).
+      if (!exited) {
+        if (child.pid && process.platform === "win32") {
+          try {
+            const killFn = (deps && deps.treeKill) || spawn;
+            killFn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+              windowsHide: true,
+            });
+          } catch {
+            /* fall through to child.kill */
+          }
+        }
+        try {
+          child.kill();
+        } catch {
+          /* already gone */
+        }
       }
       resolve(value);
     };
@@ -129,9 +147,10 @@ function spawnComplete({
     if (child.stdout)
       child.stdout.on("data", (d) => (out += d.toString("utf8")));
     child.on("error", () => finish(""));
-    child.on("close", () =>
-      finish(cleanCompletion(parseCompletionResponse(out))),
-    );
+    child.on("close", () => {
+      exited = true;
+      finish(cleanCompletion(parseCompletionResponse(out)));
+    });
     if (child.stdin) {
       // stdin can emit EPIPE if the child dies as we write — swallow it.
       child.stdin.on("error", () => {});

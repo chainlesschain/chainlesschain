@@ -140,6 +140,49 @@ describe("aggregateSessions", () => {
     expect(row.workspace).toBe("C:/repo");
   });
 
+  it("a blocked background agent (waiting_permission / pendingApprovals) raises waitingApproval", () => {
+    const rows = aggregateSessions({
+      backgroundAgents: [
+        {
+          id: "bg-blocked",
+          status: "running",
+          phase: "waiting_permission",
+          startedAt: NOW - 1000,
+        },
+        {
+          id: "bg-pending",
+          status: "running",
+          phase: "streaming",
+          pendingApprovals: 2,
+          startedAt: NOW - 2000,
+        },
+        {
+          id: "bg-fine",
+          status: "running",
+          phase: "streaming",
+          startedAt: NOW - 3000,
+        },
+        // an ended session never flags, whatever its last recorded phase
+        {
+          id: "bg-done",
+          status: "completed",
+          phase: "waiting_permission",
+          endedAt: NOW - 4000,
+        },
+      ],
+    });
+    const flag = Object.fromEntries(rows.map((r) => [r.id, r.waitingApproval]));
+    expect(flag).toEqual({
+      "bg-blocked": true,
+      "bg-pending": true,
+      "bg-fine": false,
+      "bg-done": false,
+    });
+    // and the sort puts the blocked ones first
+    expect(rows[0].waitingApproval).toBe(true);
+    expect(rows[1].waitingApproval).toBe(true);
+  });
+
   it("unlinked background agents are standalone rows", () => {
     const rows = aggregateSessions({
       backgroundAgents: [
