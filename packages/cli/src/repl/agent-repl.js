@@ -1045,6 +1045,7 @@ export async function startAgentRepl(options = {}) {
   // `undefined` so the runtime default-on path — and CC_PROJECT_MEMORY=0 — keep
   // their existing behaviour byte-identically.
   const _leanNoProjectMemory = options.projectMemory === false;
+  let _loadedReplInstructions = null;
   let _replBaseSystem = composeSystemPrompt(
     buildSystemPrompt(process.cwd(), {
       additionalDirectories,
@@ -1054,6 +1055,9 @@ export async function startAgentRepl(options = {}) {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
       projectMemory: _leanNoProjectMemory ? false : undefined,
+      onInstructionsLoaded: (loaded) => {
+        _loadedReplInstructions = loaded;
+      },
     },
   );
   let _activeOutputStyle = null; // { name, body }
@@ -1086,6 +1090,25 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     // best-effort — no output style
+  }
+
+  // settings.json InstructionsLoaded hooks (observe-only): fire once with the
+  // exact loaded instruction file set so a hook can audit which cc.md/CLAUDE.md/
+  // AGENTS.md/rules are authoritative this session. Best-effort; no-op when
+  // project memory is off or no hook is registered.
+  if (_settingsHooks && _loadedReplInstructions) {
+    try {
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.cjs");
+      const ctx = runInstructionsLoadedHooks(_settingsHooks, {
+        files: _loadedReplInstructions.files,
+        cwd: process.cwd(),
+        sessionId,
+      }).additionalContext;
+      if (ctx) messages.push({ role: "system", content: ctx });
+    } catch (_err) {
+      // best-effort
+    }
   }
 
   // settings.json SessionStart hooks → inject session context (observe-only).

@@ -885,6 +885,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // rules.md (in buildSystemPrompt) + the cc.md/CLAUDE.md block. Absent flag
   // (undefined) leaves both paths byte-identical.
   const _leanNoProjectMemory = options.projectMemory === false;
+  let _loadedInstructions = null;
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, {
       additionalDirectories,
@@ -896,6 +897,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       outputStyle: outputStyleBody,
       instructionExcludes,
       projectMemory: _leanNoProjectMemory ? false : undefined,
+      onInstructionsLoaded: (loaded) => {
+        _loadedInstructions = loaded;
+      },
     },
   );
 
@@ -922,6 +926,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       }
     } catch (_err) {
       // settings hook dispatch is best-effort
+    }
+  }
+
+  // settings.json InstructionsLoaded hooks (observe-only): the project-instruction
+  // block was just composed — fire with the EXACT loaded file set so a hook can
+  // audit which cc.md/CLAUDE.md/AGENTS.md/rules are authoritative this session.
+  // Any emitted context is injected like SessionStart's. Best-effort; no-op when
+  // project memory is off (no loaded set) or no hook is registered.
+  let instructionsLoadedContext = null;
+  if (settingsHooks && _loadedInstructions) {
+    try {
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.cjs");
+      instructionsLoadedContext = runInstructionsLoadedHooks(settingsHooks, {
+        files: _loadedInstructions.files,
+        cwd,
+        sessionId,
+      }).additionalContext;
+    } catch (_err) {
+      instructionsLoadedContext = null;
     }
   }
 
@@ -979,6 +1003,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // No-op on a healthy alternating transcript.
   const messages = mergeConsecutiveMessages([
     { role: "system", content: systemContent },
+    ...(instructionsLoadedContext
+      ? [{ role: "system", content: instructionsLoadedContext }]
+      : []),
     ...(sessionStartContext
       ? [{ role: "system", content: sessionStartContext }]
       : []),

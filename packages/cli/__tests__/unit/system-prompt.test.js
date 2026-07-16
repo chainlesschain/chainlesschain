@@ -15,8 +15,18 @@ import {
 // file-discovery internals. Purely additive: every other test in this file
 // leaves projectMemory unset (default-off under vitest) or false, so the loader
 // is never invoked there and this mock is invisible to them.
+// composeSystemPrompt now inlines load→render (so it can hand the loaded set to
+// the onInstructionsLoaded callback), so both are mocked: loadProjectInstructions
+// returns a deterministic loaded object, renderProjectInstructionsBlock the block.
+const MOCK_LOADED = {
+  files: [
+    { path: "/repo/CLAUDE.md", scope: "project", truncated: false },
+    { path: "/home/u/.claude/CLAUDE.md", scope: "user", truncated: false },
+  ],
+};
 vi.mock("../../src/lib/project-instructions.js", () => ({
-  loadProjectInstructionsBlock: vi.fn(() => "MEMORY-BLOCK"),
+  loadProjectInstructions: vi.fn(() => MOCK_LOADED),
+  renderProjectInstructionsBlock: vi.fn(() => "MEMORY-BLOCK"),
 }));
 
 const cwd = process.cwd();
@@ -160,5 +170,44 @@ describe("composeSystemPrompt", () => {
     expect(composeSystemPrompt("", { projectMemory: true })).toBe(
       "MEMORY-BLOCK",
     );
+  });
+
+  describe("onInstructionsLoaded callback (InstructionsLoaded lifecycle)", () => {
+    it("invokes the callback with the loaded set when memory loads", () => {
+      const seen = [];
+      const out = composeSystemPrompt("BASE", {
+        projectMemory: true,
+        onInstructionsLoaded: (loaded) => seen.push(loaded),
+      });
+      // Prompt output is byte-identical to the no-callback case.
+      expect(out).toBe("BASE\n\nMEMORY-BLOCK");
+      expect(seen).toHaveLength(1);
+      expect(seen[0].files).toHaveLength(2);
+      expect(seen[0].files[0]).toMatchObject({
+        path: "/repo/CLAUDE.md",
+        scope: "project",
+      });
+    });
+
+    it("does NOT invoke the callback when project memory is off", () => {
+      const cb = vi.fn();
+      const out = composeSystemPrompt("BASE", {
+        projectMemory: false,
+        appendSystemPrompt: "EXTRA",
+        onInstructionsLoaded: cb,
+      });
+      expect(out).toBe("BASE\n\nEXTRA");
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    it("a throwing callback never affects the composed prompt", () => {
+      const out = composeSystemPrompt("BASE", {
+        projectMemory: true,
+        onInstructionsLoaded: () => {
+          throw new Error("hook boom");
+        },
+      });
+      expect(out).toBe("BASE\n\nMEMORY-BLOCK");
+    });
   });
 });

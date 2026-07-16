@@ -1078,6 +1078,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // cc.md/CLAUDE.md instruction block. Only `=== false` changes anything; when
   // the flag is absent (undefined) both paths stay byte-identical.
   const _leanNoProjectMemory = options.projectMemory === false;
+  let _loadedInstructions = null;
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, {
       additionalDirectories,
@@ -1093,9 +1094,30 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       outputStyle: outputStyleBody,
       instructionExcludes,
       projectMemory: _leanNoProjectMemory ? false : undefined,
+      onInstructionsLoaded: (loaded) => {
+        _loadedInstructions = loaded;
+      },
     },
   );
   const messages = [{ role: "system", content: systemContent }];
+
+  // settings.json InstructionsLoaded hooks (observe-only): fire once with the
+  // exact loaded instruction file set right after the system prompt is built.
+  // Best-effort; no-op when project memory is off or no hook is registered.
+  if (settingsHooks && _loadedInstructions) {
+    try {
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.cjs");
+      const ctx = runInstructionsLoadedHooks(settingsHooks, {
+        files: _loadedInstructions.files,
+        cwd,
+        sessionId,
+      }).additionalContext;
+      if (ctx) messages.push({ role: "system", content: ctx });
+    } catch (_err) {
+      // best-effort
+    }
+  }
 
   // §3.5.13 flywheel consumption (design module 101): in a PDH session, lead
   // with the user's standing feedback preferences learned ACROSS sessions

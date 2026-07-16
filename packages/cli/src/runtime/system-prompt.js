@@ -15,7 +15,10 @@
 
 import fsDefault from "fs";
 import pathDefault from "path";
-import { loadProjectInstructionsBlock } from "../lib/project-instructions.js";
+import {
+  loadProjectInstructions,
+  renderProjectInstructionsBlock,
+} from "../lib/project-instructions.js";
 
 /**
  * Resolve a CLI prompt value. A leading `@` means "read this file"; anything
@@ -48,7 +51,12 @@ export function resolvePromptText(value, opts = {}) {
  *  - an append is added after, separated by a blank line.
  *
  * @param {string} base
- * @param {object} [opts] { systemPrompt, appendSystemPrompt }
+ * @param {object} [opts] { systemPrompt, appendSystemPrompt, outputStyle,
+ *   projectMemory, cwd, instructionExcludes, onInstructionsLoaded }.
+ *   `onInstructionsLoaded(loaded)` — optional observe-only callback invoked with
+ *   the loaded project-instruction object ({files:[{path,scope,truncated,…}]})
+ *   right after it is rendered, so a caller can fire an InstructionsLoaded
+ *   lifecycle hook. Never affects the returned prompt.
  * @returns {string}
  */
 export function composeSystemPrompt(base, opts = {}) {
@@ -77,16 +85,35 @@ export function composeSystemPrompt(base, opts = {}) {
     else pmMode = process.env.VITEST ? "off" : "full";
   }
   if (pmMode !== "off") {
-    const block = loadProjectInstructionsBlock({
-      cwd,
-      home: opts.projectMemoryHome,
-      deps: opts.projectMemoryDeps,
-      // Large-monorepo reduction lever: subtrees whose instruction/rule/@import
-      // files never load (config `instructionExcludes`, forwarded by the caller).
-      instructionExcludes: opts.instructionExcludes,
-      // Lean mode → keep only the entry instruction files.
-      entryOnly: pmMode === "lean",
-    });
+    // Inlined loadProjectInstructionsBlock (load → render, fail-open to "") so
+    // the loaded metadata is available for the optional onInstructionsLoaded
+    // callback — the InstructionsLoaded lifecycle hook fires with the EXACT set
+    // that was injected (path/scope/truncated), never a re-discovery that could
+    // drift from what actually loaded. The prompt output is byte-identical.
+    let block = "";
+    try {
+      const loaded = loadProjectInstructions({
+        cwd,
+        home: opts.projectMemoryHome,
+        deps: opts.projectMemoryDeps,
+        // Large-monorepo reduction lever: subtrees whose instruction/rule/@import
+        // files never load (config `instructionExcludes`, forwarded by the caller).
+        instructionExcludes: opts.instructionExcludes,
+        // Lean mode → keep only the entry instruction files.
+        entryOnly: pmMode === "lean",
+      });
+      block = renderProjectInstructionsBlock(loaded);
+      if (typeof opts.onInstructionsLoaded === "function") {
+        // Observe-only: a callback throw must never affect the composed prompt.
+        try {
+          opts.onInstructionsLoaded(loaded);
+        } catch {
+          /* callback is best-effort */
+        }
+      }
+    } catch {
+      block = ""; // fail-open, identical to loadProjectInstructionsBlock
+    }
     if (block) result = result ? `${result}\n\n${block}` : block;
   }
   if (appendSystemPrompt) {

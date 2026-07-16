@@ -14,6 +14,7 @@ const {
   runCwdChangedHooks,
   runWorktreeCreateHooks,
   runWorktreeRemoveHooks,
+  runInstructionsLoadedHooks,
   runObserveHooks,
   aggregateContext,
 } = ev;
@@ -201,6 +202,48 @@ describe("runWorktreeRemoveHooks", () => {
       cwd: CWD,
     });
     expect(r.additionalContext).toBe("false");
+  });
+});
+
+describe("runInstructionsLoadedHooks", () => {
+  const il = (command, matcher = null) => ({
+    InstructionsLoaded: [{ matcher, hooks: [{ type: "command", command }] }],
+  });
+
+  it("returns null context with no settings / no hooks", () => {
+    expect(runInstructionsLoadedHooks(null, { files: [] })).toEqual({
+      additionalContext: null,
+    });
+  });
+
+  it("fires and injects context", () => {
+    const cmd = "node -e \"console.log('instructions audited')\"";
+    const r = runInstructionsLoadedHooks(il(cmd), {
+      files: [{ path: "/repo/CLAUDE.md", scope: "project" }],
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe("instructions audited");
+  });
+
+  it("threads the trimmed file set (path/scope/truncated) + count, never content", () => {
+    const cmd =
+      "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);const f=j.files[0];console.log(j.hook_event_name+'|'+j.count+'|'+f.path+'|'+f.scope+'|'+f.truncated+'|'+('content'in f))})\"";
+    const r = runInstructionsLoadedHooks(il(cmd), {
+      // `content` on the input entry must be DROPPED from the payload.
+      files: [
+        {
+          path: "/repo/CLAUDE.md",
+          scope: "project",
+          truncated: true,
+          content: "secret body",
+        },
+        { path: "/home/u/.claude/CLAUDE.md", scope: "user" },
+      ],
+      cwd: CWD,
+    });
+    expect(r.additionalContext).toBe(
+      "InstructionsLoaded|2|/repo/CLAUDE.md|project|true|false",
+    );
   });
 });
 

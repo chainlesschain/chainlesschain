@@ -279,6 +279,13 @@ describe("lifecycle event registry", () => {
       collectHooks(b, "WorktreeRemove", "cc-agent-42").map((h) => h.command),
     ).toEqual(["cleanup.sh"]);
   });
+  it("recognises InstructionsLoaded and collectHooks fires it (matcher null/*)", () => {
+    expect(HOOK_EVENTS).toContain("InstructionsLoaded");
+    const b = { InstructionsLoaded: [cmdGroup(null, "audit-instr.sh")] };
+    expect(
+      collectHooks(b, "InstructionsLoaded", "").map((h) => h.command),
+    ).toEqual(["audit-instr.sh"]);
+  });
 });
 
 describe("Notification event", () => {

@@ -288,6 +288,50 @@ function runWorktreeRemoveHooks(
 }
 
 /**
+ * InstructionsLoaded settings hooks (observe + context injection). Fired once at
+ * session start after the project-instruction block (cc.md / CLAUDE.md / AGENTS.md
+ * hierarchy + `.claude/rules/*`) is composed into the system prompt — a hook can
+ * react to WHICH instruction files are authoritative this session (audit them,
+ * warn on an unexpected local override, load a companion tool config). The
+ * caller passes the EXACT loaded set; this producer trims each entry to
+ * `{path, scope, truncated}` (never the file CONTENT — a hook that wants content
+ * reads the path). Observe-only: instructions are already loaded, so a `block`
+ * decision is ignored and only emitted context is returned. No-op (byte-unchanged)
+ * without a registered InstructionsLoaded hook.
+ * @returns {{ additionalContext:string|null }}
+ */
+function runInstructionsLoadedHooks(
+  settingsHooks,
+  { files, cwd, sessionId } = {},
+) {
+  if (!settingsHooks) return { additionalContext: null };
+  const matched = collectHooks(settingsHooks, "InstructionsLoaded", "");
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { additionalContext: null };
+  const list = Array.isArray(files) ? files : [];
+  const payload = withDeliveryId(
+    "InstructionsLoaded",
+    {
+      hook_event_name: "InstructionsLoaded",
+      files: list.map((f) => ({
+        path: f?.path || null,
+        scope: f?.scope || null,
+        truncated: f?.truncated === true,
+      })),
+      count: list.length,
+      cwd: cwd || null,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
+  const outcome = runHooks(sync, payload, {
+    cwd,
+    event: "InstructionsLoaded",
+  });
+  return { additionalContext: aggregateContext(outcome.results) };
+}
+
+/**
  * Generic observe-only fire (SessionEnd / Stop / PreCompact). Returns the raw
  * runHooks outcome so callers can read a block reason; never gates flow here.
  *
@@ -318,6 +362,7 @@ module.exports = {
   runCwdChangedHooks,
   runWorktreeCreateHooks,
   runWorktreeRemoveHooks,
+  runInstructionsLoadedHooks,
   runObserveHooks,
   aggregateContext,
   partitionAsyncHooks,

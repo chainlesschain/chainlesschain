@@ -1339,13 +1339,31 @@ unknown-event 警告用户配的 `Worktree*` hook）；②`settings-hook-events.
 + `settings-hooks.test.js` +1（`HOOK_EVENTS` 含两事件 + 分支 regex matcher 只匹配对应分支）=
 7 绿；settings-hook-events/settings-hooks/doctor/subdir/trust/event-bus/runner 套回归 135 绿。
 
+**已接线（2026-07-16 续，`InstructionsLoaded` 真触发）**：第四个命令层生产者——会话启动
+组装完项目指令块（cc.md/CLAUDE.md/AGENTS.md 层级 + `.claude/rules/*`）后真发
+`InstructionsLoaded`，hook 可审计本会话哪些指令文件是权威（审计、异常 local 覆盖告警、加载配套
+工具配置）。**零漂移设计**：`composeSystemPrompt` 内联 `loadProjectInstructionsBlock` 为
+load→render 并新增可选 `onInstructionsLoaded(loaded)` 回调（回调抛错被吞、**不影响** prompt，
+无回调时输出字节完全不变），把**真正注入**的那份 loaded set（非另行 re-discover）交给调用方——
+事件报告的 files 与系统提示里的完全一致。补：①`HOOK_EVENTS` 加入 `InstructionsLoaded`；
+②`settings-hook-events.cjs` 新纯核 `runInstructionsLoadedHooks`——把每条目裁成
+`{path, scope, truncated}`（**永不含文件 content**，要内容的 hook 自己读 path）+ `count`，
+observe-only；③三个会话入口（`headless-runner`/`headless-stream`/`agent-repl` 初始 compose，
+即 `SessionStart` 也触发处）经回调捕获 loaded、best-effort 发 hook 并把 context 像 SessionStart 一样
+注入（project memory 关时无 loaded=no-op）。测试：`system-prompt.test.js` +3（回调收到 loaded /
+memory 关时不调 / 回调抛错不改 prompt）+ `settings-hook-events.test.js` +3（无 hook→null / 触发注入 /
+裁剪 path·scope·truncated+count·丢弃 content 经 stdin 贯通）+ `settings-hooks.test.js` +1 = 7 绿；
+system-prompt/hook-events/hooks/headless-runner/headless-stream/agent-repl/project-instructions/
+agent-policy 套回归 ~249 绿。
+
 **仍欠（合并接线 + 真沙箱 + 余下新事件触发）**：把 `mergeHookDecisions` 真正接进
 agent-core 的 PreToolUse/PermissionRequest 合并点（现为手写 first-wins + 从 results
 捞 allow）并让多 hook **并行**跑；`planHookReplay`/`cc hook replay --run` 的 DECISION
 事件需要真沙箱执行器（hook 目前 `shell:true` 继承全 env，无沙箱层）；**余下**新事件类型
-（TaskCreated/TaskCompleted/InstructionsLoaded/MCPElicitation）的真触发（`CwdChanged` 与
-`Worktree*` 已落；其余各自的生产点分散在 task-list/instruction-loader/MCP elicitation 路径，
-逐个接线）；trace_id/parent_id 从 agent-core context 线程进 envelope 留待。
+（TaskCreated/TaskCompleted/MCPElicitation）的真触发（`CwdChanged`/`Worktree*`/`InstructionsLoaded`
+已落；剩下的 TaskCreated/TaskCompleted 无单一「用户任务表」语义 seam（散在 team/cowork/a2a 编排命令），
+MCPElicitation 深在 MCP client 协议层——均非 CwdChanged/Worktree 那种干净命令层 seam，属产品语义/
+agent-core 决策）；trace_id/parent_id 从 agent-core context 线程进 envelope 留待。
 
 ### JSON Schema
 
