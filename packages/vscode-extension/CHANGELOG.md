@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.16] — Windows cmd.exe hardening, blocked-agent visibility, bug-sweep + stream-event parity (2026-07-16)
 
 - **Windows cmd.exe argv hardening.** Every `cc` spawn on Windows goes through
   a shell (`.cmd` shim), and Node joins argv with plain spaces — so user-typed

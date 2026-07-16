@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.60] — EDT freeze/deadlock fixes, process-tree kill, blocked-agent visibility, VS-parity ports (2026-07-16)
 
 - **No more EDT freezes on a wedged agent.** `/stop`, `/compact`, approval and
   question replies, and tab-close/stop all did blocking child-stdin pipe I/O
