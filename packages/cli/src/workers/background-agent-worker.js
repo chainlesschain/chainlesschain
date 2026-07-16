@@ -124,6 +124,10 @@ function startTurn(argv, promptText) {
     status: "running",
     phase,
     turnCount,
+    // A fresh turn has nothing pending; also clears a stale count left behind
+    // if the previous turn's child was hard-killed mid-approval (the child's
+    // phase reporter clears on settle, but SIGKILL never settles).
+    pendingApprovals: 0,
     agentPid: child.pid,
     // Identity anchor for the supervisor's orphan reclaim (Gap 2): pairs
     // with agentPid the way startedAt pairs with the worker pid, so a
@@ -166,6 +170,10 @@ function maybeContinue() {
     phase = "idle";
     mergeState({
       phase,
+      // Between turns nothing can be pending — the approval-owning child has
+      // exited. Honest zero keeps a killed-mid-approval count from parking
+      // the session in "Needs input" forever.
+      pendingApprovals: 0,
       agentPid: null,
       agentStartedAt: null,
       heartbeatAt: Date.now(),

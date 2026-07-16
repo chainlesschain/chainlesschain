@@ -75,6 +75,7 @@ import {
   exitCodeForEndReason,
 } from "../lib/exit-codes.cjs";
 import { isolationLevel } from "../lib/agent-sandbox.js";
+import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
@@ -1155,6 +1156,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // IDE context is optional polish — never fail the run over it.
   }
 
+  // Background phase reporter (P0 state-machine producer): when this run IS a
+  // background agent's turn child (CC_BACKGROUND_AGENT_ID set by the worker),
+  // the human-blocking confirmers below surface their pending window as
+  // `phase: "waiting_permission"` + `pendingApprovals` in the shared state
+  // file so the dashboard's "Needs input" group is real, not inferred. For
+  // every non-background run this is a disabled no-op (wrapConfirmer returns
+  // the same function object).
+  const _bgPhase =
+    deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
+
   // --permission-prompt-tool: route every CONFIRM-tier approval to an MCP tool
   // (loaded via --mcp-config) instead of headless fail-closed. Overrides the
   // permission-mode confirmer on the gate for this session.
@@ -1175,13 +1186,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
     if (approvalGate && typeof approvalGate.setConfirmer === "function") {
       approvalGate.setConfirmer(
-        makePermissionPromptConfirmer({
-          mcpClient: mcp.mcpClient,
-          server: ppt.server,
-          tool: ppt.tool,
-          writeErr,
-          isText,
-        }),
+        _bgPhase.wrapConfirmer(
+          makePermissionPromptConfirmer({
+            mcpClient: mcp.mcpClient,
+            server: ppt.server,
+            tool: ppt.tool,
+            writeErr,
+            isText,
+          }),
+        ),
       );
     }
   }
@@ -1205,7 +1218,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         isText,
       });
       if (approvalGate && typeof approvalGate.setConfirmer === "function") {
-        approvalGate.setConfirmer(_remoteApproval.confirmer);
+        approvalGate.setConfirmer(
+          _bgPhase.wrapConfirmer(_remoteApproval.confirmer),
+        );
       }
     } catch (err) {
       // Remote approval could not come up → keep headless fail-closed rather

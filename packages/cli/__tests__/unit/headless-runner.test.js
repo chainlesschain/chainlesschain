@@ -1299,3 +1299,92 @@ describe("headless-runner — goal-condition cross-process resume", () => {
     expect(last.state.outerTurns).toBe(1); // fresh count, not continued from 4
   });
 });
+
+describe("headless-runner — background phase reporter wiring", () => {
+  // The P0 state-machine producer: when this run is a background agent's turn
+  // child, the human-blocking confirmers must surface their pending window as
+  // phase waiting_permission + pendingApprovals in the background state.
+  it("wraps the remote-control confirmer so its pending window hits the state file", async () => {
+    const { createBackgroundPhaseReporter } =
+      await import("../../src/lib/background-phase-reporter.js");
+    const confirmers = [];
+    const gate = {
+      setSessionPolicy: () => {},
+      setConfirmer: (fn) => confirmers.push(fn),
+      decide: async () => ({ decision: "allow", via: "test", policy: "test" }),
+    };
+    const { deps } = makeDeps(replyText("done"), gate);
+
+    const states = new Map([["bg-9", { id: "bg-9", status: "running" }]]);
+    deps.backgroundPhaseReporter = createBackgroundPhaseReporter({
+      agentId: "bg-9",
+      readState: (id) => states.get(id) || null,
+      writeState: (s) => states.set(s.id, s),
+    });
+
+    let settle;
+    const humanDecision = new Promise((resolve) => {
+      settle = resolve;
+    });
+    deps.startHeadlessRemoteApproval = async () => ({
+      confirmer: async () => {
+        await humanDecision;
+        return true;
+      },
+      close: async () => {},
+    });
+
+    const r = await runAgentHeadless(
+      { prompt: "hi", remoteControl: true },
+      deps,
+    );
+    expect(r.exitCode).toBe(0);
+
+    // The LAST installed confirmer is the wrapped remote one (permission-mode
+    // confirmer is installed first, remote-control overrides it).
+    const wrapped = confirmers[confirmers.length - 1];
+    expect(typeof wrapped).toBe("function");
+
+    const pendingVerdict = wrapped({ tool: "run_shell" });
+    // begin ran synchronously before the confirmer's first await…
+    expect(states.get("bg-9")).toMatchObject({
+      phase: "waiting_permission",
+      pendingApprovals: 1,
+    });
+
+    settle(true);
+    await expect(pendingVerdict).resolves.toBe(true);
+    // …and settling restored the live-turn phase.
+    expect(states.get("bg-9")).toMatchObject({
+      phase: "turn",
+      pendingApprovals: 0,
+    });
+  });
+
+  it("foreground runs (no CC_BACKGROUND_AGENT_ID) keep the confirmer object identity", async () => {
+    const { createBackgroundPhaseReporter } =
+      await import("../../src/lib/background-phase-reporter.js");
+    const confirmers = [];
+    const gate = {
+      setSessionPolicy: () => {},
+      setConfirmer: (fn) => confirmers.push(fn),
+      decide: async () => ({ decision: "allow", via: "test", policy: "test" }),
+    };
+    const { deps } = makeDeps(replyText("done"), gate);
+    deps.backgroundPhaseReporter = createBackgroundPhaseReporter({
+      agentId: null,
+      readState: () => null,
+      writeState: () => {},
+    });
+
+    const remoteConfirmer = async () => true;
+    deps.startHeadlessRemoteApproval = async () => ({
+      confirmer: remoteConfirmer,
+      close: async () => {},
+    });
+
+    await runAgentHeadless({ prompt: "hi", remoteControl: true }, deps);
+    // Disabled reporter → wrapConfirmer returned the SAME function object.
+    expect(confirmers[confirmers.length - 1]).toBe(remoteConfirmer);
+  });
+});
