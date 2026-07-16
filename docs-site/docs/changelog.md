@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子 + doctor 孤儿子进程 + 4 项杂项接线
+
+> CLI-only 发版（`chainlesschain` 0.162.166 → **0.162.167**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + 文档状态）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**，所有改动 opt-in / 默认路径字节不变。收尾 `CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 多个可落地「仍欠」项。
+
+- **P0 沙箱：远程脚本执行检测**：统一「代码获取」分类器把 20+ 包管理器安装命令与 `curl … | sh` / `wget -O- | bash` 一类下载即执行远程脚本归为一类，shell 审批时抬高风险地板 + 落审计（带 `remoteExec` 标记）；`cat file | sh` 与 `curl -O file`（仅下载）不误报。
+- **P2 生命周期钩子——4 个命令层生产者**：`CwdChanged`（REPL `/cd`）、`WorktreeCreate`/`WorktreeRemove`（`cc agent --worktree` create/finish，remove 带 `removed`/`reason`）、`InstructionsLoaded`（会话启动组装完项目指令块后，携权威指令文件清单 `{path,scope,truncated}`，绝不含内容）。全部 observe-only、无注册 hook 时字节不变；此前它们无生产者且 doctor 会当 unknown-event 告警。
+- **P2 Doctor：孤儿 agent 子进程检测**：从持久化后台 agent 记录探活，标出「worker 已死子进程仍在」或「会话已消失」的泄漏进程为 error + 给 `taskkill`/`kill` 修复命令（进程起始时间锚定防 PID 复用，仅喂持久记录零误报）。
+- **4 项杂项 gap 接线**：async-hook 持久重唤队列 + 崩溃恢复（`--resume` 作 Recovery notice）／monorepo 附加根变更广播 MCP roots/list_changed／`cc doctor` LSP 就绪安装缺口检查／Session Mirror at-rest 加密·删除·保留·密钥轮换（`cc session index --mirror-delete/--mirror-prune/--mirror-rotate`）。
+
 #### Added — cc CLI 0.162.166：P1-9「Capability Manifest」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标
 
 > CLI-only 发版（`chainlesschain` 0.162.165 → **0.162.166**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（3 个纯逻辑模块 + 3 个离线工具 + 测试）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**只加 npm 脚本 + 离线工具,顶层命令数 175 不变**,默认路径字节不变。收口 `CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项。

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子生产者（CwdChanged / Worktree\* / InstructionsLoaded）+ doctor 孤儿子进程 + 4 项杂项 gap 接线（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。
+
+- **P0 沙箱：run_shell 远程脚本执行检测**：新增统一「代码获取」分类器——把 20+ 包管理器安装命令（npm/pip/cargo/gem/go/apt/…）与 `curl … | sh` / `wget -O- | bash` 一类**下载即执行**的远程脚本归为一类，在 shell 审批时抬高风险地板并落审计（记录带 `remoteExec` 标记）；`cat script.sh | sh`（本地文件）与 `curl -O file`（仅下载不执行）不误报。默认路径字节不变。
+- **P2 生命周期事件钩子——4 个命令层生产者**：为新的 settings.json 生命周期事件类型接上真实触发点（此前它们只在事件总线注册、无生产者、loader 不认、`cc doctor` 还会当 unknown-event 告警用户配的钩子）：`CwdChanged`（REPL `/cd` 改工作目录后）、`WorktreeCreate`/`WorktreeRemove`（`cc agent --worktree` 会话 create/finish 一对，payload 含 branch/base_sha，remove 带 `removed`/`reason` 区分自动删与保留）、`InstructionsLoaded`（会话启动组装完项目指令块后，携本会话权威指令文件清单 `{path,scope,truncated}`，**绝不含文件内容**）。全部 observe-only、无注册 hook 时字节不变；`InstructionsLoaded` 经 `composeSystemPrompt` 可选回调拿**真正注入**的那份文件集（零漂移，非另行 re-discover）。三处会话入口（headless / stream / REPL）与 SessionStart 同点触发。
+- **P2 Doctor：孤儿 agent 子进程检测**：`cc doctor` 现从持久化的后台 agent 记录探活，标出「worker 已死但子进程仍在」或「会话已消失」的泄漏进程为 error 并给对应 `taskkill`/`kill` 修复命令（进程起始时间锚定，防 PID 复用误判；仅喂持久记录不做启发式全机扫描 → 零误报）。
+- **4 项杂项 gap 接线**：①async-hook 持久重唤队列 + 崩溃恢复（失败的 async-hook 重唤按会话落盘，`--resume` 时作「Recovery notice」系统消息恢复）；②monorepo 附加根变更时向连接的 MCP 服务器广播 roots/list_changed（`/add-dir` + 启动 `--add-dir`）；③`cc doctor` LSP 就绪安装缺口检查（源文件在但对应语言服务器未装 → 代码智能静默降级为文本搜索时告警）；④Session Mirror at-rest 加密/删除/保留/密钥轮换（scrypt+AES-256-GCM，`cc session index --mirror-delete` / `--mirror-prune` / `--mirror-rotate`）。
+
 ### Added — cc CLI 0.162.166：P1-9「Capability Manifest 与脱敏诊断包」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.165 → **0.162.166** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 3 个 `src/lib` 纯逻辑模块 + 3 个 `scripts/` 离线工具 + 测试）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**只加 npm 脚本 + 离线工具,无新增顶层命令,命令数 175 不变**;默认路径字节不变。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项全部收口。
