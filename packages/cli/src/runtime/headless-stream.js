@@ -75,6 +75,15 @@ import {
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
+import {
+  reconcileSideEffects,
+  classifyToolSideEffect,
+} from "../lib/side-effect-ledger.js";
+import {
+  loadSideEffectLedger,
+  persistSideEffectLedger,
+} from "../lib/side-effect-ledger-store.js";
+import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 
 /**
@@ -528,13 +537,53 @@ export async function* readJsonLines(input, opts = {}) {
 }
 
 /**
+ * P0-2: on a stream resume, surface any irreversible tool that was in flight
+ * when the prior run died. Same reconcile + wording as the single-prompt
+ * runner (headless-runner.js) and the WS bridge (session-protocol.js): a
+ * `started`-but-unsettled op's outcome is UNKNOWN, so the model must VERIFY
+ * before any replay rather than silently re-issue the effect. Returns
+ * {count, items, notice} or null when nothing needs verification — a clean
+ * (or absent) ledger keeps the resume byte-identical to today.
+ */
+function buildSideEffectRecovery(ledger) {
+  try {
+    const plan = reconcileSideEffects(ledger);
+    if (!plan.inspect.length) return null;
+    const items = plan.plans
+      .filter((p) => p.action === "inspect")
+      .map((p) => {
+        const op = ledger.get(p.opId) || {};
+        return {
+          kind: op.kind || "unknown",
+          key: op.key || null,
+          reason: p.reason,
+        };
+      });
+    const notice =
+      "Recovery notice — the previous run was interrupted while these " +
+      "irreversible operations were in flight; their outcome is UNKNOWN. Do " +
+      "NOT blindly re-run them. Verify whether each already took effect before " +
+      "repeating it, and ask the user if unsure:\n" +
+      items
+        .map(
+          (it) =>
+            `  • [${it.kind}]${it.key ? ` (${it.key})` : ""} — ${it.reason}`,
+        )
+        .join("\n");
+    return { count: items.length, items, notice };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Run a single turn through the core agent loop, emitting NDJSON events.
  * Returns the turn outcome so the caller can grow history + the result line.
  */
 async function runTurn(
   messages,
   loopOptions,
-  { runLoop, emit, costBudget, nextToolUseId },
+  { runLoop, emit, costBudget, nextToolUseId, sideEffects },
 ) {
   const usage = {
     input_tokens: 0,
@@ -546,6 +595,10 @@ async function runTurn(
   let finalText = "";
   let endReason = "complete";
   let stopForCost = false;
+  // P0-2: the side-effect op currently in flight (at most one — the loop runs
+  // tools serially). Non-null only between a dangerous tool's tool-executing
+  // and its tool-result.
+  let currentSideEffectOpId = null;
 
   // Collapse consecutive same-role turns before the model call ONLY when the
   // caller flags a resume-degenerate transcript (`mergeRoles`): a resumed
@@ -583,10 +636,52 @@ async function runTurn(
           tool: event.tool,
           args: event.args,
         });
+        // P0-2: record an irreversible effect as STARTED (persisted before it
+        // settles) so a crash before the matching tool-result leaves a
+        // reconcilable "in flight" marker instead of a silent replay — mirrors
+        // the single-prompt runner and the WS bridge. `sideEffects` is null
+        // when the session doesn't persist, keeping that path byte-identical.
+        currentSideEffectOpId = null;
+        if (sideEffects) {
+          const se = classifyToolSideEffect(event.tool, event.args);
+          if (se) {
+            const opId = sideEffects.nextOpId();
+            currentSideEffectOpId = opId;
+            sideEffects.ledger
+              .prepare(opId, {
+                kind: se.kind,
+                key: se.key,
+                // Content-addressed key: a resumed replay of the SAME effect
+                // derives the SAME key, so an external provider can de-dupe
+                // and countDuplicateCommittedEffects can measure `0` repeats.
+                meta: {
+                  tool: event.tool,
+                  idempotencyKey: operationIdempotencyKey({
+                    tool: event.tool,
+                    args: event.args,
+                  }),
+                },
+              })
+              .start(opId);
+            sideEffects.persist();
+          }
+        }
         break;
       }
       case "tool-result": {
         const err = event.error || event.result?.error || null;
+        // P0-2: settle the in-flight side-effect (commit on success, fail on
+        // a clean error) and persist the updated ledger snapshot.
+        if (sideEffects && currentSideEffectOpId) {
+          if (err)
+            sideEffects.ledger.fail(
+              currentSideEffectOpId,
+              String(err).slice(0, 200),
+            );
+          else sideEffects.ledger.commit(currentSideEffectOpId);
+          sideEffects.persist();
+          currentSideEffectOpId = null;
+        }
         // The loop runs tools serially, so this result settles the most
         // recent tool_use (same adjacency rule the is_error attribution
         // below has always used).
@@ -845,6 +940,39 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // --ephemeral forces persistence OFF even with an explicit session id (the
   // id is kept for event correlation only; nothing is written or replayed).
   const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+
+  // ── P0-2: crash-safe side-effect ledger — the stream twin of the
+  // single-prompt runner (headless-runner.js) and the WS bridge
+  // (ws-agent-handler.js). Dangerous tools (file writes, opaque shell,
+  // git push, publish/schedule/notify/browser actions) are recorded
+  // prepare→start→commit|fail with the snapshot persisted BEFORE the effect
+  // settles, so an IDE chat-panel worker killed mid-flight is surfaced for
+  // verification on resume instead of being blindly replayed. Only active when
+  // persisting (an anonymous/--ephemeral stream can't be resumed); a run that
+  // touches no dangerous tool writes nothing.
+  const loadLedger = deps.loadSideEffectLedger || loadSideEffectLedger;
+  const persistLedger = deps.persistSideEffectLedger || persistSideEffectLedger;
+  let sideEffectLedger = null;
+  if (persist) {
+    try {
+      sideEffectLedger = loadLedger(sessionId);
+    } catch {
+      // ledger is best-effort — never block the stream over it
+      sideEffectLedger = null;
+    }
+  }
+  let sideEffectSeq = 0;
+  // Run-scoped nonce keeps op ids unique even when two runs resume the same
+  // session (prepare() is idempotent on opId, so a collision would silently
+  // drop the newer record).
+  const sideEffectRunNonce = String(deps.now ? deps.now() : Date.now());
+  const sideEffects = sideEffectLedger
+    ? {
+        ledger: sideEffectLedger,
+        persist: () => persistLedger(sessionId, sideEffectLedger),
+        nextOpId: () => `${sideEffectRunNonce}:${sideEffectSeq++}`,
+      }
+    : null;
 
   // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
   // CONFIRM-tier decisions (risky shell via the ApprovalGate, settings/hook
@@ -1163,9 +1291,21 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // Resume: replay the persisted conversation (fresh system prompt always
   // leads; persisted system turns are dropped, mirroring runAgentHeadless).
   let resumedMessages = 0;
+  let sideEffectRecovery = null;
   if (persist) {
     try {
       if (store.sessionExists(sessionId)) {
+        // P0-2: reconcile the crash-safe ledger on resume (parity with
+        // runAgentHeadless + the WS bridge). The verify-before-replay system
+        // note goes BEFORE the replayed history — the same slot the
+        // single-prompt runner uses — which also keeps the trailing-role
+        // resume-degeneracy check below intact.
+        if (sideEffectLedger) {
+          sideEffectRecovery = buildSideEffectRecovery(sideEffectLedger);
+        }
+        if (sideEffectRecovery) {
+          messages.push({ role: "system", content: sideEffectRecovery.notice });
+        }
         const history = (store.rebuildMessages(sessionId) || []).filter(
           (m) => m && m.role !== "system",
         );
@@ -1224,6 +1364,22 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     additional_directories: additionalDirectories,
     resumed_messages: resumedMessages,
   });
+
+  // P0-2 visible recovery notice: same `raw` info-line contract as
+  // provider_fallback / version_skew (the shipped IDE panels map `raw` → an
+  // info line), so both panels render it with zero IDE changes. Emitted right
+  // after `init` so consumers keep seeing init as the first line; absent
+  // entirely on a clean (or ledger-free) resume.
+  if (sideEffectRecovery) {
+    emit({
+      type: "raw",
+      subtype: "side_effect_recovery",
+      text: `⚠️ ${sideEffectRecovery.count} interrupted side-effect(s) need verification before replay (resume ${sessionId}).`,
+      count: sideEffectRecovery.count,
+      items: sideEffectRecovery.items,
+      session_id: sessionId,
+    });
+  }
 
   // Goal binding (cc goal, Phase 1) — resolved once and injected on every turn.
   // `--goal <id>` binds explicitly; `--goal` with no value auto-resolves.
@@ -2010,7 +2166,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
-        { runLoop, emit, costBudget, nextToolUseId },
+        { runLoop, emit, costBudget, nextToolUseId, sideEffects },
       );
     } catch (err) {
       currentAbort = null;
