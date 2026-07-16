@@ -179,6 +179,40 @@ function runSessionStartHooks(settingsHooks, { source, cwd, sessionId } = {}) {
 }
 
 /**
+ * CwdChanged settings hooks (observe + context injection). Fired when the
+ * working directory changes mid-session (`/cd`) — a distinct lifecycle event
+ * (Claude-Code-parity extension) automation can react to (re-audit trust of the
+ * new dir, reload a per-dir tool config, …). Observe-only: a cwd change never
+ * gates flow, so any `block` decision is ignored and only emitted context is
+ * returned. No-op (byte-unchanged) without a registered CwdChanged hook.
+ * @returns {{ additionalContext:string|null }}
+ */
+function runCwdChangedHooks(
+  settingsHooks,
+  { oldCwd, newCwd, cwd, sessionId } = {},
+) {
+  if (!settingsHooks) return { additionalContext: null };
+  const matched = collectHooks(settingsHooks, "CwdChanged", newCwd || "");
+  const { sync } = partitionAsyncHooks(matched);
+  if (sync.length === 0) return { additionalContext: null };
+  const payload = withDeliveryId(
+    "CwdChanged",
+    {
+      hook_event_name: "CwdChanged",
+      old_cwd: oldCwd || null,
+      cwd: newCwd || cwd || null,
+      session_id: sessionId || null,
+    },
+    { sessionId },
+  );
+  const outcome = runHooks(sync, payload, {
+    cwd: newCwd || cwd,
+    event: "CwdChanged",
+  });
+  return { additionalContext: aggregateContext(outcome.results) };
+}
+
+/**
  * Generic observe-only fire (SessionEnd / Stop / PreCompact). Returns the raw
  * runHooks outcome so callers can read a block reason; never gates flow here.
  *
@@ -206,6 +240,7 @@ function runObserveHooks(
 module.exports = {
   runUserPromptSubmitHooks,
   runSessionStartHooks,
+  runCwdChangedHooks,
   runObserveHooks,
   aggregateContext,
   partitionAsyncHooks,

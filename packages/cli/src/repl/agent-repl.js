@@ -3031,9 +3031,11 @@ export async function startAgentRepl(options = {}) {
         logger.info(`cwd: ${process.cwd()}`);
       } else {
         try {
+          const oldCwd = process.cwd();
           const expanded = target.replace(/^~(?=$|[\\/])/, os.homedir());
           process.chdir(path.resolve(process.cwd(), expanded));
-          logger.log(chalk.green(`cwd → ${process.cwd()}`));
+          const newCwd = process.cwd();
+          logger.log(chalk.green(`cwd → ${newCwd}`));
           // MCP roots derive from cwd — tell connected servers to re-query
           // roots/list (Claude-Code 2.1.203 change-notification parity).
           for (const c of [_adhocMcp?.mcpClient, _bundleMcpClient]) {
@@ -3043,6 +3045,34 @@ export async function startAgentRepl(options = {}) {
               } catch {
                 /* best-effort */
               }
+            }
+          }
+          // CwdChanged settings hooks (lifecycle-event parity): the working dir
+          // just changed, so fire CwdChanged with old→new cwd — a hook can
+          // observe/react (re-audit the new dir's trust, reload per-dir config).
+          // Observe-only (a cwd change never gates flow); best-effort; no-op
+          // (byte-unchanged) without a registered CwdChanged hook.
+          if (_settingsHooks && oldCwd !== newCwd) {
+            try {
+              const { runCwdChangedHooks, dispatchAsyncHooks } =
+                await import("../lib/settings-hook-events.cjs");
+              const payload = { oldCwd, newCwd, sessionId };
+              runCwdChangedHooks(_settingsHooks, payload);
+              if (!_asyncHookSupervisor) {
+                const { AsyncHookSupervisor } =
+                  await import("../lib/async-hook-supervisor.cjs");
+                _asyncHookSupervisor = new AsyncHookSupervisor({
+                  persistStats: true,
+                });
+              }
+              dispatchAsyncHooks(
+                _settingsHooks,
+                "CwdChanged",
+                { old_cwd: oldCwd, cwd: newCwd, session_id: sessionId || null },
+                { cwd: newCwd, supervisor: _asyncHookSupervisor },
+              );
+            } catch {
+              /* CwdChanged firing is best-effort */
             }
           }
         } catch (err) {

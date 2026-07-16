@@ -49,6 +49,7 @@ const HOOK_EVENTS = Object.freeze([
   "PreCompact",
   "Notification",
   "PermissionRequest",
+  "CwdChanged",
 ]);
 
 /**

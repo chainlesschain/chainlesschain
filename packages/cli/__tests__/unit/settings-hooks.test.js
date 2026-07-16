@@ -256,6 +256,13 @@ describe("lifecycle event registry", () => {
       "audit.sh",
     ]);
   });
+  it("recognises CwdChanged and collectHooks fires it (matcher null/*)", () => {
+    expect(HOOK_EVENTS).toContain("CwdChanged");
+    const b = { CwdChanged: [cmdGroup(null, "on-cd.sh")] };
+    expect(
+      collectHooks(b, "CwdChanged", "/new/dir").map((h) => h.command),
+    ).toEqual(["on-cd.sh"]);
+  });
 });
 
 describe("Notification event", () => {

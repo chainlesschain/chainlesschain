@@ -1311,13 +1311,26 @@ boundSessions / foldPruneStale + IO 端到端：append→take 恢复即清 / rem
 system 消息且取后清桶 / 无 parked 时零注入零写）= 22 绿。与 `allowManagedHooksOnly`（早已在
 settings-hooks.cjs）合并即 gap 的「async hook 持久队列 + allowManagedHooksOnly」全落。
 
-**仍欠（合并接线 + 真沙箱 + 新事件真触发）**：把 `mergeHookDecisions` 真正接进
+**已接线（2026-07-16，`CwdChanged` 生命周期事件真触发）**：新事件类型里挑第一个**命令层
+可触发**的落地——REPL `/cd` 改工作目录后真发 `CwdChanged`。此前这些新事件（TaskCreated/
+CwdChanged/Worktree\*/…）只在 `hook-event-bus` 的 `HOOK_EVENT_TYPES` 注册，**无生产者**、
+loader 的 `HOOK_EVENTS` 也不认（故 `collectHooks` 永不匹配、doctor `checkHookConfig` 还会当
+unknown-event 警告）。补：①`settings-hooks.cjs` `HOOK_EVENTS` 加入 `CwdChanged`（loader 认它、
+doctor 视其为合法事件）；②`settings-hook-events.cjs` 新纯核 `runCwdChangedHooks`（镜像
+`runSessionStartHooks`：observe-only，cwd 变更**永不 gate**，带 delivery-id envelope，payload
+`{old_cwd, cwd, session_id}`，无注册 hook 时 no-op 字节不变）；③REPL `/cd` 成功 `chdir` 后（cwd
+真变时）best-effort 发 sync `runCwdChangedHooks` + `dispatchAsyncHooks`，镜像既有 ConfigChange
+producer。测试：`settings-hook-events.test.js` +3（无 hook/matcher 不匹配→null / 触发注入 context /
+old_cwd·cwd·event 名经 stdin JSON 贯通）+ `settings-hooks.test.js` +1（`HOOK_EVENTS` 含
+CwdChanged + `collectHooks` 匹配）= 4 绿；hook-events/hooks/doctor 套回归 65 绿。
+
+**仍欠（合并接线 + 真沙箱 + 余下新事件触发）**：把 `mergeHookDecisions` 真正接进
 agent-core 的 PreToolUse/PermissionRequest 合并点（现为手写 first-wins + 从 results
 捞 allow）并让多 hook **并行**跑；`planHookReplay`/`cc hook replay --run` 的 DECISION
-事件需要真沙箱执行器（hook 目前 `shell:true` 继承全 env，无沙箱层）；把新事件类型
-（TaskCreated/CwdChanged/Worktree\*/InstructionsLoaded/MCPElicitation）**真触发**到
-各生命周期点（现只有 settings-hook-events 的 UserPromptSubmit/SessionStart/observe
-被记录）；trace_id/parent_id 从 agent-core context 线程进 envelope 留待。
+事件需要真沙箱执行器（hook 目前 `shell:true` 继承全 env，无沙箱层）；**余下**新事件类型
+（TaskCreated/TaskCompleted/Worktree\*/InstructionsLoaded/MCPElicitation）的真触发（`CwdChanged`
+已落；其余各自的生产点分散在 task-list/worktree 命令/instruction-loader/MCP elicitation 路径，
+逐个接线）；trace_id/parent_id 从 agent-core context 线程进 envelope 留待。
 
 ### JSON Schema
 

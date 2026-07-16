@@ -11,6 +11,7 @@ import ev from "../../src/lib/settings-hook-events.cjs";
 const {
   runUserPromptSubmitHooks,
   runSessionStartHooks,
+  runCwdChangedHooks,
   runObserveHooks,
   aggregateContext,
 } = ev;
@@ -87,6 +88,36 @@ describe("runSessionStartHooks", () => {
       cwd: CWD,
     });
     expect(r.additionalContext).toBeNull();
+  });
+});
+
+describe("runCwdChangedHooks", () => {
+  const cc = (command, matcher = null) => ({
+    CwdChanged: [{ matcher, hooks: [{ type: "command", command }] }],
+  });
+
+  it("returns null context with no settings / no hooks", () => {
+    expect(runCwdChangedHooks(null, { newCwd: CWD })).toEqual({
+      additionalContext: null,
+    });
+    expect(
+      runCwdChangedHooks(cc('node -e ""', "nomatch"), { newCwd: CWD }),
+    ).toEqual({ additionalContext: null }); // matcher mismatch → no fire
+  });
+
+  it("fires the hook and injects its emitted context", () => {
+    const cmd = "node -e \"console.log('entered new dir')\"";
+    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/a", newCwd: CWD });
+    expect(r.additionalContext).toBe("entered new dir");
+  });
+
+  it("threads old_cwd + cwd into the hook stdin payload", () => {
+    // The hook reads its stdin JSON and echoes the fields back, proving the
+    // producer built the CwdChanged payload correctly.
+    const cmd =
+      "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.old_cwd+'|'+j.cwd+'|'+j.hook_event_name)})\"";
+    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/old", newCwd: "/new" });
+    expect(r.additionalContext).toBe("/old|/new|CwdChanged");
   });
 });
 
