@@ -46,4 +46,5 @@ export {
   _resetFileFreshness,
   _getSharedCodeIntel,
   disposeSharedCodeIntel,
+  _resetSubtreeInstructionLoaders,
 } from "../runtime/agent-core.js";

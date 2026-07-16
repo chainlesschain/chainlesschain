@@ -726,6 +726,7 @@ Key behaviors:
 - When asked about files or code, use read_file and search_files to find information
 - Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
 - After an edit, if the tool result includes a "newDiagnostics" array, you just introduced (or exposed) those errors/warnings — read them and fix before moving on. You can also run code_intelligence (action: diagnostics) on any file to check it on demand.
+- If a tool result includes a "subtreeInstructions" array, you just entered a subdirectory that carries its own cc.md/CLAUDE.md/AGENTS.md — treat that content as authoritative project rules for work in that subtree (it is injected once, the first time you touch the subtree).
 - You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
 - Always explain what you're doing and show results
 - Be concise but thorough
@@ -2152,7 +2153,17 @@ async function _postEditDiagnostics(filePath, cwd) {
       const diags = (res.diagnostics || []).filter(
         (d) => d.severity === "error" || d.severity === "warning",
       );
-      return diags.length ? diags.slice(0, 20) : null;
+      if (!diags.length) return null;
+      // Bound by a TOKEN budget, severity-prioritized (errors survive over
+      // warnings), replacing the arbitrary unsorted count-cap of 20. Guarantees
+      // the model sees the most severe diagnostics first and can't be flooded by
+      // a pathological diagnostics dump. Budget is overridable via
+      // CC_EDIT_DIAGNOSTICS_TOKENS (default 2000).
+      const { capDiagnostics } =
+        await import("../lib/lsp/diagnostics-scheduler.js");
+      const budget = Number(process.env.CC_EDIT_DIAGNOSTICS_TOKENS) || 2000;
+      const { kept } = capDiagnostics(diags, { maxTokens: budget });
+      return kept.length ? kept : null;
     } catch {
       return null;
     }
@@ -2174,6 +2185,96 @@ async function _postEditDiagnostics(filePath, cwd) {
 async function _withPostEditDiagnostics(result, filePath, cwd) {
   const newDiagnostics = await _postEditDiagnostics(filePath, cwd);
   return newDiagnostics ? { ...result, newDiagnostics } : result;
+}
+
+// ─── Lazy subtree instruction injection (large-monorepo lever) ─────────────
+//
+// cc.md / CLAUDE.md / AGENTS.md that sit BELOW the startup cwd are intentionally
+// NOT loaded up front — they cost tokens for subtrees a run may never touch.
+// When a tool first ACCESSES a path inside such a subtree, we inject that
+// subtree's directory instructions into the tool result (the SAME channel as
+// newDiagnostics), exactly once per subtree per process. A stateful
+// SubtreeInstructionLoader per root remembers what it already injected so a
+// second access to the same subtree is a no-op. Disable with
+// CC_SUBTREE_INSTRUCTIONS=0. Common case (no cc.md below cwd) → zero cost.
+const _subtreeLoaderPool = new Map(); // root -> SubtreeInstructionLoader
+
+async function _getSubtreeLoader(cwd) {
+  const root = path.resolve(cwd || process.cwd());
+  let loader = _subtreeLoaderPool.get(root);
+  if (!loader) {
+    const { SubtreeInstructionLoader } =
+      await import("../lib/project-instructions.js");
+    let instructionExcludes;
+    try {
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
+      instructionExcludes = readStringArraySetting("instructionExcludes", {
+        cwd: root,
+      });
+    } catch {
+      instructionExcludes = undefined; // fail-open — honor no excludes
+    }
+    loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+      instructionExcludes,
+    });
+    _subtreeLoaderPool.set(root, loader);
+  }
+  return loader;
+}
+
+/** Test/shutdown hook: forget every remembered subtree-injection set. */
+export function _resetSubtreeInstructionLoaders() {
+  _subtreeLoaderPool.clear();
+}
+
+/**
+ * Freshly-discovered subtree instruction files for a path a tool just touched,
+ * with their (capped) content read for inline injection — or null when the
+ * subtree has no NEW cc.md/CLAUDE.md/AGENTS.md (the common case → zero cost).
+ */
+async function _subtreeInstructionsFor(accessedPath, cwd) {
+  if (process.env.CC_SUBTREE_INSTRUCTIONS === "0") return null;
+  try {
+    const loader = await _getSubtreeLoader(cwd);
+    const fresh = loader.onAccess(accessedPath);
+    if (!fresh || !fresh.length) return null;
+    const { DEFAULT_MAX_FILE_BYTES } =
+      await import("../lib/project-instructions.js");
+    const out = [];
+    for (const f of fresh) {
+      try {
+        const buf = fs.readFileSync(f.path);
+        const truncated = buf.length > DEFAULT_MAX_FILE_BYTES;
+        const content = (
+          truncated ? buf.slice(0, DEFAULT_MAX_FILE_BYTES) : buf
+        ).toString("utf-8");
+        out.push({
+          path: f.path,
+          scope: f.scope || "project",
+          content,
+          ...(truncated ? { truncated: true } : {}),
+        });
+      } catch {
+        // discovered file vanished before we could read it — skip it
+      }
+    }
+    return out.length ? out : null;
+  } catch {
+    return null; // fail-open: never break a tool because injection errored
+  }
+}
+
+/**
+ * Attach freshly-discovered subtree instructions to a SUCCESSFUL tool result
+ * (no-op on an error result or when the subtree has nothing new).
+ */
+async function _withSubtreeInstructions(result, accessedPath, cwd) {
+  if (result && result.error) return result;
+  const subtreeInstructions = await _subtreeInstructionsFor(accessedPath, cwd);
+  return subtreeInstructions ? { ...result, subtreeInstructions } : result;
 }
 
 /**
@@ -2338,18 +2439,30 @@ async function executeToolInner(
       }
 
       if (rendered.length > 50000) {
-        return attachDescriptor({
-          content: rendered.substring(0, 50000) + "\n...(truncated)",
-          size: rendered.length,
-          hashed: args.hashed === true,
-          ...(range ? { range } : {}),
-        });
+        return attachDescriptor(
+          await _withSubtreeInstructions(
+            {
+              content: rendered.substring(0, 50000) + "\n...(truncated)",
+              size: rendered.length,
+              hashed: args.hashed === true,
+              ...(range ? { range } : {}),
+            },
+            filePath,
+            cwd,
+          ),
+        );
       }
-      return attachDescriptor({
-        content: rendered,
-        hashed: args.hashed === true,
-        ...(range ? { range } : {}),
-      });
+      return attachDescriptor(
+        await _withSubtreeInstructions(
+          {
+            content: rendered,
+            hashed: args.hashed === true,
+            ...(range ? { range } : {}),
+          },
+          filePath,
+          cwd,
+        ),
+      );
     }
 
     case "write_file": {
@@ -2368,8 +2481,12 @@ async function executeToolInner(
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       _recordFileObservation(filePath);
       return attachDescriptor(
-        await _withPostEditDiagnostics(
-          { success: true, path: filePath, size: wrote.size },
+        await _withSubtreeInstructions(
+          await _withPostEditDiagnostics(
+            { success: true, path: filePath, size: wrote.size },
+            filePath,
+            cwd,
+          ),
           filePath,
           cwd,
         ),
@@ -2457,13 +2574,17 @@ async function executeToolInner(
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       _recordFileObservation(filePath);
       return attachDescriptor(
-        await _withPostEditDiagnostics(
-          {
-            success: true,
-            path: filePath,
-            size: wrote.size,
-            replaced: replaceAll ? count : 1,
-          },
+        await _withSubtreeInstructions(
+          await _withPostEditDiagnostics(
+            {
+              success: true,
+              path: filePath,
+              size: wrote.size,
+              replaced: replaceAll ? count : 1,
+            },
+            filePath,
+            cwd,
+          ),
           filePath,
           cwd,
         ),
@@ -2515,14 +2636,18 @@ async function executeToolInner(
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       _recordFileObservation(filePath);
       return attachDescriptor(
-        await _withPostEditDiagnostics(
-          {
-            success: true,
-            path: filePath,
-            size: wrote.size,
-            lineNumber: result.lineNumber,
-            previousContent: result.previousContent,
-          },
+        await _withSubtreeInstructions(
+          await _withPostEditDiagnostics(
+            {
+              success: true,
+              path: filePath,
+              size: wrote.size,
+              lineNumber: result.lineNumber,
+              previousContent: result.previousContent,
+            },
+            filePath,
+            cwd,
+          ),
           filePath,
           cwd,
         ),
@@ -3743,12 +3868,18 @@ async function executeToolInner(
         });
       }
       const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-      return attachDescriptor({
-        entries: entries.map((e) => ({
-          name: e.name,
-          type: e.isDirectory() ? "dir" : "file",
-        })),
-      });
+      return attachDescriptor(
+        await _withSubtreeInstructions(
+          {
+            entries: entries.map((e) => ({
+              name: e.name,
+              type: e.isDirectory() ? "dir" : "file",
+            })),
+          },
+          dirPath,
+          cwd,
+        ),
+      );
     }
 
     case "run_skill": {
