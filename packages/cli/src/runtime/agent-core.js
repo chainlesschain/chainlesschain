@@ -5172,7 +5172,15 @@ async function _executeSpawnSubAgent(args, ctx) {
   // refuses to finish while any background sub-agent is still running). Only
   // available when the calling loop provided the per-run map — a bare
   // executeTool() without it falls through to the blocking path.
-  if (args.background === true && ctx.backgroundSubAgents instanceof Map) {
+  //
+  // `background` is driven by the resolved contract (spawn arg > agent-file
+  // definition), so an agent-file can declare `background: true` and be spawned
+  // detached without the caller passing it. `effectiveContract.background`
+  // already folds in `args.background`; the explicit OR keeps the path
+  // byte-identical if contract resolution was skipped (effectiveContract null).
+  const wantsBackground =
+    args.background === true || effectiveContract?.background === true;
+  if (wantsBackground && ctx.backgroundSubAgents instanceof Map) {
     // Cancel with the parent: forward the loop's abort signal so killing the
     // run doesn't orphan a detached child mid-LLM-call.
     subCtx._signal = subCtx._signal || ctx.signal || null;

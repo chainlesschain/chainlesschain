@@ -979,9 +979,21 @@ spawn-delegation/contract-extended/scaffold/status 25 项回归绿。
 拒绝 / 外部 AbortSignal 透传；registry 5：单个 abort / unknown not-found / 兄弟不受影响 / 无 abort()
 → cancelled:false / 已完成 → cancelled:false）。
 
-**仍欠（更大面 / 仍未接）**：`background` 由契约统一驱动（现仍读 spawn args）；每 child 的
-checkpoint 归因仍缺。**至此 subagent-contract 强制轴全部收口**（skills/mcp/hooks/memory/
-permissionMode + confirmer + 两 runner ceiling + shell/run_code 门）+ 精确单-agent 取消。
+**已接线（2026-07-16，`background` 由契约统一驱动）**：spawn 的后台分支此前只读 `args.background
+=== true`，故 agent-file 在 frontmatter 声明 `background: true`（经 `normalizeSubagentContract`→
+`md.contract.background`）**被忽略**——只有调用方显式传参才后台化。现改判
+`wantsBackground = args.background === true || effectiveContract?.background === true`：`effectiveContract
+.background` 已由 `requested("background", definition, spawnArgs)` 折入 spawn-arg 与 agent-file 定义
+（`background` 是每-spawn 行为标志、**不**对父 ceiling tighten，语义正确），故一个 agent 定义即可声明
+自己后台跑，无需调用方传参。**字节不变**：`args.background===true` 仍照旧触发（且 `effectiveContract`
+为 null 时的 OR 短路回落到纯 args 判断）。测试：`agent-background-subagent.test.js` +1（真临时
+`.claude/agents/bg-worker.md` 声明 `background:true`，模型仅传 `{agent}`→走后台路径 + 结算 +
+`waiting-background-sub-agents`）；4 既有背景测试回归绿。
+
+**仍欠（更大面 / 仍未接）**：每 child 的
+checkpoint 归因仍缺（需持久 checkpoint id 线程，属 turn-binding 运行时事件同一新基建）。**至此
+subagent-contract 强制/行为轴全部收口**（skills/mcp/hooks/memory/permissionMode + confirmer + 两
+runner ceiling + shell/run_code 门 + worktree sparse/symlink + background）+ 精确单-agent 取消。
 
 ## P1：显式绑定 Turn、Checkpoint 和恢复
 

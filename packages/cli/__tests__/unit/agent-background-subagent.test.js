@@ -12,6 +12,9 @@
  * settled deterministically from the test; agentLoop + executeTool run real.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 vi.mock("../../src/lib/sub-agent-context.js", () => {
   const state = { created: [], autoResolve: null };
@@ -248,5 +251,51 @@ describe("spawn_sub_agent background mode", () => {
       false,
     );
     expect(chatFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("an agent-file's `background: true` contract spawns detached WITHOUT a background arg", async () => {
+    // The agent definition declares background; the caller passes only { agent }.
+    const dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
+    try {
+      mkdirSync(join(dir, ".claude", "agents"), { recursive: true });
+      writeFileSync(
+        join(dir, ".claude", "agents", "bg-worker.md"),
+        "---\nname: bg-worker\nbackground: true\n---\nYou run in the background.\n",
+        "utf-8",
+      );
+
+      let call = 0;
+      const chatFn = vi.fn(async () => {
+        call++;
+        if (call === 1) {
+          return {
+            message: {
+              content: "",
+              // NOTE: no `background: true` here — it comes from the agent file.
+              tool_calls: [spawnCall({ agent: "bg-worker", task: "bg" })],
+            },
+          };
+        }
+        if (call === 2) {
+          _subState.created[0]._resolveRun(RESULT);
+          return { message: { content: "premature" } };
+        }
+        return { message: { content: "final" } };
+      });
+
+      const { events } = await drive(chatFn, { cwd: dir });
+
+      // Took the background path purely from the contract.
+      const toolResult = events.find((e) => e.type === "tool-result");
+      expect(toolResult.result.background).toBe(true);
+      expect(toolResult.result.status).toBe("running");
+      expect(
+        events.some((e) => e.type === "waiting-background-sub-agents"),
+      ).toBe(true);
+      const bg = events.find((e) => e.type === "background-sub-agent-result");
+      expect(bg.summary).toBe(RESULT.summary);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
