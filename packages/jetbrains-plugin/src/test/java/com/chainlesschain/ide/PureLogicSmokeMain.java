@@ -1520,7 +1520,7 @@ public final class PureLogicSmokeMain {
         // Background agent referencing sessionId absorbs the chat row.
         BackgroundAgents.Session running = new BackgroundAgents.Session(
                 "bg1", "running", null, null, -1, 0, "", "", "s1",
-                now - 1000, 0, null, "", "\\\\.\\pipe\\x", "tok", true);
+                now - 1000, 0, null, "", "\\\\.\\pipe\\x", "tok", true, null, 0);
         List<SessionsWorkbench.Row> bg =
                 SessionsWorkbench.backgroundRows(java.util.List.of(running));
         eq(bg.get(0).actions, Arrays.asList("attach", "stop", "rename"),
@@ -1534,7 +1534,7 @@ public final class PureLogicSmokeMain {
 
         BackgroundAgents.Session done = new BackgroundAgents.Session(
                 "bg2", "completed", null, null, -1, 0, "t", "", null,
-                now - 9000, now - 5000, 0, "", null, null, false);
+                now - 9000, now - 5000, 0, "", null, null, false, null, 0);
         eq(SessionsWorkbench.backgroundRows(java.util.List.of(done)).get(0).actions,
                 Arrays.asList("resume", "logs", "rename"), "wb finished bg actions");
 

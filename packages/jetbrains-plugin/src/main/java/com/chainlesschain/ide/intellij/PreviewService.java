@@ -247,8 +247,12 @@ public final class PreviewService {
     }
 
     private void revealToolWindow() {
-        ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
-        if (tw != null) tw.activate(null, true, false);
+        // EDT-safe from any thread — start() may run off the EDT (package.json
+        // read + npm spawn must not stall the UI).
+        ApplicationManager.getApplication().invokeLater(() -> {
+            ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
+            if (tw != null) tw.activate(null, true, false);
+        });
     }
 
     private void setStatus(String text) {

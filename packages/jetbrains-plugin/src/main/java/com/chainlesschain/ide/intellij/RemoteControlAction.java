@@ -43,6 +43,26 @@ public final class RemoteControlAction extends AnAction {
     private static volatile Process host;
     private static volatile Map<String, Object> pairing;
     private static volatile boolean stopping;
+    /** Ensures the JVM-exit tree-kill is registered at most once. */
+    private static final java.util.concurrent.atomic.AtomicBoolean SHUTDOWN_HOOK_INSTALLED =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    /**
+     * A child process is NOT killed on JVM exit, so closing the IDE would leak
+     * a live {@code cc remote-control} host (WS port + pairing state). Register
+     * one IDE-shutdown task that tree-kills whatever host is alive.
+     */
+    private static void ensureShutdownHook() {
+        if (!SHUTDOWN_HOOK_INSTALLED.compareAndSet(false, true)) return;
+        com.intellij.openapi.util.ShutDownTracker.getInstance().registerShutdownTask(() -> {
+            Process proc = host;
+            if (proc != null && proc.isAlive()) {
+                stopping = true;
+                proc.descendants().forEach(ProcessHandle::destroyForcibly);
+                proc.destroyForcibly();
+            }
+        });
+    }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -156,64 +176,83 @@ public final class RemoteControlAction extends AnAction {
                 "Remote Control");
     }
 
+    /** Cap the pre-pairing stdout buffer: a host that never emits parseable
+     *  pairing JSON (format drift / error banner) must not grow it forever. */
+    private static final int PAIRING_BUFFER_CAP = 64 * 1024;
+
     private static void start(Project project) {
         if (host != null && host.isAlive()) return;
         stopping = false;
         pairing = null;
-        List<String> cmd = new ArrayList<String>();
-        if (File.separatorChar == '\\') {
-            cmd.add("cmd.exe");
-            cmd.add("/c");
-        }
-        cmd.add(AgentChatSession.resolveBinary());
-        cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs(storedRelayUrl(), storedPeerId()));
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        if (project != null && project.getBasePath() != null) {
-            pb.directory(new File(project.getBasePath()));
-        }
-        CliLauncher.augmentPath(pb);
-        pb.redirectErrorStream(false);
-        final Process proc;
-        try {
-            proc = pb.start();
-        } catch (IOException ex) {
-            Messages.showErrorDialog(project,
-                    "Could not start the remote-control host: " + ex.getMessage(),
-                    "Remote Control");
-            return;
-        }
-        host = proc;
-        Thread pump = new Thread(() -> {
-            StringBuilder buffer = new StringBuilder();
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(
-                    proc.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    if (pairing != null) continue; // drain only, JSON already parsed
-                    buffer.append(line).append('\n');
-                    Map<String, Object> parsed =
-                            RemoteHandoff.extractFirstJsonObject(buffer.toString());
-                    if (parsed != null && parsed.get("pairingUri") != null) {
-                        pairing = parsed;
-                        ApplicationManager.getApplication().invokeLater(
-                                () -> showPairing(project, parsed));
-                    }
-                }
-            } catch (IOException ignored) {
-                // child closed / killed
+        // resolveBinary() can run up to 4×12s `cc --version` probes on first use,
+        // and pb.start() spawns a process — neither may run on the EDT (the whole
+        // IDE would freeze). Resolve + spawn off-EDT; only dialogs hop back.
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            List<String> cmd = new ArrayList<String>();
+            if (File.separatorChar == '\\') {
+                cmd.add("cmd.exe");
+                cmd.add("/c");
             }
-            if (host == proc && !stopping) {
-                host = null;
-                pairing = null;
+            cmd.add(AgentChatSession.resolveBinary());
+            cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs(storedRelayUrl(), storedPeerId()));
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (project != null && project.getBasePath() != null) {
+                pb.directory(new File(project.getBasePath()));
+            }
+            CliLauncher.augmentPath(pb);
+            pb.redirectErrorStream(false);
+            final Process proc;
+            try {
+                proc = pb.start();
+            } catch (IOException ex) {
                 ApplicationManager.getApplication().invokeLater(() ->
-                        Messages.showWarningDialog(project,
-                                "The remote-control host exited. Run Remote Control again to"
-                                        + " restart it (a restart issues a fresh pairing URI).",
+                        Messages.showErrorDialog(project,
+                                "Could not start the remote-control host: " + ex.getMessage(),
                                 "Remote Control"));
+                return;
             }
-        }, "cc-remote-control-pump");
-        pump.setDaemon(true);
-        pump.start();
+            host = proc;
+            ensureShutdownHook();
+            Thread pump = new Thread(() -> pumpHostStdout(project, proc),
+                    "cc-remote-control-pump");
+            pump.setDaemon(true);
+            pump.start();
+        });
+    }
+
+    /** Read the host's stdout, surface the pairing URI once, warn on exit. */
+    private static void pumpHostStdout(Project project, Process proc) {
+        StringBuilder buffer = new StringBuilder();
+        boolean bufferCapped = false;
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(
+                proc.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                if (pairing != null || bufferCapped) continue; // drain only
+                buffer.append(line).append('\n');
+                Map<String, Object> parsed =
+                        RemoteHandoff.extractFirstJsonObject(buffer.toString());
+                if (parsed != null && parsed.get("pairingUri") != null) {
+                    pairing = parsed;
+                    final Map<String, Object> p = parsed;
+                    ApplicationManager.getApplication().invokeLater(
+                            () -> showPairing(project, p));
+                } else if (buffer.length() > PAIRING_BUFFER_CAP) {
+                    bufferCapped = true; // give up parsing; keep draining to EOF
+                }
+            }
+        } catch (IOException ignored) {
+            // child closed / killed
+        }
+        if (host == proc && !stopping) {
+            host = null;
+            pairing = null;
+            ApplicationManager.getApplication().invokeLater(() ->
+                    Messages.showWarningDialog(project,
+                            "The remote-control host exited. Run Remote Control again to"
+                                    + " restart it (a restart issues a fresh pairing URI).",
+                            "Remote Control"));
+        }
     }
 
     private static void showPairing(Project project, Map<String, Object> parsed) {

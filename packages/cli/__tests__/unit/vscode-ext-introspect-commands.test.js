@@ -14,6 +14,7 @@ import {
   buildIntrospectArgs,
   runCliText,
 } from "../../../vscode-extension/src/chat/introspect-commands.js";
+import { escapeCmdArgs } from "../../../vscode-extension/src/win-shell.js";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 
@@ -56,9 +57,16 @@ describe("runCliText (never rejects)", () => {
       cb(null, "  total: $0.01\n", ""),
     );
     await expect(runCliText(opts(execFile))).resolves.toBe("total: $0.01");
+    // On Windows the .cmd shim runs through a shell, so argv is cmd-escaped
+    // (a no-op elsewhere) — this hardens free-form caller input (e.g. the
+    // Plugin Manager's plugin source/registry).
+    const expectedArgs =
+      process.platform === "win32"
+        ? escapeCmdArgs(["cost", "x"])
+        : ["cost", "x"];
     expect(execFile).toHaveBeenCalledWith(
       "cc",
-      ["cost", "x"],
+      expectedArgs,
       expect.any(Object),
       expect.any(Function),
     );

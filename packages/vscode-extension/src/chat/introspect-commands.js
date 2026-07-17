@@ -7,6 +7,7 @@
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { escapeCmdArgs } = require("../win-shell");
 
 /**
  * Build CLI args for an introspection command scoped to a session.
@@ -94,10 +95,14 @@ function runCliText({
   deps,
 } = {}) {
   const run = (deps && deps.execFile) || execFile;
+  const useShell = process.platform === "win32";
   return new Promise((resolve) => {
     run(
       command,
-      args,
+      // Under the Windows shell any caller-supplied argv (e.g. Plugin Manager's
+      // free-form plugin source/registry) must be cmd-escaped or `&`/`|`/`%`
+      // would break the command line or inject a second command.
+      useShell ? escapeCmdArgs(args) : args,
       {
         cwd,
         // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
@@ -106,7 +111,7 @@ function runCliText({
         windowsHide: true,
         maxBuffer: 1024 * 1024,
         // npm global shims on Windows are .cmd files — they need a shell.
-        shell: process.platform === "win32",
+        shell: useShell,
       },
       (err, stdout, stderr) => {
         const out = String(stdout || "").trim();

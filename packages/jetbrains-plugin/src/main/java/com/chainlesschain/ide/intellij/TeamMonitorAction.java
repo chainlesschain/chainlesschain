@@ -4,6 +4,7 @@ import com.chainlesschain.ide.TeamMonitor;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -72,7 +73,7 @@ public final class TeamMonitorAction extends AnAction {
     }
 
     private static void showDialog(Project project, String path) {
-        JTextArea area = new JTextArea(render(path));
+        JTextArea area = new JTextArea("Loading " + path + " …");
         area.setEditable(false);
         area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, area.getFont().getSize()));
         area.setCaretPosition(0);
@@ -80,10 +81,7 @@ public final class TeamMonitorAction extends AnAction {
         scroll.setPreferredSize(new Dimension(680, 460));
 
         JButton refresh = new JButton("Refresh");
-        refresh.addActionListener(ev -> {
-            area.setText(render(path));
-            area.setCaretPosition(0);
-        });
+        refresh.addActionListener(ev -> reload(area, path));
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         top.add(refresh);
 
@@ -91,10 +89,27 @@ public final class TeamMonitorAction extends AnAction {
         panel.add(top, BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
 
+        reload(area, path); // initial load happens off-EDT (see reload)
+
         DialogBuilder b = new DialogBuilder(project);
         b.setTitle("ChainlessChain · Team Monitor");
         b.setCenterPanel(panel);
         b.addOkAction();
         b.show();
+    }
+
+    /**
+     * Re-read + render the state file OFF the EDT (a large / network-drive JSON
+     * would otherwise stall the UI), then push the text back on the EDT. The
+     * modal dialog's nested event loop still processes this invokeLater.
+     */
+    private static void reload(JTextArea area, String path) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String report = render(path);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                area.setText(report);
+                area.setCaretPosition(0);
+            });
+        });
     }
 }

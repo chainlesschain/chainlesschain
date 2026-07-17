@@ -21,6 +21,8 @@
  * titles/workspaces/ids are user- or filesystem-controlled.
  */
 
+const { isBlockingPhase } = require("./phase-attention");
+
 const KINDS = ["chat", "ide", "background", "remote"];
 
 /** The `cc …` argv arrays the workbench needs (state-dir sources excluded). */
@@ -160,14 +162,14 @@ function aggregateSessions({
       status: b.status || "?",
       lastActivity: maxEpoch(last, linked?.lastActivity ?? null),
       // The supervisor's own phase reporter is authoritative for a blocked
-      // worker (phase waiting_permission / needs_input, pendingApprovals>0)
-      // — the linked chat row alone misses background-side approval parks.
+      // worker — the shared isBlockingPhase predicate (waiting_permission /
+      // needs_input / uncertain_side_effect / pendingApprovals>0) keeps this
+      // row's badge from drifting from the Background Agents panel's.
       waitingApproval:
         Boolean(linked?.waitingApproval) ||
+        Boolean(b.attention) ||
         (b.status === "running" &&
-          (b.phase === "waiting_permission" ||
-            b.phase === "needs_input" ||
-            Number(b.pendingApprovals) > 0)),
+          isBlockingPhase(b.phase, b.pendingApprovals)),
       sessionId: b.sessionId || null,
       interactive: Boolean(b.interactive),
     });

@@ -166,14 +166,20 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         /** Deep link: open a file (abs or project-relative) and reveal a 1-based line. */
         void openFileAtLine(String file, int line) {
             if (file == null || file.trim().isEmpty()) return;
-            String raw = file.trim();
-            java.io.File f = new java.io.File(raw);
-            if (!f.isAbsolute() && project.getBasePath() != null) {
-                f = new java.io.File(project.getBasePath(), raw);
-            }
+            // A jetbrains:// URL is untrusted input — the target path MUST be
+            // contained by an open workspace root (mirrors the VS 0.37.16 fix).
+            // Without this a crafted link could open ~/.ssh/id_rsa etc.
+            String basePath = project.getBasePath();
+            com.chainlesschain.ide.IdePathGuard.Result guard =
+                    com.chainlesschain.ide.IdePathGuard.validate(
+                            file.trim(),
+                            basePath != null
+                                    ? java.util.Collections.singletonList(basePath)
+                                    : java.util.Collections.<String>emptyList());
+            if (!guard.ok) return;
             com.intellij.openapi.vfs.VirtualFile vf =
                     com.intellij.openapi.vfs.LocalFileSystem.getInstance()
-                            .refreshAndFindFileByPath(f.getPath().replace('\\', '/'));
+                            .refreshAndFindFileByPath(guard.resolved.replace('\\', '/'));
             if (vf == null) return;
             int row = line >= 1 ? line - 1 : 0;
             new com.intellij.openapi.fileEditor.OpenFileDescriptor(project, vf, row, 0)

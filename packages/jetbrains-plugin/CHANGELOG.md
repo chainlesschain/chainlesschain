@@ -1,5 +1,28 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [Unreleased]
+
+- **`uncertain_side_effect` blocked agents are visible + resumable.** cc
+  0.162.169 parks a resumed turn on `phase:"uncertain_side_effect"` when it
+  finds irreversible ops with unknown outcome. It now classifies as
+  blocked-on-human (row ⚠, Sessions Workbench sort/badge, Resume ungating) — the
+  Resume click on such a session is no longer silently swallowed. The parked
+  question (`needs_input` `pendingQuestion`) and the uncertain-side-effect count
+  now show in the attention text instead of a generic "waiting for approval".
+- **Deep-link file containment.** `jetbrains://…/open?file=…` is untrusted; the
+  target must now resolve inside an open project root (mirrors the VS 0.37.16
+  fix). A crafted link to e.g. `~/.ssh/id_rsa` is refused instead of opened.
+- **No EDT freeze starting Remote Control / Team Monitor / App Preview.**
+  Remote Control "Start host" ran `resolveBinary()` (up to 4×12s `cc --version`
+  probes) + process spawn on the UI thread — a missing `cc` froze the IDE for
+  up to ~48s; Team Monitor read the whole state file on the EDT (initial render
+  and every Refresh); App Preview read package.json + spawned `npm run` on the
+  EDT. All resolve/read/spawn work moved off-EDT, UI touches hop back.
+- **Remote Control host no longer leaks / stalls.** A JVM-exit tree-kill now
+  reaps the host when the IDE closes (it previously outlived the IDE, holding
+  the WS port), and the pre-pairing stdout buffer is capped so a host that
+  never emits parseable pairing JSON can't grow it without bound.
+
 ## [0.4.60] — EDT freeze/deadlock fixes, process-tree kill, blocked-agent visibility, VS-parity ports (2026-07-16)
 
 - **No more EDT freezes on a wedged agent.** `/stop`, `/compact`, approval and

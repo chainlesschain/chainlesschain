@@ -2,6 +2,23 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- **`uncertain_side_effect` blocked agents are visible.** cc 0.162.169's
+  supervisor parks a resumed turn on `phase:"uncertain_side_effect"` when it
+  finds irreversible ops with unknown outcome. The panel now classifies it as
+  blocked-on-human everywhere (summary card, row badge, Sessions Workbench sort)
+  via a single shared predicate — no more reading as a healthy "running" row.
+  The pending question (`needs_input`) and uncertain-side-effect count now show
+  in the badge instead of a bare phase label.
+- **Answer a blocked background agent with no pipe.** A running session blocked
+  on a human but without an interactive transport (no Attach) had no unblock
+  path; it now offers an **Answer** button (`cc daemon resume`).
+- **Windows cmd.exe hardening — two more surfaces.** The Sessions Workbench
+  rename/continue runner and the shared introspection runner (Plugin Manager's
+  free-form plugin source/registry) now cmd-escape argv under the Windows shell,
+  closing the same `&`/`|`/`%` mangling/injection class fixed in 0.37.16.
+
 ## [0.37.16] — Windows cmd.exe hardening, blocked-agent visibility, bug-sweep + stream-event parity (2026-07-16)
 
 - **Windows cmd.exe argv hardening.** Every `cc` spawn on Windows goes through

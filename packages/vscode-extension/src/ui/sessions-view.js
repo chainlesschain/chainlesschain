@@ -21,6 +21,7 @@
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { escapeCmdArgs } = require("../win-shell");
 const {
   buildWorkbenchArgs,
   aggregateSessions,
@@ -52,14 +53,17 @@ function cliCommand(vscode) {
 
 /** Run a `cc …` command, resolve {ok, json|raw, error}. Never rejects. */
 function runCliJson(vscode, args, { timeoutMs = 15000 } = {}) {
+  const useShell = process.platform === "win32"; // cc is a .cmd shim on Windows
   return new Promise((resolve) => {
     execFile(
       cliCommand(vscode),
-      args,
+      // Under the Windows shell, free-form argv (rename titles, continue
+      // prompts) must be cmd-escaped or `&`/`|`/`^` inject a second command.
+      useShell ? escapeCmdArgs(args) : args,
       {
         timeout: timeoutMs,
         windowsHide: true,
-        shell: process.platform === "win32", // cc is a .cmd shim on Windows
+        shell: useShell,
         env: hardenedEnv(process.env),
         maxBuffer: 4 * 1024 * 1024,
       },

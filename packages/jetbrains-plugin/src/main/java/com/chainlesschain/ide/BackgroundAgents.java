@@ -61,12 +61,16 @@ public final class BackgroundAgents {
         public final String pipePath;     // nullable — transport endpoint
         public final String token;        // nullable — transport auth
         public final boolean interactive;
+        /** Unanswered ask_user_question parked by the worker (state pendingQuestion.question); nullable. */
+        public final String pendingQuestion;
+        /** Count of irreversible ops whose outcome is unknown after a resume (0 = none). */
+        public final int uncertainSideEffects;
 
         Session(String id, String status, String lostReason, String phase, int turnCount,
                 int pendingApprovals,
                 String title, String cwd, String sessionId, long startedAt, long endedAt,
                 Integer exitCode, String logFile, String pipePath, String token,
-                boolean interactive) {
+                boolean interactive, String pendingQuestion, int uncertainSideEffects) {
             this.id = id;
             this.status = status;
             this.lostReason = lostReason;
@@ -83,6 +87,14 @@ public final class BackgroundAgents {
             this.pipePath = pipePath;
             this.token = token;
             this.interactive = interactive;
+            this.pendingQuestion = pendingQuestion;
+            this.uncertainSideEffects = uncertainSideEffects;
+        }
+
+        /** True when a human decision is blocking this session. */
+        public boolean needsAttention() {
+            return "running".equals(status)
+                    && BackgroundAgents.needsAttention(phase, pendingApprovals);
         }
     }
 
@@ -224,6 +236,11 @@ public final class BackgroundAgents {
             logFile = dir.resolve(id + ".log").toString();
         }
         boolean interactive = "running".equals(eff[0]) && pipe != null && !pipe.isEmpty();
+        String pendingQuestion = null;
+        Object pq = state.get("pendingQuestion");
+        if (pq instanceof Map) {
+            pendingQuestion = asString(((Map<?, ?>) pq).get("question"));
+        }
         return new Session(
                 id, eff[0], eff[1],
                 asString(state.get("phase")),
@@ -234,7 +251,9 @@ public final class BackgroundAgents {
                 asString(state.get("sessionId")),
                 startedAt,
                 asLong(state.get("endedAt")),
-                exitCode, logFile, pipe, token, interactive);
+                exitCode, logFile, pipe, token, interactive,
+                pendingQuestion,
+                (int) asLong(state.get("uncertainSideEffects"), 0L));
     }
 
     /** Status → count rollup (insertion-ordered). */
@@ -266,6 +285,7 @@ public final class BackgroundAgents {
         if (pendingApprovals > 0) return true;
         String p = phase == null ? "" : phase.trim().toLowerCase().replace('-', '_');
         return "waiting_permission".equals(p) || "needs_input".equals(p)
+                || "uncertain_side_effect".equals(p)
                 || p.contains("approval");
     }
 
@@ -347,12 +367,30 @@ public final class BackgroundAgents {
         return sb.toString();
     }
 
-    /** Short blocking-state text: "waiting for approval (2 pending)" / "waiting for input". */
+    /**
+     * Short blocking-state text, e.g. "waiting for approval (2 pending)",
+     * "waiting for input: Deploy to prod?", or "confirm 3 uncertain side-effects".
+     */
     private static String attentionText(Session s) {
         String p = s.phase == null ? "" : s.phase.trim().toLowerCase().replace('-', '_');
-        String what = "needs_input".equals(p) && s.pendingApprovals <= 0 ? "input" : "approval";
-        return "waiting for " + what
-                + (s.pendingApprovals > 0 ? " (" + s.pendingApprovals + " pending)" : "");
+        if (s.pendingApprovals > 0) {
+            return "waiting for approval (" + s.pendingApprovals + " pending)";
+        }
+        if ("uncertain_side_effect".equals(p)) {
+            return s.uncertainSideEffects > 0
+                    ? "confirm " + s.uncertainSideEffects + " uncertain side-effect"
+                            + (s.uncertainSideEffects > 1 ? "s" : "")
+                    : "confirm uncertain side-effects";
+        }
+        if ("needs_input".equals(p)) {
+            if (s.pendingQuestion != null && !s.pendingQuestion.isEmpty()) {
+                String q = s.pendingQuestion.length() > 140
+                        ? s.pendingQuestion.substring(0, 140) : s.pendingQuestion;
+                return "waiting for input: " + q;
+            }
+            return "waiting for input";
+        }
+        return "waiting for approval";
     }
 
     /** Multi-line detail block for one session (id/cwd/session/log tail). */

@@ -95,12 +95,44 @@ final class BackgroundAgentsTest {
         assertTrue(BackgroundAgents.needsAttention("waiting-permission", 0));
         assertTrue(BackgroundAgents.needsAttention("needs_input", 0));
         assertTrue(BackgroundAgents.needsAttention("waiting_approval", 0));
+        assertTrue(BackgroundAgents.needsAttention("uncertain_side_effect", 0),
+                "resumed-turn side-effect confirmation blocks on the human");
+        assertTrue(BackgroundAgents.needsAttention("uncertain-side-effect", 0));
         assertTrue(BackgroundAgents.needsAttention("working", 3),
                 "pendingApprovals wins over the phase label");
         assertTrue(BackgroundAgents.needsAttention(null, 1));
         assertFalse(BackgroundAgents.needsAttention("working", 0));
         assertFalse(BackgroundAgents.needsAttention("idle", 0));
         assertFalse(BackgroundAgents.needsAttention(null, 0));
+    }
+
+    @Test
+    void uncertainSideEffectPhaseReadsAsConfirm() throws Exception {
+        Path dir = Files.createTempDirectory("cc-bg-test-");
+        long now = 2_000_000L;
+        Files.writeString(dir.resolve("bg-u.json"),
+                "{\"id\":\"bg-u\",\"status\":\"running\",\"startedAt\":1500000,"
+                        + "\"heartbeatAt\":1999000,\"phase\":\"uncertain_side_effect\","
+                        + "\"uncertainSideEffects\":3}");
+        BackgroundAgents.Session s = BackgroundAgents.list(dir, now, null).get(0);
+        assertEquals(3, s.uncertainSideEffects);
+        assertTrue(s.needsAttention(), "uncertain side-effect blocks on the human");
+        String row = BackgroundAgents.formatRow(s, now);
+        assertTrue(row.contains("confirm 3 uncertain side-effects"), row);
+    }
+
+    @Test
+    void pendingQuestionSurfacesInAttentionText() throws Exception {
+        Path dir = Files.createTempDirectory("cc-bg-test-");
+        long now = 2_000_000L;
+        Files.writeString(dir.resolve("bg-pq.json"),
+                "{\"id\":\"bg-pq\",\"status\":\"running\",\"startedAt\":1500000,"
+                        + "\"heartbeatAt\":1999000,\"phase\":\"needs_input\","
+                        + "\"pendingQuestion\":{\"question\":\"Deploy to prod?\"}}");
+        BackgroundAgents.Session s = BackgroundAgents.list(dir, now, null).get(0);
+        assertEquals("Deploy to prod?", s.pendingQuestion);
+        String row = BackgroundAgents.formatRow(s, now);
+        assertTrue(row.contains("waiting for input: Deploy to prod?"), row);
     }
 
     @Test

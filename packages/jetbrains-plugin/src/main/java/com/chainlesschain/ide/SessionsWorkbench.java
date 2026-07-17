@@ -151,7 +151,8 @@ public final class SessionsWorkbench {
             if (s == null || s.id == null || s.id.isEmpty()) continue;
             long last = Math.max(s.startedAt, s.endedAt);
             // Canonical blocking signals (waiting_permission / needs_input /
-            // pendingApprovals>0), not just the legacy *approval* phase label.
+            // uncertain_side_effect / pendingApprovals>0), not just the legacy
+            // *approval* phase label.
             out.add(new Row(s.id, KIND_BACKGROUND,
                     s.title == null ? "" : s.title, s.cwd == null ? "" : s.cwd,
                     s.status, last,

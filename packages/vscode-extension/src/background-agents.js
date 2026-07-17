@@ -14,6 +14,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { isBlockingPhase } = require("./phase-attention");
 
 const HEARTBEAT_STALE_MS = 120000;
 
@@ -225,13 +226,37 @@ function listBackgroundSessions({
     }
     if (!state || typeof state.id !== "string") continue;
     const eff = effectiveStatus(state, { now, deps });
+    const pendingApprovals = Number.isFinite(Number(state.pendingApprovals))
+      ? Number(state.pendingApprovals)
+      : 0;
+    const pendingQuestion =
+      state.pendingQuestion && typeof state.pendingQuestion === "object"
+        ? {
+            question:
+              typeof state.pendingQuestion.question === "string"
+                ? state.pendingQuestion.question
+                : "",
+            options: Array.isArray(state.pendingQuestion.options)
+              ? state.pendingQuestion.options.filter(
+                  (o) => typeof o === "string",
+                )
+              : [],
+          }
+        : null;
     sessions.push({
       id: state.id,
       status: eff.status,
       lostReason: eff.lostReason,
       phase: state.phase || null,
-      pendingApprovals: Number.isFinite(Number(state.pendingApprovals))
-        ? Number(state.pendingApprovals)
+      pendingApprovals,
+      // Blocked-on-human, computed once so every consumer (summary, sort,
+      // badges, resume gating) classifies identically — no re-derived copies.
+      attention:
+        eff.status === "running" &&
+        needsAttention(state.phase, pendingApprovals),
+      pendingQuestion,
+      uncertainSideEffects: Number.isFinite(Number(state.uncertainSideEffects))
+        ? Number(state.uncertainSideEffects)
         : 0,
       turnCount: Number.isFinite(Number(state.turnCount))
         ? Number(state.turnCount)
@@ -256,15 +281,13 @@ function listBackgroundSessions({
 /**
  * A session that is blocked on the human: the supervisor's phase reporter
  * writes `phase:"waiting_permission"` + `pendingApprovals` when the worker
- * parks on an approval (and may write `needs_input` for question blocks).
+ * parks on an approval, `needs_input` for a question block, and
+ * `uncertain_side_effect` when a resumed turn must confirm irreversible ops.
  * Without this the session reads as "running fine" while it silently waits.
+ * Delegates to the shared predicate so every surface classifies alike.
  */
 function needsAttention(phase, pendingApprovals) {
-  return (
-    phase === "waiting_permission" ||
-    phase === "needs_input" ||
-    Number(pendingApprovals) > 0
-  );
+  return isBlockingPhase(phase, pendingApprovals);
 }
 
 /** Status counts + running/interactive totals for the summary cards. */

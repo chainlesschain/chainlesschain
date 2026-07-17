@@ -39,7 +39,7 @@ class SessionsWorkbenchTest {
             long startedAt, long endedAt, String phase, int pendingApprovals) {
         return new BackgroundAgents.Session(id, status, null, phase, -1, pendingApprovals,
                 "", "", sessionId, startedAt, endedAt, null, "", null, null,
-                "running".equals(status));
+                "running".equals(status), null, 0);
     }
 
     private static Map<String, Object> ideRow(String id, String title, String workspace,

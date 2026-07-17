@@ -389,13 +389,22 @@ function renderHtml() {
       const acts = [];
       if (x.interactive) acts.push('<button data-act="attach" data-id="'+esc(x.id)+'">'+(m.attachedId===x.id?'Attached':'Attach')+'</button>');
       if (x.status==='running') acts.push('<button class="sec" data-act="stop" data-id="'+esc(x.id)+'">Stop</button>');
-      if (x.status!=='running' && x.sessionId) acts.push('<button class="sec" data-act="resume" data-id="'+esc(x.id)+'">Resume</button>');
+      // Resume unblocks a stopped session, and — for a blocked running session
+      // with no interactive pipe (no Attach) — is the only way to answer it.
+      if ((x.status!=='running' || (x.attention && !x.interactive)) && x.sessionId)
+        acts.push('<button class="sec" data-act="resume" data-id="'+esc(x.id)+'">'+(x.attention?'Answer':'Resume')+'</button>');
       acts.push('<button class="sec" data-act="rename" data-id="'+esc(x.id)+'">Rename</button>');
-      // A blocked session (waiting_permission / needs_input / pending
-      // approvals) must not read like a healthy "running" row.
-      const blocked = x.status==='running' && (x.phase==='waiting_permission' || x.phase==='needs_input' || (x.pendingApprovals|0) > 0);
+      // A blocked session (waiting_permission / needs_input /
+      // uncertain_side_effect / pending approvals) must not read like a healthy
+      // "running" row. x.attention is computed host-side (single source).
+      const blocked = Boolean(x.attention);
+      let waitDetail = '';
+      if ((x.pendingApprovals|0) > 0) waitDetail = ' ('+x.pendingApprovals+' approval'+(x.pendingApprovals>1?'s':'')+' pending)';
+      else if (x.pendingQuestion && x.pendingQuestion.question) waitDetail = ': '+esc(String(x.pendingQuestion.question).slice(0,140));
+      else if (x.phase==='uncertain_side_effect') waitDetail = ' (confirm '+((x.uncertainSideEffects|0)>0?x.uncertainSideEffects+' ':'')+'uncertain side-effect'+((x.uncertainSideEffects|0)>1?'s':'')+')';
+      else if (x.phase==='needs_input') waitDetail = ' (needs input)';
       const phase = blocked
-        ? ' <span class="wait">⏸ waiting for you'+((x.pendingApprovals|0)>0?(' ('+x.pendingApprovals+' approval'+(x.pendingApprovals>1?'s':'')+' pending)'):'')+'</span>'
+        ? ' <span class="wait">⏸ waiting for you'+waitDetail+'</span>'
         : x.phase ? ' <span class="muted">('+esc(x.phase)+(x.turnCount?(' · turn '+x.turnCount):'')+')</span>' : '';
       const reason = x.lostReason ? ' <span class="muted">'+esc(x.lostReason)+'</span>' : '';
       return '<tr><td class="st '+esc(x.status)+'">'+esc(x.status)+reason+'</td>'
