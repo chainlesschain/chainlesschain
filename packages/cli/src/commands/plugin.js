@@ -89,6 +89,39 @@ function printPluginCapabilityNotice(name, notice, { hint = true } = {}) {
 }
 
 /**
+ * Unified install-command audit for the Plugin-Bin install path (P0 sandbox
+ * slice): the same opt-in trail (CC_INSTALL_AUDIT / settings installPolicy)
+ * that records run_shell installs and run_code auto-installs also records
+ * plugin installs — a plugin ships executable components (bin/hooks/LSP/MCP),
+ * so `cc plugin add` IS "fetch and run third-party code". Best-effort and
+ * opt-in: with the policy off (the default) this writes nothing and the
+ * install result is untouched.
+ */
+async function auditPluginInstall(action, res, installSource, capNotice) {
+  try {
+    const icp = await import("../lib/install-command-policy.js");
+    const policy = icp.resolveInstallPolicy({});
+    if (!policy.audit) return;
+    icp.recordInstallCommandAudit({
+      source: "plugin_install",
+      action, // "add" | "upgrade"
+      install: icp.classifyPluginInstall({
+        name: res.name,
+        version: res.version,
+        scope: res.scope,
+        source:
+          (typeof res.source === "string" && res.source) ||
+          (typeof installSource === "string" ? installSource : null),
+        capabilities: capNotice?.declared || null,
+      }),
+      signatureVerified: res.signatureVerified === true,
+    });
+  } catch {
+    /* the unified audit must never affect the install itself */
+  }
+}
+
+/**
  * Record consent for a freshly installed/upgraded plugin's currently-declared
  * capabilities (re-discovers to get the raw declared set + version). Best-effort
  * — returns false rather than throwing so it can never break an install.
@@ -885,6 +918,7 @@ export function registerPluginCommand(program) {
           res.scope,
           process.cwd(),
         );
+        await auditPluginInstall("add", res, installSource, capNotice);
         if (options.json) {
           // Non-interactive JSON path: honor an explicit --grant-capabilities so
           // scripted installs can consent atomically; never prompt.
@@ -1453,14 +1487,24 @@ export function registerPluginCommand(program) {
         // upgrade that adds a capability shows a `⚠ capability consent required`
         // notice diffed against the prior consent, then either auto-grants
         // (--grant-capabilities) or blocks interactively to re-consent now.
+        const upgradeNotice = await resolvePluginCapabilityNotice(
+          res.name,
+          options.scope,
+          process.cwd(),
+        );
+        // Only a version that actually landed on disk is an install; an
+        // already-up-to-date no-op fetched nothing new to run.
+        if (res.updated || res.reinstalled)
+          await auditPluginInstall(
+            "upgrade",
+            { ...res, scope: options.scope },
+            source,
+            upgradeNotice,
+          );
         await applyCapabilityConsentGate(
           res.name,
           options.scope,
-          await resolvePluginCapabilityNotice(
-            res.name,
-            options.scope,
-            process.cwd(),
-          ),
+          upgradeNotice,
           process.cwd(),
           {
             grant: options.grantCapabilities === true,

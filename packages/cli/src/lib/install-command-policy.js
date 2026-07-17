@@ -280,6 +280,35 @@ export function classifyCodeAcquisition(command) {
 }
 
 /**
+ * Classify a PLUGIN install (`cc plugin add`/`upgrade`) into the unified
+ * "downloading and running third-party code" trail. A plugin ships executable
+ * components (bin/hooks/LSP/MCP servers run as processes), so installing one
+ * is the plugin-runtime sibling of a global package install — same audit
+ * file, same opt-in policy. Pure; returns null for a nameless input.
+ */
+export function classifyPluginInstall({
+  name,
+  version,
+  scope,
+  source,
+  capabilities,
+} = {}) {
+  if (!name || typeof name !== "string") return null;
+  return {
+    manager: "cc-plugin",
+    packages: [version ? `${name}@${version}` : name],
+    // A user-scope plugin loads in EVERY repo the user runs cc in — the
+    // plugin-runtime analogue of `npm install -g`. Project/local scopes stay
+    // confined to one repository.
+    global: scope === "user",
+    ...(source ? { source: String(source) } : {}),
+    ...(Array.isArray(capabilities) && capabilities.length
+      ? { capabilities }
+      : {}),
+  };
+}
+
+/**
  * Resolve the install-command policy from env/settings (opt-in, so the default
  * shell path is byte-unchanged). `audit` enables the audit trail; `riskFloor`
  * ("low"|"medium"|"high") is the MINIMUM risk an install command is treated as

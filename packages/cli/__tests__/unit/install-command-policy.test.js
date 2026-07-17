@@ -9,6 +9,7 @@ import {
   classifyInstallCommand,
   classifyRemoteExecCommand,
   classifyCodeAcquisition,
+  classifyPluginInstall,
   hasGlobalInstall,
   resolveInstallPolicy,
   applyRiskFloor,
@@ -291,5 +292,37 @@ describe("classifyInstallSegment — python -m pip module invocation", () => {
     expect(classifyInstallSegment("python -m venv .venv")).toBeNull();
     // `python script.py install` — no -m, python is not a manager.
     expect(classifyInstallSegment("python setup.py install")).toBeNull();
+  });
+});
+
+describe("classifyPluginInstall (cc plugin add/upgrade)", () => {
+  it("classifies a plugin install into the unified shape", () => {
+    const r = classifyPluginInstall({
+      name: "greeter",
+      version: "1.0.0",
+      scope: "user",
+      source: "https://github.com/x/greeter.git",
+      capabilities: ["process", "network:api.example.com"],
+    });
+    expect(r).toEqual({
+      manager: "cc-plugin",
+      packages: ["greeter@1.0.0"],
+      global: true, // user scope loads in every repo — the -g analogue
+      source: "https://github.com/x/greeter.git",
+      capabilities: ["process", "network:api.example.com"],
+    });
+  });
+
+  it("project/local scopes are not global; optional fields are omitted; nameless → null", () => {
+    const r = classifyPluginInstall({ name: "p", scope: "project" });
+    expect(r.global).toBe(false);
+    expect(classifyPluginInstall({ name: "p", scope: "local" }).global).toBe(
+      false,
+    );
+    expect(r.packages).toEqual(["p"]); // no version → bare name
+    expect("source" in r).toBe(false);
+    expect("capabilities" in r).toBe(false);
+    expect(classifyPluginInstall({})).toBeNull();
+    expect(classifyPluginInstall()).toBeNull();
   });
 });
