@@ -111,6 +111,11 @@ export async function smokeTestExe(ctx) {
         // child.kill on Windows doesn't traverse the process tree; taskkill
         // does. We spawned a single exe with no subprocesses so plain kill
         // is enough in practice, but /T protects us if that ever changes.
+        // Skip when the child has ALREADY exited: Windows recycles pids
+        // within seconds, so taskkilling a dead child's pid can murder an
+        // unrelated process tree that inherited the number (on CI: another
+        // vitest worker or a test's helper child).
+        if (child.exitCode !== null || child.signalCode !== null) return;
         spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {
           stdio: "ignore",
         }).unref();

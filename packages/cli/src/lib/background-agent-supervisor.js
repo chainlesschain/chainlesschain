@@ -135,19 +135,28 @@ function defaultReadProcessStartTimeMs(pid) {
 function defaultKillProcessTree(pid, signal = "SIGKILL") {
   const target = Number(pid);
   if (!Number.isInteger(target) || target <= 0) return false;
+  // Never signal ourselves: no legitimate background-agent record can point at
+  // the process performing the reclaim, so a matching pid is a corrupt/stale
+  // record — killing it would take down the caller (a `cc` CLI process, or a
+  // vitest worker when a test drives this path with a live-looking fixture).
+  if (target === process.pid) return false;
   try {
     if (process.platform === "win32") {
-      const r = spawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
-        windowsHide: true,
-        encoding: "utf8",
-      });
+      const r = _deps.spawnSync(
+        "taskkill",
+        ["/PID", String(target), "/T", "/F"],
+        {
+          windowsHide: true,
+          encoding: "utf8",
+        },
+      );
       return !r.error && r.status === 0;
     }
     try {
-      process.kill(-target, signal);
+      _deps.kill(-target, signal);
       return true;
     } catch {
-      process.kill(target, signal);
+      _deps.kill(target, signal);
       return true;
     }
   } catch {
@@ -158,6 +167,12 @@ function defaultKillProcessTree(pid, signal = "SIGKILL") {
 export const _deps = {
   spawn,
   spawnSync,
+  // Single POSIX signal seam: every kill this module issues goes through here
+  // so tests can stub it — a bare `process.kill` is NOT interceptable and a
+  // fixture recording a live pid would eat a REAL signal (the shard-2/4
+  // "worker-death" CI flake: a stop-flow test recorded pid=process.pid and
+  // SIGTERMed its own vitest worker).
+  kill: (pid, signal) => process.kill(pid, signal),
   readProcessStartTimeMs: defaultReadProcessStartTimeMs,
   killProcessTree: defaultKillProcessTree,
 };
@@ -763,6 +778,21 @@ export function stopBackgroundAgent(id) {
     }
     return { ...state, stopped: false };
   }
+  // Self-pid guard: a worker record whose pid is the CURRENT process is
+  // impossible in legitimate operation (the stopper is never the worker) —
+  // it means a corrupt/hand-edited state file. Signalling it would SIGTERM /
+  // taskkill-tree the very process (and shell tree) running `cc daemon stop`.
+  // Treat as lost, kill nothing.
+  if (Number(state.pid) === process.pid) {
+    const lost = {
+      ...state,
+      status: "lost",
+      endedAt: Date.now(),
+      lostReason: "self-pid-corrupt-record",
+    };
+    writeBackgroundAgentState(lost);
+    return { ...lost, stopped: false };
+  }
   // Gap 1: last-instant identity re-check before the kill — never
   // taskkill/SIGTERM a pid the OS has re-assigned to an unrelated process.
   if (!isSameProcess(state.pid, state.startedAt)) {
@@ -796,9 +826,9 @@ export function stopBackgroundAgent(id) {
     }
   } else {
     try {
-      process.kill(-Number(state.pid), "SIGTERM");
+      _deps.kill(-Number(state.pid), "SIGTERM");
     } catch {
-      process.kill(Number(state.pid), "SIGTERM");
+      _deps.kill(Number(state.pid), "SIGTERM");
     }
     // The worker detaches the agent child into its OWN process group (so a
     // crashed worker's child can be group-killed) — which also means the
@@ -810,15 +840,16 @@ export function stopBackgroundAgent(id) {
       Number.isInteger(agentPid) &&
       agentPid > 0 &&
       agentPid !== Number(state.pid) &&
+      agentPid !== process.pid &&
       Number.isFinite(anchor) &&
       anchor > 0 &&
       isSameProcess(agentPid, anchor)
     ) {
       try {
-        process.kill(-agentPid, "SIGTERM");
+        _deps.kill(-agentPid, "SIGTERM");
       } catch {
         try {
-          process.kill(agentPid, "SIGTERM");
+          _deps.kill(agentPid, "SIGTERM");
         } catch {
           /* already gone */
         }

@@ -34,6 +34,32 @@ const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalKillTree = _deps.killProcessTree;
+const originalKill = _deps.kill;
+
+// Pids of processes REALLY spawned by a test (via the tracking wrapper installed
+// in beforeEach). Only state records that carry one of these pids are reaped in
+// afterEach — fixture records with fabricated pids (43210, 777, process.pid…)
+// must never be signalled: on a busy CI runner a fabricated pid can be a LIVE
+// unrelated process (another vitest worker, a system daemon), and SIGKILLing it
+// was one leg of the shard-2/4 "worker-death" flake.
+const launchedPids = new Set();
+
+// A real, live, NON-SELF process for stop-flow fixtures: passes the
+// isProcessAlive(kill(pid,0)) liveness gate without pointing the kill path at
+// the vitest worker itself (the old fixtures used pid=process.pid for
+// liveness — and the then-uninterceptable POSIX process.kill in
+// stopBackgroundAgent SIGTERMed the worker: the other leg of the flake).
+// Spawned through _deps.spawn (the tracking wrapper), so afterEach reaps it
+// via the state record that carries its pid.
+function spawnSleeperPid() {
+  const child = _deps.spawn(
+    process.execPath,
+    ["-e", "setInterval(()=>{},1000)"],
+    { detached: process.platform !== "win32", stdio: "ignore" },
+  );
+  child.unref();
+  return child.pid;
+}
 
 // Kill a single recorded pid's whole tree. The real-launch tests here spawn a
 // DETACHED worker (its own process group on POSIX) that in turn spawns the
@@ -90,6 +116,14 @@ function reapLaunchedAgents(stateDir) {
     } catch {
       continue;
     }
+    // Only records that belong to a REAL launch (their worker pid came out of
+    // the tracking spawn wrapper) get reaped — and then the whole recorded
+    // family, including the agent grandchild the worker spawned itself.
+    // Fixture records (fabricated pids) are skipped wholesale.
+    const isRealLaunch = [raw.pid, raw.workerPid].some((p) =>
+      launchedPids.has(Number(p)),
+    );
+    if (!isRealLaunch) continue;
     for (const pid of [raw.workerPid, raw.agentPid, raw.pid]) reapTree(pid);
   }
 }
@@ -101,6 +135,20 @@ beforeEach(() => {
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
   _deps.readProcessStartTimeMs = () => null;
+  // Hermetic kills: NO unit test in this file may deliver a real signal —
+  // stop-flow fixtures record live-looking pids, and before this seam existed
+  // the un-interceptable `process.kill` inside stopBackgroundAgent SIGTERMed
+  // the vitest worker itself (the fixture recorded pid=process.pid). Tests
+  // asserting kill delivery read this spy.
+  _deps.kill = vi.fn();
+  // Track every REAL spawn so afterEach reaps exactly what a test launched
+  // (fake spawns installed by individual tests overwrite this wrapper and
+  // their fabricated pids never enter the set).
+  _deps.spawn = (...args) => {
+    const child = originalSpawn(...args);
+    if (child?.pid) launchedPids.add(Number(child.pid));
+    return child;
+  };
 });
 
 afterEach(async () => {
@@ -108,9 +156,14 @@ afterEach(async () => {
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
   _deps.killProcessTree = originalKillTree;
+  _deps.kill = originalKill;
   // Reap real detached worker+agent trees BEFORE removing the state dir (raw
-  // state files carry the pids) so no orphan `node` process outlives the test.
+  // state files carry the pids — needed for agent GRANDCHILDREN a real worker
+  // spawned itself), then every directly-tracked spawn (covers sleepers whose
+  // state record a test already removed, e.g. the --force rm flow).
   reapLaunchedAgents(dir);
+  for (const pid of launchedPids) reapTree(pid);
+  launchedPids.clear();
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
@@ -528,10 +581,14 @@ describe("background agent supervisor", () => {
   it.skipIf(process.platform !== "win32")(
     "stops a running Windows process tree through taskkill",
     () => {
+      // A real live sleeper (non-self) passes the liveness gate; the stubbed
+      // spawnSync absorbs the taskkill so no real signal is delivered — the
+      // sleeper is reaped in afterEach via its state record.
+      const sleeperPid = spawnSleeperPid();
       writeBackgroundAgentState({
         id: "bg-stop-abc",
         status: "running",
-        pid: process.pid,
+        pid: sleeperPid,
         startedAt: Date.now(),
       });
       _deps.spawnSync = vi.fn(() => ({ status: 0 }));
@@ -545,6 +602,50 @@ describe("background agent supervisor", () => {
       );
     },
   );
+
+  it.skipIf(process.platform === "win32")(
+    "stops a running POSIX worker via the injectable kill seam (group first)",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix",
+        status: "running",
+        pid: sleeperPid,
+        startedAt: Date.now(),
+      });
+      const state = stopBackgroundAgent("bg-stop-posix");
+      expect(state.status).toBe("stopped");
+      expect(state.stopped).toBe(true);
+      // Group signal through the seam — never a bare process.kill.
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it("refuses to signal a record whose pid is the current process (corrupt state)", () => {
+    // A worker record can never legitimately point at the stopper itself —
+    // pre-guard, this exact shape SIGTERMed the vitest worker (the shard-2/4
+    // "worker-death" CI flake) and would nuke a user's shell tree on Windows.
+    writeBackgroundAgentState({
+      id: "bg-stop-self",
+      status: "running",
+      pid: process.pid,
+      startedAt: Date.now(),
+    });
+    _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+    const state = stopBackgroundAgent("bg-stop-self");
+    expect(state.stopped).toBe(false);
+    expect(state.status).toBe("lost");
+    expect(state.lostReason).toBe("self-pid-corrupt-record");
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("defaultKillProcessTree never signals the current process", () => {
+    _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+    expect(originalKillTree(process.pid)).toBe(false);
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
 });
 
 describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
@@ -579,17 +680,26 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
   });
 
   it("--force stops the running session first, then removes", () => {
+    // Fabricated (non-self) pid + fail-open identity probe → the stop path
+    // really runs, but the signal lands in the _deps.kill spy / taskkill stub
+    // instead of a live process. (The old fixture recorded pid=process.pid and
+    // the then-uninterceptable POSIX process.kill SIGTERMed the vitest worker
+    // itself — the shard-2/4 "worker-death" CI flake.)
+    const sleeperPid = spawnSleeperPid();
     writeBackgroundAgentState({
       id: "bg-rm-force",
       status: "running",
-      pid: process.pid,
+      pid: sleeperPid,
       startedAt: Date.now(),
       heartbeatAt: Date.now(),
     });
-    _deps.spawnSync = vi.fn(() => ({ status: 0 })); // taskkill / kill stub
+    _deps.spawnSync = vi.fn(() => ({ status: 0 })); // Windows taskkill stub
     const result = removeBackgroundAgent("bg-rm-force", { force: true });
     expect(result.removed).toBe(true);
     expect(existsSync(statePath("bg-rm-force"))).toBe(false);
+    if (process.platform !== "win32") {
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    }
   });
 
   it("--keep-log preserves the log file", () => {
@@ -666,10 +776,13 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
     "stop refuses to taskkill a reused pid — even when the pre-stop reconcile just passed",
     () => {
       const now = Date.now();
+      // Live non-self sleeper: passes the liveness gate without tripping the
+      // self-pid guard (which would preempt the pid-reused path under test).
+      const sleeperPid = spawnSleeperPid();
       writeBackgroundAgentState({
         id: "bg-reuse-stop",
         status: "running",
-        pid: process.pid,
+        pid: sleeperPid,
         startedAt: now - 300_000,
         heartbeatAt: now,
       });

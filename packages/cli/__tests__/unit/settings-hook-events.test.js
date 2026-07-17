@@ -116,11 +116,15 @@ describe("runCwdChangedHooks", () => {
 
   it("threads old_cwd + cwd into the hook stdin payload", () => {
     // The hook reads its stdin JSON and echoes the fields back, proving the
-    // producer built the CwdChanged payload correctly.
+    // producer built the CwdChanged payload correctly. newCwd doubles as the
+    // hook child's spawn cwd, so it must be a REAL directory: a fabricated
+    // "/new" makes spawnSync fail ENOENT on any machine where it doesn't
+    // happen to exist (every CI runner) and the context comes back null.
+    // oldCwd is payload-only — a fake path there is fine.
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.old_cwd+'|'+j.cwd+'|'+j.hook_event_name)})\"";
-    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/old", newCwd: "/new" });
-    expect(r.additionalContext).toBe("/old|/new|CwdChanged");
+    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/old", newCwd: CWD });
+    expect(r.additionalContext).toBe(`/old|${CWD}|CwdChanged`);
   });
 });
 
