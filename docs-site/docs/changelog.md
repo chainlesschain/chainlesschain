@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.170：后台 Agent stop 自杀守卫 + 可注入 kill seam + smoke-runner 死 pid 守卫；发版门 flake 治本后首个无 skip_tests 发版
+
+> CLI-only 发版（`chainlesschain` 0.162.169 → **0.162.170**，经 `npm-publish.yml` 发 npm `latest`）。`packages/cli/src` 仅两文件 + vitest 4.1.10 devDep 升级；未触 `pdh/lib`。**命令数 175 不变**；默认路径字节不变（守卫只在损坏/异常记录上改变行为）。本版是 CI 发版门 worker-death flake（卡 .167/.168/.169 三个发版）治本后的验证发版——test 门首跑即绿、无 `skip_tests`。
+
+- **后台 Agent stop 自杀守卫（真实世界加固）**：`stopBackgroundAgent`/`defaultKillProcessTree` 拒绝向 `pid === process.pid` 的记录发信号（损坏记录 → 标 `lost`、不杀）——此前一份损坏的 state 文件能让 `cc daemon stop` SIGTERM/taskkill 用户自己的 shell 树。
+- **可注入 kill seam**：supervisor 全部 POSIX 信号收进 `_deps.kill` 单一 seam（生产行为不变，测试可注入）。
+- **smoke-runner 死 pid 守卫**：子进程已退出时跳过 Windows `taskkill /T /F`（防 pid 秒级复用误杀顶替者全树）。
+- **vitest 4.1.5 → 4.1.10**（root workspace devDep）：含 4.1.9 真 pool 修复；agent-sdk 保 `^3` 钉版。
+
 #### Added — cc CLI 0.162.169：增量 gap-analysis 收口批——后台 Agent `needs_input`/`uncertain_side_effect` 真实生产者 + IDE stream 路径副作用台账 + post-edit 诊断多根 + plugin 安装入统一 install 审计
 
 > CLI-only 发版（`chainlesschain` 0.162.168 → **0.162.169**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**。默认路径全部字节不变——唯一行为变化限**后台** agent 子进程（`ask_user_question` 从 `user_not_reachable` 变为 park 成 `needs_input`，前台不受影响）。
