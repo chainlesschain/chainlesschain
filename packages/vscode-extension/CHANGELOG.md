@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.17] — uncertain-side-effect visibility, cmd.exe hardening, MCP-stop & leak fixes, checkpoint trace (2026-07-18)
 
 - **`uncertain_side_effect` blocked agents are visible.** cc 0.162.169's
   supervisor parks a resumed turn on `phase:"uncertain_side_effect"` when it

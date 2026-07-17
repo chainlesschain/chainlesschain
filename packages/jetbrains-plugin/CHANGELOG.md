@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [Unreleased]
+## [0.4.61] — uncertain-side-effect visibility, deep-link containment, EDT-freeze & leak fixes, polish (2026-07-18)
 
 - **`uncertain_side_effect` blocked agents are visible + resumable.** cc
   0.162.169 parks a resumed turn on `phase:"uncertain_side_effect"` when it
