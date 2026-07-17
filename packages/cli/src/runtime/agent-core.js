@@ -2210,17 +2210,29 @@ const EDIT_DIAGNOSTICS_WALL_MS = 6000;
  * never cold-starts a server that isn't there) and fully bounded in time.
  * Disable entirely with CC_EDIT_DIAGNOSTICS=0.
  */
-async function _postEditDiagnostics(filePath, cwd) {
+async function _postEditDiagnostics(filePath, cwd, additionalDirectories) {
   if (process.env.CC_EDIT_DIAGNOSTICS === "0") return null;
+  // Multi-root workspace: resolve the server against the root that CONTAINS
+  // the edited file (mirrors the code_intelligence handler) — editing a file
+  // inside an `--add-dir` root probes/uses THAT project's language server
+  // instead of degrading to "no diagnostics" via the cwd root. Single-root
+  // sessions (no additionalDirectories) resolve to cwd exactly as before.
+  let root;
+  try {
+    root = pickRootForFile(
+      path.resolve(cwd || process.cwd(), filePath),
+      workspaceRootsFor(cwd, additionalDirectories),
+    );
+  } catch {
+    root = path.resolve(cwd || process.cwd());
+  }
   let hasServer = false;
   try {
     const { languageIdForFile, resolveServer } =
       await import("../lib/lsp/lsp-server-registry.js");
     const languageId = languageIdForFile(filePath);
     if (!languageId) return null; // unsupported file type — no LSP, no cost
-    hasServer = Boolean(
-      resolveServer(languageId, path.resolve(cwd || process.cwd())),
-    );
+    hasServer = Boolean(resolveServer(languageId, root));
   } catch {
     return null;
   }
@@ -2228,7 +2240,7 @@ async function _postEditDiagnostics(filePath, cwd) {
 
   const query = (async () => {
     try {
-      const ci = await _getSharedCodeIntel(cwd);
+      const ci = await _getSharedCodeIntel(root);
       const res = await ci.refreshFile(filePath, { timeoutMs: 3000 });
       if (!res || res.available === false) return null;
       const diags = (res.diagnostics || []).filter(
@@ -2263,8 +2275,17 @@ async function _postEditDiagnostics(filePath, cwd) {
 }
 
 /** Merge post-edit diagnostics into a successful edit result (no-op if none). */
-async function _withPostEditDiagnostics(result, filePath, cwd) {
-  const newDiagnostics = await _postEditDiagnostics(filePath, cwd);
+async function _withPostEditDiagnostics(
+  result,
+  filePath,
+  cwd,
+  additionalDirectories,
+) {
+  const newDiagnostics = await _postEditDiagnostics(
+    filePath,
+    cwd,
+    additionalDirectories,
+  );
   return newDiagnostics ? { ...result, newDiagnostics } : result;
 }
 
@@ -2570,6 +2591,7 @@ async function executeToolInner(
             { success: true, path: filePath, size: wrote.size },
             filePath,
             cwd,
+            additionalDirectories,
           ),
           filePath,
           cwd,
@@ -2668,6 +2690,7 @@ async function executeToolInner(
             },
             filePath,
             cwd,
+            additionalDirectories,
           ),
           filePath,
           cwd,
@@ -2731,6 +2754,7 @@ async function executeToolInner(
             },
             filePath,
             cwd,
+            additionalDirectories,
           ),
           filePath,
           cwd,

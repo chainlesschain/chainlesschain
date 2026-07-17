@@ -188,6 +188,29 @@ describe("post-edit diagnostics — zero cost without a language server", () => 
     expect(Date.now() - started).toBeLessThan(4000);
   });
 
+  it("edit inside an --add-dir root stays byte-identical when no server exists", async () => {
+    // Multi-root wiring smoke: the containing-root computation must not
+    // disturb the no-server short-circuit or the edit result itself.
+    const rootB = fs.mkdtempSync(path.join(os.tmpdir(), "cc-edit-adddir-"));
+    try {
+      const file = path.join(rootB, "sample.rkt"); // no language server
+      fs.writeFileSync(file, "(define x 1)\n", "utf8");
+      const res = await executeTool(
+        "edit_file",
+        {
+          path: file,
+          old_string: "(define x 1)",
+          new_string: "(define x 2)",
+        },
+        { cwd: tmpDir, additionalDirectories: [rootB] },
+      );
+      expect(res.success).toBe(true);
+      expect(res.newDiagnostics).toBeUndefined();
+    } finally {
+      fs.rmSync(rootB, { recursive: true, force: true });
+    }
+  });
+
   it("respects CC_EDIT_DIAGNOSTICS=0", async () => {
     const prev = process.env.CC_EDIT_DIAGNOSTICS;
     process.env.CC_EDIT_DIAGNOSTICS = "0";
@@ -253,6 +276,43 @@ describe.skipIf(!tsAvailable)("post-edit diagnostics — live TS server", () => 
     expect(res.success).toBe(true);
     expect(Array.isArray(res.newDiagnostics)).toBe(true);
     expect(res.newDiagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
+  it("attaches newDiagnostics for an edit inside an --add-dir root (multi-root)", async () => {
+    // The edited file lives in a SECOND workspace root — post-edit diagnostics
+    // must resolve/probe against that containing root (pickRootForFile), not
+    // the cwd root, so the error still reaches the model.
+    const rootA = fs.mkdtempSync(path.join(os.tmpdir(), "cc-edit-rootA-"));
+    const rootB = fs.mkdtempSync(path.join(os.tmpdir(), "cc-edit-rootB-"));
+    try {
+      fs.writeFileSync(
+        path.join(rootB, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { strict: true } }),
+        "utf8",
+      );
+      const target = path.join(rootB, "n.ts");
+      fs.writeFileSync(
+        target,
+        "export function mul(a: number, b: number): number {\n  return a * b;\n}\n",
+        "utf8",
+      );
+      const res = await executeTool(
+        "edit_file",
+        {
+          path: target,
+          old_string: "return a * b;",
+          new_string: "return a * b * c;",
+        },
+        { cwd: rootA, additionalDirectories: [rootB] },
+      );
+      expect(res.success).toBe(true);
+      expect(Array.isArray(res.newDiagnostics)).toBe(true);
+      expect(res.newDiagnostics.some((d) => d.severity === "error")).toBe(true);
+    } finally {
+      await disposeSharedCodeIntel();
+      fs.rmSync(rootA, { recursive: true, force: true });
+      fs.rmSync(rootB, { recursive: true, force: true });
+    }
   });
 });
 
