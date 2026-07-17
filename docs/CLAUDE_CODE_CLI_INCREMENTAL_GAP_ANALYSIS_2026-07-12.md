@@ -190,10 +190,25 @@ round-trip 到 needs-input）+ `headless-runner.test.js` +2（remote-control con
 后 pending 窗口落 state / 前台恒等）；bg supervisor/dashboard/phase/stability/lifecycle
 回归 109 绿（`90ad4debfe`）。
 
-**仍欠**：`needs_input`（**提问**态，区别于审批）与 `uncertain_side_effect` 仍无生产者——
-headless 一次性回合没有结构化的"agent 在问用户问题"信号（终答是不是问题无结构化标记），
-属 daemon-attach 交互运行时/副作用台账 runtime 的接线；`uncertain_side_effect` 的判定源
-（side-effect ledger reconcile 的 inspect 桶）已在，缺把它折进后台 state 的 daemon seam。
+**已接线（2026-07-17，`needs_input` + `uncertain_side_effect` 真实生产者——状态机生产者收口）**：
+补上最后两个无生产者相位。（i）**`uncertain_side_effect`**：判定源本就在（side-effect ledger
+reconcile 的 **inspect** 桶）——真正的 seam 不在 daemon 而在**resume 的 agent 子进程**：
+headless-runner 的 resume reconcile 分支在 `plan.inspect.length > 0` 时经 phase reporter 新方法
+`reportUncertainSideEffects(count)` 把 `phase:"uncertain_side_effect"` + `uncertainSideEffects`
+计数写进共享 state（reporter 创建提前到 reconcile 之前）；phase 词表/别名/BLOCKING 分组、
+session-lifecycle 映射（→waitingApproval）同步扩齐——Dashboard 把它归入 "Needs input"（unknown
+必须人工确认）。worker 在下一 turn/idle 边界清零注解（verify 回合已走完）。（ii）**`needs_input`
+（提问态，区别于审批）**：结构化信号其实早已存在——`ask_user_question` 工具；缺的是后台子进程里
+它有人接。现后台 turn 子进程（`CC_BACKGROUND_AGENT_ID` 在场）拿到一个 **parking askUser**：把
+`phase:"needs_input"` + `pendingQuestion:{question,options}` 写进共享 state（reporter 新方法
+`reportQuestion`）、然后指示模型结束本回合——用户经 attach 的回复作为下一 turn 到达（worker
+`startTurn` 清 `pendingQuestion`）。新纯核 `idlePhaseFor(state)`：turn 结束进 idle 边界时**未答
+问题保持 `needs_input`** 不降级为 Idle。非后台运行不供 interaction → 既有 `user_not_reachable`
+路径逐字节不变。测试：phase +2 + reporter +5 + integration +3（resume-inspect 上报 / askUser
+park + reportQuestion / 前台无 interaction）= 全绿；dashboard/lifecycle/runner 99 + supervisor/
+stability 65 + realspawn 9 回归绿（`e4eae12a14`）。**仍欠**：mid-turn 的**活**问答通道（把 attach
+回复投递给**阻塞中**的 askUser 而非 park 成下一回合）需要 worker→child 新传输，属 daemon-attach
+交互运行时基建。
 
 ## P0：跨平台沙箱、`run_code` 和凭据代理
 
@@ -293,11 +308,23 @@ policy（`CC_INSTALL_AUDIT`/settings `installPolicy`）开启时经 `recordInsta
 +2 + agent-core-pip-install +2（统一行含 pip 分类 / 默认静默）；shell-approval + run_code 回归
 39 绿（`c8eb8c7342`）。
 
+**已接线（2026-07-17，install 分类扩到 Plugin-Bin 安装路径——三入口收口）**：统一「下载并运行
+第三方代码」trail 的第三个入口——`cc plugin add`/`upgrade` 拉来的插件带可执行组件
+（bin/hooks/LSP/MCP 都以进程运行），本质是 plugin-runtime 版的 `npm install -g`。新纯核
+`classifyPluginInstall`（manager `cc-plugin`、`name@version` 包 token、**仅 user scope 判
+global**——project/local 都是 repo 局限、source URL + 已声明能力 token 随行）；plugin 命令层在
+add 成功后与 upgrade **真落盘**新版本后（up-to-date no-op 不记）经同一 opt-in 策略
+（`CC_INSTALL_AUDIT`/settings `installPolicy`）落 `install-commands.jsonl`
+（`source:"plugin_install"` + `signatureVerified`）。默认（策略关）零写、字节不变；审计
+best-effort 绝不破坏安装。测试：policy 纯核 +2 + `plugin-install-audit.test.js` 3（真 fixture 经
+Commander：默认静默 / add 统一形状 / upgrade 记录 + no-op 不记）；add-notice/consent/
+shell-approval 回归 28 绿（`b8a7e646fc`）。
+
 **仍欠（多为环境/平台阻塞）**：macOS Seatbelt profile；原生 Windows 的 OS 级
 边界（WSL2/容器/受限进程）；把 `run_shell`/`run_code`/Hook/Plugin Bin/LSP/
 MCP stdio 统一收进 Process Sandbox Broker；Python per-session venv + 版本锁 +
-hash 校验；install-command 分类接进 **Plugin-Bin** 安装路径（`run_shell`+`run_code` 已覆）+
-default-on（现 opt-in）；凭据代理 default-on + 逐 host 短期凭据注入接到 egress proxy；三平台真集成
+hash 校验；install-command 分类 default-on（现 opt-in；`run_shell`+`run_code`+**Plugin-Bin 安装**
+三入口已覆）；凭据代理 default-on + 逐 host 短期凭据注入接到 egress proxy；三平台真集成
 测试（子进程链 / symlink·junction / 路径穿越 / 私网·metadata endpoint）。
 
 ## P0：权限来源与跨 Agent 授权边界
@@ -1722,9 +1749,15 @@ builtin）+ `doctor-checkup.test.js` +3（注入 .ts 树 + 强制 registry `exis
 合并。单根会话字节不变。测试：lsp-workspace-roots 12 + agent-core-code-intel +3（退避默认/env=0
 legacy/--add-dir 根 key）；lsp-manager/plugin-lsp 套 93 绿（`d26fdac039`）。
 
-**仍欠（LSP）**：`DiagnosticsScheduler` 随未来流式编辑架构一并接（见上，非本 seam）；
-`_postEditDiagnostics` 的根选择仍恒 cwd（additionalDirectories 未线程到该 seam，编辑 add-dir
-根内文件时诊断走 cwd 根的 server——低危，degrade 到无诊断而非错报）留待。
+**已接线（2026-07-17，post-edit 诊断多根）**：`_postEditDiagnostics` 的根选择不再恒 cwd——
+三个编辑 handler（write_file/edit_file/edit_file_hashed）把 `additionalDirectories` 线程进
+`_withPostEditDiagnostics`，seam 内经已测纯核 `pickRootForFile(workspaceRootsFor(cwd, dirs))`
+用**包含被编辑文件的根**做 server 探测与共享池 key（镜像 code_intelligence handler）——编辑
+`--add-dir` 根内文件时诊断走它自己项目的语言服务器。单根会话解析恒 cwd、字节不变。测试：
++2（多根无 server 短路确定性 smoke + live-TS gated 多根诊断）；code-intel 16 + lsp 套 32 +
+shim parity 50 回归绿（`b90deed41a`）。
+
+**仍欠（LSP）**：`DiagnosticsScheduler` 随未来流式编辑架构一并接（见上，非本 seam）。
 
 ## P2：Doctor、文档与可观测性
 
