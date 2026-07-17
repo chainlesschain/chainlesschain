@@ -242,6 +242,17 @@ function mapAgentEvent(evt, state) {
           (spent && limit ? ` (${spent} of ${limit})` : ""),
       };
     }
+    case "checkpoint":
+      // Auto-snapshot taken before a mutating tool (git shadow-commit). A terse
+      // trace so `/rewind` has a visible anchor; the tool gives it context.
+      return {
+        kind: "info",
+        text:
+          "📸 snapshot" +
+          (typeof evt.tool === "string" && evt.tool
+            ? ` before ${evt.tool}`
+            : ""),
+      };
     case "raw":
       return { kind: "info", text: evt.text };
     default:

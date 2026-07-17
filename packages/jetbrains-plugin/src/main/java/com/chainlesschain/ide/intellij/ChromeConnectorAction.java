@@ -89,26 +89,32 @@ public final class ChromeConnectorAction extends AnAction {
             Map<String, Object> state = ChromeConnector.parseJson(out);
             final String report = ChromeConnector.stateToReport(state);
             ApplicationManager.getApplication().invokeLater(() -> {
-                if (report == null) {
-                    Messages.showWarningDialog(project,
-                            "Could not capture page state — "
-                                    + (state != null && state.get("error") != null
-                                            ? state.get("error") : "no output"),
-                            "Chrome Connector");
-                    return;
+                try {
+                    if (report == null) {
+                        Messages.showWarningDialog(project,
+                                "Could not capture page state — "
+                                        + (state != null && state.get("error") != null
+                                                ? state.get("error") : "no output"),
+                                "Chrome Connector");
+                        return;
+                    }
+                    JTextArea area = new JTextArea(report, 28, 100);
+                    area.setEditable(false);
+                    area.setLineWrap(true);
+                    area.setFont(new Font(Font.MONOSPACED, Font.PLAIN,
+                            area.getFont().getSize()));
+                    JScrollPane scroll = new JScrollPane(area);
+                    scroll.setPreferredSize(new Dimension(880, 480));
+                    DialogBuilder b = new DialogBuilder(project);
+                    b.setTitle("Chrome Connector — Page State");
+                    b.setCenterPanel(scroll);
+                    b.addOkAction().setText("Close");
+                    b.show(); // modal — blocks until the user closes it
+                } finally {
+                    // The screenshot was captured into tmpdir for the report;
+                    // it's shown, not persisted — delete it once the dialog closes.
+                    new File(shot).delete();
                 }
-                JTextArea area = new JTextArea(report, 28, 100);
-                area.setEditable(false);
-                area.setLineWrap(true);
-                area.setFont(new Font(Font.MONOSPACED, Font.PLAIN,
-                        area.getFont().getSize()));
-                JScrollPane scroll = new JScrollPane(area);
-                scroll.setPreferredSize(new Dimension(880, 480));
-                DialogBuilder b = new DialogBuilder(project);
-                b.setTitle("Chrome Connector — Page State");
-                b.setCenterPanel(scroll);
-                b.addOkAction().setText("Close");
-                b.show();
             });
         });
     }

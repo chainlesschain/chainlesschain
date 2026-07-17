@@ -146,14 +146,37 @@ final class ChatComposerImages {
         return false;
     }
 
-    /** Write a raw AWT image to a temp png and attach it to the composer. */
-    private void attachRawImage(java.awt.Image img, String prefix) throws java.io.IOException {
-        java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
-        tmp.deleteOnExit(); // backstop only — eager cleanup owns the normal path
-        javax.imageio.ImageIO.write(toBuffered(img), "png", tmp);
-        pendingImages.add(tmp.getAbsolutePath());
-        ownTemps.add(tmp.getAbsolutePath());
-        updateIndicator();
+    /**
+     * Encode a raw AWT image to a temp png OFF the EDT, then attach it. The
+     * image is already read from the clipboard/drop on the EDT; only the PNG
+     * encode (multi-MB for a 4K screenshot) moves — doing it inline hitched the
+     * paste/drop handler. Best-effort: a failed encode is silently skipped
+     * (the paste was already consumed).
+     */
+    private void attachRawImage(java.awt.Image img, String prefix) {
+        final java.awt.Image src = img;
+        com.intellij.openapi.application.ApplicationManager.getApplication()
+                .executeOnPooledThread(() -> {
+            final String path;
+            try {
+                java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
+                tmp.deleteOnExit(); // backstop only — eager cleanup owns the normal path
+                javax.imageio.ImageIO.write(toBuffered(src), "png", tmp);
+                path = tmp.getAbsolutePath();
+            } catch (java.io.IOException ex) {
+                return; // encode/write failed — skip this image
+            }
+            com.intellij.openapi.application.ApplicationManager.getApplication()
+                    .invokeLater(() -> {
+                if (pendingImages.size() >= ImageAttachments.MAX) {
+                    new java.io.File(path).delete(); // raced past the cap
+                    return;
+                }
+                pendingImages.add(path);
+                ownTemps.add(path);
+                updateIndicator();
+            });
+        });
     }
 
     private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) {

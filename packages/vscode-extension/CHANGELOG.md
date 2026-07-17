@@ -25,6 +25,10 @@ All notable changes to this extension are documented here.
 - **Pasted-image temps cleaned on a failed send.** When a send couldn't reach
   the `cc` process, the temp PNGs written for it were never unlinked (no
   `result` event fires) and leaked in tmp for the panel's lifetime.
+- **Checkpoint snapshots are traced.** The `checkpoint` stream event (an
+  auto-snapshot before a mutating tool) now renders a terse `📸 snapshot before
+  <tool>` line instead of being silently dropped, giving `/rewind` a visible
+  anchor.
 
 ## [0.37.16] — Windows cmd.exe hardening, blocked-agent visibility, bug-sweep + stream-event parity (2026-07-16)
 

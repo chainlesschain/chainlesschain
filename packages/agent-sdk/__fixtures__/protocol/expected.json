@@ -59,6 +59,7 @@
     { "kind": null },
     { "kind": "info", "text": "⏹ cost budget exhausted ($0.52 of $1.00)" },
     { "kind": "turn_end", "isError": true, "text": "partial answer\n⏹ stopped: turn budget exhausted", "hasUsage": false },
-    { "kind": "turn_end", "isError": true, "text": "⏹ stopped: cost budget exhausted", "hasUsage": false }
+    { "kind": "turn_end", "isError": true, "text": "⏹ stopped: cost budget exhausted", "hasUsage": false },
+    { "kind": "info", "text": "📸 snapshot before write_file" }
   ]
 }

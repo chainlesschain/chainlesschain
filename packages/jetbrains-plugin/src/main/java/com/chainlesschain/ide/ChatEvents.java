@@ -200,9 +200,13 @@ public final class ChatEvents {
                     || "user_timeout".equals(errText);
             m.put("isError", isTrue(evt.get("is_error")) && !benign);
             if (benign) {
+                // The panel DOES support interactive questions (question_request
+                // round-trip); this benign path is only reached when the user
+                // couldn't be reached this turn (unreachable/timeout). Wording
+                // matches the VS chat-events.js twin.
                 m.put("note", "ask_user_question".equals(tool)
-                        ? "The panel does not support interactive questions yet — continued with best judgment"
-                        : "Skipped — continuing");
+                        ? "couldn't ask interactively in the panel — proceeding autonomously"
+                        : "skipped — proceeding");
             }
             return m;
         }
@@ -353,6 +357,14 @@ public final class ChatEvents {
         if ("raw".equals(type)) {
             Map<String, Object> m = ui("info");
             m.put("text", str(evt, "text", ""));
+            return m;
+        }
+        if ("checkpoint".equals(type)) {
+            // Auto-snapshot before a mutating tool (git shadow-commit) — a terse
+            // trace so /rewind has a visible anchor; VS chat-events.js twin.
+            Map<String, Object> m = ui("info");
+            String tool = str(evt, "tool", "");
+            m.put("text", "📸 snapshot" + (tool.isEmpty() ? "" : " before " + tool));
             return m;
         }
         return null;

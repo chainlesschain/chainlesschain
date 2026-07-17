@@ -35,6 +35,15 @@
 - **Plan-review temp file cleaned on tab close.** Each conversation leaked one
   `plan-*.md` (deleteOnExit only) for the IDE's lifetime; it's deleted on
   dispose.
+- **Checkpoint snapshots are traced.** The `checkpoint` stream event now
+  renders `📸 snapshot before <tool>` (VS twin) instead of being dropped.
+- **Polish.** Clipboard/drop image PNG encoding moved off the EDT (a 4K
+  screenshot no longer hitches paste); the Background Agents dialog no longer
+  tails the selected log twice per refresh; the Sessions Workbench table
+  computes its columns once per refresh instead of per cell; the Chrome
+  Connector screenshot temp is deleted after its dialog closes; and the
+  ask-user-question fallback note no longer claims the panel “does not support
+  interactive questions” (it has for several releases).
 
 ## [0.4.60] — EDT freeze/deadlock fixes, process-tree kill, blocked-agent visibility, VS-parity ports (2026-07-16)
 

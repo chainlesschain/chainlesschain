@@ -55,6 +55,11 @@ public final class BackgroundAgentsAction extends AnAction {
 
         final java.util.concurrent.atomic.AtomicReference<List<BackgroundAgents.Session>> sessions =
                 new java.util.concurrent.atomic.AtomicReference<>(List.of());
+        // Guards the picker's ActionListener while refresh() swaps the model +
+        // selection programmatically — otherwise that fires the listener and
+        // re-tails the same log the refresh just rendered (a second file read).
+        final java.util.concurrent.atomic.AtomicBoolean syncing =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
 
         // State listing + formatDetail (which tails the log file) are file I/O —
         // gathered on a pooled thread, rendered on the EDT (the old inline run
@@ -76,8 +81,13 @@ public final class BackgroundAgentsAction extends AnAction {
                 final int idx = selIdx;
                 ApplicationManager.getApplication().invokeLater(() -> {
                     sessions.set(list);
-                    picker.setModel(model);
-                    if (idx >= 0) picker.setSelectedIndex(idx);
+                    syncing.set(true);
+                    try {
+                        picker.setModel(model);
+                        if (idx >= 0) picker.setSelectedIndex(idx);
+                    } finally {
+                        syncing.set(false);
+                    }
                     detail.setText(detailText == null
                             ? CcBundle.message("bg.agents.empty") : detailText);
                     detail.setCaretPosition(detail.getDocument().getLength());
@@ -86,6 +96,7 @@ public final class BackgroundAgentsAction extends AnAction {
         };
 
         picker.addActionListener(ev -> {
+            if (syncing.get()) return; // programmatic refresh already rendered detail
             final BackgroundAgents.Session sel = selected(sessions.get(), picker);
             if (sel == null) return;
             // formatDetail tails the log file — off the EDT, render when done

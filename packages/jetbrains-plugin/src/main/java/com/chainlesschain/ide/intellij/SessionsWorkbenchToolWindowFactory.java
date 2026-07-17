@@ -480,6 +480,11 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
     /** Read-only table model over the filtered unified rows. */
     private static final class Model extends AbstractTableModel {
         List<SessionsWorkbench.Row> rows = new ArrayList<>();
+        // Columns precomputed once per setRows — getValueAt is called 5×/row on
+        // every repaint, so calling toColumns() there recomputed all columns per
+        // cell. The "updated" column is relative time, refreshed on the panel's
+        // 15s tick (which rebuilds this model), so per-setRows caching is fine.
+        private List<String[]> cols = new ArrayList<>();
 
         private static final String[] HEADERS = {
                 CcBundle.message("sessions.wb.col.kind"),
@@ -491,6 +496,10 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
 
         void setRows(List<SessionsWorkbench.Row> next) {
             rows = next == null ? new ArrayList<>() : next;
+            long now = System.currentTimeMillis();
+            List<String[]> c = new ArrayList<>(rows.size());
+            for (SessionsWorkbench.Row r : rows) c.add(SessionsWorkbench.toColumns(r, now));
+            cols = c;
             fireTableDataChanged();
         }
 
@@ -501,9 +510,9 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
 
         @Override
         public Object getValueAt(int r, int c) {
-            if (r < 0 || r >= rows.size()) return "";
-            String[] cols = SessionsWorkbench.toColumns(rows.get(r), System.currentTimeMillis());
-            return c >= 0 && c < cols.length ? cols[c] : "";
+            if (r < 0 || r >= cols.size()) return "";
+            String[] cells = cols.get(r);
+            return c >= 0 && c < cells.length ? cells[c] : "";
         }
     }
 }
