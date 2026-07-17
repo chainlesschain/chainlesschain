@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Added — cc CLI 0.162.169：增量 gap-analysis 收口批——后台 Agent `needs_input`/`uncertain_side_effect` 真实生产者 + IDE stream 路径副作用台账 + post-edit 诊断多根 + plugin 安装入统一 install 审计
+
+> CLI-only 发版（`chainlesschain` 0.162.168 → **0.162.169**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**。默认路径全部字节不变——唯一行为变化限**后台** agent 子进程（`ask_user_question` 从 `user_not_reachable` 变为 park 成 `needs_input`，前台不受影响）。
+
+- **P0 后台 Agent：`needs_input` + `uncertain_side_effect` 真实生产者**：最后两个无生产者相位补齐——`uncertain_side_effect`：后台子进程 resume 时 reconcile 出 UNKNOWN 结局的不可逆操作即写相位+计数，Dashboard 归 "Needs input"；`needs_input`（提问态，区别于审批）：后台 `ask_user_question` 现把问题 park 进共享 state（`pendingQuestion`）、指示模型结束回合，attach 回复作为下一 turn；未答问题在 idle 边界不降级为 Idle。前台路径字节不变。
+- **P0-2 IDE stream 路径副作用台账**：crash-safe ledger（记账 + resume verify-before-replay）补全到 IDE 面板驱动的 headless-stream（`--input-format stream-json --resume`）——面板 worker 在 git push/publish 中途被杀后 resume 现有 Recovery notice（system 消息 + `raw/side_effect_recovery` 行，VS 0.37.16 / JB 0.4.60 面板已渲染）。`--ephemeral` 字节不变。
+- **P2 LSP：post-edit 诊断多根**：编辑 `--add-dir` 根内文件时诊断按**包含文件的根**探测/池化语言服务器，不再静默降级为无诊断。单根字节不变。
+- **P0 沙箱：plugin 安装入统一 install 审计（三入口收口）**：`cc plugin add`/`upgrade` 与 run_shell 安装、run_code 自动安装共用同一 opt-in trail（`CC_INSTALL_AUDIT` → `install-commands.jsonl`，`source:"plugin_install"`，仅 user scope 判 global，声明能力 token 随行；up-to-date no-op 不记）。默认零写。
+
 #### Added — IDE 扩展 VS Code 0.37.16 + JetBrains 0.4.60：2026-07-16 bug-sweep + parity 批——Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见（配合 cc 0.162.168）/ budget·retry 流事件契约
 
 > VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批 + 双端 parity 移植；协议契约改动（budget/retry 流事件 fixture）双端原子落地。发版前验证：VS 侧 914 测试全绿 + vsix 解析级包验；JB 侧 JUnit + smokeTest 1213/0 + verifyPlugin Compatible + buildPlugin zip 解析验证。
