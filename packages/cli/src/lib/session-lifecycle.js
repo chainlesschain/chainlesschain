@@ -86,6 +86,9 @@ const STATE_ALIASES = new Map([
   ["waiting-permission", SESSION_STATES.WAITING_APPROVAL],
   ["waiting_approval", SESSION_STATES.WAITING_APPROVAL],
   ["awaiting_approval", SESSION_STATES.WAITING_APPROVAL],
+  // A resumed turn with UNKNOWN-outcome side effects blocks on confirmation.
+  ["uncertain_side_effect", SESSION_STATES.WAITING_APPROVAL],
+  ["uncertain-side-effect", SESSION_STATES.WAITING_APPROVAL],
   // supervisor liveness — a running process that vanished is a failure.
   ["lost", SESSION_STATES.FAILED],
   // IDE connection / transport

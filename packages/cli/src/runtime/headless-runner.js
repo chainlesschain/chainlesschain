@@ -703,6 +703,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // mid-flight does NOT blindly replay an effect that may already have landed.
   // Only active when persisting (an ephemeral/one-shot run can't be resumed);
   // the byte-for-byte default path is untouched when no dangerous tool runs.
+  // Background phase reporter (P0 state-machine producer): when this run IS a
+  // background agent's turn child (CC_BACKGROUND_AGENT_ID set by the worker),
+  // human-blocking windows are surfaced into the shared state file. Created
+  // here — before the resume reconcile below — so an UNKNOWN-outcome side
+  // effect found on resume can be reported too. For every non-background run
+  // this is a disabled no-op.
+  const _bgPhase =
+    deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
+
   const sideEffectRunNonce = String(deps.now ? deps.now() : Date.now());
   let sideEffectLedger = new SideEffectLedger({ clock: deps.now || null });
   let sideEffectSeq = 0;
@@ -765,6 +774,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           writeErr(
             `⚠ ${plan.inspect.length} interrupted side-effect(s) need verification before replay (resume ${resumeId}).\n`,
           );
+          // P0 state machine: a background child resuming with UNKNOWN-outcome
+          // ops advertises `uncertain_side_effect` (dashboard: Needs input) —
+          // someone must confirm before any replay. No-op unless this run is a
+          // background turn child; best-effort by construction.
+          _bgPhase.reportUncertainSideEffects(plan.inspect.length);
         }
       } catch {
         resumeSideEffectContext = null;
@@ -1156,15 +1170,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // IDE context is optional polish — never fail the run over it.
   }
 
-  // Background phase reporter (P0 state-machine producer): when this run IS a
-  // background agent's turn child (CC_BACKGROUND_AGENT_ID set by the worker),
-  // the human-blocking confirmers below surface their pending window as
-  // `phase: "waiting_permission"` + `pendingApprovals` in the shared state
-  // file so the dashboard's "Needs input" group is real, not inferred. For
-  // every non-background run this is a disabled no-op (wrapConfirmer returns
-  // the same function object).
-  const _bgPhase =
-    deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
+  // (`_bgPhase` — the background phase reporter — is created before the resume
+  // reconcile block above; the confirmers below reuse it to surface their
+  // pending window as `phase: "waiting_permission"` + `pendingApprovals`.)
 
   // --permission-prompt-tool: route every CONFIRM-tier approval to an MCP tool
   // (loaded via --mcp-config) instead of headless fail-closed. Overrides the
@@ -1328,6 +1336,31 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,
+    // `ask_user_question` in a BACKGROUND turn child (P0 state-machine
+    // producer for `needs_input`): there is no live channel to a human
+    // mid-turn, but the question IS the structured needs-input signal. Park
+    // it — record `phase: "needs_input"` + the question in the shared state
+    // file (dashboard "Needs input" gets real data; the user's reply arrives
+    // as the next attach prompt) and tell the model to end the turn. A
+    // non-background run supplies no interaction → the handler's existing
+    // `user_not_reachable` path stays byte-identical.
+    ...(_bgPhase.enabled
+      ? {
+          interaction: {
+            askUser: async ({ question, options: qOptions } = {}) => {
+              _bgPhase.reportQuestion({
+                question: typeof question === "string" ? question : "",
+                options: Array.isArray(qOptions) ? qOptions : null,
+              });
+              throw new Error(
+                "question parked for the user (background session). End this " +
+                  "turn now — the user's reply will arrive as the next " +
+                  "message. Do not repeat the question.",
+              );
+            },
+          },
+        }
+      : {}),
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,

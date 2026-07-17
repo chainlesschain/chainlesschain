@@ -299,3 +299,127 @@ describe("headless side-effect ledger — record + resume reconcile", () => {
     expect(countDuplicateCommittedEffects(latestLedger(store.events))).toBe(1);
   });
 });
+
+/** Fake background phase reporter (mirrors background-phase-reporter's API). */
+function makeFakeReporter(enabled = true) {
+  const calls = [];
+  return {
+    calls,
+    enabled,
+    reportUncertainSideEffects(n) {
+      calls.push(["uncertain", n]);
+      return true;
+    },
+    reportQuestion(q) {
+      calls.push(["question", q]);
+      return true;
+    },
+    wrapConfirmer(c) {
+      return c;
+    },
+    beginApproval() {},
+    endApproval() {},
+    pendingCount() {
+      return 0;
+    },
+  };
+}
+
+describe("background state-machine producers (uncertain_side_effect + needs_input)", () => {
+  it("a background child resuming with UNKNOWN-outcome ops reports uncertain_side_effect", async () => {
+    const store = makeStore();
+    const crashLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "git",
+        args: { command: "push origin main" },
+      };
+      yield { type: "run-ended", reason: "complete" }; // no tool-result → started/unsettled
+    };
+    await runAgentHeadless(
+      {
+        prompt: "push it",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 1000,
+      },
+      baseDeps(store, crashLoop),
+    );
+
+    const reporter = makeFakeReporter(true);
+    const resumeLoop = async function* () {
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "continue",
+        resume: "sid",
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 2000,
+      },
+      {
+        ...baseDeps(store, resumeLoop),
+        writeErr: () => {},
+        backgroundPhaseReporter: reporter,
+      },
+    );
+
+    expect(reporter.calls).toContainEqual(["uncertain", 1]);
+  });
+
+  it("a background child parks ask_user_question as needs_input and tells the model to end the turn", async () => {
+    const store = makeStore();
+    const reporter = makeFakeReporter(true);
+    let loopOptions = null;
+    const loop = async function* (_messages, options) {
+      loopOptions = options;
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "ask me something",
+        outputFormat: "json",
+        expandFileRefs: false,
+        persistSession: false,
+      },
+      { ...baseDeps(store, loop), backgroundPhaseReporter: reporter },
+    );
+
+    expect(loopOptions.interaction).toBeTruthy();
+    await expect(
+      loopOptions.interaction.askUser({
+        question: "Deploy to prod?",
+        options: ["yes", "no"],
+      }),
+    ).rejects.toThrow(/parked for the user/i);
+    expect(reporter.calls).toContainEqual([
+      "question",
+      { question: "Deploy to prod?", options: ["yes", "no"] },
+    ]);
+  });
+
+  it("a non-background run supplies NO interaction (user_not_reachable path unchanged)", async () => {
+    const store = makeStore();
+    const reporter = makeFakeReporter(false); // disabled — foreground run
+    let loopOptions = null;
+    const loop = async function* (_messages, options) {
+      loopOptions = options;
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "hello",
+        outputFormat: "json",
+        expandFileRefs: false,
+        persistSession: false,
+      },
+      { ...baseDeps(store, loop), backgroundPhaseReporter: reporter },
+    );
+
+    expect(loopOptions.interaction).toBeUndefined();
+    expect(reporter.calls).toEqual([]);
+  });
+});

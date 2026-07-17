@@ -96,6 +96,43 @@ export function createBackgroundPhaseReporter(opts = {}) {
       }
     },
     /**
+     * A resumed run found side-effect ops whose outcome is UNKNOWN (the
+     * ledger reconcile "inspect" bucket): surface `uncertain_side_effect` so
+     * the dashboard demands a look before anything is replayed. The worker
+     * clears the count at the next turn/idle boundary (the verify turn has
+     * then run its course), so this is a within-window annotation, not a
+     * sticky flag. Best-effort; returns whether the state was patched.
+     */
+    reportUncertainSideEffects(count) {
+      if (!enabled) return false;
+      const n = Number(count);
+      if (!Number.isFinite(n) || n <= 0) return false;
+      return patch({
+        phase: "uncertain_side_effect",
+        uncertainSideEffects: Math.floor(n),
+      });
+    },
+    /**
+     * The model asked the user a question in a background turn
+     * (`ask_user_question`): there is no live channel to a human mid-turn, so
+     * the question is PARKED — recorded in the shared state as
+     * `pendingQuestion` with `phase: "needs_input"` (distinct from
+     * waiting_permission: this is a question, not an approval). The worker
+     * keeps `needs_input` through the idle boundary while the question is
+     * unanswered and clears it when the user's reply starts the next turn.
+     */
+    reportQuestion(question) {
+      if (!enabled) return false;
+      const q = question && typeof question === "object" ? question : null;
+      return patch({
+        phase: "needs_input",
+        pendingQuestion: {
+          question: typeof q?.question === "string" ? q.question : "",
+          options: Array.isArray(q?.options) ? q.options : null,
+        },
+      });
+    },
+    /**
      * Wrap a (potentially human-blocking) confirmer so the pending window is
      * visible in the background state. Disabled → returns `confirmer`
      * unchanged (same object identity, zero overhead).

@@ -34,6 +34,11 @@ export const BACKGROUND_AGENT_PHASES = Object.freeze({
   IDLE: "idle",
   NEEDS_INPUT: "needs_input",
   WAITING_PERMISSION: "waiting_permission",
+  // A resumed turn found irreversible side-effect operations whose outcome is
+  // UNKNOWN (the side-effect ledger's "inspect" bucket): the previous run died
+  // mid-flight, so a human/model must confirm before any replay. Grouped with
+  // the blocking phases — this is genuinely "look at me before continuing".
+  UNCERTAIN_SIDE_EFFECT: "uncertain_side_effect",
 });
 
 /**
@@ -56,6 +61,8 @@ const PHASE_ALIASES = new Map([
   ["waiting-permission", BACKGROUND_AGENT_PHASES.WAITING_PERMISSION],
   ["waiting_approval", BACKGROUND_AGENT_PHASES.WAITING_PERMISSION],
   ["awaiting_approval", BACKGROUND_AGENT_PHASES.WAITING_PERMISSION],
+  ["uncertain_side_effect", BACKGROUND_AGENT_PHASES.UNCERTAIN_SIDE_EFFECT],
+  ["uncertain-side-effect", BACKGROUND_AGENT_PHASES.UNCERTAIN_SIDE_EFFECT],
 ]);
 
 /**
@@ -71,6 +78,7 @@ export function normalizeBackgroundAgentPhase(value) {
 const BLOCKING_PHASES = new Set([
   BACKGROUND_AGENT_PHASES.NEEDS_INPUT,
   BACKGROUND_AGENT_PHASES.WAITING_PERMISSION,
+  BACKGROUND_AGENT_PHASES.UNCERTAIN_SIDE_EFFECT,
 ]);
 
 /**
@@ -85,6 +93,20 @@ const BLOCKING_PHASES = new Set([
  * `pendingApprovals` wins over `phase` because an approval that is genuinely
  * pending blocks progress regardless of the phase label the worker last wrote.
  */
+/**
+ * Phase the worker should persist when a turn ends and the session parks
+ * between turns. Normally that is `idle` — but when the turn's child parked an
+ * unanswered `ask_user_question` in the state file (`pendingQuestion`), the
+ * session is genuinely blocked on the user's reply and must keep advertising
+ * `needs_input` instead of demoting itself to Idle. Pure so the worker and
+ * tests share one rule.
+ */
+export function idlePhaseFor(state) {
+  return state && state.pendingQuestion
+    ? BACKGROUND_AGENT_PHASES.NEEDS_INPUT
+    : BACKGROUND_AGENT_PHASES.IDLE;
+}
+
 export function phaseGroupKey(session) {
   const status = session?.status;
   if (status === "running") {

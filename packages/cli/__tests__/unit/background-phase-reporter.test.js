@@ -129,6 +129,104 @@ describe("createBackgroundPhaseReporter — pending window", () => {
   });
 });
 
+describe("reportUncertainSideEffects", () => {
+  it("writes uncertain_side_effect phase + count and classifies as needs-input", async () => {
+    const { phaseGroupKey } =
+      await import("../../src/lib/background-agent-phase.js");
+    const store = makeStore({
+      "bg-1": { id: "bg-1", status: "running", phase: "turn", turnCount: 2 },
+    });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+
+    expect(reporter.reportUncertainSideEffects(3)).toBe(true);
+    expect(store.states.get("bg-1")).toMatchObject({
+      phase: "uncertain_side_effect",
+      uncertainSideEffects: 3,
+      turnCount: 2, // merge, not replace
+    });
+    expect(phaseGroupKey(store.states.get("bg-1"))).toBe("needs-input");
+  });
+
+  it("ignores zero/negative/NaN counts and stays disabled without an id", () => {
+    const store = makeStore({ "bg-1": { id: "bg-1", status: "running" } });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+    expect(reporter.reportUncertainSideEffects(0)).toBe(false);
+    expect(reporter.reportUncertainSideEffects(-1)).toBe(false);
+    expect(reporter.reportUncertainSideEffects("nope")).toBe(false);
+    expect(store.states.get("bg-1").phase).toBeUndefined();
+
+    const writeState = vi.fn();
+    const disabled = createBackgroundPhaseReporter({
+      agentId: null,
+      readState: vi.fn(),
+      writeState,
+    });
+    expect(disabled.reportUncertainSideEffects(2)).toBe(false);
+    expect(writeState).not.toHaveBeenCalled();
+  });
+
+  it("never resurrects a terminal session", () => {
+    const store = makeStore({
+      "bg-1": { id: "bg-1", status: "stopped" },
+    });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+    expect(reporter.reportUncertainSideEffects(1)).toBe(false);
+    expect(store.states.get("bg-1")).toEqual({ id: "bg-1", status: "stopped" });
+  });
+});
+
+describe("reportQuestion", () => {
+  it("parks the question as needs_input with a serializable pendingQuestion", async () => {
+    const { phaseGroupKey } =
+      await import("../../src/lib/background-agent-phase.js");
+    const store = makeStore({ "bg-1": { id: "bg-1", status: "running" } });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+
+    expect(
+      reporter.reportQuestion({ question: "Deploy?", options: ["yes", "no"] }),
+    ).toBe(true);
+    expect(store.states.get("bg-1")).toMatchObject({
+      phase: "needs_input",
+      pendingQuestion: { question: "Deploy?", options: ["yes", "no"] },
+    });
+    expect(phaseGroupKey(store.states.get("bg-1"))).toBe("needs-input");
+  });
+
+  it("normalizes malformed input and is a no-op when disabled", () => {
+    const store = makeStore({ "bg-1": { id: "bg-1", status: "running" } });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+    expect(reporter.reportQuestion(null)).toBe(true);
+    expect(store.states.get("bg-1").pendingQuestion).toEqual({
+      question: "",
+      options: null,
+    });
+
+    const writeState = vi.fn();
+    const disabled = createBackgroundPhaseReporter({
+      agentId: "",
+      readState: vi.fn(),
+      writeState,
+    });
+    expect(disabled.reportQuestion({ question: "hi" })).toBe(false);
+    expect(writeState).not.toHaveBeenCalled();
+  });
+});
+
 describe("wrapConfirmer", () => {
   it("reports the pending window around the confirmer and passes through the verdict", async () => {
     const store = makeStore({ "bg-1": { id: "bg-1", status: "running" } });

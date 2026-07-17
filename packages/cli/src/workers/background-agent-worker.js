@@ -24,6 +24,7 @@ import {
   writeBackgroundAgentState,
 } from "../lib/background-agent-supervisor.js";
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
+import { idlePhaseFor } from "../lib/background-agent-phase.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -128,6 +129,11 @@ function startTurn(argv, promptText) {
     // if the previous turn's child was hard-killed mid-approval (the child's
     // phase reporter clears on settle, but SIGKILL never settles).
     pendingApprovals: 0,
+    // The incoming prompt IS the user's reply to any parked question, and the
+    // uncertain-side-effect annotation only covers the verify turn it was
+    // raised in — both reset at the turn boundary.
+    pendingQuestion: null,
+    uncertainSideEffects: 0,
     agentPid: child.pid,
     // Identity anchor for the supervisor's orphan reclaim (Gap 2): pairs
     // with agentPid the way startedAt pairs with the worker pid, so a
@@ -167,13 +173,20 @@ function maybeContinue() {
     return;
   }
   if (server && server.clientCount() > 0) {
-    phase = "idle";
+    // Parked between turns. Normally `idle` — but a turn that parked an
+    // unanswered ask_user_question stays `needs_input` until the user's reply
+    // starts the next turn (the reply prompt clears pendingQuestion).
+    phase = idlePhaseFor(current);
     mergeState({
       phase,
-      // Between turns nothing can be pending — the approval-owning child has
-      // exited. Honest zero keeps a killed-mid-approval count from parking
-      // the session in "Needs input" forever.
+      // Between turns no APPROVAL can be pending — the approval-owning child
+      // has exited. Honest zero keeps a killed-mid-approval count from
+      // parking the session in "Needs input" forever. (A parked QUESTION is
+      // different: it awaits the user, so pendingQuestion survives idle.)
       pendingApprovals: 0,
+      // The verify turn for any uncertain side effects has now run its
+      // course — the annotation does not outlive it.
+      uncertainSideEffects: 0,
       agentPid: null,
       agentStartedAt: null,
       heartbeatAt: Date.now(),

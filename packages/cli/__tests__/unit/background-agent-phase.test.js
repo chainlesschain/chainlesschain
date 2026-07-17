@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import {
   BACKGROUND_AGENT_PHASES,
+  idlePhaseFor,
   normalizeBackgroundAgentPhase,
   phaseGroupKey,
 } from "../../src/lib/background-agent-phase.js";
@@ -50,6 +51,14 @@ describe("normalizeBackgroundAgentPhase", () => {
     );
   });
 
+  it("recognizes uncertain_side_effect (snake and kebab)", () => {
+    for (const v of ["uncertain_side_effect", "uncertain-side-effect"]) {
+      expect(normalizeBackgroundAgentPhase(v)).toBe(
+        BACKGROUND_AGENT_PHASES.UNCERTAIN_SIDE_EFFECT,
+      );
+    }
+  });
+
   it("is case/whitespace tolerant and null-safe for unknown/absent input", () => {
     expect(normalizeBackgroundAgentPhase("  IDLE  ")).toBe(
       BACKGROUND_AGENT_PHASES.IDLE,
@@ -82,6 +91,10 @@ describe("phaseGroupKey", () => {
     expect(
       phaseGroupKey({ status: "running", phase: "waiting_permission" }),
     ).toBe("needs-input");
+    // UNKNOWN-outcome side effects on resume demand a look before replay.
+    expect(
+      phaseGroupKey({ status: "running", phase: "uncertain_side_effect" }),
+    ).toBe("needs-input");
   });
 
   it("lets a pending approval override the phase label", () => {
@@ -104,6 +117,19 @@ describe("phaseGroupKey", () => {
       "working",
     );
     expect(phaseGroupKey({ status: "running" })).toBe("working");
+  });
+
+  it("idlePhaseFor keeps needs_input while a parked question is unanswered", () => {
+    // The worker's between-turns merge uses this rule: an unanswered
+    // ask_user_question must not demote the session to Idle.
+    expect(idlePhaseFor({ pendingQuestion: { question: "Deploy?" } })).toBe(
+      BACKGROUND_AGENT_PHASES.NEEDS_INPUT,
+    );
+    expect(idlePhaseFor({ pendingQuestion: null })).toBe(
+      BACKGROUND_AGENT_PHASES.IDLE,
+    );
+    expect(idlePhaseFor({})).toBe(BACKGROUND_AGENT_PHASES.IDLE);
+    expect(idlePhaseFor(null)).toBe(BACKGROUND_AGENT_PHASES.IDLE);
   });
 
   it("maps terminal statuses to their own groups; lost/unknown → failed", () => {
