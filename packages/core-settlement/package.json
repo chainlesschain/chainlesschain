@@ -32,6 +32,6 @@
   "devDependencies": {
     "@chainlesschain/core-multisig": "*",
     "sql.js": "^1.10.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.10"
   }
 }
