@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.61：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾（上架待发）
+
+> VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.61`**。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible。
+
+- **`uncertain_side_effect` 阻塞可见（双端）**：面板此前把该相位当健康 "running"；现归入"等人"类（摘要卡/徽章/工作台排序,JB Resume 解禁）,徽章直接展示 parked question 与 uncertain 计数;无管道阻塞会话补 **Answer** 按钮。
+- **JB deep-link 文件包含性**：`jetbrains://…/open?file=…` 必须解析进 project root,拒开 `~/.ssh/id_rsa` 类目标（对齐 VS 0.37.16）。
+- **VS cmd.exe argv 加固收尾**：Sessions 工作台 runner + Plugin Manager introspection runner 补 cmd 转义。
+- **JB EDT 冻结清尾**：Remote Control/Team Monitor/App Preview 的探测/读文件/spawn 全部移出 UI 线程（缺 `cc` 不再冻 ~48s）；remote-control host 加 JVM 退出树杀。
+- **P2 加固/泄漏批**：VS MCP stop 强关连接 + 粘贴图临时文件清理；JB /handoff 竞态、git 撕裂读、刷新守卫 finally、plan-review 临时文件泄漏。
+- **checkpoint 快照可见（VS）**：`checkpoint` 流事件渲染 `📸 snapshot before <tool>` 行,`/rewind` 锚点可见。
+
 #### Added — cc CLI 0.162.170：后台 Agent stop 自杀守卫 + 可注入 kill seam + smoke-runner 死 pid 守卫；发版门 flake 治本后首个无 skip_tests 发版
 
 > CLI-only 发版（`chainlesschain` 0.162.169 → **0.162.170**，经 `npm-publish.yml` 发 npm `latest`）。`packages/cli/src` 仅两文件 + vitest 4.1.10 devDep 升级；未触 `pdh/lib`。**命令数 175 不变**；默认路径字节不变（守卫只在损坏/异常记录上改变行为）。本版是 CI 发版门 worker-death flake（卡 .167/.168/.169 三个发版）治本后的验证发版——test 门首跑即绿、无 `skip_tests`。

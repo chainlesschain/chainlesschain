@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.61：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾（上架待发）
+
+> VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.61`**。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账：0.37.16 已渲染的 `raw/side_effect_recovery` 恢复行之外，面板现在把两个新相位也当真数据消费。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible。
+
+- **`uncertain_side_effect` 阻塞可见（双端）**：cc 0.162.169 在 resume 发现 UNKNOWN 结局不可逆操作时把会话停在 `phase:"uncertain_side_effect"`——面板此前把它当健康 "running" 渲染。现经单一共享判定归入"等人"类（摘要卡/行徽章/Sessions 工作台排序；JB 侧 Resume 对此类会话解禁，点击不再被静默吞掉）；徽章/attention 文案直接展示 parked question（`needs_input` 的 `pendingQuestion`）与 uncertain 计数，而非裸相位名。无管道的阻塞会话补 **Answer** 按钮（`cc daemon resume`）。
+- **JB deep-link 文件包含性**：`jetbrains://…/open?file=…` 目标必须解析进打开的 project root（对齐 VS 0.37.16 同款修复）——构造链接指向 `~/.ssh/id_rsa` 一类路径现在被拒开。
+- **VS cmd.exe argv 加固两处收尾**：Sessions 工作台 rename/continue runner 与共享 introspection runner（Plugin Manager 自由输入的 source/registry）补 cmd 转义，收口 0.37.16 同类注入/撕裂面。
+- **JB EDT 冻结清尾**：Remote Control 启动（至多 4×12s `cc --version` 探测 + spawn）、Team Monitor 整文件读、App Preview（package.json 读 + `npm run` spawn）全部移出 UI 线程——缺 `cc` 时 IDE 不再冻 ~48s；remote-control host 加 JVM 退出树杀 + pairing 缓冲封顶。
+- **P2 加固/泄漏批**：VS——MCP `stop()` 强关活连接（挂着的 `openDiff` 评审不再卡死 Restart Bridge/关窗）、发送失败的粘贴图临时 PNG 即删；JB——`/handoff` 后台 spawn 收进单线程 sendExecutor（消除同会话双写者竞态）、WorktreeTasksAction git 捕获防撕裂读、SessionsWorkbench 自动刷新 in-flight 守卫入 finally（异常不再把面板钉死在旧数据）、plan-review 临时 .md dispose 即删。
+- **checkpoint 快照可见（VS）**：`checkpoint` 流事件渲染为 `📸 snapshot before <tool>` 行而非静默丢弃——`/rewind` 的锚点从此可见。
+
 ### Added — cc CLI 0.162.170：后台 Agent stop 自杀守卫 + 可注入 kill seam + smoke-runner 死 pid 守卫；发版门 flake 治本后首个无 skip_tests 发版（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.169 → **0.162.170** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。CLI-only：`packages/cli/src` 仅两文件（+ vitest 4.1.5→4.1.10 devDep 升级与测试）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**；默认路径字节不变（守卫只在损坏/异常记录上改变行为）。本版同时是 CI 发版门 worker-death flake（卡了 .167/.168/.169 三个发版、cli-ci 30+ 连败）治本（trap #34）后的**验证发版**——test 门应首跑即绿、无需 `skip_tests`。
