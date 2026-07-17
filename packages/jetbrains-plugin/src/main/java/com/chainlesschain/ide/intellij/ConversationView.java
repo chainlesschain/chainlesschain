@@ -899,25 +899,33 @@ final class ConversationView {
                 "Hand Off Session", null, "Continue the current task.", null);
         final String prompt = raw == null ? "" : raw.trim();
         if (prompt.isEmpty()) return;
-        restartForModeChange(); // stop the live child — the bg worker takes over
+        restartForModeChange(); // queues the live child's stop on sendExecutor
         final String sid = conv.sessionId;
         final File cwd = project.getBasePath() != null
                 ? new File(project.getBasePath()) : null;
         append("ℹ handing off to a background agent…\n");
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            String out = AgentChatSession.runCapture(
-                    RemoteHandoff.buildHandoffArgs(sid, prompt), cwd, 60000);
-            final Map<String, Object> state = RemoteHandoff.parseBackgroundState(out);
-            SwingUtilities.invokeLater(() -> {
-                if (state == null) {
-                    append("⚠ handoff failed — the background launcher returned no state"
-                            + " (is `cc` current?)\n");
-                    return;
-                }
-                indexConversation("running"); // the session runs on — detached
-                append("ℹ " + RemoteHandoff.formatHandoffNote(state) + "\n");
+        // Queue the bg spawn on the SAME single-threaded sendExecutor, AFTER the
+        // stop restartForModeChange just enqueued — otherwise the general pool
+        // could launch `cc agent --bg --resume <sid>` while the panel child is
+        // still alive, giving one session two writers.
+        try {
+            sendExecutor.execute(() -> {
+                String out = AgentChatSession.runCapture(
+                        RemoteHandoff.buildHandoffArgs(sid, prompt), cwd, 60000);
+                final Map<String, Object> state = RemoteHandoff.parseBackgroundState(out);
+                SwingUtilities.invokeLater(() -> {
+                    if (state == null) {
+                        append("⚠ handoff failed — the background launcher returned no state"
+                                + " (is `cc` current?)\n");
+                        return;
+                    }
+                    indexConversation("running"); // the session runs on — detached
+                    append("ℹ " + RemoteHandoff.formatHandoffNote(state) + "\n");
+                });
             });
-        });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            // executor already shut down (dispose in progress) — nothing to hand off
+        }
     }
 
     /**
@@ -1680,5 +1688,15 @@ final class ConversationView {
         }
         deleteAllSentImageTemps();
         images.clearAll(); // also delete pending-but-unsent own temp pngs
+        if (planReviewFile != null) {
+            // deleteOnExit() alone leaked one plan-*.md per conversation for the
+            // whole IDE lifetime — delete it now that the tab is gone.
+            try {
+                Files.deleteIfExists(planReviewFile.toPath());
+            } catch (Exception ignored) {
+                // deleteOnExit remains the backstop
+            }
+            planReviewFile = null;
+        }
     }
 }

@@ -18,6 +18,13 @@ All notable changes to this extension are documented here.
   rename/continue runner and the shared introspection runner (Plugin Manager's
   free-form plugin source/registry) now cmd-escape argv under the Windows shell,
   closing the same `&`/`|`/`%` mangling/injection class fixed in 0.37.16.
+- **Restart Bridge no longer blocks on a pending diff.** The MCP server's
+  `stop()` now force-closes live connections; before, with request/socket
+  timeouts disabled and an `openDiff` response held open for the review,
+  Restart Bridge / window close would hang until the human answered the diff.
+- **Pasted-image temps cleaned on a failed send.** When a send couldn't reach
+  the `cc` process, the temp PNGs written for it were never unlinked (no
+  `result` event fires) and leaked in tmp for the panel's lifetime.
 
 ## [0.37.16] — Windows cmd.exe hardening, blocked-agent visibility, bug-sweep + stream-event parity (2026-07-16)
 

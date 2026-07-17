@@ -1655,6 +1655,10 @@ class ChatViewProvider {
             "installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, " +
             "or set chainlesschain.cli.path)",
         });
+        // The send failed, so no `result` event will ever fire to clean up the
+        // temp pngs we tracked above — unlink them now, or they leak in tmp for
+        // the panel's lifetime (one set per failed send).
+        if (images.length) this._cleanupImageTemps(this._convs.activeId());
       }
     } else if (m.type === "plan") {
       // Plan controls ride the same stdin protocol; entering plan mode may

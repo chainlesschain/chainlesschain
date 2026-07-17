@@ -22,6 +22,19 @@
   reaps the host when the IDE closes (it previously outlived the IDE, holding
   the WS port), and the pre-pairing stdout buffer is capped so a host that
   never emits parseable pairing JSON can't grow it without bound.
+- **`/handoff` single-writer ordering.** The background spawn now runs on the
+  same single-threaded executor as (and after) the live child's stop, so
+  `cc agent --bg --resume` can't start while the panel child is still alive —
+  no more two writers on one session.
+- **Worktree task git output can't tear.** The command-capture buffers are now
+  `StringBuffer`; a pump thread appending while the final read ran could garble
+  the worktree list / merge-conflict preview into a wrong verdict.
+- **Sessions Workbench auto-refresh can't wedge.** An exception in aggregation
+  or filtering left the in-flight guard stuck true, freezing the panel on stale
+  data until IDE restart; it's now cleared in a finally.
+- **Plan-review temp file cleaned on tab close.** Each conversation leaked one
+  `plan-*.md` (deleteOnExit only) for the IDE's lifetime; it's deleted on
+  dispose.
 
 ## [0.4.60] — EDT freeze/deadlock fixes, process-tree kill, blocked-agent visibility, VS-parity ports (2026-07-16)
 

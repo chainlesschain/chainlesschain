@@ -92,7 +92,15 @@ class IdeMcpServer {
     if (!this._server) return;
     const srv = this._server;
     this._server = null;
-    await new Promise((resolve) => srv.close(() => resolve()));
+    // srv.close() resolves only once every open connection ends — but request/
+    // socket timeouts are disabled and openDiff deliberately holds its response
+    // open for minutes, and CLI keep-alive sockets sit idle. Without forcing
+    // them shut, Restart Bridge / deactivate would block on the human answering
+    // a diff. Destroy live connections so close() can complete.
+    await new Promise((resolve) => {
+      srv.close(() => resolve());
+      srv.closeAllConnections?.(); // Node >= 18.2; older Node relies on timeouts
+    });
   }
 
   /** The URL the lockfile should advertise. */

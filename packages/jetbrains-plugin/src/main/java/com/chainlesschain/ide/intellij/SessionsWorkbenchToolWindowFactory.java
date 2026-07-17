@@ -173,6 +173,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             final File cwd = project.getBasePath() != null
                     ? new File(project.getBasePath()) : null;
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
+              try {
                 long now = System.currentTimeMillis();
                 List<SessionsWorkbench.Row> warnings = new ArrayList<>();
                 List<SessionsWorkbench.Row> chat = List.of();
@@ -222,10 +223,20 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                 final List<SessionsWorkbench.Row> merged =
                         SessionsWorkbench.aggregate(chat, ide, background, remote, warnings);
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    all = merged;
-                    applyFilter();
-                    inFlight.set(false);
+                    try {
+                        all = merged;
+                        applyFilter();
+                    } finally {
+                        // clear even if applyFilter() throws on the EDT, or every
+                        // later tick/Refresh returns early on stale data forever
+                        inFlight.set(false);
+                    }
                 });
+              } catch (Throwable t) {
+                // aggregate() (or list assembly) threw before EDT work was even
+                // scheduled — clear the guard so auto-refresh isn't wedged.
+                inFlight.set(false);
+              }
             });
         }
 

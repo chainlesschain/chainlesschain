@@ -241,8 +241,13 @@ public final class WorktreeTasksAction extends AnAction {
             pb.directory(cwd);
             CliLauncher.augmentPath(pb);
             Process p = pb.start();
-            StringBuilder out = new StringBuilder();
-            StringBuilder err = new StringBuilder();
+            // StringBuffer, not StringBuilder: the pump threads append while the
+            // final toString() below reads after a waitFor timeout / join(500)
+            // timeout — an unsynchronized StringBuilder read can tear (mirrors
+            // AgentChatSession.runCaptureWith), garbling parseWorktreeList / the
+            // merge-conflict preview into a wrong verdict.
+            StringBuffer out = new StringBuffer();
+            StringBuffer err = new StringBuffer();
             Thread outT = pump(p.getInputStream(), out);
             Thread errT = pump(p.getErrorStream(), err);
             if (!p.waitFor(60, TimeUnit.SECONDS)) {
@@ -258,12 +263,15 @@ public final class WorktreeTasksAction extends AnAction {
         }
     }
 
-    private static Thread pump(java.io.InputStream in, StringBuilder sink) {
+    private static Thread pump(java.io.InputStream in, StringBuffer sink) {
         Thread t = new Thread(() -> {
             try (BufferedReader r = new BufferedReader(
                     new InputStreamReader(in, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = r.readLine()) != null) {
+                    // StringBuffer.append is already atomic; the two-call
+                    // sequence is grouped so a reader never sees a line without
+                    // its newline.
                     synchronized (sink) {
                         sink.append(line).append('\n');
                     }
