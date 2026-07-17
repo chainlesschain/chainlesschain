@@ -2144,6 +2144,106 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 
 ---
 
+## 34. 测试 fixture 用真实 pid + 生产 kill 路径不走 `_deps` —— 测试杀死自己的 vitest worker，伪装成"查不到的框架级 flake"（隐性风险）
+
+**Slug**: `test_fixture_real_pid_self_kill_flake`（实战触发 2026-07-11 → 2026-07-18 破案；cli-ci 连续 30+ 跑必败、卡了 .167/.168/.169 三个发版门）
+
+**陷阱本质**：
+
+两个独立缺陷叠加成一个"薛定谔 flake"，`5c81407ca8` 治本：
+
+1. **测试自杀 worker（POSIX）**：`background-agent-supervisor.test.js` 的 stop 流 fixture 用
+   `pid: process.pid` —— 为了过 `isProcessAlive`（`kill(pid,0)`）活性门，"随手拿个活着的 pid"。
+   而 `stopBackgroundAgent` 的 POSIX kill 是**裸 `process.kill`**（不走 `_deps`）；作者注释写着
+   "taskkill / kill stub"，但 `_deps.spawnSync` 的 stub **只覆盖 Windows 的 taskkill 分支**。
+   于是测试真实地对自己的 vitest worker 发了 `SIGTERM`。vitest 的信号处理让 worker
+   **code=0 "干净退出"、无 uncaughtException**——完美伪装成 introspection 查不到的
+   框架级竞态："Worker exited unexpectedly" + "Timeout terminating forks worker"，
+   甩锅给复用该 worker 的下一个文件（victim label）。
+2. **假路径假绿（全 OS）**：`settings-hook-events.test.js` 的 CwdChanged 测试用编造的
+   `newCwd: "/new"`——它**兼作 hook 子进程的 spawnSync cwd**。CI runner 上 `/new` 不存在
+   → ENOENT → context null → 确定性断言失败。**本地全绿纯属假绿**：开发机上碰巧存在
+   `C:\new`（git-bash `/new` 解析到 `C:\new`）。
+3. **放大器：`--shard` 按文件哈希切**——每次增删测试文件都重切 shard，killer 和 victim
+   跟着换 shard/换 OS（07-11 shard 3/4 POSIX → 07-16 起 shard 2/4 三 OS），让 commit 级
+   bisect 指向无辜的"加了测试文件"的 commit。
+4. 次级凶器（同类，顺手已修）：afterEach 的 reap 对 **fixture 假 pid（43210/777）真放
+   SIGKILL**——CI 上假 pid 可能正被无辜进程（另一个 worker/系统 daemon）占用；
+   smoke-runner 对**已退出**子进程的 pid 照发 `taskkill /T /F`——Windows 秒级复用 pid，
+   杀的是顶替者全树。
+
+**为什么排查难**：
+
+- worker code=0 干净退出 + 无异常 → 句柄探测器、`getActiveResourcesInfo`、
+  `singleFork`、`channel.ref()` 全部无效/位移——**所有常规泄漏侦查手段都指向"不是我们的代码"**。
+  上一轮排查（memory 同 slug 文件）就此定性为"vitest 内部竞态,测试代码侧不可修"，靠
+  发版 `skip_tests` 苟了三个版本。
+- **victim 恒定却被当成随机受害者**：连续几十跑都是同一条测试失败，其实它一半是
+  自己的 bug（假路径），一半是被垂死 worker 拖累——两个病共用一个症状。
+- **本地永远复现不了**：自杀 bug 需要 CI 的 fixture+真 kill 路径组合恰好同 worker；
+  假路径 bug 被开发机上碰巧存在的目录掩盖。`CI=true`、压 `--maxWorkers`、换 node 版本
+  都复现不出——因为差异根本不在环境参数，在**机器上有没有 `C:\new`**。
+- 升级 vitest（4.1.5→4.1.10，含真 pool 修复）后同签名照败——"升级框架"这个最像解药的
+  动作恰好排除了框架，但若不做也无法排除。
+
+**SOP / checklist**：
+
+1. **victim 恒定 ≠ 随机受害者**：一个 "worker-death flake" 若连续多跑都是**同一条测试**
+   失败，先把 victim 测试自己当嫌疑人审（它的 fixture、它 spawn 的子进程、它的路径参数）。
+2. **kill-diag 分支配方**（可复用的"谁杀了谁"取证术，一跑拿铁证）：
+   - 加临时 setupFile（`__tests__/setup/kill-diag.mjs`）：包 `process.kill` +
+     `child_process.spawn/spawnSync`（拦 taskkill），每次杀伤用 `fs.writeSync(2, ...)` 记
+     `[KILL-DIAG pid=<self> file=<当前测试文件>] kill(<target>,<sig>) :: <短栈>`
+     （writeSync fd2 幸存于 `--silent=passed-only` 和 worker 死亡；当前文件用
+     `beforeEach((ctx) => ctx.task?.file?.name)` 追踪；signal 0 探针过滤掉防刷屏）。
+   - vitest config 挂 `setupFiles`，**plumbing 建分支不动共享 checkout**
+     （`GIT_INDEX_FILE=$(mktemp)` + `read-tree HEAD` + `add` + `write-tree` + `commit-tree`），
+     push 后 `gh workflow run cli-ci.yml --ref <branch>`。
+   - 收 3 个 OS 的 job log grep `KILL-DIAG`，谁杀了谁、从哪行代码杀的，一目了然。
+     用完删分支。本案一跑即出 `pid=2498 kill(2498, SIGTERM) :: stopBackgroundAgent`。
+3. **测试 fixture 的 pid 纪律**（写任何 stop/reclaim/reap 类测试前自查）：
+   - fixture pid 只允许两种：**假 pid 且保证全程不被真实 signal**（所有 kill 路径已注入），
+     或**测试自己真 spawn 的 sleeper 子进程**（`node -e "setInterval(()=>{},1000)"`,
+     detached,记入 launched 集合,afterEach 收编）。
+   - **`pid: process.pid` 禁入 fixture**——它是"既活着又必过身份锚"的捷径，也是自杀开关。
+   - afterEach 的 reap **只杀可证明是本测试 spawn 的 pid**（launched-pids 集合），
+     绝不按 state 文件里的记录盲杀（fixture 记录=假 pid=可能是无辜活进程）。
+4. **kill 路径纪律**（写任何生产 kill 代码前自查）：
+   - 所有 `process.kill`/taskkill 走 **`_deps` 单一 seam**（`_deps.kill`），使测试可注入——
+     "`_deps.spawnSync` stub 了"不等于"kill 被 stub 了"，两条分支两个 seam。
+   - **自杀守卫**：kill 目标 === `process.pid` → 拒杀（合法记录不可能指向执行者自己；
+     这同时是真实世界加固——损坏的 state 文件不能让 `cc daemon stop` 干掉用户 shell 树）。
+   - 对**已退出**子进程不再 taskkill（`child.exitCode !== null` → skip）——Windows pid
+     秒级复用，杀死尸 pid = 杀顶替者。
+5. **测试里的路径参数**：任何会成为 spawn `cwd` / 文件系统操作目标的参数，用真实目录
+   （tmpdir/CWD），假路径只允许出现在纯 payload 字段。"本地绿"不构成证据——
+   开发机的文件系统状态可能恰好掩盖（本案 `C:\new`）。
+
+**反模式**：
+
+- ❌ "victim 测试单跑全绿 → 是环境/框架问题" —— 单跑绿只排除了它自己稳定失败，
+  排除不了它依赖开发机文件系统状态（假绿），更排除不了 shard 里另有凶手。
+- ❌ 把 "worker code=0 干净退出、无异常" 当成"不是我们代码"的证据——SIGTERM 被 vitest
+  信号处理器接住后正是这个形状。exit 干净只排除 crash，不排除**被信号**。
+- ❌ 用 commit-bisect 定位 shard flake 的引入点——`--shard` 按文件哈希切，任何加测试
+  文件的 commit 都会重切 shard、让旧 killer 换座位；bisect 指向的是"重切点"不是"引入点"。
+- ❌ 连续多个发版 `skip_tests` 苟同一个 flake——三连发同款就是"必须治本"的信号；
+  本案从决定治本到 2/2 绿收档一个 session 内完成。
+- ❌ fixture 注释写 "taskkill / kill stub" 就信了——检查 stub 到底覆盖哪个平台分支。
+
+**关联 memory / trap**：
+
+- trap #23 / #33（同属"测试环境 ≠ 真 runtime"家族：ABI、ESM、这里是文件系统状态+进程边界）
+- memory: `cli_forks_pool_worker_death_leaked_socket`（完整破案记录：4 个真句柄泄漏 →
+  误定性 vitest 竞态 → kill-diag 破案；含全部教训）、`release_2026_07_17_cli_0162169`
+  （被此 flake 卡门的最后一个发版）
+- 实战 commit：`5c81407ca8`（治本：_deps.kill seam + 自杀守卫 + sleeper fixture +
+  launched-pids reap + 真目录 + smoke-runner 死子进程守卫）/ `17cd625101`（vitest
+  4.1.5→4.1.10,非解药但保留）/ 诊断分支 commit `60e68f580d`（已删,配方见 SOP #2）
+- 验证：cli-ci 30+ 连败后 2/2 绿（runs `29618208260` / `29618808329`）
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间
