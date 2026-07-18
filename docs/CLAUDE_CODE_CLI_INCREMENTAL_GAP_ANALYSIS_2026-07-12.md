@@ -1210,11 +1210,25 @@ checkpoint/decision/child → 零事件（纯问答 run 不变）。coverage 语
 headless-runner 主套 + turn-binding/store + side-effect-ledger-resume 集成回归绿
 （`5bf74014c8`）。
 
+**已接线（2026-07-18 续，REPL `/rewind` 消费持久显式表）**：`--resume` 进 REPL 的会话，
+恢复前的 turn **没有**进程内 checkpoint marks——`/rewind` 对它们既给不出诚实 coverage 也提供
+不了文件恢复。新纯核 `pickPersistedTurn(persistedLog, turnIndex)`（repl-rewind.js）：按
+`conversationOffset === turnIndex + 1` **精确匹配**（headless 在 user 消息 append 之后锚定
+offset，两侧都是单前导 system prompt + 同一持久消息序列重建，故对齐；不匹配绝不猜、回落
+marks 派生）。`buildRewindPlan`/`buildBranchPlan` 增 `persistedLog` 可选参——命中持久记录即
+优先（跨进程诚实 coverage：headless 跑过 shell 的 turn 在 REPL 里照样报 PARTIAL）；`/rewind`
+的**文件恢复** offer 在 marks 无命中时回落到持久表的 `fileCheckpointId`（同一 checkpoint
+store，**跨进程文件回退真正可用**，快照不存在则原有 fail-soft 路径接住）。handler 每次
+`/rewind <n>`/`--branch` best-effort `loadTurnBindingLog(sessionId)`——advisory 永不阻断回退；
+纯 marks 会话逐字节不变。测试：`repl-rewind.test.js` +5（offset 精确匹配/miss/null / 持久
+记录优先恢复文件 vs 无表对照 / 持久 shell flag 诚实 partial / offset 不匹配回落 marks /
+branch plan 经持久记录）= 46 绿；agent-repl 60 + 变体 34 回归绿（`a4269a917d`）。
+
 **仍欠（外部传输 + 余量）**：真正的**外部**传输目标（S3/WebDAV/Redis driver 需真端点，配置非
 捆绑）；provider 级**持久 tool_use id**（现为 runner 合成 id，核内 `call.id` 未浮出事件流，
-浮出属 agent-core 事件契约变更）；REPL `/rewind` 警告仍从**隐式** marks 就地派生（headless
-已是显式表的真生产者，REPL 侧接 `loadTurnBindingLog` 留待）；worktree id / user-edit 标记
-两字段暂无 headless 侧信号源。
+浮出属 agent-core 事件契约变更）；REPL 自身作为显式表**生产者**（交互 turn 实时喂+持久化，
+镜像 headless 接线；现 REPL 只消费）；worktree id / user-edit 标记两字段暂无 headless 侧
+信号源。
 
 ## P1：Plugin 能力声明和配置 Schema
 
