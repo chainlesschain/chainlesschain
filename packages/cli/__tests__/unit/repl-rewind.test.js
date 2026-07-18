@@ -14,9 +14,11 @@ import {
   buildBranchPlan,
   renderBranchPlan,
   parseRewindArg,
+  pickPersistedTurn,
   RESTORE_SCOPE,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
+import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 
 function conv() {
   return [
@@ -307,6 +309,79 @@ describe("buildRewindPlan integration with rewindToTurn (handler data flow)", ()
     const res = rewindToTurn(messages, 2);
     const planFromTruncated = buildRewindPlan(messages, marks, res.index);
     expect(planFromTruncated.coverage).toBe("none");
+  });
+});
+
+// P1 turn/checkpoint binding: /rewind prefers the PERSISTED explicit table
+// (loadTurnBindingLog) over process-local marks — a --resume'd session's
+// pre-resume turns have NO marks, but their headless run persisted checkpoint
+// ids + coverage flags at conversationOffset = turnIndex + 1.
+describe("pickPersistedTurn / buildRewindPlan with a persisted table", () => {
+  // conv() user turns live at indices 1, 3, 5 → persisted offsets 2, 4, 6.
+  function persistedLogWith(offset, { tool = "write_file", cp = null } = {}) {
+    const log = new TurnBindingLog();
+    log.startTurn("hl:t0", { conversationOffset: offset });
+    log.recordToolCall("hl:t0", "hl:c0", { name: tool });
+    if (cp) log.bindCheckpoint("hl:t0", cp);
+    return log;
+  }
+
+  it("pickPersistedTurn matches on conversationOffset === turnIndex + 1", () => {
+    const log = persistedLogWith(4, { cp: "cp-headless" });
+    const turn = pickPersistedTurn(log, 3);
+    expect(turn?.turnId).toBe("hl:t0");
+    expect(turn?.fileCheckpointId).toBe("cp-headless");
+    expect(pickPersistedTurn(log, 2)).toBeNull(); // offset 3 ≠ 4
+    expect(pickPersistedTurn(null, 3)).toBeNull();
+    expect(pickPersistedTurn(log, NaN)).toBeNull();
+  });
+
+  it("prefers the persisted record: cross-process checkpoint restores files where marks cannot", () => {
+    const messages = conv();
+    // No process-local marks (fresh --resume) BUT the headless run persisted a
+    // checkpoint for turn@3 → the plan restores files instead of warning.
+    const log = persistedLogWith(4, { cp: "cp-headless" });
+    const plan = buildRewindPlan(messages, [], 3, RESTORE_SCOPE.BOTH, {
+      persistedLog: log,
+    });
+    expect(plan.coverage).toBe("full");
+    expect(plan.files).toEqual({ rewindTo: "cp-headless" });
+    // control: without the persisted table the same call can't restore files
+    const bare = buildRewindPlan(messages, [], 3);
+    expect(bare.files).toBeNull();
+  });
+
+  it("keeps honest partial coverage from the persisted shell flag", () => {
+    const messages = conv();
+    const log = persistedLogWith(4, { tool: "run_shell", cp: "cp-sh" });
+    const plan = buildRewindPlan(messages, [], 3, RESTORE_SCOPE.BOTH, {
+      persistedLog: log,
+    });
+    expect(plan.coverage).toBe("partial");
+    expect(
+      renderRewindWarnings(plan).some((l) => /coverage: partial/.test(l)),
+    ).toBe(true);
+  });
+
+  it("falls back to marks when no persisted offset matches", () => {
+    const messages = conv();
+    const marks = [{ atMessageCount: 4, id: "cp-marks", tool: "write_file" }];
+    const log = persistedLogWith(99, { cp: "cp-elsewhere" });
+    const plan = buildRewindPlan(messages, marks, 3, RESTORE_SCOPE.BOTH, {
+      persistedLog: log,
+    });
+    expect(plan.files).toEqual({ rewindTo: "cp-marks" });
+  });
+
+  it("buildBranchPlan uses the persisted record too", () => {
+    const messages = conv();
+    const log = persistedLogWith(4, { tool: "run_shell", cp: "cp-sh" });
+    const plan = buildBranchPlan(messages, [], 3, {
+      parentSessionId: "sess-P",
+      persistedLog: log,
+    });
+    expect(plan.coverage).toBe("partial");
+    expect(plan.parentTurnId).toBe("hl:t0");
   });
 });
 

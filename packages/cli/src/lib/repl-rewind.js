@@ -232,18 +232,48 @@ export function restoreClearedConversation(messages, marks, cleared) {
 }
 
 /**
- * Coverage-aware restore plan for a rewound turn, derived from the REPL's
- * EXISTING implicit state (`listUserTurns()` output + `{atMessageCount,id,tool}`
- * marks) — no new agent-loop events required. Bridges those into the explicit
- * turn-binding table and asks `resolveRestorePlan` for the honest plan, so
- * `/rewind` can warn when a restore can't be fully promised (side-effects, a
- * missing checkpoint, or a conversation/files drift) instead of silently doing a
- * lossy rewind.
+ * Match a live-conversation turn to its record in a PERSISTED explicit
+ * turn-binding table (`loadTurnBindingLog(sessionId)` — produced by headless
+ * runs of the same session, which anchor each turn at
+ * `conversationOffset = messages.length` measured just AFTER that turn's user
+ * message was appended). So the record for the user message at live index
+ * `turnIndex` is the one with `conversationOffset === turnIndex + 1`. Exact
+ * match only — anything else falls back to the marks-derived table rather than
+ * guessing (the offsets align because both runs rebuild the same persisted
+ * message sequence under a single leading system prompt).
+ *
+ * @param {import("./turn-binding.js").TurnBindingLog|null} persistedLog
+ * @param {number} turnIndex  message index of the target user turn
+ * @returns {object|null}  a turn view (with computed coverage), or null
+ */
+export function pickPersistedTurn(persistedLog, turnIndex) {
+  if (!persistedLog || typeof persistedLog.list !== "function") return null;
+  const want = Number(turnIndex) + 1;
+  if (!Number.isFinite(want)) return null;
+  for (const t of persistedLog.list()) {
+    if (Number(t.conversationOffset) === want) return t;
+  }
+  return null;
+}
+
+/**
+ * Coverage-aware restore plan for a rewound turn. Prefers the PERSISTED
+ * explicit turn-binding table when the session has one for the target turn
+ * (cross-process honesty: a `--resume`d session's pre-resume turns have NO
+ * process-local marks, but their headless run persisted checkpoint ids, shell/
+ * side-effect flags and child agents — the explicit table answers where marks
+ * cannot). Falls back to the REPL's implicit state (`listUserTurns()` output +
+ * `{atMessageCount,id,tool}` marks) bridged into the same table shape. Either
+ * way `resolveRestorePlan` produces the honest plan, so `/rewind` can warn
+ * when a restore can't be fully promised (side-effects, a missing checkpoint,
+ * or a conversation/files drift) instead of silently doing a lossy rewind.
  *
  * @param {Array} messages  live conversation (for listUserTurns)
  * @param {Array<{atMessageCount:number,id:string,tool?:string}>} marks
  * @param {number} turnIndex  message index returned by rewindToTurn()
  * @param {string} [scope]  one of RESTORE_SCOPE (default BOTH)
+ * @param {{persistedLog?:object|null}} [opts]  explicit table from
+ *        `loadTurnBindingLog(sessionId)` (advisory; null → marks only)
  * @returns {{scope, coverage, conversation, files, warnings:string[]}}
  */
 export function buildRewindPlan(
@@ -251,7 +281,10 @@ export function buildRewindPlan(
   marks,
   turnIndex,
   scope = RESTORE_SCOPE.BOTH,
+  { persistedLog = null } = {},
 ) {
+  const persisted = pickPersistedTurn(persistedLog, turnIndex);
+  if (persisted) return resolveRestorePlan(persisted, scope);
   const turns = listUserTurns(messages, { limit: 1000 });
   const log = buildTurnBindingFromMarks(turns, marks);
   const turn = log.get(`turn-${Number(turnIndex)}`);
@@ -288,18 +321,29 @@ export function renderRewindWarnings(plan) {
  * @param {Array} messages  live conversation (for listUserTurns)
  * @param {Array<{atMessageCount:number,id:string,tool?:string}>} marks
  * @param {number} turnIndex  message index of the branch-point user turn
- * @param {{parentSessionId?:string, seq?:number, writeIntent?:boolean}} [opts]
+ * @param {{parentSessionId?:string, seq?:number, writeIntent?:boolean,
+ *          persistedLog?:object|null}} [opts]  persistedLog: explicit table
+ *        from `loadTurnBindingLog(sessionId)`, preferred over marks (same
+ *        cross-process rationale as buildRewindPlan)
  * @returns {object} the plan from planSessionBranch()
  */
 export function buildBranchPlan(
   messages,
   marks,
   turnIndex,
-  { parentSessionId = null, seq = 0, writeIntent = false } = {},
+  {
+    parentSessionId = null,
+    seq = 0,
+    writeIntent = false,
+    persistedLog = null,
+  } = {},
 ) {
-  const turns = listUserTurns(messages, { limit: 1000 });
-  const log = buildTurnBindingFromMarks(turns, marks);
-  const turn = log.get(`turn-${Number(turnIndex)}`);
+  let turn = pickPersistedTurn(persistedLog, turnIndex);
+  if (!turn) {
+    const turns = listUserTurns(messages, { limit: 1000 });
+    const log = buildTurnBindingFromMarks(turns, marks);
+    turn = log.get(`turn-${Number(turnIndex)}`);
+  }
   return planSessionBranch({ parentSessionId, turn, seq, writeIntent });
 }
 

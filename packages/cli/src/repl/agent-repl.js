@@ -3120,6 +3120,7 @@ export async function startAgentRepl(options = {}) {
           buildBranchPlan,
           renderBranchPlan,
           parseRewindArg,
+          pickPersistedTurn,
           RESTORE_SCOPE,
         } = await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
@@ -3127,6 +3128,24 @@ export async function startAgentRepl(options = {}) {
         // --files / --both). Claude-Code parity: a rewind can restore the
         // conversation only, the files only, or both.
         const parsed = parseRewindArg(arg);
+        // P1 turn/checkpoint binding: load the session's PERSISTED explicit
+        // turn-binding table (headless runs of this session feed it). A
+        // --resume'd session's pre-resume turns have no process-local marks —
+        // the explicit table is the only source of their checkpoint ids and
+        // side-effect coverage. Best-effort advisory: never blocks /rewind.
+        let _persistedBinding = null;
+        if (
+          sessionId &&
+          (parsed.command === "turn" || parsed.command === "branch")
+        ) {
+          try {
+            const { loadTurnBindingLog } =
+              await import("../lib/turn-binding-store.js");
+            _persistedBinding = loadTurnBindingLog(sessionId);
+          } catch {
+            /* marks-only fallback */
+          }
+        }
         if (parsed.command === "clear") {
           // Restore the conversation stashed by /clear (Claude-Code 2.1.191).
           const r = restoreClearedConversation(
@@ -3173,6 +3192,7 @@ export async function startAgentRepl(options = {}) {
               {
                 parentSessionId: sessionId,
                 writeIntent: parsed.writeIntent,
+                persistedLog: _persistedBinding,
               },
             );
             if (!plan || !plan.branchSessionId) {
@@ -3277,6 +3297,7 @@ export async function startAgentRepl(options = {}) {
                 _checkpointMarks,
                 turnIndex,
                 scope,
+                { persistedLog: _persistedBinding },
               );
               for (const line of renderRewindWarnings(plan))
                 logger.log(chalk.yellow(line));
@@ -3286,11 +3307,21 @@ export async function startAgentRepl(options = {}) {
             // 3) File restore (skipped for conversation-only). Match the turn to
             // the snapshot taken just before it first mutated the tree, then
             // offer to roll the working tree back to it (undoable — the restore
-            // takes its own safety checkpoint first). Prune dropped-turn marks
-            // only when the conversation was actually truncated.
-            const cp = restoreFiles
+            // takes its own safety checkpoint first). Process-local marks win;
+            // a --resume'd turn with no marks falls back to the checkpoint id
+            // the PERSISTED binding table recorded for it (same checkpoint
+            // store, so cross-process file rewind actually works — restore
+            // still fails soft if the snapshot is gone). Prune dropped-turn
+            // marks only when the conversation was actually truncated.
+            let cp = restoreFiles
               ? pickCheckpointForTurn(_checkpointMarks, turnIndex)
               : null;
+            if (!cp && restoreFiles) {
+              const persisted = pickPersistedTurn(_persistedBinding, turnIndex);
+              if (persisted?.fileCheckpointId) {
+                cp = { id: persisted.fileCheckpointId, fromPersisted: true };
+              }
+            }
             if (rewindConversation)
               pruneMarksAfter(_checkpointMarks, turnIndex);
             if (cp) {
