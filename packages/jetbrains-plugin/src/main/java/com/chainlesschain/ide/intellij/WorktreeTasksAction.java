@@ -209,11 +209,7 @@ public final class WorktreeTasksAction extends AnAction {
      *  Terminal-plugin classes may be absent — Throwable-guarded. */
     private static boolean runInTerminal(Project project, File repo, String cmd) {
         try {
-            com.intellij.terminal.ui.TerminalWidget widget =
-                    org.jetbrains.plugins.terminal.TerminalToolWindowManager
-                            .getInstance(project)
-                            .createShellWidget(repo.getAbsolutePath(), "cc worktree task", true, true);
-            widget.sendCommandToExecute(cmd);
+            TerminalLauncher.run(project, repo.getAbsolutePath(), "cc worktree task", cmd);
             return true;
         } catch (Throwable t) {
             return false;

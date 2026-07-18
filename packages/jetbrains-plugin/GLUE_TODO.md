@@ -331,6 +331,21 @@ broke 0.4.4. Call site is Throwable-guarded with a copy-the-command dialog
 fallback (`WorktreeTasksAction.runInTerminal`), so removal in a future IDE
 degrades gracefully. Revisit when TabsManager loses `@ApiStatus.Experimental`
 AND the verifier escalates createShellWidget to scheduled-for-removal.
+0.4.61 verifier outcome (2026-07-18): "Compatible. 3 usages of deprecated API.
+3 usages of internal API" — the internal 3 are ShutDownTracker (class +
+getInstance + registerShutdownTask, introduced by 0.4.61's Remote Control
+JVM-exit tree-kill), deprecated = createShellWidget ×2 + the varargs
+FileSaverDescriptor ctor (2026.x deprecated it). Cleared in 0.4.62 WITHOUT
+touching the Experimental TabsManager (the 0.4.54 do-not-chase above still
+stands): ShutDownTracker → plain JDK `Runtime.addShutdownHook` (public,
+identical semantics — ShutDownTracker wraps the same JVM hook);
+FileSaverDescriptor → reflective preference for the blessed exact
+`(title, description, extension)` ctor (2024.3+) with varargs fallback on 242;
+createShellWidget → shared `TerminalLauncher` that invokes the SAME method
+reflectively (zero runtime change on every current build — this is bytecode-
+reference removal, not an API migration) with a `createNewSession(String,…)`
+second try if a future build deletes it; the copy-the-command dialog fallback
+still backstops both callers. Local `./gradlew verifyPlugin` (2025.2) green.
 
 VS Code twin audited the same day (2026-07-10) for the same class of problem —
 **clean, no change needed**: zero hits across `src/**` (incl. `chat/`, `ui/`,

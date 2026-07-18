@@ -50,18 +50,21 @@ public final class RemoteControlAction extends AnAction {
     /**
      * A child process is NOT killed on JVM exit, so closing the IDE would leak
      * a live {@code cc remote-control} host (WS port + pairing state). Register
-     * one IDE-shutdown task that tree-kills whatever host is alive.
+     * one JVM-shutdown hook that tree-kills whatever host is alive. Plain JDK
+     * {@link Runtime#addShutdownHook} — the platform's ShutDownTracker is
+     * {@code @ApiStatus.Internal} (Marketplace verifier flags it) and is itself
+     * backed by the same JVM hook mechanism.
      */
     private static void ensureShutdownHook() {
         if (!SHUTDOWN_HOOK_INSTALLED.compareAndSet(false, true)) return;
-        com.intellij.openapi.util.ShutDownTracker.getInstance().registerShutdownTask(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Process proc = host;
             if (proc != null && proc.isAlive()) {
                 stopping = true;
                 proc.descendants().forEach(ProcessHandle::destroyForcibly);
                 proc.destroyForcibly();
             }
-        });
+        }, "cc-remote-control-host-killer"));
     }
 
     @Override

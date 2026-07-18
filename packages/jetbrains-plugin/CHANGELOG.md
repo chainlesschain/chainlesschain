@@ -1,5 +1,25 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.62] — Marketplace verifier clean: internal/deprecated API usages cleared (2026-07-18)
+
+- **No more internal-API usage.** The Remote Control host's JVM-exit tree-kill
+  (new in 0.4.61) used the platform's `ShutDownTracker`, which is
+  `@ApiStatus.Internal` — the Marketplace verifier flagged all 3 usages. Now a
+  plain JDK `Runtime.addShutdownHook` (same mechanism ShutDownTracker wraps
+  internally); identical kill semantics on IDE exit.
+- **No more deprecated-API usage.** (1) The doctor's save-firewall-script
+  dialog constructed `FileSaverDescriptor` via the varargs constructor 2026.x
+  deprecates; it now prefers the blessed exact `(title, description,
+  extension)` constructor (2024.3+) with a reflective fallback to varargs on
+  the 242 floor. (2) The two integrated-terminal launch sites (doctor fixes,
+  worktree tasks) now share one `TerminalLauncher` that resolves the
+  tab-creation entry point reflectively — same `createShellWidget` call at
+  runtime on today's builds (zero behavior change), plus a
+  `createNewSession(String,…)` fallback if a future build removes it; the
+  existing copy-the-command fallback still catches everything else. The
+  blessed `TerminalToolWindowTabsManager` builder stays off the table until it
+  loses `@ApiStatus.Experimental` (it doesn't exist on our 242 baseline).
+
 ## [0.4.61] — uncertain-side-effect visibility, deep-link containment, EDT-freeze & leak fixes, polish (2026-07-18)
 
 - **`uncertain_side_effect` blocked agents are visible + resumable.** cc

@@ -229,11 +229,7 @@ public final class DiagnoseBridgeAction extends AnAction {
         try {
             String dir = cwd != null ? cwd.getAbsolutePath()
                     : System.getProperty("user.home");
-            com.intellij.terminal.ui.TerminalWidget widget =
-                    org.jetbrains.plugins.terminal.TerminalToolWindowManager
-                            .getInstance(project)
-                            .createShellWidget(dir, "ChainlessChain Doctor", true, true);
-            widget.sendCommandToExecute(cmd);
+            TerminalLauncher.run(project, dir, "ChainlessChain Doctor", cmd);
             return true;
         } catch (Throwable t) {
             return false;
@@ -262,10 +258,9 @@ public final class DiagnoseBridgeAction extends AnAction {
      * PowerShell.
      */
     private static void saveFirewallScript(Project project, String script) {
-        FileSaverDescriptor descriptor = new FileSaverDescriptor(
+        FileSaverDescriptor descriptor = newPs1SaverDescriptor(
                 CcBundle.message("doctor.fix.savePs1.title"),
-                CcBundle.message("doctor.fix.savePs1.desc"),
-                "ps1");
+                CcBundle.message("doctor.fix.savePs1.desc"));
         VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
                 .createSaveFileDialog(descriptor, project)
                 .save((VirtualFile) null, "cc-ide-firewall-fix.ps1");
@@ -297,5 +292,28 @@ public final class DiagnoseBridgeAction extends AnAction {
                         CcBundle.message("doctor.fix.title"));
             });
         });
+    }
+
+    /**
+     * .ps1-filtered save descriptor, constructor resolved reflectively: 2024.3+
+     * has the exact (title, description, extension) constructor, while 242 only
+     * has the varargs one that 2026.x deprecates — referencing either directly
+     * would break the floor build or trip the Marketplace verifier.
+     */
+    private static FileSaverDescriptor newPs1SaverDescriptor(String title, String desc) {
+        try {
+            return FileSaverDescriptor.class
+                    .getConstructor(String.class, String.class, String.class)
+                    .newInstance(title, desc, "ps1");
+        } catch (ReflectiveOperationException pre243) {
+            try {
+                return FileSaverDescriptor.class
+                        .getConstructor(String.class, String.class, String[].class)
+                        .newInstance(title, desc, new String[] { "ps1" });
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(
+                        "No usable FileSaverDescriptor constructor", e);
+            }
+        }
     }
 }
