@@ -1224,11 +1224,41 @@ store，**跨进程文件回退真正可用**，快照不存在则原有 fail-so
 记录优先恢复文件 vs 无表对照 / 持久 shell flag 诚实 partial / offset 不匹配回落 marks /
 branch plan 经持久记录）= 46 绿；agent-repl 60 + 变体 34 回归绿（`a4269a917d`）。
 
+**已接线（2026-07-18 续二，REPL 自身成为显式表生产者——生产者双端收口）**：把 headless 内联的
+event→表 喂入逻辑抽成**共享纯核** `createTurnBindingFeed`（turn-binding.js：`<nonce>:t/c<seq>`
+id 合成 + checkpoint/tool/policy/child-agent 四类事件折叠 + dirty 门 + 可选 supersede），
+headless-runner 重构为其消费方（行为逐字节不变，既有 5 项 binding 测试锁定）——两个生产者的映射
+从此**零漂移**。REPL 侧新薄核
+[`repl-turn-binding.js`](../packages/cli/src/repl/repl-turn-binding.js)（IO 经 `_deps` 注入）包
+三件 REPL 特有事：（i）**rehydrate**——首个 turn `loadTurnBindingLog` 载入已持久表，交互续跑
+headless/早前 REPL 会话是**追加**不是覆盖；（ii）**时间线 supersede**——live REPL 会缩短对话
+（`/rewind`、`/clear`、auto-compact），新 turn 经新纯核方法 `TurnBindingLog.pruneFromOffset` 剪掉
+锚在自己 offset 及之后的旧 timeline 记录（exact-offset 匹配下 stale 记录会遮蔽新 turn、可能递错
+checkpoint——正确性优先于 advisory 完整性；headless 是 append-only 故不开 supersede、行为不变）；
+（iii）**逐 settle 持久化**——dirty 门（纯问答 turn 零写）+ best-effort（持久化失败保 dirty 下轮
+重试；任何方法绝不抛、绝不扰动 turn）。接线（agent-repl.js）三点：user 消息 push 后
+`beginTurn(messages.length)`（与 headless 同一锚定契约——`pickPersistedTurn` 的精确匹配即刻对
+REPL 产记录生效，live turn 的 `/rewind` 现可命中**更富**的持久记录：perm 决定/子 agent/shell 诚实
+降档）、`agentLoop` wrapper 顶部逐事件 `handleEvent`（advisory try/catch）、auto-save 后
+`persistIfDirty`。**默认字节不变**：非 JSONL 会话 producer 恒 null → wrapper 零调用、零写。测试：
+`turn-binding.test.js` +8（pruneFromOffset 剪/保 + feed id 合成/事件折叠/dirty 门/supersede 剪并标
+dirty/无 supersede 不剪/worktree 印记不自 dirty/clearDirty 往返）+ `repl-turn-binding.test.js` 7
+（无 session→null / 单 turn 全信号持久+dirty 门 / 纯问答零写 / rehydrate 追加 / rewind 后 supersede /
+持久失败保 dirty 重试 / 抛错 store 全程 advisory）+ `agent-repl-loop-wrapper.test.js` +2（事件按流
+序喂入 / 抛错不破 turn）；headless-runner 主套 73 + binding 6 + repl-rewind/agent-repl 96 回归绿。
+
+**同笔顺带（`worktree id` 字段接上信号源）**：勘误——headless 的 worktree 信号源**其实存在**：
+`cc agent --worktree` 在命令层 `setupAgentWorktree` 就知道分支名，只是从未穿线进 runner。现
+headlessOptions 新增 `worktreeId: _worktree.branch`（无 `--worktree` 恒 null），runner 的
+`beginTurn` 经 feed 新参 `{worktreeId}` 把它印到**每个** turn 记录的 `worktreeId` 字段（`setWorktree`
+**不自置 dirty**——worktree 里的纯问答 turn 仍零写，有真信号时印记随行持久）。表的七字段至此
+六个有真生产者。测试：turn-binding feed +1 + `headless-runner-turn-binding.test.js` +1
+（`--worktree` 运行持久 turn 带 `worktreeId`）。
+
 **仍欠（外部传输 + 余量）**：真正的**外部**传输目标（S3/WebDAV/Redis driver 需真端点，配置非
 捆绑）；provider 级**持久 tool_use id**（现为 runner 合成 id，核内 `call.id` 未浮出事件流，
-浮出属 agent-core 事件契约变更）；REPL 自身作为显式表**生产者**（交互 turn 实时喂+持久化，
-镜像 headless 接线；现 REPL 只消费）；worktree id / user-edit 标记两字段暂无 headless 侧
-信号源。
+浮出属 agent-core 事件契约变更）；`user-edit` 标记字段仍无运行时信号源（两 runner 皆不监测带外
+用户编辑，需文件监视基建）。
 
 ## P1：Plugin 能力声明和配置 Schema
 

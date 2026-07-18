@@ -1171,6 +1171,9 @@ export function registerAgentCommand(program) {
           additionalDirectories,
           sandbox: agentSandbox,
           autoCheckpoint,
+          // --worktree: stamp the isolation worktree (branch name) onto each
+          // turn's explicit turn-binding record (advisory; null without it).
+          worktreeId: _worktree ? _worktree.branch : null,
           // --otlp <file>: capture + export the run's OTel spans as OTLP/JSON.
           otlp: options.otlp || null,
           // --otlp-content: opt in to emitting prompt/response CONTENT in those

@@ -295,6 +295,17 @@ export async function agentLoop(messages, options) {
     autoCompact: false,
     onProviderFallback,
   })) {
+    // P1 explicit turn→checkpoint binding — the REPL as PRODUCER: fold every
+    // loop event into the live table (checkpoint / tool / policy / child
+    // agent), mirroring the headless runner's feed. Advisory: a feeder failure
+    // must never disturb the turn. Absent by default → byte-identical.
+    if (options.turnBindingFeed) {
+      try {
+        options.turnBindingFeed.handleEvent(event);
+      } catch {
+        /* advisory — never break the turn */
+      }
+    }
     if (event.type === "checkpoint") {
       // Remember which file snapshot lines up with the live conversation so
       // `/rewind <n>` can restore code + conversation together (Claude-Code
@@ -1078,6 +1089,11 @@ export async function startAgentRepl(options = {}) {
   // it back (Claude-Code 2.1.191). Nulled on a context swap so a stash from one
   // session can't be restored into another. { messages, marks } | null.
   let _clearedConversation = null;
+  // P1 explicit turn→checkpoint binding — the REPL as PRODUCER (mirrors the
+  // headless runner's feed via the shared feeder core): one record per
+  // interactive turn, persisted dirty-gated at each settle. Lazily created on
+  // the first prompt turn of a persistable (JSONL) session; advisory only.
+  let _turnBindingProducer = null;
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
     const { resolveOutputStyle } = await import("../lib/output-styles.js");
@@ -5190,6 +5206,25 @@ export async function startAgentRepl(options = {}) {
     const _userMsg = { role: "user", content: _userMessageContent };
     messages.push(_userMsg);
 
+    // P1 turn→checkpoint binding: anchor this turn in the explicit table at
+    // `conversationOffset = messages.length` measured just AFTER the user
+    // message was appended (the exact-match contract pickPersistedTurn relies
+    // on — same anchor as the headless runner). Only JSONL sessions can
+    // persist the table; the producer supersedes stale records from a
+    // discarded timeline (post-/rewind, /clear, compaction) itself.
+    if (sessionId && useJsonl) {
+      try {
+        if (!_turnBindingProducer) {
+          const { createReplTurnBindingProducer } =
+            await import("./repl-turn-binding.js");
+          _turnBindingProducer = createReplTurnBindingProducer({ sessionId });
+        }
+        _turnBindingProducer?.beginTurn(messages.length);
+      } catch {
+        /* advisory — never disturb the turn */
+      }
+    }
+
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
       const { CLISlotFiller } = await import("../lib/slot-filler.js");
@@ -5399,6 +5434,9 @@ export async function startAgentRepl(options = {}) {
         autoCheckpoint,
         checkpointSession: sessionId,
         checkpointMarks: _checkpointMarks,
+        // Explicit turn-binding producer (null unless a JSONL session): the
+        // wrapper folds every loop event into the live table.
+        turnBindingFeed: _turnBindingProducer,
         denialLog: _recentDenials,
         persistRecentDenials: true,
         permissionMode: _sessionTier,
@@ -5620,6 +5658,9 @@ export async function startAgentRepl(options = {}) {
           // Non-critical
         }
       }
+      // Persist the explicit turn-binding table for this settled turn
+      // (dirty-gated: a tool-free Q&A turn writes nothing; never throws).
+      _turnBindingProducer?.persistIfDirty();
       // Auto-compact when context grows too large
       if (
         feature("PROMPT_COMPRESSOR") &&

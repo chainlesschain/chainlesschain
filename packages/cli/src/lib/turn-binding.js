@@ -183,6 +183,35 @@ export class TurnBindingLog {
     return this;
   }
 
+  /**
+   * Drop every turn anchored AT or AFTER `offset` — the timeline-supersede rule
+   * for a live producer. After a `/rewind`, `/clear`, or compaction shrinks the
+   * live conversation, a new turn re-anchors at an offset an OLD record may
+   * still hold; under exact-offset matching (see `pickPersistedTurn`) that stale
+   * record would shadow the new one and could offer the wrong checkpoint. The
+   * discarded-timeline records are pruned instead — correctness over advisory
+   * completeness.
+   *
+   * @param {number} offset  conversation offset the new timeline starts at
+   * @returns {number} how many records were removed
+   */
+  pruneFromOffset(offset) {
+    const at = Number(offset);
+    if (!Number.isFinite(at)) return 0;
+    let removed = 0;
+    this._order = this._order.filter((id) => {
+      const rec = this._turns.get(id);
+      const off = rec ? Number(rec.conversationOffset) : NaN;
+      if (Number.isFinite(off) && off >= at) {
+        this._turns.delete(id);
+        removed += 1;
+        return false;
+      }
+      return true;
+    });
+    return removed;
+  }
+
   /** One turn record with its computed coverage (or null). */
   get(turnId) {
     const rec = this._turns.get(String(turnId));
@@ -394,4 +423,109 @@ export function buildTurnBindingFromMarks(turns = [], marks = []) {
     }
   }
   return log;
+}
+
+/**
+ * Stateful feeder turning raw agent-loop events into TurnBindingLog records —
+ * the SHARED producer core for every runner (headless and the interactive
+ * REPL), so id synthesis and the event→table mapping can never drift between
+ * them. Provider tool_use ids are not visible on the yielded event stream, so
+ * tool-call ids are synthesized `<nonce>:c<seq>` and turn ids `<nonce>:t<seq>`
+ * (mirrors the side-effect ledger's op-id scheme — stable within a run, unique
+ * across resumes as long as `nonce` is per-run unique).
+ *
+ * Dirty-gating: `beginTurn` alone never marks the table dirty, so a tool-free
+ * turn costs the caller zero persistence writes; only a recorded signal
+ * (checkpoint / tool call / permission decision / child agent / a supersede
+ * prune) does.
+ *
+ * @param {{log?: TurnBindingLog, nonce?: string}} [opts]
+ */
+export function createTurnBindingFeed({
+  log = new TurnBindingLog(),
+  nonce = "run",
+} = {}) {
+  let turnSeq = 0;
+  let callSeq = 0;
+  let currentTurnId = null;
+  let currentCallId = null;
+  let dirty = false;
+  return {
+    log,
+    /**
+     * Anchor a new turn at `conversationOffset` (= messages.length measured
+     * just AFTER the turn's user message was appended — the exact-match
+     * contract `pickPersistedTurn` relies on). `supersede: true` first prunes
+     * records at/after that offset (live-REPL rewind/clear/compaction rule);
+     * append-only runners leave it off. `worktreeId` stamps the run's isolation
+     * worktree onto the record (does NOT mark dirty by itself — a tool-free
+     * turn in a worktree still writes nothing).
+     */
+    beginTurn(
+      conversationOffset,
+      { supersede = false, worktreeId = null } = {},
+    ) {
+      if (supersede && log.pruneFromOffset(conversationOffset) > 0) {
+        dirty = true;
+      }
+      currentTurnId = `${nonce}:t${turnSeq++}`;
+      log.startTurn(currentTurnId, { conversationOffset });
+      if (worktreeId != null) log.setWorktree(currentTurnId, worktreeId);
+      return currentTurnId;
+    },
+    currentTurnId: () => currentTurnId,
+    /** Fold one agent-loop event into the current turn's record. */
+    handleEvent(event) {
+      if (!event || !currentTurnId) return dirty;
+      const turnId = currentTurnId;
+      switch (event.type) {
+        case "checkpoint":
+          if (event.id != null) {
+            log.bindCheckpoint(turnId, event.id);
+            dirty = true;
+          }
+          break;
+        case "tool-executing": {
+          const callId = `${nonce}:c${callSeq++}`;
+          currentCallId = callId;
+          log.recordToolCall(turnId, callId, { name: event.tool });
+          dirty = true;
+          break;
+        }
+        case "tool-result": {
+          // A gated tool surfaces its permission decision on `result.policy`;
+          // re-derive a stable decision id feeder-side (core's own id hangs
+          // off the provider call id, which the event stream does not expose).
+          const policy = event.result?.policy;
+          if (policy && (policy.via || policy.decision)) {
+            log.recordPermissionDecision(
+              turnId,
+              `${currentCallId || "call"}:perm:${policy.via || policy.decision}`,
+            );
+            dirty = true;
+          }
+          // Foreground spawn_sub_agent reports its child id on the result.
+          if (event.result?.subAgentId) {
+            log.recordChildAgent(turnId, event.result.subAgentId);
+            dirty = true;
+          }
+          currentCallId = null;
+          break;
+        }
+        case "background-sub-agent-result":
+          if (event.subAgentId) {
+            log.recordChildAgent(turnId, event.subAgentId);
+            dirty = true;
+          }
+          break;
+        default:
+          break;
+      }
+      return dirty;
+    },
+    isDirty: () => dirty,
+    clearDirty() {
+      dirty = false;
+    },
+  };
 }

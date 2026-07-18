@@ -141,6 +141,22 @@ describe("headless-runner — turn→checkpoint binding feed + persistence", () 
     expect(appended).toHaveLength(0);
   });
 
+  it("a --worktree run stamps the worktree id onto the persisted turn", async () => {
+    const { deps, appended } = makeDeps();
+    deps.agentLoop = loopWith([
+      { type: "tool-executing", tool: "write_file", args: { path: "a.txt" } },
+      { type: "tool-result", tool: "write_file", result: { ok: true } },
+    ]);
+
+    await runAgentHeadless(
+      { prompt: "task", resume: "sess-T", worktreeId: "agent/task-1" },
+      deps,
+    );
+
+    const last = bindingSnapshots(appended).at(-1).data;
+    expect(last.turns[0].worktreeId).toBe("agent/task-1");
+  });
+
   it("resume rehydrates the prior table and appends the new turn to it", async () => {
     const prior = new TurnBindingLog();
     prior.startTurn("old:t0", { conversationOffset: 0 });

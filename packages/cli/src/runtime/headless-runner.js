@@ -57,7 +57,7 @@ import {
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
-import { TurnBindingLog } from "../lib/turn-binding.js";
+import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
@@ -742,20 +742,6 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // context. Only writes when a turn actually recorded something, and only for
   // persisted runs — a tool-free Q&A or ephemeral run stays byte-identical.
   let turnBindingLog = new TurnBindingLog();
-  let turnBindingSeq = 0;
-  let turnBindingCallSeq = 0;
-  let currentTurnBindingId = null;
-  let currentTurnBindingCallId = null;
-  let turnBindingDirty = false;
-  const persistTurnBindingLog = () => {
-    if (!persist || !turnBindingDirty) return;
-    try {
-      store.appendEvent(sessionId, TURN_BINDING_EVENT, turnBindingLog.toJSON());
-      turnBindingDirty = false;
-    } catch {
-      // best-effort — never fail the run over binding persistence
-    }
-  };
   if (persist) {
     try {
       const events = store.readEvents(sessionId) || [];
@@ -775,51 +761,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       // fresh log — best effort
     }
   }
-  const feedTurnBinding = (event) => {
-    if (!persist || !currentTurnBindingId) return;
-    const turnId = currentTurnBindingId;
-    switch (event.type) {
-      case "checkpoint":
-        if (event.id != null) {
-          turnBindingLog.bindCheckpoint(turnId, event.id);
-          turnBindingDirty = true;
-        }
-        break;
-      case "tool-executing": {
-        const callId = `${sideEffectRunNonce}:c${turnBindingCallSeq++}`;
-        currentTurnBindingCallId = callId;
-        turnBindingLog.recordToolCall(turnId, callId, { name: event.tool });
-        turnBindingDirty = true;
-        break;
-      }
-      case "tool-result": {
-        // A gated tool surfaces its permission decision on `result.policy`;
-        // re-derive a stable decision id runner-side (core's own id hangs off
-        // the provider call id, which the event stream does not expose).
-        const policy = event.result?.policy;
-        if (policy && (policy.via || policy.decision)) {
-          turnBindingLog.recordPermissionDecision(
-            turnId,
-            `${currentTurnBindingCallId || "call"}:perm:${policy.via || policy.decision}`,
-          );
-          turnBindingDirty = true;
-        }
-        // Foreground spawn_sub_agent reports its child id on the result.
-        if (event.result?.subAgentId) {
-          turnBindingLog.recordChildAgent(turnId, event.result.subAgentId);
-          turnBindingDirty = true;
-        }
-        currentTurnBindingCallId = null;
-        break;
-      }
-      case "background-sub-agent-result":
-        if (event.subAgentId) {
-          turnBindingLog.recordChildAgent(turnId, event.subAgentId);
-          turnBindingDirty = true;
-        }
-        break;
-      default:
-        break;
+  // Event→table folding + id synthesis live in the SHARED feeder core
+  // (createTurnBindingFeed) so the interactive REPL producer can never drift
+  // from this runner's mapping. No feed at all for non-persisted runs.
+  const turnBindingFeed = persist
+    ? createTurnBindingFeed({ log: turnBindingLog, nonce: sideEffectRunNonce })
+    : null;
+  const persistTurnBindingLog = () => {
+    if (!turnBindingFeed || !turnBindingFeed.isDirty()) return;
+    try {
+      store.appendEvent(sessionId, TURN_BINDING_EVENT, turnBindingLog.toJSON());
+      turnBindingFeed.clearDirty();
+    } catch {
+      // best-effort — never fail the run over binding persistence
     }
   };
   if (persist) {
@@ -1796,15 +1750,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
-      // the conversation offset before the model sees the new user turn.
-      currentTurnBindingId = `${sideEffectRunNonce}:t${turnBindingSeq++}`;
-      if (persist) {
-        turnBindingLog.startTurn(currentTurnBindingId, {
-          conversationOffset: messages.length,
+      // the conversation offset before the model sees the new user turn. A
+      // `--worktree` run stamps its isolation worktree (branch name, threaded
+      // from the command layer) onto each turn record.
+      if (turnBindingFeed) {
+        turnBindingFeed.beginTurn(messages.length, {
+          worktreeId: options.worktreeId ?? null,
         });
       }
       for await (const event of runLoop(messages, loopOptions)) {
-        feedTurnBinding(event);
+        if (turnBindingFeed) turnBindingFeed.handleEvent(event);
         switch (event.type) {
           case "checkpoint": {
             if (isText)

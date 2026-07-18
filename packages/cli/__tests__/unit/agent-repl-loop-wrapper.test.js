@@ -192,6 +192,42 @@ describe("agentLoop() wrapper", () => {
     });
   });
 
+  it("feeds every loop event to options.turnBindingFeed in stream order", async () => {
+    // The REPL-as-producer seam: the wrapper folds checkpoint / tool / result
+    // events into the explicit turn-binding table via the injected feed.
+    const seen = [];
+    const events = [
+      { type: "checkpoint", id: "cp1", tool: "write_file" },
+      { type: "tool-executing", tool: "write_file", args: { path: "x" } },
+      { type: "tool-result", tool: "write_file", result: { ok: true } },
+      { type: "response-complete", content: "done" },
+    ];
+    const core = coreLoop(events);
+    await agentLoop([], {
+      _coreLoop: core,
+      turnBindingFeed: { handleEvent: (e) => seen.push(e.type) },
+    });
+    expect(seen).toEqual([
+      "checkpoint",
+      "tool-executing",
+      "tool-result",
+      "response-complete",
+    ]);
+  });
+
+  it("a throwing turnBindingFeed never breaks the turn (advisory)", async () => {
+    const core = coreLoop([{ type: "response-complete", content: "ok" }]);
+    const res = await agentLoop([], {
+      _coreLoop: core,
+      turnBindingFeed: {
+        handleEvent: () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    expect(res.content).toBe("ok");
+  });
+
   it("uses a caller-supplied onProviderFallback over the default", async () => {
     const seen = [];
     const core = coreLoop([{ type: "response-complete", content: "ok" }]);

@@ -12,6 +12,7 @@ import {
   resolveRestorePlan,
   selectTurnRange,
   buildTurnBindingFromMarks,
+  createTurnBindingFeed,
 } from "../../src/lib/turn-binding.js";
 
 describe("classifyToolKind", () => {
@@ -231,5 +232,105 @@ describe("buildTurnBindingFromMarks (bridge from repl-rewind state)", () => {
       ],
     );
     expect(log.get("turn-5").fileCheckpointId).toBeNull();
+  });
+});
+
+describe("TurnBindingLog.pruneFromOffset (timeline supersede)", () => {
+  it("removes records anchored at/after the offset, keeps earlier ones", () => {
+    const log = new TurnBindingLog();
+    log.startTurn("a:t0", { conversationOffset: 2 });
+    log.startTurn("a:t1", { conversationOffset: 4 });
+    log.startTurn("a:t2", { conversationOffset: 6 });
+    expect(log.pruneFromOffset(4)).toBe(2);
+    expect(log.list().map((t) => t.turnId)).toEqual(["a:t0"]);
+    expect(log.get("a:t1")).toBeNull();
+  });
+
+  it("keeps offset-less records and is a no-op for a non-finite offset", () => {
+    const log = new TurnBindingLog();
+    log.startTurn("a:t0"); // no offset recorded
+    log.startTurn("a:t1", { conversationOffset: 3 });
+    expect(log.pruneFromOffset(NaN)).toBe(0);
+    expect(log.pruneFromOffset(10)).toBe(0);
+    expect(log.list()).toHaveLength(2);
+  });
+});
+
+describe("createTurnBindingFeed (shared producer core)", () => {
+  const events = [
+    { type: "checkpoint", id: "cp-1", tool: "write_file" },
+    { type: "tool-executing", tool: "write_file", args: { path: "a.txt" } },
+    { type: "tool-result", tool: "write_file", result: { ok: true } },
+    { type: "tool-executing", tool: "run_shell", args: { command: "ls" } },
+    {
+      type: "tool-result",
+      tool: "run_shell",
+      result: {
+        error: "denied",
+        policy: { decision: "deny", via: "settings" },
+      },
+    },
+    { type: "background-sub-agent-result", subAgentId: "sub-9" },
+  ];
+
+  it("synthesizes <nonce>:t/c ids and folds every event kind into the turn", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    expect(feed.beginTurn(3)).toBe("N:t0");
+    for (const e of events) feed.handleEvent(e);
+    const turn = feed.log.get("N:t0");
+    expect(turn.conversationOffset).toBe(3);
+    expect(turn.fileCheckpointId).toBe("cp-1");
+    expect(turn.toolCallIds).toEqual(["N:c0", "N:c1"]);
+    // the decision id hangs off the run_shell call (2nd synthesized id)
+    expect(turn.permissionDecisionIds).toEqual(["N:c1:perm:settings"]);
+    expect(turn.childAgentIds).toEqual(["sub-9"]);
+    expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL); // shell ran → honest
+    expect(feed.isDirty()).toBe(true);
+  });
+
+  it("beginTurn alone stays clean (dirty-gated) and events before it are ignored", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    expect(feed.handleEvent(events[0])).toBe(false); // no current turn yet
+    feed.beginTurn(1);
+    expect(feed.isDirty()).toBe(false);
+    expect(feed.log.list()).toHaveLength(1);
+  });
+
+  it("supersede prunes stale same-timeline records and marks dirty", () => {
+    const prior = new TurnBindingLog();
+    prior.startTurn("old:t0", { conversationOffset: 2 });
+    prior.startTurn("old:t1", { conversationOffset: 5 }); // discarded timeline
+    const feed = createTurnBindingFeed({ log: prior, nonce: "N" });
+    feed.beginTurn(5, { supersede: true }); // re-anchors where old:t1 sat
+    expect(feed.isDirty()).toBe(true); // the prune must be persisted
+    expect(feed.log.list().map((t) => t.turnId)).toEqual(["old:t0", "N:t0"]);
+  });
+
+  it("without supersede (headless append-only) nothing is pruned", () => {
+    const prior = new TurnBindingLog();
+    prior.startTurn("old:t0", { conversationOffset: 5 });
+    const feed = createTurnBindingFeed({ log: prior, nonce: "N" });
+    feed.beginTurn(5);
+    expect(feed.log.list()).toHaveLength(2);
+    expect(feed.isDirty()).toBe(false);
+  });
+
+  it("stamps a worktreeId onto the turn record without dirtying by itself", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(1, { worktreeId: "agent/task-1" });
+    expect(feed.log.get("N:t0").worktreeId).toBe("agent/task-1");
+    expect(feed.isDirty()).toBe(false); // tool-free worktree turn writes nothing
+    feed.handleEvent(events[1]);
+    expect(feed.isDirty()).toBe(true); // real signal → the stamp persists along
+  });
+
+  it("clearDirty resets after a persist; new events re-dirty", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(1);
+    feed.handleEvent(events[1]);
+    feed.clearDirty();
+    expect(feed.isDirty()).toBe(false);
+    feed.handleEvent(events[3]);
+    expect(feed.isDirty()).toBe(true);
   });
 });
