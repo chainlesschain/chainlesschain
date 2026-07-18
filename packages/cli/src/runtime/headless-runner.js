@@ -57,6 +57,8 @@ import {
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
+import { TurnBindingLog } from "../lib/turn-binding.js";
+import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -728,6 +730,96 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       );
     } catch {
       // best-effort — never fail the run over ledger persistence
+    }
+  };
+  // P1 explicit turn→checkpoint binding: feed the TurnBindingLog in real time
+  // off the yielded agent-loop events (checkpoint / tool / policy / child-agent)
+  // and persist the table as a hash-chained `turn_checkpoint_binding` session
+  // event at each turn boundary. Provider tool_use ids are not runner-visible,
+  // so tool-call ids are synthesized `<nonce>:c<seq>` (mirrors the side-effect
+  // ledger's op-id scheme — stable within a run, unique across resumes).
+  // rebuildMessages ignores this event type, so it never pollutes model
+  // context. Only writes when a turn actually recorded something, and only for
+  // persisted runs — a tool-free Q&A or ephemeral run stays byte-identical.
+  let turnBindingLog = new TurnBindingLog();
+  let turnBindingSeq = 0;
+  let turnBindingCallSeq = 0;
+  let currentTurnBindingId = null;
+  let currentTurnBindingCallId = null;
+  let turnBindingDirty = false;
+  const persistTurnBindingLog = () => {
+    if (!persist || !turnBindingDirty) return;
+    try {
+      store.appendEvent(sessionId, TURN_BINDING_EVENT, turnBindingLog.toJSON());
+      turnBindingDirty = false;
+    } catch {
+      // best-effort — never fail the run over binding persistence
+    }
+  };
+  if (persist) {
+    try {
+      const events = store.readEvents(sessionId) || [];
+      for (let i = events.length - 1; i >= 0; i--) {
+        const e = events[i];
+        if (
+          e &&
+          e.type === TURN_BINDING_EVENT &&
+          e.data &&
+          Array.isArray(e.data.turns)
+        ) {
+          turnBindingLog = TurnBindingLog.fromJSON(e.data);
+          break;
+        }
+      }
+    } catch {
+      // fresh log — best effort
+    }
+  }
+  const feedTurnBinding = (event) => {
+    if (!persist || !currentTurnBindingId) return;
+    const turnId = currentTurnBindingId;
+    switch (event.type) {
+      case "checkpoint":
+        if (event.id != null) {
+          turnBindingLog.bindCheckpoint(turnId, event.id);
+          turnBindingDirty = true;
+        }
+        break;
+      case "tool-executing": {
+        const callId = `${sideEffectRunNonce}:c${turnBindingCallSeq++}`;
+        currentTurnBindingCallId = callId;
+        turnBindingLog.recordToolCall(turnId, callId, { name: event.tool });
+        turnBindingDirty = true;
+        break;
+      }
+      case "tool-result": {
+        // A gated tool surfaces its permission decision on `result.policy`;
+        // re-derive a stable decision id runner-side (core's own id hangs off
+        // the provider call id, which the event stream does not expose).
+        const policy = event.result?.policy;
+        if (policy && (policy.via || policy.decision)) {
+          turnBindingLog.recordPermissionDecision(
+            turnId,
+            `${currentTurnBindingCallId || "call"}:perm:${policy.via || policy.decision}`,
+          );
+          turnBindingDirty = true;
+        }
+        // Foreground spawn_sub_agent reports its child id on the result.
+        if (event.result?.subAgentId) {
+          turnBindingLog.recordChildAgent(turnId, event.result.subAgentId);
+          turnBindingDirty = true;
+        }
+        currentTurnBindingCallId = null;
+        break;
+      }
+      case "background-sub-agent-result":
+        if (event.subAgentId) {
+          turnBindingLog.recordChildAgent(turnId, event.subAgentId);
+          turnBindingDirty = true;
+        }
+        break;
+      default:
+        break;
     }
   };
   if (persist) {
@@ -1703,7 +1795,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
+      // the conversation offset before the model sees the new user turn.
+      currentTurnBindingId = `${sideEffectRunNonce}:t${turnBindingSeq++}`;
+      if (persist) {
+        turnBindingLog.startTurn(currentTurnBindingId, {
+          conversationOffset: messages.length,
+        });
+      }
       for await (const event of runLoop(messages, loopOptions)) {
+        feedTurnBinding(event);
         switch (event.type) {
           case "checkpoint": {
             if (isText)
@@ -1876,6 +1977,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         // call is made (break out of the for-await, not just the switch).
         if (stopForCost) break;
       }
+      // P1 turn→checkpoint binding: the turn settled — persist the explicit
+      // table (latest snapshot wins on load; no-op when nothing was recorded).
+      persistTurnBindingLog();
       // ── auto-rewake re-drive (opt-in via --auto-rewake) ─────────────────
       // Under auto-rewake, settle the async Stop hooks after EVERY turn (so the
       // final turn's background check still runs). If an asyncRewake check

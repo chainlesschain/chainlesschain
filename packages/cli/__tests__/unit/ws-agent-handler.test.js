@@ -234,6 +234,33 @@ describe("WSAgentHandler", () => {
       expect(loopOptions?.signal?.aborted).toBe(false);
     });
 
+    // P0 authority: permission-gate-over-WS is opt-in — the default path
+    // carries approvalGate: null into the loop, byte-identical to before.
+    it("passes approvalGate: null by default (env unset, nothing injected)", async () => {
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Default turn", "req-1");
+
+      const loopOptions = agentLoop.mock.calls.at(-1)?.[1];
+      expect(loopOptions.approvalGate).toBeNull();
+    });
+
+    it("passes an explicitly injected approval gate into the loop", async () => {
+      const gate = { decide: vi.fn(), hasConfirmer: () => true };
+      const gated = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        approvalGate: gate,
+      });
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await gated.handleMessage("Gated turn", "req-1");
+
+      const loopOptions = agentLoop.mock.calls.at(-1)?.[1];
+      expect(loopOptions.approvalGate).toBe(gate);
+    });
+
     it("returns busy error when already processing", async () => {
       // Simulate a long-running loop
       let resolveLoop;

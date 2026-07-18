@@ -230,6 +230,37 @@ describe("WebSocketInteractionAdapter", () => {
     expect(await promise).toBe(true);
   });
 
+  // askConfirm object-form: the public producer surface for permission gates —
+  // rides the binding + structured extras out without reaching into _request.
+  it("askConfirm object-form rides binding + approval context out", async () => {
+    const promise = adapter.askConfirm("Approve run_shell: ls?", {
+      default: false,
+      binding: "ab_from_gate",
+      approval: { tool: "run_shell", command: "ls", risk: "medium" },
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.questionType).toBe("confirm");
+    expect(sent.default).toBe(false);
+    expect(sent.binding).toBe("ab_from_gate");
+    expect(sent.approval).toEqual({
+      tool: "run_shell",
+      command: "ls",
+      risk: "medium",
+    });
+    // mismatched echo on the approve → forced deny (fail closed)
+    adapter.resolveAnswer(sent.requestId, true, "ab_TAMPERED");
+    expect(await promise).toBe(false);
+  });
+
+  it("askConfirm object-form without binding stays binding-free", async () => {
+    const promise = adapter.askConfirm("Proceed?", { default: true });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect("binding" in sent).toBe(false);
+    expect(sent.default).toBe(true);
+    adapter.resolveAnswer(sent.requestId, true);
+    expect(await promise).toBe(true);
+  });
+
   it("resolveAnswer resolves pending promise", async () => {
     const promise = adapter.askInput("Q?");
     const sent = JSON.parse(ws.send.mock.calls[0][0]);

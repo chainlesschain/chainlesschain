@@ -187,7 +187,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     });
   }
 
-  _ask(questionType, question, extra = {}) {
+  _ask(questionType, question, extra = {}, options = {}) {
     return this._request(
       {
         type: "question",
@@ -195,7 +195,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         question,
         ...extra,
       },
-      { kind: "question" },
+      {
+        kind: "question",
+        // Approval binding pass-through: a permission-gate producer supplies
+        // it; plain questions never carry one (message stays byte-identical).
+        ...(options.binding ? { binding: options.binding } : {}),
+      },
     );
   }
 
@@ -207,10 +212,26 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     return this._ask("select", question, { choices });
   }
 
+  /**
+   * @param {string} question
+   * @param {boolean|object} [defaultVal] — boolean (legacy, byte-identical) or
+   *   an options object `{ default, binding, ...extra }`: `binding` rides out
+   *   on the request so the client must echo it back on approve (verified in
+   *   _resolvePending, mismatched approve → deny); any other keys merge into
+   *   the question message (e.g. structured `approval` context for UIs).
+   */
   async askConfirm(question, defaultVal = true) {
-    const answer = await this._ask("confirm", question, {
-      default: defaultVal,
-    });
+    const opts =
+      defaultVal !== null && typeof defaultVal === "object"
+        ? defaultVal
+        : { default: defaultVal };
+    const { binding = null, default: dflt = true, ...extra } = opts;
+    const answer = await this._ask(
+      "confirm",
+      question,
+      { default: dflt, ...extra },
+      binding ? { binding } : {},
+    );
     // Normalize to boolean
     if (typeof answer === "boolean") return answer;
     return answer === "true" || answer === "yes" || answer === "y";

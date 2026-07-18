@@ -26,6 +26,7 @@ import { runnableTaskModel } from "../../lib/runnable-provider.js";
 import { PlanState } from "../../lib/plan-mode.js";
 import { CLISlotFiller } from "../../lib/slot-filler.js";
 import { createAbortError, isAbortError } from "../../lib/abort-utils.js";
+import { createWsApprovalGate } from "./ws-approval-gate.js";
 
 export class WSAgentHandler {
   /**
@@ -34,7 +35,7 @@ export class WSAgentHandler {
    * @param {import("../../lib/interaction-adapter.js").WebSocketInteractionAdapter} options.interaction
    * @param {object} [options.db]
    */
-  constructor({ session, interaction, db }) {
+  constructor({ session, interaction, db, approvalGate }) {
     this.session = session;
     this.interaction = interaction;
     this.db = db || null;
@@ -44,6 +45,27 @@ export class WSAgentHandler {
     // P0-2: monotonic sequence for crash-safe side-effect ledger op ids. The
     // session id + a per-op nonce keep ids unique across turns and processes.
     this._sideEffectSeq = 0;
+    // P0 authority: permission-gate-over-WS. An explicitly injected gate wins
+    // (tests / embedders); otherwise one is built lazily on the first turn
+    // when CC_WS_APPROVAL_GATE=1 — its confirmer raises confirm questions
+    // over the interaction adapter WITH an approval binding the client must
+    // echo back on approve (mismatch → deny). Default (env unset, nothing
+    // injected): approvalGate stays null and loopOptions are byte-identical.
+    this._approvalGate = approvalGate || null;
+    this._approvalGateInit = Boolean(approvalGate);
+  }
+
+  /** Resolve the session's approval gate (lazy, opt-in; null when disabled). */
+  async _ensureApprovalGate() {
+    if (this._approvalGateInit) return this._approvalGate;
+    this._approvalGateInit = true;
+    if (process.env.CC_WS_APPROVAL_GATE === "1") {
+      this._approvalGate = await createWsApprovalGate({
+        sessionId: this.session.id,
+        interaction: this.interaction,
+      });
+    }
+    return this._approvalGate;
   }
 
   /**
@@ -127,6 +149,9 @@ export class WSAgentHandler {
         slotFiller,
         interaction: this.interaction,
         signal: abortController.signal,
+        // P0 authority: null unless opted in (byte-identical default — agent
+        // core already defaults `options.approvalGate || null`).
+        approvalGate: await this._ensureApprovalGate(),
       };
 
       // P0-2: crash-safe side-effect ledger for the IDE/bridge path — mirrors
