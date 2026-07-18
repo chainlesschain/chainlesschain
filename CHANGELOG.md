@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.61：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾（上架待发）
+### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.62：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾 + JB Marketplace 验证器清零（上架中）
 
-> VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.61`**。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账：0.37.16 已渲染的 `raw/side_effect_recovery` 恢复行之外，面板现在把两个新相位也当真数据消费。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible。
+> VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.62`**（0.4.61 曾上传后在审核期删除、从未发出；0.4.62 = 0.4.61 全部内容 + 验证器清零批）。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账：0.37.16 已渲染的 `raw/side_effect_recovery` 恢复行之外，面板现在把两个新相位也当真数据消费。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible（零弃用/零内部 API 报告）。
+- **JB Marketplace 验证器清零（0.4.62 增量）**：0.4.61 报告 3 内部 API（`ShutDownTracker`，来自 Remote Control JVM 退出树杀）+ 3 弃用（`createShellWidget` ×2、`FileSaverDescriptor` varargs 构造器）。修法：树杀改纯 JDK `Runtime.addShutdownHook`（同一 JVM hook 机制，语义不变）；两处开终端收进共享 `TerminalLauncher` 反射解析（现有版本运行时零变化，未来方法被删自动改试 `createNewSession(String,…)`，剪贴板兜底不变）；.ps1 保存对话框反射优先官方精确三参构造器（2024.3+），242 回退 varargs。
 
 - **`uncertain_side_effect` 阻塞可见（双端）**：cc 0.162.169 在 resume 发现 UNKNOWN 结局不可逆操作时把会话停在 `phase:"uncertain_side_effect"`——面板此前把它当健康 "running" 渲染。现经单一共享判定归入"等人"类（摘要卡/行徽章/Sessions 工作台排序；JB 侧 Resume 对此类会话解禁，点击不再被静默吞掉）；徽章/attention 文案直接展示 parked question（`needs_input` 的 `pendingQuestion`）与 uncertain 计数，而非裸相位名。无管道的阻塞会话补 **Answer** 按钮（`cc daemon resume`）。
 - **JB deep-link 文件包含性**：`jetbrains://…/open?file=…` 目标必须解析进打开的 project root（对齐 VS 0.37.16 同款修复）——构造链接指向 `~/.ssh/id_rsa` 一类路径现在被拒开。
