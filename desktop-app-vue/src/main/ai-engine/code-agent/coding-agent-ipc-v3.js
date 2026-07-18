@@ -12,6 +12,10 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:list-sessions",
   "coding-agent:create-remote-session",
   "coding-agent:refresh-remote-session-pairing",
+  "coding-agent:list-remote-session-devices",
+  "coding-agent:revoke-remote-session-device",
+  "coding-agent:remote-session-audit",
+  "coding-agent:remote-session-policy",
   "coding-agent:close-remote-session",
   "coding-agent:send-message",
   "coding-agent:enter-plan-mode",
@@ -752,6 +756,19 @@ function registerCodingAgentIPCV3(options = {}) {
       }
     },
   );
+
+  let disposed = false;
+  return () => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    if (typeof ipc.removeHandler === "function") {
+      CODING_AGENT_IPC_CHANNELS.forEach((channel) =>
+        ipc.removeHandler(channel),
+      );
+    }
+  };
 }
 
 module.exports = {

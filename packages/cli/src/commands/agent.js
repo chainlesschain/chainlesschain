@@ -505,6 +505,7 @@ export function registerAgentCommand(program) {
       // else so project memory / checkpoint / completion all follow.
       let _worktree = null;
       let _worktreeFinished = false;
+      let _worktreeTransferred = false;
       let _finishAgentWorktreeFn = null;
       // Settings hooks loaded once at worktree setup, reused by both the
       // WorktreeCreate producer and the WorktreeRemove producer in
@@ -565,7 +566,9 @@ export function registerAgentCommand(program) {
           // EVERY exit path (finishAgentWorktree is synchronous). Deduped with
           // the normal async _finishWorktree() via _worktreeFinished.
           process.on("exit", () => {
-            if (!_worktree || _worktreeFinished) return;
+            if (!_worktree || _worktreeFinished || _worktreeTransferred) {
+              return;
+            }
             _worktreeFinished = true;
             try {
               process.chdir(_worktree.repoRoot);
@@ -580,7 +583,9 @@ export function registerAgentCommand(program) {
         }
       }
       const _finishWorktree = async () => {
-        if (!_worktree || _worktreeFinished) return;
+        if (!_worktree || _worktreeFinished || _worktreeTransferred) {
+          return;
+        }
         _worktreeFinished = true;
         try {
           process.chdir(_worktree.repoRoot); // release the dir before removal
@@ -1034,18 +1039,17 @@ export function registerAgentCommand(program) {
 
       if (prompt) {
         if (options.bg) {
-          if (options.worktree) {
-            process.stderr.write(
-              "--bg and --worktree cannot be combined yet; create the worktree first and launch the background agent from it.\n",
-            );
-            process.exitCode = 1;
-            return;
-          }
           const { launchBackgroundAgent, buildFollowUpArgv } =
             await import("../lib/background-agent-supervisor.js");
-          const childArgv = process.argv
-            .slice(2)
-            .filter((arg) => arg !== "--bg" && arg !== "--background");
+          const childArgv = process.argv.slice(2).filter(
+            (arg) =>
+              arg !== "--bg" &&
+              arg !== "--background" &&
+              // The parent already created the isolated checkout. Keeping
+              // this flag would make the worker child create a nested second
+              // worktree and later clean up the wrong owner.
+              arg !== "--worktree",
+          );
           const hasSessionArg = childArgv.some(
             (arg) =>
               arg === "--session" ||
@@ -1075,11 +1079,25 @@ export function registerAgentCommand(program) {
             sessionId,
             title: prompt.slice(0, 100),
             followUpArgv,
+            worktree: _worktree,
           });
+          if (_worktree) {
+            // Ownership moves to the persisted background session only after
+            // the detached worker launched successfully. The parent exit hook
+            // must no longer reap this path; attach/resume keep using it.
+            _worktreeTransferred = true;
+            _worktreeFinished = true;
+            process.chdir(_worktree.repoRoot);
+          }
           if (options.outputFormat === "json") {
             console.log(JSON.stringify(state));
           } else {
             console.log(`Background agent started: ${state.id}`);
+            if (state.worktreePath) {
+              console.log(
+                `  worktree: ${state.worktreePath} (branch ${state.branch})`,
+              );
+            }
             console.log(`  logs: cc agents logs ${state.id}`);
             console.log(`  stop: cc agents stop ${state.id}`);
           }

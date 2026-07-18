@@ -109,6 +109,9 @@ class ChainlessChainApp {
     this.isQuitting = false;
     // v5.0.3.37 — 10s 周期 tray "内存使用"刷新 timer 的句柄，onWillQuit 清理。
     this._trayMemoryInterval = null;
+    // Production owner for Coding Agent V3. The controller keeps the service
+    // alive across window recreation and releases its CLI/WS bridge on quit.
+    this.codingAgentBootstrap = null;
 
     // 懒加载状态
     this.speechInitialized = false;
@@ -948,6 +951,7 @@ class ChainlessChainApp {
 
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
+    this.initializeCodingAgentV3();
 
     // Plan A remote-terminal: singleton PtyManager shared between web-shell
     // WS gateway and V6 native IPC bridge. Created here (always-on) so V6
@@ -1467,6 +1471,29 @@ class ChainlessChainApp {
         logger.error("[Main] Failed to ensure U-Key IPC handlers:", ukeyError);
       }
     }
+  }
+
+  /**
+   * Wire Coding Agent V3 into the real Electron host.
+   *
+   * Keep this separate from the broad IPC registry: the V3 service owns a
+   * child CLI process and WebSocket, so it needs an explicit application
+   * lifetime rather than a registration-only phase.
+   */
+  initializeCodingAgentV3() {
+    const {
+      createCodingAgentBootstrap,
+    } = require("./bootstrap/coding-agent-bootstrap.js");
+
+    if (!this.codingAgentBootstrap) {
+      this.codingAgentBootstrap = createCodingAgentBootstrap({
+        toolManager: this.toolManager,
+        mcpManager: this.mcpManager,
+      });
+    }
+
+    this.codingAgentBootstrap.attachWindow(this.mainWindow);
+    logger.info("[Main] Coding Agent V3 production IPC registered");
   }
 
   // ====== 懒加载方法 ======
@@ -2751,6 +2778,16 @@ class ChainlessChainApp {
       } catch (error) {
         logger.error("[Main] WebShell stop error:", error);
       }
+    }
+
+    if (this.codingAgentBootstrap) {
+      try {
+        await this.codingAgentBootstrap.dispose();
+        logger.info("[Main] Coding Agent V3 cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Coding Agent V3 cleanup error:", error);
+      }
+      this.codingAgentBootstrap = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).

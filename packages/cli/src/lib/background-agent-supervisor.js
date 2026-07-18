@@ -6,16 +6,21 @@ import {
   openSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getHomeDir } from "./paths.js";
 import { deriveSessionState } from "./session-lifecycle.js";
+import {
+  finishAgentWorktree,
+  validateAgentWorktree,
+} from "./agent-worktree.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -280,6 +285,20 @@ export function writeBackgroundAgentState(state) {
     if (Number(current.pinnedAt || 0) > Number(next.pinnedAt || 0)) {
       next = { ...next, pinned: current.pinned, pinnedAt: current.pinnedAt };
     }
+    // A background worktree is immutable session identity, just like the
+    // conversation id. Heartbeat/finalize/rename writers may race with a stale
+    // snapshot, but no same-id transition is allowed to move the run back to
+    // the main checkout or drop the cleanup metadata.
+    if (current.worktreePath) {
+      next = {
+        ...next,
+        cwd: current.worktreePath,
+        repoRoot: current.repoRoot,
+        worktreePath: current.worktreePath,
+        baseSha: current.baseSha,
+        branch: current.branch,
+      };
+    }
   }
   const tmp = `${target}.${process.pid}.tmp`;
   writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
@@ -500,7 +519,7 @@ export function renameBackgroundAgent(id, title, options = {}) {
  * conversation session is NOT touched — that's `cc session delete`.
  */
 export function removeBackgroundAgent(id, options = {}) {
-  const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+  let state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
     now: options.now,
     heartbeatStaleMs: options.heartbeatStaleMs,
   });
@@ -513,15 +532,28 @@ export function removeBackgroundAgent(id, options = {}) {
     }
     try {
       stopBackgroundAgent(id);
+      state =
+        effectiveBackgroundAgentState(readBackgroundAgentState(id), {
+          now: options.now,
+          heartbeatStaleMs: options.heartbeatStaleMs,
+        }) || state;
     } catch {
       /* best-effort — the record removal below is the point of rm --force */
     }
   }
+  const worktree = cleanupBackgroundAgentWorktree(state, {
+    keepWorktree: options.keepWorktree === true,
+  });
   rmSync(statePath(id), { force: true });
   if (options.keepLog !== true) {
     rmSync(logPath(id), { force: true });
   }
-  return { id, removed: true, status: state.status };
+  return {
+    id,
+    removed: true,
+    status: state.status,
+    ...(worktree ? { worktree } : {}),
+  };
 }
 
 /**
@@ -598,6 +630,68 @@ export function buildFollowUpArgv(argv, opts = {}) {
   return out;
 }
 
+function canonicalPath(value) {
+  const absolute = resolve(String(value || ""));
+  try {
+    const real = realpathSync.native
+      ? realpathSync.native(absolute)
+      : realpathSync(absolute);
+    return process.platform === "win32" ? real.toLowerCase() : real;
+  } catch {
+    return process.platform === "win32" ? absolute.toLowerCase() : absolute;
+  }
+}
+
+/**
+ * Normalize and verify worktree metadata before it enters a background job.
+ * The metadata is persisted as top-level state fields for compatibility with
+ * status/IDE consumers: repoRoot/worktreePath/baseSha/branch.
+ */
+export function normalizeBackgroundWorktree(worktree, cwd) {
+  if (!worktree) return null;
+  const normalized = {
+    repoRoot: resolve(String(worktree.repoRoot || "")),
+    worktreePath: resolve(String(worktree.worktreePath || worktree.path || "")),
+    baseSha: String(worktree.baseSha || ""),
+    branch: String(worktree.branch || ""),
+  };
+  if (
+    !normalized.repoRoot ||
+    !normalized.worktreePath ||
+    !normalized.baseSha ||
+    !normalized.branch
+  ) {
+    throw new Error(
+      "Cannot launch background agent: incomplete worktree metadata",
+    );
+  }
+  if (canonicalPath(cwd) !== canonicalPath(normalized.worktreePath)) {
+    throw new Error(
+      "Cannot launch background agent: cwd does not match the persisted worktree path",
+    );
+  }
+  const validation = validateAgentWorktree({
+    ...normalized,
+    path: normalized.worktreePath,
+  });
+  if (!validation.valid) {
+    throw new Error(
+      `Cannot launch background agent: worktree metadata is not usable (${validation.reason})`,
+    );
+  }
+  return normalized;
+}
+
+function persistedWorktree(state) {
+  if (!state?.worktreePath) return null;
+  return {
+    repoRoot: state.repoRoot,
+    worktreePath: state.worktreePath,
+    baseSha: state.baseSha,
+    branch: state.branch,
+  };
+}
+
 /**
  * Continue a finished/crashed background session as a NEW background session
  * on the same conversation (`cc daemon resume <id> <prompt>`). The original
@@ -622,14 +716,27 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
   }
   const text = String(prompt || "").trim();
   if (!text) throw new Error("resume requires a prompt");
+  const worktree = persistedWorktree(state);
+  if (
+    worktree &&
+    options.cwd &&
+    canonicalPath(options.cwd) !== canonicalPath(worktree.worktreePath)
+  ) {
+    throw new Error(
+      `Background agent ${id} is bound to worktree "${worktree.worktreePath}" and cannot resume in a different cwd`,
+    );
+  }
   const argv = ["agent", "--session", state.sessionId, "-p", text];
   return launchBackgroundAgent({
     argv,
-    cwd: options.cwd || state.cwd || process.cwd(),
+    // Worktree sessions fail closed: never fall back to process.cwd(), which
+    // could silently resume a write task in the main checkout.
+    cwd: worktree?.worktreePath || options.cwd || state.cwd || process.cwd(),
     sessionId: state.sessionId,
     title: options.title || state.title || text.slice(0, 100),
     cliEntry: options.cliEntry,
     followUpArgv: ["agent", "--session", state.sessionId],
+    worktree,
   });
 }
 
@@ -667,8 +774,10 @@ export function launchBackgroundAgent({
   title,
   cliEntry,
   followUpArgv,
+  worktree,
 }) {
   assertUsableCwd(cwd);
+  const worktreeState = normalizeBackgroundWorktree(worktree, cwd);
   const id = createBackgroundAgentId();
   const dir = backgroundAgentsDir();
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
@@ -683,6 +792,7 @@ export function launchBackgroundAgent({
     title: title || "Background agent",
     cliEntry: cliEntry || process.argv[1],
     logFile: logPath(id),
+    ...(worktreeState || {}),
     // Present = interactive attach can start follow-up turns; absent = the
     // transport rejects prompts (log-only session).
     ...(Array.isArray(followUpArgv) ? { followUpArgv } : {}),
@@ -706,6 +816,7 @@ export function launchBackgroundAgent({
     endedAt: null,
     exitCode: null,
     logFile: job.logFile,
+    ...(worktreeState || {}),
   };
   writeBackgroundAgentState(state);
   let child;
@@ -864,6 +975,84 @@ export function stopBackgroundAgent(id) {
   };
   writeBackgroundAgentState(next);
   return { ...next, stopped: true };
+}
+
+function activeWorktreeProcesses(state) {
+  const active = [];
+  if (
+    Number.isInteger(Number(state?.pid)) &&
+    Number(state.pid) > 0 &&
+    isSameProcess(state.pid, state.startedAt)
+  ) {
+    active.push("worker");
+  }
+  if (
+    Number.isInteger(Number(state?.agentPid)) &&
+    Number(state.agentPid) > 0 &&
+    isSameProcess(state.agentPid, state.agentStartedAt)
+  ) {
+    active.push("agent");
+  }
+  return active;
+}
+
+/**
+ * Explicit background-record cleanup owns the worktree teardown. Normal
+ * completion, kill, lost-worker reconciliation, attach and resume all retain
+ * it so a later resume continues in the exact same isolated checkout.
+ */
+export function cleanupBackgroundAgentWorktree(state, options = {}) {
+  const worktree = persistedWorktree(state);
+  if (!worktree) return null;
+  if (options.keepWorktree === true) {
+    return {
+      removed: false,
+      kept: true,
+      reason: "kept by explicit request",
+      path: worktree.worktreePath,
+    };
+  }
+
+  const blockers = [];
+  const active = activeWorktreeProcesses(state);
+  if (active.length) blockers.push(`active ${active.join("+")} process`);
+  if (Number(state?.pendingApprovals || 0) > 0) {
+    blockers.push("pending approval");
+  }
+  if (state?.pendingQuestion) blockers.push("pending user input");
+  if (
+    Number(state?.uncertainSideEffects || 0) > 0 ||
+    state?.phase === "uncertain_side_effect" ||
+    state?.phase === "uncertain-side-effect"
+  ) {
+    blockers.push("unfinished or uncertain side effect");
+  }
+  if (blockers.length) {
+    throw new Error(
+      `Refusing to clean background worktree "${worktree.worktreePath}": ${blockers.join(", ")}`,
+    );
+  }
+
+  if (!existsSync(worktree.worktreePath)) {
+    return {
+      removed: false,
+      kept: false,
+      reason: "worktree path already missing",
+      path: worktree.worktreePath,
+    };
+  }
+
+  const result = finishAgentWorktree({
+    ...worktree,
+    path: worktree.worktreePath,
+  });
+  if (!result.removed) {
+    throw new Error(
+      `Refusing to remove background agent record while its worktree is kept (${result.reason}). ` +
+        "Resolve or preserve the work first, or pass --keep-worktree to remove only the record.",
+    );
+  }
+  return { ...result, path: worktree.worktreePath };
 }
 
 export function openBackgroundLogFile(id) {
