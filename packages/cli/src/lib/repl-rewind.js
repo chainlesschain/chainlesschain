@@ -380,6 +380,7 @@ export function renderBranchPlan(plan) {
  *   /rewind --files 3             → { command: "turn", n: 3, scope: FILES }
  *   /rewind 3 --branch            → { command: "branch", n: 3, writeIntent: false }
  *   /rewind 3 --branch --write    → { command: "branch", n: 3, writeIntent: true }
+ *   /rewind 3 --both --yes        → non-interactive file confirmation (IDE)
  *
  * An unknown flag is ignored (kept forgiving); a non-numeric, flag-less arg with
  * no turn number falls back to `list` so a typo can't silently rewind — and a
@@ -398,6 +399,7 @@ export function parseRewindArg(arg) {
   let scope = RESTORE_SCOPE.BOTH;
   let branch = false;
   let writeIntent = false;
+  let confirmed = false;
   for (const t of tokens) {
     if (t === "--files" || t === "--files-only") scope = RESTORE_SCOPE.FILES;
     else if (
@@ -409,11 +411,13 @@ export function parseRewindArg(arg) {
     else if (t === "--both") scope = RESTORE_SCOPE.BOTH;
     else if (t === "--branch" || t === "--fork") branch = true;
     else if (t === "--write" || t === "--write-intent") writeIntent = true;
+    else if (t === "--yes" || t === "-y") confirmed = true;
     else if (n === null && /^\d+$/.test(t)) n = Number(t);
   }
-  if (branch && n !== null) return { command: "branch", n, scope, writeIntent };
+  if (branch && n !== null)
+    return { command: "branch", n, scope, writeIntent, confirmed };
   if (n === null) return { command: "list", scope };
-  return { command: "turn", n, scope };
+  return { command: "turn", n, scope, confirmed };
 }
 
 /** Render the picker list (shared by /rewind and double-Esc). */

@@ -21,6 +21,7 @@ const {
   removeLock,
   pruneStaleLocks,
   generateToken,
+  loadLockfileSecurityPolicy,
 } = require("./lockfile");
 const { ActivityLog, summarizeArgs } = require("./activity-log");
 const { createStatusBar } = require("./ui/status-bar");
@@ -115,6 +116,15 @@ async function startBridge(context) {
     refreshUi();
     return;
   }
+  // Only the organization-controlled managed settings layer can permit an
+  // insecure lockfile downgrade. Malformed managed policy is fail-closed.
+  const lockfileSecurity = loadLockfileSecurityPolicy();
+  if (lockfileSecurity.allowInsecurePermissions) {
+    log(
+      "managed policy permits bridge startup when owner-only lockfile " +
+        `permissions cannot be verified (${lockfileSecurity.managedFile})`,
+    );
+  }
   const token = generateToken();
   _token = token;
   // Resolve the CLI binary first (cc may be shadowed by the C compiler, also
@@ -187,12 +197,24 @@ async function startBridge(context) {
       _activityLog.record({ ...e, argsSummary });
     },
   });
-  _port = await _server.start({ host: "127.0.0.1", port: 0 });
+  try {
+    _port = await _server.start({ host: "127.0.0.1", port: 0 });
 
-  _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
-    (f) => f.uri.fsPath,
-  );
-  writeLock({ port: _port, token, workspaceFolders: _workspaceFolders });
+    _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
+      (f) => f.uri.fsPath,
+    );
+    writeLock({
+      port: _port,
+      token,
+      workspaceFolders: _workspaceFolders,
+      allowInsecurePermissions: lockfileSecurity.allowInsecurePermissions,
+    });
+  } catch (e) {
+    // A permission/verification failure happens after the ephemeral port was
+    // bound. Stop it immediately and remove any partial discovery files.
+    await stopBridge(context);
+    throw e;
+  }
 
   // Env fast-path: terminals spawned by this window carry the port + token so
   // the CLI locks onto exactly this instance without scanning.

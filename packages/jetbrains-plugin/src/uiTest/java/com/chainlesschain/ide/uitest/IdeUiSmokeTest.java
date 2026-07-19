@@ -5,11 +5,14 @@ import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import org.junit.jupiter.api.Test;
 
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Base64;
 
 /**
  * GUI smoke gate (gap #8) — the first Remote Robot smoke test. Drives a
@@ -72,18 +75,23 @@ final class IdeUiSmokeTest {
         }
     }
 
-    /** Connect to the robot server, retrying while the sandbox IDE starts. */
+    /**
+     * Connect to the robot server, retrying while the sandbox IDE starts.
+     *
+     * Do not use callJs as a liveness probe here. Remote Robot's response DTOs
+     * contain Throwable fields and are decoded by Gson; on strongly
+     * encapsulated JDKs that used to turn a simple readiness check into the
+     * JsonIOException/InaccessibleObjectException reported by CI, then hide the
+     * permanent client incompatibility behind three minutes of retries.
+     */
     private static RemoteRobot connectWithRetry() throws InterruptedException {
         long deadline = System.nanoTime() + CONNECT_BUDGET.toNanos();
-        Throwable last = null;
+        IOException last = null;
         while (System.nanoTime() < deadline) {
             try {
-                RemoteRobot robot = new RemoteRobot(ROBOT_URL);
-                // Cheap liveness probe — throws until the server answers.
-                Boolean ok = robot.callJs("true");
-                if (Boolean.TRUE.equals(ok)) return robot;
-            } catch (Throwable t) {
-                last = t;
+                if (robotServerIsReady()) return new RemoteRobot(ROBOT_URL);
+            } catch (IOException e) {
+                last = e;
             }
             Thread.sleep(5000);
         }
@@ -93,25 +101,31 @@ final class IdeUiSmokeTest {
                 last);
     }
 
+    /** HTTP-only readiness probe: no Remote Robot/Gson serialization involved. */
+    private static boolean robotServerIsReady() throws IOException {
+        HttpURLConnection connection =
+                (HttpURLConnection) URI.create(ROBOT_URL).toURL().openConnection();
+        try {
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(2000);
+            connection.setReadTimeout(2000);
+            connection.setUseCaches(false);
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 400;
+        } finally {
+            connection.disconnect();
+        }
+    }
+
     /** Full-screen PNG into build/reports/ui-smoke/ (best-effort). */
     private static void saveScreenshot(RemoteRobot robot, String name) {
         try {
-            // Canonical remote-robot screenshot script (Rhino on the IDE side).
-            String base64 = robot.callJs(
-                    "importPackage(java.io);"
-                            + "importPackage(java.util);"
-                            + "importPackage(javax.imageio);"
-                            + "const screenShot = new java.awt.Robot().createScreenCapture("
-                            + "  new java.awt.Rectangle(java.awt.Toolkit.getDefaultToolkit().getScreenSize()));"
-                            + "let pictureBytes;"
-                            + "const baos = new ByteArrayOutputStream();"
-                            + "try { ImageIO.write(screenShot, 'png', baos);"
-                            + "  pictureBytes = baos.toByteArray(); } finally { baos.close(); }"
-                            + "Base64.getEncoder().encodeToString(pictureBytes);");
             Path dir = Paths.get("build", "reports", "ui-smoke");
             Files.createDirectories(dir);
             Path file = dir.resolve(name + "-" + System.currentTimeMillis() + ".png");
-            Files.write(file, Base64.getDecoder().decode(base64));
+            if (!ImageIO.write(robot.getScreenshot(), "png", file.toFile())) {
+                throw new IOException("no PNG ImageIO writer is available");
+            }
             System.err.println("[ui-smoke] failure screenshot: " + file.toAbsolutePath());
         } catch (Throwable t) {
             System.err.println("[ui-smoke] could not capture a screenshot: " + t);

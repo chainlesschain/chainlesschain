@@ -1,0 +1,13 @@
+{
+  "name": "chainlesschain-extension-host-smoke-driver",
+  "displayName": "ChainlessChain Extension Host Smoke Driver",
+  "description": "Test-only driver for an installed ChainlessChain VSIX.",
+  "version": "0.0.0",
+  "publisher": "chainlesschain-tests",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./noop.cjs",
+  "activationEvents": []
+}

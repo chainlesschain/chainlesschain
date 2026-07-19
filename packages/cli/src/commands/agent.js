@@ -1029,7 +1029,11 @@ export function registerAgentCommand(program) {
         if (piped) prompt = piped;
       }
 
-      if (options.bg && !prompt) {
+      // Commander canonicalizes the dual long-option declaration
+      // `--bg, --background` to `options.background`; retain `options.bg` for
+      // callers/tests that invoke the action with a pre-normalized object.
+      const background = options.background === true || options.bg === true;
+      if (background && !prompt) {
         process.stderr.write(
           "--bg requires a task via positional text, -p, or piped stdin.\n",
         );
@@ -1038,7 +1042,7 @@ export function registerAgentCommand(program) {
       }
 
       if (prompt) {
-        if (options.bg) {
+        if (background) {
           const { launchBackgroundAgent, buildFollowUpArgv } =
             await import("../lib/background-agent-supervisor.js");
           const childArgv = process.argv.slice(2).filter(

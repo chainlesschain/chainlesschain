@@ -67,6 +67,12 @@ export function formatBackgroundAgentDetails(
     `  endedAt: ${formatTimestamp(session.endedAt)}`,
     `  log: ${session.logFile || "-"}`,
   ];
+  if (session.worktreePath) {
+    lines.push(`  worktree: ${session.worktreePath}`);
+    lines.push(`  repoRoot: ${session.repoRoot || "-"}`);
+    lines.push(`  branch: ${session.branch || "-"}`);
+    lines.push(`  baseSha: ${session.baseSha || "-"}`);
+  }
   if (session.phase) lines.push(`  phase: ${session.phase}`);
   if (session.pr?.number) {
     lines.push(
@@ -615,10 +621,14 @@ export function registerBackgroundSessionCommands(program) {
   daemon
     .command("rm <id>")
     .description(
-      "Remove a finished background agent's record + log (running agents need --force; the conversation session itself is untouched)",
+      "Remove a finished background agent's record + log (a bound worktree is removed only when verified empty; the conversation session itself is untouched)",
     )
     .option("--force", "Stop a still-running agent first, then remove")
     .option("--keep-log", "Keep the log file, remove only the state record")
+    .option(
+      "--keep-worktree",
+      "Keep the isolated worktree and remove only the background record",
+    )
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
       try {
@@ -626,6 +636,7 @@ export function registerBackgroundSessionCommands(program) {
         const result = removeBackgroundAgent(id, {
           force: options.force === true,
           keepLog: options.keepLog === true,
+          keepWorktree: options.keepWorktree === true,
         });
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));

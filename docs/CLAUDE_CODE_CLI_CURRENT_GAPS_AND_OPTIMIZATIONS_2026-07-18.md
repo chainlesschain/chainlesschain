@@ -1,0 +1,558 @@
+# ChainlessChain CLI 对照 Claude Code CLI 当前净差距与优化建议
+
+> 评估日期：2026-07-18  
+> 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
+> 仓库基线：CLI `0.162.170`  
+> 对标基线：截至评估日的 Claude Code 官方滚动文档  
+> 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
+> [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
+
+## 1. 结论
+
+ChainlessChain CLI 已经不是一个需要继续补基础命令的早期 Coding Agent。当前代码已覆盖
+Headless、JSON/NDJSON、`--bare`、会话恢复、后台 Agent、Worktree、Checkpoint、权限策略、
+MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent SDK 等主体能力。
+
+下一阶段最有价值的工作不是继续增加 Slash Command 或扩大 Agent 数量，而是把现有能力收敛为
+一个可信、可恢复、跨平台一致的运行时。建议优先投入以下五项：
+
+1. **P0：统一 Process Sandbox Broker。** 所有子进程入口统一经过强隔离、网络策略、凭据代理和审计。
+2. **P0：后台 Agent 实时交互总线。** 审批和提问能够在当前 turn 内暂停、回答和继续，而不是结束后另起一轮。
+3. **P1：Hooks v2。** 补齐新版事件和五种 Hook 类型，并默认并行、去重、最严决策合并及沙箱执行。
+4. **P1：常驻 Event Runtime + MCP Elicitation/Channels。** 让 Agenda、Monitor、Webhook 和 MCP 外部事件真正可持续运行。
+5. **P1：统一协议与验收门。** CLI、SDK、IDE、Desktop 共用版本化事件协议和真实端到端发布门，清理已过时的能力文档。
+
+如果资源有限，前两项应先于所有体验类功能。它们决定 Agent 能否安全地长时间自治运行。
+
+## 2. 已有基线：这些不应再作为独立大项目
+
+| 维度 | 当前仓库事实 | 判断 |
+| --- | --- | --- |
+| Headless | text/JSON/stream-json、stream input、结构化结果、预算、turn 上限、`--bare`、`--ephemeral`、能力清单 | 主体已具备 |
+| 会话 | 新建、恢复、命名、清理、PR 关联、导出、搜索、哈希链与 Mirror | 主体已具备 |
+| 后台 Agent | `--bg`、attach、logs、stop、resume、状态持久化、PID identity、孤儿回收、副作用台账 | 主体已具备 |
+| 权限 | allow/ask/deny、permission mode、managed policy、项目配置信任、authority envelope、远程审批绑定 | 主体已具备 |
+| Checkpoint | 自动 checkpoint、`/rewind`、conversation/files/both、显式 turn binding、partial coverage | 主体已具备 |
+| Skills/Subagent | 多层 Skill、热加载、隔离上下文、完整约束契约、后台运行、Worktree、精确取消 | 主体已具备 |
+| MCP | stdio/HTTP、Tools、Resources、Prompts、OAuth、Tool Search、动态 list changed、Roots 通知、重连 | 主体已具备 |
+| Plugin | Manifest、签名/信任、能力声明、能力差异与重新 consent、typed options、LSP/MCP/Hooks/Bin | 主体已具备 |
+| 质量 | LSP、多根工作区、编辑后诊断、多 Agent Review + verifier、Doctor、OTel | 主体已具备 |
+| SDK | 已有 TypeScript Agent SDK、NDJSON 协议 fixture、background/session 测试 | 已有产品雏形 |
+
+因此不建议再单独立项：
+
+- 增加更多同义顶层命令或普通 Slash Command。
+- 再造一套基础 Chat/Agent Loop。
+- 再造一套普通 Skill、MCP 或 Worktree 管理器。
+- 在可靠性和隔离未收口前继续扩大 Agent Team 并发规模。
+- 为功能数量平价照搬 Claude 账号、订阅或 Anthropic 专属云能力。
+
+## 3. 当前对标矩阵
+
+| 能力面 | Claude Code 官方能力 | ChainlessChain 当前状态 | 当前净差距 | 优先级 |
+| --- | --- | --- | --- | --- |
+| 进程隔离 | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败 | Docker + bubblewrap，能报告真实隔离级别 | macOS/原生 Windows 缺强边界；多个 spawn 入口未统一；凭据代理仍非默认 | P0 |
+| 后台人机回路 | 后台任务可暂停、请求权限/输入、恢复和接管 | attach 可追问；`needs_input` 已有真实状态 | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道 | P0 |
+| 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
+| Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
+| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots 已有 | 缺 Elicitation 生产与 UI/Headless 路由；外部事件未进入常驻运行时 | P1 |
+| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda/Monitor/Channel 原语较多 | `cc agenda run` 仍需外部触发；缺常驻调度、租约、补跑、背压闭环 | P1 |
+| Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
+| Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
+| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options 更细 | 敏感值仍可落 user JSON；进程组件未统一进 Broker；缺 lockfile/SBOM 闭环 | P1 |
+| 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | 文件锁封装以 best-effort 为主 | 锁超时后部分路径会无锁继续，关键状态存在 lost update 风险 | P1 |
+| 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 已有较完整自研子集及 stream `structured_result` | 仍不是完整 Draft 2020-12；复杂 schema 的互操作性需明确 | P1 |
+| SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
+| 验收与文档 | CLI/IDE/SDK 共享运行时和持续发布验证 | 单元/集成测试很多 | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口 | P1 |
+| 全进程回滚 | 官方 checkpoint 主要覆盖编辑工具 | 已对 shell/外部副作用诚实标记 partial | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化 | P2 |
+
+## 4. P0：统一 Process Sandbox Broker
+
+### 4.1 当前证据
+
+- [`agent-sandbox.js`](../packages/cli/src/lib/agent-sandbox.js#L64) 只接受 `docker` 和
+  `bubblewrap`；[`capability-manifest.js`](../packages/cli/src/lib/capability-manifest.js#L83)
+  也只公开这两个引擎。
+- `bubblewrap` 已有真实 Linux 集成测试，Docker 可提供容器边界，但 macOS Seatbelt 和原生
+  Windows 等价实现仍缺。
+- [`hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs#L231) 直接派生完整
+  `process.env`，并在 [`hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs#L245)
+  通过 `shell: true` 执行。
+- `run_shell`、`run_code`、Hook、Plugin Bin、LSP、MCP stdio 目前不是同一个进程执行入口，
+  很难证明所有路径都遵守相同的文件、网络、凭据和审计策略。
+
+### 4.2 建议设计
+
+建立单一 `ProcessExecutionBroker`，禁止业务模块直接调用 `spawn`/`exec`。统一请求至少包含：
+
+```text
+ExecutionRequest
+  origin: tool | hook | plugin | lsp | mcp | installer
+  argv: string[]
+  cwd / workspace_roots
+  filesystem_policy
+  network_policy
+  credential_refs
+  timeout / output_limits
+  sandbox_required
+  session_id / turn_id / tool_use_id / plugin_id
+```
+
+执行后统一返回：
+
+```text
+ExecutionResult
+  exit_code / signal / timed_out
+  stdout_ref / stderr_ref
+  isolation_level
+  policy_decisions
+  credential_injections
+  side_effect_summary
+  audit_id
+```
+
+落地顺序：
+
+1. 先做 Broker 接口和静态检查，盘点并拦截新增的裸 `spawn`。
+2. Linux 复用 bubblewrap；macOS 增加 Seatbelt profile。
+3. Windows 首选 WSL2/bubblewrap 或容器；原生受限进程只能在验证达到同一语义后标为强隔离。
+4. `failIfUnavailable=true` 时所有入口都必须 fail-closed，不能只约束 `run_shell`。
+5. 凭据代理改为 default-on：子进程只看 sentinel，只有经过审批的目标 host/进程得到短期值。
+6. Python 使用 per-session venv；安装命令分类、版本锁、hash/registry allowlist 改为默认策略。
+7. 分阶段废弃 `--api-key`：当前
+   [`agent.js`](../packages/cli/src/commands/agent.js#L122) 和其他入口仍接受命令行密钥，
+   警告并不能避免 shell history 与进程列表泄露；改用 stdin、环境句柄、Keychain 或
+   `apiKeyHelper`。
+
+### 4.3 验收标准
+
+- 仓库内生产代码不再出现绕过 Broker 的非豁免 `spawn`/`exec`。
+- Linux、macOS、Windows 各有真实运行测试，不只测参数拼接。
+- 覆盖子进程链、symlink/junction、路径穿越、私网、云 metadata endpoint 和 DNS rebinding。
+- 严格模式下引擎不可用时 Agent 拒绝启动，日志明确显示真实隔离等级。
+- 未批准子进程读取不到长期凭据；审计和 OTel 中也不存在明文。
+- Hook、Plugin、LSP、MCP stdio 与 Tool 使用同一套 provenance 和 side-effect ledger。
+
+## 5. P0：后台 Agent 实时交互总线
+
+### 5.1 当前证据
+
+- [`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js#L1431) 明确说明后台
+  `ask_user_question` 没有连接当前子进程的人类通道，只能记录 `needs_input` 后结束该 turn。
+- [`background-agent-worker.js`](../packages/cli/src/workers/background-agent-worker.js#L111)
+  启动 turn 子进程时 stdin 为 ignore。
+- attach 发来的文本进入
+  [`promptQueue`](../packages/cli/src/workers/background-agent-worker.js#L170)，当前子进程退出后才以
+  `-p` 启动下一 turn。
+
+这让状态展示已经“诚实”，但交互语义仍不完整：一个本可继续的当前 turn 被拆成两轮模型调用，
+会增加成本、丢失工具调用现场，也不适合高风险审批。
+
+### 5.2 建议设计
+
+增加 worker 与 turn child 之间的双向本地 IPC：
+
+```text
+child -> worker
+  interaction.request {
+    request_id, kind: question | permission | elicitation,
+    schema, choices, tool_use_id, policy_digest, expires_at
+  }
+
+worker -> child
+  interaction.resolve {
+    request_id, answer, authority, binding, resolved_at
+  }
+```
+
+关键约束：
+
+- `request_id`、`tool_use_id`、参数摘要和 `policy_digest` 共同绑定，旧回答不能批准新动作。
+- worker 持久化 pending request；attach、Desktop、IDE、Remote Control 共用同一解析入口。
+- 断线后仍保持 `needs_input`/`waiting_permission`，重连可继续，不自动降级成 allow。
+- 支持过期、取消、重复回答幂等、背压和 worker/child 任一侧崩溃恢复。
+- Headless 可采用结构化 `defer` 结果交给 SDK/CI，而不是在非交互环境中挂死。
+
+### 5.3 验收标准
+
+- 用户回答后继续同一 turn，不新增一次模型首轮调用。
+- stale、伪造、跨 session 和跨 tool call 的 approval 全部拒绝。
+- worker 或 UI 重启后 pending request 可恢复，且最多执行一次。
+- 本地 attach、WebSocket、Desktop、IDE 使用相同的 authority/binding 测试向量。
+- `working`、`needs_input`、`waiting_permission`、`uncertain_side_effect`、`idle` 状态有唯一生产者和明确迁移表。
+
+## 6. P1：Hooks v2
+
+### 6.1 当前证据
+
+- [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L35) 的事件白名单仍是部分集合。
+- 同一加载器在 [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L111) 只收
+  `type: "command"`。
+- `TaskCreated`、`TaskCompleted`、`MCPElicitation` 等部分名字已进入内部事件表，但缺真实生产者。
+- 真并行和最严决策合并已经有实现，但仍存在 opt-in/default-flip 余量。
+- Hook 当前直接执行 shell、继承完整环境，尚未进入统一沙箱。
+
+Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `command`、`http`、`mcp_tool`、
+`prompt`、`agent` 五类处理器。值得对标的重点不是“事件数量”，而是把 Hook 作为稳定公共 API。
+
+### 6.2 建议
+
+1. 建立唯一 `HookEventSchema`，CLI、SDK、IDE、插件共用版本和 Golden Fixtures。
+2. 补齐高价值事件：
+   - `Setup`
+   - `UserPromptExpansion`
+   - `PostToolUseFailure`
+   - `PostToolBatch`
+   - `PermissionDenied`
+   - `StopFailure`
+   - `FileChanged`
+   - `PostCompact`
+   - `TaskCreated` / `TaskCompleted`
+   - `Elicitation` / `ElicitationResult`
+   - `TeammateIdle`
+3. 实现五种 Hook executor，并为各事件声明允许的类型和决策语义。
+4. 默认并行执行、相同处理器去重、最严格决策优先；保留兼容开关和明确迁移日志。
+5. command/agent hook 进入 Process Broker；HTTP hook 使用 managed 域名 allowlist；MCP hook 复用 MCP 权限。
+6. prompt/agent hook 必须有独立模型、turn、token、时间预算，不能悄悄消耗主会话预算。
+7. Replay 只重放事件输入，不允许未经重新授权复制历史 allow 决策。
+
+### 6.3 验收标准
+
+- 每个事件都有 producer、schema fixture、允许的 Hook 类型和阻断语义测试。
+- CLI、SDK、IDE 对同一 fixture 产生相同解析结果。
+- 并行顺序变化不改变最终决策；重复 Hook 只执行一次。
+- Hook 无法读取未授权凭据或写出工作区边界。
+- managed hooks 不能被低层配置关闭，项目 Hook 变更会重新触发信任。
+
+## 7. P1：常驻 Event Runtime 与 MCP 交互闭环
+
+### 7.1 当前证据
+
+- [`agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js#L8) 将执行者描述为
+  `cc agenda run`。
+- [`agenda.js`](../packages/cli/src/commands/agenda.js#L5) 也明确要求通过 `cc loop`、系统 cron
+  或人工调用触发。
+- Monitor 已有确定性 event id、authority envelope 和去重原语，但注释仍指向“future resident daemon”。
+- [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js#L1054) 已处理 tools/resources
+  `list_changed`，但没有完整 Elicitation 请求到 UI/Headless/SDK 的交互链。
+
+### 7.2 建议
+
+把 Agenda、Monitor、Channel 和 MCP 外部事件统一到一个常驻 Event Runtime：
+
+- 持久 inbox/outbox、事件 id、去重键、租约、attempt、dead-letter。
+- 定时器只负责唤醒，真实状态以持久存储为准。
+- 明确 missed-run 策略：skip、run-once、catch-up-N，默认避免重放风暴。
+- Webhook、WebSocket、SSE、MCP Channels 进入有界队列，支持限流和背压。
+- 事件只能触发被预授权的低风险动作；高风险动作转入实时交互总线。
+- Elicitation 支持结构化表单、URL 跳转、Headless defer 和超时拒绝。
+- 所有外部事件带 origin/authority，消息文本本身不能声称“用户已批准”。
+
+### 7.3 验收标准
+
+- daemon 重启后不会漏掉一次性任务，也不会重复执行已确认的副作用。
+- 时钟跳变、休眠唤醒、长时间离线和多实例竞争均有确定性测试。
+- 高频事件下内存有界，丢弃/合并策略可观测。
+- MCP Elicitation 在 CLI、Desktop、IDE、SDK 中共享同一请求和回答协议。
+- 每个事件可从 ingress 追踪到 agent run、权限决定和最终副作用。
+
+## 8. P1：Context 成本与懒加载可观测性
+
+[`context-breakdown.js`](../packages/cli/src/lib/context-breakdown.js#L14) 已注明 Skills 和 MCP
+tool schema 属于运行时工具定义，当前基础统计无法完整归因。`/context` 已经有价值，但还不能回答：
+
+- 哪个 Skill 描述常驻、哪个正文按需加载、实际占了多少 token。
+- 哪个 MCP server/tool schema 占用最多，Tool Search 节省了多少。
+- 哪条指令、规则、文件或 compaction re-injection 导致 cache miss。
+- Subagent、Hook、MCP 和主会话各自消耗多少上下文和预算。
+
+建议引入 `ContextSourceLedger`，在真正构造 provider request 的位置记录：
+
+```text
+source_id
+source_type: system | instruction | rule | memory | skill | mcp_schema | tool | file | history
+scope / origin / loaded_because
+raw_chars / estimated_tokens / provider_tokens
+cache_read / cache_write / cache_miss_reason
+turn_id / agent_id
+```
+
+验收目标：
+
+- `/context --json` 的分项总和与实际请求 token 误差有明确上限。
+- 展示 Top N 上下文来源及可执行优化建议。
+- Tool Search、Skill 懒加载、compact 前后都有节省量对比。
+- 不把 prompt、文件正文或 tool args 默认发往 OTel。
+
+## 9. P1：Turn、Checkpoint 与跨运行形态统一
+
+Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js#L1802)
+实时建立并持久化 turn binding，REPL 也已能消费持久表。剩余问题是同一个 Agent Core 在不同入口
+仍产生不同完整度的恢复数据：
+
+- REPL 自身尚未成为同等级的显式 turn-binding 生产者。
+- provider 原始 `tool_use_id` 没有完整浮出，部分位置仍由 runner 合成。
+- child agent 的 checkpoint、worktree id、user edit 标记没有统一进入父 turn。
+- shell 和外部进程写文件只能标记 `coverage: partial`。
+
+建议：
+
+1. 把 turn/checkpoint 事件生产下沉到 Agent Core，REPL、Headless、SDK、IDE 只消费。
+2. Provider call id、permission decision id、checkpoint id、child agent id 全程保真。
+3. 父子 Agent 使用 trace/span 关系，不靠名称或日志文本反推。
+4. Worktree、用户编辑和外部文件变化进入同一 coverage 模型。
+5. 在 Process Broker 中增加运行前后文件摘要或变更日志，逐步把 shell 文件变更从
+   `partial` 提升为可恢复；外部网络/数据库副作用仍必须明确不可回滚。
+
+这也是最值得做的差异化：Claude Code 官方 checkpoint 主要跟踪编辑工具，ChainlessChain 可进一步
+覆盖受 Broker 管理的全部文件写入，但不能对外部副作用作虚假承诺。
+
+## 10. P1：Plugin 凭据与供应链闭环
+
+当前 Plugin 能力声明、能力 diff、重新 consent 和 options schema 已较完善。剩余高价值工作：
+
+- 敏感 option 从 user-scope JSON 迁移到 DPAPI、macOS Keychain、Linux Secret Service。
+- 取消 legacy manifest 的隐式旁路：当前
+  [`policy.js`](../packages/cli/src/lib/plugin-runtime/policy.js#L180) 对未声明 capabilities 的
+  旧插件保留兼容加载。建议设置迁移窗口，首次加载展示推断能力并要求确认；企业模式直接
+  fail-closed。
+- Plugin Bin、Hook、LSP、MCP stdio 全部进入 Process Broker，并携带 `plugin_id/version/source`。
+- Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
+  升级为“运行时强制”。
+- 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。
+- 升级前展示新增能力、上下文成本和可执行组件；能力扩大必须重新 consent。
+- 禁止不安全 shell-form 插值，默认使用 argv 形式。
+
+验收标准：
+
+- 配置文件、日志、Session 和诊断包中没有插件敏感值。
+- 插件声明外的网络、文件、进程和凭据访问被运行时拒绝。
+- 插件升级新增能力时旧 consent 失效，降权升级无需重复打扰用户。
+- 离线可验证安装包 hash、签名、依赖和 SBOM。
+
+## 11. P0/P1：权限控制面、关键状态与结构化输出
+
+### 11.1 统一权限控制面
+
+[`permissions.js`](../packages/cli/src/commands/permissions.js#L12) 已注明其管理面尚未直接 gate
+Agent tool runtime；真正的工具决策还分布在 settings rules、ApprovalGate、Hook、managed policy、
+remote approval 和不同运行入口中。
+
+建议建立唯一 `PolicyDecisionService`：
+
+- CLI、REPL、Headless、Desktop、IDE、SDK、Subagent、Hook 和 MCP 都调用同一决策接口。
+- 每个结果固定返回 `decision_id`、最终决定、命中规则、配置层级、authority chain、
+  sandbox requirement 和可否重试。
+- `cc permissions explain <decision-id>` 能解释“谁允许/拒绝了什么”，而不是只展示静态配置。
+- managed deny、bypass 禁令和项目 trust 必须在所有入口保持相同优先级。
+- 旧 `cc permissions` 若不能立即接入运行时，应明确显示“advisory/not enforced”，避免安全误解。
+
+同时应把 IDE Bridge 本地 token 视为权限边界。VS Code/JetBrains lockfile 的 0600/ACL 设置失败不应
+默认 fail-open；多用户主机上应拒绝启动 Bridge，只允许 managed policy 明确开启降级。
+
+### 11.2 关键状态不能 best-effort 无锁继续
+
+[`with-file-lock.js`](../packages/cli/src/lib/with-file-lock.js#L2) 明确采用 best-effort 策略；
+锁超时或异常后继续执行临界区可能产生 lost update。对显示缓存这是合理降级，对以下状态则不可接受：
+
+- approval request/resolve 与 authority binding。
+- side-effect ledger 与幂等执行记录。
+- session/turn/checkpoint binding。
+- scheduler lease、delivery id 和任务完成状态。
+- plugin trust、capability consent 和凭据元数据。
+
+建议给状态存储分级：
+
+| 等级 | 示例 | 锁失败策略 |
+| --- | --- | --- |
+| Critical | approval、ledger、turn binding、scheduler lease | fail-closed，不执行副作用 |
+| Durable | session index、task、plugin consent | 有界重试后报错，不无锁写 |
+| Advisory | UI cache、统计快照、提示索引 | 可 best-effort 降级 |
+
+跨进程关键状态优先迁到 SQLite transaction、单写者 daemon 或带 compare-and-swap 的持久存储，
+而不是继续扩展文件锁约定。
+
+### 11.3 标准化 JSON Schema
+
+当前 [`json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js) 已覆盖许多常用
+关键字，也已经能输出带 JSON Pointer 的 `structured_result`，但仍是自研 Draft 2020-12 子集。
+
+建议：
+
+- 使用成熟 Draft 2020-12 validator，或公开、版本化声明支持的精确子集，避免声称完整兼容。
+- 启动时编译 schema；无效 schema 在任何模型调用前失败。
+- `stream-json` 明确区分 partial assistant event 和最终 validated result。
+- 对 `$ref`、`unevaluatedProperties`、dependent schema、组合关键字和 format 建兼容测试集。
+- CLI、SDK、IDE 使用同一 schema digest、错误码和 JSON Pointer。
+
+## 12. P1：Agent SDK、CI 与权限默认值
+
+[`packages/agent-sdk`](../packages/agent-sdk/) 已有 TypeScript SDK 和协议 fixture，因此不建议再
+“抽取一套新 SDK”。建议优先补协议收口：
+
+- `goal_*`、approval binding、turn/checkpoint、child agent、recovery 和 defer 事件完整透传。
+- CLI、SDK、VS Code、JetBrains、Desktop 共用一份 schema package 和 Golden NDJSON。
+- 协议变更有 SemVer、capability negotiation、deprecation window 和兼容矩阵。
+- WebSocket approval gate 从 opt-in 迁移为安全默认；项目配置不能放宽 managed deny、
+  bypass 或 auto mode 的组织边界。
+- SDK 可替换 SessionStore、审批回调、Elicitation、Hook 和 OTel exporter。
+
+Python SDK 和 GitHub/GitLab CI 模板应按真实用户场景决定：
+
+- 若要做第三方嵌入平台，Python SDK 提升为 P1。
+- 若主要服务桌面端和自托管 CLI，先把 TypeScript SDK 和协议发布门做稳。
+- CI 集成优先提供最小、可审计的 `--bare --ephemeral --dontAsk` 模板，不要默认开放高风险工具。
+
+## 13. P1：统一验收门与文档治理
+
+这是成本最低、回报最快的一项优化。
+
+当前 `desktop-app-vue/scripts/verify-coding-agent-mvp.js` 的验证范围较窄，没有覆盖所有已存在的关键链：
+
+- Desktop 完整 lifecycle integration。
+- Desktop 到真实 CLI server。
+- CLI WebSocket envelope E2E。
+- Renderer store。
+- Bridge、contract、policy 与 runtime convergence。
+- CLI reference/protocol 生成物漂移检查。
+- VS Code 真实 Extension Host + VSIX 安装旅程，以及 JetBrains Remote Robot 的核心交互旅程。
+- Remote/WSL/SSH/Dev Container 运行矩阵和长时间 soak。
+
+建议增加唯一发布入口，例如：
+
+```text
+npm run test:coding-agent:parity
+  1. CLI contract/policy/unit
+  2. CLI real envelope E2E
+  3. Desktop hosted-tools integration
+  4. Desktop lifecycle integration
+  5. Desktop <-> real CLI bridge
+  6. Renderer store
+  7. SDK protocol fixtures
+  8. docs:cli-reference:check
+  9. docs:protocol:check
+```
+
+同时治理文档事实源：
+
+- 本文作为“当前净差距”入口。
+- 历史 Gap/Parity 文档增加 `Implemented`、`Superseded` 或 `Historical` 标记。
+- 增量报告顶部待办应由各节“仍欠”自动汇总，避免顶部和正文互相矛盾。
+- 测试数量、命令数量和 IPC 数量不手写，全部从注册表/测试清单生成。
+- 修正 Background stability README 中已经完成的 PID reuse、孤儿回收和
+  `waiting_permission` 旧 pinned gaps。
+
+## 14. P2：可形成差异化、但不应抢占 P0/P1 的方向
+
+### 14.1 全工具文件回滚
+
+利用 Process Broker 在受控进程前后记录文件系统变化，把 shell、脚本、插件和 MCP stdio 引起的
+工作区写入纳入 checkpoint。建议采用分层承诺：
+
+- `full`：所有文件写入都被捕获，可恢复。
+- `partial`：工作区文件可恢复，但外部副作用不可恢复。
+- `none`：没有可信快照。
+
+不要把数据库写入、发送消息、部署或支付等外部动作包装成“可回滚”。
+
+### 14.2 Auto mode 安全分类器评测
+
+ChainlessChain 已有 auto/dontAsk 等权限模式。若要进一步对标 Claude Code 的独立安全分类器，
+应先建立离线风险集和回归基准，评测越权路径、秘密外发、生产部署、强推、未审核合并、
+第三方 Agent 无隔离执行等场景。分类器只能增加一道防线，不能替代 deny 规则和 OS 沙箱。
+
+### 14.3 大规模 Agent Teams
+
+已有 Team、Workflow、Batch 和 Worktree 原语。只有在以下条件满足后才建议继续扩规模：
+
+- 每个 child 有独立预算、checkpoint 和权限上限。
+- 文件冲突、任务租约、重复执行和 crash recovery 已可验证。
+- Agent View 可人工接管，且事件队列有背压。
+
+否则增加并发只会放大冲突、成本和不可恢复副作用。
+
+### 14.4 标准 OTel Collector 出口
+
+当前 CLI 已有 span、trace、内容脱敏和 permission decision 属性，但主要入口仍以本地 OTLP JSON
+文件为主。若企业治理有真实需求，再增加 OTLP HTTP/gRPC exporter、离线队列、背压、重试、
+mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
+
+## 15. 建议实施路线
+
+| 批次 | 时间建议 | 交付目标 | 退出条件 |
+| --- | --- | --- | --- |
+| M0 事实基线 | 1 周 | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识 | 当前能力可一键复验，旧待办和权限 UI 不再误导 |
+| M1 可信执行 | 4–6 周 | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed | 所有生产子进程统一受控，三平台严格测试通过 |
+| M2 实时交互 | 3–4 周 | worker-child IPC、approval/question/elicitation、恢复 | 当前 turn 可安全暂停与继续，stale approval 全拒 |
+| M3 扩展运行时 | 4–6 周 | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels | 事件可恢复、幂等、有界，Hook 协议稳定 |
+| M4 协议收口 | 3–4 周 | Context ledger、统一 turn binding、标准 JSON Schema、SDK/IDE golden gate | CLI/SDK/IDE/Desktop 事件与恢复语义一致 |
+| M5 差异化 | 按需求 | 全工具文件回滚、安全分类器评测、大规模 Agent | 有真实用户指标与故障模型后再投入 |
+
+可以并行的工作：
+
+- M0 可与 M1 的接口设计并行。
+- M2 的协议设计可与 M1 并行，但真正执行必须复用 Broker 和 authority。
+- Context ledger 与 SDK Golden Fixtures 可独立推进。
+
+不能倒置的依赖：
+
+- Hook/Plugin/MCP 的执行安全依赖 Process Broker。
+- MCP Elicitation 和后台审批依赖实时交互总线。
+- 大规模 Agent Teams 依赖 checkpoint、预算、authority 和 Event Runtime。
+
+## 16. 建议 KPI
+
+| 指标 | 目标 |
+| --- | --- |
+| 子进程受控率 | 生产路径 100% 经过 Broker 或显式、审计化豁免 |
+| 严格沙箱降级 | 0 次静默降级 |
+| 凭据泄露 | 子进程、日志、Session、OTel 中 0 个未授权明文凭据 |
+| 后台交互 | question/permission/elicitation 可在同一 turn 恢复 |
+| 审批安全 | stale、跨 session、跨 tool call approval 拒绝率 100% |
+| 关键状态写入 | Critical 状态锁失败时 0 次无锁继续 |
+| 权限解释 | 每次工具决定均可追溯 decision id、规则层级和 authority |
+| Event Runtime | 重启后不漏一次性任务，已确认副作用不重复 |
+| Hook 兼容 | CLI/SDK/IDE Golden Fixture 结果一致 |
+| Context 归因 | `/context` 分项与实际 provider token 的误差有明确上限并持续监控 |
+| 恢复诚实度 | 所有 turn 均标注 full/partial/none，不做过度承诺 |
+| 发布验收 | parity 脚本成为 CLI/Coding Agent 发布必过门 |
+
+## 17. 官方一手资料
+
+- [Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference)
+- [Interactive mode](https://code.claude.com/docs/en/interactive-mode)
+- [Permissions](https://code.claude.com/docs/en/permissions)
+- [Sandboxing](https://code.claude.com/docs/en/sandboxing)
+- [Hooks reference](https://code.claude.com/docs/en/hooks)
+- [Subagents](https://code.claude.com/docs/en/sub-agents)
+- [Agent teams](https://code.claude.com/docs/en/agent-teams)
+- [MCP](https://code.claude.com/docs/en/mcp)
+- [Context window](https://code.claude.com/docs/en/context-window)
+- [Checkpointing](https://code.claude.com/docs/en/checkpointing)
+- [Headless mode](https://code.claude.com/docs/en/headless)
+- [Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)
+- [Plugins](https://code.claude.com/docs/en/plugins)
+- [Monitoring and OpenTelemetry](https://code.claude.com/docs/en/monitoring-usage)
+
+## 18. 主要仓库证据
+
+- [`packages/cli/package.json`](../packages/cli/package.json)
+- [`packages/cli/src/lib/agent-sandbox.js`](../packages/cli/src/lib/agent-sandbox.js)
+- [`packages/cli/src/lib/credential-proxy.js`](../packages/cli/src/lib/credential-proxy.js)
+- [`packages/cli/src/commands/permissions.js`](../packages/cli/src/commands/permissions.js)
+- [`packages/cli/src/lib/with-file-lock.js`](../packages/cli/src/lib/with-file-lock.js)
+- [`packages/cli/src/workers/background-agent-worker.js`](../packages/cli/src/workers/background-agent-worker.js)
+- [`packages/cli/src/lib/background-session-transport.js`](../packages/cli/src/lib/background-session-transport.js)
+- [`packages/cli/src/lib/settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs)
+- [`packages/cli/src/lib/hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs)
+- [`packages/cli/src/lib/hook-event-bus.cjs`](../packages/cli/src/lib/hook-event-bus.cjs)
+- [`packages/cli/src/harness/mcp-client.js`](../packages/cli/src/harness/mcp-client.js)
+- [`packages/cli/src/lib/agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js)
+- [`packages/cli/src/lib/monitor-event.js`](../packages/cli/src/lib/monitor-event.js)
+- [`packages/cli/src/lib/context-breakdown.js`](../packages/cli/src/lib/context-breakdown.js)
+- [`packages/cli/src/lib/turn-binding.js`](../packages/cli/src/lib/turn-binding.js)
+- [`packages/cli/src/lib/plugin-runtime/plugin-options.js`](../packages/cli/src/lib/plugin-runtime/plugin-options.js)
+- [`packages/cli/src/lib/json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js)
+- [`packages/agent-sdk`](../packages/agent-sdk/)
+- [`desktop-app-vue/scripts/verify-coding-agent-mvp.js`](../desktop-app-vue/scripts/verify-coding-agent-mvp.js)
+- [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)

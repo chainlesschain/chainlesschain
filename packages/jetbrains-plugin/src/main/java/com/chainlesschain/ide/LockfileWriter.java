@@ -2,13 +2,19 @@ package com.chainlesschain.ide;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryFlag;
 import java.nio.file.attribute.AclEntryPermission;
 import java.nio.file.attribute.AclEntryType;
 import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.security.SecureRandom;
@@ -29,20 +35,46 @@ public final class LockfileWriter {
 
     private final Path dir;
     private final java.util.function.LongPredicate processAlive;
+    private final PermissionEnforcer permissionEnforcer;
+    private final SecurityPolicy securityPolicy;
+    private static final java.util.concurrent.atomic.AtomicBoolean DEGRADE_WARNED =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    @FunctionalInterface
+    interface PermissionEnforcer {
+        void enforce(Path path, Set<PosixFilePermission> permissions) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface SecurityPolicy {
+        boolean allowInsecurePermissions() throws IOException;
+    }
 
     public LockfileWriter() {
-        this(Paths.get(System.getProperty("user.home"), ".chainlesschain", "ide"));
+        this(Paths.get(System.getProperty("user.home"), ".chainlesschain", "ide"),
+                LockfileWriter::defaultProcessAlive,
+                LockfileWriter::restrictToOwner,
+                BridgeSecurityPolicy::allowInsecureLockfilePermissions);
     }
 
     /** Test seam: point the writer at an arbitrary directory. */
     public LockfileWriter(Path lockDir) {
-        this(lockDir, LockfileWriter::defaultProcessAlive);
+        this(lockDir, LockfileWriter::defaultProcessAlive,
+                LockfileWriter::restrictToOwner, () -> false);
     }
 
     /** Test seam: arbitrary directory + a custom pid-liveness probe. */
     public LockfileWriter(Path lockDir, java.util.function.LongPredicate processAlive) {
+        this(lockDir, processAlive, LockfileWriter::restrictToOwner, () -> false);
+    }
+
+    /** Test seam for permission failure and managed-degrade behavior. */
+    LockfileWriter(Path lockDir, java.util.function.LongPredicate processAlive,
+                   PermissionEnforcer permissionEnforcer, SecurityPolicy securityPolicy) {
         this.dir = lockDir;
         this.processAlive = processAlive;
+        this.permissionEnforcer = permissionEnforcer;
+        this.securityPolicy = securityPolicy;
     }
 
     /** True if a process with {@code pid} is currently alive (Java 9+). */
@@ -74,48 +106,94 @@ public final class LockfileWriter {
      */
     public Path write(int port, String token, List<String> workspaceFolders,
                       String url, long startedAt, long pid) throws IOException {
-        Files.createDirectories(dir);
-        restrictToOwner(dir, EnumSet.of(
+        final Set<PosixFilePermission> dirPermissions = EnumSet.of(
                 PosixFilePermission.OWNER_READ,
                 PosixFilePermission.OWNER_WRITE,
-                PosixFilePermission.OWNER_EXECUTE));
-
-        Map<String, Object> lock = new LinkedHashMap<>();
-        lock.put("ide", "jetbrains");
-        lock.put("version", 1L);
-        lock.put("transport", "http");
-        lock.put("url", url);
-        lock.put("port", (long) port);
-        lock.put("workspaceFolders", workspaceFolders);
-        lock.put("token", token);
-        lock.put("pid", pid);
-        lock.put("started_at", startedAt);
-
-        Path file = dir.resolve(port + ".json");
-        byte[] body = MiniJson.stringify(lock).getBytes(StandardCharsets.UTF_8);
-        // Atomic publish: write a temp sibling then move into place, so the
-        // CLI's discovery reader can never observe a half-written JSON file.
-        Path tmp = dir.resolve(port + ".json.tmp-" + ProcessHandle.current().pid());
-        try {
-            Files.write(tmp, body);
-            restrictToOwner(tmp, EnumSet.of(
-                    PosixFilePermission.OWNER_READ,
-                    PosixFilePermission.OWNER_WRITE));
-            try {
-                Files.move(tmp, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
-                Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException moveFailed) {
-            // Fall back to the plain write rather than losing discovery entirely.
-            Files.deleteIfExists(tmp);
-            Files.write(file, body);
-        }
-        restrictToOwner(file, EnumSet.of(
+                PosixFilePermission.OWNER_EXECUTE);
+        final Set<PosixFilePermission> filePermissions = EnumSet.of(
                 PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE));
-        return file;
+                PosixFilePermission.OWNER_WRITE);
+        Path file = dir.resolve(port + ".json");
+        Path tmp = dir.resolve(port + ".json.tmp-" + ProcessHandle.current().pid()
+                + "-" + randomSuffix());
+        boolean dirExisted = Files.exists(dir, LinkOption.NOFOLLOW_LINKS);
+        boolean allowInsecure = securityPolicy.allowInsecurePermissions();
+        try {
+            if (Files.isSymbolicLink(dir)) {
+                throw new IOException("IDE lock directory must not be a symbolic link: " + dir);
+            }
+            Files.createDirectories(dir);
+            enforceOwnerOnly(dir, dirPermissions, allowInsecure);
+
+            Map<String, Object> lock = new LinkedHashMap<>();
+            lock.put("ide", "jetbrains");
+            lock.put("version", 1L);
+            lock.put("transport", "http");
+            lock.put("url", url);
+            lock.put("port", (long) port);
+            lock.put("workspaceFolders", workspaceFolders);
+            lock.put("token", token);
+            lock.put("pid", pid);
+            lock.put("started_at", startedAt);
+            byte[] body = MiniJson.stringify(lock).getBytes(StandardCharsets.UTF_8);
+
+            // The directory is already owner-only. CREATE_NEW avoids following
+            // or truncating a planted temp path; permission verification occurs
+            // before the atomic rename makes the token discoverable.
+            Files.write(tmp, body, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            enforceOwnerOnly(tmp, filePermissions, allowInsecure);
+            Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+            enforceOwnerOnly(file, filePermissions, allowInsecure);
+            return file;
+        } catch (Exception failure) {
+            deleteQuietly(tmp);
+            deleteQuietly(file);
+            if (!dirExisted) {
+                try {
+                    Files.deleteIfExists(dir);
+                } catch (IOException ignore) {
+                    // Preserve a directory another bridge populated concurrently.
+                }
+            }
+            if (failure instanceof IOException) throw (IOException) failure;
+            throw new IOException("failed to publish secure IDE bridge lockfile", failure);
+        }
+    }
+
+    private static String randomSuffix() {
+        byte[] bytes = new byte[8];
+        new SecureRandom().nextBytes(bytes);
+        StringBuilder out = new StringBuilder(16);
+        for (byte b : bytes) out.append(String.format("%02x", b & 0xff));
+        return out.toString();
+    }
+
+    private static void deleteQuietly(Path path) {
+        if (path == null) return;
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ignore) {
+            // Best-effort rollback; the original security error remains primary.
+        }
+    }
+
+    private void enforceOwnerOnly(Path path, Set<PosixFilePermission> permissions,
+                                  boolean allowInsecure) throws IOException {
+        try {
+            permissionEnforcer.enforce(path, permissions);
+        } catch (Exception failure) {
+            if (!allowInsecure) {
+                if (failure instanceof IOException) throw (IOException) failure;
+                throw new IOException("owner-only permission enforcement failed for " + path,
+                        failure);
+            }
+            if (DEGRADE_WARNED.compareAndSet(false, true)) {
+                System.err.println("[chainlesschain-ide] managed policy permits an insecure "
+                        + "IDE bridge lockfile after permission verification failed: "
+                        + path + " (" + failure.getMessage() + ")");
+            }
+        }
     }
 
     /** Remove the lockfile for a port. Returns true if a file was deleted. */

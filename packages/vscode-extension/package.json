@@ -455,6 +455,7 @@
   },
   "scripts": {
     "package": "vsce package --no-dependencies",
+    "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx publish --no-dependencies",
     "publish:vsce": "vsce publish --no-dependencies"
   },

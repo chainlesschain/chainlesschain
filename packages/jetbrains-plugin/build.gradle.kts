@@ -246,11 +246,25 @@ tasks.register<Test>("uiSmokeTest") {
     testClassesDirs = uiTestSourceSet.output.classesDirs
     classpath = uiTestSourceSet.runtimeClasspath
     useJUnitPlatform()
+    // Remote Robot 0.11.x models IDE-side failures as Throwable fields in its
+    // Retrofit/Gson response DTOs. On JDK 17, Gson cannot create that adapter
+    // unless java.lang is opened to the unnamed test-worker module. Without
+    // this, even the first successful response can fail client-side with
+    // JsonIOException -> InaccessibleObjectException before a fixture is read.
+    // Keep this scoped to the isolated GUI test worker; the plugin/IDE JVM does
+    // not need (and must not inherit) the opening.
+    jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
     // The robot endpoint of the IDE started by runIdeForUiTests.
     systemProperty("ui.robot.url", System.getProperty("ui.robot.url") ?: "http://127.0.0.1:8082")
     systemProperty("file.encoding", "UTF-8")
+    maxParallelForks = 1 // one live IDE + one robot client, never parallelize
     outputs.upToDateWhen { false } // always re-drive the live IDE
-    testLogging { events("passed", "failed", "skipped") }
+    testLogging {
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 runCatching {

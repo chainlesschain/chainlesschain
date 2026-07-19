@@ -36,6 +36,8 @@
     "test:integration": "vitest run tests/integration",
     "test:coding-agent:integration": "vitest run tests/integration/coding-agent-hosted-tools.integration.test.js",
     "test:coding-agent:mvp": "node scripts/verify-coding-agent-mvp.js",
+    "test:coding-agent:parity": "node scripts/verify-coding-agent-parity.js",
+    "test:coding-agent:parity:list": "node scripts/verify-coding-agent-parity.js --list",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:health": "node tests/e2e/health-check.js",

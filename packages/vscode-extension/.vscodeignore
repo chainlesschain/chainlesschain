@@ -3,4 +3,5 @@
 **/*.map
 **/*.vsix
 __tests__/**
+test/**
 node_modules/**
