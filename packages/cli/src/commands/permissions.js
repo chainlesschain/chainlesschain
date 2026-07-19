@@ -22,6 +22,13 @@ const KIND_COLOR = {
   deny: chalk.red,
 };
 
+const RUNTIME_ADVISORY =
+  "advisory/not enforced: this command edits and dry-runs settings rules; the Agent runtime still has separate ApprovalGate/managed-policy wiring.";
+
+function printRuntimeAdvisory() {
+  logger.log(chalk.yellow(RUNTIME_ADVISORY));
+}
+
 /** Resolve an umbrella token (Bash) to a concrete tool name for dry-run. */
 function resolveConcreteTool(token, groups) {
   const t = String(token || "");
@@ -68,13 +75,24 @@ export function registerPermissionsCommand(program) {
         if (options.json) {
           console.log(
             JSON.stringify(
-              { rules, sources, files, managed, managedFile },
+              {
+                rules,
+                sources,
+                files,
+                managed,
+                managedFile,
+                enforcement: {
+                  status: "advisory/not enforced",
+                  note: RUNTIME_ADVISORY,
+                },
+              },
               null,
               2,
             ),
           );
           return;
         }
+        printRuntimeAdvisory();
         const total = rules.allow.length + rules.ask.length + rules.deny.length;
         if (total === 0) {
           logger.log(
@@ -227,6 +245,10 @@ export function registerPermissionsCommand(program) {
                 decision,
                 rule: result.rule,
                 source,
+                enforcement: {
+                  status: "dry-run only",
+                  note: RUNTIME_ADVISORY,
+                },
               },
               null,
               2,
@@ -235,6 +257,7 @@ export function registerPermissionsCommand(program) {
           return;
         }
 
+        printRuntimeAdvisory();
         const color = KIND_COLOR[result.decision] || chalk.gray;
         logger.log(
           `${chalk.bold(concrete)} ${chalk.gray(JSON.stringify(toolArgs))}`,

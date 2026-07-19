@@ -569,3 +569,44 @@ export function getSessionHooksGovStatsV2() {
     invocationsByStatus,
   };
 }
+
+/**
+ * Fire settings.json Stop hooks (observe-only) — fires at the END of EVERY
+ * agent turn/loop iteration, BEFORE waiting for the next user input.
+ * Aligns with Claude Code hook spec.
+ *
+ * Fires regardless of outcome: normal completion, error, max iterations,
+ * user interrupt, or tool stop. Does NOT fire on final process exit
+ * (use SessionEnd/Shutdown hooks for that case).
+ *
+ * @param {Object} opts
+ * @param {string} opts.sessionId - Current session ID
+ * @param {string} opts.transcriptPath - Path to transcript file
+ * @param {string} [opts.stopReason="end_turn"] - Reason the turn stopped:
+ *   "end_turn", "error", "max_iterations", "user_interrupt", "tool_stop"
+ * @param {string} [opts.finalResponse=""] - Final assistant response text
+ * @param {number} [opts.toolCount=0] - Number of tool calls made this turn
+ * @param {number} [opts.durationMs=0] - Turn duration in milliseconds
+ * @param {Error|string} [opts.error] - Error object if stopReason is "error"
+ * @returns {Promise<Array>} Hook execution results
+ */
+export async function fireSessionStop({
+  sessionId,
+  transcriptPath,
+  stopReason = "end_turn",
+  finalResponse = "",
+  toolCount = 0,
+  durationMs = 0,
+  error = null,
+}) {
+  return runSettingsHooks("Stop", {
+    session_id: sessionId,
+    transcript_path: transcriptPath,
+    stop_reason: stopReason,
+    final_response: finalResponse,
+    tool_count: toolCount,
+    duration_ms: durationMs,
+    error: error ? String(error.message ?? error) : "",
+    timestamp: new Date().toISOString(),
+  });
+}

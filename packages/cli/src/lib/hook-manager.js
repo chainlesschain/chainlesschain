@@ -5,6 +5,7 @@
 
 import crypto from "crypto";
 import { execSync } from "child_process";
+import broker from "./process-execution-broker/index.js";
 
 /**
  * Hook priority levels — lower values run first.
@@ -62,6 +63,13 @@ export const HookEvents = {
   CIFailure: "CIFailure",
   IterationWarning: "IterationWarning",
   IterationBudgetExhausted: "IterationBudgetExhausted",
+  /**
+   * Stop: Fired at the END of every agent turn/loop iteration, BEFORE waiting
+   * for the next user input. Aligns with Claude Code hook spec.
+   * Fires regardless of outcome (success, error, max-iterations, stop).
+   * Does NOT fire on final process exit (use SessionEnd/Shutdown for that).
+   */
+  Stop: "Stop",
 };
 
 /**
@@ -282,6 +290,15 @@ export async function executeHook(hook, context = {}) {
         HOOK_EVENT: hook.event,
         HOOK_CONTEXT: JSON.stringify(context),
       };
+      // M1: Record hook command execution in broker audit log
+      broker.auditLog.push({
+        pid: process.pid,
+        origin: "hook",
+        command: cmd,
+        args: [],
+        startedAt: Date.now(),
+        sessionId: context?.sessionId,
+      });
       const output = execSync(cmd, {
         encoding: "utf-8",
         timeout: hook.timeout || 5000,

@@ -43,6 +43,8 @@
     "test:coverage:open": "open coverage/jest/index.html && open coverage/vitest/index.html",
     "test:performance": "vitest run tests/performance/benchmark.test.js",
     "test:all": "npm run test:jest && npm run test:vitest:coverage && npm run test:performance",
+    "test:coding-agent:parity": "npm run test:coding-agent:parity --prefix desktop-app-vue",
+    "test:coding-agent:parity:list": "npm run test:coding-agent:parity:list --prefix desktop-app-vue",
     "test:e2e": "playwright test",
     "test:e2e:project": "playwright test tests/e2e/project-management.e2e.test.ts",
     "test:e2e:workflow": "playwright test tests/e2e/complete-workflow.e2e.test.ts",

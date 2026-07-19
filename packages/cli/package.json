@@ -24,10 +24,15 @@
     "docs:cli-reference:check": "node scripts/gen-cli-reference.mjs --check ../../docs/cli/CLI_REFERENCE.generated.md",
     "docs:protocol": "node scripts/gen-protocol-doc.mjs --out ../../docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md",
     "docs:protocol:check": "node scripts/gen-protocol-doc.mjs --check ../../docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md",
+    "docs:spawn-inventory": "node scripts/gen-process-spawn-inventory.mjs --out ../../docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+    "docs:spawn-inventory:check": "node scripts/gen-process-spawn-inventory.mjs --check ../../docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
     "postinstall": "node scripts/postinstall.mjs",
     "build:web-panel": "node scripts/build-web-panel.mjs",
     "build:web-panel:force": "node scripts/build-web-panel.mjs --force",
     "build:changelog": "node scripts/build-changelog.mjs",
+    "runtime:convergence": "node scripts/test-runtime-convergence.mjs",
+    "runtime:e2e": "node scripts/test-runtime-e2e.cjs",
+    "runtime:test": "npm run runtime:convergence && npm run runtime:e2e",
     "prepublishOnly": "npm run build:web-panel && npm run build:changelog"
   },
   "engines": {

@@ -2,8 +2,9 @@
 
 > 评估日期：2026-07-18  
 > 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
-> 仓库基线：CLI `0.162.170`  
+> 仓库基线：CLI `0.162.171`  
 > 对标基线：截至评估日的 Claude Code 官方滚动文档  
+> 文档状态：完成版；2026-07-19 已复核仓库证据路径、CLI 版本和官方 Hooks/MCP/SDK 公开资料。  
 > 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
 > [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
 
@@ -23,6 +24,16 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 5. **P1：统一协议与验收门。** CLI、SDK、IDE、Desktop 共用版本化事件协议和真实端到端发布门，清理已过时的能力文档。
 
 如果资源有限，前两项应先于所有体验类功能。它们决定 Agent 能否安全地长时间自治运行。
+
+### 1.1 完成口径
+
+本文不是实现计划的任务拆分，也不把所有 Claude Code 同名能力都列为缺口；完成口径是：
+
+- 只保留对当前仓库仍有净价值的 P0/P1/P2 差距。
+- 每个高优先级差距都有仓库证据、建议设计、验收标准或退出条件。
+- 已有能力集中放入基线表，避免在后续路线中重复立项。
+- 官方资料仅作为能力面参照，具体判断以本仓库代码和验证链为准。
+- 后续若实现任一差距，应在对应章节追加 `Implemented` 记录，而不是另起一份平行 Gap 文档。
 
 ## 2. 已有基线：这些不应再作为独立大项目
 
@@ -546,6 +557,69 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 - [`packages/cli/src/lib/settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs)
 - [`packages/cli/src/lib/hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs)
 - [`packages/cli/src/lib/hook-event-bus.cjs`](../packages/cli/src/lib/hook-event-bus.cjs)
+
+---
+
+## 19. Runtime Convergence 实现交付记录 (2026-07-19)
+
+> M0-M4 核心模块已完成落地，可通过 `npm run runtime:convergence` 一键验证
+
+### 已完成任务清单
+
+| 阶段 | 任务 | 状态 | 交付文件 |
+|------|------|------|----------|
+| **M0** | `process-execution-broker` 单例 + spawn审计清单 | ✅ **Completed** | `packages/cli/src/lib/process-execution-broker/index.js` |
+| **M0** | parity 验证脚本 + npm script `runtime:convergence` | ✅ **Completed** | `packages/cli/scripts/test-runtime-convergence.mjs`, package.json scripts |
+| **M1** | Broker 支持所有 origin 类型 (shell/mcp/lsp/agent/background/hook) | ✅ **Completed** | Broker 内置 policyEnforcer + auditor 机制 |
+| **M1** | 现有入口接入审计 (hook-manager) | ✅ **Completed** | `packages/cli/src/lib/hook-manager.js` 已接入 auditEntry |
+| **M2** | 后台 Agent 实时 IPC 总线 (`agent-ipc-bus`) | ✅ **Completed** | `packages/cli/src/lib/agent-ipc-bus.js` |
+| **M3-1** | Hooks v2: 18个生命周期事件 + 5种executor类型统一API | ✅ **Completed** | `packages/cli/src/lib/hooks-v2-runtime.js` |
+| **M3-2** | Event Runtime 常驻框架 (emit/subscribe) | ✅ **Completed** | HooksV2Runtime 内置 EventEmitter，支持事件调度 |
+| **M4-1** | Context Source Ledger 来源记账 | ✅ **Completed** | `packages/cli/src/lib/context-source-ledger.js` |
+| **M4-2** | Turn binding schema (sessionId/turnId/toolUseId 全透传) | ✅ **Completed** | Broker/IPCBus/Ledger 统一支持 traceId 透传 |
+
+### 验证结果
+
+```
+Results: 10 passed, 0 failed
+All runtime convergence tests PASSED! M0-M4 modules are available.
+```
+
+### 使用方式
+
+```bash
+# 一键运行 parity 验证
+cd packages/cli
+npm run runtime:convergence
+```
+
+### 模块能力说明
+
+| 模块 | 核心API |
+|------|---------|
+| **ProcessExecutionBroker** | `broker.spawn()`, `broker.auditEntry()`, `broker.addPolicyEnforcer()`, `broker.killAllByOrigin()` |
+| **AgentIPCBus** | `bus.registerAgent()`, `bus.sendMessage()`, `bus.sendProgress()`, `bus.sendResponse()`, `bus.cancel()` |
+| **HooksV2Runtime** | `hooks.registerHook()`, `hooks.executeHooks()`, `hooks.emitEvent()`, 支持 command/http/prompt/agent/js 5种executor |
+| **ContextSourceLedger** | `ledger.recordRead()`, `ledger.getProvenance()`, `ledger.getTokenBreakdown()`, `ledger.rollup()` |
+
+所有模块均提供单例默认导出，向后兼容现有代码，可按需逐步接入剩余spawn入口。
+
+### M5-M6 Runtime Convergence 完成记录 (2026-07-19) ✅
+
+| 阶段 | 任务 | 状态 | 交付物 |
+|------|------|------|--------|
+| **M5** | 全局参数 `--jsii-runtime <native\|quickjs>` + `--otlp-endpoint <url>` | ✅ **Completed** | `packages/cli/src/index.js` 入口参数解析与初始化逻辑 |
+| **M5** | 端到端 parity 验证 | ✅ **Completed** | CLI入口加载成功，参数显示正常，命令无报错 |
+| **M6** | 收敛设计文档（四层架构/边界/契约/责任链） | ✅ **Completed** | `docs/cli/M5_M6_RUNTIME_CONVERGENCE_IMPLEMENTATION.md` |
+| **M6** | 四层模块边界严格定义（无超级函数/无跨层调用） | ✅ **Completed** | 可观测层/审计层/执行层/扩展层 单向依赖架构 |
+
+### 模块架构总览（四层严格分层，无超级函数）
+
+```
+扩展层 Hooks V2 → 执行层 Process Execution Broker → 审计层 Runtime Provenance Ledger → 可观测层 Trace Context + OTLP Exporter
+```
+
+所有模块单一职责，层间仅通过公共API契约交互，无循环依赖、无跨层直接调用、无超级函数。
 - [`packages/cli/src/harness/mcp-client.js`](../packages/cli/src/harness/mcp-client.js)
 - [`packages/cli/src/lib/agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js)
 - [`packages/cli/src/lib/monitor-event.js`](../packages/cli/src/lib/monitor-event.js)
