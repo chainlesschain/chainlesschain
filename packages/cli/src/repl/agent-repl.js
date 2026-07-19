@@ -76,6 +76,8 @@ import {
   fireSessionHook,
   fireUserPromptSubmit,
   fireAssistantResponse,
+  fireSessionNotification,
+  fireSessionStop,
 } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
