@@ -19,6 +19,9 @@ export function createBaseProgram() {
     )
     .version(VERSION, "-v, --version")
     .option("--verbose", "Enable verbose output")
-    .option("--quiet", "Suppress non-essential output");
+    .option("--quiet", "Suppress non-essential output")
+    // M5/M6 Runtime Convergence options
+    .option("--jsii-runtime <runtime>", "JSII runtime to use: native|quickjs", "native")
+    .option("--otlp-endpoint <endpoint>", "OTLP/HTTP endpoint for trace export (e.g. http://localhost:4318)");
   return program;
 }
