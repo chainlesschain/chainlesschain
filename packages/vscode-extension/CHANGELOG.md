@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.19] - Open VSX changelog visibility refresh (2026-07-19)
+
+- **Republished the Windows lockfile ACL fix with visible release notes.** The
+  0.37.18 VSIX was present on Open VSX, but its packaged changelog still opened
+  at 0.37.17. This release carries the same Windows `icacls` lockfile fix with
+  the corrected changelog included in the published artifact.
+
 ## [0.37.18] — Windows lockfile ACL PowerShell string interpolation fix (2026-07-19)
 
 - **Fixed Windows lockfile ACL script.** The PowerShell ACL script used
