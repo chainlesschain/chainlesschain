@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.18] — Windows lockfile ACL PowerShell string interpolation fix (2026-07-19)
+
+- **Fixed Windows lockfile ACL script.** The PowerShell ACL script used
+  `"\${account}:F"` string interpolation which added an unintended leading
+  backslash to the account name, causing `icacls` to fail when setting
+  owner-only permissions on the lockfile. Changed to string concatenation
+  (`$account + ":F"`) for correct account name resolution.
+
 ## [0.37.17] — uncertain-side-effect visibility, cmd.exe hardening, MCP-stop & leak fixes, checkpoint trace (2026-07-18)
 
 - **`uncertain_side_effect` blocked agents are visible.** cc 0.162.169's
