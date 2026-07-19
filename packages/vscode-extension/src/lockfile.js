@@ -108,9 +108,9 @@ param([string]$target)
 $ErrorActionPreference = 'Stop'
 $item = Get-Item -LiteralPath $target -Force
 $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$grant = "\${account}:F"
+$grant = $account + ":F"
 if ($item.PSIsContainer) {
-  $grant = "\${account}:(OI)(CI)F"
+  $grant = $account + ":(OI)(CI)F"
 }
 & icacls $target /inheritance:r /grant:r $grant | Out-Null
 if ($LASTEXITCODE -ne 0) {
